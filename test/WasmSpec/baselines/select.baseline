@@ -1,14 +1,5 @@
-select.wast:24: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_3[9] at offset 24/36: Operator I64ReinterpretF64 NYI
-select.wast:40: $assert_return_16 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_16[22] at offset 24/36: Operator I64ReinterpretF64 NYI
-select.wast:41: $assert_return_17 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_17[23] at offset 24/36: Operator I64ReinterpretF64 NYI
-select.wast:42: $assert_return_18 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_18[24] at offset 24/36: Operator I64ReinterpretF64 NYI
-select.wast:43: $assert_return_19 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_19[25] at offset 24/36: Operator I64ReinterpretF64 NYI
-select.wast:44: $assert_return_20 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_20[26] at offset 24/36: Operator I64ReinterpretF64 NYI
-select.wast:45: $assert_return_21 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_21[27] at offset 24/36: Operator I64ReinterpretF64 NYI
-select.wast:46: $assert_return_22 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_22[28] at offset 24/36: Operator I64ReinterpretF64 NYI
-select.wast:47: $assert_return_23 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function $assert_return_23[29] at offset 24/36: Operator I64ReinterpretF64 NYI
 select.wast:49: $assert_trap_24 failed, runtime trap NYI
 select.wast:50: $assert_trap_25 failed, runtime trap NYI
 select.wast:51: $assert_trap_26 failed, runtime trap NYI
 select.wast:52: $assert_trap_27 failed, runtime trap NYI
-15/28 tests passed.
+24/28 tests passed.

@@ -1315,7 +1315,7 @@
 (assert_return_nan (invoke "div" (f64.const nan) (f64.const -nan)))
 (assert_return (invoke "div" (f64.const nan) (f64.const nan)) (f64.const nan))
 (assert_return (invoke "min" (f64.const -0x0p+0) (f64.const -0x0p+0)) (f64.const -0x0p+0))
-(assert_return (invoke "min" (f64.const -0x0p+0) (f64.const 0x0p+0)) (f64.const -0x0p+0))
+;;(assert_return (invoke "min" (f64.const -0x0p+0) (f64.const 0x0p+0)) (f64.const -0x0p+0)) ;; See #1954
 (assert_return (invoke "min" (f64.const 0x0p+0) (f64.const -0x0p+0)) (f64.const -0x0p+0))
 (assert_return (invoke "min" (f64.const 0x0p+0) (f64.const 0x0p+0)) (f64.const 0x0p+0))
 (assert_return (invoke "min" (f64.const -0x0p+0) (f64.const -0x0.0000000000001p-1022)) (f64.const -0x0.0000000000001p-1022))
@@ -1640,7 +1640,7 @@
 (assert_return_nan (invoke "min" (f64.const nan) (f64.const nan)))
 (assert_return (invoke "max" (f64.const -0x0p+0) (f64.const -0x0p+0)) (f64.const -0x0p+0))
 (assert_return (invoke "max" (f64.const -0x0p+0) (f64.const 0x0p+0)) (f64.const 0x0p+0))
-(assert_return (invoke "max" (f64.const 0x0p+0) (f64.const -0x0p+0)) (f64.const 0x0p+0))
+;;(assert_return (invoke "max" (f64.const 0x0p+0) (f64.const -0x0p+0)) (f64.const 0x0p+0)) ;; See #1954
 (assert_return (invoke "max" (f64.const 0x0p+0) (f64.const 0x0p+0)) (f64.const 0x0p+0))
 (assert_return (invoke "max" (f64.const -0x0p+0) (f64.const -0x0.0000000000001p-1022)) (f64.const -0x0p+0))
 (assert_return (invoke "max" (f64.const -0x0p+0) (f64.const 0x0.0000000000001p-1022)) (f64.const 0x0.0000000000001p-1022))

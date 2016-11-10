@@ -1,0 +1,10 @@
+call_indirect.wast:189: $assert_trap_18 failed, runtime trap NYI
+call_indirect.wast:190: $assert_trap_19 failed, runtime trap NYI
+call_indirect.wast:191: $assert_trap_20 failed, runtime trap NYI
+call_indirect.wast:192: $assert_trap_21 failed, runtime trap NYI
+call_indirect.wast:193: $assert_trap_22 failed, runtime trap NYI
+call_indirect.wast:199: $assert_trap_27 failed, runtime trap NYI
+call_indirect.wast:200: $assert_trap_28 failed, runtime trap NYI
+call_indirect.wast:222: $assert_trap_46 failed, runtime trap NYI
+call_indirect.wast:223: $assert_trap_47 failed, runtime trap NYI
+39/48 tests passed.

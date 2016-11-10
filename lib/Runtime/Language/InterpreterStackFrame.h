@@ -140,6 +140,9 @@ namespace Js
         double* m_localDoubleSlots;
         float* m_localFloatSlots;
 
+#ifdef ENABLE_WASM
+        Wasm::WasmSignature* m_signatures;
+#endif
          _SIMDValue* m_localSimdSlots;
 
         EHBailoutData * ehBailoutData;
@@ -187,7 +190,9 @@ namespace Js
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         int OP_GetMemorySize();
         void OP_Unreachable();
-
+        template <typename T> using AsmJsMathPtr = T(*)(T a, T b);
+        template <typename T, AsmJsMathPtr<T> func, T MIN> static T OP_DivOverflow(T a, T b, ScriptContext* scriptContext);
+        template <typename T, AsmJsMathPtr<T> func> static T OP_DivRemCheck(T a, T b, ScriptContext* scriptContext);
         void ValidateSetRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         template <typename RegSlotType> Var GetReg(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetReg(RegSlotType localRegisterID, Var bValue);
@@ -608,6 +613,8 @@ namespace Js
         template <class T> inline void OP_InitClassMemberSetComputedName(const unaligned T * playout);
         template <typename ArrayType, typename RegType = ArrayType> inline void OP_LdArr(  uint32 index, RegSlot value  );
         template <class T> inline void OP_LdArrFunc(const unaligned T* playout);
+        template <class T> inline void OP_LdArrWasmFunc(const unaligned T* playout);
+        template <class T> inline void OP_CheckSignature(const unaligned T* playout);
         template <class T> inline void OP_ReturnDb(const unaligned T* playout);
         template<typename T> T GetArrayViewOverflowVal();
         template <typename ArrayType, typename RegType = ArrayType> inline void OP_StArr( uint32 index, RegSlot value );

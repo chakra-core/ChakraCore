@@ -8,6 +8,7 @@
 #include "../WasmReader/WasmReaderPch.h"
 // Included for AsmJsDefaultEntryThunk
 #include "Language/InterpreterStackFrame.h"
+#include "Language/AsmJsUtils.h"
 
 namespace Js
 {
@@ -74,6 +75,71 @@ Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ..
     }
 }
 
+Var WebAssembly::EntryNativeTypeCallTest(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+    if (args.Info.Count < 2 || !AsmJsScriptFunction::Is(args[1]))
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedFunction);
+    }
+    AsmJsScriptFunction* asmFunc = (AsmJsScriptFunction*)args[1];
+    AsmJsFunctionInfo* asmFuncInfo = asmFunc->GetFunctionBody()->GetAsmJsFunctionInfo();
+
+    const uint32 argSize = asmFuncInfo->GetArgByteSize() + sizeof(Js::Var);
+    char* argsBytes = HeapNewArrayZ(char, argSize);
+    AutoArrayPtr<char> heapAutoClean(argsBytes, argSize);
+    Unused(heapAutoClean);
+
+    Var* argsVar = (Var*)argsBytes;
+    CallInfo newInfo = callInfo;
+    newInfo.Count--; // Remove the asm function
+    JavascriptMethod asmJSEntryPoint = (JavascriptMethod)UnboxAsmJsArguments(asmFunc, args.Values + 2 /*skip [this, asmFunc]*/, argsBytes, newInfo, true);
+
+    Var returnValue = scriptContext->GetLibrary()->GetUndefined();
+    switch (asmFuncInfo->GetReturnType().which())
+    {
+    case AsmJsRetType::Void:
+    case AsmJsRetType::Signed:
+    {
+        int intRetVal = JavascriptFunction::CallAsmJsFunction<int>(asmFunc, asmJSEntryPoint, asmFuncInfo->GetArgCount(), argsVar);
+        if (asmFuncInfo->GetReturnType().which() == AsmJsRetType::Signed)
+        {
+            returnValue = JavascriptNumber::ToVar(intRetVal, scriptContext);
+        }
+        break;
+    }
+    case AsmJsRetType::Int64:
+    {
+        int64 val = JavascriptFunction::CallAsmJsFunction<int64>(asmFunc, asmJSEntryPoint, asmFuncInfo->GetArgCount(), argsVar);
+        char16 buf[24];
+        _i64tow_s(val, buf, 24, 10);
+        returnValue = JavascriptString::NewCopySz(buf, scriptContext);
+        break;
+    }
+    case AsmJsRetType::Double:
+    {
+        double val = JavascriptFunction::CallAsmJsFunction<double>(asmFunc, asmJSEntryPoint, asmFuncInfo->GetArgCount(), argsVar);
+        returnValue = JavascriptNumber::NewWithCheck(val, scriptContext);
+        break;
+    }
+    case AsmJsRetType::Float:
+    {
+        float val = JavascriptFunction::CallAsmJsFunction<float>(asmFunc, asmJSEntryPoint, asmFuncInfo->GetArgCount(), argsVar);
+        returnValue = JavascriptNumber::NewWithCheck(val, scriptContext);
+        break;
+    }
+    default:
+        Assume(UNREACHED);
+    }
+    return returnValue;
+}
+
 uint32
 WebAssembly::ToNonWrappingUint32(Var val, ScriptContext * ctx)
 {
@@ -110,6 +176,21 @@ WebAssembly::ReadBufferSource(Var val, ScriptContext * ctx, _Out_ BYTE** buffer,
         *buffer = arrayBuffer->GetBuffer();
         *byteLength = arrayBuffer->GetByteLength();
     }
+}
+
+void
+WebAssembly::CheckSignature(ScriptContext * scriptContext, Wasm::WasmSignature * sig1, Wasm::WasmSignature * sig2)
+{
+    if (!sig1->IsEquivalent(sig2))
+    {
+        JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_SignatureMismatch);
+    }
+}
+
+uint
+WebAssembly::GetSignatureSize()
+{
+    return sizeof(Wasm::WasmSignature);
 }
 
 }

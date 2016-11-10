@@ -28,9 +28,10 @@ PRINT_USAGE() {
     echo "build.sh [options]"
     echo ""
     echo "options:"
-    echo "  --arch=[*]           Set target arch (x86)"
-    echo "      --cxx=PATH       Path to Clang++ (see example below)"
+    echo "      --arch=[*]       Set target arch (x86)"
     echo "      --cc=PATH        Path to Clang   (see example below)"
+    echo "      --cxx=PATH       Path to Clang++ (see example below)"
+    echo "      --create-deb=V   Create .deb package with given V version"
     echo "  -d, --debug          Debug build (by default Release build)"
     echo "      --embed-icu      Download and embed ICU-57 statically"
     echo "  -h, --help           Show help"
@@ -39,16 +40,17 @@ PRINT_USAGE() {
     echo "  -n, --ninja          Build with ninja instead of make"
     echo "      --no-icu         Compile without unicode/icu support"
     echo "      --no-jit         Disable JIT"
-    echo "      --xcode          Generate XCode project"
-    echo "  -t, --test-build     Test build (by default Release build)"
+    echo "      --lto            Enables LLVM Full LTO"
+    echo "      --lto-thin       Enables LLVM Thin LTO - xcode 8+ or clang 3.9+"
     echo "      --static         Build as static library (by default shared library)"
     echo "      --sanitize=CHECKS Build with clang -fsanitize checks,"
     echo "                       e.g. undefined,signed-integer-overflow"
-    echo "  -v, --verbose        Display verbose output including all options"
-    echo "      --create-deb=V   Create .deb package with given V version"
+    echo "  -t, --test-build     Test build (by default Release build)"
+    echo "      --xcode          Generate XCode project"
     echo "      --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental"
     echo "                       features."
+    echo "  -v, --verbose        Display verbose output including all options"
     echo "      --wb-check CPPFILE"
     echo "                       Write-barrier check given CPPFILE (git path)"
     echo "      --wb-analyze CPPFILE"
@@ -59,14 +61,14 @@ PRINT_USAGE() {
     echo "example:"
     echo "  ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j"
     echo "with icu:"
-    echo "  ./build.sh --icu=/usr/local/Cellar/icu4c/version/include/"
+    echo "  ./build.sh --icu=/usr/local/opt/icu4c/include"
     echo ""
 }
 
 CHAKRACORE_DIR=`dirname $0`
 _CXX=""
 _CC=""
-VERBOSE=""
+_VERBOSE=""
 BUILD_TYPE="Release"
 CMAKE_GEN=
 MAKE=make
@@ -81,6 +83,7 @@ ARCH="-DCC_TARGETS_AMD64_SH=1"
 OS_LINUX=0
 OS_APT_GET=0
 OS_UNIX=0
+LTO=""
 WB_CHECK=
 WB_ANALYZE=
 WB_ARGS=
@@ -119,7 +122,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     -v | --verbose)
-        _VERBOSE="verbose"
+        _VERBOSE="V=1"
         ;;
 
     -d | --debug)
@@ -194,6 +197,14 @@ while [[ $# -gt 0 ]]; do
     --icu=*)
         ICU_PATH=$1
         ICU_PATH="-DICU_INCLUDE_PATH_SH=${ICU_PATH:6}"
+        ;;
+
+    --lto)
+        LTO="-DENABLE_FULL_LTO_SH=1"
+        ;;
+
+    --lto-thin)
+        LTO="-DENABLE_THIN_LTO_SH=1"
         ;;
 
     -n | --ninja)
@@ -286,7 +297,7 @@ if [[ ${#_VERBOSE} > 0 ]]; then
     echo "MULTICORE_BUILD=${MULTICORE_BUILD}"
     echo "ICU_PATH=${ICU_PATH}"
     echo "CMAKE_GEN=${CMAKE_GEN}"
-    echo "MAKE=${MAKE}"
+    echo "MAKE=${MAKE} $_VERBOSE"
     echo ""
 fi
 
@@ -395,7 +406,7 @@ else
 fi
 
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY $ARCH \
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES \
     $WB_FLAG $WB_ARGS \
     ../..
@@ -403,7 +414,7 @@ cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $STATIC_LIBRARY $ARCH \
 _RET=$?
 if [[ $? == 0 ]]; then
     if [[ $MAKE != 0 ]]; then
-        $MAKE $MULTICORE_BUILD $WB_TARGET 2>&1 | tee build.log
+        $MAKE $MULTICORE_BUILD $_VERBOSE $WB_TARGET 2>&1 | tee build.log
         _RET=${PIPESTATUS[0]}
     else
         echo "Visit given folder above for xcode project file ----^"

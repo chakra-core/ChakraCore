@@ -34,6 +34,8 @@ public:
     intptr_t GetFloatNegTwoToFractionAddr() const;
     intptr_t GetDoubleZeroAddr() const;
     intptr_t GetFloatZeroAddr() const;
+    intptr_t GetDoubleIntMinAddr() const;
+    intptr_t GetDoubleTwoTo31Addr() const;
 
     intptr_t GetUIntConvertConstAddr() const;
     intptr_t GetUint8ClampedArraySetItemAddr() const;
@@ -98,7 +100,6 @@ public:
 
     bool IsCFGEnabled();
     bool IsClosed();
-    
 
 #if defined(ENABLE_GLOBALIZATION) && defined(_CONTROL_FLOW_GUARD)
     Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
@@ -115,7 +116,6 @@ protected:
 
 };
 
-
 // TODO: OOP JIT, is there any issue when crossing over 2^31/2^63?
 template<typename T>
 intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, T* address)
@@ -123,13 +123,11 @@ intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, T* address)
     return SHIFT_ADDR(context, (intptr_t)address);
 }
 
-
 template<typename T>
 intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, T* address)
 {
     return SHIFT_CRT_ADDR(context, (intptr_t)address);
 }
-
 
 intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address);
 intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, intptr_t address);

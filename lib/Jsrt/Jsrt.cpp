@@ -221,7 +221,7 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
     _In_opt_ const byte* optTTUri, size_t optTTUriCount, bool isRecord, bool isReplay, bool isDebug,
     _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength,
     _In_opt_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction,
-    _In_opt_ TTDOpenResourceStreamCallback openResourceStream, _In_opt_ JsTTDReadBytesFromStreamCallback readBytesFromStream, 
+    _In_opt_ TTDOpenResourceStreamCallback openResourceStream, _In_opt_ JsTTDReadBytesFromStreamCallback readBytesFromStream,
     _In_opt_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_opt_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
     _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
@@ -342,7 +342,7 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
             threadContext->EnsureRecycler();
 
             threadContext->InitTimeTravel(threadContext, *runtimeHandle, optTTUriCount, optTTUri, snapInterval, max<uint32>(2, snapHistoryLength));
-            threadContext->InitHostFunctionsAndTTData(isRecord, isReplay, isDebug, 
+            threadContext->InitHostFunctionsAndTTData(isRecord, isReplay, isDebug,
                 writeInitializeFunction, openResourceStream, readBytesFromStream, writeBytesToStream, flushAndCloseStream,
                 &CreateExternalObject_TTDCallback, &CreateJsRTContext_TTDCallback, &SetActiveJsRTContext_TTDCallback);
 
@@ -358,10 +358,10 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
 
 CHAKRA_API JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
 {
-    return CreateRuntimeCore(attributes, 
-        nullptr /*optRecordUri*/, 0 /*optRecordUriCount */, false /*isRecord*/, false /*isReplay*/, false /*isDebug*/, 
-        UINT_MAX /*optSnapInterval*/, UINT_MAX /*optLogLength*/, 
-        nullptr, nullptr, nullptr, nullptr, nullptr, /*TTD IO handlers*/ 
+    return CreateRuntimeCore(attributes,
+        nullptr /*optRecordUri*/, 0 /*optRecordUriCount */, false /*isRecord*/, false /*isReplay*/, false /*isDebug*/,
+        UINT_MAX /*optSnapInterval*/, UINT_MAX /*optLogLength*/,
+        nullptr, nullptr, nullptr, nullptr, nullptr, /*TTD IO handlers*/
         threadService, runtimeHandle);
 }
 
@@ -1020,7 +1020,7 @@ CHAKRA_API JsDoubleToNumber(_In_ double dbl, _Out_ JsValueRef *asValue)
 {
     PARAM_NOT_NULL(asValue);
     //If number is not heap allocated then we don't need to record/track the creation for time-travel
-    if (Js::JavascriptNumber::TryToVarFastWithCheck(dbl, asValue)) 
+    if (Js::JavascriptNumber::TryToVarFastWithCheck(dbl, asValue))
     {
       return JsNoError;
     }
@@ -2211,7 +2211,7 @@ CHAKRA_API JsCallFunction(_In_ JsValueRef function, _In_reads_(cargs) JsValueRef
 
         VALIDATE_INCOMING_FUNCTION(function, scriptContext);
 
-        if(cargs == 0 || args == nullptr) 
+        if(cargs == 0 || args == nullptr)
         {
             return JsErrorInvalidArgument;
         }
@@ -3300,19 +3300,18 @@ JsErrorCode RunSerializedScriptCore(
     });
 }
 
-static bool CHAKRA_CALLBACK DummyScriptLoadSourceCallback(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const wchar_t** scriptBuffer)
-{
-    // sourceContext is actually the script source pointer
-    *scriptBuffer = reinterpret_cast<const wchar_t*>(sourceContext);
-    return true;
-}
-
 static void CHAKRA_CALLBACK DummyScriptUnloadCallback(_In_ JsSourceContext sourceContext)
 {
     // Do nothing
 }
 
 #ifdef _WIN32
+static bool CHAKRA_CALLBACK DummyScriptLoadSourceCallback(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const wchar_t** scriptBuffer)
+{
+    // sourceContext is actually the script source pointer
+    *scriptBuffer = reinterpret_cast<const wchar_t*>(sourceContext);
+    return true;
+}
 
 CHAKRA_API JsParseSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned char *buffer,
     _In_ JsSourceContext sourceContext,
@@ -3374,7 +3373,7 @@ CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_rea
         return JsErrorInvalidArgument;
     }
 
-    return CreateRuntimeCore(attributes, infoUri, infoUriCount, true, false, false, (uint32)snapInterval, (uint32)snapHistoryLength, 
+    return CreateRuntimeCore(attributes, infoUri, infoUriCount, true, false, false, (uint32)snapInterval, (uint32)snapHistoryLength,
         writeInitializeFunction, openResourceStream, readBytesFromStream, writeBytesToStream, flushAndCloseStream,
         threadService, runtime);
 #endif
@@ -3389,7 +3388,7 @@ CHAKRA_API JsTTDCreateReplayRuntime(_In_ JsRuntimeAttributes attributes, _In_rea
     return JsErrorCategoryUsage;
 #else
 
-    return CreateRuntimeCore(attributes, infoUri, infoUriCount, false, true, enableDebugging, UINT_MAX, UINT_MAX, 
+    return CreateRuntimeCore(attributes, infoUri, infoUriCount, false, true, enableDebugging, UINT_MAX, UINT_MAX,
         writeInitializeFunction, openResourceStream, readBytesFromStream, writeBytesToStream, flushAndCloseStream,
         threadService, runtime);
 #endif
@@ -3476,7 +3475,7 @@ CHAKRA_API JsTTDStart()
             scriptContext->GetThreadContext()->TTDLog->DoSnapshotExtract();
         }
 
-        //Want to verify that we are at top-level of dispatch 
+        //Want to verify that we are at top-level of dispatch
         scriptContext->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::CurrentlyEnabled);
 
         return JsNoError;
@@ -3514,7 +3513,7 @@ CHAKRA_API JsTTDStop()
             scriptContext->GetThreadContext()->TTDLog->UnloadAllLogData();
         }
 
-        return JsNoError; 
+        return JsNoError;
     });
 #endif
 }
@@ -3770,8 +3769,8 @@ CHAKRA_API JsTTDRawBufferAsyncModifyComplete(_In_ byte* finalModPos)
 #endif
 }
 
-CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(_In_ JsRuntimeHandle runtimeHandle, 
-    _In_ JsTTDMoveMode moveMode, _Inout_ int64_t* targetEventTime, 
+CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(_In_ JsRuntimeHandle runtimeHandle,
+    _In_ JsTTDMoveMode moveMode, _Inout_ int64_t* targetEventTime,
    _Out_ int64_t* targetStartSnapTime, _Out_opt_ int64_t* targetEndSnapTime)
 {
 #if !ENABLE_TTD

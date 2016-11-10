@@ -1,3 +1,0 @@
-Unexpected Error while compiling import-after-global.fail.0.wasm
-Error: Compiling wasm failed: Imported Kind Table, NYI
-0/0 tests passed.

@@ -95,7 +95,7 @@ elseif(CC_EMBED_ICU)
     ${ICU18}
     ${ICUDATA}
     )
- endif()
+endif()
 
 set(CLR_CMAKE_PLATFORM_XPLAT 1)
 if(CC_TARGETS_AMD64)
@@ -150,11 +150,10 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
     if(NOT CC_XCODE_PROJECT)
         set(CLR_CMAKE_PLATFORM_DARWIN 1)
+        add_compile_options(-mmacosx-version-min=10.7)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
             -mmacosx-version-min=10.7")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-            -mmacosx-version-min=10.7")
-        set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
             -mmacosx-version-min=10.7")
     endif()
 else()
@@ -263,6 +262,14 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         unset(CLANG_SANITIZE_SH CACHE)      # don't cache
     endif()
 endif(CLR_CMAKE_PLATFORM_XPLAT)
+
+if(ENABLE_FULL_LTO_SH)
+    unset(DENABLE_FULL_LTO_SH CACHE)
+    add_compile_options(-flto)
+elseif(ENABLE_THIN_LTO_SH)
+    unset(ENABLE_THIN_LTO_SH CACHE)
+    add_compile_options(-flto=thin)
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(

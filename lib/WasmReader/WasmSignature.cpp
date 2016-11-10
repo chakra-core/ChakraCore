@@ -10,20 +10,23 @@
 namespace Wasm
 {
 
-WasmSignature::WasmSignature(ArenaAllocator * alloc) :
-    m_alloc(alloc),
+WasmSignature::WasmSignature() :
     m_resultType(WasmTypes::Void),
     m_id(Js::Constants::UninitializedValue),
     m_paramSize(Js::Constants::UninitializedValue),
     m_params(nullptr),
-    m_paramsCount(0)
+    m_paramsCount(0),
+    m_shortSig(Js::Constants::InvalidSignature)
 {
 }
 
 void
-WasmSignature::AllocateParams(uint32 count)
+WasmSignature::AllocateParams(uint32 count, Recycler * recycler)
 {
-    m_params = AnewArrayZ(m_alloc, Local, count);
+    if (count > 0)
+    {
+        m_params = RecyclerNewArrayLeafZ(recycler, Local, count);
+    }
     m_paramsCount = count;
 }
 
@@ -79,9 +82,19 @@ WasmSignature::GetSignatureId() const
     return m_id;
 }
 
-bool
-WasmSignature::IsEquivalent(WasmSignature* sig) const
+size_t
+WasmSignature::GetShortSig() const
 {
+    return m_shortSig;
+}
+
+bool
+WasmSignature::IsEquivalent(const WasmSignature* sig) const
+{
+    if (m_shortSig != Js::Constants::InvalidSignature)
+    {
+        return sig->GetShortSig() == m_shortSig;
+    }
     if (GetResultType() == sig->GetResultType() &&
         GetParamCount() == sig->GetParamCount() &&
         GetParamsSize() == sig->GetParamsSize())
@@ -117,21 +130,55 @@ uint32 WasmSignature::GetParamSize(uint index) const
     }
 }
 
-uint32
-WasmSignature::GetParamsSize() const
+void
+WasmSignature::FinalizeSignature()
 {
-    if (m_paramSize != Js::Constants::UninitializedValue)
-    {
-        return m_paramSize;
-    }
+    Assert(m_paramSize == Js::Constants::UninitializedValue);
+    Assert(m_shortSig == Js::Constants::InvalidSignature);
 
-    uint32 m_paramSize = 0;
+    m_paramSize = 0;
     for (uint32 i = 0; i < GetParamCount(); ++i)
     {
         m_paramSize += GetParamSize(i);
     }
 
+    CompileAssert(Local::Limit - 1 <= 4);
+    CompileAssert(Local::Void == 0);
+
+    // 3 bits for result type, 2 for each arg
+    // we don't need to reserve a sentinel bit because there is no result type with value of 7
+    int sigSize = 3 + 2 * GetParamCount();
+    if (sigSize <= sizeof(m_shortSig) << 3)
+    {
+        m_shortSig = (m_shortSig << 3) | m_resultType;
+        for (uint32 i = 0; i < GetParamCount(); ++i)
+        {
+            // we can use 2 bits per arg by dropping void
+            m_shortSig = (m_shortSig << 2) | (m_params[i] - 1);
+        }
+    }
+}
+
+uint32
+WasmSignature::GetParamsSize() const
+{
     return m_paramSize;
+}
+
+WasmSignature *
+WasmSignature::FromIDL(WasmSignatureIDL* sig)
+{
+    // must update WasmSignatureIDL when changing WasmSignature
+    CompileAssert(sizeof(Wasm::WasmSignature) == sizeof(WasmSignatureIDL));
+    CompileAssert(offsetof(Wasm::WasmSignature, m_resultType) == offsetof(WasmSignatureIDL, resultType));
+    CompileAssert(offsetof(Wasm::WasmSignature, m_id) == offsetof(WasmSignatureIDL, id));
+    CompileAssert(offsetof(Wasm::WasmSignature, m_paramSize) == offsetof(WasmSignatureIDL, paramSize));
+    CompileAssert(offsetof(Wasm::WasmSignature, m_paramsCount) == offsetof(WasmSignatureIDL, paramsCount));
+    CompileAssert(offsetof(Wasm::WasmSignature, m_params) == offsetof(WasmSignatureIDL, params));
+    CompileAssert(offsetof(Wasm::WasmSignature, m_shortSig) == offsetof(WasmSignatureIDL, shortSig));
+    CompileAssert(sizeof(Local) == sizeof(int));
+
+    return reinterpret_cast<WasmSignature*>(sig);
 }
 
 } // namespace Wasm

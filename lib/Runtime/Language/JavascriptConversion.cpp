@@ -1525,6 +1525,122 @@ CommonNumber:
         return ToString(ToPrimitive(aValue, JavascriptHint::None, scriptContext), scriptContext);
     }
 
+    double JavascriptConversion::LongToDouble(__int64 aValue)
+    {
+        return static_cast<double>(aValue);
+    }
+
+    double JavascriptConversion::ULongToDouble(unsigned __int64 aValue)
+    {
+        return static_cast<double>(aValue);
+    }
+
+    float JavascriptConversion::LongToFloat(__int64 aValue)
+    {
+        return static_cast<float>(aValue);
+    }
+
+    float JavascriptConversion::ULongToFloat (unsigned __int64 aValue)
+    {
+        return static_cast<float>(aValue);
+    }
+
+    int32 JavascriptConversion::F32TOI32(float src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRange<float, uint32, NumberConstants::k_Float32TwoTo31, NumberConstants::k_Float32NegZero, NumberConstants::k_Float32NegTwoTo31,
+            &Wasm::WasmMath::LessThan<uint32>, &Wasm::WasmMath::LessOrEqual<uint32>>(src) &&
+            !Wasm::WasmMath::isNaN<float>(src))
+        {
+            return (int32)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
+    uint32 JavascriptConversion::F32TOU32(float src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRange<float, uint32, NumberConstants::k_Float32TwoTo32, NumberConstants::k_Float32NegZero, NumberConstants::k_Float32NegOne,
+            &Wasm::WasmMath::LessThan<uint32>, &Wasm::WasmMath::LessThan<uint32>>(src) &&
+            !Wasm::WasmMath::isNaN<float>(src))
+        {
+            return (uint32)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
+    int32 JavascriptConversion::F64TOI32(double src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRange<double, uint64, NumberConstants::k_TwoTo31, NumberConstants::k_NegZero, NumberConstants::k_NegTwoTo31,
+            &Wasm::WasmMath::LessOrEqual<uint64>, &Wasm::WasmMath::LessOrEqual<uint64>>(src) &&
+            !Wasm::WasmMath::isNaN<double>(src))
+        {
+            return (int32)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
+    uint32 JavascriptConversion::F64TOU32(double src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRange<double, uint64, NumberConstants::k_TwoTo32, NumberConstants::k_NegZero, NumberConstants::k_NegOne,
+            &Wasm::WasmMath::LessOrEqual<uint64>, &Wasm::WasmMath::LessThan<uint64>>(src)
+            && !Wasm::WasmMath::isNaN<double>(src))
+        {
+            return (uint32)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
+    int64 JavascriptConversion::F32TOI64(float src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRange<float, uint32, NumberConstants::k_Float32TwoTo63, NumberConstants::k_Float32NegZero, NumberConstants::k_Float32NegTwoTo63,
+            &Wasm::WasmMath::LessThan<uint32>, &Wasm::WasmMath::LessOrEqual<uint32>>(src) &&
+            !Wasm::WasmMath::isNaN<float>(src))
+        {
+            return (int64)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
+    uint64 JavascriptConversion::F32TOU64(float src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRange<float, uint32, NumberConstants::k_Float32TwoTo64, NumberConstants::k_Float32NegZero, NumberConstants::k_Float32NegOne,
+            &Wasm::WasmMath::LessThan<uint32>, &Wasm::WasmMath::LessThan<uint32>>(src) &&
+            !Wasm::WasmMath::isNaN<float>(src))
+        {
+            return (uint64)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
+    int64 JavascriptConversion::F64TOI64(double src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRange<double, uint64, NumberConstants::k_TwoTo63, NumberConstants::k_NegZero, NumberConstants::k_NegTwoTo63,
+            &Wasm::WasmMath::LessThan<uint64>, &Wasm::WasmMath::LessOrEqual<uint64>>(src) &&
+            !Wasm::WasmMath::isNaN<double>(src))
+        {
+            return (int64)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
+    uint64 JavascriptConversion::F64TOU64(double src, ScriptContext * ctx)
+    {
+        if (Wasm::WasmMath::isInRange<double, uint64, NumberConstants::k_TwoTo64, NumberConstants::k_NegZero, NumberConstants::k_NegOne,
+            &Wasm::WasmMath::LessThan<uint64>, &Wasm::WasmMath::LessThan<uint64>>(src) &&
+            !Wasm::WasmMath::isNaN<double>(src))
+        {
+            return (uint64)src;
+        }
+
+        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+    }
+
     int64 JavascriptConversion::ToLength(Var aValue, ScriptContext* scriptContext)
     {
         if (TaggedInt::Is(aValue))

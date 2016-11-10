@@ -3,13 +3,17 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 #
-# todo-CI: REMOVE THIS AFTER ENABLING runtests.py directly on CI
+
+# CI ONLY
+# This script is mainly for CI only. In case you have ChakraCore is compiled for multiple
+# targets, this script may fail to test all of them. Use runtests.py instead.
 
 test_path=`dirname "$0"`
 
-build_type=$1
+build_type=
 binary_path=
 release_build=0
+test_variant=$1
 
 if [[ -f "$test_path/../BuildLinux/Debug/ch" ]]; then
     echo "Warning: Debug build was found"
@@ -29,7 +33,7 @@ else
 fi
 
 if [[ $release_build != 1 ]]; then
-    "$test_path/runtests.py" $build_type --not-tag exclude_jenkins
+    "$test_path/runtests.py" $build_type --not-tag exclude_jenkins $test_variant
     if [[ $? != 0 ]]; then
         exit 1
     fi

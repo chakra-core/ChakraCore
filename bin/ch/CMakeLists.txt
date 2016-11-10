@@ -71,11 +71,17 @@ if(STATIC_LIBRARY)
       "-framework Security"
       )
   endif() # Linux ?
-else() # // !from shared library
+else() # // shared library below
   set(lib_target
     PRIVATE Chakra.Pal
     PRIVATE Chakra.Common.Codex.Singular
     PRIVATE Chakra.Runtime.PlatformAgnostic.Singular
+    )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  set(lib_target "${lib_target}"
+    "-stdlib=libstdc++" # expected 'deprecated' warning. needed for std::string
     )
 endif()
 

@@ -303,7 +303,6 @@ BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 
 // Wasm entry points
 #ifdef ENABLE_WASM
-BUILTIN(WasmLibrary, instantiateModule, instantiateModule, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssembly, Compile, EntryCompile, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssembly, Validate, EntryValidate, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
@@ -311,6 +310,14 @@ BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefault
 BUILTIN(WebAssemblyMemory, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyMemory, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyMemory, GetterBuffer, EntryGetterBuffer, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(WebAssemblyTable, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyTable, GetterLength, EntryGetterLength, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(WebAssemblyTable, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyTable, Get, EntryGet, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyTable, Set, EntrySet, FunctionInfo::ErrorOnNew)
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+BUILTIN(WebAssembly, NativeTypeCallTest, EntryNativeTypeCallTest, FunctionInfo::ErrorOnNew)
+#endif
 #endif
 
 // SIMDFloat32x4Lib entry points

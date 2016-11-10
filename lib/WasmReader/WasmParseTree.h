@@ -43,6 +43,7 @@ namespace Wasm
             Function,
             Import
         };
+        bool CanBeExported(Type funcType);
     }
 
     struct WasmOpCodeSignatures

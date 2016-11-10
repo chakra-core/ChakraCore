@@ -20,6 +20,8 @@ const Js::OpCode LowererMD::MDConvertFloat64ToFloat32Opcode = Js::OpCode::CVTSD2
 const Js::OpCode LowererMD::MDCallOpcode = Js::OpCode::CALL;
 const Js::OpCode LowererMD::MDImulOpcode = Js::OpCode::IMUL2;
 
+static const int TWO_31_FLOAT = 0x4f000000;
+static const int FLOAT_INT_MIN = 0xcf000000;
 //
 // Static utility fn()
 //
@@ -5920,6 +5922,98 @@ bool LowererMD::GenerateFastCharAt(Js::BuiltinFunction index, IR::Opnd *dst, IR:
     return true;
 }
 
+IR::RegOpnd* LowererMD::MaterializeDoubleConstFromInt(intptr_t constAddr, IR::Instr* instr)
+{
+    IR::Opnd* constVal = IR::MemRefOpnd::New(constAddr, IRType::TyFloat64, this->m_func);
+    IR::RegOpnd * xmmReg = IR::RegOpnd::New(TyFloat64, m_func);
+    this->m_lowerer->InsertMove(xmmReg, constVal, instr);
+    return xmmReg;
+}
+
+IR::RegOpnd* LowererMD::MaterializeConstFromBits(int bits, IRType type, IR::Instr* instr)
+{
+    IR::Opnd * regBits = IR::RegOpnd::New(TyInt32, m_func);
+    this->m_lowerer->InsertMove(regBits, IR::IntConstOpnd::New(bits, TyInt32, m_func), instr);
+    IR::RegOpnd * regConst = IR::RegOpnd::New(type, m_func);
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, regConst, regBits, m_func));
+    return regConst;
+}
+
+IR::Opnd* LowererMD::Subtract2To31(IR::Opnd* src1, IR::Opnd* intMinFP, IRType type, IR::Instr* instr)
+{
+    Js::OpCode op = (type == TyFloat32) ? Js::OpCode::SUBSS : Js::OpCode::SUBSD;
+
+    IR::Opnd*  adjSrc = IR::RegOpnd::New(type, m_func);
+    IR::Instr* sub = IR::Instr::New(op, adjSrc, src1, intMinFP, m_func);
+    instr->InsertBefore(sub);
+    Legalize(sub);
+    return adjSrc;
+}
+
+void
+LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
+{
+    Assert(AutoSystemInfo::Data.SSE2Available());
+
+    IR::LabelInstr * done = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * trap = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* dst = instr->GetDst();
+
+    IR::Opnd* adjSrc = src1;
+    if (dst->IsUnsigned())
+    {
+        if (src1->IsFloat32())
+        {
+            IR::Opnd* twoTo31FP = MaterializeConstFromBits(TWO_31_FLOAT, TyFloat32, instr);
+            adjSrc = Subtract2To31(src1, twoTo31FP, TyFloat32, instr);
+        }
+        else
+        {
+            IR::Opnd* twoTo31FP = MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleTwoTo31Addr(), instr);
+            adjSrc = Subtract2To31(src1, twoTo31FP, TyFloat64, instr);
+        }
+    }
+
+    instr->InsertBefore(IR::Instr::New(src1->IsFloat32() ? Js::OpCode::CVTTSS2SI : Js::OpCode::CVTTSD2SI, dst, adjSrc, m_func));
+
+    IR::Opnd* intMin = IR::IntConstOpnd::New(INT_MIN, TyInt32, m_func);
+    m_lowerer->InsertCompareBranch(dst, intMin, Js::OpCode::BrNeq_A, done, instr);
+
+    if (dst->IsUnsigned())
+    {
+        IR::Opnd* zeroReg = IR::RegOpnd::New(src1->GetType(), m_func);
+        IR::Instr* _xor = IR::Instr::New(Js::OpCode::XORPS, zeroReg, src1, src1, m_func);
+        instr->InsertBefore(_xor);
+        Legalize(_xor);
+        m_lowerer->InsertCompareBranch(src1, zeroReg, Js::OpCode::BrEq_A, done, instr);
+    }
+    else
+    {
+        IR::Opnd* intMinFP = src1->IsFloat32() ?
+            MaterializeConstFromBits(FLOAT_INT_MIN, TyFloat32, instr) :
+            MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleIntMinAddr(), instr);
+        m_lowerer->InsertCompareBranch(src1, intMinFP, Js::OpCode::BrEq_A, done, instr);
+    }
+    instr->InsertBefore(trap);
+    IR::Instr *throwInstr = IR::Instr::New(
+        Js::OpCode::RuntimeTypeError,
+        IR::RegOpnd::New(TyMachReg, m_func),
+        IR::IntConstOpnd::New(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func),
+        m_func);
+    instr->InsertBefore(throwInstr);
+    this->m_lowerer->LowerUnaryHelperMem(throwInstr, IR::HelperOp_RuntimeTypeError);
+
+    instr->InsertBefore(done);
+    if (dst->IsUnsigned())
+    {
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::ADD, dst, dst, intMin, m_func));
+    }
+    instr->UnlinkSrc1();
+    instr->UnlinkDst();
+    instr->Remove();
+}
+
 void
 LowererMD::GenerateCtz(IR::Instr * instr)
 {
@@ -5951,13 +6045,6 @@ LowererMD::GenerateCtz(IR::Instr * instr)
         instr->InsertAfter(cmove);
         Legalize(cmove);
     }
-}
-
-void
-LowererMD::GenerateThrowUnreachable(IR::Instr * instr)
-{
-    this->m_lowerer->LoadScriptContext(instr);
-    ChangeToHelperCall(instr, IR::HelperThrow_Unreachable);
 }
 
 void
@@ -7937,6 +8024,12 @@ LowererMD::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 }
 
 void
+LowererMD::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    this->lowererMDArch.EmitLongToInt(dst, src, instrInsert);
+}
+
+void
 LowererMD::EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 {
     // We should only generate this if sse2 is available
@@ -7946,6 +8039,30 @@ LowererMD::EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIn
     Assert(src->IsRegOpnd() && src->GetType() == TyFloat32);
 
     instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::CVTSS2SD, dst, src, this->m_func));
+}
+
+void
+LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
+{
+    IR::Opnd *srcOpnd = instr->UnlinkSrc1();
+
+    LoadInt64HelperArgument(instr, srcOpnd);
+
+    IR::Instr* callinstr = IR::Instr::New(Js::OpCode::CALL, dst, this->m_func);
+    instr->InsertBefore(callinstr);
+    CompileAssert(sizeof(IRType) == 1);
+    const uint16 fromToType = dst->GetType() | (srcOpnd->GetType() << 8);
+    IR::JnHelperMethod method = IR::HelperOp_Throw;
+    switch (fromToType)
+    {
+    case TyFloat32 | (TyInt64 << 8): method = IR::HelperI64TOF32; break;
+    case TyFloat32 | (TyUint64 << 8): method = IR::HelperUI64TOF32; break;
+    case TyFloat64 | (TyInt64 << 8): method = IR::HelperI64TOF64; break;
+    case TyFloat64 | (TyUint64 << 8): method = IR::HelperUI64TOF64; break;
+    default:
+        Assert(UNREACHED);
+    }
+    this->ChangeToHelperCall(callinstr, method);
 }
 
 void
@@ -8754,6 +8871,51 @@ void LowererMD::GenerateIsJsObjectTest(IR::RegOpnd* instanceReg, IR::Instr* inse
 IR::Instr *
 LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
 {
+    IR::Opnd* dst = instr->GetDst();
+    IR::Opnd* src = instr->GetSrc1();
+    if ((dst->IsInt64() && src->IsFloat64()) ||
+        (dst->IsFloat64() && src->IsInt64()))
+    {
+#if _M_AMD64
+        instr->m_opcode = Js::OpCode::MOVQ;
+        Legalize(instr);
+        return instr;
+#elif _M_IX86
+        if (dst->IsInt64())
+        {
+            //    movd low_bits, xmm1
+            //    shufps xmm1, xmm1, 1
+            //    movd high_bits, xmm1
+            Assert(src->IsFloat64());
+            Int64RegPair dstPair = m_lowerer->FindOrCreateInt64Pair(dst);
+
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dstPair.low, src, m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, src, src, IR::IntConstOpnd::New(1, TyInt8, m_func, true), m_func));
+            instr->m_opcode = Js::OpCode::MOVD;
+            instr->UnlinkDst();
+            instr->SetDst(dstPair.high);
+        }
+        else
+        {
+            //    movd xmm0, lowBits;
+            //    movd xmm1, highBits;
+            //    shufps xmm0, xmm1, (0 | 2 << 2 | 0 << 4 | 1 << 6);
+            //    shufps xmm0, xmm0, (0 | 2 << 2 | 3 << 4 | 3 << 6);
+            Assert(src->IsInt64());
+            Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(src);
+            
+            IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dst, srcPair.low, m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, tmpDouble, srcPair.high, m_func));
+            instr->InsertBefore(IR::Instr::New(Js::OpCode::SHUFPS, dst, tmpDouble, IR::IntConstOpnd::New((0 | 2 << 2 | 0 << 4 | 1 << 6), TyInt8, m_func, true), m_func));
+            instr->m_opcode = Js::OpCode::SHUFPS;
+            instr->ReplaceSrc1(dst);
+            instr->SetSrc2(IR::IntConstOpnd::New((0 | 2 << 2 | 3 << 4 | 3 << 6), TyInt8, m_func, true));
+        }
+        return instr;
+#endif
+}
+    // 32bit reinterprets
     instr->m_opcode = Js::OpCode::MOVD;
     Legalize(instr);
     return instr;

@@ -12,7 +12,7 @@
 
 ThreadContextInfo::ThreadContextInfo() :
     m_isAllJITCodeInPreReservedRegion(true),
-    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined), 
+    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined),
     m_isClosed(false)
 {
 }
@@ -300,6 +300,18 @@ ThreadContextInfo::GetX86FourLanesMaskAddr(uint8 minorityLane) const
 {
     return SHIFT_ADDR(this, &X86_4LANES_MASKS[minorityLane]);
 }
+
+intptr_t
+ThreadContextInfo::GetDoubleIntMinAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::DOUBLE_INT_MIN);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleTwoTo31Addr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::DOUBLE_TWO_TO_31);
+}
 #endif
 
 intptr_t
@@ -422,7 +434,7 @@ ThreadContextInfo::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetV
 #endif // _CONTROL_FLOW_GUARD
 }
 
-bool 
+bool
 ThreadContextInfo::IsClosed()
 {
     return m_isClosed;

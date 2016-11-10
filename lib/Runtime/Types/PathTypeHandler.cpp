@@ -345,7 +345,17 @@ namespace Js
 
     BOOL PathTypeHandlerBase::DeleteLastProperty(DynamicObject *const object)
     {
-        // We are deleting the last property from PathTypeHandler
+        // Optimize deleting last property under conditions
+        // - Need to have a predecessor type to move to
+        // - Current type shouldn't have a forInCache as the cache will try to enumerate the no. of properties when the
+        //   cache was populated and it can happen that we transition to a previous type and then add a new property
+        //   during forIn which will keep the number of properties same but the new property shouldn't be enumerated.
+        if (this->GetPredecessorType() == nullptr ||
+            object->GetScriptContext()->GetThreadContext()->GetDynamicObjectEnumeratorCache(object->GetDynamicType()) != nullptr)
+        {
+            return FALSE;
+        }
+
         DynamicType* predecessorType = this->GetPredecessorType();
 
         // -----------------------------------------------------------------------------------------
@@ -377,6 +387,12 @@ namespace Js
 
         if (!isCurrentTypeOHI && isPredecessorTypeOHI)
         {
+            if (object->HasObjectArray())
+            {
+                // We can't move auxSlots
+                return FALSE;
+            }
+
             Assert(predecessorTypeHandler->GetInlineSlotCapacity() == (this->GetUnusedBytesValue() - 1));
             this->MoveAuxSlotsToObjectHeader(object);
         }
@@ -414,16 +430,9 @@ namespace Js
 
         uint16 pathLength = GetPathLength();
 
-        // Optimize deleting last property under conditions
-        // - Need to have a predecessor type to move to
-        // - Current type shouldn't have a forInCache as the cache will try to enumerate the no. of properties when the
-        //   cache was populated and it can happen that we transition to a previous type and then add a new property
-        //   during forIn which will keep the number of properties same but the new property shouldn't be enumerated.
-        if ((index + 1) == pathLength &&
-            this->GetPredecessorType() != nullptr &&
-            scriptContext->GetThreadContext()->GetDynamicObjectEnumeratorCache(instance->GetDynamicType()) == nullptr)
+        if ((index + 1) == pathLength && this->DeleteLastProperty(instance))
         {
-            return this->DeleteLastProperty(instance);
+            return TRUE;
         }
 
 #ifdef PROFILE_TYPES

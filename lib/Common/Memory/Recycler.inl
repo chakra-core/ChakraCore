@@ -285,17 +285,20 @@ void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size)
 
         if (this->IsPageHeapEnabled<attributes>(size))
         {
-            Assert(heapBlock->IsLargeHeapBlock());
-        }
-
-        if (heapBlock->IsLargeHeapBlock())
-        {
-            LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
-            if (largeHeapBlock->InPageHeapMode())
+            if (heapBlock->IsLargeHeapBlock())
             {
-                LargeObjectHeader* header = (LargeObjectHeader*)(memBlock - sizeof(LargeObjectHeader));
-                largeHeapBlock->VerifyPageHeapPattern();
-                header->isPageHeapFillVerified = true;
+                LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
+                if (largeHeapBlock->InPageHeapMode())
+                {
+                    LargeObjectHeader* header = (LargeObjectHeader*)(memBlock - sizeof(LargeObjectHeader));
+                    largeHeapBlock->VerifyPageHeapPattern();
+                    header->isPageHeapFillVerified = true;
+                }
+            }
+            else
+            {
+                // currently we don't support integration of large blocks
+                Assert(((SmallHeapBlockT<SmallAllocationBlockAttributes>*)heapBlock)->isIntegratedBlock);
             }
         }
     }

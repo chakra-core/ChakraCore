@@ -275,10 +275,6 @@ ENTRY(Map)
 ENTRY(Math)
 
 // Wasm
-// TODO: remove old Wasm object
-ENTRY(Wasm)
-ENTRY(instantiateModule)
-ENTRY(experimentalVersion)
 
 ENTRY(WebAssembly)
 ENTRY(Module)
@@ -289,6 +285,7 @@ ENTRY(CompileError)
 ENTRY(RuntimeError)
 ENTRY(validate)
 ENTRY(grow)
+ENTRY(nativeTypeCallTest)
 // End Wasm
 
 // SIMD_JS
