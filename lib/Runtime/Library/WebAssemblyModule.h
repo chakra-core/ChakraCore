@@ -42,9 +42,13 @@ public:
     {
     public:
         static FunctionInfo NewInstance;
+        static FunctionInfo Exports;
+        static FunctionInfo Imports;
     };
 
     static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+    static Var EntryExports(RecyclableObject* function, CallInfo callInfo, ...);
+    static Var EntryImports(RecyclableObject* function, CallInfo callInfo, ...);
 
     static bool Is(Var aValue);
     static WebAssemblyModule * FromVar(Var aValue);
@@ -93,7 +97,7 @@ public:
     void AllocateFunctionExports(uint32 entries);
     uint GetExportCount() const { return m_exportCount; }
     void SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind);
-    Wasm::WasmExport* GetFunctionExport(uint32 iExport) const;
+    Wasm::WasmExport* GetExport(uint32 iExport) const;
 
     uint32 GetImportCount() const;
     void AddFunctionImport(uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen);
@@ -144,6 +148,8 @@ public:
     WasmGlobalsList * globals;
 
 private:
+    static JavascriptString * GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds::ExternalKind kind);
+
     bool m_hasTable;
     bool m_hasMemory;
     // The binary buffer is recycler allocated, tied the lifetime of the buffer to the module

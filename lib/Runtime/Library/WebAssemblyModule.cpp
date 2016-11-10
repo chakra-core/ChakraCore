@@ -87,6 +87,88 @@ WebAssemblyModule::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     return CreateModule(scriptContext, buffer, byteLength);
 }
 
+Var
+WebAssemblyModule::EntryExports(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    if (args.Info.Count < 2 || !WebAssemblyMemory::Is(args[1]))
+    {
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
+    }
+    WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
+
+    Var exportArray = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
+
+    for (uint i = 0; i < module->GetExportCount(); ++i)
+    {
+        Wasm::WasmExport wasmExport = module->m_exports[i];
+        Js::JavascriptString * kind = GetExternalKindString(scriptContext, wasmExport.kind);
+        Js::JavascriptString * name = JavascriptString::NewWithBuffer(wasmExport.name, wasmExport.nameLength, scriptContext);
+        Var pair = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::kind, kind, scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::name, name, scriptContext);
+        JavascriptArray::Push(scriptContext, exportArray, pair);
+    }
+    return exportArray;
+}
+
+Var
+WebAssemblyModule::EntryImports(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    if (args.Info.Count < 2 || !WebAssemblyMemory::Is(args[1]))
+    {
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
+    }
+
+    WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
+
+    Var importArray = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
+    auto AddImport = [scriptContext, importArray](Wasm::WasmImport * import, Wasm::ExternalKinds::ExternalKind importKind)
+    {
+        Js::JavascriptString * kind = GetExternalKindString(scriptContext, importKind);
+        Js::JavascriptString * module = JavascriptString::NewWithBuffer(import->modName, import->modNameLen, scriptContext);
+        Js::JavascriptString * name = JavascriptString::NewWithBuffer(import->fnName, import->fnNameLen, scriptContext);
+
+        Var pair = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::kind, kind, scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::module, module, scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::name, name, scriptContext);
+        JavascriptArray::Push(scriptContext, importArray, pair);
+    };
+
+    module->m_imports->Map([AddImport] (int index, Wasm::WasmImport * import) {
+        AddImport(import, Wasm::ExternalKinds::Function);
+    });
+    module->globals->Map([AddImport](int index, Wasm::WasmGlobal * global) {
+        AddImport(global->importVar, Wasm::ExternalKinds::Global);
+    });
+    if (module->m_memImport)
+    {
+        AddImport(module->m_memImport, Wasm::ExternalKinds::Memory);
+    }
+    if (module->m_tableImport)
+    {
+        AddImport(module->m_tableImport, Wasm::ExternalKinds::Table);
+    }
+
+    return importArray;
+}
+
 /* static */
 WebAssemblyModule *
 WebAssemblyModule::CreateModule(
@@ -370,7 +452,7 @@ WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16* exp
 }
 
 Wasm::WasmExport*
-WebAssemblyModule::GetFunctionExport(uint32 iExport) const
+WebAssemblyModule::GetExport(uint32 iExport) const
 {
     if (iExport >= m_exportCount)
     {
@@ -627,6 +709,26 @@ uint WebAssemblyModule::AddGlobalByteSizeToOffset(Wasm::WasmTypes::WasmType type
     offset = ::Math::AlignOverflowCheck(offset, typeSize);
     uint32 sizeUsed = WAsmJs::ConvertOffset<byte>(globalCounts[type], typeSize);
     return UInt32Math::Add(offset, sizeUsed);
+}
+
+
+JavascriptString *
+WebAssemblyModule::GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds::ExternalKind kind)
+{
+    switch (kind)
+    {
+    case Wasm::ExternalKinds::Function:
+        return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("function"));
+    case Wasm::ExternalKinds::Table:
+        return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("table"));
+    case Wasm::ExternalKinds::Memory:
+        return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("memory"));
+    case Wasm::ExternalKinds::Global:
+        return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("global"));
+    default:
+        Assume(UNREACHED);
+    }
+    return nullptr;
 }
 
 uint WebAssemblyModule::GetGlobalsByteSize() const

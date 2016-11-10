@@ -59,25 +59,19 @@ WebAssemblyTable::NewInstance(RecyclableObject* function, CallInfo callInfo, ...
     }
     DynamicObject * memoryDescriptor = JavascriptObject::FromVar(args[1]);
 
-    PropertyRecord const * elementPropRecord = nullptr;
-    scriptContext->GetOrAddPropertyRecord(_u("element"), lstrlen(_u("element")), &elementPropRecord);
-    Var elementVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, elementPropRecord->GetPropertyId(), scriptContext);
+    Var elementVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::element, scriptContext);
     if (!JavascriptOperators::StrictEqualString(elementVar, scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("anyfunc"))))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_ExpectedAnyFunc);
     }
 
-    PropertyRecord const * initPropRecord = nullptr;
-    scriptContext->GetOrAddPropertyRecord(_u("initial"), lstrlen(_u("initial")), &initPropRecord);
-    Var initVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, initPropRecord->GetPropertyId(), scriptContext);
+    Var initVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::initial, scriptContext);
     uint32 initial = WebAssembly::ToNonWrappingUint32(initVar, scriptContext);
 
-    PropertyRecord const * maxPropRecord = nullptr;
-    scriptContext->GetOrAddPropertyRecord(_u("maximum"), lstrlen(_u("maximum")), &maxPropRecord);
     uint32 maximum = UINT_MAX;
-    if (JavascriptOperators::OP_HasProperty(memoryDescriptor, maxPropRecord->GetPropertyId(), scriptContext))
+    if (JavascriptOperators::OP_HasProperty(memoryDescriptor, PropertyIds::maximum, scriptContext))
     {
-        Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, initPropRecord->GetPropertyId(), scriptContext);
+        Var maxVar = JavascriptOperators::OP_GetProperty(memoryDescriptor, PropertyIds::maximum, scriptContext);
         maximum = WebAssembly::ToNonWrappingUint32(maxVar, scriptContext);
     }
     return Create(initial, maximum, scriptContext);
