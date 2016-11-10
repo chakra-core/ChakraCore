@@ -134,6 +134,7 @@ void
 WasmSignature::FinalizeSignature()
 {
     Assert(m_paramSize == Js::Constants::UninitializedValue);
+    Assert(m_shortSig == Js::Constants::InvalidSignature);
 
     m_paramSize = 0;
     for (uint32 i = 0; i < GetParamCount(); ++i)
@@ -145,6 +146,7 @@ WasmSignature::FinalizeSignature()
     CompileAssert(Local::Void == 0);
 
     // 3 bits for result type, 2 for each arg
+    // we don't need to reserve a sentinel bit because there is no result type with value of 7
     int sigSize = 3 + 2 * GetParamCount();
     if (sigSize <= sizeof(m_shortSig))
     {

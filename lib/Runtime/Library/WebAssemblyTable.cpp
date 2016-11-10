@@ -123,7 +123,7 @@ WebAssemblyTable::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
         deltaVar = args[1];
     }
     uint32 delta = WebAssembly::ToNonWrappingUint32(deltaVar, scriptContext);
-    if ((uint64)table->m_currentLength + delta > table->m_maxLength)
+    if ((uint64)table->m_currentLength + delta > (uint64)table->m_maxLength)
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
@@ -200,7 +200,7 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
     {
         value = nullptr;
     }
-    else if (!AsmJsScriptFunction::Is(args[2]) || !AsmJsScriptFunction::FromVar(args[2])->GetFunctionBody()->IsWasmFunction())
+    else if (!AsmJsScriptFunction::IsWasmScriptFunction(args[2]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedWebAssemblyFunc);
     }
@@ -219,7 +219,6 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
 WebAssemblyTable *
 WebAssemblyTable::Create(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
-    // TODO: implement SHOULD clause and try to reserve maximum to avoid having to copy on grow
     Var * values = nullptr;
     if (initial > 0)
     {

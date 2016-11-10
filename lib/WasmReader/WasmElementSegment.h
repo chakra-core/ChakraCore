@@ -29,6 +29,5 @@ namespace Wasm
         UINT32* m_elems;
 
         void Init(const Js::WebAssemblyModule& module);
-        bool IsOffsetResolved() const;
     };
 } // Namespace Wasm
