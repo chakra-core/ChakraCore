@@ -1,7 +1,7 @@
 {
   "modules": [{
     "filename": "imports.0.wasm",
-    "commands": []
+    "commands": [{"type": "register", "name": "test", "file": "testsuite/imports.wast", "line": 18}]
   }, {
     "filename": "imports.1.wasm",
     "commands": [{

@@ -3,72 +3,19 @@
 13
 13
 13
-Unexpected Error while compiling imports.2.wasm
-TypeError: Unable to get property 'func' of undefined or null reference
-Unexpected Error while compiling imports.3.wasm
-TypeError: Unable to get property 'func-i32' of undefined or null reference
-Unexpected Error while compiling imports.4.wasm
-TypeError: Unable to get property 'func-f32' of undefined or null reference
-Unexpected Error while compiling imports.5.wasm
-TypeError: Unable to get property 'func->i32' of undefined or null reference
-Unexpected Error while compiling imports.6.wasm
-TypeError: Unable to get property 'func->f32' of undefined or null reference
-Unexpected Error while compiling imports.7.wasm
-TypeError: Unable to get property 'func-i32->i32' of undefined or null reference
 Unexpected Error while compiling imports.8.wasm
 WebAssemblyCompileError: Compiling wasm failed: I64 Globals, NYI
-Unexpected Error while compiling imports.9.wasm
-TypeError: Unable to get property 'global-i32' of undefined or null reference
-Unexpected Error while compiling imports.10.wasm
-TypeError: Unable to get property 'global-f32' of undefined or null reference
-Unexpected Error while compiling imports.11.wasm
-WebAssemblyCompileError: Compiling wasm failed: IndirectFunctionTable section missing before Element
-Unexpected Error while compiling imports.12.wasm
-WebAssemblyCompileError: Compiling wasm failed: IndirectFunctionTable section missing before Element
-Unexpected Error while compiling imports.13.wasm
-TypeError: Unable to get property 'table-10-inf' of undefined or null reference
-Unexpected Error while compiling imports.14.wasm
-TypeError: Unable to get property 'table-10-inf' of undefined or null reference
-Unexpected Error while compiling imports.15.wasm
-TypeError: Unable to get property 'table-10-inf' of undefined or null reference
-Unexpected Error while compiling imports.16.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.17.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.18.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.19.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.20.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.21.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.22.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.23.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.24.wasm
-WebAssemblyCompileError: Compiling wasm failed: Memory section missing before DataSegments
-Unexpected Error while compiling imports.25.wasm
-WebAssemblyCompileError: Compiling wasm failed: Memory section missing before DataSegments
-Unexpected Error while compiling imports.26.wasm
-TypeError: Unable to get property 'memory-2-inf' of undefined or null reference
-Unexpected Error while compiling imports.27.wasm
-TypeError: Unable to get property 'memory-2-inf' of undefined or null reference
-Unexpected Error while compiling imports.28.wasm
-TypeError: Unable to get property 'memory-2-inf' of undefined or null reference
-Unexpected Error while compiling imports.29.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.30.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.31.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.32.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.33.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.34.wasm
-TypeError: Import is invalid
-Unexpected Error while compiling imports.35.wasm
-TypeError: Import is invalid
-1/1 tests passed.
+testsuite/imports.wast:245: $assert_trap_0 failed, runtime trap NYI
+testsuite/imports.wast:248: $assert_trap_3 failed, runtime trap NYI
+testsuite/imports.wast:249: $assert_trap_4 failed, runtime trap NYI
+testsuite/imports.wast:262: $assert_trap_0 failed, runtime trap NYI
+testsuite/imports.wast:265: $assert_trap_3 failed, runtime trap NYI
+testsuite/imports.wast:266: $assert_trap_4 failed, runtime trap NYI
+testsuite/imports.wast:351: $assert_trap_3 failed, runtime trap NYI
+testsuite/imports.wast:362: $assert_trap_3 failed, runtime trap NYI
+testsuite/imports.wast:451: $assert_return_0 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+testsuite/imports.wast:452: $assert_return_1 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+testsuite/imports.wast:453: $assert_return_2 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+testsuite/imports.wast:454: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+testsuite/imports.wast:455: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+11/24 tests passed.
