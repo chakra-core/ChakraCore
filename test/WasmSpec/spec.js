@@ -73,7 +73,11 @@ function run(inPath, iStart, iEnd) {
   var jsonData = JSON.parse(data);
 
   var iTest = 0;
-  var registry = Object.assign({spectest: {print: print, global : 666}}, IMPORTS_FROM_OTHER_SCRIPT);
+  var registry = Object.assign({spectest: {
+    print: print,
+    global : 666,
+    table: new WebAssembly.Table({initial: 10, maximum: 20, element: 'anyfunc'}),  memory: new WebAssembly.Memory({initial: 1, maximum: 2})
+  }}, IMPORTS_FROM_OTHER_SCRIPT);
   for (var i = 0; i < jsonData.modules.length; ++i) {
     var module = jsonData.modules[i] || {};
     try {
