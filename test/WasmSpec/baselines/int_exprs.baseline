@@ -1,8 +1,5 @@
-int_exprs.wast:30: $assert_return_0 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.no_fold_wrap_extend_s[0] at offset 4/6: Operator I32Wrap_I64 NYI
-int_exprs.wast:31: $assert_return_1 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.no_fold_wrap_extend_s[0] at offset 4/6: Operator I32Wrap_I64 NYI
-int_exprs.wast:40: $assert_return_0 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i64.no_fold_wrap_extend_u[0] at offset 4/6: Operator I32Wrap_I64 NYI
 int_exprs.wast:158: $assert_trap_0 failed, runtime trap NYI
 int_exprs.wast:159: $assert_trap_1 failed, runtime trap NYI
 int_exprs.wast:160: $assert_trap_2 failed, runtime trap NYI
 int_exprs.wast:161: $assert_trap_3 failed, runtime trap NYI
-72/79 tests passed.
+75/79 tests passed.

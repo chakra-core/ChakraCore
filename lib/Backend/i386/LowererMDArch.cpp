@@ -2583,6 +2583,16 @@ LowererMDArch::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInse
     instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.low, src, this->m_func));
 }
 
+void
+LowererMDArch::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    Assert(dst->IsRegOpnd() && dst->IsInt32());
+    Assert(src->IsInt64());
+
+    Int64RegPair srcPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src);
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, srcPair.low, this->m_func));
+}
+
 bool
 LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
 {

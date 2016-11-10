@@ -249,7 +249,7 @@ WASM_BINARY_OPCODE(F64CopySign,       0xa6, D_DD, Copysign_Db    , false)
 
 ////////////////////////////////////////////////////////////
 // Conversions
-WASM_UNARY__OPCODE(I32Wrap_I64,       0xa7, I_L , Nop            , true)
+WASM_UNARY__OPCODE(I32Wrap_I64,       0xa7, I_L , Conv_LTI       , false)
 WASM_UNARY__OPCODE(I32TruncS_F32,     0xa8, I_F , Conv_Check_FTI , false)
 WASM_UNARY__OPCODE(I32TruncU_F32,     0xa9, I_F , Conv_Check_FTU , false)
 WASM_UNARY__OPCODE(I32TruncS_F64,     0xaa, I_D , Conv_Check_DTI , false)

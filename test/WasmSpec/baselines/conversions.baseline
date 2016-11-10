@@ -1,15 +1,3 @@
-conversions.wast:43: $assert_return_12 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:44: $assert_return_13 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:45: $assert_return_14 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:46: $assert_return_15 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:47: $assert_return_16 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:48: $assert_return_17 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:49: $assert_return_18 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:50: $assert_return_19 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:51: $assert_return_20 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:52: $assert_return_21 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:53: $assert_return_22 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
-conversions.wast:54: $assert_return_23 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function i32.wrap_i64[2] at offset 4/5: Operator I32Wrap_I64 NYI
 conversions.wast:70: $assert_trap_38 failed, runtime trap NYI
 conversions.wast:71: $assert_trap_39 failed, runtime trap NYI
 conversions.wast:72: $assert_trap_40 failed, runtime trap NYI
@@ -53,4 +41,4 @@ conversions.wast:215: $assert_trap_149 failed, runtime trap NYI
 conversions.wast:216: $assert_trap_150 failed, runtime trap NYI
 conversions.wast:217: $assert_trap_151 failed, runtime trap NYI
 conversions.wast:218: $assert_trap_152 failed, runtime trap NYI
-269/324 tests passed.
+281/324 tests passed.
