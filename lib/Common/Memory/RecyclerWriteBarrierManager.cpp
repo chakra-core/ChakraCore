@@ -20,10 +20,12 @@
 #pragma init_seg(".CRT$XCAU")
 
 #ifdef RECYCLER_WRITE_BARRIER
+#if ENABLE_DEBUG_CONFIG_OPTIONS
 namespace Memory 
 {
     FN_VerifyIsNotBarrierAddress* g_verifyIsNotBarrierAddress = nullptr;
 }
+#endif
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
 #ifdef _M_X64_OR_ARM64
 X64WriteBarrierCardTableManager RecyclerWriteBarrierManager::x64CardTableManager;
@@ -366,13 +368,13 @@ RecyclerWriteBarrierManager::ToggleBarrier(void * address, size_t bytes, bool en
     }
 }
 
-BOOL
+bool
 RecyclerWriteBarrierManager::IsBarrierAddress(void * address)
 {
     return IsBarrierAddress(GetCardTableIndex(address));
 }
 
-BOOL
+bool
 RecyclerWriteBarrierManager::IsBarrierAddress(uintptr_t index)
 {
     return cardTable[index] & WRITE_BARRIER_PAGE_BIT;

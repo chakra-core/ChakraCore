@@ -147,8 +147,8 @@ public:
     static void WriteBarrier(void * address, size_t bytes);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     static void ToggleBarrier(void * address, size_t bytes, bool enable);
-    static BOOL IsBarrierAddress(void * address);
-    static BOOL IsBarrierAddress(uintptr_t index);
+    static bool IsBarrierAddress(void * address);
+    static bool IsBarrierAddress(uintptr_t index);
     static void VerifyIsBarrierAddress(void * address, size_t bytes);
     static void VerifyIsNotBarrierAddress(void * address, size_t bytes);
     static void VerifyIsBarrierAddress(void * address);
@@ -156,20 +156,20 @@ public:
 #endif
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-    static BOOLEAN IsCardTableCommited(_In_ uintptr_t index)
+    static bool IsCardTableCommited(_In_ uintptr_t index)
     {
 #ifdef _M_X64_OR_ARM64
-        return x64CardTableManager.IsCardTableCommited(index);
+        return x64CardTableManager.IsCardTableCommited(index) != FALSE;
 #else
-        return TRUE;
+        return true;
 #endif
     }
-    static BOOLEAN IsCardTableCommitedAddress(_In_ void* address)
+    static bool IsCardTableCommitedAddress(_In_ void* address)
     {
 #ifdef _M_X64_OR_ARM64
-        return x64CardTableManager.IsCardTableCommited(address);
+        return x64CardTableManager.IsCardTableCommited(address) != FALSE;
 #else
-        return TRUE;
+        return true;
 #endif
     }
 #endif

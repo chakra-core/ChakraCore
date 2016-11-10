@@ -58,20 +58,13 @@ SegmentBase<T>::~SegmentBase()
         GetAllocator()->ReportFree(this->segmentPageCount * AutoSystemInfo::PageSize); //Note: We reported the guard pages free when we decommitted them during segment initialization
 #if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-        if (Js::Configuration::Global.flags.StrictWriteBarrierCheck)
+        if (Js::Configuration::Global.flags.StrictWriteBarrierCheck && this->isWriteBarrierEnabled)
         {
-            if (this->isWriteBarrierEnabled)
-            {
-                RecyclerWriteBarrierManager::OnSegmentFree(this->address, this->segmentPageCount);
-                RecyclerWriteBarrierManager::ToggleBarrier(this->address, this->segmentPageCount * AutoSystemInfo::PageSize, false);
-            }
-        }
-        else
-#endif
-        {
-            RecyclerWriteBarrierManager::OnSegmentFree(this->address, this->segmentPageCount);
+            RecyclerWriteBarrierManager::ToggleBarrier(this->address, this->segmentPageCount * AutoSystemInfo::PageSize, false);
         }
 #endif
+#endif
+        RecyclerWriteBarrierManager::OnSegmentFree(this->address, this->segmentPageCount);
     }
 }
 

@@ -235,8 +235,8 @@ public:
     // Setters
     NoWriteBarrierField& operator=(T const& value)
     {
-#if defined(RECYCLER_WRITE_BARRIER)
-        RecyclerWriteBarrierManager::VerifyIsBarrierAddress(this);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        RecyclerWriteBarrierManager::VerifyIsNotBarrierAddress(this);
 #endif
         this->value = value;
         return *this;
@@ -263,6 +263,9 @@ public:
     // Setters
     NoWriteBarrierPtr& operator=(T * value)
     {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        RecyclerWriteBarrierManager::VerifyIsNotBarrierAddress(this);
+#endif
         this->value = value;
         return *this;
     }
