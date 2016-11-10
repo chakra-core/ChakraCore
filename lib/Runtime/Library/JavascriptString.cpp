@@ -1114,19 +1114,12 @@ case_2:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
+        // ES #sec-string.prototype.lastindexof
+        // 21.1.3.9  String.prototype.lastIndexOf(searchString[, position])
         //
-        // 1.  Call CheckObjectCoercible passing the this value as its argument.
-        // 2.  Let S be the result of calling ToString, giving it the this value as its argument.
-        // 3.  Let searchStr be ToString(searchString).
-        // 4.  Let numPos be ToNumber(position). (If position is undefined, this step produces the value NaN).
-        // 5.  If numPos is NaN, let pos be +?; otherwise, let pos be ToInteger(numPos).
-        // 6.  Let len be the number of characters in S.
-        // 7.  Let start min(max(pos, 0), len).
-        // 8.  Let searchLen be the number of characters in searchStr.
-        // 9.  Return the largest possible nonnegative integer k not larger than start such that k+ searchLen is not greater than len, and for all nonnegative integers j less than searchLen, the character at position k+j of S is the same as the character at position j of searchStr; but if there is no such integer k, then return the value -1.
-        // NOTE
-        // The lastIndexOf function is intentionally generic; it does not require that its this value be a String object. Therefore, it can be transferred to other kinds of objects for use as a method.
-        //
+        // 1. Let O be ? RequireObjectCoercible(this value).
+        // 2. Let S be ? ToString(O).
+        // 3. Let searchStr be ? ToString(searchString).
 
         JavascriptString * pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.lastIndexOf"), &pThis);
@@ -1149,83 +1142,98 @@ case_2:
             searchArg = scriptContext->GetLibrary()->GetUndefinedDisplayString();
         }
 
-        char16 const * const inputStr = pThis->GetString();
+        const char16* const inputStr = pThis->GetString();
         const char16 * const searchStr = searchArg->GetString();
-        const int len = pThis->GetLength();
-        int position = len;
-        int const searchLen = searchArg->GetLength();
+
+        // 4. Let numPos be ? ToNumber(position). (If position is undefined, this step produces the value NaN.)
+        // 5. If numPos is NaN, let pos be +infinity; otherwise, let pos be ToInteger(numPos).
+        // 6. Let len be the number of elements in S.
+        // 7. Let start be min(max(pos, 0), len).
+
+        const charcount_t inputLen = pThis->GetLength();
+        const charcount_t searchLen = searchArg->GetLength();
+        charcount_t position = inputLen;
+        const char16* const searchLowerBound = inputStr;
 
         // Determine if the main string can't contain the search string by length
-        if ( searchLen > len )
+        if (searchLen > inputLen)
         {
             return JavascriptNumber::ToVar(-1, scriptContext);
         }
 
-        if(args.Info.Count > 2)
+        if (args.Info.Count > 2)
         {
             double pos = JavascriptConversion::ToNumber(args[2], scriptContext);
             if (!JavascriptNumber::IsNan(pos))
             {
                 pos = JavascriptConversion::ToInteger(pos);
-                position = (int)min(max(pos, (double)0), (double)len); // adjust position within string limits
+                if (pos > inputLen - searchLen)
+                {
+                    // No point searching beyond the possible end point.
+                    pos = inputLen - searchLen;
+                }
+                position = (charcount_t)min(max(pos, (double)0), (double)inputLen); // adjust position within string limits
             }
         }
 
-        int result = -1;
+        if (position > inputLen - searchLen)
+        {
+            // No point searching beyond the possible end point.
+            position = inputLen - searchLen;
+        }
+        const char16* const searchUpperBound = searchLowerBound + min(position, inputLen - 1);
+
+        // 8. Let searchLen be the number of elements in searchStr.
+        // 9. Return the largest possible nonnegative integer k not larger than start such that k + searchLen is
+        //    not greater than len, and for all nonnegative integers j less than searchLen, the code unit at
+        //    index k + j of S is the same as the code unit at index j of searchStr; but if there is no such
+        //    integer k, return the value - 1.
+        // Note: The lastIndexOf function is intentionally generic; it does not require that its this value be a
+        //    String object. Therefore, it can be transferred to other kinds of objects for use as a method.
+
         // Zero length search strings are always found at the current search position
-        if ( searchLen == 0 )
+        if (searchLen == 0)
         {
             return JavascriptNumber::ToVar(position, scriptContext);
         }
         else if (searchLen == 1)
         {
-            char16 const * current = inputStr + min(position,len - 1);
+            char16 const * current = searchUpperBound;
             while (*current != *searchStr)
             {
                 current--;
                 if (current < inputStr)
                 {
-                    return JavascriptNumber::ToVar(result, scriptContext); //return -1
+                    return JavascriptNumber::ToVar(-1, scriptContext);
                 }
             }
-            result =  (int)(current - inputStr);
-            return JavascriptNumber::ToVar(result, scriptContext);
+            return JavascriptNumber::ToVar(current - inputStr, scriptContext);
         }
 
         // Structure for a partial ASCII Boyer-Moore
         JmpTable jmpTable;
-        bool fAsciiJumpTable = BuildFirstCharBackwardBoyerMooreTable(jmpTable, searchStr, searchLen);
-
-        if (!fAsciiJumpTable)
+        if (BuildFirstCharBackwardBoyerMooreTable(jmpTable, searchStr, searchLen))
         {
-            char16 const * start = inputStr;
-            char16 const * current = inputStr + min(position, len - 1);
-            char16 const * searchStrEnd = searchStr + searchLen - 1;
-            while (current >= (start + searchLen - 1))
-            {
-                char16 const * s1 = current;
-                char16 const * s2 = searchStrEnd;
-
-                while (s1 >= start && s2 >= searchStr && !(*s1 - *s2))
-                {
-                    s1--, s2--;
-                }
-
-                if (s2 < searchStr)
-                {
-                    result = (int)(current - start) - searchLen + 1;
-                    return JavascriptNumber::ToVar(result, scriptContext);
-                }
-
-                current--;
-            }
+            int result = LastIndexOfUsingJmpTable(jmpTable, inputStr, inputLen, searchStr, searchLen, position);
             return JavascriptNumber::ToVar(result, scriptContext);
         }
-        else
+
+        // Revert to slow search if we decided not to do Boyer-Moore.
+        char16 const * currentPos = searchUpperBound;
+        Assert(currentPos - searchLowerBound + searchLen <= inputLen);
+        while (currentPos >= searchLowerBound)
         {
-            result = LastIndexOfUsingJmpTable(jmpTable, inputStr, len, searchStr, searchLen, position);
+            if (*currentPos == *searchStr)
+            {
+                // Quick start char chec
+                if (wmemcmp(currentPos, searchStr, searchLen) == 0)
+                {
+                    return JavascriptNumber::ToVar(currentPos - searchLowerBound, scriptContext);
+                }
+            }
+            --currentPos;
         }
-        return JavascriptNumber::ToVar(result, scriptContext);
+        return JavascriptNumber::ToVar(-1, scriptContext);
     }
 
     // Performs common ES spec steps for getting this argument in string form:
