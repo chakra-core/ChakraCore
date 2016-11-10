@@ -177,7 +177,7 @@ void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* memo
     {
         if (*memoryObject == nullptr)
         {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
         }
     }
     else
@@ -321,7 +321,7 @@ void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptCont
         Var prop = GetImportVariable(wasmModule->GetFunctionImport(i), ctx, ffi);
         if (!JavascriptFunction::Is(prop))
         {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            JavascriptError::ThrowTypeError(ctx, JSERR_Property_NeedFunction);
         }
         importFunctions[i] = prop;
         if (AsmJsScriptFunction::IsWasmScriptFunction(prop))
@@ -336,12 +336,12 @@ void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptCont
         Var prop = GetImportVariable(wasmModule->GetMemoryImport(), ctx, ffi);
         if (!WebAssemblyMemory::Is(prop))
         {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
         }
         WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(prop);
         if (!wasmModule->IsValidMemoryImport(mem))
         {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
         }
         *memoryObject = mem;
     }
@@ -350,13 +350,13 @@ void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptCont
         Var prop = GetImportVariable(wasmModule->GetTableImport(), ctx, ffi);
         if (!WebAssemblyTable::Is(prop))
         {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
         }
         WebAssemblyTable * table = WebAssemblyTable::FromVar(prop);
 
         if (!wasmModule->IsValidTableImport(table))
         {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
         }
         *tableObject = table;
     }
@@ -469,7 +469,7 @@ void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModu
     {
         if (*tableObject == nullptr)
         {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
         }
     }
     else
@@ -488,7 +488,6 @@ void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModu
         {
             Assert(elems != nullptr);
             uint offset = eSeg->GetDestAddr(wasmModule);
-            // REVIEW: should we check against min?
             if (UInt32Math::Add(offset, eSeg->GetNumElements()) > table->GetCurrentLength())
             {
                 JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_ElementSegOutOfRange);

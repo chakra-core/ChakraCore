@@ -12,9 +12,9 @@ WASM_SECTION(Memory               , "memory"             , fSectNone  , Invalid 
 WASM_SECTION(Global               , "global"             , fSectNone  , Invalid           )
 WASM_SECTION(ExportTable          , "export"             , fSectNone  , Invalid           )
 WASM_SECTION(StartFunction        , "start"              , fSectNone  , Signatures        )
-WASM_SECTION(Element              , "element"            , fSectNone  , IndirectFunctionTable)
+WASM_SECTION(Element              , "element"            , fSectNone  , Invalid           )
 WASM_SECTION(FunctionBodies       , "code"               , fSectNone  , FunctionSignatures)
-WASM_SECTION(DataSegments         , "data"               , fSectNone  , Memory            )
+WASM_SECTION(DataSegments         , "data"               , fSectNone  , Invalid           )
 WASM_SECTION(Names                , "name"               , fSectIgnore, Signatures        )
 WASM_SECTION(User                 , "user"               , fSectIgnore, Invalid           )
 #undef WASM_SECTION

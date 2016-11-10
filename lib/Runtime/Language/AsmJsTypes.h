@@ -870,13 +870,13 @@ namespace Js
         AsmJsRetType mReturnType;
 #ifdef ENABLE_WASM
         Wasm::WasmSignature * mSignature;
+        Wasm::WasmReaderInfo* mWasmReaderInfo;
+        WebAssemblyModule* mWasmModule;
 #endif
         bool mIsHeapBufferConst;
         bool mUsesHeapBuffer;
 
         FunctionBody* asmJsModuleFunctionBody;
-        Wasm::WasmReaderInfo* mWasmReaderInfo;
-        WebAssemblyModule* mWasmModule;
         Js::JavascriptError * mLazyError;
     public:
         AsmJsFunctionInfo() : mArgCount(0),
@@ -885,15 +885,15 @@ namespace Js
                               mArgByteSize(0),
                               asmJsModuleFunctionBody(nullptr),
                               mTJBeginAddress(nullptr),
+#ifdef ENABLE_WASM
+                              mWasmReaderInfo(nullptr),
+                              mSignature(nullptr),
+                              mWasmModule(nullptr),
+#endif
                               mUsesHeapBuffer(false),
                               mIsHeapBufferConst(false),
                               mArgType(nullptr),
-                              mArgSizes(nullptr),
-                              mWasmReaderInfo(nullptr),
-#ifdef ENABLE_WASM
-                              mSignature(nullptr),
-#endif
-                              mWasmModule(nullptr){}
+                              mArgSizes(nullptr) {}
         // the key is the bytecode address
         typedef JsUtil::BaseDictionary<int, ptrdiff_t, Recycler> ByteCodeToTJMap;
         ByteCodeToTJMap* mbyteCodeTJMap;
@@ -977,13 +977,13 @@ namespace Js
         {
             mSignature = sig;
         }
-#endif
 
         Wasm::WasmReaderInfo* GetWasmReaderInfo() const {return mWasmReaderInfo;}
         void SetWasmReaderInfo(Wasm::WasmReaderInfo* reader) {mWasmReaderInfo = reader;}
         WebAssemblyModule* GetWebAssemblyModule() const { return mWasmModule; }
         void SetWebAssemblyModule(WebAssemblyModule * module) { mWasmModule= module; }
         bool IsWasmDeferredParse() const { return mWasmReaderInfo != nullptr; }
+#endif
     };
 
     // The asm.js spec recognizes this set of builtin SIMD functions.

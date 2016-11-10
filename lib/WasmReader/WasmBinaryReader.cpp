@@ -629,7 +629,7 @@ WasmBinaryReader::ReadMemorySection(bool isImportSection)
     {
         uint32 flags = LEB128(length);
         uint32 minPage = LEB128(length);
-        uint32 maxPage = minPage;
+        uint32 maxPage = UINT32_MAX;
         if (flags & 0x1)
         {
             maxPage = LEB128(length);

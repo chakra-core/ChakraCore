@@ -8406,7 +8406,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Var func = table->DirectGetValue(index);
         if (!func)
         {
-            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), JSERR_Property_NeedFunction);
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_TableIndexOutOfRange);
         }
         m_localSlots[playout->Value] = func;
 #endif
