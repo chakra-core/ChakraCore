@@ -367,6 +367,7 @@ private:
     ParseNodePtr * m_ppnodeVar;  // variable list tail
     bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node
     bool m_isInBackground;
+    bool m_reparsingLambdaParams;
 
     // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
     bool m_hasDeferredShorthandInitError;

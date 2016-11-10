@@ -14,6 +14,18 @@
   </test>
   <test>
     <default>
+      <files>lambda-params-shadow.js</files>
+      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>lambda-params-shadow.js</files>
+      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>NumericLiteralTest.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
