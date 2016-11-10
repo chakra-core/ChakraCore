@@ -2013,7 +2013,7 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(PadStart);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_padStart);
 
         JavascriptString * pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.padStart"), &pThis);
@@ -2029,7 +2029,7 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(PadEnd);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_padEnd);
 
         JavascriptString * pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.padEnd"), &pThis);
@@ -2308,7 +2308,7 @@ case_2:
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(StringTrim);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_trim);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -2435,7 +2435,7 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Repeat);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_repeat);
 
         JavascriptString* pThis = nullptr;
         GetThisStringArgument(args, scriptContext, _u("String.prototype.repeat"), &pThis);
@@ -2518,7 +2518,7 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(StartsWith);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_startsWith);
 
         JavascriptString * pThis;
         JavascriptString * pSearch;
@@ -2571,7 +2571,7 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(EndsWith);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_endsWith);
 
         JavascriptString * pThis;
         JavascriptString * pSearch;
@@ -2624,7 +2624,7 @@ case_2:
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Contains);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(String_Prototype_contains);
 
         return JavascriptBoolean::ToVar(IndexOf(args, scriptContext, _u("String.prototype.includes"), false) != -1, scriptContext);
     }

@@ -3760,7 +3760,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayIndexOf);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_indexOf);
 
         Var returnValue =  IndexOfHelper<false>(args, scriptContext);
 
@@ -3779,7 +3779,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayIncludes);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_includes);
 
         Var returnValue = IndexOfHelper<true>(args, scriptContext);
         Assert(returnValue == scriptContext->GetLibrary()->GetTrue() || returnValue == scriptContext->GetLibrary()->GetFalse());
@@ -4493,7 +4493,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayLastIndexOf);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_lastIndexOf);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -7837,7 +7837,7 @@ Case0:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayisArray);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Constructor_isArray);
 
         if (args.Info.Count < 2)
         {
@@ -8147,7 +8147,7 @@ Case0:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayEvery);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_every);
 
         if (args.Info.Count == 0)
         {
@@ -8306,7 +8306,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.some"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArraySome);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_some);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8468,7 +8468,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.forEach"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayForEach)
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_forEach)
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8877,7 +8877,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.map"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayMap);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_map);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -9120,7 +9120,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.filter"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayFilter);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_filter);
 
         Assert(!(callInfo.Flags & CallFlags_New));
         if (args.Info.Count == 0)
@@ -9285,7 +9285,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduce"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayReduce);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduce);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -9485,7 +9485,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduceRight"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayReduceRight);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduceRight);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 

@@ -27,7 +27,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Promise);
+        CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_Promise);
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch

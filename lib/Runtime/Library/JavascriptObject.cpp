@@ -687,7 +687,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectGetPrototypeOf);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_getPrototypeOf);
 
         // 19.1.2.9
         // Object.getPrototypeOf ( O )
@@ -765,7 +765,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectSeal);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_seal);
 
         // Spec update in Rev29 under section 19.1.2.17
         if (args.Info.Count < 2)
@@ -798,7 +798,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectFreeze);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_freeze);
 
         // Spec update in Rev29 under section 19.1.2.5
         if (args.Info.Count < 2)
@@ -830,7 +830,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectPreventExtension);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_preventExtensions);
 
         // Spec update in Rev29 under section 19.1.2.15
         if (args.Info.Count < 2)
@@ -863,7 +863,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectIsSealed);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_isSealed);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
@@ -891,7 +891,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectIsFrozen);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_isFrozen);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
@@ -917,7 +917,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectIsExtensible);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_isExtensible);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -946,7 +946,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectGetOwnPropertyNames);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_getOwnPropertyNames);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
         RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
@@ -995,7 +995,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectKeys);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_keys);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
         RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
@@ -1063,7 +1063,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectValues);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_values);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
         RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
@@ -1079,7 +1079,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectEntries);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_entries);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
         RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
@@ -1255,7 +1255,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectDefineProperties);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_defineProperties);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -1608,7 +1608,7 @@ namespace Js
         Recycler *recycler = scriptContext->GetRecycler();
 
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectCreate);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_create)
 
         Assert(!(callInfo.Flags & CallFlags_New));
 

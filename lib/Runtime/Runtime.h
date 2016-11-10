@@ -477,6 +477,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #else
 #define CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(builtin)
 #define CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(feature, m_scriptContext)
+#define CHAKRATEL_LANGSTATS_INC_DATACOUNT(feature)
 #endif
 #include "Base/ThreadContext.h"
 

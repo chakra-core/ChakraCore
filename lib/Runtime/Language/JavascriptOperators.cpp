@@ -1125,7 +1125,7 @@ CommonNumber:
     JavascriptArray* JavascriptOperators::GetOwnPropertySymbols(Var instance, ScriptContext *scriptContext)
     {
         RecyclableObject *object = RecyclableObject::FromVar(ToObject(instance, scriptContext));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(GetOwnPropertySymbols);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_getOwnPropertySymbols);
 
         if (JavascriptProxy::Is(instance))
         {
