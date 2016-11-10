@@ -317,12 +317,17 @@ private:
     }
 };
 
+// Declare opaque type
+class DeleteNativeCodeGeneratorJobManager;
+
 class ThreadContext sealed :
     public DefaultRecyclerCollectionWrapper,
     public JsUtil::DoublyLinkedListElement<ThreadContext>,
     public ThreadContextInfo
 {
 public:
+    DeleteNativeCodeGeneratorJobManager *deleteNativeCodeGeneratorJobManager;
+
     static void GlobalInitialize();
     static const DWORD NoThread = 0xFFFFFFFF;
 

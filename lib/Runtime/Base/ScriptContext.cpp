@@ -476,7 +476,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         if (this->nativeCodeGen != nullptr)
         {
-            DeleteNativeCodeGenerator(this->nativeCodeGen);
+            DeleteNativeCodeGenerator(this->nativeCodeGen, this->GetThreadContext());
             nativeCodeGen = NULL;
         }
 #endif
@@ -2801,7 +2801,7 @@ if (!sourceList)
         // Delete the native code generator and recreate so that all jobs get cleared properly
         // and re-jitted.
         CloseNativeCodeGenerator(oldCodeGen);
-        DeleteNativeCodeGenerator(oldCodeGen);
+        DeleteNativeCodeGenerator(oldCodeGen, this->GetThreadContext());
 
         return hr;
     }

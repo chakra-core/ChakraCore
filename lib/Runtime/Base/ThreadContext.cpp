@@ -190,6 +190,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     loopDepth(0),
     tridentLoadAddress(nullptr),
     m_remoteThreadContextInfo(nullptr),
+    deleteNativeCodeGeneratorJobManager(nullptr),
     debugManager(nullptr)
 #if ENABLE_TTD
     , TTDContext(nullptr)
@@ -519,6 +520,8 @@ ThreadContext::~ThreadContext()
 
         HeapDelete(recycler);
     }
+
+    DeleteDeleteNativeCodeGeneratorJobManager(this);
 
 #if ENABLE_NATIVE_CODEGEN
     if(jobProcessor)

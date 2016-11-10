@@ -27,6 +27,21 @@ class NativeCodeGenerator sealed : public JsUtil::WaitableJobManager
 
 public:
     NativeCodeGenerator(Js::ScriptContext * scriptContext);
+
+    void ClearForegroundAllocators();
+#ifdef PROFILE_EXEC
+    void ClearCodegenProfilers();
+#endif
+
+#ifdef DBG
+private:
+    bool m_areForegroundAllocatorsCleared;
+#ifdef PROFILE_EXEC
+    bool m_areCodegenProfilersCleared;
+#endif
+public:
+#endif
+
     ~NativeCodeGenerator();
     void Close();
 
@@ -321,5 +336,127 @@ private:
 #if DBG
     ThreadContextId mainThreadId;
     friend void CheckIsExecutable(Js::RecyclableObject * function, Js::JavascriptMethod entrypoint);
+#endif
+};
+
+// TODO (doilij) refactor DeleteNativeCodeGeneratorJob and FreeLoopBodyJob into a generic FreeJob
+class DeleteNativeCodeGeneratorJob : public JsUtil::Job
+{
+public:
+    DeleteNativeCodeGeneratorJob(JsUtil::JobManager *const manager, NativeCodeGenerator* nativeCodeGenerator, bool isHeapAllocated = true) :
+        JsUtil::Job(manager),
+        nativeCodeGenerator(nativeCodeGenerator),
+        heapAllocated(isHeapAllocated)
+    {
+    }
+
+    ~DeleteNativeCodeGeneratorJob()
+    {
+        // If we get to this point and the nativeCodeGenerator has not yet been destroyed
+        // (i.e. the job was destroyed without ever being processed)
+        // then destroy the nativeCodeGenerator now.
+        if (nativeCodeGenerator != nullptr)
+        {
+            HeapDelete(nativeCodeGenerator);
+            nativeCodeGenerator = nullptr;
+        }
+    }
+
+    bool heapAllocated;
+    NativeCodeGenerator* nativeCodeGenerator;
+};
+
+// TODO (doilij) refactor DeleteNativeCodeGeneratorJobManager and FreeLoopBodyJobManager into a generic FreeJobManager
+class DeleteNativeCodeGeneratorJobManager sealed : public JsUtil::WaitableJobManager
+{
+public:
+    DeleteNativeCodeGeneratorJobManager(JsUtil::JobProcessor* processor)
+        : JsUtil::WaitableJobManager(processor)
+        , autoClose(true)
+        , isClosed(false)
+        , stackJobProcessed(false)
+#if DBG
+        , waitingForStackJob(false)
+#endif
+    {
+        Processor()->AddManager(this);
+    }
+
+    virtual ~DeleteNativeCodeGeneratorJobManager()
+    {
+        if (autoClose && !isClosed)
+        {
+            Close();
+        }
+        Assert(this->isClosed);
+    }
+
+    void Close()
+    {
+        Assert(!this->isClosed);
+        Processor()->RemoveManager(this);
+        this->isClosed = true;
+    }
+
+    void SetAutoClose(bool autoClose)
+    {
+        this->autoClose = autoClose;
+    }
+
+    DeleteNativeCodeGeneratorJob* GetJob(DeleteNativeCodeGeneratorJob* job)
+    {
+        if (!job->heapAllocated)
+        {
+            return this->stackJobProcessed ? nullptr : job;
+        }
+        else
+        {
+            return job;
+        }
+    }
+
+    bool WasAddedToJobProcessor(JsUtil::Job *const job) const
+    {
+        return true;
+    }
+
+    void BeforeWaitForJob(DeleteNativeCodeGeneratorJob*) const {}
+    void AfterWaitForJob(DeleteNativeCodeGeneratorJob*) const {}
+
+    virtual bool Process(JsUtil::Job *const job, JsUtil::ParallelThreadData *threadData) override
+    {
+        DeleteNativeCodeGeneratorJob* deleteNativeCodeGeneratorJob = static_cast<DeleteNativeCodeGeneratorJob*>(job);
+        HeapDelete(deleteNativeCodeGeneratorJob->nativeCodeGenerator);
+        deleteNativeCodeGeneratorJob->nativeCodeGenerator = nullptr;
+
+        return true;
+    }
+
+    virtual void JobProcessed(JsUtil::Job *const job, const bool succeeded) override
+    {
+        DeleteNativeCodeGeneratorJob* deleteNativeCodeGeneratorJob = static_cast<DeleteNativeCodeGeneratorJob*>(job);
+
+        if (deleteNativeCodeGeneratorJob->heapAllocated)
+        {
+            HeapDelete(deleteNativeCodeGeneratorJob);
+        }
+        else
+        {
+#if DBG
+            Assert(this->waitingForStackJob);
+            this->waitingForStackJob = false;
+#endif
+            this->stackJobProcessed = true;
+        }
+    }
+
+    void QueueDeleteNativeCodeGeneratorJob(NativeCodeGenerator * nativeCodeGen);
+
+private:
+    bool autoClose;
+    bool isClosed;
+    bool stackJobProcessed;
+#if DBG
+    bool waitingForStackJob;
 #endif
 };

@@ -35,6 +35,12 @@ NativeCodeGenerator::NativeCodeGenerator(Js::ScriptContext * scriptContext)
     , foregroundCodeGenProfiler(nullptr)
     , backgroundCodeGenProfiler(nullptr)
 #endif
+#ifdef DBG
+    , m_areCodegenProfilersCleared(false)
+#ifdef PROFILE_EXEC
+    , m_areForegroundAllocatorsCleared(false)
+#endif
+#endif
 {
     freeLoopBodyManager.SetNativeCodeGen(this);
 
@@ -85,38 +91,26 @@ NativeCodeGenerator::NativeCodeGenerator(Js::ScriptContext * scriptContext)
     this->freeLoopBodyManager.SetAutoClose(false);
 }
 
-NativeCodeGenerator::~NativeCodeGenerator()
+void NativeCodeGenerator::ClearForegroundAllocators()
 {
-    Assert(this->IsClosed());
-
-#ifdef PROFILE_EXEC
-    if (this->foregroundCodeGenProfiler != nullptr)
-    {
-        this->foregroundCodeGenProfiler->Release();
-    }
-#endif
-
-    if(this->foregroundAllocators != nullptr)
+    if (this->foregroundAllocators != nullptr)
     {
         HeapDelete(this->foregroundAllocators);
     }
 
-
-    if (this->backgroundAllocators)
-    {
-#if DBG
-        // PageAllocator is thread agile. This destructor can be called from background GC thread.
-        // We have already removed this manager from the job queue and hence its fine to set the threadId to -1.
-        // We can't DissociatePageAllocator here as its allocated ui thread.
-        //this->Processor()->DissociatePageAllocator(allocator->GetPageAllocator());
-        this->backgroundAllocators->ClearConcurrentThreadId();
+#ifdef DBG
+    this->m_areForegroundAllocatorsCleared = true;
 #endif
-        // The native code generator may be deleted after Close was called on the job processor. In that case, the
-        // background thread is no longer running, so clean things up in the foreground.
-        HeapDelete(this->backgroundAllocators);
-    }
+}
 
 #ifdef PROFILE_EXEC
+void NativeCodeGenerator::ClearCodegenProfilers()
+{
+    if (this->foregroundCodeGenProfiler != nullptr)
+    {
+        this->foregroundCodeGenProfiler->Release();
+    }
+
     if (Js::Configuration::Global.flags.IsEnabled(Js::ProfileFlag))
     {
         while (this->backgroundCodeGenProfiler)
@@ -124,7 +118,7 @@ NativeCodeGenerator::~NativeCodeGenerator()
             Js::ScriptContextProfiler *codegenProfiler = this->backgroundCodeGenProfiler;
             this->backgroundCodeGenProfiler = this->backgroundCodeGenProfiler->next;
             // background codegen profiler is allocated in background thread,
-            // clear the thead Id before release
+            // clear the threadId before release
 #ifdef DBG
             if (codegenProfiler->pageAllocator != nullptr)
             {
@@ -138,8 +132,37 @@ NativeCodeGenerator::~NativeCodeGenerator()
     {
         Assert(this->backgroundCodeGenProfiler == nullptr);
     }
+
+#ifdef DBG
+    this->m_areCodegenProfilersCleared = true;
+#endif
+}
 #endif
 
+NativeCodeGenerator::~NativeCodeGenerator()
+{
+    Assert(this->IsClosed());
+
+#ifdef DBG
+    Assert(this->m_areForegroundAllocatorsCleared);
+#ifdef PROFILE_EXEC
+    Assert(this->m_areCodegenProfilersCleared);
+#endif
+#endif
+
+    if (this->backgroundAllocators)
+    {
+#ifdef DBG
+        // PageAllocator is thread agile. This destructor can be called from background GC thread.
+        // We have already removed this manager from the job queue and hence its fine to set the threadId to -1.
+        // We can't DissociatePageAllocator here as its allocated ui thread.
+        //this->Processor()->DissociatePageAllocator(allocator->GetPageAllocator());
+        this->backgroundAllocators->ClearConcurrentThreadId();
+#endif
+        // The native code generator may be deleted after Close was called on the job processor. In that case, the
+        // background thread is no longer running, so clean things up in the foreground.
+        HeapDelete(this->backgroundAllocators);
+    }
 }
 
 void NativeCodeGenerator::Close()
@@ -3684,5 +3707,40 @@ JITManager::HandleServerCallResult(HRESULT hr)
         throw Js::StackOverflowException();
     default:
         RpcFailure_fatal_error(hr);
+    }
+}
+
+// TODO (doilij) refactor QueueDeleteNativeCodeGeneratorJob and QueueFreeLoopBodyJob into a generic QueueFreeJob
+void DeleteNativeCodeGeneratorJobManager::QueueDeleteNativeCodeGeneratorJob(NativeCodeGenerator * nativeCodeGen)
+{
+    Assert(!this->isClosed);
+
+    DeleteNativeCodeGeneratorJob* job = HeapNewNoThrow(DeleteNativeCodeGeneratorJob, this, nativeCodeGen);
+
+    if (job == nullptr)
+    {
+        DeleteNativeCodeGeneratorJob stackJob(this, nativeCodeGen, false /* heapAllocated */);
+
+        {
+            AutoOptionalCriticalSection lock(Processor()->GetCriticalSection());
+#if DBG
+            this->waitingForStackJob = true;
+#endif
+            this->stackJobProcessed = false;
+            Processor()->AddJob(&stackJob);
+        }
+        Processor()->PrioritizeJobAndWait(this, &stackJob);
+    }
+    else
+    {
+        AutoOptionalCriticalSection lock(Processor()->GetCriticalSection());
+        if (Processor()->HasManager(this))
+        {
+            Processor()->AddJobAndProcessProactively<DeleteNativeCodeGeneratorJobManager, DeleteNativeCodeGeneratorJob*>(this, job);
+        }
+        else
+        {
+            HeapDelete(job);
+        }
     }
 }
