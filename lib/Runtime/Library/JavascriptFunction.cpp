@@ -208,11 +208,11 @@ namespace Js
         BOOL strictMode = FALSE;
 
         JavascriptFunction *pfuncScript;
-        ParseableFunctionInfo *pfuncBodyCache = NULL;
+        FunctionInfo *pfuncInfoCache = NULL;
         char16 const * sourceString = bs->GetSz();
         charcount_t sourceLen = bs->GetLength();
         EvalMapString key(sourceString, sourceLen, moduleID, strictMode, /* isLibraryCode = */ false);
-        if (!scriptContext->IsInNewFunctionMap(key, &pfuncBodyCache))
+        if (!scriptContext->IsInNewFunctionMap(key, &pfuncInfoCache))
         {
             // Validate formals here
             scriptContext->GetGlobalObject()->ValidateSyntax(
@@ -237,20 +237,15 @@ namespace Js
             Assert(functionInfo);
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
 
-            scriptContext->AddToNewFunctionMap(key, functionInfo);
+            scriptContext->AddToNewFunctionMap(key, functionInfo->GetFunctionInfo());
+        }
+        else if (pfuncInfoCache->IsCoroutine())
+        {
+            pfuncScript = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(pfuncInfoCache->GetFunctionProxy());
         }
         else
         {
-            // Get the latest proxy
-            FunctionProxy * proxy = pfuncBodyCache->GetFunctionProxy();
-            if (proxy->IsCoroutine())
-            {
-                pfuncScript = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(proxy);
-            }
-            else
-            {
-                pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
-            }
+            pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(pfuncInfoCache->GetFunctionProxy());
         }
 
 #if ENABLE_TTD
@@ -1684,7 +1679,6 @@ LABEL1:
         ParseableFunctionInfo* functionInfo = (*functionRef)->GetParseableFunctionInfo();
 
         Assert(functionInfo);
-        Assert(functionInfo->HasBody());
         functionInfo->GetFunctionBody()->AddDeferParseAttribute();
         functionInfo->GetFunctionBody()->ResetEntryPoint();
         functionInfo->GetFunctionBody()->ResetInParams();
@@ -1799,7 +1793,7 @@ LABEL1:
         // calls the default entry point the next time around
         if (funcInfo->IsDeferredDeserializeFunction())
         {
-            DeferDeserializeFunctionInfo* deferDeserializeFunction = (DeferDeserializeFunctionInfo*) funcInfo;
+            DeferDeserializeFunctionInfo* deferDeserializeFunction = funcInfo->GetDeferDeserializeFunctionInfo();
 
             // This is the first call to the function, ensure dynamic profile info
             // Deserialize is a no-op if the function has already been deserialized

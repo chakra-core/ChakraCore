@@ -125,7 +125,7 @@ namespace Js
             for (uint i = 0; i < current->GetNestedCount(); i++)
             {
                 FunctionProxy * nested = current->GetNestedFunc(i);
-                functionObjectToBox.Add(nested->GetFunctionProxy());
+                functionObjectToBox.Add(nested);
                 if (nested->IsFunctionBody())
                 {
                     nested->GetFunctionBody()->ClearStackNestedFuncParent();
@@ -143,7 +143,7 @@ namespace Js
 
     bool StackScriptFunction::BoxState::NeedBoxScriptFunction(ScriptFunction * scriptFunction)
     {
-        return functionObjectToBox.Contains(scriptFunction->GetFunctionProxy()->GetFunctionProxy());
+        return functionObjectToBox.Contains(scriptFunction->GetFunctionProxy());
     }
 
     void StackScriptFunction::BoxState::Box()
@@ -727,8 +727,7 @@ namespace Js
             Output::Flush();
         }
 
-        // Make sure we use the latest function proxy (if it is parsed or deserialized)
-        FunctionProxy * functionBody = stackFunction->GetFunctionProxy()->GetFunctionProxy();
+        FunctionProxy * functionBody = stackFunction->GetFunctionProxy();
         boxedFunction = ScriptFunction::OP_NewScFunc(boxedFrameDisplay, &functionBody);
         stackFunction->boxedScriptFunction = boxedFunction;
         stackFunction->SetEnvironment(boxedFrameDisplay);
