@@ -175,6 +175,7 @@ public:
             void            GenerateCtz(IR::Instr * instr);
             void            GeneratePopCnt(IR::Instr * instr);
             void            GenerateTruncWithCheck(IR::Instr * instr);
+            IR::Opnd*       GenerateTruncChecks(IR::Instr* instr);
             IR::RegOpnd*    MaterializeDoubleConstFromInt(intptr_t constAddr, IR::Instr* instr);
             IR::RegOpnd*    MaterializeConstFromBits(int intConst, IRType type, IR::Instr* instr);
             IR::Opnd*       Subtract2To31(IR::Opnd* src1, IR::Opnd* intMinFP, IRType type, IR::Instr* instr);
