@@ -8215,9 +8215,7 @@ Lowerer::LowerCheckWasmSignature(IR::Instr * instr)
 
         InsertBranch(Js::OpCode::Br, labelFallThrough, trapLabel);
 
-        IR::Opnd* errReg = IR::RegOpnd::New(TyInt32, m_func);
-        InsertMove(errReg, IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_TableIndexOutOfRange), TyInt32, m_func), instr);
-        GenerateThrow(errReg, instr);
+        GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_SignatureMismatch), TyInt32, m_func), instr);
 
         instr->Remove();
 
@@ -8264,9 +8262,7 @@ Lowerer::LowerLdWasmFunc(IR::Instr* instr)
     InsertCompareBranch(dst, IR::IntConstOpnd::New(0, TyMachPtr, m_func), Js::OpCode::BrEq_A, trapLabel, trapLabel);
     InsertBranch(Js::OpCode::Br, doneLabel, trapLabel);
 
-    IR::Opnd* errReg = IR::RegOpnd::New(TyInt32, m_func);
-    InsertMove(errReg, IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_SignatureMismatch), TyInt32, m_func), instr);
-    GenerateThrow(errReg, instr);
+    GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_TableIndexOutOfRange), TyInt32, m_func), instr);
 
     instr->Remove();
 

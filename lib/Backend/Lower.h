@@ -416,7 +416,6 @@ private:
     IR::Instr *     LowerBailForDebugger(IR::Instr* instr, bool isInsideHelper = false);
     IR::Instr *     LowerBailOnException(IR::Instr* instr);
     IR::Instr *     LowerReinterpretPrimitive(IR::Instr* instr);
-    IR::Instr *     LowerLdAsmJsFunc(IR::Instr* instr);
 
     void            LowerOneBailOutKind(IR::Instr *const instr, const IR::BailOutKind bailOutKindToLower, const bool isInHelperBlock, const bool preserveBailOutKindInInstr = false);
 
