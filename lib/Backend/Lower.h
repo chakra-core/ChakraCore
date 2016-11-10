@@ -210,6 +210,10 @@ private:
         IR::JnHelperMethod helperMethodWithTemp, IR::JnHelperMethod helperMethodLeftDead);
     IR::Instr *     LowerAddLeftDeadForString(IR::Instr *instr);
     IR::Instr *     LowerBinaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod);
+#ifdef ENABLE_WASM
+    IR::Instr *     LowerCheckWasmSignature(IR::Instr * instr);
+    IR::Instr *     LowerLdWasmFunc(IR::Instr* instr);
+#endif
     IR::Instr *     LowerInitCachedScope(IR::Instr * instr);
     IR::Instr *     LowerBrBReturn(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool isHelper);
     IR::Instr *     LowerBrBMem(IR::Instr *instr, IR::JnHelperMethod helperMethod);

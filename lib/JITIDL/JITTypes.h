@@ -368,6 +368,28 @@ typedef struct StatementMapIDL
     IDL_PAD2(0)
 } StatementMapIDL;
 
+typedef struct WasmSignatureIDL
+{
+    int resultType;
+    unsigned int id;
+    unsigned int paramSize;
+    unsigned int paramsCount;
+    CHAKRA_PTR shortSig;
+    IDL_DEF([size_is(paramsCount)]) int * params;
+} WasmSignatureIDL;
+
+typedef struct TypedSlotInfo
+{
+    boolean isValidType;
+    IDL_PAD1(0)
+    IDL_PAD2(1)
+    unsigned int constCount;
+    unsigned int varCount;
+    unsigned int tmpCount;
+    unsigned int byteOffset;
+    unsigned int constSrcByteOffset;
+} TypedSlotInfo;
+
 typedef struct AsmJsDataIDL
 {
     boolean isHeapBufferConst;
@@ -376,16 +398,12 @@ typedef struct AsmJsDataIDL
     unsigned short argCount;
     IDL_PAD2(0)
     int retType;
-    struct TypedSlotInfo
-    {
-        unsigned int constCount;
-        unsigned int varCount;
-        unsigned int tmpCount;
-        unsigned int byteOffset;
-        unsigned int constSrcByteOffset;
-        boolean isValidType;
-    } typedSlotInfos[5];
     int totalSizeInBytes;
+    unsigned int wasmSignatureCount;
+    X64_PAD4(1)
+    TypedSlotInfo typedSlotInfos[5];
+    CHAKRA_PTR wasmSignaturesBaseAddr;
+    IDL_DEF([size_is(wasmSignatureCount)]) WasmSignatureIDL *  wasmSignatures;
     IDL_DEF([size_is(argCount)]) byte * argTypeArray;
 } AsmJsDataIDL;
 
@@ -467,18 +485,12 @@ typedef struct FunctionBodyDataIDL
     boolean hasFinally;
     boolean usesArgumentsObject;
     boolean doScopeObjectCreation;
-#if defined(_M_IX86) || defined(_M_ARM)
-    IDL_PAD1(0)
-#else
-    IDL_PAD1(0)
-    IDL_PAD2(1)
-#endif
 
     unsigned short envDepth;
     unsigned short inParamCount;
     unsigned short argUsedForBranch;
     unsigned short profiledCallSiteCount;
-
+    IDL_PAD2(0)
     unsigned int funcNumber;
     unsigned int sourceContextId;
     unsigned int nestedCount;

@@ -64,12 +64,12 @@ namespace Wasm
         // Module readers
         void ValidateModuleHeader();
         SectionHeader ReadSectionHeader();
-        void ReadMemorySection();
+        void ReadMemorySection(bool isImportSection);
         void ReadSignatures();
         void ReadFunctionsSignatures();
         void ReadFunctionHeaders();
         void ReadExportTable();
-        void ReadTableSection();
+        void ReadTableSection(bool isImportSection);
         void ReadDataSegments();
         void ReadImportEntries();
         void ReadStartFunction();

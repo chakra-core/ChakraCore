@@ -84,6 +84,10 @@ HELPERCALL(Op_TypeofElem_Int32, Js::JavascriptOperators::TypeofElem_Int32, 0)
 HELPERCALL(Op_TypeofPropertyScoped, Js::JavascriptOperators::OP_TypeofPropertyScoped, 0)
 HELPERCALL(Op_Rem_Double, Js::NumberUtilities::Modulus, 0)
 
+#ifdef ENABLE_WASM
+HELPERCALL(Op_CheckWasmSignature, Js::WebAssembly::CheckSignature, AttrCanThrow)
+#endif
+
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Increment, Js::JavascriptMath::Increment, Js::SSE2::JavascriptMath::Increment, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Decrement, Js::JavascriptMath::Decrement, Js::SSE2::JavascriptMath::Decrement, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Negate, Js::JavascriptMath::Negate, Js::SSE2::JavascriptMath::Negate, AttrCanThrow)

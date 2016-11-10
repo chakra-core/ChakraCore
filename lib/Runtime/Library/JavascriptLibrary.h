@@ -267,6 +267,7 @@ namespace Js
         DynamicType * webAssemblyModuleType;
         DynamicType * webAssemblyInstanceType;
         DynamicType * webAssemblyMemoryType;
+        DynamicType * webAssemblyTableType;
 
         // SIMD_JS
         DynamicType * simdBool8x16TypeDynamic;
@@ -430,6 +431,8 @@ namespace Js
         RuntimeFunction* webAssemblyModuleConstructor;
         DynamicObject* webAssemblyInstancePrototype;
         RuntimeFunction* webAssemblyInstanceConstructor;
+        DynamicObject* webAssemblyTablePrototype;
+        RuntimeFunction* webAssemblyTableConstructor;
 
         int regexConstructorSlotIndex;
         int regexExecSlotIndex;
@@ -751,6 +754,7 @@ namespace Js
         DynamicType * GetWebAssemblyModuleType()  const { return webAssemblyModuleType; }
         DynamicType * GetWebAssemblyInstanceType()  const { return webAssemblyInstanceType; }
         DynamicType * GetWebAssemblyMemoryType() const { return webAssemblyMemoryType; }
+        DynamicType * GetWebAssemblyTableType() const { return webAssemblyTableType; }
 
         // SIMD_JS
         DynamicType * GetSIMDBool8x16TypeDynamic()  const { return simdBool8x16TypeDynamic;  }
@@ -1216,6 +1220,7 @@ namespace Js
         STANDARD_INIT(WebAssemblyMemory);
         STANDARD_INIT(WebAssemblyModule);
         STANDARD_INIT(WebAssemblyInstance);
+        STANDARD_INIT(WebAssemblyTable);
 
 #undef STANDARD_INIT
 

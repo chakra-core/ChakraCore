@@ -1202,7 +1202,7 @@ IRBuilderAsmJs::BuildElementSlot(Js::OpCodeAsmJs newOpcode, uint32 offset, int32
 {
     Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
 
-    Assert(instance == 1 || newOpcode == Js::OpCodeAsmJs::LdArr_Func);
+    Assert(instance == 1 || newOpcode == Js::OpCodeAsmJs::LdArr_Func || newOpcode == Js::OpCodeAsmJs::LdArr_WasmFunc);
 
     Js::RegSlot valueRegSlot;
     IR::Opnd * slotOpnd;
@@ -1238,13 +1238,22 @@ IRBuilderAsmJs::BuildElementSlot(Js::OpCodeAsmJs newOpcode, uint32 offset, int32
     {
         IR::RegOpnd * baseOpnd = BuildSrcOpnd(GetRegSlotFromVarReg(instance), TyVar);
         IR::RegOpnd * indexOpnd = BuildSrcOpnd(GetRegSlotFromIntReg(slotIndex), TyUint32);
+
         IR::IndirOpnd * indirOpnd = IR::IndirOpnd::New(baseOpnd, indexOpnd, TyVar, m_func);
 
         regOpnd = BuildDstOpnd(GetRegSlotFromVarReg(value), TyVar);
         instr = IR::Instr::New(Js::OpCode::LdAsmJsFunc, regOpnd, indirOpnd, m_func);
         break;
     }
+    case Js::OpCodeAsmJs::LdArr_WasmFunc:
+    {
+        IR::RegOpnd * baseOpnd = BuildSrcOpnd(GetRegSlotFromVarReg(instance), TyVar);
+        IR::RegOpnd * indexOpnd = BuildSrcOpnd(GetRegSlotFromIntReg(slotIndex), TyUint32);
 
+        regOpnd = BuildDstOpnd(GetRegSlotFromVarReg(value), TyVar);
+        instr = IR::Instr::New(Js::OpCode::LdWasmFunc, regOpnd, baseOpnd, indexOpnd, m_func);
+        break;
+    }
     case Js::OpCodeAsmJs::StSlot_Int:
     case Js::OpCodeAsmJs::LdSlot_Int:
         type = WAsmJs::INT32;
@@ -2175,6 +2184,22 @@ IRBuilderAsmJs::BuildInt1Const1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::Re
     {
         dstOpnd->m_sym->SetIsIntConst(constInt);
     }
+
+    AddInstr(instr, offset);
+}
+
+void
+IRBuilderAsmJs::BuildReg1IntConst1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::RegSlot reg1, int constInt)
+{
+    Assert(newOpcode == Js::OpCodeAsmJs::CheckSignature);
+
+    IR::RegOpnd * funcReg = BuildSrcOpnd(reg1, TyMachPtr);
+
+    IR::IntConstOpnd * sigIndex = IR::IntConstOpnd::New(constInt, TyInt32, m_func);
+
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::CheckWasmSignature, m_func);
+    instr->SetSrc1(funcReg);
+    instr->SetSrc2(sigIndex);
 
     AddInstr(instr, offset);
 }

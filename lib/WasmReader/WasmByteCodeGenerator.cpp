@@ -208,6 +208,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 
     Js::AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
     info->SetWasmReaderInfo(readerInfo);
+    info->SetWebAssemblyModule(m_module);
 
     if (wasmInfo->GetParamCount() >= Js::Constants::InvalidArgSlot)
     {
@@ -215,7 +216,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     }
     Js::ArgSlot paramCount = (Js::ArgSlot)wasmInfo->GetParamCount();
     info->SetArgCount(paramCount);
-
+    info->SetWasmSignature(wasmInfo->GetSignature());
     Js::ArgSlot argSizeLength = max(paramCount, 3ui16);
     info->SetArgSizeArrayLength(argSizeLength);
     uint* argSizeArray = RecyclerNewArrayLeafZ(m_recycler, uint, argSizeLength);
@@ -804,7 +805,6 @@ WasmBytecodeGenerator::EmitCall()
     case wbCallIndirect:
         indirectIndexInfo = PopEvalStack();
         signatureId = GetReader()->m_currentNode.call.num;
-        signatureId = m_module->GetEquivalentSignatureId(signatureId);
         calleeSignature = m_module->GetSignature(signatureId);
         ReleaseLocation(&indirectIndexInfo);
         break;
@@ -905,9 +905,9 @@ WasmBytecodeGenerator::EmitCall()
         {
             throw WasmCompilationException(_u("Indirect call index must be int type"));
         }
-        // todo:: Add bounds check. Asm.js doesn't need it because there has to be an & operator
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, calleeSignature->GetSignatureId() + m_module->GetTableEnvironmentOffset());
-        m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_Func, 0, 0, indirectIndexInfo.location);
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdSlotArr, 0, 1, m_module->GetTableEnvironmentOffset());
+        m_writer.AsmSlot(Js::OpCodeAsmJs::LdArr_WasmFunc, 0, 0, indirectIndexInfo.location);
+        m_writer.AsmReg1IntConst1(Js::OpCodeAsmJs::CheckSignature, 0, calleeSignature->GetSignatureId());
         break;
     default:
         Assume(UNREACHED);
