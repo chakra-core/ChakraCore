@@ -5863,52 +5863,35 @@ IR::Opnd* LowererMD::Subtract2To31(IR::Opnd* src1, IR::Opnd* intMinFP, IRType ty
     return adjSrc;
 }
 
-void
-LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
+IR::Opnd* LowererMD::GenerateTruncChecks(IR::Instr* instr)
 {
-    Assert(AutoSystemInfo::Data.SSE2Available());
-
-    IR::LabelInstr * done = IR::LabelInstr::New(Js::OpCode::Label, m_func);
-    IR::LabelInstr * trap = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * conversion = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * throwLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
     IR::Opnd* src1 = instr->GetSrc1();
-    IR::Opnd* dst = instr->GetDst();
 
-    IR::Opnd* adjSrc = src1;
-    if (dst->IsUnsigned())
+    IR::Opnd * src64 = nullptr;
+    if (src1->IsFloat32())
     {
-        if (src1->IsFloat32())
-        {
-            IR::Opnd* twoTo31FP = MaterializeConstFromBits(TWO_31_FLOAT, TyFloat32, instr);
-            adjSrc = Subtract2To31(src1, twoTo31FP, TyFloat32, instr);
-        }
-        else
-        {
-            IR::Opnd* twoTo31FP = MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleTwoTo31Addr(), instr);
-            adjSrc = Subtract2To31(src1, twoTo31FP, TyFloat64, instr);
-        }
-    }
-
-    instr->InsertBefore(IR::Instr::New(src1->IsFloat32() ? Js::OpCode::CVTTSS2SI : Js::OpCode::CVTTSD2SI, dst, adjSrc, m_func));
-
-    IR::Opnd* intMin = IR::IntConstOpnd::New(INT_MIN, TyInt32, m_func);
-    m_lowerer->InsertCompareBranch(dst, intMin, Js::OpCode::BrNeq_A, done, instr);
-
-    if (dst->IsUnsigned())
-    {
-        IR::Opnd* zeroReg = IR::RegOpnd::New(src1->GetType(), m_func);
-        IR::Instr* _xor = IR::Instr::New(Js::OpCode::XORPS, zeroReg, src1, src1, m_func);
-        instr->InsertBefore(_xor);
-        Legalize(_xor);
-        m_lowerer->InsertCompareBranch(src1, zeroReg, Js::OpCode::BrEq_A, done, instr);
+        src64 = IR::RegOpnd::New(TyFloat64, m_func);
+        EmitFloat32ToFloat64(src64, src1, instr);
     }
     else
     {
-        IR::Opnd* intMinFP = src1->IsFloat32() ?
-            MaterializeConstFromBits(FLOAT_INT_MIN, TyFloat32, instr) :
-            MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleIntMinAddr(), instr);
-        m_lowerer->InsertCompareBranch(src1, intMinFP, Js::OpCode::BrEq_A, done, instr);
+        src64 = src1;
     }
-    instr->InsertBefore(trap);
+
+     IR::RegOpnd* limitReg = MaterializeDoubleConstFromInt(instr->GetDst()->IsUInt32() ?
+        m_func->GetThreadContextInfo()->GetDoubleNegOneAddr() :
+        m_func->GetThreadContextInfo()->GetDoubleIntMinMinusOneAddr(), instr);
+
+    m_lowerer->InsertCompareBranch(src64, limitReg, Js::OpCode::BrLe_A, throwLabel, instr);
+
+    limitReg = MaterializeDoubleConstFromInt(instr->GetDst()->IsUInt32() ?
+        m_func->GetThreadContextInfo()->GetDoubleUintMaxPlusOneAddr() :
+        m_func->GetThreadContextInfo()->GetDoubleIntMaxPlusOneAddr(), instr);
+
+    m_lowerer->InsertCompareBranch(limitReg, src64, Js::OpCode::BrGt_A, conversion, instr, true /*no NaN check*/);
+    instr->InsertBefore(throwLabel);
     IR::Instr *throwInstr = IR::Instr::New(
         Js::OpCode::RuntimeTypeError,
         IR::RegOpnd::New(TyMachReg, m_func),
@@ -5916,16 +5899,44 @@ LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
         m_func);
     instr->InsertBefore(throwInstr);
     this->m_lowerer->LowerUnaryHelperMem(throwInstr, IR::HelperOp_RuntimeTypeError);
+    //no jump here we aren't coming back
 
-    instr->InsertBefore(done);
+    instr->InsertBefore(conversion);
+    return src64;
+}
+
+void
+LowererMD::GenerateTruncWithCheck(IR::Instr * instr)
+{
+    Assert(AutoSystemInfo::Data.SSE2Available());
+
+    IR::Opnd* src64 = GenerateTruncChecks(instr); //converts src to double and checks if  MIN <= src <= MAX
+
+    IR::Opnd* dst = instr->GetDst();
+
     if (dst->IsUnsigned())
     {
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::ADD, dst, dst, intMin, m_func));
+        m_lowerer->InsertMove(dst, IR::IntConstOpnd::New(0, TyUint32, m_func), instr);
+        IR::LabelInstr * skipUnsignedPart = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+        IR::Opnd* twoTo31 = MaterializeDoubleConstFromInt(m_func->GetThreadContextInfo()->GetDoubleTwoTo31Addr(), instr);
+        m_lowerer->InsertCompareBranch(src64, twoTo31, Js::OpCode::BrLt_A, skipUnsignedPart, instr);
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::SUBPD, src64, src64, twoTo31, m_func));
+        m_lowerer->InsertMove(dst, IR::IntConstOpnd::New(0x80000000 /*2^31*/, TyUint32, m_func), instr);
+        instr->InsertBefore(skipUnsignedPart);
+        IR::Opnd* tmp = IR::RegOpnd::New(TyInt32, m_func);
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTTSD2SI, tmp, src64, m_func));
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::ADD, dst, dst, tmp, m_func));
     }
+    else
+    {
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTTSD2SI, dst, src64, m_func));
+    }
+
     instr->UnlinkSrc1();
     instr->UnlinkDst();
     instr->Remove();
 }
+
 
 void
 LowererMD::GenerateCtz(IR::Instr * instr)
@@ -7968,10 +7979,10 @@ LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
     IR::JnHelperMethod method = IR::HelperOp_Throw;
     switch (fromToType)
     {
-    case TyFloat32 | (TyInt64 << 8): method = IR::HelperI64TOF32; break;
-    case TyFloat32 | (TyUint64 << 8): method = IR::HelperUI64TOF32; break;
-    case TyFloat64 | (TyInt64 << 8): method = IR::HelperI64TOF64; break;
-    case TyFloat64 | (TyUint64 << 8): method = IR::HelperUI64TOF64; break;
+    case TyFloat32 | (TyInt64 << 8) : method = IR::HelperI64TOF32; break;
+    case TyFloat32 | (TyUint64 << 8) : method = IR::HelperUI64TOF32; break;
+    case TyFloat64 | (TyInt64 << 8) : method = IR::HelperI64TOF64; break;
+    case TyFloat64 | (TyUint64 << 8) : method = IR::HelperUI64TOF64; break;
     default:
         Assert(UNREACHED);
     }
