@@ -1355,6 +1355,7 @@ public:
     DEFINE_RECYCLER_ALLOC(AllocTrackedWithBarrier, ClientTrackableObjectWithBarrierBits);
     DEFINE_RECYCLER_ALLOC(AllocFinalizedClientTrackedWithBarrier, ClientFinalizableObjectWithBarrierBits);
 #endif
+    
     DEFINE_RECYCLER_ALLOC(AllocFinalized, FinalizableObjectBits);
     DEFINE_RECYCLER_ALLOC(AllocFinalizedClientTracked, ClientFinalizableObjectBits);
     // All trackable object are client trackable
@@ -2285,6 +2286,7 @@ Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, DECLSPEC_
 // Dummy recycler allocator policy classes to choose the allocation function
 class _RecyclerLeafPolicy;
 class _RecyclerNonLeafPolicy;
+class _RecyclerWriteBarrierPolicy;
 
 template <typename Policy>
 class _RecyclerAllocatorFunc
@@ -2336,17 +2338,47 @@ public:
     }
 };
 
+template <>
+class _RecyclerAllocatorFunc<_RecyclerWriteBarrierPolicy>
+{
+public:
+    typedef char * (Recycler::*AllocFuncType)(size_t);
+    typedef bool (Recycler::*FreeFuncType)(void*, size_t);
+
+    static AllocFuncType GetAllocFunc()
+    {
+        return &Recycler::Alloc;
+    }
+
+    static AllocFuncType GetAllocZeroFunc()
+    {
+        return &Recycler::AllocZero;
+    }
+
+    static FreeFuncType GetFreeFunc()
+    {
+        return &Recycler::ExplicitFreeNonLeaf;
+    }
+};
+
 // This is used by the compiler; when T is NOT a pointer i.e. a value type - it causes leaf allocation
 template <typename T>
 class TypeAllocatorFunc<Recycler, T> : public _RecyclerAllocatorFunc<_RecyclerLeafPolicy>
 {
 };
 
+#if GLOBAL_FORCE_USE_WRITE_BARRIER
+template <typename T>
+class TypeAllocatorFunc<Recycler, T *> : public _RecyclerAllocatorFunc<_RecyclerWriteBarrierPolicy>
+{
+};
+#else
 // Partial template specialization; applies to T when it is a pointer
 template <typename T>
 class TypeAllocatorFunc<Recycler, T *> : public _RecyclerAllocatorFunc<_RecyclerNonLeafPolicy>
 {
 };
+#endif
 
 template <bool isLeaf>
 class ListTypeAllocatorFunc<Recycler, isLeaf>
@@ -2376,10 +2408,16 @@ public:
 // Dummy class to choose the allocation function
 class RecyclerLeafAllocator;
 class RecyclerNonLeafAllocator;
+class RecyclerWriteBarrierAllocator;
 
 // Partial template specialization to allocate as non leaf
 template <typename T>
 class TypeAllocatorFunc<RecyclerNonLeafAllocator, T> : public _RecyclerAllocatorFunc<_RecyclerNonLeafPolicy>
+{
+};
+
+template <typename T>
+class TypeAllocatorFunc<RecyclerWriteBarrierAllocator, T> : public _RecyclerAllocatorFunc<_RecyclerWriteBarrierPolicy>
 {
 };
 
@@ -2402,6 +2440,14 @@ struct AllocatorInfo<RecyclerNonLeafAllocator, TAllocType>
     typedef Recycler AllocatorType;
     typedef TypeAllocatorFunc<RecyclerNonLeafAllocator, TAllocType> AllocatorFunc;
     typedef TypeAllocatorFunc<RecyclerNonLeafAllocator, TAllocType> InstAllocatorFunc; // Same as TypeAllocatorFunc
+};
+
+template <typename TAllocType>
+struct AllocatorInfo<RecyclerWriteBarrierAllocator, TAllocType>
+{
+    typedef Recycler AllocatorType;
+    typedef TypeAllocatorFunc<RecyclerWriteBarrierAllocator, TAllocType> AllocatorFunc;
+    typedef TypeAllocatorFunc<RecyclerWriteBarrierAllocator, TAllocType> InstAllocatorFunc; // Same as TypeAllocatorFunc
 };
 
 template <typename TAllocType>

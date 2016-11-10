@@ -23,7 +23,7 @@ bool SegmentBaseCommon::IsInPreReservedHeapPageAllocator() const
 }
 
 template<typename T>
-SegmentBase<T>::SegmentBase(PageAllocatorBase<T> * allocator, size_t pageCount) :
+SegmentBase<T>::SegmentBase(PageAllocatorBase<T> * allocator, size_t pageCount, bool enableWriteBarrier) :
     SegmentBaseCommon(allocator),
     address(nullptr),
     trailingGuardPageCount(0),
@@ -32,6 +32,7 @@ SegmentBase<T>::SegmentBase(PageAllocatorBase<T> * allocator, size_t pageCount) 
     secondaryAllocator(nullptr)
 #if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER)
     , isWriteBarrierAllowed(false)
+    , isWriteBarrierEnabled(enableWriteBarrier)
 #endif
 {
     this->segmentPageCount = pageCount + secondaryAllocPageCount;
@@ -56,8 +57,14 @@ SegmentBase<T>::~SegmentBase()
         GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE, this->GetAllocator()->processHandle);
         GetAllocator()->ReportFree(this->segmentPageCount * AutoSystemInfo::PageSize); //Note: We reported the guard pages free when we decommitted them during segment initialization
 #if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
-        RecyclerWriteBarrierManager::OnSegmentFree(this->address, this->segmentPageCount);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        if (Js::Configuration::Global.flags.StrictWriteBarrierCheck && this->isWriteBarrierEnabled)
+        {
+            RecyclerWriteBarrierManager::ToggleBarrier(this->address, this->segmentPageCount * AutoSystemInfo::PageSize, false);
+        }
 #endif
+#endif
+        RecyclerWriteBarrierManager::OnSegmentFree(this->address, this->segmentPageCount);
     }
 }
 
@@ -138,17 +145,39 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
         this->address = nullptr;
         return false;
     }
+
 #if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER_BYTE)
-    else if (!RecyclerWriteBarrierManager::OnSegmentAlloc(this->address, this->segmentPageCount))
+    bool registerBarrierResult = true;
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    if (Js::Configuration::Global.flags.StrictWriteBarrierCheck)
+    {
+        if (this->isWriteBarrierEnabled)
+        {
+            // only commit card table for write barrier pages for strict check
+            // we can do this in free build if all write barrier annotated struct only allocate with write barrier pages
+            registerBarrierResult = RecyclerWriteBarrierManager::OnSegmentAlloc(this->address, this->segmentPageCount);
+        }
+    }
+    else
+#endif
+    {
+        registerBarrierResult = RecyclerWriteBarrierManager::OnSegmentAlloc(this->address, this->segmentPageCount);
+    }
+
+    if (!registerBarrierResult)
     {
         GetAllocator()->GetVirtualAllocator()->Free(originalAddress, GetPageCount() * AutoSystemInfo::PageSize, MEM_RELEASE, this->GetAllocator()->processHandle);
         this->GetAllocator()->ReportFailure(GetPageCount() * AutoSystemInfo::PageSize);
         this->address = nullptr;
         return false;
     }
-    else
+#endif
+
+    this->isWriteBarrierAllowed = true;
+#if DBG
+    if (this->isWriteBarrierEnabled)
     {
-        this->isWriteBarrierAllowed = true;
+        RecyclerWriteBarrierManager::ToggleBarrier(this->address, this->segmentPageCount * AutoSystemInfo::PageSize, true);
     }
 #endif
 
@@ -160,8 +189,8 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
 //=============================================================================================================
 
 template<typename T>
-PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, bool committed, bool allocated) :
-    SegmentBase<T>(allocator, allocator->maxAllocPageCount), decommitPageCount(0)
+PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, bool committed, bool allocated, bool enableWriteBarrier) :
+    SegmentBase<T>(allocator, allocator->maxAllocPageCount, enableWriteBarrier), decommitPageCount(0)
 {
     Assert(this->segmentPageCount == allocator->maxAllocPageCount + allocator->secondaryAllocPageCount);
 
@@ -197,8 +226,8 @@ PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, bool commi
 }
 
 template<typename T>
-PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, void* address, uint pageCount, uint committedCount) :
-    SegmentBase<T>(allocator, allocator->maxAllocPageCount), decommitPageCount(0), freePageCount(0)
+PageSegmentBase<T>::PageSegmentBase(PageAllocatorBase<T> * allocator, void* address, uint pageCount, uint committedCount, bool enableWriteBarrier) :
+    SegmentBase<T>(allocator, allocator->maxAllocPageCount, enableWriteBarrier), decommitPageCount(0), freePageCount(0)
 {
     this->address = (char*)address;
     this->segmentPageCount = pageCount;
@@ -601,7 +630,7 @@ PageAllocatorBase<T>::PageAllocatorBase(AllocationPolicyManager * policyManager,
     BackgroundPageQueue * backgroundPageQueue,
 #endif
     uint maxAllocPageCount, uint secondaryAllocPageCount,
-    bool stopAllocationOnOutOfMemory, bool excludeGuardPages, HANDLE processHandle) :
+    bool stopAllocationOnOutOfMemory, bool excludeGuardPages, HANDLE processHandle, bool enableWriteBarrier) :
     policyManager(policyManager),
 #ifndef JD_PRIVATE
     pageAllocatorFlagTable(flagTable),
@@ -629,6 +658,7 @@ PageAllocatorBase<T>::PageAllocatorBase(AllocationPolicyManager * policyManager,
     , usedBytes(0)
     , numberOfSegments(0)
     , processHandle(processHandle)
+    , enableWriteBarrier(enableWriteBarrier)
 {
     AssertMsg(Math::IsPow2(maxAllocPageCount + secondaryAllocPageCount), "Illegal maxAllocPageCount: Why is this not a power of 2 aligned?");
 
@@ -746,9 +776,9 @@ PageAllocatorBase<T>::AllocPagesForBytes(size_t requestBytes)
 
 template<typename T>
 PageSegmentBase<T> *
-PageAllocatorBase<T>::AllocPageSegment(DListBase<PageSegmentBase<T>>& segmentList, PageAllocatorBase<T> * pageAllocator, bool committed, bool allocated)
+PageAllocatorBase<T>::AllocPageSegment(DListBase<PageSegmentBase<T>>& segmentList, PageAllocatorBase<T> * pageAllocator, bool committed, bool allocated, bool enableWriteBarrier)
 {
-    PageSegmentBase<T> * segment = segmentList.PrependNode(&NoThrowNoMemProtectHeapAllocator::Instance, pageAllocator, committed, allocated);
+    PageSegmentBase<T> * segment = segmentList.PrependNode(&NoThrowNoMemProtectHeapAllocator::Instance, pageAllocator, committed, allocated, enableWriteBarrier);
 
     if (segment == nullptr)
     {
@@ -765,9 +795,9 @@ PageAllocatorBase<T>::AllocPageSegment(DListBase<PageSegmentBase<T>>& segmentLis
 
 template<typename T>
 PageSegmentBase<T> *
-PageAllocatorBase<T>::AllocPageSegment(DListBase<PageSegmentBase<T>>& segmentList, PageAllocatorBase<T> * pageAllocator, void* address, uint pageCount, uint committedCount)
+PageAllocatorBase<T>::AllocPageSegment(DListBase<PageSegmentBase<T>>& segmentList, PageAllocatorBase<T> * pageAllocator, void* address, uint pageCount, uint committedCount, bool enableWriteBarrier)
 {
-    PageSegmentBase<T> * segment = segmentList.PrependNode(&NoThrowNoMemProtectHeapAllocator::Instance, pageAllocator, address, pageCount, committedCount);
+    PageSegmentBase<T> * segment = segmentList.PrependNode(&NoThrowNoMemProtectHeapAllocator::Instance, pageAllocator, address, pageCount, committedCount, enableWriteBarrier);
     pageAllocator->ReportExternalAlloc(pageCount * AutoSystemInfo::PageSize);
     return segment;
 }
@@ -778,7 +808,7 @@ PageAllocatorBase<T>::AddPageSegment(DListBase<PageSegmentBase<T>>& segmentList)
 {
     Assert(!this->HasMultiThreadAccess());
 
-    PageSegmentBase<T> * segment = AllocPageSegment(segmentList, this, true, false);
+    PageSegmentBase<T> * segment = AllocPageSegment(segmentList, this, true, false, this->enableWriteBarrier);
 
     if (segment != nullptr)
     {
@@ -1106,7 +1136,7 @@ PageAllocatorBase<T>::AllocSegment(size_t pageCount)
     // as using the page allocator
     this->isUsed = true;
 
-    SegmentBase<T> * segment = largeSegments.PrependNode(&NoThrowNoMemProtectHeapAllocator::Instance, this, pageCount);
+    SegmentBase<T> * segment = largeSegments.PrependNode(&NoThrowNoMemProtectHeapAllocator::Instance, this, pageCount, enableWriteBarrier);
     if (segment == nullptr)
     {
         return nullptr;
@@ -1374,7 +1404,7 @@ PageAllocatorBase<T>::SnailAllocPages(uint pageCount, PageSegmentBase<T> ** page
     if (maxAllocPageCount != pageCount && (maxFreePageCount < maxAllocPageCount - pageCount + freePageCount))
     {
         // If we exceed the number of max free page count, allocate from a new fully decommit block
-        PageSegmentBase<T> * decommitSegment = AllocPageSegment(this->decommitSegments, this, false, false);
+        PageSegmentBase<T> * decommitSegment = AllocPageSegment(this->decommitSegments, this, false, false, this->enableWriteBarrier);
         if (decommitSegment == nullptr)
         {
             return nullptr;

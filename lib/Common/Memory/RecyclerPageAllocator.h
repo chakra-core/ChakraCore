@@ -13,7 +13,7 @@ public:
 #ifndef JD_PRIVATE
         Js::ConfigFlagsTable& flagTable,
 #endif
-        uint maxFreePageCount, uint maxAllocPageCount = PageAllocator::DefaultMaxAllocPageCount);
+        uint maxFreePageCount, uint maxAllocPageCount = PageAllocator::DefaultMaxAllocPageCount, bool enableWriteBarrier = false);
 #if ENABLE_CONCURRENT_GC
     void EnableWriteWatch();
     bool ResetWriteWatch();

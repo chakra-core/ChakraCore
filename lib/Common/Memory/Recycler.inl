@@ -159,13 +159,17 @@ Recycler::AllocWithAttributesInlined(size_t size)
     SwbVerboseTrace(this->GetRecyclerFlagsTable(), _u("Allocated SWB memory: 0x%p\n"), memBlock);
 
 #pragma prefast(suppress:6313, "attributes is a template parameter and can be 0")
-    if (attributes & (NewTrackBit))
+    if (attributes & NewTrackBit & WithBarrierBit)
     {
+        //REVIEW: is following comment correct? I added WithBarrierBit above
+        // why we need to set write barrier bit for none write barrier page address
+
         // For objects allocated with NewTrackBit, we need to trigger the write barrier since
         // there could be a GC triggered by an allocation in the constructor, and we'd miss
         // calling track on the partially constructed object. To deal with this, we set the write
         // barrier on all the pages of objects allocated with the NewTrackBit
-        RecyclerWriteBarrierManager::WriteBarrier(memBlock, size / sizeof(void*));
+
+        RecyclerWriteBarrierManager::WriteBarrier(memBlock, size);
     }
 #endif
 

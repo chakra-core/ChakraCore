@@ -24,7 +24,8 @@ public:
 #if ENABLE_BACKGROUND_PAGE_FREEING
         BackgroundPageQueue * backgroundPageQueue = nullptr,
 #endif
-        uint maxAllocPageCount = PageAllocator::DefaultMaxAllocPageCount);
+        uint maxAllocPageCount = PageAllocator::DefaultMaxAllocPageCount,
+        bool enableWriteBarrier = false);
 
     void EnterIdleDecommit();
     IdleDecommitSignal LeaveIdleDecommit(bool allowTimer);

@@ -138,7 +138,7 @@ template<typename TVirtualAlloc>
 class SegmentBase: public SegmentBaseCommon
 {
 public:
-    SegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, DECLSPEC_GUARD_OVERFLOW size_t pageCount);
+    SegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, DECLSPEC_GUARD_OVERFLOW size_t pageCount, bool enableWriteBarrier);
     virtual ~SegmentBase();
 
     size_t GetPageCount() const { return segmentPageCount; }
@@ -206,9 +206,9 @@ protected:
     uint trailingGuardPageCount;
     uint leadingGuardPageCount;
     uint   secondaryAllocPageCount;
-#if defined(_M_X64_OR_ARM64) && defined(RECYCLER_WRITE_BARRIER)
-    bool   isWriteBarrierAllowed;
-#endif
+
+    bool   isWriteBarrierAllowed : 1;
+    bool   isWriteBarrierEnabled : 1;
 };
 
 /*
@@ -227,8 +227,8 @@ class PageSegmentBase : public SegmentBase<TVirtualAlloc>
 {
     typedef SegmentBase<TVirtualAlloc> Base;
 public:
-    PageSegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, bool committed, bool allocated);
-    PageSegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, void* address, uint pageCount, uint committedCount);
+    PageSegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, bool committed, bool allocated, bool enableWriteBarrier);
+    PageSegmentBase(PageAllocatorBase<TVirtualAlloc> * allocator, void* address, uint pageCount, uint committedCount, bool enableWriteBarrier);
     // Maximum possible size of a PageSegment; may be smaller.
     static const uint MaxDataPageCount = 256;     // 1 MB
     static const uint MaxGuardPageCount = 16;
@@ -515,7 +515,9 @@ public:
         uint secondaryAllocPageCount = DefaultSecondaryAllocPageCount,
         bool stopAllocationOnOutOfMemory = false,
         bool excludeGuardPages = false,
-        HANDLE processHandle = GetCurrentProcess());
+        HANDLE processHandle = GetCurrentProcess(),
+        bool enableWriteBarrier = false
+        );
 
     virtual ~PageAllocatorBase();
 
@@ -641,9 +643,9 @@ protected:
     virtual void DumpStats() const;
 #endif
     PageSegmentBase<TVirtualAlloc> * AddPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList);
-    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, PageAllocatorBase<TVirtualAlloc> * pageAllocator, void* address, uint pageCount, uint committedCount);
+    static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList, PageAllocatorBase<TVirtualAlloc> * pageAllocator, void* address, uint pageCount, uint committedCount, bool enableWriteBarrier);
     static PageSegmentBase<TVirtualAlloc> * AllocPageSegment(DListBase<PageSegmentBase<TVirtualAlloc>>& segmentList,
-        PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool committed, bool allocated);
+        PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool committed, bool allocated, bool enableWriteBarrier);
 
     // Zero Pages
 #if ENABLE_BACKGROUND_PAGE_ZEROING
@@ -680,6 +682,7 @@ protected:
     bool stopAllocationOnOutOfMemory;
     bool disableAllocationOutOfMemory;
     bool excludeGuardPages;
+    bool enableWriteBarrier;
     AllocationPolicyManager * policyManager;
 
 #ifndef JD_PRIVATE

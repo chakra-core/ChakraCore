@@ -128,7 +128,7 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
     recyclerLargeBlockPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount),
     threadService(nullptr),
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    recyclerWithBarrierPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount),
+    recyclerWithBarrierPageAllocator(this, policyManager, configFlagsTable, RecyclerHeuristic::Instance.DefaultMaxFreePageCount, PageAllocator::DefaultMaxAllocPageCount, true),
 #endif
     threadPageAllocator(pageAllocator),
     markPagePool(configFlagsTable),
