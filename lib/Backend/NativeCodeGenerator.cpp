@@ -36,9 +36,9 @@ NativeCodeGenerator::NativeCodeGenerator(Js::ScriptContext * scriptContext)
     , backgroundCodeGenProfiler(nullptr)
 #endif
 #ifdef DBG
-    , m_areCodegenProfilersCleared(false)
-#ifdef PROFILE_EXEC
     , m_areForegroundAllocatorsCleared(false)
+#ifdef PROFILE_EXEC
+    , m_areCodegenProfilersCleared(false)
 #endif
 #endif
 {
@@ -133,7 +133,7 @@ void NativeCodeGenerator::ClearCodegenProfilers()
         Assert(this->backgroundCodeGenProfiler == nullptr);
     }
 
-#ifdef DBG
+#if defined(DBG) && defined(PROFILE_EXEC)
     this->m_areCodegenProfilersCleared = true;
 #endif
 }
@@ -963,7 +963,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
             scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), allocators,
 #if !FLOATVAR
-            pNumberAllocator, 
+            pNumberAllocator,
 #endif
             codeGenProfiler, !foreground);
     }
@@ -2025,7 +2025,7 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
             Assert(workItem->GetCodeAddress() != NULL);
 
             uint loopNum = loopBodyCodeGen->GetJITData()->loopNumber;
-            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);            
+            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);
             entryPoint->SetCodeGenDone();
         }
         else
