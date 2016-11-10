@@ -521,9 +521,9 @@ ThreadContext::~ThreadContext()
         HeapDelete(recycler);
     }
 
+#if ENABLE_NATIVE_CODEGEN
     DeleteDeleteNativeCodeGeneratorJobManager(this);
 
-#if ENABLE_NATIVE_CODEGEN
     if(jobProcessor)
     {
         if(this->bgJit)
