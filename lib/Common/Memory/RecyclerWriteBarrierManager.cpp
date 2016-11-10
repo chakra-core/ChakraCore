@@ -67,7 +67,9 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     size_t numPages = (stackBase - stackEnd) / AutoSystemInfo::PageSize;
     // stackEnd is the lower boundary
     bool ret = OnSegmentAlloc((char*) stackEnd, numPages);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
     RecyclerWriteBarrierManager::ToggleBarrier((char*)stackEnd, (stackBase - stackEnd), true);
+#endif
     return ret;
 }
 
