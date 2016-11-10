@@ -3096,7 +3096,7 @@ namespace Js
 #ifdef ENABLE_WASM
         if (func->GetFunctionBody()->IsWasmFunction())
         {
-            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + WebAssemblyModule::GetMemoryOffset() * sizeof(Var));
+            WebAssemblyMemory * wasmMem = *(WebAssemblyMemory**)((Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset);
             Var * val = nullptr;
             if (wasmMem != nullptr)
             {

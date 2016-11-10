@@ -482,11 +482,9 @@ void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModu
     for (uint elementsIndex = 0; elementsIndex < wasmModule->GetElementSegCount(); ++elementsIndex)
     {
         Wasm::WasmElementSegment* eSeg = wasmModule->GetElementSeg(elementsIndex);
-        UINT32 * elems = eSeg->GetElements();
 
         if (eSeg->GetNumElements() > 0)
         {
-            Assert(elems != nullptr);
             uint offset = eSeg->GetDestAddr(wasmModule);
             if (UInt32Math::Add(offset, eSeg->GetNumElements()) > table->GetCurrentLength())
             {

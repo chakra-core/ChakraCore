@@ -5,17 +5,17 @@
 13
 Unexpected Error while compiling imports.8.wasm
 WebAssemblyCompileError: Compiling wasm failed: I64 Globals, NYI
-testsuite/imports.wast:245: $assert_trap_0 failed, runtime trap NYI
-testsuite/imports.wast:248: $assert_trap_3 failed, runtime trap NYI
-testsuite/imports.wast:249: $assert_trap_4 failed, runtime trap NYI
-testsuite/imports.wast:262: $assert_trap_0 failed, runtime trap NYI
-testsuite/imports.wast:265: $assert_trap_3 failed, runtime trap NYI
-testsuite/imports.wast:266: $assert_trap_4 failed, runtime trap NYI
-testsuite/imports.wast:351: $assert_trap_3 failed, runtime trap NYI
-testsuite/imports.wast:362: $assert_trap_3 failed, runtime trap NYI
-testsuite/imports.wast:451: $assert_return_0 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-testsuite/imports.wast:452: $assert_return_1 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-testsuite/imports.wast:453: $assert_return_2 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-testsuite/imports.wast:454: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
-testsuite/imports.wast:455: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+imports.wast:245: $assert_trap_0 failed, runtime trap NYI
+imports.wast:248: $assert_trap_3 failed, runtime trap NYI
+imports.wast:249: $assert_trap_4 failed, runtime trap NYI
+imports.wast:262: $assert_trap_0 failed, runtime trap NYI
+imports.wast:265: $assert_trap_3 failed, runtime trap NYI
+imports.wast:266: $assert_trap_4 failed, runtime trap NYI
+imports.wast:351: $assert_trap_3 failed, runtime trap NYI
+imports.wast:362: $assert_trap_3 failed, runtime trap NYI
+imports.wast:451: $assert_return_0 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+imports.wast:452: $assert_return_1 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+imports.wast:453: $assert_return_2 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+imports.wast:454: $assert_return_3 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
+imports.wast:455: $assert_return_4 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function grow[0] at offset 5/6: Operator GrowMemory NYI
 11/24 tests passed.

@@ -41,6 +41,7 @@ namespace Wasm
     UINT32
     WasmElementSegment::GetElement(const UINT32 tableIndex) const
     {
+        Assert(m_elems != nullptr);
         return m_elems[tableIndex];
     }
 
