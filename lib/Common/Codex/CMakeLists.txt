@@ -1,4 +1,4 @@
-if(NOT STATIC_LIBRARY)
+if(NOT CC_BUILD_STATIC_LIBRARY)
   # CH has a direct dependency to this project
   add_library (Chakra.Common.Codex.Singular STATIC
     Utf8Codex.cpp)

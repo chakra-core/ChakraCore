@@ -8,7 +8,7 @@ set(ch_source_files
   WScriptJsrt.cpp
   )
 
-if (STATIC_LIBRARY)
+if (CC_BUILD_STATIC_LIBRARY)
   set(ch_source_files "${ch_source_files}"
     ../ChakraCore/TestHooks.cpp
     )
@@ -38,7 +38,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie") # osx clang sets this by default
 endif()
 
-if(STATIC_LIBRARY)
+if(CC_BUILD_STATIC_LIBRARY)
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(LINKER_START_GROUP -Wl,--start-group)
     set(LINKER_END_GROUP -Wl,--end-group)
