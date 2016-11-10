@@ -148,7 +148,7 @@ WasmSignature::FinalizeSignature()
     // 3 bits for result type, 2 for each arg
     // we don't need to reserve a sentinel bit because there is no result type with value of 7
     int sigSize = 3 + 2 * GetParamCount();
-    if (sigSize <= sizeof(m_shortSig))
+    if (sigSize <= sizeof(m_shortSig) << 3)
     {
         m_shortSig = (m_shortSig << 3) | m_resultType;
         for (uint32 i = 0; i < GetParamCount(); ++i)
