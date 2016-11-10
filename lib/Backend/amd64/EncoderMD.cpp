@@ -613,7 +613,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
     if (opr1)
     {
-        instrSize = this->GetOpndSize(opr1);
+        instrSize = this->GetOpndSize(opdope & DREXSRC ? opr2 : opr1);
 
 #if DBG
         switch (instr->m_opcode)
@@ -859,7 +859,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             }
             else if (opr1->IsRegOpnd())
             {
-                rexByte    |= this->GetRexByte(this->REXR, opr1);
+                rexByte |= this->GetRexByte(this->REXR, opdope & DREXSRC ? opr2 : opr1);
                 rexByte    |= this->EmitModRM(instr, opr2, this->GetRegEncode(opr1->AsRegOpnd()));
                 if ((*form) & DBIT)
                 {
