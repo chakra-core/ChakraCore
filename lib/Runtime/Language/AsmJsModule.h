@@ -327,8 +327,8 @@ namespace Js {
 
     struct AsmJsSlot
     {
-        RegSlot location;
-        AsmJsSymbol::SymbolType symType;
+        Field(RegSlot) location;
+        Field(AsmJsSymbol::SymbolType) symType;
         union
         {
             AsmJsVarType::Which varType;
@@ -340,7 +340,7 @@ namespace Js {
             AsmJSTypedArrayBuiltinFunction builtinArrayFunc;
             AsmJsSIMDBuiltinFunction builtinSIMDFunc;
         };
-        bool isConstVar = false;
+        Field(bool) isConstVar = false;
     };
 
     class AsmJsModuleInfo
@@ -389,28 +389,28 @@ namespace Js {
         typedef JsUtil::BaseDictionary<PropertyId, AsmJsSlot*, Memory::Recycler> AsmJsSlotMap;
 
     private:
-        Recycler* mRecycler;
-        int mArgInCount; // for runtime validation of arguments in
-        int mVarCount, mVarImportCount, mFunctionImportCount, mFunctionCount, mFunctionTableCount, mExportsCount, mSlotsCount;
-        int mSimdRegCount; // part of mVarCount
+        FieldNoBarrier(Recycler*) mRecycler;
+        Field(int) mArgInCount; // for runtime validation of arguments in
+        Field(int) mVarCount, mVarImportCount, mFunctionImportCount, mFunctionCount, mFunctionTableCount, mExportsCount, mSlotsCount;
+        Field(int) mSimdRegCount; // part of mVarCount
 
-        PropertyIdArray*             mExports;
-        RegSlot*                     mExportsFunctionLocation;
-        RegSlot                      mExportFunctionIndex; // valid only if export object is empty
-        ModuleVar*                   mVars;
-        ModuleVarImport*             mVarImports;
-        ModuleFunctionImport*        mFunctionImports;
-        ModuleFunction*              mFunctions;
-        ModuleFunctionTable*         mFunctionTables;
-        AsmJsModuleMemory            mModuleMemory;
-        AsmJsSlotMap*                mSlotMap;
-        BVStatic<ASMMATH_BUILTIN_SIZE>  mAsmMathBuiltinUsed;
-        BVStatic<ASMARRAY_BUILTIN_SIZE> mAsmArrayBuiltinUsed;
-        BVStatic<ASMSIMD_BUILTIN_SIZE>  mAsmSimdBuiltinUsed;
+        Field(PropertyIdArray*)             mExports;
+        Field(RegSlot*)                     mExportsFunctionLocation;
+        Field(RegSlot)                      mExportFunctionIndex; // valid only if export object is empty
+        Field(ModuleVar*)                   mVars;
+        Field(ModuleVarImport*)             mVarImports;
+        Field(ModuleFunctionImport*)        mFunctionImports;
+        Field(ModuleFunction*)              mFunctions;
+        Field(ModuleFunctionTable*)         mFunctionTables;
+        Field(AsmJsModuleMemory)            mModuleMemory;
+        Field(AsmJsSlotMap*)                mSlotMap;
+        Field(BVStatic<ASMMATH_BUILTIN_SIZE>)  mAsmMathBuiltinUsed;
+        Field(BVStatic<ASMARRAY_BUILTIN_SIZE>) mAsmArrayBuiltinUsed;
+        Field(BVStatic<ASMSIMD_BUILTIN_SIZE>)  mAsmSimdBuiltinUsed;
 
-        uint                         mMaxHeapAccess;
-        bool                         mUsesChangeHeap;
-        bool                         mIsProcessed;
+        Field(uint)                         mMaxHeapAccess;
+        Field(bool)                         mUsesChangeHeap;
+        Field(bool)                         mIsProcessed;
     public:
         AsmJsModuleInfo( Recycler* recycler ) :
             mRecycler( recycler )

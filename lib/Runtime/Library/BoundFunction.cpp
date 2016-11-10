@@ -511,8 +511,9 @@ namespace Js
     {
         TTD::NSSnapObjects::SnapBoundFunctionInfo* bfi = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapBoundFunctionInfo>();
 
-        bfi->TargetFunction = TTD_CONVERT_VAR_TO_PTR_ID(this->targetFunction);
-        bfi->BoundThis = (this->boundThis != nullptr) ? TTD_CONVERT_VAR_TO_PTR_ID(this->boundThis) : TTD_INVALID_PTR_ID;
+        bfi->TargetFunction = TTD_CONVERT_VAR_TO_PTR_ID(static_cast<RecyclableObject*>(this->targetFunction));
+        bfi->BoundThis = (this->boundThis != nullptr) ?
+            TTD_CONVERT_VAR_TO_PTR_ID(static_cast<Var>(this->boundThis)) : TTD_INVALID_PTR_ID;
 
         bfi->ArgCount = this->count;
         bfi->ArgArray = nullptr;

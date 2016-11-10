@@ -18,9 +18,9 @@ namespace Js
 
     private:
         void EnsureIterator();
-        RecyclableObject* iteratorObject;
-        Var value;
-        BOOL done;
+        Field(RecyclableObject*) iteratorObject;
+        Field(Var) value;
+        Field(BOOL) done;
     };
 
 }

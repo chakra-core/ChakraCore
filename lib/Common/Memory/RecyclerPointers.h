@@ -14,6 +14,12 @@ class RecyclerNonLeafAllocator;
 struct _write_barrier_policy {};
 struct _no_write_barrier_policy {};
 
+// ----------------------------------------------------------------------------
+// Field write barrier
+//
+//      Determines if a field needs to be wrapped in WriteBarrierPtr
+// ----------------------------------------------------------------------------
+
 // Type write barrier policy
 //
 // By default following potentially contains GC pointers and use write barrier policy:
@@ -75,6 +81,13 @@ template <class T,
           class Policy = typename AllocatorWriteBarrierPolicy<Allocator, T>::Policy>
 struct WriteBarrierFieldTypeTraits { typedef typename _WriteBarrierFieldType<T, Policy>::Type Type; };
 
+
+// ----------------------------------------------------------------------------
+// Array write barrier
+//
+//      Determines if an array operation needs to trigger write barrier
+// ----------------------------------------------------------------------------
+
 // ArrayWriteBarrier behavior
 //
 template <class Policy>
@@ -96,34 +109,97 @@ struct _ArrayWriteBarrier<_write_barrier_policy>
 };
 #endif
 
-// Trigger write barrier on changing array content if Allocator and element type
-// determines write barrier is needed. Ignore otherwise.
+// Determines array write barrier policy based on array item type.
 //
-template <class T, class Allocator = Recycler, class PolicyType = T>
-void WriteBarrier(T * address, size_t count)
+// Note: If individual array item needs write barrier, we choose to use
+// WriteBarrierPtr with the item type. Thus we only specialize on
+// WriteBarrierPtr (and _write_barrier_policy if user wants to force write
+// barrier).
+//
+template <class T>
+struct _ArrayItemWriteBarrierPolicy
+    { typedef _no_write_barrier_policy Policy; };
+template <class T>
+struct _ArrayItemWriteBarrierPolicy<WriteBarrierPtr<T>>
+    { typedef _write_barrier_policy Policy; };
+template <>
+struct _ArrayItemWriteBarrierPolicy<_write_barrier_policy>
+    { typedef _write_barrier_policy Policy; };
+
+// Trigger write barrier on changing array content if element type determines
+// write barrier is needed. Ignore otherwise.
+//
+template <class T, class PolicyType = T>
+void ArrayWriteBarrier(T * address, size_t count)
 {
-    typedef typename AllocatorWriteBarrierPolicy<Allocator, PolicyType>::Policy Policy;
+    typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy Policy;
     return _ArrayWriteBarrier<Policy>::WriteBarrier(address, count);
 }
 
 // Copy array content. Triggers write barrier on the dst array content if if
 // Allocator and element type determines write barrier is needed.
 //
-template <class Allocator, class T, class PolicyType = T>
+template <class T, class PolicyType = T>
 void CopyArray(T* dst, size_t dstCount, const T* src, size_t srcCount)
 {
-    js_memcpy_s(dst, sizeof(T) * dstCount, src, sizeof(T) * srcCount);
-    WriteBarrier<T, Allocator, PolicyType>(dst, dstCount);
+    js_memcpy_s(reinterpret_cast<void*>(dst), sizeof(T) * dstCount,
+                reinterpret_cast<const void*>(src), sizeof(T) * srcCount);
+    ArrayWriteBarrier<T, PolicyType>(dst, dstCount);
 }
-template <class Allocator, class T, class PolicyType = T>
-void CopyArray(NoWriteBarrierPtr<T>& dst, size_t dstCount, const NoWriteBarrierPtr<T>& src, size_t srcCount)
+template <class T, class PolicyType = T>
+void CopyArray(WriteBarrierPtr<T>& dst, size_t dstCount,
+               const WriteBarrierPtr<T>& src, size_t srcCount)
 {
-    return CopyArray<Allocator, T, PolicyType>((T*)dst, dstCount, (const T*)src, srcCount);
+    return CopyArray<T, PolicyType>(
+        static_cast<T*>(dst), dstCount, static_cast<const T*>(src), srcCount);
 }
-template <class Allocator, class T, class PolicyType = T>
-void CopyArray(WriteBarrierPtr<T>& dst, size_t dstCount, const WriteBarrierPtr<T>& src, size_t srcCount)
+template <class T, class PolicyType = T>
+void CopyArray(T* dst, size_t dstCount,
+               const WriteBarrierPtr<T>& src, size_t srcCount)
 {
-    return CopyArray<Allocator, T, PolicyType>((T*)dst, dstCount, (const T*)src, srcCount);
+    return CopyArray<T, PolicyType>(
+        dst, dstCount, static_cast<const T*>(src), srcCount);
+}
+template <class T, class PolicyType = T>
+void CopyArray(WriteBarrierPtr<T>& dst, size_t dstCount,
+               const T* src, size_t srcCount)
+{
+    return CopyArray<T, PolicyType>(
+        static_cast<T*>(dst), dstCount, src, srcCount);
+}
+
+// Copy pointer array to WriteBarrierPtr array
+//
+template <class T, class PolicyType = WriteBarrierPtr<T>>
+void CopyArray(WriteBarrierPtr<T>* dst, size_t dstCount,
+               T* const * src, size_t srcCount)
+{
+    CompileAssert(sizeof(WriteBarrierPtr<T>) == sizeof(T*));
+    return CopyArray<T*, PolicyType>(
+        reinterpret_cast<T**>(dst), dstCount, src, srcCount);
+}
+
+// Move Array content (memmove)
+//
+template <class T, class PolicyType = T>
+void MoveArray(T* dst, const T* src, size_t count)
+{
+    memmove(reinterpret_cast<void*>(dst),
+            reinterpret_cast<const void*>(src),
+            sizeof(T) * count);
+    ArrayWriteBarrier<T, PolicyType>(dst, count);
+}
+
+template <class T>
+void ClearArray(T* dst, size_t count)
+{
+    // assigning NULL don't need write barrier, just cast it and null it out
+    memset(reinterpret_cast<void*>(dst), 0, sizeof(T) * count);
+}
+template <class T>
+void ClearArray(WriteBarrierPtr<T>& dst, size_t count)
+{
+    ClearArray(static_cast<T*>(dst), count);
 }
 
 
@@ -216,8 +292,8 @@ public:
     T * operator->() const { return ptr; }
     operator T* const & () const { return ptr; }
 
-    T* const * AddressOf() const { return &ptr; }
-    T** AddressOf() { return &ptr; }
+    const WriteBarrierPtr* AddressOf() const { return this; }
+    WriteBarrierPtr* AddressOf() { return this; }
 
     // Taking immutable address is ok
     //
@@ -239,6 +315,11 @@ public:
         WriteBarrierSet(ptr);
         return *this;
     }
+    WriteBarrierPtr& operator=(const std::nullptr_t& ptr)
+    {
+        NoWriteBarrierSet(ptr);
+        return *this;
+    }
     void NoWriteBarrierSet(T * ptr)
     {
         this->ptr = ptr;
@@ -255,6 +336,22 @@ public:
     {
         WriteBarrierSet(other.ptr);
         return *this;
+    }
+
+    WriteBarrierPtr& operator++()  // prefix ++
+    {
+        ++ptr;
+#ifdef RECYCLER_WRITE_BARRIER
+        RecyclerWriteBarrierManager::WriteBarrier(this);
+#endif
+        return *this;
+    }
+
+    WriteBarrierPtr operator++(int)  // postfix ++
+    {
+        WriteBarrierPtr result(*this);
+        ++(*this);
+        return result;
     }
 
     static void MoveArray(WriteBarrierPtr * dst, WriteBarrierPtr * src, size_t count)
@@ -280,6 +377,32 @@ public:
 private:
     T * ptr;
 };
+
+
+template <class T>
+struct _AddressOfType
+{
+    inline static T* AddressOf(T& val) { return &val; }
+    inline static const T* AddressOf(const T& val) { return &val; }
+};
+
+template <class T>
+struct _AddressOfType< WriteBarrierPtr<T> >
+{
+    inline static WriteBarrierPtr<T>* AddressOf(WriteBarrierPtr<T>& val)
+    {
+        return val.AddressOf();
+    }
+    inline static const WriteBarrierPtr<T>* AddressOf(const WriteBarrierPtr<T>& val)
+    {
+        return val.AddressOf();
+    }
+};
+
+template <class T>
+inline T* AddressOf(T& val) { return _AddressOfType<T>::AddressOf(val); }
+template <class T>
+inline const T* AddressOf(const T& val) { return _AddressOfType<T>::AddressOf(val); }
 }  // namespace Memory
 
 

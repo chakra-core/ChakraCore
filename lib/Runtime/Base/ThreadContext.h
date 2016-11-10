@@ -461,9 +461,9 @@ private:
         // (the code) is responsible for keeping it alive.
         // Each unique guard, is weakly referenced, such that it can be reclaimed if not referenced elsewhere even without being
         // invalidated.  The entry of a unique guard is removed from the table once the corresponding cache is invalidated.
-        Js::PropertyGuard* sharedGuard;
-        PropertyGuardHashSet uniqueGuards;
-        EntryPointDictionary* entryPoints;
+        Field(Js::PropertyGuard*) sharedGuard;
+        Field(PropertyGuardHashSet) uniqueGuards;
+        Field(EntryPointDictionary*) entryPoints;
 
         PropertyGuardEntry(Recycler* recycler) : sharedGuard(nullptr), uniqueGuards(recycler), entryPoints(nullptr) {}
     };
@@ -519,11 +519,11 @@ private:
     public:
         SourceDynamicProfileManagerCache() : refCount(0), sourceProfileManagerMap(nullptr) {}
 
-        SourceDynamicProfileManagerMap* sourceProfileManagerMap;
+        Field(SourceDynamicProfileManagerMap*) sourceProfileManagerMap;
         void AddRef() { refCount++; }
         uint Release() { Assert(refCount > 0); return --refCount; }
     private:
-        uint refCount;              // For every script context using this cache, there is a ref count added.
+        Field(uint) refCount;              // For every script context using this cache, there is a ref count added.
     };
 
     typedef JsUtil::BaseDictionary<const WCHAR*, SourceDynamicProfileManagerCache*, Recycler, PowerOf2SizePolicy> SourceProfileManagersByUrlMap;
@@ -531,29 +531,29 @@ private:
     struct RecyclableData
     {
         RecyclableData(Recycler *const recycler);
-        Js::TempArenaAllocatorObject * temporaryArenaAllocators[MaxTemporaryArenaAllocators];
-        Js::TempGuestArenaAllocatorObject * temporaryGuestArenaAllocators[MaxTemporaryArenaAllocators];
+        Field(Js::TempArenaAllocatorObject * ) temporaryArenaAllocators[MaxTemporaryArenaAllocators];
+        Field(Js::TempGuestArenaAllocatorObject * ) temporaryGuestArenaAllocators[MaxTemporaryArenaAllocators];
 
-        Js::JavascriptExceptionObject * exceptionObject;
-        bool propagateException;
+        Field(Js::JavascriptExceptionObject *) exceptionObject;
+        Field(bool) propagateException;
 
         // We throw a JS catchable SO exception if we detect we might overflow the stack. Allocating this (JS)
         // object though might really overflow the stack. So use this thread global to identify them from the throw point
         // to where they are caught; where the stack has been unwound and it is safer to allocate the real exception
         // object and throw.
-        Js::JavascriptExceptionObject soErrorObject;
+        Field(Js::JavascriptExceptionObject) soErrorObject;
 
         // We can't allocate an out of memory object...  So use this static as a way to identify
         // them from the throw point to where they are caught.
-        Js::JavascriptExceptionObject oomErrorObject;
+        Field(Js::JavascriptExceptionObject) oomErrorObject;
 
         // This is for JsRT scenario where a runtime is not usable after a suspend request, before a resume runtime call is made
-        Js::JavascriptExceptionObject terminatedErrorObject;
+        Field(Js::JavascriptExceptionObject) terminatedErrorObject;
 
-        Js::JavascriptExceptionObject* unhandledExceptionObject;
+        Field(Js::JavascriptExceptionObject*) unhandledExceptionObject;
 
         // Used to temporarily keep throwing exception object alive (thrown but not yet caught)
-        Js::JavascriptExceptionObject* tempUncaughtException;
+        Field(Js::JavascriptExceptionObject*) tempUncaughtException;
 
         // Contains types that have property caches that need to be tracked, as the caches may need to be cleared. Types that
         // contain a property cache for a property that is on a prototype object will be tracked in this map since those caches
@@ -563,7 +563,7 @@ private:
         // they're searching through a bucket while registering a type or enumerating types to invalidate, or when a property ID
         // is reclaimed. If none of those happen, then this collection may contain weak reference handles to deleted objects
         // that would not get removed, but it would also not get any bigger.
-        PropertyIdToTypeHashSetDictionary typesWithProtoPropertyCache;
+        Field(PropertyIdToTypeHashSetDictionary) typesWithProtoPropertyCache;
 
         // The property guard dictionary contains property guards which need to be invalidated in response to properties changing
         // from writable to read-only and vice versa, properties being shadowed or unshadowed on prototypes, etc.  The dictionary
@@ -571,33 +571,33 @@ private:
         // When a guard is no longer needed it is garbage collected, but the weak references and dictionary entries remain, until
         // the guards for a given property get invalidated.
         // TODO: Create and use a self-cleaning weak reference dictionary, which would periodically remove any unused weak references.
-        PropertyGuardDictionary propertyGuards;
+        Field(PropertyGuardDictionary) propertyGuards;
 
 
-        PropertyNoCaseSetType * caseInvariantPropertySet;
+        Field(PropertyNoCaseSetType *) caseInvariantPropertySet;
 
-        JsUtil::List<Js::PropertyRecord const*>* boundPropertyStrings; // Recycler allocated list of property strings that we need to strongly reference so that they're not reclaimed
+        Field(JsUtil::List<Js::PropertyRecord const*>*) boundPropertyStrings; // Recycler allocated list of property strings that we need to strongly reference so that they're not reclaimed
 
-        SourceProfileManagersByUrlMap* sourceProfileManagersByUrl;
+        Field(SourceProfileManagersByUrlMap*) sourceProfileManagersByUrl;
 
         // Used to register recyclable data that needs to be kept alive while jitting
-        JsUtil::DoublyLinkedList<Js::CodeGenRecyclableData> codeGenRecyclableDatas;
+        Field(JsUtil::DoublyLinkedList<Js::CodeGenRecyclableData>) codeGenRecyclableDatas;
 
         // Used to root old entry points so that they're not prematurely collected
-        Js::FunctionEntryPointInfo* oldEntryPointInfo;
+        Field(Js::FunctionEntryPointInfo*) oldEntryPointInfo;
 
         // Used to store a mapping of string to Symbol for cross-realm Symbol registration
         // See ES6 (draft 22) 19.4.2.2
-        SymbolRegistrationMap* symbolRegistrationMap;
+        Field(SymbolRegistrationMap*) symbolRegistrationMap;
 
         // Just holding the reference to the returnedValueList of the stepController. This way that list will not get recycled prematurely.
-        Js::ReturnedValueList *returnedValueList;
+        Field(Js::ReturnedValueList *) returnedValueList;
 
-        uint constructorCacheInvalidationCount;
+        Field(uint) constructorCacheInvalidationCount;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         // use for autoProxy called from Debug.setAutoProxyName. we need to keep the buffer from GetSz() alive.
-        LPCWSTR autoProxyName;
+        Field(LPCWSTR) autoProxyName;
 #endif
     };
 
@@ -1322,13 +1322,13 @@ public:
     Js::JavascriptExceptionObject* GetUnhandledExceptionObject() const  { return recyclableData->unhandledExceptionObject; };
 
     // To temporarily keep throwing exception object alive (thrown but not yet caught)
-    Js::JavascriptExceptionObject** SaveTempUncaughtException(Js::JavascriptExceptionObject* exceptionObject)
+    Field(Js::JavascriptExceptionObject*)* SaveTempUncaughtException(Js::JavascriptExceptionObject* exceptionObject)
     {
         // Previous save should have been caught and cleared
         Assert(recyclableData->tempUncaughtException == nullptr);
 
         recyclableData->tempUncaughtException = exceptionObject;
-        return &recyclableData->tempUncaughtException;
+        return AddressOf(recyclableData->tempUncaughtException);
     }
 
     bool HasCatchHandler() const { return hasCatchHandler; }

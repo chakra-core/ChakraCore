@@ -16,15 +16,15 @@ class SourceDynamicProfileManager;
 class SourceContextInfo
 {
 public:
-    uint sourceContextId;
-    Js::LocalFunctionId nextLocalFunctionId;           // Count of functions seen so far
+    Field(uint) sourceContextId;
+    Field(Js::LocalFunctionId) nextLocalFunctionId;           // Count of functions seen so far
 
 #if DBG
-    bool closed;
+    Field(bool) closed;
 #endif
 
-    DWORD_PTR dwHostSourceContext;      // Context passed in to ParseScriptText
-    bool isHostDynamicDocument;         // will be set to true when current doc is treated dynamic from the host side. (IActiveScriptContext::IsDynamicDocument)
+    Field(DWORD_PTR) dwHostSourceContext;      // Context passed in to ParseScriptText
+    Field(bool) isHostDynamicDocument;         // will be set to true when current doc is treated dynamic from the host side. (IActiveScriptContext::IsDynamicDocument)
 
     union
     {
@@ -35,8 +35,9 @@ public:
         };
         uint      hash;                 // hash for dynamic scripts
     };
+
 #if ENABLE_PROFILE_INFO
-    Js::SourceDynamicProfileManager * sourceDynamicProfileManager;
+    Field(Js::SourceDynamicProfileManager *) sourceDynamicProfileManager;
 #endif
 
     void EnsureInitialized();

@@ -5608,7 +5608,7 @@ CommonNumber:
         {
             segment->length = count;
         }
-        js_memcpy_s(segment->elements, sizeof(Var) * segment->length, vars->elements, sizeof(Var) * count);
+        CopyArray(segment->elements, segment->length, vars->elements, count);
 
         return segment;
     }

@@ -36,10 +36,20 @@ public:
 };
 
 template <size_t N>
+bool StartsWith(const char* s, const char (&prefix)[N])
+{
+    return strncmp(s, prefix, N - 1) == 0;
+}
+
+template <size_t N>
 bool StartsWith(const string& s, const char (&prefix)[N])
 {
-    return s.length() >= N - 1
-        && s.compare(0, string::npos, prefix, N - 1) == 0;
+    return s.length() >= N - 1 && s.compare(0, N - 1, prefix, N - 1) == 0;
+}
+
+inline bool StartsWith(const char* s, const string& prefix)
+{
+    return strncmp(s, prefix.c_str(), prefix.length()) == 0;
 }
 
 template <class Set, class Item>

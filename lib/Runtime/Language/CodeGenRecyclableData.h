@@ -12,7 +12,7 @@ namespace Js
     class CodeGenRecyclableData sealed : public JsUtil::DoublyLinkedListElement<CodeGenRecyclableData>
     {
     private:
-        const FunctionCodeGenJitTimeData *const jitTimeData;
+        Field(const FunctionCodeGenJitTimeData *) const jitTimeData;
 
     public:
         CodeGenRecyclableData(const FunctionCodeGenJitTimeData *const jitTimeData);

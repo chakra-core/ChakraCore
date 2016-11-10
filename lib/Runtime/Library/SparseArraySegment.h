@@ -48,7 +48,7 @@ namespace Js
         SparseArraySegment(uint32 left, uint32 length, uint32 size) :
             SparseArraySegmentBase(left, length, size) {}
 
-        T elements[]; // actual elements will follow this determined by size
+        Field(T) elements[]; // actual elements will follow this determined by size
 
         void FillSegmentBuffer(uint start, uint size);
         T GetElement(uint32 index);
@@ -83,7 +83,7 @@ namespace Js
         template<bool isLeaf>
         static SparseArraySegment<T> *AllocateLiteralHeadSegmentImpl(Recycler *const recycler, const uint32 length);
 
-        static void ClearElements(__out_ecount(len) T* elements, uint32 len);
+        static void ClearElements(__out_ecount(len) Field(T)* elements, uint32 len);
         static SparseArraySegment<T>* CopySegment(Recycler *recycler, SparseArraySegment<T>* dst, uint32 dstIndex, SparseArraySegment<T>* src, uint32 srcIndex, uint32 inputLen);
 
         static T GetMissingItem();

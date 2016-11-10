@@ -31,7 +31,7 @@ namespace Js
             doneFormalArgs = true;
         }
         return nullptr;
-    }   
+    }
 
     void ArgumentsObjectPrefixEnumerator::Reset()
     {
@@ -72,11 +72,12 @@ namespace Js
 
         if (!doneFormalArgs)
         {
-            ES5HeapArgumentsObject* es5HAO = static_cast<ES5HeapArgumentsObject*>(argumentsObject);
+            ES5HeapArgumentsObject* es5HAO = static_cast<ES5HeapArgumentsObject*>(
+                static_cast<ArgumentsObject*>(argumentsObject));
             formalArgIndex = es5HAO->GetNextFormalArgIndexHelper(formalArgIndex, !!(flags & EnumeratorFlags::EnumNonEnumerable), attributes);
             if (formalArgIndex != JavascriptArray::InvalidIndex
                 && formalArgIndex < argumentsObject->GetNumberOfArguments())
-            {                
+            {
                 if (argumentsObject->HasObjectArrayItem(formalArgIndex))
                 {
                     PropertyId tempPropertyId;

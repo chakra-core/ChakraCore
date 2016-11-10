@@ -35,7 +35,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
     jitData->isInlined = codeGenData->GetIsInlined();
     jitData->weakFuncRef = (intptr_t)codeGenData->GetWeakFuncRef();
 
-    jitData->inlineesBv = (BVFixedIDL*)codeGenData->inlineesBv;
+    jitData->inlineesBv = (BVFixedIDL*)(const BVFixed*)codeGenData->inlineesBv;
 
     if (codeGenData->GetFunctionInfo()->HasBody())
     {
@@ -109,7 +109,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
             jitData->ldFldInlineeCount = jitData->bodyData->inlineCacheCount;
             jitData->ldFldInlinees = AnewArrayZ(alloc, FunctionJITTimeDataIDL*, jitData->bodyData->inlineCacheCount);
 
-            Js::ObjTypeSpecFldInfo ** objTypeSpecInfo = codeGenData->GetObjTypeSpecFldInfoArray()->GetInfoArray();
+            Field(Js::ObjTypeSpecFldInfo*)* objTypeSpecInfo = codeGenData->GetObjTypeSpecFldInfoArray()->GetInfoArray();
             if(objTypeSpecInfo)
             {
                 jitData->objTypeSpecFldInfoCount = jitData->bodyData->inlineCacheCount;
@@ -129,7 +129,7 @@ FunctionJITTimeInfo::BuildJITTimeData(
         }
         if (!isInlinee && codeGenData->GetGlobalObjTypeSpecFldInfoCount() > 0)
         {
-            Js::ObjTypeSpecFldInfo ** globObjTypeSpecInfo = codeGenData->GetGlobalObjTypeSpecFldInfoArray();
+            Field(Js::ObjTypeSpecFldInfo*)* globObjTypeSpecInfo = codeGenData->GetGlobalObjTypeSpecFldInfoArray();
             Assert(globObjTypeSpecInfo != nullptr);
 
             jitData->globalObjTypeSpecFldInfoCount = codeGenData->GetGlobalObjTypeSpecFldInfoCount();
@@ -322,7 +322,7 @@ FunctionJITTimeInfo::GetInlinee(Js::ProfileId profileId) const
     Assert(profileId < m_data.inlineeCount);
 
     auto inlinee = reinterpret_cast<const FunctionJITTimeInfo *>(m_data.inlinees[profileId]);
-    if (inlinee == nullptr && m_data.inlineesRecursionFlags[profileId]) 
+    if (inlinee == nullptr && m_data.inlineesRecursionFlags[profileId])
     {
         inlinee = this;
     }

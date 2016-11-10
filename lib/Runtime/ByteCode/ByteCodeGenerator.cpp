@@ -2560,7 +2560,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
     {
         if (!top->IsGlobalFunction())
         {
-            auto fnProcess = 
+            auto fnProcess =
                 [byteCodeGenerator, top](Symbol *const sym)
                 {
                     if (sym->GetHasNonLocalReference() && !sym->GetIsModuleExportStorage())
@@ -2835,7 +2835,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 parentFunc->GetParamScope()->SetIsObject();
                 // Record this for future use in the no-refresh debugging.
                 parentFunctionBody->SetHasSetIsObject(true);
-            }       
+            }
         }
 
         // Propagate HasMaybeEscapedNestedFunc
@@ -3262,8 +3262,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                 // The nested function is deferred but has its own nested functions.
                 // Make sure we at least zero-initialize its array in case, for instance, we get cloned
                 // before the function is called and the array filled in.
-
-                memset(funcInfo->byteCodeFunction->GetNestedFuncArray(), 0, pnodeScope->sxFnc.nestedCount * sizeof(Js::FunctionBody*));
+                ClearArray(funcInfo->byteCodeFunction->GetNestedFuncArray(), pnodeScope->sxFnc.nestedCount);
             }
 
             if (!pnodeScope->sxFnc.pnodeBody)
@@ -4444,7 +4443,7 @@ void ByteCodeGenerator::MarkThisUsedInLambda()
     {
         // If the enclosing function is non-global or eval global, it will put "this" in a closure slot.
         parent->SetIsThisLexicallyCaptured();
-        Scope* scope = parent->IsGlobalFunction() ? parent->GetGlobalEvalBlockScope() : 
+        Scope* scope = parent->IsGlobalFunction() ? parent->GetGlobalEvalBlockScope() :
             (parent->GetParamScope() && !parent->GetParamScope()->GetCanMergeWithBodyScope()) ? parent->GetParamScope() :
             parent->GetBodyScope();
         scope->SetHasOwnLocalInClosure(true);

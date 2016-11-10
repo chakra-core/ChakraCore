@@ -8,9 +8,9 @@ namespace Js
 {
     class InternalString
     {
-        charcount_t m_charLength;
-        unsigned char m_offset;
-        const char16* m_content;
+        Field(charcount_t) m_charLength;
+        Field(unsigned char) m_offset;
+        Field(const char16*) m_content;
 
     public:
         InternalString() : m_charLength(0), m_content(NULL), m_offset(0) { };

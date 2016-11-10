@@ -29,7 +29,7 @@ namespace Js
 
     private:
         PropertyDescriptorMap* propertyMap;
-        T nextPropertyIndex;
+        Field(T) nextPropertyIndex;
 
         RecyclerWeakReference<DynamicObject>* singletonInstance;
 

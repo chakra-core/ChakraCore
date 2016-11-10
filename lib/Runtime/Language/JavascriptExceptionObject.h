@@ -161,24 +161,24 @@ namespace Js {
         }
 
     private:
-        Var      thrownObject;
-        ScriptContext * scriptContext;
+        Field(Var)      thrownObject;
+        Field(ScriptContext *) scriptContext;
 
-        int        byteCodeOffsetAfterDebuggerSkip;
-        const bool tag : 1;               // Tag the low bit to prevent possible GC false references
-        bool       isPendingExceptionObject : 1;
-        bool       isGeneratorReturnException : 1;
+        Field(int)        byteCodeOffsetAfterDebuggerSkip;
+        Field(const bool) tag : 1;               // Tag the low bit to prevent possible GC false references
+        Field(bool)       isPendingExceptionObject : 1;
+        Field(bool)       isGeneratorReturnException : 1;
 
-        bool       isDebuggerSkip : 1;
-        bool       hasDebuggerLogged : 1;
-        bool       isFirstChance : 1;      // Mentions whether the current exception is a handled exception or not
-        bool       isExceptionCaughtInNonUserCode : 1; // Mentions if in the caller chain the exception will be handled by the non-user code.
-        bool       ignoreAdvanceToNextStatement : 1;  // This will be set when user had setnext while sitting on the exception
+        Field(bool)       isDebuggerSkip : 1;
+        Field(bool)       hasDebuggerLogged : 1;
+        Field(bool)       isFirstChance : 1;      // Mentions whether the current exception is a handled exception or not
+        Field(bool)       isExceptionCaughtInNonUserCode : 1; // Mentions if in the caller chain the exception will be handled by the non-user code.
+        Field(bool)       ignoreAdvanceToNextStatement : 1;  // This will be set when user had setnext while sitting on the exception
                                                 // So the exception eating logic shouldn't try and advance to next statement again.
 
-        HostWrapperCreateFuncType hostWrapperCreateFunc;
+        FieldNoBarrier(HostWrapperCreateFuncType) hostWrapperCreateFunc;
 
-        JavascriptExceptionContext exceptionContext;
+        Field(JavascriptExceptionContext) exceptionContext;
 #if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace * stackBackTrace;
         static const int StackToSkip = 2;

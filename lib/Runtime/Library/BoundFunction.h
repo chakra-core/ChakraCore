@@ -72,9 +72,9 @@ namespace Js
 
     private:
         static FunctionInfo        functionInfo;
-        RecyclableObject*   targetFunction;
-        Var                 boundThis;
-        uint                count;
-        Var*                boundArgs;
+        Field(RecyclableObject*)   targetFunction;
+        Field(Var)                 boundThis;
+        Field(uint)                count;
+        Field(Var*)                boundArgs;
     };
 } // namespace Js

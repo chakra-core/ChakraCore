@@ -252,7 +252,7 @@ JITObjTypeSpecFldInfo::GetFixedFieldInfoArray()
 void
 JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(
     __in ArenaAllocator * alloc,
-    __in Js::ObjTypeSpecFldInfo ** objTypeSpecInfo,
+    __in Field(Js::ObjTypeSpecFldInfo*)* objTypeSpecInfo,
     __in uint arrayLength,
     _Inout_updates_(arrayLength) ObjTypeSpecFldIDL * jitData)
 {

@@ -26,9 +26,9 @@ namespace Js
 
     private:
         DynamicTypeHandler * typeHandler;
-        bool isLocked;
-        bool isShared;
-        bool hasNoEnumerableProperties;
+        Field(bool) isLocked;
+        Field(bool) isShared;
+        Field(bool) hasNoEnumerableProperties;
 
     protected:
         DynamicType(DynamicType * type) : Type(type), typeHandler(type->typeHandler), isLocked(false), isShared(false) {}

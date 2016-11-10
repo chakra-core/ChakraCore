@@ -209,12 +209,12 @@ namespace Js
         }
 
     private:
-        ScriptFunction *parentFunc;
-        uint cachedFuncCount;
-        uint firstFuncSlot;
-        uint lastFuncSlot;
-        bool committed;
-        FuncCacheEntry cache[1];
+        Field(ScriptFunction *) parentFunc;
+        Field(uint) cachedFuncCount;
+        Field(uint) firstFuncSlot;
+        Field(uint) lastFuncSlot;
+        Field(bool) committed;
+        Field(FuncCacheEntry) cache[1];
 
 #if ENABLE_TTD
     public:

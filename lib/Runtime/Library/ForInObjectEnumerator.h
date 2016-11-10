@@ -13,10 +13,10 @@ namespace Js
         struct ShadowData
         {
             ShadowData(RecyclableObject * initObject, RecyclableObject * firstPrototype, Recycler * recycler);
-            RecyclableObject * currentObject;
-            RecyclableObject * firstPrototype;
-            BVSparse<Recycler> propertyIds;
-            SListBase<Js::PropertyRecord const *> newPropertyStrings;
+            Field(RecyclableObject *) currentObject;
+            Field(RecyclableObject *) firstPrototype;
+            Field(BVSparse<Recycler>) propertyIds;
+            Field(SListBase<Js::PropertyRecord const *>) newPropertyStrings;
         } *shadowData;
 
         // States
@@ -54,10 +54,10 @@ namespace Js
         static uint32 GetOffsetOfEnumeratorArrayEnumerator() { return offsetof(ForInObjectEnumerator, enumerator) + JavascriptStaticEnumerator::GetOffsetOfArrayEnumerator(); }
 
         static uint32 GetOffsetOfShadowData() { return offsetof(ForInObjectEnumerator, shadowData); }
-        static uint32 GetOffsetOfStates() 
-        { 
-            CompileAssert(offsetof(ForInObjectEnumerator, enumeratingPrototype) == offsetof(ForInObjectEnumerator, canUseJitFastPath) + 1);            
-            return offsetof(ForInObjectEnumerator, canUseJitFastPath); 
+        static uint32 GetOffsetOfStates()
+        {
+            CompileAssert(offsetof(ForInObjectEnumerator, enumeratingPrototype) == offsetof(ForInObjectEnumerator, canUseJitFastPath) + 1);
+            return offsetof(ForInObjectEnumerator, canUseJitFastPath);
         }
     };
 }

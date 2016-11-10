@@ -43,7 +43,7 @@ namespace Js
 
         if (doZeroSlotsAndLength)
         {
-            memset(m_slots, 0, N * sizeof(JavascriptString*));
+            ClearArray(m_slots, N);
             this->SetLength(0); // Note: the length does not include null character.
         }
     }
@@ -80,7 +80,7 @@ namespace Js
         const char16 * sz = GetSzImpl<ConcatStringN>();
 
         // Allow slots to be garbage collected if no more refs.
-        memset(m_slots, 0, N * sizeof(JavascriptString*));
+        ClearArray(m_slots, N);
 
         return sz;
     }

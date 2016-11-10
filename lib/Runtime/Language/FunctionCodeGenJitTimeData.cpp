@@ -59,11 +59,6 @@ namespace Js
         return inlinees ? inlinees[profiledCallSiteId] : nullptr;
     }
 
-    FunctionCodeGenJitTimeData ** FunctionCodeGenJitTimeData::GetInlinees()
-    {
-        return inlinees;
-    }
-
     const FunctionCodeGenJitTimeData *FunctionCodeGenJitTimeData::GetJitTimeDataFromFunctionInfo(FunctionInfo *polyFunctionInfo) const
     {
         const FunctionCodeGenJitTimeData *next = this;
@@ -82,11 +77,6 @@ namespace Js
         return ldFldInlinees ? ldFldInlinees[inlineCacheIndex] : nullptr;
     }
 
-    FunctionCodeGenJitTimeData ** FunctionCodeGenJitTimeData::GetLdFldInlinees()
-    {
-        return ldFldInlinees;
-    }
-
     FunctionCodeGenJitTimeData *FunctionCodeGenJitTimeData::AddInlinee(
         Recycler *const recycler,
         const ProfileId profiledCallSiteId,
@@ -101,7 +91,7 @@ namespace Js
 
         if (!inlinees)
         {
-            inlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenJitTimeData *, functionBody->GetProfiledCallSiteCount());
+            inlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenJitTimeData *), functionBody->GetProfiledCallSiteCount());
         }
 
         FunctionCodeGenJitTimeData *inlineeData = nullptr;
@@ -137,7 +127,7 @@ namespace Js
 
         if (!ldFldInlinees)
         {
-            ldFldInlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenJitTimeData *, GetFunctionBody()->GetInlineCacheCount());
+            ldFldInlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenJitTimeData*), GetFunctionBody()->GetInlineCacheCount());
         }
 
         const auto inlineeData = RecyclerNew(recycler, FunctionCodeGenJitTimeData, inlinee, nullptr);

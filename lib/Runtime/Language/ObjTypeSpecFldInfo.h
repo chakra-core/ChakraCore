@@ -52,21 +52,21 @@ namespace Js
     class ObjTypeSpecFldInfo
     {
     private:
-        DynamicObject* protoObject;
-        PropertyGuard* propertyGuard;
-        EquivalentTypeSet* typeSet;
-        Type* initialType;
-        JITTimeConstructorCache* ctorCache;
-        FixedFieldInfo* fixedFieldInfoArray;
+        Field(DynamicObject*) protoObject;
+        Field(PropertyGuard*) propertyGuard;
+        Field(EquivalentTypeSet*) typeSet;
+        Field(Type*) initialType;
+        Field(JITTimeConstructorCache*) ctorCache;
+        Field(FixedFieldInfo*) fixedFieldInfoArray;
 
-        PropertyId propertyId;
-        Js::TypeId typeId;
-        uint id;
+        Field(PropertyId) propertyId;
+        Field(Js::TypeId) typeId;
+        Field(uint) id;
 
-        ObjTypeSpecFldInfoFlags flags;
-        uint16 slotIndex;
+        Field(ObjTypeSpecFldInfoFlags) flags;
+        Field(uint16) slotIndex;
 
-        uint16 fixedFieldCount; // currently used only for fields that are functions
+        Field(uint16) fixedFieldCount; // currently used only for fields that are functions
 
     public:
         ObjTypeSpecFldInfo() :
@@ -370,7 +370,7 @@ namespace Js
     class ObjTypeSpecFldInfoArray
     {
     private:
-        ObjTypeSpecFldInfo** infoArray;
+        Field(Field(ObjTypeSpecFldInfo*)*) infoArray;
 #if DBG
         uint infoCount;
 #endif
@@ -383,7 +383,7 @@ namespace Js
     public:
         ObjTypeSpecFldInfo* GetInfo(FunctionBody *const functionBody, const uint index) const;
         ObjTypeSpecFldInfo* GetInfo(const uint index) const;
-        ObjTypeSpecFldInfo** GetInfoArray() const { return infoArray; }
+        Field(ObjTypeSpecFldInfo*)* GetInfoArray() const { return infoArray; }
 
         void SetInfo(Recycler *const recycler, FunctionBody *const functionBody,
             const uint index, ObjTypeSpecFldInfo* info);

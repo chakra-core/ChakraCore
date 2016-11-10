@@ -1460,8 +1460,8 @@ namespace Js
             int excess = this->inSlotsCount - executeFunction->GetInParamsCount();
             *dest = JavascriptArray::OP_NewScArray(excess, executeFunction->GetScriptContext());
             JavascriptArray *array = static_cast<JavascriptArray *>(*dest);
-            Var *elements = ((SparseArraySegment<Var>*)array->GetHead())->elements;
-            js_memcpy_s(elements, excess * sizeof(Var), src, excess * sizeof(Var));
+            Field(Var)* elements = ((SparseArraySegment<Var>*)array->GetHead())->elements;
+            CopyArray(elements, excess, src, excess);
         }
         else
         {

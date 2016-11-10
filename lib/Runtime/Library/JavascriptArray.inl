@@ -108,7 +108,7 @@ namespace Js
         }
         Recycler *recycler = this->GetScriptContext()->GetRecycler();
         SparseArraySegment<T> *newSeg = SparseArraySegment<T>::AllocateSegment(recycler, seg->left, seg->length, nextSeg);
-        js_memcpy_s(newSeg->elements, sizeof(T) * seg->length, seg->elements, sizeof(T) * seg->length);
+        CopyArray(newSeg->elements, seg->length, seg->elements, seg->length);
 
         LinkSegmentsCommon(prior, newSeg);
         LinkSegmentsCommon(newSeg, nextSeg);
@@ -517,7 +517,7 @@ SECOND_PASS:
             uint32 limit =  nextSeg->left + nextSeg->length;
             if (index < limit)
             {
-                T* v = &((SparseArraySegment<T>*)nextSeg)->elements[index - nextSeg->left];
+                const T * v = &((SparseArraySegment<T>*)nextSeg)->elements[index - nextSeg->left];
 
                 this->SetLastUsedSegment(nextSeg);
 
@@ -849,8 +849,9 @@ SECOND_PASS:
                         {
                             // we have some leftover items on endseg
                             growby = (endSeg->length - endOffset - 1);
-                            current = ((Js::SparseArraySegment<T>*)current)->GrowByMin(recycler, growby);
-                            js_memcpy_s(((Js::SparseArraySegment<T>*)current)->elements + startOffset + length, sizeof(T)* growby, ((Js::SparseArraySegment<T>*)endSeg)->elements + endOffset + 1, sizeof(T)* growby);
+                            current = current->GrowByMin(recycler, growby);
+                            CopyArray(current->elements + startOffset + length, growby,
+                                ((Js::SparseArraySegment<T>*)endSeg)->elements + endOffset + 1, growby);
                             LinkSegments((Js::SparseArraySegment<T>*)startPrev, current);
                             current->length = startOffset + length + growby;
                         }
@@ -872,8 +873,9 @@ SECOND_PASS:
 
                         // extend current to hold endSeg
                         growby = endSeg->length;
-                        current = ((Js::SparseArraySegment<T>*)current)->GrowByMin(recycler, growby);
-                        js_memcpy_s(((Js::SparseArraySegment<T>*)current)->elements + endIndex + 1, sizeof(T)* endSeg->length, ((Js::SparseArraySegment<T>*)endSeg)->elements, sizeof(T)* endSeg->length);
+                        current = current->GrowByMin(recycler, growby);
+                        CopyArray(current->elements + endIndex + 1, endSeg->length,
+                            ((Js::SparseArraySegment<T>*)endSeg)->elements, endSeg->length);
                         LinkSegments((Js::SparseArraySegment<T>*)startPrev, current);
                         if (HasNoMissingValues())
                         {
@@ -984,11 +986,11 @@ SECOND_PASS:
         int fromStartOffset = fromStartIndex - fromSegment->left;
         Assert((fromStartOffset + length) <= fromSegment->length);
 
-        js_memcpy_s(
+        CopyArray(
             toSegment->elements + toStartOffset,
-            (toSegment->size - toStartOffset) * sizeof(T),
+            toSegment->size - toStartOffset,
             fromSegment->elements + fromStartOffset,
-            memcopySize * sizeof(T)
+            memcopySize
         );
 
         fromArray->SetLastUsedSegment(fromSegment);
@@ -1087,7 +1089,7 @@ SECOND_PASS:
             return false;
         }
         Assert(current->left + current->length >= startIndex + length);
-        T* segmentCopyStart = current->elements + (startIndex - current->left);
+        Field(T)* segmentCopyStart = current->elements + (startIndex - current->left);
         CopyValueToSegmentBuferNoCheck(segmentCopyStart, length, newValue);
         this->SetLastUsedSegment(current);
 #if DBG
@@ -1446,7 +1448,7 @@ SECOND_PASS:
 
         SparseArraySegment<T> *const segment = (SparseArraySegment<T>*)head;
         const uint segmentLength = segment->length;
-        const T *const segmentElements = segment->elements;
+        const Field(T) * const segmentElements = segment->elements;
         for(uint i = startIndex; i < segmentLength; ++i)
         {
             if(SparseArraySegment<T>::IsMissingItem(&segmentElements[i]))
@@ -1465,7 +1467,7 @@ SECOND_PASS:
         //Assert(!HasNoMissingValues());
 
         SparseArraySegment<T> *const segment = (SparseArraySegment<T>*)head;
-        const T *const segmentElements = segment->elements;
+        const Field(T) *const segmentElements = segment->elements;
         for (uint i = startIndex; i < endIndex; ++i)
         {
             if (SparseArraySegment<T>::IsMissingItem(&segmentElements[i]))
@@ -1667,7 +1669,7 @@ SECOND_PASS:
         return totalSize;
     }
 
-    template<class ArrayType> 
+    template<class ArrayType>
     void JavascriptArray::EnsureCalculationOfAllocationBuckets()
     {
         uint temp;
@@ -1685,7 +1687,7 @@ SECOND_PASS:
         uint *const alignedInlineElementSlotsRef)
     {
         uint8 bucketsCount = ArrayType::AllocationBucketsCount;
-        
+
         EnsureCalculationOfAllocationBuckets<ArrayType>();
 
         if (inlineElementSlots >= 0 && inlineElementSlots <= ArrayType::allocationBuckets[bucketsCount - 1][AllocationBucketIndex])
@@ -1716,7 +1718,7 @@ SECOND_PASS:
 
         return DetermineAllocationSize<ArrayType, InlinePropertySlots>(inlineElementSlots, allocationPlusSizeRef, alignedInlineElementSlotsRef);
     }
-    
+
 
     template<class T, uint InlinePropertySlots>
     inline uint JavascriptArray::DetermineAvailableInlineElementSlots(

@@ -22,13 +22,13 @@ namespace UnifiedRegex
     struct TrigramInfo {
         static const int PatternLength=8;
         static const int MaxResults=32;
-        bool isTrigramPattern;
-        bool hasCachedResultString;
-        int triPat1;
-        int triPat2;
-        int resultCount;
-        int offsets[MaxResults];
-        Js::JavascriptString * cachedResult[MaxResults];
+        Field(bool) isTrigramPattern;
+        Field(bool) hasCachedResultString;
+        Field(int) triPat1;
+        Field(int) triPat2;
+        Field(int) resultCount;
+        Field(int ) offsets[MaxResults];
+        Field(Js::JavascriptString *) cachedResult[MaxResults];
 
         TrigramInfo(__in_ecount(PatternLength) char* pat1,__in_ecount(PatternLength) char* pat2, Recycler* recycler);
     };
@@ -133,13 +133,13 @@ namespace UnifiedRegex
     private:
         OctoquadMatcher(const StandardChars<Char>* standardChars, CaseInsensitive::MappingSource mappingSource, OctoquadIdentifier* identifier);
 
-        Char codeToChar[TrigramAlphabet::AlphaCount];
+        Field(Char) codeToChar[TrigramAlphabet::AlphaCount];
 
         // Maps characters (0..AsciTableSize-1) to 0 if not in alphabet, or 0x1, 0x2, 0x4 or 0x8.
         // Allocated and filled only if invoke Match below.
-        uint8 charToBits[TrigramAlphabet::AsciiTableSize];
+        Field(uint8 ) charToBits[TrigramAlphabet::AsciiTableSize];
 
-        uint32 patterns[OctoquadIdentifier::NumPatterns];
+        Field(uint32 ) patterns[OctoquadIdentifier::NumPatterns];
 
     public:
         static OctoquadMatcher *New(Recycler* recycler, const StandardChars<Char>* standardChars, CaseInsensitive::MappingSource mappingSource, OctoquadIdentifier* identifier);

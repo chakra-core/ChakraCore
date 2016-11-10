@@ -109,10 +109,10 @@ namespace Js
             static const uint MaxChainedBlockSize;
 
         private:
-            Block *const bufferOwner;
-            CharCount charLength;
-            CharCount charCapacity;
-            const Block *const previous;
+            Field(Block *const) bufferOwner;
+            Field(CharCount) charLength;
+            Field(CharCount) charCapacity;
+            Field(const Block *const) previous;
 
         private:
             Block(const CharCount charCapacity, const Block *const previous);
@@ -315,10 +315,10 @@ namespace Js
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private:
-        BlockInfo lastBlockInfo;
-        CharCount directCharLength;
-        bool ownsLastBlock;
-        Block *lastBlock;
+        Field(BlockInfo) lastBlockInfo;
+        Field(CharCount) directCharLength;
+        Field(bool) ownsLastBlock;
+        Field(Block *) lastBlock;
 
     private:
         CompoundString(const CharCount initialCharCapacity, JavascriptLibrary *const library);

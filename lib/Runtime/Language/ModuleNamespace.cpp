@@ -45,7 +45,8 @@ namespace Js
     {
         ScriptContext* scriptContext = moduleRecord->GetRealm()->GetScriptContext();
         Recycler* recycler = scriptContext->GetRecycler();
-        SourceTextModuleRecord* sourceTextModuleRecord = static_cast<SourceTextModuleRecord*>(moduleRecord);
+        SourceTextModuleRecord* sourceTextModuleRecord = static_cast<SourceTextModuleRecord*>(
+            static_cast<ModuleRecordBase*>(moduleRecord));
         JavascriptLibrary* library = GetLibrary();
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
@@ -178,7 +179,7 @@ namespace Js
         }
         if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
         {
-            Assert((uint)propertyDescriptor.propertyIndex < ((SourceTextModuleRecord*)moduleRecord)->GetLocalExportCount());
+            Assert((uint)propertyDescriptor.propertyIndex < ((SourceTextModuleRecord*)static_cast<ModuleRecordBase*>(moduleRecord))->GetLocalExportCount());
             PropertyValueInfo::SetNoCache(info, this); // Disable inlinecache for localexport slot for now.
             //if ((PropertyIndex)propertyDescriptor.propertyIndex == propertyDescriptor.propertyIndex)
             //{
@@ -265,7 +266,7 @@ namespace Js
 
     Var ModuleNamespace::GetNSSlot(BigPropertyIndex propertyIndex)
     {
-        Assert((uint)propertyIndex < (static_cast<SourceTextModuleRecord*>(moduleRecord))->GetLocalExportCount());
+        Assert((uint)propertyIndex < static_cast<SourceTextModuleRecord*>(static_cast<ModuleRecordBase*>(moduleRecord))->GetLocalExportCount());
         return this->nsSlots[propertyIndex];
     }
 

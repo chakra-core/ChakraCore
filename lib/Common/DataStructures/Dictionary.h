@@ -34,17 +34,17 @@ namespace JsUtil
 
 
     private:
-        int size;
-        int* buckets;
-        EntryType * entries;
-        int count;
-        int version;
-        int freeList;
-        int freeCount;
-        Recycler* recycler;
-        EntryRemovalCallback entryRemovalCallback;
-        uint lastWeakReferenceCleanupId;
-        bool disableCleanup;
+        Field(int) size;
+        Field(int*) buckets;
+        Field(EntryType *) entries;
+        Field(int) count;
+        Field(int) version;
+        Field(int) freeList;
+        Field(int) freeCount;
+        FieldNoBarrier(Recycler*) recycler;
+        FieldNoBarrier(EntryRemovalCallback) entryRemovalCallback;
+        Field(uint) lastWeakReferenceCleanupId;
+        Field(bool) disableCleanup;
 
     public:
         // Allow WeaklyReferencedKeyDictionary field to be inlined in classes with DEFINE_VTABLE_CTOR_MEMBER_INIT

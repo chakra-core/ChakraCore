@@ -35,15 +35,15 @@ public:
 
 protected:
 
-    char* strongRef;
-    HeapBlock * strongRefHeapBlock;
-    HeapBlock * weakRefHeapBlock;
-    RecyclerWeakReferenceBase* next;
+    FieldNoBarrier(char*) strongRef;
+    FieldNoBarrier(HeapBlock *) strongRefHeapBlock;
+    FieldNoBarrier(HeapBlock *) weakRefHeapBlock;
+    FieldNoBarrier(RecyclerWeakReferenceBase*) next;
 #if DBG
 #if ENABLE_RECYCLER_TYPE_TRACKING
     type_info const * typeInfo;
 #endif
-    
+
 #if defined TRACK_ALLOC && defined(PERF_COUNTERS)
     PerfCounter::Counter * counter;
 #endif

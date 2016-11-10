@@ -26,7 +26,7 @@ public:
     static void BuildFromJsType(__in Js::Type * jsType, __out JITType * jitType);
 
 private:
-    TypeIDL m_data;
+    Field(TypeIDL) m_data;
 };
 
 class JITTypeHolder
