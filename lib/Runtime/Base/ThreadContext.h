@@ -654,7 +654,7 @@ private:
     uint32 polymorphicCacheState;
 
 #ifdef ENABLE_PROJECTION
-    SListBase<ExternalWeakReferenceCache *> externalWeakReferenceCacheList;
+    SListBase<ExternalWeakReferenceCache *, HeapAllocator> externalWeakReferenceCacheList;
 #if DBG_DUMP
     IProjectionContextMemoryInfo *projectionMemoryInformation;
 #endif

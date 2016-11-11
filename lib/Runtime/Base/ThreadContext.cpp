@@ -4130,7 +4130,7 @@ void ThreadContext::RemoveExternalWeakReferenceCache(ExternalWeakReferenceCache 
 
 void ThreadContext::MarkExternalWeakReferencedObjects(bool inPartialCollect)
 {
-    SListBase<ExternalWeakReferenceCache *>::Iterator iteratorWeakRefCache(&this->externalWeakReferenceCacheList);
+    SListBase<ExternalWeakReferenceCache *, HeapAllocator>::Iterator iteratorWeakRefCache(&this->externalWeakReferenceCacheList);
     while (iteratorWeakRefCache.Next())
     {
         iteratorWeakRefCache.Data()->MarkNow(recycler, inPartialCollect);
@@ -4139,7 +4139,7 @@ void ThreadContext::MarkExternalWeakReferencedObjects(bool inPartialCollect)
 
 void ThreadContext::ResolveExternalWeakReferencedObjects()
 {
-    SListBase<ExternalWeakReferenceCache *>::Iterator iteratorWeakRefCache(&this->externalWeakReferenceCacheList);
+    SListBase<ExternalWeakReferenceCache *, HeapAllocator>::Iterator iteratorWeakRefCache(&this->externalWeakReferenceCacheList);
     while (iteratorWeakRefCache.Next())
     {
         iteratorWeakRefCache.Data()->ResolveNow(recycler);

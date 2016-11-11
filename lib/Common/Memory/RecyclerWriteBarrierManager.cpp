@@ -21,7 +21,7 @@
 
 #ifdef RECYCLER_WRITE_BARRIER
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-namespace Memory 
+namespace Memory
 {
     FN_VerifyIsNotBarrierAddress* g_verifyIsNotBarrierAddress = nullptr;
 }
@@ -377,11 +377,11 @@ RecyclerWriteBarrierManager::IsBarrierAddress(void * address)
 bool
 RecyclerWriteBarrierManager::IsBarrierAddress(uintptr_t index)
 {
-    return cardTable[index] & WRITE_BARRIER_PAGE_BIT;
+    return (cardTable[index] & WRITE_BARRIER_PAGE_BIT) == WRITE_BARRIER_PAGE_BIT;
 }
 
-// TODO: SWB, looks we didn't initialize card table for heap allocation. 
-// we didn't hit such issue because we are not allocating write barrier 
+// TODO: SWB, looks we didn't initialize card table for heap allocation.
+// we didn't hit such issue because we are not allocating write barrier
 // annotated struct with heap today.
 // after SWB is widely enabled and if an annotated structure can be allocated
 // with both Heap and Recycler/Arena we'll capture the issue
@@ -406,10 +406,10 @@ RecyclerWriteBarrierManager::VerifyIsBarrierAddress(void * address, size_t bytes
         uintptr_t startIndex = GetCardTableIndex(address);
         char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + bytes), s_WriteBarrierPageSize);
         uintptr_t endIndex = GetCardTableIndex(endAddress);
-        do 
+        do
         {
             // no need to check if cardTable is commited or not, if it's not commited it'll AV instead of assertion
-            if (!IsBarrierAddress(startIndex)) 
+            if (!IsBarrierAddress(startIndex))
             {
                 Js::Throw::FatalInternalError();
             }
@@ -425,11 +425,11 @@ RecyclerWriteBarrierManager::VerifyIsNotBarrierAddress(void * address, size_t by
         uintptr_t startIndex = GetCardTableIndex(address);
         char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + bytes), s_WriteBarrierPageSize);
         uintptr_t endIndex = GetCardTableIndex(endAddress);
-        do 
+        do
         {
             if(IsCardTableCommited(startIndex))
             {
-                if (IsBarrierAddress(startIndex)) 
+                if (IsBarrierAddress(startIndex))
                 {
                     Js::Throw::FatalInternalError();
                 }
@@ -439,13 +439,13 @@ RecyclerWriteBarrierManager::VerifyIsNotBarrierAddress(void * address, size_t by
     }
 }
 
-bool 
+bool
 RecyclerWriteBarrierManager::Initialize()
 {
     g_verifyIsNotBarrierAddress = RecyclerWriteBarrierManager::VerifyIsNotBarrierAddress;
     return true;
 }
-#endif 
+#endif
 
 uintptr_t
 RecyclerWriteBarrierManager::GetCardTableIndex(void *address)

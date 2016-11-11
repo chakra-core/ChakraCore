@@ -100,8 +100,8 @@ private:
     bool hasNewChunkBlock;
     struct BlockRecord
     {
-        BlockRecord(__in_ecount_pagesize char * blockAddress, PageSegment * segment) 
-            : blockAddress(blockAddress), segment(segment) 
+        BlockRecord(__in_ecount_pagesize char * blockAddress, PageSegment * segment)
+            : blockAddress(blockAddress), segment(segment)
         {
         }
         char * blockAddress;
@@ -114,19 +114,19 @@ private:
     size_t pendingIntegrationChunkSegmentPageCount;
     DListBase<PageSegment> pendingIntegrationNumberSegment;
     DListBase<PageSegment> pendingIntegrationChunkSegment;
-    SListBase<BlockRecord> pendingIntegrationNumberBlock;
-    SListBase<BlockRecord> pendingIntegrationChunkBlock;
+    SListBase<BlockRecord, NoThrowHeapAllocator> pendingIntegrationNumberBlock;
+    SListBase<BlockRecord, NoThrowHeapAllocator> pendingIntegrationChunkBlock;
 
     // These are finished pages during the code gen of the current function
     // We can't integrate them until the code gen is done for the function,
     // because the references for the number is not set on the entry point yet.
-    SListBase<BlockRecord> pendingFlushNumberBlock;
-    SListBase<BlockRecord> pendingFlushChunkBlock;
+    SListBase<BlockRecord, NoThrowHeapAllocator> pendingFlushNumberBlock;
+    SListBase<BlockRecord, NoThrowHeapAllocator> pendingFlushChunkBlock;
 
     // Numbers are reference by the chunks, so we need to wait until that is ready
     // to be flushed before the number page can be flushed. Otherwise, we might have number
     // integrated back to the GC, but the chunk hasn't yet, thus GC won't see the reference.
-    SListBase<BlockRecord> pendingReferenceNumberBlock;
+    SListBase<BlockRecord, NoThrowHeapAllocator> pendingReferenceNumberBlock;
 };
 
 class CodeGenNumberAllocator

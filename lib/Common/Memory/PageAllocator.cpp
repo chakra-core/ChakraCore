@@ -63,8 +63,8 @@ SegmentBase<T>::~SegmentBase()
             RecyclerWriteBarrierManager::ToggleBarrier(this->address, this->segmentPageCount * AutoSystemInfo::PageSize, false);
         }
 #endif
-#endif
         RecyclerWriteBarrierManager::OnSegmentFree(this->address, this->segmentPageCount);
+#endif
     }
 }
 
@@ -343,7 +343,7 @@ PageSegmentBase<T>::AllocPages(uint pageCount)
                 MemoryOperationLastError::RecordLastError();
                 if (this->GetAllocator()->processHandle == GetCurrentProcess())
                 {
-                    Assert(false);                    
+                    Assert(false);
                 }
                 return nullptr;
             }
