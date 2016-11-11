@@ -7969,9 +7969,11 @@ void
 LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
 {
     EmitInt64toFloatRec(dst, src, instr, false);
+#ifdef _M_X64
     instr->UnlinkDst();
     instr->UnlinkSrc1();
     //instruction is removed by the caller
+#endif
 }
 
 void
