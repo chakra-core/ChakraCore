@@ -3120,7 +3120,7 @@ NativeCodeGenerator::EnterScriptStart()
     public:
         AutoCleanup(Js::ScriptContextProfiler *const codeGenProfiler) : codeGenProfiler(codeGenProfiler)
         {
-            JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_DELAY_START(this, 0));
+            EDGE_ETW_INTERNAL(EventWriteJSCRIPT_NATIVECODEGEN_DELAY_START(this, 0));
 #ifdef PROFILE_EXEC
             ProfileBegin(codeGenProfiler, Js::DelayPhase);
             ProfileBegin(codeGenProfiler, Js::SpeculationPhase);
@@ -3133,7 +3133,7 @@ NativeCodeGenerator::EnterScriptStart()
             ProfileEnd(codeGenProfiler, Js::SpeculationPhase);
             ProfileEnd(codeGenProfiler, Js::DelayPhase);
 #endif
-            JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_DELAY_STOP(this, 0));
+            EDGE_ETW_INTERNAL(EventWriteJSCRIPT_NATIVECODEGEN_DELAY_STOP(this, 0));
         }
     } autoCleanup(
 #ifdef PROFILE_EXEC

@@ -131,6 +131,7 @@
 #define ENABLE_BACKGROUND_PAGE_ZEROING 1
 #define ENABLE_BACKGROUND_PAGE_FREEING 1
 #define ENABLE_RECYCLER_TYPE_TRACKING 1
+#define ENABLE_JS_ETW                               // ETW support
 #else
 #define SYSINFO_IMAGE_BASE_AVAILABLE 0
 #define ENABLE_CONCURRENT_GC 0
@@ -211,7 +212,6 @@
 #define ENABLE_WININET_PROFILE_DATA_CACHE
 #define ENABLE_BASIC_TELEMETRY
 #define ENABLE_DOM_FAST_PATH
-#define ENABLE_JS_ETW                               // ETW support
 #define EDIT_AND_CONTINUE
 #define ENABLE_JIT_CLAMP
 #endif

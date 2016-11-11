@@ -1858,7 +1858,7 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in Byte
 #ifdef PROFILE_EXEC
     scriptContext->ProfileBegin(Js::ByteCodePhase);
 #endif
-    JS_ETW(EventWriteJSCRIPT_BYTECODEGEN_START(scriptContext, 0));
+    JS_ETW_INTERNAL(EventWriteJSCRIPT_BYTECODEGEN_START(scriptContext, 0));
 
     ThreadContext * threadContext = scriptContext->GetThreadContext();
     Js::Utf8SourceInfo * utf8SourceInfo = scriptContext->GetSource(sourceIndex);
@@ -1899,7 +1899,7 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in Byte
 #ifdef PROFILE_EXEC
     scriptContext->ProfileEnd(Js::ByteCodePhase);
 #endif
-    JS_ETW(EventWriteJSCRIPT_BYTECODEGEN_STOP(scriptContext, 0));
+    JS_ETW_INTERNAL(EventWriteJSCRIPT_BYTECODEGEN_STOP(scriptContext, 0));
 
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
     if (!byteCodeGenerator->forceNoNative && !scriptContext->GetConfig()->IsNoNative()

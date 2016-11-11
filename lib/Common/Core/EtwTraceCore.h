@@ -7,6 +7,7 @@
 #ifdef ENABLE_JS_ETW
 #define PAIR(a,b) a ## b
 
+#ifdef NTBUILD
 #define GCETW(e, args)                          \
     if (IsMemProtectMode())                     \
     {                                           \
@@ -16,6 +17,27 @@
     {                                           \
         PAIR(EventWriteJSCRIPT_ ## e, args);    \
     }
+
+#define GCETW_INTERNAL(e, args)                 \
+    if (IsMemProtectMode())                     \
+    {                                           \
+        PAIR(EventWriteMEMPROTECT_ ## e, args); \
+    }                                           \
+    else                                        \
+    {                                           \
+        PAIR(EventWriteJSCRIPT_ ## e, args);    \
+    }
+
+#define JS_ETW_INTERNAL(s) s
+#define EDGE_ETW_INTERNAL(s) s
+#else
+#define GCETW(e, args)                          \
+    PAIR(EventWriteJSCRIPT_ ## e, args);
+
+#define GCETW_INTERNAL(e, args)
+#define JS_ETW_INTERNAL(s)
+#define EDGE_ETW_INTERNAL(s)
+#endif
 
 #define JS_ETW(s) s
 #define IS_JS_ETW(s) s
@@ -43,9 +65,11 @@ CompileAssert(false)
 #define MCGEN_PRIVATE_ENABLE_CALLBACK_V2(SourceId, ControlCode, Level, MatchAnyKeyword, MatchAllKeyword, FilterData, CallbackContext) \
        EtwCallback(ControlCode, CallbackContext)
 
-#include <microsoft-scripting-chakraevents.h>
+#include <microsoft-scripting-chakra-instrumentationevents.h>
+#ifdef NTBUILD
 #include <ieresp_mshtml.h>
 #include <microsoft-scripting-jscript9.internalevents.h>
+#endif
 
 //
 // Encapsulates base routines to initialize ETW tracing in the module
@@ -63,4 +87,7 @@ public:
 #define GCETW(e, ...)
 #define JS_ETW(s)
 #define IS_JS_ETW(s) (false)
+#define GCETW_INTERNAL(e, args)
+#define JS_ETW_INTERNAL(s)
+#define EDGE_ETW_INTERNAL(s)
 #endif

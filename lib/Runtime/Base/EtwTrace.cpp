@@ -195,10 +195,12 @@ void EtwTrace::PerformRundown(bool start)
 
             scriptContext = scriptContext->next;
         }
+#ifdef NTBUILD
         if (EventEnabledJSCRIPT_HOSTING_CEO_START())
         {
             threadContext->EtwLogPropertyIdList();
         }
+#endif
 
         threadContext = threadContext->Next();
     }
@@ -340,7 +342,7 @@ size_t EtwTrace::GetSimpleJitFunctionName(
     const char16 *const functionName = GetFunctionName(body);
     const size_t functionNameCharLength = wcslen(functionName);
     const size_t requiredCharCapacity = functionNameCharLength + suffixCharLength + 1;
-    if(requiredCharCapacity > nameCharCapacity)
+    if(requiredCharCapacity > nameCharCapacity || name == NULL)
     {
         return requiredCharCapacity;
     }

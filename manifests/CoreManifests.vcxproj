@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Condition="'$(ChakraBuildPathImported)'!='true'" Project="$(SolutionDir)Chakra.Build.Paths.props"/>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.ProjectConfiguration.props" />
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{2F6A1847-BFAF-4B8A-9463-AC39FB46B96A}</ProjectGuid>
+    <RootNamespace>CoreManifests</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.props" />
+  <ItemGroup>
+    <CustomBuild Include="$(MSBuildThisFileDirectory)Microsoft-Scripting-Chakra-Instrumentation.man">
+      <FileType>Document</FileType>
+      <Command>mc.exe /h $(IntDir) /W "$(EventManifestXmlPath)\winmeta.xml" /w "$(EventManifestXmlPath)\eventman.xsd" /r $(IntDir) /z %(Filename)Events -um /v %(FullPath)</Command>
+      <Outputs>$(IntDir)\%(Filename)Events.h;$(IntDir)\%(Filename)Events.rc;$(IntDir)\%(Filename)Events_MSG00001.bin;$(IntDir)\%(Filename)EventsTEMP.bin</Outputs>
+    </CustomBuild>
+  </ItemGroup>
+  <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')"/>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

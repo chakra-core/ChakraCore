@@ -3937,7 +3937,7 @@ Recycler::IsReentrantState() const
 }
 #endif
 
-#ifdef ENABLE_JS_ETW
+#if defined(ENABLE_JS_ETW) && defined(NTBUILD)
 template <Js::Phase phase> static ETWEventGCActivationKind GetETWEventGCActivationKind();
 template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::GarbageCollectPhase>() { return ETWEvent_GarbageCollect; }
 template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::ThreadCollectPhase>() { return ETWEvent_ThreadCollect; }
@@ -3950,14 +3950,14 @@ void
 Recycler::CollectionBegin()
 {
     RECYCLER_PROFILE_EXEC_BEGIN2(this, Js::RecyclerPhase, phase);
-    GCETW(GC_START, (this, GetETWEventGCActivationKind<phase>()));
+    GCETW_INTERNAL(GC_START, (this, GetETWEventGCActivationKind<phase>()));
 }
 
 template <Js::Phase phase>
 void
 Recycler::CollectionEnd()
 {
-    GCETW(GC_STOP, (this, GetETWEventGCActivationKind<phase>()));
+    GCETW_INTERNAL(GC_STOP, (this, GetETWEventGCActivationKind<phase>()));
     RECYCLER_PROFILE_EXEC_END2(this, phase, Js::RecyclerPhase);
 }
 
@@ -5327,7 +5327,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
     bool needConcurrentSweep = false;
     if (collectionState == CollectionStateRescanWait)
     {
-        GCETW(GC_START, (this, ETWEvent_ConcurrentRescan));
+        GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentRescan));
 
 #ifdef RECYCLER_TRACE
 #if ENABLE_PARTIAL_GC
@@ -5357,7 +5357,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
         {
             Assert(this->IsMarkState());
             RECYCLER_PROFILE_EXEC_END2(this, concurrentPhase, Js::RecyclerPhase);
-            GCETW(GC_STOP, (this, ETWEvent_ConcurrentRescan));
+            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
 
             // we timeout trying to mark.
             return false;
@@ -5383,11 +5383,11 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 #else
         needConcurrentSweep = this->Sweep(concurrent);
 #endif
-        GCETW(GC_STOP, (this, ETWEvent_ConcurrentRescan));
+        GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
     }
     else
     {
-        GCETW(GC_START, (this, ETWEvent_ConcurrentTransferSwept));
+        GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentTransferSwept));
         GCETW(GC_FLUSHZEROPAGE_START, (this));
 
         Assert(collectionState == CollectionStateTransferSweptWait);
@@ -5420,7 +5420,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 
         GCETW(GC_TRANSFERSWEPTOBJECTS_STOP, (this));
 
-        GCETW(GC_STOP, (this, ETWEvent_ConcurrentTransferSwept));
+        GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentTransferSwept));
     }
 
     RECYCLER_PROFILE_EXEC_END2(this, concurrentPhase, Js::RecyclerPhase);
@@ -5501,7 +5501,7 @@ Recycler::StaticBackgroundWorkCallback(void * callbackData)
     recycler->DoBackgroundWork(true);
 }
 
-#ifdef ENABLE_JS_ETW
+#if defined(ENABLE_JS_ETW) && defined(NTBUILD)
 static ETWEventGCActivationKind
 BackgroundMarkETWEventGCActivationKind(CollectionState collectionState)
 {
@@ -5525,7 +5525,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
     {
         RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, this->collectionState == CollectionStateConcurrentFinishMark?
             Js::BackgroundFinishMarkPhase : Js::ConcurrentMarkPhase);
-        GCETW(GC_START, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
+        GCETW_INTERNAL(GC_START, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
         DebugOnly(this->markContext.GetPageAllocator()->SetConcurrentThreadId(::GetCurrentThreadId()));
         Assert(this->enableConcurrentMark);
         if (this->collectionState != CollectionStateConcurrentFinishMark)
@@ -5557,7 +5557,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
             Assert(false);
             break;
         };
-        GCETW(GC_STOP, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
+        GCETW_INTERNAL(GC_STOP, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
         RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, this->collectionState == CollectionStateConcurrentFinishMark?
             Js::BackgroundFinishMarkPhase : Js::ConcurrentMarkPhase);
 
@@ -5567,7 +5567,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
     else
     {
         RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, Js::ConcurrentSweepPhase);
-        GCETW(GC_START, (this, ETWEvent_ConcurrentSweep));
+        GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep));
         GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
 
         Assert(this->enableConcurrentSweep);
@@ -5601,7 +5601,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
 #endif
         recyclerLargeBlockPageAllocator.BackgroundZeroQueuedPages();
         GCETW(GC_BACKGROUNDZEROPAGE_STOP, (this));
-        GCETW(GC_STOP, (this, ETWEvent_ConcurrentSweep));
+        GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
 
         Assert(this->collectionState == CollectionStateConcurrentSweep);
         this->collectionState = CollectionStateTransferSweptWait;

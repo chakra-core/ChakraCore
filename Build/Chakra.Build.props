@@ -39,6 +39,7 @@
       <RuntimeLibrary Condition="'$(Configuration)'=='Debug' AND '$(RuntimeLib)'=='static_library'">MultiThreadedDebug</RuntimeLibrary>
       <AdditionalIncludeDirectories>
         $(ChakraCoreRootDirectory)\lib\common\placeholder;
+        $(IntDir)..\CoreManifests\
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
 
