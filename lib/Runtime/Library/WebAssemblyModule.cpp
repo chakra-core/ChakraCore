@@ -182,6 +182,18 @@ WebAssemblyModule::ValidateModule(
 
             // TODO: avoid actually generating bytecode here
             Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (PHASE_ON(WasmValidatePrejitPhase, body))
+            {
+                CONFIG_FLAG(MaxAsmJsInterpreterRunCount) = 0;
+                AsmJsScriptFunction * funcObj = scriptContext->GetLibrary()->CreateAsmJsScriptFunction(body);
+                FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
+                entypointInfo->SetIsAsmJSFunction(true);
+                entypointInfo->SetModuleAddress(1);
+                GenerateFunction(scriptContext->GetNativeCodeGenerator(), body, funcObj);
+            }
+#endif
         }
     }
     catch (Wasm::WasmCompilationException& ex)

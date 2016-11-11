@@ -648,12 +648,16 @@ namespace Js
 
     bool AsmJsScriptFunction::Is(Var func)
     {
-        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->GetFunctionBody()->GetIsAsmJsFunction();
+        return ScriptFunction::Is(func) && 
+            ScriptFunction::FromVar(func)->HasFunctionBody() &&
+            ScriptFunction::FromVar(func)->GetFunctionBody()->GetIsAsmJsFunction();
     }
 
     bool AsmJsScriptFunction::IsWasmScriptFunction(Var func)
     {
-        return ScriptFunction::Is(func) && ScriptFunction::FromVar(func)->GetFunctionBody()->IsWasmFunction();
+        return ScriptFunction::Is(func) && 
+            ScriptFunction::FromVar(func)->HasFunctionBody() &&
+            ScriptFunction::FromVar(func)->GetFunctionBody()->IsWasmFunction();
     }
 
     AsmJsScriptFunction* AsmJsScriptFunction::FromVar(Var func)

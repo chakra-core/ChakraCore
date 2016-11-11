@@ -2995,7 +2995,7 @@ namespace Js
 #endif
     }
 
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
     int AsmJsCallDepth = 0;
 #endif
 
@@ -3132,17 +3132,12 @@ namespace Js
         const bool tracingFunc = PHASE_TRACE(AsmjsFunctionEntryPhase, functionBody);
         if (tracingFunc)
         {
-#if DBG_DUMP
             if (AsmJsCallDepth)
             {
                 Output::Print(_u("%*c"), AsmJsCallDepth, ' ');
             }
             Output::Print(_u("Executing function %s("), functionBody->GetDisplayName());
             ++AsmJsCallDepth;
-#else
-            Output::Print(_u("%s()\n"), functionBody->GetDisplayName());
-            Output::Flush();
-#endif
         }
 #endif
         uintptr_t argAddress = (uintptr_t)m_inParams;
@@ -3181,7 +3176,7 @@ namespace Js
                 if (info->GetArgType(i).isInt())
                 {
                     *intArg = *(int*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                     if (tracingFunc)
                     {
                         Output::Print(_u("%d, "), *intArg);
@@ -3193,7 +3188,7 @@ namespace Js
                 else if (info->GetArgType(i).isInt64())
                 {
                     *int64Arg = *(int64*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                     if (tracingFunc)
                     {
                         Output::Print(_u("%lld, "), *int64Arg);
@@ -3205,7 +3200,7 @@ namespace Js
                 else if (info->GetArgType(i).isFloat())
                 {
                     *floatArg = *(float*)floatSpillAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                     if (tracingFunc)
                     {
                         Output::Print(_u("%.2f, "), *floatArg);
@@ -3217,7 +3212,7 @@ namespace Js
                 else if (info->GetArgType(i).isDouble())
                 {
                     *doubleArg = *(double*)floatSpillAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                     if (tracingFunc)
                     {
                         Output::Print(_u("%.2f, "), *doubleArg);
@@ -3250,7 +3245,7 @@ namespace Js
             if (info->GetArgType(i).isInt())
             {
                 *intArg = *(int*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (tracingFunc)
                 {
                     Output::Print(_u("%d, "), *intArg);
@@ -3262,7 +3257,7 @@ namespace Js
             else if (info->GetArgType(i).isInt64())
             {
                 *int64Arg = *(int64*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (tracingFunc)
                 {
                     Output::Print(_u("%lld, "), *int64Arg);
@@ -3274,7 +3269,7 @@ namespace Js
             else if (info->GetArgType(i).isFloat())
             {
                 *floatArg = *(float*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (tracingFunc)
                 {
                     Output::Print(_u("%.2f, "), *floatArg);
@@ -3287,7 +3282,7 @@ namespace Js
             {
                 Assert(info->GetArgType(i).isDouble());
                 *doubleArg = *(double*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (tracingFunc)
                 {
                     Output::Print(_u("%.2f, "), *doubleArg);
@@ -3308,7 +3303,7 @@ namespace Js
             }
         }
 
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
         if (tracingFunc)
         {
             Output::Print(_u("){\n"));
@@ -3447,7 +3442,7 @@ namespace Js
             {
                 AlignMemoryForAsmJs();
                 Var returnVar = ProcessAsmJs();
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if( PHASE_TRACE( AsmjsFunctionEntryPhase, functionBody ) )
                 {
                     --AsmJsCallDepth;
