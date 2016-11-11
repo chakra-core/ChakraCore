@@ -9,11 +9,19 @@ if (this.WScript && this.WScript.LoadScriptFile) { // Check for running in ch
     this.WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 }
 
+var restorePropertyFromDescriptor = function (obj, prop, desc) {
+    if (typeof desc == 'undefined') {
+        delete obj[prop];
+    } else {
+        Object.defineProperty(obj, prop, desc);
+    }
+}
+
 var tests = [
     {
-         name: "OS7342663:OOB writes using type confusion in InternalCopyArrayElements",
-         body: function ()
-         {
+        name: "OS7342663:OOB writes using type confusion in InternalCopyArrayElements",
+        body: function ()
+        {
             function test() {
                 var arr1 = [0xdead, 0xbabe, 0xdead, 0xbabe];
 
@@ -85,6 +93,7 @@ var tests = [
         {
             function test() {
                 var arr = [1, 2]
+                var desc = Object.getOwnPropertyDescriptor(arr.constructor, Symbol.species);
 
                //Our species function will get called during chakra!Js::JavascriptArray::SliceHelper<unsigned int>
                 Object.defineProperty(
@@ -108,6 +117,8 @@ var tests = [
                 assert.areEqual(2, brr.length, "brr.length == 2");
                 assert.areEqual(WScript, brr[0], "brr[0] == WScript");
                 assert.areEqual(2, brr[1], "brr[0] == WScript");
+
+                restorePropertyFromDescriptor(arr.constructor, Symbol.species, desc);
             }
             test();
             test();
@@ -169,6 +180,7 @@ var tests = [
         {
             function test() {
                 var arr = [ 1, 2 ];
+                var desc = Object.getOwnPropertyDescriptor(arr.constructor, Symbol.species);
 
                 Object.defineProperty(
                     arr.constructor,
@@ -192,6 +204,8 @@ var tests = [
                 assert.areEqual(2, brr.length, "brr.length == 2");
                 assert.areEqual(WScript, brr[0], "brr[0] == WScript");
                 assert.areEqual(undefined, brr[1], "brr[1] == undefined");
+
+                restorePropertyFromDescriptor(arr.constructor, Symbol.species, desc);
             }
             test();
             test();
@@ -246,6 +260,7 @@ var tests = [
             function test() {
                //create a TypeIds_Array holding two 64 bit values (The same amount of space for four 32 bit values).
                 var arr = [ WScript, WScript ];
+                var desc = Object.getOwnPropertyDescriptor(arr.constructor, Symbol.species);
 
                //Our species function will get called during chakra!Js::JavascriptArray::EntrySplice
                 Object.defineProperty(
@@ -270,6 +285,8 @@ var tests = [
                 assert.areEqual(WScript, brr[1], "brr[1] == WScript");
                 assert.areEqual(undefined, brr[2], "brr[2] == undefined");
                 assert.areEqual(undefined, brr[3], "brr[3] == undefined");
+
+                restorePropertyFromDescriptor(arr.constructor, Symbol.species, desc);
             }
             test();
             test();
@@ -394,6 +411,167 @@ var tests = [
             test();
             test();
             test();
+        }
+    },
+    {
+        name: "[MSRC34910] type confusion in Array.prototype.filter",
+        body: function ()
+        {
+            function mappingFn(elem, index, arr) {
+                arr[1] = 'hello';
+                return true;
+            }
+
+            var arr = [1, 2, 3];
+
+            var desc = Object.getOwnPropertyDescriptor(arr.constructor, Symbol.species);
+            Object.defineProperty(arr.constructor, Symbol.species, { get : function () {  return function() { return [22, 33]; } } } );
+            var b = Array.prototype.filter.call(arr, mappingFn);
+            assert.areEqual('hello', b[1]);
+
+            restorePropertyFromDescriptor(arr.constructor, Symbol.species, desc);
+        }
+    },
+    {
+        name: "[MSRC35046] heap overflow in Array.prototype.splice",
+        body: function ()
+        {
+            var a = [];
+            var o = {};
+
+            Object.defineProperty(o, 'constructor', {
+                get: function() {
+                    a.length = 0xfffffffe;
+                    [].fill.call(a, 0, 0xfffff000, 0xfffffffe);
+                    return Array;
+                }});
+
+            a.__proto__ = o;
+            var q = new Array(50).fill(1.1);
+
+            var b = [].splice.call(a, 0, 0, ...q);
+            assert.areEqual(50, a.length);
+            assert.areEqual(q, a);
+        }
+    },
+    {
+        name: "[MSRC35086] type confusion in FillFromPrototypes",
+        body: function ()
+        {
+            var a = new Array(0x11111111, 0x22222222, 0x33333333, 0x44444444, 0x12121212);
+
+            var handler = {
+                    getPrototypeOf: function(target, name) {
+                        return a;
+                    }
+                };
+
+            var p = new Proxy([], handler);
+            var b = [{}, [], "abc"];
+
+            b.__proto__ = p;
+            b.length = 4;
+            var c = [[],"abc",1145324612];
+
+            a.shift.call(b);
+            assert.areEqual(3, b.length);
+            assert.areEqual([], b[0]);
+            assert.areEqual("abc", b[1]);
+            assert.areEqual(1145324612, b[2]);
+        }
+    },
+    {
+        name: "[MSRC35272] type confusion in JSON.parse",
+        body: function ()
+        {
+            var a = 1;
+            var once = false;
+            function f(){
+                if(!once){
+                    a = new Array(2)
+                    this[2] = a;
+                }
+                once = true;
+                return 0x41414141;
+            }
+
+            var r = JSON.parse("[1111, 22222, 333333]", f);
+            assert.areEqual(0x41414141, r);
+        }
+    },
+    {
+        name: "[MSRC35383] type confusion in Array.prototype.concat",
+        body: function ()
+        {
+            var n = [];
+            for (var i = 0; i < 0x10; i++)
+                n.push([0x11111111, 0x11111111, 0, 0x11111111,0x11111111, 0x11111111, 0, 0x11111111,0x11111111, 0x11111111, 0, 0x11111111,0x11111111,0x11111111, 0, 0x11111111,0x11111111 ,1 ,2 ,3 ,4]);
+
+            class fake extends Object {
+                static get [Symbol.species]() { return function() {  return n[3]; }; };
+            }
+
+            var f = function(a){ return a; }
+
+            var x = ["dabao", 0, 0, 0x41414141];
+            var y = new Proxy(x, {
+                get: function(t, p, r) {
+                    return (p == "constructor") ? fake : x[p];
+                }
+            });
+
+            assert.areEqual(x, Array.prototype.concat.apply(y));
+        }
+    },
+    {
+        name: "[MSRC35389] type confusion in Array.prototype.splice",
+        body: function ()
+        {
+            var arr = [0x41424344,0x41424344,0x41424344,0x41424344,0x41424344,0x41424344,0x41424344,0x41424344,0x41424344]
+            class fake extends Object {
+                static get [Symbol.species]() { return function() {
+                    return arr;
+                }; };
+            }
+
+            var x = [0, 2, 0, 0x41414141];
+            var y = new Proxy(x, {
+                get: function(t, p, r) {
+                    return (p == "constructor") ? fake : x[p];
+                }
+            });
+
+            Array.prototype.splice.apply(y);
+            assert.areEqual(x, y);
+        }
+    },
+    {
+        name: "[MSRC35389 variation] type confusion in Array.prototype.slice",
+        body: function ()
+        {
+            var arr = [0x41424344,0x41424344,0x41424344,0x41424344,0x41424344,0x41424344,0x41424344,0x41424344,0x41424344];
+
+            class fake extends Object {
+                static get [Symbol.species]() { return function() {
+                    return arr;
+                }; };
+            }
+
+            var x = [0, 2, 0, 0x41414141];
+            var y = new Proxy(x, {
+                get: function(t, p, r) {
+                    if (p == "constructor")
+                        return fake
+                    if (p == 'length');
+                        return 1;
+                    return x[p];
+                },
+                has: function() {
+                    return false;
+                }
+            });
+
+            assert.areEqual([0x41424344], Array.prototype.slice.call(y));
         }
     },
 ];
