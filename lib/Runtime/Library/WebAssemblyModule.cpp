@@ -94,7 +94,7 @@ WebAssemblyModule::CreateModule(
     const byte* buffer,
     const uint lengthBytes)
 {
-    AutoProfilingPhase wasmPhase(scriptContext, Js::WasmPhase);
+    AutoProfilingPhase wasmPhase(scriptContext, Js::WasmBytecodePhase);
     Unused(wasmPhase);
 
     WebAssemblyModule * webAssemblyModule = nullptr;
@@ -162,7 +162,7 @@ WebAssemblyModule::ValidateModule(
     const byte* buffer,
     const uint lengthBytes)
 {
-    AutoProfilingPhase wasmPhase(scriptContext, Js::WasmPhase);
+    AutoProfilingPhase wasmPhase(scriptContext, Js::WasmBytecodePhase);
     Unused(wasmPhase);
 
     try
