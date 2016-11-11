@@ -6689,6 +6689,11 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
             for (;;)
             {
                 m_pscan->Scan();
+                if (m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.async)
+                {
+                    Assert(pnodeFnc->sxFnc.IsAsync());
+                    continue;
+                }
                 if (m_token.tk == tkFUNCTION)
                 {
                     break;
