@@ -7968,17 +7968,6 @@ LowererMD::EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIn
 void
 LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
 {
-    EmitInt64toFloatRec(dst, src, instr, false);
-#ifdef _M_X64
-    instr->UnlinkDst();
-    instr->UnlinkSrc1();
-    //instruction is removed by the caller
-#endif
-}
-
-void
-LowererMD::EmitInt64toFloatRec(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr, bool recursive)
-{
 
 #ifdef _M_IX86
     IR::Opnd *srcOpnd = instr->UnlinkSrc1();
@@ -8008,9 +7997,9 @@ LowererMD::EmitInt64toFloatRec(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr, b
         dst = IR::RegOpnd::New(TyFloat64, this->m_func);
     }
 
-    if (src->IsUnsigned() && !recursive)
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTSI2SD, dst, src, this->m_func));
+    if (src->IsUnsigned())
     {
-        EmitInt64toFloatRec(dst, src, instr, true);
         IR::RegOpnd * highestBitOpnd = IR::RegOpnd::New(TyInt64, this->m_func);
         IR::Instr* instrNew = IR::Instr::New(Js::OpCode::SHR, highestBitOpnd, src,
         IR::IntConstOpnd::New(63, TyInt8, this->m_func, true), this->m_func);
@@ -8027,17 +8016,12 @@ LowererMD::EmitInt64toFloatRec(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr, b
             highestBitOpnd, IndirScale8, TyFloat64, this->m_func), this->m_func);
         instr->InsertBefore(instrNew);
     }
-    else 
-    {
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTSI2SD, dst, src, this->m_func));
-    }
 
     if (origDst)
     {
         instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTSD2SS, origDst, dst, this->m_func));
     }
 #endif
-
 }
 
 void
