@@ -491,7 +491,7 @@ namespace Js
         // TODO: Handle call from global scope, strict mode
         BOOL isIndirect = FALSE;
 
-        if (args.Info.Flags & CallFlags_ExtraArg)
+        if (Js::CallInfo::isDirectEvalCall(args.Info.Flags))
         {
             // This was recognized as an eval call at compile time. The last one or two args are internal to us.
             // Argcount will be one of the following when called from global code
