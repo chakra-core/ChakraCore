@@ -480,10 +480,11 @@ private:
 
     void            RelocateCallDirectToHelperPath(IR::Instr* argoutInlineSpecialized, IR::LabelInstr* labelHelper);
 
-    bool            TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool *pfNoLower);
-    void            GenerateFastBrTypeOf(IR::Instr *branch, IR::RegOpnd *object, IR::IntConstOpnd *typeIdOpnd, IR::Instr *typeOf, bool *pfNoLower);
-    void            GenerateFastCmTypeOf(IR::Instr *compare, IR::RegOpnd *object, IR::IntConstOpnd *typeIdOpnd, IR::Instr *typeOf, bool *pfNoLower);
-    void            GenerateFalsyObjectTest(IR::Instr *insertInstr, IR::RegOpnd *TypeOpnd, Js::TypeId typeIdToCheck, IR::LabelInstr* target, IR::LabelInstr* done, bool isNeqOp);
+    bool            TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool isNeqOp, bool *pfNoLower);
+    void            GenerateFastBrTypeOf(IR::Instr *branch, IR::RegOpnd *object, IR::IntConstOpnd *typeIdOpnd, IR::Instr *typeOf, bool *pfNoLower, bool isNeqOp);
+    void            GenerateFastCmTypeOf(IR::Instr *compare, IR::RegOpnd *object, IR::IntConstOpnd *typeIdOpnd, IR::Instr *typeOf, bool *pfNoLower, bool isNeqOp);
+    void            GenerateFalsyObjectTest(IR::Instr *insertInstr, IR::RegOpnd *typeOpnd, Js::TypeId typeIdToCheck, IR::LabelInstr* target, IR::LabelInstr* done, bool isNeqOp);
+    void            GenerateFalsyObjectTest(IR::Instr * insertInstr, IR::RegOpnd * typeOpnd, IR::LabelInstr * falsyLabel);
 
     void            GenerateJavascriptOperatorsIsConstructorGotoElse(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelTrue, IR::LabelInstr *labelFalse);
     void            GenerateRecyclableObjectGetPrototypeNullptrGoto(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelReturnNullptr);

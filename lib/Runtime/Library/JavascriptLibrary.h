@@ -171,7 +171,7 @@ namespace Js
         void SetGlobalObject(GlobalObject* globalObject) {this->globalObject = globalObject; }
         static DWORD GetRandSeed0Offset() { return offsetof(JavascriptLibrary, randSeed0); }
         static DWORD GetRandSeed1Offset() { return offsetof(JavascriptLibrary, randSeed1); }
-
+        static DWORD GetTypeDisplayStringsOffset() { return offsetof(JavascriptLibrary, typeDisplayStrings); }
         typedef bool (CALLBACK *PromiseContinuationCallback)(Var task, void *callbackState);
 
         Var GetUndeclBlockVar() const { return undeclBlockVarSentinel; }
@@ -229,6 +229,7 @@ namespace Js
         JavascriptFunction* builtinFunctions[BuiltinFunction::Count];
 
         INT_PTR vtableAddresses[VTableValue::Count];
+        JavascriptString* typeDisplayStrings[TypeIds_Limit];
         ConstructorCache *constructorCacheDefaultInstance;
         __declspec(align(16)) const BYTE *absDoubleCst;
         double const *uintConvertConst;
@@ -338,6 +339,7 @@ namespace Js
         JavascriptString* booleanTypeDisplayString;
         JavascriptString* numberTypeDisplayString;
         JavascriptString* moduleTypeDisplayString;
+        JavascriptString* variantDateTypeDisplayString;
 
         // SIMD_JS
         JavascriptString* simdFloat32x4DisplayString;
@@ -611,6 +613,7 @@ namespace Js
         JavascriptString* GetBooleanTypeDisplayString() const { return booleanTypeDisplayString; }
         JavascriptString* GetNumberTypeDisplayString() const { return numberTypeDisplayString; }
         JavascriptString* GetModuleTypeDisplayString() const { return moduleTypeDisplayString; }
+        JavascriptString* GetVariantDateTypeDisplayString() const { return variantDateTypeDisplayString; }
 
         // SIMD_JS
         JavascriptString* GetSIMDFloat32x4DisplayString() const { return simdFloat32x4DisplayString; }

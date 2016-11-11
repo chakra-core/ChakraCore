@@ -1539,6 +1539,13 @@ LowererMD::Legalize(IR::Instr *const instr, bool fPostRegAlloc)
             {
                 Assert(instr->GetDst()->GetSize() == instr->GetSrc2()->GetSize());
                 Assert(instr->GetDst()->GetSize() == instr->GetSrc1()->GetSize());
+
+                // 0 shouldn't be the src2 of a CMOVcc.
+                // CMOVcc doesn't support moving a constant and the legalizer will hoist the load of the constant
+                // to a register. If the constant was 0, Peeps will turn it into a XOR which, in turn, may change
+                // the zero flags and hence the result of CMOVcc. If you do want to CMOVcc 0, you should load 0
+                // into a register before the instruction whose result the CMOVcc depends on.
+                Assert(!instr->GetSrc2()->IsIntConstOpnd() || instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0);
                 // sometimes we have fake src1 to help reg alloc
                 LegalizeOpnds<verify>(
                     instr,
@@ -9927,4 +9934,97 @@ LowererMD::LowerDivI4AndBailOnReminder(IR::Instr * instr, IR::LabelInstr * bailO
     // Jump to bailout if the reminder is not 0 (not int result)
     this->m_lowerer->InsertTestBranch(reminderOpnd, reminderOpnd, Js::OpCode::BrNeq_A, bailOutLabel, insertBeforeInstr);
     return insertBeforeInstr;
+}
+
+void
+LowererMD::LowerTypeof(IR::Instr * typeOfInstr)
+{
+    Func * func = typeOfInstr->m_func;
+    IR::Opnd * src1 = typeOfInstr->GetSrc1();
+    IR::Opnd * dst = typeOfInstr->GetDst();
+    Assert(src1->IsRegOpnd() && dst->IsRegOpnd());
+    IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, func, true);
+    IR::LabelInstr * taggedIntLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
+    IR::LabelInstr * doneLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
+
+    // MOV typeDisplayStringsArray, &javascriptLibrary->typeDisplayStrings
+    IR::RegOpnd * typeDisplayStringsArrayOpnd = IR::RegOpnd::New(TyMachPtr, func);
+    m_lowerer->InsertMove(typeDisplayStringsArrayOpnd, IR::AddrOpnd::New((BYTE*)m_func->GetScriptContextInfo()->GetLibraryAddr() + Js::JavascriptLibrary::GetTypeDisplayStringsOffset(), IR::AddrOpndKindConstantAddress, this->m_func), typeOfInstr);
+
+    GenerateObjectTest(src1, typeOfInstr, taggedIntLabel);
+
+    // MOV typeId, TypeIds_Object
+    // MOV typeRegOpnd, [src1 + offset(Type)]
+    // MOV objTypeId, [typeRegOpnd + offsetof(typeId)]
+    // CMP objTypeId, TypeIds_Limit                                      /*external object test*/
+    // CMOVB typeId, objTypeId
+    // TEST [typeRegOpnd + offsetof(flags)], TypeFlagMask_IsFalsy        /*test for falsy*/
+    // CMOVNE typeId, TypeIds_Undefined
+    // MOV dst, typeDisplayStrings[typeId]
+    // TEST dst, dst
+    // JE $helper
+    // JMP $done
+    IR::RegOpnd * typeIdOpnd = IR::RegOpnd::New(TyUint32, func);
+    m_lowerer->InsertMove(typeIdOpnd, IR::IntConstOpnd::New(Js::TypeIds_Object, TyUint32, func), typeOfInstr);
+
+    IR::RegOpnd * typeRegOpnd = IR::RegOpnd::New(TyMachReg, func);
+    m_lowerer->InsertMove(typeRegOpnd,
+        IR::IndirOpnd::New(src1->AsRegOpnd(), Js::RecyclableObject::GetOffsetOfType(), TyMachReg, func),
+        typeOfInstr);
+
+    IR::RegOpnd * objTypeIdOpnd = IR::RegOpnd::New(TyUint32, func);
+    m_lowerer->InsertMove(objTypeIdOpnd, IR::IndirOpnd::New(typeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, func), typeOfInstr);
+
+    m_lowerer->InsertCompare(objTypeIdOpnd, IR::IntConstOpnd::New(Js::TypeIds_Limit, TyUint32, func), typeOfInstr);
+    InsertCmovCC(Js::OpCode::CMOVB, typeIdOpnd, objTypeIdOpnd, typeOfInstr);
+
+    // Insert MOV reg, 0 before the TEST because MOV reg, 0 will be peeped to XOR reg, reg and that may affect the zero flags that CMOVE depends on
+    IR::RegOpnd* typeIdUndefinedOpnd = IR::RegOpnd::New(TyUint32, func);
+    m_lowerer->InsertMove(typeIdUndefinedOpnd, IR::IntConstOpnd::New(Js::TypeIds_Undefined, TyUint32, func), typeOfInstr);
+
+    IR::Opnd *flagsOpnd = IR::IndirOpnd::New(typeRegOpnd, Js::Type::GetOffsetOfFlags(), TyInt32, this->m_func);
+    m_lowerer->InsertTest(flagsOpnd, IR::IntConstOpnd::New(TypeFlagMask_IsFalsy, TyInt32, this->m_func), typeOfInstr);
+    InsertCmovCC(Js::OpCode::CMOVNE, typeIdOpnd, typeIdUndefinedOpnd, typeOfInstr);
+
+    if (dst->IsEqual(src1))
+    {
+        ChangeToAssign(typeOfInstr->HoistSrc1(Js::OpCode::Ld_A));
+    }
+    m_lowerer->InsertMove(dst, IR::IndirOpnd::New(typeDisplayStringsArrayOpnd, typeIdOpnd, this->GetDefaultIndirScale(), TyMachPtr, func), typeOfInstr);
+    m_lowerer->InsertTestBranch(dst, dst, Js::OpCode::BrEq_A, helperLabel, typeOfInstr);
+
+    m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, typeOfInstr);
+
+    // $taggedInt:
+    //   MOV dst, typeDisplayStrings[TypeIds_Number]
+    //   JMP $done
+    typeOfInstr->InsertBefore(taggedIntLabel);
+    m_lowerer->InsertMove(dst, IR::IndirOpnd::New(typeDisplayStringsArrayOpnd, Js::TypeIds_Number * sizeof(Js::Var), TyMachPtr, func), typeOfInstr);
+    m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, typeOfInstr);
+
+    // $helper
+    //   CALL OP_TypeOf
+    // $done
+    typeOfInstr->InsertBefore(helperLabel);
+    typeOfInstr->InsertAfter(doneLabel);
+    m_lowerer->LowerUnaryHelperMem(typeOfInstr, IR::HelperOp_Typeof);
+}
+
+IR::Instr*
+LowererMD::InsertCmovCC(const Js::OpCode opCode, IR::Opnd * dst, IR::Opnd* src1, IR::Instr* insertBeforeInstr, bool postRegAlloc)
+{
+    Assert(opCode > Js::OpCode::MDStart);
+    Func* func = insertBeforeInstr->m_func;
+
+    IR::Opnd* src2 = nullptr;
+    if (!postRegAlloc)
+    {
+        src2 = src1;
+        src1 = dst;
+    }
+    IR::Instr * instr = IR::Instr::New(opCode, dst, src1, src2, func);
+    insertBeforeInstr->InsertBefore(instr);
+    LowererMD::Legalize(instr);
+
+    return instr;
 }
