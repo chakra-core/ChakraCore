@@ -1116,6 +1116,7 @@ namespace Js
         booleanTypeDisplayString = CreateStringFromCppLiteral(_u("boolean"));
         numberTypeDisplayString = CreateStringFromCppLiteral(_u("number"));
         moduleTypeDisplayString = CreateStringFromCppLiteral(_u("module"));
+        variantDateTypeDisplayString = CreateStringFromCppLiteral(_u("date"));
         promiseResolveFunction = nullptr;
         generatorNextFunction = nullptr;
         generatorThrowFunction = nullptr;
@@ -3388,6 +3389,92 @@ namespace Js
         vtableAddresses[VTableValue::VtableSimd128F4] = VirtualTableInfo<Js::JavascriptSIMDFloat32x4>::Address;
         vtableAddresses[VTableValue::VtableSimd128I4] = VirtualTableInfo<Js::JavascriptSIMDInt32x4>::Address;
 #endif
+
+        for (TypeId typeId = static_cast<TypeId>(0); typeId < TypeIds_Limit; typeId = static_cast<TypeId>(typeId + 1))
+        {
+            switch (typeId)
+            {
+            case TypeIds_Undefined:
+                typeDisplayStrings[typeId] = undefinedDisplayString;
+                break;
+
+            case TypeIds_Function:
+                typeDisplayStrings[typeId] = functionTypeDisplayString;
+                break;
+
+            case TypeIds_Boolean:
+                typeDisplayStrings[typeId] = booleanTypeDisplayString;
+                break;
+
+            case TypeIds_String:
+                typeDisplayStrings[typeId] = stringTypeDisplayString;
+                break;
+
+            case TypeIds_Symbol:
+                typeDisplayStrings[typeId] = symbolTypeDisplayString;
+                break;
+
+            case TypeIds_VariantDate:
+                typeDisplayStrings[typeId] = variantDateTypeDisplayString;
+                break;
+
+            case TypeIds_Integer:
+            case TypeIds_Number:
+            case TypeIds_Int64Number:
+            case TypeIds_UInt64Number:
+                typeDisplayStrings[typeId] = numberTypeDisplayString;
+                break;
+
+#ifdef ENABLE_SIMDJS
+            case TypeIds_SIMDFloat32x4:
+                typeDisplayStrings[typeId] = simdFloat32x4DisplayString;
+                break;
+            
+           //case TypeIds_SIMDFloat64x2:  //Type under review by the spec.
+                // typeDisplayStrings[typeId] = simdFloat64x2DisplayString;
+                // break;
+            case TypeIds_SIMDInt32x4:
+                typeDisplayStrings[typeId] = simdInt32x4DisplayString;
+                break;
+            case TypeIds_SIMDInt16x8:
+                typeDisplayStrings[typeId] = simdInt16x8DisplayString;
+                break;
+            case TypeIds_SIMDInt8x16:
+                typeDisplayStrings[typeId] = simdInt8x16DisplayString;
+                break;
+            case TypeIds_SIMDUint32x4:
+                typeDisplayStrings[typeId] = simdUint32x4DisplayString;
+                break;
+            case TypeIds_SIMDUint16x8:
+                typeDisplayStrings[typeId] = simdUint16x8DisplayString;
+                break;
+            case TypeIds_SIMDUint8x16:
+                typeDisplayStrings[typeId] = simdUint8x16DisplayString;
+                break;
+            case TypeIds_SIMDBool32x4:
+                typeDisplayStrings[typeId] = simdBool32x4DisplayString;
+                break;
+            case TypeIds_SIMDBool16x8:
+                typeDisplayStrings[typeId] = simdBool16x8DisplayString;
+                break;
+            case TypeIds_SIMDBool8x16:
+                typeDisplayStrings[typeId] = simdBool8x16DisplayString;
+                break;
+#endif
+            case TypeIds_Enumerator:
+            case TypeIds_HostDispatch:
+            case TypeIds_WithScopeObject:
+            case TypeIds_UndeclBlockVar:
+            case TypeIds_Proxy:
+            case TypeIds_SpreadArgument:
+                typeDisplayStrings[typeId] = nullptr;
+                break;
+
+            default:
+                typeDisplayStrings[typeId] = objectTypeDisplayString;
+                break;
+            }
+        }
     }
 
     // Note: This function is only used in float preferencing scenarios. Should remove it once we do away with float preferencing.

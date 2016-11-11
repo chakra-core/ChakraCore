@@ -7943,6 +7943,10 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             return this->NewGenericValue(ValueType::GetObject(ObjectType::Object), dst);
         }
         break;
+
+    case Js::OpCode::Typeof:
+        return this->NewGenericValue(ValueType::String, dst);
+        break;
     }
 
 #ifdef ENABLE_SIMDJS
