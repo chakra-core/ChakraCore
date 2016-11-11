@@ -1050,6 +1050,70 @@ namespace Js
     }
 #endif
 
+    void ScriptContext::RedeferFunctionBodies(ActiveFunctionSet *pActiveFuncs, uint inactiveThreshold)
+    {
+        Assert(!this->IsClosed());
+
+        if (!this->IsScriptContextInNonDebugMode())
+        {
+            return;
+        }
+
+        // For each active function, collect call counts, update inactive counts, and redefer if appropriate.
+        // In the redeferral case, we require 2 passes over the set of FunctionBody's.
+        // This is because a function inlined in a non-redeferred function cannot itself be redeferred.
+        // So we first need to close over the set of non-redeferrable functions, then go back and redefer
+        // the eligible candidates.
+
+        auto fn = [&](FunctionBody *functionBody) {
+            bool exec = functionBody->InterpretedSinceCallCountCollection();
+            functionBody->CollectInterpretedCounts();
+            functionBody->MapEntryPoints([&](int index, FunctionEntryPointInfo *entryPointInfo) {
+                if (!entryPointInfo->IsCleanedUp() && entryPointInfo->ExecutedSinceCallCountCollection())
+                {
+                    exec = true;
+                }
+                entryPointInfo->CollectCallCounts();
+            });
+            if (exec)
+            {
+                functionBody->SetInactiveCount(0);
+            }
+            else
+            {
+                functionBody->IncrInactiveCount(inactiveThreshold);
+            }
+
+            if (pActiveFuncs)
+            {
+                Assert(this->GetThreadContext()->DoRedeferFunctionBodies());
+                bool doRedefer = functionBody->DoRedeferFunction(inactiveThreshold);
+                if (!doRedefer)
+                {
+                    functionBody->UpdateActiveFunctionSet(pActiveFuncs);
+                }
+            }
+        };
+
+        this->MapFunction(fn);
+
+        if (!pActiveFuncs)
+        {
+            return;
+        }
+
+        auto fnRedefer = [&](FunctionBody * functionBody) {
+            Assert(pActiveFuncs);
+            if (!functionBody->IsActiveFunction(pActiveFuncs))
+            {
+                Assert(functionBody->DoRedeferFunction(inactiveThreshold));
+                functionBody->RedeferFunction();
+            }
+        };
+
+        this->MapFunction(fnRedefer);
+    }
+
     bool ScriptContext::DoUndeferGlobalFunctions() const
     {
         return CONFIG_FLAG(DeferTopLevelTillFirstCall) && !AutoSystemInfo::Data.IsLowMemoryProcess();
@@ -2195,7 +2259,7 @@ if (!sourceList)
         dict->Add(key, pFuncScript);
     }
 
-    bool ScriptContext::IsInNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo **ppFuncBody)
+    bool ScriptContext::IsInNewFunctionMap(EvalMapString const& key, FunctionInfo **ppFuncInfo)
     {
         if (this->cache->newFunctionCache == nullptr)
         {
@@ -2203,7 +2267,7 @@ if (!sourceList)
         }
 
         // If eval map cleanup is false, to preserve existing behavior, add it to the eval map MRU list
-        bool success = this->cache->newFunctionCache->TryGetValue(key, ppFuncBody);
+        bool success = this->cache->newFunctionCache->TryGetValue(key, ppFuncInfo);
         if (success)
         {
             this->cache->newFunctionCache->NotifyAdd(key);
@@ -2217,13 +2281,13 @@ if (!sourceList)
         return success;
     }
 
-    void ScriptContext::AddToNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo *pFuncBody)
+    void ScriptContext::AddToNewFunctionMap(EvalMapString const& key, FunctionInfo *pFuncInfo)
     {
         if (this->cache->newFunctionCache == nullptr)
         {
             this->cache->newFunctionCache = RecyclerNew(this->recycler, NewFunctionCache, this->recycler);
         }
-        this->cache->newFunctionCache->Add(key, pFuncBody);
+        this->cache->newFunctionCache->Add(key, pFuncInfo);
     }
 
 
@@ -3236,50 +3300,12 @@ if (!sourceList)
         JavascriptMethod entryPoint = pFunction->GetEntryPoint();
         FunctionInfo * info = pFunction->GetFunctionInfo();
         FunctionProxy * proxy = info->GetFunctionProxy();
-        if (proxy != info)
+
+        if (proxy == nullptr)
         {
-#ifdef ENABLE_SCRIPT_PROFILING
-            // Not a script function or, the thunk can deal with moving to the function body
-            Assert(proxy == nullptr || entryPoint == DefaultDeferredParsingThunk
-                || entryPoint == ProfileDeferredParsingThunk
-                || entryPoint == ProfileDeferredDeserializeThunk
-                || entryPoint == CrossSite::ProfileThunk
-                || entryPoint == DefaultDeferredDeserializeThunk
-                || entryPoint == CrossSite::DefaultThunk);
-#else
-            // Not a script function or, the thunk can deal with moving to the function body
-            Assert(proxy == nullptr || entryPoint == DefaultDeferredParsingThunk
-                || entryPoint == DefaultDeferredDeserializeThunk
-                || entryPoint == CrossSite::DefaultThunk);
-#endif
-
-            // Replace entry points for built-ins/external/winrt functions so that we can wrap them with try-catch for "continue after exception".
-            if (!pFunction->IsScriptFunction() && IsExceptionWrapperForBuiltInsEnabled(scriptContext))
-            {
-#ifdef ENABLE_SCRIPT_PROFILING
-                if (scriptContext->IsScriptContextInDebugMode())
-                {
-                    // We are attaching.
-                    // For built-ins, WinRT and DOM functions which are already in recycler, change entry points to route to debug/profile thunk.
-                    ScriptContext::SetEntryPointToProfileThunk(pFunction);
-                }
-                else
-                {
-                    // We are detaching.
-                    // For built-ins, WinRT and DOM functions which are already in recycler, restore entry points to original.
-                    if (!scriptContext->IsProfiling())
-                    {
-                        ScriptContext::RestoreEntryPointFromProfileThunk(pFunction);
-                    }
-                    // If we are profiling, don't change anything.
-                }
-#else
-                AssertMsg(false, "Profiling needs to be enabled to change thunks for debugging");
-#endif
-            }
-
             return;
         }
+        Assert(proxy->GetFunctionInfo() == info);
 
         if (!proxy->IsFunctionBody())
         {
@@ -3381,27 +3407,6 @@ if (!sourceList)
                 IsTrueOrFalse(IsIntermediateCodeGenThunk(entryPoint)), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
 #endif
             OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\n"));
-
-            FunctionInfo * info = pFunction->GetFunctionInfo();
-            if (proxy != info)
-            {
-                // The thunk can deal with moving to the function body
-#ifdef ENABLE_SCRIPT_PROFILING
-                Assert(entryPoint == DefaultDeferredParsingThunk || entryPoint == ProfileDeferredParsingThunk
-                    || entryPoint == DefaultDeferredDeserializeThunk || entryPoint == ProfileDeferredDeserializeThunk
-                    || entryPoint == CrossSite::DefaultThunk || entryPoint == CrossSite::ProfileThunk);
-#else
-                Assert(entryPoint == DefaultDeferredParsingThunk
-                    || entryPoint == DefaultDeferredDeserializeThunk
-                    || entryPoint == CrossSite::DefaultThunk);
-#endif
-
-                Assert(!proxy->IsDeferred());
-                Assert(proxy->GetFunctionBody()->GetProfileSession() == proxy->GetScriptContext()->GetProfileSession());
-
-                return;
-            }
-
 
 #if ENABLE_NATIVE_CODEGEN
             if (!IsIntermediateCodeGenThunk(entryPoint) && entryPoint != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)

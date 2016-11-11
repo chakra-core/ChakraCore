@@ -1773,7 +1773,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     bailOutRecordNotConst->bailOutCount++;
 
     Js::FunctionEntryPointInfo *entryPointInfo = function->GetFunctionEntryPointInfo();
-    uint8 callsCount = entryPointInfo->callsCount;
+    uint8 callsCount = entryPointInfo->callsCount > 255 ? 255 : static_cast<uint8>(entryPointInfo->callsCount);
     RejitReason rejitReason = RejitReason::None;
     bool reThunk = false;
 
@@ -2330,11 +2330,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
 
     entryPointInfo->totalJittedLoopIterations += entryPointInfo->jittedLoopIterationsSinceLastBailout;
     entryPointInfo->jittedLoopIterationsSinceLastBailout = 0;
-    if (entryPointInfo->totalJittedLoopIterations > UINT8_MAX)
-    {
-        entryPointInfo->totalJittedLoopIterations = UINT8_MAX;
-    }
-    uint8 totalJittedLoopIterations = (uint8)entryPointInfo->totalJittedLoopIterations;
+    uint8 totalJittedLoopIterations = entryPointInfo->totalJittedLoopIterations > 255 ? 255 : static_cast<uint8>(entryPointInfo->totalJittedLoopIterations);
     totalJittedLoopIterations = totalJittedLoopIterations <= Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() ? 0 : totalJittedLoopIterations - Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout();
 
     CheckPreemptiveRejit(executeFunction, bailOutKind, bailOutRecordNotConst, totalJittedLoopIterations, interpreterFrame->GetCurrentLoopNum());

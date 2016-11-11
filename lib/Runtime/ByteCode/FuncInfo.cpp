@@ -67,6 +67,9 @@ FuncInfo::FuncInfo(
     hasEscapedUseNestedFunc(false),
     needEnvRegister(false),
     hasCapturedThis(false),
+#if DBG
+    isReused(false),
+#endif
     staticFuncId(-1),
     inlineCacheMap(nullptr),
     slotProfileIdMap(alloc),

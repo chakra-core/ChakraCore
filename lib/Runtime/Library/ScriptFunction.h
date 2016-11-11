@@ -47,7 +47,7 @@ namespace Js
         ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
         static bool Is(Var func);
         static ScriptFunction * FromVar(Var func);
-        static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionProxy** proxyRef);
+        static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
         ProxyEntryPointInfo* GetEntryPointInfo() const;
         FunctionEntryPointInfo* GetFunctionEntryPointInfo() const
@@ -169,6 +169,7 @@ namespace Js
         void CreateInlineCache();
         void AllocateInlineCache();
         void ClearInlineCacheOnFunctionObject();
+        void ClearBorrowedInlineCacheOnFunctionObject();
         InlineCache * GetInlineCache(uint index);
         uint GetInlineCacheCount() { return inlineCacheCount; }
         void** GetInlineCaches() { return m_inlineCaches; }

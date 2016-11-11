@@ -139,6 +139,10 @@ public:
     uint hasEscapedUseNestedFunc : 1;
     uint needEnvRegister : 1;
     uint hasCapturedThis : 1;
+#if DBG
+    // FunctionBody was reused on recompile of a redeferred enclosing function.
+    uint isReused:1;
+#endif
 
     typedef JsUtil::BaseDictionary<uint, Js::RegSlot, ArenaAllocator, PrimeSizePolicy> ConstantRegisterMap;
     ConstantRegisterMap constantToRegister; // maps uint constant to register
@@ -430,7 +434,7 @@ public:
     Js::FunctionBody* GetParsedFunctionBody() const
     {
         AssertMsg(this->byteCodeFunction->IsFunctionParsed(), "Function must be parsed in order to call this method");
-        Assert(!IsDeferred());
+        Assert(!IsDeferred() || this->byteCodeFunction->GetFunctionBody()->GetByteCode() != nullptr);
 
         return this->byteCodeFunction->GetFunctionBody();
     }

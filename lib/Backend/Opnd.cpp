@@ -3468,17 +3468,22 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             WriteToBuffer(&buffer, &n, _u(" (&RecyclerAllocatorFreeList)"));
             break;
 
-        case IR::AddrOpndKindDynamicFunctionBody:
+        case IR::AddrOpndKindDynamicFunctionInfo:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             if (func->IsOOPJIT())
             {
                 // TODO: OOP JIT, dump more info
-                WriteToBuffer(&buffer, &n, _u(" (FunctionBody)"));
+                WriteToBuffer(&buffer, &n, _u(" (FunctionInfo)"));
             }
             else
             {
                 DumpFunctionInfo(&buffer, &n, (Js::FunctionInfo *)address, printToConsole);
             }
+            break;
+
+        case IR::AddrOpndKindDynamicFunctionBody:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            DumpFunctionInfo(&buffer, &n, ((Js::FunctionBody *)address)->GetFunctionInfo(), printToConsole);
             break;
 
         case IR::AddrOpndKindDynamicFunctionBodyWeakRef:
@@ -3491,7 +3496,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             }
             else
             {
-                DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, _u("FunctionBodyWeakRef"));
+                DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet()->GetFunctionInfo(), printToConsole, _u("FunctionBodyWeakRef"));
             }
             break;
 
