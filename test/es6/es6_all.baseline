@@ -81,5 +81,7 @@ FLAG ES6 = 1 - setting child flag ESObjectGetOwnPropertyDescriptors = 1
 FLAG ESObjectGetOwnPropertyDescriptors = 1
 FLAG ES6 = 1 - setting child flag ESSharedArrayBuffer = 1
 FLAG ESSharedArrayBuffer = 1
+FLAG ES6 = 1 - setting child flag Wasm = 1
+FLAG Wasm = 1
 FLAG WERExceptionSupport = 1
 default argument
