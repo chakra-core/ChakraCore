@@ -20,14 +20,7 @@
  * limitations under the License.
  */
 
-/* polyfill from SM/CH to D8 */
-if (typeof arguments == 'undefined') {
-  if (typeof scriptArgs != 'undefined') {
-    arguments = scriptArgs;
-  } else if(typeof WScript != 'undefined') {
-    arguments = WScript.Arguments || [];
-  }
-}
+arguments = WScript.Arguments || [];
 
 if (typeof quit == 'undefined') {
   if (typeof WScript != 'undefined') {
@@ -40,7 +33,7 @@ if (typeof readbuffer == 'undefined') {
 }
 
 if (arguments.length < 1) {
-  print('usage: <exe> spec.js -args <filename.json> [start index] [end index] [-v] -endargs');
+  print('usage: <exe> spec.js -args <filename.json> [start index] [end index] [-v] [-nt] -endargs');
   quit(0);
 }
 
@@ -55,10 +48,11 @@ var verbose = iVerbose !== -1;
 if (verbose) {
   arguments.splice(iVerbose, 1)
 }
-const iTrap = arguments.indexOf("-t");
-var trap = iTrap !== -1;
-if (trap) {
-  arguments.splice(iTrap, 1)
+const iNoTrap = arguments.indexOf("-nt");
+var noTrap = iNoTrap !== -1;
+var trap = !noTrap;
+if (noTrap) {
+  arguments.splice(iNoTrap, 1)
 }
 run(arguments[0], arguments[1]|0, arguments[2] === undefined ? undefined : arguments[2]|0);
 

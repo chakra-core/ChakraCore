@@ -1,7 +1,1 @@
-resizing.wast:15: $assert_trap_1 failed, runtime trap NYI
-resizing.wast:16: $assert_trap_2 failed, runtime trap NYI
-resizing.wast:17: $assert_trap_3 failed, runtime trap NYI
-resizing.wast:18: $assert_trap_4 failed, runtime trap NYI
-resizing.wast:24: $assert_trap_10 failed, runtime trap NYI
-resizing.wast:25: $assert_trap_11 failed, runtime trap NYI
-26/32 tests passed.
+32/32 tests passed.

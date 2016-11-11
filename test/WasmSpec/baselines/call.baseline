@@ -1,3 +1,1 @@
-call.wast:144: $assert_trap_33 failed, runtime trap NYI
-call.wast:145: $assert_trap_34 failed, runtime trap NYI
-33/35 tests passed.
+35/35 tests passed.

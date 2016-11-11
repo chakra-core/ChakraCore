@@ -1,2 +1,1 @@
-fac.wast:85: $assert_trap_5 failed, runtime trap NYI
-5/6 tests passed.
+6/6 tests passed.
