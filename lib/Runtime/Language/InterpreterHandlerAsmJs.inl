@@ -239,6 +239,7 @@ EXDEF2_WMS( F1toF1Mem        , Nearest_Flt      , Wasm::WasmMath::Nearest<float>
 EXDEF2_WMS( D1toD1Mem        , Trunc_Db         , Wasm::WasmMath::Trunc<double>                      )
 EXDEF2_WMS( D1toD1Mem        , Nearest_Db       , Wasm::WasmMath::Nearest<double>                    )
 EXDEF2_WMS( VtoI1Mem         , CurrentMemory_Int, OP_GetMemorySize                                   )
+EXDEF2_WMS( I1toI1Mem        , GrowMemory       , OP_GrowMemory                                      )
 EXDEF2    ( EMPTYASMJS       , Unreachable_Void , OP_Unreachable                                     )
 EXDEF2_WMS( D1toI1Ctx        , Conv_Check_DTI   , JavascriptConversion::F64TOI32                     )
 EXDEF2_WMS( F1toI1Ctx        , Conv_Check_FTI   , JavascriptConversion::F32TOI32                     )

@@ -415,6 +415,7 @@ MACRO_BACKEND_ONLY(     LdAsmJsFunc,                ElementSlot,    OpTempNumber
 MACRO_BACKEND_ONLY(     LdWasmFunc,                 ElementSlot,    OpSideEffect)
 
 MACRO_BACKEND_ONLY(     CheckWasmSignature,         Reg2,           OpSideEffect)
+MACRO_BACKEND_ONLY(     GrowWasmMemory,             Reg3,           OpSideEffect)
 
 #ifndef FLOAT_VAR
 MACRO_BACKEND_ONLY(     StSlotBoxTemp,              Empty,          OpSideEffect|OpTempNumberSources)

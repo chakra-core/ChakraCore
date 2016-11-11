@@ -3105,6 +3105,7 @@ namespace Js
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = val;
 
             m_signatures = func->GetFunctionBody()->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetSignatures();
+            m_wasmMemory = wasmMem;
         }
         else
 #endif
@@ -7830,6 +7831,19 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         return arr ? arr->GetByteLength() >> 16 : 0;
 #else
+        return 0;
+#endif
+    }
+
+    int InterpreterStackFrame::OP_GrowMemory(int32 delta)
+    {
+#ifdef ENABLE_WASM
+        int32 oldPageCount = m_wasmMemory->GrowInternal((uint32)delta);
+
+        SetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister, m_wasmMemory->GetBuffer());
+        return oldPageCount;
+#else
+        Assert(UNREACHED);
         return 0;
 #endif
     }

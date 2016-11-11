@@ -520,6 +520,11 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
         break;
     }
+    case wbGrowMemory:
+    {
+        info = EmitGrowMemory();
+        break;
+    }
     case wbUnreachable:
         m_writer.EmptyAsm(Js::OpCodeAsmJs::Unreachable_Void);
         SetUnreachableState(true);
@@ -1048,6 +1053,22 @@ WasmBytecodeGenerator::EmitBrTable()
     ReleaseLocation(&yieldInfo);
 
     SetUnreachableState(true);
+}
+
+
+EmitInfo
+WasmBytecodeGenerator::EmitGrowMemory()
+{
+    GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
+
+    EmitInfo info = PopEvalStack();
+    if (info.type != WasmTypes::I32)
+    {
+        throw WasmCompilationException(_u("Invalid type for GrowMemory"));
+    }
+
+    m_writer.AsmReg2(Js::OpCodeAsmJs::GrowMemory, info.location, info.location);
+    return info;
 }
 
 EmitInfo

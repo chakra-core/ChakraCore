@@ -127,7 +127,7 @@ WASM_MEMSTORE_OPCODE(I64StoreMem16, 0x3d, L_IL, false, Js::ArrayBufferView::TYPE
 WASM_MEMSTORE_OPCODE(I64StoreMem32, 0x3e, L_IL, false, Js::ArrayBufferView::TYPE_INT32_TO_INT64)
 
 WASM_MISC_OPCODE(CurrentMemory, 0x3f, I_I, false)
-WASM_MISC_OPCODE(GrowMemory,    0x40, I_I, true)
+WASM_MISC_OPCODE(GrowMemory,    0x40, I_I, false)
 
 // Constants
 WASM_MISC_OPCODE(I32Const,     0x41, Limit, false)
