@@ -9,7 +9,7 @@ namespace Js
     class JavascriptDate : public DynamicObject
     {
     protected:
-        DateImplementation m_date;
+        Field(DateImplementation) m_date;
 
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptDate, DynamicObject, m_date);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptDate);

@@ -12,7 +12,7 @@ namespace Js
     {
     private:
         static FunctionInfo functionInfo;
-        GeneratorVirtualScriptFunction* scriptFunction;
+        Field(GeneratorVirtualScriptFunction*) scriptFunction;
 
         bool GetPropertyBuiltIns(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext, BOOL* result);
         bool SetPropertyBuiltIns(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info, BOOL* result);
@@ -108,7 +108,7 @@ namespace Js
         friend class JavascriptGeneratorFunction;
         friend Var Js::JavascriptFunction::NewInstanceHelper(ScriptContext*, RecyclableObject*, CallInfo, ArgumentReader&, Js::JavascriptFunction::FunctionKind);
 
-        JavascriptGeneratorFunction* realFunction;
+        Field(JavascriptGeneratorFunction*) realFunction;
 
         void SetRealGeneratorFunction(JavascriptGeneratorFunction* realFunction) { this->realFunction = realFunction; }
 

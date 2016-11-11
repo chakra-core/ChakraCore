@@ -11,8 +11,8 @@ namespace Js
     {
         friend class NullTypeHandlerBase;
     private:
-        int propertyCount;
-        SimplePropertyDescriptor descriptors[size];
+        Field(int) propertyCount;
+        Field(SimplePropertyDescriptor) descriptors[size];
 
     public:
         DEFINE_GETCPPNAME();

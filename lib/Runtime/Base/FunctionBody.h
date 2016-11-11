@@ -1755,25 +1755,25 @@ namespace Js
     protected:
         static HRESULT MapDeferredReparseError(HRESULT& hrParse, const CompileScriptException& se);
 
-        bool m_hasBeenParsed : 1;       // Has function body been parsed- true for actual function bodies, false for deferparse
-        bool m_isDeclaration : 1;
-        bool m_isAccessor : 1;          // Function is a property getter or setter
-        bool m_isStaticNameFunction : 1;
-        bool m_isNamedFunctionExpression : 1;
-        bool m_isNameIdentifierRef  : 1;
-        bool m_isClassMember : 1;
-        bool m_isStrictMode : 1;
-        bool m_isAsmjsMode : 1;
-        bool m_isAsmJsFunction : 1;
-        bool m_isWasmFunction : 1;
-        bool m_isGlobalFunc : 1;
-        bool m_doBackendArgumentsOptimization : 1;
-        bool m_doScopeObjectCreation : 1;
-        bool m_usesArgumentsObject : 1;
-        bool m_isEval : 1;              // Source code is in 'eval'
-        bool m_isDynamicFunction : 1;   // Source code is in 'Function'
-        bool m_hasImplicitArgIns : 1;
-        bool m_dontInline : 1;            // Used by the JIT's inliner
+        Field(bool) m_hasBeenParsed : 1;       // Has function body been parsed- true for actual function bodies, false for deferparse
+        Field(bool) m_isDeclaration : 1;
+        Field(bool) m_isAccessor : 1;          // Function is a property getter or setter
+        Field(bool) m_isStaticNameFunction : 1;
+        Field(bool) m_isNamedFunctionExpression : 1;
+        Field(bool) m_isNameIdentifierRef  : 1;
+        Field(bool) m_isClassMember : 1;
+        Field(bool) m_isStrictMode : 1;
+        Field(bool) m_isAsmjsMode : 1;
+        Field(bool) m_isAsmJsFunction : 1;
+        Field(bool) m_isWasmFunction : 1;
+        Field(bool) m_isGlobalFunc : 1;
+        Field(bool) m_doBackendArgumentsOptimization : 1;
+        Field(bool) m_doScopeObjectCreation : 1;
+        Field(bool) m_usesArgumentsObject : 1;
+        Field(bool) m_isEval : 1;              // Source code is in 'eval'
+        Field(bool) m_isDynamicFunction : 1;   // Source code is in 'Function'
+        Field(bool) m_hasImplicitArgIns : 1;
+        Field(bool) m_dontInline : 1;            // Used by the JIT's inliner
 
         // Indicates if the function has been reparsed for debug attach/detach scenario.
         Field(bool) m_reparsed : 1;
@@ -3478,7 +3478,7 @@ namespace Js
 #if defined(_M_X64_OR_ARM64)
         Field(uint32) unused;
 #endif
-        Field(void* ) scopes[];
+        Field(void*) scopes[];
     };
 #pragma region Function Body helper classes
 #pragma region Debugging related source classes

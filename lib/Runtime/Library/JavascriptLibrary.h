@@ -48,8 +48,8 @@ namespace Js
     struct CacheForCopyOnAccessArraySegments
     {
         static const uint32 MAX_SIZE = 31;
-        SparseArraySegment<int32> *cache[MAX_SIZE];
-        uint32 count;
+        Field(SparseArraySegment<int32> *) cache[MAX_SIZE];
+        Field(uint32) count;
 
         uint32 AddSegment(SparseArraySegment<int32> *segment)
         {
@@ -226,9 +226,9 @@ namespace Js
         Field(DynamicType *) promiseType;
         Field(DynamicType *) listIteratorType;
 
-        Field(JavascriptFunction* ) builtinFunctions[BuiltinFunction::Count];
+        Field(JavascriptFunction*) builtinFunctions[BuiltinFunction::Count];
 
-        Field(INT_PTR ) vtableAddresses[VTableValue::Count];
+        Field(INT_PTR) vtableAddresses[VTableValue::Count];
         Field(ConstructorCache *) constructorCacheDefaultInstance;
         __declspec(align(16)) Field(const BYTE *) absDoubleCst;
         Field(double const *) uintConvertConst;
@@ -258,16 +258,16 @@ namespace Js
         Field(DynamicType *) syntaxErrorType;
         Field(DynamicType *) typeErrorType;
         Field(DynamicType *) uriErrorType;
-        DynamicType * webAssemblyCompileErrorType;
-        DynamicType * webAssemblyRuntimeErrorType;
+        Field(DynamicType *) webAssemblyCompileErrorType;
+        Field(DynamicType *) webAssemblyRuntimeErrorType;
         Field(StaticType  *) numberTypeStatic;
         Field(StaticType  *) int64NumberTypeStatic;
         Field(StaticType  *) uint64NumberTypeStatic;
 
-        DynamicType * webAssemblyModuleType;
-        DynamicType * webAssemblyInstanceType;
-        DynamicType * webAssemblyMemoryType;
-        DynamicType * webAssemblyTableType;
+        Field(DynamicType *) webAssemblyModuleType;
+        Field(DynamicType *) webAssemblyInstanceType;
+        Field(DynamicType *) webAssemblyMemoryType;
+        Field(DynamicType *) webAssemblyTableType;
 
         // SIMD_JS
         Field(DynamicType *) simdBool8x16TypeDynamic;
@@ -294,8 +294,8 @@ namespace Js
         Field(StaticType *) simdUint8x16TypeStatic;
 
         Field(DynamicType *) numberTypeDynamic;
-        Field(DynamicType * ) objectTypes[PreInitializedObjectTypeCount];
-        Field(DynamicType * ) objectHeaderInlinedTypes[PreInitializedObjectTypeCount];
+        Field(DynamicType *) objectTypes[PreInitializedObjectTypeCount];
+        Field(DynamicType *) objectHeaderInlinedTypes[PreInitializedObjectTypeCount];
         Field(DynamicType *) regexPrototypeType;
         Field(DynamicType *) regexType;
         Field(DynamicType *) regexResultType;
@@ -420,19 +420,19 @@ namespace Js
         Field(DynamicObject*) sharedArrayBufferPrototype;
         Field(DynamicObject*) atomicsObject;
 
-        DynamicObject* webAssemblyCompileErrorPrototype;
-        RuntimeFunction* webAssemblyCompileErrorConstructor;
-        DynamicObject* webAssemblyRuntimeErrorPrototype;
-        RuntimeFunction* webAssemblyRuntimeErrorConstructor;
+        Field(DynamicObject*) webAssemblyCompileErrorPrototype;
+        Field(RuntimeFunction*) webAssemblyCompileErrorConstructor;
+        Field(DynamicObject*) webAssemblyRuntimeErrorPrototype;
+        Field(RuntimeFunction*) webAssemblyRuntimeErrorConstructor;
 
-        DynamicObject* webAssemblyMemoryPrototype;
-        RuntimeFunction* webAssemblyMemoryConstructor;
-        DynamicObject* webAssemblyModulePrototype;
-        RuntimeFunction* webAssemblyModuleConstructor;
-        DynamicObject* webAssemblyInstancePrototype;
-        RuntimeFunction* webAssemblyInstanceConstructor;
-        DynamicObject* webAssemblyTablePrototype;
-        RuntimeFunction* webAssemblyTableConstructor;
+        Field(DynamicObject*) webAssemblyMemoryPrototype;
+        Field(RuntimeFunction*) webAssemblyMemoryConstructor;
+        Field(DynamicObject*) webAssemblyModulePrototype;
+        Field(RuntimeFunction*) webAssemblyModuleConstructor;
+        Field(DynamicObject*) webAssemblyInstancePrototype;
+        Field(RuntimeFunction*) webAssemblyInstanceConstructor;
+        Field(DynamicObject*) webAssemblyTablePrototype;
+        Field(RuntimeFunction*) webAssemblyTableConstructor;
 
         Field(int) regexConstructorSlotIndex;
         Field(int) regexExecSlotIndex;

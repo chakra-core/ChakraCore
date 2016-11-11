@@ -77,7 +77,6 @@ public:
         static const uint InitialTypePathSize = 16 + TYPE_PATH_ALLOC_GRANULARITY_GAP;
 
     private:
-
         struct Data
         {
             Data(uint8 pathSize) : pathSize(pathSize), pathLength(0)
@@ -87,30 +86,31 @@ public:
             {}
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-            BVStatic<MaxPathTypeHandlerLength> fixedFields;
-            BVStatic<MaxPathTypeHandlerLength> usedFixedFields;
+            Field(BVStatic<MaxPathTypeHandlerLength>) fixedFields;
+            Field(BVStatic<MaxPathTypeHandlerLength>) usedFixedFields;
 
             // We sometimes set up PathTypeHandlers and associate TypePaths before we create any instances
             // that populate the corresponding slots, e.g. for object literals or constructors with only
             // this statements.  This field keeps track of the longest instance associated with the given
             // TypePath.
-            uint8 maxInitializedLength;
+            Field(uint8) maxInitializedLength;
 #endif
-            uint8 pathLength;      // Entries in use
-            uint8 pathSize;        // Allocated entries
+            Field(uint8) pathLength;      // Entries in use
+            Field(uint8) pathSize;        // Allocated entries
 
             // This map has to be at the end, because TinyDictionary has a zero size array
-            TinyDictionary map;
+            Field(TinyDictionary) map;
 
-            int Add(const PropertyRecord * propertyId, const PropertyRecord ** assignments);
-        } * data;
+            int Add(const PropertyRecord * propertyId, Field(const PropertyRecord *)* assignments);
+        };
+        Field(Data*) data;
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
-        RecyclerWeakReference<DynamicObject>* singletonInstance;
+        Field(RecyclerWeakReference<DynamicObject>*) singletonInstance;
 #endif
 
         // PropertyRecord assignments are allocated off the end of the structure
-        const PropertyRecord * assignments[0];
+        Field(const PropertyRecord *) assignments[];
 
 
         TypePath() :
@@ -141,11 +141,6 @@ public:
                 return GetPropertyIdUnchecked(index);
             else
                 return nullptr;
-        }
-
-        const PropertyRecord ** GetPropertyAssignments()
-        {
-            return assignments;
         }
 
         int Add(const PropertyRecord * propertyRecord)

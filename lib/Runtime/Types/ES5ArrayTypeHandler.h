@@ -36,10 +36,10 @@ namespace Js
         typedef JsUtil::BaseDictionary<uint32, IndexPropertyDescriptor, ForceNonLeafAllocator<Recycler>::AllocatorType, PowerOf2SizePolicy>
             InnerMap;
 
-        Recycler* recycler;
-        InnerMap* indexPropertyMap; // The internal real index property map
-        uint32* indexList;          // The index list that's created on demand
-        int lastIndexAt;            // Last used index list entry
+        Field(Recycler*) recycler;
+        Field(InnerMap*) indexPropertyMap; // The internal real index property map
+        Field(uint32*) indexList;          // The index list that's created on demand
+        Field(int) lastIndexAt;            // Last used index list entry
 
     private:
         void EnsureIndexList();
@@ -99,9 +99,9 @@ namespace Js
         template <typename T> friend class ES5ArrayTypeHandlerBase;
 
     private:
-        IndexPropertyDescriptorMap* indexPropertyMap;
-        PropertyAttributes dataItemAttributes; // attributes for data item not in map
-        bool lengthWritable;
+        Field(IndexPropertyDescriptorMap*) indexPropertyMap;
+        Field(PropertyAttributes) dataItemAttributes; // attributes for data item not in map
+        Field(bool) lengthWritable;
 
     public:
         DEFINE_GETCPPNAME();

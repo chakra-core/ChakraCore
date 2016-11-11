@@ -221,8 +221,8 @@ namespace Js
     class SimplePathTypeHandler sealed : public PathTypeHandlerBase
     {
     private:
-        const PropertyRecord * successorPropertyRecord;
-        RecyclerWeakReference<DynamicType> * successorTypeWeakRef;
+        Field(const PropertyRecord *) successorPropertyRecord;
+        Field(RecyclerWeakReference<DynamicType> *) successorTypeWeakRef;
 
     public:
         DEFINE_GETCPPNAME();
@@ -254,7 +254,7 @@ namespace Js
 
     private:
         typedef JsUtil::WeakReferenceDictionary<PropertyId, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> PropertySuccessorsMap;
-        PropertySuccessorsMap * propertySuccessors;
+        Field(PropertySuccessorsMap *) propertySuccessors;
 
     public:
         DEFINE_GETCPPNAME();

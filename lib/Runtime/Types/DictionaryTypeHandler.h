@@ -28,10 +28,10 @@ namespace Js
         typedef PropertyDescriptorMap PropertyDescriptorMapType; // alias used by diagnostics
 
     private:
-        PropertyDescriptorMap* propertyMap;
+        Field(PropertyDescriptorMap*) propertyMap;
         Field(T) nextPropertyIndex;
 
-        RecyclerWeakReference<DynamicObject>* singletonInstance;
+        Field(RecyclerWeakReference<DynamicObject>*) singletonInstance;
 
         typedef PropertyIndexRanges<T> PropertyIndexRangesType;
         static const T MaxPropertyIndexSize = PropertyIndexRangesType::MaxValue;

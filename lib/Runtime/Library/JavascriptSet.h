@@ -14,8 +14,8 @@ namespace Js
         typedef JsUtil::BaseDictionary<Var, SetDataNode*, Recycler, PowerOf2SizePolicy, SameValueZeroComparer> SetDataSet;
 
     private:
-        SetDataList list;
-        SetDataSet* set;
+        Field(SetDataList) list;
+        Field(SetDataSet*) set;
 
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptSet, DynamicObject, list);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptSet);

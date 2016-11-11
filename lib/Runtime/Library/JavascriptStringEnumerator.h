@@ -9,8 +9,8 @@ namespace Js
     class JavascriptStringEnumerator : public JavascriptEnumerator
     {
     private:
-        JavascriptString* stringObject;
-        int index;
+        Field(JavascriptString*) stringObject;
+        Field(int) index;
     protected:
         DEFINE_VTABLE_CTOR(JavascriptStringEnumerator, JavascriptEnumerator);
 

@@ -9,10 +9,10 @@ namespace Js
     class TypedArrayIndexEnumerator : public JavascriptEnumerator
     {
     private:
-        TypedArrayBase* typedArrayObject;
-        uint32 index;
-        bool doneArray;
-        EnumeratorFlags flags;
+        Field(TypedArrayBase*) typedArrayObject;
+        Field(uint32) index;
+        Field(bool) doneArray;
+        Field(EnumeratorFlags) flags;
 
     protected:
         DEFINE_VTABLE_CTOR(TypedArrayIndexEnumerator, JavascriptEnumerator);

@@ -1051,7 +1051,7 @@ namespace Js
 #endif
             for (uint i = 0; i < count; i++)
             {
-                PathTypeHandlerBase *pathHandler = (PathTypeHandlerBase *)type->typeHandler;
+                PathTypeHandlerBase *pathHandler = (PathTypeHandlerBase *)PointerValue(type->typeHandler);
                 Js::PropertyId propertyId = propIds->elements[i];
 
                 PropertyIndex propertyIndex = pathHandler->GetPropertyIndex(propertyId);

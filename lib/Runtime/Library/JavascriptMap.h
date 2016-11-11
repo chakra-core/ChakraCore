@@ -15,8 +15,8 @@ namespace Js
         typedef JsUtil::BaseDictionary<Var, MapDataNode*, Recycler, PowerOf2SizePolicy, SameValueZeroComparer> MapDataMap;
 
     private:
-        MapDataList list;
-        MapDataMap* map;
+        Field(MapDataList) list;
+        Field(MapDataMap*) map;
 
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptMap, DynamicObject, list);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptMap);

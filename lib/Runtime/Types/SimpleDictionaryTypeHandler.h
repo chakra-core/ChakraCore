@@ -63,21 +63,21 @@ namespace Js
         typedef SimplePropertyDescriptorMap PropertyDescriptorMapType; // alias used by diagnostics
 
     protected:
-        SimplePropertyDescriptorMap* propertyMap;
+        Field(SimplePropertyDescriptorMap*) propertyMap;
 
     private:
-        RecyclerWeakReference<DynamicObject>* singletonInstance;
-        TPropertyIndex nextPropertyIndex;
+        Field(RecyclerWeakReference<DynamicObject>*) singletonInstance;
+        Field(TPropertyIndex) nextPropertyIndex;
 
     protected:
         // Determines whether this instance is actually a SimpleDictionaryUnorderedTypeHandler
-        bool isUnordered : 1;
+        Field(bool) isUnordered : 1;
         // Tracks if an InternalPropertyRecord or symbol has been added to this type; will prevent conversion to string-keyed type handler
-        bool hasNamelessPropertyId : 1;
+        Field(bool) hasNamelessPropertyId : 1;
 
     private:
         // Number of deleted properties in the property map
-        byte numDeletedProperties;
+        Field(byte) numDeletedProperties;
 
     public:
         DEFINE_GETCPPNAME();

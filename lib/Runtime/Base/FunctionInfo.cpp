@@ -41,7 +41,7 @@ namespace Js
     FunctionInfo::GetFunctionBody() const
     {
         Assert(functionBodyImpl == nullptr || functionBodyImpl->IsFunctionBody());
-        return (FunctionBody *)functionBodyImpl;
+        return (FunctionBody *)PointerValue(functionBodyImpl);
     }
 
     FunctionInfo::Attributes FunctionInfo::GetAttributes(Js::RecyclableObject * function)

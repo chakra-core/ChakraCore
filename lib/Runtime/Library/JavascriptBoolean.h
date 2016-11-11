@@ -9,7 +9,7 @@ namespace Js
     class JavascriptBoolean sealed : public RecyclableObject
     {
     private:
-        BOOL value;
+        Field(BOOL) value;
 
         DEFINE_VTABLE_CTOR(JavascriptBoolean, RecyclableObject);
     public:

@@ -7,7 +7,7 @@
 class RecyclerTestObject : public FinalizableObject
 {
 protected:
-    RecyclerTestObject() 
+    RecyclerTestObject()
     {
         generation = currentGeneration;
     }
@@ -35,7 +35,7 @@ public:
         wprintf(_u("-------------------------------------------\n"));
         wprintf(_u("Full heap walk starting\n"));
     }
-    
+
     static void WalkReference(RecyclerTestObject * object)
     {
         if (object != nullptr)
@@ -49,7 +49,7 @@ public:
                 VerifyCondition(object->generation == currentGeneration);
 
                 walkObjectCount++;
-                
+
                 currentWalkDepth++;
                 maxWalkDepth = max(currentWalkDepth, maxWalkDepth);
 
@@ -87,10 +87,10 @@ public:
 
 protected:
     // Global variables
-    
+
     // This global variable contains the "generation" of GC objects
     // It is used to validate the correctness of GC objects
-    // It is assigned initially during object creation, and 
+    // It is assigned initially during object creation, and
     // updated when we walk the entire object graph in TraverseAllObjects
     static size_t currentGeneration;
 
@@ -105,7 +105,7 @@ protected:
 
 private:
     // Instance variables
-    
+
     // See comments above re currentGeneration
     size_t generation;
 };
@@ -122,12 +122,12 @@ private:
             data[i] = i;
         }
     }
-    
+
 public:
     static RecyclerTestObject * New()
     {
         unsigned int count = minCount + GetRandomInteger(maxCount - minCount + 1);
-        
+
         return RecyclerNewPlusLeaf(recyclerInstance, sizeof(size_t) * count, LeafObject, count);
     }
 
@@ -138,8 +138,8 @@ protected:
     }
 
 private:
-    unsigned int count;
-    size_t data[0];
+    Field(unsigned int) count;
+    Field(size_t ) data[0];
 };
 
 template <unsigned int minCount, unsigned int maxCount>
@@ -154,12 +154,12 @@ private:
             references[i] = nullptr;
         }
     }
-    
+
 public:
     static RecyclerTestObject * New()
     {
         unsigned int count = minCount + GetRandomInteger(maxCount - minCount + 1);
-        
+
         return RecyclerNewPlus(recyclerInstance, sizeof(RecyclerTestObject *) * count, ScannedObject, count);
     }
 
@@ -181,10 +181,10 @@ protected:
             RecyclerTestObject::WalkReference(references[i]);
         }
     }
-    
+
 private:
-    unsigned int count;
-    RecyclerTestObject * references[0];
+    Field(unsigned int) count;
+    FieldNoBarrier(RecyclerTestObject *) references[0];  // SWB-TODO: is this correct?
 };
 
 template <unsigned int minCount, unsigned int maxCount>
@@ -199,12 +199,12 @@ private:
             references[i] = nullptr;
         }
     }
-    
+
 public:
     static RecyclerTestObject * New()
     {
         unsigned int count = minCount + GetRandomInteger(maxCount - minCount + 1);
-        
+
         return RecyclerNewWithBarrierPlus(recyclerInstance, sizeof(RecyclerTestObject *) * count, BarrierObject, count);
     }
 
@@ -226,10 +226,10 @@ protected:
             RecyclerTestObject::WalkReference(references[i]);
         }
     }
-    
+
 private:
-    unsigned int count;
-    RecyclerTestObject * references[0];
+    Field(unsigned int) count;
+    FieldNoBarrier(RecyclerTestObject *) references[0];  // SWB-TODO: is this correct?
 };
 
 template <unsigned int minCount, unsigned int maxCount>
@@ -244,12 +244,12 @@ private:
             references[i] = nullptr;
         }
     }
-    
+
 public:
     static RecyclerTestObject * New()
     {
         unsigned int count = minCount + GetRandomInteger(maxCount - minCount + 1);
-        
+
         return RecyclerNewTrackedLeafPlusZ(recyclerInstance, sizeof(RecyclerTestObject *) * count, TrackedObject, count);
     }
 
@@ -262,8 +262,8 @@ public:
     }
 
     // Tracked object implementation
-    virtual void Mark(Recycler * recycler) override 
-    { 
+    virtual void Mark(Recycler * recycler) override
+    {
         for (unsigned int i = 0; i < count; i++)
         {
             RecyclerTestObject * object = Location::Untag(references[i]);
@@ -277,8 +277,8 @@ public:
     // Tracked objects are always finalize as well. Just do nothing.
     virtual void Finalize(bool isShutdown) override { }
     virtual void Dispose(bool isShutdown) override { };
-    
-    
+
+
 protected:
     virtual void DoWalkObject() override
     {
@@ -289,10 +289,10 @@ protected:
             RecyclerTestObject::WalkReference(Location::Untag(references[i]));
         }
     }
-    
+
 private:
-    unsigned int count;
-    RecyclerTestObject * references[0];
+    Field(unsigned int) count;
+    FieldNoBarrier(RecyclerTestObject *) references[0];  // SWB-TODO: is this correct?
 };
 
 

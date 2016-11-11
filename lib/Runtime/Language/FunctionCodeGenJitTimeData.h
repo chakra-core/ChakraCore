@@ -71,8 +71,8 @@ namespace Js
     public:
         Field(BVFixed *) inlineesBv;
 
-        Js::PropertyId* sharedPropertyGuards;
-        uint sharedPropertyGuardCount;
+        Field(Js::PropertyId*) sharedPropertyGuards;
+        Field(uint) sharedPropertyGuardCount;
 
         FunctionInfo *GetFunctionInfo() const;
         FunctionBody *GetFunctionBody() const;

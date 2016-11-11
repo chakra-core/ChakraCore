@@ -861,23 +861,24 @@ namespace Js
 
     class AsmJsFunctionInfo
     {
-        WAsmJs::TypedSlotInfo mTypedSlotInfos[WAsmJs::LIMIT];
-        ArgSlot mArgCount;
-        AsmJsVarType::Which * mArgType;
-        ArgSlot mArgSizesLength;
-        uint * mArgSizes;
-        ArgSlot mArgByteSize;
-        AsmJsRetType mReturnType;
+        Field(WAsmJs::TypedSlotInfo) mTypedSlotInfos[WAsmJs::LIMIT];
+        Field(ArgSlot) mArgCount;
+        Field(AsmJsVarType::Which *) mArgType;
+        Field(ArgSlot) mArgSizesLength;
+        Field(uint *) mArgSizes;
+        Field(ArgSlot) mArgByteSize;
+        Field(AsmJsRetType) mReturnType;
 #ifdef ENABLE_WASM
         Wasm::WasmSignature * mSignature;
         Wasm::WasmReaderInfo* mWasmReaderInfo;
         WebAssemblyModule* mWasmModule;
 #endif
-        bool mIsHeapBufferConst;
-        bool mUsesHeapBuffer;
+        Field(bool) mIsHeapBufferConst;
+        Field(bool) mUsesHeapBuffer;
 
-        FunctionBody* asmJsModuleFunctionBody;
-        Js::JavascriptError * mLazyError;
+        Field(FunctionBody*) asmJsModuleFunctionBody;
+        Field(Js::JavascriptError *) mLazyError;
+
     public:
         AsmJsFunctionInfo() : mArgCount(0),
                               mArgSizesLength(0),
@@ -896,8 +897,8 @@ namespace Js
                               mArgSizes(nullptr) {}
         // the key is the bytecode address
         typedef JsUtil::BaseDictionary<int, ptrdiff_t, Recycler> ByteCodeToTJMap;
-        ByteCodeToTJMap* mbyteCodeTJMap;
-        BYTE* mTJBeginAddress;
+        Field(ByteCodeToTJMap*) mbyteCodeTJMap;
+        Field(BYTE*) mTJBeginAddress;
         WAsmJs::TypedSlotInfo* GetTypedSlotInfo(WAsmJs::Types type);
 
 #define TYPED_SLOT_INFO_GETTER(name, type) \

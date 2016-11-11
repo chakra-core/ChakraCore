@@ -16,8 +16,8 @@ namespace Js
         DEFINE_VTABLE_CTOR(JavascriptProxy, DynamicObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptProxy);
     private:
-        RecyclableObject* handler;
-        RecyclableObject* target;
+        Field(RecyclableObject*) handler;
+        Field(RecyclableObject*) target;
 
         void RevokeObject();
     public:

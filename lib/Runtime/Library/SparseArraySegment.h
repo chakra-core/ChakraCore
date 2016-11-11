@@ -11,10 +11,10 @@ namespace Js
     public:
         static const uint32 MaxLength;
 
-        uint32 left;
-        uint32 length; //we use length instead of right so that we can denote a segment is empty
-        uint32 size;
-        SparseArraySegmentBase* next;
+        Field(uint32) left;
+        Field(uint32) length; //we use length instead of right so that we can denote a segment is empty
+        Field(uint32) size;
+        Field(SparseArraySegmentBase*) next;
 
         static const uint32 CHUNK_SIZE = 16;
         static const uint32 HEAD_CHUNK_SIZE = 16;
@@ -90,6 +90,11 @@ namespace Js
         static bool IsMissingItem(const T* value);
 
         static uint32 GetAlignedSize(uint32 size);
+
+        static inline SparseArraySegment* From(SparseArraySegmentBase* seg)
+        {
+            return static_cast<SparseArraySegment*>(seg);
+        }
 
     private:
         template<bool isLeaf>

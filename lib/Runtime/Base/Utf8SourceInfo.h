@@ -400,7 +400,7 @@ namespace Js
             bool isLibraryCode, Js::Var scriptSource = nullptr);
 
 #ifndef NTBUILD
-        Js::Var sourceRef; // keep source string reference to prevent GC
+        Field(Js::Var) sourceRef; // keep source string reference to prevent GC
 #endif
     };
 }

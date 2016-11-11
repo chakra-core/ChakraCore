@@ -309,7 +309,8 @@ namespace Js
         }
         else
         {
-            argsInfo->FrameObject = TTD_CONVERT_VAR_TO_PTR_ID(this->frameObject);
+            argsInfo->FrameObject = TTD_CONVERT_VAR_TO_PTR_ID(
+                static_cast<ActivationObject*>(this->frameObject));
 
             //Primitive kinds always inflated first so we only need to deal with complex kinds as depends on
             if(TTD::JsSupport::IsVarComplexKind(this->frameObject))
