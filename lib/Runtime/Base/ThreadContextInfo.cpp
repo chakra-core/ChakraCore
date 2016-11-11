@@ -150,6 +150,24 @@ ThreadContextInfo::GetDoubleNaNAddr() const
 }
 
 intptr_t
+ThreadContextInfo::GetDoubleUintMaxPlusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_UintMaxPlusOne);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleIntMaxPlusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_IntMaxPlusOne);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleIntMinMinusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_MinIntMinusOne);
+}
+
+intptr_t
 ThreadContextInfo::GetFloatNaNAddr() const
 {
     return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Nan32);
