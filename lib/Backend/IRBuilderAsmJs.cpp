@@ -1541,20 +1541,20 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
     if (valueRegType == WAsmJs::FLOAT32 || valueRegType == WAsmJs::FLOAT64)
     {
         Assert(IRType_IsFloat(type));
-        regOpnd = BuildDstOpnd(valueRegSlot, type);
+        regOpnd = !isLd ? BuildSrcOpnd(valueRegSlot, type) : BuildDstOpnd(valueRegSlot, type);
         regOpnd->SetValueType(ValueType::Float);
     }
     else if (valueRegType == WAsmJs::INT64)
     {
         Assert(IRType_IsNativeInt(type));
-        regOpnd = BuildDstOpnd(valueRegSlot, TyInt64);
+        regOpnd = !isLd ? BuildSrcOpnd(valueRegSlot, TyInt64) : BuildDstOpnd(valueRegSlot, TyInt64);
         regOpnd->SetValueType(ValueType::GetInt(false));
     }
     else
     {
         Assert(IRType_IsNativeInt(type));
         Assert(valueRegType == WAsmJs::INT32);
-        regOpnd = BuildDstOpnd(valueRegSlot, TyInt32);
+        regOpnd = !isLd ? BuildSrcOpnd(valueRegSlot, TyInt32) : BuildDstOpnd(valueRegSlot, TyInt32);
         regOpnd->SetValueType(ValueType::GetInt(false));
     }
 
