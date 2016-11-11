@@ -440,7 +440,7 @@ namespace Js
         const T newValue,
         StElemInfo *const stElemInfo)
     {
-        SparseArraySegment<T> *const seg = (SparseArraySegment<T>*)head;
+        SparseArraySegment<T> *const seg = SparseArraySegment<T>::From(head);
         Assert(seg);
         Assert(offset < seg->size);
         Assert(!(HasNoMissingValues() &&
@@ -650,7 +650,7 @@ SECOND_PASS:
         {
             if (endIndex >= current->left + current->size)
             {
-                current = (SparseArraySegment<T>*)head;
+                current = SparseArraySegment<T>::From(head);
             }
             else
             {
@@ -695,7 +695,7 @@ SECOND_PASS:
                     }
                 }
                 prev = current;
-                current = (SparseArraySegment<T>*)current->next;
+                current = SparseArraySegment<T>::From(current->next);
             }
             if (!startSeg && !endSeg)
             {
@@ -713,7 +713,7 @@ SECOND_PASS:
                 && startIndex - head->size <= MergeSegmentsLengthHeuristics     // Distance to next index is relatively small
                 )
             {
-                current = ((Js::SparseArraySegment<T>*)head)->GrowByMin(recycler, startIndex + length - head->size);
+                current = SparseArraySegment<T>::From(head)->GrowByMin(recycler, startIndex + length - head->size);
                 current->length = endIndex + 1;
                 head = current;
                 SetHasNoMissingValues(false);
@@ -790,7 +790,7 @@ SECOND_PASS:
             {
                 if (startIndex + 1 == startSeg->left && startPrev == head)
                 {
-                    current = ((Js::SparseArraySegment<T>*)head)->GrowByMin(recycler, startIndex + length - head->size);
+                    current = SparseArraySegment<T>::From(head)->GrowByMin(recycler, startIndex + length - head->size);
                     current->length = endIndex + 1;
                     head = current;
                 }
@@ -1026,7 +1026,7 @@ SECOND_PASS:
 
         if (startIndex == 0 && head != EmptySegment && length < head->size)
         {
-            CopyValueToSegmentBuferNoCheck(((Js::SparseArraySegment<T>*)head)->elements, length, newValue);
+            CopyValueToSegmentBuferNoCheck(SparseArraySegment<T>::From(head)->elements, length, newValue);
 
             if (length > this->length)
             {
@@ -1135,7 +1135,7 @@ SECOND_PASS:
         // need the prev
         if (current->left + current->size > current->left || itemIndex >= current->left + current->size)
         {
-            current = (SparseArraySegment<T>*)head;
+            current = SparseArraySegment<T>::From(head);
         }
         SparseArraySegmentBase* prev = nullptr;
 
@@ -1160,7 +1160,7 @@ SECOND_PASS:
                 bool extendPrevSeg = itemIndex <= prevSeg->left + prevSeg->size;
                 if (noExactMatch && extendPrevSeg)
                 {
-                    current = (SparseArraySegment<T>*)head;
+                    current = SparseArraySegment<T>::From(head);
                     prev = nullptr;
                     if (prevSeg != head)
                     {
@@ -1193,7 +1193,7 @@ SECOND_PASS:
             // need the prev
             if (current->left + current->size > current->left || itemIndex >= current->left + current->size)
             {
-                current = (SparseArraySegment<T>*)head;
+                current = SparseArraySegment<T>::From(head);
             }
             prev = nullptr;
         }
@@ -1215,7 +1215,7 @@ SECOND_PASS:
                 }
             }
             prev = current;
-            current = (SparseArraySegment<T>*)current->next;
+            current = SparseArraySegment<T>::From(current->next);
             Assert(segmentMap == GetSegmentMap());
             if (!segmentMap)
             {
@@ -1237,7 +1237,7 @@ SECOND_PASS:
                         bool extendPrevSeg = itemIndex <= prevSeg->left + prevSeg->size;
                         if (noExactMatch && extendPrevSeg)
                         {
-                            current = (SparseArraySegment<T>*)head;
+                            current = SparseArraySegment<T>::From(head);
                             prev = nullptr;
                             if (prevSeg != head)
                             {
@@ -1322,7 +1322,7 @@ SECOND_PASS:
                 //itemIndex is at boundary of current segment either at the left + size or at left - 1;
                 Assert((itemIndex == current->left + current->size) || (itemIndex + 1 == current->left));
 
-                SparseArraySegment<T>* next = (SparseArraySegment<T>*)current->next;
+                SparseArraySegment<T>* next = SparseArraySegment<T>::From(current->next);
 
                 Assert(segmentMap == GetSegmentMap());
                 if (!segmentMap && next != nullptr && (itemIndex + 1) == next->left)
@@ -1393,7 +1393,7 @@ SECOND_PASS:
                 && itemIndex - head->size <= MergeSegmentsLengthHeuristics  // Distance to next index is relatively small
                )
             {
-                current = ((Js::SparseArraySegment<T>*)head)->GrowByMin(recycler, itemIndex + 1 - head->size);
+                current = SparseArraySegment<T>::From(head)->GrowByMin(recycler, itemIndex + 1 - head->size);
                 current->elements[itemIndex] = newValue;
                 current->length =  itemIndex + 1;
 
@@ -1446,7 +1446,7 @@ SECOND_PASS:
         Assert(head);
         Assert(!HasNoMissingValues());
 
-        SparseArraySegment<T> *const segment = (SparseArraySegment<T>*)head;
+        SparseArraySegment<T> *const segment = SparseArraySegment<T>::From(head);
         const uint segmentLength = segment->length;
         const Field(T) * const segmentElements = segment->elements;
         for(uint i = startIndex; i < segmentLength; ++i)
@@ -1466,7 +1466,7 @@ SECOND_PASS:
         Assert(head);
         //Assert(!HasNoMissingValues());
 
-        SparseArraySegment<T> *const segment = (SparseArraySegment<T>*)head;
+        SparseArraySegment<T> *const segment = SparseArraySegment<T>::From(head);
         const Field(T) *const segmentElements = segment->elements;
         for (uint i = startIndex; i < endIndex; ++i)
         {
@@ -1492,7 +1492,7 @@ SECOND_PASS:
     template<typename unitType, typename classname>
     inline BOOL JavascriptArray::TryGrowHeadSegmentAndSetItem(uint32 indexInt, unitType iValue)
     {
-        SparseArraySegment<unitType> *current = (SparseArraySegment<unitType> *)this->head;
+        SparseArraySegment<unitType> *current = SparseArraySegment<unitType>::From(head);
 
         if (indexInt == current->length               // index is at the boundary of size & length
             && current->size                          // Make sure its not empty segment.

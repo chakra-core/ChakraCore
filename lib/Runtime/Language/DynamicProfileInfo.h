@@ -318,6 +318,9 @@ namespace Js
         static byte const NotNativeFloatBit = 2;
     };
 
+    class DynamicProfileInfo;
+    typedef SListBase<DynamicProfileInfo*, Recycler> DynamicProfileInfoList;
+
     class DynamicProfileInfo
     {
     public:
@@ -527,7 +530,7 @@ namespace Js
 #endif
         static JavascriptMethod EnsureDynamicProfileInfo(Js::ScriptFunction * function);
 #if DBG_DUMP
-        static void DumpList(SListBase<DynamicProfileInfo *> * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator);
+        static void DumpList(DynamicProfileInfoList * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator);
         static void DumpProfiledValue(char16 const * name, uint * value, uint count);
         static void DumpProfiledValue(char16 const * name, ValueType * value, uint count);
         static void DumpProfiledValue(char16 const * name, CallSiteInfo * callSiteInfo, uint count);

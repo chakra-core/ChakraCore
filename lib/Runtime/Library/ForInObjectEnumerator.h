@@ -16,7 +16,7 @@ namespace Js
             Field(RecyclableObject *) currentObject;
             Field(RecyclableObject *) firstPrototype;
             Field(BVSparse<Recycler>) propertyIds;
-            Field(SListBase<Js::PropertyRecord const *>) newPropertyStrings;
+            Field(SListBase<Js::PropertyRecord const *, Recycler>) newPropertyStrings;
         } *shadowData;
 
         // States

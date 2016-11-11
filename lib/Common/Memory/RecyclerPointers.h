@@ -424,6 +424,12 @@ template <class T>
 inline T* AddressOf(T& val) { return _AddressOfType<T>::AddressOf(val); }
 template <class T>
 inline const T* AddressOf(const T& val) { return _AddressOfType<T>::AddressOf(val); }
+
+template <class T>
+inline T* const& PointerValue(T* const& ptr) { return ptr; }
+template <class T>
+inline T* const& PointerValue(const WriteBarrierPtr<T>& ptr) { return ptr; }
+
 }  // namespace Memory
 
 

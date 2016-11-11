@@ -21,10 +21,10 @@ namespace Js
         // Introduction to Algorithms by Corman, Leiserson, and Rivest.
 
     protected:
-        uint32*              keys;           // keys[i] == segments[i]->left
-        SparseArraySegmentBase** segments;   // Length of segmentCount.
-        SegmentBTree*        children;       // Length of segmentCount+1.
-        uint32               segmentCount;   // number of sparseArray segments in the Node
+        Field(uint32*)              keys;           // keys[i] == segments[i]->left
+        Field(SparseArraySegmentBase**) segments;   // Length of segmentCount.
+        Field(SegmentBTree*)        children;       // Length of segmentCount+1.
+        Field(uint32)               segmentCount;   // number of sparseArray segments in the Node
 
     public:
         static const uint MinDegree = 20; // Degree is the minimum branching factor. (If non-root, and non-leaf.)
@@ -99,16 +99,16 @@ namespace Js
         DEFINE_VTABLE_CTOR(JavascriptArray, ArrayObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptArray);
     private:
-        bool isInitialized;
+        Field(bool) isInitialized;
     protected:
-        SparseArraySegmentBase* head;
+        Field(SparseArraySegmentBase*) head;
         union SegmentUnionType
         {
             SparseArraySegmentBase* lastUsedSegment;
             SegmentBTreeRoot* segmentBTreeRoot;
         };
         // SWB-TODO: How to handle write barrier inside union?
-        SegmentUnionType segmentUnion;
+        Field(SegmentUnionType) segmentUnion;
     public:
         typedef Var TElement;
 

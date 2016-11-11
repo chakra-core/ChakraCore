@@ -1614,12 +1614,13 @@ namespace Js
         }
     }
 
-    void DynamicProfileInfo::DumpList(SListBase<DynamicProfileInfo *> * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator)
+    void DynamicProfileInfo::DumpList(
+        DynamicProfileInfoList * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator)
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_DisableCheck);
         if (Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase))
         {
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 if (Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase, info->GetFunctionBody()->GetSourceContextId(), info->GetFunctionBody()->GetLocalFunctionId()))
                 {
@@ -1631,7 +1632,7 @@ namespace Js
 
         if (Configuration::Global.flags.Dump.IsEnabled(JITLoopBodyPhase) && !Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase))
         {
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 if (info->functionBody->GetLoopCount() > 0)
                 {
@@ -1652,7 +1653,7 @@ namespace Js
             uint elementAccessSaved = 0;
             uint fldAccessSaved = 0;
 
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 bool hasHotLoop = false;
                 if (info->functionBody->DoJITLoopBody())
@@ -2055,8 +2056,8 @@ namespace Js
 
         // That means that the data will never go away, probably not a good policy if this is cached for web page in WININET.
 
-        SListBase<DynamicProfileInfo *> * profileInfoList = scriptContext->GetProfileInfoList();
-        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+        DynamicProfileInfoList * profileInfoList = scriptContext->GetProfileInfoList();
+        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
         {
             FunctionBody * functionBody = info->GetFunctionBody();
             SourceDynamicProfileManager * sourceDynamicProfileManager = functionBody->GetSourceContextInfo()->sourceDynamicProfileManager;
@@ -2146,7 +2147,7 @@ namespace Js
             });
         }
 
-        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, scriptContext->GetProfileInfoList())
+        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, scriptContext->GetProfileInfoList())
         {
             WriteData((byte)1, file);
             WriteData(info->functionBody, file);
