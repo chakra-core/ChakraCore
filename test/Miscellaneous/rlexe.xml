@@ -13,6 +13,7 @@
       <tags>exclude_fre</tags>
     </default>
   </test>
+<!-- Disabled in core; see OS 9760284
   <test>
     <default>
       <files>etwtest.js</files>
@@ -21,6 +22,7 @@
       <tags>exclude_ship</tags>
     </default>
   </test>
+-->
   <test>
     <default>
       <files>evalAlias.js</files>

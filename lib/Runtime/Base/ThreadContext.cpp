@@ -1163,7 +1163,7 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     // We will still be able to lookup the symbol property by the property id, so go ahead and check that.
     Assert(GetPropertyName(propertyRecord->GetPropertyId()) == propertyRecord);
 #endif
-    JS_ETW(EventWriteJSCRIPT_HOSTING_PROPERTYID_LIST(propertyRecord, propertyRecord->GetBuffer()));
+    JS_ETW_INTERNAL(EventWriteJSCRIPT_HOSTING_PROPERTYID_LIST(propertyRecord, propertyRecord->GetBuffer()));
 }
 
 void
@@ -1446,7 +1446,7 @@ ThreadContext::EnterScriptStart(Js::ScriptEntryExitRecord * record, bool doClean
 {
     Recycler * recycler = this->GetRecycler();
     Assert(recycler->IsReentrantState());
-    JS_ETW(EventWriteJSCRIPT_RUN_START(this,0));
+    JS_ETW_INTERNAL(EventWriteJSCRIPT_RUN_START(this,0));
 
     // Increment the callRootLevel early so that Dispose ran during FinishConcurrent will not close the current scriptContext
     uint oldCallRootLevel = this->callRootLevel++;
@@ -1582,7 +1582,7 @@ ThreadContext::EnterScriptEnd(Js::ScriptEntryExitRecord * record, bool doCleanup
         }
     }
 
-    JS_ETW(EventWriteJSCRIPT_RUN_STOP(this,0));
+    JS_ETW_INTERNAL(EventWriteJSCRIPT_RUN_STOP(this,0));
 }
 
 void
@@ -4336,7 +4336,7 @@ uint ThreadContext::GetRandomNumber()
 #endif
 }
 
-#ifdef ENABLE_JS_ETW
+#if defined(ENABLE_JS_ETW) && defined(NTBUILD)
 void ThreadContext::EtwLogPropertyIdList()
 {
     propertyMap->Map([&](const Js::PropertyRecord* propertyRecord){
