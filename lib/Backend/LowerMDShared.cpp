@@ -7966,7 +7966,7 @@ LowererMD::EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIn
 }
 
 void
-LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr) 
+LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
 {
     EmitInt64toFloatRec(dst, src, instr, false);
     instr->UnlinkDst();
@@ -8006,7 +8006,7 @@ LowererMD::EmitInt64toFloatRec(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr, b
         dst = IR::RegOpnd::New(TyFloat64, this->m_func);
     }
 
-    if (src->IsUnsigned() && !recursive) 
+    if (src->IsUnsigned() && !recursive)
     {
         EmitInt64toFloatRec(dst, src, instr, true);
         IR::RegOpnd * highestBitOpnd = IR::RegOpnd::New(TyInt64, this->m_func);
