@@ -127,7 +127,7 @@ WebAssemblyTable::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
     {
         JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
     }
-    CompileAssert(sizeof(m_maxLength) == sizeof(uint32));
+    CompileAssert(sizeof(table->m_maxLength) == sizeof(uint32));
 
     uint32 newLength = table->m_currentLength + delta;
     Var * newValues = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, newLength);
