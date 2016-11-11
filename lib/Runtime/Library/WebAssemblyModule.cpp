@@ -410,9 +410,23 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     callNode.call.funcType = Wasm::FunctionIndexTypes::Import;
     customReader->AddNode(callNode);
     funcInfo->SetCustomReader(customReader);
-    char16 * autoName = RecyclerNewArrayLeafZ(GetScriptContext()->GetRecycler(), char16, modNameLen + fnNameLen + 32);
-    uint32 nameLength = swprintf_s(autoName, 32, _u("%s.%s.Thunk[%u]"), modName, fnName, funcInfo->GetNumber());
-    funcInfo->SetName(autoName, nameLength);
+
+    // 32 to account for hardcoded part of the name + max uint in decimal representation
+    uint32 bufferLength = 32;
+    if (!UInt32Math::Add(modNameLen, bufferLength, &bufferLength) &&
+        !UInt32Math::Add(fnNameLen, bufferLength, &bufferLength))
+    {
+        char16 * autoName = RecyclerNewArrayLeafZ(GetScriptContext()->GetRecycler(), char16, bufferLength);
+        uint32 nameLength = swprintf_s(autoName, bufferLength, _u("%s.%s.Thunk[%u]"), modName, fnName, funcInfo->GetNumber());
+        if (nameLength != (uint32)-1)
+        {
+            funcInfo->SetName(autoName, nameLength);
+        }
+        else
+        {
+            AssertMsg(UNREACHED, "Failed to generate import' thunk name");
+        }
+    }
 
     // Store the information about the import
     Wasm::WasmImport* importInfo = Anew(&m_alloc, Wasm::WasmImport);
