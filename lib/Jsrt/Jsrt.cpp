@@ -4277,11 +4277,28 @@ _ALWAYSINLINE JsErrorCode CompileRun(
 {
     PARAM_NOT_NULL(scriptVal);
     VALIDATE_JSREF(scriptVal);
+    PARAM_NOT_NULL(sourceUrl);
 
     bool isExternalArray = Js::ExternalArrayBuffer::Is(scriptVal),
          isString = false;
     bool isUtf8   = !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
-    if (!isExternalArray)
+
+    LoadScriptFlag scriptFlag = LoadScriptFlag_None;
+    const byte* script;
+    size_t cb;
+    const wchar_t *url;
+
+    if (isExternalArray)
+    {
+        script = ((Js::ExternalArrayBuffer*)(scriptVal))->GetBuffer();
+
+        cb = ((Js::ExternalArrayBuffer*)(scriptVal))->GetByteLength();
+
+        scriptFlag = (LoadScriptFlag)(isUtf8 ?
+            LoadScriptFlag_ExternalArrayBuffer | LoadScriptFlag_Utf8Source :
+            LoadScriptFlag_ExternalArrayBuffer);
+    }
+    else
     {
         isString = Js::JavascriptString::Is(scriptVal);
         if (!isString)
@@ -4290,36 +4307,34 @@ _ALWAYSINLINE JsErrorCode CompileRun(
         }
     }
 
-    LoadScriptFlag scriptFlag;
-    const byte* script = isExternalArray ?
-        ((Js::ExternalArrayBuffer*)(scriptVal))->GetBuffer() :
-        (const byte*)((Js::JavascriptString*)(scriptVal))->GetSz();
-    const size_t cb = isExternalArray ?
-        ((Js::ExternalArrayBuffer*)(scriptVal))->GetByteLength() :
-        ((Js::JavascriptString*)(scriptVal))->GetLength();
+    JsErrorCode error = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+        if (isString)
+        {
+            script = (const byte*)((Js::JavascriptString*)(scriptVal))->GetSz();
+            cb = ((Js::JavascriptString*)(scriptVal))->GetLength();
+        }
 
-    if (isExternalArray && isUtf8)
-    {
-        scriptFlag = (LoadScriptFlag) (LoadScriptFlag_ExternalArrayBuffer | LoadScriptFlag_Utf8Source);
-    }
-    else if (isUtf8)
-    {
-        scriptFlag = (LoadScriptFlag) (LoadScriptFlag_Utf8Source);
-    }
-    else
-    {
-        scriptFlag = LoadScriptFlag_None;
-    }
+        if (!Js::JavascriptString::Is(sourceUrl))
+        {
+            return JsErrorInvalidArgument;
+        }
 
-    const wchar_t *url;
-
-    if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
-    {
         url = ((Js::JavascriptString*)(sourceUrl))->GetSz();
-    }
-    else
+
+        return JsNoError;
+
+    }, false);
+
+    if (error != JsNoError)
     {
-        return JsErrorInvalidArgument;
+        return error;
+    }
+
+    if (isString)
+    {
+        return RunScriptCore(scriptVal, script, cb * sizeof(wchar_t),
+            scriptFlag, sourceContext, url, parseOnly,
+            parseAttributes, false, result);
     }
 
     return RunScriptCore(scriptVal, script, cb, scriptFlag,
