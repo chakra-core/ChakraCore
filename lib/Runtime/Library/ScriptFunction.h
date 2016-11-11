@@ -36,7 +36,6 @@ namespace Js
         bool hasSuperReference;
         bool isActiveScript;
 
-        bool HasFunctionBody();
         Var FormatToString(JavascriptString* inputString);
     protected:
         ScriptFunction(DynamicType * type);
@@ -99,6 +98,7 @@ namespace Js
 
         virtual JavascriptFunction* GetRealFunctionObject() { return this; }
 
+        bool HasFunctionBody();
 #if ENABLE_TTD
     public:
         virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
