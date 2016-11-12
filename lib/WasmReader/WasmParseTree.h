@@ -133,7 +133,7 @@ namespace Wasm
 
     struct WasmImport
     {
-        uint32 sigId;
+        ExternalKinds::ExternalKind kind;
         uint32 modNameLen;
         const char16* modName;
         uint32 fnNameLen;

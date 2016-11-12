@@ -27,8 +27,7 @@ namespace Wasm
         union
         {
             WasmConstLitNode cnst;
-            WasmVarNode var;
-            WasmImport* importVar;
+            uint32 importIndex;
         };
 
     private:

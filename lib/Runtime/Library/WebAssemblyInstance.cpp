@@ -90,8 +90,8 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
     WebAssemblyTable** table = (WebAssemblyTable**)(moduleEnvironmentPtr + module->GetTableEnvironmentOffset());
     Var* localModuleFunctions = moduleEnvironmentPtr + module->GetFuncOffset();
     Var* importFunctions = moduleEnvironmentPtr + module->GetImportFuncOffset();
-    LoadGlobals(module, scriptContext, moduleEnvironmentPtr, importObject);
     LoadImports(module, scriptContext, importFunctions, localModuleFunctions, importObject, memory, table);
+    LoadGlobals(module, scriptContext, moduleEnvironmentPtr);
     LoadFunctions(module, scriptContext, moduleEnvironmentPtr, localModuleFunctions);
     LoadDataSegs(module, memory, scriptContext);
 
@@ -120,7 +120,7 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
 
     for (uint i = 0; i < wasmModule->GetWasmFunctionCount(); ++i)
     {
-        if (i < wasmModule->GetImportCount() && localModuleFunctions[i] != nullptr)
+        if (i < wasmModule->GetImportedFunctionCount() && localModuleFunctions[i] != nullptr)
         {
             if (!AsmJsScriptFunction::IsWasmScriptFunction(localModuleFunctions[i]))
             {
@@ -273,8 +273,6 @@ static Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
     ctx->GetOrAddPropertyRecord(modName, modNameLen, &modPropertyRecord);
     Var modProp = JavascriptOperators::OP_GetProperty(ffi, modPropertyRecord->GetPropertyId(), ctx);
 
-
-
     const char16* name = wi->fnName;
     uint32 nameLen = wi->fnNameLen;
     Var prop = nullptr;
@@ -305,139 +303,159 @@ void static SetGlobalValue(Var moduleEnv, uint offset, T val)
     *slot = val;
 }
 
-void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var* importFunctions, Var* localModuleFunctions, Var ffi, Var* memoryObject, WebAssemblyTable ** tableObject)
+void WebAssemblyInstance::LoadImports(
+    WebAssemblyModule * wasmModule,
+    ScriptContext* ctx,
+    Var* importFunctions,
+    Var* localModuleFunctions,
+    Var ffi,
+    Var* memoryObject,
+    WebAssemblyTable ** tableObject)
 {
     const uint32 importCount = wasmModule->GetImportCount();
     if (importCount > 0 && (!ffi || !RecyclableObject::Is(ffi)))
     {
         JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
     }
+
+    uint32 iImportFunction = 0;
+    uint32 iGlobal = 0;
     for (uint32 i = 0; i < importCount; ++i)
     {
-        Var prop = GetImportVariable(wasmModule->GetFunctionImport(i), ctx, ffi);
-        if (!JavascriptFunction::Is(prop))
+        Wasm::WasmImport* import = wasmModule->GetImport(i);
+        Var prop = GetImportVariable(import, ctx, ffi);
+        switch (import->kind)
         {
-            JavascriptError::ThrowTypeError(ctx, JSERR_Property_NeedFunction);
-        }
-        importFunctions[i] = prop;
-        if (AsmJsScriptFunction::IsWasmScriptFunction(prop))
+        case Wasm::ExternalKinds::Function:
         {
-            Assert(localModuleFunctions[i] == nullptr);
-            // Imported Wasm functions can be called directly
-            localModuleFunctions[i] = prop;
-        }
-    }
-    if (wasmModule->HasMemoryImport())
-    {
-        Var prop = GetImportVariable(wasmModule->GetMemoryImport(), ctx, ffi);
-        if (!WebAssemblyMemory::Is(prop))
-        {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
-        }
-        WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(prop);
-        if (!wasmModule->IsValidMemoryImport(mem))
-        {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
-        }
-        *memoryObject = mem;
-    }
-    if (wasmModule->HasTableImport())
-    {
-        Var prop = GetImportVariable(wasmModule->GetTableImport(), ctx, ffi);
-        if (!WebAssemblyTable::Is(prop))
-        {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
-        }
-        WebAssemblyTable * table = WebAssemblyTable::FromVar(prop);
+            if (!JavascriptFunction::Is(prop))
+            {
+                JavascriptError::ThrowTypeError(ctx, JSERR_Property_NeedFunction);
+            }
+            Assert(iImportFunction < wasmModule->GetImportedFunctionCount());
+            Assert(wasmModule->GetFunctionIndexType(iImportFunction) == Wasm::FunctionIndexTypes::ImportThunk);
 
-        if (!wasmModule->IsValidTableImport(table))
-        {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
-        }
-        *tableObject = table;
-    }
-}
-
-void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var moduleEnv, Var ffi)
-{
-    uint i = 0;
-    uint count = wasmModule->GetGlobalCount();
-    while (i < count && wasmModule->GetGlobal(i)->GetReferenceType() == Wasm::WasmGlobal::ImportedReference)
-    {
-        Wasm::WasmGlobal* global = wasmModule->GetGlobal(i);
-        Var prop = GetImportVariable(global->importVar, ctx, ffi);
-
-        uint offset = wasmModule->GetOffsetForGlobal(global);
-        global->SetReferenceType(Wasm::WasmGlobal::Const);
-
-        if (!JavascriptNumber::Is(prop) && !TaggedInt::Is(prop))
-        {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
-        }
-
-        switch (global->GetType())
-        {
-        case Wasm::WasmTypes::I32:
-        {
-
-            int val = JavascriptConversion::ToInt32(prop, ctx);
-            global->cnst.i32 = val; //resolve global to const
-            SetGlobalValue(moduleEnv, offset, val);
+            importFunctions[iImportFunction] = prop;
+            if (AsmJsScriptFunction::IsWasmScriptFunction(prop))
+            {
+                Assert(localModuleFunctions[iImportFunction] == nullptr);
+                // Imported Wasm functions can be called directly
+                localModuleFunctions[iImportFunction] = prop;
+            }
+            iImportFunction++;
             break;
         }
-        case Wasm::WasmTypes::F32:
+        case Wasm::ExternalKinds::Memory:
         {
-            float val = (float)JavascriptConversion::ToNumber(prop, ctx);
-            global->cnst.f32 = val;
-            SetGlobalValue(moduleEnv, offset, val);
+            Assert(wasmModule->HasMemoryImport());
+            if (wasmModule->HasMemoryImport())
+            {
+                if (!WebAssemblyMemory::Is(prop))
+                {
+                    JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
+                }
+                WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(prop);
+                if (!wasmModule->IsValidMemoryImport(mem))
+                {
+                    JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
+                }
+                *memoryObject = mem;
+            }
             break;
         }
-        case Wasm::WasmTypes::F64:
+        case Wasm::ExternalKinds::Table:
         {
-            double val = JavascriptConversion::ToNumber(prop, ctx);
-            global->cnst.f64 = val;
-            SetGlobalValue(moduleEnv, offset, val);
+            Assert(wasmModule->HasTableImport());
+            if (wasmModule->HasTableImport())
+            {
+                if (!WebAssemblyTable::Is(prop))
+                {
+                    JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
+                }
+                WebAssemblyTable * table = WebAssemblyTable::FromVar(prop);
+
+                if (!wasmModule->IsValidTableImport(table))
+                {
+                    JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
+                }
+                *tableObject = table;
+            }
             break;
         }
-        case Wasm::WasmTypes::I64:
-            Js::JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
+        case Wasm::ExternalKinds::Global:
+        {
+            Wasm::WasmGlobal* global = wasmModule->GetGlobal(iGlobal++);
+            if (!global->GetMutability() && !JavascriptNumber::Is(prop) && !TaggedInt::Is(prop))
+            {
+                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+            }
+
+            Assert(global->GetReferenceType() == Wasm::WasmGlobal::ImportedReference);
+            global->SetReferenceType(Wasm::WasmGlobal::Const);
+
+            switch (global->GetType())
+            {
+            case Wasm::WasmTypes::I32:
+            {
+                int val = JavascriptConversion::ToInt32(prop, ctx);
+                global->cnst.i32 = val;
+                break;
+            }
+            case Wasm::WasmTypes::F32:
+            {
+                float val = (float)JavascriptConversion::ToNumber(prop, ctx);
+                global->cnst.f32 = val;
+                break;
+            }
+            case Wasm::WasmTypes::F64:
+            {
+                double val = JavascriptConversion::ToNumber(prop, ctx);
+                global->cnst.f64 = val;
+                break;
+            }
+            case Wasm::WasmTypes::I64:
+                Js::JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
+            default:
+                Assert(UNREACHED);
+                break;
+
+            }
+            break;
+        }
         default:
             Assert(UNREACHED);
             break;
-
         }
-        i++;
+        
     }
+}
 
-
-    for (; i < count; i++)
+void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var moduleEnv)
+{
+    uint count = wasmModule->GetGlobalCount();
+    for (uint i = 0; i < count; i++)
     {
         Wasm::WasmGlobal* global = wasmModule->GetGlobal(i);
-
-        uint offset = wasmModule->GetOffsetForGlobal(global);
-        Wasm::WasmGlobal* sourceGlobal = nullptr;
-        if (global->GetReferenceType() == Wasm::WasmGlobal::Const)
+        Wasm::WasmGlobal* sourceGlobal = global;
+        if (global->GetReferenceType() == Wasm::WasmGlobal::LocalReference)
         {
-            sourceGlobal = global;
-        }
-        else
-        {
-            sourceGlobal = wasmModule->GetGlobal(global->var.num);
-            Assert(sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::ImportedReference); //no imported globals at this point
+            sourceGlobal = wasmModule->GetGlobal(global->importIndex);
             if (sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::Const)
             {
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidGlobalRef);
             }
-            global->SetReferenceType(Wasm::WasmGlobal::Const); //resolve global to const
-            global->cnst = sourceGlobal->cnst;
-
-            Assert(sourceGlobal->GetReferenceType() == Wasm::WasmGlobal::Const);
+            
             if (sourceGlobal->GetType() != global->GetType())
             {
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
             }
-        }
 
+            global->SetReferenceType(Wasm::WasmGlobal::Const);
+            global->cnst = sourceGlobal->cnst;
+        }
+        Assert(global->GetReferenceType() == Wasm::WasmGlobal::Const);
+
+        uint offset = wasmModule->GetOffsetForGlobal(global);
         switch (sourceGlobal->GetType())
         {
         case Wasm::WasmTypes::I32:

@@ -17,6 +17,7 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_hasTable(false),
     m_memImport(nullptr),
     m_tableImport(nullptr),
+    m_importedFunctionCount(0),
     m_memoryInitSize(0),
     m_memoryMaxSize(0),
     m_tableInitSize(0),
@@ -138,30 +139,18 @@ WebAssemblyModule::EntryImports(RecyclableObject* function, CallInfo callInfo, .
     WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
 
     Var importArray = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
-    auto AddImport = [scriptContext, importArray](Wasm::WasmImport * import, Wasm::ExternalKinds::ExternalKind importKind)
+    for (uint32 i = 0; i < module->GetImportCount(); ++i)
     {
-        Js::JavascriptString * kind = GetExternalKindString(scriptContext, importKind);
-        Js::JavascriptString * module = JavascriptString::NewWithBuffer(import->modName, import->modNameLen, scriptContext);
+        Wasm::WasmImport * import = module->GetImport(i);
+        Js::JavascriptString * kind = GetExternalKindString(scriptContext, import->kind);
+        Js::JavascriptString * moduleName = JavascriptString::NewWithBuffer(import->modName, import->modNameLen, scriptContext);
         Js::JavascriptString * name = JavascriptString::NewWithBuffer(import->fnName, import->fnNameLen, scriptContext);
 
         Var pair = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
         JavascriptOperators::OP_SetProperty(pair, PropertyIds::kind, kind, scriptContext);
-        JavascriptOperators::OP_SetProperty(pair, PropertyIds::module, module, scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::module, moduleName, scriptContext);
         JavascriptOperators::OP_SetProperty(pair, PropertyIds::name, name, scriptContext);
         JavascriptArray::Push(scriptContext, importArray, pair);
-    };
-
-    module->m_imports->Map([AddImport] (int index, Wasm::WasmImport * import) {
-        AddImport(import, Wasm::ExternalKinds::Function);
-    });
-    // Todo:: Add globals (old implementation didn't work)
-    if (module->m_memImport)
-    {
-        AddImport(module->m_memImport, Wasm::ExternalKinds::Memory);
-    }
-    if (module->m_tableImport)
-    {
-        AddImport(module->m_tableImport, Wasm::ExternalKinds::Table);
     }
 
     return importArray;
@@ -319,7 +308,7 @@ WebAssemblyModule::GetFunctionIndexType(uint32 funcIndex) const
     {
         return Wasm::FunctionIndexTypes::Invalid;
     }
-    if (funcIndex < GetImportCount())
+    if (funcIndex < GetImportedFunctionCount())
     {
         return Wasm::FunctionIndexTypes::ImportThunk;
     }
@@ -484,7 +473,16 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     {
         throw Wasm::WasmCompilationException(_u("Function signature %u is out of bound"), sigId);
     }
-    uint32 importId = GetImportCount();
+
+    // Store the information about the import
+    Wasm::WasmImport* importInfo = Anew(&m_alloc, Wasm::WasmImport);
+    importInfo->kind = Wasm::ExternalKinds::Function;
+    importInfo->modNameLen = modNameLen;
+    importInfo->modName = modName;
+    importInfo->fnNameLen = fnNameLen;
+    importInfo->fnName = fnName;
+    m_imports->Add(importInfo);
+
     Wasm::WasmSignature* signature = GetSignature(sigId);
     Wasm::WasmFunctionInfo* funcInfo = AddWasmFunctionInfo(signature);
     // Create the custom reader to generate the import thunk
@@ -498,10 +496,13 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     }
     Wasm::WasmNode callNode;
     callNode.op = Wasm::wbCall;
-    callNode.call.num = importId;
+    callNode.call.num = m_importedFunctionCount++;
     callNode.call.funcType = Wasm::FunctionIndexTypes::Import;
     customReader->AddNode(callNode);
     funcInfo->SetCustomReader(customReader);
+#if DBG_DUMP 
+    funcInfo->importedFunctionReference = importInfo;
+#endif
 
     // 32 to account for hardcoded part of the name + max uint in decimal representation
     uint32 bufferLength = 32;
@@ -519,23 +520,14 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
             AssertMsg(UNREACHED, "Failed to generate import' thunk name");
         }
     }
-
-    // Store the information about the import
-    Wasm::WasmImport* importInfo = Anew(&m_alloc, Wasm::WasmImport);
-    importInfo->sigId = sigId;
-    importInfo->modNameLen = modNameLen;
-    importInfo->modName = modName;
-    importInfo->fnNameLen = fnNameLen;
-    importInfo->fnName = fnName;
-    m_imports->Add(importInfo);
 }
 
 Wasm::WasmImport*
-WebAssemblyModule::GetFunctionImport(uint32 i) const
+WebAssemblyModule::GetImport(uint32 i) const
 {
     if (i >= GetImportCount())
     {
-        throw Wasm::WasmCompilationException(_u("Import function index out of range"));
+        throw Wasm::WasmCompilationException(_u("Import index out of range"));
     }
     return m_imports->Item(i);
 }
@@ -544,13 +536,13 @@ void
 WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::WasmGlobal* importedGlobal)
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
-    wi->sigId = 0;
+    wi->kind = Wasm::ExternalKinds::Global;
     wi->fnName = fnName;
     wi->fnNameLen = fnNameLen;
     wi->modName = modName;
     wi->modNameLen = modNameLen;
+    m_imports->Add(wi);
 
-    importedGlobal->importVar = wi;
     importedGlobal->SetReferenceType(Wasm::WasmGlobal::ImportedReference);
 }
 
@@ -558,11 +550,12 @@ void
 WebAssemblyModule::AddMemoryImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
-    wi->sigId = 0;
+    wi->kind = Wasm::ExternalKinds::Memory;
     wi->fnName = importName;
     wi->fnNameLen = importNameLen;
     wi->modName = modName;
     wi->modNameLen = modNameLen;
+    m_imports->Add(wi);
     m_memImport = wi;
 }
 
@@ -570,11 +563,12 @@ void
 WebAssemblyModule::AddTableImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
-    wi->sigId = 0;
+    wi->kind = Wasm::ExternalKinds::Table;
     wi->fnName = importName;
     wi->fnNameLen = importNameLen;
     wi->modName = modName;
     wi->modNameLen = modNameLen;
+    m_imports->Add(wi);
     m_tableImport = wi;
 }
 
@@ -711,7 +705,7 @@ uint32 WebAssemblyModule::GetModuleEnvironmentSize() const
     // 1 each for memory, table, and signatures
     uint32 size = 3;
     size = UInt32Math::Add(size, GetWasmFunctionCount());
-    size = UInt32Math::Add(size, GetImportCount());
+    size = UInt32Math::Add(size, GetImportedFunctionCount());
     size = UInt32Math::Add(size, WAsmJs::ConvertToJsVarOffset<byte>(GetGlobalsByteSize()));
     return size;
 }

@@ -388,14 +388,7 @@ namespace Js
             if (wasmInfo)
             {
                 uint index = (uint)data->SlotIndex;
-                if (index - wasmInfo->m_module->GetImportFuncOffset() < wasmInfo->m_module->GetImportCount())
-                {
-                    uint importIndex = data->SlotIndex - wasmInfo->m_module->GetImportFuncOffset();
-                    auto loadedImport = wasmInfo->m_module->GetFunctionImport(importIndex);
-                    Output::Print(_u(" R%d = %s.%s[%u]"), data->Value, loadedImport->modName, loadedImport->fnName, importIndex);
-                    break;
-                }
-                else if (index - wasmInfo->m_module->GetFuncOffset() < wasmInfo->m_module->GetWasmFunctionCount())
+                if (index - wasmInfo->m_module->GetFuncOffset() < wasmInfo->m_module->GetWasmFunctionCount())
                 {
                     uint funcIndex = data->SlotIndex - wasmInfo->m_module->GetFuncOffset();
                     auto loadedFunc = wasmInfo->m_module->GetWasmFunctionInfo(funcIndex);
