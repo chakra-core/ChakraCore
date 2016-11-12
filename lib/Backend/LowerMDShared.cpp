@@ -7968,6 +7968,8 @@ LowererMD::EmitFloat32ToFloat64(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIn
 void
 LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
 {
+
+#ifdef _M_IX86
     IR::Opnd *srcOpnd = instr->UnlinkSrc1();
 
     LoadInt64HelperArgument(instr, srcOpnd);
@@ -7987,6 +7989,39 @@ LowererMD::EmitInt64toFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instr)
         Assert(UNREACHED);
     }
     this->ChangeToHelperCall(callinstr, method);
+#else
+    IR::Opnd* origDst = nullptr;
+    if (dst->IsFloat32())
+    {
+        origDst = dst;
+        dst = IR::RegOpnd::New(TyFloat64, this->m_func);
+    }
+
+    instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTSI2SD, dst, src, this->m_func));
+    if (src->IsUnsigned())
+    {
+        IR::RegOpnd * highestBitOpnd = IR::RegOpnd::New(TyInt64, this->m_func);
+        IR::Instr* instrNew = IR::Instr::New(Js::OpCode::SHR, highestBitOpnd, src,
+        IR::IntConstOpnd::New(63, TyInt8, this->m_func, true), this->m_func);
+        instr->InsertBefore(instrNew);
+        Legalize(instrNew);
+        IR::RegOpnd * baseOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+
+        instrNew = IR::Instr::New(Js::OpCode::MOV, baseOpnd, IR::AddrOpnd::New(m_func->GetThreadContextInfo()->GetUInt64ConvertConstAddr(),
+            IR::AddrOpndKindDynamicMisc, this->m_func), this->m_func);
+
+        instr->InsertBefore(instrNew);
+
+        instrNew = IR::Instr::New(Js::OpCode::ADDSD, dst, dst, IR::IndirOpnd::New(baseOpnd,
+            highestBitOpnd, IndirScale8, TyFloat64, this->m_func), this->m_func);
+        instr->InsertBefore(instrNew);
+    }
+
+    if (origDst)
+    {
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::CVTSD2SS, origDst, dst, this->m_func));
+    }
+#endif
 }
 
 void
