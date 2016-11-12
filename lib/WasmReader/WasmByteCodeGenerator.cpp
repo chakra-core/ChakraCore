@@ -158,8 +158,8 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
             Wasm::WasmExport* funcExport = m_module->GetFunctionExport(iExport);
             if (funcExport &&
                 funcExport->nameLength > 0 &&
-                m_module->GetFunctionIndexType(funcExport->funcIndex) == FunctionIndexTypes::Function &&
-                funcExport->funcIndex == wasmInfo->GetNumber())
+                m_module->GetFunctionIndexType(funcExport->index) == FunctionIndexTypes::Function &&
+                funcExport->index == wasmInfo->GetNumber())
             {
                 nameLength = funcExport->nameLength + 16;
                 char16 * autoName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
@@ -565,7 +565,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitGetGlobal()
 {
     uint globalIndex = GetReader()->m_currentNode.var.num;
-    WasmGlobal* global = m_module->globals->Item(globalIndex);
+    WasmGlobal* global = m_module->GetGlobal(globalIndex);
 
     WasmTypes::WasmType type = global->GetType();
 
@@ -595,7 +595,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitSetGlobal()
 {
     uint globalIndex = GetReader()->m_currentNode.var.num;
-    WasmGlobal* global = m_module->globals->Item(globalIndex);
+    WasmGlobal* global = m_module->GetGlobal(globalIndex);
     Js::RegSlot slot = m_module->GetOffsetForGlobal(global);
 
     WasmTypes::WasmType type = global->GetType();

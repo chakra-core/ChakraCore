@@ -34,10 +34,10 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_binaryBuffer(binaryBuffer)
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
-    memset(globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
+    memset(m_globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
     m_functionsInfo = RecyclerNew(scriptContext->GetRecycler(), WasmFunctionInfosList, scriptContext->GetRecycler());
     m_imports = Anew(&m_alloc, WasmImportsList, &m_alloc);
-    globals = Anew(&m_alloc, WasmGlobalsList, &m_alloc);
+    m_globals = Anew(&m_alloc, WasmGlobalsList, &m_alloc);
     m_reader = Anew(&m_alloc, Wasm::WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength);
 }
 
@@ -375,7 +375,7 @@ WebAssemblyModule::AllocateFunctionExports(uint32 entries)
 void
 WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind)
 {
-    m_exports[iExport].funcIndex = funcIndex;
+    m_exports[iExport].index = funcIndex;
     m_exports[iExport].nameLength = nameLength;
     m_exports[iExport].name = exportName;
     m_exports[iExport].kind = kind;
@@ -472,7 +472,6 @@ WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, con
 
     importedGlobal->importVar = wi;
     importedGlobal->SetReferenceType(Wasm::WasmGlobal::ImportedReference);
-    globals->Add(importedGlobal);
 }
 
 void
@@ -513,11 +512,11 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr) const
     }
     else if (initExpr.op == Wasm::wbGetGlobal)
     {
-        if (initExpr.var.num >= (uint)this->globals->Count())
+        if (initExpr.var.num >= (uint)m_globals->Count())
         {
             throw Wasm::WasmCompilationException(_u("global %d doesn't exist"), initExpr.var.num);
         }
-        Wasm::WasmGlobal* global = this->globals->Item(initExpr.var.num);
+        Wasm::WasmGlobal* global = m_globals->Item(initExpr.var.num);
 
         if (global->GetReferenceType() != Wasm::WasmGlobal::Const || global->GetType() != Wasm::WasmTypes::I32)
         {
@@ -526,6 +525,30 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr) const
         offset = global->cnst.i32;
     }
     return offset;
+}
+
+Wasm::WasmGlobal*
+WebAssemblyModule::AddGlobal(Wasm::WasmTypes::WasmType type, bool isMutable)
+{
+    Wasm::WasmGlobal* global = Anew(&m_alloc, Wasm::WasmGlobal, m_globalCounts[type]++, type, isMutable);
+    m_globals->Add(global);
+    return global;
+}
+
+uint32
+WebAssemblyModule::GetGlobalCount() const
+{
+    return (uint32)m_globals->Count();
+}
+
+Wasm::WasmGlobal*
+WebAssemblyModule::GetGlobal(uint32 index) const
+{
+    if (index >= GetGlobalCount())
+    {
+        throw Wasm::WasmCompilationException(_u("Global index out of bounds %u"), index);
+    }
+    return m_globals->Item(index);
 }
 
 void
@@ -651,7 +674,7 @@ uint WebAssemblyModule::AddGlobalByteSizeToOffset(Wasm::WasmTypes::WasmType type
 {
     uint32 typeSize = Wasm::WasmTypes::GetTypeByteSize(type);
     offset = ::Math::AlignOverflowCheck(offset, typeSize);
-    uint32 sizeUsed = WAsmJs::ConvertOffset<byte>(globalCounts[type], typeSize);
+    uint32 sizeUsed = WAsmJs::ConvertOffset<byte>(m_globalCounts[type], typeSize);
     return UInt32Math::Add(offset, sizeUsed);
 }
 

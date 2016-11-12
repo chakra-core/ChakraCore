@@ -125,7 +125,7 @@ namespace Wasm
 
     struct WasmExport
     {
-        uint32 funcIndex;
+        uint32 index;
         uint32 nameLength;
         const char16* name;
         ExternalKinds::ExternalKind kind;
