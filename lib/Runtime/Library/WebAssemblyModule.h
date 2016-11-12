@@ -110,6 +110,10 @@ public:
 
     uint GetOffsetFromInit(const Wasm::WasmNode& initexpr) const;
 
+    Wasm::WasmGlobal* AddGlobal(Wasm::WasmTypes::WasmType type, bool isMutable);
+    uint32 GetGlobalCount() const;
+    Wasm::WasmGlobal* GetGlobal(uint32 index) const;
+
     void AllocateDataSegs(uint32 count);
     void SetDataSeg(Wasm::WasmDataSegment* seg, uint32 index);
     Wasm::WasmDataSegment* GetDataSeg(uint32 index) const;
@@ -143,10 +147,6 @@ public:
     virtual void Dispose(bool isShutdown) override;
     virtual void Mark(Recycler * recycler) override;
 
-    uint globalCounts[Wasm::WasmTypes::Limit];
-    typedef JsUtil::List<Wasm::WasmGlobal*, ArenaAllocator> WasmGlobalsList;
-    WasmGlobalsList * globals;
-
 private:
     static JavascriptString * GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds::ExternalKind kind);
 
@@ -171,6 +171,10 @@ private:
     Wasm::WasmDataSegment** m_datasegs;
     Wasm::WasmBinaryReader* m_reader;
     uint32* m_equivalentSignatureMap;
+
+    uint m_globalCounts[Wasm::WasmTypes::Limit];
+    typedef JsUtil::List<Wasm::WasmGlobal*, ArenaAllocator> WasmGlobalsList;
+    WasmGlobalsList * m_globals;
 
     uint m_signaturesCount;
     uint m_exportCount;

@@ -890,8 +890,8 @@ WasmBinaryReader::ReadGlobalsSection()
     for (UINT i = 0; i < numEntries; ++i)
     {
         WasmTypes::WasmType type = ReadWasmType(len);
-        bool mutability = ReadConst<UINT8>() == 1;
-        WasmGlobal* global = Anew(m_alloc, WasmGlobal, m_module->globalCounts[type]++, type, mutability);
+        bool isMutable = ReadConst<UINT8>() == 1;
+        WasmGlobal* global = m_module->AddGlobal(type, isMutable);
 
         WasmNode globalNode = ReadInitExpr();
         switch (globalNode.op) {
@@ -909,8 +909,6 @@ WasmBinaryReader::ReadGlobalsSection()
         default:
             Assert(UNREACHED);
         }
-
-        m_module->globals->Add(global);
     }
 }
 
@@ -964,12 +962,8 @@ WasmBinaryReader::ReadImportEntries()
         case ExternalKinds::Global:
         {
             WasmTypes::WasmType type = ReadWasmType(len);
-            bool mutability = ReadConst<UINT8>() == 1;
-            WasmGlobal* importedGlobal = Anew(m_alloc, WasmGlobal, m_module->globalCounts[type]++, type, mutability);
-            if (importedGlobal->GetType() == WasmTypes::I64)
-            {
-                ThrowDecodingError(_u("I64 Globals, NYI"));
-            }
+            bool isMutable = ReadConst<UINT8>() == 1;
+            WasmGlobal* importedGlobal = m_module->AddGlobal(type, isMutable);
             m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen, importedGlobal);
             break;
         }
@@ -1114,11 +1108,7 @@ WasmBinaryReader::ReadInitExpr()
     case wbGetGlobal:
     {
         uint32 globalIndex = node.var.num;
-        if (globalIndex >= (uint32)m_module->globals->Count())
-        {
-            ThrowDecodingError(_u("Global %u out of bounds"), globalIndex);
-        }
-        WasmGlobal* global = m_module->globals->Item(globalIndex);
+        WasmGlobal* global = m_module->GetGlobal(globalIndex);
         if (global->GetMutability())
         {
             ThrowDecodingError(_u("initializer expression cannot reference a mutable global"));

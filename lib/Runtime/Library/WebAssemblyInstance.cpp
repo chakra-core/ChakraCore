@@ -231,10 +231,10 @@ void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptCont
                 break;
             case Wasm::ExternalKinds::Function:
 
-                obj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, wasmExport->funcIndex, localModuleFunctions, importFunctions);
+                obj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, wasmExport->index, localModuleFunctions, importFunctions);
                 break;
             case Wasm::ExternalKinds::Global:
-                Wasm::WasmGlobal* global = wasmModule->globals->Item(wasmExport->funcIndex);
+                Wasm::WasmGlobal* global = wasmModule->GetGlobal(wasmExport->index);
                 Assert(global->GetReferenceType() == Wasm::WasmGlobal::Const); //every global has to be resolved by this point
 
                 if (global->GetMutability())
@@ -254,6 +254,7 @@ void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptCont
                     obj = JavascriptNumber::New(global->cnst.f64, ctx);
                     break;
                 case Wasm::WasmTypes::I64:
+                    JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion);
                 default:
                     Assert(UNREACHED);
                     break;
@@ -360,10 +361,10 @@ void WebAssemblyInstance::LoadImports(WebAssemblyModule * wasmModule, ScriptCont
 void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var moduleEnv, Var ffi)
 {
     uint i = 0;
-    uint count = (uint)wasmModule->globals->Count();
-    while (i < count && wasmModule->globals->Item(i)->GetReferenceType() == Wasm::WasmGlobal::ImportedReference)
+    uint count = wasmModule->GetGlobalCount();
+    while (i < count && wasmModule->GetGlobal(i)->GetReferenceType() == Wasm::WasmGlobal::ImportedReference)
     {
-        Wasm::WasmGlobal* global = wasmModule->globals->Item(i);
+        Wasm::WasmGlobal* global = wasmModule->GetGlobal(i);
         Var prop = GetImportVariable(global->importVar, ctx, ffi);
 
         uint offset = wasmModule->GetOffsetForGlobal(global);
@@ -410,7 +411,7 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
 
     for (; i < count; i++)
     {
-        Wasm::WasmGlobal* global = wasmModule->globals->Item(i);
+        Wasm::WasmGlobal* global = wasmModule->GetGlobal(i);
 
         uint offset = wasmModule->GetOffsetForGlobal(global);
         Wasm::WasmGlobal* sourceGlobal = nullptr;
@@ -420,7 +421,7 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
         }
         else
         {
-            sourceGlobal = wasmModule->globals->Item(global->var.num);
+            sourceGlobal = wasmModule->GetGlobal(global->var.num);
             Assert(sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::ImportedReference); //no imported globals at this point
             if (sourceGlobal->GetReferenceType() != Wasm::WasmGlobal::Const)
             {

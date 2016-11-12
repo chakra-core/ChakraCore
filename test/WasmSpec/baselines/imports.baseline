@@ -4,5 +4,5 @@
 13
 13
 Unexpected Error while compiling imports.8.wasm
-WebAssemblyCompileError: Compiling wasm failed: I64 Globals, NYI
+TypeError: Invalid WebAssembly type conversion
 24/24 tests passed.
