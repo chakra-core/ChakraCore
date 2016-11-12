@@ -20253,10 +20253,6 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
         targetInstr = instrBranch->GetTarget();
         labelFallthrough = instrBranch->GetOrCreateContinueLabel();
     }
-    else
-    {
-        return false;
-    }
 
     // Assume we need the helper until we can show otherwise.
     *pNeedHelper = true;
@@ -20334,7 +20330,6 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
     }
     if (srcBool->IsIntConstOpnd())
     {
-        Assert(srcBool->IsIntConstOpnd());
         IR::IntConstOpnd * constSrcBool = srcBool->AsIntConstOpnd();
         IntConstType constIntVal = constSrcBool->GetValue();
         srcBoolConst = true;
@@ -20415,32 +20410,31 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
     else if (srcIntConst && srcBoolConst)
     {
         // If both arguments are constant, we can statically determine the result.
-        bool sameval = srcIntConstVal == srcBoolConstVal;
+        bool sameVal = srcIntConstVal == srcBoolConstVal;
         if (isBranchNotCompare)
         {
             // For constant branches, branch to the target
             Assert(instr);
-            IR::LabelInstr * target = sameval && srcIntIsBoolable ? equalResultTarget : inequalResultTarget;
+            IR::LabelInstr * target = sameVal && srcIntIsBoolable ? equalResultTarget : inequalResultTarget;
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, target, this->m_func));
 #if DBG
             // Since we're not making a non-helper path to one of the branches, we need to tell
             // DbCheckPostLower that we are going to have a non-helper label without non-helper
             // branches.
             // Note: this following line isn't good practice in general
-            (sameval && srcIntIsBoolable ? inequalResultTarget : equalResultTarget)->m_noHelperAssert = true;
+            (sameVal && srcIntIsBoolable ? inequalResultTarget : equalResultTarget)->m_noHelperAssert = true;
 #endif
         }
         else
         {
             // For constant compares, load the constant result
-            LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, sameval && srcIntIsBoolable ? equalResultValue : inequalResultValue), instr);
+            LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, sameVal && srcIntIsBoolable ? equalResultValue : inequalResultValue), instr);
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
         }
     }
     else if (!srcIntConst && !srcBoolConst)
     {
         // If neither is constant, we can still do a bit better than loading the helper
-        IR::LabelInstr * firstTrue = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
         IR::LabelInstr * firstFalse = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
         IR::LabelInstr * forceInequal = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
         // We branch based on the zero-ness of the integer argument to two checks against the boolean argument
@@ -20450,7 +20444,6 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
         InsertCompareBranch(IR::IntConstOpnd::New((((IntConstType)1) << Js::VarTag_Shift) + Js::AtomTag, IRType::TyVar, this->m_func), srcInt->AsRegOpnd(), Js::OpCode::BrNeq_A, forceInequal, instr, true);
         if (isBranchNotCompare)
         {
-            instr->InsertBefore(firstTrue);
             InsertCompareBranch(
                 srcBool,
                 LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue),
@@ -20472,11 +20465,7 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
         else
         {
             // Load either the bool or its complement into the dst reg, depending on the opcode
-            if (!isNegOp)
-            {
-                instr->InsertBefore(firstTrue);
-            }
-            else
+            if (isNegOp)
             {
                 instr->InsertBefore(firstFalse);
             }
@@ -20484,11 +20473,7 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
             this->InsertMove(instr->GetDst(), srcBool, instr);
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
             // Handle the complement case
-            if (isNegOp)
-            {
-                instr->InsertBefore(firstTrue);
-            }
-            else
+            if (!isNegOp)
             {
                 instr->InsertBefore(firstFalse);
             }

@@ -9212,6 +9212,14 @@ GlobOpt::GetConstantVar(IR::Opnd *opnd, Value *val)
     return nullptr;
 }
 
+bool BoolAndIntStaticAndTypeMismatch(Value* src1Val, Value* src2Val, Js::Var src1Var, Js::Var src2Var)
+{
+    ValueInfo *src1ValInfo = src1Val->GetValueInfo();
+    ValueInfo *src2ValInfo = src2Val->GetValueInfo();
+    return (src1ValInfo->IsNumber() && src1Var && src2ValInfo->IsBoolean() && src1Var != Js::TaggedInt::ToVarUnchecked(0) && src1Var != Js::TaggedInt::ToVarUnchecked(1)) ||
+        (src2ValInfo->IsNumber() && src2Var && src1ValInfo->IsBoolean() && src2Var != Js::TaggedInt::ToVarUnchecked(0) && src2Var != Js::TaggedInt::ToVarUnchecked(1));
+}
+
 bool
 GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Value **pDstVal)
 {
@@ -9247,12 +9255,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
     case Js::OpCode::BrNotNeq_A:
         if (!src1Var || !src2Var)
         {
-            ValueInfo *src1ValInfo = src1Val->GetValueInfo();
-            ValueInfo *src2ValInfo = src2Val->GetValueInfo();
-            if (
-                (src1ValInfo->IsNumber() && src1Var && src2ValInfo->IsBoolean() && src1Var != Js::TaggedInt::ToVarUnchecked(0) && src1Var != Js::TaggedInt::ToVarUnchecked(1)) ||
-                (src2ValInfo->IsNumber() && src2Var && src1ValInfo->IsBoolean() && src2Var != Js::TaggedInt::ToVarUnchecked(0) && src2Var != Js::TaggedInt::ToVarUnchecked(1))
-               )
+            if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
             {
                     result = false;
             }
@@ -9275,12 +9278,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
     case Js::OpCode::BrNotEq_A:
         if (!src1Var || !src2Var)
         {
-            ValueInfo *src1ValInfo = src1Val->GetValueInfo();
-            ValueInfo *src2ValInfo = src2Val->GetValueInfo();
-            if (
-                (src1ValInfo->IsNumber() && src1Var && src2ValInfo->IsBoolean() && src1Var != Js::TaggedInt::ToVarUnchecked(0) && src1Var != Js::TaggedInt::ToVarUnchecked(1)) ||
-                (src2ValInfo->IsNumber() && src2Var && src1ValInfo->IsBoolean() && src2Var != Js::TaggedInt::ToVarUnchecked(0) && src2Var != Js::TaggedInt::ToVarUnchecked(1))
-                )
+            if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
             {
                 result = true;
             }
