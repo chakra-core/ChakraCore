@@ -189,6 +189,7 @@ namespace Js
         }
 
         this->rejitCount = 0;
+        this->bailOutOffsetForLastRejit = Js::Constants::NoByteCodeOffset;
 #if DBG
         for (ProfileId i = 0; i < functionBody->GetProfiledArrayCallSiteCount(); ++i)
         {

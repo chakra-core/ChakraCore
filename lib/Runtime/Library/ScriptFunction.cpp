@@ -323,6 +323,14 @@ namespace Js
         return functionBody->GetOriginalEntryPoint();
     }
 
+    bool ScriptFunction::IsNewEntryPointAvailable()
+    {
+        Js::FunctionEntryPointInfo *const defaultEntryPointInfo = this->GetFunctionBody()->GetDefaultFunctionEntryPointInfo();
+        JavascriptMethod defaultEntryPoint = this->GetFunctionBody()->GetDirectEntryPoint(defaultEntryPointInfo);
+
+        return this->GetEntryPoint() != defaultEntryPoint;
+    }
+
     Var ScriptFunction::GetSourceString() const
     {
         return this->GetFunctionProxy()->EnsureDeserialized()->GetCachedSourceString();
