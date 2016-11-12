@@ -60,23 +60,10 @@ WebAssemblyInstance::NewInstance(RecyclableObject* function, CallInfo callInfo, 
     }
     WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
 
-    Var importObject;
-    if (args.Info.Count < 3)
+    Var importObject = scriptContext->GetLibrary()->GetUndefined();
+    if (args.Info.Count >= 3)
     {
-        importObject = scriptContext->GetLibrary()->GetUndefined();
-    }
-    else
-    {
-        if (!JavascriptOperators::IsUndefined(args[2]) && !JavascriptOperators::IsObject(args[2]))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
-        }
         importObject = args[2];
-    }
-
-    if (module->GetImportCount() > 0 && !JavascriptOperators::IsObject(importObject))
-    {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
     }
 
     return CreateInstance(module, importObject);
@@ -85,6 +72,16 @@ WebAssemblyInstance::NewInstance(RecyclableObject* function, CallInfo callInfo, 
 WebAssemblyInstance *
 WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject)
 {
+    if (!JavascriptOperators::IsUndefined(importObject) && !JavascriptOperators::IsObject(importObject))
+    {
+        JavascriptError::ThrowTypeError(module->GetScriptContext(), JSERR_NeedObject);
+    }
+
+    if (module->GetImportCount() > 0 && !JavascriptOperators::IsObject(importObject))
+    {
+        JavascriptError::ThrowTypeError(module->GetScriptContext(), JSERR_NeedObject);
+    }
+
     ScriptContext * scriptContext = module->GetScriptContext();
     Var* moduleEnvironmentPtr = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, module->GetModuleEnvironmentSize());
     Var* memory = moduleEnvironmentPtr + WebAssemblyModule::GetMemoryOffset();
@@ -213,20 +210,18 @@ void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, Var* memo
 
 void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var exportsNamespace, Var* memory, WebAssemblyTable** table, Var exportObj, Var* localModuleFunctions, Var* importFunctions)
 {
-    PropertyRecord const * exportsPropertyRecord = nullptr;
-    ctx->GetOrAddPropertyRecord(_u("exports"), lstrlen(_u("exports")), &exportsPropertyRecord);
-    JavascriptOperators::OP_SetProperty(exportObj, exportsPropertyRecord->GetPropertyId(), exportsNamespace, ctx);
+    JavascriptOperators::OP_SetProperty(exportObj, PropertyIds::exports, exportsNamespace, ctx);
 
     for (uint32 iExport = 0; iExport < wasmModule->GetExportCount(); ++iExport)
     {
-        Wasm::WasmExport* funcExport = wasmModule->GetFunctionExport(iExport);
-        if (funcExport && funcExport->nameLength > 0)
+        Wasm::WasmExport* wasmExport = wasmModule->GetExport(iExport);
+        if (wasmExport  && wasmExport->nameLength > 0)
         {
             PropertyRecord const * propertyRecord = nullptr;
-            ctx->GetOrAddPropertyRecord(funcExport->name, funcExport->nameLength, &propertyRecord);
+            ctx->GetOrAddPropertyRecord(wasmExport->name, wasmExport->nameLength, &propertyRecord);
 
             Var obj = ctx->GetLibrary()->GetUndefined();
-            switch (funcExport->kind)
+            switch (wasmExport->kind)
             {
             case Wasm::ExternalKinds::Table:
                 obj = *table;
@@ -236,10 +231,10 @@ void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptCont
                 break;
             case Wasm::ExternalKinds::Function:
 
-                obj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcExport->funcIndex, localModuleFunctions, importFunctions);
+                obj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, wasmExport->funcIndex, localModuleFunctions, importFunctions);
                 break;
             case Wasm::ExternalKinds::Global:
-                Wasm::WasmGlobal* global = wasmModule->globals->Item(funcExport->funcIndex);
+                Wasm::WasmGlobal* global = wasmModule->globals->Item(wasmExport->funcIndex);
                 Assert(global->GetReferenceType() == Wasm::WasmGlobal::Const); //every global has to be resolved by this point
 
                 if (global->GetMutability())

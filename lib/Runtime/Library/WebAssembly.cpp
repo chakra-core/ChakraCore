@@ -46,6 +46,61 @@ Var WebAssembly::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...
     return JavascriptPromise::CreateResolvedPromise(module, scriptContext);
 }
 
+Var WebAssembly::EntryInstantiate(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    Var resultObject = nullptr;
+    try
+    {
+        if (args.Info.Count < 2)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_InvalidInstantiateArgument);
+        }
+
+        Var importObject = scriptContext->GetLibrary()->GetUndefined();
+        if (args.Info.Count >= 3)
+        {
+            importObject = args[2];
+        }
+
+        if (WebAssemblyModule::Is(args[1]))
+        {
+            resultObject = WebAssemblyInstance::CreateInstance(WebAssemblyModule::FromVar(args[1]), importObject);
+        }
+        else
+        {
+            BYTE* buffer;
+            uint byteLength;
+            WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
+
+            WebAssemblyModule * module = WebAssemblyModule::CreateModule(scriptContext, buffer, byteLength);
+
+            WebAssemblyInstance * instance = WebAssemblyInstance::CreateInstance(module, importObject);
+
+            resultObject = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
+
+            JavascriptOperators::OP_SetProperty(resultObject, PropertyIds::module, module, scriptContext);
+
+            JavascriptOperators::OP_SetProperty(resultObject, PropertyIds::instance, instance, scriptContext);
+        }
+    }
+    catch (JavascriptError & e)
+    {
+        return JavascriptPromise::CreateRejectedPromise(&e, scriptContext);
+    }
+
+    Assert(resultObject != nullptr);
+
+    return JavascriptPromise::CreateResolvedPromise(resultObject, scriptContext);
+}
+
 Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ...)
 {
     PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);

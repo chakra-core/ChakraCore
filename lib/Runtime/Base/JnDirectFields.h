@@ -284,8 +284,17 @@ ENTRY(Table)
 ENTRY(CompileError)
 ENTRY(RuntimeError)
 ENTRY(validate)
+ENTRY(instantiate)
 ENTRY(grow)
 ENTRY(nativeTypeCallTest)
+ENTRY(module)
+ENTRY(instance)
+ENTRY(kind)
+ENTRY(exports)
+ENTRY(imports)
+ENTRY(initial)
+ENTRY(maximum)
+ENTRY(element)
 // End Wasm
 
 // SIMD_JS

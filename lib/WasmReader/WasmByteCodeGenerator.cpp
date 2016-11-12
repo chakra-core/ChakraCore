@@ -155,15 +155,15 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     {
         for (uint32 iExport = 0; iExport < m_module->GetExportCount(); ++iExport)
         {
-            Wasm::WasmExport* funcExport = m_module->GetFunctionExport(iExport);
-            if (funcExport &&
-                funcExport->nameLength > 0 &&
-                m_module->GetFunctionIndexType(funcExport->funcIndex) == FunctionIndexTypes::Function &&
-                funcExport->funcIndex == wasmInfo->GetNumber())
+            Wasm::WasmExport* wasmExport = m_module->GetExport(iExport);
+            if (wasmExport  &&
+                wasmExport->nameLength > 0 &&
+                m_module->GetFunctionIndexType(wasmExport->funcIndex) == FunctionIndexTypes::Function &&
+                wasmExport->funcIndex == wasmInfo->GetNumber())
             {
-                nameLength = funcExport->nameLength + 16;
+                nameLength = wasmExport->nameLength + 16;
                 char16 * autoName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
-                nameLength = swprintf_s(autoName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
+                nameLength = swprintf_s(autoName, nameLength, _u("%s[%u]"), wasmExport->name, wasmInfo->GetNumber());
                 functionName = autoName;
                 break;
             }
