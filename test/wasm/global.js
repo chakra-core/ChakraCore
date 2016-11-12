@@ -40,5 +40,31 @@ printAll(a);
 a["set-b"](0.125);
 printAll(a);
 printExportedGlobals(a);
-print ("printing module b");
+print(`get-i64 ${WebAssembly.nativeTypeCallTest(a["get-i64"])}`);
+print("printing module b");
 printAll(b);
+
+const mod3 = new WebAssembly.Module(readbuffer('binaries/i64_invalid_global_import.wasm'));
+try {
+    new WebAssembly.Instance(mod3, {test: {global: 5}});
+    print("should have trap");
+} catch (e) {
+    if (e instanceof TypeError) {
+        print(`Should be invalid type conversion: ${e.message}`);
+    } else {
+        print(`Invalid error ${e}`);
+    }
+}
+
+const mod4 = new WebAssembly.Module(readbuffer('binaries/i64_invalid_global_export.wasm'));
+try {
+    new WebAssembly.Instance(mod4, {});
+    print("should have trap");
+} catch (e) {
+    if (e instanceof TypeError) {
+        print(`Should be invalid type conversion: ${e.message}`);
+    } else {
+        print(`Invalid error ${e}`);
+    }
+}
+

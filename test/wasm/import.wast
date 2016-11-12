@@ -8,7 +8,7 @@
   (global $c (import "m" "c") f64)
   (global $d (import "m" "d") f64)
   (global $e (import "m" "e") i32)
- 
+
   (global $a i32 (i32.const 13))
   (global $b f32 (f32.const 5))
   (global $f f64 (get_global $d))
@@ -19,7 +19,7 @@
   (func (export "get-c") (result f64) (get_global $c))
   (func (export "get-d") (result f64) (get_global $d))
   (func (export "get-e") (result i32) (get_global $e))
-  
+
   (func (export "get-a") (result i32) (get_global $a))
   (func (export "get-b") (result f32) (get_global $b))
   (func (export "get-f") (result f64) (get_global $f))
