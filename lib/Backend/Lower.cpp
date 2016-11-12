@@ -1443,7 +1443,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     this->LowerBinaryHelperMem(instr, IR::HelperOP_CmEq_A);
                 }
             }
-            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper)))
+            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper) || this->GenerateFastEqBoolInt(instr, &needHelper)))
             {
                 if (needHelper)
                 {
@@ -1475,7 +1475,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     this->LowerBinaryHelperMem(instr, IR::HelperOP_CmNeq_A);
                 }
             }
-            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper)))
+            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper) || this->GenerateFastEqBoolInt(instr,&needHelper)))
             {
                 if (needHelper)
                 {
@@ -1505,7 +1505,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && this->TryGenerateFastCmSrEq(instr))
             {
             }
-            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper)))
+            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper) || this->GenerateFastEqBoolInt(instr, &needHelper)))
             {
                 if (needHelper)
                 {
@@ -1532,7 +1532,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     this->LowerBinaryHelperMem(instr, IR::HelperOP_CmSrNeq_A);
                 }
             }
-            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper)))
+            else if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath && (this->m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastCmEqLikely(instr, &needHelper) || this->GenerateFastEqBoolInt(instr, &needHelper)))
             {
                 if (needHelper)
                 {
@@ -2184,7 +2184,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 else if (this->TryGenerateFastBrEq(instr))
                 {
                 }
-                else if (m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
+                else if (m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper) || this->GenerateFastEqBoolInt(instr, &needHelper))
                 {
                     if (needHelper)
                     {
@@ -2301,6 +2301,17 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 {
                     this->LowerBrCMem(instr, IR::HelperOp_NotEqual, false);
                 }
+                else if (this->GenerateFastEqBoolInt(instr, &needHelper))
+                {
+                    if (needHelper)
+                    {
+                        this->LowerBrCMem(instr, IR::HelperOp_NotEqual, false);
+                    }
+                    else
+                    {
+                        instr->Remove();
+                    }
+                }
                 else
                 {
                     this->LowerBrCMem(instr, IR::HelperOp_NotEqual, false, false /*isHelper*/);
@@ -2360,7 +2371,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 bool needHelper = true;
                 if (!PHASE_OFF(Js::BranchFastPathPhase, this->m_func) && !noMathFastPath)
                 {
-                    if (m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
+                    if (m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper) || this->GenerateFastEqBoolInt(instr, &needHelper))
                     {
                         if (needHelper)
                         {
@@ -2407,7 +2418,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                 else if (this->GenerateFastBrSrNeq(instr, &instrPrev))
                 {
                 }
-                else if (m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper))
+                else if (m_lowererMD.GenerateFastBrOrCmString(instr) || this->GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper) || this->GenerateFastEqBoolInt(instr, &needHelper))
                 {
                     if (needHelper)
                     {
@@ -20175,6 +20186,406 @@ Lowerer::GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *inse
     return typeRegOpnd;
 }
 
+bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
+{
+    Assert(instr);
+
+    // There's a total of 8 modes for this function, based on these inferred flags
+    bool isBranchNotCompare = instr->IsBranchInstr();
+    bool isStrict = false;
+    bool isNegOp = false;
+
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::BrSrEq_A:
+    case Js::OpCode::BrSrNotNeq_A:
+    case Js::OpCode::BrSrNeq_A:
+    case Js::OpCode::BrSrNotEq_A:
+    case Js::OpCode::CmSrEq_A:
+    case Js::OpCode::CmSrNeq_A:
+        isStrict = true;
+        break;
+    default:
+        break;
+    }
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::BrSrEq_A:
+    case Js::OpCode::BrSrNotNeq_A:
+    case Js::OpCode::CmSrEq_A:
+    case Js::OpCode::BrEq_A:
+    case Js::OpCode::BrNotNeq_A:
+    case Js::OpCode::CmEq_A:
+        isNegOp = false;
+        break;
+    case Js::OpCode::BrSrNeq_A:
+    case Js::OpCode::BrSrNotEq_A:
+    case Js::OpCode::CmSrNeq_A:
+    case Js::OpCode::BrNeq_A:
+    case Js::OpCode::BrNotEq_A:
+    case Js::OpCode::CmNeq_A:
+        isNegOp = true;
+        break;
+    default:
+        // This opcode is not one of the ones that should be handled here.
+        return false;
+        break;
+    }
+
+    IR::Opnd *src1 = instr->GetSrc1();
+    IR::Opnd *src2 = instr->GetSrc2();
+
+    // The instrucions given to this _should_ all be 2-arg.
+    Assert(src1 && src2);
+    if (!(src1 && src2))
+    {
+        return false;
+    }
+
+    // If it's a branch instruction, we'll want these to be defined
+    //IR::BranchInstr *instrBranch = nullptr;
+    IR::LabelInstr *targetInstr = nullptr;
+    IR::LabelInstr *labelFallthrough = nullptr;
+
+    if (isBranchNotCompare)
+    {
+        IR::BranchInstr * instrBranch = instr->AsBranchInstr();
+        targetInstr = instrBranch->GetTarget();
+        labelFallthrough = instrBranch->GetOrCreateContinueLabel();
+    }
+    else
+    {
+        return false;
+    }
+
+    // Assume we need the helper until we can show otherwise.
+    *pNeedHelper = true;
+    // If we don't know the final types well enough at JIT time, a helper block to set
+    // the inputs to the correct types will be needed.
+    IR::LabelInstr *labelHelper = nullptr;
+    // If we're doing a compare and can handle it early, then we want to skip the helper
+    IR::LabelInstr *labelDone = instr->GetOrCreateContinueLabel();
+
+    // Normallize for orderings
+    IR::Opnd *srcBool = nullptr;
+    IR::Opnd *srcInt = nullptr;
+    if (src1->GetValueType().IsLikelyBoolean() && src2->GetValueType().IsLikelyTaggedInt())
+    {
+        srcBool = src1;
+        srcInt = src2;
+    }
+    else if (src1->GetValueType().IsLikelyTaggedInt() && src2->GetValueType().IsLikelyBoolean())
+    {
+        srcInt = src1;
+        srcBool = src2;
+    }
+    else
+    {
+        return false;
+    }
+
+    // If either instruction is constant, we can simplify the check. If both are constant, we can eliminate it
+    bool srcIntConst = false;
+    bool srcIntConstVal = false;
+    // If we're comparing with a number that is not 0 or 1, then the two are inequal by default
+    bool srcIntIsBoolable = false;
+    bool srcBoolConst = false;
+    bool srcBoolConstVal = false;
+    if (srcInt->IsIntConstOpnd())
+    {
+        IR::IntConstOpnd * constSrcInt = srcInt->AsIntConstOpnd();
+        IntConstType constIntVal = constSrcInt->GetValue();
+        srcIntConst = true;
+        if (constIntVal == 0)
+        {
+            srcIntConstVal = false;
+            srcIntIsBoolable = true;
+        }
+        else if (constIntVal == 1)
+        {
+            srcIntConstVal = true;
+            srcIntIsBoolable = true;
+        }
+    }
+    else if (srcInt->IsAddrOpnd())
+    {
+        IR::AddrOpnd * addrSrcInt = srcInt->AsAddrOpnd();
+        if (!(addrSrcInt && addrSrcInt->IsVar() && Js::TaggedInt::Is(addrSrcInt->m_address)))
+        {
+            return false;
+        }
+        int32 constIntVal = Js::TaggedInt::ToInt32(addrSrcInt->m_address);
+        srcIntConst = true;
+        if (constIntVal == 0)
+        {
+            srcIntConstVal = false;
+            srcIntIsBoolable = true;
+        }
+        else if (constIntVal == 1)
+        {
+            srcIntConstVal = true;
+            srcIntIsBoolable = true;
+        }
+    }
+    else if (srcInt->IsConstOpnd())
+    {
+        // Not handled yet
+        return false;
+    }
+    if (srcBool->IsIntConstOpnd())
+    {
+        Assert(srcBool->IsIntConstOpnd());
+        IR::IntConstOpnd * constSrcBool = srcBool->AsIntConstOpnd();
+        IntConstType constIntVal = constSrcBool->GetValue();
+        srcBoolConst = true;
+        srcBoolConstVal = constIntVal != 0;
+    }
+    else if (srcBool->IsAddrOpnd())
+    {
+        IR::AddrOpnd * addrSrcBool = srcInt->AsAddrOpnd();
+        if (!(addrSrcBool && addrSrcBool->IsVar() && Js::TaggedInt::Is(addrSrcBool->m_address)))
+        {
+            return false;
+        }
+        int32 value = Js::TaggedInt::ToInt32(addrSrcBool->m_address);
+        srcBoolConst = true;
+        srcBoolConstVal = value != 0;
+    }
+    else if (srcBool->IsConstOpnd())
+    {
+        // Not handled yet
+        return false;
+    }
+
+    // Do these checks here, since that way we avoid emitting instructions before exiting earlier
+    if (srcInt->GetValueType().IsTaggedInt() && srcBool->GetValueType().IsBoolean()) {
+        // ok, we know the types, so no helper needed
+        *pNeedHelper = false;
+    }
+    else
+    {
+        labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+        // check the types and jump to the helper if incorrect
+        if (!srcInt->IsConstOpnd() && !srcInt->GetValueType().IsTaggedInt())
+        {
+            this->m_lowererMD.GenerateSmIntTest(srcInt->AsRegOpnd(), instr, labelHelper);
+            // figure out how to check that it's an int efficiently at runtime
+        }
+        if (!srcBool->IsConstOpnd() && !srcBool->GetValueType().IsBoolean())
+        {
+            if (!srcBool->GetValueType().IsObject())
+            {
+                this->m_lowererMD.GenerateObjectTest(srcBool->AsRegOpnd(), instr, labelHelper, false);
+            }
+            this->m_lowererMD.GenerateJSBooleanTest(srcBool->AsRegOpnd(), instr, labelHelper, false);
+        }
+    }
+
+    // At this point, we know both which operand is an integer and which is a boolean,
+    // whether either operand is constant, and what the constant true/false values are
+    // for any constant operands. This should allow us to emit some decent code.
+
+    LibraryValue equalResultValue = !isNegOp ? LibraryValue::ValueTrue : LibraryValue::ValueFalse;
+    LibraryValue inequalResultValue = !isNegOp ? LibraryValue::ValueFalse : LibraryValue::ValueTrue;
+    IR::LabelInstr *equalResultTarget = !isNegOp ? targetInstr : labelFallthrough;
+    IR::LabelInstr *inequalResultTarget = !isNegOp ? labelFallthrough : targetInstr;
+
+    // For the Sr instructions, we now know that the types are different, so we can immediately
+    // decide what the result will be.
+    if (isStrict)
+    {
+        if (isBranchNotCompare)
+        {
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, inequalResultTarget, this->m_func));
+            // Insert entirely dead branch, because otherwise dbcheck doesn't like it
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, equalResultTarget, this->m_func));
+        }
+        else
+        {
+            LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, inequalResultValue), instr);
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
+        }
+    }
+    // Now that we've checked the types, we can lower some instructions to quickly do the check
+    // in the case that it's not a type-strict strict equality/inequality check.
+    else if (srcIntConst && srcBoolConst)
+    {
+        // If both arguments are constant, we can statically determine the result.
+        bool sameval = srcIntConstVal == srcBoolConstVal;
+        if (isBranchNotCompare)
+        {
+            // For constant branches, branch to the target
+            Assert(instr);
+            IR::LabelInstr * target = sameval && srcIntIsBoolable ? equalResultTarget : inequalResultTarget;
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, target, this->m_func));
+            // Insert entirely dead branch, because otherwise dbcheck doesn't like it
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, sameval && srcIntIsBoolable ? inequalResultTarget : equalResultTarget, this->m_func));
+        }
+        else
+        {
+            // For constant compares, load the constant result
+            LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, sameval && srcIntIsBoolable ? equalResultValue : inequalResultValue), instr);
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
+        }
+    }
+    else if (!srcIntConst && !srcBoolConst)
+    {
+        // If neither is constant, we can still do a bit better than loading the helper
+        IR::LabelInstr * firstTrue = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        IR::LabelInstr * firstFalse = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        IR::LabelInstr * forceInequal = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        // We branch based on the zero-ness of the integer argument to two checks against the boolean argument
+        this->m_lowererMD.GenerateTaggedZeroTest(srcInt->AsRegOpnd(), instr, firstFalse);
+        // If it's not zero, then it's either 1, in which case it's true, or it's something else, in which
+        // case we have an issue.
+        InsertCompareBranch(IR::IntConstOpnd::New((((IntConstType)1) << Js::VarTag_Shift) + Js::AtomTag, IRType::TyVar, this->m_func), srcInt->AsRegOpnd(), Js::OpCode::BrNeq_A, forceInequal, instr, true);
+        if (isBranchNotCompare)
+        {
+            instr->InsertBefore(firstTrue);
+            InsertCompareBranch(
+                srcBool,
+                LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue),
+                instr->m_opcode,
+                targetInstr,
+                instr);
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelFallthrough, this->m_func));
+            instr->InsertBefore(firstFalse);
+            InsertCompareBranch(
+                srcBool,
+                LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse),
+                instr->m_opcode,
+                targetInstr,
+                instr);
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelFallthrough, this->m_func));
+            instr->InsertBefore(forceInequal);
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, inequalResultTarget, this->m_func));
+        }
+        else
+        {
+            // Load either the bool or its complement into the dst reg, depending on the opcode
+            if (!isNegOp)
+            {
+                instr->InsertBefore(firstTrue);
+            }
+            else
+            {
+                instr->InsertBefore(firstFalse);
+            }
+            // If this case is hit, the result value is the same as the value in srcBool
+            this->InsertMove(instr->GetDst(), srcBool, instr);
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
+            // Handle the complement case
+            if (isNegOp)
+            {
+                instr->InsertBefore(firstTrue);
+            }
+            else
+            {
+                instr->InsertBefore(firstFalse);
+            }
+
+            // tmp = src
+            // dst = tmp ^ (true ^ false) (= !src)
+            IR::RegOpnd* temp = IR::RegOpnd::New(IRType::TyVar, instr->m_func);
+            LowererMD::CreateAssign(temp, srcBool, instr);
+            ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
+            IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+            instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), temp, xorval, instr->m_func));
+
+            instr->InsertBefore(forceInequal);
+            LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, inequalResultValue), instr);
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
+        }
+    }
+    else if (srcIntConst)
+    {
+        if (isBranchNotCompare)
+        {
+            if (srcIntIsBoolable)
+            {
+                LibraryValue intval = srcIntConstVal ? LibraryValue::ValueTrue : LibraryValue::ValueFalse;
+                InsertCompareBranch(
+                    srcBool,
+                    LoadLibraryValueOpnd(instr, intval),
+                    instr->m_opcode,
+                    targetInstr,
+                    instr);
+                instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelFallthrough, this->m_func));
+            }
+            else
+            {
+                // Since a constant int that isn't 0 or 1 will always be inequal to bools, just jump to the inequal result
+                instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, inequalResultTarget, this->m_func));
+            }
+        }
+        else
+        {
+            if (srcIntIsBoolable)
+            {
+                bool directPassthrough = isNegOp != srcIntConstVal;
+                if (directPassthrough)
+                {
+                    // If this case is hit, the result value is the same as the value in srcBool
+                    this->InsertMove(instr->GetDst(), srcBool, instr);
+                }
+                else
+                {
+                    // tmp = src
+                    // dst = tmp ^ (true ^ false) (= !src)
+                    IR::RegOpnd* temp = IR::RegOpnd::New(IRType::TyVar, instr->m_func);
+                    LowererMD::CreateAssign(temp, srcBool, instr);
+                    ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
+                    IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
+                    instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), temp, xorval, instr->m_func));
+                }
+                instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
+            }
+            else
+            {
+                LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, inequalResultValue), instr);
+                instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
+            }
+        }
+    }
+    else if (srcBoolConst)
+    {
+        if (isBranchNotCompare)
+        {
+            this->m_lowererMD.GenerateTaggedZeroTest(srcInt->AsRegOpnd(), instr, srcBoolConstVal ? inequalResultTarget : equalResultTarget);
+            if (srcBoolConstVal)
+            {
+                // If it's not zero, then it's either 1, in which case it's true, or it's something else, in which
+                // case we have an issue.
+                InsertCompareBranch(IR::IntConstOpnd::New((((IntConstType)1) << Js::VarTag_Shift) + Js::AtomTag, IRType::TyVar, this->m_func), srcInt->AsRegOpnd(), Js::OpCode::BrNeq_A, inequalResultTarget, instr, true);
+            }
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, srcBoolConstVal ? equalResultTarget : inequalResultTarget, this->m_func));
+        }
+        else
+        {
+            IR::LabelInstr* isNonZero = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+            IR::LabelInstr* isZero = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+            this->m_lowererMD.GenerateTaggedZeroTest(srcInt->AsRegOpnd(), instr, isZero);
+            if (srcBoolConstVal)
+            {
+                // If it's not zero, then it's either 1, in which case it's true, or it's something else, in which
+                // case we have an issue.
+                InsertCompareBranch(IR::IntConstOpnd::New((((IntConstType)1) << Js::VarTag_Shift) + Js::AtomTag, IRType::TyVar, this->m_func), srcInt->AsRegOpnd(), Js::OpCode::BrNeq_A, isZero, instr, true);
+            }
+            instr->InsertBefore(isNonZero);
+            LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, srcBoolConstVal ? equalResultValue : inequalResultValue), instr);
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
+            instr->InsertBefore(isZero);
+            LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, !srcBoolConstVal ? equalResultValue : inequalResultValue), instr);
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
+        }
+    }
+    if (*pNeedHelper)
+    {
+        instr->InsertBefore(labelHelper);
+    }
+    return true;
+}
+
 bool Lowerer::GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper)
 {
     IR::Opnd *src1 = instrBranch->GetSrc1();
@@ -20834,7 +21245,7 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool is
            instr->m_opcode == Js::OpCode::CmNeq_A);
 
     //
-    // instr         - (Br/Cm)Sr(N)eq_A
+    // instr         - (Br/Cm)(Sr)(N(ot))eq_A
     // instr->m_prev - typeOf
     //
     IR::Instr *instrLd = instr->GetPrevRealInstrOrLabel();
@@ -20871,96 +21282,100 @@ Lowerer::TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool is
                 typeOpnd = instrSrc1;
                 idOpnd = instrSrc2;
             }
-            else if (instrSrc2->m_sym == typeOfDst->m_sym) {
+            else if (instrSrc2->m_sym == typeOfDst->m_sym)
+            {
                 typeOpnd = instrSrc2;
                 idOpnd = instrSrc1;
             }
-            if (typeOpnd && idOpnd)
+            else
             {
-                if (!typeOpnd->m_isTempLastUse)
-                {
-                    return false;
-                }
-
-                if (!(idOpnd->m_sym->m_isSingleDef && idOpnd->m_sym->m_isStrConst))
-                {
-                    return false;
-                }
-
-                // The second argument to [Cm|Br]TypeOf is the typeid.
-                IR::IntConstOpnd *typeIdOpnd = nullptr;
-
-                Assert(idOpnd->m_sym->m_isSingleDef);
-                Assert(idOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd());
-
-                // We can't optimize non-javascript type strings.
-                JITJavascriptString *typeNameJsString = JITJavascriptString::FromVar(idOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_localAddress);
-                const char16        *typeName         = typeNameJsString->GetString();
-
-                Js::InternalString typeNameString(typeName, typeNameJsString->GetLength());
-                if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::UndefinedTypeNameString))
-                {
-                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Undefined, TyInt32, instr->m_func);
-                }
-                else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::ObjectTypeNameString))
-                {
-                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Object, TyInt32, instr->m_func);
-                }
-                else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::BooleanTypeNameString))
-                {
-                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Boolean, TyInt32, instr->m_func);
-                }
-                else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::NumberTypeNameString))
-                {
-                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Number, TyInt32, instr->m_func);
-                }
-                else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::StringTypeNameString))
-                {
-                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_String, TyInt32, instr->m_func);
-                }
-                else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::FunctionTypeNameString))
-                {
-                    typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Function, TyInt32, instr->m_func);
-                }
-                else
-                {
-                    return false;
-                }
-
-                if (skippedLoads)
-                {
-                    //validate none of dst of Ld_A overlaps with typeof src or dst
-                    IR::Opnd* typeOfSrc = typeOf->GetSrc1();
-                    instrLd = typeOf->GetNextRealInstr();
-                    while (instrLd != instr)
-                    {
-                        if (instrLd->GetDst()->IsEqual(typeOfDst) || instrLd->GetDst()->IsEqual(typeOfSrc))
-                        {
-                            return false;
-                        }
-                        instrLd = instrLd->GetNextRealInstr();
-                    }
-                    typeOf->Unlink();
-                    instr->InsertBefore(typeOf);
-                }
-                // The first argument to [Cm|Br]TypeOf is the first arg to the TypeOf instruction.
-                IR::Opnd *objectOpnd = typeOf->GetSrc1();
-                Assert(objectOpnd->IsRegOpnd());
-
-                // Now emit this instruction and remove the ldstr and typeOf.
-                *prev = typeOf->m_prev;
-                *pfNoLower = false;
-                if (instr->IsBranchInstr())
-                {
-                    GenerateFastBrTypeOf(instr, objectOpnd->AsRegOpnd(), typeIdOpnd, typeOf, pfNoLower, isNeqOp);
-                }
-                else
-                {
-                    GenerateFastCmTypeOf(instr, objectOpnd->AsRegOpnd(), typeIdOpnd, typeOf, pfNoLower, isNeqOp);
-                }
-
-                return true;
+                // Neither source turned out to be the typeOpnd
+                return false;
             }
+
+            if (!typeOpnd->m_isTempLastUse)
+            {
+                return false;
+            }
+
+            if (!(idOpnd->m_sym->m_isSingleDef && idOpnd->m_sym->m_isStrConst))
+            {
+                return false;
+            }
+
+            // The second argument to [Cm|Br]TypeOf is the typeid.
+            IR::IntConstOpnd *typeIdOpnd = nullptr;
+
+            Assert(idOpnd->m_sym->m_isSingleDef);
+            Assert(idOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd());
+
+            // We can't optimize non-javascript type strings.
+            JITJavascriptString *typeNameJsString = JITJavascriptString::FromVar(idOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_localAddress);
+            const char16        *typeName         = typeNameJsString->GetString();
+
+            Js::InternalString typeNameString(typeName, typeNameJsString->GetLength());
+            if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::UndefinedTypeNameString))
+            {
+                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Undefined, TyInt32, instr->m_func);
+            }
+            else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::ObjectTypeNameString))
+            {
+                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Object, TyInt32, instr->m_func);
+            }
+            else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::BooleanTypeNameString))
+            {
+                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Boolean, TyInt32, instr->m_func);
+            }
+            else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::NumberTypeNameString))
+            {
+                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Number, TyInt32, instr->m_func);
+            }
+            else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::StringTypeNameString))
+            {
+                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_String, TyInt32, instr->m_func);
+            }
+            else if (Js::InternalStringComparer::Equals(typeNameString, Js::Type::FunctionTypeNameString))
+            {
+                typeIdOpnd = IR::IntConstOpnd::New(Js::TypeIds_Function, TyInt32, instr->m_func);
+            }
+            else
+            {
+                return false;
+            }
+
+            if (skippedLoads)
+            {
+                //validate none of dst of Ld_A overlaps with typeof src or dst
+                IR::Opnd* typeOfSrc = typeOf->GetSrc1();
+                instrLd = typeOf->GetNextRealInstr();
+                while (instrLd != instr)
+                {
+                    if (instrLd->GetDst()->IsEqual(typeOfDst) || instrLd->GetDst()->IsEqual(typeOfSrc))
+                    {
+                        return false;
+                    }
+                    instrLd = instrLd->GetNextRealInstr();
+                }
+                typeOf->Unlink();
+                instr->InsertBefore(typeOf);
+            }
+            // The first argument to [Cm|Br]TypeOf is the first arg to the TypeOf instruction.
+            IR::Opnd *objectOpnd = typeOf->GetSrc1();
+            Assert(objectOpnd->IsRegOpnd());
+
+            // Now emit this instruction and remove the ldstr and typeOf.
+            *prev = typeOf->m_prev;
+            *pfNoLower = false;
+            if (instr->IsBranchInstr())
+            {
+                GenerateFastBrTypeOf(instr, objectOpnd->AsRegOpnd(), typeIdOpnd, typeOf, pfNoLower, isNeqOp);
+            }
+            else
+            {
+                GenerateFastCmTypeOf(instr, objectOpnd->AsRegOpnd(), typeIdOpnd, typeOf, pfNoLower, isNeqOp);
+            }
+
+            return true;
         }
     }
     
