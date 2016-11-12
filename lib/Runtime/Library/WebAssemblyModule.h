@@ -100,13 +100,14 @@ public:
     Wasm::WasmExport* GetExport(uint32 iExport) const;
 
     uint32 GetImportCount() const;
+    Wasm::WasmImport* GetImport(uint32 i) const;
     void AddFunctionImport(uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen);
-    Wasm::WasmImport* GetFunctionImport(uint32 i) const;
     void AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::WasmGlobal* importedGlobal);
     void AddMemoryImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
     void AddTableImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
     Wasm::WasmImport * GetMemoryImport() const { return m_memImport; }
     Wasm::WasmImport * GetTableImport() const { return m_tableImport; }
+    uint32 GetImportedFunctionCount() const { return m_importedFunctionCount; }
 
     uint GetOffsetFromInit(const Wasm::WasmNode& initexpr) const;
 
@@ -134,7 +135,7 @@ public:
     static uint GetImportFuncOffset() { return GetMemoryOffset() + 1; }
 
     // elements at instance dependent offsets
-    uint GetFuncOffset() const { return GetImportFuncOffset() + GetImportCount(); }
+    uint GetFuncOffset() const { return GetImportFuncOffset() + GetImportedFunctionCount(); }
     uint GetTableEnvironmentOffset() const { return GetFuncOffset() + GetWasmFunctionCount(); }
     uint GetGlobalOffset() const { return GetTableEnvironmentOffset() + 1; }
     uint GetOffsetForGlobal(Wasm::WasmGlobal* global);
@@ -168,6 +169,7 @@ private:
     WasmImportsList* m_imports;
     Wasm::WasmImport* m_memImport;
     Wasm::WasmImport* m_tableImport;
+    uint32 m_importedFunctionCount;
     Wasm::WasmDataSegment** m_datasegs;
     Wasm::WasmBinaryReader* m_reader;
     uint32* m_equivalentSignatureMap;

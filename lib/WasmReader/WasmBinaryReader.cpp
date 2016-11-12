@@ -293,7 +293,7 @@ WasmBinaryReader::ReadFunctionHeaders()
 {
     uint32 len;
     uint32 entries = LEB128(len);
-    uint32 importCount = m_module->GetImportCount();
+    uint32 importCount = m_module->GetImportedFunctionCount();
     if (m_module->GetWasmFunctionCount() < importCount ||
         entries != m_module->GetWasmFunctionCount() - importCount)
     {
@@ -726,7 +726,7 @@ void WasmBinaryReader::ReadExportTable()
 #if DBG_DUMP
             if (type == FunctionIndexTypes::ImportThunk)
             {
-                WasmImport* import = m_module->GetFunctionImport(index);
+                WasmImport* import = m_module->GetWasmFunctionInfo(index)->importedFunctionReference;
                 TRACE_WASM_DECODER(_u("Export #%u: Import(%s.%s)(%u) => %s"), iExport, import->modName, import->fnName, index, exportName);
             }
             else
@@ -903,8 +903,12 @@ WasmBinaryReader::ReadGlobalsSection()
             global->cnst = globalNode.cnst;
             break;
         case  wbGetGlobal:
+            if (m_module->GetGlobal(globalNode.var.num)->GetReferenceType() != WasmGlobal::ImportedReference)
+            {
+                ThrowDecodingError(_u("Global can only be initialized with a const or an imported global"));
+            }
             global->SetReferenceType(WasmGlobal::LocalReference);
-            global->var = globalNode.var;
+            global->importIndex = globalNode.var.num;
             break;
         default:
             Assert(UNREACHED);
