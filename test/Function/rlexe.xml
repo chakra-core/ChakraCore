@@ -437,4 +437,10 @@
       <baseline>failnativecodeinstall.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>redefer-recursive-inlinees.js</files>
+      <baseline>redefer-recursive-inlinees.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>

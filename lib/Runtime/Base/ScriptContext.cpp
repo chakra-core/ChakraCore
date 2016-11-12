@@ -1088,7 +1088,7 @@ namespace Js
                 bool doRedefer = functionBody->DoRedeferFunction(inactiveThreshold);
                 if (!doRedefer)
                 {
-                    functionBody->UpdateActiveFunctionSet(pActiveFuncs);
+                    functionBody->UpdateActiveFunctionSet(pActiveFuncs, nullptr);
                 }
             }
         };

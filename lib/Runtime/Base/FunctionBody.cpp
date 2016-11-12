@@ -747,8 +747,36 @@ namespace Js
         return !!pActiveFuncs->TestAndSet(this->GetFunctionNumber());
     }
 
-    void FunctionBody::UpdateActiveFunctionSet(ActiveFunctionSet *pActiveFuncs) const
+    void FunctionBody::UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData **dataSet) const
     {
+        FunctionCodeGenRuntimeData *inlineeData;
+        for (uint i = 0; i < this->GetProfiledCallSiteCount(); i++)
+        {
+            for (inlineeData = dataSet[i]; inlineeData; inlineeData = inlineeData->GetNext())
+            {
+                inlineeData->GetFunctionBody()->UpdateActiveFunctionSet(pActiveFuncs, inlineeData);
+            }
+        }
+    }
+
+    void FunctionBody::UpdateActiveFunctionSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *callSiteData) const
+    {
+        // Always walk the inlinee and ldFldInlinee data (if we have them), as they are different at each call site.
+
+        if (callSiteData)
+        {
+            if (callSiteData->GetInlinees())
+            {
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData->GetInlinees());
+            }
+            if (callSiteData->GetLdFldInlinees())
+            {
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData->GetLdFldInlinees());
+            }
+        }
+
+        // Now walk the top-level data, but only do it once, since it's always the same.
+
         if (this->TestAndUpdateActiveFunctions(pActiveFuncs))
         {
             return;
@@ -758,13 +786,8 @@ namespace Js
         {
             return;
         }
-        for (uint i = 0; i < this->GetProfiledCallSiteCount(); i++)
-        {
-            for (FunctionCodeGenRuntimeData *inlineeData = data[i]; inlineeData; inlineeData = inlineeData->GetNext())
-            {
-                inlineeData->GetFunctionBody()->UpdateActiveFunctionSet(pActiveFuncs);
-            }
-        }
+
+        this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, data);
     }
 
     bool FunctionBody::DoRedeferFunction(uint inactiveThreshold) const

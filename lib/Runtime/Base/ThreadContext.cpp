@@ -2796,7 +2796,7 @@ ThreadContext::GetActiveFunctions(ActiveFunctionSet * pActiveFuncs)
         if (function->GetFunctionInfo()->HasBody())
         {
             Js::FunctionBody *body = function->GetFunctionInfo()->GetFunctionBody();
-            body->UpdateActiveFunctionSet(pActiveFuncs);
+            body->UpdateActiveFunctionSet(pActiveFuncs, nullptr);
         }
     }
 }
