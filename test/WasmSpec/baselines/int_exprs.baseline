@@ -1,5 +1,1 @@
-int_exprs.wast:158: $assert_trap_0 failed, runtime trap NYI
-int_exprs.wast:159: $assert_trap_1 failed, runtime trap NYI
-int_exprs.wast:160: $assert_trap_2 failed, runtime trap NYI
-int_exprs.wast:161: $assert_trap_3 failed, runtime trap NYI
-75/79 tests passed.
+79/79 tests passed.

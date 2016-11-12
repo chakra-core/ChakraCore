@@ -8279,7 +8279,7 @@ Lowerer::LowerLdWasmFunc(IR::Instr* instr)
 
     IR::LabelInstr * trapLabel = InsertLabel(true, instr);
     IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
-    InsertCompareBranch(indexOpnd, lengthOpnd, Js::OpCode::BrGe_A, trapLabel, trapLabel);
+    InsertCompareBranch(indexOpnd, lengthOpnd, Js::OpCode::BrGe_A, true, trapLabel, trapLabel);
     InsertMove(valuesRegOpnd, valuesIndirOpnd, trapLabel);
 
     InsertMove(dst, funcIndirOpnd, trapLabel);

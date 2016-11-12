@@ -1,5 +1,1 @@
-select.wast:49: $assert_trap_24 failed, runtime trap NYI
-select.wast:50: $assert_trap_25 failed, runtime trap NYI
-select.wast:51: $assert_trap_26 failed, runtime trap NYI
-select.wast:52: $assert_trap_27 failed, runtime trap NYI
-24/28 tests passed.
+28/28 tests passed.
