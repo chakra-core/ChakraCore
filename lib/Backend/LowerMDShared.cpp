@@ -9691,15 +9691,19 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
 {
     IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
+    IR::Opnd *src = opnd;
 
-    if (opnd->IsFloat64())
-        LoadDoubleHelperArgument(instr, opnd);
-    else
-        LoadFloatHelperArgument(instr, opnd);
+    if (opnd->IsFloat32())
+    {
+        src = IR::RegOpnd::New(TyFloat64, this->m_func);
+        instr->InsertBefore(IR::Instr::New(LowererMD::MDConvertFloat32ToFloat64Opcode, src, opnd, this->m_func));
+    }
+    Assert(src->IsFloat64());
+    LoadDoubleHelperArgument(instr, src);
+
     IR::Instr * helperCallInstr = IR::Instr::New(Js::OpCode::CALL, isNegZero, this->m_func);
     instr->InsertBefore(helperCallInstr);
     this->ChangeToHelperCall(helperCallInstr, IR::HelperIsNegZero);
-
     return isNegZero;
 }
 

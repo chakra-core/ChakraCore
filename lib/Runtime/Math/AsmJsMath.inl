@@ -12,7 +12,18 @@ namespace Js
         {
             return (T)NumberConstants::NaN;
         }
-        return aLeft < aRight ? aLeft : aRight;
+        if (aLeft < aRight)
+        {
+            return aLeft;
+        }
+        if (aLeft == aRight)
+        {
+            if (aRight == 0 && JavascriptNumber::IsNegZero(aLeft))
+            {
+                return aLeft;
+            }
+        }
+        return aRight;
     }
 
     template<>
@@ -34,7 +45,18 @@ namespace Js
         {
             return (T)NumberConstants::NaN;
         }
-        return aLeft > aRight ? aLeft : aRight;
+        if (aLeft > aRight)
+        {
+            return aLeft;
+        }
+        if (aLeft == aRight)
+        {
+            if (aLeft == 0 && JavascriptNumber::IsNegZero(aRight))
+            {
+                return aLeft;
+            }
+        }
+        return aRight;
     }
 
     template<>
