@@ -20484,7 +20484,7 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
             LowererMD::CreateAssign(temp, srcBool, instr);
             ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
             IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
-            instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), temp, xorval, instr->m_func));
+            InsertXor(instr->GetDst(), temp, xorval, instr);
 
             instr->InsertBefore(forceInequal);
             LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, inequalResultValue), instr);
