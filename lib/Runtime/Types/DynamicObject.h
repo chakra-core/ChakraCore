@@ -81,7 +81,7 @@ namespace Js
 #endif
 
     private:
-        Var* auxSlots;
+        Field(Var*) auxSlots;
         // The objectArrayOrFlags field can store one of two things:
         //   a) a pointer to the object array holding numeric properties of this object, or
         //   b) a bitfield of flags.

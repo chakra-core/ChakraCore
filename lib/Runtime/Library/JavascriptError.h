@@ -18,7 +18,7 @@ namespace Js
     private:
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptError);
 
-        ErrorTypeEnum m_errorType;
+        Field(ErrorTypeEnum) m_errorType;
 
     protected:
         DEFINE_VTABLE_CTOR(JavascriptError, DynamicObject);
@@ -155,11 +155,11 @@ namespace Js
 
     private:
 
-        BOOL isExternalError;
-        BOOL isPrototype;
-        bool isStackPropertyRedefined;
-        char16 const * originalRuntimeErrorMessage;
-        JavascriptExceptionObject *exceptionObject;
+        Field(BOOL) isExternalError;
+        Field(BOOL) isPrototype;
+        Field(bool) isStackPropertyRedefined;
+        Field(char16 const *) originalRuntimeErrorMessage;
+        Field(JavascriptExceptionObject *) exceptionObject;
 
 #ifdef ERROR_TRACE
         static void Trace(const char16 *form, ...) // const

@@ -839,7 +839,7 @@ private:
 
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
-        RecyclerRootPtr<SListBase<DynamicProfileInfo *>> profileInfoList;
+        RecyclerRootPtr<DynamicProfileInfoList> profileInfoList;
 #endif
 #endif
         // List of weak reference dictionaries. We'll walk through them
@@ -1061,7 +1061,7 @@ private:
             }
         }
 
-        SListBase<DynamicProfileInfo *> * GetProfileInfoList() { return profileInfoList; }
+        DynamicProfileInfoList * GetProfileInfoList() { return profileInfoList; }
 #endif
 #endif
 

@@ -13,16 +13,16 @@ namespace Js
     private:
         enum MapRequestFor { Source = 1, Length = 2 };
 
-        TLoadCallback scriptLoadCallback;
-        TUnloadCallback scriptUnloadCallback;
-        JsSourceContext sourceContext;
+        FieldNoBarrier(TLoadCallback) scriptLoadCallback;
+        FieldNoBarrier(TUnloadCallback) scriptUnloadCallback;
+        Field(JsSourceContext) sourceContext;
 
 #ifndef NTBUILD
-        JsValueRef mappedScriptValue;
+        Field(JsValueRef) mappedScriptValue;
 #endif
-        utf8char_t const * mappedSource;
-        size_t mappedSourceByteLength;
-        size_t mappedAllocLength;
+        Field(utf8char_t const *) mappedSource;
+        Field(size_t) mappedSourceByteLength;
+        Field(size_t) mappedAllocLength;
 
         // Wrapper methods with Asserts to ensure that we aren't trying to access unmapped source
         utf8char_t const * GetMappedSource()

@@ -21,7 +21,7 @@ namespace Js
             Js::Throw::OutOfMemory(); // Would possibly overflow our dictionary
         }
 
-        indexList = NULL; // Discard indexList on change
+        indexList = nullptr; // Discard indexList on change
         indexPropertyMap->Add(key, value);
     }
 

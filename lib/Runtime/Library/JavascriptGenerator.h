@@ -30,10 +30,10 @@ namespace Js
         static uint32 GetArgsPtrOffset() { return offsetof(JavascriptGenerator, args) + Arguments::GetValuesOffset(); }
 
     private:
-        InterpreterStackFrame* frame;
-        GeneratorState state;
-        Arguments args;
-        ScriptFunction* scriptFunction;
+        Field(InterpreterStackFrame*) frame;
+        Field(GeneratorState) state;
+        Field(Arguments) args;
+        Field(ScriptFunction*) scriptFunction;
 
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptGenerator, DynamicObject, args);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptGenerator);

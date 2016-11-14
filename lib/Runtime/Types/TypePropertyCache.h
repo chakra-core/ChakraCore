@@ -50,7 +50,7 @@ namespace Js
     class TypePropertyCache
     {
     private:
-        TypePropertyCacheElement elements[TypePropertyCache_NumElements];
+        Field(TypePropertyCacheElement) elements[TypePropertyCache_NumElements];
 
     private:
         static size_t ElementIndex(const PropertyId id);

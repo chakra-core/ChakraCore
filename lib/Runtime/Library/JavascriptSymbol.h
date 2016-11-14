@@ -9,7 +9,7 @@ namespace Js
     class JavascriptSymbol sealed : public RecyclableObject
     {
     private:
-        const PropertyRecord* value;
+        Field(const PropertyRecord*) value;
 
         DEFINE_VTABLE_CTOR(JavascriptSymbol, RecyclableObject);
     public:

@@ -182,9 +182,21 @@ class NoThrowHeapAllocator
 {
 public:
     static const bool FakeZeroLengthArray = false;
+
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t byteSize);
     char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t byteSize);
     void Free(void * buffer, size_t byteSize);
+
+    char * NoThrowAlloc(DECLSPEC_GUARD_OVERFLOW size_t byteSize)
+    {
+        return Alloc(byteSize);
+    }
+
+    char * NoThrowAllocZero(DECLSPEC_GUARD_OVERFLOW size_t byteSize)
+    {
+        return AllocZero(byteSize);
+    }
+
     static NoThrowHeapAllocator Instance;
 
 #ifdef TRACK_ALLOC

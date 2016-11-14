@@ -39,57 +39,54 @@ typedef RealCount DefaultCount;
 typedef FakeCount DefaultCount;
 #endif
 
-template <typename TData, typename TCount = DefaultCount> class SListBase;
-template <typename TData> class SListNode;
-template <typename TData>
+template <typename TData,
+          typename TAllocator = ArenaAllocator,
+          typename TCount = DefaultCount> class SListBase;
+
+template <typename TAllocator>
 class SListNodeBase
 {
 public:
-    SListNodeBase<TData> * Next() const { return next.base; }
-    SListNodeBase<TData> *& Next() { return next.base; }
+    Field(SListNodeBase*, TAllocator) Next() const { return next; }
+    Field(SListNodeBase*, TAllocator)& Next() { return next; }
+
 protected:
     // The next node can be a real node with data, or it point back to the start of the list
-    // Use a union to show it in the debugger (instead of casting everywhere)
-    union
-    {
-        SListNodeBase<TData> * base;
-        SListNode<TData> * node;
-        SListBase<TData> * list;
-    } next;
+    Field(SListNodeBase*, TAllocator) next;
 };
 
-template <typename TData>
-class SListNode : public SListNodeBase<TData>
+template <typename TData, typename TAllocator>
+class SListNode : public SListNodeBase<TAllocator>
 {
-    friend class SListBase<TData, FakeCount>;
-    friend class SListBase<TData, RealCount>;
-private:
+    friend class SListBase<TData, TAllocator, FakeCount>;
+    friend class SListBase<TData, TAllocator, RealCount>;
 
+private:
     SListNode() : data() {}
 
     // Constructing with parameter
     template <typename TParam>
-    SListNode(TParam param) : data(param) {}
+    SListNode(const TParam& param) : data(param) {}
 
     // Constructing with parameter
     template <typename TParam1, typename TParam2>
-    SListNode(TParam1 param1, TParam2 param2) : data(param1, param2) {}
+    SListNode(const TParam1& param1, const TParam2& param2) : data(param1, param2) {}
 
-    // Constructing using copy constructor
-    SListNode(TData const& data) : data(data) {};
-    TData data;
+    Field(TData, TAllocator) data;
 };
 
-template<typename TData, typename TCount>
-class SListBase : protected SListNodeBase<TData>, public TCount
+template<typename TData, typename TAllocator, typename TCount>
+class SListBase : protected SListNodeBase<TAllocator>, public TCount
 {
 private:
-    typedef SListNodeBase<TData> NodeBase;
-    typedef SListNode<TData> Node;
+    typedef SListNodeBase<TAllocator> NodeBase;
+    typedef SListNode<TData, TAllocator> Node;
+
     bool IsHead(NodeBase const * node) const
     {
         return (node == this);
     }
+
 public:
     class Iterator
     {
@@ -119,12 +116,12 @@ public:
             current = current->Next();
             return true;
         }
-        TData const& Data() const
+        Field(TData, TAllocator) const& Data() const
         {
             Assert(this->IsValid());
             return ((Node *)current)->data;
         }
-        TData& Data()
+        Field(TData, TAllocator)& Data()
         {
             Assert(this->IsValid());
             return ((Node *)current)->data;
@@ -138,7 +135,7 @@ public:
     {
     public:
         EditingIterator() : Iterator(), last(nullptr) {};
-        EditingIterator(SListBase  * list) : Iterator(list), last(nullptr) {};
+        EditingIterator(SListBase * list) : Iterator(list), last(nullptr) {};
 
         bool Next()
         {
@@ -158,7 +155,6 @@ public:
             UnlinkCurrentNode();
         }
 
-        template <typename TAllocator>
         void RemoveCurrent(TAllocator * allocator)
         {
             const NodeBase *dead = this->current;
@@ -169,8 +165,7 @@ public:
             AllocatorFree(allocator, freeFunc, (Node *) dead, sizeof(Node));
         }
 
-        template <typename TAllocator>
-        TData * InsertNodeBefore(TAllocator * allocator)
+        Field(TData, TAllocator) * InsertNodeBefore(TAllocator * allocator)
         {
             Assert(last != nullptr);
             Node * newNode = AllocatorNew(TAllocator, allocator, Node);
@@ -180,13 +175,12 @@ public:
                 const_cast<NodeBase *>(last)->Next() = newNode;
                 const_cast<SListBase *>(this->list)->IncrementCount();
                 last = newNode;
-                return &newNode->data;
+                return AddressOf(newNode->data);
             }
             return nullptr;
         }
 
-        template <typename TAllocator>
-        TData * InsertNodeBeforeNoThrow(TAllocator * allocator)
+        Field(TData, TAllocator) * InsertNodeBeforeNoThrow(TAllocator * allocator)
         {
             Assert(last != nullptr);
             Node * newNode = AllocatorNewNoThrow(TAllocator, allocator, Node);
@@ -196,13 +190,13 @@ public:
                 const_cast<NodeBase *>(last)->Next() = newNode;
                 const_cast<SListBase *>(this->list)->IncrementCount();
                 last = newNode;
-                return &newNode->data;
+                return AddressOf(newNode->data);
             }
             return nullptr;
         }
 
-        template <typename TAllocator, typename TParam1, typename TParam2>
-        TData * InsertNodeBefore(TAllocator * allocator, TParam1 param1, TParam2 param2)
+        template <typename TParam1, typename TParam2>
+        Field(TData, TAllocator) * InsertNodeBefore(TAllocator * allocator, TParam1 param1, TParam2 param2)
         {
             Assert(last != nullptr);
             Node * newNode = AllocatorNew(TAllocator, allocator, Node, param1, param2);
@@ -212,12 +206,11 @@ public:
                 const_cast<NodeBase *>(last)->Next() = newNode;
                 const_cast<SListBase *>(this->list)->IncrementCount();
                 last = newNode;
-                return &newNode->data;
+                return AddressOf(newNode->data);
             }
             return nullptr;
         }
 
-        template <typename TAllocator>
         bool InsertBefore(TAllocator * allocator, TData const& data)
         {
             Assert(last != nullptr);
@@ -265,6 +258,9 @@ public:
         }
     };
 
+    inline Iterator GetIterator() const { return Iterator(this); }
+    inline EditingIterator GetEditingIterator() { return EditingIterator(this); }
+
     explicit SListBase()
     {
         Reset();
@@ -281,7 +277,6 @@ public:
         this->SetCount(0);
     }
 
-    template <typename TAllocator>
     __forceinline
     void Clear(TAllocator * allocator)
     {
@@ -298,18 +293,15 @@ public:
 
         this->Reset();
     }
+
     bool Empty() const { return this->IsHead(this->Next()); }
     bool HasOne() const { return !Empty() && this->IsHead(this->Next()->Next()); }
     bool HasTwo() const { return !Empty() && this->IsHead(this->Next()->Next()->Next()); }
-    TData const& Head() const { Assert(!Empty()); return ((Node *)this->Next())->data; }
-    TData& Head()
-    {
-        Assert(!Empty());
-        Node * node = this->next.node;
-        return node->data;
-    }
+    Field(TData, TAllocator) const& Head() const
+        { Assert(!Empty()); return ((Node *)this->Next())->data; }
+    Field(TData, TAllocator)& Head()
+        { Assert(!Empty()); return ((Node *)this->Next())->data; }
 
-    template <typename TAllocator>
     bool Prepend(TAllocator * allocator, TData const& data)
     {
         Node * newNode = AllocatorNew(TAllocator, allocator, Node, data);
@@ -323,7 +315,6 @@ public:
         return false;
     }
 
-    template <typename TAllocator>
     bool PrependNoThrow(TAllocator * allocator, TData const& data)
     {
         Node * newNode = AllocatorNewNoThrow(TAllocator, allocator, Node, data);
@@ -337,8 +328,7 @@ public:
         return false;
     }
 
-    template <typename TAllocator>
-    TData * PrependNode(TAllocator * allocator)
+    Field(TData, TAllocator) * PrependNode(TAllocator * allocator)
     {
         Node * newNode = AllocatorNew(TAllocator, allocator, Node);
         if (newNode)
@@ -346,13 +336,13 @@ public:
             newNode->Next() = this->Next();
             this->Next() = newNode;
             this->IncrementCount();
-            return &newNode->data;
+            return AddressOf(newNode->data);
         }
         return nullptr;
     }
 
-    template <typename TAllocator, typename TParam>
-    TData * PrependNode(TAllocator * allocator, TParam param)
+    template <typename TParam>
+    Field(TData, TAllocator) * PrependNode(TAllocator * allocator, TParam param)
     {
         Node * newNode = AllocatorNew(TAllocator, allocator, Node, param);
         if (newNode)
@@ -360,13 +350,13 @@ public:
             newNode->Next() = this->Next();
             this->Next() = newNode;
             this->IncrementCount();
-            return &newNode->data;
+            return AddressOf(newNode->data);
         }
         return nullptr;
     }
 
-    template <typename TAllocator, typename TParam1, typename TParam2>
-    TData * PrependNode(TAllocator * allocator, TParam1 param1, TParam2 param2)
+    template <typename TParam1, typename TParam2>
+    Field(TData, TAllocator) * PrependNode(TAllocator * allocator, TParam1 param1, TParam2 param2)
     {
         Node * newNode = AllocatorNew(TAllocator, allocator, Node, param1, param2);
         if (newNode)
@@ -374,12 +364,11 @@ public:
             newNode->Next() = this->Next();
             this->Next() = newNode;
             this->IncrementCount();
-            return &newNode->data;
+            return AddressOf(newNode->data);
         }
         return nullptr;
     }
 
-    template <typename TAllocator>
     void RemoveHead(TAllocator * allocator)
     {
         Assert(!this->Empty());
@@ -392,7 +381,6 @@ public:
         this->DecrementCount();
     }
 
-    template <typename TAllocator>
     bool Remove(TAllocator * allocator, TData const& data)
     {
         EditingIterator iter(this);
@@ -442,7 +430,7 @@ public:
 
     // Moves the first element that satisfies the predicate to the toList
     template<class Fn>
-    TData* MoveTo(SListBase* toList, Fn predicate)
+    Field(TData, TAllocator)* MoveTo(SListBase* toList, Fn predicate)
     {
         Assert(this != toList);
 
@@ -451,7 +439,7 @@ public:
         {
             if (predicate(iter.Data()))
             {
-                TData* data = &iter.Data();
+                Field(TData, TAllocator)* data = AddressOf(iter.Data());
                 iter.MoveCurrentTo(toList);
                 return data;
             }
@@ -460,14 +448,14 @@ public:
     }
 
     template<class Fn>
-    TData* Find(Fn predicate)
+    Field(TData, TAllocator)* Find(Fn predicate)
     {
         Iterator iter(this);
         while(iter.Next())
         {
             if(predicate(iter.Data()))
             {
-                return &iter.Data();
+                return AddressOf(iter.Data());
             }
         }
         return nullptr;
@@ -511,13 +499,13 @@ public:
         return !iter2.Next();
     }
 
-    template <typename TAllocator>
     bool CopyTo(TAllocator * allocator, SListBase& to) const
     {
         return CopyTo<DefaultCopyElement>(allocator, to);
     }
 
-    template <void (*CopyElement)(TData const& from, TData& to), typename TAllocator>
+    template <void (*CopyElement)(
+        Field(TData, TAllocator) const& from, Field(TData, TAllocator)& to)>
     bool CopyTo(TAllocator * allocator, SListBase& to) const
     {
         to.Clear(allocator);
@@ -542,7 +530,7 @@ public:
     template <class Fn>
     void Map(Fn fn) const
     {
-        MapUntil([fn](TData& data) { fn(data); return false; });
+        MapUntil([fn](Field(TData, TAllocator)& data) { fn(data); return false; });
     }
 
     template <class Fn>
@@ -558,33 +546,38 @@ public:
         }
         return false;
     }
-private:
 
-    static void DefaultCopyElement(TData const& from, TData& to) { to = from; }
+private:
+    static void DefaultCopyElement(
+        Field(TData, TAllocator) const& from, Field(TData, TAllocator)& to)
+    {
+        to = from;
+    }
+
     // disable copy constructor
     SListBase(SListBase const& list);
 };
 
 
-template <typename TData>
-class SListBaseCounted : public SListBase<TData, RealCount>
+template <typename TData, typename TAllocator = ArenaAllocator>
+class SListBaseCounted : public SListBase<TData, TAllocator, RealCount>
 {
 };
 
 template <typename TData, typename TAllocator = ArenaAllocator, typename TCount = DefaultCount>
-class SList : public SListBase<TData, TCount>
+class SList : public SListBase<TData, TAllocator, TCount>
 {
 public:
-    class EditingIterator : public SListBase<TData, TCount>::EditingIterator
+    class EditingIterator : public SListBase<TData, TAllocator, TCount>::EditingIterator
     {
     public:
-        EditingIterator() : SListBase<TData, TCount>::EditingIterator() {}
-        EditingIterator(SList * list) : SListBase<TData, TCount>::EditingIterator(list) {}
+        EditingIterator() : SListBase<TData, TAllocator, TCount>::EditingIterator() {}
+        EditingIterator(SList * list) : SListBase<TData, TAllocator, TCount>::EditingIterator(list) {}
         void RemoveCurrent()
         {
             __super::RemoveCurrent(Allocator());
         }
-        TData * InsertNodeBefore()
+        Field(TData, TAllocator) * InsertNodeBefore()
         {
             return __super::InsertNodeBefore(Allocator());
         }
@@ -599,6 +592,8 @@ public:
         }
     };
 
+    inline EditingIterator GetEditingIterator() { return EditingIterator(this); }
+
     explicit SList(TAllocator * allocator) : allocator(allocator) {}
     ~SList()
     {
@@ -612,17 +607,17 @@ public:
     {
         return __super::Prepend(allocator, data);
     }
-    TData * PrependNode()
+    Field(TData, TAllocator) * PrependNode()
     {
         return __super::PrependNode(allocator);
     }
     template <typename TParam>
-    TData * PrependNode(TParam param)
+    Field(TData, TAllocator) * PrependNode(TParam param)
     {
         return __super::PrependNode(allocator, param);
     }
     template <typename TParam1, typename TParam2>
-    TData * PrependNode(TParam1 param1, TParam2 param2)
+    Field(TData, TAllocator) * PrependNode(TParam1 param1, TParam2 param2)
     {
         return __super::PrependNode(allocator, param1, param2);
     }
@@ -649,28 +644,31 @@ public:
         return data;
     }
 
-    TData const& Top() const
+    Field(TData, TAllocator) const& Top() const
     {
         return this->Head();
     }
-    TData& Top()
+    Field(TData, TAllocator)& Top()
     {
         return this->Head();
     }
+
 private:
-    TAllocator * allocator;
+    FieldNoBarrier(TAllocator *) allocator;
 };
 
 template <typename TData, typename TAllocator = ArenaAllocator>
 class SListCounted : public SList<TData, TAllocator, RealCount>
 {
 public:
-    explicit SListCounted(TAllocator * allocator) : SList<TData, TAllocator, RealCount>(allocator) {}
-
+    explicit SListCounted(TAllocator * allocator)
+        : SList<TData, TAllocator, RealCount>(allocator)
+    {}
 };
 
+
 #define _FOREACH_LIST_ENTRY_EX(List, T, Iterator, iter, data, list) \
-    _TYPENAME List<T>::Iterator iter(list); \
+    auto iter = (list)->Get##Iterator(); \
     while (iter.Next()) \
     { \
         T& data = iter.Data();

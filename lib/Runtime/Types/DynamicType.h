@@ -25,7 +25,7 @@ namespace Js
         friend class SimpleDictionaryTypeHandlerBase;
 
     private:
-        DynamicTypeHandler * typeHandler;
+        Field(DynamicTypeHandler *) typeHandler;
         Field(bool) isLocked;
         Field(bool) isShared;
         Field(bool) hasNoEnumerableProperties;

@@ -20,15 +20,15 @@ namespace Js
 
         struct CachedData
         {
-            ScriptContext * scriptContext;
-            PropertyString ** strings;
-            BigPropertyIndex * indexes;
-            PropertyAttributes * attributes;
-            int cachedCount;
-            int propertyCount;
-            bool completed;
-            bool enumNonEnumerable;
-            bool enumSymbols;
+            Field(ScriptContext *) scriptContext;
+            Field(PropertyString **) strings;
+            Field(BigPropertyIndex *) indexes;
+            Field(PropertyAttributes *) attributes;
+            Field(int) cachedCount;
+            Field(int) propertyCount;
+            Field(bool) completed;
+            Field(bool) enumNonEnumerable;
+            Field(bool) enumSymbols;
         } *cachedData;
 
         DynamicType * GetTypeToEnumerate() const;

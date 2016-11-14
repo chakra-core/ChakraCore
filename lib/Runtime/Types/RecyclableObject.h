@@ -206,7 +206,7 @@ namespace Js {
         void RecordAllocation(ScriptContext * scriptContext);
 #endif
     protected:
-        Type * type;
+        Field(Type *) type;
         DEFINE_VTABLE_CTOR_NOBASE(RecyclableObject);
 
         virtual RecyclableObject* GetPrototypeSpecial();

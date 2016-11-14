@@ -34,7 +34,7 @@ public:
     JsFinalizeCallback GetJsFinalizeCallback() const { return this->jsFinalizeCallback; }
 
 private:
-    JsFinalizeCallback jsFinalizeCallback;
+    FieldNoBarrier(JsFinalizeCallback) jsFinalizeCallback;
 };
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(JsrtExternalType, &Js::Type::DumpObjectFunction);
 
@@ -63,7 +63,7 @@ public:
     void SetSlotData(void * data);
 
 private:
-    void * slot;
+    Field(void *) slot;
 
 #if ENABLE_TTD
 public:

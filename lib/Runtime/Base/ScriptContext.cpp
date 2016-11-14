@@ -1161,7 +1161,7 @@ namespace Js
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         if (DynamicProfileInfo::NeedProfileInfoList())
         {
-            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), SListBase<DynamicProfileInfo *>), recycler);
+            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), DynamicProfileInfoList), recycler);
         }
 #endif
 #endif

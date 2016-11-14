@@ -8,7 +8,8 @@ namespace Js
 {
     class SubString sealed : public JavascriptString
     {
-        void const * originalFullStringReference;          // Only here to prevent recycler to free this buffer.
+        Field(void const *) originalFullStringReference;          // Only here to prevent recycler to free this buffer.
+
         SubString(void const * originalFullStringReference, const char16* subString, charcount_t length, ScriptContext *scriptContext);
 
     protected:

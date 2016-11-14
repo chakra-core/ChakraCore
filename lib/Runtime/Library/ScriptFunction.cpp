@@ -260,7 +260,7 @@ namespace Js
     FunctionProxy * ScriptFunction::GetFunctionProxy() const
     {
         Assert(this->functionInfo->HasBody());
-        return reinterpret_cast<FunctionProxy *>(this->functionInfo);
+        return reinterpret_cast<FunctionProxy *>(PointerValue(this->functionInfo));
     }
     JavascriptMethod ScriptFunction::UpdateUndeferredBody(FunctionBody* newFunctionInfo)
     {
@@ -553,7 +553,7 @@ namespace Js
             {
             case Js::ScopeType::ScopeType_ActivationObject:
             case Js::ScopeType::ScopeType_WithScope:
-            {    
+            {
                 rctxInfo->EnqueueNewPathVarAsNeeded(this, (Js::Var)scope, scopePathString.GetStrValue());
                 break;
             }
@@ -968,7 +968,7 @@ namespace Js
         if (NULL != this->m_inlineCaches)
         {
             FreeOwnInlineCaches<false>();
-            this->m_inlineCaches = NULL;
+            this->m_inlineCaches = nullptr;
             this->inlineCacheCount = 0;
             this->rootObjectLoadInlineCacheStart = 0;
             this->rootObjectLoadMethodInlineCacheStart = 0;

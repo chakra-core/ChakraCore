@@ -531,8 +531,8 @@ private:
     struct RecyclableData
     {
         RecyclableData(Recycler *const recycler);
-        Field(Js::TempArenaAllocatorObject * ) temporaryArenaAllocators[MaxTemporaryArenaAllocators];
-        Field(Js::TempGuestArenaAllocatorObject * ) temporaryGuestArenaAllocators[MaxTemporaryArenaAllocators];
+        Field(Js::TempArenaAllocatorObject *) temporaryArenaAllocators[MaxTemporaryArenaAllocators];
+        Field(Js::TempGuestArenaAllocatorObject *) temporaryGuestArenaAllocators[MaxTemporaryArenaAllocators];
 
         Field(Js::JavascriptExceptionObject *) exceptionObject;
         Field(bool) propagateException;
@@ -654,7 +654,7 @@ private:
     uint32 polymorphicCacheState;
 
 #ifdef ENABLE_PROJECTION
-    SListBase<ExternalWeakReferenceCache *> externalWeakReferenceCacheList;
+    SListBase<ExternalWeakReferenceCache *, HeapAllocator> externalWeakReferenceCacheList;
 #if DBG_DUMP
     IProjectionContextMemoryInfo *projectionMemoryInformation;
 #endif
@@ -943,7 +943,7 @@ public:
     //Keep track of the number of re-entrant calls currently pending (i.e., if we make an external call it may call back into Chakra)
     int32 TTDRootNestingCount;
 
-    bool IsRuntimeInTTDMode() const 
+    bool IsRuntimeInTTDMode() const
     {
         return this->TTDLog != nullptr;
     }

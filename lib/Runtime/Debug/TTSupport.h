@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-//This file contains definitions for general-ish purpose structures/algorithms that we use in the TTD system 
+//This file contains definitions for general-ish purpose structures/algorithms that we use in the TTD system
 //We may want to replace them with other versions (e.g. that are already in the codebase) at some later time
 
 #if ENABLE_TTD
@@ -15,7 +15,7 @@ namespace TTD
     class ThreadContextTTD;
     class ScriptContextTTD;
     class RuntimeContextInfo;
-    //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion  
+    //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion
     //if this bit layout is for the "live" state or potentially only for the snapshot state or the representations change later
     typedef Js::Var TTDVar;
     namespace NSSnapType
@@ -80,7 +80,7 @@ T* TTD_MEM_ALLOC_CHECK(T* alloc)
 #define TTD_ARRAY_BLOCK_SIZE 0x200
 #define TTD_ARRAY_SMALL_ARRAY 0x100
 
-//Convert from Js::Var to TTDVar 
+//Convert from Js::Var to TTDVar
 #define TTD_CONVERT_JSVAR_TO_TTDVAR(X) ((TTD::TTDVar)(X))
 #define TTD_CONVERT_TTDVAR_TO_JSVAR(X) ((Js::Var)(X))
 
@@ -88,7 +88,7 @@ T* TTD_MEM_ALLOC_CHECK(T* alloc)
 typedef uint64 TTD_PTR_ID;
 #define TTD_INVALID_PTR_ID 0ul
 
-#define TTD_CONVERT_VAR_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_VAR_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(PointerValue(X))
 #define TTD_CONVERT_TYPEINFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 #define TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 #define TTD_CONVERT_ENV_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
@@ -97,7 +97,7 @@ typedef uint64 TTD_PTR_ID;
 #define TTD_CONVERT_DEBUGSCOPE_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
 
 //Promises have a wide range of heap allocated bits -- we define He-Man casts for all of them -- ugly but so is having a bunch of specific functions
-#define TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(X)
+#define TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(X) reinterpret_cast<TTD_PTR_ID>(PointerValue(X))
 #define TTD_CONVERT_PROMISE_INFO_TO_SPECIFIC_TYPE(T, X) static_cast<T*>(X)
 
 #define TTD_COERCE_PTR_ID_TO_VAR(X) (reinterpret_cast<Js::Var>(X))
@@ -250,7 +250,7 @@ namespace TTD
     //A struct that maintains the relation between a globally stable top-level body counter and the PTR id it has in this particular script context
     struct TopLevelFunctionInContextRelation
     {
-        //The globally unique body counter id from the log 
+        //The globally unique body counter id from the log
         uint64 TopLevelBodyCtr;
 
         //The PTR_ID that is used to refer to this top-level body within the given script context
@@ -358,7 +358,7 @@ namespace TTD
     {
     public:
         //Length of the uri data in bytes (including any null terminator)
-        size_t UriByteLength; 
+        size_t UriByteLength;
 
         //Actual URI data which the host is responsible for interpreting (ascii, utf8, wchar, etc.)
         byte* UriBytes;
@@ -661,7 +661,7 @@ namespace TTD
         SlabAllocatorBase(const SlabAllocatorBase&) = delete;
         SlabAllocatorBase& operator=(SlabAllocatorBase const&) = delete;
 
-        //clone a null terminated char16* string (or nullptr) into the allocator -- currently only used for wellknown tokens 
+        //clone a null terminated char16* string (or nullptr) into the allocator -- currently only used for wellknown tokens
         const char16* CopyRawNullTerminatedStringInto(const char16* str)
         {
             if(str == nullptr)
@@ -870,7 +870,7 @@ namespace TTD
             AssertMsg(canUnlink, "Unlink not allowed with this slab allocator.");
             AssertMsg(this->m_reserveActiveBytes == 0, "We don't have anything reserved.");
 
-            //get the meta-data for this allocation and see if it is a 
+            //get the meta-data for this allocation and see if it is a
             byte* realBase = ((byte*)allocation) - canUnlink;
             ptrdiff_t offset = *((ptrdiff_t*)realBase);
 
@@ -1143,7 +1143,7 @@ namespace TTD
 
         //The hash max capcity and data array
         uint32 m_capacity;
-        Entry* m_hashArray; 
+        Entry* m_hashArray;
 
         //Count of elements in the dictionary
         uint32 m_count;
@@ -1331,7 +1331,7 @@ namespace TTD
     class MarkTable
     {
     private:
-        //The addresses and their marks 
+        //The addresses and their marks
         uint64* m_addrArray;
         MarkTableTag* m_markArray;
 

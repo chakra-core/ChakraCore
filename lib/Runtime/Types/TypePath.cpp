@@ -47,16 +47,18 @@ namespace Js {
 
     PropertyIndex TypePath::LookupInline(PropertyId propId,int typePathLength)
     {
-        if (propId == Constants::NoProperty) {
+        if (propId == Constants::NoProperty)
+        {
            return Constants::NoSlot;
         }
+
         PropertyIndex propIndex = Constants::NoSlot;
-        if (this->GetData()->map.TryGetValue(propId, &propIndex,
-                static_cast<const PropertyRecord **>(assignments))) {
-            if (propIndex<typePathLength) {
-                return propIndex;
-            }
+        if (this->GetData()->map.TryGetValue(propId, &propIndex, assignments) &&
+            propIndex < typePathLength)
+        {
+            return propIndex;
         }
+
         return Constants::NoSlot;
     }
 
@@ -184,7 +186,7 @@ namespace Js {
 
     }
 
-    int TypePath::Data::Add(const PropertyRecord* propId, const PropertyRecord ** assignments)
+    int TypePath::Data::Add(const PropertyRecord* propId, Field(const PropertyRecord *)* assignments)
     {
         uint currentPathLength = this->pathLength;
         Assert(currentPathLength < this->pathSize);

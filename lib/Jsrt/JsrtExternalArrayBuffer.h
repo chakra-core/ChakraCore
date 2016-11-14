@@ -18,8 +18,8 @@ namespace Js {
         void Finalize(bool isShutdown) override;
 
     private:
-        JsFinalizeCallback finalizeCallback;
-        void *callbackState;
+        FieldNoBarrier(JsFinalizeCallback) finalizeCallback;
+        Field(void *) callbackState;
     };
     AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(JsrtExternalArrayBuffer, &Js::RecyclableObject::DumpObjectFunction);
 }

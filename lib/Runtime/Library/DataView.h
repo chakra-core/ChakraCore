@@ -199,8 +199,8 @@ namespace Js
         template<> void SetValue<double>(uint32 byteOffset, double value, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
 #endif
 
-        uint32 byteOffset;
-        BYTE* buffer;   // beginning of buffer
+        Field(uint32) byteOffset;
+        Field(BYTE*) buffer;   // beginning of buffer
 
     };
 }

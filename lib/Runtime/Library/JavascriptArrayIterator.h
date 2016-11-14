@@ -16,9 +16,9 @@ namespace Js
     class JavascriptArrayIterator : public DynamicObject
     {
     private:
-        Var                         m_iterableObject;
-        int64                       m_nextIndex;
-        JavascriptArrayIteratorKind m_kind;
+        Field(Var)                         m_iterableObject;
+        Field(int64)                       m_nextIndex;
+        Field(JavascriptArrayIteratorKind) m_kind;
 
     protected:
         DEFINE_VTABLE_CTOR(JavascriptArrayIterator, DynamicObject);

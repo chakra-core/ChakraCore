@@ -73,7 +73,7 @@ namespace Js
         void SetItem(_In_range_(0, N - 1) int index, JavascriptString* value);
 
     protected:
-        Field(JavascriptString* ) m_slots[N];   // These contain the child nodes. 1 slot is per 1 item (JavascriptString*).
+        Field(JavascriptString*) m_slots[N];   // These contain the child nodes. 1 slot is per 1 item (JavascriptString*).
     };
 
     // Concat string that uses binary tree, each node has 2 children.

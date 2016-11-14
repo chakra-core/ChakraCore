@@ -15,8 +15,8 @@ namespace Js
         Js::InlineCache * GetInlineCache() const { return inlineCache; }
         uint GetRefCount() { return refCount; }
     private:
-        uint refCount;
-        Js::InlineCache * inlineCache;
+        Field(uint) refCount;
+        Field(Js::InlineCache *) inlineCache;
     };
 
     class RootObjectBase: public DynamicObject

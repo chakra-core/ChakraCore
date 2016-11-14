@@ -198,11 +198,17 @@ bool MainVisitor::MatchType(const string& type, const char* source, const char**
             continue;
         }
 
-        if (SkipPrefix(p, "class ") || SkipPrefix(p, "struct ") ||
-            SkipPrefix(p, "union ") || SkipPrefix(p, "enum "))
+#define SKIP_EITHER_PREFIX(prefix) \
+            (SkipPrefix(p, prefix) || SkipPrefix(source, prefix))
+        if (SKIP_EITHER_PREFIX("const ") ||
+            SKIP_EITHER_PREFIX("class ") ||
+            SKIP_EITHER_PREFIX("struct ") ||
+            SKIP_EITHER_PREFIX("union ") ||
+            SKIP_EITHER_PREFIX("enum "))
         {
             continue;
         }
+#undef SKIP_EITHER_PREFIX
 
         // type may contain [...] array specifier, while source has it after field name
         if (*p == '[')
