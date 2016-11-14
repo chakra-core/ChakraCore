@@ -2792,7 +2792,7 @@ namespace Js
             }
             else
             {
-                AssertMsg(descriptor.IsInitialized, "How can this not be initialized?");
+                TTDAssert(descriptor.IsInitialized, "How can this not be initialized?");
 
                 T gIndex = descriptor.GetGetterPropertyIndex();
                 if(gIndex != NoSlots)
@@ -2838,7 +2838,7 @@ namespace Js
             }
         }
 
-        AssertMsg(false, "We found this and not accessor but noslots for index?");
+        TTDAssert(false, "We found this and not accessor but noslots for index?");
         return Js::Constants::NoBigSlot;
     }
 #endif

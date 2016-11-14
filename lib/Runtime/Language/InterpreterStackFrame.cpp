@@ -1174,37 +1174,16 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (doJITLoopBody)
             {
-                //right now we disallow stmt tracking fot TTD if JIT is enabled
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, true, false>;
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, true, false>;
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, true>;
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, true>;
             }
             else
 #endif
             {
-#if ENABLE_TTD
-                if(SHOULD_DO_TTD_STACK_STMT_OP(newInstance->scriptContext))
-                {
 #if ENABLE_PROFILE_INFO
-                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false, true>;
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false>;
 #endif
-
-                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false, true>;
-                }
-                else
-                {
-#if ENABLE_PROFILE_INFO
-                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false, false>;
-#endif
-
-                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false, false>;
-                }
-#else
-#if ENABLE_PROFILE_INFO
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false, false>;
-#endif
-
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false, false>;
-#endif
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false>;
             }
         }
         else
@@ -1212,37 +1191,16 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (doJITLoopBody)
             {
-                //right now we disallow stmt tracking fot TTD if JIT is enabled
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, true, false>;
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, true, false>; 
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, true>;
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, true>;
             }
             else
 #endif
             {
-#if ENABLE_TTD
-                if(SHOULD_DO_TTD_STACK_STMT_OP(newInstance->scriptContext))
-                {
 #if ENABLE_PROFILE_INFO
-                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false, true>;
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false>;
 #endif
-
-                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false, true>;
-                }
-                else
-                {
-#if ENABLE_PROFILE_INFO
-                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false, false>;
-#endif
-
-                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false, false>;
-                }
-#else
-#if ENABLE_PROFILE_INFO
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false, false>;
-#endif
-
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false, false>;
-#endif
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false>;
             }
         }
 
@@ -2511,7 +2469,7 @@ namespace Js
 #endif
 
 #if ENABLE_TTD
-        AssertMsg(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We never be fetching an opcode via this path if this is true!!!");
+        TTDAssert(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We never be fetching an opcode via this path if this is true!!!");
 #endif
 
         OpCodeType op = (OpCodeType)ReadOpFunc(ip);
@@ -3500,7 +3458,7 @@ namespace Js
         if(interpreterExecutionMode == ExecutionMode::ProfilingInterpreter)
         {
 #if ENABLE_TTD
-            AssertMsg(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We should have pinned into Interpreter mode in this case!!!");
+            TTDAssert(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We should have pinned into Interpreter mode in this case!!!");
 #endif
 
             isAutoProfiling = false;
@@ -5792,7 +5750,7 @@ namespace Js
         return m_reader.GetIP();
     }
 
-    template<bool InterruptProbe, bool JITLoopBody, bool TrackStmts>
+    template<bool InterruptProbe, bool JITLoopBody>
     void InterpreterStackFrame::ProfiledLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration)
     {
         Assert(Js::DynamicProfileInfo::EnableImplicitCallFlags(GetFunctionBody()));
@@ -5803,12 +5761,9 @@ namespace Js
         }
 
 #if ENABLE_TTD
-        if(TrackStmts)
+        if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
-            if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
-            }
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
         }
 #endif
 
@@ -5866,7 +5821,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
 #endif
 
-    template<bool InterruptProbe, bool JITLoopBody, bool TrackStmts>
+    template<bool InterruptProbe, bool JITLoopBody>
     void InterpreterStackFrame::LoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration)
     {
         if (InterruptProbe)
@@ -5875,12 +5830,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
 
 #if ENABLE_TTD
-        if(TrackStmts)
+        if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
-            if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
-            }
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
         }
 #endif
 

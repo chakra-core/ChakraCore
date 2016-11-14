@@ -136,8 +136,8 @@ private:
 class HostScriptContextCallbackFunctor
 {
 public:
-    void* HostData;
-    void(*pfOnScriptLoadCallback)(void* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+    FinalizableObject* HostData;
+    void(*pfOnScriptLoadCallback)(FinalizableObject* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
 
     HostScriptContextCallbackFunctor()
         : HostData(nullptr), pfOnScriptLoadCallback(nullptr)
@@ -145,7 +145,7 @@ public:
         ;
     }
 
-    HostScriptContextCallbackFunctor(void* callbackData, void(*pfcallbackOnScriptLoad)(void* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException))
+    HostScriptContextCallbackFunctor(FinalizableObject* callbackData, void(*pfcallbackOnScriptLoad)(FinalizableObject* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException))
         : HostData(callbackData), pfOnScriptLoadCallback(pfcallbackOnScriptLoad)
     {
         ;

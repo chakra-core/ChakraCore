@@ -46,7 +46,7 @@ namespace Js
 #if ENABLE_TTD
         virtual void MarshalCrossSite_TTDInflate() override
         {
-            Assert(false);
+            TTDAssert(false, "Should never call this!!!");
         }
 #endif
     };

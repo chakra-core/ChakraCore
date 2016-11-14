@@ -12,7 +12,7 @@ namespace TTD
     {
         void ExtractCompoundObject(NSSnapObjects::SnapObject* sobj, Js::RecyclableObject* obj, bool isWellKnown, const TTDIdentifierDictionary<TTD_PTR_ID, NSSnapType::SnapType*>& idToTypeMap, SlabAllocator& alloc)
         {
-            AssertMsg(!obj->CanHaveInterceptors(), "We are not prepared for custom external objects yet");
+            TTDAssert(!obj->CanHaveInterceptors(), "We are not prepared for custom external objects yet");
 
             sobj->ObjectPtrId = TTD_CONVERT_VAR_TO_PTR_ID(obj);
             sobj->SnapObjectTag = obj->GetSnapTag_TTD();
@@ -111,7 +111,7 @@ namespace TTD
             {
                 return nullptr;
             }
-            AssertMsg(Js::DynamicType::Is(robj->GetTypeId()), "You should only do this for dynamic objects!!!");
+            TTDAssert(Js::DynamicType::Is(robj->GetTypeId()), "You should only do this for dynamic objects!!!");
 
             Js::DynamicObject* dynObj = Js::DynamicObject::FromVar(robj);
             return ObjectPropertyReset(snpObject, dynObj, inflator, false);
@@ -160,12 +160,12 @@ namespace TTD
                 {
                     BOOL ok = FALSE;
                     Js::PropertyId pid = iter.CurrentValue();
-                    AssertMsg(pid != Js::Constants::NoProperty, "This shouldn't happen!!!");
+                    TTDAssert(pid != Js::Constants::NoProperty, "This shouldn't happen!!!");
 
                     //This is a bit of a kludge
                     if(Js::IsInternalPropertyId(pid))
                     {
-                        AssertMsg(dynObj->GetTypeId() == Js::TypeIds_Object, "If it is anything else then I am not sure we can re-create it appropriately");
+                        TTDAssert(dynObj->GetTypeId() == Js::TypeIds_Object, "If it is anything else then I am not sure we can re-create it appropriately");
 
                         propertyReset.Clear();
                         return dynObj->GetLibrary()->CreateObject();
@@ -180,7 +180,7 @@ namespace TTD
                         ok = dynObj->DeleteProperty(pid, Js::PropertyOperationFlags::PropertyOperation_Force);
                     }
 
-                    AssertMsg(ok, "This property is stuck!!!");
+                    TTDAssert(ok, "This property is stuck!!!");
                 }
             }
 
@@ -235,17 +235,17 @@ namespace TTD
                     continue;
                 }
 
-                AssertMsg(!Js::JavascriptProxy::Is(obj), "I didn't think proxies could have real properties directly on them.");
+                TTDAssert(!Js::JavascriptProxy::Is(obj), "I didn't think proxies could have real properties directly on them.");
 
                 Js::PropertyId pid = handler->PropertyInfoArray[i].PropertyRecordId;
 
                 if(handler->PropertyInfoArray[i].DataKind == NSSnapType::SnapEntryDataKindTag::Uninitialized)
                 {
-                    AssertMsg(!obj->HasOwnProperty(pid), "Shouldn't have this defined, or we should have cleared it, and nothing more to do.");
+                    TTDAssert(!obj->HasOwnProperty(pid), "Shouldn't have this defined, or we should have cleared it, and nothing more to do.");
 
                     BOOL success = obj->EnsureProperty(pid);
 
-                    AssertMsg(success, "Failed to set property during restore!!!");
+                    TTDAssert(success, "Failed to set property during restore!!!");
                 }
                 else
                 {
@@ -278,7 +278,7 @@ namespace TTD
                             }
                         }
 
-                        AssertMsg(success, "Failed to set property during restore!!!");
+                        TTDAssert(success, "Failed to set property during restore!!!");
                     }
                     else
                     {
@@ -293,7 +293,7 @@ namespace TTD
                         }
                         else
                         {
-                            AssertMsg(false, "Don't know how to restore this accesstag!!");
+                            TTDAssert(false, "Don't know how to restore this accesstag!!");
                         }
                     }
                 }
@@ -331,7 +331,7 @@ namespace TTD
             {
                 if(!obj->GetIsExtensible())
                 {
-                    AssertMsg(!(obj->GetDynamicType()->GetIsShared() || obj->GetDynamicType()->GetTypeHandler()->GetIsShared()), "We are just changing the flag so if it is shared this might unexpectedly change another type!");
+                    TTDAssert(!(obj->GetDynamicType()->GetIsShared() || obj->GetDynamicType()->GetTypeHandler()->GetIsShared()), "We are just changing the flag so if it is shared this might unexpectedly change another type!");
 
                     obj->GetDynamicType()->GetTypeHandler()->SetExtensible_TTD();
                 }
@@ -339,7 +339,7 @@ namespace TTD
 
             if(snpObject->SnapType->HasNoEnumerableProperties != obj->GetDynamicType()->GetHasNoEnumerableProperties())
             {
-                AssertMsg(!obj->GetDynamicType()->GetIsShared(), "This is shared so we are mucking something up.");
+                TTDAssert(!obj->GetDynamicType()->GetIsShared(), "This is shared so we are mucking something up.");
 
                 obj->GetDynamicType()->SetHasNoEnumerableProperties(snpObject->SnapType->HasNoEnumerableProperties);
             }
@@ -598,7 +598,7 @@ namespace TTD
                         }
                         else
                         {
-                            AssertMsg(spe.DataKind == NSSnapType::SnapEntryDataKindTag::Setter, "What other tags are there???");
+                            TTDAssert(spe.DataKind == NSSnapType::SnapEntryDataKindTag::Setter, "What other tags are there???");
 
                             NSSnapValues::AssertSnapEquivTTDVar_PropertySetter(var1, var2, compareMap, spe.PropertyRecordId);
                         }
@@ -674,9 +674,7 @@ namespace TTD
                     func = ifunc;
                 }
 
-                func->SetHasInlineCaches(snapFuncInfo->HasInlineCaches);
                 func->SetHasSuperReference(snapFuncInfo->HasSuperReference);
-                func->SetIsActiveScript(snapFuncInfo->IsActiveScript);
 
                 return func;
             }
@@ -724,9 +722,7 @@ namespace TTD
             writer->WriteKey(NSTokens::Key::nameInfo, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(snapFuncInfo->ComputedNameInfo, writer, NSTokens::Separator::NoSeparator);
 
-            writer->WriteBool(NSTokens::Key::boolVal, snapFuncInfo->HasInlineCaches, NSTokens::Separator::CommaSeparator);
             writer->WriteBool(NSTokens::Key::boolVal, snapFuncInfo->HasSuperReference, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, snapFuncInfo->IsActiveScript, NSTokens::Separator::CommaSeparator);
         }
 
         void ParseAddtlInfo_SnapScriptFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc)
@@ -743,9 +739,7 @@ namespace TTD
             reader->ReadKey(NSTokens::Key::nameInfo, true);
             snapFuncInfo->ComputedNameInfo = NSSnapValues::ParseTTDVar(false, reader);
 
-            snapFuncInfo->HasInlineCaches = reader->ReadBool(NSTokens::Key::boolVal, true);
             snapFuncInfo->HasSuperReference = reader->ReadBool(NSTokens::Key::boolVal, true);
-            snapFuncInfo->IsActiveScript = reader->ReadBool(NSTokens::Key::boolVal, true);
 
             SnapObjectSetAddtlInfoAs<SnapScriptFunctionInfo*, SnapObjectType::SnapScriptFunctionObject>(snpObject, snapFuncInfo);
         }
@@ -766,9 +760,7 @@ namespace TTD
 
             NSSnapValues::AssertSnapEquivTTDVar_Special(snapFuncInfo1->ComputedNameInfo, snapFuncInfo2->ComputedNameInfo, compareMap, _u("computedName"));
 
-            compareMap.DiagnosticAssert(snapFuncInfo1->HasInlineCaches == snapFuncInfo2->HasInlineCaches);
             compareMap.DiagnosticAssert(snapFuncInfo1->HasSuperReference == snapFuncInfo2->HasSuperReference);
-            compareMap.DiagnosticAssert(snapFuncInfo1->IsActiveScript == snapFuncInfo2->IsActiveScript);
         }
 #endif
 
@@ -986,7 +978,7 @@ namespace TTD
             }
             else
             {
-                AssertMsg(argsInfo->FrameObject != TTD_INVALID_PTR_ID, "That won't work!");
+                TTDAssert(argsInfo->FrameObject != TTD_INVALID_PTR_ID, "That won't work!");
 
                 activationObj = inflator->LookupObject(argsInfo->FrameObject);
             }
@@ -1011,7 +1003,7 @@ namespace TTD
             }
             else
             {
-                AssertMsg(argsInfo->FrameObject != TTD_INVALID_PTR_ID, "That won't work!");
+                TTDAssert(argsInfo->FrameObject != TTD_INVALID_PTR_ID, "That won't work!");
 
                 activationObj = inflator->LookupObject(argsInfo->FrameObject);
             }
@@ -1593,7 +1585,7 @@ namespace TTD
             SnapArrayBufferInfo* buffInfo = SnapObjectGetAddtlInfoAs<SnapArrayBufferInfo*, SnapObjectType::SnapArrayBufferObject>(snpObject);
 
             Js::ArrayBuffer* abuff = ctx->GetLibrary()->CreateArrayBuffer(buffInfo->Length);
-            AssertMsg(abuff->GetByteLength() == buffInfo->Length, "Something is wrong with our sizes.");
+            TTDAssert(abuff->GetByteLength() == buffInfo->Length, "Something is wrong with our sizes.");
 
             js_memcpy_s(abuff->GetBuffer(), abuff->GetByteLength(), buffInfo->Buff, buffInfo->Length);
 
@@ -1722,7 +1714,7 @@ namespace TTD
                 tab = Js::CharArray::Create(arrayBuffer, typedArrayInfo->ByteOffset, typedArrayInfo->Length, jslib);
                 break;
             default:
-                AssertMsg(false, "Not a typed array!");
+                TTDAssert(false, "Not a typed array!");
                 break;
             }
 

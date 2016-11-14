@@ -4929,13 +4929,15 @@ namespace Js
         if(this->nativeHostPromiseContinuationFunction)
         {
 #if ENABLE_TTD
+            TTDAssert(this->scriptContext != nullptr, "We shouldn't be adding tasks if this is the case???");
+
             if(this->scriptContext->ShouldPerformReplayAction())
             {
-                scriptContext->GetThreadContext()->TTDRootNestingCount++;
+                this->scriptContext->GetThreadContext()->TTDRootNestingCount++;
 
                 this->scriptContext->GetThreadContext()->TTDLog->ReplayEnqueueTaskEvent(scriptContext, taskVar);
 
-                scriptContext->GetThreadContext()->TTDRootNestingCount--;
+                this->scriptContext->GetThreadContext()->TTDRootNestingCount--;
             }
             else if(this->scriptContext->ShouldPerformRecordAction())
             {
@@ -4999,7 +5001,7 @@ namespace Js
                 //
                 //TODO: need to implement support for this path
                 //
-                AssertMsg(false, "Path not implemented in TTD!!!");
+                TTDAssert(false, "Path not implemented in TTD!!!");
             }
 #endif
 
@@ -5170,7 +5172,7 @@ namespace Js
         case Js::TypeIds_SymbolObject:
             return this->CreateSymbolObject(nullptr);
         default:
-            AssertMsg(false, "Unsupported nullptr value boxed object.");
+            TTDAssert(false, "Unsupported nullptr value boxed object.");
             return nullptr;
         }
     }
@@ -5192,7 +5194,7 @@ namespace Js
             Js::JavascriptSymbolObject::FromVar(obj)->SetValue_TTD(value);
             break;
         default:
-            AssertMsg(false, "Unsupported nullptr value boxed object.");
+            TTDAssert(false, "Unsupported nullptr value boxed object.");
             break;
         }
     }
@@ -5366,7 +5368,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreatePromiseResolveOrRejectFunction_TTD(RecyclableObject* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolved)
     {
-        AssertMsg(JavascriptPromise::Is(promise), "Not a promise!");
+        TTDAssert(JavascriptPromise::Is(promise), "Not a promise!");
 
         return this->CreatePromiseResolveOrRejectFunction(JavascriptPromise::EntryResolveOrRejectFunction, static_cast<JavascriptPromise*>(promise), isReject, alreadyResolved);
     }

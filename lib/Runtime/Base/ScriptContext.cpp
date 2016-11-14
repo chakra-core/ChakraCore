@@ -1275,7 +1275,7 @@ namespace Js
         BindReference(this->fieldAccessStatsByFunctionNumber);
 #endif
 
-if (!sourceList)
+        if (!sourceList)
         {
             AutoCriticalSection critSec(threadContext->GetEtwRundownCriticalSection());
             sourceList.Root(RecyclerNew(this->GetRecycler(), SourceList, this->GetRecycler()), this->GetRecycler());
@@ -2457,7 +2457,7 @@ if (!sourceList)
 #if ENABLE_TTD
     void ScriptContext::InitializeCoreImage_TTD()
     {
-        AssertMsg(this->TTDWellKnownInfo == nullptr, "This should only happen once!!!");
+        TTDAssert(this->TTDWellKnownInfo == nullptr, "This should only happen once!!!");
 
         this->TTDContextInfo = TT_HEAP_NEW(TTD::ScriptContextTTD, this);
         this->TTDWellKnownInfo = TT_HEAP_NEW(TTD::RuntimeContextInfo);

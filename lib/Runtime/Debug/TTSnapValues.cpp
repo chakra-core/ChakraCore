@@ -94,7 +94,7 @@ namespace TTD
                     fb = pfi->GetFunctionBody();
                 }
             }
-            AssertMsg(fb != nullptr, "I just want a function body!!!");
+            TTDAssert(fb != nullptr, "I just want a function body!!!");
 
             fb->EnsureDeserialized();
             return fb;
@@ -102,7 +102,7 @@ namespace TTD
 
         void CopyStringToHeapAllocatorWLength(const char16* string, uint32 length, TTString& into)
         {
-            AssertMsg(string != nullptr, "Not allowed with string + length");
+            TTDAssert(string != nullptr, "Not allowed with string + length");
 
             into.Length = length;
 
@@ -113,6 +113,7 @@ namespace TTD
             else
             {
                 into.Contents = TT_HEAP_ALLOC_ARRAY(char16, into.Length + 1);
+
                 js_memcpy_s(into.Contents, into.Length * sizeof(char16), string, length * sizeof(char16));
                 into.Contents[into.Length] = _u('\0');
             }
@@ -134,31 +135,31 @@ namespace TTD
             const TTUriString& uri = threadContext->TTDContext->TTDUri;
             const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
 
-            JsTTDStreamHandle srcStream = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, false, true);
+            JsTTDStreamHandle srcStream = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, false, true, nullptr, nullptr);
 
             if(isUtf8Source)
             {
                 byte byteOrderArray[3] = { 0xEF, 0xBB, 0xBF };
                 size_t byteOrderCount = 0;
                 bool okBOC = iops.pfWriteBytesToStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
-                AssertMsg(okBOC && byteOrderCount == _countof(byteOrderArray), "Write Failed!!!");
+                TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray), "Write Failed!!!");
             }
             else
             {
                 byte byteOrderArray[2] = { 0xFF, 0xFE };
                 size_t byteOrderCount = 0;
                 bool okBOC = iops.pfWriteBytesToStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
-                AssertMsg(okBOC && byteOrderCount == _countof(byteOrderArray), "Write Failed!!!");
+                TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray), "Write Failed!!!");
             }
 
             size_t writtenCount = 0;
             bool ok = iops.pfWriteBytesToStream(srcStream, sourceBuffer, length, &writtenCount);
-            AssertMsg(ok && writtenCount == length, "Write Failed!!!");
+            TTDAssert(ok && writtenCount == length, "Write Failed!!!");
 
             iops.pfFlushAndCloseStream(srcStream, false, true);
         }
 
-        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length)
+        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length, byte** relocatedUri, size_t* relocatedUriLength)
         {
             char asciiResourceName[64];
             sprintf_s(asciiResourceName, 64, "src%s_%I64u.js", (fromEvent ? "_ld" : ""), static_cast<uint64>(docId));
@@ -166,26 +167,26 @@ namespace TTD
             const TTUriString& uri = threadContext->TTDContext->TTDUri;
             const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
 
-            JsTTDStreamHandle srcStream = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, true, false);
+            JsTTDStreamHandle srcStream = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, true, false, relocatedUri, relocatedUriLength);
 
             if(isUtf8Source)
             {
                 byte byteOrderArray[3] = { 0x0, 0x0, 0x0 };
                 size_t byteOrderCount = 0;
                 bool okBOC = iops.pfReadBytesFromStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
-                AssertMsg(okBOC && byteOrderCount == _countof(byteOrderArray) && byteOrderArray[0] == 0xEF && byteOrderArray[1] == 0xBB && byteOrderArray[2] == 0xBF, "Read Failed!!!");
+                TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray) && byteOrderArray[0] == 0xEF && byteOrderArray[1] == 0xBB && byteOrderArray[2] == 0xBF, "Read Failed!!!");
             }
             else
             {
                 byte byteOrderArray[2] = { 0x0, 0x0 };
                 size_t byteOrderCount = 0;
                 bool okBOC = iops.pfReadBytesFromStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
-                AssertMsg(okBOC && byteOrderCount == _countof(byteOrderArray) && byteOrderArray[0] == 0xFF && byteOrderArray[1] == 0xFE, "Read Failed!!!");
+                TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray) && byteOrderArray[0] == 0xFF && byteOrderArray[1] == 0xFE, "Read Failed!!!");
             }
 
             size_t readCount = 0;
             bool ok = iops.pfReadBytesFromStream(srcStream, sourceBuffer, length, &readCount);
-            AssertMsg(ok && readCount == length, "Read Failed!!!");
+            TTDAssert(ok && readCount == length, "Read Failed!!!");
 
             iops.pfFlushAndCloseStream(srcStream, true, false);
         }
@@ -214,7 +215,7 @@ namespace TTD
                 }
                 else
                 {
-                    AssertMsg(Js::JavascriptNumber::Is_NoTaggedIntCheck(var), "Only other tagged value we support!!!");
+                    TTDAssert(Js::JavascriptNumber::Is_NoTaggedIntCheck(var), "Only other tagged value we support!!!");
 
                     writer->WriteTag<TTDVarEmitTag>(NSTokens::Key::ttdVarTag, TTDVarEmitTag::TTDVarDouble);
                     writer->WriteDouble(NSTokens::Key::doubleVal, Js::JavascriptNumber::GetValue(var), NSTokens::Separator::CommaSeparator);
@@ -255,7 +256,7 @@ namespace TTD
 #endif
             else
             {
-                AssertMsg(tag == TTDVarEmitTag::TTDVarAddr, "Is there something else?");
+                TTDAssert(tag == TTDVarEmitTag::TTDVarAddr, "Is there something else?");
 
                 TTD_PTR_ID addrVal = reader->ReadAddr(NSTokens::Key::ptrIdVal, true);
                 res = TTD_COERCE_PTR_ID_TO_VAR(addrVal);
@@ -379,7 +380,7 @@ namespace TTD
                     snapValue->u_propertyIdValue = jslib->ExtractPrimitveSymbolId_TTD(jsValue);
                     break;
                 default:
-                    AssertMsg(false, "These are supposed to be primitive values on the heap e.g., no pointers or properties.");
+                    TTDAssert(false, "These are supposed to be primitive values on the heap e.g., no pointers or properties.");
                     break;
                 }
             }
@@ -431,7 +432,7 @@ namespace TTD
                         res = jslib->CreatePrimitveSymbol_TTD(snapValue->u_propertyIdValue);
                         break;
                     default:
-                        AssertMsg(false, "These are supposed to be primitive values e.g., no pointers or properties.");
+                        TTDAssert(false, "These are supposed to be primitive values e.g., no pointers or properties.");
                         res = nullptr;
                     }
                 }
@@ -477,7 +478,7 @@ namespace TTD
                     writer->WriteInt32(NSTokens::Key::propertyId, snapValue->u_propertyIdValue, NSTokens::Separator::CommaSeparator);
                     break;
                 default:
-                    AssertMsg(false, "These are supposed to be primitive values e.g., no pointers or properties.");
+                    TTDAssert(false, "These are supposed to be primitive values e.g., no pointers or properties.");
                     break;
                 }
             }
@@ -529,7 +530,7 @@ namespace TTD
                     snapValue->u_propertyIdValue = (Js::PropertyId)reader->ReadInt32(NSTokens::Key::propertyId, true);
                     break;
                 default:
-                    AssertMsg(false, "These are supposed to be primitive values e.g., no pointers or properties.");
+                    TTDAssert(false, "These are supposed to be primitive values e.g., no pointers or properties.");
                     break;
                 }
             }
@@ -575,7 +576,7 @@ namespace TTD
                     compareMap.DiagnosticAssert(v1->u_propertyIdValue == v2->u_propertyIdValue);
                     break;
                 default:
-                    AssertMsg(false, "These are supposed to be primitive values e.g., no pointers or properties.");
+                    TTDAssert(false, "These are supposed to be primitive values e.g., no pointers or properties.");
                     break;
                 }
             }
@@ -592,10 +593,32 @@ namespace TTD
             Js::ScopeSlots scopeSlots(slotArray);
             scopeSlots.SetCount(slotInfo->SlotCount);
 
+            Js::Var undef = ctx->GetLibrary()->GetUndefined();
+            for(uint32 j = 0; j < slotInfo->SlotCount; j++)
+            {
+                scopeSlots.Set(j, undef);
+            }
+
             if(slotInfo->isFunctionBodyMetaData)
             {
                 Js::FunctionBody* fbody = inflator->LookupFunctionBody(slotInfo->OptFunctionBodyId);
                 scopeSlots.SetScopeMetadata(fbody);
+
+                //This is a doubly nested lookup so if the scope slot array is large this could be expensive
+                Js::PropertyId* propertyIds = fbody->GetPropertyIdsForScopeSlotArray();
+                for(uint32 j = 0; j < slotInfo->SlotCount; j++)
+                {
+                    Js::PropertyId trgtPid = slotInfo->PIDArray[j];
+                    for(uint32 i = 0; i < slotInfo->SlotCount; i++)
+                    {
+                        if(trgtPid == propertyIds[i])
+                        {
+                            Js::Var sval = inflator->InflateTTDVar(slotInfo->Slots[j]);
+                            scopeSlots.Set(i, sval);
+                            break;
+                        }
+                    }
+                }
             }
             else
             {
@@ -613,17 +636,22 @@ namespace TTD
                     dbgScope = scopeBody->GetScopeObjectChain()->pScopeChain->Item(scopeIndex);
                 }
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                AssertMsg(dbgScope->GetStart() == slotInfo->OptDiagDebugScopeBegin && dbgScope->GetEnd() == slotInfo->OptDiagDebugScopeEnd, "Bytecode positions don't match!!!");
-#endif
-
                 scopeSlots.SetScopeMetadata(dbgScope);
-            }
 
-            for(uint32 j = 0; j < slotInfo->SlotCount; j++)
-            {
-                Js::Var sval = inflator->InflateTTDVar(slotInfo->Slots[j]);
-                scopeSlots.Set(j, sval);
+                //This is a doubly nested lookup so if the scope slot array is large this could be expensive
+                for(uint32 j = 0; j < slotInfo->SlotCount; j++)
+                {
+                    Js::PropertyId trgtPid = slotInfo->PIDArray[j];
+                    for(uint32 i = 0; i < slotInfo->SlotCount; i++)
+                    {
+                        if(trgtPid == dbgScope->GetPropertyIdForSlotIndex_TTD(i))
+                        {
+                            Js::Var sval = inflator->InflateTTDVar(slotInfo->Slots[j]);
+                            scopeSlots.Set(i, sval);
+                            break;
+                        }
+                    }
+                }
             }
 
             return slotArray;
@@ -653,11 +681,6 @@ namespace TTD
                 {
                     writer->WriteAddr(NSTokens::Key::debuggerScopeId, slotInfo->OptDebugScopeId, NSTokens::Separator::CommaSeparator);
                 }
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                writer->WriteInt32(NSTokens::Key::i32Val, slotInfo->OptDiagDebugScopeBegin, NSTokens::Separator::CommaSeparator);
-                writer->WriteInt32(NSTokens::Key::i32Val, slotInfo->OptDiagDebugScopeEnd, NSTokens::Separator::CommaSeparator);
-#endif
             }
 
             writer->WriteLengthValue(slotInfo->SlotCount, NSTokens::Separator::CommaAndBigSpaceSeparator);
@@ -665,21 +688,13 @@ namespace TTD
             writer->AdjustIndent(1);
             for(uint32 i = 0; i < slotInfo->SlotCount; ++i)
             {
-                NSTokens::Separator sep = (i != 0 ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                writer->WriteRecordStart(sep);
-                writer->WriteUInt32(NSTokens::Key::pid, slotInfo->DebugPIDArray[i], NSTokens::Separator::NoSeparator);
+                writer->WriteRecordStart(i != 0 ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator);
+                writer->WriteUInt32(NSTokens::Key::pid, slotInfo->PIDArray[i], NSTokens::Separator::NoSeparator);
                 writer->WriteKey(NSTokens::Key::entry, NSTokens::Separator::CommaSeparator);
 
-                sep = NSTokens::Separator::NoSeparator;
-#endif
+                EmitTTDVar(slotInfo->Slots[i], writer, NSTokens::Separator::NoSeparator);
 
-                EmitTTDVar(slotInfo->Slots[i], writer, sep);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
                 writer->WriteRecordEnd();
-#endif
             }
             writer->AdjustIndent(-1);
             writer->WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
@@ -703,11 +718,6 @@ namespace TTD
             if(slotInfo->isFunctionBodyMetaData)
             {
                 slotInfo->OptFunctionBodyId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                slotInfo->OptDiagDebugScopeBegin = -1;
-                slotInfo->OptDiagDebugScopeEnd = -1;
-#endif
             }
             else
             {
@@ -720,10 +730,6 @@ namespace TTD
                 {
                     slotInfo->OptDebugScopeId = reader->ReadAddr(NSTokens::Key::debuggerScopeId, true);
                 }
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                slotInfo->OptDiagDebugScopeBegin = reader->ReadInt32(NSTokens::Key::i32Val, true);
-                slotInfo->OptDiagDebugScopeEnd = reader->ReadInt32(NSTokens::Key::i32Val, true);
-#endif
             }
 
             slotInfo->SlotCount = reader->ReadLengthValue(true);
@@ -731,27 +737,17 @@ namespace TTD
 
             slotInfo->Slots = alloc.SlabAllocateArray<TTDVar>(slotInfo->SlotCount);
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            slotInfo->DebugPIDArray = alloc.SlabAllocateArray<Js::PropertyId>(slotInfo->SlotCount);
-#endif
+            slotInfo->PIDArray = alloc.SlabAllocateArray<Js::PropertyId>(slotInfo->SlotCount);
 
             for(uint32 i = 0; i < slotInfo->SlotCount; ++i)
             {
-                bool readSeparator = (i != 0);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                reader->ReadRecordStart(readSeparator);
-                slotInfo->DebugPIDArray[i] = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::pid);
+                reader->ReadRecordStart(i != 0);
+                slotInfo->PIDArray[i] = (Js::PropertyId)reader->ReadUInt32(NSTokens::Key::pid);
                 reader->ReadKey(NSTokens::Key::entry, true);
 
-                readSeparator = false;
-#endif
+                slotInfo->Slots[i] = ParseTTDVar(false, reader);
 
-                slotInfo->Slots[i] = ParseTTDVar(readSeparator, reader);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
                 reader->ReadRecordEnd();
-#endif
             }
             reader->ReadSequenceEnd();
 
@@ -776,11 +772,15 @@ namespace TTD
             compareMap.DiagnosticAssert(sai1->SlotCount == sai2->SlotCount);
             for(uint32 i = 0; i < sai1->SlotCount; ++i)
             {
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                compareMap.DiagnosticAssert(sai1->DebugPIDArray[i] == sai2->DebugPIDArray[i]);
-#endif
-
-                AssertSnapEquivTTDVar_SlotArray(sai1->Slots[i], sai2->Slots[i], compareMap, i);
+                Js::PropertyId id1 = sai1->PIDArray[i];
+                for(uint32 j = 0; j < sai1->SlotCount; ++j)
+                {
+                    if(id1 == sai2->PIDArray[j])
+                    {
+                        AssertSnapEquivTTDVar_SlotArray(sai1->Slots[i], sai2->Slots[j], compareMap, i);
+                        break;
+                    }
+                }
             }
         }
 #endif
@@ -811,7 +811,7 @@ namespace TTD
                     break;
                 }
                 default:
-                    AssertMsg(false, "Unknown scope kind");
+                    TTDAssert(false, "Unknown scope kind");
                     break;
                 }
             }
@@ -1010,12 +1010,20 @@ namespace TTD
             {
                 Js::ScopeObjectChain* scChain = fb->GetScopeObjectChain();
                 scopeChain.ScopeCount = (uint32)scChain->pScopeChain->Count();
-                scopeChain.ScopeArray = (scopeChain.ScopeCount != 0) ? alloc.SlabAllocateArray<TTD_PTR_ID>(scopeChain.ScopeCount) : 0;
 
-                for(int32 i = 0; i < scChain->pScopeChain->Count(); ++i)
+                if(scopeChain.ScopeCount == 0)
                 {
-                    Js::DebuggerScope* dbgScope = scChain->pScopeChain->Item(i);
-                    scopeChain.ScopeArray[i] = TTD_CONVERT_DEBUGSCOPE_TO_PTR_ID(dbgScope);
+                    scopeChain.ScopeArray = nullptr;
+                }
+                else
+                {
+                    scopeChain.ScopeArray = alloc.SlabAllocateArray<TTD_PTR_ID>(scopeChain.ScopeCount);
+
+                    for(int32 i = 0; i < scChain->pScopeChain->Count(); ++i)
+                    {
+                        Js::DebuggerScope* dbgScope = scChain->pScopeChain->Item(i);
+                        scopeChain.ScopeArray[i] = TTD_CONVERT_DEBUGSCOPE_TO_PTR_ID(dbgScope);
+                    }
                 }
             }
         }
@@ -1074,6 +1082,9 @@ namespace TTD
             fbInfo->DocumentID = documentID;
             alloc.CopyNullTermStringInto(fb->GetSourceContextInfo()->url, fbInfo->SourceUri);
 
+            //Not needed for record -- just ensure initialized to default value
+            InitializeAsNullPtrTTString(fbInfo->RelocatedSourceUri); 
+
             fbInfo->IsUtf8 = isUtf8source;
             fbInfo->ByteLength = sourceLen;
             fbInfo->SourceBuffer = alloc.SlabAllocateArray<byte>(fbInfo->ByteLength);
@@ -1097,6 +1108,8 @@ namespace TTD
             writer->WriteUInt64(NSTokens::Key::documentId, fbInfo->DocumentID, NSTokens::Separator::CommaSeparator);
             writer->WriteString(NSTokens::Key::uri, fbInfo->SourceUri, NSTokens::Separator::CommaSeparator);
 
+            //RelocatedSourceUri is not used (or set) during record so nothing to emit here
+
             writer->WriteBool(NSTokens::Key::boolVal, fbInfo->IsUtf8, NSTokens::Separator::CommaSeparator);
             writer->WriteLengthValue(fbInfo->ByteLength, NSTokens::Separator::CommaSeparator);
 
@@ -1105,7 +1118,7 @@ namespace TTD
 
             if(emitInline || IsNullPtrTTString(fbInfo->SourceUri))
             {
-                AssertMsg(!fbInfo->IsUtf8, "Should only emit char16 encoded data in inline mode.");
+                TTDAssert(!fbInfo->IsUtf8, "Should only emit char16 encoded data in inline mode.");
 
                 writer->WriteInlineCode((char16*)fbInfo->SourceBuffer, fbInfo->ByteLength / sizeof(char16), NSTokens::Separator::CommaSeparator);
             }
@@ -1127,6 +1140,9 @@ namespace TTD
             fbInfo->DocumentID = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
             reader->ReadString(NSTokens::Key::uri, alloc, fbInfo->SourceUri, true);
 
+            //Not needed for record -- so nothing to parse just ensure initialized to default value
+            InitializeAsNullPtrTTString(fbInfo->RelocatedSourceUri);
+
             fbInfo->IsUtf8 = reader->ReadBool(NSTokens::Key::boolVal, true);
             fbInfo->ByteLength = reader->ReadLengthValue(true);
             fbInfo->SourceBuffer = alloc.SlabAllocateArray<byte>(fbInfo->ByteLength);
@@ -1136,13 +1152,25 @@ namespace TTD
 
             if(parseInline || IsNullPtrTTString(fbInfo->SourceUri))
             {
-                AssertMsg(!fbInfo->IsUtf8, "Should only emit char16 encoded data in inline mode.");
+                TTDAssert(!fbInfo->IsUtf8, "Should only emit char16 encoded data in inline mode.");
 
                 reader->ReadInlineCode((char16*)fbInfo->SourceBuffer, fbInfo->ByteLength / sizeof(char16), true);
             }
             else
             {
-                JsSupport::ReadCodeFromFile(threadContext, false, fbInfo->DocumentID, fbInfo->IsUtf8, fbInfo->SourceBuffer, fbInfo->ByteLength);
+                byte* relocatedUri = nullptr;
+                size_t relocatedUriLength = 0;
+
+                JsSupport::ReadCodeFromFile(threadContext, false, fbInfo->DocumentID, fbInfo->IsUtf8, fbInfo->SourceBuffer, fbInfo->ByteLength, &relocatedUri, &relocatedUriLength);
+
+                if(relocatedUri != nullptr)
+                {
+                    alloc.CopyStringIntoWLength((char16*)relocatedUri, (uint32)relocatedUriLength, fbInfo->RelocatedSourceUri);
+
+                    //We may want to make this auto-freeing
+                    CoTaskMemFree(relocatedUri);
+                    relocatedUri = nullptr;
+                }
             }
 
             fbInfo->DbgSerializedBytecodeSize = 0;
@@ -1193,12 +1221,25 @@ namespace TTD
             uint32 scriptLength = fbInfo->TopLevelBase.ByteLength;
             DWORD_PTR sourceContext = fbInfo->TopLevelBase.DocumentID;
 
-            AssertMsg(ctx->GetSourceContextInfo(sourceContext, nullptr) == nullptr, "On inflate we should either have clean ctxts or we want to optimize the inflate process by skipping redoing this work!!!");
-            AssertMsg(fbInfo->TopLevelBase.IsUtf8 == ((fbInfo->LoadFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source), "Utf8 status is inconsistent!!!");
+            TTDAssert(ctx->GetSourceContextInfo(sourceContext, nullptr) == nullptr, "On inflate we should either have clean ctxts or we want to optimize the inflate process by skipping redoing this work!!!");
+            TTDAssert(fbInfo->TopLevelBase.IsUtf8 == ((fbInfo->LoadFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source), "Utf8 status is inconsistent!!!");
 
-            SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, fbInfo->TopLevelBase.SourceUri.Contents, fbInfo->TopLevelBase.SourceUri.Length, nullptr);
+            const char16* srcUri = nullptr;
+            uint32 srcUriLength = 0;
+            if(!IsNullPtrTTString(fbInfo->TopLevelBase.RelocatedSourceUri))
+            {
+                srcUri = fbInfo->TopLevelBase.RelocatedSourceUri.Contents;
+                srcUriLength = fbInfo->TopLevelBase.RelocatedSourceUri.Length;
+            }
+            else
+            {
+                srcUri = fbInfo->TopLevelBase.SourceUri.Contents;
+                srcUriLength = fbInfo->TopLevelBase.SourceUri.Length;
+            }
 
-            AssertMsg(fbInfo->TopLevelBase.IsUtf8 || sizeof(wchar) == sizeof(char16), "Non-utf8 code only allowed on windows!!!");
+            SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, srcUri, srcUriLength, nullptr);
+
+            TTDAssert(fbInfo->TopLevelBase.IsUtf8 || sizeof(wchar) == sizeof(char16), "Non-utf8 code only allowed on windows!!!");
             const int chsize = (fbInfo->LoadFlag & LoadScriptFlag_Utf8Source) ? sizeof(char) : sizeof(char16);
             SRCINFO si = {
                 /* sourceContextInfo   */ sourceContextInfo,
@@ -1227,7 +1268,7 @@ namespace TTD
             else
             {
                 scriptFunction = ctx->LoadScript(script, scriptLength, &si, &se, &utf8SourceInfo, Js::Constants::GlobalCode, fbInfo->LoadFlag, nullptr);
-                AssertMsg(scriptFunction != nullptr, "Something went wrong");
+                TTDAssert(scriptFunction != nullptr, "Something went wrong");
 
                 globalBody = TTD::JsSupport::ForceAndGetFunctionBody(scriptFunction->GetParseableFunctionInfo());
 
@@ -1302,7 +1343,7 @@ namespace TTD
             int32 length = (int32)(fbInfo->TopLevelBase.ByteLength / sizeof(char16));
 
             Js::JavascriptFunction* pfuncScript = ctx->GetGlobalObject()->EvalHelper(ctx, source, length, moduleID, fscrNil, Js::Constants::FunctionCode, TRUE, TRUE, strictMode);
-            AssertMsg(pfuncScript != nullptr, "Something went wrong!!!");
+            TTDAssert(pfuncScript != nullptr, "Something went wrong!!!");
 
             // Indicate that this is a top-level function. We don't pass the fscrGlobalCode flag to the eval helper,
             // or it will return the global function that wraps the declared function body, as though it were an eval.
@@ -1417,7 +1458,7 @@ namespace TTD
             fbInfo->ScriptContextLogId = fb->GetScriptContext()->ScriptContextLogTag;
 
             alloc.CopyStringIntoWLength(fb->GetDisplayName(), fb->GetDisplayNameLength(), fbInfo->FunctionName);
-            AssertMsg(wcscmp(fbInfo->FunctionName.Contents, Js::Constants::GlobalCode) != 0, "Why are we snapshotting global code??");
+            TTDAssert(wcscmp(fbInfo->FunctionName.Contents, Js::Constants::GlobalCode) != 0, "Why are we snapshotting global code??");
 
             if(isWellKnown)
             {
@@ -1432,7 +1473,7 @@ namespace TTD
                 fbInfo->OptKnownPath = TTD_INVALID_WELLKNOWN_TOKEN;
 
                 Js::FunctionBody* parentBody = fb->GetScriptContext()->TTDContextInfo->ResolveParentBody(fb);
-                AssertMsg(parentBody != nullptr, "We missed something!!!");
+                TTDAssert(parentBody != nullptr, "We missed something!!!");
 
                 fbInfo->OptParentBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(parentBody);
                 fbInfo->OptLine = fb->GetLineNumber();
@@ -1487,8 +1528,8 @@ namespace TTD
                         }
                     }
 
-                    AssertMsg(resfb != nullptr && fbInfo->OptLine == resfb->GetLineNumber() && fbInfo->OptColumn == resfb->GetColumnNumber(), "We are missing something");
-                    AssertMsg(resfb != nullptr && (wcscmp(fbInfo->FunctionName.Contents, resfb->GetDisplayName()) == 0 || wcscmp(_u("get"), resfb->GetDisplayName()) == 0 || wcscmp(_u("set"), resfb->GetDisplayName()) == 0), "We are missing something");
+                    TTDAssert(resfb != nullptr && fbInfo->OptLine == resfb->GetLineNumber() && fbInfo->OptColumn == resfb->GetColumnNumber(), "We are missing something");
+                    TTDAssert(resfb != nullptr && (wcscmp(fbInfo->FunctionName.Contents, resfb->GetDisplayName()) == 0 || wcscmp(_u("get"), resfb->GetDisplayName()) == 0 || wcscmp(_u("set"), resfb->GetDisplayName()) == 0), "We are missing something");
                 }
 
                 //Make sure to register any scopes the found function body has (but *not* for well known functions)
@@ -1514,7 +1555,7 @@ namespace TTD
                 uint32 suffixWDotPos = (fbInfo->FunctionName.Length - 4);
                 uint32 suffixPos = (fbInfo->FunctionName.Length - 3);
 
-                AssertMsg(wcsstr(fbInfo->FunctionName.Contents, _u(".get")) == (fbInfo->FunctionName.Contents + suffixWDotPos) || wcsstr(fbInfo->FunctionName.Contents, _u(".set")) == (fbInfo->FunctionName.Contents + suffixWDotPos), "Does not start with get or set");
+                TTDAssert(wcsstr(fbInfo->FunctionName.Contents, _u(".get")) == (fbInfo->FunctionName.Contents + suffixWDotPos) || wcsstr(fbInfo->FunctionName.Contents, _u(".set")) == (fbInfo->FunctionName.Contents + suffixWDotPos), "Does not start with get or set");
 
                 resfb->SetDisplayName(fbInfo->FunctionName.Contents, fbInfo->FunctionName.Length, suffixPos, Js::FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
             }
@@ -1616,36 +1657,64 @@ namespace TTD
             ctx->TTDContextInfo->GetLoadedSources(topLevelScriptLoad, topLevelNewFunction, topLevelEval);
 
             snapCtx->LoadedTopLevelScriptCount = topLevelScriptLoad.Count();
-            snapCtx->LoadedTopLevelScriptArray = (snapCtx->LoadedTopLevelScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(snapCtx->LoadedTopLevelScriptCount) : nullptr;
-            for(int32 i = 0; i < topLevelScriptLoad.Count(); ++i)
+            if(snapCtx->LoadedTopLevelScriptCount == 0)
             {
-                snapCtx->LoadedTopLevelScriptArray[i] = topLevelScriptLoad.Item(i);
+                snapCtx->LoadedTopLevelScriptArray = nullptr;
+            }
+            else
+            {
+                snapCtx->LoadedTopLevelScriptArray = alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(snapCtx->LoadedTopLevelScriptCount);
+                for(int32 i = 0; i < topLevelScriptLoad.Count(); ++i)
+                {
+                    snapCtx->LoadedTopLevelScriptArray[i] = topLevelScriptLoad.Item(i);
+                }
             }
 
             snapCtx->NewFunctionTopLevelScriptCount = topLevelNewFunction.Count();
-            snapCtx->NewFunctionTopLevelScriptArray = (snapCtx->NewFunctionTopLevelScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(snapCtx->NewFunctionTopLevelScriptCount) : nullptr;
-            for(int32 i = 0; i < topLevelNewFunction.Count(); ++i)
+            if(snapCtx->NewFunctionTopLevelScriptCount == 0)
             {
-                snapCtx->NewFunctionTopLevelScriptArray[i] = topLevelNewFunction.Item(i);
+                snapCtx->NewFunctionTopLevelScriptArray = nullptr;
+            }
+            else
+            {
+                snapCtx->NewFunctionTopLevelScriptArray = alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(snapCtx->NewFunctionTopLevelScriptCount);
+                for(int32 i = 0; i < topLevelNewFunction.Count(); ++i)
+                {
+                    snapCtx->NewFunctionTopLevelScriptArray[i] = topLevelNewFunction.Item(i);
+                }
             }
 
             snapCtx->EvalTopLevelScriptCount = topLevelEval.Count();
-            snapCtx->EvalTopLevelScriptArray = (snapCtx->EvalTopLevelScriptCount != 0) ? alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(snapCtx->EvalTopLevelScriptCount) : nullptr;
-            for(int32 i = 0; i < topLevelEval.Count(); ++i)
+            if(snapCtx->EvalTopLevelScriptCount == 0)
             {
-                snapCtx->EvalTopLevelScriptArray[i] = topLevelEval.Item(i);
+                snapCtx->EvalTopLevelScriptArray = nullptr;
+            }
+            else
+            {
+                snapCtx->EvalTopLevelScriptArray = alloc.SlabAllocateArray<TopLevelFunctionInContextRelation>(snapCtx->EvalTopLevelScriptCount);
+                for(int32 i = 0; i < topLevelEval.Count(); ++i)
+                {
+                    snapCtx->EvalTopLevelScriptArray[i] = topLevelEval.Item(i);
+                }
             }
 
             //Extract pending async modification info
             const JsUtil::List<TTDPendingAsyncBufferModification, HeapAllocator>& pendingAsyncList = ctx->TTDContextInfo->GetPendingAsyncModListForSnapshot();
             snapCtx->PendingAsyncModCount = pendingAsyncList.Count();
-            snapCtx->PendingAsyncModArray = (snapCtx->PendingAsyncModCount != 0) ? alloc.SlabAllocateArray<SnapPendingAsyncBufferModification>(snapCtx->PendingAsyncModCount) : nullptr;
-
-            for(int32 k = 0; k < pendingAsyncList.Count(); ++k)
+            if(snapCtx->PendingAsyncModCount == 0)
             {
-                const TTDPendingAsyncBufferModification& pk = pendingAsyncList.Item(k);
-                snapCtx->PendingAsyncModArray[k].LogId = objToLogIdMap.Item(Js::RecyclableObject::FromVar(pk.ArrayBufferVar));
-                snapCtx->PendingAsyncModArray[k].Index = pk.Index;
+                snapCtx->PendingAsyncModArray = nullptr;
+            }
+            else
+            {
+                snapCtx->PendingAsyncModArray = alloc.SlabAllocateArray<SnapPendingAsyncBufferModification>(snapCtx->PendingAsyncModCount);
+
+                for(int32 k = 0; k < pendingAsyncList.Count(); ++k)
+                {
+                    const TTDPendingAsyncBufferModification& pk = pendingAsyncList.Item(k);
+                    snapCtx->PendingAsyncModArray[k].LogId = objToLogIdMap.Item(Js::RecyclableObject::FromVar(pk.ArrayBufferVar));
+                    snapCtx->PendingAsyncModArray[k].Index = pk.Index;
+                }
             }
         }
 
@@ -1654,7 +1723,7 @@ namespace TTD
             const TTDIdentifierDictionary<uint64, TopLevelNewFunctionBodyResolveInfo*>& topLevelNewScriptMap,
             const TTDIdentifierDictionary<uint64, TopLevelEvalFunctionBodyResolveInfo*>& topLevelEvalScriptMap)
         {
-            AssertMsg(wcscmp(snpCtx->ContextSRC.Contents, intoCtx->GetUrl()) == 0, "Make sure the src uri values are the same.");
+            TTDAssert(wcscmp(snpCtx->ContextSRC.Contents, intoCtx->GetUrl()) == 0, "Make sure the src uri values are the same.");
 
             intoCtx->GetLibrary()->SetIsPRNGSeeded(snpCtx->IsPNRGSeeded);
             intoCtx->GetLibrary()->SetRandSeed0(snpCtx->RandomSeed0);
@@ -1743,10 +1812,10 @@ namespace TTD
 
             for(uint32 i = 0; i < snpCtx->PendingAsyncModCount; ++i)
             {
-                Js::RecyclableObject* buff = inflator->LookupObject(snpCtx->PendingAsyncModArray[i].LogId);
+                Js::RecyclableObject* buff = intoCtx->GetThreadContext()->TTDContext->LookupObjectForLogID(snpCtx->PendingAsyncModArray[i].LogId);
                 uint32 index = snpCtx->PendingAsyncModArray[i].Index;
 
-                AssertMsg(Js::ArrayBuffer::Is(buff), "Not an ArrayBuffer!!!");
+                TTDAssert(Js::ArrayBuffer::Is(buff), "Not an ArrayBuffer!!!");
                 intoCtx->TTDContextInfo->AddToAsyncPendingList(Js::ArrayBuffer::FromVar(buff), index);
             }
         }

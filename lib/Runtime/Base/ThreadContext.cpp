@@ -2027,7 +2027,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 #if ENABLE_TTD
 void ThreadContext::InitTimeTravel(ThreadContext* threadContext, void* runtimeHandle, size_t uriByteLength, const byte* ttdUri, uint32 snapInterval, uint32 snapHistoryLength)
 {
-    AssertMsg(!this->IsRuntimeInTTDMode(), "We should only init once.");
+    TTDAssert(!this->IsRuntimeInTTDMode(), "We should only init once.");
 
     this->TTDContext = HeapNew(TTD::ThreadContextTTD, this, runtimeHandle, uriByteLength, ttdUri, snapInterval, snapHistoryLength);
     this->TTDLog = HeapNew(TTD::EventLog, this);
@@ -2038,13 +2038,13 @@ void ThreadContext::InitHostFunctionsAndTTData(bool record, bool replay, bool de
     TTD::TTDOpenResourceStreamCallback getResourceStreamfp, TTD::TTDReadBytesFromStreamCallback readBytesFromStreamfp,
     TTD::TTDWriteBytesToStreamCallback writeBytesToStreamfp, TTD::TTDFlushAndCloseStreamCallback flushAndCloseStreamfp,
     TTD::TTDCreateExternalObjectCallback createExternalObjectfp,
-    TTD::TTDCreateJsRTContextCallback createJsRTContextCallbackfp, TTD::TTDSetActiveJsRTContext setActiveJsRTContextfp)
+    TTD::TTDCreateJsRTContextCallback createJsRTContextCallbackfp, TTD::TTDReleaseJsRTContextCallback releaseJsRTContextCallbackfp, TTD::TTDSetActiveJsRTContext setActiveJsRTContextfp)
 {
     AssertMsg(this->IsRuntimeInTTDMode(), "Need to call init first.");
 
     this->TTDContext->TTDWriteInitializeFunction = writeInitializefp;
     this->TTDContext->TTDStreamFunctions = { getResourceStreamfp, readBytesFromStreamfp, writeBytesToStreamfp, flushAndCloseStreamfp };
-    this->TTDContext->TTDExternalObjectFunctions = { createExternalObjectfp, createJsRTContextCallbackfp, setActiveJsRTContextfp };
+    this->TTDContext->TTDExternalObjectFunctions = { createExternalObjectfp, createJsRTContextCallbackfp, releaseJsRTContextCallbackfp, setActiveJsRTContextfp };
 
     if(record)
     {
@@ -2674,6 +2674,13 @@ ThreadContext::DoTryRedeferral() const
 bool
 ThreadContext::DoRedeferFunctionBodies() const
 {
+#if ENABLE_TTD
+    if (this->IsRuntimeInTTDMode())
+    {
+        return false;
+    }
+#endif
+
     if (PHASE_FORCE1(Js::RedeferralPhase) || PHASE_STRESS1(Js::RedeferralPhase))
     {
         return true;
