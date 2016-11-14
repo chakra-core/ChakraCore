@@ -643,7 +643,7 @@ typedef __int64 int64_t;
     /// <summary>
     ///     TimeTravel move options as bit flag enum.
     /// </summary>
-    typedef enum _JsTTDMoveModes : int64_t
+    typedef enum _JsTTDMoveModes
     {
         /// <summary>
         ///     Indicates no special actions needed for move.
@@ -966,6 +966,7 @@ typedef __int64 int64_t;
     /// </summary>
     /// <param name="runtimeHandle">The runtime handle that the script is executing in.</param>
     /// <param name="moveMode">Flags controlling the way the move it performed and how other parameters are interpreted.</param>
+    /// <param name="kthEvent">When <c>moveMode == JsTTDMoveKthEvent</c> indicates which event, otherwise this parameter is ignored.</param>
     /// <param name="targetEventTime">The event time we want to move to or -1 if not relevant.</param>
     /// <param name="targetStartSnapTime">Out parameter with the event time of the snapshot that we should inflate from.</param>
     /// <param name="targetEndSnapTime">Optional Out parameter with the snapshot time following the event.</param>
@@ -973,6 +974,7 @@ typedef __int64 int64_t;
     CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(
         _In_ JsRuntimeHandle runtimeHandle,
         _In_ JsTTDMoveMode moveMode,
+        _In_opt_ uint32_t kthEvent,
         _Inout_ int64_t* targetEventTime,
         _Out_ int64_t* targetStartSnapTime,
         _Out_opt_ int64_t* targetEndSnapTime);

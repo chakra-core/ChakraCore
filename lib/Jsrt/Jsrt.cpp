@@ -3742,8 +3742,9 @@ CHAKRA_API JsTTDCheckAndAssertIfTTDRunning(_In_ const char* msg)
 }
 
 CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(_In_ JsRuntimeHandle runtimeHandle,
-    _In_ JsTTDMoveMode moveMode, _Inout_ int64_t* targetEventTime,
-   _Out_ int64_t* targetStartSnapTime, _Out_opt_ int64_t* targetEndSnapTime)
+   _In_ JsTTDMoveMode moveMode, _In_opt_ uint32_t kthEvent,
+   _Inout_ int64_t* targetEventTime, _Out_ int64_t* targetStartSnapTime,
+   _Out_opt_ int64_t* targetEndSnapTime)
 {
 #if !ENABLE_TTD
     return JsErrorCategoryUsage;
@@ -3778,7 +3779,6 @@ CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(_In_ JsRuntimeHandle runtimeHandle,
     }
     else if((moveMode & JsTTDMoveMode::JsTTDMoveKthEvent) == JsTTDMoveMode::JsTTDMoveKthEvent)
     {
-        uint32 kthEvent = (uint32)(((int64)moveMode) >> 32);
         *targetEventTime = threadContext->TTDLog->GetKthEventTimeInLog(kthEvent);
         if(*targetEventTime == -1)
         {
