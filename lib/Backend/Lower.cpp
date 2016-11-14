@@ -20478,13 +20478,12 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
                 instr->InsertBefore(firstFalse);
             }
 
-            // tmp = src
-            // dst = tmp ^ (true ^ false) (= !src)
-            IR::RegOpnd* temp = IR::RegOpnd::New(IRType::TyVar, instr->m_func);
-            LowererMD::CreateAssign(temp, srcBool, instr);
+            // dst = src
+            // dst = dst ^ (true ^ false) (= !src)
+            LowererMD::CreateAssign(instr->GetDst(), srcBool, instr);
             ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
-            IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
-            instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), temp, xorval, instr->m_func));
+            IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func, true);
+            instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), instr->GetDst(), xorval, instr->m_func));
 
             instr->InsertBefore(forceInequal);
             LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, inequalResultValue), instr);
@@ -20531,13 +20530,12 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
                 }
                 else
                 {
-                    // tmp = src
-                    // dst = tmp ^ (true ^ false) (= !src)
-                    IR::RegOpnd* temp = IR::RegOpnd::New(IRType::TyVar, instr->m_func);
-                    LowererMD::CreateAssign(temp, srcBool, instr);
+                    // dst = src
+                    // dst = dst ^ (true ^ false) (= !src)
+                    LowererMD::CreateAssign(instr->GetDst(), srcBool, instr);
                     ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
-                    IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicVar, instr->m_func, true);
-                    instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), temp, xorval, instr->m_func));
+                    IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func, true);
+                    instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), instr->GetDst(), xorval, instr->m_func));
                 }
                 instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
             }
