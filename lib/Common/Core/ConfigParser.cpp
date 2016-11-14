@@ -61,7 +61,6 @@ void ConfigParser::ParseOnModuleLoad(CmdLineArgsParser& parser, HANDLE hmod)
 
 void ConfigParser::ParseRegistry(CmdLineArgsParser &parser)
 {
-    // xplat-todo: registry?
 #ifdef _WIN32
     HKEY hk;
     bool includeUserHive = true;
@@ -92,7 +91,6 @@ void ConfigParser::ParseRegistry(CmdLineArgsParser &parser)
 
 void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
 {
-    // xplat-todo: registry?
 #ifdef _WIN32
     DWORD dwSize;
     DWORD dwValue;

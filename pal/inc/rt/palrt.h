@@ -59,64 +59,20 @@ Revision History:
 #define DISP_E_OVERFLOW                  _HRESULT_TYPEDEF_(0x8002000AL)
 #define DISP_E_DIVBYZERO                 _HRESULT_TYPEDEF_(0x80020012L)
 
-#define CLASS_E_CLASSNOTAVAILABLE        _HRESULT_TYPEDEF_(0x80040111L)
-#define CLASS_E_NOAGGREGATION            _HRESULT_TYPEDEF_(0x80040110L)
-
 #define CO_E_CLASSSTRING                 _HRESULT_TYPEDEF_(0x800401F3L)
 
 #define URL_E_INVALID_SYNTAX             _HRESULT_TYPEDEF_(0x80041001L)
 #define MK_E_SYNTAX                      _HRESULT_TYPEDEF_(0x800401E4L)
 
-#define STG_E_INVALIDFUNCTION            _HRESULT_TYPEDEF_(0x80030001L)
 #define STG_E_FILENOTFOUND               _HRESULT_TYPEDEF_(0x80030002L)
 #define STG_E_PATHNOTFOUND               _HRESULT_TYPEDEF_(0x80030003L)
 #define STG_E_WRITEFAULT                 _HRESULT_TYPEDEF_(0x8003001DL)
 #define STG_E_FILEALREADYEXISTS          _HRESULT_TYPEDEF_(0x80030050L)
-#define STG_E_ABNORMALAPIEXIT            _HRESULT_TYPEDEF_(0x800300FAL)
 
-#define NTE_BAD_UID                      _HRESULT_TYPEDEF_(0x80090001L)
 #define NTE_BAD_HASH                     _HRESULT_TYPEDEF_(0x80090002L)
 #define NTE_BAD_KEY                      _HRESULT_TYPEDEF_(0x80090003L)
-#define NTE_BAD_LEN                      _HRESULT_TYPEDEF_(0x80090004L)
-#define NTE_BAD_DATA                     _HRESULT_TYPEDEF_(0x80090005L)
-#define NTE_BAD_SIGNATURE                _HRESULT_TYPEDEF_(0x80090006L)
-#define NTE_BAD_VER                      _HRESULT_TYPEDEF_(0x80090007L)
-#define NTE_BAD_ALGID                    _HRESULT_TYPEDEF_(0x80090008L)
-#define NTE_BAD_FLAGS                    _HRESULT_TYPEDEF_(0x80090009L)
-#define NTE_BAD_TYPE                     _HRESULT_TYPEDEF_(0x8009000AL)
-#define NTE_BAD_KEY_STATE                _HRESULT_TYPEDEF_(0x8009000BL)
-#define NTE_BAD_HASH_STATE               _HRESULT_TYPEDEF_(0x8009000CL)
-#define NTE_NO_KEY                       _HRESULT_TYPEDEF_(0x8009000DL)
-#define NTE_NO_MEMORY                    _HRESULT_TYPEDEF_(0x8009000EL)
-#define NTE_SIGNATURE_FILE_BAD           _HRESULT_TYPEDEF_(0x8009001CL)
-#define NTE_FAIL                         _HRESULT_TYPEDEF_(0x80090020L)
-
-#define CRYPT_E_HASH_VALUE               _HRESULT_TYPEDEF_(0x80091007L)
-
-#define TYPE_E_SIZETOOBIG                _HRESULT_TYPEDEF_(0x800288C5L)
-#define TYPE_E_DUPLICATEID               _HRESULT_TYPEDEF_(0x800288C6L)
 
 #define STD_CTL_SCODE(n) MAKE_SCODE(SEVERITY_ERROR, FACILITY_CONTROL, n)
-#define CTL_E_OVERFLOW                  STD_CTL_SCODE(6)
-#define CTL_E_OUTOFMEMORY               STD_CTL_SCODE(7)
-#define CTL_E_DIVISIONBYZERO            STD_CTL_SCODE(11)
-#define CTL_E_OUTOFSTACKSPACE           STD_CTL_SCODE(28)
-#define CTL_E_FILENOTFOUND              STD_CTL_SCODE(53)
-#define CTL_E_DEVICEIOERROR             STD_CTL_SCODE(57)
-#define CTL_E_PERMISSIONDENIED          STD_CTL_SCODE(70)
-#define CTL_E_PATHFILEACCESSERROR       STD_CTL_SCODE(75)
-#define CTL_E_PATHNOTFOUND              STD_CTL_SCODE(76)
-
-#define INET_E_CANNOT_CONNECT            _HRESULT_TYPEDEF_(0x800C0004L)
-#define INET_E_RESOURCE_NOT_FOUND        _HRESULT_TYPEDEF_(0x800C0005L)
-#define INET_E_OBJECT_NOT_FOUND          _HRESULT_TYPEDEF_(0x800C0006L)
-#define INET_E_DATA_NOT_AVAILABLE        _HRESULT_TYPEDEF_(0x800C0007L)
-#define INET_E_DOWNLOAD_FAILURE          _HRESULT_TYPEDEF_(0x800C0008L)
-#define INET_E_CONNECTION_TIMEOUT        _HRESULT_TYPEDEF_(0x800C000BL)
-#define INET_E_UNKNOWN_PROTOCOL          _HRESULT_TYPEDEF_(0x800C000DL)
-
-#define DBG_PRINTEXCEPTION_C             _HRESULT_TYPEDEF_(0x40010006L)
-
 /********************** errorrep.h ****************************************/
 
 typedef enum tagEFaultRepRetVal
@@ -372,28 +328,12 @@ typedef union _ULARGE_INTEGER {
 /******************* HRESULT types ****************************************/
 
 #define FACILITY_WINDOWS                 8
-#define FACILITY_URT                     19
-#define FACILITY_UMI                     22
-#define FACILITY_SXS                     23
 #define FACILITY_STORAGE                 3
-#define FACILITY_SSPI                    9
-#define FACILITY_SCARD                   16
-#define FACILITY_SETUPAPI                15
-#define FACILITY_SECURITY                9
-#define FACILITY_RPC                     1
 #define FACILITY_WIN32                   7
 #define FACILITY_CONTROL                 10
 #define FACILITY_NULL                    0
-#define FACILITY_MSMQ                    14
-#define FACILITY_MEDIASERVER             13
-#define FACILITY_INTERNET                12
 #define FACILITY_ITF                     4
-#define FACILITY_DPLAY                   21
 #define FACILITY_DISPATCH                2
-#define FACILITY_COMPLUS                 17
-#define FACILITY_CERT                    11
-#define FACILITY_ACS                     20
-#define FACILITY_AAF                     18
 
 #define NO_ERROR 0L
 
@@ -702,25 +642,6 @@ STDAPI_(HRESULT) VariantClear(VARIANT * pvarg);
 #define V_ISBYREF(X)     (V_VT(X)&VT_BYREF)
 
 STDAPI CreateStreamOnHGlobal(PVOID hGlobal, BOOL fDeleteOnRelease, interface IStream** ppstm);
-
-#define STGM_DIRECT             0x00000000L
-
-#define STGM_READ               0x00000000L
-#define STGM_WRITE              0x00000001L
-#define STGM_READWRITE          0x00000002L
-
-#define STGM_SHARE_DENY_NONE    0x00000040L
-#define STGM_SHARE_DENY_READ    0x00000030L
-#define STGM_SHARE_DENY_WRITE   0x00000020L
-#define STGM_SHARE_EXCLUSIVE    0x00000010L
-
-#define STGM_DELETEONRELEASE    0x04000000L
-
-#define STGM_CREATE             0x00001000L
-#define STGM_CONVERT            0x00020000L
-#define STGM_FAILIFTHERE        0x00000000L
-
-#define STGM_NOSNAPSHOT         0x00200000L
 
 STDAPI IIDFromString(LPOLESTR lpsz, IID* lpiid);
 STDAPI_(int) StringFromGUID2(REFGUID rguid, LPOLESTR lpsz, int cchMax);
@@ -1362,23 +1283,6 @@ typedef VOID (__stdcall *WAITORTIMERCALLBACK)(PVOID, BOOLEAN);
 #define IMAGE_COR20_HEADER_FIELD(obj, f)    ((obj).f)
 #endif
 
-// copied from winnt.h
-#define PROCESSOR_ARCHITECTURE_INTEL            0
-#define PROCESSOR_ARCHITECTURE_MIPS             1
-#define PROCESSOR_ARCHITECTURE_ALPHA            2
-#define PROCESSOR_ARCHITECTURE_PPC              3
-#define PROCESSOR_ARCHITECTURE_SHX              4
-#define PROCESSOR_ARCHITECTURE_ARM              5
-#define PROCESSOR_ARCHITECTURE_IA64             6
-#define PROCESSOR_ARCHITECTURE_ALPHA64          7
-#define PROCESSOR_ARCHITECTURE_MSIL             8
-#define PROCESSOR_ARCHITECTURE_AMD64            9
-#define PROCESSOR_ARCHITECTURE_IA32_ON_WIN64    10
-#define PROCESSOR_ARCHITECTURE_NEUTRAL          11
-#define PROCESSOR_ARCHITECTURE_ARM64            12
-
-#define PROCESSOR_ARCHITECTURE_UNKNOWN 0xFFFF
-
 //
 // JIT Debugging Info. This structure is defined to have constant size in
 // both the emulated and native environment.
@@ -1440,10 +1344,6 @@ STDAPI SafeArrayDestroy(SAFEARRAY * psa);
 EXTERN_C void * _stdcall _lfind(const void *, const void *, unsigned int *, unsigned int,
         int (__cdecl *)(const void *, const void *));
 
-
-/*<TODO>****************** clean this up ***********************</TODO>*/
-
-
 interface IDispatch;
 interface ITypeInfo;
 interface ITypeLib;
@@ -1457,15 +1357,6 @@ typedef VOID (WINAPI *LPOVERLAPPED_COMPLETION_ROUTINE)(
 //
 // Debug APIs
 //
-#define EXCEPTION_DEBUG_EVENT       1
-#define CREATE_THREAD_DEBUG_EVENT   2
-#define CREATE_PROCESS_DEBUG_EVENT  3
-#define EXIT_THREAD_DEBUG_EVENT     4
-#define EXIT_PROCESS_DEBUG_EVENT    5
-#define LOAD_DLL_DEBUG_EVENT        6
-#define UNLOAD_DLL_DEBUG_EVENT      7
-#define OUTPUT_DEBUG_STRING_EVENT   8
-#define RIP_EVENT                   9
 
 typedef struct _EXCEPTION_DEBUG_INFO {
     EXCEPTION_RECORD ExceptionRecord;
