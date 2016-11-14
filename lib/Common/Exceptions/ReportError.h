@@ -24,8 +24,8 @@ enum ErrorReason
     Fatal_EntryExitRecordCorruption = 16,
     Fatal_UnexpectedExceptionHandling = 17,
     Fatal_RpcFailure = 18, 
-
-    Fatal_TTDAbort = 19
+    // Reserved = 19,
+    Fatal_TTDAbort = 20
 };
 
 extern "C" void ReportFatalException(
