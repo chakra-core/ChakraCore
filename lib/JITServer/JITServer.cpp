@@ -250,7 +250,7 @@ HRESULT
 ServerUpdatePropertyRecordMap(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    /* [in] */ __RPC__in UpdatedPropertysIDL * updatedProps)
+    /* [in] */ __RPC__in BVSparseNodeIDL * updatedPropsBVHead)
 {
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer(threadContextInfoAddress);
 
@@ -262,15 +262,8 @@ ServerUpdatePropertyRecordMap(
 
     return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
     {
-        for (uint i = 0; i < updatedProps->reclaimedPropertyCount; ++i)
-        {
-            threadContextInfo->RemoveFromNumericPropertySet((Js::PropertyId)updatedProps->reclaimedPropertyIdArray[i]);
-        }
-
-        for (uint i = 0; i < updatedProps->newPropertyCount; ++i)
-        {
-            threadContextInfo->AddToNumericPropertySet((Js::PropertyId)updatedProps->newPropertyIdArray[i]);
-        }
+        CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
+        threadContextInfo->UpdateNumericPropertyBV((BVSparseNode*)updatedPropsBVHead);
 
         return S_OK;
     });

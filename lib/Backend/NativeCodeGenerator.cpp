@@ -2036,57 +2036,14 @@ NativeCodeGenerator::UpdateJITState()
             return;
         }
 
-        // update all property records on server that have been changed since last jit
-        ThreadContext::PropertyList * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
-        int * newPropArray = nullptr;
-        uint newCount = 0;
-        if (pendingProps->Count() > 0)
+        if (scriptContext->GetThreadContext()->JITNeedsPropUpdate())
         {
-            newCount = (uint)pendingProps->Count();
-            newPropArray = HeapNewArray(int, newCount);
-            uint index = 0;
-            while (!pendingProps->Empty())
-            {
-                newPropArray[index++] = (int)pendingProps->Pop();
-            }
-            Assert(index == newCount);
-        }
-
-        ThreadContext::PropertyList * reclaimedProps = scriptContext->GetThreadContext()->GetReclaimedJITProperties();
-        int * reclaimedPropArray = nullptr;
-        uint reclaimedCount = 0;
-        if (reclaimedProps->Count() > 0)
-        {
-            reclaimedCount = (uint)reclaimedProps->Count();
-            reclaimedPropArray = HeapNewArray(int, reclaimedCount);
-            uint index = 0;
-            while (!reclaimedProps->Empty())
-            {
-                reclaimedPropArray[index++] = (int)reclaimedProps->Pop();
-            }
-            Assert(index == reclaimedCount);
-        }
-
-        if (newCount > 0 || reclaimedCount > 0)
-        {
-            UpdatedPropertysIDL props = {0};
-            props.reclaimedPropertyCount = reclaimedCount;
-            props.reclaimedPropertyIdArray = reclaimedPropArray;
-            props.newPropertyCount = newCount;
-            props.newPropertyIdArray = newPropArray;
-
-            HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), &props);
-
-            if (newPropArray)
-            {
-                HeapDeleteArray(newCount, newPropArray);
-            }
-            if (reclaimedPropArray)
-            {
-                HeapDeleteArray(reclaimedCount, reclaimedPropArray);
-            }
+            CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
+            BVSparseNodeIDL * bvHead = (BVSparseNodeIDL*)scriptContext->GetThreadContext()->GetJITNumericProperties()->head;
+            HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), bvHead);
 
             JITManager::HandleServerCallResult(hr);
+            scriptContext->GetThreadContext()->ResetJITNeedsPropUpdate();
         }
     }
 }
