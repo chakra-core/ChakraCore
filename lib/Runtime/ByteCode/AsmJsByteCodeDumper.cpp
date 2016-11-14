@@ -227,6 +227,10 @@ namespace Js
         for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
             WAsmJs::Types type = (WAsmJs::Types)i;
+            if (func->GetTypedRegisterAllocator().IsTypeExcluded(type))
+            {
+                continue;
+            }
             uint constCount = func->GetTypedRegisterAllocator().GetRegisterSpace(type)->GetConstCount();
             if (constCount > 0)
             {
