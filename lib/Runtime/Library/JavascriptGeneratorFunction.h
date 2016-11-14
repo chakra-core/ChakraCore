@@ -100,6 +100,11 @@ namespace Js
 
         static JavascriptAsyncFunction* FromVar(Var var);
         static bool Is(Var var);
+
+#if ENABLE_TTD
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 
     class GeneratorVirtualScriptFunction : public ScriptFunction

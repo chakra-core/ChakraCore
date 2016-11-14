@@ -6805,6 +6805,7 @@ PALIMPORT LONG __cdecl PAL_ftell(PAL_FILE *);
 PALIMPORT int __cdecl PAL_feof(PAL_FILE *);
 PALIMPORT int __cdecl PAL_ferror(PAL_FILE *);
 PALIMPORT PAL_FILE * __cdecl PAL_fopen(const char *, const char *);
+PALIMPORT char * __cdecl PAL_strtok(char *, const char *);
 PALIMPORT int __cdecl PAL_getc(PAL_FILE *stream);
 PALIMPORT int __cdecl PAL_fgetc(PAL_FILE *stream);
 PALIMPORT int __cdecl PAL_ungetc(int c, PAL_FILE *stream);

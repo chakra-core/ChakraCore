@@ -54,6 +54,14 @@ namespace TTD
     class TTDebuggerSourceLocation;
 }
 
+void _NOINLINE __declspec(noreturn) TTDAbort_fatal_error(const char* msg);
+
+#if ENABLE_TTD_ASSERT
+#define TTDAssert(C, M) { if(!(C)) TTDAbort_fatal_error(M); }
+#else
+#define TTDAssert(C, M) 
+#endif
+
 ////////
 //Memory allocators used by the TT code
 template <typename T>
@@ -61,8 +69,7 @@ T* TTD_MEM_ALLOC_CHECK(T* alloc)
 {
     if(alloc == nullptr)
     {
-        AssertMsg(false, "OOM in TTD");
-        exit(3);
+        TTDAssert(false, "OOM in TTD");
     }
 
     return alloc;
@@ -261,7 +268,7 @@ namespace TTD
     typedef void* JsTTDStreamHandle;
 
     typedef void(CALLBACK *TTDInitializeForWriteLogStreamCallback)(size_t uriByteLength, const byte* uriBytes);
-    typedef JsTTDStreamHandle(CALLBACK *TTDOpenResourceStreamCallback)(size_t uriByteLength, const byte* uriBytes, const char* asciiNameString, bool read, bool write);
+    typedef JsTTDStreamHandle(CALLBACK *TTDOpenResourceStreamCallback)(size_t uriByteLength, const byte* uriBytes, const char* asciiNameString, bool read, bool write, byte** relocatedUri, size_t* relocatedUriLength);
 
     typedef bool(CALLBACK *TTDReadBytesFromStreamCallback)(JsTTDStreamHandle handle, byte* buff, size_t size, size_t* readCount);
     typedef bool(CALLBACK *TTDWriteBytesToStreamCallback)(JsTTDStreamHandle handle, const byte* buff, size_t size, size_t* writtenCount);
@@ -280,6 +287,7 @@ namespace TTD
     typedef void(CALLBACK *TTDCreateExternalObjectCallback)(Js::ScriptContext* ctx, Js::Var* object);
 
     typedef void(CALLBACK *TTDCreateJsRTContextCallback)(void* runtimeHandle, Js::ScriptContext** ctx); //Create and pin the context so it does not get GC'd
+    typedef void(CALLBACK *TTDReleaseJsRTContextCallback)(FinalizableObject* jsrtCtx); //Release an un-needed context during replay
     typedef void(CALLBACK *TTDSetActiveJsRTContext)(void* runtimeHandle, Js::ScriptContext* ctx); //Set active jsrtcontext
 
     struct ExternalObjectFunctions
@@ -287,6 +295,7 @@ namespace TTD
         TTDCreateExternalObjectCallback pfCreateExternalObject;
 
         TTDCreateJsRTContextCallback pfCreateJsRTContextCallback;
+        TTDReleaseJsRTContextCallback pfReleaseJsRTContextCallback;
         TTDSetActiveJsRTContext pfSetActiveJsRTContext;
     };
 
@@ -435,7 +444,7 @@ namespace TTD
         void AddNewBlock()
         {
             byte* allocBlock = TT_HEAP_ALLOC_ARRAY(byte, this->m_slabBlockSize);
-            AssertMsg((reinterpret_cast<uint64>(allocBlock) & 0x3) == 0, "We have non-word aligned allocations so all our later work is not so useful");
+            TTDAssert((reinterpret_cast<uint64>(allocBlock) & 0x3) == 0, "We have non-word aligned allocations so all our later work is not so useful");
 
             SlabBlock* newBlock = (SlabBlock*)allocBlock;
             byte* dataArray = (allocBlock + TTD_SLAB_BLOCK_SIZE);
@@ -456,11 +465,11 @@ namespace TTD
         template <size_t n>
         byte* SlabAllocateTypeRawSize()
         {
-            AssertMsg(this->m_reserveActiveBytes == 0, "Don't double allocate memory.");
-            AssertMsg(n <= TTD_SLAB_LARGE_BLOCK_SIZE, "Don't allocate large requests in the bump pool.");
+            TTDAssert(this->m_reserveActiveBytes == 0, "Don't double allocate memory.");
+            TTDAssert(n <= TTD_SLAB_LARGE_BLOCK_SIZE, "Don't allocate large requests in the bump pool.");
 
             uint32 desiredsize = TTD_WORD_ALIGN_ALLOC_SIZE(n + canUnlink); //make alloc size word aligned
-            AssertMsg((desiredsize % 4 == 0) & (desiredsize >= (n + canUnlink)) & (desiredsize < TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize)), "We can never allocate a block this big with the slab allocator!!");
+            TTDAssert((desiredsize % 4 == 0) & (desiredsize >= (n + canUnlink)) & (desiredsize < TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize)), "We can never allocate a block this big with the slab allocator!!");
 
             if(this->m_currPos + desiredsize > this->m_endPos)
             {
@@ -476,7 +485,7 @@ namespace TTD
 
             if(canUnlink)
             {
-                AssertMsg(canUnlink == sizeof(ptrdiff_t), "We need enough space for a ptr to the meta-data.");
+                TTDAssert(canUnlink == sizeof(ptrdiff_t), "We need enough space for a ptr to the meta-data.");
 
                 //record the block associated with this allocation
                 *((ptrdiff_t*)res) = res - ((byte*)this->m_headBlock);
@@ -494,16 +503,16 @@ namespace TTD
         template <bool reserve, bool commit>
         byte* SlabAllocateRawSize(size_t requestedBytes)
         {
-            AssertMsg(requestedBytes != 0, "Don't allocate empty arrays.");
-            AssertMsg(requestedBytes <= TTD_SLAB_LARGE_BLOCK_SIZE, "Don't allocate large requests in the bump pool.");
+            TTDAssert(requestedBytes != 0, "Don't allocate empty arrays.");
+            TTDAssert(requestedBytes <= TTD_SLAB_LARGE_BLOCK_SIZE, "Don't allocate large requests in the bump pool.");
 
             byte* res = nullptr;
             uint32 desiredsize = TTD_WORD_ALIGN_ALLOC_SIZE(requestedBytes + canUnlink); //make alloc size word aligned
-            AssertMsg((desiredsize % 4 == 0) & (desiredsize >= (requestedBytes + canUnlink)) & (desiredsize < TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize)), "We can never allocate a block this big with the slab allocator!!");
+            TTDAssert((desiredsize % 4 == 0) & (desiredsize >= (requestedBytes + canUnlink)) & (desiredsize < TTD_SLAB_BLOCK_USABLE_SIZE(this->m_slabBlockSize)), "We can never allocate a block this big with the slab allocator!!");
 
             if(reserve)
             {
-                AssertMsg(this->m_reserveActiveBytes == 0, "Don't double allocate memory.");
+                TTDAssert(this->m_reserveActiveBytes == 0, "Don't double allocate memory.");
 
                 if(this->m_currPos + desiredsize > this->m_endPos)
                 {
@@ -514,7 +523,7 @@ namespace TTD
 
                 if(canUnlink)
                 {
-                    AssertMsg(canUnlink == sizeof(ptrdiff_t), "We need enough space for a ptr to the meta-data.");
+                    TTDAssert(canUnlink == sizeof(ptrdiff_t), "We need enough space for a ptr to the meta-data.");
 
                     //record the block associated with this allocation
                     *((ptrdiff_t*)res) = res - ((byte*)this->m_headBlock);
@@ -537,14 +546,14 @@ namespace TTD
                 }
             }
 
-            if(reserve & (!commit))
+            if(reserve && !commit)
             {
                 this->m_reserveActiveBytes = desiredsize;
             }
 
-            if((!reserve) & commit)
+            if(!reserve && commit)
             {
-                AssertMsg(desiredsize <= this->m_reserveActiveBytes, "We are commiting more that we reserved.");
+                TTDAssert(desiredsize <= this->m_reserveActiveBytes, "We are commiting more that we reserved.");
 
                 this->m_reserveActiveBytes = 0;
             }
@@ -571,12 +580,12 @@ namespace TTD
         template<bool commit>
         byte* SlabAllocateLargeBlockSize(size_t requestedBytes)
         {
-            AssertMsg(requestedBytes > TTD_SLAB_LARGE_BLOCK_SIZE, "Don't allocate small requests in the large pool.");
+            TTDAssert(requestedBytes > TTD_SLAB_LARGE_BLOCK_SIZE, "Don't allocate small requests in the large pool.");
 
             uint32 desiredsize = TTD_WORD_ALIGN_ALLOC_SIZE(requestedBytes + TTD_LARGE_SLAB_BLOCK_SIZE); //make alloc size word aligned
-            AssertMsg((desiredsize % 4 == 0) & (desiredsize >= (requestedBytes + TTD_LARGE_SLAB_BLOCK_SIZE)), "We can never allocate a block this big with the slab allocator!!");
+            TTDAssert((desiredsize % 4 == 0) & (desiredsize >= (requestedBytes + TTD_LARGE_SLAB_BLOCK_SIZE)), "We can never allocate a block this big with the slab allocator!!");
 
-            AssertMsg(this->m_reserveActiveBytes == 0, "Don't double allocate memory.");
+            TTDAssert(this->m_reserveActiveBytes == 0, "Don't double allocate memory.");
 
             byte* tmp = TT_HEAP_ALLOC_ARRAY(byte, desiredsize);
 
@@ -607,7 +616,7 @@ namespace TTD
             : m_largeBlockList(nullptr), m_slabBlockSize(slabBlockSize)
         {
             byte* allocBlock = TT_HEAP_ALLOC_ARRAY(byte, this->m_slabBlockSize);
-            AssertMsg((reinterpret_cast<uint64>(allocBlock) & 0x3) == 0, "We have non-word aligned allocations so all our later work is not so useful");
+            TTDAssert((reinterpret_cast<uint64>(allocBlock) & 0x3) == 0, "We have non-word aligned allocations so all our later work is not so useful");
 
             this->m_headBlock = (SlabBlock*)allocBlock;
             byte* dataArray = (allocBlock + TTD_SLAB_BLOCK_SIZE);
@@ -683,10 +692,12 @@ namespace TTD
         //clone a string into the allocator of a known length
         void CopyStringIntoWLength(const char16* str, uint32 length, TTString& into)
         {
-            AssertMsg(str != nullptr, "Not allowed for string + length");
+            TTDAssert(str != nullptr, "Not allowed for string + length");
 
             into.Length = length;
             into.Contents = this->SlabAllocateArray<char16>(into.Length + 1);
+
+            //don't js_memcpy if the contents length is 0
             js_memcpy_s(into.Contents, into.Length * sizeof(char16), str, length * sizeof(char16));
             into.Contents[into.Length] = '\0';
         }
@@ -819,19 +830,19 @@ namespace TTD
         template <typename T>
         void SlabCommitArraySpace(size_t actualCount, size_t reservedCount)
         {
-            AssertMsg(this->m_reserveActiveBytes != 0, "We don't have anything reserved.");
+            TTDAssert(this->m_reserveActiveBytes != 0, "We don't have anything reserved.");
 
             size_t reservedSize = reservedCount * sizeof(T);
             if(reservedSize <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
-                AssertMsg(this->m_reserveActiveLargeBlock == nullptr, "We should not have a large block active!!!");
+                TTDAssert(this->m_reserveActiveLargeBlock == nullptr, "We should not have a large block active!!!");
 
                 size_t actualSize = actualCount * sizeof(T);
                 this->SlabAllocateRawSize<false, true>(actualSize);
             }
             else
             {
-                AssertMsg(this->m_reserveActiveLargeBlock != nullptr, "We should have a large block active!!!");
+                TTDAssert(this->m_reserveActiveLargeBlock != nullptr, "We should have a large block active!!!");
 
                 this->CommitLargeBlockAllocation(this->m_reserveActiveLargeBlock, this->m_reserveActiveBytes);
 
@@ -844,18 +855,18 @@ namespace TTD
         template <typename T>
         void SlabAbortArraySpace(size_t reservedCount)
         {
-            AssertMsg(this->m_reserveActiveBytes != 0, "We don't have anything reserved.");
+            TTDAssert(this->m_reserveActiveBytes != 0, "We don't have anything reserved.");
 
             size_t reservedSize = reservedCount * sizeof(T);
             if(reservedSize <= TTD_SLAB_LARGE_BLOCK_SIZE)
             {
-                AssertMsg(this->m_reserveActiveLargeBlock == nullptr, "We should not have a large block active!!!");
+                TTDAssert(this->m_reserveActiveLargeBlock == nullptr, "We should not have a large block active!!!");
 
                 this->m_reserveActiveBytes = 0;
             }
             else
             {
-                AssertMsg(this->m_reserveActiveLargeBlock != nullptr, "We should have a large block active!!!");
+                TTDAssert(this->m_reserveActiveLargeBlock != nullptr, "We should have a large block active!!!");
 
                 TT_HEAP_FREE_ARRAY(byte, (byte*)this->m_reserveActiveLargeBlock, this->m_reserveActiveBytes);
 
@@ -867,8 +878,8 @@ namespace TTD
         //If allowed unlink the memory allocation specified and free the block if it is no longer used by anyone
         void UnlinkAllocation(const void* allocation)
         {
-            AssertMsg(canUnlink, "Unlink not allowed with this slab allocator.");
-            AssertMsg(this->m_reserveActiveBytes == 0, "We don't have anything reserved.");
+            TTDAssert(canUnlink != 0, "Unlink not allowed with this slab allocator.");
+            TTDAssert(this->m_reserveActiveBytes == 0, "We don't have anything reserved.");
 
             //get the meta-data for this allocation and see if it is a 
             byte* realBase = ((byte*)allocation) - canUnlink;
@@ -881,7 +892,7 @@ namespace TTD
 
                 if(largeBlock == this->m_largeBlockList)
                 {
-                    AssertMsg(largeBlock->Next == nullptr, "Should always have a null next at head");
+                    TTDAssert(largeBlock->Next == nullptr, "Should always have a null next at head");
 
                     this->m_largeBlockList = this->m_largeBlockList->Previous;
                     if(this->m_largeBlockList != nullptr)
@@ -1019,8 +1030,8 @@ namespace TTD
         //Add the entry to the unordered list
         void AddEntry(T data)
         {
-            AssertMsg(this->m_inlineHeadBlock.CurrPos <= this->m_inlineHeadBlock.EndPos, "We are off the end of the array");
-            AssertMsg((((byte*)this->m_inlineHeadBlock.CurrPos) - ((byte*)this->m_inlineHeadBlock.BlockData)) / sizeof(T) <= allocSize, "We are off the end of the array");
+            TTDAssert(this->m_inlineHeadBlock.CurrPos <= this->m_inlineHeadBlock.EndPos, "We are off the end of the array");
+            TTDAssert((((byte*)this->m_inlineHeadBlock.CurrPos) - ((byte*)this->m_inlineHeadBlock.BlockData)) / sizeof(T) <= allocSize, "We are off the end of the array");
 
             if(this->m_inlineHeadBlock.CurrPos == this->m_inlineHeadBlock.EndPos)
             {
@@ -1035,8 +1046,8 @@ namespace TTD
         //We expect the caller to initialize this memory appropriately
         T* NextOpenEntry()
         {
-            AssertMsg(this->m_inlineHeadBlock.CurrPos <= this->m_inlineHeadBlock.EndPos, "We are off the end of the array");
-            AssertMsg((((byte*)this->m_inlineHeadBlock.CurrPos) - ((byte*)this->m_inlineHeadBlock.BlockData)) / sizeof(T) <= allocSize, "We are off the end of the array");
+            TTDAssert(this->m_inlineHeadBlock.CurrPos <= this->m_inlineHeadBlock.EndPos, "We are off the end of the array");
+            TTDAssert((((byte*)this->m_inlineHeadBlock.CurrPos) - ((byte*)this->m_inlineHeadBlock.BlockData)) / sizeof(T) <= allocSize, "We are off the end of the array");
 
             if(this->m_inlineHeadBlock.CurrPos == this->m_inlineHeadBlock.EndPos)
             {
@@ -1053,12 +1064,12 @@ namespace TTD
         uint32 Count() const
         {
             size_t count = (((byte*)this->m_inlineHeadBlock.CurrPos) - ((byte*)this->m_inlineHeadBlock.BlockData)) / sizeof(T);
-            AssertMsg(count <= allocSize, "We somehow wrote in too much data.");
+            TTDAssert(count <= allocSize, "We somehow wrote in too much data.");
 
             for(UnorderedArrayListLink* curr = this->m_inlineHeadBlock.Next; curr != nullptr; curr = curr->Next)
             {
                 size_t ncount = (((byte*)curr->CurrPos) - ((byte*)curr->BlockData)) / sizeof(T);
-                AssertMsg(ncount <= allocSize, "We somehow wrote in too much data.");
+                TTDAssert(ncount <= allocSize, "We somehow wrote in too much data.");
 
                 count += ncount;
             }
@@ -1151,8 +1162,8 @@ namespace TTD
         template <bool findEmpty>
         Entry* FindSlotForId(Tag id) const
         {
-            AssertMsg(this->m_h1Prime != 0 && this->m_h2Prime != 0, "Not valid!!");
-            AssertMsg(this->m_hashArray != nullptr, "Not valid!!");
+            TTDAssert(this->m_h1Prime != 0 && this->m_h2Prime != 0, "Not valid!!");
+            TTDAssert(this->m_hashArray != nullptr, "Not valid!!");
 
             Tag searchKey = findEmpty ? 0 : id;
 
@@ -1175,7 +1186,7 @@ namespace TTD
                 }
                 probeIndex = TTD_DICTIONARY_INDEX(probeIndex + 1, this->m_capacity);
 
-                AssertMsg(probeIndex != TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity), "The key is not here (or we messed up).");
+                TTDAssert(probeIndex != TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity), "The key is not here (or we messed up).");
             }
         }
 
@@ -1203,7 +1214,7 @@ namespace TTD
 
         void Initialize(uint32 capacity)
         {
-            AssertMsg(this->m_hashArray == nullptr, "Should not already be initialized.");
+            TTDAssert(this->m_hashArray == nullptr, "Should not already be initialized.");
 
             uint32 desiredSize = capacity * TTD_DICTIONARY_LOAD_FACTOR;
 
@@ -1246,8 +1257,8 @@ namespace TTD
 
         bool Contains(Tag id) const
         {
-            AssertMsg(this->m_h1Prime != 0 && this->m_h2Prime != 0, "Not valid!!");
-            AssertMsg(this->m_hashArray != nullptr, "Not valid!!");
+            TTDAssert(this->m_h1Prime != 0 && this->m_h2Prime != 0, "Not valid!!");
+            TTDAssert(this->m_hashArray != nullptr, "Not valid!!");
 
             //h1Prime is less than table size by construction so we dont need to re-index
             uint32 primaryIndex = TTD_DICTIONARY_HASH(id, this->m_h1Prime);
@@ -1279,7 +1290,7 @@ namespace TTD
 
                 probeIndex = TTD_DICTIONARY_INDEX(probeIndex + 1, this->m_capacity);
 
-                AssertMsg(probeIndex != TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity), "The key is not here (or we messed up).");
+                TTDAssert(probeIndex != TTD_DICTIONARY_INDEX(primaryIndex + offset, this->m_capacity), "The key is not here (or we messed up).");
             }
         }
 
@@ -1348,7 +1359,7 @@ namespace TTD
 
         int32 FindIndexForKey(uint64 addr) const
         {
-            AssertMsg(this->m_addrArray != nullptr, "Not valid!!");
+            TTDAssert(this->m_addrArray != nullptr, "Not valid!!");
 
             uint32 primaryMask = this->m_capcity - 1;
 
@@ -1371,7 +1382,7 @@ namespace TTD
                 }
                 probeIndex = TTD_MARK_TABLE_INDEX(probeIndex + 1, this->m_capcity);
 
-                AssertMsg(probeIndex != ((primaryIndex + offset) & primaryMask), "We messed up.");
+                TTDAssert(probeIndex != ((primaryIndex + offset) & primaryMask), "We messed up.");
             }
         }
 
@@ -1435,7 +1446,7 @@ namespace TTD
                 this->m_count++;
                 (this->m_handlerCounts[(uint32)kindtag])++;
             }
-            AssertMsg(this->m_markArray[idx] == kindtag, "We had some sort of collision.");
+            TTDAssert(this->m_markArray[idx] == kindtag, "We had some sort of collision.");
 
             return notMarked;
         }

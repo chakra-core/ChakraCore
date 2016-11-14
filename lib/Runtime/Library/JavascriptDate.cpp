@@ -1606,7 +1606,7 @@ namespace Js
 
     void JavascriptDate::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == TypeIds_Date, "We don't handle WinRT or other types of dates yet!");
+        TTDAssert(this->GetTypeId() == TypeIds_Date, "We don't handle WinRT or other types of dates yet!");
 
         double* millis = alloc.SlabAllocateStruct<double>();
         *millis = m_date.GetMilliSeconds();

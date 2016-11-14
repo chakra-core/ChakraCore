@@ -39,7 +39,7 @@ namespace TTD
             const Js::PropertyRecord* newPropertyRecord = nullptr;
             if(pRecord->IsSymbol)
             {
-                AssertMsg(pRecord->PropertyId == threadContext->GetNextPropertyId(), "We need to do these in the appropriate order!!!");
+                TTDAssert(pRecord->PropertyId == threadContext->GetNextPropertyId(), "We need to do these in the appropriate order!!!");
 
                 newPropertyRecord = threadContext->UncheckedAddPropertyId(pname, plen, /*bind*/false, /*isSymbol*/true);
             }
@@ -49,13 +49,13 @@ namespace TTD
 
                 if(foundProperty != nullptr)
                 {
-                    AssertMsg(pRecord->PropertyId == foundProperty->GetPropertyId(), "Someone is adding property ids before me and not in the same order as during record!!!");
+                    TTDAssert(pRecord->PropertyId == foundProperty->GetPropertyId(), "Someone is adding property ids before me and not in the same order as during record!!!");
 
                     newPropertyRecord = foundProperty;
                 }
                 else
                 {
-                    AssertMsg(pRecord->PropertyId == threadContext->GetNextPropertyId(), "We need to do these in the appropriate order to ensure property ids all match!!!");
+                    TTDAssert(pRecord->PropertyId == threadContext->GetNextPropertyId(), "We need to do these in the appropriate order to ensure property ids all match!!!");
 
                     newPropertyRecord = threadContext->UncheckedAddPropertyId(pname, plen, /*bind*/pRecord->IsBound, /*isSymbol*/false);
                 }

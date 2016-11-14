@@ -499,7 +499,7 @@ namespace Js
         this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->targetFunction, _u("!targetFunction"));
         this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->boundThis, _u("!boundThis"));
 
-        AssertMsg(this->count == 0, "Should only have empty args in core image");
+        TTDAssert(this->count == 0, "Should only have empty args in core image");
     }
 
     TTD::NSSnapObjects::SnapObjectType BoundFunction::GetSnapTag_TTD() const

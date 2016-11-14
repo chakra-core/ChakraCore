@@ -70,10 +70,10 @@ namespace TTD
         ;
     }
 
-    TTDebuggerSourceLocation::TTDebuggerSourceLocation(const SingleCallCounter& callFrame)
+    TTDebuggerSourceLocation::TTDebuggerSourceLocation(int64 topLevelETime, const SingleCallCounter& callFrame)
         : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
     {
-        this->SetLocation(callFrame);
+        this->SetLocation(topLevelETime, callFrame);
     }
 
     TTDebuggerSourceLocation::TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other)
@@ -85,6 +85,8 @@ namespace TTD
             size_t byteLength = char16Length * sizeof(char16);
 
             this->m_sourceFile = new char16[char16Length];
+            TTDAssert(this->m_sourceFile != nullptr, "Allocation failed!!!");
+
             js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
         }
     }
@@ -190,18 +192,20 @@ namespace TTD
             size_t byteLength = char16Length * sizeof(char16);
 
             this->m_sourceFile = new char16[char16Length];
+            TTDAssert(this->m_sourceFile != nullptr, "Allocation failed!!!");
+
             js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
         }
     }
 
-    void TTDebuggerSourceLocation::SetLocation(const SingleCallCounter& callFrame)
+    void TTDebuggerSourceLocation::SetLocation(int64 topLevelETime, const SingleCallCounter& callFrame)
     {
         ULONG srcLine = 0;
         LONG srcColumn = -1;
         uint32 startOffset = callFrame.Function->GetStatementStartOffset(callFrame.CurrentStatementIndex);
         callFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-        this->SetLocation(callFrame.EventTime, callFrame.FunctionTime, callFrame.LoopTime, callFrame.Function, (uint32)srcLine, (uint32)srcColumn);
+        this->SetLocation(topLevelETime, callFrame.FunctionTime, callFrame.LoopTime, callFrame.Function, (uint32)srcLine, (uint32)srcColumn);
     }
 
     void TTDebuggerSourceLocation::SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column)
@@ -231,6 +235,8 @@ namespace TTD
             size_t byteLength = char16Length * sizeof(char16);
 
             this->m_sourceFile = new char16[char16Length];
+            TTDAssert(this->m_sourceFile != nullptr, "Allocation failed!!!");
+
             js_memcpy_s(this->m_sourceFile, byteLength, sourceFile, byteLength);
         }
     }
@@ -267,7 +273,7 @@ namespace TTD
                 }
 
                 //if it starts on a larger line or if same line but larger column then we don't contain the target
-                AssertMsg(ifb->GetLineNumber() < this->m_functionLine || (ifb->GetLineNumber() == this->m_functionLine && ifb->GetColumnNumber() < this->m_functionColumn), "We went to far but didn't find our function??");
+                TTDAssert(ifb->GetLineNumber() < this->m_functionLine || (ifb->GetLineNumber() == this->m_functionLine && ifb->GetColumnNumber() < this->m_functionColumn), "We went to far but didn't find our function??");
 
                 uint32 endLine = UINT32_MAX;
                 uint32 endColumn = UINT32_MAX;
@@ -288,7 +294,7 @@ namespace TTD
             }
         }
 
-        AssertMsg(false, "We should never get here!!!");
+        TTDAssert(false, "We should never get here!!!");
         return nullptr;
     }
 
@@ -304,8 +310,8 @@ namespace TTD
 
     bool TTDebuggerSourceLocation::IsBefore(const TTDebuggerSourceLocation& other) const
     {
-        AssertMsg(this->m_ftime != -1 && other.m_ftime != -1, "These aren't orderable!!!");
-        AssertMsg(this->m_ltime != -1 && other.m_ltime != -1, "These aren't orderable!!!");
+        TTDAssert(this->m_ftime != -1 && other.m_ftime != -1, "These aren't orderable!!!");
+        TTDAssert(this->m_ltime != -1 && other.m_ltime != -1, "These aren't orderable!!!");
 
         //first check the order of the time parts
         if(this->m_etime != other.m_etime)
@@ -324,14 +330,14 @@ namespace TTD
         }
 
         //so all times are the same => min column/min row decide
-        if(this->m_functionLine != other.m_functionLine)
+        if(this->m_line != other.m_line)
         {
-            return this->m_functionLine < other.m_functionLine;
+            return this->m_line < other.m_line;
         }
 
-        if(this->m_functionColumn != other.m_functionColumn)
+        if(this->m_column != other.m_column)
         {
-            return this->m_functionColumn < other.m_functionColumn;
+            return this->m_column < other.m_column;
         }
 
         //they are refering to the same location so this is *not* stricly before
@@ -349,7 +355,7 @@ namespace TTD
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             if(replayVar == nullptr || TTD::JsSupport::IsVarTaggedInline(replayVar))
             {
-                AssertMsg(TTD::JsSupport::AreInlineVarsEquiv(origVar, replayVar), "Should be same bit pattern.");
+                TTDAssert(TTD::JsSupport::AreInlineVarsEquiv(origVar, replayVar), "Should be same bit pattern.");
             }
 #endif
 
@@ -439,7 +445,7 @@ namespace TTD
 
         bool EventCompletesNormally(const EventLogEntry* evt)
         {
-            return (evt->ResultStatus == 0) || (evt->ResultStatus == TTD_REPLAY_JsErrorArgumentNotObject) || (evt->ResultStatus == TTD_REPLAY_JsErrorArgumentNotObject);
+            return (evt->ResultStatus == 0) || (evt->ResultStatus == TTD_REPLAY_JsErrorInvalidArgument) || (evt->ResultStatus == TTD_REPLAY_JsErrorArgumentNotObject);
         }
 
         bool EventCompletesWithException(const EventLogEntry* evt)

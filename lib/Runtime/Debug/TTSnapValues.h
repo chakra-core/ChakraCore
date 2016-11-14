@@ -58,7 +58,7 @@ namespace TTD
         void DeleteStringFromHeapAllocator(TTString& string);
 
         void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
-        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
+        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length, byte** relocatedUri, size_t* relocatedUriLength);
     }
 
     namespace NSSnapValues
@@ -146,12 +146,8 @@ namespace TTD
             //The data values for the slots in the scope entry
             TTDVar* Slots;
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            Js::PropertyId* DebugPIDArray;
-
-            int32 OptDiagDebugScopeBegin;
-            int32 OptDiagDebugScopeEnd;
-#endif
+            //The property ids associated with each index
+            Js::PropertyId* PIDArray;
 
             //The meta-data for the slot array
             bool isFunctionBodyMetaData;
@@ -288,6 +284,9 @@ namespace TTD
 
             //Src URI may be null
             TTString SourceUri;
+
+            //The relocated URI -- if requested during replay
+            TTString RelocatedSourceUri;
 
             //The source length/buffer and if it is utf8 or char16 encoded
             bool IsUtf8;

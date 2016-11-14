@@ -95,7 +95,7 @@ namespace TTD
         template <size_t requestedSpace>
         byte* ReserveSpaceForSmallData()
         {
-            AssertMsg(requestedSpace < TTD_SERIALIZATION_BUFFER_SIZE, "Must be small data element!");
+            TTDAssert(requestedSpace < TTD_SERIALIZATION_BUFFER_SIZE, "Must be small data element!");
 
             if(this->m_cursor + requestedSpace >= TTD_SERIALIZATION_BUFFER_SIZE)
             {
@@ -108,7 +108,7 @@ namespace TTD
 
         void CommitSpaceForSmallData(size_t usedSpace)
         {
-            AssertMsg(this->m_cursor + usedSpace < TTD_SERIALIZATION_BUFFER_SIZE, "Must have already reserved the space!");
+            TTDAssert(this->m_cursor + usedSpace < TTD_SERIALIZATION_BUFFER_SIZE, "Must have already reserved the space!");
 
             this->m_cursor += usedSpace;
         }
@@ -129,7 +129,7 @@ namespace TTD
             if(this->m_cursor + bufflen < TTD_SERIALIZATION_BUFFER_SIZE)
             {
                 size_t sizeAvailable = (TTD_SERIALIZATION_BUFFER_SIZE - this->m_cursor);
-                AssertMsg(sizeAvailable >= bufflen, "Our size computation is off somewhere.");
+                TTDAssert(sizeAvailable >= bufflen, "Our size computation is off somewhere.");
 
                 js_memcpy_s(this->m_buffer + this->m_cursor, sizeAvailable, buff, bufflen);
                 this->m_cursor += bufflen;
@@ -143,7 +143,7 @@ namespace TTD
                 size_t remainingBytes = bufflen;
                 while(remainingBytes > TTD_SERIALIZATION_BUFFER_SIZE)
                 {
-                    AssertMsg(this->m_cursor == 0, "Should be empty.");
+                    TTDAssert(this->m_cursor == 0, "Should be empty.");
 
                     this->WriteBlock(remainingBuff, TTD_SERIALIZATION_BUFFER_SIZE);
                     remainingBuff += TTD_SERIALIZATION_BUFFER_SIZE;
@@ -174,7 +174,7 @@ namespace TTD
             byte* trgtBuff = this->ReserveSpaceForSmallData<TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE>();
 
             int addedChars = swprintf_s((char16*)trgtBuff, (TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE / sizeof(char16)), formatString, data);
-            AssertMsg(addedChars != -1 && addedChars < (TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE / sizeof(char16)), "Formatting failed or result is too big.");
+            TTDAssert(addedChars != -1 && addedChars < (TTD_SERIALIZATION_MAX_FORMATTED_DATA_SIZE / sizeof(char16)), "Formatting failed or result is too big.");
 
             int addedBytes = (addedChars != -1) ? (addedChars * sizeof(char16)) : 0;
             this->CommitSpaceForSmallData(addedBytes);
@@ -400,7 +400,7 @@ namespace TTD
                     this->ReadBlock(this->m_buffer, &this->m_buffCount);
                     this->m_cursor = 0;
 
-                    AssertMsg(this->m_buffCount >= remainingBytes, "Not sure what happened");
+                    TTDAssert(this->m_buffCount >= remainingBytes, "Not sure what happened");
                     js_memcpy_s(remainingBuff, this->m_buffCount, this->m_buffer, remainingBytes);
                     this->m_cursor += remainingBytes;
                 }
@@ -440,7 +440,7 @@ namespace TTD
                     this->ReadBlock(this->m_buffer, &this->m_buffCount);
                     this->m_cursor = 0;
 
-                    AssertMsg(this->m_buffCount >= remainingBytes, "Not sure what happened");
+                    TTDAssert(this->m_buffCount >= remainingBytes, "Not sure what happened");
                     js_memcpy_s(remainingBuff, this->m_buffCount, this->m_buffer, remainingBytes);
                     this->m_cursor += remainingBytes;
                 }
@@ -495,9 +495,6 @@ namespace TTD
                 }
             }
         }
-
-        //The action we should take if we encounter an invalid token or unexpected state in the file
-        void FileReadAssert(bool ok);
 
     public:
         FileReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose);
@@ -750,7 +747,7 @@ namespace TTD
             }
             else
             {
-                AssertMsg(this->m_currLength + length < TRACE_LOGGER_BUFFER_SIZE, "We are going to overrun!");
+                TTDAssert(this->m_currLength + length < TRACE_LOGGER_BUFFER_SIZE, "We are going to overrun!");
 
                 memcpy(this->m_buffer + this->m_currLength, str, length);
                 this->m_currLength += length;
@@ -766,7 +763,7 @@ namespace TTD
             }
             else
             {
-                AssertMsg(this->m_currLength + length < TRACE_LOGGER_BUFFER_SIZE, "We are going to overrun!");
+                TTDAssert(this->m_currLength + length < TRACE_LOGGER_BUFFER_SIZE, "We are going to overrun!");
 
                 char* currs = (this->m_buffer + this->m_currLength);
                 const char16* currw = str;
