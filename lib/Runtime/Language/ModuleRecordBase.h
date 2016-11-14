@@ -40,9 +40,9 @@ namespace Js
         virtual bool IsSourceTextModuleRecord() { return false; }
 
     protected:
-        uint32 magicNumber;
-        ModuleNamespace* namespaceObject;
-        bool wasEvaluated;
-        JavascriptLibrary* javascriptLibrary;
+        Field(uint32) magicNumber;
+        Field(ModuleNamespace*) namespaceObject;
+        Field(bool) wasEvaluated;
+        Field(JavascriptLibrary*) javascriptLibrary;
     };
 }

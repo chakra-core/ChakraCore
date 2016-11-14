@@ -30,7 +30,7 @@ protected:
 public:
     uint Count() const { return count; }
 private:
-    uint count;
+    Field(uint) count;
 };
 
 #if DBG

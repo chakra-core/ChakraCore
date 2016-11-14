@@ -68,10 +68,10 @@ protected:
     void SetJavascriptLibrary(Js::JavascriptLibrary * library);
     void PinCurrentJsrtContext();
 private:
-    Js::JavascriptLibrary * javascriptLibrary;
+    Field(Js::JavascriptLibrary *) javascriptLibrary;
 
-    JsrtRuntime * runtime;
-    void* externalData = nullptr;
-    GC_MARKED_OBJECT<JsrtContext> previous;
-    GC_MARKED_OBJECT<JsrtContext> next;
+    Field(JsrtRuntime *) runtime;
+    Field(void*) externalData = nullptr;
+    Field(GC_MARKED_OBJECT<JsrtContext>) previous;
+    Field(GC_MARKED_OBJECT<JsrtContext>) next;
 };

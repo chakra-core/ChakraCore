@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#include <unordered_set>
+#include <queue>
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/AST/AST.h"
 #include "clang/AST/ASTConsumer.h"
@@ -60,7 +62,7 @@ private:
     void dump(const char* name, const Set& set, const DumpItemFunc& func);
     template <class Item>
     void dump(const char* name, const set<Item>& set);
-    void dump(const char* name, const set<const Type*> set);
+    void dump(const char* name, const unordered_set<const Type*> set);
 
     void ProcessUnbarriedFields(CXXRecordDecl* recordDecl);
     bool MatchType(const string& type, const char* source, const char** pSourceEnd);

@@ -9,10 +9,10 @@ namespace Js
     class JavascriptArrayIndexEnumeratorBase _ABSTRACT : public JavascriptEnumerator
     {
     protected:
-        JavascriptArray* arrayObject;
-        uint32 index;
-        bool doneArray;
-        EnumeratorFlags flags;
+        Field(JavascriptArray*) arrayObject;
+        Field(uint32) index;
+        Field(bool) doneArray;
+        Field(EnumeratorFlags) flags;
 
         DEFINE_VTABLE_CTOR_ABSTRACT(JavascriptArrayIndexEnumeratorBase, JavascriptEnumerator)
 

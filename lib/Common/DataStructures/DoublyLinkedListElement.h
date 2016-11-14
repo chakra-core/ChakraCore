@@ -6,11 +6,12 @@
 
 namespace JsUtil
 {
-    template<class T>
+    template<class T, class TAllocator = ArenaAllocator>
     class DoublyLinkedListElement
     {
     private:
-        T *previous, *next;
+        Field(T*, TAllocator) previous;
+        Field(T*, TAllocator) next;
 
     public:
         DoublyLinkedListElement();

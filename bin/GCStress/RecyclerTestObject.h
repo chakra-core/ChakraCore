@@ -107,7 +107,7 @@ private:
     // Instance variables
 
     // See comments above re currentGeneration
-    size_t generation;
+    Field(size_t) generation;
 };
 
 template <unsigned int minCount, unsigned int maxCount>

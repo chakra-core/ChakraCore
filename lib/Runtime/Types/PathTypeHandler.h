@@ -14,8 +14,8 @@ namespace Js
         friend class SimplePathTypeHandler;
         friend class PathTypeHandler;
     private:
-        TypePath* typePath;
-        DynamicType* predecessorType; // Strong reference to predecessor type so that predecessor types remain in the cache even though they might not be used
+        Field(TypePath*) typePath;
+        Field(DynamicType*) predecessorType; // Strong reference to predecessor type so that predecessor types remain in the cache even though they might not be used
 
     public:
         DEFINE_GETCPPNAME();
