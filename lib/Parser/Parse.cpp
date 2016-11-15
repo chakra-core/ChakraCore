@@ -13378,7 +13378,7 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNode *pnodeFnc, Recycler *recy
             pnodeChild = pnodeChild->sxBlock.pnodeNext;
             continue;
         }
-        Assert(i < nestedCount);
+        AssertOrFailFast(i < nestedCount);
 
         if (pnodeChild->sxFnc.IsGeneratedDefault())
         {
@@ -13387,7 +13387,7 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNode *pnodeFnc, Recycler *recy
             continue;
         }
 
-        __analysis_assume(i < nestedCount);
+        AnalysisAssertOrFailFast(i < nestedCount);
 
         deferredStubs[i].fncFlags = pnodeChild->sxFnc.fncFlags;
         deferredStubs[i].nestedCount = pnodeChild->sxFnc.nestedCount;
