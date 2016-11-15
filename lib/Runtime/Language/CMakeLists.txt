@@ -1,4 +1,4 @@
-if(BuildJIT)
+if(CC_ENABLE_JIT)
     add_definitions(-D_ENABLE_DYNAMIC_THUNKS=1)
 endif()
 

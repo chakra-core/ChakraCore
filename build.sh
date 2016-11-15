@@ -208,7 +208,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     --no-jit)
-        NO_JIT="-DNO_JIT_SH=1"
+        NO_JIT="-DCC_ENABLE_JIT=0"
         ;;
 
     --xcode)

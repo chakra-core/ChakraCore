@@ -1,4 +1,4 @@
-if(BuildJIT)
+if(CC_ENABLE_JIT)
     set(chakra_backend_objects $<TARGET_OBJECTS:Chakra.Backend>)
 endif()
 

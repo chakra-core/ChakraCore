@@ -1,4 +1,4 @@
-if(BuildJIT)
+if(CC_ENABLE_JIT)
     add_definitions(-D_ENABLE_ASM_JS=1)
 endif()
 
