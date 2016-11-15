@@ -4307,11 +4307,14 @@ _ALWAYSINLINE JsErrorCode CompileRun(
         }
     }
 
-    JsErrorCode error = ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    JsErrorCode error = GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         if (isString)
         {
-            script = (const byte*)((Js::JavascriptString*)(scriptVal))->GetSz();
-            cb = ((Js::JavascriptString*)(scriptVal))->GetLength();
+            Js::JavascriptString* jsString = Js::JavascriptString::FromVar(scriptVal);
+            script = (const byte*)jsString->GetSz();
+
+            // JavascriptString is 2 bytes (wchar_t/char16)
+            cb = jsString->GetLength() * sizeof(wchar_t);
         }
 
         if (!Js::JavascriptString::Is(sourceUrl))
@@ -4319,22 +4322,15 @@ _ALWAYSINLINE JsErrorCode CompileRun(
             return JsErrorInvalidArgument;
         }
 
-        url = ((Js::JavascriptString*)(sourceUrl))->GetSz();
+        url = Js::JavascriptString::FromVar(sourceUrl)->GetSz();
 
         return JsNoError;
 
-    }, false);
+    });
 
     if (error != JsNoError)
     {
         return error;
-    }
-
-    if (isString)
-    {
-        return RunScriptCore(scriptVal, script, cb * sizeof(wchar_t),
-            scriptFlag, sourceContext, url, parseOnly,
-            parseAttributes, false, result);
     }
 
     return RunScriptCore(scriptVal, script, cb, scriptFlag,
