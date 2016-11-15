@@ -3,6 +3,8 @@ project (CHAKRACORE)
 
 option(CC_BUILD_STATIC_LIBRARY "Enable Building ChakraCore as a Static Library")
 option(CC_BUILD_SHARED_LIBRARY "Enable Building ChakraCore as a Shared Library" ON)
+option(CC_ENABLE_FULL_LTO      "Enable Full Link Time Optimization (CLANG 3.9+)")
+option(CC_ENABLE_THIN_LTO      "Enable Thin Link Time Optimization (CLANG 3.9+)")
 
 if(CC_TARGETS_AMD64_SH)
   unset(CC_TARGETS_X86 CACHE)
@@ -249,12 +251,18 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     endif()
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
-if(ENABLE_FULL_LTO_SH)
-    unset(DENABLE_FULL_LTO_SH CACHE)
-    add_compile_options(-flto)
-elseif(ENABLE_THIN_LTO_SH)
-    unset(ENABLE_THIN_LTO_SH CACHE)
-    add_compile_options(-flto=thin)
+if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
+    OR CMAKE_CXX_COMPILER_ID STREQUAL Clang
+    OR CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+	if(CC_ENABLE_FULL_LTO)
+		add_compile_options(-flto)
+	elseif(CC_ENABLE_THIN_LTO)
+		add_compile_options(-flto=thin)
+	endif()
+else()
+	if(CC_ENABLE_THIN_LTO OR CC_ENABLE_FULL_LTO)
+		message(WARNING "Link Time Optimization currently only supports CLANG and GCC")
+	endif()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)

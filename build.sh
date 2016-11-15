@@ -191,11 +191,11 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     --lto)
-        LTO="-DENABLE_FULL_LTO_SH=1"
+        LTO="-DCC_ENABLE_FULL_LTO=1"
         ;;
 
     --lto-thin)
-        LTO="-DENABLE_THIN_LTO_SH=1"
+        LTO="-DCC_ENABLE_THIN_LTO=1"
         ;;
 
     -n | --ninja)
