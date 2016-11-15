@@ -193,9 +193,9 @@ namespace Js
         virtual CompareElementsFunction GetCompareElementsFunction() = 0;
 
         virtual Var Subarray(uint32 begin, uint32 end) = 0;
-        int32 BYTES_PER_ELEMENT;
-        uint32 byteOffset;
-        BYTE* buffer;   // beginning of mapped array.
+        Field(int32) BYTES_PER_ELEMENT;
+        Field(uint32) byteOffset;
+        FieldNoBarrier(BYTE*) buffer;   // beginning of mapped array.
 
     public:
         static uint32 GetOffsetOfBuffer()  { return offsetof(TypedArrayBase, buffer); }

@@ -28,15 +28,15 @@ namespace Js
         friend class ScriptEngineBase;
 
     protected:
-        TypeId typeId;
-        TypeFlagMask flags;
+        Field(TypeId) typeId;
+        Field(TypeFlagMask) flags;
 
-        JavascriptLibrary* javascriptLibrary;
+        Field(JavascriptLibrary*) javascriptLibrary;
 
-        RecyclableObject* prototype;
-        JavascriptMethod entryPoint;
+        Field(RecyclableObject*) prototype;
+        Field(JavascriptMethod) entryPoint;
     private:
-        TypePropertyCache *propertyCache;
+        Field(TypePropertyCache *) propertyCache;
     protected:
         Type(Type * type);
         Type(ScriptContext* scriptContext, TypeId typeId, RecyclableObject* prototype, JavascriptMethod entryPoint);

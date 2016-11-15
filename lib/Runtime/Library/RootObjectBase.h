@@ -65,12 +65,12 @@ namespace Js
         RootObjectBase(DynamicType * type);
         RootObjectBase(DynamicType * type, ScriptContext* scriptContext);
 
-        HostObjectBase * hostObject;
+        Field(HostObjectBase *) hostObject;
 
         typedef JsUtil::BaseDictionary<PropertyRecord const *, RootObjectInlineCache *, Recycler> RootObjectInlineCacheMap;
-        RootObjectInlineCacheMap * loadInlineCacheMap;
-        RootObjectInlineCacheMap * loadMethodInlineCacheMap;
-        RootObjectInlineCacheMap * storeInlineCacheMap;
+        Field(RootObjectInlineCacheMap *) loadInlineCacheMap;
+        Field(RootObjectInlineCacheMap *) loadMethodInlineCacheMap;
+        Field(RootObjectInlineCacheMap *) storeInlineCacheMap;
     };
 
     template <typename Fn>

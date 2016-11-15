@@ -2776,9 +2776,10 @@ ThreadContext::UnregisterExpirableObject(ExpirableObject* object)
 {
     Assert(this->expirableObjectList);
     Assert(object->registrationHandle != nullptr);
-    Assert(this->expirableObjectList->HasElement((ExpirableObject* const *) object->registrationHandle));
+    Assert(this->expirableObjectList->HasElement(
+        (ExpirableObject* const *)PointerValue(object->registrationHandle)));
 
-    ExpirableObject** registrationData = (ExpirableObject**) object->registrationHandle;
+    ExpirableObject** registrationData = (ExpirableObject**)PointerValue(object->registrationHandle);
     Assert(*registrationData == object);
 
     this->expirableObjectList->MoveElementTo(registrationData, this->expirableObjectDisposeList);

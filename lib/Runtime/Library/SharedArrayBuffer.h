@@ -125,7 +125,7 @@ namespace Js
         virtual bool IsValidVirtualBufferLength(uint length) { return false; }
 
     protected:
-        SharedContents *sharedContents;
+        FieldNoBarrier(SharedContents *) sharedContents;
     };
 
     class JavascriptSharedArrayBuffer : public SharedArrayBuffer

@@ -6,27 +6,27 @@
 
 namespace JsUtil
 {
-    template<class T>
-    DoublyLinkedListElement<T>::DoublyLinkedListElement() : previous(0), next(0)
+    template<class T, class TAllocator>
+    DoublyLinkedListElement<T, TAllocator>::DoublyLinkedListElement() : previous(0), next(0)
     {
-        TemplateParameter::SameOrDerivedFrom<T, DoublyLinkedListElement<T>>();
+        TemplateParameter::SameOrDerivedFrom<T, DoublyLinkedListElement<T, TAllocator>>();
     }
 
-    template<class T>
-    T *DoublyLinkedListElement<T>::Previous() const
+    template<class T, class TAllocator>
+    T *DoublyLinkedListElement<T, TAllocator>::Previous() const
     {
         return previous;
     }
 
-    template<class T>
-    T *DoublyLinkedListElement<T>::Next() const
+    template<class T, class TAllocator>
+    T *DoublyLinkedListElement<T, TAllocator>::Next() const
     {
         return next;
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    bool DoublyLinkedListElement<T>::Contains(D *const element, D *const head)
+    bool DoublyLinkedListElement<T, TAllocator>::Contains(D *const element, D *const head)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(element);
@@ -43,9 +43,9 @@ namespace JsUtil
         return false;
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    bool DoublyLinkedListElement<T>::ContainsSubsequence(D *const first, D *const last, D *const head)
+    bool DoublyLinkedListElement<T, TAllocator>::ContainsSubsequence(D *const first, D *const last, D *const head)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(first);
@@ -66,9 +66,9 @@ namespace JsUtil
         return false;
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::LinkToBeginning(D *const element, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::LinkToBeginning(D *const element, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(element);
@@ -92,9 +92,9 @@ namespace JsUtil
         }
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::LinkToEnd(D *const element, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::LinkToEnd(D *const element, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(element);
@@ -118,9 +118,9 @@ namespace JsUtil
         }
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::LinkBefore(D *const element, D *const nextElement, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::LinkBefore(D *const element, D *const nextElement, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(element);
@@ -149,9 +149,9 @@ namespace JsUtil
         }
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::LinkAfter(D *const element, D *const previousElement, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::LinkAfter(D *const element, D *const previousElement, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(element);
@@ -180,9 +180,9 @@ namespace JsUtil
         }
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::UnlinkFromBeginning(D *const element, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::UnlinkFromBeginning(D *const element, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(element);
@@ -209,9 +209,9 @@ namespace JsUtil
         }
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::UnlinkFromEnd(D *const element, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::UnlinkFromEnd(D *const element, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(element);
@@ -238,9 +238,9 @@ namespace JsUtil
         }
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::UnlinkPartial(D *const element, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::UnlinkPartial(D *const element, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(element);
@@ -273,18 +273,18 @@ namespace JsUtil
         // this unlink
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::Unlink(D *const element, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::Unlink(D *const element, D * *const head, D * *const tail)
     {
         UnlinkPartial(element, head, tail);
         element->previous = 0;
         element->next = 0;
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::MoveToBeginning(D *const element, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::MoveToBeginning(D *const element, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(element);
@@ -317,9 +317,9 @@ namespace JsUtil
         element->next->previous = element;
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::UnlinkSubsequenceFromEnd(D *const first, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::UnlinkSubsequenceFromEnd(D *const first, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(first);
@@ -343,9 +343,9 @@ namespace JsUtil
         first->previous = 0;
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::UnlinkSubsequence(D *const first, D *const last, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::UnlinkSubsequence(D *const first, D *const last, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(first);
@@ -378,9 +378,9 @@ namespace JsUtil
         last->next = 0;
     }
 
-    template<class T>
+    template<class T, class TAllocator>
     template<class D>
-    void DoublyLinkedListElement<T>::MoveSubsequenceToBeginning(D *const first, D *const last, D * *const head, D * *const tail)
+    void DoublyLinkedListElement<T, TAllocator>::MoveSubsequenceToBeginning(D *const first, D *const last, D * *const head, D * *const tail)
     {
         TemplateParameter::SameOrDerivedFrom<D, T>();
         Assert(first);

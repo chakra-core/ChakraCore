@@ -336,8 +336,8 @@ namespace UnifiedRegex
 
     struct LiteralMixin
     {
-        CharCount offset;  // into program's literal buffer
-        CharCount length;  // in char16's
+        Field(CharCount) offset;  // into program's literal buffer
+        Field(CharCount) length;  // in char16's
 
         inline LiteralMixin(CharCount offset, CharCount length) : offset(offset), length(length) {}
 
@@ -375,7 +375,7 @@ namespace UnifiedRegex
     template <typename ScannerT>
     struct ScannerMixinT : LiteralMixin
     {
-        ScannerT scanner;
+        Field(ScannerT) scanner;
 
         // scanner must be setup
         ScannerMixinT(CharCount offset, CharCount length) : LiteralMixin(offset, length) {}
@@ -628,7 +628,7 @@ namespace UnifiedRegex
 #undef MTemplate
         };
 
-        InstTag tag;
+        Field(InstTag) tag;
 
         inline Inst(InstTag tag) : tag(tag) {}
         void FreeBody(ArenaAllocator* rtAllocator) {}

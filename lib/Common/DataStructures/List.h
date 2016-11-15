@@ -28,9 +28,9 @@ namespace JsUtil
         typedef TComparer<T> TComparerType;
 
     protected:
-        T* buffer;
-        int count;
-        TAllocator* alloc;
+        Field(Field(T, TAllocator) *, TAllocator) buffer;
+        Field(int) count;
+        FieldNoBarrier(TAllocator*) alloc;
 
         ReadOnlyList(TAllocator* alloc)
             : buffer(nullptr),
@@ -52,7 +52,7 @@ namespace JsUtil
 
         const T* GetBuffer() const
         {
-            return this->buffer;
+            return &this->buffer[0];
         }
 
         template<class TList>
@@ -214,8 +214,16 @@ namespace JsUtil
         Field(int) increment;
         Field(TRemovePolicyType) removePolicy;
 
-        T * AllocArray(DECLSPEC_GUARD_OVERFLOW int size) { return AllocatorNewArrayBaseFuncPtr(TAllocator, this->alloc, AllocatorInfo::GetAllocFunc(), T, size); }
-        void FreeArray(T * oldBuffer, int oldBufferSize) { AllocatorFree(this->alloc, AllocatorInfo::GetFreeFunc(), oldBuffer, oldBufferSize);  }
+        Field(T, TAllocator) * AllocArray(DECLSPEC_GUARD_OVERFLOW int size)
+        {
+            typedef Field(T, TAllocator) TField;
+            return AllocatorNewArrayBaseFuncPtr(TAllocator, this->alloc, AllocatorInfo::GetAllocFunc(), TField, size);
+        }
+
+        void FreeArray(Field(T, TAllocator) * oldBuffer, int oldBufferSize)
+        {
+            AllocatorFree(this->alloc, AllocatorInfo::GetFreeFunc(), oldBuffer, oldBufferSize);
+        }
 
         PREVENT_COPY(List); // Disable copy constructor and operator=
 
@@ -263,9 +271,9 @@ namespace JsUtil
                     JsUtil::ExternalApi::RaiseOnIntOverflow();
                 }
 
-                T* newbuffer = AllocArray(newLength);
-                T* oldbuffer = this->buffer;
-                js_memcpy_s(newbuffer, newBufferSize, oldbuffer, oldBufferSize);
+                Field(T, TAllocator)* newbuffer = AllocArray(newLength);
+                Field(T, TAllocator)* oldbuffer = this->buffer;
+                CopyArray(newbuffer, newLength, oldbuffer, length);
 
                 FreeArray(oldbuffer, oldBufferSize);
 
@@ -314,7 +322,7 @@ namespace JsUtil
             return ParentType::Item(index);
         }
 
-        T& Item(int index)
+        Field(T, TAllocator)& Item(int index)
         {
             Assert(index >= 0 && index < this->count);
             return this->buffer[index];
@@ -474,7 +482,7 @@ namespace JsUtil
                 return;
             }
 
-            memset(this->buffer, 0, this->count * sizeof(T));
+            ClearArray(this->buffer, this->count);
             Clear();
         }
 
@@ -713,7 +721,7 @@ namespace Js
 
                     if (clearOldEntries)
                     {
-                        memset(buffer + count, 0, sizeof(TElementType));
+                        ClearArray(buffer + count, 1);
                     }
                     break;
                 }
@@ -736,7 +744,7 @@ namespace Js
 
             if (clearOldEntries)
             {
-                memset(list->buffer + list->count, 0, sizeof(TElementType));
+                ClearArray(list->buffer + list->count, 1);
             }
         }
 

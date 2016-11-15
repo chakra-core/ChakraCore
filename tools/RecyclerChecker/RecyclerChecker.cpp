@@ -321,7 +321,7 @@ void MainVisitor::dump(const char* name, const set<Item>& set)
     });
 }
 
-void MainVisitor::dump(const char* name, const set<const Type*> set)
+void MainVisitor::dump(const char* name, const unordered_set<const Type*> set)
 {
     dump(name, set, [&](raw_ostream& out, const Type* type)
     {
@@ -341,25 +341,42 @@ void MainVisitor::Inspect()
         dump(item.first.c_str(), item.second);
     }
 
-    // TODO: Also add any type that has wb annotations to barrierTypes to check completeness
-    set<const Type*> barrierTypes;
+    std::queue<const Type*> queue;  // queue of types to check
+    std::unordered_set<const Type*> barrierTypes;  // set of types queued
+    auto pushBarrierType = [&](const Type* type)
+    {
+        if (barrierTypes.insert(type).second)
+        {
+            queue.push(type);
+        }
+    };
+
     for (auto item : _allocationTypes)
     {
         if (item.second & AllocationTypes::WriteBarrier)
         {
-            barrierTypes.insert(item.first);
+            pushBarrierType(item.first);
         }
     }
     dump("WriteBarrier allocation types", barrierTypes);
 
     // Examine all barrierd types. They should be fully wb annotated.
-    for (auto type: barrierTypes)
+    while (!queue.empty())
     {
+        auto type = queue.front();
+        queue.pop();
+
         auto r = type->getCanonicalTypeInternal()->getAsCXXRecordDecl();
         if (r)
         {
             auto typeName = r->getQualifiedNameAsString();
             ProcessUnbarriedFields(r);
+
+            // queue the type's base classes
+            for (const auto& base: r->bases())
+            {
+                pushBarrierType(base.getType().getTypePtr());
+            }
         }
     }
 

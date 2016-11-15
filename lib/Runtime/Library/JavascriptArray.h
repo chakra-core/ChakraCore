@@ -873,7 +873,7 @@ namespace Js
         // For BoxStackInstance
         JavascriptNativeArray(JavascriptNativeArray * instance);
 
-        RecyclerWeakReference<FunctionBody> *weakRefToFuncBody;
+        Field(RecyclerWeakReference<FunctionBody> *) weakRefToFuncBody;
 
     public:
         static bool Is(Var aValue);

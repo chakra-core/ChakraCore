@@ -436,15 +436,15 @@ namespace Js
         };
 
         // The following fields are packed into a 32-bit/64-bit, and the tag to avoid fals positive.
-        const bool          tag : 1;
-        bool                isLoopBody : 1;
-        bool                hasJittedStackClosure : 1;
-        bool                isAsmJsFunction : 1; // true if entrypoint is for asmjs function
-        State               state; // Single state member so users can query state w/o a lock
+        Field(const bool)          tag : 1;
+        Field(bool)                isLoopBody : 1;
+        Field(bool)                hasJittedStackClosure : 1;
+        Field(bool)                isAsmJsFunction : 1; // true if entrypoint is for asmjs function
+        Field(State)               state; // Single state member so users can query state w/o a lock
 #if ENABLE_NATIVE_CODEGEN
-        BYTE                pendingInlinerVersion;
-        ImplicitCallFlags   pendingImplicitCallFlags;
-        uint32              pendingPolymorphicCacheState;
+        Field(BYTE)                pendingInlinerVersion;
+        Field(ImplicitCallFlags)   pendingImplicitCallFlags;
+        Field(uint32)              pendingPolymorphicCacheState;
 
         class JitTransferData
         {
@@ -529,73 +529,73 @@ namespace Js
             void EnsureJitTimeTypeRefs(Recycler* recycler);
         };
 
-        NativeCodeData * inProcJITNaticeCodedata;
-        char* nativeDataBuffer;
+        Field(NativeCodeData *) inProcJITNaticeCodedata;
+        FieldNoBarrier(char*) nativeDataBuffer;
         union
         {
             Js::JavascriptNumber** numberArray;
             CodeGenNumberChunk* numberChunks;
         };
-        XProcNumberPageSegment* numberPageSegments;
+        Field(XProcNumberPageSegment*) numberPageSegments;
 
-        SmallSpanSequence *nativeThrowSpanSequence;
+        FieldNoBarrier(SmallSpanSequence *) nativeThrowSpanSequence;
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<FunctionBody>*, Recycler, PowerOf2SizePolicy> WeakFuncRefSet;
-        WeakFuncRefSet *weakFuncRefSet;
+        Field(WeakFuncRefSet *) weakFuncRefSet;
         // Need to keep strong references to the guards here so they don't get collected while the entry point is alive.
         typedef JsUtil::BaseDictionary<Js::PropertyId, PropertyGuard*, Recycler, PowerOf2SizePolicy> SharedPropertyGuardDictionary;
-        SharedPropertyGuardDictionary* sharedPropertyGuards;
+        Field(SharedPropertyGuardDictionary*) sharedPropertyGuards;
         typedef JsUtil::List<LazyBailOutRecord, HeapAllocator> BailOutRecordMap;
-        BailOutRecordMap* bailoutRecordMap;
+        Field(BailOutRecordMap*) bailoutRecordMap;
 
         // This array holds fake weak references to type property guards. We need it to zero out the weak references when the
         // entry point is finalized and the guards are about to be freed. Otherwise, if one of the guards was to be invalidated
         // from the thread context, we would AV trying to access freed memory. Note that the guards themselves are allocated by
         // NativeCodeData::Allocator and are kept alive by the data field. The weak references are recycler allocated, and so
         // the array must be recycler allocated also, so that the recycler doesn't collect the weak references.
-        FakePropertyGuardWeakReference** propertyGuardWeakRefs;
-        EquivalentTypeCache* equivalentTypeCaches;
-        EntryPointInfo ** registeredEquivalentTypeCacheRef;
+        Field(FakePropertyGuardWeakReference**) propertyGuardWeakRefs;
+        Field(EquivalentTypeCache*) equivalentTypeCaches;
+        Field(EntryPointInfo **) registeredEquivalentTypeCacheRef;
 
-        int propertyGuardCount;
-        int equivalentTypeCacheCount;
+        Field(int) propertyGuardCount;
+        Field(int) equivalentTypeCacheCount;
 
-        uint inlineeFrameOffsetArrayOffset;
-        uint inlineeFrameOffsetArrayCount;
+        Field(uint) inlineeFrameOffsetArrayOffset;
+        Field(uint) inlineeFrameOffsetArrayCount;
 
         typedef SListCounted<ConstructorCache*, Recycler> ConstructorCacheList;
-        ConstructorCacheList* constructorCaches;
+        Field(ConstructorCacheList*) constructorCaches;
 
-        EntryPointPolymorphicInlineCacheInfo * polymorphicInlineCacheInfo;
+        Field(EntryPointPolymorphicInlineCacheInfo *) polymorphicInlineCacheInfo;
 
         // This field holds any recycler allocated references that must be kept alive until
         // we install the entry point.  It is freed at that point, so anything that must survive
         // until the EntryPointInfo itself goes away, must be copied somewhere else.
-        JitTransferData* jitTransferData;
+        Field(JitTransferData*) jitTransferData;
 
         // If we pin types this array contains strong references to types, otherwise it holds weak references.
-        void **runtimeTypeRefs;
+        Field(void **) runtimeTypeRefs;
      protected:
 #if PDATA_ENABLED
-        XDataAllocation * xdataInfo;
+        Field(XDataAllocation *) xdataInfo;
 #endif
 #endif // ENABLE_NATIVE_CODEGEN
 
-        CodeGenWorkItem * workItem;
-        Js::JavascriptMethod nativeAddress;
-        ptrdiff_t codeSize;
-        uintptr_t  mModuleAddress; //asm Module address
+        Field(CodeGenWorkItem *) workItem;
+        FieldNoBarrier(Js::JavascriptMethod) nativeAddress;
+        Field(ptrdiff_t) codeSize;
+        Field(uintptr_t)  mModuleAddress; //asm Module address
 
     protected:
-        JavascriptLibrary* library;
+        Field(JavascriptLibrary*) library;
 #if ENABLE_NATIVE_CODEGEN
         typedef JsUtil::List<NativeOffsetInlineeFramePair, HeapAllocator> InlineeFrameMap;
-        InlineeFrameMap*   inlineeFrameMap;
+        Field(InlineeFrameMap*)   inlineeFrameMap;
 #endif
 #if ENABLE_DEBUG_STACK_BACK_TRACE
         StackBackTrace*    cleanupStack;
 #endif
     public:
-        uint frameHeight;
+        Field(uint) frameHeight;
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     public:
@@ -611,12 +611,12 @@ namespace Js
             CleanUpForFinalize
         };
     private:
-        CleanupReason cleanupReason;
+        Field(CleanupReason) cleanupReason;
 #endif
 
 #ifdef FIELD_ACCESS_STATS
     private:
-        FieldAccessStatsPtr fieldAccessStats;
+        Field(FieldAccessStatsPtr) fieldAccessStats;
 #endif
 
     public:
@@ -1021,7 +1021,7 @@ namespace Js
          };
 
      private:
-         JsUtil::List<NativeOffsetMap, HeapAllocator> nativeOffsetMaps;
+         Field(JsUtil::List<NativeOffsetMap, HeapAllocator>) nativeOffsetMaps;
      public:
          void RecordNativeMap(uint32 offset, uint32 statementIndex);
 
@@ -1048,7 +1048,7 @@ namespace Js
 #endif
 
     protected:
-        void* validationCookie;
+        Field(void*) validationCookie;
     };
 
     class FunctionEntryPointInfo : public EntryPointInfo
@@ -1460,8 +1460,8 @@ namespace Js
 
         Field(uint) m_functionNumber;  // Per thread global function number
 
-        bool m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
-        bool m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
+        Field(bool) m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
+        Field(bool) m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
         void CleanupFunctionProxyCounters()
         {
             PERF_COUNTER_DEC(Code, TotalFunction);

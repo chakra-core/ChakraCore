@@ -130,154 +130,154 @@ namespace Js
         DynamicObject* GetURIErrorPrototype() const { return uriErrorPrototype; }
 
     protected:
-        GlobalObject* globalObject;
-        RuntimeFunction* mapConstructor;
-        RuntimeFunction* setConstructor;
-        RuntimeFunction* weakMapConstructor;
-        RuntimeFunction* weakSetConstructor;
-        RuntimeFunction* arrayConstructor;
-        RuntimeFunction* typedArrayConstructor;
-        RuntimeFunction* Int8ArrayConstructor;
-        RuntimeFunction* Uint8ArrayConstructor;
-        RuntimeFunction* Uint8ClampedArrayConstructor;
-        RuntimeFunction* Int16ArrayConstructor;
-        RuntimeFunction* Uint16ArrayConstructor;
-        RuntimeFunction* Int32ArrayConstructor;
-        RuntimeFunction* Uint32ArrayConstructor;
-        RuntimeFunction* Float32ArrayConstructor;
-        RuntimeFunction* Float64ArrayConstructor;
-        RuntimeFunction* arrayBufferConstructor;
-        RuntimeFunction* dataViewConstructor;
-        RuntimeFunction* booleanConstructor;
-        RuntimeFunction* dateConstructor;
-        RuntimeFunction* functionConstructor;
-        RuntimeFunction* numberConstructor;
-        RuntimeFunction* objectConstructor;
-        RuntimeFunction* symbolConstructor;
-        JavascriptRegExpConstructor* regexConstructor;
-        RuntimeFunction* stringConstructor;
-        RuntimeFunction* pixelArrayConstructor;
+        Field(GlobalObject*) globalObject;
+        Field(RuntimeFunction*) mapConstructor;
+        Field(RuntimeFunction*) setConstructor;
+        Field(RuntimeFunction*) weakMapConstructor;
+        Field(RuntimeFunction*) weakSetConstructor;
+        Field(RuntimeFunction*) arrayConstructor;
+        Field(RuntimeFunction*) typedArrayConstructor;
+        Field(RuntimeFunction*) Int8ArrayConstructor;
+        Field(RuntimeFunction*) Uint8ArrayConstructor;
+        Field(RuntimeFunction*) Uint8ClampedArrayConstructor;
+        Field(RuntimeFunction*) Int16ArrayConstructor;
+        Field(RuntimeFunction*) Uint16ArrayConstructor;
+        Field(RuntimeFunction*) Int32ArrayConstructor;
+        Field(RuntimeFunction*) Uint32ArrayConstructor;
+        Field(RuntimeFunction*) Float32ArrayConstructor;
+        Field(RuntimeFunction*) Float64ArrayConstructor;
+        Field(RuntimeFunction*) arrayBufferConstructor;
+        Field(RuntimeFunction*) dataViewConstructor;
+        Field(RuntimeFunction*) booleanConstructor;
+        Field(RuntimeFunction*) dateConstructor;
+        Field(RuntimeFunction*) functionConstructor;
+        Field(RuntimeFunction*) numberConstructor;
+        Field(RuntimeFunction*) objectConstructor;
+        Field(RuntimeFunction*) symbolConstructor;
+        Field(JavascriptRegExpConstructor*) regexConstructor;
+        Field(RuntimeFunction*) stringConstructor;
+        Field(RuntimeFunction*) pixelArrayConstructor;
 
-        RuntimeFunction* errorConstructor;
-        RuntimeFunction* evalErrorConstructor;
-        RuntimeFunction* rangeErrorConstructor;
-        RuntimeFunction* referenceErrorConstructor;
-        RuntimeFunction* syntaxErrorConstructor;
-        RuntimeFunction* typeErrorConstructor;
-        RuntimeFunction* uriErrorConstructor;
-        RuntimeFunction* proxyConstructor;
-        RuntimeFunction* promiseConstructor;
-        RuntimeFunction* generatorFunctionConstructor;
-        RuntimeFunction* asyncFunctionConstructor;
+        Field(RuntimeFunction*) errorConstructor;
+        Field(RuntimeFunction*) evalErrorConstructor;
+        Field(RuntimeFunction*) rangeErrorConstructor;
+        Field(RuntimeFunction*) referenceErrorConstructor;
+        Field(RuntimeFunction*) syntaxErrorConstructor;
+        Field(RuntimeFunction*) typeErrorConstructor;
+        Field(RuntimeFunction*) uriErrorConstructor;
+        Field(RuntimeFunction*) proxyConstructor;
+        Field(RuntimeFunction*) promiseConstructor;
+        Field(RuntimeFunction*) generatorFunctionConstructor;
+        Field(RuntimeFunction*) asyncFunctionConstructor;
 
-        JavascriptFunction* defaultAccessorFunction;
-        JavascriptFunction* stackTraceAccessorFunction;
-        JavascriptFunction* throwTypeErrorRestrictedPropertyAccessorFunction;
-        JavascriptFunction* debugObjectNonUserGetterFunction;
-        JavascriptFunction* debugObjectNonUserSetterFunction;
-        JavascriptFunction* debugObjectDebugModeGetterFunction;
-        JavascriptFunction* __proto__getterFunction;
-        JavascriptFunction* __proto__setterFunction;
-        JavascriptFunction* arrayIteratorPrototypeBuiltinNextFunction;
-        DynamicObject* mathObject;
+        Field(JavascriptFunction*) defaultAccessorFunction;
+        Field(JavascriptFunction*) stackTraceAccessorFunction;
+        Field(JavascriptFunction*) throwTypeErrorRestrictedPropertyAccessorFunction;
+        Field(JavascriptFunction*) debugObjectNonUserGetterFunction;
+        Field(JavascriptFunction*) debugObjectNonUserSetterFunction;
+        Field(JavascriptFunction*) debugObjectDebugModeGetterFunction;
+        Field(JavascriptFunction*) __proto__getterFunction;
+        Field(JavascriptFunction*) __proto__setterFunction;
+        Field(JavascriptFunction*) arrayIteratorPrototypeBuiltinNextFunction;
+        Field(DynamicObject*) mathObject;
         // SIMD_JS
-        DynamicObject* simdObject;
+        Field(DynamicObject*) simdObject;
 
-        DynamicObject* debugObject;
-        DynamicObject* JSONObject;
+        Field(DynamicObject*) debugObject;
+        Field(DynamicObject*) JSONObject;
 #ifdef ENABLE_INTL_OBJECT
         DynamicObject* IntlObject;
 #endif
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
         EngineInterfaceObject* engineInterfaceObject;
 #endif
-        DynamicObject* reflectObject;
+        Field(DynamicObject*) reflectObject;
 
-        DynamicObject* arrayPrototype;
+        Field(DynamicObject*) arrayPrototype;
 
-        DynamicObject* typedArrayPrototype;
-        DynamicObject* Int8ArrayPrototype;
-        DynamicObject* Uint8ArrayPrototype;
-        DynamicObject* Uint8ClampedArrayPrototype;
-        DynamicObject* Int16ArrayPrototype;
-        DynamicObject* Uint16ArrayPrototype;
-        DynamicObject* Int32ArrayPrototype;
-        DynamicObject* Uint32ArrayPrototype;
-        DynamicObject* Float32ArrayPrototype;
-        DynamicObject* Float64ArrayPrototype;
-        DynamicObject* Int64ArrayPrototype;
-        DynamicObject* Uint64ArrayPrototype;
-        DynamicObject* BoolArrayPrototype;
-        DynamicObject* CharArrayPrototype;
-        DynamicObject* arrayBufferPrototype;
-        DynamicObject* dataViewPrototype;
-        DynamicObject* pixelArrayPrototype;
-        DynamicObject* booleanPrototype;
-        DynamicObject* datePrototype;
-        DynamicObject* functionPrototype;
-        DynamicObject* numberPrototype;
-        ObjectPrototypeObject* objectPrototype;
-        DynamicObject* regexPrototype;
-        DynamicObject* stringPrototype;
-        DynamicObject* mapPrototype;
-        DynamicObject* setPrototype;
-        DynamicObject* weakMapPrototype;
-        DynamicObject* weakSetPrototype;
-        DynamicObject* symbolPrototype;
-        DynamicObject* iteratorPrototype;           // aka %IteratorPrototype%
-        DynamicObject* arrayIteratorPrototype;
-        DynamicObject* mapIteratorPrototype;
-        DynamicObject* setIteratorPrototype;
-        DynamicObject* stringIteratorPrototype;
-        DynamicObject* promisePrototype;
-        DynamicObject* generatorFunctionPrototype;  // aka %Generator%
-        DynamicObject* generatorPrototype;          // aka %GeneratorPrototype%
-        DynamicObject* asyncFunctionPrototype;      // aka %AsyncFunctionPrototype%
+        Field(DynamicObject*) typedArrayPrototype;
+        Field(DynamicObject*) Int8ArrayPrototype;
+        Field(DynamicObject*) Uint8ArrayPrototype;
+        Field(DynamicObject*) Uint8ClampedArrayPrototype;
+        Field(DynamicObject*) Int16ArrayPrototype;
+        Field(DynamicObject*) Uint16ArrayPrototype;
+        Field(DynamicObject*) Int32ArrayPrototype;
+        Field(DynamicObject*) Uint32ArrayPrototype;
+        Field(DynamicObject*) Float32ArrayPrototype;
+        Field(DynamicObject*) Float64ArrayPrototype;
+        Field(DynamicObject*) Int64ArrayPrototype;
+        Field(DynamicObject*) Uint64ArrayPrototype;
+        Field(DynamicObject*) BoolArrayPrototype;
+        Field(DynamicObject*) CharArrayPrototype;
+        Field(DynamicObject*) arrayBufferPrototype;
+        Field(DynamicObject*) dataViewPrototype;
+        Field(DynamicObject*) pixelArrayPrototype;
+        Field(DynamicObject*) booleanPrototype;
+        Field(DynamicObject*) datePrototype;
+        Field(DynamicObject*) functionPrototype;
+        Field(DynamicObject*) numberPrototype;
+        Field(ObjectPrototypeObject*) objectPrototype;
+        Field(DynamicObject*) regexPrototype;
+        Field(DynamicObject*) stringPrototype;
+        Field(DynamicObject*) mapPrototype;
+        Field(DynamicObject*) setPrototype;
+        Field(DynamicObject*) weakMapPrototype;
+        Field(DynamicObject*) weakSetPrototype;
+        Field(DynamicObject*) symbolPrototype;
+        Field(DynamicObject*) iteratorPrototype;           // aka %IteratorPrototype%
+        Field(DynamicObject*) arrayIteratorPrototype;
+        Field(DynamicObject*) mapIteratorPrototype;
+        Field(DynamicObject*) setIteratorPrototype;
+        Field(DynamicObject*) stringIteratorPrototype;
+        Field(DynamicObject*) promisePrototype;
+        Field(DynamicObject*) generatorFunctionPrototype;  // aka %Generator%
+        Field(DynamicObject*) generatorPrototype;          // aka %GeneratorPrototype%
+        Field(DynamicObject*) asyncFunctionPrototype;      // aka %AsyncFunctionPrototype%
 
-        DynamicObject* errorPrototype;
-        DynamicObject* evalErrorPrototype;
-        DynamicObject* rangeErrorPrototype;
-        DynamicObject* referenceErrorPrototype;
-        DynamicObject* syntaxErrorPrototype;
-        DynamicObject* typeErrorPrototype;
-        DynamicObject* uriErrorPrototype;
+        Field(DynamicObject*) errorPrototype;
+        Field(DynamicObject*) evalErrorPrototype;
+        Field(DynamicObject*) rangeErrorPrototype;
+        Field(DynamicObject*) referenceErrorPrototype;
+        Field(DynamicObject*) syntaxErrorPrototype;
+        Field(DynamicObject*) typeErrorPrototype;
+        Field(DynamicObject*) uriErrorPrototype;
 
         //SIMD Prototypes
-        DynamicObject* simdBool8x16Prototype;
-        DynamicObject* simdBool16x8Prototype;
-        DynamicObject* simdBool32x4Prototype;
-        DynamicObject* simdInt8x16Prototype;
-        DynamicObject* simdInt16x8Prototype;
-        DynamicObject* simdInt32x4Prototype;
-        DynamicObject* simdUint8x16Prototype;
-        DynamicObject* simdUint16x8Prototype;
-        DynamicObject* simdUint32x4Prototype;
-        DynamicObject* simdFloat32x4Prototype;
-        DynamicObject* simdFloat64x2Prototype;
+        Field(DynamicObject*) simdBool8x16Prototype;
+        Field(DynamicObject*) simdBool16x8Prototype;
+        Field(DynamicObject*) simdBool32x4Prototype;
+        Field(DynamicObject*) simdInt8x16Prototype;
+        Field(DynamicObject*) simdInt16x8Prototype;
+        Field(DynamicObject*) simdInt32x4Prototype;
+        Field(DynamicObject*) simdUint8x16Prototype;
+        Field(DynamicObject*) simdUint16x8Prototype;
+        Field(DynamicObject*) simdUint32x4Prototype;
+        Field(DynamicObject*) simdFloat32x4Prototype;
+        Field(DynamicObject*) simdFloat64x2Prototype;
 
-        JavascriptBoolean* booleanTrue;
-        JavascriptBoolean* booleanFalse;
+        Field(JavascriptBoolean*) booleanTrue;
+        Field(JavascriptBoolean*) booleanFalse;
 
-        Var nan;
-        Var negativeInfinite;
-        Var positiveInfinite;
-        Var pi;
-        Var minValue;
-        Var maxValue;
-        Var negativeZero;
-        RecyclableObject* undefinedValue;
-        RecyclableObject* nullValue;
+        Field(Var) nan;
+        Field(Var) negativeInfinite;
+        Field(Var) positiveInfinite;
+        Field(Var) pi;
+        Field(Var) minValue;
+        Field(Var) maxValue;
+        Field(Var) negativeZero;
+        Field(RecyclableObject*) undefinedValue;
+        Field(RecyclableObject*) nullValue;
 
-        JavascriptSymbol* symbolHasInstance;
-        JavascriptSymbol* symbolIsConcatSpreadable;
-        JavascriptSymbol* symbolIterator;
-        JavascriptSymbol* symbolSpecies;
-        JavascriptSymbol* symbolToPrimitive;
-        JavascriptSymbol* symbolToStringTag;
-        JavascriptSymbol* symbolUnscopables;
+        Field(JavascriptSymbol*) symbolHasInstance;
+        Field(JavascriptSymbol*) symbolIsConcatSpreadable;
+        Field(JavascriptSymbol*) symbolIterator;
+        Field(JavascriptSymbol*) symbolSpecies;
+        Field(JavascriptSymbol*) symbolToPrimitive;
+        Field(JavascriptSymbol*) symbolToStringTag;
+        Field(JavascriptSymbol*) symbolUnscopables;
 
     public:
-        ScriptContext* scriptContext;
+        Field(ScriptContext*) scriptContext;
 
     private:
         virtual void Dispose(bool isShutdown) override;
