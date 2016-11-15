@@ -147,11 +147,13 @@ namespace Js {
                 RaiseException(0, 0, 0, NULL);
             }
         }
+#ifdef ENABLE_SEH
         __except(Throw::GenerateDump(GetExceptionInformation(), filePath,
             terminate? EXCEPTION_CONTINUE_SEARCH : EXCEPTION_EXECUTE_HANDLER), needLock)
         {
             // we don't do anything interesting in this handler
         }
+#endif
     }
 
     void Throw::GenerateDumpForAssert(LPCWSTR filePath)
@@ -160,10 +162,12 @@ namespace Js {
         {
             RaiseException(STATUS_ASSERTION_FAILURE, EXCEPTION_NONCONTINUABLE, 0, NULL);
         }
+#ifdef ENABLE_SEH
         __except (Throw::GenerateDump(GetExceptionInformation(), filePath, EXCEPTION_CONTINUE_SEARCH), false)
         {
             // no-op
         }
+#endif
     }
 
     int Throw::GenerateDump(PEXCEPTION_POINTERS exceptInfo, LPCWSTR filePath, int ret, bool needLock)

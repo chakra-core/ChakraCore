@@ -678,3 +678,4 @@ namespace PlatformAgnostic
 #include "PlatformAgnostic/Numbers.h"
 #include "PlatformAgnostic/SystemInfo.h"
 #include "PlatformAgnostic/Thread.h"
+#include "PlatformAgnostic/Exception.h"

@@ -663,20 +663,18 @@ HRESULT ExecuteTestWithMemoryCheck(char* fileName)
     ChakraRTInterface::SetEnableCheckMemoryLeakOutput(false);
 #endif
 
-#ifdef _WIN32
     __try
     {
         hr = ExecuteTest(fileName);
     }
+#ifdef ENABLE_SEH
+    // REVIEW: Do we need a SEH handler here?
     __except (HostExceptionFilter(GetExceptionCode(), GetExceptionInformation()))
     {
         Assert(false);
     }
-#else
-    // REVIEW: Do we need a SEH handler here?
-    hr = ExecuteTest(fileName);
-    if (FAILED(hr)) exit(0);
-#endif // _WIN32
+#endif
+    if (FAILED(hr)) exit(1);
 
     _flushall();
 #ifdef CHECK_MEMORY_LEAK

@@ -536,7 +536,7 @@ namespace JsUtil
 
     private:
         static unsigned int WINAPI StaticThreadProc(void *lpParam);
-#ifndef DISABLE_SEH
+#ifdef ENABLE_SEH
         static int ExceptFilter(LPEXCEPTION_POINTERS pEP);
 #endif
 

@@ -23,7 +23,7 @@ enum ErrorReason
     Fatal_Debugger_AttachDetach_Failure = 15,
     Fatal_EntryExitRecordCorruption = 16,
     Fatal_UnexpectedExceptionHandling = 17,
-    Fatal_RpcFailure = 18, 
+    Fatal_RpcFailure = 18,
     // Reserved = 19,
     Fatal_TTDAbort = 20
 };
@@ -70,7 +70,7 @@ void FromDOM_NoScriptScope_fatal_error();
 void Debugger_AttachDetach_fatal_error(HRESULT hr);
 void RpcFailure_fatal_error(HRESULT hr);
 
-#ifndef DISABLE_SEH
+#ifdef ENABLE_SEH
 // RtlReportException is available on Vista and up, but we cannot use it for OOB release.
 // Use UnhandleExceptionFilter to let the default handler handles it.
 inline LONG FatalExceptionFilter(
@@ -113,9 +113,11 @@ static STDMETHODIMP DebugApiWrapper(Fn fn)
         return fn();
 #if ENABLE_DEBUG_API_WRAPPER
     }
+#ifdef ENABLE_SEH
     __except(FatalExceptionFilter(GetExceptionInformation()))
     {
     }
     return E_FAIL;
-#endif
+#endif // ENABLE_SEH
+#endif // ENABLE_DEBUG_API_WRAPPER
 }

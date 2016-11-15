@@ -1242,13 +1242,11 @@ namespace JsUtil
         threadData->backgroundPageAllocator.SetConcurrentThreadId(GetCurrentThreadId());
 #endif
 
-#ifdef DISABLE_SEH
-        processor->Run(threadData);
-#else
         __try
         {
             processor->Run(threadData);
         }
+#ifdef ENABLE_SEH
         __except(ExceptFilter(GetExceptionInformation()))
         {
             Assert(false);
@@ -1271,7 +1269,7 @@ namespace JsUtil
         }
     }
 
-#ifndef DISABLE_SEH
+#ifdef ENABLE_SEH
     int BackgroundJobProcessor::ExceptFilter(LPEXCEPTION_POINTERS pEP)
     {
 #if DBG && defined(_WIN32)
