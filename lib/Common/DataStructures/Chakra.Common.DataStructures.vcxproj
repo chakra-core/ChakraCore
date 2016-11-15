@@ -64,6 +64,7 @@
     <ClInclude Include="PageStack.h" />
     <ClInclude Include="Pair.h" />
     <ClInclude Include="Queue.h" />
+    <ClInclude Include="QuickSort.h" />
     <ClInclude Include="RegexKey.h" />
     <ClInclude Include="SizePolicy.h" />
     <ClInclude Include="InternalString.h" />

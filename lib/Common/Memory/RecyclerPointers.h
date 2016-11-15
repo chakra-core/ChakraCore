@@ -375,6 +375,22 @@ public:
         return result;
     }
 
+    WriteBarrierPtr& operator--()  // prefix --
+    {
+        --ptr;
+#ifdef RECYCLER_WRITE_BARRIER
+        RecyclerWriteBarrierManager::WriteBarrier(this);
+#endif
+        return *this;
+    }
+
+    WriteBarrierPtr operator--(int)  // postfix --
+    {
+        WriteBarrierPtr result(*this);
+        --(*this);
+        return result;
+    }
+
     static void MoveArray(WriteBarrierPtr * dst, WriteBarrierPtr * src, size_t count)
     {
         memmove((void *)dst, src, sizeof(WriteBarrierPtr) * count);
@@ -452,6 +468,11 @@ const T& max(const T& a, const NoWriteBarrierField<T>& b) { return a > b ? a : b
 template<class T> inline
 const T& max(const NoWriteBarrierField<T>& a, const NoWriteBarrierField<T>& b) { return a > b ? a : b; }
 
+template<typename T, typename Comparer>
+void qsort_s(Memory::WriteBarrierPtr<T>* _Base, size_t _NumOfElements, size_t _SizeOfElements, Comparer comparer, void* _Context)
+{
+    JsUtil::QuickSort<Memory::WriteBarrierPtr<T>, Comparer>::Sort(_Base, _Base + _NumOfElements - 1, comparer, _Context);
+}
 
 // Disallow memcpy, memmove of WriteBarrierPtr
 
