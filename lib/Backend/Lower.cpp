@@ -23088,9 +23088,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
 
         if (divideByZeroInstr)
         {
-            IR::Opnd* errReg = IR::RegOpnd::New(TyInt32, m_func);
-            InsertMove(errReg, IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), divLabel);
-            GenerateThrow(errReg, divLabel);
+            GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), divLabel);
         }
         else
         {
@@ -23143,9 +23141,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
             
             if (overflowReg3)
             {
-                IR::Opnd* errReg = IR::RegOpnd::New(TyInt32, m_func);
-                InsertMove(errReg, IR::IntConstOpnd::NewFromType(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), divLabel);
-                GenerateThrow(errReg, divLabel);
+                GenerateThrow( IR::IntConstOpnd::NewFromType(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), divLabel);
             }
             else
             {
@@ -23181,7 +23177,8 @@ Lowerer::GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr) const
     instr->InsertBefore(throwInstr);
     Lowerer* lw = const_cast<Lowerer*> (this); //LowerUnaryHelperMem unlinks src1 of throwInstr,
                                                //local and self-contained mutation
-    lw->LowerUnaryHelperMem(throwInstr, IR::HelperOp_RuntimeTypeError);
+    const bool isWasm = m_func->GetJITFunctionBody() && m_func->GetJITFunctionBody()->IsWasmFunction();
+    lw->LowerUnaryHelperMem(throwInstr, isWasm ? IR::HelperOp_WebAssemblyRuntimeError : IR::HelperOp_RuntimeTypeError);
 }
 
 void

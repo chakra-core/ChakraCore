@@ -354,6 +354,7 @@ HELPERCALL(Op_Throw, Js::JavascriptExceptionOperators::OP_Throw, AttrCanThrow)
 HELPERCALL(Op_RuntimeTypeError, Js::JavascriptExceptionOperators::OP_RuntimeTypeError, AttrCanThrow)
 HELPERCALL(Op_RuntimeRangeError, Js::JavascriptExceptionOperators::OP_RuntimeRangeError, AttrCanThrow)
 HELPERCALL(Op_RuntimeReferenceError, Js::JavascriptExceptionOperators::OP_RuntimeReferenceError, AttrCanThrow)
+HELPERCALL(Op_WebAssemblyRuntimeError, Js::JavascriptExceptionOperators::OP_WebAssemblyRuntimeError, AttrCanThrow)
 HELPERCALL(Op_OutOfMemoryError, Js::Throw::OutOfMemory, AttrCanThrow)
 HELPERCALL(Op_FatalInternalError, Js::Throw::FatalInternalError, AttrCanThrow)
 
