@@ -475,8 +475,6 @@ public:
         Js::PropertyRecordStringHashComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertyMap;
     PropertyMap * propertyMap;
 
-    typedef SListCounted<Js::PropertyId, HeapAllocator> PropertyList;
-
     typedef JsUtil::BaseHashSet<Js::CaseInvariantPropertyListWithHashCode*, Recycler, PowerOf2SizePolicy, Js::CaseInvariantPropertyListWithHashCode*, JsUtil::NoCaseComparer, JsUtil::SimpleDictionaryEntry>
         PropertyNoCaseSetType;
     typedef JsUtil::WeaklyReferencedKeyDictionary<Js::Type, bool> TypeHashSet;
@@ -488,18 +486,20 @@ private:
     intptr_t m_prereservedRegionAddr;
 
 #if ENABLE_NATIVE_CODEGEN
-    PropertyList * m_pendingJITProperties;
-    PropertyList  * m_reclaimedJITProperties;
+    BVSparse<HeapAllocator> * m_jitNumericProperties;
+    bool m_jitNeedsPropertyUpdate;
 public:
-
-    PropertyList * GetReclaimedJITProperties() const
+    BVSparse<HeapAllocator> * GetJITNumericProperties() const
     {
-        return m_reclaimedJITProperties;
+        return m_jitNumericProperties;
     }
-
-    PropertyList * GetPendingJITProperties() const
+    bool JITNeedsPropUpdate() const
     {
-        return m_pendingJITProperties;
+        return m_jitNeedsPropertyUpdate;
+    }
+    void ResetJITNeedsPropUpdate()
+    {
+        m_jitNeedsPropertyUpdate = false;
     }
 
     static void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);

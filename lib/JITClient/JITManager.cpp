@@ -454,14 +454,14 @@ JITManager::SetWellKnownHostTypeId(
 HRESULT
 JITManager::UpdatePropertyRecordMap(
     __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __in UpdatedPropertysIDL * updatedProps)
+    __in BVSparseNodeIDL * updatedPropsBVHead)
 {
     Assert(IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientUpdatePropertyRecordMap(m_rpcBindingHandle, threadContextInfoAddress, updatedProps);
+        hr = ClientUpdatePropertyRecordMap(m_rpcBindingHandle, threadContextInfoAddress, updatedPropsBVHead);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {

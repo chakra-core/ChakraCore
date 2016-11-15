@@ -172,6 +172,14 @@ typedef struct BVFixedIDL
     IDL_DEF([size_is(((len - 1) >> BV_SHIFT) + 1)]) BVUnitIDL data[IDL_DEF(*)];
 } BVFixedIDL;
 
+typedef struct BVSparseNodeIDL
+{
+    struct BVSparseNodeIDL * next;
+    unsigned int startIndex;
+    X64_PAD4(0)
+    __int64 data;
+} BVSparseNodeIDL;
+
 typedef struct CallSiteIDL
 {
     unsigned short bitFields;
@@ -806,14 +814,6 @@ typedef struct JITOutputIDL
     X86_PAD4(1)
     __int64 startTime;
 } JITOutputIDL;
-
-typedef struct UpdatedPropertysIDL
-{
-    unsigned int reclaimedPropertyCount;
-    unsigned int newPropertyCount;
-    [size_is(reclaimedPropertyCount)] int * reclaimedPropertyIdArray;
-    [size_is(newPropertyCount)] int * newPropertyIdArray;
-} UpdatedPropertysIDL;
 
 typedef struct InterpreterThunkInfoIDL
 {

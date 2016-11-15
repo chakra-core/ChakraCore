@@ -170,8 +170,8 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     codeGenNumberThreadAllocator(nullptr),
     xProcNumberPageSegmentManager(nullptr),
 #endif
-    m_pendingJITProperties(nullptr),
-    m_reclaimedJITProperties(nullptr),
+    m_jitNumericProperties(nullptr),
+    m_jitNeedsPropertyUpdate(false),
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
     thunkPageAllocators(allocationPolicyManager, /* allocXData */ false, /* virtualAllocator */ nullptr, GetCurrentProcess()),
 #endif
@@ -473,15 +473,10 @@ ThreadContext::~ThreadContext()
         }
 
 #if ENABLE_NATIVE_CODEGEN
-        if (this->m_pendingJITProperties != nullptr)
+        if (this->m_jitNumericProperties != nullptr)
         {
-            HeapDelete(this->m_pendingJITProperties);
-            this->m_pendingJITProperties = nullptr;
-        }
-        if (this->m_reclaimedJITProperties != nullptr)
-        {
-            HeapDelete(this->m_reclaimedJITProperties);
-            this->m_reclaimedJITProperties = nullptr;
+            HeapDelete(this->m_jitNumericProperties);
+            this->m_jitNumericProperties = nullptr;
         }
 #endif
         // Unpin the memory for leak report so we don't report this as a leak.
@@ -950,19 +945,6 @@ void ThreadContext::InitializePropertyMaps()
         }
         this->propertyMap = nullptr;
 
-#if ENABLE_NATIVE_CODEGEN
-        if (this->m_pendingJITProperties != nullptr)
-        {
-            HeapDelete(this->m_pendingJITProperties);
-            this->m_pendingJITProperties = nullptr;
-        }
-        if (this->m_reclaimedJITProperties != nullptr)
-        {
-            HeapDelete(this->m_reclaimedJITProperties);
-            this->m_reclaimedJITProperties = nullptr;
-        }
-#endif
-
         this->caseInvariantPropertySet = nullptr;
         memset(propertyNamesDirect, 0, 128*sizeof(Js::PropertyRecord *));
         throw;
@@ -1121,15 +1103,12 @@ ThreadContext::AddPropertyRecordInternal(const Js::PropertyRecord * propertyReco
     propertyMap->Add(propertyRecord);
 
 #if ENABLE_NATIVE_CODEGEN
-    if (m_pendingJITProperties)
+    if (m_jitNumericProperties)
     {
-        Assert(m_reclaimedJITProperties);
         if (propertyRecord->IsNumeric())
         {
-            if (!m_reclaimedJITProperties->Remove(propertyRecord->GetPropertyId()))
-            {
-                m_pendingJITProperties->Prepend(propertyRecord->GetPropertyId());
-            }
+            m_jitNumericProperties->Set(propertyRecord->GetPropertyId());
+            m_jitNeedsPropertyUpdate = true;
         }
     }
 #endif
@@ -1287,10 +1266,10 @@ void ThreadContext::InvalidatePropertyRecord(const Js::PropertyRecord * property
 {
     InternalInvalidateProtoTypePropertyCaches(propertyRecord->GetPropertyId());     // use the internal version so we don't check for active property id
 #if ENABLE_NATIVE_CODEGEN
-    if (propertyRecord->IsNumeric() && m_pendingJITProperties && !m_pendingJITProperties->Remove(propertyRecord->GetPropertyId()))
+    if (propertyRecord->IsNumeric() && m_jitNumericProperties)
     {
-        // if it wasn't pending, that means it was already sent to the jit, so add to list that jit needs to reclaim
-        m_reclaimedJITProperties->PrependNoThrow(&HeapAllocator::Instance, propertyRecord->GetPropertyId());
+        m_jitNumericProperties->Clear(propertyRecord->GetPropertyId());
+        m_jitNeedsPropertyUpdate = true;
     }
 #endif
     this->propertyMap->Remove(propertyRecord);
@@ -2006,14 +1985,14 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     contextData.simdTempAreaBaseAddr = (intptr_t)GetSimdTempArea();
 #endif
 
-    m_reclaimedJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
-    m_pendingJITProperties = HeapNew(PropertyList, &HeapAllocator::Instance);
+    m_jitNumericProperties = HeapNew(BVSparse<HeapAllocator>, &HeapAllocator::Instance);
     
     for (auto iter = propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
     {
         if (iter.CurrentKey()->IsNumeric())
         {
-            m_pendingJITProperties->Prepend(iter.CurrentKey()->GetPropertyId());
+            m_jitNumericProperties->Set(iter.CurrentKey()->GetPropertyId());
+            m_jitNeedsPropertyUpdate = true;
         }
     }
 
