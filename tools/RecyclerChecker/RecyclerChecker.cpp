@@ -416,8 +416,9 @@ bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
             (castNode = const_cast<CXXStaticCastExpr*>(dyn_cast<CXXStaticCastExpr>(firstArgNode))))
         {
             QualType allocatedType = newExpr->getAllocatedType();
-            auto allocationType = CheckAllocationType(castNode);
+            string allocatedTypeStr = allocatedType.getAsString();
 
+            auto allocationType = CheckAllocationType(castNode);
             if (allocationType == AllocationTypes::Recycler)  // Recycler allocation
             {
                 const Expr* secondArgNode = newExpr->getPlacementArg(1);
@@ -431,16 +432,12 @@ bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
                     Expr* subExpr = unaryNode->getSubExpr();
                     if (DeclRefExpr* declRef = cast<DeclRefExpr>(subExpr))
                     {
-                        string allocatedTypeStr = allocatedType.getAsString();
                         auto declNameInfo = declRef->getNameInfo();
                         auto allocationFunctionStr = declNameInfo.getName().getAsString();
                         _mainVisitor->RecordRecyclerAllocation(allocationFunctionStr, allocatedTypeStr);
 
-                        if (allocationFunctionStr.find("WithBarrier") != string::npos)
+                        if (Contains(allocationFunctionStr, "WithBarrier"))
                         {
-                            Log::outs() << "In \"" << _functionDecl->getQualifiedNameAsString() << "\"\n";
-                            Log::outs() << "  Allocating \"" << allocatedTypeStr << "\" in write barriered memory\n";
-
                             // Recycler write barrier allocation
                             allocationType = AllocationTypes::WriteBarrier;
                         }
@@ -451,11 +448,26 @@ bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
                         subExpr->dump();
                     }
                 }
+                else if (auto mExpr = cast<MaterializeTemporaryExpr>(secondArgNode))
+                {
+                    auto name = mExpr->GetTemporaryExpr()->IgnoreImpCasts()->getType().getAsString();
+                    if (StartsWith(name, "InfoBitsWrapper<") && Contains(name, "WithBarrierBit"))
+                    {
+                        // RecyclerNewWithBarrierEnumClass, RecyclerNewWithBarrierWithInfoBits
+                        allocationType = AllocationTypes::WriteBarrier;
+                    }
+                }
                 else
                 {
-                    Log::errs() << "ERROR: (internal) Expected unary node:\n";
+                    Log::errs() << "ERROR: (internal) Expected unary node or MaterializeTemporaryExpr:\n";
                     secondArgNode->dump();
                 }
+            }
+
+            if (allocationType == AllocationTypes::WriteBarrier)
+            {
+                Log::outs() << "In \"" << _functionDecl->getQualifiedNameAsString() << "\"\n";
+                Log::outs() << "  Allocating \"" << allocatedTypeStr << "\" in write barriered memory\n";
             }
 
             _mainVisitor->RecordAllocation(allocatedType, allocationType);

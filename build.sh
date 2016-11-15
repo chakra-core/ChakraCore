@@ -390,7 +390,7 @@ if [[ $WB_CHECK || $WB_ANALYZE ]]; then
 
         WB_FILE_CMAKELISTS="$CHAKRACORE_DIR/$WB_FILE_DIR/CMakeLists.txt"
         if [[ -f $WB_FILE_CMAKELISTS ]]; then
-            SUBDIR=$(grep -i add_library $WB_FILE_CMAKELISTS | sed "s/.*(\(.*\) .*/\1/")
+            SUBDIR=$(grep -i add_library $WB_FILE_CMAKELISTS | sed "s/.*(\([^ ]*\) .*/\1/")
         else
             echo "$WB_FILE_CMAKELISTS not found." && exit 1
         fi
