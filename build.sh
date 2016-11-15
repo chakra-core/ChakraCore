@@ -69,7 +69,7 @@ MAKE=make
 MULTICORE_BUILD=""
 NO_JIT=
 ICU_PATH="-DICU_SETTINGS_RESET=1"
-STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
+STATIC_LIBRARY="-DCC_BUILD_SHARED_LIBRARY=1"
 SANITIZE=
 WITHOUT_FEATURES=""
 CREATE_DEB=0
@@ -222,7 +222,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     --static)
-        STATIC_LIBRARY="-DSTATIC_LIBRARY_SH=1"
+        STATIC_LIBRARY="-DCC_BUILD_STATIC_LIBRARY=1"
         ;;
 
     --sanitize=*)
@@ -317,7 +317,13 @@ if [[ ${#_CXX} > 0 ]]; then
     CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
 fi
 
-build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
+if [[ $STATIC_LIBRARY == "-DCC_BUILD_SHARED_LIBRARY=1" ]]; then
+	build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
+else
+	build_directory="$CHAKRACORE_DIR/BuildLinux/Static${BUILD_TYPE:0}"
+fi
+
+
 if [ ! -d "$build_directory" ]; then
     SAFE_RUN `mkdir -p $build_directory`
 fi
@@ -355,7 +361,7 @@ else
         mkdir -p $DEB_FOLDER/usr/local/bin
         mkdir -p $DEB_FOLDER/DEBIAN
         cp $DEB_FOLDER/../ch $DEB_FOLDER/usr/local/bin/
-        if [[ $STATIC_LIBRARY == "-DSHARED_LIBRARY_SH=1" ]]; then
+        if [[ $STATIC_LIBRARY == "-DCC_BUILD_SHARED_LIBRARY=1" ]]; then
             cp $DEB_FOLDER/../*.so $DEB_FOLDER/usr/local/bin/
         fi
         echo -e "Package: ChakraCore"\

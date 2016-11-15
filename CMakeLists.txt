@@ -1,22 +1,8 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
-# Keep CMake from caching static/shared library
-# option. Otherwise, CMake fails to update cached
-# references
-if(SHARED_LIBRARY_SH)
-  unset(SHARED_LIBRARY_SH CACHE)
-  unset(STATIC_LIBRARY_SH CACHE)
-  unset(CC_BUILD_STATIC_LIBRARY CACHE)
-  set(CC_BUILD_SHARED_LIBRARY 1)
-endif()
-
-if(STATIC_LIBRARY_SH)
-  unset(SHARED_LIBRARY_SH CACHE)
-  unset(STATIC_LIBRARY_SH CACHE)
-  unset(CC_BUILD_SHARED_LIBRARY CACHE)
-  set(CC_BUILD_STATIC_LIBRARY 1)
-endif()
+option(CC_BUILD_STATIC_LIBRARY "Enable Building ChakraCore as a Static Library")
+option(CC_BUILD_SHARED_LIBRARY "Enable Building ChakraCore as a Shared Library" ON)
 
 if(CC_TARGETS_AMD64_SH)
   unset(CC_TARGETS_X86 CACHE)
