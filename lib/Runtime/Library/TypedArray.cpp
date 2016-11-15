@@ -400,39 +400,38 @@ namespace Js
         if (args.Info.Count > 1)
         {
             Var firstArgument = args[1];
-            if (TypedArrayBase::Is(firstArgument))
-            {
-                // Constructor(TypedArray array)
-                typedArraySource = static_cast<TypedArrayBase*>(firstArgument);
-                if (typedArraySource->IsDetachedBuffer())
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
-                }
-
-                elementCount = typedArraySource->GetLength();
-                if (elementCount >= ArrayBuffer::MaxArrayBufferLength/elementSize)
-                {
-                    JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayLength);
-                }
-            }
-            else if (ArrayBufferBase::Is(firstArgument))
-            {
-                // Constructor(ArrayBuffer buffer,
-                //  optional uint32 byteOffset, optional uint32 length)
-                arrayBuffer = ArrayBufferBase::FromVar(firstArgument);
-                if (arrayBuffer->IsDetached())
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
-                }
-            }
-            else if (JavascriptNumber::Is(firstArgument) ||
-                    TaggedInt::Is(firstArgument))
+            if (!Js::JavascriptOperators::IsObject(firstArgument))
             {
                 elementCount = ArrayBuffer::ToIndex(firstArgument, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
             }
             else
             {
-                if (JavascriptOperators::IsObject(firstArgument))
+                if (TypedArrayBase::Is(firstArgument))
+                {
+                    // Constructor(TypedArray array)
+                    typedArraySource = static_cast<TypedArrayBase*>(firstArgument);
+                    if (typedArraySource->IsDetachedBuffer())
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
+                    }
+
+                    elementCount = typedArraySource->GetLength();
+                    if (elementCount >= ArrayBuffer::MaxArrayBufferLength / elementSize)
+                    {
+                        JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayLength);
+                    }
+                }
+                else if (ArrayBufferBase::Is(firstArgument))
+                {
+                    // Constructor(ArrayBuffer buffer,
+                    //  optional uint32 byteOffset, optional uint32 length)
+                    arrayBuffer = ArrayBufferBase::FromVar(firstArgument);
+                    if (arrayBuffer->IsDetached())
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
+                    }
+                }
+                else
                 {
                     // Use GetIteratorFunction instead of GetIterator to check if it is the built-in array iterator
                     RecyclableObject* iteratorFn = JavascriptOperators::GetIteratorFunction(firstArgument, scriptContext, true /* optional */);
@@ -448,47 +447,44 @@ namespace Js
                         }
                         return CreateNewInstanceFromIterator(RecyclableObject::FromVar(iterator), scriptContext, elementSize, pfnCreateTypedArray);
                     }
-                    else if (JavascriptConversion::ToObject(firstArgument, scriptContext, &jsArraySource))
+
+                    if (!JavascriptConversion::ToObject(firstArgument, scriptContext, &jsArraySource))
                     {
-                        ArrayBuffer *temp = nullptr;
-                        HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &temp);
-                        arrayBuffer = static_cast<ArrayBufferBase *> (temp);
-                        switch (hr)
-                        {
-                        case S_OK:
-                            // We found an IBuffer
-                            fromExternalObject = true;
-                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query succeeded with HR=0x%08X\n"), hr);
-                            // We have an ArrayBuffer now, so we can skip all the object probing.
-                            break;
-
-                        case S_FALSE:
-                            // We didn't find an IBuffer - fall through
-                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n"), hr);
-                            break;
-
-                        default:
-                            // Any FAILURE HRESULT or unexpected HRESULT
-                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query failed with HR=0x%08X\n"), hr);
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
-                            break;
-                        }
-                        if (!fromExternalObject)
-                        {
-                            Var lengthVar = JavascriptOperators::OP_GetProperty(jsArraySource, PropertyIds::length, scriptContext);
-                            if (JavascriptOperators::GetTypeId(lengthVar) == TypeIds_Undefined)
-                            {
-                                JavascriptError::ThrowTypeError(
-                                    scriptContext, JSERR_InvalidTypedArray_Constructor);
-                            }
-
-                            elementCount = ArrayBuffer::ToIndex(lengthVar, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
-                        }
+                        // REVIEW: unclear why this JavascriptConversion::ToObject() call is being made.
+                        // It ends up calling RecyclableObject::ToObject which at least Proxy objects can
+                        // hit with non-trivial behavior.
+                        Js::Throw::FatalInternalError();
                     }
-                }
-                else
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
+
+                    ArrayBuffer *temp = nullptr;
+                    HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &temp);
+                    arrayBuffer = static_cast<ArrayBufferBase *> (temp);
+                    switch (hr)
+                    {
+                    case S_OK:
+                        // We found an IBuffer
+                        fromExternalObject = true;
+                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query succeeded with HR=0x%08X\n"), hr);
+                        // We have an ArrayBuffer now, so we can skip all the object probing.
+                        break;
+
+                    case S_FALSE:
+                        // We didn't find an IBuffer - fall through
+                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n"), hr);
+                        break;
+
+                    default:
+                        // Any FAILURE HRESULT or unexpected HRESULT
+                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query failed with HR=0x%08X\n"), hr);
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
+                        break;
+                    }
+
+                    if (!fromExternalObject)
+                    {
+                        Var lengthVar = JavascriptOperators::OP_GetLength(jsArraySource, scriptContext);
+                        elementCount = ArrayBuffer::ToIndex(lengthVar, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
+                    }
                 }
             }
         }
@@ -530,7 +526,8 @@ namespace Js
                 mappedLength = (byteLength - offset)/elementSize;
             }
         }
-        else {
+        else
+        {
             // Null arrayBuffer - could be new constructor or copy constructor.
             byteLength = elementCount * elementSize;
             arrayBuffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
