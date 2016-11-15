@@ -7,32 +7,32 @@ WScript.LoadScriptFile("util.js");
 
 function oneTest(a)
 {
-a[1] = 0x8000;
-a[5] = 10;
-WScript.Echo(a[5]);
-if (Object.getOwnPropertyDescriptor(a, 100000) != undefined) {
-    WScript.Echo('FAIL');
-}
+    a[1] = 0x8000;
+    a[5] = 10;
+    WScript.Echo(a[5]);
+    if (Object.getOwnPropertyDescriptor(a, 100000) != undefined) {
+        WScript.Echo('FAIL');
+    }
 
-try {
-    var pro = Int16Array.prototype;
-    WScript.Echo(pro.toString());
+    try {
+        var pro = Int16Array.prototype;
+        WScript.Echo(pro.toString());
 
-    WScript.Echo("prototype is");
-    printObj(pro);
-} catch(e) {
-    WScript.Echo("constructor is");
-    printObj(Int16Array);
-}
+        WScript.Echo("prototype is");
+        printObj(pro);
+    } catch(e) {
+        WScript.Echo("constructor is");
+        printObj(Int16Array);
+    }
 
-WScript.Echo("object is");
-printObj(a);
+    WScript.Echo("object is");
+    printObj(a);
 
-a[20] =20;
-a.foo ='bar';
-WScript.Echo("object after expando is");
-printObj(a);
-WScript.Echo("");
+    a[20] =20;
+    a.foo ='bar';
+    WScript.Echo("object after expando is");
+    printObj(a);
+    WScript.Echo("");
 }
 
 WScript.Echo("test1");
@@ -86,25 +86,12 @@ test9.set(test5);
 oneTest(test9); 
 
 WScript.Echo("test10");
-try {
 var test10 = new Int16Array({});
 oneTest(test10);
-}
-catch(e)
-{
-WScript.Echo("succeed with catching" + e); 
-}
 
 WScript.Echo("test11");
-try
-{
 var test11 = new Int16Array('abcdefg');
 oneTest(test11);
-}
-catch(e)
-{
-WScript.Echo("succeed with catching" + e); 
-}
 
 WScript.Echo("test11.1");
 var test111 = new Int16Array(new String('abcdefg'));
@@ -124,35 +111,35 @@ oneTest(test13);
 WScript.Echo("test14");
 try 
 {
-var test14 = new Int16Array(arrayBuffer, 0, 0);
-oneTest(test14);
+    var test14 = new Int16Array(arrayBuffer, 0, 0);
+    oneTest(test14);
 }
 catch(e)
 {
-WScript.Echo("succeed with catching" + e); 
+    WScript.Echo("succeed with catching" + e); 
 }
 
 
 WScript.Echo("test15");
 try 
 {
-var test15 = new Int16Array(arrayBuffer, 0, 40);
-oneTest(test15);
+    var test15 = new Int16Array(arrayBuffer, 0, 40);
+    oneTest(test15);
 }
 catch(e)
 {
-WScript.Echo("succeed with catching" + e); 
+    WScript.Echo("succeed with catching" + e); 
 }
 
 WScript.Echo("test16");
 try 
 {
-var test16 = new Int16Array(arrayBuffer, 40, 4);
-oneTest(test16);
+    var test16 = new Int16Array(arrayBuffer, 40, 4);
+    oneTest(test16);
 }
 catch(e)
 {
-WScript.Echo("succeed with catching" + e); 
+    WScript.Echo("succeed with catching" + e); 
 }
 
 WScript.Echo("test17");

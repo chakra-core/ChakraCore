@@ -8,35 +8,35 @@ WScript.LoadScriptFile("util.js");
 function oneTest(a)
 {
 
-a[5] = 10;
-a[1] = 1.5;
-a[2]= 0x80;
-a[-1] = 2;
-a["-3"] = 4;
-WScript.Echo(a[5]);
-if (Object.getOwnPropertyDescriptor(a, 100000) != undefined) {
-    WScript.Echo('FAIL');
-}
+    a[5] = 10;
+    a[1] = 1.5;
+    a[2]= 0x80;
+    a[-1] = 2;
+    a["-3"] = 4;
+    WScript.Echo(a[5]);
+    if (Object.getOwnPropertyDescriptor(a, 100000) != undefined) {
+        WScript.Echo('FAIL');
+    }
 
-try {
-    var pro = Int8Array.prototype;
-    WScript.Echo(pro.toString());
+    try {
+        var pro = Int8Array.prototype;
+        WScript.Echo(pro.toString());
 
-    WScript.Echo("prototype is");
-    printObj(pro);
-} catch(e) {
-    WScript.Echo("constructor is");
-    printObj(Int8Array);
-}
+        WScript.Echo("prototype is");
+        printObj(pro);
+    } catch(e) {
+        WScript.Echo("constructor is");
+        printObj(Int8Array);
+    }
 
-WScript.Echo("object is");
-printObj(a);
+    WScript.Echo("object is");
+    printObj(a);
 
-a[20] =20;
-a.foo ='bar';
-WScript.Echo("object after expando is");
-printObj(a);
-WScript.Echo("");
+    a[20] =20;
+    a.foo ='bar';
+    WScript.Echo("object after expando is");
+    printObj(a);
+    WScript.Echo("");
 }
 
 WScript.Echo("test1");
@@ -89,24 +89,12 @@ test9.set(test5);
 oneTest(test9);
 
 WScript.Echo("test10");
-try {
 var test10 = new Int8Array({});
 oneTest(test10);
-}
-catch(e)
-{
-WScript.Echo("succeed with catching" + e);
-}
 
 WScript.Echo("test11");
-try {
 var test11 = new Int8Array('abcdefg');
 oneTest(test11);
-}
-catch(e)
-{
-WScript.Echo("succeed with catching" + e);
-}
 
 WScript.Echo("test11.1");
 var test111 = new Int8Array(new String('abcdefg'));
@@ -123,34 +111,34 @@ oneTest(test13);
 WScript.Echo("test14");
 try
 {
-var test14 = new Int8Array(arrayBuffer, 0, 0);
-oneTest(test14);
+    var test14 = new Int8Array(arrayBuffer, 0, 0);
+    oneTest(test14);
 }
 catch(e)
 {
-WScript.Echo("succeed with catching" + e);
+    WScript.Echo("succeed with catching" + e);
 }
 
 WScript.Echo("test15");
 try
 {
-var test15 = new Int8Array(arrayBuffer, 0, 40);
-oneTest(test15);
+    var test15 = new Int8Array(arrayBuffer, 0, 40);
+    oneTest(test15);
 }
- catch(e)
+catch(e)
 {
-WScript.Echo("succeed with catching" + e);
+    WScript.Echo("succeed with catching" + e);
 }
 
 WScript.Echo("test16");
 try
 {
-var test16 = new Int8Array(arrayBuffer, 40, 4);
-oneTest(test16);
+    var test16 = new Int8Array(arrayBuffer, 40, 4);
+    oneTest(test16);
 }
 catch(e)
 {
-WScript.Echo("succeed with catching" + e);
+    WScript.Echo("succeed with catching" + e);
 }
 
 printObj(test5);
@@ -189,28 +177,29 @@ printObj(test24);
 
 var arr;
 print("test23: constructor");
-    var validSizeValues = ["abc",
-                            "123",
-                              Infinity,
-                              -Infinity,
-                            ];
-        for (var i = 0; i < validSizeValues.length; i++) {
-            var size = validSizeValues[i];
-        print("size is" + size);
-            verifyNoThrow(function(){arr = new Int8Array(size);});
-            printObj(arr);
-    }
+var validSizeValues = ["abc",
+    "123",
+    undefined,
+    new Object(),
+    new Number(NaN),
+];
+for (var i = 0; i < validSizeValues.length; i++) {
+    var size = validSizeValues[i];
+    print("size is" + size);
+    verifyNoThrow(function(){arr = new Int8Array(size);});
+    printObj(arr);
+}
 
-    var invalidSizeValues = [ undefined,
-                              -1,
-                              new Object(),
-                              new Number(NaN),
-                            ];
+var invalidSizeValues = [
+    -1,
+    Infinity,
+    -Infinity,
+];
 
-        for (var i = 0; i < validSizeValues.length; i++) {
-            var size = invalidSizeValues[i];
-            verifyThrow(function(){arr = new Int8Array(size);});
-    }
+for (var i = 0; i < invalidSizeValues.length; i++) {
+    var size = invalidSizeValues[i];
+    verifyThrow(function(){arr = new Int8Array(size);});
+}
 
 WScript.Echo("test24");
 WScript.Echo(Int8Array.prototype[10]);
