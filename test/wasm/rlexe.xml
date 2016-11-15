@@ -63,7 +63,7 @@
 <test>
     <default>
        <files>global.js</files>
-       <baseline>global.baseline</baseline>
+       <baseline>baselines\global.baseline</baseline>
        <compile-flags>-wasm -on:WasmNativeTypeCallTest</compile-flags>
     </default>
 </test>
