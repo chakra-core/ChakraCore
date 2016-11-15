@@ -196,18 +196,25 @@ template <typename TBlockType>
 void
 RecyclerSweep::QueueEmptyHeapBlock(HeapBucketT<TBlockType> const *heapBucket, TBlockType * heapBlock)
 {
-    auto& bucketData = this->GetBucketData(heapBucket);
-    Assert(heapBlock->heapBucket == heapBucket);
-    heapBlock->BackgroundReleasePagesSweep(recycler);
-    TBlockType * list = bucketData.pendingEmptyBlockList;
-    if (list == nullptr)
+#if ENABLE_BACKGROUND_PAGE_FREEING
+    if (CONFIG_FLAG(EnableBGFreeZero))
     {
-        Assert(bucketData.pendingEmptyBlockListTail == nullptr);
-        bucketData.pendingEmptyBlockListTail = heapBlock;
-        this->hasPendingEmptyBlocks = true;
+        auto& bucketData = this->GetBucketData(heapBucket);
+        Assert(heapBlock->heapBucket == heapBucket);
+
+        heapBlock->BackgroundReleasePagesSweep(recycler);
+
+        TBlockType * list = bucketData.pendingEmptyBlockList;
+        if (list == nullptr)
+        {
+            Assert(bucketData.pendingEmptyBlockListTail == nullptr);
+            bucketData.pendingEmptyBlockListTail = heapBlock;
+            this->hasPendingEmptyBlocks = true;
+        }
+        heapBlock->SetNextBlock(list);
+        bucketData.pendingEmptyBlockList = heapBlock;
     }
-    heapBlock->SetNextBlock(list);
-    bucketData.pendingEmptyBlockList = heapBlock;
+#endif
 }
 
 template <typename TBlockType>

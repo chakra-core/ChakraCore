@@ -116,7 +116,7 @@ struct InfoBitsWrapper{};
 
 // Allocation macro
 
-#if !defined(RECYCLER_WRITE_BARRIER_ALLOC) || !GLOBAL_FORCE_USE_WRITE_BARRIER
+#if !defined(RECYCLER_WRITE_BARRIER_ALLOC) || !GLOBAL_ENABLE_WRITE_BARRIER
 #define RecyclerNew(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocInlined, T, __VA_ARGS__)
 #define RecyclerNewPlus(recycler,size,T,...) AllocatorNewPlus(Recycler, recycler, size, T, __VA_ARGS__)
 #define RecyclerNewPlusZ(recycler,size,T,...) AllocatorNewPlusZ(Recycler, recycler, size, T, __VA_ARGS__)
@@ -153,24 +153,41 @@ struct InfoBitsWrapper{};
 #endif
 
 
-#if defined(RECYCLER_WRITE_BARRIER_ALLOC) && GLOBAL_FORCE_USE_WRITE_BARRIER
-#define RecyclerNew                     RecyclerNewWithBarrier
-#define RecyclerNewPlus                 RecyclerNewWithBarrierPlus
-#define RecyclerNewPlusZ                RecyclerNewWithBarrierPlusZ
-#define RecyclerNewZ                    RecyclerNewWithBarrierZ
-#define RecyclerNewStruct               RecyclerNewWithBarrierStruct
-#define RecyclerNewStructZ              RecyclerNewWithBarrierStructZ
-#define RecyclerNewStructPlus           RecyclerNewWithBarrierStructPlus
-#define RecyclerNewArray                RecyclerNewWithBarrierArray
-#define RecyclerNewArrayZ               RecyclerNewWithBarrierArrayZ
-#define RecyclerNewFinalized            RecyclerNewWithBarrierFinalized
-#define RecyclerNewFinalizedPlus        RecyclerNewWithBarrierFinalizedPlus
-#define RecyclerNewTracked              RecyclerNewWithBarrierTracked
-#define RecyclerNewEnumClass            RecyclerNewWithBarrierEnumClass
-#define RecyclerNewWithInfoBits         RecyclerNewWithBarrierWithInfoBits
-#define RecyclerNewFinalizedClientTracked RecyclerNewWithBarrierFinalizedClientTracked
+#if defined(RECYCLER_WRITE_BARRIER_ALLOC) && GLOBAL_ENABLE_WRITE_BARRIER
+#define RecyclerNew                         RecyclerNewWithBarrier
+#define RecyclerNewPlus                     RecyclerNewWithBarrierPlus
+#define RecyclerNewPlusZ                    RecyclerNewWithBarrierPlusZ
+#define RecyclerNewZ                        RecyclerNewWithBarrierZ
+#define RecyclerNewStruct                   RecyclerNewWithBarrierStruct
+#define RecyclerNewStructZ                  RecyclerNewWithBarrierStructZ
+#define RecyclerNewStructPlus               RecyclerNewWithBarrierStructPlus
+#define RecyclerNewArray                    RecyclerNewWithBarrierArray
+#define RecyclerNewArrayZ                   RecyclerNewWithBarrierArrayZ
+#define RecyclerNewFinalized                RecyclerNewWithBarrierFinalized
+#define RecyclerNewFinalizedPlus            RecyclerNewWithBarrierFinalizedPlus
+#define RecyclerNewTracked                  RecyclerNewWithBarrierTracked
+#define RecyclerNewEnumClass                RecyclerNewWithBarrierEnumClass
+#define RecyclerNewWithInfoBits             RecyclerNewWithBarrierWithInfoBits
+#define RecyclerNewFinalizedClientTracked   RecyclerNewWithBarrierFinalizedClientTracked
 #endif
 
+#ifndef RECYCLER_WRITE_BARRIER
+#define RecyclerNewWithBarrier                          RecyclerNew                     
+#define RecyclerNewWithBarrierPlus                      RecyclerNewPlus                 
+#define RecyclerNewWithBarrierPlusZ                     RecyclerNewPlusZ                
+#define RecyclerNewWithBarrierZ                         RecyclerNewZ                    
+#define RecyclerNewWithBarrierStruct                    RecyclerNewStruct               
+#define RecyclerNewWithBarrierStructZ                   RecyclerNewStructZ              
+#define RecyclerNewWithBarrierStructPlus                RecyclerNewStructPlus           
+#define RecyclerNewWithBarrierArray                     RecyclerNewArray                
+#define RecyclerNewWithBarrierArrayZ                    RecyclerNewArrayZ               
+#define RecyclerNewWithBarrierFinalized                 RecyclerNewFinalized            
+#define RecyclerNewWithBarrierFinalizedPlus             RecyclerNewFinalizedPlus        
+#define RecyclerNewWithBarrierTracked                   RecyclerNewTracked              
+#define RecyclerNewWithBarrierEnumClass                 RecyclerNewEnumClass            
+#define RecyclerNewWithBarrierWithInfoBits              RecyclerNewWithInfoBits         
+#define RecyclerNewWithBarrierFinalizedClientTracked    RecyclerNewFinalizedClientTracked
+#endif
 
 // Leaf allocators
 #define RecyclerNewLeaf(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocLeafInlined, T, __VA_ARGS__)
@@ -1009,7 +1026,7 @@ private:
 
 #ifdef IDLE_DECOMMIT_ENABLED
     HANDLE concurrentIdleDecommitEvent;
-    DWORD needIdleDecommitSignal;
+    LONG needIdleDecommitSignal;
 #endif
 
 #if ENABLE_PARTIAL_GC
@@ -1196,7 +1213,20 @@ public:
 
     IdleDecommitPageAllocator * GetRecyclerPageAllocator()
     {
-        return &this->recyclerPageAllocator;
+        // TODO: SWB this is for Finalizable leaf allocation, which we didn't implement leaf bucket for it
+        // remove this after the finalizable leaf bucket is implemented
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        return &this->recyclerWithBarrierPageAllocator;
+#else
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            return &this->recyclerWithBarrierPageAllocator;
+        }
+        else
+        {
+            return &this->recyclerPageAllocator;
+        }
+#endif
     }
 
     IdleDecommitPageAllocator * GetRecyclerLargeBlockPageAllocator()
@@ -1348,30 +1378,35 @@ public:
 #define DEFINE_RECYCLER_NOTHROW_ALLOC(AllocFunc, attributes) DEFINE_RECYCLER_NOTHROW_ALLOC_BASE(AllocFunc, AllocWithAttributes, attributes)
 #define DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocFunc, attributes) DEFINE_RECYCLER_NOTHROW_ALLOC_BASE(AllocFunc, AllocZeroWithAttributes, attributes)
 
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    DEFINE_RECYCLER_ALLOC(Alloc, WithBarrierBit);
+    DEFINE_RECYCLER_ALLOC_ZERO(AllocZero, WithBarrierBit);
+    DEFINE_RECYCLER_ALLOC(AllocFinalized, FinalizableWithBarrierObjectBits);
+    DEFINE_RECYCLER_ALLOC(AllocTracked, ClientTrackableObjectWithBarrierBits);
+    DEFINE_RECYCLER_ALLOC(AllocFinalizedClientTracked, ClientTrackableObjectWithBarrierBits);
+#else
     DEFINE_RECYCLER_ALLOC(Alloc, NoBit);
+    DEFINE_RECYCLER_ALLOC_ZERO(AllocZero, NoBit);
+    DEFINE_RECYCLER_ALLOC(AllocFinalized, FinalizableObjectBits);
+    DEFINE_RECYCLER_ALLOC(AllocTracked, ClientTrackableObjectBits);
+    DEFINE_RECYCLER_ALLOC(AllocFinalizedClientTracked, ClientFinalizableObjectBits);
+#endif
+
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC
     DEFINE_RECYCLER_ALLOC(AllocWithBarrier, WithBarrierBit);
+    DEFINE_RECYCLER_ALLOC_ZERO(AllocZeroWithBarrier, WithBarrierBit);
     DEFINE_RECYCLER_ALLOC(AllocFinalizedWithBarrier, FinalizableWithBarrierObjectBits);
     DEFINE_RECYCLER_ALLOC(AllocTrackedWithBarrier, ClientTrackableObjectWithBarrierBits);
     DEFINE_RECYCLER_ALLOC(AllocFinalizedClientTrackedWithBarrier, ClientFinalizableObjectWithBarrierBits);
 #endif
     
-    DEFINE_RECYCLER_ALLOC(AllocFinalized, FinalizableObjectBits);
-    DEFINE_RECYCLER_ALLOC(AllocFinalizedClientTracked, ClientFinalizableObjectBits);
-    // All trackable object are client trackable
-    DEFINE_RECYCLER_ALLOC(AllocTracked, ClientTrackableObjectBits);
     DEFINE_RECYCLER_ALLOC(AllocLeaf, LeafBit);
     DEFINE_RECYCLER_ALLOC(AllocFinalizedLeaf, FinalizableLeafBits);
-    DEFINE_RECYCLER_ALLOC(AllocTrackedLeaf, ClientTrackableLeafBits);
-    DEFINE_RECYCLER_ALLOC_ZERO(AllocZero, NoBit);
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC
-    DEFINE_RECYCLER_ALLOC_ZERO(AllocZeroWithBarrier, WithBarrierBit);
-#endif
+    DEFINE_RECYCLER_ALLOC(AllocTrackedLeaf, ClientTrackableLeafBits);    
     DEFINE_RECYCLER_ALLOC_ZERO(AllocLeafZero, LeafBit);
-
     DEFINE_RECYCLER_ALLOC_ZERO(AllocZeroTrackedLeaf, ClientTrackableLeafBits);
-
     DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocImplicitRootLeaf, ImplicitRootLeafBits);
+
     DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocImplicitRoot, ImplicitRootBit);
 
     template <ObjectInfoBits enumClass>
@@ -1619,7 +1654,9 @@ private:
     size_t TryMarkArenaMemoryBlockList(ArenaMemoryBlock * memoryBlocks);
     size_t TryMarkBigBlockList(BigBlock * memoryBlocks);
 #if ENABLE_CONCURRENT_GC
+#if FALSE // REVIEW: remove this code since not using
     size_t TryMarkBigBlockListWithWriteWatch(BigBlock * memoryBlocks);
+#endif
 #endif
 
     // Mark
@@ -2286,7 +2323,10 @@ Recycler::SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, DECLSPEC_
 // Dummy recycler allocator policy classes to choose the allocation function
 class _RecyclerLeafPolicy;
 class _RecyclerNonLeafPolicy;
+
+#ifdef RECYCLER_WRITE_BARRIER
 class _RecyclerWriteBarrierPolicy;
+#endif
 
 template <typename Policy>
 class _RecyclerAllocatorFunc
@@ -2338,6 +2378,7 @@ public:
     }
 };
 
+#ifdef RECYCLER_WRITE_BARRIER
 template <>
 class _RecyclerAllocatorFunc<_RecyclerWriteBarrierPolicy>
 {
@@ -2347,12 +2388,12 @@ public:
 
     static AllocFuncType GetAllocFunc()
     {
-        return &Recycler::Alloc;
+        return &Recycler::AllocWithBarrier;
     }
 
     static AllocFuncType GetAllocZeroFunc()
     {
-        return &Recycler::AllocZero;
+        return &Recycler::AllocZeroWithBarrier;
     }
 
     static FreeFuncType GetFreeFunc()
@@ -2360,6 +2401,7 @@ public:
         return &Recycler::ExplicitFreeNonLeaf;
     }
 };
+#endif
 
 // This is used by the compiler; when T is NOT a pointer i.e. a value type - it causes leaf allocation
 template <typename T>
@@ -2367,7 +2409,7 @@ class TypeAllocatorFunc<Recycler, T> : public _RecyclerAllocatorFunc<_RecyclerLe
 {
 };
 
-#if GLOBAL_FORCE_USE_WRITE_BARRIER
+#if GLOBAL_ENABLE_WRITE_BARRIER
 template <typename T>
 class TypeAllocatorFunc<Recycler, T *> : public _RecyclerAllocatorFunc<_RecyclerWriteBarrierPolicy>
 {
@@ -2412,14 +2454,21 @@ class RecyclerWriteBarrierAllocator;
 
 // Partial template specialization to allocate as non leaf
 template <typename T>
-class TypeAllocatorFunc<RecyclerNonLeafAllocator, T> : public _RecyclerAllocatorFunc<_RecyclerNonLeafPolicy>
+class TypeAllocatorFunc<RecyclerNonLeafAllocator, T> : 
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    public _RecyclerAllocatorFunc<_RecyclerWriteBarrierPolicy>
+#else
+    public _RecyclerAllocatorFunc<_RecyclerNonLeafPolicy>
+#endif
 {
 };
 
+#ifdef RECYCLER_WRITE_BARRIER
 template <typename T>
 class TypeAllocatorFunc<RecyclerWriteBarrierAllocator, T> : public _RecyclerAllocatorFunc<_RecyclerWriteBarrierPolicy>
 {
 };
+#endif
 
 template <typename T>
 class TypeAllocatorFunc<RecyclerLeafAllocator, T> : public _RecyclerAllocatorFunc<_RecyclerLeafPolicy>

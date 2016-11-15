@@ -26,13 +26,13 @@ typedef void* FunctionTableHandle;
     Output::Print(__VA_ARGS__); \
 }
 
-#define PAGE_ALLOC_TRACE(format, ...) PAGE_ALLOC_TRACE_EX(false, false, format, __VA_ARGS__)
-#define PAGE_ALLOC_VERBOSE_TRACE(format, ...) PAGE_ALLOC_TRACE_EX(true, false, format, __VA_ARGS__)
+#define PAGE_ALLOC_TRACE(format, ...) PAGE_ALLOC_TRACE_EX(false, false, format, ##__VA_ARGS__)
+#define PAGE_ALLOC_VERBOSE_TRACE(format, ...) PAGE_ALLOC_TRACE_EX(true, false, format, ##__VA_ARGS__)
 #define PAGE_ALLOC_VERBOSE_TRACE_0(format) PAGE_ALLOC_TRACE_EX(true, false, format, "")
 
-#define PAGE_ALLOC_TRACE_AND_STATS(format, ...) PAGE_ALLOC_TRACE_EX(false, true, format, __VA_ARGS__)
+#define PAGE_ALLOC_TRACE_AND_STATS(format, ...) PAGE_ALLOC_TRACE_EX(false, true, format, ##__VA_ARGS__)
 #define PAGE_ALLOC_TRACE_AND_STATS_0(format) PAGE_ALLOC_TRACE_EX(false, true, format, "")
-#define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS(format, ...) PAGE_ALLOC_TRACE_EX(true, true, format, __VA_ARGS__)
+#define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS(format, ...) PAGE_ALLOC_TRACE_EX(true, true, format, ##__VA_ARGS__)
 #define PAGE_ALLOC_VERBOSE_TRACE_AND_STATS_0(format) PAGE_ALLOC_TRACE_EX(true, true, format, "")
 
 #define PAGE_ALLOC_TRACE_EX(verbose, stats, format, ...)                \
@@ -45,7 +45,7 @@ typedef void* FunctionTableHandle;
             { \
                 Output::Print(_u("[%s] "), this->debugName); \
             } \
-            Output::Print(format, __VA_ARGS__);         \
+            Output::Print(format, ##__VA_ARGS__);         \
             Output::Print(_u("\n")); \
             if (stats && this->pageAllocatorFlagTable.Stats.IsEnabled(Js::PageAllocatorPhase)) \
             { \
@@ -479,24 +479,131 @@ public:
     static size_t GetAndResetMaxUsedBytes();
 
 #if ENABLE_BACKGROUND_PAGE_FREEING
+    struct FreePageEntry
+#if SUPPORT_WIN32_SLIST
+        : public SLIST_ENTRY
+#endif
+    {
+#if !SUPPORT_WIN32_SLIST
+        FreePageEntry* Next;
+#endif
+        PageSegmentBase<TVirtualAlloc> * segment;
+        uint pageCount;
+    };
     struct BackgroundPageQueue
     {
-        BackgroundPageQueue();
-
-        SLIST_HEADER freePageList;
-
+#if SUPPORT_WIN32_SLIST
+        SLIST_HEADER bgFreePageList;
+#else
+        FreePageEntry* bgFreePageList;
+#endif
         CriticalSection backgroundPageQueueCriticalSection;
+
 #if DBG
         bool isZeroPageQueue;
 #endif
+
+        BackgroundPageQueue()
+#if !SUPPORT_WIN32_SLIST
+            :bgFreePageList(nullptr)
+#endif
+        {
+#if SUPPORT_WIN32_SLIST
+            ::InitializeSListHead(&bgFreePageList);
+#endif
+            DebugOnly(this->isZeroPageQueue = false);
+        }
+
+        FreePageEntry* PopFreePageEntry()
+        {
+#if SUPPORT_WIN32_SLIST
+            return (FreePageEntry *)::InterlockedPopEntrySList(&bgFreePageList);
+#else
+            AutoCriticalSection autoCS(&backgroundPageQueueCriticalSection);
+            FreePageEntry* head = bgFreePageList;
+            if (head)
+            {
+                bgFreePageList = bgFreePageList->Next;
+            }
+            return head;
+#endif
+        }
+
+        void PushFreePageEntry(FreePageEntry* entry)
+        {
+#if SUPPORT_WIN32_SLIST
+            ::InterlockedPushEntrySList(&bgFreePageList, entry);
+#else
+            AutoCriticalSection autoCS(&backgroundPageQueueCriticalSection);
+            entry->Next = bgFreePageList;
+            bgFreePageList = entry;
+#endif
+        }
     };
 
 #if ENABLE_BACKGROUND_PAGE_ZEROING
     struct ZeroPageQueue : BackgroundPageQueue
     {
-        ZeroPageQueue();
-
+#if SUPPORT_WIN32_SLIST
         SLIST_HEADER pendingZeroPageList;
+#else
+        FreePageEntry* pendingZeroPageList;
+#endif
+
+        ZeroPageQueue()
+#if !SUPPORT_WIN32_SLIST
+            :BackgroundPageQueue(), pendingZeroPageList(nullptr)
+#endif
+        {
+#if SUPPORT_WIN32_SLIST
+            ::InitializeSListHead(&pendingZeroPageList);
+#endif
+            DebugOnly(this->isZeroPageQueue = true);
+        }
+
+        FreePageEntry* PopZeroPageEntry()
+        {
+#if SUPPORT_WIN32_SLIST
+            return (FreePageEntry *)::InterlockedPopEntrySList(&pendingZeroPageList);
+#else
+            AutoCriticalSection autoCS(&this->backgroundPageQueueCriticalSection);
+            FreePageEntry* head = pendingZeroPageList;
+            if (head)
+            {
+                pendingZeroPageList = pendingZeroPageList->Next;
+            }
+            return head;
+#endif
+        }
+
+        void PushZeroPageEntry(FreePageEntry* entry)
+        {
+#if SUPPORT_WIN32_SLIST
+            ::InterlockedPushEntrySList(&pendingZeroPageList, entry);
+#else
+            AutoCriticalSection autoCS(&this->backgroundPageQueueCriticalSection);
+            entry->Next = pendingZeroPageList;
+            pendingZeroPageList = entry;
+#endif
+        }
+
+        USHORT QueryDepth()
+        {
+#if SUPPORT_WIN32_SLIST
+            return QueryDepthSList(&pendingZeroPageList);
+#else
+            AutoCriticalSection autoCS(&this->backgroundPageQueueCriticalSection);
+            FreePageEntry* head = pendingZeroPageList;
+            size_t count = 0;
+            while (head)
+            {
+                head = head->Next;
+                count++;
+            }
+            // If the specified singly linked list contains more than 65535 entries, QueryDepthSList returns the number of entries in the list modulo 65535
+            return (USHORT)(count % 65536); 
+#endif
+        }
     };
 #endif
 #endif
@@ -616,7 +723,7 @@ protected:
 
     template <bool notPageAligned>
     char * TryAllocFreePages(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
-    char * TryAllocFromZeroPagesList(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, SLIST_HEADER& zeroPagesList, bool isPendingZeroList);
+    char * TryAllocFromZeroPagesList(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, BackgroundPageQueue* bgPageQueue, bool isPendingZeroList);
     char * TryAllocFromZeroPages(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
     template <bool notPageAligned>
@@ -627,12 +734,6 @@ protected:
 
     void FillAllocPages(__in void * address, uint pageCount);
     void FillFreePages(__in void * address, uint pageCount);
-
-    struct FreePageEntry : public SLIST_ENTRY
-    {
-        PageSegmentBase<TVirtualAlloc> * segment;
-        uint pageCount;
-    };
 
     bool IsPageSegment(SegmentBase<TVirtualAlloc>* segment)
     {

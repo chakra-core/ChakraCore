@@ -173,8 +173,12 @@ SmallHeapBlockT<MediumAllocationBlockAttributes>::ProtectUnusablePages()
         DWORD oldProtect;
         BOOL ret = ::VirtualProtect(startPage, count * AutoSystemInfo::PageSize, PAGE_READONLY, &oldProtect);
         Assert(ret && oldProtect == PAGE_READWRITE);
-
-        ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
+#if ENABLE_WRITE_WATCH
+        if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
+        }
+#endif
     }
 }
 

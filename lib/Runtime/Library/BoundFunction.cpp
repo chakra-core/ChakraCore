@@ -189,6 +189,9 @@ namespace Js
                 // it is possible that the bound arguments are not marshalled yet.
                 for (uint i = 0; i < boundFunction->count; i++)
                 {
+                    //warning C6386: Buffer overrun while writing to 'newValues':  the writable size is 'boundFunction->count+argCount*8' bytes, but '40' bytes might be written.
+                    // there's throw with args.Info.Count == 0, so here won't hit buffer overrun, and __analyze_assume(argCount>0) does not work
+#pragma warning(suppress: 6386)
                     newValues[index++] = CrossSite::MarshalVar(scriptContext, boundFunction->boundArgs[i]);
                 }
             }

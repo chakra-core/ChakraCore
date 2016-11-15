@@ -44,7 +44,7 @@ public:
 
 template <ObjectInfoBits attributes, bool nothrow>
 inline char *
-Recycler::AllocWithAttributesInlined(size_t size)
+Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 {
     // All tracked objects are client tracked objects
     CompileAssert((attributes & TrackBit) == 0 || (attributes & ClientTrackedBit) != 0);
@@ -203,7 +203,7 @@ Recycler::AllocWithAttributesInlined(size_t size)
 
 template <ObjectInfoBits attributes, bool nothrow>
 inline char *
-Recycler::AllocZeroWithAttributesInlined(size_t size)
+Recycler::AllocZeroWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 {
     char* obj = AllocWithAttributesInlined<attributes, nothrow>(size);
 

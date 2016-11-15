@@ -144,6 +144,7 @@ CodeGenNumberThreadAllocator::AllocNewChunkBlock()
             Js::Throw::OutOfMemory();
         }
         // All integrated pages' object are all live initially, so don't need to rescan them
+        // todo: SWB: need to allocate number with write barrier pages
         ::ResetWriteWatch(currentChunkBlockEnd - BlockSize, BlockSize);
         pendingReferenceNumberBlock.MoveTo(&pendingFlushNumberBlock);
         hasNewChunkBlock = false;

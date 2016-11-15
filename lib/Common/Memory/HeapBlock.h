@@ -122,8 +122,10 @@ enum ObjectInfoBits : unsigned short
     ClientTrackableLeafBits     = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit | LeafBit,
     ClientTrackableObjectBits   = NewTrackBit | ClientTrackedBit | TrackBit | FinalizeBit,
 
+#ifdef RECYCLER_WRITE_BARRIER
     ClientTrackableObjectWithBarrierBits = ClientTrackableObjectBits | WithBarrierBit,
     ClientFinalizableObjectWithBarrierBits = ClientFinalizableObjectBits | WithBarrierBit,
+#endif
 
     WeakReferenceEntryBits      = LeafBit,
 

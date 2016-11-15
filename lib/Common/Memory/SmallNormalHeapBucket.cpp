@@ -208,7 +208,7 @@ template <typename TBlockType>
 void
 SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recyclerSweep)
 {
-    RECYCLER_SLOW_CHECK(VerifyHeapBlockCount(recyclerSweep.IsBackground()));
+    RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep.IsBackground()));
 
     CompileAssert(!BaseT::IsLeafBucket);
     TBlockType *& pendingSweepList = recyclerSweep.GetPendingSweepBlockList(this);
@@ -263,7 +263,7 @@ SmallNormalHeapBucketBase<TBlockType>::SweepPendingObjects(RecyclerSweep& recycl
             this->StartAllocationAfterSweep();
         }
 
-        RECYCLER_SLOW_CHECK(VerifyHeapBlockCount(recyclerSweep.IsBackground()));
+        RECYCLER_SLOW_CHECK(this->VerifyHeapBlockCount(recyclerSweep.IsBackground()));
     }
 
     Assert(!this->IsAllocationStopped());
@@ -494,7 +494,7 @@ SmallNormalHeapBucketBase<TBlockType>::GetNonEmptyHeapBlockCount(bool checkCount
 #if ENABLE_CONCURRENT_GC
     currentHeapBlockCount += HeapBlockList::Count(partialSweptHeapBlockList);
 #endif
-    RECYCLER_SLOW_CHECK(Assert(!checkCount || heapBlockCount == currentHeapBlockCount));
+    RECYCLER_SLOW_CHECK(Assert(!checkCount || this->heapBlockCount == currentHeapBlockCount));
     return currentHeapBlockCount;
 }
 #endif

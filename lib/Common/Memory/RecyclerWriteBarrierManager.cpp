@@ -344,7 +344,7 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t bytes)
 void
 RecyclerWriteBarrierManager::ToggleBarrier(void * address, size_t bytes, bool enable)
 {
-    if (Js::Configuration::Global.flags.StrictWriteBarrierCheck)
+    if (CONFIG_FLAG(StrictWriteBarrierCheck))
     {
         uintptr_t startIndex = GetCardTableIndex(address);
         char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + bytes), s_WriteBarrierPageSize);
@@ -389,7 +389,7 @@ RecyclerWriteBarrierManager::IsBarrierAddress(uintptr_t index)
 void
 RecyclerWriteBarrierManager::VerifyIsBarrierAddress(void * address)
 {
-    if (Js::Configuration::Global.flags.StrictWriteBarrierCheck)
+    if (CONFIG_FLAG(StrictWriteBarrierCheck))
     {
         if (!IsBarrierAddress(GetCardTableIndex(address)))
         {
@@ -401,7 +401,7 @@ RecyclerWriteBarrierManager::VerifyIsBarrierAddress(void * address)
 void
 RecyclerWriteBarrierManager::VerifyIsBarrierAddress(void * address, size_t bytes)
 {
-    if (Js::Configuration::Global.flags.StrictWriteBarrierCheck)
+    if (CONFIG_FLAG(StrictWriteBarrierCheck))
     {
         uintptr_t startIndex = GetCardTableIndex(address);
         char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + bytes), s_WriteBarrierPageSize);
@@ -420,7 +420,7 @@ RecyclerWriteBarrierManager::VerifyIsBarrierAddress(void * address, size_t bytes
 void
 RecyclerWriteBarrierManager::VerifyIsNotBarrierAddress(void * address, size_t bytes)
 {
-    if (Js::Configuration::Global.flags.StrictWriteBarrierCheck)
+    if (CONFIG_FLAG(StrictWriteBarrierCheck))
     {
         uintptr_t startIndex = GetCardTableIndex(address);
         char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + bytes), s_WriteBarrierPageSize);
@@ -485,7 +485,15 @@ DWORD
 #endif
 RecyclerWriteBarrierManager::GetWriteBarrier(void * address)
 {
-    return cardTable[GetCardTableIndex(address)];
+    // TODO: SWB remove after all write barrier annotation, this is in order to test the recycler change
+    if (CONFIG_FLAG(WriteBarrierTest))
+    {
+        return WRITE_BARRIER_PAGE_BIT | DIRTYBIT;
+    }
+    else
+    {
+        return cardTable[GetCardTableIndex(address)];
+    }
 }
 
 #endif
