@@ -43,20 +43,6 @@ Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
     return prop;
 }
 
-template <typename T>
-void static SetGlobalValue(Var moduleEnv, uint offset, T val)
-{
-    T* slot = (T*)moduleEnv + offset;
-    *slot = val;
-}
-
-template <typename T>
-T static GetGlobalValue(Var moduleEnv, uint offset)
-{
-    T* slot = (T*)moduleEnv + offset;
-    return *slot;
-}
-
 WebAssemblyInstance::WebAssemblyInstance(WebAssemblyModule * wasmModule, DynamicType * type) :
     DynamicObject(type),
     m_module(wasmModule)
@@ -132,22 +118,21 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
     WebAssemblyInstance * newInstance = RecyclerNewZ(scriptContext->GetRecycler(), WebAssemblyInstance, module, scriptContext->GetLibrary()->GetWebAssemblyInstanceType());
     try
     {
-        LoadImports(module, scriptContext, importObject, environment);
-        LoadGlobals(module, scriptContext, environment);
-        LoadFunctions(module, scriptContext, environment);
-        LoadDataSegs(module, scriptContext, environment);
-        LoadIndirectFunctionTable(module, scriptContext, environment);
-        Js::Var exportsNamespace = BuildObject(module, scriptContext, environment);
+        LoadImports(module, scriptContext, importObject, &environment);
+        LoadGlobals(module, scriptContext, &environment);
+        LoadFunctions(module, scriptContext, &environment);
+        LoadDataSegs(module, scriptContext, &environment);
+        LoadIndirectFunctionTable(module, scriptContext, &environment);
+        Js::Var exportsNamespace = BuildObject(module, scriptContext, &environment);
         JavascriptOperators::OP_SetProperty(newInstance, PropertyIds::exports, exportsNamespace, scriptContext);
 
         uint32 startFuncIdx = module->GetStartFunction();
         if (startFuncIdx != Js::Constants::UninitializedValue)
         {
-            Var start = GetFunctionObjFromFunctionIndex(module, scriptContext, startFuncIdx, environment);
-            Js::ScriptFunction* f = Js::AsmJsScriptFunction::FromVar(start);
+            AsmJsScriptFunction* start = environment.GetWasmFunction(startFuncIdx);
             Js::CallInfo info(Js::CallFlags_New, 1);
-            Js::Arguments startArg(info, &start);
-            Js::JavascriptFunction::CallFunction<true>(f, f->GetEntryPoint(), startArg);
+            Js::Arguments startArg(info, (Var*)&start);
+            Js::JavascriptFunction::CallFunction<true>(start, start->GetEntryPoint(), startArg);
         }
     }
     catch (Wasm::WasmCompilationException e)
@@ -160,30 +145,26 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
     return newInstance;
 }
 
-void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment env)
+void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env)
 {
     FrameDisplay * frameDisplay = RecyclerNewPlus(ctx->GetRecycler(), sizeof(void*), FrameDisplay, 1);
-    frameDisplay->SetItem(0, env.ptr);
+    frameDisplay->SetItem(0, env->GetStartPtr());
 
     for (uint i = 0; i < wasmModule->GetWasmFunctionCount(); ++i)
     {
-        if (i < wasmModule->GetImportedFunctionCount() && env.functions[i] != nullptr)
+        if (i < wasmModule->GetImportedFunctionCount() && env->GetWasmFunction(i) != nullptr)
         {
-            if (!AsmJsScriptFunction::IsWasmScriptFunction(env.functions[i]))
-            {
-                JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidImport);
-            }
             continue;
         }
         AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(wasmModule->GetWasmFunctionInfo(i)->GetBody());
         FunctionBody* body = funcObj->GetFunctionBody();
-        funcObj->SetModuleMemory(env.memory);
+        funcObj->SetModuleMemory(env->GetStartPtr());
         funcObj->SetSignature(body->GetAsmJsFunctionInfo()->GetWasmSignature());
         FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
         entypointInfo->SetIsAsmJSFunction(true);
-        entypointInfo->SetModuleAddress((uintptr_t)env.ptr);
+        entypointInfo->SetModuleAddress((uintptr_t)env->GetStartPtr());
         funcObj->SetEnvironment(frameDisplay);
-        env.functions[i] = funcObj;
+        env->SetWasmFunction(i, funcObj);
 
         if (!PHASE_OFF(WasmDeferredPhase, body))
         {
@@ -215,22 +196,21 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
     }
 }
 
-void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment env)
+void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env)
 {
-    WebAssemblyMemory** memoryObject = (WebAssemblyMemory**)env.memory;
+    WebAssemblyMemory* mem = env->GetMemory(0);
     if (wasmModule->HasMemoryImport())
     {
-        if (*memoryObject == nullptr)
+        if (mem == nullptr)
         {
             JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
         }
     }
     else
     {
-        *memoryObject = wasmModule->CreateMemory();
+        mem = wasmModule->CreateMemory();
+        env->SetMemory(0, mem);
     }
-
-    WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(*memoryObject);
 
     ArrayBuffer * buffer = mem->GetBuffer();
     if (buffer->IsDetached())
@@ -241,7 +221,7 @@ void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, ScriptCon
     {
         Wasm::WasmDataSegment* segment = wasmModule->GetDataSeg(iSeg);
         Assert(segment != nullptr);
-        const uint32 offset = wasmModule->GetOffsetFromInit(segment->GetOffsetExpr(), env.ptr);
+        const uint32 offset = wasmModule->GetOffsetFromInit(segment->GetOffsetExpr(), env);
         const uint32 size = segment->GetSourceSize();
 
         if (size > 0)
@@ -256,7 +236,7 @@ void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, ScriptCon
     }
 }
 
-Var WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptContext* scriptContext, WebAssemblyEnvironment env)
+Var WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptContext* scriptContext, WebAssemblyEnvironment* env)
 {
     Js::Var exportsNamespace = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
     for (uint32 iExport = 0; iExport < wasmModule->GetExportCount(); ++iExport)
@@ -271,13 +251,13 @@ Var WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptConte
             switch (wasmExport->kind)
             {
             case Wasm::ExternalKinds::Table:
-                obj = *env.table;
+                obj = env->GetTable(wasmExport->index);
                 break;
             case Wasm::ExternalKinds::Memory:
-                obj = *env.memory;
+                obj = env->GetMemory(wasmExport->index);
                 break;
             case Wasm::ExternalKinds::Function:
-                obj = GetFunctionObjFromFunctionIndex(wasmModule, scriptContext, wasmExport->index, env);
+                obj = env->GetWasmFunction(wasmExport->index);
                 break;
             case Wasm::ExternalKinds::Global:
                 Wasm::WasmGlobal* global = wasmModule->GetGlobal(wasmExport->index);
@@ -285,17 +265,17 @@ Var WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptConte
                 {
                     JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_MutableGlobal);
                 }
-                uint32 offset = wasmModule->GetOffsetForGlobal(global);
+                Wasm::WasmConstLitNode cnst = env->GetGlobalValue(global);
                 switch (global->GetType())
                 {
                 case Wasm::WasmTypes::I32:
-                    obj = JavascriptNumber::ToVar(GetGlobalValue<int>(env.ptr, offset), scriptContext);
+                    obj = JavascriptNumber::ToVar(cnst.i32, scriptContext);
                     break;
                 case Wasm::WasmTypes::F32:
-                    obj = JavascriptNumber::New(GetGlobalValue<float>(env.ptr, offset), scriptContext);
+                    obj = JavascriptNumber::New(cnst.f32, scriptContext);
                     break;
                 case Wasm::WasmTypes::F64:
-                    obj = JavascriptNumber::New(GetGlobalValue<double>(env.ptr, offset), scriptContext);
+                    obj = JavascriptNumber::New(cnst.f64, scriptContext);
                     break;
                 case Wasm::WasmTypes::I64:
                     JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_InvalidTypeConversion);
@@ -314,7 +294,7 @@ void WebAssemblyInstance::LoadImports(
     WebAssemblyModule * wasmModule,
     ScriptContext* ctx,
     Var ffi,
-    WebAssemblyEnvironment env)
+    WebAssemblyEnvironment* env)
 {
     const uint32 importCount = wasmModule->GetImportCount();
     if (importCount > 0 && (!ffi || !RecyclableObject::Is(ffi)))
@@ -322,12 +302,13 @@ void WebAssemblyInstance::LoadImports(
         JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
     }
 
-    uint32 iImportFunction = 0;
-    uint32 iGlobal = 0;
+    uint32 counters[Wasm::ExternalKinds::Limit];
+    memset(counters, 0, sizeof(counters));
     for (uint32 i = 0; i < importCount; ++i)
     {
         Wasm::WasmImport* import = wasmModule->GetImport(i);
         Var prop = GetImportVariable(import, ctx, ffi);
+        uint32& counter = counters[import->kind];
         switch (import->kind)
         {
         case Wasm::ExternalKinds::Function:
@@ -336,17 +317,16 @@ void WebAssemblyInstance::LoadImports(
             {
                 JavascriptError::ThrowTypeError(ctx, JSERR_Property_NeedFunction);
             }
-            Assert(iImportFunction < wasmModule->GetImportedFunctionCount());
-            Assert(wasmModule->GetFunctionIndexType(iImportFunction) == Wasm::FunctionIndexTypes::ImportThunk);
+            Assert(counter < wasmModule->GetImportedFunctionCount());
+            Assert(wasmModule->GetFunctionIndexType(counter) == Wasm::FunctionIndexTypes::ImportThunk);
 
-            env.imports[iImportFunction] = prop;
+            env->SetImportedFunction(counter, prop);
             if (AsmJsScriptFunction::IsWasmScriptFunction(prop))
             {
-                Assert(env.functions[iImportFunction] == nullptr);
+                Assert(env->GetWasmFunction(counter) == nullptr);
                 // Imported Wasm functions can be called directly
-                env.functions[iImportFunction] = prop;
+                env->SetWasmFunction(counter, AsmJsScriptFunction::FromVar(prop));
             }
-            iImportFunction++;
             break;
         }
         case Wasm::ExternalKinds::Memory:
@@ -363,7 +343,7 @@ void WebAssemblyInstance::LoadImports(
                 {
                     JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
                 }
-                *env.memory = mem;
+                env->SetMemory(counter, mem);
             }
             break;
         }
@@ -382,58 +362,42 @@ void WebAssemblyInstance::LoadImports(
                 {
                     JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
                 }
-                *env.table = table;
+                env->SetTable(counter, table);
             }
             break;
         }
         case Wasm::ExternalKinds::Global:
         {
-            Wasm::WasmGlobal* global = wasmModule->GetGlobal(iGlobal++);
+            Wasm::WasmGlobal* global = wasmModule->GetGlobal(counter);
             if (global->IsMutable() || (!JavascriptNumber::Is(prop) && !TaggedInt::Is(prop)))
             {
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
             }
 
             Assert(global->GetReferenceType() == Wasm::ReferenceTypes::ImportedReference);
-            uint32 offset = wasmModule->GetOffsetForGlobal(global);
+            Wasm::WasmConstLitNode cnst = {0};
             switch (global->GetType())
             {
-            case Wasm::WasmTypes::I32:
-            {
-                int val = JavascriptConversion::ToInt32(prop, ctx);
-                SetGlobalValue(env.ptr, offset, val);
-                break;
-            }
-            case Wasm::WasmTypes::F32:
-            {
-                float val = (float)JavascriptConversion::ToNumber(prop, ctx);
-                SetGlobalValue(env.ptr, offset, val);
-                break;
-            }
-            case Wasm::WasmTypes::F64:
-            {
-                double val = JavascriptConversion::ToNumber(prop, ctx);
-                SetGlobalValue(env.ptr, offset, val);
-                break;
-            }
-            case Wasm::WasmTypes::I64:
-                Js::JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
+            case Wasm::WasmTypes::I32: cnst.i32 = JavascriptConversion::ToInt32(prop, ctx); break;
+            case Wasm::WasmTypes::F32: cnst.f32 = (float)JavascriptConversion::ToNumber(prop, ctx); break;
+            case Wasm::WasmTypes::F64: cnst.f64 = JavascriptConversion::ToNumber(prop, ctx); break;
+            case Wasm::WasmTypes::I64: Js::JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
             default:
                 Assert(UNREACHED);
-                break;
-
+                JavascriptError::ThrowTypeError(ctx, VBSERR_InternalError);
             }
+            env->SetGlobalValue(global, cnst);
             break;
         }
         default:
             Assert(UNREACHED);
-            break;
+            JavascriptError::ThrowTypeError(ctx, VBSERR_InternalError);
         }
-        
+        ++counter;
     }
 }
 
-void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment env)
+void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env)
 {
     uint count = wasmModule->GetGlobalCount();
     for (uint i = 0; i < count; i++)
@@ -460,72 +424,32 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
             {
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
             }
-            uint32 sourceOffset = wasmModule->GetOffsetForGlobal(sourceGlobal);
-            switch (sourceGlobal->GetType())
-            {
-            case Wasm::WasmTypes::I32:
-                cnst.i32 = GetGlobalValue<int>(env.ptr, sourceOffset);
-                break;
-            case Wasm::WasmTypes::I64:
-                // We shouldn't reference int64 global since we can't import them
-                Assert(UNREACHED);
-                cnst.i64 = GetGlobalValue<int64>(env.ptr, sourceOffset);
-                break;
-            case Wasm::WasmTypes::F32:
-                cnst.f32 = GetGlobalValue<float>(env.ptr, sourceOffset);
-                break;
-            case Wasm::WasmTypes::F64:
-                cnst.f64 = GetGlobalValue<double>(env.ptr, sourceOffset);
-                break;
-            default:
-                Assert(UNREACHED);
-                break;
-            }
+            cnst = env->GetGlobalValue(sourceGlobal);
         }
         else
         {
             cnst = global->GetConstInit();
         }
 
-        uint offset = wasmModule->GetOffsetForGlobal(global);
-        switch (global->GetType())
-        {
-        case Wasm::WasmTypes::I32:
-            SetGlobalValue(env.ptr, offset, cnst.i32);
-            break;
-        case Wasm::WasmTypes::I64:
-            SetGlobalValue(env.ptr, offset, cnst.i64);
-            break;
-        case Wasm::WasmTypes::F32:
-            SetGlobalValue(env.ptr, offset, cnst.f32);
-            break;
-        case Wasm::WasmTypes::F64:
-            SetGlobalValue(env.ptr, offset, cnst.f64);
-            break;
-        default:
-            Assert(UNREACHED);
-            break;
-        }
-
+        env->SetGlobalValue(global, cnst);
     }
 }
 
-void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment env)
+void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env)
 {
-    WebAssemblyTable** tableObject = (WebAssemblyTable**)env.table;
+    WebAssemblyTable* table = env->GetTable(0);
     if (wasmModule->HasTableImport())
     {
-        if (*tableObject == nullptr)
+        if (table == nullptr)
         {
             JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
         }
     }
     else
     {
-        *tableObject = wasmModule->CreateTable();
+        table = wasmModule->CreateTable();
+        env->SetTable(0, table);
     }
-
-    WebAssemblyTable * table = *tableObject;
 
     for (uint elementsIndex = 0; elementsIndex < wasmModule->GetElementSegCount(); ++elementsIndex)
     {
@@ -533,7 +457,7 @@ void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModu
 
         if (eSeg->GetNumElements() > 0)
         {
-            uint offset = wasmModule->GetOffsetFromInit(eSeg->GetOffsetExpr(), env.ptr);
+            uint offset = wasmModule->GetOffsetFromInit(eSeg->GetOffsetExpr(), env);
             if (UInt32Math::Add(offset, eSeg->GetNumElements()) > table->GetCurrentLength())
             {
                 JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_ElementSegOutOfRange);
@@ -541,44 +465,10 @@ void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModu
             for (uint segIndex = 0; segIndex < eSeg->GetNumElements(); ++segIndex)
             {
                 uint funcIndex = eSeg->GetElement(segIndex);
-                Var funcObj = GetFunctionObjFromFunctionIndex(wasmModule, ctx, funcIndex, env);
+                Var funcObj = env->GetWasmFunction(funcIndex);
                 table->DirectSetValue(segIndex + offset, funcObj);
             }
         }
-    }
-}
-
-Var WebAssemblyInstance::GetFunctionObjFromFunctionIndex(WebAssemblyModule * wasmModule, ScriptContext* ctx, uint32 funcIndex, WebAssemblyEnvironment env)
-{
-    Wasm::FunctionIndexTypes::Type funcType = wasmModule->GetFunctionIndexType(funcIndex);
-    switch (funcType)
-    {
-    case Wasm::FunctionIndexTypes::ImportThunk:
-    case Wasm::FunctionIndexTypes::Function:
-        return env.functions[funcIndex];
-        break;
-    default:
-        Assert(UNREACHED);
-        throw Wasm::WasmCompilationException(_u("Unexpected function type for function index %u"), funcIndex);
-    }
-}
-
-WebAssemblyInstance::WebAssemblyEnvironment::WebAssemblyEnvironment(WebAssemblyModule* module)
-{
-    ScriptContext* scriptContext = module->GetScriptContext();
-    uint32 envSize = module->GetModuleEnvironmentSize();
-    this->ptr = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, envSize);
-    this->memory = this->ptr + module->GetMemoryOffset();
-    this->imports = this->ptr + module->GetImportFuncOffset();
-    this->functions = this->ptr + module->GetFuncOffset();
-    this->table = this->ptr + module->GetTableEnvironmentOffset();
-    this->globals = this->ptr + module->GetGlobalOffset();
-
-    if (globals < ptr ||
-        (globals + WAsmJs::ConvertToJsVarOffset<byte>(module->GetGlobalsByteSize())) >(ptr + envSize))
-    {
-        // Something went wrong in the allocation and/or offset calculation failfast
-        JavascriptError::ThrowOutOfMemoryError(scriptContext);
     }
 }
 

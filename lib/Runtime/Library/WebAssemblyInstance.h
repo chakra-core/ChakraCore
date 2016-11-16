@@ -25,25 +25,12 @@ namespace Js
     private:
         WebAssemblyInstance(WebAssemblyModule * wasmModule, DynamicType * type);
 
-        struct WebAssemblyEnvironment
-        {
-            WebAssemblyEnvironment(WebAssemblyModule* module);
-            Var* ptr;
-            Var* memory;
-            Var* imports;
-            Var* functions;
-            Var* table;
-            Var* globals;
-        };
-
-        static void LoadDataSegs(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment env);
-        static void LoadFunctions(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment env);
-        static Var  BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment env);
-        static void LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var ffi, WebAssemblyEnvironment env);
-        static void LoadGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment env);
-        static void LoadIndirectFunctionTable(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment env);
-        static Var GetFunctionObjFromFunctionIndex(WebAssemblyModule * wasmModule, ScriptContext* ctx, uint32 funcIndex, WebAssemblyEnvironment env);
-
+        static void LoadDataSegs(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
+        static void LoadFunctions(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
+        static Var  BuildObject(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
+        static void LoadImports(WebAssemblyModule * wasmModule, ScriptContext* ctx, Var ffi, WebAssemblyEnvironment* env);
+        static void LoadGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
+        static void LoadIndirectFunctionTable(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
 
         WebAssemblyModule * m_module;
     };

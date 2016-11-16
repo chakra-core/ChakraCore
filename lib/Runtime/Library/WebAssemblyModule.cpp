@@ -571,7 +571,7 @@ WebAssemblyModule::AddTableImport(const char16* modName, uint32 modNameLen, cons
 }
 
 uint
-WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, Var* moduleEnv) const
+WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, const WebAssemblyEnvironment* env) const
 {
     if (initExpr.op != Wasm::wbI32Const && initExpr.op != Wasm::wbGetGlobal)
     {
@@ -593,8 +593,7 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, Var* module
         {
             throw Wasm::WasmCompilationException(_u("global %d must be i32"), initExpr.var.num);
         }
-        uint32 globalOffset = GetOffsetForGlobal(global);
-        offset = *((int*)moduleEnv + globalOffset);
+        offset = env->GetGlobalValue(global).i32;
     }
     return offset;
 }
