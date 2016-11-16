@@ -30,16 +30,8 @@ int main()
     JsValueRef result;
     unsigned currentSourceContext = 0;
 
-    // do not cast from wchar_t.
-    // unix wchar_t 4 bytes
     const char* script = "(()=>{return \'SUCCESS\';})()";
     size_t length = strlen(script);
-    uint16_t *script16 = (uint16_t*) malloc((length + 1) * sizeof(uint16_t));
-    for(int i = 0; i < length; i++)
-    {
-        *(script16 + i) = (uint16_t)*(script + i);
-    }
-    script16[length] = uint16_t(0);
 
     // Create a runtime.
     JsCreateRuntime(JsRuntimeAttributeNone, nullptr, &runtime);
@@ -51,12 +43,10 @@ int main()
     JsSetCurrentContext(context);
 
     JsValueRef fname;
-    FAIL_CHECK(JsCreateStringUtf8((const uint8_t*)"sample", strlen("sample"), &fname));
+    FAIL_CHECK(JsCreateString("sample", strlen("sample"), &fname));
 
     JsValueRef scriptSource;
-    FAIL_CHECK(JsCreateStringUtf16(script16, length, &scriptSource));
-    // now we don't need our own copy
-    free(script16);
+    FAIL_CHECK(JsCreateString(script, length, &scriptSource));
 
     // Run the script.
     FAIL_CHECK(JsRun(scriptSource, currentSourceContext++, fname,
@@ -70,7 +60,7 @@ int main()
     uint8_t *resultSTR = nullptr;
     size_t stringLength;
     FAIL_CHECK(JsCopyStringUtf8(resultJSString, nullptr, 0, &stringLength));
-    resultSTR = (uint8_t*) malloc(stringLength + 1);
+    resultSTR = (uint8_t*)malloc(stringLength + 1);
     FAIL_CHECK(JsCopyStringUtf8(resultJSString, resultSTR, stringLength + 1, nullptr));
     resultSTR[stringLength] = 0;
 
