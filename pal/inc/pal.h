@@ -6674,6 +6674,7 @@ PALIMPORT float __cdecl modff(float, float *);
 PALIMPORT int __cdecl _finite(double);
 PALIMPORT int __cdecl _isnan(double);
 PALIMPORT double __cdecl _copysign(double, double);
+PALIMPORT float __cdecl _copysignf(float, float);
 
 #if !defined(PAL_STDCPP_COMPAT) || defined(USING_PAL_STDLIB)
 

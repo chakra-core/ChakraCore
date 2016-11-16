@@ -42,9 +42,14 @@ ThreadContextInfo::GetAbsFloatCstAddr() const
     return SHIFT_ADDR(this, &Js::JavascriptNumber::AbsFloatCst);
 }
 
-intptr_t ThreadContextInfo::GetSgnBitCst() const
+intptr_t ThreadContextInfo::GetSgnFloatBitCst() const
 {
-    return SHIFT_ADDR(this, &Js::JavascriptNumber::SgnBitCst);
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::SgnFloatBitCst);
+}
+
+intptr_t ThreadContextInfo::GetSgnDoubleBitCst() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::SgnDoubleBitCst);
 }
 
 intptr_t
