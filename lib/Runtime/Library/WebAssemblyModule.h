@@ -17,7 +17,10 @@ namespace Wasm
     class WasmGlobal;
     struct WasmImport;
     struct WasmExport;
-
+    namespace ReferenceTypes
+    {
+        enum Type;
+    }
     namespace WasmTypes
     {
         enum WasmType;
@@ -102,16 +105,16 @@ public:
     uint32 GetImportCount() const;
     Wasm::WasmImport* GetImport(uint32 i) const;
     void AddFunctionImport(uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen);
-    void AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::WasmGlobal* importedGlobal);
+    void AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
     void AddMemoryImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
     void AddTableImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
     Wasm::WasmImport * GetMemoryImport() const { return m_memImport; }
     Wasm::WasmImport * GetTableImport() const { return m_tableImport; }
     uint32 GetImportedFunctionCount() const { return m_importedFunctionCount; }
 
-    uint GetOffsetFromInit(const Wasm::WasmNode& initexpr) const;
+    uint GetOffsetFromInit(const Wasm::WasmNode& initexpr, Var* moduleEnv) const;
 
-    Wasm::WasmGlobal* AddGlobal(Wasm::WasmTypes::WasmType type, bool isMutable);
+    void AddGlobal(Wasm::ReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init);
     uint32 GetGlobalCount() const;
     Wasm::WasmGlobal* GetGlobal(uint32 index) const;
 
@@ -138,7 +141,7 @@ public:
     uint GetFuncOffset() const { return GetImportFuncOffset() + GetImportedFunctionCount(); }
     uint GetTableEnvironmentOffset() const { return GetFuncOffset() + GetWasmFunctionCount(); }
     uint GetGlobalOffset() const { return GetTableEnvironmentOffset() + 1; }
-    uint GetOffsetForGlobal(Wasm::WasmGlobal* global);
+    uint GetOffsetForGlobal(Wasm::WasmGlobal* global) const;
     uint AddGlobalByteSizeToOffset(Wasm::WasmTypes::WasmType type, uint32 offset) const;
     uint GetGlobalsByteSize() const;
 

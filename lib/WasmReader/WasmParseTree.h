@@ -136,7 +136,7 @@ namespace Wasm
         ExternalKinds::ExternalKind kind;
         uint32 modNameLen;
         const char16* modName;
-        uint32 fnNameLen;
-        const char16* fnName;
+        uint32 importNameLen;
+        const char16* importName;
     };
 }

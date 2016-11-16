@@ -10,16 +10,23 @@
 namespace Wasm
 {
 
-WasmTypes::WasmType
-WasmGlobal::GetType() const
-{
-    return m_type;
-}
+    Wasm::WasmConstLitNode WasmGlobal::GetConstInit() const
+    {
+        if (GetReferenceType() != ReferenceTypes::Const)
+        {
+            throw WasmCompilationException(_u("Global must be initialized from a const to retrieve the const value"));
+        }
+        return m_init.cnst;
+    }
 
-bool
-WasmGlobal::GetMutability() const
-{
-    return m_mutability;
-}
+    uint32 WasmGlobal::GetGlobalIndexInit() const
+    {
+        if (GetReferenceType() != ReferenceTypes::LocalReference)
+        {
+            throw WasmCompilationException(_u("Global must be initialized from another global to retrieve its index"));
+        }
+        return m_init.var.num;
+    }
+
 } // namespace Wasm
 #endif // ENABLE_WASM
