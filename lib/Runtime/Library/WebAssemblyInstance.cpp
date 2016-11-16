@@ -390,6 +390,7 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
             float val = (float)JavascriptConversion::ToNumber(prop, ctx);
             global->cnst.f32 = val;
             SetGlobalValue(moduleEnv, offset, val);
+            break;
         }
         case Wasm::WasmTypes::F64:
         {
