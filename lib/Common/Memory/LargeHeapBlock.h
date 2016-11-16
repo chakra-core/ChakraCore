@@ -206,7 +206,7 @@ private:
     char * AllocFreeListEntry(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes, LargeHeapBlockFreeListEntry* entry);
 
 #if ENABLE_CONCURRENT_GC
-    bool CheckDirtyOnePage(char* page, RescanFlags flags, bool isWriteBarrier);
+    bool IsPageDirty(char* page, RescanFlags flags, bool isWriteBarrier);
     bool RescanOnePage(Recycler * recycler, RescanFlags flags);
     size_t RescanMultiPage(Recycler * recycler, RescanFlags flags);
 #else

@@ -478,6 +478,7 @@ public:
 
     static size_t GetAndResetMaxUsedBytes();
 
+    // xplat TODO: implement a platform agnostic version of interlocked linked lists
 #if ENABLE_BACKGROUND_PAGE_FREEING
     struct FreePageEntry
 #if SUPPORT_WIN32_SLIST

@@ -496,6 +496,7 @@ HeapInfo::RealAlloc(Recycler * recycler, size_t sizeCat, size_t size)
 {
     Assert(HeapInfo::IsAlignedSmallObjectSize(sizeCat));
     auto& bucket = this->GetBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
+#if GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier)
         && ((attributes & LeafBit) != LeafBit
             ||(attributes & FinalizeBit) == FinalizeBit)) // there's no Finalize Leaf bucket
@@ -503,6 +504,7 @@ HeapInfo::RealAlloc(Recycler * recycler, size_t sizeCat, size_t size)
         return bucket.template RealAlloc<(ObjectInfoBits)(attributes | WithBarrierBit), nothrow>(recycler, sizeCat, size);
     }
     else
+#endif
     {
         return bucket.template RealAlloc<attributes, nothrow>(recycler, sizeCat, size);
     }
@@ -515,6 +517,7 @@ inline char *
 HeapInfo::MediumAlloc(Recycler * recycler, size_t sizeCat, size_t size)
 {
     auto& bucket = this->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
+#if GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier)
         && ((attributes & LeafBit) != LeafBit
             || (attributes & FinalizeBit) == FinalizeBit)) // there's no Finalize Leaf bucket
@@ -522,6 +525,7 @@ HeapInfo::MediumAlloc(Recycler * recycler, size_t sizeCat, size_t size)
         return bucket.template RealAlloc<(ObjectInfoBits)(attributes | WithBarrierBit), nothrow>(recycler, sizeCat, size);
     }
     else
+#endif
     {
         return bucket.template RealAlloc<attributes, nothrow>(recycler, sizeCat, size);
     }

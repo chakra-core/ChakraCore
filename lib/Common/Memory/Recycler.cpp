@@ -823,8 +823,10 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
 #endif
 #endif
 
+#if ENABLE_WRITE_WATCH
     bool needWriteWatch = false;
-    needWriteWatch;
+#endif
+
 #if ENABLE_CONCURRENT_GC
     // Default to non-concurrent
     uint numProcs = (uint)AutoSystemInfo::Data.GetNumberOfPhysicalProcessors();
@@ -863,7 +865,7 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
 #endif
         }
     }
-#endif
+#endif // ENABLE_CONCURRENT_GC
 
 #if ENABLE_PARTIAL_GC
     if (this->enablePartialCollect)
@@ -1260,12 +1262,14 @@ Recycler::LargeAlloc(HeapInfo* heap, size_t size, ObjectInfoBits attributes)
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
 
+#if GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier)
         && ((attributes & LeafBit) != LeafBit
             || (attributes & FinalizeBit) == FinalizeBit)) // there's no Finalize Leaf bucket
     {
         attributes = (ObjectInfoBits)(attributes | WithBarrierBit);
     }
+#endif
 
     char * addr = TryLargeAlloc(heap, size, attributes, nothrow);
     if (addr == nullptr)
@@ -1447,7 +1451,7 @@ Recycler::ScanArena(ArenaData * alloc, bool background)
 #if ENABLE_PARTIAL_GC || ENABLE_CONCURRENT_GC
 // The new write watch batching logic broke the write watch handling here.
 // For now, just disable write watch for guest arenas.
-// Re-enable this in the future.
+// TODO: Re-enable this in the future.
 #if FALSE
     // Note, guest arenas are allocated out of the large block page allocator.
     bool writeWatch = alloc->GetPageAllocator() == &this->recyclerLargeBlockPageAllocator;
@@ -4868,18 +4872,15 @@ Recycler::StartBackgroundMark(bool foregroundResetMark, bool foregroundFindRoots
 #if ENABLE_WRITE_WATCH
         if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
         {
-            if (!recyclerPageAllocator.ResetWriteWatch() || !recyclerLargeBlockPageAllocator.ResetWriteWatch())
-            {
-                RECYCLER_PROFILE_EXEC_BEGIN(this, Js::ResetWriteWatchPhase);
-                bool hasWriteWatch = (recyclerPageAllocator.ResetWriteWatch() && recyclerLargeBlockPageAllocator.ResetWriteWatch());
-                RECYCLER_PROFILE_EXEC_END(this, Js::ResetWriteWatchPhase);
+            RECYCLER_PROFILE_EXEC_BEGIN(this, Js::ResetWriteWatchPhase);
+            bool hasWriteWatch = (recyclerPageAllocator.ResetWriteWatch() && recyclerLargeBlockPageAllocator.ResetWriteWatch());
+            RECYCLER_PROFILE_EXEC_END(this, Js::ResetWriteWatchPhase);
 
-                if (!hasWriteWatch)
-                {
-                    // Disable concurrent mark
-                    this->enableConcurrentMark = false;
-                    return false;
-                }
+            if (!hasWriteWatch)
+            {
+                // Disable concurrent mark
+                this->enableConcurrentMark = false;
+                return false;
             }
         }
 #endif

@@ -127,12 +127,22 @@
 #define IDLE_DECOMMIT_ENABLED 1                     // Idle Decommit
 #define RECYCLER_PAGE_HEAP                          // PageHeap support
 
+// Write-barrier refers to a software write barrier implementation using a card table. 
+// Write watch refers to a hardware backed write-watch feature supported by the Windows memory manager. 
+// Both are used for detecting changes to memory for concurrent and partial GC. 
+// GLOBAL_ENABLE_WRITE_BARRIER controls the former, ENABLE_WRITE_WATCH controls the latter.
 #ifdef RECYCLER_WRITE_BARRIER
 #ifdef _WIN32
 #define GLOBAL_ENABLE_WRITE_BARRIER 0
 #else
 #define GLOBAL_ENABLE_WRITE_BARRIER 1
 #endif
+#endif
+
+#ifdef _WIN32
+#define ENABLE_WRITE_WATCH 1
+#else
+#define ENABLE_WRITE_WATCH 0
 #endif
 
 // Concurrent and Partial GC are disabled on non-Windows builds
@@ -147,11 +157,6 @@
 #define ENABLE_BACKGROUND_PAGE_FREEING 1
 #define ENABLE_RECYCLER_TYPE_TRACKING 1
 #define SUPPORT_WIN32_SLIST 1
-#if GLOBAL_ENABLE_WRITE_BARRIER
-#define ENABLE_WRITE_WATCH 0
-#else
-#define ENABLE_WRITE_WATCH 1
-#endif
 #else
 #define SYSINFO_IMAGE_BASE_AVAILABLE 0
 #define ENABLE_CONCURRENT_GC 1
@@ -160,7 +165,6 @@
 #define ENABLE_BACKGROUND_PAGE_FREEING 1
 #define ENABLE_RECYCLER_TYPE_TRACKING 1
 #define SUPPORT_WIN32_SLIST 0
-#define ENABLE_WRITE_WATCH 0
 #endif
 
 #if ENABLE_BACKGROUND_PAGE_ZEROING && !ENABLE_BACKGROUND_PAGE_FREEING

@@ -485,7 +485,7 @@ LargeHeapBlock::AllocFreeListEntry(size_t size, ObjectInfoBits attributes, Large
     header->objectIndex = headerIndex;
     header->objectSize = originalSize;
 #ifdef RECYCLER_WRITE_BARRIER
-    header->hasWriteBarrier = (attributes&WithBarrierBit) == WithBarrierBit;
+    header->hasWriteBarrier = (attributes & WithBarrierBit) == WithBarrierBit;
 #endif
     header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & StoredObjectInfoBitMask));
     header->markOnOOMRescan = false;
@@ -975,7 +975,7 @@ LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)
 }
 
 #if ENABLE_CONCURRENT_GC
-bool LargeHeapBlock::CheckDirtyOnePage(char* page, RescanFlags flags, bool isWriteBarrier)
+bool LargeHeapBlock::IsPageDirty(char* page, RescanFlags flags, bool isWriteBarrier)
 {
 #ifdef RECYCLER_WRITE_BARRIER
     // TODO: SWB, use special page allocator for large block with write barrier?
@@ -1002,12 +1002,10 @@ bool LargeHeapBlock::CheckDirtyOnePage(char* page, RescanFlags flags, bool isWri
     }
     else
     {
-        Assert(UNREACHED);
-        return true;
+        Js::Throw::FatalInternalError();
     }
 #else
-    Assert(UNREACHED);
-    return true;
+    Js::Throw::FatalInternalError();
 #endif
 }
 #endif
@@ -1042,7 +1040,7 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
 #ifdef RECYCLER_WRITE_BARRIER
         hasWriteBarrier = this->GetHeader(0u)->hasWriteBarrier;
 #endif
-        if (!CheckDirtyOnePage(this->GetBeginAddress(), flags, hasWriteBarrier))
+        if (!IsPageDirty(this->GetBeginAddress(), flags, hasWriteBarrier))
         {
             return false;
         }
@@ -1272,7 +1270,7 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
 #ifdef RECYCLER_WRITE_BARRIER
                     hasWriteBarrier = header->hasWriteBarrier;
 #endif
-                    if (!CheckDirtyOnePage(pageStart, flags, hasWriteBarrier))
+                    if (!IsPageDirty(pageStart, flags, hasWriteBarrier))
                     {
                         // Fall through to the case below where we'll update objectAddress and continue
                         isLastPageCheckedForWriteWatchDirty = false;
