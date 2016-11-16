@@ -71,7 +71,7 @@ function convertTest(filename) {
 }
 
 function hostFlags(specFile, {useFullpath} = {}) {
-  return `-on:wasm -args ${
+  return `-wasm -args ${
     useFullpath ? specFile : path.relative(rlRoot, specFile)
   } -endargs`;
 }

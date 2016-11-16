@@ -130,9 +130,3 @@
 (assert_return (invoke "fac-expr" (i64.const 25)) (i64.const 7034535277573963776))
 (assert_return (invoke "fac-stack" (i64.const 25)) (i64.const 7034535277573963776))
 (assert_return (invoke "fac-mixed" (i64.const 25)) (i64.const 7034535277573963776))
-
-;; from br_table.wast
-(module (func $type-arg-num-vs-void
-  (block (br_table 0 (i32.const 0) (i32.const 1)))
-))
-
