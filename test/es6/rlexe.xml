@@ -722,6 +722,12 @@
   </test>
   <test>
     <default>
+      <files>proxybugs.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>proxybug3.js</files>
     </default>
   </test>
