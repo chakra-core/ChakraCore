@@ -56,10 +56,14 @@
     (block (br_if 0 (return)))
   )
   (func (export "as-br_if-value") (result i32)
-    (block i32 (br_if 0 (return (i32.const 8)) (i32.const 1)) (i32.const 7))
+    (block i32
+      (drop (br_if 0 (return (i32.const 8)) (i32.const 1))) (i32.const 7)
+    )
   )
   (func (export "as-br_if-value-cond") (result i32)
-    (block i32 (drop (br_if 0 (i32.const 6) (return (i32.const 9)))) (i32.const 7))
+    (block i32
+      (drop (br_if 0 (i32.const 6) (return (i32.const 9)))) (i32.const 7)
+    )
   )
 
   (func (export "as-br_table-index") (result i64)
@@ -81,7 +85,7 @@
   )
 
   (func (export "as-if-cond") (result i32)
-    (if (return (i32.const 2)) (i32.const 0) (i32.const 1))
+    (if i32 (return (i32.const 2)) (i32.const 0) (i32.const 1))
   )
   (func (export "as-if-then") (param i32 i32) (result i32)
     (if i32 (get_local 0) (return (i32.const 3)) (get_local 1))
@@ -261,10 +265,6 @@
 (assert_return (invoke "as-convert-operand") (i32.const 41))
 
 (assert_return (invoke "as-grow_memory-size") (i32.const 40))
-
-;; TODO(stack): move these somewhere else
-(module (func $type-value-void-vs-empty (return (nop))))
-(module (func $type-value-num-vs-empty (return (i32.const 0))))
 
 (assert_invalid
   (module (func $type-value-empty-vs-num (result f64) (return)))
