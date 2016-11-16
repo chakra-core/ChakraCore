@@ -57,3 +57,8 @@ bool Contains(const Set& s, const Item& item)
 {
     return s.find(item) != s.end();
 }
+
+inline bool Contains(const string& s, const char* sub)
+{
+    return s.find(sub) != string::npos;
+}
