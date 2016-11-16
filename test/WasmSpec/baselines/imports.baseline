@@ -3,6 +3,4 @@
 13
 13
 13
-Unexpected Error while compiling imports.8.wasm
-WebAssemblyCompileError: Compiling wasm failed: I64 Globals, NYI
-24/24 tests passed.
+28/28 tests passed.

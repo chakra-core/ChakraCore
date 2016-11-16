@@ -40,6 +40,7 @@ z 777
 c 9.5
 d 9.5
 e 10
+get-i64 -5619366150371532736
 printing module b
 printing module
 get-a 13
@@ -51,3 +52,5 @@ get-c 9.5
 get-d 9.5
 get-e 10
 get-f 9.5
+Should be invalid type conversion: Invalid WebAssembly type conversion
+Should be invalid type conversion: Invalid WebAssembly type conversion
