@@ -311,12 +311,26 @@
       "name": "$assert_return_61",
       "file": "func.wast",
       "line": 304
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_62",
+      "file": "func.wast",
+      "line": 306
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_63",
+      "file": "func.wast",
+      "line": 307
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_64",
+      "file": "func.wast",
+      "line": 308
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_65",
+      "file": "func.wast",
+      "line": 309
     }]
-  }, {
-    "filename": "func.1.wasm",
-    "commands": []
-  }, {
-    "filename": "func.2.wasm",
-    "commands": []
   }]
 }

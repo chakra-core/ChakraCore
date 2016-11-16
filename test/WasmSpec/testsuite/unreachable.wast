@@ -60,7 +60,7 @@
     (block (br_if 0 (unreachable)))
   )
   (func (export "as-br_if-value") (result i32)
-    (block i32 (br_if 0 (unreachable) (i32.const 1)) (i32.const 7))
+    (block i32 (drop (br_if 0 (unreachable) (i32.const 1))) (i32.const 7))
   )
   (func (export "as-br_if-value-cond") (result i32)
     (block i32 (drop (br_if 0 (i32.const 6) (unreachable))) (i32.const 7))
@@ -81,7 +81,7 @@
   )
 
   (func (export "as-if-cond") (result i32)
-    (if (unreachable) (i32.const 0) (i32.const 1))
+    (if i32 (unreachable) (i32.const 0) (i32.const 1))
   )
   (func (export "as-if-then") (param i32 i32) (result i32)
     (if i32 (get_local 0) (unreachable) (get_local 1))

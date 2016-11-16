@@ -90,3 +90,8 @@
   (module (global i32 (get_global 0)))
   "unknown global"
 )
+
+(assert_invalid
+  (module (global i32 (get_global 1)) (global i32 (i32.const 0)))
+  "unknown global"
+)
