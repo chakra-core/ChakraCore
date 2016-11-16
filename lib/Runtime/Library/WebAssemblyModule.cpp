@@ -99,7 +99,7 @@ WebAssemblyModule::EntryExports(RecyclableObject* function, CallInfo callInfo, .
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count < 2 || !WebAssemblyMemory::Is(args[1]))
+    if (args.Info.Count < 2 || !WebAssemblyModule::Is(args[1]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
     }
@@ -111,7 +111,7 @@ WebAssemblyModule::EntryExports(RecyclableObject* function, CallInfo callInfo, .
     {
         Wasm::WasmExport wasmExport = module->m_exports[i];
         Js::JavascriptString * kind = GetExternalKindString(scriptContext, wasmExport.kind);
-        Js::JavascriptString * name = JavascriptString::NewWithBuffer(wasmExport.name, wasmExport.nameLength, scriptContext);
+        Js::JavascriptString * name = JavascriptString::NewCopySz(wasmExport.name, scriptContext);
         Var pair = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
         JavascriptOperators::OP_SetProperty(pair, PropertyIds::kind, kind, scriptContext);
         JavascriptOperators::OP_SetProperty(pair, PropertyIds::name, name, scriptContext);
@@ -131,7 +131,7 @@ WebAssemblyModule::EntryImports(RecyclableObject* function, CallInfo callInfo, .
 
     Assert(!(callInfo.Flags & CallFlags_New));
 
-    if (args.Info.Count < 2 || !WebAssemblyMemory::Is(args[1]))
+    if (args.Info.Count < 2 || !WebAssemblyModule::Is(args[1]))
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
     }
@@ -143,8 +143,8 @@ WebAssemblyModule::EntryImports(RecyclableObject* function, CallInfo callInfo, .
     {
         Wasm::WasmImport * import = module->GetImport(i);
         Js::JavascriptString * kind = GetExternalKindString(scriptContext, import->kind);
-        Js::JavascriptString * moduleName = JavascriptString::NewWithBuffer(import->modName, import->modNameLen, scriptContext);
-        Js::JavascriptString * name = JavascriptString::NewWithBuffer(import->fnName, import->fnNameLen, scriptContext);
+        Js::JavascriptString * moduleName = JavascriptString::NewCopySz(import->modName, scriptContext);
+        Js::JavascriptString * name = JavascriptString::NewCopySz(import->fnName, scriptContext);
 
         Var pair = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
         JavascriptOperators::OP_SetProperty(pair, PropertyIds::kind, kind, scriptContext);
