@@ -727,7 +727,7 @@ void WasmBinaryReader::ReadExportTable()
             if (type == FunctionIndexTypes::ImportThunk)
             {
                 WasmImport* import = m_module->GetWasmFunctionInfo(index)->importedFunctionReference;
-                TRACE_WASM_DECODER(_u("Export #%u: Import(%s.%s)(%u) => %s"), iExport, import->modName, import->fnName, index, exportName);
+                TRACE_WASM_DECODER(_u("Export #%u: Import(%s.%s)(%u) => %s"), iExport, import->modName, import->importName, index, exportName);
             }
             else
             {
@@ -891,24 +891,20 @@ WasmBinaryReader::ReadGlobalsSection()
     {
         WasmTypes::WasmType type = ReadWasmType(len);
         bool isMutable = ReadConst<UINT8>() == 1;
-        WasmGlobal* global = m_module->AddGlobal(type, isMutable);
-
         WasmNode globalNode = ReadInitExpr();
         switch (globalNode.op) {
         case  wbI32Const:
         case  wbF32Const:
         case  wbF64Const:
         case  wbI64Const:
-            global->SetReferenceType(WasmGlobal::Const);
-            global->cnst = globalNode.cnst;
+            m_module->AddGlobal(ReferenceTypes::Const, type, isMutable, globalNode);
             break;
         case  wbGetGlobal:
-            if (m_module->GetGlobal(globalNode.var.num)->GetReferenceType() != WasmGlobal::ImportedReference)
+            if (m_module->GetGlobal(globalNode.var.num)->GetReferenceType() != ReferenceTypes::ImportedReference)
             {
                 ThrowDecodingError(_u("Global can only be initialized with a const or an imported global"));
             }
-            global->SetReferenceType(WasmGlobal::LocalReference);
-            global->importIndex = globalNode.var.num;
+            m_module->AddGlobal(ReferenceTypes::LocalReference, type, isMutable, globalNode);
             break;
         default:
             Assert(UNREACHED);
@@ -967,8 +963,8 @@ WasmBinaryReader::ReadImportEntries()
         {
             WasmTypes::WasmType type = ReadWasmType(len);
             bool isMutable = ReadConst<UINT8>() == 1;
-            WasmGlobal* importedGlobal = m_module->AddGlobal(type, isMutable);
-            m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen, importedGlobal);
+            m_module->AddGlobal(ReferenceTypes::ImportedReference, type, isMutable, {});
+            m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen);
             break;
         }
         case ExternalKinds::Table:
@@ -1113,7 +1109,7 @@ WasmBinaryReader::ReadInitExpr()
     {
         uint32 globalIndex = node.var.num;
         WasmGlobal* global = m_module->GetGlobal(globalIndex);
-        if (global->GetMutability())
+        if (global->IsMutable())
         {
             ThrowDecodingError(_u("initializer expression cannot reference a mutable global"));
         }

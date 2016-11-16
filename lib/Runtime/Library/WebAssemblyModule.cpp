@@ -144,7 +144,7 @@ WebAssemblyModule::EntryImports(RecyclableObject* function, CallInfo callInfo, .
         Wasm::WasmImport * import = module->GetImport(i);
         Js::JavascriptString * kind = GetExternalKindString(scriptContext, import->kind);
         Js::JavascriptString * moduleName = JavascriptString::NewCopySz(import->modName, scriptContext);
-        Js::JavascriptString * name = JavascriptString::NewCopySz(import->fnName, scriptContext);
+        Js::JavascriptString * name = JavascriptString::NewCopySz(import->importName, scriptContext);
 
         Var pair = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
         JavascriptOperators::OP_SetProperty(pair, PropertyIds::kind, kind, scriptContext);
@@ -479,8 +479,8 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     importInfo->kind = Wasm::ExternalKinds::Function;
     importInfo->modNameLen = modNameLen;
     importInfo->modName = modName;
-    importInfo->fnNameLen = fnNameLen;
-    importInfo->fnName = fnName;
+    importInfo->importNameLen = fnNameLen;
+    importInfo->importName = fnName;
     m_imports->Add(importInfo);
 
     Wasm::WasmSignature* signature = GetSignature(sigId);
@@ -533,17 +533,15 @@ WebAssemblyModule::GetImport(uint32 i) const
 }
 
 void
-WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::WasmGlobal* importedGlobal)
+WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
     wi->kind = Wasm::ExternalKinds::Global;
-    wi->fnName = fnName;
-    wi->fnNameLen = fnNameLen;
+    wi->importName = importName;
+    wi->importNameLen = importNameLen;
     wi->modName = modName;
     wi->modNameLen = modNameLen;
     m_imports->Add(wi);
-
-    importedGlobal->SetReferenceType(Wasm::WasmGlobal::ImportedReference);
 }
 
 void
@@ -551,8 +549,8 @@ WebAssemblyModule::AddMemoryImport(const char16* modName, uint32 modNameLen, con
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
     wi->kind = Wasm::ExternalKinds::Memory;
-    wi->fnName = importName;
-    wi->fnNameLen = importNameLen;
+    wi->importName = importName;
+    wi->importNameLen = importNameLen;
     wi->modName = modName;
     wi->modNameLen = modNameLen;
     m_imports->Add(wi);
@@ -564,8 +562,8 @@ WebAssemblyModule::AddTableImport(const char16* modName, uint32 modNameLen, cons
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
     wi->kind = Wasm::ExternalKinds::Table;
-    wi->fnName = importName;
-    wi->fnNameLen = importNameLen;
+    wi->importName = importName;
+    wi->importNameLen = importNameLen;
     wi->modName = modName;
     wi->modNameLen = modNameLen;
     m_imports->Add(wi);
@@ -573,7 +571,7 @@ WebAssemblyModule::AddTableImport(const char16* modName, uint32 modNameLen, cons
 }
 
 uint
-WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr) const
+WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, Var* moduleEnv) const
 {
     if (initExpr.op != Wasm::wbI32Const && initExpr.op != Wasm::wbGetGlobal)
     {
@@ -591,22 +589,21 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr) const
             throw Wasm::WasmCompilationException(_u("global %d doesn't exist"), initExpr.var.num);
         }
         Wasm::WasmGlobal* global = m_globals->Item(initExpr.var.num);
-
-        if (global->GetReferenceType() != Wasm::WasmGlobal::Const || global->GetType() != Wasm::WasmTypes::I32)
+        if (global->GetType() != Wasm::WasmTypes::I32)
         {
             throw Wasm::WasmCompilationException(_u("global %d must be i32"), initExpr.var.num);
         }
-        offset = global->cnst.i32;
+        uint32 globalOffset = GetOffsetForGlobal(global);
+        offset = *((int*)moduleEnv + globalOffset);
     }
     return offset;
 }
 
-Wasm::WasmGlobal*
-WebAssemblyModule::AddGlobal(Wasm::WasmTypes::WasmType type, bool isMutable)
+void
+WebAssemblyModule::AddGlobal(Wasm::ReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init)
 {
-    Wasm::WasmGlobal* global = Anew(&m_alloc, Wasm::WasmGlobal, m_globalCounts[type]++, type, isMutable);
+    Wasm::WasmGlobal* global = Anew(&m_alloc, Wasm::WasmGlobal, refType, m_globalCounts[type]++, type, isMutable, init);
     m_globals->Add(global);
-    return global;
 }
 
 uint32
@@ -723,7 +720,7 @@ void WebAssemblyModule::Dispose(bool isShutdown)
 void WebAssemblyModule::Mark(Recycler * recycler)
 {
 }
-uint WebAssemblyModule::GetOffsetForGlobal(Wasm::WasmGlobal* global)
+uint WebAssemblyModule::GetOffsetForGlobal(Wasm::WasmGlobal* global) const
 {
     Wasm::WasmTypes::WasmType type = global->GetType();
     if (type >= Wasm::WasmTypes::Limit)
