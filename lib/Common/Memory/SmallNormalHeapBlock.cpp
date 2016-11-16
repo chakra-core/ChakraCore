@@ -178,7 +178,7 @@ SmallNormalHeapBlockT<TBlockAttributes>::FinishPartialCollect()
     // We don't allocate from a partially swept block
     Assert(this->IsFreeBitsValid());
 
-    RECYCLER_SLOW_CHECK(CheckFreeBitVector(true));
+    RECYCLER_SLOW_CHECK(this->CheckFreeBitVector(true));
 }
 #endif
 

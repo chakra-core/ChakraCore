@@ -605,21 +605,27 @@ HeapBlockMap32::ForEachSegment(Recycler * recycler, Fn func)
 
 #if ENABLE_CONCURRENT_GC
 void
-HeapBlockMap32::ResetWriteWatch(Recycler * recycler)
+HeapBlockMap32::ResetDirtyPages(Recycler * recycler)
 {
     this->ForEachSegment(recycler, [=] (char * segmentStart, size_t segmentLength, Segment * segment, PageAllocator * segmentPageAllocator) {
 
         Assert(segmentLength % AutoSystemInfo::PageSize == 0);
 
-        if (segmentPageAllocator == recycler->GetRecyclerPageAllocator() ||
-            segmentPageAllocator == recycler->GetRecyclerLargeBlockPageAllocator())
+#if ENABLE_WRITE_WATCH
+        if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
         {
-            // Call ResetWriteWatch for Small non-leaf and Large segments.
-            UINT ret = ::ResetWriteWatch(segmentStart, segmentLength);
-            Assert(ret == 0);
+            if (segmentPageAllocator == recycler->GetRecyclerPageAllocator() ||
+                segmentPageAllocator == recycler->GetRecyclerLargeBlockPageAllocator())
+            {
+                // Call ResetWriteWatch for Small non-leaf and Large segments.
+                UINT ret = ::ResetWriteWatch(segmentStart, segmentLength);
+                Assert(ret == 0);
+            }
         }
+#endif
 #ifdef RECYCLER_WRITE_BARRIER
-        else if (segmentPageAllocator == recycler->GetRecyclerWithBarrierPageAllocator())
+        if (segmentPageAllocator == recycler->GetRecyclerWithBarrierPageAllocator() ||
+            segmentPageAllocator == recycler->GetRecyclerLargeBlockPageAllocator()) // TODO: use different page allocator?
         {
             // Reset software write barrier for barrier segments.
             RecyclerWriteBarrierManager::ResetWriteBarrier(segmentStart, segmentLength / AutoSystemInfo::PageSize);
@@ -765,6 +771,7 @@ HeapBlockMap32::ChangeProtectionLevel(Recycler* recycler, DWORD protectFlags, DW
 }
 
 #if ENABLE_CONCURRENT_GC
+#if ENABLE_WRITE_WATCH
 ///
 /// The GetWriteWatch API can fail under low-mem situations if called to retrieve write-watch for a large number of pages
 /// (On Win10, > 255 pages). This helper is to handle the failure case. In the case of failure, we degrade to retrieving
@@ -841,58 +848,66 @@ HeapBlockMap32::GetWriteWatchHelperOnOOM(DWORD writeWatchFlags, _In_ void* baseA
     return 0;
 }
 #endif
+#endif
 
 #if ENABLE_CONCURRENT_GC
 uint
 HeapBlockMap32::Rescan(Recycler * recycler, bool resetWriteWatch)
 {
     // Loop through segments and find dirty pages.
-    const DWORD writeWatchFlags = (resetWriteWatch ? WRITE_WATCH_FLAG_RESET : 0);
-
     uint scannedPageCount = 0;
     bool anyObjectsScannedOnPage = false;
 
     this->ForEachSegment(recycler, [&] (char * segmentStart, size_t segmentLength, Segment * currentSegment, PageAllocator * segmentPageAllocator) {
         Assert(segmentLength % AutoSystemInfo::PageSize == 0);
 
-        // Call GetWriteWatch for Small non-leaf segments.
-        // Large blocks have their own separate write watch handling.
-        if (segmentPageAllocator == recycler->GetRecyclerPageAllocator())
+#if ENABLE_WRITE_WATCH
+        if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
         {
-            // array for WW results
-            void * dirtyPageAddresses[MaxGetWriteWatchPages];
-
-            Assert(segmentLength <= MaxGetWriteWatchPages * PageSize);
-
-            ULONG_PTR pageCount = MaxGetWriteWatchPages;
-            DWORD pageSize = PageSize;
-
-            UINT ret = HeapBlockMap32::GetWriteWatchHelper(recycler, writeWatchFlags, segmentStart, segmentLength, dirtyPageAddresses, &pageCount, &pageSize);
-            Assert(ret == 0);
-            Assert(pageSize == PageSize);
-            Assert(pageCount <= MaxGetWriteWatchPages);
-
-            // Process results:
-            // Loop through reported dirty pages and set their write watch bit.
-            for (uint i = 0; i < pageCount; i++)
+            // Call GetWriteWatch for Small non-leaf segments.
+            // Large blocks have their own separate write watch handling.
+            if (segmentPageAllocator == recycler->GetRecyclerPageAllocator())
             {
-                char * dirtyPage = (char *)dirtyPageAddresses[i];
-                Assert((((size_t)dirtyPage) % PageSize) == 0);
-                Assert(dirtyPage >= segmentStart);
-                Assert(dirtyPage < segmentStart + segmentLength);
+                // array for WW results
+                void * dirtyPageAddresses[MaxGetWriteWatchPages];
+
+                Assert(segmentLength <= MaxGetWriteWatchPages * PageSize);
+
+                ULONG_PTR pageCount = MaxGetWriteWatchPages;
+                DWORD pageSize = PageSize;
+
+                const DWORD writeWatchFlags = (resetWriteWatch ? WRITE_WATCH_FLAG_RESET : 0);
+
+                UINT ret = HeapBlockMap32::GetWriteWatchHelper(recycler, writeWatchFlags, segmentStart, segmentLength, dirtyPageAddresses, &pageCount, &pageSize);
+                Assert(ret == 0);
+                Assert(pageSize == PageSize);
+                Assert(pageCount <= MaxGetWriteWatchPages);
+
+                // Process results:
+                // Loop through reported dirty pages and set their write watch bit.
+                for (uint i = 0; i < pageCount; i++)
+                {
+                    char * dirtyPage = (char *)dirtyPageAddresses[i];
+                    Assert((((size_t)dirtyPage) % PageSize) == 0);
+                    Assert(dirtyPage >= segmentStart);
+                    Assert(dirtyPage < segmentStart + segmentLength);
 
 #if defined(_M_X64_OR_ARM64)
-                Assert(HeapBlockMap64::GetNodeStartAddress(dirtyPage) == this->startAddress);
+                    Assert(HeapBlockMap64::GetNodeStartAddress(dirtyPage) == this->startAddress);
 #endif
 
-                if (RescanPage(dirtyPage, &anyObjectsScannedOnPage, recycler) && anyObjectsScannedOnPage)
-                {
-                    scannedPageCount++;
+                    if (RescanPage(dirtyPage, &anyObjectsScannedOnPage, recycler) && anyObjectsScannedOnPage)
+                    {
+                        scannedPageCount++;
+                    }
                 }
+                return;
             }
         }
+#endif
+
 #ifdef RECYCLER_WRITE_BARRIER
-        else if (segmentPageAllocator == recycler->GetRecyclerWithBarrierPageAllocator())
+        if (segmentPageAllocator == recycler->GetRecyclerWithBarrierPageAllocator())
         {
             // Loop through pages for this segment and check write barrier.
             size_t pageCount = segmentLength / AutoSystemInfo::PageSize;
@@ -920,13 +935,11 @@ HeapBlockMap32::Rescan(Recycler * recycler, bool resetWriteWatch)
                     }
                 }
             }
+            return;
         }
 #endif
-        else
-        {
-            Assert(segmentPageAllocator == recycler->GetRecyclerLeafPageAllocator() ||
+        Assert(segmentPageAllocator == recycler->GetRecyclerLeafPageAllocator() ||
                 segmentPageAllocator == recycler->GetRecyclerLargeBlockPageAllocator());
-        }
     });
 
     return scannedPageCount;
@@ -1382,12 +1395,12 @@ HeapBlockMap64::OOMRescan(Recycler * recycler)
 
 #if ENABLE_CONCURRENT_GC
 void
-HeapBlockMap64::ResetWriteWatch(Recycler * recycler)
+HeapBlockMap64::ResetDirtyPages(Recycler * recycler)
 {
     Node * node = this->list;
     while (node != nullptr)
     {
-        node->map.ResetWriteWatch(recycler);
+        node->map.ResetDirtyPages(recycler);
         node = node->next;
     }
 }

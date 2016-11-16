@@ -189,6 +189,7 @@ inline void DebugBreak()
 // activscp.h
 #define SCRIPT_E_RECORDED                _HRESULT_TYPEDEF_(0x86664004L)
 
+#define GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS        (0x00000004)
 
 typedef
 enum tagBREAKPOINT_STATE

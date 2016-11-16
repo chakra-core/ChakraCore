@@ -484,6 +484,9 @@ LargeHeapBlock::AllocFreeListEntry(size_t size, ObjectInfoBits attributes, Large
 
     header->objectIndex = headerIndex;
     header->objectSize = originalSize;
+#ifdef RECYCLER_WRITE_BARRIER
+    header->hasWriteBarrier = (attributes & WithBarrierBit) == WithBarrierBit;
+#endif
     header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & StoredObjectInfoBitMask));
     header->markOnOOMRescan = false;
     header->SetNext(this->heapInfo->recycler->Cookie, nullptr);
@@ -540,6 +543,9 @@ LargeHeapBlock::Alloc(size_t size, ObjectInfoBits attributes)
 
     header->objectIndex = allocCount;
     header->objectSize = size;
+#ifdef RECYCLER_WRITE_BARRIER
+    header->hasWriteBarrier = (attributes&WithBarrierBit) == WithBarrierBit;
+#endif
     header->SetAttributes(recycler->Cookie, (attributes & StoredObjectInfoBitMask));
     HeaderList()[allocCount++] = header;
     finalizeCount += ((attributes & FinalizeBit) != 0);
@@ -911,7 +917,6 @@ LargeHeapBlock::ScanInitialImplicitRoots(Recycler * recycler)
     }
 }
 
-
 void
 LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)
 {
@@ -970,8 +975,44 @@ LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)
 }
 
 #if ENABLE_CONCURRENT_GC
+bool LargeHeapBlock::IsPageDirty(char* page, RescanFlags flags, bool isWriteBarrier)
+{
+#ifdef RECYCLER_WRITE_BARRIER
+    // TODO: SWB, use special page allocator for large block with write barrier?
+    if (CONFIG_FLAG(WriteBarrierTest))
+    {
+        Assert(isWriteBarrier);
+    }
+    if (isWriteBarrier)
+    {
+        return (RecyclerWriteBarrierManager::GetWriteBarrier(page) & DIRTYBIT) == DIRTYBIT;
+    }
+#endif
+
+#if ENABLE_WRITE_WATCH
+    if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        ULONG_PTR count = 1;
+        DWORD pageSize = AutoSystemInfo::PageSize;
+        DWORD const writeWatchFlags = (flags & RescanFlags_ResetWriteWatch ? WRITE_WATCH_FLAG_RESET : 0);
+        void * written = nullptr;
+        UINT ret = GetWriteWatch(writeWatchFlags, page, AutoSystemInfo::PageSize, &written, &count, &pageSize);
+        bool isDirty = (ret != 0) || (count == 1);
+        return isDirty;
+    }
+    else
+    {
+        Js::Throw::FatalInternalError();
+    }
+#else
+    Js::Throw::FatalInternalError();
+#endif
+}
+#endif
+
+#if ENABLE_CONCURRENT_GC
 bool
-LargeHeapBlock::RescanOnePage(Recycler * recycler, DWORD const writeWatchFlags)
+LargeHeapBlock::RescanOnePage(Recycler * recycler, RescanFlags flags)
 #else
 bool
 LargeHeapBlock::RescanOnePage(Recycler * recycler)
@@ -994,10 +1035,12 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
         }
 
         // Check the write watch bit to see if we need to rescan
-        ULONG_PTR count = 1;
-        DWORD pageSize = AutoSystemInfo::PageSize;
-        void * written;
-        if (GetWriteWatch(writeWatchFlags, this->GetBeginAddress(), AutoSystemInfo::PageSize, &written, &count, &pageSize) == 0 && (count != 1))
+        // REVIEW: large object size if bigger than one page, to use header index 0 here should be OK
+        bool hasWriteBarrier = false;
+#ifdef RECYCLER_WRITE_BARRIER
+        hasWriteBarrier = this->GetHeader(0u)->hasWriteBarrier;
+#endif
+        if (!IsPageDirty(this->GetBeginAddress(), flags, hasWriteBarrier))
         {
             return false;
         }
@@ -1075,19 +1118,11 @@ LargeHeapBlock::Rescan(Recycler * recycler, bool isPartialSwept, RescanFlags fla
 
 #if ENABLE_CONCURRENT_GC
     Assert(recycler->collectionState != CollectionStateConcurrentFinishMark || (flags & RescanFlags_ResetWriteWatch));
-
-    DWORD const writeWatchFlags = (flags & RescanFlags_ResetWriteWatch? WRITE_WATCH_FLAG_RESET : 0);
-#endif
     if (this->GetPageCount() == 1)
     {
-#if ENABLE_CONCURRENT_GC
-        return RescanOnePage(recycler, writeWatchFlags);
-#else
-        return RescanOnePage(recycler);
-#endif
+        return RescanOnePage(recycler, flags);
     }
 
-#if ENABLE_CONCURRENT_GC
     // Need to rescan for finish mark even if it is done on the background thread
     if (recycler->collectionState != CollectionStateConcurrentFinishMark && recycler->IsConcurrentMarkState())
     {
@@ -1095,18 +1130,15 @@ LargeHeapBlock::Rescan(Recycler * recycler, bool isPartialSwept, RescanFlags fla
         // we don't track which page we have queued up
         return 0;
     }
-#endif
-
-#if ENABLE_CONCURRENT_GC
-    return RescanMultiPage(recycler, writeWatchFlags);
+    return RescanMultiPage(recycler, flags);
 #else
-    return RescanMultiPage(recycler);
+    return this->GetPageCount() == 1 ? RescanOnePage(recycler) : RescanMultiPage(recycler);
 #endif
 }
 
 #if ENABLE_CONCURRENT_GC
 size_t
-LargeHeapBlock::RescanMultiPage(Recycler * recycler, DWORD const writeWatchFlags)
+LargeHeapBlock::RescanMultiPage(Recycler * recycler, RescanFlags flags)
 #else
 size_t
 LargeHeapBlock::RescanMultiPage(Recycler * recycler)
@@ -1121,7 +1153,6 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
     size_t rescanCount = 0;
     uint objectIndex = 0;
 #if ENABLE_CONCURRENT_GC
-    DWORD pageSize = AutoSystemInfo::PageSize;
     char * lastPageCheckedForWriteWatch = nullptr;
     bool isLastPageCheckedForWriteWatchDirty = false;
 #endif
@@ -1233,14 +1264,13 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
                 */
                 if (lastPageCheckedForWriteWatch != pageStart)
                 {
-                    void * written = nullptr;
-                    ULONG_PTR count = 1;
-
                     lastPageCheckedForWriteWatch = pageStart;
-
                     isLastPageCheckedForWriteWatchDirty = true;
-
-                    if (GetWriteWatch(writeWatchFlags, pageStart, AutoSystemInfo::PageSize, &written, &count, &pageSize) == 0 && (count != 1))
+                    bool hasWriteBarrier = false;
+#ifdef RECYCLER_WRITE_BARRIER
+                    hasWriteBarrier = header->hasWriteBarrier;
+#endif
+                    if (!IsPageDirty(pageStart, flags, hasWriteBarrier))
                     {
                         // Fall through to the case below where we'll update objectAddress and continue
                         isLastPageCheckedForWriteWatchDirty = false;

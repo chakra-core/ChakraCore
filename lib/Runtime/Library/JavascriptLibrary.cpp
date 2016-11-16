@@ -2856,7 +2856,7 @@ namespace Js
         JavascriptLibrary* library = simdObject->GetLibrary();
 
         // only functions to be inlined to be added to builtinFuncs
-        JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
         /*** Float32x4 ***/
         JavascriptFunction* float32x4Function = library->AddFunctionToLibraryObjectWithPrototype(simdObject, PropertyIds::Float32x4, &SIMDFloat32x4Lib::EntryInfo::Float32x4, 5, library->simdFloat32x4Prototype, nullptr);

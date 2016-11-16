@@ -70,7 +70,7 @@ public:
     void ResetMarks();
 
 #if ENABLE_CONCURRENT_GC || ENABLE_PARTIAL_GC
-    void ResetWriteWatch(Recycler * recycler);
+    void ResetDirtyPages(Recycler * recycler);
     uint Rescan(Recycler * recycler, bool resetWriteWatch);
 #endif
     void MakeAllPagesReadOnly(Recycler* recycler);
@@ -112,10 +112,14 @@ public:
     }
 
 private:
+#if ENABLE_CONCURRENT_GC
+#if ENABLE_WRITE_WATCH
     static UINT GetWriteWatchHelper(Recycler * recycler, DWORD writeWatchFlags, void* baseAddress, size_t regionSize,
         void** addresses, ULONG_PTR* count, LPDWORD granularity);
     static UINT GetWriteWatchHelperOnOOM(DWORD writeWatchFlags, _In_ void* baseAddress, size_t regionSize,
         _Out_writes_(*count) void** addresses, _Inout_ ULONG_PTR* count, LPDWORD granularity);
+#endif
+#endif
 
     static void * GetAddressFromIds(uint id1, uint id2)
     {
@@ -258,7 +262,7 @@ public:
     void ResetMarks();
 
 #if ENABLE_CONCURRENT_GC || ENABLE_PARTIAL_GC
-    void ResetWriteWatch(Recycler * recycler);
+    void ResetDirtyPages(Recycler * recycler);
     uint Rescan(Recycler * recycler, bool resetWriteWatch);
 #endif
     void MakeAllPagesReadOnly(Recycler* recycler);

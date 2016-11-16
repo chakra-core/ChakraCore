@@ -216,7 +216,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::RescanTrackedObject(FinalizableObj
     }
 
     RECYCLER_STATS_INC(recycler, trackCount);
-    RECYCLER_STATS_INC_IF(ObjectInfo(objectIndex) & FinalizeBit, recycler, finalizeCount);
+    RECYCLER_STATS_INC_IF(this->ObjectInfo(objectIndex) & FinalizeBit, recycler, finalizeCount);
 
     // We have processed this object as tracked, we can clear the NewTrackBit
     this->ObjectInfo(objectIndex) &= ~NewTrackBit;

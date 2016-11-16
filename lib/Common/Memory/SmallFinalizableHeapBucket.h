@@ -57,12 +57,15 @@ protected:
 #endif
 };
 
-#define DeclareFinalizableHeapBucket(type) \
-    template <class TBlockAttributes> class Small##type##HeapBucketT : public SmallFinalizableHeapBucketBaseT<Small##type##HeapBlockT<TBlockAttributes> >{};
-
-DeclareFinalizableHeapBucket(Finalizable);
+template <class TBlockAttributes> 
+class SmallFinalizableHeapBucketT : public SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlockT<TBlockAttributes> >
+{
+};
 #ifdef RECYCLER_WRITE_BARRIER
-DeclareFinalizableHeapBucket(FinalizableWithBarrier);
+template <class TBlockAttributes> 
+class SmallFinalizableWithBarrierHeapBucketT : public SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes> >
+{
+};
 #endif
 
 typedef SmallFinalizableHeapBucketT<MediumAllocationBlockAttributes> MediumFinalizableHeapBucket;
@@ -195,6 +198,18 @@ class HeapBucketGroup
         static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
         {
             return heapBucketGroup->heapBucket;
+        }
+    };
+
+    template <>
+    class BucketGetter<(ObjectInfoBits)(FinalizeBit | LeafBit)>
+    {
+    public:
+        typedef typename SmallHeapBlockType<(ObjectInfoBits)(FinalizeBit | LeafBit), TBlockAttributes>::BucketType BucketType;
+        static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
+        {
+            // TODO: SWB implemente finalizable leaf bucket
+            return heapBucketGroup->finalizableHeapBucket;
         }
     };
 

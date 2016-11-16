@@ -39,7 +39,7 @@ SAVE_WRITE_BARRIER_MACROS()
 #undef FieldNoBarrier
 #endif
 
-#if defined(GLOBAL_FORCE_USE_WRITE_BARRIER) || defined(FORCE_USE_WRITE_BARRIER)
+#if GLOBAL_ENABLE_WRITE_BARRIER || defined(FORCE_USE_WRITE_BARRIER)
 // Various macros for defining field attributes
 #define Field(type, ...) \
     typename WriteBarrierFieldTypeTraits<type, ##__VA_ARGS__>::Type

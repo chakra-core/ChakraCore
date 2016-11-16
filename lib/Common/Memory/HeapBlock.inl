@@ -11,8 +11,8 @@ SmallHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsigned char a
 {
     Assert(this->address != nullptr);
     Assert(this->segment != nullptr);
-    Assert(this->ObjectInfo(GetAddressIndex(address)) == 0);
     ushort index = GetAddressIndex(address);
+    Assert(this->ObjectInfo(index) == 0);
     Assert(index != SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit);
     ObjectInfo(index) = attributes;
 }

@@ -396,7 +396,7 @@ public:
         memmove((void *)dst, src, sizeof(WriteBarrierPtr) * count);
         WriteBarrier(dst, count);
     }
-    static void CopyArray(WriteBarrierPtr * dst, size_t dstCount, T const* src, size_t srcCount)
+    static void CopyArray(WriteBarrierPtr * dst, size_t dstCount, T* src, size_t srcCount)
     {
         js_memcpy_s((void *)dst, sizeof(WriteBarrierPtr) * dstCount, src, sizeof(T *) * srcCount);
         WriteBarrier(dst, dstCount);
