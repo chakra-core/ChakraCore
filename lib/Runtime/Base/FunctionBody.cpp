@@ -747,10 +747,10 @@ namespace Js
         return !!pActiveFuncs->TestAndSet(this->GetFunctionNumber());
     }
 
-    void FunctionBody::UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData **dataSet) const
+    void FunctionBody::UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData **dataSet, uint count) const
     {
         FunctionCodeGenRuntimeData *inlineeData;
-        for (uint i = 0; i < this->GetProfiledCallSiteCount(); i++)
+        for (uint i = 0; i < count; i++)
         {
             for (inlineeData = dataSet[i]; inlineeData; inlineeData = inlineeData->GetNext())
             {
@@ -762,16 +762,15 @@ namespace Js
     void FunctionBody::UpdateActiveFunctionSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *callSiteData) const
     {
         // Always walk the inlinee and ldFldInlinee data (if we have them), as they are different at each call site.
-
         if (callSiteData)
         {
             if (callSiteData->GetInlinees())
             {
-                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData->GetInlinees());
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData->GetInlinees(), this->GetProfiledCallSiteCount());
             }
             if (callSiteData->GetLdFldInlinees())
             {
-                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData->GetLdFldInlinees());
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData->GetLdFldInlinees(), this->GetInlineCacheCount());
             }
         }
 
@@ -782,12 +781,15 @@ namespace Js
             return;
         }
         FunctionCodeGenRuntimeData **data = this->GetCodeGenRuntimeData();
-        if (data == nullptr)
+        if (data != nullptr)
         {
-            return;
+            this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, data, this->GetProfiledCallSiteCount());
         }
-
-        this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, data);
+        data = this->GetCodeGenGetSetRuntimeData();
+        if (data != nullptr)
+        {
+            this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, data, this->GetInlineCacheCount());
+        }
     }
 
     bool FunctionBody::DoRedeferFunction(uint inactiveThreshold) const
