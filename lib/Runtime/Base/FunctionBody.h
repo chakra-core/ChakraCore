@@ -2581,7 +2581,7 @@ namespace Js
         bool IsActiveFunction(ActiveFunctionSet * pActiveFuncs) const;
         bool TestAndUpdateActiveFunctions(ActiveFunctionSet * pActiveFuncs) const;
         void UpdateActiveFunctionSet(ActiveFunctionSet * pActiveFuncs, FunctionCodeGenRuntimeData *callSiteData) const;
-        void UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData **dataSet, uint count) const;
+        void UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *parentData, FunctionCodeGenRuntimeData **dataSet, uint count) const;
         uint GetInactiveCount() const { return inactiveCount; }
         void SetInactiveCount(uint count) { inactiveCount = count; }
         void IncrInactiveCount(uint increment);

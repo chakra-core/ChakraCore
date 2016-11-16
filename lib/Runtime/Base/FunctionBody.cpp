@@ -747,14 +747,18 @@ namespace Js
         return !!pActiveFuncs->TestAndSet(this->GetFunctionNumber());
     }
 
-    void FunctionBody::UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData **dataSet, uint count) const
+    void FunctionBody::UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *parentData, FunctionCodeGenRuntimeData **dataSet, uint count) const
     {
         FunctionCodeGenRuntimeData *inlineeData;
         for (uint i = 0; i < count; i++)
         {
             for (inlineeData = dataSet[i]; inlineeData; inlineeData = inlineeData->GetNext())
             {
-                inlineeData->GetFunctionBody()->UpdateActiveFunctionSet(pActiveFuncs, inlineeData);
+                // inlineeData == parentData indicates a cycle in the structure. We've already processed parentData, so don't descend.
+                if (inlineeData != parentData)
+                {
+                    inlineeData->GetFunctionBody()->UpdateActiveFunctionSet(pActiveFuncs, inlineeData);
+                }
             }
         }
     }
@@ -766,11 +770,11 @@ namespace Js
         {
             if (callSiteData->GetInlinees())
             {
-                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData->GetInlinees(), this->GetProfiledCallSiteCount());
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData, callSiteData->GetInlinees(), this->GetProfiledCallSiteCount());
             }
             if (callSiteData->GetLdFldInlinees())
             {
-                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData->GetLdFldInlinees(), this->GetInlineCacheCount());
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, callSiteData, callSiteData->GetLdFldInlinees(), this->GetInlineCacheCount());
             }
         }
 
@@ -783,12 +787,12 @@ namespace Js
         FunctionCodeGenRuntimeData **data = this->GetCodeGenRuntimeData();
         if (data != nullptr)
         {
-            this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, data, this->GetProfiledCallSiteCount());
+            this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetProfiledCallSiteCount());
         }
         data = this->GetCodeGenGetSetRuntimeData();
         if (data != nullptr)
         {
-            this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, data, this->GetInlineCacheCount());
+            this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetInlineCacheCount());
         }
     }
 
