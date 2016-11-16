@@ -108,4 +108,11 @@
        <compile-flags>-wasm</compile-flags>
     </default>
 </test>
+<test>
+    <default>
+       <files>api.js</files>
+       <baseline>baselines\api.baseline</baseline>
+       <compile-flags>-wasm</compile-flags>
+    </default>
+</test>
 </regress-exe>
