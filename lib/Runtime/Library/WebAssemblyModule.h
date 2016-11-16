@@ -112,7 +112,7 @@ public:
     Wasm::WasmImport * GetTableImport() const { return m_tableImport; }
     uint32 GetImportedFunctionCount() const { return m_importedFunctionCount; }
 
-    uint GetOffsetFromInit(const Wasm::WasmNode& initexpr, Var* moduleEnv) const;
+    uint GetOffsetFromInit(const Wasm::WasmNode& initexpr, const class WebAssemblyEnvironment* env) const;
 
     void AddGlobal(Wasm::ReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init);
     uint32 GetGlobalCount() const;
