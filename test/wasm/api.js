@@ -3,6 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+let verbose = false;
+let doInvalid = true;
+
 const buf = readbuffer("binaries/api.wasm");
 const imports = {
   test: {
@@ -54,8 +57,13 @@ function test(module, {exports} = {}) {
 }
 
 async function testInvalidCases(tests) {
+  if (!doInvalid) return;
+
   let i = 0;
   for (const testCase of tests) {
+    if (verbose) {
+      console.log(testCase);
+    }
     try {
       await testCase();
       console.log(`Test ${i++}: Should have thrown error`);
@@ -93,7 +101,6 @@ const invalidImports = [
   123,
   function() {},
   {wrongNamespace: imports.test, table: imports.table},
-  new Proxy(imports, {get(target, name) {return target[name];}}),
 ];
 
 async function testValidate() {
@@ -116,7 +123,6 @@ async function testCompile() {
   ]);
   const module = await WebAssembly.compile(buf);
   test(module);
-  return module;
 }
 
 async function testInstantiate(baseModule) {
@@ -155,9 +161,9 @@ async function testInstanceConstructor(module) {
     ...(invalidImports.map(i => () => new WebAssembly.Instance(module, i))),
     () => new WebAssembly.Instance(module, overrideImports({fn: 4})),
     () => new WebAssembly.Instance(module, overrideImports({fn2: instance.exports.fn /*wrong signature*/})),
-    () => new WebAssembly.Instance(module, overrideImports({mem: 123})),
-    () => new WebAssembly.Instance(module, overrideImports({mem: ""})),
-    () => new WebAssembly.Instance(module, overrideImports({mem: {}})),
+    () => new WebAssembly.Instance(module, overrideImports({memory: 123})),
+    () => new WebAssembly.Instance(module, overrideImports({memory: ""})),
+    () => new WebAssembly.Instance(module, overrideImports({memory: {}})),
     () => new WebAssembly.Instance(module, overrideImports({table: 123})),
     () => new WebAssembly.Instance(module, overrideImports({table: "135"})),
     () => new WebAssembly.Instance(module, overrideImports({table: {}})),
@@ -271,7 +277,8 @@ async function testTableApi(baseModule) {
     () => Reflect.apply(WebAssembly.Table.prototype.get, table, [100]),
   ]);
 
-  const {exports: {fn, call_i32, call_f32}} = new WebAssembly.Instance(baseModule, overrideImports({table}));
+  const {instance: {exports: {"f32.load": load}}} = await WebAssembly.instantiate(readbuffer("f32address.wasm"), {});
+  const {exports: {fn, call_i32, call_f32}} = new WebAssembly.Instance(baseModule, overrideImports({table, fn2: load}));
   const {exports: {fn: myFn}} = new WebAssembly.Instance(baseModule, overrideImports({fn: () => 123456}));
   await testInvalidCases([
     () => table.set(30, fn),
@@ -309,13 +316,28 @@ async function testTableApi(baseModule) {
 }
 
 async function main() {
-  await testValidate();
-  const baseModule = await testCompile();
-  await testInstantiate(baseModule);
-  await testModuleConstructor();
-  await testInstanceConstructor(baseModule);
-  await testMemoryApi(baseModule);
-  await testTableApi(baseModule);
+  const args = WScript.Arguments;
+  verbose = args.includes("-v");
+  doInvalid = !args.includes("-i");
+  const [start = 0, end = 99] = args
+    .filter(a => !a.startsWith("-"))
+    .map(a => parseInt(a));
+
+  const baseModule = new WebAssembly.Module(buf);
+  const tests = [
+    testValidate,
+    testCompile,
+    testInstantiate,
+    testModuleConstructor,
+    testInstanceConstructor,
+    testMemoryApi,
+    testTableApi,
+  ];
+  for (let i = 0; i < tests.length; ++i) {
+    if (i >= start && i <= end) {
+      await tests[i](baseModule);
+    }
+  }
 }
 
 main().then(() => console.log("done"), err => {

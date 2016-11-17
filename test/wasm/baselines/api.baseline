@@ -45,13 +45,11 @@ Test 11: Expected Error: TypeError: Object expected
 Test 12: Expected Error: TypeError: Object expected
 Test 13: Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
 Test 14: Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
-Test 15: Should have thrown error
+Test 15: Expected Error: TypeError: Object expected
 Test 16: Expected Error: TypeError: Object expected
 Test 17: Expected Error: TypeError: Object expected
-Test 18: Expected Error: TypeError: Object expected
+Test 18: Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
 Test 19: Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
-Test 20: Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
-Test 21: Should have thrown error
 Testing module
 exports
 [{"kind":"function", "name":"fn"}, {"kind":"global", "name":"g1"}, {"kind":"function", "name":"f1"}, {"kind":"global", "name":"g2"}, {"kind":"table", "name":"table"}, {"kind":"function", "name":"fn2"}, {"kind":"function", "name":"call_i32"}, {"kind":"memory", "name":"mem"}, {"kind":"function", "name":"call_f32"}, {"kind":"global", "name":"g3"}, {"kind":"function", "name":"load"}]
@@ -104,15 +102,14 @@ Test 3: Expected Error: TypeError: Object expected
 Test 4: Expected Error: TypeError: Object expected
 Test 5: Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
 Test 6: Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
-Test 7: Should have thrown error
-Test 8: Expected Error: TypeError: Function expected
-Test 9: Should have thrown error
-Test 10: Should have thrown error
-Test 11: Should have thrown error
-Test 12: Should have thrown error
+Test 7: Expected Error: TypeError: Function expected
+Test 8: Expected Error: TypeError: Function called with invalid signature
+Test 9: Expected Error: TypeError: WebAssembly.Memory object expected
+Test 10: Expected Error: TypeError: WebAssembly.Memory object expected
+Test 11: Expected Error: TypeError: WebAssembly.Memory object expected
+Test 12: Expected Error: TypeError: WebAssembly.Table object expected
 Test 13: Expected Error: TypeError: WebAssembly.Table object expected
 Test 14: Expected Error: TypeError: WebAssembly.Table object expected
-Test 15: Expected Error: TypeError: WebAssembly.Table object expected
 Testing instance
 f1: 5
 fn: 1
@@ -195,7 +192,7 @@ Is element in table the same as the one exported: true
 Unset element should be null: null
 call_i32(0): 123456
 call_i32(1): 1
-call_f32(2): 2.140000104904175
+call_f32(2): NaN
 call_i32(0): 1
 call_i32(29): 123456
 call_i32(30): 123456

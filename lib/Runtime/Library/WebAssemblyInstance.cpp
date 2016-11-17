@@ -324,8 +324,13 @@ void WebAssemblyInstance::LoadImports(
             if (AsmJsScriptFunction::IsWasmScriptFunction(prop))
             {
                 Assert(env->GetWasmFunction(counter) == nullptr);
+                AsmJsScriptFunction* func = AsmJsScriptFunction::FromVar(prop);
+                if (!wasmModule->GetSignature(counter)->IsEquivalent(func->GetSignature()))
+                {
+                    JavascriptError::ThrowTypeError(ctx, WASMERR_SignatureMismatch);
+                }
                 // Imported Wasm functions can be called directly
-                env->SetWasmFunction(counter, AsmJsScriptFunction::FromVar(prop));
+                env->SetWasmFunction(counter, func);
             }
             break;
         }
