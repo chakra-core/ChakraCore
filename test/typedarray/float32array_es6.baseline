@@ -335,9 +335,31 @@ foo == bar
 byteLength = 48
 
 test10
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Float32Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Float32Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11.1
 10
 constructor is

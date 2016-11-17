@@ -7,32 +7,32 @@ WScript.LoadScriptFile("util.js");
 
 function oneTest(a)
 {
-a[1] = 0x80000000;
-a[5] = 10;
-WScript.Echo(a[5]);
-if (Object.getOwnPropertyDescriptor(a, 100000) != undefined) {
-    WScript.Echo('FAIL');
-}
+    a[1] = 0x80000000;
+    a[5] = 10;
+    WScript.Echo(a[5]);
+    if (Object.getOwnPropertyDescriptor(a, 100000) != undefined) {
+        WScript.Echo('FAIL');
+    }
 
-try {
-    var pro = Uint32Array.prototype;
-    WScript.Echo(pro.toString());
+    try {
+        var pro = Uint32Array.prototype;
+        WScript.Echo(pro.toString());
 
-    WScript.Echo("prototype is");
-    printObj(pro);
-} catch(e) {
-    WScript.Echo("constructor is");
-    printObj(Uint32Array);
-}
+        WScript.Echo("prototype is");
+        printObj(pro);
+    } catch(e) {
+        WScript.Echo("constructor is");
+        printObj(Uint32Array);
+    }
 
-WScript.Echo("object is");
-printObj(a);
+    WScript.Echo("object is");
+    printObj(a);
 
-a[20] =20;
-a.foo ='bar';
-WScript.Echo("object after expando is");
-printObj(a);
-WScript.Echo("");
+    a[20] =20;
+    a.foo ='bar';
+    WScript.Echo("object after expando is");
+    printObj(a);
+    WScript.Echo("");
 }
 
 WScript.Echo("test1");
@@ -57,7 +57,7 @@ var test5 = new Uint32Array(arrayBuffer, 4, 6);
 oneTest(test5);
 
 WScript.Echo("test6");
-var mybuffer = test1.buffer; 
+var mybuffer = test1.buffer;
 WScript.Echo(mybuffer);
 var test6 = new Uint32Array(mybuffer);
 oneTest(test6);
@@ -83,38 +83,25 @@ oneTest(test9);
 
 WScript.Echo("test9.2");
 test9.set(test5);
-oneTest(test9); 
+oneTest(test9);
 
 WScript.Echo("test10");
-try {
 var test10 = new Uint32Array({});
 oneTest(test10);
-}
-catch(e)
-{
-WScript.Echo("succeed with catching" + e); 
-}
 
 WScript.Echo("test10.1");
 try {
-var test101 = new Uint32Array(test1.buffer, 3, 6);
-oneTest(test101);
+    var test101 = new Uint32Array(test1.buffer, 3, 6);
+    oneTest(test101);
 }
 catch(e)
 {
-WScript.Echo("succeed with catching" + e); 
+    WScript.Echo("succeed with catching" + e);
 }
 
 WScript.Echo("test11");
-try
-{
 var test11 = new Uint32Array('abcdefg');
 oneTest(test11);
-}
-catch(e)
-{
-WScript.Echo("succeed with catching" + e); 
-}
 
 WScript.Echo("test11.1");
 var test11 = new Uint32Array(new String('abcdefg'));
@@ -132,37 +119,37 @@ oneTest(test13);
 
 
 WScript.Echo("test14");
-try 
+try
 {
-var test14 = new Uint32Array(arrayBuffer, 0, 0);
-oneTest(test14);
+    var test14 = new Uint32Array(arrayBuffer, 0, 0);
+    oneTest(test14);
 }
 catch(e)
 {
-WScript.Echo("succeed with catching" + e); 
+    WScript.Echo("succeed with catching" + e);
 }
 
 
 WScript.Echo("test15");
-try 
+try
 {
-var test15 = new Uint32Array(arrayBuffer, 0, 40);
-oneTest(test15);
+    var test15 = new Uint32Array(arrayBuffer, 0, 40);
+    oneTest(test15);
 }
 catch(e)
 {
-WScript.Echo("succeed with catching" + e); 
+    WScript.Echo("succeed with catching" + e);
 }
 
 WScript.Echo("test16");
-try 
+try
 {
-var test16 = new Uint32Array(arrayBuffer, 40, 4);
-oneTest(test16);
+    var test16 = new Uint32Array(arrayBuffer, 40, 4);
+    oneTest(test16);
 }
 catch(e)
 {
-WScript.Echo("succeed with catching" + e); 
+    WScript.Echo("succeed with catching" + e);
 }
 
 WScript.Echo("test17");

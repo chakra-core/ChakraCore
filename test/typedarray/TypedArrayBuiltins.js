@@ -9,6 +9,18 @@ if (this.WScript && this.WScript.LoadScriptFile) { // Check for running in ch
     this.WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 }
 
+var TypedArrayCtors = [
+    'Int8Array',
+    'Uint8Array',
+    'Uint8ClampedArray',
+    'Int16Array',
+    'Uint16Array',
+    'Int32Array',
+    'Uint32Array',
+    'Float32Array',
+    'Float64Array'
+];
+
 function mangle(u8) {
     u8.length = -2;
     u8.byteLength = 2000;
@@ -46,6 +58,109 @@ var tests = [
         }
     },
     {
+        name: "TypedArray constructors treat explicit undefined/null first argument as zero",
+        body: function () {
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor](undefined);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(undefined) yields an array with zero length");
+
+                ta = new this[taCtor](undefined, undefined, undefined);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(undefined, undefined, undefined) yields an array with zero length");
+
+                ta = new this[taCtor](null);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(null) yields an array with zero length");
+
+                ta = new this[taCtor](null, null, null);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(null, null, null) yields an array with zero length");
+            }
+        }
+    },
+    {
+        name: "TypedArray constructors treat bool true and false first argument as 1 and 0 respectively",
+        body: function () {
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor](true);
+                assert.areEqual(1, ta.length, "new " + taCtor + "(true) yields an array with length one");
+
+                ta = new this[taCtor](false);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(false) yields an array with length zero");
+            }
+        }
+    },
+    {
+        name: "TypedArray constructors treat string first argument using conversion to index via ToIndex",
+        body: function () {
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor]("0");
+                assert.areEqual(0, ta.length, "new " + taCtor + "('0') yields an array with length zero");
+
+                ta = new this[taCtor]("25");
+                assert.areEqual(25, ta.length, "new " + taCtor + "('25') yields an array with length 25");
+
+                ta = new this[taCtor]("abc");
+                assert.areEqual(0, ta.length, "new " + taCtor + "('abc') yields an array with length zero because NaN converts to zero");
+            }
+        }
+    },
+    {
+        name: "TypedArray constructors throw TypeError when first argument is a symbol",
+        body: function () {
+            for (let taCtor of TypedArrayCtors) {
+                assert.throws(function () { new this[taCtor](Symbol()); }, TypeError, "new " + taCtor + "(<symbol>) throws TypeError", "Number expected");
+            }
+        }
+    },
+    {
+        name: "TypedArray constructors treat object first argument as array-like (unless iterable) (and therefore do not pass them through ToIndex)",
+        body: function () {
+            let objEmpty = { };
+            let objWithLength = { length: 2 };
+            let objWithToString = { toString() { return 3; } };
+            let objWithValueOf = { valueOf() { return 4; } };
+            let objWithToPrimitive = { [Symbol.toPrimitive]() { return 5; } };
+
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor](objEmpty);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(<empty object>) yields an array with length zero");
+
+                ta = new this[taCtor](objWithLength);
+                assert.areEqual(2, ta.length, "new " + taCtor + "(<object with 'length: 2' property>) yields an array with length two");
+
+                ta = new this[taCtor](objWithToString);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(<object with toString method>) yields an array with length zero");
+
+                ta = new this[taCtor](objWithValueOf);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(<object with valueOf method>) yields an array with length zero");
+
+                ta = new this[taCtor](objWithToPrimitive);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(<object with @@toPrimitive method>) yields an array with length zero");
+            }
+        }
+    },
+    {
+        name: "TypedArray constructors create array from iterable object",
+        body: function () {
+            let objIterable = {
+                [Symbol.iterator]() {
+                    let i = 0;
+                    return {
+                        next() {
+                            return { done: i == 3, value: i++ };
+                        }
+                    };
+                }
+            };
+
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor](objIterable);
+                assert.areEqual(3, ta.length, "new " + taCtor + "(<iterable object with three elements>) yields an array with length three");
+                assert.areEqual(0, ta[0], "[" + taCtor + "]: first element is zero");
+                assert.areEqual(1, ta[1], "[" + taCtor + "]: second element is one");
+                assert.areEqual(2, ta[2], "[" + taCtor + "]: third element is two");
+            }
+        }
+    },
+    {
         name: "TypedArray constructed out of an iterable object",
         body: function () {
             function getIterableObj (array)
@@ -79,19 +194,7 @@ var tests = [
                 };
             }
 
-            var TypedArray = [
-                'Int8Array',
-                'Uint8Array',
-                'Uint8ClampedArray',
-                'Int16Array',
-                'Uint16Array',
-                'Int32Array',
-                'Uint32Array',
-                'Float32Array',
-                'Float64Array'
-            ];
-
-            for(var t of TypedArray) {
+            for(var t of TypedArrayCtors) {
                 var arr = new this[t](getIterableObj([1,2,3,4]));
                 assert.areEqual(3, arr.length, "TypedArray " + t + " created from iterable has length == 3");
                 assert.areEqual(1, arr[0], "TypedArray " + t + " created from iterable has element #0 == 1");
@@ -101,7 +204,7 @@ var tests = [
 
             // change array's iterator
             (function() {
-                for(var t of TypedArray) {
+                for(var t of TypedArrayCtors) {
                     var a = [1,2,3,4];
                     a[Symbol.iterator] = getIterableObj([99,0])[Symbol.iterator];
                     var arr = new this[t](a);
