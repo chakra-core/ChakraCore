@@ -7,6 +7,7 @@ option(CC_ENABLE_FULL_LTO      "Enable Full Link Time Optimization (CLANG 3.9+)"
 option(CC_ENABLE_THIN_LTO      "Enable Thin Link Time Optimization (CLANG 3.9+)")
 option(CC_ENABLE_JIT           "Enable JIT support" ON)
 option(CC_AUTODETECT_CPU       "Autodetect Target CPU")
+option(CC_AUTODETECT_ICU       "Autodetect ICU (International Components for Unicode) library")
 
 if(CC_AUTODETECT_CPU)
   if( ${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64|amd64|AMD64")
@@ -74,7 +75,18 @@ function(clr_unknown_arch)
   endif()
 endfunction()
 
-if(ICU_INCLUDE_PATH)
+if(CC_AUTODETECT_ICU)
+  find_package(PkgConfig)
+  # Find ICU Common and Data files
+  pkg_check_modules(PKGCFG_ICU_UC icu-uc)
+  # Find ICU Internationalization Library.
+  pkg_check_modules(PKGCFG_ICU_I18N icu-i18n)
+  if(PKGCFG_ICU_UC_FOUND AND PKGCFG_ICU_I18N_FOUND)
+    # This should include internationalization.
+    set(ICU_CC_PATH "${PKGCFG_ICU_UC_INCLUDE_DIRS}")
+    set(ICULIB      "${PKGCFG_ICU_UC_LDFLAGS}")
+  endif()
+elseif(ICU_INCLUDE_PATH)
   add_definitions(-DHAS_REAL_ICU=1)
   set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
   find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
