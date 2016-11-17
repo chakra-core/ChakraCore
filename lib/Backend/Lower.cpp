@@ -20440,10 +20440,17 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
         // We branch based on the zero-ness of the integer argument to two checks against the boolean argument
         this->m_lowererMD.GenerateTaggedZeroTest(srcInt->AsRegOpnd(), instr, firstFalse);
         // If it's not zero, then it's either 1, in which case it's true, or it's something else, in which
-        // case we have an issue.
-        InsertCompareBranch(IR::IntConstOpnd::New((((IntConstType)1) << Js::VarTag_Shift) + Js::AtomTag, IRType::TyVar, this->m_func), srcInt->AsRegOpnd(), Js::OpCode::BrNeq_A, forceInequal, instr, true);
+        // case the two will compare as inequal
+        InsertCompareBranch(
+            IR::IntConstOpnd::New((((IntConstType)1) << Js::VarTag_Shift) + Js::AtomTag, IRType::TyVar, this->m_func),
+            srcInt->AsRegOpnd(),
+            Js::OpCode::BrNeq_A,
+            isBranchNotCompare ? inequalResultTarget : forceInequal, // in the case of branching, we can go straight to the inequal target; for compares, we need to load the value
+            instr,
+            true);
         if (isBranchNotCompare)
         {
+            // if the int evaluates to 1 (true)
             InsertCompareBranch(
                 srcBool,
                 LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue),
@@ -20451,6 +20458,8 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
                 targetInstr,
                 instr);
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelFallthrough, this->m_func));
+
+            // if the int evaluates to 0 (false)
             instr->InsertBefore(firstFalse);
             InsertCompareBranch(
                 srcBool,
@@ -20459,11 +20468,10 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
                 targetInstr,
                 instr);
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelFallthrough, this->m_func));
-            instr->InsertBefore(forceInequal);
-            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, inequalResultTarget, this->m_func));
         }
         else
         {
+            // the int resolves to 1 (true)
             // Load either the bool or its complement into the dst reg, depending on the opcode
             if (isNegOp)
             {
@@ -20472,19 +20480,22 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
             // If this case is hit, the result value is the same as the value in srcBool
             this->InsertMove(instr->GetDst(), srcBool, instr);
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
+
+            // the int resolves to 0 (false)
             // Handle the complement case
             if (!isNegOp)
             {
                 instr->InsertBefore(firstFalse);
             }
-
             // dst = src
             // dst = dst ^ (true ^ false) (= !src)
             LowererMD::CreateAssign(instr->GetDst(), srcBool, instr);
             ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
             IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func, true);
             instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), instr->GetDst(), xorval, instr->m_func));
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
 
+            // the int resolves to something other than 0 or 1 (inequal to a bool)
             instr->InsertBefore(forceInequal);
             LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, inequalResultValue), instr);
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
