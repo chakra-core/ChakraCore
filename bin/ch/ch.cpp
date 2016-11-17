@@ -456,11 +456,6 @@ HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, 
     IfFailGo(RunScript(fileName, fileContents, bcBuffer, fullPath));
 
 Error:
-    if (bcBuffer != nullptr)
-    {
-        delete[] bcBuffer;
-    }
-
     if (current != JS_INVALID_REFERENCE)
     {
         ChakraRTInterface::JsSetCurrentContext(current);
@@ -470,6 +465,12 @@ Error:
     {
         ChakraRTInterface::JsDisposeRuntime(runtime);
     }
+
+    if (bcBuffer != nullptr)
+    {
+        delete[] bcBuffer;
+    }
+
     return hr;
 }
 
