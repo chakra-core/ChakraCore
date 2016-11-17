@@ -6676,7 +6676,6 @@ IRBuilder::BuildBrReg2(Js::OpCode newOpcode, uint32 offset, uint targetOffset, J
     else
     {
         branchInstr = IR::BranchInstr::New(newOpcode, nullptr, src1Opnd, src2Opnd, m_func);
-        branchInstr->m_isSwitchBr = true;
         this->AddBranchInstr(branchInstr, offset, targetOffset);
     }
 }
@@ -7474,7 +7473,8 @@ IRBuilder::DoClosureRegCheck(Js::RegSlot reg)
     }
     if (reg == m_func->GetJITFunctionBody()->GetEnvReg() ||
         reg == m_func->GetJITFunctionBody()->GetLocalClosureReg() ||
-        reg == m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg())
+        reg == m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg() ||
+        reg == m_func->GetJITFunctionBody()->GetParamClosureReg())
     {
         Js::Throw::FatalInternalError();
     }

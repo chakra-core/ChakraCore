@@ -227,6 +227,10 @@ namespace Js
         for (int i = 0; i < WAsmJs::LIMIT; ++i)
         {
             WAsmJs::Types type = (WAsmJs::Types)i;
+            if (func->GetTypedRegisterAllocator().IsTypeExcluded(type))
+            {
+                continue;
+            }
             uint constCount = func->GetTypedRegisterAllocator().GetRegisterSpace(type)->GetConstCount();
             if (constCount > 0)
             {
@@ -404,6 +408,7 @@ namespace Js
             break;
         }
         case OpCodeAsmJs::LdArr_Func:
+        case OpCodeAsmJs::LdArr_WasmFunc:
             Output::Print(_u(" R%d = R%d[I%d]"), data->Value, data->Instance, data->SlotIndex);
             break;
         case OpCodeAsmJs::StSlot_Int:
@@ -534,6 +539,20 @@ namespace Js
             heapTag = _u("HEAPF32"); valueTag = 'F'; break;
         case ArrayBufferView::TYPE_FLOAT64:
             heapTag = _u("HEAPF64"); valueTag = 'D'; break;
+        case ArrayBufferView::TYPE_INT64:
+            heapTag = _u("HEAPI64"); valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_INT8_TO_INT64:
+            heapTag = _u("HEAP8"); valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_UINT8_TO_INT64:
+            heapTag = _u("HEAPU8"); valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_INT16_TO_INT64:
+            heapTag = _u("HEAP16"); valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_UINT16_TO_INT64:
+            heapTag = _u("HEAPU16"); valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_INT32_TO_INT64:
+            heapTag = _u("HEAP32"); valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_UINT32_TO_INT64:
+            heapTag = _u("HEAPU32"); valueTag = 'L'; break;
         default:
             Assert(false);
             __assume(false);
@@ -951,21 +970,29 @@ namespace Js
         switch (data->ViewType)
         {
         case ArrayBufferView::TYPE_INT8:
+        case ArrayBufferView::TYPE_INT8_TO_INT64:
             heapTag = _u("HEAP8"); break;
         case ArrayBufferView::TYPE_UINT8:
+        case ArrayBufferView::TYPE_UINT8_TO_INT64:
             heapTag = _u("HEAPU8"); break;
         case ArrayBufferView::TYPE_INT16:
+        case ArrayBufferView::TYPE_INT16_TO_INT64:
             heapTag = _u("HEAP16"); break;
         case ArrayBufferView::TYPE_UINT16:
+        case ArrayBufferView::TYPE_UINT16_TO_INT64:
             heapTag = _u("HEAPU16"); break;
         case ArrayBufferView::TYPE_INT32:
+        case ArrayBufferView::TYPE_INT32_TO_INT64:
             heapTag = _u("HEAP32"); break;
         case ArrayBufferView::TYPE_UINT32:
+        case ArrayBufferView::TYPE_UINT32_TO_INT64:
             heapTag = _u("HEAPU32"); break;
         case ArrayBufferView::TYPE_FLOAT32:
             heapTag = _u("HEAPF32"); break;
         case ArrayBufferView::TYPE_FLOAT64:
             heapTag = _u("HEAPF64"); break;
+        case ArrayBufferView::TYPE_INT64:
+            heapTag = _u("HEAPI64"); break;
         default:
             Assert(false);
             __assume(false);

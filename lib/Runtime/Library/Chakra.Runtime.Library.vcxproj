@@ -160,6 +160,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyInstance.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyMemory.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyModule.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyTable.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -292,10 +293,11 @@
     <ClInclude Include="WebAssemblyInstance.h" />
     <ClInclude Include="WebAssemblyMemory.h" />
     <ClInclude Include="WebAssemblyModule.h" />
+    <ClInclude Include="WebAssemblyTable.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\JavascriptFunctionA.asm">
-      <PreprocessorDefinitions Condition="'$(BuildJIT)'!='false'">%(PreprocessorDefinitions);_ENABLE_ASM_JS=1</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(BuildJIT)'!='false'">%(PreprocessorDefinitions);_ENABLE_DYNAMIC_THUNKS=1</PreprocessorDefinitions>
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
     </MASM>
     <ARMASM Include="$(MSBuildThisFileDirectory)arm\arm_DeferredDeserializeThunk.asm">

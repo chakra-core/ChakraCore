@@ -1,5 +1,6 @@
 if(CC_ENABLE_JIT)
     add_definitions(-D_ENABLE_ASM_JS=1)
+    add_definitions(-D_ENABLE_DYNAMIC_THUNKS=1)
 endif()
 
 set(CRLIB_SOURCE_CODES

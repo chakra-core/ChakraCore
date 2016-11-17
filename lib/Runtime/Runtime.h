@@ -243,6 +243,7 @@ namespace Js
     struct TickDelta;
     class ByteBlock;
     class FunctionInfo;
+    class FunctionProxy;
     class FunctionBody;
     class ParseableFunctionInfo;
     struct StatementLocation;
@@ -476,6 +477,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #else
 #define CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(builtin)
 #define CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(feature, m_scriptContext)
+#define CHAKRATEL_LANGSTATS_INC_DATACOUNT(feature)
 #endif
 #include "Base/ThreadContext.h"
 
@@ -515,8 +517,10 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/SharedArrayBuffer.h"
 #include "Library/TypedArray.h"
 #include "Library/JavascriptBoolean.h"
+#include "Library/WebAssemblyTable.h"
 #include "Library/WebAssemblyMemory.h"
 #include "Library/WebAssemblyModule.h"
+#include "Library/WebAssembly.h"
 
 #include "Language/ModuleRecordBase.h"
 #include "Language/SourceTextModuleRecord.h"
@@ -540,6 +544,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Debug/TTActionEvents.h"
 #include "Debug/TTEventLog.h"
 #endif
+
+#include "../WasmReader/WasmReader.h"
 
 //
 // .inl files

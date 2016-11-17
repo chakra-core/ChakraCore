@@ -32,6 +32,9 @@ namespace Js
         static const uint64     k_TwoTo31 = 0x41dfffffffc00000ull;
         static const uint64     k_NegTwoTo31 = 0xc1e0000000000000ull;
         static const uint64     k_TwoTo32 = 0x41efffffffe00000ull;
+        static const uint64     k_MinIntMinusOne = 0xc1e0000000200000ull;
+        static const uint64     k_UintMaxPlusOne = 0x41f0000000000000ull;
+        static const uint64     k_IntMaxPlusOne = 0x41e0000000000000ull;
 
         static const uint32     k_Float32Zero      = 0x00000000ul;
         static const uint32     k_Float32PointFive = 0x3F000000ul;
@@ -64,6 +67,8 @@ namespace Js
         static const BYTE AbsFloatCst[];
         static const BYTE SgnBitCst[];
         static double const UIntConvertConst[];
+        static uint64 const UInt64ConvertConst[];
+
         static double const MaskNegDouble[];
         static float const MaskNegFloat[];
 

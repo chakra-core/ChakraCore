@@ -1259,7 +1259,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(DateToISOStringCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Date_Prototype_toISOString);
 
         if (args.Info.Count == 0 || !JavascriptDate::Is(args[0]))
         {
@@ -1606,7 +1606,7 @@ namespace Js
 
     void JavascriptDate::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == TypeIds_Date, "We don't handle WinRT or other types of dates yet!");
+        TTDAssert(this->GetTypeId() == TypeIds_Date, "We don't handle WinRT or other types of dates yet!");
 
         double* millis = alloc.SlabAllocateStruct<double>();
         *millis = m_date.GetMilliSeconds();

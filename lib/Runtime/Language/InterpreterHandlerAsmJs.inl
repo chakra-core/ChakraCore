@@ -42,6 +42,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF3_WMS( CUSTOM_ASMJS     , Conv_VTL     , OP_InvalidWasmTypeConversion<false> , Long1Reg1    ) // convert var to int64
 
   DEF3_WMS( CUSTOM_ASMJS     , LdArr_Func   , OP_LdArrFunc                 , ElementSlot         )
+  DEF3_WMS( CUSTOM_ASMJS     , LdArr_WasmFunc,OP_LdArrWasmFunc             , ElementSlot         )
+  DEF3_WMS( CUSTOM_ASMJS     , CheckSignature,OP_CheckSignature            , Reg1IntConst1       )
   DEF4_WMS( TEMPLATE_ASMJS   , LdSlot_Db    , OP_LdSlotPrimitive           , ElementSlot, double )
   DEF4_WMS( TEMPLATE_ASMJS   , LdSlot_Int   , OP_LdSlotPrimitive           , ElementSlot, int    )
   DEF4_WMS( TEMPLATE_ASMJS   , LdSlot_Long  , OP_LdSlotPrimitive           , ElementSlot, int64  )
@@ -82,6 +84,7 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( L1toD1Mem        , Conv_LTD     , JavascriptConversion::LongToDouble                 )
   DEF2_WMS( L1toF1Mem        , Conv_ULTF    , JavascriptConversion::ULongToFloat                 )
   DEF2_WMS( L1toF1Mem        , Conv_LTF     , JavascriptConversion::LongToFloat                  )
+  DEF2_WMS( L1toI1Mem        , Conv_LTI     , (int)                                              ) // wrap int64 to int
   DEF2_WMS( I1toI1Mem        , Ld_Int       , (int)                                              )
   DEF2_WMS( L1toL1Mem        , Ld_Long      , (int64)                                            )
   DEF2_WMS( D1toD1Mem        , Ld_Db        , (double)                                           )
@@ -236,6 +239,7 @@ EXDEF2_WMS( F1toF1Mem        , Nearest_Flt      , Wasm::WasmMath::Nearest<float>
 EXDEF2_WMS( D1toD1Mem        , Trunc_Db         , Wasm::WasmMath::Trunc<double>                      )
 EXDEF2_WMS( D1toD1Mem        , Nearest_Db       , Wasm::WasmMath::Nearest<double>                    )
 EXDEF2_WMS( VtoI1Mem         , CurrentMemory_Int, OP_GetMemorySize                                   )
+EXDEF2_WMS( I1toI1Mem        , GrowMemory       , OP_GrowMemory                                      )
 EXDEF2    ( EMPTYASMJS       , Unreachable_Void , OP_Unreachable                                     )
 EXDEF2_WMS( D1toI1Ctx        , Conv_Check_DTI   , JavascriptConversion::F64TOI32                     )
 EXDEF2_WMS( F1toI1Ctx        , Conv_Check_FTI   , JavascriptConversion::F32TOI32                     )

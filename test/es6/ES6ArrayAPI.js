@@ -59,15 +59,7 @@ var tests = [
             assert.areEqual(3, b[3], "Integer-indexed properties are still added to the string");
 
             var a = { 0: 0, 1: 1, 2: 2, 3: 3, length: 4 };
-            var b = fromFnc.call(String, a);
-            assert.areEqual('object', typeof b, "Array.from.call(String, objectLikeArray) returns a String object");
-            assert.areEqual('4', b.toString(), "Array.from.call(String, objectLikeArray).toString() == '4'");
-            assert.areEqual(1, b.length, "Array.from.call(String, objectLikeArray).length === 1");
-            assert.isFalse(ArrayBuffer.isView(b), "Array.from.call(String, objectLikeArray) is not a TypedArray");
-            assert.areEqual(1, b[1], "Integer-indexed properties are still added to the string");
-            assert.areEqual(2, b[2], "Integer-indexed properties are still added to the string");
-            assert.areEqual(3, b[3], "Integer-indexed properties are still added to the string");
-            assert.areEqual('4', b[0], "Zero-th property of the string is set to the string value, can't overwrite this via put");
+            assert.throws(function () { fromFnc.call(String, a); }, TypeError, "String's properties are non-configurable", "Cannot redefine property '0'");
 
             assert.throws(function() { fromFnc.call(Uint8Array, { 0: 0, 1: 1, 2: 2, length: 5 }); }, TypeError, "Array.from tries to set length of the object returned from the constructor which will throw for TypedArrays", "Cannot define property: object is not extensible");
 
@@ -307,19 +299,10 @@ var tests = [
             assert.areEqual(4, b.length, "Array.of.call(Array, ...someStringsAndObjects).length === 4");
             assert.isFalse(ArrayBuffer.isView(b), "Array.of.call(Array, ...someStringsAndObjects) is not a TypedArray");
 
-            var b = ofFnc.call(String, 0, 1, 2, 3);
-            assert.areEqual('object', typeof b, "Array.of.call(String, 0, 1, 2, 3) returns a string object");
-            assert.areEqual(1, b.length, "Array.of.call(String, 0, 1, 2, 3) returns a string object with length 1");
-            assert.areEqual('4', b.toString(), "Array.of.call(String, 0, 1, 2, 3) returns a string object with value == '4'");
-            assert.areEqual('4', b[0], "Array.of.call(String, 0, 1, 2, 3) returns a string object s. s[0] == '4'");
-            assert.areEqual(1, b[1], "Array.of.call(String, 0, 1, 2, 3) returns a string object s. s[1] == 1");
-            assert.areEqual(2, b[2], "Array.of.call(String, 0, 1, 2, 3) returns a string object s. s[2] == 2");
-            assert.areEqual(3, b[3], "Array.of.call(String, 0, 1, 2, 3) returns a string object s. s[3] == 3");
+            assert.throws(function () { ofFnc.call(String, 0, 1, 2, 3); }, TypeError, "String's properties are non-configurable", "Cannot redefine property '0'");
 
             assert.areEqual([], ofFnc.call(Array), "Array.of.call(Array) returns empty array");
             assert.areEqual([], ofFnc.call(), "Array.of.call() returns empty array");
-            assert.areEqual(new String(0), ofFnc.call(String), "Array.of.call(String) returns empty string");
-            assert.areEqual("0", ofFnc.call(String).toString(), "Array.of.call(String) returns empty string");
         }
     },
     {
@@ -641,6 +624,44 @@ var tests = [
                 delete String.prototype[2];
                 delete String.prototype.length;
             }
+        }
+    },
+    {
+        name: "Array methods trying to create a data property on non-configurable slot and fail",
+        body: function () {
+            var returnedArr = {};
+            Object.defineProperty(returnedArr, '1', { configurable: false});
+
+            var arr = [11, 21];
+            Object.defineProperty(arr.constructor, Symbol.species, { get : function () {  return function() { 
+                return returnedArr; 
+            } } } );
+
+            function test(arr, desc) {
+                desc = desc + " has species which gives an array with non-config property, validating on ";
+                var error = "Cannot redefine property '1'";
+                assert.throws(function () { Array.prototype.map.call(arr, function (a) { return a;}); }, TypeError, desc + "map", error);
+                assert.throws(function () { Array.prototype.filter.call(arr, function (a) { return true;}); }, TypeError,desc + "filter", error);
+                assert.throws(function () { Array.prototype.slice.call(arr, 0); }, TypeError, desc + "slice", error);
+                assert.throws(function () { Array.prototype.concat.call(arr, [1, 2]); }, TypeError, desc + "concat", error);
+            }
+            test(arr, "var array");
+            
+            var arr2 = [11];
+            Object.defineProperty(arr2, '1', {get : function () { return 33; } });
+            Object.defineProperty(arr2.constructor, Symbol.species, { get : function () {  return function() { 
+                return returnedArr; 
+            } } } );
+            test(arr2, "es5 var array");
+            
+            function Arr() {
+                Object.defineProperty(this, "0", {
+                    configurable: false
+                });
+            }
+
+            assert.throws(function () { Array.of.call(Arr, "a"); }, TypeError, "of constructs an array with non-config property", "Cannot redefine property '0'");
+            assert.throws(function () { Array.from.call(Arr, "a"); }, TypeError, "of constructs an array with non-config property", "Cannot redefine property '0'");
         }
     }
 ];

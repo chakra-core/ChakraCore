@@ -66,6 +66,12 @@ ThreadContextInfo::GetUIntConvertConstAddr() const
 }
 
 intptr_t
+ThreadContextInfo::GetUInt64ConvertConstAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::UInt64ConvertConst);
+}
+
+intptr_t
 ThreadContextInfo::GetUint8ClampedArraySetItemAddr() const
 {
     return SHIFT_ADDR(this, (BOOL(*)(Js::Uint8ClampedArray * arr, uint32 index, Js::Var value))&Js::Uint8ClampedArray::DirectSetItem);
@@ -147,6 +153,24 @@ intptr_t
 ThreadContextInfo::GetDoubleNaNAddr() const
 {
     return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Nan);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleUintMaxPlusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_UintMaxPlusOne);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleIntMaxPlusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_IntMaxPlusOne);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleIntMinMinusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_MinIntMinusOne);
 }
 
 intptr_t

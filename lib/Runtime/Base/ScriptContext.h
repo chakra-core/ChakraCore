@@ -136,8 +136,8 @@ private:
 class HostScriptContextCallbackFunctor
 {
 public:
-    void* HostData;
-    void(*pfOnScriptLoadCallback)(void* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+    FinalizableObject* HostData;
+    void(*pfOnScriptLoadCallback)(FinalizableObject* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
 
     HostScriptContextCallbackFunctor()
         : HostData(nullptr), pfOnScriptLoadCallback(nullptr)
@@ -145,7 +145,7 @@ public:
         ;
     }
 
-    HostScriptContextCallbackFunctor(void* callbackData, void(*pfcallbackOnScriptLoad)(void* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException))
+    HostScriptContextCallbackFunctor(FinalizableObject* callbackData, void(*pfcallbackOnScriptLoad)(FinalizableObject* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException))
         : HostData(callbackData), pfOnScriptLoadCallback(pfcallbackOnScriptLoad)
     {
         ;
@@ -325,7 +325,7 @@ namespace Js
     typedef JsUtil::BaseDictionary<EvalMapString, ScriptFunction*, RecyclerNonLeafAllocator, PrimeSizePolicy> SecondLevelEvalCache;
     typedef TwoLevelHashRecord<FastEvalMapString, ScriptFunction*, SecondLevelEvalCache, EvalMapString> EvalMapRecord;
     typedef JsUtil::Cache<FastEvalMapString, EvalMapRecord*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<FastEvalMapString, EvalMRUSize>, FastEvalMapStringComparer> EvalCacheTopLevelDictionary;
-    typedef JsUtil::Cache<EvalMapString, ParseableFunctionInfo*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<EvalMapString, EvalMRUSize>> NewFunctionCache;
+    typedef JsUtil::Cache<EvalMapString, FunctionInfo*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<EvalMapString, EvalMRUSize>> NewFunctionCache;
     typedef JsUtil::BaseDictionary<ParseableFunctionInfo*, ParseableFunctionInfo*, Recycler, PrimeSizePolicy, RecyclerPointerComparer> ParseableFunctionInfoMap;
     // This is the dictionary used by script context to cache the eval.
     typedef TwoLevelHashDictionary<FastEvalMapString, ScriptFunction*, EvalMapRecord, EvalCacheTopLevelDictionary, EvalMapString> EvalCacheDictionary;
@@ -424,6 +424,7 @@ namespace Js
 
         const ScriptContextBase* GetScriptContextBase() const { return static_cast<const ScriptContextBase*>(this); }
 
+        void RedeferFunctionBodies(ActiveFunctionSet *pActive, uint inactiveThreshold);
         bool DoUndeferGlobalFunctions() const;
 
         bool IsUndeclBlockVar(Var var) const { return this->javascriptLibrary->IsUndeclBlockVar(var); }
@@ -1027,8 +1028,8 @@ private:
         inline bool EnableEvalMapCleanup() { return CONFIG_FLAG(EnableEvalMapCleanup); };
         uint GetNextSourceContextId();
 
-        bool IsInNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo **ppFuncBody);
-        void AddToNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo *pFuncBody);
+        bool IsInNewFunctionMap(EvalMapString const& key, FunctionInfo **ppFuncInfo);
+        void AddToNewFunctionMap(EvalMapString const& key, FunctionInfo *pFuncInfo);
 
         SourceContextInfo * GetSourceContextInfo(DWORD_PTR hostSourceContext, IActiveScriptDataCache* profileDataCache);
         SourceContextInfo * GetSourceContextInfo(uint hash);

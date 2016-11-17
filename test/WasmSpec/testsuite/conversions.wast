@@ -73,19 +73,19 @@
 (assert_trap (invoke "i32.trunc_s_f32" (f32.const -infinity)) "integer overflow")
 (assert_trap (invoke "i32.trunc_s_f32" (f32.const nan)) "invalid conversion to integer")
 
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const 0.0)) (i32.const 0))
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const -0.0)) (i32.const 0))
-;;;;(assert_return (invoke "i32.trunc_u_f32" (f32.const 0x1p-149)) (i32.const 0)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const -0x1p-149)) (i32.const 0)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.0)) (i32.const 1)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const 0x1.19999ap+0)) (i32.const 1)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.5)) (i32.const 1)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.9)) (i32.const 1)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const 2.0)) (i32.const 2)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const 2147483648)) (i32.const -2147483648)) ;; 0x1.00000p+31 -> 8000 0000
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const 4294967040.0)) (i32.const -256))
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const -0x1.ccccccp-1)) (i32.const 0))
-;;(assert_return (invoke "i32.trunc_u_f32" (f32.const -0x1.fffffep-1)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 0.0)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const -0.0)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 0x1p-149)) (i32.const 0)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f32" (f32.const -0x1p-149)) (i32.const 0)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.0)) (i32.const 1)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 0x1.19999ap+0)) (i32.const 1)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.5)) (i32.const 1)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.9)) (i32.const 1)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 2.0)) (i32.const 2)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 2147483648)) (i32.const -2147483648)) ;; 0x1.00000p+31 -> 8000 0000
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 4294967040.0)) (i32.const -256))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const -0x1.ccccccp-1)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const -0x1.fffffep-1)) (i32.const 0))
 (assert_trap (invoke "i32.trunc_u_f32" (f32.const 4294967296.0)) "integer overflow")
 (assert_trap (invoke "i32.trunc_u_f32" (f32.const -1.0)) "integer overflow")
 (assert_trap (invoke "i32.trunc_u_f32" (f32.const infinity)) "integer overflow")
@@ -112,20 +112,20 @@
 (assert_trap (invoke "i32.trunc_s_f64" (f64.const -infinity)) "integer overflow")
 (assert_trap (invoke "i32.trunc_s_f64" (f64.const nan)) "invalid conversion to integer")
 
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const 0.0)) (i32.const 0))
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const -0.0)) (i32.const 0))
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const 0x0.0000000000001p-1022)) (i32.const 0)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const -0x0.0000000000001p-1022)) (i32.const 0)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const 1.0)) (i32.const 1))
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const 0x1.199999999999ap+0)) (i32.const 1)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const 1.5)) (i32.const 1)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const 1.9)) (i32.const 1)) ;; see issue #1957
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const 2.0)) (i32.const 2))
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const 2147483648)) (i32.const -2147483648)) ;; 0x1.00000p+31 -> 8000 0000
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const 4294967295.0)) (i32.const -1))
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const -0x1.ccccccccccccdp-1)) (i32.const 0))
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const -0x1.fffffffffffffp-1)) (i32.const 0))
-;;(assert_return (invoke "i32.trunc_u_f64" (f64.const 1e8)) (i32.const 100000000))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 0.0)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const -0.0)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 0x0.0000000000001p-1022)) (i32.const 0)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f64" (f64.const -0x0.0000000000001p-1022)) (i32.const 0)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 1.0)) (i32.const 1))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 0x1.199999999999ap+0)) (i32.const 1)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 1.5)) (i32.const 1)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 1.9)) (i32.const 1)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 2.0)) (i32.const 2))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 2147483648)) (i32.const -2147483648)) ;; 0x1.00000p+31 -> 8000 0000
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 4294967295.0)) (i32.const -1))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const -0x1.ccccccccccccdp-1)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const -0x1.fffffffffffffp-1)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 1e8)) (i32.const 100000000))
 (assert_trap (invoke "i32.trunc_u_f64" (f64.const 4294967296.0)) "integer overflow")
 (assert_trap (invoke "i32.trunc_u_f64" (f64.const -1.0)) "integer overflow")
 (assert_trap (invoke "i32.trunc_u_f64" (f64.const 1e16)) "integer overflow")
@@ -263,9 +263,9 @@
 (assert_return (invoke "f32.convert_u_i32" (i32.const 1)) (f32.const 1.0))
 (assert_return (invoke "f32.convert_u_i32" (i32.const 0)) (f32.const 0.0))
 (assert_return (invoke "f32.convert_u_i32" (i32.const 2147483647)) (f32.const 2147483648))
-;;(assert_return (invoke "f32.convert_u_i32" (i32.const -2147483648)) (f32.const 2147483648)) ;; See #1967
+(assert_return (invoke "f32.convert_u_i32" (i32.const -2147483648)) (f32.const 2147483648))
 (assert_return (invoke "f32.convert_u_i32" (i32.const 0x12345678)) (f32.const 0x1.234568p+28))
-;;(assert_return (invoke "f32.convert_u_i32" (i32.const 0xffffffff)) (f32.const 4294967296.0)) ;; See #1967
+(assert_return (invoke "f32.convert_u_i32" (i32.const 0xffffffff)) (f32.const 4294967296.0))
 ;; Test rounding directions.
 (assert_return (invoke "f32.convert_u_i32" (i32.const 16777217)) (f32.const 16777216.0))
 (assert_return (invoke "f32.convert_u_i32" (i32.const 16777219)) (f32.const 16777220.0))

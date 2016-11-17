@@ -21,10 +21,11 @@ namespace Js
         ByteCodeDumper::Dump(dumpFunction);
         for (uint i = 0; i < dumpFunction->GetNestedCount(); i ++)
         {
-            dumpFunction->GetNestedFunc(i)->EnsureDeserialized();
+            dumpFunction->GetNestedFunctionForExecution(i);
             ByteCodeDumper::DumpRecursively(dumpFunction->GetNestedFunc(i)->GetFunctionBody());
         }
     }
+
     void ByteCodeDumper::Dump(FunctionBody* dumpFunction)
     {
         ByteCodeReader reader;
@@ -129,6 +130,7 @@ namespace Js
         Output::Print(_u("\n"));
         Output::Flush();
     }
+
     void ByteCodeDumper::DumpConstantTable(FunctionBody *dumpFunction)
     {
         Output::Print(_u("    Constant Table:\n    ======== =====\n    "));
@@ -228,6 +230,7 @@ namespace Js
         }
         Output::Print(_u("\n"));
     }
+
     void ByteCodeDumper::DumpImplicitArgIns(FunctionBody * dumpFunction)
     {
         if (dumpFunction->GetInParamsCount() <= 1 || !dumpFunction->GetHasImplicitArgIns())
@@ -255,85 +258,67 @@ namespace Js
         }
         Output::Print(_u("\n"));
     }
+
     void ByteCodeDumper::DumpU4(uint32 value)
     {
         Output::Print(_u(" uint:%u "), value);
     }
+
     void ByteCodeDumper::DumpI4(int value)
     {
         Output::Print(_u(" int:%d "), value);
     }
+
     void ByteCodeDumper::DumpI8(int64 value)
     {
         Output::Print(_u(" int64:%lld "), value);
     }
+
     void ByteCodeDumper::DumpU2(ushort value)
     {
         Output::Print(_u(" ushort:%d "), value);
     }
+
     void ByteCodeDumper::DumpOffset(int byteOffset, ByteCodeReader const& reader)
     {
         Output::Print(_u(" x:%04x (%4d) "), reader.GetCurrentOffset() + byteOffset, byteOffset);
     }
+
     void ByteCodeDumper::DumpAddr(void* addr)
     {
         Output::Print(_u(" addr:%04x "), addr);
-    }
-    void ByteCodeDumper::DumpOp(OpCode op, LayoutSize layoutSize, ByteCodeReader& reader, FunctionBody* dumpFunction)
-    {
-        Output::Print(_u("%-20s"), OpCodeUtil::GetOpCodeName(op));
-        OpLayoutType nType = OpCodeUtil::GetOpCodeLayout(op);
-        switch (layoutSize * OpLayoutType::Count + nType)
-        {
-#define LAYOUT_TYPE(layout) \
-            case OpLayoutType::layout: \
-                Assert(layoutSize == SmallLayout); \
-                Dump##layout(op, reader.layout(), dumpFunction, reader); \
-                break;
-#define LAYOUT_TYPE_WMS(layout) \
-            case SmallLayout * OpLayoutType::Count + OpLayoutType::layout: \
-                Dump##layout(op, reader.layout##_Small(), dumpFunction, reader); \
-                break; \
-            case MediumLayout * OpLayoutType::Count + OpLayoutType::layout: \
-                Dump##layout(op, reader.layout##_Medium(), dumpFunction, reader); \
-                break; \
-            case LargeLayout * OpLayoutType::Count + OpLayoutType::layout: \
-                Dump##layout(op, reader.layout##_Large(), dumpFunction, reader); \
-                break;
-#include "LayoutTypes.h"
-
-            default:
-            {
-                AssertMsg(false, "Unknown OpLayout");
-                break;
-            }
-        }
     }
 
     void ByteCodeDumper::DumpR4(float value)
     {
         Output::Print(_u(" float:%g "), value);
     }
+
     void ByteCodeDumper::DumpR8(double value)
     {
         Output::Print(_u(" double:%g "), value);
     }
+
     void ByteCodeDumper::DumpReg(RegSlot registerID)
     {
         Output::Print(_u(" R%d "), (int) registerID);
     }
+
     void ByteCodeDumper::DumpReg(RegSlot_TwoByte registerID)
     {
         Output::Print(_u(" R%d "), (int) registerID);
     }
+
     void ByteCodeDumper::DumpReg(RegSlot_OneByte registerID)
     {
         Output::Print(_u(" R%d "), (int) registerID);
     }
+
     void ByteCodeDumper::DumpProfileId(uint id)
     {
         Output::Print(_u(" <%d> "), id);
     }
+
     void ByteCodeDumper::DumpEmpty(OpCode op, const unaligned OpLayoutEmpty * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         switch (op)
@@ -357,6 +342,7 @@ namespace Js
             }
         }
     }
+
     template <class T>
     void ByteCodeDumper::DumpCallI(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -367,6 +353,7 @@ namespace Js
         }
         Output::Print(_u(" R%d(ArgCount: %d)"), data->Function, data->ArgCount);
     }
+
     template <class T>
     void ByteCodeDumper::DumpCallIExtended(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -391,12 +378,14 @@ namespace Js
             Output::Print(_u("]"));
         }
     }
+
     template <class T>
     void ByteCodeDumper::DumpCallIFlags(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpCallI(op, data, dumpFunction, reader);
         Output::Print(_u(" <%04x> "), data->callFlags);
     }
+
     template <class T>
     void ByteCodeDumper::DumpCallIExtendedFlags(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -421,6 +410,7 @@ namespace Js
             Output::Print(_u("]"));
         }
     }
+
     template <class T>
     void ByteCodeDumper::DumpCallIExtendedFlagsWithICIndex(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -446,12 +436,14 @@ namespace Js
             Output::Print(_u("]"));
         }
     }
+
     template <class T>
     void ByteCodeDumper::DumpCallIWithICIndex(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
         DumpCallI(op, data, dumpFunction, reader);
         Output::Print(_u(" <%d> "), data->inlineCacheIndex);
     }
+
     template <class T>
     void ByteCodeDumper::DumpCallIFlagsWithICIndex(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -459,6 +451,7 @@ namespace Js
         Output::Print(_u(" <%d> "), data->inlineCacheIndex);
         Output::Print(_u(" <%d> "), data->callFlags);
     }
+
     template <class T>
     void ByteCodeDumper::DumpCallIExtendedWithICIndex(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -483,6 +476,7 @@ namespace Js
             Output::Print(_u("]"));
         }
     }
+
     template <class T>
     void ByteCodeDumper::DumpElementI(OpCode op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -523,6 +517,7 @@ namespace Js
             }
         }
     }
+
     template <class T>
     void ByteCodeDumper::DumpReg2Int1(OpCode op, const unaligned T* data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
@@ -826,7 +821,7 @@ namespace Js
             case OpCode::NewInnerScFunc:
             case OpCode::NewInnerScGenFunc:
             {
-                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunc((uint)data->SlotIndex)->GetFunctionProxy();
+                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunctionProxy((uint)data->SlotIndex);
                 Output::Print(_u(" R%d = env:R%d, %s()"), data->Value, data->Instance,
                         pfuncActual->EnsureDeserialized()->GetDisplayName());
                 break;
@@ -876,7 +871,7 @@ namespace Js
             case OpCode::NewStackScFunc:
             case OpCode::NewScGenFunc:
             {
-                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunc((uint)data->SlotIndex)->GetFunctionProxy();
+                FunctionProxy* pfuncActual = dumpFunction->GetNestedFunctionProxy((uint)data->SlotIndex);
                 Output::Print(_u(" R%d = %s()"), data->Value,
                         pfuncActual->EnsureDeserialized()->GetDisplayName());
                 break;
@@ -1547,6 +1542,42 @@ namespace Js
         PropertyRecord const * pPropertyName = scriptContext->GetPropertyName(
             dumpFunction->GetReferencedPropertyId(data->PropertyIdIndex));
         Output::Print(_u("[%d].%s"), data->SlotIndex, pPropertyName->GetBuffer());
+    }
+
+    void ByteCodeDumper::DumpOp(OpCode op, LayoutSize layoutSize, ByteCodeReader& reader, FunctionBody* dumpFunction)
+    {
+        Output::Print(_u("%-20s"), OpCodeUtil::GetOpCodeName(op));
+        OpLayoutType nType = OpCodeUtil::GetOpCodeLayout(op);
+        switch (layoutSize * OpLayoutType::Count + nType)
+        {
+#define LAYOUT_TYPE(layout) \
+            case OpLayoutType::layout: \
+                Assert(layoutSize == SmallLayout); \
+                Dump##layout(op, reader.layout(), dumpFunction, reader); \
+                break;
+
+#define LAYOUT_SCHEMA(type, layout) \
+            case type##Layout * OpLayoutType::Count + OpLayoutType::layout: \
+                Dump##layout(op, reader.layout##_##type(), dumpFunction, reader); \
+                break
+
+#define LAYOUT_TYPE_WMS(layout) \
+            LAYOUT_SCHEMA(Small,  layout); \
+            LAYOUT_SCHEMA(Medium, layout); \
+            LAYOUT_SCHEMA(Large,  layout);
+
+#define LAYOUT_TYPE_PROFILED_WMS(layout) \
+            LAYOUT_TYPE_WMS(Profiled##layout) \
+            LAYOUT_TYPE_WMS(layout)
+
+#include "LayoutTypes.h"
+
+            default:
+            {
+                AssertMsg(false, "Unknown OpLayout");
+                break;
+            }
+        }
     }
 } // namespace Js
 #endif

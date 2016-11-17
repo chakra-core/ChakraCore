@@ -12,6 +12,7 @@
   (global $d (export "d") f64 (get_global $c))
   (global $e (export "e") i32 (get_global $x))
   (global $f (export "f") i32 (i32.const 18))
+  (global $i64 i64 (i64.const 0xb204004248402040))
 
   (func (export "get-a") (result i32) (get_global $a))
   (func (export "get-x") (result i32) (get_global $x))
@@ -22,6 +23,7 @@
   (func (export "get-d") (result f64) (get_global $d))
   (func (export "get-e") (result i32) (get_global $e))
   (func (export "get-f") (result i32) (get_global $f))
+  (func (export "get-i64") (result i64) (get_global $i64))
 
   (func (export "set-y") (param f32)  (set_global 2 (get_local 0)))
   (func (export "set-b") (param f64) (set_global 4 (get_local 0)))

@@ -208,11 +208,11 @@ namespace Js
         BOOL strictMode = FALSE;
 
         JavascriptFunction *pfuncScript;
-        ParseableFunctionInfo *pfuncBodyCache = NULL;
+        FunctionInfo *pfuncInfoCache = NULL;
         char16 const * sourceString = bs->GetSz();
         charcount_t sourceLen = bs->GetLength();
         EvalMapString key(sourceString, sourceLen, moduleID, strictMode, /* isLibraryCode = */ false);
-        if (!scriptContext->IsInNewFunctionMap(key, &pfuncBodyCache))
+        if (!scriptContext->IsInNewFunctionMap(key, &pfuncInfoCache))
         {
             // Validate formals here
             scriptContext->GetGlobalObject()->ValidateSyntax(
@@ -237,20 +237,15 @@ namespace Js
             Assert(functionInfo);
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
 
-            scriptContext->AddToNewFunctionMap(key, functionInfo);
+            scriptContext->AddToNewFunctionMap(key, functionInfo->GetFunctionInfo());
+        }
+        else if (pfuncInfoCache->IsCoroutine())
+        {
+            pfuncScript = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(pfuncInfoCache->GetFunctionProxy());
         }
         else
         {
-            // Get the latest proxy
-            FunctionProxy * proxy = pfuncBodyCache->GetFunctionProxy();
-            if (proxy->IsCoroutine())
-            {
-                pfuncScript = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(proxy);
-            }
-            else
-            {
-                pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
-            }
+            pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(pfuncInfoCache->GetFunctionProxy());
         }
 
 #if ENABLE_TTD
@@ -569,7 +564,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(FunctionBindCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Function_Prototype_bind);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -902,7 +897,7 @@ namespace Js
         Var functionResult;
         if (spreadIndices != nullptr)
         {
-            functionResult = CallSpreadFunction(functionObj, functionObj->GetEntryPoint(), newArgs, spreadIndices);
+            functionResult = CallSpreadFunction(functionObj, newArgs, spreadIndices);
         }
         else
         {
@@ -945,7 +940,7 @@ namespace Js
 
         RUNTIME_ARGUMENTS(args, spreadIndices, function, callInfo);
 
-        return JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices);
+        return JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
     }
 
     uint32 JavascriptFunction::GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
@@ -1086,7 +1081,7 @@ namespace Js
         }
     }
 
-    Var JavascriptFunction::CallSpreadFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args, const Js::AuxArray<uint32> *spreadIndices)
+    Var JavascriptFunction::CallSpreadFunction(RecyclableObject* function, Arguments args, const Js::AuxArray<uint32> *spreadIndices)
     {
         ScriptContext* scriptContext = function->GetScriptContext();
 
@@ -1113,7 +1108,7 @@ namespace Js
 
         SpreadArgs(args, outArgs, spreadIndices, scriptContext);
 
-        return JavascriptFunction::CallFunction<true>(function, entryPoint, outArgs);
+        return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), outArgs);
     }
 
     Var JavascriptFunction::CallFunction(Arguments args)
@@ -1652,8 +1647,19 @@ LABEL1:
 
         Assert(functionInfo);
 
+        // Prevent redeferring during parsing
+        bool canBeDeferred = functionInfo->CanBeDeferred();
+        functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() & ~FunctionInfo::Attributes::CanDefer));
+
         if (functionInfo->IsDeferredParseFunction())
         {
+            if (ScriptFunctionWithInlineCache::Is(*functionRef))
+            {
+                // If inline caches were populated from a function body that has been redeferred, the caches have been cleaned up,
+                // so clear the pointers. REVIEW: Is this a perf loss in some cases?
+                ScriptFunctionWithInlineCache::FromVar(*functionRef)->ClearBorrowedInlineCacheOnFunctionObject();
+            }
+
             funcBody = functionInfo->Parse(functionRef);
             fParsed = funcBody->IsFunctionParsed() ? TRUE : FALSE;
 
@@ -1676,6 +1682,13 @@ LABEL1:
 #else // !ENABLE_SCRIPT_PROFILING
         Assert(directEntryPoint != DefaultDeferredParsingThunk);
 #endif
+
+        // Restore the can-be-deferred attribute.
+        if (canBeDeferred)
+        {
+            funcBody->SetAttributes((FunctionInfo::Attributes)(funcBody->GetAttributes() | FunctionInfo::Attributes::CanDefer));
+        }
+
         return (*functionRef)->UpdateUndeferredBody(funcBody);
     }
 
@@ -1684,7 +1697,6 @@ LABEL1:
         ParseableFunctionInfo* functionInfo = (*functionRef)->GetParseableFunctionInfo();
 
         Assert(functionInfo);
-        Assert(functionInfo->HasBody());
         functionInfo->GetFunctionBody()->AddDeferParseAttribute();
         functionInfo->GetFunctionBody()->ResetEntryPoint();
         functionInfo->GetFunctionBody()->ResetInParams();
@@ -1799,7 +1811,7 @@ LABEL1:
         // calls the default entry point the next time around
         if (funcInfo->IsDeferredDeserializeFunction())
         {
-            DeferDeserializeFunctionInfo* deferDeserializeFunction = (DeferDeserializeFunctionInfo*) funcInfo;
+            DeferDeserializeFunctionInfo* deferDeserializeFunction = funcInfo->GetDeferDeserializeFunctionInfo();
 
             // This is the first call to the function, ensure dynamic profile info
             // Deserialize is a no-op if the function has already been deserialized
@@ -2609,6 +2621,11 @@ LABEL1:
                 // There are cases where StackWalker might return null value from different scriptContext
                 // Caller of this function expects nullValue from the requestContext.
                 funcCaller = nullValue;
+            }
+            if (ScriptFunction::Is(funcCaller))
+            {
+                // Is this is the internal function of a generator function then return the original generator function
+                funcCaller = ScriptFunction::FromVar(funcCaller)->GetRealFunctionObject();
             }
         }
 

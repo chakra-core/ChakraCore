@@ -1,7 +1,7 @@
 {
   "modules": [{
     "filename": "imports.0.wasm",
-    "commands": []
+    "commands": [{"type": "register", "name": "test", "file": "testsuite/imports.wast", "line": 18}]
   }, {
     "filename": "imports.1.wasm",
     "commands": [{
@@ -34,22 +34,22 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "imports.wast",
-      "line": 190
+      "line": 189
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "imports.wast",
-      "line": 191
+      "line": 190
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "imports.wast",
-      "line": 192
+      "line": 191
     }, {
       "type": "assert_return",
       "name": "$assert_return_3",
       "file": "imports.wast",
-      "line": 193
+      "line": 192
     }]
   }, {
     "filename": "imports.9.wasm",
@@ -63,27 +63,27 @@
       "type": "assert_trap",
       "name": "$assert_trap_0",
       "file": "imports.wast",
-      "line": 245
+      "line": 244
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "imports.wast",
-      "line": 246
+      "line": 245
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "imports.wast",
-      "line": 247
+      "line": 246
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_3",
       "file": "imports.wast",
-      "line": 248
+      "line": 247
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_4",
       "file": "imports.wast",
-      "line": 249
+      "line": 248
     }]
   }, {
     "filename": "imports.12.wasm",
@@ -91,27 +91,27 @@
       "type": "assert_trap",
       "name": "$assert_trap_0",
       "file": "imports.wast",
-      "line": 262
+      "line": 261
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "imports.wast",
-      "line": 263
+      "line": 262
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "imports.wast",
-      "line": 264
+      "line": 263
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_3",
       "file": "imports.wast",
-      "line": 265
+      "line": 264
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_4",
       "file": "imports.wast",
-      "line": 266
+      "line": 265
     }]
   }, {
     "filename": "imports.13.wasm",
@@ -152,22 +152,22 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "imports.wast",
-      "line": 348
+      "line": 347
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "imports.wast",
-      "line": 349
+      "line": 348
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "imports.wast",
-      "line": 350
+      "line": 349
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_3",
       "file": "imports.wast",
-      "line": 351
+      "line": 350
     }]
   }, {
     "filename": "imports.25.wasm",
@@ -175,22 +175,22 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "imports.wast",
-      "line": 359
+      "line": 358
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "imports.wast",
-      "line": 360
+      "line": 359
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "imports.wast",
-      "line": 361
+      "line": 360
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_3",
       "file": "imports.wast",
-      "line": 362
+      "line": 361
     }]
   }, {
     "filename": "imports.26.wasm",
@@ -225,27 +225,27 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "imports.wast",
-      "line": 451
+      "line": 450
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "imports.wast",
-      "line": 452
+      "line": 451
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "imports.wast",
-      "line": 453
+      "line": 452
     }, {
       "type": "assert_return",
       "name": "$assert_return_3",
       "file": "imports.wast",
-      "line": 454
+      "line": 453
     }, {
       "type": "assert_return",
       "name": "$assert_return_4",
       "file": "imports.wast",
-      "line": 455
+      "line": 454
     }]
   }]
 }

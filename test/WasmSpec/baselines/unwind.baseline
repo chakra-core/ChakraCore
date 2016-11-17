@@ -1,8 +1,1 @@
-unwind.wast:130: $assert_trap_0 failed, runtime trap NYI
-unwind.wast:137: $assert_trap_6 failed, runtime trap NYI
-unwind.wast:144: $assert_trap_12 failed, runtime trap NYI
-unwind.wast:149: $assert_trap_16 failed, runtime trap NYI
-unwind.wast:154: $assert_trap_20 failed, runtime trap NYI
-unwind.wast:159: $assert_trap_24 failed, runtime trap NYI
-unwind.wast:164: $assert_trap_28 failed, runtime trap NYI
-25/32 tests passed.
+32/32 tests passed.

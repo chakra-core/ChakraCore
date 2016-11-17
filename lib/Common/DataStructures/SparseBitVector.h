@@ -174,6 +174,7 @@ public:
 
             template <class TSrcAllocator>
             void            Copy(const BVSparse<TSrcAllocator> *bv);
+            void            CopyFromNode(const BVSparseNode * node2);
             BVSparse<TAllocator> *      CopyNew(TAllocator* allocator) const;
             BVSparse<TAllocator> *      CopyNew() const;
             void            ComplimentAll();
@@ -793,9 +794,15 @@ BVSparse<TAllocator>::Copy(const BVSparse<TSrcAllocator> * bv2)
 {
     AssertBV(bv2);
 
-          BVSparseNode * node1      = this->head;
-    const BVSparseNode * node2      = bv2->head;
-          BVSparseNode ** prevNextField = &this->head;
+    CopyFromNode(bv2->head);
+}
+
+template <class TAllocator>
+void
+BVSparse<TAllocator>::CopyFromNode(const BVSparseNode * node2)
+{
+    BVSparseNode * node1 = this->head;
+    BVSparseNode ** prevNextField = &this->head;
 
     while (node1 != nullptr && node2 != nullptr)
     {

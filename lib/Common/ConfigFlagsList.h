@@ -10,6 +10,7 @@ PHASE(All)
     PHASE(Parse)
         PHASE(RegexCompile)
         PHASE(DeferParse)
+        PHASE(Redeferral)
         PHASE(DeferEventHandlers)
         PHASE(FunctionSourceInfoParse)
         PHASE(StringTemplateParse)
@@ -31,15 +32,15 @@ PHASE(All)
     PHASE(Delay)
         PHASE(Speculation)
         PHASE(GatherCodeGenData)
-    PHASE(Wasm)
-        PHASE(WasmBytecode)
-            PHASE(WasmParser)
-            PHASE(WasmReader)
-            PHASE(WasmSection)
-            PHASE(WasmLEB128)
-            PHASE(WasmFunctionBody)
+    PHASE(WasmBytecode)
+        PHASE(WasmParser)
+        PHASE(WasmReader)
+        PHASE(WasmSection)
+        PHASE(WasmLEB128)
+        PHASE(WasmFunctionBody)
         PHASE(WasmDeferred)
         PHASE(WasmNativeTypeCallTest)
+        PHASE(WasmValidatePrejit)
     PHASE(Asmjs)
         PHASE(AsmjsTmpRegisterAllocation)
         PHASE(AsmjsEncoder)
@@ -378,6 +379,7 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #endif
+#define DEFAULT_CONFIG_WASM               (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo     (true)
@@ -407,6 +409,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_DumpCommentsFromReferencedFiles (false)
 #define DEFAULT_CONFIG_ExtendedErrorStackForTestHost (false)
 #define DEFAULT_CONFIG_ForceSplitScope      (false)
+#define DEFAULT_CONFIG_DelayFullJITSmallFunc (0)
 
 
 //Following determines inline thresholds
@@ -830,6 +833,7 @@ FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have b
     #define COMPILE_DISABLE_Simdjs 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, Simdjs, "Enable Simdjs", DEFAULT_CONFIG_SIMDJS)
+
 FLAGR(Boolean, Simd128TypeSpec, "Enable type-specialization of Simd128 symbols", false)
 
 FLAGNR(Boolean, AssertBreak           , "Debug break on assert", false)
@@ -1023,6 +1027,11 @@ FLAGPRA          (Boolean, ES6, ESSharedArrayBuffer    , sab     , "Enable Share
 
 // /ES6 (BLUE+1) features/flags
 
+#ifndef COMPILE_DISABLE_Wasm
+#define COMPILE_DISABLE_Wasm 0
+#endif
+FLAGPR_REGOVR_EXP(Boolean, ES6, Wasm, "Enable WebAssembly", DEFAULT_CONFIG_WASM)
+
 #ifdef ENABLE_PROJECTION
 FLAGNR(Boolean, WinRTDelegateInterfaces , "Treat WinRT Delegates as Interfaces when determining their resolvability.", DEFAULT_CONFIG_WinRTDelegateInterfaces)
 FLAGR(Boolean, WinRTAdaptiveApps        , "Enable the adaptive apps feature, allowing for variable projection."      , DEFAULT_CONFIG_WinRTAdaptiveApps)
@@ -1064,6 +1073,7 @@ FLAGNR(Boolean, ForceFastPath         , "Force fast-paths in native codegen", DE
 FLAGNR(Boolean, ForceFloatPref        , "Force float preferencing (JIT only)", false)
 FLAGNR(Boolean, ForceJITLoopBody      , "Force jit loop body only", DEFAULT_CONFIG_ForceJITLoopBody)
 FLAGNR(Boolean, DumpCommentsFromReferencedFiles, "Allow printing comments of comment-table of the referenced file as well (use with -trace:CommentTable)", DEFAULT_CONFIG_DumpCommentsFromReferencedFiles)
+FLAGNR(Number,  DelayFullJITSmallFunc , "Scale Full JIT threshold for small functions which are going to be inlined soon. To provide fraction scale, the final scale is scale following this option devided by 10", DEFAULT_CONFIG_DelayFullJITSmallFunc)
 
 #ifdef _M_ARM
 FLAGNR(Boolean, ForceLocalsPtr        , "Force use of alternative locals pointer (JIT only)", false)

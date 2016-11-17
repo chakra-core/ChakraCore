@@ -245,7 +245,7 @@ namespace Js
 
     void RecyclableObject::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(false, "Missing subtype implementation.");
+        TTDAssert(false, "Missing subtype implementation.");
     }
 #endif
 

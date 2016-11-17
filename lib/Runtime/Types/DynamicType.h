@@ -29,6 +29,9 @@ namespace Js
         bool isLocked;
         bool isShared;
         bool hasNoEnumerableProperties;
+#if DBG
+        bool isCachedForChangePrototype;
+#endif
 
     protected:
         DynamicType(DynamicType * type) : Type(type), typeHandler(type->typeHandler), isLocked(false), isShared(false) {}
@@ -41,6 +44,10 @@ namespace Js
         void SetPrototype(RecyclableObject* newPrototype) { this->prototype = newPrototype; }
         bool GetIsLocked() const { return this->isLocked; }
         bool GetIsShared() const { return this->isShared; }
+#if DBG
+        bool GetIsCachedForChangePrototype() const { return this->isCachedForChangePrototype; }
+        void SetIsCachedForChangePrototype() { this->isCachedForChangePrototype = true; }
+#endif
         void SetEntryPoint(JavascriptMethod method) { entryPoint = method; }
 
         BOOL AllPropertiesAreEnumerable() { return typeHandler->AllPropertiesAreEnumerable(); }

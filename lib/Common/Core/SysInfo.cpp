@@ -184,6 +184,12 @@ AutoSystemInfo::IsJscriptModulePointer(void * ptr)
 {
     return ((UINT_PTR)ptr >= Data.dllLoadAddress && (UINT_PTR)ptr < Data.dllHighAddress);
 }
+
+UINT_PTR
+AutoSystemInfo::GetChakraBaseAddr() const
+{
+    return dllLoadAddress;
+}
 #endif
 
 uint
@@ -209,20 +215,6 @@ AutoSystemInfo::VirtualSseAvailable(const int sseLevel) const
     #else
         return true;
     #endif
-}
-#endif
-
-
-#ifdef ENABLE_OOP_NATIVE_CODEGEN
-bool
-AutoSystemInfo::IsChakraAddress(void * addr) const
-{
-    return addr >= this->chakraBaseAddress && addr < (this->chakraBaseAddress + this->chakraSize);
-}
-void *
-AutoSystemInfo::GetChakraBaseAddr() const
-{
-    return this->chakraBaseAddress;
 }
 #endif
 
@@ -370,17 +362,7 @@ AutoSystemInfo::IsWinThresholdOrLater()
 
 DWORD AutoSystemInfo::SaveModuleFileName(HANDLE hMod)
 {
-    DWORD result = ::GetModuleFileNameW((HMODULE)hMod, Data.binaryName, MAX_PATH);
-
-#ifdef ENABLE_OOP_NATIVE_CODEGEN
-    Data.chakraBaseAddress = GetModuleHandle(Data.binaryName);
-    AnalysisAssert(Data.chakraBaseAddress != nullptr);
-    MODULEINFO chakraInfo = { 0 };
-    GetModuleInformation(GetCurrentProcess(), Data.chakraBaseAddress, &chakraInfo, sizeof(chakraInfo));
-    Data.chakraSize = chakraInfo.SizeOfImage;
-#endif
-
-    return result;
+    return ::GetModuleFileNameW((HMODULE)hMod, Data.binaryName, MAX_PATH);
 }
 
 LPCWSTR AutoSystemInfo::GetJscriptDllFileName()

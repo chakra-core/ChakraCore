@@ -1,0 +1,54 @@
+﻿var performance=performance||{};performance.now=function(){return performance.now||performance.mozNow||performance.msNow||performance.oNow||performance.webkitNow||Date.now}();function Benchmark(a,c,b,d,e,f,g,h,l){this.name=a;this.doWarmup=c;this.doDeterministic=b;this.deterministicIterations=d;this.run=e;this.Setup=f?f:function(){};this.TearDown=g?g:function(){};this.rmsResult=h?h:null;this.minIterations=l?l:32}function BenchmarkResult(a,c,b){this.benchmark=a;this.time=c;this.latency=b}
+BenchmarkResult.prototype.valueOf=function(){return this.time};function BenchmarkSuite(a,c,b){this.name=a;this.reference=c;this.benchmarks=b;BenchmarkSuite.suites.push(this)}BenchmarkSuite.suites=[];BenchmarkSuite.version="9";BenchmarkSuite.config={doWarmup:void 0,doDeterministic:void 0};alert=function(a){throw"Alert called with argument: "+a;};
+BenchmarkSuite.ResetRNG=function(){Math.random=function(){var a=49734321;return function(){a=a+2127912214+(a<<12)&4294967295;a=(a^3345072700^a>>>19)&4294967295;a=a+374761393+(a<<5)&4294967295;a=(a+3550635116^a<<9)&4294967295;a=a+4251993797+(a<<3)&4294967295;a=(a^3042594569^a>>>16)&4294967295;return(a&268435455)/268435456}}()};
+BenchmarkSuite.RunSuites=function(a,c){function b(){for(;d||g<f;){if(d)d=d();else{var h=e[g++];a.NotifyStart&&a.NotifyStart(h.name);-1<c.indexOf(h.name)?h.NotifySkipped(a):d=h.RunStep(a)}if(d&&"undefined"!=typeof window&&window.setTimeout){window.setTimeout(b,25);return}}a.NotifyScore&&(h=BenchmarkSuite.GeometricMean(BenchmarkSuite.scores),h=BenchmarkSuite.FormatScore(100*h),a.NotifyScore(h))}c="undefined"===typeof c?[]:c;var d=null,e=BenchmarkSuite.suites,f=e.length;BenchmarkSuite.scores=[];var g=
+0;b()};BenchmarkSuite.CountBenchmarks=function(){for(var a=0,c=BenchmarkSuite.suites,b=0;b<c.length;b++)a+=c[b].benchmarks.length;return a};BenchmarkSuite.GeometricMean=function(a){for(var c=0,b=0;b<a.length;b++)c+=Math.log(a[b]);return Math.pow(Math.E,c/a.length)};BenchmarkSuite.GeometricMeanTime=function(a){for(var c=0,b=0;b<a.length;b++)c+=Math.log(a[b].time);return Math.pow(Math.E,c/a.length)};
+BenchmarkSuite.GeometricMeanLatency=function(a){for(var c=0,b=!1,d=0;d<a.length;d++)0!=a[d].latency&&(c+=Math.log(a[d].latency),b=!0);return b?Math.pow(Math.E,c/a.length):0};BenchmarkSuite.FormatScore=function(a){return 100<a?a.toFixed(0):a.toPrecision(3)};BenchmarkSuite.prototype.NotifyStep=function(a){this.results.push(a);this.runner.NotifyStep&&this.runner.NotifyStep(a.benchmark.name)};
+BenchmarkSuite.prototype.NotifyResult=function(){var a=BenchmarkSuite.GeometricMeanTime(this.results),a=this.reference[0]/a;BenchmarkSuite.scores.push(a);this.runner.NotifyResult&&(a=BenchmarkSuite.FormatScore(100*a),this.runner.NotifyResult(this.name,a));2==this.reference.length&&(a=BenchmarkSuite.GeometricMeanLatency(this.results),0!=a&&(a=this.reference[1]/a,BenchmarkSuite.scores.push(a),this.runner.NotifyResult&&(a=BenchmarkSuite.FormatScore(100*a),this.runner.NotifyResult(this.name+"Latency",
+a))))};BenchmarkSuite.prototype.NotifySkipped=function(a){BenchmarkSuite.scores.push(1);a.NotifyResult&&a.NotifyResult(this.name,"Skipped")};BenchmarkSuite.prototype.NotifyError=function(a){this.runner.NotifyError&&this.runner.NotifyError(this.name,a);this.runner.NotifyStep&&this.runner.NotifyStep(this.name)};
+BenchmarkSuite.prototype.RunSingleBenchmark=function(a,c){function b(b){for(var c=0,d=new Date,f=0;e?f<a.deterministicIterations:1E3>c;f++)a.run(),c=new Date-d;null!=b&&(b.runs+=f,b.elapsed+=c)}var d=BenchmarkSuite.config,e=void 0!==d.doDeterministic?d.doDeterministic:a.doDeterministic;(void 0!==d.doWarmup?d.doWarmup:a.doWarmup)||null!=c||(c={runs:0,elapsed:0});if(null==c)return b(null),{runs:0,elapsed:0};b(c);if(c.runs<a.minIterations)return c;var d=1E3*c.elapsed/c.runs,f=null!=a.rmsResult?a.rmsResult():
+0;this.NotifyStep(new BenchmarkResult(a,d,f));return null};
+BenchmarkSuite.prototype.RunStep=function(a){function c(){if(f<e){try{g.benchmarks[f].Setup()}catch(a){return g.NotifyError(a),null}return b}g.NotifyResult();return null}function b(){try{h=g.RunSingleBenchmark(g.benchmarks[f],h)}catch(a){return g.NotifyError(a),null}return null==h?d:b()}function d(){try{g.benchmarks[f++].TearDown()}catch(a){return g.NotifyError(a),null}return c}BenchmarkSuite.ResetRNG();this.results=[];this.runner=a;var e=this.benchmarks.length,f=0,g=this,h;return c()};
+var Richards=new BenchmarkSuite("Richards",[35302],[new Benchmark("Richards",!0,!1,8200,runRichards)]);
+function runRichards(){var a=new Scheduler;a.addIdleTask(ID_IDLE,0,null,COUNT);var c=new Packet(null,ID_WORKER,KIND_WORK),c=new Packet(c,ID_WORKER,KIND_WORK);a.addWorkerTask(ID_WORKER,1E3,c);c=new Packet(null,ID_DEVICE_A,KIND_DEVICE);c=new Packet(c,ID_DEVICE_A,KIND_DEVICE);c=new Packet(c,ID_DEVICE_A,KIND_DEVICE);a.addHandlerTask(ID_HANDLER_A,2E3,c);c=new Packet(null,ID_DEVICE_B,KIND_DEVICE);c=new Packet(c,ID_DEVICE_B,KIND_DEVICE);c=new Packet(c,ID_DEVICE_B,KIND_DEVICE);a.addHandlerTask(ID_HANDLER_B,
+3E3,c);a.addDeviceTask(ID_DEVICE_A,4E3,null);a.addDeviceTask(ID_DEVICE_B,5E3,null);a.schedule();if(a.queueCount!=EXPECTED_QUEUE_COUNT||a.holdCount!=EXPECTED_HOLD_COUNT)throw Error("Error during execution: queueCount = "+a.queueCount+", holdCount = "+a.holdCount+".");}var COUNT=1E3,EXPECTED_QUEUE_COUNT=2322,EXPECTED_HOLD_COUNT=928;function Scheduler(){this.holdCount=this.queueCount=0;this.blocks=Array(NUMBER_OF_IDS);this.currentId=this.currentTcb=this.list=null}
+var ID_IDLE=0,ID_WORKER=1,ID_HANDLER_A=2,ID_HANDLER_B=3,ID_DEVICE_A=4,ID_DEVICE_B=5,NUMBER_OF_IDS=6,KIND_DEVICE=0,KIND_WORK=1;Scheduler.prototype.addIdleTask=function(a,c,b,d){this.addRunningTask(a,c,b,new IdleTask(this,1,d))};Scheduler.prototype.addWorkerTask=function(a,c,b){this.addTask(a,c,b,new WorkerTask(this,ID_HANDLER_A,0))};Scheduler.prototype.addHandlerTask=function(a,c,b){this.addTask(a,c,b,new HandlerTask(this))};Scheduler.prototype.addDeviceTask=function(a,c,b){this.addTask(a,c,b,new DeviceTask(this))};
+Scheduler.prototype.addRunningTask=function(a,c,b,d){this.addTask(a,c,b,d);this.currentTcb.setRunning()};Scheduler.prototype.addTask=function(a,c,b,d){this.list=this.currentTcb=new TaskControlBlock(this.list,a,c,b,d);this.blocks[a]=this.currentTcb};Scheduler.prototype.schedule=function(){for(this.currentTcb=this.list;null!=this.currentTcb;)this.currentTcb.isHeldOrSuspended()?this.currentTcb=this.currentTcb.link:(this.currentId=this.currentTcb.id,this.currentTcb=this.currentTcb.run())};
+Scheduler.prototype.release=function(a){a=this.blocks[a];if(null==a)return a;a.markAsNotHeld();return a.priority>this.currentTcb.priority?a:this.currentTcb};Scheduler.prototype.holdCurrent=function(){this.holdCount++;this.currentTcb.markAsHeld();return this.currentTcb.link};Scheduler.prototype.suspendCurrent=function(){this.currentTcb.markAsSuspended();return this.currentTcb};
+Scheduler.prototype.queue=function(a){var c=this.blocks[a.id];if(null==c)return c;this.queueCount++;a.link=null;a.id=this.currentId;return c.checkPriorityAdd(this.currentTcb,a)};function TaskControlBlock(a,c,b,d,e){this.link=a;this.id=c;this.priority=b;this.queue=d;this.task=e;this.state=null==d?STATE_SUSPENDED:STATE_SUSPENDED_RUNNABLE}var STATE_RUNNING=0,STATE_RUNNABLE=1,STATE_SUSPENDED=2,STATE_HELD=4,STATE_SUSPENDED_RUNNABLE=STATE_SUSPENDED|STATE_RUNNABLE,STATE_NOT_HELD=~STATE_HELD;
+TaskControlBlock.prototype.setRunning=function(){this.state=STATE_RUNNING};TaskControlBlock.prototype.markAsNotHeld=function(){this.state&=STATE_NOT_HELD};TaskControlBlock.prototype.markAsHeld=function(){this.state|=STATE_HELD};TaskControlBlock.prototype.isHeldOrSuspended=function(){return 0!=(this.state&STATE_HELD)||this.state==STATE_SUSPENDED};TaskControlBlock.prototype.markAsSuspended=function(){this.state|=STATE_SUSPENDED};TaskControlBlock.prototype.markAsRunnable=function(){this.state|=STATE_RUNNABLE};
+TaskControlBlock.prototype.run=function(){var a;this.state==STATE_SUSPENDED_RUNNABLE?(a=this.queue,this.queue=a.link,this.state=null==this.queue?STATE_RUNNING:STATE_RUNNABLE):a=null;return this.task.run(a)};TaskControlBlock.prototype.checkPriorityAdd=function(a,c){if(null==this.queue){if(this.queue=c,this.markAsRunnable(),this.priority>a.priority)return this}else this.queue=c.addTo(this.queue);return a};TaskControlBlock.prototype.toString=function(){return"tcb { "+this.task+"@"+this.state+" }"};
+function IdleTask(a,c,b){this.scheduler=a;this.v1=c;this.count=b}IdleTask.prototype.run=function(a){this.count--;if(0==this.count)return this.scheduler.holdCurrent();if(0==(this.v1&1))return this.v1>>=1,this.scheduler.release(ID_DEVICE_A);this.v1=this.v1>>1^53256;return this.scheduler.release(ID_DEVICE_B)};IdleTask.prototype.toString=function(){return"IdleTask"};function DeviceTask(a){this.scheduler=a;this.v1=null}
+DeviceTask.prototype.run=function(a){if(null==a){if(null==this.v1)return this.scheduler.suspendCurrent();a=this.v1;this.v1=null;return this.scheduler.queue(a)}this.v1=a;return this.scheduler.holdCurrent()};DeviceTask.prototype.toString=function(){return"DeviceTask"};function WorkerTask(a,c,b){this.scheduler=a;this.v1=c;this.v2=b}
+WorkerTask.prototype.run=function(a){if(null==a)return this.scheduler.suspendCurrent();this.v1=this.v1==ID_HANDLER_A?ID_HANDLER_B:ID_HANDLER_A;a.id=this.v1;for(var c=a.a1=0;c<DATA_SIZE;c++)this.v2++,26<this.v2&&(this.v2=1),a.a2[c]=this.v2;return this.scheduler.queue(a)};WorkerTask.prototype.toString=function(){return"WorkerTask"};function HandlerTask(a){this.scheduler=a;this.v2=this.v1=null}
+HandlerTask.prototype.run=function(a){null!=a&&(a.kind==KIND_WORK?this.v1=a.addTo(this.v1):this.v2=a.addTo(this.v2));if(null!=this.v1){a=this.v1.a1;var c;if(a<DATA_SIZE){if(null!=this.v2)return c=this.v2,this.v2=this.v2.link,c.a1=this.v1.a2[a],this.v1.a1=a+1,this.scheduler.queue(c)}else return c=this.v1,this.v1=this.v1.link,this.scheduler.queue(c)}return this.scheduler.suspendCurrent()};HandlerTask.prototype.toString=function(){return"HandlerTask"};var DATA_SIZE=4;
+function Packet(a,c,b){this.link=a;this.id=c;this.kind=b;this.a1=0;this.a2=Array(DATA_SIZE)}Packet.prototype.addTo=function(a){this.link=null;if(null==a)return this;for(var c,b=a;null!=(c=b.link);)b=c;b.link=this;return a};Packet.prototype.toString=function(){return"Packet"};
+////////////////////////////////////////////////////////////////////////////////
+// Runner
+////////////////////////////////////////////////////////////////////////////////
+
+var success = true;
+
+function NotifyStart(name) {
+}
+
+function NotifyError(name, error) {
+    WScript.Echo(name + " : ERROR : " + error.stack);
+    success = false;
+}
+
+function NotifyResult(name, score) {
+    if (success) {
+        WScript.Echo("### SCORE:", score);
+    }
+}
+
+function NotifyScore(score) {
+}
+
+BenchmarkSuite.RunSuites({
+    NotifyStart: NotifyStart,
+    NotifyError: NotifyError,
+    NotifyResult: NotifyResult,
+    NotifyScore: NotifyScore
+});

@@ -109,6 +109,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_nextFunctionId = nullptr;
     m_errorCallback = nullptr;
     m_uncertainStructure = FALSE;
+    m_reparsingLambdaParams = false;
     currBackgroundParseItem = nullptr;
     backgroundParseItems = nullptr;
     fastScannedRegExpNodes = nullptr;
@@ -341,7 +342,7 @@ HRESULT Parser::ParseSourceInternal(
 #ifdef PROFILE_EXEC
     m_scriptContext->ProfileBegin(Js::ParsePhase);
 #endif
-    JS_ETW(EventWriteJSCRIPT_PARSE_START(m_scriptContext,0));
+    JS_ETW_INTERNAL(EventWriteJSCRIPT_PARSE_START(m_scriptContext,0));
 
     *parseTree = NULL;
     m_sourceLim = 0;
@@ -443,7 +444,7 @@ HRESULT Parser::ParseSourceInternal(
 #ifdef PROFILE_EXEC
     m_scriptContext->ProfileEnd(Js::ParsePhase);
 #endif
-    JS_ETW(EventWriteJSCRIPT_PARSE_STOP(m_scriptContext, 0));
+    JS_ETW_INTERNAL(EventWriteJSCRIPT_PARSE_STOP(m_scriptContext, 0));
     
     return hr;
 }
@@ -813,6 +814,14 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
     {
         Error(ERRnoMemory);
     }
+
+    if (refForDecl->funcId != GetCurrentFunctionNode()->sxFnc.functionId)
+    {
+        // Fix up the function id, which is incorrect if we're reparsing lambda parameters
+        Assert(this->m_reparsingLambdaParams);
+        refForDecl->funcId = GetCurrentFunctionNode()->sxFnc.functionId;
+    }
+    
     if (blockInfo == GetCurrentBlockInfo())
     {
         refForUse = refForDecl;
@@ -2874,7 +2883,12 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             }
         }
 
-        ref = this->PushPidRef(pid);
+        // Don't push a reference if this is a single lambda parameter, because we'll reparse with
+        // a correct function ID.
+        if (m_token.tk != tkDArrow)
+        {
+            ref = this->PushPidRef(pid);
+        }
 
         if (buildAST)
         {
@@ -2905,6 +2919,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         break;
 
     case tkLParen:
+    {
         ichMin = m_pscan->IchMinTok();
         iuMin = m_pscan->IecpMinTok();
         m_pscan->Scan();
@@ -2928,11 +2943,27 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             break;
         }
 
+        // Advance the block ID here in case this parenthetical expression turns out to be a lambda parameter list.
+        // That way the pid ref stacks will be created in their correct final form, and we can simply fix
+        // up function ID's.
+        uint saveNextBlockId = m_nextBlockId;
+        uint saveCurrBlockId = GetCurrentBlock()->sxBlock.blockId;
+        GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
+
         this->m_parenDepth++;
         pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true);
         this->m_parenDepth--;
 
         ChkCurTok(tkRParen, ERRnoRparen);
+
+        GetCurrentBlock()->sxBlock.blockId = saveCurrBlockId;
+        if (m_token.tk == tkDArrow)
+        {
+            // We're going to rewind and reinterpret the expression as a parameter list.
+            // Put back the original next-block-ID so the existing pid ref stacks will be correct.
+            m_nextBlockId = saveNextBlockId;
+        }
+
         // Emit a deferred ... error if one was parsed.
         if (m_deferEllipsisError && m_token.tk != tkDArrow)
         {
@@ -2944,6 +2975,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             m_deferEllipsisError = false;
         }
         break;
+    }
 
     case tkIntCon:
         if (IsStrictMode() && m_pscan->IsOctOrLeadingZeroOnLastTKNumber())
@@ -3664,7 +3696,7 @@ ParseNodePtr Parser::ParseArgList( bool *pCallOfConstants, uint16 *pSpreadArgCou
     }
 
     if (pSpreadArgCount!=nullptr && (*pSpreadArgCount) > 0){
-        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SpreadFeatureCount, m_scriptContext);
+        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SpreadFeature, m_scriptContext);
     }
 
     *pCount = static_cast<uint16>(count);
@@ -3836,7 +3868,7 @@ ParseNodePtr Parser::ParseArrayList(bool *pArrayOfTaggedInts, bool *pArrayOfInts
     }
 
     if (spreadCount != nullptr && *spreadCount > 0){
-        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SpreadFeatureCount, m_scriptContext);
+        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SpreadFeature, m_scriptContext);
     }
 
     if (buildAST)
@@ -4802,7 +4834,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
     if (pnodeFnc && pnodeFnc->sxFnc.IsGenerator())
     {
-        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(GeneratorCount, m_scriptContext);
+        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Generator, m_scriptContext);
     }
 
     if (fncExprScope && !*pHasName)
@@ -4845,7 +4877,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
     if (fLambda)
     {
-        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(LambdaCount, m_scriptContext);
+        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Lambda, m_scriptContext);
     }
 
     uint uDeferSave = m_grfscr & fscrDeferFncParse;
@@ -4883,7 +4915,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         BOOL isDeferredFnc = IsDeferredFnc();
         AnalysisAssert(isDeferredFnc || pnodeFnc);
         isTopLevelDeferredFunc =
-            (!isDeferredFnc
+            (!fLambda
+             && pnodeFnc
              && DeferredParse(pnodeFnc->sxFnc.functionId)
              && (!pnodeFnc->sxFnc.IsNested() || CONFIG_FLAG(DeferNested))
             // Don't defer if this is a function expression not contained in a statement or other expression.
@@ -4893,6 +4926,12 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             // Don't defer a module function wrapper because we need to do export resolution at parse time
              && !fModule
             );
+
+        if (pnodeFnc)
+        {
+            pnodeFnc->sxFnc.SetCanBeDeferred(isTopLevelDeferredFunc && PnFnc::CanBeRedeferred(pnodeFnc->sxFnc.fncFlags));
+        }
+        isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc;
 
         if (!fLambda &&
             !isDeferredFnc &&
@@ -4970,7 +5009,13 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
         if (!skipFormals)
         {
+            bool fLambdaParamsSave = m_reparsingLambdaParams;
+            if (fLambda)
+            {
+                m_reparsingLambdaParams = true;
+            }
             this->ParseFncFormals<buildAST>(pnodeFnc, pnodeFncParent, flags);
+            m_reparsingLambdaParams = fLambdaParamsSave;
         }
 
         // Create function body scope
@@ -5035,22 +5080,17 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             {
                 if (paramScope->GetCanMergeWithBodyScope())
                 {
-                    paramScope->ForEachSymbolUntil([this, paramScope](Symbol* sym) {
-                        if (sym->GetPid()->GetTopRef()->sym == nullptr)
+                    paramScope->ForEachSymbolUntil([this, paramScope, pnodeFnc](Symbol* sym) {
+                        if (sym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
                         {
                             // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
                             paramScope->SetCannotMergeWithBodyScope();
                             return true;
                         }
-                        else
-                        {
-                            // If no non-local references are there then the top of the ref stack should point to the same symbol.
-                            Assert(sym->GetPid()->GetTopRef()->sym == sym);
-                        }
                         return false;
                     });
 
-                    if (wellKnownPropertyPids.arguments->GetTopRef() && wellKnownPropertyPids.arguments->GetTopRef()->GetScopeId() > pnodeFnc->sxFnc.pnodeScopes->sxBlock.blockId)
+                    if (wellKnownPropertyPids.arguments->GetTopRef() && wellKnownPropertyPids.arguments->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
                     {
                         Assert(pnodeFnc->sxFnc.UsesArguments());
                         // Arguments symbol is captured in the param scope
@@ -5287,7 +5327,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             }
 
             this->m_fUseStrictMode = oldStrictMode;
-            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(StrictModeFunctionCount, m_scriptContext);
+            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(StrictModeFunction, m_scriptContext);
         }
 
         if (fDeferred)
@@ -6275,7 +6315,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                     {
                         if (!m_currentNodeFunc->sxFnc.HasDefaultArguments())
                         {
-                            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(DefaultArgFunctionCount, m_scriptContext);
+                            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(DefaultArgFunction, m_scriptContext);
                         }
                         pnodeT->sxVar.pnodeInit = pnodeInit;
                         pnodeT->ichLim = m_pscan->IchLimTok();
@@ -6312,7 +6352,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
 
         if (seenRestParameter)
         {
-            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(RestCount, m_scriptContext);
+            CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Rest, m_scriptContext);
         }
 
         if (m_token.tk != tkRParen)
@@ -6393,6 +6433,11 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->sxFnc.pnodeRest           = nullptr;
     pnodeFnc->sxFnc.deferredStub        = nullptr;
     pnodeFnc->sxFnc.funcInfo            = nullptr;
+
+    // In order to (re-)defer the default constructor, we need to, for instance, track
+    // deferred class expression the way we track function expression, since we lose the part of the source
+    // that tells us which we have.
+    pnodeFnc->sxFnc.canBeDeferred       = false;
 
 #ifdef DBG
     pnodeFnc->sxFnc.deferredParseNextFunctionId = *(this->m_nextFunctionId);
@@ -6644,6 +6689,11 @@ void Parser::FinishFncNode(ParseNodePtr pnodeFnc)
             for (;;)
             {
                 m_pscan->Scan();
+                if (m_token.GetIdentifier(m_phtbl) == wellKnownPropertyPids.async)
+                {
+                    Assert(pnodeFnc->sxFnc.IsAsync());
+                    continue;
+                }
                 if (m_token.tk == tkFUNCTION)
                 {
                     break;
@@ -6768,7 +6818,7 @@ void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNode
         OUTPUT_TRACE(Js::DeferParsePhase, _u("Parsing function (%s) : %s (%d)\n"), GetParseType(), name, pnodeFnc->sxFnc.functionId);
     }
 
-    JS_ETW(EventWriteJSCRIPT_PARSE_FUNC(GetScriptContext(), pnodeFnc->sxFnc.functionId, /*Undefer*/FALSE));
+    JS_ETW_INTERNAL(EventWriteJSCRIPT_PARSE_FUNC(GetScriptContext(), pnodeFnc->sxFnc.functionId, /*Undefer*/FALSE));
 
 
     // Do the work of creating an AST for a function body.
@@ -7003,7 +7053,7 @@ ParseNodePtr Parser::ParseClassDecl(BOOL isDeclaration, LPCOLESTR pNameHint, uin
     {
         pnodeClass = CreateNode(knopClassDecl);
 
-        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ClassCount, m_scriptContext);
+        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Class, m_scriptContext);
     }
 
     m_pscan->Scan();
@@ -7392,7 +7442,7 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
         }
 
     }
-    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(StringTemplatesCount, m_scriptContext);
+    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(StringTemplates, m_scriptContext);
 
     OUTPUT_TRACE_DEBUGONLY(
         Js::StringTemplateParsePhase,
@@ -7981,12 +8031,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                 // binding operator, be it unary or binary.
                 Error(ERRsyntax);
             }
-            if (m_currentBlockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter)
+            if (m_currentScope->GetScopeType() == ScopeType_Parameter)
             {
-                // 'yield' can appear (as a keyword) in parameter scope as formal name or as
-                // expression within a default parameter expression, in either a generator
-                // function or an arrow function contained within a generator function.
-                // In all cases it is an error.
                 Error(ERRsyntax);
             }
         }
@@ -8553,6 +8599,14 @@ PidRefStack* Parser::PushPidRef(IdentPtr pid)
         }
         pid->PushPidRef(blockId, funcId, ref);
     }
+    else if (m_reparsingLambdaParams)
+    {
+        // If we're reparsing params, then we may have pid refs left behind from the first pass. Make sure we're
+        // working with the right ref at this point.
+        ref = this->FindOrAddPidRef(pid, blockId, funcId);
+        // Fix up the function ID if we're reparsing lambda parameters.
+        ref->funcId = funcId;
+    }
 
     return ref;
 }
@@ -8669,12 +8723,12 @@ ParseNodePtr Parser::ParseVariableDeclaration(
             else if (declarationType == tkCONST)
             {
                 pnodeThis = CreateBlockScopedDeclNode(pid, knopConstDecl);
-                CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(ConstCount, m_scriptContext);
+                CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Const, m_scriptContext);
             }
             else
             {
                 pnodeThis = CreateBlockScopedDeclNode(pid, knopLetDecl);
-                CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(LetCount, m_scriptContext);
+                CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Let, m_scriptContext);
             }
 
             if (pid == wellKnownPropertyPids.arguments && m_currentNodeFunc)
@@ -10344,9 +10398,10 @@ void Parser::ParseStmtList(ParseNodePtr *ppnodeList, ParseNodePtr **pppnodeLast,
                         // i.e. smEnvironment == SM_OnFunctionCode
                         Assert(m_currentNodeFunc != nullptr);
                         m_currentNodeFunc->sxFnc.SetAsmjsMode();
+                        m_currentNodeFunc->sxFnc.SetCanBeDeferred(false);
                         m_InAsmMode = true;
 
-                        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(AsmJSFunctionCount, m_scriptContext);
+                        CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(AsmJSFunction, m_scriptContext);
                     }
                 }
                 else if (isOctalInString)
@@ -10445,7 +10500,7 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
         if (pnodeFnc->sxFnc.pnodeBody == nullptr && !pnodeFnc->sxFnc.HasNonSimpleParameterList())
         {
             // Go back and generate an AST for this function.
-            JS_ETW(EventWriteJSCRIPT_PARSE_FUNC(this->GetScriptContext(), pnodeFnc->sxFnc.functionId, /*Undefer*/TRUE));
+            JS_ETW_INTERNAL(EventWriteJSCRIPT_PARSE_FUNC(this->GetScriptContext(), pnodeFnc->sxFnc.functionId, /*Undefer*/TRUE));
 
             ParseNodePtr pnodeFncSave = this->m_currentNodeFunc;
             this->m_currentNodeFunc = pnodeFnc;
@@ -10598,7 +10653,7 @@ void Parser::InitPids()
     wellKnownPropertyPids._star = m_phtbl->PidHashNameLen(_u("*"), sizeof("*") - 1);
 }
 
-void Parser::RestoreScopeInfo(Js::FunctionBody* functionBody)
+void Parser::RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody)
 {
     if (!functionBody)
     {
@@ -10654,7 +10709,7 @@ void Parser::RestoreScopeInfo(Js::FunctionBody* functionBody)
     scopeInfo->GetScopeInfo(this, nullptr, nullptr, scope);
 }
 
-void Parser::FinishScopeInfo(Js::FunctionBody *functionBody)
+void Parser::FinishScopeInfo(Js::ParseableFunctionInfo *functionBody)
 {
     if (!functionBody)
     {
@@ -11808,7 +11863,7 @@ ParseNodePtr Parser::ParseSuper(ParseNodePtr pnode, bool fAllowCall)
     }
 
     currentNodeFunc->sxFnc.SetHasSuperReference(TRUE);
-    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(SuperCount, m_scriptContext);
+    CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(Super, m_scriptContext);
     return pnode;
 }
 

@@ -273,8 +273,8 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
         try
         {
             JsTTDMoveMode moveMode = (JsTTDMoveMode)(JsTTDMoveMode::JsTTDMoveKthEvent | ((int64) startEventCount) << 32);
-            INT64 snapEventTime = -1;
-            INT64 nextEventTime = -2;
+            int64_t snapEventTime = -1;
+            int64_t nextEventTime = -2;
 
             while(true)
             {
@@ -290,7 +290,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
                     return error;
                 }
 
-                IfFailedReturn(ChakraRTInterface::JsTTDMoveToTopLevelEvent(moveMode, snapEventTime, nextEventTime));
+                IfFailedReturn(ChakraRTInterface::JsTTDMoveToTopLevelEvent(chRuntime, moveMode, snapEventTime, nextEventTime));
 
                 JsErrorCode res = ChakraRTInterface::JsTTDReplayExecution(&moveMode, &nextEventTime);
 
@@ -502,6 +502,11 @@ HRESULT ExecuteTest(const char* fileName)
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
         IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr));
+
+        unsigned int rcount = 0;
+        IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(nullptr));
+        ChakraRTInterface::JsRelease(context, &rcount);
+        AssertMsg(rcount == 0, "Should only have had 1 ref from replay code and one ref from current context??");
 #endif
     }
     else

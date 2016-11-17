@@ -148,7 +148,7 @@ WasmBinaryReader::ProcessCurrentSection()
     switch (m_currentSection.code)
     {
     case bSectMemory:
-        ReadMemorySection();
+        ReadMemorySection(false);
         break;
     case bSectSignatures:
         ReadSignatures();
@@ -172,7 +172,7 @@ WasmBinaryReader::ProcessCurrentSection()
         ReadDataSegments();
         break;
     case bSectIndirectFunctionTable:
-        ReadTableSection();
+        ReadTableSection(false);
         break;
     case bSectElement:
         ReadElementSection();
@@ -608,10 +608,18 @@ WasmBinaryReader::EndOfModule()
 
 // readers
 void
-WasmBinaryReader::ReadMemorySection()
+WasmBinaryReader::ReadMemorySection(bool isImportSection)
 {
     UINT length = 0;
-    UINT32 count = LEB128(length);
+    UINT32 count;
+    if (isImportSection)
+    {
+        count = 1;
+    }
+    else
+    {
+        count = LEB128(length);
+    }
     if (count > 1)
     {
         ThrowDecodingError(_u("Maximum of 1 memory allowed"));
@@ -621,7 +629,7 @@ WasmBinaryReader::ReadMemorySection()
     {
         uint32 flags = LEB128(length);
         uint32 minPage = LEB128(length);
-        uint32 maxPage = minPage;
+        uint32 maxPage = UINT32_MAX;
         if (flags & 0x1)
         {
             maxPage = LEB128(length);
@@ -640,8 +648,9 @@ WasmBinaryReader::ReadSignatures()
     for (UINT32 i = 0; i < count; i++)
     {
         TRACE_WASM_DECODER(_u("Signature #%u"), i);
-        WasmSignature * sig = Anew(m_alloc, WasmSignature, m_alloc);
 
+        WasmSignature * sig = m_module->GetSignature(i);
+        sig->SetSignatureId(i);
         int8 form = ReadConst<int8>();
         if (form != LanguageTypes::func)
         {
@@ -649,7 +658,7 @@ WasmBinaryReader::ReadSignatures()
         }
         UINT32 paramCount = LEB128(len);
         WasmTypes::WasmType type;
-        sig->AllocateParams(paramCount);
+        sig->AllocateParams(paramCount, m_module->GetRecycler());
 
         for (UINT32 j = 0; j < paramCount; j++)
         {
@@ -667,7 +676,7 @@ WasmBinaryReader::ReadSignatures()
             type = ReadWasmType(len);
             sig->SetResultType(type);
         }
-        m_module->SetSignature(i, sig);
+        sig->FinalizeSignature();
     }
 }
 
@@ -728,19 +737,15 @@ void WasmBinaryReader::ReadExportTable()
             break;
         }
         case ExternalKinds::Memory:
+        case ExternalKinds::Table:
+        if (index != 0)
         {
-            if (index != 0)
-            {
-                ThrowDecodingError(_u("Invalid memory index %s"), index);
-            }
-            m_module->SetMemoryExported();
-            break;
+            ThrowDecodingError(_u("Invalid index %s"), index);
         }
+        // fallthrough
         case ExternalKinds::Global:
             m_module->SetExport(iExport, index, exportName, nameLength, kind);
             break;
-        case ExternalKinds::Table:
-            ThrowDecodingError(_u("Exported Kind Table, NYI"));
         default:
             ThrowDecodingError(_u("Exported Kind %d, NYI"), kind);
             break;
@@ -749,16 +754,24 @@ void WasmBinaryReader::ReadExportTable()
     }
 }
 
-void WasmBinaryReader::ReadTableSection()
+void WasmBinaryReader::ReadTableSection(bool isImportSection)
 {
     uint32 length;
-    uint32 entries = LEB128(length);
+    uint32 entries;
+    if (isImportSection)
+    {
+        entries = 1;
+    }
+    else
+    {
+        entries = LEB128(length);
+    }
     if (entries > 1)
     {
         ThrowDecodingError(_u("Maximum of one table allowed"));
     }
 
-    if (entries > 0)
+    if (entries == 1)
     {
         int8 elementType = ReadConst<int8>();
         if (elementType != LanguageTypes::anyfunc)
@@ -767,16 +780,13 @@ void WasmBinaryReader::ReadTableSection()
         }
         uint32 flags = LEB128(length);
         uint32 initialLength = LEB128(length);
+        uint32 maximumLength = UINT32_MAX;
         if (flags & 0x1)
         {
-            uint32 maximumLength = LEB128(length);
-
-            // Allocate maximum length for now until resizing supported
-            initialLength = maximumLength;
+            maximumLength = LEB128(length);
         }
-        m_module->SetTableSize(initialLength);
-        m_module->CalculateEquivalentSignatures();
-        TRACE_WASM_DECODER(_u("Indirect table: %u entries"), initialLength);
+        m_module->InitializeTable(initialLength, maximumLength);
+        TRACE_WASM_DECODER(_u("Indirect table: %u to %u entries"), initialLength, maximumLength);
     }
 }
 
@@ -814,7 +824,7 @@ WasmBinaryReader::ReadElementSection()
             }
             eSeg->AddElement(elem, *m_module);
         }
-        m_module->SetTableValues(eSeg, i);
+        m_module->SetElementSeg(eSeg, i);
     }
 }
 
@@ -843,7 +853,7 @@ WasmBinaryReader::ReadDataSegments()
         WasmDataSegment *dseg = Anew(m_alloc, WasmDataSegment, m_alloc, initExpr, dataByteLen, m_pc);
         CheckBytesLeft(dataByteLen);
         m_pc += dataByteLen;
-        m_module->AddDataSeg(dseg, i);
+        m_module->SetDataSeg(dseg, i);
     }
 }
 
@@ -880,8 +890,8 @@ WasmBinaryReader::ReadGlobalsSection()
     for (UINT i = 0; i < numEntries; ++i)
     {
         WasmTypes::WasmType type = ReadWasmType(len);
-        bool mutability = ReadConst<UINT8>() == 1;
-        WasmGlobal* global = Anew(m_alloc, WasmGlobal, m_module->globalCounts[type]++, type, mutability);
+        bool isMutable = ReadConst<UINT8>() == 1;
+        WasmGlobal* global = m_module->AddGlobal(type, isMutable);
 
         WasmNode globalNode = ReadInitExpr();
         switch (globalNode.op) {
@@ -899,8 +909,6 @@ WasmBinaryReader::ReadGlobalsSection()
         default:
             Assert(UNREACHED);
         }
-
-        m_module->globals->Add(global);
     }
 }
 
@@ -954,19 +962,20 @@ WasmBinaryReader::ReadImportEntries()
         case ExternalKinds::Global:
         {
             WasmTypes::WasmType type = ReadWasmType(len);
-            bool mutability = ReadConst<UINT8>() == 1;
-            WasmGlobal* importedGlobal = Anew(m_alloc, WasmGlobal, m_module->globalCounts[type]++, type, mutability);
-            if (importedGlobal->GetType() == WasmTypes::I64)
-            {
-                ThrowDecodingError(_u("I64 Globals, NYI"));
-            }
-            m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen, kind, importedGlobal);
+            bool isMutable = ReadConst<UINT8>() == 1;
+            WasmGlobal* importedGlobal = m_module->AddGlobal(type, isMutable);
+            m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen, importedGlobal);
             break;
         }
         case ExternalKinds::Table:
-            ThrowDecodingError(_u("Imported Kind Table, NYI"));
+            ReadTableSection(true);
+            m_module->AddTableImport(modName, modNameLen, fnName, fnNameLen);
+            break;
         case ExternalKinds::Memory:
-            ThrowDecodingError(_u("Imported Kind Memory, NYI"));
+            ReadMemorySection(true);
+            m_module->AddMemoryImport(modName, modNameLen, fnName, fnNameLen);
+
+            break;
         default:
             ThrowDecodingError(_u("Imported Kind %d, NYI"), kind);
             break;
@@ -1099,11 +1108,7 @@ WasmBinaryReader::ReadInitExpr()
     case wbGetGlobal:
     {
         uint32 globalIndex = node.var.num;
-        if (globalIndex >= (uint32)m_module->globals->Count())
-        {
-            ThrowDecodingError(_u("Global %u out of bounds"), globalIndex);
-        }
-        WasmGlobal* global = m_module->globals->Item(globalIndex);
+        WasmGlobal* global = m_module->GetGlobal(globalIndex);
         if (global->GetMutability())
         {
             ThrowDecodingError(_u("initializer expression cannot reference a mutable global"));

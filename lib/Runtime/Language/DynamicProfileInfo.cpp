@@ -189,6 +189,7 @@ namespace Js
         }
 
         this->rejitCount = 0;
+        this->bailOutOffsetForLastRejit = Js::Constants::NoByteCodeOffset;
 #if DBG
         for (ProfileId i = 0; i < functionBody->GetProfiledArrayCallSiteCount(); ++i)
         {
@@ -423,7 +424,7 @@ namespace Js
         }
 
         // Mark the callsite bit where caller and callee is same function
-        if (functionBody == calleeFunctionInfo && callSiteId < 32)
+        if (calleeFunctionInfo && functionBody == calleeFunctionInfo->GetFunctionProxy() && callSiteId < 32)
         {
             this->m_recursiveInlineInfo = this->m_recursiveInlineInfo | (1 << callSiteId);
         }
@@ -780,7 +781,8 @@ namespace Js
 
             if (sourceId == CurrentSourceId) // caller and callee in same file
             {
-                return functionBody->GetUtf8SourceInfo()->FindFunction(functionId);
+                FunctionProxy *inlineeProxy = functionBody->GetUtf8SourceInfo()->FindFunction(functionId);
+                return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
             }
 
             if (sourceId != NoSourceId && sourceId != InvalidSourceId)
@@ -794,7 +796,8 @@ namespace Js
                         Utf8SourceInfo *srcInfo = sourceList->Item(i)->Get();
                         if (srcInfo && srcInfo->GetHostSourceContext() == sourceId)
                         {
-                            return  srcInfo->FindFunction(functionId);
+                            FunctionProxy *inlineeProxy = srcInfo->FindFunction(functionId);
+                            return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
                         }
                     }
                 }

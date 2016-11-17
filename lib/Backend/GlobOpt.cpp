@@ -4284,16 +4284,29 @@ GlobOpt::MarkArgumentsUsedForBranch(IR::Instr * instr)
     if (instr->IsBranchInstr() && !instr->AsBranchInstr()->IsUnconditional())
     {
         IR::BranchInstr * bInstr = instr->AsBranchInstr();
+        IR::Opnd *src1 = bInstr->GetSrc1();
         IR::Opnd *src2 = bInstr->GetSrc2();
-        if (((!src2 && (instr->m_opcode == Js::OpCode::BrFalse_A || instr->m_opcode == Js::OpCode::BrTrue_A))
-            || (src2 &&  src2->IsConstOpnd()))
-            && bInstr->GetSrc1()->IsRegOpnd())
+        // These are used because we don't want to rely on src1 or src2 to always be the register/constant
+        IR::RegOpnd *regOpnd = nullptr;
+        if (!src2 && (instr->m_opcode == Js::OpCode::BrFalse_A || instr->m_opcode == Js::OpCode::BrTrue_A) && src1->IsRegOpnd())
         {
-            IR::RegOpnd *src1 = bInstr->GetSrc1()->AsRegOpnd();
-
-            if (src1 && src1->m_sym->IsSingleDef())
+            regOpnd = src1->AsRegOpnd();
+        }
+        // We need to check for (0===arg) and (arg===0); this is especially important since some minifiers
+        // change all instances of one to the other.
+        else if (src2 && src2->IsConstOpnd() && src1->IsRegOpnd())
+        {
+            regOpnd = src1->AsRegOpnd();
+        }
+        else if (src2 && src2->IsRegOpnd() && src1->IsConstOpnd())
+        {
+            regOpnd = src2->AsRegOpnd();
+        }
+        if (regOpnd != nullptr)
+        {
+            if (regOpnd->m_sym->IsSingleDef())
             {
-                IR::Instr * defInst = src1->m_sym->GetInstrDef();
+                IR::Instr * defInst = regOpnd->m_sym->GetInstrDef();
                 IR::Opnd *defSym = defInst->GetSrc1();
                 if (defSym && defSym->IsSymOpnd() && defSym->AsSymOpnd()->m_sym->IsStackSym()
                     && defSym->AsSymOpnd()->m_sym->AsStackSym()->IsParamSlotSym())
@@ -7957,6 +7970,10 @@ GlobOpt::ValueNumberDst(IR::Instr **pInstr, Value *src1Val, Value *src2Val)
             return this->NewGenericValue(ValueType::GetObject(ObjectType::Object), dst);
         }
         break;
+
+    case Js::OpCode::Typeof:
+        return this->NewGenericValue(ValueType::String, dst);
+        break;
     }
 
 #ifdef ENABLE_SIMDJS
@@ -9195,6 +9212,14 @@ GlobOpt::GetConstantVar(IR::Opnd *opnd, Value *val)
     return nullptr;
 }
 
+bool BoolAndIntStaticAndTypeMismatch(Value* src1Val, Value* src2Val, Js::Var src1Var, Js::Var src2Var)
+{
+    ValueInfo *src1ValInfo = src1Val->GetValueInfo();
+    ValueInfo *src2ValInfo = src2Val->GetValueInfo();
+    return (src1ValInfo->IsNumber() && src1Var && src2ValInfo->IsBoolean() && src1Var != Js::TaggedInt::ToVarUnchecked(0) && src1Var != Js::TaggedInt::ToVarUnchecked(1)) ||
+        (src2ValInfo->IsNumber() && src2Var && src1ValInfo->IsBoolean() && src2Var != Js::TaggedInt::ToVarUnchecked(0) && src2Var != Js::TaggedInt::ToVarUnchecked(1));
+}
+
 bool
 GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Value **pDstVal)
 {
@@ -9230,27 +9255,47 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
     case Js::OpCode::BrNotNeq_A:
         if (!src1Var || !src2Var)
         {
-            return false;
+            if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
+            {
+                    result = false;
+            }
+            else
+            {
+                return false;
+            }
         }
-        if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
+        else
         {
-            // TODO: OOP JIT, const folding
-            return false;
+            if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
+            {
+                // TODO: OOP JIT, const folding
+                return false;
+            }
+            result = Js::JavascriptOperators::Equal(src1Var, src2Var, this->func->GetScriptContext());
         }
-        result = Js::JavascriptOperators::Equal(src1Var, src2Var, this->func->GetScriptContext());
         break;
     case Js::OpCode::BrNeq_A:
     case Js::OpCode::BrNotEq_A:
         if (!src1Var || !src2Var)
         {
-            return false;
+            if (BoolAndIntStaticAndTypeMismatch(src1Val, src2Val, src1Var, src2Var))
+            {
+                result = true;
+            }
+            else
+            {
+                return false;
+            }
         }
-        if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
+        else
         {
-            // TODO: OOP JIT, const folding
-            return false;
+            if (func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts))
+            {
+                // TODO: OOP JIT, const folding
+                return false;
+            }
+            result = Js::JavascriptOperators::NotEqual(src1Var, src2Var, this->func->GetScriptContext());
         }
-        result = Js::JavascriptOperators::NotEqual(src1Var, src2Var, this->func->GetScriptContext());
         break;
     case Js::OpCode::BrSrEq_A:
     case Js::OpCode::BrSrNotNeq_A:
@@ -9258,19 +9303,19 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         {
             ValueInfo *src1ValInfo = src1Val->GetValueInfo();
             ValueInfo *src2ValInfo = src2Val->GetValueInfo();
-            if (src1ValInfo->IsUndefined() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenUndefined())
-            {
-                result = false;
-            }
-            else if (src1ValInfo->IsNull() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenNull())
-            {
-                result = false;
-            }
-            else if (src2ValInfo->IsUndefined() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenUndefined())
-            {
-                result = false;
-            }
-            else if (src2ValInfo->IsNull() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenNull())
+            if (
+                (src1ValInfo->IsUndefined() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenUndefined()) ||
+                (src1ValInfo->IsNull() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenNull()) ||
+                (src1ValInfo->IsBoolean() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenBoolean()) ||
+                (src1ValInfo->IsNumber() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenNumber()) ||
+                (src1ValInfo->IsString() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenString()) ||
+
+                (src2ValInfo->IsUndefined() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenUndefined()) ||
+                (src2ValInfo->IsNull() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenNull()) ||
+                (src2ValInfo->IsBoolean() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenBoolean()) ||
+                (src2ValInfo->IsNumber() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenNumber()) ||
+                (src2ValInfo->IsString() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenString())
+               )
             {
                 result = false;
             }
@@ -9296,19 +9341,19 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         {
             ValueInfo *src1ValInfo = src1Val->GetValueInfo();
             ValueInfo *src2ValInfo = src2Val->GetValueInfo();
-            if (src1ValInfo->IsUndefined() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenUndefined())
-            {
-                result = true;
-            }
-            else if (src1ValInfo->IsNull() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenNull())
-            {
-                result = true;
-            }
-            else if (src2ValInfo->IsUndefined() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenUndefined())
-            {
-                result = true;
-            }
-            else if (src2ValInfo->IsNull() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenNull())
+            if (
+                (src1ValInfo->IsUndefined() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenUndefined()) ||
+                (src1ValInfo->IsNull() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenNull()) ||
+                (src1ValInfo->IsBoolean() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenBoolean()) ||
+                (src1ValInfo->IsNumber() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenNumber()) ||
+                (src1ValInfo->IsString() && src2ValInfo->IsDefinite() && !src2ValInfo->HasBeenString()) ||
+
+                (src2ValInfo->IsUndefined() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenUndefined()) ||
+                (src2ValInfo->IsNull() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenNull()) ||
+                (src2ValInfo->IsBoolean() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenBoolean()) ||
+                (src2ValInfo->IsNumber() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenNumber()) ||
+                (src2ValInfo->IsString() && src1ValInfo->IsDefinite() && !src1ValInfo->HasBeenString())
+               )
             {
                 result = true;
             }

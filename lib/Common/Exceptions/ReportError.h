@@ -23,7 +23,9 @@ enum ErrorReason
     Fatal_Debugger_AttachDetach_Failure = 15,
     Fatal_EntryExitRecordCorruption = 16,
     Fatal_UnexpectedExceptionHandling = 17,
-    Fatal_RpcFailure = 18
+    Fatal_RpcFailure = 18, 
+    // Reserved = 19,
+    Fatal_TTDAbort = 20
 };
 
 extern "C" void ReportFatalException(

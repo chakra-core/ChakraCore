@@ -2901,6 +2901,23 @@ namespace Js
         return  JavascriptNumber::ToVar(idxDest, scriptContext);
     }
 
+    void JavascriptArray::ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, uint32 index)
+    {
+        if (!succeeded)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_CantRedefineProp, JavascriptConversion::ToString(JavascriptNumber::ToVar(index, scriptContext), scriptContext)->GetSz());
+        }
+    }
+
+    void JavascriptArray::ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, BigIndex index)
+    {
+        if (!succeeded)
+        {
+            uint64 i = (uint64)(index.IsSmallIndex() ? index.GetSmallIndex() : index.GetBigIndex());
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_CantRedefineProp, JavascriptConversion::ToString(JavascriptNumber::ToVar(i, scriptContext), scriptContext)->GetSz());
+        }
+    }
+
     BOOL JavascriptArray::SetArrayLikeObjects(RecyclableObject* pDestObj, uint32 idxDest, Var aItem)
     {
         return pDestObj->SetItem(idxDest, aItem, Js::PropertyOperation_ThrowIfNotExtensible);
@@ -3032,7 +3049,7 @@ namespace Js
                             }
                             else
                             {
-                                SetArrayLikeObjects(pDestObj, idxDest, subItem);
+                                ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxDest);
                             }
                         }
                         ++idxDest;
@@ -3051,7 +3068,7 @@ namespace Js
                             }
                             else
                             {
-                                SetArrayLikeObjects(pDestObj, idxDest, subItem);
+                                ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxSubItem);
                             }
                         }
                         ++idxDest;
@@ -3743,7 +3760,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayIndexOfCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_indexOf);
 
         Var returnValue =  IndexOfHelper<false>(args, scriptContext);
 
@@ -3762,7 +3779,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayIncludesCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_includes);
 
         Var returnValue = IndexOfHelper<true>(args, scriptContext);
         Assert(returnValue == scriptContext->GetLibrary()->GetTrue() || returnValue == scriptContext->GetLibrary()->GetFalse());
@@ -4476,7 +4493,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayLastIndexOfCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_lastIndexOf);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -6029,7 +6046,7 @@ Case0:
                         continue;
                     }
 
-                    JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                 }
             }
         }
@@ -6083,7 +6100,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptOperators::OP_SetElementI_UInt32(newObj, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                     }
                 }
             }
@@ -7246,7 +7263,7 @@ Case0:
                    }
                    else
                    {
-                       JavascriptArray::SetArrayLikeObjects(pNewObj, i, element);
+                       ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(pNewObj, i, element), scriptContext, i);
                    }
                }
             }
@@ -7820,7 +7837,7 @@ Case0:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayisArrayCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Constructor_isArray);
 
         if (args.Info.Count < 2)
         {
@@ -8130,7 +8147,7 @@ Case0:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayEveryCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_every);
 
         if (args.Info.Count == 0)
         {
@@ -8289,7 +8306,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.some"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArraySomeCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_some);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8451,7 +8468,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.forEach"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayForEachCount)
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_forEach)
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8860,7 +8877,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.map"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayMapCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_map);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -9012,7 +9029,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue), scriptContext, k);
                 }
             }
         }
@@ -9079,7 +9096,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue), scriptContext, k);
                     }
                 }
             }
@@ -9103,7 +9120,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.filter"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayFilterCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_filter);
 
         Assert(!(callInfo.Flags & CallFlags_New));
         if (args.Info.Count == 0)
@@ -9213,7 +9230,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                     }
                     ++i;
                 }
@@ -9242,7 +9259,7 @@ Case0:
                         }
                         else
                         {
-                            JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                            ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                         }
                         ++i;
                     }
@@ -9268,7 +9285,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduce"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayReduceCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduce);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -9468,7 +9485,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduceRight"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayReduceRightCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduceRight);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -9762,7 +9779,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, nextValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, nextValue), scriptContext, k);
                 }
 
                 k++;
@@ -9831,7 +9848,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue), scriptContext, k);
                 }
             }
 
@@ -9939,7 +9956,7 @@ Case0:
             for (uint32 k = 0; k < len; k++)
             {
                 Var kValue = args[k + 1];
-                JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue);
+                ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue), scriptContext, k);
             }
         }
 
@@ -11351,7 +11368,7 @@ Case0:
 #if ENABLE_TTD
     void JavascriptArray::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_Array || this->GetTypeId() == Js::TypeIds_ES5Array, "Should only be used on basic arrays (or called as super from ES5Array.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_Array || this->GetTypeId() == Js::TypeIds_ES5Array, "Should only be used on basic arrays (or called as super from ES5Array.");
 
         ScriptContext* ctx = this->GetScriptContext();
 
@@ -11374,7 +11391,7 @@ Case0:
 
     void JavascriptArray::ProcessCorePaths()
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic arrays.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic arrays.");
 
         ScriptContext* ctx = this->GetScriptContext();
 
@@ -11405,7 +11422,7 @@ Case0:
 
     void JavascriptArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic Js arrays.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic Js arrays.");
 
         TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>* sai = TTD::NSSnapObjects::ExtractArrayValues<TTD::TTDVar>(this, alloc);
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>*, TTD::NSSnapObjects::SnapObjectType::SnapArrayObject>(objData, sai);
@@ -11459,7 +11476,7 @@ Case0:
 
     void JavascriptCopyOnAccessNativeIntArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(false, "Not implemented yet!!!");
+        TTDAssert(false, "Not implemented yet!!!");
     }
 #endif
 #endif
@@ -11493,7 +11510,7 @@ Case0:
 
     void JavascriptNativeFloatArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_NativeFloatArray, "Should only be used on native float arrays.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_NativeFloatArray, "Should only be used on native float arrays.");
 
         TTD::NSSnapObjects::SnapArrayInfo<double>* sai = TTD::NSSnapObjects::ExtractArrayValues<double>(this, alloc);
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<double>*, TTD::NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>(objData, sai);

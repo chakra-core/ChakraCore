@@ -30,6 +30,9 @@ public:
     intptr_t GetFloatTwoToFractionAddr() const;
     intptr_t GetDoubleNegTwoToFractionAddr() const;
     intptr_t GetDoubleNaNAddr() const;
+    intptr_t GetDoubleIntMaxPlusOneAddr() const;
+    intptr_t GetDoubleUintMaxPlusOneAddr() const;
+    intptr_t GetDoubleIntMinMinusOneAddr() const;
     intptr_t GetFloatNaNAddr() const;
     intptr_t GetFloatNegTwoToFractionAddr() const;
     intptr_t GetDoubleZeroAddr() const;
@@ -38,6 +41,7 @@ public:
     intptr_t GetDoubleTwoTo31Addr() const;
 
     intptr_t GetUIntConvertConstAddr() const;
+    intptr_t GetUInt64ConvertConstAddr() const;
     intptr_t GetUint8ClampedArraySetItemAddr() const;
     intptr_t GetConstructorCacheDefaultInstanceAddr() const;
     intptr_t GetJavascriptObjectNewInstanceAddr() const;

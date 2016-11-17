@@ -1,3 +1,1 @@
-br_table.wast:1332: $assert_return_105 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function as-convert-operand[58] at offset 11/13: Operator I32Wrap_I64 NYI
-br_table.wast:1334: $assert_return_106 unexpectedly threw: WebAssemblyCompileError: Compiling wasm failed: function as-grow_memory-size[59] at offset 12/14: Operator GrowMemory NYI
-141/143 tests passed.
+143/143 tests passed.

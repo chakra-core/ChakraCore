@@ -28,6 +28,13 @@
   </test>
   <test>
     <default>
+      <files>asyncawait-undodefer.js</files>
+      <compile-flags>-forceundodefer</compile-flags>
+      <baseline>asyncawait-undodefer.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>stringpad.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>

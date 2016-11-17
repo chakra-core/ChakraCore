@@ -272,6 +272,15 @@ JITTimeFunctionBody::InitializeJITFunctionData(
         jitBody->asmJsData->isHeapBufferConst = asmFuncInfo->IsHeapBufferConst();
         jitBody->asmJsData->usesHeapBuffer = asmFuncInfo->UsesHeapBuffer();
         jitBody->asmJsData->totalSizeInBytes = asmFuncInfo->GetTotalSizeinBytes();
+
+#ifdef ENABLE_WASM
+        if (functionBody->IsWasmFunction())
+        {
+            jitBody->asmJsData->wasmSignatureCount = asmFuncInfo->GetWebAssemblyModule()->GetSignatureCount();
+            jitBody->asmJsData->wasmSignaturesBaseAddr = (intptr_t)asmFuncInfo->GetWebAssemblyModule()->GetSignatures();
+            jitBody->asmJsData->wasmSignatures = (WasmSignatureIDL*)asmFuncInfo->GetWebAssemblyModule()->GetSignatures();
+        }
+#endif
     }
 #endif
 }
@@ -945,12 +954,12 @@ JITTimeFunctionBody::GetRootObject() const
     return m_bodyData.constTable[Js::FunctionBody::RootObjectRegSlot - Js::FunctionBody::FirstRegSlot];
 }
 
-intptr_t
+Js::FunctionInfoPtrPtr
 JITTimeFunctionBody::GetNestedFuncRef(uint index) const
 {
     Assert(index < GetNestedCount());
-    intptr_t baseAddr = m_bodyData.nestedFuncArrayAddr;
-    return baseAddr + (index * sizeof(void*));
+    Js::FunctionInfoPtrPtr baseAddr = (Js::FunctionInfoPtrPtr)m_bodyData.nestedFuncArrayAddr;
+    return baseAddr + index;
 }
 
 intptr_t

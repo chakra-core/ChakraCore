@@ -36,7 +36,6 @@ namespace Js
         bool hasSuperReference;
         bool isActiveScript;
 
-        bool HasFunctionBody();
         Var FormatToString(JavascriptString* inputString);
     protected:
         ScriptFunction(DynamicType * type);
@@ -47,7 +46,7 @@ namespace Js
         ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
         static bool Is(Var func);
         static ScriptFunction * FromVar(Var func);
-        static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionProxy** proxyRef);
+        static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
         ProxyEntryPointInfo* GetEntryPointInfo() const;
         FunctionEntryPointInfo* GetFunctionEntryPointInfo() const
@@ -73,6 +72,7 @@ namespace Js
 
         void ChangeEntryPoint(ProxyEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
         JavascriptMethod UpdateThunkEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
+        bool IsNewEntryPointAvailable();
         JavascriptMethod UpdateUndeferredBody(FunctionBody* newFunctionInfo);
 
         virtual ScriptFunctionType * DuplicateType() override;
@@ -99,6 +99,7 @@ namespace Js
 
         virtual JavascriptFunction* GetRealFunctionObject() { return this; }
 
+        bool HasFunctionBody();
 #if ENABLE_TTD
     public:
         virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
@@ -122,6 +123,11 @@ namespace Js
         void SetModuleMemory(Var* mem) { m_moduleMemory = mem; }
         Var * GetModuleMemory() const { return m_moduleMemory; }
 
+#ifdef ENABLE_WASM
+        void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
+        Wasm::WasmSignature * GetSignature() const { return m_signature; }
+        static uint32 GetOffsetOfSignature() { return offsetof(AsmJsScriptFunction, m_signature); }
+#endif
         static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleMemory); }
     protected:
         AsmJsScriptFunction(DynamicType * type);
@@ -130,6 +136,7 @@ namespace Js
 
     private:
         Var * m_moduleMemory;
+        Wasm::WasmSignature * m_signature;
     };
 
     class ScriptFunctionWithInlineCache : public ScriptFunction
@@ -163,6 +170,7 @@ namespace Js
         void CreateInlineCache();
         void AllocateInlineCache();
         void ClearInlineCacheOnFunctionObject();
+        void ClearBorrowedInlineCacheOnFunctionObject();
         InlineCache * GetInlineCache(uint index);
         uint GetInlineCacheCount() { return inlineCacheCount; }
         void** GetInlineCaches() { return m_inlineCaches; }

@@ -27,7 +27,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(PromiseCount);
+        CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_Promise);
 
         // SkipDefaultNewObject function flag should have prevented the default object from
         // being created, except when call true a host dispatch
@@ -1343,7 +1343,7 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseResolveOrRejectFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(this->promise != nullptr, "Was not expecting that!!!");
+        TTDAssert(this->promise != nullptr, "Was not expecting that!!!");
 
         extractor->MarkVisitVar(this->promise);
     }
@@ -1409,18 +1409,18 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseAsyncSpawnExecutorFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
     }
 
     TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAsyncSpawnExecutorFunction::GetSnapTag_TTD() const
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
         return TTD::NSSnapObjects::SnapObjectType::Invalid;
     }
 
     void JavascriptPromiseAsyncSpawnExecutorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
     }
 #endif
 
@@ -1476,18 +1476,18 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
     }
 
     TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::GetSnapTag_TTD() const
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
         return TTD::NSSnapObjects::SnapObjectType::Invalid;
     }
 
     void JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
     }
 #endif
 
@@ -1523,18 +1523,18 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseCapabilitiesExecutorFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
     }
 
     TTD::NSSnapObjects::SnapObjectType JavascriptPromiseCapabilitiesExecutorFunction::GetSnapTag_TTD() const
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
         return TTD::NSSnapObjects::SnapObjectType::Invalid;
     }
 
     void JavascriptPromiseCapabilitiesExecutorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
     }
 #endif
 
@@ -1576,7 +1576,7 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseCapability::MarkVisitPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(this->promise != nullptr && this->resolve != nullptr && this->reject != nullptr, "Seems odd, I was not expecting this!!!");
+        TTDAssert(this->promise != nullptr && this->resolve != nullptr && this->reject != nullptr, "Seems odd, I was not expecting this!!!");
 
         extractor->MarkVisitVar(this->promise);
 
@@ -1626,7 +1626,7 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseReaction::MarkVisitPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(this->handler != nullptr && this->capabilities != nullptr, "Seems odd, I was not expecting this!!!");
+        TTDAssert(this->handler != nullptr && this->capabilities != nullptr, "Seems odd, I was not expecting this!!!");
 
         extractor->MarkVisitVar(this->handler);
 
@@ -1635,7 +1635,7 @@ namespace Js
 
     void JavascriptPromiseReaction::ExtractSnapPromiseReactionInto(TTD::NSSnapValues::SnapPromiseReactionInfo* snapPromiseReaction, JsUtil::List<TTD_PTR_ID, HeapAllocator>& depOnList, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->handler != nullptr && this->capabilities != nullptr, "Seems odd, I was not expecting this!!!");
+        TTDAssert(this->handler != nullptr && this->capabilities != nullptr, "Seems odd, I was not expecting this!!!");
 
         snapPromiseReaction->PromiseReactionId = TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(this);
 
@@ -1659,7 +1659,7 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseReactionTaskFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(this->argument != nullptr && this->reaction != nullptr, "Was not expecting this!!!");
+        TTDAssert(this->argument != nullptr && this->reaction != nullptr, "Was not expecting this!!!");
 
         extractor->MarkVisitVar(this->argument);
 
@@ -1724,18 +1724,18 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseResolveThenableTaskFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
     }
 
     TTD::NSSnapObjects::SnapObjectType JavascriptPromiseResolveThenableTaskFunction::GetSnapTag_TTD() const
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
         return TTD::NSSnapObjects::SnapObjectType::Invalid;
     }
 
     void JavascriptPromiseResolveThenableTaskFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
     }
 #endif
 
@@ -1805,18 +1805,18 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseAllResolveElementFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
     }
 
     TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAllResolveElementFunction::GetSnapTag_TTD() const
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
         return TTD::NSSnapObjects::SnapObjectType::Invalid;
     }
 
     void JavascriptPromiseAllResolveElementFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(false, "Not Implemented Yet");
+        TTDAssert(false, "Not Implemented Yet");
     }
 #endif
 

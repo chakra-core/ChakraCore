@@ -452,135 +452,6 @@ LowererMD::GenerateFunctionObjectTest(IR::Instr * callInstr, IR::RegOpnd  *funct
     }
 }
 
-void LowererMD::InsertIncUInt8PreventOverflow(
-    IR::Opnd *const dst,
-    IR::Opnd *const src,
-    IR::Instr *const insertBeforeInstr,
-    IR::Instr * *const onOverflowInsertBeforeInstrRef)
-{
-    Assert(dst);
-    Assert(dst->GetType() == TyUint8);
-    Assert(src);
-    Assert(src->GetType() == TyUint8);
-    Assert(insertBeforeInstr);
-
-    Func *const func = insertBeforeInstr->m_func;
-
-    // Generate:
-    //     add temp, src, 1
-    //     tst temp, static_cast<uint8>(-1)
-    //     beq $overflow
-    //     mov dst, temp
-    //     b $continue
-    //   $overflow:
-    //     mov dst, static_cast<uint8>(-1)
-    //   $continue:
-
-    IR::LabelInstr *const overflowLabel = Lowerer::InsertLabel(false, insertBeforeInstr);
-
-    //     add temp, src, 1
-    IR::RegOpnd *const tempOpnd = IR::RegOpnd::New(StackSym::New(TyUint8, func), TyUint8, func);
-    const IR::AutoReuseOpnd autoReuseTempOpnd(tempOpnd, func);
-    Lowerer::InsertAdd(false, tempOpnd, src, IR::IntConstOpnd::New(1, TyUint8, func, true), overflowLabel);
-
-    //     tst temp, 0xff
-    //     beq $overflow
-    Lowerer::InsertTestBranch(
-        tempOpnd,
-        IR::IntConstOpnd::New(static_cast<uint8>(-1), TyUint8, func, true),
-        Js::OpCode::BrEq_A,
-        overflowLabel,
-        overflowLabel);
-
-    //     mov dst, temp
-    Lowerer::InsertMove(dst, tempOpnd, overflowLabel);
-
-    const bool dstEqualsSrc = dst->IsEqual(src);
-    if(!dstEqualsSrc || onOverflowInsertBeforeInstrRef)
-    {
-        //     b $continue
-        //   $overflow:
-        //     mov dst, static_cast<uint8>(-1)
-        //   $continue:
-        IR::LabelInstr *const continueLabel = Lowerer::InsertLabel(false, insertBeforeInstr);
-        Lowerer::InsertBranch(Js::OpCode::Br, continueLabel, overflowLabel);
-        if(!dstEqualsSrc)
-        {
-            Lowerer::InsertMove(dst, IR::IntConstOpnd::New(static_cast<uint8>(-1), TyUint8, func, true), continueLabel);
-        }
-
-        if(onOverflowInsertBeforeInstrRef)
-        {
-            *onOverflowInsertBeforeInstrRef = continueLabel;
-        }
-    }
-    else
-    {
-        //   $overflow:
-    }
-}
-
-void LowererMD::InsertDecUInt8PreventOverflow(
-    IR::Opnd *const dst,
-    IR::Opnd *const src,
-    IR::Instr *const insertBeforeInstr,
-    IR::Instr * *const onOverflowInsertBeforeInstrRef)
-{
-    Assert(dst);
-    Assert(dst->GetType() == TyUint8);
-    Assert(src);
-    Assert(src->GetType() == TyUint8);
-    Assert(insertBeforeInstr);
-
-    Func *const func = insertBeforeInstr->m_func;
-
-    // Generate:
-    //     subs temp, src, 1
-    //     bcs $overflow
-    //     mov dst, temp
-    //     b $continue
-    //   $overflow:
-    //     mov dst, 0
-    //   $continue:
-
-    IR::LabelInstr *const overflowLabel = Lowerer::InsertLabel(false, insertBeforeInstr);
-
-    //     subs temp, src, 1
-    IR::RegOpnd *const tempOpnd = IR::RegOpnd::New(StackSym::New(TyUint8, func), TyUint8, func);
-    const IR::AutoReuseOpnd autoReuseTempOpnd(tempOpnd, func);
-    Lowerer::InsertSub(true, tempOpnd, src, IR::IntConstOpnd::New(1, TyUint8, func, true), overflowLabel);
-
-    //     bcs $overflow
-    Lowerer::InsertBranch(Js::OpCode::BrLt_A, true, overflowLabel, overflowLabel);
-
-    //     mov dst, temp
-    Lowerer::InsertMove(dst, tempOpnd, overflowLabel);
-
-    const bool dstEqualsSrc = dst->IsEqual(src);
-    if(!dstEqualsSrc || onOverflowInsertBeforeInstrRef)
-    {
-        //     b $continue
-        //   $overflow:
-        //     mov dst, 0
-        //   $continue:
-        IR::LabelInstr *const continueLabel = Lowerer::InsertLabel(false, insertBeforeInstr);
-        Lowerer::InsertBranch(Js::OpCode::Br, continueLabel, overflowLabel);
-        if(!dstEqualsSrc)
-        {
-            Lowerer::InsertMove(dst, IR::IntConstOpnd::New(0, TyUint8, func, true), continueLabel);
-        }
-
-        if(onOverflowInsertBeforeInstrRef)
-        {
-            *onOverflowInsertBeforeInstrRef = continueLabel;
-        }
-    }
-    else
-    {
-        //   $overflow:
-    }
-}
-
 IR::Instr*
 LowererMD::GeneratePreCall(IR::Instr * callInstr, IR::Opnd  *functionObjOpnd)
 {
@@ -8853,6 +8724,12 @@ LowererMD::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
 }
 
 void
+LowererMD::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    Assert(UNREACHED);
+}
+
+void
 LowererMD::CheckOverflowOnFloatToInt32(IR::Instr* instrInsert, IR::Opnd* intOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelDone)
 {
     // CMP intOpnd, 0x80000000     -- Check for overflow
@@ -9330,4 +9207,85 @@ void
 LowererMD::LowerInlineSpreadArgOutLoop(IR::Instr *callInstr, IR::RegOpnd *indexOpnd, IR::RegOpnd *arrayElementsStartOpnd)
 {
     this->m_lowerer->LowerInlineSpreadArgOutLoopUsingRegisters(callInstr, indexOpnd, arrayElementsStartOpnd);
+}
+
+void
+LowererMD::LowerTypeof(IR::Instr* typeOfInstr)
+{
+    Func * func = typeOfInstr->m_func;
+    IR::Opnd * src1 = typeOfInstr->GetSrc1();
+    IR::Opnd * dst = typeOfInstr->GetDst();
+    Assert(src1->IsRegOpnd() && dst->IsRegOpnd());
+    IR::LabelInstr * helperLabel = IR::LabelInstr::New(Js::OpCode::Label, func, true);
+    IR::LabelInstr * taggedIntLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
+    IR::LabelInstr * doneLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
+
+    // MOV typeDisplayStringsArray, &javascriptLibrary->typeDisplayStrings
+    IR::RegOpnd * typeDisplayStringsArrayOpnd = IR::RegOpnd::New(TyMachPtr, func);
+    m_lowerer->InsertMove(typeDisplayStringsArrayOpnd, IR::AddrOpnd::New((BYTE*)m_func->GetScriptContextInfo()->GetLibraryAddr() + Js::JavascriptLibrary::GetTypeDisplayStringsOffset(), IR::AddrOpndKindConstantAddress, this->m_func), typeOfInstr);
+
+    GenerateObjectTest(src1, typeOfInstr, taggedIntLabel);
+
+    // MOV typeRegOpnd, [src1 + offset(Type)]
+    IR::RegOpnd * typeRegOpnd = IR::RegOpnd::New(TyMachReg, func);
+    m_lowerer->InsertMove(typeRegOpnd,
+        IR::IndirOpnd::New(src1->AsRegOpnd(), Js::RecyclableObject::GetOffsetOfType(), TyMachReg, func),
+        typeOfInstr);
+
+    IR::LabelInstr * falsyLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
+    m_lowerer->GenerateFalsyObjectTest(typeOfInstr, typeRegOpnd, falsyLabel);
+
+    // <$not falsy>
+    //   MOV typeId, TypeIds_Object
+    //   MOV objTypeId, [typeRegOpnd + offsetof(typeId)]
+    //   CMP objTypeId, TypeIds_Limit                                      /*external object test*/
+    //   BCS $externalObjectLabel
+    //   MOV typeId, objTypeId
+    // $loadTypeDisplayStringLabel:
+    //   MOV dst, typeDisplayStrings[typeId]
+    //   TEST dst, dst
+    //   BEQ $helper
+    //   B $done
+    IR::RegOpnd * typeIdOpnd = IR::RegOpnd::New(TyUint32, func);
+    m_lowerer->InsertMove(typeIdOpnd, IR::IntConstOpnd::New(Js::TypeIds_Object, TyUint32, func), typeOfInstr);
+
+    IR::RegOpnd * objTypeIdOpnd = IR::RegOpnd::New(TyUint32, func);
+    m_lowerer->InsertMove(objTypeIdOpnd, IR::IndirOpnd::New(typeRegOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, func), typeOfInstr);
+
+    IR::LabelInstr * loadTypeDisplayStringLabel = IR::LabelInstr::New(Js::OpCode::Label, func);
+    m_lowerer->InsertCompareBranch(objTypeIdOpnd, IR::IntConstOpnd::New(Js::TypeIds_Limit, TyUint32, func), Js::OpCode::BrGe_A, true /*unsigned*/, loadTypeDisplayStringLabel, typeOfInstr);
+    
+    m_lowerer->InsertMove(typeIdOpnd, objTypeIdOpnd, typeOfInstr);
+    typeOfInstr->InsertBefore(loadTypeDisplayStringLabel);
+
+    if (dst->IsEqual(src1))
+    {
+        ChangeToAssign(typeOfInstr->HoistSrc1(Js::OpCode::Ld_A));
+    }
+    m_lowerer->InsertMove(dst, IR::IndirOpnd::New(typeDisplayStringsArrayOpnd, typeIdOpnd, this->GetDefaultIndirScale(), TyMachPtr, func), typeOfInstr);
+    m_lowerer->InsertTestBranch(dst, dst, Js::OpCode::BrEq_A, helperLabel, typeOfInstr);
+
+    m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, typeOfInstr);
+
+    // $taggedInt:
+    //   MOV dst, typeDisplayStrings[TypeIds_Number]
+    //   B $done
+    typeOfInstr->InsertBefore(taggedIntLabel);
+    m_lowerer->InsertMove(dst, IR::IndirOpnd::New(typeDisplayStringsArrayOpnd, Js::TypeIds_Number * sizeof(Js::Var), TyMachPtr, func), typeOfInstr);
+    m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, typeOfInstr);
+
+    // $falsy:
+    //   MOV dst, "undefined"
+    //   B $done
+    typeOfInstr->InsertBefore(falsyLabel);
+    IR::Opnd * undefinedDisplayStringOpnd = IR::IndirOpnd::New(typeDisplayStringsArrayOpnd, Js::TypeIds_Undefined, TyMachPtr, func);
+    m_lowerer->InsertMove(dst, undefinedDisplayStringOpnd, typeOfInstr);
+    m_lowerer->InsertBranch(Js::OpCode::Br, doneLabel, typeOfInstr);
+
+    // $helper
+    //   CALL OP_TypeOf
+    // $done
+    typeOfInstr->InsertBefore(helperLabel);
+    typeOfInstr->InsertAfter(doneLabel);
+    m_lowerer->LowerUnaryHelperMem(typeOfInstr, IR::HelperOp_Typeof);
 }

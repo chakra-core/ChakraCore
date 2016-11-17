@@ -1150,7 +1150,7 @@ uint32 bailOutOffset, void * returnAddress, IR::BailOutKind bailOutKind, Js::Imp
         sizeof(registerSaves));
 
     Js::Var result = BailOutCommonNoCodeGen(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutKind, branchValue, nullptr, bailOutReturnValue, argoutRestoreAddress);
-    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind, savedImplicitCallFlags, returnAddress);
+    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
     return result;
 }
 
@@ -1171,7 +1171,7 @@ BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, Bail
     BailOutInlinedHelper(layout, currentBailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, &bailOutReturnValue, &innerMostInlinee, false, branchValue);
     Js::Var result = BailOutCommonNoCodeGen(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset, returnAddress, bailOutKind, branchValue,
         registerSaves, &bailOutReturnValue);
-    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, savedImplicitCallFlags, returnAddress);
+    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
     return result;
 }
 
@@ -1750,8 +1750,10 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 // code we avoid a rejit by checking if the offending optimization has been disabled in the default code and if so
 // we "rethunk" the bailing out function rather that incurring a rejit.
 
+// actualBailOutOffset - bail out offset in the function, inlinee or otherwise, that had the bailout.
+
 void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee,
-    BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind, Js::ImplicitCallFlags savedImplicitCallFlags, void * returnAddress)
+    BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind, uint32 actualBailOutOffset, Js::ImplicitCallFlags savedImplicitCallFlags, void * returnAddress)
 {
     if (bailOutKind == IR::BailOnSimpleJitToFullJitLoopBody ||
         bailOutKind == IR::BailOutForGeneratorYield ||
@@ -1773,7 +1775,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     bailOutRecordNotConst->bailOutCount++;
 
     Js::FunctionEntryPointInfo *entryPointInfo = function->GetFunctionEntryPointInfo();
-    uint8 callsCount = entryPointInfo->callsCount;
+    uint8 callsCount = entryPointInfo->callsCount > 255 ? 255 : static_cast<uint8>(entryPointInfo->callsCount);
     RejitReason rejitReason = RejitReason::None;
     bool reThunk = false;
 
@@ -2216,18 +2218,21 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         rejitReason = RejitReason::Forced;
     }
 
-    // REVIEW: Temporary fix for RS1.  Disable Rejiting if it looks like it is not fixing the problem.
-    //         For RS2, turn this into an assert and let's fix all these issues.
     if (!reThunk && rejitReason != RejitReason::None)
     {
-        if (executeFunction->GetDynamicProfileInfo()->GetRejitCount() >= 100)
+        Js::DynamicProfileInfo * profileInfo = executeFunction->GetAnyDynamicProfileInfo();
+        // REVIEW: Temporary fix for RS1.  Disable Rejiting if it looks like it is not fixing the problem.
+        //         For RS2, turn the rejitCount check into an assert and let's fix all these issues.
+        if (profileInfo->GetRejitCount() >= 100 ||
+            (profileInfo->GetBailOutOffsetForLastRejit() == actualBailOutOffset && function->IsNewEntryPointAvailable()))
         {
             reThunk = true;
             rejitReason = RejitReason::None;
         }
         else
         {
-            executeFunction->GetDynamicProfileInfo()->IncRejitCount();
+            profileInfo->IncRejitCount();
+            profileInfo->SetBailOutOffsetForLastRejit(actualBailOutOffset);
         }
     }
 
@@ -2330,11 +2335,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
 
     entryPointInfo->totalJittedLoopIterations += entryPointInfo->jittedLoopIterationsSinceLastBailout;
     entryPointInfo->jittedLoopIterationsSinceLastBailout = 0;
-    if (entryPointInfo->totalJittedLoopIterations > UINT8_MAX)
-    {
-        entryPointInfo->totalJittedLoopIterations = UINT8_MAX;
-    }
-    uint8 totalJittedLoopIterations = (uint8)entryPointInfo->totalJittedLoopIterations;
+    uint8 totalJittedLoopIterations = entryPointInfo->totalJittedLoopIterations > 255 ? 255 : static_cast<uint8>(entryPointInfo->totalJittedLoopIterations);
     totalJittedLoopIterations = totalJittedLoopIterations <= Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() ? 0 : totalJittedLoopIterations - Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout();
 
     CheckPreemptiveRejit(executeFunction, bailOutKind, bailOutRecordNotConst, totalJittedLoopIterations, interpreterFrame->GetCurrentLoopNum());

@@ -2529,6 +2529,13 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
     // We should only generate this if sse2 is available
     Assert(AutoSystemInfo::Data.SSE2Available());
 
+    IR::Opnd* origDst = nullptr;
+    if (dst->IsFloat32())
+    {
+        origDst = dst;
+        dst = IR::RegOpnd::New(TyFloat64, this->m_func);
+    }
+
     this->lowererMD->EmitIntToFloat(dst, src, instrInsert);
 
     IR::RegOpnd * highestBitOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
@@ -2550,6 +2557,11 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
     instr = IR::Instr::New(Js::OpCode::ADDSD, dst, dst, IR::IndirOpnd::New(baseOpnd,
         highestBitOpnd, IndirScale8, TyFloat64, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
+
+    if (origDst)
+    {
+        instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::CVTSD2SS, origDst, dst, this->m_func));
+    }
 }
 
 void
@@ -2581,6 +2593,16 @@ LowererMDArch::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInse
     Int64RegPair dstPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(dst);
     instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.high, IR::IntConstOpnd::New(0, TyInt32, this->m_func), this->m_func));
     instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dstPair.low, src, this->m_func));
+}
+
+void
+LowererMDArch::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsert)
+{
+    Assert(dst->IsRegOpnd() && dst->IsInt32());
+    Assert(src->IsInt64());
+
+    Int64RegPair srcPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src);
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, srcPair.low, this->m_func));
 }
 
 bool

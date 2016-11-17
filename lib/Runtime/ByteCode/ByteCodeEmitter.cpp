@@ -2998,6 +2998,12 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
     // so they have pointers to the stub sub-trees they need.)
     byteCodeFunction->SetDeferredStubs(nullptr);
 
+    if (byteCodeFunction->GetByteCode() != nullptr)
+    {
+        // Previously compiled function nested within a re-deferred and re-compiled function.
+        return;
+    }
+
     try
     {
         // Bug : 301517
@@ -3225,10 +3231,10 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             uint nestedCount = byteCodeFunction->GetNestedCount();
             for (uint i = 0; i < nestedCount; i++)
             {
-                Js::FunctionProxy * nested = byteCodeFunction->GetNestedFunc(i);
+                Js::FunctionProxy * nested = byteCodeFunction->GetNestedFunctionProxy(i);
                 if (nested->IsFunctionBody())
                 {
-                    nested->GetFunctionBody()->SetStackNestedFuncParent(byteCodeFunction);
+                    nested->GetFunctionBody()->SetStackNestedFuncParent(byteCodeFunction->GetFunctionInfo());
                 }
             }
         }
@@ -3462,6 +3468,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
 
     byteCodeFunction->SetInitialDefaultEntryPoint();
+    byteCodeFunction->SetCompileCount(UInt32Math::Add(byteCodeFunction->GetCompileCount(), 1));
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     if (byteCodeFunction->IsInDebugMode() != scriptContext->IsScriptContextInDebugMode()) // debug mode mismatch
@@ -3660,7 +3667,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
                 this->EmitOneFunction(pnode);
                 this->EndEmitFunction(pnode);
 
-                Assert(pnode->sxFnc.pnodeBody == nullptr || funcInfo->GetCurrentChildScope() == funcInfo->GetBodyScope());
+                Assert(pnode->sxFnc.pnodeBody == nullptr || funcInfo->isReused || funcInfo->GetCurrentChildScope() == funcInfo->GetBodyScope());
                 funcInfo->SetCurrentChildScope(nullptr);
             }
             pnode = pnode->sxFnc.pnodeNext;
@@ -8048,6 +8055,107 @@ void EmitCallInstr(
     EmitCallI(pnode, /*fEvaluateComponents*/ TRUE, fIsPut, fIsEval, fHasNewTarget, actualArgCount, byteCodeGenerator, funcInfo, callSiteId, spreadIndices);
 }
 
+void EmitNew(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
+{
+    Js::ArgSlot argCount = pnode->sxCall.argCount;
+    argCount++; // include "this"
+
+    BOOL fSideEffectArgs = FALSE;
+    unsigned int tmpCount = CountArguments(pnode->sxCall.pnodeArgs, &fSideEffectArgs);
+    Assert(argCount == tmpCount);
+
+    if (argCount != (Js::ArgSlot)argCount)
+    {
+        Js::Throw::OutOfMemory();
+    }
+
+    byteCodeGenerator->StartStatement(pnode);
+
+    // Start call, allocate out param space
+    funcInfo->StartRecordingOutArgs(argCount);
+
+    // Assign the call target operand(s), putting them into expression temps if necessary to protect
+    // them from side-effects.
+    if (fSideEffectArgs)
+    {
+        SaveOpndValue(pnode->sxCall.pnodeTarget, funcInfo);
+    }
+
+    if (pnode->sxCall.pnodeTarget->nop == knopSuper)
+    {
+        EmitSuperFieldPatch(funcInfo, pnode, byteCodeGenerator);
+    }
+
+    Emit(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo, false, true);
+
+    if (pnode->sxCall.pnodeArgs == nullptr)
+    {
+        funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
+        Js::OpCode op = (CreateNativeArrays(byteCodeGenerator, funcInfo)
+            && CallTargetIsArray(pnode->sxCall.pnodeTarget))
+            ? Js::OpCode::NewScObjArray : Js::OpCode::NewScObject;
+        Assert(argCount == 1);
+
+        Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(op);
+        byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argCount);
+        byteCodeGenerator->Writer()->CallI(op, funcInfo->AcquireLoc(pnode),
+            pnode->sxCall.pnodeTarget->location, argCount, callSiteId);
+    }
+    else
+    {
+        byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argCount);
+        uint32 actualArgCount = 0;
+
+        if (IsCallOfConstants(pnode))
+        {
+            funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
+            actualArgCount = EmitNewObjectOfConstants(pnode, byteCodeGenerator, funcInfo, argCount);
+        }
+        else
+        {
+            Js::OpCode op;
+            if ((CreateNativeArrays(byteCodeGenerator, funcInfo) && CallTargetIsArray(pnode->sxCall.pnodeTarget)))
+            {
+                op = pnode->sxCall.spreadArgCount > 0 ? Js::OpCode::NewScObjArraySpread : Js::OpCode::NewScObjArray;
+            }
+            else
+            {
+                op = pnode->sxCall.spreadArgCount > 0 ? Js::OpCode::NewScObjectSpread : Js::OpCode::NewScObject;
+            }
+
+            Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(op);
+
+
+            Js::AuxArray<uint32> *spreadIndices = nullptr;
+            actualArgCount = EmitArgList(pnode->sxCall.pnodeArgs, Js::Constants::NoRegister, Js::Constants::NoRegister, Js::Constants::NoRegister,
+                false, true, byteCodeGenerator, funcInfo, callSiteId, pnode->sxCall.spreadArgCount, &spreadIndices);
+            funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
+
+
+            if (pnode->sxCall.spreadArgCount > 0)
+            {
+                Assert(spreadIndices != nullptr);
+                uint spreadExtraAlloc = spreadIndices->count * sizeof(uint32);
+                uint spreadIndicesSize = sizeof(*spreadIndices) + spreadExtraAlloc;
+                byteCodeGenerator->Writer()->CallIExtended(op, funcInfo->AcquireLoc(pnode), pnode->sxCall.pnodeTarget->location,
+                    (uint16)actualArgCount, Js::CallIExtended_SpreadArgs,
+                    spreadIndices, spreadIndicesSize, callSiteId);
+            }
+            else
+            {
+                byteCodeGenerator->Writer()->CallI(op, funcInfo->AcquireLoc(pnode), pnode->sxCall.pnodeTarget->location,
+                    (uint16)actualArgCount, callSiteId);
+            }
+        }
+
+        Assert(argCount == actualArgCount);
+    }
+
+    // End call, pop param space
+    funcInfo->EndRecordingOutArgs(argCount);
+    return;
+}
+
 void EmitCall(
     ParseNode* pnode,
     Js::RegSlot rhsLocation,
@@ -8067,6 +8175,15 @@ void EmitCall(
     ParseNode *pnodeTarget = pnode->sxCall.pnodeTarget;
     ParseNode *pnodeArgs = pnode->sxCall.pnodeArgs;
     uint16 spreadArgCount = pnode->sxCall.spreadArgCount;
+
+    if (CreateNativeArrays(byteCodeGenerator, funcInfo) && CallTargetIsArray(pnode->sxCall.pnodeTarget)) {
+        // some minifiers (potentially incorrectly) assume that "v = new Array()" and "v = Array()" are equivalent,
+        // and replace the former with the latter to save 4 characters. What that means for us is that it, at least
+        // initially, uses the "Call" path. We want to guess that it _is_ just "new Array()" and change over to the
+        // "new" path, since then our native array handling can kick in.
+        EmitNew(pnode, byteCodeGenerator, funcInfo);
+        return;
+    }
 
     unsigned int argCount = CountArguments(pnode->sxCall.pnodeArgs, &fSideEffectArgs) + (unsigned int)fIsPut;
 
@@ -8855,6 +8972,152 @@ void EmitBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, Js::Byt
     }
 
     byteCodeGenerator->EndStatement(expr);
+}
+
+void EmitGeneratingBooleanExpression(ParseNode *expr, Js::ByteCodeLabel trueLabel, bool truefallthrough, Js::ByteCodeLabel falseLabel, bool falsefallthrough, Js::RegSlot writeto,
+    ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo)
+{
+    switch (expr->nop)
+    {
+
+    case knopLogOr:
+    {
+        byteCodeGenerator->StartStatement(expr);
+        Js::ByteCodeLabel leftFalse = byteCodeGenerator->Writer()->DefineLabel();
+        EmitGeneratingBooleanExpression(expr->sxBin.pnode1, trueLabel, false, leftFalse, true, writeto, byteCodeGenerator, funcInfo);
+        funcInfo->ReleaseLoc(expr->sxBin.pnode1);
+        byteCodeGenerator->Writer()->MarkLabel(leftFalse);
+        EmitGeneratingBooleanExpression(expr->sxBin.pnode2, trueLabel, truefallthrough, falseLabel, falsefallthrough, writeto, byteCodeGenerator, funcInfo);
+        funcInfo->ReleaseLoc(expr->sxBin.pnode2);
+        byteCodeGenerator->EndStatement(expr);
+        break;
+    }
+
+    case knopLogAnd:
+    {
+        byteCodeGenerator->StartStatement(expr);
+        Js::ByteCodeLabel leftTrue = byteCodeGenerator->Writer()->DefineLabel();
+        EmitGeneratingBooleanExpression(expr->sxBin.pnode1, leftTrue, true, falseLabel, false, writeto, byteCodeGenerator, funcInfo);
+        funcInfo->ReleaseLoc(expr->sxBin.pnode1);
+        byteCodeGenerator->Writer()->MarkLabel(leftTrue);
+        EmitGeneratingBooleanExpression(expr->sxBin.pnode2, trueLabel, truefallthrough, falseLabel, falsefallthrough, writeto, byteCodeGenerator, funcInfo);
+        funcInfo->ReleaseLoc(expr->sxBin.pnode2);
+        byteCodeGenerator->EndStatement(expr);
+        break;
+    }
+
+    case knopLogNot:
+    {
+        byteCodeGenerator->StartStatement(expr);
+        // this time we want a boolean expression, since Logical Not is nice and only returns true or false
+        Js::ByteCodeLabel emitTrue = byteCodeGenerator->Writer()->DefineLabel();
+        Js::ByteCodeLabel emitFalse = byteCodeGenerator->Writer()->DefineLabel();
+        EmitBooleanExpression(expr->sxUni.pnode1, emitFalse, emitTrue, byteCodeGenerator, funcInfo);
+        byteCodeGenerator->Writer()->MarkLabel(emitTrue);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, writeto);
+        byteCodeGenerator->Writer()->Br(trueLabel);
+        byteCodeGenerator->Writer()->MarkLabel(emitFalse);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, writeto);
+        if (!falsefallthrough)
+        {
+            byteCodeGenerator->Writer()->Br(falseLabel);
+        }
+        funcInfo->ReleaseLoc(expr->sxUni.pnode1);
+        byteCodeGenerator->EndStatement(expr);
+        break;
+    }
+    case knopEq:
+    case knopEqv:
+    case knopNEqv:
+    case knopNe:
+    case knopLt:
+    case knopLe:
+    case knopGe:
+    case knopGt:
+        byteCodeGenerator->StartStatement(expr);
+        EmitBinaryOpnds(expr->sxBin.pnode1, expr->sxBin.pnode2, byteCodeGenerator, funcInfo);
+        funcInfo->ReleaseLoc(expr->sxBin.pnode2);
+        funcInfo->ReleaseLoc(expr->sxBin.pnode1);
+        funcInfo->AcquireLoc(expr);
+        byteCodeGenerator->Writer()->Reg3(nopToCMOp[expr->nop], expr->location, expr->sxBin.pnode1->location,
+            expr->sxBin.pnode2->location);
+        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, writeto, expr->location);
+        // The inliner likes small bytecode
+        if (!(truefallthrough || falsefallthrough))
+        {
+            byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
+            byteCodeGenerator->Writer()->Br(falseLabel);
+        }
+        else if (truefallthrough && !falsefallthrough) {
+            byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, falseLabel, expr->location);
+        }
+        else if (falsefallthrough && !truefallthrough) {
+            byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
+        }
+        byteCodeGenerator->EndStatement(expr);
+        break;
+    case knopTrue:
+        byteCodeGenerator->StartStatement(expr);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdTrue, writeto);
+        if (!truefallthrough)
+        {
+            byteCodeGenerator->Writer()->Br(trueLabel);
+        }
+        byteCodeGenerator->EndStatement(expr);
+        break;
+    case knopFalse:
+        byteCodeGenerator->StartStatement(expr);
+        byteCodeGenerator->Writer()->Reg1(Js::OpCode::LdFalse, writeto);
+        if (!falsefallthrough)
+        {
+            byteCodeGenerator->Writer()->Br(falseLabel);
+        }
+        byteCodeGenerator->EndStatement(expr);
+        break;
+    default:
+        // Note: we usually release the temp assigned to a node after we Emit it.
+        // But in this case, EmitBooleanExpression is just a wrapper around a normal Emit call,
+        // and the caller of EmitBooleanExpression expects to be able to release this register.
+
+        // For diagnostics purposes, register the name and dot to the statement list.
+        if (expr->nop == knopName || expr->nop == knopDot)
+        {
+            byteCodeGenerator->StartStatement(expr);
+            Emit(expr, byteCodeGenerator, funcInfo, false);
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, writeto, expr->location);
+            // The inliner likes small bytecode
+            if (!(truefallthrough || falsefallthrough))
+            {
+                byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
+                byteCodeGenerator->Writer()->Br(falseLabel);
+            }
+            else if (truefallthrough && !falsefallthrough) {
+                byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, falseLabel, expr->location);
+            }
+            else if (falsefallthrough && !truefallthrough) {
+                byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
+            }
+            byteCodeGenerator->EndStatement(expr);
+        }
+        else
+        {
+            Emit(expr, byteCodeGenerator, funcInfo, false);
+            byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, writeto, expr->location);
+            // The inliner likes small bytecode
+            if (!(truefallthrough || falsefallthrough))
+            {
+                byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
+                byteCodeGenerator->Writer()->Br(falseLabel);
+            }
+            else if (truefallthrough && !falsefallthrough) {
+                byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, falseLabel, expr->location);
+            }
+            else if (falsefallthrough && !truefallthrough) {
+                byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, trueLabel, expr->location);
+            }
+        }
+        break;
+    }
 }
 
 // used by while and for loops
@@ -10368,102 +10631,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         break;
     case knopNew:
     {
-        Js::ArgSlot argCount = pnode->sxCall.argCount;
-        argCount++; // include "this"
-
-        BOOL fSideEffectArgs = FALSE;
-        unsigned int tmpCount = CountArguments(pnode->sxCall.pnodeArgs, &fSideEffectArgs);
-        Assert(argCount == tmpCount);
-
-        if (argCount != (Js::ArgSlot)argCount)
-        {
-            Js::Throw::OutOfMemory();
-        }
-
-        byteCodeGenerator->StartStatement(pnode);
-
-        // Start call, allocate out param space
-        funcInfo->StartRecordingOutArgs(argCount);
-
-        // Assign the call target operand(s), putting them into expression temps if necessary to protect
-        // them from side-effects.
-        if (fSideEffectArgs)
-        {
-            SaveOpndValue(pnode->sxCall.pnodeTarget, funcInfo);
-        }
-
-        if (pnode->sxCall.pnodeTarget->nop == knopSuper)
-        {
-            EmitSuperFieldPatch(funcInfo, pnode, byteCodeGenerator);
-        }
-
-        Emit(pnode->sxCall.pnodeTarget, byteCodeGenerator, funcInfo, false, true);
-
-        if (pnode->sxCall.pnodeArgs == nullptr)
-        {
-            funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
-            Js::OpCode op = (CreateNativeArrays(byteCodeGenerator, funcInfo)
-                && CallTargetIsArray(pnode->sxCall.pnodeTarget))
-                ? Js::OpCode::NewScObjArray : Js::OpCode::NewScObject;
-            Assert(argCount == 1);
-
-            Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(op);
-            byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argCount);
-            byteCodeGenerator->Writer()->CallI(op, funcInfo->AcquireLoc(pnode),
-                pnode->sxCall.pnodeTarget->location, argCount, callSiteId);
-        }
-        else
-        {
-            byteCodeGenerator->Writer()->StartCall(Js::OpCode::StartCall, argCount);
-            uint32 actualArgCount = 0;
-
-            if (IsCallOfConstants(pnode))
-            {
-                funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
-                actualArgCount = EmitNewObjectOfConstants(pnode, byteCodeGenerator, funcInfo, argCount);
-            }
-            else
-            {
-                Js::OpCode op;
-                if ((CreateNativeArrays(byteCodeGenerator, funcInfo) && CallTargetIsArray(pnode->sxCall.pnodeTarget)))
-                {
-                    op = pnode->sxCall.spreadArgCount > 0 ? Js::OpCode::NewScObjArraySpread : Js::OpCode::NewScObjArray;
-                }
-                else
-                {
-                    op = pnode->sxCall.spreadArgCount > 0 ? Js::OpCode::NewScObjectSpread : Js::OpCode::NewScObject;
-                }
-
-                Js::ProfileId callSiteId = byteCodeGenerator->GetNextCallSiteId(op);
-
-
-                Js::AuxArray<uint32> *spreadIndices = nullptr;
-                actualArgCount = EmitArgList(pnode->sxCall.pnodeArgs, Js::Constants::NoRegister, Js::Constants::NoRegister, Js::Constants::NoRegister,
-                    false, true, byteCodeGenerator, funcInfo, callSiteId, pnode->sxCall.spreadArgCount, &spreadIndices);
-                funcInfo->ReleaseLoc(pnode->sxCall.pnodeTarget);
-
-
-                if (pnode->sxCall.spreadArgCount > 0)
-                {
-                    Assert(spreadIndices != nullptr);
-                    uint spreadExtraAlloc = spreadIndices->count * sizeof(uint32);
-                    uint spreadIndicesSize = sizeof(*spreadIndices) + spreadExtraAlloc;
-                    byteCodeGenerator->Writer()->CallIExtended(op, funcInfo->AcquireLoc(pnode), pnode->sxCall.pnodeTarget->location,
-                        (uint16)actualArgCount, Js::CallIExtended_SpreadArgs,
-                        spreadIndices, spreadIndicesSize, callSiteId);
-                }
-                else
-                {
-                    byteCodeGenerator->Writer()->CallI(op, funcInfo->AcquireLoc(pnode), pnode->sxCall.pnodeTarget->location,
-                        (uint16)actualArgCount, callSiteId);
-                }
-            }
-
-            Assert(argCount == actualArgCount);
-        }
-
-        // End call, pop param space
-        funcInfo->EndRecordingOutArgs(argCount);
+        EmitNew(pnode, byteCodeGenerator, funcInfo);
 
         byteCodeGenerator->EndStatement(pnode);
         break;
@@ -10715,19 +10883,10 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     {
         STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Js::ByteCodeLabel doneLabel = byteCodeGenerator->Writer()->DefineLabel();
-        // For boolean expressions that compute a result, we have to burn a register for the result
-        // so that the back end can identify it cheaply as a single temp lifetime. Revisit this if we do
-        // full-on renaming in the back end.
+        // We use a single dest here for the whole generating boolean expr, because we were poorly
+        // optimizing the previous version where we had a dest for each level
         funcInfo->AcquireLoc(pnode);
-
-        Emit(pnode->sxBin.pnode1, byteCodeGenerator, funcInfo, false);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->sxBin.pnode1->location);
-        byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrTrue_A, doneLabel, pnode->sxBin.pnode1->location);
-        funcInfo->ReleaseLoc(pnode->sxBin.pnode1);
-
-        Emit(pnode->sxBin.pnode2, byteCodeGenerator, funcInfo, false);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->sxBin.pnode2->location);
-        funcInfo->ReleaseLoc(pnode->sxBin.pnode2);
+        EmitGeneratingBooleanExpression(pnode, doneLabel, true, doneLabel, true, pnode->location, byteCodeGenerator, funcInfo);
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;
@@ -10737,19 +10896,10 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
     {
         STARTSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         Js::ByteCodeLabel doneLabel = byteCodeGenerator->Writer()->DefineLabel();
-        // For boolean expressions that compute a result, we have to burn a register for the result
-        // so that the back end can identify it cheaply as a single temp lifetime. Revisit this if we do
-        // full-on renaming in the back end.
+        // We use a single dest here for the whole generating boolean expr, because we were poorly
+        // optimizing the previous version where we had a dest for each level
         funcInfo->AcquireLoc(pnode);
-
-        Emit(pnode->sxBin.pnode1, byteCodeGenerator, funcInfo, false);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->sxBin.pnode1->location);
-        byteCodeGenerator->Writer()->BrReg1(Js::OpCode::BrFalse_A, doneLabel, pnode->sxBin.pnode1->location);
-        funcInfo->ReleaseLoc(pnode->sxBin.pnode1);
-
-        Emit(pnode->sxBin.pnode2, byteCodeGenerator, funcInfo, false);
-        byteCodeGenerator->Writer()->Reg2(Js::OpCode::Ld_A, pnode->location, pnode->sxBin.pnode2->location);
-        funcInfo->ReleaseLoc(pnode->sxBin.pnode2);
+        EmitGeneratingBooleanExpression(pnode, doneLabel, true, doneLabel, true, pnode->location, byteCodeGenerator, funcInfo);
         byteCodeGenerator->Writer()->MarkLabel(doneLabel);
         ENDSTATEMENET_IFTOPLEVEL(isTopLevel, pnode);
         break;

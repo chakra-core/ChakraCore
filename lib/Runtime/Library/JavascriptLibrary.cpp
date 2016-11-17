@@ -307,7 +307,7 @@ namespace Js
         INIT_ERROR_PROTO(uriErrorPrototype, InitializeURIErrorPrototype);
 
 #ifdef ENABLE_WASM
-        if (PHASE_ON1(WasmPhase))
+        if (scriptContext->GetConfig()->IsWasmEnabled())
         {
             INIT_ERROR_PROTO(webAssemblyCompileErrorPrototype, InitializeWebAssemblyCompileErrorPrototype);
             INIT_ERROR_PROTO(webAssemblyRuntimeErrorPrototype, InitializeWebAssemblyRuntimeErrorPrototype);
@@ -363,7 +363,7 @@ namespace Js
             DeferredTypeHandler<InitializeStringIteratorPrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
 
 #ifdef ENABLE_WASM
-        if (PHASE_ON1(WasmPhase))
+        if (scriptContext->GetConfig()->IsWasmEnabled())
         {
             webAssemblyMemoryPrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -376,6 +376,11 @@ namespace Js
             webAssemblyInstancePrototype = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
                     DeferredTypeHandler<InitializeWebAssemblyInstancePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+
+            webAssemblyTablePrototype = DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeWebAssemblyTablePrototype, DefaultDeferredTypeFilter, true>::GetDefaultInstance()));
+
         }
 #endif
 
@@ -462,7 +467,7 @@ namespace Js
         INIT_SIMPLE_TYPE(uriErrorType, TypeIds_Error, uriErrorPrototype);
 
 #ifdef ENABLE_WASM
-        if (PHASE_ON1(WasmPhase))
+        if (scriptContext->GetConfig()->IsWasmEnabled())
         {
             INIT_SIMPLE_TYPE(webAssemblyCompileErrorType, TypeIds_Error, webAssemblyCompileErrorPrototype);
             INIT_SIMPLE_TYPE(webAssemblyRuntimeErrorType, TypeIds_Error, webAssemblyRuntimeErrorPrototype);
@@ -607,11 +612,12 @@ namespace Js
 #endif
 
 #ifdef ENABLE_WASM
-        if (PHASE_ON1(WasmPhase))
+        if (scriptContext->GetConfig()->IsWasmEnabled())
         {
             webAssemblyModuleType = DynamicType::New(scriptContext, TypeIds_WebAssemblyModule, webAssemblyModulePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
             webAssemblyInstanceType = DynamicType::New(scriptContext, TypeIds_WebAssemblyInstance, webAssemblyInstancePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
             webAssemblyMemoryType = DynamicType::New(scriptContext, TypeIds_WebAssemblyMemory, webAssemblyMemoryPrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
+            webAssemblyTableType = DynamicType::New(scriptContext, TypeIds_WebAssemblyTable, webAssemblyTablePrototype, nullptr, NullTypeHandler<false>::GetDefaultInstance(), true, true);
         }
 #endif
         // Initialize Object types
@@ -1114,6 +1120,7 @@ namespace Js
         booleanTypeDisplayString = CreateStringFromCppLiteral(_u("boolean"));
         numberTypeDisplayString = CreateStringFromCppLiteral(_u("number"));
         moduleTypeDisplayString = CreateStringFromCppLiteral(_u("module"));
+        variantDateTypeDisplayString = CreateStringFromCppLiteral(_u("date"));
         promiseResolveFunction = nullptr;
         generatorNextFunction = nullptr;
         generatorThrowFunction = nullptr;
@@ -1502,7 +1509,7 @@ namespace Js
         AddFunction(globalObject, PropertyIds::URIError, uriErrorConstructor);
 
 #ifdef ENABLE_WASM
-        if (PHASE_ON1(WasmPhase))
+        if (scriptContext->GetConfig()->IsWasmEnabled())
         {
             // new WebAssembly object
             webAssemblyObject = DynamicObject::New(recycler,
@@ -1526,6 +1533,9 @@ namespace Js
 
             webAssemblyMemoryConstructor = CreateBuiltinConstructor(&WebAssemblyMemory::EntryInfo::NewInstance,
                 DeferredTypeHandler<InitializeWebAssemblyMemoryConstructor>::GetDefaultInstance(), webAssemblyMemoryConstructor);
+
+            webAssemblyTableConstructor = CreateBuiltinConstructor(&WebAssemblyTable::EntryInfo::NewInstance,
+                DeferredTypeHandler<InitializeWebAssemblyTableConstructor>::GetDefaultInstance(), webAssemblyTableConstructor);
         }
 #endif
     }
@@ -2682,6 +2692,46 @@ namespace Js
 
 #ifdef ENABLE_WASM
 
+    void JavascriptLibrary::InitializeWebAssemblyTablePrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(prototype, mode, 6);
+
+        JavascriptLibrary* library = prototype->GetLibrary();
+        ScriptContext* scriptContext = prototype->GetScriptContext();
+
+        library->AddMember(prototype, PropertyIds::constructor, library->webAssemblyTableConstructor);
+        if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
+        {
+            library->AddMember(prototype, PropertyIds::_symbolToStringTag, library->CreateStringFromCppLiteral(_u("WebAssemblyTable")), PropertyConfigurable);
+        }
+        scriptContext->SetBuiltInLibraryFunction(WebAssemblyTable::EntryInfo::Grow.GetOriginalEntryPoint(),
+            library->AddFunctionToLibraryObject(prototype, PropertyIds::grow, &WebAssemblyTable::EntryInfo::Grow, PropertyEnumerable));
+
+        scriptContext->SetBuiltInLibraryFunction(WebAssemblyTable::EntryInfo::Get.GetOriginalEntryPoint(),
+            library->AddFunctionToLibraryObject(prototype, PropertyIds::get, &WebAssemblyTable::EntryInfo::Get, PropertyEnumerable));
+
+        scriptContext->SetBuiltInLibraryFunction(WebAssemblyTable::EntryInfo::Set.GetOriginalEntryPoint(),
+            library->AddFunctionToLibraryObject(prototype, PropertyIds::set, &WebAssemblyTable::EntryInfo::Set, PropertyEnumerable));
+
+        library->AddAccessorsToLibraryObject(prototype, PropertyIds::length, &WebAssemblyTable::EntryInfo::GetterLength, nullptr);
+
+        prototype->SetHasNoEnumerableProperties(true);
+    }
+
+    void JavascriptLibrary::InitializeWebAssemblyTableConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(constructor, mode, 3);
+        JavascriptLibrary* library = constructor->GetLibrary();
+        ScriptContext* scriptContext = constructor->GetScriptContext();
+        library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
+        library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyTablePrototype, PropertyNone);
+        if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
+        {
+            library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("WebAssemblyTable")), PropertyConfigurable);
+        }
+        constructor->SetHasNoEnumerableProperties(true);
+    }
+
     void JavascriptLibrary::InitializeWebAssemblyMemoryPrototype(DynamicObject* prototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(prototype, mode, 4);
@@ -2708,7 +2758,7 @@ namespace Js
         JavascriptLibrary* library = constructor->GetLibrary();
         ScriptContext* scriptContext = constructor->GetScriptContext();
         library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
-        library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyInstancePrototype, PropertyNone);
+        library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyMemoryPrototype, PropertyNone);
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
             library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("WebAssemblyMemory")), PropertyConfigurable);
@@ -2762,11 +2812,15 @@ namespace Js
 
     void JavascriptLibrary::InitializeWebAssemblyModuleConstructor(DynamicObject* constructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(constructor, mode, 3);
+        typeHandler->Convert(constructor, mode, 5);
         JavascriptLibrary* library = constructor->GetLibrary();
         ScriptContext* scriptContext = constructor->GetScriptContext();
         library->AddMember(constructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyConfigurable);
         library->AddMember(constructor, PropertyIds::prototype, library->webAssemblyModulePrototype, PropertyNone);
+
+        library->AddFunctionToLibraryObject(constructor, PropertyIds::exports, &WebAssemblyModule::EntryInfo::Exports, 2);
+        library->AddFunctionToLibraryObject(constructor, PropertyIds::imports, &WebAssemblyModule::EntryInfo::Imports, 2);
+
         if (scriptContext->GetConfig()->IsES6FunctionNameEnabled())
         {
             library->AddMember(constructor, PropertyIds::name, library->CreateStringFromCppLiteral(_u("WebAssemblyModule")), PropertyConfigurable);
@@ -2776,10 +2830,11 @@ namespace Js
 
     void JavascriptLibrary::InitializeWebAssemblyObject(DynamicObject* webAssemblyObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(webAssemblyObject, mode, 8);
+        typeHandler->Convert(webAssemblyObject, mode, 9);
         JavascriptLibrary* library = webAssemblyObject->GetLibrary();
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WebAssembly::EntryInfo::Compile, 2);
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::validate, &WebAssembly::EntryInfo::Validate, 2);
+        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::instantiate, &WebAssembly::EntryInfo::Instantiate, 2);
 
         library->AddFunction(webAssemblyObject, PropertyIds::Module, library->webAssemblyModuleConstructor);
 
@@ -2788,6 +2843,7 @@ namespace Js
         library->AddFunction(webAssemblyObject, PropertyIds::CompileError, library->webAssemblyCompileErrorConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::RuntimeError, library->webAssemblyRuntimeErrorConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::Memory, library->webAssemblyMemoryConstructor);
+        library->AddFunction(webAssemblyObject, PropertyIds::Table, library->webAssemblyTableConstructor);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (PHASE_ON1(WasmNativeTypeCallTestPhase))
         {
@@ -3381,6 +3437,92 @@ namespace Js
         vtableAddresses[VTableValue::VtableSimd128F4] = VirtualTableInfo<Js::JavascriptSIMDFloat32x4>::Address;
         vtableAddresses[VTableValue::VtableSimd128I4] = VirtualTableInfo<Js::JavascriptSIMDInt32x4>::Address;
 #endif
+
+        for (TypeId typeId = static_cast<TypeId>(0); typeId < TypeIds_Limit; typeId = static_cast<TypeId>(typeId + 1))
+        {
+            switch (typeId)
+            {
+            case TypeIds_Undefined:
+                typeDisplayStrings[typeId] = undefinedDisplayString;
+                break;
+
+            case TypeIds_Function:
+                typeDisplayStrings[typeId] = functionTypeDisplayString;
+                break;
+
+            case TypeIds_Boolean:
+                typeDisplayStrings[typeId] = booleanTypeDisplayString;
+                break;
+
+            case TypeIds_String:
+                typeDisplayStrings[typeId] = stringTypeDisplayString;
+                break;
+
+            case TypeIds_Symbol:
+                typeDisplayStrings[typeId] = symbolTypeDisplayString;
+                break;
+
+            case TypeIds_VariantDate:
+                typeDisplayStrings[typeId] = variantDateTypeDisplayString;
+                break;
+
+            case TypeIds_Integer:
+            case TypeIds_Number:
+            case TypeIds_Int64Number:
+            case TypeIds_UInt64Number:
+                typeDisplayStrings[typeId] = numberTypeDisplayString;
+                break;
+
+#ifdef ENABLE_SIMDJS
+            case TypeIds_SIMDFloat32x4:
+                typeDisplayStrings[typeId] = simdFloat32x4DisplayString;
+                break;
+            
+           //case TypeIds_SIMDFloat64x2:  //Type under review by the spec.
+                // typeDisplayStrings[typeId] = simdFloat64x2DisplayString;
+                // break;
+            case TypeIds_SIMDInt32x4:
+                typeDisplayStrings[typeId] = simdInt32x4DisplayString;
+                break;
+            case TypeIds_SIMDInt16x8:
+                typeDisplayStrings[typeId] = simdInt16x8DisplayString;
+                break;
+            case TypeIds_SIMDInt8x16:
+                typeDisplayStrings[typeId] = simdInt8x16DisplayString;
+                break;
+            case TypeIds_SIMDUint32x4:
+                typeDisplayStrings[typeId] = simdUint32x4DisplayString;
+                break;
+            case TypeIds_SIMDUint16x8:
+                typeDisplayStrings[typeId] = simdUint16x8DisplayString;
+                break;
+            case TypeIds_SIMDUint8x16:
+                typeDisplayStrings[typeId] = simdUint8x16DisplayString;
+                break;
+            case TypeIds_SIMDBool32x4:
+                typeDisplayStrings[typeId] = simdBool32x4DisplayString;
+                break;
+            case TypeIds_SIMDBool16x8:
+                typeDisplayStrings[typeId] = simdBool16x8DisplayString;
+                break;
+            case TypeIds_SIMDBool8x16:
+                typeDisplayStrings[typeId] = simdBool8x16DisplayString;
+                break;
+#endif
+            case TypeIds_Enumerator:
+            case TypeIds_HostDispatch:
+            case TypeIds_WithScopeObject:
+            case TypeIds_UndeclBlockVar:
+            case TypeIds_Proxy:
+            case TypeIds_SpreadArgument:
+                typeDisplayStrings[typeId] = nullptr;
+                break;
+
+            default:
+                typeDisplayStrings[typeId] = objectTypeDisplayString;
+                break;
+            }
+        }
     }
 
     // Note: This function is only used in float preferencing scenarios. Should remove it once we do away with float preferencing.
@@ -4787,13 +4929,15 @@ namespace Js
         if(this->nativeHostPromiseContinuationFunction)
         {
 #if ENABLE_TTD
+            TTDAssert(this->scriptContext != nullptr, "We shouldn't be adding tasks if this is the case???");
+
             if(this->scriptContext->ShouldPerformReplayAction())
             {
-                scriptContext->GetThreadContext()->TTDRootNestingCount++;
+                this->scriptContext->GetThreadContext()->TTDRootNestingCount++;
 
                 this->scriptContext->GetThreadContext()->TTDLog->ReplayEnqueueTaskEvent(scriptContext, taskVar);
 
-                scriptContext->GetThreadContext()->TTDRootNestingCount--;
+                this->scriptContext->GetThreadContext()->TTDRootNestingCount--;
             }
             else if(this->scriptContext->ShouldPerformRecordAction())
             {
@@ -4857,7 +5001,7 @@ namespace Js
                 //
                 //TODO: need to implement support for this path
                 //
-                AssertMsg(false, "Path not implemented in TTD!!!");
+                TTDAssert(false, "Path not implemented in TTD!!!");
             }
 #endif
 
@@ -5028,7 +5172,7 @@ namespace Js
         case Js::TypeIds_SymbolObject:
             return this->CreateSymbolObject(nullptr);
         default:
-            AssertMsg(false, "Unsupported nullptr value boxed object.");
+            TTDAssert(false, "Unsupported nullptr value boxed object.");
             return nullptr;
         }
     }
@@ -5050,7 +5194,7 @@ namespace Js
             Js::JavascriptSymbolObject::FromVar(obj)->SetValue_TTD(value);
             break;
         default:
-            AssertMsg(false, "Unsupported nullptr value boxed object.");
+            TTDAssert(false, "Unsupported nullptr value boxed object.");
             break;
         }
     }
@@ -5224,7 +5368,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreatePromiseResolveOrRejectFunction_TTD(RecyclableObject* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolved)
     {
-        AssertMsg(JavascriptPromise::Is(promise), "Not a promise!");
+        TTDAssert(JavascriptPromise::Is(promise), "Not a promise!");
 
         return this->CreatePromiseResolveOrRejectFunction(JavascriptPromise::EntryResolveOrRejectFunction, static_cast<JavascriptPromise*>(promise), isReject, alreadyResolved);
     }
@@ -5301,9 +5445,7 @@ namespace Js
         function->SetHeapEnumValidationCookie(HEAP_ENUMERATION_LIBRARY_OBJECT_COOKIE);
 #endif
 
-#ifdef ENABLE_JS_ETW
-        JS_ETW(EventWriteJSCRIPT_BUILD_DIRECT_FUNCTION(scriptContext, function, TaggedInt::Is(nameId) ? scriptContext->GetThreadContext()->GetPropertyName(TaggedInt::ToInt32(nameId))->GetBuffer() : ((JavascriptString *)nameId)->GetString()));
-#endif
+        JS_ETW_INTERNAL(EventWriteJSCRIPT_BUILD_DIRECT_FUNCTION(scriptContext, function, TaggedInt::Is(nameId) ? scriptContext->GetThreadContext()->GetPropertyName(TaggedInt::ToInt32(nameId))->GetBuffer() : ((JavascriptString *)nameId)->GetString()));
 #if DBG_DUMP
         if (Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostPhase))
         {

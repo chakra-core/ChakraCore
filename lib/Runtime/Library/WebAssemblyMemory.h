@@ -30,6 +30,11 @@ namespace Js
         static WebAssemblyMemory * CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext);
 
         ArrayBuffer * GetBuffer() const;
+        uint GetInitialLength() const;
+        uint GetMaximumLength() const;
+
+        int32 GrowInternal(uint32 deltaPages);
+        static int32 GrowHelper(Js::WebAssemblyMemory * memory, uint32 deltaPages);
 
         static int GetOffsetOfArrayBuffer() { return offsetof(WebAssemblyMemory, m_buffer); }
     private:

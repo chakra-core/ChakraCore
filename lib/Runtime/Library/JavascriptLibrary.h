@@ -171,7 +171,7 @@ namespace Js
         void SetGlobalObject(GlobalObject* globalObject) {this->globalObject = globalObject; }
         static DWORD GetRandSeed0Offset() { return offsetof(JavascriptLibrary, randSeed0); }
         static DWORD GetRandSeed1Offset() { return offsetof(JavascriptLibrary, randSeed1); }
-
+        static DWORD GetTypeDisplayStringsOffset() { return offsetof(JavascriptLibrary, typeDisplayStrings); }
         typedef bool (CALLBACK *PromiseContinuationCallback)(Var task, void *callbackState);
 
         Var GetUndeclBlockVar() const { return undeclBlockVarSentinel; }
@@ -229,6 +229,7 @@ namespace Js
         JavascriptFunction* builtinFunctions[BuiltinFunction::Count];
 
         INT_PTR vtableAddresses[VTableValue::Count];
+        JavascriptString* typeDisplayStrings[TypeIds_Limit];
         ConstructorCache *constructorCacheDefaultInstance;
         __declspec(align(16)) const BYTE *absDoubleCst;
         double const *uintConvertConst;
@@ -267,6 +268,7 @@ namespace Js
         DynamicType * webAssemblyModuleType;
         DynamicType * webAssemblyInstanceType;
         DynamicType * webAssemblyMemoryType;
+        DynamicType * webAssemblyTableType;
 
         // SIMD_JS
         DynamicType * simdBool8x16TypeDynamic;
@@ -337,6 +339,7 @@ namespace Js
         JavascriptString* booleanTypeDisplayString;
         JavascriptString* numberTypeDisplayString;
         JavascriptString* moduleTypeDisplayString;
+        JavascriptString* variantDateTypeDisplayString;
 
         // SIMD_JS
         JavascriptString* simdFloat32x4DisplayString;
@@ -430,6 +433,8 @@ namespace Js
         RuntimeFunction* webAssemblyModuleConstructor;
         DynamicObject* webAssemblyInstancePrototype;
         RuntimeFunction* webAssemblyInstanceConstructor;
+        DynamicObject* webAssemblyTablePrototype;
+        RuntimeFunction* webAssemblyTableConstructor;
 
         int regexConstructorSlotIndex;
         int regexExecSlotIndex;
@@ -608,6 +613,7 @@ namespace Js
         JavascriptString* GetBooleanTypeDisplayString() const { return booleanTypeDisplayString; }
         JavascriptString* GetNumberTypeDisplayString() const { return numberTypeDisplayString; }
         JavascriptString* GetModuleTypeDisplayString() const { return moduleTypeDisplayString; }
+        JavascriptString* GetVariantDateTypeDisplayString() const { return variantDateTypeDisplayString; }
 
         // SIMD_JS
         JavascriptString* GetSIMDFloat32x4DisplayString() const { return simdFloat32x4DisplayString; }
@@ -751,6 +757,7 @@ namespace Js
         DynamicType * GetWebAssemblyModuleType()  const { return webAssemblyModuleType; }
         DynamicType * GetWebAssemblyInstanceType()  const { return webAssemblyInstanceType; }
         DynamicType * GetWebAssemblyMemoryType() const { return webAssemblyMemoryType; }
+        DynamicType * GetWebAssemblyTableType() const { return webAssemblyTableType; }
 
         // SIMD_JS
         DynamicType * GetSIMDBool8x16TypeDynamic()  const { return simdBool8x16TypeDynamic;  }
@@ -1216,6 +1223,7 @@ namespace Js
         STANDARD_INIT(WebAssemblyMemory);
         STANDARD_INIT(WebAssemblyModule);
         STANDARD_INIT(WebAssemblyInstance);
+        STANDARD_INIT(WebAssemblyTable);
 
 #undef STANDARD_INIT
 

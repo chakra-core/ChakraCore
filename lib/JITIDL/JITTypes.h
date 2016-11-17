@@ -172,6 +172,14 @@ typedef struct BVFixedIDL
     IDL_DEF([size_is(((len - 1) >> BV_SHIFT) + 1)]) BVUnitIDL data[IDL_DEF(*)];
 } BVFixedIDL;
 
+typedef struct BVSparseNodeIDL
+{
+    struct BVSparseNodeIDL * next;
+    unsigned int startIndex;
+    X64_PAD4(0)
+    __int64 data;
+} BVSparseNodeIDL;
+
 typedef struct CallSiteIDL
 {
     unsigned short bitFields;
@@ -368,6 +376,28 @@ typedef struct StatementMapIDL
     IDL_PAD2(0)
 } StatementMapIDL;
 
+typedef struct WasmSignatureIDL
+{
+    int resultType;
+    unsigned int id;
+    unsigned int paramSize;
+    unsigned int paramsCount;
+    CHAKRA_PTR shortSig;
+    IDL_DEF([size_is(paramsCount)]) int * params;
+} WasmSignatureIDL;
+
+typedef struct TypedSlotInfo
+{
+    boolean isValidType;
+    IDL_PAD1(0)
+    IDL_PAD2(1)
+    unsigned int constCount;
+    unsigned int varCount;
+    unsigned int tmpCount;
+    unsigned int byteOffset;
+    unsigned int constSrcByteOffset;
+} TypedSlotInfo;
+
 typedef struct AsmJsDataIDL
 {
     boolean isHeapBufferConst;
@@ -376,16 +406,12 @@ typedef struct AsmJsDataIDL
     unsigned short argCount;
     IDL_PAD2(0)
     int retType;
-    struct TypedSlotInfo
-    {
-        unsigned int constCount;
-        unsigned int varCount;
-        unsigned int tmpCount;
-        unsigned int byteOffset;
-        unsigned int constSrcByteOffset;
-        boolean isValidType;
-    } typedSlotInfos[5];
     int totalSizeInBytes;
+    unsigned int wasmSignatureCount;
+    X64_PAD4(1)
+    TypedSlotInfo typedSlotInfos[5];
+    CHAKRA_PTR wasmSignaturesBaseAddr;
+    IDL_DEF([size_is(wasmSignatureCount)]) WasmSignatureIDL *  wasmSignatures;
     IDL_DEF([size_is(argCount)]) byte * argTypeArray;
 } AsmJsDataIDL;
 
@@ -467,18 +493,12 @@ typedef struct FunctionBodyDataIDL
     boolean hasFinally;
     boolean usesArgumentsObject;
     boolean doScopeObjectCreation;
-#if defined(_M_IX86) || defined(_M_ARM)
-    IDL_PAD1(0)
-#else
-    IDL_PAD1(0)
-    IDL_PAD2(1)
-#endif
 
     unsigned short envDepth;
     unsigned short inParamCount;
     unsigned short argUsedForBranch;
     unsigned short profiledCallSiteCount;
-
+    IDL_PAD2(0)
     unsigned int funcNumber;
     unsigned int sourceContextId;
     unsigned int nestedCount;
@@ -794,14 +814,6 @@ typedef struct JITOutputIDL
     X86_PAD4(1)
     __int64 startTime;
 } JITOutputIDL;
-
-typedef struct UpdatedPropertysIDL
-{
-    unsigned int reclaimedPropertyCount;
-    unsigned int newPropertyCount;
-    [size_is(reclaimedPropertyCount)] int * reclaimedPropertyIdArray;
-    [size_is(newPropertyCount)] int * newPropertyIdArray;
-} UpdatedPropertysIDL;
 
 typedef struct InterpreterThunkInfoIDL
 {

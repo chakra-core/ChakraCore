@@ -36,6 +36,9 @@ namespace Js
     const uint64 NumberConstants::k_TwoTo31;
     const uint64 NumberConstants::k_NegTwoTo31;
     const uint64 NumberConstants::k_TwoTo32;
+    const uint64 NumberConstants::k_MinIntMinusOne;
+    const uint64 NumberConstants::k_UintMaxPlusOne;
+    const uint64 NumberConstants::k_IntMaxPlusOne;
 
     const uint32 NumberConstants::k_Float32Zero;
     const uint32 NumberConstants::k_Float32PointFive;
@@ -82,6 +85,8 @@ namespace Js
     __declspec(align(16)) double const NumberConstants::UIntConvertConst[2] = { 0, 4294967296.000000 };
     __declspec(align(16)) float const NumberConstants::MaskNegFloat[] = { -0.0f, -0.0f, -0.0f, -0.0f };
     __declspec(align(16)) double const NumberConstants::MaskNegDouble[] = { -0.0, -0.0 };
+    __declspec(align(16)) uint64 const NumberConstants::UInt64ConvertConst[2] = { 0, 0x43f0000000000000 };
+
 
     bool NumberUtilities::IsDigit(int ch)
     {

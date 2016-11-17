@@ -45,14 +45,14 @@ namespace TTD
 
         void InitializeWithEventAndEnter(NSLogEvents::EventLogEntry* actionEvent)
         {
-            AssertMsg(this->m_actionEvent == nullptr, "Don't double initialize");
+            TTDAssert(this->m_actionEvent == nullptr, "Don't double initialize");
 
             this->m_actionEvent = actionEvent;
         }
 
         void InitializeWithEventAndEnterWResult(NSLogEvents::EventLogEntry* actionEvent, TTDVar* resultPtr)
         {
-            AssertMsg(this->m_actionEvent == nullptr, "Don't double initialize");
+            TTDAssert(this->m_actionEvent == nullptr, "Don't double initialize");
 
             this->m_actionEvent = actionEvent;
 
@@ -62,7 +62,7 @@ namespace TTD
 
         void SetResult(Js::Var* result)
         {
-            AssertMsg(this->m_resultPtr != nullptr, "Why are we calling this then???");
+            TTDAssert(this->m_resultPtr != nullptr, "Why are we calling this then???");
             if(result != nullptr)
             {
                 *(this->m_resultPtr) = TTD_CONVERT_JSVAR_TO_TTDVAR(*(result));
@@ -73,7 +73,7 @@ namespace TTD
         {
             if(this->m_actionEvent != nullptr)
             {
-                AssertMsg(this->m_actionEvent->ResultStatus == -1, "Hmm this got changed somewhere???");
+                TTDAssert(this->m_actionEvent->ResultStatus == -1, "Hmm this got changed somewhere???");
 
                 this->m_actionEvent->ResultStatus = exitStatus;
             }
@@ -255,24 +255,26 @@ namespace TTD
         // - Step back *into* possible if either case is true
 
         TTLastReturnLocationInfo m_lastReturnLocation;
-        TTLastReturnLocationInfo m_lastReturnLocationJMC;
 
         //A flag indicating if we want to break on the entry to the user code 
         bool m_breakOnFirstUserCode;
 
         //A pending TTDBP we want to set and move to
         TTDebuggerSourceLocation m_pendingTTDBP;
+        int64 m_pendingTTDMoveMode;
 
         //The bp we are actively moving to in TT mode
         int64 m_activeBPId;
         bool m_shouldRemoveWhenDone;
         TTDebuggerSourceLocation m_activeTTDBP;
 
-        //A list of breakpoints seen in the most recent scan
-        JsUtil::List<TTDebuggerSourceLocation, HeapAllocator> m_breakpointInfoList;
+        //The last breakpoint seen in the most recent scan
+        TTDebuggerSourceLocation m_continueBreakPoint;
 
-        //A list of breakpoints we want to preserve when performing TTD moves (even if we create a new script context)
-        JsUtil::List<TTDebuggerSourceLocation, HeapAllocator> m_bpPreserveList;
+        //Used to preserve breakpoints accross inflate operations
+        uint32 m_preservedBPCount;
+        TTD_LOG_PTR_ID* m_preservedBreakPointSourceScriptArray;
+        TTDebuggerSourceLocation** m_preservedBreakPointLocationArray;
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         TraceLogger m_diagnosticLogger;
@@ -285,15 +287,8 @@ namespace TTD
         const SingleCallCounter& GetTopCallCounter() const;
         SingleCallCounter& GetTopCallCounter();
 
-        //Check if a function is in the JustMyCode set as determined by the host debugger
-        static bool IsFunctionJustMyCode(const Js::FunctionBody* fbody);
-        static bool IsFunctionJustMyCode(const Js::JavascriptFunction* function);
-
-        //Return true if the debugger is running in Just My Code Mode
-        static bool IsDebuggerRunningJustMyCode(Js::ScriptContext* ctx);
-
         //get the caller for the top call counter that is user code from the stack (e.g. stack -2)
-        const SingleCallCounter* GetTopCallCallerCounter(bool justMyCode) const;
+        bool TryGetTopCallCallerCounter(SingleCallCounter& caller) const;
 
         //Get the current XTTDEventTime and advance the event time counter
         int64 GetCurrentEventTimeAndAdvance();
@@ -353,7 +348,7 @@ namespace TTD
             }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            AssertMsg(this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
+            TTDAssert(this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
 #endif
 
             const NSLogEvents::EventLogEntry* evt = this->m_currentReplayEventIterator.Current();
@@ -492,6 +487,10 @@ namespace TTD
         void ClearPendingTTDBPInfo();
         void SetPendingTTDBPInfo(const TTDebuggerSourceLocation& BPLocation);
 
+        int64 GetPendingTTDMoveMode() const;
+        void ClearPendingTTDMoveMode();
+        void SetPendingTTDMoveMode(int64 mode);
+
         bool HasActiveBP() const;
         UINT GetActiveBPId() const;
         void ClearActiveBP();
@@ -503,8 +502,8 @@ namespace TTD
         //Process the breakpoint info as we resume from a break statement
         void ProcessBPInfoPostBreak(Js::FunctionBody* fb);
 
-        //Clear the BP scan list
-        void ClearBPScanList();
+        //Clear the BP scan info
+        void ClearBPScanInfo();
 
         //When scanning add the current location as a BP location
         void AddCurrentLocationDuringScan();
@@ -513,10 +512,12 @@ namespace TTD
         //If no such BP location then return false
         bool TryFindAndSetPreviousBP();
 
-        //Load and restore all the breakpoints in the manager before and after we create new script contexts
-        void LoadBPListForContextRecreate();
-        void EventLog::UnLoadBPListAfterMoveForContextRecreate();
-        const JsUtil::List<TTDebuggerSourceLocation, HeapAllocator>& EventLog::GetRestoreBPListAfterContextRecreate();
+        //Load and restore all the breakpoints in the manager before and after we create new script contexts  
+        void LoadPreservedBPInfo();
+        void UnLoadPreservedBPInfo();
+        const uint32 GetPerservedBPInfoCount() const;
+        TTD_LOG_PTR_ID* GetPerservedBPInfoScriptArray();
+        TTDebuggerSourceLocation** GetPerservedBPInfoLocationArray();
 
         //Update the loop count information
         void UpdateLoopCountInfo();
@@ -539,7 +540,7 @@ namespace TTD
 
         //Get the last (uncaught or just caught) exception time/position for the debugger -- if the last return action was an exception and we have not made any additional calls
         //Otherwise get the last statement executed call time/position for the debugger
-        void GetLastExecutedTimeAndPositionForDebugger(bool* markedAsJustMyCode, TTDebuggerSourceLocation& sourceLocation) const;
+        void GetLastExecutedTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const;
 
         //Get the current host callback id
         int64 GetCurrentHostCallbackId() const;
@@ -551,9 +552,9 @@ namespace TTD
         const NSLogEvents::JsRTCallbackAction* GetEventForHostCallbackId(bool wantRegisterOp, int64 hostIdOfInterest) const;
 
         //Get the event time corresponding to the first/last/k-th top-level event in the log
-        int64 GetFirstEventTime(bool justMyCode) const;
-        int64 GetLastEventTime(bool justMyCode) const;
-        int64 GetKthEventTime(uint32 k) const;
+        int64 GetFirstEventTimeInLog() const;
+        int64 GetLastEventTimeInLog() const;
+        int64 GetKthEventTimeInLog(uint32 k) const;
 
         //Ensure the call stack is clear and counters are zeroed appropriately
         void ResetCallStackForTopLevelCall(int64 topLevelCallbackEventTime);
@@ -578,7 +579,13 @@ namespace TTD
 
         //Find the event time that has the snapshot we want to inflate from in order to replay to the requested target time
         //Return -1 if no such snapshot is available
-        int64 FindSnapTimeForEventTime(int64 targetTime, bool allowRTR, int64* optEndSnapTime);
+        int64 FindSnapTimeForEventTime(int64 targetTime, int64* optEndSnapTime);
+
+        //Find the enclosing snapshot interval for the specified event time
+        void GetSnapShotBoundInterval(int64 targetTime, int64* snapIntervalStart, int64* snapIntervalEnd) const;
+
+        //Find the snapshot start time for the previous interval return -1 if no such time exists
+        int64 GetPreviousSnapshotInterval(int64 currentSnapTime) const;
 
         //Do the inflation of the snapshot that is at the given event time
         void DoSnapshotInflate(int64 etime);
@@ -652,7 +659,7 @@ namespace TTD
 
         //Record GetAndClearException
         void RecordJsRTHostExitProcess(TTDJsRTActionResultAutoRecorder& actionPopper, int32 exitCode);
-        void RecordJsRTGetAndClearException();
+        void RecordJsRTGetAndClearException(TTDJsRTActionResultAutoRecorder& actionPopper);
         void RecordJsRTSetException(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, bool propagateToDebugger);
 
         //Record query operations

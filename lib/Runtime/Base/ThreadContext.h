@@ -14,6 +14,8 @@ namespace Js
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
 }
 
+typedef BVSparse<ArenaAllocator> ActiveFunctionSet;
+
 using namespace PlatformAgnostic;
 
 struct IAuthorFileContext;
@@ -473,8 +475,6 @@ public:
         Js::PropertyRecordStringHashComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertyMap;
     PropertyMap * propertyMap;
 
-    typedef SListCounted<Js::PropertyId, HeapAllocator> PropertyList;
-
     typedef JsUtil::BaseHashSet<Js::CaseInvariantPropertyListWithHashCode*, Recycler, PowerOf2SizePolicy, Js::CaseInvariantPropertyListWithHashCode*, JsUtil::NoCaseComparer, JsUtil::SimpleDictionaryEntry>
         PropertyNoCaseSetType;
     typedef JsUtil::WeaklyReferencedKeyDictionary<Js::Type, bool> TypeHashSet;
@@ -486,18 +486,20 @@ private:
     intptr_t m_prereservedRegionAddr;
 
 #if ENABLE_NATIVE_CODEGEN
-    PropertyList * m_pendingJITProperties;
-    PropertyList  * m_reclaimedJITProperties;
+    BVSparse<HeapAllocator> * m_jitNumericProperties;
+    bool m_jitNeedsPropertyUpdate;
 public:
-
-    PropertyList * GetReclaimedJITProperties() const
+    BVSparse<HeapAllocator> * GetJITNumericProperties() const
     {
-        return m_reclaimedJITProperties;
+        return m_jitNumericProperties;
     }
-
-    PropertyList * GetPendingJITProperties() const
+    bool JITNeedsPropUpdate() const
     {
-        return m_pendingJITProperties;
+        return m_jitNeedsPropertyUpdate;
+    }
+    void ResetJITNeedsPropUpdate()
+    {
+        m_jitNeedsPropertyUpdate = false;
     }
 
     static void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
@@ -649,6 +651,22 @@ private:
     ThreadServiceWrapper* threadServiceWrapper;
     uint functionCount;
     uint sourceInfoCount;
+
+    enum RedeferralState
+    {
+        InitialRedeferralState,
+        StartupRedeferralState,
+        MainRedeferralState
+    };
+    RedeferralState redeferralState;
+    uint gcSinceLastRedeferral;
+    uint gcSinceCallCountsCollected;
+
+    static const uint InitialRedeferralDelay = 5;
+    static const uint StartupRedeferralCheckInterval = 10;
+    static const uint StartupRedeferralInactiveThreshold = 5;
+    static const uint MainRedeferralCheckInterval = 20;
+    static const uint MainRedeferralInactiveThreshold = 10;
 
     Js::TypeId nextTypeId;
     uint32 polymorphicCacheState;
@@ -955,7 +973,7 @@ public:
         TTD::TTDOpenResourceStreamCallback getResourceStreamfp, TTD::TTDReadBytesFromStreamCallback readBytesFromStreamfp,
         TTD::TTDWriteBytesToStreamCallback writeBytesToStreamfp, TTD::TTDFlushAndCloseStreamCallback flushAndCloseStreamfp,
         TTD::TTDCreateExternalObjectCallback createExternalObjectfp,
-        TTD::TTDCreateJsRTContextCallback createJsRTContextCallbackfp, TTD::TTDSetActiveJsRTContext fpSetActiveJsRTContext);
+        TTD::TTDCreateJsRTContextCallback createJsRTContextCallbackfp, TTD::TTDReleaseJsRTContextCallback releaseJsRTContextCallbackfp, TTD::TTDSetActiveJsRTContext fpSetActiveJsRTContext);
 #endif
 
     BOOL ReserveStaticTypeIds(__in int first, __in int last);
@@ -1138,6 +1156,18 @@ public:
     size_t  GetCodeSize() { return nativeCodeSize; }
     static size_t  GetProcessCodeSize() { return processNativeCodeSize; }
     size_t GetSourceSize() { return sourceCodeSize; }
+
+    bool DoTryRedeferral() const;
+    void TryRedeferral();
+    bool DoRedeferFunctionBodies() const;
+    void UpdateRedeferralState();
+    uint GetRedeferralCollectionInterval() const;
+    uint GetRedeferralInactiveThreshold() const;
+    void GetActiveFunctions(ActiveFunctionSet * pActive);
+#if DBG
+    uint redeferredFunctions;
+    uint recoveredBytes;
+#endif
 
     Js::ScriptEntryExitRecord * GetScriptEntryExit() const { return entryExitRecord; }
     void RegisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);

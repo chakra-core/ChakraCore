@@ -15,6 +15,9 @@
 #ifdef VTUNE_PROFILING
 #include "Base/VTuneChakraProfile.h"
 #endif
+#ifdef ENABLE_JS_ETW
+#include "Base/EtwTrace.h"
+#endif
 
 #ifdef __APPLE__
 // dummy usage of JSRT to force export JSRT on dylib
