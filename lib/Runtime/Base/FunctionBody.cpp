@@ -6840,11 +6840,19 @@ namespace Js
                     - If the size is >= 100, scale by 1.6
             */
             const uint loopPercentage = GetByteCodeInLoopCount() * 100 / max(1u, GetByteCodeCount());
-            if(loopPercentage <= 50)
+            const int byteCodeSizeThresholdForInlineCandidate = CONFIG_FLAG(LoopInlineThreshold);
+            bool delayFullJITThisFunc =
+                (CONFIG_FLAG(DelayFullJITSmallFunc) > 0) && (this->GetByteCodeWithoutLDACount() <= (uint)byteCodeSizeThresholdForInlineCandidate);
+
+            if(loopPercentage <= 50 || delayFullJITThisFunc)
             {
                 const uint straightLineSize = GetByteCodeCount() - GetByteCodeInLoopCount();
                 double fullJitDelayMultiplier;
-                if(straightLineSize < 50)
+                if (delayFullJITThisFunc)
+                {
+                    fullJitDelayMultiplier = CONFIG_FLAG(DelayFullJITSmallFunc) / 10.0;
+                }
+                else if(straightLineSize < 50)
                 {
                     fullJitDelayMultiplier = 1.2;
                 }
