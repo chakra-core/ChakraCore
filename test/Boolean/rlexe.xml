@@ -30,4 +30,10 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>equality.js</files>
+      <compile-flags>-maxsimplejitruncount:4 -maxinterpretcount:3</compile-flags>
+    </default>
+  </test>
 </regress-exe>
