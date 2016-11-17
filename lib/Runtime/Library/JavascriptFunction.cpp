@@ -2622,6 +2622,11 @@ LABEL1:
                 // Caller of this function expects nullValue from the requestContext.
                 funcCaller = nullValue;
             }
+            if (ScriptFunction::Is(funcCaller))
+            {
+                // Is this is the internal function of a generator function then return the original generator function
+                funcCaller = ScriptFunction::FromVar(funcCaller)->GetRealFunctionObject();
+            }
         }
 
         return StackScriptFunction::EnsureBoxed(BOX_PARAM(funcCaller, nullptr, _u("caller")));

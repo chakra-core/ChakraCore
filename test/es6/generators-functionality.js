@@ -1766,6 +1766,23 @@ var tests = [
             );
         }
     },
+    {
+        name: "generator function returned through caller property",
+        body: function () {
+            var func = function () {
+                return func.caller;
+            }
+            function* gf(flag, value) {
+                if (!flag) {
+                    yield func();
+                }
+                yield value * value;
+            }
+            var callergf = gf().next().value;
+            assert.areEqual(gf, callergf, "Generator function returned through the caller property should be the same as the original generator function");
+            assert.areEqual(100, callergf(true, 10).next().value, "Generator returned through the caller property should behave the same as the original generator function");
+        }
+    }
     // TODO: Test yield in expression positions of control flow constructs, e.g. initializer, condition, and increment of a for loop
 ];
 
