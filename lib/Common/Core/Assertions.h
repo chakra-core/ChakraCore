@@ -75,6 +75,20 @@ __declspec(selectany) int IsInAssert = false;
 #define AnalysisAssert(x)               Assert(x); __analysis_assume(x)
 #define AnalysisAssertMsg(x, comment)   AssertMsg(x, comment); __analysis_assume(x)
 
+#define FailFast(x) do { if (!(x)) { Js::Throw::FatalInternalError(); } } while (false)
+
+#ifdef DBG
+#define AssertOrFailFast(x)                 Assert(x)
+#define AssertOrFailFastMsg(x, msg)         AssertMsg(x, msg)
+#define AnalysisAssertOrFailFast(x)         AnalysisAssert(x)
+#define AnalysisAssertOrFailFastMsg(x, msg) AnalysisAssertMsg(x, msg)
+#else
+#define AssertOrFailFast(x)                 FailFast(x)
+#define AssertOrFailFastMsg(x, msg)         FailFast(x)
+#define AnalysisAssertOrFailFast(x)         FailFast(x)
+#define AnalysisAssertOrFailFastMsg(x, msg) FailFast(x)
+#endif
+
 #define Unused(var) var;
 
 #define UNREACHED   (0)
