@@ -91,7 +91,7 @@ Opnd::IsWriteBarrierTriggerableValue()
     // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
     // If its null/boolean/undefined, we don't need a write barrier since the javascript library will keep those guys alive
     return this->IsNotTaggedValue() &&
-        !((this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar) ||
+        !((this->IsAddrOpnd() && this->AsAddrOpnd()->GetAddrOpndKind() == AddrOpndKindDynamicVar) ||
           (this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined()));
 }
 
