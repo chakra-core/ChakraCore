@@ -379,7 +379,7 @@ void WebAssemblyInstance::LoadImports(
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
             }
 
-            Assert(global->GetReferenceType() == Wasm::ReferenceTypes::ImportedReference);
+            Assert(global->GetReferenceType() == Wasm::GlobalReferenceTypes::ImportedReference);
             Wasm::WasmConstLitNode cnst = {0};
             switch (global->GetType())
             {
@@ -410,17 +410,17 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
         Wasm::WasmGlobal* global = wasmModule->GetGlobal(i);
         Wasm::WasmConstLitNode cnst = {};
 
-        if (global->GetReferenceType() == Wasm::ReferenceTypes::ImportedReference)
+        if (global->GetReferenceType() == Wasm::GlobalReferenceTypes::ImportedReference)
         {
             // the value should already be resolved
             continue;
         }
 
-        if (global->GetReferenceType() == Wasm::ReferenceTypes::LocalReference)
+        if (global->GetReferenceType() == Wasm::GlobalReferenceTypes::LocalReference)
         {
             Wasm::WasmGlobal* sourceGlobal = wasmModule->GetGlobal(global->GetGlobalIndexInit());
-            if (sourceGlobal->GetReferenceType() != Wasm::ReferenceTypes::Const &&
-                sourceGlobal->GetReferenceType() != Wasm::ReferenceTypes::ImportedReference)
+            if (sourceGlobal->GetReferenceType() != Wasm::GlobalReferenceTypes::Const &&
+                sourceGlobal->GetReferenceType() != Wasm::GlobalReferenceTypes::ImportedReference)
             {
                 JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidGlobalRef);
             }

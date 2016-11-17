@@ -17,22 +17,6 @@ namespace Wasm
     class WasmGlobal;
     struct WasmImport;
     struct WasmExport;
-    namespace ReferenceTypes
-    {
-        enum Type;
-    }
-    namespace WasmTypes
-    {
-        enum WasmType;
-    }
-    namespace FunctionIndexTypes
-    {
-        enum Type;
-    }
-    namespace ExternalKinds
-    {
-        enum ExternalKind;
-    }
 }
 
 namespace Js
@@ -114,7 +98,7 @@ public:
 
     uint GetOffsetFromInit(const Wasm::WasmNode& initexpr, const class WebAssemblyEnvironment* env) const;
 
-    void AddGlobal(Wasm::ReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init);
+    void AddGlobal(Wasm::GlobalReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init);
     uint32 GetGlobalCount() const;
     Wasm::WasmGlobal* GetGlobal(uint32 index) const;
 

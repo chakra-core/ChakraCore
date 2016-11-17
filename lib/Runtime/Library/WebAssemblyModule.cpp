@@ -599,7 +599,7 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, const WebAs
 }
 
 void
-WebAssemblyModule::AddGlobal(Wasm::ReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init)
+WebAssemblyModule::AddGlobal(Wasm::GlobalReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init)
 {
     Wasm::WasmGlobal* global = Anew(&m_alloc, Wasm::WasmGlobal, refType, m_globalCounts[type]++, type, isMutable, init);
     m_globals->Add(global);

@@ -897,14 +897,14 @@ WasmBinaryReader::ReadGlobalsSection()
         case  wbF32Const:
         case  wbF64Const:
         case  wbI64Const:
-            m_module->AddGlobal(ReferenceTypes::Const, type, isMutable, globalNode);
+            m_module->AddGlobal(GlobalReferenceTypes::Const, type, isMutable, globalNode);
             break;
         case  wbGetGlobal:
-            if (m_module->GetGlobal(globalNode.var.num)->GetReferenceType() != ReferenceTypes::ImportedReference)
+            if (m_module->GetGlobal(globalNode.var.num)->GetReferenceType() != GlobalReferenceTypes::ImportedReference)
             {
                 ThrowDecodingError(_u("Global can only be initialized with a const or an imported global"));
             }
-            m_module->AddGlobal(ReferenceTypes::LocalReference, type, isMutable, globalNode);
+            m_module->AddGlobal(GlobalReferenceTypes::LocalReference, type, isMutable, globalNode);
             break;
         default:
             Assert(UNREACHED);
@@ -963,7 +963,7 @@ WasmBinaryReader::ReadImportEntries()
         {
             WasmTypes::WasmType type = ReadWasmType(len);
             bool isMutable = ReadConst<UINT8>() == 1;
-            m_module->AddGlobal(ReferenceTypes::ImportedReference, type, isMutable, {});
+            m_module->AddGlobal(GlobalReferenceTypes::ImportedReference, type, isMutable, {});
             m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen);
             break;
         }

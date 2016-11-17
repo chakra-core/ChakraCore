@@ -47,6 +47,14 @@ namespace Wasm
         bool CanBeExported(Type funcType);
     }
 
+    namespace GlobalReferenceTypes
+    {
+        enum Type
+        {
+            Invalid, Const, LocalReference, ImportedReference
+        };
+    }
+
     struct WasmOpCodeSignatures
     {
 #define WASM_SIGNATURE(id, nTypes, ...) static const WasmTypes::WasmType id[nTypes]; DebugOnly(static const int n##id = nTypes;)

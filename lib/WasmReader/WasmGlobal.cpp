@@ -12,7 +12,7 @@ namespace Wasm
 
     Wasm::WasmConstLitNode WasmGlobal::GetConstInit() const
     {
-        if (GetReferenceType() != ReferenceTypes::Const)
+        if (GetReferenceType() != GlobalReferenceTypes::Const)
         {
             throw WasmCompilationException(_u("Global must be initialized from a const to retrieve the const value"));
         }
@@ -21,7 +21,7 @@ namespace Wasm
 
     uint32 WasmGlobal::GetGlobalIndexInit() const
     {
-        if (GetReferenceType() != ReferenceTypes::LocalReference)
+        if (GetReferenceType() != GlobalReferenceTypes::LocalReference)
         {
             throw WasmCompilationException(_u("Global must be initialized from another global to retrieve its index"));
         }
