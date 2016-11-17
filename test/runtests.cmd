@@ -118,6 +118,7 @@ goto :main
     )
   )
 
+  echo ^>^> exiting with exit code %_HadFailures%
   exit /b %_HadFailures%
 
 :: ============================================================================
@@ -211,7 +212,7 @@ goto :main
     set _Variants=disable_jit
     goto :ArgOk
   )
-  
+
   if /i "%1" == "-nightly" (
     set _nightly=1
     if "%_ExtraVariants%" == "" (
