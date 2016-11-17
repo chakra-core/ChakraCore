@@ -6834,9 +6834,9 @@ namespace Js
                     - If the size is >= 100, scale by 1.6
             */
             const uint loopPercentage = GetByteCodeInLoopCount() * 100 / max(1u, GetByteCodeCount());
-            const int byteCodeSizeThresholdForInlineCandidate = CONFIG_FLAG(InlineThreshold) + CONFIG_FLAG(InlineThresholdAdjustCountInSmallFunction);
+            const int byteCodeSizeThresholdForInlineCandidate = CONFIG_FLAG(LoopInlineThreshold);
             bool delayFullJITThisFunc =
-                (CONFIG_FLAG(DelayFullJITSmallFunc) > 0) && (byteCodeSizeThresholdForInlineCandidate < 0 || this->GetByteCodeWithoutLDACount() > (uint)byteCodeSizeThresholdForInlineCandidate);
+                (CONFIG_FLAG(DelayFullJITSmallFunc) > 0) && (this->GetByteCodeWithoutLDACount() <= (uint)byteCodeSizeThresholdForInlineCandidate);
 
             if(loopPercentage <= 50 || delayFullJITThisFunc)
             {
