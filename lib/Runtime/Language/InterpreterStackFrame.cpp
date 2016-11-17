@@ -5950,6 +5950,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             RegSlot localClosureReg = this->m_functionBody->GetLocalClosureRegister();
             RegSlot localFrameDisplayReg = this->m_functionBody->GetLocalFrameDisplayRegister();
+            RegSlot paramClosureReg = this->m_functionBody->GetParamClosureRegister();
 
             if (entryPointInfo->HasJittedStackClosure())
             {
@@ -5965,6 +5966,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 {
                     this->SetNonVarReg(localFrameDisplayReg, &this->localFrameDisplay);
                 }
+
+                if (paramClosureReg != Constants::NoRegister)
+                {
+                    this->SetNonVarReg(paramClosureReg, &this->paramClosure);
+                }
             }
             else
             {
@@ -5978,6 +5984,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 if (localFrameDisplayReg != Constants::NoRegister)
                 {
                     this->SetNonVarReg(localFrameDisplayReg, this->localFrameDisplay);
+                }
+
+                if (paramClosureReg != Constants::NoRegister)
+                {
+                    this->SetNonVarReg(paramClosureReg, this->paramClosure);
                 }
             }
 
@@ -6014,6 +6025,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             if (localFrameDisplayReg != Constants::NoRegister)
             {
                 SetNonVarReg(localFrameDisplayReg, nullptr);
+            }
+
+            if (paramClosureReg != Constants::NoRegister)
+            {
+                SetNonVarReg(paramClosureReg, nullptr);
             }
 
             for (uint32 i = 0; i < innerScopeCount; i++)
@@ -6807,7 +6823,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         // Save the current closure. We have to use this while copying the initial value of body symbols
         // from the corresponding symbols in the param.
         this->SetParamClosure(this->GetLocalClosure());
-        this->SetNonVarReg(executeFunction->GetParamClosureRegister(), this->GetLocalClosure());
+        this->SetNonVarReg(executeFunction->GetParamClosureRegister(), nullptr);
 
         this->SetIsParamScopeDone(true);
 

@@ -7473,7 +7473,8 @@ IRBuilder::DoClosureRegCheck(Js::RegSlot reg)
     }
     if (reg == m_func->GetJITFunctionBody()->GetEnvReg() ||
         reg == m_func->GetJITFunctionBody()->GetLocalClosureReg() ||
-        reg == m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg())
+        reg == m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg() ||
+        reg == m_func->GetJITFunctionBody()->GetParamClosureReg())
     {
         Js::Throw::FatalInternalError();
     }
