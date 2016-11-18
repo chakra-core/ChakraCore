@@ -1233,7 +1233,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         // Create a function body if:
         //  1. The parse node is not defer parsed
         //  2. Or creating function proxies is disallowed
-        bool createFunctionBody = !isDeferParsed;
+        bool createFunctionBody = !isDeferParsed && (!reuseNestedFunc || reuseNestedFunc->IsFunctionBody());
         if (!CONFIG_FLAG(CreateFunctionProxy)) createFunctionBody = true;
 
         Js::FunctionInfo::Attributes attributes = Js::FunctionInfo::Attributes::None;
@@ -1313,6 +1313,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
 
             if (reuseNestedFunc)
             {
+                pnode->sxFnc.pnodeBody = nullptr;
                 parseableFunctionInfo = reuseNestedFunc;
             }
             else
