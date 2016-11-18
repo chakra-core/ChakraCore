@@ -215,7 +215,7 @@ void WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptCont
     for (uint32 iExport = 0; iExport < wasmModule->GetExportCount(); ++iExport)
     {
         Wasm::WasmExport* wasmExport = wasmModule->GetExport(iExport);
-        if (wasmExport  && wasmExport->nameLength > 0)
+        if (wasmExport)
         {
             PropertyRecord const * propertyRecord = nullptr;
             ctx->GetOrAddPropertyRecord(wasmExport->name, wasmExport->nameLength, &propertyRecord);
