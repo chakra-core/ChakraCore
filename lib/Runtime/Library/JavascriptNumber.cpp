@@ -236,6 +236,11 @@ namespace Js
         return ::pow(x, y);
     }
 #else
+
+#pragma warning(push)
+// C4740: flow in or out of inline asm code suppresses global optimization
+// It is fine to disable glot opt on this function which is mostly written in assembly
+#pragma warning(disable:4740)
     __declspec(naked)
     double JavascriptNumber::DirectPow(double x, double y)
     {
@@ -295,6 +300,8 @@ namespace Js
             }
         }
     }
+#pragma warning(pop)
+
 #endif
 
 #elif defined(_M_AMD64) || defined(_M_ARM32_OR_ARM64)
