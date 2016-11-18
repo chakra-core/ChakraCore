@@ -875,7 +875,10 @@ namespace Js
             Assert(type->GetTypeId() == TypeIds_Function);
 
             ScriptFunctionType* functionType = (ScriptFunctionType*)type;
-            functionType->SetEntryPoint(GetScriptContext()->DeferredParsingThunk);
+            if (!CrossSite::IsThunk(functionType->GetEntryPoint()))
+            {
+                functionType->SetEntryPoint(GetScriptContext()->DeferredParsingThunk);
+            }
         });
 
         this->Cleanup(false);
