@@ -247,7 +247,7 @@ namespace Js
         UNREFERENCED_PARAMETER(x);
         UNREFERENCED_PARAMETER(y);
 
-        double savedX, savedY;
+        double savedX, savedY, result;
 
         // This function is called directly from jitted, float-preferenced code.
         // It looks for x and y in xmm0 and xmm1 and returns the result in xmm0.
@@ -277,6 +277,9 @@ namespace Js
             movsd xmm0, JavascriptNumber::k_Nan
             ret
         normal:
+            push ebp
+            mov ebp, esp        // prepare stack frame for sub function call
+            sub esp, 0x40       // 4 variables, reserve 0x10 for 1
             movsd savedX, xmm0
             movsd savedY, xmm1
         }
@@ -284,11 +287,9 @@ namespace Js
         int intY;
         if (TryGetInt32Value(savedY, &intY) && intY >= -8 && intY <= 8)
         {
-            double result = DirectPowDoubleInt(savedX, intY);
-
+            result = DirectPowDoubleInt(savedX, intY);
             __asm {
                 movsd xmm0, result
-                ret
             }
         }
         else
@@ -296,8 +297,14 @@ namespace Js
             __asm {
                 movsd xmm0, savedX
                 movsd xmm1, savedY
-                jmp dword ptr[__libm_sse2_pow]
+                call dword ptr[__libm_sse2_pow]
             }
+        }
+
+        __asm {
+            mov esp, ebp
+            pop ebp
+            ret
         }
     }
 #pragma warning(pop)
