@@ -30,10 +30,10 @@ namespace Js {
     Var AsmJsChangeHeapBuffer(RecyclableObject * function, CallInfo callInfo, ...);
 
 #pragma warning (suppress: 25057) // Suppress unannotated buffer warning
-    void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo, bool allowInt64 = false);
+    void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo);
 #if _M_X64
     int GetStackSizeForAsmJsUnboxing(ScriptFunction* func);
-    Var BoxAsmJsReturnValue(ScriptFunction* func, int intRetVal, double doubleRetVal, float floatRetVal);
+    Var BoxAsmJsReturnValue(ScriptFunction* func, int64 intRetVal, double doubleRetVal, float floatRetVal, __m128 simdReturn);
 #endif
 
     class AsmJsCompilationException

@@ -174,7 +174,7 @@ namespace Js
         return JavascriptBoolean::ToVar(TRUE, scriptContext);
     }
 
-    void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo, bool allowInt64)
+    void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo)
     {
         void * address = reinterpret_cast<void*>(func->GetEntryPointInfo()->jsMethod);
         Assert(address);
@@ -209,7 +209,7 @@ namespace Js
             else if (info->GetArgType(i).isInt64())
             {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-                if (!allowInt64)
+                if (!CONFIG_FLAG(WasmI64))
 #endif
                 {
                     JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_InvalidTypeConversion);
@@ -234,6 +234,20 @@ namespace Js
 #else
                         val = wcstoll(buf, nullptr, radix);
 #endif
+                    }
+                    else if (JavascriptObject::Is(*origArgs))
+                    {
+                        RecyclableObject* object = RecyclableObject::FromVar(*origArgs);
+                        PropertyRecord const * lowPropRecord = nullptr;
+                        PropertyRecord const * highPropRecord = nullptr;
+                        scriptContext->GetOrAddPropertyRecord(_u("low"), lstrlen(_u("low")), &lowPropRecord);
+                        scriptContext->GetOrAddPropertyRecord(_u("high"), lstrlen(_u("high")), &highPropRecord);
+                        Var low = JavascriptOperators::OP_GetProperty(object, lowPropRecord->GetPropertyId(), scriptContext);
+                        Var high = JavascriptOperators::OP_GetProperty(object, highPropRecord->GetPropertyId(), scriptContext);
+
+                        int32 lowVal = JavascriptMath::ToInt32(low, scriptContext);
+                        int32 highVal = JavascriptMath::ToInt32(high, scriptContext);
+                        val = (int64)lowVal | ((int64)highVal << 32);
                     }
                     else
                     {
@@ -383,6 +397,20 @@ namespace Js
         return address;
     }
 
+    Var CreateI64ReturnObject(int64 val, ScriptContext* scriptContext)
+    {
+        Js::Var i64Object = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
+        Var low = JavascriptNumber::ToVar((uint)val, scriptContext);
+        Var high = JavascriptNumber::ToVar(val >> 32, scriptContext);
+
+        PropertyRecord const * lowPropRecord = nullptr;
+        PropertyRecord const * highPropRecord = nullptr;
+        scriptContext->GetOrAddPropertyRecord(_u("low"), lstrlen(_u("low")), &lowPropRecord);
+        scriptContext->GetOrAddPropertyRecord(_u("high"), lstrlen(_u("high")), &highPropRecord);
+        JavascriptOperators::OP_SetProperty(i64Object, lowPropRecord->GetPropertyId(), low, scriptContext);
+        JavascriptOperators::OP_SetProperty(i64Object, highPropRecord->GetPropertyId(), high, scriptContext);
+        return i64Object;
+    }
 
 #if _M_X64
 
@@ -414,115 +442,124 @@ namespace Js
         {
             argSize = 32; // convention is to always allocate spill space for rcx,rdx,r8,r9
         }
+
         PROBE_STACK_CALL(func->GetScriptContext(), func, argSize);
         return argSize;
     }
 
-    Var BoxAsmJsReturnValue(ScriptFunction* func, int intRetVal, double doubleRetVal, float floatRetVal, __m128 simdRetVal)
+    Var BoxAsmJsReturnValue(ScriptFunction* func, int64 intRetVal, double doubleRetVal, float floatRetVal, __m128 simdRetVal)
     {
         // ExternalEntryPoint doesn't know the return value, so it will send garbage for everything except actual return type
         Var returnValue = nullptr;
         // make call and convert primitive type back to Var
         AsmJsFunctionInfo* info = func->GetFunctionBody()->GetAsmJsFunctionInfo();
+        ScriptContext* scriptContext = func->GetScriptContext();
         switch (info->GetReturnType().which())
         {
         case AsmJsRetType::Void:
-            returnValue = JavascriptOperators::OP_LdUndef(func->GetScriptContext());
+            returnValue = JavascriptOperators::OP_LdUndef(scriptContext);
             break;
         case AsmJsRetType::Signed:
         {
-            returnValue = JavascriptNumber::ToVar(intRetVal, func->GetScriptContext());
+            returnValue = JavascriptNumber::ToVar((int)intRetVal, scriptContext);
             break;
         }
         case AsmJsRetType::Int64:
         {
-            JavascriptError::ThrowTypeError(func->GetScriptContext(), WASMERR_InvalidTypeConversion);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (CONFIG_FLAG(WasmI64))
+            {
+                returnValue = CreateI64ReturnObject(intRetVal, scriptContext);
+                break;
+            }
+#endif
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_InvalidTypeConversion);
         }
         case AsmJsRetType::Double:
         {
-            returnValue = JavascriptNumber::NewWithCheck(doubleRetVal, func->GetScriptContext());
+            returnValue = JavascriptNumber::NewWithCheck(doubleRetVal, scriptContext);
             break;
         }
         case AsmJsRetType::Float:
         {
-            returnValue = JavascriptNumber::NewWithCheck(floatRetVal, func->GetScriptContext());
+            returnValue = JavascriptNumber::NewWithCheck(floatRetVal, scriptContext);
             break;
         }
         case AsmJsRetType::Float32x4:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDFloat32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDFloat32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Int32x4:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDInt32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDInt32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Bool32x4:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDBool32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDBool32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Bool16x8:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDBool16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDBool16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Bool8x16:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDBool8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDBool8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Float64x2:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDFloat64x2::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDFloat64x2::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Int16x8:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDInt16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDInt16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Int8x16:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDInt8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDInt8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Uint32x4:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDUint32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDUint32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Uint16x8:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDUint16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDUint16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Uint8x16:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDUint8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDUint8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         default:
@@ -590,7 +627,7 @@ namespace Js
         }
         case AsmJsRetType::Int64:
         {
-            // Call the function, but ignore the return value as we have to throw
+            int32 iLow = 0, iHigh = 0;
             __asm
             {
                 mov  ecx, asmJSEntryPoint
@@ -599,7 +636,16 @@ namespace Js
 #endif
                 push func
                 call ecx
+                mov iLow, eax;
+                mov iHigh, ecx;
             }
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (CONFIG_FLAG(WasmI64))
+            {
+                returnValue = CreateI64ReturnObject((int64)iLow | ((int64)iHigh << 32), func->GetScriptContext());
+                break;
+            }
+#endif
             JavascriptError::ThrowTypeError(func->GetScriptContext(), WASMERR_InvalidTypeConversion);
         }
         case AsmJsRetType::Double:{

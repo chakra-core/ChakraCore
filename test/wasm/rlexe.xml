@@ -31,7 +31,7 @@
 <test>
     <default>
        <files>math.js</files>
-       <compile-flags>-wasm -on:wasmNativeTypeCallTest</compile-flags>
+       <compile-flags>-wasm -wasmi64</compile-flags>
     </default>
 </test>
 <test>
@@ -64,7 +64,7 @@
     <default>
        <files>global.js</files>
        <baseline>baselines\global.baseline</baseline>
-       <compile-flags>-wasm -on:WasmNativeTypeCallTest</compile-flags>
+       <compile-flags>-wasm -wasmi64</compile-flags>
     </default>
 </test>
 <test>
@@ -85,7 +85,7 @@
     <default>
        <files>table_imports.js</files>
        <baseline>baselines\table_imports.baseline</baseline>
-       <compile-flags>-wasm -on:wasmNativeTypeCallTest</compile-flags>
+       <compile-flags>-wasm -wasmi64</compile-flags>
     </default>
 </test>
 <test>
