@@ -116,7 +116,10 @@ set _HadFailures=0
 
   call :do %_TestDir%\runtests.cmd -%1%2 -quiet -cleanupall -binDir %_StagingDir%\bin
 
-  if ERRORLEVEL 1 set _HadFailures=3
+  if %ERRORLEVEL% NEQ 0 (
+    echo -- runcitests.cmd ^>^> runtests.cmd failed
+    set _HadFailures=3
+  )
 
   goto :eof
 
@@ -127,7 +130,10 @@ set _HadFailures=0
 
   call :do %_TestDir%\runnativetests.cmd -%1%2 > %_TestDir%\logs\%1_%2\nativetests.log 2>&1
 
-  if ERRORLEVEL 1 set _HadFailures=4
+  if %ERRORLEVEL% NEQ 0 (
+    echo -- runcitests.cmd ^>^> runnativetests.cmd failed
+    set _HadFailures=4
+  )
 
   goto :eof
 
