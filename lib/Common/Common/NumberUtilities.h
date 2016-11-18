@@ -65,7 +65,8 @@ namespace Js
 
         static const BYTE AbsDoubleCst[];
         static const BYTE AbsFloatCst[];
-        static const BYTE SgnBitCst[];
+        static const BYTE SgnFloatBitCst[];
+        static const BYTE SgnDoubleBitCst[];
         static double const UIntConvertConst[];
         static uint64 const UInt64ConvertConst[];
 
