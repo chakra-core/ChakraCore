@@ -61,7 +61,7 @@ set _HadFailures=0
   call :summarizeLogs
 
   echo.
-  if "%_HadFailures%" == "1" (
+  if "%_HadFailures%" NEQ "0" (
     echo -- jenkins.testall.cmd ^>^> Tests failed! 1>&2
   ) else (
     echo -- jenkins.testall.cmd ^>^> Tests passed!
@@ -80,7 +80,10 @@ set _HadFailures=0
 
   call :do %_TestDir%\runtests.cmd -%1 -quiet -cleanupall -nottags exclude_jenkins %_ExtraTestArgs% -binDir %_BinDir%
 
-  if ERRORLEVEL 1 set _HadFailures=1
+  if %ERRORLEVEL% NEQ 0 (
+    echo -- runcitests.cmd ^>^> runtests.cmd failed
+    set _HadFailures=3
+  )
 
   goto :eof
 
@@ -89,12 +92,17 @@ set _HadFailures=0
 :: ============================================================================
 :runNativeTests
 
-  call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% > %_LogDir%\nativetests.log 2>&1
+  set _LogFile=%_LogDir%\nativetests.log
+  call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% > %_LogFile% 2>&1
 
-  if ERRORLEVEL 1 set _HadFailures=1
+  if %ERRORLEVEL% NEQ 0 (
+    echo -- runcitests.cmd ^>^> runnativetests.cmd failed (printing %_LogFile% below)
+    powershell "if (Test-Path %_LogFile%) { Get-Content  %_LogFile% }"
+    set _HadFailures=4
+  )
 
   goto :eof
-  
+
 :: ============================================================================
 :: Summarize the logs into a listing of only the failures
 :: ============================================================================
