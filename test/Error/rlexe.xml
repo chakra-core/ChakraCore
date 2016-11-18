@@ -30,6 +30,7 @@
     <default>
       <files>stack.js</files>
       <baseline>stack.baseline</baseline>
+      <tags>exclude_mac</tags>
     </default>
   </test>
   <test>
