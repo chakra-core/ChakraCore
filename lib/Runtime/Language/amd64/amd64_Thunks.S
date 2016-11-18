@@ -251,7 +251,7 @@ NESTED_END _ZN2Js21InterpreterStackFrame19InterpreterAsmThunkEPNS_20AsmJsCallSta
 //============================================================================================================
 
 //extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
-//extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z : PROC
+//extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z : PROC
 //extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNM@Z : PROC
 //extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNMT__m128@@@Z : PROC
 
@@ -288,7 +288,7 @@ NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfo
         mov rdx, rsp // arg3: argDst
 
         // unboxing function also does stack probe
-        call C_FUNC(_ZN2Js19UnboxAsmJsArgumentsEPNS_14ScriptFunctionEPPvPcNS_8CallInfoEb)
+        call C_FUNC(_ZN2Js19UnboxAsmJsArgumentsEPNS_14ScriptFunctionEPPvPcNS_8CallInfoE)
         // rax = target function address
 
         // move first 4 arguments into registers.
@@ -366,7 +366,7 @@ NESTED_ENTRY _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfo
         movups [rsp + 10h], xmm0
         lea r12, [rsp + 10h]
         mov qword ptr [rsp], r12
-        call C_FUNC(_ZN2Js19BoxAsmJsReturnValueEPNS_14ScriptFunctionEidfDv4_f)
+        call C_FUNC(_ZN2Js19BoxAsmJsReturnValueEPNS_14ScriptFunctionEldfDv4_f)
 
         mov rsp, r13 // restore stack pointer
     Epilogue:
