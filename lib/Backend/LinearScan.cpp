@@ -870,7 +870,7 @@ LinearScan::SetDstReg(IR::Instr *instr)
                         RecordDef(lifetime, instr, 0);
                     }
                 }
-                if (LowererMD::IsAssign(instr) && instr->GetSrc1()->IsRegOpnd())
+                if (LowererMD::IsAssign(instr) && src1 && src1->IsRegOpnd() && src1->GetSize() == dst->GetSize())
                 {
                     // Fold the spilled store
                     if (reg != RegNOREG)
