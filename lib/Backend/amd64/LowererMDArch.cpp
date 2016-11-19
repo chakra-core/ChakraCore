@@ -2590,7 +2590,7 @@ LowererMDArch::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInse
         return;
     }
     Assert(src->IsRegOpnd());
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, src, this->m_func));
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV_TRUNC, dst, src, this->m_func));
 }
 
 void
