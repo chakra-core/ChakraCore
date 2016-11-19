@@ -136,7 +136,8 @@ inline double WasmMath::Copysign(double aLeft, double aRight)
 template<>
 inline float WasmMath::Copysign(float aLeft, float aRight)
 {
-    return _copysignf(aLeft, aRight);
+    uint32 res = ((*(uint32*)(&aLeft) & 0x7fffffffu) | (*(uint32*)(&aRight) & 0x80000000u));
+    return *(float*)(&res);
 }
 
 template <typename T> bool WasmMath::LessThan(T aLeft, T aRight)
