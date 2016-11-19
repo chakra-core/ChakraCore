@@ -20186,6 +20186,16 @@ Lowerer::GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *inse
     return typeRegOpnd;
 }
 
+void Lowerer::GenerateBooleanNegate(IR::Instr * instr, IR::Opnd * srcBool, IR::Opnd * dst)
+{
+    // dst = src
+    // dst = dst ^ (true ^ false) (= !src)
+    LowererMD::CreateAssign(dst, srcBool, instr);
+    ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
+    IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func, true);
+    instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, dst, dst, xorval, instr->m_func));
+}
+
 bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
 {
     Assert(instr);
@@ -20475,24 +20485,25 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
             // Load either the bool or its complement into the dst reg, depending on the opcode
             if (isNegOp)
             {
-                instr->InsertBefore(firstFalse);
+                GenerateBooleanNegate(instr, srcBool, instr->GetDst());
             }
-            // If this case is hit, the result value is the same as the value in srcBool
-            this->InsertMove(instr->GetDst(), srcBool, instr);
+            else
+            {
+                this->InsertMove(instr->GetDst(), srcBool, instr);
+            }
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
 
             // the int resolves to 0 (false)
             // Handle the complement case
+            instr->InsertBefore(firstFalse);
             if (!isNegOp)
             {
-                instr->InsertBefore(firstFalse);
+                GenerateBooleanNegate(instr, srcBool, instr->GetDst());
             }
-            // dst = src
-            // dst = dst ^ (true ^ false) (= !src)
-            LowererMD::CreateAssign(instr->GetDst(), srcBool, instr);
-            ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
-            IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func, true);
-            instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), instr->GetDst(), xorval, instr->m_func));
+            else
+            {
+                this->InsertMove(instr->GetDst(), srcBool, instr);
+            }
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
 
             // the int resolves to something other than 0 or 1 (inequal to a bool)
@@ -20541,12 +20552,8 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
                 }
                 else
                 {
-                    // dst = src
-                    // dst = dst ^ (true ^ false) (= !src)
-                    LowererMD::CreateAssign(instr->GetDst(), srcBool, instr);
-                    ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
-                    IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func, true);
-                    instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), instr->GetDst(), xorval, instr->m_func));
+                    // Otherwise, the result value is the negation of the value in srcBool
+                    GenerateBooleanNegate(instr, srcBool, instr->GetDst());
                 }
                 instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
             }
