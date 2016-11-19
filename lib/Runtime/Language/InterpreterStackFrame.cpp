@@ -8383,7 +8383,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Var func = table->DirectGetValue(index);
         if (!func)
         {
-            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_TableIndexOutOfRange);
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc);
         }
         m_localSlots[playout->Value] = func;
 #endif
@@ -8399,17 +8399,17 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if (func->GetFunctionInfo()->IsDeferredParseFunction())
         {
             // TODO: should be able to assert this once imports are converted to wasm functions
-            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc, func->GetDisplayName());
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc);
         }
         AsmJsFunctionInfo * asmInfo = func->GetFunctionBody()->GetAsmJsFunctionInfo();
         if (!asmInfo)
         {
             // TODO: should be able to assert this once imports are converted to wasm functions
-            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc, func->GetDisplayName());
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc);
         }
         if (!expected->IsEquivalent(asmInfo->GetWasmSignature()))
         {
-            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_SignatureMismatch, func->GetDisplayName());
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_SignatureMismatch);
         }
 #endif
     }

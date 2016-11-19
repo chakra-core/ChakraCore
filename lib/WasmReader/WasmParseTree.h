@@ -30,7 +30,8 @@ namespace Wasm
             Function = 0,
             Table = 1,
             Memory = 2,
-            Global = 3
+            Global = 3,
+            Limit
         };
     }
 
@@ -44,6 +45,14 @@ namespace Wasm
             Import
         };
         bool CanBeExported(Type funcType);
+    }
+
+    namespace GlobalReferenceTypes
+    {
+        enum Type
+        {
+            Invalid, Const, LocalReference, ImportedReference
+        };
     }
 
     struct WasmOpCodeSignatures
@@ -133,10 +142,10 @@ namespace Wasm
 
     struct WasmImport
     {
-        uint32 sigId;
+        ExternalKinds::ExternalKind kind;
         uint32 modNameLen;
         const char16* modName;
-        uint32 fnNameLen;
-        const char16* fnName;
+        uint32 importNameLen;
+        const char16* importName;
     };
 }
