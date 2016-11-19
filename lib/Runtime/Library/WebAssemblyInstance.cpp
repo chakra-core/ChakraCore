@@ -388,15 +388,13 @@ void WebAssemblyInstance::LoadImports(
             case Wasm::WasmTypes::F64: cnst.f64 = JavascriptConversion::ToNumber(prop, ctx); break;
             case Wasm::WasmTypes::I64: Js::JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidTypeConversion);
             default:
-                Assert(UNREACHED);
-                JavascriptError::ThrowTypeError(ctx, VBSERR_InternalError);
+                Js::Throw::InternalError();
             }
             env->SetGlobalValue(global, cnst);
             break;
         }
         default:
-            Assert(UNREACHED);
-            JavascriptError::ThrowTypeError(ctx, VBSERR_InternalError);
+            Js::Throw::InternalError();
         }
         ++counter;
     }

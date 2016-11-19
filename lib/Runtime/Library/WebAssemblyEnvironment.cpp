@@ -42,8 +42,7 @@ void Js::WebAssemblyEnvironment::CheckPtrIsValid(intptr_t ptr) const
 {
     if (ptr < (intptr_t)start || (intptr_t)(ptr + sizeof(T)) > (intptr_t)end)
     {
-        Assert(UNREACHED);
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+        Js::Throw::InternalError();
     }
 }
 
@@ -52,8 +51,7 @@ T* Js::WebAssemblyEnvironment::GetVarElement(Var* ptr, uint32 index, uint32 maxC
 {
     if (index >= maxCount)
     {
-        Assert(UNREACHED);
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+        Js::Throw::InternalError();
     }
 
     Var* functionPtr = ptr + index;
@@ -63,8 +61,7 @@ T* Js::WebAssemblyEnvironment::GetVarElement(Var* ptr, uint32 index, uint32 maxC
     {
         if (!T::Is(varFunc))
         {
-            Assert(UNREACHED);
-            JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+            Js::Throw::InternalError();
         }
         return T::FromVar(varFunc);
     }
@@ -77,8 +74,7 @@ void Js::WebAssemblyEnvironment::SetVarElement(Var* ptr, T* val, uint32 index, u
     if (index >= maxCount ||
         !T::Is(val))
     {
-        Assert(UNREACHED);
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+        Js::Throw::InternalError();
     }
 
     Var* dst = ptr + index;
@@ -92,8 +88,7 @@ AsmJsScriptFunction* WebAssemblyEnvironment::GetWasmFunction(uint32 index) const
     if (!(module->GetFunctionIndexType(index) == Wasm::FunctionIndexTypes::Function ||
           module->GetFunctionIndexType(index) == Wasm::FunctionIndexTypes::ImportThunk))
     {
-        Assert(UNREACHED);
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+        Js::Throw::InternalError();
     }
     return GetVarElement<AsmJsScriptFunction>(functions, index, module->GetWasmFunctionCount());
 }
@@ -104,8 +99,7 @@ void WebAssemblyEnvironment::SetWasmFunction(uint32 index, AsmJsScriptFunction* 
           module->GetFunctionIndexType(index) == Wasm::FunctionIndexTypes::ImportThunk) ||
         !AsmJsScriptFunction::IsWasmScriptFunction(func))
     {
-        Assert(UNREACHED);
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+        Js::Throw::InternalError();
     }
     SetVarElement<AsmJsScriptFunction>(functions, func, index, module->GetWasmFunctionCount());
 }
@@ -156,8 +150,7 @@ Wasm::WasmConstLitNode WebAssemblyEnvironment::GetGlobalValue(Wasm::WasmGlobal* 
 {
     if (!global)
     {
-        Assert(UNREACHED);
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+        Js::Throw::InternalError();
     }
     Wasm::WasmConstLitNode cnst;
     uint32 offset = module->GetOffsetForGlobal(global);
@@ -169,8 +162,7 @@ Wasm::WasmConstLitNode WebAssemblyEnvironment::GetGlobalValue(Wasm::WasmGlobal* 
     case Wasm::WasmTypes::F32: cnst.f32 = GetGlobalInternal<float>(offset); break;
     case Wasm::WasmTypes::F64: cnst.f64 = GetGlobalInternal<double>(offset); break;
     default:
-        Assert(UNREACHED);
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+        Js::Throw::InternalError();
     }
     return cnst;
 }
@@ -179,8 +171,7 @@ void WebAssemblyEnvironment::SetGlobalValue(Wasm::WasmGlobal* global, Wasm::Wasm
 {
     if (!global)
     {
-        Assert(UNREACHED);
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+        Js::Throw::InternalError();
     }
     uint32 offset = module->GetOffsetForGlobal(global);
 
@@ -191,8 +182,7 @@ void WebAssemblyEnvironment::SetGlobalValue(Wasm::WasmGlobal* global, Wasm::Wasm
     case Wasm::WasmTypes::F32: SetGlobalInternal<float>(offset, cnst.f32); break;
     case Wasm::WasmTypes::F64: SetGlobalInternal<double>(offset, cnst.f64); break;
     default:
-        Assert(UNREACHED);
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+        Js::Throw::InternalError();
     }
 }
 
