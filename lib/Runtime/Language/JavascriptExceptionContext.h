@@ -55,9 +55,9 @@ namespace Js {
         StackTrace* GetOriginalStackTrace() const { return m_originalStackTrace; }
 
     private:
-        JavascriptFunction* m_throwingFunction;
-        uint32 m_throwingFunctionByteCodeOffset;
-        StackTrace *m_stackTrace;
-        StackTrace *m_originalStackTrace;
+        Field(JavascriptFunction*) m_throwingFunction;
+        Field(uint32) m_throwingFunctionByteCodeOffset;
+        Field(StackTrace *) m_stackTrace;
+        Field(StackTrace *) m_originalStackTrace;
     };
 }

@@ -182,9 +182,9 @@ namespace Js
         class BlockInfo
         {
         private:
-            void *buffer;
-            CharCount charLength;
-            CharCount charCapacity;
+            Field(void *) buffer;
+            Field(CharCount) charLength;
+            Field(CharCount) charCapacity;
 
         public:
             BlockInfo();

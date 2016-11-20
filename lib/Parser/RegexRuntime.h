@@ -81,57 +81,59 @@ namespace UnifiedRegex
         struct Instructions
         {
             // Instruction array, in run-time allocator, owned by program, never null
-            uint8* insts;
-            CharCount instsLen; // in bytes
+            Field(uint8*) insts;
+            Field(CharCount) instsLen; // in bytes
             // Literals
             // In run-time allocator, owned by program, may be 0
-            CharCount litbufLen; // length of litbuf in char16's, no terminating null
-            Char* litbuf;
+            Field(CharCount) litbufLen; // length of litbuf in char16's, no terminating null
+            Field(Char*) litbuf;
 
             // These scanner infos are used by ScannersMixin, which is used by only SyncToLiteralsAndBackupInst. There will only
             // ever be only one of those instructions per program. Since scanners are large (> 1 KB), for that instruction they
             // are allocated on the recycler with pointers stored here to reference them.
-            ScannerInfo **scannersForSyncToLiterals;
+            Field(Field(ScannerInfo *)*) scannersForSyncToLiterals;
         };
 
         struct SingleChar
         {
-            Char c;
-            uint8 padding[sizeof(Instructions) - sizeof(Char)];
+            Field(Char) c;
+            Field(uint8) padding[sizeof(Instructions) - sizeof(Char)];
         };
 
         struct Octoquad
         {
-            OctoquadMatcher* matcher;
-            uint8 padding[sizeof(Instructions) - sizeof(void*)];
+            Field(OctoquadMatcher*) matcher;
+            Field(uint8) padding[sizeof(Instructions) - sizeof(void*)];
         };
 
         struct BOILiteral2
         {
-            DWORD literal;
-            uint8 padding[sizeof(Instructions) - sizeof(DWORD)];
+            Field(DWORD) literal;
+            Field(uint8) padding[sizeof(Instructions) - sizeof(DWORD)];
         };
 
         struct LeadingTrailingSpaces
         {
-            CharCount beginMinMatch;
-            CharCount endMinMatch;
-            uint8 padding[sizeof(Instructions) - (sizeof(CharCount) * 2)];
+            Field(CharCount) beginMinMatch;
+            Field(CharCount) endMinMatch;
+            Field(uint8) padding[sizeof(Instructions) - (sizeof(CharCount) * 2)];
         };
 
         struct Other
         {
-            uint8 padding[sizeof(Instructions)];
+            Field(uint8) padding[sizeof(Instructions)];
         };
 
         union RepType
         {
-            Instructions insts;
-            SingleChar singleChar;
-            Octoquad octoquad;
-            BOILiteral2 boiLiteral2;
-            LeadingTrailingSpaces leadingTrailingSpaces;
-            Other other;
+            Field(Instructions) insts;
+            Field(SingleChar) singleChar;
+            Field(Octoquad) octoquad;
+            Field(BOILiteral2) boiLiteral2;
+            Field(LeadingTrailingSpaces) leadingTrailingSpaces;
+            Field(Other) other;
+
+            RepType() {}
         };
         Field(RepType) rep;
 
@@ -144,7 +146,7 @@ namespace UnifiedRegex
         static size_t GetOffsetOfBOILiteral2Literal() { return offsetof(BOILiteral2, literal); }
         static ProgramTag GetBOILiteral2Tag() { return ProgramTag::BOILiteral2Tag; }
 
-        ScannerInfo **CreateScannerArrayForSyncToLiterals(Recycler *const recycler);
+        Field(ScannerInfo *)*CreateScannerArrayForSyncToLiterals(Recycler *const recycler);
         ScannerInfo *AddScannerForSyncToLiterals(
             Recycler *const recycler,
             const int scannerIndex,
@@ -424,7 +426,7 @@ namespace UnifiedRegex
         static const int MaxNumSyncLiterals = 4;
 
         int numLiterals;
-        ScannerInfo** infos;
+        Field(ScannerInfo*)* infos;
 
         // scanner mixins must be added
         inline ScannersMixin(Recycler *const recycler, Program *const program)
@@ -1464,8 +1466,8 @@ namespace UnifiedRegex
 
     struct GroupInfo : protected Chars<char16>
     {
-        CharCount offset;
-        CharCountOrFlag length;  // CharCountFlag => group is undefined
+        Field(CharCount) offset;
+        Field(CharCountOrFlag) length;  // CharCountFlag => group is undefined
 
         inline GroupInfo() : offset(0), length(CharCountFlag) {}
 

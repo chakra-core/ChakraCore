@@ -27,24 +27,24 @@ namespace Js
     {
         struct
         {
-            bool falseReferencePreventionBit : 1;
-            bool isPolymorphic : 1;
-            bool isRootObjectNonConfigurableField : 1;
-            bool isRootObjectNonConfigurableFieldLoad : 1;
-            bool usesAuxSlot : 1;
-            bool isLocal : 1;
-            bool isLoadedFromProto : 1;
-            bool usesAccessor : 1;
-            bool hasFixedValue : 1;
-            bool keepFieldValue : 1;
-            bool isBeingStored : 1;
-            bool isBeingAdded : 1;
-            bool doesntHaveEquivalence : 1;
-            bool isBuiltIn : 1;
+            Field(bool) falseReferencePreventionBit : 1;
+            Field(bool) isPolymorphic : 1;
+            Field(bool) isRootObjectNonConfigurableField : 1;
+            Field(bool) isRootObjectNonConfigurableFieldLoad : 1;
+            Field(bool) usesAuxSlot : 1;
+            Field(bool) isLocal : 1;
+            Field(bool) isLoadedFromProto : 1;
+            Field(bool) usesAccessor : 1;
+            Field(bool) hasFixedValue : 1;
+            Field(bool) keepFieldValue : 1;
+            Field(bool) isBeingStored : 1;
+            Field(bool) isBeingAdded : 1;
+            Field(bool) doesntHaveEquivalence : 1;
+            Field(bool) isBuiltIn : 1;
         };
         struct
         {
-            uint16 flags;
+            Field(uint16) flags;
         };
         ObjTypeSpecFldInfoFlags(uint16 flags) : flags(flags) { }
     };
@@ -372,7 +372,7 @@ namespace Js
     private:
         Field(Field(ObjTypeSpecFldInfo*)*) infoArray;
 #if DBG
-        uint infoCount;
+        Field(uint) infoCount;
 #endif
     public:
         ObjTypeSpecFldInfoArray();

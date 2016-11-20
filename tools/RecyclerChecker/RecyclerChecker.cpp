@@ -83,8 +83,11 @@ bool MainVisitor::VisitCXXRecordDecl(CXXRecordDecl* recordDecl)
     return true;
 }
 
-void MainVisitor::ProcessUnbarriedFields(CXXRecordDecl* recordDecl)
+template <class PushFieldType>
+void MainVisitor::ProcessUnbarriedFields(CXXRecordDecl* recordDecl,
+                                         const PushFieldType& pushFieldType)
 {
+    std::string typeName = recordDecl->getQualifiedNameAsString();
     const auto& sourceMgr = _compilerInstance.getSourceManager();
     DiagnosticsEngine& diagEngine = _context.getDiagnostics();
     const unsigned diagID = diagEngine.getCustomDiagID(
@@ -94,11 +97,42 @@ void MainVisitor::ProcessUnbarriedFields(CXXRecordDecl* recordDecl)
     {
         const QualType qualType = field->getType();
         string fieldTypeName = qualType.getAsString();
+        string fieldName = field->getNameAsString();
 
-        bool report = !StartsWith(fieldTypeName, "typename WriteBarrierFieldTypeTraits")
-                && !StartsWith(fieldTypeName, "const typename WriteBarrierFieldTypeTraits")
-                && field->getNameAsString().length() > 0;  // no-field-name union
-        if (report)
+        // If an annotated field type is struct/class/union (RecordType), the
+        // field type in turn should likely be annoatated.
+        if (StartsWith(fieldTypeName, "typename WriteBarrierFieldTypeTraits") ||
+            StartsWith(fieldTypeName, "const typename WriteBarrierFieldTypeTraits") ||
+            fieldName.length() == 0) // anonymous union/struct
+        {
+            // Do not track down FieldNoBarrier types
+            if (Contains(fieldTypeName, "_no_write_barrier_policy, "))
+            {
+                continue;
+            }
+
+            auto originalType = qualType->getUnqualifiedDesugaredType();
+            if (auto arrayType = dyn_cast<ArrayType>(originalType))
+            {
+                originalType = arrayType->getElementType()->getUnqualifiedDesugaredType();
+            }
+
+            string originalTypeName = QualType(originalType, 0).getAsString();
+            if (isa<RecordType>(originalType) &&
+                !StartsWith(originalTypeName, "class Memory::WriteBarrierPtr<"))
+            {
+                if (pushFieldType(originalType))
+                {
+                    Log::outs() << "Queue field type: " << originalTypeName
+                        << " (" << typeName << "::" << fieldName << ")\n";
+                }
+            }
+        }
+        else if (StartsWith(fieldTypeName, "WriteBarrierPtr<"))
+        {
+            // do nothing, explicit WriteBarrierPtr use
+        }
+        else
         {
             SourceLocation location = field->getLocStart();
             if (this->_fix)
@@ -117,7 +151,7 @@ void MainVisitor::ProcessUnbarriedFields(CXXRecordDecl* recordDecl)
                 }
 
                 Log::errs() << "Fail to fix: " << fieldTypeName << " "
-                            << field->getNameAsString()  << "\n";
+                            << fieldName << "\n";
             }
 
             diagEngine.Report(location, diagID);
@@ -253,6 +287,7 @@ bool MainVisitor::MatchType(const string& type, const char* source, const char**
 
     if (!*p && *source)  // type match completed and having remaining source
     {
+        while (*(source - 1) == ' ') --source; // try to stop after a non-space char
         *pSourceEnd = source;
         return true;
     }
@@ -343,12 +378,14 @@ void MainVisitor::Inspect()
 
     std::queue<const Type*> queue;  // queue of types to check
     std::unordered_set<const Type*> barrierTypes;  // set of types queued
-    auto pushBarrierType = [&](const Type* type)
+    auto pushBarrierType = [&](const Type* type) -> bool
     {
         if (barrierTypes.insert(type).second)
         {
             queue.push(type);
+            return true;
         }
+        return false;
     };
 
     for (auto item : _allocationTypes)
@@ -370,12 +407,16 @@ void MainVisitor::Inspect()
         if (r)
         {
             auto typeName = r->getQualifiedNameAsString();
-            ProcessUnbarriedFields(r);
+            ProcessUnbarriedFields(r, pushBarrierType);
 
             // queue the type's base classes
             for (const auto& base: r->bases())
             {
-                pushBarrierType(base.getType().getTypePtr());
+                if (pushBarrierType(base.getType().getTypePtr()))
+                {
+                    Log::outs() << "Queue base type: " << base.getType().getAsString()
+                        << " (base of " << typeName << ")\n";
+                }
             }
         }
     }

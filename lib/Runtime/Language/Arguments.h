@@ -123,8 +123,8 @@ namespace Js
             AssertMsg((idxArg < (int)Info.Count) && (idxArg >= 0), "Ensure a valid argument index");
             return Values[idxArg];
         }
-        CallInfo Info;
-        Var* Values;
+        Field(CallInfo) Info;
+        Field(Var*) Values;
 
         static uint32 GetCallInfoOffset() { return offsetof(Arguments, Info); }
         static uint32 GetValuesOffset() { return offsetof(Arguments, Values); }

@@ -41,8 +41,8 @@ namespace Js
     class MapOrSetDataList
     {
     private:
-        MapOrSetDataNode<TData>* first;
-        MapOrSetDataNode<TData>* last;
+        Field(MapOrSetDataNode<TData>*) first;
+        Field(MapOrSetDataNode<TData>*) last;
 
     public:
         MapOrSetDataList(VirtualTableInfoCtorEnum) {};
@@ -50,8 +50,8 @@ namespace Js
 
         class Iterator
         {
-            MapOrSetDataList<TData>* list;
-            MapOrSetDataNode<TData>* current;
+            Field(MapOrSetDataList<TData>*) list;
+            Field(MapOrSetDataNode<TData>*) current;
         public:
             Iterator() : list(nullptr), current(nullptr) { }
             Iterator(MapOrSetDataList<TData>* list) : list(list), current(nullptr) { }

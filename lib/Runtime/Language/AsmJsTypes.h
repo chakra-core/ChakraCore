@@ -217,7 +217,7 @@ namespace Js
         };
 
     private:
-        Which which_;
+        Field(Which) which_;
 
     public:
         AsmJsRetType();

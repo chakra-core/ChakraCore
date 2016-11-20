@@ -13,11 +13,11 @@ namespace Js
         SimplePropertyDescriptor(const PropertyRecord* id) : Id(id), preventFalseReference(NULL) { Attributes = PropertyDynamicTypeDefaults; }
         SimplePropertyDescriptor(const PropertyRecord* id, PropertyAttributes attributes) : Id(id), preventFalseReference(NULL) { Attributes = attributes; }
 
-        const PropertyRecord* Id;
+        Field(const PropertyRecord*) Id;
         union
         {
-            PropertyAttributes Attributes;
-            void* preventFalseReference; // SimplePropertyDescriptor can be declared on stack. Always zero out to avoid this becoming a memory address reference.
+            Field(PropertyAttributes) Attributes;
+            FieldNoBarrier(void*) preventFalseReference; // SimplePropertyDescriptor can be declared on stack. Always zero out to avoid this becoming a memory address reference.
         };
     };
 

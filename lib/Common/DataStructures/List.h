@@ -767,7 +767,7 @@ namespace Js
         typedef typename TListType::TElementType TElementType;
         typedef typename TListType::TComparerType TComparerType;
 
-        int freeItemIndex;
+        Field(int) freeItemIndex;
 
     public:
         FreeListedRemovePolicy(TListType * list):
@@ -852,7 +852,7 @@ namespace Js
         typedef FreeListedRemovePolicy<TListType, clearOldEntries> Base;
         typedef typename Base::TElementType TElementType;
     private:
-        uint lastWeakReferenceCleanupId;
+        Field(uint) lastWeakReferenceCleanupId;
 
         void CleanupWeakReference(TListType * list)
         {

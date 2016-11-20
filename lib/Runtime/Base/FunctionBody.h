@@ -4,13 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-// In general, write-barriers are used only on non-Windows platforms
-// However, classes in this file have been allocated in software write-barrier
-// memory for historic reasons, because there is some small perf wins here
-// Forcing these classes to be in software write-barrier memory
-#define FORCE_USE_WRITE_BARRIER 1
-#include <Memory/WriteBarrierMacros.h>
-
 #include "AuxPtrs.h"
 #include "CompactCounters.h"
 
@@ -279,7 +272,7 @@ namespace Js
     class PolymorphicCacheUtilizationArray
     {
     private:
-        byte *utilArray;
+        Field(byte *) utilArray;
 
     public:
         PolymorphicCacheUtilizationArray()
@@ -315,7 +308,9 @@ namespace Js
     {
     private:
         Field(PolymorphicInlineCacheInfo) selfInfo;
-        Field(SListCounted<PolymorphicInlineCacheInfo*, Recycler>) inlineeInfo;
+
+        typedef SListCounted<PolymorphicInlineCacheInfo*, Recycler> PolymorphicInlineCacheInfoListType;
+        Field(PolymorphicInlineCacheInfoListType) inlineeInfo;
 
         static void SetPolymorphicInlineCache(PolymorphicInlineCacheInfo * polymorphicInlineCacheInfo, FunctionBody * functionBody, uint index, PolymorphicInlineCache * polymorphicInlineCache, byte polyCacheUtil);
 
@@ -405,14 +400,14 @@ namespace Js
 
     struct TypeGuardTransferData
     {
-        unsigned int propertyGuardCount;
-        TypeGuardTransferEntryIDL* entries;
+        Field(unsigned int) propertyGuardCount;
+        FieldNoBarrier(TypeGuardTransferEntryIDL*) entries;
     };
 
     struct CtorCacheTransferData
     {
-        unsigned int ctorCachesCount;
-        CtorCacheTransferEntryIDL ** entries;
+        Field(unsigned int) ctorCachesCount;
+        FieldNoBarrier(CtorCacheTransferEntryIDL **) entries;
     };
 
 
@@ -533,8 +528,8 @@ namespace Js
         FieldNoBarrier(char*) nativeDataBuffer;
         union
         {
-            Js::JavascriptNumber** numberArray;
-            CodeGenNumberChunk* numberChunks;
+            Field(Field(JavascriptNumber*)*) numberArray;
+            Field(CodeGenNumberChunk*) numberChunks;
         };
         Field(XProcNumberPageSegment*) numberPageSegments;
 
@@ -632,7 +627,7 @@ namespace Js
             Assert(numberPageSegments == nullptr);
             numberChunks = chunks;
         }
-        void SetNumberArray(Js::JavascriptNumber** array)
+        void SetNumberArray(Field(Js::JavascriptNumber*)* array)
         {
             Assert(numberPageSegments != nullptr);
             numberArray = array;
@@ -1008,42 +1003,43 @@ namespace Js
         void DoLazyBailout(BYTE** addressOfReturnAddress, Js::FunctionBody* functionBody, const PropertyRecord* propertyRecord);
 #endif
 #if DBG_DUMP
-     public:
+    public:
 #elif defined(VTUNE_PROFILING)
-     private:
+    private:
 #endif
 #if DBG_DUMP || defined(VTUNE_PROFILING)
-         // NativeOffsetMap is public for DBG_DUMP, private for VTUNE_PROFILING
-         struct NativeOffsetMap
-         {
+        // NativeOffsetMap is public for DBG_DUMP, private for VTUNE_PROFILING
+        struct NativeOffsetMap
+        {
             uint32 statementIndex;
             regex::Interval nativeOffsetSpan;
-         };
+        };
 
-     private:
-         Field(JsUtil::List<NativeOffsetMap, HeapAllocator>) nativeOffsetMaps;
-     public:
-         void RecordNativeMap(uint32 offset, uint32 statementIndex);
+    private:
+        typedef JsUtil::List<NativeOffsetMap, HeapAllocator> NativeOffsetMapListType;
+        Field(NativeOffsetMapListType) nativeOffsetMaps;
+    public:
+        void RecordNativeMap(uint32 offset, uint32 statementIndex);
 
-         int GetNativeOffsetMapCount() const;
+        int GetNativeOffsetMapCount() const;
 #endif
 
 #if DBG_DUMP && ENABLE_NATIVE_CODEGEN
-         void DumpNativeOffsetMaps();
-         void DumpNativeThrowSpanSequence();
-         NativeOffsetMap* GetNativeOffsetMap(int index)
-         {
+        void DumpNativeOffsetMaps();
+        void DumpNativeThrowSpanSequence();
+        NativeOffsetMap* GetNativeOffsetMap(int index)
+        {
              Assert(index >= 0);
              Assert(index < GetNativeOffsetMapCount());
 
              return &nativeOffsetMaps.Item(index);
-         }
+        }
 #endif
 
 #ifdef VTUNE_PROFILING
 
-     public:
-         uint PopulateLineInfo(void* pLineInfo, FunctionBody* body);
+    public:
+        uint PopulateLineInfo(void* pLineInfo, FunctionBody* body);
 
 #endif
 
@@ -1289,7 +1285,21 @@ namespace Js
         }
 
     };
+}
 
+// ----------------------------------------------------------------------------
+// SWB-TODO: Below force uses write barrier. Move top code to new header file.
+//
+
+// In general, write-barriers are used only on non-Windows platforms
+// However, classes in this file have been allocated in software write-barrier
+// memory for historic reasons, because there is some small perf wins here
+// Forcing these classes to be in software write-barrier memory
+#define FORCE_USE_WRITE_BARRIER 1
+#include <Memory/WriteBarrierMacros.h>
+
+namespace Js
+{
     class FunctionProxy;
 
     typedef Field(FunctionProxy*)* FunctionProxyArray;
@@ -2004,11 +2014,11 @@ namespace Js
             public:
                 FieldNoBarrier(SmallSpanSequence*) pSpanSequence;
 
-                RegSlot         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
-                RegSlot         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid
+                Field(RegSlot)         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
+                Field(RegSlot)         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid
                 Field(ScopeObjectChain*) pScopeObjectChain;
                 Field(ByteBlock*) m_probeBackingBlock;  // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
-                int32 m_probeCount;             // The number of installed probes (such as breakpoints).
+                Field(int32) m_probeCount;             // The number of installed probes (such as breakpoints).
 
                 // List of bytecode offset for the Branch bytecode.
                 Field(AuxStatementData*) m_auxStatementData;

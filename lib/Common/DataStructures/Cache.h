@@ -118,7 +118,7 @@ namespace JsUtil
         }
 
     private:
-        TMRUStoreType* store;
+        Field(TMRUStoreType*, TAllocator) store;
     };
 
     template <

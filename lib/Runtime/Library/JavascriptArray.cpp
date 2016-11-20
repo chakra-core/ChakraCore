@@ -2406,7 +2406,9 @@ namespace Js
 
     SparseArraySegmentBase * JavascriptArray::GetLastUsedSegment() const
     {
-        return (HasSegmentMap() ? segmentUnion.segmentBTreeRoot->lastUsedSegment : segmentUnion.lastUsedSegment);
+        return HasSegmentMap() ?
+            PointerValue(segmentUnion.segmentBTreeRoot->lastUsedSegment) :
+            PointerValue(segmentUnion.lastUsedSegment);
     }
 
     void JavascriptArray::SetHeadAndLastUsedSegment(SparseArraySegmentBase * segment)
@@ -6172,7 +6174,7 @@ Case0:
         // for arrays of more than 512 elements.
         if (length > 512)
         {
-            qsort_s(elements, length, sizeof(Field(Var)), compareVars, compareInfo);
+            qsort_s(elements, length, compareVars, compareInfo);
             return;
         }
 
@@ -6402,7 +6404,8 @@ Case0:
 
     void JavascriptArray::SortElements(Element* elements, uint32 left, uint32 right)
     {
-        qsort_s(elements, right - left + 1, sizeof(Element), CompareElements, this);
+        // Note: use write barrier policy of Field(Var)
+        qsort_s<Element, Field(Var)>(elements, right - left + 1, CompareElements, this);
     }
 
     Var JavascriptArray::EntrySort(RecyclableObject* function, CallInfo callInfo, ...)

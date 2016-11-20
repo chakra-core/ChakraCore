@@ -56,6 +56,8 @@ parser.add_argument('--tag', nargs='*',
                     help='select tests with given tags')
 parser.add_argument('--not-tag', nargs='*',
                     help='exclude tests with given tags')
+parser.add_argument('--flag', nargs='*',
+                    help='global test flags to ch')
 parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
                     help='test timeout (default ' + str(DEFAULT_TIMEOUT) + ' seconds)')
 parser.add_argument('-l', '--logfile', metavar='logfile', help='file to log results to', default=None)
@@ -394,7 +396,9 @@ class TestVariant(object):
 
         flags = test.get('compile-flags')
         flags = self._expand_compile_flags(test) + \
+                    args.flag + \
                     (flags.split() if flags else [])
+
         cmd = [binary] + flags + [os.path.basename(js_file)]
 
         test.start()

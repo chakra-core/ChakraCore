@@ -6,7 +6,7 @@
 #pragma once
 namespace JsUtil
 {
-    template <class T, typename Comparer>
+    template <class T, class Comparer>
     class QuickSort
     {
     public:
@@ -48,6 +48,3 @@ namespace JsUtil
         }
     };
 }
-
-
-
