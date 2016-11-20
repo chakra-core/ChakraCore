@@ -216,6 +216,11 @@ void ClearArray(WriteBarrierPtr<T>& dst, size_t count)
 {
     ClearArray(static_cast<T*>(dst), count);
 }
+template <class T, size_t N>
+void ClearArray(T (&dst)[N])
+{
+    ClearArray(dst, N);
+}
 
 
 template <typename T>
@@ -446,6 +451,22 @@ inline T* const& PointerValue(T* const& ptr) { return ptr; }
 template <class T>
 inline T* const& PointerValue(const WriteBarrierPtr<T>& ptr) { return ptr; }
 
+// Unsafe NoWriteBarrierSet. Use only when necessary and you are sure skipping
+// write barrier is ok.
+//
+template <class T>
+inline void NoWriteBarrierSet(T*& dst, T* ptr) { dst = ptr; }
+template <class T>
+inline void NoWriteBarrierSet(WriteBarrierPtr<T>& dst, T* ptr)
+{
+    dst.NoWriteBarrierSet(ptr);
+}
+template <class T>
+inline void NoWriteBarrierSet(WriteBarrierPtr<T>& dst, const WriteBarrierPtr<T>& ptr)
+{
+    dst.NoWriteBarrierSet(ptr);
+}
+
 }  // namespace Memory
 
 
@@ -468,10 +489,41 @@ const T& max(const T& a, const NoWriteBarrierField<T>& b) { return a > b ? a : b
 template<class T> inline
 const T& max(const NoWriteBarrierField<T>& a, const NoWriteBarrierField<T>& b) { return a > b ? a : b; }
 
-template<typename T, typename Comparer>
-void qsort_s(Memory::WriteBarrierPtr<T>* _Base, size_t _NumOfElements, size_t _SizeOfElements, Comparer comparer, void* _Context)
+// QuickSort Array content
+//
+template <class Policy>
+struct _QuickSortImpl
 {
-    JsUtil::QuickSort<Memory::WriteBarrierPtr<T>, Comparer>::Sort(_Base, _Base + _NumOfElements - 1, comparer, _Context);
+    template<class T, class Comparer>
+    static void qsort_s(T* arr, size_t count, const Comparer& comparer, void* context)
+    {
+        // by default use system qsort_s
+        ::qsort_s(arr, count, sizeof(T), comparer, context);
+    }
+};
+template <>
+struct _QuickSortImpl<_write_barrier_policy>
+{
+    template<class T, class Comparer>
+    static void qsort_s(T* arr, size_t count, const Comparer& comparer, void* context)
+    {
+        // Use custom implementation if policy needs write barrier
+        JsUtil::QuickSort<T, Comparer>::Sort(arr, arr + count - 1, comparer, context);
+    }
+};
+
+template<class T, class PolicyType = T, class Comparer>
+void qsort_s(T* arr, size_t count, const Comparer& comparer, void* context)
+{
+    // Note use of "_ArrayItemWriteBarrierPolicy".
+    typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy Policy;
+    _QuickSortImpl<Policy>::qsort_s(arr, count, comparer, context);
+}
+template<class T, class Comparer>
+void qsort_s(WriteBarrierPtr<T>* _Base, size_t _NumOfElements, size_t _SizeOfElements,
+             const Comparer& comparer, void* _Context)
+{
+    CompileAssert(false); // Disallow this. Use an overload above.
 }
 
 // Disallow memcpy, memmove of WriteBarrierPtr

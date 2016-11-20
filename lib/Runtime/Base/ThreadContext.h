@@ -581,7 +581,8 @@ private:
         Field(SourceProfileManagersByUrlMap*) sourceProfileManagersByUrl;
 
         // Used to register recyclable data that needs to be kept alive while jitting
-        Field(JsUtil::DoublyLinkedList<Js::CodeGenRecyclableData>) codeGenRecyclableDatas;
+        typedef JsUtil::DoublyLinkedList<Js::CodeGenRecyclableData, Recycler> CodeGenRecyclableDataList;
+        Field(CodeGenRecyclableDataList) codeGenRecyclableDatas;
 
         // Used to root old entry points so that they're not prematurely collected
         Field(Js::FunctionEntryPointInfo*) oldEntryPointInfo;

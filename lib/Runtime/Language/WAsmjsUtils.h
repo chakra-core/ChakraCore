@@ -242,13 +242,13 @@ namespace WAsmJs
     struct TypedSlotInfo
     {
         TypedSlotInfo(): constCount(0), varCount(0), tmpCount(0), byteOffset(0), constSrcByteOffset(0) { }
-        uint32 constCount;
-        uint32 varCount;
-        uint32 tmpCount;
+        Field(uint32) constCount;
+        Field(uint32) varCount;
+        Field(uint32) tmpCount;
         // Offset in bytes from the start of InterpreterStack::m_localSlot
-        uint32 byteOffset;
+        Field(uint32) byteOffset;
         // Offset in bytes from the start of the const table before shuffling (InterpreterStackFrame::AlignMemoryForAsmJs())
-        uint32 constSrcByteOffset;
+        Field(uint32) constSrcByteOffset;
     };
 
     typedef RegisterSpace*(*AllocateRegisterSpaceFunc)(ArenaAllocator*, WAsmJs::Types);

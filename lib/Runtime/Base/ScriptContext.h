@@ -344,10 +344,10 @@ namespace Js
     // valid if object!= NULL
     struct EnumeratedObjectCache {
         static const int kMaxCachedPropStrings=16;
-        DynamicObject* object;
-        DynamicType* type;
-        PropertyString* propertyStrings[kMaxCachedPropStrings];
-        int validPropStrings;
+        Field(DynamicObject*) object;
+        Field(DynamicType*) type;
+        Field(PropertyString*) propertyStrings[kMaxCachedPropStrings];
+        Field(int) validPropStrings;
     };
 
     typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;

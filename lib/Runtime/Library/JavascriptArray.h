@@ -104,10 +104,11 @@ namespace Js
         Field(SparseArraySegmentBase*) head;
         union SegmentUnionType
         {
-            SparseArraySegmentBase* lastUsedSegment;
-            SegmentBTreeRoot* segmentBTreeRoot;
+            Field(SparseArraySegmentBase*) lastUsedSegment;
+            Field(SegmentBTreeRoot*) segmentBTreeRoot;
+
+            SegmentUnionType() {}
         };
-        // SWB-TODO: How to handle write barrier inside union?
         Field(SegmentUnionType) segmentUnion;
     public:
         typedef Var TElement;
@@ -566,9 +567,10 @@ namespace Js
         BOOL GetPropertyBuiltIns(PropertyId propertyId, Var* value);
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* descriptorFlags);
     private:
-        struct Element {
-            Var Value;
-            JavascriptString* StringValue;
+        struct Element
+        {
+            Field(Var) Value;
+            Field(JavascriptString*) StringValue;
         };
 
         static int __cdecl CompareElements(void* context, const void* elem1, const void* elem2);

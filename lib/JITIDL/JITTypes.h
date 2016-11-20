@@ -71,30 +71,30 @@ typedef IDL_DEF([ref]) PSCRIPTCONTEXT_HANDLE * PPSCRIPTCONTEXT_HANDLE;
 
 typedef struct TypeHandlerIDL
 {
-    boolean isObjectHeaderInlinedTypeHandler;
-    boolean isLocked;
+    IDL_Field(boolean) isObjectHeaderInlinedTypeHandler;
+    IDL_Field(boolean) isLocked;
 
-    unsigned short inlineSlotCapacity;
-    unsigned short offsetOfInlineSlots;
+    IDL_Field(unsigned short) inlineSlotCapacity;
+    IDL_Field(unsigned short) offsetOfInlineSlots;
     IDL_PAD2(0)
     X64_PAD4(1)
-    int slotCapacity;
+    IDL_Field(int) slotCapacity;
 } TypeHandlerIDL;
 
 typedef struct TypeIDL
 {
-    unsigned char flags;
-    boolean isShared;
+    IDL_Field(unsigned char) flags;
+    IDL_Field(boolean) isShared;
     IDL_PAD2(0)
-    int typeId;
+    IDL_Field(int) typeId;
 
-    CHAKRA_PTR libAddr;
-    CHAKRA_PTR protoAddr;
-    CHAKRA_PTR entrypointAddr;
-    CHAKRA_PTR propertyCacheAddr;
-    CHAKRA_PTR addr;
+    IDL_Field(CHAKRA_PTR) libAddr;
+    IDL_Field(CHAKRA_PTR) protoAddr;
+    IDL_Field(CHAKRA_PTR) entrypointAddr;
+    IDL_Field(CHAKRA_PTR) propertyCacheAddr;
+    IDL_Field(CHAKRA_PTR) addr;
 
-    TypeHandlerIDL handler;
+    IDL_Field(TypeHandlerIDL) handler;
 } TypeIDL;
 
 typedef struct EquivalentTypeSetIDL
@@ -120,22 +120,22 @@ typedef struct FixedFieldIDL
 
 typedef struct JITTimeConstructorCacheIDL
 {
-    boolean skipNewScObject;
-    boolean ctorHasNoExplicitReturnValue;
-    boolean typeIsFinal;
-    boolean isUsed;
+    IDL_Field(boolean) skipNewScObject;
+    IDL_Field(boolean) ctorHasNoExplicitReturnValue;
+    IDL_Field(boolean) typeIsFinal;
+    IDL_Field(boolean) isUsed;
 
-    short inlineSlotCount;
+    IDL_Field(short) inlineSlotCount;
 
     IDL_PAD2(0)
-    int slotCount;
+    IDL_Field(int) slotCount;
 
     X64_PAD4(1)
-    TypeIDL type;
+    IDL_Field(TypeIDL) type;
 
-    CHAKRA_PTR runtimeCacheAddr;
-    CHAKRA_PTR runtimeCacheGuardAddr;
-    CHAKRA_PTR guardedPropOps;
+    IDL_Field(CHAKRA_PTR) runtimeCacheAddr;
+    IDL_Field(CHAKRA_PTR) runtimeCacheGuardAddr;
+    IDL_Field(CHAKRA_PTR) guardedPropOps;
 } JITTimeConstructorCacheIDL;
 
 typedef struct ObjTypeSpecFldIDL
