@@ -79,70 +79,27 @@ void __stdcall PrintUsage()
 }
 
 // On success the param byteCodeBuffer will be allocated in the function.
-// The caller of this function should de-allocate the memory.
-HRESULT GetSerializedBuffer(LPCSTR fileContents, __out BYTE **byteCodeBuffer,
-    __out DWORD *byteCodeBufferSize)
+HRESULT GetSerializedBuffer(LPCSTR fileContents, JsValueRef *byteCodeBuffer)
 {
     HRESULT hr = S_OK;
-    *byteCodeBuffer = nullptr;
-    *byteCodeBufferSize = 0;
-    BYTE *bcBuffer = nullptr;
 
-    unsigned int bcBufferSize = 0;
-    unsigned int newBcBufferSize = 0;
     JsValueRef scriptSource;
     IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
         (unsigned int)strlen(fileContents), nullptr, nullptr, &scriptSource));
-    IfJsErrorFailLog(ChakraRTInterface::JsSerialize(scriptSource, bcBuffer,
-        &bcBufferSize, JsParseScriptAttributeNone));
-    // Call above will return the size of the buffer only, once succeed
-    // we need to allocate memory of that much and call it again.
-    if (bcBufferSize == 0)
-    {
-        AssertMsg(false, "bufferSize should not be zero");
-        IfFailGo(E_FAIL);
-    }
-    bcBuffer = new BYTE[bcBufferSize];
-    newBcBufferSize = bcBufferSize;
-    IfJsErrorFailLog(ChakraRTInterface::JsSerialize(scriptSource, bcBuffer,
-        &newBcBufferSize, JsParseScriptAttributeNone));
-    Assert(bcBufferSize == newBcBufferSize);
+    IfJsErrorFailLog(ChakraRTInterface::JsSerialize(scriptSource, byteCodeBuffer,
+        JsParseScriptAttributeNone));
 
 Error:
-    if (hr != S_OK)
-    {
-        // In the failure release the buffer
-        if (bcBuffer != nullptr)
-        {
-            delete[] bcBuffer;
-        }
-    }
-    else
-    {
-        *byteCodeBuffer = bcBuffer;
-        *byteCodeBufferSize = bcBufferSize;
-    }
-
     return hr;
 }
 
 HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, DWORD lengthBytes, LPCWSTR bcFullPath, LPCSTR libraryNameNarrow)
 {
     HANDLE bcFileHandle = nullptr;
+    JsValueRef bufferVal;
     BYTE *bcBuffer = nullptr;
-    DWORD bcBufferSize = 0;
-    HRESULT hr = GetSerializedBuffer(contentsRaw, &bcBuffer, &bcBufferSize);
-
-    if (FAILED(hr)) return hr;
-
-    bcFileHandle = CreateFile(bcFullPath, GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (bcFileHandle == INVALID_HANDLE_VALUE)
-    {
-        return E_FAIL;
-    }
-
+    unsigned int bcBufferSize = 0;
     DWORD written;
-
     // For validating the header file against the library file
     auto outputStr =
         "//-------------------------------------------------------------------------------------------------------\r\n"
@@ -150,6 +107,22 @@ HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, DWORD lengthBytes, LPCWS
         "// Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.\r\n"
         "//-------------------------------------------------------------------------------------------------------\r\n"
         "#if 0\r\n";
+
+
+    HRESULT hr = GetSerializedBuffer(contentsRaw, &bufferVal);
+
+    if (FAILED(hr)) return hr;
+
+    IfFalseGo(ChakraRTInterface::JsGetArrayBufferStorage(bufferVal, &bcBuffer,
+        &bcBufferSize) != JsNoError);
+
+    bcFileHandle = CreateFile(bcFullPath, GENERIC_WRITE, FILE_SHARE_DELETE,
+        nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (bcFileHandle == INVALID_HANDLE_VALUE)
+    {
+        return E_FAIL;
+    }
+
     IfFalseGo(WriteFile(bcFileHandle, outputStr, (DWORD)strlen(outputStr), &written, nullptr));
     IfFalseGo(WriteFile(bcFileHandle, contentsRaw, lengthBytes, &written, nullptr));
     if (lengthBytes < 2 || contentsRaw[lengthBytes - 2] != '\r' || contentsRaw[lengthBytes - 1] != '\n')
@@ -205,10 +178,6 @@ Error:
     {
         CloseHandle(bcFileHandle);
     }
-    if (bcBuffer != nullptr)
-    {
-        delete[] bcBuffer;
-    }
 
     return hr;
 }
@@ -248,7 +217,7 @@ static bool CHAKRA_CALLBACK DummyJsSerializedScriptLoadUtf8Source(
     return true;
 }
 
-HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, char *fullPath)
+HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsValueRef bufferValue, char *fullPath)
 {
     HRESULT hr = S_OK;
     MessageQueue * messageQueue = new MessageQueue();
@@ -318,17 +287,17 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
     }
     else
     {
-        Assert(fileContents != nullptr || bcBuffer != nullptr);
+        Assert(fileContents != nullptr || bufferValue != nullptr);
 
         JsErrorCode runScript;
         JsValueRef fname;
         IfJsErrorFailLog(ChakraRTInterface::JsCreateStringUtf8((const uint8_t*)fullPath,
             strlen(fullPath), &fname));
 
-        if(bcBuffer != nullptr)
+        if(bufferValue != nullptr)
         {
             runScript = ChakraRTInterface::JsRunSerialized(
-                bcBuffer,
+                bufferValue,
                 DummyJsSerializedScriptLoadUtf8Source,
                 reinterpret_cast<JsSourceContext>(fileContents),
                 // Use source ptr as sourceContext
@@ -434,9 +403,9 @@ HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, 
     HRESULT hr = S_OK;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
     JsContextRef context = JS_INVALID_REFERENCE, current = JS_INVALID_REFERENCE;
-    BYTE *bcBuffer = nullptr;
-    DWORD bcBufferSize = 0;
-    IfFailGo(GetSerializedBuffer(fileContents, &bcBuffer, &bcBufferSize));
+    JsValueRef bufferVal;
+
+    IfFailGo(GetSerializedBuffer(fileContents, &bufferVal));
 
     // Bytecode buffer is created in one runtime and will be executed on different runtime.
 
@@ -453,7 +422,7 @@ HRESULT CreateAndRunSerializedScript(const char* fileName, LPCSTR fileContents, 
         IfFailGo(E_FAIL);
     }
 
-    IfFailGo(RunScript(fileName, fileContents, bcBuffer, fullPath));
+    IfFailGo(RunScript(fileName, fileContents, bufferVal, fullPath));
 
 Error:
     if (current != JS_INVALID_REFERENCE)
@@ -464,11 +433,6 @@ Error:
     if (runtime != JS_INVALID_RUNTIME_HANDLE)
     {
         ChakraRTInterface::JsDisposeRuntime(runtime);
-    }
-
-    if (bcBuffer != nullptr)
-    {
-        delete[] bcBuffer;
     }
 
     return hr;
