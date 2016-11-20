@@ -13,7 +13,7 @@ namespace Js
         WriteBarrierPtr<T*> inlineCaches;
     private:
 #if DBG
-        uint inlineCacheCount;
+        Field(uint) inlineCacheCount;
 #endif
 
     public:

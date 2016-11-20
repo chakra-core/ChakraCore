@@ -10,8 +10,8 @@ namespace Js
     class TempArenaAllocatorWrapper sealed : public FinalizableObject
     {
     private:
-        Field(ArenaAllocator) allocator;
-        Field(ArenaData **) externalGuestArenaRef;
+        FieldNoBarrier(ArenaAllocator) allocator;
+        FieldNoBarrier(ArenaData **) externalGuestArenaRef;
         FieldNoBarrier(Recycler *) recycler;
 
         TempArenaAllocatorWrapper(__in LPCWSTR name, PageAllocator * pageAllocator, void (*outOfMemoryFunc)());

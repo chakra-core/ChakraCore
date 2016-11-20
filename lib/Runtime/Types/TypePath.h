@@ -12,8 +12,8 @@ namespace Js
         static const int BUCKETS_DWORDS = PowerOf2_BUCKETS / sizeof(DWORD);
         static const byte NIL = 0xff;
 
-        DWORD bucketsData[BUCKETS_DWORDS];  // use DWORDs to enforce alignment
-        byte next[0];
+        Field(DWORD) bucketsData[BUCKETS_DWORDS];  // use DWORDs to enforce alignment
+        Field(byte) next[0];
 
 public:
         TinyDictionary()

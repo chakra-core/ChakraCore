@@ -8,8 +8,8 @@ namespace Js
 {
     struct FuncCacheEntry
     {
-        ScriptFunction *func;
-        DynamicType *type;
+        Field(ScriptFunction *) func;
+        Field(DynamicType *) type;
     };
 
     class ActivationObject : public DynamicObject

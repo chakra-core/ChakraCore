@@ -22,15 +22,15 @@ namespace Js {
         {
             union
             {
-                PropertyId propertyId;
-                PropertyRecord const* name;
+                Field(PropertyId) propertyId;
+                Field(PropertyRecord const*) name;
             };
-            SymbolType symbolType;
-            bool hasFuncAssignment;
-            bool isBlockVariable;
-            bool isFuncExpr;
-            bool isModuleExportStorage;
-            bool isModuleImport;
+            Field(SymbolType) symbolType;
+            Field(bool) hasFuncAssignment;
+            Field(bool) isBlockVariable;
+            Field(bool) isFuncExpr;
+            Field(bool) isModuleExportStorage;
+            Field(bool) isModuleImport;
         };
 
     private:

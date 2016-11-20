@@ -22,11 +22,11 @@ namespace JsUtil
     class MruDictionary
     {
     private:
-        struct MruListEntry : public DoublyLinkedListElement<MruListEntry>
+        struct MruListEntry : public DoublyLinkedListElement<MruListEntry, TAllocator>
         {
-            TValue value;
-            TKey key;
-            int dictionaryDataIndex;
+            Field(TValue, TAllocator) value;
+            Field(TKey, TAllocator) key;
+            Field(int) dictionaryDataIndex;
 
             MruListEntry(const TKey &key, const TValue &value) : key(key), value(value), dictionaryDataIndex(0)
             {
@@ -39,8 +39,8 @@ namespace JsUtil
         class MruDictionaryData
         {
         private:
-            MruListEntry *entry;
-            TValue value;
+            Field(MruListEntry *, TAllocator) entry;
+            Field(TValue, TAllocator) value;
 
         public:
             MruDictionaryData() : entry(nullptr)
@@ -86,10 +86,10 @@ namespace JsUtil
         };
 
     private:
-        const int mruListCapacity;
-        int mruListCount;
-        DoublyLinkedList<MruListEntry> entries;
-
+        Field(const int) mruListCapacity;
+        Field(int) mruListCount;
+        typedef DoublyLinkedList<MruListEntry, TAllocator> EntriesType;
+        Field(EntriesType) entries;
 
         typedef
             BaseDictionary<

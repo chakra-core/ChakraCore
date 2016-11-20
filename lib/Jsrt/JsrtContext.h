@@ -35,7 +35,7 @@ private:
         return ptr;
     }
 
-    T* ptr;
+    FieldNoBarrier(T*) ptr;
 };
 
 class JsrtContext : public FinalizableObject

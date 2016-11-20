@@ -82,7 +82,7 @@ namespace Js {
     {
         static const int32   MemoryTableBeginOffset = 0;
         // Memory is allocated in this order
-        int32 mArrayBufferOffset
+        Field(int32) mArrayBufferOffset
             , mStdLibOffset
             , mDoubleOffset
             , mFuncOffset
@@ -92,7 +92,7 @@ namespace Js {
             , mFloatOffset
             , mSimdOffset // in SIMDValues
             ;
-        int32   mMemorySize;
+        Field(int32)   mMemorySize;
     };
 
     struct AsmJsFunctionMemory
@@ -331,14 +331,14 @@ namespace Js {
         Field(AsmJsSymbol::SymbolType) symType;
         union
         {
-            AsmJsVarType::Which varType;
-            ArrayBufferView::ViewType viewType;
-            double mathConstVal;
-            uint funcTableSize;
-            AsmJsModuleArg::ArgType argType;
-            AsmJSMathBuiltinFunction builtinMathFunc;
-            AsmJSTypedArrayBuiltinFunction builtinArrayFunc;
-            AsmJsSIMDBuiltinFunction builtinSIMDFunc;
+            Field(AsmJsVarType::Which) varType;
+            Field(ArrayBufferView::ViewType) viewType;
+            Field(double) mathConstVal;
+            Field(uint) funcTableSize;
+            Field(AsmJsModuleArg::ArgType) argType;
+            Field(AsmJSMathBuiltinFunction) builtinMathFunc;
+            Field(AsmJSTypedArrayBuiltinFunction) builtinArrayFunc;
+            Field(AsmJsSIMDBuiltinFunction) builtinSIMDFunc;
         };
         Field(bool) isConstVar = false;
     };

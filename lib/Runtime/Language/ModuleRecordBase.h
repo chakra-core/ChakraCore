@@ -12,8 +12,8 @@ namespace Js
     typedef SList<ModuleRecordBase*> ExportModuleRecordList;
     struct ModuleNameRecord
     {
-        ModuleRecordBase* module;
-        PropertyId bindingName;
+        Field(ModuleRecordBase*) module;
+        Field(PropertyId) bindingName;
     };
     typedef SList<ModuleNameRecord> ResolveSet;
 

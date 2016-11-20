@@ -354,11 +354,8 @@ namespace Js
 
         Field(charcount_t) m_cchLength;               // The number of characters encoded in m_utf8Source.
         Field(ISourceHolder*) sourceHolder;
-        union
-        {
-            BYTE* m_pHostBuffer;  // Pointer to a host source buffer (null unless this is host code that we need to free)
-            Utf8SourceInfo const* m_pOriginalSourceInfo; // Pointer to source info with original source text, created during cloning
-        };
+
+        FieldNoBarrier(BYTE*) m_pHostBuffer;  // Pointer to a host source buffer (null unless this is host code that we need to free)
 
         Field(FunctionBodyDictionary*) functionBodyDictionary;
         Field(DeferredFunctionsDictionary*) m_deferredFunctionsDictionary;

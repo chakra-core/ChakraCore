@@ -11,7 +11,7 @@ namespace Js
 {
     CharStringCache::CharStringCache() : charStringCache(nullptr)
     {
-        memset(charStringCacheA, 0, sizeof charStringCacheA);
+        ClearArray(charStringCacheA);
     }
 
     JavascriptString* CharStringCache::GetStringForCharA(char c)

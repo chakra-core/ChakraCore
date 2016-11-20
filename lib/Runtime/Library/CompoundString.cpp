@@ -146,7 +146,7 @@ namespace Js
 
     #endif
 
-    // ChakraDiag includes CompoundString.cpp as a header file so this method needs to be marked as inline 
+    // ChakraDiag includes CompoundString.cpp as a header file so this method needs to be marked as inline
     // to handle that case
     JS_DIAG_INLINE CharCount CompoundString::Block::PointerLengthFromCharLength(const CharCount charLength)
     {
@@ -384,7 +384,7 @@ namespace Js
         {
             AllocateBuffer(charCapacity, recycler);
             charLength = usedCharLength;
-            js_wmemcpy_s((char16*)(this->buffer), charCapacity, (char16*)(buffer), usedCharLength);
+            js_wmemcpy_s((char16*)PointerValue(this->buffer), charCapacity, (char16*)(buffer), usedCharLength);
             return nullptr;
         }
 
@@ -403,7 +403,7 @@ namespace Js
             void *const newBuffer = RecyclerNewArray(recycler, char16, newCharCapacity);
             charCapacity = newCharCapacity;
             const CharCount charLength = CharLength();
-            js_wmemcpy_s((char16*)newBuffer, charCapacity, (char16*)buffer, charLength);
+            js_wmemcpy_s((char16*)newBuffer, charCapacity, (char16*)PointerValue(buffer), charLength);
             buffer = newBuffer;
             return nullptr;
         }

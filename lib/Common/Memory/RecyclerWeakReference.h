@@ -41,14 +41,13 @@ protected:
     FieldNoBarrier(RecyclerWeakReferenceBase*) next;
 #if DBG
 #if ENABLE_RECYCLER_TYPE_TRACKING
-    type_info const * typeInfo;
+    FieldNoBarrier(type_info const *) typeInfo;
 #endif
 
 #if defined TRACK_ALLOC && defined(PERF_COUNTERS)
-    PerfCounter::Counter * counter;
+    FieldNoBarrier(PerfCounter::Counter *) counter;
 #endif
 #endif
-
 };
 
 /// Wrapper class template that can be used to acquire the underlying strong reference from the weak reference

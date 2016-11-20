@@ -20,9 +20,9 @@ namespace UnifiedRegex
 
         struct UnifiedRep
         {
-            Program* program;
-            Matcher* matcher;
-            TrigramInfo* trigramInfo;
+            Field(Program*) program;
+            Field(Matcher*) matcher;
+            Field(TrigramInfo*) trigramInfo;
         };
 
         Field(Js::JavascriptLibrary *) const library;
@@ -32,7 +32,9 @@ namespace UnifiedRegex
 
         union Rep
         {
-            struct UnifiedRep unified;
+            Field(UnifiedRep) unified;
+
+            Rep() : unified() {}
         };
         Field(Rep) rep;
 
