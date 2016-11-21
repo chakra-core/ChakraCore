@@ -58,6 +58,7 @@ set _HadFailures=0
   call :summarizeLogs
 
   echo.
+  echo %_HadFailures%
   if "%_HadFailures%" NEQ "0" (
     echo -- jenkins.testone.cmd ^>^> Tests failed! 1>&2
   ) else (
@@ -77,7 +78,7 @@ set _HadFailures=0
 
   call :do %_TestDir%\runtests.cmd -%1 -quiet -cleanupall -nottags exclude_jenkins %_ExtraTestArgs% -binDir %_BinDir%
 
-  if %ERRORLEVEL% NEQ 0 (
+  if "%ERRORLEVEL%" NEQ "0" (
     echo -- runcitests.cmd ^>^> runtests.cmd failed
     set _HadFailures=3
   )
@@ -92,7 +93,7 @@ set _HadFailures=0
   set _LogFile=%_LogDir%\nativetests.log
   call :do %_TestDir%\runnativetests.cmd -%1 -binDir %_BinDir% > %_LogFile% 2>&1
 
-  if %ERRORLEVEL% NEQ 0 (
+  if "%ERRORLEVEL%" NEQ "0" (
     echo -- runcitests.cmd ^>^> runnativetests.cmd failed (printing %_LogFile% below)
     powershell "if (Test-Path %_LogFile%) { Get-Content  %_LogFile% }"
     set _HadFailures=4

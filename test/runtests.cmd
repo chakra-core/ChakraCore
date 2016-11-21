@@ -118,7 +118,14 @@ goto :main
     )
   )
 
+  if "%_HadFailures%" NEQ "0" (
+    echo ^>^> Tests failed. See logs for details.
+  ) else (
+    echo ^>^> All tests passed!
+  )
+
   echo ^>^> exiting with exit code %_HadFailures%
+
   exit /b %_HadFailures%
 
 :: ============================================================================
