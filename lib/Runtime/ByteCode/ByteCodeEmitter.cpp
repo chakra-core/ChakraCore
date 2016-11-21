@@ -8181,8 +8181,8 @@ void EmitCall(
         // and replace the former with the latter to save 4 characters. What that means for us is that it, at least
         // initially, uses the "Call" path. We want to guess that it _is_ just "new Array()" and change over to the
         // "new" path, since then our native array handling can kick in.
-        EmitNew(pnode, byteCodeGenerator, funcInfo);
-        return;
+        /*EmitNew(pnode, byteCodeGenerator, funcInfo);
+        return;*/
     }
 
     unsigned int argCount = CountArguments(pnode->sxCall.pnodeArgs, &fSideEffectArgs) + (unsigned int)fIsPut;
