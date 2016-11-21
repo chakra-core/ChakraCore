@@ -258,8 +258,27 @@ Var WebAssemblyInstance::BuildObject(WebAssemblyModule * wasmModule, ScriptConte
                 obj = env->GetMemory(wasmExport->index);
                 break;
             case Wasm::ExternalKinds::Function:
+            {
                 obj = env->GetWasmFunction(wasmExport->index);
+                JavascriptFunction * jsFunc = JavascriptFunction::FromVar(obj);
+                AsmJsFunctionInfo* funcInfo = jsFunc->GetFunctionBody()->GetAsmJsFunctionInfo();
+                if (!funcInfo->GetWebAssemblyExportType())
+                {
+                    Var arity = JavascriptNumber::ToVar(wasmModule->GetFunctionSignature(wasmExport->index)->GetParamCount(), scriptContext);
+                    jsFunc->SetPropertyWithAttributes(PropertyIds::length, arity, PropertyConfigurable, nullptr);
+
+                    Var indexAsName = JavascriptNumber::ToVar(wasmExport->index, scriptContext);
+                    indexAsName = JavascriptConversion::ToString(indexAsName, scriptContext);
+                    jsFunc->SetPropertyWithAttributes(PropertyIds::name, indexAsName, PropertyConfigurable, nullptr);
+
+                    funcInfo->SetWebAssemblyExportType(static_cast<DynamicType*>(jsFunc->GetType()));
+                }
+                else
+                {
+                    jsFunc->ReplaceType(funcInfo->GetWebAssemblyExportType());
+                }
                 break;
+            }
             case Wasm::ExternalKinds::Global:
                 Wasm::WasmGlobal* global = wasmModule->GetGlobal(wasmExport->index);
                 if (global->IsMutable())

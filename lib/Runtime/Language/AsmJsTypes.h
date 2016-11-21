@@ -872,6 +872,7 @@ namespace Js
         Wasm::WasmSignature * mSignature;
         Wasm::WasmReaderInfo* mWasmReaderInfo;
         WebAssemblyModule* mWasmModule;
+        DynamicType* mExportType;
 #endif
         bool mIsHeapBufferConst;
         bool mUsesHeapBuffer;
@@ -893,7 +894,8 @@ namespace Js
                               mUsesHeapBuffer(false),
                               mIsHeapBufferConst(false),
                               mArgType(nullptr),
-                              mArgSizes(nullptr) {}
+                              mArgSizes(nullptr),
+                              mExportType(nullptr) {}
         // the key is the bytecode address
         typedef JsUtil::BaseDictionary<int, ptrdiff_t, Recycler> ByteCodeToTJMap;
         ByteCodeToTJMap* mbyteCodeTJMap;
@@ -983,6 +985,8 @@ namespace Js
         WebAssemblyModule* GetWebAssemblyModule() const { return mWasmModule; }
         void SetWebAssemblyModule(WebAssemblyModule * module) { mWasmModule= module; }
         bool IsWasmDeferredParse() const { return mWasmReaderInfo != nullptr; }
+        void SetWebAssemblyExportType(DynamicType* dt) { mExportType = dt;  }
+        DynamicType* GetWebAssemblyExportType() { return mExportType; }
 #endif
     };
 
