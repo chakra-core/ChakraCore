@@ -67,7 +67,7 @@ namespace Js
         if (inlineCacheMap == nullptr)
         {
             Recycler * recycler = this->GetLibrary()->GetRecycler();
-            inlineCacheMap = RecyclerNew(recycler, RootObjectInlineCacheMap, recycler);
+            inlineCacheMap = RecyclerNew(recycler, RootObjectInlineCacheMap, recycler->GetAllocator());
             if (isStore)
             {
                 this->storeInlineCacheMap = inlineCacheMap;

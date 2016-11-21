@@ -940,7 +940,7 @@ namespace Js
         mArgSizes = RecyclerNewArrayLeafZ(recycler, uint, mArgSizesLength);
 
         mReturnType = func->GetReturnType();
-        mbyteCodeTJMap = RecyclerNew(recycler, ByteCodeToTJMap,recycler);
+        mbyteCodeTJMap = RecyclerNew(recycler, ByteCodeToTJMap,recycler->GetAllocator());
 
         for(ArgSlot i = 0; i < GetArgCount(); i++)
         {

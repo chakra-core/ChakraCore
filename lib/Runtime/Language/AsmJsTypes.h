@@ -896,7 +896,7 @@ namespace Js
                               mArgType(nullptr),
                               mArgSizes(nullptr) {}
         // the key is the bytecode address
-        typedef JsUtil::BaseDictionary<int, ptrdiff_t, Recycler> ByteCodeToTJMap;
+        typedef JsUtil::BaseDictionary<int, ptrdiff_t, RecyclerAllocator> ByteCodeToTJMap;
         Field(ByteCodeToTJMap*) mbyteCodeTJMap;
         Field(BYTE*) mTJBeginAddress;
         WAsmJs::TypedSlotInfo* GetTypedSlotInfo(WAsmJs::Types type);

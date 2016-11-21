@@ -15,6 +15,8 @@ namespace Js
     //     - Also keeps the function body and inlinee function bodies alive while jitting.
     class FunctionCodeGenJitTimeData
     {
+    public:
+        typedef Field(FunctionCodeGenJitTimeData*) FunctionCodeGenJitTimeDataPtr;
     private:
         Field(FunctionInfo *) const functionInfo;
 
@@ -161,7 +163,7 @@ namespace Js
         {
             if (!inlinees)
             {
-                inlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenJitTimeData *), GetFunctionBody()->GetProfiledCallSiteCount());
+                inlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenJitTimeDataPtr, GetFunctionBody()->GetProfiledCallSiteCount());
             }
             inlinees[profiledCallSiteId] = this;
             inlineeCount++;

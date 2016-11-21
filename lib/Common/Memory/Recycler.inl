@@ -311,7 +311,7 @@ void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size)
 
 template <ObjectInfoBits attributes, bool isSmallAlloc, bool nothrow>
 inline char*
-Recycler::RealAllocFromBucket(HeapInfo* heap, size_t size)
+Recycler::RealAllocFromBucket(HeapInfo* heap, DECLSPEC_GUARD_OVERFLOW size_t size)
 {
     // Align the size
     Assert(HeapInfo::GetAlignedSizeNoCheck(size) <= UINT_MAX);
@@ -379,7 +379,7 @@ Recycler::RealAllocFromBucket(HeapInfo* heap, size_t size)
 
 template <ObjectInfoBits attributes, bool nothrow>
 inline char*
-Recycler::RealAlloc(HeapInfo* heap, size_t size)
+Recycler::RealAlloc(HeapInfo* heap, DECLSPEC_GUARD_OVERFLOW size_t size)
 {
 #ifdef RECYCLER_STRESS
     this->StressCollectNow();

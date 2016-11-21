@@ -197,23 +197,20 @@ void
 RecyclerSweep::QueueEmptyHeapBlock(HeapBucketT<TBlockType> const *heapBucket, TBlockType * heapBlock)
 {
 #if ENABLE_BACKGROUND_PAGE_FREEING
-    if (CONFIG_FLAG(EnableBGFreeZero))
+    auto& bucketData = this->GetBucketData(heapBucket);
+    Assert(heapBlock->heapBucket == heapBucket);
+
+    heapBlock->BackgroundReleasePagesSweep(recycler);
+
+    TBlockType * list = bucketData.pendingEmptyBlockList;
+    if (list == nullptr)
     {
-        auto& bucketData = this->GetBucketData(heapBucket);
-        Assert(heapBlock->heapBucket == heapBucket);
-
-        heapBlock->BackgroundReleasePagesSweep(recycler);
-
-        TBlockType * list = bucketData.pendingEmptyBlockList;
-        if (list == nullptr)
-        {
-            Assert(bucketData.pendingEmptyBlockListTail == nullptr);
-            bucketData.pendingEmptyBlockListTail = heapBlock;
-            this->hasPendingEmptyBlocks = true;
-        }
-        heapBlock->SetNextBlock(list);
-        bucketData.pendingEmptyBlockList = heapBlock;
+        Assert(bucketData.pendingEmptyBlockListTail == nullptr);
+        bucketData.pendingEmptyBlockListTail = heapBlock;
+        this->hasPendingEmptyBlocks = true;
     }
+    heapBlock->SetNextBlock(list);
+    bucketData.pendingEmptyBlockList = heapBlock;
 #endif
 }
 

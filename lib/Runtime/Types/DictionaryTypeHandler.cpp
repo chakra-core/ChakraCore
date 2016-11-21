@@ -32,7 +32,7 @@ namespace Js
         singletonInstance(nullptr)
     {
         SetIsInlineSlotCapacityLocked();
-        propertyMap = RecyclerNew(recycler, PropertyDescriptorMap, recycler, this->GetSlotCapacity());
+        propertyMap = RecyclerNew(recycler, PropertyDescriptorMap, recycler->GetAllocator(), this->GetSlotCapacity());
     }
 
     template <typename T>
@@ -44,7 +44,7 @@ namespace Js
     {
         SetIsInlineSlotCapacityLocked();
         Assert(GetSlotCapacity() <= MaxPropertyIndexSize);
-        propertyMap = RecyclerNew(recycler, PropertyDescriptorMap, recycler, slotCapacity);
+        propertyMap = RecyclerNew(recycler, PropertyDescriptorMap, recycler->GetAllocator(), slotCapacity);
     }
 
     //

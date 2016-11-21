@@ -130,7 +130,7 @@ public:
         if (this->propertyRecords == nullptr)
         {
             Recycler* recycler = this->scriptContext->GetRecycler();
-            this->propertyRecords = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
+            this->propertyRecords = RecyclerNew(recycler, Js::PropertyRecordList, recycler->GetAllocator());
         }
 
         return this->propertyRecords;

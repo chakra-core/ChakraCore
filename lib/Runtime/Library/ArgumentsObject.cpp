@@ -229,7 +229,7 @@ namespace Js
             if (this->deletedArgs == nullptr)
             {
                 Recycler *recycler = GetScriptContext()->GetRecycler();
-                deletedArgs = RecyclerNew(recycler, BVSparse<Recycler>, recycler);
+                deletedArgs = RecyclerNew(recycler, BVSparse<RecyclerAllocator>, recycler->GetAllocator());
             }
 
             if (!this->deletedArgs->Test(index))

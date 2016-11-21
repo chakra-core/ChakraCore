@@ -581,7 +581,7 @@ namespace Js
                     childrenModuleSet->AddNew(moduleName, moduleRecord);
                     if (moduleRecord->parentModuleList == nullptr)
                     {
-                        moduleRecord->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
+                        moduleRecord->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler->GetAllocator());
                     }
                     moduleRecord->parentModuleList->Add(this);
                     if (!moduleRecord->WasDeclarationInitialized())

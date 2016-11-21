@@ -934,7 +934,7 @@ namespace Js
 
         Recycler* recycler = scriptContext->GetRecycler();
 
-        JsUtil::List<RecyclableObject*>* results = RecyclerNew(recycler, JsUtil::List<RecyclableObject*>, recycler);
+        JsUtil::List<RecyclableObject*>* results = RecyclerNew(recycler, JsUtil::List<RecyclableObject*>, recycler->GetAllocator());
 
         while (true)
         {

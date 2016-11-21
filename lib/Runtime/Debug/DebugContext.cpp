@@ -124,7 +124,7 @@ namespace Js
 
         Js::TempArenaAllocatorObject *tempAllocator = nullptr;
         JsUtil::List<Js::FunctionBody *, ArenaAllocator>* pFunctionsToRegister = nullptr;
-        JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer>* utf8SourceInfoList = nullptr;
+        JsUtil::List<Js::Utf8SourceInfo *, RecyclerAllocator, false, Js::CopyRemovePolicy, RecyclerPointerComparer>* utf8SourceInfoList = nullptr;
 
         HRESULT hr = S_OK;
         ThreadContext* threadContext = this->scriptContext->GetThreadContext();
@@ -133,7 +133,7 @@ namespace Js
         tempAllocator = threadContext->GetTemporaryAllocator(_u("debuggerAlloc"));
 
         pFunctionsToRegister = JsUtil::List<Js::FunctionBody*, ArenaAllocator>::New(tempAllocator->GetAllocator());
-        utf8SourceInfoList = JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer>::New(this->scriptContext->GetRecycler());
+        utf8SourceInfoList = JsUtil::List<Js::Utf8SourceInfo *, RecyclerAllocator, false, Js::CopyRemovePolicy, RecyclerPointerComparer>::New(this->scriptContext->GetRecycler()->GetAllocator());
 
         this->MapUTF8SourceInfoUntil([&](Js::Utf8SourceInfo * sourceInfo) -> bool
         {
@@ -374,7 +374,7 @@ namespace Js
     }
 
     // Create an ordered flat list of sources to reparse. Caller of a source should be added to the list before we add the source itself.
-    void DebugContext::WalkAndAddUtf8SourceInfo(Js::Utf8SourceInfo* sourceInfo, JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer> *utf8SourceInfoList)
+    void DebugContext::WalkAndAddUtf8SourceInfo(Js::Utf8SourceInfo* sourceInfo, JsUtil::List<Js::Utf8SourceInfo *, RecyclerAllocator, false, Js::CopyRemovePolicy, RecyclerPointerComparer> *utf8SourceInfoList)
     {
         Js::Utf8SourceInfo* callerUtf8SourceInfo = sourceInfo->GetCallerUtf8SourceInfo();
         if (callerUtf8SourceInfo)

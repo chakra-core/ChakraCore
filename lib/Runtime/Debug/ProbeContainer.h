@@ -179,7 +179,7 @@ namespace Js
         DebugManager *GetDebugManager() const { return this->debugManager; }
 
 #ifdef ENABLE_MUTATION_BREAKPOINT
-        typedef JsUtil::List<RecyclerWeakReference<Js::MutationBreakpoint>*, Recycler, false, Js::WeakRefFreeListedRemovePolicy> MutationBreakpointList;
+        typedef JsUtil::List<RecyclerWeakReference<Js::MutationBreakpoint>*, RecyclerAllocator, false, Js::WeakRefFreeListedRemovePolicy> MutationBreakpointList;
         RecyclerRootPtr<MutationBreakpointList> mutationBreakpointList;
         bool HasMutationBreakpoints();
         void InsertMutationBreakpoint(MutationBreakpoint *mutationBreakpoint);

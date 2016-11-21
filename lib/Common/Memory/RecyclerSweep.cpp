@@ -186,7 +186,7 @@ RecyclerSweep::FinishSweep()
 
             GCETW(GC_SWEEP_PARTIAL_REUSE_PAGE_STOP, (recycler));
 
-#if ENABLE_WRITE_WATCH
+#ifdef RECYCLER_WRITE_WATCH
             if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
             {
                 if (!this->IsBackground())

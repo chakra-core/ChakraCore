@@ -712,7 +712,7 @@ namespace Js
                 else
                 {
                     // For call across files find the function from the right source
-                    typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> SourceList;
+                    typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, RecyclerAllocator, false, Js::FreeListedRemovePolicy> SourceList;
                     SourceList * sourceList = functionBody->GetScriptContext()->GetSourceList();
                     bool found = false;
                     for (int j = 0; j < sourceList->Count() && !found; j++)
@@ -786,7 +786,7 @@ namespace Js
             if (sourceId != NoSourceId && sourceId != InvalidSourceId)
             {
                 // For call across files find the function from the right source
-                JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> * sourceList = functionBody->GetScriptContext()->GetSourceList();
+                JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, RecyclerAllocator, false, Js::FreeListedRemovePolicy> * sourceList = functionBody->GetScriptContext()->GetSourceList();
                 for (int i = 0; i < sourceList->Count(); i++)
                 {
                     if (sourceList->IsItemValid(i))

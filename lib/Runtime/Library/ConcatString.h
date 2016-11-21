@@ -120,6 +120,7 @@ namespace Js
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override sealed;
 
     public:
+        typedef Field(JavascriptString*) JavascriptStringPtr;
         static ConcatStringBuilder* New(ScriptContext* scriptContext, int initialSlotCount);
         const char16 * GetSz() override sealed;
         void Append(JavascriptString* str);

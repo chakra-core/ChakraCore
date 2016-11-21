@@ -114,7 +114,7 @@ namespace Js
         {
             if (this->otherParents == nullptr)
             {
-                this->otherParents = JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>::New(this->GetRecycler());
+                this->otherParents = JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>::New(this->GetRecycler()->GetAllocator());
             }
             this->otherParents->Add(this->GetRecycler()->CreateWeakReferenceHandle(parent));
         }

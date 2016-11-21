@@ -686,7 +686,7 @@ namespace Js
         HRESULT hr;
         BEGIN_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED
         {
-            stackTrace = RecyclerNew(scriptContext.GetRecycler(), JavascriptExceptionContext::StackTrace, scriptContext.GetRecycler());
+            stackTrace = RecyclerNew(scriptContext.GetRecycler(), JavascriptExceptionContext::StackTrace, scriptContext.GetRecycler()->GetAllocator());
             if (stackCrawlLimit > 0)
             {
                 const bool crawlStackForWER = CrawlStackForWER(scriptContext);
@@ -940,7 +940,7 @@ namespace Js
             HRESULT hr;
             BEGIN_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED
             {
-                stackTraceTrimmed = RecyclerNew(scriptContext.GetRecycler(), JavascriptExceptionContext::StackTrace, scriptContext.GetRecycler());
+                stackTraceTrimmed = RecyclerNew(scriptContext.GetRecycler(), JavascriptExceptionContext::StackTrace, scriptContext.GetRecycler()->GetAllocator());
                 for (int i = 0; i < stackTraceLimit; i++)
                 {
                     stackTraceTrimmed->Add(stackTraceIn->Item(i));

@@ -23,7 +23,7 @@ namespace Js
         template <typename T> friend class DictionaryTypeHandlerBase;
 
         // Explicit non leaf allocator as the key is non-leaf
-        typedef JsUtil::BaseDictionary<const PropertyRecord*, DictionaryPropertyDescriptor<T>, RecyclerNonLeafAllocator, DictionarySizePolicy<PowerOf2Policy, 1>, PropertyRecordStringHashComparer>
+        typedef JsUtil::BaseDictionary<const PropertyRecord*, DictionaryPropertyDescriptor<T>, RecyclerAllocator, DictionarySizePolicy<PowerOf2Policy, 1>, PropertyRecordStringHashComparer>
             PropertyDescriptorMap;
         typedef PropertyDescriptorMap PropertyDescriptorMapType; // alias used by diagnostics
 

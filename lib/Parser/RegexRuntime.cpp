@@ -5124,9 +5124,10 @@ namespace UnifiedRegex
         Assert(!rep.insts.scannersForSyncToLiterals);
         Assert(recycler);
 
+        typedef Field(ScannerInfo *) ScannerInfoPtr;
         return
             rep.insts.scannersForSyncToLiterals =
-                RecyclerNewArrayZ(recycler, Field(ScannerInfo *), ScannersMixin::MaxNumSyncLiterals);
+                RecyclerNewArrayZ(recycler, ScannerInfoPtr, ScannersMixin::MaxNumSyncLiterals);
     }
 
     ScannerInfo *Program::AddScannerForSyncToLiterals(

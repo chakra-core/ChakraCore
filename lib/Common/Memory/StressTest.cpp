@@ -12,8 +12,8 @@
 #include <malloc.h>
 #endif
 
-typedef JsUtil::BaseDictionary<TestObject*, bool, RecyclerNonLeafAllocator> ObjectTracker_t;
-typedef JsUtil::List<TestObject*, Recycler> ObjectList_t;
+typedef JsUtil::BaseDictionary<TestObject*, bool, RecyclerAllocator> ObjectTracker_t;
+typedef JsUtil::List<TestObject*, RecyclerAllocator> ObjectList_t;
 
 template<size_t align> bool IsAligned(void *p)
 {
@@ -105,8 +105,8 @@ template<class Fn> void TestObject::Visit(Recycler *recycler, TestObject *root, 
 {
     // TODO: move these allocations to HeapAllocator.
 
-    ObjectTracker_t *objectTracker = RecyclerNew(recycler, ObjectTracker_t, recycler);
-    ObjectList_t *objectList = RecyclerNew(recycler, ObjectList_t, recycler);
+    ObjectTracker_t *objectTracker = RecyclerNew(recycler, ObjectTracker_t, recycler->GetAllocator());
+    ObjectList_t *objectList = RecyclerNew(recycler, ObjectList_t, recycler->GetAllocator());
 
     // Prime the list with the first object
     objectList->Add(root);

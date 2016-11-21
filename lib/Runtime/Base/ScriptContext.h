@@ -319,14 +319,14 @@ namespace Js
     };
 
     static const unsigned int EvalMRUSize = 15;
-    typedef JsUtil::BaseDictionary<DWORD_PTR, SourceContextInfo *, Recycler, PowerOf2SizePolicy> SourceContextInfoMap;
-    typedef JsUtil::BaseDictionary<uint, SourceContextInfo *, Recycler, PowerOf2SizePolicy> DynamicSourceContextInfoMap;
+    typedef JsUtil::BaseDictionary<DWORD_PTR, SourceContextInfo *, RecyclerAllocator, PowerOf2SizePolicy> SourceContextInfoMap;
+    typedef JsUtil::BaseDictionary<uint, SourceContextInfo *, RecyclerAllocator, PowerOf2SizePolicy> DynamicSourceContextInfoMap;
 
-    typedef JsUtil::BaseDictionary<EvalMapString, ScriptFunction*, RecyclerNonLeafAllocator, PrimeSizePolicy> SecondLevelEvalCache;
+    typedef JsUtil::BaseDictionary<EvalMapString, ScriptFunction*, RecyclerAllocator, PrimeSizePolicy> SecondLevelEvalCache;
     typedef TwoLevelHashRecord<FastEvalMapString, ScriptFunction*, SecondLevelEvalCache, EvalMapString> EvalMapRecord;
-    typedef JsUtil::Cache<FastEvalMapString, EvalMapRecord*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<FastEvalMapString, EvalMRUSize>, FastEvalMapStringComparer> EvalCacheTopLevelDictionary;
-    typedef JsUtil::Cache<EvalMapString, ParseableFunctionInfo*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<EvalMapString, EvalMRUSize>> NewFunctionCache;
-    typedef JsUtil::BaseDictionary<ParseableFunctionInfo*, ParseableFunctionInfo*, Recycler, PrimeSizePolicy, RecyclerPointerComparer> ParseableFunctionInfoMap;
+    typedef JsUtil::Cache<FastEvalMapString, EvalMapRecord*, RecyclerAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<FastEvalMapString, EvalMRUSize>, FastEvalMapStringComparer> EvalCacheTopLevelDictionary;
+    typedef JsUtil::Cache<EvalMapString, ParseableFunctionInfo*, RecyclerAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<EvalMapString, EvalMRUSize>> NewFunctionCache;
+    typedef JsUtil::BaseDictionary<ParseableFunctionInfo*, ParseableFunctionInfo*, RecyclerAllocator, PrimeSizePolicy, RecyclerPointerComparer> ParseableFunctionInfoMap;
     // This is the dictionary used by script context to cache the eval.
     typedef TwoLevelHashDictionary<FastEvalMapString, ScriptFunction*, EvalMapRecord, EvalCacheTopLevelDictionary, EvalMapString> EvalCacheDictionary;
 
@@ -350,7 +350,7 @@ namespace Js
         Field(int) validPropStrings;
     };
 
-    typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
+    typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, RecyclerAllocator, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
 
     // this is allocated in GC directly to avoid force pinning the object, it is linked from JavascriptLibrary such that it has
     // the same lifetime as JavascriptLibrary, and it can be collected without ScriptContext Close.
@@ -458,7 +458,7 @@ namespace Js
         bool IsScriptContextInSourceRundownOrDebugMode() const;
         bool IsRunningScript() const { return this->threadContext->GetScriptEntryExit() != nullptr; }
 
-        typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::WeakRefFreeListedRemovePolicy> CalleeSourceList;
+        typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, RecyclerAllocator, false, Js::WeakRefFreeListedRemovePolicy> CalleeSourceList;
         RecyclerRootPtr<CalleeSourceList> calleeUtf8SourceInfoList;
         void AddCalleeSourceInfoToList(Utf8SourceInfo* sourceInfo);
         bool HaveCalleeSources() { return calleeUtf8SourceInfoList && !calleeUtf8SourceInfoList->Empty(); }
@@ -693,14 +693,14 @@ public:
         };
 
         // This is a strongly referenced dictionary, since we want to know hit rates for dead caches.
-        typedef JsUtil::BaseDictionary<const Js::PolymorphicInlineCache*, CacheData*, Recycler> CacheDataMap;
+        typedef JsUtil::BaseDictionary<const Js::PolymorphicInlineCache*, CacheData*, RecyclerAllocator> CacheDataMap;
         CacheDataMap *cacheDataMap;
 
         void LogCacheUsage(Js::PolymorphicInlineCache *cache, bool isGet, Js::PropertyId propertyId, bool hit, bool collision);
 #endif
 
 #ifdef FIELD_ACCESS_STATS
-        typedef SList<FieldAccessStatsPtr, Recycler> FieldAccessStatsList;
+        typedef SList<FieldAccessStatsPtr, RecyclerAllocator> FieldAccessStatsList;
 
         struct FieldAccessStatsEntry
         {
@@ -708,10 +708,10 @@ public:
             Field(FieldAccessStatsList) stats;
 
             FieldAccessStatsEntry(RecyclerWeakReference<FunctionBody>* functionBodyWeakRef, Recycler* recycler)
-                : functionBodyWeakRef(functionBodyWeakRef), stats(recycler) {}
+                : functionBodyWeakRef(functionBodyWeakRef), stats(recycler->GetAllocator()) {}
         };
 
-        typedef JsUtil::BaseDictionary<uint, FieldAccessStatsEntry*, Recycler> FieldAccessStatsByFunctionNumberMap;
+        typedef JsUtil::BaseDictionary<uint, FieldAccessStatsEntry*, RecyclerAllocator> FieldAccessStatsByFunctionNumberMap;
 
         FieldAccessStatsByFunctionNumberMap* fieldAccessStatsByFunctionNumber;
 
@@ -818,7 +818,7 @@ private:
         size_t sourceSize;
 
         void CleanSourceListInternal(bool calledDuringMark);
-        typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> SourceList;
+        typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, RecyclerAllocator, false, Js::FreeListedRemovePolicy> SourceList;
         RecyclerRootPtr<SourceList> sourceList;
 
 #ifdef ENABLE_SCRIPT_PROFILING

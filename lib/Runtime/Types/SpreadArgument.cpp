@@ -26,7 +26,7 @@ namespace Js
         {
             if (iteratorIndices == nullptr)
             {
-                iteratorIndices = RecyclerNew(scriptContext->GetRecycler(), VarList, scriptContext->GetRecycler());
+                iteratorIndices = RecyclerNew(scriptContext->GetRecycler(), VarList, scriptContext->GetRecycler()->GetAllocator());
             }
 
             iteratorIndices->Add(nextItem);

@@ -41,7 +41,7 @@ namespace Js
         // to add and remove InternalPropertyIds from an object without affecting
         // its type and therefore without invalidating cache and JIT assumptions.
         //
-        typedef JsUtil::BaseDictionary<WeakMapId, Var, Recycler, PowerOf2SizePolicy, RecyclerPointerComparer> WeakMapKeyMap;
+        typedef JsUtil::BaseDictionary<WeakMapId, Var, RecyclerAllocator, PowerOf2SizePolicy, RecyclerPointerComparer> WeakMapKeyMap;
         typedef JsUtil::WeaklyReferencedKeyDictionary<DynamicObject, bool, RecyclerPointerComparer<const DynamicObject*>> KeySet;
 
         Field(KeySet) keySet;

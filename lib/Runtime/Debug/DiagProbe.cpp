@@ -108,7 +108,7 @@ namespace Js
 
         if (this->returnedValueList == nullptr)
         {
-            this->returnedValueList = JsUtil::List<ReturnedValue*>::New(this->pActivatedContext->GetRecycler());
+            this->returnedValueList = JsUtil::List<ReturnedValue*>::New(this->pActivatedContext->GetRecycler()->GetAllocator());
             this->pActivatedContext->GetThreadContext()->SetReturnedValueList(this->returnedValueList);
         }
     }

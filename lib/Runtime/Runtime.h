@@ -328,11 +328,11 @@ namespace Js
 namespace TTD
 {
     //typedef for a pin set (ensure that objects are kept live).
-    typedef JsUtil::BaseHashSet<Js::PropertyRecord*, Recycler> PropertyRecordPinSet;
-    typedef JsUtil::BaseHashSet<Js::FunctionBody*, Recycler> FunctionBodyPinSet;
-    typedef JsUtil::BaseHashSet<Js::RecyclableObject*, Recycler> ObjectPinSet;
-    typedef JsUtil::BaseHashSet<Js::FrameDisplay*, Recycler> EnvironmentPinSet;
-    typedef JsUtil::BaseHashSet<Js::Var, Recycler> SlotArrayPinSet;
+    typedef JsUtil::BaseHashSet<Js::PropertyRecord*, RecyclerAllocator> PropertyRecordPinSet;
+    typedef JsUtil::BaseHashSet<Js::FunctionBody*, RecyclerAllocator> FunctionBodyPinSet;
+    typedef JsUtil::BaseHashSet<Js::RecyclableObject*, RecyclerAllocator> ObjectPinSet;
+    typedef JsUtil::BaseHashSet<Js::FrameDisplay*, RecyclerAllocator> EnvironmentPinSet;
+    typedef JsUtil::BaseHashSet<Js::Var, RecyclerAllocator> SlotArrayPinSet;
 }
 
 #include "PlatformAgnostic/ChakraPlatform.h"

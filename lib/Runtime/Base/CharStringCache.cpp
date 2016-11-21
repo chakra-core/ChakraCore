@@ -56,7 +56,7 @@ namespace Js
             if (charStringCache == nullptr)
             {
                 Recycler * recycler = scriptContext->GetRecycler();
-                charStringCache = RecyclerNew(recycler, CharStringCacheMap, recycler, 17);
+                charStringCache = RecyclerNew(recycler, CharStringCacheMap, recycler->GetAllocator(), 17);
             }
             if (!charStringCache->TryGetValue(c, &str))
             {

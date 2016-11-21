@@ -92,7 +92,7 @@ namespace JsUtil
         T entries[size];
     };
 
-    template <class TKey, int MRUSize, class TAllocator = Recycler>
+    template <class TKey, int MRUSize, class TAllocator = RecyclerAllocator>
     class MRURetentionPolicy
     {
     public:
@@ -134,11 +134,10 @@ namespace JsUtil
     {
     private:
         typedef BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry> TCacheStoreType;
-        typedef typename TCacheStoreType::AllocatorType AllocatorType;
         class CacheStore : public TCacheStoreType
         {
         public:
-            CacheStore(AllocatorType* allocator, int capacity) : TCacheStoreType(allocator, capacity), inAdd(false) {};
+            CacheStore(TAllocator* allocator, int capacity) : TCacheStoreType(allocator, capacity), inAdd(false) {};
             bool IsInAdd()
             {
                 return this->inAdd;
@@ -158,10 +157,10 @@ namespace JsUtil
         typedef TValue ValueType;
         typedef void (*OnItemEvictedCallback)(const TKey& key, TValue value);
 
-        Cache(AllocatorType * allocator, int capacity = 0):
+        Cache(TAllocator * allocator, int capacity = 0):
             cachePolicyType(allocator)
         {
-            this->cacheStore = AllocatorNew(AllocatorType, allocator, CacheStore, allocator, capacity);
+            this->cacheStore = AllocatorNew(TAllocator, allocator, CacheStore, allocator, capacity);
         }
 
         int Add(const TKey& key, const TValue& value)

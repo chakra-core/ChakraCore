@@ -17,15 +17,15 @@ namespace JsUtil
         class SizePolicy = PowerOf2SizePolicy,
         template <typename ValueOrKey> class Comparer = DefaultComparer
     >
-    class WeakReferenceDictionary: public BaseDictionary<TKey, RecyclerWeakReference<TValue>*, RecyclerNonLeafAllocator, SizePolicy, Comparer, WeakRefValueDictionaryEntry>,
+    class WeakReferenceDictionary: public BaseDictionary<TKey, RecyclerWeakReference<TValue>*, RecyclerAllocator, SizePolicy, Comparer, WeakRefValueDictionaryEntry>,
                                    public IWeakReferenceDictionary
     {
-        typedef BaseDictionary<TKey, RecyclerWeakReference<TValue>*, RecyclerNonLeafAllocator, SizePolicy, Comparer, WeakRefValueDictionaryEntry> Base;
+        typedef BaseDictionary<TKey, RecyclerWeakReference<TValue>*, RecyclerAllocator, SizePolicy, Comparer, WeakRefValueDictionaryEntry> Base;
         typedef typename Base::EntryType EntryType;
 
     public:
         WeakReferenceDictionary(Recycler* recycler, int capacity = 0):
-          Base(recycler, capacity)
+          Base(recycler->GetAllocator(), capacity)
         {
             Assert(reinterpret_cast<void*>(this) == reinterpret_cast<void*>((IWeakReferenceDictionary*) this));
         }

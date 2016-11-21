@@ -42,7 +42,7 @@ SAVE_WRITE_BARRIER_MACROS()
 #if GLOBAL_ENABLE_WRITE_BARRIER || defined(FORCE_USE_WRITE_BARRIER)
 // Various macros for defining field attributes
 #define Field(type, ...) \
-    typename WriteBarrierFieldTypeTraits<type, ##__VA_ARGS__>::Type
+    typename WriteBarrierFieldTypeTraits<type, RecyclerAllocatorWithBarrier, ##__VA_ARGS__>::Type
 #define FieldNoBarrier(type) \
     typename WriteBarrierFieldTypeTraits<type, _no_write_barrier_policy, _no_write_barrier_policy>::Type
 #else

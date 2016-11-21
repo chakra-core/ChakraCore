@@ -150,14 +150,14 @@ namespace Js
             // This collection is allocated with leaf allocation policy. The references to the function body
             // here does not keep the function alive. However, the functions remove themselves at finalize
             // so if a function actually is in this map, it means that it is alive.
-            this->functionBodyDictionary = RecyclerNew(recycler, FunctionBodyDictionary, recycler,
+            this->functionBodyDictionary = RecyclerNew(recycler, FunctionBodyDictionary, recycler->GetAllocator(),
                 initialFunctionCount, threadContext->GetEtwRundownCriticalSection());
         }
 
         if (CONFIG_FLAG(DeferTopLevelTillFirstCall) && !m_deferredFunctionsInitialized)
         {
             Assert(this->m_deferredFunctionsDictionary == nullptr);
-            this->m_deferredFunctionsDictionary = RecyclerNew(recycler, DeferredFunctionsDictionary, recycler,
+            this->m_deferredFunctionsDictionary = RecyclerNew(recycler, DeferredFunctionsDictionary, recycler->GetAllocator(),
                 initialFunctionCount, threadContext->GetEtwRundownCriticalSection());
             m_deferredFunctionsInitialized = true;
         }
@@ -258,7 +258,7 @@ namespace Js
             int64 byteStartOffset = (sourceAfterBOM - sourceStart);
 
             Recycler* recycler = this->m_scriptContext->GetRecycler();
-            this->m_lineOffsetCache = RecyclerNew(recycler, JsUtil::LineOffsetCache<Recycler>, recycler, sourceAfterBOM, sourceEnd, startChar, (int)byteStartOffset);
+            this->m_lineOffsetCache = RecyclerNew(recycler, JsUtil::LineOffsetCache<RecyclerAllocator>, recycler->GetAllocator(), sourceAfterBOM, sourceEnd, startChar, (int)byteStartOffset);
         }
     }
 
@@ -312,11 +312,11 @@ namespace Js
         *outColumn = charPosition - lineCharOffset;
     }
 
-    void Utf8SourceInfo::CreateLineOffsetCache(const JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem *items, charcount_t numberOfItems)
+    void Utf8SourceInfo::CreateLineOffsetCache(const JsUtil::LineOffsetCache<RecyclerAllocator>::LineOffsetCacheItem *items, charcount_t numberOfItems)
     {
         AssertMsg(this->m_lineOffsetCache == nullptr, "LineOffsetCache is already initialized!");
         Recycler* recycler = this->m_scriptContext->GetRecycler();
-        this->m_lineOffsetCache = RecyclerNew(recycler, JsUtil::LineOffsetCache<Recycler>, recycler, items, numberOfItems);
+        this->m_lineOffsetCache = RecyclerNew(recycler, JsUtil::LineOffsetCache<RecyclerAllocator>, recycler->GetAllocator(), items, numberOfItems);
     }
 
     DWORD_PTR Utf8SourceInfo::GetHostSourceContext() const

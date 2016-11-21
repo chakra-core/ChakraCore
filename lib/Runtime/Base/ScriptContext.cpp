@@ -1139,7 +1139,7 @@ namespace Js
 
         this->cache->dynamicRegexMap =
             RegexPatternMruMap::New(
-                recycler,
+                recycler->GetAllocator(),
                 REGEX_CONFIG_FLAG(DynamicRegexMruListSize) <= 0 ? 16 : REGEX_CONFIG_FLAG(DynamicRegexMruListSize));
 
         SourceContextInfo* sourceContextInfo = RecyclerNewStructZ(this->GetRecycler(), SourceContextInfo);
@@ -1209,14 +1209,14 @@ namespace Js
         AssertMsg(this->DeferredDeserializationThunk == DefaultDeferredDeserializeThunk, "Creating non default thunk while initializing");
 
 #ifdef FIELD_ACCESS_STATS
-        this->fieldAccessStatsByFunctionNumber = RecyclerNew(this->recycler, FieldAccessStatsByFunctionNumberMap, recycler);
+        this->fieldAccessStatsByFunctionNumber = RecyclerNew(this->recycler, FieldAccessStatsByFunctionNumberMap, recycler->GetAllocator());
         BindReference(this->fieldAccessStatsByFunctionNumber);
 #endif
 
 if (!sourceList)
         {
             AutoCriticalSection critSec(threadContext->GetEtwRundownCriticalSection());
-            sourceList.Root(RecyclerNew(this->GetRecycler(), SourceList, this->GetRecycler()), this->GetRecycler());
+            sourceList.Root(RecyclerNew(this->GetRecycler(), SourceList, this->GetRecycler()->GetAllocator()), this->GetRecycler());
         }
 
 #if DYNAMIC_INTERPRETER_THUNK
@@ -2180,7 +2180,7 @@ if (!sourceList)
         EvalCacheDictionary *dict = isIndirect ? this->cache->indirectEvalCacheDictionary : this->cache->evalCacheDictionary;
         if (dict == nullptr)
         {
-            EvalCacheTopLevelDictionary* evalTopDictionary = RecyclerNew(this->recycler, EvalCacheTopLevelDictionary, this->recycler);
+            EvalCacheTopLevelDictionary* evalTopDictionary = RecyclerNew(this->recycler, EvalCacheTopLevelDictionary, this->recycler->GetAllocator());
             dict = RecyclerNew(this->recycler, EvalCacheDictionary, evalTopDictionary, recycler);
             if (isIndirect)
             {
@@ -2221,7 +2221,7 @@ if (!sourceList)
     {
         if (this->cache->newFunctionCache == nullptr)
         {
-            this->cache->newFunctionCache = RecyclerNew(this->recycler, NewFunctionCache, this->recycler);
+            this->cache->newFunctionCache = RecyclerNew(this->recycler, NewFunctionCache, this->recycler->GetAllocator());
         }
         this->cache->newFunctionCache->Add(key, pFuncBody);
     }
@@ -2231,7 +2231,7 @@ if (!sourceList)
     {
         if (this->cache->sourceContextInfoMap == nullptr)
         {
-            this->cache->sourceContextInfoMap = RecyclerNew(this->GetRecycler(), SourceContextInfoMap, this->GetRecycler());
+            this->cache->sourceContextInfoMap = RecyclerNew(this->GetRecycler(), SourceContextInfoMap, this->GetRecycler()->GetAllocator());
         }
     }
 
@@ -2239,7 +2239,7 @@ if (!sourceList)
     {
         if (this->cache->dynamicSourceContextInfoMap == nullptr)
         {
-            this->cache->dynamicSourceContextInfoMap = RecyclerNew(this->GetRecycler(), DynamicSourceContextInfoMap, this->GetRecycler());
+            this->cache->dynamicSourceContextInfoMap = RecyclerNew(this->GetRecycler(), DynamicSourceContextInfoMap, this->GetRecycler()->GetAllocator());
         }
     }
 
@@ -4450,7 +4450,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             {
                 Assert(this->recycler);
 
-                builtInLibraryFunctions = RecyclerNew(this->recycler, BuiltInLibraryFunctionMap, this->recycler);
+                builtInLibraryFunctions = RecyclerNew(this->recycler, BuiltInLibraryFunctionMap, this->recycler->GetAllocator());
                 cache->builtInLibraryFunctions = builtInLibraryFunctions;
             }
 
@@ -5573,7 +5573,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     {
         if (cacheDataMap == NULL)
         {
-            cacheDataMap = RecyclerNew(this->recycler, CacheDataMap, this->recycler);
+            cacheDataMap = RecyclerNew(this->recycler, CacheDataMap, this->recycler->GetAllocator());
             BindReference(cacheDataMap);
         }
 
@@ -5676,7 +5676,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         if (!calleeUtf8SourceInfoList)
         {
             Recycler *recycler = this->GetRecycler();
-            calleeUtf8SourceInfoList.Root(RecyclerNew(recycler, CalleeSourceList, recycler), recycler);
+            calleeUtf8SourceInfoList.Root(RecyclerNew(recycler, CalleeSourceList, recycler->GetAllocator()), recycler);
         }
 
         if (!calleeUtf8SourceInfoList->Contains(sourceInfoWeakRef))

@@ -14,7 +14,7 @@ namespace Js
     JavascriptSet* JavascriptSet::New(ScriptContext* scriptContext)
     {
         JavascriptSet* set = scriptContext->GetLibrary()->CreateSet();
-        set->set = RecyclerNew(scriptContext->GetRecycler(), SetDataSet, scriptContext->GetRecycler());
+        set->set = RecyclerNew(scriptContext->GetRecycler(), SetDataSet, scriptContext->GetRecycler()->GetAllocator());
 
         return set;
     }
@@ -84,7 +84,7 @@ namespace Js
         }
 
 
-        setObject->set = RecyclerNew(scriptContext->GetRecycler(), SetDataSet, scriptContext->GetRecycler());
+        setObject->set = RecyclerNew(scriptContext->GetRecycler(), SetDataSet, scriptContext->GetRecycler()->GetAllocator());
 
         if (iter != nullptr)
         {
@@ -371,7 +371,7 @@ namespace Js
     JavascriptSet* JavascriptSet::CreateForSnapshotRestore(ScriptContext* ctx)
     {
         JavascriptSet* res = ctx->GetLibrary()->CreateSet();
-        res->set = RecyclerNew(ctx->GetRecycler(), SetDataSet, ctx->GetRecycler());
+        res->set = RecyclerNew(ctx->GetRecycler(), SetDataSet, ctx->GetRecycler()->GetAllocator());
 
         return res;
     }

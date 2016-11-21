@@ -16,8 +16,8 @@ namespace Js
 
             Field(RecyclableObject *) currentObject;
             Field(RecyclableObject *) firstPrototype;
-            Field(BVSparse<Recycler>) propertyIds;
-            typedef SListBase<Js::PropertyRecord const *, Recycler> _PropertyStringsListType;
+            Field(BVSparse<RecyclerAllocator>) propertyIds;
+            typedef SListBase<Js::PropertyRecord const *, RecyclerAllocator> _PropertyStringsListType;
             Field(_PropertyStringsListType) newPropertyStrings;
         } *shadowData;
 

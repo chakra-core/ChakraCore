@@ -340,7 +340,7 @@ PageSegmentBase<T>::AllocPages(uint pageCount)
 
 #ifdef PAGEALLOCATOR_PROTECT_FREEPAGE
             DWORD oldProtect;
-                BOOL vpresult = VirtualProtectEx(this->GetAllocator()->processHandle, allocAddress, pageCount * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
+            BOOL vpresult = VirtualProtectEx(this->GetAllocator()->processHandle, allocAddress, pageCount * AutoSystemInfo::PageSize, PAGE_READWRITE, &oldProtect);
             if (vpresult == FALSE)
             {
                 MemoryOperationLastError::RecordLastError();
@@ -629,6 +629,8 @@ PageAllocatorBase<T>::PageAllocatorBase(AllocationPolicyManager * policyManager,
 #if ENABLE_BACKGROUND_PAGE_ZEROING
     queueZeroPages(false),
     hasZeroQueuedPages(false),
+#endif
+#if ENABLE_BACKGROUND_PAGE_FREEING
     backgroundPageQueue(backgroundPageQueue),
 #endif
     minFreePageCount(0),
@@ -805,6 +807,7 @@ PageAllocatorBase<T>::AddPageSegment(DListBase<PageSegmentBase<T>>& segmentList)
     return segment;
 }
 
+#if ENABLE_BACKGROUND_PAGE_ZEROING
 template<typename T>
 char *
 PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<T> ** pageSegment, BackgroundPageQueue* bgPageQueue, bool isPendingZeroList)
@@ -815,42 +818,39 @@ PageAllocatorBase<T>::TryAllocFromZeroPagesList(uint pageCount, PageSegmentBase<
     FreePageEntry* localList = nullptr;
 
 #if ENABLE_BACKGROUND_PAGE_ZEROING
-    if (CONFIG_FLAG(EnableBGFreeZero))
+    while (true)
     {
-        while (true)
+        FreePageEntry * freePage = isPendingZeroList ? ((ZeroPageQueue *)backgroundPageQueue)->PopZeroPageEntry() : backgroundPageQueue->PopFreePageEntry();
+        if (freePage == nullptr)
         {
-            FreePageEntry * freePage = isPendingZeroList ? ((ZeroPageQueue *)backgroundPageQueue)->PopZeroPageEntry() : backgroundPageQueue->PopFreePageEntry();
-            if (freePage == nullptr)
+            break;
+        }
+
+        if (freePage->pageCount == pageCount)
+        {
+            *pageSegment = freePage->segment;
+            pages = (char *)freePage;
+            memset(pages, 0, isPendingZeroList ? (pageCount*AutoSystemInfo::PageSize) : sizeof(FreePageEntry));
+            this->FillAllocPages(pages, pageCount);
+            break;
+        }
+        else
+        {
+            if (isPendingZeroList)
             {
-                break;
+                memset((char *)freePage + sizeof(FreePageEntry), 0, (freePage->pageCount*AutoSystemInfo::PageSize) - sizeof(FreePageEntry));
             }
 
-            if (freePage->pageCount == pageCount)
+            freePage->Next = localList;
+            localList = (FreePageEntry*)freePage;
+
+            if (freePage->pageCount > pageCount)
             {
                 *pageSegment = freePage->segment;
-                pages = (char *)freePage;
-                memset(pages, 0, isPendingZeroList ? (pageCount*AutoSystemInfo::PageSize) : sizeof(FreePageEntry));
+                freePage->pageCount -= pageCount;
+                pages = (char *)freePage + freePage->pageCount * AutoSystemInfo::PageSize;
                 this->FillAllocPages(pages, pageCount);
                 break;
-            }
-            else
-            {
-                if (isPendingZeroList)
-                {
-                    memset((char *)freePage + sizeof(FreePageEntry), 0, (freePage->pageCount*AutoSystemInfo::PageSize) - sizeof(FreePageEntry));
-                }
-
-                freePage->Next = localList;
-                localList = (FreePageEntry*)freePage;
-
-                if (freePage->pageCount > pageCount)
-                {
-                    *pageSegment = freePage->segment;
-                    freePage->pageCount -= pageCount;
-                    pages = (char *)freePage + freePage->pageCount * AutoSystemInfo::PageSize;
-                    this->FillAllocPages(pages, pageCount);
-                    break;
-                }
             }
         }
     }
@@ -894,25 +894,24 @@ template<typename T>
 char *
 PageAllocatorBase<T>::TryAllocFromZeroPages(uint pageCount, PageSegmentBase<T> ** pageSegment)
 {
-#if ENABLE_BACKGROUND_PAGE_ZEROING
-    if (CONFIG_FLAG(EnableBGFreeZero))
+#if ENABLE_BACKGROUND_PAGE_ZEROING   
+    if (backgroundPageQueue != nullptr)
     {
-        if (backgroundPageQueue != nullptr)
-        {
-            return TryAllocFromZeroPagesList(pageCount, pageSegment, backgroundPageQueue, false);
-        }
+        return TryAllocFromZeroPagesList(pageCount, pageSegment, backgroundPageQueue, false);
+    }
 
-        if (this->hasZeroQueuedPages)
-        {
-            __analysis_assume(backgroundPageQueue != nullptr);
-            return TryAllocFromZeroPagesList(pageCount, pageSegment, backgroundPageQueue, true);
-        }
+    if (this->hasZeroQueuedPages)
+    {
+        __analysis_assume(backgroundPageQueue != nullptr);
+        return TryAllocFromZeroPagesList(pageCount, pageSegment, backgroundPageQueue, true);
     }
 #endif
 
     return nullptr;
 }
+#endif
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
 template<typename T>
 template <bool notPageAligned>
 char *
@@ -951,10 +950,13 @@ PageAllocatorBase<T>::TryAllocFreePages(uint pageCount, PageSegmentBase<T> ** pa
         }
     }
 
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     pages = TryAllocFromZeroPages(pageCount, pageSegment);
+#endif
 
     return pages;
 }
+#endif
 
 template<typename T>
 void
@@ -1000,12 +1002,14 @@ PageAllocatorBase<T>::FillAllocPages(__in void * address, uint pageCount)
 #endif
 
 #if DBG
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     if (ZeroPages())
     {
         // for release build, the page is zeroed in ReleasePages
         Assert(this->processHandle == GetCurrentProcess());
         memset(address, 0, bufferSize);
     }
+#endif
 #endif
 }
 
@@ -1304,7 +1308,10 @@ PageAllocatorBase<T>::AllocPagesInternal(uint pageCount, PageSegmentBase<T> ** p
     this->isUsed = true;
 
     SuspendIdleDecommit();
-    char * allocation = TryAllocFreePages<notPageAligned>(pageCount, pageSegment);
+    char * allocation = nullptr;
+#if ENABLE_BACKGROUND_PAGE_FREEING
+    allocation = TryAllocFreePages<notPageAligned>(pageCount, pageSegment);
+#endif
     if (allocation == nullptr)
     {
         allocation = SnailAllocPages<notPageAligned>(pageCount, pageSegment);
@@ -1601,18 +1608,22 @@ PageAllocatorBase<T>::ReleasePages(__in void * address, uint pageCount, __in voi
     else
     {
 #if ENABLE_BACKGROUND_PAGE_ZEROING
-        if (CONFIG_FLAG(EnableBGFreeZero))
+        if (QueueZeroPages())
         {
-            if (QueueZeroPages())
-            {
-                Assert(HasZeroPageQueue());
-                AddPageToZeroQueue(address, pageCount, segment);
-                return;
-            }
+            Assert(HasZeroPageQueue());
+            AddPageToZeroQueue(address, pageCount, segment);
+            return;
         }
 #endif
 
-        this->FillFreePages((char *)address, pageCount);
+        if (ZeroPages())
+        {
+            ChakraMemSet(address, 0, AutoSystemInfo::PageSize * pageCount, this->processHandle);
+        }
+        else
+        {
+            this->FillFreePages(address, pageCount);
+        }
         segment->ReleasePages(address, pageCount);
         LogFreePages(pageCount);
         this->AddFreePageCount(pageCount);
@@ -1722,7 +1733,14 @@ template<typename T>
 void
 PageAllocatorBase<T>::BackgroundReleasePages(void * address, uint pageCount, PageSegmentBase<T> * segment)
 {
-    FillFreePages(address, pageCount);
+    if (ZeroPages())
+    {
+        ChakraMemSet(address, 0, AutoSystemInfo::PageSize * pageCount, this->processHandle);
+    }
+    else
+    {
+        this->FillFreePages((char *)address, pageCount);
+    }
     QueuePages(address, pageCount, segment);
 }
 
@@ -1820,73 +1838,70 @@ PageAllocatorBase<T>::DecommitNow(bool all)
     size_t deleteCount = 0;
 #endif
 #if ENABLE_BACKGROUND_PAGE_ZEROING
-    if (CONFIG_FLAG(EnableBGFreeZero))
-    {
         // First, drain the zero page queue.
         // This will cause the free page count to be accurate
-        if (HasZeroPageQueue())
+    if (HasZeroPageQueue())
+    {
+        int numZeroPagesFreed = 0;
+
+        // There might be queued zero pages.  Drain them first
+
+        while (true)
         {
-            int numZeroPagesFreed = 0;
-
-            // There might be queued zero pages.  Drain them first
-
-            while (true)
+            FreePageEntry * freePageEntry = PopPendingZeroPage();
+            if (freePageEntry == nullptr)
             {
-                FreePageEntry * freePageEntry = PopPendingZeroPage();
-                if (freePageEntry == nullptr)
+                break;
+            }
+            PAGE_ALLOC_TRACE_AND_STATS_0(_u("Freeing page from zero queue"));
+            PageSegmentBase<T> * segment = freePageEntry->segment;
+            uint pageCount = freePageEntry->pageCount;
+
+            numZeroPagesFreed += pageCount;
+
+            DListBase<PageSegmentBase<T>> * fromSegmentList = GetSegmentList(segment);
+            Assert(fromSegmentList != nullptr);
+
+            // Check for all here, since the actual free page count can't be determined
+            // until we've flushed the zeroed page queue
+            if (all)
+            {
+                // Decommit them immediately if we are decommitting all pages.
+                segment->template DecommitPages<false>(freePageEntry, pageCount);
+                LogFreePages(pageCount);
+                LogDecommitPages(pageCount);
+
+                if (segment->IsAllDecommitted())
                 {
-                    break;
-                }
-                PAGE_ALLOC_TRACE_AND_STATS_0(_u("Freeing page from zero queue"));
-                PageSegmentBase<T> * segment = freePageEntry->segment;
-                uint pageCount = freePageEntry->pageCount;
-
-                numZeroPagesFreed += pageCount;
-
-                DListBase<PageSegmentBase<T>> * fromSegmentList = GetSegmentList(segment);
-                Assert(fromSegmentList != nullptr);
-
-                // Check for all here, since the actual free page count can't be determined
-                // until we've flushed the zeroed page queue
-                if (all)
-                {
-                    // Decommit them immediately if we are decommitting all pages.
-                    segment->template DecommitPages<false>(freePageEntry, pageCount);
-                    LogFreePages(pageCount);
-                    LogDecommitPages(pageCount);
-
-                    if (segment->IsAllDecommitted())
-                    {
-                        LogFreePartiallyDecommittedPageSegment(segment);
-                        fromSegmentList->RemoveElement(&NoThrowNoMemProtectHeapAllocator::Instance, segment);
+                    LogFreePartiallyDecommittedPageSegment(segment);
+                    fromSegmentList->RemoveElement(&NoThrowNoMemProtectHeapAllocator::Instance, segment);
 #if DBG_DUMP
-                        deleteCount += maxAllocPageCount;
+                    deleteCount += maxAllocPageCount;
 #endif
-                        continue;
-                    }
+                    continue;
                 }
-                else
-                {
-                    // Zero them and release them in case we don't decommit them.
-                    Assert(this->processHandle == GetCurrentProcess());
-                    memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
-                    segment->ReleasePages(freePageEntry, pageCount);
-                    LogFreePages(pageCount);
-                }
-
-                TransferSegment(segment, fromSegmentList);
             }
-
-            // Take the lock to make sure the recycler thread has finished zeroing out the pages after
-            // we drained the queue
+            else
             {
-                AutoCriticalSection autoCS(&backgroundPageQueue->backgroundPageQueueCriticalSection);
-                this->hasZeroQueuedPages = false;
-                Assert(!this->HasZeroQueuedPages());
+                // Zero them and release them in case we don't decommit them.
+                Assert(this->processHandle == GetCurrentProcess());
+                memset(freePageEntry, 0, pageCount * AutoSystemInfo::PageSize);
+                segment->ReleasePages(freePageEntry, pageCount);
+                LogFreePages(pageCount);
             }
 
-            FlushBackgroundPages();
+            TransferSegment(segment, fromSegmentList);
         }
+
+        // Take the lock to make sure the recycler thread has finished zeroing out the pages after
+        // we drained the queue
+        {
+            AutoCriticalSection autoCS(&backgroundPageQueue->backgroundPageQueueCriticalSection);
+            this->hasZeroQueuedPages = false;
+            Assert(!this->HasZeroQueuedPages());
+        }
+
+        FlushBackgroundPages();
     }
 #endif
 
@@ -2337,10 +2352,7 @@ void
 PageAllocatorBase<T>::Check()
 {
 #if ENABLE_BACKGROUND_PAGE_ZEROING
-    if (CONFIG_FLAG(EnableBGFreeZero))
-    {
-        Assert(!this->HasZeroQueuedPages());
-    }
+    Assert(!this->HasZeroQueuedPages());
 #endif
     size_t currentFreePageCount = 0;
 
@@ -2379,7 +2391,7 @@ HeapPageAllocator<T>::HeapPageAllocator(AllocationPolicyManager * policyManager,
         PageAllocatorType_CustomHeap,
         /*maxFreePageCount*/ 0,
         /*zeroPages*/ false,
-#if ENABLE_BACKGROUND_PAGE_FREEING || ENABLE_BACKGROUND_PAGE_ZEROING
+#if ENABLE_BACKGROUND_PAGE_FREEING
         /*zeroPageQueue*/ nullptr,
 #endif
         /*maxAllocPageCount*/ allocXdata ? (Base::DefaultMaxAllocPageCount - XDATA_RESERVE_PAGE_COUNT) : Base::DefaultMaxAllocPageCount,

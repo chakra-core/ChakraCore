@@ -159,96 +159,30 @@ inline T* PostAllocationCallback(const type_info& objType, T *obj)
 // Free routine where we don't care about following C++ semantics (e.g. calling the destructor)
 #define AllocatorFree(alloc, freeFunc, obj, size) (alloc->*freeFunc)(obj, size)
 
-// default type allocator implementation
 template <typename TAllocator, typename T>
-class TypeAllocatorFunc
-{
-public:
-    typedef char * (TAllocator::*AllocFuncType)(size_t);
-    typedef void(TAllocator::*FreeFuncType)(void*, size_t);
-
-    static AllocFuncType GetAllocFunc()
-    {
-        return &TAllocator::Alloc;
-    }
-
-    static AllocFuncType GetAllocZeroFunc()
-    {
-        return &TAllocator::AllocZero;
-    }
-
-    static FreeFuncType GetFreeFunc()
-    {
-        return &TAllocator::Free;
-    }
-};
-
-// List specific allocator info
-template <typename TAllocator, bool isLeaf>
-class ListTypeAllocatorFunc
-{
-public:
-    typedef char * (TAllocator::*AllocFuncType)(size_t);
-    typedef void(TAllocator::*FreeFuncType)(void*, size_t);
-
-    static AllocFuncType GetAllocFunc()
-    {
-        return isLeaf ? &TAllocator::AllocLeaf: &TAllocator::Alloc;
-    }
-    static FreeFuncType GetFreeFunc()
-    {
-        return &TAllocator::Free;
-    }
-};
-
-// Default allocation policy
-template <typename TAllocator, typename TAllocType>
-struct AllocatorInfo
-{
-    typedef TAllocator AllocatorType;
-    typedef TAllocator TemplateAllocatorType;
-    typedef TypeAllocatorFunc<TAllocator, TAllocType> AllocatorFunc;    // allocate/free an array of given type
-    typedef TypeAllocatorFunc<TAllocator, TAllocType> InstAllocatorFunc;// allocate/free an object instance itself of given type
-};
-
-// Allocator doesn't change for by default for forcing non leaf
-template <typename TAllocator>
-struct ForceNonLeafAllocator
-{
-    typedef TAllocator AllocatorType;
-};
-
-// Allocator doesn't change for by default for forcing leaf
-template <typename TAllocator>
-struct ForceLeafAllocator
-{
-    typedef TAllocator AllocatorType;
-};
-
-template <typename TAllocator, typename T>
-void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj)
+void DeleteObject(TAllocator* allocator, T * obj)
 {
     obj->~T();
 
-    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
+    auto freeFunc = &TAllocator::Free;
     (allocator->*freeFunc)(obj, sizeof(T));
 }
 
 template <typename TAllocator, typename T>
-void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, WriteBarrierPtr<T> obj)
+void DeleteObject(TAllocator* allocator, WriteBarrierPtr<T> obj)
 {
     obj->~T();
 
-    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
+    auto freeFunc = &TAllocator::Free;
     (allocator->*freeFunc)(obj, sizeof(T));
 }
 
 template <typename TAllocator, typename T>
-void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, NoWriteBarrierPtr<T> obj)
+void DeleteObject(TAllocator* allocator, NoWriteBarrierPtr<T> obj)
 {
     obj->~T();
 
-    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
+    auto freeFunc = &TAllocator::Free;
     (allocator->*freeFunc)(obj, sizeof(T));
 }
 
@@ -260,7 +194,7 @@ void DeleteObjectInline(TAllocator * allocator, T * obj)
 }
 
 template <typename TAllocator, typename T>
-void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj, size_t plusSize)
+void DeleteObject(TAllocator* allocator, T * obj, size_t plusSize)
 {
     obj->~T();
 
@@ -268,12 +202,12 @@ void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocat
     // So the add should never overflow
     Assert(sizeof(T) + plusSize >= sizeof(T));
 
-    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
+    auto freeFunc = &TAllocator::Free;
     (allocator->*freeFunc)(obj, sizeof(T) + plusSize);
 }
 
 template <typename TAllocator, typename T>
-void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj, size_t plusSize, bool prefix)
+void DeleteObject(TAllocator* allocator, T * obj, size_t plusSize, bool prefix)
 {
     Assert(prefix);
     obj->~T();
@@ -285,7 +219,7 @@ void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocat
     // NOTE: This may cause the object not be double aligned
     Assert(plusSize == Math::Align<size_t>(plusSize, sizeof(size_t)));
 
-    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
+    auto freeFunc = &TAllocator::Free;
     (allocator->*freeFunc)(((char *)obj) - plusSize, sizeof(T) + plusSize);
 }
 
@@ -311,7 +245,7 @@ inline T * AllocateArray(TAllocator * allocator, char * (TAllocator::*AllocFunc)
 }
 
 template <typename TAllocator, typename T>
-void DeleteArray(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, size_t count, T * obj)
+void DeleteArray(TAllocator* allocator, size_t count, T * obj)
 {
     if(count == 0)
     {
@@ -327,7 +261,7 @@ void DeleteArray(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocato
     // So the add should never overflow
     Assert(count * sizeof(T) / count == sizeof(T));
 
-    auto freeFunc = AllocatorInfo<TAllocator, T>::AllocatorFunc::GetFreeFunc();
+    auto freeFunc = &TAllocator::Free;
     (allocator->*freeFunc)((void *)obj, sizeof(T) * count);
 }
 

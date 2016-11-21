@@ -11,11 +11,10 @@ template <typename T, typename TAllocator>
 class AutoAllocatorObjectPtr : public BasePtr<T>
 {
 private:
-    typedef typename AllocatorInfo<TAllocator, T>::AllocatorType AllocatorType;
-    AllocatorType* m_allocator;
+    TAllocator* m_allocator;
 
 public:
-    AutoAllocatorObjectPtr(T* ptr, AllocatorType* allocator) : BasePtr<T>(ptr), m_allocator(allocator)
+    AutoAllocatorObjectPtr(T* ptr, TAllocator* allocator) : BasePtr<T>(ptr), m_allocator(allocator)
     {
         Assert(allocator);
     }
@@ -41,12 +40,11 @@ template <typename T, typename TAllocator>
 class AutoAllocatorArrayPtr : public BasePtr<T>
 {
 protected:
-    typedef typename AllocatorInfo<TAllocator, T>::AllocatorType AllocatorType;
     size_t m_elementCount;
-    AllocatorType* m_allocator;
+    TAllocator* m_allocator;
 
 public:
-    AutoAllocatorArrayPtr(T * ptr, size_t elementCount, AllocatorType* allocator) : BasePtr(ptr), m_elementCount(elementCount), m_allocator(allocator)
+    AutoAllocatorArrayPtr(T * ptr, size_t elementCount, TAllocator* allocator) : BasePtr(ptr), m_elementCount(elementCount), m_allocator(allocator)
     {
         Assert(allocator);
     }
@@ -77,13 +75,13 @@ private:
 //      TAllocator      The allocator type used to allocate/free the objects.
 //      ArrayAllocator  The allocator type used to allocate/free the array.
 //
-template <typename T, typename TAllocator, typename ArrayAllocator = typename ForceNonLeafAllocator<TAllocator>::AllocatorType>
+template <typename T, typename TAllocator, typename ArrayAllocator = RecyclerAllocator>
 class AutoAllocatorObjectArrayPtr : public AutoAllocatorArrayPtr<T*, ArrayAllocator>
 {
     typedef AutoAllocatorArrayPtr<T*, ArrayAllocator> Base;
     
 public:
-    AutoAllocatorObjectArrayPtr(T** ptr, size_t elementCount, typename Base::AllocatorType* allocator) :
+    AutoAllocatorObjectArrayPtr(T** ptr, size_t elementCount, typename Base::TAllocator* allocator) :
         AutoAllocatorArrayPtr(ptr, elementCount, allocator)
     {
     }

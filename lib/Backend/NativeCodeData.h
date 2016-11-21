@@ -95,6 +95,10 @@ public:
 
         NativeCodeData * Finalize();
         void Free(void * buffer, size_t byteSize);
+        void FreeLeaf(void * buffer, size_t byteSize)
+        {
+            Free(buffer, byteSize);
+        }
 
         union
         {

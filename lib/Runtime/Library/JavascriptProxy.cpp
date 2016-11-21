@@ -911,7 +911,7 @@ namespace Js
         Var propertyName = nullptr;
         PropertyId propertyId;
         int index = 0;
-        JsUtil::BaseDictionary<const char16*, Var, Recycler> dict(requestContext->GetRecycler());
+        JsUtil::BaseDictionary<const char16*, Var, RecyclerAllocator> dict(requestContext->GetRecycler()->GetAllocator());
         JavascriptArray* arrResult = requestContext->GetLibrary()->CreateArray();
 
         // 13.7.5.15 EnumerateObjectProperties(O) (https://tc39.github.io/ecma262/#sec-enumerate-object-properties)
