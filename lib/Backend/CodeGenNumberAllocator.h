@@ -182,7 +182,7 @@ struct XProcNumberPageSegmentManager
     ~XProcNumberPageSegmentManager();
 
     XProcNumberPageSegment * GetFreeSegment(Memory::ArenaAllocator* alloc);
-    Js::JavascriptNumber** RegisterSegments(XProcNumberPageSegment* segments);
+    Field(Js::JavascriptNumber*)* RegisterSegments(XProcNumberPageSegment* segments);
 
     void Integrate();
 };

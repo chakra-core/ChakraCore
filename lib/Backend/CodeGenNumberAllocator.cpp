@@ -402,7 +402,7 @@ void XProcNumberPageSegmentImpl::Initialize(bool recyclerVerifyEnabled, uint rec
         uint padAllocSize = (uint)AllocSizeMath::Add(sizeof(Js::JavascriptNumber) + sizeof(size_t), recyclerVerifyPad);
         allocSize = padAllocSize < allocSize ? allocSize : padAllocSize;
     }
-#endif    
+#endif
 
     allocSize = (uint)HeapInfo::GetAlignedSizeNoCheck(allocSize);
 
@@ -415,7 +415,7 @@ void XProcNumberPageSegmentImpl::Initialize(bool recyclerVerifyEnabled, uint rec
     sizeCat = allocSize;
 }
 
-Js::JavascriptNumber** ::XProcNumberPageSegmentManager::RegisterSegments(XProcNumberPageSegment* segments)
+Field(Js::JavascriptNumber*)* ::XProcNumberPageSegmentManager::RegisterSegments(XProcNumberPageSegment* segments)
 {
     Assert(segments->pageAddress && segments->allocStartAddress && segments->allocEndAddress);
     XProcNumberPageSegmentImpl* segmentImpl = (XProcNumberPageSegmentImpl*)segments;
@@ -428,7 +428,7 @@ Js::JavascriptNumber** ::XProcNumberPageSegmentManager::RegisterSegments(XProcNu
         temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;
     }
 
-    Js::JavascriptNumber** numbers = RecyclerNewArray(this->recycler, Js::JavascriptNumber*, totalCount);
+    Field(Js::JavascriptNumber*)* numbers = RecyclerNewArray(this->recycler, Field(Js::JavascriptNumber*), totalCount);
 
     temp = segmentImpl;
     int count = 0;
@@ -476,7 +476,7 @@ XProcNumberPageSegment * XProcNumberPageSegmentManager::GetFreeSegment(Memory::A
             // remove from the list
             XProcNumberPageSegment * seg = (XProcNumberPageSegment *)AnewStructZ(alloc, XProcNumberPageSegmentImpl);
             temp->nextSegment = 0;
-            memcpy(seg, temp, sizeof(XProcNumberPageSegment));            
+            memcpy(seg, temp, sizeof(XProcNumberPageSegment));
             midl_user_free(temp);
             return seg;
         }
@@ -526,7 +526,7 @@ void XProcNumberPageSegmentManager::Integrate()
                     }
                 }
 
-                if ((uintptr_t)temp->allocEndAddress + XProcNumberPageSegmentImpl::sizeCat 
+                if ((uintptr_t)temp->allocEndAddress + XProcNumberPageSegmentImpl::sizeCat
                     > (uintptr_t)temp->pageAddress + XProcNumberPageSegmentImpl::PageCount*AutoSystemInfo::PageSize)
                 {
                     *prev = (XProcNumberPageSegmentImpl*)temp->nextSegment;

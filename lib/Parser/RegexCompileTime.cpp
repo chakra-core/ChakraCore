@@ -4373,7 +4373,7 @@ namespace UnifiedRegex
 
     void Compiler::CaptureNoLiterals(Program* program)
     {
-        program->rep.insts.litbuf = 0;
+        program->rep.insts.litbuf = nullptr;
         program->rep.insts.litbufLen = 0;
     }
 
@@ -4498,18 +4498,18 @@ namespace UnifiedRegex
 
                 OctoquadIdentifier oi(numCodes, *codeToChar, *charToCode);
                 // We haven't captured literals yet: temporarily set the program's litbuf to be the parser's litbuf
-                Assert(program->rep.insts.litbuf == 0);
+                Assert(program->rep.insts.litbuf == nullptr);
                 program->rep.insts.litbuf = (Char*)litbuf;
                 if (root->IsOctoquad(compiler, &oi) && oi.IsOctoquad())
                 {
-                    program->rep.insts.litbuf = 0;
+                    program->rep.insts.litbuf = nullptr;
                     oi.InitializeTrigramInfo(scriptContext, pattern);
                     program->tag = Program::OctoquadTag;
                     program->rep.octoquad.matcher = OctoquadMatcher::New(scriptContext->GetRecycler(), standardChars, program->GetCaseMappingSource(), &oi);
                     compiled = true;
                 }
                 else
-                    program->rep.insts.litbuf = 0;
+                    program->rep.insts.litbuf = nullptr;
             }
         }
 

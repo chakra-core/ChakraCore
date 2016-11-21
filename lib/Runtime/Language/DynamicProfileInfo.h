@@ -74,8 +74,8 @@ namespace Js
 
     struct ThisInfo
     {
-        ValueType valueType;
-        ThisType thisType;
+        Field(ValueType) valueType;
+        Field(ThisType) thisType;
 
         ThisInfo() : thisType(ThisType_Unknown)
         {
@@ -478,44 +478,44 @@ namespace Js
 
         struct Bits
         {
-            bool disableAggressiveIntTypeSpec : 1;
-            bool disableAggressiveIntTypeSpec_jitLoopBody : 1;
-            bool disableAggressiveMulIntTypeSpec : 1;
-            bool disableAggressiveMulIntTypeSpec_jitLoopBody : 1;
-            bool disableDivIntTypeSpec : 1;
-            bool disableDivIntTypeSpec_jitLoopBody : 1;
-            bool disableLossyIntTypeSpec : 1;
+            Field(bool) disableAggressiveIntTypeSpec : 1;
+            Field(bool) disableAggressiveIntTypeSpec_jitLoopBody : 1;
+            Field(bool) disableAggressiveMulIntTypeSpec : 1;
+            Field(bool) disableAggressiveMulIntTypeSpec_jitLoopBody : 1;
+            Field(bool) disableDivIntTypeSpec : 1;
+            Field(bool) disableDivIntTypeSpec_jitLoopBody : 1;
+            Field(bool) disableLossyIntTypeSpec : 1;
             // TODO: put this flag in LoopFlags if we can find a reliable way to determine the loopNumber in bailout for a hoisted instr
-            bool disableMemOp : 1;
-            bool disableTrackCompoundedIntOverflow : 1;
-            bool disableFloatTypeSpec : 1;
-            bool disableCheckThis : 1;
-            bool disableArrayCheckHoist : 1;
-            bool disableArrayCheckHoist_jitLoopBody : 1;
-            bool disableArrayMissingValueCheckHoist : 1;
-            bool disableArrayMissingValueCheckHoist_jitLoopBody : 1;
-            bool disableJsArraySegmentHoist : 1;
-            bool disableJsArraySegmentHoist_jitLoopBody : 1;
-            bool disableArrayLengthHoist : 1;
-            bool disableArrayLengthHoist_jitLoopBody : 1;
-            bool disableTypedArrayTypeSpec : 1;
-            bool disableTypedArrayTypeSpec_jitLoopBody : 1;
-            bool disableLdLenIntSpec : 1;
-            bool disableBoundCheckHoist : 1;
-            bool disableBoundCheckHoist_jitLoopBody : 1;
-            bool disableLoopCountBasedBoundCheckHoist : 1;
-            bool disableLoopCountBasedBoundCheckHoist_jitLoopBody : 1;
-            bool hasPolymorphicFldAccess : 1;
-            bool hasLdFldCallSite : 1; // getters, setters, .apply (possibly .call too in future)
-            bool disableFloorInlining : 1;
-            bool disableNoProfileBailouts : 1;
-            bool disableSwitchOpt : 1;
-            bool disableEquivalentObjTypeSpec : 1;
-            bool disableObjTypeSpec_jitLoopBody : 1;
-            bool disablePowIntIntTypeSpec : 1;
-            bool disableLoopImplicitCallInfo : 1;
-            bool disableStackArgOpt : 1;
-            bool disableTagCheck : 1;
+            Field(bool) disableMemOp : 1;
+            Field(bool) disableTrackCompoundedIntOverflow : 1;
+            Field(bool) disableFloatTypeSpec : 1;
+            Field(bool) disableCheckThis : 1;
+            Field(bool) disableArrayCheckHoist : 1;
+            Field(bool) disableArrayCheckHoist_jitLoopBody : 1;
+            Field(bool) disableArrayMissingValueCheckHoist : 1;
+            Field(bool) disableArrayMissingValueCheckHoist_jitLoopBody : 1;
+            Field(bool) disableJsArraySegmentHoist : 1;
+            Field(bool) disableJsArraySegmentHoist_jitLoopBody : 1;
+            Field(bool) disableArrayLengthHoist : 1;
+            Field(bool) disableArrayLengthHoist_jitLoopBody : 1;
+            Field(bool) disableTypedArrayTypeSpec : 1;
+            Field(bool) disableTypedArrayTypeSpec_jitLoopBody : 1;
+            Field(bool) disableLdLenIntSpec : 1;
+            Field(bool) disableBoundCheckHoist : 1;
+            Field(bool) disableBoundCheckHoist_jitLoopBody : 1;
+            Field(bool) disableLoopCountBasedBoundCheckHoist : 1;
+            Field(bool) disableLoopCountBasedBoundCheckHoist_jitLoopBody : 1;
+            Field(bool) hasPolymorphicFldAccess : 1;
+            Field(bool) hasLdFldCallSite : 1; // getters, setters, .apply (possibly .call too in future)
+            Field(bool) disableFloorInlining : 1;
+            Field(bool) disableNoProfileBailouts : 1;
+            Field(bool) disableSwitchOpt : 1;
+            Field(bool) disableEquivalentObjTypeSpec : 1;
+            Field(bool) disableObjTypeSpec_jitLoopBody : 1;
+            Field(bool) disablePowIntIntTypeSpec : 1;
+            Field(bool) disableLoopImplicitCallInfo : 1;
+            Field(bool) disableStackArgOpt : 1;
+            Field(bool) disableTagCheck : 1;
         };
         Field(Bits) bits;
 

@@ -58,7 +58,7 @@ namespace Js
         this->isInlineSlot = isInlineSlot;
         this->isSetPropertyAllowed = isSetPropertyAllowed;
         this->isMissing = false;
-        this->prototypeObjectWithProperty = 0;
+        this->prototypeObjectWithProperty = nullptr;
     }
 
     void TypePropertyCacheElement::Cache(

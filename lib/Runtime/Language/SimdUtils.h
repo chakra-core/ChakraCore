@@ -20,14 +20,14 @@
 #define SIMD_INDEX_VALUE_MAX     5
 #define SIMD_STRING_BUFFER_MAX   1024
 #define SIMD_DATA     \
-    int32   i32[4];\
-    int16   i16[8];\
-    int8    i8[16];\
-    uint32  u32[4];\
-    uint16  u16[8];\
-    uint8   u8[16];\
-    float   f32[4];\
-    double  f64[2];
+    Field(int32)   i32[4];\
+    Field(int16)   i16[8];\
+    Field(int8)    i8[16];\
+    Field(uint32)  u32[4];\
+    Field(uint16)  u16[8];\
+    Field(uint8)   u8[16];\
+    Field(float)   f32[4];\
+    Field(double)  f64[2];
 #define SIMD_TEMP_SIZE 3
 struct _SIMDValue
 {
@@ -137,7 +137,7 @@ const _x86_SIMDValue X86_TWO_31_I4          = X86_NEG_MASK_F4;                  
 const _x86_SIMDValue X86_WORD_SIGNBITS      = { 0x80008000, 0x80008000, 0x80008000, 0x80008000 };
 const _x86_SIMDValue X86_DWORD_SIGNBITS     = { 0x80000000, 0x80000000, 0x80000000, 0x80000000 };
 const _x86_SIMDValue X86_BYTE_SIGNBITS      = { 0x80808080, 0x80808080, 0x80808080, 0x80808080 };
-const _x86_SIMDValue X86_4LANES_MASKS[]     = {{ 0xffffffff, 0x00000000, 0x00000000, 0x00000000 }, 
+const _x86_SIMDValue X86_4LANES_MASKS[]     = {{ 0xffffffff, 0x00000000, 0x00000000, 0x00000000 },
                                                { 0x00000000, 0xffffffff, 0x00000000, 0x00000000 },
                                                { 0x00000000, 0x00000000, 0xffffffff, 0x00000000 },
                                                { 0x00000000, 0x00000000, 0x00000000, 0xffffffff }};
@@ -146,7 +146,7 @@ const _x86_SIMDValue X86_4LANES_MASKS[]     = {{ 0xffffffff, 0x00000000, 0x00000
 #pragma warning(pop)
 
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS)
-// auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
+// auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle.
 extern _x86_SIMDValue X86_TEMP_SIMD[];
 #endif
 

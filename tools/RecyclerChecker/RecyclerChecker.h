@@ -64,7 +64,9 @@ private:
     void dump(const char* name, const set<Item>& set);
     void dump(const char* name, const unordered_set<const Type*> set);
 
-    void ProcessUnbarriedFields(CXXRecordDecl* recordDecl);
+    template <class PushFieldType>
+    void ProcessUnbarriedFields(CXXRecordDecl* recordDecl, const PushFieldType& pushFieldType);
+
     bool MatchType(const string& type, const char* source, const char** pSourceEnd);
     const char* GetFieldTypeAnnotation(QualType qtype);
 };

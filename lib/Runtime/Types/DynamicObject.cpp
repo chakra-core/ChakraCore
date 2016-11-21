@@ -392,7 +392,7 @@ namespace Js
     }
 
     BOOL
-    DynamicObject::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, 
+    DynamicObject::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes,
         DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext) const
     {
         if(index == Constants::NoBigSlot)
@@ -856,14 +856,15 @@ namespace Js
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapDynamicObject>(objData, nullptr);
     }
 
-    Js::Var* DynamicObject::GetInlineSlots_TTD() const
+    Js::Var const* DynamicObject::GetInlineSlots_TTD() const
     {
-        return reinterpret_cast<Var*>(reinterpret_cast<size_t>(this) + this->GetTypeHandler()->GetOffsetOfInlineSlots());
+        return reinterpret_cast<Var const*>(
+            reinterpret_cast<size_t>(this) + this->GetTypeHandler()->GetOffsetOfInlineSlots());
     }
 
-    Js::Var* DynamicObject::GetAuxSlots_TTD() const
+    Js::Var const* DynamicObject::GetAuxSlots_TTD() const
     {
-        return this->auxSlots;
+        return &this->auxSlots[0];
     }
 
 #if ENABLE_OBJECT_SOURCE_TRACKING

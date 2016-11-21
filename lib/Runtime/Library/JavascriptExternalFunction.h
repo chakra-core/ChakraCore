@@ -53,9 +53,9 @@ namespace Js
         Field(void *) callbackState;
         union
         {
-            ExternalMethod nativeMethod;
-            JavascriptExternalFunction* wrappedMethod;
-            StdCallJavascriptMethod stdCallNativeMethod;
+            FieldNoBarrier(ExternalMethod) nativeMethod;
+            Field(JavascriptExternalFunction*) wrappedMethod;
+            FieldNoBarrier(StdCallJavascriptMethod) stdCallNativeMethod;
         };
         Field(InitializeMethod) initMethod;
 

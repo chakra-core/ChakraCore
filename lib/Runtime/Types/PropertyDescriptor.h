@@ -12,22 +12,22 @@ namespace Js
         PropertyDescriptor();
 
     private:
-        Var Value;
-        Var Getter;
-        Var Setter;
-        Var originalVar;
+        Field(Var) Value;
+        Field(Var) Getter;
+        Field(Var) Setter;
+        Field(Var) originalVar;
 
-        bool writableSpecified;
-        bool enumerableSpecified;
-        bool configurableSpecified;
-        bool valueSpecified;
-        bool getterSpecified;
-        bool setterSpecified;
+        Field(bool) writableSpecified;
+        Field(bool) enumerableSpecified;
+        Field(bool) configurableSpecified;
+        Field(bool) valueSpecified;
+        Field(bool) getterSpecified;
+        Field(bool) setterSpecified;
 
-        bool Writable;
-        bool Enumerable;
-        bool Configurable;
-        bool fromProxy;
+        Field(bool) Writable;
+        Field(bool) Enumerable;
+        Field(bool) Configurable;
+        Field(bool) fromProxy;
 
     public:
         bool IsDataDescriptor() const { return writableSpecified | valueSpecified;}

@@ -105,8 +105,8 @@ namespace UnifiedRegex
         // NOTE: We don't store the actual pattern here since it may be moved between
         //       constructing the scanner and running it.
 
-        LastOccMap lastOccurrence;
-        int32 *goodSuffix;
+        Field(LastOccMap) lastOccurrence;
+        Field(int32 *) goodSuffix;
 
     public:
 
