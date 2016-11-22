@@ -114,7 +114,7 @@ DefaultRecyclerCollectionWrapper::DisposeObjects(Recycler * recycler)
 
 static void* GetStackBase();
 
-template _ALWAYSINLINE char * Recycler::AllocWithAttributesInlined<NoBit, false>(size_t size);
+template _ALWAYSINLINE char * Recycler::AllocWithAttributes<NoBit, false>(size_t size);
 template _ALWAYSINLINE char* Recycler::RealAlloc<NoBit, false>(HeapInfo* heap, size_t size);
 template _ALWAYSINLINE _Ret_notnull_ void * __cdecl operator new<Recycler>(size_t byteSize, Recycler * alloc, char * (Recycler::*AllocFunc)(size_t));
 
@@ -8502,7 +8502,7 @@ RecyclerHeapObjectInfo::GetSize() const
 }
 
 // the following instantiation is require for clang while compiling Js::InternalString::New
-template char* Recycler::AllocWithAttributesInlined<(Memory::ObjectInfoBits)32, false>(size_t);
+template char* Recycler::AllocWithAttributes<(Memory::ObjectInfoBits)32, false>(size_t);
 
 // Allocators
 char * RecyclerAllocatorWithBarrier::Alloc(DECLSPEC_GUARD_OVERFLOW size_t byteSize)

@@ -125,12 +125,12 @@ struct InfoBitsWrapper{};
 #define RecyclerNewArray(recycler,T,count) AllocatorNewArrayBase(RecyclerAllocator, recycler->GetAllocator(), Alloc, T, count)
 #define RecyclerNewArrayZ(recycler,T,count) AllocatorNewArrayBase(RecyclerAllocator, recycler->GetAllocator(), AllocZero, T, count)
 // special allocators
-#define RecyclerNewFinalized(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedInlined, T, __VA_ARGS__)))
+#define RecyclerNewFinalized(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalized, T, __VA_ARGS__)))
 #define RecyclerNewFinalizedPlus(recycler, size, T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocFinalized, size, T, __VA_ARGS__)))
-#define RecyclerNewTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTrackedInlined, T, __VA_ARGS__)))
+#define RecyclerNewTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTracked, T, __VA_ARGS__)))
 #define RecyclerNewEnumClass(recycler, enumClass, T, ...) new (TRACK_ALLOC_INFO(static_cast<Recycler *>(recycler), T, Recycler, 0, (size_t)-1), InfoBitsWrapper<enumClass>()) T(__VA_ARGS__)
 #define RecyclerNewWithInfoBits(recycler, infoBits, T, ...) new (TRACK_ALLOC_INFO(static_cast<Recycler *>(recycler), T, Recycler, 0, (size_t)-1), InfoBitsWrapper<infoBits>()) T(__VA_ARGS__)
-#define RecyclerNewFinalizedClientTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedClientTrackedInlined, T, __VA_ARGS__)))
+#define RecyclerNewFinalizedClientTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedClientTracked, T, __VA_ARGS__)))
 
 #if defined(RECYCLER_WRITE_BARRIER_ALLOC)
 #define RecyclerNewWithBarrier(recycler,T,...) AllocatorNewBase(RecyclerAllocatorWithBarrier, recycler->GetAllocatorWithBarrier(), Alloc, T, __VA_ARGS__)
@@ -143,12 +143,12 @@ struct InfoBitsWrapper{};
 #define RecyclerNewWithBarrierArray(recycler,T,count) AllocatorNewArrayBase(RecyclerAllocatorWithBarrier, recycler->GetAllocatorWithBarrier(), Alloc, T, count)
 #define RecyclerNewWithBarrierArrayZ(recycler,T,count) AllocatorNewArrayBase(RecyclerAllocatorWithBarrier, recycler->GetAllocatorWithBarrier(), AllocZero, T, count)
 // special allocators, can also change to use RecyclerAllocatorWithBarrier as well
-#define RecyclerNewWithBarrierFinalized(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedWithBarrierInlined, T, __VA_ARGS__)))
+#define RecyclerNewWithBarrierFinalized(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedWithBarrier, T, __VA_ARGS__)))
 #define RecyclerNewWithBarrierFinalizedPlus(recycler, size, T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocFinalizedWithBarrier, size, T, __VA_ARGS__)))
-#define RecyclerNewWithBarrierTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTrackedWithBarrierInlined, T, __VA_ARGS__)))
+#define RecyclerNewWithBarrierTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTrackedWithBarrier, T, __VA_ARGS__)))
 #define RecyclerNewWithBarrierEnumClass(recycler, enumClass, T, ...) new (TRACK_ALLOC_INFO(static_cast<Recycler *>(recycler), T, Recycler, 0, (size_t)-1), InfoBitsWrapper<(ObjectInfoBits)(enumClass | WithBarrierBit)>()) T(__VA_ARGS__)
 #define RecyclerNewWithBarrierWithInfoBits(recycler, infoBits, T, ...) new (TRACK_ALLOC_INFO(static_cast<Recycler *>(recycler), T, Recycler, 0, (size_t)-1), InfoBitsWrapper<(ObjectInfoBits)(infoBits | WithBarrierBit)>()) T(__VA_ARGS__)
-#define RecyclerNewWithBarrierFinalizedClientTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedClientTrackedWithBarrierInlined, T, __VA_ARGS__)))
+#define RecyclerNewWithBarrierFinalizedClientTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedClientTrackedWithBarrier, T, __VA_ARGS__)))
 #endif
 
 #ifndef RECYCLER_WRITE_BARRIER
@@ -170,18 +170,18 @@ struct InfoBitsWrapper{};
 #endif
 
 // Leaf allocators
-#define RecyclerNewLeaf(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocLeafInlined, T, __VA_ARGS__)
-#define RecyclerNewLeafZ(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocLeafZeroInlined, T, __VA_ARGS__)
+#define RecyclerNewLeaf(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocLeaf, T, __VA_ARGS__)
+#define RecyclerNewLeafZ(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocLeafZero, T, __VA_ARGS__)
 #define RecyclerNewPlusLeaf(recycler,size,T,...) AllocatorNewPlusLeaf(Recycler, recycler, size, T, __VA_ARGS__)
 #define RecyclerNewPlusLeafZ(recycler,size,T,...) AllocatorNewPlusLeafZ(Recycler, recycler, size, T, __VA_ARGS__)
-#define RecyclerNewStructLeaf(recycler,T) AllocatorNewStructBase(Recycler, recycler, AllocLeafInlined, T)
-#define RecyclerNewStructLeafZ(recycler,T) AllocatorNewStructBase(Recycler, recycler, AllocLeafZeroInlined, T)
+#define RecyclerNewStructLeaf(recycler,T) AllocatorNewStructBase(Recycler, recycler, AllocLeaf, T)
+#define RecyclerNewStructLeafZ(recycler,T) AllocatorNewStructBase(Recycler, recycler, AllocLeafZero, T)
 #define RecyclerNewArrayLeafZ(recycler,T,count) AllocatorNewArrayBase(Recycler, recycler, AllocLeafZero, T, count)
 #define RecyclerNewArrayLeaf(recycler,T,count) AllocatorNewArrayBase(Recycler, recycler, AllocLeaf, T, count)
-#define RecyclerNewFinalizedLeaf(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedLeafInlined, T, __VA_ARGS__)))
+#define RecyclerNewFinalizedLeaf(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedLeaf, T, __VA_ARGS__)))
 #define RecyclerNewFinalizedLeafPlus(recycler, size, T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocFinalizedLeaf, size, T, __VA_ARGS__)))
-#define RecyclerNewTrackedLeaf(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTrackedLeafInlined, T, __VA_ARGS__)))
-#define RecyclerNewTrackedLeafPlusZ(recycler,size,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocZeroTrackedLeafInlined, size, T, __VA_ARGS__)))
+#define RecyclerNewTrackedLeaf(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocTrackedLeaf, T, __VA_ARGS__)))
+#define RecyclerNewTrackedLeafPlusZ(recycler,size,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewPlusBase(Recycler, recycler, AllocZeroTrackedLeaf, size, T, __VA_ARGS__)))
 
 
 
@@ -668,9 +668,7 @@ public:
 
 class Recycler
 {
-#if !GLOBAL_FORCE_USE_WRITE_BARRIER
     friend class RecyclerAllocator;
-#endif
     friend class RecyclerAllocatorWithBarrier;
     friend class RecyclerScanMemoryCallback;
     friend class RecyclerSweep;
@@ -1255,20 +1253,12 @@ public:
     { \
         return AllocWithAttributesFunc<attributes, /* nothrow = */ false>(size); \
     } \
-    __forceinline char * AllocFunc##Inlined(DECLSPEC_GUARD_OVERFLOW size_t size) \
-    { \
-        return AllocWithAttributesFunc##Inlined<attributes, /* nothrow = */ false>(size);  \
-    } \
     DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributesFunc, attributes);
 
 #define DEFINE_RECYCLER_NOTHROW_ALLOC_BASE(AllocFunc, AllocWithAttributesFunc, attributes) \
     inline char * NoThrow##AllocFunc(DECLSPEC_GUARD_OVERFLOW size_t size) \
     { \
         return AllocWithAttributesFunc<attributes, /* nothrow = */ true>(size); \
-    } \
-    inline char * NoThrow##AllocFunc##Inlined(DECLSPEC_GUARD_OVERFLOW size_t size) \
-    { \
-        return AllocWithAttributesFunc##Inlined<attributes, /* nothrow = */ true>(size);  \
     } \
     DEFINE_RECYCLER_ALLOC_TRACE(AllocFunc, AllocWithAttributesFunc, attributes);
 
@@ -1483,25 +1473,13 @@ private:
     template <typename SmallHeapBlockAllocatorType>
     void RemoveSmallAllocator(SmallHeapBlockAllocatorType * allocator, size_t sizeCat);
     template <ObjectInfoBits attributes, typename SmallHeapBlockAllocatorType>
-    char * SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, size_t sizeCat, size_t size);
+    char * SmallAllocatorAlloc(SmallHeapBlockAllocatorType * allocator, DECLSPEC_GUARD_OVERFLOW size_t sizeCat, size_t size);
 
     // Allocation
     template <ObjectInfoBits attributes, bool nothrow>
-    inline char * AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size);
+    inline char * AllocWithAttributes(DECLSPEC_GUARD_OVERFLOW size_t size);
     template <ObjectInfoBits attributes, bool nothrow>
-    char * AllocWithAttributes(DECLSPEC_GUARD_OVERFLOW size_t size)
-    {
-        return AllocWithAttributesInlined<attributes, nothrow>(size);
-    }
-
-    template <ObjectInfoBits attributes, bool nothrow>
-    inline char* AllocZeroWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size);
-
-    template <ObjectInfoBits attributes, bool nothrow>
-    char* AllocZeroWithAttributes(DECLSPEC_GUARD_OVERFLOW size_t size)
-    {
-        return AllocZeroWithAttributesInlined<attributes, nothrow>(size);
-    }
+    inline char* AllocZeroWithAttributes(DECLSPEC_GUARD_OVERFLOW size_t size);
 
     char* AllocWeakReferenceEntry(DECLSPEC_GUARD_OVERFLOW size_t size)
     {

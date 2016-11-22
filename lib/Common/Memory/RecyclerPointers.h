@@ -42,20 +42,18 @@ struct TypeWriteBarrierPolicy<_write_barrier_policy> { typedef _write_barrier_po
 //
 
 class RecyclerAllocatorWithBarrier;
-#if GLOBAL_FORCE_USE_WRITE_BARRIER
-typedef RecyclerAllocatorWithBarrier RecyclerAllocator;
-#else
 class RecyclerAllocator;
-#endif
 class RecyclerLeafAllocator;
+
 template <class AllocatorType>
 struct _AllocatorTypeWriteBarrierPolicy { typedef _no_write_barrier_policy Policy; };
-#if !GLOBAL_FORCE_USE_WRITE_BARRIER
+
 template <>
 struct _AllocatorTypeWriteBarrierPolicy<RecyclerAllocator> { typedef _no_write_barrier_policy Policy; };
-#endif
+
 template <>
 struct _AllocatorTypeWriteBarrierPolicy<RecyclerAllocatorWithBarrier> { typedef _write_barrier_policy Policy; };
+
 template <>
 struct _AllocatorTypeWriteBarrierPolicy<RecyclerLeafAllocator> { typedef _no_write_barrier_policy Policy; };
 
@@ -81,9 +79,9 @@ template <class T>
 struct AllocatorWriteBarrierPolicy<RecyclerAllocatorWithBarrier, T> { typedef _write_barrier_policy Policy; };
 template <>
 struct AllocatorWriteBarrierPolicy<RecyclerAllocatorWithBarrier, int> { typedef _no_write_barrier_policy Policy; };
-#if !GLOBAL_FORCE_USE_WRITE_BARRIER
+#if GLOBAL_ENABLE_WRITE_BARRIER
 template <class T>
-struct AllocatorWriteBarrierPolicy<RecyclerAllocator, T> { typedef _no_write_barrier_policy Policy; };
+struct AllocatorWriteBarrierPolicy<RecyclerAllocator, T> { typedef _write_barrier_policy Policy; };
 template <>
 struct AllocatorWriteBarrierPolicy<RecyclerAllocator, int> { typedef _no_write_barrier_policy Policy; };
 #endif
