@@ -170,7 +170,7 @@ namespace Js
     JavascriptString * DynamicObjectPropertyEnumerator::MoveAndGetNextWithCache(PropertyId& propertyId, PropertyAttributes* attributes)
     {
 #if ENABLE_TTD
-        TTDAssert(!this->scriptContext->GetThreadContext()->IsRuntimeInTTDMode(), "We should always trap out to explicit enumeration in this case");
+        AssertMsg(!this->scriptContext->GetThreadContext()->IsRuntimeInTTDMode(), "We should always trap out to explicit enumeration in this case");
 #endif
 
         Assert(enumeratedCount <= cachedData->cachedCount);
