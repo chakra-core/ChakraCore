@@ -66,6 +66,16 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     ::GetCurrentThreadStackLimits(&stackEnd, &stackBase);
 #endif
 
+#ifdef X64_WB_DIAG
+    this->_stackbase = (char*)stackBase;
+    this->_stacklimit = (char*)stackEnd;
+#endif
+
+    // on Windows server 2012 stack limit can expand with process running, and causes
+    // accessing uncommitted card table page.
+    // TODO: use VirtualQuery twice to get the max possible stack limit
+    stackEnd -= AutoSystemInfo::PageSize * AutoSystemInfo::PageSize;
+
     size_t numPages = (stackBase - stackEnd) / AutoSystemInfo::PageSize;
     // stackEnd is the lower boundary
     bool ret = OnSegmentAlloc((char*) stackEnd, numPages);

@@ -125,6 +125,8 @@ private:
     size_t _lastSectionIndexStart;
     size_t _lastSectionIndexLast;
     CommitState _lastCommitState;
+    char* _stackbase;
+    char* _stacklimit;
 #endif
 
 #ifdef X64_WB_DIAG
