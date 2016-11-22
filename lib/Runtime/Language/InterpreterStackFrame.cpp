@@ -2469,7 +2469,7 @@ namespace Js
 #endif
 
 #if ENABLE_TTD
-        TTDAssert(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We never be fetching an opcode via this path if this is true!!!");
+        AssertMsg(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We never be fetching an opcode via this path if this is true!!!");
 #endif
 
         OpCodeType op = (OpCodeType)ReadOpFunc(ip);
@@ -2512,6 +2512,10 @@ namespace Js
         //   which matches the displayed offsets used by ByteCodeDumper.
         //
         this->DEBUG_currentByteOffset = (void *)m_reader.GetCurrentOffset();
+#endif
+
+#if ENABLE_TTD
+        AssertMsg(this->scriptContext->GetThreadContext()->IsRuntimeInTTDMode(), "We never be fetching an opcode via this path if this is not true!!!");
 #endif
 
         if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
@@ -3458,7 +3462,7 @@ namespace Js
         if(interpreterExecutionMode == ExecutionMode::ProfilingInterpreter)
         {
 #if ENABLE_TTD
-            TTDAssert(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We should have pinned into Interpreter mode in this case!!!");
+            AssertMsg(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We should have pinned into Interpreter mode in this case!!!");
 #endif
 
             isAutoProfiling = false;
