@@ -2569,13 +2569,7 @@ LowererMDArch::EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInser
     Assert(dst->IsRegOpnd() && dst->IsInt64());
     Assert(src->IsInt32());
 
-    if (src->IsIntConstOpnd())
-    {
-        Lowerer::InsertMove(dst, src, instrInsert);
-        return;
-    }
-    Assert(src->IsRegOpnd());
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOVSXD, dst, src, this->m_func));
+    Lowerer::InsertMove(dst, src, instrInsert);
 }
 
 void
@@ -2584,13 +2578,7 @@ LowererMDArch::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInse
     Assert(dst->IsRegOpnd() && dst->IsInt64());
     Assert(src->IsUInt32());
 
-    if (src->IsIntConstOpnd())
-    {
-        Lowerer::InsertMove(dst, src, instrInsert);
-        return;
-    }
-    Assert(src->IsRegOpnd());
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, src, this->m_func));
+    Lowerer::InsertMove(dst, src, instrInsert);
 }
 
 void
