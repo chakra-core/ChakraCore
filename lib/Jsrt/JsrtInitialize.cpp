@@ -36,11 +36,11 @@ _NOINLINE void DISPOSE_CHAKRA_CORE_THREAD(void *_)
 CHAKRA_API JsInitializeRuntime(_In_ int argc, _In_ char** argv)
 {
     if (s_threadWasEntered)
-	{
-		/* Repeateadly calling this function should be Safe. */
-		return JsNoError;
-	}
-	/* This Function Does nothing on Shared Builds for Windows. */
+    {
+        /* Repeateadly calling this function should be Safe. */
+        return JsNoError;
+    }
+    /* This Function Does nothing on Shared Builds for Windows. */
 #if defined(CHAKRA_STATIC_LIBRARY) || !defined(_WIN32)
 
 #if !defined(_WIN32)
@@ -96,7 +96,7 @@ CHAKRA_API JsInitializeRuntime(_In_ int argc, _In_ char** argv)
     DynamicProfileStorage::Initialize();
 #endif
 #if defined(CHAKRA_STATIC_LIBRARY)
-	atexit(JsFinalizeRuntime);
+    atexit(JsFinalizeRuntime)
 #endif
 
 #ifdef HEAP_TRACK_ALLOC
@@ -109,24 +109,24 @@ CHAKRA_API JsInitializeRuntime(_In_ int argc, _In_ char** argv)
 #endif
 #endif
     s_threadWasEntered = true;
-	return JsNoError;
+    return JsNoError;
 }
 
 CHAKRA_API JsFinalizeRuntime()
 {
 #if defined(CHAKRA_STATIC_LIBRARY) || !defined(_WIN32)
-	if(s_threadWasEntered)
-	{
-		ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread();
+    if(s_threadWasEntered)
+    {
+        ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread();
 
-		JsrtRuntime::Uninitialize();
+        JsrtRuntime::Uninitialize();
 
-		// thread-bound entrypoint should be able to get cleanup correctly, however tlsentry
-		// for current thread might be left behind if this thread was initialized.
-		ThreadContextTLSEntry::CleanupThread();
-		ThreadContextTLSEntry::CleanupProcess();
-	}
+        // thread-bound entrypoint should be able to get cleanup correctly, however tlsentry
+        // for current thread might be left behind if this thread was initialized.
+        ThreadContextTLSEntry::CleanupThread();
+        ThreadContextTLSEntry::CleanupProcess();
+    }
 #endif
-	s_threadWasEntered = false;
-	return JsNoError;
+    s_threadWasEntered = false;
+    return JsNoError;
 }
