@@ -26,7 +26,6 @@ Abstract:
 #include "pal/file.hpp"
 #include "pal/map.hpp"
 #include "../objmgr/shmobjectmanager.hpp"
-#include "pal/seh.hpp"
 #include "pal/palinternal.h"
 #include "pal/dbgmsg.h"
 #include "pal/shmemory.h"
@@ -42,6 +41,8 @@ Abstract:
 
 #if HAVE_MACH_EXCEPTIONS
 #include "../exception/machexception.h"
+#else
+#include "../exception/signal.hpp"
 #endif
 
 #include <stdlib.h>
@@ -441,6 +442,13 @@ Initialize(
             goto CLEANUP2;
         }
 
+#if !HAVE_MACH_EXCEPTIONS
+        if(!SEHInitializeSignals())
+        {
+            goto CLEANUP5;
+        }
+#endif
+
         if (flags & PAL_INITIALIZE_SYNC_THREAD)
         {
             //
@@ -455,13 +463,6 @@ Initialize(
         }
 
         palError = ERROR_GEN_FAILURE;
-
-        /* initialize structured exception handling stuff (signals, etc) */
-        if (FALSE == SEHInitialize(pThread, flags))
-        {
-            ERROR("Unable to initialize SEH support\n");
-            goto CLEANUP5;
-        }
 
         if (FALSE == TIMEInitialize())
         {
@@ -530,7 +531,6 @@ CLEANUP13:
 CLEANUP10:
     MAPCleanup();
 CLEANUP6:
-    SEHCleanup();
 CLEANUP5:
     PROCCleanupInitialProcess();
 CLEANUP2:
