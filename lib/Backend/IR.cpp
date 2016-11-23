@@ -3366,17 +3366,9 @@ bool Instr::HasAnyImplicitCalls() const
 
 bool Instr::HasAnySideEffects() const
 {
-    if (OpCodeAttr::HasSideEffects(this->m_opcode))
-    {
-        return true;
-    }
-
-    if (this->HasAnyImplicitCalls())
-    {
-        return true;
-    }
-
-    return false;
+    return (hasSideEffects ||
+            OpCodeAttr::HasSideEffects(this->m_opcode) ||
+            this->HasAnyImplicitCalls());
 }
 
 bool Instr::AreAllOpndInt64() const

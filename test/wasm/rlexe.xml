@@ -9,6 +9,12 @@
 </test>
 <test>
   <default>
+    <files>fastarray.js</files>
+    <compile-flags>-wasm </compile-flags>
+  </default>
+</test>
+<test>
+  <default>
     <files>misc.js</files>
     <baseline>misc.baseline</baseline>
     <compile-flags>-wasm</compile-flags>

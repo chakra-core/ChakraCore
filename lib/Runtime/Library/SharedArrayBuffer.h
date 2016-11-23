@@ -139,34 +139,6 @@ namespace Js
         static JavascriptSharedArrayBuffer* Create(SharedContents *sharedContents, DynamicType * type);
         virtual void Dispose(bool isShutdown) override;
         virtual void Finalize(bool isShutdown) override;
-        static void*__cdecl  AllocWrapper(size_t length)
-        {
-#if _WIN64
-            LPVOID address = VirtualAlloc(nullptr, MAX_ASMJS_ARRAYBUFFER_LENGTH, MEM_RESERVE, PAGE_NOACCESS);
-            //throw out of memory
-            if (!address)
-            {
-                Js::Throw::OutOfMemory();
-            }
-            LPVOID arrayAddress = VirtualAlloc(address, length, MEM_COMMIT, PAGE_READWRITE);
-            if (!arrayAddress)
-            {
-                VirtualFree(address, 0, MEM_RELEASE);
-                Js::Throw::OutOfMemory();
-            }
-            return arrayAddress;
-#else
-            Assert(false);
-            return nullptr;
-#endif
-        }
-
-        static void FreeMemAlloc(Var ptr)
-        {
-            BOOL fSuccess = VirtualFree((LPVOID)ptr, 0, MEM_RELEASE);
-            Assert(fSuccess);
-        }
-
         virtual bool IsValidVirtualBufferLength(uint length) override;
 
     private:
