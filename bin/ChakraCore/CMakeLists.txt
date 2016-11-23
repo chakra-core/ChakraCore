@@ -20,7 +20,6 @@ target_include_directories (
 #  pthread: For threading
 #  stdc++/gcc_s: C++ runtime code
 #  dl: For shared library loading related functions
-#  icuuc: For the ICU (xplat-todo: Make this optional)
 #
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(LINKER_START_GROUP

@@ -8,7 +8,11 @@
 #endif
 #include <wincrypt.h>
 #include <VersionHelpers.h>
-
+#ifdef __APPLE__
+#include <sys/sysctl.h> // sysctl*
+#elif defined(__linux__)
+#include <unistd.h> // sysconf
+#endif
 // Initialization order
 //  AB AutoSystemInfo
 //  AD PerfCounter
@@ -119,9 +123,9 @@ AutoSystemInfo::Initialize()
 bool
 AutoSystemInfo::InitPhysicalProcessorCount()
 {
+    DWORD countPhysicalProcessor = 0;
 #ifdef _WIN32
     DWORD size = 0;
-    DWORD countPhysicalProcessor = 0;
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION pBufferCurrent;
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION pBufferStart;
     BOOL bResult;
@@ -133,8 +137,7 @@ AutoSystemInfo::InitPhysicalProcessorCount()
 
     this->dwNumberOfPhysicalProcessors = this->dwNumberOfProcessors;
 
-    // xplat-todo: figure out #physical_cores
-#ifdef _WIN32
+#if defined(_WIN32)
     bResult = GetLogicalProcessorInformation(NULL, &size);
 
     if (bResult || GetLastError() != ERROR_INSUFFICIENT_BUFFER || !size)
@@ -143,7 +146,6 @@ AutoSystemInfo::InitPhysicalProcessorCount()
     }
 
     DWORD count = (size) / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
-
     if (size != count * sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION))
     {
         Assert(false);
@@ -172,9 +174,29 @@ AutoSystemInfo::InitPhysicalProcessorCount()
     }
 
     NoCheckHeapDeleteArray(count, pBufferStart);
+#elif defined(__APPLE__)
+    std::size_t szCount = sizeof(countPhysicalProcessor);
+    sysctlbyname("hw.physicalcpu", &countPhysicalProcessor, &szCount, nullptr, 0);
 
+    if (countPhysicalProcessor < 1)
+    {
+        int nMIB[2] = {CTL_HW, HW_NCPU}; // fallback. Depracated on latest OS
+        sysctl(nMIB, 2, &countPhysicalProcessor, &szCount, nullptr, 0);
+        if (countPhysicalProcessor < 1)
+        {
+            countPhysicalProcessor = 1;
+        }
+    }
+#elif defined(__linux__)
+    countPhysicalProcessor = sysconf(_SC_NPROCESSORS_ONLN);
+#else
+    // implementation for __linux__ should work for some others.
+    // same applies to __APPLE__ implementation
+    // instead of reimplementing, add corresponding preprocessors above
+#error "NOT Implemented"
+#endif
     this->dwNumberOfPhysicalProcessors = countPhysicalProcessor;
-#endif // _WIN32
+
     return true;
 }
 
