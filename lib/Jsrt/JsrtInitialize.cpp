@@ -18,9 +18,6 @@
 // At the moment we do handle thread exit for non main threads on xplat
 // However, it could be nice/necessary to provide an interface to make sure
 // we cover additional edge cases.
-#if defined(CHAKRA_STATIC_LIBRARY) || !defined(_WIN32)
-    #include "Core/ConfigParser.h"
-    #include "Base/ThreadBoundThreadContextManager.h"
 
 #ifndef _WIN32
 #include <pthread.h>
@@ -101,9 +98,6 @@ CHAKRA_API JsInitializeRuntime(_In_ int argc, _In_ char** argv)
 #if defined(CHAKRA_STATIC_LIBRARY)
 	atexit(JsFinalizeRuntime);
 #endif
-#endif
-
-
 
 #ifdef HEAP_TRACK_ALLOC
     HeapAllocator::InitializeThread();
