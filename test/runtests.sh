@@ -27,6 +27,18 @@ elif [[ -f "$test_path/../BuildLinux/Release/ch" ]]; then
     binary_path="Release";
     echo "Warning: Release build was found"
     release_build=1
+elif [[ -f "$test_path/../BuildLinux/StaticDebug/ch" ]]; then
+    echo "Warning: Static Debug build was found"
+    binary_path="StaticDebug";
+    build_type="-d"
+elif [[ -f "$test_path/../BuildLinux/StaticTest/ch" ]]; then
+    echo "Warning: Static Test build was found"
+    binary_path="StaticTest";
+    build_type="-t"
+elif [[ -f "$test_path/../BuildLinux/StaticRelease/ch" ]]; then
+    binary_path="StaticRelease";
+    echo "Warning: Static Release build was found"
+    release_build=1
 else
     echo 'Error: ch not found- exiting'
     exit 1
@@ -41,7 +53,7 @@ else
     # TEST flags are not enabled for release build
     # however we would like to test if the compiled binary
     # works or not
-    RES=$($test_path/../BuildLinux/${binary_path}/ch $test_path/basics/hello.js)
+    RES=$($test_path/../BuildLinux/${binary_path}/ch $test_path/Basics/hello.js)
     if [[ $RES =~ "Error :" ]]; then
         echo "FAILED"
         exit 1
