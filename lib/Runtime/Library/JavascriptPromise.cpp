@@ -956,7 +956,7 @@ namespace Js
 
         try
         {
-            values->DirectSetItemAt(index, x);
+            values->SetItem(index, x, PropertyOperation_None);
         }
         catch (const JavascriptException& err)
         {

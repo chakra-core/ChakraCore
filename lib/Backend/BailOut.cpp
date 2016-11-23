@@ -316,12 +316,6 @@ BailOutRecord::BailOutRecord(uint32 bailOutOffset, uint bailOutCacheIndex, IR::B
 }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-#define REJIT_TESTTRACE(...) \
-    if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::ReJITPhase)) \
-    { \
-        Output::Print(__VA_ARGS__); \
-        Output::Flush(); \
-    }
 #define REJIT_KIND_TESTTRACE(bailOutKind, ...) \
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::ReJITPhase)) \
     { \
@@ -334,7 +328,6 @@ BailOutRecord::BailOutRecord(uint32 bailOutOffset, uint bailOutCacheIndex, IR::B
 const char16 * const trueString = _u("true");
 const char16 * const falseString = _u("false");
 #else
-#define REJIT_TESTTRACE(...)
 #define REJIT_KIND_TESTTRACE(...)
 #endif
 
@@ -727,8 +720,8 @@ BailOutRecord::AdjustOffsetsForDiagMode(Js::JavascriptCallStackLayout * layout, 
 }
 
 void
-BailOutRecord::IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, bool * pIsFloat64, bool * pIsInt32, 
-    bool * pIsSimd128F4, bool * pIsSimd128I4, bool * pIsSimd128I8, bool * pIsSimd128I16, bool * pIsSimd128U4, 
+BailOutRecord::IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, bool * pIsFloat64, bool * pIsInt32,
+    bool * pIsSimd128F4, bool * pIsSimd128I4, bool * pIsSimd128I8, bool * pIsSimd128I16, bool * pIsSimd128U4,
     bool * pIsSimd128U8, bool * pIsSimd128U16, bool * pIsSimd128B4, bool * pIsSimd128B8, bool * pIsSimd128B16) const
 {
     bool isFloat64 = this->argOutOffsetInfo->argOutFloat64Syms->Test(argOutSlotStart + offsetIndex) != 0;
@@ -745,7 +738,7 @@ BailOutRecord::IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, b
     bool isSimd128B8    = this->argOutOffsetInfo->argOutSimd128B8Syms->Test(argOutSlotStart + offsetIndex) != 0;
     bool isSimd128B16   = this->argOutOffsetInfo->argOutSimd128B16Syms->Test(argOutSlotStart + offsetIndex) != 0;
 
-    Assert(!isFloat64 || !isInt32 || 
+    Assert(!isFloat64 || !isInt32 ||
         !isSimd128F4 || !isSimd128I4 || !isSimd128I8 || !isSimd128I16 || !
         !isSimd128U4 || !isSimd128U8 || !isSimd128U16);
 
@@ -766,8 +759,8 @@ BailOutRecord::IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, b
 void
 BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStackLayout * layout, Js::Var * values, Js::ScriptContext * scriptContext,
     bool fromLoopBody, Js::Var * registerSaves, Js::InterpreterStackFrame * newInstance, Js::Var* pArgumentsObject, void * argoutRestoreAddress,
-    uint regSlot, int offset, bool isLocal, bool isFloat64, bool isInt32, 
-    bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, 
+    uint regSlot, int offset, bool isLocal, bool isFloat64, bool isInt32,
+    bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16,
     bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, bool isSimd128B4, bool isSimd128B8, bool isSimd128B16) const
 {
     bool boxStackInstance = true;
@@ -801,7 +794,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
             }
             else if (
                     isSimd128F4 || isSimd128I4 || isSimd128I8 || isSimd128I16 ||
-                    isSimd128U4 || isSimd128U8 || isSimd128U16 || isSimd128B4 || 
+                    isSimd128U4 || isSimd128U8 || isSimd128U16 || isSimd128B4 ||
                     isSimd128B8 || isSimd128B16
                     )
             {
@@ -826,8 +819,8 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
             // and we bailout during bar args evaluation, we recover from args from argoutRestoreAddress, not from caller function frame.
             // This is because try-catch is implemented as a C wrapper, so args will be a different offset from rbp in that case.
             Assert(
-                   !isFloat64 && !isInt32 && 
-                   !isSimd128F4 && !isSimd128I4 && !isSimd128I8 && !isSimd128I16 && !isSimd128U4 && 
+                   !isFloat64 && !isInt32 &&
+                   !isSimd128F4 && !isSimd128I4 && !isSimd128I8 && !isSimd128I16 && !isSimd128U4 &&
                    !isSimd128U8 && !isSimd128U16 && !isSimd128B4 && !isSimd128B8 && !isSimd128B16
                   );
 
@@ -1019,8 +1012,8 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
         globalBailOutRecordTable->IterateGlobalBailOutRecordTableRows(m_bailOutRecordId, [=](GlobalBailOutRecordDataRow *row) {
             Assert(row->offset != 0);
             RestoreValue(bailOutKind, layout, values, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject,
-                argoutRestoreAddress, row->regSlot, row->offset, true, row->isFloat, row->isInt, row->isSimd128F4, 
-                row->isSimd128I4, row->isSimd128I8, row->isSimd128I16, row->isSimd128U4, row->isSimd128U8, row->isSimd128U16, 
+                argoutRestoreAddress, row->regSlot, row->offset, true, row->isFloat, row->isInt, row->isSimd128F4,
+                row->isSimd128I4, row->isSimd128I8, row->isSimd128I16, row->isSimd128U4, row->isSimd128U8, row->isSimd128U16,
                 row->isSimd128B4, row->isSimd128B8, row->isSimd128B16);
         });
     }
@@ -1045,12 +1038,12 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
             bool isSimd128B16;
 
             offset = offsets[i];
-            this->IsOffsetNativeIntOrFloat(i, argOutSlotStart, &isFloat64, &isInt32, 
-                                           &isSimd128F4, &isSimd128I4, &isSimd128I8, &isSimd128I16, 
+            this->IsOffsetNativeIntOrFloat(i, argOutSlotStart, &isFloat64, &isInt32,
+                                           &isSimd128F4, &isSimd128I4, &isSimd128I8, &isSimd128I16,
                                            &isSimd128U4, &isSimd128U8, &isSimd128U16, &isSimd128B4, &isSimd128B8, &isSimd128B16);
 
             RestoreValue(bailOutKind, layout, values, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject,
-                         argoutRestoreAddress, i, offset, false, isFloat64, isInt32, isSimd128F4, isSimd128I4, isSimd128I8, 
+                         argoutRestoreAddress, i, offset, false, isFloat64, isInt32, isSimd128F4, isSimd128I4, isSimd128I8,
                          isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16, isSimd128B4, isSimd128B8, isSimd128B16);
         }
     }
@@ -1654,10 +1647,10 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
             newInstance->SetNonVarReg(paramClosureReg, nullptr);
         }
     }
-    
+
     if (bailOutRecord->globalBailOutRecordTable->hasStackArgOpt)
     {
-        newInstance->TrySetFrameObjectInHeapArgObj(functionScriptContext, bailOutRecord->globalBailOutRecordTable->hasNonSimpleParams, 
+        newInstance->TrySetFrameObjectInHeapArgObj(functionScriptContext, bailOutRecord->globalBailOutRecordTable->hasNonSimpleParams,
             bailOutRecord->globalBailOutRecordTable->isScopeObjRestored);
     }
 
@@ -1911,7 +1904,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
             case IR::BailOutOnNotNativeArray:
 
-                // REVIEW: We have an issue with array profile info.  The info on the type of array we have won't 
+                // REVIEW: We have an issue with array profile info.  The info on the type of array we have won't
                 //         get fixed by rejitting.  For now, just give up after 50 rejits.
                 if (profileInfo->GetRejitCount() >= 50)
                 {
@@ -2339,9 +2332,9 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
     totalJittedLoopIterations = totalJittedLoopIterations <= Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() ? 0 : totalJittedLoopIterations - Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout();
 
     CheckPreemptiveRejit(executeFunction, bailOutKind, bailOutRecordNotConst, totalJittedLoopIterations, interpreterFrame->GetCurrentLoopNum());
-    
+
     entryPointInfo->totalJittedLoopIterations = totalJittedLoopIterations;
-    
+
     if ((executeFunction->HasDynamicProfileInfo() && totalJittedLoopIterations == 0) ||
         PHASE_FORCE(Js::ReJITPhase, executeFunction))
     {
@@ -2403,7 +2396,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                 executeFunction->SetDontRethunkAfterBailout();
                 rejitReason = RejitReason::DisableSwitchOptExpectingString;
                 break;
-            
+
             case IR::BailOnStackArgsOutOfActualsRange:
                 AssertMsg(false, "How did we reach here ? Stack args opt is currently disabled in loop body gen.");
                 break;
@@ -2849,8 +2842,8 @@ void GlobalBailOutRecordDataTable::Finalize(NativeCodeData::Allocator *allocator
 #endif
 }
 
-void  GlobalBailOutRecordDataTable::AddOrUpdateRow(JitArenaAllocator *allocator, uint32 bailOutRecordId, uint32 regSlot, bool isFloat, bool isInt, 
-                                                   bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, 
+void  GlobalBailOutRecordDataTable::AddOrUpdateRow(JitArenaAllocator *allocator, uint32 bailOutRecordId, uint32 regSlot, bool isFloat, bool isInt,
+                                                   bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, bool isSimd128U4, bool isSimd128U8, bool isSimd128U16,
                                                    bool isSimd128B4, bool isSimd128B8, bool isSimd128B16, int32 offset, uint *lastUpdatedRowIndex)
 {
     Assert(offset != 0);

@@ -63,7 +63,7 @@
 <test>
     <default>
        <files>global.js</files>
-       <baseline>global.baseline</baseline>
+       <baseline>baselines\global.baseline</baseline>
        <compile-flags>-wasm -on:WasmNativeTypeCallTest</compile-flags>
     </default>
 </test>
@@ -105,6 +105,13 @@
 <test>
     <default>
        <files>trunc.js</files>
+       <compile-flags>-wasm</compile-flags>
+    </default>
+</test>
+<test>
+    <default>
+       <files>api.js</files>
+       <baseline>baselines\api.baseline</baseline>
        <compile-flags>-wasm</compile-flags>
     </default>
 </test>

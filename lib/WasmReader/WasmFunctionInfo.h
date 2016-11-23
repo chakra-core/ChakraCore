@@ -34,6 +34,9 @@ namespace Wasm
 
         WasmReaderBase* GetCustomReader() const { return m_customReader; }
         void SetCustomReader(WasmReaderBase* customReader) { m_customReader = customReader; }
+#if DBG_DUMP
+        WasmImport* importedFunctionReference;
+#endif
 
         FunctionBodyReaderInfo m_readerInfo;
     private:

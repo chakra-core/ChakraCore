@@ -7,36 +7,28 @@
 
 namespace Wasm
 {
-
     class WasmGlobal
     {
-
-
     public:
+        WasmGlobal(GlobalReferenceTypes::Type refType, uint offset, WasmTypes::WasmType type, bool isMutable, WasmNode init) :
+            m_rType(refType),
+            m_offset(offset),
+            m_type(type),
+            m_isMutable(isMutable),
+            m_init(init)
+        {};
+        WasmTypes::WasmType GetType() const { return m_type; }
+        bool IsMutable() const { return m_isMutable; }
+        uint GetOffset() const { return m_offset; }
+        GlobalReferenceTypes::Type GetReferenceType() const { return m_rType; }
 
-        enum ReferenceType { Invalid, Const, LocalReference, ImportedReference };
-
-        WasmGlobal(uint offset, WasmTypes::WasmType type, bool mutability) : m_type(type), m_mutability(mutability), m_offset(offset) {};
-        WasmTypes::WasmType GetType() const;
-        bool GetMutability() const;
-        ReferenceType GetReferenceType() { return m_rType; }
-        void SetReferenceType(ReferenceType rt) { m_rType = rt; }
-        uint GetOffset() { return m_offset; }
-        void SetOffset(uint offset) { m_offset = offset; }
-
-        union
-        {
-            WasmConstLitNode cnst;
-            WasmVarNode var;
-            WasmImport* importVar;
-        };
-
+        WasmConstLitNode GetConstInit() const;
+        uint32 GetGlobalIndexInit() const;
     private:
-
-        ReferenceType m_rType;
+        GlobalReferenceTypes::Type m_rType;
         WasmTypes::WasmType m_type;
-        bool m_mutability;
+        bool m_isMutable;
         uint m_offset;
-
+        WasmNode m_init;
     };
 } // namespace Wasm

@@ -2838,7 +2838,7 @@ namespace Js
             }
         }
 
-        TTDAssert(false, "We found this and not accessor but noslots for index?");
+        TTDAssert(false, "We found this and not accessor but NoBigSlot for index?");
         return Js::Constants::NoBigSlot;
     }
 #endif

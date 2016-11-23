@@ -212,12 +212,8 @@ WebAssembly::ReadBufferSource(Var val, ScriptContext * ctx, _Out_ BYTE** buffer,
     const BOOL isTypedArray = Js::TypedArrayBase::Is(val);
     const BOOL isArrayBuffer = Js::ArrayBuffer::Is(val);
 
-    if (!isTypedArray && !isArrayBuffer)
-    {
-        *buffer = nullptr;
-        *byteLength = 0;
-        JavascriptError::ThrowTypeError(ctx, WASMERR_NeedBufferSource);
-    }
+    *buffer = nullptr;
+    *byteLength = 0;
 
     if (isTypedArray)
     {
@@ -225,11 +221,16 @@ WebAssembly::ReadBufferSource(Var val, ScriptContext * ctx, _Out_ BYTE** buffer,
         *buffer = array->GetByteBuffer();
         *byteLength = array->GetByteLength();
     }
-    else
+    else if (isArrayBuffer)
     {
         Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(val);
         *buffer = arrayBuffer->GetBuffer();
         *byteLength = arrayBuffer->GetByteLength();
+    }
+
+    if (*buffer == nullptr || *byteLength == 0)
+    {
+        JavascriptError::ThrowTypeError(ctx, WASMERR_NeedBufferSource);
     }
 }
 

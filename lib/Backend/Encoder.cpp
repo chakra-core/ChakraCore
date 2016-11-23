@@ -953,7 +953,6 @@ uint Encoder::CalculateCRC(uint bufferCRC, size_t data)
     }
 #endif
 #endif
-
     return CalculateCRC32(bufferCRC, data);
 }
 

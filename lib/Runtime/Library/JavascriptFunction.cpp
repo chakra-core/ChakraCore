@@ -2635,6 +2635,7 @@ LABEL1:
     BOOL JavascriptFunction::GetCallerProperty(Var originalInstance, Var* value, ScriptContext* requestContext)
     {
         ScriptContext* scriptContext = this->GetScriptContext();
+        *value = nullptr;
 
         if (this->IsStrictMode())
         {
@@ -2677,7 +2678,10 @@ LABEL1:
             {
                 JavascriptFunction* exceptionFunction = unhandledExceptionObject->GetFunction();
                 // This is for getcaller in window.onError. The behavior is different in different browsers
-                if (exceptionFunction && scriptContext == exceptionFunction->GetScriptContext())
+                if (exceptionFunction 
+                    && scriptContext == exceptionFunction->GetScriptContext()
+                    && exceptionFunction->IsScriptFunction()
+                    && !exceptionFunction->GetFunctionBody()->GetIsGlobalFunc())
                 {
                     *value = exceptionFunction;
                 }

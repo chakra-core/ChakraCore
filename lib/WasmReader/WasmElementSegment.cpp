@@ -44,12 +44,6 @@ namespace Wasm
         Assert(m_elems != nullptr);
         return m_elems[tableIndex];
     }
-
-    uint32 WasmElementSegment::GetDestAddr(Js::WebAssemblyModule* module) const
-    {
-        return module->GetOffsetFromInit(m_offsetExpr);
-    }
-
 } // namespace Wasm
 
 #endif // ENABLE_WASM

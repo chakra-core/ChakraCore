@@ -12,28 +12,22 @@ namespace Wasm
 
 WasmDataSegment::WasmDataSegment(ArenaAllocator * alloc, WasmNode ie, uint32 _source_size, const byte* _data) :
     m_alloc(alloc),
-    initExpr(ie),
-    source_size(_source_size),
-    data(_data)
+    m_initExpr(ie),
+    m_sourceSize(_source_size),
+    m_data(_data)
 {
 }
 
 uint32
-WasmDataSegment::getDestAddr(Js::WebAssemblyModule* module) const
+WasmDataSegment::GetSourceSize() const
 {
-    return module->GetOffsetFromInit(initExpr);
-}
-
-uint32
-WasmDataSegment::getSourceSize() const
-{
-    return source_size;
+    return m_sourceSize;
 }
 
 const byte*
-WasmDataSegment::getData() const
+WasmDataSegment::GetData() const
 {
-    return data;
+    return m_data;
 }
 
 } // namespace Wasm

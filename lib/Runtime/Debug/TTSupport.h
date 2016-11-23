@@ -56,12 +56,6 @@ namespace TTD
 
 void _NOINLINE __declspec(noreturn) TTDAbort_fatal_error(const char* msg);
 
-#if ENABLE_TTD_ASSERT
-#define TTDAssert(C, M) { if(!(C)) TTDAbort_fatal_error(M); }
-#else
-#define TTDAssert(C, M) 
-#endif
-
 ////////
 //Memory allocators used by the TT code
 template <typename T>

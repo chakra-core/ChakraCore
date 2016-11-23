@@ -6255,12 +6255,13 @@ LowererMD::GenerateCopysign(IR::Instr * instr)
 
     // Copy sign from src2 to src1
     IR::Opnd* src1 = instr->GetSrc1();
+    IR::Opnd* src2 = instr->GetSrc2();
     Assert(src1->IsFloat32() || src1->IsFloat64());
     GenerateFloatAbs(src1->AsRegOpnd(), instr);
 
-    IR::Instr* t2 = IR::Instr::New(Js::OpCode::ANDPS, instr->GetSrc2(), instr->GetSrc2(),
-        IR::MemRefOpnd::New(this->m_func->GetThreadContextInfo()->GetSgnBitCst(), src1->GetType(), this->m_func, src1->IsFloat32() ? IR::AddrOpndKindDynamicFloatRef : IR::AddrOpndKindDynamicDoubleRef),
-        m_func);
+    IR::MemRefOpnd *memRef = IR::MemRefOpnd::New(src2->IsFloat32() ? this->m_func->GetThreadContextInfo()->GetSgnFloatBitCst() : this->m_func->GetThreadContextInfo()->GetSgnDoubleBitCst(),
+        src2->GetType(), this->m_func, src2->IsFloat32() ? IR::AddrOpndKindDynamicFloatRef : IR::AddrOpndKindDynamicDoubleRef);
+    IR::Instr* t2 = IR::Instr::New(Js::OpCode::ANDPS, instr->GetSrc2(), instr->GetSrc2(), memRef, m_func);
     instr->InsertBefore(t2);
     Legalize(t2);
 
@@ -9690,15 +9691,19 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
 IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
 {
     IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
+    IR::Opnd *src = opnd;
 
-    if (opnd->IsFloat64())
-        LoadDoubleHelperArgument(instr, opnd);
-    else
-        LoadFloatHelperArgument(instr, opnd);
+    if (opnd->IsFloat32())
+    {
+        src = IR::RegOpnd::New(TyFloat64, this->m_func);
+        instr->InsertBefore(IR::Instr::New(LowererMD::MDConvertFloat32ToFloat64Opcode, src, opnd, this->m_func));
+    }
+    Assert(src->IsFloat64());
+    LoadDoubleHelperArgument(instr, src);
+
     IR::Instr * helperCallInstr = IR::Instr::New(Js::OpCode::CALL, isNegZero, this->m_func);
     instr->InsertBefore(helperCallInstr);
     this->ChangeToHelperCall(helperCallInstr, IR::HelperIsNegZero);
-
     return isNegZero;
 }
 

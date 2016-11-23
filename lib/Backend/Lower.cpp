@@ -8288,9 +8288,10 @@ Lowerer::LowerLdWasmFunc(IR::Instr* instr)
         funcIndirOpnd->SetScale(scale);
     }
 
-    IR::LabelInstr * trapLabel = InsertLabel(true, instr);
+    IR::LabelInstr * trapOutOfBoundsLabel = InsertLabel(true, instr);
+    IR::LabelInstr * trapLabel = InsertLabel(true, trapOutOfBoundsLabel);
     IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
-    InsertCompareBranch(indexOpnd, lengthOpnd, Js::OpCode::BrGe_A, true, trapLabel, trapLabel);
+    InsertCompareBranch(indexOpnd, lengthOpnd, Js::OpCode::BrGe_A, true, trapOutOfBoundsLabel, trapLabel);
     InsertMove(valuesRegOpnd, valuesIndirOpnd, trapLabel);
 
     InsertMove(dst, funcIndirOpnd, trapLabel);
@@ -8298,6 +8299,7 @@ Lowerer::LowerLdWasmFunc(IR::Instr* instr)
     InsertCompareBranch(dst, IR::IntConstOpnd::New(0, TyMachPtr, m_func), Js::OpCode::BrEq_A, trapLabel, trapLabel);
     InsertBranch(Js::OpCode::Br, doneLabel, trapLabel);
 
+    GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_NeedWebAssemblyFunc), TyInt32, m_func), trapOutOfBoundsLabel);
     GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_TableIndexOutOfRange), TyInt32, m_func), instr);
 
     instr->Remove();
@@ -20186,6 +20188,16 @@ Lowerer::GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *inse
     return typeRegOpnd;
 }
 
+void Lowerer::GenerateBooleanNegate(IR::Instr * instr, IR::Opnd * srcBool, IR::Opnd * dst)
+{
+    // dst = src
+    // dst = dst ^ (true ^ false) (= !src)
+    LowererMD::CreateAssign(dst, srcBool, instr);
+    ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
+    IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func, true);
+    instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, dst, dst, xorval, instr->m_func));
+}
+
 bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
 {
     Assert(instr);
@@ -20440,10 +20452,17 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
         // We branch based on the zero-ness of the integer argument to two checks against the boolean argument
         this->m_lowererMD.GenerateTaggedZeroTest(srcInt->AsRegOpnd(), instr, firstFalse);
         // If it's not zero, then it's either 1, in which case it's true, or it's something else, in which
-        // case we have an issue.
-        InsertCompareBranch(IR::IntConstOpnd::New((((IntConstType)1) << Js::VarTag_Shift) + Js::AtomTag, IRType::TyVar, this->m_func), srcInt->AsRegOpnd(), Js::OpCode::BrNeq_A, forceInequal, instr, true);
+        // case the two will compare as inequal
+        InsertCompareBranch(
+            IR::IntConstOpnd::New((((IntConstType)1) << Js::VarTag_Shift) + Js::AtomTag, IRType::TyVar, this->m_func),
+            srcInt->AsRegOpnd(),
+            Js::OpCode::BrNeq_A,
+            isBranchNotCompare ? inequalResultTarget : forceInequal, // in the case of branching, we can go straight to the inequal target; for compares, we need to load the value
+            instr,
+            true);
         if (isBranchNotCompare)
         {
+            // if the int evaluates to 1 (true)
             InsertCompareBranch(
                 srcBool,
                 LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue),
@@ -20451,6 +20470,8 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
                 targetInstr,
                 instr);
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelFallthrough, this->m_func));
+
+            // if the int evaluates to 0 (false)
             instr->InsertBefore(firstFalse);
             InsertCompareBranch(
                 srcBool,
@@ -20459,32 +20480,35 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
                 targetInstr,
                 instr);
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelFallthrough, this->m_func));
-            instr->InsertBefore(forceInequal);
-            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, inequalResultTarget, this->m_func));
         }
         else
         {
+            // the int resolves to 1 (true)
             // Load either the bool or its complement into the dst reg, depending on the opcode
             if (isNegOp)
             {
-                instr->InsertBefore(firstFalse);
+                GenerateBooleanNegate(instr, srcBool, instr->GetDst());
             }
-            // If this case is hit, the result value is the same as the value in srcBool
-            this->InsertMove(instr->GetDst(), srcBool, instr);
+            else
+            {
+                this->InsertMove(instr->GetDst(), srcBool, instr);
+            }
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
+
+            // the int resolves to 0 (false)
             // Handle the complement case
+            instr->InsertBefore(firstFalse);
             if (!isNegOp)
             {
-                instr->InsertBefore(firstFalse);
+                GenerateBooleanNegate(instr, srcBool, instr->GetDst());
             }
+            else
+            {
+                this->InsertMove(instr->GetDst(), srcBool, instr);
+            }
+            instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
 
-            // dst = src
-            // dst = dst ^ (true ^ false) (= !src)
-            LowererMD::CreateAssign(instr->GetDst(), srcBool, instr);
-            ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
-            IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func, true);
-            instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), instr->GetDst(), xorval, instr->m_func));
-
+            // the int resolves to something other than 0 or 1 (inequal to a bool)
             instr->InsertBefore(forceInequal);
             LowererMD::CreateAssign(instr->GetDst(), this->LoadLibraryValueOpnd(instr, inequalResultValue), instr);
             instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
@@ -20530,12 +20554,8 @@ bool Lowerer::GenerateFastEqBoolInt(IR::Instr * instr, bool *pNeedHelper)
                 }
                 else
                 {
-                    // dst = src
-                    // dst = dst ^ (true ^ false) (= !src)
-                    LowererMD::CreateAssign(instr->GetDst(), srcBool, instr);
-                    ScriptContextInfo* sci = instr->m_func->GetScriptContextInfo();
-                    IR::AddrOpnd* xorval = IR::AddrOpnd::New(sci->GetTrueAddr() ^ sci->GetFalseAddr(), IR::AddrOpndKindDynamicMisc, instr->m_func, true);
-                    instr->InsertBefore(IR::Instr::New(LowererMD::MDXorOpcode, instr->GetDst(), instr->GetDst(), xorval, instr->m_func));
+                    // Otherwise, the result value is the negation of the value in srcBool
+                    GenerateBooleanNegate(instr, srcBool, instr->GetDst());
                 }
                 instr->InsertBefore(IR::BranchInstr::New(LowererMD::MDUncondBranchOpcode, labelDone, this->m_func));
             }
@@ -23088,9 +23108,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
 
         if (divideByZeroInstr)
         {
-            IR::Opnd* errReg = IR::RegOpnd::New(TyInt32, m_func);
-            InsertMove(errReg, IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), divLabel);
-            GenerateThrow(errReg, divLabel);
+            GenerateThrow(IR::IntConstOpnd::NewFromType(SCODE_CODE(WASMERR_DivideByZero), TyInt32, m_func), divLabel);
         }
         else
         {
@@ -23143,9 +23161,7 @@ Lowerer::LowerDivI4Common(IR::Instr * instr)
             
             if (overflowReg3)
             {
-                IR::Opnd* errReg = IR::RegOpnd::New(TyInt32, m_func);
-                InsertMove(errReg, IR::IntConstOpnd::NewFromType(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), divLabel);
-                GenerateThrow(errReg, divLabel);
+                GenerateThrow( IR::IntConstOpnd::NewFromType(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), divLabel);
             }
             else
             {
@@ -23181,7 +23197,8 @@ Lowerer::GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr) const
     instr->InsertBefore(throwInstr);
     Lowerer* lw = const_cast<Lowerer*> (this); //LowerUnaryHelperMem unlinks src1 of throwInstr,
                                                //local and self-contained mutation
-    lw->LowerUnaryHelperMem(throwInstr, IR::HelperOp_RuntimeTypeError);
+    const bool isWasm = m_func->GetJITFunctionBody() && m_func->GetJITFunctionBody()->IsWasmFunction();
+    lw->LowerUnaryHelperMem(throwInstr, isWasm ? IR::HelperOp_WebAssemblyRuntimeError : IR::HelperOp_RuntimeTypeError);
 }
 
 void

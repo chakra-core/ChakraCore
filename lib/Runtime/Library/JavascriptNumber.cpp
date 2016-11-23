@@ -236,15 +236,23 @@ namespace Js
         return ::pow(x, y);
     }
 #else
+
+#pragma warning(push)
+// C4740: flow in or out of inline asm code suppresses global optimization
+// It is fine to disable glot opt on this function which is mostly written in assembly
+#pragma warning(disable:4740)
     __declspec(naked)
     double JavascriptNumber::DirectPow(double x, double y)
     {
         UNREFERENCED_PARAMETER(x);
         UNREFERENCED_PARAMETER(y);
 
+        double savedX, savedY, result;
+
         // This function is called directly from jitted, float-preferenced code.
         // It looks for x and y in xmm0 and xmm1 and returns the result in xmm0.
-        // Check for pow(1, Infinity/NaN) and return NaN in that case; otherwise,
+        // Check for pow(1, Infinity/NaN) and return NaN in that case;
+        // then check fast path of small integer exponent, otherwise,
         // go to the fast CRT helper.
         __asm {
             // check y for 1.0
@@ -252,18 +260,13 @@ namespace Js
             jne pow_full
             jp pow_full
             ret
-       pow_full:
+        pow_full:
             // Check y for non-finite value
             pextrw eax, xmm1, 3
             not eax
             test eax, 0x7ff0
-            je y_infinite
-
-       normal:
-            jmp dword ptr [__libm_sse2_pow]
-
-        y_infinite:
-            // Check for |x| == 1
+            jne normal
+            // check for |x| == 1
             movsd xmm2, xmm0
             andpd xmm2, AbsDoubleCst
             movsd xmm3, d1_0
@@ -271,11 +274,41 @@ namespace Js
             lahf
             test ah, 68
             jp normal
-
             movsd xmm0, JavascriptNumber::k_Nan
+            ret
+        normal:
+            push ebp
+            mov ebp, esp        // prepare stack frame for sub function call
+            sub esp, 0x40       // 4 variables, reserve 0x10 for 1
+            movsd savedX, xmm0
+            movsd savedY, xmm1
+        }
+
+        int intY;
+        if (TryGetInt32Value(savedY, &intY) && intY >= -8 && intY <= 8)
+        {
+            result = DirectPowDoubleInt(savedX, intY);
+            __asm {
+                movsd xmm0, result
+            }
+        }
+        else
+        {
+            __asm {
+                movsd xmm0, savedX
+                movsd xmm1, savedY
+                call dword ptr[__libm_sse2_pow]
+            }
+        }
+
+        __asm {
+            mov esp, ebp
+            pop ebp
             ret
         }
     }
+#pragma warning(pop)
+
 #endif
 
 #elif defined(_M_AMD64) || defined(_M_ARM32_OR_ARM64)

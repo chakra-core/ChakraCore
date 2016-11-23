@@ -7070,19 +7070,19 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     // because the bailout wouldn't be able to restore tmp.
     IR::Instr *curNext = curInstr->GetNextRealInstrOrLabel();
     IR::Instr *instrNope = nullptr;
-    while (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
+    if (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
     {
-        // Instead of just giving up, we can be a little trickier. We can instead treat the tmp declaration(s) as a
-        // part of the block prefix, and put the bailonnoprofile immediately after them. This has the added benefit
-        // that we can still merge up blocks beginning with bailonnoprofile, even if they would otherwise not allow
-        // us to, due to the fact that these tmp declarations would be pre-empted by the higher-level bailout.
-        instrNope = curNext;
-        curNext = curNext->GetNextRealInstrOrLabel();
-    }
-
-    if (instrNope != nullptr)
-    {
-        instrNope = curNext;
+        block->RemoveInstr(instr);
+        return true;
+        /*while (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
+        {
+            // Instead of just giving up, we can be a little trickier. We can instead treat the tmp declaration(s) as a
+            // part of the block prefix, and put the bailonnoprofile immediately after them. This has the added benefit
+            // that we can still merge up blocks beginning with bailonnoprofile, even if they would otherwise not allow
+            // us to, due to the fact that these tmp declarations would be pre-empted by the higher-level bailout.
+            instrNope = curNext;
+            curNext = curNext->GetNextRealInstrOrLabel();
+        }*/
     }
 
     curInstr = instr->m_prev;

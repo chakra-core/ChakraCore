@@ -328,15 +328,24 @@
 #endif
 #endif // ENABLE_DEBUG_CONFIG_OPTIONS
 
-#if !defined(NTBUILD) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 ////////
 //Time Travel flags
+//Include TTD code in the build when building for Chakra (except NT/Edge) or for debug/test builds
+#if !defined(NTBUILD) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 #define ENABLE_TTD 1
+#else
+#define ENABLE_TTD 0
+#endif
 
+#if ENABLE_TTD
+#define TTDAssert(C, M) { if(!(C)) TTDAbort_fatal_error(M); }
+#else
+#define TTDAssert(C, M) 
+#endif
+
+#if ENABLE_TTD
 //A workaround for profile based creation of Native Arrays -- we may or may not want to allow since it differs in record/replay and (currently) asserts in our snap compare
 #define TTD_NATIVE_PROFILE_ARRAY_WORK_AROUND 1
-
-#define ENABLE_TTD_ASSERT 1
 
 //Force debug or notjit mode
 #define TTD_FORCE_DEBUG_MODE 0

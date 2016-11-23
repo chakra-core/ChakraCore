@@ -1048,6 +1048,11 @@ namespace Js
         JavascriptError::ThrowReferenceError(scriptContext, MAKE_HR(messageId));
     }
 
+    Var JavascriptExceptionOperators::OP_WebAssemblyRuntimeError(MessageId messageId, ScriptContext* scriptContext)
+    {
+        JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, MAKE_HR(messageId));
+    }
+
     // Throw type error on access 'arguments', 'callee' or 'caller' when in a restricted context
     Var JavascriptExceptionOperators::ThrowTypeErrorRestrictedPropertyAccessor(RecyclableObject* function, CallInfo callInfo, ...)
     {

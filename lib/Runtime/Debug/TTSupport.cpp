@@ -8,7 +8,7 @@
 
 void TTDAbort_fatal_error(const char* msg)
 {
-    printf("TTD assert failed -- existing with msg:\n%s\n", msg);
+    printf("TTD assert failed: %s\n", msg);
 
     int scenario = 101;
     ReportFatalException(NULL, E_UNEXPECTED, Fatal_TTDAbort, scenario);
