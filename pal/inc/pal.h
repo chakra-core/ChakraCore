@@ -744,91 +744,6 @@ wsprintfW(
 #define wsprintf wsprintfA
 #endif
 
-#define MB_OK                   0x00000000L
-#define MB_OKCANCEL             0x00000001L
-#define MB_ABORTRETRYIGNORE     0x00000002L
-#define MB_YESNO                0x00000004L
-#define MB_RETRYCANCEL          0x00000005L
-
-#define MB_ICONHAND             0x00000010L
-#define MB_ICONQUESTION         0x00000020L
-#define MB_ICONEXCLAMATION      0x00000030L
-#define MB_ICONASTERISK         0x00000040L
-
-#define MB_ICONINFORMATION      MB_ICONASTERISK
-#define MB_ICONSTOP             MB_ICONHAND
-#define MB_ICONERROR            MB_ICONHAND
-
-#define MB_DEFBUTTON1           0x00000000L
-#define MB_DEFBUTTON2           0x00000100L
-#define MB_DEFBUTTON3           0x00000200L
-
-#define MB_SYSTEMMODAL          0x00001000L
-#define MB_TASKMODAL            0x00002000L
-#define MB_SETFOREGROUND        0x00010000L
-#define MB_TOPMOST              0x00040000L
-
-#define MB_NOFOCUS                  0x00008000L
-#define MB_SETFOREGROUND            0x00010000L
-#define MB_DEFAULT_DESKTOP_ONLY     0x00020000L
-
-// Note: this is the NT 4.0 and greater value.
-#define MB_SERVICE_NOTIFICATION 0x00200000L
-
-#define MB_TYPEMASK             0x0000000FL
-#define MB_ICONMASK             0x000000F0L
-#define MB_DEFMASK              0x00000F00L
-
-#define IDOK                    1
-#define IDCANCEL                2
-#define IDABORT                 3
-#define IDRETRY                 4
-#define IDIGNORE                5
-#define IDYES                   6
-#define IDNO                    7
-
-PALIMPORT
-int
-PALAPI
-MessageBoxW(
-        IN LPVOID hWnd,  // NOTE: diff from winuser.h
-        IN LPCWSTR lpText,
-        IN LPCWSTR lpCaption,
-        IN UINT uType);
-
-PALIMPORT
-int
-PALAPI
-MessageBoxA(
-        IN LPVOID hWnd,  // NOTE: diff from winuser.h
-        IN LPCSTR lpText,
-        IN LPCSTR lpCaption,
-        IN UINT uType);
-
-#ifdef UNICODE
-#define MessageBox MessageBoxW
-#else
-#define MessageBox MessageBoxA
-#endif
-
-/***************** wincon.h Entrypoints **********************************/
-
-#define CTRL_C_EVENT        0
-#define CTRL_BREAK_EVENT    1
-#define CTRL_CLOSE_EVENT    2
-// 3 is reserved!
-// 4 is reserved!
-#define CTRL_LOGOFF_EVENT   5
-#define CTRL_SHUTDOWN_EVENT 6
-
-typedef
-BOOL
-(PALAPI *PHANDLER_ROUTINE)(
-    DWORD CtrlType
-    );
-
-//end wincon.h Entrypoints
-
 // From win32.h
 #ifndef _CRTIMP
 #ifdef __llvm__
@@ -1558,12 +1473,6 @@ SetCurrentDirectoryW(
 #else
 #define SetCurrentDirectory SetCurrentDirectoryA
 #endif
-
-// maximum length of the NETBIOS name (not including NULL)
-#define MAX_COMPUTERNAME_LENGTH 15
-
-// maximum length of the username (not including NULL)
-#define UNLEN   256
 
 PALIMPORT
 BOOL
