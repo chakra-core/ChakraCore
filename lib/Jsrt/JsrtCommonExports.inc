@@ -118,4 +118,6 @@
     JsCreatePropertyIdUtf8
     JsCopyPropertyIdUtf8
     JsDiagEvaluateUtf8
+    JsInitializeRuntime
+    JsFinalizeRuntime
 #endif
