@@ -96,7 +96,9 @@ CHAKRA_API JsInitializeRuntime(_In_ int argc, _In_ char** argv)
     DynamicProfileStorage::Initialize();
 #endif
 #if defined(CHAKRA_STATIC_LIBRARY)
-    atexit(JsFinalizeRuntime)
+    atexit([](){
+        JsFinalizeRuntime();
+    });
 #endif
 
 #ifdef HEAP_TRACK_ALLOC
