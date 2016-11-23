@@ -15,7 +15,7 @@ public:
 #endif
         uint maxFreePageCount, uint maxAllocPageCount = PageAllocator::DefaultMaxAllocPageCount, bool enableWriteBarrier = false);
 #if ENABLE_CONCURRENT_GC
-#if ENABLE_WRITE_WATCH
+#ifdef RECYCLER_WRITE_WATCH
     void EnableWriteWatch();
     bool ResetWriteWatch();
 #endif
@@ -24,7 +24,7 @@ public:
     static uint const DefaultPrimePageCount = 0x1000; // 16MB
 
 #if ENABLE_CONCURRENT_GC
-#if ENABLE_WRITE_WATCH
+#ifdef RECYCLER_WRITE_WATCH
 #if DBG
     size_t GetWriteWatchPageCount();
 #endif
@@ -41,8 +41,11 @@ private:
 #endif
 
 private:
+
 #if ENABLE_BACKGROUND_PAGE_ZEROING
     ZeroPageQueue zeroPageQueue;
+#elif ENABLE_BACKGROUND_PAGE_FREEING
+    BackgroundPageQueue zeroPageQueue;
 #endif
     
     Recycler* recycler;

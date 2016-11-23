@@ -11,7 +11,7 @@ namespace Js
     IndexPropertyDescriptorMap::IndexPropertyDescriptorMap(Recycler* recycler)
         : recycler(recycler), indexList(NULL), lastIndexAt(-1)
     {
-        indexPropertyMap = RecyclerNew(recycler, InnerMap, recycler);
+        indexPropertyMap = RecyclerNew(recycler, InnerMap, recycler->GetAllocator());
     }
 
     void IndexPropertyDescriptorMap::Add(uint32 key, const IndexPropertyDescriptor& value)

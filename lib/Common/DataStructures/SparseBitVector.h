@@ -306,9 +306,8 @@ inline void Dump(BVSparse<JitArenaAllocator> * const& bv)
     bv->Dump();
 }
 
-namespace Memory { class Recycler; }
 template<>
-inline void Dump(BVSparse<Recycler> * const& bv)
+inline void Dump(BVSparse<RecyclerAllocator> * const& bv)
 {
     bv->Dump();
 }

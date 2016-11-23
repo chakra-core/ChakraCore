@@ -20,7 +20,7 @@ namespace JsUtil
 {
     template <
         class T,
-        class TAllocator = Recycler,
+        class TAllocator = RecyclerAllocator,
         template <typename Value> class TComparer = DefaultComparer>
     class ReadOnlyList
     {
@@ -192,7 +192,7 @@ namespace JsUtil
 
     template <
         class T,
-        class TAllocator = Recycler,
+        class TAllocator = RecyclerAllocator,
         bool isLeaf = false,
         template <class TListType, bool clearOldEntries> class TRemovePolicy = Js::CopyRemovePolicy,
         template <typename Value> class TComparer = DefaultComparer>
@@ -208,7 +208,6 @@ namespace JsUtil
         typedef List<T, TAllocator, isLeaf, TRemovePolicy, TComparer> TListType;
         friend TRemovePolicy<TListType, true>;
         typedef TRemovePolicy<TListType, true /* clearOldEntries */>  TRemovePolicyType;
-        typedef ListTypeAllocatorFunc<TAllocator, isLeaf> AllocatorInfo;
 
         Field(int) length;
         Field(int) increment;
@@ -217,12 +216,12 @@ namespace JsUtil
         Field(T, TAllocator) * AllocArray(DECLSPEC_GUARD_OVERFLOW int size)
         {
             typedef Field(T, TAllocator) TField;
-            return AllocatorNewArrayBaseFuncPtr(TAllocator, this->alloc, AllocatorInfo::GetAllocFunc(), TField, size);
+            return AllocatorNewArrayBaseFuncPtr(TAllocator, this->alloc, &TAllocator::Alloc, TField, size);
         }
 
         void FreeArray(Field(T, TAllocator) * oldBuffer, int oldBufferSize)
         {
-            AllocatorFree(this->alloc, AllocatorInfo::GetFreeFunc(), oldBuffer, oldBufferSize);
+            AllocatorFree(this->alloc, &TAllocator::Free, oldBuffer, oldBufferSize);
         }
 
         PREVENT_COPY(List); // Disable copy constructor and operator=
@@ -578,7 +577,7 @@ namespace JsUtil
         {
             if (this->buffer != nullptr)
             {
-                auto freeFunc = AllocatorInfo::GetFreeFunc();
+                auto freeFunc = &TAllocator::Free;
                 AllocatorFree(this->alloc, freeFunc, this->buffer, sizeof(T) * length); // TODO: Better version of DeleteArray?
 
                 this->buffer = nullptr;
@@ -864,16 +863,16 @@ namespace Js
                 }
             });
 
-            this->lastWeakReferenceCleanupId = list->alloc->GetWeakReferenceCleanupId();
+            this->lastWeakReferenceCleanupId = list->alloc->GetRecycler()->GetWeakReferenceCleanupId();
         }
     public:
         WeakRefFreeListedRemovePolicy(TListType * list) : Base(list)
         {
-            this->lastWeakReferenceCleanupId = list->alloc->GetWeakReferenceCleanupId();
+            this->lastWeakReferenceCleanupId = list->alloc->GetRecycler()->GetWeakReferenceCleanupId();
         }
         int GetFreeItemIndex(TListType * list)
         {
-            if (list->alloc->GetWeakReferenceCleanupId() != this->lastWeakReferenceCleanupId)
+            if (list->alloc->GetRecycler()->GetWeakReferenceCleanupId() != this->lastWeakReferenceCleanupId)
             {
                 CleanupWeakReference(list);
             }

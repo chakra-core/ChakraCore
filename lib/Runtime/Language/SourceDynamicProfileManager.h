@@ -21,7 +21,8 @@ namespace Js
     class SourceDynamicProfileManager
     {
     public:
-        SourceDynamicProfileManager(Recycler* allocator) : isNonCachableScript(false), cachedStartupFunctions(nullptr), recycler(allocator), dynamicProfileInfoMap(allocator), startupFunctions(nullptr), profileDataCache(nullptr) {}
+        SourceDynamicProfileManager(Recycler* allocator) : isNonCachableScript(false), cachedStartupFunctions(nullptr), 
+            recycler(allocator), dynamicProfileInfoMap(allocator->GetAllocator()), startupFunctions(nullptr), profileDataCache(nullptr) {}
 
         ExecutionFlags IsFunctionExecuted(Js::LocalFunctionId functionId);
         DynamicProfileInfo * GetDynamicProfileInfo(FunctionBody * functionBody);
@@ -61,8 +62,7 @@ namespace Js
         Field(BVFixed*) startupFunctions;                   // Bit vector representing functions that are executed at startup
         Field(BVFixed const *) cachedStartupFunctions;      // Bit vector representing functions executed at startup that are loaded from a persistent or in-memory cache
                                                             // It's not modified but used as an input for deferred parsing/bytecodegen
-        typedef JsUtil::BaseDictionary<LocalFunctionId, DynamicProfileInfo *, Recycler, PowerOf2SizePolicy>
-            DynamicProfileInfoMapType;
+        typedef JsUtil::BaseDictionary<LocalFunctionId, DynamicProfileInfo *, RecyclerAllocator, PowerOf2SizePolicy> DynamicProfileInfoMapType;
         Field(DynamicProfileInfoMapType) dynamicProfileInfoMap;
 
         static const uint MAX_FUNCTION_COUNT = 10000;  // Consider data corrupt if there are more functions than this

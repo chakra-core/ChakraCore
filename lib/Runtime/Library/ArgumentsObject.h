@@ -63,7 +63,7 @@ namespace Js
     protected:
         Field(uint32)              formalCount;
         Field(ActivationObject*)   frameObject;
-        Field(BVSparse<Recycler>*) deletedArgs;
+        Field(BVSparse<RecyclerAllocator>*) deletedArgs;
 
     public:
         HeapArgumentsObject(DynamicType * type);

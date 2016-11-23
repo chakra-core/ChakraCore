@@ -2232,7 +2232,7 @@ public:
     const byte * sourceSpans;
     int lineInfoCacheCount;
     const byte * lineInfoCaches;
-    const JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem * lineInfoCache;
+    const JsUtil::LineOffsetCache<RecyclerAllocator>::LineOffsetCacheItem * lineInfoCache;
     const byte * functions;
     int sourceSize;
     int sourceCharLength;
@@ -2708,7 +2708,7 @@ public:
 
         // Read strings header
         string16IndexTable = (StringIndexRecord*)ReadInt32(string16s, &string16Count);
-        lineInfoCache = (JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem *)ReadInt32(lineInfoCaches, &lineInfoCacheCount);
+        lineInfoCache = (JsUtil::LineOffsetCache<RecyclerAllocator>::LineOffsetCacheItem *)ReadInt32(lineInfoCaches, &lineInfoCacheCount);
 
         string16Table = (byte*)(string16IndexTable + string16Count + 1);
 

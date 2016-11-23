@@ -9,7 +9,7 @@
 namespace Js
 {
     ForInObjectEnumerator::ShadowData::ShadowData(RecyclableObject * initObject, RecyclableObject * firstPrototype, Recycler * recycler)
-        : currentObject(initObject), firstPrototype(firstPrototype), propertyIds(recycler)
+        : currentObject(initObject), firstPrototype(firstPrototype), propertyIds(recycler->GetAllocator())
     {
 
     }
@@ -174,7 +174,7 @@ namespace Js
                         // We keep the track of what is enumerated using a bit vector of propertyID.
                         // so the propertyId can't be collected until the end of the for in enumerator
                         // Keep a list of the property string.
-                        this->shadowData->newPropertyStrings.Prepend(GetScriptContext()->GetRecycler(), propRecord);
+                        this->shadowData->newPropertyStrings.Prepend(GetScriptContext()->GetRecycler()->GetAllocator(), propRecord);
                     }
                 }
 

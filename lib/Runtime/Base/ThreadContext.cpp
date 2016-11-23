@@ -85,7 +85,7 @@ ThreadContext::RecyclableData::RecyclableData(Recycler *const recycler) :
     soErrorObject(nullptr, nullptr, nullptr, true),
     oomErrorObject(nullptr, nullptr, nullptr, true),
     terminatedErrorObject(nullptr, nullptr, nullptr),
-    typesWithProtoPropertyCache(recycler),
+    typesWithProtoPropertyCache(recycler->GetAllocator()),
     propertyGuards(recycler, 128),
     oldEntryPointInfo(nullptr),
     returnedValueList(nullptr),
@@ -927,7 +927,7 @@ void ThreadContext::InitializePropertyMaps()
     try
     {
         this->propertyMap = HeapNew(PropertyMap, &HeapAllocator::Instance, TotalNumberOfBuiltInProperties + 700);
-        this->recyclableData->boundPropertyStrings = RecyclerNew(this->recycler, JsUtil::List<Js::PropertyRecord const*>, this->recycler);
+        this->recyclableData->boundPropertyStrings = RecyclerNew(this->recycler, JsUtil::List<Js::PropertyRecord const*>, this->recycler->GetAllocator());
 
         memset(propertyNamesDirect, 0, 128*sizeof(Js::PropertyRecord *));
 
@@ -1309,7 +1309,7 @@ Js::PropertyId ThreadContext::GetMaxPropertyId()
 void ThreadContext::CreateNoCasePropertyMap()
 {
     Assert(caseInvariantPropertySet == nullptr);
-    caseInvariantPropertySet = RecyclerNew(recycler, PropertyNoCaseSetType, recycler, 173);
+    caseInvariantPropertySet = RecyclerNew(recycler, PropertyNoCaseSetType, recycler->GetAllocator(), 173);
 
     // Prevent the set from being reclaimed
     // Individual items in the set can be reclaimed though since they're lists of weak references
@@ -3908,7 +3908,7 @@ void ThreadContext::EnsureSourceProfileManagersByUrlMap()
     if(this->recyclableData->sourceProfileManagersByUrl == nullptr)
     {
         this->EnsureRecycler();
-        this->recyclableData->sourceProfileManagersByUrl = RecyclerNew(GetRecycler(), SourceProfileManagersByUrlMap, GetRecycler());
+        this->recyclableData->sourceProfileManagersByUrl = RecyclerNew(GetRecycler(), SourceProfileManagersByUrlMap, GetRecycler()->GetAllocator());
     }
 }
 
@@ -3934,7 +3934,7 @@ Js::SourceDynamicProfileManager* ThreadContext::GetSourceDynamicProfileManager(_
       bool createProfileManager = false;
       if(!managerCache->sourceProfileManagerMap)
       {
-          managerCache->sourceProfileManagerMap = RecyclerNew(this->GetRecycler(), SourceDynamicProfileManagerMap, this->GetRecycler());
+          managerCache->sourceProfileManagerMap = RecyclerNew(this->GetRecycler(), SourceDynamicProfileManagerMap, this->GetRecycler()->GetAllocator());
           createProfileManager = true;
       }
       else
@@ -4001,7 +4001,7 @@ void ThreadContext::EnsureSymbolRegistrationMap()
     if (this->recyclableData->symbolRegistrationMap == nullptr)
     {
         this->EnsureRecycler();
-        this->recyclableData->symbolRegistrationMap = RecyclerNew(GetRecycler(), SymbolRegistrationMap, GetRecycler());
+        this->recyclableData->symbolRegistrationMap = RecyclerNew(GetRecycler(), SymbolRegistrationMap, GetRecycler()->GetAllocator());
     }
 }
 

@@ -78,7 +78,7 @@ namespace Js
         void ConvertToDictionary(TKey& key, Recycler* recycler)
         {
             Assert(singleValue);
-            SecondaryDictionary* dictionary = RecyclerNew(recycler, SecondaryDictionary, recycler);
+            SecondaryDictionary* dictionary = RecyclerNew(recycler, SecondaryDictionary, recycler->GetAllocator());
             auto newValue = value;
             nestedMap = dictionary;
             singleValue = false;

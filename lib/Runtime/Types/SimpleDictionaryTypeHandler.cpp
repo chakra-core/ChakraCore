@@ -266,7 +266,7 @@ namespace Js
         numDeletedProperties(0)
     {
         SetIsInlineSlotCapacityLocked();
-        propertyMap = RecyclerNew(recycler, SimplePropertyDescriptorMap, recycler, this->GetSlotCapacity());
+        propertyMap = RecyclerNew(recycler, SimplePropertyDescriptorMap, recycler->GetAllocator(), this->GetSlotCapacity());
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
@@ -281,7 +281,7 @@ namespace Js
     {
         SetIsInlineSlotCapacityLocked();
         Assert(slotCapacity <= MaxPropertyIndexSize);
-        propertyMap = RecyclerNew(scriptContext->GetRecycler(), SimplePropertyDescriptorMap, scriptContext->GetRecycler(), propertyCount);
+        propertyMap = RecyclerNew(scriptContext->GetRecycler(), SimplePropertyDescriptorMap, scriptContext->GetRecycler()->GetAllocator(), propertyCount);
 
         for (int i=0; i < propertyCount; i++)
         {
@@ -301,7 +301,7 @@ namespace Js
     {
         SetIsInlineSlotCapacityLocked();
         Assert(slotCapacity <= MaxPropertyIndexSize);
-        propertyMap = RecyclerNew(recycler, SimplePropertyDescriptorMap, recycler, this->GetSlotCapacity());
+        propertyMap = RecyclerNew(recycler, SimplePropertyDescriptorMap, recycler->GetAllocator(), this->GetSlotCapacity());
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>
@@ -317,7 +317,7 @@ namespace Js
         SetIsInlineSlotCapacityLocked();
         Assert(slotCapacity <= MaxPropertyIndexSize);
 
-        propertyMap = RecyclerNew(recycler, SimplePropertyDescriptorMap, recycler, propertyCapacity);
+        propertyMap = RecyclerNew(recycler, SimplePropertyDescriptorMap, recycler->GetAllocator(), propertyCapacity);
     }
 
     template <typename TPropertyIndex, typename TMapKey, bool IsNotExtensibleSupported>

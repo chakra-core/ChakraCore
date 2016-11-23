@@ -69,6 +69,7 @@ namespace Js
         Field(uint16) fixedFieldCount; // currently used only for fields that are functions
 
     public:
+        typedef Field(ObjTypeSpecFldInfo*) ObjTypeSpecFldInfoPtr;
         ObjTypeSpecFldInfo() :
             id(0), typeId(TypeIds_Limit), typeSet(nullptr), initialType(nullptr), flags(InitialObjTypeSpecFldInfoFlagValue),
             slotIndex(Constants::NoSlot), propertyId(Constants::NoProperty), protoObject(nullptr), propertyGuard(nullptr),

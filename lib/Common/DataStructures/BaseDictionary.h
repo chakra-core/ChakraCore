@@ -78,7 +78,6 @@ namespace JsUtil
     public:
         typedef TKey KeyType;
         typedef TValue ValueType;
-        typedef typename AllocatorInfo<TAllocator, TValue>::AllocatorType AllocatorType;
         typedef SizePolicy CurrentSizePolicy;
         typedef Entry<
                     Field(TKey, TAllocator),
@@ -88,13 +87,12 @@ namespace JsUtil
         template<class TDictionary> class BucketEntryIterator;
 
     protected:
-        typedef typename AllocatorInfo<TAllocator, TValue>::AllocatorFunc EntryAllocatorFuncType;
         friend class Js::RemoteDictionary<BaseDictionary>;
         template <typename ValueOrKey> struct ComparerType { typedef Comparer<ValueOrKey> Type; }; // Used by diagnostics to access Comparer type
 
         Field(int*, TAllocator) buckets;
         Field(EntryType*, TAllocator) entries;
-        FieldNoBarrier(AllocatorType*) alloc;
+        FieldNoBarrier(TAllocator*) alloc;
         Field(int) size;
         Field(uint) bucketCount;
         Field(int) count;
@@ -120,7 +118,7 @@ namespace JsUtil
             Lock& lock;
         };
     public:
-        BaseDictionary(AllocatorType* allocator, int capacity = 0)
+        BaseDictionary(TAllocator* allocator, int capacity = 0)
             : buckets (nullptr),
             size(0),
             bucketCount(0),
@@ -203,7 +201,7 @@ namespace JsUtil
             }
         }
 
-        AllocatorType *GetAllocator() const
+        TAllocator *GetAllocator() const
         {
             return alloc;
         }
@@ -653,7 +651,7 @@ namespace JsUtil
 
         BaseDictionary *Clone()
         {
-            return AllocatorNew(AllocatorType, alloc, BaseDictionary, *this);
+            return AllocatorNew(TAllocator, alloc, BaseDictionary, *this);
         }
 
         void Copy(const BaseDictionary *const other)
@@ -1066,21 +1064,18 @@ namespace JsUtil
         __ecount(bucketCount) int *AllocateBuckets(DECLSPEC_GUARD_OVERFLOW const uint bucketCount)
         {
             return
-                AllocateArray<AllocatorType, int, false>(
-                    TRACK_ALLOC_INFO(alloc, int, AllocatorType, 0, bucketCount),
-                    TypeAllocatorFunc<AllocatorType, int>::GetAllocFunc(),
+                AllocateArray<TAllocator, int, false>(
+                    TRACK_ALLOC_INFO(alloc, int, TAllocator, 0, bucketCount),
+                    &TAllocator::AllocLeaf,
                     bucketCount);
         }
 
         __ecount(size) EntryType * AllocateEntries(DECLSPEC_GUARD_OVERFLOW int size, const bool zeroAllocate = true)
         {
-            // Note that the choice of leaf/non-leaf node is decided for the EntryType on the basis of TValue. By default, if
-            // TValue is a pointer, a non-leaf allocation is done. This behavior can be overridden by specializing
-            // TypeAllocatorFunc for TValue.
             return
-                AllocateArray<AllocatorType, EntryType, false>(
-                    TRACK_ALLOC_INFO(alloc, EntryType, AllocatorType, 0, size),
-                    zeroAllocate ? EntryAllocatorFuncType::GetAllocZeroFunc() : EntryAllocatorFuncType::GetAllocFunc(),
+                AllocateArray<TAllocator, EntryType, false>(
+                    TRACK_ALLOC_INFO(alloc, EntryType, TAllocator, 0, size),
+                    zeroAllocate ? &TAllocator::AllocZero : &TAllocator::Alloc,
                     size);
         }
 
@@ -1089,7 +1084,7 @@ namespace JsUtil
             Assert(buckets);
             Assert(bucketCount != 0);
 
-            AllocatorFree(alloc, (TypeAllocatorFunc<AllocatorType, int>::GetFreeFunc()), buckets, bucketCount * sizeof(int));
+            AllocatorFree(alloc, &TAllocator::FreeLeaf, buckets, bucketCount * sizeof(int));
         }
 
         void DeleteEntries(__in_ecount(size) EntryType *const entries, const int size)
@@ -1097,7 +1092,7 @@ namespace JsUtil
             Assert(entries);
             Assert(size != 0);
 
-            AllocatorFree(alloc, EntryAllocatorFuncType::GetFreeFunc(), entries, size * sizeof(EntryType));
+            AllocatorFree(alloc, &TAllocator::Free, entries, size * sizeof(EntryType));
         }
 
         void Allocate(__deref_out_ecount(bucketCount) int** ppBuckets, __deref_out_ecount(size) EntryType** ppEntries, DECLSPEC_GUARD_OVERFLOW uint bucketCount, DECLSPEC_GUARD_OVERFLOW int size)
@@ -1407,11 +1402,10 @@ namespace JsUtil
     {
         typedef BaseDictionary<TKey, TElement, TAllocator, SizePolicy, Comparer, Entry, Lock> Base;
         typedef typename Base::EntryType EntryType;
-        typedef typename Base::AllocatorType AllocatorType;
         friend struct JsDiag::RemoteDictionary<BaseHashSet<TElement, TAllocator, SizePolicy, TKey, Comparer, Entry, Lock>>;
 
     public:
-        BaseHashSet(AllocatorType * allocator, int capacity = 0) : Base(allocator, capacity) {}
+        BaseHashSet(TAllocator * allocator, int capacity = 0) : Base(allocator, capacity) {}
 
         using Base::GetAllocator;
 
@@ -1545,7 +1539,7 @@ namespace JsUtil
 
         BaseHashSet *Clone()
         {
-            return AllocatorNew(AllocatorType, this->alloc, BaseHashSet, *this);
+            return AllocatorNew(TAllocator, this->alloc, BaseHashSet, *this);
         }
 
         void Copy(const BaseHashSet *const other)
@@ -1586,14 +1580,13 @@ namespace JsUtil
     public:
         typedef TKey KeyType;
         typedef TValue ValueType;
-        typedef typename Base::AllocatorType AllocatorType;
         typedef typename Base::EntryType EntryType;
         typedef SynchronizedDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry, LockPolicy, SyncObject> DictionaryType;
     private:
         friend class Js::RemoteDictionary<DictionaryType>;
 
     public:
-        SynchronizedDictionary(AllocatorType * allocator, int capacity, SyncObject* syncObject):
+        SynchronizedDictionary(TAllocator * allocator, int capacity, SyncObject* syncObject):
             Base(allocator, capacity),
             syncObj(syncObject)
         {}

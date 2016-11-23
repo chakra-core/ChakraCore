@@ -50,7 +50,7 @@ namespace Js
         Var newValue;
         PropertyId parentPropertyId;
         const PropertyRecord *propertyRecord;
-        typedef JsUtil::List<PropertyMutation, Recycler> PropertyMutationList;
+        typedef JsUtil::List<PropertyMutation, RecyclerAllocator> PropertyMutationList;
         PropertyMutationList *properties;
         MutationBreakpointDelegate *mutationBreakpointDelegate;
         MutationType breakMutationType;

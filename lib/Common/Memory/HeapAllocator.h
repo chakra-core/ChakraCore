@@ -126,6 +126,10 @@ struct HeapAllocator
         return buffer;
     }
     void Free(void * buffer, size_t byteSize);
+    void FreeLeaf(void * buffer, size_t byteSize)
+    {
+        Free(buffer, byteSize);
+    }
 
     static HeapAllocator Instance;
     static HeapAllocator * GetNoMemProtectInstance();
@@ -260,10 +264,18 @@ public:
         }
         return buffer;
     }
+    char * AllocLeaf(DECLSPEC_GUARD_OVERFLOW size_t byteSize)
+    {
+        return Alloc(byteSize);
+    }
     void Free(void * buffer, size_t byteSize)
     {
         Assert(processHeap != NULL);
         HeapFree(processHeap, 0, buffer);
+    }
+    void FreeLeaf(void * buffer, size_t byteSize)
+    {
+        Free(buffer, byteSize);
     }
 
 #ifdef TRACK_ALLOC

@@ -68,7 +68,7 @@ namespace Js
 
             this->pScriptContext = pScriptContext;
             this->debugManager = this->pScriptContext->GetThreadContext()->GetDebugManager();
-            this->pinnedPropertyRecords = JsUtil::List<const Js::PropertyRecord*>::New(this->pScriptContext->GetRecycler());
+            this->pinnedPropertyRecords = JsUtil::List<const Js::PropertyRecord*>::New(this->pScriptContext->GetRecycler()->GetAllocator());
             this->pScriptContext->BindReference((void *)this->pinnedPropertyRecords);
         }
     }

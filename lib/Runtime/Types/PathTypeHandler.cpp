@@ -1592,7 +1592,7 @@ namespace Js
             {
                 if (oldTypeToPromotedTypeMap == nullptr)
                 {
-                    oldTypeToPromotedTypeMap = RecyclerNew(instance->GetRecycler(), TypeTransitionMap, instance->GetRecycler(), 2);
+                    oldTypeToPromotedTypeMap = RecyclerNew(instance->GetRecycler(), TypeTransitionMap, instance->GetRecycler()->GetAllocator(), 2);
                     newPrototype->SetInternalProperty(Js::InternalPropertyIds::TypeOfPrototypeObjectDictionary, (Var)oldTypeToPromotedTypeMap, PropertyOperationFlags::PropertyOperation_Force, nullptr);
                 }
 

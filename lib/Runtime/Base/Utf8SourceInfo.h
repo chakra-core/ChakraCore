@@ -9,8 +9,8 @@ namespace Js
     struct Utf8SourceInfo : public FinalizableObject
     {
         // TODO: Change this to LeafValueDictionary
-        typedef JsUtil::SynchronizedDictionary<Js::LocalFunctionId, Js::FunctionBody*, Recycler> FunctionBodyDictionary;
-        typedef JsUtil::SynchronizedDictionary<Js::LocalFunctionId, Js::ParseableFunctionInfo*, Recycler> DeferredFunctionsDictionary;
+        typedef JsUtil::SynchronizedDictionary<Js::LocalFunctionId, Js::FunctionBody*, RecyclerAllocator> FunctionBodyDictionary;
+        typedef JsUtil::SynchronizedDictionary<Js::LocalFunctionId, Js::ParseableFunctionInfo*, RecyclerAllocator> DeferredFunctionsDictionary;
 
         friend class RemoteUtf8SourceInfo;
         friend class ScriptContext;
@@ -294,14 +294,14 @@ namespace Js
             this->m_lineOffsetCache = nullptr;
         }
 
-        void CreateLineOffsetCache(const JsUtil::LineOffsetCache<Recycler>::LineOffsetCacheItem *items, charcount_t numberOfItems);
+        void CreateLineOffsetCache(const JsUtil::LineOffsetCache<RecyclerAllocator>::LineOffsetCacheItem *items, charcount_t numberOfItems);
 
         size_t GetLineCount()
         {
             return this->GetLineOffsetCache()->GetLineCount();
         }
 
-        JsUtil::LineOffsetCache<Recycler> *GetLineOffsetCache()
+        JsUtil::LineOffsetCache<RecyclerAllocator> *GetLineOffsetCache()
         {
             AssertMsg(this->m_lineOffsetCache != nullptr, "LineOffsetCache wasn't created, EnsureLineOffsetCache should have been called.");
             return m_lineOffsetCache;
@@ -371,7 +371,7 @@ namespace Js
         Field(ScriptContext* const) m_scriptContext;   // Pointer to ScriptContext under which this source info was created
 
         // Line offset cache used for quickly finding line/column offsets.
-        Field(JsUtil::LineOffsetCache<Recycler>*) m_lineOffsetCache;
+        Field(JsUtil::LineOffsetCache<RecyclerAllocator>*) m_lineOffsetCache;
 
         // Utf8SourceInfo of the caller, used for mapping eval/new Function node to its caller node for debugger
         Field(Utf8SourceInfo*) callerUtf8SourceInfo;

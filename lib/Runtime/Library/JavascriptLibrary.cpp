@@ -75,7 +75,7 @@ namespace Js
         this->recycler = scriptContext->GetRecycler();
         this->undeclBlockVarSentinel = RecyclerNew(recycler, UndeclaredBlockVariable, StaticType::New(scriptContext, TypeIds_Null, nullptr, nullptr));
 
-        typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain = RecyclerNew(recycler, JsUtil::List<Type *>, recycler);
+        typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain = RecyclerNew(recycler, JsUtil::List<Type *>, recycler->GetAllocator());
 
         // Library is not zero-initialized. memset the memory occupied by builtinFunctions array to 0.
         ClearArray(builtinFunctions, BuiltinFunction::Count);
@@ -5370,7 +5370,7 @@ namespace Js
     {
         if (this->stringTemplateCallsiteObjectList == nullptr)
         {
-            this->stringTemplateCallsiteObjectList = RecyclerNew(GetRecycler(), StringTemplateCallsiteObjectList, GetRecycler());
+            this->stringTemplateCallsiteObjectList = RecyclerNew(GetRecycler(), StringTemplateCallsiteObjectList, GetRecycler()->GetAllocator());
         }
     }
 
@@ -6884,7 +6884,7 @@ namespace Js
     {
         if (moduleRecordList == nullptr)
         {
-            moduleRecordList = RecyclerNew(recycler, ModuleRecordList, recycler);
+            moduleRecordList = RecyclerNew(recycler, ModuleRecordList, recycler->GetAllocator());
         }
         return moduleRecordList;
     }
@@ -6904,8 +6904,9 @@ namespace Js
         // The last void* is the linklist connecting to next block.
         if (bindRefChunkCurrent == bindRefChunkEnd)
         {
-            Field(void*)* tmpBindRefChunk = RecyclerNewArrayZ(recycler,
-                Field(void*), HeapConstants::ObjectGranularity / sizeof(void *));
+            typedef Field(void*) voidPtr;
+            voidPtr* tmpBindRefChunk = RecyclerNewArrayZ(recycler,
+                voidPtr, HeapConstants::ObjectGranularity / sizeof(void *));
             // reserve the last void* as the linklist node.
             bindRefChunkEnd = tmpBindRefChunk + (HeapConstants::ObjectGranularity / sizeof(void *) -1 );
             if (bindRefChunkBegin == nullptr)
@@ -6935,7 +6936,7 @@ namespace Js
     {
         if (this->dynamicFunctionReference == nullptr)
         {
-            this->dynamicFunctionReference = RecyclerNew(this->recycler, FunctionReferenceList, this->recycler);
+            this->dynamicFunctionReference = RecyclerNew(this->recycler, FunctionReferenceList, this->recycler->GetAllocator());
             this->BindReference(this->dynamicFunctionReference);
             this->dynamicFunctionReferenceDepth = 0;
         }

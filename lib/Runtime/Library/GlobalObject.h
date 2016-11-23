@@ -164,7 +164,7 @@ namespace Js
         Field(RecyclableObject*) directHostObject;
         Field(RecyclableObject*) secureDirectHostObject;
 
-        typedef JsUtil::BaseHashSet<PropertyId, Recycler, PowerOf2SizePolicy> ReservedPropertiesHashSet;
+        typedef JsUtil::BaseHashSet<PropertyId, RecyclerAllocator, PowerOf2SizePolicy> ReservedPropertiesHashSet;
         Field(ReservedPropertiesHashSet *) reservedProperties;
 
 #if ENABLE_TTD

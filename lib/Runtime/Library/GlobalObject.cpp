@@ -124,7 +124,7 @@ namespace Js
         if (reservedProperties == nullptr)
         {
             Recycler* recycler = this->GetScriptContext()->GetRecycler();
-            reservedProperties = RecyclerNew(recycler, ReservedPropertiesHashSet, recycler, 3);
+            reservedProperties = RecyclerNew(recycler, ReservedPropertiesHashSet, recycler->GetAllocator(), 3);
         }
         reservedProperties->AddNew(propertyId);
         return true;
@@ -247,7 +247,7 @@ namespace Js
         // Note: the typedefs below help make the following code more readable
 
         // See: Js::ScriptContext::SourceList (declaration not visible from this file)
-        typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, Recycler, false, Js::FreeListedRemovePolicy> SourceList;
+        typedef JsUtil::List<RecyclerWeakReference<Utf8SourceInfo>*, RecyclerAllocator, false, Js::FreeListedRemovePolicy> SourceList;
         typedef RecyclerWeakReference<Js::Utf8SourceInfo> Utf8SourceInfoRef;
 
         ScriptContext *originalScriptContext = function->GetScriptContext();

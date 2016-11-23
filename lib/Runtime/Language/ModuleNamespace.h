@@ -11,7 +11,7 @@ namespace Js
     public:
         friend class ModuleNamespaceEnumerator;
         typedef JsUtil::BaseDictionary<PropertyId, ModuleNameRecord, RecyclerLeafAllocator, PowerOf2SizePolicy> UnambiguousExportMap;
-        typedef JsUtil::BaseDictionary<const PropertyRecord*, SimpleDictionaryPropertyDescriptor<BigPropertyIndex>, RecyclerNonLeafAllocator,
+        typedef JsUtil::BaseDictionary<const PropertyRecord*, SimpleDictionaryPropertyDescriptor<BigPropertyIndex>, RecyclerAllocator,
             DictionarySizePolicy<PowerOf2Policy, 1>, PropertyRecordStringHashComparer, PropertyMapKeyTraits<const PropertyRecord*>::template Entry>
             SimplePropertyDescriptorMap;
     protected:

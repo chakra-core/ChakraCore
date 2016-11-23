@@ -67,7 +67,7 @@ namespace Js
 
         Field(HostObjectBase *) hostObject;
 
-        typedef JsUtil::BaseDictionary<PropertyRecord const *, RootObjectInlineCache *, Recycler> RootObjectInlineCacheMap;
+        typedef JsUtil::BaseDictionary<PropertyRecord const *, RootObjectInlineCache *, RecyclerAllocator> RootObjectInlineCacheMap;
         Field(RootObjectInlineCacheMap *) loadInlineCacheMap;
         Field(RootObjectInlineCacheMap *) loadMethodInlineCacheMap;
         Field(RootObjectInlineCacheMap *) storeInlineCacheMap;

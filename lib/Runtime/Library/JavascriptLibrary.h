@@ -33,7 +33,7 @@ namespace Js
     class ArrayBufferBase;
     class SharedContents;
     typedef RecyclerFastAllocator<JavascriptNumber, LeafBit> RecyclerJavascriptNumberAllocator;
-    typedef JsUtil::List<Var, Recycler> ListForListIterator;
+    typedef JsUtil::List<Var, RecyclerAllocator> ListForListIterator;
 
     class UndeclaredBlockVariable : public RecyclableObject
     {
@@ -446,7 +446,7 @@ namespace Js
         FieldNoBarrier(PromiseContinuationCallback) nativeHostPromiseContinuationFunction;
         Field(void *) nativeHostPromiseContinuationFunctionState;
 
-        typedef SList<Js::FunctionProxy*, Recycler> FunctionReferenceList;
+        typedef SList<Js::FunctionProxy*, RecyclerAllocator> FunctionReferenceList;
 
         Field(void *) bindRefChunkBegin;
         Field(Field(void*)*) bindRefChunkCurrent;
@@ -457,7 +457,7 @@ namespace Js
         Field(uint) dynamicFunctionReferenceDepth;
         Field(FinalizableObject*) jsrtContextObject;
 
-        typedef JsUtil::BaseHashSet<RecyclerWeakReference<RecyclableObject>*, Recycler, PowerOf2SizePolicy, RecyclerWeakReference<RecyclableObject>*, StringTemplateCallsiteObjectComparer> StringTemplateCallsiteObjectList;
+        typedef JsUtil::BaseHashSet<RecyclerWeakReference<RecyclableObject>*, RecyclerAllocator, PowerOf2SizePolicy, RecyclerWeakReference<RecyclableObject>*, StringTemplateCallsiteObjectComparer> StringTemplateCallsiteObjectList;
 
         // Used to store a list of template callsite objects.
         // We use the raw strings in the callsite object (or a string template parse node) to identify unique callsite objects in the list.
@@ -1312,7 +1312,7 @@ namespace Js
         void DumpLibraryByteCode();
 #endif
     private:
-        typedef JsUtil::BaseHashSet<Js::PropertyRecord const *, Recycler, PowerOf2SizePolicy> ReferencedPropertyRecordHashSet;
+        typedef JsUtil::BaseHashSet<Js::PropertyRecord const *, RecyclerAllocator, PowerOf2SizePolicy> ReferencedPropertyRecordHashSet;
         Field(ReferencedPropertyRecordHashSet*) referencedPropertyRecords;
 
         ReferencedPropertyRecordHashSet * EnsureReferencedPropertyRecordList()
@@ -1320,7 +1320,7 @@ namespace Js
             ReferencedPropertyRecordHashSet* pidList = this->referencedPropertyRecords;
             if (pidList == nullptr)
             {
-                pidList = RecyclerNew(this->recycler, ReferencedPropertyRecordHashSet, this->recycler, 173);
+                pidList = RecyclerNew(this->recycler, ReferencedPropertyRecordHashSet, this->recycler->GetAllocator(), 173);
                 this->referencedPropertyRecords = pidList;
             }
             return pidList;

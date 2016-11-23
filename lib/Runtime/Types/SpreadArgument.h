@@ -11,7 +11,7 @@ namespace Js
     private:
         Field(Var) iterable;
         Field(RecyclableObject*) iterator;
-        typedef JsUtil::List<Var, Recycler> VarList;
+        typedef JsUtil::List<Var, RecyclerAllocator> VarList;
         Field(VarList*) iteratorIndices;
 
         void AssertAndFailFast() { AssertMsg(false, "This function should not be invoked"); Js::Throw::InternalError();}

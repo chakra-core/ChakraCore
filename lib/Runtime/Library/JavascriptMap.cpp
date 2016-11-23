@@ -14,7 +14,7 @@ namespace Js
     JavascriptMap* JavascriptMap::New(ScriptContext* scriptContext)
     {
         JavascriptMap* map = scriptContext->GetLibrary()->CreateMap();
-        map->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler());
+        map->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler()->GetAllocator());
 
         return map;
     }
@@ -83,7 +83,7 @@ namespace Js
             JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_ObjectIsAlreadyInitialized, _u("Map"), _u("Map"));
         }
 
-        mapObject->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler());
+        mapObject->map = RecyclerNew(scriptContext->GetRecycler(), MapDataMap, scriptContext->GetRecycler()->GetAllocator());
 
         if (iter != nullptr)
         {
@@ -450,7 +450,7 @@ namespace Js
     JavascriptMap* JavascriptMap::CreateForSnapshotRestore(ScriptContext* ctx)
     {
         JavascriptMap* res = ctx->GetLibrary()->CreateMap();
-        res->map = RecyclerNew(ctx->GetRecycler(), MapDataMap, ctx->GetRecycler());
+        res->map = RecyclerNew(ctx->GetRecycler(), MapDataMap, ctx->GetRecycler()->GetAllocator());
 
         return res;
     }

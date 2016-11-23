@@ -105,8 +105,8 @@ namespace Js
 
         promise->status = PromiseStatusCode_Unresolved;
 
-        promise->resolveReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
-        promise->rejectReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
+        promise->resolveReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler->GetAllocator());
+        promise->rejectReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler->GetAllocator());
 
         JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedRecord = RecyclerNewStructZ(scriptContext->GetRecycler(), JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper);
         alreadyResolvedRecord->alreadyResolved = false;
@@ -1213,10 +1213,10 @@ namespace Js
         promise->status = (PromiseStatus)status;
         promise->result = result;
 
-        promise->resolveReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
+        promise->resolveReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler->GetAllocator());
         promise->resolveReactions->Copy(&resolveReactions);
 
-        promise->rejectReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler);
+        promise->rejectReactions = RecyclerNew(recycler, JavascriptPromiseReactionList, recycler->GetAllocator());
         promise->rejectReactions->Copy(&rejectReactions);
 
         return promise;

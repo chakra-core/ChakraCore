@@ -6,7 +6,6 @@
 
 template <typename TBlockType>
 template <ObjectInfoBits attributes, bool nothrow>
-
 inline char *
 HeapBucketT<TBlockType>::RealAlloc(Recycler * recycler, size_t sizeCat, size_t size)
 {

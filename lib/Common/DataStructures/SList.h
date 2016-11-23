@@ -160,7 +160,7 @@ public:
             const NodeBase *dead = this->current;
             UnlinkCurrent();
 
-            auto freeFunc = TypeAllocatorFunc<TAllocator, TData>::GetFreeFunc();
+            auto freeFunc = &TAllocator::Free;
 
             AllocatorFree(allocator, freeFunc, (Node *) dead, sizeof(Node));
         }
@@ -285,7 +285,7 @@ public:
         {
             NodeBase * next = current->Next();
 
-            auto freeFunc = TypeAllocatorFunc<TAllocator, TData>::GetFreeFunc();
+            auto freeFunc = &TAllocator::Free;
 
             AllocatorFree(allocator, freeFunc, (Node *)current, sizeof(Node));
             current = next;
@@ -376,7 +376,7 @@ public:
         NodeBase * node = this->Next();
         this->Next() = node->Next();
 
-        auto freeFunc = TypeAllocatorFunc<TAllocator, TData>::GetFreeFunc();
+        auto freeFunc = &TAllocator::Free;
         AllocatorFree(allocator, freeFunc, (Node *) node, sizeof(Node));
         this->DecrementCount();
     }

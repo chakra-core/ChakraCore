@@ -35,7 +35,7 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
     memset(globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
-    m_functionsInfo = RecyclerNew(scriptContext->GetRecycler(), WasmFunctionInfosList, scriptContext->GetRecycler());
+    m_functionsInfo = RecyclerNew(scriptContext->GetRecycler(), WasmFunctionInfosList, scriptContext->GetRecycler()->GetAllocator());
     m_imports = Anew(&m_alloc, WasmImportsList, &m_alloc);
     globals = Anew(&m_alloc, WasmGlobalsList, &m_alloc);
     m_reader = Anew(&m_alloc, Wasm::WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength);

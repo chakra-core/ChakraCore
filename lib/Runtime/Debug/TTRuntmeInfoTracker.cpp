@@ -50,8 +50,8 @@ namespace TTD
 
         Recycler* tctxRecycler = this->m_threadCtx->GetRecycler();
 
-        this->m_ttdRootSet.Root(RecyclerNew(tctxRecycler, TTD::ObjectPinSet, tctxRecycler), tctxRecycler);
-        this->m_ttdLocalRootSet.Root(RecyclerNew(tctxRecycler, TTD::ObjectPinSet, tctxRecycler), tctxRecycler);
+        this->m_ttdRootSet.Root(RecyclerNew(tctxRecycler, TTD::ObjectPinSet, tctxRecycler->GetAllocator()), tctxRecycler);
+        this->m_ttdLocalRootSet.Root(RecyclerNew(tctxRecycler, TTD::ObjectPinSet, tctxRecycler->GetAllocator()), tctxRecycler);
     }
 
     ThreadContextTTD::~ThreadContextTTD()
@@ -68,12 +68,12 @@ namespace TTD
 
         if(this->m_ttdRootSet != nullptr)
         {
-            this->m_ttdRootSet.Unroot(this->m_ttdRootSet->GetAllocator());
+            this->m_ttdRootSet.Unroot(this->m_ttdRootSet->GetAllocator()->GetRecycler());
         }
 
         if(this->m_ttdLocalRootSet != nullptr)
         {
-            this->m_ttdLocalRootSet.Unroot(this->m_ttdLocalRootSet->GetAllocator());
+            this->m_ttdLocalRootSet.Unroot(this->m_ttdLocalRootSet->GetAllocator()->GetRecycler());
         }
 
         this->m_ttdRootTagIdMap.Clear();
@@ -347,8 +347,8 @@ namespace TTD
     {
         Recycler* ctxRecycler = this->m_ctx->GetRecycler();
 
-        this->m_ttdPinnedRootFunctionSet.Root(RecyclerNew(ctxRecycler, TTD::FunctionBodyPinSet, ctxRecycler), ctxRecycler);
-        this->TTDWeakReferencePinSet.Root(RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler), ctxRecycler);
+        this->m_ttdPinnedRootFunctionSet.Root(RecyclerNew(ctxRecycler, TTD::FunctionBodyPinSet, ctxRecycler->GetAllocator()), ctxRecycler);
+        this->TTDWeakReferencePinSet.Root(RecyclerNew(ctxRecycler, TTD::ObjectPinSet, ctxRecycler->GetAllocator()), ctxRecycler);
     }
 
     ScriptContextTTD::~ScriptContextTTD()
@@ -361,14 +361,14 @@ namespace TTD
 
         if(this->m_ttdPinnedRootFunctionSet != nullptr)
         {
-            this->m_ttdPinnedRootFunctionSet.Unroot(this->m_ttdPinnedRootFunctionSet->GetAllocator());
+            this->m_ttdPinnedRootFunctionSet.Unroot(this->m_ttdPinnedRootFunctionSet->GetAllocator()->GetRecycler());
         }
 
         this->m_ttdFunctionBodyParentMap.Clear();
 
         if(this->TTDWeakReferencePinSet != nullptr)
         {
-            this->TTDWeakReferencePinSet.Unroot(this->TTDWeakReferencePinSet->GetAllocator());
+            this->TTDWeakReferencePinSet.Unroot(this->TTDWeakReferencePinSet->GetAllocator()->GetRecycler());
         }
     }
 

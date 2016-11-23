@@ -22,22 +22,22 @@ namespace TTD
     {
         if(this->m_inflatePinSet != nullptr)
         {
-            this->m_inflatePinSet.Unroot(this->m_inflatePinSet->GetAllocator());
+            this->m_inflatePinSet.Unroot(this->m_inflatePinSet->GetAllocator()->GetRecycler());
         }
 
         if(this->m_environmentPinSet != nullptr)
         {
-            this->m_environmentPinSet.Unroot(this->m_environmentPinSet->GetAllocator());
+            this->m_environmentPinSet.Unroot(this->m_environmentPinSet->GetAllocator()->GetRecycler());
         }
 
         if(this->m_slotArrayPinSet != nullptr)
         {
-            this->m_slotArrayPinSet.Unroot(this->m_slotArrayPinSet->GetAllocator());
+            this->m_slotArrayPinSet.Unroot(this->m_slotArrayPinSet->GetAllocator()->GetRecycler());
         }
 
         if(this->m_oldInflatePinSet != nullptr)
         {
-            this->m_oldInflatePinSet.Unroot(this->m_oldInflatePinSet->GetAllocator());
+            this->m_oldInflatePinSet.Unroot(this->m_oldInflatePinSet->GetAllocator()->GetRecycler());
         }
     }
 
@@ -55,9 +55,9 @@ namespace TTD
         this->m_promiseDataMap.Clear();
 
         Recycler * recycler = threadContext->GetRecycler();
-        this->m_inflatePinSet.Root(RecyclerNew(recycler, ObjectPinSet, recycler, objectCount), recycler);
-        this->m_environmentPinSet.Root(RecyclerNew(recycler, EnvironmentPinSet, recycler, objectCount), recycler);
-        this->m_slotArrayPinSet.Root(RecyclerNew(recycler, SlotArrayPinSet, recycler, objectCount), recycler);
+        this->m_inflatePinSet.Root(RecyclerNew(recycler, ObjectPinSet, recycler->GetAllocator(), objectCount), recycler);
+        this->m_environmentPinSet.Root(RecyclerNew(recycler, EnvironmentPinSet, recycler->GetAllocator(), objectCount), recycler);
+        this->m_slotArrayPinSet.Root(RecyclerNew(recycler, SlotArrayPinSet, recycler->GetAllocator(), objectCount), recycler);
     }
 
     void InflateMap::PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount)
@@ -81,8 +81,8 @@ namespace TTD
 
         //allocate the old pin set and fill it
         AssertMsg(this->m_oldInflatePinSet == nullptr, "Old pin set is not null.");
-        Recycler* pinRecycler = this->m_inflatePinSet->GetAllocator();
-        this->m_oldInflatePinSet.Root(RecyclerNew(pinRecycler, ObjectPinSet, pinRecycler, this->m_inflatePinSet->Count()), pinRecycler);
+        Recycler* pinRecycler = this->m_inflatePinSet->GetAllocator()->GetRecycler();
+        this->m_oldInflatePinSet.Root(RecyclerNew(pinRecycler, ObjectPinSet, pinRecycler->GetAllocator(), this->m_inflatePinSet->Count()), pinRecycler);
 
         for(auto iter = this->m_inflatePinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
@@ -115,7 +115,7 @@ namespace TTD
 
         if(this->m_oldInflatePinSet != nullptr)
         {
-            this->m_oldInflatePinSet.Unroot(this->m_oldInflatePinSet->GetAllocator());
+            this->m_oldInflatePinSet.Unroot(this->m_oldInflatePinSet->GetAllocator()->GetRecycler());
         }
     }
 

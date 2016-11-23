@@ -11,7 +11,7 @@ namespace Js
     public:
         typedef MapOrSetDataNode<Var> SetDataNode;
         typedef MapOrSetDataList<Var> SetDataList;
-        typedef JsUtil::BaseDictionary<Var, SetDataNode*, Recycler, PowerOf2SizePolicy, SameValueZeroComparer> SetDataSet;
+        typedef JsUtil::BaseDictionary<Var, SetDataNode*, RecyclerAllocator, PowerOf2SizePolicy, SameValueZeroComparer> SetDataSet;
 
     private:
         Field(SetDataList) list;

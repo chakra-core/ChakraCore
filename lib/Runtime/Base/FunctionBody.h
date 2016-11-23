@@ -53,8 +53,8 @@ namespace Js
     class JavascriptNumber;
 #pragma endregion
 
-    typedef JsUtil::BaseDictionary<Js::PropertyId, const Js::PropertyRecord*, RecyclerNonLeafAllocator, PowerOf2SizePolicy, DefaultComparer, JsUtil::SimpleDictionaryEntry> PropertyRecordList;
-    typedef JsUtil::BaseHashSet<void*, Recycler, PowerOf2SizePolicy> TypeRefSet;
+    typedef JsUtil::BaseDictionary<Js::PropertyId, const Js::PropertyRecord*, RecyclerAllocator, PowerOf2SizePolicy, DefaultComparer, JsUtil::SimpleDictionaryEntry> PropertyRecordList;
+    typedef JsUtil::BaseHashSet<void*, RecyclerAllocator, PowerOf2SizePolicy> TypeRefSet;
 
      // Definition of scopes such as With, Catch and Block which will be used further in the debugger for additional look-ups.
     enum DiagExtraScopesType
@@ -309,7 +309,7 @@ namespace Js
     private:
         Field(PolymorphicInlineCacheInfo) selfInfo;
 
-        typedef SListCounted<PolymorphicInlineCacheInfo*, Recycler> PolymorphicInlineCacheInfoListType;
+        typedef SListCounted<PolymorphicInlineCacheInfo*, RecyclerAllocator> PolymorphicInlineCacheInfoListType;
         Field(PolymorphicInlineCacheInfoListType) inlineeInfo;
 
         static void SetPolymorphicInlineCache(PolymorphicInlineCacheInfo * polymorphicInlineCacheInfo, FunctionBody * functionBody, uint index, PolymorphicInlineCache * polymorphicInlineCache, byte polyCacheUtil);
@@ -320,14 +320,14 @@ namespace Js
         PolymorphicInlineCacheInfo * GetSelfInfo() { return &selfInfo; }
         PolymorphicInlineCacheInfo * EnsureInlineeInfo(Recycler * recycler, FunctionBody * inlineeFunctionBody);
         PolymorphicInlineCacheInfo * GetInlineeInfo(FunctionBody * inlineeFunctionBody);
-        SListCounted<PolymorphicInlineCacheInfo*, Recycler> * GetInlineeInfo() { return &this->inlineeInfo; }
+        SListCounted<PolymorphicInlineCacheInfo*, RecyclerAllocator> * GetInlineeInfo() { return &this->inlineeInfo; }
 
         void SetPolymorphicInlineCache(FunctionBody * functionBody, uint index, PolymorphicInlineCache * polymorphicInlineCache, bool isInlinee, byte polyCacheUtil);
 
         template <class Fn>
         void MapInlinees(Fn fn)
         {
-            SListCounted<PolymorphicInlineCacheInfo*, Recycler>::Iterator iter(&inlineeInfo);
+            SListCounted<PolymorphicInlineCacheInfo*, RecyclerAllocator>::Iterator iter(&inlineeInfo);
             while (iter.Next())
             {
                 fn(iter.Data());
@@ -534,10 +534,10 @@ namespace Js
         Field(XProcNumberPageSegment*) numberPageSegments;
 
         FieldNoBarrier(SmallSpanSequence *) nativeThrowSpanSequence;
-        typedef JsUtil::BaseHashSet<RecyclerWeakReference<FunctionBody>*, Recycler, PowerOf2SizePolicy> WeakFuncRefSet;
+        typedef JsUtil::BaseHashSet<RecyclerWeakReference<FunctionBody>*, RecyclerAllocator, PowerOf2SizePolicy> WeakFuncRefSet;
         Field(WeakFuncRefSet *) weakFuncRefSet;
         // Need to keep strong references to the guards here so they don't get collected while the entry point is alive.
-        typedef JsUtil::BaseDictionary<Js::PropertyId, PropertyGuard*, Recycler, PowerOf2SizePolicy> SharedPropertyGuardDictionary;
+        typedef JsUtil::BaseDictionary<Js::PropertyId, PropertyGuard*, RecyclerAllocator, PowerOf2SizePolicy> SharedPropertyGuardDictionary;
         Field(SharedPropertyGuardDictionary*) sharedPropertyGuards;
         typedef JsUtil::List<LazyBailOutRecord, HeapAllocator> BailOutRecordMap;
         Field(BailOutRecordMap*) bailoutRecordMap;
@@ -557,7 +557,7 @@ namespace Js
         Field(uint) inlineeFrameOffsetArrayOffset;
         Field(uint) inlineeFrameOffsetArrayCount;
 
-        typedef SListCounted<ConstructorCache*, Recycler> ConstructorCacheList;
+        typedef SListCounted<ConstructorCache*, RecyclerAllocator> ConstructorCacheList;
         Field(ConstructorCacheList*) constructorCaches;
 
         Field(EntryPointPolymorphicInlineCacheInfo *) polymorphicInlineCacheInfo;
@@ -1013,15 +1013,15 @@ namespace Js
         {
             uint32 statementIndex;
             regex::Interval nativeOffsetSpan;
-        };
+         };
 
-    private:
-        typedef JsUtil::List<NativeOffsetMap, HeapAllocator> NativeOffsetMapListType;
-        Field(NativeOffsetMapListType) nativeOffsetMaps;
-    public:
-        void RecordNativeMap(uint32 offset, uint32 statementIndex);
+         typedef JsUtil::List<NativeOffsetMap, HeapAllocator> NativeOffsetMapListType;
+     private:
+         Field(NativeOffsetMapListType) nativeOffsetMaps;
+     public:
+         void RecordNativeMap(uint32 offset, uint32 statementIndex);
 
-        int GetNativeOffsetMapCount() const;
+         int GetNativeOffsetMapCount() const;
 #endif
 
 #if DBG_DUMP && ENABLE_NATIVE_CODEGEN
@@ -1318,7 +1318,7 @@ namespace Js
     public:
         static CriticalSection* GetLock() { return &GlobalLock; }
         typedef RecyclerWeakReference<DynamicType> FunctionTypeWeakRef;
-        typedef JsUtil::List<FunctionTypeWeakRef*, Recycler, false, WeakRefFreeListedRemovePolicy> FunctionTypeWeakRefList;
+        typedef JsUtil::List<FunctionTypeWeakRef*, RecyclerAllocator, false, WeakRefFreeListedRemovePolicy> FunctionTypeWeakRefList;
 
     protected:
         FunctionProxy(JavascriptMethod entryPoint, Attributes attributes,
@@ -1988,8 +1988,8 @@ namespace Js
             typedef JsUtil::List<Js::FunctionBody::StatementMap*> StatementMapList;
 
             // Note: isLeaf = true template param below means that recycler should not be used to dispose the items.
-            typedef JsUtil::List<StatementAdjustmentRecord, Recycler, /* isLeaf = */ true> StatementAdjustmentRecordList;
-            typedef JsUtil::List<CrossFrameEntryExitRecord, Recycler, /* isLeaf = */ true> CrossFrameEntryExitRecordList;
+            typedef JsUtil::List<StatementAdjustmentRecord, RecyclerAllocator, /* isLeaf = */ true> StatementAdjustmentRecordList;
+            typedef JsUtil::List<CrossFrameEntryExitRecord, RecyclerAllocator, /* isLeaf = */ true> CrossFrameEntryExitRecordList;
 
             // Contains recorded at bytecode generation time information about statements and try-catch blocks.
             // Used by debugger.
@@ -3789,7 +3789,7 @@ namespace Js
         ScopeObjectChain(Recycler* recycler)
             : pScopeChain(nullptr)
         {
-            pScopeChain = RecyclerNew(recycler, ScopeObjectChainList, recycler);
+            pScopeChain = RecyclerNew(recycler, ScopeObjectChainList, recycler->GetAllocator());
         }
 
         // This function will return DebuggerScopeProperty when the property is found and correctly in the range.

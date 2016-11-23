@@ -155,7 +155,7 @@ private:
     Wasm::WasmSignature* m_signatures;
     uint32* m_indirectfuncs;
     Wasm::WasmElementSegment** m_elementsegs;
-    typedef JsUtil::List<Wasm::WasmFunctionInfo*, Recycler> WasmFunctionInfosList;
+    typedef JsUtil::List<Wasm::WasmFunctionInfo*, RecyclerAllocator> WasmFunctionInfosList;
     WasmFunctionInfosList* m_functionsInfo;
     Wasm::WasmExport* m_exports;
     typedef JsUtil::List<Wasm::WasmImport*, ArenaAllocator> WasmImportsList;

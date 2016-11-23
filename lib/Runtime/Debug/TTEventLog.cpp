@@ -456,7 +456,7 @@ namespace TTD
 
         if(this->m_propertyRecordPinSet != nullptr)
         {
-            this->m_propertyRecordPinSet.Unroot(this->m_propertyRecordPinSet->GetAllocator());
+            this->m_propertyRecordPinSet.Unroot(this->m_propertyRecordPinSet->GetAllocator()->GetRecycler());
         }
     }
 
@@ -642,7 +642,7 @@ namespace TTD
         this->m_modeStack.Push(TTDMode::Invalid);
 
         Recycler * recycler = threadContext->GetRecycler();
-        this->m_propertyRecordPinSet.Root(RecyclerNew(recycler, PropertyRecordPinSet, recycler), recycler);
+        this->m_propertyRecordPinSet.Root(RecyclerNew(recycler, PropertyRecordPinSet, recycler->GetAllocator()), recycler);
     }
 
     EventLog::~EventLog()

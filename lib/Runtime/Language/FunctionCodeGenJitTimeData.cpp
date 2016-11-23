@@ -91,7 +91,7 @@ namespace Js
 
         if (!inlinees)
         {
-            inlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenJitTimeData *), functionBody->GetProfiledCallSiteCount());
+            inlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenJitTimeDataPtr, functionBody->GetProfiledCallSiteCount());
         }
 
         FunctionCodeGenJitTimeData *inlineeData = nullptr;
@@ -127,7 +127,7 @@ namespace Js
 
         if (!ldFldInlinees)
         {
-            ldFldInlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenJitTimeData*), GetFunctionBody()->GetInlineCacheCount());
+            ldFldInlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenJitTimeDataPtr, GetFunctionBody()->GetInlineCacheCount());
         }
 
         const auto inlineeData = RecyclerNew(recycler, FunctionCodeGenJitTimeData, inlinee, nullptr);

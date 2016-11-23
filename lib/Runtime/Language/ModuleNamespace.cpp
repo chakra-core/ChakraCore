@@ -66,7 +66,7 @@ namespace Js
         // like {export foo as foo1, foo2, foo3}, and external properties as reexport from current module. The problem with aliasing
         // is that multiple propertyId can be associated with one slotIndex. We need to build from PropertyMap directly here.
         // there is one instance of ModuleNamespace per module file; we can always use the BigPropertyIndex for security.
-        propertyMap = RecyclerNew(recycler, SimplePropertyDescriptorMap, recycler, sourceTextModuleRecord->GetLocalExportCount());
+        propertyMap = RecyclerNew(recycler, SimplePropertyDescriptorMap, recycler->GetAllocator(), sourceTextModuleRecord->GetLocalExportCount());
         if (localExportList != nullptr)
         {
             localExportList->Map([=](ModuleImportOrExportEntry exportEntry) {
@@ -139,7 +139,7 @@ namespace Js
         Recycler* recycler = GetScriptContext()->GetRecycler();
         if (unambiguousNonLocalExports == nullptr)
         {
-            unambiguousNonLocalExports = RecyclerNew(recycler, UnambiguousExportMap, recycler, 4);
+            unambiguousNonLocalExports = RecyclerNew(recycler, UnambiguousExportMap, recycler->GetLeafAllocator(), 4);
         }
         // keep a local copy of the module/
         unambiguousNonLocalExports->AddNew(propertyId, *nonLocalExportNameRecord);
@@ -318,7 +318,7 @@ namespace Js
         {
             ExportedNames* exportedNames = moduleRecord->GetExportedNames(nullptr);
             ScriptContext* scriptContext = GetScriptContext();
-            sortedExportedNames = ListForListIterator::New(scriptContext->GetRecycler());
+            sortedExportedNames = ListForListIterator::New(scriptContext->GetRecycler()->GetAllocator());
             exportedNames->Map([&](PropertyId propertyId) {
                 JavascriptString* propertyString = scriptContext->GetPropertyString(propertyId);
                 sortedExportedNames->Add(propertyString);

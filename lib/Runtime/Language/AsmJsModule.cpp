@@ -2543,7 +2543,7 @@ namespace Js
     {
         Assert(mSlotMap == nullptr);
         mSlotsCount = val;
-        mSlotMap = RecyclerNew(mRecycler, AsmJsSlotMap, mRecycler);
+        mSlotMap = RecyclerNew(mRecycler, AsmJsSlotMap, mRecycler->GetAllocator());
     }
 
     void AsmJsModuleInfo::SetFunctionTableSize( int index, uint size )

@@ -231,6 +231,10 @@ public:
 
     char* Realloc(void* buffer, DECLSPEC_GUARD_OVERFLOW size_t existingBytes, DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
     void Free(void * buffer, size_t byteSize);
+    void FreeLeaf(void * buffer, size_t byteSize)
+    {
+        Free(buffer, byteSize);
+    }
 #if DBG
     bool HasDelayFreeList() const
     {

@@ -113,7 +113,7 @@ public:
 
 private:
 #if ENABLE_CONCURRENT_GC
-#if ENABLE_WRITE_WATCH
+#ifdef RECYCLER_WRITE_WATCH
     static UINT GetWriteWatchHelper(Recycler * recycler, DWORD writeWatchFlags, void* baseAddress, size_t regionSize,
         void** addresses, ULONG_PTR* count, LPDWORD granularity);
     static UINT GetWriteWatchHelperOnOOM(DWORD writeWatchFlags, _In_ void* baseAddress, size_t regionSize,

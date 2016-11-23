@@ -15,7 +15,7 @@ namespace JsUtil
     template<
         class TKey,
         class TValue,
-        class TAllocator = Recycler,
+        class TAllocator = RecyclerAllocator,
         class TSizePolicy = PowerOf2SizePolicy,
         template<class ValueOrKey> class TComparer = DefaultComparer,
         template<class K, class V> class TDictionaryEntry = SimpleDictionaryEntry>
@@ -96,15 +96,14 @@ namespace JsUtil
                 TKey,
                 MruDictionaryData,
                 // MruDictionaryData always has pointer to GC pointer (MruEntry)
-                typename ForceNonLeafAllocator<TAllocator>::AllocatorType,
+                TAllocator,
                 TSizePolicy,
                 TComparer,
                 TDictionaryEntry>
             TDictionary;
         TDictionary dictionary;
-        typedef typename TDictionary::AllocatorType AllocatorType;
     public:
-        MruDictionary(AllocatorType *const allocator, const int mruListCapacity)
+        MruDictionary(TAllocator *const allocator, const int mruListCapacity)
             : mruListCapacity(mruListCapacity), mruListCount(0), dictionary(allocator)
         {
             Assert(allocator);

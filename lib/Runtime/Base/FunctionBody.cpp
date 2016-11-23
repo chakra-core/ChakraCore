@@ -212,7 +212,7 @@ namespace Js
         StatementMapList * statementMaps = this->GetStatementMaps();
         if (!statementMaps)
         {
-            statementMaps = RecyclerNew(recycler, StatementMapList, recycler);
+            statementMaps = RecyclerNew(recycler, StatementMapList, recycler->GetAllocator());
             this->SetStatementMaps(statementMaps);
         }
 
@@ -240,7 +240,7 @@ namespace Js
         Recycler* recycler = this->m_scriptContext->GetRecycler();
         if (this->GetStatementAdjustmentRecords() == nullptr)
         {
-            m_sourceInfo.m_auxStatementData->m_statementAdjustmentRecords = RecyclerNew(recycler, StatementAdjustmentRecordList, recycler);
+            m_sourceInfo.m_auxStatementData->m_statementAdjustmentRecords = RecyclerNew(recycler, StatementAdjustmentRecordList, recycler->GetAllocator());
         }
 
         StatementAdjustmentRecord record(adjType, offset);
@@ -560,7 +560,7 @@ namespace Js
 
         // Sync entryPoints changes to etw rundown lock
         CriticalSection* syncObj = scriptContext->GetThreadContext()->GetEtwRundownCriticalSection();
-        this->entryPoints = RecyclerNew(this->m_scriptContext->GetRecycler(), FunctionEntryPointList, this->m_scriptContext->GetRecycler(), syncObj);
+        this->entryPoints = RecyclerNew(this->m_scriptContext->GetRecycler(), FunctionEntryPointList, this->m_scriptContext->GetRecycler()->GetAllocator(), syncObj);
 
         this->AddEntryPointToEntryPointList(this->GetDefaultFunctionEntryPointInfo());
 
@@ -1570,7 +1570,7 @@ namespace Js
         if (functionObjectTypeList == nullptr)
         {
             Recycler* recycler = this->GetScriptContext()->GetRecycler();
-            this->SetAuxPtr(AuxPointerType::FunctionObjectTypeList, RecyclerNew(recycler, FunctionTypeWeakRefList, recycler));
+            this->SetAuxPtr(AuxPointerType::FunctionObjectTypeList, RecyclerNew(recycler, FunctionTypeWeakRefList, recycler->GetAllocator()));
         }
 
         return static_cast<FunctionTypeWeakRefList*>(this->GetAuxPtr(AuxPointerType::FunctionObjectTypeList));
@@ -1693,7 +1693,7 @@ namespace Js
         FunctionBody* returnFunctionBody = nullptr;
         ENTER_PINNED_SCOPE(Js::PropertyRecordList, propertyRecordList);
         Recycler* recycler = this->m_scriptContext->GetRecycler();
-        propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
+        propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler->GetAllocator());
 
         bool isDebugOrAsmJsReparse = false;
         FunctionBody* funcBody = nullptr;
@@ -1968,7 +1968,7 @@ namespace Js
         FunctionBody* returnFunctionBody = nullptr;
         ENTER_PINNED_SCOPE(Js::PropertyRecordList, propertyRecordList);
         Recycler* recycler = this->m_scriptContext->GetRecycler();
-        propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler);
+        propertyRecordList = RecyclerNew(recycler, Js::PropertyRecordList, recycler->GetAllocator());
 
         FunctionBody* funcBody = nullptr;
 
@@ -5102,7 +5102,7 @@ namespace Js
     {
         if (this->scopeProperties == nullptr)
         {
-            this->scopeProperties = RecyclerNew(this->recycler, DebuggerScopePropertyList, this->recycler);
+            this->scopeProperties = RecyclerNew(this->recycler, DebuggerScopePropertyList, this->recycler->GetAllocator());
         }
     }
 
@@ -7711,7 +7711,7 @@ namespace Js
         Recycler* recycler = this->m_scriptContext->GetRecycler();
         if (this->GetCrossFrameEntryExitRecords() == nullptr)
         {
-            m_sourceInfo.m_auxStatementData->m_crossFrameBlockEntryExisRecords = RecyclerNew(recycler, CrossFrameEntryExitRecordList, recycler);
+            m_sourceInfo.m_auxStatementData->m_crossFrameBlockEntryExisRecords = RecyclerNew(recycler, CrossFrameEntryExitRecordList, recycler->GetAllocator());
         }
         Assert(this->GetCrossFrameEntryExitRecords());
 
@@ -7779,13 +7779,13 @@ namespace Js
 
     EntryPointPolymorphicInlineCacheInfo::EntryPointPolymorphicInlineCacheInfo(FunctionBody * functionBody) :
         selfInfo(functionBody),
-        inlineeInfo(functionBody->GetRecycler())
+        inlineeInfo(functionBody->GetRecycler()->GetAllocator())
     {
     }
 
     PolymorphicInlineCacheInfo * EntryPointPolymorphicInlineCacheInfo::GetInlineeInfo(FunctionBody * inlineeFunctionBody)
     {
-        SListCounted<PolymorphicInlineCacheInfo*, Recycler>::Iterator iter(&inlineeInfo);
+        SListCounted<PolymorphicInlineCacheInfo*, RecyclerAllocator>::Iterator iter(&inlineeInfo);
         while (iter.Next())
         {
             PolymorphicInlineCacheInfo * info = iter.Data();
@@ -7872,7 +7872,7 @@ namespace Js
     {
         if (this->weakFuncRefSet == nullptr)
         {
-            this->weakFuncRefSet = RecyclerNew(recycler, WeakFuncRefSet, recycler);
+            this->weakFuncRefSet = RecyclerNew(recycler, WeakFuncRefSet, recycler->GetAllocator());
         }
 
         return this->weakFuncRefSet;
@@ -7981,7 +7981,7 @@ namespace Js
     {
         if (this->jitTimeTypeRefs == nullptr)
         {
-            this->jitTimeTypeRefs = RecyclerNew(recycler, TypeRefSet, recycler);
+            this->jitTimeTypeRefs = RecyclerNew(recycler, TypeRefSet, recycler->GetAllocator());
         }
     }
 
@@ -8314,7 +8314,7 @@ namespace Js
         if (this->sharedPropertyGuards == nullptr)
         {
             Recycler* recycler = scriptContext->GetRecycler();
-            this->sharedPropertyGuards = RecyclerNew(recycler, SharedPropertyGuardDictionary, recycler);
+            this->sharedPropertyGuards = RecyclerNew(recycler, SharedPropertyGuardDictionary, recycler->GetAllocator());
         }
 
         PropertyGuard* guard = nullptr;
@@ -8733,7 +8733,7 @@ namespace Js
 
         if (!this->constructorCaches)
         {
-            this->constructorCaches = RecyclerNew(recycler, ConstructorCacheList, recycler);
+            this->constructorCaches = RecyclerNew(recycler, ConstructorCacheList, recycler->GetAllocator());
         }
 
         this->constructorCaches->Prepend(constructorCache);
@@ -9439,7 +9439,7 @@ namespace Js
 
         // Sync entryPoints changes to etw rundown lock
         auto syncObj = functionBody->GetScriptContext()->GetThreadContext()->GetEtwRundownCriticalSection();
-        this->entryPoints = RecyclerNew(recycler, LoopEntryPointList, recycler, syncObj);
+        this->entryPoints = RecyclerNew(recycler, LoopEntryPointList, recycler->GetAllocator(), syncObj);
 
         this->CreateEntryPoint();
 #endif

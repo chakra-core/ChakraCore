@@ -12,7 +12,7 @@ namespace Js
         typedef JsUtil::KeyValuePair<Var, Var> MapDataKeyValuePair;
         typedef MapOrSetDataNode<MapDataKeyValuePair> MapDataNode;
         typedef MapOrSetDataList<MapDataKeyValuePair> MapDataList;
-        typedef JsUtil::BaseDictionary<Var, MapDataNode*, Recycler, PowerOf2SizePolicy, SameValueZeroComparer> MapDataMap;
+        typedef JsUtil::BaseDictionary<Var, MapDataNode*, RecyclerAllocator, PowerOf2SizePolicy, SameValueZeroComparer> MapDataMap;
 
     private:
         Field(MapDataList) list;

@@ -80,7 +80,8 @@ namespace Js
         int inlineSlotCapacity = GetTypeHandler()->GetInlineSlotCapacity();
         if (slotCapacity > inlineSlotCapacity)
         {
-            instance->auxSlots = RecyclerNewArrayZ(recycler, Field(Var), slotCapacity - inlineSlotCapacity);
+            typedef Field(Var) VarType;
+            instance->auxSlots = RecyclerNewArrayZ(recycler, VarType, slotCapacity - inlineSlotCapacity);
         }
     }
 

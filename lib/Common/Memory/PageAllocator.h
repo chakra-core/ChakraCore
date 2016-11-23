@@ -188,7 +188,10 @@ public:
     {
         return isWriteBarrierAllowed;
     }
-
+    bool IsWriteBarrierEnabled()
+    {
+        return this->isWriteBarrierEnabled;
+    }
 #endif
 
 protected:
@@ -684,7 +687,9 @@ public:
 #endif
 
 #if DBG
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     bool HasZeroQueuedPages() const;
+#endif
     virtual void SetDisableThreadAccessCheck() { disableThreadAccessCheck = true;}
     virtual void SetEnableThreadAccessCheck() { disableThreadAccessCheck = false; }
 
@@ -703,8 +708,12 @@ public:
     void ClearConcurrentThreadId() { this->concurrentThreadId = (DWORD)-1; }
     DWORD GetConcurrentThreadId() { return this->concurrentThreadId;  }
     DWORD HasConcurrentThreadId() { return this->concurrentThreadId != -1; }
-
 #endif
+
+    bool IsWriteWatchEnabled()
+    {
+        return (allocFlags & MEM_WRITE_WATCH) == MEM_WRITE_WATCH;
+    }
 
 #if DBG_DUMP
     char16 const * debugName;
@@ -722,10 +731,14 @@ protected:
     char * SnailAllocPages(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
     void OnAllocFromNewSegment(DECLSPEC_GUARD_OVERFLOW uint pageCount, __in void* pages, SegmentBase<TVirtualAlloc>* segment);
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
     template <bool notPageAligned>
     char * TryAllocFreePages(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     char * TryAllocFromZeroPagesList(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, BackgroundPageQueue* bgPageQueue, bool isPendingZeroList);
     char * TryAllocFromZeroPages(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
+#endif
+#endif
 
     template <bool notPageAligned>
     char * TryAllocDecommittedPages(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
@@ -750,17 +763,14 @@ protected:
         PageAllocatorBase<TVirtualAlloc> * pageAllocator, bool committed, bool allocated, bool enableWriteBarrier);
 
     // Zero Pages
+    bool ZeroPages() const { return zeroPages; }
 #if ENABLE_BACKGROUND_PAGE_ZEROING
     void AddPageToZeroQueue(__in void * address, uint pageCount, __in PageSegmentBase<TVirtualAlloc> * pageSegment);
     bool HasZeroPageQueue() const;
-#endif
-
-    bool ZeroPages() const { return zeroPages; }
-#if ENABLE_BACKGROUND_PAGE_ZEROING
     bool QueueZeroPages() const { return queueZeroPages; }
-#endif
-
     FreePageEntry * PopPendingZeroPage();
+#endif 
+
 #if DBG
     void Check();
     bool disableThreadAccessCheck;

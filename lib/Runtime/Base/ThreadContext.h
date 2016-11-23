@@ -453,7 +453,7 @@ private:
     struct PropertyGuardEntry
     {
     public:
-        typedef JsUtil::BaseHashSet<RecyclerWeakReference<Js::PropertyGuard>*, Recycler, PowerOf2SizePolicy> PropertyGuardHashSet;
+        typedef JsUtil::BaseHashSet<RecyclerWeakReference<Js::PropertyGuard>*, RecyclerAllocator, PowerOf2SizePolicy> PropertyGuardHashSet;
         // we do not have WeaklyReferencedKeyHashSet - hence use BYTE as a dummy value.
         typedef JsUtil::WeaklyReferencedKeyDictionary<Js::EntryPointInfo, BYTE> EntryPointDictionary;
         // The sharedGuard is strongly referenced and will be kept alive by ThreadContext::propertyGuards until it's invalidated or
@@ -465,7 +465,7 @@ private:
         Field(PropertyGuardHashSet) uniqueGuards;
         Field(EntryPointDictionary*) entryPoints;
 
-        PropertyGuardEntry(Recycler* recycler) : sharedGuard(nullptr), uniqueGuards(recycler), entryPoints(nullptr) {}
+        PropertyGuardEntry(Recycler* recycler) : sharedGuard(nullptr), uniqueGuards(recycler->GetAllocator()), entryPoints(nullptr) {}
     };
 
 public:
@@ -475,10 +475,10 @@ public:
 
     typedef SListCounted<Js::PropertyId, HeapAllocator> PropertyList;
 
-    typedef JsUtil::BaseHashSet<Js::CaseInvariantPropertyListWithHashCode*, Recycler, PowerOf2SizePolicy, Js::CaseInvariantPropertyListWithHashCode*, JsUtil::NoCaseComparer, JsUtil::SimpleDictionaryEntry>
+    typedef JsUtil::BaseHashSet<Js::CaseInvariantPropertyListWithHashCode*, RecyclerAllocator, PowerOf2SizePolicy, Js::CaseInvariantPropertyListWithHashCode*, JsUtil::NoCaseComparer, JsUtil::SimpleDictionaryEntry>
         PropertyNoCaseSetType;
     typedef JsUtil::WeaklyReferencedKeyDictionary<Js::Type, bool> TypeHashSet;
-    typedef JsUtil::BaseDictionary<Js::PropertyId, TypeHashSet *, Recycler, PowerOf2SizePolicy> PropertyIdToTypeHashSetDictionary;
+    typedef JsUtil::BaseDictionary<Js::PropertyId, TypeHashSet *, RecyclerAllocator, PowerOf2SizePolicy> PropertyIdToTypeHashSetDictionary;
     typedef JsUtil::WeaklyReferencedKeyDictionary<const Js::PropertyRecord, PropertyGuardEntry*, Js::PropertyRecordPointerComparer> PropertyGuardDictionary;
 
 private:
@@ -511,8 +511,8 @@ public:
 #endif
 
 private:
-    typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, Recycler, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
-    typedef JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy> SymbolRegistrationMap;
+    typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, RecyclerAllocator, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
+    typedef JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, RecyclerAllocator, PowerOf2SizePolicy> SymbolRegistrationMap;
 
     class SourceDynamicProfileManagerCache
     {
@@ -526,7 +526,7 @@ private:
         Field(uint) refCount;              // For every script context using this cache, there is a ref count added.
     };
 
-    typedef JsUtil::BaseDictionary<const WCHAR*, SourceDynamicProfileManagerCache*, Recycler, PowerOf2SizePolicy> SourceProfileManagersByUrlMap;
+    typedef JsUtil::BaseDictionary<const WCHAR*, SourceDynamicProfileManagerCache*, RecyclerAllocator, PowerOf2SizePolicy> SourceProfileManagersByUrlMap;
 
     struct RecyclableData
     {
@@ -581,7 +581,7 @@ private:
         Field(SourceProfileManagersByUrlMap*) sourceProfileManagersByUrl;
 
         // Used to register recyclable data that needs to be kept alive while jitting
-        typedef JsUtil::DoublyLinkedList<Js::CodeGenRecyclableData, Recycler> CodeGenRecyclableDataList;
+        typedef JsUtil::DoublyLinkedList<Js::CodeGenRecyclableData, RecyclerAllocator> CodeGenRecyclableDataList;
         Field(CodeGenRecyclableDataList) codeGenRecyclableDatas;
 
         // Used to root old entry points so that they're not prematurely collected

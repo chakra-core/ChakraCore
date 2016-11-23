@@ -386,7 +386,7 @@ namespace Js {
             RegSlot* moduleFunctionIndex;
         };
 
-        typedef JsUtil::BaseDictionary<PropertyId, AsmJsSlot*, Memory::Recycler> AsmJsSlotMap;
+        typedef JsUtil::BaseDictionary<PropertyId, AsmJsSlot*, Memory::RecyclerAllocator> AsmJsSlotMap;
 
     private:
         FieldNoBarrier(Recycler*) mRecycler;

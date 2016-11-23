@@ -261,7 +261,7 @@ namespace Js
     {
     public:
         CaseInvariantPropertyListWithHashCode(Recycler* recycler, int increment):
-          JsUtil::List<const RecyclerWeakReference<Js::PropertyRecord const>*>(recycler, increment),
+          JsUtil::List<const RecyclerWeakReference<Js::PropertyRecord const>*>(recycler->GetAllocator(), increment),
           caseInvariantHashCode(0)
           {
           }

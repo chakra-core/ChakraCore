@@ -27,8 +27,7 @@ namespace Js
 
     private:
         Field(PropertyString *) charStringCacheA[CharStringCacheSize];
-
-        typedef JsUtil::BaseDictionary<char16, JavascriptString *, Recycler, PowerOf2SizePolicy> CharStringCacheMap;
+        typedef JsUtil::BaseDictionary<char16, JavascriptString *, RecyclerAllocator, PowerOf2SizePolicy> CharStringCacheMap;
         Field(CharStringCacheMap *) charStringCache;
 
         friend class CharStringCacheValidator;
