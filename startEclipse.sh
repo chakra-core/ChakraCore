@@ -335,9 +335,9 @@ fi
 
 if [ ! -e "$(pwd)/.cproject" ]
 then
-	echo "Generating Eclipse Project Files for: $BUILD_TYPE"
-	cmake -G "${CMAKE_GEN}" $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH \
-	    -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES ../..
+    echo "Generating Eclipse Project Files for: $BUILD_TYPE"
+    cmake -G "${CMAKE_GEN}" $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH \
+        -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES ../..
 fi
 
 popd > /dev/null
@@ -346,10 +346,10 @@ popd > /dev/null
 echo "Eclipse Workspace Directory: $workspace_directory"
 if [ ! -e "$workspace_directory/.metadata" ]
 then
-	echo "Generating Eclipse Workspace."
-	eclipse -nosplash -data "$workspace_directory" \
-		-application org.eclipse.cdt.managedbuilder.core.headlessbuild \
-			-import "${build_directory}"
+    echo "Generating Eclipse Workspace."
+    eclipse -nosplash -data "$workspace_directory" \
+        -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+        -import "${build_directory}"
 fi
 
 echo "Launching Eclipse..."

@@ -318,9 +318,9 @@ if [[ ${#_CXX} > 0 ]]; then
 fi
 
 if [[ $STATIC_LIBRARY == "-DCC_BUILD_SHARED_LIBRARY=1" ]]; then
-	build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
+    build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
 else
-	build_directory="$CHAKRACORE_DIR/BuildLinux/Static${BUILD_TYPE:0}"
+    build_directory="$CHAKRACORE_DIR/BuildLinux/Static${BUILD_TYPE:0}"
 fi
 
 
