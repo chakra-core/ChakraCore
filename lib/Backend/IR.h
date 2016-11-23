@@ -150,7 +150,8 @@ protected:
         extractedUpperBoundCheckWithoutHoisting(false),
         ignoreOverflowBitCount(32),
         isCtorCall(false),
-        isCallInstrProtectedByNoProfileBailout(false)
+        isCallInstrProtectedByNoProfileBailout(false),
+        hasSideEffects(false)
     {
     }
 public:
@@ -484,6 +485,7 @@ public:
     bool            dstIsAlwaysConvertedToInt32 : 1;
     bool            dstIsAlwaysConvertedToNumber : 1;
     bool            isCallInstrProtectedByNoProfileBailout : 1;
+    bool            hasSideEffects : 1; // The instruction cannot be dead stored
 protected:
     bool            isCloned:1;
     bool            hasBailOutInfo:1;

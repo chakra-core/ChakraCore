@@ -176,7 +176,7 @@ WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
-    ArrayBuffer * buffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+    ArrayBuffer * buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
     return RecyclerNewFinalized(scriptContext->GetRecycler(), WebAssemblyMemory, buffer, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyMemoryType());
 }
 

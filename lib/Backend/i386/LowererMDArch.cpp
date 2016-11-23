@@ -988,8 +988,7 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
         lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
     }
 
-    // MGTODO : call RuntimeError once implemented
-    lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_InvalidTypedArrayIndex, IR::HelperOp_RuntimeRangeError);
+    lowererMD->m_lowerer->GenerateThrow(IR::IntConstOpnd::New(JSERR_InvalidTypedArrayIndex, TyInt32, m_func), loadLabel);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
 
     Assert(indexPair.low->IsRegOpnd());

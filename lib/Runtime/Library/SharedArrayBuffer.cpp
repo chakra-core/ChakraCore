@@ -229,7 +229,7 @@ namespace Js
         SharedArrayBuffer * sab = SharedArrayBuffer::FromVar(object);
         SharedContents * contents = sab->GetSharedContents();
 
-#if _WIN64
+#if ENABLE_FAST_ARRAYBUFFER
         if (sab->IsValidVirtualBufferLength(contents->bufferLength))
         {
             return HeapNew(SharableState, contents, ArrayBufferAllocationType::MemAlloc);
@@ -373,7 +373,7 @@ namespace Js
     }
 
     JavascriptSharedArrayBuffer::JavascriptSharedArrayBuffer(uint32 length, DynamicType * type) :
-        SharedArrayBuffer(length, type, (IsValidVirtualBufferLength(length)) ? AllocWrapper : malloc)
+        SharedArrayBuffer(length, type, (IsValidVirtualBufferLength(length)) ? AsmJsVirtualAllocator : malloc)
     {
     }
     JavascriptSharedArrayBuffer::JavascriptSharedArrayBuffer(SharedContents *sharedContents, DynamicType * type) :
@@ -405,7 +405,7 @@ namespace Js
 
     bool JavascriptSharedArrayBuffer::IsValidVirtualBufferLength(uint length)
     {
-#if _WIN64
+#if ENABLE_FAST_ARRAYBUFFER
         /*
         1. length >= 2^16
         2. length is power of 2 or (length > 2^24 and length is multiple of 2^24)
@@ -435,22 +435,20 @@ namespace Js
         uint ref = InterlockedDecrement(&sharedContents->refCount);
         if (ref == 0)
         {
-#if _WIN64
-                //AsmJS Virtual Free
-                //TOD - see if isBufferCleared need to be added for free too
-                if (IsValidVirtualBufferLength(sharedContents->bufferLength) && !sharedContents->isBufferCleared)
-                {
-                    LPVOID startBuffer = (LPVOID)((uint64)sharedContents->buffer);
-                    BOOL fSuccess = VirtualFree((LPVOID)startBuffer, 0, MEM_RELEASE);
-                    Assert(fSuccess);
-                    sharedContents->isBufferCleared = true;
-                }
-                else
-                {
-                    free(sharedContents->buffer);
-                }
-#else
+#if ENABLE_FAST_ARRAYBUFFER
+            //AsmJS Virtual Free
+            //TOD - see if isBufferCleared need to be added for free too
+            if (IsValidVirtualBufferLength(sharedContents->bufferLength) && !sharedContents->isBufferCleared)
+            {
+                FreeMemAlloc(sharedContents->buffer);
+                sharedContents->isBufferCleared = true;
+            }
+            else
+            {
                 free(sharedContents->buffer);
+            }
+#else
+            free(sharedContents->buffer);
 #endif
             Recycler* recycler = GetType()->GetLibrary()->GetRecycler();
             recycler->ReportExternalMemoryFree(sharedContents->bufferLength);

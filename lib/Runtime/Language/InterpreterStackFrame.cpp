@@ -2755,10 +2755,7 @@ namespace Js
             }
             localFunctionImports[import.location] = importFunc;
         }
-        if (*arrayBufferPtr)
-        {
-            (*(ArrayBuffer**)arrayBufferPtr)->SetIsAsmJsBuffer();
-        }
+
         threadContext->SetDisableImplicitFlags(prevDisableImplicitFlags);
         threadContext->SetImplicitCallFlags(saveImplicitcallFlags);
         // scope
@@ -8466,7 +8463,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, JSERR_InvalidTypedArrayIndex);
         }
         BYTE* buffer = arr->GetBuffer();
         switch (playout->ViewType)
@@ -8511,7 +8508,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, JSERR_InvalidTypedArrayIndex);
         }        
         BYTE* buffer = arr->GetBuffer();
         switch (playout->ViewType)

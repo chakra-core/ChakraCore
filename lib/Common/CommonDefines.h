@@ -185,6 +185,10 @@
 #ifdef _WIN32
 #define ENABLE_OOP_NATIVE_CODEGEN 1     // Out of process JIT
 #endif
+
+#ifdef _WIN64
+#define ENABLE_FAST_ARRAYBUFFER 1
+#endif
 #endif
 
 // Other features

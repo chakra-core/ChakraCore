@@ -1118,8 +1118,10 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 IR::Instr *
 LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
+#if _WIN64
+    return instr;
+#else
     Assert(instr->GetSrc2());
-
     IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
     IR::LabelInstr * loadLabel = Lowerer::InsertLabel(false, instr);
     IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr);
@@ -1133,10 +1135,10 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
     Lowerer::InsertAdd(true, cmpOpnd, indexOpnd, IR::IntConstOpnd::New(addrOpnd->GetSize(), TyUint64, m_func), helperLabel);
     lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGt_A, true, helperLabel, helperLabel);
 
-    // MGTODO : call RuntimeError once implemented
-    lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_InvalidTypedArrayIndex, IR::HelperOp_RuntimeRangeError);
+    lowererMD->m_lowerer->GenerateThrow(IR::IntConstOpnd::New(JSERR_InvalidTypedArrayIndex, TyInt32, m_func), loadLabel);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
-    return doneLabel;
+    return done;
+#endif
 }
 
 IR::Instr*
