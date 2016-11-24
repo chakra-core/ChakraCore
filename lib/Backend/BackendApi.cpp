@@ -10,10 +10,73 @@ NewNativeCodeGenerator(Js::ScriptContext * scriptContext)
     return HeapNew(NativeCodeGenerator, scriptContext);
 }
 
-void
-DeleteNativeCodeGenerator(NativeCodeGenerator * nativeCodeGen)
+bool EnsureDeleteNativeCodeGeneratorJobManager(ThreadContext *threadContext)
 {
-    HeapDelete(nativeCodeGen);
+    if (threadContext->deleteNativeCodeGeneratorJobManager == nullptr)
+    {
+        // We must not create a JobManager with an already-closed JobProcessor.
+        auto *jobProcessor = threadContext->GetJobProcessor();
+        if (jobProcessor && jobProcessor->IsClosed())
+        {
+            return false;
+        }
+
+        threadContext->deleteNativeCodeGeneratorJobManager = HeapNewNoThrow(DeleteNativeCodeGeneratorJobManager, jobProcessor);
+        if (threadContext->deleteNativeCodeGeneratorJobManager == nullptr)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// Delete the DeleteNativeCodeGeneratorJobManager that was created by
+// calling EnsureDeleteNativeCodeGeneratorJobManager via DeleteNativeCodeGenerator.
+void DeleteDeleteNativeCodeGeneratorJobManager(ThreadContext *threadContext)
+{
+    // called from the ThreadContext dtor
+    if (threadContext->deleteNativeCodeGeneratorJobManager != nullptr)
+    {
+        HeapDelete(threadContext->deleteNativeCodeGeneratorJobManager);
+        threadContext->deleteNativeCodeGeneratorJobManager = nullptr;
+    }
+}
+
+void DeleteNativeCodeGenerator(NativeCodeGenerator * nativeCodeGen, ThreadContext *threadContext)
+{
+    Assert(nativeCodeGen->IsClosed());
+
+    //
+    // FOREGROUND OPERATIONS
+    //
+
+#ifdef PROFILE_EXEC
+    // For simplicity, clear the codegen profilers on the foreground thread.
+    // Any performance impact here is okay because this is not a release codepath.
+    nativeCodeGen->ClearCodegenProfilers();
+#endif
+
+    // For simplicity, clear foreground allocators on the foreground thread.
+    nativeCodeGen->ClearForegroundAllocators();
+
+    //
+    // QUEUE BACKGROUND JOB
+    //
+
+    if (EnsureDeleteNativeCodeGeneratorJobManager(threadContext) &&
+        // The Processor could have been closed after the time the JobManager was created, so check for that here as well.
+        threadContext->deleteNativeCodeGeneratorJobManager->Processor() &&
+        !threadContext->deleteNativeCodeGeneratorJobManager->Processor()->IsClosed())
+    {
+        threadContext->deleteNativeCodeGeneratorJobManager->QueueDeleteNativeCodeGeneratorJob(nativeCodeGen);
+    }
+    else
+    {
+        // If we weren't able to create a JobManager, or the JobProcessor has been closed already,
+        // delete the NativeCodeGenerator on the foreground.
+        HeapDelete(nativeCodeGen);
+    }
 }
 
 void

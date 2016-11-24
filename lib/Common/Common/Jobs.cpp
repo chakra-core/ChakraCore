@@ -1097,8 +1097,10 @@ namespace JsUtil
                         waitableManager->queuedJobsProcessed.Set();
                     }
                 }
-                if(manager->numJobsAddedToProcessor == 0)
+                if (manager->numJobsAddedToProcessor == 0)
+                {
                     LastJobProcessed(manager); // the manager may be deleted during this and should not be used afterwards
+                }
             }
             criticalSection.Leave();
 
@@ -1112,16 +1114,20 @@ namespace JsUtil
         // processor. If there is potential background work that needs to be done after Close, it must be done directly on the
         // foreground thread.
 
-        if(IsClosed())
+        if (IsClosed())
+        {
             return;
+        }
 
         bool waitForThread = true;
         uint threadsWaitingForJobs = 0;
 
         {
             AutoCriticalSection lock(&criticalSection);
-            if(IsClosed())
+            if (IsClosed())
+            {
                 return;
+            }
 
             Job *nextJob = jobs.Head();
             while(nextJob)

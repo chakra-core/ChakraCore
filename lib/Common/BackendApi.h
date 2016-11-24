@@ -51,7 +51,8 @@ typedef double  FloatConstType;
 #include "InlineeFrameInfo.h"
 
 NativeCodeGenerator * NewNativeCodeGenerator(Js::ScriptContext * nativeCodeGen);
-void DeleteNativeCodeGenerator(NativeCodeGenerator * nativeCodeGen);
+void DeleteDeleteNativeCodeGeneratorJobManager(ThreadContext *threadContext);
+void DeleteNativeCodeGenerator(NativeCodeGenerator * nativeCodeGen, ThreadContext *threadContext);
 void CloseNativeCodeGenerator(NativeCodeGenerator* nativeCodeGen);
 bool IsClosedNativeCodeGenerator(NativeCodeGenerator* nativeCodeGen);
 void SetProfileModeNativeCodeGen(NativeCodeGenerator *pNativeCodeGen, BOOL fSet);

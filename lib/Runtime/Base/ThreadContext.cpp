@@ -193,6 +193,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     gcSinceCallCountsCollected(0),
     tridentLoadAddress(nullptr),
     m_remoteThreadContextInfo(nullptr),
+    deleteNativeCodeGeneratorJobManager(nullptr),
     debugManager(nullptr)
 #if ENABLE_TTD
     , TTDContext(nullptr)
@@ -519,6 +520,8 @@ ThreadContext::~ThreadContext()
     }
 
 #if ENABLE_NATIVE_CODEGEN
+    DeleteDeleteNativeCodeGeneratorJobManager(this);
+
     if(jobProcessor)
     {
         if(this->bgJit)
