@@ -1689,7 +1689,18 @@ LABEL1:
             funcBody->SetAttributes((FunctionInfo::Attributes)(funcBody->GetAttributes() | FunctionInfo::Attributes::CanDefer));
         }
 
-        return (*functionRef)->UpdateUndeferredBody(funcBody);
+        JavascriptMethod thunkEntryPoint = (*functionRef)->UpdateUndeferredBody(funcBody);
+
+        if (ScriptFunctionWithInlineCache::Is(*functionRef))
+        {
+            ScriptFunctionWithInlineCache * funcObjectWithInlineCache = ScriptFunctionWithInlineCache::FromVar(*functionRef);
+            if (!funcObjectWithInlineCache->GetHasOwnInlineCaches())
+            {
+                funcObjectWithInlineCache->SetInlineCachesFromFunctionBody();
+            }
+        }
+
+        return thunkEntryPoint;
     }
 
     void JavascriptFunction::ReparseAsmJsModule(ScriptFunction** functionRef)
