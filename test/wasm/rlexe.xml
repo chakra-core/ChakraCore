@@ -10,7 +10,13 @@
 <test>
   <default>
     <files>fastarray.js</files>
-    <compile-flags>-wasm </compile-flags>
+    <compile-flags>-wasm</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>fastarray.js</files>
+    <compile-flags>-wasm -on:WasmFastArray</compile-flags>
   </default>
 </test>
 <test>

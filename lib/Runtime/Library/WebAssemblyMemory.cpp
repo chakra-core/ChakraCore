@@ -176,7 +176,17 @@ WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
-    ArrayBuffer * buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
+    ArrayBuffer* buffer;
+#if ENABLE_FAST_ARRAYBUFFER
+    if (PHASE_ON1(Js::WasmFastArrayPhase))
+    {
+        buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
+    }
+    else
+#endif
+    {
+        buffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+    }
     return RecyclerNewFinalized(scriptContext->GetRecycler(), WebAssemblyMemory, buffer, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyMemoryType());
 }
 
