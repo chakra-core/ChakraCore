@@ -495,7 +495,7 @@ template <class Policy>
 struct _QuickSortImpl
 {
     template<class T, class Comparer>
-    static void qsort_s(T* arr, size_t count, const Comparer& comparer, void* context)
+    static void Sort(T* arr, size_t count, const Comparer& comparer, void* context)
     {
         // by default use system qsort_s
         ::qsort_s(arr, count, sizeof(T), comparer, context);
@@ -505,7 +505,7 @@ template <>
 struct _QuickSortImpl<_write_barrier_policy>
 {
     template<class T, class Comparer>
-    static void qsort_s(T* arr, size_t count, const Comparer& comparer, void* context)
+    static void Sort(T* arr, size_t count, const Comparer& comparer, void* context)
     {
         // Use custom implementation if policy needs write barrier
         JsUtil::QuickSort<T, Comparer>::Sort(arr, arr + count - 1, comparer, context);
@@ -517,7 +517,7 @@ void qsort_s(T* arr, size_t count, const Comparer& comparer, void* context)
 {
     // Note use of "_ArrayItemWriteBarrierPolicy".
     typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy Policy;
-    _QuickSortImpl<Policy>::qsort_s(arr, count, comparer, context);
+    _QuickSortImpl<Policy>::Sort(arr, count, comparer, context);
 }
 template<class T, class Comparer>
 void qsort_s(WriteBarrierPtr<T>* _Base, size_t _NumOfElements, size_t _SizeOfElements,

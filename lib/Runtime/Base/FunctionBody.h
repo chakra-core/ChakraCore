@@ -1179,19 +1179,19 @@ namespace Js
     struct LoopHeader
     {
     private:
-        LoopEntryPointList* entryPoints;
+        Field(LoopEntryPointList*) entryPoints;
 
     public:
-        uint startOffset;
-        uint endOffset;
-        uint interpretCount;
-        uint profiledLoopCounter;
-        bool isNested;
-        bool isInTry;
-        FunctionBody * functionBody;
+        Field(uint) startOffset;
+        Field(uint) endOffset;
+        Field(uint) interpretCount;
+        Field(uint) profiledLoopCounter;
+        Field(bool) isNested;
+        Field(bool) isInTry;
+        Field(FunctionBody *) functionBody;
 
 #if DBG_DUMP
-        uint nativeCount;
+        Field(uint) nativeCount;
 #endif
         static const uint NoLoop = (uint)-1;
 
