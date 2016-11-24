@@ -1118,9 +1118,13 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 IR::Instr *
 LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
-#if _WIN64
-    return instr;
-#else
+#if ENABLE_FAST_ARRAYBUFFER
+    if (PHASE_ON1(Js::WasmFastArrayPhase))
+    {
+        return instr;
+    }
+#endif
+
     Assert(instr->GetSrc2());
     IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
     IR::LabelInstr * loadLabel = Lowerer::InsertLabel(false, instr);
@@ -1137,8 +1141,7 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
 
     lowererMD->m_lowerer->GenerateThrow(IR::IntConstOpnd::New(WASMERR_ArrayIndexOutOfRange, TyInt32, m_func), loadLabel);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
-    return done;
-#endif
+    return doneLabel;
 }
 
 IR::Instr*
