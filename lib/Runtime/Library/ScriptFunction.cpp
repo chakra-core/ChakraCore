@@ -72,6 +72,29 @@ namespace Js
 
         if (functionProxy->IsFunctionBody() && functionProxy->GetFunctionBody()->GetInlineCachesOnFunctionObject())
         {
+            // Prevent redeferral if GC happens during creation of function object.
+            // REVIEW: Should we treat creation of a function object as a "use" of the function body?
+            class AutoDisableRedeferral
+            {
+            public:
+                bool canBeDeferred;
+                FunctionInfo * functionInfo;
+                AutoDisableRedeferral(FunctionInfo* functionInfo)
+                {
+                    this->functionInfo = functionInfo;
+                    this->canBeDeferred = functionInfo->CanBeDeferred();
+                    this->functionInfo->SetAttributes((FunctionInfo::Attributes)(this->functionInfo->GetAttributes() & ~FunctionInfo::Attributes::CanDefer));
+                }
+
+                ~AutoDisableRedeferral()
+                {
+                    if (this->canBeDeferred)
+                    {
+                        this->functionInfo->SetAttributes((FunctionInfo::Attributes)(this->functionInfo->GetAttributes() | FunctionInfo::Attributes::CanDefer));
+                    }
+                }
+            } autoDisableReferral(functionProxy->GetFunctionInfo());
+
             Js::FunctionBody * functionBody = functionProxy->GetFunctionBody();
             ScriptFunctionWithInlineCache* pfuncScriptWithInlineCache = scriptContext->GetLibrary()->CreateScriptFunctionWithInlineCache(functionProxy);
             pfuncScriptWithInlineCache->SetEnvironment(environment);
