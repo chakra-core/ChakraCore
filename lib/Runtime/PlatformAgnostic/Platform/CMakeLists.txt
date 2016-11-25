@@ -6,6 +6,7 @@ set(PL_SOURCE_FILES
   Linux/HiResTimer.cpp
   Linux/NumbersUtility.cpp
   Linux/Thread.cpp
+  Common/Trace.cpp
   )
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)

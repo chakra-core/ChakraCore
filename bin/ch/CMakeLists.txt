@@ -16,10 +16,22 @@ endif()
 
 add_executable (ch ${ch_source_files})
 
-set_target_properties(ch
-  PROPERTIES
-  POSITION_INDEPENDENT_CODE True
-  )
+if(NOT ENABLE_CC_XPLAT_TRACE)
+  add_compile_options(-fPIC)
+
+  set_target_properties(ch
+    PROPERTIES
+    POSITION_INDEPENDENT_CODE True
+    )
+
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE")
+
+  if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie") # osx clang sets this by default
+  endif()
+else()
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fno-PIE")
+endif()
 
 include_directories(..)
 
@@ -31,12 +43,6 @@ target_include_directories (ch
   ../../lib/Runtime
   ../../lib/Parser
   )
-
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE")
-
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie") # osx clang sets this by default
-endif()
 
 if(STATIC_LIBRARY)
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
