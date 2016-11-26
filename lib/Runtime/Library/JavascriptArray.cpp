@@ -15,7 +15,7 @@ namespace Js
     const SparseArraySegmentBase *JavascriptArray::EmptySegment = (SparseArraySegmentBase *)&EmptySegmentData;
 
     // col0 : allocation bucket
-    // col1 : No. of missing items to set during initialization depending on bucket. 
+    // col1 : No. of missing items to set during initialization depending on bucket.
     // col2 : allocation size for elements in given bucket.
     // col1 and col2 is calculated at runtime
     uint JavascriptNativeFloatArray::allocationBuckets[][AllocationBucketsInfoSize] =

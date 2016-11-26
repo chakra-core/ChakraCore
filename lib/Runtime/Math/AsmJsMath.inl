@@ -71,6 +71,20 @@ namespace Js
         return maxCheckNan(aLeft, aRight);
     }
 
+    template<>
+    inline double AsmJsMath::Abs<double>(double aLeft)
+    {
+        uint64 x = (*(uint64*)(&aLeft) & 0x7FFFFFFFFFFFFFFF);
+        return *(double*)(&x);
+    }
+
+    template<>
+    inline float AsmJsMath::Abs<float>(float aLeft)
+    {
+        uint32 x = (*(uint32*)(&aLeft) & 0x7FFFFFFF);
+        return *(float*)(&x);
+    }
+
     template<typename T>
     inline T AsmJsMath::Add( T aLeft, T aRight )
     {

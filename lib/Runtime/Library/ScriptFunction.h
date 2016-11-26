@@ -174,6 +174,7 @@ namespace Js
         InlineCache * GetInlineCache(uint index);
         uint GetInlineCacheCount() { return inlineCacheCount; }
         void** GetInlineCaches() { return m_inlineCaches; }
+        bool GetHasOwnInlineCaches() { return hasOwnInlineCaches; }
         void SetInlineCachesFromFunctionBody();
         static uint32 GetOffsetOfInlineCaches() { return offsetof(ScriptFunctionWithInlineCache, m_inlineCaches); };
         template<bool isShutdown>
