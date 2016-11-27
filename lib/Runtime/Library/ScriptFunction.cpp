@@ -66,35 +66,16 @@ namespace Js
         FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
         AssertMsg(functionProxy!= nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
 
+        // Prevent redeferral if GC happens during creation of function object.
+        // REVIEW: Should we treat creation of a function object as a "use" of the function body?
+        Js::AutoDisableRedeferral autoDisableRedeferral(functionProxy->GetFunctionInfo());
+
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
 
         bool hasSuperReference = functionProxy->HasSuperReference();
 
         if (functionProxy->IsFunctionBody() && functionProxy->GetFunctionBody()->GetInlineCachesOnFunctionObject())
         {
-            // Prevent redeferral if GC happens during creation of function object.
-            // REVIEW: Should we treat creation of a function object as a "use" of the function body?
-            class AutoDisableRedeferral
-            {
-            public:
-                bool canBeDeferred;
-                FunctionInfo * functionInfo;
-                AutoDisableRedeferral(FunctionInfo* functionInfo)
-                {
-                    this->functionInfo = functionInfo;
-                    this->canBeDeferred = functionInfo->CanBeDeferred();
-                    this->functionInfo->SetAttributes((FunctionInfo::Attributes)(this->functionInfo->GetAttributes() & ~FunctionInfo::Attributes::CanDefer));
-                }
-
-                ~AutoDisableRedeferral()
-                {
-                    if (this->canBeDeferred)
-                    {
-                        this->functionInfo->SetAttributes((FunctionInfo::Attributes)(this->functionInfo->GetAttributes() | FunctionInfo::Attributes::CanDefer));
-                    }
-                }
-            } autoDisableReferral(functionProxy->GetFunctionInfo());
-
             Js::FunctionBody * functionBody = functionProxy->GetFunctionBody();
             ScriptFunctionWithInlineCache* pfuncScriptWithInlineCache = scriptContext->GetLibrary()->CreateScriptFunctionWithInlineCache(functionProxy);
             pfuncScriptWithInlineCache->SetEnvironment(environment);
