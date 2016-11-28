@@ -1083,8 +1083,30 @@ namespace Js
         return !!(this->GetCallInfoFromPhysicalFrame()->Flags & CallFlags_InternalFrame);
     }
 
+    bool JavascriptStackWalker::IsWalkable(ScriptContext *scriptContext)
+    {
+        if (scriptContext == NULL)
+        {
+            return false;
+        }
+
+        ThreadContext *threadContext = scriptContext->GetThreadContext();
+        if (threadContext == NULL)
+        {
+            return false;
+        }
+
+        return (threadContext->GetScriptEntryExit() != NULL);
+    }
+
     BOOL JavascriptStackWalker::GetCaller(JavascriptFunction** ppFunc, ScriptContext* scriptContext)
     {
+        if (!IsWalkable(scriptContext))
+        {
+            *ppFunc = nullptr;
+            return FALSE;
+        }
+
         JavascriptStackWalker walker(scriptContext);
         return walker.GetCaller(ppFunc);
     }
