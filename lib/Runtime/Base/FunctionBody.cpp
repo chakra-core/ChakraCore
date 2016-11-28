@@ -828,6 +828,22 @@ namespace Js
                 isJitCandidate = true;
             }
         });
+
+        if (!isJitCandidate)
+        {
+            // Now check loop body entry points
+            this->MapLoopHeaders([&](uint loopNumber, LoopHeader* header)
+            {
+                header->MapEntryPoints([&](int index, LoopEntryPointInfo* entryPointInfo)
+                {
+                    if ((entryPointInfo->IsCodeGenPending() && isJitModeFunction) || entryPointInfo->IsCodeGenQueued() || entryPointInfo->IsCodeGenRecorded() || (entryPointInfo->IsCodeGenDone() && !entryPointInfo->nativeEntryPointProcessed))
+                    {
+                        isJitCandidate = true;
+                    }
+                });
+            });
+        }
+
         if (isJitCandidate)
         {
             return false;
@@ -9380,7 +9396,6 @@ namespace Js
         localVarChangedOffset(Js::Constants::InvalidOffset),
         callsCount(0),
         jitMode(ExecutionMode::Interpreter),
-        nativeEntryPointProcessed(false),
         functionProxy(functionProxy),
         nextEntryPoint(nullptr),
         mIsTemplatizedJitMode(false)
