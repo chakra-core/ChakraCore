@@ -9,7 +9,6 @@
 #include "pal/mutex.hpp"
 #include "pal/handlemgr.hpp"
 #include "pal/cs.hpp"
-#include "pal/seh.hpp"
 
 #include "procprivate.hpp"
 #include "pal/process.h"
@@ -1058,8 +1057,6 @@ CorUnix::InternalEndCurrentThread(
         PROCRemoveThread(pThread, pThread);
 
 #ifdef FEATURE_PAL_SXS
-        // Ensure that EH is disabled on the current thread
-        SEHDisable(pThread);
         PAL_Leave(PAL_BoundaryTop);
 #endif // FEATURE_PAL_SXS
 
@@ -2310,15 +2307,6 @@ CPalThread::RunPostCreateInitializers(
     {
         goto RunPostCreateInitializersExit;
     }
-
-#ifdef FEATURE_PAL_SXS
-    _ASSERTE(m_fInPal);
-    palError = SEHEnable(this);
-    if (NO_ERROR != palError)
-    {
-        goto RunPostCreateInitializersExit;
-    }
-#endif // FEATURE_PAL_SXS
 
 RunPostCreateInitializersExit:
 
