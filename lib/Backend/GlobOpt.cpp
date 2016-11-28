@@ -4909,30 +4909,37 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     // Change LdFld on arrays, strings, and 'arguments' to LdLen when we're accessing the .length field
     if ((instr->GetSrc1() && instr->GetSrc1()->IsSymOpnd() && instr->m_opcode == Js::OpCode::ProfiledLdFld) || instr->m_opcode == Js::OpCode::LdFld || instr->m_opcode == Js::OpCode::ScopedLdFld)
     {
-        IR::Opnd * opnd = instr->GetSrc1();
-        Sym *sym = opnd->AsSymOpnd()->m_sym;
+        IR::SymOpnd * opnd = instr->GetSrc1()->AsSymOpnd();
+        Sym *sym = opnd->m_sym;
         if (sym->IsPropertySym())
         {
             PropertySym *originalPropertySym = sym->AsPropertySym();
-            IR::RegOpnd* newopnd = IR::RegOpnd::New(originalPropertySym->m_stackSym, IRType::TyVar, instr->m_func);
             // only on .length
             if (this->lengthEquivBv != nullptr && this->lengthEquivBv->Test(originalPropertySym->m_id))
             {
-                Value *const objectValue = FindValue(originalPropertySym->m_stackSym);
+                IR::RegOpnd* newopnd = IR::RegOpnd::New(originalPropertySym->m_stackSym, IRType::TyVar, instr->m_func);
+                ValueInfo *const objectValueInfo = FindValue(originalPropertySym->m_stackSym)->GetValueInfo();
                 // Only for things we'd emit a fast path for
                 if (
-                    objectValue->GetValueInfo()->IsLikelyAnyArray() ||
-                    objectValue->GetValueInfo()->HasHadStringTag() ||
-                    objectValue->GetValueInfo()->IsLikelyString() ||
+                    objectValueInfo->IsLikelyAnyArray() ||
+                    objectValueInfo->HasHadStringTag() ||
+                    objectValueInfo->IsLikelyString() ||
                     newopnd->IsArgumentsObject() ||
                     (this->blockData.argObjSyms && IsArgumentsOpnd(newopnd))
                    )
                 {
+                    // We need to properly transfer over the information from the old operand, which is
+                    // a SymOpnd, to the new one, which is a RegOpnd. Unfortunately, the types mean the
+                    // normal copy methods won't work here, so we're going to directly copy data.
+                    newopnd->SetIsJITOptimizedReg(opnd->GetIsJITOptimizedReg());
+                    newopnd->SetValueType(objectValueInfo->Type());
+                    newopnd->SetIsDead(opnd->GetIsDead());
+
+                    // Now that we have the operand we need, we can go ahead and make the new instr.
                     IR::Instr *newinstr = IR::Instr::New(Js::OpCode::LdLen_A, instr->m_func);
                     instr->TransferTo(newinstr);
                     newinstr->UnlinkSrc1();
                     newinstr->SetSrc1(newopnd);
-                    newinstr->GetSrc1()->SetValueType(objectValue->GetValueInfo()->Type());
                     instr->InsertAfter(newinstr);
                     instr->Remove();
                     instr = newinstr;
