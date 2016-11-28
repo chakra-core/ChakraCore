@@ -1519,8 +1519,7 @@ namespace Js
                                             DynamicTypeHandler::RoundUpInlineSlotCapacity(requestedInlineSlotCapacity));
         ScriptContext* scriptContext = instance->GetScriptContext();
         DynamicType* cachedDynamicType = nullptr;
-        BOOL isJsrtExternalType = instance->GetType()->IsJsrtExternal();
-        DynamicType* oldType = isJsrtExternalType ? 0 : instance->GetDynamicType();
+        DynamicType* oldType = instance->GetDynamicType();
 
         bool useCache = instance->GetScriptContext() == newPrototype->GetScriptContext();
 
@@ -1530,14 +1529,12 @@ namespace Js
         char16 reason[1024];
         swprintf_s(reason, 1024, _u("Cache not populated."));
 #endif
-        AssertMsg(isJsrtExternalType || typeid(DynamicType) == typeid(*oldType), "PathTypeHandler is used either by JsrtExternalType or DynamicType");
-
         if (useCache && newPrototype->GetInternalProperty(newPrototype, Js::InternalPropertyIds::TypeOfPrototypeObjectDictionary, (Js::Var*)&oldTypeToPromotedTypeMap, nullptr, scriptContext))
         {
             Assert(oldTypeToPromotedTypeMap && (Js::Var)oldTypeToPromotedTypeMap != scriptContext->GetLibrary()->GetUndefined());
             oldTypeToPromotedTypeMap = reinterpret_cast<TypeTransitionMap*>(oldTypeToPromotedTypeMap);
 
-            if (oldTypeToPromotedTypeMap->TryGetValue(reinterpret_cast<uintptr_t>(oldType), &cachedDynamicType))
+            if (oldTypeToPromotedTypeMap->TryGetValue(oldType, &cachedDynamicType))
             {
 #if DBG
                 oldCachedType = cachedDynamicType;
@@ -1585,7 +1582,7 @@ namespace Js
                 Js::PropertyId propertyId = GetPropertyId(scriptContext, i);
 
                 PropertyIndex propertyIndex = GetPropertyIndex(propertyId);
-                cachedDynamicType = pathTypeHandler->PromoteType<true>(cachedDynamicType, scriptContext->GetPropertyName(propertyId), true, scriptContext, nullptr, &propertyIndex);
+                cachedDynamicType = pathTypeHandler->PromoteType<false>(cachedDynamicType, scriptContext->GetPropertyName(propertyId), true, scriptContext, instance, &propertyIndex);
             }
 
             if (useCache)
@@ -1596,12 +1593,10 @@ namespace Js
                     newPrototype->SetInternalProperty(Js::InternalPropertyIds::TypeOfPrototypeObjectDictionary, (Var)oldTypeToPromotedTypeMap, PropertyOperationFlags::PropertyOperation_Force, nullptr);
                 }
 
-                // oldType is kind of weakReference here
+                oldTypeToPromotedTypeMap->Item(oldType, cachedDynamicType);
 #if DBG
                 cachedDynamicType->SetIsCachedForChangePrototype();
 #endif
-                oldTypeToPromotedTypeMap->Item(reinterpret_cast<uintptr_t>(oldType), cachedDynamicType);
-
                 if (PHASE_TRACE1(TypeShareForChangePrototypePhase))
                 {
 #if DBG

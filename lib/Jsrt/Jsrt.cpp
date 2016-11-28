@@ -183,7 +183,7 @@ void CALLBACK CreateExternalObject_TTDCallback(Js::ScriptContext* ctx, Js::Var* 
 {
     TTDAssert(object != nullptr, "This should always be a valid location");
 
-    *object = RecyclerNewFinalized(ctx->GetRecycler(), JsrtExternalObject, RecyclerNew(ctx->GetRecycler(), JsrtExternalType, ctx, nullptr), nullptr);
+    *object = JsrtExternalObject::Create(nullptr, nullptr, ctx);
 }
 
 static void CALLBACK TTDDummyPromiseContinuationCallback(JsValueRef task, void *callbackState)
@@ -1245,7 +1245,7 @@ CHAKRA_API JsCreateExternalObject(_In_opt_ void *data, _In_opt_ JsFinalizeCallba
 
         PARAM_NOT_NULL(object);
 
-        *object = RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, RecyclerNew(scriptContext->GetRecycler(), JsrtExternalType, scriptContext, finalizeCallback), data);
+        *object = JsrtExternalObject::Create(data, finalizeCallback, scriptContext);
 
         PERFORM_JSRT_TTD_RECORD_ACTION_RESULT(scriptContext, object);
 

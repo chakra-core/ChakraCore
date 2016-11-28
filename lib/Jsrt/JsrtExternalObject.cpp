@@ -27,6 +27,23 @@ JsrtExternalObject::JsrtExternalObject(JsrtExternalType * type, void *data) :
 {
 }
 
+/* static */
+JsrtExternalObject* JsrtExternalObject::Create(void *data, JsFinalizeCallback finalizeCallback, Js::ScriptContext *scriptContext)
+{
+    Js::DynamicType * dynamicType = scriptContext->GetLibrary()->GetCachedJsrtExternalType(reinterpret_cast<uintptr_t>(finalizeCallback));
+
+    if (dynamicType == nullptr)
+    {
+        dynamicType = RecyclerNew(scriptContext->GetRecycler(), JsrtExternalType, scriptContext, finalizeCallback);
+        scriptContext->GetLibrary()->CacheJsrtExternalType(reinterpret_cast<uintptr_t>(finalizeCallback), dynamicType);
+    }
+
+    Assert(dynamicType->IsJsrtExternal());
+    Assert(dynamicType->GetIsShared());
+
+    return RecyclerNewFinalized(scriptContext->GetRecycler(), JsrtExternalObject, static_cast<JsrtExternalType*>(dynamicType), data);
+}
+
 bool JsrtExternalObject::Is(Js::Var value)
 {
     if (Js::TaggedNumber::Is(value))
