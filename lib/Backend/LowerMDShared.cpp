@@ -5892,13 +5892,7 @@ IR::Opnd* LowererMD::GenerateTruncChecks(IR::Instr* instr)
 
     m_lowerer->InsertCompareBranch(limitReg, src64, Js::OpCode::BrGt_A, conversion, instr, true /*no NaN check*/);
     instr->InsertBefore(throwLabel);
-    IR::Instr *throwInstr = IR::Instr::New(
-        Js::OpCode::RuntimeTypeError,
-        IR::RegOpnd::New(TyMachReg, m_func),
-        IR::IntConstOpnd::New(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func),
-        m_func);
-    instr->InsertBefore(throwInstr);
-    this->m_lowerer->LowerUnaryHelperMem(throwInstr, IR::HelperOp_RuntimeTypeError);
+    this->m_lowerer->GenerateThrow(IR::IntConstOpnd::New(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func), instr);
     //no jump here we aren't coming back
 
     instr->InsertBefore(conversion);

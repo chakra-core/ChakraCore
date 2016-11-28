@@ -7824,7 +7824,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         if (aRight == 0)
         {
-            JavascriptError::ThrowError(scriptContext, WASMERR_DivideByZero);
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_DivideByZero);
         }
 
         return func(aLeft, aRight);
@@ -7834,12 +7834,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         if (aRight == 0)
         {
-            JavascriptError::ThrowError(scriptContext, WASMERR_DivideByZero);
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_DivideByZero);
         }
 
         if (aLeft == MIN && aRight == -1)
         {
-            JavascriptError::ThrowError(scriptContext, VBSERR_Overflow);
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, VBSERR_Overflow);
         }
 
         return func(aLeft, aRight);
@@ -8466,7 +8466,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);
         }
         BYTE* buffer = arr->GetBuffer();
         switch (playout->ViewType)
@@ -8511,8 +8511,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
-        }        
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);
+        }
         BYTE* buffer = arr->GetBuffer();
         switch (playout->ViewType)
         {
