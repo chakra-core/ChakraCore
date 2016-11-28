@@ -5898,7 +5898,7 @@ IR::Opnd* LowererMD::GenerateTruncChecks(IR::Instr* instr)
         IR::IntConstOpnd::New(SCODE_CODE(VBSERR_Overflow), TyInt32, m_func),
         m_func);
     instr->InsertBefore(throwInstr);
-    this->m_lowerer->LowerUnaryHelperMem(throwInstr, IR::HelperOp_RuntimeTypeError);
+    this->m_lowerer->LowerUnaryHelperMem(throwInstr, IR::HelperOp_WebAssemblyRuntimeError);
     //no jump here we aren't coming back
 
     instr->InsertBefore(conversion);

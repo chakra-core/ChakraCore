@@ -206,7 +206,7 @@ async function testMemoryApi(baseModule) {
       load(index);
       console.log("Should have trap with out of bounds error");
     } catch (e) {
-      if (e instanceof RangeError) {
+      if (e instanceof WebAssembly.RuntimeError) {
         console.log(`Correctly trap on heap access at ${index}`);
       } else {
         console.log(`Unexpected Error: ${e}`);

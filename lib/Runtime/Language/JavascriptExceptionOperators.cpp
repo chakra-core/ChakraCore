@@ -1043,14 +1043,14 @@ namespace Js
         JavascriptError::ThrowRangeError(scriptContext, MAKE_HR(messageId));
     }
 
+    Var JavascriptExceptionOperators::OP_WebAssemblyRuntimeError(MessageId messageId, ScriptContext *scriptContext)
+    {
+        JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, MAKE_HR(messageId));
+    }
+
     Var JavascriptExceptionOperators::OP_RuntimeReferenceError(MessageId messageId, ScriptContext *scriptContext)
     {
         JavascriptError::ThrowReferenceError(scriptContext, MAKE_HR(messageId));
-    }
-
-    Var JavascriptExceptionOperators::OP_WebAssemblyRuntimeError(MessageId messageId, ScriptContext* scriptContext)
-    {
-        JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, MAKE_HR(messageId));
     }
 
     // Throw type error on access 'arguments', 'callee' or 'caller' when in a restricted context
