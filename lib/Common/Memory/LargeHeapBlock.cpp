@@ -989,7 +989,7 @@ bool LargeHeapBlock::IsPageDirty(char* page, RescanFlags flags, bool isWriteBarr
     }
 #endif
 
-#if ENABLE_WRITE_WATCH
+#ifdef RECYCLER_WRITE_WATCH
     if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
     {
         ULONG_PTR count = 1;

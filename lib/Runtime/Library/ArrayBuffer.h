@@ -150,7 +150,7 @@ namespace Js
         Field(JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>*) otherParents;
 
 
-        Field(BYTE  *) buffer;             // Points to a heap allocated RGBA buffer, can be null
+        FieldNoBarrier(BYTE*) buffer;             // Points to a heap allocated RGBA buffer, can be null
         Field(uint32) bufferLength;       // Number of bytes allocated
 
         // When an ArrayBuffer is detached, the TypedArray and DataView objects pointing to it must be made aware,

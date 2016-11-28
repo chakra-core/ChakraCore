@@ -188,7 +188,10 @@ public:
     {
         return isWriteBarrierAllowed;
     }
-
+    bool IsWriteBarrierEnabled()
+    {
+        return this->isWriteBarrierEnabled;
+    }
 #endif
 
 protected:
@@ -703,8 +706,12 @@ public:
     void ClearConcurrentThreadId() { this->concurrentThreadId = (DWORD)-1; }
     DWORD GetConcurrentThreadId() { return this->concurrentThreadId;  }
     DWORD HasConcurrentThreadId() { return this->concurrentThreadId != -1; }
-
 #endif
+
+    bool IsWriteWatchEnabled()
+    {
+        return (allocFlags & MEM_WRITE_WATCH) == MEM_WRITE_WATCH;
+    }
 
 #if DBG_DUMP
     char16 const * debugName;

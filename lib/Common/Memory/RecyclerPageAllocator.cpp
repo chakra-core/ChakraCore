@@ -32,7 +32,7 @@ bool RecyclerPageAllocator::IsMemProtectMode()
 }
 
 #if ENABLE_CONCURRENT_GC
-#if ENABLE_WRITE_WATCH
+#ifdef RECYCLER_WRITE_WATCH
 void
 RecyclerPageAllocator::EnableWriteWatch()
 {
@@ -48,7 +48,7 @@ RecyclerPageAllocator::EnableWriteWatch()
 bool
 RecyclerPageAllocator::ResetWriteWatch()
 {
-    if (allocFlags != MEM_WRITE_WATCH)
+    if (!IsWriteWatchEnabled())
     {
         return false;
     }
@@ -131,7 +131,7 @@ RecyclerPageAllocator::ResetAllWriteWatch(DListBase<T> * segmentList)
 }
 #endif
 
-#if ENABLE_WRITE_WATCH
+#ifdef RECYCLER_WRITE_WATCH
 #if DBG
 size_t
 RecyclerPageAllocator::GetWriteWatchPageCount()

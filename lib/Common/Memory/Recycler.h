@@ -116,7 +116,6 @@ struct InfoBitsWrapper{};
 
 // Allocation macro
 
-#if !defined(RECYCLER_WRITE_BARRIER_ALLOC) || !GLOBAL_ENABLE_WRITE_BARRIER
 #define RecyclerNew(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocInlined, T, __VA_ARGS__)
 #define RecyclerNewPlus(recycler,size,T,...) AllocatorNewPlus(Recycler, recycler, size, T, __VA_ARGS__)
 #define RecyclerNewPlusZ(recycler,size,T,...) AllocatorNewPlusZ(Recycler, recycler, size, T, __VA_ARGS__)
@@ -132,7 +131,6 @@ struct InfoBitsWrapper{};
 #define RecyclerNewEnumClass(recycler, enumClass, T, ...) new (TRACK_ALLOC_INFO(static_cast<Recycler *>(recycler), T, Recycler, 0, (size_t)-1), InfoBitsWrapper<enumClass>()) T(__VA_ARGS__)
 #define RecyclerNewWithInfoBits(recycler, infoBits, T, ...) new (TRACK_ALLOC_INFO(static_cast<Recycler *>(recycler), T, Recycler, 0, (size_t)-1), InfoBitsWrapper<infoBits>()) T(__VA_ARGS__)
 #define RecyclerNewFinalizedClientTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedClientTrackedInlined, T, __VA_ARGS__)))
-#endif
 
 #if defined(RECYCLER_WRITE_BARRIER_ALLOC)
 #define RecyclerNewWithBarrier(recycler,T,...) AllocatorNewBase(Recycler, recycler, AllocWithBarrier, T, __VA_ARGS__)
@@ -150,25 +148,6 @@ struct InfoBitsWrapper{};
 #define RecyclerNewWithBarrierEnumClass(recycler, enumClass, T, ...) new (TRACK_ALLOC_INFO(static_cast<Recycler *>(recycler), T, Recycler, 0, (size_t)-1), InfoBitsWrapper<(ObjectInfoBits)(enumClass | WithBarrierBit)>()) T(__VA_ARGS__)
 #define RecyclerNewWithBarrierWithInfoBits(recycler, infoBits, T, ...) new (TRACK_ALLOC_INFO(static_cast<Recycler *>(recycler), T, Recycler, 0, (size_t)-1), InfoBitsWrapper<(ObjectInfoBits)(infoBits | WithBarrierBit)>()) T(__VA_ARGS__)
 #define RecyclerNewWithBarrierFinalizedClientTracked(recycler,T,...) static_cast<T *>(static_cast<FinalizableObject *>(AllocatorNewBase(Recycler, recycler, AllocFinalizedClientTrackedWithBarrierInlined, T, __VA_ARGS__)))
-#endif
-
-
-#if defined(RECYCLER_WRITE_BARRIER_ALLOC) && GLOBAL_ENABLE_WRITE_BARRIER
-#define RecyclerNew                         RecyclerNewWithBarrier
-#define RecyclerNewPlus                     RecyclerNewWithBarrierPlus
-#define RecyclerNewPlusZ                    RecyclerNewWithBarrierPlusZ
-#define RecyclerNewZ                        RecyclerNewWithBarrierZ
-#define RecyclerNewStruct                   RecyclerNewWithBarrierStruct
-#define RecyclerNewStructZ                  RecyclerNewWithBarrierStructZ
-#define RecyclerNewStructPlus               RecyclerNewWithBarrierStructPlus
-#define RecyclerNewArray                    RecyclerNewWithBarrierArray
-#define RecyclerNewArrayZ                   RecyclerNewWithBarrierArrayZ
-#define RecyclerNewFinalized                RecyclerNewWithBarrierFinalized
-#define RecyclerNewFinalizedPlus            RecyclerNewWithBarrierFinalizedPlus
-#define RecyclerNewTracked                  RecyclerNewWithBarrierTracked
-#define RecyclerNewEnumClass                RecyclerNewWithBarrierEnumClass
-#define RecyclerNewWithInfoBits             RecyclerNewWithBarrierWithInfoBits
-#define RecyclerNewFinalizedClientTracked   RecyclerNewWithBarrierFinalizedClientTracked
 #endif
 
 #ifndef RECYCLER_WRITE_BARRIER
@@ -566,42 +545,6 @@ struct CollectionParam
 
 #include "RecyclerObjectGraphDumper.h"
 
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-// Macro to be used within the recycler
-#define ForRecyclerPageAllocator(action) { \
-    this->recyclerPageAllocator.##action; \
-    this->recyclerLargeBlockPageAllocator.##action; \
-    this->recyclerWithBarrierPageAllocator.##action; \
-    this->threadPageAllocator->##action; \
-}
-
-// Macro that external objects referencing the recycler can use
-#define ForEachRecyclerPageAllocatorIn(recycler, action) { \
-    recycler->GetRecyclerPageAllocator()->##action; \
-    recycler->GetRecyclerLargeBlockPageAllocator()->##action; \
-    recycler->GetRecyclerWithBarrierPageAllocator()->##action; \
-    recycler->GetRecyclerLeafPageAllocator()->##action; \
-}
-
-#else
-
-// Macro to be used within the recycler
-#define ForRecyclerPageAllocator(action) { \
-    this->recyclerPageAllocator.##action; \
-    this->recyclerLargeBlockPageAllocator.##action; \
-    this->threadPageAllocator->##action; \
-}
-
-// Macro that external objects referencing the recycler can use
-#define ForEachRecyclerPageAllocatorIn(recycler, action) { \
-    recycler->GetRecyclerPageAllocator()->##action; \
-    recycler->GetRecyclerLargeBlockPageAllocator()->##action; \
-    recycler->GetRecyclerLeafPageAllocator()->##action; \
-}
-
-#endif
-
-
 #if ENABLE_CONCURRENT_GC
 class RecyclerParallelThread
 {
@@ -729,6 +672,24 @@ public:
     };
 
 private:
+    IdleDecommitPageAllocator * threadPageAllocator;
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+    RecyclerPageAllocator recyclerWithBarrierPageAllocator;
+#endif
+    RecyclerPageAllocator recyclerPageAllocator;
+    RecyclerPageAllocator recyclerLargeBlockPageAllocator;
+public:
+    template<typename Action>
+    void ForEachPageAllocator(Action action)
+    {        
+        action(&this->recyclerPageAllocator);
+        action(&this->recyclerLargeBlockPageAllocator);
+#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
+        action(&this->recyclerWithBarrierPageAllocator);
+#endif
+        action(threadPageAllocator);
+    }
+private:
     class AutoSwitchCollectionStates
     {
     public:
@@ -750,13 +711,6 @@ private:
     };
 
     CollectionState collectionState;
-    IdleDecommitPageAllocator * threadPageAllocator;
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    RecyclerPageAllocator recyclerWithBarrierPageAllocator;
-#endif
-    RecyclerPageAllocator recyclerPageAllocator;
-    RecyclerPageAllocator recyclerLargeBlockPageAllocator;
-
     JsUtil::ThreadService *threadService;
 
     HeapBlockMap heapBlockMap;
@@ -812,8 +766,8 @@ private:
     };
     DListBase<GuestArenaAllocator> guestArenaList;
     DListBase<ArenaData*> externalGuestArenaList;    // guest arenas are scanned for roots
-#ifdef RECYCLER_PAGE_HEAP
 
+#ifdef RECYCLER_PAGE_HEAP
     inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
     template<ObjectInfoBits attributes>
     bool IsPageHeapEnabled(size_t size);
@@ -1115,70 +1069,24 @@ public:
 
     Js::ConfigFlagsTable& GetRecyclerFlagsTable() const { return this->recyclerFlagsTable; }
     void SetMemProtectMode();
-
-    bool IsMemProtectMode()
-    {
-        return this->enableScanImplicitRoots;
-    }
-
-    size_t GetUsedBytes()
-    {
-        size_t usedBytes = threadPageAllocator->usedBytes;
-#ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-        usedBytes += recyclerWithBarrierPageAllocator.usedBytes;
-#endif
-        usedBytes += recyclerPageAllocator.usedBytes;
-        usedBytes += recyclerLargeBlockPageAllocator.usedBytes;
-        return usedBytes;
-    }
-
+    bool IsMemProtectMode();
+    size_t GetUsedBytes();
     void LogMemProtectHeapSize(bool fromGC);
-
     char* Realloc(void* buffer, DECLSPEC_GUARD_OVERFLOW size_t existingBytes, DECLSPEC_GUARD_OVERFLOW size_t requestedBytes, bool truncate = true);
 #ifdef NTBUILD
     void SetTelemetryBlock(RecyclerWatsonTelemetryBlock * telemetryBlock) { this->telemetryBlock = telemetryBlock; }
 #endif
 
     void Prime();
-
     void* GetOwnerContext() { return (void*) this->collectionWrapper; }
     PageAllocator * GetPageAllocator() { return threadPageAllocator; }
-
-    bool NeedOOMRescan() const
-    {
-        return this->needOOMRescan;
-    }
-
-    void SetNeedOOMRescan()
-    {
-        this->needOOMRescan = true;
-    }
-
-    void ClearNeedOOMRescan()
-    {
-        this->needOOMRescan = false;
-        markContext.GetPageAllocator()->ResetDisableAllocationOutOfMemory();
-        parallelMarkContext1.GetPageAllocator()->ResetDisableAllocationOutOfMemory();
-        parallelMarkContext2.GetPageAllocator()->ResetDisableAllocationOutOfMemory();
-        parallelMarkContext3.GetPageAllocator()->ResetDisableAllocationOutOfMemory();
-    }
-
+    bool NeedOOMRescan() const;
+    void SetNeedOOMRescan();
+    void ClearNeedOOMRescan();
     BOOL RequestConcurrentWrapperCallback();
-
-    BOOL CollectionInProgress() const
-    {
-        return collectionState != CollectionStateNotCollecting;
-    }
-
-    BOOL IsExiting() const
-    {
-        return (collectionState == Collection_Exit);
-    }
-
-    BOOL IsSweeping() const
-    {
-        return ((collectionState & Collection_Sweep) == Collection_Sweep);
-    }
+    BOOL CollectionInProgress() const;
+    BOOL IsExiting() const;
+    BOOL IsSweeping() const;
 
 #ifdef RECYCLER_PAGE_HEAP
     inline bool ShouldCapturePageHeapFreeStack() const { return capturePageHeapFreeStack; }
@@ -1187,58 +1095,16 @@ public:
 #endif
 
     void SetIsThreadBound();
-    void SetIsScriptActive(bool isScriptActive)
-    {
-        Assert(this->isInScript);
-        Assert(this->isScriptActive != isScriptActive);
-        this->isScriptActive = isScriptActive;
-        if (isScriptActive)
-        {
-            this->tickCountNextDispose = ::GetTickCount() + RecyclerHeuristic::TickCountFinishCollection;
-        }
-    }
-    void SetIsInScript(bool isInScript)
-    {
-        Assert(this->isInScript != isInScript);
-        this->isInScript = isInScript;
-    }
-
+    void SetIsScriptActive(bool isScriptActive);
+    void SetIsInScript(bool isInScript);
     bool ShouldIdleCollectOnExit();
     void ScheduleNextCollection();
 
-    IdleDecommitPageAllocator * GetRecyclerLeafPageAllocator()
-    {
-        return this->threadPageAllocator;
-    }
-
-    IdleDecommitPageAllocator * GetRecyclerPageAllocator()
-    {
-        // TODO: SWB this is for Finalizable leaf allocation, which we didn't implement leaf bucket for it
-        // remove this after the finalizable leaf bucket is implemented
-#if GLOBAL_ENABLE_WRITE_BARRIER
-        return &this->recyclerWithBarrierPageAllocator;
-#else
-        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
-        {
-            return &this->recyclerWithBarrierPageAllocator;
-        }
-        else
-        {
-            return &this->recyclerPageAllocator;
-        }
-#endif
-    }
-
-    IdleDecommitPageAllocator * GetRecyclerLargeBlockPageAllocator()
-    {
-        return &this->recyclerLargeBlockPageAllocator;
-    }
-
+    IdleDecommitPageAllocator * GetRecyclerLeafPageAllocator();
+    IdleDecommitPageAllocator * GetRecyclerPageAllocator();
+    IdleDecommitPageAllocator * GetRecyclerLargeBlockPageAllocator();
 #ifdef RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE
-    IdleDecommitPageAllocator * GetRecyclerWithBarrierPageAllocator()
-    {
-        return &this->recyclerWithBarrierPageAllocator;
-    }
+    IdleDecommitPageAllocator * GetRecyclerWithBarrierPageAllocator();
 #endif
 
     BOOL IsShuttingDown() const { return this->isShuttingDown; }
@@ -1275,51 +1141,20 @@ public:
     void ClearCacheCleanupCollection() { Assert(inCacheCleanupCollection); inCacheCleanupCollection = false; }
 
     // Finalizer support
-    void SetExternalRootMarker(ExternalRootMarker fn, void * context)
-    {
-        externalRootMarker = fn;
-        externalRootMarkerContext = context;
-    }
-
-    HeapInfo* CreateHeap();
-    void DestroyHeap(HeapInfo* heapInfo);
-
+    void SetExternalRootMarker(ExternalRootMarker fn, void * context);
     ArenaAllocator * CreateGuestArena(char16 const * name, void (*outOfMemoryFunc)());
     void DeleteGuestArena(ArenaAllocator * arenaAllocator);
-
-    ArenaData ** RegisterExternalGuestArena(ArenaData* guestArena)
-    {
-        return externalGuestArenaList.PrependNode(&NoThrowHeapAllocator::Instance, guestArena);
-    }
-
-    void UnregisterExternalGuestArena(ArenaData* guestArena)
-    {
-        externalGuestArenaList.Remove(&NoThrowHeapAllocator::Instance, guestArena);
-    }
-
-    void UnregisterExternalGuestArena(ArenaData** guestArena)
-    {
-        externalGuestArenaList.RemoveElement(&NoThrowHeapAllocator::Instance, guestArena);
-    }
+    ArenaData ** RegisterExternalGuestArena(ArenaData* guestArena);
+    void UnregisterExternalGuestArena(ArenaData* guestArena);
+    void UnregisterExternalGuestArena(ArenaData** guestArena);
 
 #ifdef RECYCLER_TEST_SUPPORT
     void SetCheckFn(BOOL(*checkFn)(char* addr, size_t size));
 #endif
 
-    void SetCollectionWrapper(RecyclerCollectionWrapper * wrapper)
-    {
-        this->collectionWrapper = wrapper;
-#if LARGEHEAPBLOCK_ENCODING
-        this->Cookie = wrapper->GetRandomNumber();
-#else
-        this->Cookie = 0;
-#endif
-    }
-
+    void SetCollectionWrapper(RecyclerCollectionWrapper * wrapper);
     static size_t GetAlignedSize(size_t size) { return HeapInfo::GetAlignedSize(size); }
-
     HeapInfo* GetAutoHeap() { return &autoHeap; }
-
     template <CollectionFlags flags>
     BOOL CollectNow();
 
@@ -1329,14 +1164,10 @@ public:
 
     void AddExternalMemoryUsage(size_t size);
 
-    bool NeedDispose()
-    {
-        return this->hasDisposableObject;
-    }
+    bool NeedDispose() { return this->hasDisposableObject; }
 
     template <CollectionFlags flags>
     bool FinishDisposeObjectsNow();
-
     BOOL ReportExternalMemoryAllocation(size_t size);
     void ReportExternalMemoryFailure(size_t size);
     void ReportExternalMemoryFree(size_t size);
@@ -1378,7 +1209,7 @@ public:
 #define DEFINE_RECYCLER_NOTHROW_ALLOC(AllocFunc, attributes) DEFINE_RECYCLER_NOTHROW_ALLOC_BASE(AllocFunc, AllocWithAttributes, attributes)
 #define DEFINE_RECYCLER_NOTHROW_ALLOC_ZERO(AllocFunc, attributes) DEFINE_RECYCLER_NOTHROW_ALLOC_BASE(AllocFunc, AllocZeroWithAttributes, attributes)
 
-#if GLOBAL_ENABLE_WRITE_BARRIER
+#if GLOBAL_ENABLE_WRITE_BARRIER && !defined(_WIN32)
     DEFINE_RECYCLER_ALLOC(Alloc, WithBarrierBit);
     DEFINE_RECYCLER_ALLOC_ZERO(AllocZero, WithBarrierBit);
     DEFINE_RECYCLER_ALLOC(AllocFinalized, FinalizableWithBarrierObjectBits);
@@ -1553,10 +1384,7 @@ public:
     void CheckLeaksOnProcessDetach(char16 const * header);
 #endif
 #ifdef RECYCLER_TRACE
-    void SetDomCollect(bool isDomCollect)
-    {
-        collectionParam.domCollect = isDomCollect;
-    }
+    void SetDomCollect(bool isDomCollect) { collectionParam.domCollect = isDomCollect; }
     void CaptureCollectionParam(CollectionFlags flags, bool repeat = false);
 #endif
 

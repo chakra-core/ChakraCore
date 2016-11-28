@@ -607,15 +607,14 @@ HeapBlockMap32::ForEachSegment(Recycler * recycler, Fn func)
 void
 HeapBlockMap32::ResetDirtyPages(Recycler * recycler)
 {
-    this->ForEachSegment(recycler, [=] (char * segmentStart, size_t segmentLength, Segment * segment, PageAllocator * segmentPageAllocator) {
+    this->ForEachSegment(recycler, [=](char * segmentStart, size_t segmentLength, Segment * segment, PageAllocator * segmentPageAllocator) {
 
         Assert(segmentLength % AutoSystemInfo::PageSize == 0);
 
-#if ENABLE_WRITE_WATCH
+#ifdef RECYCLER_WRITE_WATCH
         if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
         {
-            if (segmentPageAllocator == recycler->GetRecyclerPageAllocator() ||
-                segmentPageAllocator == recycler->GetRecyclerLargeBlockPageAllocator())
+            if (segmentPageAllocator->IsWriteWatchEnabled())
             {
                 // Call ResetWriteWatch for Small non-leaf and Large segments.
                 UINT ret = ::ResetWriteWatch(segmentStart, segmentLength);
@@ -623,9 +622,11 @@ HeapBlockMap32::ResetDirtyPages(Recycler * recycler)
             }
         }
 #endif
+
 #ifdef RECYCLER_WRITE_BARRIER
-        if (segmentPageAllocator == recycler->GetRecyclerWithBarrierPageAllocator() ||
-            segmentPageAllocator == recycler->GetRecyclerLargeBlockPageAllocator()) // TODO: use different page allocator?
+#if defined(_M_X64_OR_ARM64)
+        if (segment->IsWriteBarrierEnabled())
+#endif
         {
             // Reset software write barrier for barrier segments.
             RecyclerWriteBarrierManager::ResetWriteBarrier(segmentStart, segmentLength / AutoSystemInfo::PageSize);
@@ -771,7 +772,7 @@ HeapBlockMap32::ChangeProtectionLevel(Recycler* recycler, DWORD protectFlags, DW
 }
 
 #if ENABLE_CONCURRENT_GC
-#if ENABLE_WRITE_WATCH
+#ifdef RECYCLER_WRITE_WATCH
 ///
 /// The GetWriteWatch API can fail under low-mem situations if called to retrieve write-watch for a large number of pages
 /// (On Win10, > 255 pages). This helper is to handle the failure case. In the case of failure, we degrade to retrieving
@@ -858,24 +859,22 @@ HeapBlockMap32::Rescan(Recycler * recycler, bool resetWriteWatch)
     uint scannedPageCount = 0;
     bool anyObjectsScannedOnPage = false;
 
-    this->ForEachSegment(recycler, [&] (char * segmentStart, size_t segmentLength, Segment * currentSegment, PageAllocator * segmentPageAllocator) {
+    this->ForEachSegment(recycler, [&](char * segmentStart, size_t segmentLength, Segment * currentSegment, PageAllocator * segmentPageAllocator)
+    {
         Assert(segmentLength % AutoSystemInfo::PageSize == 0);
 
-#if ENABLE_WRITE_WATCH
+#ifdef RECYCLER_WRITE_WATCH
         if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
         {
             // Call GetWriteWatch for Small non-leaf segments.
             // Large blocks have their own separate write watch handling.
             if (segmentPageAllocator == recycler->GetRecyclerPageAllocator())
             {
-                // array for WW results
-                void * dirtyPageAddresses[MaxGetWriteWatchPages];
-
                 Assert(segmentLength <= MaxGetWriteWatchPages * PageSize);
 
+                void * dirtyPageAddresses[MaxGetWriteWatchPages];
                 ULONG_PTR pageCount = MaxGetWriteWatchPages;
                 DWORD pageSize = PageSize;
-
                 const DWORD writeWatchFlags = (resetWriteWatch ? WRITE_WATCH_FLAG_RESET : 0);
 
                 UINT ret = HeapBlockMap32::GetWriteWatchHelper(recycler, writeWatchFlags, segmentStart, segmentLength, dirtyPageAddresses, &pageCount, &pageSize);
@@ -939,7 +938,7 @@ HeapBlockMap32::Rescan(Recycler * recycler, bool resetWriteWatch)
         }
 #endif
         Assert(segmentPageAllocator == recycler->GetRecyclerLeafPageAllocator() ||
-                segmentPageAllocator == recycler->GetRecyclerLargeBlockPageAllocator());
+            segmentPageAllocator == recycler->GetRecyclerLargeBlockPageAllocator());
     });
 
     return scannedPageCount;

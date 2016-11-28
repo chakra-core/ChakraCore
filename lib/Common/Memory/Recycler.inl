@@ -91,7 +91,19 @@ Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
     }
 #endif
 
-    char* memBlock = RealAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+    char* memBlock = nullptr;
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier)
+        && ((attributes & LeafBit) != LeafBit
+            || (attributes & FinalizeBit) == FinalizeBit)) // there's no Finalize Leaf bucket
+    {
+        memBlock = RealAlloc<(ObjectInfoBits)((attributes | WithBarrierBit) & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+    }
+    else
+#endif
+    {
+        memBlock = RealAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+    }
 
     if (nothrow)
     {
