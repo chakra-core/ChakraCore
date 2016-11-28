@@ -1192,6 +1192,82 @@ namespace JsRTApiTest
         JsRTApiTest::RunWithAttributes(JsRTApiTest::ObjectMethodTest);
     }
 
+    void SetPrototypeTest(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
+    {
+        JsValueRef proto = JS_INVALID_REFERENCE;
+        JsValueRef object1 = JS_INVALID_REFERENCE;
+        JsValueRef object2 = JS_INVALID_REFERENCE;
+        JsPropertyIdRef obj1_a_pid= JS_INVALID_REFERENCE;
+        JsPropertyIdRef obj1_b_pid = JS_INVALID_REFERENCE;
+        JsPropertyIdRef obj2_x_pid = JS_INVALID_REFERENCE;
+        JsPropertyIdRef obj2_y_pid = JS_INVALID_REFERENCE;
+        JsPropertyIdRef obj2_z_pid = JS_INVALID_REFERENCE;
+        JsValueRef obj1_a_value = JS_INVALID_REFERENCE;
+        JsValueRef obj1_b_value = JS_INVALID_REFERENCE;
+        JsValueRef obj2_x_value = JS_INVALID_REFERENCE;
+        JsValueRef obj2_y_value = JS_INVALID_REFERENCE;
+        JsValueRef obj2_z_value = JS_INVALID_REFERENCE;
+
+        // var obj1 = {a : "obj1.a", b : "obj1.b"};
+        // var obj2 = {x : "obj2.x", y : "obj2.y", z : "obj2.z"}
+        REQUIRE(JsCreateObject(&proto) == JsNoError);
+        REQUIRE(JsCreateExternalObject((void *)0xdeadbeef, ExternalObjectFinalizeCallback, &object1) == JsNoError);
+        REQUIRE(JsCreateExternalObject((void *)0xdeadbeef, ExternalObjectFinalizeCallback, &object2) == JsNoError);
+
+        size_t propNameLength = wcslen(_u("obj1.a"));
+        REQUIRE(JsPointerToString(_u("obj1.a"), propNameLength, &obj1_a_value) == JsNoError);
+        REQUIRE(JsGetPropertyIdFromName(_u("a"), &obj1_a_pid) == JsNoError);
+        REQUIRE(JsSetProperty(object1, obj1_a_pid, obj1_a_value, true) == JsNoError);
+
+        REQUIRE(JsPointerToString(_u("obj1.b"), propNameLength, &obj1_b_value) == JsNoError);
+        REQUIRE(JsGetPropertyIdFromName(_u("b"), &obj1_b_pid) == JsNoError);
+        REQUIRE(JsSetProperty(object1, obj1_b_pid, obj1_b_value, true) == JsNoError);
+
+        REQUIRE(JsPointerToString(_u("obj2.x"), propNameLength, &obj2_x_value) == JsNoError);
+        REQUIRE(JsGetPropertyIdFromName(_u("x"), &obj2_x_pid) == JsNoError);
+        REQUIRE(JsSetProperty(object2, obj2_x_pid, obj2_x_value, true) == JsNoError);
+
+        REQUIRE(JsPointerToString(_u("obj1.y"), propNameLength, &obj2_y_value) == JsNoError);
+        REQUIRE(JsGetPropertyIdFromName(_u("y"), &obj2_y_pid) == JsNoError);
+        REQUIRE(JsSetProperty(object2, obj2_y_pid, obj2_y_value, true) == JsNoError);
+
+        REQUIRE(JsPointerToString(_u("obj1.z"), propNameLength, &obj2_z_value) == JsNoError);
+        REQUIRE(JsGetPropertyIdFromName(_u("z"), &obj2_z_pid) == JsNoError);
+        REQUIRE(JsSetProperty(object2, obj2_z_pid, obj2_z_value, true) == JsNoError);
+
+
+        REQUIRE(JsSetPrototype(object1, proto) == JsNoError);
+        REQUIRE(JsSetPrototype(object2, proto) == JsNoError);
+
+        JsValueRef objectProto = JS_INVALID_REFERENCE;
+
+        REQUIRE(JsGetPrototype(object1, &objectProto) == JsNoError);
+        CHECK(proto == objectProto);
+        REQUIRE(JsGetPrototype(object2, &objectProto) == JsNoError);
+        CHECK(proto == objectProto);
+
+        JsValueRef value = JS_INVALID_REFERENCE;
+        REQUIRE(JsGetProperty(object1, obj1_a_pid, &value) == JsNoError);
+        CHECK(value == obj1_a_value);
+
+        REQUIRE(JsGetProperty(object1, obj1_b_pid, &value) == JsNoError);
+        CHECK(value == obj1_b_value);
+
+        REQUIRE(JsGetProperty(object2, obj2_x_pid, &value) == JsNoError);
+        CHECK(value == obj2_x_value);
+
+        REQUIRE(JsGetProperty(object2, obj2_y_pid, &value) == JsNoError);
+        CHECK(value == obj2_y_value);
+
+        REQUIRE(JsGetProperty(object2, obj2_z_pid, &value) == JsNoError);
+        CHECK(value == obj2_z_value);
+    }
+
+    TEST_CASE("ApiTest_SetPrototypeTest", "[ApiTest]")
+    {
+        JsRTApiTest::RunWithAttributes(JsRTApiTest::SetPrototypeTest);
+    }
+
     void DisableEval(JsRuntimeAttributes attributes, JsRuntimeHandle runtime)
     {
         JsValueRef result = JS_INVALID_REFERENCE;
