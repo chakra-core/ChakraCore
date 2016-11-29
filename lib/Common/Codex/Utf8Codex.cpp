@@ -323,7 +323,8 @@ LFourByte:
         return ptr;
     }
 
-    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(3) LPUTF8 ptr)
+    _Use_decl_annotations_
+    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, LPUTF8 ptr)
     {
         // A unicode codepoint is encoded into a surrogate pair by doing the following:
         //  subtract 0x10000 from the codepoint
@@ -472,9 +473,10 @@ LSlowPath:
     }
 
     template <bool cesu8Encoding>
-    __range(0, cch * 3)
-    size_t EncodeIntoImpl(__out_ecount(cch * 3) LPUTF8 buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
+    __range(0, cchIn * 3)
+    size_t EncodeIntoImpl(__out_ecount(cchIn * 3) LPUTF8 buffer, __in_ecount(cchIn) const char16 *source, charcount_t cchIn)
     {
+        charcount_t cch = cchIn; // SAL analysis gets confused by EncodeTrueUtf8's dest buffer requirement unless we alias cchIn with a local
         LPUTF8 dest = buffer;
 
         if (!ShouldFastPath(dest, source)) goto LSlowPath;
