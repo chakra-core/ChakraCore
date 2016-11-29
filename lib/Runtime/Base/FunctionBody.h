@@ -82,12 +82,8 @@ namespace Js
     class PropertyGuard
     {
         friend class PropertyGuardValidator;
+
     private:
-        enum GuardValue : intptr_t {
-            Invalidated = 0,
-            Uninitialized = 1,
-            Invalidated_DuringSweep = 2
-        };
         intptr_t value; // value is address of Js::Type
 #if DBG
         bool wasReincarnated = false;
@@ -130,6 +126,12 @@ namespace Js
 #if DBG
         bool WasReincarnated() { return this->wasReincarnated; }
 #endif
+        enum GuardValue : intptr_t
+        {
+            Invalidated = 0,
+            Uninitialized = 1,
+            Invalidated_DuringSweep = 2
+        };
     };
 
     class PropertyGuardValidator
