@@ -561,6 +561,7 @@ namespace Js
                 ArenaAllocator* allocator = scriptContext->GeneralAllocator();
                 childrenModuleSet = (ChildModuleRecordSet*)AllocatorNew(ArenaAllocator, allocator, ChildModuleRecordSet, allocator);
             }
+            Var error = nullptr;
             requestedModuleList->MapUntil([&](IdentPtr specifier) {
                 ModuleRecordBase* moduleRecordBase = nullptr;
                 SourceTextModuleRecord* moduleRecord = nullptr;
@@ -574,6 +575,12 @@ namespace Js
                         return true;
                     }
                     moduleRecord = SourceTextModuleRecord::FromHost(moduleRecordBase);
+                    if (moduleRecord->errorObject != nullptr)
+                    {
+                        hr = E_FAIL;
+                        error = moduleRecord->errorObject;
+                        return true;
+                    }
                     childrenModuleSet->AddNew(moduleName, moduleRecord);
                     if (moduleRecord->parentModuleList == nullptr)
                     {
@@ -589,8 +596,12 @@ namespace Js
             });
             if (FAILED(hr))
             {
-                JavascriptError *error = scriptContext->GetLibrary()->CreateError();
-                JavascriptError::SetErrorMessageProperties(error, hr, _u("fetch import module failed"), scriptContext);
+                if (error == nullptr)
+                {
+                    JavascriptError *jsError = scriptContext->GetLibrary()->CreateError();
+                    JavascriptError::SetErrorMessageProperties(jsError, hr, _u("fetch import module failed"), scriptContext);
+                    error = jsError;
+                }
                 this->errorObject = error;
                 NotifyParentsAsNeeded();
             }
