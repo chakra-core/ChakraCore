@@ -349,31 +349,32 @@ namespace Js {
         /// proxy of asmjs module
         struct ModuleVar
         {
-            RegSlot location;
-            AsmJsVarType::Which type;
-            union
+            Field(RegSlot) location;
+            Field(AsmJsVarType::Which) type;
+            union InitialiserType
             {
-                int intInit;
-                float floatInit;
-                double doubleInit;
-                AsmJsSIMDValue simdInit;
-            } initialiser;
-            bool isMutable;
+                Field(int) intInit;
+                Field(float) floatInit;
+                Field(double) doubleInit;
+                Field(AsmJsSIMDValue) simdInit;
+            };
+            Field(InitialiserType) initialiser;
+            Field(bool) isMutable;
         };
         struct ModuleVarImport
         {
-            RegSlot location;
-            AsmJsVarType::Which type;
-            PropertyId field;
+            Field(RegSlot) location;
+            Field(AsmJsVarType::Which) type;
+            Field(PropertyId) field;
         };
         struct ModuleFunctionImport
         {
-            RegSlot location;
-            PropertyId field;
+            Field(RegSlot) location;
+            Field(PropertyId) field;
         };
         struct ModuleFunction
         {
-            RegSlot location;
+            Field(RegSlot) location;
         };
         struct ModuleExport
         {
@@ -382,8 +383,8 @@ namespace Js {
         };
         struct ModuleFunctionTable
         {
-            uint size;
-            RegSlot* moduleFunctionIndex;
+            Field(uint) size;
+            Field(RegSlot*) moduleFunctionIndex;
         };
 
         typedef JsUtil::BaseDictionary<PropertyId, AsmJsSlot*, Memory::Recycler> AsmJsSlotMap;

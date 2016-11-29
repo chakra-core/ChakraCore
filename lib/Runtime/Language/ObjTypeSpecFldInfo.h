@@ -17,9 +17,9 @@ namespace Js
 
     struct FixedFieldInfo
     {
-        Var fieldValue;
-        Type* type;
-        bool nextHasSameFixedField; // set to true if the next entry in the FixedFieldInfo array on ObjTypeSpecFldInfo has the same type
+        Field(Var) fieldValue;
+        Field(Type*) type;
+        Field(bool) nextHasSameFixedField; // set to true if the next entry in the FixedFieldInfo array on ObjTypeSpecFldInfo has the same type
     };
 
     // Union with uint16 flags for fast default initialization

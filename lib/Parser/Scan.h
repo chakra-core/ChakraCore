@@ -326,17 +326,17 @@ typedef HRESULT (*CommentCallback)(void *data, OLECHAR firstChar, OLECHAR second
 // Restore point defined using a relative offset rather than a pointer.
 struct RestorePoint
 {
-    charcount_t m_ichMinTok;
-    charcount_t m_ichMinLine;
-    size_t m_cMinTokMultiUnits;
-    size_t m_cMinLineMultiUnits;
-    charcount_t m_line;
-    uint functionIdIncrement;
-    size_t lengthDecr;
-    BOOL m_fHadEol;
+    Field(charcount_t) m_ichMinTok;
+    Field(charcount_t) m_ichMinLine;
+    Field(size_t) m_cMinTokMultiUnits;
+    Field(size_t) m_cMinLineMultiUnits;
+    Field(charcount_t) m_line;
+    Field(uint) functionIdIncrement;
+    Field(size_t) lengthDecr;
+    Field(BOOL) m_fHadEol;
 
 #ifdef DEBUG
-    size_t m_cMultiUnits;
+    Field(size_t) m_cMultiUnits;
 #endif
 
     RestorePoint()

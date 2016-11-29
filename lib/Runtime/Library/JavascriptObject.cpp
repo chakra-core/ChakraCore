@@ -1668,9 +1668,9 @@ namespace Js
         size_t descCount = 0;
         struct DescriptorMap
         {
-            PropertyRecord const * propRecord;
-            PropertyDescriptor descriptor;
-            Var originalVar;
+            Field(PropertyRecord const *) propRecord;
+            Field(PropertyDescriptor) descriptor;
+            Field(Var) originalVar;
         };
 
         JavascriptStaticEnumerator enumerator;
@@ -1764,8 +1764,8 @@ namespace Js
         size_t descCount = 0;
         struct DescriptorMap
         {
-            PropertyRecord const * propRecord;
-            PropertyDescriptor descriptor;
+            Field(PropertyRecord const *) propRecord;
+            Field(PropertyDescriptor) descriptor;
         };
 
         //3.  Let keys be props.[[OwnPropertyKeys]]().

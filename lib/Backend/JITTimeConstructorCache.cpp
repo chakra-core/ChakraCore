@@ -32,7 +32,7 @@ JITTimeConstructorCache::JITTimeConstructorCache(const JITTimeConstructorCache* 
     Assert(other->GetRuntimeCacheAddr() != 0);
     m_data.runtimeCacheAddr = other->GetRuntimeCacheAddr();
     m_data.runtimeCacheGuardAddr = other->GetRuntimeCacheGuardAddr();
-    m_data.type = *(TypeIDL*)other->GetType().t;
+    m_data.type = *(TypeIDL*)PointerValue(other->GetType().t);
     m_data.slotCount = other->GetSlotCount();
     m_data.inlineSlotCount = other->GetInlineSlotCount();
     m_data.skipNewScObject = other->SkipNewScObject();

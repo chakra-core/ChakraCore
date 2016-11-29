@@ -632,11 +632,11 @@ typedef struct XProcNumberPageSegment
 
 typedef struct PolymorphicInlineCacheIDL
 {
-    unsigned short size;
+    IDL_Field(unsigned short) size;
     IDL_PAD2(0)
     X64_PAD4(1)
-    CHAKRA_PTR addr;
-    CHAKRA_PTR inlineCachesAddr;
+    IDL_Field(CHAKRA_PTR) addr;
+    IDL_Field(CHAKRA_PTR) inlineCachesAddr;
 } PolymorphicInlineCacheIDL;
 
 typedef struct PolymorphicInlineCacheInfoIDL

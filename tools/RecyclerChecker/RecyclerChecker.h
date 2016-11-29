@@ -25,7 +25,9 @@ enum AllocationTypes
     Unknown = 0x0,                  // e.g. template dependent
     NonRecycler = 0x1,              // Heap, Arena, JitArena, ...
     Recycler = 0x2,                 // Recycler
-    WriteBarrier = 0x4 | Recycler,  // Recycler write barrier
+    WriteBarrier = 0x4,             // Recycler write barrier
+
+    RecyclerWriteBarrier = Recycler | WriteBarrier,
 };
 
 class MainVisitor:
@@ -47,6 +49,8 @@ private:
 
 public:
     MainVisitor(CompilerInstance& compilerInstance, ASTContext& context, bool fix);
+
+    const ASTContext& getContext() const { return _context; }
 
     bool VisitCXXRecordDecl(CXXRecordDecl* recordDecl);
     bool VisitFunctionDecl(FunctionDecl* functionDecl);
@@ -81,10 +85,14 @@ public:
     {}
 
     bool VisitCXXNewExpr(CXXNewExpr* newExpression);
+    bool VisitCallExpr(CallExpr* callExpr);
 
 private:
     MainVisitor* _mainVisitor;
     FunctionDecl* _functionDecl;
+
+    template <class A0, class A1, class T>
+    void VisitAllocate(const A0& getArg0, const A1& getArg1, const T& getAllocType);
 };
 
 class RecyclerCheckerConsumer: public ASTConsumer

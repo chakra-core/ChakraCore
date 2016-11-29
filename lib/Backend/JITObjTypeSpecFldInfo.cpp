@@ -302,7 +302,7 @@ JITObjTypeSpecFldInfo::BuildObjTypeSpecFldInfoArray(
         Js::FixedFieldInfo * ffInfo = objTypeSpecInfo[i]->GetFixedFieldInfoArray();
         for (uint16 j = 0; j < jitData[i].fixedFieldInfoArraySize; ++j)
         {
-            jitData[i].fixedFieldInfoArray[j].fieldValue = (intptr_t)ffInfo[j].fieldValue;
+            jitData[i].fixedFieldInfoArray[j].fieldValue = (intptr_t)PointerValue(ffInfo[j].fieldValue);
             jitData[i].fixedFieldInfoArray[j].nextHasSameFixedField = ffInfo[j].nextHasSameFixedField;
             if (ffInfo[j].fieldValue != nullptr && Js::JavascriptFunction::Is(ffInfo[j].fieldValue))
             {

@@ -88,6 +88,11 @@ void MainVisitor::ProcessUnbarriedFields(CXXRecordDecl* recordDecl,
                                          const PushFieldType& pushFieldType)
 {
     std::string typeName = recordDecl->getQualifiedNameAsString();
+    if (typeName == "Memory::WriteBarrierPtr")
+    {
+        return;  // Skip WriteBarrierPtr itself
+    }
+
     const auto& sourceMgr = _compilerInstance.getSourceManager();
     DiagnosticsEngine& diagEngine = _context.getDiagnostics();
     const unsigned diagID = diagEngine.getCustomDiagID(
@@ -444,75 +449,108 @@ static AllocationTypes CheckAllocationType(const CXXStaticCastExpr* castNode)
     }
 }
 
-bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
+template <class A0, class A1, class T>
+void CheckAllocationsInFunctionVisitor::VisitAllocate(
+    const A0& getArg0, const A1& getArg1, const T& getAllocType)
 {
-    if (newExpr->getNumPlacementArgs() > 1)
+    const Expr* firstArgNode = getArg0();
+
+    // Check if the first argument (to new or AllocateArray) is a static cast
+    // AllocatorNew/AllocateArray in Chakra always does a static_cast to the AllocatorType
+    const CXXStaticCastExpr* castNode = nullptr;
+    if (firstArgNode != nullptr &&
+        (castNode = dyn_cast<CXXStaticCastExpr>(firstArgNode)))
     {
-        const Expr* firstArgNode = newExpr->getPlacementArg(0);
+        QualType allocatedType = getAllocType();
+        string allocatedTypeStr = allocatedType.getAsString();
 
-        // Check if the first argument to new is a static cast
-        // AllocatorNew in Chakra always does a static_cast to the AllocatorType
-        CXXStaticCastExpr* castNode = nullptr;
-        if (firstArgNode != nullptr &&
-            (castNode = const_cast<CXXStaticCastExpr*>(dyn_cast<CXXStaticCastExpr>(firstArgNode))))
+        auto allocationType = CheckAllocationType(castNode);
+        if (allocationType == AllocationTypes::Recycler)  // Recycler allocation
         {
-            QualType allocatedType = newExpr->getAllocatedType();
-            string allocatedTypeStr = allocatedType.getAsString();
+            const Expr* secondArgNode = getArg1();
 
-            auto allocationType = CheckAllocationType(castNode);
-            if (allocationType == AllocationTypes::Recycler)  // Recycler allocation
+            // Chakra has two types of allocating functions- throwing and non-throwing
+            // However, recycler allocations are always throwing, so the second parameter
+            // should be the address of the allocator function
+            auto unaryNode = cast<UnaryOperator>(secondArgNode);
+            if (unaryNode != nullptr && unaryNode->getOpcode() == UnaryOperatorKind::UO_AddrOf)
             {
-                const Expr* secondArgNode = newExpr->getPlacementArg(1);
-
-                // Chakra has two types of allocating functions- throwing and non-throwing
-                // However, recycler allocations are always throwing, so the second parameter
-                // should be the address of the allocator function
-                auto unaryNode = cast<UnaryOperator>(secondArgNode);
-                if (unaryNode != nullptr && unaryNode->getOpcode() == UnaryOperatorKind::UO_AddrOf)
+                Expr* subExpr = unaryNode->getSubExpr();
+                if (DeclRefExpr* declRef = cast<DeclRefExpr>(subExpr))
                 {
-                    Expr* subExpr = unaryNode->getSubExpr();
-                    if (DeclRefExpr* declRef = cast<DeclRefExpr>(subExpr))
-                    {
-                        auto declNameInfo = declRef->getNameInfo();
-                        auto allocationFunctionStr = declNameInfo.getName().getAsString();
-                        _mainVisitor->RecordRecyclerAllocation(allocationFunctionStr, allocatedTypeStr);
+                    auto declNameInfo = declRef->getNameInfo();
+                    auto allocationFunctionStr = declNameInfo.getName().getAsString();
+                    _mainVisitor->RecordRecyclerAllocation(allocationFunctionStr, allocatedTypeStr);
 
-                        if (Contains(allocationFunctionStr, "WithBarrier"))
-                        {
-                            // Recycler write barrier allocation
-                            allocationType = AllocationTypes::WriteBarrier;
-                        }
-                    }
-                    else
+                    if (Contains(allocationFunctionStr, "WithBarrier"))
                     {
-                        Log::errs() << "ERROR: (internal) Expected DeclRefExpr:\n";
-                        subExpr->dump();
-                    }
-                }
-                else if (auto mExpr = cast<MaterializeTemporaryExpr>(secondArgNode))
-                {
-                    auto name = mExpr->GetTemporaryExpr()->IgnoreImpCasts()->getType().getAsString();
-                    if (StartsWith(name, "InfoBitsWrapper<") && Contains(name, "WithBarrierBit"))
-                    {
-                        // RecyclerNewWithBarrierEnumClass, RecyclerNewWithBarrierWithInfoBits
-                        allocationType = AllocationTypes::WriteBarrier;
+                        // Recycler write barrier allocation
+                        allocationType = AllocationTypes::RecyclerWriteBarrier;
                     }
                 }
                 else
                 {
-                    Log::errs() << "ERROR: (internal) Expected unary node or MaterializeTemporaryExpr:\n";
-                    secondArgNode->dump();
+                    Log::errs() << "ERROR: (internal) Expected DeclRefExpr:\n";
+                    subExpr->dump();
                 }
             }
-
-            if (allocationType == AllocationTypes::WriteBarrier)
+            else if (auto mExpr = cast<MaterializeTemporaryExpr>(secondArgNode))
             {
-                Log::outs() << "In \"" << _functionDecl->getQualifiedNameAsString() << "\"\n";
-                Log::outs() << "  Allocating \"" << allocatedTypeStr << "\" in write barriered memory\n";
+                auto name = mExpr->GetTemporaryExpr()->IgnoreImpCasts()->getType().getAsString();
+                if (StartsWith(name, "InfoBitsWrapper<") && Contains(name, "WithBarrierBit"))
+                {
+                    // RecyclerNewWithBarrierEnumClass, RecyclerNewWithBarrierWithInfoBits
+                    allocationType = AllocationTypes::RecyclerWriteBarrier;
+                }
             }
-
-            _mainVisitor->RecordAllocation(allocatedType, allocationType);
+            else
+            {
+                Log::errs() << "ERROR: (internal) Expected unary node or MaterializeTemporaryExpr:\n";
+                secondArgNode->dump();
+            }
         }
+
+        if (allocationType & AllocationTypes::WriteBarrier)
+        {
+            Log::outs() << "In \"" << _functionDecl->getQualifiedNameAsString() << "\"\n";
+            Log::outs() << "  Allocating \"" << allocatedTypeStr << "\" in write barriered memory\n";
+        }
+
+        _mainVisitor->RecordAllocation(allocatedType, allocationType);
+    }
+}
+
+bool CheckAllocationsInFunctionVisitor::VisitCXXNewExpr(CXXNewExpr* newExpr)
+{
+    if (newExpr->getNumPlacementArgs() > 1)
+    {
+        VisitAllocate(
+            [=]() { return newExpr->getPlacementArg(0); },
+            [=]() { return newExpr->getPlacementArg(1); },
+            [=]() { return newExpr->getAllocatedType(); }
+        );
+    }
+
+    return true;
+}
+
+bool CheckAllocationsInFunctionVisitor::VisitCallExpr(CallExpr* callExpr)
+{
+    // Check callExpr for AllocateArray
+    auto callee = callExpr->getDirectCallee();
+    if (callExpr->getNumArgs() == 3 &&
+        callee &&
+        callee->getName().equals("AllocateArray"))
+    {
+        VisitAllocate(
+            [=]() { return callExpr->getArg(0); },
+            [=]() { return callExpr->getArg(1); },
+            [=]()
+            {
+                auto retType = callExpr->getCallReturnType(_mainVisitor->getContext());
+                return QualType(retType->getAs<PointerType>()->getPointeeType());
+            }
+        );
     }
 
     return true;

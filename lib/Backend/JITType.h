@@ -32,7 +32,9 @@ private:
 class JITTypeHolder
 {
 public:
-    JITType * t;
+    // SWB-TODO: Fix this. JITTypeHolder is used both as GC object and also
+    // background JIT stack object. The later cannot use write barrier currently.
+    FieldNoBarrier(JITType *) t;
 
     JITTypeHolder();
     JITTypeHolder(JITType * t);
