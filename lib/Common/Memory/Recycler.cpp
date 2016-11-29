@@ -975,6 +975,13 @@ Recycler::GetUsedBytes()
 #endif
     usedBytes += recyclerPageAllocator.usedBytes;
     usedBytes += recyclerLargeBlockPageAllocator.usedBytes;
+
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        Assert(recyclerPageAllocator.usedBytes == 0);
+    }
+#endif
     return usedBytes;
 }
 
