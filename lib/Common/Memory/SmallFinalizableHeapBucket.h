@@ -81,7 +81,6 @@ template <ObjectInfoBits attributes, class TBlockAttributes>
 class SmallHeapBlockType
 {
 public:
-    CompileAssert(attributes & FinalizeBit);
     typedef SmallFinalizableHeapBlockT<TBlockAttributes> BlockType;
     typedef SmallFinalizableHeapBucketT<TBlockAttributes> BucketType;
 };
@@ -174,7 +173,7 @@ class HeapBucketGroup
         typedef typename SmallHeapBlockType<objectAttributes, TBlockAttributes>::BucketType BucketType;
         static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
         {
-            CompileAssert(objectAttributes & FinalizeBit);
+            Assert(objectAttributes & FinalizeBit);
             return heapBucketGroup->finalizableHeapBucket;
         }
     };

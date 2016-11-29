@@ -715,15 +715,15 @@ PHASE(All)
 #endif
 
 #define DEFAULT_CONFIG_StrictWriteBarrierCheck  (false)
+#define DEFAULT_CONFIG_KeepRecyclerTrackData  (false)
+#define DEFAULT_CONFIG_EnableBGFreeZero (true)
 
 #ifdef _WIN32
 #define DEFAULT_CONFIG_ForceSoftwareWriteBarrier  (false)
 #define DEFAULT_CONFIG_WriteBarrierTest (false)
-#define DEFAULT_CONFIG_EnableBGFreeZero (true)
 #else
 #define DEFAULT_CONFIG_ForceSoftwareWriteBarrier  (true)
 #define DEFAULT_CONFIG_WriteBarrierTest (true) // TODO: SWB change to false after all write barrier annotations are done
-#define DEFAULT_CONFIG_EnableBGFreeZero (true)
 #endif
 
 #define TraceLevel_Error        (1)
@@ -1492,6 +1492,7 @@ FLAGNR(Boolean, StrictWriteBarrierCheck, "Check write barrier setting on none wr
 FLAGNR(Boolean, WriteBarrierTest, "Always return true while checking barrier to test recycler regardless of annotation", DEFAULT_CONFIG_WriteBarrierTest)
 FLAGNR(Boolean, ForceSoftwareWriteBarrier, "Use to turn off write watch to test software write barrier on windows", DEFAULT_CONFIG_ForceSoftwareWriteBarrier)
 FLAGNR(Boolean, EnableBGFreeZero, "Use to turn off background freeing and zeroing to simulate linux", DEFAULT_CONFIG_EnableBGFreeZero)
+FLAGNR(Boolean, KeepRecyclerTrackData, "Keep recycler track data after sweep until reuse", DEFAULT_CONFIG_KeepRecyclerTrackData)
 
 #undef FLAG_REGOVR_EXP
 #undef FLAG_REGOVR_ASMJS
