@@ -177,6 +177,7 @@
   (import "spectest" "global" (global $x i32))
   (global $y (import "spectest" "global") i32)
 
+  ;;(import "spectest" "global" (global i64))
   (import "spectest" "global" (global f32))
   (import "spectest" "global" (global f64))
 

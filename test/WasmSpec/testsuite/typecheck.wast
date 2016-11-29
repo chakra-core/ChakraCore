@@ -158,14 +158,6 @@
   "type mismatch"
 )
 (assert_invalid
-  (module (func $type-br-operand-missing-in-loop
-    (i32.const 0)
-    (loop i32 (br 0))
-    (i32.eqz) (drop)
-  ))
-  "type mismatch"
-)
-(assert_invalid
   (module (func $type-br-operand-missing-in-if
     (block
       (i32.const 0) (i32.const 0)

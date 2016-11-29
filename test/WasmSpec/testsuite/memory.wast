@@ -106,27 +106,6 @@
 (module (memory 0) (func (drop (f32.load align=4 (i32.const 0)))))
 
 (assert_invalid
-  (module (memory 0) (func (drop (i64.load align=0 (i32.const 0)))))
-  "alignment must be a power of two"
-)
-(assert_invalid
-  (module (memory 0) (func (drop (i64.load align=3 (i32.const 0)))))
-  "alignment must be a power of two"
-)
-(assert_invalid
-  (module (memory 0) (func (drop (i64.load align=5 (i32.const 0)))))
-  "alignment must be a power of two"
-)
-(assert_invalid
-  (module (memory 0) (func (drop (i64.load align=6 (i32.const 0)))))
-  "alignment must be a power of two"
-)
-(assert_invalid
-  (module (memory 0) (func (drop (i64.load align=7 (i32.const 0)))))
-  "alignment must be a power of two"
-)
-
-(assert_invalid
   (module (memory 0) (func (drop (i64.load align=16 (i32.const 0)))))
   "alignment must not be larger than natural"
 )

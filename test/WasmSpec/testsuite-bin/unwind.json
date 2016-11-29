@@ -5,162 +5,192 @@
       "type": "assert_trap",
       "name": "$assert_trap_0",
       "file": "unwind.wast",
-      "line": 130
+      "line": 149
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "unwind.wast",
-      "line": 131
+      "line": 150
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "unwind.wast",
-      "line": 132
+      "line": 151
     }, {
       "type": "assert_return",
       "name": "$assert_return_3",
       "file": "unwind.wast",
-      "line": 133
+      "line": 152
     }, {
       "type": "assert_return",
       "name": "$assert_return_4",
       "file": "unwind.wast",
-      "line": 134
+      "line": 153
     }, {
       "type": "assert_return",
       "name": "$assert_return_5",
       "file": "unwind.wast",
-      "line": 135
+      "line": 154
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_6",
       "file": "unwind.wast",
-      "line": 137
+      "line": 156
     }, {
       "type": "assert_return",
       "name": "$assert_return_7",
       "file": "unwind.wast",
-      "line": 138
+      "line": 157
     }, {
       "type": "assert_return",
       "name": "$assert_return_8",
       "file": "unwind.wast",
-      "line": 139
+      "line": 158
     }, {
       "type": "assert_return",
       "name": "$assert_return_9",
       "file": "unwind.wast",
-      "line": 140
+      "line": 159
     }, {
       "type": "assert_return",
       "name": "$assert_return_10",
       "file": "unwind.wast",
-      "line": 141
+      "line": 160
     }, {
       "type": "assert_return",
       "name": "$assert_return_11",
       "file": "unwind.wast",
-      "line": 142
+      "line": 161
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_12",
       "file": "unwind.wast",
-      "line": 144
+      "line": 163
     }, {
       "type": "assert_return",
       "name": "$assert_return_13",
       "file": "unwind.wast",
-      "line": 145
+      "line": 164
     }, {
       "type": "assert_return",
       "name": "$assert_return_14",
       "file": "unwind.wast",
-      "line": 146
+      "line": 165
     }, {
       "type": "assert_return",
       "name": "$assert_return_15",
       "file": "unwind.wast",
-      "line": 147
+      "line": 166
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_16",
+      "type": "assert_return",
+      "name": "$assert_return_16",
       "file": "unwind.wast",
-      "line": 149
+      "line": 167
     }, {
       "type": "assert_return",
       "name": "$assert_return_17",
       "file": "unwind.wast",
-      "line": 150
+      "line": 168
     }, {
-      "type": "assert_return",
-      "name": "$assert_return_18",
+      "type": "assert_trap",
+      "name": "$assert_trap_18",
       "file": "unwind.wast",
-      "line": 151
+      "line": 170
     }, {
       "type": "assert_return",
       "name": "$assert_return_19",
       "file": "unwind.wast",
-      "line": 152
+      "line": 171
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_20",
+      "type": "assert_return",
+      "name": "$assert_return_20",
       "file": "unwind.wast",
-      "line": 154
+      "line": 172
     }, {
       "type": "assert_return",
       "name": "$assert_return_21",
       "file": "unwind.wast",
-      "line": 155
+      "line": 173
     }, {
-      "type": "assert_return",
-      "name": "$assert_return_22",
+      "type": "assert_trap",
+      "name": "$assert_trap_22",
       "file": "unwind.wast",
-      "line": 156
+      "line": 175
     }, {
       "type": "assert_return",
       "name": "$assert_return_23",
       "file": "unwind.wast",
-      "line": 157
+      "line": 176
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_24",
+      "type": "assert_return",
+      "name": "$assert_return_24",
       "file": "unwind.wast",
-      "line": 159
+      "line": 177
     }, {
       "type": "assert_return",
       "name": "$assert_return_25",
       "file": "unwind.wast",
-      "line": 160
+      "line": 178
     }, {
-      "type": "assert_return",
-      "name": "$assert_return_26",
+      "type": "assert_trap",
+      "name": "$assert_trap_26",
       "file": "unwind.wast",
-      "line": 161
+      "line": 180
     }, {
       "type": "assert_return",
       "name": "$assert_return_27",
       "file": "unwind.wast",
-      "line": 162
+      "line": 181
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_28",
+      "type": "assert_return",
+      "name": "$assert_return_28",
       "file": "unwind.wast",
-      "line": 164
+      "line": 182
     }, {
       "type": "assert_return",
       "name": "$assert_return_29",
       "file": "unwind.wast",
-      "line": 165
+      "line": 183
     }, {
-      "type": "assert_return",
-      "name": "$assert_return_30",
+      "type": "assert_trap",
+      "name": "$assert_trap_30",
       "file": "unwind.wast",
-      "line": 166
+      "line": 185
     }, {
       "type": "assert_return",
       "name": "$assert_return_31",
       "file": "unwind.wast",
-      "line": 167
+      "line": 186
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_32",
+      "file": "unwind.wast",
+      "line": 187
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_33",
+      "file": "unwind.wast",
+      "line": 188
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_34",
+      "file": "unwind.wast",
+      "line": 190
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_35",
+      "file": "unwind.wast",
+      "line": 191
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_36",
+      "file": "unwind.wast",
+      "line": 192
+    }, {
+      "type": "assert_return",
+      "name": "$assert_return_37",
+      "file": "unwind.wast",
+      "line": 193
     }]
   }]
 }

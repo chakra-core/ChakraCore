@@ -11,6 +11,13 @@
   <test>
     <default>
       <files>spec.js</files>
+      <baseline>baselines\binary.baseline</baseline>
+      <compile-flags>-wasm -args testsuite-bin\binary.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
       <baseline>baselines\block.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\block.json -endargs</compile-flags>
     </default>
@@ -132,6 +139,13 @@
       <files>spec.js</files>
       <baseline>baselines\float_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\float_literals.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\float_memory.baseline</baseline>
+      <compile-flags>-wasm -args testsuite-bin\float_memory.json -endargs</compile-flags>
     </default>
   </test>
   <test>

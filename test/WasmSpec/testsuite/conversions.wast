@@ -75,13 +75,13 @@
 
 (assert_return (invoke "i32.trunc_u_f32" (f32.const 0.0)) (i32.const 0))
 (assert_return (invoke "i32.trunc_u_f32" (f32.const -0.0)) (i32.const 0))
-(assert_return (invoke "i32.trunc_u_f32" (f32.const 0x1p-149)) (i32.const 0)) ;; see issue #1957
-(assert_return (invoke "i32.trunc_u_f32" (f32.const -0x1p-149)) (i32.const 0)) ;; see issue #1957
-(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.0)) (i32.const 1)) ;; see issue #1957
-(assert_return (invoke "i32.trunc_u_f32" (f32.const 0x1.19999ap+0)) (i32.const 1)) ;; see issue #1957
-(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.5)) (i32.const 1)) ;; see issue #1957
-(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.9)) (i32.const 1)) ;; see issue #1957
-(assert_return (invoke "i32.trunc_u_f32" (f32.const 2.0)) (i32.const 2)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 0x1p-149)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const -0x1p-149)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.0)) (i32.const 1))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 0x1.19999ap+0)) (i32.const 1))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.5)) (i32.const 1))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 1.9)) (i32.const 1))
+(assert_return (invoke "i32.trunc_u_f32" (f32.const 2.0)) (i32.const 2))
 (assert_return (invoke "i32.trunc_u_f32" (f32.const 2147483648)) (i32.const -2147483648)) ;; 0x1.00000p+31 -> 8000 0000
 (assert_return (invoke "i32.trunc_u_f32" (f32.const 4294967040.0)) (i32.const -256))
 (assert_return (invoke "i32.trunc_u_f32" (f32.const -0x1.ccccccp-1)) (i32.const 0))
@@ -114,12 +114,12 @@
 
 (assert_return (invoke "i32.trunc_u_f64" (f64.const 0.0)) (i32.const 0))
 (assert_return (invoke "i32.trunc_u_f64" (f64.const -0.0)) (i32.const 0))
-(assert_return (invoke "i32.trunc_u_f64" (f64.const 0x0.0000000000001p-1022)) (i32.const 0)) ;; see issue #1957
-(assert_return (invoke "i32.trunc_u_f64" (f64.const -0x0.0000000000001p-1022)) (i32.const 0)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 0x0.0000000000001p-1022)) (i32.const 0))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const -0x0.0000000000001p-1022)) (i32.const 0))
 (assert_return (invoke "i32.trunc_u_f64" (f64.const 1.0)) (i32.const 1))
-(assert_return (invoke "i32.trunc_u_f64" (f64.const 0x1.199999999999ap+0)) (i32.const 1)) ;; see issue #1957
-(assert_return (invoke "i32.trunc_u_f64" (f64.const 1.5)) (i32.const 1)) ;; see issue #1957
-(assert_return (invoke "i32.trunc_u_f64" (f64.const 1.9)) (i32.const 1)) ;; see issue #1957
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 0x1.199999999999ap+0)) (i32.const 1))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 1.5)) (i32.const 1))
+(assert_return (invoke "i32.trunc_u_f64" (f64.const 1.9)) (i32.const 1))
 (assert_return (invoke "i32.trunc_u_f64" (f64.const 2.0)) (i32.const 2))
 (assert_return (invoke "i32.trunc_u_f64" (f64.const 2147483648)) (i32.const -2147483648)) ;; 0x1.00000p+31 -> 8000 0000
 (assert_return (invoke "i32.trunc_u_f64" (f64.const 4294967295.0)) (i32.const -1))
@@ -370,8 +370,8 @@
 (assert_return (invoke "f32.reinterpret_i32" (i32.const 0xff800000)) (f32.const -infinity))
 (assert_return (invoke "f32.reinterpret_i32" (i32.const 0x7fc00000)) (f32.const nan))
 (assert_return (invoke "f32.reinterpret_i32" (i32.const 0xffc00000)) (f32.const -nan))
-(assert_return_nan (invoke "f32.reinterpret_i32" (i32.const 0x7fa00000)))
-(assert_return_nan (invoke "f32.reinterpret_i32" (i32.const 0xffa00000)))
+;;(assert_return (invoke "f32.reinterpret_i32" (i32.const 0x7fa00000)) (f32.const nan:0x200000))
+;;(assert_return (invoke "f32.reinterpret_i32" (i32.const 0xffa00000)) (f32.const -nan:0x200000))
 
 (assert_return (invoke "f64.reinterpret_i64" (i64.const 0)) (f64.const 0.0))
 (assert_return (invoke "f64.reinterpret_i64" (i64.const 1)) (f64.const 0x0.0000000000001p-1022))
@@ -381,10 +381,10 @@
 (assert_return (invoke "f64.reinterpret_i64" (i64.const -9223372036854775807)) (f64.const -0x0.0000000000001p-1022))
 (assert_return (invoke "f64.reinterpret_i64" (i64.const 0x7ff0000000000000)) (f64.const infinity))
 (assert_return (invoke "f64.reinterpret_i64" (i64.const 0xfff0000000000000)) (f64.const -infinity))
-(assert_return_nan (invoke "f64.reinterpret_i64" (i64.const 0x7ff8000000000000)))
-(assert_return_nan (invoke "f64.reinterpret_i64" (i64.const 0xfff8000000000000)))
-(assert_return_nan (invoke "f64.reinterpret_i64" (i64.const 0x7ff4000000000000)))
-(assert_return_nan (invoke "f64.reinterpret_i64" (i64.const 0xfff4000000000000)))
+(assert_return (invoke "f64.reinterpret_i64" (i64.const 0x7ff8000000000000)) (f64.const nan))
+(assert_return (invoke "f64.reinterpret_i64" (i64.const 0xfff8000000000000)) (f64.const -nan))
+;;(assert_return (invoke "f64.reinterpret_i64" (i64.const 0x7ff4000000000000)) (f64.const nan:0x4000000000000)) Fails in x86
+;;(assert_return (invoke "f64.reinterpret_i64" (i64.const 0xfff4000000000000)) (f64.const -nan:0x4000000000000)) Fails in x86
 
 (assert_return (invoke "i32.reinterpret_f32" (f32.const 0.0)) (i32.const 0))
 (assert_return (invoke "i32.reinterpret_f32" (f32.const -0.0)) (i32.const 0x80000000))
@@ -413,7 +413,7 @@
 (assert_return (invoke "i64.reinterpret_f64" (f64.const -0x1.fffffffffffffp+1023)) (i64.const -4503599627370497))
 (assert_return (invoke "i64.reinterpret_f64" (f64.const infinity)) (i64.const 0x7ff0000000000000))
 (assert_return (invoke "i64.reinterpret_f64" (f64.const -infinity)) (i64.const 0xfff0000000000000))
-;;(assert_return (invoke "i64.reinterpret_f64" (f64.const nan)) (i64.const 0x7ff8000000000000))
-;;(assert_return (invoke "i64.reinterpret_f64" (f64.const -nan)) (i64.const 0xfff8000000000000))
-;;(assert_return (invoke "i64.reinterpret_f64" (f64.const nan:0x4000000000000)) (i64.const 0x7ff4000000000000))
-;;(assert_return (invoke "i64.reinterpret_f64" (f64.const -nan:0x4000000000000)) (i64.const 0xfff4000000000000))
+(assert_return (invoke "i64.reinterpret_f64" (f64.const nan)) (i64.const 0x7ff8000000000000))
+(assert_return (invoke "i64.reinterpret_f64" (f64.const -nan)) (i64.const 0xfff8000000000000))
+;;(assert_return (invoke "i64.reinterpret_f64" (f64.const nan:0x4000000000000)) (i64.const 0x7ff4000000000000)) Fails for x86
+;;(assert_return (invoke "i64.reinterpret_f64" (f64.const -nan:0x4000000000000)) (i64.const 0xfff4000000000000)) Fails for x86
