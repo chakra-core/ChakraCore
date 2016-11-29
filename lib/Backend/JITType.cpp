@@ -78,24 +78,29 @@ JITType::GetTypeHandler() const
     return (const JITTypeHandler*)&m_data.handler;
 }
 
-JITTypeHolder::JITTypeHolder() :
+
+template <class TAllocator>
+JITTypeHolderBase<TAllocator>::JITTypeHolderBase() :
     t(nullptr)
 {
 }
 
-JITTypeHolder::JITTypeHolder(JITType * t) :
+template <class TAllocator>
+JITTypeHolderBase<TAllocator>::JITTypeHolderBase(JITType * t) :
     t(t)
 {
 }
 
+template <class TAllocator>
 const JITType *
-JITTypeHolder::operator->() const
+JITTypeHolderBase<TAllocator>::operator->() const
 {
     return this->t;
 }
 
+template <class TAllocator>
 bool
-JITTypeHolder::operator==(const JITTypeHolder& p) const
+JITTypeHolderBase<TAllocator>::operator==(const JITTypeHolderBase& p) const
 {
     if (this->t != nullptr && p != nullptr)
     {
@@ -104,26 +109,30 @@ JITTypeHolder::operator==(const JITTypeHolder& p) const
     return this->t == nullptr && p == nullptr;
 }
 
+template <class TAllocator>
 bool
-JITTypeHolder::operator!=(const JITTypeHolder& p) const
+JITTypeHolderBase<TAllocator>::operator!=(const JITTypeHolderBase& p) const
 {
     return !(*this == p);
 }
 
+template <class TAllocator>
 bool
-JITTypeHolder::operator==(const std::nullptr_t &p) const
+JITTypeHolderBase<TAllocator>::operator==(const std::nullptr_t &p) const
 {
     return this->t == nullptr;
 }
 
+template <class TAllocator>
 bool
-JITTypeHolder::operator!=(const std::nullptr_t &p) const
+JITTypeHolderBase<TAllocator>::operator!=(const std::nullptr_t &p) const
 {
     return this->t != nullptr;
 }
 
+template <class TAllocator>
 bool
-JITTypeHolder::operator>(const JITTypeHolder& p) const
+JITTypeHolderBase<TAllocator>::operator>(const JITTypeHolderBase& p) const
 {
     if (this->t != nullptr && p != nullptr)
     {
@@ -132,14 +141,16 @@ JITTypeHolder::operator>(const JITTypeHolder& p) const
     return false;
 }
 
+template <class TAllocator>
 bool
-JITTypeHolder::operator<=(const JITTypeHolder& p) const
+JITTypeHolderBase<TAllocator>::operator<=(const JITTypeHolderBase& p) const
 {
     return !(*this > p);
 }
 
+template <class TAllocator>
 bool
-JITTypeHolder::operator>=(const JITTypeHolder& p) const
+JITTypeHolderBase<TAllocator>::operator>=(const JITTypeHolderBase& p) const
 {
     if (this->t != nullptr && p != nullptr)
     {
@@ -148,14 +159,12 @@ JITTypeHolder::operator>=(const JITTypeHolder& p) const
     return false;
 }
 
+template <class TAllocator>
 bool
-JITTypeHolder::operator<(const JITTypeHolder& p) const
+JITTypeHolderBase<TAllocator>::operator<(const JITTypeHolderBase& p) const
 {
     return !(*this >= p);
 }
 
-void
-JITTypeHolder::operator=(const JITTypeHolder &p)
-{
-    this->t = p.t;
-}
+template class JITTypeHolderBase<void>;
+template class JITTypeHolderBase<Recycler>;

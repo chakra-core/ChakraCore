@@ -20,7 +20,9 @@
 // TODO: OOP JIT, move equiv set to backend?
 // forward decl
 class JITType;
-class JITTypeHolder;
+template <class TAllocator> class JITTypeHolderBase;
+typedef JITTypeHolderBase<void> JITTypeHolder;
+typedef JITTypeHolderBase<Recycler> JITTypeHolderObject;
 
 namespace Js
 {
@@ -544,10 +546,10 @@ namespace Js
     private:
         Field(bool) sortedAndDuplicatesRemoved;
         Field(uint16) count;
-        Field(JITTypeHolder *) types;
+        Field(JITTypeHolderObject *) types;
 
     public:
-        EquivalentTypeSet(JITTypeHolder * types, uint16 count);
+        EquivalentTypeSet(JITTypeHolderObject * types, uint16 count);
 
         uint16 GetCount() const
         {
@@ -557,8 +559,6 @@ namespace Js
         JITTypeHolder GetFirstType() const;
 
         JITTypeHolder GetType(uint16 index) const;
-
-        JITTypeHolder * GetTypes() const;
 
         bool GetSortedAndDuplicatesRemoved() const
         {
