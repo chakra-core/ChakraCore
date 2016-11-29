@@ -282,7 +282,7 @@ protected:
 #endif
 
 public:
-    template <typename Fn>
+    template <bool doSpecialMark, typename Fn>
     bool UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn);
     void SetNeedOOMRescan(Recycler * recycler);
 public:

@@ -104,6 +104,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsi
 }
 
 template <class TBlockAttributes>
+template <bool doSpecialMark>
 _NOINLINE
 void
 SmallFinalizableHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAddress, MarkContext * markContext)
@@ -118,7 +119,7 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAd
 
     unsigned char * attributes = &this->ObjectInfo(objectIndex);
 
-    if (!this->UpdateAttributesOfMarkedObjects(markContext, objectAddress, this->objectSize, *attributes,
+    if (!this->template UpdateAttributesOfMarkedObjects<doSpecialMark>(markContext, objectAddress, this->objectSize, *attributes,
         [&](unsigned char _attributes) { *attributes = _attributes; }))
     {
         // Couldn't mark children- bail out and come back later
@@ -445,7 +446,11 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::GetFreeObjectListOnAllocator(FreeO
 namespace Memory
 {
     template class SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>;
+    template void SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);
+    template void SmallFinalizableHeapBlockT<SmallAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);
     template class SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>;
+    template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<true>(void* objectAddress, MarkContext * markContext);;
+    template void SmallFinalizableHeapBlockT<MediumAllocationBlockAttributes>::ProcessMarkedObject<false>(void* objectAddress, MarkContext * markContext);;
 
 #ifdef RECYCLER_WRITE_BARRIER
     template class SmallFinalizableWithBarrierHeapBlockT<SmallAllocationBlockAttributes>;

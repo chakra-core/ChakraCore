@@ -1536,12 +1536,28 @@ Recycler::ScanStack()
     }
 #endif
 
+    bool doSpecialMark = collectionWrapper->DoSpecialMarkOnScanStack();
+
     BEGIN_DUMP_OBJECT(this, _u("Registers"));
-    ScanMemoryInline(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
+    if (doSpecialMark)
+    {
+        ScanMemoryInline<true>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
+    }
+    else
+    {
+        ScanMemoryInline<false>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
+    }
     END_DUMP_OBJECT(this);
 
     BEGIN_DUMP_OBJECT(this, _u("Stack"));
-    ScanMemoryInline((void**) stackTop, stackScanned);
+    if (doSpecialMark)
+    {
+        ScanMemoryInline<true>((void**) stackTop, stackScanned);
+    }
+    else
+    {
+        ScanMemoryInline<false>((void**) stackTop, stackScanned);
+    }
     END_DUMP_OBJECT(this);
 
 #if DBG_DUMP
@@ -1611,7 +1627,7 @@ size_t Recycler::ScanPinnedObjects()
 void
 RecyclerScanMemoryCallback::operator()(void** obj, size_t byteCount)
 {
-    this->recycler->ScanMemoryInline(obj, byteCount);
+    this->recycler->ScanMemoryInline<false>(obj, byteCount);
 }
 
 size_t
@@ -1766,7 +1782,7 @@ Recycler::TryMarkArenaMemoryBlockList(ArenaMemoryBlock * memoryBlocks)
         void** base=(void**)blockp->GetBytes();
         size_t byteCount = blockp->nbytes;
         scanRootBytes += byteCount;
-        this->ScanMemory(base, byteCount);
+        this->ScanMemory<false>(base, byteCount);
         blockp = blockp->next;
     }
     return scanRootBytes;
@@ -1796,7 +1812,7 @@ Recycler::TryMarkBigBlockListWithWriteWatch(BigBlock * memoryBlocks)
                 char * currentEnd = min(currentPageStart + pageSize, endAddress);
                 size_t byteCount = (size_t)(currentEnd - currentAddress);
                 scanRootBytes += byteCount;
-                this->ScanMemory((void **)currentAddress, byteCount);
+                this->ScanMemory<false>((void **)currentAddress, byteCount);
             }
 
             currentPageStart += pageSize;
@@ -1818,7 +1834,7 @@ Recycler::TryMarkBigBlockList(BigBlock * memoryBlocks)
         void** base = (void**)blockp->GetBytes();
         size_t byteCount = blockp->currentByte;
         scanRootBytes +=  byteCount;
-        this->ScanMemory(base, byteCount);
+        this->ScanMemory<false>(base, byteCount);
         blockp = blockp->nextBigBlock;
     }
     return scanRootBytes;
@@ -1907,9 +1923,8 @@ Recycler::TryMarkNonInterior(void* candidate, void* parentReference)
     Assert(!isHeapEnumInProgress);
 #endif
     Assert(this->collectionState != CollectionStateParallelMark);
-    markContext.Mark</*parallel */ false, /* interior */ false>(candidate, parentReference);
+    markContext.Mark</*parallel */ false, /* interior */ false, /* doSpecialMark */ false>(candidate, parentReference);
 }
-
 
 void
 Recycler::TryMarkInterior(void* candidate, void* parentReference)
@@ -1920,7 +1935,7 @@ Recycler::TryMarkInterior(void* candidate, void* parentReference)
     Assert(!isHeapEnumInProgress);
 #endif
     Assert(this->collectionState != CollectionStateParallelMark);
-    markContext.Mark</*parallel */ false, /* interior */ true>(candidate, parentReference);
+    markContext.Mark</*parallel */ false, /* interior */ true, /* doSpecialMark */ false>(candidate, parentReference);
 }
 
 template <bool parallel, bool interior>
@@ -4959,7 +4974,15 @@ Recycler::BackgroundScanStack()
     if (stackTop != nullptr)
     {
         size_t size = (char *)stackBase - stackTop;
-        ScanMemoryInline((void **)stackTop, size);
+        bool doSpecialMark = collectionWrapper->DoSpecialMarkOnScanStack();
+        if (doSpecialMark)
+        {
+            ScanMemoryInline<true>((void **)stackTop, size);
+        }
+        else
+        {
+            ScanMemoryInline<false>((void **)stackTop, size);
+        }
         return size;
     }
 
@@ -8023,7 +8046,7 @@ void Recycler::SetObjectBeforeCollectCallback(void* object,
 
     if (callback != nullptr && this->IsInObjectBeforeCollectCallback()) // revive
     {
-        this->ScanMemory(&object, sizeof(object));
+        this->ScanMemory<false>(&object, sizeof(object));
         this->ProcessMark(/*background*/false);
     }
 }
