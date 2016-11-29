@@ -252,31 +252,3 @@
   "type mismatch"
 )
 
-(; TODO(stack): soft failure
-(assert_invalid
-  (module (func $type-value-void-vs-num-after-break (result i32)
-    (loop (br 1 (i32.const 1)) (nop))
-  ))
-  "type mismatch"
-)
-(assert_invalid
-  (module (func $type-value-num-vs-num-after-break (result i32)
-    (loop (br 1 (i32.const 1)) (f32.const 0))
-  ))
-  "type mismatch"
-)
-;)
-
-(assert_invalid
-  (module (func $type-cont-last-void-vs-empty (result i32)
-    (loop (br 0 (nop)))
-  ))
-  "type mismatch"
-)
-(assert_invalid
-  (module (func $type-cont-last-num-vs-empty (result i32)
-    (loop (br 0 (i32.const 0)))
-  ))
-  "type mismatch"
-)
-

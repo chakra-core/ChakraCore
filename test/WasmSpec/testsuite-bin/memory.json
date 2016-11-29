@@ -95,122 +95,122 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "memory.wast",
-      "line": 302
+      "line": 281
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "memory.wast",
-      "line": 303
+      "line": 282
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "memory.wast",
-      "line": 304
+      "line": 283
     }, {
       "type": "assert_return",
       "name": "$assert_return_3",
       "file": "memory.wast",
-      "line": 305
+      "line": 284
     }, {
       "type": "assert_return",
       "name": "$assert_return_4",
       "file": "memory.wast",
-      "line": 307
+      "line": 286
     }, {
       "type": "assert_return",
       "name": "$assert_return_5",
       "file": "memory.wast",
-      "line": 308
+      "line": 287
     }, {
       "type": "assert_return",
       "name": "$assert_return_6",
       "file": "memory.wast",
-      "line": 309
+      "line": 288
     }, {
       "type": "assert_return",
       "name": "$assert_return_7",
       "file": "memory.wast",
-      "line": 310
+      "line": 289
     }, {
       "type": "assert_return",
       "name": "$assert_return_8",
       "file": "memory.wast",
-      "line": 312
+      "line": 291
     }, {
       "type": "assert_return",
       "name": "$assert_return_9",
       "file": "memory.wast",
-      "line": 313
+      "line": 292
     }, {
       "type": "assert_return",
       "name": "$assert_return_10",
       "file": "memory.wast",
-      "line": 314
+      "line": 293
     }, {
       "type": "assert_return",
       "name": "$assert_return_11",
       "file": "memory.wast",
-      "line": 315
+      "line": 294
     }, {
       "type": "assert_return",
       "name": "$assert_return_12",
       "file": "memory.wast",
-      "line": 317
+      "line": 296
     }, {
       "type": "assert_return",
       "name": "$assert_return_13",
       "file": "memory.wast",
-      "line": 318
+      "line": 297
     }, {
       "type": "assert_return",
       "name": "$assert_return_14",
       "file": "memory.wast",
-      "line": 319
+      "line": 298
     }, {
       "type": "assert_return",
       "name": "$assert_return_15",
       "file": "memory.wast",
-      "line": 320
+      "line": 299
     }, {
       "type": "assert_return",
       "name": "$assert_return_16",
       "file": "memory.wast",
-      "line": 321
+      "line": 300
     }, {
       "type": "assert_return",
       "name": "$assert_return_17",
       "file": "memory.wast",
-      "line": 322
+      "line": 301
     }, {
       "type": "assert_return",
       "name": "$assert_return_18",
       "file": "memory.wast",
-      "line": 324
+      "line": 303
     }, {
       "type": "assert_return",
       "name": "$assert_return_19",
       "file": "memory.wast",
-      "line": 325
+      "line": 304
     }, {
       "type": "assert_return",
       "name": "$assert_return_20",
       "file": "memory.wast",
-      "line": 326
+      "line": 305
     }, {
       "type": "assert_return",
       "name": "$assert_return_21",
       "file": "memory.wast",
-      "line": 327
+      "line": 306
     }, {
       "type": "assert_return",
       "name": "$assert_return_22",
       "file": "memory.wast",
-      "line": 328
+      "line": 307
     }, {
       "type": "assert_return",
       "name": "$assert_return_23",
       "file": "memory.wast",
-      "line": 329
+      "line": 308
     }]
   }]
 }

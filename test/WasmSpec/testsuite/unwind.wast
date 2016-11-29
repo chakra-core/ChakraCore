@@ -1,6 +1,25 @@
 ;; Test that control-flow transfer unwinds stack and it can be anything after.
 
 (module
+  (func (export "func-unwind-by-unreachable")
+    (i32.const 3) (i64.const 1) (unreachable)
+  )
+  (func (export "func-unwind-by-br")
+    (i32.const 3) (i64.const 1) (br 0)
+  )
+  (func (export "func-unwind-by-br-value") (result i32)
+    (i32.const 3) (i64.const 1) (br 0 (i32.const 9))
+  )
+  (func (export "func-unwind-by-br_table")
+    (i32.const 3) (i64.const 1) (br_table 0 (i32.const 0))
+  )
+  (func (export "func-unwind-by-br_table-value") (result i32)
+    (i32.const 3) (i64.const 1) (br_table 0 (i32.const 9) (i32.const 0))
+  )
+  (func (export "func-unwind-by-return") (result i32)
+    (i32.const 3) (i64.const 1) (return (i32.const 9))
+  )
+
   (func (export "block-unwind-by-unreachable")
     (block (i32.const 3) (i64.const 1) (unreachable))
   )
@@ -126,6 +145,13 @@
     (loop i32 (f32.const 0) (return (i32.const 9)))
   )
 )
+
+(assert_trap (invoke "func-unwind-by-unreachable") "unreachable")
+(assert_return (invoke "func-unwind-by-br"))
+(assert_return (invoke "func-unwind-by-br-value") (i32.const 9))
+(assert_return (invoke "func-unwind-by-br_table"))
+(assert_return (invoke "func-unwind-by-br_table-value") (i32.const 9))
+(assert_return (invoke "func-unwind-by-return") (i32.const 9))
 
 (assert_trap (invoke "block-unwind-by-unreachable") "unreachable")
 (assert_return (invoke "block-unwind-by-br") (i32.const 9))
