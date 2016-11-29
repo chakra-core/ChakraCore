@@ -5945,6 +5945,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
 
             entryPointInfo->EnsureIsReadyToCall();
+            entryPointInfo->nativeEntryPointProcessed = true;
 
             RegSlot envReg = this->m_functionBody->GetEnvRegister();
             if (envReg != Constants::NoRegister)

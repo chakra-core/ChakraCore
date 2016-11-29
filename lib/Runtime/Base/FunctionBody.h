@@ -591,6 +591,9 @@ namespace Js
 #endif
     public:
         uint frameHeight;
+#if ENABLE_NATIVE_CODEGEN
+        bool nativeEntryPointProcessed;
+#endif
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     public:
@@ -647,7 +650,7 @@ namespace Js
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
             equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
             numberChunks(nullptr), numberPageSegments(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
-            isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
+            isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr), nativeEntryPointProcessed(false),
 #if PDATA_ENABLED
             xdataInfo(nullptr),
 #endif
@@ -1065,7 +1068,6 @@ namespace Js
 
         uint32 callsCount;
         uint32 lastCallsCount;
-        bool nativeEntryPointProcessed;
 
     private:
         ExecutionMode jitMode;
