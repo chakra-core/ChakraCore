@@ -331,6 +331,8 @@ public:
     bool            IsCmCC_R8();
     bool            IsCmCC_I4();
     bool            BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult);
+    template <typename T>     
+    bool            BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult);
     bool            UnaryCalculator(IntConstType src1Const, IntConstType *pResult);
     IR::Instr*      GetNextArg();
 

@@ -322,6 +322,7 @@ StackSym::SetIsIntConst(IntConstType value)
     Assert(this->m_instrDef);
     this->m_isConst = true;
     this->m_isIntConst = true;
+    this->m_isInt64Const = false;
     this->m_isTaggableIntConst = !Js::TaggedInt::IsOverflow(value);
     this->m_isFltConst = false;
 }

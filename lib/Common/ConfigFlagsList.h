@@ -387,6 +387,7 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_WasmFastArray    (false)
 #endif
+#define DEFAULT_CONFIG_WASM_FOLD          (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo     (true)
@@ -860,9 +861,7 @@ FLAGNR(Boolean, WasmFastArray         , "Enable fast array implementation for We
     #define COMPILE_DISABLE_Simdjs 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, Simdjs, "Enable Simdjs", DEFAULT_CONFIG_SIMDJS)
-
 FLAGR(Boolean, Simd128TypeSpec, "Enable type-specialization of Simd128 symbols", false)
-
 FLAGNR(Boolean, AssertBreak           , "Debug break on assert", false)
 FLAGNR(Boolean, AssertPopUp           , "Pop up asserts (default: false)", false)
 FLAGNR(Boolean, AssertIgnore          , "Ignores asserts if set", false)
@@ -1058,6 +1057,7 @@ FLAGPRA          (Boolean, ES6, ESSharedArrayBuffer    , sab     , "Enable Share
 #define COMPILE_DISABLE_Wasm 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, Wasm, "Enable WebAssembly", DEFAULT_CONFIG_WASM)
+FLAGNR(Boolean, WasmFold, "Enable i32/i64 const folding", DEFAULT_CONFIG_WASM_FOLD)
 
 #ifdef ENABLE_PROJECTION
 FLAGNR(Boolean, WinRTDelegateInterfaces , "Treat WinRT Delegates as Interfaces when determining their resolvability.", DEFAULT_CONFIG_WinRTDelegateInterfaces)
