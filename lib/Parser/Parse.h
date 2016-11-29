@@ -367,6 +367,7 @@ private:
     ParseNodePtr * m_ppnodeVar;  // variable list tail
     bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node
     bool m_isInBackground;
+    bool m_reparsingLambdaParams;
 
     // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
     bool m_hasDeferredShorthandInitError;
@@ -760,7 +761,7 @@ private:
     template<bool buildAST> ParseNodePtr ParseMemberGetSet(OpCode nop, LPCOLESTR* ppNameHint);
     template<bool buildAST> ParseNodePtr ParseFncDecl(ushort flags, LPCOLESTR pNameHint = NULL, const bool needsPIDOnRCurlyScan = false, bool resetParsingSuperRestrictionState = true, bool fUnaryOrParen = false);
     template<bool buildAST> bool ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, ushort flags, ParseNodePtr **pLastNodeRef);
-    template<bool buildAST> void ParseFncFormals(ParseNodePtr pnodeFnc, ushort flags);
+    template<bool buildAST> void ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc, ushort flags);
     template<bool buildAST> bool ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ushort flags, bool *pHasName, bool fUnaryOrParen, bool noStmtContext, bool *pNeedScanRCurly, bool skipFormals = false);
     template<bool buildAST> void ParseExpressionLambdaBody(ParseNodePtr pnodeFnc);
     template<bool buildAST> void UpdateCurrentNodeFunc(ParseNodePtr pnodeFnc, bool fLambda);
@@ -967,8 +968,8 @@ private:
     void RemovePrevPidRef(IdentPtr pid, PidRefStack *lastRef);
     void SetPidRefsInScopeDynamic(IdentPtr pid, int blockId);
 
-    void RestoreScopeInfo(Js::FunctionBody* functionBody);
-    void FinishScopeInfo(Js::FunctionBody* functionBody);
+    void RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody);
+    void FinishScopeInfo(Js::ParseableFunctionInfo* functionBody);
 
     BOOL PnodeLabelNoAST(IdentToken* pToken, LabelId* pLabelIdList);
     LabelId* CreateLabelId(IdentToken* pToken);

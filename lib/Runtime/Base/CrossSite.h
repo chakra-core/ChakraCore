@@ -29,6 +29,11 @@ namespace Js
             Assert(ret == obj->IsCrossSiteObject());
             return ret;
         }
+
+#if ENABLE_TTD
+        static void MarshalCrossSite_TTDInflate(DynamicObject* obj);
+#endif
+
     private:
         static Var MarshalVarInner(ScriptContext* scriptContext, __in Js::RecyclableObject* object, bool fRequestWrapper);
         static Var CommonThunk(RecyclableObject * function, JavascriptMethod entryPoint, Arguments args);

@@ -111,7 +111,7 @@ namespace TTD
         template <typename T>
         T* LookupInflatedPromiseInfo(TTD_PTR_ID ptrId) const
         {
-            return (T*)this->m_promiseDataMap.LookupWithKey(ptrId, nullptr);
+            return (T*)this->m_promiseDataMap.Item(ptrId);
         }
     };
 
@@ -177,6 +177,7 @@ namespace TTD
     class TTDCompareMap
     {
     public:
+        bool StrictCrossSite;
 
         JsUtil::Queue<TTD_PTR_ID, HeapAllocator> H1PtrIdWorklist;
         JsUtil::BaseDictionary<TTD_PTR_ID, TTD_PTR_ID, HeapAllocator> H1PtrToH2PtrMap;

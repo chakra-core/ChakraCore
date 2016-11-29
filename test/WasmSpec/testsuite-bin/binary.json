@@ -5,5 +5,11 @@
   }, {
     "filename": "binary.1.wasm",
     "commands": []
+  }, {
+    "filename": "binary.2.wasm",
+    "commands": []
+  }, {
+    "filename": "binary.3.wasm",
+    "commands": []
   }]
 }

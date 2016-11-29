@@ -191,7 +191,6 @@ namespace Js
         }
 #endif
 
-        AsmJsRetType retType = asmInfo->GetReturnType();
         AsmJsJitTemplate::FunctionEntry::ApplyTemplate( this, mPc );
         while( ReadOp() ){}
         AsmJsJitTemplate::FunctionExit::ApplyTemplate( this, mPc );

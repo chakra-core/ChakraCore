@@ -5,14 +5,14 @@
 
 var p1 = new Proxy([], {
     get: function (target, property) {
-        print('get trap: ' + property);
+        print('get trap: ' + property.toString());
         return Reflect['get'].apply(this, arguments);
     }
 });
 
 var p2 = new Proxy([0,1,2,3], {
     get: function (target, property) {
-        print('get trap: ' + property);
+        print('get trap: ' + property.toString());
         return Reflect['get'].apply(this, arguments);
     },
     has: function(target, property){

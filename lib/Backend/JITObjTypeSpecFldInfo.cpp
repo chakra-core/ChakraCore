@@ -221,7 +221,11 @@ JITTimeFixedField *
 JITObjTypeSpecFldInfo::GetFixedFieldIfAvailableAsFixedFunction()
 {
     Assert(HasFixedValue());
-    Assert(IsMono() || (IsPoly() && !DoesntHaveEquivalence()));
+    if (IsPoly() && DoesntHaveEquivalence())
+    {
+        return nullptr;
+    }
+
     Assert(m_data.fixedFieldInfoArray);
     if (m_data.fixedFieldInfoArray[0].funcInfoAddr != 0)
     {

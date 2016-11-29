@@ -1,23 +1,23 @@
 (assert_invalid
-  (module (func (i32.const 1)) (start 1))
-  "unknown function 1"
+  (module (func) (start 1))
+  "unknown function"
 )
 (assert_invalid
   (module
     (func $main (result i32) (return (i32.const 0)))
     (start $main)
   )
-  "start function must not return anything"
+  "start function"
 )
 (assert_invalid
   (module
     (func $main (param $a i32))
     (start $main)
   )
-  "start function must be nullary"
+  "start function"
 )
 (module
-  (memory 1 (segment 0 "A"))
+  (memory (data "A"))
   (func $inc
     (i32.store8
       (i32.const 0)
@@ -35,9 +35,10 @@
     (call $inc)
     (call $inc)
   )
+
   (start $main)
-  (export "inc" $inc)
-  (export "get" $get)
+  (export "inc" (func $inc))
+  (export "get" (func $get))
 )
 (assert_return (invoke "get") (i32.const 68))
 (invoke "inc")
@@ -46,7 +47,7 @@
 (assert_return (invoke "get") (i32.const 70))
 
 (module
-  (memory 1 (segment 0 "A"))
+  (memory (data "A"))
   (func $inc
     (i32.store8
       (i32.const 0)
@@ -65,8 +66,8 @@
     (call $inc)
   )
   (start 2)
-  (export "inc" $inc)
-  (export "get" $get)
+  (export "inc" (func $inc))
+  (export "get" (func $get))
 )
 (assert_return (invoke "get") (i32.const 68))
 (invoke "inc")
@@ -75,15 +76,13 @@
 (assert_return (invoke "get") (i32.const 70))
 
 (module
- (import $print_i32 "spectest" "print" (param i32))
- (func $main
-   (call_import $print_i32 (i32.const 1)))
- (start 0)
+  (func $print_i32 (import "spectest" "print") (param i32))
+  (func $main (call $print_i32 (i32.const 1)))
+  (start 1)
 )
 
 (module
- (import $print_i32 "spectest" "print" (param i32))
- (func $main
-   (call_import $print_i32 (i32.const 2)))
- (start $main)
+  (func $print_i32 (import "spectest" "print") (param i32))
+  (func $main (call $print_i32 (i32.const 2)))
+  (start $main)
 )

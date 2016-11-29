@@ -5,132 +5,132 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "switch.wast",
-      "line": 125
+      "line": 120
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "switch.wast",
-      "line": 126
+      "line": 121
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "switch.wast",
-      "line": 127
+      "line": 122
     }, {
       "type": "assert_return",
       "name": "$assert_return_3",
       "file": "switch.wast",
-      "line": 128
+      "line": 123
     }, {
       "type": "assert_return",
       "name": "$assert_return_4",
       "file": "switch.wast",
-      "line": 129
+      "line": 124
     }, {
       "type": "assert_return",
       "name": "$assert_return_5",
       "file": "switch.wast",
-      "line": 130
+      "line": 125
     }, {
       "type": "assert_return",
       "name": "$assert_return_6",
       "file": "switch.wast",
-      "line": 131
+      "line": 126
     }, {
       "type": "assert_return",
       "name": "$assert_return_7",
       "file": "switch.wast",
-      "line": 132
+      "line": 127
     }, {
       "type": "assert_return",
       "name": "$assert_return_8",
       "file": "switch.wast",
-      "line": 133
+      "line": 128
     }, {
       "type": "assert_return",
       "name": "$assert_return_9",
       "file": "switch.wast",
-      "line": 135
+      "line": 130
     }, {
       "type": "assert_return",
       "name": "$assert_return_10",
       "file": "switch.wast",
-      "line": 136
+      "line": 131
     }, {
       "type": "assert_return",
       "name": "$assert_return_11",
       "file": "switch.wast",
-      "line": 137
+      "line": 132
     }, {
       "type": "assert_return",
       "name": "$assert_return_12",
       "file": "switch.wast",
-      "line": 138
+      "line": 133
     }, {
       "type": "assert_return",
       "name": "$assert_return_13",
       "file": "switch.wast",
-      "line": 139
+      "line": 134
     }, {
       "type": "assert_return",
       "name": "$assert_return_14",
       "file": "switch.wast",
-      "line": 140
+      "line": 135
     }, {
       "type": "assert_return",
       "name": "$assert_return_15",
       "file": "switch.wast",
-      "line": 141
+      "line": 136
     }, {
       "type": "assert_return",
       "name": "$assert_return_16",
       "file": "switch.wast",
-      "line": 143
+      "line": 138
     }, {
       "type": "assert_return",
       "name": "$assert_return_17",
       "file": "switch.wast",
-      "line": 144
+      "line": 139
     }, {
       "type": "assert_return",
       "name": "$assert_return_18",
       "file": "switch.wast",
-      "line": 145
+      "line": 140
     }, {
       "type": "assert_return",
       "name": "$assert_return_19",
       "file": "switch.wast",
-      "line": 146
+      "line": 141
     }, {
       "type": "assert_return",
       "name": "$assert_return_20",
       "file": "switch.wast",
-      "line": 147
+      "line": 142
     }, {
       "type": "assert_return",
       "name": "$assert_return_21",
       "file": "switch.wast",
-      "line": 148
+      "line": 143
     }, {
       "type": "assert_return",
       "name": "$assert_return_22",
       "file": "switch.wast",
-      "line": 149
+      "line": 144
     }, {
       "type": "assert_return",
       "name": "$assert_return_23",
       "file": "switch.wast",
-      "line": 150
+      "line": 145
     }, {
       "type": "assert_return",
       "name": "$assert_return_24",
       "file": "switch.wast",
-      "line": 151
+      "line": 146
     }, {
       "type": "assert_return",
       "name": "$assert_return_25",
       "file": "switch.wast",
-      "line": 153
+      "line": 148
     }]
   }]
 }

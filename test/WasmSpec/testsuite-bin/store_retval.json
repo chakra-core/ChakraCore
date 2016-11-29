@@ -1,11 +1,3 @@
 {
-  "modules": [{
-    "filename": "store_retval.0.wasm",
-    "commands": [{
-      "type": "invoke",
-      "name": "$invoke_0",
-      "file": "store_retval.wast",
-      "line": 30
-    }]
-  }]
+  "modules": []
 }

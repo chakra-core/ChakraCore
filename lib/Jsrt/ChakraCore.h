@@ -163,4 +163,394 @@ JsGetModuleHostInfo(
     _In_ JsModuleHostInfoKind moduleHostInfo,
     _Outptr_result_maybenull_ void** hostInfo);
 
+#ifndef NTBUILD
+/// <summary>
+///     Called by the runtime to load the source code of the serialized script.
+/// </summary>
+/// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptCallback</param>
+/// <param name="script">The script returned.</param>
+/// <returns>
+///     true if the operation succeeded, false otherwise.
+/// </returns>
+typedef bool (CHAKRA_CALLBACK * JsSerializedLoadScriptCallback)
+    (JsSourceContext sourceContext, _Out_ JsValueRef *value,
+    _Out_ JsParseScriptAttributes *parseAttributes);
+
+/// <summary>
+///     Create JavascriptString variable from C string
+/// </summary>
+/// <remarks>
+///     <para>
+///         C string is expected to be ASCII
+///     </para>
+/// </remarks>
+/// <param name="content">Pointer to string memory.</param>
+/// <param name="length">Number of bytes within the string</param>
+/// <param name="value">JsValueRef representing the JavascriptString</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCreateString(
+        _In_ const char *content,
+        _In_ size_t length,
+        _Out_ JsValueRef *value);
+
+/// <summary>
+///     Create JavascriptString variable from Utf8 string
+/// </summary>
+/// <remarks>
+///     <para>
+///         Input string can be either ASCII or Utf8
+///     </para>
+/// </remarks>
+/// <param name="content">Pointer to string memory.</param>
+/// <param name="length">Number of bytes within the string</param>
+/// <param name="value">JsValueRef representing the JavascriptString</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCreateStringUtf8(
+        _In_ const uint8_t *content,
+        _In_ size_t length,
+        _Out_ JsValueRef *value);
+
+/// <summary>
+///     Create JavascriptString variable from Utf16 string
+/// </summary>
+/// <remarks>
+///     <para>
+///         Expects Utf16 string
+///     </para>
+/// </remarks>
+/// <param name="content">Pointer to string memory.</param>
+/// <param name="length">Number of characters within the string</param>
+/// <param name="value">JsValueRef representing the JavascriptString</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCreateStringUtf16(
+        _In_ const uint16_t *content,
+        _In_ size_t length,
+        _Out_ JsValueRef *value);
+
+/// <summary>
+///     Write JavascriptString value into C string buffer
+/// </summary>
+/// <remarks>
+///     <para>
+///         When size of the `buffer` is unknown,
+///         `buffer` argument can be nullptr.
+///         In that case, `written` argument will return the length needed.
+///     </para>
+///     <para>
+///         when start is out of range or < 0, returns JsErrorInvalidArgument
+///         and `written` will be equal to 0.
+///         If calculated length is 0 (It can be due to string length or `start`
+///         and length combination), then `written` will be equal to 0 and call
+///         returns JsNoError
+///     </para>
+/// </remarks>
+/// <param name="value">JavascriptString value</param>
+/// <param name="start">start offset of buffer</param>
+/// <param name="length">length to be written</param>
+/// <param name="buffer">Pointer to buffer</param>
+/// <param name="written">Total number of characters written</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCopyString(
+        _In_ JsValueRef value,
+        _In_ int start,
+        _In_ int length,
+        _Out_opt_ char* buffer,
+        _Out_opt_ size_t* written);
+
+/// <summary>
+///     Write JavascriptString value into Utf8 string buffer
+/// </summary>
+/// <remarks>
+///     <para>
+///         When size of the `buffer` is unknown,
+///         `buffer` argument can be nullptr.
+///         In that case, `written` argument will return the length needed.
+///     </para>
+/// </remarks>
+/// <param name="value">JavascriptString value</param>
+/// <param name="buffer">Pointer to buffer</param>
+/// <param name="bufferSize">Buffer size</param>
+/// <param name="written">Total number of characters written</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCopyStringUtf8(
+        _In_ JsValueRef value,
+        _Out_opt_ uint8_t* buffer,
+        _In_ size_t bufferSize,
+        _Out_opt_ size_t* written);
+
+/// <summary>
+///     Write string value into Utf16 string buffer
+/// </summary>
+/// <remarks>
+///     <para>
+///         When size of the `buffer` is unknown,
+///         `buffer` argument can be nullptr.
+///         In that case, `written` argument will return the length needed.
+///     </para>
+///     <para>
+///         when start is out of range or < 0, returns JsErrorInvalidArgument
+///         and `written` will be equal to 0.
+///         If calculated length is 0 (It can be due to string length or `start`
+///         and length combination), then `written` will be equal to 0 and call
+///         returns JsNoError
+///     </para>
+/// </remarks>
+/// <param name="value">JavascriptString value</param>
+/// <param name="start">start offset of buffer</param>
+/// <param name="length">length to be written</param>
+/// <param name="buffer">Pointer to buffer</param>
+/// <param name="written">Total number of characters written</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCopyStringUtf16(
+        _In_ JsValueRef value,
+        _In_ int start,
+        _In_ int length,
+        _Out_opt_ uint16_t* buffer,
+        _Out_opt_ size_t* written);
+
+/// <summary>
+///     Parses a script and returns a function representing the script.
+/// </summary>
+/// <remarks>
+///     <para>
+///        Requires an active script context.
+///     </para>
+///     <para>
+///         Script source can be either JavascriptString or JavascriptExternalArrayBuffer.
+///         In case it is an ExternalArrayBuffer, and the encoding of the buffer is Utf16,
+///         JsParseScriptAttributeArrayBufferIsUtf16Encoded is expected on parseAttributes.
+///     </para>
+///     <para>
+///         Use JavascriptExternalArrayBuffer with Utf8/ASCII script source
+///         for better performance and smaller memory footprint.
+///     </para>
+/// </remarks>
+/// <param name="script">The script to run.</param>
+/// <param name="sourceContext">
+///     A cookie identifying the script that can be used by debuggable script contexts.
+/// </param>
+/// <param name="sourceUrl">The location the script came from.</param>
+/// <param name="parseAttributes">Attribute mask for parsing the script</param>
+/// <param name="result">The result of the compiled script.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsParse(
+        _In_ JsValueRef script,
+        _In_ JsSourceContext sourceContext,
+        _In_ JsValueRef sourceUrl,
+        _In_ JsParseScriptAttributes parseAttributes,
+        _Out_ JsValueRef *result);
+
+/// <summary>
+///     Executes a script.
+/// </summary>
+/// <remarks>
+///     <para>
+///        Requires an active script context.
+///     </para>
+///     <para>
+///         Script source can be either JavascriptString or JavascriptExternalArrayBuffer.
+///         In case it is an ExternalArrayBuffer, and the encoding of the buffer is Utf16,
+///         JsParseScriptAttributeArrayBufferIsUtf16Encoded is expected on parseAttributes.
+///     </para>
+///     <para>
+///         Use JavascriptExternalArrayBuffer with Utf8/ASCII script source
+///         for better performance and smaller memory footprint.
+///     </para>
+/// </remarks>
+/// <param name="script">The script to run.</param>
+/// <param name="sourceContext">
+///     A cookie identifying the script that can be used by debuggable script contexts.
+/// </param>
+/// <param name="sourceUrl">The location the script came from</param>
+/// <param name="parseAttributes">Attribute mask for parsing the script</param>
+/// <param name="result">The result of the script, if any. This parameter can be null.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsRun(
+        _In_ JsValueRef script,
+        _In_ JsSourceContext sourceContext,
+        _In_ JsValueRef sourceUrl,
+        _In_ JsParseScriptAttributes parseAttributes,
+        _Out_ JsValueRef *result);
+
+/// <summary>
+///     Creates the property ID associated with the name.
+/// </summary>
+/// <remarks>
+///     <para>
+///         Property IDs are specific to a context and cannot be used across contexts.
+///     </para>
+///     <para>
+///         Requires an active script context.
+///     </para>
+/// </remarks>
+/// <param name="name">
+///     The name of the property ID to get or create. The name may consist of only digits.
+///     The string is expected to be ASCII / utf8 encoded.
+/// </param>
+/// <param name="length">length of the name in bytes</param>
+/// <param name="propertyId">The property ID in this runtime for the given name.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCreatePropertyIdUtf8(
+        _In_z_ const char *name,
+        _In_ size_t length,
+        _Out_ JsPropertyIdRef *propertyId);
+
+/// <summary>
+///     Copies the name associated with the property ID into a buffer.
+/// </summary>
+/// <remarks>
+///     <para>
+///         Requires an active script context.
+///     </para>
+///     <para>
+///         When size of the `buffer` is unknown,
+///         `buffer` argument can be nullptr.
+///         `length` argument will return the size needed.
+///     </para>
+/// </remarks>
+/// <param name="propertyId">The property ID to get the name of.</param>
+/// <param name="buffer">The buffer holding the name associated with the property ID, encoded as utf8</param>
+/// <param name="bufferSize">Size of the buffer.</param>
+/// <param name="written">Total number of characters written or to be written</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsCopyPropertyIdUtf8(
+        _In_ JsPropertyIdRef propertyId,
+        _Out_ uint8_t* buffer,
+        _In_ size_t bufferSize,
+        _Out_ size_t* length);
+
+/// <summary>
+///     Serializes a parsed script to a buffer than can be reused.
+/// </summary>
+/// <remarks>
+///     <para>
+///     <c>JsSerializeScript</c> parses a script and then stores the parsed form of the script in a
+///     runtime-independent format. The serialized script then can be deserialized in any
+///     runtime without requiring the script to be re-parsed.
+///     </para>
+///     <para>
+///     Requires an active script context.
+///     </para>
+///     <para>
+///         Script source can be either JavascriptString or JavascriptExternalArrayBuffer.
+///         In case it is an ExternalArrayBuffer, and the encoding of the buffer is Utf16,
+///         JsParseScriptAttributeArrayBufferIsUtf16Encoded is expected on parseAttributes.
+///     </para>
+///     <para>
+///         Use JavascriptExternalArrayBuffer with Utf8/ASCII script source
+///         for better performance and smaller memory footprint.
+///     </para>
+/// </remarks>
+/// <param name="script">The script to serialize</param>
+/// <param name="buffer">The buffer to put the serialized script into. Can be null.</param>
+/// <param name="bufferSize">
+///     On entry, the size of the buffer, in bytes; on exit, the size of the buffer, in bytes,
+///     required to hold the serialized script.
+/// </param>
+/// <param name="parseAttributes">Encoding for the script.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsSerialize(
+        _In_ JsValueRef script,
+        _Out_ BYTE *buffer,
+        _Inout_ unsigned int *bufferSize,
+        _In_ JsParseScriptAttributes parseAttributes);
+
+/// <summary>
+///     Parses a serialized script and returns a function representing the script.
+///     Provides the ability to lazy load the script source only if/when it is needed.
+/// </summary>
+/// <remarks>
+///     <para>
+///     Requires an active script context.
+///     </para>
+/// </remarks>
+/// <param name="buffer">The serialized script.</param>
+/// <param name="scriptLoadCallback">
+///     Callback called when the source code of the script needs to be loaded.
+///     This is an optional parameter, set to null if not needed.
+/// </param>
+/// <param name="sourceContext">
+///     A cookie identifying the script that can be used by debuggable script contexts.
+///     This context will passed into scriptLoadCallback.
+/// </param>
+/// <param name="sourceUrl">The location the script came from.</param>
+/// <param name="result">A function representing the script code.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsParseSerialized(
+        _In_ BYTE *buffer,
+        _In_ JsSerializedLoadScriptCallback scriptLoadCallback,
+        _In_ JsSourceContext sourceContext,
+        _In_ JsValueRef sourceUrl,
+        _Out_ JsValueRef *result);
+
+/// <summary>
+///     Runs a serialized script.
+///     Provides the ability to lazy load the script source only if/when it is needed.
+/// </summary>
+/// <remarks>
+///     <para>
+///     Requires an active script context.
+///     </para>
+///     <para>
+///     The runtime will hold on to the buffer until all instances of any functions created from
+///     the buffer are garbage collected.
+///     </para>
+/// </remarks>
+/// <param name="buffer">The serialized script.</param>
+/// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded.</param>
+/// <param name="sourceContext">
+///     A cookie identifying the script that can be used by debuggable script contexts.
+///     This context will passed into scriptLoadCallback.
+/// </param>
+/// <param name="sourceUrl">The location the script came from.</param>
+/// <param name="result">
+///     The result of running the script, if any. This parameter can be null.
+/// </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsRunSerialized(
+        _In_ BYTE *buffer,
+        _In_ JsSerializedLoadScriptCallback scriptLoadCallback,
+        _In_ JsSourceContext sourceContext,
+        _In_ JsValueRef sourceUrl,
+        _Out_ JsValueRef *result);
+#endif // NTBUILD
 #endif // _CHAKRACORE_H_

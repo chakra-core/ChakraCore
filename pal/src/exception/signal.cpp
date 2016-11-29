@@ -155,8 +155,6 @@ void SEHCleanupSignals()
 {
     TRACE("Restoring default signal handlers\n");
 
-    // Do not remove handlers for SIGUSR1 and SIGUSR2. They must remain so threads can be suspended
-    // during cleanup after this function has been called.
     restore_signal(SIGILL, &g_previous_sigill);
     restore_signal(SIGTRAP, &g_previous_sigtrap);
     restore_signal(SIGFPE, &g_previous_sigfpe);
@@ -437,7 +435,7 @@ static void inject_activation_handler(int code, siginfo_t *siginfo, void *contex
                 &winContext, 
                 CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_FLOATING_POINT);
 
-            if (g_safeActivationCheckFunction(CONTEXTGetPC(&winContext)))
+            if (g_safeActivationCheckFunction(CONTEXTGetPC(&winContext), true))
             {
                 g_activationFunction(&winContext);
             }

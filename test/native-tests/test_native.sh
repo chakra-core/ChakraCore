@@ -29,7 +29,6 @@ SAFE_RUN() {
         >&2 echo $SF_RETURN_VALUE
         exit 1
     fi
-    echo $SF_RETURN_VALUE
 }
 
 TEST () {
@@ -50,16 +49,26 @@ else
     CXX="c++"
 fi
 
+RUN () {
+    TEST_PATH=$1
+    echo "Testing $TEST_PATH"
+    SAFE_RUN `cd $TEST_PATH; ${CH_DIR} Platform.js > Makefile`
+    RES=$(cd $TEST_PATH; cat Makefile)
+
+    if [[ $RES =~ "# IGNORE_THIS_TEST" ]]; then
+        echo "Ignoring $TEST_PATH"
+    else
+        SAFE_RUN `cd $TEST_PATH; make CC=${CC} CXX=${CXX}`
+        RES=$(cd $TEST_PATH; ./sample.o)
+        TEST "SUCCESS"
+        SAFE_RUN `cd $TEST_PATH; rm -rf ./sample.o`
+    fi
+}
+
+# test-char16
+RUN "test-char16"
+
 # test-static-native
-TEST_PATH="test-static-native"
-SAFE_RUN `cd $TEST_PATH; ${CH_DIR} Platform.js > Makefile`
-RES=$(cd $TEST_PATH; cat Makefile)
-if [[ $RES =~ "# IGNORE_THIS_TEST" ]]; then
-    echo "Ignoring $TEST_PATH"
-else
-    SAFE_RUN `cd $TEST_PATH; make CC=${CC} CXX=${CXX}`
-    RES=$(cd $TEST_PATH; ./sample.o)
-    TEST "SUCCESS"
-    SAFE_RUN `rm -rf ./sample.o`
-fi
+RUN "test-static-native"
+
 SAFE_RUN `rm -rf Makefile`

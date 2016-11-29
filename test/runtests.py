@@ -86,8 +86,7 @@ flavor_alias = 'chk' if flavor == 'Debug' else 'fre'
 
 # test variants
 if not args.variants:
-    args.variants = ['interpreted', 'dynapogo'] if sys.platform != 'darwin' \
-                    else ['disable_jit']  # TODO: JIT for OSX
+    args.variants = ['interpreted', 'dynapogo']
 
 # binary: full ch path
 binary = args.binary

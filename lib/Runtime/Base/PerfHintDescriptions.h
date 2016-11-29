@@ -6,6 +6,7 @@
 
 PERFHINT_REASON(HasTryBlock,                        true, PerfHintLevels::L1,      _u("Function has try block"),                 _u("Un-optimized JIT code generated for this function"), _u("Move perf sensitive block inside of try to different function"))
 PERFHINT_REASON(HasTryBlock_Verbose,                true, PerfHintLevels::VERBOSE, _u("Function has try block"),                 _u("Un-optimized JIT code generated for this function"), _u("Move perf sensitive block inside of try to different function"))
+PERFHINT_REASON(SrcIsEval,                          true, PerfHintLevels::L1,      _u("Source is inside eval statement"),        _u("Extra scopes, affect inlining, high overhead in the JIT code"), _u("Check usage of eval statement"))
 PERFHINT_REASON(CallsEval,                          true, PerfHintLevels::L1,      _u("Function calls eval statement"),          _u("Extra scopes, affect inlining, high overhead in the JIT code"), _u("Check usage of eval statement"))
 PERFHINT_REASON(CallsEval_Verbose,                  true, PerfHintLevels::VERBOSE, _u("Function calls eval statement"),          _u("Extra scopes, affect inlining, high overhead in the JIT code"), _u("Check usage of eval statement"))
 PERFHINT_REASON(ChildCallsEval,                     true, PerfHintLevels::VERBOSE, _u("Function's child calls eval statement"),  _u("Extra scopes, affect inlining, high overhead in the JIT code"), _u("Check usage of eval statement"))

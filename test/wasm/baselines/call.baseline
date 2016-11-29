@@ -1,0 +1,36 @@
+Compile call.0.wasm
+Instanciate call.0.wasm
+8/8 tests passed
+
+
+Compile call.1.wasm
+Instanciate call.1.wasm
+54876
+3.140000104904175
+5.14
+22
+5
+11
+5.139999866485596
+1.48
+3.14
+20/20 tests passed
+
+
+Instanciate call.1.wasm
+48
+5.1479997634887695
+8.476
+Will trap when converting return value
+4
+5
+3
+25.100000381469726
+3.140000104904175
+26.5
+45
+-5.47
+90
+16/16 tests passed
+
+

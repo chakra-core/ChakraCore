@@ -15,6 +15,9 @@
 #ifdef VTUNE_PROFILING
 #include "Base/VTuneChakraProfile.h"
 #endif
+#ifdef ENABLE_JS_ETW
+#include "Base/EtwTrace.h"
+#endif
 
 #ifdef __APPLE__
 // dummy usage of JSRT to force export JSRT on dylib
@@ -39,9 +42,9 @@ static ATOM  lockedDll = 0;
 
 static BOOL AttachProcess(HANDLE hmod)
 {
-    if (!ThreadContextTLSEntry::InitializeProcess() || !JsrtContext::Initialize())
+    if (!ThreadContextTLSEntry::InitializeProcess())
     {
-        return FALSE;
+         return FALSE;
     }
 
     g_hInstance = hmod;
@@ -110,12 +113,10 @@ static void DetachProcess()
     // shutdown is bad because we shouldn't free objects built into
     // other dlls.
     JsrtRuntime::Uninitialize();
-    JsrtContext::Uninitialize();
 
     // thread-bound entrypoint should be able to get cleanup correctly, however tlsentry
     // for current thread might be left behind if this thread was initialized.
     ThreadContextTLSEntry::CleanupThread();
-
     ThreadContextTLSEntry::CleanupProcess();
 
 #if PROFILE_DICTIONARY

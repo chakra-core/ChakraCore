@@ -45,6 +45,11 @@ namespace TTD
         //return true if the Var is a richer value (enumerator, dynamicObject, array, etc.)
         bool IsVarComplexKind(Js::Var v);
 
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        //Check if 2 inline values are equivalent -- JIT can use number vs. Int in interp mode but as long as values mean the same thing we are cool
+        bool AreInlineVarsEquiv(Js::Var v1, Js::Var v2);
+#endif
+
         //Ensure a function is fully parsed/deserialized 
         Js::FunctionBody* ForceAndGetFunctionBody(Js::ParseableFunctionInfo* pfi);
 
@@ -53,7 +58,7 @@ namespace TTD
         void DeleteStringFromHeapAllocator(TTString& string);
 
         void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
-        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
+        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length, byte** relocatedUri, size_t* relocatedUriLength);
     }
 
     namespace NSSnapValues
@@ -141,12 +146,8 @@ namespace TTD
             //The data values for the slots in the scope entry
             TTDVar* Slots;
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-            Js::PropertyId* DebugPIDArray;
-
-            int32 OptDiagDebugScopeBegin;
-            int32 OptDiagDebugScopeEnd;
-#endif
+            //The property ids associated with each index
+            Js::PropertyId* PIDArray;
 
             //The meta-data for the slot array
             bool isFunctionBodyMetaData;
@@ -284,6 +285,9 @@ namespace TTD
             //Src URI may be null
             TTString SourceUri;
 
+            //The relocated URI -- if requested during replay
+            TTString RelocatedSourceUri;
+
             //The source length/buffer and if it is utf8 or char16 encoded
             bool IsUtf8;
             uint32 ByteLength;
@@ -406,15 +410,6 @@ namespace TTD
 
         //////////////////
 
-        struct SnapRootPinEntry
-        {
-            //The log id value 
-            TTD_LOG_PTR_ID LogId;
-
-            //The object that this log id is mapped to
-            TTD_PTR_ID LogObject;
-        };
-
         struct SnapPendingAsyncBufferModification
         {
             //The log id value 
@@ -428,54 +423,45 @@ namespace TTD
         struct SnapContext
         {
             //The tag id of the script context (actually the global object associated with this context)
-            TTD_LOG_PTR_ID m_scriptContextLogId;
+            TTD_LOG_PTR_ID ScriptContextLogId;
 
             //The random seed for the context
-            bool m_isPNRGSeeded;
-            uint64 m_randomSeed0;
-            uint64 m_randomSeed1;
+            bool IsPNRGSeeded;
+            uint64 RandomSeed0;
+            uint64 RandomSeed1;
 
             //The main URI of the context
-            TTString m_contextSRC;
+            TTString ContextSRC;
 
             //A list of all *root* scripts that have been loaded into this context
-            uint32 m_loadedTopLevelScriptCount;
-            TopLevelFunctionInContextRelation* m_loadedTopLevelScriptArray;
+            uint32 LoadedTopLevelScriptCount;
+            TopLevelFunctionInContextRelation* LoadedTopLevelScriptArray;
 
-            uint32 m_newFunctionTopLevelScriptCount;
-            TopLevelFunctionInContextRelation* m_newFunctionTopLevelScriptArray;
+            uint32 NewFunctionTopLevelScriptCount;
+            TopLevelFunctionInContextRelation* NewFunctionTopLevelScriptArray;
 
-            uint32 m_evalTopLevelScriptCount;
-            TopLevelFunctionInContextRelation* m_evalTopLevelScriptArray;
-
-            //A list of all the global root objects in this context
-            uint32 m_globalRootCount;
-            SnapRootPinEntry* m_globalRootArray;
-
-            //A list of all the local root objects in this context
-            uint32 m_localRootCount;
-            SnapRootPinEntry* m_localRootArray;
+            uint32 EvalTopLevelScriptCount;
+            TopLevelFunctionInContextRelation* EvalTopLevelScriptArray;
 
             //A list of all the pending async buffer modifications
-            uint32 m_pendingAsyncModCount;
-            SnapPendingAsyncBufferModification* m_pendingAsyncModArray;
+            uint32 PendingAsyncModCount;
+            SnapPendingAsyncBufferModification* PendingAsyncModArray;
         };
 
-        void ExtractScriptContext(SnapContext* snapCtx, Js::ScriptContext* ctx, SlabAllocator& alloc);
+        void ExtractScriptContext(SnapContext* snapCtx, Js::ScriptContext* ctx, const JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap, SlabAllocator& alloc);
 
         void InflateScriptContext(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator,
             const TTDIdentifierDictionary<uint64, TopLevelScriptLoadFunctionBodyResolveInfo*>& topLevelLoadScriptMap,
             const TTDIdentifierDictionary<uint64, TopLevelNewFunctionBodyResolveInfo*>& topLevelNewScriptMap,
             const TTDIdentifierDictionary<uint64, TopLevelEvalFunctionBodyResolveInfo*>& topLevelEvalScriptMap);
 
-        void ReLinkRoots(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator);
         void ResetPendingAsyncBufferModInfo(const SnapContext* snpCtx, Js::ScriptContext* intoCtx, InflateMap* inflator);
 
         void EmitSnapContext(const SnapContext* snapCtx, FileWriter* writer, NSTokens::Separator separator);
         void ParseSnapContext(SnapContext* intoCtx, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
 
 #if ENABLE_SNAPSHOT_COMPARE 
-        void AssertSnapEquiv(const SnapContext* snapCtx1, const SnapContext* snapCtx2, TTDCompareMap& compareMap);
+        void AssertSnapEquiv(const SnapContext* snapCtx1, const SnapContext* snapCtx2, const JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator>& allRootMap1, const JsUtil::BaseDictionary<TTD_LOG_PTR_ID, TTD_PTR_ID, HeapAllocator>& allRootMap2, TTDCompareMap& compareMap);
 #endif
     }
 }

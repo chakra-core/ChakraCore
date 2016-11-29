@@ -126,6 +126,7 @@ var tests = [
             var b = async () => { };
             var c = async x => x;
             var d = async (a, b) => { };
+            assert.doesNotThrow(function () { eval("(async function (z) {})[0]"); }, "Should not throw when async function occurs a type conversion");
         }
     },
     {
@@ -187,6 +188,28 @@ var tests = [
             assert.throws(function () { eval("async function af(x) { const x = 1; }"); }, SyntaxError, "const with same name as formal is an error", "Let/Const redeclaration");
             assert.doesNotThrow(function () { eval("async function af(x) { function x() { } }"); }, "local function with same name as formal is not an error");
             assert.throws(function () { eval("async function af(x) { class x { } }"); }, SyntaxError, "class with same name as formal is an error", "Let/Const redeclaration");
+        }
+    },
+    {
+        name: "await is a keyword and disallowed within arrow function parameter syntax",
+        body: function () {
+            assert.throws(function () { eval("async function af() { var a = await => { }; }"); }, SyntaxError, "await cannot appear as the formal name of an unparenthesized arrow function parameter list", "Syntax error");
+            assert.throws(function () { eval("async function af() { var a = (await) => { }; }"); }, SyntaxError, "await cannot appear as a formal name within parenthesized arrow function parameter list (single formal)", "Syntax error");
+            assert.throws(function () { eval("async function af() { var a = (x, y, await) => { }; }"); }, SyntaxError, "await cannot appear as a formal name within parenthesized arrow function parameter list (middle formal)", "Syntax error");
+            assert.throws(function () { eval("async function af() { var a = (x, await, y) => { }; }"); }, SyntaxError, "await cannot appear as a formal name within parenthesized arrow function parameter list (last formal)", "Syntax error");
+
+            assert.throws(function () { eval("async function af() { var a = (x = await 0) => { }; }"); }, SyntaxError, "await expression is disallowed within arrow function default parameter expression (single formal)", "'await' expression not allowed in this context");
+            assert.throws(function () { eval("async function af() { var a = (x, y = await 0, z = 0) => { }; }"); }, SyntaxError, "await expression is disallowed within arrow function default parameter expression (middle formal)", "'await' expression not allowed in this context");
+            assert.throws(function () { eval("async function af() { var a = (x, y, z = await 0) => { }; }"); }, SyntaxError, "await expression is disallowed within arrow function default parameter expression (last formal)", "'await' expression not allowed in this context");
+            
+            assert.throws(function () { eval("async (a, await) => { }"); }, SyntaxError, "await cannot appear as the formal name of a parathensized async arrow function", "The use of a keyword for an identifier is invalid");
+            assert.throws(function () { eval("async await => { }"); }, SyntaxError, "await cannot appear as the formal name of a unparathensized async arrow function", "The use of a keyword for an identifier is invalid");
+            assert.throws(function () { eval("function () { a = async await => { } }"); }, SyntaxError, "await cannot appear as the formal name of a unparathensized async arrow function expression", "Expected identifier");
+            assert.throws(function () { eval("async (a, b = await 1) => {}"); }, SyntaxError, "await expression cannot appear in the formals of an async arrow function", "Expected ')'");
+            assert.throws(function () { eval("async () => { await => { }; }"); }, SyntaxError, "await cannot appear as the formal name of an unparathensized arrow function within an async arrow function", "Syntax error");
+            assert.throws(function () { eval("async () => { (a, await) => { }; }"); }, SyntaxError, "await cannot appear as the formal name of a parathensized arrow function within an async arrow function", "Syntax error");
+            assert.throws(function () { eval("async () => { (x, y, z = await 0) => { }; }"); }, SyntaxError, "await expression is disallowed within default parameter expression of an arrow function which is inside an async arrow function", "'await' expression not allowed in this context");
+            assert.throws(function () { eval("async function af() { (b = (c = await => {}) => {}) => {}; }"); }, SyntaxError, "await cannot appear as the formal name of an unparathensized arrow function in a nested case too", "Syntax error");
         }
     },
 ];

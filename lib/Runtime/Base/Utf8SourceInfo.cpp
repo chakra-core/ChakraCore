@@ -10,11 +10,12 @@
 
 namespace Js
 {
-
     // if m_cchLength < 0 it came from an external source.
     // If m_cbLength > abs(m_cchLength) then m_utf8Source contains non-ASCII (multi-byte encoded) characters.
 
-    Utf8SourceInfo::Utf8SourceInfo(ISourceHolder* mappableSource, int32 cchLength, SRCINFO const* srcInfo, DWORD_PTR secondaryHostSourceContext, ScriptContext* scriptContext, bool isLibraryCode) :
+    Utf8SourceInfo::Utf8SourceInfo(ISourceHolder* mappableSource, int32 cchLength,
+        SRCINFO const* srcInfo, DWORD_PTR secondaryHostSourceContext,
+        ScriptContext* scriptContext, bool isLibraryCode, Js::Var scriptSource):
         sourceHolder(mappableSource),
         m_cchLength(cchLength),
         m_pOriginalSourceInfo(nullptr),
@@ -36,6 +37,9 @@ namespace Js
         debugModeSourceLength(0),
         m_isInDebugMode(false),
         callerUtf8SourceInfo(nullptr)
+#ifndef NTBUILD
+        ,sourceRef(scriptSource)
+#endif
     {
         if (!sourceHolder->IsDeferrable())
         {
@@ -78,6 +82,9 @@ namespace Js
     Utf8SourceInfo::Dispose(bool isShutdown)
     {
         ClearDebugDocument();
+#ifndef NTBUILD
+        this->sourceRef = nullptr;
+#endif
         this->debugModeSource = nullptr;
         if (this->m_hasHostBuffer)
         {
@@ -157,7 +164,8 @@ namespace Js
     }
 
     Utf8SourceInfo*
-    Utf8SourceInfo::NewWithHolder(ScriptContext* scriptContext, ISourceHolder* sourceHolder, int32 length, SRCINFO const* srcInfo, bool isLibraryCode)
+    Utf8SourceInfo::NewWithHolder(ScriptContext* scriptContext, ISourceHolder* sourceHolder,
+        int32 length, SRCINFO const* srcInfo, bool isLibraryCode, Js::Var scriptSource)
     {
         // TODO: make this finalizable? Or have a finalizable version which would HeapDelete the string? Is this needed?
         DWORD_PTR secondaryHostSourceContext = Js::Constants::NoHostSourceContext;
@@ -167,8 +175,10 @@ namespace Js
         }
 
         Recycler * recycler = scriptContext->GetRecycler();
+
         Utf8SourceInfo* toReturn = RecyclerNewFinalized(recycler,
-            Utf8SourceInfo, sourceHolder, length, SRCINFO::Copy(recycler, srcInfo), secondaryHostSourceContext, scriptContext, isLibraryCode);
+            Utf8SourceInfo, sourceHolder, length, SRCINFO::Copy(recycler, srcInfo),
+            secondaryHostSourceContext, scriptContext, isLibraryCode, scriptSource);
 
         if (!isLibraryCode && scriptContext->IsScriptContextInDebugMode())
         {
@@ -181,27 +191,32 @@ namespace Js
     }
 
     Utf8SourceInfo*
-    Utf8SourceInfo::New(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const* srcInfo, bool isLibraryCode)
+    Utf8SourceInfo::New(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length,
+        size_t numBytes, SRCINFO const* srcInfo, bool isLibraryCode, Js::Var scriptSource)
     {
         utf8char_t * newUtf8String = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), utf8char_t, numBytes + 1);
         js_memcpy_s(newUtf8String, numBytes + 1, utf8String, numBytes + 1);
-        return NewWithNoCopy(scriptContext, newUtf8String, length, numBytes, srcInfo, isLibraryCode);
+        return NewWithNoCopy(scriptContext, newUtf8String, length, numBytes,
+            srcInfo, isLibraryCode, scriptSource);
     }
 
     Utf8SourceInfo*
-    Utf8SourceInfo::NewWithNoCopy(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length, size_t numBytes, SRCINFO const * srcInfo, bool isLibraryCode)
+    Utf8SourceInfo::NewWithNoCopy(ScriptContext* scriptContext, LPCUTF8 utf8String,
+        int32 length, size_t numBytes, SRCINFO const * srcInfo, bool isLibraryCode, Js::Var scriptSource)
     {
         ISourceHolder* sourceHolder = RecyclerNew(scriptContext->GetRecycler(), SimpleSourceHolder, utf8String, numBytes);
 
-        return NewWithHolder(scriptContext, sourceHolder, length, srcInfo, isLibraryCode);
+        return NewWithHolder(scriptContext, sourceHolder, length, srcInfo, isLibraryCode, scriptSource);
     }
 
 
     Utf8SourceInfo*
     Utf8SourceInfo::Clone(ScriptContext* scriptContext, const Utf8SourceInfo* sourceInfo)
     {
-        Utf8SourceInfo* newSourceInfo = Utf8SourceInfo::NewWithHolder(scriptContext, sourceInfo->GetSourceHolder()->Clone(scriptContext), sourceInfo->m_cchLength,
-             SRCINFO::Copy(scriptContext->GetRecycler(), sourceInfo->GetSrcInfo()), sourceInfo->m_isLibraryCode);
+        Utf8SourceInfo* newSourceInfo = Utf8SourceInfo::NewWithHolder(scriptContext,
+            sourceInfo->GetSourceHolder()->Clone(scriptContext), sourceInfo->m_cchLength,
+            SRCINFO::Copy(scriptContext->GetRecycler(), sourceInfo->GetSrcInfo()),
+            sourceInfo->m_isLibraryCode);
         newSourceInfo->m_isXDomain = sourceInfo->m_isXDomain;
         newSourceInfo->m_isXDomainString = sourceInfo->m_isXDomainString;
         newSourceInfo->m_isLibraryCode = sourceInfo->m_isLibraryCode;

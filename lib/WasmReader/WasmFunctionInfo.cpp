@@ -15,9 +15,13 @@ WasmFunctionInfo::WasmFunctionInfo(ArenaAllocator * alloc, WasmSignature* signat
     m_signature(signature),
     m_body(nullptr),
     m_name(nullptr),
+    m_customReader(nullptr),
     m_nameLength(0),
     m_number(number),
     m_locals(alloc, signature->GetParamCount())
+#if DBG_DUMP
+    , importedFunctionReference(nullptr)
+#endif
 {
     for (uint32 i = 0; i < signature->GetParamCount(); ++i)
     {

@@ -1119,12 +1119,12 @@ namespace Js
         int index;
         if(this->GetDescriptor(pRecord->GetPropertyId(), &index))
         {
-            AssertMsg(!(this->descriptors[index].Attributes & PropertyDeleted), "How is this deleted but we enumerated it anyway???");
+            TTDAssert(!(this->descriptors[index].Attributes & PropertyDeleted), "How is this deleted but we enumerated it anyway???");
 
             return (Js::BigPropertyIndex)index;
         }
 
-        AssertMsg(false, "We found this during enum so what is going on here?");
+        TTDAssert(false, "We found this during enum so what is going on here?");
         return Js::Constants::NoBigSlot;
     }
 

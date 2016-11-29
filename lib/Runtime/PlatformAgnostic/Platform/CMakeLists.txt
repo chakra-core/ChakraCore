@@ -1,25 +1,23 @@
 project(CHAKRA_PLATFORM_AGNOSTIC)
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
 set(PL_SOURCE_FILES
+  Common/UnicodeText.Common.cpp
   Linux/UnicodeText.ICU.cpp
-  Linux/DateTime.cpp
   Linux/HiResTimer.cpp
   Linux/NumbersUtility.cpp
-  Linux/SystemInfo.cpp
   Linux/Thread.cpp
-  Common/UnicodeText.Common.cpp
+  )
+
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
+  Linux/DateTime.cpp
+  Linux/SystemInfo.cpp
   )
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-set(PL_SOURCE_FILES
-  # xplat-todo: implement them for unix! or carry them into common
-  Linux/UnicodeText.ICU.cpp
+set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
+  Unix/AssemblyCommon.cpp
   Unix/DateTime.cpp
-  Linux/HiResTimer.cpp
-  Linux/NumbersUtility.cpp
   Unix/SystemInfo.cpp
-  Linux/Thread.cpp
-  Common/UnicodeText.Common.cpp
   )
 endif()
 
@@ -36,7 +34,7 @@ endif()
 add_library (Chakra.Runtime.PlatformAgnostic OBJECT
   ${PL_SOURCE_FILES}
   )
-  
+
 target_include_directories (
   Chakra.Runtime.PlatformAgnostic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   )

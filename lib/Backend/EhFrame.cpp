@@ -51,7 +51,7 @@ ubyte GetDwarfRegNum(ubyte regNum)
     return DWARF_RegNum[regNum];
 }
 
-// Enocde into ULEB128 (Unsigned Little Endian Base 128)
+// Encode into ULEB128 (Unsigned Little Endian Base 128)
 BYTE* EmitLEB128(BYTE* pc, unsigned value)
 {
     do

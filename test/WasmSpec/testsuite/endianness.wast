@@ -43,115 +43,91 @@
     )
   )
 
-  (func $i32_load16_s (param $value i32) (result i32)
+  (func (export "i32_load16_s") (param $value i32) (result i32)
     (call $i16_store_little (i32.const 0) (get_local $value))
     (i32.load16_s (i32.const 0))
   )
 
-  (func $i32_load16_u (param $value i32) (result i32)
+  (func (export "i32_load16_u") (param $value i32) (result i32)
     (call $i16_store_little (i32.const 0) (get_local $value))
     (i32.load16_u (i32.const 0))
   )
 
-  (func $i32_load (param $value i32) (result i32)
+  (func (export "i32_load") (param $value i32) (result i32)
     (call $i32_store_little (i32.const 0) (get_local $value))
     (i32.load (i32.const 0))
   )
 
-  (func $i64_load16_s (param $value i64) (result i64)
+  (func (export "i64_load16_s") (param $value i64) (result i64)
     (call $i16_store_little (i32.const 0) (i32.wrap/i64 (get_local $value)))
     (i64.load16_s (i32.const 0))
   )
 
-  (func $i64_load16_u (param $value i64) (result i64)
+  (func (export "i64_load16_u") (param $value i64) (result i64)
     (call $i16_store_little (i32.const 0) (i32.wrap/i64 (get_local $value)))
     (i64.load16_u (i32.const 0))
   )
 
-  (func $i64_load32_s (param $value i64) (result i64)
+  (func (export "i64_load32_s") (param $value i64) (result i64)
     (call $i32_store_little (i32.const 0) (i32.wrap/i64 (get_local $value)))
     (i64.load32_s (i32.const 0))
   )
 
-  (func $i64_load32_u (param $value i64) (result i64)
+  (func (export "i64_load32_u") (param $value i64) (result i64)
     (call $i32_store_little (i32.const 0) (i32.wrap/i64 (get_local $value)))
     (i64.load32_u (i32.const 0))
   )
 
-  (func $i64_load (param $value i64) (result i64)
+  (func (export "i64_load") (param $value i64) (result i64)
     (call $i64_store_little (i32.const 0) (get_local $value))
     (i64.load (i32.const 0))
   )
 
-  (func $f32_load (param $value f32) (result f32)
+  (func (export "f32_load") (param $value f32) (result f32)
     (call $i32_store_little (i32.const 0) (i32.reinterpret/f32 (get_local $value)))
     (f32.load (i32.const 0))
   )
 
-  (func $f64_load (param $value f64) (result f64)
+  (func (export "f64_load") (param $value f64) (result f64)
     (call $i64_store_little (i32.const 0) (i64.reinterpret/f64 (get_local $value)))
     (f64.load (i32.const 0))
   )
 
 
-  (func $i32_store16 (param $value i32) (result i32)
+  (func (export "i32_store16") (param $value i32) (result i32)
     (i32.store16 (i32.const 0) (get_local $value))
     (call $i16_load_little (i32.const 0))
   )
 
-  (func $i32_store (param $value i32) (result i32)
+  (func (export "i32_store") (param $value i32) (result i32)
     (i32.store (i32.const 0) (get_local $value))
     (call $i32_load_little (i32.const 0))
   )
 
-  (func $i64_store16 (param $value i64) (result i64)
+  (func (export "i64_store16") (param $value i64) (result i64)
     (i64.store16 (i32.const 0) (get_local $value))
     (i64.extend_u/i32 (call $i16_load_little (i32.const 0)))
   )
 
-  (func $i64_store32 (param $value i64) (result i64)
+  (func (export "i64_store32") (param $value i64) (result i64)
     (i64.store32 (i32.const 0) (get_local $value))
     (i64.extend_u/i32 (call $i32_load_little (i32.const 0)))
   )
 
-  (func $i64_store (param $value i64) (result i64)
+  (func (export "i64_store") (param $value i64) (result i64)
     (i64.store (i32.const 0) (get_local $value))
     (call $i64_load_little (i32.const 0))
   )
 
-  (func $f32_store (param $value f32) (result f32)
+  (func (export "f32_store") (param $value f32) (result f32)
     (f32.store (i32.const 0) (get_local $value))
     (f32.reinterpret/i32 (call $i32_load_little (i32.const 0)))
   )
 
-  (func $f64_store (param $value f64) (result f64)
+  (func (export "f64_store") (param $value f64) (result f64)
     (f64.store (i32.const 0) (get_local $value))
     (f64.reinterpret/i64 (call $i64_load_little (i32.const 0)))
   )
-
-  (export "i32_load16_s" $i32_load16_s)
-  (export "i32_load16_u" $i32_load16_u)
-  (export "i32_load" $i32_load)
-
-  (export "i64_load16_s" $i64_load16_s)
-  (export "i64_load16_u" $i64_load16_u)
-  (export "i64_load32_s" $i64_load32_s)
-  (export "i64_load32_u" $i64_load32_u)
-  (export "i64_load" $i64_load)
-
-  (export "f32_load" $f32_load)
-  (export "f64_load" $f64_load)
-
-
-  (export "i32_store16" $i32_store16)
-  (export "i32_store" $i32_store)
-
-  (export "i64_store16" $i64_store16)
-  (export "i64_store32" $i64_store32)
-  (export "i64_store" $i64_store)
-
-  (export "f32_store" $f32_store)
-  (export "f64_store" $f64_store)
 )
 
 (assert_return (invoke "i32_load16_s" (i32.const -1)) (i32.const -1))

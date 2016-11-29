@@ -1,13 +1,6 @@
 [
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -59,6 +52,7 @@
           "bind": "function <large string>",
           "call": "function <large string>",
           "toString": "function <large string>",
+          "Symbol.hasInstance": "function <large string>",
           "caller": "object null",
           "arguments": "object null"
         },
@@ -80,6 +74,7 @@
           "bind": "function <large string>",
           "call": "function <large string>",
           "toString": "function <large string>",
+          "Symbol.hasInstance": "function <large string>",
           "caller": "object null",
           "arguments": "object null"
         },
@@ -124,6 +119,7 @@
           "bind": "function <large string>",
           "call": "function <large string>",
           "toString": "function <large string>",
+          "Symbol.hasInstance": "function <large string>",
           "caller": "object null",
           "arguments": "object null"
         },

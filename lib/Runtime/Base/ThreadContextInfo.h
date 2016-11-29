@@ -17,7 +17,8 @@ public:
 
     intptr_t GetAbsDoubleCstAddr() const;
     intptr_t GetAbsFloatCstAddr() const;
-    intptr_t GetSgnBitCst() const;
+    intptr_t GetSgnDoubleBitCst() const;
+    intptr_t GetSgnFloatBitCst() const;
     intptr_t GetMaskNegFloatAddr() const;
     intptr_t GetMaskNegDoubleAddr() const;
     intptr_t GetDoubleOnePointZeroAddr() const;
@@ -30,12 +31,18 @@ public:
     intptr_t GetFloatTwoToFractionAddr() const;
     intptr_t GetDoubleNegTwoToFractionAddr() const;
     intptr_t GetDoubleNaNAddr() const;
+    intptr_t GetDoubleIntMaxPlusOneAddr() const;
+    intptr_t GetDoubleUintMaxPlusOneAddr() const;
+    intptr_t GetDoubleIntMinMinusOneAddr() const;
     intptr_t GetFloatNaNAddr() const;
     intptr_t GetFloatNegTwoToFractionAddr() const;
     intptr_t GetDoubleZeroAddr() const;
     intptr_t GetFloatZeroAddr() const;
+    intptr_t GetDoubleIntMinAddr() const;
+    intptr_t GetDoubleTwoTo31Addr() const;
 
     intptr_t GetUIntConvertConstAddr() const;
+    intptr_t GetUInt64ConvertConstAddr() const;
     intptr_t GetUint8ClampedArraySetItemAddr() const;
     intptr_t GetConstructorCacheDefaultInstanceAddr() const;
     intptr_t GetJavascriptObjectNewInstanceAddr() const;
@@ -98,7 +105,6 @@ public:
 
     bool IsCFGEnabled();
     bool IsClosed();
-    
 
 #if defined(ENABLE_GLOBALIZATION) && defined(_CONTROL_FLOW_GUARD)
     Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
@@ -115,7 +121,6 @@ protected:
 
 };
 
-
 // TODO: OOP JIT, is there any issue when crossing over 2^31/2^63?
 template<typename T>
 intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, T* address)
@@ -123,13 +128,11 @@ intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, T* address)
     return SHIFT_ADDR(context, (intptr_t)address);
 }
 
-
 template<typename T>
 intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, T* address)
 {
     return SHIFT_CRT_ADDR(context, (intptr_t)address);
 }
-
 
 intptr_t SHIFT_ADDR(const ThreadContextInfo*const context, intptr_t address);
 intptr_t SHIFT_CRT_ADDR(const ThreadContextInfo*const context, intptr_t address);

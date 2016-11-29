@@ -3,9 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-const blob = WScript.LoadBinaryFile('i32_popcnt.wasm');
-const moduleBytesView = new Uint8Array(blob);
-var a = Wasm.instantiateModule(moduleBytesView, {}).exports;
+var mod = new WebAssembly.Module(readbuffer('i32_popcnt.wasm'));
+var a = new WebAssembly.Instance(mod).exports;
 print(a.popcount(3)); 
 print(a.popcount(7)); 
 print(a.popcount(8));

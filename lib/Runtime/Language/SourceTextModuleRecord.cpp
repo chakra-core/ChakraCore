@@ -115,7 +115,9 @@ namespace Js
 
                 LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
                     (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
-                this->parseTree = scriptContext->ParseScript(parser, sourceText, sourceLength, srcInfo, &se, &pSourceInfo, _u("module"), loadScriptFlag, &sourceIndex);
+                this->parseTree = scriptContext->ParseScript(parser, sourceText,
+                    sourceLength, srcInfo, &se, &pSourceInfo, _u("module"),
+                    loadScriptFlag, &sourceIndex, nullptr);
                 if (parseTree == nullptr)
                 {
                     hr = E_FAIL;
@@ -134,6 +136,15 @@ namespace Js
             if (SUCCEEDED(hr))
             {
                 hr = PostParseProcess();
+                if (hr == S_OK && this->errorObject != nullptr && this->hadNotifyHostReady)
+                {
+                    // This would be the case where the child module got error and current module has notified error already.
+                    if (*exceptionVar == nullptr)
+                    {
+                        *exceptionVar = this->errorObject;
+                    }
+                    return E_FAIL;
+                }
             }
         }
         if (FAILED(hr))
@@ -208,7 +219,6 @@ namespace Js
                 // We'll need to call the bytecode gen in the main thread as we are accessing GC.
                 ScriptContext* scriptContext = GetScriptContext();
                 Assert(!scriptContext->GetThreadContext()->IsScriptActive());
-                Assert(this->errorObject == nullptr);
 
                 ModuleDeclarationInstantiation();
                 if (!hadNotifyHostReady)
@@ -547,10 +557,36 @@ namespace Js
         return !ambiguousResolution;
     }
 
+    void SourceTextModuleRecord::SetParent(SourceTextModuleRecord* parentRecord, LPCOLESTR moduleName)
+    {
+        Assert(parentRecord != nullptr);
+        Assert(parentRecord->childrenModuleSet != nullptr);
+        if (!parentRecord->childrenModuleSet->ContainsKey(moduleName))
+        {
+            parentRecord->childrenModuleSet->AddNew(moduleName, this);
+
+            if (this->parentModuleList == nullptr)
+            {
+                Recycler* recycler = GetScriptContext()->GetRecycler();
+                this->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
+            }
+            bool contains = this->parentModuleList->Contains(parentRecord);
+            Assert(!contains);
+            if (!contains)
+            {
+                this->parentModuleList->Add(parentRecord);
+                if (!this->WasDeclarationInitialized())
+                {
+                    parentRecord->numUnInitializedChildrenModule++;
+                }
+            }
+        }
+    }
+
     HRESULT SourceTextModuleRecord::ResolveExternalModuleDependencies()
     {
         ScriptContext* scriptContext = GetScriptContext();
-        Recycler* recycler = scriptContext->GetRecycler();
+
         HRESULT hr = NOERROR;
         if (requestedModuleList != nullptr)
         {
@@ -572,16 +608,7 @@ namespace Js
                         return true;
                     }
                     moduleRecord = SourceTextModuleRecord::FromHost(moduleRecordBase);
-                    childrenModuleSet->AddNew(moduleName, moduleRecord);
-                    if (moduleRecord->parentModuleList == nullptr)
-                    {
-                        moduleRecord->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
-                    }
-                    moduleRecord->parentModuleList->Add(this);
-                    if (!moduleRecord->WasDeclarationInitialized())
-                    {
-                        numUnInitializedChildrenModule++;
-                    }
+                    moduleRecord->SetParent(this, moduleName);
                 }
                 return false;
             });
@@ -921,11 +948,4 @@ namespace Js
         }
         return slotIndex;
     }
-
-#if DBG
-    void SourceTextModuleRecord::AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, uint32 specifierLength)
-    {
-
-    }
-#endif
 }

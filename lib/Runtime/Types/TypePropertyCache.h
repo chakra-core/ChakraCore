@@ -15,11 +15,14 @@ namespace Js
     {
     private:
         DynamicObject *prototypeObjectWithProperty;
-        PropertyId id;
-        PropertyIndex index;
+
+        // tag the bit fields to avoid false positive
+        bool tag : 1;
         bool isInlineSlot : 1;
         bool isSetPropertyAllowed : 1;
         bool isMissing : 1;
+        PropertyIndex index;
+        PropertyId id;
 
     public:
         TypePropertyCacheElement();

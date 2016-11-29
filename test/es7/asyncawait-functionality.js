@@ -934,6 +934,45 @@ var tests = [
                 echo(`Test #${index} - Error async function and arguments.callee called with err = ${err}`);
             });
         }
+    },
+    {
+        name: "Async and arguments.caller",
+        body: function (index) {
+            var func = function () {
+                return func.caller;
+            }
+            async function asyncMethod(flag, value) {
+                if (!flag) {
+                    return await func();
+                }
+                return value * value;
+            }
+
+            asyncMethod().then(
+                result => {
+                    if (result === asyncMethod) {
+                        echo(`Test #${index} - Success async function returned through caller property is the same as the original async function`);
+                    } else {
+                        echo(`Test #${index} - Failed async function returned through the caller property is not the same as the original async function = ${result}`);
+                    }
+                    result(true, 10).then(
+                        r => {
+                            if (r === 100) {
+                                echo(`Test #${index} - Success async function returned through caller property behaves the same way as the original async function`);
+                            } else {
+                                echo(`Test #${index} - Failed async function returned through caller property behaves different from the original async function with value = ${r}`);
+                            }
+                        },
+                        e => {
+                            echo(`Test #${index} - Failed while trying to execute the async function returned through caller property with err = ${e}`);
+                        }
+                    );
+                },
+                error => {
+                    echo(`Test #${index} - Failed while trying to retrieve the async function through caller property with err = ${error}`);
+                }
+            )
+        }
     }
 ];
 

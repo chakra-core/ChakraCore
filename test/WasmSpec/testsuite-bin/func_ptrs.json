@@ -5,22 +5,22 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "func_ptrs.wast",
-      "line": 28
+      "line": 26
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "func_ptrs.wast",
-      "line": 29
+      "line": 27
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "func_ptrs.wast",
-      "line": 30
+      "line": 28
     }, {
-      "type": "invoke",
-      "name": "$invoke_3",
+      "type": "action",
+      "name": "$action_3",
       "file": "func_ptrs.wast",
-      "line": 31
+      "line": 29
     }]
   }, {
     "filename": "func_ptrs.1.wasm",
@@ -28,97 +28,102 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "func_ptrs.wast",
-      "line": 58
+      "line": 70
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "func_ptrs.wast",
-      "line": 59
+      "line": 71
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "func_ptrs.wast",
-      "line": 60
+      "line": 72
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
+      "type": "assert_return",
+      "name": "$assert_return_3",
       "file": "func_ptrs.wast",
-      "line": 61
+      "line": 73
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_4",
+      "type": "assert_return",
+      "name": "$assert_return_4",
       "file": "func_ptrs.wast",
-      "line": 62
+      "line": 74
     }, {
       "type": "assert_return",
       "name": "$assert_return_5",
       "file": "func_ptrs.wast",
-      "line": 63
+      "line": 75
     }, {
       "type": "assert_return",
       "name": "$assert_return_6",
       "file": "func_ptrs.wast",
-      "line": 64
+      "line": 76
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_7",
       "file": "func_ptrs.wast",
-      "line": 65
+      "line": 77
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_8",
       "file": "func_ptrs.wast",
-      "line": 66
+      "line": 78
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_9",
       "file": "func_ptrs.wast",
-      "line": 67
+      "line": 79
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_10",
+      "type": "assert_return",
+      "name": "$assert_return_10",
       "file": "func_ptrs.wast",
-      "line": 69
+      "line": 81
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_11",
+      "type": "assert_return",
+      "name": "$assert_return_11",
       "file": "func_ptrs.wast",
-      "line": 70
+      "line": 82
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_12",
+      "type": "assert_return",
+      "name": "$assert_return_12",
       "file": "func_ptrs.wast",
-      "line": 71
+      "line": 83
     }, {
       "type": "assert_return",
       "name": "$assert_return_13",
       "file": "func_ptrs.wast",
-      "line": 72
+      "line": 84
     }, {
       "type": "assert_return",
       "name": "$assert_return_14",
       "file": "func_ptrs.wast",
-      "line": 73
+      "line": 85
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_15",
+      "type": "assert_return",
+      "name": "$assert_return_15",
       "file": "func_ptrs.wast",
-      "line": 74
+      "line": 86
     }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_16",
+      "type": "assert_return",
+      "name": "$assert_return_16",
       "file": "func_ptrs.wast",
-      "line": 75
+      "line": 87
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_17",
       "file": "func_ptrs.wast",
-      "line": 76
+      "line": 88
     }, {
       "type": "assert_trap",
       "name": "$assert_trap_18",
       "file": "func_ptrs.wast",
-      "line": 77
+      "line": 89
+    }, {
+      "type": "assert_trap",
+      "name": "$assert_trap_19",
+      "file": "func_ptrs.wast",
+      "line": 90
     }]
   }, {
     "filename": "func_ptrs.2.wasm",
@@ -126,12 +131,12 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "func_ptrs.wast",
-      "line": 93
+      "line": 104
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "func_ptrs.wast",
-      "line": 94
+      "line": 105
     }]
   }]
 }

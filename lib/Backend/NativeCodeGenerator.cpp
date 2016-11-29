@@ -870,8 +870,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
 
     auto& jitData = workItem->GetJITData()->jitData;
     jitData = AnewStructZ(&alloc, FunctionJITTimeDataIDL);
-    FunctionJITTimeInfo::BuildJITTimeData(&alloc, workItem->RecyclableData()->JitTimeData(), nullptr, workItem->GetJITData()->jitData, false, foreground);
-    workItem->GetJITData()->profiledIterations = workItem->RecyclableData()->JitTimeData()->GetProfiledIterations();
+    auto codeGenData = workItem->RecyclableData()->JitTimeData();
+    FunctionJITTimeInfo::BuildJITTimeData(&alloc, codeGenData, nullptr, workItem->GetJITData()->jitData, false, foreground);
+    workItem->GetJITData()->profiledIterations = codeGenData->GetProfiledIterations();
     Js::EntryPointInfo * epInfo = workItem->GetEntryPoint();
     if (workItem->Type() == JsFunctionType)
     {
@@ -883,7 +884,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         workItem->GetJITData()->jittedLoopIterationsSinceLastBailoutAddr = (intptr_t)Js::FunctionBody::GetJittedLoopIterationsSinceLastBailoutAddress(epInfo);
     }
 
-    jitData->sharedPropertyGuards = epInfo->GetSharedPropertyGuardsWithLock(&alloc, jitData->sharedPropGuardCount);
+    jitData->sharedPropertyGuards = codeGenData->sharedPropertyGuards;
+    jitData->sharedPropGuardCount = codeGenData->sharedPropertyGuardCount;
 
     JITOutputIDL jitWriteData = {0};
 
@@ -901,6 +903,11 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             workItem->GetJITData(),
             scriptContext->GetRemoteScriptAddr(),
             &jitWriteData);
+        if (hr == E_ACCESSDENIED && body->GetScriptContext()->IsClosed())
+        {
+            // script context may close after codegen call starts, consider this as aborted codegen
+            hr = E_ABORT;
+        }
         JITManager::HandleServerCallResult(hr);
     }
     else
@@ -908,7 +915,9 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         CodeGenAllocators *const allocators =
             foreground ? EnsureForegroundAllocators(pageAllocator) : GetBackgroundAllocator(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
         NoRecoverMemoryJitArenaAllocator jitArena(_u("JITArena"), pageAllocator, Js::Throw::OutOfMemory);
-
+#if DBG
+        jitArena.SetNeedsDelayFreeList();
+#endif
         JITTimeWorkItem * jitWorkItem = Anew(&jitArena, JITTimeWorkItem, workItem->GetJITData());
 
 #if !FLOATVAR
@@ -1991,7 +2000,9 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
         if (succeeded)
         {
             Assert(workItem->GetCodeAddress() != NULL);
-            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, loopBodyCodeGen->GetEntryPoint(), (Js::JavascriptMethod)workItem->GetCodeAddress());
+
+            uint loopNum = loopBodyCodeGen->GetJITData()->loopNumber;
+            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);            
             entryPoint->SetCodeGenDone();
         }
         else
@@ -2025,57 +2036,14 @@ NativeCodeGenerator::UpdateJITState()
             return;
         }
 
-        // update all property records on server that have been changed since last jit
-        ThreadContext::PropertyList * pendingProps = scriptContext->GetThreadContext()->GetPendingJITProperties();
-        int * newPropArray = nullptr;
-        uint newCount = 0;
-        if (pendingProps->Count() > 0)
+        if (scriptContext->GetThreadContext()->JITNeedsPropUpdate())
         {
-            newCount = (uint)pendingProps->Count();
-            newPropArray = HeapNewArray(int, newCount);
-            uint index = 0;
-            while (!pendingProps->Empty())
-            {
-                newPropArray[index++] = (int)pendingProps->Pop();
-            }
-            Assert(index == newCount);
-        }
-
-        ThreadContext::PropertyList * reclaimedProps = scriptContext->GetThreadContext()->GetReclaimedJITProperties();
-        int * reclaimedPropArray = nullptr;
-        uint reclaimedCount = 0;
-        if (reclaimedProps->Count() > 0)
-        {
-            reclaimedCount = (uint)reclaimedProps->Count();
-            reclaimedPropArray = HeapNewArray(int, reclaimedCount);
-            uint index = 0;
-            while (!reclaimedProps->Empty())
-            {
-                reclaimedPropArray[index++] = (int)reclaimedProps->Pop();
-            }
-            Assert(index == reclaimedCount);
-        }
-
-        if (newCount > 0 || reclaimedCount > 0)
-        {
-            UpdatedPropertysIDL props = {0};
-            props.reclaimedPropertyCount = reclaimedCount;
-            props.reclaimedPropertyIdArray = reclaimedPropArray;
-            props.newPropertyCount = newCount;
-            props.newPropertyIdArray = newPropArray;
-
-            HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), &props);
-
-            if (newPropArray)
-            {
-                HeapDeleteArray(newCount, newPropArray);
-            }
-            if (reclaimedPropArray)
-            {
-                HeapDeleteArray(reclaimedCount, reclaimedPropArray);
-            }
+            CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
+            BVSparseNodeIDL * bvHead = (BVSparseNodeIDL*)scriptContext->GetThreadContext()->GetJITNumericProperties()->head;
+            HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), bvHead);
 
             JITManager::HandleServerCallResult(hr);
+            scriptContext->GetThreadContext()->ResetJITNeedsPropUpdate();
         }
     }
 }
@@ -2677,7 +2645,7 @@ NativeCodeGenerator::GatherCodeGenData(
 
                     if (!isJitTimeDataComputed)
                     {
-                        Js::FunctionCodeGenJitTimeData  *inlineeJitTimeData = jitTimeData->AddInlinee(recycler, profiledCallSiteId, inlineeFunctionBodyArray[id], isInlined);
+                        Js::FunctionCodeGenJitTimeData  *inlineeJitTimeData = jitTimeData->AddInlinee(recycler, profiledCallSiteId, inlineeFunctionBodyArray[id]->GetFunctionInfo(), isInlined);
                         if (isInlined)
                         {
                             GatherCodeGenData<true>(
@@ -2973,7 +2941,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 
     const auto recycler = scriptContext->GetRecycler();
     {
-        const auto jitTimeData = RecyclerNew(recycler, Js::FunctionCodeGenJitTimeData, functionBody, entryPoint);
+        const auto jitTimeData = RecyclerNew(recycler, Js::FunctionCodeGenJitTimeData, functionBody->GetFunctionInfo(), entryPoint);
         InliningDecider inliningDecider(functionBody, workItem->Type() == JsLoopBodyWorkItemType, functionBody->IsInDebugMode(), workItem->GetJitMode());
 
         BEGIN_TEMP_ALLOCATOR(gatherCodeGenDataAllocator, scriptContext, _u("GatherCodeGenData"));
@@ -2990,6 +2958,8 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
         }
 #endif
         GatherCodeGenData<false>(recycler, topFunctionBody, functionBody, entryPoint, inliningDecider, objTypeSpecFldInfoList, jitTimeData, nullptr, function ? Js::JavascriptFunction::FromVar(function) : nullptr, 0);
+
+        jitTimeData->sharedPropertyGuards = entryPoint->GetSharedPropertyGuards(jitTimeData->sharedPropertyGuardCount);
 
 #ifdef FIELD_ACCESS_STATS
         Js::FieldAccessStats* fieldAccessStats = entryPoint->EnsureFieldAccessStats(recycler);
@@ -3107,7 +3077,7 @@ NativeCodeGenerator::EnterScriptStart()
     public:
         AutoCleanup(Js::ScriptContextProfiler *const codeGenProfiler) : codeGenProfiler(codeGenProfiler)
         {
-            JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_DELAY_START(this, 0));
+            EDGE_ETW_INTERNAL(EventWriteJSCRIPT_NATIVECODEGEN_DELAY_START(this, 0));
 #ifdef PROFILE_EXEC
             ProfileBegin(codeGenProfiler, Js::DelayPhase);
             ProfileBegin(codeGenProfiler, Js::SpeculationPhase);
@@ -3120,7 +3090,7 @@ NativeCodeGenerator::EnterScriptStart()
             ProfileEnd(codeGenProfiler, Js::SpeculationPhase);
             ProfileEnd(codeGenProfiler, Js::DelayPhase);
 #endif
-            JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_DELAY_STOP(this, 0));
+            EDGE_ETW_INTERNAL(EventWriteJSCRIPT_NATIVECODEGEN_DELAY_STOP(this, 0));
         }
     } autoCleanup(
 #ifdef PROFILE_EXEC
@@ -3630,7 +3600,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
         }
         else
         {
-            inlinee = inliningDecider.Inline(inlineeFunctionBody, inlinee, isConstructorCall, false, inliningDecider.GetConstantArgInfo(inlineeFunctionBody, profiledCallSiteId), profiledCallSiteId, inlineeFunctionBody == inlinee ? recursiveInlineDepth + 1 : 0, true);
+            inlinee = inliningDecider.Inline(inlineeFunctionBody, inlinee, isConstructorCall, false, inliningDecider.GetConstantArgInfo(inlineeFunctionBody, profiledCallSiteId), profiledCallSiteId, inlineeFunctionBody->GetFunctionInfo() == inlinee ? recursiveInlineDepth + 1 : 0, true);
             if (!inlinee)
             {
                 return false;

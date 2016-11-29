@@ -974,12 +974,13 @@ IRBuilder::EmitClosureRangeChecks()
         }
         if (bv)
         {
-            IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-            byteCodeUse->byteCodeUpwardExposedUsed = bv;
+
             FOREACH_INSTR_IN_FUNC_BACKWARD(instr, m_func)
             {
                 if (instr->m_opcode == Js::OpCode::Ret)
                 {
+                    IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(instr);
+                    byteCodeUse->SetBV(bv);
                     instr->InsertBefore(byteCodeUse);
                     break;
                 }
@@ -1131,7 +1132,10 @@ IRBuilder::AddInstr(IR::Instr *instr, uint32 offset)
         {
             Assert(m_lastInstr->GetByteCodeOffset() == offset);
         }
-        instr->SetByteCodeOffset(offset);
+        if (instr->GetByteCodeOffset() == Js::Constants::NoByteCodeOffset)
+        {
+            instr->SetByteCodeOffset(offset);
+        }
     }
     else
     {
@@ -1589,6 +1593,10 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             Js::RegSlot regFrameObj = m_func->GetJITFunctionBody()->GetLocalClosureReg();
             Assert(regFrameObj != Js::Constants::NoRegister);
             srcOpnd = BuildSrcOpnd(regFrameObj);
+            if (m_func->GetJITFunctionBody()->GetInParamsCount() > 1)
+            {
+                m_func->SetScopeObjSym(srcOpnd->GetStackSym());
+            }
         }
         else
         {
@@ -1617,6 +1625,10 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
             Js::Throw::FatalInternalError();
         }
         srcOpnd = BuildSrcOpnd(m_func->GetJITFunctionBody()->GetLocalClosureReg());
+        if (m_func->GetJITFunctionBody()->GetInParamsCount() > 1)
+        {
+            m_func->SetScopeObjSym(srcOpnd->GetStackSym());
+        }
         isNotInt = true;
         break;
 
@@ -2316,15 +2328,14 @@ IRBuilder::BuildReg4(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSlot
     bool src2HasByteCodeRegSlot = src2Opnd->m_sym->HasByteCodeRegSlot();
     if (src1HasByteCodeRegSlot || src2HasByteCodeRegSlot)
     {
-        IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-        byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
+        IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, Js::Constants::NoByteCodeOffset);
         if (src1HasByteCodeRegSlot)
         {
-            byteCodeUse->byteCodeUpwardExposedUsed->Set(src1Opnd->m_sym->m_id);
+            byteCodeUse->Set(src1Opnd);
         }
         if (src2HasByteCodeRegSlot)
         {
-            byteCodeUse->byteCodeUpwardExposedUsed->Set(src2Opnd->m_sym->m_id);
+            byteCodeUse->Set(src2Opnd);
         }
         this->AddInstr(byteCodeUse, Js::Constants::NoByteCodeOffset);
     }
@@ -2463,9 +2474,8 @@ IRBuilder::BuildReg3B1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot dstRegSl
     // we will restore it.
     if (src1Opnd->m_sym->HasByteCodeRegSlot())
     {
-        IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-        byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
-        byteCodeUse->byteCodeUpwardExposedUsed->Set(src1Opnd->m_sym->m_id);
+        IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, Js::Constants::NoByteCodeOffset);
+        byteCodeUse->Set(src1Opnd);
         this->AddInstr(byteCodeUse, Js::Constants::NoByteCodeOffset);
     }
 
@@ -3501,9 +3511,8 @@ LdLocalSlot:
 
             if (closureSym->HasByteCodeRegSlot())
             {
-                byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-                byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
-                byteCodeUse->byteCodeUpwardExposedUsed->Set(closureSym->m_id);
+                byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
+                byteCodeUse->SetNonOpndSymbol(closureSym->m_id);
                 this->AddInstr(byteCodeUse, offset);
             }
 
@@ -3564,9 +3573,8 @@ LdLocalSlot:
 LdLocalObjSlot:
             if (closureSym->HasByteCodeRegSlot())
             {
-                byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-                byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
-                byteCodeUse->byteCodeUpwardExposedUsed->Set(closureSym->m_id);
+                byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
+                byteCodeUse->SetNonOpndSymbol(closureSym->m_id);
                 this->AddInstr(byteCodeUse, offset);
             }
 
@@ -3605,9 +3613,8 @@ LdLocalObjSlot:
 
             if (closureSym->HasByteCodeRegSlot())
             {
-                byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-                byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
-                byteCodeUse->byteCodeUpwardExposedUsed->Set(closureSym->m_id);
+                byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
+                byteCodeUse->SetNonOpndSymbol(closureSym->m_id);
                 this->AddInstr(byteCodeUse, offset);
             }
 
@@ -3659,9 +3666,8 @@ LdLocalObjSlot:
 
             if (closureSym->HasByteCodeRegSlot())
             {
-                byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-                byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
-                byteCodeUse->byteCodeUpwardExposedUsed->Set(closureSym->m_id);
+                byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
+                byteCodeUse->SetNonOpndSymbol(closureSym->m_id);
                 this->AddInstr(byteCodeUse, offset);
             }
 
@@ -4158,9 +4164,8 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
     case Js::OpCode::LdLocalFld:
         if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
         {
-            IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-            byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
-            byteCodeUse->byteCodeUpwardExposedUsed->Set(m_func->GetLocalClosureSym()->m_id);
+            IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
+            byteCodeUse->SetNonOpndSymbol(m_func->GetLocalClosureSym()->m_id);
             this->AddInstr(byteCodeUse, offset);
         }
 
@@ -4188,9 +4193,8 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
     case Js::OpCode::StLocalFld:
         if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
         {
-            IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-            byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
-            byteCodeUse->byteCodeUpwardExposedUsed->Set(m_func->GetLocalClosureSym()->m_id);
+            IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
+            byteCodeUse->SetNonOpndSymbol(m_func->GetLocalClosureSym()->m_id);
             this->AddInstr(byteCodeUse, offset);
         }
 
@@ -4210,9 +4214,8 @@ IRBuilder::BuildElementP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot regSlo
     {
         if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
         {
-            IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-            byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
-            byteCodeUse->byteCodeUpwardExposedUsed->Set(m_func->GetLocalClosureSym()->m_id);
+            IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
+            byteCodeUse->SetNonOpndSymbol(m_func->GetLocalClosureSym()->m_id);
             this->AddInstr(byteCodeUse, offset);
         }
 
@@ -4697,9 +4700,8 @@ IRBuilder::BuildElementU(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instan
         case Js::OpCode::LdLocalElemUndef:
             if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
             {
-                IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-                byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
-                byteCodeUse->byteCodeUpwardExposedUsed->Set(m_func->GetLocalClosureSym()->m_id);
+                IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
+                byteCodeUse->SetNonOpndSymbol(m_func->GetLocalClosureSym()->m_id);
                 this->AddInstr(byteCodeUse, offset);
             }
 
@@ -6674,7 +6676,6 @@ IRBuilder::BuildBrReg2(Js::OpCode newOpcode, uint32 offset, uint targetOffset, J
     else
     {
         branchInstr = IR::BranchInstr::New(newOpcode, nullptr, src1Opnd, src2Opnd, m_func);
-        branchInstr->m_isSwitchBr = true;
         this->AddBranchInstr(branchInstr, offset, targetOffset);
     }
 }
@@ -7106,9 +7107,8 @@ IRBuilder::BuildBrLocalProperty(Js::OpCode newOpcode, uint32 offset)
 
     if (m_func->GetLocalClosureSym()->HasByteCodeRegSlot())
     {
-        IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func);
-        byteCodeUse->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
-        byteCodeUse->byteCodeUpwardExposedUsed->Set(m_func->GetLocalClosureSym()->m_id);
+        IR::ByteCodeUsesInstr * byteCodeUse = IR::ByteCodeUsesInstr::New(m_func, offset);
+        byteCodeUse->SetNonOpndSymbol(m_func->GetLocalClosureSym()->m_id);
         this->AddInstr(byteCodeUse, offset);
     }
 
@@ -7473,7 +7473,8 @@ IRBuilder::DoClosureRegCheck(Js::RegSlot reg)
     }
     if (reg == m_func->GetJITFunctionBody()->GetEnvReg() ||
         reg == m_func->GetJITFunctionBody()->GetLocalClosureReg() ||
-        reg == m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg())
+        reg == m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg() ||
+        reg == m_func->GetJITFunctionBody()->GetParamClosureReg())
     {
         Js::Throw::FatalInternalError();
     }

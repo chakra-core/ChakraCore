@@ -307,7 +307,7 @@ endif
 ;;============================================================================================================
 
 extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
-extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z : PROC
+extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z : PROC
 ; extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNM@Z : PROC
 extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNMT__m128@@@Z : PROC
 
@@ -352,7 +352,7 @@ align 16
 
         sub rsp, 20h ; so stack space for unboxing function isn't same as where it is unboxing into. allocate args spill space for unboxing function.
         ; unboxing function also does stack probe
-        call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z
+        call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z
         ; rax = target function address
 
 ifdef _CONTROL_FLOW_GUARD

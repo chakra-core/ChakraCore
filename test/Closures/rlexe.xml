@@ -151,4 +151,11 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS_9781249.js</files>
+      <compile-flags>-forcejitloopbody -force:inline -force:rejit</compile-flags>
+      <tags>BugFix</tags>
+    </default>
+  </test>
 </regress-exe>

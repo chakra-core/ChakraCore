@@ -114,6 +114,10 @@ JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
 #include <libgen.h>
 #include <dirent.h>
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
 typedef utf8char_t TTDHostCharType;
 typedef struct dirent* TTDHostFileInfo;
 typedef DIR* TTDHostFindHandle;
@@ -174,7 +178,14 @@ void TTDHostAppendAscii(TTDHostCharType* dst, const char* src)
 void TTDHostBuildCurrentExeDirectory(TTDHostCharType* path, size_t pathBufferLength)
 {
     TTDHostCharType exePath[MAX_PATH];
+    //TODO: xplattodo move this logic to PAL
+    #ifdef __APPLE__
+    uint32_t tmpPathSize = sizeof(exePath);
+    _NSGetExecutablePath(TTDHostCharConvert(exePath), &tmpPathSize);
+    size_t len = TTDHostStringLength(exePath);
+    #else
     size_t len = readlink("/proc/self/exe", TTDHostCharConvert(exePath), MAX_PATH);
+    #endif
 
     size_t i = len - 1;
     while(exePath[i] != TTDHostPathSeparatorChar)
@@ -191,25 +202,6 @@ JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
     return (JsTTDStreamHandle)fopen(TTDHostCharConvert(path), isWrite ? "w+b" : "r+b");
 }
 
-#ifdef __APPLE__
-#define TTDHostCWD(dst) nullptr
-#define TTDDoPathInit(dst)
-#define TTDHostTok(opath, TTDHostPathSeparator, context) nullptr
-#define TTDHostStat(cpath, statVal) 0
-
-#define TTDHostMKDir(cpath) -1
-#define TTDHostCHMod(cpath, flags) -1
-#define TTDHostRMFile(cpath) -1
-
-#define TTDHostFindFirst(strPattern, FileInformation) nullptr
-#define TTDHostFindNext(hFile, FileInformation) TTDHostFindInvalid
-#define TTDHostFindClose(hFile)
-
-#define TTDHostDirInfoName(FileInformation) ((const TTDHostCharType*)"\0")
-
-#define TTDHostRead(buff, size, handle) 0
-#define TTDHostWrite(buff, size, handle) 0
-#else
 #define TTDHostCWD(dst) TTDHostUtf8CharConvert(getcwd(TTDHostCharConvert(dst), MAX_PATH))
 #define TTDDoPathInit(dst) TTDHostAppend(dst, TTDHostPathSeparator)
 #define TTDHostTok(opath, TTDHostPathSeparator, context) TTDHostUtf8CharConvert(strtok(TTDHostCharConvert(opath), TTDHostCharConvert(TTDHostPathSeparator)))
@@ -227,7 +219,6 @@ JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
 
 #define TTDHostRead(buff, size, handle) fread(buff, 1, size, (FILE*)handle)
 #define TTDHostWrite(buff, size, handle) fwrite(buff, 1, size, (FILE*)handle)
-#endif
 #endif
 
 HRESULT Helpers::LoadScriptFromFile(LPCSTR filename, LPCSTR& contents, UINT* lengthBytesOut /*= nullptr*/)
@@ -665,9 +656,11 @@ void CALLBACK Helpers::TTInitializeForWriteLogStreamCallback(size_t uriByteLengt
     Helpers::CleanDirectory(uriByteLength, uriBytes);
 }
 
-JsTTDStreamHandle CALLBACK Helpers::TTCreateStreamCallback(size_t uriByteLength, const byte* uriBytes, const char* asciiResourceName, bool read, bool write)
+JsTTDStreamHandle CALLBACK Helpers::TTCreateStreamCallback(size_t uriByteLength, const byte* uriBytes, const char* asciiResourceName, bool read, bool write, byte** relocatedUri, size_t* relocatedUriLength)
 {
     AssertMsg((read | write) & (!read | !write), "Read/Write streams not supported yet -- defaulting to read only");
+
+    //relocatedUri and relocatedUriLength are ignored since we don't do code relocation for debugging in CH
 
     void* res = nullptr;
     TTDHostCharType path[MAX_PATH];

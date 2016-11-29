@@ -49,8 +49,6 @@ public:
     void* GetExternalData() const { return this->externalData; }
     void SetExternalData(void * data) { this->externalData = data; }
 
-    static bool Initialize();
-    static void Uninitialize();
     static JsrtContext * GetCurrent();
     static bool TrySetCurrent(JsrtContext * context);
     static bool Is(void * ref);
@@ -59,7 +57,8 @@ public:
     virtual void Mark(Recycler * recycler) override sealed;
 
 #if ENABLE_TTD
-    static void OnScriptLoad_TTDCallback(void* jsrtCtx, Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+    static void OnScriptLoad_TTDCallback(FinalizableObject* jsrtCtx, Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+    static void OnReplayDisposeContext_TTDCallback(FinalizableObject* jsrtCtx);
 #endif
     void OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
 protected:
@@ -70,7 +69,6 @@ protected:
     void SetJavascriptLibrary(Js::JavascriptLibrary * library);
     void PinCurrentJsrtContext();
 private:
-    static DWORD s_tlsSlot;
     Js::JavascriptLibrary * javascriptLibrary;
 
     JsrtRuntime * runtime;
@@ -78,4 +76,3 @@ private:
     GC_MARKED_OBJECT<JsrtContext> previous;
     GC_MARKED_OBJECT<JsrtContext> next;
 };
-

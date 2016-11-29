@@ -39,7 +39,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ProxyCount);
+        CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_Proxy);
 
         if (!(args.Info.Flags & CallFlags_New))
         {
@@ -194,7 +194,8 @@ namespace Js
     {
         PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
-        Assert((static_cast<DynamicType*>(GetType()))->GetTypeHandler()->GetPropertyCount() == 0);
+        Assert((static_cast<DynamicType*>(GetType()))->GetTypeHandler()->GetPropertyCount() == 0 ||
+            (static_cast<DynamicType*>(GetType()))->GetTypeHandler()->GetPropertyId(GetScriptContext(), 0) == InternalPropertyIds::WeakMapKeyMap);
         JavascriptFunction* gOPDMethod = GetMethodHelper(PropertyIds::getOwnPropertyDescriptor, requestContext);
         Var getResult;
         ThreadContext* threadContext = requestContext->GetThreadContext();
@@ -560,10 +561,13 @@ namespace Js
 
     BOOL JavascriptProxy::GetInternalProperty(Var instance, PropertyId internalPropertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        // the spec change to not recognizing internal slots in proxy. We should remove the ability to forward to internal slots.
+        if (internalPropertyId == InternalPropertyIds::WeakMapKeyMap)
+        {
+            return __super::GetInternalProperty(instance, internalPropertyId, value, info, requestContext);
+        }
         return FALSE;
     }
-
+  
     BOOL JavascriptProxy::GetAccessors(PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext)
     {
         PropertyDescriptor result;
@@ -656,7 +660,10 @@ namespace Js
 
     BOOL JavascriptProxy::SetInternalProperty(PropertyId internalPropertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
-        // the spec change to not recognizing internal slots in proxy. We should remove the ability to forward to internal slots.
+        if (internalPropertyId == InternalPropertyIds::WeakMapKeyMap)
+        {
+            return __super::SetInternalProperty(internalPropertyId, value, flags, info);
+        }
         return FALSE;
     }
 
@@ -1939,7 +1946,7 @@ namespace Js
         Var functionResult;
         if (spreadIndices != nullptr)
         {
-            functionResult = JavascriptFunction::CallSpreadFunction(this, this->GetEntryPoint(), args, spreadIndices);
+            functionResult = JavascriptFunction::CallSpreadFunction(this, args, spreadIndices);
         }
         else
         {

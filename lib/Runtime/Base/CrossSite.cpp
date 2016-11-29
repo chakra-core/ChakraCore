@@ -7,6 +7,18 @@
 #include "Library/HostObjectBase.h"
 #include "Types/WithScopeObject.h"
 
+#if ENABLE_CROSSSITE_TRACE
+#define TTD_XSITE_LOG(CTX, MSG, VAR) if((CTX)->ShouldPerformRecordOrReplayAction()) \
+{ \
+    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteLiteralMsg(" -XS- "); \
+    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteLiteralMsg(MSG); \
+    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteVar(VAR); \
+    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteLiteralMsg("\n"); \
+}
+#else
+#define TTD_XSITE_LOG(CTX, MSG, VAR)
+#endif
+
 namespace Js
 {
 
@@ -31,6 +43,9 @@ namespace Js
     void CrossSite::MarshalDynamicObject(ScriptContext * scriptContext, DynamicObject * object)
     {
         Assert(!object->IsExternal() && !object->IsCrossSiteObject());
+
+        TTD_XSITE_LOG(scriptContext, "MarshalDynamicObject", object);
+
         object->MarshalToScriptContext(scriptContext);
         if (object->GetTypeId() == TypeIds_Function)
         {
@@ -43,10 +58,14 @@ namespace Js
             {
                 if (function->GetDynamicType()->GetIsShared())
                 {
+                    TTD_XSITE_LOG(scriptContext, "SetCrossSiteForSharedFunctionType ", object);
+
                     function->GetLibrary()->SetCrossSiteForSharedFunctionType(function);
                 }
                 else
                 {
+                    TTD_XSITE_LOG(scriptContext, "setEntryPoint->CurrentCrossSiteThunk ", object);
+
                     function->SetEntryPoint(function->GetScriptContext()->CurrentCrossSiteThunk);
                 }
             }
@@ -80,6 +99,8 @@ namespace Js
 
     Var CrossSite::MarshalFrameDisplay(ScriptContext* scriptContext, FrameDisplay *display)
     {
+        TTD_XSITE_LOG(scriptContext, "MarshalFrameDisplay", nullptr);
+
         uint16 length = display->GetLength();
         FrameDisplay *newDisplay =
             RecyclerNewPlus(scriptContext->GetRecycler(), length * sizeof(Var), FrameDisplay, length);
@@ -122,6 +143,32 @@ namespace Js
         return fRequestWrapper && JavascriptFunction::Is(object) && JavascriptFunction::FromVar(object)->IsExternalFunction();
     }
 
+#if ENABLE_TTD
+    void CrossSite::MarshalCrossSite_TTDInflate(DynamicObject* obj)
+    {
+        obj->MarshalCrossSite_TTDInflate();
+
+        if(obj->GetTypeId() == TypeIds_Function)
+        {
+            AssertMsg(obj != obj->GetScriptContext()->GetLibrary()->GetDefaultAccessorFunction(), "default accessor marshalled -- I don't think this should ever happen as it is marshalled in a special case?");
+            JavascriptFunction * function = JavascriptFunction::FromVar(obj);
+
+            //
+            //TODO: what happens if the gaurd in marshal (MarshalDynamicObject) isn't true?
+            //
+
+            if(function->GetDynamicType()->GetIsShared())
+            {
+                function->GetLibrary()->SetCrossSiteForSharedFunctionType(function);
+            }
+            else
+            {
+                function->SetEntryPoint(function->GetScriptContext()->CurrentCrossSiteThunk);
+            }
+        }
+    }
+#endif
+
     Var CrossSite::MarshalVarInner(ScriptContext* scriptContext, __in Js::RecyclableObject* object, bool fRequestWrapper)
     {
         if (scriptContext == object->GetScriptContext())
@@ -145,6 +192,13 @@ namespace Js
             return object;
         }
 
+#if ENABLE_TTD
+        if (scriptContext->IsTTDSnapshotOrInflateInProgress())
+        {
+            return object;
+        }
+#endif
+
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(object);
 #endif
@@ -165,6 +219,8 @@ namespace Js
 
         if (StaticType::Is(typeId))
         {
+            TTD_XSITE_LOG(object->GetScriptContext(), "CloneToScriptContext", object);
+
             return object->CloneToScriptContext(scriptContext);
         }
 
@@ -177,6 +233,8 @@ namespace Js
             // So, if the module root which is being marshaled has host object, marshal it.
             if (hostObject)
             {
+                TTD_XSITE_LOG(object->GetScriptContext(), "hostObject", hostObject);
+
                 Var hostDispatch = hostObject->GetHostDispatchVar();
                 return CrossSite::MarshalVar(scriptContext, hostDispatch);
             }
@@ -186,11 +244,15 @@ namespace Js
         {
             if (object == object->GetScriptContext()->GetLibrary()->GetDefaultAccessorFunction() )
             {
+                TTD_XSITE_LOG(object->GetScriptContext(), "DefaultAccessorFunction", object);
+
                 return scriptContext->GetLibrary()->GetDefaultAccessorFunction();
             }
 
             if (DoRequestWrapper(object, fRequestWrapper))
             {
+                TTD_XSITE_LOG(object->GetScriptContext(), "CreateWrappedExternalFunction", object);
+
                 // Marshal as a cross-site thunk if necessary before re-wrapping in an external function thunk.
                 MarshalVarInner(scriptContext, object, false);
                 return scriptContext->GetLibrary()->CreateWrappedExternalFunction(static_cast<JavascriptExternalFunction*>(object));
@@ -206,6 +268,8 @@ namespace Js
         {
             if (!dynamicObject->IsCrossSiteObject())
             {
+                TTD_XSITE_LOG(object->GetScriptContext(), "MarshalDynamicObjectAndPrototype", object);
+
                 MarshalDynamicObjectAndPrototype(scriptContext, dynamicObject);
             }
         }
@@ -214,6 +278,8 @@ namespace Js
             MarshalPrototypeChain(scriptContext, dynamicObject);
             if (Js::JavascriptConversion::IsCallable(dynamicObject))
             {
+                TTD_XSITE_LOG(object->GetScriptContext(), "MarshalToScriptContext", object);
+
                 dynamicObject->MarshalToScriptContext(scriptContext);
             }
         }
@@ -244,6 +310,8 @@ namespace Js
 
         JavascriptMethod entryPoint;
         FunctionInfo *funcInfo = function->GetFunctionInfo();
+
+        TTD_XSITE_LOG(callable->GetScriptContext(), "DefaultOrProfileThunk", callable);
 
         if (funcInfo->HasBody())
         {
@@ -281,6 +349,8 @@ namespace Js
 
         JavascriptMethod entryPoint;
         FunctionInfo *funcInfo = function->GetFunctionInfo();
+
+        TTD_XSITE_LOG(callable->GetScriptContext(), "DefaultOrProfileThunk", callable);
 
         if (funcInfo->HasBody())
         {
@@ -332,6 +402,8 @@ namespace Js
 #if DBG_DUMP || defined(PROFILE_EXEC) || defined(PROFILE_MEM)
         calleeHostScriptContext->EnsureParentInfo(callerHostScriptContext->GetScriptContext());
 #endif
+
+        TTD_XSITE_LOG(recyclableObject->GetScriptContext(), "CommonThunk -- Pass Through", recyclableObject);
 
         uint i = 0;
         if (args.Values[0] == nullptr)

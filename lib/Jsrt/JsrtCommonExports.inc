@@ -103,14 +103,19 @@
     JsGetRuntime
     JsIdle
     JsSetPromiseContinuationCallback
-    JsRunScriptUtf8
-    JsSerializeScriptUtf8
-    JsRunSerializedScriptUtf8
-    JsGetPropertyIdFromNameUtf8
-    JsStringFree
+#ifndef NTBUILD
+    JsCreateString
+    JsCreateStringUtf8
+    JsCreateStringUtf16
+    JsCopyString
+    JsCopyStringUtf8
+    JsCopyStringUtf16
+    JsParse
+    JsRun
+    JsSerialize
+    JsParseSerialized
+    JsRunSerialized
+    JsCreatePropertyIdUtf8
+    JsCopyPropertyIdUtf8
     JsDiagEvaluateUtf8
-    JsParseScriptUtf8
-    JsParseScriptWithAttributesUtf8
-    JsStringToPointerUtf8Copy
-    JsPointerToStringUtf8
-    JsGetPropertyNameFromIdUtf8Copy
+#endif

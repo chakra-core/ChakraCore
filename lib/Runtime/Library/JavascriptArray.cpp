@@ -15,7 +15,7 @@ namespace Js
     const SparseArraySegmentBase *JavascriptArray::EmptySegment = (SparseArraySegmentBase *)&EmptySegmentData;
 
     // col0 : allocation bucket
-    // col1 : No. of missing items to set during initialization depending on bucket. 
+    // col1 : No. of missing items to set during initialization depending on bucket.
     // col2 : allocation size for elements in given bucket.
     // col1 and col2 is calculated at runtime
     uint JavascriptNativeFloatArray::allocationBuckets[][AllocationBucketsInfoSize] =
@@ -752,6 +752,40 @@ namespace Js
         return IsMissingHeadSegmentItemImpl<double>(index);
     }
 
+    template<typename T>
+    void JavascriptArray::InternalFillFromPrototype(JavascriptArray *dstArray, const T& dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count)
+    {
+        RecyclableObject* prototype = srcArray->GetPrototype();
+        while (start + count != end && JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
+        {
+            ForEachOwnMissingArrayIndexOfObject(srcArray, dstArray, prototype, start, end, dstIndex, [&](uint32 index, Var value) {
+                T n = dstIndex + (index - start);
+                dstArray->DirectSetItemAt(n, value);
+
+                count++;
+            });
+
+            prototype = prototype->GetPrototype();
+        }
+    }
+
+    template<>
+    void JavascriptArray::InternalFillFromPrototype<uint32>(JavascriptArray *dstArray, const uint32& dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count)
+    {
+        RecyclableObject* prototype = srcArray->GetPrototype();
+        while (start + count != end && JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
+        {
+            ForEachOwnMissingArrayIndexOfObject(srcArray, dstArray, prototype, start, end, dstIndex, [&](uint32 index, Var value) {
+                uint32 n = dstIndex + (index - start);
+                dstArray->SetItem(n, value, PropertyOperation_None);
+
+                count++;
+            });
+
+            prototype = prototype->GetPrototype();
+        }
+    }
+
     /* static */
     bool JavascriptArray::HasInlineHeadSegment(uint32 length)
     {
@@ -839,11 +873,7 @@ namespace Js
             JavascriptLibrary *lib = scriptContext->GetLibrary();
             FunctionBody *functionBody = weakFuncRef->Get();
 
-#if TTD_DISABLE_COPYONACCESS_ARRAY_WORK_AROUNDS
-            if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, count) && Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::CopyOnAccessArrayPhase))
-#else
             if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, count))
-#endif
             {
                 Assert(lib->cacheForCopyOnAccessArraySegments);
                 arr = scriptContext->GetLibrary()->CreateCopyOnAccessNativeIntArrayLiteral(arrayInfo, functionBody, ints);
@@ -2905,6 +2935,23 @@ namespace Js
         return  JavascriptNumber::ToVar(idxDest, scriptContext);
     }
 
+    void JavascriptArray::ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, uint32 index)
+    {
+        if (!succeeded)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_CantRedefineProp, JavascriptConversion::ToString(JavascriptNumber::ToVar(index, scriptContext), scriptContext)->GetSz());
+        }
+    }
+
+    void JavascriptArray::ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, BigIndex index)
+    {
+        if (!succeeded)
+        {
+            uint64 i = (uint64)(index.IsSmallIndex() ? index.GetSmallIndex() : index.GetBigIndex());
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_CantRedefineProp, JavascriptConversion::ToString(JavascriptNumber::ToVar(i, scriptContext), scriptContext)->GetSz());
+        }
+    }
+
     BOOL JavascriptArray::SetArrayLikeObjects(RecyclableObject* pDestObj, uint32 idxDest, Var aItem)
     {
         return pDestObj->SetItem(idxDest, aItem, Js::PropertyOperation_ThrowIfNotExtensible);
@@ -3036,7 +3083,7 @@ namespace Js
                             }
                             else
                             {
-                                SetArrayLikeObjects(pDestObj, idxDest, subItem);
+                                ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxDest);
                             }
                         }
                         ++idxDest;
@@ -3055,7 +3102,7 @@ namespace Js
                             }
                             else
                             {
-                                SetArrayLikeObjects(pDestObj, idxDest, subItem);
+                                ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxSubItem);
                             }
                         }
                         ++idxDest;
@@ -3367,6 +3414,9 @@ namespace Js
         pDestObj = ArraySpeciesCreate(args[0], 0, scriptContext);
         if (pDestObj)
         {
+#if ENABLE_COPYONACCESS_ARRAY
+            JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(pDestObj);
+#endif
             // Check the thing that species create made. If it's a native array that can't handle the source
             // data, convert it. If it's a more conservative kind of array than the source data, indicate that
             // so that the data will be converted on copy.
@@ -3747,7 +3797,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayIndexOfCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_indexOf);
 
         Var returnValue =  IndexOfHelper<false>(args, scriptContext);
 
@@ -3766,7 +3816,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayIncludesCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_includes);
 
         Var returnValue = IndexOfHelper<true>(args, scriptContext);
         Assert(returnValue == scriptContext->GetLibrary()->GetTrue() || returnValue == scriptContext->GetLibrary()->GetFalse());
@@ -4480,7 +4530,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayLastIndexOfCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_lastIndexOf);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -5945,6 +5995,9 @@ Case0:
             }
 
             newArr = CreateNewArrayHelper(static_cast<uint32>(newLenT), isIntArray, isFloatArray, pArr, scriptContext);
+#if ENABLE_COPYONACCESS_ARRAY
+            JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newArr);
+#endif
             newObj = newArr;
         }
         else
@@ -5952,6 +6005,9 @@ Case0:
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
             if (JavascriptArray::Is(newObj))
             {
+#if ENABLE_COPYONACCESS_ARRAY
+                JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
                 newArr = JavascriptArray::FromVar(newObj);
             }
         }
@@ -6033,7 +6089,7 @@ Case0:
                         continue;
                     }
 
-                    JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                 }
             }
         }
@@ -6087,7 +6143,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptOperators::OP_SetElementI_UInt32(newObj, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                     }
                 }
             }
@@ -6731,6 +6787,9 @@ Case0:
                 // If the new object we created is an array, remember that as it will save us time setting properties in the object below
                 if (JavascriptArray::Is(newObj))
                 {
+#if ENABLE_COPYONACCESS_ARRAY
+                    JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
                     newArr = JavascriptArray::FromVar(newObj);
                 }
             }
@@ -6739,10 +6798,13 @@ Case0:
             {
                 pArr->GetArrayTypeAndConvert(&isIntArray, &isFloatArray);
                 newArr = CreateNewArrayHelper(deleteLen, isIntArray, isFloatArray, pArr, scriptContext);
+#if ENABLE_COPYONACCESS_ARRAY
+                JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newArr);
+#endif
             }
 
             // If return object is a JavascriptArray, we can use all the array splice helpers
-            if (newArr && isBuiltinArrayCtor)
+            if (newArr && isBuiltinArrayCtor && len == pArr->length)
             {
 
                 // Array has a single segment (need not start at 0) and splice start lies in the range
@@ -7233,6 +7295,9 @@ Case0:
 
         if (JavascriptArray::Is(pNewObj))
         {
+#if ENABLE_COPYONACCESS_ARRAY
+            JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(pNewObj);
+#endif
             pnewArr = JavascriptArray::FromVar(pNewObj);
         }
 
@@ -7250,7 +7315,7 @@ Case0:
                    }
                    else
                    {
-                       JavascriptArray::SetArrayLikeObjects(pNewObj, i, element);
+                       ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(pNewObj, i, element), scriptContext, i);
                    }
                }
             }
@@ -7824,7 +7889,7 @@ Case0:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayisArrayCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Constructor_isArray);
 
         if (args.Info.Count < 2)
         {
@@ -8118,6 +8183,9 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.values"));
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(thisObj);
+#endif
         return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::Value);
     }
 
@@ -8131,7 +8199,7 @@ Case0:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayEveryCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_every);
 
         if (args.Info.Count == 0)
         {
@@ -8290,7 +8358,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.some"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArraySomeCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_some);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8452,7 +8520,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.forEach"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayForEachCount)
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_forEach)
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8861,7 +8929,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.map"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayMapCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_map);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8977,6 +9045,9 @@ Case0:
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
             if (JavascriptArray::Is(newObj))
             {
+#if ENABLE_COPYONACCESS_ARRAY
+                JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
                 newArr = JavascriptArray::FromVar(newObj);
             }
         }
@@ -9013,7 +9084,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue), scriptContext, k);
                 }
             }
         }
@@ -9080,7 +9151,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue), scriptContext, k);
                     }
                 }
             }
@@ -9104,7 +9175,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.filter"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayFilterCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_filter);
 
         Assert(!(callInfo.Flags & CallFlags_New));
         if (args.Info.Count == 0)
@@ -9166,7 +9237,8 @@ Case0:
         }
 
         // If the source object is an Array exotic object we should try to load the constructor property and use it to construct the return object.
-        RecyclableObject* newObj = ArraySpeciesCreate(obj, 0, scriptContext);
+        bool isBuiltinArrayCtor = true;
+        RecyclableObject* newObj = ArraySpeciesCreate(obj, 0, scriptContext, nullptr, nullptr, &isBuiltinArrayCtor);
         JavascriptArray* newArr = nullptr;
 
         if (newObj == nullptr)
@@ -9180,6 +9252,9 @@ Case0:
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
             if (JavascriptArray::Is(newObj))
             {
+#if ENABLE_COPYONACCESS_ARRAY
+                JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
                 newArr = JavascriptArray::FromVar(newObj);
             }
         }
@@ -9208,13 +9283,13 @@ Case0:
                 if (JavascriptConversion::ToBoolean(selected, scriptContext))
                 {
                     // Try to fast path if the return object is an array
-                    if (newArr)
+                    if (newArr && isBuiltinArrayCtor)
                     {
                         newArr->DirectSetItemAt(i, element);
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                     }
                     ++i;
                 }
@@ -9243,7 +9318,7 @@ Case0:
                         }
                         else
                         {
-                            JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                            ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                         }
                         ++i;
                     }
@@ -9269,7 +9344,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduce"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayReduceCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduce);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -9469,7 +9544,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduceRight"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayReduceRightCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduceRight);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -9763,7 +9838,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, nextValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, nextValue), scriptContext, k);
                 }
 
                 k++;
@@ -9832,7 +9907,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue), scriptContext, k);
                 }
             }
 
@@ -9940,7 +10015,7 @@ Case0:
             for (uint32 k = 0; k < len; k++)
             {
                 Var kValue = args[k + 1];
-                JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue);
+                ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue), scriptContext, k);
             }
         }
 
@@ -10077,6 +10152,7 @@ Case0:
         {
             if (JavascriptArray::Is(arr))
             {
+                arr = EnsureNonNativeArray(arr);
                 ArrayElementEnumerator e(arr, startIndex, limitIndex);
 
                 while(e.MoveNext<Var>())
@@ -10830,6 +10906,9 @@ Case0:
 
     JavascriptArray *JavascriptArray::EnsureNonNativeArray(JavascriptArray *arr)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(arr);
+#endif
         if (JavascriptNativeIntArray::Is(arr))
         {
             arr = JavascriptNativeIntArray::ToVarArray((JavascriptNativeIntArray*)arr);
@@ -10909,23 +10988,6 @@ Case0:
         if (start + count != end)
         {
             InternalFillFromPrototype(dstArray, dstIndex, srcArray, start, end, count);
-        }
-    }
-
-    template<typename T>
-    void JavascriptArray::InternalFillFromPrototype(JavascriptArray *dstArray, const T& dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count)
-    {
-        RecyclableObject* prototype = srcArray->GetPrototype();
-        while (start + count != end && JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
-        {
-            ForEachOwnMissingArrayIndexOfObject(srcArray, dstArray, prototype, start, end, dstIndex, [&](uint32 index, Var value) {
-                T n = dstIndex + (index - start);
-                dstArray->DirectSetItemAt(n, value);
-
-                count++;
-            });
-
-            prototype = prototype->GetPrototype();
         }
     }
 
@@ -11352,7 +11414,7 @@ Case0:
 #if ENABLE_TTD
     void JavascriptArray::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_Array || this->GetTypeId() == Js::TypeIds_ES5Array, "Should only be used on basic arrays (or called as super from ES5Array.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_Array || this->GetTypeId() == Js::TypeIds_ES5Array, "Should only be used on basic arrays (or called as super from ES5Array.");
 
         ScriptContext* ctx = this->GetScriptContext();
 
@@ -11375,7 +11437,7 @@ Case0:
 
     void JavascriptArray::ProcessCorePaths()
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic arrays.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic arrays.");
 
         ScriptContext* ctx = this->GetScriptContext();
 
@@ -11406,7 +11468,7 @@ Case0:
 
     void JavascriptArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic Js arrays.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic Js arrays.");
 
         TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>* sai = TTD::NSSnapObjects::ExtractArrayValues<TTD::TTDVar>(this, alloc);
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>*, TTD::NSSnapObjects::SnapObjectType::SnapArrayObject>(objData, sai);
@@ -11448,15 +11510,21 @@ Case0:
 
     void JavascriptNativeIntArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_NativeIntArray, "Should only be used on native int arrays.");
-
-#if ENABLE_COPYONACCESS_ARRAY
-        AssertMsg(this->GetTypeId() != Js::TypeIds_CopyOnAccessNativeIntArray, "Need to handle this case seperately.");
-#endif
-
         TTD::NSSnapObjects::SnapArrayInfo<int32>* sai = TTD::NSSnapObjects::ExtractArrayValues<int32>(this, alloc);
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<int32>*, TTD::NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>(objData, sai);
     }
+
+#if ENABLE_COPYONACCESS_ARRAY
+    TTD::NSSnapObjects::SnapObjectType JavascriptCopyOnAccessNativeIntArray::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptCopyOnAccessNativeIntArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTDAssert(false, "Not implemented yet!!!");
+    }
+#endif
 #endif
 
     JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead) :
@@ -11488,7 +11556,7 @@ Case0:
 
     void JavascriptNativeFloatArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_NativeFloatArray, "Should only be used on native float arrays.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_NativeFloatArray, "Should only be used on native float arrays.");
 
         TTD::NSSnapObjects::SnapArrayInfo<double>* sai = TTD::NSSnapObjects::ExtractArrayValues<double>(this, alloc);
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<double>*, TTD::NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>(objData, sai);
@@ -11537,6 +11605,11 @@ Case0:
             {
                 if (!JavascriptOperators::GetProperty((RecyclableObject*)constructor, PropertyIds::_symbolSpecies, &constructor, scriptContext))
                 {
+                    if (pIsBuiltinArrayCtor != nullptr)
+                    {
+                        *pIsBuiltinArrayCtor = false;
+                    }
+
                     return nullptr;
                 }
                 if (constructor == scriptContext->GetLibrary()->GetNull())

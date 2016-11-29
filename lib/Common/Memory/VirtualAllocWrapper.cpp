@@ -143,22 +143,25 @@ PreReservedVirtualAllocWrapper::IsInRange(void * address)
     {
         return false;
     }
-    bool result = IsInRange(GetPreReservedStartAddress(), address);
+    bool isInRange = IsInRange(GetPreReservedStartAddress(), address);
 #if DBG
-    //Check if the region is in MEM_COMMIT state.
-    MEMORY_BASIC_INFORMATION memBasicInfo;
-    size_t bytes = VirtualQueryEx(processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
-    if (bytes == 0)
+    if (isInRange)
     {
-        if (this->processHandle != GetCurrentProcess())
+        //Check if the region is in MEM_COMMIT state.
+        MEMORY_BASIC_INFORMATION memBasicInfo;
+        size_t bytes = VirtualQueryEx(processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
+        if (bytes == 0)
         {
-            MemoryOperationLastError::RecordLastErrorAndThrow();
+            if (this->processHandle != GetCurrentProcess())
+            {
+                MemoryOperationLastError::RecordLastErrorAndThrow();
+            }
+            return false;
         }
-        return false;
+        AssertMsg(memBasicInfo.State == MEM_COMMIT, "Memory not committed? Checking for uncommitted address region?");
     }
-    AssertMsg(memBasicInfo.State == MEM_COMMIT, "Memory not committed? Checking for uncommitted address region?");
 #endif
-    return result;
+    return isInRange;
 }
 
 /* static */

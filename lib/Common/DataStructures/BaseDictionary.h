@@ -225,6 +225,13 @@ namespace JsUtil
             return entries[i].Value();
         }
 
+        const TValue Item(const TKey& key) const
+        {
+            int i = FindEntry(key);
+            Assert(i >= 0);
+            return entries[i].Value();
+        }
+
         int Add(const TKey& key, const TValue& value)
         {
             return Insert<Insert_Add>(key, value);
@@ -717,8 +724,10 @@ namespace JsUtil
             {
                 if(buckets[i] != -1)
                 {
-                    for (int currentIndex = buckets[i] ; currentIndex != -1 ; currentIndex = entries[currentIndex].next)
+                    int nextIndex = -1;
+                    for (int currentIndex = buckets[i] ; currentIndex != -1 ; currentIndex = nextIndex)
                     {
+                        nextIndex = entries[currentIndex].next;
                         if (fn(entries[currentIndex]))
                         {
                             return true; // fn condition succeeds

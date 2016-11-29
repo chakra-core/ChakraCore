@@ -30,7 +30,8 @@ private:
     IR::Instr * TryChangeInstrForStackArgOpt();
     void InsertArgInsForFormals();
     void ProcessBailOnStackArgsOutOfActualsRange();
-    bool DeadStoreOrChangeInstrForScopeObjRemoval();
+    void MarkScopeObjSymUseForStackArgOpt();
+    bool DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev);
     void ProcessUse(IR::Opnd * opnd);
     bool ProcessDef(IR::Opnd * opnd);
     void ProcessTransfers(IR::Instr * instr);

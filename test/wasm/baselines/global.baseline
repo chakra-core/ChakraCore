@@ -1,0 +1,85 @@
+Print all i32
+i32: 10
+basic: -2
+export: 10
+exportMut: Expected error thrown
+mutable: 0
+import: 234
+impInit: 234
+impInitMut: Expected error thrown
+
+Print all i64
+i64: undefined
+basic: 72705214775360
+export: Expected error thrown
+exportMut: Expected error thrown
+mutable: 0
+import: Expected error thrown
+impInit: Expected error thrown
+impInitMut: Expected error thrown
+
+Print all f32
+f32: -54.869998931884766
+basic: 3.140000104904175
+export: -54.869998931884766
+exportMut: Expected error thrown
+mutable: 0
+import: 8.470000267028808
+impInit: 8.470000267028808
+impInitMut: Expected error thrown
+
+Print all f64
+f64: 7861.477
+basic: -8745.544
+export: 7861.477
+exportMut: Expected error thrown
+mutable: 0
+import: 78.145
+impInit: 78.145
+impInitMut: Expected error thrown
+
+Modify mutable globals
+Print all i32
+i32: 10
+basic: -2
+export: 10
+exportMut: Expected error thrown
+mutable: 456789
+import: 234
+impInit: 234
+impInitMut: Expected error thrown
+
+Print all i64
+i64: undefined
+basic: 72705214775360
+export: Expected error thrown
+exportMut: Expected error thrown
+mutable: 231035056950337
+import: Expected error thrown
+impInit: Expected error thrown
+impInitMut: Expected error thrown
+
+Print all f32
+f32: -54.869998931884766
+basic: 3.140000104904175
+export: -54.869998931884766
+exportMut: Expected error thrown
+mutable: 45.779998779296875
+import: 8.470000267028808
+impInit: 8.470000267028808
+impInitMut: Expected error thrown
+
+Print all f64
+f64: 7861.477
+basic: -8745.544
+export: 7861.477
+exportMut: Expected error thrown
+mutable: 65.7895
+import: 78.145
+impInit: 78.145
+impInitMut: Expected error thrown
+
+Invalid cases
+Should be invalid type conversion: Invalid WebAssembly type conversion
+Should be invalid type conversion: Invalid WebAssembly type conversion
+Should be invalid init expr: Compiling wasm failed: Global can only be initialized with a const or an imported global

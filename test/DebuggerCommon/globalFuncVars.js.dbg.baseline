@@ -1,7 +1,6 @@
 [
   {
     "this": {
-      "telemetryLog": "function <large string>",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "console": "Object {...}",
@@ -52,7 +51,6 @@
   },
   {
     "this": {
-      "telemetryLog": "function <large string>",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "console": "Object {...}",
@@ -110,7 +108,6 @@
   },
   {
     "this": {
-      "telemetryLog": "function <large string>",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "console": "Object {...}",

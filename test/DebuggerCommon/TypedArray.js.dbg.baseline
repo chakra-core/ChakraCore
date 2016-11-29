@@ -12,6 +12,7 @@
             "bind": "function function bind() { [native code] }",
             "call": "function function call() { [native code] }",
             "toString": "function function toString() { [native code] }",
+            "Symbol.hasInstance": "function function [Symbol.hasInstance]() { [native code] }",
             "caller": "Error 'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context",
             "arguments": "Error 'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context"
           },

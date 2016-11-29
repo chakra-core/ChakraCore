@@ -17,10 +17,42 @@ namespace Wasm
             I64 = 2,
             F32 = 3,
             F64 = 4,
-            Limit,
-            Unreachable
+            Limit
         };
         bool IsLocalType(WasmTypes::WasmType type);
+        uint32 GetTypeByteSize(WasmType type);
+    }
+
+    namespace ExternalKinds
+    {
+        enum ExternalKind
+        {
+            Function = 0,
+            Table = 1,
+            Memory = 2,
+            Global = 3,
+            Limit
+        };
+    }
+
+    namespace FunctionIndexTypes
+    {
+        enum Type
+        {
+            Invalid = -1,
+            ImportThunk,
+            Function,
+            Import
+        };
+        bool CanBeExported(Type funcType);
+    }
+
+    namespace GlobalReferenceTypes
+    {
+        enum Type
+        {
+            Invalid, Const, LocalReference, ImportedReference
+        };
     }
 
     struct WasmOpCodeSignatures
@@ -33,7 +65,6 @@ namespace Wasm
     {
 #define WASM_OPCODE(opname, opcode, sig, nyi) wb##opname = opcode,
 #include "WasmBinaryOpCodes.h"
-        wbFuncEnd,
         wbLimit
     };
 
@@ -66,27 +97,24 @@ namespace Wasm
     struct WasmBrNode
     {
         uint32 depth;
-        uint32 arity;
-        bool hasSubExpr;
     };
 
     struct WasmBrTableNode
     {
-        uint32 arity;
         uint32 numTargets;
         uint32* targetTable;
         uint32 defaultTarget;
     };
 
-    struct WasmReturnNode
-    {
-        uint32 arity;
-    };
-
     struct WasmCallNode
     {
         uint32 num; // function id
-        uint32 arity;
+        FunctionIndexTypes::Type funcType;
+    };
+
+    struct WasmBlock
+    {
+        WasmTypes::WasmType sig;
     };
 
     struct WasmNode
@@ -94,30 +122,30 @@ namespace Wasm
         WasmOp op;
         union
         {
-            WasmVarNode var;
-            WasmConstLitNode cnst;
+            WasmBlock block;
             WasmBrNode br;
             WasmBrTableNode brTable;
-            WasmMemOpNode mem;
-            WasmReturnNode ret;
             WasmCallNode call;
+            WasmConstLitNode cnst;
+            WasmMemOpNode mem;
+            WasmVarNode var;
         };
     };
 
     struct WasmExport
     {
-        uint32 funcIndex;
+        uint32 index;
         uint32 nameLength;
-        char16* name;
+        const char16* name;
+        ExternalKinds::ExternalKind kind;
     };
 
     struct WasmImport
     {
-        uint32 sigId;
+        ExternalKinds::ExternalKind kind;
         uint32 modNameLen;
-        char16* modName;
-        uint32 fnNameLen;
-        char16* fnName;
+        const char16* modName;
+        uint32 importNameLen;
+        const char16* importName;
     };
-
 }

@@ -1270,6 +1270,7 @@ void ValueType::InitializeTypeIdToBitsMap()
     TypeIdToBits[TypeIds_SIMDUint8x16      ] = GetObject(ObjectType::Simd128Int8x16).bits;
     TypeIdToBits[TypeIds_SIMDFloat64x2     ] = GetObject(ObjectType::Simd128Float64x2).bits;
 
+    TypeIdToBits[TypeIds_HostDispatch      ] = ValueType::UninitializedObject.bits;
 
     VirtualTypeIdToBits[TypeIds_Int8Array] = GetObject(ObjectType::Int8VirtualArray).bits;
     VirtualTypeIdToBits[TypeIds_Uint8Array] = GetObject(ObjectType::Uint8VirtualArray).bits;

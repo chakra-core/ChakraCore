@@ -472,6 +472,10 @@ EncoderMD::EmitImmed(IR::Opnd * opnd, int opSize, int sbit, bool allow64Immediat
 
     switch (opnd->GetKind())
     {
+    case IR::OpndKindInt64Const:
+        value = (size_t)opnd->AsInt64ConstOpnd()->GetValue();
+        goto intConst;
+
     case IR::OpndKindAddr:
         value = (size_t)opnd->AsAddrOpnd()->m_address;
         goto intConst;
@@ -609,7 +613,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
     if (opr1)
     {
-        instrSize = this->GetOpndSize(opr1);
+        instrSize = this->GetOpndSize(opdope & DREXSRC ? opr2 : opr1);
 
 #if DBG
         switch (instr->m_opcode)
@@ -855,7 +859,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             }
             else if (opr1->IsRegOpnd())
             {
-                rexByte    |= this->GetRexByte(this->REXR, opr1);
+                rexByte |= this->GetRexByte(this->REXR, opr1);
                 rexByte    |= this->EmitModRM(instr, opr2, this->GetRegEncode(opr1->AsRegOpnd()));
                 if ((*form) & DBIT)
                 {
@@ -1018,11 +1022,11 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
             case Js::OpCode::IMUL2:
                 AssertMsg(opr1->IsRegOpnd() && instrSize != 1, "Illegal IMUL2");
-                Assert(instrSize < 8);
                 if (!opr2->IsImmediateOpnd())
                 {
                     continue;
                 }
+                Assert(instrSize < 8);
 
                 // turn an 'imul2 reg, immed' into an 'imul3 reg, reg, immed'.
 
@@ -1737,7 +1741,7 @@ bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
 {
     Assert(regOpnd->m_sym->IsConst());
 
-    if (regOpnd->m_sym->IsFloatConst())
+    if (regOpnd->m_sym->IsFloatConst() || regOpnd->m_sym->IsInt64Const())
     {
         return false;
     }

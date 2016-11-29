@@ -95,7 +95,7 @@ elseif(CC_EMBED_ICU)
     ${ICU18}
     ${ICUDATA}
     )
- endif()
+endif()
 
 set(CLR_CMAKE_PLATFORM_XPLAT 1)
 if(CC_TARGETS_AMD64)
@@ -150,11 +150,10 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
     if(NOT CC_XCODE_PROJECT)
         set(CLR_CMAKE_PLATFORM_DARWIN 1)
+        add_compile_options(-mmacosx-version-min=10.7)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
             -mmacosx-version-min=10.7")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-            -mmacosx-version-min=10.7")
-        set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
             -mmacosx-version-min=10.7")
     endif()
 else()
@@ -173,6 +172,7 @@ if(STATIC_LIBRARY)
 endif()
 
 if(CLR_CMAKE_PLATFORM_XPLAT)
+    add_definitions(-DFEATURE_PAL)
     add_definitions(-DPLATFORM_UNIX=1)
 
     if(CLR_CMAKE_PLATFORM_LINUX)
@@ -239,15 +239,13 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         # -Wno-return-type # switch unreachable code
         # -Wno-switch # switch values not handled
 
-    # xplat-todo for release build
-    # -fno-inline.... -> -mno-omit.... are needed for more accurate stack inf.
-    # Release Builds: Not sure if this has to be as strict as the debug/test?
+    include(Build/CMakeFeatureDetect.cmake)
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -fdelayed-template-parsing\
-        -fno-omit-frame-pointer\
-        -fno-optimize-sibling-calls\
-        -mno-omit-leaf-frame-pointer" # this is for compat reasons. i.e. It is a noop with gcc
-    )
+        ${CXX_DO_NOT_OPTIMIZE_SIBLING_CALLS} \
+        -fno-omit-frame-pointer \
+        -fdelayed-template-parsing"
+        )
 
     # CXX / CC COMPILER FLAGS
     add_compile_options(
@@ -264,6 +262,14 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     endif()
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
+if(ENABLE_FULL_LTO_SH)
+    unset(DENABLE_FULL_LTO_SH CACHE)
+    add_compile_options(-flto)
+elseif(ENABLE_THIN_LTO_SH)
+    unset(ENABLE_THIN_LTO_SH CACHE)
+    add_compile_options(-flto=thin)
+endif()
+
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(
         -DDBG=1
@@ -278,9 +284,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Test)
 endif(CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -O3"
-    )
+    add_compile_options(-O3)
 endif(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
@@ -290,12 +294,7 @@ if(IS_64BIT_BUILD)
     )
 endif(IS_64BIT_BUILD)
 
-if(CLR_CMAKE_PLATFORM_XPLAT)
-   add_definitions(-DFEATURE_PAL)
-endif(CLR_CMAKE_PLATFORM_XPLAT)
-
-if(NO_JIT_SH
-   OR CLR_CMAKE_PLATFORM_DARWIN)  # TODO: JIT for OSX
+if(NO_JIT_SH)
     unset(NO_JIT_SH CACHE)      # don't cache
     unset(BuildJIT CACHE)       # also clear it just in case
     add_definitions(-DDISABLE_JIT=1)

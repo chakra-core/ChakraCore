@@ -1,3 +1,1 @@
-Unexpected Error while compiling i64.0.wasm
-Error: Compiling wasm failed: I64 support NYI
-0/0 tests passed.
+344/344 tests passed.

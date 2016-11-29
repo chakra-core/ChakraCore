@@ -210,7 +210,7 @@
       "type": "assert_return",
       "name": "$assert_return_41",
       "file": "return.wast",
-      "line": 244
+      "line": 243
     }, {
       "type": "assert_return",
       "name": "$assert_return_42",
@@ -220,17 +220,17 @@
       "type": "assert_return",
       "name": "$assert_return_43",
       "file": "return.wast",
-      "line": 246
+      "line": 247
     }, {
       "type": "assert_return",
       "name": "$assert_return_44",
       "file": "return.wast",
-      "line": 247
+      "line": 248
     }, {
       "type": "assert_return",
       "name": "$assert_return_45",
       "file": "return.wast",
-      "line": 249
+      "line": 250
     }, {
       "type": "assert_return",
       "name": "$assert_return_46",
@@ -245,7 +245,7 @@
       "type": "assert_return",
       "name": "$assert_return_48",
       "file": "return.wast",
-      "line": 254
+      "line": 253
     }, {
       "type": "assert_return",
       "name": "$assert_return_49",
@@ -255,52 +255,37 @@
       "type": "assert_return",
       "name": "$assert_return_50",
       "file": "return.wast",
-      "line": 256
+      "line": 257
     }, {
       "type": "assert_return",
       "name": "$assert_return_51",
       "file": "return.wast",
-      "line": 257
+      "line": 258
     }, {
       "type": "assert_return",
       "name": "$assert_return_52",
       "file": "return.wast",
-      "line": 259
+      "line": 260
     }, {
       "type": "assert_return",
       "name": "$assert_return_53",
       "file": "return.wast",
-      "line": 261
+      "line": 262
     }, {
       "type": "assert_return",
       "name": "$assert_return_54",
       "file": "return.wast",
-      "line": 262
+      "line": 263
     }, {
       "type": "assert_return",
       "name": "$assert_return_55",
       "file": "return.wast",
-      "line": 264
+      "line": 265
     }, {
       "type": "assert_return",
       "name": "$assert_return_56",
       "file": "return.wast",
-      "line": 266
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_57",
-      "file": "return.wast",
       "line": 267
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_58",
-      "file": "return.wast",
-      "line": 269
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_59",
-      "file": "return.wast",
-      "line": 271
     }]
   }]
 }

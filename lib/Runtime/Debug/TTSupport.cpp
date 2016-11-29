@@ -6,6 +6,14 @@
 
 #if ENABLE_TTD
 
+void TTDAbort_fatal_error(const char* msg)
+{
+    printf("TTD assert failed: %s\n", msg);
+
+    int scenario = 101;
+    ReportFatalException(NULL, E_UNEXPECTED, Fatal_TTDAbort, scenario);
+}
+
 namespace TTD
 {
     TTModeStack::TTModeStack()
@@ -26,14 +34,14 @@ namespace TTD
 
     TTDMode TTModeStack::GetAt(uint32 index) const
     {
-        AssertMsg(index < this->m_stackTop, "index is out of range");
+        TTDAssert(index < this->m_stackTop, "index is out of range");
 
         return this->m_stackEntries[index];
     }
 
     void TTModeStack::SetAt(uint32 index, TTDMode m)
     {
-        AssertMsg(index < this->m_stackTop, "index is out of range");
+        TTDAssert(index < this->m_stackTop, "index is out of range");
 
         this->m_stackEntries[index] = m;
     }
@@ -58,14 +66,14 @@ namespace TTD
 
     TTDMode TTModeStack::Peek() const
     {
-        AssertMsg(this->m_stackTop > 0, "Undeflow in stack pop.");
+        TTDAssert(this->m_stackTop > 0, "Undeflow in stack pop.");
 
         return this->m_stackEntries[this->m_stackTop - 1];
     }
 
     void TTModeStack::Pop()
     {
-        AssertMsg(this->m_stackTop > 0, "Undeflow in stack pop.");
+        TTDAssert(this->m_stackTop > 0, "Undeflow in stack pop.");
 
         this->m_stackTop--;
     }
@@ -133,18 +141,20 @@ namespace TTD
             return this->m_contents == nullptr;
         }
 
-        void TTAutoString::Append(const char16* str, int32 start, int32 end)
+        void TTAutoString::Append(const char16* str, size_t start, size_t end)
         {
+            Assert(end > start);
+
             if(this->m_contents == nullptr && str == nullptr)
             {
                 return;
             }
 
             size_t origsize = (this->m_contents != nullptr ? wcslen(this->m_contents) : 0);
-            int32 strsize = -1;
-            if(start == 0 && end == INT32_MAX)
+            size_t strsize = 0;
+            if(start == 0 && end == SIZE_T_MAX)
             {
-                strsize = (str != nullptr ? (int32)wcslen(str) : 0);
+                strsize = (str != nullptr ? wcslen(str) : 0);
             }
             else
             {
@@ -165,8 +175,8 @@ namespace TTD
 
             if(str != nullptr)
             {
-                int32 curr = (int32)origsize;
-                for(int32 i = start; i <= end && str[i] != '\0'; ++i)
+                size_t curr = origsize;
+                for(size_t i = start; i <= end && str[i] != '\0'; ++i)
                 {
                     nbuff[curr] = str[i];
                     curr++;
@@ -175,10 +185,10 @@ namespace TTD
             }
 
             this->m_contents = nbuff;
-            this->m_allocSize = (int32)nsize;
+            this->m_allocSize = (int64)nsize;
         }
 
-        void TTAutoString::Append(const TTAutoString& str, int32 start, int32 end)
+        void TTAutoString::Append(const TTAutoString& str, size_t start, size_t end)
         {
             this->Append(str.GetStrValue(), start, end);
         }
@@ -208,7 +218,7 @@ namespace TTD
                 i++;
                 curr++;
             }
-            AssertMsg(i + 1 == strCount, "Our indexing is off.");
+            TTDAssert(i + 1 == strCount, "Our indexing is off.");
 
             buff[i] = _u('\0');
             this->Append(buff);
@@ -218,15 +228,15 @@ namespace TTD
 
         int32 TTAutoString::GetLength() const
         {
-            AssertMsg(!this->IsNullString(), "That doesn't make sense.");
+            TTDAssert(!this->IsNullString(), "That doesn't make sense.");
 
             return (int32)wcslen(this->m_contents);
         }
 
         char16 TTAutoString::GetCharAt(int32 pos) const
         {
-            AssertMsg(!this->IsNullString(), "That doesn't make sense.");
-            AssertMsg(0 <= pos && pos < this->GetLength(), "Not in valid range.");
+            TTDAssert(!this->IsNullString(), "That doesn't make sense.");
+            TTDAssert(0 <= pos && pos < this->GetLength(), "Not in valid range.");
 
             return this->m_contents[pos];
         }
@@ -318,10 +328,12 @@ namespace TTD
 
     void TTUriString::SetUriValue(size_t byteLength, const byte* data)
     {
-        AssertMsg(this->UriBytes == nullptr, "Should not set this if it is already set!!!");
+        TTDAssert(this->UriBytes == nullptr, "Should not set this if it is already set!!!");
+        TTDAssert(data != nullptr, "This shouldn't happen");
 
         this->UriByteLength = byteLength;
         this->UriBytes = (byte*)CoTaskMemAlloc(byteLength);
+        TTDAssert(this->UriBytes != nullptr, "Allocation failed!");
 
         js_memcpy_s(this->UriBytes, this->UriByteLength, data, byteLength);
     }

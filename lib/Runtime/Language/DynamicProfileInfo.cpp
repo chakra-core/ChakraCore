@@ -189,11 +189,22 @@ namespace Js
         }
 
         this->rejitCount = 0;
+        this->bailOutOffsetForLastRejit = Js::Constants::NoByteCodeOffset;
 #if DBG
         for (ProfileId i = 0; i < functionBody->GetProfiledArrayCallSiteCount(); ++i)
         {
             arrayCallSiteInfo[i].functionNumber = functionBody->GetFunctionNumber();
             arrayCallSiteInfo[i].callSiteNumber = i;
+        }
+#endif
+
+#if TTD_NATIVE_PROFILE_ARRAY_WORK_AROUND
+        if(functionBody->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode())
+        {
+            for(ProfileId i = 0; i < functionBody->GetProfiledArrayCallSiteCount(); ++i)
+            {
+                arrayCallSiteInfo[i].SetIsNotNativeArray();
+            }
         }
 #endif
     }
@@ -413,7 +424,7 @@ namespace Js
         }
 
         // Mark the callsite bit where caller and callee is same function
-        if (functionBody == calleeFunctionInfo && callSiteId < 32)
+        if (calleeFunctionInfo && functionBody == calleeFunctionInfo->GetFunctionProxy() && callSiteId < 32)
         {
             this->m_recursiveInlineInfo = this->m_recursiveInlineInfo | (1 << callSiteId);
         }
@@ -770,7 +781,8 @@ namespace Js
 
             if (sourceId == CurrentSourceId) // caller and callee in same file
             {
-                return functionBody->GetUtf8SourceInfo()->FindFunction(functionId);
+                FunctionProxy *inlineeProxy = functionBody->GetUtf8SourceInfo()->FindFunction(functionId);
+                return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
             }
 
             if (sourceId != NoSourceId && sourceId != InvalidSourceId)
@@ -784,7 +796,8 @@ namespace Js
                         Utf8SourceInfo *srcInfo = sourceList->Item(i)->Get();
                         if (srcInfo && srcInfo->GetHostSourceContext() == sourceId)
                         {
-                            return  srcInfo->FindFunction(functionId);
+                            FunctionProxy *inlineeProxy = srcInfo->FindFunction(functionId);
+                            return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
                         }
                     }
                 }
@@ -889,10 +902,11 @@ namespace Js
 
     // We are overloading the value types to store whether it is a mod by power of 2.
     // TaggedInt:
-    inline void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2)
+    void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body,
+                                 ProfileId profileId, bool isModByPowerOf2)
     {
         Assert(profileId < body->GetProfiledDivOrRemCount());
-        // allow one op of the modulus to be optimized - anyway
+        /* allow one op of the modulus to be optimized - anyway */
         if (divideTypeInfo[profileId].IsUninitialized())
         {
             divideTypeInfo[profileId] = ValueType::GetInt(true);
@@ -901,11 +915,13 @@ namespace Js
         {
             if (isModByPowerOf2)
             {
-                divideTypeInfo[profileId] = divideTypeInfo[profileId].Merge(ValueType::GetInt(true));
+                divideTypeInfo[profileId] = divideTypeInfo[profileId]
+                                           .Merge(ValueType::GetInt(true));
             }
             else
             {
-                divideTypeInfo[profileId] = divideTypeInfo[profileId].Merge(ValueType::Float);
+                divideTypeInfo[profileId] = divideTypeInfo[profileId]
+                                           .Merge(ValueType::Float);
             }
         }
     }

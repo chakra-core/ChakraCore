@@ -19,6 +19,13 @@ enum RoundMode : BYTE {
     RoundModeHalfToEven = 2
 };
 
+struct Int64RegPair
+{
+    IR::Opnd* high;
+    IR::Opnd* low;
+    Int64RegPair(): high(nullptr), low(nullptr) {}
+};
+
 #if defined(_M_IX86) || defined(_M_AMD64)
 #include "LowerMDShared.h"
 #elif defined(_M_ARM) || defined(_M_ARM64)
@@ -46,6 +53,9 @@ class Lowerer
 public:
     Lowerer(Func * func) : m_func(func), m_lowererMD(func), nextStackFunctionOpnd(nullptr), outerMostLoopLabel(nullptr),
         initializedTempSym(nullptr), addToLiveOnBackEdgeSyms(nullptr), currentRegion(nullptr)
+#ifndef _M_X64
+        , m_int64RegPairMap(nullptr)
+#endif
     {
     }
 
@@ -140,14 +150,16 @@ private:
     void            PinTypeRef(JITTypeHolder type, void* typeRef, IR::Instr* instr, Js::PropertyId propertyId);
     IR::RegOpnd *   GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject = true, IR::LabelInstr *labelFastExternal = nullptr);
 
+
+
     void            EnsureStackFunctionListStackSym();
     void            EnsureZeroLastStackFunctionNext();
     void            AllocStackClosure();
     IR::Instr *     GenerateNewStackScFunc(IR::Instr * newScFuncInstr, IR::RegOpnd ** ppEnvOpnd);
-    void            GenerateStackScriptFunctionInit(StackSym * stackSym, intptr_t nestedProxy);
+    void            GenerateStackScriptFunctionInit(StackSym * stackSym, Js::FunctionInfoPtrPtr nestedInfo);
     void            GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddressOpnd,
-                        intptr_t nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr, bool isZeroed = false);
-    void            GenerateStackScriptFunctionInit(IR::RegOpnd * regOpnd, intptr_t nestedProxy, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr);
+                        Js::FunctionInfoPtrPtr nestedInfo, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr, bool isZeroed = false);
+    void            GenerateStackScriptFunctionInit(IR::RegOpnd * regOpnd, Js::FunctionInfoPtrPtr nestedInfo, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr);
     IR::Instr *     LowerProfiledStFld(IR::JitProfilingInstr * instr, Js::PropertyOperationFlags flags);
     IR::Instr *     LowerStFld(IR::Instr * stFldInstr, IR::JnHelperMethod helperMethod, IR::JnHelperMethod polymorphicHelperMethod, bool withInlineCache, IR::LabelInstr *ppBailOutLabel = nullptr, bool isHelper = false, bool withPutFlags = false, Js::PropertyOperationFlags flags = Js::PropertyOperation_None);
     IR::Instr *     LowerScopedStFld(IR::Instr * stFldInstr, IR::JnHelperMethod helperMethod, bool withInlineCache,
@@ -164,6 +176,7 @@ private:
 
     IR::Instr *     LowerLdArrViewElem(IR::Instr * instr);
     IR::Instr *     LowerStArrViewElem(IR::Instr * instr);
+    IR::Instr *     LowerLdArrViewElemWasm(IR::Instr * instr);
     IR::Instr *     LowerArrayDetachedCheck(IR::Instr * instr);
     IR::Instr *     LowerDeleteElemI(IR::Instr *instr, bool strictMode);
     IR::Instr *     LowerStElemC(IR::Instr *instr);
@@ -199,6 +212,11 @@ private:
         IR::JnHelperMethod helperMethodWithTemp, IR::JnHelperMethod helperMethodLeftDead);
     IR::Instr *     LowerAddLeftDeadForString(IR::Instr *instr);
     IR::Instr *     LowerBinaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod);
+#ifdef ENABLE_WASM
+    IR::Instr *     LowerCheckWasmSignature(IR::Instr * instr);
+    IR::Instr *     LowerLdWasmFunc(IR::Instr* instr);
+    IR::Instr *     LowerGrowWasmMemory(IR::Instr* instr);
+#endif
     IR::Instr *     LowerInitCachedScope(IR::Instr * instr);
     IR::Instr *     LowerBrBReturn(IR::Instr * instr, IR::JnHelperMethod helperMethod, bool isHelper);
     IR::Instr *     LowerBrBMem(IR::Instr *instr, IR::JnHelperMethod helperMethod);
@@ -246,6 +264,8 @@ private:
     bool            GenerateFastBrSrNeq(IR::Instr * instr, IR::Instr ** pInstrPrev);
     IR::BranchInstr* GenerateFastBrConst(IR::BranchInstr *branchInstr, IR::Opnd * constOpnd, bool isEqual);
     bool            GenerateFastCondBranch(IR::BranchInstr * instrBranch, bool *pIsHelper);
+    void            GenerateBooleanNegate(IR::Instr * instr, IR::Opnd * srcBool, IR::Opnd * dst);
+    bool            GenerateFastEqBoolInt(IR::Instr * instr, bool *pIsHelper);
     bool            GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper);
     bool            GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *src1, IR::Opnd *src2, IR::LabelInstr * labelHelper, IR::LabelInstr * labelEqualLikely, bool *pNeedHelper);
     bool            GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper);
@@ -298,6 +318,11 @@ private:
     void            InsertBitTestBranch(IR::Opnd * bitMaskOpnd, IR::Opnd * bitIndex, bool jumpIfBitOn, IR::LabelInstr * targetLabel, IR::Instr * insertBeforeInstr);
     void            GenerateGetSingleCharString(IR::RegOpnd * charCodeOpnd, IR::Opnd * resultOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * doneLabel, IR::Instr * instr, bool isCodePoint);
     void            GenerateFastBrBReturn(IR::Instr * instr);
+
+#ifndef _M_X64
+    void            EnsureInt64RegPairMap();
+    Int64RegPair    FindOrCreateInt64Pair(IR::Opnd*);
+#endif
 public:
     static IR::LabelInstr *     InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr);
 
@@ -327,8 +352,7 @@ public:
     static IR::Instr *          InsertConvertFloat64ToFloat32(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr);
 
 public:
-    static void InsertIncUInt8PreventOverflow(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, IR::Instr * *const onOverflowInsertBeforeInstrRef = nullptr);
-    static void InsertDecUInt8PreventOverflow(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, IR::Instr * *const onOverflowInsertBeforeInstrRef = nullptr);
+    static void InsertDecUInt32PreventOverflow(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, IR::Instr * *const onOverflowInsertBeforeInstrRef = nullptr);
     void InsertFloatCheckForZeroOrNanBranch(IR::Opnd *const src, const bool branchOnZeroOrNan, IR::LabelInstr *const target, IR::LabelInstr *const fallthroughLabel, IR::Instr *const insertBeforeInstr);
 
 public:
@@ -363,9 +387,11 @@ private:
     void            GenerateFastInlineArrayPop(IR::Instr * instr);
     void            GenerateFastInlineStringSplitMatch(IR::Instr * instr);
     void            GenerateFastInlineMathImul(IR::Instr* instr);
-    void            GenerateFastInlineMathClz32(IR::Instr* instr);
+    void            GenerateFastInlineMathClz(IR::Instr* instr);
     void            GenerateCtz(IR::Instr* instr);
-    void            GeneratePopCnt32(IR::Instr* instr);
+    void            GeneratePopCnt(IR::Instr* instr);
+    void            GenerateThrowUnreachable(IR::Instr* instr);
+    void            GenerateTruncWithCheck(IR::Instr* instr);
     void            GenerateFastInlineMathFround(IR::Instr* instr);
     void            GenerateFastInlineRegExpExec(IR::Instr * instr);
     bool            GenerateFastPush(IR::Opnd *baseOpndParam, IR::Opnd *src, IR::Instr *callInstr, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, IR::LabelInstr *doneLabel, IR::LabelInstr * bailOutLabelHelper, bool returnLength = false);
@@ -418,7 +444,7 @@ private:
     void            GenerateObjectTestAndTypeLoad(IR::Instr *instrLdSt, IR::RegOpnd *opndBase, IR::RegOpnd *opndType, IR::LabelInstr *labelHelper);
     IR::LabelInstr *GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr = nullptr, IR::LabelInstr * labelBailOut = nullptr, IR::LabelInstr * collectRuntimeStatsLabel = nullptr);
     void            GenerateJumpToEpilogForBailOut(BailOutInfo * bailOutInfo, IR::Instr *instrAfter);
-
+    void            GenerateThrow(IR::Opnd* errorCode, IR::Instr * instr) const;
     void            LowerDivI4(IR::Instr * const instr);
     void            LowerRemI4(IR::Instr * const instr);
     void            LowerDivI4Common(IR::Instr * const instr);
@@ -458,10 +484,11 @@ private:
 
     void            RelocateCallDirectToHelperPath(IR::Instr* argoutInlineSpecialized, IR::LabelInstr* labelHelper);
 
-    bool            TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool *pfNoLower);
-    void            GenerateFastBrTypeOf(IR::Instr *branch, IR::RegOpnd *object, IR::IntConstOpnd *typeIdOpnd, IR::Instr *typeOf, bool *pfNoLower);
-    void            GenerateFastCmTypeOf(IR::Instr *compare, IR::RegOpnd *object, IR::IntConstOpnd *typeIdOpnd, IR::Instr *typeOf, bool *pfNoLower);
-    void            GenerateFalsyObjectTest(IR::Instr *insertInstr, IR::RegOpnd *TypeOpnd, Js::TypeId typeIdToCheck, IR::LabelInstr* target, IR::LabelInstr* done, bool isNeqOp);
+    bool            TryGenerateFastBrOrCmTypeOf(IR::Instr *instr, IR::Instr **prev, bool isNeqOp, bool *pfNoLower);
+    void            GenerateFastBrTypeOf(IR::Instr *branch, IR::RegOpnd *object, IR::IntConstOpnd *typeIdOpnd, IR::Instr *typeOf, bool *pfNoLower, bool isNeqOp);
+    void            GenerateFastCmTypeOf(IR::Instr *compare, IR::RegOpnd *object, IR::IntConstOpnd *typeIdOpnd, IR::Instr *typeOf, bool *pfNoLower, bool isNeqOp);
+    void            GenerateFalsyObjectTest(IR::Instr *insertInstr, IR::RegOpnd *typeOpnd, Js::TypeId typeIdToCheck, IR::LabelInstr* target, IR::LabelInstr* done, bool isNeqOp);
+    void            GenerateFalsyObjectTest(IR::Instr * insertInstr, IR::RegOpnd * typeOpnd, IR::LabelInstr * falsyLabel);
 
     void            GenerateJavascriptOperatorsIsConstructorGotoElse(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelTrue, IR::LabelInstr *labelFalse);
     void            GenerateRecyclableObjectGetPrototypeNullptrGoto(IR::Instr *instrInsert, IR::RegOpnd *instanceRegOpnd, IR::LabelInstr *labelReturnNullptr);
@@ -524,7 +551,7 @@ private:
     IR::Opnd *          LoadFunctionBodyOpnd(IR::Instr *instr);
     IR::Opnd *          LoadScriptContextOpnd(IR::Instr *instr);
     IR::Opnd *          LoadScriptContextValueOpnd(IR::Instr * instr, ScriptContextValue valueType);
-    IR::Opnd *          LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType, RegNum regNum = RegNOREG);
+    IR::Opnd *          LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType);
     IR::Opnd *          LoadVTableValueOpnd(IR::Instr * instr, VTableValue vtableType);
     IR::Opnd *          LoadOptimizationOverridesValueOpnd(IR::Instr *instr, OptimizationOverridesValue valueType);
     IR::Opnd *          LoadNumberAllocatorValueOpnd(IR::Instr *instr, NumberAllocatorValue valueType);
@@ -616,4 +643,9 @@ private:
     BVSparse<JitArenaAllocator> * initializedTempSym;
     BVSparse<JitArenaAllocator> * addToLiveOnBackEdgeSyms;
     Region *        currentRegion;
+#ifndef _M_X64
+    struct Int64SymPair { StackSym* high; StackSym* low; };
+    typedef BaseDictionary<SymID, Int64SymPair, JitArenaAllocator> Int64RegPairMap;
+    Int64RegPairMap* m_int64RegPairMap;
+#endif
 };

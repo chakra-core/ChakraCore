@@ -16,12 +16,15 @@ namespace Js
             {
                 char* dataBlock = __super::Alloc(requestedBytes);
 #if DBG
-                NativeCodeData::DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
-                chunk->dataType = "BranchDictionary::Bucket";
-                if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                if (JITManager::GetJITManager()->IsJITServer())
                 {
-                    Output::Print(_u("NativeCodeData BranchDictionary::Bucket: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
-                        chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+                    NativeCodeData::DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
+                    chunk->dataType = "BranchDictionary::Bucket";
+                    if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                    {
+                        Output::Print(_u("NativeCodeData BranchDictionary::Bucket: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
+                            chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+                    }
                 }
 #endif
                 return dataBlock;
@@ -31,12 +34,15 @@ namespace Js
             {
                 char* dataBlock = __super::AllocZero(requestedBytes);
 #if DBG
-                NativeCodeData::DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
-                chunk->dataType = "BranchDictionary::Entries";
-                if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                if (JITManager::GetJITManager()->IsJITServer())
                 {
-                    Output::Print(_u("NativeCodeData BranchDictionary::Entries: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
-                        chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+                    NativeCodeData::DataChunk* chunk = NativeCodeData::GetDataChunk(dataBlock);
+                    chunk->dataType = "BranchDictionary::Entries";
+                    if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+                    {
+                        Output::Print(_u("NativeCodeData BranchDictionary::Entries: chunk: %p, data: %p, index: %d, len: %x, totalOffset: %x, type: %S\n"),
+                            chunk, (void*)dataBlock, chunk->allocIndex, chunk->len, chunk->offset, chunk->dataType);
+                    }
                 }
 #endif
                 return dataBlock;
@@ -47,7 +53,6 @@ namespace Js
         class SimpleDictionaryEntryWithFixUp : public JsUtil::SimpleDictionaryEntry<TKey, TValue>
         {
         public:
-            __declspec(noinline)
             void FixupWithRemoteKey(void* remoteKey)
             {
                 this->key = (TKey)remoteKey;
@@ -63,7 +68,6 @@ namespace Js
                 : BranchBaseDictionary(allocator, dictionarySize)
             {
             }
-            __declspec(noinline)
             void Fixup(NativeCodeData::DataChunk* chunkList, void** remoteKeys)
             {
                 for (int i = 0; i < this->Count(); i++)
@@ -84,6 +88,7 @@ namespace Js
             }
             else
             {
+                Assert(!JITManager::GetJITManager()->IsJITServer());
                 remoteKeys = nullptr;
             }
         }
@@ -91,11 +96,6 @@ namespace Js
         BranchDictionary dictionary;
         void* defaultTarget;
         void** remoteKeys;
-
-        bool IsOOPJit()
-        {
-            return remoteKeys != nullptr;
-        }
 
         static BranchDictionaryWrapper* New(NativeCodeData::Allocator * allocator, uint dictionarySize, ArenaAllocator* remoteKeyAlloc)
         {
@@ -105,15 +105,16 @@ namespace Js
         void AddEntry(uint32 offset, T key, void* remoteVar)
         {
             int index = dictionary.AddNew(key, (void**)offset);
-            if (IsOOPJit())
+            if (JITManager::GetJITManager()->IsJITServer())
             {
+                Assert(remoteKeys);
                 remoteKeys[index] = remoteVar;
             }
         }
 
         void Fixup(NativeCodeData::DataChunk* chunkList)
         {
-            if (IsOOPJit())
+            if (JITManager::GetJITManager()->IsJITServer())
             {
                 dictionary.Fixup(chunkList, remoteKeys);
             }

@@ -46,37 +46,6 @@ ushort ValidPointers<TBlockAttributes>::GetInteriorAddressIndex(uint index) cons
 }
 
 template <class TBlockAttributes>
-const ValidPointers<TBlockAttributes>
-HeapInfo::ValidPointersMap<TBlockAttributes>::GetValidPointersForIndex(uint index) const
-{
-    Assert(index < TBlockAttributes::BucketCount);
-    __analysis_assume(index < TBlockAttributes::BucketCount);
-    return validPointersBuffer[index];
-}
-
-template <class TBlockAttributes>
-const typename SmallHeapBlockT<TBlockAttributes>::SmallHeapBlockBitVector *
-HeapInfo::ValidPointersMap<TBlockAttributes>::GetInvalidBitVector(uint index) const
-{
-    Assert(index < TBlockAttributes::BucketCount);
-    __analysis_assume(index < TBlockAttributes::BucketCount);
-#if USE_STATIC_VPM
-    return &(*invalidBitsBuffers)[index];
-#else
-    return &invalidBitsBuffers[index];
-#endif
-}
-
-template <class TBlockAttributes>
-const typename SmallHeapBlockT<TBlockAttributes>::BlockInfo *
-HeapInfo::ValidPointersMap<TBlockAttributes>::GetBlockInfo (uint index) const
-{
-    Assert(index < TBlockAttributes::BucketCount);
-    __analysis_assume(index < TBlockAttributes::BucketCount);
-    return blockInfoBuffer[index];
-}
-
-template <class TBlockAttributes>
 void HeapInfo::ValidPointersMap<TBlockAttributes>::GenerateValidPointersMap(ValidPointersMapTable& validTable, InvalidBitsTable& invalidTable, BlockInfoMapTable& blockInfoTable)
 {
     // Create the valid pointer map to be shared by the buckets.

@@ -10,13 +10,25 @@ namespace Wasm
 class WasmMath
 {
 public:
-    static int Ctz(int value);
+    template<typename T> static int Eqz(T value);
+    template<typename T> static T Div( T aLeft, T aRight );
+    template<typename T> static T Rem( T aLeft, T aRight );
+    template<typename T> static T Shl( T aLeft, T aRight );
+    template<typename T> static T Shr( T aLeft, T aRight );
+    template<typename T> static T ShrU( T aLeft, T aRight );
     template<typename T> static T Copysign(T aLeft, T aRight);
-    static int Eqz(int value);
     template<typename T> static T Trunc(T aLeft);
     template<typename T> static T Nearest(T aLeft);
-    static int Rol(int aLeft, int aRight);
-    static int Ror(int aLeft, int aRight);
+    template<typename T> static T PopCnt(T value);
+    template<typename T> static T Ctz(T value);
+    template<typename T> static T Clz(T value);
+    template<typename T> static T Rol(T aLeft, T aRight);
+    template<typename T> static T Ror(T aLeft, T aRight);
+    template <typename T> bool static LessThan(T aLeft, T aRight);
+    template <typename T> bool static LessOrEqual(T aLeft, T aRight);
+    template <typename T> using CmpPtr = bool(*)(T a, T b);
+    template <typename STYPE, typename UTYPE, UTYPE MAX, UTYPE NEG_ZERO, UTYPE NEG_ONE, CmpPtr<UTYPE> CMP1, CmpPtr<UTYPE> CMP2> static bool isInRange(STYPE srcVal);
+    template <typename STYPE> static bool isNaN(STYPE src);
 };
 
 } //namespace Wasm

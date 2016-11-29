@@ -9,9 +9,6 @@
   {
     "this": "Object {...}",
     "arguments": "Object {...}",
-    "functionCallsReturn": {
-      "[Date returned]": "string <large string>"
-    },
     "locals": {
       "a": "string <large string>"
     }
@@ -40,9 +37,6 @@
   {
     "this": "Object {...}",
     "arguments": "Object {...}",
-    "functionCallsReturn": {
-      "[Array returned]": "Array [a,b]"
-    },
     "locals": {
       "arr": "Array [a,b]",
       "str": "undefined undefined",

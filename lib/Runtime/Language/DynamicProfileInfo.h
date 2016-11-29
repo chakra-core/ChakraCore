@@ -5,7 +5,7 @@
 #pragma once
 
 // DisableJit-TODO
-#if ENABLE_PROFILE_INFO 
+#if ENABLE_PROFILE_INFO
 
 #ifdef DYNAMIC_PROFILE_MUTATOR
 class DynamicProfileMutatorImpl;
@@ -375,6 +375,7 @@ namespace Js
         ValueType * GetDivideTypeInfo() const { return divideTypeInfo; }
 
         void RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2);
+
         bool IsModulusOpByPowerOf2(FunctionBody* body, ProfileId profileId) const;
 
         void RecordSwitchType(FunctionBody* body, ProfileId switchId, Var object);
@@ -516,6 +517,7 @@ namespace Js
 
         uint32 m_recursiveInlineInfo; // Bit is set for each callsites where the function is called recursively
         uint32 polymorphicCacheState;
+        uint32 bailOutOffsetForLastRejit;
         uint16 rejitCount;
         BYTE currentInlinerVersion; // Used to detect when inlining profile changes
         bool hasFunctionBody;
@@ -809,6 +811,8 @@ namespace Js
         static bool IsCallSiteNoInfo(Js::LocalFunctionId functionId) { return functionId == CallSiteNoInfo; }
         int IncRejitCount() { return this->rejitCount++; }
         int GetRejitCount() { return this->rejitCount; }
+        void SetBailOutOffsetForLastRejit(uint32 offset) { this->bailOutOffsetForLastRejit = offset; }
+        uint32 GetBailOutOffsetForLastRejit() { return this->bailOutOffsetForLastRejit; }
 
 #if DBG_DUMP
         void Dump(FunctionBody* functionBody, ArenaAllocator * dynamicProfileInfoAllocator = nullptr);

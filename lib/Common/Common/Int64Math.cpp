@@ -8,7 +8,7 @@
 #if defined(_M_X64)
 #if defined(_MSC_VER) && !defined(__clang__)
     #pragma intrinsic(_mul128)
-#else
+#elif !__has_builtin(__builtin_mul_overflow)
     static int64 _mul128(const int64 left, const int64 right, int64 *high) noexcept
     {
         int64 low;

@@ -76,7 +76,6 @@ public:
     void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);
     void UpdateGlobalObjectThisAddr(intptr_t globalThis);
     EmitBufferManager<> * GetEmitBufferManager(bool asmJsManager);
-    void DecommitEmitBufferManager(bool asmJsManager);
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
     ServerThreadContext* GetThreadContext() { return threadContextHolder.threadContextInfo; }
 

@@ -1200,7 +1200,7 @@
   <test>
     <default>
       <files>symbols.js</files>
-      <compile-flags>-ES6Species -debuglaunch -dbgbaseline:symbols.js.dbg.baseline -es6toprimitive -es6isConcatSpreadable</compile-flags>
+      <compile-flags>-ES6Species -debuglaunch -dbgbaseline:symbols.js.dbg.baseline</compile-flags>
       <tags>fail_mutators,exclude_dynapogo</tags>
     </default>
   </test>

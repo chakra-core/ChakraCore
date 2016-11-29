@@ -969,6 +969,7 @@ namespace Js
         bool IsEmpty() const { return type == nullptr; }
         bool TryGetResult(Var instance, JavascriptFunction * function, JavascriptBoolean ** result);
         void Cache(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result, ScriptContext * scriptContext);
+        void Unregister(ScriptContext * scriptContext);
 
         static uint32 OffsetOfFunction();
         static uint32 OffsetOfResult();
@@ -977,7 +978,6 @@ namespace Js
     private:
         void Set(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result);
         void Clear();
-        void Unregister(ScriptContext * scriptContext);
     };
 
     // Two-entry Type-indexed circular cache

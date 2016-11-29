@@ -500,7 +500,12 @@ typedef UINT32 DWORD;
         /// <summary>
         ///     Specified script is internal and non-user code. Hidden from debugger
         /// </summary>
-        JsParseScriptAttributeLibraryCode = 0x1
+        JsParseScriptAttributeLibraryCode = 0x1,
+        /// <summary>
+        ///     ChakraCore assumes ExternalArrayBuffer is Utf8 by default.
+        ///     This one needs to be set for Utf16
+        /// </summary>
+        JsParseScriptAttributeArrayBufferIsUtf16Encoded = 0x2,
     } JsParseScriptAttributes;
 
     /// <summary>
@@ -642,17 +647,6 @@ typedef UINT32 DWORD;
     /// </summary>
     /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
     typedef void (CHAKRA_CALLBACK * JsSerializedScriptUnloadCallback)(_In_ JsSourceContext sourceContext);
-
-    /// <summary>
-    ///     Called by the runtime to load the source code of the serialized script.
-    ///     The caller must keep the script buffer valid until the JsSerializedScriptUnloadCallback.
-    /// </summary>
-    /// <param name="sourceContext">The context passed to Js[Parse|Run]SerializedScriptWithCallback</param>
-    /// <param name="scriptBuffer">The script returned, encoded as utf8.</param>
-    /// <returns>
-    ///     true if the operation succeeded, false otherwise.
-    /// </returns>
-    typedef bool (CHAKRA_CALLBACK * JsSerializedScriptLoadUtf8SourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const char** scriptBuffer);
 
     /// <summary>
     ///     A finalizer callback.
@@ -1041,269 +1035,6 @@ typedef UINT32 DWORD;
     CHAKRA_API
         JsIdle(
             _Out_opt_ unsigned int *nextIdleTick);
-
-    /// <summary>
-    ///     Parses a script and returns a function representing the script.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="script">The script to parse, encoded as utf8.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
-    /// <param name="result">A function representing the script code.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsParseScriptUtf8(
-            _In_z_ const char *script,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const char *sourceUrl,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Parses a script and returns a function representing the script.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="script">The script to parse, encoded as utf8.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
-    /// <param name="parseAttributes">Attribute mask for parsing the script</param>
-    /// <param name="result">A function representing the script code.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsParseScriptWithAttributesUtf8(
-            _In_z_ const char *script,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const char *sourceUrl,
-            _In_ JsParseScriptAttributes parseAttributes,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Executes a script.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    /// </remarks>
-    /// <param name="script">The script to run, encoded as utf8.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
-    /// <param name="result">The result of the script, if any. This parameter can be null.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsRunScriptUtf8(
-            _In_z_ const char *script,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const char *sourceUrl,
-            _Out_ JsValueRef *result);
-
-    /// <summary>
-    ///     Serializes a parsed script to a buffer than can be reused.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     <c>JsSerializeScript</c> parses a script and then stores the parsed form of the script in a
-    ///     runtime-independent format. The serialized script then can be deserialized in any
-    ///     runtime without requiring the script to be re-parsed.
-    ///     </para>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="script">The script to serialize, encoded as utf8.</param>
-    /// <param name="buffer">The buffer to put the serialized script into. Can be null.</param>
-    /// <param name="bufferSize">
-    ///     On entry, the size of the buffer, in bytes; on exit, the size of the buffer, in bytes,
-    ///     required to hold the serialized script.
-    /// </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsSerializeScriptUtf8(
-            _In_z_ const char *script,
-            _Out_writes_to_opt_(*bufferSize, *bufferSize) ChakraBytePtr buffer,
-            _Inout_ unsigned int *bufferSize);
-
-    /// <summary>
-    ///     Parses a serialized script and returns a function representing the script.
-    ///     Provides the ability to lazy load the script source only if/when it is needed.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    ///     <para>
-    ///     The runtime will hold on to the buffer until all instances of any functions created from
-    ///     the buffer are garbage collected.  It will then call scriptUnloadCallback to inform the
-    ///     caller it is safe to release.
-    ///     </para>
-    /// </remarks>
-    /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded. This is an optional parameter, set to null if not needed.</param>
-    /// <param name="scriptUnloadCallback">Callback called when the serialized script and source code are no longer needed. This is an optional parameter, set to null if not needed.</param>
-    /// <param name="buffer">The serialized script.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    ///     This context will passed into scriptLoadCallback and scriptUnloadCallback.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
-    /// <param name="result">A function representing the script code.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsParseSerializedScriptUtf8(
-            _In_ JsSerializedScriptLoadUtf8SourceCallback scriptLoadCallback,
-            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
-            _In_ ChakraBytePtr buffer,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const char *sourceUrl,
-            _Out_ JsValueRef * result);
-
-    /// <summary>
-    ///     Runs a serialized script.
-    ///     Provides the ability to lazy load the script source only if/when it is needed.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    ///     <para>
-    ///     The runtime will hold on to the buffer until all instances of any functions created from
-    ///     the buffer are garbage collected.  It will then call scriptUnloadCallback to inform the
-    ///     caller it is safe to release.
-    ///     </para>
-    /// </remarks>
-    /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded. This is an optional parameter, set to null if not needed.</param>
-    /// <param name="scriptUnloadCallback">Callback called when the serialized script and source code are no longer needed. This is an optional parameter, set to null if not needed.</param>
-    /// <param name="buffer">The serialized script.</param>
-    /// <param name="sourceContext">
-    ///     A cookie identifying the script that can be used by debuggable script contexts.
-    ///     This context will passed into scriptLoadCallback and scriptUnloadCallback.
-    /// </param>
-    /// <param name="sourceUrl">The location the script came from, encoded as utf8.</param>
-    /// <param name="result">
-    ///     The result of running the script, if any. This parameter can be null.
-    /// </param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsRunSerializedScriptUtf8(
-            _In_ JsSerializedScriptLoadUtf8SourceCallback scriptLoadCallback,
-            _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
-            _In_ ChakraBytePtr buffer,
-            _In_ JsSourceContext sourceContext,
-            _In_z_ const char *sourceUrl,
-            _Out_opt_ JsValueRef * result);
-
-    /// <summary>
-    ///     Gets the property ID associated with the name.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Property IDs are specific to a context and cannot be used across contexts.
-    ///     </para>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="name">
-    ///     The name of the property ID to get or create. The name may consist of only digits.
-    ///     The string is expected to be encoded as utf8.
-    /// </param>
-    /// <param name="propertyId">The property ID in this runtime for the given name.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsGetPropertyIdFromNameUtf8(
-            _In_z_ const char *name,
-            _Out_ JsPropertyIdRef *propertyId);
-
-    /// <summary>
-    ///     Gets the name associated with the property ID.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    ///     <para>
-    ///     Consumer is responsible from calling JsStringFree to free allocated memory.
-    ///
-    ///     Experimental. We may update the name or behavior until it is stable.
-    ///     </para>
-    /// </remarks>
-    /// <param name="propertyId">The property ID to get the name of.</param>
-    /// <param name="name">The name associated with the property ID, encoded as utf8.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsGetPropertyNameFromIdUtf8Copy(
-            _In_ JsPropertyIdRef propertyId,
-            _Outptr_result_z_ char **name);
-
-    /// <summary>
-    ///     Creates a string value from a string pointer.
-    /// </summary>
-    /// <remarks>
-    ///     Requires an active script context.
-    ///
-    ///     Experimental. We may update the name or behavior until it is stable.
-    /// </remarks>
-    /// <param name="stringValue">The string pointer to convert to a string value, encoded as Utf8.</param>
-    /// <param name="stringLength">The length of the string to convert.</param>
-    /// <param name="value">The new string value.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsPointerToStringUtf8(
-            _In_reads_(stringLength) const char *stringValue,
-            _In_ size_t stringLength,
-            _Out_ JsValueRef *value);
-
-    /// <summary>
-    ///     Retrieves the string pointer of a string value.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     This function retrieves the string pointer of a string value. It will fail with
-    ///     <c>JsErrorInvalidArgument</c> if the type of the value is not string. The lifetime
-    ///     of the string returned won't be the same as the lifetime of the value it came from, so
-    ///     the consumer is responsible from calling JsStringFree.
-    ///
-    ///     Experimental. We may update the name or behavior until it is stable.
-    ///     </para>
-    ///     <para>
-    ///     Requires an active script context.
-    ///     </para>
-    /// </remarks>
-    /// <param name="value">The string value to convert to a string pointer.</param>
-    /// <param name="stringValue">The string pointer, encoded as utf8.</param>
-    /// <param name="stringLength">The length of the string.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsStringToPointerUtf8Copy(
-            _In_ JsValueRef value,
-            _Outptr_result_buffer_(*stringLength) char **stringValue,
-            _Out_ size_t *stringLength);
 
     /// <summary>
     ///     Gets the symbol associated with the property ID.
@@ -2636,22 +2367,6 @@ typedef UINT32 DWORD;
         JsSetPromiseContinuationCallback(
             _In_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
-
-    /// <summary>
-    ///     Free the memory used for Utf8 buffer copy
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     Experimental. We may update the name or behavior until it is stable.
-    ///     </para>
-    /// </remarks>
-    /// <param name="stringValue">Pointer to string memory.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsStringFree(
-            _In_ char* stringValue);
 
 #ifdef _WIN32
 #include "ChakraCommonWindows.h"

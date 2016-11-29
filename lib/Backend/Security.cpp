@@ -331,6 +331,7 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
             {
                 dstSym->m_isConst = false;
                 dstSym->m_isIntConst = false;
+                dstSym->m_isInt64Const = false;
                 dstSym->m_isTaggableIntConst = false;
                 dstSym->m_isFltConst = false;
             }

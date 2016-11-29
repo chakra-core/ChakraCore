@@ -4,7 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-NativeCodeData::NativeCodeData(DataChunk * chunkList) : chunkList(chunkList)
+NativeCodeData::NativeCodeData(DataChunk * chunkList) 
+    : chunkList(chunkList)
 {
 #ifdef PERF_COUNTERS
     this->size = 0;
@@ -13,7 +14,14 @@ NativeCodeData::NativeCodeData(DataChunk * chunkList) : chunkList(chunkList)
 
 NativeCodeData::~NativeCodeData()
 {
-    NativeCodeData::DeleteChunkList(this->chunkList);
+    if (JITManager::GetJITManager()->IsJITServer())
+    {
+        NativeCodeData::DeleteChunkList(this->chunkList);
+    }
+    else
+    {
+        NativeCodeData::DeleteChunkList(this->noFixupChunkList);
+    }
     PERF_COUNTER_SUB(Code, DynamicNativeCodeDataSize, this->size);
     PERF_COUNTER_SUB(Code, TotalNativeCodeDataSize, this->size);
 }
@@ -171,19 +179,23 @@ NativeCodeData::VerifyExistFixupEntry(void* targetAddr, void* addrToFixup, void*
     AssertMsg(false, "Data chunk not found");
 }
 
+template<class DataChunkT>
 void
-NativeCodeData::DeleteChunkList(DataChunk * chunkList)
+NativeCodeData::DeleteChunkList(DataChunkT * chunkList)
 {
-    DataChunk * next = chunkList;
+    DataChunkT * next = chunkList;
     while (next != nullptr)
     {
-        DataChunk * current = next;
+        DataChunkT * current = next;
         next = next->next;
         delete current;
     }
 }
 
-NativeCodeData::Allocator::Allocator() : chunkList(nullptr), lastChunkList(nullptr)
+NativeCodeData::Allocator::Allocator() 
+    : chunkList(nullptr), 
+    lastChunkList(nullptr),
+    isOOPJIT(JITManager::GetJITManager()->IsJITServer())
 {
     this->totalSize = 0;
     this->allocCount = 0;
@@ -198,55 +210,73 @@ NativeCodeData::Allocator::Allocator() : chunkList(nullptr), lastChunkList(nullp
 NativeCodeData::Allocator::~Allocator()
 {
     Assert(!finalized || this->chunkList == nullptr);
-    NativeCodeData::DeleteChunkList(this->chunkList);
+    if (JITManager::GetJITManager()->IsJITServer())
+    {
+        NativeCodeData::DeleteChunkList(this->chunkList);
+    }
+    else
+    {
+        NativeCodeData::DeleteChunkList(this->noFixupChunkList);
+    }
     PERF_COUNTER_SUB(Code, DynamicNativeCodeDataSize, this->size);
     PERF_COUNTER_SUB(Code, TotalNativeCodeDataSize, this->size);
 }
 
 char *
-NativeCodeData::Allocator::Alloc(size_t requestSize)
+NativeCodeData::Allocator::Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestSize)
 {
-    char * data = nullptr;
     Assert(!finalized);
+    char * data = nullptr;    
     requestSize = Math::Align(requestSize, sizeof(void*));
 
-#if DBG
-    // Always zero out the data for chk build to reduce the chance of false
-    // positive while verifying missing fixup entries
-    // Allocation without zeroing out, and with bool field in the structure
-    // will increase the chance of false positive because of reusing memory
-    // without zeroing, and the bool field is set to false, makes the garbage 
-    // memory not changed, and the garbage memory might be just pointing to the 
-    // same range of NativeCodeData memory, the checking tool will report false 
-    // poisitive, see NativeCodeData::VerifyExistFixupEntry for more
-    DataChunk * newChunk = HeapNewStructPlusZ(requestSize, DataChunk);
-#else
-    DataChunk * newChunk = HeapNewStructPlus(requestSize, DataChunk);
-#endif
-
-#if DBG
-    newChunk->dataType = nullptr;
-#endif
-
-    newChunk->next = nullptr;
-    newChunk->allocIndex = this->allocCount++;
-    newChunk->len = (unsigned int)requestSize;
-    newChunk->fixupList = nullptr;
-    newChunk->fixupFunc = nullptr;
-    newChunk->offset = this->totalSize;
-    if (this->chunkList == nullptr)
+    if (isOOPJIT)
     {
-        this->chunkList = newChunk;
-        this->lastChunkList = newChunk;
+
+#if DBG
+        // Always zero out the data for chk build to reduce the chance of false
+        // positive while verifying missing fixup entries
+        // Allocation without zeroing out, and with bool field in the structure
+        // will increase the chance of false positive because of reusing memory
+        // without zeroing, and the bool field is set to false, makes the garbage 
+        // memory not changed, and the garbage memory might be just pointing to the 
+        // same range of NativeCodeData memory, the checking tool will report false 
+        // poisitive, see NativeCodeData::VerifyExistFixupEntry for more
+        DataChunk * newChunk = HeapNewStructPlusZ(requestSize, DataChunk);
+#else
+        DataChunk * newChunk = HeapNewStructPlus(requestSize, DataChunk);
+#endif
+
+#if DBG
+        newChunk->dataType = nullptr;
+#endif
+
+        newChunk->next = nullptr;
+        newChunk->allocIndex = this->allocCount++;
+        newChunk->len = (unsigned int)requestSize;
+        newChunk->fixupList = nullptr;
+        newChunk->fixupFunc = nullptr;
+        newChunk->offset = this->totalSize;
+        if (this->chunkList == nullptr)
+        {
+            this->chunkList = newChunk;
+            this->lastChunkList = newChunk;
+        }
+        else
+        {
+            this->lastChunkList->next = newChunk;
+            this->lastChunkList = newChunk;
+        }
+        this->totalSize += (unsigned int)requestSize;
+        data = newChunk->data;
     }
     else
     {
-        this->lastChunkList->next = newChunk;
-        this->lastChunkList = newChunk;
+        DataChunkNoFixup * newChunk = HeapNewStructPlus(requestSize, DataChunkNoFixup);
+        newChunk->next = this->noFixupChunkList;
+        this->noFixupChunkList = newChunk;
+        data = newChunk->data;
     }
 
-    data = newChunk->data;
-    this->totalSize += (unsigned int)requestSize;
 
 #ifdef PERF_COUNTERS
     this->size += requestSize;
@@ -258,18 +288,23 @@ NativeCodeData::Allocator::Alloc(size_t requestSize)
 }
 
 char *
-NativeCodeData::Allocator::AllocLeaf(size_t requestSize)
+NativeCodeData::Allocator::AllocLeaf(DECLSPEC_GUARD_OVERFLOW size_t requestSize)
 {
     return Alloc(requestSize);
 }
 
 char *
-NativeCodeData::Allocator::AllocZero(size_t requestSize)
+NativeCodeData::Allocator::AllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestSize)
 {
     char * data = Alloc(requestSize);
 #if !DBG
     // Allocated with HeapNewStructPlusZ for chk build
     memset(data, 0, requestSize);
+#else
+    if (!isOOPJIT) 
+    {
+        memset(data, 0, requestSize);
+    }
 #endif
     return data;
 }

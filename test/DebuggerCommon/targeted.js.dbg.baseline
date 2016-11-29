@@ -39,13 +39,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -277,13 +270,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -515,13 +501,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -753,13 +732,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -991,13 +963,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -1191,7 +1156,6 @@
   },
   {
     "this": {
-      "telemetryLog": "function <large string>",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "console": "Object {...}",
@@ -1228,7 +1192,6 @@
   },
   {
     "this": {
-      "telemetryLog": "function <large string>",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "console": "Object {...}",

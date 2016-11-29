@@ -314,13 +314,14 @@ Below test fails with difference in space. Investigate the cause and re-enable t
       <compile-flags>-mic:1 -off:simplejit -off:JITLoopBody -mmoc:0</compile-flags>
     </default>
   </test>
+  <!--Disabling this test case until the bug 9706251 is fixed
   <test>
     <default>
       <files>typedarray_bugfixes.js</files>
       <compile-flags>-Off:Deferparse -args summary -endargs</compile-flags>
       <tags>BugFix</tags>
     </default>
-  </test>
+  </test>-->
   <test>
     <default>
       <files>bug_OS_6911900.js</files>

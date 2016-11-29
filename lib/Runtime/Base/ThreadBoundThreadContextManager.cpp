@@ -74,7 +74,7 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
     JsUtil::BackgroundJobProcessor * jobProcessor = NULL;
 #endif
-    
+
     {
         AutoCriticalSection lock(ThreadContext::GetCriticalSection());
 

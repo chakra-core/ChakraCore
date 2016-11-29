@@ -129,7 +129,7 @@ namespace Js
         cache(nullptr),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
-        m_remoteScriptContextAddr(0),
+        m_remoteScriptContextAddr(nullptr),
         isWeakReferenceDictionaryListCleared(false)
 #if ENABLE_PROFILE_INFO
         , referencesSharedDynamicSourceContextInfo(false)
@@ -141,11 +141,18 @@ namespace Js
 #endif
 #if ENABLE_TTD
         , TTDHostCallbackFunctor()
-        , TTDMode(TTD::TTDMode::Invalid)
         , ScriptContextLogTag(TTD_INVALID_LOG_PTR_ID)
-        , TTDRootNestingCount(0)
         , TTDWellKnownInfo(nullptr)
         , TTDContextInfo(nullptr)
+        , TTDSnapshotOrInflateInProgress(false)
+        , TTDRecordOrReplayModeEnabled(false)
+        , TTDRecordModeEnabled(false)
+        , TTDReplayModeEnabled(false)
+        , TTDShouldPerformRecordOrReplayAction(false)
+        , TTDShouldPerformRecordAction(false)
+        , TTDShouldPerformReplayAction(false)
+        , TTDShouldPerformDebuggerAction(false)
+        , TTDShouldSuppressGetterInvocationForDebuggerEvaluation(false)
 #endif
 #ifdef REJIT_STATS
         , rejitStatsMap(nullptr)
@@ -500,11 +507,14 @@ namespace Js
         this->weakReferenceDictionaryList.Reset();
 
 #if ENABLE_NATIVE_CODEGEN
-        if (m_remoteScriptContextAddr != 0)
+        if (m_remoteScriptContextAddr)
         {
             Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-            JITManager::GetJITManager()->CleanupScriptContext(m_remoteScriptContextAddr);
-            m_remoteScriptContextAddr = 0;
+            if (JITManager::GetJITManager()->CleanupScriptContext(&m_remoteScriptContextAddr) == S_OK)
+            {
+                Assert(m_remoteScriptContextAddr == nullptr);
+            }
+            m_remoteScriptContextAddr = nullptr;
         }
 #endif
 
@@ -569,9 +579,7 @@ namespace Js
             Output::Flush();
         }
 #endif
-#ifdef ENABLE_JS_ETW
-        EventWriteJSCRIPT_HOST_SCRIPT_CONTEXT_CLOSE(this);
-#endif
+        JS_ETW_INTERNAL(EventWriteJSCRIPT_HOST_SCRIPT_CONTEXT_CLOSE(this));
 
 #if ENABLE_TTD
         if(this->TTDWellKnownInfo != nullptr)
@@ -913,7 +921,7 @@ namespace Js
     void ScriptContext::ProfileTypes()
     {
         Output::Print(_u("===============================================================================\n"));
-        Output::Print(_u("Types Profile\n"));
+        Output::Print(_u("Types Profile %s\n"), this->url);
         Output::Print(_u("-------------------------------------------------------------------------------\n"));
         Output::Print(_u("Dynamic Type Conversions:\n"));
         Output::Print(_u("    Null to Simple                 %8d\n"), convertNullToSimpleCount);
@@ -1039,6 +1047,70 @@ namespace Js
         return regexDebugWriter;
     }
 #endif
+
+    void ScriptContext::RedeferFunctionBodies(ActiveFunctionSet *pActiveFuncs, uint inactiveThreshold)
+    {
+        Assert(!this->IsClosed());
+
+        if (!this->IsScriptContextInNonDebugMode())
+        {
+            return;
+        }
+
+        // For each active function, collect call counts, update inactive counts, and redefer if appropriate.
+        // In the redeferral case, we require 2 passes over the set of FunctionBody's.
+        // This is because a function inlined in a non-redeferred function cannot itself be redeferred.
+        // So we first need to close over the set of non-redeferrable functions, then go back and redefer
+        // the eligible candidates.
+
+        auto fn = [&](FunctionBody *functionBody) {
+            bool exec = functionBody->InterpretedSinceCallCountCollection();
+            functionBody->CollectInterpretedCounts();
+            functionBody->MapEntryPoints([&](int index, FunctionEntryPointInfo *entryPointInfo) {
+                if (!entryPointInfo->IsCleanedUp() && entryPointInfo->ExecutedSinceCallCountCollection())
+                {
+                    exec = true;
+                }
+                entryPointInfo->CollectCallCounts();
+            });
+            if (exec)
+            {
+                functionBody->SetInactiveCount(0);
+            }
+            else
+            {
+                functionBody->IncrInactiveCount(inactiveThreshold);
+            }
+
+            if (pActiveFuncs)
+            {
+                Assert(this->GetThreadContext()->DoRedeferFunctionBodies());
+                bool doRedefer = functionBody->DoRedeferFunction(inactiveThreshold);
+                if (!doRedefer)
+                {
+                    functionBody->UpdateActiveFunctionSet(pActiveFuncs, nullptr);
+                }
+            }
+        };
+
+        this->MapFunction(fn);
+
+        if (!pActiveFuncs)
+        {
+            return;
+        }
+
+        auto fnRedefer = [&](FunctionBody * functionBody) {
+            Assert(pActiveFuncs);
+            if (!functionBody->IsActiveFunction(pActiveFuncs))
+            {
+                Assert(functionBody->DoRedeferFunction(inactiveThreshold));
+                functionBody->RedeferFunction();
+            }
+        };
+
+        this->MapFunction(fnRedefer);
+    }
 
     bool ScriptContext::DoUndeferGlobalFunctions() const
     {
@@ -1203,7 +1275,7 @@ namespace Js
         BindReference(this->fieldAccessStatsByFunctionNumber);
 #endif
 
-if (!sourceList)
+        if (!sourceList)
         {
             AutoCriticalSection critSec(threadContext->GetEtwRundownCriticalSection());
             sourceList.Root(RecyclerNew(this->GetRecycler(), SourceList, this->GetRecycler()), this->GetRecycler());
@@ -1219,7 +1291,7 @@ if (!sourceList)
 #endif
 
         JS_ETW(EtwTrace::LogScriptContextLoadEvent(this));
-        JS_ETW(EventWriteJSCRIPT_HOST_SCRIPT_CONTEXT_START(this));
+        JS_ETW_INTERNAL(EventWriteJSCRIPT_HOST_SCRIPT_CONTEXT_START(this));
 
 #ifdef PROFILE_EXEC
         if (profiler != nullptr)
@@ -1270,13 +1342,16 @@ if (!sourceList)
 
     void ScriptContext::SetIsClosed()
     {
-        this->isClosed = true;
-#if ENABLE_NATIVE_CODEGEN
-        if (m_remoteScriptContextAddr)
+        if (!this->isClosed)
         {
-            JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
-        }
+            this->isClosed = true;
+#if ENABLE_NATIVE_CODEGEN
+            if (m_remoteScriptContextAddr)
+            {
+                JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
+            }
 #endif
+        }
     }
 
     void ScriptContext::InitializeGlobalObject()
@@ -1645,7 +1720,8 @@ if (!sourceList)
         Utf8SourceInfo** ppSourceInfo,
         const char16 *rootDisplayName,
         LoadScriptFlag loadScriptFlag,
-        uint* sourceIndex)
+        uint* sourceIndex,
+        Js::Var scriptSource)
     {
         if (pSrcInfo == nullptr)
         {
@@ -1691,16 +1767,29 @@ if (!sourceList)
 
             // Free unused bytes
             Assert(cbNeeded + 1 <= cbUtf8Buffer);
-            *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length, cbNeeded, pSrcInfo, isLibraryCode);
+            *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length,
+                cbNeeded, pSrcInfo, isLibraryCode, scriptSource);
         }
         else
         {
             // We do not own the memory passed into DefaultLoadScriptUtf8. We need to save it so we copy the memory.
             if(*ppSourceInfo == nullptr)
             {
-                // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
-                // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
-                *ppSourceInfo = Utf8SourceInfo::New(this, script, (int)length, cb, pSrcInfo, isLibraryCode);
+#ifndef NTBUILD
+                if (loadScriptFlag & LoadScriptFlag_ExternalArrayBuffer)
+                {
+                    *ppSourceInfo = Utf8SourceInfo::NewWithNoCopy(this,
+                        script, (int)length, cb, pSrcInfo, isLibraryCode,
+                        scriptSource);
+                }
+                else
+#endif
+                {
+                    // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
+                    // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
+                    *ppSourceInfo = Utf8SourceInfo::New(this, script,
+                        (int)length, cb, pSrcInfo, isLibraryCode, scriptSource);
+                }
             }
         }
         //
@@ -1750,11 +1839,13 @@ if (!sourceList)
         ParseNodePtr parseTree;
         if((loadScriptFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source)
         {
-            hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
+            hr = parser->ParseUtf8Source(&parseTree, script, cb, grfscr, pse,
+                &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
         }
         else
         {
-            hr = parser->ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr, pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
+            hr = parser->ParseCesu8Source(&parseTree, utf8Script, cbNeeded, grfscr,
+                pse, &sourceContextInfo->nextLocalFunctionId, sourceContextInfo);
         }
 
         if(FAILED(hr) || parseTree == nullptr)
@@ -1779,7 +1870,9 @@ if (!sourceList)
         return parseTree;
     }
 
-    JavascriptFunction* ScriptContext::LoadScript(const byte* script, size_t cb, SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo, const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag)
+    JavascriptFunction* ScriptContext::LoadScript(const byte* script, size_t cb,
+        SRCINFO const * pSrcInfo, CompileScriptException * pse, Utf8SourceInfo** ppSourceInfo,
+        const char16 *rootDisplayName, LoadScriptFlag loadScriptFlag, Js::Var scriptSource)
     {
         Assert(!this->threadContext->IsScriptActive());
         Assert(pse != nullptr);
@@ -1791,7 +1884,9 @@ if (!sourceList)
             uint sourceIndex;
             JavascriptFunction * pFunction = nullptr;
 
-            ParseNodePtr parseTree = ParseScript(&parser, script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag, &sourceIndex);
+            ParseNodePtr parseTree = ParseScript(&parser, script, cb, pSrcInfo,
+                pse, ppSourceInfo, rootDisplayName, loadScriptFlag,
+                &sourceIndex, scriptSource);
 
             if (parseTree != nullptr)
             {
@@ -1805,7 +1900,8 @@ if (!sourceList)
                 pse->Clear();
 
                 loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
-                return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo, rootDisplayName, loadScriptFlag);
+                return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo,
+                    rootDisplayName, loadScriptFlag, scriptSource);
             }
 
 #ifdef ENABLE_SCRIPT_PROFILING
@@ -2161,7 +2257,7 @@ if (!sourceList)
         dict->Add(key, pFuncScript);
     }
 
-    bool ScriptContext::IsInNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo **ppFuncBody)
+    bool ScriptContext::IsInNewFunctionMap(EvalMapString const& key, FunctionInfo **ppFuncInfo)
     {
         if (this->cache->newFunctionCache == nullptr)
         {
@@ -2169,7 +2265,7 @@ if (!sourceList)
         }
 
         // If eval map cleanup is false, to preserve existing behavior, add it to the eval map MRU list
-        bool success = this->cache->newFunctionCache->TryGetValue(key, ppFuncBody);
+        bool success = this->cache->newFunctionCache->TryGetValue(key, ppFuncInfo);
         if (success)
         {
             this->cache->newFunctionCache->NotifyAdd(key);
@@ -2183,13 +2279,13 @@ if (!sourceList)
         return success;
     }
 
-    void ScriptContext::AddToNewFunctionMap(EvalMapString const& key, ParseableFunctionInfo *pFuncBody)
+    void ScriptContext::AddToNewFunctionMap(EvalMapString const& key, FunctionInfo *pFuncInfo)
     {
         if (this->cache->newFunctionCache == nullptr)
         {
             this->cache->newFunctionCache = RecyclerNew(this->recycler, NewFunctionCache, this->recycler);
         }
-        this->cache->newFunctionCache->Add(key, pFuncBody);
+        this->cache->newFunctionCache->Add(key, pFuncInfo);
     }
 
 
@@ -2361,40 +2457,17 @@ if (!sourceList)
 #if ENABLE_TTD
     void ScriptContext::InitializeCoreImage_TTD()
     {
-        AssertMsg(this->TTDWellKnownInfo == nullptr, "This should only happen once!!!");
+        TTDAssert(this->TTDWellKnownInfo == nullptr, "This should only happen once!!!");
 
+        this->TTDContextInfo = TT_HEAP_NEW(TTD::ScriptContextTTD, this);
         this->TTDWellKnownInfo = TT_HEAP_NEW(TTD::RuntimeContextInfo);
 
-        bool hasCaller = this->GetHostScriptContext() ? !!this->GetHostScriptContext()->HasCaller() : false;
-        BEGIN_JS_RUNTIME_CALLROOT_EX(this, hasCaller)
+        BEGIN_ENTER_SCRIPT(this, true, true, true)
         {
             this->TTDWellKnownInfo->GatherKnownObjectToPathMap(this);
         }
-        END_JS_RUNTIME_CALL(this);
+        END_ENTER_SCRIPT
     }
-
-    void ScriptContext::InitializeRecordingActionsAsNeeded_TTD()
-    {
-        this->TTDContextInfo = TT_HEAP_NEW(TTD::ScriptContextTTD, this);
-
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject()), this->GetLibrary()->GetGlobalObject());
-        this->ScriptContextLogTag = TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetGlobalObject());
-
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetUndefined()), this->GetLibrary()->GetUndefined());
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetNull()), this->GetLibrary()->GetNull());
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetTrue()), this->GetLibrary()->GetTrue());
-        this->TTDContextInfo->AddTrackedRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(this->GetLibrary()->GetFalse()), this->GetLibrary()->GetFalse());
-
-#if ENABLE_TTD_STACK_STMTS
-        this->ForceNoNative();
-#endif
-    }
-
-    void ScriptContext::InitializeDebuggingActionsAsNeeded_TTD()
-    {
-        this->ForceNoNative();
-    }
-
 #endif
 
 #ifdef PROFILE_EXEC
@@ -3225,50 +3298,12 @@ if (!sourceList)
         JavascriptMethod entryPoint = pFunction->GetEntryPoint();
         FunctionInfo * info = pFunction->GetFunctionInfo();
         FunctionProxy * proxy = info->GetFunctionProxy();
-        if (proxy != info)
+
+        if (proxy == nullptr)
         {
-#ifdef ENABLE_SCRIPT_PROFILING
-            // Not a script function or, the thunk can deal with moving to the function body
-            Assert(proxy == nullptr || entryPoint == DefaultDeferredParsingThunk
-                || entryPoint == ProfileDeferredParsingThunk
-                || entryPoint == ProfileDeferredDeserializeThunk
-                || entryPoint == CrossSite::ProfileThunk
-                || entryPoint == DefaultDeferredDeserializeThunk
-                || entryPoint == CrossSite::DefaultThunk);
-#else
-            // Not a script function or, the thunk can deal with moving to the function body
-            Assert(proxy == nullptr || entryPoint == DefaultDeferredParsingThunk
-                || entryPoint == DefaultDeferredDeserializeThunk
-                || entryPoint == CrossSite::DefaultThunk);
-#endif
-
-            // Replace entry points for built-ins/external/winrt functions so that we can wrap them with try-catch for "continue after exception".
-            if (!pFunction->IsScriptFunction() && IsExceptionWrapperForBuiltInsEnabled(scriptContext))
-            {
-#ifdef ENABLE_SCRIPT_PROFILING
-                if (scriptContext->IsScriptContextInDebugMode())
-                {
-                    // We are attaching.
-                    // For built-ins, WinRT and DOM functions which are already in recycler, change entry points to route to debug/profile thunk.
-                    ScriptContext::SetEntryPointToProfileThunk(pFunction);
-                }
-                else
-                {
-                    // We are detaching.
-                    // For built-ins, WinRT and DOM functions which are already in recycler, restore entry points to original.
-                    if (!scriptContext->IsProfiling())
-                    {
-                        ScriptContext::RestoreEntryPointFromProfileThunk(pFunction);
-                    }
-                    // If we are profiling, don't change anything.
-                }
-#else
-                AssertMsg(false, "Profiling needs to be enabled to change thunks for debugging");
-#endif
-            }
-
             return;
         }
+        Assert(proxy->GetFunctionInfo() == info);
 
         if (!proxy->IsFunctionBody())
         {
@@ -3370,27 +3405,6 @@ if (!sourceList)
                 IsTrueOrFalse(IsIntermediateCodeGenThunk(entryPoint)), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
 #endif
             OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\n"));
-
-            FunctionInfo * info = pFunction->GetFunctionInfo();
-            if (proxy != info)
-            {
-                // The thunk can deal with moving to the function body
-#ifdef ENABLE_SCRIPT_PROFILING
-                Assert(entryPoint == DefaultDeferredParsingThunk || entryPoint == ProfileDeferredParsingThunk
-                    || entryPoint == DefaultDeferredDeserializeThunk || entryPoint == ProfileDeferredDeserializeThunk
-                    || entryPoint == CrossSite::DefaultThunk || entryPoint == CrossSite::ProfileThunk);
-#else
-                Assert(entryPoint == DefaultDeferredParsingThunk
-                    || entryPoint == DefaultDeferredDeserializeThunk
-                    || entryPoint == CrossSite::DefaultThunk);
-#endif
-
-                Assert(!proxy->IsDeferred());
-                Assert(proxy->GetFunctionBody()->GetProfileSession() == proxy->GetScriptContext()->GetProfileSession());
-
-                return;
-            }
-
 
 #if ENABLE_NATIVE_CODEGEN
             if (!IsIntermediateCodeGenThunk(entryPoint) && entryPoint != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)

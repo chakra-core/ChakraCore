@@ -39,6 +39,10 @@ public:
     DWORD GetNumberOfLogicalProcessors() const { return this->dwNumberOfProcessors; }
     DWORD GetNumberOfPhysicalProcessors() const { return this->dwNumberOfPhysicalProcessors; }
 
+#if SYSINFO_IMAGE_BASE_AVAILABLE
+    UINT_PTR GetChakraBaseAddr() const;
+#endif
+
 #if defined(_M_ARM32_OR_ARM64)
     bool ArmDivAvailable() const { return this->armDivAvailable; }
 #endif

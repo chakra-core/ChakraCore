@@ -24,7 +24,7 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_isPRNGSeeded(false),
     m_interpreterThunkBufferManager(nullptr),
     m_asmJsInterpreterThunkBufferManager(nullptr),
-    m_sourceCodeArena(_u("JITSourceCodeArena"), threadContextInfo->GetForegroundPageAllocator(), Js::Throw::OutOfMemory),
+    m_sourceCodeArena(_u("JITSourceCodeArena"), threadContextInfo->GetForegroundPageAllocator(), Js::Throw::OutOfMemory, nullptr),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
     m_globalThisAddr(0),
@@ -63,11 +63,15 @@ ServerScriptContext::~ServerScriptContext()
 #endif
     if (m_asmJsInterpreterThunkBufferManager)
     {
+        m_asmJsInterpreterThunkBufferManager->Decommit();
         HeapDelete(m_asmJsInterpreterThunkBufferManager);
+        m_asmJsInterpreterThunkBufferManager = nullptr;
     }
     if (m_interpreterThunkBufferManager)
     {
+        m_interpreterThunkBufferManager->Decommit();
         HeapDelete(m_interpreterThunkBufferManager);
+        m_interpreterThunkBufferManager = nullptr;
     }
 }
 
@@ -322,16 +326,6 @@ ArenaAllocator *
 ServerScriptContext::GetSourceCodeArena()
 {
     return &m_sourceCodeArena;
-}
-
-void
-ServerScriptContext::DecommitEmitBufferManager(bool asmJsManager)
-{
-    EmitBufferManager<> * manager = GetEmitBufferManager(asmJsManager);
-    if (manager != nullptr)
-    {
-        manager->Decommit();
-    }
 }
 
 EmitBufferManager<> *

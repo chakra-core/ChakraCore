@@ -5,22 +5,22 @@
       "type": "assert_return",
       "name": "$assert_return_0",
       "file": "forward.wast",
-      "line": 20
+      "line": 17
     }, {
       "type": "assert_return",
       "name": "$assert_return_1",
       "file": "forward.wast",
-      "line": 21
+      "line": 18
     }, {
       "type": "assert_return",
       "name": "$assert_return_2",
       "file": "forward.wast",
-      "line": 22
+      "line": 19
     }, {
       "type": "assert_return",
       "name": "$assert_return_3",
       "file": "forward.wast",
-      "line": 23
+      "line": 20
     }]
   }]
 }

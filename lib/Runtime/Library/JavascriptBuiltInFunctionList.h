@@ -23,7 +23,7 @@ BUILTIN(GlobalObject, Escape, EntryEscape, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, UnEscape, EntryUnEscape, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, CollectGarbage, EntryCollectGarbage, FunctionInfo::ErrorOnNew)
 
-#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_TTD
 BUILTIN(GlobalObject, TelemetryLog, EntryTelemetryLog, FunctionInfo::ErrorOnNew)
 #endif
 
@@ -129,6 +129,8 @@ BUILTIN(JavascriptError, NewReferenceErrorInstance, NewReferenceErrorInstance, F
 BUILTIN(JavascriptError, NewSyntaxErrorInstance, NewSyntaxErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewTypeErrorInstance, NewTypeErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewURIErrorInstance, NewURIErrorInstance, FunctionInfo::None)
+BUILTIN(JavascriptError, NewWebAssemblyCompileErrorInstance, NewWebAssemblyCompileErrorInstance, FunctionInfo::None)
+BUILTIN(JavascriptError, NewWebAssemblyRuntimeErrorInstance, NewWebAssemblyRuntimeErrorInstance, FunctionInfo::None)
 #ifdef ENABLE_PROJECTION
 BUILTIN(JavascriptError, NewWinRTErrorInstance, NewWinRTErrorInstance, FunctionInfo::None)
 #endif
@@ -301,7 +303,24 @@ BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
 
 // Wasm entry points
 #ifdef ENABLE_WASM
-BUILTIN(WasmLibrary, instantiateModule, instantiateModule, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, Compile, EntryCompile, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, Validate, EntryValidate, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, Instantiate, EntryInstantiate, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyModule, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyModule, Exports, EntryExports, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyModule, Imports, EntryImports, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyMemory, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyMemory, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyMemory, GetterBuffer, EntryGetterBuffer, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(WebAssemblyTable, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyTable, GetterLength, EntryGetterLength, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(WebAssemblyTable, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyTable, Get, EntryGet, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyTable, Set, EntrySet, FunctionInfo::ErrorOnNew)
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+BUILTIN(WebAssembly, NativeTypeCallTest, EntryNativeTypeCallTest, FunctionInfo::ErrorOnNew)
+#endif
 #endif
 
 // SIMDFloat32x4Lib entry points

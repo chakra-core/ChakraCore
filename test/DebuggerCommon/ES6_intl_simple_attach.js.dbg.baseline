@@ -1,7 +1,6 @@
 [
   {
     "this": {
-      "telemetryLog": "function <large string>",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "console": "Object {...}",
@@ -150,6 +149,7 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
+              "Symbol.hasInstance": "function <large string>",
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
@@ -177,6 +177,7 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
+              "Symbol.hasInstance": "function <large string>",
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
@@ -193,6 +194,7 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
+              "Symbol.hasInstance": "function <large string>",
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
@@ -317,6 +319,7 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
+              "Symbol.hasInstance": "function <large string>",
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
@@ -344,6 +347,7 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
+              "Symbol.hasInstance": "function <large string>",
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
@@ -360,6 +364,7 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
+              "Symbol.hasInstance": "function <large string>",
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
@@ -484,6 +489,7 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
+              "Symbol.hasInstance": "function <large string>",
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
@@ -517,6 +523,7 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
+              "Symbol.hasInstance": "function <large string>",
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
@@ -532,6 +539,7 @@
               "bind": "function <large string>",
               "call": "function <large string>",
               "toString": "function <large string>",
+              "Symbol.hasInstance": "function <large string>",
               "caller": "Error <large string>",
               "arguments": "Error <large string>"
             },
