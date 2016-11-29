@@ -393,7 +393,7 @@ void InterpreterThunkEmitter::FillBuffer(
     _In_ bool asmJsThunk,
     _In_ intptr_t finalAddr,
     _In_ size_t bufferSize,
-    _Out_writes_bytes_all_(bufferSize) BYTE* buffer,
+    _Out_writes_bytes_all_(BlockSize) BYTE* buffer,
 #if PDATA_ENABLED
     _Out_ PRUNTIME_FUNCTION * pdataTableStart,
     _Out_ intptr_t * epilogEndAddr,
@@ -698,9 +698,9 @@ DWORD InterpreterThunkEmitter::FillDebugBreak(_In_ BYTE* dest, _In_ DWORD count)
 
 inline /*static*/
 DWORD InterpreterThunkEmitter::CopyWithAlignment(
-    _In_ BYTE* dest,
+    _Out_writes_bytes_all_(sizeInBytes) BYTE* dest,
     _In_ const DWORD sizeInBytes,
-    _In_ const BYTE* src,
+    _In_reads_bytes_(srcSize) const BYTE* src,
     _In_ const DWORD srcSize,
     _In_ const DWORD alignment)
 {
