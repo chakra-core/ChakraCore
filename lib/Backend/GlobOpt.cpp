@@ -4868,44 +4868,9 @@ GlobOpt::IsInstrInvalidForMemOp(IR::Instr *instr, Loop *loop, Value *src1Val, Va
     return false;
 }
 
-IR::Instr *
-GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
+void
+GlobOpt::TryReplaceLdLen(IR::Instr *& instr)
 {
-    Assert(instr->m_func->IsTopFunc() || instr->m_func->isGetterSetter || instr->m_func->callSiteIdInParentFunc != UINT16_MAX);
-
-    IR::Opnd *src1, *src2;
-    Value *src1Val = nullptr, *src2Val = nullptr, *dstVal = nullptr;
-    Value *src1IndirIndexVal = nullptr, *dstIndirIndexVal = nullptr;
-    IR::Instr *instrPrev = instr->m_prev;
-    IR::Instr *instrNext = instr->m_next;
-
-    if (instr->IsLabelInstr() && this->func->HasTry() && this->func->DoOptimizeTryCatch())
-    {
-        this->currentRegion = instr->AsLabelInstr()->GetRegion();
-        Assert(this->currentRegion);
-    }
-
-    if(PrepareForIgnoringIntOverflow(instr))
-    {
-        if(!IsLoopPrePass())
-        {
-            *isInstrRemoved = true;
-            currentBlock->RemoveInstr(instr);
-        }
-        return instrNext;
-    }
-
-    if (!instr->IsRealInstr() || instr->IsByteCodeUsesInstr() || instr->m_opcode == Js::OpCode::Conv_Bool)
-    {
-        return instrNext;
-    }
-
-    if (instr->m_opcode == Js::OpCode::Yield)
-    {
-        // TODO[generators][ianhall]: Can this and the FillBailOutInfo call below be moved to after Src1 and Src2 so that Yield can be optimized right up to the actual yield?
-        this->KillStateForGeneratorYield();
-    }
-
     // Change LdFld on arrays, strings, and 'arguments' to LdLen when we're accessing the .length field
     if ((instr->GetSrc1() && instr->GetSrc1()->IsSymOpnd() && instr->m_opcode == Js::OpCode::ProfiledLdFld) || instr->m_opcode == Js::OpCode::LdFld || instr->m_opcode == Js::OpCode::ScopedLdFld)
     {
@@ -4947,6 +4912,48 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
             }
         }
     }
+}
+
+IR::Instr *
+GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
+{
+    Assert(instr->m_func->IsTopFunc() || instr->m_func->isGetterSetter || instr->m_func->callSiteIdInParentFunc != UINT16_MAX);
+
+    IR::Opnd *src1, *src2;
+    Value *src1Val = nullptr, *src2Val = nullptr, *dstVal = nullptr;
+    Value *src1IndirIndexVal = nullptr, *dstIndirIndexVal = nullptr;
+    IR::Instr *instrPrev = instr->m_prev;
+    IR::Instr *instrNext = instr->m_next;
+
+    if (instr->IsLabelInstr() && this->func->HasTry() && this->func->DoOptimizeTryCatch())
+    {
+        this->currentRegion = instr->AsLabelInstr()->GetRegion();
+        Assert(this->currentRegion);
+    }
+
+    if(PrepareForIgnoringIntOverflow(instr))
+    {
+        if(!IsLoopPrePass())
+        {
+            *isInstrRemoved = true;
+            currentBlock->RemoveInstr(instr);
+        }
+        return instrNext;
+    }
+
+    if (!instr->IsRealInstr() || instr->IsByteCodeUsesInstr() || instr->m_opcode == Js::OpCode::Conv_Bool)
+    {
+        return instrNext;
+    }
+
+    if (instr->m_opcode == Js::OpCode::Yield)
+    {
+        // TODO[generators][ianhall]: Can this and the FillBailOutInfo call below be moved to after Src1 and Src2 so that Yield can be optimized right up to the actual yield?
+        this->KillStateForGeneratorYield();
+    }
+
+    // Change LdFld on arrays, strings, and 'arguments' to LdLen when we're accessing the .length field
+    this->TryReplaceLdLen(instr);
 
     // Consider: Do we ever get post-op bailout here, and if so is the FillBailOutInfo call in the right place?
     if (instr->HasBailOutInfo() && !this->IsLoopPrePass())
