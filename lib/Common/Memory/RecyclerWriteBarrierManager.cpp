@@ -71,10 +71,18 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     this->_stacklimit = (char*)stackEnd;
 #endif
 
-    // on Windows server 2012 stack limit can expand with process running, and causes
-    // accessing uncommitted card table page.
-    // TODO: use VirtualQuery twice to get the max possible stack limit
-    stackEnd -= AutoSystemInfo::PageSize * AutoSystemInfo::PageSize;
+    MEMORY_BASIC_INFORMATION memInfo;
+    VirtualQuery(stackEnd, &memInfo, sizeof(memInfo));
+
+    // using AllocationBase, while allocating stack, the OS reserve a chunk of memory for stack expanding, layout looks like:
+    // ----|-------------------------|-------------------|---------------------------------|---------------------
+    // stackBase  commited     stackLimit GuardPages            reserved region         hard limit
+    // the GuardPages can slide right in the reserved region while stack expanding, until hit the hard limit
+    // the AllocationBase from the VirtualQuery is the whole region possibly used for stack
+    // the BaseAddress from VirtualQuery is current commited base address, we can also query the region of GuardPages but seems not necessary
+
+    stackEnd = (char*)memInfo.AllocationBase;
+    Assert(memInfo.AllocationProtect == PAGE_READWRITE);
 
     size_t numPages = (stackBase - stackEnd) / AutoSystemInfo::PageSize;
     // stackEnd is the lower boundary
