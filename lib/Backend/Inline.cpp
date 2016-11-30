@@ -4967,8 +4967,7 @@ Inline::MapFormals(Func *inlinee,
                             typeId = Js::TypeIds_Null;
                         }
                     }
-                    if (Js::JavascriptOperators::IsObjectType(typeId) ||
-                        Js::JavascriptOperators::IsUndefinedOrNullType(typeId))
+                    if (typeId != Js::TypeIds_Limit && (Js::JavascriptOperators::IsObjectType(typeId) || Js::JavascriptOperators::IsUndefinedOrNullType(typeId)))
                     {
                         auto scriptContext = inlinee->GetScriptContextInfo();
                         Js::Var thisConstVar;
@@ -4988,6 +4987,7 @@ Inline::MapFormals(Func *inlinee,
                         {
                             thisConstVar = thisConstSym->GetConstAddress();
                         }
+                        Assert(thisConstVar != nullptr);
                         IR::Opnd *thisOpnd = IR::AddrOpnd::New((intptr_t)thisConstVar, IR::AddrOpndKindDynamicVar, inlinee, true);
 
                         instr->m_opcode = Js::OpCode::Ld_A;
