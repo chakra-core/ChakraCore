@@ -591,9 +591,7 @@ namespace Js
 #endif
     public:
         uint frameHeight;
-#if ENABLE_NATIVE_CODEGEN
         bool nativeEntryPointProcessed;
-#endif
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     public:
@@ -644,13 +642,13 @@ namespace Js
 
     protected:
         EntryPointInfo(Js::JavascriptMethod method, JavascriptLibrary* library, void* validationCookie, ThreadContext* context = nullptr, bool isLoopBody = false) :
-            ProxyEntryPointInfo(method, context), tag(1),
+            ProxyEntryPointInfo(method, context), tag(1), nativeEntryPointProcessed(false),
 #if ENABLE_NATIVE_CODEGEN
             nativeThrowSpanSequence(nullptr), workItem(nullptr), weakFuncRefSet(nullptr),
             jitTransferData(nullptr), sharedPropertyGuards(nullptr), propertyGuardCount(0), propertyGuardWeakRefs(nullptr),
             equivalentTypeCacheCount(0), equivalentTypeCaches(nullptr), constructorCaches(nullptr), state(NotScheduled), inProcJITNaticeCodedata(nullptr),
             numberChunks(nullptr), numberPageSegments(nullptr), polymorphicInlineCacheInfo(nullptr), runtimeTypeRefs(nullptr),
-            isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr), nativeEntryPointProcessed(false),
+            isLoopBody(isLoopBody), hasJittedStackClosure(false), registeredEquivalentTypeCacheRef(nullptr), bailoutRecordMap(nullptr),
 #if PDATA_ENABLED
             xdataInfo(nullptr),
 #endif
