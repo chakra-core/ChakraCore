@@ -3,6 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
+#ifndef _WIN32
+#include <pthread.h>
+#endif
 
 // Initialization order
 //  AB AutoSystemInfo
@@ -71,8 +74,9 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     this->_stacklimit = (char*)stackEnd;
 #endif
 
+#ifdef _WIN32
     MEMORY_BASIC_INFORMATION memInfo;
-    VirtualQuery(stackEnd, &memInfo, sizeof(memInfo));
+    VirtualQuery((LPCVOID)stackEnd, &memInfo, sizeof(memInfo));
 
     // using AllocationBase, while allocating stack, the OS reserve a chunk of memory for stack expanding, layout looks like:
     // ----|-------------------------|-------------------|---------------------------------|---------------------
@@ -83,6 +87,13 @@ X64WriteBarrierCardTableManager::OnThreadInit()
 
     stackEnd = (char*)memInfo.AllocationBase;
     Assert(memInfo.AllocationProtect == PAGE_READWRITE);
+#else
+    pthread_attr_t attr;
+    size_t stacksize;
+    pthread_attr_init(&attr);
+    pthread_attr_getstacksize(&attr, &stacksize); // assuming no one is calling pthread_attr_setstacksize afterwards
+    stackEnd = stackBase - stacksize;
+#endif
 
     size_t numPages = (stackBase - stackEnd) / AutoSystemInfo::PageSize;
     // stackEnd is the lower boundary
