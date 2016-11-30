@@ -800,8 +800,6 @@ namespace Js
 
     bool FunctionBody::DoRedeferFunction(uint inactiveThreshold) const
     {
-        bool isJitCandidate = false;
-
         if (!(this->GetFunctionInfo()->GetFunctionProxy() == this &&
               this->CanBeDeferred() &&
               this->GetByteCode() &&
@@ -823,19 +821,33 @@ namespace Js
 
         // Make sure the function won't be jitted
         bool isJitModeFunction = !this->IsInterpreterExecutionMode();
-        MapEntryPoints([&](int index, FunctionEntryPointInfo *entryPointInfo)
+        bool isJitCandidate = false;
+        isJitCandidate = MapEntryPointsUntil([=](int index, FunctionEntryPointInfo *entryPointInfo)
         {
             if ((entryPointInfo->IsCodeGenPending() && isJitModeFunction) || entryPointInfo->IsCodeGenQueued() || entryPointInfo->IsCodeGenRecorded() || (entryPointInfo->IsCodeGenDone() && !entryPointInfo->nativeEntryPointProcessed))
             {
-                isJitCandidate = true;
+                return true;
             }
-        });
-        if (isJitCandidate)
-        {
             return false;
+        });
+
+        if (!isJitCandidate)
+        {
+            // Now check loop body entry points
+            isJitCandidate = MapLoopHeadersUntil([=](uint loopNumber, LoopHeader* header)
+            {
+                return header->MapEntryPointsUntil([&](int index, LoopEntryPointInfo* entryPointInfo)
+                {
+                    if (entryPointInfo->IsCodeGenPending() || entryPointInfo->IsCodeGenQueued() || entryPointInfo->IsCodeGenRecorded() || (entryPointInfo->IsCodeGenDone() && !entryPointInfo->nativeEntryPointProcessed))
+                    {
+                        return true;
+                    }
+                    return false;
+                });
+            });
         }
 
-        return true;
+        return !isJitCandidate;
     }
 
     void FunctionBody::RedeferFunction()
@@ -9387,7 +9399,6 @@ namespace Js
         localVarChangedOffset(Js::Constants::InvalidOffset),
         callsCount(0),
         jitMode(ExecutionMode::Interpreter),
-        nativeEntryPointProcessed(false),
         functionProxy(functionProxy),
         nextEntryPoint(nullptr),
         mIsTemplatizedJitMode(false)
