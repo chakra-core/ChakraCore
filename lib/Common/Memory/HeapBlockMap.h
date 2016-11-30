@@ -58,7 +58,7 @@ public:
     BVStatic<BitCount>* GetMarkBitVectorForPages(void * address);
 
     uint GetMarkCount(void* address, uint pageCount);
-    template <bool interlocked>
+    template <bool interlocked, bool doSpecialMark>
     void Mark(void * candidate, MarkContext * markContext);
     template <bool interlocked>
     void MarkInterior(void * candidate, MarkContext * markContext);
@@ -246,7 +246,7 @@ public:
     BVStatic<BitCount>* GetMarkBitVectorForPages(void * address);
 
     uint GetMarkCount(void* address, uint pageCount);
-    template <bool interlocked>
+    template <bool interlocked, bool doSpecialMark>
     void Mark(void * candidate, MarkContext * markContext);
     template <bool interlocked>
     void MarkInterior(void * candidate, MarkContext * markContext);

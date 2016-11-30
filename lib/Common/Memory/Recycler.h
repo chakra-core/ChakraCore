@@ -329,6 +329,7 @@ public:
     virtual void PostCollectionCallBack() = 0;
     virtual BOOL ExecuteRecyclerCollectionFunction(Recycler * recycler, CollectionFunction function, CollectionFlags flags) = 0;
     virtual uint GetRandomNumber() = 0;
+    virtual bool DoSpecialMarkOnScanStack() = 0;
 
 #ifdef FAULT_INJECTION
     virtual void DisposeScriptContextByFaultInjectionCallBack() = 0;
@@ -376,6 +377,7 @@ public:
     virtual void PostCollectionCallBack() override {}
     virtual BOOL ExecuteRecyclerCollectionFunction(Recycler * recycler, CollectionFunction function, CollectionFlags flags) override;
     virtual uint GetRandomNumber() override { return 0; }
+    virtual bool DoSpecialMarkOnScanStack() override { return false; }
 #ifdef FAULT_INJECTION
     virtual void DisposeScriptContextByFaultInjectionCallBack() override {};
 #endif
@@ -1637,8 +1639,10 @@ private:
 
     inline void ScanObjectInline(void ** obj, size_t byteCount);
     inline void ScanObjectInlineInterior(void ** obj, size_t byteCount);
+    template <bool doSpecialMark>
     inline void ScanMemoryInline(void ** obj, size_t byteCount);
-    void ScanMemory(void ** obj, size_t byteCount) { if (byteCount != 0) { ScanMemoryInline(obj, byteCount); } }
+    template <bool doSpecialMark>
+    void ScanMemory(void ** obj, size_t byteCount) { if (byteCount != 0) { ScanMemoryInline<doSpecialMark>(obj, byteCount); } }
     bool AddMark(void * candidate, size_t byteCount);
 
     // Sweep

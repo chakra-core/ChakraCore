@@ -31,6 +31,7 @@ public:
     }
     void SetNextBlock(SmallFinalizableHeapBlockT * next) { Base::SetNextBlock(next); }
 
+    template <bool doSpecialMark>
     void ProcessMarkedObject(void* candidate, MarkContext * markContext);
 
     void SetAttributes(void * address, unsigned char attributes);

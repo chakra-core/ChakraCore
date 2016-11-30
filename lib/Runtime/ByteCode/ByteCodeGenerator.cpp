@@ -2506,6 +2506,30 @@ void AssignFuncSymRegister(ParseNode * pnode, ByteCodeGenerator * byteCodeGenera
     }
 }
 
+bool FuncAllowsDirectSuper(FuncInfo *funcInfo, ByteCodeGenerator *byteCodeGenerator)
+{
+    if (!funcInfo->IsBaseClassConstructor() && funcInfo->IsClassConstructor())
+    {
+        return true;
+    }
+
+    if (funcInfo->IsGlobalFunction() && ((byteCodeGenerator->GetFlags() & fscrEval) != 0))
+    {
+        Js::JavascriptFunction *caller = nullptr;
+        if (Js::JavascriptStackWalker::GetCaller(&caller, byteCodeGenerator->GetScriptContext()))
+        {
+            Js::FunctionBody * callerBody = caller->GetFunctionBody();
+            Assert(callerBody);
+            if (callerBody->GetFunctionInfo()->GetAllowDirectSuper())
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerator)
 {
     // Assign function-wide registers such as local frame object, closure environment, etc., based on
@@ -2527,6 +2551,15 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         {
             top->byteCodeFunction->SetEnclosedByGlobalFunc();
         }
+
+        if (FuncAllowsDirectSuper(enclosingNonLambda, byteCodeGenerator))
+        {
+            top->byteCodeFunction->GetFunctionInfo()->SetAllowDirectSuper();
+        }
+    }
+    else if (FuncAllowsDirectSuper(top, byteCodeGenerator))
+    {
+        top->byteCodeFunction->GetFunctionInfo()->SetAllowDirectSuper();
     }
 
     // If this is a named function expression and has deferred child, mark has non-local reference.

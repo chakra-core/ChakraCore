@@ -246,7 +246,8 @@ namespace Js
         bool GetDisplayCaller(JavascriptFunction ** ppFunc);
         PCWSTR GetCurrentNativeLibraryEntryName() const;
         static bool IsLibraryStackFrameEnabled(Js::ScriptContext * scriptContext);
-        
+        static bool IsWalkable(ScriptContext *scriptContext);
+
         // Walk frames (until walkFrame returns true)
         template <class WalkFrame>
         ushort WalkUntil(ushort stackTraceLimit, WalkFrame walkFrame, bool onlyOnDebugMode = false, bool filterDiagnosticsOM = false)

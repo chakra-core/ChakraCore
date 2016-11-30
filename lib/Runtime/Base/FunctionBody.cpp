@@ -496,6 +496,7 @@ namespace Js
         m_hasFirstInnerScopeRegister(false),
         m_hasFuncExprScopeRegister(false),
         m_hasFirstTmpRegister(false),
+        m_hasActiveReference(false),
         m_tag(TRUE),
         m_nativeEntryPointUsed(FALSE),
         bailOnMisingProfileCount(0),
@@ -634,6 +635,7 @@ namespace Js
         m_hasFirstInnerScopeRegister(false),
         m_hasFuncExprScopeRegister(false),
         m_hasFirstTmpRegister(false),
+        m_hasActiveReference(false),
         m_tag(TRUE),
         m_nativeEntryPointUsed(FALSE),
         bailOnMisingProfileCount(0),
@@ -7468,6 +7470,11 @@ namespace Js
         this->Cleanup(isShutdown);
         this->CleanupSourceInfo(isShutdown);
         this->CleanupFunctionProxyCounters();
+    }
+
+    void FunctionBody::OnMark()
+    {
+        this->m_hasActiveReference = true;
     }
 
     void FunctionBody::CleanupSourceInfo(bool isScriptContextClosing)
