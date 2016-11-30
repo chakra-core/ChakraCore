@@ -1546,6 +1546,7 @@ public:
     void ClearDisableImplicitFlags() { disableImplicitFlags = DisableImplicitNoFlag; }
 
     virtual uint GetRandomNumber() override;
+    virtual bool DoSpecialMarkOnScanStack() override { return this->DoRedeferFunctionBodies(); }
 
     // DefaultCollectWrapper
     virtual void PreCollectionCallBack(CollectionFlags flags) override;
