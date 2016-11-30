@@ -362,8 +362,7 @@ HRESULT Parser::ParseSourceInternal(
 
         if ((grfscr & fscrEvalCode) != 0)
         {
-            // This makes the parser to believe when eval() is called, it accept any super access in global scope.
-            this->m_parsingSuperRestrictionState = Parser::ParsingSuperRestrictionState_SuperCallAndPropertyAllowed;
+            this->m_parsingSuperRestrictionState = Parser::ParsingSuperRestrictionState_SuperPropertyAllowed;
         }
 
         if ((grfscr & fscrIsModuleCode) != 0)
@@ -11850,10 +11849,26 @@ ParseNodePtr Parser::ParseSuper(ParseNodePtr pnode, bool fAllowCall)
     }
     else if (this->m_parsingSuperRestrictionState == ParsingSuperRestrictionState_SuperPropertyAllowed)
     {
-        // Cannot call super within a class member
         if (m_token.tk == tkLParen)
         {
-            Error(ERRInvalidSuper);
+            if ((this->m_grfscr & fscrEval) == fscrNil)
+            {
+                // Cannot call super within a class member
+                Error(ERRInvalidSuper);
+            }
+            else
+            {
+                Js::JavascriptFunction * caller = nullptr;
+                if (Js::JavascriptStackWalker::GetCaller(&caller, m_scriptContext))
+                {
+                    Js::FunctionBody * callerBody = caller->GetFunctionBody();
+                    Assert(callerBody);
+                    if (!callerBody->GetFunctionInfo()->GetAllowDirectSuper())
+                    {
+                        Error(ERRInvalidSuper);
+                    }
+                }
+            }
         }
     }
     else
