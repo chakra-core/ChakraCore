@@ -1710,16 +1710,6 @@ ThreadContext::ProbeStackNoDispose(size_t size, Js::ScriptContext *scriptContext
             this->CheckInterruptPoll();
         }
     }
-
-#if DBG
-    if (PHASE_STRESS1(Js::RedeferralPhase))
-    {
-        if (JsUtil::ExternalApi::IsScriptActiveOnCurrentThreadContext())
-        {
-            this->TryRedeferral();
-        }
-    }
-#endif
 }
 
 void

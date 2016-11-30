@@ -1107,6 +1107,10 @@ namespace Js
                 Assert(functionBody->DoRedeferFunction(inactiveThreshold));
                 functionBody->RedeferFunction();
             }
+            else
+            {
+                functionBody->ResetRedeferralAttributes();
+            }
         };
 
         this->MapFunction(fnRedefer);

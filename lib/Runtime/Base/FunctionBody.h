@@ -2457,6 +2457,7 @@ namespace Js
         bool m_hasFirstInnerScopeRegister : 1;
         bool m_hasFuncExprScopeRegister : 1;
         bool m_hasFirstTmpRegister : 1;
+        bool m_hasActiveReference : 1;
 #if DBG
         bool m_isSerialized : 1;
 #endif
@@ -2587,6 +2588,7 @@ namespace Js
         void IncrInactiveCount(uint increment);
         bool InterpretedSinceCallCountCollection() const;
         void CollectInterpretedCounts();
+        void ResetRedeferralAttributes() { this->m_hasActiveReference = false; }
 
         Js::RootObjectBase * LoadRootObject() const;
         Js::RootObjectBase * GetRootObject() const;
@@ -2826,6 +2828,7 @@ namespace Js
         int GetProfileSession() { return m_iProfileSession; }
 #endif
         virtual void Finalize(bool isShutdown) override;
+        virtual void OnMark() override;
 
         void Cleanup(bool isScriptContextClosing);
         void CleanupSourceInfo(bool isScriptContextClosing);
@@ -2955,7 +2958,7 @@ namespace Js
         // Field accessors
         bool GetHasBailoutInstrInJittedCode() const { return this->m_hasBailoutInstrInJittedCode; }
         void SetHasBailoutInstrInJittedCode(bool hasBailout) { this->m_hasBailoutInstrInJittedCode = hasBailout; }
-        bool GetCanDefer() const { return this->functionInfo->CanBeDeferred() && this->m_depth == 0; }
+        bool GetCanDefer() const { return this->functionInfo->CanBeDeferred() && this->m_depth == 0 && !this->m_hasActiveReference; }
         bool GetCanReleaseLoopHeaders() const { return (this->m_depth == 0); }
         void SetPendingLoopHeaderRelease(bool pendingLoopHeaderRelease) { this->m_pendingLoopHeaderRelease = pendingLoopHeaderRelease; }
 
