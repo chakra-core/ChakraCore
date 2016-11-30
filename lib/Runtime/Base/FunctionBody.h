@@ -1265,6 +1265,23 @@ namespace Js
             }
         }
 
+        template <class Fn>
+        bool MapEntryPointsUntil(Fn fn) const
+        {
+            if (this->entryPoints) // ETW rundown may call this before entryPoints initialization
+            {
+                return this->entryPoints->MapUntil([&](int index, LoopEntryPointInfo * entryPoint)
+                {
+                    if (entryPoint != nullptr)
+                    {
+                        return fn(index, entryPoint);
+                    }
+                    return false;
+                });
+            }
+            return false;
+        }
+
         template <class DebugSite, class Fn>
         HRESULT MapEntryPoints(DebugSite site, Fn fn) const // external debugging version
         {
@@ -3577,6 +3594,25 @@ namespace Js
             }
         }
 
+        template<class Fn>
+        bool MapLoopHeadersUntil(Fn fn) const
+        {
+            Js::LoopHeader* loopHeaderArray = this->GetLoopHeaderArray();
+            if (loopHeaderArray)
+            {
+                uint loopCount = this->GetLoopCount();
+                for (uint i = 0; i < loopCount; i++)
+                {
+                    if (fn(i, &loopHeaderArray[i]))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return false;
+        }
+
         template <class Fn>
         void MapEntryPoints(Fn fn) const
         {
@@ -3590,6 +3626,23 @@ namespace Js
                     }
                 });
             }
+        }
+
+        template <class Fn>
+        bool MapEntryPointsUntil(Fn fn) const
+        {
+            if (this->entryPoints)
+            {
+                return this->entryPoints->MapUntil([&fn](int index, RecyclerWeakReference<FunctionEntryPointInfo>* entryPoint) {
+                    FunctionEntryPointInfo* strongRef = entryPoint->Get();
+                    if (strongRef)
+                    {
+                        return fn(index, strongRef);
+                    }
+                    return false;
+                });
+            }
+            return false;
         }
 
         bool DoJITLoopBody() const

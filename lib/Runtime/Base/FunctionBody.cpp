@@ -798,8 +798,6 @@ namespace Js
 
     bool FunctionBody::DoRedeferFunction(uint inactiveThreshold) const
     {
-        bool isJitCandidate = false;
-
         if (!(this->GetFunctionInfo()->GetFunctionProxy() == this &&
               this->CanBeDeferred() &&
               this->GetByteCode() &&
@@ -821,35 +819,33 @@ namespace Js
 
         // Make sure the function won't be jitted
         bool isJitModeFunction = !this->IsInterpreterExecutionMode();
-        MapEntryPoints([&](int index, FunctionEntryPointInfo *entryPointInfo)
+        bool isJitCandidate = false;
+        isJitCandidate = MapEntryPointsUntil([=](int index, FunctionEntryPointInfo *entryPointInfo)
         {
             if ((entryPointInfo->IsCodeGenPending() && isJitModeFunction) || entryPointInfo->IsCodeGenQueued() || entryPointInfo->IsCodeGenRecorded() || (entryPointInfo->IsCodeGenDone() && !entryPointInfo->nativeEntryPointProcessed))
             {
-                isJitCandidate = true;
+                return true;
             }
+            return false;
         });
 
         if (!isJitCandidate)
         {
             // Now check loop body entry points
-            this->MapLoopHeaders([&](uint loopNumber, LoopHeader* header)
+            isJitCandidate = MapLoopHeadersUntil([=](uint loopNumber, LoopHeader* header)
             {
-                header->MapEntryPoints([&](int index, LoopEntryPointInfo* entryPointInfo)
+                return header->MapEntryPointsUntil([&](int index, LoopEntryPointInfo* entryPointInfo)
                 {
-                    if ((entryPointInfo->IsCodeGenPending() && isJitModeFunction) || entryPointInfo->IsCodeGenQueued() || entryPointInfo->IsCodeGenRecorded() || (entryPointInfo->IsCodeGenDone() && !entryPointInfo->nativeEntryPointProcessed))
+                    if (entryPointInfo->IsCodeGenPending() || entryPointInfo->IsCodeGenQueued() || entryPointInfo->IsCodeGenRecorded() || (entryPointInfo->IsCodeGenDone() && !entryPointInfo->nativeEntryPointProcessed))
                     {
-                        isJitCandidate = true;
+                        return true;
                     }
+                    return false;
                 });
             });
         }
 
-        if (isJitCandidate)
-        {
-            return false;
-        }
-
-        return true;
+        return !isJitCandidate;
     }
 
     void FunctionBody::RedeferFunction()
