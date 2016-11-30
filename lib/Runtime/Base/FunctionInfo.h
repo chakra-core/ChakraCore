@@ -38,7 +38,8 @@ namespace Js
             Async                          = 0x10000,
             Module                         = 0x20000, // The function is the function body wrapper for a module
             EnclosedByGlobalFunc           = 0x40000,
-            CanDefer                       = 0x80000
+            CanDefer                       = 0x80000,
+            AllowDirectSuper               = 0x100000
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
 
@@ -127,6 +128,8 @@ namespace Js
         bool GetCapturesThis() const { return (attributes & Attributes::CapturesThis) != 0; }
         void SetEnclosedByGlobalFunc() { attributes = (Attributes)(attributes | Attributes::EnclosedByGlobalFunc ); }
         bool GetEnclosedByGlobalFunc() const { return (attributes & Attributes::EnclosedByGlobalFunc) != 0; }
+        void SetAllowDirectSuper() { attributes = (Attributes)(attributes | Attributes::AllowDirectSuper); }
+        bool GetAllowDirectSuper() const { return (attributes & Attributes::AllowDirectSuper) != 0; }
 
     protected:
         JavascriptMethod originalEntryPoint;

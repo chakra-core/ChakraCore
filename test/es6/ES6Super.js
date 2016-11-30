@@ -183,6 +183,27 @@ var tests = [
         assert.areEqual(1, value);
     }
   },
+  {
+    name: "direct super calls from a class constructors",
+    body: function () {
+        var count = 0;
+        assert.throws(function(){class A{constructor(){eval("count++; super();");}};new A();}, SyntaxError, "", "Invalid use of the 'super' keyword");
+        assert.throws(function(){class A{constructor(){(()=>eval("count++; super();"))();}};new A();}, SyntaxError, "", "Invalid use of the 'super' keyword");
+        assert.throws(function(){class A{constructor(){(()=>{(()=>eval("count++; super();"))();})();}};new A();}, SyntaxError, "", "Invalid use of the 'super' keyword");
+        assert.throws(function(){class A{constructor(){eval("eval(\"count++; super();\");");}};new A();}, SyntaxError, "", "Invalid use of the 'super' keyword");
+        assert.throws(function(){class A{constructor(){eval("(()=>{count++; super();})();");}};new A();}, SyntaxError, "", "Invalid use of the 'super' keyword");
+        assert.throws(function(){class A{constructor(){eval("(()=>eval(\"count++; super();\"))();");}};new A();}, SyntaxError, "", "Invalid use of the 'super' keyword");
+        assert.areEqual(0, count, "SyntaxError preempts side effects")
+
+        assert.doesNotThrow(function(){class A extends Object{constructor(){eval("count++; super();");}};new A();}, "");
+        assert.doesNotThrow(function(){class A extends Object{constructor(){(()=>eval("count++; super();"))();}};new A();}, "");
+        assert.doesNotThrow(function(){class A extends Object{constructor(){(()=>{(()=>eval("count++; super();"))();})();}};new A();}, "");
+        assert.doesNotThrow(function(){class A extends Object{constructor(){eval("eval(\"count++; super();\");");}};new A();}, "");
+        assert.doesNotThrow(function(){class A extends Object{constructor(){eval("(()=>{count++; super();})();");}};new A();}, "");
+        assert.doesNotThrow(function(){class A extends Object{constructor(){eval("(()=>eval(\"count++; super();\"))();");}};new A();}, "");
+        assert.areEqual(6, count, "Side effects expected without SyntaxError");
+    }
+  },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
