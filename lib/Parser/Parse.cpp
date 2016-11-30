@@ -9389,7 +9389,7 @@ LFunctionStatement:
         default:
             {
 LDefaultTokenFor:
-               RestorePoint exprStart;
+                RestorePoint exprStart;
                 tokens beforeToken = tok;
                 m_pscan->Capture(&exprStart);
                 if (IsPossiblePatternStart())
@@ -10110,9 +10110,79 @@ LGetJumpStatement:
 LDefaultToken:
     default:
     {
-        // An expression statement or a label.
-        IdentToken tokInner;
-        pnode = ParseExpr<buildAST>(koplNo, nullptr, TRUE, FALSE, nullptr, nullptr /*hintLength*/, nullptr /*hintOffset*/, &tokInner);
+        // First check for a label via lookahead. If not found,
+        // rewind and reparse as expression statement.
+        if (m_token.tk == tkLParen || m_token.tk == tkID)
+        {
+            RestorePoint idStart;
+            m_pscan->Capture(&idStart);
+
+            // Support legacy behavior of allowing parentheses around label identifiers.
+            // Require balanced parentheses for correcting parsing.  Note unbalanced cases
+            // take care of themselves correctly by resulting in rewind and parsing as
+            // an expression statement.
+            // REVIEW[ianhall]: Can this legacy functionality be removed? Chrome does not support this parsing behavior.
+            uint parenCount = 0;
+            while (m_token.tk == tkLParen)
+            {
+                parenCount += 1;
+                m_pscan->Scan();
+            }
+
+            if (m_token.tk == tkID)
+            {
+                IdentToken tokInner;
+                tokInner.tk = tkID;
+                tokInner.ichMin = m_pscan->IchMinTok();
+                tokInner.ichLim = m_pscan->IchLimTok();
+                tokInner.pid = m_token.GetIdentifier(m_phtbl);
+
+                m_pscan->Scan();
+
+                while (parenCount > 0 && m_token.tk == tkRParen)
+                {
+                    parenCount -= 1;
+                    m_pscan->Scan();
+                }
+
+                if (parenCount == 0 && m_token.tk == tkColon)
+                {
+                    // We have a label.
+                    // TODO[ianhall]: Refactor to eliminate separate code paths for buildAST and !buildAST
+                    if (buildAST)
+                    {
+                        // See if the label is already defined.
+                        if (nullptr != PnodeLabel(tokInner.pid, pnodeLabel))
+                        {
+                            Error(ERRbadLabel);
+                        }
+                        pnodeT = CreateNodeWithScanner<knopLabel>();
+                        pnodeT->sxLabel.pid = tokInner.pid;
+                        pnodeT->sxLabel.pnodeNext = pnodeLabel;
+                        pnodeLabel = pnodeT;
+                    }
+                    else
+                    {
+                        // See if the label is already defined.
+                        if (PnodeLabelNoAST(&tokInner, pLabelIdList))
+                        {
+                            Error(ERRbadLabel);
+                        }
+                        LabelId* pLabelId = CreateLabelId(&tokInner);
+                        pLabelId->next = pLabelIdList;
+                        pLabelIdList = pLabelId;
+                    }
+                    m_pscan->Scan();
+                    goto LRestart;
+                }
+            }
+
+            // No label, rewind back to the tkID and parse an expression
+            m_pscan->SeekTo(idStart);
+        }
+
+        // Must be an expression statement.
+        pnode = ParseExpr<buildAST>();
 
         if (m_hasDeferredShorthandInitError)
         {
@@ -10121,45 +10191,10 @@ LDefaultToken:
 
         if (buildAST)
         {
-            // Check for a label.
-            if (tkColon == m_token.tk &&
-                nullptr != pnode && knopName == pnode->nop)
-            {
-                // We have a label. See if it is already defined.
-                if (nullptr != PnodeLabel(pnode->sxPid.pid, pnodeLabel))
-                {
-                    Error(ERRbadLabel);
-                    // No recovery is necessary since this is a semantic, not structural, error
-                }
-                pnodeT = CreateNodeWithScanner<knopLabel>();
-                pnodeT->sxLabel.pid = pnode->sxPid.pid;
-                pnodeT->sxLabel.pnodeNext = pnodeLabel;
-                pnodeLabel = pnodeT;
-                m_pscan->Scan();
-                goto LRestart;
-            }
-
             expressionStmt = true;
 
             AnalysisAssert(pnode);
             pnode->isUsed = false;
-        }
-        else
-        {
-            // Check for a label.
-            if (tkColon == m_token.tk && tokInner.tk == tkID)
-            {
-                tokInner.pid = m_pscan->PidAt(tokInner.ichMin, tokInner.ichLim);
-                if (PnodeLabelNoAST(&tokInner, pLabelIdList))
-                {
-                    Error(ERRbadLabel);
-                }
-                LabelId* pLabelId = CreateLabelId(&tokInner);
-                pLabelId->next = pLabelIdList;
-                pLabelIdList = pLabelId;
-                m_pscan->Scan();
-                goto LRestart;
-            }
         }
     }
 
