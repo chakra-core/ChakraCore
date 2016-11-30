@@ -158,4 +158,10 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_OS_9008744.js</files>
+      <tags>BugFix,exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>
