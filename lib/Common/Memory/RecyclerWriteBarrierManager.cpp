@@ -93,6 +93,7 @@ X64WriteBarrierCardTableManager::OnThreadInit()
     pthread_attr_init(&attr);
     pthread_attr_getstacksize(&attr, &stacksize); // assuming no one is calling pthread_attr_setstacksize afterwards
     stackEnd = stackBase - stacksize;
+    pthread_attr_destroy(&attr);
 #endif
 
     size_t numPages = (stackBase - stackEnd) / AutoSystemInfo::PageSize;
