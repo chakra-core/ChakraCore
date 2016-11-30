@@ -279,7 +279,7 @@ namespace UnifiedRegex
             if (CTU(c) < ASCIIChars::NumChars)
                 return ASCIIChars::IsWhitespace(ASCIIChars::UTC(CTU(c)));
             else
-                return CTU(c) == 0x1680 || CTU(c) == 0x180e || (CTU(c) >= 0x2000 && CTU(c) <= 0x200a) ||
+                return CTU(c) == 0x1680 || (CTU(c) >= 0x2000 && CTU(c) <= 0x200a) ||
                        CTU(c) == 0x2028 || CTU(c) == 0x2029 || CTU(c) == 0x202f || CTU(c) == 0x205f ||
                        CTU(c) == 0x3000 || CTU(c) == 0xfeff;
         }
