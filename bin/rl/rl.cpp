@@ -3951,6 +3951,9 @@ ProcessConfig
    Xml::Node * testNode;
    Xml::Node * applyNode;
 
+   ConditionNodeList * conditionNodeList = NULL;
+   ConditionNodeList * conditionNodeLast = NULL;
+
    // Parser doesn't return the XML declaration node, so topNode is the RL root node.
 
    ASSERTNR(topNode->Next == NULL);
@@ -4167,8 +4170,8 @@ ProcessConfig
 
       // Walk the condition nodes looking for applicability.
 
-      ConditionNodeList * conditionNodeList = NULL;
-      ConditionNodeList * conditionNodeLast = NULL;
+      conditionNodeList = NULL;
+      conditionNodeLast = NULL;
       conditionNode = NULL;
 
       for (applyNode = testNode->ChildList->Next;

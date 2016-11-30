@@ -67,11 +67,13 @@ HRESULT FileLoadHelpers::LoadScriptFromFile(LPCSTR filename, LPCWSTR& contents, 
     //
     // Read the entire content as a binary block.
     //
-    size_t readBytes = fread((void*)contentsRaw, sizeof(char), lengthBytes, file);
-    if (readBytes < lengthBytes)
     {
-        fwprintf(stderr, _u("readBytes should be equal to lengthBytes"));
-        IfFailGo(E_FAIL);
+        size_t readBytes = fread((void*)contentsRaw, sizeof(char), lengthBytes, file);
+        if (readBytes < lengthBytes)
+        {
+            fwprintf(stderr, _u("readBytes should be equal to lengthBytes"));
+            IfFailGo(E_FAIL);
+        }
     }
 
     fclose(file);

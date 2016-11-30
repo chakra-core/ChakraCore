@@ -1016,17 +1016,17 @@ BOOL
 
     DeleteFileIfFound(tmp_file1);
 
-    int retval = ExecuteCommand(pDir->GetDirectoryPath(), buf, millisecTimeout, envFlags);
-
     fFailed = FALSE;
 
     // Check for timeout.
-
-    if (retval == WAIT_TIMEOUT) {
-        ASSERT(millisecTimeout != INFINITE);
-        LogOut("ERROR: Test timed out after %ul seconds", millisecTimeout / 1000);
-        fFailed = TRUE;
-        goto logFailure;
+    {
+        int retval = ExecuteCommand(pDir->GetDirectoryPath(), buf, millisecTimeout, envFlags);
+        if (retval == WAIT_TIMEOUT) {
+            ASSERT(millisecTimeout != INFINITE);
+            LogOut("ERROR: Test timed out after %ul seconds", millisecTimeout / 1000);
+            fFailed = TRUE;
+            goto logFailure;
+        }
     }
 
     // Check the output.
