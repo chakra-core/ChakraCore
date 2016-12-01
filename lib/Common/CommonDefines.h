@@ -142,8 +142,8 @@
 // Both are used for detecting changes to memory for concurrent and partial GC. 
 // RECYCLER_WRITE_BARRIER controls the former, RECYCLER_WRITE_WATCH controls the latter.
 // GLOBAL_ENABLE_WRITE_BARRIER controls the smart pointer wrapper at compile time, every Field annotation on the
-// recycler allocated class will take effect if GLOBAL_ENABLE_WRITE_BARRIER is 1, otherwise only  the class declared 
-// with FORCE_USE_WRITE_BARRIER will use the WriteBarrierPtr<>, see WriteBarrierMacros.h and RecyclerPointers.h for detail
+// recycler allocated class will take effect if GLOBAL_ENABLE_WRITE_BARRIER is 1, otherwise only the class declared
+// with FieldWithBarrier annotations use the WriteBarrierPtr<>, see WriteBarrierMacros.h and RecyclerPointers.h for detail
 #define RECYCLER_WRITE_BARRIER                      // Write Barrier support
 #ifdef _WIN32
 #define RECYCLER_WRITE_WATCH                        // Support hardware write watch

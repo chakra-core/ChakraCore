@@ -5,13 +5,6 @@
 
 #pragma once
 
-// In general, write-barriers are used only on non-Windows platforms
-// However, classes in this file have been allocated in software write-barrier
-// memory for historic reasons, because there is some small perf wins here
-// Forcing these classes to be in software write-barrier memory
-#define FORCE_USE_WRITE_BARRIER 1
-#include <Memory/WriteBarrierMacros.h>
-
 namespace Js
 {
     // Use fixed size structure to save pointers
@@ -26,9 +19,9 @@ namespace Js
     struct AuxPtrsFix
     {
         static const uint8 MaxCount;
-        Field(uint8) count;                 // always saving maxCount
-        Field(FieldsEnum) type[_MaxCount];  // save instantiated pointer enum
-        Field(void*) ptr[_MaxCount];        // save instantiated pointer address
+        FieldWithBarrier(uint8) count;                 // always saving maxCount
+        FieldWithBarrier(FieldsEnum) type[_MaxCount];  // save instantiated pointer enum
+        FieldWithBarrier(void*) ptr[_MaxCount];        // save instantiated pointer address
         AuxPtrsFix();
         AuxPtrsFix(AuxPtrsFix<FieldsEnum, 16>* ptr16); // called when promoting from AuxPtrs16 to AuxPtrs32
         void* Get(FieldsEnum e);
@@ -50,10 +43,10 @@ namespace Js
         typedef AuxPtrsFix<FieldsEnum, 16> AuxPtrs16;
         typedef AuxPtrsFix<FieldsEnum, 32> AuxPtrs32;
         typedef AuxPtrs<T, FieldsEnum> AuxPtrsT;
-        Field(uint8) count;                                      // save instantiated pointers count
-        Field(uint8) capacity;                                   // save number of pointers can be hold in current instance of AuxPtrs
-        Field(uint8) offsets[static_cast<int>(FieldsEnum::Max)]; // save position of each instantiated pointers, if not instantiate, it's invalid
-        Field(void*) ptrs[1];                                    // instantiated pointer addresses
+        FieldWithBarrier(uint8) count;                                      // save instantiated pointers count
+        FieldWithBarrier(uint8) capacity;                                   // save number of pointers can be hold in current instance of AuxPtrs
+        FieldWithBarrier(uint8) offsets[static_cast<int>(FieldsEnum::Max)]; // save position of each instantiated pointers, if not instantiate, it's invalid
+        FieldWithBarrier(void*) ptrs[1];                                    // instantiated pointer addresses
         AuxPtrs(uint8 capacity, AuxPtrs32* ptr32);               // called when promoting from AuxPtrs32 to AuxPtrs
         AuxPtrs(uint8 capacity, AuxPtrs* ptr);                   // called when expanding (i.e. promoting from AuxPtrs to bigger AuxPtrs)
         void* Get(FieldsEnum e);
@@ -269,5 +262,3 @@ namespace Js
         }
     }
 }
-
-RESTORE_WRITE_BARRIER_MACROS();

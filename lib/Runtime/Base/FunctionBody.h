@@ -1285,26 +1285,16 @@ namespace Js
         }
 
     };
-}
 
-// ----------------------------------------------------------------------------
-// SWB-TODO: Below force uses write barrier. Move top code to new header file.
-//
+    // ----------------------------------------------------------------------------
+    // SWB-TODO: Below explicitly uses write barrier. Move top code to new header file.
+    //
 
-// In general, write-barriers are used only on non-Windows platforms
-// However, classes in this file have been allocated in software write-barrier
-// memory for historic reasons, because there is some small perf wins here
-// Forcing these classes to be in software write-barrier memory
-#define FORCE_USE_WRITE_BARRIER 1
-#include <Memory/WriteBarrierMacros.h>
-
-namespace Js
-{
     class FunctionProxy;
 
-    typedef Field(FunctionProxy*)* FunctionProxyArray;
-    typedef Field(FunctionProxy*)* FunctionProxyPtrPtr;
-    typedef Field(FunctionProxy*) FunctionProxyPtr;
+    typedef FieldWithBarrier(FunctionProxy*)* FunctionProxyArray;
+    typedef FieldWithBarrier(FunctionProxy*)* FunctionProxyPtrPtr;
+    typedef FieldWithBarrier(FunctionProxy*) FunctionProxyPtr;
 
     //
     // FunctionProxy represents a user defined function
@@ -1356,7 +1346,7 @@ namespace Js
 
         typedef AuxPtrs<FunctionProxy, AuxPointerType> AuxPtrsT;
         friend AuxPtrsT;
-        Field(AuxPtrsT*) auxPtrs;
+        FieldWithBarrier(AuxPtrsT*) auxPtrs;
         void* GetAuxPtr(AuxPointerType e) const;
         void* GetAuxPtrWithLock(AuxPointerType e) const;
         void SetAuxPtr(AuxPointerType e, void* ptr);
@@ -1456,22 +1446,22 @@ namespace Js
 
     protected:
         // Static method(s)
-        static void SetDisplayName(const char16* srcName, Field(const char16*)* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
+        static void SetDisplayName(const char16* srcName, FieldWithBarrier(const char16*)* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
         static bool SetDisplayName(const char16* srcName, const char16** destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
         static bool IsConstantFunctionName(const char16* srcName);
 
     protected:
         FieldNoBarrier(ScriptContext*) m_scriptContext;   // Memory context for this function body
-        Field(Utf8SourceInfo*) m_utf8SourceInfo;
+        FieldWithBarrier(Utf8SourceInfo*) m_utf8SourceInfo;
         // WriteBarrier-TODO: Consider changing this to NoWriteBarrierPtr, and skip tagging- also, tagging is likely unnecessary since that pointer in question is likely not resolvable
         FieldNoBarrier(FunctionProxyPtr*) m_referenceInParentFunction; // Reference to nested function reference to this function in the parent function body (tagged to not be actual reference)
-        Field(ScriptFunctionType*) deferredPrototypeType;
-        Field(ProxyEntryPointInfo*) m_defaultEntryPointInfo; // The default entry point info for the function proxy
+        FieldWithBarrier(ScriptFunctionType*) deferredPrototypeType;
+        FieldWithBarrier(ProxyEntryPointInfo*) m_defaultEntryPointInfo; // The default entry point info for the function proxy
 
-        Field(uint) m_functionNumber;  // Per thread global function number
+        FieldWithBarrier(uint) m_functionNumber;  // Per thread global function number
 
-        Field(bool) m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
-        Field(bool) m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
+        FieldWithBarrier(bool) m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
+        FieldWithBarrier(bool) m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
         void CleanupFunctionProxyCounters()
         {
             PERF_COUNTER_DEC(Code, TotalFunction);
@@ -1506,12 +1496,12 @@ namespace Js
         virtual uint GetShortDisplayNameOffset() const { return m_displayShortNameOffset; }
         LPCWSTR GetSourceInfo(int& lineNumber, int& columnNumber) const;
     private:
-        Field(const byte*) m_functionBytes;
-        Field(ByteCodeCache*) m_cache;
-        Field(const char16 *) m_displayName;  // Optional name
-        Field(uint) m_displayNameLength;
-        Field(uint) m_displayShortNameOffset;
-        Field(NativeModule *) m_nativeModule;
+        FieldWithBarrier(const byte*) m_functionBytes;
+        FieldWithBarrier(ByteCodeCache*) m_cache;
+        FieldWithBarrier(const char16 *) m_displayName;  // Optional name
+        FieldWithBarrier(uint) m_displayNameLength;
+        FieldWithBarrier(uint) m_displayShortNameOffset;
+        FieldWithBarrier(NativeModule *) m_nativeModule;
     };
 
     class ParseableFunctionInfo: public FunctionProxy
@@ -1525,8 +1515,8 @@ namespace Js
         struct NestedArray
         {
             NestedArray(uint32 count) :nestedCount(count) {}
-            Field(uint32) nestedCount;
-            Field(FunctionProxy*) functionProxyArray[];
+            FieldWithBarrier(uint32) nestedCount;
+            FieldWithBarrier(FunctionProxy*) functionProxyArray[];
         };
         template<typename Fn>
         void ForEachNestedFunc(Fn fn)
@@ -1765,39 +1755,39 @@ namespace Js
     protected:
         static HRESULT MapDeferredReparseError(HRESULT& hrParse, const CompileScriptException& se);
 
-        Field(bool) m_hasBeenParsed : 1;       // Has function body been parsed- true for actual function bodies, false for deferparse
-        Field(bool) m_isDeclaration : 1;
-        Field(bool) m_isAccessor : 1;          // Function is a property getter or setter
-        Field(bool) m_isStaticNameFunction : 1;
-        Field(bool) m_isNamedFunctionExpression : 1;
-        Field(bool) m_isNameIdentifierRef  : 1;
-        Field(bool) m_isClassMember : 1;
-        Field(bool) m_isStrictMode : 1;
-        Field(bool) m_isAsmjsMode : 1;
-        Field(bool) m_isAsmJsFunction : 1;
-        Field(bool) m_isWasmFunction : 1;
-        Field(bool) m_isGlobalFunc : 1;
-        Field(bool) m_doBackendArgumentsOptimization : 1;
-        Field(bool) m_doScopeObjectCreation : 1;
-        Field(bool) m_usesArgumentsObject : 1;
-        Field(bool) m_isEval : 1;              // Source code is in 'eval'
-        Field(bool) m_isDynamicFunction : 1;   // Source code is in 'Function'
-        Field(bool) m_hasImplicitArgIns : 1;
-        Field(bool) m_dontInline : 1;            // Used by the JIT's inliner
+        FieldWithBarrier(bool) m_hasBeenParsed : 1;       // Has function body been parsed- true for actual function bodies, false for deferparse
+        FieldWithBarrier(bool) m_isDeclaration : 1;
+        FieldWithBarrier(bool) m_isAccessor : 1;          // Function is a property getter or setter
+        FieldWithBarrier(bool) m_isStaticNameFunction : 1;
+        FieldWithBarrier(bool) m_isNamedFunctionExpression : 1;
+        FieldWithBarrier(bool) m_isNameIdentifierRef  : 1;
+        FieldWithBarrier(bool) m_isClassMember : 1;
+        FieldWithBarrier(bool) m_isStrictMode : 1;
+        FieldWithBarrier(bool) m_isAsmjsMode : 1;
+        FieldWithBarrier(bool) m_isAsmJsFunction : 1;
+        FieldWithBarrier(bool) m_isWasmFunction : 1;
+        FieldWithBarrier(bool) m_isGlobalFunc : 1;
+        FieldWithBarrier(bool) m_doBackendArgumentsOptimization : 1;
+        FieldWithBarrier(bool) m_doScopeObjectCreation : 1;
+        FieldWithBarrier(bool) m_usesArgumentsObject : 1;
+        FieldWithBarrier(bool) m_isEval : 1;              // Source code is in 'eval'
+        FieldWithBarrier(bool) m_isDynamicFunction : 1;   // Source code is in 'Function'
+        FieldWithBarrier(bool) m_hasImplicitArgIns : 1;
+        FieldWithBarrier(bool) m_dontInline : 1;            // Used by the JIT's inliner
 
         // Indicates if the function has been reparsed for debug attach/detach scenario.
-        Field(bool) m_reparsed : 1;
+        FieldWithBarrier(bool) m_reparsed : 1;
 
         // This field is not required for deferred parsing but because our thunks can't handle offsets > 128 bytes
         // yet, leaving this here for now. We can look at optimizing the function info and function proxy structures some
         // more and also fix our thunks to handle 8 bit offsets
 
-        Field(bool) m_utf8SourceHasBeenSet;          // start of UTF8-encoded source
-        Field(uint) m_sourceIndex;             // index into the scriptContext's list of saved sources
+        FieldWithBarrier(bool) m_utf8SourceHasBeenSet;          // start of UTF8-encoded source
+        FieldWithBarrier(uint) m_sourceIndex;             // index into the scriptContext's list of saved sources
 #if DYNAMIC_INTERPRETER_THUNK
         FieldNoBarrier(void*) m_dynamicInterpreterThunk;  // Unique 'thunk' for every interpreted function - used for ETW symbol decoding.
 #endif
-        Field(uint) m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
+        FieldWithBarrier(uint) m_cbStartOffset;         // pUtf8Source is this many bytes from the start of the scriptContext's source buffer.
 
         // This is generally the same as m_cchStartOffset unless the buffer has a BOM
 
@@ -1805,20 +1795,20 @@ namespace Js
 #define CURRENT_ACCESS_MODIFIER protected:
 #include "SerializableFunctionFields.h"
 
-        Field(ULONG) m_lineNumber;
-        Field(ULONG) m_columnNumber;
-        Field(const char16*) m_displayName;  // Optional name
-        Field(uint) m_displayNameLength;
-        Field(PropertyRecordList*) m_boundPropertyRecords;
-        Field(NestedArray*) nestedArray;
+        FieldWithBarrier(ULONG) m_lineNumber;
+        FieldWithBarrier(ULONG) m_columnNumber;
+        FieldWithBarrier(const char16*) m_displayName;  // Optional name
+        FieldWithBarrier(uint) m_displayNameLength;
+        FieldWithBarrier(PropertyRecordList*) m_boundPropertyRecords;
+        FieldWithBarrier(NestedArray*) nestedArray;
 
     public:
 #if DBG
-        Field(bool) m_wasEverAsmjsMode; // has m_isAsmjsMode ever been true
-        Field(Js::LocalFunctionId) deferredParseNextFunctionId;
+        FieldWithBarrier(bool) m_wasEverAsmjsMode; // has m_isAsmjsMode ever been true
+        FieldWithBarrier(Js::LocalFunctionId) deferredParseNextFunctionId;
 #endif
 #if DBG
-        Field(UINT) scopeObjectSize; // If the scope is an activation object - its size
+        FieldWithBarrier(UINT) scopeObjectSize; // If the scope is an activation object - its size
 #endif
     };
 
@@ -1907,7 +1897,7 @@ namespace Js
             };
 
             typedef CompactCounters<FunctionBody> CounterT;
-            Field(CounterT) counters;
+            FieldWithBarrier(CounterT) counters;
 
             uint32 GetCountField(FunctionBody::CounterFields fieldEnum) const
             {
@@ -1931,9 +1921,9 @@ namespace Js
                     return RecyclerNew(recycler, StatementMap);
                 }
 
-                Field(regex::Interval) sourceSpan;
-                Field(regex::Interval) byteCodeSpan;
-                Field(bool) isSubexpression;
+                FieldWithBarrier(regex::Interval) sourceSpan;
+                FieldWithBarrier(regex::Interval) byteCodeSpan;
+                FieldWithBarrier(bool) isSubexpression;
             };
 
             // The type of StatementAdjustmentRecord.
@@ -1997,10 +1987,10 @@ namespace Js
             {
                 // Contains statement adjustment data:
                 // For given bytecode, following statement needs an adjustment, see StatementAdjustmentType for details.
-                Field(StatementAdjustmentRecordList*) m_statementAdjustmentRecords;
+                FieldWithBarrier(StatementAdjustmentRecordList*) m_statementAdjustmentRecords;
 
                 // Contain data about entry/exit of blocks that cause processing in different interpreter stack frame, such as try or catch.
-                Field(CrossFrameEntryExitRecordList*) m_crossFrameBlockEntryExisRecords;
+                FieldWithBarrier(CrossFrameEntryExitRecordList*) m_crossFrameBlockEntryExisRecords;
 
                 AuxStatementData();
             };
@@ -2014,14 +2004,14 @@ namespace Js
             public:
                 FieldNoBarrier(SmallSpanSequence*) pSpanSequence;
 
-                Field(RegSlot)         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
-                Field(RegSlot)         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid
-                Field(ScopeObjectChain*) pScopeObjectChain;
-                Field(ByteBlock*) m_probeBackingBlock;  // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
-                Field(int32) m_probeCount;             // The number of installed probes (such as breakpoints).
+                FieldWithBarrier(RegSlot)         frameDisplayRegister;   // this register slot cannot be 0 so we use that sentinel value to indicate invalid
+                FieldWithBarrier(RegSlot)         objectRegister;         // this register slot cannot be 0 so we use that sentinel value to indicate invalid
+                FieldWithBarrier(ScopeObjectChain*) pScopeObjectChain;
+                FieldWithBarrier(ByteBlock*) m_probeBackingBlock;  // NULL if no Probes, otherwise a copy of the unmodified the byte-codeblock //Delay
+                FieldWithBarrier(int32) m_probeCount;             // The number of installed probes (such as breakpoints).
 
                 // List of bytecode offset for the Branch bytecode.
-                Field(AuxStatementData*) m_auxStatementData;
+                FieldWithBarrier(AuxStatementData*) m_auxStatementData;
 
                 SourceInfo():
                     frameDisplayRegister(0),
@@ -2036,18 +2026,18 @@ namespace Js
             };
 
     private:
-        Field(ByteBlock*) byteCodeBlock;                // Function byte-code for script functions
-        Field(FunctionEntryPointList*) entryPoints;
-        Field(Var*) m_constTable;
-        Field(void**) inlineCaches;
-        Field(InlineCachePointerArray<PolymorphicInlineCache>) polymorphicInlineCaches; // Contains the latest polymorphic inline caches
-        Field(PropertyId*) cacheIdToPropertyIdMap;
+        FieldWithBarrier(ByteBlock*) byteCodeBlock;                // Function byte-code for script functions
+        FieldWithBarrier(FunctionEntryPointList*) entryPoints;
+        FieldWithBarrier(Var*) m_constTable;
+        FieldWithBarrier(void**) inlineCaches;
+        FieldWithBarrier(InlineCachePointerArray<PolymorphicInlineCache>) polymorphicInlineCaches; // Contains the latest polymorphic inline caches
+        FieldWithBarrier(PropertyId*) cacheIdToPropertyIdMap;
 
 #if DBG
 #define InlineCacheTypeNone         0x00
 #define InlineCacheTypeInlineCache  0x01
 #define InlineCacheTypeIsInst       0x02
-            Field(byte*) m_inlineCacheTypes;
+            FieldWithBarrier(byte*) m_inlineCacheTypes;
 #endif
     public:
         PropertyId * GetCacheIdToPropertyIdMap()
@@ -2056,15 +2046,15 @@ namespace Js
         }
         static DWORD GetAsmJsTotalLoopCountOffset() { return offsetof(FunctionBody, m_asmJsTotalLoopCount); }
 #if DBG
-        Field(int) m_DEBUG_executionCount;     // Count of outstanding on InterpreterStackFrame
-        Field(bool) m_nativeEntryPointIsInterpreterThunk; // NativeEntry entry point is in fact InterpreterThunk.
+        FieldWithBarrier(int) m_DEBUG_executionCount;     // Count of outstanding on InterpreterStackFrame
+        FieldWithBarrier(bool) m_nativeEntryPointIsInterpreterThunk; // NativeEntry entry point is in fact InterpreterThunk.
                                                    // Set by bgjit in OutOfMemory scenario during codegen.
 #endif
 
 //#if ENABLE_DEBUG_CONFIG_OPTIONS //TODO: need this?
-        Field(uint) regAllocStoreCount;
-        Field(uint) regAllocLoadCount;
-        Field(uint) callCountStats;
+        FieldWithBarrier(uint) regAllocStoreCount;
+        FieldWithBarrier(uint) regAllocLoadCount;
+        FieldWithBarrier(uint) callCountStats;
 //#endif
 
         // >>>>>>WARNING! WARNING!<<<<<<<<<<
@@ -2072,12 +2062,12 @@ namespace Js
         // If you add compile-time attributes to this set, be sure to add them to the attributes that are
         // copied in FunctionBody::Clone
         //
-        Field(SourceInfo) m_sourceInfo; // position of the source
+        FieldWithBarrier(SourceInfo) m_sourceInfo; // position of the source
 
         // Data needed by profiler:
-        Field(uint) m_uScriptId; // Delay //Script Block it belongs to. This is function no. of the global function created by engine for each block
+        FieldWithBarrier(uint) m_uScriptId; // Delay //Script Block it belongs to. This is function no. of the global function created by engine for each block
 #if DBG
-        Field(int) m_iProfileSession; // Script profile session the meta data of this function is reported to.
+        FieldWithBarrier(int) m_iProfileSession; // Script profile session the meta data of this function is reported to.
 #endif // DEBUG
 
         // R0 is reserved for the return value, R1 for the root object
@@ -2105,99 +2095,99 @@ namespace Js
 #include "SerializableFunctionFields.h"
 
     private:
-        Field(bool) m_tag : 1;                     // Used to tag the low bit to prevent possible GC false references
-        Field(bool) m_nativeEntryPointUsed : 1;    // Code might have been generated but not yet used.
-        Field(bool) hasDoneLoopBodyCodeGen : 1;    // Code generated for loop body, but not necessary available to execute yet.
-        Field(bool) m_isFuncRegistered : 1;
-        Field(bool) m_isFuncRegisteredToDiag : 1; // Mentions the function's context is registered with diagprobe.
-        Field(bool) funcEscapes : 1;
-        Field(bool) m_hasBailoutInstrInJittedCode : 1; // Indicates whether function has bailout instructions. Valid only if hasDoneCodeGen is true
-        Field(bool) m_pendingLoopHeaderRelease : 1; // Indicates whether loop headers need to be released
-        Field(bool) hasExecutionDynamicProfileInfo : 1;
+        FieldWithBarrier(bool) m_tag : 1;                     // Used to tag the low bit to prevent possible GC false references
+        FieldWithBarrier(bool) m_nativeEntryPointUsed : 1;    // Code might have been generated but not yet used.
+        FieldWithBarrier(bool) hasDoneLoopBodyCodeGen : 1;    // Code generated for loop body, but not necessary available to execute yet.
+        FieldWithBarrier(bool) m_isFuncRegistered : 1;
+        FieldWithBarrier(bool) m_isFuncRegisteredToDiag : 1; // Mentions the function's context is registered with diagprobe.
+        FieldWithBarrier(bool) funcEscapes : 1;
+        FieldWithBarrier(bool) m_hasBailoutInstrInJittedCode : 1; // Indicates whether function has bailout instructions. Valid only if hasDoneCodeGen is true
+        FieldWithBarrier(bool) m_pendingLoopHeaderRelease : 1; // Indicates whether loop headers need to be released
+        FieldWithBarrier(bool) hasExecutionDynamicProfileInfo : 1;
 
-        Field(bool) cleanedUp: 1;
-        Field(bool) sourceInfoCleanedUp: 1;
-        Field(bool) dontRethunkAfterBailout : 1;
-        Field(bool) disableInlineApply : 1;
-        Field(bool) disableInlineSpread : 1;
-        Field(bool) hasHotLoop: 1;
-        Field(bool) wasCalledFromLoop : 1;
-        Field(bool) hasNestedLoop : 1;
-        Field(bool) recentlyBailedOutOfJittedLoopBody : 1;
-        Field(bool) m_firstFunctionObject: 1;
-        Field(bool) m_inlineCachesOnFunctionObject: 1;
+        FieldWithBarrier(bool) cleanedUp: 1;
+        FieldWithBarrier(bool) sourceInfoCleanedUp: 1;
+        FieldWithBarrier(bool) dontRethunkAfterBailout : 1;
+        FieldWithBarrier(bool) disableInlineApply : 1;
+        FieldWithBarrier(bool) disableInlineSpread : 1;
+        FieldWithBarrier(bool) hasHotLoop: 1;
+        FieldWithBarrier(bool) wasCalledFromLoop : 1;
+        FieldWithBarrier(bool) hasNestedLoop : 1;
+        FieldWithBarrier(bool) recentlyBailedOutOfJittedLoopBody : 1;
+        FieldWithBarrier(bool) m_firstFunctionObject: 1;
+        FieldWithBarrier(bool) m_inlineCachesOnFunctionObject: 1;
         // Used for the debug re-parse. Saves state of function on the first parse, and restores it on a reparse. The state below is either dependent on
         // the state of the script context, or on other factors like whether it was defer parsed or not.
-        Field(bool) m_hasSetIsObject : 1;
+        FieldWithBarrier(bool) m_hasSetIsObject : 1;
         // Used for the debug purpose, this info will be stored (in the non-debug mode), when a function has all locals marked as non-local-referenced.
         // So when we got to no-refresh debug mode, and try to re-use the same function body we can then enforce all locals to be non-local-referenced.
-        Field(bool) m_hasAllNonLocalReferenced : 1;
-        Field(bool) m_hasFunExprNameReference : 1;
-        Field(bool) m_ChildCallsEval : 1;
-        Field(bool) m_CallsEval : 1;
-        Field(bool) m_hasReferenceableBuiltInArguments : 1;
-        Field(bool) m_isParamAndBodyScopeMerged : 1;
+        FieldWithBarrier(bool) m_hasAllNonLocalReferenced : 1;
+        FieldWithBarrier(bool) m_hasFunExprNameReference : 1;
+        FieldWithBarrier(bool) m_ChildCallsEval : 1;
+        FieldWithBarrier(bool) m_CallsEval : 1;
+        FieldWithBarrier(bool) m_hasReferenceableBuiltInArguments : 1;
+        FieldWithBarrier(bool) m_isParamAndBodyScopeMerged : 1;
 
         // Used in the debug purpose. This is to avoid setting all locals to non-local-referenced, multiple times for each child function.
-        Field(bool) m_hasDoneAllNonLocalReferenced : 1;
+        FieldWithBarrier(bool) m_hasDoneAllNonLocalReferenced : 1;
 
         // Used by the script profiler, once the function compiled is sent this will be set to true.
-        Field(bool) m_hasFunctionCompiledSent : 1;
+        FieldWithBarrier(bool) m_hasFunctionCompiledSent : 1;
 
-        Field(bool) m_isFromNativeCodeModule : 1;
-        Field(bool) m_isPartialDeserializedFunction : 1;
-        Field(bool) m_isAsmJsScheduledForFullJIT : 1;
-        Field(bool) m_hasLocalClosureRegister : 1;
-        Field(bool) m_hasParamClosureRegister : 1;
-        Field(bool) m_hasLocalFrameDisplayRegister : 1;
-        Field(bool) m_hasEnvRegister : 1;
-        Field(bool) m_hasThisRegisterForEventHandler : 1;
-        Field(bool) m_hasFirstInnerScopeRegister : 1;
-        Field(bool) m_hasFuncExprScopeRegister : 1;
-        Field(bool) m_hasFirstTmpRegister : 1;
+        FieldWithBarrier(bool) m_isFromNativeCodeModule : 1;
+        FieldWithBarrier(bool) m_isPartialDeserializedFunction : 1;
+        FieldWithBarrier(bool) m_isAsmJsScheduledForFullJIT : 1;
+        FieldWithBarrier(bool) m_hasLocalClosureRegister : 1;
+        FieldWithBarrier(bool) m_hasParamClosureRegister : 1;
+        FieldWithBarrier(bool) m_hasLocalFrameDisplayRegister : 1;
+        FieldWithBarrier(bool) m_hasEnvRegister : 1;
+        FieldWithBarrier(bool) m_hasThisRegisterForEventHandler : 1;
+        FieldWithBarrier(bool) m_hasFirstInnerScopeRegister : 1;
+        FieldWithBarrier(bool) m_hasFuncExprScopeRegister : 1;
+        FieldWithBarrier(bool) m_hasFirstTmpRegister : 1;
 #if DBG
-        Field(bool) m_isSerialized : 1;
+        FieldWithBarrier(bool) m_isSerialized : 1;
 #endif
 #ifdef PERF_COUNTERS
         bool m_isDeserializedFunction : 1;
 #endif
 #if DBG
         // Indicates that nested functions can be allocated on the stack (but may not be)
-        Field(bool) m_canDoStackNestedFunc : 1;
+        FieldWithBarrier(bool) m_canDoStackNestedFunc : 1;
 #endif
 
 #if DBG
-        Field(bool) initializedExecutionModeAndLimits : 1;
+        FieldWithBarrier(bool) initializedExecutionModeAndLimits : 1;
 #endif
 
 #ifdef IR_VIEWER
         // whether IR Dump is enabled for this function (used by parseIR)
         bool m_isIRDumpEnabled : 1;
-        Field(Js::DynamicObject*) m_irDumpBaseObject;
+        FieldWithBarrier(Js::DynamicObject*) m_irDumpBaseObject;
 #endif /* IR_VIEWER */
 
-        Field(uint8) bailOnMisingProfileCount;
-        Field(uint8) bailOnMisingProfileRejitCount;
+        FieldWithBarrier(uint8) bailOnMisingProfileCount;
+        FieldWithBarrier(uint8) bailOnMisingProfileRejitCount;
 
-        Field(byte) inlineDepth; // Used by inlining to avoid recursively inlining functions excessively
+        FieldWithBarrier(byte) inlineDepth; // Used by inlining to avoid recursively inlining functions excessively
 
-        Field(ExecutionMode) executionMode;
-        Field(uint16) interpreterLimit;
-        Field(uint16) autoProfilingInterpreter0Limit;
-        Field(uint16) profilingInterpreter0Limit;
-        Field(uint16) autoProfilingInterpreter1Limit;
-        Field(uint16) simpleJitLimit;
-        Field(uint16) profilingInterpreter1Limit;
-        Field(uint16) fullJitThreshold;
-        Field(uint16) fullJitRequeueThreshold;
-        Field(uint16) committedProfiledIterations;
+        FieldWithBarrier(ExecutionMode) executionMode;
+        FieldWithBarrier(uint16) interpreterLimit;
+        FieldWithBarrier(uint16) autoProfilingInterpreter0Limit;
+        FieldWithBarrier(uint16) profilingInterpreter0Limit;
+        FieldWithBarrier(uint16) autoProfilingInterpreter1Limit;
+        FieldWithBarrier(uint16) simpleJitLimit;
+        FieldWithBarrier(uint16) profilingInterpreter1Limit;
+        FieldWithBarrier(uint16) fullJitThreshold;
+        FieldWithBarrier(uint16) fullJitRequeueThreshold;
+        FieldWithBarrier(uint16) committedProfiledIterations;
 
-        Field(uint) m_depth; // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
+        FieldWithBarrier(uint) m_depth; // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
 
-        Field(uint32) interpretedCount;
-        Field(uint32) loopInterpreterLimit;
-        Field(uint32) debuggerScopeIndex;
-        Field(uint32) savedPolymorphicCacheState;
+        FieldWithBarrier(uint32) interpretedCount;
+        FieldWithBarrier(uint32) loopInterpreterLimit;
+        FieldWithBarrier(uint32) debuggerScopeIndex;
+        FieldWithBarrier(uint32) savedPolymorphicCacheState;
 
         // >>>>>>WARNING! WARNING!<<<<<<<<<<
         //
@@ -2209,18 +2199,18 @@ namespace Js
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         static bool shareInlineCaches;
 #endif
-        Field(FunctionEntryPointInfo*) defaultFunctionEntryPointInfo;
+        FieldWithBarrier(FunctionEntryPointInfo*) defaultFunctionEntryPointInfo;
 
 #if ENABLE_PROFILE_INFO
-        Field(DynamicProfileInfo*) dynamicProfileInfo;
+        FieldWithBarrier(DynamicProfileInfo*) dynamicProfileInfo;
 #endif
 
 
         // select dynamic profile info saved off when we codegen and later
         // used for rejit decisions (see bailout.cpp)
-        Field(BYTE) savedInlinerVersion;
+        FieldWithBarrier(BYTE) savedInlinerVersion;
 #if ENABLE_NATIVE_CODEGEN
-        Field(ImplicitCallFlags) savedImplicitCallsFlags;
+        FieldWithBarrier(ImplicitCallFlags) savedImplicitCallsFlags;
 #endif
 
         FunctionBody(ScriptContext* scriptContext, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, uint nestedCount, Utf8SourceInfo* sourceInfo,
@@ -3071,7 +3061,7 @@ namespace Js
 
         void ResetInlineCaches();
         PolymorphicInlineCache * CreatePolymorphicInlineCache(uint index, uint16 size);
-        Field(uint32) m_asmJsTotalLoopCount;
+        FieldWithBarrier(uint32) m_asmJsTotalLoopCount;
     public:
         void CreateCacheIdToPropertyIdMap();
         void CreateCacheIdToPropertyIdMap(uint rootObjectLoadInlineCacheStart, uint rootObjectLoadMethodInlineCacheStart, uint rootObjectStoreInlineCacheStart,
@@ -3481,14 +3471,14 @@ namespace Js
         static ScopeType GetScopeType(void* scope);
 
     private:
-        Field(bool) tag;              // Tag it so that the NativeCodeGenerator::IsValidVar would not think this is var
-        Field(bool) strictMode;
-        Field(uint16) length;
+        FieldWithBarrier(bool) tag;              // Tag it so that the NativeCodeGenerator::IsValidVar would not think this is var
+        FieldWithBarrier(bool) strictMode;
+        FieldWithBarrier(uint16) length;
 
 #if defined(_M_X64_OR_ARM64)
-        Field(uint32) unused;
+        FieldWithBarrier(uint32) unused;
 #endif
-        Field(void*) scopes[];
+        FieldWithBarrier(void*) scopes[];
     };
 #pragma region Function Body helper classes
 #pragma region Debugging related source classes
@@ -3630,10 +3620,10 @@ namespace Js
     // and list of formals args if user has not used the arguments object in the script for the current function
     struct PropertyIdOnRegSlotsContainer
     {
-        Field(PropertyId *) propertyIdsForRegSlots;
-        Field(uint) length;
+        FieldWithBarrier(PropertyId *) propertyIdsForRegSlots;
+        FieldWithBarrier(uint) length;
 
-        Field(PropertyIdArray *) propertyIdsForFormalArgs;
+        FieldWithBarrier(PropertyIdArray *) propertyIdsForFormalArgs;
 
         PropertyIdOnRegSlotsContainer();
         static PropertyIdOnRegSlotsContainer * New(Recycler * recycler);
@@ -3764,9 +3754,9 @@ namespace Js
         // For with scope:  Has 1 property that represents the scoped object.
         // For catch scope: Has 1 property that represents the exception object.
         // For block scope: Has 0-n properties that represent let/const variables in that scope.
-        Field(DebuggerScopePropertyList*) scopeProperties;
-        Field(DiagExtraScopesType) scopeType; // The type of scope being represented (With, Catch, or Block scope).
-        Field(DebuggerScope*) siblingScope;  // Valid only when current scope is slot/activationobject and symbols are on direct regslot
+        FieldWithBarrier(DebuggerScopePropertyList*) scopeProperties;
+        FieldWithBarrier(DiagExtraScopesType) scopeType; // The type of scope being represented (With, Catch, or Block scope).
+        FieldWithBarrier(DebuggerScope*) siblingScope;  // Valid only when current scope is slot/activationobject and symbols are on direct regslot
         static const int InvalidScopeIndex = -1;
     private:
         int GetScopeDepth() const;
@@ -3774,10 +3764,10 @@ namespace Js
         void EnsurePropertyListIsAllocated();
 
     private:
-        Field(DebuggerScope*) parentScope;
-        Field(regex::Interval) range; // The start and end byte code writer offsets used when comparing where the debugger is currently stopped at (breakpoint location).
-        Field(RegSlot) scopeLocation;
-        Field(Recycler*) recycler;
+        FieldWithBarrier(DebuggerScope*) parentScope;
+        FieldWithBarrier(regex::Interval) range; // The start and end byte code writer offsets used when comparing where the debugger is currently stopped at (breakpoint location).
+        FieldWithBarrier(RegSlot) scopeLocation;
+        FieldWithBarrier(Recycler*) recycler;
     };
 
     class ScopeObjectChain
@@ -3799,9 +3789,7 @@ namespace Js
         bool TryGetDebuggerScopePropertyInfo(PropertyId propertyId, RegSlot location, int offset, bool* isPropertyInDebuggerScope, bool *isConst, bool* isInDeadZone);
 
         // List of all Scope Objects in a function. Scopes are added to this list as when they are created in bytecode gen part.
-        Field(ScopeObjectChainList*) pScopeChain;
+        FieldWithBarrier(ScopeObjectChainList*) pScopeChain;
     };
 #pragma endregion
 } // namespace Js
-
-RESTORE_WRITE_BARRIER_MACROS();
