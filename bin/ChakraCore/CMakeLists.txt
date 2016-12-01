@@ -126,8 +126,10 @@ if(NOT CC_XCODE_PROJECT)
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.${CC_LIB_EXT}"
     ${CHAKRACORE_BINARY_DIR}/
+    )
+  add_custom_command(TARGET ChakraCoreStatic POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/ChakraCoreStatic.a"
+    "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreStatic.a"
     ${CHAKRACORE_BINARY_DIR}/
     )
 endif()

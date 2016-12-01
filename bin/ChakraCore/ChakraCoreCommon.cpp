@@ -7,6 +7,7 @@
 #include "Base/ThreadContextTlsEntry.h"
 #include "Base/ThreadBoundThreadContextManager.h"
 #include "Core/ConfigParser.h"
+#include "Core/AtomLockGuids.h"
 
 #ifdef DYNAMIC_PROFILE_STORAGE
 #include "Language/DynamicProfileStorage.h"
