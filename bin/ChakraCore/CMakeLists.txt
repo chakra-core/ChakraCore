@@ -54,28 +54,10 @@ target_include_directories (
 #  stdc++/gcc_s: C++ runtime code
 #  dl: For shared library loading related functions
 #
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  set(LINKER_START_GROUP
-    -Wl,--start-group
-    -Wl,--whole-archive
-    )
-
-  set(LINKER_END_GROUP
-    -Wl,--no-whole-archive
-    -Wl,--end-group
-    )
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  set(LINKER_START_GROUP -Wl,-force_load, -Wl,-all_load)
-endif()
 
 # common link deps
 set(lib_target "${lib_target}"
   -Wl,-undefined,error
-  ${LINKER_START_GROUP}
-  #Chakra.Pal
-  #Chakra.Common.Core
-  #Chakra.Jsrt
-  ${LINKER_END_GROUP}
   pthread
   stdc++
   dl

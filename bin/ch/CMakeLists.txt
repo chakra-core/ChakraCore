@@ -25,10 +25,9 @@ target_include_directories (ch
   ../../lib/Parser
   )
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE")
-
+set_target_properties(ch PROPERTIES LINK_FLAGS "-fPIE") # osx clang sets this by default
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie") # osx clang sets this by default
+    set_target_properties(ch PROPERTIES LINK_FLAGS "-pie") # osx clang sets this by default
 endif()
 
 if(STATIC_LIBRARY)
@@ -49,6 +48,9 @@ if(STATIC_LIBRARY)
     set(lib_target "${lib_target}"
       "-framework CoreFoundation"
       "-framework Security"
+    )
+    target_sources(ch PRIVATE
+      $<TARGET_OBJECTS:Chakra.Pal>
     )
   endif()
 else() # // shared library below
