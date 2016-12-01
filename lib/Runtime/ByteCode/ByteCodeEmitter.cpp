@@ -2989,6 +2989,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         {
             deferParseFunction->BuildDeferredStubs(funcInfo->root);
         }
+        Assert(!deferParseFunction->IsFunctionBody() || deferParseFunction->GetFunctionBody()->GetByteCode() != nullptr);
         return;
     }
 
