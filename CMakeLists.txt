@@ -167,10 +167,6 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
     add_definitions("-fdiagnostics-color=always")
 endif()
 
-if(STATIC_LIBRARY)
-    add_definitions(-DCHAKRA_STATIC_LIBRARY=1)
-endif()
-
 if(CLR_CMAKE_PLATFORM_XPLAT)
     add_definitions(-DFEATURE_PAL)
     add_definitions(-DPLATFORM_UNIX=1)
