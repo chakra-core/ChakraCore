@@ -43,7 +43,7 @@ extern ATOM  lockedDll = 0;
 static pthread_key_t s_threadLocalDummy;
 #endif
 
-static THREAD_LOCAL bool s_threadWasEntered = false;
+THREAD_LOCAL bool s_threadWasEntered = false;
 
 _NOINLINE void DISPOSE_CHAKRA_CORE_THREAD(void *_)
 {
@@ -116,9 +116,7 @@ atexit([]() {
     g_TraceLoggingClient = NoCheckHeapNewStruct(TraceLoggingClient);
 #endif
 
-#ifdef DYNAMIC_PROFILE_STORAGE
-    DynamicProfileStorage::Initialize();
-#endif
+
     return true;
 }
 
@@ -138,6 +136,10 @@ _NOINLINE void VALIDATE_ENTER_CURRENT_THREAD()
 
     if (s_threadWasEntered) return;
     s_threadWasEntered = true;
+
+#ifdef DYNAMIC_PROFILE_STORAGE
+    DynamicProfileStorage::Initialize();
+#endif
 
 #ifdef HEAP_TRACK_ALLOC
     HeapAllocator::InitializeThread();
