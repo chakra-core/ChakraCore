@@ -52,3 +52,25 @@ target_include_directories (
     ../Runtime/Debug
     ../Parser
     )
+
+
+add_custom_target(ChakraCoreHeaders ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/include"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/ChakraCore.h"
+    "${CMAKE_BINARY_DIR}/include"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/ChakraCommon.h"
+    "${CMAKE_BINARY_DIR}/include"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/ChakraDebug.h"
+    "${CMAKE_BINARY_DIR}/include"
+  )
+
+if(MSVC OR WIN32)
+  add_custom_command(TARGET ChakraCoreHeaders POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_CURRENT_SOURCE_DIR}/ChakraCommonWindows.h"
+      "${CMAKE_BINARY_DIR}/include"
+    )
+endif()

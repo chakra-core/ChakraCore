@@ -75,3 +75,6 @@ if(NOT CC_XCODE_PROJECT)
     ${CHAKRACORE_BINARY_DIR}/
     )
 endif()
+
+add_dependencies(ChakraCore ChakraCoreHeaders)
+
