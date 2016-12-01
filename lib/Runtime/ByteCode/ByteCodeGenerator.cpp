@@ -1313,6 +1313,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
 
             if (reuseNestedFunc)
             {
+                Assert(!reuseNestedFunc->IsFunctionBody() || reuseNestedFunc->GetFunctionBody()->GetByteCode() != nullptr);
                 pnode->sxFnc.pnodeBody = nullptr;
                 parseableFunctionInfo = reuseNestedFunc;
             }
