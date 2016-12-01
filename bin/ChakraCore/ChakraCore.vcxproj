@@ -68,6 +68,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MsBuildThisFileDirectory)ConfigParserExternals.cpp" />
+    <ClCompile Include="$(MsBuildThisFileDirectory)ChakraCoreCommon.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ChakraCoreDllFunc.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)TestHooks.cpp" />
     <None Include="..\CoreCommon.ver" />
