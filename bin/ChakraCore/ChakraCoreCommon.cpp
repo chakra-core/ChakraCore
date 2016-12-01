@@ -32,7 +32,13 @@ void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
 // However, it could be nice/necessary to provide an interface to make sure
 // we cover additional edge cases.
 
-#ifndef _WIN32
+#ifdef _WIN32
+#if defined(CHAKRA_STATIC_LIBRARY)
+static ATOM  lockedDll = 0;
+#else
+extern ATOM  lockedDll = 0;
+#endif
+#else
 #include <pthread.h>
 static pthread_key_t s_threadLocalDummy;
 #endif
