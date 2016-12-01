@@ -53,6 +53,7 @@ _NOINLINE void DISPOSE_CHAKRA_CORE_THREAD(void *_)
 
 _NOINLINE bool InitializeProcess()
 {
+    if(s_threadWasEntered) return true;
 #if !defined(_WIN32)
     pthread_key_create(&s_threadLocalDummy, DISPOSE_CHAKRA_CORE_THREAD);
 #endif
