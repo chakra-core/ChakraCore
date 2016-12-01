@@ -52,7 +52,7 @@ namespace JsUtil
 
         const T* GetBuffer() const
         {
-            return &this->buffer[0];
+            return AddressOf(this->buffer[0]);
         }
 
         template<class TList>

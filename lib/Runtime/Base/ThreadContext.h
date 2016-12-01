@@ -1329,7 +1329,7 @@ public:
         Assert(recyclableData->tempUncaughtException == nullptr);
 
         recyclableData->tempUncaughtException = exceptionObject;
-        return AddressOf(recyclableData->tempUncaughtException);
+        return &recyclableData->tempUncaughtException;
     }
 
     bool HasCatchHandler() const { return hasCatchHandler; }

@@ -2661,7 +2661,7 @@ namespace Js
             // 5 <=
 
             SparseArraySegmentBase* next = GetBeginLookupSegment(newLength - 1); // head, or next.left < newLength
-            Field(SparseArraySegmentBase*)* prev = AddressOf(head);
+            Field(SparseArraySegmentBase*)* prev = &head;
 
             while(next != nullptr)
             {
@@ -2686,7 +2686,7 @@ namespace Js
                 }
                 else
                 {
-                    prev = AddressOf(next->next);
+                    prev = &next->next;
                     next = next->next;
                 }
             }
@@ -6751,15 +6751,15 @@ Case0:
                 {
                     if (isIntArray)
                     {
-                        ArraySegmentSpliceHelper<int32>(newArr, SparseArraySegment<int32>::From(pArr->head), (SparseArraySegment<int32>**)AddressOf(pArr->head), start, deleteLen, insertArgs, insertLen, recycler);
+                        ArraySegmentSpliceHelper<int32>(newArr, SparseArraySegment<int32>::From(pArr->head), (SparseArraySegment<int32>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
                     }
                     else if (isFloatArray)
                     {
-                        ArraySegmentSpliceHelper<double>(newArr, SparseArraySegment<double>::From(pArr->head), (SparseArraySegment<double>**)AddressOf(pArr->head), start, deleteLen, insertArgs, insertLen, recycler);
+                        ArraySegmentSpliceHelper<double>(newArr, SparseArraySegment<double>::From(pArr->head), (SparseArraySegment<double>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
                     }
                     else
                     {
-                        ArraySegmentSpliceHelper<Var>(newArr, SparseArraySegment<Var>::From(pArr->head), (SparseArraySegment<Var>**)AddressOf(pArr->head), start, deleteLen, insertArgs, insertLen, recycler);
+                        ArraySegmentSpliceHelper<Var>(newArr, SparseArraySegment<Var>::From(pArr->head), (SparseArraySegment<Var>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
                     }
 
                     // Since the start index is within the bounds of the original array's head segment, it will not acquire any new
@@ -6936,8 +6936,8 @@ Case0:
         // Skip pnewArr->EnsureHead(): we don't use existing segment at all.
         Recycler *recycler  = scriptContext->GetRecycler();
 
-        Field(SparseArraySegmentBase*)* prevSeg  = AddressOf(pArr->head);        // holds the next pointer of previous
-        Field(SparseArraySegmentBase*)* prevPrevSeg  = AddressOf(pArr->head);    // this holds the previous pointer to prevSeg dirty trick.
+        Field(SparseArraySegmentBase*)* prevSeg  = &pArr->head;        // holds the next pointer of previous
+        Field(SparseArraySegmentBase*)* prevPrevSeg  = &pArr->head;    // this holds the previous pointer to prevSeg dirty trick.
         SparseArraySegmentBase* savePrev = nullptr;
 
         Assert(pArr->head); // We should never have a null head.
@@ -6956,7 +6956,7 @@ Case0:
         {
             savePrev = startSeg;
             prevPrevSeg = prevSeg;
-            prevSeg = AddressOf(startSeg->next);
+            prevSeg = &startSeg->next;
             startSeg = SparseArraySegment<T>::From(startSeg->next);
 
             if (startSeg)
@@ -7023,7 +7023,7 @@ Case0:
             else
             {
                 SparseArraySegment<T>* newHeadSeg = nullptr; // pnewArr->head is null
-                Field(SparseArraySegmentBase*)* prevNewHeadSeg = AddressOf(pnewArr->head);
+                Field(SparseArraySegmentBase*)* prevNewHeadSeg = &pnewArr->head;
 
                 // delete till deleteLen and reuse segments for new array if it is possible.
                 // 3 steps -
@@ -7050,12 +7050,12 @@ Case0:
                         newHeadSeg = SparseArraySegment<T>::CopySegment(recycler, newHeadSeg, 0, startSeg, start, headDeleteLen);
                         newHeadSeg->next = nullptr;
                         *prevNewHeadSeg = newHeadSeg;
-                        prevNewHeadSeg = AddressOf(newHeadSeg->next);
+                        prevNewHeadSeg = &newHeadSeg->next;
                         startSeg->Truncate(start);
                     }
                     savePrev = startSeg;
                     prevPrevSeg = prevSeg;
-                    prevSeg = AddressOf(startSeg->next);
+                    prevSeg = &startSeg->next;
                     startSeg = SparseArraySegment<T>::From(startSeg->next);
                 }
 
@@ -7077,7 +7077,7 @@ Case0:
                         }
                         newHeadSeg = SparseArraySegment<T>::CopySegment(recycler, newHeadSeg, 0, startSeg, start, headDeleteLen);
                         *prevNewHeadSeg = newHeadSeg;
-                        prevNewHeadSeg = AddressOf(newHeadSeg->next);
+                        prevNewHeadSeg = &newHeadSeg->next;
 
                         // Remove the entire segment from the original array
                         *prevSeg = startSeg->next;
@@ -7101,7 +7101,7 @@ Case0:
                     startSeg->left = startSeg->left - start;
                     startSeg->next = nullptr;
                     *prevNewHeadSeg = startSeg;
-                    prevNewHeadSeg = AddressOf(startSeg->next);
+                    prevNewHeadSeg = &startSeg->next;
 
                     // Remove the entire segment from the original array
                     *prevSeg = temp;
@@ -7120,7 +7120,7 @@ Case0:
 
                     savePrev = pArr->head;
                     prevPrevSeg = prevSeg;
-                    prevSeg = AddressOf(pArr->head->next);
+                    prevSeg = &pArr->head->next;
                     dummyHeadNodeInserted = true;
                 }
 
@@ -7134,7 +7134,7 @@ Case0:
                     newHeadSeg = SparseArraySegment<T>::CopySegment(recycler, newHeadSeg, startSeg->left -  start, startSeg, startSeg->left, headDeleteLen);
                     newHeadSeg->next = nullptr;
                     *prevNewHeadSeg = newHeadSeg;
-                    prevNewHeadSeg = AddressOf(newHeadSeg->next);
+                    prevNewHeadSeg = &newHeadSeg->next;
 
                     // move the last segment
                     MoveArray(startSeg->elements, startSeg->elements + headDeleteLen, startSeg->length - headDeleteLen);
@@ -7150,7 +7150,7 @@ Case0:
                     // Remove the dummy head node to preserve array consistency.
                     pArr->head = startSeg;
                     savePrev = nullptr;
-                    prevSeg = AddressOf(pArr->head);
+                    prevSeg = &pArr->head;
                 }
 
                 while (startSeg)

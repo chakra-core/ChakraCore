@@ -1602,7 +1602,7 @@ namespace Js
     {
         this->m_displayNameLength = displayNameLength;
         this->m_displayShortNameOffset = displayShortNameOffset;
-        FunctionProxy::SetDisplayName(pszDisplayName, AddressOf(this->m_displayName), displayNameLength, m_scriptContext, flags);
+        FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
     }
 
     LPCWSTR DeferDeserializeFunctionInfo::GetSourceInfo(int& lineNumber, int& columnNumber) const
@@ -2213,7 +2213,7 @@ namespace Js
     {
         this->m_displayNameLength = displayNameLength;
         this->m_displayShortNameOffset = displayShortNameOffset;
-        FunctionProxy::SetDisplayName(pszDisplayName, AddressOf(this->m_displayName), displayNameLength, m_scriptContext, flags);
+        FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
     }
 
     // SourceInfo methods

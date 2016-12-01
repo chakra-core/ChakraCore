@@ -864,7 +864,7 @@ namespace Js
 
     Js::Var const* DynamicObject::GetAuxSlots_TTD() const
     {
-        return &this->auxSlots[0];
+        return AddressOf(this->auxSlots[0]);
     }
 
 #if ENABLE_OBJECT_SOURCE_TRACKING

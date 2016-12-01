@@ -318,22 +318,13 @@ public:
     T * operator->() const { return ptr; }
     operator T* const & () const { return ptr; }
 
-    const WriteBarrierPtr* AddressOf() const { return this; }
-    WriteBarrierPtr* AddressOf() { return this; }
-
     // Taking immutable address is ok
     //
-    T* const * operator&() const
+    T* const * AddressOf() const
     {
         return &ptr;
     }
     // Taking mutable address is not allowed
-    //
-    // T** operator&()
-    // {
-    //     static_assert(false, "Might need to set barrier for this operation, and use AddressOf instead.");
-    //     return &ptr;
-    // }
 
     // Setters
     WriteBarrierPtr& operator=(T * ptr)
@@ -404,27 +395,25 @@ private:
 template <class T>
 struct _AddressOfType
 {
-    inline static T* AddressOf(T& val) { return &val; }
-    inline static const T* AddressOf(const T& val) { return &val; }
+    typedef T ValueType;
+    inline static const ValueType* AddressOf(const T& val) { return &val; }
 };
 
 template <class T>
 struct _AddressOfType< WriteBarrierPtr<T> >
 {
-    inline static WriteBarrierPtr<T>* AddressOf(WriteBarrierPtr<T>& val)
-    {
-        return val.AddressOf();
-    }
-    inline static const WriteBarrierPtr<T>* AddressOf(const WriteBarrierPtr<T>& val)
+    typedef T* ValueType;
+    inline static const ValueType* AddressOf(const WriteBarrierPtr<T>& val)
     {
         return val.AddressOf();
     }
 };
 
 template <class T>
-inline T* AddressOf(T& val) { return _AddressOfType<T>::AddressOf(val); }
-template <class T>
-inline const T* AddressOf(const T& val) { return _AddressOfType<T>::AddressOf(val); }
+inline const typename _AddressOfType<T>::ValueType* AddressOf(const T& val)
+{
+  return _AddressOfType<T>::AddressOf(val);
+}
 
 template <class T>
 inline T* const& PointerValue(T* const& ptr) { return ptr; }

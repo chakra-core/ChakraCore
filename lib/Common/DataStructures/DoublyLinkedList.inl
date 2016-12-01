@@ -50,25 +50,25 @@ namespace JsUtil
     template<class T, class TAllocator>
     void DoublyLinkedList<T, TAllocator>::LinkToBeginning(T *const element)
     {
-        T::LinkToBeginning(element, AddressOf(head), AddressOf(tail));
+        T::LinkToBeginning(element, &head, &tail);
     }
 
     template<class T, class TAllocator>
     void DoublyLinkedList<T, TAllocator>::LinkToEnd(T *const element)
     {
-        T::LinkToEnd(element, AddressOf(head), AddressOf(tail));
+        T::LinkToEnd(element, &head, &tail);
     }
 
     template<class T, class TAllocator>
     void DoublyLinkedList<T, TAllocator>::LinkBefore(T *const element, T *const nextElement)
     {
-        T::LinkBefore(element, nextElement, AddressOf(head), AddressOf(tail));
+        T::LinkBefore(element, nextElement, &head, &tail);
     }
 
     template<class T, class TAllocator>
     void DoublyLinkedList<T, TAllocator>::LinkAfter(T *const element, T *const previousElement)
     {
-        T::LinkAfter(element, previousElement, AddressOf(head), AddressOf(tail));
+        T::LinkAfter(element, previousElement, &head, &tail);
     }
 
     template<class T, class TAllocator>
@@ -76,7 +76,7 @@ namespace JsUtil
     {
         T *const element = head;
         if(element)
-            T::UnlinkFromBeginning(element, AddressOf(head), AddressOf(tail));
+            T::UnlinkFromBeginning(element, &head, &tail);
         return element;
     }
 
@@ -85,43 +85,43 @@ namespace JsUtil
     {
         T *const element = tail;
         if(element)
-            T::UnlinkFromEnd(element, AddressOf(head), AddressOf(tail));
+            T::UnlinkFromEnd(element, &head, &tail);
         return element;
     }
 
     template<class T, class TAllocator>
     void DoublyLinkedList<T, TAllocator>::UnlinkPartial(T *const element)
     {
-        T::UnlinkPartial(element, AddressOf(head), AddressOf(tail));
+        T::UnlinkPartial(element, &head, &tail);
     }
 
     template<class T, class TAllocator>
     void DoublyLinkedList<T, TAllocator>::Unlink(T *const element)
     {
-        T::Unlink(element, AddressOf(head), AddressOf(tail));
+        T::Unlink(element, &head, &tail);
     }
 
     template<class T, class TAllocator>
     void DoublyLinkedList<T, TAllocator>::MoveToBeginning(T *const element)
     {
-        T::MoveToBeginning(element, AddressOf(head), AddressOf(tail));
+        T::MoveToBeginning(element, &head, &tail);
     }
 
     template<class T, class TAllocator>
     void DoublyLinkedList<T, TAllocator>::UnlinkSubsequenceFromEnd(T *const first)
     {
-        T::UnlinkSubsequenceFromEnd(first, AddressOf(head), AddressOf(tail));
+        T::UnlinkSubsequenceFromEnd(first, &head, &tail);
     }
 
     template<class T, class TAllocator>
     void DoublyLinkedList<T, TAllocator>::UnlinkSubsequence(T *const first, T *const last)
     {
-        T::UnlinkSubsequence(first, last, AddressOf(head), AddressOf(tail));
+        T::UnlinkSubsequence(first, last, &head, &tail);
     }
 
     template<class T, class TAllocator>
     void DoublyLinkedList<T, TAllocator>::MoveSubsequenceToBeginning(T *const first, T *const last)
     {
-        T::MoveSubsequenceToBeginning(first, last, AddressOf(head), AddressOf(tail));
+        T::MoveSubsequenceToBeginning(first, last, &head, &tail);
     }
 }
