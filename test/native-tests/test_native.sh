@@ -65,6 +65,12 @@ RUN () {
     fi
 }
 
+# test-c98
+RUN "test-c98"
+
+# test-char
+RUN "test-char"
+
 # test-char16
 RUN "test-char16"
 
