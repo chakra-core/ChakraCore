@@ -709,6 +709,8 @@ namespace Js
 
     BOOL JavascriptProxy::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
     {
+        PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
+
         //1. Assert: IsPropertyKey(P) is true.
         //2. Let handler be the value of the[[ProxyHandler]] internal slot of O.
         //3. If handler is null, then throw a TypeError exception.
@@ -1039,6 +1041,8 @@ namespace Js
 
     BOOL JavascriptProxy::IsExtensible()
     {
+        PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
+
         ScriptContext* scriptContext = GetScriptContext();
         // Reject implicit call
         ThreadContext* threadContext = scriptContext->GetThreadContext();
@@ -1096,6 +1100,8 @@ namespace Js
 
     BOOL JavascriptProxy::PreventExtensions()
     {
+        PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
+
         ScriptContext* scriptContext = GetScriptContext();
         // Reject implicit call
         ThreadContext* threadContext = scriptContext->GetThreadContext();
@@ -1580,6 +1586,8 @@ namespace Js
 
     BOOL JavascriptProxy::DefineOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext)
     {
+        PROBE_STACK(scriptContext, Js::Constants::MinStackDefault);
+
         //1. Assert: IsPropertyKey(P) is true.
         //2. Let handler be the value of the[[ProxyHandler]] internal slot of O.
         //3. If handler is null, then throw a TypeError exception.
