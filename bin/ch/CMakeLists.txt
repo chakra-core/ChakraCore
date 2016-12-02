@@ -7,6 +7,11 @@ set(ch_source_files
   WScriptJsrt.cpp
   )
 
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  set(ch_source_files ${ch_source_files}
+    $<TARGET_OBJECTS:Chakra.Pal>
+    )
+endif()
 add_executable (ch ${ch_source_files})
 
 set_target_properties(ch
@@ -56,7 +61,6 @@ if(STATIC_LIBRARY)
 else() # // shared library below
   target_sources(ch PRIVATE
     CodexAssert.cpp
-    $<TARGET_OBJECTS:Chakra.Pal>
     )
 
   set(lib_target "${lib_target}"

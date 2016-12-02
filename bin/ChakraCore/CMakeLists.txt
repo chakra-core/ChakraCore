@@ -4,7 +4,7 @@ add_library (ChakraCoreStatic STATIC
   ChakraCoreCommon.cpp
   ConfigParserExternals.cpp
   TestHooks.cpp
-  ${Chakra.Jsrt}
+  ${jsrt_objects}
   )
 
 add_library (ChakraCore SHARED
@@ -12,6 +12,7 @@ add_library (ChakraCore SHARED
   ChakraCoreDllFunc.cpp
   ConfigParserExternals.cpp
   TestHooks.cpp
+  ${jsrt_objects}
   )
 
 target_compile_options(ChakraCoreStatic PRIVATE "-fPIC")
@@ -19,8 +20,6 @@ target_compile_definitions(ChakraCoreStatic
   PUBLIC
     -DCHAKRA_STATIC_LIBRARY=1
   )
-CHAKRACORE_ADD_JSRT_OBJECTS(ChakraCore)
-CHAKRACORE_ADD_JSRT_OBJECTS(ChakraCoreStatic)
 
 target_include_directories (
   ChakraCoreStatic PUBLIC
