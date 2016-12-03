@@ -31,8 +31,11 @@ target_include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CHAKRACORE_SOURCE_DIR}/lib/Common
   ${CHAKRACORE_SOURCE_DIR}/lib/Runtime
+  ${CHAKRACORE_SOURCE_DIR}/lib/Runtime/ByteCode
   ${CHAKRACORE_SOURCE_DIR}/lib/Parser
   ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
+  ${CHAKRACORE_SOURCE_DIR}/lib/JITIDL
+  ${CHAKRACORE_SOURCE_DIR}/lib/Backend
   )
 #
 # Link step for the ChakraCore shared library
@@ -81,8 +84,8 @@ if(CC_TARGETS_X86)
   set(Chakralib_target "${Chakralib_target} -m32")
 endif()
 
-target_link_libraries (ChakraCoreStatic PRIVATE ${Chakralib_target})
-
+#target_link_libraries (ChakraCoreStatic  ${Chakralib_target})
+add_dependencies(ChakraCoreStatic  Chakra.Pal Chakra.Common.Core Chakra.Jsrt)
 
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
