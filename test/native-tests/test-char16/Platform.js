@@ -22,7 +22,8 @@ LIBRARY_PATH=" + binaryPath + "/lib\n\
 PLATFORM=" + platform + "\n\
 LDIR=$(LIBRARY_PATH)/../pal/src/libChakra.Pal.a \
   $(LIBRARY_PATH)/Common/Core/libChakra.Common.Core.a \
-  $(LIBRARY_PATH)/Jsrt/libChakra.Jsrt.a \n\
+  $(LIBRARY_PATH)/Jsrt/libChakra.Jsrt.a \
+" + binaryPath + "/libChakraCoreStatic.a\n \
 \n\
 ifeq (darwin, ${PLATFORM})\n\
 \tICU4C_LIBRARY_PATH ?= /usr/local/opt/icu4c\n\
