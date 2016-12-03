@@ -23,7 +23,7 @@ PLATFORM=" + platform + "\n\
 LDIR=$(LIBRARY_PATH)/../pal/src/libChakra.Pal.a \
   $(LIBRARY_PATH)/Common/Core/libChakra.Common.Core.a \
   $(LIBRARY_PATH)/Jsrt/libChakra.Jsrt.a \
-" + binaryPath + "/libChakraCoreStatic.a\n \
+" + binaryPath + "/bin/ChakraCore/libChakraCoreStatic.a \n \
 \n\
 \n\
 ifeq (darwin, ${PLATFORM})\n\
