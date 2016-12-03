@@ -1,16 +1,15 @@
 set(ch_source_files
   ch.cpp
   ChakraRtInterface.cpp
-  CodexAssert.cpp
   Debugger.cpp
   Helpers.cpp
   HostConfigFlags.cpp
   WScriptJsrt.cpp
   )
 
-if (STATIC_LIBRARY)
-  set(ch_source_files "${ch_source_files}"
-    ../ChakraCore/TestHooks.cpp
+if(NOT STATIC_LIBRARY)
+  set(ch_source_files ${ch_source_files}
+    CodexAssert.cpp
     )
 endif()
 
@@ -43,16 +42,15 @@ if(STATIC_LIBRARY)
     set(LINKER_START_GROUP -Wl,--start-group)
     set(LINKER_END_GROUP -Wl,--end-group)
   elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(LINKER_START_GROUP -Wl,-force_load,)
+    set(LINKER_START_GROUP "-Wl,-force_load,\"${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreStatic.a\"")
+
   endif()
 
   # common link deps
   set(lib_target "${lib_target}"
     -Wl,-undefined,error
     ${LINKER_START_GROUP}
-    Chakra.Pal
-    Chakra.Common.Core
-    Chakra.Jsrt
+    ChakraCoreStatic
     ${LINKER_END_GROUP}
     pthread
     stdc++

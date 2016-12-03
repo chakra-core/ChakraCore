@@ -1,4 +1,5 @@
 add_library (ChakraCore SHARED
+  ChakraCoreCommon.cpp
   ChakraCoreDllFunc.cpp
   ConfigParserExternals.cpp
   TestHooks.cpp
@@ -13,6 +14,26 @@ target_include_directories (
   ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
   )
 
+
+
+add_library (ChakraCoreStatic STATIC
+  ChakraCoreCommon.cpp
+  ConfigParserExternals.cpp
+  TestHooks.cpp
+  )
+target_compile_options(ChakraCoreStatic PRIVATE "-fPIC")
+target_compile_definitions(ChakraCoreStatic
+  PUBLIC
+    -DCHAKRA_STATIC_LIBRARY=1
+  )
+target_include_directories (
+  ChakraCoreStatic PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CHAKRACORE_SOURCE_DIR}/lib/Common
+  ${CHAKRACORE_SOURCE_DIR}/lib/Runtime
+  ${CHAKRACORE_SOURCE_DIR}/lib/Parser
+  ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
+  )
 #
 # Link step for the ChakraCore shared library
 #
@@ -31,10 +52,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     -Wl,--no-whole-archive
     -Wl,--end-group
     )
-endif
+endif()
 
 # common link deps
-set(lib_target "${lib_target}"
+set(Chakralib_target "${Chakralib_target}"
   -Wl,-undefined,error
   ${LINKER_START_GROUP}
   Chakra.Pal
@@ -47,24 +68,31 @@ set(lib_target "${lib_target}"
   ${ICULIB}
   )
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  set(lib_target "${lib_target}"
-    -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
-    )
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  set(lib_target "${lib_target}"
+
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  set(Chakralib_target "${Chakralib_target}"
     "-Wl,-force_load,${chakrapal_BINARY_DIR}/libChakra.Pal.a"
-    "-Wl,-force_load,${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a"
+    "-Wl-force_load,${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a"
     "-Wl,-force_load,${CHAKRA_JSRT_BINARY_DIR}/Core/libChakra.Jsrt.a"
     )
 endif()
 
 if(CC_TARGETS_X86)
-  set(lib_target "${lib_target} -m32")
+  set(Chakralib_target "${Chakralib_target} -m32")
 endif()
 
-target_link_libraries (ChakraCore ${lib_target})
+target_link_libraries (ChakraCoreStatic PRIVATE ${Chakralib_target})
 
+
+
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  set(Chakralib_target "${Chakralib_target}"
+    -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
+    )
+endif()
+target_link_libraries (ChakraCore PRIVATE ${Chakralib_target})
+
+unset(lib_target CACHE )
 if(NOT CC_XCODE_PROJECT)
   set(CC_LIB_EXT "so")
   # Post build step to copy the built shared library
@@ -78,4 +106,10 @@ if(NOT CC_XCODE_PROJECT)
     "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.${CC_LIB_EXT}"
     ${CHAKRACORE_BINARY_DIR}/
     )
+    add_custom_command(TARGET ChakraCoreStatic POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreStatic.a"
+        ${CHAKRACORE_BINARY_DIR}/
+        )
+
 endif()
