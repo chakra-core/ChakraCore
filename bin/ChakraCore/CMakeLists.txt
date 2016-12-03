@@ -31,9 +31,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     -Wl,--no-whole-archive
     -Wl,--end-group
     )
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  set(LINKER_START_GROUP -Wl,-force_load,)
-endif()
+endif
 
 # common link deps
 set(lib_target "${lib_target}"
@@ -52,6 +50,12 @@ set(lib_target "${lib_target}"
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(lib_target "${lib_target}"
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
+    )
+elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  set(lib_target "${lib_target}"
+    "-Wl,-force_load,${chakrapal_BINARY_DIR}/libChakra.Pal.a"
+    "-Wl,-force_load,${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a"
+    "-Wl,-force_load,${CHAKRA_JSRT_BINARY_DIR}/Core/libChakra.Jsrt.a"
     )
 endif()
 

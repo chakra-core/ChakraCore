@@ -1,3 +1,5 @@
+project(CHAKRA_JSRT)
+
 if(BuildJIT)
     set(chakra_backend_objects $<TARGET_OBJECTS:Chakra.Backend>)
 endif()
