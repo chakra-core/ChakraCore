@@ -22,20 +22,7 @@ add_library (Chakra.Jsrt OBJECT
     )
 
 add_library (Chakra.Jsrt.Singular STATIC
-    Jsrt.cpp
-    JsrtDebugUtils.cpp
-    JsrtDebugManager.cpp
-    JsrtDebuggerObject.cpp
-    JsrtDiag.cpp
-    JsrtContext.cpp
-    JsrtExternalArrayBuffer.cpp
-    JsrtExternalObject.cpp
-    JsrtDebugEventObject.cpp
-    JsrtHelper.cpp
-    JsrtPch.cpp
-    JsrtRuntime.cpp
-    JsrtSourceHolder.cpp
-    JsrtThreadService.cpp
+    $<TARGET_OBJECTS:Chakra.Common.Core>
     $<TARGET_OBJECTS:Chakra.Jsrt.Core>
     ${chakra_backend_objects}
 #   Do not take this in. We need to control the
@@ -57,6 +44,7 @@ add_library (Chakra.Jsrt.Singular STATIC
     $<TARGET_OBJECTS:Chakra.Runtime.Types>
     $<TARGET_OBJECTS:Chakra.Runtime.PlatformAgnostic>
     $<TARGET_OBJECTS:Chakra.Parser>
+    $<TARGET_OBJECTS:Chakra.Jsrt>
     )
 
 add_subdirectory(Core)

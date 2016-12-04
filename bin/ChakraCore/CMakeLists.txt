@@ -23,6 +23,7 @@ add_library (ChakraCoreStatic STATIC
   ChakraCoreCommon.cpp
   ConfigParserExternals.cpp
   TestHooks.cpp
+  $<TARGET_OBJECTS:Chakra.Common.Core>
   $<TARGET_OBJECTS:Chakra.Jsrt.Core>
   ${chakra_backend_objects}
 # Do not take this in. We need to control the
@@ -89,7 +90,6 @@ set(Chakralib_target "${Chakralib_target}"
   -Wl,-undefined,error
   ${LINKER_START_GROUP}
   Chakra.Pal
-  Chakra.Common.Core
   Chakra.Jsrt.Singular
   ${LINKER_END_GROUP}
   pthread
@@ -102,7 +102,6 @@ set(Chakralib_target "${Chakralib_target}"
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(Chakralib_target "${Chakralib_target}"
     "-Wl,-force_load,\"${chakrapal_BINARY_DIR}/libChakra.Pal.a\""
-    "-Wl,-force_load,\"${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a\""
     "-Wl,-force_load,\"${CHAKRA_JSRT_BINARY_DIR}/libChakra.Jsrt.Singular.a\""
     )
 endif()
@@ -112,7 +111,7 @@ if(CC_TARGETS_X86)
 endif()
 
 #target_link_libraries (ChakraCoreStatic  ${Chakralib_target})
-add_dependencies(ChakraCoreStatic  Chakra.Pal Chakra.Common.Core)
+add_dependencies(ChakraCoreStatic  Chakra.Pal)
 
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)

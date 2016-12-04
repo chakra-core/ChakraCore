@@ -44,7 +44,6 @@ if(STATIC_LIBRARY)
   elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(LINKER_START_GROUP
       "-Wl,-force_load,\"${chakrapal_BINARY_DIR}/libChakra.Pal.a\""
-      "-Wl,-force_load,\"${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a\""
       "-Wl,-force_load,\"${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreStatic.a\""
       )
   endif()
@@ -53,7 +52,6 @@ if(STATIC_LIBRARY)
   set(lib_target "${lib_target}"
     -Wl,-undefined,error
     ${LINKER_START_GROUP}
-    Chakra.Common.Core
     Chakra.Pal
     ChakraCoreStatic
     ${LINKER_END_GROUP}
