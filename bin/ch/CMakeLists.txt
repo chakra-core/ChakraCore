@@ -42,8 +42,12 @@ if(STATIC_LIBRARY)
     set(LINKER_START_GROUP -Wl,--start-group)
     set(LINKER_END_GROUP -Wl,--end-group)
   elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(LINKER_START_GROUP "-Wl,-force_load,\"${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreStatic.a\"")
-
+    set(LINKER_START_GROUP
+      "-Wl,-force_load,\"${chakrapal_BINARY_DIR}/libChakra.Pal.a\" "
+      "-Wl,-force_load,\"${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a\" "
+      "-Wl,-force_load,\"${CHAKRA_JSRT_BINARY_DIR}/libChakra.Jsrt.a\" "
+      "-Wl,-force_load,\"${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreStatic.a\"")
+      )
   endif()
 
   # common link deps
