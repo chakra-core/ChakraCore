@@ -74,9 +74,9 @@ set(Chakralib_target "${Chakralib_target}"
 
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(Chakralib_target "${Chakralib_target}"
-    "-Wl,-force_load,\"${chakrapal_BINARY_DIR}/libChakra.Pal.a\" "
-    "-Wl,-force_load,\"${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a\" "
-    "-Wl,-force_load,\"${CHAKRA_JSRT_BINARY_DIR}/libChakra.Jsrt.a\" "
+    "-Wl,-force_load,\"${chakrapal_BINARY_DIR}/libChakra.Pal.a\""
+    "-Wl,-force_load,\"${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a\""
+    "-Wl,-force_load,\"${CHAKRA_JSRT_BINARY_DIR}/libChakra.Jsrt.a\""
     )
 endif()
 
