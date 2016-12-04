@@ -46,7 +46,7 @@ if(STATIC_LIBRARY)
       "-Wl,-force_load,\"${chakrapal_BINARY_DIR}/libChakra.Pal.a\" "
       "-Wl,-force_load,\"${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a\" "
       "-Wl,-force_load,\"${CHAKRA_JSRT_BINARY_DIR}/libChakra.Jsrt.a\" "
-      "-Wl,-force_load,\"${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreStatic.a\"")
+      "-Wl,-force_load,\"${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreStatic.a\""
       )
   endif()
 
