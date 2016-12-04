@@ -43,7 +43,6 @@ if(STATIC_LIBRARY)
     set(LINKER_END_GROUP -Wl,--end-group)
   elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(LINKER_START_GROUP
-      "-Wl,-force_load,\"${chakrapal_BINARY_DIR}/libChakra.Pal.a\""
       "-Wl,-force_load,\"${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreStatic.a\""
       )
   endif()
@@ -52,7 +51,6 @@ if(STATIC_LIBRARY)
   set(lib_target "${lib_target}"
     -Wl,-undefined,error
     ${LINKER_START_GROUP}
-    Chakra.Pal
     ChakraCoreStatic
     ${LINKER_END_GROUP}
     pthread
@@ -74,7 +72,7 @@ if(STATIC_LIBRARY)
   endif() # Linux ?
 else() # // shared library below
   set(lib_target
-    PRIVATE Chakra.Pal
+    PRIVATE Chakra.Pal.Singular
     PRIVATE Chakra.Common.Codex.Singular
     PRIVATE Chakra.Runtime.PlatformAgnostic.Singular
     )

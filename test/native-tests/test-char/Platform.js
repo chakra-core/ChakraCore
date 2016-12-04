@@ -20,8 +20,7 @@ if (!isStaticBuild) {
 \n\
 LIBRARY_PATH=" + binaryPath + "/lib\n\
 PLATFORM=" + platform + "\n\
-LDIR=$(LIBRARY_PATH)/../pal/src/libChakra.Pal.a \
-" + binaryPath + "/bin/ChakraCore/libChakraCoreStatic.a \n \
+LDIR=" + binaryPath + "/bin/ChakraCore/libChakraCoreStatic.a \n \
 \n\
 \n\
 ifeq (darwin, ${PLATFORM})\n\

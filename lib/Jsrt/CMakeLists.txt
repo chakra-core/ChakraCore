@@ -22,6 +22,7 @@ add_library (Chakra.Jsrt OBJECT
     )
 
 add_library (Chakra.Jsrt.Singular STATIC
+    $<TARGET_OBJECTS:Chakra.Pal>
     $<TARGET_OBJECTS:Chakra.Common.Core>
     $<TARGET_OBJECTS:Chakra.Jsrt.Core>
     ${chakra_backend_objects}
@@ -70,4 +71,30 @@ target_include_directories (
     ../Runtime/Debug
     ../Parser
     )
+
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  target_link_libraries(Chakra.Jsrt.Singular
+    pthread
+    dl
+    "-framework CoreFoundation"
+    "-framework Security"
+  )
+endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  if(CC_TARGETS_AMD64)
+    target_link_libraries(Chakra.Jsrt.Singular
+      unwind-x86_64
+    )
+  endif()
+
+  target_link_libraries(Chakra.Jsrt.Singular
+    gcc_s
+    pthread
+    rt
+    dl
+    unwind
+    unwind-generic
+  )
+endif(CMAKE_SYSTEM_NAME STREQUAL Linux)
 

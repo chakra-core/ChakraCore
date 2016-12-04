@@ -23,13 +23,13 @@ add_library (ChakraCoreStatic STATIC
   ChakraCoreCommon.cpp
   ConfigParserExternals.cpp
   TestHooks.cpp
-  $<TARGET_OBJECTS:Chakra.Common.Core>
-  $<TARGET_OBJECTS:Chakra.Jsrt.Core>
-  ${chakra_backend_objects}
 # Do not take this in. We need to control the
 # linker order because of global constructors
 # and cross dependencies among them
-# $<TARGET_OBJECTS:Chakra.Common.Core>
+  $<TARGET_OBJECTS:Chakra.Pal>
+  $<TARGET_OBJECTS:Chakra.Common.Core>
+  $<TARGET_OBJECTS:Chakra.Jsrt.Core>
+  ${chakra_backend_objects}
   $<TARGET_OBJECTS:Chakra.Common.Common>
   $<TARGET_OBJECTS:Chakra.Common.Codex>
   $<TARGET_OBJECTS:Chakra.Common.DataStructures>
@@ -50,6 +50,7 @@ add_library (ChakraCoreStatic STATIC
 unset(chakra_backend_objects CACHE)
 
 target_compile_options(ChakraCoreStatic PRIVATE "-fPIC")
+
 target_compile_definitions(ChakraCoreStatic
   PUBLIC
     -DCHAKRA_STATIC_LIBRARY=1
@@ -65,6 +66,35 @@ target_include_directories (
   ${CHAKRACORE_SOURCE_DIR}/lib/JITIDL
   ${CHAKRACORE_SOURCE_DIR}/lib/Backend
   )
+
+
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  target_link_libraries(ChakraCoreStatic
+    pthread
+    dl
+    "-framework CoreFoundation"
+    "-framework Security"
+  )
+endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+
+if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  if(CC_TARGETS_AMD64)
+    target_link_libraries(ChakraCoreStatic
+      unwind-x86_64
+    )
+  endif()
+
+  target_link_libraries(ChakraCoreStatic
+    gcc_s
+    pthread
+    rt
+    dl
+    unwind
+    unwind-generic
+  )
+endif(CMAKE_SYSTEM_NAME STREQUAL Linux)
+
+
 #
 # Link step for the ChakraCore shared library
 #
@@ -89,7 +119,6 @@ endif()
 set(Chakralib_target "${Chakralib_target}"
   -Wl,-undefined,error
   ${LINKER_START_GROUP}
-  Chakra.Pal
   Chakra.Jsrt.Singular
   ${LINKER_END_GROUP}
   pthread
@@ -101,7 +130,6 @@ set(Chakralib_target "${Chakralib_target}"
 
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(Chakralib_target "${Chakralib_target}"
-    "-Wl,-force_load,\"${chakrapal_BINARY_DIR}/libChakra.Pal.a\""
     "-Wl,-force_load,\"${CHAKRA_JSRT_BINARY_DIR}/libChakra.Jsrt.Singular.a\""
     )
 endif()

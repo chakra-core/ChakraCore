@@ -26,7 +26,6 @@ endif()
 set(lib_target "${lib_target}"
   -Wl,-undefined,error
   ${LINKER_START_GROUP}
-  Chakra.Pal
   Chakra.Jsrt.Singular
   ${LINKER_END_GROUP}
   )
