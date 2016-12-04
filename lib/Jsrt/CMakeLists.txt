@@ -4,7 +4,24 @@ if(BuildJIT)
     set(chakra_backend_objects $<TARGET_OBJECTS:Chakra.Backend>)
 endif()
 
-add_library (Chakra.Jsrt STATIC
+add_library (Chakra.Jsrt OBJECT
+    Jsrt.cpp
+    JsrtDebugUtils.cpp
+    JsrtDebugManager.cpp
+    JsrtDebuggerObject.cpp
+    JsrtDiag.cpp
+    JsrtContext.cpp
+    JsrtExternalArrayBuffer.cpp
+    JsrtExternalObject.cpp
+    JsrtDebugEventObject.cpp
+    JsrtHelper.cpp
+    JsrtPch.cpp
+    JsrtRuntime.cpp
+    JsrtSourceHolder.cpp
+    JsrtThreadService.cpp
+    )
+
+add_library (Chakra.Jsrt.Singular STATIC
     Jsrt.cpp
     JsrtDebugUtils.cpp
     JsrtDebugManager.cpp
@@ -54,3 +71,15 @@ target_include_directories (
     ../Runtime/Debug
     ../Parser
     )
+
+target_include_directories (
+    Chakra.Jsrt.Singular PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    ../Backend
+    ../JITIDL
+    ../Runtime
+    ../Runtime/Base
+    ../Runtime/ByteCode
+    ../Runtime/Debug
+    ../Parser
+    )
+

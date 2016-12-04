@@ -15,12 +15,39 @@ target_include_directories (
   )
 
 
+if(BuildJIT)
+    set(chakra_backend_objects $<TARGET_OBJECTS:Chakra.Backend>)
+endif()
 
 add_library (ChakraCoreStatic STATIC
   ChakraCoreCommon.cpp
   ConfigParserExternals.cpp
   TestHooks.cpp
+  $<TARGET_OBJECTS:Chakra.Jsrt.Core>
+  ${chakra_backend_objects}
+# Do not take this in. We need to control the
+# linker order because of global constructors
+# and cross dependencies among them
+# $<TARGET_OBJECTS:Chakra.Common.Core>
+  $<TARGET_OBJECTS:Chakra.Common.Common>
+  $<TARGET_OBJECTS:Chakra.Common.Codex>
+  $<TARGET_OBJECTS:Chakra.Common.DataStructures>
+  $<TARGET_OBJECTS:Chakra.Common.Exceptions>
+  $<TARGET_OBJECTS:Chakra.Common.Memory>
+  $<TARGET_OBJECTS:Chakra.Common.Util>
+  $<TARGET_OBJECTS:Chakra.Runtime.Base>
+  $<TARGET_OBJECTS:Chakra.Runtime.ByteCode>
+  $<TARGET_OBJECTS:Chakra.Runtime.Debug>
+  $<TARGET_OBJECTS:Chakra.Runtime.Language>
+  $<TARGET_OBJECTS:Chakra.Runtime.Library>
+  $<TARGET_OBJECTS:Chakra.Runtime.Math>
+  $<TARGET_OBJECTS:Chakra.Runtime.Types>
+  $<TARGET_OBJECTS:Chakra.Runtime.PlatformAgnostic>
+  $<TARGET_OBJECTS:Chakra.Parser>
+  $<TARGET_OBJECTS:Chakra.Jsrt>
   )
+unset(chakra_backend_objects CACHE)
+
 target_compile_options(ChakraCoreStatic PRIVATE "-fPIC")
 target_compile_definitions(ChakraCoreStatic
   PUBLIC
@@ -63,7 +90,7 @@ set(Chakralib_target "${Chakralib_target}"
   ${LINKER_START_GROUP}
   Chakra.Pal
   Chakra.Common.Core
-  Chakra.Jsrt
+  Chakra.Jsrt.Singular
   ${LINKER_END_GROUP}
   pthread
   stdc++
@@ -76,7 +103,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(Chakralib_target "${Chakralib_target}"
     "-Wl,-force_load,\"${chakrapal_BINARY_DIR}/libChakra.Pal.a\""
     "-Wl,-force_load,\"${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a\""
-    "-Wl,-force_load,\"${CHAKRA_JSRT_BINARY_DIR}/libChakra.Jsrt.a\""
+    "-Wl,-force_load,\"${CHAKRA_JSRT_BINARY_DIR}/libChakra.Jsrt.Singular.a\""
     )
 endif()
 
@@ -85,7 +112,7 @@ if(CC_TARGETS_X86)
 endif()
 
 #target_link_libraries (ChakraCoreStatic  ${Chakralib_target})
-add_dependencies(ChakraCoreStatic  Chakra.Pal Chakra.Common.Core Chakra.Jsrt)
+add_dependencies(ChakraCoreStatic  Chakra.Pal Chakra.Common.Core)
 
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)

@@ -45,7 +45,6 @@ if(STATIC_LIBRARY)
     set(LINKER_START_GROUP
       "-Wl,-force_load,\"${chakrapal_BINARY_DIR}/libChakra.Pal.a\""
       "-Wl,-force_load,\"${CHAKRA_COMMON_BINARY_DIR}/Core/libChakra.Common.Core.a\""
-      "-Wl,-force_load,\"${CHAKRA_JSRT_BINARY_DIR}/libChakra.Jsrt.a\""
       "-Wl,-force_load,\"${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCoreStatic.a\""
       )
   endif()
@@ -56,7 +55,6 @@ if(STATIC_LIBRARY)
     ${LINKER_START_GROUP}
     Chakra.Common.Core
     Chakra.Pal
-    Chakra.Jsrt
     ChakraCoreStatic
     ${LINKER_END_GROUP}
     pthread

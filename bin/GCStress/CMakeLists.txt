@@ -28,7 +28,7 @@ set(lib_target "${lib_target}"
   ${LINKER_START_GROUP}
   Chakra.Common.Core
   Chakra.Pal
-  Chakra.Jsrt
+  Chakra.Jsrt.Singular
   ${LINKER_END_GROUP}
   )
 

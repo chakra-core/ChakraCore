@@ -22,7 +22,6 @@ LIBRARY_PATH=" + binaryPath + "/lib\n\
 PLATFORM=" + platform + "\n\
 LDIR=$(LIBRARY_PATH)/../pal/src/libChakra.Pal.a \
   $(LIBRARY_PATH)/Common/Core/libChakra.Common.Core.a \
-  $(LIBRARY_PATH)/Jsrt/libChakra.Jsrt.a \
 " + binaryPath + "/bin/ChakraCore/libChakraCoreStatic.a \n \
 \n\
 \n\
