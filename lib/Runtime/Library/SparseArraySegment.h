@@ -89,6 +89,12 @@ namespace Js
         static T GetMissingItem();
         static bool IsMissingItem(const T* value);
 
+        template <class S>
+        static bool IsMissingItem(const WriteBarrierPtr<S>* value)
+        {
+            return IsMissingItem(AddressOf(value[0]));
+        }
+
         static uint32 GetAlignedSize(uint32 size);
 
         static inline SparseArraySegment* From(SparseArraySegmentBase* seg)

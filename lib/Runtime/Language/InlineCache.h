@@ -22,7 +22,7 @@
 class JITType;
 template <class TAllocator> class JITTypeHolderBase;
 typedef JITTypeHolderBase<void> JITTypeHolder;
-typedef JITTypeHolderBase<Recycler> JITTypeHolderObject;
+typedef JITTypeHolderBase<Recycler> RecyclerJITTypeHolder;
 
 namespace Js
 {
@@ -546,10 +546,10 @@ namespace Js
     private:
         Field(bool) sortedAndDuplicatesRemoved;
         Field(uint16) count;
-        Field(JITTypeHolderObject *) types;
+        Field(RecyclerJITTypeHolder *) types;
 
     public:
-        EquivalentTypeSet(JITTypeHolderObject * types, uint16 count);
+        EquivalentTypeSet(RecyclerJITTypeHolder * types, uint16 count);
 
         uint16 GetCount() const
         {

@@ -52,7 +52,7 @@ namespace JsUtil
 
         const T* GetBuffer() const
         {
-            return &this->buffer[0];
+            return AddressOf(this->buffer[0]);
         }
 
         template<class TList>
@@ -507,7 +507,7 @@ namespace JsUtil
         template<class DebugSite, class TMapFunction>
         HRESULT Map(DebugSite site, TMapFunction map) const // external debugging version
         {
-            return Js::Map(site, this->buffer, this->count, map);
+            return Js::Map(site, PointerValue(this->buffer), this->count, map);
         }
 
         template<class TMapFunction>

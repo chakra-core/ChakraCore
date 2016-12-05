@@ -517,7 +517,7 @@ SECOND_PASS:
             uint32 limit =  nextSeg->left + nextSeg->length;
             if (index < limit)
             {
-                const T * v = &((SparseArraySegment<T>*)nextSeg)->elements[index - nextSeg->left];
+                const T * v = AddressOf(((SparseArraySegment<T>*)nextSeg)->elements[index - nextSeg->left]);
 
                 this->SetLastUsedSegment(nextSeg);
 

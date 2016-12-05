@@ -175,7 +175,7 @@ public:
                 const_cast<NodeBase *>(last)->Next() = newNode;
                 const_cast<SListBase *>(this->list)->IncrementCount();
                 last = newNode;
-                return AddressOf(newNode->data);
+                return &newNode->data;
             }
             return nullptr;
         }
@@ -190,7 +190,7 @@ public:
                 const_cast<NodeBase *>(last)->Next() = newNode;
                 const_cast<SListBase *>(this->list)->IncrementCount();
                 last = newNode;
-                return AddressOf(newNode->data);
+                return &newNode->data;
             }
             return nullptr;
         }
@@ -206,7 +206,7 @@ public:
                 const_cast<NodeBase *>(last)->Next() = newNode;
                 const_cast<SListBase *>(this->list)->IncrementCount();
                 last = newNode;
-                return AddressOf(newNode->data);
+                return &newNode->data;
             }
             return nullptr;
         }
@@ -336,7 +336,7 @@ public:
             newNode->Next() = this->Next();
             this->Next() = newNode;
             this->IncrementCount();
-            return AddressOf(newNode->data);
+            return &newNode->data;
         }
         return nullptr;
     }
@@ -350,7 +350,7 @@ public:
             newNode->Next() = this->Next();
             this->Next() = newNode;
             this->IncrementCount();
-            return AddressOf(newNode->data);
+            return &newNode->data;
         }
         return nullptr;
     }
@@ -364,7 +364,7 @@ public:
             newNode->Next() = this->Next();
             this->Next() = newNode;
             this->IncrementCount();
-            return AddressOf(newNode->data);
+            return &newNode->data;
         }
         return nullptr;
     }
@@ -439,7 +439,7 @@ public:
         {
             if (predicate(iter.Data()))
             {
-                Field(TData, TAllocator)* data = AddressOf(iter.Data());
+                Field(TData, TAllocator)* data = &iter.Data();
                 iter.MoveCurrentTo(toList);
                 return data;
             }
@@ -455,7 +455,7 @@ public:
         {
             if(predicate(iter.Data()))
             {
-                return AddressOf(iter.Data());
+                return &iter.Data();
             }
         }
         return nullptr;

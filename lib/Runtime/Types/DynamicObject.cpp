@@ -59,7 +59,7 @@ namespace Js
         int inlineSlotCapacity = GetTypeHandler()->GetInlineSlotCapacity();
         int inlineSlotCount = min(inlineSlotCapacity, propertyCount);
         Var * srcSlots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(instance) + typeHandler->GetOffsetOfInlineSlots());
-        Var * dstSlots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(this) + typeHandler->GetOffsetOfInlineSlots());
+        Field(Var) * dstSlots = reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(this) + typeHandler->GetOffsetOfInlineSlots());
 #if !FLOATVAR
         ScriptContext * scriptContext = this->GetScriptContext();
 #endif
@@ -864,7 +864,7 @@ namespace Js
 
     Js::Var const* DynamicObject::GetAuxSlots_TTD() const
     {
-        return &this->auxSlots[0];
+        return AddressOf(this->auxSlots[0]);
     }
 
 #if ENABLE_OBJECT_SOURCE_TRACKING

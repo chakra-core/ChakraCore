@@ -390,7 +390,7 @@ namespace JsUtil
             int i = FindEntryWithKey(key);
             if (i >= 0)
             {
-                *value = &entries[i].Value();
+                *value = AddressOf(entries[i].Value());
                 *index = i;
                 return true;
             }
