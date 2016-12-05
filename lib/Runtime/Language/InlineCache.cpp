@@ -924,7 +924,7 @@ namespace Js
 #endif
 #if ENABLE_NATIVE_CODEGEN
 
-    EquivalentTypeSet::EquivalentTypeSet(JITTypeHolderObject * types, uint16 count)
+    EquivalentTypeSet::EquivalentTypeSet(RecyclerJITTypeHolder * types, uint16 count)
         : types(types), count(count), sortedAndDuplicatesRemoved(false)
     {
     }
