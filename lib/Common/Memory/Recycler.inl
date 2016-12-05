@@ -93,11 +93,12 @@ Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 
     char* memBlock = nullptr;
 #if GLOBAL_ENABLE_WRITE_BARRIER
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier)
-        && ((attributes & LeafBit) != LeafBit
-            || (attributes & FinalizeBit) == FinalizeBit)) // there's no Finalize Leaf bucket
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && (attributes & InternalObjectInfoBitMask ) != LeafBit)
     {
-        memBlock = RealAlloc<(ObjectInfoBits)((attributes | WithBarrierBit) & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+        // explicitly adding "& ~LeafBit" to avoid the CompilerAssert in SmallFinalizableHeapBucket.h
+        // pure LeafBit going through the else below, and use the LeafBit specialization to get the bucket
+        // if there FinalizeBit, it goes through FinalizeWithBarrier bucket, whatever there's LeafBit or not
+        memBlock = RealAlloc<(ObjectInfoBits)(((attributes | WithBarrierBit) & ~LeafBit) & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
     }
     else
 #endif

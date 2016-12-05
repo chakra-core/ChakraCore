@@ -533,7 +533,7 @@ namespace Js
 
         // Need to create a local array here and not allocate one from the recycler,
         // as the allocation may trigger a GC which can clear the inline caches.
-        FixedFieldInfo localFixedFieldInfoArray[Js::DynamicProfileInfo::maxPolymorphicInliningSize] = { 0 };
+        FixedFieldInfo localFixedFieldInfoArray[Js::DynamicProfileInfo::maxPolymorphicInliningSize] = { };
 
         // For polymorphic field loads we only support fixed functions on prototypes. This helps keep the equivalence check helper simple.
         // Since all types in the polymorphic cache share the same prototype, it's enough to grab the fixed function from the prototype object.

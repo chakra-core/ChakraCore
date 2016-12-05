@@ -995,8 +995,8 @@ Recycler::GetRecyclerPageAllocator()
     {
         return &this->recyclerWithBarrierPageAllocator;
     }
-#endif
     else
+#endif
     {
 #ifdef RECYCLER_WRITE_WATCH
         return &this->recyclerPageAllocator;
