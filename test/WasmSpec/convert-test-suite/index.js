@@ -194,6 +194,14 @@ function main() {
       <baseline>${getBaselinePath(specFile)}</baseline>
       <compile-flags>${hostFlags(specFile)}</compile-flags>
     </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>${getBaselinePath(specFile)}</baseline>
+      <compile-flags>${hostFlags(specFile)} -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
   </test>`
   ).join("")
 }
