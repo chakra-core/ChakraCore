@@ -227,7 +227,7 @@ template <typename T>
 class NoWriteBarrierField
 {
 public:
-    NoWriteBarrierField() {}
+    NoWriteBarrierField() : value() {}
     explicit NoWriteBarrierField(T const& value) : value(value) {}
 
     // Getters
@@ -255,7 +255,7 @@ template <typename T>
 class NoWriteBarrierPtr
 {
 public:
-    NoWriteBarrierPtr() {}
+    NoWriteBarrierPtr() : value(nullptr) {}
     NoWriteBarrierPtr(T * value) : value(value) {}
 
     // Getters
@@ -307,7 +307,7 @@ template <typename T>
 class WriteBarrierPtr
 {
 public:
-    WriteBarrierPtr() {}
+    WriteBarrierPtr() : ptr(nullptr) {}
     WriteBarrierPtr(T * ptr)
     {
         // WriteBarrier
@@ -396,26 +396,6 @@ public:
         return result;
     }
 
-    static void MoveArray(WriteBarrierPtr * dst, WriteBarrierPtr * src, size_t count)
-    {
-        memmove((void *)dst, src, sizeof(WriteBarrierPtr) * count);
-        WriteBarrier(dst, count);
-    }
-    static void CopyArray(WriteBarrierPtr * dst, size_t dstCount, T* src, size_t srcCount)
-    {
-        js_memcpy_s((void *)dst, sizeof(WriteBarrierPtr) * dstCount, src, sizeof(T *) * srcCount);
-        WriteBarrier(dst, dstCount);
-    }
-    static void CopyArray(WriteBarrierPtr * dst, size_t dstCount, WriteBarrierPtr const* src, size_t srcCount)
-    {
-        js_memcpy_s((void *)dst, sizeof(WriteBarrierPtr) * dstCount, src, sizeof(WriteBarrierPtr) * srcCount);
-        WriteBarrier(dst, dstCount);
-    }
-    static void ClearArray(WriteBarrierPtr * dst, size_t count)
-    {
-        // assigning NULL don't need write barrier, just cast it and null it out
-        memset((void *)dst, 0, sizeof(WriteBarrierPtr<T>) * count);
-    }
 private:
     T * ptr;
 };

@@ -87,6 +87,8 @@ class VirtualTableInfoBase
 {
 public:
     static INT_PTR GetVirtualTable(void * ptr) { return (*(INT_PTR*)ptr); }
+protected:
+    static void SetVirtualTable(void * ptr, INT_PTR vt) { *(INT_PTR*)ptr = vt; }
 };
 
 template <typename T>
@@ -94,15 +96,15 @@ class VirtualTableInfo : public VirtualTableInfoBase
 {
 public:
     static INT_PTR const Address;
-    static INT_PTR RegisterVirtualTable(INT_PTR vtable);
-    static void SetVirtualTable(void * ptr) { new (ptr) T(VirtualTableInfoCtorValue); }
+    static INT_PTR RegisterVirtualTable();
+    static void SetVirtualTable(void * ptr);
     static bool HasVirtualTable(void * ptr) { return GetVirtualTable(ptr) == Address; }
 };
 
 #if !defined(USED_IN_STATIC_LIB)
 #pragma warning(disable:4238) // class rvalue used as lvalue
 template <typename T>
-INT_PTR const VirtualTableInfo<T>::Address = VirtualTableInfo<T>::RegisterVirtualTable(*(INT_PTR const*)&T(VirtualTableInfoCtorValue));
+INT_PTR const VirtualTableInfo<T>::Address = VirtualTableInfo<T>::RegisterVirtualTable();
 #endif
 
 #define DEFINE_VTABLE_CTOR_NOBASE_ABSTRACT(T) \

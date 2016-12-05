@@ -326,7 +326,7 @@ namespace Js
         if (forcePoly)
         {
             uint16 typeCount = 1;
-            JITTypeHolder* types = RecyclerNewArray(recycler, JITTypeHolder, typeCount);
+            JITTypeHolderObject* types = RecyclerNewArray(recycler, JITTypeHolderObject, typeCount);
             types[0].t = RecyclerNew(recycler, JITType);
             JITType::BuildFromJsType(type, types[0].t);
             EquivalentTypeSet* typeSet = RecyclerNew(recycler, EquivalentTypeSet, types, typeCount);
@@ -642,7 +642,7 @@ namespace Js
         Assert(jitTransferData != nullptr);
         if (areEquivalent || areStressEquivalent)
         {
-            JITTypeHolder* types = RecyclerNewArray(recycler, JITTypeHolder, typeCount);
+            JITTypeHolderObject* types = RecyclerNewArray(recycler, JITTypeHolderObject, typeCount);
             for (uint16 i = 0; i < typeCount; i++)
             {
                 jitTransferData->AddJitTimeTypeRef(localTypes[i], recycler);

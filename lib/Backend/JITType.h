@@ -29,23 +29,28 @@ private:
     Field(TypeIDL) m_data;
 };
 
-class JITTypeHolder
+template <class TAllocator>
+class JITTypeHolderBase
 {
 public:
-    // SWB-TODO: Fix this. JITTypeHolder is used both as GC object and also
-    // background JIT stack object. The later cannot use write barrier currently.
-    FieldNoBarrier(JITType *) t;
+    Field(JITType *, TAllocator) t;
 
-    JITTypeHolder();
-    JITTypeHolder(JITType * t);
+    JITTypeHolderBase();
+    JITTypeHolderBase(JITType * t);
+
+    template <class S>
+    JITTypeHolderBase(JITTypeHolderBase<S> other) : t(PointerValue(other.t)) {}
+
+    template <class S>
+    void operator =(const JITTypeHolderBase<S> &other) { t = other.t; }
+
     const JITType* operator->() const;
-    bool operator== (const JITTypeHolder& p) const;
-    bool operator!= (const JITTypeHolder& p) const;
-    bool operator> (const JITTypeHolder& p) const;
-    bool operator>= (const JITTypeHolder& p) const;
-    bool operator< (const JITTypeHolder& p) const;
-    bool operator<= (const JITTypeHolder& p) const;
-    void operator =(const JITTypeHolder &p);
+    bool operator== (const JITTypeHolderBase& p) const;
+    bool operator!= (const JITTypeHolderBase& p) const;
+    bool operator> (const JITTypeHolderBase& p) const;
+    bool operator>= (const JITTypeHolderBase& p) const;
+    bool operator< (const JITTypeHolderBase& p) const;
+    bool operator<= (const JITTypeHolderBase& p) const;
     bool operator== (const std::nullptr_t &p) const;
     bool operator!= (const std::nullptr_t &p) const;
 
