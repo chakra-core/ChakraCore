@@ -1259,7 +1259,7 @@ namespace Js
         template <class DebugSite, class Fn>
         HRESULT MapEntryPoints(DebugSite site, Fn fn) const // external debugging version
         {
-            return Map(site, this->entryPoints, [&](int index, LoopEntryPointInfo * entryPoint)
+            return Map(site, PointerValue(this->entryPoints), [&](int index, LoopEntryPointInfo * entryPoint)
             {
                 if (entryPoint != nullptr)
                 {

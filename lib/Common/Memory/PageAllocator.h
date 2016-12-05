@@ -731,7 +731,9 @@ protected:
 
     template <bool notPageAligned>
     char * TryAllocFreePages(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
+#if ENABLE_BACKGROUND_PAGE_FREEING
     char * TryAllocFromZeroPagesList(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment, BackgroundPageQueue* bgPageQueue, bool isPendingZeroList);
+#endif
     char * TryAllocFromZeroPages(DECLSPEC_GUARD_OVERFLOW uint pageCount, PageSegmentBase<TVirtualAlloc> ** pageSegment);
 
     template <bool notPageAligned>
@@ -767,7 +769,10 @@ protected:
     bool QueueZeroPages() const { return queueZeroPages; }
 #endif
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
     FreePageEntry * PopPendingZeroPage();
+#endif
+
 #if DBG
     void Check();
     bool disableThreadAccessCheck;

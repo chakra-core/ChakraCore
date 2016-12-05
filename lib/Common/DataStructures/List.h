@@ -507,7 +507,7 @@ namespace JsUtil
         template<class DebugSite, class TMapFunction>
         HRESULT Map(DebugSite site, TMapFunction map) const // external debugging version
         {
-            return Js::Map(site, this->buffer, this->count, map);
+            return Js::Map(site, PointerValue(this->buffer), this->count, map);
         }
 
         template<class TMapFunction>
