@@ -935,1095 +935,1040 @@
       "type": "assert_return",
       "name": "$assert_return_186",
       "file": "float_misc.wast",
-      "line": 313
+      "line": 320
     }, {
       "type": "assert_return",
       "name": "$assert_return_187",
       "file": "float_misc.wast",
-      "line": 314
+      "line": 321
     }, {
       "type": "assert_return",
       "name": "$assert_return_188",
       "file": "float_misc.wast",
-      "line": 315
+      "line": 322
     }, {
       "type": "assert_return",
       "name": "$assert_return_189",
       "file": "float_misc.wast",
-      "line": 316
+      "line": 323
     }, {
       "type": "assert_return",
       "name": "$assert_return_190",
       "file": "float_misc.wast",
-      "line": 317
+      "line": 324
     }, {
       "type": "assert_return",
       "name": "$assert_return_191",
       "file": "float_misc.wast",
-      "line": 320
+      "line": 327
     }, {
       "type": "assert_return",
       "name": "$assert_return_192",
       "file": "float_misc.wast",
-      "line": 321
+      "line": 328
     }, {
       "type": "assert_return",
       "name": "$assert_return_193",
       "file": "float_misc.wast",
-      "line": 322
+      "line": 329
     }, {
       "type": "assert_return",
       "name": "$assert_return_194",
       "file": "float_misc.wast",
-      "line": 323
+      "line": 330
     }, {
       "type": "assert_return",
       "name": "$assert_return_195",
       "file": "float_misc.wast",
-      "line": 324
+      "line": 333
     }, {
       "type": "assert_return",
       "name": "$assert_return_196",
       "file": "float_misc.wast",
-      "line": 327
+      "line": 334
     }, {
       "type": "assert_return",
       "name": "$assert_return_197",
       "file": "float_misc.wast",
-      "line": 328
+      "line": 335
     }, {
       "type": "assert_return",
       "name": "$assert_return_198",
       "file": "float_misc.wast",
-      "line": 329
+      "line": 336
     }, {
       "type": "assert_return",
       "name": "$assert_return_199",
       "file": "float_misc.wast",
-      "line": 330
+      "line": 340
     }, {
       "type": "assert_return",
       "name": "$assert_return_200",
       "file": "float_misc.wast",
-      "line": 333
+      "line": 341
     }, {
       "type": "assert_return",
       "name": "$assert_return_201",
       "file": "float_misc.wast",
-      "line": 334
+      "line": 344
     }, {
       "type": "assert_return",
       "name": "$assert_return_202",
       "file": "float_misc.wast",
-      "line": 335
+      "line": 345
     }, {
       "type": "assert_return",
       "name": "$assert_return_203",
       "file": "float_misc.wast",
-      "line": 336
+      "line": 346
     }, {
       "type": "assert_return",
       "name": "$assert_return_204",
       "file": "float_misc.wast",
-      "line": 340
+      "line": 347
     }, {
       "type": "assert_return",
       "name": "$assert_return_205",
       "file": "float_misc.wast",
-      "line": 341
+      "line": 348
     }, {
       "type": "assert_return",
       "name": "$assert_return_206",
       "file": "float_misc.wast",
-      "line": 344
+      "line": 349
     }, {
       "type": "assert_return",
       "name": "$assert_return_207",
       "file": "float_misc.wast",
-      "line": 345
+      "line": 350
     }, {
       "type": "assert_return",
       "name": "$assert_return_208",
       "file": "float_misc.wast",
-      "line": 346
+      "line": 351
     }, {
       "type": "assert_return",
       "name": "$assert_return_209",
       "file": "float_misc.wast",
-      "line": 347
+      "line": 352
     }, {
       "type": "assert_return",
       "name": "$assert_return_210",
       "file": "float_misc.wast",
-      "line": 348
+      "line": 353
     }, {
       "type": "assert_return",
       "name": "$assert_return_211",
       "file": "float_misc.wast",
-      "line": 349
+      "line": 357
     }, {
       "type": "assert_return",
       "name": "$assert_return_212",
       "file": "float_misc.wast",
-      "line": 350
+      "line": 358
     }, {
       "type": "assert_return",
       "name": "$assert_return_213",
       "file": "float_misc.wast",
-      "line": 351
+      "line": 361
     }, {
       "type": "assert_return",
       "name": "$assert_return_214",
       "file": "float_misc.wast",
-      "line": 352
+      "line": 362
     }, {
       "type": "assert_return",
       "name": "$assert_return_215",
       "file": "float_misc.wast",
-      "line": 353
+      "line": 363
     }, {
       "type": "assert_return",
       "name": "$assert_return_216",
       "file": "float_misc.wast",
-      "line": 357
+      "line": 364
     }, {
       "type": "assert_return",
       "name": "$assert_return_217",
       "file": "float_misc.wast",
-      "line": 358
+      "line": 365
     }, {
       "type": "assert_return",
       "name": "$assert_return_218",
       "file": "float_misc.wast",
-      "line": 361
+      "line": 366
     }, {
       "type": "assert_return",
       "name": "$assert_return_219",
       "file": "float_misc.wast",
-      "line": 362
+      "line": 367
     }, {
       "type": "assert_return",
       "name": "$assert_return_220",
       "file": "float_misc.wast",
-      "line": 363
+      "line": 368
     }, {
       "type": "assert_return",
       "name": "$assert_return_221",
       "file": "float_misc.wast",
-      "line": 364
+      "line": 369
     }, {
       "type": "assert_return",
       "name": "$assert_return_222",
       "file": "float_misc.wast",
-      "line": 365
+      "line": 370
     }, {
       "type": "assert_return",
       "name": "$assert_return_223",
       "file": "float_misc.wast",
-      "line": 366
+      "line": 373
     }, {
       "type": "assert_return",
       "name": "$assert_return_224",
       "file": "float_misc.wast",
-      "line": 367
+      "line": 374
     }, {
       "type": "assert_return",
       "name": "$assert_return_225",
       "file": "float_misc.wast",
-      "line": 368
+      "line": 375
     }, {
       "type": "assert_return",
       "name": "$assert_return_226",
       "file": "float_misc.wast",
-      "line": 369
+      "line": 376
     }, {
       "type": "assert_return",
       "name": "$assert_return_227",
       "file": "float_misc.wast",
-      "line": 370
+      "line": 377
     }, {
       "type": "assert_return",
       "name": "$assert_return_228",
       "file": "float_misc.wast",
-      "line": 373
+      "line": 378
     }, {
       "type": "assert_return",
       "name": "$assert_return_229",
       "file": "float_misc.wast",
-      "line": 374
+      "line": 379
     }, {
       "type": "assert_return",
       "name": "$assert_return_230",
       "file": "float_misc.wast",
-      "line": 375
+      "line": 380
     }, {
       "type": "assert_return",
       "name": "$assert_return_231",
       "file": "float_misc.wast",
-      "line": 376
+      "line": 381
     }, {
       "type": "assert_return",
       "name": "$assert_return_232",
       "file": "float_misc.wast",
-      "line": 377
+      "line": 382
     }, {
       "type": "assert_return",
       "name": "$assert_return_233",
       "file": "float_misc.wast",
-      "line": 378
+      "line": 385
     }, {
       "type": "assert_return",
       "name": "$assert_return_234",
       "file": "float_misc.wast",
-      "line": 379
+      "line": 386
     }, {
       "type": "assert_return",
       "name": "$assert_return_235",
       "file": "float_misc.wast",
-      "line": 380
+      "line": 387
     }, {
       "type": "assert_return",
       "name": "$assert_return_236",
       "file": "float_misc.wast",
-      "line": 381
+      "line": 388
     }, {
       "type": "assert_return",
       "name": "$assert_return_237",
       "file": "float_misc.wast",
-      "line": 382
+      "line": 389
     }, {
       "type": "assert_return",
       "name": "$assert_return_238",
       "file": "float_misc.wast",
-      "line": 385
+      "line": 390
     }, {
       "type": "assert_return",
       "name": "$assert_return_239",
       "file": "float_misc.wast",
-      "line": 386
+      "line": 391
     }, {
       "type": "assert_return",
       "name": "$assert_return_240",
       "file": "float_misc.wast",
-      "line": 387
+      "line": 392
     }, {
       "type": "assert_return",
       "name": "$assert_return_241",
       "file": "float_misc.wast",
-      "line": 388
+      "line": 393
     }, {
       "type": "assert_return",
       "name": "$assert_return_242",
       "file": "float_misc.wast",
-      "line": 389
+      "line": 394
     }, {
       "type": "assert_return",
       "name": "$assert_return_243",
       "file": "float_misc.wast",
-      "line": 390
+      "line": 397
     }, {
       "type": "assert_return",
       "name": "$assert_return_244",
       "file": "float_misc.wast",
-      "line": 391
+      "line": 398
     }, {
       "type": "assert_return",
       "name": "$assert_return_245",
       "file": "float_misc.wast",
-      "line": 392
+      "line": 399
     }, {
       "type": "assert_return",
       "name": "$assert_return_246",
       "file": "float_misc.wast",
-      "line": 393
+      "line": 400
     }, {
       "type": "assert_return",
       "name": "$assert_return_247",
       "file": "float_misc.wast",
-      "line": 394
+      "line": 401
     }, {
       "type": "assert_return",
       "name": "$assert_return_248",
       "file": "float_misc.wast",
-      "line": 397
+      "line": 412
     }, {
       "type": "assert_return",
       "name": "$assert_return_249",
       "file": "float_misc.wast",
-      "line": 398
+      "line": 413
     }, {
       "type": "assert_return",
       "name": "$assert_return_250",
       "file": "float_misc.wast",
-      "line": 399
+      "line": 414
     }, {
       "type": "assert_return",
       "name": "$assert_return_251",
       "file": "float_misc.wast",
-      "line": 400
+      "line": 415
     }, {
       "type": "assert_return",
       "name": "$assert_return_252",
       "file": "float_misc.wast",
-      "line": 401
+      "line": 416
     }, {
       "type": "assert_return",
       "name": "$assert_return_253",
       "file": "float_misc.wast",
-      "line": 404
+      "line": 417
     }, {
       "type": "assert_return",
       "name": "$assert_return_254",
       "file": "float_misc.wast",
-      "line": 405
+      "line": 418
     }, {
       "type": "assert_return",
       "name": "$assert_return_255",
       "file": "float_misc.wast",
-      "line": 406
+      "line": 419
     }, {
       "type": "assert_return",
       "name": "$assert_return_256",
       "file": "float_misc.wast",
-      "line": 407
+      "line": 420
     }, {
       "type": "assert_return",
       "name": "$assert_return_257",
       "file": "float_misc.wast",
-      "line": 408
+      "line": 421
     }, {
       "type": "assert_return",
       "name": "$assert_return_258",
       "file": "float_misc.wast",
-      "line": 409
+      "line": 424
     }, {
       "type": "assert_return",
       "name": "$assert_return_259",
       "file": "float_misc.wast",
-      "line": 412
+      "line": 425
     }, {
       "type": "assert_return",
       "name": "$assert_return_260",
       "file": "float_misc.wast",
-      "line": 413
+      "line": 426
     }, {
       "type": "assert_return",
       "name": "$assert_return_261",
       "file": "float_misc.wast",
-      "line": 414
+      "line": 427
     }, {
       "type": "assert_return",
       "name": "$assert_return_262",
       "file": "float_misc.wast",
-      "line": 415
+      "line": 428
     }, {
       "type": "assert_return",
       "name": "$assert_return_263",
       "file": "float_misc.wast",
-      "line": 416
+      "line": 431
     }, {
       "type": "assert_return",
       "name": "$assert_return_264",
       "file": "float_misc.wast",
-      "line": 417
+      "line": 432
     }, {
       "type": "assert_return",
       "name": "$assert_return_265",
       "file": "float_misc.wast",
-      "line": 418
+      "line": 433
     }, {
       "type": "assert_return",
       "name": "$assert_return_266",
       "file": "float_misc.wast",
-      "line": 419
+      "line": 434
     }, {
       "type": "assert_return",
       "name": "$assert_return_267",
       "file": "float_misc.wast",
-      "line": 420
+      "line": 437
     }, {
       "type": "assert_return",
       "name": "$assert_return_268",
       "file": "float_misc.wast",
-      "line": 421
+      "line": 438
     }, {
       "type": "assert_return",
       "name": "$assert_return_269",
       "file": "float_misc.wast",
-      "line": 424
+      "line": 439
     }, {
       "type": "assert_return",
       "name": "$assert_return_270",
       "file": "float_misc.wast",
-      "line": 425
+      "line": 440
     }, {
       "type": "assert_return",
       "name": "$assert_return_271",
       "file": "float_misc.wast",
-      "line": 426
+      "line": 443
     }, {
       "type": "assert_return",
       "name": "$assert_return_272",
       "file": "float_misc.wast",
-      "line": 427
+      "line": 444
     }, {
       "type": "assert_return",
       "name": "$assert_return_273",
       "file": "float_misc.wast",
-      "line": 428
+      "line": 445
     }, {
       "type": "assert_return",
       "name": "$assert_return_274",
       "file": "float_misc.wast",
-      "line": 431
+      "line": 446
     }, {
       "type": "assert_return",
       "name": "$assert_return_275",
       "file": "float_misc.wast",
-      "line": 432
+      "line": 449
     }, {
       "type": "assert_return",
       "name": "$assert_return_276",
       "file": "float_misc.wast",
-      "line": 433
+      "line": 450
     }, {
       "type": "assert_return",
       "name": "$assert_return_277",
       "file": "float_misc.wast",
-      "line": 434
+      "line": 451
     }, {
       "type": "assert_return",
       "name": "$assert_return_278",
       "file": "float_misc.wast",
-      "line": 437
+      "line": 452
     }, {
       "type": "assert_return",
       "name": "$assert_return_279",
       "file": "float_misc.wast",
-      "line": 438
+      "line": 456
     }, {
       "type": "assert_return",
       "name": "$assert_return_280",
       "file": "float_misc.wast",
-      "line": 439
+      "line": 457
     }, {
       "type": "assert_return",
       "name": "$assert_return_281",
       "file": "float_misc.wast",
-      "line": 440
+      "line": 467
     }, {
       "type": "assert_return",
       "name": "$assert_return_282",
       "file": "float_misc.wast",
-      "line": 443
+      "line": 468
     }, {
       "type": "assert_return",
       "name": "$assert_return_283",
       "file": "float_misc.wast",
-      "line": 444
+      "line": 469
     }, {
       "type": "assert_return",
       "name": "$assert_return_284",
       "file": "float_misc.wast",
-      "line": 445
+      "line": 470
     }, {
       "type": "assert_return",
       "name": "$assert_return_285",
       "file": "float_misc.wast",
-      "line": 446
+      "line": 471
     }, {
       "type": "assert_return",
       "name": "$assert_return_286",
       "file": "float_misc.wast",
-      "line": 449
+      "line": 472
     }, {
       "type": "assert_return",
       "name": "$assert_return_287",
       "file": "float_misc.wast",
-      "line": 450
+      "line": 476
     }, {
       "type": "assert_return",
       "name": "$assert_return_288",
       "file": "float_misc.wast",
-      "line": 451
+      "line": 477
     }, {
       "type": "assert_return",
       "name": "$assert_return_289",
       "file": "float_misc.wast",
-      "line": 452
+      "line": 478
     }, {
       "type": "assert_return",
       "name": "$assert_return_290",
       "file": "float_misc.wast",
-      "line": 456
+      "line": 479
     }, {
       "type": "assert_return",
       "name": "$assert_return_291",
       "file": "float_misc.wast",
-      "line": 457
+      "line": 482
     }, {
       "type": "assert_return",
       "name": "$assert_return_292",
       "file": "float_misc.wast",
-      "line": 467
+      "line": 483
     }, {
       "type": "assert_return",
       "name": "$assert_return_293",
       "file": "float_misc.wast",
-      "line": 468
+      "line": 484
     }, {
       "type": "assert_return",
       "name": "$assert_return_294",
       "file": "float_misc.wast",
-      "line": 469
+      "line": 485
     }, {
       "type": "assert_return",
       "name": "$assert_return_295",
       "file": "float_misc.wast",
-      "line": 470
+      "line": 486
     }, {
       "type": "assert_return",
       "name": "$assert_return_296",
       "file": "float_misc.wast",
-      "line": 471
+      "line": 490
     }, {
       "type": "assert_return",
       "name": "$assert_return_297",
       "file": "float_misc.wast",
-      "line": 472
+      "line": 493
     }, {
       "type": "assert_return",
       "name": "$assert_return_298",
       "file": "float_misc.wast",
-      "line": 476
+      "line": 494
     }, {
       "type": "assert_return",
       "name": "$assert_return_299",
       "file": "float_misc.wast",
-      "line": 477
+      "line": 495
     }, {
       "type": "assert_return",
       "name": "$assert_return_300",
       "file": "float_misc.wast",
-      "line": 478
+      "line": 496
     }, {
       "type": "assert_return",
       "name": "$assert_return_301",
       "file": "float_misc.wast",
-      "line": 479
+      "line": 497
     }, {
       "type": "assert_return",
       "name": "$assert_return_302",
       "file": "float_misc.wast",
-      "line": 482
+      "line": 498
     }, {
       "type": "assert_return",
       "name": "$assert_return_303",
       "file": "float_misc.wast",
-      "line": 483
+      "line": 499
     }, {
       "type": "assert_return",
       "name": "$assert_return_304",
       "file": "float_misc.wast",
-      "line": 484
+      "line": 500
     }, {
       "type": "assert_return",
       "name": "$assert_return_305",
       "file": "float_misc.wast",
-      "line": 485
+      "line": 501
     }, {
       "type": "assert_return",
       "name": "$assert_return_306",
       "file": "float_misc.wast",
-      "line": 486
+      "line": 502
     }, {
       "type": "assert_return",
       "name": "$assert_return_307",
       "file": "float_misc.wast",
-      "line": 490
+      "line": 505
     }, {
       "type": "assert_return",
       "name": "$assert_return_308",
       "file": "float_misc.wast",
-      "line": 493
+      "line": 506
     }, {
       "type": "assert_return",
       "name": "$assert_return_309",
       "file": "float_misc.wast",
-      "line": 494
+      "line": 507
     }, {
       "type": "assert_return",
       "name": "$assert_return_310",
       "file": "float_misc.wast",
-      "line": 495
+      "line": 508
     }, {
       "type": "assert_return",
       "name": "$assert_return_311",
       "file": "float_misc.wast",
-      "line": 496
+      "line": 509
     }, {
       "type": "assert_return",
       "name": "$assert_return_312",
       "file": "float_misc.wast",
-      "line": 497
+      "line": 510
     }, {
       "type": "assert_return",
       "name": "$assert_return_313",
       "file": "float_misc.wast",
-      "line": 498
+      "line": 511
     }, {
       "type": "assert_return",
       "name": "$assert_return_314",
       "file": "float_misc.wast",
-      "line": 499
+      "line": 512
     }, {
       "type": "assert_return",
       "name": "$assert_return_315",
       "file": "float_misc.wast",
-      "line": 500
+      "line": 513
     }, {
       "type": "assert_return",
       "name": "$assert_return_316",
       "file": "float_misc.wast",
-      "line": 501
+      "line": 514
     }, {
       "type": "assert_return",
       "name": "$assert_return_317",
       "file": "float_misc.wast",
-      "line": 502
+      "line": 517
     }, {
       "type": "assert_return",
       "name": "$assert_return_318",
       "file": "float_misc.wast",
-      "line": 505
+      "line": 518
     }, {
       "type": "assert_return",
       "name": "$assert_return_319",
       "file": "float_misc.wast",
-      "line": 506
+      "line": 519
     }, {
       "type": "assert_return",
       "name": "$assert_return_320",
       "file": "float_misc.wast",
-      "line": 507
+      "line": 520
     }, {
       "type": "assert_return",
       "name": "$assert_return_321",
       "file": "float_misc.wast",
-      "line": 508
+      "line": 521
     }, {
       "type": "assert_return",
       "name": "$assert_return_322",
       "file": "float_misc.wast",
-      "line": 509
+      "line": 522
     }, {
       "type": "assert_return",
       "name": "$assert_return_323",
       "file": "float_misc.wast",
-      "line": 510
+      "line": 523
     }, {
       "type": "assert_return",
       "name": "$assert_return_324",
       "file": "float_misc.wast",
-      "line": 511
+      "line": 524
     }, {
       "type": "assert_return",
       "name": "$assert_return_325",
       "file": "float_misc.wast",
-      "line": 512
+      "line": 525
     }, {
       "type": "assert_return",
       "name": "$assert_return_326",
       "file": "float_misc.wast",
-      "line": 513
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_327",
-      "file": "float_misc.wast",
-      "line": 514
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_328",
-      "file": "float_misc.wast",
-      "line": 517
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_329",
-      "file": "float_misc.wast",
-      "line": 518
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_330",
-      "file": "float_misc.wast",
-      "line": 519
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_331",
-      "file": "float_misc.wast",
-      "line": 520
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_332",
-      "file": "float_misc.wast",
-      "line": 521
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_333",
-      "file": "float_misc.wast",
-      "line": 522
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_334",
-      "file": "float_misc.wast",
-      "line": 523
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_335",
-      "file": "float_misc.wast",
-      "line": 524
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_336",
-      "file": "float_misc.wast",
-      "line": 525
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_337",
-      "file": "float_misc.wast",
       "line": 526
     }, {
       "type": "assert_return_nan",
-      "name": "$assert_return_nan_338",
+      "name": "$assert_return_nan_327",
       "file": "float_misc.wast",
       "line": 529
     }, {
       "type": "assert_return",
-      "name": "$assert_return_339",
+      "name": "$assert_return_328",
       "file": "float_misc.wast",
       "line": 530
     }, {
       "type": "assert_return",
-      "name": "$assert_return_340",
+      "name": "$assert_return_329",
       "file": "float_misc.wast",
       "line": 531
     }, {
       "type": "assert_return",
-      "name": "$assert_return_341",
+      "name": "$assert_return_330",
       "file": "float_misc.wast",
       "line": 532
     }, {
       "type": "assert_return",
-      "name": "$assert_return_342",
+      "name": "$assert_return_331",
       "file": "float_misc.wast",
       "line": 533
     }, {
       "type": "assert_return",
-      "name": "$assert_return_343",
+      "name": "$assert_return_332",
       "file": "float_misc.wast",
       "line": 536
     }, {
       "type": "assert_return",
-      "name": "$assert_return_344",
+      "name": "$assert_return_333",
       "file": "float_misc.wast",
       "line": 537
     }, {
       "type": "assert_return",
-      "name": "$assert_return_345",
+      "name": "$assert_return_334",
       "file": "float_misc.wast",
       "line": 538
     }, {
       "type": "assert_return",
-      "name": "$assert_return_346",
+      "name": "$assert_return_335",
       "file": "float_misc.wast",
       "line": 539
     }, {
       "type": "assert_return",
-      "name": "$assert_return_347",
+      "name": "$assert_return_336",
       "file": "float_misc.wast",
       "line": 543
     }, {
       "type": "assert_return",
-      "name": "$assert_return_348",
+      "name": "$assert_return_337",
       "file": "float_misc.wast",
       "line": 544
     }, {
       "type": "assert_return",
-      "name": "$assert_return_349",
+      "name": "$assert_return_338",
       "file": "float_misc.wast",
       "line": 547
     }, {
       "type": "assert_return",
-      "name": "$assert_return_350",
+      "name": "$assert_return_339",
       "file": "float_misc.wast",
       "line": 548
     }, {
       "type": "assert_return",
-      "name": "$assert_return_351",
+      "name": "$assert_return_340",
       "file": "float_misc.wast",
       "line": 549
     }, {
       "type": "assert_return",
-      "name": "$assert_return_352",
+      "name": "$assert_return_341",
       "file": "float_misc.wast",
       "line": 550
     }, {
       "type": "assert_return",
-      "name": "$assert_return_353",
+      "name": "$assert_return_342",
       "file": "float_misc.wast",
       "line": 552
     }, {
       "type": "assert_return",
-      "name": "$assert_return_354",
+      "name": "$assert_return_343",
       "file": "float_misc.wast",
       "line": 553
     }, {
       "type": "assert_return",
-      "name": "$assert_return_355",
+      "name": "$assert_return_344",
       "file": "float_misc.wast",
       "line": 556
     }, {
       "type": "assert_return",
-      "name": "$assert_return_356",
+      "name": "$assert_return_345",
       "file": "float_misc.wast",
       "line": 557
     }, {
       "type": "assert_return",
-      "name": "$assert_return_357",
+      "name": "$assert_return_346",
       "file": "float_misc.wast",
       "line": 558
     }, {
       "type": "assert_return",
-      "name": "$assert_return_358",
+      "name": "$assert_return_347",
       "file": "float_misc.wast",
       "line": 559
     }, {
       "type": "assert_return",
-      "name": "$assert_return_359",
+      "name": "$assert_return_348",
       "file": "float_misc.wast",
       "line": 561
     }, {
       "type": "assert_return",
-      "name": "$assert_return_360",
+      "name": "$assert_return_349",
       "file": "float_misc.wast",
       "line": 562
     }, {
       "type": "assert_return",
-      "name": "$assert_return_361",
+      "name": "$assert_return_350",
       "file": "float_misc.wast",
       "line": 563
     }, {
       "type": "assert_return",
-      "name": "$assert_return_362",
+      "name": "$assert_return_351",
       "file": "float_misc.wast",
       "line": 564
     }, {
       "type": "assert_return",
-      "name": "$assert_return_363",
+      "name": "$assert_return_352",
       "file": "float_misc.wast",
       "line": 569
     }, {
       "type": "assert_return",
-      "name": "$assert_return_364",
+      "name": "$assert_return_353",
       "file": "float_misc.wast",
       "line": 570
     }, {
       "type": "assert_return",
-      "name": "$assert_return_365",
+      "name": "$assert_return_354",
       "file": "float_misc.wast",
       "line": 571
     }, {
       "type": "assert_return",
-      "name": "$assert_return_366",
+      "name": "$assert_return_355",
       "file": "float_misc.wast",
       "line": 572
     }, {
       "type": "assert_return",
-      "name": "$assert_return_367",
+      "name": "$assert_return_356",
       "file": "float_misc.wast",
       "line": 579
     }, {
       "type": "assert_return",
-      "name": "$assert_return_368",
+      "name": "$assert_return_357",
       "file": "float_misc.wast",
       "line": 580
     }, {
       "type": "assert_return",
-      "name": "$assert_return_369",
+      "name": "$assert_return_358",
       "file": "float_misc.wast",
       "line": 581
     }, {
       "type": "assert_return",
-      "name": "$assert_return_370",
+      "name": "$assert_return_359",
       "file": "float_misc.wast",
       "line": 582
     }, {
       "type": "assert_return",
-      "name": "$assert_return_371",
+      "name": "$assert_return_360",
       "file": "float_misc.wast",
       "line": 585
     }, {
       "type": "assert_return",
-      "name": "$assert_return_372",
+      "name": "$assert_return_361",
       "file": "float_misc.wast",
       "line": 586
     }, {
       "type": "assert_return",
-      "name": "$assert_return_373",
+      "name": "$assert_return_362",
       "file": "float_misc.wast",
       "line": 587
     }, {
       "type": "assert_return",
-      "name": "$assert_return_374",
+      "name": "$assert_return_363",
       "file": "float_misc.wast",
       "line": 588
     }, {
       "type": "assert_return",
-      "name": "$assert_return_375",
+      "name": "$assert_return_364",
       "file": "float_misc.wast",
       "line": 591
     }, {
       "type": "assert_return",
-      "name": "$assert_return_376",
+      "name": "$assert_return_365",
       "file": "float_misc.wast",
       "line": 592
     }, {
       "type": "assert_return",
-      "name": "$assert_return_377",
+      "name": "$assert_return_366",
       "file": "float_misc.wast",
       "line": 593
     }, {
       "type": "assert_return",
-      "name": "$assert_return_378",
+      "name": "$assert_return_367",
       "file": "float_misc.wast",
       "line": 594
     }, {
       "type": "assert_return",
-      "name": "$assert_return_379",
+      "name": "$assert_return_368",
       "file": "float_misc.wast",
       "line": 597
     }, {
       "type": "assert_return",
-      "name": "$assert_return_380",
+      "name": "$assert_return_369",
       "file": "float_misc.wast",
       "line": 598
     }, {
       "type": "assert_return",
-      "name": "$assert_return_381",
+      "name": "$assert_return_370",
       "file": "float_misc.wast",
       "line": 599
     }, {
       "type": "assert_return",
-      "name": "$assert_return_382",
+      "name": "$assert_return_371",
       "file": "float_misc.wast",
       "line": 600
     }, {
       "type": "assert_return",
-      "name": "$assert_return_383",
+      "name": "$assert_return_372",
       "file": "float_misc.wast",
       "line": 603
     }, {
       "type": "assert_return",
-      "name": "$assert_return_384",
+      "name": "$assert_return_373",
       "file": "float_misc.wast",
       "line": 604
     }, {
       "type": "assert_return",
-      "name": "$assert_return_385",
+      "name": "$assert_return_374",
       "file": "float_misc.wast",
       "line": 605
     }, {
       "type": "assert_return",
-      "name": "$assert_return_386",
+      "name": "$assert_return_375",
       "file": "float_misc.wast",
       "line": 606
     }, {
       "type": "assert_return",
-      "name": "$assert_return_387",
+      "name": "$assert_return_376",
       "file": "float_misc.wast",
       "line": 611
     }, {
       "type": "assert_return",
-      "name": "$assert_return_388",
+      "name": "$assert_return_377",
       "file": "float_misc.wast",
       "line": 612
     }, {
       "type": "assert_return",
-      "name": "$assert_return_389",
+      "name": "$assert_return_378",
       "file": "float_misc.wast",
       "line": 613
     }, {
       "type": "assert_return",
-      "name": "$assert_return_390",
+      "name": "$assert_return_379",
       "file": "float_misc.wast",
       "line": 614
     }, {
       "type": "assert_return",
-      "name": "$assert_return_391",
+      "name": "$assert_return_380",
       "file": "float_misc.wast",
       "line": 615
     }, {
       "type": "assert_return",
-      "name": "$assert_return_392",
+      "name": "$assert_return_381",
       "file": "float_misc.wast",
       "line": 616
     }, {
       "type": "assert_return",
-      "name": "$assert_return_393",
+      "name": "$assert_return_382",
       "file": "float_misc.wast",
       "line": 617
     }, {
       "type": "assert_return",
-      "name": "$assert_return_394",
+      "name": "$assert_return_383",
       "file": "float_misc.wast",
       "line": 618
     }, {
       "type": "assert_return",
-      "name": "$assert_return_395",
+      "name": "$assert_return_384",
       "file": "float_misc.wast",
       "line": 622
     }, {
       "type": "assert_return",
-      "name": "$assert_return_396",
+      "name": "$assert_return_385",
       "file": "float_misc.wast",
       "line": 623
     }, {
       "type": "assert_return",
-      "name": "$assert_return_397",
+      "name": "$assert_return_386",
       "file": "float_misc.wast",
       "line": 624
     }, {
       "type": "assert_return",
-      "name": "$assert_return_398",
+      "name": "$assert_return_387",
       "file": "float_misc.wast",
       "line": 625
     }, {
       "type": "assert_return",
-      "name": "$assert_return_399",
+      "name": "$assert_return_388",
       "file": "float_misc.wast",
       "line": 626
     }, {
       "type": "assert_return",
-      "name": "$assert_return_400",
+      "name": "$assert_return_389",
       "file": "float_misc.wast",
       "line": 627
     }, {
       "type": "assert_return",
-      "name": "$assert_return_401",
+      "name": "$assert_return_390",
       "file": "float_misc.wast",
       "line": 630
     }, {
       "type": "assert_return",
-      "name": "$assert_return_402",
+      "name": "$assert_return_391",
       "file": "float_misc.wast",
       "line": 631
     }, {
       "type": "assert_return",
-      "name": "$assert_return_403",
+      "name": "$assert_return_392",
       "file": "float_misc.wast",
       "line": 632
     }, {
       "type": "assert_return",
-      "name": "$assert_return_404",
+      "name": "$assert_return_393",
       "file": "float_misc.wast",
       "line": 633
     }]
