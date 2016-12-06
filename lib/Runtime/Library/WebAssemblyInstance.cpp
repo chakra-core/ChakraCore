@@ -163,7 +163,7 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
         funcObj->SetEnvironment(frameDisplay);
         env->SetWasmFunction(i, funcObj);
 
-        if (!PHASE_OFF(WasmDeferredPhase, body))
+        if (!body->GetByteCode())
         {
             // if we still have WasmReaderInfo we haven't yet parsed
             if (body->GetAsmJsFunctionInfo()->GetWasmReaderInfo())
