@@ -69,6 +69,7 @@ PeepsMD::PeepAssign(IR::Instr *instr)
             if(src->IsIntConstOpnd() && src->GetSize() <= TySize[TyUint32])
             {
                 dst->SetType(TyUint32);
+                src->SetType(TyUint32);
             }
             else if(src->IsAddrOpnd() && (((size_t)src->AsAddrOpnd()->m_address >> 32) == 0 ))
             {
