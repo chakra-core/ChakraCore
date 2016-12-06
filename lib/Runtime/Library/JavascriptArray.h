@@ -438,6 +438,10 @@ namespace Js
         bool HasNoMissingValues_Unchecked() const; // do not use except in extreme circumstances
         void SetHasNoMissingValues(const bool hasNoMissingValues = true);
 
+        template<typename T>
+        bool JavascriptArray::IsMissingItemAt(uint32 index) const;
+        bool IsMissingItemForUnkownArrayTypeAt(uint32 index);
+
         virtual bool IsMissingHeadSegmentItem(const uint32 index) const;
 
         static VTableValue VtableHelper()
