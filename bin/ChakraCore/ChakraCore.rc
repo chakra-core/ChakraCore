@@ -14,6 +14,6 @@
 #include "jserr.rc2"
 
 #ifdef ENABLE_JS_ETW
-#include "Microsoft-Scripting-chakraEvents.rc"
+#include "Microsoft-Scripting-chakra-InstrumentationEvents.rc"
 #endif
 

@@ -688,6 +688,13 @@ namespace Js
             __super::Map(map);
         }
 
+        template<class TMapFunction>
+        bool MapUntil(TMapFunction map) const
+        {
+            typename LockPolicy::ReadLock autoLock(syncObj);
+            return __super::MapUntil(map);
+        }
+
         template<class DebugSite, class TMapFunction>
         HRESULT Map(DebugSite site, TMapFunction map) const // external debugging version
         {

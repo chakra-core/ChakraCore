@@ -69,6 +69,7 @@ namespace Js
         static Var OP_RuntimeTypeError(MessageId messageId, ScriptContext* scriptContext);
         static Var OP_RuntimeRangeError(MessageId messageId, ScriptContext* scriptContext);
         static Var OP_RuntimeReferenceError(MessageId messageId, ScriptContext* scriptContext);
+        static Var OP_WebAssemblyRuntimeError(MessageId messageId, ScriptContext* scriptContext);
         static void __declspec(noreturn) ThrowOutOfMemory(ScriptContext* scriptContext);
         static void __declspec(noreturn) ThrowStackOverflow(ScriptContext* scriptContext, PVOID returnAddress);
 

@@ -347,6 +347,7 @@ public:
     uint8                hasCall:1;
     uint8                isVisited:1;
     uint8                isAirLockCompensationBlock:1;
+    uint8                beginsBailOnNoProfile:1;
 
 #ifdef DBG
     uint8                isBreakBlock:1;
@@ -421,6 +422,7 @@ private:
         couldRemoveNegZeroBailoutForDef(nullptr),
         byteCodeUpwardExposedUsed(nullptr),
         isAirLockCompensationBlock(false),
+        beginsBailOnNoProfile(false),
 #if DBG
         byteCodeRestoreSyms(nullptr),
         isBreakBlock(false),

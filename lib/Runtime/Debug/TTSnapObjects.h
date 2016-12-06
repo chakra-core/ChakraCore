@@ -77,7 +77,7 @@ namespace TTD
         template <typename T, SnapObjectType tag>
         T SnapObjectGetAddtlInfoAs(const SnapObject* snpObject)
         {
-            AssertMsg(snpObject->SnapObjectTag == tag, "Tag does not match.");
+            TTDAssert(snpObject->SnapObjectTag == tag, "Tag does not match.");
 
             return reinterpret_cast<T>(snpObject->AddtlSnapObjectInfo);
         }
@@ -85,8 +85,8 @@ namespace TTD
         template <typename T, SnapObjectType tag>
         void SnapObjectSetAddtlInfoAs(SnapObject* snpObject, T addtlInfo)
         {
-            AssertMsg(sizeof(T) <= sizeof(void*), "Make sure your info fits into the space we have for it.");
-            AssertMsg(snpObject->SnapObjectTag == tag, "Tag does not match.");
+            TTDAssert(sizeof(T) <= sizeof(void*), "Make sure your info fits into the space we have for it.");
+            TTDAssert(snpObject->SnapObjectTag == tag, "Tag does not match.");
 
             snpObject->AddtlSnapObjectInfo = (void*)addtlInfo;
         }
@@ -111,7 +111,7 @@ namespace TTD
         {
             SnapObjectSetAddtlInfoAs<T, tag>(snpObject, addtlInfo);
 
-            AssertMsg(dependsOnArrayCount != 0 && dependsOnArray != nullptr, "Why are you calling this then?");
+            TTDAssert(dependsOnArrayCount != 0 && dependsOnArray != nullptr, "Why are you calling this then?");
 
             snpObject->OptDependsOnInfo = alloc.SlabAllocateStruct<DependsOnInfo>();
             snpObject->OptDependsOnInfo->DepOnCount = dependsOnArrayCount;
@@ -174,9 +174,7 @@ namespace TTD
             TTDVar ComputedNameInfo;
 
             //Flags matching the runtime definitions
-            bool HasInlineCaches;
             bool HasSuperReference;
-            bool IsActiveScript;
         };
 
         ////
@@ -577,6 +575,7 @@ namespace TTD
                         curr = sai;
                     }
 
+                    TTDAssert(curr != nullptr, "Should get set with variable sai above when needed!");
                     if(idx >= curr->LastIndex)
                     {
                         uint32 endIdx = (idx <= (Js::JavascriptArray::MaxArrayLength - TTD_ARRAY_BLOCK_SIZE)) ? (idx + TTD_ARRAY_BLOCK_SIZE) : Js::JavascriptArray::MaxArrayLength;
@@ -648,7 +647,7 @@ namespace TTD
             }
             else
             {
-                AssertMsg(false, "Unknown array type!");
+                TTDAssert(false, "Unknown array type!");
                 return nullptr;
             }
         }
@@ -761,6 +760,7 @@ namespace TTD
                     curr->Next = tmp;
                 }
                 curr = tmp;
+                TTDAssert(curr != nullptr, "Sanity assert failed.");
 
                 if(arrayInfo == nullptr)
                 {
@@ -817,7 +817,7 @@ namespace TTD
             }
             else
             {
-                AssertMsg(*index >= (*segment)->FirstIndex, "Something went wrong.");
+                TTDAssert(*index >= (*segment)->FirstIndex, "Something went wrong.");
 
                 *pos = *index - (*segment)->FirstIndex;
             }

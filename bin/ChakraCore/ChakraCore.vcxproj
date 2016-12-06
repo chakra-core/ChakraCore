@@ -77,6 +77,7 @@
       <AdditionalIncludeDirectories>
         $(ChakraCoreRootDirectory)lib\common;
         $(ChakraParserIntDir);
+        $(IntDir)..\CoreManifests\;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
     </ResourceCompile>

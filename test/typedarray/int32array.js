@@ -85,22 +85,12 @@ test9.set(test5);
 oneTest(test9);
 
 WScript.Echo("test10");
-try {
-    var test10 = new Int32Array({});
-    oneTest(test10);
-}
-catch (e) {
-    WScript.Echo("succeed with catching" + e);
-}
+var test10 = new Int32Array({});
+oneTest(test10);
 
 WScript.Echo("test11");
-try {
-    var test11 = new Int32Array('abcdefg');
-    oneTest(test11);
-}
-catch (e) {
-    WScript.Echo("succeed with catching" + e);
-}
+var test11 = new Int32Array('abcdefg');
+oneTest(test11);
 
 WScript.Echo("test11.1");
 var test111 = new Int32Array(new String('abcdefg'));

@@ -93,8 +93,7 @@ struct JsAPIHooks
     typedef JsErrorCode(WINAPI *JsrtTTDHostExitPtr)(int statusCode);
 
     typedef JsErrorCode(WINAPI *JsrtTTDGetSnapTimeTopLevelEventMovePtr)(JsRuntimeHandle runtimeHandle, JsTTDMoveMode moveMode, int64_t* targetEventTime, int64_t* targetStartSnapTime, int64_t* targetEndSnapTime);
-    typedef JsErrorCode(WINAPI *JsrtTTDPreExecuteSnapShotIntervalPtr)(int64_t startSnapTime, int64_t endSnapTime, JsTTDMoveMode moveMode);
-    typedef JsErrorCode(WINAPI *JsrtTTDMoveToTopLevelEventPtr)(JsTTDMoveMode moveMode, int64_t snapshotStartTime, int64_t eventTime);
+    typedef JsErrorCode(WINAPI *JsrtTTDMoveToTopLevelEventPtr)(JsRuntimeHandle runtimeHandle, JsTTDMoveMode moveMode, int64_t snapshotStartTime, int64_t eventTime);
     typedef JsErrorCode(WINAPI *JsrtTTDReplayExecutionPtr)(JsTTDMoveMode* moveMode, int64_t* rootEventTime);
 
     JsrtCreateRuntimePtr pfJsrtCreateRuntime;
@@ -185,7 +184,6 @@ struct JsAPIHooks
     JsrtTTDHostExitPtr pfJsrtTTDHostExit;
 
     JsrtTTDGetSnapTimeTopLevelEventMovePtr pfJsrtTTDGetSnapTimeTopLevelEventMove;
-    JsrtTTDPreExecuteSnapShotIntervalPtr pfJsrtTTDPreExecuteSnapShotInterval;
     JsrtTTDMoveToTopLevelEventPtr pfJsrtTTDMoveToTopLevelEvent;
     JsrtTTDReplayExecutionPtr pfJsrtTTDReplayExecution;
 };
@@ -363,8 +361,7 @@ public:
     static JsErrorCode WINAPI JsTTDHostExit(int statusCode) { return HOOK_JS_API(TTDHostExit(statusCode)); }
 
     static JsErrorCode WINAPI JsTTDGetSnapTimeTopLevelEventMove(JsRuntimeHandle runtimeHandle, JsTTDMoveMode moveMode, int64_t* targetEventTime, int64_t* targetStartSnapTime, int64_t* targetEndSnapTime) { return HOOK_JS_API(TTDGetSnapTimeTopLevelEventMove(runtimeHandle, moveMode, targetEventTime, targetStartSnapTime, targetEndSnapTime)); }
-    static JsErrorCode WINAPI JsTTDPreExecuteSnapShotInterval(int64_t startSnapTime, int64_t endSnapTime, JsTTDMoveMode moveMode) { return HOOK_JS_API(TTDPreExecuteSnapShotInterval(startSnapTime, endSnapTime, moveMode)); }
-    static JsErrorCode WINAPI JsTTDMoveToTopLevelEvent(JsTTDMoveMode moveMode, int64_t snapshotStartTime, int64_t eventTime) { return HOOK_JS_API(TTDMoveToTopLevelEvent(moveMode, snapshotStartTime, eventTime)); }
+    static JsErrorCode WINAPI JsTTDMoveToTopLevelEvent(JsRuntimeHandle runtimeHandle, JsTTDMoveMode moveMode, int64_t snapshotStartTime, int64_t eventTime) { return HOOK_JS_API(TTDMoveToTopLevelEvent(runtimeHandle, moveMode, snapshotStartTime, eventTime)); }
     static JsErrorCode WINAPI JsTTDReplayExecution(JsTTDMoveMode* moveMode, int64_t* rootEventTime) { return HOOK_JS_API(TTDReplayExecution(moveMode, rootEventTime)); }
 
     static JsErrorCode WINAPI JsRun(JsValueRef script, JsSourceContext sourceContext, JsValueRef sourceUrl, JsParseScriptAttributes parseAttributes, JsValueRef *result) { return HOOK_JS_API(Run(script, sourceContext, sourceUrl, parseAttributes, result)); }

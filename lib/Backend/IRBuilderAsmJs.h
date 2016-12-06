@@ -13,6 +13,7 @@ namespace AsmJsRegSlots
         ReturnReg = 0,
         ModuleMemReg,
         ArrayReg,
+        WasmMemoryReg,
         BufferReg,
         LengthReg,
         RegCount

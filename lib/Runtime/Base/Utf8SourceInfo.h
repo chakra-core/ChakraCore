@@ -8,9 +8,8 @@ namespace Js
 {
     struct Utf8SourceInfo : public FinalizableObject
     {
-        // TODO: Change this to LeafValueDictionary
-        typedef JsUtil::SynchronizedDictionary<Js::LocalFunctionId, Js::FunctionBody*, Recycler> FunctionBodyDictionary;
-        typedef JsUtil::SynchronizedDictionary<Js::LocalFunctionId, Js::ParseableFunctionInfo*, Recycler> DeferredFunctionsDictionary;
+        typedef JsUtil::LeafValueDictionary<Js::LocalFunctionId, Js::FunctionBody*>::Type FunctionBodyDictionary;
+        typedef JsUtil::LeafValueDictionary<Js::LocalFunctionId, Js::ParseableFunctionInfo*>::Type DeferredFunctionsDictionary;
 
         friend class RemoteUtf8SourceInfo;
         friend class ScriptContext;

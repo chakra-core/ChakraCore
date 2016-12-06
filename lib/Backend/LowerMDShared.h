@@ -175,6 +175,7 @@ public:
             void            GenerateCtz(IR::Instr * instr);
             void            GeneratePopCnt(IR::Instr * instr);
             void            GenerateTruncWithCheck(IR::Instr * instr);
+            IR::Opnd*       GenerateTruncChecks(IR::Instr* instr);
             IR::RegOpnd*    MaterializeDoubleConstFromInt(intptr_t constAddr, IR::Instr* instr);
             IR::RegOpnd*    MaterializeConstFromBits(int intConst, IRType type, IR::Instr* instr);
             IR::Opnd*       Subtract2To31(IR::Opnd* src1, IR::Opnd* intMinFP, IRType type, IR::Instr* instr);
@@ -251,6 +252,7 @@ public:
 
             bool            GenerateFastIsInst(IR::Instr * instr);
             void            GenerateIsJsObjectTest(IR::RegOpnd* instanceReg, IR::Instr* insertInstr, IR::LabelInstr* labelHelper);
+            void            LowerTypeof(IR::Instr * typeOfInstr);
 
 public:
             //
@@ -322,9 +324,7 @@ public:
                 this->lowererMDArch.LowerInlineSpreadArgOutLoop(callInstr, indexOpnd, arrayElementsStartOpnd);
             }
 
-public:
-    static void InsertIncUInt8PreventOverflow(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, IR::Instr * *const onOverflowInsertBeforeInstrRef = nullptr);
-    static void InsertDecUInt8PreventOverflow(IR::Opnd *const dst, IR::Opnd *const src, IR::Instr *const insertBeforeInstr, IR::Instr * *const onOverflowInsertBeforeInstrRef = nullptr);
+    static IR::Instr * InsertCmovCC(const Js::OpCode opCode, IR::Opnd * dst, IR::Opnd* src1, IR::Instr* insertBeforeInstr, bool postRegAlloc = false);
 
 #ifdef ENABLE_SIMDJS
     void                Simd128InitOpcodeMap();

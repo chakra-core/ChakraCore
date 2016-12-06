@@ -104,7 +104,7 @@ public:
     uint GetFullStatementMapCount() const;
     void * ReadFromAuxData(uint offset) const;
     void * ReadFromAuxContextData(uint offset) const;
-    intptr_t GetNestedFuncRef(uint index) const;
+    Js::FunctionInfoPtrPtr GetNestedFuncRef(uint index) const;
     intptr_t GetConstantVar(Js::RegSlot location) const;
     JITRecyclableObject * GetConstantContent(Js::RegSlot location) const;
 

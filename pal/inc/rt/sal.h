@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /***
@@ -19,7 +19,7 @@
 
    The comments in this file are intended to give basic understanding of
    the usage of SAL, the Microsoft Source Code Annotation Language.
-   For more details, please see http://go.microsoft.com/fwlink/?LinkID=242134
+   For more details, please see https://go.microsoft.com/fwlink/?LinkID=242134
 
    The macros are defined in 3 layers, plus the structural set:
 

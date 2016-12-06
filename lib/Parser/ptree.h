@@ -246,8 +246,11 @@ struct PnFnc
 #endif
     RestorePoint *pRestorePoint;
     DeferredFunctionStub *deferredStub;
+    bool canBeDeferred;
 
     static const int32 MaxStackClosureAST = 800000;
+
+    static bool CanBeRedeferred(unsigned int flags) { return !(flags & (kFunctionIsGenerator | kFunctionIsAsync)); }
 
 private:
     void SetFlags(uint flags, bool set)
@@ -316,6 +319,7 @@ public:
     void SetUsesArguments(bool set = true) { SetFlags(kFunctionUsesArguments, set); }
     void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
     void SetNestedFuncEscapes(bool set = true) { nestedFuncEscapes = set; }
+    void SetCanBeDeferred(bool set = true) { canBeDeferred = set; }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
@@ -353,6 +357,7 @@ public:
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
     bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
     bool NestedFuncEscapes() const { return nestedFuncEscapes; }
+    bool CanBeDeferred() const { return canBeDeferred; }
 
     size_t LengthInBytes()
     {

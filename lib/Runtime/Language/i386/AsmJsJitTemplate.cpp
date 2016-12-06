@@ -523,11 +523,7 @@ namespace Js
         //CodeGenDone status is set by TJ
         if ((entryPointInfo->IsNotScheduled() || entryPointInfo->IsCodeGenDone()) && !PHASE_OFF(BackEndPhase, body) && !PHASE_OFF(FullJitPhase, body))
         {
-            if (entryPointInfo->callsCount < 255)
-            {
-                ++entryPointInfo->callsCount;
-            }
-            const int minTemplatizedJitRunCount = (int)CONFIG_FLAG(MinTemplatizedJitRunCount);
+            const uint32 minTemplatizedJitRunCount = (uint32)CONFIG_FLAG(MinTemplatizedJitRunCount);
             if ((entryPointInfo->callsCount >= minTemplatizedJitRunCount || body->IsHotAsmJsLoop()))
             {
                 if (PHASE_TRACE1(AsmjsEntryPointInfoPhase))

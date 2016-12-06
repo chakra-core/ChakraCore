@@ -1690,12 +1690,28 @@ Recycler::ScanStack()
     }
 #endif
 
+    bool doSpecialMark = collectionWrapper->DoSpecialMarkOnScanStack();
+
     BEGIN_DUMP_OBJECT(this, _u("Registers"));
-    ScanMemoryInline(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
+    if (doSpecialMark)
+    {
+        ScanMemoryInline<true>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
+    }
+    else
+    {
+        ScanMemoryInline<false>(this->savedThreadContext.GetRegisters(), sizeof(void*) * SavedRegisterState::NumRegistersToSave);
+    }
     END_DUMP_OBJECT(this);
 
     BEGIN_DUMP_OBJECT(this, _u("Stack"));
-    ScanMemoryInline((void**) stackTop, stackScanned);
+    if (doSpecialMark)
+    {
+        ScanMemoryInline<true>((void**) stackTop, stackScanned);
+    }
+    else
+    {
+        ScanMemoryInline<false>((void**) stackTop, stackScanned);
+    }
     END_DUMP_OBJECT(this);
 
 #if DBG_DUMP
@@ -1765,7 +1781,7 @@ size_t Recycler::ScanPinnedObjects()
 void
 RecyclerScanMemoryCallback::operator()(void** obj, size_t byteCount)
 {
-    this->recycler->ScanMemoryInline(obj, byteCount);
+    this->recycler->ScanMemoryInline<false>(obj, byteCount);
 }
 
 size_t
@@ -1920,7 +1936,7 @@ Recycler::TryMarkArenaMemoryBlockList(ArenaMemoryBlock * memoryBlocks)
         void** base=(void**)blockp->GetBytes();
         size_t byteCount = blockp->nbytes;
         scanRootBytes += byteCount;
-        this->ScanMemory(base, byteCount);
+        this->ScanMemory<false>(base, byteCount);
         blockp = blockp->next;
     }
     return scanRootBytes;
@@ -1951,7 +1967,7 @@ Recycler::TryMarkBigBlockListWithWriteWatch(BigBlock * memoryBlocks)
                 char * currentEnd = min(currentPageStart + pageSize, endAddress);
                 size_t byteCount = (size_t)(currentEnd - currentAddress);
                 scanRootBytes += byteCount;
-                this->ScanMemory((void **)currentAddress, byteCount);
+                this->ScanMemory<false>((void **)currentAddress, byteCount);
             }
 
             currentPageStart += pageSize;
@@ -1974,7 +1990,7 @@ Recycler::TryMarkBigBlockList(BigBlock * memoryBlocks)
         void** base = (void**)blockp->GetBytes();
         size_t byteCount = blockp->currentByte;
         scanRootBytes +=  byteCount;
-        this->ScanMemory(base, byteCount);
+        this->ScanMemory<false>(base, byteCount);
         blockp = blockp->nextBigBlock;
     }
     return scanRootBytes;
@@ -2063,9 +2079,8 @@ Recycler::TryMarkNonInterior(void* candidate, void* parentReference)
     Assert(!isHeapEnumInProgress);
 #endif
     Assert(this->collectionState != CollectionStateParallelMark);
-    markContext.Mark</*parallel */ false, /* interior */ false>(candidate, parentReference);
+    markContext.Mark</*parallel */ false, /* interior */ false, /* doSpecialMark */ false>(candidate, parentReference);
 }
-
 
 void
 Recycler::TryMarkInterior(void* candidate, void* parentReference)
@@ -2076,7 +2091,7 @@ Recycler::TryMarkInterior(void* candidate, void* parentReference)
     Assert(!isHeapEnumInProgress);
 #endif
     Assert(this->collectionState != CollectionStateParallelMark);
-    markContext.Mark</*parallel */ false, /* interior */ true>(candidate, parentReference);
+    markContext.Mark</*parallel */ false, /* interior */ true, /* doSpecialMark */ false>(candidate, parentReference);
 }
 
 template <bool parallel, bool interior>
@@ -3105,7 +3120,7 @@ Recycler::SweepHeap(bool concurrent, RecyclerSweep& recyclerSweep)
             recyclerWithBarrierPageAllocator.StartQueueZeroPage();
 #endif
         }
-#endif 
+#endif
     }
     else
 #endif
@@ -3535,8 +3550,8 @@ Recycler::CollectWithHeuristic()
 {
     // CollectHeuristic_Never flag should only be used with exhaustive candidate
     Assert((flags & CollectHeuristic_Never) == 0);
-    
-    BOOL isScriptContextCloseGCPending = FALSE; 
+
+    BOOL isScriptContextCloseGCPending = FALSE;
     const BOOL allocSize = flags & CollectHeuristic_AllocSize;
     const BOOL timedIfScriptActive = flags & CollectHeuristic_TimeIfScriptActive;
     const BOOL timedIfInScript = flags & CollectHeuristic_TimeIfInScript;
@@ -4129,7 +4144,7 @@ Recycler::IsReentrantState() const
 }
 #endif
 
-#ifdef ENABLE_JS_ETW
+#if defined(ENABLE_JS_ETW) && defined(NTBUILD)
 template <Js::Phase phase> static ETWEventGCActivationKind GetETWEventGCActivationKind();
 template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::GarbageCollectPhase>() { return ETWEvent_GarbageCollect; }
 template <> ETWEventGCActivationKind GetETWEventGCActivationKind<Js::ThreadCollectPhase>() { return ETWEvent_ThreadCollect; }
@@ -4142,14 +4157,14 @@ void
 Recycler::CollectionBegin()
 {
     RECYCLER_PROFILE_EXEC_BEGIN2(this, Js::RecyclerPhase, phase);
-    GCETW(GC_START, (this, GetETWEventGCActivationKind<phase>()));
+    GCETW_INTERNAL(GC_START, (this, GetETWEventGCActivationKind<phase>()));
 }
 
 template <Js::Phase phase>
 void
 Recycler::CollectionEnd()
 {
-    GCETW(GC_STOP, (this, GetETWEventGCActivationKind<phase>()));
+    GCETW_INTERNAL(GC_STOP, (this, GetETWEventGCActivationKind<phase>()));
     RECYCLER_PROFILE_EXEC_END2(this, phase, Js::RecyclerPhase);
 }
 
@@ -5164,7 +5179,15 @@ Recycler::BackgroundScanStack()
     if (stackTop != nullptr)
     {
         size_t size = (char *)stackBase - stackTop;
-        ScanMemoryInline((void **)stackTop, size);
+        bool doSpecialMark = collectionWrapper->DoSpecialMarkOnScanStack();
+        if (doSpecialMark)
+        {
+            ScanMemoryInline<true>((void **)stackTop, size);
+        }
+        else
+        {
+            ScanMemoryInline<false>((void **)stackTop, size);
+        }
         return size;
     }
 
@@ -5534,7 +5557,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
     bool needConcurrentSweep = false;
     if (collectionState == CollectionStateRescanWait)
     {
-        GCETW(GC_START, (this, ETWEvent_ConcurrentRescan));
+        GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentRescan));
 
 #ifdef RECYCLER_TRACE
 #if ENABLE_PARTIAL_GC
@@ -5564,7 +5587,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
         {
             Assert(this->IsMarkState());
             RECYCLER_PROFILE_EXEC_END2(this, concurrentPhase, Js::RecyclerPhase);
-            GCETW(GC_STOP, (this, ETWEvent_ConcurrentRescan));
+            GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
 
             // we timeout trying to mark.
             return false;
@@ -5590,11 +5613,11 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 #else
         needConcurrentSweep = this->Sweep(concurrent);
 #endif
-        GCETW(GC_STOP, (this, ETWEvent_ConcurrentRescan));
+        GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentRescan));
     }
     else
     {
-        GCETW(GC_START, (this, ETWEvent_ConcurrentTransferSwept));
+        GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentTransferSwept));
         GCETW(GC_FLUSHZEROPAGE_START, (this));
 
         Assert(collectionState == CollectionStateTransferSweptWait);
@@ -5632,7 +5655,7 @@ Recycler::FinishConcurrentCollect(CollectionFlags flags)
 
         GCETW(GC_TRANSFERSWEPTOBJECTS_STOP, (this));
 
-        GCETW(GC_STOP, (this, ETWEvent_ConcurrentTransferSwept));
+        GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentTransferSwept));
     }
 
     RECYCLER_PROFILE_EXEC_END2(this, concurrentPhase, Js::RecyclerPhase);
@@ -5719,7 +5742,7 @@ Recycler::StaticBackgroundWorkCallback(void * callbackData)
     recycler->DoBackgroundWork(true);
 }
 
-#ifdef ENABLE_JS_ETW
+#if defined(ENABLE_JS_ETW) && defined(NTBUILD)
 static ETWEventGCActivationKind
 BackgroundMarkETWEventGCActivationKind(CollectionState collectionState)
 {
@@ -5743,7 +5766,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
     {
         RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, this->collectionState == CollectionStateConcurrentFinishMark?
             Js::BackgroundFinishMarkPhase : Js::ConcurrentMarkPhase);
-        GCETW(GC_START, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
+        GCETW_INTERNAL(GC_START, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
         DebugOnly(this->markContext.GetPageAllocator()->SetConcurrentThreadId(::GetCurrentThreadId()));
         Assert(this->enableConcurrentMark);
         if (this->collectionState != CollectionStateConcurrentFinishMark)
@@ -5775,7 +5798,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
             Assert(false);
             break;
         };
-        GCETW(GC_STOP, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
+        GCETW_INTERNAL(GC_STOP, (this, BackgroundMarkETWEventGCActivationKind(this->collectionState)));
         RECYCLER_PROFILE_EXEC_BACKGROUND_END(this, this->collectionState == CollectionStateConcurrentFinishMark?
             Js::BackgroundFinishMarkPhase : Js::ConcurrentMarkPhase);
 
@@ -5785,7 +5808,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
     else
     {
         RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, Js::ConcurrentSweepPhase);
-        GCETW(GC_START, (this, ETWEvent_ConcurrentSweep));
+        GCETW_INTERNAL(GC_START, (this, ETWEvent_ConcurrentSweep));
         GCETW(GC_BACKGROUNDZEROPAGE_START, (this));
 
         Assert(this->enableConcurrentSweep);
@@ -5829,7 +5852,7 @@ Recycler::DoBackgroundWork(bool forceForeground)
             GCETW(GC_BACKGROUNDZEROPAGE_STOP, (this));
         }
 #endif
-        GCETW(GC_STOP, (this, ETWEvent_ConcurrentSweep));
+        GCETW_INTERNAL(GC_STOP, (this, ETWEvent_ConcurrentSweep));
 
         Assert(this->collectionState == CollectionStateConcurrentSweep);
         this->collectionState = CollectionStateTransferSweptWait;
@@ -5846,7 +5869,7 @@ Recycler::ThreadProc()
 {
     Assert(this->IsConcurrentEnabled());
 
-#if !defined(_UCRT) 
+#if !defined(_UCRT)
     // We do this before we set the concurrentWorkDoneEvent because GetModuleHandleEx requires
     // getting the loader lock. We could have the following case:
     //    Thread A => Initialize Concurrent Thread (C)
@@ -8304,7 +8327,7 @@ void Recycler::SetObjectBeforeCollectCallback(void* object,
 
     if (callback != nullptr && this->IsInObjectBeforeCollectCallback()) // revive
     {
-        this->ScanMemory(&object, sizeof(object));
+        this->ScanMemory<false>(&object, sizeof(object));
         this->ProcessMark(/*background*/false);
     }
 }

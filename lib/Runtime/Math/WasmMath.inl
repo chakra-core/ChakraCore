@@ -127,10 +127,17 @@ inline int WasmMath::Eqz(T value)
     return value == 0;
 }
 
-template<typename T>
-inline T WasmMath::Copysign(T aLeft, T aRight)
+template<>
+inline double WasmMath::Copysign(double aLeft, double aRight)
 {
-    return (T)_copysign(aLeft, aRight);
+    return _copysign(aLeft, aRight);
+}
+
+template<>
+inline float WasmMath::Copysign(float aLeft, float aRight)
+{
+    uint32 res = ((*(uint32*)(&aLeft) & 0x7fffffffu) | (*(uint32*)(&aRight) & 0x80000000u));
+    return *(float*)(&res);
 }
 
 template <typename T> bool WasmMath::LessThan(T aLeft, T aRight)

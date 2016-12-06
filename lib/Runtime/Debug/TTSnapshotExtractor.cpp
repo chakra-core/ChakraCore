@@ -36,7 +36,7 @@ namespace TTD
 
     void SnapshotExtractor::MarkVisitStandardProperties(Js::RecyclableObject* obj)
     {
-        AssertMsg(Js::DynamicType::Is(obj->GetTypeId()) || obj->GetPropertyCount() == 0, "Only dynamic objects should have standard properties.");
+        TTDAssert(Js::DynamicType::Is(obj->GetTypeId()) || obj->GetPropertyCount() == 0, "Only dynamic objects should have standard properties.");
 
         if(Js::DynamicType::Is(obj->GetTypeId()))
         {
@@ -117,18 +117,9 @@ namespace TTD
                 slotInfo->OptDebugScopeId = TTD_INVALID_PTR_ID;
                 slotInfo->OptWellKnownDbgScope = TTD_INVALID_WELLKNOWN_TOKEN;
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
                 Js::PropertyId* propertyIds = fb->GetPropertyIdsForScopeSlotArray();
-                slotInfo->DebugPIDArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<Js::PropertyId>(slotInfo->SlotCount);
-
-                for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
-                {
-                    slotInfo->DebugPIDArray[j] = propertyIds[j];
-                }
-
-                slotInfo->OptDiagDebugScopeBegin = -1;
-                slotInfo->OptDiagDebugScopeEnd = -1;
-#endif
+                slotInfo->PIDArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<Js::PropertyId>(slotInfo->SlotCount);
+                js_memcpy_s(slotInfo->PIDArray, sizeof(Js::PropertyId) * slotInfo->SlotCount, propertyIds, sizeof(Js::PropertyId) * slots.GetCount());
             }
             else
             {
@@ -145,20 +136,15 @@ namespace TTD
                 else
                 {
                     slotInfo->OptDebugScopeId = TTD_INVALID_PTR_ID;
-                    slotInfo->OptWellKnownDbgScope = wellKnownToken;
+                    slotInfo->OptWellKnownDbgScope = this->m_pendingSnap->GetSnapshotSlabAllocator().CopyRawNullTerminatedStringInto(wellKnownToken);
                 }
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-                slotInfo->DebugPIDArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<Js::PropertyId>(slotInfo->SlotCount);
+                slotInfo->PIDArray = this->m_pendingSnap->GetSnapshotSlabAllocator().SlabAllocateArray<Js::PropertyId>(slotInfo->SlotCount);
 
                 for(uint32 j = 0; j < slotInfo->SlotCount; ++j)
                 {
-                    slotInfo->DebugPIDArray[j] = dbgScope->GetPropertyIdForSlotIndex_TTD(j);
+                    slotInfo->PIDArray[j] = dbgScope->GetPropertyIdForSlotIndex_TTD(j);
                 }
-
-                slotInfo->OptDiagDebugScopeBegin = dbgScope->GetStart();
-                slotInfo->OptDiagDebugScopeEnd = dbgScope->GetEnd();
-#endif
             }
 
             this->m_marks.ClearMark(scope);
@@ -169,7 +155,7 @@ namespace TTD
     {
         if(this->m_marks.IsMarked(environment))
         {
-            AssertMsg(environment->GetLength() > 0, "This doesn't make sense");
+            TTDAssert(environment->GetLength() > 0, "This doesn't make sense");
 
             NSSnapValues::ScriptFunctionScopeInfo* funcScopeInfo = this->m_pendingSnap->GetNextAvailableFunctionScopeEntry();
             funcScopeInfo->ScopeId = TTD_CONVERT_ENV_TO_PTR_ID(environment);
@@ -198,7 +184,7 @@ namespace TTD
                     break;
                 }
                 default:
-                    AssertMsg(false, "Unknown scope kind");
+                    TTDAssert(false, "Unknown scope kind");
                     entryInfo->IDValue = TTD_INVALID_PTR_ID;
                     break;
                 }
@@ -251,7 +237,7 @@ namespace TTD
         //Extract global roots
         for(auto iter = tctx->GetRootSet()->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
-            AssertMsg(objToLogIdMap.ContainsKey(iter.CurrentValue()), "We are missing a value mapping!!!");
+            TTDAssert(objToLogIdMap.ContainsKey(iter.CurrentValue()), "We are missing a value mapping!!!");
 
             SnapRootPinEntry* spe = glist.NextOpenEntry();
             spe->LogObject = TTD_CONVERT_VAR_TO_PTR_ID(iter.CurrentValue());
@@ -303,22 +289,22 @@ namespace TTD
 
     SnapShot* SnapshotExtractor::GetPendingSnapshot()
     {
-        AssertMsg(this->m_pendingSnap != nullptr, "Should only call if we are extracting a snapshot");
+        TTDAssert(this->m_pendingSnap != nullptr, "Should only call if we are extracting a snapshot");
 
         return this->m_pendingSnap;
     }
 
     SlabAllocator& SnapshotExtractor::GetActiveSnapshotSlabAllocator()
     {
-        AssertMsg(this->m_pendingSnap != nullptr, "Should only call if we are extracting a snapshot");
+        TTDAssert(this->m_pendingSnap != nullptr, "Should only call if we are extracting a snapshot");
 
         return this->m_pendingSnap->GetSnapshotSlabAllocator();
     }
 
     void SnapshotExtractor::MarkVisitVar(Js::Var var)
     {
-        AssertMsg(var != nullptr, "I don't think this should happen but not 100% sure.");
-        AssertMsg(Js::JavascriptOperators::GetTypeId(var) < Js::TypeIds_Limit || Js::RecyclableObject::FromVar(var)->CanHaveInterceptors(), "Not cool.");
+        TTDAssert(var != nullptr, "I don't think this should happen but not 100% sure.");
+        TTDAssert(Js::JavascriptOperators::GetTypeId(var) < Js::TypeIds_Limit || Js::RecyclableObject::FromVar(var)->CanHaveInterceptors(), "Not cool.");
 
         //We don't need to visit tagged things
         if(JsSupport::IsVarTaggedInline(var))
@@ -336,7 +322,7 @@ namespace TTD
         }
         else
         {
-            AssertMsg(JsSupport::IsVarComplexKind(var), "Shouldn't be anything else");
+            TTDAssert(JsSupport::IsVarComplexKind(var), "Shouldn't be anything else");
 
             if(this->m_marks.MarkAndTestAddr<MarkTableTag::CompoundObjectTag>(var))
             {
@@ -410,7 +396,7 @@ namespace TTD
                     break;
                 }
                 default:
-                    AssertMsg(false, "Unknown scope kind");
+                    TTDAssert(false, "Unknown scope kind");
                 }
             }
         }
@@ -418,7 +404,7 @@ namespace TTD
 
     void SnapshotExtractor::BeginSnapshot(ThreadContext* threadContext)
     {
-        AssertMsg((this->m_pendingSnap == nullptr) & this->m_worklist.Empty(), "Something went wrong.");
+        TTDAssert((this->m_pendingSnap == nullptr) & this->m_worklist.Empty(), "Something went wrong.");
 
         this->m_pendingSnap = TT_HEAP_NEW(SnapShot);
     }
@@ -457,7 +443,7 @@ namespace TTD
         while(!this->m_worklist.Empty())
         {
             Js::RecyclableObject* nobj = this->m_worklist.Dequeue();
-            AssertMsg(JsSupport::IsVarComplexKind(nobj), "Should only be these two options");
+            TTDAssert(JsSupport::IsVarComplexKind(nobj), "Should only be these two options");
 
             this->MarkVisitStandardProperties(nobj);
             nobj->MarkVisitKindSpecificPtrs(this);
@@ -564,7 +550,7 @@ namespace TTD
             case MarkTableTag::SlotArrayTag:
                 break; //should be handled with the associated script function
             default:
-                AssertMsg(false, "If this isn't true then we have an unknown tag");
+                TTDAssert(false, "If this isn't true then we have an unknown tag");
                 break;
             }
 

@@ -69,7 +69,8 @@ private:
     /* -------static constants ----------*/
     // Interpreter thunk buffer includes function prolog, setting up of arguments, jumping to the appropriate calling point.
     static const BYTE ThunkAddressOffset;
-    static const BYTE FunctionBodyOffset;
+    static const BYTE FunctionInfoOffset;
+    static const BYTE FunctionProxyOffset;
     static const BYTE DynamicThunkAddressOffset;
     static const BYTE InterpreterThunkEmitter::CallBlockStartAddrOffset;
     static const BYTE InterpreterThunkEmitter::ThunkSizeOffset;
@@ -113,7 +114,7 @@ private:
 
     /*-------static helpers ---------*/
     inline static DWORD FillDebugBreak(_In_ BYTE* dest, _In_ DWORD count);
-    inline static DWORD CopyWithAlignment(_In_ BYTE* dest, _In_ const DWORD sizeInBytes, _In_ const BYTE* src, _In_ const DWORD srcSize, _In_ const DWORD alignment);
+    inline static DWORD CopyWithAlignment(_Out_writes_bytes_all_(sizeInBytes) BYTE* dest, _In_ const DWORD sizeInBytes, _In_reads_bytes_(srcSize) const BYTE* src, _In_ const DWORD srcSize, _In_ const DWORD alignment);
     template<class T>
     inline static void Emit(__in_bcount(sizeof(T) + offset) BYTE* dest, __in const DWORD offset, __in const T value)
     {
@@ -148,7 +149,7 @@ public:
         _In_ bool asmJsThunk,
         _In_ intptr_t finalAddr,
         _In_ size_t bufferSize,
-        _Out_writes_bytes_all_(bufferSize) BYTE* buffer,
+        _Out_writes_bytes_all_(BlockSize) BYTE* buffer,
 #if PDATA_ENABLED
         _Out_ PRUNTIME_FUNCTION * pdataTableStart,
         _Out_ intptr_t * epilogEndAddr,

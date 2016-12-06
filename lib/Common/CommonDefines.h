@@ -129,6 +129,7 @@
 #define SYSINFO_IMAGE_BASE_AVAILABLE 1
 #define ENABLE_CONCURRENT_GC 1
 #define SUPPORT_WIN32_SLIST 1
+#define ENABLE_JS_ETW                               // ETW support
 #else
 #define SYSINFO_IMAGE_BASE_AVAILABLE 0
 #define ENABLE_CONCURRENT_GC 1
@@ -137,9 +138,9 @@
 
 
 #if ENABLE_CONCURRENT_GC
-// Write-barrier refers to a software write barrier implementation using a card table. 
-// Write watch refers to a hardware backed write-watch feature supported by the Windows memory manager. 
-// Both are used for detecting changes to memory for concurrent and partial GC. 
+// Write-barrier refers to a software write barrier implementation using a card table.
+// Write watch refers to a hardware backed write-watch feature supported by the Windows memory manager.
+// Both are used for detecting changes to memory for concurrent and partial GC.
 // RECYCLER_WRITE_BARRIER controls the former, RECYCLER_WRITE_WATCH controls the latter.
 // GLOBAL_ENABLE_WRITE_BARRIER controls the smart pointer wrapper at compile time, every Field annotation on the
 // recycler allocated class will take effect if GLOBAL_ENABLE_WRITE_BARRIER is 1, otherwise only the class declared
@@ -232,7 +233,6 @@
 #define ENABLE_WININET_PROFILE_DATA_CACHE
 #define ENABLE_BASIC_TELEMETRY
 #define ENABLE_DOM_FAST_PATH
-#define ENABLE_JS_ETW                               // ETW support
 #define EDIT_AND_CONTINUE
 #define ENABLE_JIT_CLAMP
 #endif
@@ -274,7 +274,6 @@
         #undef TELEMETRY_OPCODE_GET_PROPERTY_VALUES
         #define TELEMETRY_OPCODE_GET_PROPERTY_VALUES false
 
-        //#define TELEMETRY_ESB_STRINGS    // Telemetry that uses strings (slow), used for constructor detection for ECMAScript Built-Ins polyfills and Constructor-properties of Chakra-built-ins.
         //#define TELEMETRY_ESB_GetConstructorPropertyPolyfillDetection // Whether telemetry will inspect the `.constructor` property of every Object instance to determine if it's a polyfill of a known ES built-in.
     #endif
 
@@ -348,24 +347,37 @@
 #ifndef ENABLE_TEST_HOOKS
 #define ENABLE_TEST_HOOKS
 #endif
+#endif // ENABLE_DEBUG_CONFIG_OPTIONS
 
 ////////
 //Time Travel flags
-#ifdef __APPLE__
-#define ENABLE_TTD 0
-#else
+//Include TTD code in the build when building for Chakra (except NT/Edge) or for debug/test builds
+#if !defined(NTBUILD) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 #define ENABLE_TTD 1
+#else
+#define ENABLE_TTD 0
 #endif
 
 #if ENABLE_TTD
-//A workaround for some unimplemented code parse features (force debug mode) -- Need to set to enable debug attach on recorded traces
-#define TTD_DYNAMIC_DECOMPILATION_AND_JIT_WORK_AROUND 1
+#define TTDAssert(C, M) { if(!(C)) TTDAbort_fatal_error(M); }
+#else
+#define TTDAssert(C, M)
+#endif
 
+#if ENABLE_TTD
 //A workaround for profile based creation of Native Arrays -- we may or may not want to allow since it differs in record/replay and (currently) asserts in our snap compare
 #define TTD_NATIVE_PROFILE_ARRAY_WORK_AROUND 1
 
+//Force debug or notjit mode
+#define TTD_FORCE_DEBUG_MODE 0
+#define TTD_FORCE_NOJIT_MODE 0
+
 //Enable various sanity checking features and asserts
+#if ENABLE_DEBUG_CONFIG_OPTIONS
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 1
+#else
+#define ENABLE_TTD_INTERNAL_DIAGNOSTICS 0
+#endif
 
 #define TTD_COMPRESSED_OUTPUT 0
 #define TTD_LOG_READER TextFormatReader
@@ -396,11 +408,9 @@
 
 #define ENABLE_TTD_DIAGNOSTICS_TRACING (ENABLE_OBJECT_SOURCE_TRACKING || ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE)
 
-#endif
 //End Time Travel flags
 ////////
-
-#endif // ENABLE_DEBUG_CONFIG_OPTIONS
+#endif
 
 //----------------------------------------------------------------------------------------------------
 // Debug only features

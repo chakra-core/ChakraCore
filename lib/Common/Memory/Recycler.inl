@@ -511,6 +511,7 @@ Recycler::ScanObjectInlineInterior(void ** obj, size_t byteCount)
     markContext.ScanObject<false, true>(obj, byteCount);
 }
 
+template <bool doSpecialMark>
 inline void
 Recycler::ScanMemoryInline(void ** obj, size_t byteCount)
 {
@@ -518,11 +519,11 @@ Recycler::ScanMemoryInline(void ** obj, size_t byteCount)
     Assert(this->collectionState != CollectionStateParallelMark);
     if (this->enableScanInteriorPointers)
     {
-        markContext.ScanMemory<false, true>(obj, byteCount);
+        markContext.ScanMemory<false, true, doSpecialMark>(obj, byteCount);
     }
     else
     {
-        markContext.ScanMemory<false, false>(obj, byteCount);
+        markContext.ScanMemory<false, false, doSpecialMark>(obj, byteCount);
     }
 }
 

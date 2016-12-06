@@ -31,7 +31,7 @@ public:
 
     HRESULT UpdatePropertyRecordMap(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __in UpdatedPropertysIDL * updatedProps);
+        __in BVSparseNodeIDL * updatedPropsBVHead);
 
     HRESULT NewInterpreterThunkBlock(
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
@@ -144,7 +144,7 @@ public:
 
     HRESULT UpdatePropertyRecordMap(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __in UpdatedPropertysIDL * updatedProps)
+        __in BVSparseNodeIDL * updatedPropsBVHead)
         { Assert(false); return E_FAIL; }
 
     HRESULT AddDOMFastPathHelper(

@@ -303,10 +303,10 @@
 (assert_return (invoke "init-local-f32") (f32.const 0))
 (assert_return (invoke "init-local-f64") (f64.const 0))
 
-;;(assert_return (invoke "signature-explicit-reused"))
-;;(assert_return (invoke "signature-implicit-reused"))
-;;(assert_return (invoke "signature-explicit-duplicate"))
-;;(assert_return (invoke "signature-implicit-duplicate"))
+(assert_return (invoke "signature-explicit-reused"))
+(assert_return (invoke "signature-implicit-reused"))
+(assert_return (invoke "signature-explicit-duplicate"))
+(assert_return (invoke "signature-implicit-duplicate"))
 
 
 ;; Invalid typing of locals
@@ -392,37 +392,6 @@
   "type mismatch"
 )
 
-(; TODO(stack): Should these become legal?
-(assert_invalid
-  (module (func $type-value-void-vs-num-after-return (result i32)
-    (return (i32.const 1)) (nop)
-  ))
-  "type mismatch"
-)
-(assert_invalid
-  (module (func $type-value-num-vs-num-after-return (result i32)
-    (return (i32.const 1)) (f32.const 0)
-  ))
-  "type mismatch"
-)
-(assert_invalid
-  (module (func $type-value-void-vs-num-after-break (result i32)
-    (br 0 (i32.const 1)) (nop)
-  ))
-  "type mismatch"
-)
-(assert_invalid
-  (module (func $type-value-num-vs-num-after-break (result i32)
-    (br 0 (i32.const 1)) (f32.const 0)
-  ))
-  "arity mismatch"
-)
-;)
-
-;; TODO(stack): move these somewhere else
-(module (func $type-return-void-vs-enpty (return (nop))))
-(module (func $type-return-num-vs-enpty (return (i32.const 0))))
-
 (assert_invalid
   (module (func $type-return-last-empty-vs-num (result i32)
     (return)
@@ -466,14 +435,6 @@
   ))
   "type mismatch"
 )
-(; TODO(stack): Should this become legal?
-(assert_invalid
-  (module (func $type-return-second-num-vs-num (result i32)
-    (return (i32.const 1)) (return (f64.const 1))
-  ))
-  "type mismatch"
-)
-;)
 
 (assert_invalid
   (module (func $type-break-last-void-vs-num (result i32)
@@ -505,15 +466,6 @@
   ))
   "type mismatch"
 )
-
-(; TODO(stack): soft failure
-(assert_invalid
-  (module (func $type-break-second-num-vs-num (result i32)
-    (br 0 (i32.const 1)) (br 0 (f64.const 1))
-  ))
-  "type mismatch"
-)
-;)
 
 (assert_invalid
   (module (func $type-break-nested-empty-vs-num (result i32)

@@ -289,7 +289,7 @@ namespace Js
     {
         TTD::NSSnapObjects::SnapHeapArgumentsInfo* argsInfo = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapHeapArgumentsInfo>();
 
-        AssertMsg(this->callerDeleted == 0, "This never seems to be set but I want to assert just to be safe.");
+        TTDAssert(this->callerDeleted == 0, "This never seems to be set but I want to assert just to be safe.");
         argsInfo->NumOfArguments = this->numOfArguments;
         argsInfo->FormalCount = this->formalCount;
 

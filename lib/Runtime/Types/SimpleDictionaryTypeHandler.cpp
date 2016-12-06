@@ -78,7 +78,7 @@ namespace Js
     template<>
     JavascriptString* TMapKey_ConvertKey_TTD(ThreadContext* threadContext, const PropertyRecord* key)
     {
-        AssertMsg(false, "I never want to do this.");
+        TTDAssert(false, "I never want to do this.");
 
         return nullptr;
     }
@@ -86,7 +86,7 @@ namespace Js
     template<typename TMapKey>
     TMapKey TMapKey_ConvertKey_TTD(ThreadContext* threadContext, JavascriptString* key)
     {
-        AssertMsg(false, "I never want to do this.");
+        TTDAssert(false, "I never want to do this.");
 
         return nullptr;
     }
@@ -3267,7 +3267,7 @@ namespace Js
         for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor = iter.CurrentValue();
-            AssertMsg(descriptor.propertyIndex != NoSlots, "Huh");
+            TTDAssert(descriptor.propertyIndex != NoSlots, "Huh");
 
             TMapKey key = iter.CurrentKey();
             const PropertyRecord* pRecord = TMapKey_ConvertKey_TTD<const Js::PropertyRecord*>(threadContext, key);
@@ -3295,7 +3295,7 @@ namespace Js
         for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             SimpleDictionaryPropertyDescriptor<TPropertyIndex> descriptor = iter.CurrentValue();
-            AssertMsg(descriptor.propertyIndex != NoSlots, "Huh");
+            TTDAssert(descriptor.propertyIndex != NoSlots, "Huh");
 
             uint32 index = descriptor.propertyIndex;
             maxSlot = max(maxSlot, index);
@@ -3324,12 +3324,12 @@ namespace Js
         SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor;
         if(propertyMap->TryGetReference(pRecord, &descriptor))
         {
-            AssertMsg(!(descriptor->Attributes & PropertyDeleted), "We found this during enum so what is going on here?");
+            TTDAssert(!(descriptor->Attributes & PropertyDeleted), "We found this during enum so what is going on here?");
 
             return (Js::BigPropertyIndex)descriptor->propertyIndex;
         }
 
-        AssertMsg(false, "We found this during enum so what is going on here?");
+        TTDAssert(false, "We found this during enum so what is going on here?");
         return Js::Constants::NoBigSlot;
     }
 #endif

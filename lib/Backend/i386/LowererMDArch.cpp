@@ -988,8 +988,7 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
         lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
     }
 
-    // MGTODO : call RuntimeError once implemented
-    lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_InvalidTypedArrayIndex, IR::HelperOp_RuntimeRangeError);
+    lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, WASMERR_ArrayIndexOutOfRange, IR::HelperOp_WebAssemblyRuntimeError);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
 
     Assert(indexPair.low->IsRegOpnd());
@@ -2529,6 +2528,13 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
     // We should only generate this if sse2 is available
     Assert(AutoSystemInfo::Data.SSE2Available());
 
+    IR::Opnd* origDst = nullptr;
+    if (dst->IsFloat32())
+    {
+        origDst = dst;
+        dst = IR::RegOpnd::New(TyFloat64, this->m_func);
+    }
+
     this->lowererMD->EmitIntToFloat(dst, src, instrInsert);
 
     IR::RegOpnd * highestBitOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
@@ -2550,6 +2556,11 @@ LowererMDArch::EmitUIntToFloat(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrIns
     instr = IR::Instr::New(Js::OpCode::ADDSD, dst, dst, IR::IndirOpnd::New(baseOpnd,
         highestBitOpnd, IndirScale8, TyFloat64, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
+
+    if (origDst)
+    {
+        instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::CVTSD2SS, origDst, dst, this->m_func));
+    }
 }
 
 void

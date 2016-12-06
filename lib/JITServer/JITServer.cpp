@@ -147,7 +147,7 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
     ServerCleanupScriptContext(nullptr, &phContext);
 }
 
-#pragma warning(push)  
+#pragma warning(push)
 #pragma warning(disable:6387 28196) // PREFast does not understand the out context can be null here
 HRESULT
 ServerInitializeThreadContext(
@@ -215,7 +215,7 @@ ServerInitializeScriptContext(
         return S_OK;
     });
 }
-#pragma warning(pop) 
+#pragma warning(pop)
 
 HRESULT
 ServerCleanupThreadContext(
@@ -250,7 +250,7 @@ HRESULT
 ServerUpdatePropertyRecordMap(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    /* [in] */ __RPC__in UpdatedPropertysIDL * updatedProps)
+    /* [in] */ __RPC__in BVSparseNodeIDL * updatedPropsBVHead)
 {
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer(threadContextInfoAddress);
 
@@ -262,15 +262,9 @@ ServerUpdatePropertyRecordMap(
 
     return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
     {
-        for (uint i = 0; i < updatedProps->reclaimedPropertyCount; ++i)
-        {
-            threadContextInfo->RemoveFromNumericPropertySet((Js::PropertyId)updatedProps->reclaimedPropertyIdArray[i]);
-        }
-
-        for (uint i = 0; i < updatedProps->newPropertyCount; ++i)
-        {
-            threadContextInfo->AddToNumericPropertySet((Js::PropertyId)updatedProps->newPropertyIdArray[i]);
-        }
+        typedef ServerThreadContext::BVSparseNode BVSparseNode;
+        CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
+        threadContextInfo->UpdateNumericPropertyBV((BVSparseNode*)updatedPropsBVHead);
 
         return S_OK;
     });
@@ -405,7 +399,7 @@ ServerNewInterpreterThunkBlock(
     /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfo,
     /* [in] */ boolean asmJsThunk,
     /* [out] */ __RPC__out InterpreterThunkInfoIDL * thunkInfo)
-{   
+{
     if (thunkInfo == nullptr)
     {
         Assert(false);

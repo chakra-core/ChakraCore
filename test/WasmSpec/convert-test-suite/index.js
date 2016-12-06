@@ -71,7 +71,7 @@ function convertTest(filename) {
 }
 
 function hostFlags(specFile, {useFullpath} = {}) {
-  return `-on:wasm -args ${
+  return `-wasm -args ${
     useFullpath ? specFile : path.relative(rlRoot, specFile)
   } -endargs`;
 }
@@ -193,6 +193,14 @@ function main() {
       <files>spec.js</files>
       <baseline>${getBaselinePath(specFile)}</baseline>
       <compile-flags>${hostFlags(specFile)}</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>${getBaselinePath(specFile)}</baseline>
+      <compile-flags>${hostFlags(specFile)} -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>`
   ).join("")

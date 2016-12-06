@@ -52,7 +52,7 @@ namespace TTD
         RecyclerRootPtr<ObjectPinSet> m_ttdLocalRootSet;
         JsUtil::BaseDictionary<TTD_LOG_PTR_ID, Js::RecyclableObject*, HeapAllocator> m_ttdRootTagIdMap;
 
-        void AddNewScriptContext_Helper(Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative);
+        void AddNewScriptContext_Helper(Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative, bool debugMode);
 
     public:
         TTUriString TTDUri;
@@ -83,13 +83,8 @@ namespace TTD
         //Get the list of any contexts which we want to mark as destoyed (CALLER SHOULD CLEAR WHEN DONE RECORDING)
         JsUtil::List<DeadScriptLogTagInfo, HeapAllocator>& GetTTDDeadContextsForRecord();
 
-        //
-        //TODO: this is a temp method to warn in a few places where we are not multi-context freindly yet
-        //
-        void MultipleScriptWarn() const;
-
-        void AddNewScriptContextRecord(FinalizableObject* externalCtx, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative);
-        void AddNewScriptContextReplay(FinalizableObject* externalCtx, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative);
+        void AddNewScriptContextRecord(FinalizableObject* externalCtx, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative, bool debugMode);
+        void AddNewScriptContextReplay(FinalizableObject* externalCtx, Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative, bool debugMode);
         void SetActiveScriptContext(Js::ScriptContext* ctx);
         Js::ScriptContext* GetActiveScriptContext();
 
@@ -98,7 +93,7 @@ namespace TTD
 
         void NotifyCtxDestroyedInReplay(TTD_LOG_PTR_ID globalId, TTD_LOG_PTR_ID undefId, TTD_LOG_PTR_ID nullId, TTD_LOG_PTR_ID trueId, TTD_LOG_PTR_ID falseId);
 
-        void ClearContextsForSnapRestore();
+        void ClearContextsForSnapRestore(JsUtil::List<FinalizableObject*, HeapAllocator>& deadCtxs);
 
         //Get all of the roots for a script context (roots are currently any recyclableObjects exposed to the host)
         static bool IsSpecialRootObject(Js::RecyclableObject* obj);
@@ -120,6 +115,8 @@ namespace TTD
 
         Js::RecyclableObject* LookupObjectForLogID(TTD_LOG_PTR_ID origId);
         void ClearRootsForSnapRestore();
+
+        Js::ScriptContext* LookupContextForScriptId(TTD_LOG_PTR_ID ctxId) const;
     };
 
     //This struct stores the info for pending async mutations to array buffer objects
@@ -270,7 +267,7 @@ namespace TTD
     template <typename T>
     void SortDictIntoListOnNames(const JsUtil::BaseDictionary<T, UtilSupport::TTAutoString*, HeapAllocator>& objToNameMap, JsUtil::List<T, HeapAllocator>& sortedObjList, const UtilSupport::TTAutoString& nullString)
     {
-        AssertMsg(sortedObjList.Count() == 0, "This should be empty.");
+        TTDAssert(sortedObjList.Count() == 0, "This should be empty.");
 
         objToNameMap.Map([&](T key, UtilSupport::TTAutoString* value)
         {
@@ -328,12 +325,12 @@ namespace TTD
             }
 
         }
-        AssertMsg(imin == imax, "Something went wrong!!!"); 
+        TTDAssert(imin == imax, "Something went wrong!!!");
         
         const UtilSupport::TTAutoString* resStr = objToNameMap.Item(sortedObjList.Item(imin));
         if(mustFind)
         {
-            AssertMsg(wcscmp(resStr->GetStrValue(), key) == 0, "We are missing something");
+            TTDAssert(wcscmp(resStr->GetStrValue(), key) == 0, "We are missing something");
             return imin;
         }
         else

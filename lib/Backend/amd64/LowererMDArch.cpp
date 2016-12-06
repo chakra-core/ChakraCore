@@ -1133,8 +1133,7 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
     Lowerer::InsertAdd(true, cmpOpnd, indexOpnd, IR::IntConstOpnd::New(addrOpnd->GetSize(), TyUint64, m_func), helperLabel);
     lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGt_A, true, helperLabel, helperLabel);
 
-    // MGTODO : call RuntimeError once implemented
-    lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, JSERR_InvalidTypedArrayIndex, IR::HelperOp_RuntimeRangeError);
+    lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, WASMERR_ArrayIndexOutOfRange, IR::HelperOp_WebAssemblyRuntimeError);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
     return doneLabel;
 }
@@ -2569,13 +2568,7 @@ LowererMDArch::EmitIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInser
     Assert(dst->IsRegOpnd() && dst->IsInt64());
     Assert(src->IsInt32());
 
-    if (src->IsIntConstOpnd())
-    {
-        Lowerer::InsertMove(dst, src, instrInsert);
-        return;
-    }
-    Assert(src->IsRegOpnd());
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOVSXD, dst, src, this->m_func));
+    Lowerer::InsertMove(dst, src, instrInsert);
 }
 
 void
@@ -2584,13 +2577,7 @@ LowererMDArch::EmitUIntToLong(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInse
     Assert(dst->IsRegOpnd() && dst->IsInt64());
     Assert(src->IsUInt32());
 
-    if (src->IsIntConstOpnd())
-    {
-        Lowerer::InsertMove(dst, src, instrInsert);
-        return;
-    }
-    Assert(src->IsRegOpnd());
-    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, dst, src, this->m_func));
+    Lowerer::InsertMove(dst, src, instrInsert);
 }
 
 void

@@ -42,6 +42,7 @@
 #define DMOV    0x10000  /* Instruction is a MOV or a synonym for MOV (e.g., MOV_TRUNC) */
 #define D66     0x100000 // 0x66 0x0F style WNI form (usually 128-bit DP FP)
 #define DF2     0x200000 /* 0xF2 0x0F style WNI form (usually 64-bit DP FP) */
+#define DREXSRC  0x400000 /* Use src1's size to generate REX byte */
 
 // 2nd 3 bits is options
 #define SBIT 0x20

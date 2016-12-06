@@ -8,17 +8,39 @@ function printError(e) {
     print(e.number);
     print(e.description);
 }
-function print(str) {
-    if (typeof (WScript) == "undefined") {
-        print(str);
-    }
-    else {
-        WScript.Echo(str);
+
+var isMac = (WScript.Platform && WScript.Platform.OS == 'darwin');
+
+var expects = [
+    '#1', // 0
+    'In finally',
+    'Error: Out of stack space', // 2
+    '#2',
+    'In finally', // 4
+    'Error: Out of stack space',
+    '#3', // 6
+    'In finally',
+    'Error: Out of stack space', // 8
+    'testing stack overflow handling with catch block',
+    'Error: Out of stack space', // 10
+    'testing stack overflow handling with finally block',
+    'Error: Out of stack space' ]; // 12
+
+if (!isMac) // last test (sometimes) we hit timeout before we hit stackoverflow.
+    expects.push('Error: Out of stack space')
+
+expects.push('END');
+
+var index = 0;
+function printLog(str) {
+    if (expects[index++] != str) {
+        WScript.Echo('At ' + (index - 1) + ' expected \n' + expects[index - 1] + '\nOutput:' + str);
+        WScript.Quit(1);
     }
 }
 
 for (var i = 1; i < 4; i++) {
-    print("\n#" + i);
+    printLog("#" + i);
     try {
         try {
             function f() {
@@ -26,15 +48,15 @@ for (var i = 1; i < 4; i++) {
             }
             f();
         } finally {
-            print("In finally");
+            printLog("In finally");
         }
     }
     catch (e) {
-        printError(e);
+        printLog(e);
     }
 }
 
-print("testing stack overflow handling with catch block");
+printLog("testing stack overflow handling with catch block");
 try {
     function stackOverFlowCatch() {
         try {
@@ -50,10 +72,10 @@ try {
     stackOverFlowCatch();
 }
 catch (e) {
-    printError(e);
+    printLog(e);
 }
 
-print("testing stack overflow handling with finally block");
+printLog("testing stack overflow handling with finally block");
 try
 {
     function stackOverFlowFinally() {
@@ -69,28 +91,35 @@ try
     stackOverFlowFinally();
 }
 catch(e) {
-    printError(e);
+    printLog(e);
 }
 
 function DoSomething()
 {
 }
 
-try
-{
-    var count = 200000; // Keep this unrealistic number as we do (osx)
-                        // and do not limit stack memory to a particular capacity
-
-    var a = {};
-    var b = a;
-
-    for (var i = 0; i < count; i++)
+// 10K is not enough for our osx setup.
+// for bigger numbers, we hit to timeout on CI (before we actually hit to S.O)
+if (!isMac) {
+    try
     {
-        a.x = {};
-        a = a.x;
+        var count = 20000;
+
+        var a = {};
+        var b = a;
+
+        for (var i = 0; i < count; i++)
+        {
+            a.x = {};
+            a = a.x;
+        }
+        eval("JSON.stringify(b)");
     }
-    eval("JSON.stringify(b)");
+    catch(e) {
+        printLog(e);
+    }
 }
-catch(e) {
-    printError(e);
-}
+
+printLog('END'); // do not remove this
+
+WScript.Echo("Pass");

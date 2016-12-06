@@ -79,10 +79,12 @@ else() # // shared library below
     )
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  set(lib_target "${lib_target}"
-    "-stdlib=libstdc++" # expected 'deprecated' warning. needed for std::string
-    )
+if(NOT CC_XCODE_PROJECT)
+  if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(lib_target "${lib_target}"
+      "-stdlib=libstdc++" # expected 'deprecated' warning. needed for std::string
+      )
+  endif()
 endif()
 
 if(CC_TARGETS_X86)

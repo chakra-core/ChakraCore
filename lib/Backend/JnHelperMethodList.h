@@ -86,6 +86,7 @@ HELPERCALL(Op_Rem_Double, Js::NumberUtilities::Modulus, 0)
 
 #ifdef ENABLE_WASM
 HELPERCALL(Op_CheckWasmSignature, Js::WebAssembly::CheckSignature, AttrCanThrow)
+HELPERCALL(Op_GrowWasmMemory, Js::WebAssemblyMemory::GrowHelper, 0)
 #endif
 
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Increment, Js::JavascriptMath::Increment, Js::SSE2::JavascriptMath::Increment, AttrCanThrow)
@@ -353,6 +354,7 @@ HELPERCALL(Op_Throw, Js::JavascriptExceptionOperators::OP_Throw, AttrCanThrow)
 HELPERCALL(Op_RuntimeTypeError, Js::JavascriptExceptionOperators::OP_RuntimeTypeError, AttrCanThrow)
 HELPERCALL(Op_RuntimeRangeError, Js::JavascriptExceptionOperators::OP_RuntimeRangeError, AttrCanThrow)
 HELPERCALL(Op_RuntimeReferenceError, Js::JavascriptExceptionOperators::OP_RuntimeReferenceError, AttrCanThrow)
+HELPERCALL(Op_WebAssemblyRuntimeError, Js::JavascriptExceptionOperators::OP_WebAssemblyRuntimeError, AttrCanThrow)
 HELPERCALL(Op_OutOfMemoryError, Js::Throw::OutOfMemory, AttrCanThrow)
 HELPERCALL(Op_FatalInternalError, Js::Throw::FatalInternalError, AttrCanThrow)
 

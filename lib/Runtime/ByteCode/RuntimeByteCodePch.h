@@ -26,3 +26,4 @@
 #ifdef ENABLE_WASM
 #include "WasmReader.h"
 #endif
+#include "Language/JavascriptStackWalker.h"

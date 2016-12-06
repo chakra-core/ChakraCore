@@ -12,7 +12,7 @@
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_threadContextData(*data),
     m_refCount(0),
-    m_numericPropertySet(nullptr),
+    m_numericPropertyBV(nullptr),
     m_preReservedVirtualAllocator((HANDLE)data->processHandle),
     m_codePageAllocators(nullptr, ALLOC_XDATA, &m_preReservedVirtualAllocator, (HANDLE)data->processHandle),
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
@@ -33,16 +33,15 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     m_codeGenAlloc.canCreatePreReservedSegment = data->allowPrereserveAlloc != FALSE;
 #endif
-    m_numericPropertySet = HeapNew(PropertySet, &HeapAllocator::Instance);
+    m_numericPropertyBV = HeapNew(BVSparse<HeapAllocator>, &HeapAllocator::Instance);
 }
 
 ServerThreadContext::~ServerThreadContext()
 {
-    // TODO: OOP JIT, clear out elements of map. maybe should arena alloc?
-    if (this->m_numericPropertySet != nullptr)
+    if (this->m_numericPropertyBV != nullptr)
     {
-        HeapDelete(m_numericPropertySet);
-        this->m_numericPropertySet = nullptr;
+        HeapDelete(m_numericPropertyBV);
+        this->m_numericPropertyBV = nullptr;
     }
 
 }
@@ -166,38 +165,20 @@ ServerThreadContext::IsNumericProperty(Js::PropertyId propertyId)
         return Js::InternalPropertyRecords::GetInternalPropertyName(propertyId)->IsNumeric();
     }
 
-    m_numericPropertySet->LockResize();
-    bool found = m_numericPropertySet->ContainsKey(propertyId);
-    m_numericPropertySet->UnlockResize();
+    bool found = false;
+    {
+        AutoCriticalSection lock(&m_cs);
+        found = m_numericPropertyBV->Test(propertyId) != FALSE;
+    }
 
     return found;
 }
 
 void
-ServerThreadContext::RemoveFromNumericPropertySet(Js::PropertyId reclaimedId)
+ServerThreadContext::UpdateNumericPropertyBV(BVSparseNode * newProps)
 {
-    if (m_numericPropertySet->ContainsKey(reclaimedId))
-    {
-        // if there was reclaimed property that had its pid reused, delete the old property record
-        m_numericPropertySet->Remove(reclaimedId);
-    }
-    else
-    {
-        // we should only ever ask to reclaim properties which were previously added to the jit map
-        Assert(UNREACHED);
-    }
-}
-
-void
-ServerThreadContext::AddToNumericPropertySet(Js::PropertyId propId)
-{
-    // this should only happen if there was reclaimed property that we failed to add to reclaimed list due to a prior oom
-    if (m_numericPropertySet->ContainsKey(propId))
-    {
-        m_numericPropertySet->Remove(propId);
-    }
-
-    m_numericPropertySet->Add(propId);
+    AutoCriticalSection lock(&m_cs);
+    m_numericPropertyBV->CopyFromNode(newProps);
 }
 
 void ServerThreadContext::AddRef()

@@ -86,13 +86,14 @@ public:
 
 class StackSym: public Sym
 {
+private:
+    static StackSym * New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func);
 public:
     static StackSym * NewArgSlotSym(Js::ArgSlot argSlotNum, Func * func, IRType = TyVar);
     static StackSym * NewArgSlotRegSym(Js::ArgSlot argSlotNum, Func * func, IRType = TyVar);
     static StackSym * NewParamSlotSym(Js::ArgSlot argSlotNum, Func * func);
     static StackSym * NewParamSlotSym(Js::ArgSlot argSlotNum, Func * func, IRType type);
     static StackSym *NewImplicitParamSym(Js::ArgSlot paramSlotNum, Func * func);
-    static StackSym * New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func);
     static StackSym * New(IRType type, Func *func);
     static StackSym * New(Func *func);
     static StackSym * FindOrCreate(SymID id, Js::RegSlot byteCodeRegSlot, Func *func, IRType type = TyVar);

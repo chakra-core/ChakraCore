@@ -96,10 +96,8 @@ namespace Js
         ModuleNameRecord* GetNamespaceNameRecord() { return &namespaceRecord; }
 
         SourceTextModuleRecord* GetChildModuleRecord(LPCOLESTR specifier) const;
-#if DBG
-        void AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, uint32 specifierLength);
-#endif
 
+        void SetParent(SourceTextModuleRecord* parentRecord, LPCOLESTR moduleName);
         Utf8SourceInfo* GetSourceInfo() { return this->pSourceInfo; }
 
     private:

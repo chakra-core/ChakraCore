@@ -8,6 +8,8 @@
 class ServerThreadContext : public ThreadContextInfo
 {
 public:
+    typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
+
     ServerThreadContext(ThreadContextDataIDL * data);
     ~ServerThreadContext();
 
@@ -36,8 +38,7 @@ public:
 
     CodeGenAllocators * GetCodeGenAllocators();
     CustomHeap::CodePageAllocators * GetCodePageAllocators();
-    void RemoveFromNumericPropertySet(Js::PropertyId reclaimedId);
-    void AddToNumericPropertySet(Js::PropertyId propertyId);
+    void UpdateNumericPropertyBV(BVSparseNode * newProps);
     void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
     CustomHeap::CodePageAllocators * GetThunkPageAllocators();
@@ -54,9 +55,7 @@ private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
 
-    typedef JsUtil::BaseHashSet<Js::PropertyId, HeapAllocator, PrimeSizePolicy, Js::PropertyId,
-        DefaultComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertySet;
-    PropertySet * m_numericPropertySet;
+    BVSparse<HeapAllocator> * m_numericPropertyBV;
 
     PreReservedVirtualAllocWrapper m_preReservedVirtualAllocator;
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
@@ -70,7 +69,8 @@ private:
     ThreadContextDataIDL m_threadContextData;
 
     DWORD m_pid; //save client process id for easier diagnose
-    
+
+    CriticalSection m_cs;
     intptr_t m_jitCRTBaseAddress;
     uint m_refCount;
 };

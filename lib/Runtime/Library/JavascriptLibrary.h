@@ -171,7 +171,7 @@ namespace Js
         void SetGlobalObject(GlobalObject* globalObject) {this->globalObject = globalObject; }
         static DWORD GetRandSeed0Offset() { return offsetof(JavascriptLibrary, randSeed0); }
         static DWORD GetRandSeed1Offset() { return offsetof(JavascriptLibrary, randSeed1); }
-
+        static DWORD GetTypeDisplayStringsOffset() { return offsetof(JavascriptLibrary, typeDisplayStrings); }
         typedef bool (CALLBACK *PromiseContinuationCallback)(Var task, void *callbackState);
 
         Var GetUndeclBlockVar() const { return undeclBlockVarSentinel; }
@@ -229,6 +229,7 @@ namespace Js
         Field(JavascriptFunction*) builtinFunctions[BuiltinFunction::Count];
 
         Field(INT_PTR) vtableAddresses[VTableValue::Count];
+        Field(JavascriptString*) typeDisplayStrings[TypeIds_Limit];
         Field(ConstructorCache *) constructorCacheDefaultInstance;
         __declspec(align(16)) Field(const BYTE *) absDoubleCst;
         Field(double const *) uintConvertConst;
@@ -338,6 +339,7 @@ namespace Js
         Field(JavascriptString*) booleanTypeDisplayString;
         Field(JavascriptString*) numberTypeDisplayString;
         Field(JavascriptString*) moduleTypeDisplayString;
+        Field(JavascriptString*) variantDateTypeDisplayString;
 
         // SIMD_JS
         Field(JavascriptString*) simdFloat32x4DisplayString;
@@ -447,6 +449,7 @@ namespace Js
         Field(void *) nativeHostPromiseContinuationFunctionState;
 
         typedef SList<Js::FunctionProxy*, Recycler> FunctionReferenceList;
+        typedef JsUtil::WeakReferenceDictionary<uintptr_t, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> JsrtExternalTypesCache;
 
         Field(void *) bindRefChunkBegin;
         Field(Field(void*)*) bindRefChunkCurrent;
@@ -456,6 +459,7 @@ namespace Js
         Field(FunctionReferenceList*) dynamicFunctionReference;
         Field(uint) dynamicFunctionReferenceDepth;
         Field(FinalizableObject*) jsrtContextObject;
+        Field(JsrtExternalTypesCache*) jsrtExternalTypesCache;
 
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<RecyclableObject>*, Recycler, PowerOf2SizePolicy, RecyclerWeakReference<RecyclableObject>*, StringTemplateCallsiteObjectComparer> StringTemplateCallsiteObjectList;
 
@@ -538,6 +542,7 @@ namespace Js
                               identityFunction(nullptr),
                               throwerFunction(nullptr),
                               jsrtContextObject(nullptr),
+                              jsrtExternalTypesCache(nullptr),
                               scriptContextCache(nullptr),
                               externalLibraryList(nullptr),
 #if ENABLE_COPYONACCESS_ARRAY
@@ -611,6 +616,7 @@ namespace Js
         JavascriptString* GetBooleanTypeDisplayString() const { return booleanTypeDisplayString; }
         JavascriptString* GetNumberTypeDisplayString() const { return numberTypeDisplayString; }
         JavascriptString* GetModuleTypeDisplayString() const { return moduleTypeDisplayString; }
+        JavascriptString* GetVariantDateTypeDisplayString() const { return variantDateTypeDisplayString; }
 
         // SIMD_JS
         JavascriptString* GetSIMDFloat32x4DisplayString() const { return simdFloat32x4DisplayString; }
@@ -965,6 +971,8 @@ namespace Js
         JavascriptExternalFunction* CreateIdMappedExternalFunction(MethodType entryPoint, DynamicType *pPrototypeType);
         JavascriptExternalFunction* CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, RecyclableObject * prototype);
         JavascriptExternalFunction* CreateExternalConstructor(Js::ExternalMethod entryPoint, PropertyId nameId, InitializeMethod method, unsigned short deferredTypeSlots, bool hasAccessors);
+        DynamicType* GetCachedJsrtExternalType(uintptr_t finalizeCallback);
+        void CacheJsrtExternalType(uintptr_t finalizeCallback, DynamicType* dynamicType);
         static DynamicTypeHandler * GetDeferredPrototypeGeneratorFunctionTypeHandler(ScriptContext* scriptContext);
         static DynamicTypeHandler * GetDeferredPrototypeAsyncFunctionTypeHandler(ScriptContext* scriptContext);
         DynamicType * CreateDeferredPrototypeGeneratorFunctionType(JavascriptMethod entrypoint, bool isAnonymousFunction, bool isShared = false);
