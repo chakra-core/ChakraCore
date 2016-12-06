@@ -2126,6 +2126,29 @@ namespace Js
         bool isDebugOrAsmJsReparse = false;
         FunctionBody* funcBody = nullptr;
 
+        // If we throw or fail with the function body in an unfinished state, make sure the function info is still
+        // pointing to the old ParseableFunctionInfo and has the right attributes.
+        class AutoRestoreFunctionInfo {
+        public:
+            AutoRestoreFunctionInfo(ParseableFunctionInfo *pfi) : pfi(pfi), funcBody(nullptr) {}
+            ~AutoRestoreFunctionInfo() {
+                if (this->funcBody && this->funcBody->GetFunctionInfo()->GetFunctionProxy() == this->funcBody)
+                {
+                    FunctionInfo *functionInfo = funcBody->GetFunctionInfo();
+                    functionInfo->SetAttributes(
+                        (FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
+                    functionInfo->SetFunctionProxy(this->pfi);
+                    functionInfo->SetOriginalEntryPoint(DefaultEntryThunk);
+                }
+                Assert(this->pfi == nullptr || 
+                       (this->pfi->GetFunctionInfo()->GetFunctionProxy() == this->pfi && !this->pfi->IsFunctionBody()));
+            }
+            void Clear() { pfi = nullptr; funcBody = nullptr; }
+            
+            ParseableFunctionInfo * pfi;
+            FunctionBody          * funcBody;
+        } autoRestoreFunctionInfo(this);
+
         // If m_hasBeenParsed = true, one of the following things happened things happened:
         // - We had multiple function objects which were all defer-parsed, but with the same function body and one of them
         //   got the body to be parsed before another was called
@@ -2134,6 +2157,7 @@ namespace Js
         if (!this->m_hasBeenParsed)
         {
             funcBody = FunctionBody::NewFromParseableFunctionInfo(this);
+            autoRestoreFunctionInfo.funcBody = funcBody;
 
             PERF_COUNTER_DEC(Code, DeferredFunction);
 
@@ -2353,6 +2377,8 @@ namespace Js
         {
             fParsed = FALSE;
         }
+
+        autoRestoreFunctionInfo.Clear();
 
         if (fParsed == TRUE)
         {
