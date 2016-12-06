@@ -418,7 +418,7 @@ var tests = [
       }
 
       // Test valid postfix operators in the wrong context
-      assert.throws(function () { eval("super();") },        ReferenceError, "Invalid use of super", "Missing or invalid 'super' binding");
+      assert.throws(function () { eval("super();") },        SyntaxError, "Invalid use of super", "Invalid use of the 'super' keyword");
       assert.throws(function () { eval("super[1];") },       ReferenceError, "Invalid use of super", "Missing or invalid 'super' binding");
       assert.throws(function () { eval("super.method();") }, ReferenceError, "Invalid use of super", "Missing or invalid 'super' binding");
 
@@ -688,8 +688,8 @@ var tests = [
       assert.areEqual("hello world", instance.method6(), "Nested lambdas and eval");
       assert.areEqual("hello world", instance.method7(), "Nested lambdas and nested evals");
       assert.areEqual("hello world", instance.method8(), "Lambda with an eval in the parent");
-      assert.throws(function() { instance.method9(); }, ReferenceError);
-      assert.throws(function() { (x => eval('super()'))(); }, ReferenceError);
+      assert.throws(function() { instance.method9(); }, SyntaxError);
+      assert.throws(function() { (x => eval('super()'))(); }, SyntaxError);
       assert.areEqual("hello world", instance.method10(), "Lambda with an eval in the lambda");
     }
   },

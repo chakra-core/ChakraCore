@@ -521,13 +521,14 @@ namespace Js
 
         Field(uint32) m_recursiveInlineInfo; // Bit is set for each callsites where the function is called recursively
         Field(uint32) polymorphicCacheState;
+        Field(uint32) bailOutOffsetForLastRejit;
         Field(uint16) rejitCount;
         Field(BYTE) currentInlinerVersion; // Used to detect when inlining profile changes
         Field(bool) hasFunctionBody;
-
 #if DBG
         Field(bool) persistsAcrossScriptContexts;
 #endif
+
         static JavascriptMethod EnsureDynamicProfileInfo(Js::ScriptFunction * function);
 #if DBG_DUMP
         static void DumpList(DynamicProfileInfoList * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator);
@@ -816,6 +817,8 @@ namespace Js
         static bool IsCallSiteNoInfo(Js::LocalFunctionId functionId) { return functionId == CallSiteNoInfo; }
         int IncRejitCount() { return this->rejitCount++; }
         int GetRejitCount() { return this->rejitCount; }
+        void SetBailOutOffsetForLastRejit(uint32 offset) { this->bailOutOffsetForLastRejit = offset; }
+        uint32 GetBailOutOffsetForLastRejit() { return this->bailOutOffsetForLastRejit; }
 
 #if DBG_DUMP
         void Dump(FunctionBody* functionBody, ArenaAllocator * dynamicProfileInfoAllocator = nullptr);

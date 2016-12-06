@@ -83,8 +83,7 @@ namespace JSON
         // this is a post order walk. Visit the children before calling walk on this object
         if (Js::DynamicObject::IsAnyArray(value))
         {
-            Js::JavascriptArray* arrayVal = Js::JavascriptArray::FromAnyArray(value);
-            // REVIEW: How do we guarantee that JSON objects are not native arrays?
+            Js::JavascriptArray* arrayVal = JavascriptArray::EnsureNonNativeArray(Js::JavascriptArray::FromAnyArray(value));
             Assert(!Js::JavascriptNativeIntArray::Is(arrayVal) && !Js::JavascriptNativeFloatArray::Is(arrayVal));
             uint length = arrayVal->GetLength();
             if (!arrayVal->IsCrossSiteObject())

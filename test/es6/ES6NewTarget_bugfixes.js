@@ -25,6 +25,14 @@ var tests = [
         new.target;  // bug repro: SyntaxError: Invalid use of the 'new.target' keyword
     }
   },
+    {
+        name: "[MSRC35208] parameter type confusion in eval",
+        body: function ()
+        {
+            var proxy = new Proxy(eval, {});
+            assert.areEqual(0, proxy("Math.sin(0)"));
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

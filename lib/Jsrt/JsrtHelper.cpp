@@ -107,6 +107,19 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
 
 #if defined(CHAKRA_STATIC_LIBRARY)
 
+    // setup the cleanup
+    // we do not track the main thread. When it exits do the cleanup below
+    atexit([]() {
+        ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread();
+
+        JsrtRuntime::Uninitialize();
+
+        // thread-bound entrypoint should be able to get cleanup correctly, however tlsentry
+        // for current thread might be left behind if this thread was initialized.
+        ThreadContextTLSEntry::CleanupThread();
+        ThreadContextTLSEntry::CleanupProcess();
+    });
+
     // Attention: shared library is handled under (see ChakraCore/ChakraCoreDllFunc.cpp)
     // todo: consolidate similar parts from shared and static library initialization
 #ifndef _WIN32

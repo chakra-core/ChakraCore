@@ -142,6 +142,7 @@ namespace Js
 
 #ifdef ENABLE_WASM
         Wasm::WasmSignature* m_signatures;
+        WebAssemblyMemory * m_wasmMemory;
 #endif
          _SIMDValue* m_localSimdSlots;
 
@@ -189,6 +190,7 @@ namespace Js
 
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         int OP_GetMemorySize();
+        int32 OP_GrowMemory(int32 delta);
         void OP_Unreachable();
         template <typename T> using AsmJsMathPtr = T(*)(T a, T b);
         template <typename T, AsmJsMathPtr<T> func, T MIN> static T OP_DivOverflow(T a, T b, ScriptContext* scriptContext);
@@ -666,9 +668,9 @@ namespace Js
         void OP_NewScObjectLiteral(const unaligned OpLayoutAuxiliary * playout);
         void OP_NewScObjectLiteral_LS(const unaligned OpLayoutAuxiliary * playout, RegSlot& target);
         void OP_LdPropIds(const unaligned OpLayoutAuxiliary * playout);
-        template <bool Profile, bool JITLoopBody, bool TrackStmts> void LoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
+        template <bool Profile, bool JITLoopBody> void LoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
         LoopHeader const * DoLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, const bool doProfileLoopCheck, bool isFirstIteration);
-        template <bool Profile, bool JITLoopBody, bool TrackStmts> void ProfiledLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
+        template <bool Profile, bool JITLoopBody> void ProfiledLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration);
         void OP_RecordImplicitCall(uint loopNumber);
         template <class T, bool Profiled, bool ICIndex> void OP_NewScObject_Impl(const unaligned T* playout, InlineCacheIndex inlineCacheIndex = Js::Constants::NoInlineCacheIndex, const Js::AuxArray<uint32> *spreadIndices = nullptr);
         template <class T, bool Profiled> void OP_NewScObjArray_Impl(const unaligned T* playout, const Js::AuxArray<uint32> *spreadIndices = nullptr);

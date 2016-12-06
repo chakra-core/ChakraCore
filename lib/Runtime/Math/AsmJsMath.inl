@@ -12,7 +12,18 @@ namespace Js
         {
             return (T)NumberConstants::NaN;
         }
-        return aLeft < aRight ? aLeft : aRight;
+        if (aLeft < aRight)
+        {
+            return aLeft;
+        }
+        if (aLeft == aRight)
+        {
+            if (aRight == 0 && JavascriptNumber::IsNegZero(aLeft))
+            {
+                return aLeft;
+            }
+        }
+        return aRight;
     }
 
     template<>
@@ -34,7 +45,18 @@ namespace Js
         {
             return (T)NumberConstants::NaN;
         }
-        return aLeft > aRight ? aLeft : aRight;
+        if (aLeft > aRight)
+        {
+            return aLeft;
+        }
+        if (aLeft == aRight)
+        {
+            if (aLeft == 0 && JavascriptNumber::IsNegZero(aRight))
+            {
+                return aLeft;
+            }
+        }
+        return aRight;
     }
 
     template<>
@@ -47,6 +69,20 @@ namespace Js
     inline float AsmJsMath::Max<float>(float aLeft, float aRight)
     {
         return maxCheckNan(aLeft, aRight);
+    }
+
+    template<>
+    inline double AsmJsMath::Abs<double>(double aLeft)
+    {
+        uint64 x = (*(uint64*)(&aLeft) & 0x7FFFFFFFFFFFFFFF);
+        return *(double*)(&x);
+    }
+
+    template<>
+    inline float AsmJsMath::Abs<float>(float aLeft)
+    {
+        uint32 x = (*(uint32*)(&aLeft) & 0x7FFFFFFF);
+        return *(float*)(&x);
     }
 
     template<typename T>

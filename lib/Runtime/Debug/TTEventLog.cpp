@@ -18,7 +18,7 @@ namespace TTD
     {
         if(this->m_ctx != nullptr)
         {
-            AssertMsg(this->m_callAction != nullptr, "Should be set in sync with ctx!!!");
+            TTDAssert(this->m_callAction != nullptr, "Should be set in sync with ctx!!!");
 
             TTD::EventLog* elog = this->m_ctx->GetThreadContext()->TTDLog;
             NSLogEvents::JsRTCallFunctionAction* cfAction = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(this->m_callAction);
@@ -39,7 +39,7 @@ namespace TTD
 
     void TTDJsRTFunctionCallActionPopperRecorder::InitializeForRecording(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction)
     {
-        AssertMsg(this->m_ctx == nullptr && this->m_callAction == nullptr, "Don't double initialize!!!");
+        TTDAssert(this->m_ctx == nullptr && this->m_callAction == nullptr, "Don't double initialize!!!");
 
         this->m_ctx = ctx;
         this->m_callAction = callAction;
@@ -80,7 +80,7 @@ namespace TTD
 
     const SingleCallCounter& TTLastReturnLocationInfo::GetLocation() const
     {
-        AssertMsg(this->IsDefined(), "Should check this!");
+        TTDAssert(this->IsDefined(), "Should check this!");
 
         return this->m_lastFrame;
     }
@@ -134,8 +134,8 @@ namespace TTD
 
     void TTEventList::RemoveArrayLink(TTEventListLink* block)
     {
-        AssertMsg(block->Previous == nullptr, "Not first event block in log!!!");
-        AssertMsg(block->StartPos == block->CurrPos, "Haven't cleared all the events in this link");
+        TTDAssert(block->Previous == nullptr, "Not first event block in log!!!");
+        TTDAssert(block->StartPos == block->CurrPos, "Haven't cleared all the events in this link");
 
         if(block->Next == nullptr)
         {
@@ -207,7 +207,7 @@ namespace TTD
 
     void TTEventList::DeleteFirstEntry(TTEventListLink* block, NSLogEvents::EventLogEntry* data, NSLogEvents::EventLogEntryVTableEntry* vtable)
     {
-        AssertMsg((block->BlockData + block->StartPos) == data, "Not the data at the start of the list!!!");
+        TTDAssert((block->BlockData + block->StartPos) == data, "Not the data at the start of the list!!!");
 
         auto unloadFP = vtable[(uint32)data->EventKind].UnloadFP; //use vtable magic here
 
@@ -254,14 +254,14 @@ namespace TTD
 
     const NSLogEvents::EventLogEntry* TTEventList::Iterator::Current() const
     {
-        AssertMsg(this->IsValid(), "Iterator is invalid!!!");
+        TTDAssert(this->IsValid(), "Iterator is invalid!!!");
 
         return (this->m_currLink->BlockData + this->m_currIdx);
     }
 
     NSLogEvents::EventLogEntry* TTEventList::Iterator::Current()
     {
-        AssertMsg(this->IsValid(), "Iterator is invalid!!!");
+        TTDAssert(this->IsValid(), "Iterator is invalid!!!");
 
         return (this->m_currLink->BlockData + this->m_currIdx);
     }
@@ -336,58 +336,29 @@ namespace TTD
 
     const SingleCallCounter& EventLog::GetTopCallCounter() const
     {
-        AssertMsg(this->m_callStack.Count() != 0, "Empty stack!");
+        TTDAssert(this->m_callStack.Count() != 0, "Empty stack!");
 
         return this->m_callStack.Item(this->m_callStack.Count() - 1);
     }
 
     SingleCallCounter& EventLog::GetTopCallCounter()
     {
-        AssertMsg(this->m_callStack.Count() != 0, "Empty stack!");
+        TTDAssert(this->m_callStack.Count() != 0, "Empty stack!");
 
         return this->m_callStack.Item(this->m_callStack.Count() - 1);
     }
 
-    bool EventLog::IsFunctionJustMyCode(const Js::FunctionBody* fbody)
+    bool EventLog::TryGetTopCallCallerCounter(SingleCallCounter& caller) const
     {
-        //If not in JMC mode then implicitly everything is my code
-        if(!EventLog::IsDebuggerRunningJustMyCode(fbody->GetScriptContext()))
-        {
-            return true;
-        }
-
-        Js::Utf8SourceInfo* srcInfo = fbody->GetUtf8SourceInfo();
-        if(srcInfo == nullptr)
+        if(this->m_callStack.Count() < 2)
         {
             return false;
         }
-
-        return (srcInfo->HasDebugDocument() && srcInfo->GetDebugDocument()->IsJustMyCode());
-    }
-
-    bool EventLog::IsFunctionJustMyCode(const Js::JavascriptFunction* function)
-    {
-        return EventLog::IsFunctionJustMyCode(function->GetFunctionBody());
-    }
-
-    bool EventLog::IsDebuggerRunningJustMyCode(Js::ScriptContext* ctx)
-    {
-        return (ctx->GetDebugContext() != nullptr && ctx->GetDebugContext()->IsJustMyCode());
-    }
-
-    const SingleCallCounter* EventLog::GetTopCallCallerCounter(bool justMyCode) const
-    {
-
-        for(int32 pos = this->m_callStack.Count() - 2; pos >= 0; --pos)
+        else
         {
-            const SingleCallCounter* csi = &(this->m_callStack.Item(pos));
-            if(!justMyCode || EventLog::IsFunctionJustMyCode(csi->Function))
-            {
-                return csi;
-            }
+            caller = this->m_callStack.Item(this->m_callStack.Count() - 2);
+            return true;
         }
-
-        return nullptr;
     }
 
     int64 EventLog::GetCurrentEventTimeAndAdvance()
@@ -401,13 +372,13 @@ namespace TTD
         this->m_currentReplayEventIterator.MoveNext();
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        AssertMsg(!this->m_currentReplayEventIterator.IsValid() || this->m_eventTimeCtr == this->m_currentReplayEventIterator.Current()->EventTimeStamp, "Something is out of sync.");
+        TTDAssert(!this->m_currentReplayEventIterator.IsValid() || this->m_eventTimeCtr == this->m_currentReplayEventIterator.Current()->EventTimeStamp, "Something is out of sync.");
 #endif
     }
 
     void EventLog::UpdateComputedMode()
     {
-        AssertMsg(this->m_modeStack.Count() > 0, "Should never be empty!!!");
+        TTDAssert(this->m_modeStack.Count() > 0, "Should never be empty!!!");
 
         TTDMode cm = TTDMode::Invalid;
         for(uint32 i = 0; i < this->m_modeStack.Count(); ++i)
@@ -418,7 +389,7 @@ namespace TTD
             case TTDMode::RecordMode:
             case TTDMode::ReplayMode:
             case TTDMode::DebuggerMode:
-                AssertMsg(i == 0, "One of these should always be first on the stack.");
+                TTDAssert(i == 0, "One of these should always be first on the stack.");
                 cm = m;
                 break;
             case TTDMode::CurrentlyEnabled:
@@ -427,11 +398,11 @@ namespace TTD
             case TTDMode::DebuggerSuppressGetter:
             case TTDMode::DebuggerSuppressBreakpoints:
             case TTDMode::DebuggerLogBreakpoints:
-                AssertMsg(i != 0, "A base mode should always be first on the stack.");
+                TTDAssert(i != 0, "A base mode should always be first on the stack.");
                 cm |= m;
                 break;
             default:
-                AssertMsg(false, "This mode is unknown or should never appear.");
+                TTDAssert(false, "This mode is unknown or should never appear.");
                 break;
             }
         }
@@ -458,6 +429,8 @@ namespace TTD
         {
             this->m_propertyRecordPinSet.Unroot(this->m_propertyRecordPinSet->GetAllocator());
         }
+
+        this->UnLoadPreservedBPInfo();
     }
 
     SnapShot* EventLog::DoSnapshotExtract_Helper()
@@ -512,7 +485,7 @@ namespace TTD
         catch(...)
         {
             TT_HEAP_DELETE(SnapShot, snap);
-            AssertMsg(false, "OOM in snapshot replay... just continue");
+            TTDAssert(false, "OOM in snapshot replay... just continue");
         }
 #endif
 
@@ -628,7 +601,8 @@ namespace TTD
         m_eventTimeCtr(0), m_timer(), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
         m_eventList(&this->m_eventSlabAllocator), m_eventListVTable(nullptr), m_currentReplayEventIterator(),
         m_callStack(&HeapAllocator::Instance, 32), 
-        m_lastReturnLocation(), m_lastReturnLocationJMC(), m_breakOnFirstUserCode(false), m_pendingTTDBP(), m_activeBPId(-1), m_shouldRemoveWhenDone(false), m_activeTTDBP(), m_breakpointInfoList(&HeapAllocator::Instance), m_bpPreserveList(&HeapAllocator::Instance),
+        m_lastReturnLocation(), m_breakOnFirstUserCode(false), m_pendingTTDBP(), m_pendingTTDMoveMode(-1), m_activeBPId(-1), m_shouldRemoveWhenDone(false), m_activeTTDBP(), 
+        m_continueBreakPoint(), m_preservedBPCount(0), m_preservedBreakPointSourceScriptArray(nullptr), m_preservedBreakPointLocationArray(nullptr),
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         m_diagnosticLogger(),
 #endif
@@ -712,7 +686,7 @@ namespace TTD
 
     void EventLog::SetGlobalMode(TTDMode m)
     {
-        AssertMsg(m == TTDMode::RecordMode || m == TTDMode::ReplayMode || m == TTDMode::DebuggerMode, "These are the only valid global modes");
+        TTDAssert(m == TTDMode::RecordMode || m == TTDMode::ReplayMode || m == TTDMode::DebuggerMode, "These are the only valid global modes");
 
         this->m_modeStack.SetAt(0, m);
         this->UpdateComputedMode();
@@ -723,7 +697,7 @@ namespace TTD
         const JsUtil::List<Js::ScriptContext*, HeapAllocator>& contexts = this->m_threadContext->TTDContext->GetTTDContexts();
         for(int32 i = 0; i < contexts.Count(); ++i)
         {
-            AssertMsg(contexts.Item(i)->TTDSnapshotOrInflateInProgress != flag, "This is not re-entrant!!!");
+            TTDAssert(contexts.Item(i)->TTDSnapshotOrInflateInProgress != flag, "This is not re-entrant!!!");
 
             contexts.Item(i)->TTDSnapshotOrInflateInProgress = flag;
         }
@@ -731,7 +705,7 @@ namespace TTD
 
     void EventLog::PushMode(TTDMode m)
     {
-        AssertMsg(m == TTDMode::CurrentlyEnabled || m == TTDMode::ExcludedExecutionTTAction || m == TTDMode::ExcludedExecutionDebuggerAction || 
+        TTDAssert(m == TTDMode::CurrentlyEnabled || m == TTDMode::ExcludedExecutionTTAction || m == TTDMode::ExcludedExecutionDebuggerAction ||
             m == TTDMode::DebuggerSuppressGetter || m == TTDMode::DebuggerSuppressBreakpoints || m == TTDMode::DebuggerLogBreakpoints, "These are the only valid mode modifiers to push");
 
         this->m_modeStack.Push(m);
@@ -740,9 +714,9 @@ namespace TTD
 
     void EventLog::PopMode(TTDMode m)
     {
-        AssertMsg(m == TTDMode::CurrentlyEnabled || m == TTDMode::ExcludedExecutionTTAction || m == TTDMode::ExcludedExecutionDebuggerAction ||
+        TTDAssert(m == TTDMode::CurrentlyEnabled || m == TTDMode::ExcludedExecutionTTAction || m == TTDMode::ExcludedExecutionDebuggerAction ||
             m == TTDMode::DebuggerSuppressGetter || m == TTDMode::DebuggerSuppressBreakpoints || m == TTDMode::DebuggerLogBreakpoints, "These are the only valid mode modifiers to pop");
-        AssertMsg(this->m_modeStack.Peek() == m, "Push/Pop is not matched so something went wrong.");
+        TTDAssert(this->m_modeStack.Peek() == m, "Push/Pop is not matched so something went wrong.");
 
         this->m_modeStack.Pop();
         this->UpdateComputedMode();
@@ -865,7 +839,7 @@ namespace TTD
         {
             wprintf(_u("New Telemetry Msg: %ls\n"), infoStr);
             wprintf(_u("Original Telemetry Msg: %ls\n"), tEvent->InfoString.Contents);
-            AssertMsg(false, "Telemetry messages differ??");
+            TTDAssert(false, "Telemetry messages differ??");
         }
         else
         {
@@ -875,7 +849,7 @@ namespace TTD
                 {
                     wprintf(_u("New Telemetry Msg: %ls\n"), infoStr);
                     wprintf(_u("Original Telemetry Msg: %ls\n"), tEvent->InfoString.Contents);
-                    AssertMsg(false, "Telemetry messages differ??");
+                    TTDAssert(false, "Telemetry messages differ??");
 
                     break;
                 }
@@ -963,14 +937,14 @@ namespace TTD
 
         if(*returnCode)
         {
-            AssertMsg(*pid != Js::Constants::NoProperty, "This is so weird we need to figure out what this means.");
+            TTDAssert(*pid != Js::Constants::NoProperty, "This is so weird we need to figure out what this means.");
             Js::PropertyString* propertyString = requestContext->GetPropertyString(*pid);
             *propertyName = propertyString;
 
             const Js::PropertyRecord* pRecord = requestContext->GetPropertyName(*pid);
             *newIndex = obj->GetDynamicType()->GetTypeHandler()->GetPropertyIndex_EnumerateTTD(pRecord);
 
-            AssertMsg(*newIndex != Js::Constants::NoBigSlot, "If *returnCode is true then we found it during record -- but missing in replay.");
+            TTDAssert(*newIndex != Js::Constants::NoBigSlot, "If *returnCode is true then we found it during record -- but missing in replay.");
         }
         else
         {
@@ -1028,9 +1002,14 @@ namespace TTD
 
     void EventLog::ReplayExternalCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, Js::Var* result)
     {
+        TTDAssert(result != nullptr, "Must be non-null!!!");
+        TTDAssert(*result == nullptr, "And initialized to a default value.");
+
         const NSLogEvents::ExternalCallEventLogEntry* ecEvent = this->ReplayGetReplayEvent_Helper<NSLogEvents::ExternalCallEventLogEntry, NSLogEvents::EventKind::ExternalCallTag>();
 
         Js::ScriptContext* ctx = function->GetScriptContext();
+        TTDAssert(ctx != nullptr, "Not sure how this would be possible but check just in case.");
+
         ThreadContextTTD* executeContext = ctx->GetThreadContext()->TTDContext;
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
@@ -1038,7 +1017,7 @@ namespace TTD
 #endif
 
         //make sure we log all of the passed arguments in the replay host
-        AssertMsg(argc + 1 == ecEvent->ArgCount, "Mismatch in args!!!");
+        TTDAssert(argc + 1 == ecEvent->ArgCount, "Mismatch in args!!!");
 
         TTDVar recordedFunction = ecEvent->ArgArray[0];
         NSLogEvents::PassVarToHostInReplay(executeContext, recordedFunction, function);
@@ -1058,7 +1037,7 @@ namespace TTD
         END_LEAVE_SCRIPT(ctx);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        AssertMsg(!this->m_currentReplayEventIterator.IsValid() || this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
+        TTDAssert(!this->m_currentReplayEventIterator.IsValid() || this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "Out of Sync!!!");
 #endif
 
         *result = NSLogEvents::InflateVarInReplay(executeContext, ecEvent->ReturnValue);
@@ -1089,7 +1068,7 @@ namespace TTD
             }
         }
 
-        if(result == nullptr)
+        if(*result == nullptr)
         {
             *result = ctx->GetLibrary()->GetUndefined();
         }
@@ -1141,10 +1120,6 @@ namespace TTD
     {
         //Clear any previous last return frame info
         this->m_lastReturnLocation.ClearReturnOnly();
-        if(EventLog::IsFunctionJustMyCode(function))
-        {
-            this->m_lastReturnLocationJMC.ClearReturnOnly();
-        }
 
         this->m_runningFunctionTimeCtr++;
 
@@ -1175,7 +1150,7 @@ namespace TTD
         Js::FunctionBody* functionBody = function->GetFunctionBody();
         Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
 
-        if(this->m_breakOnFirstUserCode && EventLog::IsFunctionJustMyCode(function))
+        if(this->m_breakOnFirstUserCode)
         {
             this->m_breakOnFirstUserCode = false;
 
@@ -1224,10 +1199,6 @@ namespace TTD
     void EventLog::PopCallEvent(Js::JavascriptFunction* function, Js::Var result)
     {
         this->m_lastReturnLocation.SetReturnLocation(this->m_callStack.Last());
-        if(EventLog::IsFunctionJustMyCode(function))
-        {
-            this->m_lastReturnLocationJMC.SetReturnLocation(this->m_callStack.Last());
-        }
 
         this->m_runningFunctionTimeCtr++;
         this->m_callStack.RemoveAtEnd();
@@ -1247,11 +1218,6 @@ namespace TTD
             this->m_lastReturnLocation.SetExceptionLocation(this->m_callStack.Last());
         }
 
-        if(EventLog::IsFunctionJustMyCode(function) && !this->m_lastReturnLocationJMC.IsExceptionLocation())
-        {
-            this->m_lastReturnLocationJMC.SetExceptionLocation(this->m_callStack.Last());
-        }
-
         this->m_runningFunctionTimeCtr++;
         this->m_callStack.RemoveAtEnd();
 
@@ -1263,7 +1229,6 @@ namespace TTD
     void EventLog::ClearExceptionFrames()
     {
         this->m_lastReturnLocation.Clear();
-        this->m_lastReturnLocationJMC.Clear();
     }
 
     void EventLog::SetBreakOnFirstUserCode()
@@ -1296,6 +1261,21 @@ namespace TTD
         this->m_pendingTTDBP.SetLocation(BPLocation);
     }
 
+    int64 EventLog::GetPendingTTDMoveMode() const
+    {
+        return this->m_pendingTTDMoveMode;
+    }
+
+    void EventLog::ClearPendingTTDMoveMode()
+    {
+        this->m_pendingTTDMoveMode = -1;
+    }
+
+    void EventLog::SetPendingTTDMoveMode(int64 mode)
+    {
+        this->m_pendingTTDMoveMode = mode;
+    }
+
     bool EventLog::HasActiveBP() const
     {
         return this->m_activeBPId != -1;
@@ -1303,7 +1283,7 @@ namespace TTD
 
     UINT EventLog::GetActiveBPId() const
     {
-        AssertMsg(this->HasActiveBP(), "Should check this first!!!");
+        TTDAssert(this->HasActiveBP(), "Should check this first!!!");
 
         return (UINT)this->m_activeBPId;
     }
@@ -1386,89 +1366,127 @@ namespace TTD
             //Reset any step controller logic
             fb->GetScriptContext()->GetThreadContext()->GetDebugManager()->stepController.Deactivate();
 
-            //
-            //TODO: right now we have a very simple reverse step mode of 0 we will want to add GetPendingTTDBPMoveMode logic
-            //
-            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(this->GetPendingTTDBPTargetEventTime(), 0, _u("Reverse operation requested."));
+            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(this->GetPendingTTDBPTargetEventTime(), this->GetPendingTTDMoveMode(), _u("Reverse operation requested."));
         }
     }
 
-    void EventLog::ClearBPScanList()
+    void EventLog::ClearBPScanInfo()
     {
-        this->m_breakpointInfoList.Clear();
+        this->m_continueBreakPoint.Clear();
     }
 
     void EventLog::AddCurrentLocationDuringScan()
     {
-        TTDebuggerSourceLocation current(this->m_callStack.Last());
-        this->m_breakpointInfoList.Add(current);
+        TTDebuggerSourceLocation current(this->m_topLevelCallbackEventTime, this->m_callStack.Last());
+        if(this->m_pendingTTDBP.HasValue() && current.IsBefore(this->m_pendingTTDBP))
+        {
+            this->m_continueBreakPoint.SetLocation(current);
+        }
     }
 
     bool EventLog::TryFindAndSetPreviousBP()
     {
-        AssertMsg(this->m_pendingTTDBP.HasValue(), "This needs to have a value!!!");
+        TTDAssert(this->m_pendingTTDBP.HasValue(), "This needs to have a value!!!");
 
-        const TTDebuggerSourceLocation& target(this->m_pendingTTDBP);
-
-        int32 i = 0;
-        for(; i < this->m_breakpointInfoList.Count(); ++i)
-        {
-            bool isBefore = target.IsBefore(this->m_breakpointInfoList.Item(i));
-            if(!isBefore)
-            {
-                break;
-            }
-        }
-        int32 lastBefore = i - 1;
-
-        if(lastBefore == -1)
+        if(!this->m_continueBreakPoint.HasValue())
         {
             return false;
         }
         else
         {
-            this->m_pendingTTDBP.SetLocation(this->m_breakpointInfoList.Item(lastBefore));
+            TTDAssert(this->m_continueBreakPoint.IsBefore(this->m_pendingTTDBP), "How did this happen?");
 
+            this->m_pendingTTDBP.SetLocation(this->m_continueBreakPoint);
             return true;
         }
     }
 
-    void EventLog::LoadBPListForContextRecreate()
+    void EventLog::LoadPreservedBPInfo()
     {
-        AssertMsg(this->m_bpPreserveList.Count() == 0, "How do we still have breakpoints in here???");
+        //Unload this before we move again
+        TTDAssert(this->m_preservedBPCount == 0, "This should always be clear???");
 
-        this->m_threadContext->TTDContext->MultipleScriptWarn(); // we need to get the breakpoints from all the contexts
-        Js::ProbeContainer* probeContainer = this->m_threadContext->TTDContext->GetActiveScriptContext()->GetDebugContext()->GetProbeContainer();
-
-        probeContainer->MapProbes([&](int i, Js::Probe* pProbe)
+        uint32 bpCount = 0;
+        const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs = this->m_threadContext->TTDContext->GetTTDContexts();
+        for(int32 i = 0; i < ctxs.Count(); ++i)
         {
-            Js::BreakpointProbe* bp = (Js::BreakpointProbe*)pProbe;
-            if((int64)bp->GetId() != this->m_activeBPId)
+            Js::ProbeContainer* probeContainer = ctxs.Item(i)->GetDebugContext()->GetProbeContainer();
+            probeContainer->MapProbes([&](int j, Js::Probe* pProbe)
             {
-                Js::FunctionBody* body = bp->GetFunctionBody();
-                int32 bpIndex = body->GetEnclosingStatementIndexFromByteCode(bp->GetBytecodeOffset());
+                Js::BreakpointProbe* bp = (Js::BreakpointProbe*)pProbe;
+                if((int64)bp->GetId() != this->m_activeBPId)
+                {
+                    bpCount++;
+                }
+            });
+        }
 
-                ULONG srcLine = 0;
-                LONG srcColumn = -1;
-                uint32 startOffset = body->GetStatementStartOffset(bpIndex);
-                body->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
+        if(bpCount != 0)
+        {
+            this->m_preservedBreakPointSourceScriptArray = TT_HEAP_ALLOC_ARRAY_ZERO(TTD_LOG_PTR_ID, bpCount);
+            this->m_preservedBreakPointLocationArray = TT_HEAP_ALLOC_ARRAY_ZERO(TTDebuggerSourceLocation*, bpCount);
 
-                TTDebuggerSourceLocation ploc;
-                ploc.SetLocation(-1, -1, -1, body, srcLine, srcColumn);
+            for(int32 i = 0; i < ctxs.Count(); ++i)
+            {
+                Js::ProbeContainer* probeContainer = ctxs.Item(i)->GetDebugContext()->GetProbeContainer();
+                probeContainer->MapProbes([&](int j, Js::Probe* pProbe)
+                {
+                    Js::BreakpointProbe* bp = (Js::BreakpointProbe*)pProbe;
+                    if((int64)bp->GetId() != this->m_activeBPId)
+                    {
+                        Js::FunctionBody* body = bp->GetFunctionBody();
+                        int32 bpIndex = body->GetEnclosingStatementIndexFromByteCode(bp->GetBytecodeOffset());
 
-                this->m_bpPreserveList.Add(ploc);
+                        ULONG srcLine = 0;
+                        LONG srcColumn = -1;
+                        uint32 startOffset = body->GetStatementStartOffset(bpIndex);
+                        body->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
+
+                        this->m_preservedBreakPointSourceScriptArray[this->m_preservedBPCount] = ctxs.Item(i)->ScriptContextLogTag;
+
+                        this->m_preservedBreakPointLocationArray[this->m_preservedBPCount] = TT_HEAP_NEW(TTDebuggerSourceLocation);
+                        this->m_preservedBreakPointLocationArray[this->m_preservedBPCount]->SetLocation(-1, -1, -1, body, srcLine, srcColumn);
+
+                        this->m_preservedBPCount++;
+                    }
+                });
             }
-        });
+        }
+
+        TTDAssert(this->m_preservedBPCount == bpCount, "Something is wrong!!!");
     }
 
-    void EventLog::UnLoadBPListAfterMoveForContextRecreate()
+    void EventLog::UnLoadPreservedBPInfo()
     {
-        this->m_bpPreserveList.Clear();
+        if(this->m_preservedBPCount != 0)
+        {
+            TT_HEAP_FREE_ARRAY(TTD_LOG_PTR_ID, this->m_preservedBreakPointSourceScriptArray, this->m_preservedBPCount);
+            this->m_preservedBreakPointSourceScriptArray = nullptr;
+
+            for(uint32 i = 0; i < this->m_preservedBPCount; ++i)
+            {
+                TT_HEAP_DELETE(TTDebuggerSourceLocation, this->m_preservedBreakPointLocationArray[i]);
+            }
+            TT_HEAP_FREE_ARRAY(TTDebuggerSourceLocation*, this->m_preservedBreakPointLocationArray, this->m_preservedBPCount);
+            this->m_preservedBreakPointLocationArray = nullptr;
+
+            this->m_preservedBPCount = 0;
+        }
     }
 
-    const JsUtil::List<TTDebuggerSourceLocation, HeapAllocator>& EventLog::GetRestoreBPListAfterContextRecreate()
+    const uint32 EventLog::GetPerservedBPInfoCount() const
     {
-        return this->m_bpPreserveList;
+        return this->m_preservedBPCount;
+    }
+
+    TTD_LOG_PTR_ID* EventLog::GetPerservedBPInfoScriptArray()
+    {
+        return this->m_preservedBreakPointSourceScriptArray;
+    }
+
+    TTDebuggerSourceLocation** EventLog::GetPerservedBPInfoLocationArray()
+    {
+        return this->m_preservedBreakPointLocationArray;
     }
 
     void EventLog::UpdateLoopCountInfo()
@@ -1490,7 +1508,7 @@ namespace TTD
             Js::FunctionBody* fb = cfinfo.Function;
 
             int32 cIndex = fb->GetEnclosingStatementIndexFromByteCode(bytecodeOffset, true);
-            AssertMsg(cIndex != -1, "Should always have a mapping.");
+            TTDAssert(cIndex != -1, "Should always have a mapping.");
 
             //we moved to a new statement
             Js::FunctionBody::StatementMap* pstmt = fb->GetStatementMaps()->Item(cIndex);
@@ -1549,8 +1567,6 @@ namespace TTD
         bool noPrevious = false;
         const SingleCallCounter& cfinfo = this->GetTopCallCounter();
 
-        bool justMyCode = EventLog::IsDebuggerRunningJustMyCode(this->m_threadContext->TTDContext->GetActiveScriptContext());
-
         //if we are at the first statement in the function then we want the parents current
         Js::FunctionBody* fbody = nullptr;
         int32 statementIndex = -1;
@@ -1558,10 +1574,11 @@ namespace TTD
         uint64 ltime = 0;
         if(cfinfo.LastStatementIndex == -1)
         {
-            const SingleCallCounter* cfinfoCaller = this->GetTopCallCallerCounter(justMyCode);
+            SingleCallCounter cfinfoCaller = { 0 }; 
+            bool hasCaller = this->TryGetTopCallCallerCounter(cfinfoCaller);
 
             //check if we are at the first statement in the callback event
-            if(cfinfoCaller == nullptr)
+            if(!hasCaller)
             {
                 //Set the position info to the current statement and return true
                 noPrevious = true;
@@ -1574,11 +1591,11 @@ namespace TTD
             }
             else
             {
-                ftime = cfinfoCaller->FunctionTime;
-                ltime = cfinfoCaller->CurrentStatementLoopTime;
+                ftime = cfinfoCaller.FunctionTime;
+                ltime = cfinfoCaller.CurrentStatementLoopTime;
 
-                fbody = cfinfoCaller->Function;
-                statementIndex = cfinfoCaller->CurrentStatementIndex;
+                fbody = cfinfoCaller.Function;
+                statementIndex = cfinfoCaller.CurrentStatementIndex;
             }
         }
         else
@@ -1600,11 +1617,9 @@ namespace TTD
         return noPrevious;
     }
 
-    void EventLog::GetLastExecutedTimeAndPositionForDebugger(bool* markedAsJustMyCode, TTDebuggerSourceLocation& sourceLocation) const
+    void EventLog::GetLastExecutedTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
     {
-        *markedAsJustMyCode = false;
-        const TTLastReturnLocationInfo& cframe = EventLog::IsDebuggerRunningJustMyCode(this->m_threadContext->TTDContext->GetActiveScriptContext()) ? this->m_lastReturnLocationJMC : this->m_lastReturnLocation;
-
+        const TTLastReturnLocationInfo& cframe = this->m_lastReturnLocation;
         if(!cframe.IsDefined())
         {
             sourceLocation.Clear();
@@ -1617,7 +1632,6 @@ namespace TTD
             uint32 startOffset = cframe.GetLocation().Function->GetStatementStartOffset(cframe.GetLocation().CurrentStatementIndex);
             cframe.GetLocation().Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-            *markedAsJustMyCode = EventLog::IsFunctionJustMyCode(cframe.GetLocation().Function);
             sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, cframe.GetLocation().FunctionTime, cframe.GetLocation().CurrentStatementLoopTime, cframe.GetLocation().Function, srcLine, srcColumn);
         }
     }
@@ -1654,55 +1668,33 @@ namespace TTD
         return nullptr;
     }
 
-    int64 EventLog::GetFirstEventTime(bool justMyCode) const
+    int64 EventLog::GetFirstEventTimeInLog() const
     {
         for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
         {
             if(NSLogEvents::IsJsRTActionRootCall(iter.Current()))
             {
-                if(!justMyCode)
-                {
-                    return NSLogEvents::GetTimeFromRootCallOrSnapshot(iter.Current());
-                }
-                else
-                {
-                    const NSLogEvents::JsRTCallFunctionAction* cfAction = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(iter.Current());
-                    if(cfAction->AdditionalInfo->MarkedAsJustMyCode)
-                    {
-                        return NSLogEvents::GetTimeFromRootCallOrSnapshot(iter.Current());
-                    }
-                }
+                return NSLogEvents::GetTimeFromRootCallOrSnapshot(iter.Current());
             }
         }
 
         return -1;
     }
 
-    int64 EventLog::GetLastEventTime(bool justMyCode) const
+    int64 EventLog::GetLastEventTimeInLog() const
     {
         for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
         {
             if(NSLogEvents::IsJsRTActionRootCall(iter.Current()))
             {
-                if(!justMyCode)
-                {
-                    return NSLogEvents::GetTimeFromRootCallOrSnapshot(iter.Current());
-                }
-                else
-                {
-                    const NSLogEvents::JsRTCallFunctionAction* cfAction = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(iter.Current());
-                    if(cfAction->AdditionalInfo->MarkedAsJustMyCode)
-                    {
-                        return NSLogEvents::GetTimeFromRootCallOrSnapshot(iter.Current());
-                    }
-                }
+                return NSLogEvents::GetTimeFromRootCallOrSnapshot(iter.Current());
             }
         }
 
         return -1;
     }
 
-    int64 EventLog::GetKthEventTime(uint32 k) const
+    int64 EventLog::GetKthEventTimeInLog(uint32 k) const
     {
         uint32 topLevelCount = 0;
         for(auto iter = this->m_eventList.GetIteratorAtFirst(); iter.IsValid(); iter.MoveNext())
@@ -1723,14 +1715,13 @@ namespace TTD
 
     void EventLog::ResetCallStackForTopLevelCall(int64 topLevelCallbackEventTime)
     {
-        AssertMsg(this->m_callStack.Count() == 0, "We should be at the top-level entry!!!");
+        TTDAssert(this->m_callStack.Count() == 0, "We should be at the top-level entry!!!");
 
         this->m_runningFunctionTimeCtr = 0;
         this->m_topLevelCallbackEventTime = topLevelCallbackEventTime;
         this->m_hostCallbackId = -1;
 
         this->m_lastReturnLocation.Clear();
-        this->m_lastReturnLocationJMC.Clear();
     }
 
     bool EventLog::IsTimeForSnapshot() const
@@ -1798,7 +1789,7 @@ namespace TTD
 
     void EventLog::DoRtrSnapIfNeeded()
     {
-        AssertMsg(this->m_currentReplayEventIterator.IsValid() && NSLogEvents::IsJsRTActionRootCall(this->m_currentReplayEventIterator.Current()), "Something in wrong with the event position.");
+        TTDAssert(this->m_currentReplayEventIterator.IsValid() && NSLogEvents::IsJsRTActionRootCall(this->m_currentReplayEventIterator.Current()), "Something in wrong with the event position.");
 
         this->SetSnapshotOrInflateInProgress(true);
         this->PushMode(TTDMode::ExcludedExecutionTTAction);
@@ -1816,7 +1807,7 @@ namespace TTD
         this->SetSnapshotOrInflateInProgress(false);
     }
 
-    int64 EventLog::FindSnapTimeForEventTime(int64 targetTime, bool allowRTR, int64* optEndSnapTime)
+    int64 EventLog::FindSnapTimeForEventTime(int64 targetTime, int64* optEndSnapTime)
     {
         int64 snapTime = -1;
         if(optEndSnapTime != nullptr)
@@ -1831,16 +1822,7 @@ namespace TTD
             bool hasRtrSnap = false;
             int64 time = NSLogEvents::AccessTimeInRootCallOrSnapshot(iter.Current(), isSnap, isRoot, hasRtrSnap);
 
-            bool validSnap = false;
-            if(allowRTR)
-            {
-                validSnap = isSnap | (isRoot & hasRtrSnap);
-            }
-            else
-            {
-                validSnap = isSnap;
-            }
-
+            bool validSnap =  isSnap | (isRoot & hasRtrSnap);
             if(validSnap && time <= targetTime)
             {
                 snapTime = time;
@@ -1865,6 +1847,66 @@ namespace TTD
         }
 
         return snapTime;
+    }
+
+    void EventLog::GetSnapShotBoundInterval(int64 targetTime, int64* snapIntervalStart, int64* snapIntervalEnd) const
+    {
+        *snapIntervalStart = -1;
+        *snapIntervalEnd = -1;
+
+        //move the iterator to the current snapshot just before the event
+        auto iter = this->m_eventList.GetIteratorAtLast();
+        while(iter.IsValid())
+        {
+            NSLogEvents::EventLogEntry* evt = iter.Current();
+            if(evt->EventKind == NSLogEvents::EventKind::SnapshotTag)
+            {
+                NSLogEvents::SnapshotEventLogEntry* snapEvent = NSLogEvents::GetInlineEventDataAs<NSLogEvents::SnapshotEventLogEntry, NSLogEvents::EventKind::SnapshotTag>(iter.Current());
+                if(snapEvent->RestoreTimestamp <= targetTime)
+                {
+                    *snapIntervalStart = snapEvent->RestoreTimestamp;
+                    break;
+                }
+            }
+
+            iter.MovePrevious();
+        }
+
+        //now move the iter to the next snapshot
+        while(iter.IsValid())
+        {
+            NSLogEvents::EventLogEntry* evt = iter.Current();
+            if(evt->EventKind == NSLogEvents::EventKind::SnapshotTag)
+            {
+                NSLogEvents::SnapshotEventLogEntry* snapEvent = NSLogEvents::GetInlineEventDataAs<NSLogEvents::SnapshotEventLogEntry, NSLogEvents::EventKind::SnapshotTag>(iter.Current());
+                if(*snapIntervalStart < snapEvent->RestoreTimestamp)
+                {
+                    *snapIntervalEnd = snapEvent->RestoreTimestamp;
+                    break;
+                }
+            }
+
+            iter.MoveNext();
+        }
+    }
+
+    int64 EventLog::GetPreviousSnapshotInterval(int64 currentSnapTime) const
+    {
+        //move the iterator to the current snapshot just before the event
+        for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
+        {
+            NSLogEvents::EventLogEntry* evt = iter.Current();
+            if(evt->EventKind == NSLogEvents::EventKind::SnapshotTag)
+            {
+                NSLogEvents::SnapshotEventLogEntry* snapEvent = NSLogEvents::GetInlineEventDataAs<NSLogEvents::SnapshotEventLogEntry, NSLogEvents::EventKind::SnapshotTag>(iter.Current());
+                if(snapEvent->RestoreTimestamp < currentSnapTime)
+                {
+                    return snapEvent->RestoreTimestamp;
+                }
+            }
+        }
+
+        return -1;
     }
 
     void EventLog::DoSnapshotInflate(int64 etime)
@@ -1902,7 +1944,7 @@ namespace TTD
                 }
             }
         }
-        AssertMsg(snap != nullptr, "Log should start with a snapshot!!!");
+        TTDAssert(snap != nullptr, "Log should start with a snapshot!!!");
 
         uint32 dbgScopeCount = snap->GetDbgScopeCountNonTopLevel();
 
@@ -1957,15 +1999,18 @@ namespace TTD
                         break;
                     }
                 }
-                AssertMsg(vCtx != nullptr, "We lost a context somehow!!!");
+                TTDAssert(vCtx != nullptr, "We lost a context somehow!!!");
 
                 NSSnapValues::InflateScriptContext(sCtx, vCtx, this->m_lastInflateMap, topLevelLoadScriptMap, topLevelNewScriptMap, topLevelEvalScriptMap);
             }
         }
         else
         {
+            bool shouldReleaseCtxs = false;
             if(this->m_lastInflateMap != nullptr)
             {
+                shouldReleaseCtxs = true;
+
                 TT_HEAP_DELETE(InflateMap, this->m_lastInflateMap);
                 this->m_lastInflateMap = nullptr;
             }
@@ -1975,9 +2020,9 @@ namespace TTD
             this->m_lastInflateSnapshotTime = etime;
 
             //collect anything that is dead
-            threadCtx->ClearContextsForSnapRestore();
+            JsUtil::List<FinalizableObject*, HeapAllocator> deadCtxs(&HeapAllocator::Instance);
+            threadCtx->ClearContextsForSnapRestore(deadCtxs);
             threadCtx->ClearRootsForSnapRestore();
-            this->m_threadContext->GetRecycler()->CollectNow<CollectNowForceInThread>();
 
             //allocate and inflate into new contexts
             for(auto iter = snpCtxs.GetIterator(); iter.IsValid(); iter.MoveNext())
@@ -1990,6 +2035,15 @@ namespace TTD
                 NSSnapValues::InflateScriptContext(sCtx, vCtx, this->m_lastInflateMap, topLevelLoadScriptMap, topLevelNewScriptMap, topLevelEvalScriptMap);
             }
             threadCtx->ResetContextCreatedOrDestoyedInReplay();
+
+            if(shouldReleaseCtxs)
+            {
+                for(int32 i = 0; i < deadCtxs.Count(); ++i)
+                {
+                    threadCtx->TTDExternalObjectFunctions.pfReleaseJsRTContextCallback(deadCtxs.Item(i));
+                }
+                this->m_threadContext->GetRecycler()->CollectNow<CollectNowForceInThread>();
+            }
 
             //We don't want to have a bunch of snapshots in memory (that will get big fast) so unload all but the current one
             for(auto iter = this->m_eventList.GetIteratorAtLast(); iter.IsValid(); iter.MovePrevious())
@@ -2085,13 +2139,13 @@ namespace TTD
         }
         else
         {
-            AssertMsg(eKind > NSLogEvents::EventKind::JsRTActionTag, "Either this is an invalid tag to replay directly (should be driven internally) or it is not known!!!");
+            TTDAssert(eKind > NSLogEvents::EventKind::JsRTActionTag, "Either this is an invalid tag to replay directly (should be driven internally) or it is not known!!!");
 
             this->ReplaySingleActionEventEntry();
         }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        AssertMsg(!this->m_currentReplayEventIterator.IsValid() || this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "We are out of sync here");
+        TTDAssert(!this->m_currentReplayEventIterator.IsValid() || this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "We are out of sync here");
 #endif
     }
 
@@ -2116,7 +2170,7 @@ namespace TTD
         NSLogEvents::ContextExecuteKind execKind = this->m_eventListVTable[(uint32)evt->EventKind].ContextKind;
         auto executeFP = this->m_eventListVTable[(uint32)evt->EventKind].ExecuteFP;
 
-        AssertMsg(!NSLogEvents::EventFailsWithRuntimeError(evt), "We have a failing Event in the Log -- we assume host is correct!");
+        TTDAssert(!NSLogEvents::EventFailsWithRuntimeError(evt), "We have a failing Event in the Log -- we assume host is correct!");
 
         ThreadContextTTD* executeContext = this->m_threadContext->TTDContext;
         if(execKind == NSLogEvents::ContextExecuteKind::GlobalAPIWrapper)
@@ -2128,7 +2182,7 @@ namespace TTD
 
                 executeFP(evt, executeContext);
 
-                AssertMsg(NSLogEvents::EventCompletesNormally(evt), "All my action events should exit or terminate before return so no need to loop yet but may want to later");
+                TTDAssert(NSLogEvents::EventCompletesNormally(evt), "All my action events should exit or terminate before return so no need to loop yet but may want to later");
             }
             catch(TTD::TTDebuggerAbortException)
             {
@@ -2136,7 +2190,7 @@ namespace TTD
             }
             catch(...)
             {
-                AssertMsg(false, "Encountered other kind of exception in replay??");
+                TTDAssert(false, "Encountered other kind of exception in replay??");
             }
         }
         else if(execKind == NSLogEvents::ContextExecuteKind::ContextAPIWrapper)
@@ -2144,8 +2198,8 @@ namespace TTD
             //enter/exit context wrapper -- see JsrtInternal.h
             Js::ScriptContext* ctx = executeContext->GetActiveScriptContext();
 
-            AssertMsg(ctx != nullptr, "This should be set!!!");
-            AssertMsg(ctx->GetThreadContext()->GetRecordedException() == nullptr, "Shouldn't have outstanding exceptions (assume always CheckContext when recording).");
+            TTDAssert(ctx != nullptr, "This should be set!!!");
+            TTDAssert(ctx->GetThreadContext()->GetRecordedException() == nullptr, "Shouldn't have outstanding exceptions (assume always CheckContext when recording).");
 
             try
             {
@@ -2158,17 +2212,17 @@ namespace TTD
                 }
                 END_ENTER_SCRIPT
 
-                AssertMsg(NSLogEvents::EventCompletesNormally(evt), "All my action events should exit / terminate before return so no need to loop yet but may want to later");
+                TTDAssert(NSLogEvents::EventCompletesNormally(evt), "All my action events should exit / terminate before return so no need to loop yet but may want to later");
             }
             catch(const Js::JavascriptException& err)
             {
-                AssertMsg(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
 
                 ctx->GetThreadContext()->SetRecordedException(err.GetAndClear());
             }
             catch(Js::ScriptAbortException)
             {
-                AssertMsg(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
 
                 Assert(ctx->GetThreadContext()->GetRecordedException() == nullptr);
                 ctx->GetThreadContext()->SetRecordedException(ctx->GetThreadContext()->GetPendingTerminatedErrorObject());
@@ -2179,7 +2233,7 @@ namespace TTD
             }
             catch(...)
             {
-                AssertMsg(false, "Encountered other kind of exception in replay??");
+                TTDAssert(false, "Encountered other kind of exception in replay??");
             }
         }
         else if(execKind == NSLogEvents::ContextExecuteKind::ContextAPINoScriptWrapper)
@@ -2187,8 +2241,8 @@ namespace TTD
             //enter/exit context no script wrapper -- see JsrtInternal.h
             Js::ScriptContext* ctx = executeContext->GetActiveScriptContext();
 
-            AssertMsg(ctx != nullptr, "This should be set!!!");
-            AssertMsg(ctx->GetThreadContext()->GetRecordedException() == nullptr, "Shouldn't have outstanding exceptions (assume always CheckContext when recording).");
+            TTDAssert(ctx != nullptr, "This should be set!!!");
+            TTDAssert(ctx->GetThreadContext()->GetRecordedException() == nullptr, "Shouldn't have outstanding exceptions (assume always CheckContext when recording).");
 
             try
             {
@@ -2196,18 +2250,18 @@ namespace TTD
 
                 executeFP(evt, executeContext);
 
-                AssertMsg(NSLogEvents::EventCompletesNormally(evt), "All my action events should both exit / terminate before return so no need to loop yet but may want to later");
+                TTDAssert(NSLogEvents::EventCompletesNormally(evt), "All my action events should both exit / terminate before return so no need to loop yet but may want to later");
             }
             catch(const Js::JavascriptException& err)
             {
-                AssertMsg(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
 
-                AssertMsg(false, "Should never get JavascriptExceptionObject for ContextAPINoScriptWrapper.");
+                TTDAssert(false, "Should never get JavascriptExceptionObject for ContextAPINoScriptWrapper.");
                 ctx->GetThreadContext()->SetRecordedException(err.GetAndClear());
             }
             catch(Js::ScriptAbortException)
             {
-                AssertMsg(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
+                TTDAssert(NSLogEvents::EventCompletesWithException(evt), "Should see same execption here");
 
                 Assert(ctx->GetThreadContext()->GetRecordedException() == nullptr);
                 ctx->GetThreadContext()->SetRecordedException(ctx->GetThreadContext()->GetPendingTerminatedErrorObject());
@@ -2218,19 +2272,19 @@ namespace TTD
             }
             catch(...)
             {
-                AssertMsg(false, "Encountered other kind of exception in replay??");
+                TTDAssert(false, "Encountered other kind of exception in replay??");
             }
         }
         else
         {
-            AssertMsg(executeContext->GetActiveScriptContext() == nullptr || !executeContext->GetActiveScriptContext()->GetThreadContext()->IsScriptActive(), "These should all be outside of script context!!!");
+            TTDAssert(executeContext->GetActiveScriptContext() == nullptr || !executeContext->GetActiveScriptContext()->GetThreadContext()->IsScriptActive(), "These should all be outside of script context!!!");
 
             //No need to move into script context just execute the action
             executeFP(evt, executeContext);
         }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        AssertMsg(!this->m_currentReplayEventIterator.IsValid() || this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "We are out of sync here");
+        TTDAssert(!this->m_currentReplayEventIterator.IsValid() || this->m_currentReplayEventIterator.Current()->EventTimeStamp == this->m_eventTimeCtr, "We are out of sync here");
 #endif
     }
 
@@ -2530,13 +2584,12 @@ namespace TTD
         actionPopper.InitializeWithEventAndEnter(evt);
     }
 
-    void EventLog::RecordJsRTGetAndClearException()
+    void EventLog::RecordJsRTGetAndClearException(TTDJsRTActionResultAutoRecorder& actionPopper)
     {
-        this->RecordGetInitializedEvent_DataOnly<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetAndClearExceptionActionTag>();
+        NSLogEvents::JsRTVarsArgumentAction* gcAction = nullptr;
+        NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTVarsArgumentAction, NSLogEvents::EventKind::GetAndClearExceptionActionTag>(&gcAction);
 
-        //
-        //TODO: Maybe we want to track OOM later
-        //
+        actionPopper.InitializeWithEventAndEnterWResult(evt, &(gcAction->Result));
     }
 
     void EventLog::RecordJsRTSetException(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var var, bool propagateToDebugger)
@@ -2748,9 +2801,9 @@ namespace TTD
 
     void EventLog::RecordJsRTRawBufferCopySync(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 dstIndex, Js::Var src, uint32 srcIndex, uint32 length)
     {
-        AssertMsg(Js::ArrayBuffer::Is(dst) && Js::ArrayBuffer::Is(src), "Not array buffer objects!!!");
-        AssertMsg(dstIndex + length <= Js::ArrayBuffer::FromVar(dst)->GetByteLength(), "Copy off end of buffer!!!");
-        AssertMsg(srcIndex + length <= Js::ArrayBuffer::FromVar(src)->GetByteLength(), "Copy off end of buffer!!!");
+        TTDAssert(Js::ArrayBuffer::Is(dst) && Js::ArrayBuffer::Is(src), "Not array buffer objects!!!");
+        TTDAssert(dstIndex + length <= Js::ArrayBuffer::FromVar(dst)->GetByteLength(), "Copy off end of buffer!!!");
+        TTDAssert(srcIndex + length <= Js::ArrayBuffer::FromVar(src)->GetByteLength(), "Copy off end of buffer!!!");
 
         NSLogEvents::JsRTRawBufferCopyAction* rbcAction = nullptr;
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTRawBufferCopyAction, NSLogEvents::EventKind::RawBufferCopySync>(&rbcAction);
@@ -2765,8 +2818,8 @@ namespace TTD
 
     void EventLog::RecordJsRTRawBufferModifySync(TTDJsRTActionResultAutoRecorder& actionPopper, Js::Var dst, uint32 index, uint32 count)
     {
-        AssertMsg(Js::ArrayBuffer::Is(dst), "Not array buffer object!!!");
-        AssertMsg(index + count <= Js::ArrayBuffer::FromVar(dst)->GetByteLength(), "Copy off end of buffer!!!");
+        TTDAssert(Js::ArrayBuffer::Is(dst), "Not array buffer object!!!");
+        TTDAssert(index + count <= Js::ArrayBuffer::FromVar(dst)->GetByteLength(), "Copy off end of buffer!!!");
 
         NSLogEvents::JsRTRawBufferModifyAction* rbmAction = nullptr;
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTRawBufferModifyAction, NSLogEvents::EventKind::RawBufferModifySync>(&rbmAction);
@@ -2856,6 +2909,9 @@ namespace TTD
         this->m_eventSlabAllocator.CopyNullTermStringInto(sourceUri, cpAction->AdditionalInfo->SourceUri);
         cpAction->AdditionalInfo->DocumentID = sourceContextId;
 
+        //Not needed for record -- just ensure initialized to default value
+        InitializeAsNullPtrTTString(cpAction->AdditionalInfo->RelocatedSourceUri);
+
         cpAction->AdditionalInfo->LoadFlag = loadFlag;
 
         actionPopper.InitializeWithEventAndEnterWResult(evt, &(cpAction->Result));
@@ -2897,7 +2953,7 @@ namespace TTD
 
         this->m_threadContext->TTDContext->TTDWriteInitializeFunction(outUri.UriByteLength, outUri.UriBytes);
 
-        JsTTDStreamHandle logHandle = iofp.pfGetResourceStream(outUri.UriByteLength, outUri.UriBytes, "ttdlog.log", false, true);
+        JsTTDStreamHandle logHandle = iofp.pfGetResourceStream(outUri.UriByteLength, outUri.UriBytes, "ttdlog.log", false, true, nullptr, nullptr);
         TTD_LOG_WRITER writer(logHandle, TTD_COMPRESSED_OUTPUT, iofp.pfWriteBytesToStream, iofp.pfFlushAndCloseStream);
 
         writer.WriteRecordStart();
@@ -3010,7 +3066,7 @@ namespace TTD
         writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
 
         //we haven't moved the properties to their serialized form them take care of it
-        AssertMsg(this->m_propertyRecordList.Count() == 0, "We only compute this when we are ready to emit.");
+        TTDAssert(this->m_propertyRecordList.Count() == 0, "We only compute this when we are ready to emit.");
 
         for(auto iter = this->m_propertyRecordPinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
@@ -3093,7 +3149,7 @@ namespace TTD
 
     void EventLog::ParseLogInto(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes)
     {
-        JsTTDStreamHandle logHandle = iofp.pfGetResourceStream(uriByteLength, uriBytes, "ttdlog.log", true, false);
+        JsTTDStreamHandle logHandle = iofp.pfGetResourceStream(uriByteLength, uriBytes, "ttdlog.log", true, false, nullptr, nullptr);
         TTD_LOG_READER reader(logHandle, TTD_COMPRESSED_OUTPUT, iofp.pfReadBytesFromStream, iofp.pfFlushAndCloseStream);
 
         reader.ReadRecordStart();
@@ -3102,30 +3158,28 @@ namespace TTD
         reader.ReadString(NSTokens::Key::arch, this->m_miscSlabAllocator, archString);
 
 #if defined(_M_IX86)
-        AssertMsg(wcscmp(_u("x86"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
+        TTDAssert(wcscmp(_u("x86"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
 #elif defined(_M_X64)
-        AssertMsg(wcscmp(_u("x64"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
+        TTDAssert(wcscmp(_u("x64"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
 #elif defined(_M_ARM)
-        AssertMsg(wcscmp(_u("arm64"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
+        TTDAssert(wcscmp(_u("arm64"), archString.Contents) == 0, "Mismatch in arch between record and replay!!!");
 #else
-        AssertMsg(false, "Unknown arch!!!");
+        TTDAssert(false, "Unknown arch!!!");
 #endif
 
         bool diagEnabled = reader.ReadBool(NSTokens::Key::diagEnabled, true);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        AssertMsg(diagEnabled, "Diag was enabled in record so it shoud be in replay as well!!!");
+        TTDAssert(diagEnabled, "Diag was enabled in record so it shoud be in replay as well!!!");
 #else
-        AssertMsg(!diagEnabled, "Diag was *not* enabled in record so it shoud *not* be in replay either!!!");
+        TTDAssert(!diagEnabled, "Diag was *not* enabled in record so it shoud *not* be in replay either!!!");
 #endif
 
         reader.ReadUInt64(NSTokens::Key::usedMemory, true);
         reader.ReadUInt64(NSTokens::Key::reservedMemory, true);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        int64 callNestingStack[32];
-        int32 stackPos = -1;
-        const int32 MaxStackPos = 32;
+        JsUtil::Stack<int64, HeapAllocator> callNestingStack(&HeapAllocator::Instance);
 
         bool doSep = false;
 #endif
@@ -3158,16 +3212,14 @@ namespace TTD
                 {
                     lastNestedTime = NSLogEvents::ExternalCbRegisterCallEventLogEntry_GetLastNestedEventTime(evt);
                 }
-                AssertMsg(stackPos < (MaxStackPos - 1), "overflow");
-                stackPos++;
-                callNestingStack[stackPos] = lastNestedTime;
+                callNestingStack.Push(lastNestedTime);
             }
 
             doSep = (!isJsRTCall & !isExternalCall & !isRegisterCall);
 
-            while(stackPos >= 0 && evt->EventTimeStamp == callNestingStack[stackPos])
+            while(callNestingStack.Count() != 0 && evt->EventTimeStamp == callNestingStack.Peek())
             {
-                stackPos--;
+                callNestingStack.Pop();
                 reader.ReadSequenceEnd();
             }
 #endif

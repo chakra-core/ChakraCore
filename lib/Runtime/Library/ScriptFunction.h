@@ -36,7 +36,6 @@ namespace Js
         Field(bool) hasSuperReference;
         Field(bool) isActiveScript;
 
-        bool HasFunctionBody();
         Var FormatToString(JavascriptString* inputString);
     protected:
         ScriptFunction(DynamicType * type);
@@ -47,7 +46,7 @@ namespace Js
         ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
         static bool Is(Var func);
         static ScriptFunction * FromVar(Var func);
-        static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionProxy** proxyRef);
+        static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
         ProxyEntryPointInfo* GetEntryPointInfo() const;
         FunctionEntryPointInfo* GetFunctionEntryPointInfo() const
@@ -73,6 +72,7 @@ namespace Js
 
         void ChangeEntryPoint(ProxyEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
         JavascriptMethod UpdateThunkEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
+        bool IsNewEntryPointAvailable();
         JavascriptMethod UpdateUndeferredBody(FunctionBody* newFunctionInfo);
 
         virtual ScriptFunctionType * DuplicateType() override;
@@ -99,6 +99,7 @@ namespace Js
 
         virtual JavascriptFunction* GetRealFunctionObject() { return this; }
 
+        bool HasFunctionBody();
 #if ENABLE_TTD
     public:
         virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
@@ -169,9 +170,11 @@ namespace Js
         void CreateInlineCache();
         void AllocateInlineCache();
         void ClearInlineCacheOnFunctionObject();
+        void ClearBorrowedInlineCacheOnFunctionObject();
         InlineCache * GetInlineCache(uint index);
         uint GetInlineCacheCount() { return inlineCacheCount; }
         void** GetInlineCaches() { return m_inlineCaches; }
+        bool GetHasOwnInlineCaches() { return hasOwnInlineCaches; }
         void SetInlineCachesFromFunctionBody();
         static uint32 GetOffsetOfInlineCaches() { return offsetof(ScriptFunctionWithInlineCache, m_inlineCaches); };
         template<bool isShutdown>

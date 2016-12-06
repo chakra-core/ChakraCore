@@ -371,7 +371,7 @@ namespace Js
         // Reject if we need to grow non-writable length
         if (!CanSetItemAt(arr, index))
         {
-            return false;
+            return CantExtend(flags, scriptContext);
         }
 
         IndexPropertyDescriptor* descriptor;

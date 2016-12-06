@@ -337,15 +337,4 @@ namespace Js
 
         return TRUE;
     }
-
-#if ENABLE_TTD
-    bool DebugDocument::IsJustMyCode() const
-    {
-        //
-        //TODO: This is experimental for running TTD with just tracking for user-code
-        //
-
-        return true;
-    }
-#endif
 }

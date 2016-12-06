@@ -289,7 +289,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayBufferTransfer);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayBuffer_Constructor_transfer);
 
         if (args.Info.Count < 2 || !ArrayBuffer::Is(args[1]))
         {

@@ -501,7 +501,7 @@
     { \
         PROCESS_READ_LAYOUT(name, ElementSlot, suffix); \
         SetReg(playout->Value, \
-                func((FrameDisplay*)GetNonVarReg(playout->Instance), reinterpret_cast<Js::FunctionProxy**>(this->m_functionBody->GetNestedFuncReference(playout->SlotIndex)))); \
+                func((FrameDisplay*)GetNonVarReg(playout->Instance), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex))); \
         break; \
     }
 
@@ -512,7 +512,7 @@
     { \
         PROCESS_READ_LAYOUT(name, ElementSlotI1, suffix); \
         SetReg(playout->Value, \
-               func(this->GetFrameDisplayForNestedFunc(), reinterpret_cast<Js::FunctionProxy**>(this->m_functionBody->GetNestedFuncReference(playout->SlotIndex)))); \
+               func(this->GetFrameDisplayForNestedFunc(), this->m_functionBody->GetNestedFuncReference(playout->SlotIndex))); \
         break; \
     }
 
@@ -1174,37 +1174,16 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (doJITLoopBody)
             {
-                //right now we disallow stmt tracking fot TTD if JIT is enabled
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, true, false>;
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, true, false>;
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, true>;
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, true>;
             }
             else
 #endif
             {
-#if ENABLE_TTD
-                if(SHOULD_DO_TTD_STACK_STMT_OP(newInstance->scriptContext))
-                {
 #if ENABLE_PROFILE_INFO
-                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false, true>;
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false>;
 #endif
-
-                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false, true>;
-                }
-                else
-                {
-#if ENABLE_PROFILE_INFO
-                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false, false>;
-#endif
-
-                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false, false>;
-                }
-#else
-#if ENABLE_PROFILE_INFO
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<true, false, false>;
-#endif
-
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false, false>;
-#endif
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<true, false>;
             }
         }
         else
@@ -1212,37 +1191,16 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
             if (doJITLoopBody)
             {
-                //right now we disallow stmt tracking fot TTD if JIT is enabled
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, true, false>;
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, true, false>; 
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, true>;
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, true>;
             }
             else
 #endif
             {
-#if ENABLE_TTD
-                if(SHOULD_DO_TTD_STACK_STMT_OP(newInstance->scriptContext))
-                {
 #if ENABLE_PROFILE_INFO
-                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false, true>;
+                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false>;
 #endif
-
-                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false, true>;
-                }
-                else
-                {
-#if ENABLE_PROFILE_INFO
-                    newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false, false>;
-#endif
-
-                    newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false, false>;
-                }
-#else
-#if ENABLE_PROFILE_INFO
-                newInstance->opProfiledLoopBodyStart = &InterpreterStackFrame::ProfiledLoopBodyStart<false, false, false>;
-#endif
-
-                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false, false>;
-#endif
+                newInstance->opLoopBodyStart = &InterpreterStackFrame::LoopBodyStart<false, false>;
             }
         }
 
@@ -1920,6 +1878,8 @@ namespace Js
         AssertMsg(!executeFunction->IsDeferredParseFunction(),
             "Non-intrinsic functions must provide byte-code to execute");
 
+        executeFunction->BeginExecution();
+
         bool fReleaseAlloc = false;
         InterpreterStackFrame* newInstance = nullptr;
         Var* allocation = nullptr;
@@ -2048,8 +2008,6 @@ namespace Js
             exceptionFramePopper.PushInfo(threadContext->TTDLog, function);
         }
 #endif
-
-        executeFunction->BeginExecution();
 
         Var aReturn = nullptr;
 
@@ -2556,6 +2514,10 @@ namespace Js
         this->DEBUG_currentByteOffset = (void *)m_reader.GetCurrentOffset();
 #endif
 
+#if ENABLE_TTD
+        AssertMsg(this->scriptContext->GetThreadContext()->IsRuntimeInTTDMode(), "We never be fetching an opcode via this path if this is not true!!!");
+#endif
+
         if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
             this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
@@ -2808,9 +2770,9 @@ namespace Js
                 const auto& modFunc = info->GetFunction(i);
 
                 // TODO: add more runtime checks here
-                auto proxy = m_functionBody->GetNestedFuncReference(i);
+                FunctionInfoPtrPtr functionInfo = m_functionBody->GetNestedFuncReference(i);
 
-                AsmJsScriptFunction* scriptFuncObj = (AsmJsScriptFunction*)ScriptFunction::OP_NewScFunc(pDisplay, (FunctionProxy**)proxy);
+                AsmJsScriptFunction* scriptFuncObj = (AsmJsScriptFunction*)ScriptFunction::OP_NewScFunc(pDisplay, functionInfo);
                 localModuleFunctions[modFunc.location] = scriptFuncObj;
                 if (i == 0 && info->GetUsesChangeHeap())
                 {
@@ -2995,7 +2957,7 @@ namespace Js
 #endif
     }
 
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
     int AsmJsCallDepth = 0;
 #endif
 
@@ -3105,6 +3067,7 @@ namespace Js
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = val;
 
             m_signatures = func->GetFunctionBody()->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetSignatures();
+            m_wasmMemory = wasmMem;
         }
         else
 #endif
@@ -3132,17 +3095,12 @@ namespace Js
         const bool tracingFunc = PHASE_TRACE(AsmjsFunctionEntryPhase, functionBody);
         if (tracingFunc)
         {
-#if DBG_DUMP
             if (AsmJsCallDepth)
             {
                 Output::Print(_u("%*c"), AsmJsCallDepth, ' ');
             }
             Output::Print(_u("Executing function %s("), functionBody->GetDisplayName());
             ++AsmJsCallDepth;
-#else
-            Output::Print(_u("%s()\n"), functionBody->GetDisplayName());
-            Output::Flush();
-#endif
         }
 #endif
         uintptr_t argAddress = (uintptr_t)m_inParams;
@@ -3181,7 +3139,7 @@ namespace Js
                 if (info->GetArgType(i).isInt())
                 {
                     *intArg = *(int*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                     if (tracingFunc)
                     {
                         Output::Print(_u("%d, "), *intArg);
@@ -3193,7 +3151,7 @@ namespace Js
                 else if (info->GetArgType(i).isInt64())
                 {
                     *int64Arg = *(int64*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                     if (tracingFunc)
                     {
                         Output::Print(_u("%lld, "), *int64Arg);
@@ -3205,7 +3163,7 @@ namespace Js
                 else if (info->GetArgType(i).isFloat())
                 {
                     *floatArg = *(float*)floatSpillAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                     if (tracingFunc)
                     {
                         Output::Print(_u("%.2f, "), *floatArg);
@@ -3217,7 +3175,7 @@ namespace Js
                 else if (info->GetArgType(i).isDouble())
                 {
                     *doubleArg = *(double*)floatSpillAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                     if (tracingFunc)
                     {
                         Output::Print(_u("%.2f, "), *doubleArg);
@@ -3250,7 +3208,7 @@ namespace Js
             if (info->GetArgType(i).isInt())
             {
                 *intArg = *(int*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (tracingFunc)
                 {
                     Output::Print(_u("%d, "), *intArg);
@@ -3262,7 +3220,7 @@ namespace Js
             else if (info->GetArgType(i).isInt64())
             {
                 *int64Arg = *(int64*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (tracingFunc)
                 {
                     Output::Print(_u("%lld, "), *int64Arg);
@@ -3274,7 +3232,7 @@ namespace Js
             else if (info->GetArgType(i).isFloat())
             {
                 *floatArg = *(float*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (tracingFunc)
                 {
                     Output::Print(_u("%.2f, "), *floatArg);
@@ -3287,7 +3245,7 @@ namespace Js
             {
                 Assert(info->GetArgType(i).isDouble());
                 *doubleArg = *(double*)argAddress;
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if (tracingFunc)
                 {
                     Output::Print(_u("%.2f, "), *doubleArg);
@@ -3308,7 +3266,7 @@ namespace Js
             }
         }
 
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
         if (tracingFunc)
         {
             Output::Print(_u("){\n"));
@@ -3447,7 +3405,7 @@ namespace Js
             {
                 AlignMemoryForAsmJs();
                 Var returnVar = ProcessAsmJs();
-#if DBG_DUMP
+#if ENABLE_DEBUG_CONFIG_OPTIONS
                 if( PHASE_TRACE( AsmjsFunctionEntryPhase, functionBody ) )
                 {
                     --AsmJsCallDepth;
@@ -3940,7 +3898,7 @@ namespace Js
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
             if (spreadIndices != nullptr)
             {
-                JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices);
+                JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
             }
             else
             {
@@ -3954,7 +3912,7 @@ namespace Js
             AssertMsg(static_cast<unsigned>(args.Info.Flags) == flags, "Flags don't fit into the CallInfo field?");
             if (spreadIndices != nullptr)
             {
-                SetReg((RegSlot)playout->Return, JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices));
+                SetReg((RegSlot)playout->Return, JavascriptFunction::CallSpreadFunction(function, args, spreadIndices));
             }
             else
             {
@@ -5796,7 +5754,7 @@ namespace Js
         return m_reader.GetIP();
     }
 
-    template<bool InterruptProbe, bool JITLoopBody, bool TrackStmts>
+    template<bool InterruptProbe, bool JITLoopBody>
     void InterpreterStackFrame::ProfiledLoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration)
     {
         Assert(Js::DynamicProfileInfo::EnableImplicitCallFlags(GetFunctionBody()));
@@ -5807,12 +5765,9 @@ namespace Js
         }
 
 #if ENABLE_TTD
-        if(TrackStmts)
+        if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
-            if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
-            }
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
         }
 #endif
 
@@ -5870,7 +5825,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
 #endif
 
-    template<bool InterruptProbe, bool JITLoopBody, bool TrackStmts>
+    template<bool InterruptProbe, bool JITLoopBody>
     void InterpreterStackFrame::LoopBodyStart(uint32 loopNumber, LayoutSize layoutSize, bool isFirstIteration)
     {
         if (InterruptProbe)
@@ -5879,12 +5834,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
 
 #if ENABLE_TTD
-        if(TrackStmts)
+        if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
-            if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
-            {
-                this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
-            }
+            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
         }
 #endif
 
@@ -5993,6 +5945,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
 
             entryPointInfo->EnsureIsReadyToCall();
+            entryPointInfo->nativeEntryPointProcessed = true;
 
             RegSlot envReg = this->m_functionBody->GetEnvRegister();
             if (envReg != Constants::NoRegister)
@@ -6002,6 +5955,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
             RegSlot localClosureReg = this->m_functionBody->GetLocalClosureRegister();
             RegSlot localFrameDisplayReg = this->m_functionBody->GetLocalFrameDisplayRegister();
+            RegSlot paramClosureReg = this->m_functionBody->GetParamClosureRegister();
 
             if (entryPointInfo->HasJittedStackClosure())
             {
@@ -6017,6 +5971,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 {
                     this->SetNonVarReg(localFrameDisplayReg, &this->localFrameDisplay);
                 }
+
+                if (paramClosureReg != Constants::NoRegister)
+                {
+                    this->SetNonVarReg(paramClosureReg, &this->paramClosure);
+                }
             }
             else
             {
@@ -6030,6 +5989,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 if (localFrameDisplayReg != Constants::NoRegister)
                 {
                     this->SetNonVarReg(localFrameDisplayReg, this->localFrameDisplay);
+                }
+
+                if (paramClosureReg != Constants::NoRegister)
+                {
+                    this->SetNonVarReg(paramClosureReg, this->paramClosure);
                 }
             }
 
@@ -6066,6 +6030,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             if (localFrameDisplayReg != Constants::NoRegister)
             {
                 SetNonVarReg(localFrameDisplayReg, nullptr);
+            }
+
+            if (paramClosureReg != Constants::NoRegister)
+            {
+                SetNonVarReg(paramClosureReg, nullptr);
             }
 
             for (uint32 i = 0; i < innerScopeCount; i++)
@@ -6859,7 +6828,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         // Save the current closure. We have to use this while copying the initial value of body symbols
         // from the corresponding symbols in the param.
         this->SetParamClosure(this->GetLocalClosure());
-        this->SetNonVarReg(executeFunction->GetParamClosureRegister(), this->GetLocalClosure());
+        this->SetNonVarReg(executeFunction->GetParamClosureRegister(), nullptr);
 
         this->SetIsParamScopeDone(true);
 
@@ -7373,7 +7342,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         FrameDisplay *frameDisplay = this->GetFrameDisplayForNestedFunc();
         SetRegAllowStackVarEnableOnly(playout->Value,
             StackScriptFunction::OP_NewStackScFunc(frameDisplay,
-                reinterpret_cast<Js::FunctionProxy**>(this->m_functionBody->GetNestedFuncReference(funcIndex)),
+                this->m_functionBody->GetNestedFuncReference(funcIndex),
                 this->GetStackNestedFunction(funcIndex)));
     }
 
@@ -7384,7 +7353,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         FrameDisplay *frameDisplay = (FrameDisplay*)GetNonVarReg(playout->Instance);
         SetRegAllowStackVarEnableOnly(playout->Value,
             StackScriptFunction::OP_NewStackScFunc(frameDisplay,
-                reinterpret_cast<Js::FunctionProxy**>(this->m_functionBody->GetNestedFuncReference(funcIndex)),
+                this->m_functionBody->GetNestedFuncReference(funcIndex),
                 this->GetStackNestedFunction(funcIndex)));
     }
 
@@ -7532,7 +7501,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         for (uint i = 0; i < nestedCount; i++)
         {
             StackScriptFunction * stackScriptFunction = scriptFunctions + i;
-            FunctionProxy* nestedProxy = functionBody->GetNestedFunc(i);
+            FunctionProxy* nestedProxy = functionBody->GetNestedFunctionProxy(i);
             ScriptFunctionType* type = nestedProxy->EnsureDeferredPrototypeType();
             new (stackScriptFunction)StackScriptFunction(nestedProxy, type);
         }
@@ -7839,11 +7808,24 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #endif
     }
 
+    int InterpreterStackFrame::OP_GrowMemory(int32 delta)
+    {
+#ifdef ENABLE_WASM
+        int32 oldPageCount = m_wasmMemory->GrowInternal((uint32)delta);
+
+        SetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister, m_wasmMemory->GetBuffer());
+        return oldPageCount;
+#else
+        Assert(UNREACHED);
+        return 0;
+#endif
+    }
+
     template <typename T, InterpreterStackFrame::AsmJsMathPtr<T> func> T InterpreterStackFrame::OP_DivRemCheck(T aLeft, T aRight, ScriptContext* scriptContext)
     {
         if (aRight == 0)
         {
-            JavascriptError::ThrowError(scriptContext, WASMERR_DivideByZero);
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_DivideByZero);
         }
 
         return func(aLeft, aRight);
@@ -7853,12 +7835,12 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     {
         if (aRight == 0)
         {
-            JavascriptError::ThrowError(scriptContext, WASMERR_DivideByZero);
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_DivideByZero);
         }
 
         if (aLeft == MIN && aRight == -1)
         {
-            JavascriptError::ThrowError(scriptContext, VBSERR_Overflow);
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, VBSERR_Overflow);
         }
 
         return func(aLeft, aRight);
@@ -8406,7 +8388,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         Var func = table->DirectGetValue(index);
         if (!func)
         {
-            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_TableIndexOutOfRange);
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc);
         }
         m_localSlots[playout->Value] = func;
 #endif
@@ -8422,17 +8404,17 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if (func->GetFunctionInfo()->IsDeferredParseFunction())
         {
             // TODO: should be able to assert this once imports are converted to wasm functions
-            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc, func->GetDisplayName());
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc);
         }
         AsmJsFunctionInfo * asmInfo = func->GetFunctionBody()->GetAsmJsFunctionInfo();
         if (!asmInfo)
         {
             // TODO: should be able to assert this once imports are converted to wasm functions
-            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc, func->GetDisplayName());
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_NeedWebAssemblyFunc);
         }
         if (!expected->IsEquivalent(asmInfo->GetWasmSignature()))
         {
-            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_SignatureMismatch, func->GetDisplayName());
+            JavascriptError::ThrowWebAssemblyRuntimeError(GetScriptContext(), WASMERR_SignatureMismatch);
         }
 #endif
     }
@@ -8485,7 +8467,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);
         }
         BYTE* buffer = arr->GetBuffer();
         switch (playout->ViewType)
@@ -8530,8 +8512,8 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
-            JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayIndex);
-        }        
+            JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_ArrayIndexOutOfRange);
+        }
         BYTE* buffer = arr->GetBuffer();
         switch (playout->ViewType)
         {

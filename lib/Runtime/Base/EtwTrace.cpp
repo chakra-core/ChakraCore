@@ -147,6 +147,7 @@ void EtwTrace::PerformRundown(bool start)
 
             scriptContext->MapFunction([&start] (FunctionBody* body)
             {
+#if DYNAMIC_INTERPRETER_THUNK
                 if(body->HasInterpreterThunkGenerated())
                 {
                     if(start)
@@ -158,7 +159,9 @@ void EtwTrace::PerformRundown(bool start)
                         LogMethodInterpretedThunkEvent(EventWriteMethodDCEnd, body);
                     }
                 }
+#endif
 
+#if ENABLE_NATIVE_CODEGEN
                 body->MapEntryPoints([&](int index, FunctionEntryPointInfo * entryPoint)
                 {
                     if(entryPoint->IsCodeGenDone())
@@ -191,14 +194,17 @@ void EtwTrace::PerformRundown(bool start)
                         }
                     });
                 });
+#endif
             });
 
             scriptContext = scriptContext->next;
         }
+#ifdef NTBUILD
         if (EventEnabledJSCRIPT_HOSTING_CEO_START())
         {
             threadContext->EtwLogPropertyIdList();
         }
+#endif
 
         threadContext = threadContext->Next();
     }
@@ -258,33 +264,57 @@ void EtwTrace::LogSourceUnloadEvents(ScriptContext* scriptContext)
 
 void EtwTrace::LogMethodInterpreterThunkLoadEvent(FunctionBody* body)
 {
+#if DYNAMIC_INTERPRETER_THUNK
     LogMethodInterpretedThunkEvent(EventWriteMethodLoad, body);
+#else
+    Assert(false); // Caller should not be enabled if Dynamic Interpreter Thunks are disabled
+#endif
 }
 
 void EtwTrace::LogMethodNativeLoadEvent(FunctionBody* body, FunctionEntryPointInfo* entryPoint)
 {
+#if ENABLE_NATIVE_CODEGEN
     LogMethodNativeEvent(EventWriteMethodLoad, body, entryPoint);
+#else
+    Assert(false); // Caller should not be enabled if JIT is disabled
+#endif
 }
 
 void EtwTrace::LogLoopBodyLoadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint, uint16 loopNumber)
 {
+#if ENABLE_NATIVE_CODEGEN
     LogLoopBodyEventBG(EventWriteMethodLoad, body, loopHeader, entryPoint, loopNumber);
+#else
+    Assert(false); // Caller should not be enabled if JIT is disabled
+#endif
 }
 
 void EtwTrace::LogMethodInterpreterThunkUnloadEvent(FunctionBody* body)
 {
+#if DYNAMIC_INTERPRETER_THUNK
     LogMethodInterpretedThunkEvent(EventWriteMethodUnload, body);
+#else
+Assert(false); // Caller should not be enabled if dynamic interpreter thunks are disabled
+#endif
 }
 
 
 void EtwTrace::LogMethodNativeUnloadEvent(FunctionBody* body, FunctionEntryPointInfo* entryPoint)
 {
+#if ENABLE_NATIVE_CODEGEN
     LogMethodNativeEvent(EventWriteMethodUnload, body, entryPoint);
+#else
+    Assert(false); // Caller should not be enabled if JIT is disabled
+#endif
 }
 
 void EtwTrace::LogLoopBodyUnloadEvent(FunctionBody* body, LoopHeader* loopHeader, LoopEntryPointInfo* entryPoint)
 {
+#if ENABLE_NATIVE_CODEGEN
     LogLoopBodyEvent(EventWriteMethodUnload, body, loopHeader, entryPoint);
+#else
+Assert(false); // Caller should not be enabled if JIT is disabled
+#endif
 }
 
 
@@ -340,7 +370,7 @@ size_t EtwTrace::GetSimpleJitFunctionName(
     const char16 *const functionName = GetFunctionName(body);
     const size_t functionNameCharLength = wcslen(functionName);
     const size_t requiredCharCapacity = functionNameCharLength + suffixCharLength + 1;
-    if(requiredCharCapacity > nameCharCapacity)
+    if(requiredCharCapacity > nameCharCapacity || name == NULL)
     {
         return requiredCharCapacity;
     }

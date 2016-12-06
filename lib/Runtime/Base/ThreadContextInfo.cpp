@@ -42,9 +42,14 @@ ThreadContextInfo::GetAbsFloatCstAddr() const
     return SHIFT_ADDR(this, &Js::JavascriptNumber::AbsFloatCst);
 }
 
-intptr_t ThreadContextInfo::GetSgnBitCst() const
+intptr_t ThreadContextInfo::GetSgnFloatBitCst() const
 {
-    return SHIFT_ADDR(this, &Js::JavascriptNumber::SgnBitCst);
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::SgnFloatBitCst);
+}
+
+intptr_t ThreadContextInfo::GetSgnDoubleBitCst() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::SgnDoubleBitCst);
 }
 
 intptr_t
@@ -63,6 +68,12 @@ intptr_t
 ThreadContextInfo::GetUIntConvertConstAddr() const
 {
     return SHIFT_ADDR(this, &Js::JavascriptNumber::UIntConvertConst);
+}
+
+intptr_t
+ThreadContextInfo::GetUInt64ConvertConstAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::UInt64ConvertConst);
 }
 
 intptr_t
@@ -147,6 +158,24 @@ intptr_t
 ThreadContextInfo::GetDoubleNaNAddr() const
 {
     return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Nan);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleUintMaxPlusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_UintMaxPlusOne);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleIntMaxPlusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_IntMaxPlusOne);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleIntMinMinusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_MinIntMinusOne);
 }
 
 intptr_t

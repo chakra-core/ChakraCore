@@ -155,15 +155,15 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
     {
         for (uint32 iExport = 0; iExport < m_module->GetExportCount(); ++iExport)
         {
-            Wasm::WasmExport* funcExport = m_module->GetFunctionExport(iExport);
-            if (funcExport &&
-                funcExport->nameLength > 0 &&
-                m_module->GetFunctionIndexType(funcExport->funcIndex) == FunctionIndexTypes::Function &&
-                funcExport->funcIndex == wasmInfo->GetNumber())
+            Wasm::WasmExport* wasmExport = m_module->GetExport(iExport);
+            if (wasmExport  &&
+                wasmExport->nameLength > 0 &&
+                m_module->GetFunctionIndexType(wasmExport->index) == FunctionIndexTypes::Function &&
+                wasmExport->index == wasmInfo->GetNumber())
             {
-                nameLength = funcExport->nameLength + 16;
+                nameLength = wasmExport->nameLength + 16;
                 char16 * autoName = RecyclerNewArrayLeafZ(m_recycler, char16, nameLength);
-                nameLength = swprintf_s(autoName, nameLength, _u("%s[%u]"), funcExport->name, wasmInfo->GetNumber());
+                nameLength = swprintf_s(autoName, nameLength, _u("%s[%u]"), wasmExport->name, wasmInfo->GetNumber());
                 functionName = autoName;
                 break;
             }
@@ -520,6 +520,11 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
         break;
     }
+    case wbGrowMemory:
+    {
+        info = EmitGrowMemory();
+        break;
+    }
     case wbUnreachable:
         m_writer.EmptyAsm(Js::OpCodeAsmJs::Unreachable_Void);
         SetUnreachableState(true);
@@ -560,7 +565,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitGetGlobal()
 {
     uint globalIndex = GetReader()->m_currentNode.var.num;
-    WasmGlobal* global = m_module->globals->Item(globalIndex);
+    WasmGlobal* global = m_module->GetGlobal(globalIndex);
 
     WasmTypes::WasmType type = global->GetType();
 
@@ -590,7 +595,7 @@ EmitInfo
 WasmBytecodeGenerator::EmitSetGlobal()
 {
     uint globalIndex = GetReader()->m_currentNode.var.num;
-    WasmGlobal* global = m_module->globals->Item(globalIndex);
+    WasmGlobal* global = m_module->GetGlobal(globalIndex);
     Js::RegSlot slot = m_module->GetOffsetForGlobal(global);
 
     WasmTypes::WasmType type = global->GetType();
@@ -1048,6 +1053,22 @@ WasmBytecodeGenerator::EmitBrTable()
     ReleaseLocation(&yieldInfo);
 
     SetUnreachableState(true);
+}
+
+
+EmitInfo
+WasmBytecodeGenerator::EmitGrowMemory()
+{
+    GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
+
+    EmitInfo info = PopEvalStack();
+    if (info.type != WasmTypes::I32)
+    {
+        throw WasmCompilationException(_u("Invalid type for GrowMemory"));
+    }
+
+    m_writer.AsmReg2(Js::OpCodeAsmJs::GrowMemory, info.location, info.location);
+    return info;
 }
 
 EmitInfo

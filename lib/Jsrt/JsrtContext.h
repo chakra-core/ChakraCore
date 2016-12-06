@@ -57,7 +57,8 @@ public:
     virtual void Mark(Recycler * recycler) override sealed;
 
 #if ENABLE_TTD
-    static void OnScriptLoad_TTDCallback(void* jsrtCtx, Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+    static void OnScriptLoad_TTDCallback(FinalizableObject* jsrtCtx, Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+    static void OnReplayDisposeContext_TTDCallback(FinalizableObject* jsrtCtx);
 #endif
     void OnScriptLoad(Js::JavascriptFunction * scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
 protected:

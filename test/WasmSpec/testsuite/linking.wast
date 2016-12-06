@@ -157,7 +157,7 @@
 (assert_trap (invoke $Ot "call" (i32.const 20)) "undefined")
 
 (assert_unlinkable
-  (module $Qt
+  (module
     (func $host (import "spectest" "print"))
     (table (import "Mt" "tab") 10 anyfunc)
     (memory (import "Mt" "mem") 1)  ;; does not exist
@@ -230,7 +230,7 @@
 (assert_return (invoke $Pm "grow" (i32.const 0)) (i32.const 5))
 
 (assert_unlinkable
-  (module $Qm
+  (module
     (func $host (import "spectest" "print"))
     (memory (import "Mm" "mem") 1)
     (table (import "Mm" "tab") 0 anyfunc)  ;; does not exist

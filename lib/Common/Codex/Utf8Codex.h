@@ -162,7 +162,7 @@ namespace utf8
     LPUTF8 EncodeFull(char16 ch, __out_ecount(3) LPUTF8 ptr);
 
     // Encode a surrogate pair into a utf8 sequence 
-    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(3) LPUTF8 ptr);
+    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(4) LPUTF8 ptr);
 
     // Encode ch into a UTF8 sequence ignoring surrogate pairs (which are encoded as two
     // separate code points).
@@ -177,7 +177,7 @@ namespace utf8
     }
 
     // Encode ch into a UTF8 sequence while being aware of surrogate pairs.
-    inline LPUTF8 EncodeTrueUtf8(char16 ch, const char16** source, charcount_t* cch, __out_ecount(3) LPUTF8 ptr)
+    inline LPUTF8 EncodeTrueUtf8(char16 ch, const char16** source, charcount_t* cch, __out_ecount((*cch + 1) * 3) LPUTF8 ptr)
     {
         if (ch < 0x80)
         {
@@ -201,11 +201,16 @@ namespace utf8
             if ((surrogateHigh >= 0xD800 && surrogateHigh <= 0xDBFF) &&
                 (surrogateLow >= 0xDC00 && surrogateLow <= 0xDFFF))
             {
+                LPUTF8 retptr = EncodeSurrogatePair(surrogateHigh, surrogateLow, ptr);
+                
+                // SAL analysis gets confused if we call EncodeSurrogatePair after
+                // modifying cch
+
                 // Consume the low surrogate
                 *source = *source + 1;
                 *cch = *cch - 1;
 
-                return EncodeSurrogatePair(surrogateHigh, surrogateLow, ptr);
+                return retptr;
             }
         }
 

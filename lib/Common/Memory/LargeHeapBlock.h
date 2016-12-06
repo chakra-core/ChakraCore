@@ -101,6 +101,7 @@ public:
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override;
 
+    template <bool doSpecialMark>
     void Mark(void* objectAddress, MarkContext * markContext);
     virtual byte* GetRealAddressFromInterior(void* interiorAddress) override;
     bool TestObjectMarkedBit(void* objectAddress) override;

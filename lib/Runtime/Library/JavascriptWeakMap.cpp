@@ -71,7 +71,7 @@ namespace Js
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
         bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(WeakMapCount);
+        CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_WeakMap);
 
         JavascriptWeakMap* weakMapObject = nullptr;
 

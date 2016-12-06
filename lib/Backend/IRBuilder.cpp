@@ -70,13 +70,7 @@ IRBuilder::InsertBailOutForDebugger(uint byteCodeOffset, IR::BailOutKind kind, I
     IR::BailOutInstr * instr = IR::BailOutInstr::New(Js::OpCode::BailForDebugger, kind, bailOutInfo, bailOutInfo->bailOutFunc);
     if (insertBeforeInstr)
     {
-        instr->SetByteCodeOffset(byteCodeOffset);
-        uint32 offset = insertBeforeInstr->GetByteCodeOffset();
-        if (m_offsetToInstruction[offset] == insertBeforeInstr)
-        {
-            m_offsetToInstruction[offset] = instr;
-        }
-        insertBeforeInstr->InsertBefore(instr);
+        InsertInstr(instr, insertBeforeInstr);
     }
     else
     {
@@ -164,13 +158,7 @@ void IRBuilder::InsertBailOnNoProfile(IR::Instr *const insertBeforeInstr)
     Assert(DoBailOnNoProfile());
 
     IR::Instr *const bailOnNoProfileInstr = IR::Instr::New(Js::OpCode::BailOnNoProfile, m_func);
-    bailOnNoProfileInstr->SetByteCodeOffset(insertBeforeInstr);
-    uint32 offset = insertBeforeInstr->GetByteCodeOffset();
-    if (m_offsetToInstruction[offset] == insertBeforeInstr)
-    {
-        m_offsetToInstruction[offset] = bailOnNoProfileInstr;
-    }
-    insertBeforeInstr->InsertBefore(bailOnNoProfileInstr);
+    InsertInstr(bailOnNoProfileInstr, insertBeforeInstr);
 }
 
 #ifdef BAILOUT_INJECTION
@@ -775,8 +763,7 @@ IRBuilder::Build()
                     // non-temp bytecode reg slot, to be write-through. Hence, generating StSlots at all
                     // defs for such symbols
                     IR::Instr * stSlot = this->GenerateLoopBodyStSlot(dstRegSlot);
-                    m_lastInstr->InsertAfter(stSlot);
-                    m_lastInstr = stSlot;
+                    AddInstr(stSlot, Js::Constants::NoByteCodeOffset);
 
                     this->m_stSlots->Clear(symId);
                 }
@@ -1106,6 +1093,25 @@ IRBuilder::CreateLabel(IR::BranchInstr * branchInstr, uint& offset)
         }
     }
     return labelInstr;
+}
+
+void IRBuilder::InsertInstr(IR::Instr *instr, IR::Instr* insertBeforeInstr)
+{
+    Assert(insertBeforeInstr->GetByteCodeOffset() < m_offsetToInstructionCount);
+    instr->SetByteCodeOffset(insertBeforeInstr);
+    uint32 offset = insertBeforeInstr->GetByteCodeOffset();
+    if (m_offsetToInstruction[offset] == insertBeforeInstr)
+    {
+        m_offsetToInstruction[offset] = instr;
+    }
+    insertBeforeInstr->InsertBefore(instr);
+
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::IRBuilderPhase, m_func->GetTopFunc()))
+    {
+        instr->Dump();
+    }
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -6676,7 +6682,6 @@ IRBuilder::BuildBrReg2(Js::OpCode newOpcode, uint32 offset, uint targetOffset, J
     else
     {
         branchInstr = IR::BranchInstr::New(newOpcode, nullptr, src1Opnd, src2Opnd, m_func);
-        branchInstr->m_isSwitchBr = true;
         this->AddBranchInstr(branchInstr, offset, targetOffset);
     }
 }
@@ -6948,19 +6953,14 @@ IRBuilder::ResolveVirtualLongBranch(IR::BranchInstr * branchInstr, uint offset)
     if (!IsLoopBodyReturnIPInstr(branchInstr->m_prev))
     {
         IR::Instr * returnIPInstr = CreateLoopBodyReturnIPInstr(targetOffset, branchInstr->GetByteCodeOffset());
-        branchInstr->InsertBefore(returnIPInstr);
 
         // Any jump to this branch to jump to the return IP load instr first
         uint32 branchInstrByteCodeOffset = branchInstr->GetByteCodeOffset();
-        if (this->m_offsetToInstruction[branchInstrByteCodeOffset] == branchInstr)
-        {
-            this->m_offsetToInstruction[branchInstrByteCodeOffset] = returnIPInstr;
-        }
-        else
-        {
-            Assert(this->m_offsetToInstruction[branchInstrByteCodeOffset]->HasBailOutInfo() &&
-                   this->m_offsetToInstruction[branchInstrByteCodeOffset]->GetBailOutKind() == IR::BailOutInjected);
-        }
+        Assert(this->m_offsetToInstruction[branchInstrByteCodeOffset] == branchInstr ||
+            (this->m_offsetToInstruction[branchInstrByteCodeOffset]->HasBailOutInfo() &&
+            this->m_offsetToInstruction[branchInstrByteCodeOffset]->GetBailOutKind() == IR::BailOutInjected));
+
+        InsertInstr(returnIPInstr, branchInstr);
     }
     return GetLoopBodyExitInstrOffset();
 }
@@ -7407,15 +7407,7 @@ IRBuilder::InsertIncrLoopBodyLoopCounter(IR::LabelInstr *loopTopLabelInstr)
     loopCounterOpnd->SetIsJITOptimizedReg(true);
 
     IR::Instr* nextRealInstr = loopTopLabelInstr->GetNextRealInstr();
-    nextRealInstr->InsertBefore(incr);
-
-    Assert(nextRealInstr->GetByteCodeOffset() < m_offsetToInstructionCount);
-    if(this->m_offsetToInstruction[nextRealInstr->GetByteCodeOffset()] == nextRealInstr)
-    {
-        this->m_offsetToInstruction[nextRealInstr->GetByteCodeOffset()] = incr;
-    }
-    incr->SetByteCodeOffset(nextRealInstr->GetByteCodeOffset());
-    return;
+    InsertInstr(incr, nextRealInstr);
 }
 
 void
@@ -7474,7 +7466,8 @@ IRBuilder::DoClosureRegCheck(Js::RegSlot reg)
     }
     if (reg == m_func->GetJITFunctionBody()->GetEnvReg() ||
         reg == m_func->GetJITFunctionBody()->GetLocalClosureReg() ||
-        reg == m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg())
+        reg == m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg() ||
+        reg == m_func->GetJITFunctionBody()->GetParamClosureReg())
     {
         Js::Throw::FatalInternalError();
     }

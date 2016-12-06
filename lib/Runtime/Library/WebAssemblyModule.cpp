@@ -17,6 +17,7 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_hasTable(false),
     m_memImport(nullptr),
     m_tableImport(nullptr),
+    m_importedFunctionCount(0),
     m_memoryInitSize(0),
     m_memoryMaxSize(0),
     m_tableInitSize(0),
@@ -34,10 +35,10 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_binaryBuffer(binaryBuffer)
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
-    memset(globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
+    memset(m_globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
     m_functionsInfo = RecyclerNew(scriptContext->GetRecycler(), WasmFunctionInfosList, scriptContext->GetRecycler());
     m_imports = Anew(&m_alloc, WasmImportsList, &m_alloc);
-    globals = Anew(&m_alloc, WasmGlobalsList, &m_alloc);
+    m_globals = Anew(&m_alloc, WasmGlobalsList, &m_alloc);
     m_reader = Anew(&m_alloc, Wasm::WasmBinaryReader, &m_alloc, this, binaryBuffer, binaryBufferLength);
 }
 
@@ -87,6 +88,74 @@ WebAssemblyModule::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     return CreateModule(scriptContext, buffer, byteLength);
 }
 
+Var
+WebAssemblyModule::EntryExports(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    if (args.Info.Count < 2 || !WebAssemblyModule::Is(args[1]))
+    {
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
+    }
+    WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
+
+    Var exportArray = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
+
+    for (uint i = 0; i < module->GetExportCount(); ++i)
+    {
+        Wasm::WasmExport wasmExport = module->m_exports[i];
+        Js::JavascriptString * kind = GetExternalKindString(scriptContext, wasmExport.kind);
+        Js::JavascriptString * name = JavascriptString::NewCopySz(wasmExport.name, scriptContext);
+        Var pair = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::kind, kind, scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::name, name, scriptContext);
+        JavascriptArray::Push(scriptContext, exportArray, pair);
+    }
+    return exportArray;
+}
+
+Var
+WebAssemblyModule::EntryImports(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    if (args.Info.Count < 2 || !WebAssemblyModule::Is(args[1]))
+    {
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
+    }
+
+    WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
+
+    Var importArray = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
+    for (uint32 i = 0; i < module->GetImportCount(); ++i)
+    {
+        Wasm::WasmImport * import = module->GetImport(i);
+        Js::JavascriptString * kind = GetExternalKindString(scriptContext, import->kind);
+        Js::JavascriptString * moduleName = JavascriptString::NewCopySz(import->modName, scriptContext);
+        Js::JavascriptString * name = JavascriptString::NewCopySz(import->importName, scriptContext);
+
+        Var pair = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::kind, kind, scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::module, moduleName, scriptContext);
+        JavascriptOperators::OP_SetProperty(pair, PropertyIds::name, name, scriptContext);
+        JavascriptArray::Push(scriptContext, importArray, pair);
+    }
+
+    return importArray;
+}
+
 /* static */
 WebAssemblyModule *
 WebAssemblyModule::CreateModule(
@@ -94,7 +163,7 @@ WebAssemblyModule::CreateModule(
     const byte* buffer,
     const uint lengthBytes)
 {
-    AutoProfilingPhase wasmPhase(scriptContext, Js::WasmPhase);
+    AutoProfilingPhase wasmPhase(scriptContext, Js::WasmBytecodePhase);
     Unused(wasmPhase);
 
     WebAssemblyModule * webAssemblyModule = nullptr;
@@ -162,7 +231,7 @@ WebAssemblyModule::ValidateModule(
     const byte* buffer,
     const uint lengthBytes)
 {
-    AutoProfilingPhase wasmPhase(scriptContext, Js::WasmPhase);
+    AutoProfilingPhase wasmPhase(scriptContext, Js::WasmBytecodePhase);
     Unused(wasmPhase);
 
     try
@@ -182,6 +251,18 @@ WebAssemblyModule::ValidateModule(
 
             // TODO: avoid actually generating bytecode here
             Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (PHASE_ON(WasmValidatePrejitPhase, body))
+            {
+                CONFIG_FLAG(MaxAsmJsInterpreterRunCount) = 0;
+                AsmJsScriptFunction * funcObj = scriptContext->GetLibrary()->CreateAsmJsScriptFunction(body);
+                FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
+                entypointInfo->SetIsAsmJSFunction(true);
+                entypointInfo->SetModuleAddress(1);
+                GenerateFunction(scriptContext->GetNativeCodeGenerator(), body, funcObj);
+            }
+#endif
         }
     }
     catch (Wasm::WasmCompilationException& ex)
@@ -227,7 +308,7 @@ WebAssemblyModule::GetFunctionIndexType(uint32 funcIndex) const
     {
         return Wasm::FunctionIndexTypes::Invalid;
     }
-    if (funcIndex < GetImportCount())
+    if (funcIndex < GetImportedFunctionCount())
     {
         return Wasm::FunctionIndexTypes::ImportThunk;
     }
@@ -363,14 +444,14 @@ WebAssemblyModule::AllocateFunctionExports(uint32 entries)
 void
 WebAssemblyModule::SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind)
 {
-    m_exports[iExport].funcIndex = funcIndex;
+    m_exports[iExport].index = funcIndex;
     m_exports[iExport].nameLength = nameLength;
     m_exports[iExport].name = exportName;
     m_exports[iExport].kind = kind;
 }
 
 Wasm::WasmExport*
-WebAssemblyModule::GetFunctionExport(uint32 iExport) const
+WebAssemblyModule::GetExport(uint32 iExport) const
 {
     if (iExport >= m_exportCount)
     {
@@ -392,7 +473,16 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     {
         throw Wasm::WasmCompilationException(_u("Function signature %u is out of bound"), sigId);
     }
-    uint32 importId = GetImportCount();
+
+    // Store the information about the import
+    Wasm::WasmImport* importInfo = Anew(&m_alloc, Wasm::WasmImport);
+    importInfo->kind = Wasm::ExternalKinds::Function;
+    importInfo->modNameLen = modNameLen;
+    importInfo->modName = modName;
+    importInfo->importNameLen = fnNameLen;
+    importInfo->importName = fnName;
+    m_imports->Add(importInfo);
+
     Wasm::WasmSignature* signature = GetSignature(sigId);
     Wasm::WasmFunctionInfo* funcInfo = AddWasmFunctionInfo(signature);
     // Create the custom reader to generate the import thunk
@@ -406,58 +496,64 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     }
     Wasm::WasmNode callNode;
     callNode.op = Wasm::wbCall;
-    callNode.call.num = importId;
+    callNode.call.num = m_importedFunctionCount++;
     callNode.call.funcType = Wasm::FunctionIndexTypes::Import;
     customReader->AddNode(callNode);
     funcInfo->SetCustomReader(customReader);
-    char16 * autoName = RecyclerNewArrayLeafZ(GetScriptContext()->GetRecycler(), char16, modNameLen + fnNameLen + 32);
-    uint32 nameLength = swprintf_s(autoName, 32, _u("%s.%s.Thunk[%u]"), modName, fnName, funcInfo->GetNumber());
-    funcInfo->SetName(autoName, nameLength);
+#if DBG_DUMP 
+    funcInfo->importedFunctionReference = importInfo;
+#endif
 
-    // Store the information about the import
-    Wasm::WasmImport* importInfo = Anew(&m_alloc, Wasm::WasmImport);
-    importInfo->sigId = sigId;
-    importInfo->modNameLen = modNameLen;
-    importInfo->modName = modName;
-    importInfo->fnNameLen = fnNameLen;
-    importInfo->fnName = fnName;
-    m_imports->Add(importInfo);
+    // 32 to account for hardcoded part of the name + max uint in decimal representation
+    uint32 bufferLength = 32;
+    if (!UInt32Math::Add(modNameLen, bufferLength, &bufferLength) &&
+        !UInt32Math::Add(fnNameLen, bufferLength, &bufferLength))
+    {
+        char16 * autoName = RecyclerNewArrayLeafZ(GetScriptContext()->GetRecycler(), char16, bufferLength);
+        uint32 nameLength = swprintf_s(autoName, bufferLength, _u("%s.%s.Thunk[%u]"), modName, fnName, funcInfo->GetNumber());
+        if (nameLength != (uint32)-1)
+        {
+            funcInfo->SetName(autoName, nameLength);
+        }
+        else
+        {
+            AssertMsg(UNREACHED, "Failed to generate import' thunk name");
+        }
+    }
 }
 
 Wasm::WasmImport*
-WebAssemblyModule::GetFunctionImport(uint32 i) const
+WebAssemblyModule::GetImport(uint32 i) const
 {
     if (i >= GetImportCount())
     {
-        throw Wasm::WasmCompilationException(_u("Import function index out of range"));
+        throw Wasm::WasmCompilationException(_u("Import index out of range"));
     }
     return m_imports->Item(i);
 }
 
 void
-WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::WasmGlobal* importedGlobal)
+WebAssemblyModule::AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
-    wi->sigId = 0;
-    wi->fnName = fnName;
-    wi->fnNameLen = fnNameLen;
+    wi->kind = Wasm::ExternalKinds::Global;
+    wi->importName = importName;
+    wi->importNameLen = importNameLen;
     wi->modName = modName;
     wi->modNameLen = modNameLen;
-
-    importedGlobal->importVar = wi;
-    importedGlobal->SetReferenceType(Wasm::WasmGlobal::ImportedReference);
-    globals->Add(importedGlobal);
+    m_imports->Add(wi);
 }
 
 void
 WebAssemblyModule::AddMemoryImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
-    wi->sigId = 0;
-    wi->fnName = importName;
-    wi->fnNameLen = importNameLen;
+    wi->kind = Wasm::ExternalKinds::Memory;
+    wi->importName = importName;
+    wi->importNameLen = importNameLen;
     wi->modName = modName;
     wi->modNameLen = modNameLen;
+    m_imports->Add(wi);
     m_memImport = wi;
 }
 
@@ -465,16 +561,17 @@ void
 WebAssemblyModule::AddTableImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen)
 {
     Wasm::WasmImport* wi = Anew(&m_alloc, Wasm::WasmImport);
-    wi->sigId = 0;
-    wi->fnName = importName;
-    wi->fnNameLen = importNameLen;
+    wi->kind = Wasm::ExternalKinds::Table;
+    wi->importName = importName;
+    wi->importNameLen = importNameLen;
     wi->modName = modName;
     wi->modNameLen = modNameLen;
+    m_imports->Add(wi);
     m_tableImport = wi;
 }
 
 uint
-WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr) const
+WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, const WebAssemblyEnvironment* env) const
 {
     if (initExpr.op != Wasm::wbI32Const && initExpr.op != Wasm::wbGetGlobal)
     {
@@ -487,19 +584,41 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr) const
     }
     else if (initExpr.op == Wasm::wbGetGlobal)
     {
-        if (initExpr.var.num >= (uint)this->globals->Count())
+        if (initExpr.var.num >= (uint)m_globals->Count())
         {
             throw Wasm::WasmCompilationException(_u("global %d doesn't exist"), initExpr.var.num);
         }
-        Wasm::WasmGlobal* global = this->globals->Item(initExpr.var.num);
-
-        if (global->GetReferenceType() != Wasm::WasmGlobal::Const || global->GetType() != Wasm::WasmTypes::I32)
+        Wasm::WasmGlobal* global = m_globals->Item(initExpr.var.num);
+        if (global->GetType() != Wasm::WasmTypes::I32)
         {
             throw Wasm::WasmCompilationException(_u("global %d must be i32"), initExpr.var.num);
         }
-        offset = global->cnst.i32;
+        offset = env->GetGlobalValue(global).i32;
     }
     return offset;
+}
+
+void
+WebAssemblyModule::AddGlobal(Wasm::GlobalReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init)
+{
+    Wasm::WasmGlobal* global = Anew(&m_alloc, Wasm::WasmGlobal, refType, m_globalCounts[type]++, type, isMutable, init);
+    m_globals->Add(global);
+}
+
+uint32
+WebAssemblyModule::GetGlobalCount() const
+{
+    return (uint32)m_globals->Count();
+}
+
+Wasm::WasmGlobal*
+WebAssemblyModule::GetGlobal(uint32 index) const
+{
+    if (index >= GetGlobalCount())
+    {
+        throw Wasm::WasmCompilationException(_u("Global index out of bounds %u"), index);
+    }
+    return m_globals->Item(index);
 }
 
 void
@@ -582,7 +701,7 @@ uint32 WebAssemblyModule::GetModuleEnvironmentSize() const
     // 1 each for memory, table, and signatures
     uint32 size = 3;
     size = UInt32Math::Add(size, GetWasmFunctionCount());
-    size = UInt32Math::Add(size, GetImportCount());
+    size = UInt32Math::Add(size, GetImportedFunctionCount());
     size = UInt32Math::Add(size, WAsmJs::ConvertToJsVarOffset<byte>(GetGlobalsByteSize()));
     return size;
 }
@@ -600,7 +719,7 @@ void WebAssemblyModule::Dispose(bool isShutdown)
 void WebAssemblyModule::Mark(Recycler * recycler)
 {
 }
-uint WebAssemblyModule::GetOffsetForGlobal(Wasm::WasmGlobal* global)
+uint WebAssemblyModule::GetOffsetForGlobal(Wasm::WasmGlobal* global) const
 {
     Wasm::WasmTypes::WasmType type = global->GetType();
     if (type >= Wasm::WasmTypes::Limit)
@@ -625,8 +744,28 @@ uint WebAssemblyModule::AddGlobalByteSizeToOffset(Wasm::WasmTypes::WasmType type
 {
     uint32 typeSize = Wasm::WasmTypes::GetTypeByteSize(type);
     offset = ::Math::AlignOverflowCheck(offset, typeSize);
-    uint32 sizeUsed = WAsmJs::ConvertOffset<byte>(globalCounts[type], typeSize);
+    uint32 sizeUsed = WAsmJs::ConvertOffset<byte>(m_globalCounts[type], typeSize);
     return UInt32Math::Add(offset, sizeUsed);
+}
+
+
+JavascriptString *
+WebAssemblyModule::GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds::ExternalKind kind)
+{
+    switch (kind)
+    {
+    case Wasm::ExternalKinds::Function:
+        return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("function"));
+    case Wasm::ExternalKinds::Table:
+        return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("table"));
+    case Wasm::ExternalKinds::Memory:
+        return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("memory"));
+    case Wasm::ExternalKinds::Global:
+        return scriptContext->GetLibrary()->CreateStringFromCppLiteral(_u("global"));
+    default:
+        Assume(UNREACHED);
+    }
+    return nullptr;
 }
 
 uint WebAssemblyModule::GetGlobalsByteSize() const

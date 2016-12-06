@@ -14,7 +14,7 @@ namespace Js
     //     AuxPtr16 on x64    1 byte     1 bytes                      8 bytes to hold up to 1 pointer
     //     AuxPtr32 on x64    1 byte     3 bytes                      24 bytes to hold up to 3 pointers
     //     AuxPtr16 on x86    1 byte     3 bytes                      12 bytes to hold up to 3 pointers
-    //     AuxPtr32 on x64    1 byte     6 bytes                      24 bytes to hold up to 6 pointers
+    //     AuxPtr32 on x86    1 byte     6 bytes                      24 bytes to hold up to 6 pointers
     template<typename FieldsEnum, uint8 size, uint8 _MaxCount = (size - 1) / (1 + sizeof(void*))>
     struct AuxPtrsFix
     {

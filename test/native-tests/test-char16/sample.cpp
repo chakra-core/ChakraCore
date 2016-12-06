@@ -54,13 +54,13 @@ int main()
     FAIL_CHECK(JsCreateStringUtf8((const uint8_t*)"sample", strlen("sample"), &fname));
 
     JsValueRef scriptSource;
-    FAIL_CHECK(JsCreateStringUtf16(script16, length * sizeof(uint16_t), &scriptSource));
+    FAIL_CHECK(JsCreateStringUtf16(script16, length, &scriptSource));
     // now we don't need our own copy
     free(script16);
 
     // Run the script.
     FAIL_CHECK(JsRun(scriptSource, currentSourceContext++, fname,
-        JsParseScriptAttributeArrayBufferIsUtf16Encoded, &result));
+        JsParseScriptAttributeNone, &result));
 
     // Convert your script result to String in JavaScript; redundant if your script returns a String
     JsValueRef resultJSString;

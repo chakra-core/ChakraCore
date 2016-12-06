@@ -365,7 +365,7 @@ namespace Js
         }
         else
         {
-            AssertMsg(scriptContext->ShouldPerformRecordAction(), "Check either record/replay before calling!!!");
+            TTDAssert(scriptContext->ShouldPerformRecordAction(), "Check either record/replay before calling!!!");
 
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
 
@@ -399,7 +399,7 @@ namespace Js
         }
         else
         {
-            AssertMsg(scriptContext->ShouldPerformRecordAction(), "Check either record/replay before calling!!!");
+            TTDAssert(scriptContext->ShouldPerformRecordAction(), "Check either record/replay before calling!!!");
 
             TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
 
@@ -424,12 +424,12 @@ namespace Js
 
         ScriptContext* scriptContext = externalFunction->type->GetScriptContext();
         TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
-        AssertMsg(elog != nullptr, "How did this get created then???");
+        TTDAssert(elog != nullptr, "How did this get created then???");
 
         //If this flag is set then this is ok (the debugger may be evaluating this so just return undef -- otherwise this is an error
         if(!elog->IsDebugModeFlagSet())
         {
-            AssertMsg(false, "This should never be reached in pure replay mode!!!");
+            TTDAssert(false, "This should never be reached in pure replay mode!!!");
             return nullptr;
         }
 

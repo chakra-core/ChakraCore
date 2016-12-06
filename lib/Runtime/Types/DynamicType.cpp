@@ -11,6 +11,9 @@ namespace Js
 
     DynamicType::DynamicType(DynamicType * type, DynamicTypeHandler *typeHandler, bool isLocked, bool isShared)
         : Type(type), typeHandler(typeHandler), isLocked(isLocked), isShared(isShared)
+#if DBG
+        , isCachedForChangePrototype(false)
+#endif
     {
         Assert(!this->isLocked || this->typeHandler->GetIsLocked());
         Assert(!this->isShared || this->typeHandler->GetIsShared());
@@ -19,6 +22,9 @@ namespace Js
 
     DynamicType::DynamicType(ScriptContext* scriptContext, TypeId typeId, RecyclableObject* prototype, JavascriptMethod entryPoint, DynamicTypeHandler * typeHandler, bool isLocked, bool isShared)
         : Type(scriptContext, typeId, prototype, entryPoint) , typeHandler(typeHandler), isLocked(isLocked), isShared(isShared), hasNoEnumerableProperties(false)
+#if DBG
+        , isCachedForChangePrototype(false)
+#endif
     {
         Assert(typeHandler != nullptr);
         Assert(!this->isLocked || this->typeHandler->GetIsLocked());

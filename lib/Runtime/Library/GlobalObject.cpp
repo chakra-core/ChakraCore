@@ -493,7 +493,7 @@ namespace Js
         // TODO: Handle call from global scope, strict mode
         BOOL isIndirect = FALSE;
 
-        if (args.Info.Flags & CallFlags_ExtraArg)
+        if (Js::CallInfo::isDirectEvalCall(args.Info.Flags))
         {
             // This was recognized as an eval call at compile time. The last one or two args are internal to us.
             // Argcount will be one of the following when called from global code
@@ -764,6 +764,7 @@ namespace Js
         {
             // This could happen if the top level function is marked as deferred, we need to parse this to generate the script compile information (RegisterScript depends on that)
             Js::JavascriptFunction::DeferredParse(&pEvalFunction);
+            proxy = pEvalFunction->GetFunctionProxy();
         }
 
         scriptContext->RegisterScript(proxy);
@@ -985,7 +986,7 @@ namespace Js
                 {
                     FunctionBody* parentFuncBody = pfuncCaller->GetFunctionBody();
                     Utf8SourceInfo* parentUtf8SourceInfo = parentFuncBody->GetUtf8SourceInfo();
-                    Utf8SourceInfo* utf8SourceInfo = funcBody->GetFunctionProxy()->GetUtf8SourceInfo();
+                    Utf8SourceInfo* utf8SourceInfo = funcBody->GetUtf8SourceInfo();
                     utf8SourceInfo->SetCallerUtf8SourceInfo(parentUtf8SourceInfo);
                 }
             }
@@ -1630,7 +1631,7 @@ LHexError:
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         ARGUMENTS(args, callInfo);
 
-        AssertMsg(args.Info.Count >= 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+        TTDAssert(args.Info.Count >= 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
 
         Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
         bool doPrint = (args.Info.Count == 3) && Js::JavascriptBoolean::Is(args[2]) && (Js::JavascriptBoolean::FromVar(args[2])->GetValue());

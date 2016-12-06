@@ -116,6 +116,28 @@ _copysign(
 
 /*++
 Function:
+_copysignf
+
+See MSDN doc
+--*/
+float
+__cdecl
+_copysignf(
+    float x,
+    float y)
+{
+    double ret;
+
+    PERF_ENTRY(_copysignf);
+    ENTRY("_copysignf (x=%f,y=%f)\n", x, y);
+    ret = copysignf(x, y);
+    LOGEXIT("_copysignf returns float %f\n", ret);
+    PERF_EXIT(_copysignf);
+    return ret;
+}
+
+/*++
+Function:
     acos
 
 See MSDN.

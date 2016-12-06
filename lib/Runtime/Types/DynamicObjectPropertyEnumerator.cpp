@@ -141,7 +141,7 @@ namespace Js
     bool DynamicObjectPropertyEnumerator::CanUseJITFastPath() const
     {
 #if ENABLE_TTD
-        AssertMsg(this->cachedData == nullptr || !this->scriptContext->GetThreadContext()->IsRuntimeInTTDMode(), "We should always have cachedData null if we are in record or replay mode");
+        TTDAssert(this->cachedData == nullptr || !this->scriptContext->GetThreadContext()->IsRuntimeInTTDMode(), "We should always have cachedData null if we are in record or replay mode");
 #endif
 
         return !this->IsNullEnumerator() && !GetEnumNonEnumerable() && this->cachedData != nullptr;

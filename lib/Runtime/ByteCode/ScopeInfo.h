@@ -34,7 +34,7 @@ namespace Js {
         };
 
     private:
-        Field(FunctionBody * const) parent;    // link to parent function body
+        Field(FunctionInfo * const) parent;    // link to parent function
         Field(ScopeInfo*) funcExprScopeInfo;   // optional func expr scope info
         Field(ScopeInfo*) paramScopeInfo;      // optional param scope info
 
@@ -46,6 +46,7 @@ namespace Js {
         Field(BYTE) areNamesCached : 1;
         Field(BYTE) canMergeWithBodyScope : 1;
         Field(BYTE) hasLocalInClosure : 1;
+        Field(BYTE) parentOnly : 1;
 
         Field(Scope *) scope;
         Field(int) scopeId;
@@ -53,10 +54,12 @@ namespace Js {
         Field(SymbolInfo) symbols[];           // symbol PropertyIDs, index == sym.scopeSlot
 
     private:
-        ScopeInfo(FunctionBody * parent, int symbolCount)
-            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false)
+        ScopeInfo(FunctionInfo * parent, int symbolCount)
+            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false), parentOnly(false)
         {
         }
+
+        bool IsParentInfoOnly() const { return parentOnly; }
 
         void SetFuncExprScopeInfo(ScopeInfo* funcExprScopeInfo)
         {
@@ -177,19 +180,19 @@ namespace Js {
         void SaveSymbolInfo(Symbol* sym, MapSymbolData* mapSymbolData);
 
         static ScopeInfo* FromParent(FunctionBody* parent);
-        static ScopeInfo* FromScope(ByteCodeGenerator* byteCodeGenerator, FunctionBody* parent, Scope* scope, ScriptContext *scriptContext);
+        static ScopeInfo* FromScope(ByteCodeGenerator* byteCodeGenerator, ParseableFunctionInfo* parent, Scope* scope, ScriptContext *scriptContext);
         static void SaveParentScopeInfo(FuncInfo* parentFunc, FuncInfo* func);
         static void SaveScopeInfo(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func);
 
     public:
-        FunctionBody * GetParent() const
+        ParseableFunctionInfo * GetParent() const
         {
-            return parent;
+            return parent ? parent->GetParseableFunctionInfo() : nullptr;
         }
 
         ScopeInfo* GetParentScopeInfo() const
         {
-            return parent->GetScopeInfo();
+            return parent ? parent->GetParseableFunctionInfo()->GetScopeInfo() : nullptr;
         }
 
         ScopeInfo* GetFuncExprScopeInfo() const

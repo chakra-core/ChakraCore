@@ -17,19 +17,6 @@ namespace Wasm
     class WasmGlobal;
     struct WasmImport;
     struct WasmExport;
-
-    namespace WasmTypes
-    {
-        enum WasmType;
-    }
-    namespace FunctionIndexTypes
-    {
-        enum Type;
-    }
-    namespace ExternalKinds
-    {
-        enum ExternalKind;
-    }
 }
 
 namespace Js
@@ -42,9 +29,13 @@ public:
     {
     public:
         static FunctionInfo NewInstance;
+        static FunctionInfo Exports;
+        static FunctionInfo Imports;
     };
 
     static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
+    static Var EntryExports(RecyclableObject* function, CallInfo callInfo, ...);
+    static Var EntryImports(RecyclableObject* function, CallInfo callInfo, ...);
 
     static bool Is(Var aValue);
     static WebAssemblyModule * FromVar(Var aValue);
@@ -93,18 +84,23 @@ public:
     void AllocateFunctionExports(uint32 entries);
     uint GetExportCount() const { return m_exportCount; }
     void SetExport(uint32 iExport, uint32 funcIndex, const char16* exportName, uint32 nameLength, Wasm::ExternalKinds::ExternalKind kind);
-    Wasm::WasmExport* GetFunctionExport(uint32 iExport) const;
+    Wasm::WasmExport* GetExport(uint32 iExport) const;
 
     uint32 GetImportCount() const;
+    Wasm::WasmImport* GetImport(uint32 i) const;
     void AddFunctionImport(uint32 sigId, const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen);
-    Wasm::WasmImport* GetFunctionImport(uint32 i) const;
-    void AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* fnName, uint32 fnNameLen, Wasm::WasmGlobal* importedGlobal);
+    void AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
     void AddMemoryImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
     void AddTableImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
     Wasm::WasmImport * GetMemoryImport() const { return m_memImport; }
     Wasm::WasmImport * GetTableImport() const { return m_tableImport; }
+    uint32 GetImportedFunctionCount() const { return m_importedFunctionCount; }
 
-    uint GetOffsetFromInit(const Wasm::WasmNode& initexpr) const;
+    uint GetOffsetFromInit(const Wasm::WasmNode& initexpr, const class WebAssemblyEnvironment* env) const;
+
+    void AddGlobal(Wasm::GlobalReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init);
+    uint32 GetGlobalCount() const;
+    Wasm::WasmGlobal* GetGlobal(uint32 index) const;
 
     void AllocateDataSegs(uint32 count);
     void SetDataSeg(Wasm::WasmDataSegment* seg, uint32 index);
@@ -126,10 +122,10 @@ public:
     static uint GetImportFuncOffset() { return GetMemoryOffset() + 1; }
 
     // elements at instance dependent offsets
-    uint GetFuncOffset() const { return GetImportFuncOffset() + GetImportCount(); }
+    uint GetFuncOffset() const { return GetImportFuncOffset() + GetImportedFunctionCount(); }
     uint GetTableEnvironmentOffset() const { return GetFuncOffset() + GetWasmFunctionCount(); }
     uint GetGlobalOffset() const { return GetTableEnvironmentOffset() + 1; }
-    uint GetOffsetForGlobal(Wasm::WasmGlobal* global);
+    uint GetOffsetForGlobal(Wasm::WasmGlobal* global) const;
     uint AddGlobalByteSizeToOffset(Wasm::WasmTypes::WasmType type, uint32 offset) const;
     uint GetGlobalsByteSize() const;
 
@@ -139,11 +135,9 @@ public:
     virtual void Dispose(bool isShutdown) override;
     virtual void Mark(Recycler * recycler) override;
 
-    uint globalCounts[Wasm::WasmTypes::Limit];
-    typedef JsUtil::List<Wasm::WasmGlobal*, ArenaAllocator> WasmGlobalsList;
-    WasmGlobalsList * globals;
-
 private:
+    static JavascriptString * GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds::ExternalKind kind);
+
     bool m_hasTable;
     bool m_hasMemory;
     // The binary buffer is recycler allocated, tied the lifetime of the buffer to the module
@@ -162,9 +156,14 @@ private:
     WasmImportsList* m_imports;
     Wasm::WasmImport* m_memImport;
     Wasm::WasmImport* m_tableImport;
+    uint32 m_importedFunctionCount;
     Wasm::WasmDataSegment** m_datasegs;
     Wasm::WasmBinaryReader* m_reader;
     uint32* m_equivalentSignatureMap;
+
+    uint m_globalCounts[Wasm::WasmTypes::Limit];
+    typedef JsUtil::List<Wasm::WasmGlobal*, ArenaAllocator> WasmGlobalsList;
+    WasmGlobalsList * m_globals;
 
     uint m_signaturesCount;
     uint m_exportCount;

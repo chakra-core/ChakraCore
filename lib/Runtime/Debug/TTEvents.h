@@ -73,7 +73,7 @@
 
 #define TTD_REPLAY_ACTIVE_CONTEXT(executeContext) \
         Js::ScriptContext* ctx = executeContext->GetActiveScriptContext(); \
-        AssertMsg(ctx != nullptr, "This should bu non-null!!!");
+        TTDAssert(ctx != nullptr, "This should be non-null!!!");
 
 namespace TTD
 {
@@ -159,7 +159,7 @@ namespace TTD
 
     public:
         TTDebuggerSourceLocation();
-        TTDebuggerSourceLocation(const SingleCallCounter& callFrame);
+        TTDebuggerSourceLocation(int64 topLevelETime, const SingleCallCounter& callFrame);
         TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other);
         ~TTDebuggerSourceLocation();
 
@@ -174,7 +174,7 @@ namespace TTD
         bool HasValue() const;
         void Clear();
         void SetLocation(const TTDebuggerSourceLocation& other);
-        void SetLocation(const SingleCallCounter& callFrame);
+        void SetLocation(int64 topLevelETime, const SingleCallCounter& callFrame);
         void SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
 
         int64 GetRootEventTime() const;
@@ -336,7 +336,7 @@ namespace TTD
         const T* GetInlineEventDataAs(const EventLogEntry* evt)
         {
             static_assert(sizeof(T) < EVENT_INLINE_DATA_BYTE_COUNT, "Data is too large for inline representation!!!");
-            AssertMsg(evt->EventKind == tag, "Bad tag match!");
+            TTDAssert(evt->EventKind == tag, "Bad tag match!");
 
             return reinterpret_cast<const T*>(evt->EventData);
         }
@@ -345,7 +345,7 @@ namespace TTD
         T* GetInlineEventDataAs(EventLogEntry* evt)
         {
             static_assert(sizeof(T) < EVENT_INLINE_DATA_BYTE_COUNT, "Data is too large for inline representation!!!");
-            AssertMsg(evt->EventKind == tag, "Bad tag match!");
+            TTDAssert(evt->EventKind == tag, "Bad tag match!");
 
             return reinterpret_cast<T*>(evt->EventData);
         }

@@ -876,4 +876,9 @@
       <baseline>add-prop-to-dictionary.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>argobjlengthhoist.js</files>
+    </default>
+  </test>
 </regress-exe>

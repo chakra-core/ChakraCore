@@ -320,6 +320,10 @@ namespace Js
           return CreateReferenceError(scriptContext);
         case kjstURIError:
           return CreateURIError(scriptContext);
+        case kjstWebAssemblyCompileError:
+          return CreateWebAssemblyCompileError(scriptContext);
+        case kjstWebAssemblyRuntimeError:
+          return CreateWebAssemblyRuntimeError(scriptContext);
         default:
             AssertMsg(FALSE, "Invalid error type");
             __assume(false);
@@ -776,6 +780,10 @@ namespace Js
         case kjstURIError:
             jsNewError = targetJavascriptLibrary->CreateURIError();
             break;
+        case kjstWebAssemblyCompileError:
+            jsNewError = targetJavascriptLibrary->CreateWebAssemblyCompileError();
+        case kjstWebAssemblyRuntimeError:
+            jsNewError = targetJavascriptLibrary->CreateWebAssemblyRuntimeError();
 
         case kjstCustomError:
         default:

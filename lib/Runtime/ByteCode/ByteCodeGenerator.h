@@ -207,7 +207,7 @@ public:
         return protoReg;
     }
 
-    void RestoreScopeInfo(Js::FunctionBody* funcInfo);
+    void RestoreScopeInfo(Js::ParseableFunctionInfo* funcInfo);
     FuncInfo *StartBindGlobalStatements(ParseNode *pnode);
     void AssignPropertyId(Symbol *sym, Js::ParseableFunctionInfo* functionInfo);
     void AssignPropertyId(IdentPtr pid);
@@ -224,7 +224,7 @@ public:
     void AssignPropertyIds(Js::ParseableFunctionInfo* functionInfo);
     void MapCacheIdsToPropertyIds(FuncInfo *funcInfo);
     void MapReferencedPropertyIds(FuncInfo *funcInfo);
-    FuncInfo *StartBindFunction(const char16 *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNode *pnode);
+    FuncInfo *StartBindFunction(const char16 *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNode *pnode, Js::ParseableFunctionInfo * reuseNestedFunc);
     void EndBindFunction(bool funcExprWithName);
     void StartBindCatch(ParseNode *pnode);
 

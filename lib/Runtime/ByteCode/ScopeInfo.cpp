@@ -48,7 +48,7 @@ namespace Js
     ScopeInfo* ScopeInfo::FromParent(FunctionBody* parent)
     {
         return RecyclerNew(parent->GetScriptContext()->GetRecycler(), // Alloc with ParseableFunctionInfo
-            ScopeInfo, parent, 0);
+            ScopeInfo, parent->GetFunctionInfo(), 0);
     }
 
     inline void AddSlotCount(int& count, int addCount)
@@ -62,7 +62,7 @@ namespace Js
     //
     // Create scope info for an outer scope.
     //
-    ScopeInfo* ScopeInfo::FromScope(ByteCodeGenerator* byteCodeGenerator, FunctionBody* parent, Scope* scope, ScriptContext *scriptContext)
+    ScopeInfo* ScopeInfo::FromScope(ByteCodeGenerator* byteCodeGenerator, ParseableFunctionInfo* parent, Scope* scope, ScriptContext *scriptContext)
     {
         int count = scope->Count();
 
@@ -74,7 +74,7 @@ namespace Js
 
         ScopeInfo* scopeInfo = RecyclerNewPlusZ(scriptContext->GetRecycler(),
             count * sizeof(SymbolInfo),
-            ScopeInfo, parent, count);
+            ScopeInfo, parent ? parent->GetFunctionInfo() : nullptr, count);
         scopeInfo->isDynamic = scope->GetIsDynamic();
         scopeInfo->isObject = scope->GetIsObject();
         scopeInfo->mustInstantiate = scope->GetMustInstantiate();
@@ -130,7 +130,9 @@ namespace Js
         TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s\n\n"),
             funcBody->GetDisplayName(), parent->GetDisplayName());
 
-        funcBody->SetScopeInfo(FromParent(parent));
+        ScopeInfo *info = FromParent(parent);
+        info->parentOnly = true;
+        funcBody->SetScopeInfo(info);
     }
 
     //
@@ -146,9 +148,9 @@ namespace Js
         // If we are reparsing a deferred function, we already have correct "parent" info in
         // funcBody->scopeInfo. parentFunc is the knopProg shell and should not be used in this
         // case. We should use existing parent if available.
-        FunctionBody * parent = funcBody->GetScopeInfo() ?
+        ParseableFunctionInfo * parent = funcBody->GetScopeInfo() ?
             funcBody->GetScopeInfo()->GetParent() :
-            parentFunc ? parentFunc->byteCodeFunction->GetFunctionBody() : nullptr;
+            parentFunc ? parentFunc->byteCodeFunction : nullptr;
 
         ScopeInfo* funcExprScopeInfo = nullptr;
         Scope* funcExprScope = func->GetFuncExprScope();
@@ -180,6 +182,14 @@ namespace Js
         // let/const in that scope with slot index instead of doing a scope lookup.
         // We will have to implement encoding block scope info to enable, which will also
         // enable defer parsing function that are in block scopes.
+
+        if (funcInfo->byteCodeFunction && 
+            funcInfo->byteCodeFunction->GetScopeInfo() != nullptr &&
+            !funcInfo->byteCodeFunction->GetScopeInfo()->IsParentInfoOnly())
+        {
+            // No need to regenerate scope info if we re-compile an enclosing function
+            return;
+        }
 
         Scope* currentScope = byteCodeGenerator->GetCurrentScope();
         Assert(currentScope == funcInfo->GetBodyScope());
