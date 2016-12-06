@@ -108,12 +108,36 @@ namespace Js
     {
         return aLeft / aRight;
     }
+#if _M_IX86
+    template<>
+    inline double AsmJsMath::Div( double aLeft, double aRight )
+    {
+        __asm {
+            movsd xmm0, aLeft;
+            divsd xmm0, aRight;
+            movsd aLeft, xmm0;
+        }
+        return aLeft;
+    }
+#endif
 
     template<typename T>
     inline T AsmJsMath::Mul( T aLeft, T aRight )
     {
         return aLeft * aRight;
     }
+#if _M_IX86
+    template<>
+    inline double AsmJsMath::Mul( double aLeft, double aRight )
+    {
+        __asm {
+            movsd xmm0, aLeft;
+            mulsd xmm0, aRight;
+            movsd aLeft, xmm0;
+        }
+        return aLeft;
+    }
+#endif
 
     template<typename T>
     inline T AsmJsMath::Sub( T aLeft, T aRight )
