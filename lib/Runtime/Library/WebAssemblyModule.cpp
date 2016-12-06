@@ -217,7 +217,7 @@ WebAssemblyModule::CreateModule(
         }
         JavascriptLibrary *library = scriptContext->GetLibrary();
         JavascriptError *pError = library->CreateWebAssemblyCompileError();
-        JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, newEx.ReleaseErrorMessage(), scriptContext);
+        JavascriptError::SetErrorMessage(pError, WASMERR_WasmCompileError, newEx.ReleaseErrorMessage(), scriptContext);
         JavascriptExceptionOperators::Throw(pError, scriptContext);
     }
 
