@@ -1,18 +1,11 @@
 set(ch_source_files
   ch.cpp
   ChakraRtInterface.cpp
-  CodexAssert.cpp
   Debugger.cpp
   Helpers.cpp
   HostConfigFlags.cpp
   WScriptJsrt.cpp
   )
-
-if (STATIC_LIBRARY)
-  set(ch_source_files "${ch_source_files}"
-    ../ChakraCore/TestHooks.cpp
-    )
-endif()
 
 add_executable (ch ${ch_source_files})
 
@@ -45,38 +38,47 @@ if(STATIC_LIBRARY)
   elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(LINKER_START_GROUP -Wl,-force_load,)
   endif()
-
   # common link deps
   set(lib_target "${lib_target}"
-    -Wl,-undefined,error
-    ${LINKER_START_GROUP}
-    Chakra.Pal
-    Chakra.Common.Core
-    Chakra.Jsrt
-    ${LINKER_END_GROUP}
+    ChakraCoreStatic
     pthread
     stdc++
     dl
   )
 
-  if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-    set(lib_target "${lib_target}"
-      ${ICULIB}
-      unwind-x86_64
-      )
-  elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(lib_target "${lib_target}"
-      ${ICULIB}
-      "-framework CoreFoundation"
-      "-framework Security"
-      )
-  endif() # Linux ?
 else() # // shared library below
-  set(lib_target
-    PRIVATE Chakra.Pal
+  target_sources(ch PRIVATE
+    CodexAssert.cpp
+    $<TARGET_OBJECTS:Chakra.Pal>
+    )
+
+  set(lib_target "${lib_target}"
     PRIVATE Chakra.Common.Codex.Singular
     PRIVATE Chakra.Runtime.PlatformAgnostic.Singular
+    pthread
+    dl
+    ${ICULIB}
     )
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  set(lib_target "${lib_target}"
+    "-framework CoreFoundation"
+    "-framework Security"
+  )
+elseif(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  if(CC_TARGETS_AMD64)
+      set(lib_target "${lib_target}"
+        unwind-x86_64
+      )
+  endif()
+
+  set(lib_target "${lib_target}"
+    gcc_s
+    rt
+    unwind
+    unwind-generic
+  )
 endif()
 
 if(NOT CC_XCODE_PROJECT)

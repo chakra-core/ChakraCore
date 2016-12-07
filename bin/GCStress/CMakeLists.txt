@@ -26,9 +26,8 @@ endif()
 set(lib_target "${lib_target}"
   -Wl,-undefined,error
   ${LINKER_START_GROUP}
-  Chakra.Common.Core
-  Chakra.Pal
-  Chakra.Jsrt
+  #Chakra.Pal
+  ChakraCoreStatic
   ${LINKER_END_GROUP}
   )
 
