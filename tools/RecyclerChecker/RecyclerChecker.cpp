@@ -18,6 +18,11 @@ MainVisitor::MainVisitor(
 
 bool MainVisitor::VisitCXXRecordDecl(CXXRecordDecl* recordDecl)
 {
+    if (Log::GetLevel() < Log::LogLevel::Info)
+    {
+        return true; // At least Info level, otherwise this not needed
+    }
+
     std::string typeName = recordDecl->getQualifiedNameAsString();
 
     // Ignore (system/non-GC types) before seeing "Memory::NoWriteBarrierField"
@@ -482,9 +487,9 @@ void CheckAllocationsInFunctionVisitor::VisitAllocate(
                     auto allocationFunctionStr = declNameInfo.getName().getAsString();
                     _mainVisitor->RecordRecyclerAllocation(allocationFunctionStr, allocatedTypeStr);
 
-                    if (Contains(allocationFunctionStr, "WithBarrier"))
+                    if (!Contains(allocationFunctionStr, "Leaf"))
                     {
-                        // Recycler write barrier allocation
+                        // Recycler write barrier allocation -- unless "Leaf" in allocFunc
                         allocationType = AllocationTypes::RecyclerWriteBarrier;
                     }
                 }
@@ -497,9 +502,9 @@ void CheckAllocationsInFunctionVisitor::VisitAllocate(
             else if (auto mExpr = cast<MaterializeTemporaryExpr>(secondArgNode))
             {
                 auto name = mExpr->GetTemporaryExpr()->IgnoreImpCasts()->getType().getAsString();
-                if (StartsWith(name, "InfoBitsWrapper<") && Contains(name, "WithBarrierBit"))
+                if (StartsWith(name, "InfoBitsWrapper<")) // && Contains(name, "WithBarrierBit"))
                 {
-                    // RecyclerNewWithBarrierEnumClass, RecyclerNewWithBarrierWithInfoBits
+                    // RecyclerNewEnumClass, RecyclerNewWithInfoBits -- always have WithBarrier varients
                     allocationType = AllocationTypes::RecyclerWriteBarrier;
                 }
             }
