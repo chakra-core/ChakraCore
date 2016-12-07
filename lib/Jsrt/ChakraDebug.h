@@ -25,6 +25,7 @@
 #ifdef _WIN32
 //Other platforms already include <stdint.h> and have this defined automatically
 typedef __int64 int64_t;
+typedef unsigned __int32 uint32_t;
 #endif
 
     /// <summary>
