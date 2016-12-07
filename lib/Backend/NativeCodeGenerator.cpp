@@ -543,8 +543,6 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
 
         // Set asmjs to be true in entrypoint
         entryPointInfo->SetIsAsmJSFunction(true);
-        // Move the ModuleAddress from old Entrypoint to new entry point
-        entryPointInfo->SetModuleAddress(oldFuncObjEntryPointInfo->GetModuleAddress());
 
         // Update the native address of the older entry point - this should be either the TJ entrypoint or the Interpreter Entry point
         entryPointInfo->SetNativeAddress(oldFuncObjEntryPointInfo->jsMethod);
@@ -645,10 +643,8 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
 #ifdef ASMJS_PLAT
     if (fn->GetIsAsmJsFunction())
     {
-        Js::FunctionEntryPointInfo* functionEntryPointInfo = (Js::FunctionEntryPointInfo*) fn->GetDefaultEntryPointInfo();
         Js::LoopEntryPointInfo* loopEntryPointInfo = (Js::LoopEntryPointInfo*)entryPoint;
         loopEntryPointInfo->SetIsAsmJSFunction(true);
-        loopEntryPointInfo->SetModuleAddress(functionEntryPointInfo->GetModuleAddress());
     }
 #endif
     JsLoopBodyCodeGen * workitem = this->NewLoopBodyCodeGen(fn, entryPoint, loopHeader);
@@ -1627,7 +1623,10 @@ NativeCodeGenerator::CheckCodeGenDone(
         {
             entryPointInfo->Cleanup(false /* isShutdown */, true /* capture cleanup stack */);
         }
-        jsMethod = functionBody->GetScriptContext()->CurrentThunk == ProfileEntryThunk ? ProfileEntryThunk : functionBody->GetOriginalEntryPoint();
+
+        // Do not profile WebAssembly functions
+        jsMethod = (functionBody->GetScriptContext()->CurrentThunk == ProfileEntryThunk
+                    && !functionBody->IsWasmFunction()) ? ProfileEntryThunk : functionBody->GetOriginalEntryPoint();
         entryPointInfo->jsMethod = jsMethod;
     }
     else
