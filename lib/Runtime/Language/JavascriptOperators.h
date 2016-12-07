@@ -515,6 +515,7 @@ namespace Js
         static bool IsStaticTypeObjTypeSpecEquivalent(const TypeEquivalenceRecord& equivalenceRecord, uint& failedIndex);
         static bool IsStaticTypeObjTypeSpecEquivalent(const EquivalentPropertyEntry *entry);
         static bool CheckIfTypeIsEquivalent(Type* type, JitEquivalentTypeGuard* guard);
+        static bool CheckIfTypeIsEquivalentForFixedField(Type* type, JitEquivalentTypeGuard* guard);
 
         static void GetPropertyIdForInt(uint64 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
         static void GetPropertyIdForInt(uint32 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
