@@ -945,7 +945,26 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDInt32x4>(args[1], args[2], 4 * INT32_SIZE, scriptContext);
+        Var tarray;
+        Var index;
+        if (args.Info.Count > 1)
+        {
+            tarray = args[1];
+        }
+        else
+        {
+            tarray = scriptContext->GetLibrary()->GetUndefined();
+        }
+        if (args.Info.Count > 2)
+        {
+            index = args[2];
+        }
+        else
+        {
+            index = scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        return SIMD128TypedArrayLoad<JavascriptSIMDInt32x4>(tarray, index, 4 * INT32_SIZE, scriptContext);
     }
 
     Var SIMDInt32x4Lib::EntryLoad1(RecyclableObject* function, CallInfo callInfo, ...)
@@ -958,7 +977,26 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDInt32x4>(args[1], args[2], 1 * INT32_SIZE, scriptContext);
+        Var tarray;
+        Var index;
+        if (args.Info.Count > 1)
+        {
+            tarray = args[1];
+        }
+        else
+        {
+            tarray = scriptContext->GetLibrary()->GetUndefined();
+        }
+        if (args.Info.Count > 2)
+        {
+            index = args[2];
+        }
+        else
+        {
+            index = scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        return SIMD128TypedArrayLoad<JavascriptSIMDInt32x4>(tarray, index, 1 * INT32_SIZE, scriptContext);
     }
 
     Var SIMDInt32x4Lib::EntryLoad2(RecyclableObject* function, CallInfo callInfo, ...)
@@ -971,7 +1009,26 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDInt32x4>(args[1], args[2], 2 * INT32_SIZE, scriptContext);
+        Var tarray;
+        Var index;
+        if (args.Info.Count > 1)
+        {
+            tarray = args[1];
+        }
+        else
+        {
+            tarray = scriptContext->GetLibrary()->GetUndefined();
+        }
+        if (args.Info.Count > 2)
+        {
+            index = args[2];
+        }
+        else
+        {
+            index = scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        return SIMD128TypedArrayLoad<JavascriptSIMDInt32x4>(tarray, index, 2 * INT32_SIZE, scriptContext);
     }
 
     Var SIMDInt32x4Lib::EntryLoad3(RecyclableObject* function, CallInfo callInfo, ...)
@@ -984,7 +1041,26 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMD128TypedArrayLoad<JavascriptSIMDInt32x4>(args[1], args[2], 3 * INT32_SIZE, scriptContext);
+        Var tarray;
+        Var index;
+        if (args.Info.Count > 1)
+        {
+            tarray = args[1];
+        }
+        else
+        {
+            tarray = scriptContext->GetLibrary()->GetUndefined();
+        }
+        if (args.Info.Count > 2)
+        {
+            index = args[2];
+        }
+        else
+        {
+            index = scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        return SIMD128TypedArrayLoad<JavascriptSIMDInt32x4>(tarray, index, 3 * INT32_SIZE, scriptContext);
     }
 
     Var SIMDInt32x4Lib::EntryStore(RecyclableObject* function, CallInfo callInfo, ...)
