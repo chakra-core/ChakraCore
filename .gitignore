@@ -30,6 +30,7 @@
 
 # Visual Studio Extensions
 *.vadbg
+*.args.json
 
 # Build Artifacts
 build_*.err
