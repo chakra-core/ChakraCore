@@ -31,6 +31,7 @@ JITManager::JITManager() :
     m_oopJitEnabled(false),
     m_isJITServer(false),
     m_targetHandle(nullptr),
+    m_serverHandle(nullptr),
     m_jitConnectionId()
 {
 }
@@ -170,7 +171,7 @@ JITManager::CreateBinding(
         RpcBindingFree(&localBindingHandle);
         return HRESULT_FROM_WIN32(status);
     }
-
+    m_serverHandle = serverProcessHandle;
     *bindingHandle = localBindingHandle;
     return S_OK;
 }
@@ -622,4 +623,10 @@ JITManager::RemoteCodeGenCall(
     RpcEndExcept;
 
     return hr;
+}
+
+bool
+JITManager::IsServerAlive() const
+{
+    return (WaitForSingleObject(this->m_serverHandle, 0) == WAIT_OBJECT_0);
 }

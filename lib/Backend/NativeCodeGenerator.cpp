@@ -904,7 +904,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             // script context may close after codegen call starts, consider this as aborted codegen
             hr = E_ABORT;
         }
-        JITManager::HandleServerCallResult(hr);
+        JITManager::HandleServerCallResult(hr, true);
     }
     else
     {
@@ -3625,8 +3625,9 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
     return true;
 }
 
+#if _WIN32
 void
-JITManager::HandleServerCallResult(HRESULT hr)
+JITManager::HandleServerCallResult(HRESULT hr, bool isCodeGenCall)
 {
     switch (hr)
     {
@@ -3639,6 +3640,24 @@ JITManager::HandleServerCallResult(HRESULT hr)
     case VBSERR_OutOfStack:
         throw Js::StackOverflowException();
     default:
-        RpcFailure_fatal_error(hr);
+        if (!GetJITManager()->IsServerAlive() && (
+            hr == HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) ||
+            hr == HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE)
+            ))
+        {
+            if (isCodeGenCall)
+            {
+                throw Js::OperationAbortedException();
+            }
+            else
+            {
+                Js::Throw::OutOfMemory();
+            }
+        }
+        else
+        {
+            RpcFailure_fatal_error(hr);
+        }
     }
 }
+#endif
