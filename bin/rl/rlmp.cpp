@@ -340,9 +340,9 @@ void CThreadInfo::Done()
     LeaveCriticalSection(&_cs);
 }
 
-void CThreadInfo::SetCurrentTest(char* dir, char* test, bool isBaseline)
+void CThreadInfo::SetCurrentTest(const char* dir, const char* test, bool isBaseline)
 {
-    char* tmp = "";
+    const char* tmp = "";
 
     EnterCriticalSection(&_cs);
 
@@ -421,7 +421,7 @@ void COutputBuffer::Flush(FILE* pfile)
     Reset();
 }
 
-COutputBuffer::COutputBuffer(char* logfile, bool buffered)
+COutputBuffer::COutputBuffer(const char* logfile, bool buffered)
     : _bufSize(512)
     , _buffered(buffered)
     , _textGrabbed(false)
@@ -555,8 +555,8 @@ void COutputBuffer::Flush()
 
 int
 ExecuteCommand(
-    char* path,
-    char* CommandLine,
+    const char* path,
+    const char* CommandLine,
     DWORD millisecTimeout,
     void* envFlags)
 {

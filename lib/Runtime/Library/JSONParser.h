@@ -24,7 +24,7 @@ namespace JSON
             propertyIndex(propertyIndex),
             next(nullptr) {}
 
-        static JsonTypeCache* JsonTypeCache::New(ArenaAllocator* allocator,
+        static JsonTypeCache* New(ArenaAllocator* allocator,
             const Js::PropertyRecord* propertyRecord,
             Js::DynamicType* typeWithoutProperty,
             Js::DynamicType* typeWithProperty,

@@ -383,7 +383,7 @@ namespace Js
         static Var OP_CmGt_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);
         static Var OP_CmGe_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);
 
-        static FunctionInfo * JavascriptOperators::GetConstructorFunctionInfo(Var instance, ScriptContext * scriptContext);
+        static FunctionInfo * GetConstructorFunctionInfo(Var instance, ScriptContext * scriptContext);
         // Detach the type array buffer, if possible, and returns the state of the object which can be used to initialize another object
         static DetachedStateBase* DetachVarAndGetState(Var var);
         static bool IsObjectDetached(Var var);

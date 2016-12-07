@@ -77,7 +77,7 @@ Attribute::Dump()
 
 Node::Node
 (
-   Char * name,
+   const Char * name,
    Attribute * attributeList
 )
    : Name(name)
