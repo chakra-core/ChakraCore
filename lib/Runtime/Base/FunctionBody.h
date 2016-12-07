@@ -1376,7 +1376,7 @@ namespace Js
         void* GetAuxPtrWithLock(AuxPointerType e) const;
         void SetAuxPtr(AuxPointerType e, void* ptr);
 
-        FunctionInfo *functionInfo;
+        FieldWithBarrier(FunctionInfo *) functionInfo;
 
     public:
         enum SetDisplayNameFlags

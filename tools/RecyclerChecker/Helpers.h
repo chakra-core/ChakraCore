@@ -17,6 +17,7 @@ private:
     static LogLevel s_logLevel;
 
 public:
+    static LogLevel GetLevel() { return s_logLevel; }
     static void SetLevel(LogLevel level) { s_logLevel = level; }
 
     static raw_ostream& errs()
