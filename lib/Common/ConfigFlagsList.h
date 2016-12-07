@@ -726,7 +726,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_WriteBarrierTest (false)
 #else
 #define DEFAULT_CONFIG_ForceSoftwareWriteBarrier  (true)
-#define DEFAULT_CONFIG_WriteBarrierTest (true) // TODO: SWB change to false after all write barrier annotations are done
+#define DEFAULT_CONFIG_WriteBarrierTest (false)
 #endif
 
 #define TraceLevel_Error        (1)
