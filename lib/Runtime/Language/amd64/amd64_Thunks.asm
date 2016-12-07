@@ -307,9 +307,9 @@ endif
 ;;============================================================================================================
 
 extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
-extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z : PROC
-; extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNM@Z : PROC
-extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNMT__m128@@@Z : PROC
+extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z : PROC
+; extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@_JNMT__m128@@@Z : PROC
+extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@_JNMT__m128@@@Z : PROC
 
 extrn ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z : PROC
 
@@ -352,7 +352,7 @@ align 16
 
         sub rsp, 20h ; so stack space for unboxing function isn't same as where it is unboxing into. allocate args spill space for unboxing function.
         ; unboxing function also does stack probe
-        call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z
+        call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z
         ; rax = target function address
 
 ifdef _CONTROL_FLOW_GUARD
@@ -423,7 +423,7 @@ endif
 
         ; Var BoxAsmJsReturnValue(ScriptFunction* func, int intRetVal, double doubleRetVal, float floatRetVal)
         mov rcx, rsi
-        mov edx, eax
+        mov rdx, rax
         movsd xmm2, xmm0
         movss xmm3, xmm0
 
@@ -433,7 +433,7 @@ endif
         movups [rsp + 30h], xmm0
         lea rsi, [rsp + 30h]
         mov qword ptr [rsp + 20h], rsi
-        call ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNMT__m128@@@Z
+        call ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@_JNMT__m128@@@Z
 
         mov rsp, rdi ; restore stack pointer
     Epilogue:
