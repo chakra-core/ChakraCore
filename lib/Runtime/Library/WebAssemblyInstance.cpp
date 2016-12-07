@@ -322,7 +322,7 @@ void WebAssemblyInstance::LoadImports(
             {
                 Assert(env->GetWasmFunction(counter) == nullptr);
                 AsmJsScriptFunction* func = AsmJsScriptFunction::FromVar(prop);
-                if (!wasmModule->GetFunctionSignature(counter)->IsEquivalent(func->GetSignature()))
+                if (!wasmModule->GetWasmFunctionInfo(counter)->GetSignature()->IsEquivalent(func->GetSignature()))
                 {
                     JavascriptError::ThrowTypeError(ctx, WASMERR_SignatureMismatch);
                 }
