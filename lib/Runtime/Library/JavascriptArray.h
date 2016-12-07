@@ -440,7 +440,7 @@ namespace Js
 
         template<typename T>
         bool JavascriptArray::IsMissingItemAt(uint32 index) const;
-        bool IsMissingItemForUnkownArrayTypeAt(uint32 index);
+        bool IsMissingItem(uint32 index);
 
         virtual bool IsMissingHeadSegmentItem(const uint32 index) const;
 

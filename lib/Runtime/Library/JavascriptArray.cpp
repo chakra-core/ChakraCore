@@ -475,7 +475,7 @@ namespace Js
         return SparseArraySegment<T>::IsMissingItem(&headSeg->elements[index]);
     }
 
-    bool JavascriptArray::IsMissingItemForUnkownArrayTypeAt(uint32 index)
+    bool JavascriptArray::IsMissingItem(uint32 index)
     {
         bool isIntArray = false, isFloatArray = false;
         this->GetArrayTypeAndConvert(&isIntArray, &isFloatArray);
@@ -5780,7 +5780,7 @@ Case0:
             {
                 // array type might be changed in the below call to DirectGetItemAtFull
                 // need recheck array type before checking array item [i + start]
-                if (pArr->IsMissingItemForUnkownArrayTypeAt(i + start))
+                if (pArr->IsMissingItem(i + start))
                 {
                     Var element;
                     pnewArr->SetHasNoMissingValues(false);
