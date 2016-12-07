@@ -41,7 +41,7 @@ else
     # TEST flags are not enabled for release build
     # however we would like to test if the compiled binary
     # works or not
-    RES=$($test_path/../BuildLinux/${binary_path}/ch $test_path/basics/hello.js)
+    RES=$($test_path/../BuildLinux/${binary_path}/ch $test_path/Basics/hello.js)
     if [[ $RES =~ "Error :" ]]; then
         echo "FAILED"
         exit 1
