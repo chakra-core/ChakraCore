@@ -106,6 +106,7 @@ echo("    };");
 ----------------------------------------------------------------------
 */
 
+    // Character classes represented as a bit vector for each character.
     const uint8 ASCIIChars::classes[] = {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x06, 0x04, 0x04, 0x06, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -124,6 +125,8 @@ echo("    };");
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+
+    // Numeric values of ASCII characters interpreted as hex digits (applies to [0-9a-fA-F], all others are 0x00).
     const uint8 ASCIIChars::values[] = {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -155,7 +158,7 @@ echo("    };");
 
 /*
 To get the whitespaces string, run:
-  gawk -f spaces.gawk http://www.unicode.org/Public/UNIDATA/UnicodeData.txt
+  gawk -f spaces.gawk http://www.unicode.org/Public/9.0.0/ucd/UnicodeData.txt
 where spaces.gawk is
 ----------------------------------------------------------------------
 BEGIN {
@@ -180,13 +183,14 @@ BEGIN {
 END {
   str = sprintf("%s\\x%04x\\x%04x", str, start, last);
   print str;
-}----------------------------------------------------------------------
+}
+----------------------------------------------------------------------
 */
 
     const int StandardChars<char16>::numDigitPairs = 1;
     const char16* const StandardChars<char16>::digitStr = _u("09");
-    const int StandardChars<char16>::numWhitespacePairs = 11;
-    const char16* const StandardChars<char16>::whitespaceStr = _u("\x0009\x000d\x0020\x0020\x00a0\x00a0\x1680\x1680\x180e\x180e\x2000\x200a\x2028\x2029\x202f\x202f\x205f\x205f\x3000\x3000\xfeff\xfeff");
+    const int StandardChars<char16>::numWhitespacePairs = 10;
+    const char16* const StandardChars<char16>::whitespaceStr = _u("\x0009\x000d\x0020\x0020\x00a0\x00a0\x1680\x1680\x2000\x200a\x2028\x2029\x202f\x202f\x205f\x205f\x3000\x3000\xfeff\xfeff");
     const int StandardChars<char16>::numWordPairs = 4;
     const char16* const StandardChars<char16>::wordStr = _u("09AZ__az");
     const int StandardChars<char16>::numNewlinePairs = 3;
