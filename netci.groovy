@@ -277,11 +277,11 @@ def isXPlatCompatibleBranch = !(branch in ['release/1.1', 'release/1.1-ci', 'rel
 
 // Include these explicitly-named branches
 def isXPlatDailyBranch = branch in ['master', 'linux', 'xplat']
-// Include some release/* branches
-if (branch.startsWith('release')) {
+// Include some release/* branches (ignore branches ending in '-ci')
+if (branch.startsWith('release') && !branch.endsWith('-ci')) {
     // Allows all current and future release/* branches on which we should run daily builds of XPlat configs.
-    // RegEx matches e.g. release/1.1, release/1.2, release/1.3-ci, but not e.g. release/2.0, release/1.3, or release/1.10
-    includeReleaseBranch = !(branch =~ /^release\/((1\.[12](\D.*)?)|(\d+\.\d+\D.*))$/)
+    // RegEx matches branch names we should ignore (e.g. release/1.1, release/1.2, release/1.2-pre)
+    includeReleaseBranch = !(branch =~ /^release\/(1\.[12](\D.*)?)$/)
     isXPlatDailyBranch |= includeReleaseBranch
 }
 
