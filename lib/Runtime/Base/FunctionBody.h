@@ -580,7 +580,6 @@ namespace Js
         CodeGenWorkItem * workItem;
         Js::JavascriptMethod nativeAddress;
         ptrdiff_t codeSize;
-        uintptr_t  mModuleAddress; //asm Module address
 
     protected:
         JavascriptLibrary* library;
@@ -802,22 +801,6 @@ namespace Js
         void SetHasJittedStackClosure()
         {
             this->hasJittedStackClosure = true;
-        }
-#endif
-
-#ifdef ASMJS_PLAT
-        void SetModuleAddress(uintptr_t moduleAddress)
-        {
-            Assert(this->GetIsAsmJSFunction());
-            Assert(moduleAddress);
-            mModuleAddress = moduleAddress;
-        }
-
-        uintptr_t GetModuleAddress()const
-        {
-            Assert(this->GetIsAsmJSFunction());
-            Assert(mModuleAddress); // module address should not be null
-            return mModuleAddress;
         }
 #endif
 
@@ -1418,6 +1401,7 @@ namespace Js
         bool IsClassConstructor() const;
         bool IsClassMethod() const;
         bool IsModule() const;
+        bool IsWasmFunction() const;
         bool HasSuperReference() const;
         bool IsCoroutine() const;
         bool GetCapturesThis() const;
@@ -3554,6 +3538,7 @@ namespace Js
 
         void CheckAndRegisterFuncToDiag(ScriptContext *scriptContext);
         void SetEntryToDeferParseForDebugger();
+        void ClearEntryPoints();
         void ResetEntryPoint();
         void CleanupToReparse();
         void AddDeferParseAttribute();

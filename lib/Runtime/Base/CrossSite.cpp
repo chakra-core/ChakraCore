@@ -313,6 +313,21 @@ namespace Js
 
         TTD_XSITE_LOG(callable->GetScriptContext(), "DefaultOrProfileThunk", callable);
 
+#ifdef ENABLE_WASM
+        if (AsmJsScriptFunction::IsWasmScriptFunction(function))
+        {
+            AsmJsFunctionInfo* asmInfo = funcInfo->GetFunctionBody()->GetAsmJsFunctionInfo();
+            Assert(asmInfo);
+            if (asmInfo->IsWasmDeferredParse())
+            {
+                entryPoint = WasmLibrary::WasmDeferredParseExternalThunk;
+            }
+            else
+            {
+                entryPoint = Js::AsmJsExternalEntryPoint;
+            }
+        } else
+#endif
         if (funcInfo->HasBody())
         {
 #if ENABLE_DEBUG_CONFIG_OPTIONS

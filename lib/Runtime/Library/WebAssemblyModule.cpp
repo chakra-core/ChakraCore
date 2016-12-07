@@ -259,7 +259,6 @@ WebAssemblyModule::ValidateModule(
                 AsmJsScriptFunction * funcObj = scriptContext->GetLibrary()->CreateAsmJsScriptFunction(body);
                 FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
                 entypointInfo->SetIsAsmJSFunction(true);
-                entypointInfo->SetModuleAddress(1);
                 GenerateFunction(scriptContext->GetNativeCodeGenerator(), body, funcObj);
             }
 #endif

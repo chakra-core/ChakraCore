@@ -79,6 +79,12 @@ namespace Js
         PERF_COUNTER_INC(Code, TotalFunction);
     }
 
+    bool FunctionProxy::IsWasmFunction() const
+    {
+        return GetFunctionInfo()->HasParseableInfo() &&
+            GetFunctionInfo()->GetFunctionBody()->IsWasmFunction();
+    }
+
     Recycler* FunctionProxy::GetRecycler() const
     {
         return m_scriptContext->GetRecycler();
@@ -3438,6 +3444,9 @@ namespace Js
 #if ENABLE_PROFILE_INFO
             || (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk &&
             this->IsFunctionBody() && this->GetFunctionBody()->IsNativeOriginalEntryPoint())
+#ifdef ENABLE_WASM
+            || (GetFunctionBody()->IsWasmFunction() && directEntryPoint == WasmLibrary::WasmDeferredParseInternalThunk)
+#endif
 #ifdef ASMJS_PLAT
             || (GetFunctionBody()->GetIsAsmJsFunction() && directEntryPoint == AsmJsDefaultEntryThunk)
             || IsAsmJsCodeGenThunk(directEntryPoint)
@@ -3484,8 +3493,9 @@ namespace Js
 
     bool FunctionProxy::HasValidEntryPoint() const
     {
-        if (!m_scriptContext->HadProfiled() &&
-            !(this->m_scriptContext->IsScriptContextInDebugMode() && m_scriptContext->IsExceptionWrapperForBuiltInsEnabled()))
+        if (this->IsWasmFunction() ||
+            (!m_scriptContext->HadProfiled() &&
+            !(this->m_scriptContext->IsScriptContextInDebugMode() && m_scriptContext->IsExceptionWrapperForBuiltInsEnabled())))
         {
             return this->HasValidNonProfileEntryPoint();
         }
@@ -3709,6 +3719,14 @@ namespace Js
 
     void FunctionBody::ProfileSetNativeEntryPoint(FunctionEntryPointInfo* entryPointInfo, FunctionBody * functionBody, JavascriptMethod entryPoint)
     {
+#ifdef ENABLE_WASM
+        // Do not profile WebAssembly functions
+        if (functionBody->IsWasmFunction())
+        {
+            functionBody->SetNativeEntryPoint(entryPointInfo, entryPoint, entryPoint);
+            return;
+        }
+#endif
         Assert(functionBody->m_scriptContext->CurrentThunk == ProfileEntryThunk);
         functionBody->SetNativeEntryPoint(entryPointInfo, entryPoint, ProfileEntryThunk);
     }
@@ -4969,10 +4987,7 @@ namespace Js
 #endif
     }
 
-    //
-    // For library code all references to jitted entry points need to be removed
-    //
-    void FunctionBody::ResetEntryPoint()
+    void FunctionBody::ClearEntryPoints()
     {
         if (this->entryPoints)
         {
@@ -4996,6 +5011,14 @@ namespace Js
         }
 
         this->entryPoints->ClearAndZero();
+    }
+
+    //
+    // For library code all references to jitted entry points need to be removed
+    //
+    void FunctionBody::ResetEntryPoint()
+    {
+        ClearEntryPoints();
         this->CreateNewDefaultEntryPoint();
         this->SetOriginalEntryPoint(DefaultEntryThunk);
         m_defaultEntryPointInfo->jsMethod = m_scriptContext->CurrentThunk;
@@ -9732,7 +9755,6 @@ namespace Js
                     newEntryPoint = functionBody->CreateNewDefaultEntryPoint();
                     newEntryPoint->SetIsAsmJSFunction(true);
                     newEntryPoint->jsMethod = AsmJsDefaultEntryThunk;
-                    newEntryPoint->SetModuleAddress(GetModuleAddress());
                     functionBody->SetIsAsmJsFullJitScheduled(false);
                     functionBody->SetExecutionMode(functionBody->GetDefaultInterpreterExecutionMode());
                     this->functionProxy->SetOriginalEntryPoint(AsmJsDefaultEntryThunk);
