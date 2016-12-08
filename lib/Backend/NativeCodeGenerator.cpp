@@ -3640,31 +3640,30 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
     case VBSERR_OutOfStack:
         throw Js::StackOverflowException();
     default:
-        if (!GetJITManager()->IsServerAlive())
+        // we should not have RPC failure if JIT process is still around
+        if (GetJITManager()->IsServerAlive())
         {
-            // we only expect to see these hresults in case server has been closed. failfast otherwise
-            if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) && hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE))
-            {
-                RpcFailure_fatal_error(hr);
-            }
-            switch (callType)
-            {
-            case RemoteCallType::CodeGen:
-                // inform job manager that JIT work item has been cancelled
-                throw Js::OperationAbortedException();
-            case RemoteCallType::HeapQuery:
-            case RemoteCallType::ThunkCreation:
-                Js::Throw::OutOfMemory();
-            case RemoteCallType::StateUpdate:
-                // if server process is gone, we can ignore failures updating its state
-                return;
-            default:
-                Assert(UNREACHED);
-                RpcFailure_fatal_error(hr);
-            }
+            RpcFailure_fatal_error(hr);
         }
-        else
+
+        // we only expect to see these hresults in case server has been closed. failfast otherwise
+        if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) && hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE))
         {
+            RpcFailure_fatal_error(hr);
+        }
+        switch (callType)
+        {
+        case RemoteCallType::CodeGen:
+            // inform job manager that JIT work item has been cancelled
+            throw Js::OperationAbortedException();
+        case RemoteCallType::HeapQuery:
+        case RemoteCallType::ThunkCreation:
+            Js::Throw::OutOfMemory();
+        case RemoteCallType::StateUpdate:
+            // if server process is gone, we can ignore failures updating its state
+            return;
+        default:
+            Assert(UNREACHED);
             RpcFailure_fatal_error(hr);
         }
     }
