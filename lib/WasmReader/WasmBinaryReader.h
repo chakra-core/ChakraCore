@@ -86,7 +86,7 @@ namespace Wasm
         MaxAllowedType LEB128(UINT &length, bool sgn = false);
         template<typename MaxAllowedType = INT>
         MaxAllowedType SLEB128(UINT &length);
-        WasmNode ReadInitExpr();
+        WasmNode ReadInitExpr(bool isOffset = false);
 
         void CheckBytesLeft(UINT bytesNeeded);
         bool EndOfFunc();
