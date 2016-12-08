@@ -149,6 +149,9 @@ public:
     char* GetBeginAddress() const { return address; }
     char* GetEndAddress() const { return addressEnd; }
 
+    bool TryGetAttributes(void* objectAddress, unsigned char * pAttr);
+    bool TryGetAttributes(LargeObjectHeader *objectHeader, unsigned char * pAttr);
+
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes);
     char * TryAllocFromFreeList(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes);
 
