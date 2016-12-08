@@ -9,6 +9,7 @@ class StackBackTrace
 {
 public:
     static const ULONG DefaultFramesToCapture = 30;
+    static StackBackTrace * Capture(char* buffer, size_t bufSize, ULONG framesToSkip = 0);
     template <typename TAllocator> _NOINLINE
         static StackBackTrace * Capture(TAllocator * alloc, ULONG framesToSkip = 0, ULONG framesToCapture = DefaultFramesToCapture);
 

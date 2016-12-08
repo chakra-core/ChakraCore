@@ -2608,7 +2608,7 @@ namespace Js
         bool IsActiveFunction(ActiveFunctionSet * pActiveFuncs) const;
         bool TestAndUpdateActiveFunctions(ActiveFunctionSet * pActiveFuncs) const;
         void UpdateActiveFunctionSet(ActiveFunctionSet * pActiveFuncs, FunctionCodeGenRuntimeData *callSiteData) const;
-        void UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *parentData, FunctionCodeGenRuntimeData **dataSet, uint count) const;
+        void UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *parentData, Field(FunctionCodeGenRuntimeData*)* dataSet, uint count) const;
         uint GetInactiveCount() const { return inactiveCount; }
         void SetInactiveCount(uint count) { inactiveCount = count; }
         void IncrInactiveCount(uint increment);
@@ -2914,12 +2914,12 @@ namespace Js
         StatementMapList * GetStatementMaps() const { return static_cast<StatementMapList *>(this->GetAuxPtrWithLock(AuxPointerType::StatementMaps)); }
         void SetStatementMaps(StatementMapList *pStatementMaps) { this->SetAuxPtr(AuxPointerType::StatementMaps, pStatementMaps); }
 
-        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::CodeGenGetSetRuntimeData)); }
-        FunctionCodeGenRuntimeData ** GetCodeGenGetSetRuntimeDataWithLock() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenGetSetRuntimeData)); }
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenGetSetRuntimeData() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtr(AuxPointerType::CodeGenGetSetRuntimeData)); }
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenGetSetRuntimeDataWithLock() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenGetSetRuntimeData)); }
         void SetCodeGenGetSetRuntimeData(FunctionCodeGenRuntimeData** codeGenGetSetRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenGetSetRuntimeData, codeGenGetSetRuntimeData); }
 
-        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeData() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtr(AuxPointerType::CodeGenRuntimeData)); }
-        FunctionCodeGenRuntimeData ** GetCodeGenRuntimeDataWithLock() const { return static_cast<FunctionCodeGenRuntimeData**>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenRuntimeData)); }
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenRuntimeData() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtr(AuxPointerType::CodeGenRuntimeData)); }
+        Field(FunctionCodeGenRuntimeData*)* GetCodeGenRuntimeDataWithLock() const { return static_cast<Field(FunctionCodeGenRuntimeData*)*>(this->GetAuxPtrWithLock(AuxPointerType::CodeGenRuntimeData)); }
         void SetCodeGenRuntimeData(FunctionCodeGenRuntimeData** codeGenRuntimeData) { this->SetAuxPtr(AuxPointerType::CodeGenRuntimeData, codeGenRuntimeData); }
 
         template <typename TStatementMapList>
@@ -3315,7 +3315,7 @@ namespace Js
         void RecordStrictNullDisplayConstant(RegSlot location);
         void InitConstantSlots(Var *dstSlots);
         Var GetConstantVar(RegSlot location);
-        Js::Var* GetConstTable() const { return this->m_constTable; }
+        Field(Js::Var)* GetConstTable() const { return (Field(Js::Var)*)PointerValue(this->m_constTable); }
         void SetConstTable(Js::Var* constTable) { this->m_constTable = constTable; }
 
         void MarkScript(ByteBlock * pblkByteCode, ByteBlock * pblkAuxiliaryData, ByteBlock* auxContextBlock,
@@ -3415,12 +3415,12 @@ namespace Js
     public:
         uint NewObjectLiteral();
         void AllocateObjectLiteralTypeArray();
-        DynamicType ** GetObjectLiteralTypeRef(uint index);
-        DynamicType ** GetObjectLiteralTypeRefWithLock(uint index);
+        Field(DynamicType*)* GetObjectLiteralTypeRef(uint index);
+        Field(DynamicType*)* GetObjectLiteralTypeRefWithLock(uint index);
         uint NewLiteralRegex();
         void AllocateLiteralRegexArray();
-        UnifiedRegex::RegexPattern **GetLiteralRegexes() const { return static_cast<UnifiedRegex::RegexPattern **>(this->GetAuxPtr(AuxPointerType::LiteralRegexes)); }
-        UnifiedRegex::RegexPattern **GetLiteralRegexesWithLock() const { return static_cast<UnifiedRegex::RegexPattern **>(this->GetAuxPtrWithLock(AuxPointerType::LiteralRegexes)); }
+        Field(UnifiedRegex::RegexPattern*)* GetLiteralRegexes() const { return static_cast<Field(UnifiedRegex::RegexPattern*)*>(this->GetAuxPtr(AuxPointerType::LiteralRegexes)); }
+        Field(UnifiedRegex::RegexPattern*)* GetLiteralRegexesWithLock() const { return static_cast<Field(UnifiedRegex::RegexPattern*)*>(this->GetAuxPtrWithLock(AuxPointerType::LiteralRegexes)); }
         void SetLiteralRegexs(UnifiedRegex::RegexPattern ** literalRegexes) { this->SetAuxPtr(AuxPointerType::LiteralRegexes, literalRegexes); }
         UnifiedRegex::RegexPattern *GetLiteralRegex(const uint index);
         UnifiedRegex::RegexPattern *GetLiteralRegexWithLock(const uint index);
@@ -3439,8 +3439,8 @@ namespace Js
         AsmJsModuleInfo* AllocateAsmJsModuleInfo();
 #endif
         void SetLiteralRegex(const uint index, UnifiedRegex::RegexPattern *const pattern);
-        DynamicType** GetObjectLiteralTypes() const { return static_cast<DynamicType**>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
-        DynamicType** GetObjectLiteralTypesWithLock() const { return static_cast<DynamicType**>(this->GetAuxPtrWithLock(AuxPointerType::ObjLiteralTypes)); }
+        Field(DynamicType*)* GetObjectLiteralTypes() const { return static_cast<Field(DynamicType*)*>(this->GetAuxPtr(AuxPointerType::ObjLiteralTypes)); }
+        Field(DynamicType*)* GetObjectLiteralTypesWithLock() const { return static_cast<Field(DynamicType*)*>(this->GetAuxPtrWithLock(AuxPointerType::ObjLiteralTypes)); }
     private:
         void ResetLiteralRegexes();
         void ResetObjectLiteralTypes();

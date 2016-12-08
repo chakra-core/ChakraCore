@@ -21,11 +21,11 @@ namespace Js
 
         // There will be a non-null entry for each profiled call site where a function is to be inlined or has previously been
         // inlined
-        Field(FunctionCodeGenRuntimeData **) inlinees;
+        Field(Field(FunctionCodeGenRuntimeData *)*) inlinees;
 
         // There will be a non-null entry for each  call site where a getter setter is to be inlined or has previously been
         // inlined
-        Field(FunctionCodeGenRuntimeData **) ldFldInlinees;
+        Field(Field(FunctionCodeGenRuntimeData *)*) ldFldInlinees;
 
         Field(FunctionCodeGenRuntimeData *) next;
 
@@ -36,8 +36,8 @@ namespace Js
     public:
         FunctionBody *GetFunctionBody() const;
         FunctionCodeGenRuntimeData *GetNext() const { return next; };
-        FunctionCodeGenRuntimeData **GetInlinees() const { return inlinees; }
-        FunctionCodeGenRuntimeData **GetLdFldInlinees() const { return ldFldInlinees; }
+        Field(FunctionCodeGenRuntimeData*)* GetInlinees() const { return inlinees; }
+        Field(FunctionCodeGenRuntimeData*)* GetLdFldInlinees() const { return ldFldInlinees; }
         const FunctionCodeGenRuntimeData *GetForTarget(FunctionBody *targetFuncBody) const;
         const InlineCachePointerArray<InlineCache> *ClonedInlineCaches() const;
         InlineCachePointerArray<InlineCache> *ClonedInlineCaches();

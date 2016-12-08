@@ -24,7 +24,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->constCount = functionBody->GetConstantCount();
     if (functionBody->GetConstantCount() > 0)
     {
-        jitBody->constTable = (intptr_t *)functionBody->GetConstTable();
+        jitBody->constTable = (intptr_t *)PointerValue(functionBody->GetConstTable());
         if (!functionBody->GetIsAsmJsFunction())
         {
             jitBody->constTableContent = AnewStructZ(arena, ConstTableContentIDL);

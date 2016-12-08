@@ -1471,7 +1471,7 @@ public:
         size += PrependInt32(builder, _u("Start Constant Table"), magicStartOfConstantTable);
 #endif
 
-        Js::Var * constTable = static_cast<Js::Var *>(function->GetConstTable());
+        auto constTable = function->GetConstTable();
         byte* tableEnd = (byte*)(constTable + function->GetConstantCount());
 
         for (int i = 0; i < WAsmJs::LIMIT; ++i)
@@ -2803,7 +2803,7 @@ public:
 
         function->CreateConstantTable();
 
-        Js::Var * constTable = static_cast<Js::Var *>(function->GetConstTable());
+        auto constTable = function->GetConstTable();
         byte* tableEnd = (byte*)(constTable + function->GetConstantCount());
 
         for (int i = 0; i < WAsmJs::LIMIT; ++i)

@@ -2851,7 +2851,7 @@ namespace Js
         if( info->GetExportsCount() )
         {
             Var newObj = JavascriptOperators::NewScObjectLiteral( GetScriptContext(), info->GetExportsIdArray(),
-                                                                  this->GetFunctionBody()->GetObjectLiteralTypeRef( 0 ) );
+                                                                  this->GetFunctionBody()->GetObjectLiteralTypeRef(0));
             for( int i = 0; i < info->GetExportsCount(); i++ )
             {
                 auto ex = info->GetExport( i );
@@ -8877,7 +8877,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 {
                     if (isCachedScope)
                     {
-                        Js::DynamicType *literalType = nullptr;
+                        Field(DynamicType*) literalType = nullptr;
                         Assert(!propIds->hasNonSimpleParams && !hasNonSimpleParams);
                         frameObject = (ActivationObject*)JavascriptOperators::OP_InitCachedScope(this->GetJavascriptFunction(), propIds, &literalType, hasNonSimpleParams, scriptContext);
                     }

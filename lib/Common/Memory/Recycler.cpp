@@ -7551,13 +7551,14 @@ Recycler::InitializeProfileAllocTracker()
 void
 Recycler::TrackAllocCore(void * object, size_t size, const TrackAllocData& trackAllocData, bool traceLifetime)
 {
+    auto&& typeInfo = trackAllocData.GetTypeInfo();
     if (CONFIG_FLAG(KeepRecyclerTrackData))
     {
         TrackFree((char*)object, size);
     }
 
     Assert(GetTrackerData(object) == nullptr || GetTrackerData(object) == &TrackerData::ExplicitFreeListObjectData);
-    Assert(trackAllocData.GetTypeInfo() != nullptr);
+    Assert(typeInfo != nullptr);
     TrackerItem * item;
     size_t allocCount = trackAllocData.GetCount();
     size_t itemSize = (size - trackAllocData.GetPlusSize());
@@ -7572,16 +7573,29 @@ Recycler::TrackAllocCore(void * object, size_t size, const TrackAllocData& track
         isArray = false;
         allocCount = 1;
     }
-    if (!trackerDictionary->TryGetValue(trackAllocData.GetTypeInfo(), &item))
+    
+    if (!trackerDictionary->TryGetValue(typeInfo, &item))
     {
-        item = NoCheckHeapNew(TrackerItem, trackAllocData.GetTypeInfo());
+        if (CONFIG_FLAG(KeepRecyclerTrackData) && 
+            (typeInfo == &typeid(void*)
+                || typeInfo == &typeid(int*))) // type info is not useful record stack instead
+        {
+            size_t stackTraceSize = 16 * sizeof(void*);
+            item = NoCheckHeapNewPlus(stackTraceSize, TrackerItem, typeInfo);
+            StackBackTrace::Capture((char*)&item[1], stackTraceSize, 0);
+        }
+        else
+        {
+            item = NoCheckHeapNew(TrackerItem, typeInfo);
+        }
+
         item->instanceData.ItemSize = itemSize;
         item->arrayData.ItemSize = itemSize;
-        trackerDictionary->Item(trackAllocData.GetTypeInfo(), item);
+        trackerDictionary->Item(typeInfo, item);
     }
     else
     {
-        Assert(item->instanceData.typeinfo == trackAllocData.GetTypeInfo());
+        Assert(item->instanceData.typeinfo == typeInfo);
         Assert(item->instanceData.ItemSize == itemSize);
         Assert(item->arrayData.ItemSize == itemSize);
     }
