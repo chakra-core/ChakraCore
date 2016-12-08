@@ -4565,7 +4565,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         this->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc);
 
         HRESULT hr = JITManager::GetJITManager()->InitializeScriptContext(&contextData, this->GetThreadContext()->GetRemoteThreadContextAddr(), &m_remoteScriptContextAddr);
-        JITManager::HandleServerCallResult(hr);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
     }
 #endif
 

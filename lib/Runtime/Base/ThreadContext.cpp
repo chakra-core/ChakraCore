@@ -1987,7 +1987,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     }
 
     HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
-    JITManager::HandleServerCallResult(hr);
+    JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
 
 #endif
 }
@@ -2224,7 +2224,7 @@ void ThreadContext::SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::
         if (this->m_remoteThreadContextInfo)
         {
             HRESULT hr = JITManager::GetJITManager()->SetWellKnownHostTypeId(this->m_remoteThreadContextInfo, (int)typeId);
-            JITManager::HandleServerCallResult(hr);
+            JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
         }
 #endif
     }
@@ -4082,9 +4082,7 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
         }
 
         HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
-
-        // TODO: OOP JIT, can we throw here?
-        JITManager::HandleServerCallResult(hr);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
         return result;
     }
     else

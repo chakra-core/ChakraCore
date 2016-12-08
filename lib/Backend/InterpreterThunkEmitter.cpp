@@ -362,7 +362,7 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
         this->isAsmInterpreterThunk,
         &thunkInfo
     );
-    JITManager::HandleServerCallResult(hr);
+    JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation);
 
 
     BYTE* buffer = (BYTE*)thunkInfo.thunkBlockAddr;
@@ -731,7 +731,7 @@ InterpreterThunkEmitter::IsInHeap(void* address)
         }
         boolean result;
         HRESULT hr = JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
-        JITManager::HandleServerCallResult(hr);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
         return result != FALSE;
     }
     else
