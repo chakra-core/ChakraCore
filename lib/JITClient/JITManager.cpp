@@ -46,6 +46,10 @@ JITManager::~JITManager()
     {
         RpcBindingFree(&m_rpcBindingHandle);
     }
+    if (m_serverHandle)
+    {
+        CloseHandle(&m_serverHandle);
+    }
 }
 
 /* static */
@@ -171,7 +175,12 @@ JITManager::CreateBinding(
         RpcBindingFree(&localBindingHandle);
         return HRESULT_FROM_WIN32(status);
     }
-    m_serverHandle = serverProcessHandle;
+    if (!DuplicateHandle(GetCurrentProcess(), serverProcessHandle, GetCurrentProcess(), &m_serverHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
+    {
+        RpcBindingFree(&localBindingHandle);
+
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
     *bindingHandle = localBindingHandle;
     return S_OK;
 }

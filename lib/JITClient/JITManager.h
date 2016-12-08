@@ -7,6 +7,15 @@
 
 // We need real JITManager code when on _WIN32 or explict ENABLE_OOP_NATIVE_CODEGEN.
 // Otherwise we use a dummy JITManager which disables OOP JIT to reduce code noise.
+
+enum class RemoteCallType
+{
+    CodeGen,
+    ThunkCreation,
+    HeapQuery,
+    StateUpdate
+};
+
 #if _WIN32 || ENABLE_OOP_NATIVE_CODEGEN
 class JITManager
 {
@@ -96,7 +105,7 @@ public:
 
 
     static JITManager * GetJITManager();
-    static void HandleServerCallResult(HRESULT hr, bool isCodeGenCall = false);
+    static void HandleServerCallResult(HRESULT hr, RemoteCallType callType);
 private:
     JITManager();
     ~JITManager();
@@ -211,7 +220,7 @@ public:
 
     static JITManager * GetJITManager()
         { return &s_jitManager; }
-    static void HandleServerCallResult(HRESULT hr, bool isCodeGenCall = false) { Assert(UNREACHED); }
+    static void HandleServerCallResult(HRESULT hr, RemoteCallType callType) { Assert(UNREACHED); }
 
 private:
     static JITManager s_jitManager;

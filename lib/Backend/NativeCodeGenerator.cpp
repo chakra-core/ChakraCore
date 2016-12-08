@@ -904,7 +904,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             // script context may close after codegen call starts, consider this as aborted codegen
             hr = E_ABORT;
         }
-        JITManager::HandleServerCallResult(hr, true);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::CodeGen);
     }
     else
     {
@@ -2041,7 +2041,7 @@ NativeCodeGenerator::UpdateJITState()
             BVSparseNodeIDL * bvHead = (BVSparseNodeIDL*)scriptContext->GetThreadContext()->GetJITNumericProperties()->head;
             HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), bvHead);
 
-            JITManager::HandleServerCallResult(hr);
+            JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
             scriptContext->GetThreadContext()->ResetJITNeedsPropUpdate();
         }
     }
@@ -3627,7 +3627,7 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
 
 #if _WIN32
 void
-JITManager::HandleServerCallResult(HRESULT hr, bool isCodeGenCall)
+JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
 {
     switch (hr)
     {
@@ -3640,18 +3640,27 @@ JITManager::HandleServerCallResult(HRESULT hr, bool isCodeGenCall)
     case VBSERR_OutOfStack:
         throw Js::StackOverflowException();
     default:
-        if (!GetJITManager()->IsServerAlive() && (
-            hr == HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) ||
-            hr == HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE)
-            ))
+        if (!GetJITManager()->IsServerAlive())
         {
-            if (isCodeGenCall)
+            // we only expect to see these hresults in case server has been closed. failfast otherwise
+            if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) && hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE))
             {
-                throw Js::OperationAbortedException();
+                RpcFailure_fatal_error(hr);
             }
-            else
+            switch (callType)
             {
+            case RemoteCallType::CodeGen:
+                // inform job manager that JIT work item has been cancelled
+                throw Js::OperationAbortedException();
+            case RemoteCallType::HeapQuery:
+            case RemoteCallType::ThunkCreation:
                 Js::Throw::OutOfMemory();
+            case RemoteCallType::StateUpdate:
+                // if server process is gone, we can ignore failures updating its state
+                return;
+            default:
+                Assert(UNREACHED);
+                RpcFailure_fatal_error(hr);
             }
         }
         else
