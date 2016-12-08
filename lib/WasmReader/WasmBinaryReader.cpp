@@ -760,13 +760,24 @@ void WasmBinaryReader::ReadExportTable()
             break;
         }
         case ExternalKinds::Memory:
+            if (index != 0)
+            {
+                ThrowDecodingError(_u("Unknown memory index %u for export %s"), index, exportName);
+            }
+            m_module->SetExport(iExport, index, exportName, nameLength, kind);
+            break;
         case ExternalKinds::Table:
-        if (index != 0)
-        {
-            ThrowDecodingError(_u("Invalid index %u"), index);
-        }
-        // fallthrough
+            if (index != 0)
+            {
+                ThrowDecodingError(_u("Unknown table index %u for export %s"), index, exportName);
+            }
+            m_module->SetExport(iExport, index, exportName, nameLength, kind);
+            break;
         case ExternalKinds::Global:
+            if (index >= m_module->GetGlobalCount())
+            {
+                ThrowDecodingError(_u("Unknown global %u for export %s"), index, exportName);
+            }
             m_module->SetExport(iExport, index, exportName, nameLength, kind);
             break;
         default:
