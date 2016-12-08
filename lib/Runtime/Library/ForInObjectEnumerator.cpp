@@ -87,13 +87,17 @@ namespace Js
             {
                 firstPrototypeWithEnumerableProperties = firstPrototypeWithEnumerableProperties->GetPrototype();
 
+                if (firstPrototypeWithEnumerableProperties == nullptr)
+                {
+                    break;
+                }
+
                 if (JavascriptOperators::GetTypeId(firstPrototypeWithEnumerableProperties) == TypeIds_Null)
                 {
                     firstPrototypeWithEnumerableProperties = nullptr;
                     break;
                 }
 
-                Assert(firstPrototypeWithEnumerableProperties != nullptr);
                 if (firstPrototype == nullptr)
                 {
                     firstPrototype = firstPrototypeWithEnumerableProperties;
@@ -207,7 +211,9 @@ namespace Js
 
                     if (this->enumeratingPrototype)
                     {
-                        // check shadow property in prototype chain
+                        // prototype checking begins from the first prototype object with enumerable properties,
+                        // but the property could be shadowed by a desendant prototype which has the same property but not enumerable.
+                        // Need to check that because that is ignored from the begining.
                         RecyclableObject * prototypeObject = this->shadowData->firstPrototype;
 
                         while (prototypeObject != nullptr && prototypeObject != this->shadowData->currentObject)
