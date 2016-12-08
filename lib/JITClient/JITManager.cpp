@@ -31,6 +31,7 @@ JITManager::JITManager() :
     m_oopJitEnabled(false),
     m_isJITServer(false),
     m_targetHandle(nullptr),
+    m_serverHandle(nullptr),
     m_jitConnectionId()
 {
 }
@@ -44,6 +45,10 @@ JITManager::~JITManager()
     if (m_rpcBindingHandle)
     {
         RpcBindingFree(&m_rpcBindingHandle);
+    }
+    if (m_serverHandle)
+    {
+        CloseHandle(&m_serverHandle);
     }
 }
 
@@ -165,14 +170,9 @@ JITManager::CreateBinding(
         }
     } while (status != RPC_S_OK); // redundant check, but compiler would not allow true here.
 
-    if (status != RPC_S_OK)
-    {
-        RpcBindingFree(&localBindingHandle);
-        return HRESULT_FROM_WIN32(status);
-    }
-
     *bindingHandle = localBindingHandle;
-    return S_OK;
+
+    return HRESULT_FROM_WIN32(status);
 }
 
 bool
@@ -222,31 +222,56 @@ HRESULT
 JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* serverSecurityDescriptor, __in UUID connectionUuid)
 {
     Assert(IsOOPJITEnabled());
+    Assert(m_rpcBindingHandle == nullptr);
+    Assert(m_targetHandle == nullptr);
+    Assert(m_serverHandle == nullptr);
 
-    HRESULT hr;
-    RPC_BINDING_HANDLE localBindingHandle;
+    HRESULT hr = E_FAIL;
 
-    if (IsConnected() && (connectionUuid != m_jitConnectionId))
+    if (IsConnected())
     {
+        Assert(UNREACHED);
         return E_FAIL;
     }
 
-    hr = CreateBinding(jitProcessHandle, serverSecurityDescriptor, &connectionUuid, &localBindingHandle);
-
-    HANDLE targetHandle;
-    BOOL succeeded = DuplicateHandle(
-        GetCurrentProcess(), GetCurrentProcess(),
-        jitProcessHandle, &targetHandle,
-        NULL, FALSE, DUPLICATE_SAME_ACCESS);
-
-    if (!succeeded)
+    if (!DuplicateHandle(GetCurrentProcess(), jitProcessHandle, GetCurrentProcess(), &m_serverHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
     {
-        return HRESULT_FROM_WIN32(GetLastError());
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto FailureCleanup;
     }
 
-    m_targetHandle = targetHandle;
-    m_rpcBindingHandle = localBindingHandle;
+    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), jitProcessHandle, &m_targetHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
+    {
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto FailureCleanup;
+    }
+
+    hr = CreateBinding(jitProcessHandle, serverSecurityDescriptor, &connectionUuid, &m_rpcBindingHandle);
+    if (FAILED(hr))
+    {
+        goto FailureCleanup;
+    }
+
     m_jitConnectionId = connectionUuid;
+
+    return hr;
+
+FailureCleanup:
+    if (m_targetHandle)
+    {
+        CloseHandle(m_targetHandle);
+        m_targetHandle = nullptr;
+    }
+    if (m_serverHandle)
+    {
+        CloseHandle(m_serverHandle);
+        m_serverHandle = nullptr;
+    }
+    if (m_rpcBindingHandle)
+    {
+        RpcBindingFree(&m_rpcBindingHandle);
+        m_rpcBindingHandle = nullptr;
+    }
 
     return hr;
 }
@@ -622,4 +647,10 @@ JITManager::RemoteCodeGenCall(
     RpcEndExcept;
 
     return hr;
+}
+
+bool
+JITManager::IsServerAlive() const
+{
+    return (WaitForSingleObject(this->m_serverHandle, 0) == WAIT_OBJECT_0);
 }

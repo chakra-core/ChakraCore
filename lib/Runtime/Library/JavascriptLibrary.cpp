@@ -6865,7 +6865,7 @@ namespace Js
         if (JITManager::GetJITManager()->IsOOPJITEnabled())
         {
             HRESULT hr = JITManager::GetJITManager()->SetIsPRNGSeeded(GetScriptContext()->GetRemoteScriptAddr(), val);
-            JITManager::HandleServerCallResult(hr);
+            JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
         }
 #endif
     }
