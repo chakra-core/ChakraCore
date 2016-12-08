@@ -281,25 +281,6 @@ WebAssemblyModule::GetMaxFunctionIndex() const
     return GetWasmFunctionCount();
 }
 
-Wasm::WasmSignature*
-WebAssemblyModule::GetFunctionSignature(uint32 funcIndex) const
-{
-    Wasm::FunctionIndexTypes::Type funcType = GetFunctionIndexType(funcIndex);
-    if (funcType == Wasm::FunctionIndexTypes::Invalid)
-    {
-        throw Wasm::WasmCompilationException(_u("Function index out of range"));
-    }
-
-    switch (funcType)
-    {
-    case Wasm::FunctionIndexTypes::ImportThunk:
-    case Wasm::FunctionIndexTypes::Function:
-        return GetWasmFunctionInfo(funcIndex)->GetSignature();
-    default:
-        throw Wasm::WasmCompilationException(_u("Unknown function index type"));
-    }
-}
-
 Wasm::FunctionIndexTypes::Type
 WebAssemblyModule::GetFunctionIndexType(uint32 funcIndex) const
 {
