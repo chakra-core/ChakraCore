@@ -93,6 +93,7 @@ namespace Js
                     break;
                 }
 
+                Assert(firstPrototypeWithEnumerableProperties != nullptr);
                 if (firstPrototype == nullptr)
                 {
                     firstPrototype = firstPrototypeWithEnumerableProperties;
