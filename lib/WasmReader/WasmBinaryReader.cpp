@@ -705,10 +705,33 @@ void WasmBinaryReader::ReadExportTable()
     uint32 entries = LEB128(length);
     m_module->AllocateFunctionExports(entries);
 
+    ArenaAllocator tmpAlloc(_u("ExportDupCheck"), m_module->GetScriptContext()->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
+    typedef SList<const char16*> NameList;
+    JsUtil::BaseDictionary<uint32, NameList*, ArenaAllocator> exportsNameDict(&tmpAlloc);
+
     for (uint32 iExport = 0; iExport < entries; iExport++)
     {
         uint32 nameLength;
         const char16* exportName = ReadInlineName(length, nameLength);
+
+        // Check if the name is already used
+        NameList* list;
+        if (exportsNameDict.TryGetValue(nameLength, &list))
+        {
+            const char16** found = list->Find([exportName, nameLength](const char16* existing) { 
+                return wcsncmp(exportName, existing, nameLength) == 0;
+            });
+            if (found)
+            {
+                ThrowDecodingError(_u("Duplicate export name: %s"), exportName);
+            }
+        }
+        else
+        {
+            list = Anew(&tmpAlloc, NameList, &tmpAlloc);
+            exportsNameDict.Add(nameLength, list);
+        }
+        list->Push(exportName);
 
         ExternalKinds::ExternalKind kind = (ExternalKinds::ExternalKind)ReadConst<int8>();
         uint32 index = LEB128(length);
