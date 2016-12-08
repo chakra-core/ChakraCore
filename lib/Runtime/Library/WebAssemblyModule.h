@@ -55,7 +55,6 @@ public:
 
     // The index used by those methods is the function index as describe by the WebAssembly design, ie: imports first then wasm functions
     uint32 GetMaxFunctionIndex() const;
-    Wasm::WasmSignature* GetFunctionSignature(uint32 funcIndex) const;
     Wasm::FunctionIndexTypes::Type GetFunctionIndexType(uint32 funcIndex) const;
 
     void InitializeMemory(uint32 minSize, uint32 maxSize);

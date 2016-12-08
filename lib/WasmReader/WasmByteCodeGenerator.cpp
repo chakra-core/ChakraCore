@@ -805,7 +805,7 @@ WasmBytecodeGenerator::EmitCall()
     {
     case wbCall:
         funcNum = GetReader()->m_currentNode.call.num;
-        calleeSignature = m_module->GetFunctionSignature(funcNum);
+        calleeSignature = m_module->GetWasmFunctionInfo(funcNum)->GetSignature();
         break;
     case wbCallIndirect:
         indirectIndexInfo = PopEvalStack();
