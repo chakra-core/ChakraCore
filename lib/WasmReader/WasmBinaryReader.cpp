@@ -504,6 +504,10 @@ WasmBinaryReader::CallIndirectNode()
     UINT32 funcNum = LEB128(length);
     // Reserved value currently unused
     ReadConst<uint8>();
+    if (!m_module->HasTable() && !m_module->HasTableImport())
+    {
+        ThrowDecodingError(_u("Found call_indirect operator, but no table"));
+    }
 
     m_funcState.count += length;
     if (funcNum >= m_module->GetSignatureCount())
