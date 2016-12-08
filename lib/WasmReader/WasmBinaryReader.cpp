@@ -740,7 +740,7 @@ void WasmBinaryReader::ReadExportTable()
         case ExternalKinds::Table:
         if (index != 0)
         {
-            ThrowDecodingError(_u("Invalid index %s"), index);
+            ThrowDecodingError(_u("Invalid index %u"), index);
         }
         // fallthrough
         case ExternalKinds::Global:
