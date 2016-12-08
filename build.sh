@@ -363,7 +363,7 @@ else
             "\nSection: base"\
             "\nPriority: optional"\
             "\nArchitecture: amd64"\
-            "\nDepends: libc6 (>= 2.19), uuid-dev (>> 0), libunwind-dev (>> 0), libicu-dev (>> 0)"\
+            "\nDepends: libc6 (>= 2.19), uuid-dev (>> 0), libicu-dev (>> 0)"\
             "\nMaintainer: ChakraCore <chakracore@microsoft.com>"\
             "\nDescription: Chakra Core"\
             "\n Open source Core of Chakra Javascript Engine"\

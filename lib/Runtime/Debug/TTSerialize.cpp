@@ -1631,6 +1631,7 @@ namespace TTD
         {
             alloc.InitializeAndAllocateWLength(sizeField, into);
             this->ReadBytesInto((byte*)into.Contents, into.Length * sizeof(char16));
+            into.Contents[into.Length] = '\0';
         }
     }
 
@@ -1649,6 +1650,7 @@ namespace TTD
         {
             alloc.InitializeAndAllocateWLength(sizeField, into);
             this->ReadBytesInto((byte*)into.Contents, into.Length * sizeof(char16));
+            into.Contents[into.Length] = '\0';
         }
     }
 

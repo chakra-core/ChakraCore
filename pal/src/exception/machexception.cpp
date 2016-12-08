@@ -19,7 +19,6 @@ Abstract:
 SET_DEFAULT_DEBUG_CHANNEL(EXCEPT); // some headers have code with asserts, so do this first
 
 #include "pal/thread.hpp"
-#include "pal/seh.hpp"
 #include "pal/palinternal.h"
 #if HAVE_MACH_EXCEPTIONS
 #include "machexception.h"
@@ -557,12 +556,8 @@ void PAL_DispatchException(DWORD64 dwRDI, DWORD64 dwRSI, DWORD64 dwRDX, DWORD64 
     }
 #endif // FEATURE_PAL_SXS
 
-    EXCEPTION_POINTERS pointers;
-    pointers.ExceptionRecord = pExRecord;
-    pointers.ContextRecord = pContext;
-
-    NONPAL_TRACE("PAL_DispatchException(EC %08x EA %p)\n", pExRecord->ExceptionCode, pExRecord->ExceptionAddress);
-    SEHProcessException(&pointers);
+    raise(SIGINT);
+    abort();
 }
 
 #if defined(_X86_) || defined(_AMD64_)
