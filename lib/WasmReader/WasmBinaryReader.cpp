@@ -934,19 +934,27 @@ WasmBinaryReader::ReadGlobalsSection()
         WasmTypes::WasmType type = ReadWasmType(len);
         bool isMutable = ReadConst<UINT8>() == 1;
         WasmNode globalNode = ReadInitExpr();
+        GlobalReferenceTypes::Type refType = GlobalReferenceTypes::Const;
+        WasmTypes::WasmType initType;
+
         switch (globalNode.op) {
-        case  wbI32Const:
-        case  wbF32Const:
-        case  wbF64Const:
-        case  wbI64Const:
-            m_module->AddGlobal(GlobalReferenceTypes::Const, type, isMutable, globalNode);
-            break;
+        case  wbI32Const: initType = WasmTypes::I32; break;
+        case  wbF32Const: initType = WasmTypes::F32; break;
+        case  wbF64Const: initType = WasmTypes::F64; break;
+        case  wbI64Const: initType = WasmTypes::I64; break;
         case  wbGetGlobal:
-            m_module->AddGlobal(GlobalReferenceTypes::LocalReference, type, isMutable, globalNode);
+            initType = m_module->GetGlobal(globalNode.var.num)->GetType();
+            refType = GlobalReferenceTypes::LocalReference;
             break;
         default:
             Assert(UNREACHED);
+            ThrowDecodingError(_u("Unknown global init_expr"));
         }
+        if (type != initType)
+        {
+            ThrowDecodingError(_u("Type mismatch for global initialization"));
+        }
+        m_module->AddGlobal(refType, type, isMutable, globalNode);
     }
 }
 
