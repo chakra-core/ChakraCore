@@ -296,7 +296,7 @@ char16 const * DynamicProfileStorage::GetMessageType()
 
 bool DynamicProfileStorage::Initialize()
 {
-    AssertMsg(!initialized, "Initialize called multiple times");
+    //AssertMsg(!initialized, "Initialize called multiple times");
     if (initialized)
     {
         return true;
