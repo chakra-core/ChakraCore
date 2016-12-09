@@ -1,21 +1,25 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
-# Keep CMake from caching static/shared library
-# option. Otherwise, CMake fails to update cached
-# references
-if(SHARED_LIBRARY_SH)
-  unset(SHARED_LIBRARY_SH CACHE)
-  unset(STATIC_LIBRARY_SH CACHE)
-  unset(STATIC_LIBRARY CACHE)
-  set(SHARED_LIBRARY 1)
-endif()
+option(CC_BUILD_STATIC_LIBRARY "Enable Building ChakraCore as a Static Library")
+option(CC_BUILD_SHARED_LIBRARY "Enable Building ChakraCore as a Shared Library" ON)
+option(CC_ENABLE_FULL_LTO      "Enable Full Link Time Optimization (CLANG 3.9+)")
+option(CC_ENABLE_THIN_LTO      "Enable Thin Link Time Optimization (CLANG 3.9+)")
+option(CC_ENABLE_JIT           "Enable JIT support" ON)
+option(CC_AUTODETECT_CPU       "Autodetect Target CPU")
+option(CC_AUTODETECT_ICU       "Autodetect ICU (International Components for Unicode) library")
 
-if(STATIC_LIBRARY_SH)
-  unset(SHARED_LIBRARY_SH CACHE)
-  unset(STATIC_LIBRARY_SH CACHE)
-  unset(SHARED_LIBRARY CACHE)
-  set(STATIC_LIBRARY 1)
+if(CC_AUTODETECT_CPU)
+  if( ${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64|amd64|AMD64")
+    set(CC_TARGETS_AMD64 1)
+    message(STATUS "ChakraCore: Building 64-bit x86 code (AMD64)")
+  elseif( ${CMAKE_SYSTEM_PROCESSOR} MATCHES "i[3-6]86.*|x86.*")
+    set(CC_TARGETS_X86 1)
+    set(CMAKE_SYSTEM_PROCESSOR "i386")
+    message(STATUS "ChakraCore: Building 32-bit x86 code.")
+  else()
+    message(FATAL_ERROR "ChakraCore: Autodetection for ${CMAKE_SYSTEM_PROCESSOR} not supported.")
+  endif()
 endif()
 
 if(CC_TARGETS_AMD64_SH)
@@ -71,7 +75,18 @@ function(clr_unknown_arch)
   endif()
 endfunction()
 
-if(ICU_INCLUDE_PATH)
+if(CC_AUTODETECT_ICU)
+  find_package(PkgConfig)
+  # Find ICU Common and Data files
+  pkg_check_modules(PKGCFG_ICU_UC icu-uc)
+  # Find ICU Internationalization Library.
+  pkg_check_modules(PKGCFG_ICU_I18N icu-i18n)
+  if(PKGCFG_ICU_UC_FOUND AND PKGCFG_ICU_I18N_FOUND)
+    # This should include internationalization.
+    set(ICU_CC_PATH "${PKGCFG_ICU_UC_INCLUDE_DIRS}")
+    set(ICULIB      "${PKGCFG_ICU_UC_LDFLAGS}")
+  endif()
+elseif(ICU_INCLUDE_PATH)
   add_definitions(-DHAS_REAL_ICU=1)
   set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
   find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
@@ -167,7 +182,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
     add_definitions("-fdiagnostics-color=always")
 endif()
 
-if(STATIC_LIBRARY)
+if(CC_BUILD_STATIC_LIBRARY)
     add_definitions(-DCHAKRA_STATIC_LIBRARY=1)
 endif()
 
@@ -262,12 +277,18 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     endif()
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
-if(ENABLE_FULL_LTO_SH)
-    unset(DENABLE_FULL_LTO_SH CACHE)
+if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
+    OR CMAKE_CXX_COMPILER_ID STREQUAL Clang
+    OR CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+  if(CC_ENABLE_FULL_LTO)
     add_compile_options(-flto)
-elseif(ENABLE_THIN_LTO_SH)
-    unset(ENABLE_THIN_LTO_SH CACHE)
+  elseif(CC_ENABLE_THIN_LTO)
     add_compile_options(-flto=thin)
+  endif()
+else()
+  if(CC_ENABLE_THIN_LTO OR CC_ENABLE_FULL_LTO)
+    message(WARNING "Link Time Optimization currently only supports CLANG and GCC")
+  endif()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -294,12 +315,15 @@ if(IS_64BIT_BUILD)
     )
 endif(IS_64BIT_BUILD)
 
-if(NO_JIT_SH)
+if(CLR_CMAKE_PLATFORM_XPLAT)
+   add_definitions(-DFEATURE_PAL)
+endif(CLR_CMAKE_PLATFORM_XPLAT)
+
+
+if(NOT CC_ENABLE_JIT)
     unset(NO_JIT_SH CACHE)      # don't cache
     unset(BuildJIT CACHE)       # also clear it just in case
     add_definitions(-DDISABLE_JIT=1)
-else()
-    set(BuildJIT 1)
 endif()
 
 if(WITHOUT_FEATURES_SH)

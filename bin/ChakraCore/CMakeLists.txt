@@ -59,7 +59,7 @@ if(CC_TARGETS_X86)
   set(lib_target "${lib_target} -m32")
 endif()
 
-target_link_libraries (ChakraCore ${lib_target})
+target_link_libraries (ChakraCore PRIVATE ${lib_target})
 
 if(NOT CC_XCODE_PROJECT)
   set(CC_LIB_EXT "so")
@@ -74,4 +74,20 @@ if(NOT CC_XCODE_PROJECT)
     "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.${CC_LIB_EXT}"
     ${CHAKRACORE_BINARY_DIR}/
     )
+  add_custom_command(TARGET ChakraCore POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CHAKRACORE_BINARY_DIR}/include"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Jsrt/ChakraCore.h"
+      "${CHAKRACORE_BINARY_DIR}/include"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Jsrt/ChakraCommon.h"
+      "${CHAKRACORE_BINARY_DIR}/include"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Jsrt/ChakraCommonWindows.h"
+      "${CHAKRACORE_BINARY_DIR}/include"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Jsrt/ChakraDebug.h"
+      "${CHAKRACORE_BINARY_DIR}/include"
+    )
+
 endif()

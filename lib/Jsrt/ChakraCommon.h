@@ -916,6 +916,29 @@ typedef UINT32 DWORD;
             _In_ JsObjectBeforeCollectCallback objectBeforeCollectCallback);
 
     /// <summary>
+    ///     Initializes the ChakraCore Library Runtime.
+    /// </summary>
+    /// <remarks>
+    ///     This does not create a contexts.
+    /// </remarks>
+    /// <param name="argc">Argument Count.</param>
+    /// <param name="argv">Argument Strings.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API JsInitializeRuntime(
+        _In_ int argc,
+        _In_ char** argv);
+
+    /// <summary>
+    ///     Finalizes the ChakraCore Library Runtime, and performs last minute cleanups.
+    /// </summary>
+    /// <remarks>
+    ///     This function will destroy any contexts that are currently in session.
+    /// </remarks>
+    CHAKRA_API JsFinalizeRuntime();
+
+    /// <summary>
     ///     Creates a script context for running scripts.
     /// </summary>
     /// <remarks>

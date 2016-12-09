@@ -81,6 +81,10 @@ install_manifest.txt
 # VS Code
 .vscode/
 
+# Eclipse
+.metadata/
+RemoteSystemsTempFiles/
+
 # additional *nix generated files
 *.a
 *.gch
@@ -93,3 +97,4 @@ pal/src/config.h
 deps/
 
 .DS_Store
+

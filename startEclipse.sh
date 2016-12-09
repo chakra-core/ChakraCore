@@ -25,13 +25,12 @@ PRINT_USAGE() {
     echo ""
     echo "[ChakraCore Build Script Help]"
     echo ""
-    echo "build.sh [options]"
+    echo "startEclipse.sh [options]"
     echo ""
     echo "options:"
     echo "      --arch=[*]       Set target arch (x86)"
     echo "      --cc=PATH        Path to Clang   (see example below)"
     echo "      --cxx=PATH       Path to Clang++ (see example below)"
-    echo "      --create-deb=V   Create .deb package with given V version"
     echo "  -d, --debug          Debug build (by default Release build)"
     echo "      --embed-icu      Download and embed ICU-57 statically"
     echo "  -h, --help           Show help"
@@ -64,12 +63,12 @@ _CXX=""
 _CC=""
 _VERBOSE=""
 BUILD_TYPE="Release"
-CMAKE_GEN=
+CMAKE_GEN="Eclipse CDT4 - Unix Makefiles"
 MAKE=make
 MULTICORE_BUILD=""
 NO_JIT=
 ICU_PATH="-DICU_SETTINGS_RESET=1"
-STATIC_LIBRARY="-DCC_BUILD_SHARED_LIBRARY=1"
+STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
 SANITIZE=
 WITHOUT_FEATURES=""
 CREATE_DEB=0
@@ -191,15 +190,15 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     --lto)
-        LTO="-DCC_ENABLE_FULL_LTO=1"
+        LTO="-DENABLE_FULL_LTO_SH=1"
         ;;
 
     --lto-thin)
-        LTO="-DCC_ENABLE_THIN_LTO=1"
+        LTO="-DENABLE_THIN_LTO_SH=1"
         ;;
 
     -n | --ninja)
-        CMAKE_GEN="-G Ninja"
+        CMAKE_GEN="Eclipse CDT4 - Ninja"
         MAKE=ninja
         ;;
 
@@ -208,7 +207,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     --no-jit)
-        NO_JIT="-DCC_ENABLE_JIT=0"
+        NO_JIT="-DNO_JIT_SH=1"
         ;;
 
     --xcode)
@@ -222,7 +221,7 @@ while [[ $# -gt 0 ]]; do
         ;;
 
     --static)
-        STATIC_LIBRARY="-DCC_BUILD_STATIC_LIBRARY=1"
+        STATIC_LIBRARY="-DSTATIC_LIBRARY_SH=1"
         ;;
 
     --sanitize=*)
@@ -317,18 +316,14 @@ if [[ ${#_CXX} > 0 ]]; then
     CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
 fi
 
-if [[ $STATIC_LIBRARY == "-DCC_BUILD_SHARED_LIBRARY=1" ]]; then
-    build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
-else
-    build_directory="$CHAKRACORE_DIR/BuildLinux/Static${BUILD_TYPE:0}"
-fi
-
-
+build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
+workspace_directory="$(pwd)"
 if [ ! -d "$build_directory" ]; then
     SAFE_RUN `mkdir -p $build_directory`
 fi
 
 pushd $build_directory > /dev/null
+
 
 if [ $ARCH = "x86" ]; then
     ARCH="-DCC_TARGETS_X86_SH=1"
@@ -337,51 +332,27 @@ else
     echo "Compile Target : amd64"
 fi
 
-echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH \
-    -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES ../..
 
-_RET=$?
-if [[ $? == 0 ]]; then
-    if [[ $MAKE != 0 ]]; then
-        $MAKE $MULTICORE_BUILD $_VERBOSE 2>&1 | tee build.log
-        _RET=${PIPESTATUS[0]}
-    else
-        echo "Visit given folder above for xcode project file ----^"
-    fi
-fi
-
-if [[ $_RET != 0 ]]; then
-    echo "See error details above. Exit code was $_RET"
-else
-    if [[ $CREATE_DEB != 0 ]]; then
-        DEB_FOLDER=`realpath .`
-        DEB_FOLDER="${DEB_FOLDER}/chakracore_${CREATE_DEB}"
-
-        mkdir -p $DEB_FOLDER/usr/local/bin
-        mkdir -p $DEB_FOLDER/DEBIAN
-        cp $DEB_FOLDER/../ch $DEB_FOLDER/usr/local/bin/
-        if [[ $STATIC_LIBRARY == "-DCC_BUILD_SHARED_LIBRARY=1" ]]; then
-            cp $DEB_FOLDER/../*.so $DEB_FOLDER/usr/local/bin/
-        fi
-        echo -e "Package: ChakraCore"\
-            "\nVersion: ${CREATE_DEB}"\
-            "\nSection: base"\
-            "\nPriority: optional"\
-            "\nArchitecture: amd64"\
-            "\nDepends: libc6 (>= 2.19), uuid-dev (>> 0), libicu-dev (>> 0)"\
-            "\nMaintainer: ChakraCore <chakracore@microsoft.com>"\
-            "\nDescription: Chakra Core"\
-            "\n Open source Core of Chakra Javascript Engine"\
-            > $DEB_FOLDER/DEBIAN/control
-
-        dpkg-deb --build $DEB_FOLDER
-        _RET=$?
-        if [[ $_RET == 0 ]]; then
-            echo ".deb package is available under $build_directory"
-        fi
-    fi
+if [ ! -e "$(pwd)/.cproject" ]
+then
+    echo "Generating Eclipse Project Files for: $BUILD_TYPE"
+    cmake -G "${CMAKE_GEN}" $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH \
+        -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES ../..
 fi
 
 popd > /dev/null
+
+# Generate Workspace.
+echo "Eclipse Workspace Directory: $workspace_directory"
+if [ ! -e "$workspace_directory/.metadata" ]
+then
+    echo "Generating Eclipse Workspace."
+    eclipse -nosplash -data "$workspace_directory" \
+        -application org.eclipse.cdt.managedbuilder.core.headlessbuild \
+        -import "${build_directory}"
+fi
+
+echo "Launching Eclipse..."
+eclipse -nosplash -data "$workspace_directory" -user "$build_directory"
+
 exit $_RET

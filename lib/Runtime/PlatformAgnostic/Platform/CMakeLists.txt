@@ -21,7 +21,7 @@ set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
   )
 endif()
 
-if(NOT STATIC_LIBRARY)
+if(NOT CC_BUILD_STATIC_LIBRARY)
   # CH has a direct dependency to this project
   add_library (Chakra.Runtime.PlatformAgnostic.Singular STATIC
     ${PL_SOURCE_FILES}

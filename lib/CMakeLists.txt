@@ -1,6 +1,6 @@
 add_compile_options(-fPIC)
 
-if(BuildJIT)
+if(CC_ENABLE_JIT)
     add_subdirectory (Backend)
 endif()
 

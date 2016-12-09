@@ -1,4 +1,4 @@
-if(BuildJIT)
+if(CC_ENABLE_JIT)
     set(chakra_backend_objects $<TARGET_OBJECTS:Chakra.Backend>)
 endif()
 
@@ -17,6 +17,7 @@ add_library (Chakra.Jsrt STATIC
     JsrtRuntime.cpp
     JsrtSourceHolder.cpp
     JsrtThreadService.cpp
+    JsrtInitialize.cpp
     $<TARGET_OBJECTS:Chakra.Jsrt.Core>
     ${chakra_backend_objects}
 #   Do not take this in. We need to control the
