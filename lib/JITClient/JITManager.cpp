@@ -195,6 +195,12 @@ JITManager::IsConnected() const
     return m_rpcBindingHandle != nullptr && m_targetHandle != nullptr;
 }
 
+HANDLE
+JITManager::GetServerHandle() const
+{
+    return m_serverHandle;
+}
+
 void
 JITManager::EnableOOPJIT()
 {
@@ -647,10 +653,4 @@ JITManager::RemoteCodeGenCall(
     RpcEndExcept;
 
     return hr;
-}
-
-bool
-JITManager::IsServerAlive() const
-{
-    return (WaitForSingleObject(this->m_serverHandle, 0) == WAIT_OBJECT_0);
 }
