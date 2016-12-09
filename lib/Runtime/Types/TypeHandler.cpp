@@ -717,7 +717,7 @@ namespace Js
                 Output::Print(_u("ObjectHeaderInlining: Moving inlined properties out of the object header.\n"));
                 Output::Flush();
             }
-            Var *const newInlineSlots = reinterpret_cast<Var *>(object + 1);
+            Field(Var) *const newInlineSlots = reinterpret_cast<Field(Var) *>(object + 1);
             PropertyIndex i = newInlineSlotCapacity;
             do
             {
