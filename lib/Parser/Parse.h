@@ -835,6 +835,7 @@ private:
         ParseNodePtr pnode,
         BOOL fAllowCall, 
         BOOL fInNew, 
+        BOOL isAsyncExpr,
         BOOL *pfCanAssign, 
         _Inout_ IdentToken* pToken, 
         _Out_opt_ bool* pfIsDotOrIndex = nullptr);

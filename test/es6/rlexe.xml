@@ -15,13 +15,13 @@
   <test>
     <default>
       <files>lambda-params-shadow.js</files>
-      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -es7asyncawait</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>lambda-params-shadow.js</files>
-      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-force:deferparse -es7asyncawait</compile-flags>
     </default>
   </test>
   <test>
