@@ -3629,10 +3629,11 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
 void
 JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
 {
+    // handle the normal hresults
     switch (hr)
     {
     case S_OK:
-        break;
+        return;
     case E_ABORT:
         throw Js::OperationAbortedException();
     case E_OUTOFMEMORY:
@@ -3640,32 +3641,38 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
     case VBSERR_OutOfStack:
         throw Js::StackOverflowException();
     default:
-        // we should not have RPC failure if JIT process is still around
-        if (GetJITManager()->IsServerAlive())
-        {
-            RpcFailure_fatal_error(hr);
-        }
+        break;
+    }
+    // if jit process is terminated, we can handle certain abnormal hresults
 
-        // we only expect to see these hresults in case server has been closed. failfast otherwise
-        if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) && hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE))
-        {
-            RpcFailure_fatal_error(hr);
-        }
-        switch (callType)
-        {
-        case RemoteCallType::CodeGen:
-            // inform job manager that JIT work item has been cancelled
-            throw Js::OperationAbortedException();
-        case RemoteCallType::HeapQuery:
-        case RemoteCallType::ThunkCreation:
-            Js::Throw::OutOfMemory();
-        case RemoteCallType::StateUpdate:
-            // if server process is gone, we can ignore failures updating its state
-            return;
-        default:
-            Assert(UNREACHED);
-            RpcFailure_fatal_error(hr);
-        }
+    // we should not have RPC failure if JIT process is still around
+    // since this is going to be a failfast, lets wait a bit in case server is in process of terminating
+    if (WaitForSingleObject(GetJITManager()->GetServerHandle(), 250) != WAIT_OBJECT_0)
+    {
+        RpcFailure_fatal_error(hr);
+    }
+
+    // we only expect to see these hresults in case server has been closed. failfast otherwise
+    if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) &&
+        hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE) &&
+        hr != HRESULT_FROM_WIN32(RPC_X_SS_IN_NULL_CONTEXT))
+    {
+        RpcFailure_fatal_error(hr);
+    }
+    switch (callType)
+    {
+    case RemoteCallType::CodeGen:
+        // inform job manager that JIT work item has been cancelled
+        throw Js::OperationAbortedException();
+    case RemoteCallType::HeapQuery:
+    case RemoteCallType::ThunkCreation:
+        Js::Throw::OutOfMemory();
+    case RemoteCallType::StateUpdate:
+        // if server process is gone, we can ignore failures updating its state
+        return;
+    default:
+        Assert(UNREACHED);
+        RpcFailure_fatal_error(hr);
     }
 }
 #endif

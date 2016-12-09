@@ -27,9 +27,9 @@ public:
     void SetIsJITServer();
     bool IsOOPJITEnabled() const;
     void EnableOOPJIT();
-    bool IsServerAlive() const;
 
     HANDLE GetJITTargetHandle() const;
+    HANDLE GetServerHandle() const;
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
@@ -139,10 +139,13 @@ public:
     void SetIsJITServer() { Assert(false); }
     bool IsOOPJITEnabled() const { return false; }
     void EnableOOPJIT() { Assert(false); }
-    bool IsServerAlive() const { return false; };
 
     HANDLE GetJITTargetHandle() const
         { Assert(false); return HANDLE(); }
+    HANDLE GetServerHandle() const
+    {
+        Assert(false); return HANDLE();
+    }
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
