@@ -778,6 +778,10 @@ void WasmBinaryReader::ReadExportTable()
             {
                 ThrowDecodingError(_u("Unknown global %u for export %s"), index, exportName);
             }
+            if (m_module->GetGlobal(index)->IsMutable())
+            {
+                ThrowDecodingError(_u("Mutable globals cannot be exported"), index, exportName);
+            }
             m_module->SetExport(iExport, index, exportName, nameLength, kind);
             break;
         default:
@@ -997,6 +1001,10 @@ WasmBinaryReader::ReadImportEntries()
         {
             WasmTypes::WasmType type = ReadWasmType(len);
             bool isMutable = ReadConst<UINT8>() == 1;
+            if (isMutable)
+            {
+                ThrowDecodingError(_u("Mutable globals cannot be imported"));
+            }
             m_module->AddGlobal(GlobalReferenceTypes::ImportedReference, type, isMutable, {});
             m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen);
             break;
