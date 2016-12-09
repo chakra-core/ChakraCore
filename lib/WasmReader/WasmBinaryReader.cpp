@@ -1179,7 +1179,7 @@ WasmBinaryReader::ReadInitExpr(bool isOffset)
     }
     if (isOffset)
     {
-        m_module->ValidateInitExporForOffset(node);
+        m_module->ValidateInitExportForOffset(node);
     }
     return node;
 }

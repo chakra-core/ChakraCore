@@ -553,8 +553,17 @@ WebAssemblyModule::AddTableImport(const char16* modName, uint32 modNameLen, cons
 uint
 WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, const WebAssemblyEnvironment* env) const
 {
-    // Should have been checked at compile time, but let's just make sure one more time
-    ValidateInitExporForOffset(initExpr);
+    try
+    {
+        ValidateInitExportForOffset(initExpr);
+    }
+    catch (Wasm::WasmCompilationException &e)
+    {
+        // Should have been checked at compile time
+        Assert(UNREACHED);
+        throw e;
+    }
+
     uint offset = 0;
     if (initExpr.op == Wasm::wbI32Const)
     {
@@ -570,7 +579,7 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, const WebAs
 }
 
 void
-WebAssemblyModule::ValidateInitExporForOffset(const Wasm::WasmNode& initExpr) const
+WebAssemblyModule::ValidateInitExportForOffset(const Wasm::WasmNode& initExpr) const
 {
     if (initExpr.op == Wasm::wbGetGlobal)
     {

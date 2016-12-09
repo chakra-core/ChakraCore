@@ -96,7 +96,7 @@ public:
     uint32 GetImportedFunctionCount() const { return m_importedFunctionCount; }
 
     uint GetOffsetFromInit(const Wasm::WasmNode& initExpr, const class WebAssemblyEnvironment* env) const;
-    void ValidateInitExporForOffset(const Wasm::WasmNode& initExpr) const;
+    void ValidateInitExportForOffset(const Wasm::WasmNode& initExpr) const;
 
     void AddGlobal(Wasm::GlobalReferenceTypes::Type refType, Wasm::WasmTypes::WasmType type, bool isMutable, Wasm::WasmNode init);
     uint32 GetGlobalCount() const;
