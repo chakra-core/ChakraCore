@@ -82,12 +82,8 @@ namespace Js
     class PropertyGuard
     {
         friend class PropertyGuardValidator;
+
     private:
-        enum GuardValue : intptr_t {
-            Invalidated = 0,
-            Uninitialized = 1,
-            Invalidated_DuringSweep = 2
-        };
         Field(intptr_t) value; // value is address of Js::Type
 #if DBG
         Field(bool) wasReincarnated = false;
@@ -130,6 +126,12 @@ namespace Js
 #if DBG
         bool WasReincarnated() { return this->wasReincarnated; }
 #endif
+        enum GuardValue : intptr_t
+        {
+            Invalidated = 0,
+            Uninitialized = 1,
+            Invalidated_DuringSweep = 2
+        };
     };
 
     class PropertyGuardValidator
@@ -580,7 +582,6 @@ namespace Js
         Field(CodeGenWorkItem *) workItem;
         FieldNoBarrier(Js::JavascriptMethod) nativeAddress;
         Field(ptrdiff_t) codeSize;
-        Field(uintptr_t)  mModuleAddress; //asm Module address
 
     protected:
         Field(JavascriptLibrary*) library;
@@ -802,22 +803,6 @@ namespace Js
         void SetHasJittedStackClosure()
         {
             this->hasJittedStackClosure = true;
-        }
-#endif
-
-#ifdef ASMJS_PLAT
-        void SetModuleAddress(uintptr_t moduleAddress)
-        {
-            Assert(this->GetIsAsmJSFunction());
-            Assert(moduleAddress);
-            mModuleAddress = moduleAddress;
-        }
-
-        uintptr_t GetModuleAddress()const
-        {
-            Assert(this->GetIsAsmJSFunction());
-            Assert(mModuleAddress); // module address should not be null
-            return mModuleAddress;
         }
 #endif
 
@@ -1423,6 +1408,7 @@ namespace Js
         bool IsClassConstructor() const;
         bool IsClassMethod() const;
         bool IsModule() const;
+        bool IsWasmFunction() const;
         bool HasSuperReference() const;
         bool IsCoroutine() const;
         bool GetCapturesThis() const;
@@ -3561,6 +3547,7 @@ namespace Js
 
         void CheckAndRegisterFuncToDiag(ScriptContext *scriptContext);
         void SetEntryToDeferParseForDebugger();
+        void ClearEntryPoints();
         void ResetEntryPoint();
         void CleanupToReparse();
         void AddDeferParseAttribute();

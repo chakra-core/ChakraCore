@@ -2974,6 +2974,17 @@ namespace TTD
 
         writer.WriteString(NSTokens::Key::arch, archString);
 
+        TTString platformString;
+#if defined(_WIN32)
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("Windows"), platformString);
+#elif defined(__APPLE__)
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("macOS"), platformString);
+#else
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("Linux"), platformString);
+#endif
+
+        writer.WriteString(NSTokens::Key::platform, platformString);
+
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         bool diagEnabled = true;
 #else
@@ -3166,6 +3177,10 @@ namespace TTD
 #else
         TTDAssert(false, "Unknown arch!!!");
 #endif
+
+        //This is informational only so just read off the value and ignore
+        TTString platformString;
+        reader.ReadString(NSTokens::Key::platform, this->m_miscSlabAllocator, platformString);
 
         bool diagEnabled = reader.ReadBool(NSTokens::Key::diagEnabled, true);
 

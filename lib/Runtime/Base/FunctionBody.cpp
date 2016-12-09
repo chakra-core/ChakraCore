@@ -79,6 +79,12 @@ namespace Js
         PERF_COUNTER_INC(Code, TotalFunction);
     }
 
+    bool FunctionProxy::IsWasmFunction() const
+    {
+        return GetFunctionInfo()->HasParseableInfo() &&
+            GetFunctionInfo()->GetFunctionBody()->IsWasmFunction();
+    }
+
     Recycler* FunctionProxy::GetRecycler() const
     {
         return m_scriptContext->GetRecycler();
@@ -697,6 +703,7 @@ namespace Js
         SetCountField(CounterFields::ConstantCount, 1);
 
         proxy->UpdateFunctionBodyImpl(this);
+        this->SetDeferredStubs(proxy->GetDeferredStubs());
 
         void* validationCookie = nullptr;
 
@@ -1406,7 +1413,6 @@ namespace Js
         CopyDeferParseField(scopeSlotArraySize);
         CopyDeferParseField(paramScopeSlotArraySize);
         other->SetCachedSourceString(this->GetCachedSourceString());
-        other->SetDeferredStubs(this->GetDeferredStubs());
         CopyDeferParseField(m_isAsmjsMode);
         CopyDeferParseField(m_isAsmJsFunction);
 
@@ -2130,6 +2136,29 @@ namespace Js
         bool isDebugOrAsmJsReparse = false;
         FunctionBody* funcBody = nullptr;
 
+        // If we throw or fail with the function body in an unfinished state, make sure the function info is still
+        // pointing to the old ParseableFunctionInfo and has the right attributes.
+        class AutoRestoreFunctionInfo {
+        public:
+            AutoRestoreFunctionInfo(ParseableFunctionInfo *pfi) : pfi(pfi), funcBody(nullptr) {}
+            ~AutoRestoreFunctionInfo() {
+                if (this->funcBody && this->funcBody->GetFunctionInfo()->GetFunctionProxy() == this->funcBody)
+                {
+                    FunctionInfo *functionInfo = funcBody->GetFunctionInfo();
+                    functionInfo->SetAttributes(
+                        (FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
+                    functionInfo->SetFunctionProxy(this->pfi);
+                    functionInfo->SetOriginalEntryPoint(DefaultEntryThunk);
+                }
+                Assert(this->pfi == nullptr || 
+                       (this->pfi->GetFunctionInfo()->GetFunctionProxy() == this->pfi && !this->pfi->IsFunctionBody()));
+            }
+            void Clear() { pfi = nullptr; funcBody = nullptr; }
+            
+            ParseableFunctionInfo * pfi;
+            FunctionBody          * funcBody;
+        } autoRestoreFunctionInfo(this);
+
         // If m_hasBeenParsed = true, one of the following things happened things happened:
         // - We had multiple function objects which were all defer-parsed, but with the same function body and one of them
         //   got the body to be parsed before another was called
@@ -2138,6 +2167,7 @@ namespace Js
         if (!this->m_hasBeenParsed)
         {
             funcBody = FunctionBody::NewFromParseableFunctionInfo(this);
+            autoRestoreFunctionInfo.funcBody = funcBody;
 
             PERF_COUNTER_DEC(Code, DeferredFunction);
 
@@ -2357,6 +2387,8 @@ namespace Js
         {
             fParsed = FALSE;
         }
+
+        autoRestoreFunctionInfo.Clear();
 
         if (fParsed == TRUE)
         {
@@ -3416,6 +3448,9 @@ namespace Js
 #if ENABLE_PROFILE_INFO
             || (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk &&
             this->IsFunctionBody() && this->GetFunctionBody()->IsNativeOriginalEntryPoint())
+#ifdef ENABLE_WASM
+            || (GetFunctionBody()->IsWasmFunction() && directEntryPoint == WasmLibrary::WasmDeferredParseInternalThunk)
+#endif
 #ifdef ASMJS_PLAT
             || (GetFunctionBody()->GetIsAsmJsFunction() && directEntryPoint == AsmJsDefaultEntryThunk)
             || IsAsmJsCodeGenThunk(directEntryPoint)
@@ -3462,8 +3497,9 @@ namespace Js
 
     bool FunctionProxy::HasValidEntryPoint() const
     {
-        if (!m_scriptContext->HadProfiled() &&
-            !(this->m_scriptContext->IsScriptContextInDebugMode() && m_scriptContext->IsExceptionWrapperForBuiltInsEnabled()))
+        if (this->IsWasmFunction() ||
+            (!m_scriptContext->HadProfiled() &&
+            !(this->m_scriptContext->IsScriptContextInDebugMode() && m_scriptContext->IsExceptionWrapperForBuiltInsEnabled())))
         {
             return this->HasValidNonProfileEntryPoint();
         }
@@ -3687,6 +3723,14 @@ namespace Js
 
     void FunctionBody::ProfileSetNativeEntryPoint(FunctionEntryPointInfo* entryPointInfo, FunctionBody * functionBody, JavascriptMethod entryPoint)
     {
+#ifdef ENABLE_WASM
+        // Do not profile WebAssembly functions
+        if (functionBody->IsWasmFunction())
+        {
+            functionBody->SetNativeEntryPoint(entryPointInfo, entryPoint, entryPoint);
+            return;
+        }
+#endif
         Assert(functionBody->m_scriptContext->CurrentThunk == ProfileEntryThunk);
         functionBody->SetNativeEntryPoint(entryPointInfo, entryPoint, ProfileEntryThunk);
     }
@@ -4947,10 +4991,7 @@ namespace Js
 #endif
     }
 
-    //
-    // For library code all references to jitted entry points need to be removed
-    //
-    void FunctionBody::ResetEntryPoint()
+    void FunctionBody::ClearEntryPoints()
     {
         if (this->entryPoints)
         {
@@ -4974,6 +5015,14 @@ namespace Js
         }
 
         this->entryPoints->ClearAndZero();
+    }
+
+    //
+    // For library code all references to jitted entry points need to be removed
+    //
+    void FunctionBody::ResetEntryPoint()
+    {
+        ClearEntryPoints();
         this->CreateNewDefaultEntryPoint();
         this->SetOriginalEntryPoint(DefaultEntryThunk);
         m_defaultEntryPointInfo->jsMethod = m_scriptContext->CurrentThunk;
@@ -9710,7 +9759,6 @@ namespace Js
                     newEntryPoint = functionBody->CreateNewDefaultEntryPoint();
                     newEntryPoint->SetIsAsmJSFunction(true);
                     newEntryPoint->jsMethod = AsmJsDefaultEntryThunk;
-                    newEntryPoint->SetModuleAddress(GetModuleAddress());
                     functionBody->SetIsAsmJsFullJitScheduled(false);
                     functionBody->SetExecutionMode(functionBody->GetDefaultInterpreterExecutionMode());
                     this->functionProxy->SetOriginalEntryPoint(AsmJsDefaultEntryThunk);

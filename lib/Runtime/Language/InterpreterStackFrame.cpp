@@ -2793,7 +2793,6 @@ namespace Js
                     // don't reset entrypoint upon relinking
                     FunctionEntryPointInfo* entrypointInfo = (FunctionEntryPointInfo*)scriptFuncObj->GetEntryPointInfo();
                     entrypointInfo->SetIsAsmJSFunction(true);
-                    entrypointInfo->SetModuleAddress((uintptr_t)moduleMemoryPtr);
 
     #if DYNAMIC_INTERPRETER_THUNK
                     if (!PHASE_ON1(AsmJsJITTemplatePhase))

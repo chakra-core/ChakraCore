@@ -2,7 +2,7 @@
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
+var {fixupI64Return} = WScript.LoadScriptFile("./wasmutils.js");
 const cases = {
   basic: 0,
   export: 1,
@@ -22,11 +22,6 @@ const invalidCases = {
   f64: [cases.exportMut, cases.impInitMut],
 };
 
-function fixUpI64(exports, fn) {
-  const oldI64Fn = exports[fn];
-  exports[fn] = WebAssembly.nativeTypeCallTest.bind(null, oldI64Fn);
-}
-
 const mod1 = new WebAssembly.Module(readbuffer("binaries/global.wasm"));
 const {exports} = new WebAssembly.Instance(mod1, {test: {
   i32: 234,
@@ -34,23 +29,20 @@ const {exports} = new WebAssembly.Instance(mod1, {test: {
   f32: 8.47,
   f64: 78.145
 }});
-fixUpI64(exports, "get-i64");
-fixUpI64(exports, "set-i64");
+fixupI64Return(exports, "get-i64");
 
 function printAllGlobals(type) {
   console.log(`Print all ${type}`);
   const getter = exports[`get-${type}`];
   // print exported global
-  console.log(`${type}: ${exports[type]}`);
+  console.log(`exported ${type}: ${exports[type]}`);
   for(let iCase = 0; iCase < cases.count; ++iCase) {
     const caseName = casesNames[iCase];
     try {
       const val = getter(iCase);
       console.log(`${caseName}: ${val}`);
     } catch (e) {
-      if (e instanceof WebAssembly.RuntimeError && invalidCases[type].includes(iCase)) {
-        console.log(`${caseName}: Expected error thrown`);
-      } else {
+      if (!(e instanceof WebAssembly.RuntimeError && invalidCases[type].includes(iCase))) {
         console.log(`${caseName}: Unexpected error thrown: ${e}`);
       }
     }
@@ -61,7 +53,7 @@ function printAllGlobals(type) {
 ["i32", "i64", "f32", "f64"].forEach(printAllGlobals);
 console.log("Modify mutable globals");
 exports["set-i32"](456789);
-exports["set-i64"]("0xD2200A800C41");
+exports["set-i64"]({high: -0xD2A08, low: 0x70000000});
 exports["set-f32"](45.78);
 exports["set-f64"](65.7895);
 ["i32", "i64", "f32", "f64"].forEach(printAllGlobals);

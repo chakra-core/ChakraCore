@@ -19,14 +19,14 @@ SmallLeafHeapBlockT<TBlockAttributes>::New(HeapBucketT<SmallLeafHeapBlockT<TBloc
 
 template <>
 SmallLeafHeapBlockT<SmallAllocationBlockAttributes>::SmallLeafHeapBlockT(HeapBucketT<SmallLeafHeapBlockT<SmallAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
-    : Base(bucket, objectSize, objectCount, HeapBlockType::SmallLeafBlockType)
+    : Base(bucket, objectSize, objectCount, HeapBlock::HeapBlockType::SmallLeafBlockType)
 {
     Assert(objectCount > 1 && objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize)/ objectSize);
 }
 
 template <>
 SmallLeafHeapBlockT<MediumAllocationBlockAttributes>::SmallLeafHeapBlockT(HeapBucketT<SmallLeafHeapBlockT<MediumAllocationBlockAttributes>> * bucket, ushort objectSize, ushort objectCount)
-    : Base(bucket, objectSize, objectCount, HeapBlockType::MediumLeafBlockType)
+    : Base(bucket, objectSize, objectCount, HeapBlock::HeapBlockType::MediumLeafBlockType)
 {
     Assert(objectCount > 1 && objectCount == (this->GetPageCount() * AutoSystemInfo::PageSize) / objectSize);
 }

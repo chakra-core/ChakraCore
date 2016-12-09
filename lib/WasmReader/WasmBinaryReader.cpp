@@ -993,7 +993,7 @@ WasmBinaryReader::ReadStartFunction()
     {
         ThrowDecodingError(_u("Invalid function index for start function %u"), id);
     }
-    WasmSignature* sig = m_module->GetFunctionSignature(id);
+    WasmSignature* sig = m_module->GetWasmFunctionInfo(id)->GetSignature();
     if (sig->GetParamCount() > 0 || sig->GetResultType() != WasmTypes::Void)
     {
         ThrowDecodingError(_u("Start function must be void and nullary"));

@@ -543,8 +543,6 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
 
         // Set asmjs to be true in entrypoint
         entryPointInfo->SetIsAsmJSFunction(true);
-        // Move the ModuleAddress from old Entrypoint to new entry point
-        entryPointInfo->SetModuleAddress(oldFuncObjEntryPointInfo->GetModuleAddress());
 
         // Update the native address of the older entry point - this should be either the TJ entrypoint or the Interpreter Entry point
         entryPointInfo->SetNativeAddress(oldFuncObjEntryPointInfo->jsMethod);
@@ -645,10 +643,8 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
 #ifdef ASMJS_PLAT
     if (fn->GetIsAsmJsFunction())
     {
-        Js::FunctionEntryPointInfo* functionEntryPointInfo = (Js::FunctionEntryPointInfo*) fn->GetDefaultEntryPointInfo();
         Js::LoopEntryPointInfo* loopEntryPointInfo = (Js::LoopEntryPointInfo*)entryPoint;
         loopEntryPointInfo->SetIsAsmJSFunction(true);
-        loopEntryPointInfo->SetModuleAddress(functionEntryPointInfo->GetModuleAddress());
     }
 #endif
     JsLoopBodyCodeGen * workitem = this->NewLoopBodyCodeGen(fn, entryPoint, loopHeader);
@@ -908,7 +904,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             // script context may close after codegen call starts, consider this as aborted codegen
             hr = E_ABORT;
         }
-        JITManager::HandleServerCallResult(hr);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::CodeGen);
     }
     else
     {
@@ -1627,7 +1623,10 @@ NativeCodeGenerator::CheckCodeGenDone(
         {
             entryPointInfo->Cleanup(false /* isShutdown */, true /* capture cleanup stack */);
         }
-        jsMethod = functionBody->GetScriptContext()->CurrentThunk == ProfileEntryThunk ? ProfileEntryThunk : functionBody->GetOriginalEntryPoint();
+
+        // Do not profile WebAssembly functions
+        jsMethod = (functionBody->GetScriptContext()->CurrentThunk == ProfileEntryThunk
+                    && !functionBody->IsWasmFunction()) ? ProfileEntryThunk : functionBody->GetOriginalEntryPoint();
         entryPointInfo->jsMethod = jsMethod;
     }
     else
@@ -2043,7 +2042,7 @@ NativeCodeGenerator::UpdateJITState()
             BVSparseNodeIDL * bvHead = (BVSparseNodeIDL*)scriptContext->GetThreadContext()->GetJITNumericProperties()->head;
             HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), bvHead);
 
-            JITManager::HandleServerCallResult(hr);
+            JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
             scriptContext->GetThreadContext()->ResetJITNeedsPropUpdate();
         }
     }
@@ -3627,8 +3626,9 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
     return true;
 }
 
+#if _WIN32
 void
-JITManager::HandleServerCallResult(HRESULT hr)
+JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
 {
     switch (hr)
     {
@@ -3641,6 +3641,32 @@ JITManager::HandleServerCallResult(HRESULT hr)
     case VBSERR_OutOfStack:
         throw Js::StackOverflowException();
     default:
-        RpcFailure_fatal_error(hr);
+        // we should not have RPC failure if JIT process is still around
+        if (GetJITManager()->IsServerAlive())
+        {
+            RpcFailure_fatal_error(hr);
+        }
+
+        // we only expect to see these hresults in case server has been closed. failfast otherwise
+        if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) && hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE))
+        {
+            RpcFailure_fatal_error(hr);
+        }
+        switch (callType)
+        {
+        case RemoteCallType::CodeGen:
+            // inform job manager that JIT work item has been cancelled
+            throw Js::OperationAbortedException();
+        case RemoteCallType::HeapQuery:
+        case RemoteCallType::ThunkCreation:
+            Js::Throw::OutOfMemory();
+        case RemoteCallType::StateUpdate:
+            // if server process is gone, we can ignore failures updating its state
+            return;
+        default:
+            Assert(UNREACHED);
+            RpcFailure_fatal_error(hr);
+        }
     }
 }
+#endif

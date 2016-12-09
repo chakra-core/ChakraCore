@@ -2,21 +2,20 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+var {fixupI64Return} = WScript.LoadScriptFile("./wasmutils.js");
 
 let passed = true;
-let check = function(expected, funName, ...args)
+function check(expected, funName, ...args)
 {
   let fun = eval(funName);
   var result;
   try {
      result = fun(...args);
-  }
-  catch (e) {
+  } catch (e) {
     result = e.message;
   }
 
-  if(result != expected)
-  {
+  if(result != expected) {
     passed = false;
     print(`${funName}(${[...args]}) produced ${result}, expected ${expected}`);
   }
@@ -46,32 +45,26 @@ check(0,"exports.i32_rem_u", 5, 1);
 check(0,"exports.i32_rem_s", 5, -1);
 check(1,"exports.i32_rem_s", 5, 2);
 
-for (const key in exports) {
-  if (key.toLowerCase().includes("i64"))
-  {
-    const oldI64Fn = exports[key];
-    exports[key] = WebAssembly.nativeTypeCallTest.bind(null, oldI64Fn);
-  }
-}
+fixupI64Return(exports, Object.keys(exports).filter(key => key.toLowerCase().includes("i64")));
+
 //i64 div/rem
 check("Overflow","exports.i64_div_s_over");
 check("Division by zero","exports.i64_div_s", 5, 0);
 check("Division by zero","exports.i64_div_u", 5, 0);
 check("Division by zero","exports.i64_rem_s", 5, 0);
 check("Division by zero","exports.i64_rem_u", 5, 0);
-check("-2","exports.i64_div_s", 5, -2);
-check("2","exports.i64_div_u", 5, 2);
-check("0","exports.i64_rem_s", 5, -1);
-check("12","exports.i64_rem_u", -4, 16);
+check("0xfffffffffffffffe","exports.i64_div_s", 5, -2);
+check("0x0000000000000002","exports.i64_div_u", 5, 2);
+check("0x0000000000000000","exports.i64_rem_s", 5, -1);
+check("0x000000000000000c","exports.i64_rem_u", -4, 16);
 
-check("64", "exports.ctzI64", 0);
-check("64", "exports.ctzI64", "0");
-check("0", "exports.ctzI64", "1");
-check("31", "exports.ctzI64", "" + -Math.pow(2,31));
-check("58", "exports.ctzI64", "0x3400000000000000");
-check("63", "exports.ctzI64", "-9223372036854775808");
+check("0x0000000000000040", "exports.ctzI64", 0);
+check("0x0000000000000040", "exports.ctzI64", "0");
+check("0x0000000000000000", "exports.ctzI64", "1");
+check("0x000000000000001f", "exports.ctzI64", "" + -Math.pow(2,31));
+check("0x000000000000003a", "exports.ctzI64", "0x3400000000000000");
+check("0x000000000000003f", "exports.ctzI64", "-9223372036854775808");
 
-if(passed)
-{
+if(passed) {
   print("Passed");
 }

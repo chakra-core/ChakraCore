@@ -23,7 +23,6 @@ Abstract:
 #include "pal/cs.hpp"
 #include "pal/malloc.hpp"
 #include "pal/file.hpp"
-#include "pal/seh.hpp"
 #include "pal/dbgmsg.h"
 #include "pal/virtual.h"
 #include "pal/map.h"

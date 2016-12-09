@@ -62,7 +62,6 @@ if(STATIC_LIBRARY)
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(lib_target "${lib_target}"
       ${ICULIB}
-      unwind-x86_64
       )
   elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(lib_target "${lib_target}"

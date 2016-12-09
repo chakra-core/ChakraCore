@@ -2,6 +2,7 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+var {fixupI64Return} = WScript.LoadScriptFile("./wasmutils.js");
 
 const module = new WebAssembly.Module(readbuffer('binaries/table_imports.wasm'));
 
@@ -31,14 +32,10 @@ function runTests(exports) {
     const isValidRange = i => i >= start && i <= end;
     for(let i = 0; i < 8; ++i) {
       try {
-        if (isValidRange(i)) {
-          const val = exports[name](1, 2, i);
-          print(val);
-          if (trap.includes(i)) {
-            print(`${name}[${i}] failed. Expected to trap`);
-          }
-        } else {
-          print(`${name}[${i}] failed. Table invalid signature call NYI.`);
+        const val = exports[name](1, 2, i);
+        print(val);
+        if (trap.includes(i)) {
+          print(`${name}[${i}] failed. Expected to trap`);
         }
       } catch (e) {
         if (isValidRange(i) && !trap.includes(i)) {
@@ -49,11 +46,6 @@ function runTests(exports) {
   });
 }
 
-function fixUpI64(exports) {
-  const oldI64Fn = exports.binopI64;
-  exports.binopI64 = WebAssembly.nativeTypeCallTest.bind(null, oldI64Fn);
-}
-
 const {exports} = new WebAssembly.Instance(module, {
   math: {
     addI32: customAdd,
@@ -62,12 +54,12 @@ const {exports} = new WebAssembly.Instance(module, {
     addF64: customAdd,
   }
 });
-fixUpI64(exports);
+fixupI64Return(exports, "binopI64");
 runTests(exports);
 
 print("\n\n Rerun tests with new instance using previous module's imports");
 const {exports: exports2} = new WebAssembly.Instance(module, {math: exports});
 // int64 is no longer expected to trap when using a wasm module as import
 types[1].trap = [];
-fixUpI64(exports2);
+fixupI64Return(exports2, "binopI64");
 runTests(exports2);

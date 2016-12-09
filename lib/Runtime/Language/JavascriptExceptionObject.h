@@ -36,7 +36,7 @@ namespace Js {
         Var GetThrownObject(ScriptContext * requestingScriptContext);
 
         // ScriptContext can be NULL in case of OOM exception.
-        ScriptContext * JavascriptExceptionObject::GetScriptContext() const
+        ScriptContext * GetScriptContext() const
         {
             return scriptContext;
         }
@@ -130,7 +130,7 @@ namespace Js {
             Assert(this->isPendingExceptionObject || this->isGeneratorReturnException);
             this->thrownObject = object;
         }
-        JavascriptExceptionObject* JavascriptExceptionObject::CloneIfStaticExceptionObject(ScriptContext* scriptContext);
+        JavascriptExceptionObject* CloneIfStaticExceptionObject(ScriptContext* scriptContext);
 
         void ClearStackTrace()
         {
