@@ -34,7 +34,7 @@ namespace Js
         Field(JavascriptLibrary*) javascriptLibrary;
 
         Field(RecyclableObject*) prototype;
-        Field(JavascriptMethod) entryPoint;
+        FieldNoBarrier(JavascriptMethod) entryPoint;
     private:
         Field(TypePropertyCache *) propertyCache;
     protected:

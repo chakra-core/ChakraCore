@@ -5351,7 +5351,7 @@ CommonNumber:
     }
 
     DynamicType *
-    JavascriptOperators::EnsureObjectLiteralType(ScriptContext* scriptContext, const Js::PropertyIdArray *propIds, DynamicType ** literalType)
+    JavascriptOperators::EnsureObjectLiteralType(ScriptContext* scriptContext, const Js::PropertyIdArray *propIds, Field(DynamicType*)* literalType)
     {
         DynamicType * newType = *literalType;
         if (newType != nullptr)
@@ -5380,7 +5380,7 @@ CommonNumber:
         return newType;
     }
 
-    Var JavascriptOperators::NewScObjectLiteral(ScriptContext* scriptContext, const Js::PropertyIdArray *propIds, DynamicType ** literalType)
+    Var JavascriptOperators::NewScObjectLiteral(ScriptContext* scriptContext, const Js::PropertyIdArray *propIds, Field(DynamicType*)* literalType)
     {
         Assert(propIds->count != 0);
         Assert(!propIds->hadDuplicates);        // duplicates are removed by parser
@@ -5434,7 +5434,7 @@ CommonNumber:
                             min(propIds->count, static_cast<uint32>(MaxPreInitializedObjectTypeInlineSlotCount))));
     }
 
-    Var JavascriptOperators::OP_InitCachedScope(Var varFunc, const Js::PropertyIdArray *propIds, DynamicType ** literalType, bool formalsAreLetDecls, ScriptContext *scriptContext)
+    Var JavascriptOperators::OP_InitCachedScope(Var varFunc, const Js::PropertyIdArray *propIds, Field(DynamicType*)* literalType, bool formalsAreLetDecls, ScriptContext *scriptContext)
     {
         ScriptFunction *func = JavascriptGeneratorFunction::Is(varFunc) || JavascriptAsyncFunction::Is(varFunc) ?
             JavascriptGeneratorFunction::FromVar(varFunc)->GetGeneratorVirtualScriptFunction() :

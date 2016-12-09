@@ -749,7 +749,7 @@ namespace Js
         return !!pActiveFuncs->TestAndSet(this->GetFunctionNumber());
     }
 
-    void FunctionBody::UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *parentData, FunctionCodeGenRuntimeData **dataSet, uint count) const
+    void FunctionBody::UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *parentData, Field(FunctionCodeGenRuntimeData*)* dataSet, uint count) const
     {
         FunctionCodeGenRuntimeData *inlineeData;
         for (uint i = 0; i < count; i++)
@@ -786,15 +786,19 @@ namespace Js
         {
             return;
         }
-        FunctionCodeGenRuntimeData **data = this->GetCodeGenRuntimeData();
-        if (data != nullptr)
         {
-            this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetProfiledCallSiteCount());
+            Field(FunctionCodeGenRuntimeData*)* data = this->GetCodeGenRuntimeData();
+            if (data != nullptr)
+            {
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetProfiledCallSiteCount());
+            }
         }
-        data = this->GetCodeGenGetSetRuntimeData();
-        if (data != nullptr)
         {
-            this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetInlineCacheCount());
+            Field(FunctionCodeGenRuntimeData*)* data = this->GetCodeGenGetSetRuntimeData();
+            if (data != nullptr)
+            {
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetInlineCacheCount());
+            }
         }
     }
 
@@ -3086,7 +3090,7 @@ namespace Js
     {
         // Safe to be used by the JIT thread
         Assert(this->GetConstTable() != nullptr);
-        return (Js::RootObjectBase *)this->GetConstTable()[Js::FunctionBody::RootObjectRegSlot - FunctionBody::FirstRegSlot];
+        return (Js::RootObjectBase *)PointerValue(this->GetConstTable()[Js::FunctionBody::RootObjectRegSlot - FunctionBody::FirstRegSlot]);
     }
 
     Js::RootObjectBase * FunctionBody::LoadRootObject() const
@@ -6055,17 +6059,17 @@ namespace Js
         return IncObjLiteralCount();
     }
 
-    DynamicType ** FunctionBody::GetObjectLiteralTypeRef(uint index)
+    Field(DynamicType*)* FunctionBody::GetObjectLiteralTypeRef(uint index)
     {
         Assert(index < GetObjLiteralCount());
-        DynamicType ** literalTypes = this->GetObjectLiteralTypes();
+        auto literalTypes = this->GetObjectLiteralTypes();
         Assert(literalTypes != nullptr);
         return literalTypes + index;
     }
-    DynamicType ** FunctionBody::GetObjectLiteralTypeRefWithLock(uint index)
+    Field(DynamicType*)* FunctionBody::GetObjectLiteralTypeRefWithLock(uint index)
     {
         Assert(index < GetObjLiteralCount());
-        DynamicType ** literalTypes = this->GetObjectLiteralTypesWithLock();
+        auto literalTypes = this->GetObjectLiteralTypesWithLock();
         Assert(literalTypes != nullptr);
         return literalTypes + index;
     }
@@ -6294,7 +6298,7 @@ namespace Js
     {
         Assert(inlineCacheIndex < this->GetInlineCacheCount());
 
-        FunctionCodeGenRuntimeData ** data = (FunctionCodeGenRuntimeData **)this->GetCodeGenGetSetRuntimeDataWithLock();
+        auto data = this->GetCodeGenGetSetRuntimeDataWithLock();
         return (data != nullptr) ? data[inlineCacheIndex] : nullptr;
     }
 
@@ -6313,7 +6317,7 @@ namespace Js
             this->SetCodeGenGetSetRuntimeData(codeGenRuntimeData);
         }
 
-        FunctionCodeGenRuntimeData **codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
+        auto codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
         const auto inlineeData = codeGenGetSetRuntimeData[inlineCacheIndex];
         if (inlineeData)
         {
@@ -7666,12 +7670,12 @@ namespace Js
             }
         }
 
-        FunctionCodeGenRuntimeData **codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
+        auto codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
         if (codeGenGetSetRuntimeData != nullptr)
         {
             for (uint i = 0; i < this->GetInlineCacheCount(); i++)
             {
-                const FunctionCodeGenRuntimeData* runtimeData = codeGenGetSetRuntimeData[i];
+                auto runtimeData = codeGenGetSetRuntimeData[i];
                 if (nullptr != runtimeData)
                 {
                     runtimeData->MapInlineCaches([&](InlineCache* inlineCache)

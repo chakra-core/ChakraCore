@@ -139,7 +139,7 @@ namespace Js
 
         if (index < inlineSlotCapacity)
         {
-            Var * slots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(instance) + offsetOfInlineSlots);
+            Field(Var) * slots = reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(instance) + offsetOfInlineSlots);
             slots[index] = value;
         }
         else
