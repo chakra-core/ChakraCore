@@ -3646,17 +3646,10 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
     // if jit process is terminated, we can handle certain abnormal hresults
 
     // we should not have RPC failure if JIT process is still around
-    DWORD sleepInterval = 0;
-    uint retries = 0;
-    while (WaitForSingleObject(GetJITManager()->GetServerHandle(), sleepInterval) != WAIT_OBJECT_0)
+    // since this is going to be a failfast, lets wait a bit in case server is in process of terminating
+    if (WaitForSingleObject(GetJITManager()->GetServerHandle(), 250) != WAIT_OBJECT_0)
     {
-        // there could be scenarios where process is dying but still alive
-        // since this is going to be a failfast, lets wait a bit in case server is in process of terminating
-        if (++retries > 5)
-        {
-            RpcFailure_fatal_error(hr);
-        }
-        sleepInterval += 50;
+        RpcFailure_fatal_error(hr);
     }
 
     // we only expect to see these hresults in case server has been closed. failfast otherwise
