@@ -942,10 +942,6 @@ WasmBinaryReader::ReadGlobalsSection()
             m_module->AddGlobal(GlobalReferenceTypes::Const, type, isMutable, globalNode);
             break;
         case  wbGetGlobal:
-            if (m_module->GetGlobal(globalNode.var.num)->GetReferenceType() != GlobalReferenceTypes::ImportedReference)
-            {
-                ThrowDecodingError(_u("Global can only be initialized with a const or an imported global"));
-            }
             m_module->AddGlobal(GlobalReferenceTypes::LocalReference, type, isMutable, globalNode);
             break;
         default:
@@ -1155,6 +1151,10 @@ WasmBinaryReader::ReadInitExpr(bool isOffset)
     {
         uint32 globalIndex = node.var.num;
         WasmGlobal* global = m_module->GetGlobal(globalIndex);
+        if (global->GetReferenceType() != GlobalReferenceTypes::ImportedReference)
+        {
+            ThrowDecodingError(_u("initializer expression can only use imported globals"));
+        }
         if (global->IsMutable())
         {
             ThrowDecodingError(_u("initializer expression cannot reference a mutable global"));
