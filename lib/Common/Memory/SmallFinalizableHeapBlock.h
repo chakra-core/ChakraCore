@@ -31,6 +31,9 @@ public:
     }
     void SetNextBlock(SmallFinalizableHeapBlockT * next) { Base::SetNextBlock(next); }
 
+    bool TryGetAddressOfAttributes(void* objectAddress, unsigned char **ppAttr);
+    bool TryGetAttributes(void* objectAddress, unsigned char *pAttr);
+
     template <bool doSpecialMark>
     void ProcessMarkedObject(void* candidate, MarkContext * markContext);
 

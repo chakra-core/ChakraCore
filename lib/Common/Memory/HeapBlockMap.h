@@ -188,6 +188,8 @@ private:
     template <bool interlocked>
     bool MarkInternal(L2MapChunk * chunk, void * candidate);
 
+    void OnSpecialMark(L2MapChunk * chunk, void * candidate);
+
     template <bool interlocked, bool updateChunk>
     bool MarkInteriorInternal(MarkContext * markContext, L2MapChunk *& chunk, void * originalCandidate, void * realCandidate);
 

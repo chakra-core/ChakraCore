@@ -4974,15 +4974,7 @@ Recycler::BackgroundScanStack()
     if (stackTop != nullptr)
     {
         size_t size = (char *)stackBase - stackTop;
-        bool doSpecialMark = collectionWrapper->DoSpecialMarkOnScanStack();
-        if (doSpecialMark)
-        {
-            ScanMemoryInline<true>((void **)stackTop, size);
-        }
-        else
-        {
-            ScanMemoryInline<false>((void **)stackTop, size);
-        }
+        ScanMemoryInline<false>((void **)stackTop, size);
         return size;
     }
 
