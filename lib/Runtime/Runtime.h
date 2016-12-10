@@ -448,7 +448,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types/JavascriptStaticEnumerator.h"
 #include "Library/ExternalLibraryBase.h"
 #include "Library/JavascriptLibraryBase.h"
-#include "Base/ThreadContextInfo.h"
 #include "Library/JavascriptLibrary.h"
 
 #include "Language/JavascriptExceptionOperators.h"
@@ -479,6 +478,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #define CHAKRATEL_LANGSTATS_INC_LANGFEATURECOUNT(feature, m_scriptContext)
 #define CHAKRATEL_LANGSTATS_INC_DATACOUNT(feature)
 #endif
+#include "Base/ThreadContextInfo.h"
 #include "Base/ThreadContext.h"
 
 #include "Base/StackProber.h"

@@ -106,6 +106,8 @@ public:
     bool IsCFGEnabled();
     bool IsClosed();
 
+    UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
+
 #if defined(ENABLE_GLOBALIZATION) && defined(_CONTROL_FLOW_GUARD)
     Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
     Js::DelayLoadWinCoreProcessThreads * GetWinCoreProcessThreads();
@@ -114,6 +116,7 @@ public:
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
 #endif
 protected:
+    UCrtC99MathApis ucrtC99MathApis;
     Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
 
     bool m_isAllJITCodeInPreReservedRegion;

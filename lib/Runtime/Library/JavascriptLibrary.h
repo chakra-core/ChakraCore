@@ -17,6 +17,7 @@ class ActiveScriptExternalLibrary;
 class ProjectionExternalLibrary;
 class EditAndContinue;
 class ChakraHostScriptContext;
+class ThreadContextInfo;
 
 #ifdef ENABLE_PROJECTION
 namespace Projection

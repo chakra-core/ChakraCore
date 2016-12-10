@@ -166,24 +166,119 @@ ServerInitializeThreadContext(
     *prereservedRegionAddr = 0;
 
     ServerThreadContext * contextInfo = nullptr;
-    try
+    HRESULT hr = S_OK;
+    HANDLE processHandle = (HANDLE)threadContextData->processHandle;
+    const DWORD stackArraySize = 1024;
+    HMODULE stackArray[stackArraySize];
+    DWORD neededBytes = 0;
+    HMODULE * moduleArray = stackArray;
+    DWORD arraySize = stackArraySize;
+
+    BEGIN_TRANSLATE_OOM_TO_HRESULT
     {
-        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory));
         contextInfo = (ServerThreadContext*)HeapNew(ServerThreadContext, threadContextData);
+
         ServerContextManager::RegisterThreadContext(contextInfo);
     }
-    catch (Js::OutOfMemoryException)
+    END_TRANSLATE_OOM_TO_HRESULT(hr);
+
+    if (FAILED(hr))
     {
-        return E_OUTOFMEMORY;
+        goto FailureCleanup;
     }
 
-    return ServerCallWrapper(contextInfo, [&]()->HRESULT
+    // if our stack array does not have enough size, allocate an array large enough to handle all the modules
+    if (!EnumProcessModules(processHandle, stackArray, arraySize, &neededBytes))
+    {
+        Assert(neededBytes % sizeof(HMODULE) == 0);
+
+        // add 32 to give us reasonable buffer in case more modules are loading while we are querying
+        arraySize = neededBytes / sizeof(HMODULE) + 32;
+        moduleArray = HeapNewNoThrowArray(HMODULE, arraySize);
+        if (!moduleArray)
+        {
+            hr = E_OUTOFMEMORY;
+            goto FailureCleanup;
+        }
+        if (!EnumProcessModules(processHandle, moduleArray, arraySize, &neededBytes))
+        {
+            hr = HRESULT_FROM_WIN32(GetLastError());
+            goto FailureCleanup;
+        }
+    }
+    bool foundChakra = false;
+    bool foundCRT = false;
+    WCHAR modName[MAX_PATH + 1];
+
+    for (DWORD i = 0; i < arraySize && (!foundChakra || !foundCRT); i++)
+    {
+        LPCWSTR expectedName = nullptr;
+
+        // HMODULE is the address at which dll is loaded, so we can compare against the address that has been supplied to us
+        if ((intptr_t)moduleArray[i] == threadContextData->chakraBaseAddress)
+        {
+            foundChakra = true;
+            expectedName = AutoSystemInfo::GetJscriptDllFileName();
+        }
+        else if ((intptr_t)moduleArray[i] == threadContextData->crtBaseAddress)
+        {
+            foundCRT = true;
+            expectedName = contextInfo->GetUCrtC99MathApis()->GetFullPath();
+            if (expectedName == nullptr)
+            {
+                hr = E_ACCESSDENIED;
+                goto FailureCleanup;
+            }
+        }
+        else
+        {
+            continue;
+        }
+
+        if(GetModuleFileNameExW(processHandle, moduleArray[i], modName, MAX_PATH) == 0)
+        {
+            hr = HRESULT_FROM_WIN32(GetLastError());
+            goto FailureCleanup;
+        }
+        if (wcscmp(modName, expectedName) != 0)
+        {
+            hr = E_ACCESSDENIED;
+            goto FailureCleanup;
+        }
+    }
+    if (!foundChakra || !foundCRT)
+    {
+        hr = E_ACCESSDENIED;
+        goto FailureCleanup;
+    }
+
+    hr = ServerCallWrapper(contextInfo, [&]()->HRESULT
     {
         *threadContextInfoAddress = (PTHREADCONTEXT_HANDLE)EncodePointer(contextInfo);
         *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedVirtualAllocator()->EnsurePreReservedRegion();
 
         return S_OK;
     });
+
+    if (FAILED(hr))
+    {
+        goto FailureCleanup;
+    }
+
+    return hr;
+
+FailureCleanup:
+    if (moduleArray != nullptr && moduleArray != stackArray)
+    {
+        HeapDeleteArray(arraySize, moduleArray);
+    }
+    if (contextInfo != nullptr)
+    {
+        ServerContextManager::UnRegisterThreadContext(contextInfo);
+
+        HeapDelete(contextInfo);
+    }
+    return hr;
 }
 
 HRESULT

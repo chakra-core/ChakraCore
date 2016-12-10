@@ -48,7 +48,7 @@ JITManager::~JITManager()
     }
     if (m_serverHandle)
     {
-        CloseHandle(&m_serverHandle);
+        CloseHandle(m_serverHandle);
     }
 }
 
