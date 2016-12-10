@@ -68,6 +68,10 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
 
     if (MarkInternal<interlocked>(chunk, candidate))
     {
+        if (doSpecialMark)
+        {
+            this->OnSpecialMark(chunk, candidate);
+        }
         return;
     }
 
@@ -150,6 +154,59 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
     default:
         AssertMsg(false, "what's the new heap block type?");
 #endif
+    }
+}
+
+inline
+void
+HeapBlockMap32::OnSpecialMark(L2MapChunk * chunk, void * candidate)
+{
+    uint id2 = GetLevel2Id(candidate);
+    HeapBlock::HeapBlockType blockType = chunk->blockInfo[id2].blockType;
+
+    Assert(blockType == HeapBlock::HeapBlockType::FreeBlockType || chunk->map[id2]->GetHeapBlockType() == blockType);
+
+    unsigned char attributes = ObjectInfoBits::NoBit;
+    bool success = false;
+
+    // If the block is finalizable, we may still have to take special mark action.
+    switch (blockType)
+    {
+    case HeapBlock::HeapBlockType::SmallFinalizableBlockType:
+#ifdef RECYCLER_WRITE_BARRIER
+    case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
+#endif
+    {
+        SmallFinalizableHeapBlock *smallBlock = (SmallFinalizableHeapBlock*)chunk->map[id2];
+        success = smallBlock->TryGetAttributes(candidate, &attributes);
+        break;
+    }
+
+    case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
+#ifdef RECYCLER_WRITE_BARRIER
+    case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
+#endif
+    {
+        MediumFinalizableHeapBlock *mediumBlock = (MediumFinalizableHeapBlock*)chunk->map[id2];
+        success = mediumBlock->TryGetAttributes(candidate, &attributes);
+        break;
+    }
+
+    case HeapBlock::HeapBlockType::LargeBlockType:
+    {
+        LargeHeapBlock *largeBlock = (LargeHeapBlock*)chunk->map[id2];
+        success = largeBlock->TryGetAttributes(candidate, &attributes);
+        break;
+    }
+
+    default:
+        break;
+    }
+
+    if (success && (attributes & FinalizeBit))
+    {   
+        FinalizableObject *trackedObject = (FinalizableObject*)candidate;
+        trackedObject->OnMark();
     }
 }
 

@@ -104,20 +104,45 @@ SmallFinalizableHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsi
 }
 
 template <class TBlockAttributes>
-template <bool doSpecialMark>
-_NOINLINE
-void
-SmallFinalizableHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAddress, MarkContext * markContext)
+bool
+SmallFinalizableHeapBlockT<TBlockAttributes>::TryGetAttributes(void* objectAddress, unsigned char * pAttr)
+{
+    unsigned char * attributes = nullptr;
+    if (this->TryGetAddressOfAttributes(objectAddress, &attributes))
+    {
+        *pAttr = *attributes;
+        return true;
+    }
+    return false;
+}
+
+template <class TBlockAttributes>
+bool
+SmallFinalizableHeapBlockT<TBlockAttributes>::TryGetAddressOfAttributes(void* objectAddress, unsigned char ** ppAttrs)
 {
     ushort objectIndex = this->GetAddressIndex(objectAddress);
 
     if (objectIndex == SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit)
     {
         // Not a valid offset within the block.  No further processing necessary.
-        return;
+        return false;
     }
 
-    unsigned char * attributes = &this->ObjectInfo(objectIndex);
+    *ppAttrs = &this->ObjectInfo(objectIndex);
+    return true;
+}
+
+template <class TBlockAttributes>
+template <bool doSpecialMark>
+_NOINLINE
+void
+SmallFinalizableHeapBlockT<TBlockAttributes>::ProcessMarkedObject(void* objectAddress, MarkContext * markContext)
+{
+    unsigned char * attributes = nullptr;
+    if (!this->TryGetAddressOfAttributes(objectAddress, &attributes))
+    {
+        return;
+    }
 
     if (!this->template UpdateAttributesOfMarkedObjects<doSpecialMark>(markContext, objectAddress, this->objectSize, *attributes,
         [&](unsigned char _attributes) { *attributes = _attributes; }))
