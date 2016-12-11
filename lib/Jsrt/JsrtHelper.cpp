@@ -2,6 +2,11 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
+#if !defined(_WIN32)
+#include <pthread.h>
+#endif
+
 #include "JsrtPch.h"
 #include "jsrtHelper.h"
 #include "Base/ThreadContextTlsEntry.h"
@@ -13,10 +18,6 @@
 #if !defined(_WIN32) || defined(CHAKRA_STATIC_LIBRARY)
 #include "Core/ConfigParser.h"
 #include "Base/ThreadBoundThreadContextManager.h"
-
-#ifndef _WIN32
-#include <pthread.h>
-#endif
 
 #ifdef CHAKRA_STATIC_LIBRARY
 bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)

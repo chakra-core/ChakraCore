@@ -258,3 +258,9 @@ inline JsErrorCode CreatePropertyIdFromString(const char* str, JsPropertyIdRef *
 {
     return ChakraRTInterface::JsCreatePropertyIdUtf8(str, strlen(str), Id);
 }
+
+#ifdef __ANDROID__
+#define S_IREAD   0000400
+#define S_IWRITE  0000200
+#define S_IEXEC   0000100
+#endif

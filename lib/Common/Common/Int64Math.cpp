@@ -8,7 +8,7 @@
 #if defined(_M_X64)
 #if defined(_MSC_VER) && !defined(__clang__)
     #pragma intrinsic(_mul128)
-#elif !__has_builtin(__builtin_mul_overflow)
+#elif !(__has_builtin(__builtin_mul_overflow) && !(defined(_ARM_) && defined(__clang__))) // _ARM_ && __clang__ linker fails
     static int64 _mul128(const int64 left, const int64 right, int64 *high) noexcept
     {
         int64 low;
@@ -29,7 +29,7 @@
 bool
 Int64Math::Mul(int64 left, int64 right, int64 *pResult)
 {
-#if __has_builtin(__builtin_mul_overflow)
+#if __has_builtin(__builtin_mul_overflow) && !(defined(_ARM_) && defined(__clang__))
     return IntMathCommon<int64>::Mul(left, right, pResult);
 #else
 

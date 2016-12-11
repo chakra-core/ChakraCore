@@ -21,7 +21,7 @@ target_include_directories (
 #  stdc++/gcc_s: C++ runtime code
 #  dl: For shared library loading related functions
 #
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(LINKER_START_GROUP
     -Wl,--start-group
     -Wl,--whole-archive
@@ -32,7 +32,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     -Wl,--end-group
     -static-libstdc++
     )
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+elseif(CC_TARGET_OS_OSX)
   set(LINKER_START_GROUP -Wl,-force_load,)
 endif()
 
@@ -49,14 +49,16 @@ set(lib_target "${lib_target}"
   ${ICULIB}
   )
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(lib_target "${lib_target}"
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
     )
-endif()
-
-if(CC_TARGETS_X86)
-  set(lib_target "${lib_target} -m32")
+elseif(CC_TARGET_OS_OSX)
+  if(CC_TARGETS_X86)
+    set(lib_target "${lib_target} -arch i386")
+  elseif(CC_TARGETS_ARM)
+    set(lib_target "${lib_target} -arch arm")
+  endif()
 endif()
 
 target_link_libraries (ChakraCore ${lib_target})
@@ -65,7 +67,7 @@ if(NOT CC_XCODE_PROJECT)
   set(CC_LIB_EXT "so")
   # Post build step to copy the built shared library
   # to BuildLinux (or whatever the CMakeBuildDir is)
-  if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  if(CC_TARGET_OS_OSX)
     set(CC_LIB_EXT "dylib")
   endif()
 

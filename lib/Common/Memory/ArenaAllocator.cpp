@@ -459,7 +459,7 @@ ReleaseHeapMemory()
 
 template _ALWAYSINLINE char *ArenaAllocatorBase<InPlaceFreeListPolicy, 0, 0, 0>::AllocInternal(size_t requestedBytes);
 
-#if !(defined(__clang__) && defined(_M_IX86))
+#if !(defined(__clang__) && defined(_M_IX86_OR_ARM32))
 // otherwise duplicate instantination of AllocInternal Error
 template _ALWAYSINLINE char *ArenaAllocatorBase<InPlaceFreeListPolicy, 3, 0, 0>::AllocInternal(size_t requestedBytes);
 #endif
@@ -584,7 +584,7 @@ Free(void * buffer, size_t byteSize)
                 return;
             }
         }
- 
+
         void **policy = &this->freeList;
 #if DBG
         if (needsDelayFreeList)
@@ -821,10 +821,10 @@ void * InPlaceFreeListPolicy::Reset(void * policy)
 void InPlaceFreeListPolicy::MergeDelayFreeList(void * freeList)
 {
     if (!freeList) return;
-    
+
     FreeObject ** freeObjectLists = reinterpret_cast<FreeObject **>(freeList);
     FreeObject ** delayFreeObjectLists = freeObjectLists + buckets;
-    
+
     for (int i = 0; i < buckets; i++)
     {
         int size = (i + 1) << ArenaAllocator::ObjectAlignmentBitShift;
@@ -866,11 +866,6 @@ void InPlaceFreeListPolicy::VerifyFreeObjectIsFreeMemFilled(void * object, size_
     }
 }
 #endif
-
-namespace Memory
-{
-    template class ArenaAllocatorBase<InPlaceFreeListPolicy>;
-}
 
 void * StandAloneFreeListPolicy::New(ArenaAllocatorBase<StandAloneFreeListPolicy> * /*allocator*/)
 {
@@ -1013,11 +1008,6 @@ bool StandAloneFreeListPolicy::TryEnsureFreeListEntry(StandAloneFreeListPolicy *
     return true;
 }
 
-namespace Memory
-{
-    template class ArenaAllocatorBase<StandAloneFreeListPolicy>;
-}
-
 #ifdef PERSISTENT_INLINE_CACHES
 
 void * InlineCacheFreeListPolicy::New(ArenaAllocatorBase<InlineCacheAllocatorTraits> * allocator)
@@ -1117,11 +1107,6 @@ void InlineCacheFreeListPolicy::Release(void * policy)
     {
         Reset(policy);
     }
-}
-
-namespace Memory
-{
-    template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
 }
 
 #if DBG
@@ -1452,8 +1437,6 @@ void InlineCacheAllocator::ClearCachesWithDeadWeakRefs(Recycler* recycler)
 
 #else
 
-template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
-
 #if DBG
 bool InlineCacheAllocator::IsAllZero()
 {
@@ -1600,4 +1583,11 @@ void CacheAllocator::ZeroAll()
     }
 }
 
-#undef ASSERT_TRHEAD
+#undef ASSERT_THREAD
+
+namespace Memory
+{
+    template class ArenaAllocatorBase<InPlaceFreeListPolicy>;
+    template class ArenaAllocatorBase<StandAloneFreeListPolicy>;
+    template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
+}
