@@ -846,12 +846,12 @@ WasmBinaryReader::ReadElementSection()
     for (uint32 i = 0; i < count; ++i)
     {
         uint32 index = LEB128(length); // Table id
-        if (index != 0)
+        if (index != 0 || !(m_module->HasTable() || m_module->HasTableImport()))
         {
-            ThrowDecodingError(_u("Invalid table index %d"), index); //MVP limitation
+            ThrowDecodingError(_u("Unknown table index %d"), index); //MVP limitation
         }
 
-        WasmNode initExpr = ReadInitExpr(); //Offset Init
+        WasmNode initExpr = ReadInitExpr(true);
         uint32 numElem = LEB128(length);
 
         WasmElementSegment *eSeg = Anew(m_alloc, WasmElementSegment, m_alloc, index, initExpr, numElem);
@@ -883,12 +883,12 @@ WasmBinaryReader::ReadDataSegments()
     for (uint32 i = 0; i < entries; ++i)
     {
         UINT32 index = LEB128(len);
-        if (index != 0)
+        if (index != 0 || !(m_module->HasMemory() || m_module->HasMemoryImport()))
         {
-            ThrowDecodingError(_u("Memory index out of bounds %d > 0"), index);
+            ThrowDecodingError(_u("Unknown memory index %u"), index);
         }
         TRACE_WASM_DECODER(_u("Data Segment #%u"), i);
-        WasmNode initExpr = ReadInitExpr();
+        WasmNode initExpr = ReadInitExpr(true);
 
         //UINT32 offset = initExpr.cnst.i32;
         UINT32 dataByteLen = LEB128(len);
@@ -934,23 +934,27 @@ WasmBinaryReader::ReadGlobalsSection()
         WasmTypes::WasmType type = ReadWasmType(len);
         bool isMutable = ReadConst<UINT8>() == 1;
         WasmNode globalNode = ReadInitExpr();
+        GlobalReferenceTypes::Type refType = GlobalReferenceTypes::Const;
+        WasmTypes::WasmType initType;
+
         switch (globalNode.op) {
-        case  wbI32Const:
-        case  wbF32Const:
-        case  wbF64Const:
-        case  wbI64Const:
-            m_module->AddGlobal(GlobalReferenceTypes::Const, type, isMutable, globalNode);
-            break;
+        case  wbI32Const: initType = WasmTypes::I32; break;
+        case  wbF32Const: initType = WasmTypes::F32; break;
+        case  wbF64Const: initType = WasmTypes::F64; break;
+        case  wbI64Const: initType = WasmTypes::I64; break;
         case  wbGetGlobal:
-            if (m_module->GetGlobal(globalNode.var.num)->GetReferenceType() != GlobalReferenceTypes::ImportedReference)
-            {
-                ThrowDecodingError(_u("Global can only be initialized with a const or an imported global"));
-            }
-            m_module->AddGlobal(GlobalReferenceTypes::LocalReference, type, isMutable, globalNode);
+            initType = m_module->GetGlobal(globalNode.var.num)->GetType();
+            refType = GlobalReferenceTypes::LocalReference;
             break;
         default:
             Assert(UNREACHED);
+            ThrowDecodingError(_u("Unknown global init_expr"));
         }
+        if (type != initType)
+        {
+            ThrowDecodingError(_u("Type mismatch for global initialization"));
+        }
+        m_module->AddGlobal(refType, type, isMutable, globalNode);
     }
 }
 
@@ -1133,7 +1137,7 @@ WasmBinaryReader::SLEB128(UINT &length)
 }
 
 WasmNode
-WasmBinaryReader::ReadInitExpr()
+WasmBinaryReader::ReadInitExpr(bool isOffset)
 {
     if (m_readerState != READER_STATE_MODULE)
     {
@@ -1155,6 +1159,10 @@ WasmBinaryReader::ReadInitExpr()
     {
         uint32 globalIndex = node.var.num;
         WasmGlobal* global = m_module->GetGlobal(globalIndex);
+        if (global->GetReferenceType() != GlobalReferenceTypes::ImportedReference)
+        {
+            ThrowDecodingError(_u("initializer expression can only use imported globals"));
+        }
         if (global->IsMutable())
         {
             ThrowDecodingError(_u("initializer expression cannot reference a mutable global"));
@@ -1168,6 +1176,10 @@ WasmBinaryReader::ReadInitExpr()
     if (ReadExpr() != wbEnd)
     {
         ThrowDecodingError(_u("Missing end opcode after init expr"));
+    }
+    if (isOffset)
+    {
+        m_module->ValidateInitExportForOffset(node);
     }
     return node;
 }
