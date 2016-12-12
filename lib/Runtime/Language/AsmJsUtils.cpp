@@ -245,9 +245,9 @@ namespace Js
                         Var low = JavascriptOperators::OP_GetProperty(object, lowPropRecord->GetPropertyId(), scriptContext);
                         Var high = JavascriptOperators::OP_GetProperty(object, highPropRecord->GetPropertyId(), scriptContext);
 
-                        int32 lowVal = JavascriptMath::ToInt32(low, scriptContext);
-                        int32 highVal = JavascriptMath::ToInt32(high, scriptContext);
-                        val = (int64)lowVal | ((int64)highVal << 32);
+                        uint64 lowVal = JavascriptMath::ToInt32(low, scriptContext);
+                        uint64 highVal = JavascriptMath::ToInt32(high, scriptContext);
+                        val = (highVal << 32) | (lowVal & 0xFFFFFFFF);
                     }
                     else
                     {
