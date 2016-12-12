@@ -705,10 +705,33 @@ void WasmBinaryReader::ReadExportTable()
     uint32 entries = LEB128(length);
     m_module->AllocateFunctionExports(entries);
 
+    ArenaAllocator tmpAlloc(_u("ExportDupCheck"), m_module->GetScriptContext()->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
+    typedef SList<const char16*> NameList;
+    JsUtil::BaseDictionary<uint32, NameList*, ArenaAllocator> exportsNameDict(&tmpAlloc);
+
     for (uint32 iExport = 0; iExport < entries; iExport++)
     {
         uint32 nameLength;
         const char16* exportName = ReadInlineName(length, nameLength);
+
+        // Check if the name is already used
+        NameList* list;
+        if (exportsNameDict.TryGetValue(nameLength, &list))
+        {
+            const char16** found = list->Find([exportName, nameLength](const char16* existing) { 
+                return wcsncmp(exportName, existing, nameLength) == 0;
+            });
+            if (found)
+            {
+                ThrowDecodingError(_u("Duplicate export name: %s"), exportName);
+            }
+        }
+        else
+        {
+            list = Anew(&tmpAlloc, NameList, &tmpAlloc);
+            exportsNameDict.Add(nameLength, list);
+        }
+        list->Push(exportName);
 
         ExternalKinds::ExternalKind kind = (ExternalKinds::ExternalKind)ReadConst<int8>();
         uint32 index = LEB128(length);
@@ -737,13 +760,28 @@ void WasmBinaryReader::ReadExportTable()
             break;
         }
         case ExternalKinds::Memory:
+            if (index != 0)
+            {
+                ThrowDecodingError(_u("Unknown memory index %u for export %s"), index, exportName);
+            }
+            m_module->SetExport(iExport, index, exportName, nameLength, kind);
+            break;
         case ExternalKinds::Table:
-        if (index != 0)
-        {
-            ThrowDecodingError(_u("Invalid index %s"), index);
-        }
-        // fallthrough
+            if (index != 0)
+            {
+                ThrowDecodingError(_u("Unknown table index %u for export %s"), index, exportName);
+            }
+            m_module->SetExport(iExport, index, exportName, nameLength, kind);
+            break;
         case ExternalKinds::Global:
+            if (index >= m_module->GetGlobalCount())
+            {
+                ThrowDecodingError(_u("Unknown global %u for export %s"), index, exportName);
+            }
+            if (m_module->GetGlobal(index)->IsMutable())
+            {
+                ThrowDecodingError(_u("Mutable globals cannot be exported"), index, exportName);
+            }
             m_module->SetExport(iExport, index, exportName, nameLength, kind);
             break;
         default:
@@ -963,6 +1001,10 @@ WasmBinaryReader::ReadImportEntries()
         {
             WasmTypes::WasmType type = ReadWasmType(len);
             bool isMutable = ReadConst<UINT8>() == 1;
+            if (isMutable)
+            {
+                ThrowDecodingError(_u("Mutable globals cannot be imported"));
+            }
             m_module->AddGlobal(GlobalReferenceTypes::ImportedReference, type, isMutable, {});
             m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen);
             break;
