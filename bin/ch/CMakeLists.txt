@@ -32,16 +32,10 @@ target_include_directories (ch
   ../../lib/Parser
   )
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE")
-
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie") # osx clang sets this by default
-endif()
-
 if(STATIC_LIBRARY)
   if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(LINKER_START_GROUP -Wl,--start-group)
-    set(LINKER_END_GROUP -Wl,--end-group)
+    set(LINKER_END_GROUP -Wl,--end-group -static-libstdc++)
   elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(LINKER_START_GROUP -Wl,-force_load,)
   endif()
@@ -55,35 +49,28 @@ if(STATIC_LIBRARY)
     Chakra.Jsrt
     ${LINKER_END_GROUP}
     pthread
-    stdc++
     dl
-  )
+    ${ICULIB}
+    )
 
-  if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(lib_target "${lib_target}"
-      ${ICULIB}
-      )
-  elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(lib_target "${lib_target}"
-      ${ICULIB}
       "-framework CoreFoundation"
       "-framework Security"
       )
   endif() # Linux ?
 else() # // shared library below
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE")
+
+  if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie") # osx clang sets this by default
+  endif()
+
   set(lib_target
     PRIVATE Chakra.Pal
     PRIVATE Chakra.Common.Codex.Singular
     PRIVATE Chakra.Runtime.PlatformAgnostic.Singular
     )
-endif()
-
-if(NOT CC_XCODE_PROJECT)
-  if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-    set(lib_target "${lib_target}"
-      "-stdlib=libstdc++" # expected 'deprecated' warning. needed for std::string
-      )
-  endif()
 endif()
 
 if(CC_TARGETS_X86)

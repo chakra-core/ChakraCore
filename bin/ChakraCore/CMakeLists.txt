@@ -30,6 +30,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(LINKER_END_GROUP
     -Wl,--no-whole-archive
     -Wl,--end-group
+    -static-libstdc++
     )
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(LINKER_START_GROUP -Wl,-force_load,)
@@ -44,7 +45,6 @@ set(lib_target "${lib_target}"
   Chakra.Jsrt
   ${LINKER_END_GROUP}
   pthread
-  stdc++
   dl
   ${ICULIB}
   )
