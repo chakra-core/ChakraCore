@@ -318,9 +318,6 @@ BUILTIN(WebAssemblyTable, GetterLength, EntryGetterLength, FunctionInfo::ErrorOn
 BUILTIN(WebAssemblyTable, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyTable, Get, EntryGet, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyTable, Set, EntrySet, FunctionInfo::ErrorOnNew)
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-BUILTIN(WebAssembly, NativeTypeCallTest, EntryNativeTypeCallTest, FunctionInfo::ErrorOnNew)
-#endif
 #endif
 
 // SIMDFloat32x4Lib entry points

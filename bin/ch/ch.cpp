@@ -25,7 +25,7 @@ byte ttUri[MAX_PATH * sizeof(wchar_t)];
 size_t ttUriByteLength = 0;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;
-LPWSTR connectionUuidString = NULL;
+LPCWSTR connectionUuidString = NULL;
 UINT32 startEventCount = 1;
 
 extern "C"
@@ -272,13 +272,13 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
 
         try
         {
-            JsTTDMoveMode moveMode = (JsTTDMoveMode)(JsTTDMoveMode::JsTTDMoveKthEvent | ((int64) startEventCount) << 32);
+            JsTTDMoveMode moveMode = JsTTDMoveMode::JsTTDMoveKthEvent;
             int64_t snapEventTime = -1;
             int64_t nextEventTime = -2;
 
             while(true)
             {
-                JsErrorCode error = ChakraRTInterface::JsTTDGetSnapTimeTopLevelEventMove(chRuntime, moveMode, &nextEventTime, &snapEventTime, nullptr);
+                JsErrorCode error = ChakraRTInterface::JsTTDGetSnapTimeTopLevelEventMove(chRuntime, moveMode, startEventCount, &nextEventTime, &snapEventTime, nullptr);
 
                 if(error != JsNoError)
                 {

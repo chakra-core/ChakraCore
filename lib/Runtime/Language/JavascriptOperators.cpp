@@ -8198,9 +8198,18 @@ CommonNumber:
         return entry->slotIndex == Constants::NoSlot && !entry->mustBeWritable;
     }
 
+    bool JavascriptOperators::CheckIfTypeIsEquivalentForFixedField(Type* type, JitEquivalentTypeGuard* guard)
+    {
+        if (guard->GetValue() == PropertyGuard::GuardValue::Invalidated_DuringSweep)
+        {
+            return false;
+        }
+        return CheckIfTypeIsEquivalent(type, guard);
+    }
+
     bool JavascriptOperators::CheckIfTypeIsEquivalent(Type* type, JitEquivalentTypeGuard* guard)
     {
-        if (guard->GetValue() == 0)
+        if (guard->GetValue() == PropertyGuard::GuardValue::Invalidated)
         {
             return false;
         }

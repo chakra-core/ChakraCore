@@ -876,7 +876,7 @@ namespace Js
                     scriptContext->GetRemoteScriptAddr(),
                     this->GetModuleId(),
                     (intptr_t)this->GetLocalExportSlots());
-                JITManager::HandleServerCallResult(hr);
+                JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
             }
 #endif
         }

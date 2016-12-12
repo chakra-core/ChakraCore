@@ -625,26 +625,20 @@ ReadProcessMemory(
         param.numberOfBytesRead = numberOfBytesRead;
         param.ret = ret;
 
-        PAL_TRY(Param *, pParam, &param)
         {
             SIZE_T i;
 
             // Seg fault in memcpy can't be caught
             // so we simulate the memcpy here
 
-            for (i = 0; i<pParam->nSize; i++)
+            for (i = 0; i<param.nSize; i++)
             {
-                *((char*)(pParam->lpBuffer)+i) = *((char*)(pParam->lpBaseAddress)+i);
+                *((char*)(param.lpBuffer)+i) = *((char*)(param.lpBaseAddress)+i);
             }
 
-            pParam->numberOfBytesRead = pParam->nSize;
-            pParam->ret = TRUE;
+            param.numberOfBytesRead = param.nSize;
+            param.ret = TRUE;
         }
-        PAL_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-        {
-            SetLastError(ERROR_ACCESS_DENIED);
-        }
-        PAL_ENDTRY
 
         numberOfBytesRead = param.numberOfBytesRead;
         ret = param.ret;
@@ -923,26 +917,20 @@ WriteProcessMemory(
         param.numberOfBytesWritten = numberOfBytesWritten;
         param.ret = ret;
 
-        PAL_TRY(Param *, pParam, &param)
         {
             SIZE_T i;
 
             // Seg fault in memcpy can't be caught
             // so we simulate the memcpy here
 
-            for (i = 0; i<pParam->nSize; i++)
+            for (i = 0; i<param.nSize; i++)
             {
-                *((char*)(pParam->lpBaseAddress)+i) = *((char*)(pParam->lpBuffer)+i);
+                *((char*)(param.lpBaseAddress)+i) = *((char*)(param.lpBuffer)+i);
             }
 
-            pParam->numberOfBytesWritten = pParam->nSize;
-            pParam->ret = TRUE;
+            param.numberOfBytesWritten = param.nSize;
+            param.ret = TRUE;
         }
-        PAL_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-        {
-            SetLastError(ERROR_ACCESS_DENIED);
-        }
-        PAL_ENDTRY
 
         numberOfBytesWritten = param.numberOfBytesWritten;
         ret = param.ret;

@@ -160,9 +160,6 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
         FunctionBody* body = funcObj->GetFunctionBody();
         funcObj->SetModuleMemory(env->GetStartPtr());
         funcObj->SetSignature(body->GetAsmJsFunctionInfo()->GetWasmSignature());
-        FunctionEntryPointInfo * entypointInfo = (FunctionEntryPointInfo*)funcObj->GetEntryPointInfo();
-        entypointInfo->SetIsAsmJSFunction(true);
-        entypointInfo->SetModuleAddress((uintptr_t)env->GetStartPtr());
         funcObj->SetEnvironment(frameDisplay);
         env->SetWasmFunction(i, funcObj);
 
@@ -171,8 +168,7 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
             // if we still have WasmReaderInfo we haven't yet parsed
             if (body->GetAsmJsFunctionInfo()->GetWasmReaderInfo())
             {
-                funcObj->GetDynamicType()->SetEntryPoint(WasmLibrary::WasmDeferredParseExternalThunk);
-                entypointInfo->jsMethod = WasmLibrary::WasmDeferredParseInternalThunk;
+                WasmLibrary::SetWasmEntryPointToInterpreter(funcObj, true);
             }
         }
         else
@@ -180,14 +176,14 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
             AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
             if (info->GetWasmReaderInfo())
             {
-                funcObj->GetDynamicType()->SetEntryPoint(Js::AsmJsExternalEntryPoint);
-                entypointInfo->jsMethod = AsmJsDefaultEntryThunk;
+                WasmLibrary::SetWasmEntryPointToInterpreter(funcObj, false);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
                 // Do MTJRC/MAIC:0 check
                 const bool noJit = PHASE_OFF(BackEndPhase, body) || PHASE_OFF(FullJitPhase, body) || ctx->GetConfig()->IsNoNative();
                 if (!noJit && (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0))
                 {
                     GenerateFunction(ctx->GetNativeCodeGenerator(), body, funcObj);
+                    body->SetIsAsmJsFullJitScheduled(true);
                 }
 #endif
                 info->SetWasmReaderInfo(nullptr);
@@ -326,7 +322,7 @@ void WebAssemblyInstance::LoadImports(
             {
                 Assert(env->GetWasmFunction(counter) == nullptr);
                 AsmJsScriptFunction* func = AsmJsScriptFunction::FromVar(prop);
-                if (!wasmModule->GetSignature(counter)->IsEquivalent(func->GetSignature()))
+                if (!wasmModule->GetWasmFunctionInfo(counter)->GetSignature()->IsEquivalent(func->GetSignature()))
                 {
                     JavascriptError::ThrowTypeError(ctx, WASMERR_SignatureMismatch);
                 }

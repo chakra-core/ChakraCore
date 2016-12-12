@@ -383,13 +383,17 @@
 #define TTD_LOG_READER TextFormatReader
 #define TTD_LOG_WRITER TextFormatWriter
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+//For now always use the (lower performance) text format for snapshots for easier debugging etc.
 #define TTD_SNAP_READER TextFormatReader
 #define TTD_SNAP_WRITER TextFormatWriter
-#else
-#define TTD_SNAP_READER BinaryFormatReader
-#define TTD_SNAP_WRITER BinaryFormatWriter
-#endif
+
+//#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+//#define TTD_SNAP_READER TextFormatReader
+//#define TTD_SNAP_WRITER TextFormatWriter
+//#else
+//#define TTD_SNAP_READER BinaryFormatReader
+//#define TTD_SNAP_WRITER BinaryFormatWriter
+//#endif
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
 #define ENABLE_SNAPSHOT_COMPARE 1

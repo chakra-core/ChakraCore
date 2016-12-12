@@ -6740,7 +6740,7 @@ Lowerer::GenerateNewStackScFunc(IR::Instr * newScFuncInstr, IR::RegOpnd ** ppEnv
         if (index != 0)
         {
             IR::RegOpnd * opnd = IR::RegOpnd::New(TyVar, func);
-            InsertAdd(false, opnd, opndFuncPtr, IR::IntConstOpnd::New(index * sizeof(Js::StackScriptFunction), TyUint32, func), newScFuncInstr);
+            InsertAdd(false, opnd, opndFuncPtr, IR::IntConstOpnd::New(index * sizeof(Js::StackScriptFunction), TyMachPtr, func), newScFuncInstr);
             opndFuncPtr = opnd;
         }
 
@@ -7463,7 +7463,8 @@ Lowerer::GenerateCachedTypeCheck(IR::Instr *instrChk, IR::PropertySymOpnd *prope
         this->m_lowererMD.LoadHelperArgument(instrChk, typeOpnd);
 
         IR::RegOpnd* equivalentTypeCheckResultOpnd = IR::RegOpnd::New(TyUint8, func);
-        IR::HelperCallOpnd* equivalentTypeCheckHelperCallOpnd = IR::HelperCallOpnd::New(IR::HelperCheckIfTypeIsEquivalent, func);
+        IR::HelperCallOpnd* equivalentTypeCheckHelperCallOpnd = IR::HelperCallOpnd::New(
+            propertySymOpnd->HasFixedValue() ? IR::HelperCheckIfTypeIsEquivalentForFixedField : IR::HelperCheckIfTypeIsEquivalent, func);
         IR::Instr* equivalentTypeCheckCallInstr = IR::Instr::New(Js::OpCode::Call, equivalentTypeCheckResultOpnd, equivalentTypeCheckHelperCallOpnd, func);
         instrChk->InsertBefore(equivalentTypeCheckCallInstr);
         this->m_lowererMD.LowerCall(equivalentTypeCheckCallInstr, 0);
@@ -10589,7 +10590,7 @@ IR::Instr *Lowerer::LowerRestParameter(IR::Opnd *formalsOpnd, IR::Opnd *dstOpnd,
     IR::RegOpnd *srcOpnd = isGenerator ? generatorArgsPtrOpnd : IR::Opnd::CreateFramePointerOpnd(this->m_func);
     uint16 actualOffset = isGenerator ? 0 : GetFormalParamOffset(); //4
     IR::RegOpnd *argPtrOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
-    InsertAdd(false, argPtrOpnd, srcOpnd, IR::IntConstOpnd::New((formalsOpnd->AsIntConstOpnd()->GetValue() + actualOffset) * MachPtr, TyUint32, this->m_func), helperCallInstr);
+    InsertAdd(false, argPtrOpnd, srcOpnd, IR::IntConstOpnd::New((formalsOpnd->AsIntConstOpnd()->GetValue() + actualOffset) * MachPtr, TyMachPtr, this->m_func), helperCallInstr);
     m_lowererMD.LoadHelperArgument(helperCallInstr, argPtrOpnd);
 
     m_lowererMD.LoadHelperArgument(helperCallInstr, excessOpnd);
@@ -10795,7 +10796,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
     Assert(missingSlotNums >= 0);
     while (missingSlotNums > 0)
     {
-        InsertAdd(true, excessOpnd, excessOpnd, IR::IntConstOpnd::New(1, TyInt32, this->m_func), labelNormal);
+        InsertAdd(true, excessOpnd, excessOpnd, IR::IntConstOpnd::New(1, TyMachReg, this->m_func), labelNormal);
         Lowerer::InsertBranch(Js::OpCode::BrEq_A, labelNormal, labelNormal);
         missingSlotNums--;
     }
@@ -10869,7 +10870,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
 
         while (diffSlotsNum > 0)
         {
-            InsertAdd(true, excessOpnd, excessOpnd, IR::IntConstOpnd::New(1, TyInt32, this->m_func), labelNormal);
+            InsertAdd(true, excessOpnd, excessOpnd, IR::IntConstOpnd::New(1, TyMachReg, this->m_func), labelNormal);
             InsertBranch(Js::OpCode::BrEq_A, labelInitNext, labelNormal);
             diffSlotsNum--;
         }
@@ -12854,7 +12855,7 @@ void Lowerer::LowerBoundCheck(IR::Instr *const instr)
             true,
             addResultOpnd,
             rightOpnd,
-            offsetOpnd ? offsetOpnd : IR::IntConstOpnd::New(offset, TyMachReg, func, true),
+            offsetOpnd ? offsetOpnd->UseWithNewType(TyMachReg, func) : IR::IntConstOpnd::New(offset, TyMachReg, func, true),
             insertBeforeInstr);
         InsertBranch(LowererMD::MDOverflowBranchOpcode, bailOutLabel, insertBeforeInstr);
 
@@ -13362,7 +13363,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         if (bailOutInfo->isInvertedBranch)
         {
             // Flip the condition
-            IR::Instr *subInstr = IR::Instr::New(Js::OpCode::Sub_I4, condOpnd, condOpnd, IR::IntConstOpnd::New(1, TyInt32, instr->m_func), instr->m_func);
+            IR::Instr *subInstr = IR::Instr::New(Js::OpCode::Sub_I4, condOpnd, condOpnd, IR::IntConstOpnd::New(1, TyMachReg, instr->m_func), instr->m_func);
             instr->InsertBefore(subInstr);
             this->m_lowererMD.EmitInt4Instr(subInstr);
             // We should really do a DEC/NEG for a full 2's complement flip from 0/1 to 1/0,
@@ -18846,7 +18847,7 @@ Lowerer::GenerateArgOutForInlineeStackArgs(IR::Instr* callInstr, IR::Instr* stac
         // i represents ith arguments from actuals, with is i + 3 counting this, callInfo and function object
         this->m_lowererMD.LoadDynamicArgument(argout, i + 3);
     }
-    return IR::IntConstOpnd::New(func->actualCount, TyInt32, func);
+    return IR::IntConstOpnd::New(func->actualCount, TyMachReg, func);
 }
 
 // For AMD64 and ARM only.
@@ -19051,13 +19052,13 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
     Func *func = callInstr->m_func;
     IR::RegOpnd* stackArgs = stackArgsInstr->GetSrc1()->AsRegOpnd();
 
-    IR::RegOpnd* ldLenDstOpnd = IR::RegOpnd::New(TyUint32, func);
+    IR::RegOpnd* ldLenDstOpnd = IR::RegOpnd::New(TyMachReg, func);
     IR::Instr* ldLen = IR::Instr::New(Js::OpCode::LdLen_A, ldLenDstOpnd ,stackArgs, func);
     ldLenDstOpnd->SetValueType(ValueType::GetTaggedInt()); /*LdLen_A works only on stack arguments*/
     callInstr->InsertBefore(ldLen);
     GenerateFastRealStackArgumentsLdLen(ldLen);
 
-    IR::Instr* saveLenInstr = IR::Instr::New(Js::OpCode::MOV, IR::RegOpnd::New(TyUint32, func), ldLenDstOpnd, func);
+    IR::Instr* saveLenInstr = IR::Instr::New(Js::OpCode::MOV, IR::RegOpnd::New(TyMachReg, func), ldLenDstOpnd, func);
     saveLenInstr->GetDst()->SetValueType(ValueType::GetTaggedInt());
     callInstr->InsertBefore(saveLenInstr);
 
@@ -19074,7 +19075,7 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
     callInstr->InsertBefore(branchOutOfLoop);
     this->m_lowererMD.EmitInt4Instr(branchOutOfLoop);
 
-    IR::Instr* subInstr = IR::Instr::New(Js::OpCode::Sub_I4, ldLenDstOpnd, ldLenDstOpnd, IR::IntConstOpnd::New(1, TyInt8, func),func);
+    IR::Instr* subInstr = IR::Instr::New(Js::OpCode::Sub_I4, ldLenDstOpnd, ldLenDstOpnd, IR::IntConstOpnd::New(1, TyMachReg, func),func);
     callInstr->InsertBefore(subInstr);
     this->m_lowererMD.EmitInt4Instr(subInstr);
 
@@ -19097,7 +19098,7 @@ Lowerer::GenerateArgOutForStackArgs(IR::Instr* callInstr, IR::Instr* stackArgsIn
 
     loop->regAlloc.liveOnBackEdgeSyms->Set(ldLenDstOpnd->m_sym->m_id);
 
-    subInstr = IR::Instr::New(Js::OpCode::Sub_I4, ldLenDstOpnd, ldLenDstOpnd, IR::IntConstOpnd::New(1, TyInt8, func),func);
+    subInstr = IR::Instr::New(Js::OpCode::Sub_I4, ldLenDstOpnd, ldLenDstOpnd, IR::IntConstOpnd::New(1, TyMachReg, func),func);
     callInstr->InsertBefore(subInstr);
     this->m_lowererMD.EmitInt4Instr(subInstr);
 

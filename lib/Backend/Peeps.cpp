@@ -207,7 +207,7 @@ Peeps::PeepFunc()
 
                     if (pattern_found)
                     {
-                        IR::IntConstOpnd* constOne  = IR::IntConstOpnd::New((IntConstType) 1, TyInt32, instr->m_func);
+                        IR::IntConstOpnd* constOne  = IR::IntConstOpnd::New((IntConstType) 1, instr->GetDst()->GetType(), instr->m_func);
                         IR::Instr * addOrSubInstr = IR::Instr::New(Js::OpCode::ADD, instr->GetDst(), instr->GetDst(), constOne, instr->m_func);
 
                         if (instr->m_opcode == Js::OpCode::DEC)

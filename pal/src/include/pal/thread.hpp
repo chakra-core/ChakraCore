@@ -283,8 +283,6 @@ namespace CorUnix
                 HANDLE *phThread
                 );
 
-        friend CatchHardwareExceptionHolder;
-
     private:
 
         CPalThread *m_pNext;

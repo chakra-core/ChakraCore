@@ -551,7 +551,7 @@ LowererMD::LoadInputParamCount(IR::Instr * instrInsert, int adjust, bool needFla
 
     // Mask off call flags from callinfo
     instr = IR::Instr::New(Js::OpCode::AND, dstOpnd, dstOpnd,
-        IR::IntConstOpnd::New((Js::CallFlags_ExtraArg << static_cast<unsigned>(Js::CallInfo::ksizeofCount)) | 0x00FFFFFF, TyUint32, this->m_func, true), this->m_func);
+        IR::IntConstOpnd::New((Js::CallFlags_ExtraArg << static_cast<unsigned>(Js::CallInfo::ksizeofCount)) | 0x00FFFFFF, TyMachReg, this->m_func, true), this->m_func);
     instrInsert->InsertBefore(instr);
 
     // Shift and mask the "calling eval" bit and subtract it from the incoming count.
@@ -559,7 +559,7 @@ LowererMD::LoadInputParamCount(IR::Instr * instrInsert, int adjust, bool needFla
     instr = IR::Instr::New(Js::OpCode::BTR, dstOpnd, dstOpnd, IR::IntConstOpnd::New(Math::Log2(Js::CallFlags_ExtraArg) + Js::CallInfo::ksizeofCount, TyInt8, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
 
-    instr = IR::Instr::New(Js::OpCode::SBB, dstOpnd, dstOpnd, IR::IntConstOpnd::New(-adjust, TyInt32, this->m_func), this->m_func);
+    instr = IR::Instr::New(Js::OpCode::SBB, dstOpnd, dstOpnd, IR::IntConstOpnd::New(-adjust, TyMachReg, this->m_func), this->m_func);
     instrInsert->InsertBefore(instr);
 
     return instr;
@@ -2963,7 +2963,7 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr)
         IR::RegOpnd *r2 = IR::RegOpnd::New(TyMachPtr, this->m_func);
 
         // MOV r2, 0
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, r2, IR::IntConstOpnd::New(0, TyInt32, this->m_func), m_func));
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, r2, IR::IntConstOpnd::New(0, TyMachReg, this->m_func), m_func));
 
         // CMP r1, src2
         IR::Opnd *r1_32 = r1->UseWithNewType(TyInt32, this->m_func);
@@ -3403,7 +3403,7 @@ LowererMD::GenerateFastAdd(IR::Instr * instrAdd)
     }
     else
     {
-        instr = IR::Instr::New(Js::OpCode::ADD, opndReg, opndReg, opndSrc2, this->m_func);
+        instr = IR::Instr::New(Js::OpCode::ADD, opndReg, opndReg, opndSrc2->UseWithNewType(TyInt32, this->m_func), this->m_func);
     }
 #endif
 
@@ -4059,7 +4059,7 @@ LowererMD::GenerateSmIntPairTest(
         // s1 = AND s1, AtomTag
 
         instr = IR::Instr::New(
-            Js::OpCode::AND, opndReg, opndReg, IR::IntConstOpnd::New(Js::AtomTag, TyInt8, this->m_func), this->m_func);
+            Js::OpCode::AND, opndReg, opndReg, IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func), this->m_func);
         instrInsert->InsertBefore(instr);
 
         //      TEST s1, src2
@@ -4590,7 +4590,7 @@ LowererMD::GenerateLoadTaggedType(IR::Instr * instrLdSt, IR::RegOpnd * opndType,
     }
     // OR taggedType, InlineCacheAuxSlotTypeTag
     {
-        IR::IntConstOpnd * opndAuxSlotTag = IR::IntConstOpnd::New(InlineCacheAuxSlotTypeTag, TyInt8, instrLdSt->m_func);
+        IR::IntConstOpnd * opndAuxSlotTag = IR::IntConstOpnd::New(InlineCacheAuxSlotTypeTag, TyMachPtr, instrLdSt->m_func);
         IR::Instr * instrAnd = IR::Instr::New(Js::OpCode::OR, opndTaggedType, opndTaggedType, opndAuxSlotTag, instrLdSt->m_func);
         instrLdSt->InsertBefore(instrAnd);
     }
@@ -4789,7 +4789,7 @@ LowererMD::GenerateWriteBarrier(IR::Instr * assignInstr)
     assignInstr->InsertBefore(loadIndexInstr);
 
     IR::Instr * shiftBitInstr = IR::Instr::New(Js::OpCode::SHR, indexOpnd, indexOpnd,
-        IR::IntConstOpnd::New(12 /* 1 << 12 = 4096 */, TyInt32, assignInstr->m_func), assignInstr->m_func);
+        IR::IntConstOpnd::New(12 /* 1 << 12 = 4096 */, TyInt8, assignInstr->m_func), assignInstr->m_func);
     assignInstr->InsertBefore(shiftBitInstr);
 
     // The cardtable address is likely 64 bits already so we have to load it to a register
@@ -7564,7 +7564,7 @@ void LowererMD::GenerateInt32ToVarConversion( IR::Opnd * opndSrc, IR::Instr * in
 {
     // SHL r1, AtomTag
 
-    IR::Instr * instr = IR::Instr::New(Js::OpCode::SHL, opndSrc, opndSrc, IR::IntConstOpnd::New(Js::AtomTag, TyInt32, this->m_func), this->m_func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::SHL, opndSrc, opndSrc, IR::IntConstOpnd::New(Js::AtomTag, TyInt8, this->m_func), this->m_func);
     insertInstr->InsertBefore(instr);
 
     // INC r1
@@ -8876,7 +8876,7 @@ LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
             //    shufps xmm0, xmm0, (0 | 2 << 2 | 3 << 4 | 3 << 6);
             Assert(src->IsInt64());
             Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(src);
-            
+
             IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
             instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dst, srcPair.low, m_func));
             instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, tmpDouble, srcPair.high, m_func));
@@ -8935,7 +8935,7 @@ LowererMD::LowerToFloat(IR::Instr *instr)
         instr->m_opcode = Js::OpCode::XORPS;
         if (instr->GetDst()->IsFloat32())
         {
-            opnd = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetMaskNegFloatAddr(), TyMachDouble, this->m_func, IR::AddrOpndKindDynamicFloatRef);
+            opnd = IR::MemRefOpnd::New(m_func->GetThreadContextInfo()->GetMaskNegFloatAddr(), TyFloat32, this->m_func, IR::AddrOpndKindDynamicFloatRef);
         }
         else
         {
