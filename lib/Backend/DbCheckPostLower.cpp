@@ -142,11 +142,6 @@ DbCheckPostLower::Check()
             this->Check(instr->GetSrc2());
 
 #if defined(_M_IX86) || defined(_M_X64)
-            if (EncoderMD::IsOPEQ(instr))
-            {
-                Assert(instr->GetDst()->IsEqual(instr->GetSrc1()));
-            }
-#if defined(_M_IX86) || defined(_M_X64)
             // for op-eq's and assignment operators, make  sure the types match
             // for shift operators make sure the types match and the third is an 8-bit immediate
             // for cmp operators similarly check types are same
@@ -167,7 +162,6 @@ DbCheckPostLower::Check()
             }
             Assert(!LowererMD::IsAssign(instr) || instr->GetDst()->GetSize() == instr->GetSrc1()->GetSize());
             Assert(instr->m_opcode != Js::OpCode::CMP || instr->GetSrc1()->GetType() == instr->GetSrc1()->GetType());
-#endif
 
             switch (instr->m_opcode)
             {
