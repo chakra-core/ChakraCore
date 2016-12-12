@@ -4783,7 +4783,7 @@ LowererMD::GenerateWriteBarrier(IR::Opnd * writeBarrierAddrRegOpnd, IR::Instr * 
     insertBeforeInstr->InsertBefore(loadIndexInstr);
 
     IR::Instr * shiftBitInstr = IR::Instr::New(Js::OpCode::SHR, indexOpnd, indexOpnd,
-        IR::IntConstOpnd::New(12 /* 1 << 12 = 4096 */, TyInt32, insertBeforeInstr->m_func), insertBeforeInstr->m_func);
+        IR::IntConstOpnd::New(12 /* 1 << 12 = 4096 */, TyInt8, insertBeforeInstr->m_func), insertBeforeInstr->m_func);
     insertBeforeInstr->InsertBefore(shiftBitInstr);
 
     IR::RegOpnd * cardTableRegOpnd = IR::RegOpnd::New(TyMachReg, insertBeforeInstr->m_func);
