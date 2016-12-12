@@ -4789,7 +4789,7 @@ LowererMD::GenerateWriteBarrier(IR::Instr * assignInstr)
     assignInstr->InsertBefore(loadIndexInstr);
 
     IR::Instr * shiftBitInstr = IR::Instr::New(Js::OpCode::SHR, indexOpnd, indexOpnd,
-        IR::IntConstOpnd::New(12 /* 1 << 12 = 4096 */, TyInt32, assignInstr->m_func), assignInstr->m_func);
+        IR::IntConstOpnd::New(12 /* 1 << 12 = 4096 */, TyInt8, assignInstr->m_func), assignInstr->m_func);
     assignInstr->InsertBefore(shiftBitInstr);
 
     // The cardtable address is likely 64 bits already so we have to load it to a register
@@ -8876,7 +8876,7 @@ LowererMD::LowerReinterpretPrimitive(IR::Instr* instr)
             //    shufps xmm0, xmm0, (0 | 2 << 2 | 3 << 4 | 3 << 6);
             Assert(src->IsInt64());
             Int64RegPair srcPair = m_lowerer->FindOrCreateInt64Pair(src);
-            
+
             IR::RegOpnd* tmpDouble = IR::RegOpnd::New(TyFloat64, m_func);
             instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, dst, srcPair.low, m_func));
             instr->InsertBefore(IR::Instr::New(Js::OpCode::MOVD, tmpDouble, srcPair.high, m_func));
