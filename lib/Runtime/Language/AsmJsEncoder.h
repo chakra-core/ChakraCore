@@ -34,7 +34,7 @@ namespace Js
         BYTE* mEncodeBuffer;
         BYTE* mPc;
         PageAllocator* mPageAllocator;
-        CodeGenAllocators* mForegroundAllocators;
+        InProcCodeGenAllocators* mForegroundAllocators;
         FunctionBody* mFunctionBody;
         RelocLabelMap* mRelocLabelMap;
         ArenaAllocator* mLocalAlloc;
@@ -48,8 +48,8 @@ namespace Js
         void* GetTemplateData() { return mTemplateData; }
         inline PageAllocator* GetPageAllocator() const{return mPageAllocator;}
         inline void SetPageAllocator( PageAllocator* val ){mPageAllocator = val;}
-        inline CodeGenAllocators* GetCodeGenAllocator() const{return mForegroundAllocators;}
-        inline void SetCodeGenAllocator( CodeGenAllocators* val ){mForegroundAllocators = val;}
+        inline InProcCodeGenAllocators* GetCodeGenAllocator() const{return mForegroundAllocators;}
+        inline void SetCodeGenAllocator( InProcCodeGenAllocators* val ){mForegroundAllocators = val;}
         FunctionBody* GetFunctionBody() { return mFunctionBody; }
 
     private:

@@ -31,7 +31,7 @@ public:
     }
 
     void Init(Func * func);
-    void EmitUnwindInfo(JITOutput *jitOutput, EmitBufferAllocation * alloc);
+    void EmitUnwindInfo(JITOutput *jitOutput, CustomHeap::Allocation * alloc);
     DWORD EmitLongUnwindInfoChunk(DWORD remainingLength);
 
     void SetFunc(Func *func)
@@ -153,7 +153,7 @@ private:
     int xdataTotal;
     HANDLE processHandle;
     JITOutput *jitOutput;
-    EmitBufferAllocation * alloc;
+    CustomHeap::Allocation * alloc;
     DWORD fragmentLength;
     DWORD prologOffset;
     DWORD prologLabelId;

@@ -6,7 +6,9 @@
 #include "Backend.h"
 
 JITOutput::JITOutput(JITOutputIDL * outputData) :
-    m_outputData(outputData)
+    m_outputData(outputData),
+    m_inProcAlloc(nullptr),
+    m_func(nullptr)
 {
 }
 
@@ -91,18 +93,46 @@ JITOutput::GetXdataSize() const
     return m_outputData->xdataSize;
 }
 
-EmitBufferAllocation *
-JITOutput::RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize)
+EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> *
+JITOutput::RecordInProcNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize)
 {
-    BYTE *buffer;
+    m_func = func;
 
 #if defined(_M_ARM32_OR_ARM64)
     bool canAllocInPreReservedHeapPageSegment = false;
 #else
-    bool canAllocInPreReservedHeapPageSegment = func->CanAllocInPreReservedHeapPageSegment();
+    bool canAllocInPreReservedHeapPageSegment = m_func->CanAllocInPreReservedHeapPageSegment();
 #endif
 
-    EmitBufferAllocation *allocation = func->GetEmitBufferManager()->AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, true);
+    BYTE *buffer = nullptr;
+    m_inProcAlloc = m_func->GetInProcCodeGenAllocators()->emitBufferManager.AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, true);
+
+    if (buffer == nullptr)
+    {
+        Js::Throw::OutOfMemory();
+    }
+    m_outputData->codeAddress = (intptr_t)buffer;
+    m_outputData->codeSize = bytes;
+    m_outputData->pdataCount = pdataCount;
+    m_outputData->xdataSize = xdataSize;
+    m_outputData->isInPrereservedRegion = m_inProcAlloc->inPrereservedRegion;
+    return m_inProcAlloc;
+}
+
+#if ENABLE_OOP_NATIVE_CODEGEN
+EmitBufferAllocation<SectionAllocWrapper, PreReservedSectionAllocWrapper> *
+JITOutput::RecordOOPNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize)
+{
+    m_func = func;
+
+#if defined(_M_ARM32_OR_ARM64)
+    bool canAllocInPreReservedHeapPageSegment = false;
+#else
+    bool canAllocInPreReservedHeapPageSegment = m_func->CanAllocInPreReservedHeapPageSegment();
+#endif
+
+    BYTE *buffer = nullptr;
+    m_oopAlloc = m_func->GetOOPCodeGenAllocators()->emitBufferManager.AllocateBuffer(bytes, &buffer, pdataCount, xdataSize, canAllocInPreReservedHeapPageSegment, true);
 
     if (buffer == nullptr)
     {
@@ -113,23 +143,40 @@ JITOutput::RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ush
     m_outputData->codeSize = bytes;
     m_outputData->pdataCount = pdataCount;
     m_outputData->xdataSize = xdataSize;
-    m_outputData->isInPrereservedRegion = allocation->inPrereservedRegion;
-    return allocation;
+    m_outputData->isInPrereservedRegion = m_oopAlloc->inPrereservedRegion;
+    return m_oopAlloc;
 }
+#endif
 
 void
-JITOutput::RecordNativeCode(Func *func, const BYTE* sourceBuffer, EmitBufferAllocation * alloc)
+JITOutput::RecordNativeCode(const BYTE* sourceBuffer, BYTE* localCodeAddress)
 {
-    Assert(m_outputData->codeAddress == (intptr_t)alloc->allocation->address);
-    if (!func->GetEmitBufferManager()->CommitBuffer(alloc, (BYTE *)m_outputData->codeAddress, m_outputData->codeSize, sourceBuffer))
+#if ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsJITServer())
+    {
+        RecordNativeCode(sourceBuffer, localCodeAddress, m_oopAlloc, m_func->GetOOPCodeGenAllocators());
+    }
+    else
+#endif
+    {
+        RecordNativeCode(sourceBuffer, localCodeAddress, m_inProcAlloc, m_func->GetInProcCodeGenAllocators());
+    }
+}
+
+template <typename TEmitBufferAllocation, typename TCodeGenAllocators>
+void
+JITOutput::RecordNativeCode(const BYTE* sourceBuffer, BYTE* localCodeAddress, TEmitBufferAllocation allocation, TCodeGenAllocators codeGenAllocators)
+{
+    Assert(m_outputData->codeAddress == (intptr_t)allocation->allocation->address);
+    if (!codeGenAllocators->emitBufferManager.CommitBuffer(allocation, localCodeAddress, m_outputData->codeSize, sourceBuffer))
     {
         Js::Throw::OutOfMemory();
     }
 
 #if DBG_DUMP
-    if (func->IsLoopBody())
+    if (m_func->IsLoopBody())
     {
-        func->GetEmitBufferManager()->totalBytesLoopBody += m_outputData->codeSize;
+        codeGenAllocators->emitBufferManager.totalBytesLoopBody += m_outputData->codeSize;
     }
 #endif
 }
@@ -142,18 +189,17 @@ JITOutput::RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsign
 }
 
 #if _M_X64
-size_t
-JITOutput::RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr, HANDLE processHandle)
+void
+JITOutput::RecordUnwindInfo(BYTE *unwindInfo, size_t size, BYTE * xdataAddr, BYTE* localXdataAddr)
 {
-    Assert(offset == 0);
     Assert(XDATA_SIZE >= size);
-    ChakraMemCopy(xdataAddr, XDATA_SIZE, unwindInfo, size, processHandle);
+    memcpy_s(localXdataAddr, XDATA_SIZE, unwindInfo, size);
     m_outputData->xdataAddr = (intptr_t)xdataAddr;
-    return 0;
 }
+
 #elif _M_ARM
 size_t
-JITOutput::RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr, HANDLE processHandle)
+JITOutput::RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr)
 {
     BYTE *xdataFinal = xdataAddr + offset;
 
@@ -172,16 +218,23 @@ JITOutput::RecordXData(BYTE * xdata)
 #endif
 
 void
-JITOutput::FinalizeNativeCode(Func *func, EmitBufferAllocation * alloc)
+JITOutput::FinalizeNativeCode()
 {
-    func->GetEmitBufferManager()->CompletePreviousAllocation(alloc);
-    if (!func->IsOOPJIT())
+#if ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsJITServer())
     {
-        func->GetInProcJITEntryPointInfo()->SetInProcJITNativeCodeData(func->GetNativeCodeDataAllocator()->Finalize());
-        func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetRawData(func->GetTransferDataAllocator()->Finalize());
+        m_func->GetOOPCodeGenAllocators()->emitBufferManager.CompletePreviousAllocation(m_oopAlloc);
+    }
+    else
+#endif
+    {
+        m_func->GetInProcCodeGenAllocators()->emitBufferManager.CompletePreviousAllocation(m_inProcAlloc);
+
+        m_func->GetInProcJITEntryPointInfo()->SetInProcJITNativeCodeData(m_func->GetNativeCodeDataAllocator()->Finalize());
+        m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetRawData(m_func->GetTransferDataAllocator()->Finalize());
 #if !FLOATVAR
-        CodeGenNumberChunk * numberChunks = func->GetNumberAllocator()->Finalize();
-        func->GetInProcJITEntryPointInfo()->SetNumberChunks(numberChunks);
+        CodeGenNumberChunk * numberChunks = m_func->GetNumberAllocator()->Finalize();
+        m_func->GetInProcJITEntryPointInfo()->SetNumberChunks(numberChunks);
 #endif
     }
 }

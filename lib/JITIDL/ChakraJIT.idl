@@ -71,8 +71,8 @@ interface IChakraJIT
     HRESULT NewInterpreterThunkBlock(
         [in] handle_t binding,
         [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-        [in] boolean asmJsThunk,
-        [out] InterpreterThunkInfoIDL * thunkInfo);
+        [in] InterpreterThunkInputIDL * thunkInput,
+        [out] InterpreterThunkOutputIDL * thunkOutput);
 
     HRESULT IsNativeAddr(
         [in] handle_t binding,
@@ -90,13 +90,4 @@ interface IChakraJIT
         [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         [in] CodeGenWorkItemIDL * workItemData,
         [out] JITOutputIDL * jitData);
-
-#if DBG
-    HRESULT IsInterpreterThunkAddr(
-        [in] handle_t binding,
-        [in] PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-        [in] CHAKRA_PTR address,
-        [in] boolean asmjsThunk,
-        [out] boolean * result);
-#endif
 }

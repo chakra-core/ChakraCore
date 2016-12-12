@@ -48,7 +48,7 @@ JITManager::~JITManager()
     }
     if (m_serverHandle)
     {
-        CloseHandle(&m_serverHandle);
+        CloseHandle(m_serverHandle);
     }
 }
 
@@ -417,15 +417,15 @@ JITManager::SetIsPRNGSeeded(
 HRESULT
 JITManager::NewInterpreterThunkBlock(
     __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-    __in boolean asmJsThunk,
-    __out InterpreterThunkInfoIDL * thunkInfo)
+    __in InterpreterThunkInputIDL * thunkInput,
+    __out InterpreterThunkOutputIDL * thunkOutput)
 {
     Assert(IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientNewInterpreterThunkBlock(m_rpcBindingHandle, scriptContextInfoAddress, asmJsThunk, thunkInfo);
+        hr = ClientNewInterpreterThunkBlock(m_rpcBindingHandle, scriptContextInfoAddress, thunkInput, thunkOutput);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
@@ -585,31 +585,6 @@ JITManager::FreeAllocation(
 
     return hr;
 }
-
-#if DBG
-HRESULT
-JITManager::IsInterpreterThunkAddr(
-    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-    __in intptr_t address,
-    __in boolean asmjsThunk,
-    __out boolean * result)
-{
-    Assert(IsOOPJITEnabled());
-
-    HRESULT hr = E_FAIL;
-    RpcTryExcept
-    {
-        hr = ClientIsInterpreterThunkAddr(m_rpcBindingHandle, scriptContextInfoAddress, address, asmjsThunk, result);
-    }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
-    }
-    RpcEndExcept;
-
-    return hr;
-}
-#endif
 
 HRESULT
 JITManager::IsNativeAddr(

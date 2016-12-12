@@ -78,6 +78,7 @@ using namespace Memory;
 #include "Core/ConfigFlagsTable.h"
 
 // === Page/Arena Memory Header Files ===
+#include "Memory/SectionAllocWrapper.h"
 #include "Memory/VirtualAllocWrapper.h"
 #include "Memory/MemoryTracking.h"
 #include "Memory/AllocationPolicyManager.h"
