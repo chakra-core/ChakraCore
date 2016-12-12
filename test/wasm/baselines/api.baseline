@@ -21,7 +21,7 @@ Test 4: Expected Error: TypeError: BufferSource expected
 Test 5: Expected Error: TypeError: BufferSource expected
 Test 6: Expected Error: TypeError: BufferSource expected
 Test 7: Expected Error: TypeError: BufferSource expected
-Test 8: Expected Error: WebAssemblyCompileError: Compiling wasm failed: Invalid LEB128 format
+Test 8: Expected Error: WebAssemblyCompileError: Invalid LEB128 format
 Test 9: Expected Error: TypeError: BufferSource expected
 Testing module
 exports
@@ -38,7 +38,7 @@ Test 4: Expected Error: TypeError: BufferSource expected
 Test 5: Expected Error: TypeError: BufferSource expected
 Test 6: Expected Error: TypeError: BufferSource expected
 Test 7: Expected Error: TypeError: BufferSource expected
-Test 8: Expected Error: WebAssemblyCompileError: Compiling wasm failed: Invalid LEB128 format
+Test 8: Expected Error: WebAssemblyCompileError: Invalid LEB128 format
 Test 9: Expected Error: TypeError: BufferSource expected
 Test 10: Expected Error: TypeError: Object expected
 Test 11: Expected Error: TypeError: Object expected
@@ -86,7 +86,7 @@ Test 6: Expected Error: TypeError: BufferSource expected
 Test 7: Expected Error: TypeError: BufferSource expected
 Test 8: Expected Error: TypeError: BufferSource expected
 Test 9: Expected Error: TypeError: BufferSource expected
-Test 10: Expected Error: WebAssemblyCompileError: Compiling wasm failed: Invalid LEB128 format
+Test 10: Expected Error: WebAssemblyCompileError: Invalid LEB128 format
 Test 11: Expected Error: TypeError: BufferSource expected
 Testing module
 exports
