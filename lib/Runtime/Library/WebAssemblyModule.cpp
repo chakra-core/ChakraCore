@@ -553,10 +553,17 @@ WebAssemblyModule::AddTableImport(const char16* modName, uint32 modNameLen, cons
 uint
 WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, const WebAssemblyEnvironment* env) const
 {
-    if (initExpr.op != Wasm::wbI32Const && initExpr.op != Wasm::wbGetGlobal)
+    try
     {
-        throw Wasm::WasmCompilationException(_u("Invalid init_expr for element offset"));
+        ValidateInitExportForOffset(initExpr);
     }
+    catch (Wasm::WasmCompilationException &e)
+    {
+        // Should have been checked at compile time
+        Assert(UNREACHED);
+        throw e;
+    }
+
     uint offset = 0;
     if (initExpr.op == Wasm::wbI32Const)
     {
@@ -564,18 +571,28 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, const WebAs
     }
     else if (initExpr.op == Wasm::wbGetGlobal)
     {
-        if (initExpr.var.num >= (uint)m_globals->Count())
-        {
-            throw Wasm::WasmCompilationException(_u("global %d doesn't exist"), initExpr.var.num);
-        }
-        Wasm::WasmGlobal* global = m_globals->Item(initExpr.var.num);
-        if (global->GetType() != Wasm::WasmTypes::I32)
-        {
-            throw Wasm::WasmCompilationException(_u("global %d must be i32"), initExpr.var.num);
-        }
+        Wasm::WasmGlobal* global = GetGlobal(initExpr.var.num);
+        Assert(global->GetType() == Wasm::WasmTypes::I32);
         offset = env->GetGlobalValue(global).i32;
     }
     return offset;
+}
+
+void
+WebAssemblyModule::ValidateInitExportForOffset(const Wasm::WasmNode& initExpr) const
+{
+    if (initExpr.op == Wasm::wbGetGlobal)
+    {
+        Wasm::WasmGlobal* global = GetGlobal(initExpr.var.num);
+        if (global->GetType() != Wasm::WasmTypes::I32)
+        {
+            throw Wasm::WasmCompilationException(_u("global %u must be i32 for init_expr"), initExpr.var.num);
+        }
+    }
+    else if (initExpr.op != Wasm::wbI32Const)
+    {
+        throw Wasm::WasmCompilationException(_u("Invalid init_expr for offset"));
+    }
 }
 
 void

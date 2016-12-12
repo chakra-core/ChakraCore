@@ -9,12 +9,12 @@
 
   (global $x (import "m" "x") i32)
   (global $a i32 (i32.const 6))
-  
+
   (table 15 anyfunc)
     (elem (i32.const 1)    $g1 $g2 $g3 $g4) ;;local offset
     (elem (get_global $x)  $g3 $g4 $g5 $g6) ;;imported global offset
-    (elem (get_global $a)  $g5 $g6 $g7 $g8) ;;global offset
-  
+    ;;(elem (get_global $a)  $g5 $g6 $g7 $g8) ;;global offset
+
   (func $g1 (result i32) (i32.const 15))
   (func $g2 (result i32) (i32.const 25))
   (func $g3 (result i32) (i32.const 35))
