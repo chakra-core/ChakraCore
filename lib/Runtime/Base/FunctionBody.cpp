@@ -3445,7 +3445,8 @@ namespace Js
             || (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk &&
             this->IsFunctionBody() && this->GetFunctionBody()->IsNativeOriginalEntryPoint())
 #ifdef ENABLE_WASM
-            || (GetFunctionBody()->IsWasmFunction() && directEntryPoint == WasmLibrary::WasmDeferredParseInternalThunk)
+            || (GetFunctionBody()->IsWasmFunction() &&
+                (directEntryPoint == WasmLibrary::WasmDeferredParseInternalThunk || directEntryPoint == WasmLibrary::WasmLazyTrapCallback))
 #endif
 #ifdef ASMJS_PLAT
             || (GetFunctionBody()->GetIsAsmJsFunction() && directEntryPoint == AsmJsDefaultEntryThunk)
