@@ -13,16 +13,6 @@
       <tags>exclude_fre</tags>
     </default>
   </test>
-<!-- Disabled in core; see OS 9760284
-  <test>
-    <default>
-      <files>etwtest.js</files>
-      <baseline />
-      <compile-flags>-testEtwDll:NativeUnitTests.dll</compile-flags>
-      <tags>exclude_ship</tags>
-    </default>
-  </test>
--->
   <test>
     <default>
       <files>evalAlias.js</files>
