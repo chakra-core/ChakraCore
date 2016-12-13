@@ -420,4 +420,10 @@
       <compile-flags>-loopinterpretcount:1 -force:inline -off:simplejit</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>ForInEnumCacheBuiltIn.js</files>
+      <baseline />
+    </default>
+  </test>
 </regress-exe>
