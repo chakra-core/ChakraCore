@@ -2111,15 +2111,19 @@ ThreadContext::ExecuteRecyclerCollectionFunction(Recycler * recycler, Collection
 void
 ThreadContext::DisposeObjects(Recycler * recycler)
 {
-    if(this->IsDisableImplicitCall())
+    if (this->IsDisableImplicitCall())
     {
         // Don't dispose objects when implicit calls are disabled, since disposing may cause implicit calls. Objects will remain
         // in the dispose queue and will be disposed later when implicit calls are not disabled.
         return;
     }
 
-    // we shouldn't dispose in noscriptscope as it might lead to script execution.
-    Assert(!this->IsNoScriptScope());
+    // We shouldn't DisposeObjects in NoScriptScope as this might lead to script execution.
+    // Callers of DisposeObjects should ensure !IsNoScriptScope() before calling DisposeObjects.
+    if (this->IsNoScriptScope())
+    {
+        FromDOM_NoScriptScope_fatal_error();
+    }
 
     if (!this->IsScriptActive())
     {
