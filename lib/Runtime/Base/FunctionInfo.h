@@ -88,7 +88,8 @@ namespace Js
         ParseableFunctionInfo* GetParseableFunctionInfo() const
         {
             Assert(functionBodyImpl == nullptr || !IsDeferredDeserializeFunction());
-            return (ParseableFunctionInfo*)functionBodyImpl;
+            FunctionProxy * proxy = this->functionBodyImpl;
+            return (ParseableFunctionInfo*)proxy;
         }
         ParseableFunctionInfo** GetParseableFunctionInfoRef() const
         {
@@ -98,7 +99,8 @@ namespace Js
         DeferDeserializeFunctionInfo* GetDeferDeserializeFunctionInfo() const
         {
             Assert(functionBodyImpl == nullptr || IsDeferredDeserializeFunction());
-            return (DeferDeserializeFunctionInfo*)functionBodyImpl;
+            FunctionProxy * proxy = this->functionBodyImpl;
+            return (DeferDeserializeFunctionInfo*)proxy;
         }
         FunctionBody * GetFunctionBody() const;
 
@@ -133,9 +135,7 @@ namespace Js
 
     protected:
         JavascriptMethod originalEntryPoint;
-        // WriteBarrier-TODO: Fix this? This is used only by proxies to keep the deserialized version around
-        // However, proxies are not allocated as write barrier memory currently so its fine to not set the write barrier for this field
-        FunctionProxy * functionBodyImpl;     // Implementation of the function- null if the function doesn't have a body
+        WriteBarrierPtr<FunctionProxy> functionBodyImpl;     // Implementation of the function- null if the function doesn't have a body
         LocalFunctionId functionId;        // Per host source context (source file) function Id
         uint compileCount;
         Attributes attributes;
