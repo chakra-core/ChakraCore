@@ -6,9 +6,15 @@
 
 namespace Memory
 {
-#define PreReservedHeapTrace(...) { \
+
+#define PreReservedHeapTrace(...) \
+{ \
     OUTPUT_TRACE(Js::PreReservedHeapAllocPhase, __VA_ARGS__); \
 }
+
+
+class SectionAllocWrapper;
+class PreReservedSectionAllocWrapper;
 
 /*
 * VirtualAllocWrapper is just a delegator class to call VirtualAlloc and VirtualFree.
@@ -16,8 +22,8 @@ namespace Memory
 class VirtualAllocWrapper
 {
 public:
-    LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation, HANDLE process);
-    BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType, HANDLE process);
+    LPVOID  Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation);
+    BOOL    Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType);
 
     static VirtualAllocWrapper Instance;  // single instance
 private:
@@ -44,10 +50,10 @@ public:
     static const unsigned MaxPreReserveSegment = 6;
 #endif
 public:
-    PreReservedVirtualAllocWrapper(HANDLE process);
+    PreReservedVirtualAllocWrapper();
     ~PreReservedVirtualAllocWrapper();
-    LPVOID      Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation, HANDLE process);
-    BOOL        Free(LPVOID lpAddress,  size_t dwSize, DWORD dwFreeType, HANDLE process);
+    LPVOID      Alloc(LPVOID lpAddress, DECLSPEC_GUARD_OVERFLOW size_t dwSize, DWORD allocationType, DWORD protectFlags, bool isCustomHeapAllocation);
+    BOOL        Free(LPVOID lpAddress,  size_t dwSize, DWORD dwFreeType);
 
     bool        IsInRange(void * address);
     static bool IsInRange(void * regionStart, void * address);
@@ -73,7 +79,6 @@ private:
     BVStatic<PreReservedAllocationSegmentCount>     freeSegments;
     LPVOID                                          preReservedStartAddress;
     CriticalSection                                 cs;
-    HANDLE processHandle;
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
     static uint  numPreReservedSegment;
 #endif
@@ -117,13 +122,13 @@ private:
 #endif
 
 template<typename TVirtualAlloc = VirtualAllocWrapper>
-class PageAllocatorBase;
-
-template<typename TVirtualAlloc = VirtualAllocWrapper>
 class PageSegmentBase;
 
 template<typename TVirtualAlloc = VirtualAllocWrapper>
 class SegmentBase;
+
+template<typename TVirtualAlloc = VirtualAllocWrapper, typename TSegment = SegmentBase<TVirtualAlloc>, typename TPageSegment = PageSegmentBase<TVirtualAlloc>>
+class PageAllocatorBase;
 
 typedef PageAllocatorBase<> PageAllocator;
 typedef PageSegmentBase<> PageSegment;

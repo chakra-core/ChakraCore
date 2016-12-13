@@ -18,7 +18,6 @@ set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
     MarkContext.cpp
     MemoryLogger.cpp
     MemoryTracking.cpp
-    MemUtils.cpp
     PageAllocator.cpp
     Recycler.cpp
     RecyclerHeuristic.cpp

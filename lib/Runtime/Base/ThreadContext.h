@@ -686,9 +686,9 @@ private:
     XProcNumberPageSegmentManager * xProcNumberPageSegmentManager;
 #endif
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    CustomHeap::CodePageAllocators thunkPageAllocators;
+    CustomHeap::InProcCodePageAllocators thunkPageAllocators;
 #endif
-    CustomHeap::CodePageAllocators codePageAllocators;
+    CustomHeap::InProcCodePageAllocators codePageAllocators;
 #endif
 
     RecyclerRootPtr<RecyclableData> recyclableData;
@@ -838,9 +838,9 @@ public:
 #if ENABLE_NATIVE_CODEGEN
     PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() { return &preReservedVirtualAllocator; }
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    CustomHeap::CodePageAllocators * GetThunkPageAllocators() { return &thunkPageAllocators; }
+    CustomHeap::InProcCodePageAllocators * GetThunkPageAllocators() { return &thunkPageAllocators; }
 #endif
-    CustomHeap::CodePageAllocators * GetCodePageAllocators() { return &codePageAllocators; }
+    CustomHeap::InProcCodePageAllocators * GetCodePageAllocators() { return &codePageAllocators; }
 #endif // ENABLE_NATIVE_CODEGEN
 
     CriticalSection* GetEtwRundownCriticalSection() { return &csEtwRundown; }
