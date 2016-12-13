@@ -51,5 +51,30 @@ function test2() {
   sc9_cctx.test();
 }
 
+function test3() {
+  var obj1 = {};
+  var arrObj0 = {};
+  var x=1
+  var proxyHandler = {};
+  proxyHandler['get'] = function () {};
+  proxyHandler['defineProperty'] = function (target, property, descriptor) {    
+    return Reflect.defineProperty(target, property, descriptor);
+  };
+  proxyHandler['isExtensible'] = function (target) {  
+    arrObj0.prop0;
+    arrObj0 = new Proxy(arrObj0, proxyHandler);
+    return Reflect.isExtensible(target);
+  };
+  arrObj0 = new Proxy(arrObj0, proxyHandler);
+  arrObj0 = new Proxy(arrObj0, proxyHandler);
+  do {
+    var sc3 = WScript.LoadScript('function test(){arrObj0.length = arrObj0[obj1];}', 'samethread');
+    sc3.obj1 = obj1;
+    sc3.arrObj0 = arrObj0;
+    sc3.test();
+  } while (x--);
+}
+
 test1();
 test2();
+test3();

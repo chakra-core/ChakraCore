@@ -1870,7 +1870,7 @@ namespace Js
     {
         if (propertyDescriptor.ValueSpecified())
         {
-            return propertyDescriptor.GetValue();
+            return CrossSite::MarshalVar(requestContext, propertyDescriptor.GetValue());
         }
         if (propertyDescriptor.GetterSpecified())
         {
