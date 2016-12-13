@@ -310,6 +310,9 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address)
         Output::Print(_u("Writing to 0x%p (CIndex: %u)\n"), address, index);
     }
 #endif
+#if DBG
+    Recycler::WBSetBit((char*)address);
+#endif
 }
 
 void
@@ -325,6 +328,11 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t bytes)
     Assert(startIndex <= endIndex);
     memset(cardTable + startIndex, WRITE_BARRIER_PAGE_BIT | DIRTYBIT, endIndex - startIndex);
     GlobalSwbVerboseTrace(_u("Writing to 0x%p (CIndex: %u-%u)\n"), address, startIndex, endIndex);
+
+#if DBG
+    Recycler::WBSetBits((char*)address, (uint)bytes/sizeof(void*));
+#endif
+
 #else
     uint bitShift = (((uint)address) >> s_BitArrayCardTableShift);
     uint bitMask = 0xFFFFFFFF << bitShift;
