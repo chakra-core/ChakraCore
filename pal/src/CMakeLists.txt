@@ -161,14 +161,19 @@ set(SOURCES
 )
 
 add_library(Chakra.Pal
-  STATIC
+  OBJECT
   ${SOURCES}
   ${PLATFORM_SOURCES}
   ${ARCH_SOURCES}
 )
 
+add_library(Chakra.Pal.Singular
+  STATIC
+  $<TARGET_OBJECTS:Chakra.Pal>
+)
+
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  target_link_libraries(Chakra.Pal
+  target_link_libraries(Chakra.Pal.Singular
     pthread
     dl
     "-framework CoreFoundation"
@@ -178,12 +183,12 @@ endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   if(CC_TARGETS_AMD64)
-    target_link_libraries(Chakra.Pal
+    target_link_libraries(Chakra.Pal.Singular
       unwind-x86_64
     )
   endif()
 
-  target_link_libraries(Chakra.Pal
+  target_link_libraries(Chakra.Pal.Singular
     gcc_s
     pthread
     rt
@@ -194,4 +199,4 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
 endif(CMAKE_SYSTEM_NAME STREQUAL Linux)
 
 # Install the static PAL library for VS
-install (TARGETS Chakra.Pal DESTINATION lib)
+install (TARGETS Chakra.Pal.Singular DESTINATION lib)

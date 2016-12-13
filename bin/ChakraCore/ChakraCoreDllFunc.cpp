@@ -33,6 +33,7 @@ extern HANDLE g_hInstance;
 #ifdef _WIN32
 static ATOM  lockedDll = 0;
 #endif
+extern THREAD_LOCAL bool s_threadWasEntered;
 
 #ifdef _MSC_VER
 #define EXPORT_FUNC
@@ -95,6 +96,8 @@ static BOOL AttachProcess(HANDLE hmod)
 #ifdef ENABLE_BASIC_TELEMETRY
     g_TraceLoggingClient = NoCheckHeapNewStruct(TraceLoggingClient);
 #endif
+
+    s_threadWasEntered = true;
 
 #ifdef DYNAMIC_PROFILE_STORAGE
     return DynamicProfileStorage::Initialize();
@@ -197,12 +200,6 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
         AssertMsg(FALSE, "DllMain() called with unrecognized dwReason.");
         return FALSE;
     }
-}
-
-void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
-{
-    autoSystemInfo->buildDateHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__DATE__, _countof(__DATE__));
-    autoSystemInfo->buildTimeHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__TIME__, _countof(__TIME__));
 }
 
 #if !ENABLE_NATIVE_CODEGEN
