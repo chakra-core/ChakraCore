@@ -169,29 +169,12 @@ add_library(Chakra.Pal
 
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   target_link_libraries(Chakra.Pal
-    pthread
-    dl
     "-framework CoreFoundation"
     "-framework Security"
   )
-endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  if(CC_TARGETS_AMD64)
-    target_link_libraries(Chakra.Pal
-      unwind-x86_64
-    )
-  endif()
-
+else() # Linux
   target_link_libraries(Chakra.Pal
-    gcc_s
     pthread
-    rt
     dl
-    unwind
-    unwind-generic
   )
-endif(CMAKE_SYSTEM_NAME STREQUAL Linux)
-
-# Install the static PAL library for VS
-install (TARGETS Chakra.Pal DESTINATION lib)
+endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
