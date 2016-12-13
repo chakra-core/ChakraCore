@@ -8816,25 +8816,31 @@ namespace Js
         return guard;
     }
 
-    Js::PropertyId* EntryPointInfo::GetSharedPropertyGuards(unsigned int& count)
+    Js::PropertyId* EntryPointInfo::GetSharedPropertyGuards(_Out_ unsigned int& count)
     {
-        count = 0;
+        Js::PropertyId* sharedPropertyGuards = nullptr;
+        unsigned int guardCount = 0;
+
         if (this->sharedPropertyGuards != nullptr)
         {
-
-            Js::PropertyId* guards = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Js::PropertyId, this->sharedPropertyGuards->Count());
+            const unsigned int sharedPropertyGuardsCount = (unsigned int)this->sharedPropertyGuards->Count();
+            Js::PropertyId* guards = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Js::PropertyId, sharedPropertyGuardsCount);
             auto sharedGuardIter = this->sharedPropertyGuards->GetIterator();
 
             while (sharedGuardIter.IsValid())
             {
-                guards[count] = sharedGuardIter.CurrentKey();
+                AnalysisAssert(guardCount < sharedPropertyGuardsCount);
+                guards[guardCount] = sharedGuardIter.CurrentKey();
                 sharedGuardIter.MoveNext();
-                ++count;
+                ++guardCount;
             }
-            Assert(count == (unsigned int)this->sharedPropertyGuards->Count());
-            return guards;
+            AnalysisAssert(guardCount == sharedPropertyGuardsCount);
+
+            sharedPropertyGuards = guards;
         }
-        return nullptr;
+
+        count = guardCount;
+        return sharedPropertyGuards;
     }
 
     bool EntryPointInfo::TryGetSharedPropertyGuard(Js::PropertyId propertyId, Js::PropertyGuard*& guard)
