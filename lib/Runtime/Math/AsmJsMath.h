@@ -37,7 +37,6 @@ namespace Js
         template<typename T> static int CmpEq( T aLeft, T aRight );
         template<typename T> static int CmpNe( T aLeft, T aRight );
     };
-
-
-
 }
+
+#include "AsmJsMath.inl"
