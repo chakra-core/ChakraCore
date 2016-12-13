@@ -3235,7 +3235,7 @@ JsErrorCode RunSerializedScriptCore(
 
         SourceContextInfo *sourceContextInfo;
         SRCINFO *hsi;
-        Js::FunctionBody *functionBody = nullptr;
+        Field(Js::FunctionBody*) functionBody = nullptr;
 
         HRESULT hr;
 

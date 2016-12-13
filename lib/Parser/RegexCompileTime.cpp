@@ -4448,7 +4448,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (w != 0)
         {
-            w->PrintEOL(_u("REGEX AST /%s/ {"), program->source);
+            w->PrintEOL(_u("REGEX AST /%s/ {"), PointerValue(program->source));
             w->Indent();
             root->Print(w, litbuf);
             w->Unindent();
@@ -4560,7 +4560,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
                     if (w != 0)
                     {
-                        w->PrintEOL(_u("REGEX ANNOTATED AST /%s/ {"), program->source);
+                        w->PrintEOL(_u("REGEX ANNOTATED AST /%s/ {"), PointerValue(program->source));
                         w->Indent();
                         root->Print(w, program->rep.insts.litbuf);
                         w->Unindent();
@@ -4633,7 +4633,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (w != 0)
         {
-            w->PrintEOL(_u("REGEX PROGRAM /%s/ "), program->source);
+            w->PrintEOL(_u("REGEX PROGRAM /%s/ "), PointerValue(program->source));
             program->Print(w);
             w->Flush();
         }

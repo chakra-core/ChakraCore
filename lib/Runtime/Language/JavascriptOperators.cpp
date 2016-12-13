@@ -8444,7 +8444,7 @@ CommonNumber:
         GetPropertyIdForInt(static_cast<uint64>(value), scriptContext, propertyRecord);
     }
 
-    Var JavascriptOperators::FromPropertyDescriptor(PropertyDescriptor descriptor, ScriptContext* scriptContext)
+    Var JavascriptOperators::FromPropertyDescriptor(const PropertyDescriptor& descriptor, ScriptContext* scriptContext)
     {
         DynamicObject* object = scriptContext->GetLibrary()->CreateObject();
 
@@ -8848,7 +8848,7 @@ CommonNumber:
         return DefineOwnPropertyDescriptor(arr, propId, descriptor, throwOnError, scriptContext);
     }
 
-    BOOL JavascriptOperators::SetPropertyDescriptor(RecyclableObject* object, PropertyId propId, PropertyDescriptor descriptor)
+    BOOL JavascriptOperators::SetPropertyDescriptor(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor)
     {
         if (descriptor.ValueSpecified())
         {

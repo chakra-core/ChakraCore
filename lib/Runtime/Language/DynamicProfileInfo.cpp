@@ -111,7 +111,7 @@ namespace Js
         {
             if (batch[i].size > 0)
             {
-                BYTE** field = (BYTE**)(((BYTE*)info + batch[i].offset));
+                Field(BYTE*)* field = (Field(BYTE*)*)(((BYTE*)info + batch[i].offset));
                 *field = current;
                 current += batch[i].size;
             }

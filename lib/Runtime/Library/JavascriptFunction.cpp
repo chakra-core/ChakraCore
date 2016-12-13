@@ -3006,7 +3006,7 @@ LABEL1:
 
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-            Output::Print(_u("CtorCache: before invalidating cache (0x%p) for ctor %s (%s): "), this->constructorCache, ctorName,
+            Output::Print(_u("CtorCache: before invalidating cache (0x%p) for ctor %s (%s): "), PointerValue(this->constructorCache), ctorName,
                 body ? body->GetDebugNumberSet(debugStringBuffer) : _u("(null)"));
             this->constructorCache->Dump();
             Output::Print(_u("\n"));
@@ -3024,7 +3024,7 @@ LABEL1:
             const char16* ctorName = body != nullptr ? body->GetDisplayName() : _u("<unknown>");
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-            Output::Print(_u("CtorCache: after invalidating cache (0x%p) for ctor %s (%s): "), this->constructorCache, ctorName,
+            Output::Print(_u("CtorCache: after invalidating cache (0x%p) for ctor %s (%s): "), PointerValue(this->constructorCache), ctorName,
                 body ? body->GetDebugNumberSet(debugStringBuffer) : _u("(null)"));
             this->constructorCache->Dump();
             Output::Print(_u("\n"));

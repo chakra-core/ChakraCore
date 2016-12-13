@@ -34,8 +34,8 @@ namespace Js
 #endif
 
     protected:
-        EngineInterfaceExtensionKind extensionKind;
-        ScriptContext* scriptContext;
+        Field(EngineInterfaceExtensionKind) extensionKind;
+        Field(ScriptContext*) scriptContext;
     };
 
 #define EngineInterfaceObject_CommonFunctionProlog(function, callInfo) \
@@ -52,9 +52,9 @@ namespace Js
         DEFINE_VTABLE_CTOR(EngineInterfaceObject, DynamicObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(EngineInterfaceObject);
 
-        DynamicObject* commonNativeInterfaces;
+        Field(DynamicObject*) commonNativeInterfaces;
 
-        EngineExtensionObjectBase* engineExtensions[MaxEngineInterfaceExtensionKind + 1];
+        Field(EngineExtensionObjectBase*) engineExtensions[MaxEngineInterfaceExtensionKind + 1];
 
     public:
         EngineInterfaceObject(DynamicType * type) : DynamicObject(type) {}

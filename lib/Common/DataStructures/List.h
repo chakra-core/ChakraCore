@@ -360,6 +360,7 @@ namespace JsUtil
         void SetItem(int index, const T& item)
         {
             EnsureArray(index + 1);
+            // TODO: (SWB)(leish) find a way to force user defined copy constructor
             this->buffer[index] = item;
             this->count = max(this->count, index + 1);
         }

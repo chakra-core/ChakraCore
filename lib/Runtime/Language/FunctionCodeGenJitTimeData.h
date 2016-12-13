@@ -38,7 +38,7 @@ namespace Js
         Field(PolymorphicInlineCacheIDL*) polymorphicInlineCaches;
 
         // current value of global this object, may be changed in case of script engine invalidation
-        FieldNoBarrier(Var) globalThisObject;
+        Field(Var) globalThisObject;
 
         // Number of functions that are to be inlined (this is not the length of the 'inlinees' array above, includes getter setter inlinee count)
         Field(uint) inlineeCount;

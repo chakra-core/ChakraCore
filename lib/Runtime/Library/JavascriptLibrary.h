@@ -388,7 +388,7 @@ namespace Js
         Field(JavascriptFunction*) objectToStringFunction;
 
 #ifdef ENABLE_WASM
-        DynamicObject* webAssemblyObject;
+        Field(DynamicObject*) webAssemblyObject;
 #endif
 
         // SIMD_JS

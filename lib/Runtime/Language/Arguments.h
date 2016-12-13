@@ -117,6 +117,8 @@ namespace Js
 
         Arguments(VirtualTableInfoCtorEnum v) : Info(v) {}
 
+        Arguments(const Arguments& other) : Info(other.Info), Values(other.Values) {}
+
         Var operator [](int idxArg) { return const_cast<Var>(static_cast<const Arguments&>(*this)[idxArg]); }
         const Var operator [](int idxArg) const
         {

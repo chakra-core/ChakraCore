@@ -12,6 +12,13 @@ namespace Js
     typedef SList<ModuleRecordBase*> ExportModuleRecordList;
     struct ModuleNameRecord
     {
+        ModuleNameRecord(const ModuleNameRecord& other)
+            :module(other.module), bindingName(other.bindingName)
+        {}
+        ModuleNameRecord(ModuleRecordBase* module, PropertyId bindingName) 
+            :module(module), bindingName(bindingName) 
+        {}
+        ModuleNameRecord() {}
         Field(ModuleRecordBase*) module;
         Field(PropertyId) bindingName;
     };

@@ -764,7 +764,7 @@ namespace Js
         JavascriptExceptionContext::StackTrace *stackTrace = exceptionContext.GetStackTrace();
         for (int i=0; i < stackTrace->Count(); i++)
         {
-            Js::JavascriptExceptionContext::StackFrame currFrame = stackTrace->Item(i);
+            Js::JavascriptExceptionContext::StackFrame& currFrame = stackTrace->Item(i);
             ULONG lineNumber = 0;
             LONG characterPosition = 0;
             if (currFrame.IsScriptFunction() && !currFrame.GetFunctionBody()->GetUtf8SourceInfo()->GetIsLibraryCode())
@@ -1119,7 +1119,7 @@ namespace Js
 
             for (int i = 0; i < stackTrace->Count(); i++)
             {
-                Js::JavascriptExceptionContext::StackFrame currentFrame = stackTrace->Item(i);
+                Js::JavascriptExceptionContext::StackFrame& currentFrame = stackTrace->Item(i);
 
                 // Defend in depth. Discard cross domain frames if somehow they creped in.
                 if (currentFrame.IsScriptFunction())

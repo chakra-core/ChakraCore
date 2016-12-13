@@ -370,12 +370,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #define DBGPROP_ATTRIB_VALUE_PENDING_MUTATION 0x10000000
 #endif
 
-#ifdef _MSC_VER
-#include "JITClient.h"
-#else
-#include "JITTypes.h"
+#include "../JITIDL/JITTypes.h"
 #include "../JITClient/JITManager.h"
-#endif
 
 #include "Base/SourceHolder.h"
 #include "Base/Utf8SourceInfo.h"

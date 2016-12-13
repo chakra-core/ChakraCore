@@ -111,7 +111,7 @@ namespace Js
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL IsExtensible() override;
         virtual BOOL PreventExtensions() override;
-        virtual void ThrowIfCannotDefineProperty(PropertyId propId, PropertyDescriptor descriptor) { }
+        virtual void ThrowIfCannotDefineProperty(PropertyId propId, const PropertyDescriptor& descriptor) { }
         virtual void ThrowIfCannotGetOwnPropertyDescriptor(PropertyId propId) {};
         virtual BOOL GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor) override;
         virtual BOOL Seal() override;

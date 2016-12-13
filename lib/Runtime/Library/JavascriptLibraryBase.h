@@ -186,10 +186,10 @@ namespace Js
         Field(DynamicObject*) debugObject;
         Field(DynamicObject*) JSONObject;
 #ifdef ENABLE_INTL_OBJECT
-        DynamicObject* IntlObject;
+        Field(DynamicObject*) IntlObject;
 #endif
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
-        EngineInterfaceObject* engineInterfaceObject;
+        Field(EngineInterfaceObject*) engineInterfaceObject;
 #endif
         Field(DynamicObject*) reflectObject;
 
