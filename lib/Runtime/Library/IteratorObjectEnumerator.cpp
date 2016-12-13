@@ -45,6 +45,11 @@ namespace Js
             {
                 JavascriptString* propertyName = JavascriptConversion::ToString(currentIndex, scriptContext);
                 GetScriptContext()->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
+
+                // Need to keep property records alive during enumeration to prevent collection
+                // and eventual reuse during the same enumeration. For DynamicObjects, property
+                // records are kept alive by type handlers.
+                this->propertyRecords.Prepend(iteratorObject->GetRecycler(), propertyRecord);
             }
 
             propertyId = propertyRecord->GetPropertyId();
