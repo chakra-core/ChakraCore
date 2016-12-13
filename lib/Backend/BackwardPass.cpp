@@ -4475,6 +4475,10 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                         // fixed field not loaded from prototype.) Note the IsTypeAvailable test above: only do this at
                         // the initial type check that protects this path.
                         opnd->SetMonoGuardType(bucket->GetMonoGuardType());
+                        if (opnd->GetMonoGuardType() != (opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType()))
+                        {
+                            opnd->SetTypeMismatch(true);
+                        }
                         this->currentInstr->ChangeEquivalentToMonoTypeCheckBailOut();
                     }
                     bucket->SetMonoGuardType(nullptr);
