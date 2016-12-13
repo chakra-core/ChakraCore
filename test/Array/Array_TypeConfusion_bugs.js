@@ -574,5 +574,24 @@ var tests = [
             assert.areEqual([0x41424344], Array.prototype.slice.call(y));
         }
     },
+    {
+        name: "[MSRC34994,35226] heap overflow in Array.prototype.reverse",
+        body: function ()
+        {
+            var count = 0;
+            arr = new Array(100);
+            var desc = Object.getOwnPropertyDescriptor(Array.prototype, 1);
+            Object.defineProperty(Array.prototype, 1, { get: function () {
+                    count++;
+                    if (count == 1) {
+                        arr.push(null);
+                    }
+                }});
+
+            arr.reverse();
+            restorePropertyFromDescriptor(Array.prototype, 1, desc);
+            assert.areEqual(101, arr.length);
+        }
+    },
 ];
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
