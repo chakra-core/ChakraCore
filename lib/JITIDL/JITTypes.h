@@ -815,11 +815,16 @@ typedef struct JITOutputIDL
     __int64 startTime;
 } JITOutputIDL;
 
-typedef struct InterpreterThunkInfoIDL
+typedef struct InterpreterThunkInputIDL
+{
+    boolean asmJsThunk;
+} InterpreterThunkInputIDL;
+
+typedef struct InterpreterThunkOutputIDL
 {
     unsigned int thunkCount;
     X64_PAD4(0)
+    CHAKRA_PTR mappedBaseAddr;
     CHAKRA_PTR pdataTableStart;
     CHAKRA_PTR epilogEndAddr;
-    CHAKRA_PTR thunkBlockAddr;
-} InterpreterThunkInfoIDL;
+} InterpreterThunkOutputIDL;

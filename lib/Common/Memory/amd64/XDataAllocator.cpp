@@ -16,16 +16,12 @@ CompileAssert(false)
 #include "PlatformAgnostic/AssemblyCommon.h" // __REGISTER_FRAME / __DEREGISTER_FRAME
 #endif
 
-XDataAllocator::XDataAllocator(BYTE* address, uint size, HANDLE processHandle) :
+XDataAllocator::XDataAllocator(BYTE* address, uint size) :
     freeList(nullptr),
     start(address),
     current(address),
-    size(size),
-    processHandle(processHandle)
+    size(size)
 {
-#ifdef RECYCLER_MEMORY_VERIFY
-    ChakraMemSet(this->start, Recycler::VerifyMemFill, this->size, this->processHandle);
-#endif
     Assert(size > 0);
     Assert(address != nullptr);
 }
@@ -96,10 +92,6 @@ void XDataAllocator::Release(const SecondaryAllocation& allocation)
         freed->next = this->freeList;
         this->freeList = freed;
     }
-
-#ifdef RECYCLER_MEMORY_VERIFY
-    ChakraMemSet(allocation.address, Recycler::VerifyMemFill, XDATA_SIZE, this->processHandle);
-#endif
 }
 
 bool XDataAllocator::CanAllocate()

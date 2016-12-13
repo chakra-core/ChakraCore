@@ -14,7 +14,6 @@ class FinalizableObject;
 #include "Memory/RecyclerPageAllocator.h"
 #include "Memory/FreeObject.h"
 #include "Memory/PagePool.h"
-#include "Memory/MemUtils.h"
 
 #include "DataStructures/SimpleHashTable.h"
 #include "DataStructures/PageStack.h"

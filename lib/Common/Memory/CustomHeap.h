@@ -119,33 +119,43 @@ struct Allocation
 };
 
 // Wrapper for the two HeapPageAllocator with and without the prereserved segment.
-// Supports multiple thread access. Require explicit locking (via CodePageAllocator::AutoLock)
+// Supports multiple thread access. Require explicit locking (via AutoCriticalSection)
+template <typename TAlloc, typename TPreReservedAlloc>
 class CodePageAllocators
 {
 public:
-    class AutoLock : public AutoCriticalSection
-    {
-    public:
-        AutoLock(CodePageAllocators * codePageAllocators) : AutoCriticalSection(&codePageAllocators->cs) {};
-    };
-
     CodePageAllocators(AllocationPolicyManager * policyManager, bool allocXdata, PreReservedVirtualAllocWrapper * virtualAllocator, HANDLE processHandle) :
         pageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, nullptr, processHandle),
-        preReservedHeapPageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, virtualAllocator, processHandle),
+        preReservedHeapAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, virtualAllocator, processHandle),
         cs(4000),
         secondaryAllocStateChangedCount(0),
         processHandle(processHandle)
     {
 #if DBG
-        this->preReservedHeapPageAllocator.ClearConcurrentThreadId();
+        this->preReservedHeapAllocator.ClearConcurrentThreadId();
         this->pageAllocator.ClearConcurrentThreadId();
 #endif
     }
 
+#if _WIN32
+    CodePageAllocators(AllocationPolicyManager * policyManager, bool allocXdata, SectionAllocWrapper * sectionAllocator, PreReservedSectionAllocWrapper * virtualAllocator, HANDLE processHandle) :
+        pageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, sectionAllocator, processHandle),
+        preReservedHeapAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, virtualAllocator, processHandle),
+        cs(4000),
+        secondaryAllocStateChangedCount(0),
+        processHandle(processHandle)
+    {
+#if DBG
+        this->preReservedHeapAllocator.ClearConcurrentThreadId();
+        this->pageAllocator.ClearConcurrentThreadId();
+#endif
+    }
+#endif
+
     bool AllocXdata()
     {
         // Simple immutable data access, no need for lock
-        return preReservedHeapPageAllocator.AllocXdata();
+        return preReservedHeapAllocator.AllocXdata();
     }
 
     bool IsPreReservedSegment(void * segment)
@@ -167,7 +177,7 @@ public:
         char* address = nullptr;
         if (canAllocInPreReservedHeapPageSegment)
         {
-            address = this->preReservedHeapPageAllocator.Alloc(pages, (SegmentBase<PreReservedVirtualAllocWrapper>**)(segment));
+            address = this->preReservedHeapAllocator.Alloc(pages, (SegmentBase<TPreReservedAlloc>**)(segment));
         }
 
         if (address == nullptr)
@@ -176,17 +186,21 @@ public:
             {
                 *isAllJITCodeInPreReservedRegion = false;
             }
-            address = this->pageAllocator.Alloc(pages, (Segment**)segment);
+            address = this->pageAllocator.Alloc(pages, (SegmentBase<TAlloc>**)segment);
         }
         return address;
     }
+
+    char * AllocLocal(char * remoteAddr, size_t size, void * segment);
+    void FreeLocal(char * addr, void * segment);
+
     char * AllocPages(DECLSPEC_GUARD_OVERFLOW uint pages, void ** pageSegment, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, bool * isAllJITCodeInPreReservedRegion)
     {
         Assert(this->cs.IsLocked());
         char * address = nullptr;
         if (canAllocInPreReservedHeapPageSegment)
         {
-            address = this->preReservedHeapPageAllocator.AllocPages(pages, (PageSegmentBase<PreReservedVirtualAllocWrapper>**)pageSegment);
+            address = this->preReservedHeapAllocator.AllocPages(pages, (PageSegmentBase<TPreReservedAlloc>**)pageSegment);
 
             if (address == nullptr)
             {
@@ -200,7 +214,7 @@ public:
             {
                 *isAllJITCodeInPreReservedRegion = false;
             }
-            address = this->pageAllocator.AllocPages(pages, (PageSegmentBase<VirtualAllocWrapper>**)pageSegment);
+            address = this->pageAllocator.AllocPages(pages, (PageSegmentBase<TAlloc>**)pageSegment);
         }
         else
         {
@@ -216,11 +230,11 @@ public:
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->ReleasePages(pageAddress, pageCount, segment);
+            this->GetPreReservedPageAllocator(segment)->ReleasePages(pageAddress, pageCount, segment);
         }
         else
         {
-            this->GetPageAllocator<VirtualAllocWrapper>(segment)->ReleasePages(pageAddress, pageCount, segment);
+            this->GetPageAllocator(segment)->ReleasePages(pageAddress, pageCount, segment);
         }
     }
 
@@ -231,11 +245,11 @@ public:
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            return this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
+            return this->GetPreReservedPageAllocator(segment)->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
         }
         else
         {
-            return this->GetPageAllocator<VirtualAllocWrapper>(segment)->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
+            return this->GetPageAllocator(segment)->ProtectPages(address, pageCount, segment, dwVirtualProtectFlags, desiredOldProtectFlag);
         }
     }
 
@@ -245,11 +259,11 @@ public:
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->TrackDecommittedPages(address, pageCount, segment);
+            this->GetPreReservedPageAllocator(segment)->TrackDecommittedPages(address, pageCount, segment);
         }
         else
         {
-            this->GetPageAllocator<VirtualAllocWrapper>(segment)->TrackDecommittedPages(address, pageCount, segment);
+            this->GetPageAllocator(segment)->TrackDecommittedPages(address, pageCount, segment);
         }
     }
 
@@ -259,11 +273,11 @@ public:
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            secondaryAllocStateChangedCount += (uint)this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->ReleaseSecondary(allocation, segment);
+            secondaryAllocStateChangedCount += (uint)this->GetPreReservedPageAllocator(segment)->ReleaseSecondary(allocation, segment);
         }
         else
         {
-            secondaryAllocStateChangedCount += (uint)this->GetPageAllocator<VirtualAllocWrapper>(segment)->ReleaseSecondary(allocation, segment);
+            secondaryAllocStateChangedCount += (uint)this->GetPageAllocator(segment)->ReleaseSecondary(allocation, segment);
         }
     }
 
@@ -284,11 +298,11 @@ public:
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->DecommitPages(address, pageCount);
+            this->GetPreReservedPageAllocator(segment)->DecommitPages(address, pageCount);
         }
         else
         {
-            this->GetPageAllocator<VirtualAllocWrapper>(segment)->DecommitPages(address, pageCount);
+            this->GetPageAllocator(segment)->DecommitPages(address, pageCount);
         }
     }
 
@@ -300,11 +314,11 @@ public:
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            return this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->AllocSecondary(segment, functionStart, functionSize, pdataCount, xdataSize, allocation);
+            return this->GetPreReservedPageAllocator(segment)->AllocSecondary(segment, functionStart, functionSize, pdataCount, xdataSize, allocation);
         }
         else
         {
-            return this->GetPageAllocator<VirtualAllocWrapper>(segment)->AllocSecondary(segment, functionStart, functionSize, pdataCount, xdataSize, allocation);
+            return this->GetPageAllocator(segment)->AllocSecondary(segment, functionStart, functionSize, pdataCount, xdataSize, allocation);
         }
     }
 
@@ -314,11 +328,11 @@ public:
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->Release(address, pageCount, segment);
+            this->GetPreReservedPageAllocator(segment)->Release(address, pageCount, segment);
         }
         else
         {
-            this->GetPageAllocator<VirtualAllocWrapper>(segment)->Release(address, pageCount, segment);
+            this->GetPageAllocator(segment)->Release(address, pageCount, segment);
         }
     }
 
@@ -328,13 +342,14 @@ public:
         Assert(segment);
         if (IsPreReservedSegment(segment))
         {
-            this->GetPageAllocator<PreReservedVirtualAllocWrapper>(segment)->ReleaseDecommitted(address, pageCount, segment);
+            this->GetPreReservedPageAllocator(segment)->ReleaseDecommitted(address, pageCount, segment);
         }
         else
         {
-            this->GetPageAllocator<VirtualAllocWrapper>(segment)->ReleaseDecommitted(address, pageCount, segment);
+            this->GetPageAllocator(segment)->ReleaseDecommitted(address, pageCount, segment);
         }
     }
+    CriticalSection cs;
 private:
 
     template<typename T>
@@ -344,31 +359,24 @@ private:
         return GetPageAllocator<T>(page->segment);
     }
 
-    template<typename T>
-    HeapPageAllocator<T>* GetPageAllocator(void * segmentParam);
-
-    template <>
-    HeapPageAllocator<VirtualAllocWrapper>* GetPageAllocator(void * segmentParam)
+    HeapPageAllocator<TAlloc>* GetPageAllocator(void * segmentParam)
     {
-        SegmentBase<VirtualAllocWrapper> * segment = (SegmentBase<VirtualAllocWrapper>*)segmentParam;
+        SegmentBase<TAlloc> * segment = (SegmentBase<TAlloc>*)segmentParam;
         AssertMsg(segment, "Why is segment null?");
-        Assert((HeapPageAllocator<VirtualAllocWrapper>*)(segment->GetAllocator()) == &this->pageAllocator);
-        return (HeapPageAllocator<VirtualAllocWrapper> *)(segment->GetAllocator());
+        Assert((HeapPageAllocator<TAlloc>*)(segment->GetAllocator()) == &this->pageAllocator);
+        return (HeapPageAllocator<TAlloc> *)(segment->GetAllocator());
     }
 
-
-    template<>
-    HeapPageAllocator<PreReservedVirtualAllocWrapper>* GetPageAllocator(void * segmentParam)
+    HeapPageAllocator<TPreReservedAlloc>* GetPreReservedPageAllocator(void * segmentParam)
     {
-        SegmentBase<PreReservedVirtualAllocWrapper> * segment = (SegmentBase<PreReservedVirtualAllocWrapper>*)segmentParam;
+        SegmentBase<TPreReservedAlloc> * segment = (SegmentBase<TPreReservedAlloc>*)segmentParam;
         AssertMsg(segment, "Why is segment null?");
-        Assert((HeapPageAllocator<PreReservedVirtualAllocWrapper>*)(segment->GetAllocator()) == &this->preReservedHeapPageAllocator);
-        return (HeapPageAllocator<PreReservedVirtualAllocWrapper> *)(segment->GetAllocator());
+        Assert((HeapPageAllocator<TPreReservedAlloc>*)(segment->GetAllocator()) == &this->preReservedHeapAllocator);
+        return (HeapPageAllocator<TPreReservedAlloc> *)(segment->GetAllocator());
     }
 
-    HeapPageAllocator<VirtualAllocWrapper>               pageAllocator;
-    HeapPageAllocator<PreReservedVirtualAllocWrapper>    preReservedHeapPageAllocator;
-    CriticalSection cs;
+    HeapPageAllocator<TAlloc>               pageAllocator;
+    HeapPageAllocator<TPreReservedAlloc>  preReservedHeapAllocator;
     HANDLE processHandle;
 
     // Track the number of time a segment's secondary allocate change from full to available to allocate.
@@ -379,6 +387,10 @@ private:
     uint secondaryAllocStateChangedCount;
 };
 
+typedef CodePageAllocators<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> InProcCodePageAllocators;
+#if _WIN32
+typedef CodePageAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper> OOPCodePageAllocators;
+#endif
 /*
  * Simple free-listing based heap allocator
  *
@@ -388,10 +400,11 @@ private:
  *
  * Single thread only. Require external locking.  (Currently, EmitBufferManager manage the locking)
  */
+template <typename TAlloc, typename TPreReservedAlloc>
 class Heap
 {
 public:
-    Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators, HANDLE processHandle);
+    Heap(ArenaAllocator * alloc, CodePageAllocators<TAlloc, TPreReservedAlloc>  * codePageAllocators, HANDLE processHandle);
 
     Allocation* Alloc(DECLSPEC_GUARD_OVERFLOW size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
     void Free(__in Allocation* allocation);
@@ -532,7 +545,7 @@ private:
     /**
      * Allocator stuff
      */
-    CodePageAllocators *   codePageAllocators;
+    CodePageAllocators<TAlloc, TPreReservedAlloc> *   codePageAllocators;
     ArenaAllocator*        auxiliaryAllocator;
 
     /*
@@ -552,9 +565,13 @@ private:
 #endif
 };
 
+typedef Heap<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> InProcHeap;
+#if _WIN32
+typedef Heap<SectionAllocWrapper, PreReservedSectionAllocWrapper> OOPHeap;
+#endif
 // Helpers
 unsigned int log2(size_t number);
 BucketId GetBucketForSize(DECLSPEC_GUARD_OVERFLOW size_t bytes);
-void FillDebugBreak(_In_ BYTE* buffer, __in size_t byteCount, HANDLE processHandle);
+void FillDebugBreak(_In_ BYTE* buffer, __in size_t byteCount);
 } // namespace CustomHeap
 } // namespace Memory

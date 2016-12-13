@@ -67,6 +67,13 @@
 #define TARGET_64 1
 #endif
 
+// Memory Protections
+#ifdef _CONTROL_FLOW_GUARD
+#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE | PAGE_TARGETS_INVALID)
+#else
+#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE)
+#endif
+
 //----------------------------------------------------------------------------------------------------
 // Enabled features
 //----------------------------------------------------------------------------------------------------
@@ -203,6 +210,10 @@
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) || defined(CHAKRA_CORE_DOWN_COMPAT)
 #define DELAYLOAD_SET_CFG_TARGET 1
+#endif
+
+#ifndef NTBUILD
+#define DELAYLOAD_SECTIONAPI 1
 #endif
 
 #ifdef NTBUILD

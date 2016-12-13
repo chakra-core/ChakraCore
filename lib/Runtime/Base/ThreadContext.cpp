@@ -150,7 +150,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     inlineCacheThreadInfoAllocator(_u("TC-InlineCacheInfo"), GetPageAllocator(), Js::Throw::OutOfMemory),
     isInstInlineCacheThreadInfoAllocator(_u("TC-IsInstInlineCacheInfo"), GetPageAllocator(), Js::Throw::OutOfMemory),
     equivalentTypeCacheInfoAllocator(_u("TC-EquivalentTypeCacheInfo"), GetPageAllocator(), Js::Throw::OutOfMemory),
-    preReservedVirtualAllocator(GetCurrentProcess()),
+    preReservedVirtualAllocator(),
     protoInlineCacheByPropId(&inlineCacheThreadInfoAllocator, 512),
     storeFieldInlineCacheByPropId(&inlineCacheThreadInfoAllocator, 256),
     isInstInlineCacheByFunction(&isInstInlineCacheThreadInfoAllocator, 128),
@@ -4072,7 +4072,6 @@ void DumpRecyclerObjectGraph()
 #if ENABLE_NATIVE_CODEGEN
 BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
 {
-    boolean result;
 #if ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
@@ -4089,6 +4088,7 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
             return false;
         }
 
+        boolean result;
         HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
         JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
         return result;
@@ -4104,7 +4104,7 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
 
         if (!this->IsAllJITCodeInPreReservedRegion())
         {
-            CustomHeap::CodePageAllocators::AutoLock autoLock(&this->codePageAllocators);
+            AutoCriticalSection autoLock(&this->codePageAllocators.cs);
             return this->codePageAllocators.IsInNonPreReservedPageAllocator(pCodeAddr);
         }
         return FALSE;

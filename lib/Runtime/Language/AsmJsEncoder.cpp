@@ -207,7 +207,7 @@ namespace Js
             Assert( ::Math::FitsInDWord( codeSize ) );
 
             BYTE *buffer;
-            EmitBufferAllocation *allocation = GetCodeGenAllocator()->emitBufferManager.AllocateBuffer( codeSize, &buffer, 0, 0 );
+            EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> *allocation = GetCodeGenAllocator()->emitBufferManager.AllocateBuffer( codeSize, &buffer, 0, 0 );
             functionBody->GetAsmJsFunctionInfo()->mTJBeginAddress = buffer;
 
             if (buffer == nullptr)

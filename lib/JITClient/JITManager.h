@@ -45,8 +45,8 @@ public:
 
     HRESULT NewInterpreterThunkBlock(
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-        __in boolean asmJsThunk,
-        __out InterpreterThunkInfoIDL * thunkInfo);
+        __in InterpreterThunkInputIDL * thunkInput,
+        __out InterpreterThunkOutputIDL * thunkOutput);
 
     HRESULT AddDOMFastPathHelper(
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
@@ -92,14 +92,6 @@ public:
         __in CodeGenWorkItemIDL *workItemData,
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __out JITOutputIDL *jitData);
-
-#if DBG
-    HRESULT IsInterpreterThunkAddr(
-        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-        __in intptr_t address,
-        __in boolean asmjsThunk,
-        __out boolean * result);
-#endif
 
     HRESULT Shutdown();
 

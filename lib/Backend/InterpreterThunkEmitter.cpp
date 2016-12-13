@@ -234,7 +234,7 @@ const BYTE InterpreterThunkEmitter::HeaderSize = sizeof(InterpreterThunk);
 const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
 
-InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
+InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, ArenaAllocator* allocator, CustomHeap::InProcCodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
     emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess()),
     scriptContext(context),
     allocator(allocator),
@@ -303,7 +303,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
     Assert(this->thunkCount == 0);
     BYTE* buffer;
 
-    EmitBufferAllocation * allocation = emitBufferManager.AllocateBuffer(BlockSize, &buffer);
+    EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> * allocation = emitBufferManager.AllocateBuffer(BlockSize, &buffer);
     if (allocation == nullptr) 
     {
         Js::Throw::OutOfMemory();
@@ -356,16 +356,15 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
 void InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
-    InterpreterThunkInfoIDL thunkInfo;
-    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(
-        this->scriptContext->GetRemoteScriptAddr(),
-        this->isAsmInterpreterThunk,
-        &thunkInfo
-    );
+    InterpreterThunkInputIDL thunkInput;
+    thunkInput.asmJsThunk = this->isAsmInterpreterThunk;
+
+    InterpreterThunkOutputIDL thunkOutput;
+    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(this->scriptContext->GetRemoteScriptAddr(), &thunkInput, &thunkOutput);
     JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation);
 
 
-    BYTE* buffer = (BYTE*)thunkInfo.thunkBlockAddr;
+    BYTE* buffer = (BYTE*)thunkOutput.mappedBaseAddr;
 
     if (!CONFIG_FLAG(OOPCFGRegistration))
     {
@@ -376,14 +375,14 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
     auto block = this->thunkBlocks.PrependNode(allocator, buffer);
 #if PDATA_ENABLED
     void* pdataTable;
-    PDataManager::RegisterPdata((PRUNTIME_FUNCTION)thunkInfo.pdataTableStart, (ULONG_PTR)buffer, (ULONG_PTR)thunkInfo.epilogEndAddr, &pdataTable);
+    PDataManager::RegisterPdata((PRUNTIME_FUNCTION)thunkOutput.pdataTableStart, (ULONG_PTR)thunkOutput.mappedBaseAddr, (ULONG_PTR)thunkOutput.epilogEndAddr, &pdataTable);
     block->SetPdata(pdataTable);
 #else
     Unused(block);
 #endif
 
-    this->thunkCount = thunkInfo.thunkCount;
-    this->thunkBuffer = (BYTE*)thunkInfo.thunkBlockAddr;
+    this->thunkBuffer = (BYTE*)thunkOutput.mappedBaseAddr;
+    this->thunkCount = thunkOutput.thunkCount;
 }
 #endif
 
@@ -690,7 +689,7 @@ DWORD InterpreterThunkEmitter::FillDebugBreak(_In_ BYTE* dest, _In_ DWORD count)
 #elif defined(_M_ARM64)
     Assert(count % 4 == 0);
 #endif
-    CustomHeap::FillDebugBreak(dest, count, GetCurrentProcess());
+    CustomHeap::FillDebugBreak(dest, count);
     return count;
 }
 
@@ -724,15 +723,11 @@ InterpreterThunkEmitter::IsInHeap(void* address)
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
-        if (!remoteScript)
+        auto findAddr = ([&](const ThunkBlock& block)
         {
-            return false;
-        }
-        boolean result;
-        HRESULT hr = JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
-        JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
-        return result != FALSE;
+            return block.Contains((BYTE*)address);
+        });
+        return thunkBlocks.Find(findAddr) != nullptr || freeListedThunkBlocks.Find(findAddr) != nullptr;
     }
     else
 #endif
@@ -755,14 +750,25 @@ void InterpreterThunkEmitter::Close()
     thunkBlocks.Iterate(unregisterPdata);
     freeListedThunkBlocks.Iterate(unregisterPdata);
 #endif
-    this->thunkBlocks.Clear(allocator);
-    this->freeListedThunkBlocks.Clear(allocator);
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
-    if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        auto unmapBlock = ([&](const ThunkBlock& block)
+        {
+            NtdllLibrary::Instance->UnmapViewOfSection(GetCurrentProcess(), block.GetStart());
+        });
+        thunkBlocks.Iterate(unmapBlock);
+        freeListedThunkBlocks.Iterate(unmapBlock);
+    }
+    else
 #endif
     {
         emitBufferManager.Decommit();
     }
+
+    this->thunkBlocks.Clear(allocator);
+    this->freeListedThunkBlocks.Clear(allocator);
+
     this->thunkBuffer = nullptr;
     this->thunkCount = 0;
 }
