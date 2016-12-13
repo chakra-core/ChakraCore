@@ -1547,6 +1547,7 @@ public:
 
     virtual uint GetRandomNumber() override;
     virtual bool DoSpecialMarkOnScanStack() override { return this->DoRedeferFunctionBodies(); }
+    virtual void PostSweepRedeferralCallBack() override;
 
     // DefaultCollectWrapper
     virtual void PreCollectionCallBack(CollectionFlags flags) override;

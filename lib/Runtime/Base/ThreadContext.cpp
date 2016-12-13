@@ -2595,19 +2595,23 @@ ThreadContext::PostCollectionCallBack()
                 scriptContext->CleanupWeakReferenceDictionaries();
             }
         }
-
-        if (this->DoTryRedeferral())
-        {
-            HRESULT hr = S_OK;
-            BEGIN_TRANSLATE_OOM_TO_HRESULT
-            {
-                this->TryRedeferral();
-            }
-            END_TRANSLATE_OOM_TO_HRESULT(hr);
-        }
-
-        this->UpdateRedeferralState();
     }
+}
+
+void
+ThreadContext::PostSweepRedeferralCallBack()
+{
+    if (this->DoTryRedeferral())
+    {
+        HRESULT hr = S_OK;
+        BEGIN_TRANSLATE_OOM_TO_HRESULT
+        {
+            this->TryRedeferral();
+        }
+        END_TRANSLATE_OOM_TO_HRESULT(hr);
+    }
+
+    this->UpdateRedeferralState();
 }
 
 bool
