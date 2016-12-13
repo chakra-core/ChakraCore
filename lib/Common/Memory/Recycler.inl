@@ -56,10 +56,10 @@ Recycler::AllocWithAttributesInlined(size_t size)
 
 #if ENABLE_CONCURRENT_GC
     // We shouldn't be allocating memory when we are running GC in thread, including finalizers
-    Assert(this->IsConcurrentState() || !this->CollectionInProgress() || this->collectionState == CollectionStatePostCollectionCallback);
+    Assert(this->IsConcurrentState() || !this->CollectionInProgress() || this->IsAllocatableCallbackState());
 #else
     // We shouldn't be allocating memory when we are running GC in thread, including finalizers
-    Assert(!this->CollectionInProgress() || this->collectionState == CollectionStatePostCollectionCallback);
+    Assert(!this->CollectionInProgress() || this->IsAllocatableCallbackState());
 #endif
 
     // There are some cases where we allow allocation during heap enum that doesn't affect the enumeration
