@@ -10691,6 +10691,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
         }
         else
         {
+            Assert(instrArgIn->m_func == this->m_func);
             IR::Instr * instrCount = m_lowererMD.LoadInputParamCount(instrArgIn, -this->m_func->GetInParamsCount());
             IR::Opnd * excessOpnd = instrCount->GetDst();
 
