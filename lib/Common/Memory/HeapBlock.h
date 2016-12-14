@@ -315,8 +315,11 @@ public:
 
         return false;
     }
-
 #if DBG
+    virtual void WBSetBit(char* addr) = 0;
+    virtual void WBSetBits(char* addr, uint length) = 0;
+    virtual void WBClearBits(char* addr) = 0;
+
     virtual BOOL IsFreeObject(void* objectAddress) = 0;
 #endif
     virtual BOOL IsValidObject(void* objectAddress) = 0;
@@ -328,7 +331,7 @@ public:
     virtual void SetObjectMarkedBit(void* objectAddress) = 0;
 
 #ifdef RECYCLER_VERIFY_MARK
-    virtual void VerifyMark(void * objectAddress) = 0;
+    virtual bool VerifyMark(void * objectAddress) = 0;
 #endif
 #ifdef PROFILE_RECYCLER_ALLOC
     virtual void * GetTrackerData(void * address) = 0;
@@ -433,6 +436,9 @@ public:
 #endif
     SmallHeapBlockBitVector* markBits;
     SmallHeapBlockBitVector  freeBits;
+#if DBG
+    BVStatic<TBlockAttributes::PageCount * AutoSystemInfo::PageSize / sizeof(void*)> wbVerifyBits;
+#endif
 
 #if DBG || defined(RECYCLER_STATS)
     SmallHeapBlockBitVector debugFreeBits;
@@ -451,6 +457,24 @@ public:
 
     void ProtectUnusablePages() {}
     void RestoreUnusablePages() {}
+
+#if DBG
+    virtual void WBSetBit(char* addr) override
+    {
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        wbVerifyBits.Set(index);
+    }
+    virtual void WBSetBits(char* addr, uint length) override
+    {
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        wbVerifyBits.SetRange(index, length);
+    }
+    virtual void WBClearBits(char* addr) override
+    {
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        wbVerifyBits.ClearRange(index, this->objectSize / sizeof(void*));
+    }
+#endif
 
     uint GetUnusablePageCount()
     {
@@ -602,7 +626,7 @@ public:
 #endif
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
-    virtual void VerifyMark(void * objectAddress) override;
+    virtual bool VerifyMark(void * objectAddress) override;
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override sealed;

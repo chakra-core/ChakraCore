@@ -460,6 +460,24 @@ Recycler::~Recycler()
 #if ENABLE_CONCURRENT_GC
     Assert(!this->isAborting);
 #endif
+#if DBG
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        if (recyclerList == this)
+        {
+            recyclerList = this->next;
+        }
+        else
+        {
+            Recycler* list = recyclerList;
+            while (list->next != this)
+            {
+                list = list->next;
+            }
+            list->next = this->next;
+        }
+    }
+#endif
 
     // Stop any further collection
     this->isShuttingDown = true;
@@ -716,6 +734,9 @@ Recycler::RootRelease(void* obj, uint *count)
     // another GC if there is an exhaustive GC going on.
     this->CollectNow<CollectExhaustiveCandidate>();
 }
+#if DBG
+Recycler* Recycler::recyclerList = nullptr;
+#endif
 
 void
 Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadService, const bool deferThreadStartup
@@ -899,6 +920,13 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
 #endif
 #else
     Assert(!needWriteWatch);
+#endif
+#if DBG
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        this->next = recyclerList;
+        recyclerList = this;
+    }
 #endif
 }
 
@@ -7568,9 +7596,7 @@ Recycler::TrackAllocCore(void * object, size_t size, const TrackAllocData& track
     
     if (!trackerDictionary->TryGetValue(typeInfo, &item))
     {
-        if (CONFIG_FLAG(KeepRecyclerTrackData) && 
-            (typeInfo == &typeid(void*)
-                || typeInfo == &typeid(int*))) // type info is not useful record stack instead
+        if (CONFIG_FLAG(KeepRecyclerTrackData) && isArray) // type info is not useful record stack instead
         {
             size_t stackTraceSize = 16 * sizeof(void*);
             item = NoCheckHeapNewPlus(stackTraceSize, TrackerItem, typeInfo);
@@ -7951,7 +7977,7 @@ Recycler::VerifyMarkStack()
     }
 }
 
-void
+bool
 Recycler::VerifyMark(void * candidate)
 {
     void * realAddress;
@@ -7961,12 +7987,12 @@ Recycler::VerifyMark(void * candidate)
         heapBlock = heapBlockMap.GetHeapBlock(candidate);
         if (heapBlock == nullptr)
         {
-            return;
+            return false;
         }
         realAddress = heapBlock->GetRealAddressFromInterior(candidate);
         if (realAddress == nullptr)
         {
-            return;
+            return false;
         }
     }
     else
@@ -7974,11 +8000,11 @@ Recycler::VerifyMark(void * candidate)
         heapBlock = this->FindHeapBlock(candidate);
         if (heapBlock == nullptr)
         {
-            return;
+            return false;
         }
         realAddress = candidate;
     }
-    heapBlock->VerifyMark(realAddress);
+    return heapBlock->VerifyMark(realAddress);
 }
 #endif
 
@@ -8490,6 +8516,38 @@ Recycler::NotifyFree(__in char *address, size_t size)
     }
 #endif
 }
+
+#if DBG
+void 
+Recycler::WBSetBit(char* addr)
+{
+    Recycler* recycler = Recycler::recyclerList;
+    while (recycler)
+    {
+        auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
+        if (heapBlock)
+        {
+            heapBlock->WBSetBit(addr);
+            break;
+        }
+        recycler = recycler->next;
+    }
+}
+void
+Recycler::WBSetBits(char* addr, uint length)
+{
+    Recycler* recycler = Recycler::recyclerList;
+    while (recycler)
+    {
+        auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
+        if (heapBlock)
+        {
+            heapBlock->WBSetBits(addr, length);
+        }
+        recycler = recycler->next;
+    }
+}
+#endif
 
 size_t
 RecyclerHeapObjectInfo::GetSize() const

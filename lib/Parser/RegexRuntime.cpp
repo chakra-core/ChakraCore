@@ -5193,7 +5193,7 @@ namespace UnifiedRegex
         const bool isBaselineMode = Js::Configuration::Global.flags.BaselineMode;
         w->PrintEOL(_u("Program {"));
         w->Indent();
-        w->PrintEOL(_u("source:       %s"), source);
+        w->PrintEOL(_u("source:       %s"), PointerValue(source));
         w->Print(_u("flags:        "));
         if ((flags & GlobalRegexFlag) != 0) w->Print(_u("global "));
         if ((flags & MultilineRegexFlag) != 0) w->Print(_u("multiline "));

@@ -57,6 +57,43 @@ public:
         SRCINFO* copySrcInfo = RecyclerNew(recycler, SRCINFO, *srcInfo);
         return copySrcInfo;
     }
+
+    SRCINFO()
+    {
+    }
+    SRCINFO(const SRCINFO& other)
+        :sourceContextInfo(other.sourceContextInfo),
+        dlnHost(other.dlnHost),
+        ulColumnHost(other.ulColumnHost),
+        lnMinHost(other.lnMinHost),
+        ichMinHost(other.ichMinHost),
+        ichLimHost(other.ichLimHost),
+        ulCharOffset(other.ulCharOffset),
+        moduleID(other.moduleID),
+        grfsi(other.grfsi)
+    {
+    }
+    SRCINFO(
+        SourceContextInfo*sourceContextInfo,
+        ULONG dlnHost,
+        ULONG ulColumnHost,
+        ULONG lnMinHost,
+        ULONG ichMinHost,
+        ULONG ichLimHost,
+        ULONG ulCharOffset,
+        Js::ModuleID moduleID,
+        ULONG grfsi
+    ):sourceContextInfo(sourceContextInfo),
+        dlnHost(dlnHost),
+        ulColumnHost(ulColumnHost),
+        lnMinHost(lnMinHost),
+        ichMinHost(ichMinHost),
+        ichLimHost(ichLimHost),
+        ulCharOffset(ulCharOffset),
+        moduleID(moduleID),
+        grfsi(grfsi)
+    {
+    }
 };
 
 struct CustomExternalObjectOperations

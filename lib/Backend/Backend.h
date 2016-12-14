@@ -111,7 +111,7 @@ enum IRDumpFlags
 //
 
 #ifdef _WIN32
-#include "ChakraJIT.h"
+#include "../JITIDL/JITTypes.h"
 #endif
 #include "JITTimeProfileInfo.h"
 #include "JITRecyclableObject.h"

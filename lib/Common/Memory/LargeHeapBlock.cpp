@@ -175,6 +175,9 @@ LargeHeapBlock::LargeHeapBlock(__in char * address, size_t pageCount, Segment * 
 #if defined(RECYCLER_PAGE_HEAP) && defined(STACK_BACK_TRACE)
     , pageHeapAllocStack(nullptr), pageHeapFreeStack(nullptr)
 #endif
+#if DBG
+    ,wbVerifyBits(&HeapAllocator::Instance)
+#endif
 {
     Assert(address != nullptr);
     Assert(pageCount != 0);
@@ -846,21 +849,24 @@ LargeHeapBlock::VerifyMark()
         {
             void* target = *(void **)objectAddress;
 
-            recycler->VerifyMark(target);
+            if (recycler->VerifyMark(target))
+            {
+                Assert(this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)));
+            }
 
             objectAddress += sizeof(void *);
         }
     }
 }
 
-void
+bool
 LargeHeapBlock::VerifyMark(void * objectAddress)
 {
     LargeObjectHeader * header = GetHeader(objectAddress);
 
     if ((char *)header < this->address)
     {
-        return;
+        return false;
     }
 
     uint index = header->objectIndex;
@@ -868,13 +874,13 @@ LargeHeapBlock::VerifyMark(void * objectAddress)
     if (index >= this->allocCount)
     {
         // object not allocated
-        return;
+        return false;
     }
 
     if (this->HeaderList()[index] != header)
     {
         // header doesn't match, not a real object
-        return;
+        return false;
     }
 
     bool isMarked = this->heapInfo->recycler->heapBlockMap.IsMarked(objectAddress);
@@ -887,6 +893,7 @@ LargeHeapBlock::VerifyMark(void * objectAddress)
         DebugBreak();
     }
 #endif
+    return isMarked;
 }
 
 #endif
@@ -2080,5 +2087,44 @@ LargeHeapBlock::CapturePageHeapFreeStack()
         }
     }
 #endif
+}
+#endif
+
+#if DBG
+void LargeHeapBlock::WBSetBit(char* addr)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    try
+    {
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_DisableCheck));
+        wbVerifyBits.Set(index);
+    }
+    catch (Js::OutOfMemoryException&)
+    {
+    }
+}
+void LargeHeapBlock::WBSetBits(char* addr, uint length)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    try
+    {
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_DisableCheck));
+        for (uint i = 0; i < length; i++)
+        {
+            wbVerifyBits.Set(index + i);
+        }
+    }
+    catch (Js::OutOfMemoryException&)
+    {
+    }
+}
+void LargeHeapBlock::WBClearBits(char* addr)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    size_t objectSize = this->GetHeader(addr)->objectSize;
+    for (uint i = 0; i < (uint)objectSize / sizeof(void*); i++)
+    {
+        wbVerifyBits.Clear(index + i);
+    }
 }
 #endif

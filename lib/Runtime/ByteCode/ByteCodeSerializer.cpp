@@ -3842,7 +3842,7 @@ public:
     }
 
     // Read the top function body.
-    HRESULT ReadTopFunctionBody(FunctionBody** function, Utf8SourceInfo* sourceInfo, ByteCodeCache * cache, bool allowDefer, NativeModule *nativeModule)
+    HRESULT ReadTopFunctionBody(Field(FunctionBody*)* function, Utf8SourceInfo* sourceInfo, ByteCodeCache * cache, bool allowDefer, NativeModule *nativeModule)
     {
         auto topFunction = ReadInt32(functions, &functionCount);
         firstFunctionId = sourceInfo->GetSrcInfo()->sourceContextInfo->nextLocalFunctionId;
@@ -4126,17 +4126,17 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
     return hr;
 }
 
-HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex)
 {
     return ByteCodeSerializer::DeserializeFromBufferInternal(scriptContext, scriptFlags, utf8Source, /* sourceHolder */ nullptr, srcInfo, buffer, nativeModule, function, sourceIndex);
 }
 // Deserialize function body from supplied buffer
-HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex)
 {
     AssertMsg(sourceHolder != nullptr, "SourceHolder can't be null, if you have an empty source then pass ISourceHolder::GetEmptySourceHolder()");
     return ByteCodeSerializer::DeserializeFromBufferInternal(scriptContext, scriptFlags, /* utf8Source */ nullptr, sourceHolder, srcInfo, buffer, nativeModule, function, sourceIndex);
 }
-HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex)
 {
     //ETW Event start
     JS_ETW(EventWriteJSCRIPT_BYTECODEDESERIALIZE_START(scriptContext, 0));

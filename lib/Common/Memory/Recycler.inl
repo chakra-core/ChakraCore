@@ -265,6 +265,14 @@ Recycler::AllocZeroWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 #if DBG
     VerifyPageHeapFillAfterAlloc<attributes>(obj, size);
 #endif
+
+#if DBG
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        this->FindHeapBlock(obj)->WBClearBits(obj);
+    }
+#endif
+
     return obj;
 }
 

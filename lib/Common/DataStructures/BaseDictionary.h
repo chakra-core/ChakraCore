@@ -892,7 +892,7 @@ namespace JsUtil
         }
 
         template <InsertOperations op>
-        int Insert(TKey key, TValue value)
+        int Insert(const TKey& key, const TValue& value)
         {
             int * localBuckets = buckets;
             if (localBuckets == nullptr)

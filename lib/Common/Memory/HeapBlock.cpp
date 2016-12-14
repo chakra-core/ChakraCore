@@ -813,7 +813,7 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
 
             if (!this->IsLeafBlock()
 #ifdef RECYCLER_WRITE_BARRIER
-                && !this->IsWithBarrier()
+                && (!this->IsWithBarrier() || CONFIG_FLAG(ForceSoftwareWriteBarrier))
 #endif
                 )
             {
@@ -823,7 +823,10 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
                     for (uint i = 0; i < objectWordCount; i++)
                     {
                         void* target = *(void**) objectAddress;
-                        recycler->VerifyMark(target);
+                        if (recycler->VerifyMark(target))
+                        {
+                            Assert(this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)));
+                        }
 
                         objectAddress += sizeof(void *);
                     }
@@ -835,7 +838,7 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
 }
 
 template <class TBlockAttributes>
-void
+bool
 SmallHeapBlockT<TBlockAttributes>::VerifyMark(void * objectAddress)
 {
     // Because we mark through new object, we might have a false reference
@@ -844,19 +847,20 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark(void * objectAddress)
     // Can't verify when the block is new
     if (this->heapBucket->GetRecycler()->heapBlockMap.IsAddressInNewChunk(objectAddress))
     {
-        return;
+        return false;
     }
 
     ushort bitIndex = GetAddressBitIndex(objectAddress);
-
+    bool isMarked = this->GetMarkedBitVector()->Test(bitIndex) == TRUE;
 #if DBG
-    Assert(this->GetMarkedBitVector()->Test(bitIndex));
+    Assert(isMarked);
 #else
-    if (!this->GetMarkedBitVector()->Test(bitIndex))
+    if (!isMarked)
     {
         DebugBreak();
     }
 #endif
+    return isMarked;
 }
 
 #endif
@@ -1261,6 +1265,13 @@ SmallHeapBlockT<TBlockAttributes>::EnqueueProcessedObject(FreeObject ** list, vo
     FreeObject * freeObject = (FreeObject *)objectAddress;
     freeObject->SetNext(*list);
     *list = freeObject;
+
+#if DBG
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        this->WBClearBits((char*)objectAddress);
+    }
+#endif
 
     // clear the attributes so that when we are allocating a leaf, we don't have to set the attribute
     this->ObjectInfo(index) = 0;

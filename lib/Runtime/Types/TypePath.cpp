@@ -112,7 +112,7 @@ namespace Js {
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
-            Output::Print(_u("FixedFields: TypePath::Branch: singleton: 0x%p(0x%p)\n"), this->singletonInstance, this->singletonInstance->Get());
+            Output::Print(_u("FixedFields: TypePath::Branch: singleton: 0x%p(0x%p)\n"), PointerValue(this->singletonInstance), this->singletonInstance->Get());
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -216,7 +216,7 @@ namespace Js {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddInternal: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -243,7 +243,7 @@ namespace Js {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddBlankFieldAt: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -285,7 +285,7 @@ namespace Js {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddSingletonInstanceFieldAt: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)
@@ -314,7 +314,7 @@ namespace Js {
         if (PHASE_VERBOSE_TRACE1(FixMethodPropsPhase))
         {
             Output::Print(_u("FixedFields: TypePath::AddSingletonInstanceFieldAt: singleton = 0x%p(0x%p)\n"),
-                this->singletonInstance, this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
+                PointerValue(this->singletonInstance), this->singletonInstance != nullptr ? this->singletonInstance->Get() : nullptr);
             Output::Print(_u("   fixed fields:"));
 
             for (PropertyIndex i = 0; i < GetPathLength(); i++)

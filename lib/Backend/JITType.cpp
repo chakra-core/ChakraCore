@@ -20,12 +20,12 @@ void
 JITType::BuildFromJsType(__in Js::Type * jsType, __out JITType * jitType)
 {
     TypeIDL * data = jitType->GetData();
-    data->addr = (intptr_t)jsType;
+    data->addr = jsType;
     data->typeId = jsType->GetTypeId();
-    data->libAddr = (intptr_t)jsType->GetLibrary();
-    data->protoAddr = (intptr_t)jsType->GetPrototype();
+    data->libAddr = jsType->GetLibrary();
+    data->protoAddr = jsType->GetPrototype();
     data->entrypointAddr = (intptr_t)jsType->GetEntryPoint();
-    data->propertyCacheAddr = (intptr_t)jsType->GetPropertyCache();
+    data->propertyCacheAddr = jsType->GetPropertyCache();
     if (Js::DynamicType::Is(jsType->GetTypeId()))
     {
         Js::DynamicType * dynamicType = static_cast<Js::DynamicType*>(jsType);
@@ -63,13 +63,13 @@ JITType::GetData()
 intptr_t
 JITType::GetAddr() const
 {
-    return m_data.addr;
+    return (intptr_t)PointerValue(m_data.addr);
 }
 
 intptr_t
 JITType::GetPrototypeAddr() const
 {
-    return m_data.protoAddr;
+    return (intptr_t)PointerValue(m_data.protoAddr);
 }
 
 const JITTypeHandler*

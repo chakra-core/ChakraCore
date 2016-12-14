@@ -419,7 +419,7 @@ namespace Js
             Assert(*exportRecord == nullptr);
             return true;
         }
-        resolveSet->Prepend({ this, exportName });
+        resolveSet->Prepend(ModuleNameRecord(this, exportName));
 
         if (localExportRecordList != nullptr)
         {

@@ -524,9 +524,9 @@ namespace Js
         static BOOL ToPropertyDescriptor(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext);
 
 
-        static Var FromPropertyDescriptor(PropertyDescriptor descriptor, ScriptContext* scriptContext);
+        static Var FromPropertyDescriptor(const PropertyDescriptor& descriptor, ScriptContext* scriptContext);
         static void CompletePropertyDescriptor(PropertyDescriptor* resultDescriptor, PropertyDescriptor* likePropertyDescriptor, ScriptContext* requestContext);
-        static BOOL SetPropertyDescriptor(RecyclableObject* object, PropertyId propId, PropertyDescriptor descriptor);
+        static BOOL SetPropertyDescriptor(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor);
         static BOOL DefineOwnPropertyDescriptor(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
         static BOOL DefineOwnPropertyForArray(JavascriptArray* arr, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
 

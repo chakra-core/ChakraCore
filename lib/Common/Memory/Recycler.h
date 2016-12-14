@@ -1696,7 +1696,7 @@ private:
     void VerifyMarkArena(ArenaData * arena);
     void VerifyMarkBigBlockList(BigBlock * memoryBlocks);
     void VerifyMarkArenaMemoryBlockList(ArenaMemoryBlock * memoryBlocks);
-    void VerifyMark(void * address);
+    bool VerifyMark(void * address);
 #endif
 #if DBG_DUMP
     bool forceTraceMark;
@@ -1921,6 +1921,15 @@ private:
     } objectBeforeCollectCallbackState;
 
     bool ProcessObjectBeforeCollectCallbacks(bool atShutdown = false);
+
+#if DBG
+private:
+    static Recycler* recyclerList;
+    Recycler* next;
+public:
+    static void WBSetBit(char* addr);
+    static void WBSetBits(char* addr, uint length);
+#endif
 };
 
 
@@ -2092,6 +2101,10 @@ class CollectedRecyclerWeakRefHeapBlock : public HeapBlock
 {
 public:
 #if DBG
+    virtual void WBSetBit(char* addr) override { Assert(false); }
+    virtual void WBSetBits(char* addr, uint length) override { Assert(false); }
+    virtual void WBClearBits(char* addr) override { Assert(false); }
+
     virtual BOOL IsFreeObject(void* objectAddress) override { Assert(false); return false; }
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override { Assert(false); return false; }
@@ -2102,7 +2115,7 @@ public:
     virtual void SetObjectMarkedBit(void* objectAddress) override { Assert(false); }
 
 #ifdef RECYCLER_VERIFY_MARK
-    virtual void VerifyMark(void * objectAddress) override { Assert(false); }
+    virtual bool VerifyMark(void * objectAddress) override { Assert(false); return false; }
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override { Assert(false); }

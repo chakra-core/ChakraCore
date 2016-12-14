@@ -10,9 +10,19 @@ import "wtypes.idl";
 #endif
 
 #if defined(_M_IX86) || defined(_M_ARM)
+#ifdef __midl
+#define CHAKRA_WB_PTR int
+#else
+#define CHAKRA_WB_PTR void*
+#endif
 #define CHAKRA_PTR int
 #define BV_SHIFT 5
 #elif defined(_M_X64) || defined(_M_ARM64)
+#ifdef __midl
+#define CHAKRA_WB_PTR __int64
+#else
+#define CHAKRA_WB_PTR void*
+#endif
 #define CHAKRA_PTR __int64
 #define BV_SHIFT 6
 #endif
@@ -59,6 +69,9 @@ typedef unsigned char boolean;
 #define IDL_FieldNoBarrier(type)    FieldNoBarrier(type)
 #endif
 
+#ifndef __JITTypes_h__
+#define __JITTypes_h__
+
 // TODO: OOP JIT, how do we make this better?
 const int VTABLE_COUNT = 47;
 const int EQUIVALENT_TYPE_CACHE_SIZE = 8;
@@ -88,11 +101,11 @@ typedef struct TypeIDL
     IDL_PAD2(0)
     IDL_Field(int) typeId;
 
-    IDL_Field(CHAKRA_PTR) libAddr;
-    IDL_Field(CHAKRA_PTR) protoAddr;
+    IDL_Field(CHAKRA_WB_PTR) libAddr;
+    IDL_Field(CHAKRA_WB_PTR) protoAddr;
     IDL_Field(CHAKRA_PTR) entrypointAddr;
-    IDL_Field(CHAKRA_PTR) propertyCacheAddr;
-    IDL_Field(CHAKRA_PTR) addr;
+    IDL_Field(CHAKRA_WB_PTR) propertyCacheAddr;
+    IDL_Field(CHAKRA_WB_PTR) addr;
 
     IDL_Field(TypeHandlerIDL) handler;
 } TypeIDL;
@@ -654,7 +667,7 @@ typedef struct PolymorphicInlineCacheInfoIDL
     IDL_DEF([size_is(polymorphicInlineCacheCount)]) IDL_Field(byte *) polymorphicCacheUtilizationArray;
     IDL_DEF([size_is(polymorphicInlineCacheCount)]) IDL_Field(PolymorphicInlineCacheIDL *) polymorphicInlineCaches;
 
-    IDL_Field(CHAKRA_PTR) functionBodyAddr;
+    IDL_Field(CHAKRA_WB_PTR) functionBodyAddr;
 } PolymorphicInlineCacheInfoIDL;
 
 // CodeGenWorkItem fields, read only in JIT
@@ -831,3 +844,5 @@ typedef struct InterpreterThunkInfoIDL
     CHAKRA_PTR epilogEndAddr;
     CHAKRA_PTR thunkBlockAddr;
 } InterpreterThunkInfoIDL;
+
+#endif //__JITTypes_h__

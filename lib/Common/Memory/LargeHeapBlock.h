@@ -171,7 +171,7 @@ public:
 #endif
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
-    virtual void VerifyMark(void * objectAddress) override;
+    virtual bool VerifyMark(void * objectAddress) override;
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override;
@@ -301,6 +301,15 @@ public:
     HeapInfo * heapInfo;
 #ifdef PROFILE_RECYCLER_ALLOC
     void ** GetTrackerDataArray();
+#endif
+
+#if DBG
+private:
+    BVSparse<HeapAllocator> wbVerifyBits;
+public:
+    virtual void WBSetBit(char* addr) override;
+    virtual void WBSetBits(char* addr, uint length) override;
+    virtual void WBClearBits(char* addr) override;
 #endif
 };
 }

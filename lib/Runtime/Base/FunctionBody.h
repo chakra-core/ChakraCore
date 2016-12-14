@@ -452,7 +452,7 @@ namespace Js
         private:
             Field(TypeRefSet*) jitTimeTypeRefs;
 
-            FieldNoBarrier(PinnedTypeRefsIDL*) runtimeTypeRefs;
+            Field(PinnedTypeRefsIDL*) runtimeTypeRefs;
 
 
             Field(int) propertyGuardCount;
@@ -551,7 +551,7 @@ namespace Js
         // from the thread context, we would AV trying to access freed memory. Note that the guards themselves are allocated by
         // NativeCodeData::Allocator and are kept alive by the data field. The weak references are recycler allocated, and so
         // the array must be recycler allocated also, so that the recycler doesn't collect the weak references.
-        Field(FakePropertyGuardWeakReference**) propertyGuardWeakRefs;
+        Field(Field(FakePropertyGuardWeakReference*)*) propertyGuardWeakRefs;
         Field(EquivalentTypeCache*) equivalentTypeCaches;
         Field(EntryPointInfo **) registeredEquivalentTypeCacheRef;
 
@@ -572,7 +572,7 @@ namespace Js
         Field(JitTransferData*) jitTransferData;
 
         // If we pin types this array contains strong references to types, otherwise it holds weak references.
-        Field(void **) runtimeTypeRefs;
+        Field(Field(void*)*) runtimeTypeRefs;
      protected:
 #if PDATA_ENABLED
         Field(XDataAllocation *) xdataInfo;
@@ -3690,7 +3690,7 @@ namespace Js
         static uint const ScopeMetadataSlotIndex = 1;    // Either a FunctionBody* or DebuggerScope*
         static uint const FirstSlotIndex = 2;
     public:
-        ScopeSlots(Var* slotArray) : slotArray(slotArray)
+        ScopeSlots(Var* slotArray) : slotArray((Field(Var)*)slotArray)
         {
         }
 
@@ -3702,13 +3702,13 @@ namespace Js
         FunctionBody* GetFunctionBody()
         {
             Assert(IsFunctionScopeSlotArray());
-            return (FunctionBody*)(slotArray[ScopeMetadataSlotIndex]);
+            return (FunctionBody*)PointerValue(slotArray[ScopeMetadataSlotIndex]);
         }
 
         DebuggerScope* GetDebuggerScope()
         {
             Assert(!IsFunctionScopeSlotArray());
-            return (DebuggerScope*)(slotArray[ScopeMetadataSlotIndex]);
+            return (DebuggerScope*)PointerValue(slotArray[ScopeMetadataSlotIndex]);
         }
 
         Var GetScopeMetadataRaw() const
@@ -3769,7 +3769,7 @@ namespace Js
         }
 
     private:
-        Var* slotArray;
+        Field(Field(Var)*) slotArray;
     };
 
 

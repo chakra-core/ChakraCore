@@ -2173,11 +2173,11 @@ namespace Js
 
             if (!this->GetSourceContextInfo()->IsDynamic())
             {
-                PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d; Is Top Level: %s; Source Url: %s\n"), m_functionNumber, m_displayName, this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"), this->GetSourceContextInfo()->url);
+                PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d; Is Top Level: %s; Source Url: %s\n"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"), this->GetSourceContextInfo()->url);
             }
             else
             {
-                PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;"), m_functionNumber, m_displayName, this->m_cchLength, this->GetNestedCount(),  this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"));
+                PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(),  this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"));
             }
 
             if (!this->GetIsTopLevel() &&
@@ -2444,11 +2444,11 @@ namespace Js
 
         if (!this->GetSourceContextInfo()->IsDynamic())
         {
-            PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d; Is Top Level: %s; Source Url: %s\n"), m_functionNumber, m_displayName, this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"), this->GetSourceContextInfo()->url);
+            PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d; Is Top Level: %s; Source Url: %s\n"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"), this->GetSourceContextInfo()->url);
         }
         else
         {
-            PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;"), m_functionNumber, m_displayName, this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"));
+            PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"));
         }
 
 #if ENABLE_PROFILE_INFO
@@ -5409,7 +5409,7 @@ namespace Js
     {
         int indent = (GetScopeDepth() - 1) * 4;
 
-        Output::Print(indent, _u("Begin scope: Address: %p Type: %s Location: %d Sibling: %p Range: [%d, %d]\n "), this, GetDebuggerScopeTypeString(scopeType), scopeLocation, this->siblingScope, range.begin, range.end);
+        Output::Print(indent, _u("Begin scope: Address: %p Type: %s Location: %d Sibling: %p Range: [%d, %d]\n "), this, GetDebuggerScopeTypeString(scopeType), scopeLocation, PointerValue(this->siblingScope), range.begin, range.end);
         if (this->HasProperties())
         {
             this->scopeProperties->Map( [=] (int i, Js::DebuggerScopeProperty& scopeProperty) {
@@ -8489,7 +8489,7 @@ namespace Js
             // The original heap allocated array will be freed at the end of NativeCodeGenerator::CheckCodeGenDone
             void** jitPinnedTypeRefs = this->jitTransferData->GetRuntimeTypeRefs();
             size_t jitPinnedTypeRefCount = this->jitTransferData->GetRuntimeTypeRefCount();
-            this->runtimeTypeRefs = RecyclerNewArray(recycler, void*, jitPinnedTypeRefCount + 1);
+            this->runtimeTypeRefs = RecyclerNewArray(recycler, Field(void*), jitPinnedTypeRefCount + 1);
             //js_memcpy_s(this->runtimeTypeRefs, jitPinnedTypeRefCount * sizeof(void*), jitPinnedTypeRefs, jitPinnedTypeRefCount * sizeof(void*));
             for (size_t i = 0; i < jitPinnedTypeRefCount; i++)
             {
@@ -8614,7 +8614,7 @@ namespace Js
         if (jitTransferData->typeGuardTransferData.entries != nullptr)
         {
             this->propertyGuardCount = jitTransferData->typeGuardTransferData.propertyGuardCount;
-            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), FakePropertyGuardWeakReference*, this->propertyGuardCount);
+            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(FakePropertyGuardWeakReference*), this->propertyGuardCount);
             ThreadContext* threadContext = scriptContext->GetThreadContext();
             auto next = &jitTransferData->typeGuardTransferData.entries;
             while (*next)
@@ -8664,7 +8664,7 @@ namespace Js
         if (this->jitTransferData->propertyGuardsByPropertyId != nullptr)
         {
             this->propertyGuardCount = this->jitTransferData->propertyGuardCount;
-            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), FakePropertyGuardWeakReference*, this->propertyGuardCount);
+            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(FakePropertyGuardWeakReference*), this->propertyGuardCount);
 
             ThreadContext* threadContext = scriptContext->GetThreadContext();
 
@@ -9044,7 +9044,7 @@ namespace Js
                 else
                 {
                     HeapDeletePlus(offsetof(PinnedTypeRefsIDL, typeRefs) + sizeof(void*)*jitTransferData->runtimeTypeRefs->count - sizeof(PinnedTypeRefsIDL),
-                        jitTransferData->runtimeTypeRefs);
+                        PointerValue(jitTransferData->runtimeTypeRefs));
                 }
                 jitTransferData->runtimeTypeRefs = nullptr;
             }

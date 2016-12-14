@@ -14,17 +14,27 @@ namespace Js {
         private:
             // Real script frames: functionBody, byteCodeOffset
             // Native library builtin (or potentially virtual) frames: name
-            FunctionBody* functionBody;
+            Field(FunctionBody*) functionBody;
             union
             {
-                uint32 byteCodeOffset;  // used for script functions        (functionBody != nullptr)
-                PCWSTR name;            // used for native/virtual frames   (functionBody == nullptr)
+                Field(uint32) byteCodeOffset;  // used for script functions        (functionBody != nullptr)
+                Field(PCWSTR) name;            // used for native/virtual frames   (functionBody == nullptr)
             };
-            StackTraceArguments argumentTypes;
+            Field(StackTraceArguments) argumentTypes;
 
         public:
             StackFrame() {}
             StackFrame(JavascriptFunction* func, const JavascriptStackWalker& walker, bool initArgumentTypes);
+            StackFrame(const StackFrame& other)
+                :functionBody(other.functionBody), name(other.name), argumentTypes(other.argumentTypes)
+            {}
+            StackFrame& operator=(const StackFrame& other)
+            {
+                functionBody = other.functionBody;
+                name = other.name;
+                argumentTypes = other.argumentTypes;
+                return *this;
+            }
 
             bool IsScriptFunction() const;
             FunctionBody* GetFunctionBody() const;
