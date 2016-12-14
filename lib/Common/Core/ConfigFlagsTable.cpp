@@ -141,6 +141,41 @@ namespace Js
         return false;
     }
 
+    template <>
+    Js::RangeUnit<Js::SourceFunctionNode> GetFullRange()
+    {
+        RangeUnit<SourceFunctionNode> unit;
+        unit.i.sourceContextId = 0;
+        unit.j.sourceContextId = UINT_MAX;
+        unit.i.functionId = 0;
+        unit.j.functionId = (uint)-3;
+        return unit;
+    }
+
+    template <>
+    SourceFunctionNode GetPrevious(SourceFunctionNode unit)
+    {
+        SourceFunctionNode prevUnit = unit;
+        prevUnit.functionId--;
+        if (prevUnit.functionId == UINT_MAX)
+        {
+            prevUnit.sourceContextId--;
+        }
+        return prevUnit;
+    }
+
+    template <>
+    SourceFunctionNode GetNext(SourceFunctionNode unit)
+    {
+        SourceFunctionNode nextUnit = unit;
+        nextUnit.functionId++;
+        if (nextUnit.functionId == 0)
+        {
+            nextUnit.sourceContextId++;
+        }
+        return nextUnit;
+    }
+
     ///----------------------------------------------------------------------------
     ///----------------------------------------------------------------------------
     ///
@@ -179,6 +214,13 @@ namespace Js
     Phases::Enable(Phase phase)
     {
         this->phaseList[(int)phase].valid = true;
+    }
+
+    void
+    Phases::Disable(Phase phase)
+    {
+        this->phaseList[(int)phase].valid = false;
+        this->phaseList[(int)phase].range.Clear();
     }
 
     Phase
@@ -306,6 +348,19 @@ namespace Js
     ConfigFlagsTable::GetAsPhase(Flag flag) const
     {
         return reinterpret_cast<Phases*>(GetProperty(flag));
+    }
+
+    Flag
+    ConfigFlagsTable::GetOppositePhaseFlag(Flag flag) const
+    {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        switch (flag)
+        {
+        case OnFlag: return OffFlag;
+        case OffFlag: return OnFlag;
+        }
+#endif
+        return InvalidFlag;
     }
 
     Boolean *
