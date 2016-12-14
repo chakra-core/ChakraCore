@@ -85,7 +85,8 @@ $buildlogsPath = Join-Path $binDir $buildlogsSubdir
 
 $skipPogo = $skipPogo -or (Test-Path Env:\SKIP_POGO)
 
-if (("$binpath" -ne "") -or (-not (Test-Path $binpath))) {
+# if $binpath is not set or if it is an invalid path, then infer it
+if ((-not $binpath) -or (-not (Test-Path $binpath))) {
     $binpath = Join-Path $binDir "bin\${buildName}"
 }
 
