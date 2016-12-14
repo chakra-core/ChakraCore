@@ -576,7 +576,6 @@ namespace Js
         ScriptFunction* func = (ScriptFunction*)entryObject;
         FunctionBody* body = func->GetFunctionBody();
         AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
-        const uint argInCount = callInfo.Count - 1;
         int argSize = info->GetArgByteSize();
         char* dst;
         Var returnValue = 0;
