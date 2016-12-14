@@ -87,7 +87,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonMemoryPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="SectionAllocWrapper.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SectionAllocWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AllocationPolicyManager.h" />
