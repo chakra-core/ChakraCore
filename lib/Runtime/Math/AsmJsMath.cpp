@@ -7,16 +7,21 @@
 namespace Js
 {
     // These implementations need to be compiled with /arch:sse2
-#define DivImpl(type) template<> type AsmJsMath::Div(type aLeft, type aRight) { return aLeft / aRight; }
-#define MulImpl(type) template<> type AsmJsMath::Mul(type aLeft, type aRight) { return aLeft * aRight; }
-#define DivMulImpl(type) DivImpl(type) MulImpl(type)
+#define DivImpl(type, noinline) template<> noinline type AsmJsMath::Div(type aLeft, type aRight) { return aLeft / aRight; }
+#define MulImpl(type, noinline) template<> noinline type AsmJsMath::Mul(type aLeft, type aRight) { return aLeft * aRight; }
+#define DivMulImpl(type, noinline) DivImpl(type, noinline) MulImpl(type, noinline)
 
-    DivMulImpl(float)
-    DivMulImpl(double)
-    DivMulImpl(int64)
-    DivMulImpl(uint64)
-    MulImpl(int32)
-    MulImpl(uint32)
+#if _M_IX86
+#define DB_NOINLINE _NOINLINE
+#else
+#define DB_NOINLINE
+#endif
+    DivMulImpl(double, DB_NOINLINE)
+    DivMulImpl(float,)
+    DivMulImpl(int64,)
+    DivMulImpl(uint64,)
+    MulImpl(int32,)
+    MulImpl(uint32,)
 
     template<>
     int32 AsmJsMath::Div<int32>(int32 aLeft, int32 aRight)
