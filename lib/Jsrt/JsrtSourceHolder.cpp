@@ -299,6 +299,7 @@ namespace Js
             this->mappedSource = nullptr;
         }
         this->mappedScriptValue = nullptr;
+        this->mappedSerializedScriptValue = nullptr;
 
         // Don't allow load or unload again after told to unload.
         scriptLoadCallback = nullptr;
