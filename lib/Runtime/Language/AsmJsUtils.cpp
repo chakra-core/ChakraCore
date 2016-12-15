@@ -185,11 +185,7 @@ namespace Js
         {
             radix = 16;
         }
-#ifdef _WIN32
         return (int64)_wcstoui64(buf, nullptr, radix);
-#else
-        return (int64)wcstoull(buf, nullptr, radix);
-#endif
     }
 #endif
 
