@@ -2692,7 +2692,7 @@ LowererMD::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::R
 
     IR::Instr * checkFlatString1Instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     checkFlatString1Instr->SetSrc1(src1FlatString);
-    checkFlatString1Instr->SetSrc2(IR::IntConstOpnd::New(0, TyUint32, this->m_func));
+    checkFlatString1Instr->SetSrc2(IR::IntConstOpnd::New(0, TyMachPtr, this->m_func));
     instrInsert->InsertBefore(checkFlatString1Instr);
     instrInsert->InsertBefore(IR::BranchInstr::New(Js::OpCode::JEQ, labelHelper, this->m_func));
 
@@ -2712,7 +2712,7 @@ LowererMD::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::R
 
     IR::Instr * checkFlatString2Instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     checkFlatString2Instr->SetSrc1(src2FlatString);
-    checkFlatString2Instr->SetSrc2(IR::IntConstOpnd::New(0, TyUint32, this->m_func));
+    checkFlatString2Instr->SetSrc2(IR::IntConstOpnd::New(0, TyMachPtr, this->m_func));
     instrInsert->InsertBefore(checkFlatString2Instr);
     instrInsert->InsertBefore(IR::BranchInstr::New(Js::OpCode::JEQ, labelHelper, this->m_func));
 
@@ -4932,7 +4932,7 @@ LowererMD::GenerateFastScopedLdFld(IR::Instr * instrLdScopedFld)
     indirOpnd = IR::IndirOpnd::New(opndBase, Js::FrameDisplay::GetOffsetOfLength(), TyInt16, this->m_func);
     instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     instr->SetSrc1(indirOpnd);
-    instr->SetSrc2(IR::IntConstOpnd::New(0x1, TyInt8, this->m_func));
+    instr->SetSrc2(IR::IntConstOpnd::New(0x1, TyInt16, this->m_func));
     instrLdScopedFld->InsertBefore(instr);
 
     //  JNE $helper
@@ -5029,7 +5029,7 @@ LowererMD::GenerateFastScopedStFld(IR::Instr * instrStScopedFld)
     indirOpnd = IR::IndirOpnd::New(opndBase, Js::FrameDisplay::GetOffsetOfLength(), TyInt16, this->m_func);
     instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     instr->SetSrc1(indirOpnd);
-    instr->SetSrc2(IR::IntConstOpnd::New(0x1, TyInt8, this->m_func));
+    instr->SetSrc2(IR::IntConstOpnd::New(0x1, TyInt16, this->m_func));
     instrStScopedFld->InsertBefore(instr);
 
     //  JNE $helper
@@ -7466,7 +7466,7 @@ void LowererMD::GenerateSmIntTest(IR::Opnd *opndSrc, IR::Instr *insertInstr, IR:
     // CMP s1, AtomTag
     instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     instr->SetSrc1(opndReg);
-    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyInt32, this->m_func, /* dontEncode = */ true));
+    instr->SetSrc2(IR::IntConstOpnd::New(Js::AtomTag, TyMachReg, this->m_func, /* dontEncode = */ true));
     insertInstr->InsertBefore(instr);
 #endif
     if(fContinueLabel)
