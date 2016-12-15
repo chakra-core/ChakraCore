@@ -67,8 +67,8 @@ private:
             LPWSTR                     ParseString(__inout_ecount(ceBuffer) LPWSTR buffer, size_t ceBuffer = MaxTokenSize, bool fTreatColonAsSeparator = true);
             int                        ParseInteger();
             Js::SourceFunctionNode     ParseSourceFunctionIds();
-            void                       ParsePhase(Js::Phases *pPhase);
-            void                       ParseRange(Js::Range *range);
+            void                       ParsePhase(Js::Phases *pPhase, Js::Phases *oppositePhase);
+            void                       ParseRange(Js::Range *range, Js::Range *oppositeRange);
             void                       ParseNumberRange(Js::NumberRange *range);
             void                       ParseFlag();
             void                       ParseNumberSet(Js::NumberSet * numberSet);

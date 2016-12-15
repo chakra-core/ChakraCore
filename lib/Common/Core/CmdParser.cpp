@@ -234,7 +234,7 @@ CmdLineArgsParser::ParseInteger()
 ///----------------------------------------------------------------------------
 
 void
-CmdLineArgsParser::ParseRange(Js::Range *pRange)
+CmdLineArgsParser::ParseRange(Js::Range *pRange, Js::Range *oppositeRange)
 {
     SourceFunctionNode r1 = ParseSourceFunctionIds();
     SourceFunctionNode r2;
@@ -254,12 +254,12 @@ CmdLineArgsParser::ParseRange(Js::Range *pRange)
             throw Exception(_u("Left functionId must be smaller than the Right functionId when Source file is the same"));
         }
 
-        pRange->Add(r1, r2);
+        pRange->Add(r1, r2, oppositeRange);
         switch(CurChar())
         {
         case ',':
             NextChar();
-            ParseRange(pRange);
+            ParseRange(pRange, oppositeRange);
             break;
 
         case ' ':
@@ -272,14 +272,14 @@ CmdLineArgsParser::ParseRange(Js::Range *pRange)
         break;
 
     case ',':
-        pRange->Add(r1);
+        pRange->Add(r1, oppositeRange);
         NextChar();
-        ParseRange(pRange);
+        ParseRange(pRange, oppositeRange);
         break;
 
     case ' ':
     case 0:
-        pRange->Add(r1);
+        pRange->Add(r1, oppositeRange);
         break;
 
     default:
@@ -350,7 +350,7 @@ CmdLineArgsParser::ParseNumberRange(Js::NumberRange *pRange)
 ///----------------------------------------------------------------------------
 
 void
-CmdLineArgsParser::ParsePhase(Js::Phases *pPhaseList)
+CmdLineArgsParser::ParsePhase(Js::Phases *pPhaseList, Js::Phases *oppositePhase)
 {
     char16 buffer[MaxTokenSize];
     ZeroMemory(buffer, sizeof(buffer));
@@ -365,14 +365,32 @@ CmdLineArgsParser::ParsePhase(Js::Phases *pPhaseList)
     switch(CurChar())
     {
     case ':':
+    {
         NextChar();
-        ParseRange(pPhaseList->GetRange(phase));
+        Js::Range* oppositeRange = nullptr;
+        if (oppositePhase && oppositePhase->IsEnabled(phase))
+        {
+            oppositeRange = oppositePhase->GetRange(phase);
+        }
+        ParseRange(pPhaseList->GetRange(phase), oppositeRange);
         break;
+    }
     case ',':
         NextChar();
-        ParsePhase(pPhaseList);
+        if (oppositePhase)
+        {
+            // The whole phase is turned on/off so disable the opposite
+            oppositePhase->Disable(phase);
+        }
+        ParsePhase(pPhaseList, oppositePhase);
         break;
     default:
+        if (oppositePhase)
+        {
+            // The whole phase is turned on/off so disable the opposite
+            oppositePhase->Disable(phase);
+        }
+        pPhaseList->GetRange(phase)->Clear();
         break;
     }
 }
@@ -512,8 +530,17 @@ CmdLineArgsParser::ParseFlag()
             switch(flagType)
             {
             case FlagPhases:
-                ParsePhase(this->flagTable.GetAsPhase(flag));
+            {
+                Flag oppositeFlag = this->flagTable.GetOppositePhaseFlag(flag);
+                Phases* oppositePhase = nullptr;
+                if (oppositeFlag != InvalidFlag)
+                {
+                    this->flagTable.Enable(oppositeFlag);
+                    oppositePhase = this->flagTable.GetAsPhase(oppositeFlag);
+                }
+                ParsePhase(this->flagTable.GetAsPhase(flag), oppositePhase);
                 break;
+            }
 
             case FlagString:
                 *this->flagTable.GetAsString(flag) = ParseString(buffer, MaxTokenSize, false);
