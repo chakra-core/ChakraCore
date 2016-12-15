@@ -1025,6 +1025,14 @@
       <tags>exclude_dynapogo,exclude_ship</tags>
     </default>
   </test>
+    <test>
+    <default>
+      <files>test146.js</files>
+      <compile-flags>-maxinterpretcount:2 -off:simplejit -loopinterpretcount:1 -bgjit- -force:fixdataprops</compile-flags>
+      <baseline>test146.baseline</baseline>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
   <test>
     <default>
       <files>deadstore_field.js</files>
