@@ -1592,17 +1592,11 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::MemSetLocal(_In_ void 
 }
 
 #if _WIN32
-// SegmentBase<SectionAllocWrapper>, PageSegmentBase<SectionAllocWrapper>
 template<>
 void
 PageAllocatorBase<SectionAllocWrapper>::MemSetLocal(_In_ void *dst, int val, size_t sizeInBytes)
 {
-    size_t pages = sizeInBytes / AutoSystemInfo::PageSize;
-    if (sizeInBytes % AutoSystemInfo::PageSize != 0)
-    {
-        ++pages;
-    }
-    LPVOID localAddr = this->GetVirtualAllocator()->AllocLocal(dst, pages);
+    LPVOID localAddr = this->GetVirtualAllocator()->AllocLocal(dst, sizeInBytes);
     if (localAddr == nullptr)
     {
         MemoryOperationLastError::CheckProcessAndThrowFatalError(this->processHandle);
@@ -1618,12 +1612,7 @@ template<>
 void
 PageAllocatorBase<PreReservedSectionAllocWrapper>::MemSetLocal(_In_ void *dst, int val, size_t sizeInBytes)
 {
-    size_t pages = sizeInBytes / AutoSystemInfo::PageSize;
-    if (sizeInBytes % AutoSystemInfo::PageSize != 0)
-    {
-        ++pages;
-    }
-    LPVOID localAddr = this->GetVirtualAllocator()->AllocLocal(dst, pages);
+    LPVOID localAddr = this->GetVirtualAllocator()->AllocLocal(dst, sizeInBytes);
     if (localAddr == nullptr)
     {
         MemoryOperationLastError::CheckProcessAndThrowFatalError(this->processHandle);
