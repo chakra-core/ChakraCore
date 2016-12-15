@@ -291,7 +291,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsValueRef bufferVa
 
         JsErrorCode runScript;
         JsValueRef fname;
-        IfJsErrorFailLog(ChakraRTInterface::JsCreateStringUtf8((const uint8_t*)fullPath,
+        IfJsErrorFailLog(ChakraRTInterface::JsCreateStringUtf8((const unsigned char*)fullPath,
             strlen(fullPath), &fname));
 
         if(bufferValue != nullptr)

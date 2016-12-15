@@ -439,7 +439,7 @@ namespace Js
         void SetHasNoMissingValues(const bool hasNoMissingValues = true);
 
         template<typename T>
-        bool JavascriptArray::IsMissingItemAt(uint32 index) const;
+        bool IsMissingItemAt(uint32 index) const;
         bool IsMissingItem(uint32 index);
 
         virtual bool IsMissingHeadSegmentItem(const uint32 index) const;

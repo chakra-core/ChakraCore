@@ -1591,7 +1591,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::MemSetLocal(_In_ void 
     memset(dst, val, sizeInBytes);
 }
 
-#if _WIN32
+#if ENABLE_OOP_NATIVE_CODEGEN
 template<>
 void
 PageAllocatorBase<SectionAllocWrapper>::MemSetLocal(_In_ void *dst, int val, size_t sizeInBytes)
@@ -2862,7 +2862,7 @@ namespace Memory
     template class SegmentBase       < PreReservedVirtualAllocWrapper >;
     template class PageSegmentBase   < VirtualAllocWrapper >;
     template class PageSegmentBase   < PreReservedVirtualAllocWrapper >;
-#if _WIN32
+#if ENABLE_OOP_NATIVE_CODEGEN
     template class PageAllocatorBase < SectionAllocWrapper >;
     template class PageAllocatorBase < PreReservedSectionAllocWrapper >;
     template class HeapPageAllocator < SectionAllocWrapper >;

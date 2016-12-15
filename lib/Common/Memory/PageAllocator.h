@@ -378,7 +378,7 @@ private:
 
     friend class PageAllocatorBase<VirtualAllocWrapper>;
     friend class PageAllocatorBase<PreReservedVirtualAllocWrapper>;
-#if _WIN32
+#if ENABLE_OOP_NATIVE_CODEGEN
     friend class PageAllocatorBase<SectionAllocWrapper>;
     friend class PageAllocatorBase<PreReservedSectionAllocWrapper>;
 #endif
