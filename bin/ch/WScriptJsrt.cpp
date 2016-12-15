@@ -1035,6 +1035,8 @@ JsValueRef __stdcall WScriptJsrt::FlagCallback(JsValueRef callee, bool isConstru
     JsErrorCode errorCode = JsNoError;
 
     IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
     if (argumentCount > 1)
     {
         AutoString cmd;
@@ -1042,6 +1044,7 @@ JsValueRef __stdcall WScriptJsrt::FlagCallback(JsValueRef callee, bool isConstru
         char16* argv[] = { nullptr, cmd.GetWideString() };
         ChakraRTInterface::SetConfigFlags(2, argv, nullptr);
     }
+#endif
 
 Error:
     return returnValue;
