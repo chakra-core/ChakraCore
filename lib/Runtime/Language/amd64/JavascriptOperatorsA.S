@@ -18,12 +18,6 @@ NESTED_ENTRY amd64_CallWithFakeFrame, _TEXT, NoHandler
         // xplat-todo: need to have an equivalent function to __chkstk that we can
         // call here to verify that we have enough stack space
 
-        // The stack walker uses this marker to skip this frame.
-        // Note that we use rip-relative addressing here since this
-        // library is shared and therefore the code has to be position independent
-        lea rax, [rip + C_FUNC(amd64_ReturnFromCallWithFakeFrame)]
-        mov [rsp+8h], rax
-
         mov rax, r8             // arg0
 
         push_nonvol_reg rbp
@@ -59,6 +53,7 @@ NESTED_ENTRY amd64_CallWithFakeFrame, _TEXT, NoHandler
         // rcx = args size.
         // rdx = spill size.
 NESTED_END amd64_CallWithFakeFrame, _TEXT
+
 
 .balign 16
 NESTED_ENTRY amd64_ReturnFromCallWithFakeFrame, _TEXT, NoHandler
