@@ -1,3 +1,5 @@
 83
-$action_3 = undefined
-25/25 tests passed.
+(6) func_ptrs.wast:31: assert_invalid module func_ptrs.1.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(7) func_ptrs.wast:32: assert_invalid module func_ptrs.2.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(9) func_ptrs.wast:39: assert_invalid module func_ptrs.4.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+33/36 tests passed.

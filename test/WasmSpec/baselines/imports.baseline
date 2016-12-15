@@ -3,4 +3,60 @@
 13
 13
 13
-28/28 tests passed.
+(11) imports.wast:72: assert_unlinkable module imports.8.wasm failed. Expected a linking error: TypeError: Function expected
+(12) imports.wast:76: assert_unlinkable module imports.9.wasm failed. Expected a linking error: TypeError: Function expected
+(13) imports.wast:81: assert_unlinkable module imports.10.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(14) imports.wast:85: assert_unlinkable module imports.11.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(15) imports.wast:89: assert_unlinkable module imports.12.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(16) imports.wast:93: assert_unlinkable module imports.13.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(17) imports.wast:97: assert_unlinkable module imports.14.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(18) imports.wast:101: assert_unlinkable module imports.15.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(19) imports.wast:105: assert_unlinkable module imports.16.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(20) imports.wast:109: assert_unlinkable module imports.17.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(21) imports.wast:113: assert_unlinkable module imports.18.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(22) imports.wast:117: assert_unlinkable module imports.19.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(23) imports.wast:121: assert_unlinkable module imports.20.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(24) imports.wast:125: assert_unlinkable module imports.21.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(25) imports.wast:129: assert_unlinkable module imports.22.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(26) imports.wast:133: assert_unlinkable module imports.23.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(27) imports.wast:137: assert_unlinkable module imports.24.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(28) imports.wast:141: assert_unlinkable module imports.25.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(29) imports.wast:146: assert_unlinkable module imports.26.wasm failed. Expected a linking error: TypeError: Function expected
+(30) imports.wast:150: assert_unlinkable module imports.27.wasm failed. Expected a linking error: TypeError: Function expected
+(31) imports.wast:154: assert_unlinkable module imports.28.wasm failed. Expected a linking error: TypeError: Function expected
+(32) imports.wast:158: assert_unlinkable module imports.29.wasm failed. Expected a linking error: TypeError: Function expected
+(33) imports.wast:162: assert_unlinkable module imports.30.wasm failed. Expected a linking error: TypeError: Function expected
+(34) imports.wast:166: assert_unlinkable module imports.31.wasm failed. Expected a linking error: TypeError: Function expected
+(42) imports.wast:199: assert_unlinkable module imports.35.wasm failed. Expected a linking error: TypeError: Import is invalid
+(43) imports.wast:203: assert_unlinkable module imports.36.wasm failed. Expected a linking error: TypeError: Import is invalid
+(44) imports.wast:208: assert_unlinkable module imports.37.wasm failed. Expected a linking error: TypeError: Import is invalid
+(45) imports.wast:212: assert_unlinkable module imports.38.wasm failed. Expected a linking error: TypeError: Import is invalid
+(46) imports.wast:216: assert_unlinkable module imports.39.wasm failed. Expected a linking error: TypeError: Import is invalid
+(47) imports.wast:220: assert_unlinkable module imports.40.wasm failed. Expected a linking error: TypeError: Import is invalid
+(48) imports.wast:224: assert_unlinkable module imports.41.wasm failed. Expected a linking error: TypeError: Import is invalid
+(49) imports.wast:228: assert_unlinkable module imports.42.wasm failed. Expected a linking error: TypeError: Import is invalid
+(76) imports.wast:295: assert_unlinkable module imports.59.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+(77) imports.wast:299: assert_unlinkable module imports.60.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+(78) imports.wast:304: assert_unlinkable module imports.61.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+(79) imports.wast:308: assert_unlinkable module imports.62.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+(80) imports.wast:312: assert_unlinkable module imports.63.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+(81) imports.wast:316: assert_unlinkable module imports.64.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+(82) imports.wast:321: assert_unlinkable module imports.65.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+(83) imports.wast:325: assert_unlinkable module imports.66.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+(84) imports.wast:329: assert_unlinkable module imports.67.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+(85) imports.wast:333: assert_unlinkable module imports.68.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+(108) imports.wast:388: assert_unlinkable module imports.83.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(109) imports.wast:392: assert_unlinkable module imports.84.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(110) imports.wast:397: assert_unlinkable module imports.85.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(111) imports.wast:401: assert_unlinkable module imports.86.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(112) imports.wast:405: assert_unlinkable module imports.87.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(113) imports.wast:409: assert_unlinkable module imports.88.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(114) imports.wast:414: assert_unlinkable module imports.89.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(115) imports.wast:418: assert_unlinkable module imports.90.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(116) imports.wast:422: assert_unlinkable module imports.91.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(117) imports.wast:426: assert_unlinkable module imports.92.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(118) imports.wast:430: assert_unlinkable module imports.93.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(119) imports.wast:434: assert_unlinkable module imports.94.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(120) imports.wast:439: assert_unlinkable module imports.95.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(121) imports.wast:443: assert_unlinkable module imports.96.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+70/126 tests passed.

@@ -199,6 +199,21 @@
   <test>
     <default>
       <files>spec.js</files>
+      <baseline>baselines\exports.baseline</baseline>
+      <compile-flags>-wasm -args testsuite-bin\exports.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\exports.baseline</baseline>
+      <compile-flags>-wasm -args testsuite-bin\exports.json -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
       <baseline>baselines\f32.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\f32.json -endargs</compile-flags>
     </default>
@@ -508,6 +523,21 @@
       <files>spec.js</files>
       <baseline>baselines\left-to-right.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\left-to-right.json -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\linking.baseline</baseline>
+      <compile-flags>-wasm -args testsuite-bin\linking.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\linking.baseline</baseline>
+      <compile-flags>-wasm -args testsuite-bin\linking.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
   </test>
