@@ -174,8 +174,8 @@ namespace Js
 
             if (descriptor->Attributes & PropertyConfigurable)
             {
-                descriptor->Getter = NULL;
-                descriptor->Setter = NULL;
+                descriptor->Getter = nullptr;
+                descriptor->Setter = nullptr;
                 descriptor->Attributes = PropertyDeleted | PropertyWritable | PropertyConfigurable;
             }
             else
@@ -646,8 +646,8 @@ namespace Js
             }
 
             arr->DirectDeleteItemAt<Var>(index);
-            descriptor->Getter = NULL;
-            descriptor->Setter = NULL;
+            descriptor->Getter = nullptr;
+            descriptor->Setter = nullptr;
             descriptor->Attributes = PropertyDeleted | PropertyWritable | PropertyConfigurable;
             return true;
         }

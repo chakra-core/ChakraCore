@@ -30,6 +30,8 @@ struct TypeWriteBarrierPolicy { typedef _no_write_barrier_policy Policy; };
 template <class T>
 struct TypeWriteBarrierPolicy<T*> { typedef _write_barrier_policy Policy; };
 template <class T>
+struct TypeWriteBarrierPolicy<T* const> { typedef _write_barrier_policy Policy; };
+template <class T>
 struct TypeWriteBarrierPolicy<WriteBarrierPtr<T>> { typedef _write_barrier_policy Policy; };
 template <>
 struct TypeWriteBarrierPolicy<_write_barrier_policy> { typedef _write_barrier_policy Policy; };
@@ -75,6 +77,8 @@ template <class T, class Policy>
 struct _WriteBarrierFieldType { typedef T Type; };
 template <class T>
 struct _WriteBarrierFieldType<T*, _write_barrier_policy> { typedef WriteBarrierPtr<T> Type; };
+template <class T>
+struct _WriteBarrierFieldType<T* const, _write_barrier_policy> { typedef const WriteBarrierPtr<T> Type; };
 
 template <class T,
           class Allocator = Recycler,
@@ -144,65 +148,66 @@ struct _ArrayItemWriteBarrierPolicy<_write_barrier_policy>
 // Trigger write barrier on changing array content if element type determines
 // write barrier is needed. Ignore otherwise.
 //
-template <class T, class PolicyType = T>
+template <class T, class PolicyType = T, class Allocator = Recycler>
 void ArrayWriteBarrier(T * address, size_t count)
 {
-    typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy Policy;
+    typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy ItemPolicy;
+    typedef typename AllocatorWriteBarrierPolicy<Allocator, ItemPolicy>::Policy Policy;
     return _ArrayWriteBarrier<Policy>::WriteBarrier(address, count);
 }
 
 // Copy array content. Triggers write barrier on the dst array content if if
 // Allocator and element type determines write barrier is needed.
 //
-template <class T, class PolicyType = T>
+template <class T, class PolicyType = T, class Allocator = Recycler>
 void CopyArray(T* dst, size_t dstCount, const T* src, size_t srcCount)
 {
     js_memcpy_s(reinterpret_cast<void*>(dst), sizeof(T) * dstCount,
                 reinterpret_cast<const void*>(src), sizeof(T) * srcCount);
-    ArrayWriteBarrier<T, PolicyType>(dst, dstCount);
+    ArrayWriteBarrier<T, PolicyType, Allocator>(dst, dstCount);
 }
-template <class T, class PolicyType = T>
+template <class T, class PolicyType = T, class Allocator = Recycler>
 void CopyArray(WriteBarrierPtr<T>& dst, size_t dstCount,
                const WriteBarrierPtr<T>& src, size_t srcCount)
 {
-    return CopyArray<T, PolicyType>(
+    return CopyArray<T, PolicyType, Allocator>(
         static_cast<T*>(dst), dstCount, static_cast<const T*>(src), srcCount);
 }
-template <class T, class PolicyType = T>
+template <class T, class PolicyType = T, class Allocator = Recycler>
 void CopyArray(T* dst, size_t dstCount,
                const WriteBarrierPtr<T>& src, size_t srcCount)
 {
-    return CopyArray<T, PolicyType>(
+    return CopyArray<T, PolicyType, Allocator>(
         dst, dstCount, static_cast<const T*>(src), srcCount);
 }
-template <class T, class PolicyType = T>
+template <class T, class PolicyType = T, class Allocator = Recycler>
 void CopyArray(WriteBarrierPtr<T>& dst, size_t dstCount,
                const T* src, size_t srcCount)
 {
-    return CopyArray<T, PolicyType>(
+    return CopyArray<T, PolicyType, Allocator>(
         static_cast<T*>(dst), dstCount, src, srcCount);
 }
 
 // Copy pointer array to WriteBarrierPtr array
 //
-template <class T, class PolicyType = WriteBarrierPtr<T>>
+template <class T, class PolicyType = WriteBarrierPtr<T>, class Allocator = Recycler>
 void CopyArray(WriteBarrierPtr<T>* dst, size_t dstCount,
                T* const * src, size_t srcCount)
 {
     CompileAssert(sizeof(WriteBarrierPtr<T>) == sizeof(T*));
-    return CopyArray<T*, PolicyType>(
+    return CopyArray<T*, PolicyType, Allocator>(
         reinterpret_cast<T**>(dst), dstCount, src, srcCount);
 }
 
 // Move Array content (memmove)
 //
-template <class T, class PolicyType = T>
+template <class T, class PolicyType = T, class Allocator = Recycler>
 void MoveArray(T* dst, const T* src, size_t count)
 {
     memmove(reinterpret_cast<void*>(dst),
             reinterpret_cast<const void*>(src),
             sizeof(T) * count);
-    ArrayWriteBarrier<T, PolicyType>(dst, count);
+    ArrayWriteBarrier<T, PolicyType, Allocator>(dst, count);
 }
 
 template <class T>
@@ -314,7 +319,7 @@ public:
         // WriteBarrier
         WriteBarrierSet(ptr);
 #else
-        // TODO: (leish)(swb) find a way to get dll load address on Linux, and initialize card table for 
+        // TODO: (leish)(swb) find a way to get dll load address on Linux, and initialize card table for
         // image write copy region
         NoWriteBarrierSet(ptr);
 #endif
@@ -326,7 +331,7 @@ public:
     WriteBarrierPtr(WriteBarrierPtr<T>&& other)
     {
         WriteBarrierSet(other.ptr);
-    }    
+    }
 
     // Getters
     T * operator->() const { return ptr; }
@@ -484,6 +489,7 @@ struct _QuickSortImpl
         ::qsort_s(arr, count, sizeof(T), comparer, context);
     }
 };
+#ifdef RECYCLER_WRITE_BARRIER
 template <>
 struct _QuickSortImpl<_write_barrier_policy>
 {
@@ -494,12 +500,13 @@ struct _QuickSortImpl<_write_barrier_policy>
         JsUtil::QuickSort<T, Comparer>::Sort(arr, arr + count - 1, comparer, context);
     }
 };
+#endif
 
-template<class T, class PolicyType = T, class Comparer>
+template<class T, class PolicyType = T, class Allocator = Recycler, class Comparer>
 void qsort_s(T* arr, size_t count, const Comparer& comparer, void* context)
 {
-    // Note use of "_ArrayItemWriteBarrierPolicy".
-    typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy Policy;
+    typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy ItemPolicy;
+    typedef typename AllocatorWriteBarrierPolicy<Allocator, ItemPolicy>::Policy Policy;
     _QuickSortImpl<Policy>::Sort(arr, count, comparer, context);
 }
 template<class T, class Comparer>

@@ -99,6 +99,15 @@ Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
         // pure LeafBit going through the else below, and use the LeafBit specialization to get the bucket
         // if there FinalizeBit, it goes through FinalizeWithBarrier bucket, whatever there's LeafBit or not
         memBlock = RealAlloc<(ObjectInfoBits)(((attributes | WithBarrierBit) & ~LeafBit) & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+#if DBG
+        // Above does not allocate in a Leaf bucket and would trigger write
+        // barrier verifyMark failure for its fields. To work around, manually
+        // set write barrier bits right now.
+        if (attributes & LeafBit)
+        {
+            Recycler::WBSetBits(memBlock, (uint)(HeapInfo::GetAlignedSizeNoCheck(allocSize) / sizeof(void*)));
+        }
+#endif
     }
     else
 #endif

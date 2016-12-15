@@ -273,7 +273,8 @@ namespace JsUtil
 
                 Field(T, TAllocator)* newbuffer = AllocArray(newLength);
                 Field(T, TAllocator)* oldbuffer = this->buffer;
-                CopyArray(newbuffer, newLength, oldbuffer, length);
+                CopyArray<Field(T, TAllocator), Field(T, TAllocator), TAllocator>(
+                    newbuffer, newLength, oldbuffer, length);
 
                 FreeArray(oldbuffer, oldBufferSize);
 
@@ -501,7 +502,8 @@ namespace JsUtil
                 (IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, true> >::IsTrue));
             if (this->count)
             {
-                qsort_s(this->buffer, this->count, sizeof(T), _PtFuncCompare, _Context);
+                qsort_s<Field(T, TAllocator), Field(T, TAllocator), TAllocator>(
+                    this->buffer, this->count, _PtFuncCompare, _Context);
             }
         }
 

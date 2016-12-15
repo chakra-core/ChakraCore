@@ -182,7 +182,7 @@ namespace JsUtil
             freeCount = other.freeCount;
 
             CopyArray(buckets, bucketCount, other.buckets, bucketCount);
-            CopyArray<EntryType, Field(ValueType, TAllocator)>(
+            CopyArray<EntryType, Field(ValueType, TAllocator), TAllocator>(
                 entries, size, other.entries, size);
 
 #if PROFILE_DICTIONARY
@@ -714,7 +714,7 @@ namespace JsUtil
             freeCount = other->freeCount;
 
             CopyArray(buckets, bucketCount, other->buckets, bucketCount);
-            CopyArray<EntryType, Field(ValueType, TAllocator)>(
+            CopyArray<EntryType, Field(ValueType, TAllocator), TAllocator>(
                 entries, size, other->entries, size);
 
 #if PROFILE_DICTIONARY
@@ -1022,7 +1022,7 @@ namespace JsUtil
             {
                 // no need to rehash
                 newEntries = AllocateEntries(newSize);
-                CopyArray<EntryType, Field(ValueType, TAllocator)>(
+                CopyArray<EntryType, Field(ValueType, TAllocator), TAllocator>(
                     newEntries, newSize, entries, count);
 
                 DeleteEntries(entries, size);
@@ -1033,7 +1033,7 @@ namespace JsUtil
             }
 
             Allocate(&newBuckets, &newEntries, newBucketCount, newSize);
-            CopyArray<EntryType, Field(ValueType, TAllocator)>(
+            CopyArray<EntryType, Field(ValueType, TAllocator), TAllocator>(
                 newEntries, newSize, entries, count);
 
             // When TAllocator is of type Recycler, it is possible that the Allocate above causes a collection, which
