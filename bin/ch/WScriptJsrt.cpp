@@ -856,6 +856,21 @@ bool WScriptJsrt::Initialize()
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, archProperty,
         archValue, true), false);
 
+    // Set Build Type
+    JsPropertyIdRef buildProperty;
+    IfJsrtErrorFail(CreatePropertyIdFromString("BUILD_TYPE", &buildProperty), false);
+    JsValueRef buildValue;
+#ifdef _DEBUG
+#define BUILD_TYPE_STRING_CH "Debug" // (O0)
+#else
+#define BUILD_TYPE_STRING_CH "Release" // consider Test is also Release build (O3)
+#endif
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateStringUtf8(
+        (const uint8_t*)BUILD_TYPE_STRING_CH, strlen(BUILD_TYPE_STRING_CH), &buildValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, buildProperty,
+        buildValue, true), false);
+#undef BUILD_TYPE_STRING_CH
+
     // Set Link Type [static / shared]
     JsPropertyIdRef linkProperty;
     IfJsrtErrorFail(CreatePropertyIdFromString("LINK_TYPE", &linkProperty), false);
