@@ -571,7 +571,7 @@ namespace Js
             if (slotArray.IsFunctionScopeSlotArray())
             {
                 DebuggerScope *formalScope = GetScopeWhenHaltAtFormals();
-                Js::FunctionBody *pFBody = slotArray.GetFunctionBody();
+                Js::FunctionBody *pFBody = slotArray.GetFunctionInfo()->GetFunctionBody();
                 uint slotArrayCount = slotArray.GetCount();
 
                 if (formalScope != nullptr && !pFBody->IsParamAndBodyScopeMerged())
@@ -4048,7 +4048,7 @@ namespace Js
 
             if(slotArray.IsFunctionScopeSlotArray())
             {
-                Js::FunctionBody *functionBody = slotArray.GetFunctionBody();
+                Js::FunctionBody *functionBody = slotArray.GetFunctionInfo()->GetFunctionBody();
                 return functionBody->GetDisplayName();
             }
             else

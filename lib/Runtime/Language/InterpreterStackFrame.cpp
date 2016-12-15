@@ -7280,7 +7280,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if (!functionBody->DoStackScopeSlots())
         {
             return this->NewScopeSlots(
-                scopeSlotCount + ScopeSlots::FirstSlotIndex, this->GetScriptContext(), (Var)functionBody);
+                scopeSlotCount + ScopeSlots::FirstSlotIndex, this->GetScriptContext(), (Var)functionBody->GetFunctionInfo());
         }
 
         slotArray = (Var*)this->GetLocalClosure();
@@ -7288,7 +7288,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         ScopeSlots scopeSlots(slotArray);
         scopeSlots.SetCount(scopeSlotCount);
-        scopeSlots.SetScopeMetadata((Var)functionBody);
+        scopeSlots.SetScopeMetadata((Var)functionBody->GetFunctionInfo());
         Var undef = functionBody->GetScriptContext()->GetLibrary()->GetUndefined();
         for (unsigned int i = 0; i < scopeSlotCount; i++)
         {

@@ -602,7 +602,7 @@ namespace TTD
             if(slotInfo->isFunctionBodyMetaData)
             {
                 Js::FunctionBody* fbody = inflator->LookupFunctionBody(slotInfo->OptFunctionBodyId);
-                scopeSlots.SetScopeMetadata(fbody);
+                scopeSlots.SetScopeMetadata(fbody->GetFunctionInfo());
 
                 //This is a doubly nested lookup so if the scope slot array is large this could be expensive
                 Js::PropertyId* propertyIds = fbody->GetPropertyIdsForScopeSlotArray();
