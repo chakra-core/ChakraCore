@@ -6134,9 +6134,13 @@ namespace Js
 
     uint FunctionBody::NewLiteralRegex()
     {
-        // We can't always assert that we have no regexes allocated, because this may be a function nested in a redeferred function,
-        // and we may be merely reusing the allocated regexes.
-        Assert(!this->GetLiteralRegexes() || this->byteCodeBlock);
+        if (this->byteCodeBlock)
+        {
+            // This is a function nested in a redeferred function, so we won't make use of the index.
+            // Don't increment to avoid breaking thread-safety requirements of the compact counters.
+            return 0;
+        }
+        Assert(!this->GetLiteralRegexes());
         return IncLiteralRegexCount();
     }
 
