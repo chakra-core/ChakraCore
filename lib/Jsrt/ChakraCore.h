@@ -472,11 +472,7 @@ CHAKRA_API
 ///     </para>
 /// </remarks>
 /// <param name="script">The script to serialize</param>
-/// <param name="buffer">The buffer to put the serialized script into. Can be null.</param>
-/// <param name="bufferSize">
-///     On entry, the size of the buffer, in bytes; on exit, the size of the buffer, in bytes,
-///     required to hold the serialized script.
-/// </param>
+/// <param name="buffer">ArrayBuffer</param>
 /// <param name="parseAttributes">Encoding for the script.</param>
 /// <returns>
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
@@ -484,8 +480,7 @@ CHAKRA_API
 CHAKRA_API
     JsSerialize(
         _In_ JsValueRef script,
-        _Out_ BYTE *buffer,
-        _Inout_ unsigned int *bufferSize,
+        _Out_ JsValueRef *buffer,
         _In_ JsParseScriptAttributes parseAttributes);
 
 /// <summary>
@@ -497,7 +492,7 @@ CHAKRA_API
 ///     Requires an active script context.
 ///     </para>
 /// </remarks>
-/// <param name="buffer">The serialized script.</param>
+/// <param name="buffer">The serialized script as an ArrayBuffer (preferably ExternalArrayBuffer).</param>
 /// <param name="scriptLoadCallback">
 ///     Callback called when the source code of the script needs to be loaded.
 ///     This is an optional parameter, set to null if not needed.
@@ -513,7 +508,7 @@ CHAKRA_API
 /// </returns>
 CHAKRA_API
     JsParseSerialized(
-        _In_ BYTE *buffer,
+        _In_ JsValueRef buffer,
         _In_ JsSerializedLoadScriptCallback scriptLoadCallback,
         _In_ JsSourceContext sourceContext,
         _In_ JsValueRef sourceUrl,
@@ -532,7 +527,7 @@ CHAKRA_API
 ///     the buffer are garbage collected.
 ///     </para>
 /// </remarks>
-/// <param name="buffer">The serialized script.</param>
+/// <param name="buffer">The serialized script as an ArrayBuffer (preferably ExternalArrayBuffer).</param>
 /// <param name="scriptLoadCallback">Callback called when the source code of the script needs to be loaded.</param>
 /// <param name="sourceContext">
 ///     A cookie identifying the script that can be used by debuggable script contexts.
@@ -547,7 +542,7 @@ CHAKRA_API
 /// </returns>
 CHAKRA_API
     JsRunSerialized(
-        _In_ BYTE *buffer,
+        _In_ JsValueRef buffer,
         _In_ JsSerializedLoadScriptCallback scriptLoadCallback,
         _In_ JsSourceContext sourceContext,
         _In_ JsValueRef sourceUrl,
