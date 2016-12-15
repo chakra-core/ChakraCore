@@ -14,8 +14,7 @@
         // rsi      = original frame pointer.
         // rdi      = target.
 .balign 16
-.text
-C_FUNC(amd64_CallWithFakeFrame):
+NESTED_ENTRY amd64_CallWithFakeFrame, _TEXT, NoHandler
         // xplat-todo: need to have an equivalent function to __chkstk that we can
         // call here to verify that we have enough stack space
 
@@ -27,7 +26,7 @@ C_FUNC(amd64_CallWithFakeFrame):
 
         mov rax, r8             // arg0
 
-        push rbp
+        push_nonvol_reg rbp
         mov rbp, rsi
 
         // Frame spill size.
@@ -59,9 +58,10 @@ C_FUNC(amd64_CallWithFakeFrame):
 
         // rcx = args size.
         // rdx = spill size.
+NESTED_END amd64_CallWithFakeFrame, _TEXT
 
 .balign 16
-C_FUNC(amd64_ReturnFromCallWithFakeFrame):
+NESTED_ENTRY amd64_ReturnFromCallWithFakeFrame, _TEXT, NoHandler
         add  rsp, rcx
 
         pop  rbx
@@ -84,7 +84,8 @@ C_FUNC(amd64_ReturnFromCallWithFakeFrame):
 
         add  rsp, rdx
 
-        pop  rbp
+        pop_nonvol_reg rbp
 
         // Return to the real caller.
         ret
+NESTED_END amd64_ReturnFromCallWithFakeFrame, _TEXT
