@@ -236,7 +236,7 @@ bool Debugger::Initialize()
         nullptr, nullptr, &scriptSource));
     JsValueRef fname;
     ChakraRTInterface::JsCreateStringUtf8(
-        (const uint8_t*)"DbgController.js", strlen("DbgController.js"), &fname);
+        (const unsigned char*)"DbgController.js", strlen("DbgController.js"), &fname);
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsParse(scriptSource,
         JS_SOURCE_CONTEXT_NONE, fname, JsParseScriptAttributeLibraryCode,
         &globalFunc));
@@ -324,7 +324,7 @@ bool Debugger::SetBaseline()
 
                 JsValueRef wideScriptRef;
                 IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateStringUtf8(
-                  (const uint8_t*)script, strlen(script), &wideScriptRef));
+                  (const unsigned char*)script, strlen(script), &wideScriptRef));
 
                 this->CallFunctionNoResult("SetBaseline", wideScriptRef);
             }
