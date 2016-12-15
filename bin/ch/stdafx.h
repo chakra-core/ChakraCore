@@ -186,7 +186,7 @@ public:
             if (errorCode == JsNoError)
             {
                 data = (char*) malloc((len + 1) * sizeof(char));
-                uint8_t *udata = (uint8_t*)data;
+                unsigned char *udata = (unsigned char*)data;
                 ChakraRTInterface::JsCopyStringUtf8(strValue, udata, len + 1, &length);
                 AssertMsg(len == length, "If you see this message.. There is something seriously wrong. Good Luck!");
                 *(data + len) = char(0);

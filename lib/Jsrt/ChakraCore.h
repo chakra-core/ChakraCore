@@ -212,7 +212,7 @@ CHAKRA_API
 /// </returns>
 CHAKRA_API
     JsCreateStringUtf8(
-        _In_ const uint8_t *content,
+        _In_ const unsigned char *content,
         _In_ size_t length,
         _Out_ JsValueRef *value);
 
@@ -232,7 +232,7 @@ CHAKRA_API
 /// </returns>
 CHAKRA_API
     JsCreateStringUtf16(
-        _In_ const uint16_t *content,
+        _In_ const unsigned short *content,
         _In_ size_t length,
         _Out_ JsValueRef *value);
 
@@ -289,7 +289,7 @@ CHAKRA_API
 CHAKRA_API
     JsCopyStringUtf8(
         _In_ JsValueRef value,
-        _Out_opt_ uint8_t* buffer,
+        _Out_opt_ unsigned char* buffer,
         _In_ size_t bufferSize,
         _Out_opt_ size_t* written);
 
@@ -323,7 +323,7 @@ CHAKRA_API
         _In_ JsValueRef value,
         _In_ int start,
         _In_ int length,
-        _Out_opt_ uint16_t* buffer,
+        _Out_opt_ unsigned short* buffer,
         _Out_opt_ size_t* written);
 
 /// <summary>
@@ -445,7 +445,7 @@ CHAKRA_API
 CHAKRA_API
     JsCopyPropertyIdUtf8(
         _In_ JsPropertyIdRef propertyId,
-        _Out_ uint8_t* buffer,
+        _Out_ unsigned char* buffer,
         _In_ size_t bufferSize,
         _Out_ size_t* length);
 
