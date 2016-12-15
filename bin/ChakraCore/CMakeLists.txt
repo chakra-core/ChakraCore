@@ -1,5 +1,5 @@
 add_library (ChakraCore SHARED
-  ChakraCoreDllFunc.cpp
+  ChakraCoreShared.cpp
   ConfigParserExternals.cpp
   TestHooks.cpp
 )
