@@ -105,7 +105,7 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
         pthread_key_create(&s_threadLocalDummy, DISPOSE_CHAKRA_CORE_THREAD);
 #endif
 
-#if defined(CHAKRA_STATIC_LIBRARY)
+#if defined(CHAKRA_STATIC_LIBRARY)  || !defined(_WIN32)
 
     // setup the cleanup
     // we do not track the main thread. When it exits do the cleanup below
