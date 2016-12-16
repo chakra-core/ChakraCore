@@ -114,6 +114,13 @@ set(CRLIB_SOURCE_CODES
     TypedArray.cpp
     TypedArrayIndexEnumerator.cpp
     UriHelper.cpp
+    WasmLibrary.cpp
+    WebAssembly.cpp
+    WebAssemblyEnvironment.cpp
+    WebAssemblyInstance.cpp
+    WebAssemblyMemory.cpp
+    WebAssemblyModule.cpp
+    WebAssemblyTable.cpp
     )
 
 if(CC_TARGETS_AMD64)
