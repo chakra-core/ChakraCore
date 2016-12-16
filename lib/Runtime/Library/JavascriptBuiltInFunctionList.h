@@ -131,6 +131,7 @@ BUILTIN(JavascriptError, NewTypeErrorInstance, NewTypeErrorInstance, FunctionInf
 BUILTIN(JavascriptError, NewURIErrorInstance, NewURIErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewWebAssemblyCompileErrorInstance, NewWebAssemblyCompileErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewWebAssemblyRuntimeErrorInstance, NewWebAssemblyRuntimeErrorInstance, FunctionInfo::None)
+BUILTIN(JavascriptError, NewWebAssemblyLinkErrorInstance, NewWebAssemblyLinkErrorInstance, FunctionInfo::None)
 #ifdef ENABLE_PROJECTION
 BUILTIN(JavascriptError, NewWinRTErrorInstance, NewWinRTErrorInstance, FunctionInfo::None)
 #endif
