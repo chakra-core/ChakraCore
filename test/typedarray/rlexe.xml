@@ -128,7 +128,8 @@
     <default>
       <files>samethread.js</files>
       <baseline>samethread.baseline</baseline>
-      <tags>typedarray,Slow</tags>
+      <!-- xplat-todo: Enable this back once GH #2135 is resolved -->
+      <tags>typedarray,Slow,exclude_xplat</tags>
     </default>
   </test>
   <!--
