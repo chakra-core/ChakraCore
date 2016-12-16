@@ -3227,7 +3227,7 @@ LFunction :
         break;
     }
 
-    pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, &fCanAssign, &term, pfIsDotOrIndex);
+    pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, isAsyncExpr, &fCanAssign, &term, pfIsDotOrIndex);
 
     // Pass back identifier if requested
     if (pToken && term.tk == tkID)
@@ -3322,6 +3322,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
     ParseNodePtr pnode,
     BOOL fAllowCall,
     BOOL fInNew,
+    BOOL isAsyncExpr,
     BOOL *pfCanAssign,
     _Inout_ IdentToken* pToken,
     _Out_opt_ bool* pfIsDotOrIndex /*= nullptr */)
@@ -3361,6 +3362,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         pToken->tk = tkNone; // This is no longer an identifier
                     }
                     fInNew = FALSE;
+                    ChkCurTok(tkRParen, ERRnoRparen);
                 }
                 else
                 {
@@ -3368,6 +3370,17 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     if (!fAllowCall)
                     {
                         return pnode;
+                    }
+
+                    uint saveNextBlockId = m_nextBlockId;
+                    uint saveCurrBlockId = GetCurrentBlock()->sxBlock.blockId;
+
+                    if (isAsyncExpr)
+                    {
+                        // Advance the block ID here in case this parenthetical expression turns out to be a lambda parameter list.
+                        // That way the pid ref stacks will be created in their correct final form, and we can simply fix
+                        // up function ID's.
+                        GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
                     }
 
                     ParseNodePtr pnodeArgs = ParseArgList<buildAST>(&callOfConstants, &spreadArgCount, &count);
@@ -3404,8 +3417,20 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         }
                         pToken->tk = tkNone; // This is no longer an identifier
                     }
+
+                    ChkCurTok(tkRParen, ERRnoRparen);
+
+                    if (isAsyncExpr)
+                    {
+                        GetCurrentBlock()->sxBlock.blockId = saveCurrBlockId;
+                        if (m_token.tk == tkDArrow)
+                        {
+                            // We're going to rewind and reinterpret the expression as a parameter list.
+                            // Put back the original next-block-ID so the existing pid ref stacks will be correct.
+                            m_nextBlockId = saveNextBlockId;
+                        }
+                    }
                 }
-                ChkCurTok(tkRParen, ERRnoRparen);
                 if (pfCanAssign)
                 {
                     *pfCanAssign = FALSE;
@@ -12276,7 +12301,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             BOOL fCanAssign;
             IdentToken token;
             // Look for postfix operator
-            pnodeElem = ParsePostfixOperators<buildAST>(pnodeElem, TRUE, FALSE, &fCanAssign, &token);
+            pnodeElem = ParsePostfixOperators<buildAST>(pnodeElem, TRUE, FALSE, FALSE, &fCanAssign, &token);
         }
     }
     else if (m_token.tk == tkSUPER || m_token.tk == tkID)
