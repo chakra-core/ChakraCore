@@ -21,7 +21,7 @@ namespace Js
         struct CachedData
         {
             Field(ScriptContext *) scriptContext;
-            Field(PropertyString **) strings;
+            Field(Field(PropertyString*)*) strings;
             Field(BigPropertyIndex *) indexes;
             Field(PropertyAttributes *) attributes;
             Field(int) cachedCount;

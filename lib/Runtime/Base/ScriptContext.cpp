@@ -2439,8 +2439,8 @@ namespace Js
             {
                 uint newCount = moduleID + 4;  // Preallocate 4 more slots, moduleID don't usually grow much
 
-                SRCINFO const ** newModuleSrcInfo = RecyclerNewArrayZ(this->GetRecycler(), SRCINFO const*, newCount);
-                memcpy(newModuleSrcInfo, cache->moduleSrcInfo, sizeof(SRCINFO const *)* moduleSrcInfoCount);
+                Field(SRCINFO const *)* newModuleSrcInfo = RecyclerNewArrayZ(this->GetRecycler(), Field(SRCINFO const*), newCount);
+                CopyArray(newModuleSrcInfo, newCount, cache->moduleSrcInfo, moduleSrcInfoCount);
                 cache->moduleSrcInfo = newModuleSrcInfo;
                 moduleSrcInfoCount = newCount;
                 cache->moduleSrcInfo[0] = this->cache->noContextGlobalSourceInfo;

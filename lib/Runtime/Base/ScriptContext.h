@@ -410,7 +410,7 @@ namespace Js
         Field(DynamicSourceContextInfoMap*) dynamicSourceContextInfoMap;
         Field(SourceContextInfo*) noContextSourceContextInfo;
         Field(SRCINFO*) noContextGlobalSourceInfo;
-        Field(SRCINFO const **) moduleSrcInfo;
+        Field(Field(SRCINFO const *)*) moduleSrcInfo;
         Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
     };
 

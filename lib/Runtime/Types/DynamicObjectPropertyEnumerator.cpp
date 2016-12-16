@@ -112,11 +112,11 @@ namespace Js
 
         uint propertyCount = this->object->GetPropertyCount();
         data = RecyclerNewStructPlus(requestContext->GetRecycler(),
-            propertyCount * sizeof(PropertyString *) + propertyCount * sizeof(BigPropertyIndex) + propertyCount * sizeof(PropertyAttributes), CachedData);
+            propertyCount * sizeof(Field(PropertyString*)) + propertyCount * sizeof(BigPropertyIndex) + propertyCount * sizeof(PropertyAttributes), CachedData);
         data->scriptContext = requestContext;
         data->cachedCount = 0;
         data->propertyCount = propertyCount;
-        data->strings = (PropertyString **)(data + 1);
+        data->strings = reinterpret_cast<Field(PropertyString*)*>(data + 1);
         data->indexes = (BigPropertyIndex *)(data->strings + propertyCount);
         data->attributes = (PropertyAttributes*)(data->indexes + propertyCount);
         data->completed = false;
