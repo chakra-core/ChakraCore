@@ -3,11 +3,12 @@ add_library (Chakra.WasmReader OBJECT
     WasmDataSegment.cpp
     WasmElementSegment.cpp
     WasmFunctionInfo.cpp
-    WasmModule.cpp
     WasmSection.cpp
     WasmSignature.cpp
     WasmBinaryReader.cpp
     WasmByteCodeGenerator.cpp
+    WasmCustomReader.cpp
+    WasmGlobal.cpp
     )
 
 target_include_directories (
