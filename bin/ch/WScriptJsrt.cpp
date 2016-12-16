@@ -866,7 +866,7 @@ bool WScriptJsrt::Initialize()
 #define BUILD_TYPE_STRING_CH "Release" // consider Test is also Release build (O3)
 #endif
     IfJsrtErrorFail(ChakraRTInterface::JsCreateStringUtf8(
-        (const uint8_t*)BUILD_TYPE_STRING_CH, strlen(BUILD_TYPE_STRING_CH), &buildValue), false);
+        (const unsigned char*)BUILD_TYPE_STRING_CH, strlen(BUILD_TYPE_STRING_CH), &buildValue), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, buildProperty,
         buildValue, true), false);
 #undef BUILD_TYPE_STRING_CH
