@@ -9,9 +9,9 @@ namespace Js
     class IndexPropertyDescriptor
     {
     public:
-        PropertyAttributes Attributes;
-        Var Getter;
-        Var Setter;
+        Field(PropertyAttributes) Attributes;
+        Field(Var) Getter;
+        Field(Var) Setter;
 
         IndexPropertyDescriptor(PropertyAttributes attributes = PropertyDynamicTypeDefaults,
             Var getter = NULL, Var setter = NULL)

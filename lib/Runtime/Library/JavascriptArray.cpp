@@ -6,7 +6,6 @@
 #include "RuntimeLibraryPch.h"
 #include "Types/PathTypeHandler.h"
 #include "Types/SpreadArgument.h"
-#include "DataStructures/QuickSort.h"
 
 namespace Js
 {

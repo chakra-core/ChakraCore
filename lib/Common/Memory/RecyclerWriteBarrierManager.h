@@ -13,8 +13,10 @@ namespace Memory
 // Controls whether we're using a 128 byte granularity card table or a 4K granularity byte array to indicate that a range of memory is dirty
 #define RECYCLER_WRITE_BARRIER_BYTE
 
+#if GLOBAL_ENABLE_WRITE_BARRIER
 // Controls whether the JIT is software write barrier aware
 #define RECYCLER_WRITE_BARRIER_JIT
+#endif
 
 // Controls whether we can allocate SWB memory or not
 // Turning this on leaves the rest of the SWB infrastructure intact,

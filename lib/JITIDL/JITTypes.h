@@ -146,8 +146,8 @@ typedef struct JITTimeConstructorCacheIDL
     X64_PAD4(1)
     IDL_Field(TypeIDL) type;
 
-    IDL_Field(CHAKRA_PTR) runtimeCacheAddr;
-    IDL_Field(CHAKRA_PTR) runtimeCacheGuardAddr;
+    IDL_Field(CHAKRA_WB_PTR) runtimeCacheAddr;
+    IDL_Field(CHAKRA_WB_PTR) runtimeCacheGuardAddr;
     IDL_Field(CHAKRA_PTR) guardedPropOps;
 } JITTimeConstructorCacheIDL;
 
