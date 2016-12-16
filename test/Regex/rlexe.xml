@@ -153,7 +153,7 @@
       <files>BoiHardFail.js</files>
       <baseline>BoiHardFail.baseline</baseline>
       <compile-flags>-regexDebug</compile-flags>
-      <tags>exclude_fre,exclude_apollo,exclude_serialized</tags>
+      <tags>exclude_test,exclude_apollo,exclude_serialized</tags>
     </default>
   </test>
   <test>
