@@ -21,12 +21,14 @@ param (
     [Parameter(Mandatory=$True)]
     [string]$arch,
 
-    [ValidateSet("default", "codecoverage", "pogo")]
-    [string]$subtype = "default",
-
     # force callers to specify this in case of future use
     [Parameter(Mandatory=$True)]
     [string]$flavor,
+
+    [ValidateSet("default", "codecoverage", "pogo")]
+    [string]$subtype = "default",
+
+    [string]$pogoArgs = "",
 
     [string]$vcinstallroot = ${Env:ProgramFiles(x86)},
     [string]$vcbinpath = "Microsoft Visual Studio 14.0\VC\bin",
@@ -66,7 +68,7 @@ for ($i = 0; $i -lt $scenarios.Length; $i = $i + 1) {
 
     for ($j = 0; $j -lt $items.Length; $j = $j + 1) {
         $testFile = $items[$j]
-        Write-Host "$binary -oopjit- $testFile"
-        iex "$binary -oopjit- $testFile"
+        Write-Host "$binary $pogoArgs $testFile"
+        iex "$binary $pogoArgs $testFile"
     }
 }
