@@ -58,6 +58,9 @@ HRESULT JsInitializeJITServer(
         return status;
     }
 
+    JITManager::GetJITManager()->SetIsJITServer();
+    PageAllocatorPool::Initialize();
+
     status = RpcEpRegister(
         ServerIChakraJIT_v0_0_s_ifspec,
         bindingVector,
@@ -74,9 +77,6 @@ HRESULT JsInitializeJITServer(
     {
         return status;
     }
-
-    JITManager::GetJITManager()->SetIsJITServer();
-    PageAllocatorPool::Initialize();
 
     status = RpcServerListen(1, RPC_C_LISTEN_MAX_CALLS_DEFAULT, FALSE);
 
