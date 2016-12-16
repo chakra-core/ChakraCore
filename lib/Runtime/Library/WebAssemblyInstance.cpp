@@ -135,11 +135,9 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
             Js::JavascriptFunction::CallFunction<true>(start, start->GetEntryPoint(), startArg);
         }
     }
-    catch (Wasm::WasmCompilationException e)
+    catch (Wasm::WasmCompilationException& e)
     {
-        // Todo:: report the right message
-        Unused(e);
-        JavascriptError::ThrowTypeError(module->GetScriptContext(), VBSERR_InternalError);
+        JavascriptError::ThrowWebAssemblyLinkErrorVar(scriptContext, WASMERR_WasmLinkError, e.ReleaseErrorMessage());
     }
 
     return newInstance;
@@ -199,7 +197,7 @@ void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, ScriptCon
     {
         if (mem == nullptr)
         {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
+            JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedMemoryObject);
         }
     }
     else
@@ -224,7 +222,7 @@ void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, ScriptCon
         {
             if (UInt32Math::Add(offset, size) > buffer->GetByteLength())
             {
-                JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_DataSegOutOfRange);
+                JavascriptError::ThrowWebAssemblyLinkError(wasmModule->GetScriptContext(), WASMERR_DataSegOutOfRange);
             }
 
             js_memcpy_s(buffer->GetBuffer() + offset, (uint32)buffer->GetByteLength() - offset, segment->GetData(), size);
@@ -312,7 +310,7 @@ void WebAssemblyInstance::LoadImports(
         {
             if (!JavascriptFunction::Is(prop))
             {
-                JavascriptError::ThrowTypeError(ctx, JSERR_Property_NeedFunction);
+                JavascriptError::ThrowWebAssemblyLinkError(ctx, JSERR_Property_NeedFunction);
             }
             Assert(counter < wasmModule->GetImportedFunctionCount());
             Assert(wasmModule->GetFunctionIndexType(counter) == Wasm::FunctionIndexTypes::ImportThunk);
@@ -324,7 +322,7 @@ void WebAssemblyInstance::LoadImports(
                 AsmJsScriptFunction* func = AsmJsScriptFunction::FromVar(prop);
                 if (!wasmModule->GetWasmFunctionInfo(counter)->GetSignature()->IsEquivalent(func->GetSignature()))
                 {
-                    JavascriptError::ThrowTypeError(ctx, WASMERR_SignatureMismatch);
+                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_SignatureMismatch);
                 }
                 // Imported Wasm functions can be called directly
                 env->SetWasmFunction(counter, func);
@@ -338,12 +336,12 @@ void WebAssemblyInstance::LoadImports(
             {
                 if (!WebAssemblyMemory::Is(prop))
                 {
-                    JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
+                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedMemoryObject);
                 }
                 WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(prop);
                 if (!wasmModule->IsValidMemoryImport(mem))
                 {
-                    JavascriptError::ThrowTypeError(ctx, WASMERR_NeedMemoryObject);
+                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedMemoryObject);
                 }
                 env->SetMemory(counter, mem);
             }
@@ -356,13 +354,13 @@ void WebAssemblyInstance::LoadImports(
             {
                 if (!WebAssemblyTable::Is(prop))
                 {
-                    JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
+                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedTableObject);
                 }
                 WebAssemblyTable * table = WebAssemblyTable::FromVar(prop);
 
                 if (!wasmModule->IsValidTableImport(table))
                 {
-                    JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
+                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedTableObject);
                 }
                 env->SetTable(counter, table);
             }
@@ -373,7 +371,7 @@ void WebAssemblyInstance::LoadImports(
             Wasm::WasmGlobal* global = wasmModule->GetGlobal(counter);
             if (global->IsMutable() || (!JavascriptNumber::Is(prop) && !TaggedInt::Is(prop)))
             {
-                JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
+                JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_InvalidImport);
             }
 
             Assert(global->GetReferenceType() == Wasm::GlobalReferenceTypes::ImportedReference);
@@ -442,7 +440,7 @@ void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModu
     {
         if (table == nullptr)
         {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_NeedTableObject);
+            JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedTableObject);
         }
     }
     else
@@ -460,7 +458,7 @@ void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModu
             uint offset = wasmModule->GetOffsetFromInit(eSeg->GetOffsetExpr(), env);
             if (UInt32Math::Add(offset, eSeg->GetNumElements()) > table->GetCurrentLength())
             {
-                JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), WASMERR_ElementSegOutOfRange);
+                JavascriptError::ThrowWebAssemblyLinkError(wasmModule->GetScriptContext(), WASMERR_ElementSegOutOfRange);
             }
             for (uint segIndex = 0; segIndex < eSeg->GetNumElements(); ++segIndex)
             {
