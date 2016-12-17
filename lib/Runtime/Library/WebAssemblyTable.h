@@ -9,6 +9,9 @@ namespace Js
 {
     class WebAssemblyTable : public DynamicObject
     {
+    protected:
+        DEFINE_VTABLE_CTOR( WebAssemblyTable, DynamicObject );
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT( WebAssemblyTable );
 #ifdef ENABLE_WASM
     public:
         class EntryInfo
