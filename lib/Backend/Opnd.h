@@ -95,6 +95,7 @@ enum AddrOpndKind : BYTE {
     AddrOpndKindForInCache,
     AddrOpndKindForInCacheType,
     AddrOpndKindForInCacheData,
+    AddrOpndKindWriteBarrierCardTable,
 };
 
 ///---------------------------------------------------------------------------
