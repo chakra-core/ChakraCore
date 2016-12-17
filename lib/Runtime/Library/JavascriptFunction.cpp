@@ -664,12 +664,6 @@ namespace Js
         }
 #endif
 
-#ifdef DISABLE_SEH
-        // xplat: JavascriptArrayBuffer::AllocWrapper is disabled on cross-platform
-        // (IsValidVirtualBufferLength always returns false).
-        // SEH and ResumeForOutOfBoundsArrayRefs are not needed.
-        ret = CallRootFunctionInternal(args, scriptContext, inScript);
-#else
         // mark volatile, because otherwise VC will incorrectly optimize away load in the finally block
         volatile uint32 exceptionCode = 0;
         volatile int exceptionAction = EXCEPTION_CONTINUE_SEARCH;
@@ -680,6 +674,10 @@ namespace Js
             {
                 ret = CallRootFunctionInternal(args, scriptContext, inScript);
             }
+#ifdef ENABLE_SEH
+            // xplat: JavascriptArrayBuffer::AllocWrapper is disabled on cross-platform
+            // (IsValidVirtualBufferLength always returns false).
+            // SEH and ResumeForOutOfBoundsArrayRefs are not needed.
             __except (
                 exceptionInfo = *GetExceptionInformation(),
                 exceptionCode = GetExceptionCode(),
@@ -687,6 +685,7 @@ namespace Js
             {
                 Assert(UNREACHED);
             }
+#endif
         }
         __finally
         {
@@ -697,7 +696,7 @@ namespace Js
                 UnexpectedExceptionHandling_fatal_error(&exceptionInfo);
             }
         }
-#endif
+
         //ret should never be null here
         Assert(ret);
         return ret;
@@ -1121,23 +1120,23 @@ namespace Js
 
 #if _M_IX86
 #ifdef ASMJS_PLAT
-    template <> int JavascriptFunction::CallAsmJsFunction<int>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    template <> int JavascriptFunction::CallAsmJsFunction<int>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
     {
         return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retIntVal;
     }
-    template <> int64 JavascriptFunction::CallAsmJsFunction<int64>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    template <> int64 JavascriptFunction::CallAsmJsFunction<int64>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
     {
         return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retInt64Val;
     }
-    template <> float JavascriptFunction::CallAsmJsFunction<float>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    template <> float JavascriptFunction::CallAsmJsFunction<float>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
     {
         return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retFloatVal;
     }
-    template <> double JavascriptFunction::CallAsmJsFunction<double>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    template <> double JavascriptFunction::CallAsmJsFunction<double>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
     {
         return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retDoubleVal;
     }
-    template <> AsmJsSIMDValue JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    template <> AsmJsSIMDValue JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
     {
         return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retSimdVal;
     }
@@ -1148,7 +1147,7 @@ namespace Js
             IsFloat = 1 << AsmJsRetType::Float,
             IsDouble = 1 << AsmJsRetType::Double,
             IsInt64 = 1 << AsmJsRetType::Int64,
-            IsSimd = 
+            IsSimd =
             1 << AsmJsRetType::Int32x4 |
             1 << AsmJsRetType::Bool32x4 |
             1 << AsmJsRetType::Bool16x8 |

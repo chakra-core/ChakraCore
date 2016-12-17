@@ -148,6 +148,9 @@ do { \
 #include "JITProcessManager.h"
 #endif
 
+// Include this last. GNU redefines __try as `try`
+#include "PlatformAgnostic/Exception.h"
+
 class AutoString
 {
     size_t length;

@@ -100,3 +100,8 @@
 #else
 #define JS_DIAG_INLINE
 #endif
+
+// Include this last. GNU redefines __try as `try`
+#ifdef __clang__
+#include "PlatformAgnostic/Exception.h"
+#endif

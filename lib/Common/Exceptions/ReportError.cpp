@@ -21,7 +21,7 @@ void ReportFatalException(
         DebugBreak();
     }
 
-#ifdef DISABLE_SEH
+#ifndef ENABLE_SEH
     TerminateProcess(GetCurrentProcess(), (UINT)DBG_TERMINATE_PROCESS);
 #else
     __try
@@ -34,7 +34,7 @@ void ReportFatalException(
     __except(FatalExceptionFilter(GetExceptionInformation()))
     {
     }
-#endif // DISABLE_SEH
+#endif // ENABLE_SEH
 }
 
 // Disable optimization make sure all the frames are still available in Dr. Watson bug reports.

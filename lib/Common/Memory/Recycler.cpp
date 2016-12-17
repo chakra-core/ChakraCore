@@ -3366,8 +3366,8 @@ Recycler::CollectWithHeuristic()
 {
     // CollectHeuristic_Never flag should only be used with exhaustive candidate
     Assert((flags & CollectHeuristic_Never) == 0);
-    
-    BOOL isScriptContextCloseGCPending = FALSE; 
+
+    BOOL isScriptContextCloseGCPending = FALSE;
     const BOOL allocSize = flags & CollectHeuristic_AllocSize;
     const BOOL timedIfScriptActive = flags & CollectHeuristic_TimeIfScriptActive;
     const BOOL timedIfInScript = flags & CollectHeuristic_TimeIfInScript;
@@ -5506,10 +5506,12 @@ Recycler::StaticThreadProc(LPVOID lpParameter)
 #endif
         ret = recycler->ThreadProc();
     }
+#ifdef ENABLE_SEH
     __except(Recycler::ExceptFilter(GetExceptionInformation()))
     {
         Assert(false);
     }
+#endif
 
     return ret;
 }
@@ -6241,10 +6243,12 @@ RecyclerParallelThread::StaticThreadProc(LPVOID lpParameter)
 #endif
         ret = 0;
     }
+#ifdef ENABLE_SEH
     __except(Recycler::ExceptFilter(GetExceptionInformation()))
     {
         Assert(false);
     }
+#endif
 
     return ret;
 }
