@@ -421,7 +421,7 @@ AllocLocalView(HANDLE sectionHandle, LPVOID remoteBaseAddr, LPVOID remoteRequest
 #endif
     LPVOID address = nullptr;
     SIZE_T viewSize = requestSize + offsetAlignment;
-    int status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, GetCurrentProcess(), &address, NULL, NULL, &mapOffset, &viewSize, NtdllLibrary::ViewUnmap, NULL, PAGE_READWRITE);
+    int status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, GetCurrentProcess(), &address, NULL, viewSize, &mapOffset, &viewSize, NtdllLibrary::ViewUnmap, NULL, PAGE_READWRITE);
     if (status != 0 || address == nullptr)
     {
         return nullptr;
@@ -553,13 +553,16 @@ BOOL SectionAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType
     else
     {
         Assert((dwFreeType & MEM_DECOMMIT) == MEM_DECOMMIT);
-        LPVOID localAddr = AllocLocal(lpAddress, dwSize);
-        if (localAddr == nullptr)
+        for (size_t i = 0; i < dwSize / AutoSystemInfo::PageSize; ++i)
         {
-            return FALSE;
+            LPVOID localAddr = AllocLocal((char*)lpAddress + i * AutoSystemInfo::PageSize, AutoSystemInfo::PageSize);
+            if (localAddr == nullptr)
+            {
+                return FALSE;
+            }
+            ZeroMemory(localAddr, AutoSystemInfo::PageSize);
+            FreeLocal(localAddr);
         }
-        ZeroMemory(localAddr, dwSize);
-        FreeLocal(localAddr);
         DWORD oldFlags = NULL;
         if (!VirtualProtectEx(this->process, lpAddress, dwSize, PAGE_NOACCESS, &oldFlags))
         {
@@ -877,61 +880,59 @@ LPVOID PreReservedSectionAllocWrapper::Alloc(LPVOID lpAddress, size_t dwSize, DW
 BOOL
 PreReservedSectionAllocWrapper::Free(LPVOID lpAddress, size_t dwSize, DWORD dwFreeType)
 {
+    AutoCriticalSection autocs(&this->cs);
+
+    if (dwSize == 0)
     {
-        AutoCriticalSection autocs(&this->cs);
-
-        if (dwSize == 0)
-        {
-            Assert(false);
-            return FALSE;
-        }
-
-        if (this->preReservedStartAddress == nullptr)
-        {
-            Assert(false);
-            return FALSE;
-        }
-
-        Assert(dwSize % AutoSystemInfo::PageSize == 0);
-        BOOL success = TRUE;
-        if((dwFreeType & MEM_DECOMMIT) == MEM_DECOMMIT)
-        {
-            LPVOID localAddr = AllocLocal(lpAddress, dwSize);
-            if (localAddr == nullptr)
-            {
-                success = FALSE;
-            }
-            else
-            {
-                ZeroMemory(localAddr, dwSize);
-                FreeLocal(localAddr);
-                DWORD oldFlags = NULL;
-                success = VirtualProtectEx(this->process, lpAddress, dwSize, PAGE_NOACCESS, &oldFlags);
-            }
-        }
-        size_t requestedNumOfSegments = dwSize / AutoSystemInfo::Data.GetAllocationGranularityPageSize();
-        Assert(requestedNumOfSegments <= MAXUINT32);
-
-        if (success)
-        {
-            PreReservedHeapTrace(_u("MEM_DECOMMIT: Address: 0x%p of size: 0x%x bytes\n"), lpAddress, dwSize);
-        }
-
-        if ((dwFreeType & MEM_RELEASE) == MEM_RELEASE)
-        {
-            Assert((uintptr_t)lpAddress >= (uintptr_t)this->preReservedStartAddress);
-            AssertMsg(((uintptr_t)lpAddress & (AutoSystemInfo::Data.GetAllocationGranularityPageCount() - 1)) == 0, "Not aligned with Allocation Granularity?");
-            AssertMsg(dwSize % AutoSystemInfo::Data.GetAllocationGranularityPageSize() == 0, "Release size should match the allocation granularity size");
-            Assert(requestedNumOfSegments != 0);
-
-            BVIndex freeSegmentsBVIndex = (BVIndex)(((uintptr_t)lpAddress - (uintptr_t)this->preReservedStartAddress) / AutoSystemInfo::Data.GetAllocationGranularityPageSize());
-            AssertMsg(freeSegmentsBVIndex < PreReservedAllocationSegmentCount, "Invalid Index ?");
-            freeSegments.SetRange(freeSegmentsBVIndex, static_cast<uint>(requestedNumOfSegments));
-            PreReservedHeapTrace(_u("MEM_RELEASE: Address: 0x%p of size: 0x%x * 0x%x bytes\n"), lpAddress, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
-        }
-
-        return success;
+        Assert(false);
+        return FALSE;
     }
+
+    if (this->preReservedStartAddress == nullptr)
+    {
+        Assert(false);
+        return FALSE;
+    }
+
+    Assert(dwSize % AutoSystemInfo::PageSize == 0);
+
+    // zero one page at a time to minimize working set impact while zeroing
+    for (size_t i = 0; i < dwSize / AutoSystemInfo::PageSize; ++i)
+    {
+        LPVOID localAddr = AllocLocal((char*)lpAddress + i * AutoSystemInfo::PageSize, AutoSystemInfo::PageSize);
+        if (localAddr == nullptr)
+        {
+            return FALSE;
+        }
+        ZeroMemory(localAddr, AutoSystemInfo::PageSize);
+        FreeLocal(localAddr);
+    }
+
+    DWORD oldFlags = NULL;
+    if(!VirtualProtectEx(this->process, lpAddress, dwSize, PAGE_NOACCESS, &oldFlags))
+    {
+        return FALSE;
+    }
+
+    size_t requestedNumOfSegments = dwSize / AutoSystemInfo::Data.GetAllocationGranularityPageSize();
+    Assert(requestedNumOfSegments <= MAXUINT32);
+
+    PreReservedHeapTrace(_u("MEM_DECOMMIT: Address: 0x%p of size: 0x%x bytes\n"), lpAddress, dwSize);
+
+    if ((dwFreeType & MEM_RELEASE) == MEM_RELEASE)
+    {
+        Assert((uintptr_t)lpAddress >= (uintptr_t)this->preReservedStartAddress);
+        AssertMsg(((uintptr_t)lpAddress & (AutoSystemInfo::Data.GetAllocationGranularityPageCount() - 1)) == 0, "Not aligned with Allocation Granularity?");
+        AssertMsg(dwSize % AutoSystemInfo::Data.GetAllocationGranularityPageSize() == 0, "Release size should match the allocation granularity size");
+        Assert(requestedNumOfSegments != 0);
+
+        BVIndex freeSegmentsBVIndex = (BVIndex)(((uintptr_t)lpAddress - (uintptr_t)this->preReservedStartAddress) / AutoSystemInfo::Data.GetAllocationGranularityPageSize());
+        AssertMsg(freeSegmentsBVIndex < PreReservedAllocationSegmentCount, "Invalid Index ?");
+        freeSegments.SetRange(freeSegmentsBVIndex, static_cast<uint>(requestedNumOfSegments));
+        PreReservedHeapTrace(_u("MEM_RELEASE: Address: 0x%p of size: 0x%x * 0x%x bytes\n"), lpAddress, requestedNumOfSegments, AutoSystemInfo::Data.GetAllocationGranularityPageSize());
+    }
+
+    return TRUE;
 }
 
 
