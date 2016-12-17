@@ -147,7 +147,7 @@ namespace Js
     }
 
     template <typename T, size_t N>
-    Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString, const T (&laneValues)[N], 
+    Var JavascriptSIMDObject::ToLocaleString(const Var* args, uint numArgs, const char16 *typeString, const T(&laneValues)[N],
         CallInfo* callInfo, ScriptContext* scriptContext) const
     {
         Assert(args);
@@ -159,23 +159,26 @@ namespace Js
             return ToString(scriptContext);   //Boolean types does not have toLocaleString.
         }
 
+        // Clamp to the first 3 arguments - we'll ignore more.
+        if (numArgs > 3)
+        {
+            numArgs = 3;
+        }
+
         // Creating a new arguments list for the JavascriptNumber generated from each lane.The optional SIMDToLocaleString Args are
         //added to this argument list. 
-        Var* newArgs = HeapNewArray(Var, numArgs);
-        switch (numArgs)
+        Var newArgs[3] = { nullptr, nullptr, nullptr };
+        CallInfo newCallInfo((ushort)numArgs);
+
+        if (numArgs > 1)
         {
-        case 1:
-            break;
-        case 2:
             newArgs[1] = args[1];
-            break;
-        case 3:
-            newArgs[1] = args[1];
-            newArgs[2] = args[2];
-            break;
-        default:
-            Assert(UNREACHED);
         }
+        if (numArgs > 2)
+        {
+            newArgs[2] = args[2];
+        }
+
         //Locale specifc seperator?? 
         JavascriptString *seperator = JavascriptString::NewWithSz(_u(", "), scriptContext);
         uint idx = 0;
@@ -184,7 +187,7 @@ namespace Js
         char16* stringBuffer = AnewArray(tempAllocator, char16, SIMD_STRING_BUFFER_MAX);
         JavascriptString *result = nullptr;
 
-        swprintf_s(stringBuffer, 1024, typeString);
+        swprintf_s(stringBuffer, SIMD_STRING_BUFFER_MAX, typeString);
         result = JavascriptString::NewCopySzFromArena(stringBuffer, scriptContext, scriptContext->GeneralAllocator());
 
         if (typeDescriptor == TypeIds_SIMDFloat32x4)
@@ -193,44 +196,43 @@ namespace Js
             {
                 laneVar = JavascriptNumber::ToVarWithCheck(laneValues[idx], scriptContext);
                 newArgs[0] = laneVar;
-                JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, *callInfo, scriptContext);
+                JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext);
                 result = JavascriptString::Concat(result, laneValue);
                 result = JavascriptString::Concat(result, seperator);
             }
             laneVar = JavascriptNumber::ToVarWithCheck(laneValues[idx], scriptContext);
             newArgs[0] = laneVar;
-            result = JavascriptString::Concat(result, JavascriptNumber::ToLocaleStringIntl(newArgs, *callInfo, scriptContext));
+            result = JavascriptString::Concat(result, JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext));
         }
         else if (typeDescriptor == TypeIds_SIMDInt8x16 || typeDescriptor == TypeIds_SIMDInt16x8 || typeDescriptor == TypeIds_SIMDInt32x4)
         {
             for (; idx < numLanes - 1; ++idx)
             {
-                laneVar = JavascriptNumber::ToVar(static_cast<int>(laneValues[idx]), scriptContext); 
+                laneVar = JavascriptNumber::ToVar(static_cast<int>(laneValues[idx]), scriptContext);
                 newArgs[0] = laneVar;
-                JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, *callInfo, scriptContext);
+                JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext);
                 result = JavascriptString::Concat(result, laneValue);
                 result = JavascriptString::Concat(result, seperator);
             }
             laneVar = JavascriptNumber::ToVar(static_cast<int>(laneValues[idx]), scriptContext);
             newArgs[0] = laneVar;
-            result = JavascriptString::Concat(result, JavascriptNumber::ToLocaleStringIntl(newArgs, *callInfo, scriptContext));
+            result = JavascriptString::Concat(result, JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext));
         }
         else
         {
             Assert((typeDescriptor == TypeIds_SIMDUint8x16 || typeDescriptor == TypeIds_SIMDUint16x8 || typeDescriptor == TypeIds_SIMDUint32x4));
             for (; idx < numLanes - 1; ++idx)
             {
-                laneVar = JavascriptNumber::ToVar(static_cast<uint>(laneValues[idx]), scriptContext); 
+                laneVar = JavascriptNumber::ToVar(static_cast<uint>(laneValues[idx]), scriptContext);
                 newArgs[0] = laneVar;
-                JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, *callInfo, scriptContext);
+                JavascriptString *laneValue = JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext);
                 result = JavascriptString::Concat(result, laneValue);
                 result = JavascriptString::Concat(result, seperator);
             }
             laneVar = JavascriptNumber::ToVar(static_cast<uint>(laneValues[idx]), scriptContext);
             newArgs[0] = laneVar;
-            result = JavascriptString::Concat(result, JavascriptNumber::ToLocaleStringIntl(newArgs, *callInfo, scriptContext));
+            result = JavascriptString::Concat(result, JavascriptNumber::ToLocaleStringIntl(newArgs, newCallInfo, scriptContext));
         }
-        HeapDeleteArray(numArgs, newArgs);
         END_TEMP_ALLOCATOR(tempAllocator, scriptContext);
         return JavascriptString::Concat(result, JavascriptString::NewWithSz(_u(")"), scriptContext));
     }

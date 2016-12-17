@@ -989,15 +989,16 @@ namespace Js
 
                     if (arr != nullptr && !arr->IsCrossSiteObject())
                     {
+                        uint32 length = arr->GetLength();
                         // CONSIDER: Optimize by creating a JavascriptArray routine which allows
                         // memcpy-like semantics in optimal situations (no gaps, etc.)
-                        if (argsIndex + arr->GetLength() > destArgs.Info.Count)
+                        if (argsIndex + length > destArgs.Info.Count)
                         {
                             AssertMsg(false, "The array length has changed since we allocated the destArgs buffer?");
                             Throw::FatalInternalError();
                         }
 
-                        for (uint32 j = 0; j < arr->GetLength(); j++)
+                        for (uint32 j = 0; j < length; j++)
                         {
                             Var element;
                             if (!arr->DirectGetItemAtFull(j, &element))
