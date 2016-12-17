@@ -51,7 +51,7 @@ int main()
     JsSetCurrentContext(context);
 
     JsValueRef fname;
-    FAIL_CHECK(JsCreateStringUtf8((const uint8_t*)"sample", strlen("sample"), &fname));
+    FAIL_CHECK(JsCreateString("sample", strlen("sample"), &fname));
 
     JsValueRef scriptSource;
     FAIL_CHECK(JsCreateStringUtf16(script16, length, &scriptSource));
@@ -67,11 +67,11 @@ int main()
     FAIL_CHECK(JsConvertValueToString(result, &resultJSString));
 
     // Project script result back to C++.
-    uint8_t *resultSTR = nullptr;
+    char *resultSTR = nullptr;
     size_t stringLength;
-    FAIL_CHECK(JsCopyStringUtf8(resultJSString, nullptr, 0, &stringLength));
-    resultSTR = (uint8_t*) malloc(stringLength + 1);
-    FAIL_CHECK(JsCopyStringUtf8(resultJSString, resultSTR, stringLength + 1, nullptr));
+    FAIL_CHECK(JsCopyString(resultJSString, nullptr, 0, &stringLength));
+    resultSTR = (char*) malloc(stringLength + 1);
+    FAIL_CHECK(JsCopyString(resultJSString, resultSTR, stringLength + 1, nullptr));
     resultSTR[stringLength] = 0;
 
     printf("Result -> %s \n", resultSTR);

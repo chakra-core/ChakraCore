@@ -4066,7 +4066,7 @@ CHAKRA_API JsTTDReplayExecution(_Inout_ JsTTDMoveMode* moveMode, _Out_ int64_t* 
 #endif
 }
 
-#ifndef NTBUILD // ChakraCore Only
+#ifdef CHAKRACOREBUILD_
 
 template <class SrcChar, class DstChar>
 static void CastCopy(const SrcChar* src, DstChar* dst, size_t count)
@@ -4085,27 +4085,7 @@ CHAKRA_API JsCreateString(
 {
     PARAM_NOT_NULL(content);
 
-    AutoArrayPtr<uint16_t> data(HeapNewNoThrowArray(uint16_t, length), length);
-    if (!data)
-    {
-        return JsErrorOutOfMemory;
-    }
-
-    // Cast source char to "unsigned" for correct cast
-    CastCopy((unsigned char*)content, (uint16_t*)data, length);
-
-    return JsPointerToString(
-        reinterpret_cast<const char16*>((uint16_t*)data), length, value);
-}
-
-CHAKRA_API JsCreateStringUtf8(
-    _In_ const uint8_t *content,
-    _In_ size_t length,
-    _Out_ JsValueRef *value)
-{
-    PARAM_NOT_NULL(content);
-
-    utf8::NarrowToWide wstr((LPCSTR)content, length);
+    utf8::NarrowToWide wstr(content, length);
     if (!wstr)
     {
         return JsErrorOutOfMemory;
@@ -4172,31 +4152,6 @@ JsErrorCode WriteStringCopy(
     return JsNoError;
 }
 
-CHAKRA_API JsCopyString(
-    _In_ JsValueRef value,
-    _In_ int start,
-    _In_ int length,
-    _Out_opt_ char* buffer,
-    _Out_opt_ size_t* written)
-{
-    PARAM_NOT_NULL(value);
-    VALIDATE_JSREF(value);
-
-    return WriteStringCopy(value, start, length, written,
-        [buffer](const char16* src, size_t count, size_t *needed)
-        {
-            if (buffer)
-            {
-                CastCopy(src, buffer, count);
-            }
-            else
-            {
-                *needed = count;
-            }
-            return JsNoError;
-        });
-}
-
 CHAKRA_API JsCopyStringUtf16(
     _In_ JsValueRef value,
     _In_ int start,
@@ -4222,9 +4177,9 @@ CHAKRA_API JsCopyStringUtf16(
         });
 }
 
-CHAKRA_API JsCopyStringUtf8(
+CHAKRA_API JsCopyString(
     _In_ JsValueRef value,
-    _Out_opt_ uint8_t* buffer,
+    _Out_opt_ char* buffer,
     _In_ size_t bufferSize,
     _Out_opt_ size_t* length)
 {
@@ -4257,7 +4212,7 @@ CHAKRA_API JsCopyStringUtf8(
         count = utf8::CharacterIndexToByteIndex(
             (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
 
-        memmove(buffer, utf8Str, sizeof(uint8_t) * count);
+        memmove(buffer, utf8Str, sizeof(char) * count);
         if (length)
         {
             *length = count;
@@ -4359,7 +4314,7 @@ CHAKRA_API JsRun(
         result, false);
 }
 
-CHAKRA_API JsCreatePropertyIdUtf8(
+CHAKRA_API JsCreatePropertyId(
     _In_z_ const char *name,
     _In_ size_t length,
     _Out_ JsPropertyIdRef *propertyId)
@@ -4374,9 +4329,9 @@ CHAKRA_API JsCreatePropertyIdUtf8(
     return JsGetPropertyIdFromName(wname, propertyId);
 }
 
-CHAKRA_API JsCopyPropertyIdUtf8(
+CHAKRA_API JsCopyPropertyId(
     _In_ JsPropertyIdRef propertyId,
-    _Out_ uint8_t* buffer,
+    _Out_ char* buffer,
     _In_ size_t bufferSize,
     _Out_ size_t* length)
 {
@@ -4408,7 +4363,7 @@ CHAKRA_API JsCopyPropertyIdUtf8(
         count = utf8::CharacterIndexToByteIndex(
             (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
 
-        memmove(buffer, utf8Str, sizeof(uint8_t) * count);
+        memmove(buffer, utf8Str, sizeof(char) * count);
         if (length)
         {
             *length = count;
@@ -4553,4 +4508,4 @@ CHAKRA_API JsRunSerialized(
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
         buffer, bufferVal, sourceContext, url, false, result);
 }
-#endif // NTBUILD
+#endif // CHAKRACOREBUILD_
