@@ -715,6 +715,7 @@ CHAKRA_API JsDiagEvaluate(
     }, false /*allowInObjectBeforeCollectCallback*/, true /*scriptExceptionAllowed*/);
 }
 
+#ifdef CHAKRACOREBUILD_
 CHAKRA_API JsDiagEvaluateUtf8(
     _In_z_ const char *expression,
     _In_ unsigned int stackFrameIndex,
@@ -729,3 +730,4 @@ CHAKRA_API JsDiagEvaluateUtf8(
 
     return JsDiagEvaluate(wstr, stackFrameIndex, evalResult);
 }
+#endif

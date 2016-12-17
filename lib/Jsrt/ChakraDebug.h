@@ -552,7 +552,6 @@ typedef unsigned __int32 uint32_t;
             _In_ unsigned int objectHandle,
             _Out_ JsValueRef *handleObject);
 
-#ifdef _WIN32
     /// <summary>
     ///     Evaluates an expression on given frame.
     /// </summary>
@@ -596,8 +595,7 @@ typedef unsigned __int32 uint32_t;
             _In_ unsigned int stackFrameIndex,
             _Out_ JsValueRef *evalResult);
 
-#endif // _WIN32
-
+#ifdef CHAKRACOREBUILD_
     /// <summary>
     ///     Evaluates an expression on given frame.
     /// </summary>
@@ -639,6 +637,7 @@ typedef unsigned __int32 uint32_t;
         _In_z_ const char *expression,
         _In_ unsigned int stackFrameIndex,
         _Out_ JsValueRef *evalResult);
+#endif // CHAKRACOREBUILD_
 
     /////////////////////
     /// <summary>
@@ -803,10 +802,10 @@ typedef unsigned __int32 uint32_t;
             _In_reads_(infoUriCount) const byte* infoUri,
             _In_ size_t infoUriCount,
             _In_ bool enableDebugging,
-            _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, 
+            _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction,
             _In_ TTDOpenResourceStreamCallback openResourceStream,
-            _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, 
-            _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, 
+            _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream,
+            _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream,
             _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
             _In_opt_ JsThreadServiceCallback threadService,
             _Out_ JsRuntimeHandle *runtime);
@@ -822,7 +821,7 @@ typedef unsigned __int32 uint32_t;
     ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
     /// </returns>
     CHAKRA_API JsTTDCreateContext(
-        _In_ JsRuntimeHandle runtimeHandle, 
+        _In_ JsRuntimeHandle runtimeHandle,
         _In_ bool useRuntimeTTDMode,
         _Out_ JsContextRef *newContext);
 
@@ -861,19 +860,19 @@ typedef unsigned __int32 uint32_t;
     CHAKRA_API
         JsTTDEmitRecording();
 
-    /// <summary> 
-    ///     TTD API -- may change in future versions: 
-    ///     Pause Time-Travel recording before executing code on behalf of debugger or other diagnostic/telemetry. 
-    /// </summary> 
-    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns> 
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     Pause Time-Travel recording before executing code on behalf of debugger or other diagnostic/telemetry.
+    /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
         JsTTDPauseTimeTravelBeforeRuntimeOperation();
 
-    /// <summary> 
-    ///     TTD API -- may change in future versions: 
-    ///     ReStart Time-Travel recording after executing code on behalf of debugger or other diagnostic/telemetry. 
-    /// </summary> 
-    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns> 
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     ReStart Time-Travel recording after executing code on behalf of debugger or other diagnostic/telemetry.
+    /// </summary>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
         JsTTDReStartTimeTravelAfterRuntimeOperation();
 
@@ -1010,7 +1009,7 @@ typedef unsigned __int32 uint32_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     During debug operations some additional information is populated during replay. This runs the code between the given 
+    ///     During debug operations some additional information is populated during replay. This runs the code between the given
     ///     snapshots to poulate this information which may be needed by the debugger to determine time-travel jump targets.
     /// </summary>
     /// <param name="runtimeHandle">The runtime handle that the script is executing in.</param>
