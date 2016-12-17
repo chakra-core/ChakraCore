@@ -21471,9 +21471,31 @@ foo == bar
 byteLength = 12
 
 test10
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Int8Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Int8Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11.1
 10
 constructor is
@@ -21663,25 +21685,146 @@ test24
 byteLength = 2
 test23: constructor
 size isabc
-FAILED: get exception Typed array constructor argument is invalid
-1,2,3,4,5,6,7,8,9,10,11,12
-0 == 1
-1 == 2
-2 == 3
-3 == 4
-4 == 5
-5 == 6
-6 == 7
-7 == 8
-8 == 9
-9 == 10
-10 == 11
-11 == 12
-byteLength = undefined
-SUCCEEDED: get expected exception Typed array constructor argument is invalid
+
+byteLength = 0
+size is123
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+0 == 0
+1 == 0
+2 == 0
+3 == 0
+4 == 0
+5 == 0
+6 == 0
+7 == 0
+8 == 0
+9 == 0
+10 == 0
+11 == 0
+12 == 0
+13 == 0
+14 == 0
+15 == 0
+16 == 0
+17 == 0
+18 == 0
+19 == 0
+20 == 0
+21 == 0
+22 == 0
+23 == 0
+24 == 0
+25 == 0
+26 == 0
+27 == 0
+28 == 0
+29 == 0
+30 == 0
+31 == 0
+32 == 0
+33 == 0
+34 == 0
+35 == 0
+36 == 0
+37 == 0
+38 == 0
+39 == 0
+40 == 0
+41 == 0
+42 == 0
+43 == 0
+44 == 0
+45 == 0
+46 == 0
+47 == 0
+48 == 0
+49 == 0
+50 == 0
+51 == 0
+52 == 0
+53 == 0
+54 == 0
+55 == 0
+56 == 0
+57 == 0
+58 == 0
+59 == 0
+60 == 0
+61 == 0
+62 == 0
+63 == 0
+64 == 0
+65 == 0
+66 == 0
+67 == 0
+68 == 0
+69 == 0
+70 == 0
+71 == 0
+72 == 0
+73 == 0
+74 == 0
+75 == 0
+76 == 0
+77 == 0
+78 == 0
+79 == 0
+80 == 0
+81 == 0
+82 == 0
+83 == 0
+84 == 0
+85 == 0
+86 == 0
+87 == 0
+88 == 0
+89 == 0
+90 == 0
+91 == 0
+92 == 0
+93 == 0
+94 == 0
+95 == 0
+96 == 0
+97 == 0
+98 == 0
+99 == 0
+100 == 0
+101 == 0
+102 == 0
+103 == 0
+104 == 0
+105 == 0
+106 == 0
+107 == 0
+108 == 0
+109 == 0
+110 == 0
+111 == 0
+112 == 0
+113 == 0
+114 == 0
+115 == 0
+116 == 0
+117 == 0
+118 == 0
+119 == 0
+120 == 0
+121 == 0
+122 == 0
+byteLength = 123
+size isundefined
+
+byteLength = 0
+size is[object Object]
+
+byteLength = 0
+size isNaN
+
+byteLength = 0
 SUCCEEDED: get expected exception Invalid offset/length when creating typed array
-SUCCEEDED: get expected exception Typed array constructor argument is invalid
-SUCCEEDED: get expected exception Typed array constructor argument is invalid
+SUCCEEDED: get expected exception Invalid offset/length when creating typed array
+SUCCEEDED: get expected exception Invalid offset/length when creating typed array
 test24
 undefined
 undefined
@@ -22053,18 +22196,7 @@ sub object 4 in test8 is 0
 sub object 5 in test8 is 10
 sub object foo in test8 is bar
 property of global: arr
-sub object 0 in arr is 1
-sub object 1 in arr is 2
-sub object 2 in arr is 3
-sub object 3 in arr is 4
-sub object 4 in arr is 5
-sub object 5 in arr is 6
-sub object 6 in arr is 7
-sub object 7 in arr is 8
-sub object 8 in arr is 9
-sub object 9 in arr is 10
-sub object 10 in arr is 11
-sub object 11 in arr is 12
+sub object 2 in arr is undefined
 property of global: test9
 sub object 0 in test9 is 0
 sub object 1 in test9 is 1
@@ -22080,7 +22212,11 @@ sub object 10 in test9 is 11
 sub object 11 in test9 is 12
 sub object foo in test9 is bar
 property of global: test10
+sub object foo in test10 is bar
+sub object 2 in test10 is undefined
 property of global: test11
+sub object foo in test11 is bar
+sub object 2 in test11 is undefined
 property of global: test111
 sub object 0 in test111 is 0
 sub object 1 in test111 is 1
@@ -22169,15 +22305,15 @@ sub object 2 in test24 is undefined
 property of global: validSizeValues
 sub object 0 in validSizeValues is abc
 sub object 1 in validSizeValues is 123
-sub object 2 in validSizeValues is Infinity
-sub object 3 in validSizeValues is -Infinity
+sub object 2 in validSizeValues is undefined
+sub object 3 in validSizeValues is [object Object]
+sub object 4 in validSizeValues is NaN
 property of global: i
 property of global: size
 property of global: invalidSizeValues
-sub object 0 in invalidSizeValues is undefined
-sub object 1 in invalidSizeValues is -1
-sub object 2 in invalidSizeValues is [object Object]
-sub object 3 in invalidSizeValues is NaN
+sub object 0 in invalidSizeValues is -1
+sub object 1 in invalidSizeValues is Infinity
+sub object 2 in invalidSizeValues is -Infinity
 property of global: printObj
 exception is -2146823281Unable to get property 'toString' of undefined or null reference
 property of global: verifyThrow
@@ -22616,9 +22752,31 @@ foo == bar
 byteLength = 12
 
 test10
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Uint8Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Uint8Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11.1
 10
 constructor is
@@ -23167,7 +23325,11 @@ sub object 10 in test9 is 11
 sub object 11 in test9 is 12
 sub object foo in test9 is bar
 property of global: test10
+sub object foo in test10 is bar
+sub object 2 in test10 is undefined
 property of global: test11
+sub object foo in test11 is bar
+sub object 2 in test11 is undefined
 property of global: test111
 sub object 0 in test111 is 0
 sub object 1 in test111 is 128
@@ -23250,7 +23412,6 @@ exception is -2146823281Unable to get property '0' of undefined or null referenc
 property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
-property of global: i
 property of global: valueToSet
 sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
 testing file int16array.js
@@ -23615,9 +23776,31 @@ foo == bar
 byteLength = 24
 
 test10
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Int16Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Int16Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11.1
 10
 constructor is
@@ -24108,7 +24291,11 @@ sub object 10 in test9 is 11
 sub object 11 in test9 is 12
 sub object foo in test9 is bar
 property of global: test10
+sub object foo in test10 is bar
+sub object 2 in test10 is undefined
 property of global: test11
+sub object foo in test11 is bar
+sub object 2 in test11 is undefined
 property of global: test111
 sub object 0 in test111 is 0
 sub object 1 in test111 is -32768
@@ -24176,7 +24363,6 @@ exception is -2146823281Unable to get property '0' of undefined or null referenc
 property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
-property of global: i
 property of global: valueToSet
 sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
 testing file uint16array.js
@@ -24545,11 +24731,33 @@ foo == bar
 byteLength = 24
 
 test10
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Uint16Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test10.1
 succeed with catchingRangeError: Invalid offset/length when creating typed array
 test11
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Uint16Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11.1
 10
 constructor is
@@ -25051,8 +25259,12 @@ sub object 10 in test9 is 11
 sub object 11 in test9 is 12
 sub object foo in test9 is bar
 property of global: test10
+sub object foo in test10 is bar
+sub object 2 in test10 is undefined
 property of global: test101
 property of global: test11
+sub object foo in test11 is bar
+sub object 2 in test11 is undefined
 property of global: test111
 sub object 0 in test111 is 0
 sub object 1 in test111 is 32768
@@ -25120,7 +25332,6 @@ exception is -2146823281Unable to get property '0' of undefined or null referenc
 property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
-property of global: i
 property of global: valueToSet
 sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
 testing file int32array.js
@@ -25461,9 +25672,31 @@ foo == bar
 byteLength = 48
 
 test10
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Int32Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Int32Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11.1
 10
 constructor is
@@ -25964,7 +26197,11 @@ sub object 10 in test9 is 11
 sub object 11 in test9 is 12
 sub object foo in test9 is bar
 property of global: test10
+sub object foo in test10 is bar
+sub object 2 in test10 is undefined
 property of global: test11
+sub object foo in test11 is bar
+sub object 2 in test11 is undefined
 property of global: test111
 sub object 0 in test111 is 0
 sub object 1 in test111 is -2147483648
@@ -26034,7 +26271,6 @@ exception is -2146823281Unable to get property '0' of undefined or null referenc
 property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
-property of global: i
 property of global: valueToSet
 sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
 testing file uint32array.js
@@ -26375,11 +26611,33 @@ foo == bar
 byteLength = 48
 
 test10
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Uint32Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test10.1
 succeed with catchingRangeError: Invalid offset/length when creating typed array
 test11
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Uint32Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11.1
 10
 constructor is
@@ -26844,6 +27102,8 @@ sub object 10 in test9 is 11
 sub object 11 in test9 is 12
 sub object foo in test9 is bar
 property of global: test10
+sub object foo in test10 is bar
+sub object 2 in test10 is undefined
 property of global: test101
 property of global: test11
 sub object 0 in test11 is 0
@@ -26905,7 +27165,6 @@ exception is -2146823281Unable to get property '0' of undefined or null referenc
 property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
-property of global: i
 property of global: valueToSet
 sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
 testing file float32array.js
@@ -27246,9 +27505,31 @@ foo == bar
 byteLength = 48
 
 test10
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Float32Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Float32Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11.1
 10
 constructor is
@@ -27722,7 +28003,11 @@ sub object 10 in test9 is 11
 sub object 11 in test9 is 12
 sub object foo in test9 is bar
 property of global: test10
+sub object foo in test10 is bar
+sub object 2 in test10 is undefined
 property of global: test11
+sub object foo in test11 is bar
+sub object 2 in test11 is undefined
 property of global: test111
 sub object 0 in test111 is NaN
 sub object 1 in test111 is 0.5400000214576721
@@ -27783,7 +28068,6 @@ exception is -2146823281Unable to get property '0' of undefined or null referenc
 property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
-property of global: i
 property of global: valueToSet
 sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
 testing file float64array.js
@@ -28094,9 +28378,31 @@ foo == bar
 byteLength = 96
 
 test10
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Float64Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Float64Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11.1
 10
 constructor is
@@ -28552,7 +28858,11 @@ sub object 10 in test9 is 11
 sub object 11 in test9 is 12
 sub object foo in test9 is bar
 property of global: test10
+sub object foo in test10 is bar
+sub object 2 in test10 is undefined
 property of global: test11
+sub object foo in test11 is bar
+sub object 2 in test11 is undefined
 property of global: test111
 sub object 0 in test111 is NaN
 sub object 1 in test111 is -0.65
@@ -28612,6 +28922,5 @@ exception is -2146823281Unable to get property '0' of undefined or null referenc
 property of global: testIndexValueForSet
 ***testing index 0 : 0
 exception is -2146823281Unable to set property '0' of undefined or null reference
-property of global: i
 property of global: valueToSet
 sub object valueOf in valueToSet is function () { WScript.Echo(count); return count++; }
