@@ -1927,6 +1927,10 @@ private:
     static Recycler* recyclerList;
     Recycler* next;
 public:
+    static void WBSetBitJIT(char* addr)
+    {
+        return WBSetBit(addr);
+    }
     static void WBSetBit(char* addr);
     static void WBSetBits(char* addr, uint length);
 #endif

@@ -332,6 +332,10 @@ HELPERCALL(OP_CmGe_A, Js::JavascriptOperators::OP_CmGe_A, AttrCanThrow)
 
 HELPERCALL(Conv_ToUInt32_Full, Js::JavascriptConversion::ToUInt32_Full, AttrCanThrow)
 HELPERCALL(Conv_ToUInt32, (uint32 (*)(Js::Var, Js::ScriptContext *))Js::JavascriptConversion::ToUInt32, AttrCanThrow)
+
+#if DBG
+HELPERCALL(WriteBarrierSetVerifyBit, Memory::Recycler::WBSetBitJIT, 0)
+#endif
 #ifdef _M_IX86
 HELPERCALL(Op_Int32ToAtom, Js::JavascriptOperators::Int32ToVar, 0)
 HELPERCALL(Op_Int32ToAtomInPlace, Js::JavascriptOperators::Int32ToVarInPlace, 0)

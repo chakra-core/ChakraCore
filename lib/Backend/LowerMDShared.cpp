@@ -4723,7 +4723,7 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr)
 
     bool isPossibleBarrieredDest = (dest->IsIndirOpnd() || dest->IsMemRefOpnd());
 
-    if (assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue() && isPossibleBarrieredDest)
+    if (isPossibleBarrieredDest && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
     {
         GenerateWriteBarrier(assignInstr);
    }
@@ -4745,6 +4745,15 @@ LowererMD::GenerateWriteBarrierAssign(IR::MemRefOpnd * opndDst, IR::Opnd * opndS
 
         IR::Instr * movInstr = IR::Instr::New(Js::OpCode::MOV, cardTableEntry, IR::IntConstOpnd::New(1, TyInt8, insertBeforeInstr->m_func), insertBeforeInstr->m_func);
         insertBeforeInstr->InsertBefore(movInstr);
+#if DBG
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            this->LoadHelperArgument(insertBeforeInstr, opndDst);
+            IR::Instr* instrCall = IR::Instr::New(Js::OpCode::Call, m_func);
+            insertBeforeInstr->InsertBefore(instrCall);
+            this->ChangeToHelperCall(instrCall, IR::HelperWriteBarrierSetVerifyBit);
+        }
+#endif
 #else
         IR::MemRefOpnd * cardTableEntry = IR::MemRefOpnd::New(
             &RecyclerWriteBarrierManager::GetAddressOfCardTable()[RecyclerWriteBarrierManager::GetCardTableIndex(address)], TyMachPtr, assignInstr->m_func);
@@ -4806,7 +4815,7 @@ LowererMD::GenerateWriteBarrier(IR::Instr * assignInstr)
     //
     IR::RegOpnd * cardTableRegOpnd = IR::RegOpnd::New(TyMachReg, assignInstr->m_func);
     IR::Instr * cardTableAddrInstr = IR::Instr::New(Js::OpCode::MOV, cardTableRegOpnd,
-        IR::AddrOpnd::New(RecyclerWriteBarrierManager::GetAddressOfCardTable(), IR::AddrOpndKindDynamicMisc, assignInstr->m_func),
+        IR::AddrOpnd::New(RecyclerWriteBarrierManager::GetAddressOfCardTable(), IR::AddrOpndKindWriteBarrierCardTable, assignInstr->m_func),
         assignInstr->m_func);
     assignInstr->InsertBefore(cardTableAddrInstr);
 

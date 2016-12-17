@@ -100,6 +100,35 @@ Lowerer::Lower()
     }
 
     this->LowerRange(m_func->m_headInstr, m_func->m_tailInstr, defaultDoFastPath, loopFastPath);
+
+#if DBG
+    // TODO: (leish)(swb) implement for arm
+#if defined(_M_IX86) || defined(_M_AMD64)
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        // find out all write barrier setting instr, call Recycler::WBSetBit for verification purpose
+        // should do this in LowererMD::GenerateWriteBarrier, however, can't insert call instruction there
+        FOREACH_INSTR_EDITING(instr, instrNext, m_func->m_headInstr)
+        if (instr->m_src1 && instr->m_src1->IsAddrOpnd())
+        {
+            IR::AddrOpnd* addrOpnd = instr->m_src1->AsAddrOpnd();
+            if (addrOpnd->GetAddrOpndKind() == IR::AddrOpndKindWriteBarrierCardTable)
+            {
+                auto& leaInstr = instr->m_prev->m_prev;
+                auto& shrInstr = instr->m_prev;
+                Assert(leaInstr->m_opcode == Js::OpCode::LEA);
+                Assert(shrInstr->m_opcode == Js::OpCode::SHR);
+                m_lowererMD.LoadHelperArgument(shrInstr, leaInstr->m_dst);
+                IR::Instr* instrCall = IR::Instr::New(Js::OpCode::Call, m_func);
+                shrInstr->InsertBefore(instrCall);
+                m_lowererMD.ChangeToHelperCall(instrCall, IR::HelperWriteBarrierSetVerifyBit);
+            }
+        }
+        NEXT_INSTR_EDITING
+    }
+#endif
+#endif
+
     this->m_func->ClearCloneMap();
 
     if (m_func->HasAnyStackNestedFunc())
@@ -7122,17 +7151,17 @@ Lowerer::GenerateDirectFieldStore(IR::Instr* instrStFld, IR::PropertySymOpnd* pr
     uint16 index = propertySymOpnd->GetSlotIndex();
     Assert(index != -1);
 
-#ifdef RECYCLER_RECYCLER_WRITE_BARRIER_JIT
+#if defined(RECYCLER_WRITE_BARRIER_JIT) && (defined(_M_IX86) || defined(_M_AMD64))
     if (opndSlotArray->IsRegOpnd())
     {
         IR::IndirOpnd * opndDst = IR::IndirOpnd::New(opndSlotArray->AsRegOpnd(), index * sizeof(Js::Var), TyMachReg, func);
-        LowererMD::GenerateWriteBarrierAssign(opndDst, instrStFld->GetSrc1(), instrStFld);
+        this->GetLowererMD()->GenerateWriteBarrierAssign(opndDst, instrStFld->GetSrc1(), instrStFld);
     }
     else
     {
         Assert(opndSlotArray->IsMemRefOpnd());
         IR::MemRefOpnd * opndDst = IR::MemRefOpnd::New((char*)opndSlotArray->AsMemRefOpnd()->GetMemLoc() + (index * sizeof(Js::Var)), TyMachReg, func);
-        LowererMD::GenerateWriteBarrierAssign(opndDst, instrStFld->GetSrc1(), instrStFld);
+        this->GetLowererMD()->GenerateWriteBarrierAssign(opndDst, instrStFld->GetSrc1(), instrStFld);
     }
 #else
     IR::Opnd *opnd;
@@ -19973,7 +20002,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
         {
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
             lastBranchToNext = LowererMD::GenerateLocalInlineCacheCheck(instrStFld, typeOpnd, opndInlineCache, labelNext);
-            LowererMD::GenerateStFldFromLocalInlineCache(instrStFld, opndBase, opndSrc, opndInlineCache, labelFallThru, true);
+            this->GetLowererMD()->GenerateStFldFromLocalInlineCache(instrStFld, opndBase, opndSrc, opndInlineCache, labelFallThru, true);
             instrStFld->InsertBefore(labelNext);
         }
         if (doAuxSlots)
@@ -19985,7 +20014,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
             }
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
             lastBranchToNext = LowererMD::GenerateLocalInlineCacheCheck(instrStFld, opndTaggedType, opndInlineCache, labelNext);
-            LowererMD::GenerateStFldFromLocalInlineCache(instrStFld, opndBase, opndSrc, opndInlineCache, labelFallThru, false);
+            this->GetLowererMD()->GenerateStFldFromLocalInlineCache(instrStFld, opndBase, opndSrc, opndInlineCache, labelFallThru, false);
             instrStFld->InsertBefore(labelNext);
         }
     }
@@ -19997,7 +20026,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
             labelNext = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, isHelper);
             lastBranchToNext = LowererMD::GenerateLocalInlineCacheCheck(instrStFld, typeOpnd, opndInlineCache, labelNext, true);
             GenerateSetObjectTypeFromInlineCache(instrStFld, opndBase, opndInlineCache, false);
-            LowererMD::GenerateStFldFromLocalInlineCache(instrStFld, opndBase, opndSrc, opndInlineCache, labelFallThru, true);
+            this->GetLowererMD()->GenerateStFldFromLocalInlineCache(instrStFld, opndBase, opndSrc, opndInlineCache, labelFallThru, true);
             instrStFld->InsertBefore(labelNext);
         }
         if (doAuxSlots)
@@ -20011,7 +20040,7 @@ Lowerer::GenerateFastStFld(IR::Instr * const instrStFld, IR::JnHelperMethod help
             lastBranchToNext = LowererMD::GenerateLocalInlineCacheCheck(instrStFld, opndTaggedType, opndInlineCache, labelNext, true);
             GenerateAuxSlotAdjustmentRequiredCheck(instrStFld, opndInlineCache, labelHelper);
             GenerateSetObjectTypeFromInlineCache(instrStFld, opndBase, opndInlineCache, true);
-            LowererMD::GenerateStFldFromLocalInlineCache(instrStFld, opndBase, opndSrc, opndInlineCache, labelFallThru, false);
+            this->GetLowererMD()->GenerateStFldFromLocalInlineCache(instrStFld, opndBase, opndSrc, opndInlineCache, labelFallThru, false);
             instrStFld->InsertBefore(labelNext);
         }
     }
