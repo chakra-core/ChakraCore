@@ -619,12 +619,13 @@ namespace Js
         if (gatherDataForInlining)
         {
             fixedFieldInfoArray = RecyclerNewArrayZ(recycler, FixedFieldInfo, fixedFunctionCount);
-            memcpy(fixedFieldInfoArray, localFixedFieldInfoArray, fixedFunctionCount * sizeof(FixedFieldInfo));
+            CopyArray<FixedFieldInfo, Field(Var)>(
+                fixedFieldInfoArray, fixedFunctionCount, localFixedFieldInfoArray, fixedFunctionCount);
         }
         else
         {
             fixedFieldInfoArray = RecyclerNewArrayZ(recycler, FixedFieldInfo, 1);
-            memcpy(fixedFieldInfoArray, localFixedFieldInfoArray, 1 * sizeof(FixedFieldInfo));
+            CopyArray<FixedFieldInfo, Field(Var)>(fixedFieldInfoArray, 1, localFixedFieldInfoArray, 1);
         }
 
         Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);

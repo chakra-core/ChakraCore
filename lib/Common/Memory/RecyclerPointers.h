@@ -525,6 +525,12 @@ void *  __cdecl memmove(_Out_writes_bytes_all_opt_(_Size) WriteBarrierPtr<T> * _
 }
 
 template <typename T>
+void* __cdecl memcpy(WriteBarrierPtr<T> *dst, const void *src, size_t count)
+{
+    CompileAssert(false);
+}
+
+template <typename T>
 void __stdcall js_memcpy_s(__bcount(sizeInBytes) WriteBarrierPtr<T> *dst, size_t sizeInBytes, __bcount(count) const void *src, size_t count)
 {
     CompileAssert(false);

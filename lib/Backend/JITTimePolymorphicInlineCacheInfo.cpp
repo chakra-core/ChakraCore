@@ -67,7 +67,7 @@ JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(
             if (pic != nullptr)
             {
                 jitInfo->polymorphicInlineCaches[j].size = pic->GetSize();
-                jitInfo->polymorphicInlineCaches[j].addr = (intptr_t)pic;
+                jitInfo->polymorphicInlineCaches[j].addr = pic;
                 jitInfo->polymorphicInlineCaches[j].inlineCachesAddr = (intptr_t)pic->GetInlineCaches();
             }
         }

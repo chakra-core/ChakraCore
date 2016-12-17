@@ -2267,10 +2267,25 @@ class TypeAllocatorFunc<Recycler, T *> : public _RecyclerAllocatorFunc<_Recycler
 };
 #endif
 
+// Dummy class to choose the allocation function
+class RecyclerLeafAllocator;
+class RecyclerNonLeafAllocator;
+class RecyclerWriteBarrierAllocator;
+
+// Choose RecyclerLeafAllocator / RecyclerNonLeafAllocator based on "bool isLeaf"
+template <bool isLeaf>
+struct _RecyclerLeaf { typedef RecyclerLeafAllocator AllocatorType; };
+template <>
+struct _RecyclerLeaf<false> { typedef RecyclerNonLeafAllocator AllocatorType; };
+
 template <bool isLeaf>
 class ListTypeAllocatorFunc<Recycler, isLeaf>
 {
 public:
+    // RecyclerLeafAllocator / RecyclerNonLeafAllocator based on "bool isLeaf"
+    // used by write barrier type traits
+    typedef typename _RecyclerLeaf<isLeaf>::AllocatorType EffectiveAllocatorType;
+
     typedef char * (Recycler::*AllocFuncType)(size_t);
     typedef bool (Recycler::*FreeFuncType)(void*, size_t);
 
@@ -2291,11 +2306,6 @@ public:
         }
     }
 };
-
-// Dummy class to choose the allocation function
-class RecyclerLeafAllocator;
-class RecyclerNonLeafAllocator;
-class RecyclerWriteBarrierAllocator;
 
 // Partial template specialization to allocate as non leaf
 template <typename T>

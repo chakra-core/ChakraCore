@@ -188,6 +188,7 @@ template <typename TAllocator, bool isLeaf>
 class ListTypeAllocatorFunc
 {
 public:
+    typedef TAllocator EffectiveAllocatorType;  // used by write barrier type traits
     typedef char * (TAllocator::*AllocFuncType)(size_t);
     typedef void(TAllocator::*FreeFuncType)(void*, size_t);
 

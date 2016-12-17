@@ -141,7 +141,7 @@ namespace Js {
 
         clonedPath->GetData()->pathLength = (uint8)currentPathLength;
         memcpy(&clonedPath->GetData()->map, &this->GetData()->map, sizeof(TinyDictionary) + currentPathLength);
-        memcpy(clonedPath->assignments, this->assignments, sizeof(PropertyRecord *) * currentPathLength);
+        CopyArray(clonedPath->assignments, currentPathLength, this->assignments, currentPathLength);
 
 #ifdef SUPPORT_FIXED_FIELDS_ON_PATH_TYPES
         // Copy fixed field info

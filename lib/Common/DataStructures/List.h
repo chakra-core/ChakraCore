@@ -209,6 +209,7 @@ namespace JsUtil
         friend TRemovePolicy<TListType, true>;
         typedef TRemovePolicy<TListType, true /* clearOldEntries */>  TRemovePolicyType;
         typedef ListTypeAllocatorFunc<TAllocator, isLeaf> AllocatorInfo;
+        typedef typename AllocatorInfo::EffectiveAllocatorType EffectiveAllocatorType;
 
         Field(int) length;
         Field(int) increment;
@@ -273,7 +274,7 @@ namespace JsUtil
 
                 Field(T, TAllocator)* newbuffer = AllocArray(newLength);
                 Field(T, TAllocator)* oldbuffer = this->buffer;
-                CopyArray<Field(T, TAllocator), Field(T, TAllocator), TAllocator>(
+                CopyArray<Field(T, TAllocator), Field(T, TAllocator), EffectiveAllocatorType>(
                     newbuffer, newLength, oldbuffer, length);
 
                 FreeArray(oldbuffer, oldBufferSize);
@@ -502,7 +503,7 @@ namespace JsUtil
                 (IsSame<TRemovePolicyType, Js::CopyRemovePolicy<TListType, true> >::IsTrue));
             if (this->count)
             {
-                qsort_s<Field(T, TAllocator), Field(T, TAllocator), TAllocator>(
+                qsort_s<Field(T, TAllocator), Field(T, TAllocator), EffectiveAllocatorType>(
                     this->buffer, this->count, _PtFuncCompare, _Context);
             }
         }

@@ -656,7 +656,7 @@ typedef struct PolymorphicInlineCacheIDL
     IDL_Field(unsigned short) size;
     IDL_PAD2(0)
     X64_PAD4(1)
-    IDL_Field(CHAKRA_PTR) addr;
+    IDL_Field(CHAKRA_WB_PTR) addr;
     IDL_Field(CHAKRA_PTR) inlineCachesAddr;
 } PolymorphicInlineCacheIDL;
 

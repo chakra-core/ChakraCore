@@ -92,7 +92,7 @@ public:
 
 private:
     FieldNoBarrier(TAllocator*)         alloc;
-    FieldNoBarrier(Field(BVSparseNode*, TAllocator)*) lastUsedNodePrevNextField;
+    Field(Field(BVSparseNode*, TAllocator)*, TAllocator) lastUsedNodePrevNextField;
 
     static const SparseBVUnit s_EmptyUnit;
 
