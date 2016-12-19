@@ -2547,10 +2547,11 @@ GlobOpt::CleanUpValueMaps()
             bool isSymUpwardExposed = upwardExposedUses->Test(bucket.value->m_id) || upwardExposedFields->Test(bucket.value->m_id);
             if (!isSymUpwardExposed && symsInCallSequence.Test(bucket.value->m_id))
             {
-                // Don't remove/shink sym-value pair if the sym is referenced in callSequnced even if the sym is dead according to backward data flow.
+                // Don't remove/shrink sym-value pair if the sym is referenced in callSequence even if the sym is dead according to backward data flow.
                 // This is possible in some edge cases that an infinite loop is involved when evaluating parameter for a function (between StartCall and Call),
-                // there is no backward data flow into the infinite loop block, but non empty callSequence still populates to it in this (forward) pass.
-                // Shink it will cause error to fill out the bailout information for the loop blocks.
+                // there is no backward data flow into the infinite loop block, but non empty callSequence still populates to it in this (forward) pass
+                // which causes error when looking up value for the syms in callSequence (cannot find the value).
+                // It would cause error to fill out the bailout information for the loop blocks.
                 // Remove dead syms from callSequence has some risk because there are varies associated counters which need to be consistent.
                 continue;
             }
