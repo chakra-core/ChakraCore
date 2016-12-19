@@ -2235,6 +2235,12 @@ namespace Js
                 dblResult = JavascriptConversion::ToNumber_Full(retVal, scriptContext);
             }
 
+            // ToNumber may execute user-code which can cause the array to become detached
+            if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
+            }
+
             if (dblResult < 0)
             {
                 return -1;
