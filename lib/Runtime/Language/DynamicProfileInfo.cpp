@@ -1921,7 +1921,7 @@ namespace Js
 
             if (callSiteInfoCount != 0)
             {
-                callSiteInfo = RecyclerNewArrayLeaf(recycler, CallSiteInfo, callSiteInfoCount);
+                callSiteInfo = RecyclerNewArray(recycler, CallSiteInfo, callSiteInfoCount);
                 if (!reader->ReadArray(callSiteInfo, callSiteInfoCount))
                 {
                     goto Error;
@@ -2074,13 +2074,13 @@ namespace Js
     CriticalSection DynamicProfileInfo::s_csOutput;
 
     template <typename T>
-    void DynamicProfileInfo::WriteData(T data, FILE * file)
+    void DynamicProfileInfo::WriteData(const T& data, FILE * file)
     {
         fwrite(&data, sizeof(T), 1, file);
     }
 
     template <>
-    void DynamicProfileInfo::WriteData<char16 const *>(char16 const * sz, FILE * file)
+    void DynamicProfileInfo::WriteData<char16 const *>(char16 const * const& sz, FILE * file)
     {
         if (sz)
         {
@@ -2115,7 +2115,7 @@ namespace Js
     }
 
     template <>
-    void DynamicProfileInfo::WriteData<FunctionBody *>(FunctionBody * functionBody, FILE * file)
+    void DynamicProfileInfo::WriteData<FunctionBody *>(FunctionBody * const& functionBody, FILE * file)
     {
         WriteData(functionBody->GetSourceContextInfo()->sourceContextId, file);
         WriteData(functionBody->GetLocalFunctionId(), file);
