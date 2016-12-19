@@ -5181,7 +5181,8 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                     {
                         if (sym->NeedsSlotAlloc(byteCodeGenerator->TopFuncInfo()))
                         {
-                            Output::Print(_u("--- DelayCapture: Delayed capturing symbol '%s' during initialization.\n"), sym->GetName());
+                            Output::Print(_u("--- DelayCapture: Delayed capturing symbol '%s' during initialization.\n"),
+                                sym->GetName().GetBuffer());
                             Output::Flush();
                         }
                     }
@@ -5242,7 +5243,8 @@ void AssignRegisters(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
                 {
                     if (sym->NeedsSlotAlloc(byteCodeGenerator->TopFuncInfo()))
                     {
-                        Output::Print(_u("--- DelayCapture: Delayed capturing symbol '%s'.\n"), sym->GetName());
+                        Output::Print(_u("--- DelayCapture: Delayed capturing symbol '%s'.\n"),
+                            sym->GetName().GetBuffer());
                         Output::Flush();
                     }
                 }

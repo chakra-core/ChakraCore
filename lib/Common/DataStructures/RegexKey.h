@@ -11,9 +11,9 @@ namespace UnifiedRegex
     class RegexKey
     {
     private:
-        const char16 *source;
-        int length;
-        RegexFlags flags;
+        Field(const char16 *) source;
+        Field(int) length;
+        Field(RegexFlags) flags;
 
     public:
         RegexKey() : source(nullptr), length(0), flags(static_cast<RegexFlags>(0))
@@ -26,6 +26,10 @@ namespace UnifiedRegex
             Assert(source);
             Assert(length >= 0);
         }
+
+        RegexKey(const RegexKey& other)
+            : source(other.source), length(other.length), flags(other.flags)
+        {}
 
         RegexKey &operator =(const void *const nullValue)
         {

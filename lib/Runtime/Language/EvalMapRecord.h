@@ -53,7 +53,7 @@ namespace Js
             return GetDictionary()->TryGetValue(key, value);
         }
 
-        void Add(const TKey& key, TValue& newValue)
+        void Add(const TKey& key, const TValue& newValue)
         {
             Assert(!singleValue);
             NestedKey nestedKey;
@@ -90,11 +90,11 @@ namespace Js
         bool IsDictionaryEntry() const { return !singleValue; }
 
     private:
-        bool singleValue;
+        Field(bool) singleValue;
         union
         {
-            TValue value;
-            SecondaryDictionary* nestedMap;
+            Field(TValue) value;
+            Field(SecondaryDictionary*) nestedMap;
         };
     };
 

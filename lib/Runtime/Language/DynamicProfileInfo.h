@@ -84,24 +84,24 @@ namespace Js
 
     struct CallSiteInfo
     {
-        uint16 isArgConstant : 13;
-        uint16 isConstructorCall : 1;
-        uint16 dontInline : 1;
-        uint16 isPolymorphic : 1;
-        ValueType returnType;
-        InlineCacheIndex ldFldInlineCacheId;
-        union
+        Field(uint16) isArgConstant : 13;
+        Field(uint16) isConstructorCall : 1;
+        Field(uint16) dontInline : 1;
+        Field(uint16) isPolymorphic : 1;
+        Field(ValueType) returnType;
+        Field(InlineCacheIndex) ldFldInlineCacheId;
+        union _u_type
         {
             struct
             {
-                Js::SourceId sourceId;
-                Js::LocalFunctionId functionId;
+                Field(Js::SourceId) sourceId;
+                Field(Js::LocalFunctionId) functionId;
             } functionData;
             // As of now polymorphic info is allocated only if the source Id is current
-            PolymorphicCallSiteInfo* polymorphicCallSiteInfo;
+            Field(PolymorphicCallSiteInfo*) polymorphicCallSiteInfo;
+            _u_type() {}
         } u;
     };
-
 
 
     // TODO: include ImplicitCallFlags in this structure
@@ -552,14 +552,14 @@ namespace Js
 #ifdef RUNTIME_DATA_COLLECTION
         static CriticalSection s_csOutput;
         template <typename T>
-        static void WriteData(T data, FILE * file);
+        static void WriteData(const T& data, FILE * file);
 #if defined(_MSC_VER) && !defined(__clang__)
         template <>
-        static void WriteData<char16 const *>(char16 const * sz, FILE * file);
+        static void WriteData<char16 const *>(char16 const * const& sz, FILE * file);
         template <>
-        static void WriteData<FunctionInfo *>(FunctionInfo * functionInfo, FILE * file); // Not defined, to prevent accidentally writing function info
+        static void WriteData<FunctionInfo *>(FunctionInfo * const& functionInfo, FILE * file); // Not defined, to prevent accidentally writing function info
         template <>
-        static void WriteData<FunctionBody *>(FunctionBody * functionInfo, FILE * file);
+        static void WriteData<FunctionBody *>(FunctionBody * const& functionInfo, FILE * file);
 #endif
         template <typename T>
         static void WriteArray(uint count, T * arr, FILE * file);

@@ -22435,7 +22435,8 @@ Lowerer::LowerSetConcatStrMultiItem(IR::Instr * instr)
     InsertAdd(false, dstLength, dstLength, srcLength, instr);
 
     dstOpnd->SetOffset(dstOpnd->GetOffset() * sizeof(Js::JavascriptString *) + Js::ConcatStringMulti::GetOffsetOfSlots());
-    this->m_lowererMD.ChangeToAssign(instr);
+
+    LowererMD::ChangeToWriteBarrierAssign(instr);
 }
 
 IR::RegOpnd *

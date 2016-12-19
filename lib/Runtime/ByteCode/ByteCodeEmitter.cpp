@@ -2709,7 +2709,8 @@ void ByteCodeGenerator::EmitFunctionBody(FuncInfo *funcInfo)
                     Assert(decl);
                     if (PHASE_TRACE(Js::DelayCapturePhase, funcInfo->byteCodeFunction))
                     {
-                        Output::Print(_u("--- DelayCapture: Committed symbol '%s' to slot.\n"), sym->GetName());
+                        Output::Print(_u("--- DelayCapture: Committed symbol '%s' to slot.\n"),
+                            sym->GetName().GetBuffer());
                         Output::Flush();
                     }
                     // REVIEW[ianhall]: HACK to work around this causing an error due to sym not yet being initialized
