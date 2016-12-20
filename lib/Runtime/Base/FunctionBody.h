@@ -3687,13 +3687,13 @@ namespace Js
 
         bool IsFunctionScopeSlotArray()
         {
-            return FunctionBody::Is(slotArray[ScopeMetadataSlotIndex]);
+            return FunctionInfo::Is(slotArray[ScopeMetadataSlotIndex]);
         }
 
-        FunctionBody* GetFunctionBody()
+        FunctionInfo* GetFunctionInfo()
         {
             Assert(IsFunctionScopeSlotArray());
-            return (FunctionBody*)(slotArray[ScopeMetadataSlotIndex]);
+            return (FunctionInfo*)(slotArray[ScopeMetadataSlotIndex]);
         }
 
         DebuggerScope* GetDebuggerScope()

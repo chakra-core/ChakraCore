@@ -110,7 +110,7 @@ namespace TTD
 
             if(slots.IsFunctionScopeSlotArray())
             {
-                Js::FunctionBody* fb = slots.GetFunctionBody();
+                Js::FunctionBody* fb = slots.GetFunctionInfo()->GetFunctionBody();
 
                 slotInfo->isFunctionBodyMetaData = true;
                 slotInfo->OptFunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
@@ -384,7 +384,7 @@ namespace TTD
 
                         if(slotArray.IsFunctionScopeSlotArray())
                         {
-                            this->MarkFunctionBody(slotArray.GetFunctionBody());
+                            this->MarkFunctionBody(slotArray.GetFunctionInfo()->GetFunctionBody());
                         }
 
                         for(uint j = 0; j < slotArrayCount; j++)

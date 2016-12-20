@@ -349,7 +349,7 @@ namespace Js
                         ScopeSlots slots(slotArray);
                         if (slots.IsFunctionScopeSlotArray())
                         {
-                            FunctionBody *functionBody = slots.GetFunctionBody();
+                            FunctionBody *functionBody = slots.GetFunctionInfo()->GetFunctionBody();
                             if (this->NeedBoxFrame(functionBody))
                             {
                                 break;

@@ -43,6 +43,7 @@ namespace Js
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
 
+        static bool Is(void *ptr);
         static DWORD GetFunctionBodyImplOffset() { return offsetof(FunctionInfo, functionBodyImpl); }
         static BYTE GetOffsetOfFunctionProxy()
         {
