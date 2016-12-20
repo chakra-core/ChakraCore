@@ -570,7 +570,7 @@ namespace Js
                 //get the function body associated with the scope
                 if(slotArray.IsFunctionScopeSlotArray())
                 {
-                    rctxInfo->EnqueueNewFunctionBodyObject(this, slotArray.GetFunctionBody(), scopePathString.GetStrValue());
+                    rctxInfo->EnqueueNewFunctionBodyObject(this, slotArray.GetFunctionInfo()->GetFunctionBody(), scopePathString.GetStrValue());
                 }
                 else
                 {

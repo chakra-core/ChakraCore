@@ -3264,6 +3264,12 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
     Assert(this->outerMostLoopLabel == nullptr);
 }
 
+IR::Opnd *
+Lowerer::LoadFunctionInfoOpnd(IR::Instr * instr)
+{
+    return IR::AddrOpnd::New(instr->m_func->GetWorkItem()->GetJITTimeInfo()->GetFunctionInfoAddr(), IR::AddrOpndKindDynamicFunctionInfo, instr->m_func);
+}
+
 IR::Instr *
 Lowerer::LoadFunctionBody(IR::Instr * instr)
 {
@@ -8342,6 +8348,13 @@ Lowerer::LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod, 
     instrPrev = LoadScriptContext(instr);
 
     return this->LowerUnaryHelper(instr, helperMethod, opndBailoutArg);
+}
+
+IR::Instr *
+Lowerer::LowerUnaryHelperMemWithFunctionInfo(IR::Instr *instr, IR::JnHelperMethod helperMethod)
+{
+    m_lowererMD.LoadHelperArgument(instr, this->LoadFunctionInfoOpnd(instr));
+    return this->LowerUnaryHelperMem(instr, helperMethod);
 }
 
 IR::Instr *
@@ -23325,7 +23338,7 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
     Func * func = m_func;
     if (PHASE_OFF(Js::NewScopeSlotFastPathPhase, func))
     {
-        this->LowerUnaryHelperMemWithFuncBody(instr, IR::HelperOP_NewScopeSlots);
+        this->LowerUnaryHelperMemWithFunctionInfo(instr, IR::HelperOP_NewScopeSlots);
         return;
     }
 
@@ -23349,9 +23362,9 @@ Lowerer::LowerNewScopeSlots(IR::Instr * instr, bool doStackSlots)
     }
     GenerateMemInit(dst, Js::ScopeSlots::EncodedSlotCountSlotIndex * sizeof(Js::Var),
         min<uint>(actualSlotCount, Js::ScopeSlots::MaxEncodedSlotCount), instr, !doStackSlots);
-    IR::Opnd * functionBodyOpnd = this->LoadFunctionBodyOpnd(instr);
+    IR::Opnd * functionInfoOpnd = this->LoadFunctionInfoOpnd(instr);
     GenerateMemInit(dst, Js::ScopeSlots::ScopeMetadataSlotIndex * sizeof(Js::Var),
-        functionBodyOpnd, instr, !doStackSlots);
+        functionInfoOpnd, instr, !doStackSlots);
 
     IR::Opnd * undefinedOpnd = this->LoadLibraryValueOpnd(instr, LibraryValue::ValueUndefined);
     const IR::AutoReuseOpnd autoReuseUndefinedOpnd(undefinedOpnd, func);
