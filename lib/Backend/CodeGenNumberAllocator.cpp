@@ -221,6 +221,12 @@ CodeGenNumberThreadAllocator::Integrate()
         {
             Js::Throw::OutOfMemory();
         }
+#if DBG
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+        {
+            Recycler::WBSetBits(record.blockAddress, BlockSize / sizeof(void*));
+        }
+#endif
         pendingIntegrationChunkBlock.RemoveHead(&NoThrowHeapAllocator::Instance);
     }
 #ifdef TRACK_ALLOC
