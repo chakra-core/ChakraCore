@@ -748,6 +748,35 @@ namespace TTD
             this->m_log = nullptr; //normal pop (no exception) just clear so destructor nops
         }
     };
+
+    //In cases where we may have many exits where we need to pop something we pushed earlier (i.e. exceptions)
+    class TTModeStackAutoPopper
+    {
+    private:
+        EventLog* m_log;
+        TTDMode m_popMode; //the mode to pop or invalid if we don't need to pop anything
+
+    public:
+        TTModeStackAutoPopper(EventLog* log)
+            : m_log(log), m_popMode(TTDMode::Invalid)
+        {
+            ;
+        }
+
+        void PushModeAndSetToAutoPop(TTDMode mode)
+        {
+            this->m_log->PushMode(mode);
+            this->m_popMode = mode;
+        }
+
+        ~TTModeStackAutoPopper()
+        {
+            if(this->m_popMode != TTDMode::Invalid)
+            {
+                this->m_log->PopMode(this->m_popMode);
+            }
+        }
+    };
 }
 
 #endif
