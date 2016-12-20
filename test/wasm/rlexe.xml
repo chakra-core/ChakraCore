@@ -124,6 +124,12 @@
 </test>
 <test>
   <default>
+    <files>invalid_global_mut.js</files>
+    <compile-flags>-wasm</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
     <files>debugger.js</files>
     <compile-flags>-wasm -dbgbaseline:debugger.js.dbg.baseline</compile-flags>
     <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger</tags>

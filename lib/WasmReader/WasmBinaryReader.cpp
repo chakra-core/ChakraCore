@@ -932,7 +932,7 @@ WasmBinaryReader::ReadGlobalsSection()
     for (UINT i = 0; i < numEntries; ++i)
     {
         WasmTypes::WasmType type = ReadWasmType(len);
-        bool isMutable = ReadConst<UINT8>() == 1;
+        bool isMutable = ReadMutableValue();
         WasmNode globalNode = ReadInitExpr();
         GlobalReferenceTypes::Type refType = GlobalReferenceTypes::Const;
         WasmTypes::WasmType initType;
@@ -1008,7 +1008,7 @@ WasmBinaryReader::ReadImportEntries()
         case ExternalKinds::Global:
         {
             WasmTypes::WasmType type = ReadWasmType(len);
-            bool isMutable = ReadConst<UINT8>() == 1;
+            bool isMutable = ReadMutableValue();
             if (isMutable)
             {
                 ThrowDecodingError(_u("Mutable globals cannot be imported"));
@@ -1192,6 +1192,18 @@ T WasmBinaryReader::ReadConst()
     m_pc += sizeof(T);
 
     return value;
+}
+
+bool WasmBinaryReader::ReadMutableValue()
+{
+    uint8 mutableValue = ReadConst<UINT8>();
+    switch (mutableValue)
+    {
+    case 0: return false;
+    case 1: return true;
+    default:
+        ThrowDecodingError(_u("invalid mutability"));
+    }
 }
 
 WasmTypes::WasmType
