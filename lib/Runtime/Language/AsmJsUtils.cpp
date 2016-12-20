@@ -238,7 +238,7 @@ namespace Js
                 if (!allowTestInputs)
 #endif
                 {
-                    JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_InvalidTypeConversion);
+                    JavascriptError::ThrowTypeError(scriptContext, WASMERR_InvalidTypeConversion);
                 }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
