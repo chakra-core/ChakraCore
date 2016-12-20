@@ -4746,7 +4746,7 @@ LowererMD::GenerateWriteBarrierAssign(IR::MemRefOpnd * opndDst, IR::Opnd * opndS
         IR::Instr * movInstr = IR::Instr::New(Js::OpCode::MOV, cardTableEntry, IR::IntConstOpnd::New(1, TyInt8, insertBeforeInstr->m_func), insertBeforeInstr->m_func);
         insertBeforeInstr->InsertBefore(movInstr);
 #if DBG
-        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
         {
             this->LoadHelperArgument(insertBeforeInstr, opndDst);
             IR::Instr* instrCall = IR::Instr::New(Js::OpCode::Call, m_func);

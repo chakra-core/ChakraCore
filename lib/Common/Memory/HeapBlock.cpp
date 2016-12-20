@@ -1267,7 +1267,7 @@ SmallHeapBlockT<TBlockAttributes>::EnqueueProcessedObject(FreeObject ** list, vo
     *list = freeObject;
 
 #if DBG
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
     {
         this->WBClearBits((char*)objectAddress);
     }

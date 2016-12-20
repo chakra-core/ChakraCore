@@ -318,7 +318,10 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address)
     }
 #endif
 #if DBG
-    Recycler::WBSetBit((char*)address);
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    {
+        Recycler::WBSetBit((char*)address);
+    }
 #endif
 }
 
@@ -337,7 +340,10 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t bytes)
     GlobalSwbVerboseTrace(_u("Writing to 0x%p (CIndex: %u-%u)\n"), address, startIndex, endIndex);
 
 #if DBG
-    Recycler::WBSetBits((char*)address, (uint)bytes/sizeof(void*));
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    {
+        Recycler::WBSetBits((char*)address, (uint)bytes / sizeof(void*));
+    }
 #endif
 
 #else
