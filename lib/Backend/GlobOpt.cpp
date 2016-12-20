@@ -2528,14 +2528,37 @@ GlobOpt::CleanUpValueMaps()
     BVSparse<JitArenaAllocator> *upwardExposedFields = this->currentBlock->upwardExposedFields;
     bool isInLoop = !!this->currentBlock->loop;
 
+    BVSparse<JitArenaAllocator> symsInCallSequence(this->tempAlloc);
+    SListBase<IR::Opnd *> * callSequence = this->currentBlock->globOptData.callSequence;
+    if (callSequence && !callSequence->Empty())
+    {
+        FOREACH_SLISTBASE_ENTRY(IR::Opnd *, opnd, callSequence)
+        {
+            StackSym * sym = opnd->GetStackSym();
+            symsInCallSequence.Set(sym->m_id);
+        }
+    }
+    NEXT_SLISTBASE_ENTRY;
+
     for (uint i = 0; i < thisTable->tableSize; i++)
     {
         FOREACH_SLISTBASE_ENTRY_EDITING(GlobHashBucket, bucket, &thisTable->table[i], iter)
         {
+            bool isSymUpwardExposed = upwardExposedUses->Test(bucket.value->m_id) || upwardExposedFields->Test(bucket.value->m_id);
+            if (!isSymUpwardExposed && symsInCallSequence.Test(bucket.value->m_id))
+            {
+                // Don't remove/shrink sym-value pair if the sym is referenced in callSequence even if the sym is dead according to backward data flow.
+                // This is possible in some edge cases that an infinite loop is involved when evaluating parameter for a function (between StartCall and Call),
+                // there is no backward data flow into the infinite loop block, but non empty callSequence still populates to it in this (forward) pass
+                // which causes error when looking up value for the syms in callSequence (cannot find the value).
+                // It would cause error to fill out the bailout information for the loop blocks.
+                // Remove dead syms from callSequence has some risk because there are varies associated counters which need to be consistent.
+                continue;
+            }
             // Make sure symbol was created before backward pass.
             // If symbols isn't upward exposed, mark it as dead.
             // If a symbol was copy-prop'd in a loop prepass, the upwardExposedUses info could be wrong.  So wait until we are out of the loop before clearing it.
-            if ((SymID)bucket.value->m_id <= this->maxInitialSymID && !upwardExposedUses->Test(bucket.value->m_id) && !upwardExposedFields->Test(bucket.value->m_id)
+            if ((SymID)bucket.value->m_id <= this->maxInitialSymID && !isSymUpwardExposed
                 && (!isInLoop || !this->prePassCopyPropSym->Test(bucket.value->m_id)))
             {
                 Value *val = bucket.element;
