@@ -171,7 +171,6 @@ void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
 }
 
 #if !ENABLE_NATIVE_CODEGEN
-EXPORT_FUNC
 HRESULT JsInitializeJITServer(
     __in GUID* connectionUuid,
     __in_opt void* securityDescriptor,
@@ -179,7 +178,6 @@ HRESULT JsInitializeJITServer(
 {
     return E_NOTIMPL;
 }
-EXPORT_FUNC
 HRESULT JsShutdownJITServer()
 {
     return E_NOTIMPL;
