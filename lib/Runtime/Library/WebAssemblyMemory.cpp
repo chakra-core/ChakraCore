@@ -148,14 +148,7 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
     catch (const JavascriptException& err)
     {
         caughtExceptionObject = err.GetAndClear();
-        Assert(caughtExceptionObject);
-        //Propagate if not OOM
-        if (caughtExceptionObject != ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject())
-        {
-            caughtExceptionObject = caughtExceptionObject->CloneIfStaticExceptionObject(GetScriptContext());
-            JavascriptExceptionOperators::DoThrow(caughtExceptionObject, GetScriptContext());
-        }
-
+        Assert(caughtExceptionObject && caughtExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject());
         return -1;
     }
 
