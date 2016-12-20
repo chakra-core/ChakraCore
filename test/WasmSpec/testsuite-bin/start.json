@@ -1,65 +1,20 @@
-{
-  "modules": [{
-    "filename": "start.0.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "start.wast",
-      "line": 43
-    }, {
-      "type": "action",
-      "name": "$action_1",
-      "file": "start.wast",
-      "line": 44
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_2",
-      "file": "start.wast",
-      "line": 45
-    }, {
-      "type": "action",
-      "name": "$action_3",
-      "file": "start.wast",
-      "line": 46
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_4",
-      "file": "start.wast",
-      "line": 47
-    }]
-  }, {
-    "filename": "start.1.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "start.wast",
-      "line": 72
-    }, {
-      "type": "action",
-      "name": "$action_1",
-      "file": "start.wast",
-      "line": 73
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_2",
-      "file": "start.wast",
-      "line": 74
-    }, {
-      "type": "action",
-      "name": "$action_3",
-      "file": "start.wast",
-      "line": 75
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_4",
-      "file": "start.wast",
-      "line": 76
-    }]
-  }, {
-    "filename": "start.2.wasm",
-    "commands": []
-  }, {
-    "filename": "start.3.wasm",
-    "commands": []
-  }]
-}
+{"source_filename": "start.wast",
+ "commands": [
+  {"type": "assert_invalid", "line": 2, "filename": "start.0.wasm", "text": "unknown function"}, 
+  {"type": "assert_invalid", "line": 6, "filename": "start.1.wasm", "text": "start function"}, 
+  {"type": "assert_invalid", "line": 13, "filename": "start.2.wasm", "text": "start function"}, 
+  {"type": "module", "line": 19, "filename": "start.3.wasm"}, 
+  {"type": "assert_return", "line": 43, "action": {"type": "invoke", "field": "get", "args": []}, "expected": [{"type": "i32", "value": "68"}]}, 
+  {"type": "action", "line": 44, "action": {"type": "invoke", "field": "inc", "args": []}}, 
+  {"type": "assert_return", "line": 45, "action": {"type": "invoke", "field": "get", "args": []}, "expected": [{"type": "i32", "value": "69"}]}, 
+  {"type": "action", "line": 46, "action": {"type": "invoke", "field": "inc", "args": []}}, 
+  {"type": "assert_return", "line": 47, "action": {"type": "invoke", "field": "get", "args": []}, "expected": [{"type": "i32", "value": "70"}]}, 
+  {"type": "module", "line": 49, "filename": "start.4.wasm"}, 
+  {"type": "assert_return", "line": 72, "action": {"type": "invoke", "field": "get", "args": []}, "expected": [{"type": "i32", "value": "68"}]}, 
+  {"type": "action", "line": 73, "action": {"type": "invoke", "field": "inc", "args": []}}, 
+  {"type": "assert_return", "line": 74, "action": {"type": "invoke", "field": "get", "args": []}, "expected": [{"type": "i32", "value": "69"}]}, 
+  {"type": "action", "line": 75, "action": {"type": "invoke", "field": "inc", "args": []}}, 
+  {"type": "assert_return", "line": 76, "action": {"type": "invoke", "field": "get", "args": []}, "expected": [{"type": "i32", "value": "70"}]}, 
+  {"type": "module", "line": 78, "filename": "start.5.wasm"}, 
+  {"type": "module", "line": 84, "filename": "start.6.wasm"}
+]}

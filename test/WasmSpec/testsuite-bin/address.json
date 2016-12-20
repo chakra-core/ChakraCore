@@ -1,31 +1,9 @@
-{
-  "modules": [{
-    "filename": "address.0.wasm",
-    "commands": [{
-      "type": "action",
-      "name": "$action_0",
-      "file": "address.wast",
-      "line": 30
-    }, {
-      "type": "action",
-      "name": "$action_1",
-      "file": "address.wast",
-      "line": 31
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_2",
-      "file": "address.wast",
-      "line": 32
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "address.wast",
-      "line": 33
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_4",
-      "file": "address.wast",
-      "line": 34
-    }]
-  }]
-}
+{"source_filename": "address.wast",
+ "commands": [
+  {"type": "module", "line": 1, "filename": "address.0.wasm"}, 
+  {"type": "action", "line": 30, "action": {"type": "invoke", "field": "good", "args": [{"type": "i32", "value": "0"}]}}, 
+  {"type": "action", "line": 31, "action": {"type": "invoke", "field": "good", "args": [{"type": "i32", "value": "65507"}]}}, 
+  {"type": "assert_trap", "line": 32, "action": {"type": "invoke", "field": "good", "args": [{"type": "i32", "value": "65508"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 33, "action": {"type": "invoke", "field": "bad", "args": [{"type": "i32", "value": "0"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 34, "action": {"type": "invoke", "field": "bad", "args": [{"type": "i32", "value": "1"}]}, "text": "out of bounds memory access"}
+]}
