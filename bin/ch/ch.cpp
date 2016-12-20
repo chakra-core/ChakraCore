@@ -113,8 +113,7 @@ HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, DWORD lengthBytes, LPCWS
 
     if (FAILED(hr)) return hr;
 
-    IfFalseGo(ChakraRTInterface::JsGetArrayBufferStorage(bufferVal, &bcBuffer,
-        &bcBufferSize) != JsNoError);
+    IfJsrtErrorHR(ChakraRTInterface::JsGetArrayBufferStorage(bufferVal, &bcBuffer, &bcBufferSize));
 
     bcFileHandle = CreateFile(bcFullPath, GENERIC_WRITE, FILE_SHARE_DELETE,
         nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -838,6 +837,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         WideStringToNarrowDynamic(argv[1], &argInfo.filename);
     }
 
+    HRESULT exitCode = E_FAIL;
     if (success)
     {
 #ifdef _WIN32
@@ -849,7 +849,6 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
             ChakraRTInterface::ConnectJITServer(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
         }
 #endif
-
         HANDLE threadHandle;
         threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(0, 0, &StaticThreadProc, &argInfo, STACK_SIZE_PARAM_IS_A_RESERVATION, 0));
 
@@ -857,6 +856,9 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         {
             DWORD waitResult = WaitForSingleObject(threadHandle, INFINITE);
             Assert(waitResult == WAIT_OBJECT_0);
+            DWORD threadExitCode;
+            GetExitCodeThread(threadHandle, &threadExitCode);
+            exitCode = (HRESULT)threadExitCode;
             CloseHandle(threadHandle);
         }
         else
@@ -866,7 +868,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         }
 #else
         // On linux, execute on the same thread
-        ExecuteTestWithMemoryCheck(argInfo.filename);
+        exitCode = ExecuteTestWithMemoryCheck(argInfo.filename);
 #endif
 
 #if ENABLE_NATIVE_CODEGEN && defined(_WIN32)
@@ -882,5 +884,5 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 #endif
 
     PAL_Shutdown();
-    return 0;
+    return (int)exitCode;
 }
