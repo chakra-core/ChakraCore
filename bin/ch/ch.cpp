@@ -113,8 +113,7 @@ HRESULT CreateLibraryByteCodeHeader(LPCSTR contentsRaw, DWORD lengthBytes, LPCWS
 
     if (FAILED(hr)) return hr;
 
-    IfFalseGo(ChakraRTInterface::JsGetArrayBufferStorage(bufferVal, &bcBuffer,
-        &bcBufferSize) != JsNoError);
+    IfJsrtErrorHR(ChakraRTInterface::JsGetArrayBufferStorage(bufferVal, &bcBuffer, &bcBufferSize));
 
     bcFileHandle = CreateFile(bcFullPath, GENERIC_WRITE, FILE_SHARE_DELETE,
         nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
