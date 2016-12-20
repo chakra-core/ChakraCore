@@ -11,7 +11,6 @@
 1701077858
 1717920867
 122
-$action_0 = undefined
 0
 0
 0
@@ -25,7 +24,6 @@ $action_0 = undefined
 0
 0
 0
-$action_1 = undefined
 0
 0
 0
@@ -38,4 +36,4 @@ $action_1 = undefined
 0
 0
 0
-3/3 tests passed.
+6/6 tests passed.

@@ -174,12 +174,31 @@ namespace Js
         return JavascriptBoolean::ToVar(TRUE, scriptContext);
     }
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    int64 ConvertStringToInt64(Var string, ScriptContext* scriptContext)
+    {
+        JavascriptString* str = JavascriptString::FromVar(string);
+        charcount_t length = str->GetLength();
+        const char16* buf = str->GetString();
+        int radix = 10;
+        if (length >= 2 && buf[0] == '0' && buf[1] == 'x')
+        {
+            radix = 16;
+        }
+        return (int64)_wcstoui64(buf, nullptr, radix);
+    }
+#endif
+
     void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo)
     {
         void * address = reinterpret_cast<void*>(func->GetEntryPointInfo()->jsMethod);
         Assert(address);
         AsmJsFunctionInfo* info = func->GetFunctionBody()->GetAsmJsFunctionInfo();
         ScriptContext* scriptContext = func->GetScriptContext();
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        bool allowTestInputs = CONFIG_FLAG(WasmI64);
+#endif
 
         AsmJsModuleInfo::EnsureHeapAttached(func);
 
@@ -193,7 +212,14 @@ namespace Js
                 int32 intVal;
                 if (i < actualArgCount)
                 {
-                    intVal = JavascriptMath::ToInt32(*origArgs, scriptContext);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                    if (allowTestInputs && JavascriptString::Is(*origArgs))
+                    {
+                        intVal = (int32)ConvertStringToInt64(*origArgs, scriptContext);
+                    }
+                    else
+#endif
+                        intVal = JavascriptMath::ToInt32(*origArgs, scriptContext);
                 }
                 else
                 {
@@ -209,7 +235,7 @@ namespace Js
             else if (info->GetArgType(i).isInt64())
             {
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-                if (!CONFIG_FLAG(WasmI64))
+                if (!allowTestInputs)
 #endif
                 {
                     JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_InvalidTypeConversion);
@@ -221,19 +247,7 @@ namespace Js
                 {
                     if (JavascriptString::Is(*origArgs))
                     {
-                        JavascriptString* str = JavascriptString::FromVar(*origArgs);
-                        charcount_t length = str->GetLength();
-                        const char16* buf = str->GetString();
-                        int radix = 10;
-                        if (length >= 2 && buf[0] == '0' && buf[1] == 'x')
-                        {
-                            radix = 16;
-                        }
-#ifdef _WIN32
-                        val = _wcstoi64(buf, nullptr, radix);
-#else
-                        val = wcstoll(buf, nullptr, radix);
-#endif
+                        val = ConvertStringToInt64(*origArgs, scriptContext);
                     }
                     else if (JavascriptObject::Is(*origArgs))
                     {
@@ -269,7 +283,15 @@ namespace Js
                 float floatVal;
                 if (i < actualArgCount)
                 {
-                    floatVal = (float)(JavascriptConversion::ToNumber(*origArgs, scriptContext));
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                    if (allowTestInputs && JavascriptString::Is(*origArgs))
+                    {
+                        int32 val = (int32)ConvertStringToInt64(*origArgs, scriptContext);
+                        floatVal = *(float*)&val;
+                    }
+                    else
+#endif
+                        floatVal = (float)(JavascriptConversion::ToNumber(*origArgs, scriptContext));
                 }
                 else
                 {
@@ -286,7 +308,15 @@ namespace Js
                 double doubleVal;
                 if (i < actualArgCount)
                 {
-                    doubleVal = JavascriptConversion::ToNumber(*origArgs, scriptContext);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                    if (allowTestInputs && JavascriptString::Is(*origArgs))
+                    {
+                        int64 val = ConvertStringToInt64(*origArgs, scriptContext);
+                        doubleVal = *(double*)&val;
+                    }
+                    else
+#endif
+                        doubleVal = JavascriptConversion::ToNumber(*origArgs, scriptContext);
                 }
                 else
                 {
