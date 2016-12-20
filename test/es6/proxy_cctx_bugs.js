@@ -75,6 +75,24 @@ function test3() {
   } while (x--);
 }
 
+function test4() {
+  var func3 = function () { };
+  var ary = Array();
+  var proxyHandler = {};
+  var ownkeys = Reflect.ownKeys(ary);
+  proxyHandler['ownKeys'] = function () {
+    func3() == 0;
+    return ownkeys;
+  };
+
+  ary = new Proxy(ary, proxyHandler);
+  var sc2 = WScript.LoadScript('function test(){for (var x in ary);}', 'samethread');
+  sc2.ary = ary;
+  sc2.func3 = func3;
+  sc2.test();
+}
+
 test1();
 test2();
 test3();
+test4();

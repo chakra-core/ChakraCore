@@ -2120,7 +2120,7 @@ namespace Js
         return trapResult;
     }
 
-    JavascriptArray* JavascriptProxy::PropertyKeysTrap(KeysTrapKind keysTrapKind)
+    JavascriptArray* JavascriptProxy::PropertyKeysTrap(KeysTrapKind keysTrapKind, ScriptContext* requestContext)
     {
         PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -2149,7 +2149,7 @@ namespace Js
         //6. ReturnIfAbrupt(trap).
         //7. If trap is undefined, then
         //      a. Return target.[[OwnPropertyKeys]]().
-        JavascriptFunction* ownKeysMethod = GetMethodHelper(PropertyIds::ownKeys, scriptContext);
+        JavascriptFunction* ownKeysMethod = GetMethodHelper(PropertyIds::ownKeys, requestContext);
         Assert(!GetScriptContext()->IsHeapEnumInProgress());
 
         JavascriptArray *targetKeys;
