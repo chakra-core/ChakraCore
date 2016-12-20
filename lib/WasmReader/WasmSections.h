@@ -16,5 +16,5 @@ WASM_SECTION(Element              , "element"            , fSectNone  , Invalid 
 WASM_SECTION(FunctionBodies       , "code"               , fSectNone  , FunctionSignatures)
 WASM_SECTION(DataSegments         , "data"               , fSectNone  , Invalid           )
 WASM_SECTION(Names                , "name"               , fSectIgnore, Signatures        )
-WASM_SECTION(User                 , "user"               , fSectIgnore, Invalid           )
+WASM_SECTION(Custom               , ""                   , fSectNone  , Invalid           )
 #undef WASM_SECTION
