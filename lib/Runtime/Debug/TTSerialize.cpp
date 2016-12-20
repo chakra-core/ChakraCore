@@ -872,6 +872,9 @@ namespace TTD
             charList.Add(c);
         }
 
+        // Null-terminate the list before we try to use the buffer as a string.
+        charList.Add(_u('\0'));
+
         bool likelyint; //we don't care about this just want to know that it is convertable to a number
         const char16* end;
         const char16* start = charList.GetBuffer();
@@ -963,8 +966,8 @@ namespace TTD
             return NSTokens::ParseTokenKind::Error;
         }
 
-        //convert this number to get the length of the string (not including "")
-        charList.Add(_u('\0'));
+        // Convert this number to get the length of the string (not including ""),
+        // charList is already null-terminated by the call to ScanNumber.
         uint32 length = (uint32)this->ReadUIntFromCharArray(charList.GetBuffer());
 
         //read the lead "\""
@@ -1226,7 +1229,6 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
-        this->m_charListOpt.Add(_u('\0'));
         uint64 uval = this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
         TTDAssert(uval <= BYTE_MAX, "Error in parse.");
 
@@ -1250,7 +1252,6 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
-        this->m_charListOpt.Add(_u('\0'));
         int64 ival = this->ReadIntFromCharArray(this->m_charListOpt.GetBuffer());
         TTDAssert(INT32_MIN <= ival && ival <= INT32_MAX, "Error in parse.");
 
@@ -1264,7 +1265,6 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
-        this->m_charListOpt.Add(_u('\0'));
         uint64 uval = this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
         TTDAssert(uval <= UINT32_MAX, "Error in parse.");
 
@@ -1278,7 +1278,6 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
-        this->m_charListOpt.Add(_u('\0'));
         return this->ReadIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
@@ -1289,7 +1288,6 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
-        this->m_charListOpt.Add(_u('\0'));
         return this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
@@ -1324,7 +1322,6 @@ namespace TTD
         {
             TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
-            this->m_charListOpt.Add(_u('\0'));
             res = this->ReadDoubleFromCharArray(this->m_charListOpt.GetBuffer());
 
             break;
@@ -1341,7 +1338,6 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::Address, "Error in parse.");
 
-        this->m_charListOpt.Add(_u('\0')); //add terminator
         return (TTD_PTR_ID)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
@@ -1352,7 +1348,6 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::LogTag, "Error in parse.");
 
-        this->m_charListOpt.Add(_u('\0')); //add terminator
         return (TTD_LOG_PTR_ID)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
     }
 
@@ -1363,7 +1358,6 @@ namespace TTD
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
         TTDAssert(tok == NSTokens::ParseTokenKind::EnumTag, "Error in parse.");
 
-        this->m_charListOpt.Add(_u('\0')); //add terminator
         uint64 tval = this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
         TTDAssert(tval <= UINT32_MAX, "Error in parse.");
 
