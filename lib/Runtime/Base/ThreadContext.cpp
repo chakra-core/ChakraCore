@@ -1939,12 +1939,8 @@ ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDe
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     if (!JITManager::GetJITManager()->IsConnected())
     {
-        HRESULT hr = JITManager::GetJITManager()->ConnectRpcServer(processHandle, serverSecurityDescriptor, connectionId);
-        if (FAILED(hr))
-        {
-            // TODO: michhol OOP JIT is this correct?
-            Js::Throw::InternalError();
-        }
+        // TODO: return HRESULT
+        JITManager::GetJITManager()->ConnectRpcServer(processHandle, serverSecurityDescriptor, connectionId);
     }
 }
 void
@@ -1952,7 +1948,10 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 {
 #if ENABLE_OOP_NATIVE_CODEGEN
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-    Assert(JITManager::GetJITManager()->IsConnected());
+    if (!JITManager::GetJITManager()->IsConnected())
+    {
+        return;
+    }
 
     if (m_remoteThreadContextInfo)
     {

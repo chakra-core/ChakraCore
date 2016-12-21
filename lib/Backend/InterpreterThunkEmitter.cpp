@@ -356,6 +356,10 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
 void InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
+    if (!JITManager::GetJITManager()->IsConnected())
+    {
+        Js::Throw::OutOfMemory();
+    }
     InterpreterThunkInputIDL thunkInput;
     thunkInput.asmJsThunk = this->isAsmInterpreterThunk;
 
