@@ -153,12 +153,12 @@ namespace Js
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override sealed
         {
             const_cast<ConcatStringWrapping *>(this)->EnsureAllSlots();
-            __super::CopyImpl(buffer, _countof(m_slots), m_slots, nestedStringTreeCopyInfos, recursionDepth);
+            __super::CopyImpl(buffer, _countof(m_slots), AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
         }
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const override sealed
         {
             const_cast<ConcatStringWrapping *>(this)->EnsureAllSlots();
-            items = m_slots;
+            items = AddressOf(m_slots[0]);
             return _countof(m_slots);
         }
     public:
@@ -171,10 +171,11 @@ namespace Js
             m_slots[1] = m_inner;
             m_slots[2] = this->GetLastItem();
         }
-        JavascriptString * m_inner;
+
+        Field(JavascriptString *) m_inner;
 
         // Use the padding space for the concat
-        JavascriptString * m_slots[3];
+        Field(JavascriptString *) m_slots[3];
     };
 
     // Make sure the padding doesn't add tot he size of ConcatStringWrapping

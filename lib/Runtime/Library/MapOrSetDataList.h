@@ -28,13 +28,13 @@ namespace Js
         template <typename TData>
         friend class MapOrSetDataList;
 
-        MapOrSetDataNode<TData>* next;
-        MapOrSetDataNode<TData>* prev;
+        Field(MapOrSetDataNode<TData>*) next;
+        Field(MapOrSetDataNode<TData>*) prev;
 
         MapOrSetDataNode(TData& data) : data(data), next(nullptr), prev(nullptr) { }
 
     public:
-        TData data;
+        Field(TData) data;
     };
 
     template <typename TData>
@@ -120,7 +120,7 @@ namespace Js
                 return false;
             }
 
-            TData& Current()
+            const TData& Current() const
             {
                 return current->data;
             }

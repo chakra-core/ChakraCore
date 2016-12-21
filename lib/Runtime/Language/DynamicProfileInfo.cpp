@@ -1921,7 +1921,10 @@ namespace Js
 
             if (callSiteInfoCount != 0)
             {
-                callSiteInfo = RecyclerNewArray(recycler, CallSiteInfo, callSiteInfoCount);
+                // CallSiteInfo contains pointer "polymorphicCallSiteInfo", but
+                // we explicitly save that pointer in FunctionBody. Safe to
+                // allocate CallSiteInfo[] as Leaf here.
+                callSiteInfo = RecyclerNewArrayLeaf(recycler, CallSiteInfo, callSiteInfoCount);
                 if (!reader->ReadArray(callSiteInfo, callSiteInfoCount))
                 {
                     goto Error;

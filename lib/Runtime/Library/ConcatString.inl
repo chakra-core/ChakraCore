@@ -114,7 +114,7 @@ namespace Js
     {
         const char16 * sz = GetSzImpl<ConcatStringWrapping>();
         m_inner = nullptr;
-        memset(m_slots, 0, sizeof(m_slots));
+        ClearArray(m_slots);
         return sz;
     }
 

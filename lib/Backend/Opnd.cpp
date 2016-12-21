@@ -96,13 +96,28 @@ bool
 Opnd::IsWriteBarrierTriggerableValue()
 {
     // Determines whether if an operand is used as a source in a store instruction, whether the store needs a write barrier
-    //
-    // If it's not a tagged value, and one of the two following conditions are true, then a write barrier is needed
+
+    // If it's a tagged value, we don't need a write barrier
+    if (!this->IsNotTaggedValue()) // SWB-TODO: change to: this->IsTaggedValue()
+    {
+        return false;
+    }
+
     // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
+    if (this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar)
+    {
+        return false;
+    }
+
+#if DBG
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    {
+        return true; // No further optimization if we are in verification
+    }
+#endif
+
     // If its null/boolean/undefined, we don't need a write barrier since the javascript library will keep those guys alive
-    return this->IsNotTaggedValue() &&
-        !((this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar) ||
-          (this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined()));
+    return !(this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined());
 }
 
 /*
