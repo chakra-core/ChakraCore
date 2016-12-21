@@ -3633,9 +3633,9 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
                 {
                     exit(JSERR_AsmJsCompileError);
                 }
-                else if (!(flags & fscrDeferFncParse))
+                else
                 {
-                    // If deferral is not allowed, throw and reparse everything with asm.js disabled.
+                    // if asm.js parse error happened, reparse with asm.js disabled.
                     throw Js::AsmJsParseException();
                 }
             }
