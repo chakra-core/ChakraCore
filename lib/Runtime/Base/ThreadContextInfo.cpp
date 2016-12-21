@@ -12,7 +12,7 @@
 
 ThreadContextInfo::ThreadContextInfo() :
     m_isAllJITCodeInPreReservedRegion(true),
-    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined), 
+    wellKnownHostTypeHTMLAllCollectionTypeId(Js::TypeIds_Undefined),
     m_isClosed(false)
 {
 }
@@ -42,9 +42,14 @@ ThreadContextInfo::GetAbsFloatCstAddr() const
     return SHIFT_ADDR(this, &Js::JavascriptNumber::AbsFloatCst);
 }
 
-intptr_t ThreadContextInfo::GetSgnBitCst() const
+intptr_t ThreadContextInfo::GetSgnFloatBitCst() const
 {
-    return SHIFT_ADDR(this, &Js::JavascriptNumber::SgnBitCst);
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::SgnFloatBitCst);
+}
+
+intptr_t ThreadContextInfo::GetSgnDoubleBitCst() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::SgnDoubleBitCst);
 }
 
 intptr_t
@@ -63,6 +68,12 @@ intptr_t
 ThreadContextInfo::GetUIntConvertConstAddr() const
 {
     return SHIFT_ADDR(this, &Js::JavascriptNumber::UIntConvertConst);
+}
+
+intptr_t
+ThreadContextInfo::GetUInt64ConvertConstAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::UInt64ConvertConst);
 }
 
 intptr_t
@@ -147,6 +158,24 @@ intptr_t
 ThreadContextInfo::GetDoubleNaNAddr() const
 {
     return SHIFT_ADDR(this, &Js::JavascriptNumber::k_Nan);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleUintMaxPlusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_UintMaxPlusOne);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleIntMaxPlusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_IntMaxPlusOne);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleIntMinMinusOneAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::k_MinIntMinusOne);
 }
 
 intptr_t
@@ -300,6 +329,18 @@ ThreadContextInfo::GetX86FourLanesMaskAddr(uint8 minorityLane) const
 {
     return SHIFT_ADDR(this, &X86_4LANES_MASKS[minorityLane]);
 }
+
+intptr_t
+ThreadContextInfo::GetDoubleIntMinAddr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::DOUBLE_INT_MIN);
+}
+
+intptr_t
+ThreadContextInfo::GetDoubleTwoTo31Addr() const
+{
+    return SHIFT_ADDR(this, &Js::JavascriptNumber::DOUBLE_TWO_TO_31);
+}
 #endif
 
 intptr_t
@@ -422,7 +463,7 @@ ThreadContextInfo::SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetV
 #endif // _CONTROL_FLOW_GUARD
 }
 
-bool 
+bool
 ThreadContextInfo::IsClosed()
 {
     return m_isClosed;

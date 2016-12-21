@@ -77,5 +77,10 @@ namespace Js
         static Var EntryNext(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryReturn(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryThrow(RecyclableObject* function, CallInfo callInfo, ...);
+
+#if ENABLE_TTD
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 }

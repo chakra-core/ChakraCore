@@ -2,19 +2,12 @@
 ;; special values.
 
 (module
-  (func $eq (param $x f64) (param $y f64) (result i32) (f64.eq (get_local $x) (get_local $y)))
-  (func $ne (param $x f64) (param $y f64) (result i32) (f64.ne (get_local $x) (get_local $y)))
-  (func $lt (param $x f64) (param $y f64) (result i32) (f64.lt (get_local $x) (get_local $y)))
-  (func $le (param $x f64) (param $y f64) (result i32) (f64.le (get_local $x) (get_local $y)))
-  (func $gt (param $x f64) (param $y f64) (result i32) (f64.gt (get_local $x) (get_local $y)))
-  (func $ge (param $x f64) (param $y f64) (result i32) (f64.ge (get_local $x) (get_local $y)))
-
-  (export "eq" $eq)
-  (export "ne" $ne)
-  (export "lt" $lt)
-  (export "le" $le)
-  (export "gt" $gt)
-  (export "ge" $ge)
+  (func (export "eq") (param $x f64) (param $y f64) (result i32) (f64.eq (get_local $x) (get_local $y)))
+  (func (export "ne") (param $x f64) (param $y f64) (result i32) (f64.ne (get_local $x) (get_local $y)))
+  (func (export "lt") (param $x f64) (param $y f64) (result i32) (f64.lt (get_local $x) (get_local $y)))
+  (func (export "le") (param $x f64) (param $y f64) (result i32) (f64.le (get_local $x) (get_local $y)))
+  (func (export "gt") (param $x f64) (param $y f64) (result i32) (f64.gt (get_local $x) (get_local $y)))
+  (func (export "ge") (param $x f64) (param $y f64) (result i32) (f64.ge (get_local $x) (get_local $y)))
 )
 
 (assert_return (invoke "eq" (f64.const -0x0p+0) (f64.const -0x0p+0)) (i32.const 1))

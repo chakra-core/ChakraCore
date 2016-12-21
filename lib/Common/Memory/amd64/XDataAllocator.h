@@ -7,11 +7,6 @@ CompileAssert(false)
 #endif
 #pragma once
 
-#ifndef _WIN32
-extern "C" void __register_frame(const void* ehframe);
-extern "C" void __deregister_frame(const void* ehframe);
-#endif
-
 namespace Memory
 {
 #ifdef _WIN32
@@ -67,12 +62,10 @@ private:
     uint  size;
 
     XDataAllocationEntry* freeList;
-    HANDLE processHandle;
 
 // --------- Public functions ---------/
 public:
-    XDataAllocator(BYTE* address, uint size, HANDLE processHandle);
-
+    XDataAllocator(BYTE* address, uint size);
     virtual ~XDataAllocator();
 
     bool Initialize(void* segmentStart, void* segmentEnd);
@@ -104,5 +97,4 @@ private:
 
     void ClearFreeList();
 };
-
 }

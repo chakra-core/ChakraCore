@@ -1513,7 +1513,7 @@ ObjectTempVerify::NotifyDeadByteCodeUses(IR::Instr * instr)
     }
 
     IR::ByteCodeUsesInstr *byteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-    BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->byteCodeUpwardExposedUsed;
+    const BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->GetByteCodeUpwardExposedUsed();
     if (byteCodeUpwardExposedUsed != nullptr)
     {
         this->removedUpwardExposedUse.Or(byteCodeUpwardExposedUsed);

@@ -124,6 +124,7 @@ enum Forms : BYTE
 
 // OpBytes
 #define OPBYTE_ADD      {0x4, 0x80, 0x0}        // binop, byte2=0x0
+#define OPBYTE_ADC      {0x14, 0x80, 0x10}       // binop, byte2=0x0
 
 #define OPBYTE_ADDPD    {0x58}                  // modrm
 #define OPBYTE_ADDPS    {0x58}                  // modrm

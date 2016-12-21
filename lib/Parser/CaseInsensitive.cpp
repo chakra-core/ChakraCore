@@ -67,7 +67,7 @@ We then compress the above map such that:
  - the result is in strictly increasing range order
 
 Using gawk the above is:
-  gawk -f equiv.gawk http://www.unicode.org/Public/UNIDATA/UnicodeData.txt | gawk -f table.gawk
+  gawk -f equiv.gawk http://www.unicode.org/Public/8.0.0/ucd/UnicodeData.txt | gawk -f table.gawk
 
 Where equiv.gawk is:
 ----------------------------------------------------------------------
@@ -206,7 +206,7 @@ END {
 */
 
         // For case-folding entries, version 8.0.0 of CaseFolding.txt located at [1] was used.
-        // [1] ftp://ftp.unicode.org/Public/UNIDATA/CaseFolding.txt
+        // [1] http://www.unicode.org/Public/8.0.0/ucd/CaseFolding.txt
         static const Transform transforms[] =
         {
             1, MappingSource::UnicodeData, 0x0041, 0x004a, 0, 32, 32, 32,

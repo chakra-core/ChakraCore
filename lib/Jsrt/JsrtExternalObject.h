@@ -49,6 +49,7 @@ public:
 
     static bool Is(Js::Var value);
     static JsrtExternalObject * FromVar(Js::Var value);
+    static JsrtExternalObject * Create(void *data, JsFinalizeCallback finalizeCallback, Js::ScriptContext *scriptContext);
 
     JsrtExternalType * GetExternalType() const { return (JsrtExternalType *)this->GetType(); }
 
@@ -64,5 +65,11 @@ public:
 
 private:
     void * slot;
+
+#if ENABLE_TTD
+public:
+    virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+    virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
 };
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(JsrtExternalObject, &Js::RecyclableObject::DumpObjectFunction);

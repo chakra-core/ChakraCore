@@ -7,6 +7,7 @@
 #include "UnicodeText.h"
 
 #include "PlatformAgnostic/DateTime.h"
+#include "PlatformAgnostic/AssemblyCommon.h"
 
 #if !defined(_WIN32) && defined(DEBUG)
 #include <signal.h> // raise(SIGINT)

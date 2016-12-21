@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -24,7 +24,6 @@ Abstract:
 #include "pal/thread.hpp"
 #include "pal/threadinfo.hpp"
 #include "pal/threadsusp.hpp"
-#include "pal/seh.hpp"
 
 #include "pal/palinternal.h"
 #if !HAVE_MACH_EXCEPTIONS
@@ -66,7 +65,7 @@ static void sigsegv_handler(int code, siginfo_t *siginfo, void *context);
 static void sigtrap_handler(int code, siginfo_t *siginfo, void *context);
 static void sigbus_handler(int code, siginfo_t *siginfo, void *context);
 
-static void common_signal_handler(PEXCEPTION_POINTERS pointers, int code, 
+static void common_signal_handler(PEXCEPTION_POINTERS pointers, int code,
                                   native_context_t *ucontext);
 
 static void inject_activation_handler(int code, siginfo_t *siginfo, void *context);
@@ -145,18 +144,16 @@ Parameters :
     None
 
     (no return value)
-    
+
 note :
-reason for this function is that during PAL_Terminate, we reach a point where 
-SEH isn't possible anymore (handle manager is off, etc). Past that point, 
-we can't avoid crashing on a signal     
+reason for this function is that during PAL_Terminate, we reach a point where
+SEH isn't possible anymore (handle manager is off, etc). Past that point,
+we can't avoid crashing on a signal
 --*/
 void SEHCleanupSignals()
 {
     TRACE("Restoring default signal handlers\n");
 
-    // Do not remove handlers for SIGUSR1 and SIGUSR2. They must remain so threads can be suspended
-    // during cleanup after this function has been called.
     restore_signal(SIGILL, &g_previous_sigill);
     restore_signal(SIGTRAP, &g_previous_sigtrap);
     restore_signal(SIGFPE, &g_previous_sigfpe);
@@ -433,11 +430,11 @@ static void inject_activation_handler(int code, siginfo_t *siginfo, void *contex
 
             CONTEXT winContext;
             CONTEXTFromNativeContext(
-                ucontext, 
-                &winContext, 
+                ucontext,
+                &winContext,
                 CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_FLOATING_POINT);
 
-            if (g_safeActivationCheckFunction(CONTEXTGetPC(&winContext)))
+            if (g_safeActivationCheckFunction(CONTEXTGetPC(&winContext), true))
             {
                 g_activationFunction(&winContext);
             }
@@ -456,7 +453,7 @@ Function :
 
 Parameters :
     pThread            - target PAL thread
-    activationFunction - function to call 
+    activationFunction - function to call
 
 (no return value)
 --*/
@@ -466,7 +463,7 @@ PAL_ERROR InjectActivationInternal(CorUnix::CPalThread* pThread)
     if (status != 0)
     {
         // Failure to send the signal is fatal. There are only two cases when sending
-        // the signal can fail. First, if the signal ID is invalid and second, 
+        // the signal can fail. First, if the signal ID is invalid and second,
         // if the thread doesn't exist anymore.
         abort();
     }
@@ -478,7 +475,7 @@ PAL_ERROR InjectActivationInternal(CorUnix::CPalThread* pThread)
 Function :
     SEHSetSafeState
 
-    specify whether the current thread is in a state where exception handling 
+    specify whether the current thread is in a state where exception handling
     of signals can be done safely
 
 Parameters:
@@ -500,7 +497,7 @@ void SEHSetSafeState(CPalThread *pthrCurrent, BOOL state)
 Function :
     SEHGetSafeState
 
-    determine whether the current thread is in a state where exception handling 
+    determine whether the current thread is in a state where exception handling
     of signals can be done safely
 
     (no parameters)
@@ -531,10 +528,10 @@ Parameters :
 
     (no return value)
 Note:
-    the "pointers" parameter should contain a valid exception record pointer, 
-    but the contextrecord pointer will be overwritten.    
+    the "pointers" parameter should contain a valid exception record pointer,
+    but the contextrecord pointer will be overwritten.
 --*/
-static void common_signal_handler(PEXCEPTION_POINTERS pointers, int code, 
+static void common_signal_handler(PEXCEPTION_POINTERS pointers, int code,
                                   native_context_t *ucontext)
 {
     sigset_t signal_set;
@@ -557,9 +554,11 @@ static void common_signal_handler(PEXCEPTION_POINTERS pointers, int code,
     if(-1 == sigprocmask(SIG_UNBLOCK, &signal_set, NULL))
     {
         ASSERT("sigprocmask failed; error is %d (%s)\n", errno, strerror(errno));
-    } 
+    }
 
-    SEHProcessException(pointers);
+    // We do nothing further
+    // xplat-todo : investigate further cleanup
+    // SEHProcessException(pointers);
 }
 
 /*++
@@ -574,8 +573,8 @@ Parameters :
     previousAction : previous sigaction struct
 
     (no return value)
-    
-note : if sigfunc is NULL, the default signal handler is restored    
+
+note : if sigfunc is NULL, the default signal handler is restored
 --*/
 void handle_signal(int signal_id, SIGFUNC sigfunc, struct sigaction *previousAction)
 {

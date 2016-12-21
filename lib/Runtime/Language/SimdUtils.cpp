@@ -43,7 +43,7 @@ namespace Js
         uint32 uint32Value;
         Assert(index != NULL);
 
-        uint32Value = SIMDCheckUint32Number(scriptContext, index);
+        uint32Value = SIMDCheckUint32Number<true>(scriptContext, index);
         return uint32Value;
     }
 
@@ -60,13 +60,14 @@ namespace Js
     }
 
     // Is Number with uint32 value.
+    template<bool acceptNegZero>
     uint32 SIMDUtils::SIMDCheckUint32Number(ScriptContext* scriptContext, const Var value)
     {
         int32 int32Value;
 
         if (JavascriptNumber::Is(value))
         {
-            if (!JavascriptNumber::TryGetInt32Value(JavascriptNumber::GetValue(value), &int32Value))
+            if (!JavascriptNumber::TryGetInt32Value<acceptNegZero>(JavascriptNumber::GetValue(value), &int32Value))
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
             }
@@ -77,7 +78,10 @@ namespace Js
         }
         else
         {
-            return static_cast<int32>(JavascriptConversion::ToNumber(value, scriptContext));
+            if (!JavascriptNumber::TryGetInt32Value<acceptNegZero>(JavascriptConversion::ToNumber(value, scriptContext), &int32Value))
+            {
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgumentOutOfRange);
+            }
         }
         return int32Value;
     }
@@ -188,7 +192,7 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInvalidArgType, _u("Simd typed array access"));
         }
 
-        *index = SIMDCheckUint32Number(scriptContext, arg2);
+        *index = SIMDCheckUint32Number<true>(scriptContext, arg2);
 
         // bound check
         *tarray = TypedArrayBase::FromVar(arg1);

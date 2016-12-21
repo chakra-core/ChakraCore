@@ -98,6 +98,7 @@ public:
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override;
 
+    template <bool doSpecialMark>
     void Mark(void* objectAddress, MarkContext * markContext);
     virtual byte* GetRealAddressFromInterior(void* interiorAddress) override;
     bool TestObjectMarkedBit(void* objectAddress) override;
@@ -147,6 +148,9 @@ public:
 
     char* GetBeginAddress() const { return address; }
     char* GetEndAddress() const { return addressEnd; }
+
+    bool TryGetAttributes(void* objectAddress, unsigned char * pAttr);
+    bool TryGetAttributes(LargeObjectHeader *objectHeader, unsigned char * pAttr);
 
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes);
     char * TryAllocFromFreeList(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes);

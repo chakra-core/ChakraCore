@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -10,30 +10,24 @@
 namespace Wasm
 {
 
-WasmDataSegment::WasmDataSegment(ArenaAllocator * alloc, uint32 _dest_addr, uint32 _source_size, byte* _data) :
+WasmDataSegment::WasmDataSegment(ArenaAllocator * alloc, WasmNode ie, uint32 _source_size, const byte* _data) :
     m_alloc(alloc),
-    dest_addr(_dest_addr),
-    source_size(_source_size),
-    data(_data)
+    m_initExpr(ie),
+    m_sourceSize(_source_size),
+    m_data(_data)
 {
 }
 
 uint32
-WasmDataSegment::getDestAddr() const
+WasmDataSegment::GetSourceSize() const
 {
-    return dest_addr;
+    return m_sourceSize;
 }
 
-uint32
-WasmDataSegment::getSourceSize() const
+const byte*
+WasmDataSegment::GetData() const
 {
-    return source_size;
-}
-
-byte*
-WasmDataSegment::getData() const
-{
-    return data;
+    return m_data;
 }
 
 } // namespace Wasm

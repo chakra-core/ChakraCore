@@ -72,6 +72,16 @@ namespace Js
         static const ushort ksizeofCount;
         static const ushort ksizeofCallFlags;
         static const uint kMaxCountArgs;
+
+        static bool isDirectEvalCall(CallFlags flags)
+        {
+            // This was recognized as an eval call at compile time. The last one or two args are internal to us.
+            // Argcount will be one of the following when called from global code
+            //  - eval("...")     : argcount 3 : this, evalString, frameDisplay
+            //  - eval.call("..."): argcount 2 : this(which is string) , frameDisplay
+
+            return (flags & (CallFlags_ExtraArg | CallFlags_NewTarget)) == CallFlags_ExtraArg;  // ExtraArg == 1 && NewTarget == 0
+        }
     };
 
     struct InlineeCallInfo

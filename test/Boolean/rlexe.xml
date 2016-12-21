@@ -30,4 +30,16 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>equality.js</files>
+      <compile-flags>-maxsimplejitruncount:4 -maxinterpretcount:3</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>boolprop.js</files>
+      <compile-flags>-loopinterpretcount:1 -bgjit- -maxsimplejitruncount:2 -maxinterpretcount:1 -off:simplejit -off:lossyinttypespec</compile-flags>
+    </default>
+  </test>
 </regress-exe>

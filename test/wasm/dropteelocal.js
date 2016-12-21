@@ -3,7 +3,6 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-const blob = WScript.LoadBinaryFile('dropteelocal.wasm')
-const view = new Uint8Array(blob);
-var a = Wasm.instantiateModule(view, {}).exports;
+var mod = new WebAssembly.Module(readbuffer('dropteelocal.wasm'));
+var a = new WebAssembly.Instance(mod).exports;
 print(a.tee(1)); // == 100

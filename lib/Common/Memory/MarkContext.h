@@ -33,13 +33,13 @@ public:
     bool AddTrackedObject(FinalizableObject * obj);
 #endif
 
-    template <bool parallel, bool interior>
+    template <bool parallel, bool interior, bool doSpecialMark>
     void Mark(void * candidate, void * parentReference);
     template <bool parallel>
     void MarkInterior(void * candidate);
     template <bool parallel, bool interior>
     void ScanObject(void ** obj, size_t byteCount);
-    template <bool parallel, bool interior>
+    template <bool parallel, bool interior, bool doSpecialMark>
     void ScanMemory(void ** obj, size_t byteCount);
     template <bool parallel, bool interior>
     void ProcessMark();

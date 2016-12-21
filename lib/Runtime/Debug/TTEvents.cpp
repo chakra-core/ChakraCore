@@ -70,10 +70,10 @@ namespace TTD
         ;
     }
 
-    TTDebuggerSourceLocation::TTDebuggerSourceLocation(const SingleCallCounter& callFrame)
+    TTDebuggerSourceLocation::TTDebuggerSourceLocation(int64 topLevelETime, const SingleCallCounter& callFrame)
         : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
     {
-        this->SetLocation(callFrame);
+        this->SetLocation(topLevelETime, callFrame);
     }
 
     TTDebuggerSourceLocation::TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other)
@@ -85,6 +85,8 @@ namespace TTD
             size_t byteLength = char16Length * sizeof(char16);
 
             this->m_sourceFile = new char16[char16Length];
+            TTDAssert(this->m_sourceFile != nullptr, "Allocation failed!!!");
+
             js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
         }
     }
@@ -166,10 +168,6 @@ namespace TTD
 
     void TTDebuggerSourceLocation::SetLocation(const TTDebuggerSourceLocation& other)
     {
-#if !ENABLE_TTD_DEBUGGING
-        AssertMsg(false, "Debugger is not enabled so you shouldn't be calling this");
-        this->Clear();
-#else
         this->m_etime = other.m_etime;
         this->m_ftime = other.m_ftime;
         this->m_ltime = other.m_ltime;
@@ -194,32 +192,24 @@ namespace TTD
             size_t byteLength = char16Length * sizeof(char16);
 
             this->m_sourceFile = new char16[char16Length];
+            TTDAssert(this->m_sourceFile != nullptr, "Allocation failed!!!");
+
             js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
         }
-#endif
     }
 
-    void TTDebuggerSourceLocation::SetLocation(const SingleCallCounter& callFrame)
+    void TTDebuggerSourceLocation::SetLocation(int64 topLevelETime, const SingleCallCounter& callFrame)
     {
-#if !ENABLE_TTD_DEBUGGING
-        AssertMsg(false, "Debugger is not enabled so you shouldn't be calling this");
-        this->Clear();
-#else
         ULONG srcLine = 0;
         LONG srcColumn = -1;
         uint32 startOffset = callFrame.Function->GetStatementStartOffset(callFrame.CurrentStatementIndex);
         callFrame.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
 
-        this->SetLocation(callFrame.EventTime, callFrame.FunctionTime, callFrame.LoopTime, callFrame.Function, (uint32)srcLine, (uint32)srcColumn);
-#endif
+        this->SetLocation(topLevelETime, callFrame.FunctionTime, callFrame.LoopTime, callFrame.Function, (uint32)srcLine, (uint32)srcColumn);
     }
 
     void TTDebuggerSourceLocation::SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column)
     {
-#if !ENABLE_TTD_DEBUGGING
-        AssertMsg(false, "Debugger is not enabled so you shouldn't be calling this");
-        this->Clear();
-#else
         this->m_etime = etime;
         this->m_ftime = ftime;
         this->m_ltime = ltime;
@@ -245,9 +235,10 @@ namespace TTD
             size_t byteLength = char16Length * sizeof(char16);
 
             this->m_sourceFile = new char16[char16Length];
+            TTDAssert(this->m_sourceFile != nullptr, "Allocation failed!!!");
+
             js_memcpy_s(this->m_sourceFile, byteLength, sourceFile, byteLength);
         }
-#endif
     }
 
     int64 TTDebuggerSourceLocation::GetRootEventTime() const
@@ -273,7 +264,7 @@ namespace TTD
         {
             for(uint32 i = 0; i < resBody->GetNestedCount(); ++i)
             {
-                Js::ParseableFunctionInfo* ipfi = resBody->GetNestedFunc(i)->EnsureDeserialized();
+                Js::ParseableFunctionInfo* ipfi = resBody->GetNestedFunctionForExecution(i);
                 Js::FunctionBody* ifb = JsSupport::ForceAndGetFunctionBody(ipfi);
 
                 if(this->m_functionLine == ifb->GetLineNumber() && this->m_functionColumn == ifb->GetColumnNumber())
@@ -282,13 +273,13 @@ namespace TTD
                 }
 
                 //if it starts on a larger line or if same line but larger column then we don't contain the target
-                AssertMsg(ifb->GetLineNumber() < this->m_functionLine || (ifb->GetLineNumber() == this->m_functionLine && ifb->GetColumnNumber() < this->m_functionColumn), "We went to far but didn't find our function??");
+                TTDAssert(ifb->GetLineNumber() < this->m_functionLine || (ifb->GetLineNumber() == this->m_functionLine && ifb->GetColumnNumber() < this->m_functionColumn), "We went to far but didn't find our function??");
 
                 uint32 endLine = UINT32_MAX;
                 uint32 endColumn = UINT32_MAX;
                 if(i + 1 < resBody->GetNestedCount())
                 {
-                    Js::ParseableFunctionInfo* ipfinext = resBody->GetNestedFunc(i + 1)->EnsureDeserialized();
+                    Js::ParseableFunctionInfo* ipfinext = resBody->GetNestedFunctionForExecution(i + 1);
                     Js::FunctionBody* ifbnext = JsSupport::ForceAndGetFunctionBody(ipfinext);
 
                     endLine = ifbnext->GetLineNumber();
@@ -303,7 +294,7 @@ namespace TTD
             }
         }
 
-        AssertMsg(false, "We should never get here!!!");
+        TTDAssert(false, "We should never get here!!!");
         return nullptr;
     }
 
@@ -319,8 +310,8 @@ namespace TTD
 
     bool TTDebuggerSourceLocation::IsBefore(const TTDebuggerSourceLocation& other) const
     {
-        AssertMsg(this->m_ftime != -1 && other.m_ftime != -1, "These aren't orderable!!!");
-        AssertMsg(this->m_ltime != -1 && other.m_ltime != -1, "These aren't orderable!!!");
+        TTDAssert(this->m_ftime != -1 && other.m_ftime != -1, "These aren't orderable!!!");
+        TTDAssert(this->m_ltime != -1 && other.m_ltime != -1, "These aren't orderable!!!");
 
         //first check the order of the time parts
         if(this->m_etime != other.m_etime)
@@ -339,14 +330,14 @@ namespace TTD
         }
 
         //so all times are the same => min column/min row decide
-        if(this->m_functionLine != other.m_functionLine)
+        if(this->m_line != other.m_line)
         {
-            return this->m_functionLine < other.m_functionLine;
+            return this->m_line < other.m_line;
         }
 
-        if(this->m_functionColumn != other.m_functionColumn)
+        if(this->m_column != other.m_column)
         {
-            return this->m_functionColumn < other.m_functionColumn;
+            return this->m_column < other.m_column;
         }
 
         //they are refering to the same location so this is *not* stricly before
@@ -357,24 +348,28 @@ namespace TTD
 
     namespace NSLogEvents
     {
-        void PassVarToHostInReplay(Js::ScriptContext* ctx, TTDVar origVar, Js::Var replayVar)
+        void PassVarToHostInReplay(ThreadContextTTD* executeContext, TTDVar origVar, Js::Var replayVar)
         {
             static_assert(sizeof(TTDVar) == sizeof(Js::Var), "We assume the bit patterns on these types are the same!!!");
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             if(replayVar == nullptr || TTD::JsSupport::IsVarTaggedInline(replayVar))
             {
-                AssertMsg(origVar == replayVar, "Should be same bit pattern.");
+                TTDAssert(TTD::JsSupport::AreInlineVarsEquiv(origVar, replayVar), "Should be same bit pattern.");
             }
 #endif
 
             if(replayVar != nullptr && TTD::JsSupport::IsVarPtrValued(replayVar))
             {
-                ctx->TTDContextInfo->AddLocalRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar), Js::RecyclableObject::FromVar(replayVar));
+                Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(replayVar);
+                if(!ThreadContextTTD::IsSpecialRootObject(obj))
+                {
+                    executeContext->AddLocalRoot(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar), obj);
+                }
             }
         }
 
-        Js::Var InflateVarInReplay(Js::ScriptContext* ctx, TTDVar origVar)
+        Js::Var InflateVarInReplay(ThreadContextTTD* executeContext, TTDVar origVar)
         {
             static_assert(sizeof(TTDVar) == sizeof(Js::Var), "We assume the bit patterns on these types are the same!!!");
 
@@ -384,39 +379,14 @@ namespace TTD
             }
             else
             {
-                return ctx->TTDContextInfo->LookupObjectForLogID(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar));
+                return executeContext->LookupObjectForLogID(TTD_CONVERT_OBJ_TO_LOG_PTR_ID(origVar));
             }
-        }
-
-        bool EventEntersScriptContext(const EventLogEntry* evt)
-        {
-            return (evt->ContextMoveStatus & ContextWrapperEnterExitStatus::Enter) == ContextWrapperEnterExitStatus::Enter;
-        }
-
-        bool EventCompletesScriptContext(const EventLogEntry* evt)
-        {
-            return EventCompletesScriptContextNormally(evt) | EventCompletesScriptContextWithException(evt);
-        }
-
-        bool EventCompletesScriptContextNormally(const EventLogEntry* evt)
-        {
-            return (evt->ContextMoveStatus & ContextWrapperEnterExitStatus::ExitNormal) == ContextWrapperEnterExitStatus::ExitNormal;
-        }
-
-        bool EventCompletesScriptContextWithException(const EventLogEntry* evt)
-        {
-            return (evt->ContextMoveStatus & ContextWrapperEnterExitStatus::ExitException) == ContextWrapperEnterExitStatus::ExitException;
-        }
-
-        ContextWrapperEnterExitStatus GetEventScriptContextEnterExitKind(const EventLogEntry* evt)
-        {
-            return (evt->ContextMoveStatus & ContextWrapperEnterExitStatus::ContextKindMask);
         }
 
         void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime)
         {
             evt->EventKind = tag;
-            evt->ContextMoveStatus = ContextWrapperEnterExitStatus::Clear;
+            evt->ResultStatus = -1;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             evt->EventTimeStamp = etime;
@@ -428,7 +398,7 @@ namespace TTD
             writer->WriteRecordStart(separator);
 
             writer->WriteTag<EventKind>(NSTokens::Key::eventKind, evt->EventKind);
-            writer->WriteTag<ContextWrapperEnterExitStatus>(NSTokens::Key::eventEnterExitStatus, evt->ContextMoveStatus, NSTokens::Separator::CommaSeparator);
+            writer->WriteInt32(NSTokens::Key::eventResultStatus, evt->ResultStatus, NSTokens::Separator::CommaSeparator);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             writer->WriteInt64(NSTokens::Key::eventTime, evt->EventTimeStamp, NSTokens::Separator::CommaSeparator);
@@ -448,7 +418,7 @@ namespace TTD
             reader->ReadRecordStart(readSeperator);
 
             evt->EventKind = reader->ReadTag<EventKind>(NSTokens::Key::eventKind);
-            evt->ContextMoveStatus = reader->ReadTag<ContextWrapperEnterExitStatus>(NSTokens::Key::eventEnterExitStatus, true);
+            evt->ResultStatus = reader->ReadInt32(NSTokens::Key::eventResultStatus, true);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             evt->EventTimeStamp = reader->ReadInt64(NSTokens::Key::eventTime, true);
@@ -461,6 +431,26 @@ namespace TTD
             }
 
             reader->ReadRecordEnd();
+        }
+
+        bool EventFailsWithRuntimeError(const EventLogEntry* evt)
+        {
+            return !(EventDoesNotReturn(evt) || EventCompletesNormally(evt) || EventCompletesWithException(evt));
+        }
+
+        bool EventDoesNotReturn(const EventLogEntry* evt)
+        {
+            return evt->ResultStatus == -1;
+        }
+
+        bool EventCompletesNormally(const EventLogEntry* evt)
+        {
+            return (evt->ResultStatus == 0) || (evt->ResultStatus == TTD_REPLAY_JsErrorInvalidArgument) || (evt->ResultStatus == TTD_REPLAY_JsErrorArgumentNotObject);
+        }
+
+        bool EventCompletesWithException(const EventLogEntry* evt)
+        {
+            return (evt->ResultStatus == TTD_REPLAY_JsErrorCategoryScript) || (evt->ResultStatus == TTD_REPLAY_JsErrorScriptTerminated);
         }
 
         //////////////////
@@ -636,7 +626,7 @@ namespace TTD
         {
             const PropertyEnumStepEventLogEntry* propertyEvt = GetInlineEventDataAs<PropertyEnumStepEventLogEntry, EventKind::PropertyEnumTag>(evt);
 
-            writer->WriteBool(NSTokens::Key::boolVal, propertyEvt->ReturnCode ? true : false, NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::boolVal, !!propertyEvt->ReturnCode, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt32(NSTokens::Key::propertyId, propertyEvt->Pid, NSTokens::Separator::CommaSeparator);
             writer->WriteUInt32(NSTokens::Key::attributeFlags, propertyEvt->Attributes, NSTokens::Separator::CommaSeparator);
 
@@ -736,7 +726,7 @@ namespace TTD
             return callEvt->AdditionalInfo->LastNestedEventTime;
         }
 
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, double beginTime, UnlinkableSlabAllocator& alloc)
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool checkExceptions, double beginTime, UnlinkableSlabAllocator& alloc)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
             callEvt->AdditionalInfo = alloc.SlabAllocateStruct<ExternalCallEventLogEntry_AdditionalInfo>();
@@ -756,6 +746,8 @@ namespace TTD
 
             callEvt->ReturnValue = nullptr;
             callEvt->AdditionalInfo->LastNestedEventTime = TTD_EVENT_MAXTIME;
+
+            callEvt->AdditionalInfo->CheckExceptionStatus = checkExceptions;
         }
 
         void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent, double endTime)
@@ -802,6 +794,8 @@ namespace TTD
             writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(callEvt->ReturnValue, writer, NSTokens::Separator::NoSeparator);
 
+            writer->WriteBool(NSTokens::Key::boolVal, callEvt->AdditionalInfo->CheckExceptionStatus, NSTokens::Separator::CommaSeparator);
+
             writer->WriteInt64(NSTokens::Key::i64Val, callEvt->AdditionalInfo->LastNestedEventTime, NSTokens::Separator::CommaSeparator);
 
             writer->WriteDouble(NSTokens::Key::beginTime, callEvt->AdditionalInfo->BeginTime, NSTokens::Separator::CommaSeparator);
@@ -831,6 +825,8 @@ namespace TTD
 
             reader->ReadKey(NSTokens::Key::argRetVal, true);
             callEvt->ReturnValue = NSSnapValues::ParseTTDVar(false, reader);
+
+            callEvt->AdditionalInfo->CheckExceptionStatus = reader->ReadBool(NSTokens::Key::boolVal, true);
 
             callEvt->AdditionalInfo->LastNestedEventTime = reader->ReadInt64(NSTokens::Key::i64Val, true);
 

@@ -1315,6 +1315,7 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
         globalBailOutRecordDataTable->isInlinedConstructor = func->IsInlinedConstructor();
         globalBailOutRecordDataTable->isLoopBody = topFunc->IsLoopBody();
         globalBailOutRecordDataTable->returnValueRegSlot = func->returnValueRegSlot;
+        globalBailOutRecordDataTable->isScopeObjRestored = false;
         globalBailOutRecordDataTable->firstActualStackOffset = -1;
         globalBailOutRecordDataTable->registerSaveSpace = (Js::Var*)func->GetThreadContextInfo()->GetBailOutRegisterSaveSpaceAddr();
         globalBailOutRecordDataTable->globalBailOutRecordDataRows = nullptr;
@@ -3395,6 +3396,7 @@ LinearScan::InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg)
             sym = StackSym::New(TyVar, this->func);
             sym->m_isConst = true;
             sym->m_isIntConst = oldSym->m_isIntConst;
+            sym->m_isInt64Const = oldSym->m_isInt64Const;
             sym->m_isTaggableIntConst = sym->m_isTaggableIntConst;
         }
     }

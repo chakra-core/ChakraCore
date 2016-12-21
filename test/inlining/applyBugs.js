@@ -3,6 +3,10 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+if (this.WScript && this.WScript.LoadScriptFile) { // Check for running in ch
+    this.WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
+}
+
 // BLUE 535258
 var test = function()
 {
@@ -224,4 +228,26 @@ function test0() {
   var v36 = new protoObj2.v5();
 }
 test0();
+WScript.Echo("PASSED");
+
+function test3(a,b)
+{
+  a = a.foo;
+  return a.apply(b);
+}
+
+function test3Wrapper()
+{
+  var obj1 = {foo: function(){return this.prop1;}};
+  var obj2 = {prop1: 1};
+  
+  var result = [];
+  result.push(test3(obj1, obj2));
+  result.push(test3(obj1, obj2));
+  result.push(test3(obj1, obj2));
+  
+  var expected = [1,1,1];
+  assert.areEqual(expected, result);
+}
+test3Wrapper();
 WScript.Echo("PASSED");

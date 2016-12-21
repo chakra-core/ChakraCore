@@ -1116,7 +1116,7 @@ CommonNumber:
         if (JavascriptProxy::Is(instance))
         {
             JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
-            return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind);
+            return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
         }
 
         return JavascriptObject::CreateOwnStringPropertiesHelper(object, scriptContext);
@@ -1125,12 +1125,12 @@ CommonNumber:
     JavascriptArray* JavascriptOperators::GetOwnPropertySymbols(Var instance, ScriptContext *scriptContext)
     {
         RecyclableObject *object = RecyclableObject::FromVar(ToObject(instance, scriptContext));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(GetOwnPropertySymbolsCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_getOwnPropertySymbols);
 
         if (JavascriptProxy::Is(instance))
         {
             JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
-            return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertySymbolKind);
+            return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertySymbolKind, scriptContext);
         }
 
         return JavascriptObject::CreateOwnSymbolPropertiesHelper(object, scriptContext);
@@ -1143,7 +1143,7 @@ CommonNumber:
         if (JavascriptProxy::Is(instance))
         {
             JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
-            return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::KeysKind);
+            return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::KeysKind, scriptContext);
         }
 
         return JavascriptObject::CreateOwnStringSymbolPropertiesHelper(object, scriptContext);
@@ -1156,7 +1156,7 @@ CommonNumber:
         if (JavascriptProxy::Is(instance))
         {
             JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
-            JavascriptArray* proxyResult = proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind);
+            JavascriptArray* proxyResult = proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, scriptContext);
             JavascriptArray* proxyResultToReturn = scriptContext->GetLibrary()->CreateArray(0);
 
             // filter enumerable keys
@@ -1192,7 +1192,7 @@ CommonNumber:
         if (JavascriptProxy::Is(instance))
         {
             JavascriptProxy* proxy = JavascriptProxy::FromVar(instance);
-            return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::KeysKind);
+            return proxy->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::KeysKind, scriptContext);
         }
         return JavascriptObject::CreateOwnEnumerableStringSymbolPropertiesHelper(object, scriptContext);
     }
@@ -4038,7 +4038,15 @@ CommonNumber:
 
         if (!hasProperty)
         {
-            JavascriptString* varName = JavascriptConversion::ToString(index, scriptContext);
+            JavascriptString* varName = nullptr;
+            if (indexType == IndexType_PropertyId && propertyRecord != nullptr && propertyRecord->IsSymbol())
+            {
+                varName = JavascriptSymbol::ToString(propertyRecord, scriptContext);
+            }
+            else
+            {
+                varName = JavascriptConversion::ToString(index, scriptContext);
+            }
 
             // ES5 11.2.3 #2: We evaluate the call target but don't throw yet if target member is missing. We need to evaluate argList
             // first (#3). Postpone throwing error to invoke time.
@@ -5541,13 +5549,6 @@ CommonNumber:
                 ScriptFunction *func = entry->func;
 
                 FunctionProxy * proxy = func->GetFunctionProxy();
-                if (proxy != proxy->GetFunctionProxy())
-                {
-                    // The FunctionProxy has changed since the object was cached, e.g., due to execution
-                    // of a deferred function through a different object.
-                    proxy = proxy->GetFunctionProxy();
-                    func->SetFunctionInfo(proxy);
-                }
 
                 // Reset the function's type to the default type with no properties
                 // Use the cached type on the function proxy rather than the type in the func cache entry
@@ -5573,7 +5574,7 @@ CommonNumber:
             uint nestedIndex = entry->nestedIndex;
             uint scopeSlot = entry->scopeSlot;
 
-            FunctionProxy * proxy = funcParent->GetFunctionBody()->GetNestedFunc(nestedIndex);
+            FunctionProxy * proxy = funcParent->GetFunctionBody()->GetNestedFunctionProxy(nestedIndex);
 
             ScriptFunction *func = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
 
@@ -6816,8 +6817,7 @@ CommonNumber:
                 // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
                 // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
                 // is ready for storing values directly to slots.
-                DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
-
+                DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);    
                 int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
                 int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
                 __analysis_assume((uint32)newSlotCapacity >= formalsCount);
@@ -6897,9 +6897,28 @@ CommonNumber:
         return argsObj;
     }
 
-    Var JavascriptOperators::OP_NewScopeObject(ScriptContext*scriptContext)
+    Var JavascriptOperators::OP_NewScopeObject(ScriptContext* scriptContext)
     {
         return scriptContext->GetLibrary()->CreateActivationObject();
+    }
+
+    Var JavascriptOperators::OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, JavascriptFunction * funcCallee, bool nonSimpleParamList)
+    {
+        Js::ActivationObject * frameObject = (ActivationObject*)OP_NewScopeObject(scriptContext);
+        // No fixed fields for formal parameters of the arguments object.  Also, mark all fields as initialized up-front, because
+        // we will set them directly using SetSlot below, so the type handler will not have a chance to mark them as initialized later.
+        // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
+        // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
+        // is ready for storing values directly to slots.
+        DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), funcCallee->GetFunctionBody()->GetFormalsPropIdArray(), nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
+
+        int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
+        int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
+
+        frameObject->EnsureSlots(oldSlotCapacity, newSlotCapacity, scriptContext, newType->GetTypeHandler());
+        frameObject->ReplaceType(newType);
+        
+        return frameObject;
     }
 
     Var* JavascriptOperators::OP_NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope)
@@ -6909,7 +6928,9 @@ CommonNumber:
         uint count = size - ScopeSlots::FirstSlotIndex;
         ScopeSlots slots(slotArray);
         slots.SetCount(count);
+        AssertMsg(!FunctionBody::Is(scope), "Scope should only be FunctionInfo or DebuggerScope, not FunctionBody");
         slots.SetScopeMetadata(scope);
+
         Var undef = scriptContext->GetLibrary()->GetUndefined();
         for (unsigned int i = 0; i < count; i++)
         {
@@ -6978,13 +6999,14 @@ CommonNumber:
                 {
                     JavascriptError::ThrowTypeError(scriptContext, JSERR_Property_NeedFunction, _u("Symbol[Symbol.hasInstance]"));
                 }
+
+                ThreadContext * threadContext = scriptContext->GetThreadContext();
                 RecyclableObject *instFunc = RecyclableObject::FromVar(instOfHandler);
-                Js::Var values[2];
-                Js::CallInfo info(Js::CallFlags_Value, 2);
-                Js::Arguments args(info, values);
-                values[0] = constructor;
-                values[1] = instance;
-                Var result = JavascriptFunction::CallFunction<true>(instFunc, instFunc->GetEntryPoint(), args);
+                Var result = threadContext->ExecuteImplicitCall(instFunc, ImplicitCall_Accessor, [=]()->Js::Var
+                {
+                    return CALL_FUNCTION(instFunc, CallInfo(CallFlags_Value, 2), constructor, instance);
+                });
+
                 return  JavascriptBoolean::ToVar(JavascriptConversion::ToBoolean(result, scriptContext) ? TRUE : FALSE, scriptContext);
             }
         }
@@ -8178,9 +8200,18 @@ CommonNumber:
         return entry->slotIndex == Constants::NoSlot && !entry->mustBeWritable;
     }
 
+    bool JavascriptOperators::CheckIfTypeIsEquivalentForFixedField(Type* type, JitEquivalentTypeGuard* guard)
+    {
+        if (guard->GetValue() == PropertyGuard::GuardValue::Invalidated_DuringSweep)
+        {
+            return false;
+        }
+        return CheckIfTypeIsEquivalent(type, guard);
+    }
+
     bool JavascriptOperators::CheckIfTypeIsEquivalent(Type* type, JitEquivalentTypeGuard* guard)
     {
-        if (guard->GetValue() == 0)
+        if (guard->GetValue() == PropertyGuard::GuardValue::Invalidated)
         {
             return false;
         }
@@ -9294,11 +9325,10 @@ CommonNumber:
         return thisVar;
     }
 
-
     Var JavascriptOperators::CallGetter(RecyclableObject * const function, Var const object, ScriptContext * requestContext)
     {
-#if ENABLE_TTD_DEBUGGING
-        if(requestContext->ShouldSuppressGetterInvocationForDebuggerEvaluation())
+#if ENABLE_TTD
+        if(function->GetScriptContext()->ShouldSuppressGetterInvocationForDebuggerEvaluation())
         {
             return requestContext->GetLibrary()->GetUndefined();
         }
@@ -9815,10 +9845,7 @@ CommonNumber:
     JavascriptOperators::GetDeferredDeserializedFunctionProxy(JavascriptFunction* func)
     {
         FunctionProxy* proxy = func->GetFunctionProxy();
-        if (proxy->GetFunctionProxy() != proxy)
-        {
-            proxy = proxy->GetFunctionProxy();
-        }
+        Assert(proxy->GetFunctionInfo()->GetFunctionProxy() != proxy);
         return proxy;
     }
 

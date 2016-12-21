@@ -7,6 +7,17 @@ class ScriptSite;
 namespace Js
 {
 
+#if ENABLE_TTD
+#define DEFINE_TTD_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(T) \
+    virtual void MarshalCrossSite_TTDInflate() \
+    { \
+        AssertMsg(VirtualTableInfo<T>::HasVirtualTable(this), "Derived class need to define marshal"); \
+        VirtualTableInfo<Js::CrossSiteObject<T>>::SetVirtualTable(this); \
+    }
+#else
+#define DEFINE_TTD_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(T)
+#endif
+
 #if !defined(USED_IN_STATIC_LIB)
 #define DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(T) \
     friend class Js::CrossSiteObject<T>; \
@@ -15,7 +26,8 @@ namespace Js
         Assert(this->GetScriptContext() != scriptContext); \
         AssertMsg(VirtualTableInfo<T>::HasVirtualTable(this), "Derived class need to define marshal to script context"); \
         VirtualTableInfo<Js::CrossSiteObject<T>>::SetVirtualTable(this); \
-    }
+    }\
+    DEFINE_TTD_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(T)
 #else
 #define DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(T)  \
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext)  {Assert(FALSE);}
@@ -97,6 +109,7 @@ namespace Js
         void InitSlots(DynamicObject * instance, ScriptContext * scriptContext);
         void SetTypeHandler(DynamicTypeHandler * typeHandler, bool hasChanged);
         void ReplaceType(DynamicType * type);
+        void ReplaceTypeWithPredecessorType(DynamicType * previousType);
 
     protected:
         DEFINE_VTABLE_CTOR(DynamicObject, RecyclableObject);

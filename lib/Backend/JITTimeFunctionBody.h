@@ -97,13 +97,14 @@ public:
     bool IsParamAndBodyScopeMerged() const;
     bool CanInlineRecursively(uint depth, bool tryAggressive = true) const;
     bool NeedScopeObjectForArguments(bool hasNonSimpleParams) const;
+    bool GetDoScopeObjectCreation() const;
 
     const byte * GetByteCodeBuffer() const;
     StatementMapIDL * GetFullStatementMap() const;
     uint GetFullStatementMapCount() const;
     void * ReadFromAuxData(uint offset) const;
     void * ReadFromAuxContextData(uint offset) const;
-    intptr_t GetNestedFuncRef(uint index) const;
+    Js::FunctionInfoPtrPtr GetNestedFuncRef(uint index) const;
     intptr_t GetConstantVar(Js::RegSlot location) const;
     JITRecyclableObject * GetConstantContent(Js::RegSlot location) const;
 

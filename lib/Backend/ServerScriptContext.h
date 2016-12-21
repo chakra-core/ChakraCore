@@ -7,6 +7,7 @@
 
 class ServerScriptContext : public ScriptContextInfo
 {
+#if ENABLE_OOP_NATIVE_CODEGEN
 private:
     struct ThreadContextHolder
     {
@@ -75,8 +76,6 @@ public:
     void SetIsPRNGSeeded(bool value);
     void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);
     void UpdateGlobalObjectThisAddr(intptr_t globalThis);
-    EmitBufferManager<> * GetEmitBufferManager(bool asmJsManager);
-    void DecommitEmitBufferManager(bool asmJsManager);
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
     ServerThreadContext* GetThreadContext() { return threadContextHolder.threadContextInfo; }
 
@@ -92,9 +91,6 @@ private:
 #endif
     ArenaAllocator m_sourceCodeArena;
 
-    EmitBufferManager<> * m_interpreterThunkBufferManager;
-    EmitBufferManager<> * m_asmJsInterpreterThunkBufferManager;
-
     ScriptContextDataIDL m_contextData;
     intptr_t m_globalThisAddr;
 
@@ -102,4 +98,5 @@ private:
 
     bool m_isPRNGSeeded;
     bool m_isClosed;
+#endif
 };

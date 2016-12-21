@@ -19,7 +19,7 @@ namespace Js
 
     public:
         DEFINE_GETCPPNAME();
-        typedef JsUtil::BaseDictionary<uintptr_t, DynamicType *, Recycler, PowerOf2SizePolicy> TypeTransitionMap;
+        typedef JsUtil::WeaklyReferencedKeyDictionary<DynamicType, DynamicType*> TypeTransitionMap;
 
     protected:
         PathTypeHandlerBase(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
@@ -203,6 +203,8 @@ namespace Js
     public:
         virtual void ShrinkSlotAndInlineSlotCapacity(uint16 newInlineSlotCapacity) = 0;
         virtual bool GetMaxPathLength(uint16 * maxPathLength) = 0;
+        void MoveAuxSlotsToObjectHeader(DynamicObject *const object);
+        BOOL DeleteLastProperty(DynamicObject *const object);
 
 #if ENABLE_TTD
     public:
@@ -243,7 +245,7 @@ namespace Js
 
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
-        static SimplePathTypeHandler * SimplePathTypeHandler::New(ScriptContext * scriptContext, SimplePathTypeHandler * typeHandler, bool isLocked, bool isShared);
+        static SimplePathTypeHandler * New(ScriptContext * scriptContext, SimplePathTypeHandler * typeHandler, bool isLocked, bool isShared);
     };
 
     class PathTypeHandler sealed : public PathTypeHandlerBase

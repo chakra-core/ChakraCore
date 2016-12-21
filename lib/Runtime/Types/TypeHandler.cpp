@@ -771,7 +771,7 @@ namespace Js
 #if ENABLE_TTD
     Js::BigPropertyIndex DynamicTypeHandler::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
     {
-        AssertMsg(false, "Should never be called.");
+        TTDAssert(false, "Should never be called.");
 
         return Js::Constants::NoBigSlot;
     }
@@ -792,7 +792,7 @@ namespace Js
             memset(handler->PropertyInfoArray, 0, handler->TotalSlotCapacity * sizeof(TTD::NSSnapType::SnapHandlerPropertyEntry));
 
             handler->MaxPropertyIndex = this->ExtractSlotInfo_TTD(handler->PropertyInfoArray, threadContext, alloc);
-            AssertMsg(handler->MaxPropertyIndex <= handler->TotalSlotCapacity, "Huh we have more property entries than slots to put them in.");
+            TTDAssert(handler->MaxPropertyIndex <= handler->TotalSlotCapacity, "Huh we have more property entries than slots to put them in.");
 
             if(handler->MaxPropertyIndex != 0)
             {

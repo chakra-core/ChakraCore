@@ -96,6 +96,7 @@ namespace Js
 
             template <LayoutSize layoutSize> void EncodeOpCode(uint16 op, ByteCodeWriter* writer);
             template <> void EncodeOpCode<SmallLayout>(uint16 op, ByteCodeWriter* writer);
+
             // EncodeT functions return the global offset where the opcode has been encoded
             template <LayoutSize layoutSize> uint EncodeT(OpCode op, ByteCodeWriter* writer);
             template <LayoutSize layoutSize> uint EncodeT(OpCode op, const void * rawData, int byteSize, ByteCodeWriter* writer);
@@ -409,7 +410,7 @@ namespace Js
                 (op == OpCode::NewScIntArray || op == OpCode::NewScFltArray || op == OpCode::NewScArray);
         }
 
-        uint ByteCodeWriter::GetTotalSize()
+        uint GetTotalSize()
         {
             return m_byteCodeData.GetCurrentOffset() + m_auxiliaryData.GetCurrentOffset() + m_auxContextData.GetCurrentOffset();
         }

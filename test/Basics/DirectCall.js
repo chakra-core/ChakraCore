@@ -12,7 +12,7 @@ WScript.Echo(c, f);
 (function f()
 {
     // Test calls that modify the call target operands when the args are evaluated.
-    // Do this locally, as that's the case that Eze is likeliest to get wrong.
+    // Do this locally, as that's the case that we're most likely to get wrong.
 
     var save;
     var O = { foo : function() { return "O.foo"; }, bar : function() { return "O.bar"; } };

@@ -7,9 +7,9 @@
 #include "Library/StackScriptFunction.h"
 #include "Types/SpreadArgument.h"
 
+#include "Language/AsmJsTypes.h"
 #ifdef _M_X64
 #include "ByteCode/PropertyIdArray.h"
-#include "Language/AsmJsTypes.h"
 #include "Language/AsmJsModule.h"
 #endif
 
@@ -208,11 +208,11 @@ namespace Js
         BOOL strictMode = FALSE;
 
         JavascriptFunction *pfuncScript;
-        ParseableFunctionInfo *pfuncBodyCache = NULL;
+        FunctionInfo *pfuncInfoCache = NULL;
         char16 const * sourceString = bs->GetSz();
         charcount_t sourceLen = bs->GetLength();
         EvalMapString key(sourceString, sourceLen, moduleID, strictMode, /* isLibraryCode = */ false);
-        if (!scriptContext->IsInNewFunctionMap(key, &pfuncBodyCache))
+        if (!scriptContext->IsInNewFunctionMap(key, &pfuncInfoCache))
         {
             // Validate formals here
             scriptContext->GetGlobalObject()->ValidateSyntax(
@@ -237,27 +237,22 @@ namespace Js
             Assert(functionInfo);
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
 
-            scriptContext->AddToNewFunctionMap(key, functionInfo);
+            scriptContext->AddToNewFunctionMap(key, functionInfo->GetFunctionInfo());
+        }
+        else if (pfuncInfoCache->IsCoroutine())
+        {
+            pfuncScript = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(pfuncInfoCache->GetFunctionProxy());
         }
         else
         {
-            // Get the latest proxy
-            FunctionProxy * proxy = pfuncBodyCache->GetFunctionProxy();
-            if (proxy->IsCoroutine())
-            {
-                pfuncScript = scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(proxy);
-            }
-            else
-            {
-                pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(proxy);
-            }
+            pfuncScript = scriptContext->GetLibrary()->CreateScriptFunction(pfuncInfoCache->GetFunctionProxy());
         }
 
 #if ENABLE_TTD
         //
         //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
         //
-        if(scriptContext->ShouldPerformRecordTopLevelFunction() | scriptContext->ShouldPerformDebugAction())
+        if(scriptContext->IsTTDRecordModeEnabled() || scriptContext->ShouldPerformReplayAction())
         {
             //Make sure we have the body and text information available
             FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
@@ -265,7 +260,7 @@ namespace Js
             {
                 uint64 bodyIdCtr = 0;
 
-                if(scriptContext->ShouldPerformRecordTopLevelFunction())
+                if(scriptContext->IsTTDRecordModeEnabled())
                 {
                     const TTD::NSSnapValues::TopLevelNewFunctionBodyResolveInfo* tbfi = scriptContext->GetThreadContext()->TTDLog->AddNewFunction(globalBody, moduleID, sourceString, sourceLen);
 
@@ -278,7 +273,7 @@ namespace Js
                     bodyIdCtr = tbfi->TopLevelBase.TopLevelBodyCtr;
                 }
 
-                if(scriptContext->ShouldPerformDebugAction())
+                if(scriptContext->ShouldPerformReplayAction())
                 {
                     bodyIdCtr = scriptContext->GetThreadContext()->TTDLog->ReplayTopLevelCodeAction();
                 }
@@ -569,7 +564,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(FunctionBindCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Function_Prototype_bind);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -902,7 +897,7 @@ namespace Js
         Var functionResult;
         if (spreadIndices != nullptr)
         {
-            functionResult = CallSpreadFunction(functionObj, functionObj->GetEntryPoint(), newArgs, spreadIndices);
+            functionResult = CallSpreadFunction(functionObj, newArgs, spreadIndices);
         }
         else
         {
@@ -945,7 +940,7 @@ namespace Js
 
         RUNTIME_ARGUMENTS(args, spreadIndices, function, callInfo);
 
-        return JavascriptFunction::CallSpreadFunction(function, function->GetEntryPoint(), args, spreadIndices);
+        return JavascriptFunction::CallSpreadFunction(function, args, spreadIndices);
     }
 
     uint32 JavascriptFunction::GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext)
@@ -1032,15 +1027,16 @@ namespace Js
 
                     if (arr != nullptr && !arr->IsCrossSiteObject())
                     {
+                        uint32 length = arr->GetLength();
                         // CONSIDER: Optimize by creating a JavascriptArray routine which allows
                         // memcpy-like semantics in optimal situations (no gaps, etc.)
-                        if (argsIndex + arr->GetLength() > destArgs.Info.Count)
+                        if (argsIndex + length > destArgs.Info.Count)
                         {
                             AssertMsg(false, "The array length has changed since we allocated the destArgs buffer?");
                             Throw::FatalInternalError();
                         }
 
-                        for (uint32 j = 0; j < arr->GetLength(); j++)
+                        for (uint32 j = 0; j < length; j++)
                         {
                             Var element;
                             if (!arr->DirectGetItemAtFull(j, &element))
@@ -1086,7 +1082,7 @@ namespace Js
         }
     }
 
-    Var JavascriptFunction::CallSpreadFunction(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args, const Js::AuxArray<uint32> *spreadIndices)
+    Var JavascriptFunction::CallSpreadFunction(RecyclableObject* function, Arguments args, const Js::AuxArray<uint32> *spreadIndices)
     {
         ScriptContext* scriptContext = function->GetScriptContext();
 
@@ -1113,7 +1109,7 @@ namespace Js
 
         SpreadArgs(args, outArgs, spreadIndices, scriptContext);
 
-        return JavascriptFunction::CallFunction<true>(function, entryPoint, outArgs);
+        return JavascriptFunction::CallFunction<true>(function, function->GetEntryPoint(), outArgs);
     }
 
     Var JavascriptFunction::CallFunction(Arguments args)
@@ -1124,7 +1120,135 @@ namespace Js
     template Var JavascriptFunction::CallFunction<true>(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args);
     template Var JavascriptFunction::CallFunction<false>(RecyclableObject* function, JavascriptMethod entryPoint, Arguments args);
 
-#ifdef _M_IX86
+#if _M_IX86
+#ifdef ASMJS_PLAT
+    template <> int JavascriptFunction::CallAsmJsFunction<int>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    {
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retIntVal;
+    }
+    template <> int64 JavascriptFunction::CallAsmJsFunction<int64>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    {
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retInt64Val;
+    }
+    template <> float JavascriptFunction::CallAsmJsFunction<float>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    {
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retFloatVal;
+    }
+    template <> double JavascriptFunction::CallAsmJsFunction<double>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    {
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retDoubleVal;
+    }
+    template <> AsmJsSIMDValue JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    {
+        return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retSimdVal;
+    }
+
+    PossibleAsmJsReturnValues JavascriptFunction::CallAsmJsFunctionX86Thunk(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
+    {
+        enum {
+            IsFloat = 1 << AsmJsRetType::Float,
+            IsDouble = 1 << AsmJsRetType::Double,
+            IsInt64 = 1 << AsmJsRetType::Int64,
+            IsSimd = 
+            1 << AsmJsRetType::Int32x4 |
+            1 << AsmJsRetType::Bool32x4 |
+            1 << AsmJsRetType::Bool16x8 |
+            1 << AsmJsRetType::Bool8x16 |
+            1 << AsmJsRetType::Float32x4 |
+            1 << AsmJsRetType::Float64x2 |
+            1 << AsmJsRetType::Int16x8 |
+            1 << AsmJsRetType::Int8x16 |
+            1 << AsmJsRetType::Uint32x4 |
+            1 << AsmJsRetType::Uint16x8 |
+            1 << AsmJsRetType::Uint8x16,
+            CannotUseEax = IsFloat | IsDouble | IsInt64 | IsSimd
+        };
+
+        AsmJsFunctionInfo* asmInfo = ((ScriptFunction*)function)->GetFunctionBody()->GetAsmJsFunctionInfo();
+        Assert((uint)((ArgSlot)asmInfo->GetArgCount() + 1) == (uint)(asmInfo->GetArgCount() + 1));
+        uint argsSize = asmInfo->GetArgByteSize();
+        uint alignedSize = ::Math::Align<int32>(argsSize, 8);
+        ScriptContext * scriptContext = function->GetScriptContext();
+        PROBE_STACK_CALL(scriptContext, function, alignedSize);
+
+        PossibleAsmJsReturnValues retVals;
+        AsmJsRetType::Which retType = asmInfo->GetReturnType().which();
+
+        void *data = nullptr;
+        void *savedEsp = nullptr;
+        __asm
+        {
+            // Save ESP
+            mov savedEsp, esp;
+            mov eax, alignedSize;
+            // Make sure we don't go beyond guard page
+            cmp eax, 0x1000;
+            jge alloca_probe;
+            sub esp, eax;
+            jmp dbl_align;
+alloca_probe :
+            // Use alloca to allocate more then a page size
+            // Alloca assumes eax, contains size, and adjust ESP while
+            // probing each page.
+            call _alloca_probe_16;
+dbl_align :
+            and esp,-8
+                mov data, esp;
+        }
+
+        {
+            Var* outParam = argv + 1;
+            void* dest = (void*)data;
+            memmove(dest, outParam, argsSize);
+
+        }
+        // call variable argument function provided in entryPoint
+        __asm
+        {
+#ifdef _CONTROL_FLOW_GUARD
+            // verify that the call target is valid
+            mov  ecx, entryPoint
+            call[__guard_check_icall_fptr]
+            ; no need to restore ecx('call entryPoint' is a __cdecl call)
+#endif
+            push function;
+            call entryPoint;
+            push edx; // save possible int64 return value
+            mov ecx, retType;
+            mov edx, 1;
+            shl edx, cl;
+            pop ecx; // restore possible int64 return value
+            and edx, CannotUseEax;
+            jz FromEax;
+            and edx, ~IsInt64;
+            jz FromEaxEcx;
+            and edx, ~IsFloat;
+            jz FromXmmWord;
+            and edx, ~IsDouble;
+            jz FromXmmDWord;
+            // simd
+            movups retVals.retSimdVal, xmm0;
+            jmp end
+                FromEax:
+            mov retVals.retIntVal, eax;
+            jmp end;
+FromEaxEcx:
+            mov retVals.retIntVal, eax;
+            mov retVals.retIntVal + 4, ecx;
+            jmp end;
+FromXmmWord:
+            movss retVals.retFloatVal, xmm0;
+            jmp end;
+FromXmmDWord:
+            movsd retVals.retDoubleVal, xmm0;
+end:
+            // Restore ESP
+            mov esp, savedEsp;
+        }
+        return retVals;
+    }
+#endif
+
 #ifdef __clang__
 void __cdecl _alloca_probe_16()
 {
@@ -1524,8 +1648,19 @@ LABEL1:
 
         Assert(functionInfo);
 
+        // Prevent redeferring during parsing
+        bool canBeDeferred = functionInfo->CanBeDeferred();
+        functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() & ~FunctionInfo::Attributes::CanDefer));
+
         if (functionInfo->IsDeferredParseFunction())
         {
+            if (ScriptFunctionWithInlineCache::Is(*functionRef))
+            {
+                // If inline caches were populated from a function body that has been redeferred, the caches have been cleaned up,
+                // so clear the pointers. REVIEW: Is this a perf loss in some cases?
+                ScriptFunctionWithInlineCache::FromVar(*functionRef)->ClearBorrowedInlineCacheOnFunctionObject();
+            }
+
             funcBody = functionInfo->Parse(functionRef);
             fParsed = funcBody->IsFunctionParsed() ? TRUE : FALSE;
 
@@ -1548,7 +1683,25 @@ LABEL1:
 #else // !ENABLE_SCRIPT_PROFILING
         Assert(directEntryPoint != DefaultDeferredParsingThunk);
 #endif
-        return (*functionRef)->UpdateUndeferredBody(funcBody);
+
+        // Restore the can-be-deferred attribute.
+        if (canBeDeferred)
+        {
+            funcBody->SetAttributes((FunctionInfo::Attributes)(funcBody->GetAttributes() | FunctionInfo::Attributes::CanDefer));
+        }
+
+        JavascriptMethod thunkEntryPoint = (*functionRef)->UpdateUndeferredBody(funcBody);
+
+        if (ScriptFunctionWithInlineCache::Is(*functionRef))
+        {
+            ScriptFunctionWithInlineCache * funcObjectWithInlineCache = ScriptFunctionWithInlineCache::FromVar(*functionRef);
+            if (!funcObjectWithInlineCache->GetHasOwnInlineCaches())
+            {
+                funcObjectWithInlineCache->SetInlineCachesFromFunctionBody();
+            }
+        }
+
+        return thunkEntryPoint;
     }
 
     void JavascriptFunction::ReparseAsmJsModule(ScriptFunction** functionRef)
@@ -1556,7 +1709,6 @@ LABEL1:
         ParseableFunctionInfo* functionInfo = (*functionRef)->GetParseableFunctionInfo();
 
         Assert(functionInfo);
-        Assert(functionInfo->HasBody());
         functionInfo->GetFunctionBody()->AddDeferParseAttribute();
         functionInfo->GetFunctionBody()->ResetEntryPoint();
         functionInfo->GetFunctionBody()->ResetInParams();
@@ -1671,7 +1823,7 @@ LABEL1:
         // calls the default entry point the next time around
         if (funcInfo->IsDeferredDeserializeFunction())
         {
-            DeferDeserializeFunctionInfo* deferDeserializeFunction = (DeferDeserializeFunctionInfo*) funcInfo;
+            DeferDeserializeFunctionInfo* deferDeserializeFunction = funcInfo->GetDeferDeserializeFunctionInfo();
 
             // This is the first call to the function, ensure dynamic profile info
             // Deserialize is a no-op if the function has already been deserialized
@@ -2097,9 +2249,9 @@ LABEL1:
         BYTE* buffer = nullptr;
         if (isAsmJs)
         {
+            Assert(!funcBody->IsWasmFunction());
             // some extra checks for asm.js because we have slightly more information that we can validate
-            Js::EntryPointInfo* entryPointInfo = (Js::EntryPointInfo*)funcBody->GetDefaultEntryPointInfo();
-            uintptr_t moduleMemory = entryPointInfo->GetModuleAddress();
+            uintptr_t moduleMemory = (uintptr_t)((AsmJsScriptFunction*)func)->GetModuleMemory();
             if (!moduleMemory)
             {
                 return false;
@@ -2481,6 +2633,11 @@ LABEL1:
                 // Caller of this function expects nullValue from the requestContext.
                 funcCaller = nullValue;
             }
+            if (ScriptFunction::Is(funcCaller))
+            {
+                // Is this is the internal function of a generator function then return the original generator function
+                funcCaller = ScriptFunction::FromVar(funcCaller)->GetRealFunctionObject();
+            }
         }
 
         return StackScriptFunction::EnsureBoxed(BOX_PARAM(funcCaller, nullptr, _u("caller")));
@@ -2489,6 +2646,7 @@ LABEL1:
     BOOL JavascriptFunction::GetCallerProperty(Var originalInstance, Var* value, ScriptContext* requestContext)
     {
         ScriptContext* scriptContext = this->GetScriptContext();
+        *value = nullptr;
 
         if (this->IsStrictMode())
         {
@@ -2531,7 +2689,10 @@ LABEL1:
             {
                 JavascriptFunction* exceptionFunction = unhandledExceptionObject->GetFunction();
                 // This is for getcaller in window.onError. The behavior is different in different browsers
-                if (exceptionFunction && scriptContext == exceptionFunction->GetScriptContext())
+                if (exceptionFunction 
+                    && scriptContext == exceptionFunction->GetScriptContext()
+                    && exceptionFunction->IsScriptFunction()
+                    && !exceptionFunction->GetFunctionBody()->GetIsGlobalFunc())
                 {
                     *value = exceptionFunction;
                 }

@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 class BackwardPass;
@@ -1292,6 +1292,7 @@ public:
 
     IR::ByteCodeUsesInstr * ConvertToByteCodeUses(IR::Instr * isntr);
     bool GetIsAsmJSFunc()const{ return isAsmJSFunc; };
+    BOOLEAN                 IsArgumentsOpnd(IR::Opnd* opnd);
 private:
     bool                    IsLoopPrePass() const { return this->prePassLoop != nullptr; }
     void                    OptBlock(BasicBlock *block);
@@ -1321,6 +1322,7 @@ private:
     void                    MergeCapturedValues(GlobOptBlockData * toData, SListBase<CapturedList> * toList, SListBase<CapturedList> * fromList, CapturedItemsAreEqual itemsAreEqual);
     void                    MergeBlockData(GlobOptBlockData *toData, BasicBlock *toBlock, BasicBlock *fromBlock, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge, bool forceTypeSpecOnLoopHeader);
     void                    DeleteBlockData(GlobOptBlockData *data);
+    void                    TryReplaceLdLen(IR::Instr *& instr);
     IR::Instr *             OptInstr(IR::Instr *&instr, bool* isInstrCleared);
     Value*                  OptDst(IR::Instr **pInstr, Value *dstVal, Value *src1Val, Value *src2Val, Value *dstIndirIndexVal, Value *src1IndirIndexVal);
     void                    CopyPropDstUses(IR::Opnd *opnd, IR::Instr *instr, Value *src1Val);
@@ -1335,7 +1337,6 @@ private:
     IR::Instr *             SetTypeCheckBailOut(IR::Opnd *opnd, IR::Instr *instr, BailOutInfo *bailOutInfo);
     void                    OptArguments(IR::Instr *Instr);
     void                    TrackInstrsForScopeObjectRemoval(IR::Instr * instr);
-    BOOLEAN                 IsArgumentsOpnd(IR::Opnd* opnd);
     bool                    AreFromSameBytecodeFunc(IR::RegOpnd* src1, IR::RegOpnd* dst);
     void                    TrackArgumentsSym(IR::RegOpnd* opnd);
     void                    ClearArgumentsSym(IR::RegOpnd* opnd);
@@ -1658,11 +1659,11 @@ private:
     static void             TrackByteCodeSymUsed(IR::RegOpnd * opnd, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     static void             TrackByteCodeSymUsed(StackSym * sym, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     void                    CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo);
-    void                    GlobOpt::CaptureValuesFromScratch(
+    void                    CaptureValuesFromScratch(
                                 BasicBlock * block,
                                 SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
                                 SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
-    void                    GlobOpt::CaptureValuesIncremental(
+    void                    CaptureValuesIncremental(
                                 BasicBlock * block,
                                 SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
                                 SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
@@ -1783,6 +1784,7 @@ private:
     void                    RemoveFlowEdgeToCatchBlock(IR::Instr * instr);
 
     void                    CSEAddInstr(BasicBlock *block, IR::Instr *instr, Value *dstVal, Value *src1Val, Value *src2Val, Value *dstIndirIndexVal, Value *src1IndirIndexVal);
+    void                    OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val);
     bool                    CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSrc1Val, Value **pSrc2Val, Value **pSrc1IndirIndexVal, bool intMathExprOnly = false);
     bool                    GetHash(IR::Instr *instr, Value *src1Val, Value *src2Val, ExprAttributes exprAttributes, ExprHash *pHash);
     void                    ProcessArrayValueKills(IR::Instr *instr);

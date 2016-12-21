@@ -634,7 +634,7 @@ public:
     {
         return __super::Remove(allocator, data);
     }
-
+    EditingIterator GetEditingIterator() { return EditingIterator(this); }
 
     // Stack like interface
     bool Push(TData const& data)

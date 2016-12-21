@@ -7,11 +7,20 @@
 namespace Js
 {
     FunctionInfo::FunctionInfo(JavascriptMethod entryPoint, Attributes attributes, LocalFunctionId functionId, FunctionProxy* functionBodyImpl)
-        : originalEntryPoint(entryPoint), attributes(attributes), functionBodyImpl(functionBodyImpl), functionId(functionId)
+        : originalEntryPoint(entryPoint), attributes(attributes), functionBodyImpl(functionBodyImpl), functionId(functionId), compileCount(0)
     {
 #if !DYNAMIC_INTERPRETER_THUNK
         Assert(entryPoint != nullptr);
 #endif
+    }
+
+    bool FunctionInfo::Is(void* ptr)
+    {
+        if(!ptr)
+        {
+            return false;
+        }
+        return VirtualTableInfo<FunctionInfo>::HasVirtualTable(ptr);
     }
 
     void FunctionInfo::VerifyOriginalEntryPoint() const
@@ -40,8 +49,7 @@ namespace Js
     FunctionBody *
     FunctionInfo::GetFunctionBody() const
     {
-        Assert(functionBodyImpl == nullptr || functionBodyImpl->IsFunctionBody());
-        return (FunctionBody *)functionBodyImpl;
+        return functionBodyImpl == nullptr ? nullptr : functionBodyImpl->GetFunctionBody();
     }
 
     FunctionInfo::Attributes FunctionInfo::GetAttributes(Js::RecyclableObject * function)

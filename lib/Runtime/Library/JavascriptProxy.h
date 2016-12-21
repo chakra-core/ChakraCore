@@ -156,7 +156,7 @@ namespace Js
 
         void PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord);
 
-        JavascriptArray* PropertyKeysTrap(KeysTrapKind keysTrapKind);
+        JavascriptArray* PropertyKeysTrap(KeysTrapKind keysTrapKind, ScriptContext* requestContext);
 
         template <class Fn>
         void GetOwnPropertyKeysHelper(ScriptContext* scriptContext, RecyclableObject* trapResultArray, uint32 len, JavascriptArray* trapResult,

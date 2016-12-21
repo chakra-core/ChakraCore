@@ -6,3 +6,5 @@
 #include "Runtime.h"
 #include "Math/JavascriptSSE2MathOperators.h"
 #include "Math/JavascriptSSE2MathOperators.inl"
+#include "AsmJsMath.h"
+#include "WasmMath.h"

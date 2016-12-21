@@ -12,16 +12,16 @@ CompileAssert(false)
 #include "XDataAllocator.h"
 #include "Core/DelayLoadLibrary.h"
 
-XDataAllocator::XDataAllocator(BYTE* address, uint size, HANDLE processHandle) :
+#ifndef _WIN32
+#include "PlatformAgnostic/AssemblyCommon.h" // __REGISTER_FRAME / __DEREGISTER_FRAME
+#endif
+
+XDataAllocator::XDataAllocator(BYTE* address, uint size) :
     freeList(nullptr),
     start(address),
     current(address),
-    size(size),
-    processHandle(processHandle)
+    size(size)
 {
-#ifdef RECYCLER_MEMORY_VERIFY
-    ChakraMemSet(this->start, Recycler::VerifyMemFill, this->size, this->processHandle);
-#endif
     Assert(size > 0);
     Assert(address != nullptr);
 }
@@ -92,10 +92,6 @@ void XDataAllocator::Release(const SecondaryAllocation& allocation)
         freed->next = this->freeList;
         this->freeList = freed;
     }
-
-#ifdef RECYCLER_MEMORY_VERIFY
-    ChakraMemSet(allocation.address, Recycler::VerifyMemFill, XDATA_SIZE, this->processHandle);
-#endif
 }
 
 bool XDataAllocator::CanAllocate()
@@ -155,7 +151,7 @@ void XDataAllocator::Register(XDataAllocation * xdataInfo, ULONG_PTR functionSta
 
 #else  // !_WIN32
     Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
-    __register_frame(xdataInfo->address);
+    __REGISTER_FRAME(xdataInfo->address);
 #endif
 }
 
@@ -176,6 +172,6 @@ void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
 
 #else  // !_WIN32
     Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
-    __deregister_frame(xdataInfo->address);
+    __DEREGISTER_FRAME(xdataInfo->address);
 #endif
 }

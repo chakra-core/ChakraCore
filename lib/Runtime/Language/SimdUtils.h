@@ -288,6 +288,7 @@ namespace Js {
         ///////////////////////////////////////////
         static SIMDValue SIMDLdData(const SIMDValue *data, uint8 dataWidth);
         static void SIMDStData(SIMDValue *data, const SIMDValue simdValue, uint8 dataWidth);
+        template<bool acceptNegZero = false>
         static uint32 SIMDCheckUint32Number(ScriptContext* scriptContext, const Var value);
         static bool SIMDIsSupportedTypedArray(Var value);
         static SIMDValue*  SIMDCheckTypedArrayAccess(Var arg1, Var arg2, TypedArrayBase **tarray, int32 *index, uint32 dataWidth, ScriptContext *scriptContext);

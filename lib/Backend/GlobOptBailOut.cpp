@@ -1050,11 +1050,10 @@ GlobOpt::InsertByteCodeUses(IR::Instr * instr, bool includeDef)
     }
     if (!this->byteCodeUses->IsEmpty() || this->propertySymUse || dstOpnd != nullptr)
     {
-        byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr->m_func);
-        byteCodeUsesInstr->SetByteCodeOffset(instr);
+        byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
         if (!this->byteCodeUses->IsEmpty())
         {
-            byteCodeUsesInstr->byteCodeUpwardExposedUsed = byteCodeUses->CopyNew(instr->m_func->m_alloc);
+            byteCodeUsesInstr->SetBV(byteCodeUses->CopyNew(instr->m_func->m_alloc));
         }
         if (dstOpnd != nullptr)
         {
@@ -1085,42 +1084,9 @@ GlobOpt::ConvertToByteCodeUses(IR::Instr * instr)
     this->CaptureByteCodeSymUses(instr);
     IR::ByteCodeUsesInstr * byteCodeUsesInstr = this->InsertByteCodeUses(instr, true);
     instr->Remove();
-    // If possible, we want to aggregate with subsequent ByteCodeUses Instructions, so
-    // that we can do some optimizations in other places where we can simplify args in
-    // a compare, but still need to generate them for bailouts. Without this, we cause
-    // problems because we end up with an instruction losing atomicity in terms of its
-    // bytecode use and generation lifetimes.
-    if (byteCodeUsesInstr &&
-        byteCodeUsesInstr->m_next &&
-        byteCodeUsesInstr->m_next->m_opcode == Js::OpCode::ByteCodeUses &&
-        byteCodeUsesInstr->GetByteCodeOffset() == byteCodeUsesInstr->m_next->GetByteCodeOffset()
-        )
+    if (byteCodeUsesInstr)
     {
-        IR::ByteCodeUsesInstr * nextinstr = byteCodeUsesInstr->m_next->AsByteCodeUsesInstr();
-        if (nextinstr->GetDst() == nullptr)
-        {
-            // We move all of the uses of the next bytecodeuses instruction into this one. The
-            // instruction is notably not removed or repurposed; unfortunately, at this point,
-            // doing either would be somewhat complex. Removing the instruction breaks some of
-            // the assumptions made in other code (notably RemoveCodeAfterNoFallthroughInstr),
-            // and repurposing it by removing the newly-added byteCodeUsesInstr requires us to
-            // be able to handle transferring the Dst reg in a couple more cases (like if it's
-            // single-def).
-            if (nextinstr->byteCodeUpwardExposedUsed)
-            {
-                if (byteCodeUsesInstr->byteCodeUpwardExposedUsed)
-                {
-                    byteCodeUsesInstr->byteCodeUpwardExposedUsed->Or(nextinstr->byteCodeUpwardExposedUsed);
-                    JitAdelete(nextinstr->byteCodeUpwardExposedUsed->GetAllocator(), nextinstr->byteCodeUpwardExposedUsed);
-                    nextinstr->byteCodeUpwardExposedUsed = nullptr;
-                }
-                else
-                {
-                    byteCodeUsesInstr->byteCodeUpwardExposedUsed = nextinstr->byteCodeUpwardExposedUsed;
-                    nextinstr->byteCodeUpwardExposedUsed = nullptr;
-                }
-            }
-        }
+        byteCodeUsesInstr->Aggregate();
     }
     return byteCodeUsesInstr;
 }

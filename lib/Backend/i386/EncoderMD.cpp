@@ -1230,7 +1230,7 @@ modrm:
             bool writeImm = true;
             if (src2 &&src2->IsIntConstOpnd())
             {
-                valueImm = src2->AsIntConstOpnd()->GetImmediateValue(instr->m_func);
+                valueImm = (uint)src2->AsIntConstOpnd()->GetImmediateValue(instr->m_func);
             }
             else
             {
@@ -1802,6 +1802,14 @@ void EncoderMD::UpdateRelocListWithNewBuffer(RelocList * relocList, BYTE * newBu
 bool EncoderMD::IsOPEQ(IR::Instr *instr)
 {
     return instr->IsLowered() && (EncoderMD::GetOpdope(instr) & DOPEQ);
+}
+
+bool EncoderMD::IsSHIFT(IR::Instr *instr)
+{
+    return (instr->IsLowered() && EncoderMD::GetInstrForm(instr) == FORM_SHIFT) ||
+        instr->m_opcode == Js::OpCode::PSLLDQ || instr->m_opcode == Js::OpCode::PSRLDQ ||
+        instr->m_opcode == Js::OpCode::PSLLW || instr->m_opcode == Js::OpCode::PSRLW ||
+        instr->m_opcode == Js::OpCode::PSLLD;
 }
 
 void EncoderMD::AddLabelReloc(BYTE* relocAddress)

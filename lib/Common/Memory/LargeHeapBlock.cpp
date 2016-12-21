@@ -378,6 +378,44 @@ LargeHeapBlock::IsFreeObject(void * objectAddress)
     return ((char *)header >= this->address && header->objectIndex < this->allocCount && this->GetHeader(header->objectIndex) == nullptr);
 }
 #endif
+
+bool
+LargeHeapBlock::TryGetAttributes(void* objectAddress, unsigned char * pAttr)
+{
+    return this->TryGetAttributes(GetHeader(objectAddress), pAttr);
+}
+
+bool
+LargeHeapBlock::TryGetAttributes(LargeObjectHeader * header, unsigned char * pAttr)
+{
+    if ((char *)header < this->address)
+    {
+        return false;
+    }
+
+    uint index = header->objectIndex;
+
+    if (index >= this->allocCount)
+    {
+        // Not allocated yet.
+        return false;
+    }
+
+    if (this->HeaderList()[index] != header)
+    {
+        // header doesn't match, not a real object
+        return false;
+    }
+
+    if (this->InPageHeapMode())
+    {
+        this->VerifyPageHeapPattern();
+    }
+
+    *pAttr = header->GetAttributes(this->heapInfo->recycler->Cookie);
+    return true;
+}
+
 size_t
 LargeHeapBlock::GetPagesNeeded(size_t size, bool multiplyRequest)
 {
@@ -556,39 +594,21 @@ LargeHeapBlock::Alloc(size_t size, ObjectInfoBits attributes)
     return allocObject;
 }
 
+template <bool doSpecialMark>
 _NOINLINE
 void
 LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
 {
     LargeObjectHeader * header = GetHeader(objectAddress);
 
-    if ((char *)header < this->address)
+    unsigned char attributes = ObjectInfoBits::NoBit;
+    if (!this->TryGetAttributes(header, &attributes))
     {
         return;
-    }
-
-    uint index = header->objectIndex;
-
-    if (index >= this->allocCount)
-    {
-        // Not allocated yet.
-        return;
-    }
-
-    if (this->HeaderList()[index] != header)
-    {
-        // header doesn't match, not a real object
-        return;
-    }
-
-    if (this->InPageHeapMode())
-    {
-        this->VerifyPageHeapPattern();
     }
 
     DUMP_OBJECT_REFERENCE(markContext->GetRecycler(), objectAddress);
 
-    unsigned char attributes = header->GetAttributes(this->heapInfo->recycler->Cookie);
     size_t objectSize = header->objectSize;
     if (this->InPageHeapMode())
     {
@@ -602,7 +622,7 @@ LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
         }
     }
 
-    if (!UpdateAttributesOfMarkedObjects(markContext, objectAddress, objectSize, attributes,
+    if (!UpdateAttributesOfMarkedObjects<doSpecialMark>(markContext, objectAddress, objectSize, attributes,
         [&](unsigned char attributes) { header->SetAttributes(this->heapInfo->recycler->Cookie, attributes); }))
     {
         // Couldn't mark children- bail out and come back later
@@ -617,6 +637,9 @@ LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
         }
     }
 }
+
+template void LargeHeapBlock::Mark<true>(void* objectAddress, MarkContext * markContext);
+template void LargeHeapBlock::Mark<false>(void* objectAddress, MarkContext * markContext);
 
 bool
 LargeHeapBlock::TestObjectMarkedBit(void* objectAddress)
@@ -910,7 +933,6 @@ LargeHeapBlock::ScanInitialImplicitRoots(Recycler * recycler)
         }
     }
 }
-
 
 void
 LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)

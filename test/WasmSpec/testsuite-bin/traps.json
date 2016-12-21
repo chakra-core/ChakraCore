@@ -1,115 +1,27 @@
-{
-  "modules": [{
-    "filename": "traps.0.wasm",
-    "commands": [{
-      "type": "assert_trap",
-      "name": "$assert_trap_0",
-      "file": "traps.wast",
-      "line": 20
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_1",
-      "file": "traps.wast",
-      "line": 21
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_2",
-      "file": "traps.wast",
-      "line": 22
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "traps.wast",
-      "line": 23
-    }]
-  }, {
-    "filename": "traps.1.wasm",
-    "commands": [{
-      "type": "assert_trap",
-      "name": "$assert_trap_0",
-      "file": "traps.wast",
-      "line": 40
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_1",
-      "file": "traps.wast",
-      "line": 41
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_2",
-      "file": "traps.wast",
-      "line": 42
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "traps.wast",
-      "line": 43
-    }]
-  }, {
-    "filename": "traps.2.wasm",
-    "commands": [{
-      "type": "assert_trap",
-      "name": "$assert_trap_0",
-      "file": "traps.wast",
-      "line": 65
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_1",
-      "file": "traps.wast",
-      "line": 66
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_2",
-      "file": "traps.wast",
-      "line": 67
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "traps.wast",
-      "line": 68
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_4",
-      "file": "traps.wast",
-      "line": 69
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_5",
-      "file": "traps.wast",
-      "line": 70
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_6",
-      "file": "traps.wast",
-      "line": 71
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_7",
-      "file": "traps.wast",
-      "line": 72
-    }]
-  }, {
-    "filename": "traps.3.wasm",
-    "commands": [{
-      "type": "assert_trap",
-      "name": "$assert_trap_0",
-      "file": "traps.wast",
-      "line": 87
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_1",
-      "file": "traps.wast",
-      "line": 88
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_2",
-      "file": "traps.wast",
-      "line": 89
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "traps.wast",
-      "line": 90
-    }]
-  }]
-}
+{"source_filename": "traps.wast",
+ "commands": [
+  {"type": "module", "line": 5, "filename": "traps.0.wasm"}, 
+  {"type": "assert_trap", "line": 16, "action": {"type": "invoke", "field": "no_dce.i32.div_s", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "0"}]}, "text": "integer divide by zero"}, 
+  {"type": "assert_trap", "line": 17, "action": {"type": "invoke", "field": "no_dce.i32.div_u", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "0"}]}, "text": "integer divide by zero"}, 
+  {"type": "assert_trap", "line": 18, "action": {"type": "invoke", "field": "no_dce.i64.div_s", "args": [{"type": "i64", "value": "1"}, {"type": "i64", "value": "0"}]}, "text": "integer divide by zero"}, 
+  {"type": "assert_trap", "line": 19, "action": {"type": "invoke", "field": "no_dce.i64.div_u", "args": [{"type": "i64", "value": "1"}, {"type": "i64", "value": "0"}]}, "text": "integer divide by zero"}, 
+  {"type": "module", "line": 21, "filename": "traps.1.wasm"}, 
+  {"type": "assert_trap", "line": 32, "action": {"type": "invoke", "field": "no_dce.i32.rem_s", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "0"}]}, "text": "integer divide by zero"}, 
+  {"type": "assert_trap", "line": 33, "action": {"type": "invoke", "field": "no_dce.i32.rem_u", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "0"}]}, "text": "integer divide by zero"}, 
+  {"type": "assert_trap", "line": 34, "action": {"type": "invoke", "field": "no_dce.i64.rem_s", "args": [{"type": "i64", "value": "1"}, {"type": "i64", "value": "0"}]}, "text": "integer divide by zero"}, 
+  {"type": "assert_trap", "line": 35, "action": {"type": "invoke", "field": "no_dce.i64.rem_u", "args": [{"type": "i64", "value": "1"}, {"type": "i64", "value": "0"}]}, "text": "integer divide by zero"}, 
+  {"type": "module", "line": 37, "filename": "traps.2.wasm"}, 
+  {"type": "assert_trap", "line": 48, "action": {"type": "invoke", "field": "no_dce.i32.trunc_s_f32", "args": [{"type": "f32", "value": "2143289344"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_trap", "line": 49, "action": {"type": "invoke", "field": "no_dce.i32.trunc_u_f32", "args": [{"type": "f32", "value": "2143289344"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_trap", "line": 50, "action": {"type": "invoke", "field": "no_dce.i32.trunc_s_f64", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_trap", "line": 51, "action": {"type": "invoke", "field": "no_dce.i32.trunc_u_f64", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_trap", "line": 52, "action": {"type": "invoke", "field": "no_dce.i64.trunc_s_f32", "args": [{"type": "f32", "value": "2143289344"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_trap", "line": 53, "action": {"type": "invoke", "field": "no_dce.i64.trunc_u_f32", "args": [{"type": "f32", "value": "2143289344"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_trap", "line": 54, "action": {"type": "invoke", "field": "no_dce.i64.trunc_s_f64", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_trap", "line": 55, "action": {"type": "invoke", "field": "no_dce.i64.trunc_u_f64", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "module", "line": 57, "filename": "traps.3.wasm"}, 
+  {"type": "assert_trap", "line": 66, "action": {"type": "invoke", "field": "no_dce.i32.load", "args": [{"type": "i32", "value": "65536"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 67, "action": {"type": "invoke", "field": "no_dce.i64.load", "args": [{"type": "i32", "value": "65536"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 68, "action": {"type": "invoke", "field": "no_dce.f32.load", "args": [{"type": "i32", "value": "65536"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 69, "action": {"type": "invoke", "field": "no_dce.f64.load", "args": [{"type": "i32", "value": "65536"}]}, "text": "out of bounds memory access"}
+]}

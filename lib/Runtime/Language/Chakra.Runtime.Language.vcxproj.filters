@@ -179,6 +179,12 @@
       <Filter>i386</Filter>
     </None>
     <None Include="TaggedInt.inl" />
+    <None Include="amd64\JavascriptOperatorsA.S">
+      <Filter>amd64</Filter>
+    </None>
+    <None Include="amd64\amd64_Thunks.S">
+      <Filter>amd64</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="amd64">

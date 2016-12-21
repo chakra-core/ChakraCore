@@ -12,9 +12,10 @@ namespace Js
         JavascriptStaticEnumerator enumerator;
         struct ShadowData
         {
-            ShadowData(RecyclableObject * initObject, RecyclableObject * firstPrototype, Recycler * recycler);
+            ShadowData(RecyclableObject * initObject, RecyclableObject * firstPrototype, RecyclableObject * firstPrototypeWithEnumerableProperties, Recycler * recycler);
             RecyclableObject * currentObject;
             RecyclableObject * firstPrototype;
+            RecyclableObject * firstPrototypeWithEnumerableProperties;
             BVSparse<Recycler> propertyIds;
             SListBase<Js::PropertyRecord const *> newPropertyStrings;
         } *shadowData;
@@ -36,7 +37,7 @@ namespace Js
         void Clear();
         Var MoveAndGetNext(PropertyId& propertyId);
 
-        static RecyclableObject* GetFirstPrototypeWithEnumerableProperties(RecyclableObject* object);
+        static RecyclableObject* GetFirstPrototypeWithEnumerableProperties(RecyclableObject* object, RecyclableObject** pFirstPrototype = nullptr);
 
 
         static uint32 GetOffsetOfCanUseJitFastPath() { return offsetof(ForInObjectEnumerator, canUseJitFastPath); }

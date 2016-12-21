@@ -448,6 +448,12 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM'">true</ExcludedFromBuild>
       <ObjectFileName Condition="'$(Platform)'!='ARM'">$(IntDir)\arm</ObjectFileName>
     </ARMASM>
+    <None Include="amd64\LinearScanMdA.S">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </None>
+    <None Include="amd64\Thunks.S">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </None>
     <None Include="IR.inl" />
     <None Include="Opnd.inl" />
     <None Include="Sym.inl" />

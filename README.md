@@ -19,47 +19,47 @@ You can stay up-to-date on progress by following the [MSEdge developer blog](htt
 
 *If you see badges reading "Build: Unknown" it is likely because a build was skipped due to changes being only in files known not to affect the health of the build.*
 
-[x64dbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/badge/icon
-[x64dbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/
-[x64testicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_test/badge/icon
-[x64testlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_test/
-[x64relicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_release/badge/icon
-[x64rellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x64_release/
+[x64dbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/badge/icon
+[x64dbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/
+[x64testicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_test/badge/icon
+[x64testlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_test/
+[x64relicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_release/badge/icon
+[x64rellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_release/
 
-[x86dbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/badge/icon
-[x86dbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/
-[x86testicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_test/badge/icon
-[x86testlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_test/
-[x86relicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_release/badge/icon
-[x86rellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/x86_release/
+[x86dbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/badge/icon
+[x86dbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_debug/
+[x86testicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_test/badge/icon
+[x86testlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_test/
+[x86relicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_release/badge/icon
+[x86rellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x86_release/
 
-[armdbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/badge/icon
-[armdbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/
-[armtesticon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_test/badge/icon
-[armtestlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_test/
-[armrelicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_release/badge/icon
-[armrellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/arm_release/
+[armdbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/badge/icon
+[armdbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_debug/
+[armtesticon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_test/badge/icon
+[armtestlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_test/
+[armrelicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_release/badge/icon
+[armrellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/arm_release/
 
-[linuxdbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_debug/badge/icon
-[linuxdbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_debug/
-[linuxtesticon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_test/badge/icon
-[linuxtestlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_test/
-[linuxrelicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release/badge/icon
-[linuxrellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release/
+[linuxdbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_debug/badge/icon
+[linuxdbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_debug/
+[linuxtesticon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_test/badge/icon
+[linuxtestlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_test/
+[linuxrelicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release/badge/icon
+[linuxrellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release/
 
-[linuxsdbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_debug_static/badge/icon
-[linuxsdbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_debug_static/
-[linuxstesticon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_test_static/badge/icon
-[linuxstestlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_test_static/
-[linuxsrelicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release_static/badge/icon
-[linuxsrellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release_static/
+[linuxsdbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_debug_static/badge/icon
+[linuxsdbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_debug_static/
+[linuxstesticon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_test_static/badge/icon
+[linuxstestlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_test_static/
+[linuxsrelicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release_static/badge/icon
+[linuxsrellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/ubuntu_linux_release_static/
 
-[osxsdbgicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_debug_static/badge/icon
-[osxsdbglink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_debug_static/
-[osxstesticon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_test_static/badge/icon
-[osxstestlink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_test_static/
-[osxsrelicon]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_release_static/badge/icon
-[osxsrellink]: http://dotnet-ci.cloudapp.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_release_static/
+[osxsdbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_debug_static/badge/icon
+[osxsdbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_debug_static/
+[osxstesticon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_test_static/badge/icon
+[osxstestlink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_test_static/
+[osxsrelicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_release_static/badge/icon
+[osxsrellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/osx_osx_release_static/
 
 Above is a table of our rolling build status. We run additional builds on a daily basis. See [Build Status](https://github.com/Microsoft/ChakraCore/wiki/Build-Status) for the status of all builds.
 

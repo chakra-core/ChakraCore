@@ -266,7 +266,7 @@ LargeHeapBucket::AddLargeHeapBlock(size_t size, bool nothrow)
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (segment->GetPageCount() > recycler->GetRecyclerLargeBlockPageAllocator()->GetMaxAllocPageCount())
     {
-        EventWriteJSCRIPT_INTERNAL_RECYCLER_EXTRALARGE_OBJECT_ALLOC(size);
+        JS_ETW_INTERNAL(EventWriteJSCRIPT_INTERNAL_RECYCLER_EXTRALARGE_OBJECT_ALLOC(size));
     }
 #endif
 #endif

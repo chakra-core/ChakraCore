@@ -7,6 +7,7 @@
 
 class ServerThreadContext : public ThreadContextInfo
 {
+#if ENABLE_OOP_NATIVE_CODEGEN
 public:
     ServerThreadContext(ThreadContextDataIDL * data);
     ~ServerThreadContext();
@@ -27,21 +28,18 @@ public:
     virtual intptr_t GetImplicitCallFlagsAddr() const override;
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const override;
 
-    virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() override;
+    PreReservedSectionAllocWrapper * GetPreReservedSectionAllocator();
 
     virtual bool IsNumericProperty(Js::PropertyId propId) override;
 
     ptrdiff_t GetChakraBaseAddressDifference() const;
     ptrdiff_t GetCRTBaseAddressDifference() const;
 
-    CodeGenAllocators * GetCodeGenAllocators();
-    CustomHeap::CodePageAllocators * GetCodePageAllocators();
-    void RemoveFromNumericPropertySet(Js::PropertyId reclaimedId);
-    void AddToNumericPropertySet(Js::PropertyId propertyId);
+    OOPCodeGenAllocators * GetCodeGenAllocators();
+    CustomHeap::CodePageAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>  * GetCodePageAllocators();
+    SectionAllocWrapper * GetSectionAllocator();
+    void UpdateNumericPropertyBV(BVSparseNode * newProps);
     void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
-#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    CustomHeap::CodePageAllocators * GetThunkPageAllocators();
-#endif
     void AddRef();
     void Release();
     void Close();
@@ -54,24 +52,21 @@ private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
 
-    typedef JsUtil::BaseHashSet<Js::PropertyId, HeapAllocator, PrimeSizePolicy, Js::PropertyId,
-        DefaultComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertySet;
-    PropertySet * m_numericPropertySet;
+    BVSparse<HeapAllocator> * m_numericPropertyBV;
 
-    PreReservedVirtualAllocWrapper m_preReservedVirtualAllocator;
-#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    CustomHeap::CodePageAllocators m_thunkPageAllocators;
-#endif
-    CustomHeap::CodePageAllocators m_codePageAllocators;
-    CodeGenAllocators m_codeGenAlloc;
+    PreReservedSectionAllocWrapper m_preReservedSectionAllocator;
+    SectionAllocWrapper m_sectionAllocator;
+    CustomHeap::CodePageAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>  m_codePageAllocators;
+    OOPCodeGenAllocators m_codeGenAlloc;
     // only allocate with this from foreground calls (never from CodeGen calls)
     PageAllocator m_pageAlloc;
 
     ThreadContextDataIDL m_threadContextData;
 
     DWORD m_pid; //save client process id for easier diagnose
-    
-    intptr_t m_jitChakraBaseAddress;
+
+    CriticalSection m_cs;
     intptr_t m_jitCRTBaseAddress;
     uint m_refCount;
+#endif
 };

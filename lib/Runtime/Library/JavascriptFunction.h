@@ -9,6 +9,18 @@ EXTERN_C Js::JavascriptMethod checkCodeGenThunk;
 
 namespace Js
 {
+    struct PossibleAsmJsReturnValues
+    {
+        union
+        {
+            int retIntVal;
+            int64 retInt64Val;
+            float retFloatVal;
+            double retDoubleVal;
+            AsmJsSIMDValue retSimdVal;
+        };
+    };
+
 #if _M_X64
    extern "C" Var amd64_CallFunction(RecyclableObject *function, JavascriptMethod entryPoint, CallInfo callInfo, uint argc, Var *argv);
 #endif
@@ -91,6 +103,7 @@ namespace Js
         Var CallRootFunctionInternal(Arguments args, ScriptContext * scriptContext, bool inScript);
         template <typename T>
         static T CallAsmJsFunction(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
+        static PossibleAsmJsReturnValues CallAsmJsFunctionX86Thunk(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
         template <bool isConstruct>
         static Var CalloutHelper(RecyclableObject* function, Var thisArg, Var overridingNewTarget, Var argArray, ScriptContext* scriptContext);
 
@@ -106,7 +119,7 @@ namespace Js
 #endif
         template <bool doStackProbe>
         static Var CallFunction(RecyclableObject* obj, JavascriptMethod entryPoint, Arguments args);
-        static Var CallSpreadFunction(RecyclableObject* obj, JavascriptMethod entryPoint, Arguments args, const Js::AuxArray<uint32> *spreadIndices);
+        static Var CallSpreadFunction(RecyclableObject* obj, Arguments args, const Js::AuxArray<uint32> *spreadIndices);
         static uint32 GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static void SpreadArgs(const Arguments args, Arguments& destArgs, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static Var EntrySpreadCall(const Js::AuxArray<uint32> *spreadIndices, RecyclableObject* function, CallInfo callInfo, ...);

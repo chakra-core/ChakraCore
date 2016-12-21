@@ -220,10 +220,18 @@ done:
 
 amd64_CallFunction ENDP
 
-ifdef _ENABLE_ASM_JS
+ifdef _ENABLE_DYNAMIC_THUNKS
 
 extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
 extrn ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z : PROC
+
+; int64 CallAsmJsFunction<int64>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+align 16
+??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SA_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+    .setframe rbp, 0
+    .endprolog
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
+??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SA_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
 ; float CallAsmJsFunction<float>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 align 16
@@ -410,7 +418,7 @@ done:
 
 ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
-endif ;; _ENABLE_ASM_JS
+endif ;; _ENABLE_DYNAMIC_THUNKS
 
 extrn ?DeferredParse@JavascriptFunction@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVScriptFunction@2@@Z : PROC
 align 16

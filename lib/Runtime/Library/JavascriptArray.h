@@ -438,6 +438,10 @@ namespace Js
         bool HasNoMissingValues_Unchecked() const; // do not use except in extreme circumstances
         void SetHasNoMissingValues(const bool hasNoMissingValues = true);
 
+        template<typename T>
+        bool IsMissingItemAt(uint32 index) const;
+        bool IsMissingItem(uint32 index);
+
         virtual bool IsMissingHeadSegmentItem(const uint32 index) const;
 
         static VTableValue VtableHelper()
@@ -790,6 +794,9 @@ namespace Js
         static BOOL SetArrayLikeObjects(RecyclableObject* pDestObj, uint32 idxDest, Var aItem);
         static BOOL SetArrayLikeObjects(RecyclableObject* pDestObj, BigIndex idxDest, Var aItem);
         static void ConcatArgsCallingHelper(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, ::Math::RecordOverflowPolicy &destLengthOverflow);
+        static void ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, uint32 index);
+        static void ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, BigIndex index);
+
     public:
         template<typename T, typename P = uint32>
         static void Unshift(RecyclableObject* obj, const T& toIndex, uint32 start, P end, ScriptContext* scriptContext);
@@ -1044,6 +1051,22 @@ namespace Js
         {
             return VTableValue::VtableCopyOnAccessNativeIntArray;
         }
+
+#if ENABLE_TTD
+    public:
+        virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override
+        {
+            return;
+        }
+
+        virtual void ProcessCorePaths() override
+        {
+            return;
+        }
+
+        virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
+        virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+#endif
     };
 #endif
 

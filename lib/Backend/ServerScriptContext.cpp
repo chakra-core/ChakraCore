@@ -4,10 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "Backend.h"
+
 #if ENABLE_OOP_NATIVE_CODEGEN
 #include "JITServer/JITServer.h"
-#endif
-
 
 ServerScriptContext::ThreadContextHolder::ThreadContextHolder(ServerThreadContext* threadContextInfo) : threadContextInfo(threadContextInfo)
 {
@@ -22,9 +21,7 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     m_contextData(*contextData),
     threadContextHolder(threadContextInfo),
     m_isPRNGSeeded(false),
-    m_interpreterThunkBufferManager(nullptr),
-    m_asmJsInterpreterThunkBufferManager(nullptr),
-    m_sourceCodeArena(_u("JITSourceCodeArena"), threadContextInfo->GetForegroundPageAllocator(), Js::Throw::OutOfMemory),
+    m_sourceCodeArena(_u("JITSourceCodeArena"), threadContextInfo->GetForegroundPageAllocator(), Js::Throw::OutOfMemory, nullptr),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
     m_globalThisAddr(0),
@@ -39,10 +36,6 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     {
         m_codeGenProfiler = HeapNew(Js::ScriptContextProfiler);
     }
-#endif
-#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    m_interpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Interpreter thunk buffer"), GetThreadContext()->GetProcessHandle());
-    m_asmJsInterpreterThunkBufferManager = HeapNew(EmitBufferManager<>, &m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Asm.js interpreter thunk buffer"), GetThreadContext()->GetProcessHandle());
 #endif
     m_domFastPathHelperMap = HeapNew(JITDOMFastPathHelperMap, &HeapAllocator::Instance, 17);
 }
@@ -61,14 +54,6 @@ ServerScriptContext::~ServerScriptContext()
         HeapDelete(m_codeGenProfiler);
     }
 #endif
-    if (m_asmJsInterpreterThunkBufferManager)
-    {
-        HeapDelete(m_asmJsInterpreterThunkBufferManager);
-    }
-    if (m_interpreterThunkBufferManager)
-    {
-        HeapDelete(m_interpreterThunkBufferManager);
-    }
 }
 
 intptr_t
@@ -324,29 +309,6 @@ ServerScriptContext::GetSourceCodeArena()
     return &m_sourceCodeArena;
 }
 
-void
-ServerScriptContext::DecommitEmitBufferManager(bool asmJsManager)
-{
-    EmitBufferManager<> * manager = GetEmitBufferManager(asmJsManager);
-    if (manager != nullptr)
-    {
-        manager->Decommit();
-    }
-}
-
-EmitBufferManager<> *
-ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
-{
-    if (asmJsManager)
-    {
-        return m_asmJsInterpreterThunkBufferManager;
-    }
-    else
-    {
-        return m_interpreterThunkBufferManager;
-    }
-}
-
 IR::JnHelperMethod
 ServerScriptContext::GetDOMFastPathHelper(intptr_t funcInfoAddr)
 {
@@ -422,3 +384,4 @@ ServerScriptContext::GetCodeGenProfiler() const
 #endif
 }
 
+#endif

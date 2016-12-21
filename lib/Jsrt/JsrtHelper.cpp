@@ -10,15 +10,15 @@
 #include "Language/DynamicProfileStorage.h"
 #endif
 
-#ifdef CHAKRA_STATIC_LIBRARY
+#if !defined(_WIN32) || defined(CHAKRA_STATIC_LIBRARY)
 #include "Core/ConfigParser.h"
+#include "Base/ThreadBoundThreadContextManager.h"
 
-void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
-{
-    autoSystemInfo->buildDateHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__DATE__, _countof(__DATE__));
-    autoSystemInfo->buildTimeHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__TIME__, _countof(__TIME__));
-}
+#ifndef _WIN32
+#include <pthread.h>
+#endif
 
+#ifdef CHAKRA_STATIC_LIBRARY
 bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)
 {
     return false;
@@ -32,6 +32,7 @@ LPCWSTR JsUtil::ExternalApi::GetFeatureKeyName()
 {
     return _u("");
 }
+#endif // CHAKRA_STATIC_LIBRARY
 #endif
 
 JsrtCallbackState::JsrtCallbackState(ThreadContext* currentThreadContext)
@@ -78,19 +79,16 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
     callback(object, callbackState);
 }
 
-// todo: We need an interface for thread/process exit.
-// At the moment we do handle thread exit for non main threads on xplat
-// However, it could be nice/necessary to provide an interface to make sure
-// we cover additional edge cases.
-#if defined(CHAKRA_STATIC_LIBRARY) || !defined(_WIN32)
-    #include "Core/ConfigParser.h"
-    #include "Base/ThreadBoundThreadContextManager.h"
+#if !defined(_WIN32) || defined(CHAKRA_STATIC_LIBRARY)
+    void ChakraBinaryAutoSystemInfoInit(AutoSystemInfo * autoSystemInfo)
+    {
+        autoSystemInfo->buildDateHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__DATE__, _countof(__DATE__));
+        autoSystemInfo->buildTimeHash = JsUtil::CharacterBuffer<char>::StaticGetHashCode(__TIME__, _countof(__TIME__));
+    }
 
 #ifndef _WIN32
-    #include <pthread.h>
     static pthread_key_t s_threadLocalDummy;
 #endif
-
     static THREAD_LOCAL bool s_threadWasEntered = false;
 
     _NOINLINE void DISPOSE_CHAKRA_CORE_THREAD(void *_)
@@ -105,21 +103,26 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
         pthread_key_create(&s_threadLocalDummy, DISPOSE_CHAKRA_CORE_THREAD);
 #endif
 
-#if defined(CHAKRA_STATIC_LIBRARY)
+    // setup the cleanup
+    // we do not track the main thread. When it exits do the cleanup below
+#ifdef CHAKRA_STATIC_LIBRARY
+    atexit([]() {
+        ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread();
 
-    // Attention: shared library is handled under (see ChakraCore/ChakraCoreDllFunc.cpp)
-    // todo: consolidate similar parts from shared and static library initialization
+        JsrtRuntime::Uninitialize();
+
+        // thread-bound entrypoint should be able to get cleanup correctly, however tlsentry
+        // for current thread might be left behind if this thread was initialized.
+        ThreadContextTLSEntry::CleanupThread();
+        ThreadContextTLSEntry::CleanupProcess();
+    });
+#endif
+
 #ifndef _WIN32
         PAL_InitializeChakraCore(0, NULL);
 #endif
 
         HMODULE mod = GetModuleHandleW(NULL);
-
-        if (!ThreadContextTLSEntry::InitializeProcess() || !JsrtContext::Initialize())
-        {
-            return FALSE;
-        }
-
         AutoSystemInfo::SaveModuleFileName(mod);
 
     #if defined(_M_IX86) && !defined(__clang__)
@@ -139,20 +142,6 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
         ValueType::Initialize();
         ThreadContext::GlobalInitialize();
 
-        // Needed to make sure that only ChakraCore is loaded into the process
-        // This is unnecessary on Linux since there aren't other flavors of
-        // Chakra binaries that can be loaded into the process
-    #ifdef _WIN32
-        char16 *engine = szChakraCoreLock;
-        if (::FindAtom(szChakraLock) != 0)
-        {
-            AssertMsg(FALSE, "Expecting to load chakracore.dll but process already loaded chakra.dll");
-            Binary_Inconsistency_fatal_error();
-        }
-        lockedDll = ::AddAtom(engine);
-        AssertMsg(lockedDll, "Failed to lock chakracore.dll");
-    #endif // _WIN32
-
     #ifdef ENABLE_BASIC_TELEMETRY
         g_TraceLoggingClient = NoCheckHeapNewStruct(TraceLoggingClient);
     #endif
@@ -160,7 +149,7 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
     #ifdef DYNAMIC_PROFILE_STORAGE
         DynamicProfileStorage::Initialize();
     #endif
-#endif // STATIC_LIBRARY
+
         return true;
     }
 
@@ -179,7 +168,6 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
         if (s_threadWasEntered) return;
         s_threadWasEntered = true;
 
-        ThreadContextTLSEntry::InitializeThread();
     #ifdef HEAP_TRACK_ALLOC
         HeapAllocator::InitializeThread();
     #endif

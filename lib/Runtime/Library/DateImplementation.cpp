@@ -1113,7 +1113,7 @@ Error:
                 }
                 case '+':
                 {
-                    if (lwNil != lwYear)
+                    if (lwNil != lwTime)
                     {
                         ss = ssAddOffset;
                     }
@@ -1121,7 +1121,7 @@ Error:
                 }
                 case '-':
                 {
-                    if (lwNil != lwYear)
+                    if (lwNil != lwTime)
                     {
                         ss = ssSubOffset;
                     }

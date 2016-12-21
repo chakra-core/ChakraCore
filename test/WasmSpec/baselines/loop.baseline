@@ -1,3 +1,1 @@
-Unexpected Error while compiling loop.0.wasm
-Error: Compiling wasm failed: I64 support NYI
-0/0 tests passed.
+49/49 tests passed.

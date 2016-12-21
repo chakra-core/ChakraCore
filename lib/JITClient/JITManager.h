@@ -7,6 +7,15 @@
 
 // We need real JITManager code when on _WIN32 or explict ENABLE_OOP_NATIVE_CODEGEN.
 // Otherwise we use a dummy JITManager which disables OOP JIT to reduce code noise.
+
+enum class RemoteCallType
+{
+    CodeGen,
+    ThunkCreation,
+    HeapQuery,
+    StateUpdate
+};
+
 #if _WIN32 || ENABLE_OOP_NATIVE_CODEGEN
 class JITManager
 {
@@ -20,86 +29,75 @@ public:
     void EnableOOPJIT();
 
     HANDLE GetJITTargetHandle() const;
+    HANDLE GetServerHandle() const;
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
-        __out intptr_t *threadContextInfoAddress,
+        __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out intptr_t *prereservedRegionAddr);
 
     HRESULT CleanupThreadContext(
-        __in intptr_t threadContextInfoAddress);
+        __inout PPTHREADCONTEXT_HANDLE threadContextInfoAddress);
 
     HRESULT UpdatePropertyRecordMap(
-        __in intptr_t threadContextInfoAddress,
-        __in UpdatedPropertysIDL * updatedProps);
-
-    HRESULT DecommitInterpreterBufferManager(
-        __in intptr_t scriptContextInfoAddress,
-        __in boolean asmJsThunk);
+        __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
+        __in BVSparseNodeIDL * updatedPropsBVHead);
 
     HRESULT NewInterpreterThunkBlock(
-        __in intptr_t scriptContextInfoAddress,
-        __in boolean asmJsThunk,
-        __out InterpreterThunkInfoIDL * thunkInfo);
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+        __in InterpreterThunkInputIDL * thunkInput,
+        __out InterpreterThunkOutputIDL * thunkOutput);
 
     HRESULT AddDOMFastPathHelper(
-        __in intptr_t scriptContextInfoAddress,
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __in intptr_t funcInfoAddr,
         __in int helper);
 
     HRESULT AddModuleRecordInfo(
-            /* [in] */ intptr_t scriptContextInfoAddress,
+            /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
             /* [in] */ unsigned int moduleId,
             /* [in] */ intptr_t localExportSlotsAddr);
 
     HRESULT SetWellKnownHostTypeId(
-        __in  intptr_t threadContextRoot,
+        __in  PTHREADCONTEXT_HANDLE threadContextRoot,
         __in  int typeId);
 
     HRESULT InitializeScriptContext(
         __in ScriptContextDataIDL * data,
-        __in  intptr_t threadContextInfoAddress,
-        __out intptr_t *scriptContextInfoAddress);
+        __in  PTHREADCONTEXT_HANDLE threadContextInfoAddress,
+        __out PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress);
 
     HRESULT CleanupProcess();
 
     HRESULT CleanupScriptContext(
-        __in intptr_t scriptContextInfoAddress);
+        __inout PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress);
 
     HRESULT CloseScriptContext(
-        __in intptr_t scriptContextInfoAddress);
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress);
 
     HRESULT FreeAllocation(
-        __in intptr_t threadContextInfoAddress,
+        __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __in intptr_t address);
 
     HRESULT SetIsPRNGSeeded(
-        __in intptr_t scriptContextInfoAddress,
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __in boolean value);
 
     HRESULT IsNativeAddr(
-        __in intptr_t threadContextInfoAddress,
+        __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __in intptr_t address,
         __out boolean * result);
 
     HRESULT RemoteCodeGenCall(
         __in CodeGenWorkItemIDL *workItemData,
-        __in intptr_t scriptContextInfoAddress,
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __out JITOutputIDL *jitData);
-
-#if DBG
-    HRESULT IsInterpreterThunkAddr(
-        __in intptr_t scriptContextInfoAddress,
-        __in intptr_t address,
-        __in boolean asmjsThunk,
-        __out boolean * result);
-#endif
 
     HRESULT Shutdown();
 
 
     static JITManager * GetJITManager();
-    static void HandleServerCallResult(HRESULT hr);
+    static void HandleServerCallResult(HRESULT hr, RemoteCallType callType);
 private:
     JITManager();
     ~JITManager();
@@ -112,6 +110,7 @@ private:
 
     RPC_BINDING_HANDLE m_rpcBindingHandle;
     HANDLE m_targetHandle;
+    HANDLE m_serverHandle;
     UUID m_jitConnectionId;
     bool m_oopJitEnabled;
     bool m_isJITServer;
@@ -135,75 +134,79 @@ public:
 
     HANDLE GetJITTargetHandle() const
         { Assert(false); return HANDLE(); }
+    HANDLE GetServerHandle() const
+    {
+        Assert(false); return HANDLE();
+    }
 
     HRESULT InitializeThreadContext(
         __in ThreadContextDataIDL * data,
-        __out intptr_t *threadContextInfoAddress,
+        __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out intptr_t *prereservedRegionAddr)
         { Assert(false); return E_FAIL; }
 
     HRESULT CleanupThreadContext(
-        __in intptr_t threadContextInfoAddress)
+        __inout PPTHREADCONTEXT_HANDLE threadContextInfoAddress)
         { Assert(false); return E_FAIL; }
 
     HRESULT UpdatePropertyRecordMap(
-        __in intptr_t threadContextInfoAddress,
-        __in UpdatedPropertysIDL * updatedProps)
+        __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
+        __in BVSparseNodeIDL * updatedPropsBVHead)
         { Assert(false); return E_FAIL; }
 
     HRESULT AddDOMFastPathHelper(
-        __in intptr_t scriptContextInfoAddress,
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __in intptr_t funcInfoAddr,
         __in int helper)
         { Assert(false); return E_FAIL; }
 
     HRESULT AddModuleRecordInfo(
-            /* [in] */ intptr_t scriptContextInfoAddress,
+            /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
             /* [in] */ unsigned int moduleId,
             /* [in] */ intptr_t localExportSlotsAddr)
         { Assert(false); return E_FAIL; }
 
     HRESULT SetWellKnownHostTypeId(
-        __in  intptr_t threadContextRoot,
+        __in  PTHREADCONTEXT_HANDLE threadContextRoot,
         __in  int typeId)
         { Assert(false); return E_FAIL; }
 
     HRESULT InitializeScriptContext(
         __in ScriptContextDataIDL * data,
-        __in intptr_t threadContextInfoAddress,
-        __out intptr_t *scriptContextInfoAddress)
+        __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
+        __out PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
         { Assert(false); return E_FAIL; }
 
     HRESULT CleanupProcess()
         { Assert(false); return E_FAIL; }
 
     HRESULT CleanupScriptContext(
-        __in intptr_t scriptContextInfoAddress)
+        __inout PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
         { Assert(false); return E_FAIL; }
 
     HRESULT CloseScriptContext(
-        __in intptr_t scriptContextInfoAddress)
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
         { Assert(false); return E_FAIL; }
 
     HRESULT FreeAllocation(
-        __in intptr_t threadContextInfoAddress,
+        __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __in intptr_t address)
         { Assert(false); return E_FAIL; }
 
     HRESULT SetIsPRNGSeeded(
-        __in intptr_t scriptContextInfoAddress,
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __in boolean value)
         { Assert(false); return E_FAIL; }
 
     HRESULT IsNativeAddr(
-        __in intptr_t threadContextInfoAddress,
+        __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __in intptr_t address,
         __out boolean * result)
         { Assert(false); return E_FAIL; }
 
     HRESULT RemoteCodeGenCall(
         __in CodeGenWorkItemIDL *workItemData,
-        __in intptr_t scriptContextInfoAddress,
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __out JITOutputIDL *jitData)
         { Assert(false); return E_FAIL; }
 
@@ -212,7 +215,7 @@ public:
 
     static JITManager * GetJITManager()
         { return &s_jitManager; }
-    static void HandleServerCallResult(HRESULT hr);
+    static void HandleServerCallResult(HRESULT hr, RemoteCallType callType) { Assert(UNREACHED); }
 
 private:
     static JITManager s_jitManager;

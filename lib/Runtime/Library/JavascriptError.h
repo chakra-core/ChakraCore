@@ -60,6 +60,8 @@ namespace Js
             static FunctionInfo NewSyntaxErrorInstance;
             static FunctionInfo NewTypeErrorInstance;
             static FunctionInfo NewURIErrorInstance;
+            static FunctionInfo NewWebAssemblyCompileErrorInstance;
+            static FunctionInfo NewWebAssemblyRuntimeErrorInstance;
 #ifdef ENABLE_PROJECTION
             static FunctionInfo NewWinRTErrorInstance;
 #endif
@@ -73,6 +75,8 @@ namespace Js
         static Var NewSyntaxErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewTypeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewURIErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewWebAssemblyCompileErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewWebAssemblyRuntimeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
 #ifdef ENABLE_PROJECTION
         static Var NewWinRTErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
@@ -83,6 +87,9 @@ namespace Js
         static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO *ei);
         static void __declspec(noreturn) SetMessageAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei);
         static JavascriptError* MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType);
+
+        //HELPERCALL needs a non-overloaded function pointer
+        static void __declspec(noreturn) ThrowUnreachable(ScriptContext* scriptContext);
 
 #define THROW_ERROR_DECL(err_method) \
         static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* ei); \
@@ -96,6 +103,8 @@ namespace Js
         THROW_ERROR_DECL(ThrowSyntaxError)
         THROW_ERROR_DECL(ThrowTypeError)
         THROW_ERROR_DECL(ThrowURIError)
+        THROW_ERROR_DECL(ThrowWebAssemblyCompileError)
+        THROW_ERROR_DECL(ThrowWebAssemblyRuntimeError)
 
 #undef THROW_ERROR_DECL
         static void __declspec(noreturn) ThrowDispatchError(ScriptContext* scriptContext, HRESULT hCode, PCWSTR message);

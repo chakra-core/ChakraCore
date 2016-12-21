@@ -296,6 +296,23 @@ BackwardPass::InsertArgInsForFormals()
 }
 
 void
+BackwardPass::MarkScopeObjSymUseForStackArgOpt()
+{
+    IR::Instr * instr = this->currentInstr;
+    if (tag == Js::DeadStorePhase)
+    {
+        if (instr->DoStackArgsOpt(this->func) && instr->m_func->GetScopeObjSym() != nullptr)
+        {
+            if (this->currentBlock->byteCodeUpwardExposedUsed == nullptr)
+            {
+                this->currentBlock->byteCodeUpwardExposedUsed = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+            }
+            this->currentBlock->byteCodeUpwardExposedUsed->Set(instr->m_func->GetScopeObjSym()->m_id);
+        }
+    }
+}
+
+void
 BackwardPass::ProcessBailOnStackArgsOutOfActualsRange()
 {
     IR::Instr * instr = this->currentInstr;
@@ -1842,7 +1859,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
             //
             // Handle the source side.
             IR::ByteCodeUsesInstr *byteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-            BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->byteCodeUpwardExposedUsed;
+            const BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->GetByteCodeUpwardExposedUsed();
             if (byteCodeUpwardExposedUsed != nullptr)
             {
                 this->currentBlock->upwardExposedUses->Or(byteCodeUpwardExposedUsed);
@@ -1909,23 +1926,11 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
             }
 
             IR::ByteCodeUsesInstr *byteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-            BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->byteCodeUpwardExposedUsed;
-            if (byteCodeUpwardExposedUsed != nullptr)
+            if (byteCodeUsesInstr->GetByteCodeUpwardExposedUsed() != nullptr)
             {
-                //Stack Args for Formals optimization.
-                //We will restore the scope object in the bail out path, when we restore Heap arguments object.
-                //So we don't to mark the sym for scope object separately for restoration.
-                //When StackArgs for formal opt is ON , Scope object sym is used by formals access only, which will be replaced by ArgIns and Ld_A 
-                //So it is ok to clear the bit here.
-                //Clearing the bit in byteCodeUpwardExposedUsed here.
-                if (instr->m_func->IsStackArgsEnabled() && instr->m_func->GetScopeObjSym())
-                {
-                    byteCodeUpwardExposedUsed->Clear(instr->m_func->GetScopeObjSym()->m_id);
-                }
-
-                this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUpwardExposedUsed);
+                this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUsesInstr->GetByteCodeUpwardExposedUsed());
 #if DBG
-                FOREACH_BITSET_IN_SPARSEBV(symId, byteCodeUpwardExposedUsed)
+                FOREACH_BITSET_IN_SPARSEBV(symId, byteCodeUsesInstr->GetByteCodeUpwardExposedUsed())
                 {
                     StackSym * stackSym = this->func->m_symTable->FindStackSym(symId);
                     Assert(!stackSym->IsTypeSpec());
@@ -2540,6 +2545,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             continue;
         }
 
+        MarkScopeObjSymUseForStackArgOpt();
         ProcessBailOnStackArgsOutOfActualsRange();
         
         if (ProcessNoImplicitCallUses(instr) || this->ProcessBailOutInfo(instr))
@@ -2554,7 +2560,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             continue;
         }
 
-        if (CanDeadStoreInstrForScopeObjRemoval() && DeadStoreOrChangeInstrForScopeObjRemoval())
+        if (CanDeadStoreInstrForScopeObjRemoval() && DeadStoreOrChangeInstrForScopeObjRemoval(&instrPrev))
         {
             continue;
         }
@@ -2636,7 +2642,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             {
                 case Js::OpCode::LdSlot:
                 {
-                    DeadStoreOrChangeInstrForScopeObjRemoval();
+                    DeadStoreOrChangeInstrForScopeObjRemoval(&instrPrev);
                     break;
                 }
                 case Js::OpCode::InlineArrayPush:
@@ -2889,19 +2895,17 @@ BackwardPass::CanDeadStoreInstrForScopeObjRemoval(Sym *sym) const
     if (tag == Js::DeadStorePhase && this->currentInstr->m_func->IsStackArgsEnabled())
     {
         Func * currFunc = this->currentInstr->m_func;
+        bool doScopeObjCreation = currFunc->GetJITFunctionBody()->GetDoScopeObjectCreation();
         switch (this->currentInstr->m_opcode)
         {
-            case Js::OpCode::LdHeapArguments:
-            case Js::OpCode::LdHeapArgsCached:
-            case Js::OpCode::LdLetHeapArguments:
-            case Js::OpCode::LdLetHeapArgsCached:
+            case Js::OpCode::InitCachedScope:
             {
-                if (this->currentInstr->GetSrc1()->IsScopeObjOpnd(currFunc))
+                if(!doScopeObjCreation && this->currentInstr->GetDst()->IsScopeObjOpnd(currFunc))
                 {
                     /*
-                    *   We don't really dead store these instructions. We just want the source sym of these instructions (which is the scope object)
+                    *   We don't really dead store this instruction. We just want the source sym of this instruction
                     *   to NOT be tracked as USED by this instruction.
-                    *   In case of LdXXHeapArgsXXX opcodes, they will effectively be lowered to dest = MOV NULL, in the lowerer phase.
+                    *   This instr will effectively be lowered to dest = MOV NULLObject, in the lowerer phase.
                     */
                     return true;
                 }
@@ -2916,13 +2920,23 @@ BackwardPass::CanDeadStoreInstrForScopeObjRemoval(Sym *sym) const
                 break;
             }
             case Js::OpCode::CommitScope:
+            case Js::OpCode::GetCachedFunc:
             {
-                return this->currentInstr->GetSrc1()->IsScopeObjOpnd(currFunc);
+                return !doScopeObjCreation && this->currentInstr->GetSrc1()->IsScopeObjOpnd(currFunc);
             }
             case Js::OpCode::BrFncCachedScopeEq:
             case Js::OpCode::BrFncCachedScopeNeq:
             {
-                return this->currentInstr->GetSrc2()->IsScopeObjOpnd(currFunc);
+                return !doScopeObjCreation && this->currentInstr->GetSrc2()->IsScopeObjOpnd(currFunc);
+            }
+            case Js::OpCode::CallHelper:
+            {
+                if (!doScopeObjCreation && this->currentInstr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper == IR::JnHelperMethod::HelperOP_InitCachedFuncs)
+                {
+                    IR::RegOpnd * scopeObjOpnd = this->currentInstr->GetSrc2()->GetStackSym()->GetInstrDef()->GetSrc1()->AsRegOpnd();
+                    return scopeObjOpnd->IsScopeObjOpnd(currFunc);
+                }
+                break;
             }
         }
     }
@@ -2933,7 +2947,7 @@ BackwardPass::CanDeadStoreInstrForScopeObjRemoval(Sym *sym) const
 * This is for Eliminating Scope Object Creation during Heap arguments optimization.
 */
 bool
-BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
+BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
 {
     IR::Instr * instr = this->currentInstr;
     Func * currFunc = instr->m_func;
@@ -2996,6 +3010,54 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
                 }
                 break;
             }
+            case Js::OpCode::CallHelper:
+            {
+                //Remove the CALL and all its Argout instrs.
+                if (instr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper == IR::JnHelperMethod::HelperOP_InitCachedFuncs)
+                {
+                    IR::RegOpnd * scopeObjOpnd = instr->GetSrc2()->GetStackSym()->GetInstrDef()->GetSrc1()->AsRegOpnd();
+                    if (scopeObjOpnd->IsScopeObjOpnd(currFunc))
+                    {
+                        IR::Instr * instrDef = instr;
+                        IR::Instr * nextInstr = instr->m_next;
+
+                        while (instrDef != nullptr)
+                        {
+                            IR::Instr * instrToDelete = instrDef;
+                            if (instrDef->GetSrc2() != nullptr)
+                            {
+                                instrDef = instrDef->GetSrc2()->GetStackSym()->GetInstrDef();
+                                Assert(instrDef->m_opcode == Js::OpCode::ArgOut_A);
+                            }
+                            else
+                            {
+                                instrDef = nullptr;
+                            }
+                            instrToDelete->Remove();
+                        }
+                        Assert(nextInstr != nullptr);
+                        *pInstrPrev = nextInstr->m_prev;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Js::OpCode::GetCachedFunc:
+            {
+                // <dst> = GetCachedFunc <scopeObject>, <functionNum>
+                // is converted to 
+                // <dst> = NewScFunc <functionNum>, <env: FrameDisplay>
+
+                if (instr->GetSrc1()->IsScopeObjOpnd(currFunc))
+                {
+                    instr->m_opcode = Js::OpCode::NewScFunc;
+                    IR::Opnd * intConstOpnd = instr->UnlinkSrc2();
+
+                    instr->ReplaceSrc1(intConstOpnd);
+                    instr->SetSrc2(IR::RegOpnd::New(currFunc->GetLocalFrameDisplaySym(), IRType::TyVar, currFunc));
+                }
+                break;
+            }
         }
     }
     return false;
@@ -3005,7 +3067,7 @@ IR::Instr *
 BackwardPass::TryChangeInstrForStackArgOpt()
 {
     IR::Instr * instr = this->currentInstr;
-    if (instr->DoStackArgsOpt(this->func))
+    if (tag == Js::DeadStorePhase && instr->DoStackArgsOpt(this->func))
     {
         switch (instr->m_opcode)
         {
@@ -3035,6 +3097,22 @@ BackwardPass::TryChangeInstrForStackArgOpt()
             }
         }
     }
+
+    /*
+    *   Scope Object Sym is kept alive in all code paths.
+    *   -This is to facilitate Bailout to record the live Scope object Sym, whenever required.
+    *   -Reason for doing is this because - Scope object has to be implicitly live whenever Heap Arguments object is live.
+    *   -When we restore HeapArguments object in the bail out path, it expects the scope object also to be restored - if one was created.
+    *   -We do not know detailed information about Heap arguments obj syms(aliasing etc.) until we complete Forward Pass. 
+    *   -And we want to avoid dead sym clean up (in this case, scope object though not explicitly live, it is live implicitly) during Block merging in the forward pass. 
+    *   -Hence this is the optimal spot to do this.
+    */
+
+    if (tag == Js::BackwardPhase && instr->m_func->GetScopeObjSym() != nullptr)
+    {
+        this->currentBlock->upwardExposedUses->Set(instr->m_func->GetScopeObjSym()->m_id);
+    }
+
     return nullptr;
 }
 
@@ -6610,13 +6688,8 @@ BackwardPass::DeadStoreInstr(IR::Instr *instr)
 #endif
         PropertySym *unusedPropertySym = nullptr;
         
-        // Do not track the Scope Obj - we will be restoring it in the bailout path while restoring Heap arguments object.
-        // See InterpreterStackFrame::TrySetFrameObjectInHeapArgObj
-        if (!(instr->m_func->IsStackArgsEnabled() && instr->m_opcode == Js::OpCode::LdSlotArr &&
-            instr->GetSrc1() && instr->GetSrc1()->IsScopeObjOpnd(instr->m_func)))
-        {
-            GlobOpt::TrackByteCodeSymUsed(instr, this->currentBlock->byteCodeUpwardExposedUsed, &unusedPropertySym);
-        }
+        GlobOpt::TrackByteCodeSymUsed(instr, this->currentBlock->byteCodeUpwardExposedUsed, &unusedPropertySym);
+        
 #if DBG
         BVSparse<JitArenaAllocator> tempBv2(this->tempAlloc);
         tempBv2.Copy(this->currentBlock->byteCodeUpwardExposedUsed);
@@ -6820,7 +6893,8 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
         if (!opnd->GetIsJITOptimizedReg() && sym && sym->HasByteCodeRegSlot())
         {
             // Replace instrs with bytecodeUses
-            IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(argInstr, sym->m_id);
+            IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(argInstr);
+            bytecodeUse->Set(opnd);
             argInstr->InsertBefore(bytecodeUse);
         }
         startCallInstr = argInstr->GetSrc2()->GetStackSym()->m_instrDef;
@@ -6887,7 +6961,8 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!src1->GetIsJITOptimizedReg() && sym && sym->HasByteCodeRegSlot())
     {
         // Replace instrs with bytecodeUses
-        IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(inlineeStart, sym->m_id);
+        IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(inlineeStart);
+        bytecodeUse->Set(src1);
         inlineeStart->InsertBefore(bytecodeUse);
     }
 
@@ -6981,26 +7056,39 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
         curInstr = curInstr->m_prev;
     }
 
-    // Didn't get to the top of the block, delete this BailOnNoProfile...
+    // Didn't get to the top of the block, delete this BailOnNoProfile.
     if (!curInstr->IsLabelInstr())
     {
         block->RemoveInstr(instr);
         return true;
     }
 
+    // Save the head instruction for later use.
+    IR::LabelInstr *blockHeadInstr = curInstr->AsLabelInstr();
+
     // We can't bail in the middle of a "tmp = CmEq s1, s2; BrTrue tmp" turned into a "BrEq s1, s2",
     // because the bailout wouldn't be able to restore tmp.
     IR::Instr *curNext = curInstr->GetNextRealInstrOrLabel();
+    IR::Instr *instrNope = nullptr;
     if (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
     {
         block->RemoveInstr(instr);
         return true;
+        /*while (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
+        {
+            // Instead of just giving up, we can be a little trickier. We can instead treat the tmp declaration(s) as a
+            // part of the block prefix, and put the bailonnoprofile immediately after them. This has the added benefit
+            // that we can still merge up blocks beginning with bailonnoprofile, even if they would otherwise not allow
+            // us to, due to the fact that these tmp declarations would be pre-empted by the higher-level bailout.
+            instrNope = curNext;
+            curNext = curNext->GetNextRealInstrOrLabel();
+        }*/
     }
 
     curInstr = instr->m_prev;
 
-    // Move to top of block.
-    while(!curInstr->StartsBasicBlock())
+    // Move to top of block (but just below any fgpeeptemp lds).
+    while(!curInstr->StartsBasicBlock() && curInstr != instrNope)
     {
         // Delete redundant BailOnNoProfile
         if (curInstr->m_opcode == Js::OpCode::BailOnNoProfile)
@@ -7020,7 +7108,6 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     instr->Unlink();
 
     // Now try to move this up the flowgraph to the predecessor blocks
-    bool curBlockNeedsBail = false;
     FOREACH_PREDECESSOR_BLOCK(pred, block)
     {
         bool hoistBailToPred = true;
@@ -7039,7 +7126,7 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
             {
                 continue;
             }
-            if (predSucc->GetFirstInstr()->m_next->m_opcode != Js::OpCode::BailOnNoProfile)
+            if (!predSucc->beginsBailOnNoProfile)
             {
                 hoistBailToPred = false;
                 break;
@@ -7058,15 +7145,11 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
                     // We already have one, we don't need a second.
                     instrCopy->Free();
                 }
-                else if (predInstr->AsBranchInstr()->m_isSwitchBr)
+                else if (!predInstr->AsBranchInstr()->m_isSwitchBr)
                 {
                     // Don't put a bailout in the middle of a switch dispatch sequence.
                     // The bytecode offsets are not in order, and it would lead to incorrect
                     // bailout info.
-                    curBlockNeedsBail = true;
-                }
-                else
-                {
                     instrCopy->m_func = predInstr->m_func;
                     predInstr->InsertBefore(instrCopy);
                 }
@@ -7086,18 +7169,18 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
                 }
             }
         }
-        else
-        {
-            curBlockNeedsBail = true;
-        }
     } NEXT_PREDECESSOR_BLOCK;
 
-    if (curBlockNeedsBail)
+    // If we have a BailOnNoProfile in the first block, there must have been at least one path out of this block that always throws.
+    // Don't bother keeping the bailout in the first block as there are some issues in restoring the ArgIn bytecode registers on bailout
+    // and throw case should be rare enough that it won't matter for perf.
+    if (block->GetBlockNum() != 0)
     {
-        curInstr->AsLabelInstr()->isOpHelper = true;
+        blockHeadInstr->isOpHelper = true;
 #if DBG
-        curInstr->AsLabelInstr()->m_noHelperAssert = true;
+        blockHeadInstr->m_noHelperAssert = true;
 #endif
+        block->beginsBailOnNoProfile = true;
 
         instr->m_func = curInstr->m_func;
         curInstr->InsertAfter(instr);
@@ -7191,8 +7274,8 @@ BackwardPass::ReverseCopyProp(IR::Instr *instr)
         if (instrPrev->m_opcode == Js::OpCode::ByteCodeUses)
         {
             byteCodeUseInstr = instrPrev->AsByteCodeUsesInstr();
-
-            if (byteCodeUseInstr->byteCodeUpwardExposedUsed && byteCodeUseInstr->byteCodeUpwardExposedUsed->Test(varSym->m_id) && byteCodeUseInstr->byteCodeUpwardExposedUsed->Count() == 1)
+            const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = byteCodeUseInstr->GetByteCodeUpwardExposedUsed();
+            if (byteCodeUpwardExposedUsed && byteCodeUpwardExposedUsed->Test(varSym->m_id) && byteCodeUpwardExposedUsed->Count() == 1)
             {
                 instrPrev = byteCodeUseInstr->GetPrevRealInstrOrLabel();
 

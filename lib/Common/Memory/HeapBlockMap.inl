@@ -52,7 +52,7 @@ HeapBlockMap32::MarkInternal(L2MapChunk * chunk, void * candidate)
 // If the object is newly marked, then the out param heapBlock is written to, and false is returned
 //
 
-template <bool interlocked>
+template <bool interlocked, bool doSpecialMark>
 inline
 void
 HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
@@ -68,6 +68,10 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
 
     if (MarkInternal<interlocked>(chunk, candidate))
     {
+        if (doSpecialMark)
+        {
+            this->OnSpecialMark(chunk, candidate);
+        }
         return;
     }
 
@@ -129,17 +133,17 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
 #endif
-        ((SmallFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject(candidate, markContext);
+        ((SmallFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(candidate, markContext);
         break;
     case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
 #ifdef RECYCLER_WRITE_BARRIER
     case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
 #endif
-        ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject(candidate, markContext);
+        ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<doSpecialMark>(candidate, markContext);
         break;
 
     case HeapBlock::HeapBlockType::LargeBlockType:
-        ((LargeHeapBlock*)chunk->map[id2])->Mark(candidate, markContext);
+        ((LargeHeapBlock*)chunk->map[id2])->Mark<doSpecialMark>(candidate, markContext);
         break;
 
     case HeapBlock::HeapBlockType::BlockTypeCount:
@@ -150,6 +154,59 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
     default:
         AssertMsg(false, "what's the new heap block type?");
 #endif
+    }
+}
+
+inline
+void
+HeapBlockMap32::OnSpecialMark(L2MapChunk * chunk, void * candidate)
+{
+    uint id2 = GetLevel2Id(candidate);
+    HeapBlock::HeapBlockType blockType = chunk->blockInfo[id2].blockType;
+
+    Assert(blockType == HeapBlock::HeapBlockType::FreeBlockType || chunk->map[id2]->GetHeapBlockType() == blockType);
+
+    unsigned char attributes = ObjectInfoBits::NoBit;
+    bool success = false;
+
+    // If the block is finalizable, we may still have to take special mark action.
+    switch (blockType)
+    {
+    case HeapBlock::HeapBlockType::SmallFinalizableBlockType:
+#ifdef RECYCLER_WRITE_BARRIER
+    case HeapBlock::HeapBlockType::SmallFinalizableBlockWithBarrierType:
+#endif
+    {
+        SmallFinalizableHeapBlock *smallBlock = (SmallFinalizableHeapBlock*)chunk->map[id2];
+        success = smallBlock->TryGetAttributes(candidate, &attributes);
+        break;
+    }
+
+    case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
+#ifdef RECYCLER_WRITE_BARRIER
+    case HeapBlock::HeapBlockType::MediumFinalizableBlockWithBarrierType:
+#endif
+    {
+        MediumFinalizableHeapBlock *mediumBlock = (MediumFinalizableHeapBlock*)chunk->map[id2];
+        success = mediumBlock->TryGetAttributes(candidate, &attributes);
+        break;
+    }
+
+    case HeapBlock::HeapBlockType::LargeBlockType:
+    {
+        LargeHeapBlock *largeBlock = (LargeHeapBlock*)chunk->map[id2];
+        success = largeBlock->TryGetAttributes(candidate, &attributes);
+        break;
+    }
+
+    default:
+        break;
+    }
+
+    if (success && (attributes & FinalizeBit))
+    {   
+        FinalizableObject *trackedObject = (FinalizableObject*)candidate;
+        trackedObject->OnMark();
     }
 }
 
@@ -184,7 +241,7 @@ HeapBlockMap32::MarkInteriorInternal(MarkContext * markContext, L2MapChunk *& ch
         {
             // We crossed a node boundary (very rare) so we should just re-start from the real candidate.
             // In this case we are no longer marking an interior reference.
-            markContext->GetRecycler()->heapBlockMap.Mark<interlocked>(realCandidate, markContext);
+            markContext->GetRecycler()->heapBlockMap.Mark<interlocked, false>(realCandidate, markContext);
 
             // This mark code therefore has nothing to do (it has already happened).
             return true;
@@ -286,7 +343,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
                 break;
             }
 
-            ((SmallFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject(realCandidate, markContext);
+            ((SmallFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<false>(realCandidate, markContext);
         }
         break;
     case HeapBlock::HeapBlockType::MediumFinalizableBlockType:
@@ -300,7 +357,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
                 break;
             }
 
-            ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject(realCandidate, markContext);
+            ((MediumFinalizableHeapBlock*)chunk->map[id2])->ProcessMarkedObject<false>(realCandidate, markContext);
         }
         break;
 
@@ -312,7 +369,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
                 break;
             }
 
-            ((LargeHeapBlock*)chunk->map[GetLevel2Id(realCandidate)])->Mark(realCandidate, markContext);
+            ((LargeHeapBlock*)chunk->map[GetLevel2Id(realCandidate)])->Mark<false>(realCandidate, markContext);
         }
         break;
 
@@ -334,7 +391,7 @@ HeapBlockMap32::MarkInterior(void * candidate, MarkContext * markContext)
 // See HeapBlockMap32::Mark for explanation of return values
 //
 
-template <bool interlocked>
+template <bool interlocked, bool doSpecialMark>
 inline
 void
 HeapBlockMap64::Mark(void * candidate, MarkContext * markContext)
@@ -348,7 +405,7 @@ HeapBlockMap64::Mark(void * candidate, MarkContext * markContext)
         {
             // Found the correct Node.
             // Process the mark and return.
-            node->map.Mark<interlocked>(candidate, markContext);
+            node->map.Mark<interlocked, doSpecialMark>(candidate, markContext);
             return;
         }
 

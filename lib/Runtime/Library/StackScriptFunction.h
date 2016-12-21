@@ -16,7 +16,7 @@ namespace Js
 
         static JavascriptFunction * EnsureBoxed(BOX_PARAM(JavascriptFunction * function, void * returnAddress, char16 const * reason));
         static void Box(FunctionBody * functionBody, ScriptFunction ** functionRef);
-        static ScriptFunction * OP_NewStackScFunc(FrameDisplay *environment, FunctionProxy** proxyRef, ScriptFunction * stackFunction);
+        static ScriptFunction * OP_NewStackScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, ScriptFunction * stackFunction);
         static uint32 GetOffsetOfBoxedScriptFunction() { return offsetof(StackScriptFunction, boxedScriptFunction); }
 
         static JavascriptFunction * GetCurrentFunctionObject(JavascriptFunction * function);
@@ -84,6 +84,11 @@ namespace Js
 #if ENABLE_TTD
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+
+        virtual void MarshalCrossSite_TTDInflate() override
+        {
+            Assert(false);
+        }
 #endif
     };
 };

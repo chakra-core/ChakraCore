@@ -15,33 +15,18 @@
 #ifdef VTUNE_PROFILING
 #include "Base/VTuneChakraProfile.h"
 #endif
-
-#ifdef __APPLE__
-// dummy usage of JSRT to force export JSRT on dylib
-#include "ChakraCore.h"
-void DummyJSRTCall() {
-    JsRuntimeHandle *runtime;
-    JsRuntimeAttributes attr;
-    JsCreateRuntime(attr, nullptr, runtime);
-}
+#ifdef ENABLE_JS_ETW
+#include "Base/EtwTrace.h"
 #endif
 
 extern HANDLE g_hInstance;
-#ifdef _WIN32
 static ATOM  lockedDll = 0;
-#endif
-
-#ifdef _MSC_VER
-#define EXPORT_FUNC
-#else
-#define EXPORT_FUNC __attribute__ ((visibility ("default")))
-#endif
 
 static BOOL AttachProcess(HANDLE hmod)
 {
-    if (!ThreadContextTLSEntry::InitializeProcess() || !JsrtContext::Initialize())
+    if (!ThreadContextTLSEntry::InitializeProcess())
     {
-        return FALSE;
+         return FALSE;
     }
 
     g_hInstance = hmod;
@@ -62,7 +47,6 @@ static BOOL AttachProcess(HANDLE hmod)
 
     {
         CmdLineArgsParser parser;
-
         ConfigParser::ParseOnModuleLoad(parser, hmod);
     }
 
@@ -78,8 +62,7 @@ static BOOL AttachProcess(HANDLE hmod)
     // Needed to make sure that only ChakraCore is loaded into the process
     // This is unnecessary on Linux since there aren't other flavors of
     // Chakra binaries that can be loaded into the process
-#ifdef _WIN32
-    char16 *engine = szChakraCoreLock;
+    const char16 *engine = szChakraCoreLock;
     if (::FindAtom(szChakraLock) != 0)
     {
         AssertMsg(FALSE, "Expecting to load chakracore.dll but process already loaded chakra.dll");
@@ -87,7 +70,6 @@ static BOOL AttachProcess(HANDLE hmod)
     }
     lockedDll = ::AddAtom(engine);
     AssertMsg(lockedDll, "Failed to lock chakracore.dll");
-#endif // _WIN32
 
 #ifdef ENABLE_BASIC_TELEMETRY
     g_TraceLoggingClient = NoCheckHeapNewStruct(TraceLoggingClient);
@@ -110,12 +92,10 @@ static void DetachProcess()
     // shutdown is bad because we shouldn't free objects built into
     // other dlls.
     JsrtRuntime::Uninitialize();
-    JsrtContext::Uninitialize();
 
     // thread-bound entrypoint should be able to get cleanup correctly, however tlsentry
     // for current thread might be left behind if this thread was initialized.
     ThreadContextTLSEntry::CleanupThread();
-
     ThreadContextTLSEntry::CleanupProcess();
 
 #if PROFILE_DICTIONARY
@@ -126,19 +106,14 @@ static void DetachProcess()
 }
 
 /****************************** Public Functions *****************************/
-EXPORT_FUNC
 EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
 {
-    // Attention: static library is handled under (see JsrtHelper.cpp)
-    // todo: consolidate similar parts from shared and static library initialization
     switch (dwReason)
     {
     case DLL_PROCESS_ATTACH:
     {
         return AttachProcess(hmod);
     }
-// for non-Windows, we handle this part using the tooling from CHAKRA_STATIC_LIBRARY
-#ifdef _WIN32
     case DLL_THREAD_ATTACH:
         ThreadContextTLSEntry::InitializeThread();
 #ifdef HEAP_TRACK_ALLOC
@@ -153,19 +128,10 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
         // which requires the loader lock. DllCanUnloadNow will clean up for us anyway, so we can just skip the whole thing.
         ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread();
         return TRUE;
-#else // !_WIN32
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-        // On XPlat, CC handles this part using the interface for static_library
-        return TRUE;
-#endif // _WIN32
 
     case DLL_PROCESS_DETACH:
-
-#ifdef _WIN32
         lockedDll = ::DeleteAtom(lockedDll);
         AssertMsg(lockedDll == 0, "Failed to release the lock for chakracore.dll");
-#endif
 
 #ifdef DYNAMIC_PROFILE_STORAGE
         DynamicProfileStorage::Uninitialize();

@@ -273,6 +273,12 @@
   </test>
   <test>
     <default>
+      <files>PathTypeDeleteLastProperty.js</files>
+      <compile-flags>-mic:1 -msjrc:1</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>stackobject.js</files>
       <baseline>stackobject.baseline</baseline>
     </default>
@@ -412,6 +418,12 @@
       <files>ForInInline.js</files>
       <baseline>ForInInline.baseline</baseline>
       <compile-flags>-loopinterpretcount:1 -force:inline -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ForInEnumCacheBuiltIn.js</files>
+      <baseline />
     </default>
   </test>
 </regress-exe>

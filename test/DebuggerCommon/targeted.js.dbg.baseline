@@ -39,13 +39,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -172,6 +165,7 @@
         "RequestAsyncBreak": "function <large string>",
         "LoadBinaryFile": "function LoadBinaryFile",
         "LoadTextFile": "function LoadTextFile",
+        "Flag": "function Flag",
         "Edit": "function Edit",
         "Platform": "Object {...}",
         "Arguments": "Array []"
@@ -277,13 +271,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -410,6 +397,7 @@
         "RequestAsyncBreak": "function <large string>",
         "LoadBinaryFile": "function LoadBinaryFile",
         "LoadTextFile": "function LoadTextFile",
+        "Flag": "function Flag",
         "Edit": "function Edit",
         "Platform": "Object {...}",
         "Arguments": "Array []"
@@ -515,13 +503,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -648,6 +629,7 @@
         "RequestAsyncBreak": "function <large string>",
         "LoadBinaryFile": "function LoadBinaryFile",
         "LoadTextFile": "function LoadTextFile",
+        "Flag": "function Flag",
         "Edit": "function Edit",
         "Platform": "Object {...}",
         "Arguments": "Array []"
@@ -753,13 +735,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -886,6 +861,7 @@
         "RequestAsyncBreak": "function <large string>",
         "LoadBinaryFile": "function LoadBinaryFile",
         "LoadTextFile": "function LoadTextFile",
+        "Flag": "function Flag",
         "Edit": "function Edit",
         "Platform": "Object {...}",
         "Arguments": "Array []"
@@ -991,13 +967,6 @@
   },
   {
     "this": {
-      "telemetryLog": {
-        "#__proto__": "function <large string>",
-        "length": "number 3",
-        "name": "string telemetryLog",
-        "caller": "object null",
-        "arguments": "object null"
-      },
       "read": {
         "#__proto__": "function <large string>",
         "prototype": "Object {...}",
@@ -1124,6 +1093,7 @@
         "RequestAsyncBreak": "function <large string>",
         "LoadBinaryFile": "function LoadBinaryFile",
         "LoadTextFile": "function LoadTextFile",
+        "Flag": "function Flag",
         "Edit": "function Edit",
         "Platform": "Object {...}",
         "Arguments": "Array []"
@@ -1191,7 +1161,6 @@
   },
   {
     "this": {
-      "telemetryLog": "function <large string>",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "console": "Object {...}",
@@ -1228,7 +1197,6 @@
   },
   {
     "this": {
-      "telemetryLog": "function <large string>",
       "read": "function read",
       "readbuffer": "function readbuffer",
       "console": "Object {...}",

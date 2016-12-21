@@ -42,6 +42,13 @@ namespace Js
         {
             AssertMsg(false, "CrossSite::MarshalVar should have handled this");
         }
+
+#if ENABLE_TTD
+        virtual void MarshalCrossSite_TTDInflate() override
+        {
+            TTDAssert(false, "Should never call this!!!");
+        }
+#endif
     };
 
     template <typename T>

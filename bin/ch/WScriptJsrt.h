@@ -80,6 +80,10 @@ public:
         }
     }
 
+#if ENABLE_TTD
+    static void CALLBACK JsContextBeforeCollectCallback(JsRef contextRef, void *data);
+#endif
+
     static bool PrintException(LPCSTR fileName, JsErrorCode jsErrorCode);
     static JsValueRef LoadScript(JsValueRef callee, LPCSTR fileName, LPCSTR fileContent, LPCSTR scriptInjectType, bool isSourceModule);
     static DWORD_PTR GetNextSourceContext();
@@ -107,6 +111,7 @@ private:
 
     static JsValueRef __stdcall LoadBinaryFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
     static JsValueRef __stdcall LoadTextFileCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
+    static JsValueRef __stdcall FlagCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState);
 
     static MessageQueue *messageQueue;
     static DWORD_PTR sourceContext;

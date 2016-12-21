@@ -58,6 +58,11 @@ Abstract:
 // macOS
 #endif
 #endif // __IOS__ ?
+#ifndef INCLUDE_PAL_INTERNAL_
+namespace std {
+    typedef decltype(nullptr) nullptr_t;
+}
+#endif
 #endif // __APPLE__ ?
 
 #ifdef  __cplusplus
@@ -366,6 +371,18 @@ PAL_IsDebuggerPresent();
 #define LONG_MAX      2147483647L
 #define ULONG_MAX     0xffffffffUL
 
+#define LONGLONG_MIN    (-9223372036854775807i64 - 1)
+#define LONG64_MIN      (-9223372036854775807i64 - 1)
+#define INT64_MIN       (-9223372036854775807i64 - 1)
+#define LONGLONG_MAX    9223372036854775807i64
+#define LONG64_MAX      9223372036854775807i64
+#define INT64_MAX       9223372036854775807i64
+#define ULONGLONG_MAX   0xffffffffffffffffui64
+#define DWORDLONG_MAX   0xffffffffffffffffui64
+#define ULONG64_MAX     0xffffffffffffffffui64
+#define DWORD64_MAX     0xffffffffffffffffui64
+#define UINT64_MAX      0xffffffffffffffffui64
+
 #define FLT_MAX 3.402823466e+38F
 #define DBL_MAX 1.7976931348623157e+308
 
@@ -493,6 +510,8 @@ typedef long time_t;
 #define PAL_INITIALIZE_NONE            0x00
 #define PAL_INITIALIZE_SYNC_THREAD     0x01
 #define PAL_INITIALIZE_EXEC_ALLOCATOR  0x02
+#define PAL_INITIALIZE_REGISTER_SIGTERM_HANDLER     0x08
+#define PAL_INITIALIZE_DEBUGGER_EXCEPTIONS          0x10
 
 // PAL_Initialize() flags
 #define PAL_INITIALIZE                 PAL_INITIALIZE_SYNC_THREAD
@@ -724,91 +743,6 @@ wsprintfW(
 #else
 #define wsprintf wsprintfA
 #endif
-
-#define MB_OK                   0x00000000L
-#define MB_OKCANCEL             0x00000001L
-#define MB_ABORTRETRYIGNORE     0x00000002L
-#define MB_YESNO                0x00000004L
-#define MB_RETRYCANCEL          0x00000005L
-
-#define MB_ICONHAND             0x00000010L
-#define MB_ICONQUESTION         0x00000020L
-#define MB_ICONEXCLAMATION      0x00000030L
-#define MB_ICONASTERISK         0x00000040L
-
-#define MB_ICONINFORMATION      MB_ICONASTERISK
-#define MB_ICONSTOP             MB_ICONHAND
-#define MB_ICONERROR            MB_ICONHAND
-
-#define MB_DEFBUTTON1           0x00000000L
-#define MB_DEFBUTTON2           0x00000100L
-#define MB_DEFBUTTON3           0x00000200L
-
-#define MB_SYSTEMMODAL          0x00001000L
-#define MB_TASKMODAL            0x00002000L
-#define MB_SETFOREGROUND        0x00010000L
-#define MB_TOPMOST              0x00040000L
-
-#define MB_NOFOCUS                  0x00008000L
-#define MB_SETFOREGROUND            0x00010000L
-#define MB_DEFAULT_DESKTOP_ONLY     0x00020000L
-
-// Note: this is the NT 4.0 and greater value.
-#define MB_SERVICE_NOTIFICATION 0x00200000L
-
-#define MB_TYPEMASK             0x0000000FL
-#define MB_ICONMASK             0x000000F0L
-#define MB_DEFMASK              0x00000F00L
-
-#define IDOK                    1
-#define IDCANCEL                2
-#define IDABORT                 3
-#define IDRETRY                 4
-#define IDIGNORE                5
-#define IDYES                   6
-#define IDNO                    7
-
-PALIMPORT
-int
-PALAPI
-MessageBoxW(
-        IN LPVOID hWnd,  // NOTE: diff from winuser.h
-        IN LPCWSTR lpText,
-        IN LPCWSTR lpCaption,
-        IN UINT uType);
-
-PALIMPORT
-int
-PALAPI
-MessageBoxA(
-        IN LPVOID hWnd,  // NOTE: diff from winuser.h
-        IN LPCSTR lpText,
-        IN LPCSTR lpCaption,
-        IN UINT uType);
-
-#ifdef UNICODE
-#define MessageBox MessageBoxW
-#else
-#define MessageBox MessageBoxA
-#endif
-
-/***************** wincon.h Entrypoints **********************************/
-
-#define CTRL_C_EVENT        0
-#define CTRL_BREAK_EVENT    1
-#define CTRL_CLOSE_EVENT    2
-// 3 is reserved!
-// 4 is reserved!
-#define CTRL_LOGOFF_EVENT   5
-#define CTRL_SHUTDOWN_EVENT 6
-
-typedef
-BOOL
-(PALAPI *PHANDLER_ROUTINE)(
-    DWORD CtrlType
-    );
-
-//end wincon.h Entrypoints
 
 // From win32.h
 #ifndef _CRTIMP
@@ -1539,12 +1473,6 @@ SetCurrentDirectoryW(
 #else
 #define SetCurrentDirectory SetCurrentDirectoryA
 #endif
-
-// maximum length of the NETBIOS name (not including NULL)
-#define MAX_COMPUTERNAME_LENGTH 15
-
-// maximum length of the username (not including NULL)
-#define UNLEN   256
 
 PALIMPORT
 BOOL
@@ -2770,6 +2698,8 @@ typedef struct _CONTEXT {
 
 #define CONTEXT_ALL (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS)
 
+#define CONTEXT_XSTATE (CONTEXT_AMD64 | 0x40L)
+
 #define CONTEXT_EXCEPTION_ACTIVE 0x8000000
 #define CONTEXT_SERVICE_ACTIVE 0x10000000
 #define CONTEXT_EXCEPTION_REQUEST 0x40000000
@@ -3425,33 +3355,6 @@ GetThreadTimes(
         OUT LPFILETIME lpExitTime,
         OUT LPFILETIME lpKernelTime,
         OUT LPFILETIME lpUserTime);
-
-#define TLS_OUT_OF_INDEXES ((DWORD)0xFFFFFFFF)
-
-PALIMPORT
-DWORD
-PALAPI
-TlsAlloc(
-     VOID);
-
-PALIMPORT
-LPVOID
-PALAPI
-TlsGetValue(
-        IN DWORD dwTlsIndex);
-
-PALIMPORT
-BOOL
-PALAPI
-TlsSetValue(
-        IN DWORD dwTlsIndex,
-        IN LPVOID lpTlsValue);
-
-PALIMPORT
-BOOL
-PALAPI
-TlsFree(
-    IN DWORD dwTlsIndex);
 
 PALIMPORT
 void *
@@ -5795,7 +5698,7 @@ InterlockedAnd8(
 EXTERN_C
 PALIMPORT
 inline
-short 
+short
 PALAPI
 InterlockedAnd16(
     IN OUT short volatile *Destination,
@@ -6100,7 +6003,7 @@ PALAPI
 FlushProcessWriteBuffers();
 
 typedef void (*PAL_ActivationFunction)(CONTEXT *context);
-typedef BOOL (*PAL_SafeActivationCheckFunction)(SIZE_T ip);
+typedef BOOL (*PAL_SafeActivationCheckFunction)(SIZE_T ip, BOOL checkingCurrentThread);
 
 PALIMPORT
 VOID
@@ -6346,6 +6249,7 @@ CoCreateGuid(OUT GUID * pguid);
 #define wcsspn        PAL_wcsspn
 #define wcstod        PAL_wcstod
 #define wcstol        PAL_wcstol
+#define wcstoll       PAL_wcstoll
 #define wcstoul       PAL_wcstoul
 #define wcscat        PAL_wcscat
 #define wcscpy        PAL_wcscpy
@@ -6537,6 +6441,7 @@ PALIMPORT int __cdecl _snwprintf(WCHAR *, size_t, const WCHAR *, ...);
 PALIMPORT int __cdecl PAL_swscanf(const WCHAR *, const WCHAR *, ...);
 PALIMPORT LONG __cdecl PAL_wcstol(const WCHAR *, WCHAR **, int);
 PALIMPORT ULONG __cdecl PAL_wcstoul(const WCHAR *, WCHAR **, int);
+PALIMPORT LONGLONG __cdecl PAL_wcstoll(const WCHAR *, WCHAR **, int);
 PALIMPORT size_t __cdecl PAL_wcsspn (const WCHAR *, const WCHAR *);
 PALIMPORT double __cdecl PAL_wcstod(const WCHAR *, WCHAR **);
 PALIMPORT int __cdecl PAL_iswalpha(WCHAR);
@@ -6592,6 +6497,24 @@ unsigned int __cdecl _rotl(unsigned int value, int shift)
 
 /*++
 Function:
+_rotl64
+
+See MSDN doc.
+--*/
+EXTERN_C
+PALIMPORT
+inline
+unsigned long long __cdecl _rotl64(unsigned long long value, int shift)
+{
+    unsigned long long retval = 0;
+
+    shift &= 0x3f;
+    retval = (value << shift) | (value >> (sizeof(unsigned long long) * CHAR_BIT - shift));
+    return retval;
+}
+
+/*++
+Function:
 _rotr
 
 See MSDN doc.
@@ -6605,6 +6528,24 @@ unsigned int __cdecl _rotr(unsigned int value, int shift)
 
     shift &= 0x1f;
     retval = (value >> shift) | (value << (sizeof(int) * CHAR_BIT - shift));
+    return retval;
+}
+
+/*++
+Function:
+_rotr64
+
+See MSDN doc.
+--*/
+EXTERN_C
+PALIMPORT
+inline
+unsigned long long __cdecl _rotr64(unsigned long long value, int shift)
+{
+    unsigned long long retval;
+
+    shift &= 0x3f;
+    retval = (value >> shift) | (value << (sizeof(unsigned long long) * CHAR_BIT - shift));
     return retval;
 }
 
@@ -6642,6 +6583,7 @@ PALIMPORT float __cdecl modff(float, float *);
 PALIMPORT int __cdecl _finite(double);
 PALIMPORT int __cdecl _isnan(double);
 PALIMPORT double __cdecl _copysign(double, double);
+PALIMPORT float __cdecl _copysignf(float, float);
 
 #if !defined(PAL_STDCPP_COMPAT) || defined(USING_PAL_STDLIB)
 
@@ -6773,6 +6715,7 @@ PALIMPORT LONG __cdecl PAL_ftell(PAL_FILE *);
 PALIMPORT int __cdecl PAL_feof(PAL_FILE *);
 PALIMPORT int __cdecl PAL_ferror(PAL_FILE *);
 PALIMPORT PAL_FILE * __cdecl PAL_fopen(const char *, const char *);
+PALIMPORT char * __cdecl PAL_strtok(char *, const char *);
 PALIMPORT int __cdecl PAL_getc(PAL_FILE *stream);
 PALIMPORT int __cdecl PAL_fgetc(PAL_FILE *stream);
 PALIMPORT int __cdecl PAL_ungetc(int c, PAL_FILE *stream);
@@ -7042,309 +6985,9 @@ public:
 
 #endif // FEATURE_PAL_SXS
 
-#ifdef __cplusplus
-
-#include "pal_unwind.h"
-
 #define EXCEPTION_CONTINUE_SEARCH   0
 #define EXCEPTION_EXECUTE_HANDLER   1
 #define EXCEPTION_CONTINUE_EXECUTION -1
-
-struct PAL_SEHException
-{
-private:
-    const SIZE_T NoTargetFrameSp = SIZE_MAX;
-public:
-    // Note that the following two are actually embedded in this heap-allocated
-    // instance - in contrast to Win32, where the exception record would usually
-    // be allocated on the stack.  This is needed because foreign cleanup handlers
-    // partially unwind the stack on the second pass.
-    EXCEPTION_POINTERS ExceptionPointers;
-    EXCEPTION_RECORD ExceptionRecord;
-    CONTEXT ContextRecord;
-    // Target frame stack pointer set before the 2nd pass.
-    SIZE_T TargetFrameSp;
-
-    PAL_SEHException(EXCEPTION_RECORD *pExceptionRecord, CONTEXT *pContextRecord)
-    {
-        ExceptionPointers.ExceptionRecord = &ExceptionRecord;
-        ExceptionPointers.ContextRecord = &ContextRecord;
-        ExceptionRecord = *pExceptionRecord;
-        ContextRecord = *pContextRecord;
-        TargetFrameSp = NoTargetFrameSp;
-    }
-
-    PAL_SEHException()
-    {
-    }
-
-    PAL_SEHException(const PAL_SEHException& ex)
-    {
-        *this = ex;
-    }
-
-    bool IsFirstPass()
-    {
-        return (TargetFrameSp == NoTargetFrameSp);
-    }
-
-    PAL_SEHException& operator=(const PAL_SEHException& ex)
-    {
-        ExceptionPointers.ExceptionRecord = &ExceptionRecord;
-        ExceptionPointers.ContextRecord = &ContextRecord;
-        ExceptionRecord = ex.ExceptionRecord;
-        ContextRecord = ex.ContextRecord;
-        TargetFrameSp = ex.TargetFrameSp;
-
-        return *this;
-    }
-};
-
-typedef DWORD (PALAPI *PGET_GCMARKER_EXCEPTION_CODE)(LPVOID ip);
-typedef VOID (PALAPI *PHARDWARE_EXCEPTION_HANDLER)(PAL_SEHException* ex);
-
-PALIMPORT
-VOID
-PALAPI
-PAL_SetHardwareExceptionHandler(
-    IN PHARDWARE_EXCEPTION_HANDLER exceptionHandler);
-
-//
-// This holder is used to indicate that a hardware
-// exception should be raised as a C++ exception
-// to better emulate SEH on the xplat platforms.
-//
-class CatchHardwareExceptionHolder
-{
-public:
-    CatchHardwareExceptionHolder();
-
-    ~CatchHardwareExceptionHolder();
-
-    static bool IsEnabled();
-};
-
-//
-// NOTE: Catching hardware exceptions are only enabled in the DAC and SOS
-// builds. A hardware exception in coreclr code will fail fast/terminate
-// the process.
-//
-#ifdef FEATURE_ENABLE_HARDWARE_EXCEPTIONS
-#define HardwareExceptionHolder CatchHardwareExceptionHolder __catchHardwareException;
-#else
-#define HardwareExceptionHolder
-#endif // FEATURE_ENABLE_HARDWARE_EXCEPTIONS
-
-#ifdef FEATURE_PAL_SXS
-
-extern "C++" {
-
-//
-// This is the base class of native exception holder used to provide
-// the filter function to the exception dispatcher. This allows the
-// filter to be called during the first pass to better emulate SEH
-// the xplat platforms that only have C++ exception support.
-//
-class NativeExceptionHolderBase
-{
-    // Save the address of the holder head so the destructor
-    // doesn't have access the slow (on Linux) TLS value again.
-    NativeExceptionHolderBase **m_head;
-
-    // The next holder on the stack
-    NativeExceptionHolderBase *m_next;
-
-protected:
-    NativeExceptionHolderBase();
-
-    ~NativeExceptionHolderBase();
-
-public:
-    // Calls the holder's filter handler.
-    virtual EXCEPTION_DISPOSITION InvokeFilter(PAL_SEHException& ex) = 0;
-
-    // Adds the holder to the "stack" of holders. This is done explicitly instead
-    // of in the constructor was to avoid the mess of move constructors combined
-    // with return value optimization (in CreateHolder).
-    void Push();
-
-    // Given the currentHolder and locals stack range find the next holder starting with this one
-    // To find the first holder, pass nullptr as the currentHolder.
-    static NativeExceptionHolderBase *FindNextHolder(NativeExceptionHolderBase *currentHolder, void *frameLowAddress, void *frameHighAddress);
-};
-
-//
-// This is the second part of the native exception filter holder. It is
-// templated because the lambda used to wrap the exception filter is a
-// unknown type.
-//
-template<class FilterType>
-class NativeExceptionHolder : public NativeExceptionHolderBase
-{
-    FilterType* m_exceptionFilter;
-
-public:
-    NativeExceptionHolder(FilterType* exceptionFilter)
-        : NativeExceptionHolderBase()
-    {
-        m_exceptionFilter = exceptionFilter;
-    }
-
-    virtual EXCEPTION_DISPOSITION InvokeFilter(PAL_SEHException& ex)
-    {
-        return (*m_exceptionFilter)(ex);
-    }
-};
-
-//
-// This is a native exception holder that is used when the catch catches
-// all exceptions.
-//
-class NativeExceptionHolderCatchAll : public NativeExceptionHolderBase
-{
-
-public:
-    NativeExceptionHolderCatchAll()
-        : NativeExceptionHolderBase()
-    {
-    }
-
-    virtual EXCEPTION_DISPOSITION InvokeFilter(PAL_SEHException& ex)
-    {
-        return EXCEPTION_EXECUTE_HANDLER;
-    }
-};
-
-//
-// This factory class for the native exception holder is necessary because
-// templated functions don't need the explicit type parameter and can infer
-// the template type from the parameter.
-//
-class NativeExceptionHolderFactory
-{
-public:
-    template<class FilterType>
-    static NativeExceptionHolder<FilterType> CreateHolder(FilterType* exceptionFilter)
-    {
-        return NativeExceptionHolder<FilterType>(exceptionFilter);
-    }
-};
-
-// Start of a try block for exceptions raised by RaiseException
-#define PAL_TRY(__ParamType, __paramDef, __paramRef)                            \
-{                                                                               \
-    __ParamType __param = __paramRef;                                           \
-    auto tryBlock = [](__ParamType __paramDef)                                  \
-    {
-
-// Start of an exception handler. If an exception raised by the RaiseException
-// occurs in the try block and the disposition is EXCEPTION_EXECUTE_HANDLER,
-// the handler code is executed. If the disposition is EXCEPTION_CONTINUE_SEARCH,
-// the exception is rethrown. The EXCEPTION_CONTINUE_EXECUTION disposition is
-// not supported.
-#define PAL_EXCEPT(dispositionExpression)                                       \
-    };                                                                          \
-    const bool isFinally = false;                                               \
-    auto finallyBlock = []() {};                                                \
-    EXCEPTION_DISPOSITION disposition = EXCEPTION_CONTINUE_EXECUTION;           \
-    auto exceptionFilter = [&disposition, &__param](PAL_SEHException& ex)       \
-    {                                                                           \
-        disposition = dispositionExpression;                                    \
-        _ASSERTE(disposition != EXCEPTION_CONTINUE_EXECUTION);                  \
-        return disposition;                                                     \
-    };                                                                          \
-    try                                                                         \
-    {                                                                           \
-        HardwareExceptionHolder                                                 \
-        auto __exceptionHolder = NativeExceptionHolderFactory::CreateHolder(&exceptionFilter); \
-        __exceptionHolder.Push();                                               \
-        tryBlock(__param);                                                      \
-    }                                                                           \
-    catch (PAL_SEHException& ex)                                                \
-    {                                                                           \
-        if (disposition == EXCEPTION_CONTINUE_EXECUTION)                        \
-        {                                                                       \
-            exceptionFilter(ex);                                                \
-        }                                                                       \
-        if (disposition == EXCEPTION_CONTINUE_SEARCH)                           \
-        {                                                                       \
-            throw;                                                              \
-        }
-
-// Start of an exception handler. It works the same way as the PAL_EXCEPT except
-// that the disposition is obtained by calling the specified filter.
-#define PAL_EXCEPT_FILTER(filter) PAL_EXCEPT(filter(&ex.ExceptionPointers, __param))
-
-// Start of a finally block. The finally block is executed both when the try block
-// finishes or when an exception is raised using the RaiseException in it.
-#define PAL_FINALLY                     \
-    };                                  \
-    const bool isFinally = true;        \
-    auto finallyBlock = [&]()           \
-    {
-
-// End of an except or a finally block.
-#define PAL_ENDTRY                      \
-    };                                  \
-    if (isFinally)                      \
-    {                                   \
-        try                             \
-        {                               \
-            tryBlock(__param);          \
-        }                               \
-        catch (...)                     \
-        {                               \
-            finallyBlock();             \
-            throw;                      \
-        }                               \
-        finallyBlock();                 \
-    }                                   \
-}
-
-} // extern "C++"
-
-#endif // FEATURE_PAL_SXS
-
-#define PAL_CPP_THROW(type, obj) { throw obj; }
-#define PAL_CPP_RETHROW { throw; }
-#define PAL_CPP_TRY                     try { HardwareExceptionHolder
-#define PAL_CPP_CATCH_EXCEPTION(ident)  } catch (Exception *ident) { PAL_Reenter(PAL_BoundaryBottom);
-#define PAL_CPP_CATCH_EXCEPTION_NOARG   } catch (Exception *) { PAL_Reenter(PAL_BoundaryBottom);
-#define PAL_CPP_CATCH_DERIVED(type, ident) } catch (type *ident) { PAL_Reenter(PAL_BoundaryBottom);
-#define PAL_CPP_CATCH_ALL               } catch (...) { PAL_Reenter(PAL_BoundaryBottom);
-#define PAL_CPP_ENDTRY                  }
-
-#ifdef _MSC_VER
-#pragma warning(disable:4611) // interaction between '_setjmp' and C++ object destruction is non-portable
-#endif
-
-#ifdef FEATURE_PAL_SXS
-
-#define PAL_TRY_FOR_DLLMAIN(ParamType, paramDef, paramRef, _reason) PAL_TRY(ParamType, paramDef, paramRef)
-
-#else // FEATURE_PAL_SXS
-
-#define PAL_TRY(ParamType, paramDef, paramRef)                          \
-    {                                                                   \
-        ParamType __param = paramRef;                                   \
-        ParamType paramDef; paramDef = __param;                         \
-        try {                                                           \
-            HardwareExceptionHolder
-
-#define PAL_TRY_FOR_DLLMAIN(ParamType, paramDef, paramRef, _reason)     \
-    {                                                                   \
-        ParamType __param = paramRef;                                   \
-        ParamType paramDef; paramDef = __param;                         \
-        try {                                                           \
-            HardwareExceptionHolder
-
-#define PAL_ENDTRY                                                      \
-        }                                                               \
-    }
-
-#endif // FEATURE_PAL_SXS
-
-#endif // __cplusplus
 
 // Platform-specific library naming
 //

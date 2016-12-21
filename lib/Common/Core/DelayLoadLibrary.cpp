@@ -50,7 +50,7 @@ bool DelayLoadLibrary::IsAvailable()
     return m_hModule != nullptr;
 }
 
-#if PDATA_ENABLED && _WIN32
+#if _WIN32
 
 static NtdllLibrary NtdllLibraryObject;
 NtdllLibrary* NtdllLibrary::Instance = &NtdllLibraryObject;
@@ -59,6 +59,8 @@ LPCTSTR NtdllLibrary::GetLibraryName() const
 {
     return _u("ntdll.dll");
 }
+
+#if PDATA_ENABLED
 
 _Success_(return == 0)
 DWORD NtdllLibrary::AddGrowableFunctionTable( _Out_ PVOID * DynamicTable,
@@ -123,4 +125,184 @@ VOID NtdllLibrary::GrowFunctionTable(_Inout_ PVOID DynamicTable, _In_ ULONG NewE
         growFunctionTable(DynamicTable, NewEntryCount);
     }
 }
+#endif // PDATA_ENABLED
+
+VOID NtdllLibrary::InitializeObjectAttributes(
+    POBJECT_ATTRIBUTES   InitializedAttributes,
+    PUNICODE_STRING      ObjectName,
+    ULONG                Attributes,
+    HANDLE               RootDirectory,
+    PSECURITY_DESCRIPTOR SecurityDescriptor)
+{
+    InitializedAttributes->Length = sizeof(OBJECT_ATTRIBUTES);
+    InitializedAttributes->RootDirectory = RootDirectory;
+    InitializedAttributes->Attributes = Attributes;
+    InitializedAttributes->ObjectName = ObjectName;
+    InitializedAttributes->SecurityDescriptor = SecurityDescriptor;
+    InitializedAttributes->SecurityQualityOfService = NULL;
+}
+
+#ifndef DELAYLOAD_SECTIONAPI
+extern "C"
+WINBASEAPI
+NtdllLibrary::NTSTATUS
+WINAPI
+NtCreateSection(
+    _Out_    PHANDLE            SectionHandle,
+    _In_     ACCESS_MASK        DesiredAccess,
+    _In_opt_ NtdllLibrary::POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PLARGE_INTEGER     MaximumSize,
+    _In_     ULONG              SectionPageProtection,
+    _In_     ULONG              AllocationAttributes,
+    _In_opt_ HANDLE             FileHandle
+);
 #endif
+
+NtdllLibrary::NTSTATUS NtdllLibrary::CreateSection(
+    _Out_    PHANDLE            SectionHandle,
+    _In_     ACCESS_MASK        DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PLARGE_INTEGER     MaximumSize,
+    _In_     ULONG              SectionPageProtection,
+    _In_     ULONG              AllocationAttributes,
+    _In_opt_ HANDLE             FileHandle)
+{
+#ifdef DELAYLOAD_SECTIONAPI
+    if (m_hModule)
+    {
+        if (createSection == nullptr)
+        {
+            createSection = (PFnNtCreateSection)GetFunction("NtCreateSection");
+            if (createSection == nullptr)
+            {
+                Assert(false);
+                SectionHandle = nullptr;
+                return -1;
+            }
+        }
+        return createSection(SectionHandle, DesiredAccess, ObjectAttributes, MaximumSize, SectionPageProtection, AllocationAttributes, FileHandle);
+    }
+    SectionHandle = nullptr;
+    return -1;
+#else
+    return NtCreateSection(SectionHandle, DesiredAccess, ObjectAttributes, MaximumSize, SectionPageProtection, AllocationAttributes, FileHandle);
+#endif
+}
+
+#ifndef DELAYLOAD_SECTIONAPI
+extern "C"
+WINBASEAPI
+NtdllLibrary::NTSTATUS
+WINAPI
+NtMapViewOfSection(
+    _In_        HANDLE          SectionHandle,
+    _In_        HANDLE          ProcessHandle,
+    _Inout_     PVOID           *BaseAddress,
+    _In_        ULONG_PTR       ZeroBits,
+    _In_        SIZE_T          CommitSize,
+    _Inout_opt_ PLARGE_INTEGER  SectionOffset,
+    _Inout_     PSIZE_T         ViewSize,
+    _In_        NtdllLibrary::SECTION_INHERIT InheritDisposition,
+    _In_        ULONG           AllocationType,
+    _In_        ULONG           Win32Protect
+);
+#endif
+
+NtdllLibrary::NTSTATUS NtdllLibrary::MapViewOfSection(
+    _In_        HANDLE          SectionHandle,
+    _In_        HANDLE          ProcessHandle,
+    _Inout_     PVOID           *BaseAddress,
+    _In_        ULONG_PTR       ZeroBits,
+    _In_        SIZE_T          CommitSize,
+    _Inout_opt_ PLARGE_INTEGER  SectionOffset,
+    _Inout_     PSIZE_T         ViewSize,
+    _In_        SECTION_INHERIT InheritDisposition,
+    _In_        ULONG           AllocationType,
+    _In_        ULONG           Win32Protect)
+{
+#ifdef DELAYLOAD_SECTIONAPI
+    if (m_hModule)
+    {
+        if (mapViewOfSection == nullptr)
+        {
+            mapViewOfSection = (PFnNtMapViewOfSection)GetFunction("NtMapViewOfSection");
+            if (mapViewOfSection == nullptr)
+            {
+                Assert(false);
+                return -1;
+            }
+        }
+        return mapViewOfSection(SectionHandle, ProcessHandle, BaseAddress, ZeroBits, CommitSize, SectionOffset, ViewSize, InheritDisposition, AllocationType, Win32Protect);
+    }
+    return -1;
+#else
+    return NtMapViewOfSection(SectionHandle, ProcessHandle, BaseAddress, ZeroBits, CommitSize, SectionOffset, ViewSize, InheritDisposition, AllocationType, Win32Protect);
+#endif
+}
+
+#ifndef DELAYLOAD_SECTIONAPI
+extern "C"
+WINBASEAPI
+NtdllLibrary::NTSTATUS
+WINAPI
+NtUnmapViewOfSection(
+    _In_     HANDLE ProcessHandle,
+    _In_opt_ PVOID  BaseAddress
+);
+#endif
+
+NtdllLibrary::NTSTATUS NtdllLibrary::UnmapViewOfSection(
+    _In_     HANDLE ProcessHandle,
+    _In_opt_ PVOID  BaseAddress)
+{
+#ifdef DELAYLOAD_SECTIONAPI
+    if (m_hModule)
+    {
+        if (unmapViewOfSection == nullptr)
+        {
+            unmapViewOfSection = (PFnNtUnmapViewOfSection)GetFunction("NtUnmapViewOfSection");
+            if (unmapViewOfSection == nullptr)
+            {
+                Assert(false);
+                return -1;
+            }
+        }
+        return unmapViewOfSection(ProcessHandle, BaseAddress);
+    }
+    return -1;
+#else
+    return NtUnmapViewOfSection(ProcessHandle, BaseAddress);
+#endif
+}
+
+#ifndef DELAYLOAD_SECTIONAPI
+extern "C"
+WINBASEAPI
+NtdllLibrary::NTSTATUS
+WINAPI
+NtClose(_In_ HANDLE Handle);
+#endif
+
+NtdllLibrary::NTSTATUS NtdllLibrary::Close(_In_ HANDLE Handle)
+{
+#ifdef DELAYLOAD_SECTIONAPI
+    if (m_hModule)
+    {
+        if (close == nullptr)
+        {
+            close = (PFnNtClose)GetFunction("NtClose");
+            if (close == nullptr)
+            {
+                Assert(false);
+                return -1;
+            }
+        }
+        return close(Handle);
+    }
+    return -1;
+#else
+    return NtClose(Handle);
+#endif
+}
+
+#endif // _WIN32

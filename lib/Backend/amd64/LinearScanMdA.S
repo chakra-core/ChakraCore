@@ -7,13 +7,6 @@
 #include "unixasmmacros.inc"
 
 
-// BailOutRecord::BailOut(BailOutRecord const * bailOutRecord)
-// .extern _ZN13BailOutRecord7BailOutEPKS_
-
-// BranchBailOutRecord::BailOut(BranchBailOutRecord const * bailOutRecord, BOOL cond)
-// .extern _ZN19BranchBailOutRecord7BailOutEPKS_i
-
-
 //------------------------------------------------------------------------------
 // LinearScanMD::SaveAllRegisters(BailOutRecord *const bailOutRecord)
 
@@ -106,7 +99,7 @@ NESTED_ENTRY _ZN12LinearScanMD26SaveAllRegistersAndBailOutEP13BailOutRecord, _TE
     add rsp, 28h        // deallocate stack space
     .cfi_adjust_cfa_offset -0x28
 
-    jmp _ZN13BailOutRecord7BailOutEPKS_
+    jmp C_FUNC(_ZN13BailOutRecord7BailOutEPKS_)
 
 NESTED_END _ZN12LinearScanMD26SaveAllRegistersAndBailOutEP13BailOutRecord, _TEXT
 
@@ -132,6 +125,6 @@ NESTED_ENTRY _ZN12LinearScanMD32SaveAllRegistersAndBranchBailOutEP19BranchBailOu
     add rsp, 28h        // deallocate stack space
     .cfi_adjust_cfa_offset -0x28
 
-    jmp _ZN19BranchBailOutRecord7BailOutEPKS_i
+    jmp C_FUNC(_ZN19BranchBailOutRecord7BailOutEPKS_i)
 
 NESTED_END _ZN12LinearScanMD32SaveAllRegistersAndBranchBailOutEP19BranchBailOutRecordi, _TEXT

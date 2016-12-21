@@ -1,3 +1,1 @@
-Unexpected Error while compiling return.0.wasm
-Error: Compiling wasm failed: I64 support NYI
-0/0 tests passed.
+61/61 tests passed.

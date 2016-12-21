@@ -151,7 +151,7 @@ uint InliningDecider::InlinePolymorphicCallSite(Js::FunctionBody *const inliner,
             AssertMsg(inlineeCount >= 2, "There are at least two polymorphic call site");
             break;
         }
-        if (Inline(inliner, functionBodyArray[inlineeCount], isConstructorCall, true /*isPolymorphicCall*/, 0, profiledCallSiteId, recursiveInlineDepth, false))
+        if (Inline(inliner, functionBodyArray[inlineeCount]->GetFunctionInfo(), isConstructorCall, true /*isPolymorphicCall*/, 0, profiledCallSiteId, recursiveInlineDepth, false))
         {
             canInlineArray[inlineeCount] = true;
             actualInlineeCount++;
@@ -272,7 +272,7 @@ Js::FunctionInfo *InliningDecider::Inline(Js::FunctionBody *const inliner, Js::F
 #endif
 
         this->bytecodeInlinedCount += inlinee->GetByteCodeCount();
-        return inlinee;
+        return inlinee->GetFunctionInfo();
     }
 
     Js::OpCode builtInInlineCandidateOpCode;
@@ -432,7 +432,7 @@ bool InliningDecider::GetBuiltInInfoCommon(
         break;
 
     case Js::JavascriptBuiltInFunction::Math_Clz32:
-        *inlineCandidateOpCode = Js::OpCode::InlineMathClz32;
+        *inlineCandidateOpCode = Js::OpCode::InlineMathClz;
         break;
 
     case Js::JavascriptBuiltInFunction::Math_Random:

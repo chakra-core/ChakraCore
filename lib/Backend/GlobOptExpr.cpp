@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
@@ -196,14 +196,7 @@ GlobOpt::CSEAddInstr(
     switch(instr->m_opcode)
     {
     case Js::OpCode::LdElemI_A:
-    case Js::OpCode::LdInt8ArrViewElem:
-    case Js::OpCode::LdUInt8ArrViewElem:
-    case Js::OpCode::LdInt16ArrViewElem:
-    case Js::OpCode::LdUInt16ArrViewElem:
-    case Js::OpCode::LdInt32ArrViewElem:
-    case Js::OpCode::LdUInt32ArrViewElem:
-    case Js::OpCode::LdFloat32ArrViewElem:
-    case Js::OpCode::LdFloat64ArrViewElem:
+    case Js::OpCode::LdArrViewElem:
     case Js::OpCode::StElemI_A:
     case Js::OpCode::StElemI_A_Strict:
     {
@@ -363,6 +356,87 @@ GlobOpt::CSEAddInstr(
     }
 }
 
+
+static void TransformIntoUnreachable(IntConstType errorCode, IR::Instr* instr)
+{
+    instr->m_opcode = Js::OpCode::Unreachable_Void;
+    instr->ReplaceSrc1(IR::IntConstOpnd::New(SCODE_CODE(errorCode), TyInt32, instr->m_func));
+    instr->UnlinkDst();
+}
+
+void
+GlobOpt::OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val)
+{
+    int val = 0;
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::TrapIfZero:
+        if (instr->GetDst()->IsInt64())
+        {
+            return; //don't try to optimize i64 division since we are using helpers anyways for now
+        }
+
+        if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&val))
+        {
+            if (val)
+            {
+                instr->m_opcode = Js::OpCode::Ld_I4;
+            }
+            else
+            {
+                TransformIntoUnreachable(WASMERR_DivideByZero, instr);
+                InsertByteCodeUses(instr);
+                RemoveCodeAfterNoFallthroughInstr(instr); //remove dead code
+            }
+        }
+        break;
+    case Js::OpCode::TrapIfMinIntOverNegOne:
+    {
+        if (instr->GetDst()->IsInt64())
+        {
+            return; //don't try to optimize i64 division since we are using helpers anyways for now
+        }
+
+        int checksLeft = 2;
+        if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantValue(&val))
+        {
+            if (val != INT_MIN)
+            {
+                instr->m_opcode = Js::OpCode::Ld_I4;
+            }
+            else
+            {
+                checksLeft--;
+            }
+
+        }
+        if (src2Val && src2Val->GetValueInfo()->TryGetIntConstantValue(&val))
+        {
+            if (val != -1)
+            {
+                instr->m_opcode = Js::OpCode::Ld_I4;
+            }
+            else
+            {
+                checksLeft--;
+            }
+        }
+
+        if (!checksLeft)
+        {
+            TransformIntoUnreachable(VBSERR_Overflow, instr);
+            instr->UnlinkSrc2();
+            InsertByteCodeUses(instr);
+            RemoveCodeAfterNoFallthroughInstr(instr); //remove dead code
+        }
+        break;
+    }
+    default:
+        return;
+    }
+
+}
+
 bool
 GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSrc1Val, Value **pSrc2Val, Value **pSrc1IndirIndexVal, bool intMathExprOnly)
 {
@@ -384,14 +458,7 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
     // For arrays, hash the value # of the baseOpnd and indexOpnd
     switch(instr->m_opcode)
     {
-        case Js::OpCode::LdInt8ArrViewElem:
-        case Js::OpCode::LdUInt8ArrViewElem:
-        case Js::OpCode::LdInt16ArrViewElem:
-        case Js::OpCode::LdUInt16ArrViewElem:
-        case Js::OpCode::LdInt32ArrViewElem:
-        case Js::OpCode::LdUInt32ArrViewElem:
-        case Js::OpCode::LdFloat32ArrViewElem:
-        case Js::OpCode::LdFloat64ArrViewElem:
+        case Js::OpCode::LdArrViewElem:
         case Js::OpCode::LdElemI_A:
         {
             if(intMathExprOnly)
@@ -729,14 +796,7 @@ GlobOpt::ProcessArrayValueKills(IR::Instr *instr)
     case Js::OpCode::DeleteRootFld:
     case Js::OpCode::DeleteFldStrict:
     case Js::OpCode::DeleteRootFldStrict:
-    case Js::OpCode::StInt8ArrViewElem:
-    case Js::OpCode::StUInt8ArrViewElem:
-    case Js::OpCode::StInt16ArrViewElem:
-    case Js::OpCode::StUInt16ArrViewElem:
-    case Js::OpCode::StInt32ArrViewElem:
-    case Js::OpCode::StUInt32ArrViewElem:
-    case Js::OpCode::StFloat32ArrViewElem:
-    case Js::OpCode::StFloat64ArrViewElem:
+    case Js::OpCode::StArrViewElem:
     // These array helpers may change A.length (and A[i] could be A.length)...
     case Js::OpCode::InlineArrayPush:
     case Js::OpCode::InlineArrayPop:

@@ -118,6 +118,7 @@
                 "bind": "function <large string>",
                 "call": "function <large string>",
                 "toString": "function <large string>",
+                "Symbol.hasInstance": "function <large string>",
                 "caller": "Error <large string>",
                 "arguments": "Error <large string>"
               },
@@ -131,6 +132,7 @@
                 "Symbol.toPrimitive": "function <large string>"
               },
               "name": "string Symbol",
+              "hasInstance": "symbol <large string>",
               "isConcatSpreadable": "symbol <large string>",
               "iterator": "symbol <large string>",
               "species": "symbol <large string>",
@@ -165,6 +167,7 @@
                 "bind": "function <large string>",
                 "call": "function <large string>",
                 "toString": "function <large string>",
+                "Symbol.hasInstance": "function <large string>",
                 "caller": "Error <large string>",
                 "arguments": "Error <large string>"
               },
@@ -183,6 +186,7 @@
                 "bind": "function <large string>",
                 "call": "function <large string>",
                 "toString": "function <large string>",
+                "Symbol.hasInstance": "function <large string>",
                 "caller": "Error <large string>",
                 "arguments": "Error <large string>"
               },
@@ -201,6 +205,7 @@
                 "bind": "function <large string>",
                 "call": "function <large string>",
                 "toString": "function <large string>",
+                "Symbol.hasInstance": "function <large string>",
                 "caller": "Error <large string>",
                 "arguments": "Error <large string>"
               },

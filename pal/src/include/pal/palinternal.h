@@ -330,7 +330,9 @@ function_name() to call the system's implementation
 #define FILE PAL_FILE
 #define fpos_t PAL_fpos_t
 
+#define INCLUDE_PAL_INTERNAL_
 #include "pal.h"
+#undef INCLUDE_PAL_INTERNAL_
 
 #include "mbusafecrt.h"
 
@@ -694,5 +696,7 @@ inline T* InterlockedCompareExchangePointerT(
 #ifndef min
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 #endif
+
+#define StackOverflowMessage "Process is terminated due to StackOverflowException.\n"
 
 #endif /* _PAL_INTERNAL_H_ */

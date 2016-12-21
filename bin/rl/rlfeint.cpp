@@ -33,7 +33,7 @@ SpawnRLFE(
 )
 {
     char cmd[1024];
-    char *str = "Unexpected error";
+    const char *str = "Unexpected error";
     enum SD_STATUS {
         SD_NONE, SD_IN, SD_ERR, SD_OUT, SD_CREATE
     } status;
@@ -391,7 +391,7 @@ RLFEAddTest(
     CDirectory *pDir
 )
 {
-    char *path;
+    const char *path;
     int len, num;
 
     path = pDir->GetDirectoryName();

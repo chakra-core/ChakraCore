@@ -275,11 +275,25 @@ ENTRY(Map)
 ENTRY(Math)
 
 // Wasm
-#ifdef ENABLE_WASM
-ENTRY(Wasm)
-ENTRY(instantiateModule)
-ENTRY(experimentalVersion)
-#endif
+
+ENTRY(WebAssembly)
+ENTRY(Module)
+ENTRY(Instance)
+ENTRY(Memory)
+ENTRY(Table)
+ENTRY(CompileError)
+ENTRY(RuntimeError)
+ENTRY(validate)
+ENTRY(instantiate)
+ENTRY(grow)
+ENTRY(module)
+ENTRY(instance)
+ENTRY(kind)
+ENTRY(exports)
+ENTRY(imports)
+ENTRY(initial)
+ENTRY(maximum)
+ENTRY(element)
 // End Wasm
 
 // SIMD_JS

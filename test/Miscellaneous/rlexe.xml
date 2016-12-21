@@ -15,14 +15,6 @@
   </test>
   <test>
     <default>
-      <files>etwtest.js</files>
-      <baseline />
-      <compile-flags>-testEtwDll:NativeUnitTests.dll</compile-flags>
-      <tags>exclude_ship</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>evalAlias.js</files>
       <baseline />
     </default>

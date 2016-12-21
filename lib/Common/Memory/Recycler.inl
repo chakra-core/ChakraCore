@@ -56,10 +56,10 @@ Recycler::AllocWithAttributesInlined(size_t size)
 
 #if ENABLE_CONCURRENT_GC
     // We shouldn't be allocating memory when we are running GC in thread, including finalizers
-    Assert(this->IsConcurrentState() || !this->CollectionInProgress() || this->collectionState == CollectionStatePostCollectionCallback);
+    Assert(this->IsConcurrentState() || !this->CollectionInProgress() || this->IsAllocatableCallbackState());
 #else
     // We shouldn't be allocating memory when we are running GC in thread, including finalizers
-    Assert(!this->CollectionInProgress() || this->collectionState == CollectionStatePostCollectionCallback);
+    Assert(!this->CollectionInProgress() || this->IsAllocatableCallbackState());
 #endif
 
     // There are some cases where we allow allocation during heap enum that doesn't affect the enumeration
@@ -285,17 +285,20 @@ void Recycler::VerifyPageHeapFillAfterAlloc(char* memBlock, size_t size)
 
         if (this->IsPageHeapEnabled<attributes>(size))
         {
-            Assert(heapBlock->IsLargeHeapBlock());
-        }
-
-        if (heapBlock->IsLargeHeapBlock())
-        {
-            LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
-            if (largeHeapBlock->InPageHeapMode())
+            if (heapBlock->IsLargeHeapBlock())
             {
-                LargeObjectHeader* header = (LargeObjectHeader*)(memBlock - sizeof(LargeObjectHeader));
-                largeHeapBlock->VerifyPageHeapPattern();
-                header->isPageHeapFillVerified = true;
+                LargeHeapBlock* largeHeapBlock = (LargeHeapBlock*)heapBlock;
+                if (largeHeapBlock->InPageHeapMode())
+                {
+                    LargeObjectHeader* header = (LargeObjectHeader*)(memBlock - sizeof(LargeObjectHeader));
+                    largeHeapBlock->VerifyPageHeapPattern();
+                    header->isPageHeapFillVerified = true;
+                }
+            }
+            else
+            {
+                // currently we don't support integration of large blocks
+                Assert(((SmallHeapBlockT<SmallAllocationBlockAttributes>*)heapBlock)->isIntegratedBlock);
             }
         }
     }
@@ -491,6 +494,7 @@ Recycler::ScanObjectInlineInterior(void ** obj, size_t byteCount)
     markContext.ScanObject<false, true>(obj, byteCount);
 }
 
+template <bool doSpecialMark>
 inline void
 Recycler::ScanMemoryInline(void ** obj, size_t byteCount)
 {
@@ -498,11 +502,11 @@ Recycler::ScanMemoryInline(void ** obj, size_t byteCount)
     Assert(this->collectionState != CollectionStateParallelMark);
     if (this->enableScanInteriorPointers)
     {
-        markContext.ScanMemory<false, true>(obj, byteCount);
+        markContext.ScanMemory<false, true, doSpecialMark>(obj, byteCount);
     }
     else
     {
-        markContext.ScanMemory<false, false>(obj, byteCount);
+        markContext.ScanMemory<false, false, doSpecialMark>(obj, byteCount);
     }
 }
 

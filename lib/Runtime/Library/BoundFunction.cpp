@@ -238,6 +238,13 @@ namespace Js
         }
     }
 
+#if ENABLE_TTD
+    void BoundFunction::MarshalCrossSite_TTDInflate()
+    {
+        AssertMsg(VirtualTableInfo<BoundFunction>::HasVirtualTable(this), "Derived class need to define marshal");
+        VirtualTableInfo<Js::CrossSiteObject<BoundFunction>>::SetVirtualTable(this);
+    }
+#endif
 
     JavascriptFunction * BoundFunction::GetTargetFunction() const
     {
@@ -492,7 +499,7 @@ namespace Js
         this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->targetFunction, _u("!targetFunction"));
         this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->boundThis, _u("!boundThis"));
 
-        AssertMsg(this->count == 0, "Should only have empty args in core image");
+        TTDAssert(this->count == 0, "Should only have empty args in core image");
     }
 
     TTD::NSSnapObjects::SnapObjectType BoundFunction::GetSnapTag_TTD() const

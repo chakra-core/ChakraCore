@@ -1,3 +1,1 @@
-Unexpected Error while compiling left-to-right.0.wasm
-Error: Compiling wasm failed: I64 support NYI
-0/0 tests passed.
+96/96 tests passed.

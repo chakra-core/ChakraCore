@@ -383,7 +383,7 @@ namespace Js
         static Var OP_CmGt_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);
         static Var OP_CmGe_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);
 
-        static FunctionInfo * JavascriptOperators::GetConstructorFunctionInfo(Var instance, ScriptContext * scriptContext);
+        static FunctionInfo * GetConstructorFunctionInfo(Var instance, ScriptContext * scriptContext);
         // Detach the type array buffer, if possible, and returns the state of the object which can be used to initialize another object
         static DetachedStateBase* DetachVarAndGetState(Var var);
         static bool IsObjectDetached(Var var);
@@ -451,7 +451,8 @@ namespace Js
         static Var OP_InitCachedScope(Var varFunc, const PropertyIdArray *propIds, DynamicType ** literalType, bool formalsAreLetDecls, ScriptContext *scriptContext);
         static void OP_InvalidateCachedScope(Var varEnv, int32 envIndex);
         static void OP_InitCachedFuncs(Var varScope, FrameDisplay *pDisplay, const FuncInfoArray *info, ScriptContext *scriptContext);
-        static Var OP_NewScopeObject(ScriptContext*scriptContext);
+        static Var OP_NewScopeObject(ScriptContext* scriptContext);
+        static Var OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, JavascriptFunction * funcCallee, bool nonSimpleParamList);
         static Var* OP_NewScopeSlots(unsigned int count, ScriptContext *scriptContext, Var scope);
         static Var* OP_NewScopeSlotsWithoutPropIds(unsigned int count, int index, ScriptContext *scriptContext, FunctionBody *functionBody);
         static Var* OP_CloneScopeSlots(Var *scopeSlots, ScriptContext *scriptContext);
@@ -514,6 +515,7 @@ namespace Js
         static bool IsStaticTypeObjTypeSpecEquivalent(const TypeEquivalenceRecord& equivalenceRecord, uint& failedIndex);
         static bool IsStaticTypeObjTypeSpecEquivalent(const EquivalentPropertyEntry *entry);
         static bool CheckIfTypeIsEquivalent(Type* type, JitEquivalentTypeGuard* guard);
+        static bool CheckIfTypeIsEquivalentForFixedField(Type* type, JitEquivalentTypeGuard* guard);
 
         static void GetPropertyIdForInt(uint64 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
         static void GetPropertyIdForInt(uint32 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);

@@ -3,9 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-const blob = WScript.LoadBinaryFile('rot.wasm');
-const moduleBytesView = new Uint8Array(blob);
-var a = Wasm.instantiateModule(moduleBytesView, {}).exports;
+var mod = new WebAssembly.Module(readbuffer('rot.wasm'));
+var a = new WebAssembly.Instance(mod).exports;
 print(a.rotl(11,2)); // == 44
 print(a.rotl(65536,2)); // == 262144
 print(a.rotr(65536,2)); //  == 16384

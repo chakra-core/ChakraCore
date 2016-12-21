@@ -10,6 +10,7 @@ PHASE(All)
     PHASE(Parse)
         PHASE(RegexCompile)
         PHASE(DeferParse)
+        PHASE(Redeferral)
         PHASE(DeferEventHandlers)
         PHASE(FunctionSourceInfoParse)
         PHASE(StringTemplateParse)
@@ -31,15 +32,14 @@ PHASE(All)
     PHASE(Delay)
         PHASE(Speculation)
         PHASE(GatherCodeGenData)
-    PHASE(Wasm)
-        PHASE(WasmBytecode)
-            PHASE(WasmParser)
-            PHASE(WasmReader)
-            PHASE(WasmSection)
-            PHASE(WasmLEB128)
-            PHASE(WasmFunctionBody)
-        PHASE(WasmLazyTrap)
+    PHASE(WasmBytecode)
+        PHASE(WasmParser)
+        PHASE(WasmReader)
+        PHASE(WasmSection)
+        PHASE(WasmLEB128)
+        PHASE(WasmFunctionBody)
         PHASE(WasmDeferred)
+        PHASE(WasmValidatePrejit)
     PHASE(Asmjs)
         PHASE(AsmjsTmpRegisterAllocation)
         PHASE(AsmjsEncoder)
@@ -48,6 +48,7 @@ PHASE(All)
         PHASE(AsmjsFunctionEntry)
         PHASE(AsmjsInterpreterStack)
         PHASE(AsmjsEntryPointInfo)
+        PHASE(AsmjsCallDebugBreak)
         PHASE(BackEnd)
         PHASE(IRBuilder)
             PHASE(SwitchOpt)
@@ -68,6 +69,7 @@ PHASE(All)
             PHASE(InlineSetters)
             PHASE(InlineApply)
             PHASE(InlineApplyTarget)
+            PHASE(InlineApplyWithoutArrayArg)
             PHASE(BailOutOnNotStackArgs)
             PHASE(InlineCall)
             PHASE(InlineCallTarget)
@@ -376,6 +378,8 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #endif
+#define DEFAULT_CONFIG_WASM               (false)
+#define DEFAULT_CONFIG_WASM_I64           (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo     (true)
@@ -405,6 +409,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_DumpCommentsFromReferencedFiles (false)
 #define DEFAULT_CONFIG_ExtendedErrorStackForTestHost (false)
 #define DEFAULT_CONFIG_ForceSplitScope      (false)
+#define DEFAULT_CONFIG_DelayFullJITSmallFunc (0)
 
 
 //Following determines inline thresholds
@@ -515,12 +520,7 @@ PHASE(All)
     #define DEFAULT_CONFIG_ES6FunctionNameFull     (false)
 #endif
 #define DEFAULT_CONFIG_ES6Generators           (true)
-#ifdef COMPILE_DISABLE_ES6IsConcatSpreadable
-    // If ES6IsConcatSpreadable needs to be disabled by compile flag, COMPILE_DISABLE_ES6IsConcatSpreadable should be false
-    #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (false)
-#else
-    #define DEFAULT_CONFIG_ES6IsConcatSpreadable   (false)
-#endif
+#define DEFAULT_CONFIG_ES6IsConcatSpreadable   (true)
 #define DEFAULT_CONFIG_ES6Math                 (true)
 #ifdef COMPILE_DISABLE_ES6Module
     // If ES6Module needs to be disabled by compile flag, DEFAULT_CONFIG_ES6Module should be false
@@ -543,7 +543,7 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_ES6PrototypeChain       (false)
 #endif
-#define DEFAULT_CONFIG_ES6ToPrimitive          (false)
+#define DEFAULT_CONFIG_ES6ToPrimitive          (true)
 #define DEFAULT_CONFIG_ES6ToLength             (false)
 #define DEFAULT_CONFIG_ES6ToStringTag          (true)
 #define DEFAULT_CONFIG_ES6Unicode              (true)
@@ -562,12 +562,7 @@ PHASE(All)
 #else
     #define DEFAULT_CONFIG_ES6RegExSymbols         (false)
 #endif
-#ifdef COMPILE_DISABLE_ES6HasInstance
-    // If ES6HasInstance needs to be disabled by compile flag, DEFAULT_CONFIG_ES6HasInstanceOf should be false
-    #define DEFAULT_CONFIG_ES6HasInstanceOf        (false)
-#else
-    #define DEFAULT_CONFIG_ES6HasInstanceOf        (false)
-#endif
+#define DEFAULT_CONFIG_ES6HasInstance          (true)
 #ifdef COMPILE_DISABLE_ArrayBufferTransfer
     // If ArrayBufferTransfer needs to be disabled by compile flag, DEFAULT_CONFIG_ArrayBufferTransfer should be false
     #define DEFAULT_CONFIG_ArrayBufferTransfer     (false)
@@ -654,7 +649,12 @@ PHASE(All)
 #define DEFAULT_CONFIG_EnumerationCompat    (false)
 #define DEFAULT_CONFIG_ConcurrentRuntime (false)
 #define DEFAULT_CONFIG_PrimeRecycler     (false)
+#if defined(_WIN32)
 #define DEFAULT_CONFIG_PrivateHeap       (true)
+#else // defined(_WIN32)
+// Don't use PrivateHeap on xplat where we statically link and override new/delete
+#define DEFAULT_CONFIG_PrivateHeap       (false)
+#endif // defined(_WIN32)
 #define DEFAULT_CONFIG_DisableRentalThreading (false)
 #define DEFAULT_CONFIG_DisableDebugObject (false)
 #define DEFAULT_CONFIG_DumpHeap (false)
@@ -833,11 +833,13 @@ FLAGNR(String,  AsmDumpMode           , "Dump the final assembly to a file witho
 FLAGR (Boolean, Asmjs                 , "Enable Asmjs", DEFAULT_CONFIG_ASMJS)
 FLAGNR(Boolean, AsmJsStopOnError      , "Stop execution on any AsmJs validation errors", DEFAULT_CONFIG_AsmJsStopOnError)
 FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have backward incompatible changes or not validate on old demos", DEFAULT_CONFIG_AsmJsEdge)
+FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. ArgIns can be [number,string,{low:number,high:number}]. Return values will be {low:number,high:number}", DEFAULT_CONFIG_WASM_I64)
 
 #ifndef COMPILE_DISABLE_Simdjs
     #define COMPILE_DISABLE_Simdjs 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, Simdjs, "Enable Simdjs", DEFAULT_CONFIG_SIMDJS)
+
 FLAGR(Boolean, Simd128TypeSpec, "Enable type-specialization of Simd128 symbols", false)
 
 FLAGNR(Boolean, AssertBreak           , "Debug break on assert", false)
@@ -975,10 +977,7 @@ FLAGPR           (Boolean, ES6, ES7ExponentiationOperator, "Enable ES7 exponenti
 
 FLAGPR           (Boolean, ES6, ES7ValuesEntries       , "Enable ES7 Object.values and Object.entries"              , DEFAULT_CONFIG_ES7ValuesEntries)
 FLAGPR           (Boolean, ES6, ES7TrailingComma       , "Enable ES7 trailing comma in function"                    , DEFAULT_CONFIG_ES7TrailingComma)
-#ifndef COMPILE_DISABLE_ES6IsConcatSpreadable
-    #define COMPILE_DISABLE_ES6IsConcatSpreadable 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
+FLAGPR           (Boolean, ES6, ES6IsConcatSpreadable  , "Enable ES6 isConcatSpreadable Symbol"                     , DEFAULT_CONFIG_ES6IsConcatSpreadable)
 FLAGPR           (Boolean, ES6, ES6Math                , "Enable ES6 Math extensions"                               , DEFAULT_CONFIG_ES6Math)
 
 #ifndef COMPILE_DISABLE_ES6Module
@@ -999,10 +998,7 @@ FLAGPR           (Boolean, ES6, ES6StringPrototypeFixes, "Enable ES6 String.prot
     #define COMPILE_DISABLE_ES6PrototypeChain 0
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6PrototypeChain      , "Enable ES6 prototypes (Example: Date prototype is object)", DEFAULT_CONFIG_ES6PrototypeChain)
-#ifndef COMPILE_DISABLE_ES6ToPrimitive
-    #define COMPILE_DISABLE_ES6ToPrimitive 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES6ToPrimitive         , "Enable ES6 ToPrimitive symbol"                            , DEFAULT_CONFIG_ES6ToPrimitive)
+FLAGPR           (Boolean, ES6, ES6ToPrimitive         , "Enable ES6 ToPrimitive symbol"                            , DEFAULT_CONFIG_ES6ToPrimitive)
 FLAGPR           (Boolean, ES6, ES6ToLength            , "Enable ES6 ToLength fixes"                                , DEFAULT_CONFIG_ES6ToLength)
 FLAGPR           (Boolean, ES6, ES6ToStringTag         , "Enable ES6 ToStringTag symbol"                            , DEFAULT_CONFIG_ES6ToStringTag)
 FLAGPR           (Boolean, ES6, ES6Unicode             , "Enable ES6 Unicode 6.0 extensions"                        , DEFAULT_CONFIG_ES6Unicode)
@@ -1020,10 +1016,7 @@ FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExPrototypeProperties, "Enable ES6 propert
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, ES6RegExSymbols        , "Enable ES6 RegExp symbols"                                , DEFAULT_CONFIG_ES6RegExSymbols)
 
-#ifndef COMPILE_DISABLE_ES6HasInstance
-    #define COMPILE_DISABLE_ES6HasInstance 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstanceOf)
+FLAGPR           (Boolean, ES6, ES6HasInstance         , "Enable ES6 @@hasInstance symbol"                          , DEFAULT_CONFIG_ES6HasInstance)
 FLAGPR           (Boolean, ES6, ES6Verbose             , "Enable ES6 verbose trace"                                 , DEFAULT_CONFIG_ES6Verbose)
 
 #ifndef COMPILE_DISABLE_ArrayBufferTransfer
@@ -1039,6 +1032,11 @@ FLAGPR           (Boolean, ES6, ESObjectGetOwnPropertyDescriptors, "Enable Objec
 FLAGPRA          (Boolean, ES6, ESSharedArrayBuffer    , sab     , "Enable SharedArrayBuffer"                       , DEFAULT_CONFIG_ESSharedArrayBuffer)
 
 // /ES6 (BLUE+1) features/flags
+
+#ifndef COMPILE_DISABLE_Wasm
+#define COMPILE_DISABLE_Wasm 0
+#endif
+FLAGPR_REGOVR_EXP(Boolean, ES6, Wasm, "Enable WebAssembly", DEFAULT_CONFIG_WASM)
 
 #ifdef ENABLE_PROJECTION
 FLAGNR(Boolean, WinRTDelegateInterfaces , "Treat WinRT Delegates as Interfaces when determining their resolvability.", DEFAULT_CONFIG_WinRTDelegateInterfaces)
@@ -1081,6 +1079,7 @@ FLAGNR(Boolean, ForceFastPath         , "Force fast-paths in native codegen", DE
 FLAGNR(Boolean, ForceFloatPref        , "Force float preferencing (JIT only)", false)
 FLAGNR(Boolean, ForceJITLoopBody      , "Force jit loop body only", DEFAULT_CONFIG_ForceJITLoopBody)
 FLAGNR(Boolean, DumpCommentsFromReferencedFiles, "Allow printing comments of comment-table of the referenced file as well (use with -trace:CommentTable)", DEFAULT_CONFIG_DumpCommentsFromReferencedFiles)
+FLAGNR(Number,  DelayFullJITSmallFunc , "Scale Full JIT threshold for small functions which are going to be inlined soon. To provide fraction scale, the final scale is scale following this option devided by 10", DEFAULT_CONFIG_DelayFullJITSmallFunc)
 
 #ifdef _M_ARM
 FLAGNR(Boolean, ForceLocalsPtr        , "Force use of alternative locals pointer (JIT only)", false)

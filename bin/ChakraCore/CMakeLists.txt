@@ -1,5 +1,5 @@
 add_library (ChakraCore SHARED
-  ChakraCoreDllFunc.cpp
+  ChakraCoreShared.cpp
   ConfigParserExternals.cpp
   TestHooks.cpp
 )
@@ -20,7 +20,6 @@ target_include_directories (
 #  pthread: For threading
 #  stdc++/gcc_s: C++ runtime code
 #  dl: For shared library loading related functions
-#  icuuc: For the ICU (xplat-todo: Make this optional)
 #
 if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(LINKER_START_GROUP
@@ -31,6 +30,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(LINKER_END_GROUP
     -Wl,--no-whole-archive
     -Wl,--end-group
+    -static-libstdc++
     )
 elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(LINKER_START_GROUP -Wl,-force_load,)
@@ -45,7 +45,6 @@ set(lib_target "${lib_target}"
   Chakra.Jsrt
   ${LINKER_END_GROUP}
   pthread
-  stdc++
   dl
   ${ICULIB}
   )
