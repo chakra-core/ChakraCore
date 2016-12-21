@@ -2422,9 +2422,9 @@ LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt)
+LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, bool generateWriteBarrier)
 {
-    return Lowerer::InsertMove(dst, src, instrInsertPt);
+    return Lowerer::InsertMove(dst, src, instrInsertPt, generateWriteBarrier);
 }
 
 ///----------------------------------------------------------------------------

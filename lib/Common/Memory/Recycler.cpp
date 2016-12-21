@@ -461,21 +461,18 @@ Recycler::~Recycler()
     Assert(!this->isAborting);
 #endif
 #if DBG
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    if (recyclerList == this)
     {
-        if (recyclerList == this)
+        recyclerList = this->next;
+    }
+    else
+    {
+        Recycler* list = recyclerList;
+        while (list->next != this)
         {
-            recyclerList = this->next;
+            list = list->next;
         }
-        else
-        {
-            Recycler* list = recyclerList;
-            while (list->next != this)
-            {
-                list = list->next;
-            }
-            list->next = this->next;
-        }
+        list->next = this->next;
     }
 #endif
 
@@ -922,11 +919,8 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
     Assert(!needWriteWatch);
 #endif
 #if DBG
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
-    {
-        this->next = recyclerList;
-        recyclerList = this;
-    }
+    this->next = recyclerList;
+    recyclerList = this;
 #endif
 }
 
@@ -8546,6 +8540,21 @@ Recycler::WBSetBits(char* addr, uint length)
         }
         recycler = recycler->next;
     }
+}
+bool 
+Recycler::WBCheckIsRecyclerAddress(char* addr)
+{
+    Recycler* recycler = Recycler::recyclerList;
+    while (recycler)
+    {
+        auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
+        if (heapBlock)
+        {
+            return true;
+        }
+        recycler = recycler->next;
+    }
+    return false;
 }
 #endif
 

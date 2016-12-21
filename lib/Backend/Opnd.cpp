@@ -109,6 +109,11 @@ Opnd::IsWriteBarrierTriggerableValue()
         return false;
     }
 
+    if (TySize[this->GetType()] != sizeof(void*))
+    {
+        return false;
+    }
+
 #if DBG
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
     {

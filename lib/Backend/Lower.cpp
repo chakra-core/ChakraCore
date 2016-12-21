@@ -13254,7 +13254,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         }
 
         m_lowererMD.CreateAssign(
-            indexOpndForBailOutKind, IR::IntConstOpnd::New(instr->GetBailOutKind(), indexOpndForBailOutKind->GetType(), this->m_func), instr);
+            indexOpndForBailOutKind, IR::IntConstOpnd::New(instr->GetBailOutKind(), indexOpndForBailOutKind->GetType(), this->m_func), instr, false);
 
         // No point in doing this for BailOutFailedEquivalentTypeCheck or BailOutFailedEquivalentFixedFieldTypeCheck,
         // because the respective inline cache is already polymorphic, anyway.
@@ -13276,7 +13276,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
             }
 
             m_lowererMD.CreateAssign(
-                indexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr);
+                indexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr, false);
         }
 
         if (bailOutInfo->bailOutRecord->GetType() == BailOutRecord::BailoutRecordType::Shared)
@@ -13291,7 +13291,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
                 functionBodyOpnd = IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + SharedBailOutRecord::GetOffsetOfFunctionBody(), TyMachPtr, this->m_func);
             }
             m_lowererMD.CreateAssign(
-                functionBodyOpnd, CreateFunctionBodyOpnd(instr->m_func), instr);
+                functionBodyOpnd, CreateFunctionBodyOpnd(instr->m_func), instr, false);
         }
 
         // GenerateBailOut should have replaced this as a label as we should have already lowered
@@ -14511,8 +14511,14 @@ IR::Instr *Lowerer::InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const in
     IR::Instr *const instr = IR::Instr::New(Js::OpCode::Ld_A, dst, src, func);
 
     insertBeforeInstr->InsertBefore(instr);
-
-    LowererMD::ChangeToWriteBarrierAssign(instr, func);
+    if (generateWriteBarrier)
+    {
+        LowererMD::ChangeToWriteBarrierAssign(instr, func);
+    }
+    else
+    {
+        LowererMD::ChangeToAssign(instr);
+    }
 
     return instr;
 }

@@ -1933,6 +1933,7 @@ public:
     }
     static void WBSetBit(char* addr);
     static void WBSetBits(char* addr, uint length);
+    static bool WBCheckIsRecyclerAddress(char* addr);
 #endif
 };
 

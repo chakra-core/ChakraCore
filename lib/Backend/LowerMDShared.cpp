@@ -803,9 +803,9 @@ LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt)
+LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, bool generateWriteBarrier)
 {
-    return Lowerer::InsertMove(dst, src, instrInsertPt);
+    return Lowerer::InsertMove(dst, src, instrInsertPt, generateWriteBarrier);
 }
 
 ///----------------------------------------------------------------------------
@@ -4722,19 +4722,28 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
     void* destAddr = nullptr;
     bool isPossibleBarrieredDest = false;
 
-    if (dest->IsIndirOpnd())
+    if (TySize[dest->GetType()] == sizeof(void*))
     {
-        Assert(!dest->AsIndirOpnd()->HasAddrKind());
-        isPossibleBarrieredDest = true;
-    }
-    else if (dest->IsMemRefOpnd())
-    {
-        // looks all thread context field access are from MemRefOpnd
-        destAddr = (void*)dest->AsMemRefOpnd()->GetMemLoc();
-        isPossibleBarrieredDest = destAddr != nullptr
-            && destAddr != (void*)threadContextInfo->GetImplicitCallFlagsAddr()
-            && destAddr != (void*)threadContextInfo->GetDisableImplicitFlagsAddr()
-            && destAddr != (void*)threadContextInfo->GetBailOutRegisterSaveSpaceAddr();
+        if (dest->IsIndirOpnd())
+        {
+            Assert(!dest->AsIndirOpnd()->HasAddrKind());
+            isPossibleBarrieredDest = true;
+        }
+        else if (dest->IsMemRefOpnd())
+        {
+            // looks all thread context field access are from MemRefOpnd
+            destAddr = (void*)dest->AsMemRefOpnd()->GetMemLoc();
+            isPossibleBarrieredDest = destAddr != nullptr
+                && ((intptr_t)destAddr % sizeof(void*)) == 0
+                && destAddr != (void*)threadContextInfo->GetImplicitCallFlagsAddr()
+                && destAddr != (void*)threadContextInfo->GetDisableImplicitFlagsAddr()
+                && destAddr != (void*)threadContextInfo->GetBailOutRegisterSaveSpaceAddr();
+
+            if (isPossibleBarrieredDest)
+            {
+                Assert(Recycler::WBCheckIsRecyclerAddress((char*)destAddr));
+            }
+        }
     }
 #endif
 
@@ -4742,12 +4751,10 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 
     // Now insert write barrier if necessary
 #ifdef RECYCLER_WRITE_BARRIER_JIT
-
     if (isPossibleBarrieredDest && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
     {
         func->GetTopFunc()->m_lowerer->GetLowererMD()->GenerateWriteBarrier(assignInstr);
     }
-
 #endif
 }
 
@@ -6289,7 +6296,7 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     insertionPointInstr->InsertBefore(branchToAllocHelperInstr);
 
     // MOV allocator->freeObjectList, nextMemBlock
-    Lowerer::InsertMove(freeListOpnd, nextMemBlockOpnd, insertionPointInstr);
+    Lowerer::InsertMove(freeListOpnd, nextMemBlockOpnd, insertionPointInstr, false);
 
     // JMP $allocDone
     IR::BranchInstr * branchToAllocDoneInstr = IR::BranchInstr::New(Js::OpCode::JMP, allocDoneLabel, this->m_func);
