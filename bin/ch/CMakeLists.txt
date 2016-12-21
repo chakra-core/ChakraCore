@@ -33,11 +33,18 @@ target_include_directories (ch
   )
 
 if(STATIC_LIBRARY)
-  if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
     set(LINKER_START_GROUP -Wl,--start-group)
     set(LINKER_END_GROUP -Wl,--end-group -static-libstdc++)
-  elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  elseif(CC_TARGET_OS_OSX)
     set(LINKER_START_GROUP -Wl,-force_load,)
+  endif()
+
+  if (NOT CC_TARGET_OS_ANDROID)
+    set(LINKER_END_GROUP
+        "${LINKER_END_GROUP}"
+        pthread
+        )
   endif()
 
   # common link deps
@@ -48,12 +55,11 @@ if(STATIC_LIBRARY)
     Chakra.Common.Core
     Chakra.Jsrt
     ${LINKER_END_GROUP}
-    pthread
     dl
     ${ICULIB}
     )
 
-  if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+  if(CC_TARGET_OS_OSX)
     set(lib_target "${lib_target}"
       "-framework CoreFoundation"
       "-framework Security"
@@ -62,7 +68,7 @@ if(STATIC_LIBRARY)
 else() # // shared library below
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE")
 
-  if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+  if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
       set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pie") # osx clang sets this by default
   endif()
 
@@ -73,15 +79,18 @@ else() # // shared library below
     )
 endif()
 
-if(CC_TARGETS_X86)
-  set(lib_target "${lib_target} -arch i386")
-endif()
-
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(lib_target "${lib_target}"
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/ch.version
     )
+elseif(CC_TARGET_OS_OSX)
+  if(CC_TARGETS_X86)
+    set(lib_target "${lib_target} -arch i386")
+  elseif(CC_TARGETS_ARM)
+    set(lib_target "${lib_target} -arch arm")
+  endif()
 endif()
+
 
 target_link_libraries (ch ${lib_target})
 

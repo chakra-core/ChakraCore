@@ -82,7 +82,7 @@ bool IntMathCommon<T>::Sub(T left, T right, T *pResult)
 #endif
 }
 
-#if __has_builtin(__builtin_mul_overflow)
+#if __has_builtin(__builtin_mul_overflow) && !(defined(_ARM_) && defined(__clang__))
 template <class T>
 bool IntMathCommon<T>::Mul(T left, T right, T *pResult)
 {

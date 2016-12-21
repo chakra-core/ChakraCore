@@ -46,6 +46,7 @@ PRINT_USAGE() {
     echo "      --sanitize=CHECKS Build with clang -fsanitize checks,"
     echo "                       e.g. undefined,signed-integer-overflow"
     echo "  -t, --test-build     Test build (by default Release build)"
+    echo "      --target[=S]     Target OS"
     echo "      --xcode          Generate XCode project"
     echo "      --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental"
@@ -78,6 +79,7 @@ OS_LINUX=0
 OS_APT_GET=0
 OS_UNIX=0
 LTO=""
+TARGET_OS=""
 
 if [ -f "/proc/version" ]; then
     OS_LINUX=1
@@ -231,6 +233,25 @@ while [[ $# -gt 0 ]]; do
         SANITIZE="-DCLANG_SANITIZE_SH=${SANITIZE}"
         ;;
 
+    --target=*)
+        _TARGET_OS=$1
+        _TARGET_OS="${_TARGET_OS:9}"
+        if [[ $_TARGET_OS =~ "android" ]]; then
+            OLD_PATH=$PATH
+            export TOOLCHAIN=$PWD/android-toolchain-arm
+            TARGET_OS="-DCC_TARGET_OS_ANDROID_SH=1 -DANDROID_TOOLCHAIN_DIR=${TOOLCHAIN}/arm-linux-androideabi"
+            export PATH=$TOOLCHAIN/bin:$OLD_PATH
+            export AR=arm-linux-androideabi-ar
+            export CC=arm-linux-androideabi-clang
+            export CXX=arm-linux-androideabi-clang++
+            export LINK=arm-linux-androideabi-clang++
+            export STRIP=arm-linux-androideabi-strip
+            # override CXX and CC
+            _CXX="${TOOLCHAIN}/bin/${CXX}"
+            _CC="${TOOLCHAIN}/bin/${CC}"
+        fi
+        ;;
+
     --without=*)
         FEATURES=$1
         FEATURES=${FEATURES:10}    # value after --without=
@@ -324,15 +345,20 @@ fi
 
 pushd $build_directory > /dev/null
 
-if [ $ARCH = "x86" ]; then
+if [[ $ARCH =~ "x86" ]]; then
     ARCH="-DCC_TARGETS_X86_SH=1"
     echo "Compile Target : x86"
 else
-    echo "Compile Target : amd64"
+    if [[ $ARCH =~ "arm" ]]; then
+        ARCH="-DCC_TARGETS_ARM_SH=1"
+        echo "Compile Target : arm"
+    else
+        echo "Compile Target : amd64"
+    fi
 fi
 
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH \
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES ../..
 
 _RET=$?

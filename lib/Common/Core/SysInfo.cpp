@@ -254,7 +254,7 @@ AutoSystemInfo::SSE2Available() const
     return false; // TODO: xplat support
 #endif
 #else
-    #error Unsupported platform.
+    return false;
 #endif
 }
 
