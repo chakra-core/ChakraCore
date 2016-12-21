@@ -35,3 +35,11 @@ TypeError : The value of the property 'toLocaleString' is not a Function object
 
 7. Object: element toLocaleString
 0.00, anObject, , , another Object, 1.00, a 3rd Object, 2.00
+
+
+8. TypedArray: toLocaleString should use length from internal slot
+0.00, 31.00
+
+
+9. Array: toLocaleString should use length property
+10.00, 20.00, 30.00, , , 
