@@ -67,17 +67,17 @@ namespace Js
 
     private:
         Field(RecyclerWeakReference<DynamicObject>*) singletonInstance;
-        Field(TPropertyIndex) nextPropertyIndex;
 
     protected:
+        Field(bool) _gc_tag : 1;  // Tag the low bit to prevent possible GC false references
         // Determines whether this instance is actually a SimpleDictionaryUnorderedTypeHandler
         Field(bool) isUnordered : 1;
         // Tracks if an InternalPropertyRecord or symbol has been added to this type; will prevent conversion to string-keyed type handler
         Field(bool) hasNamelessPropertyId : 1;
-
     private:
         // Number of deleted properties in the property map
         Field(byte) numDeletedProperties;
+        Field(TPropertyIndex) nextPropertyIndex;
 
     public:
         DEFINE_GETCPPNAME();

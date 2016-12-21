@@ -81,7 +81,7 @@ namespace Js
         void Add(Recycler* recycler, SparseArraySegmentBase* newSeg);
         void Find(uint itemIndex, SparseArraySegmentBase*& prevOrMatch, SparseArraySegmentBase*& matchOrNext);
 
-        FieldNoBarrier(SparseArraySegmentBase *) lastUsedSegment;
+        Field(SparseArraySegmentBase *) lastUsedSegment;
     };
 
     class JavascriptArray : public ArrayObject

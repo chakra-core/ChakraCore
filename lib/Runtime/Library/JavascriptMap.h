@@ -9,7 +9,7 @@ namespace Js
     class JavascriptMap : public DynamicObject
     {
     public:
-        typedef JsUtil::KeyValuePair<Var, Var> MapDataKeyValuePair;
+        typedef JsUtil::KeyValuePair<Field(Var), Field(Var)> MapDataKeyValuePair;
         typedef MapOrSetDataNode<MapDataKeyValuePair> MapDataNode;
         typedef MapOrSetDataList<MapDataKeyValuePair> MapDataList;
         typedef JsUtil::BaseDictionary<Var, MapDataNode*, Recycler, PowerOf2SizePolicy, SameValueZeroComparer> MapDataMap;
