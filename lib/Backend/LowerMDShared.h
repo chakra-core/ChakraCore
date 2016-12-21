@@ -305,7 +305,7 @@ public:
 
             void GenerateWriteBarrierAssign(IR::IndirOpnd * opndDst, IR::Opnd * opndSrc, IR::Instr * insertBeforeInstr);
             void GenerateWriteBarrierAssign(IR::MemRefOpnd * opndDst, IR::Opnd * opndSrc, IR::Instr * insertBeforeInstr);
-            static void ChangeToWriteBarrierAssign(IR::Instr * assignInstr);
+            static void ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func);
 
             static IR::BranchInstr * GenerateLocalInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext, bool checkTypeWithoutProperty = false);
             static IR::BranchInstr * GenerateProtoInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);
@@ -398,7 +398,7 @@ private:
 
     IR::LabelInstr*   EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, bool needLabelHelper);
 #ifdef RECYCLER_WRITE_BARRIER
-    static IR::Instr* GenerateWriteBarrier(IR::Instr * assignInstr);
+    IR::Instr* GenerateWriteBarrier(IR::Instr * assignInstr);
 #endif
 
     // Data

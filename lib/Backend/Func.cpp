@@ -143,6 +143,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , m_forInEnumeratorArrayOffset(-1)
     , argInsCount(0)
     , m_globalObjTypeSpecFldInfoArray(nullptr)
+    , m_lowerer(nullptr)
 {
 
     Assert(this->IsInlined() == !!runtimeInfo);

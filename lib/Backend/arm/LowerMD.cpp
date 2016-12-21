@@ -2382,7 +2382,7 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
 }
 
 void
-LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr)
+LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 {
 #ifdef RECYCLER_WRITE_BARRIER_JIT
     // WriteBarrier-TODO- Implement ARM JIT

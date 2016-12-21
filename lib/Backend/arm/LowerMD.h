@@ -270,7 +270,7 @@ public:
             static void GenerateStFldFromLocalInlineCache(IR::Instr * instrStFld, IR::RegOpnd * opndBase, IR::Opnd * opndSrc, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);
             void        GenerateFunctionObjectTest(IR::Instr * callInstr, IR::RegOpnd  *functionOpnd, bool isHelper, IR::LabelInstr* continueAfterExLabel = nullptr);
 
-            static void ChangeToWriteBarrierAssign(IR::Instr * assignInstr);
+            static void ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func);
 
             int                 GetHelperArgsCount() { return this->helperCallArgsCount; }
             void                ResetHelperArgsCount() { this->helperCallArgsCount = 0; }

@@ -57,6 +57,11 @@ public:
         , m_int64RegPairMap(nullptr)
 #endif
     {
+        m_func->m_lowerer = this;
+    }
+    ~Lowerer()
+    {
+        m_func->m_lowerer = nullptr;
     }
 
     void Lower();
