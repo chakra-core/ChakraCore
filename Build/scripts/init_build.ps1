@@ -36,13 +36,14 @@ param (
     [string]$oauth
 )
 
+. $PSScriptRoot\pre_post_util.ps1
+
 #
-# Define values for variables based on parameters and environment variables
-# with default values in case the environment variables are not defined.
+# Process build type parameters
 #
 
-. $PSScriptRoot\util.ps1
-$gitExe = GetGitPath
+# Define values for variables based on parameters and environment variables
+# with default values in case the environment variables are not defined.
 
 $BuildType = UseValueOrDefault $buildtype $Env:BuildType
 $BuildPlatform = UseValueOrDefault $arch $Env:BuildPlatform
@@ -85,9 +86,11 @@ if ($BuildType) {
     exit 1
 }
 
-$CommitHash = UseValueOrDefault $Env:BUILD_SOURCEVERSION $(iex "${gitExe} rev-parse HEAD")
+$gitExe = GetGitPath
 
-$branchFullName  = UseValueOrDefault $Env:BUILD_SOURCEBRANCH $(iex "${gitExe} rev-parse --symbolic-full-name HEAD")
+$CommitHash = UseValueOrDefault $Env:BUILD_SOURCEVERSION $(Invoke-Expression "${gitExe} rev-parse HEAD")
+
+$branchFullName  = UseValueOrDefault $Env:BUILD_SOURCEBRANCH $(Invoke-Expression "${gitExe} rev-parse --symbolic-full-name HEAD")
 
 $SourcesDirectory = UseValueOrDefault $Env:BUILD_SOURCESDIRECTORY $(GetRepoRoot)
 $BinariesDirectory = UseValueOrDefault (Join-Path $SourcesDirectory "Build\VcBuild")
@@ -95,24 +98,18 @@ $ObjectDirectory = Join-Path $BinariesDirectory "obj\${BuildPlatform}_${BuildCon
 
 $DropRoot = UseValueOrDefault $dropRoot $Env:DROP_ROOT (Join-Path $(GetRepoRoot) "_DROP")
 
-# set up required variables and import pre_post_util.ps1
-$arch = $BuildPlatform
-$flavor = $BuildConfiguration
-$OuterScriptRoot = $PSScriptRoot # Used in pre_post_util.ps1
-. "$PSScriptRoot\pre_post_util.ps1"
-
 $BuildName = ConstructBuildName -arch $BuildPlatform -flavor $BuildConfiguration -subtype $BuildSubtype
 
 $BranchName = $branchFullName.split('/',3)[2]
 $BranchPath = $BranchName.replace('/','\')
 
 if (-not $CommitHash) {
-    $CommitHash = iex "${gitExe} rev-parse HEAD"
+    $CommitHash = Invoke-Expression "${gitExe} rev-parse HEAD"
 }
-$CommitShortHash = $(iex "${gitExe} rev-parse --short $CommitHash")
+$CommitShortHash = $(Invoke-Expression "${gitExe} rev-parse --short $CommitHash")
 
-$Username = (iex "${gitExe} log $CommitHash -1 --pretty=%ae").split('@')[0]
-$CommitDateTime = [DateTime]$(iex "${gitExe} log $CommitHash -1 --pretty=%aD")
+$Username = (Invoke-Expression "${gitExe} log $CommitHash -1 --pretty=%ae").split('@')[0]
+$CommitDateTime = [DateTime]$(Invoke-Expression "${gitExe} log $CommitHash -1 --pretty=%aD")
 $CommitTime = Get-Date $CommitDateTime -Format yyMMdd.HHmm
 
 #

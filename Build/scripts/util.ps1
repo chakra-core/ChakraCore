@@ -27,7 +27,7 @@ function GetGitPath() {
 
 function GetRepoRoot() {
     $gitExe = GetGitPath
-    return iex "$gitExe rev-parse --show-toplevel"
+    return Invoke-Expression "$gitExe rev-parse --show-toplevel"
 }
 
 function WriteMessage($str) {
