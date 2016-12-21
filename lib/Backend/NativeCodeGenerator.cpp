@@ -895,6 +895,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     workItem->GetJITData()->startTime = (int64)start_time.QuadPart;
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
+        if (!JITManager::GetJITManager()->IsConnected())
+        {
+            throw Js::OperationAbortedException();
+        }
         HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
             workItem->GetJITData(),
             scriptContext->GetRemoteScriptAddr(),
