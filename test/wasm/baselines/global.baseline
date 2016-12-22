@@ -60,4 +60,4 @@ impInit: 78.145
 Invalid cases
 Should be invalid type conversion: Invalid WebAssembly type conversion
 Should be invalid type conversion: Invalid WebAssembly type conversion
-Should be invalid init expr: Compiling wasm failed: Global can only be initialized with a const or an imported global
+Should be invalid init expr: initializer expression can only use imported globals

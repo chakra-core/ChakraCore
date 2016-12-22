@@ -45,13 +45,9 @@ struct XDataAllocation sealed  : public SecondaryAllocation
 //
 class XDataAllocator sealed : public SecondaryAllocator
 {
-// -------- Private members ---------/
-private:
-    HANDLE processHandle;
-
 // --------- Public functions ---------/
 public:
-    XDataAllocator(BYTE* address, uint size, HANDLE processHandle);
+    XDataAllocator(BYTE* address, uint size);
 
     bool Initialize(void* segmentStart, void* segmentEnd);
     void Delete();
@@ -65,4 +61,11 @@ public:
 
     static void Register(XDataAllocation * xdataInfo, DWORD functionStart, DWORD functionSize);
     static void Unregister(XDataAllocation * xdataInfo);
+#ifndef _WIN32
+    // Read .eh_frame data head (length record). 0 means empty.
+    static uint32 ReadHead(const void* p)
+    {
+        return *reinterpret_cast<const uint32*>(p);
+    }
+#endif
 };

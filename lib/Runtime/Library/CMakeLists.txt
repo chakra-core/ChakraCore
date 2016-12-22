@@ -120,8 +120,10 @@ if(CC_TARGETS_AMD64)
     set (CRLIB_SOURCE_CODES ${CRLIB_SOURCE_CODES}
         amd64/JavascriptFunctionA.S
     )
-elseif(CC_TARGETS_X86)
-    # x86 here
+elseif(CC_TARGETS_ARM)
+    set (CRLIB_SOURCE_CODES ${CRLIB_SOURCE_CODES}
+        arm/arm_JavascriptFunctionA.S
+    )
 endif()
 
 add_library (Chakra.Runtime.Library OBJECT ${CRLIB_SOURCE_CODES})

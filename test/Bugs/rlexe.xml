@@ -354,4 +354,10 @@
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>InlineFunctionParameterWithInfiniteLoop.js</files>
+      <compile-flags>-maxinterpretcount:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
 </regress-exe>

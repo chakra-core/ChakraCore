@@ -3245,7 +3245,7 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
             {
                 Assert(*pIndex < parentNestedArray->nestedCount);
                 Js::FunctionInfo * info = parentNestedArray->functionInfoArray[*pIndex];
-                if (info)
+                if (info && info->HasParseableInfo())
                 {
                     reuseNestedFunc = info->GetParseableFunctionInfo();
                 }

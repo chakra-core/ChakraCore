@@ -8,6 +8,11 @@
   </test>
   <test>
     <default>
+      <files>array_qsortr.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>array_init.js</files>
       <baseline>array_init.baseline</baseline>
       <tags>Slow</tags>

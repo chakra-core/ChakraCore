@@ -6,30 +6,19 @@
 
 namespace Wasm
 {
-
-template<typename T>
-inline T WasmMath::Div( T aLeft, T aRight )
-{
-    // Todo:: Trap on aRight == 0 for int64 and uint64
-    return aLeft / aRight;
-}
-
 const uint64 specialDivLeftValue = (uint64)1 << 63;
 
 template<>
 inline int64 WasmMath::Rem( int64 aLeft, int64 aRight )
 {
-    // Todo:: Trap on aRight == 0
     return (aLeft == specialDivLeftValue && aRight == -1) ? 0 : aLeft % aRight;
 }
 
 template<>
 inline uint64 WasmMath::Rem( uint64 aLeft, uint64 aRight )
 {
-    // Todo:: Trap on aRight == 0
     return (aLeft == specialDivLeftValue && aRight == -1) ? specialDivLeftValue : aLeft % aRight;
 }
-
 
 template<typename T> 
 inline T WasmMath::Shl( T aLeft, T aRight )

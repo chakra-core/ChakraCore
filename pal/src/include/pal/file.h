@@ -38,7 +38,6 @@ typedef struct _find_handle
 
     char   dir[_MAX_DIR];
     char   fname[MAX_PATH_FNAME]; /* includes extension */
-    glob_t gGlob;
     char   **next;
 } find_obj;
 

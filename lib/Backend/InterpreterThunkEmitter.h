@@ -57,7 +57,7 @@ class InterpreterThunkEmitter
 {
 private:
     /* ------- instance methods --------*/
-    EmitBufferManager<> emitBufferManager;
+    InProcEmitBufferManager emitBufferManager;
     SListBase<ThunkBlock> thunkBlocks;
     SListBase<ThunkBlock> freeListedThunkBlocks;
     bool isAsmInterpreterThunk; // To emit address of InterpreterAsmThunk or InterpreterThunk
@@ -130,7 +130,7 @@ public:
     static const uint BlockSize= AutoSystemInfo::PageSize * PageCount;
     static void* ConvertToEntryPoint(PVOID dynamicInterpreterThunk);
 
-    InterpreterThunkEmitter(Js::ScriptContext * context, ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk = false);
+    InterpreterThunkEmitter(Js::ScriptContext * context, ArenaAllocator* allocator, CustomHeap::InProcCodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk = false);
     BYTE* GetNextThunk(PVOID* ppDynamicInterpreterThunk);
 
     void Close();
@@ -139,7 +139,7 @@ public:
 #if DBG
     bool IsInHeap(void* address);
 #endif
-    const EmitBufferManager<>* GetEmitBufferManager() const
+    const InProcEmitBufferManager* GetEmitBufferManager() const
     {
         return &emitBufferManager;
     }

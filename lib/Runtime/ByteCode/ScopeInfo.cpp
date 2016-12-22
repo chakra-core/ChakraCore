@@ -84,7 +84,8 @@ namespace Js
         scopeInfo->hasLocalInClosure = scope->GetHasOwnLocalInClosure();
 
         TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s #symbols: %d %s\n"),
-            scope->GetFunc()->name, parent->GetDisplayName(), count, scopeInfo->isObject ? _u("isObject") : _u(""));
+            scope->GetFunc()->name, parent ? parent->GetDisplayName() : _u(""), count,
+            scopeInfo->isObject ? _u("isObject") : _u(""));
 
         MapSymbolData mapSymbolData = { byteCodeGenerator, scope->GetFunc(), 0 };
         scope->ForEachSymbol([&mapSymbolData, scopeInfo, scope](Symbol * sym)

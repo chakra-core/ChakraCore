@@ -13,6 +13,8 @@ class B extends A {
         super();
         ((B) => { super.increment() })();
         (A=> { super.increment() })();
+        let C = async (B) => { B };
+        let D = async A => { A };
     }
 }
 let b = new B();

@@ -6,7 +6,7 @@
 include(CheckCXXSourceCompiles)
 include(CheckCXXSourceRuns)
 
-if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+if(CC_TARGET_OS_OSX)
     # by default this is disabled for osx
     # enable temporarily
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
@@ -33,7 +33,7 @@ else()
   set(CXX_DO_NOT_OPTIMIZE_SIBLING_CALLS "-fno-optimize-sibling-calls")
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+if(CC_TARGET_OS_OSX)
     # by default this is disabled for osx
     # disable back
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \

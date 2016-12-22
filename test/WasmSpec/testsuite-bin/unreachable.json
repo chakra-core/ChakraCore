@@ -1,291 +1,61 @@
-{
-  "modules": [{
-    "filename": "unreachable.0.wasm",
-    "commands": [{
-      "type": "assert_trap",
-      "name": "$assert_trap_0",
-      "file": "unreachable.wast",
-      "line": 185
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_1",
-      "file": "unreachable.wast",
-      "line": 186
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_2",
-      "file": "unreachable.wast",
-      "line": 187
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "unreachable.wast",
-      "line": 188
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_4",
-      "file": "unreachable.wast",
-      "line": 190
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_5",
-      "file": "unreachable.wast",
-      "line": 191
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_6",
-      "file": "unreachable.wast",
-      "line": 192
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_7",
-      "file": "unreachable.wast",
-      "line": 193
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_8",
-      "file": "unreachable.wast",
-      "line": 195
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_9",
-      "file": "unreachable.wast",
-      "line": 196
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_10",
-      "file": "unreachable.wast",
-      "line": 197
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_11",
-      "file": "unreachable.wast",
-      "line": 198
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_12",
-      "file": "unreachable.wast",
-      "line": 199
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_13",
-      "file": "unreachable.wast",
-      "line": 201
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_14",
-      "file": "unreachable.wast",
-      "line": 202
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_15",
-      "file": "unreachable.wast",
-      "line": 203
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_16",
-      "file": "unreachable.wast",
-      "line": 204
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_17",
-      "file": "unreachable.wast",
-      "line": 206
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_18",
-      "file": "unreachable.wast",
-      "line": 208
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_19",
-      "file": "unreachable.wast",
-      "line": 209
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_20",
-      "file": "unreachable.wast",
-      "line": 210
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_21",
-      "file": "unreachable.wast",
-      "line": 212
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_22",
-      "file": "unreachable.wast",
-      "line": 213
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_23",
-      "file": "unreachable.wast",
-      "line": 214
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_24",
-      "file": "unreachable.wast",
-      "line": 216
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_25",
-      "file": "unreachable.wast",
-      "line": 218
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_26",
-      "file": "unreachable.wast",
-      "line": 219
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_27",
-      "file": "unreachable.wast",
-      "line": 220
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_28",
-      "file": "unreachable.wast",
-      "line": 221
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_29",
-      "file": "unreachable.wast",
-      "line": 222
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_30",
-      "file": "unreachable.wast",
-      "line": 224
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_31",
-      "file": "unreachable.wast",
-      "line": 225
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_32",
-      "file": "unreachable.wast",
-      "line": 226
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_33",
-      "file": "unreachable.wast",
-      "line": 227
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_34",
-      "file": "unreachable.wast",
-      "line": 228
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_35",
-      "file": "unreachable.wast",
-      "line": 230
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_36",
-      "file": "unreachable.wast",
-      "line": 231
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_37",
-      "file": "unreachable.wast",
-      "line": 232
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_38",
-      "file": "unreachable.wast",
-      "line": 234
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_39",
-      "file": "unreachable.wast",
-      "line": 235
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_40",
-      "file": "unreachable.wast",
-      "line": 236
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_41",
-      "file": "unreachable.wast",
-      "line": 237
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_42",
-      "file": "unreachable.wast",
-      "line": 239
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_43",
-      "file": "unreachable.wast",
-      "line": 241
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_44",
-      "file": "unreachable.wast",
-      "line": 242
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_45",
-      "file": "unreachable.wast",
-      "line": 244
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_46",
-      "file": "unreachable.wast",
-      "line": 245
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_47",
-      "file": "unreachable.wast",
-      "line": 246
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_48",
-      "file": "unreachable.wast",
-      "line": 247
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_49",
-      "file": "unreachable.wast",
-      "line": 249
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_50",
-      "file": "unreachable.wast",
-      "line": 251
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_51",
-      "file": "unreachable.wast",
-      "line": 252
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_52",
-      "file": "unreachable.wast",
-      "line": 254
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_53",
-      "file": "unreachable.wast",
-      "line": 256
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_54",
-      "file": "unreachable.wast",
-      "line": 257
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_55",
-      "file": "unreachable.wast",
-      "line": 259
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_56",
-      "file": "unreachable.wast",
-      "line": 261
-    }]
-  }]
-}
+{"source_filename": "unreachable.wast",
+ "commands": [
+  {"type": "module", "line": 3, "filename": "unreachable.0.wasm"}, 
+  {"type": "assert_trap", "line": 185, "action": {"type": "invoke", "field": "type-i32", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 186, "action": {"type": "invoke", "field": "type-i64", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 187, "action": {"type": "invoke", "field": "type-f32", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 188, "action": {"type": "invoke", "field": "type-f64", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 190, "action": {"type": "invoke", "field": "as-func-first", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 191, "action": {"type": "invoke", "field": "as-func-mid", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 192, "action": {"type": "invoke", "field": "as-func-last", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 193, "action": {"type": "invoke", "field": "as-func-value", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 195, "action": {"type": "invoke", "field": "as-block-first", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 196, "action": {"type": "invoke", "field": "as-block-mid", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 197, "action": {"type": "invoke", "field": "as-block-last", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 198, "action": {"type": "invoke", "field": "as-block-value", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_return", "line": 199, "action": {"type": "invoke", "field": "as-block-broke", "args": []}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_trap", "line": 201, "action": {"type": "invoke", "field": "as-loop-first", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 202, "action": {"type": "invoke", "field": "as-loop-mid", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 203, "action": {"type": "invoke", "field": "as-loop-last", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_return", "line": 204, "action": {"type": "invoke", "field": "as-loop-broke", "args": []}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_trap", "line": 206, "action": {"type": "invoke", "field": "as-br-value", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 208, "action": {"type": "invoke", "field": "as-br_if-cond", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 209, "action": {"type": "invoke", "field": "as-br_if-value", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 210, "action": {"type": "invoke", "field": "as-br_if-value-cond", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 212, "action": {"type": "invoke", "field": "as-br_table-index", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 213, "action": {"type": "invoke", "field": "as-br_table-value", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 214, "action": {"type": "invoke", "field": "as-br_table-value-index", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 216, "action": {"type": "invoke", "field": "as-return-value", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 218, "action": {"type": "invoke", "field": "as-if-cond", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 219, "action": {"type": "invoke", "field": "as-if-then", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "6"}]}, "text": "unreachable"}, 
+  {"type": "assert_return", "line": 220, "action": {"type": "invoke", "field": "as-if-then", "args": [{"type": "i32", "value": "0"}, {"type": "i32", "value": "6"}]}, "expected": [{"type": "i32", "value": "6"}]}, 
+  {"type": "assert_trap", "line": 221, "action": {"type": "invoke", "field": "as-if-else", "args": [{"type": "i32", "value": "0"}, {"type": "i32", "value": "6"}]}, "text": "unreachable"}, 
+  {"type": "assert_return", "line": 222, "action": {"type": "invoke", "field": "as-if-else", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "6"}]}, "expected": [{"type": "i32", "value": "6"}]}, 
+  {"type": "assert_trap", "line": 224, "action": {"type": "invoke", "field": "as-select-first", "args": [{"type": "i32", "value": "0"}, {"type": "i32", "value": "6"}]}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 225, "action": {"type": "invoke", "field": "as-select-first", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "6"}]}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 226, "action": {"type": "invoke", "field": "as-select-second", "args": [{"type": "i32", "value": "0"}, {"type": "i32", "value": "6"}]}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 227, "action": {"type": "invoke", "field": "as-select-second", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "6"}]}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 228, "action": {"type": "invoke", "field": "as-select-cond", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 230, "action": {"type": "invoke", "field": "as-call-first", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 231, "action": {"type": "invoke", "field": "as-call-mid", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 232, "action": {"type": "invoke", "field": "as-call-last", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 234, "action": {"type": "invoke", "field": "as-call_indirect-func", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 235, "action": {"type": "invoke", "field": "as-call_indirect-first", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 236, "action": {"type": "invoke", "field": "as-call_indirect-mid", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 237, "action": {"type": "invoke", "field": "as-call_indirect-last", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 239, "action": {"type": "invoke", "field": "as-set_local-value", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 241, "action": {"type": "invoke", "field": "as-load-address", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 242, "action": {"type": "invoke", "field": "as-loadN-address", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 244, "action": {"type": "invoke", "field": "as-store-address", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 245, "action": {"type": "invoke", "field": "as-store-value", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 246, "action": {"type": "invoke", "field": "as-storeN-address", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 247, "action": {"type": "invoke", "field": "as-storeN-value", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 249, "action": {"type": "invoke", "field": "as-unary-operand", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 251, "action": {"type": "invoke", "field": "as-binary-left", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 252, "action": {"type": "invoke", "field": "as-binary-right", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 254, "action": {"type": "invoke", "field": "as-test-operand", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 256, "action": {"type": "invoke", "field": "as-compare-left", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 257, "action": {"type": "invoke", "field": "as-compare-right", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 259, "action": {"type": "invoke", "field": "as-convert-operand", "args": []}, "text": "unreachable"}, 
+  {"type": "assert_trap", "line": 261, "action": {"type": "invoke", "field": "as-grow_memory-size", "args": []}, "text": "unreachable"}
+]}

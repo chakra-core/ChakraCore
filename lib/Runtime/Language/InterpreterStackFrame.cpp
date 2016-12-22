@@ -1163,8 +1163,6 @@ namespace Js
             !(this->executeFunction->GetHasTry() && (PHASE_OFF((Js::JITLoopBodyInTryCatchPhase), this->executeFunction) || this->executeFunction->GetHasFinally())) &&
             (this->executeFunction->ForceJITLoopBody() || this->executeFunction->IsJitLoopBodyPhaseEnabled()) &&
             !this->executeFunction->IsInDebugMode();
-#else
-        const bool doJITLoopBody = false;
 #endif
 
         // Pick a version of the LoopBodyStart OpCode handlers that is hardcoded to do loop body JIT and
@@ -1578,7 +1576,7 @@ namespace Js
                 IsFloat = 1 << AsmJsRetType::Float,
                 IsDouble = 1 << AsmJsRetType::Double,
                 IsInt64 = 1 << AsmJsRetType::Int64,
-                IsSimd = 
+                IsSimd =
                     1 << AsmJsRetType::Int32x4 |
                     1 << AsmJsRetType::Bool32x4 |
                     1 << AsmJsRetType::Bool16x8 |
@@ -2216,7 +2214,7 @@ namespace Js
         return entryPoint;
     }
 
-    
+
 
 
     template<typename T>
@@ -2493,7 +2491,7 @@ namespace Js
 
     void InterpreterStackFrame::TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op)
     {
-#if DBG_DUMP && defined(ASMJS_PLAT) 
+#if DBG_DUMP && defined(ASMJS_PLAT)
         if(PHASE_TRACE(Js::AsmjsInterpreterPhase, that->m_functionBody))
         {
             Output::Print(_u("%d.%d:Executing %s at offset 0x%X\n"), that->m_functionBody->GetSourceContextId(), that->m_functionBody->GetLocalFunctionId(), Js::OpCodeUtilAsmJs::GetOpCodeName(op), that->DEBUG_currentByteOffset);
@@ -7278,7 +7276,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         if (!functionBody->DoStackScopeSlots())
         {
             return this->NewScopeSlots(
-                scopeSlotCount + ScopeSlots::FirstSlotIndex, this->GetScriptContext(), (Var)functionBody);
+                scopeSlotCount + ScopeSlots::FirstSlotIndex, this->GetScriptContext(), (Var)functionBody->GetFunctionInfo());
         }
 
         slotArray = (Field(Var)*)this->GetLocalClosure();
@@ -7286,7 +7284,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         ScopeSlots scopeSlots(slotArray);
         scopeSlots.SetCount(scopeSlotCount);
-        scopeSlots.SetScopeMetadata((Var)functionBody);
+        scopeSlots.SetScopeMetadata((Var)functionBody->GetFunctionInfo());
         Var undef = functionBody->GetScriptContext()->GetLibrary()->GetUndefined();
         for (unsigned int i = 0; i < scopeSlotCount; i++)
         {
@@ -8837,7 +8835,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext, bool hasNonSimpleParams, bool isScopeObjRestored)
     {
         ActivationObject * frameObject = nullptr;
-        
+
         uint32 formalsCount = this->m_functionBody->GetInParamsCount() - 1;
         Js::PropertyIdArray * propIds = nullptr;
         Js::HeapArgumentsObject* heapArgObj = nullptr;
@@ -8849,7 +8847,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         }
 
         bool isCachedScope = false;
-        
+
         //For Non-simple params, we don't have a scope object created.
         if (this->m_functionBody->NeedScopeObjectForArguments(hasNonSimpleParams))
         {

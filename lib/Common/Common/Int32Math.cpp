@@ -22,7 +22,7 @@ Int32Math::Add(int32 left, int32 right, int32 *pResult)
 bool
 Int32Math::Mul(int32 left, int32 right, int32 *pResult)
 {
-#if __has_builtin(__builtin_mul_overflow)
+#if __has_builtin(__builtin_mul_overflow) && !(defined(_ARM_) && defined(__clang__))
     return IntMathCommon<int32>::Mul(left, right, pResult);
 #else
 

@@ -630,7 +630,6 @@ public:
         return __super::Remove(allocator, data);
     }
 
-
     // Stack like interface
     bool Push(TData const& data)
     {

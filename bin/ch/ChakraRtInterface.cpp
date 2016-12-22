@@ -141,9 +141,9 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
     m_jsApiHooks.pfJsrtParse = (JsAPIHooks::JsrtParse)GetChakraCoreSymbol(library, "JsParse");
     m_jsApiHooks.pfJsrtSerialize = (JsAPIHooks::JsrtSerialize)GetChakraCoreSymbol(library, "JsSerialize");
     m_jsApiHooks.pfJsrtRunSerialized = (JsAPIHooks::JsrtRunSerialized)GetChakraCoreSymbol(library, "JsRunSerialized");
-    m_jsApiHooks.pfJsrtCreateStringUtf8 = (JsAPIHooks::JsrtCreateStringUtf8)GetChakraCoreSymbol(library, "JsCreateStringUtf8");
-    m_jsApiHooks.pfJsrtCopyStringUtf8 = (JsAPIHooks::JsrtCopyStringUtf8)GetChakraCoreSymbol(library, "JsCopyStringUtf8");
-    m_jsApiHooks.pfJsrtCreatePropertyIdUtf8= (JsAPIHooks::JsrtCreatePropertyIdUtf8)GetChakraCoreSymbol(library, "JsCreatePropertyIdUtf8");
+    m_jsApiHooks.pfJsrtCreateString = (JsAPIHooks::JsrtCreateString)GetChakraCoreSymbol(library, "JsCreateString");
+    m_jsApiHooks.pfJsrtCopyString = (JsAPIHooks::JsrtCopyString)GetChakraCoreSymbol(library, "JsCopyString");
+    m_jsApiHooks.pfJsrtCreatePropertyId = (JsAPIHooks::JsrtCreatePropertyId)GetChakraCoreSymbol(library, "JsCreatePropertyId");
     m_jsApiHooks.pfJsrtCreateExternalArrayBuffer = (JsAPIHooks::JsrtCreateExternalArrayBuffer)GetChakraCoreSymbol(library, "JsCreateExternalArrayBuffer");
 
     m_jsApiHooks.pfJsrtTTDCreateRecordRuntime = (JsAPIHooks::JsrtTTDCreateRecordRuntimePtr)GetChakraCoreSymbol(library, "JsTTDCreateRecordRuntime");

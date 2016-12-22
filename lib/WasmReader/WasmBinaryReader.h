@@ -80,13 +80,14 @@ namespace Wasm
         // Primitive reader
         template <WasmTypes::WasmType type> void ConstNode();
         template <typename T> T ReadConst();
+        bool ReadMutableValue();
         const char16* ReadInlineName(uint32& length, uint32& nameLength);
         const char16* CvtUtf8Str(LPCUTF8 name, uint32 nameLen);
         template<typename MaxAllowedType = UINT>
         MaxAllowedType LEB128(UINT &length, bool sgn = false);
         template<typename MaxAllowedType = INT>
         MaxAllowedType SLEB128(UINT &length);
-        WasmNode ReadInitExpr();
+        WasmNode ReadInitExpr(bool isOffset = false);
 
         void CheckBytesLeft(UINT bytesNeeded);
         bool EndOfFunc();

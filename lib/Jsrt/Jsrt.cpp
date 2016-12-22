@@ -3212,7 +3212,7 @@ template <typename TLoadCallback, typename TUnloadCallback>
 JsErrorCode RunSerializedScriptCore(
     TLoadCallback scriptLoadCallback, TUnloadCallback scriptUnloadCallback,
     JsSourceContext scriptLoadSourceContext, // only used by scriptLoadCallback
-    unsigned char *buffer,
+    unsigned char *buffer, JsValueRef bufferVal,
     JsSourceContext sourceContext, const wchar_t *sourceUrl,
     bool parseOnly, JsValueRef *result)
 {
@@ -3231,7 +3231,7 @@ JsErrorCode RunSerializedScriptCore(
         PARAM_NOT_NULL(scriptUnloadCallback);
         typedef Js::JsrtSourceHolder<TLoadCallback, TUnloadCallback> TSourceHolder;
         sourceHolder = RecyclerNewFinalized(scriptContext->GetRecycler(), TSourceHolder,
-            scriptLoadCallback, scriptUnloadCallback, scriptLoadSourceContext);
+            scriptLoadCallback, scriptUnloadCallback, scriptLoadSourceContext, bufferVal);
 
         SourceContextInfo *sourceContextInfo;
         SRCINFO *hsi;
@@ -3327,7 +3327,7 @@ CHAKRA_API JsParseSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned 
     return RunSerializedScriptCore(
         DummyScriptLoadSourceCallback, DummyScriptUnloadCallback,
         reinterpret_cast<JsSourceContext>(script), // use script source pointer as scriptLoadSourceContext
-        buffer, sourceContext, sourceUrl, true, result);
+        buffer, nullptr, sourceContext, sourceUrl, true, result);
 }
 
 CHAKRA_API JsRunSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned char *buffer,
@@ -3338,7 +3338,7 @@ CHAKRA_API JsRunSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned ch
     return RunSerializedScriptCore(
         DummyScriptLoadSourceCallback, DummyScriptUnloadCallback,
         reinterpret_cast<JsSourceContext>(script), // use script source pointer as scriptLoadSourceContext
-        buffer, sourceContext, sourceUrl, false, result);
+        buffer, nullptr, sourceContext, sourceUrl, false, result);
 }
 
 CHAKRA_API JsParseSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
@@ -3349,7 +3349,7 @@ CHAKRA_API JsParseSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSource
     return RunSerializedScriptCore(
         scriptLoadCallback, scriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-        buffer, sourceContext, sourceUrl, true, result);
+        buffer, nullptr, sourceContext, sourceUrl, true, result);
 }
 
 CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
@@ -3360,7 +3360,7 @@ CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCa
     return RunSerializedScriptCore(
         scriptLoadCallback, scriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-        buffer, sourceContext, sourceUrl, false, result);
+        buffer, nullptr, sourceContext, sourceUrl, false, result);
 }
 #endif // _WIN32
 
@@ -3525,7 +3525,7 @@ CHAKRA_API JsTTDPauseTimeTravelBeforeRuntimeOperation()
     return JsErrorCategoryUsage;
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
-    JsErrorCode cCheck = CheckContext(currentContext, true); 
+    JsErrorCode cCheck = CheckContext(currentContext, true);
     TTDAssert(cCheck == JsNoError, "Must have valid context when changing debugger mode.");
 
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
@@ -4066,7 +4066,7 @@ CHAKRA_API JsTTDReplayExecution(_Inout_ JsTTDMoveMode* moveMode, _Out_ int64_t* 
 #endif
 }
 
-#ifndef NTBUILD // ChakraCore Only
+#ifdef CHAKRACOREBUILD_
 
 template <class SrcChar, class DstChar>
 static void CastCopy(const SrcChar* src, DstChar* dst, size_t count)
@@ -4085,27 +4085,7 @@ CHAKRA_API JsCreateString(
 {
     PARAM_NOT_NULL(content);
 
-    AutoArrayPtr<uint16_t> data(HeapNewNoThrowArray(uint16_t, length), length);
-    if (!data)
-    {
-        return JsErrorOutOfMemory;
-    }
-
-    // Cast source char to "unsigned" for correct cast
-    CastCopy((unsigned char*)content, (uint16_t*)data, length);
-
-    return JsPointerToString(
-        reinterpret_cast<const char16*>((uint16_t*)data), length, value);
-}
-
-CHAKRA_API JsCreateStringUtf8(
-    _In_ const uint8_t *content,
-    _In_ size_t length,
-    _Out_ JsValueRef *value)
-{
-    PARAM_NOT_NULL(content);
-
-    utf8::NarrowToWide wstr((LPCSTR)content, length);
+    utf8::NarrowToWide wstr(content, length);
     if (!wstr)
     {
         return JsErrorOutOfMemory;
@@ -4172,31 +4152,6 @@ JsErrorCode WriteStringCopy(
     return JsNoError;
 }
 
-CHAKRA_API JsCopyString(
-    _In_ JsValueRef value,
-    _In_ int start,
-    _In_ int length,
-    _Out_opt_ char* buffer,
-    _Out_opt_ size_t* written)
-{
-    PARAM_NOT_NULL(value);
-    VALIDATE_JSREF(value);
-
-    return WriteStringCopy(value, start, length, written,
-        [buffer](const char16* src, size_t count, size_t *needed)
-        {
-            if (buffer)
-            {
-                CastCopy(src, buffer, count);
-            }
-            else
-            {
-                *needed = count;
-            }
-            return JsNoError;
-        });
-}
-
 CHAKRA_API JsCopyStringUtf16(
     _In_ JsValueRef value,
     _In_ int start,
@@ -4222,9 +4177,9 @@ CHAKRA_API JsCopyStringUtf16(
         });
 }
 
-CHAKRA_API JsCopyStringUtf8(
+CHAKRA_API JsCopyString(
     _In_ JsValueRef value,
-    _Out_opt_ uint8_t* buffer,
+    _Out_opt_ char* buffer,
     _In_ size_t bufferSize,
     _Out_opt_ size_t* length)
 {
@@ -4257,7 +4212,7 @@ CHAKRA_API JsCopyStringUtf8(
         count = utf8::CharacterIndexToByteIndex(
             (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
 
-        memmove(buffer, utf8Str, sizeof(uint8_t) * count);
+        memmove(buffer, utf8Str, sizeof(char) * count);
         if (length)
         {
             *length = count;
@@ -4359,7 +4314,7 @@ CHAKRA_API JsRun(
         result, false);
 }
 
-CHAKRA_API JsCreatePropertyIdUtf8(
+CHAKRA_API JsCreatePropertyId(
     _In_z_ const char *name,
     _In_ size_t length,
     _Out_ JsPropertyIdRef *propertyId)
@@ -4374,9 +4329,9 @@ CHAKRA_API JsCreatePropertyIdUtf8(
     return JsGetPropertyIdFromName(wname, propertyId);
 }
 
-CHAKRA_API JsCopyPropertyIdUtf8(
+CHAKRA_API JsCopyPropertyId(
     _In_ JsPropertyIdRef propertyId,
-    _Out_ uint8_t* buffer,
+    _Out_ char* buffer,
     _In_ size_t bufferSize,
     _Out_ size_t* length)
 {
@@ -4408,7 +4363,7 @@ CHAKRA_API JsCopyPropertyIdUtf8(
         count = utf8::CharacterIndexToByteIndex(
             (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
 
-        memmove(buffer, utf8Str, sizeof(uint8_t) * count);
+        memmove(buffer, utf8Str, sizeof(char) * count);
         if (length)
         {
             *length = count;
@@ -4420,12 +4375,14 @@ CHAKRA_API JsCopyPropertyIdUtf8(
 
 CHAKRA_API JsSerialize(
     _In_ JsValueRef scriptVal,
-    _Out_ BYTE *buffer,
-    _Inout_ unsigned int *bufferSize,
+    _Out_ JsValueRef *bufferVal,
     _In_ JsParseScriptAttributes parseAttributes)
 {
     PARAM_NOT_NULL(scriptVal);
+    PARAM_NOT_NULL(bufferVal);
     VALIDATE_JSREF(scriptVal);
+
+    *bufferVal = nullptr;
 
     bool isExternalArray = Js::ExternalArrayBuffer::Is(scriptVal),
          isString = false;
@@ -4460,19 +4417,40 @@ CHAKRA_API JsSerialize(
         scriptFlag = LoadScriptFlag_None;
     }
 
-    return JsSerializeScriptCore(script, cb, scriptFlag, nullptr,
-        0, buffer, bufferSize, scriptVal);
+    unsigned int bufferSize = 0;
+    JsErrorCode errorCode = JsSerializeScriptCore(script, cb, scriptFlag, nullptr,
+        0, nullptr, &bufferSize, scriptVal);
+
+    if (errorCode != JsNoError)
+    {
+        return errorCode;
+    }
+
+    if (bufferSize == 0)
+    {
+        return JsErrorScriptCompile;
+    }
+
+    if ((errorCode = JsCreateArrayBuffer(bufferSize, bufferVal)) == JsNoError)
+    {
+        byte* buffer = ((Js::ArrayBuffer*)(*bufferVal))->GetBuffer();
+        errorCode = JsSerializeScriptCore(script, cb, scriptFlag, nullptr,
+            0, buffer, &bufferSize, scriptVal);
+    }
+
+    return errorCode;
 }
 
 CHAKRA_API JsParseSerialized(
-    _In_ BYTE *buffer,
+    _In_ JsValueRef bufferVal,
     _In_ JsSerializedLoadScriptCallback scriptLoadCallback,
     _In_ JsSourceContext sourceContext,
     _In_ JsValueRef sourceUrl,
     _Out_ JsValueRef *result)
 {
-    PARAM_NOT_NULL(buffer);
+    PARAM_NOT_NULL(bufferVal);
     PARAM_NOT_NULL(sourceUrl);
+
     const wchar_t *url;
 
     if (Js::JavascriptString::Is(sourceUrl))
@@ -4484,20 +4462,28 @@ CHAKRA_API JsParseSerialized(
         return JsErrorInvalidArgument;
     }
 
+    // JsParseSerialized only accepts ArrayBuffer (incl. ExternalArrayBuffer)
+    if (!Js::ExternalArrayBuffer::Is(bufferVal))
+    {
+        return JsErrorInvalidArgument;
+    }
+
+    byte* buffer = Js::ArrayBuffer::FromVar(bufferVal)->GetBuffer();
+
     return RunSerializedScriptCore(
       scriptLoadCallback, DummyScriptUnloadCallback,
-      sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-      buffer, sourceContext, url, true, result);
+      sourceContext,// use the same user provided sourceContext as scriptLoadSourceContext
+      buffer, bufferVal, sourceContext, url, true, result);
 }
 
 CHAKRA_API JsRunSerialized(
-    _In_ BYTE *buffer,
+    _In_ JsValueRef bufferVal,
     _In_ JsSerializedLoadScriptCallback scriptLoadCallback,
     _In_ JsSourceContext sourceContext,
     _In_ JsValueRef sourceUrl,
     _Out_ JsValueRef *result)
 {
-    PARAM_NOT_NULL(buffer);
+    PARAM_NOT_NULL(bufferVal);
     const wchar_t *url;
 
     if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
@@ -4509,9 +4495,17 @@ CHAKRA_API JsRunSerialized(
         return JsErrorInvalidArgument;
     }
 
+    // JsParseSerialized only accepts ArrayBuffer (incl. ExternalArrayBuffer)
+    if (!Js::ExternalArrayBuffer::Is(bufferVal))
+    {
+        return JsErrorInvalidArgument;
+    }
+
+    byte* buffer = Js::ArrayBuffer::FromVar(bufferVal)->GetBuffer();
+
     return RunSerializedScriptCore(
         scriptLoadCallback, DummyScriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
-        buffer, sourceContext, url, false, result);
+        buffer, bufferVal, sourceContext, url, false, result);
 }
-#endif // NTBUILD
+#endif // CHAKRACOREBUILD_

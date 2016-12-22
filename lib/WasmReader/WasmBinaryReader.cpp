@@ -504,6 +504,10 @@ WasmBinaryReader::CallIndirectNode()
     UINT32 funcNum = LEB128(length);
     // Reserved value currently unused
     ReadConst<uint8>();
+    if (!m_module->HasTable() && !m_module->HasTableImport())
+    {
+        ThrowDecodingError(_u("Found call_indirect operator, but no table"));
+    }
 
     m_funcState.count += length;
     if (funcNum >= m_module->GetSignatureCount())
@@ -705,10 +709,33 @@ void WasmBinaryReader::ReadExportTable()
     uint32 entries = LEB128(length);
     m_module->AllocateFunctionExports(entries);
 
+    ArenaAllocator tmpAlloc(_u("ExportDupCheck"), m_module->GetScriptContext()->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory);
+    typedef SList<const char16*> NameList;
+    JsUtil::BaseDictionary<uint32, NameList*, ArenaAllocator> exportsNameDict(&tmpAlloc);
+
     for (uint32 iExport = 0; iExport < entries; iExport++)
     {
         uint32 nameLength;
         const char16* exportName = ReadInlineName(length, nameLength);
+
+        // Check if the name is already used
+        NameList* list;
+        if (exportsNameDict.TryGetValue(nameLength, &list))
+        {
+            const char16** found = list->Find([exportName, nameLength](const char16* existing) { 
+                return wcsncmp(exportName, existing, nameLength) == 0;
+            });
+            if (found)
+            {
+                ThrowDecodingError(_u("Duplicate export name: %s"), exportName);
+            }
+        }
+        else
+        {
+            list = Anew(&tmpAlloc, NameList, &tmpAlloc);
+            exportsNameDict.Add(nameLength, list);
+        }
+        list->Push(exportName);
 
         ExternalKinds::ExternalKind kind = (ExternalKinds::ExternalKind)ReadConst<int8>();
         uint32 index = LEB128(length);
@@ -737,13 +764,28 @@ void WasmBinaryReader::ReadExportTable()
             break;
         }
         case ExternalKinds::Memory:
+            if (index != 0)
+            {
+                ThrowDecodingError(_u("Unknown memory index %u for export %s"), index, exportName);
+            }
+            m_module->SetExport(iExport, index, exportName, nameLength, kind);
+            break;
         case ExternalKinds::Table:
-        if (index != 0)
-        {
-            ThrowDecodingError(_u("Invalid index %s"), index);
-        }
-        // fallthrough
+            if (index != 0)
+            {
+                ThrowDecodingError(_u("Unknown table index %u for export %s"), index, exportName);
+            }
+            m_module->SetExport(iExport, index, exportName, nameLength, kind);
+            break;
         case ExternalKinds::Global:
+            if (index >= m_module->GetGlobalCount())
+            {
+                ThrowDecodingError(_u("Unknown global %u for export %s"), index, exportName);
+            }
+            if (m_module->GetGlobal(index)->IsMutable())
+            {
+                ThrowDecodingError(_u("Mutable globals cannot be exported"), index, exportName);
+            }
             m_module->SetExport(iExport, index, exportName, nameLength, kind);
             break;
         default:
@@ -804,12 +846,12 @@ WasmBinaryReader::ReadElementSection()
     for (uint32 i = 0; i < count; ++i)
     {
         uint32 index = LEB128(length); // Table id
-        if (index != 0)
+        if (index != 0 || !(m_module->HasTable() || m_module->HasTableImport()))
         {
-            ThrowDecodingError(_u("Invalid table index %d"), index); //MVP limitation
+            ThrowDecodingError(_u("Unknown table index %d"), index); //MVP limitation
         }
 
-        WasmNode initExpr = ReadInitExpr(); //Offset Init
+        WasmNode initExpr = ReadInitExpr(true);
         uint32 numElem = LEB128(length);
 
         WasmElementSegment *eSeg = Anew(m_alloc, WasmElementSegment, m_alloc, index, initExpr, numElem);
@@ -841,12 +883,12 @@ WasmBinaryReader::ReadDataSegments()
     for (uint32 i = 0; i < entries; ++i)
     {
         UINT32 index = LEB128(len);
-        if (index != 0)
+        if (index != 0 || !(m_module->HasMemory() || m_module->HasMemoryImport()))
         {
-            ThrowDecodingError(_u("Memory index out of bounds %d > 0"), index);
+            ThrowDecodingError(_u("Unknown memory index %u"), index);
         }
         TRACE_WASM_DECODER(_u("Data Segment #%u"), i);
-        WasmNode initExpr = ReadInitExpr();
+        WasmNode initExpr = ReadInitExpr(true);
 
         //UINT32 offset = initExpr.cnst.i32;
         UINT32 dataByteLen = LEB128(len);
@@ -890,25 +932,29 @@ WasmBinaryReader::ReadGlobalsSection()
     for (UINT i = 0; i < numEntries; ++i)
     {
         WasmTypes::WasmType type = ReadWasmType(len);
-        bool isMutable = ReadConst<UINT8>() == 1;
+        bool isMutable = ReadMutableValue();
         WasmNode globalNode = ReadInitExpr();
+        GlobalReferenceTypes::Type refType = GlobalReferenceTypes::Const;
+        WasmTypes::WasmType initType;
+
         switch (globalNode.op) {
-        case  wbI32Const:
-        case  wbF32Const:
-        case  wbF64Const:
-        case  wbI64Const:
-            m_module->AddGlobal(GlobalReferenceTypes::Const, type, isMutable, globalNode);
-            break;
+        case  wbI32Const: initType = WasmTypes::I32; break;
+        case  wbF32Const: initType = WasmTypes::F32; break;
+        case  wbF64Const: initType = WasmTypes::F64; break;
+        case  wbI64Const: initType = WasmTypes::I64; break;
         case  wbGetGlobal:
-            if (m_module->GetGlobal(globalNode.var.num)->GetReferenceType() != GlobalReferenceTypes::ImportedReference)
-            {
-                ThrowDecodingError(_u("Global can only be initialized with a const or an imported global"));
-            }
-            m_module->AddGlobal(GlobalReferenceTypes::LocalReference, type, isMutable, globalNode);
+            initType = m_module->GetGlobal(globalNode.var.num)->GetType();
+            refType = GlobalReferenceTypes::LocalReference;
             break;
         default:
             Assert(UNREACHED);
+            ThrowDecodingError(_u("Unknown global init_expr"));
         }
+        if (type != initType)
+        {
+            ThrowDecodingError(_u("Type mismatch for global initialization"));
+        }
+        m_module->AddGlobal(refType, type, isMutable, globalNode);
     }
 }
 
@@ -962,7 +1008,11 @@ WasmBinaryReader::ReadImportEntries()
         case ExternalKinds::Global:
         {
             WasmTypes::WasmType type = ReadWasmType(len);
-            bool isMutable = ReadConst<UINT8>() == 1;
+            bool isMutable = ReadMutableValue();
+            if (isMutable)
+            {
+                ThrowDecodingError(_u("Mutable globals cannot be imported"));
+            }
             m_module->AddGlobal(GlobalReferenceTypes::ImportedReference, type, isMutable, {});
             m_module->AddGlobalImport(modName, modNameLen, fnName, fnNameLen);
             break;
@@ -1087,7 +1137,7 @@ WasmBinaryReader::SLEB128(UINT &length)
 }
 
 WasmNode
-WasmBinaryReader::ReadInitExpr()
+WasmBinaryReader::ReadInitExpr(bool isOffset)
 {
     if (m_readerState != READER_STATE_MODULE)
     {
@@ -1109,6 +1159,10 @@ WasmBinaryReader::ReadInitExpr()
     {
         uint32 globalIndex = node.var.num;
         WasmGlobal* global = m_module->GetGlobal(globalIndex);
+        if (global->GetReferenceType() != GlobalReferenceTypes::ImportedReference)
+        {
+            ThrowDecodingError(_u("initializer expression can only use imported globals"));
+        }
         if (global->IsMutable())
         {
             ThrowDecodingError(_u("initializer expression cannot reference a mutable global"));
@@ -1123,6 +1177,10 @@ WasmBinaryReader::ReadInitExpr()
     {
         ThrowDecodingError(_u("Missing end opcode after init expr"));
     }
+    if (isOffset)
+    {
+        m_module->ValidateInitExportForOffset(node);
+    }
     return node;
 }
 
@@ -1134,6 +1192,18 @@ T WasmBinaryReader::ReadConst()
     m_pc += sizeof(T);
 
     return value;
+}
+
+bool WasmBinaryReader::ReadMutableValue()
+{
+    uint8 mutableValue = ReadConst<UINT8>();
+    switch (mutableValue)
+    {
+    case 0: return false;
+    case 1: return true;
+    default:
+        ThrowDecodingError(_u("invalid mutability"));
+    }
 }
 
 WasmTypes::WasmType

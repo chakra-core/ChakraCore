@@ -43,6 +43,7 @@ namespace Js
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
 
+        static bool Is(void *ptr);
         static DWORD GetFunctionBodyImplOffset() { return offsetof(FunctionInfo, functionBodyImpl); }
         static BYTE GetOffsetOfFunctionProxy()
         {
@@ -133,8 +134,6 @@ namespace Js
 
     protected:
         FieldNoBarrier(JavascriptMethod) originalEntryPoint;
-        // WriteBarrier-TODO: Fix this? This is used only by proxies to keep the deserialized version around
-        // However, proxies are not allocated as write barrier memory currently so its fine to not set the write barrier for this field
         FieldWithBarrier(FunctionProxy *) functionBodyImpl;     // Implementation of the function- null if the function doesn't have a body
         Field(LocalFunctionId) functionId;        // Per host source context (source file) function Id
         Field(uint) compileCount;

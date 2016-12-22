@@ -968,7 +968,7 @@ namespace Js
         virtual void ResetOnNativeCodeInstallFailure() = 0;
 
         Js::PropertyGuard* RegisterSharedPropertyGuard(Js::PropertyId propertyId, ScriptContext* scriptContext);
-        Js::PropertyId* GetSharedPropertyGuards(unsigned int& count);
+        Js::PropertyId* GetSharedPropertyGuards(_Out_ unsigned int& count);
 
         bool TryGetSharedPropertyGuard(Js::PropertyId propertyId, Js::PropertyGuard*& guard);
         void RecordTypeGuards(int propertyGuardCount, TypeGuardTransferEntry* typeGuardTransferRecord, size_t typeGuardTransferPlusSize);
@@ -3700,13 +3700,13 @@ namespace Js
 
         bool IsFunctionScopeSlotArray()
         {
-            return FunctionBody::Is(slotArray[ScopeMetadataSlotIndex]);
+            return FunctionInfo::Is(slotArray[ScopeMetadataSlotIndex]);
         }
 
-        FunctionBody* GetFunctionBody()
+        FunctionInfo* GetFunctionInfo()
         {
             Assert(IsFunctionScopeSlotArray());
-            return (FunctionBody*)PointerValue(slotArray[ScopeMetadataSlotIndex]);
+            return (FunctionInfo*)PointerValue(slotArray[ScopeMetadataSlotIndex]);
         }
 
         DebuggerScope* GetDebuggerScope()

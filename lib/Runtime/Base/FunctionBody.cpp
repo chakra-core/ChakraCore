@@ -2142,24 +2142,24 @@ namespace Js
         public:
             AutoRestoreFunctionInfo(ParseableFunctionInfo *pfi) : pfi(pfi), funcBody(nullptr) {}
             ~AutoRestoreFunctionInfo() {
-                if (this->funcBody && this->funcBody->GetFunctionInfo()->GetFunctionProxy() == this->funcBody)
+                if (this->pfi != nullptr && this->pfi->GetFunctionInfo()->GetFunctionProxy() != this->pfi)
                 {
-                    FunctionInfo *functionInfo = funcBody->GetFunctionInfo();
+                    FunctionInfo *functionInfo = this->pfi->functionInfo;
                     functionInfo->SetAttributes(
                         (FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
                     functionInfo->SetFunctionProxy(this->pfi);
                     functionInfo->SetOriginalEntryPoint(DefaultEntryThunk);
                 }
-                Assert(this->pfi == nullptr || 
-                       (this->pfi->GetFunctionInfo()->GetFunctionProxy() == this->pfi && !this->pfi->IsFunctionBody()));
+
+                Assert(this->pfi == nullptr || (this->pfi->GetFunctionInfo()->GetFunctionProxy() == this->pfi && !this->pfi->IsFunctionBody()));
             }
             void Clear() { pfi = nullptr; funcBody = nullptr; }
-            
+
             ParseableFunctionInfo * pfi;
             FunctionBody          * funcBody;
         } autoRestoreFunctionInfo(this);
 
-        // If m_hasBeenParsed = true, one of the following things happened things happened:
+        // If m_hasBeenParsed = true, one of the following things happened:
         // - We had multiple function objects which were all defer-parsed, but with the same function body and one of them
         //   got the body to be parsed before another was called
         // - We are in debug mode and had our thunks switched to DeferParseThunk
@@ -3449,7 +3449,8 @@ namespace Js
             || (directEntryPoint == DynamicProfileInfo::EnsureDynamicProfileInfoThunk &&
             this->IsFunctionBody() && this->GetFunctionBody()->IsNativeOriginalEntryPoint())
 #ifdef ENABLE_WASM
-            || (GetFunctionBody()->IsWasmFunction() && directEntryPoint == WasmLibrary::WasmDeferredParseInternalThunk)
+            || (GetFunctionBody()->IsWasmFunction() &&
+                (directEntryPoint == WasmLibrary::WasmDeferredParseInternalThunk || directEntryPoint == WasmLibrary::WasmLazyTrapCallback))
 #endif
 #ifdef ASMJS_PLAT
             || (GetFunctionBody()->GetIsAsmJsFunction() && directEntryPoint == AsmJsDefaultEntryThunk)
@@ -6137,9 +6138,13 @@ namespace Js
 
     uint FunctionBody::NewLiteralRegex()
     {
-        // We can't always assert that we have no regexes allocated, because this may be a function nested in a redeferred function,
-        // and we may be merely reusing the allocated regexes.
-        Assert(!this->GetLiteralRegexes() || this->byteCodeBlock);
+        if (this->byteCodeBlock)
+        {
+            // This is a function nested in a redeferred function, so we won't make use of the index.
+            // Don't increment to avoid breaking thread-safety requirements of the compact counters.
+            return 0;
+        }
+        Assert(!this->GetLiteralRegexes());
         return IncLiteralRegexCount();
     }
 
@@ -8819,25 +8824,31 @@ namespace Js
         return guard;
     }
 
-    Js::PropertyId* EntryPointInfo::GetSharedPropertyGuards(unsigned int& count)
+    Js::PropertyId* EntryPointInfo::GetSharedPropertyGuards(_Out_ unsigned int& count)
     {
-        count = 0;
+        Js::PropertyId* sharedPropertyGuards = nullptr;
+        unsigned int guardCount = 0;
+
         if (this->sharedPropertyGuards != nullptr)
         {
-
-            Js::PropertyId* guards = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Js::PropertyId, this->sharedPropertyGuards->Count());
+            const unsigned int sharedPropertyGuardsCount = (unsigned int)this->sharedPropertyGuards->Count();
+            Js::PropertyId* guards = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Js::PropertyId, sharedPropertyGuardsCount);
             auto sharedGuardIter = this->sharedPropertyGuards->GetIterator();
 
             while (sharedGuardIter.IsValid())
             {
-                guards[count] = sharedGuardIter.CurrentKey();
+                AnalysisAssert(guardCount < sharedPropertyGuardsCount);
+                guards[guardCount] = sharedGuardIter.CurrentKey();
                 sharedGuardIter.MoveNext();
-                ++count;
+                ++guardCount;
             }
-            Assert(count == (unsigned int)this->sharedPropertyGuards->Count());
-            return guards;
+            AnalysisAssert(guardCount == sharedPropertyGuardsCount);
+
+            sharedPropertyGuards = guards;
         }
-        return nullptr;
+
+        count = guardCount;
+        return sharedPropertyGuards;
     }
 
     bool EntryPointInfo::TryGetSharedPropertyGuard(Js::PropertyId propertyId, Js::PropertyGuard*& guard)

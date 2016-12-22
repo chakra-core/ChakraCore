@@ -108,7 +108,7 @@ public:
 
     bool IsClosed() { return isClosed; }
     void AddWorkItem(CodeGenWorkItem* workItem);
-    CodeGenAllocators* GetCodeGenAllocator(PageAllocator* pageallocator){ return EnsureForegroundAllocators(pageallocator); }
+    InProcCodeGenAllocators* GetCodeGenAllocator(PageAllocator* pageallocator){ return EnsureForegroundAllocators(pageallocator); }
 
 #if DBG_DUMP
     FILE * asmFile;
@@ -127,12 +127,12 @@ private:
 
     void CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* workItem, const bool foreground);
 
-    CodeGenAllocators *CreateAllocators(PageAllocator *const pageAllocator)
+    InProcCodeGenAllocators *CreateAllocators(PageAllocator *const pageAllocator)
     {
-        return HeapNew(CodeGenAllocators, pageAllocator->GetAllocationPolicyManager(), scriptContext, scriptContext->GetThreadContext()->GetCodePageAllocators(), GetCurrentProcess());
+        return HeapNew(InProcCodeGenAllocators, pageAllocator->GetAllocationPolicyManager(), scriptContext, scriptContext->GetThreadContext()->GetCodePageAllocators(), GetCurrentProcess());
     }
 
-    CodeGenAllocators *EnsureForegroundAllocators(PageAllocator * pageAllocator)
+    InProcCodeGenAllocators *EnsureForegroundAllocators(PageAllocator * pageAllocator)
     {
         if (this->foregroundAllocators == nullptr)
         {
@@ -150,7 +150,7 @@ private:
     }
 
 
-    CodeGenAllocators * GetBackgroundAllocator(PageAllocator *pageAllocator)
+    InProcCodeGenAllocators * GetBackgroundAllocator(PageAllocator *pageAllocator)
     {
         return this->backgroundAllocators;
     }
@@ -311,8 +311,8 @@ private:
 
     FreeLoopBodyJobManager freeLoopBodyManager;
 
-    CodeGenAllocators * foregroundAllocators;
-    CodeGenAllocators * backgroundAllocators;
+    InProcCodeGenAllocators * foregroundAllocators;
+    InProcCodeGenAllocators * backgroundAllocators;
 #ifdef PROFILE_EXEC
     Js::ScriptContextProfiler * foregroundCodeGenProfiler;
     Js::ScriptContextProfiler * backgroundCodeGenProfiler;

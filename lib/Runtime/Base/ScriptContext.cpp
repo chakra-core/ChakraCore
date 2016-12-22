@@ -4500,6 +4500,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     {
         Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
 
+        if (!JITManager::GetJITManager()->IsConnected())
+        {
+            return;
+        }
         ScriptContextDataIDL contextData;
         contextData.nullAddr = (intptr_t)GetLibrary()->GetNull();
         contextData.undefinedAddr = (intptr_t)GetLibrary()->GetUndefined();

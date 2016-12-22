@@ -1,0 +1,5 @@
+(10) linking.wast:28: assert_unlinkable module linking.3.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(11) linking.wast:32: assert_unlinkable module linking.4.wasm failed. Expected a linking error: TypeError: Function called with invalid signature
+(63) linking.wast:160: assert_unlinkable module linking.10.wasm failed. Expected a linking error: TypeError: WebAssembly.Memory object expected
+(85) linking.wast:233: assert_unlinkable module linking.15.wasm failed. Expected a linking error: TypeError: WebAssembly.Table object expected
+77/81 tests passed.

@@ -348,6 +348,7 @@ public:
     virtual BOOL ExecuteRecyclerCollectionFunction(Recycler * recycler, CollectionFunction function, CollectionFlags flags) = 0;
     virtual uint GetRandomNumber() = 0;
     virtual bool DoSpecialMarkOnScanStack() = 0;
+    virtual void PostSweepRedeferralCallBack() = 0;
 
 #ifdef FAULT_INJECTION
     virtual void DisposeScriptContextByFaultInjectionCallBack() = 0;
@@ -396,6 +397,7 @@ public:
     virtual BOOL ExecuteRecyclerCollectionFunction(Recycler * recycler, CollectionFunction function, CollectionFlags flags) override;
     virtual uint GetRandomNumber() override { return 0; }
     virtual bool DoSpecialMarkOnScanStack() override { return false; }
+    virtual void PostSweepRedeferralCallBack() override {}
 #ifdef FAULT_INJECTION
     virtual void DisposeScriptContextByFaultInjectionCallBack() override {};
 #endif
@@ -1585,6 +1587,10 @@ private:
     void ProcessTrackedObjects();
 #endif
 
+    BOOL IsAllocatableCallbackState()
+    {
+        return (collectionState & (Collection_PostSweepRedeferralCallback | Collection_PostCollectionCallback));
+    }
 #if ENABLE_CONCURRENT_GC
     // Concurrent GC
     BOOL IsConcurrentEnabled() const { return this->enableConcurrentMark || this->enableParallelMark || this->enableConcurrentSweep; }

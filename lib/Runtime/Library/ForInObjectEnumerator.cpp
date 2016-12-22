@@ -8,8 +8,15 @@
 
 namespace Js
 {
-    ForInObjectEnumerator::ShadowData::ShadowData(RecyclableObject * initObject, RecyclableObject * firstPrototype, Recycler * recycler)
-        : currentObject(initObject), firstPrototype(firstPrototype), propertyIds(recycler)
+    ForInObjectEnumerator::ShadowData::ShadowData(
+        RecyclableObject * initObject,
+        RecyclableObject * firstPrototype,
+        RecyclableObject * firstPrototypeWithEnumerableProperties,
+        Recycler * recycler)
+        : currentObject(initObject),
+          firstPrototype(firstPrototype),
+          firstPrototypeWithEnumerableProperties(firstPrototypeWithEnumerableProperties),
+          propertyIds(recycler)
     {
 
     }
@@ -41,11 +48,12 @@ namespace Js
             && JavascriptOperators::GetTypeId(initObject) != TypeIds_Undefined);
 
         EnumeratorFlags flags;
-        RecyclableObject * firstPrototype = GetFirstPrototypeWithEnumerableProperties(initObject);
-        if (firstPrototype != nullptr)
+        RecyclableObject * firstPrototype = nullptr;
+        RecyclableObject * firstPrototypeWithEnumerableProperties = GetFirstPrototypeWithEnumerableProperties(initObject, &firstPrototype);
+        if (firstPrototypeWithEnumerableProperties != nullptr)
         {
             Recycler *recycler = requestContext->GetRecycler();
-            this->shadowData = RecyclerNew(recycler, ShadowData, initObject, firstPrototype, recycler);
+            this->shadowData = RecyclerNew(recycler, ShadowData, initObject, firstPrototype, firstPrototypeWithEnumerableProperties, recycler);
             flags = EnumeratorFlags::UseCache | EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EnumNonEnumerable | (enumSymbols ? EnumeratorFlags::EnumSymbols : EnumeratorFlags::None);
         }
         else
@@ -67,31 +75,48 @@ namespace Js
         }
     }
 
-    RecyclableObject* ForInObjectEnumerator::GetFirstPrototypeWithEnumerableProperties(RecyclableObject* object)
+    RecyclableObject* ForInObjectEnumerator::GetFirstPrototypeWithEnumerableProperties(RecyclableObject* object, RecyclableObject** pFirstPrototype)
     {
         RecyclableObject* firstPrototype = nullptr;
+        RecyclableObject* firstPrototypeWithEnumerableProperties = nullptr;
+
         if (JavascriptOperators::GetTypeId(object) != TypeIds_HostDispatch)
         {
-            firstPrototype = object;
+            firstPrototypeWithEnumerableProperties = object;
             while (true)
             {
-                firstPrototype = firstPrototype->GetPrototype();
+                firstPrototypeWithEnumerableProperties = firstPrototypeWithEnumerableProperties->GetPrototype();
 
-                if (JavascriptOperators::GetTypeId(firstPrototype) == TypeIds_Null)
+                if (firstPrototypeWithEnumerableProperties == nullptr)
                 {
-                    firstPrototype = nullptr;
                     break;
                 }
 
-                if (!DynamicType::Is(firstPrototype->GetTypeId())
-                    || !DynamicObject::FromVar(firstPrototype)->GetHasNoEnumerableProperties())
+                if (JavascriptOperators::GetTypeId(firstPrototypeWithEnumerableProperties) == TypeIds_Null)
+                {
+                    firstPrototypeWithEnumerableProperties = nullptr;
+                    break;
+                }
+
+                if (firstPrototype == nullptr)
+                {
+                    firstPrototype = firstPrototypeWithEnumerableProperties;
+                }
+
+                if (!DynamicType::Is(firstPrototypeWithEnumerableProperties->GetTypeId())
+                    || !DynamicObject::FromVar(firstPrototypeWithEnumerableProperties)->GetHasNoEnumerableProperties())
                 {
                     break;
                 }
             }
         }
 
-        return firstPrototype;
+        if (pFirstPrototype != nullptr)
+        {
+            *pFirstPrototype = firstPrototype;
+        }
+
+        return firstPrototypeWithEnumerableProperties;
     }
 
     BOOL ForInObjectEnumerator::InitializeCurrentEnumerator(RecyclableObject * object, ForInCache * forInCache)
@@ -182,7 +207,32 @@ namespace Js
                 if (TestAndSetEnumerated(propertyId) //checks if the property is already enumerated or not
                     && (attributes & PropertyEnumerable))
                 {
-                    return currentIndex;
+                    bool propertyShadowed = false;
+
+                    if (this->enumeratingPrototype)
+                    {
+                        // prototype checking begins from the first prototype object with enumerable properties,
+                        // but the property could be shadowed by a desendant prototype which has the same property but not enumerable.
+                        // Need to check that because that is ignored from the begining.
+                        RecyclableObject * prototypeObject = this->shadowData->firstPrototype;
+
+                        while (prototypeObject != nullptr && prototypeObject != this->shadowData->currentObject)
+                        {
+                            if (prototypeObject->HasProperty(propertyId))
+                            {
+                                propertyShadowed = true;
+                                break;
+                            }
+                            prototypeObject = prototypeObject->GetPrototype();
+
+                            Assert(prototypeObject != nullptr);
+                        }
+                    }
+
+                    if (!propertyShadowed)
+                    {
+                        return currentIndex;
+                    }
                 }
             }
             else
@@ -197,7 +247,8 @@ namespace Js
                 if (!enumeratingPrototype)
                 {  
                     this->enumeratingPrototype = true;
-                    object = this->shadowData->firstPrototype;
+                    object = this->shadowData->firstPrototypeWithEnumerableProperties;
+                    this->shadowData->currentObject = object;
                 }
                 else
                 {
