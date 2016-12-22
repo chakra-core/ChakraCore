@@ -1080,6 +1080,11 @@ namespace Js
     AsmJsFunc* AsmJsModuleCompiler::CreateNewFunctionEntry( ParseNode* pnodeFnc )
     {
         PropertyName name = ParserWrapper::FunctionName( pnodeFnc );
+        if ( !name )
+        {
+            return nullptr;
+        }
+
         GetByteCodeGenerator()->AssignPropertyId(name);
         AsmJsFunc* func = Anew( &mAllocator, AsmJsFunc, name, pnodeFnc, &mAllocator, mCx->scriptContext );
         if( func )
