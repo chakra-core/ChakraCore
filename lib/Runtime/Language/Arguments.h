@@ -125,11 +125,17 @@ namespace Js
             AssertMsg((idxArg < (int)Info.Count) && (idxArg >= 0), "Ensure a valid argument index");
             return Values[idxArg];
         }
-        Field(CallInfo) Info;
-        Field(Var*) Values;
+        CallInfo Info;
+        Var* Values;
 
         static uint32 GetCallInfoOffset() { return offsetof(Arguments, Info); }
         static uint32 GetValuesOffset() { return offsetof(Arguments, Values); }
+
+        // Prevent heap/recycler allocation, so we don't need write barrier for this
+        static void* operator new   (size_t)    = delete;
+        static void* operator new[] (size_t)    = delete;
+        static void  operator delete   (void*)  = delete;
+        static void  operator delete[] (void*)  = delete;
     };
 
     struct ArgumentReader : public Arguments

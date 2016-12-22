@@ -56,7 +56,7 @@ namespace Js
         JavascriptFunction * GetTargetFunction() const;
         // Below functions are used by heap enumerator
         uint GetArgsCountForHeapEnum() { return count;}
-        Var* GetArgsForHeapEnum() { return boundArgs;}
+        Field(Var)* GetArgsForHeapEnum() { return boundArgs;}
         RecyclableObject* GetBoundThis();
 
 #if ENABLE_TTD
@@ -75,6 +75,6 @@ namespace Js
         Field(RecyclableObject*)   targetFunction;
         Field(Var)                 boundThis;
         Field(uint)                count;
-        Field(Var*)                boundArgs;
+        Field(Field(Var)*)                boundArgs;
     };
 } // namespace Js

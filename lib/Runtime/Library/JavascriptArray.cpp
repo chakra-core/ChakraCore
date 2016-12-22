@@ -254,7 +254,7 @@ namespace Js
             newNode.keys[i] = child->keys[i+MinDegree];
 
             // Do not leave false positive references around in the b-tree
-            child->segments[i+MinDegree] = NULL;
+            child->segments[i+MinDegree] = nullptr;
         }
 
         // If children exist move those as well.
@@ -292,7 +292,7 @@ namespace Js
         parent->keys[iChild] = child->keys[MinKeys];
 
         // Do not leave false positive references around in the b-tree
-        child->segments[MinKeys] = NULL;
+        child->segments[MinKeys] = nullptr;
 
         parent->segmentCount++;
     }
@@ -6942,11 +6942,11 @@ Case0:
 
         if (newLenOverflow.HasOverflowed())
         {
-            return ObjectSpliceHelper<BigIndex>(pObj, len, start, deleteLen, insertArgs, insertLen, scriptContext, newObj);
+            return ObjectSpliceHelper<BigIndex>(pObj, len, start, deleteLen, (Var*)insertArgs, insertLen, scriptContext, newObj);
         }
         else // Use uint32 version if no overflow
         {
-            return ObjectSpliceHelper<uint32>(pObj, len, start, deleteLen, insertArgs, insertLen, scriptContext, newObj);
+            return ObjectSpliceHelper<uint32>(pObj, len, start, deleteLen, (Var*)insertArgs, insertLen, scriptContext, newObj);
         }
     }
 

@@ -142,7 +142,7 @@ namespace Js
     class ScriptFunctionWithInlineCache : public ScriptFunction
     {
     private:
-        Field(void**) m_inlineCaches;
+        Field(Field(void*)*) m_inlineCaches;
         Field(bool) hasOwnInlineCaches;
 
 #if DBG
@@ -173,7 +173,7 @@ namespace Js
         void ClearBorrowedInlineCacheOnFunctionObject();
         InlineCache * GetInlineCache(uint index);
         uint GetInlineCacheCount() { return inlineCacheCount; }
-        void** GetInlineCaches() { return m_inlineCaches; }
+        Field(void*)* GetInlineCaches() { return m_inlineCaches; }
         bool GetHasOwnInlineCaches() { return hasOwnInlineCaches; }
         void SetInlineCachesFromFunctionBody();
         static uint32 GetOffsetOfInlineCaches() { return offsetof(ScriptFunctionWithInlineCache, m_inlineCaches); };

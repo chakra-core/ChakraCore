@@ -87,8 +87,8 @@ namespace Js
 
         uint GetLocalExportSlotIndexByExportName(PropertyId exportNameId);
         uint GetLocalExportSlotIndexByLocalName(PropertyId localNameId);
-        Var* GetLocalExportSlots() const { return localExportSlots; }
-        Var* GetLocalExportSlotAddr(uint slotIndex) const { return &localExportSlots[slotIndex]; }
+        Var* GetLocalExportSlots() const { return (Var*)(Field(Var)*)localExportSlots; }
+        Var* GetLocalExportSlotAddr(uint slotIndex) const { return (Var*)(Field(Var)*)&localExportSlots[slotIndex]; }
         uint GetLocalExportSlotCount() const { return localSlotCount; }
         uint GetModuleId() const { return moduleId; }
         uint GetLocalExportCount() const { return localExportCount; }
@@ -133,7 +133,7 @@ namespace Js
         Field(void*) hostDefined;
         Field(Var) normalizedSpecifier;
         Field(Var) errorObject;
-        Field(Var*) localExportSlots;
+        Field(Field(Var)*) localExportSlots;
         Field(uint) localSlotCount;
 
         // module export allows aliasing, like export {foo as foo1, foo2, foo3}.
