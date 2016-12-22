@@ -7858,7 +7858,18 @@ Case0:
     template <typename T>
     JavascriptString* JavascriptArray::ToLocaleString(T* arr, ScriptContext* scriptContext)
     {
-        uint32 length = ItemTrace<T>::GetLength(arr, scriptContext);
+        uint32 length = 0;
+        if (TypedArrayBase::Is(arr))
+        {
+            // For a TypedArray use the actual length of the array.
+            length = TypedArrayBase::FromVar(arr)->GetLength();
+        }
+        else
+        {
+            //For anything else, use the "length" property if present.
+            length = ItemTrace<T>::GetLength(arr, scriptContext);
+        }
+
         if (length == 0 || scriptContext->CheckObject(arr))
         {
             return scriptContext->GetLibrary()->GetEmptyString();
