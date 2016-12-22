@@ -152,7 +152,7 @@ struct _ArrayItemWriteBarrierPolicy<WriteBarrierPtr<T>[N]>
 // Trigger write barrier on changing array content if element type determines
 // write barrier is needed. Ignore otherwise.
 //
-template <class T, class PolicyType = T, class Allocator = Recycler, int size=0>
+template <class T, class PolicyType = T, class Allocator = Recycler>
 void ArrayWriteBarrier(T * address, size_t count)
 {
     typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy ItemPolicy;
@@ -530,6 +530,12 @@ void *  __cdecl memmove(_Out_writes_bytes_all_opt_(_Size) WriteBarrierPtr<T> * _
 
 template <typename T>
 void* __cdecl memcpy(WriteBarrierPtr<T> *dst, const void *src, size_t count)
+{
+    CompileAssert(false);
+}
+
+template <typename T>
+errno_t __cdecl memcpy_s(WriteBarrierPtr<T> *dst, size_t dstSize, const void *src, size_t srcSize)
 {
     CompileAssert(false);
 }

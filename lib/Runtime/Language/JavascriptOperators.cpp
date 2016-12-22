@@ -6921,10 +6921,10 @@ CommonNumber:
         return frameObject;
     }
 
-    Var* JavascriptOperators::OP_NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope)
+    Field(Var)* JavascriptOperators::OP_NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope)
     {
         Assert(size > ScopeSlots::FirstSlotIndex); // Should never see empty slot array
-        Var* slotArray = RecyclerNewArray(scriptContext->GetRecycler(), Var, size); // last initialized slot contains reference to array of propertyIds, correspondent to objects in previous slots
+        Field(Var)* slotArray = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), size); // last initialized slot contains reference to array of propertyIds, correspondent to objects in previous slots
         uint count = size - ScopeSlots::FirstSlotIndex;
         ScopeSlots slots(slotArray);
         slots.SetCount(count);
@@ -6938,7 +6938,7 @@ CommonNumber:
         return slotArray;
     }
 
-    Var* JavascriptOperators::OP_NewScopeSlotsWithoutPropIds(unsigned int count, int scopeIndex, ScriptContext *scriptContext, FunctionBody *functionBody)
+    Field(Var)* JavascriptOperators::OP_NewScopeSlotsWithoutPropIds(unsigned int count, int scopeIndex, ScriptContext *scriptContext, FunctionBody *functionBody)
     {
         DebuggerScope* scope = reinterpret_cast<DebuggerScope*>(Constants::FunctionBodyUnavailable);
         if (scopeIndex != DebuggerScope::InvalidScopeIndex)
@@ -6949,13 +6949,13 @@ CommonNumber:
         return OP_NewScopeSlots(count, scriptContext, scope);
     }
 
-    Var* JavascriptOperators::OP_CloneScopeSlots(Var *slotArray, ScriptContext *scriptContext)
+    Field(Var)* JavascriptOperators::OP_CloneScopeSlots(Field(Var) *slotArray, ScriptContext *scriptContext)
     {
         ScopeSlots slots(slotArray);
         uint size = ScopeSlots::FirstSlotIndex + slots.GetCount();
 
-        Var* slotArrayClone = RecyclerNewArray(scriptContext->GetRecycler(), Var, size);
-        memcpy_s(slotArrayClone, sizeof(Var) * size, slotArray, sizeof(Var) * size);
+        Field(Var)* slotArrayClone = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), size);
+        CopyArray(slotArrayClone, size, slotArray, size);
 
         return slotArrayClone;
     }

@@ -120,8 +120,8 @@ namespace Js
         static bool IsWasmScriptFunction(Var func);
         static AsmJsScriptFunction* FromVar(Var func);
 
-        void SetModuleMemory(Var* mem) { m_moduleMemory = mem; }
-        Var * GetModuleMemory() const { return m_moduleMemory; }
+        void SetModuleMemory(Field(Var)* mem) { m_moduleMemory = mem; }
+        Field(Var)* GetModuleMemory() const { return m_moduleMemory; }
 
 #ifdef ENABLE_WASM
         void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
@@ -135,7 +135,7 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(AsmJsScriptFunction);
 
     private:
-        Field(Var *) m_moduleMemory;
+        Field(Field(Var)*) m_moduleMemory;
         Field(Wasm::WasmSignature *) m_signature;
     };
 

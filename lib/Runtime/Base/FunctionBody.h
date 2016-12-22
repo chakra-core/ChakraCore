@@ -3690,6 +3690,10 @@ namespace Js
         static uint const ScopeMetadataSlotIndex = 1;    // Either a FunctionBody* or DebuggerScope*
         static uint const FirstSlotIndex = 2;
     public:
+        ScopeSlots(Field(Var)* slotArray) : slotArray(slotArray)
+        {
+        }
+
         ScopeSlots(Var* slotArray) : slotArray((Field(Var)*)slotArray)
         {
         }

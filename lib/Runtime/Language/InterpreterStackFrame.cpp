@@ -2560,16 +2560,16 @@ namespace Js
         }
 
         const AsmJsModuleMemory& moduleMemory = info->GetModuleMemory();
-        Var* moduleMemoryPtr = RecyclerNewArray( scriptContext->GetRecycler(), Var, moduleMemory.mMemorySize );
-        Var* arrayBufferPtr = moduleMemoryPtr + moduleMemory.mArrayBufferOffset;
+        Field(Var)* moduleMemoryPtr = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), moduleMemory.mMemorySize);
+        Field(Var)* arrayBufferPtr = moduleMemoryPtr + moduleMemory.mArrayBufferOffset;
         Assert(moduleMemory.mArrayBufferOffset == AsmJsModuleMemory::MemoryTableBeginOffset);
-        Var* stdLibPtr = moduleMemoryPtr + moduleMemory.mStdLibOffset;
+        Field(Var)* stdLibPtr = moduleMemoryPtr + moduleMemory.mStdLibOffset;
         int* localIntSlots        = (int*)(moduleMemoryPtr + moduleMemory.mIntOffset);
         float* localFloatSlots = (float*)(moduleMemoryPtr + moduleMemory.mFloatOffset);
         double* localDoubleSlots = (double*)(moduleMemoryPtr + moduleMemory.mDoubleOffset);
-        Var* localFunctionImports = moduleMemoryPtr + moduleMemory.mFFIOffset ;
-        Var* localModuleFunctions = moduleMemoryPtr + moduleMemory.mFuncOffset ;
-        Var** localFunctionTables = (Var**)(moduleMemoryPtr + moduleMemory.mFuncPtrOffset) ;
+        Field(Var)* localFunctionImports = moduleMemoryPtr + moduleMemory.mFFIOffset ;
+        Field(Var)* localModuleFunctions = moduleMemoryPtr + moduleMemory.mFuncOffset ;
+        Field(Var)** localFunctionTables = (Field(Var)**)(moduleMemoryPtr + moduleMemory.mFuncPtrOffset) ;
 
         AsmJsSIMDValue* localSimdSlots = nullptr;
         if (scriptContext->GetConfig()->IsSimdjsEnabled())
@@ -2808,7 +2808,7 @@ namespace Js
         for( int i = 0; i < info->GetFunctionTableCount(); i++ )
         {
             const auto& modFuncTable = info->GetFunctionTable( i );
-            Var* funcTableArray = RecyclerNewArray( scriptContext->GetRecycler(), Var, modFuncTable.size );
+            Field(Var)* funcTableArray = RecyclerNewArray( scriptContext->GetRecycler(), Field(Var), modFuncTable.size );
             for (uint j = 0; j < modFuncTable.size ; j++)
             {
                 // get the module function index
@@ -2833,7 +2833,7 @@ namespace Js
             }
             for (int i = 0; i < info->GetFunctionCount(); i++)
             {
-                ScriptFunction* functionObj = (ScriptFunction*)localModuleFunctions[i];
+                ScriptFunction* functionObj = (ScriptFunction*)PointerValue(localModuleFunctions[i]);
                 AnalysisAssert(functionObj != nullptr);
                 // don't want to generate code for APIs like changeHeap
                 if (functionObj->GetEntryPoint() == Js::AsmJsExternalEntryPoint)
@@ -7232,9 +7232,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void
     InterpreterStackFrame::OP_NewInnerScopeSlots(uint innerScopeIndex, uint count, int scopeIndex, ScriptContext *scriptContext, FunctionBody *functionBody)
     {
-        Var * slotArray;
-
-        slotArray =
+        Field(Var)* slotArray =
             JavascriptOperators::OP_NewScopeSlotsWithoutPropIds(count, scopeIndex, scriptContext, functionBody);
         this->SetInnerScopeFromIndex(innerScopeIndex, slotArray);
     }
@@ -7243,9 +7241,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_CloneInnerScopeSlots(const unaligned OpLayoutT_Unsigned1<T> *playout)
     {
         uint innerScopeIndex = playout->C1;
-        Var * slotArray;
+        Field(Var) * slotArray;
 
-        slotArray = (Var*)this->InnerScopeFromIndex(innerScopeIndex);
+        slotArray = (Field(Var)*)this->InnerScopeFromIndex(innerScopeIndex);
         slotArray = JavascriptOperators::OP_CloneScopeSlots(slotArray, scriptContext);
         this->SetInnerScopeFromIndex(innerScopeIndex, slotArray);
     }
@@ -7261,20 +7259,18 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         this->SetInnerScopeFromIndex(innerScopeIndex, scope);
     }
 
-    Var *
+    Field(Var)*
     InterpreterStackFrame::NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope)
     {
-        Var * slotArray;
-
-        slotArray = JavascriptOperators::OP_NewScopeSlots(size, scriptContext, scope);
+        Field(Var)* slotArray = JavascriptOperators::OP_NewScopeSlots(size, scriptContext, scope);
         this->SetLocalClosure(slotArray);
         return slotArray;
     }
 
-    Var *
+    Field(Var)*
     InterpreterStackFrame::NewScopeSlots()
     {
-        Var * slotArray;
+        Field(Var)* slotArray;
         FunctionBody * functionBody = this->m_functionBody;
         uint scopeSlotCount = this->IsParamScopeDone() ? functionBody->scopeSlotArraySize : functionBody->paramScopeSlotArraySize;
         Assert(scopeSlotCount != 0);
@@ -7285,7 +7281,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 scopeSlotCount + ScopeSlots::FirstSlotIndex, this->GetScriptContext(), (Var)functionBody);
         }
 
-        slotArray = (Var*)this->GetLocalClosure();
+        slotArray = (Field(Var)*)this->GetLocalClosure();
         Assert(slotArray != nullptr);
 
         ScopeSlots scopeSlots(slotArray);
@@ -8717,27 +8713,27 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 Js::Throw::FatalInternalError();
             }
         }
-        OP_ChkUndecl(((Var*)instance)[slotIndex]);
-        ((Var*)(instance))[slotIndex] = value;
+        OP_ChkUndecl(((Field(Var)*)instance)[slotIndex]);
+        ((Field(Var)*)(instance))[slotIndex] = value;
     }
 
     void InterpreterStackFrame::OP_StEnvSlotChkUndecl(Var instance, int32 slotIndex1, int32 slotIndex2, Var value)
     {
-        Var slotArray = (Var*)OP_LdFrameDisplaySlot(instance, slotIndex1);
+        Var slotArray = OP_LdFrameDisplaySlot(instance, slotIndex1);
         OP_StSlotChkUndecl(slotArray, slotIndex2, value);
     }
 
     void InterpreterStackFrame::OP_StObjSlot(Var instance, int32 slotIndex, Var value)
     {
         // It would be nice to assert that it's ok to store directly to slot, but we don't have the propertyId.
-        Var *slotArray = *(Var**)((char*)instance + DynamicObject::GetOffsetOfAuxSlots());
+        Field(Var) *slotArray = *(Field(Var)**)((char*)instance + DynamicObject::GetOffsetOfAuxSlots());
         slotArray[slotIndex] = value;
     }
 
     void InterpreterStackFrame::OP_StObjSlotChkUndecl(Var instance, int32 slotIndex, Var value)
     {
         // It would be nice to assert that it's ok to store directly to slot, but we don't have the propertyId.
-        Var *slotArray = *(Var**)((char*)instance + DynamicObject::GetOffsetOfAuxSlots());
+        Field(Var) *slotArray = *(Field(Var)**)((char*)instance + DynamicObject::GetOffsetOfAuxSlots());
         OP_ChkUndecl(slotArray[slotIndex]);
         slotArray[slotIndex] = value;
     }

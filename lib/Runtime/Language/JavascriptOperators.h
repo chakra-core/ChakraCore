@@ -453,9 +453,9 @@ namespace Js
         static void OP_InitCachedFuncs(Var varScope, FrameDisplay *pDisplay, const FuncInfoArray *info, ScriptContext *scriptContext);
         static Var OP_NewScopeObject(ScriptContext* scriptContext);
         static Var OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, JavascriptFunction * funcCallee, bool nonSimpleParamList);
-        static Var* OP_NewScopeSlots(unsigned int count, ScriptContext *scriptContext, Var scope);
-        static Var* OP_NewScopeSlotsWithoutPropIds(unsigned int count, int index, ScriptContext *scriptContext, FunctionBody *functionBody);
-        static Var* OP_CloneScopeSlots(Var *scopeSlots, ScriptContext *scriptContext);
+        static Field(Var)* OP_NewScopeSlots(unsigned int count, ScriptContext *scriptContext, Var scope);
+        static Field(Var)* OP_NewScopeSlotsWithoutPropIds(unsigned int count, int index, ScriptContext *scriptContext, FunctionBody *functionBody);
+        static Field(Var)* OP_CloneScopeSlots(Field(Var) *scopeSlots, ScriptContext *scriptContext);
         static Var OP_NewPseudoScope(ScriptContext *scriptContext);
         static Var OP_NewBlockScope(ScriptContext *scriptContext);
         static Var OP_CloneBlockScope(BlockActivationObject *blockScope, ScriptContext *scriptContext);
