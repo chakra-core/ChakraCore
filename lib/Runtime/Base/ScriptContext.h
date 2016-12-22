@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(_WIN32) && defined(ENABLE_SCRIPT_PROFILING)
 #include "activprof.h"
 #endif
 
@@ -492,9 +492,11 @@ namespace Js
         bool IsExceptionWrapperForBuiltInsEnabled();
         static bool IsExceptionWrapperForBuiltInsEnabled(ScriptContext* scriptContext);
         static bool IsExceptionWrapperForHelpersEnabled(ScriptContext* scriptContext);
-#ifdef ENABLE_SCRIPT_PROFILING
         bool IsEnumerateNonUserFunctionsOnly() const { return m_enumerateNonUserFunctionsOnly; }
+#ifdef ENABLE_SCRIPT_PROFILING
         bool IsTraceDomCall() const { return !!m_fTraceDomCall; }
+#elif defined(ENABLE_SCRIPT_DEBUGGING)
+        bool IsTraceDomCall() const { return false; }
 #endif
 
         InlineCache * GetValueOfInlineCache() const { return valueOfInlineCache;}
@@ -1479,9 +1481,9 @@ private:
         typedef HRESULT (*RegisterExternalLibraryType)(Js::ScriptContext *pScriptContext);
 #ifdef ENABLE_SCRIPT_PROFILING
         HRESULT RegisterProfileProbe(IActiveScriptProfilerCallback *pProfileCallback, DWORD dwEventMask, DWORD dwContext, RegisterExternalLibraryType RegisterExternalLibrary, JavascriptMethod dispatchInvoke);
+        HRESULT DeRegisterProfileProbe(HRESULT hrReason, JavascriptMethod dispatchInvoke);
 #endif
         HRESULT SetProfileEventMask(DWORD dwEventMask);
-        HRESULT DeRegisterProfileProbe(HRESULT hrReason, JavascriptMethod dispatchInvoke);
 
         HRESULT RegisterScript(Js::FunctionProxy *pFunctionBody, BOOL fRegisterScript = TRUE);
 
@@ -1497,17 +1499,16 @@ private:
         HRESULT RegisterLibraryFunction(const char16 *pwszObjectName, const char16 *pwszFunctionName, Js::PropertyId functionPropertyId, JavascriptMethod entryPoint);
 
         HRESULT RegisterBuiltinFunctions(RegisterExternalLibraryType RegisterExternalLibrary);
-        void RegisterDebugThunk(bool calledDuringAttach = true);
-        void UnRegisterDebugThunk();
-
         void UpdateRecyclerFunctionEntryPointsForDebugger();
         void SetFunctionInRecyclerToProfileMode(bool enumerateNonUserFunctionsOnly = false);
-#ifdef ENABLE_SCRIPT_PROFILING
+
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
+        void RegisterDebugThunk(bool calledDuringAttach = true);
+        void UnRegisterDebugThunk();
         static void SetEntryPointToProfileThunk(JavascriptFunction* function);
         static void RestoreEntryPointFromProfileThunk(JavascriptFunction* function);
-#endif
-
         static void RecyclerEnumClassEnumeratorCallback(void *address, size_t size);
+#endif
         static void RecyclerFunctionCallbackForDebugger(void *address, size_t size);
 
         static ushort ProcessNameAndGetLength(Js::StringBuilder<ArenaAllocator>* nameBuffer, const WCHAR* name);
@@ -1597,10 +1598,13 @@ private:
         static JavascriptMethod ProfileModeDeferredDeserialize(ScriptFunction* function);
         static Var ProfileModeDeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...);
 
+#if defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
+        static Var ProfileModeThunk_DebugModeWrapper(JavascriptFunction* function, ScriptContext* scriptContext, JavascriptMethod entryPoint, Arguments& args);
+        static JavascriptMethod GetProfileModeThunk(JavascriptMethod entryPoint);
+#endif
+
 #ifdef ENABLE_SCRIPT_PROFILING
         void SetProfileMode(BOOL fSet);
-        static JavascriptMethod GetProfileModeThunk(JavascriptMethod entryPoint);
-        static Var ProfileModeThunk_DebugModeWrapper(JavascriptFunction* function, ScriptContext* scriptContext, JavascriptMethod entryPoint, Arguments& args);
         BOOL GetProfileInfo(
             JavascriptFunction* function,
             PROFILER_TOKEN &scriptId,

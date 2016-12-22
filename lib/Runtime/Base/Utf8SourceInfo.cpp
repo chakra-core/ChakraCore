@@ -411,7 +411,7 @@ namespace Js
 
     bool Utf8SourceInfo::GetDebugDocumentName(BSTR * sourceName)
     {
-#ifdef ENABLE_SCRIPT_DEBUGGING
+#if defined(ENABLE_SCRIPT_DEBUGGING) && defined(_WIN32)
         if (this->HasDebugDocument() && this->GetDebugDocument()->HasDocumentText())
         {
             // ToDo (SaAgarwa): Fix for JsRT debugging

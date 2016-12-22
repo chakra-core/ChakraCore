@@ -287,7 +287,7 @@ namespace Js
 
         // The type has change from the default, it is not share, just use that one.
         JavascriptMethod directEntryPoint = newFunctionInfo->GetDirectEntryPoint(newFunctionInfo->GetDefaultEntryPointInfo());
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         Assert(directEntryPoint != DefaultDeferredParsingThunk
             && directEntryPoint != ProfileDeferredParsingThunk);
 #else
@@ -558,7 +558,7 @@ namespace Js
             {
             case Js::ScopeType::ScopeType_ActivationObject:
             case Js::ScopeType::ScopeType_WithScope:
-            {    
+            {
                 rctxInfo->EnqueueNewPathVarAsNeeded(this, (Js::Var)scope, scopePathString.GetStrValue());
                 break;
             }
@@ -658,14 +658,14 @@ namespace Js
 
     bool AsmJsScriptFunction::Is(Var func)
     {
-        return ScriptFunction::Is(func) && 
+        return ScriptFunction::Is(func) &&
             ScriptFunction::FromVar(func)->HasFunctionBody() &&
             ScriptFunction::FromVar(func)->GetFunctionBody()->GetIsAsmJsFunction();
     }
 
     bool AsmJsScriptFunction::IsWasmScriptFunction(Var func)
     {
-        return ScriptFunction::Is(func) && 
+        return ScriptFunction::Is(func) &&
             ScriptFunction::FromVar(func)->HasFunctionBody() &&
             ScriptFunction::FromVar(func)->GetFunctionBody()->IsWasmFunction();
     }

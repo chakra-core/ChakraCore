@@ -940,7 +940,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
             scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), allocators,
 #if !FLOATVAR
-            pNumberAllocator, 
+            pNumberAllocator,
 #endif
             codeGenProfiler, !foreground);
     }
@@ -1548,7 +1548,7 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
 
     if(!nativeCodeGen->Processor()->PrioritizeJob(nativeCodeGen, entryPoint, function))
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
 #define originalEntryPoint_IS_ProfileDeferredParsingThunk \
             (originalEntryPoint == ProfileDeferredParsingThunk)
 #else
@@ -2005,7 +2005,7 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
             Assert(workItem->GetCodeAddress() != NULL);
 
             uint loopNum = loopBodyCodeGen->GetJITData()->loopNumber;
-            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);            
+            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);
             entryPoint->SetCodeGenDone();
         }
         else

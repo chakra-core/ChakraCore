@@ -118,47 +118,31 @@ NESTED_END _ZN2Js18DynamicProfileInfo29EnsureDynamicProfileInfoThunkEPNS_16Recyc
 #endif // _ENABLE_DYNAMIC_THUNKS
 
 
-#ifdef ENABLE_SCRIPT_PROFILING
-
 //============================================================================================================
 // ScriptContext::ProfileModeDeferredParsingThunk
 //============================================================================================================
 
-// Js::JavascriptMethod ScriptContext::ProfileModeDeferredParse(ScriptFunction *function)
-extrn ?ProfileModeDeferredParse@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVScriptFunction@2@@Z : PROC
+// Js::JavascriptMethod ScriptContext::ProfileModeDeferredParse(ScriptFunction **function)
+// extrn C_FUNC(_ZN2Js13ScriptContext31ProfileModeDeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz)
 
 // Var ScriptContext::ProfileModeDeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...)
-align 16
-?ProfileModeDeferredParsingThunk@ScriptContext@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ PROC FRAME
-        // save volatile registers
-        mov qword ptr [rsp + 8h],  rcx
-        mov qword ptr [rsp + 10h], rdx
-        mov qword ptr [rsp + 18h], r8
-        mov qword ptr [rsp + 20h], r9
-
-        push rbp
-        .pushreg rbp
+.balign 16
+NESTED_ENTRY _ZN2Js13ScriptContext31ProfileModeDeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT, NoHandler
+        push_nonvol_reg rbp
         lea  rbp, [rsp]
-        .setframe rbp, 0
-        .endprolog
 
-        sub rsp, 20h
-        lea rcx, [rsp + 30h]
-        call C_FUNC(?ProfileModeDeferredParse@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVScriptFunction@2@@Z)
+        // save argument registers used by custom calling convention
+        push_register rdi
+        push_register rsi
 
-        add rsp, 20h
+        call C_FUNC(_ZN2Js13ScriptContext24ProfileModeDeferredParseEPPNS_14ScriptFunctionE)
 
-        lea rsp, [rbp]
-        pop rbp
+        pop_register rsi
+        pop_register rdi
 
-        // restore volatile registers
-        mov rcx, qword ptr [rsp + 8h]
-        mov rdx, qword ptr [rsp + 10h]
-        mov r8,  qword ptr [rsp + 18h]
-        mov r9,  qword ptr [rsp + 20h]
-
-        rex_jmp_reg rax
-?ProfileModeDeferredParsingThunk@ScriptContext@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
+        pop_nonvol_reg rbp
+        jmp rax
+NESTED_END _ZN2Js13ScriptContext31ProfileModeDeferredParsingThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT
 
 //============================================================================================================
 
@@ -168,41 +152,26 @@ align 16
 //============================================================================================================
 
 // Js::JavascriptMethod ScriptContext::ProfileModeDeferredDeserialize(ScriptFunction *function)
-extrn ?ProfileModeDeferredDeserialize@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z : PROC
+// extrn ?ProfileModeDeferredDeserialize@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z : PROC
 
 // Var ScriptContext::ProfileModeDeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...)
-align 16
-?ProfileModeDeferredDeserializeThunk@ScriptContext@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ PROC FRAME
-        // save volatile registers
-        mov qword ptr [rsp + 8h],  rcx
-        mov qword ptr [rsp + 10h], rdx
-        mov qword ptr [rsp + 18h], r8
-        mov qword ptr [rsp + 20h], r9
-
-        push rbp
-        .pushreg rbp
+.balign 16
+NESTED_ENTRY _ZN2Js13ScriptContext35ProfileModeDeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT, NoHandler
+        push_nonvol_reg rbp
         lea  rbp, [rsp]
-        .setframe rbp, 0
-        .endprolog
 
-        sub rsp, 20h
-        call C_FUNC(?ProfileModeDeferredDeserialize@ScriptContext@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAVScriptFunction@2@@Z)
+        // save argument registers used by custom calling convention
+        push_register rdi
+        push_register rsi
 
-        add rsp, 20h
+        call C_FUNC(_ZN2Js13ScriptContext30ProfileModeDeferredDeserializeEPNS_14ScriptFunctionE)
 
-        lea rsp, [rbp]
-        pop rbp
+        pop_register rsi
+        pop_register rdi
 
-        // restore volatile registers
-        mov rcx, qword ptr [rsp + 8h]
-        mov rdx, qword ptr [rsp + 10h]
-        mov r8,  qword ptr [rsp + 18h]
-        mov r9,  qword ptr [rsp + 20h]
-
-        rex_jmp_reg rax
-?ProfileModeDeferredDeserializeThunk@ScriptContext@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
-
-#endif // ENABLE_SCRIPT_PROFILING
+        pop_nonvol_reg rbp
+        jmp rax
+NESTED_END _ZN2Js13ScriptContext35ProfileModeDeferredDeserializeThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT
 
 
 #ifdef _ENABLE_DYNAMIC_THUNKS
