@@ -91,6 +91,14 @@ typedef UINT32 DWORD;
 
 #endif //  defined(_WIN32) && defined(_MSC_VER)
 
+#if (defined(_MSC_VER) && _MSC_VER < 1900) || (!defined(_MSC_VER) && __cplusplus <= 199711L) // !C++11
+typedef unsigned short uint16_t;
+#endif
+
+#if !defined(NTBUILD) && !defined(CHAKRACOREBUILD_)
+#define CHAKRACOREBUILD_
+#endif
+
     /// <summary>
     ///     An error code returned from a Chakra hosting API.
     /// </summary>
