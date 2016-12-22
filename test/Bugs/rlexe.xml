@@ -360,4 +360,10 @@
       <compile-flags>-maxinterpretcount:1 -off:simplejit</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>Math.abs_TypeSpecOnIntMin.js</files>
+      <compile-flags>-loopinterpretcount:1 -bgjit- -maxsimplejitruncount:1 -maxinterpretcount:1 -oopjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>

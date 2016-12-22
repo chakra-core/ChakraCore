@@ -2552,7 +2552,7 @@ GlobOpt::CleanUpValueMaps()
                 // there is no backward data flow into the infinite loop block, but non empty callSequence still populates to it in this (forward) pass
                 // which causes error when looking up value for the syms in callSequence (cannot find the value).
                 // It would cause error to fill out the bailout information for the loop blocks.
-                // Remove dead syms from callSequence has some risk because there are varies associated counters which need to be consistent.
+                // Remove dead syms from callSequence has some risk because there are various associated counters which need to be consistent.
                 continue;
             }
             // Make sure symbol was created before backward pass.
@@ -8892,6 +8892,7 @@ GlobOpt::TypeSpecialization(
     {
         // Unary
         // Note make sure that native array StElemI gets to TypeSpecializeStElem. Do this for typed arrays, too?
+        bool runTypeSpec = true;
         int32 intConstantValue;
         if (!this->IsLoopPrePass() &&
             !instr->IsBranchInstr() &&
@@ -8909,21 +8910,30 @@ GlobOpt::TypeSpecialization(
             {
                 return instr;
             }
+
+            // need to run typespec if cannot const fold InlineMathAbs, or dst will be dead
+            if (instr->m_opcode != Js::OpCode::InlineMathAbs)
+            {
+                runTypeSpec = false;
+            }
         }
-        else if (
-            this->TypeSpecializeUnary(
-                &instr,
-                &src1Val,
-                pDstVal,
-                src1OriginalVal,
-                redoTypeSpecRef,
-                forceInvariantHoistingRef))
+
+        if (runTypeSpec)
         {
-            return instr;
-        }
-        else if(*redoTypeSpecRef)
-        {
-            return instr;
+            if (this->TypeSpecializeUnary(
+                    &instr,
+                    &src1Val,
+                    pDstVal,
+                    src1OriginalVal,
+                    redoTypeSpecRef,
+                    forceInvariantHoistingRef))
+            {
+                return instr;
+            }
+            else if(*redoTypeSpecRef)
+            {
+                return instr;
+            }
         }
     }
     else if (instr->GetSrc2() && !instr->IsBranchInstr())
@@ -9611,8 +9621,10 @@ GlobOpt::OptConstFoldUnary(
             }
             else
             {
-                isInt = false;
-                fValue = -(FloatConstType)INT32_MIN;
+                // disable const fold for Math.abs(INT32_MIN) because it causes dst to be float type which
+                // could be different with previous type spec result in LoopPrePass. The latter does int
+                // type spec for Math.abs(INT32_MIN).
+                return false;
             }
         }
         else
