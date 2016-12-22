@@ -37,7 +37,7 @@ chakraCore.JsSetCurrentContext(context);
 
 fname = c_void_p();
 # create JsValueRef from filename
-chakraCore.JsCreateStringUtf8(fileName, len(fileName), byref(fname));
+chakraCore.JsCreateString(fileName, len(fileName), byref(fname));
 
 scriptSource = c_void_p();
 # Create ArrayBuffer from script source
@@ -53,12 +53,12 @@ chakraCore.JsConvertValueToString(jsResult, byref(resultJSString));
 
 stringLength = c_size_t();
 # Get buffer size needed for the result string
-chakraCore.JsCopyStringUtf8(resultJSString, 0, 0, byref(stringLength));
+chakraCore.JsCopyString(resultJSString, 0, 0, byref(stringLength));
 
 resultSTR = create_string_buffer(stringLength.value + 1); # buffer is big enough to store the result
 
 # Get String from JsValueRef
-chakraCore.JsCopyStringUtf8(resultJSString, byref(resultSTR), stringLength.value + 1, 0);
+chakraCore.JsCopyString(resultJSString, byref(resultSTR), stringLength.value + 1, 0);
 
 # Set `null-ending` to the end
 resultSTRLastByte = (c_char * stringLength.value).from_address(addressof(resultSTR))
