@@ -2138,24 +2138,24 @@ namespace Js
         public:
             AutoRestoreFunctionInfo(ParseableFunctionInfo *pfi) : pfi(pfi), funcBody(nullptr) {}
             ~AutoRestoreFunctionInfo() {
-                if (this->funcBody && this->funcBody->GetFunctionInfo()->GetFunctionProxy() == this->funcBody)
+                if (this->pfi != nullptr && this->pfi->GetFunctionInfo()->GetFunctionProxy() != this->pfi)
                 {
-                    FunctionInfo *functionInfo = funcBody->GetFunctionInfo();
+                    FunctionInfo *functionInfo = this->pfi->functionInfo;
                     functionInfo->SetAttributes(
                         (FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
                     functionInfo->SetFunctionProxy(this->pfi);
                     functionInfo->SetOriginalEntryPoint(DefaultEntryThunk);
                 }
-                Assert(this->pfi == nullptr || 
-                       (this->pfi->GetFunctionInfo()->GetFunctionProxy() == this->pfi && !this->pfi->IsFunctionBody()));
+
+                Assert(this->pfi == nullptr || (this->pfi->GetFunctionInfo()->GetFunctionProxy() == this->pfi && !this->pfi->IsFunctionBody()));
             }
             void Clear() { pfi = nullptr; funcBody = nullptr; }
-            
+
             ParseableFunctionInfo * pfi;
             FunctionBody          * funcBody;
         } autoRestoreFunctionInfo(this);
 
-        // If m_hasBeenParsed = true, one of the following things happened things happened:
+        // If m_hasBeenParsed = true, one of the following things happened:
         // - We had multiple function objects which were all defer-parsed, but with the same function body and one of them
         //   got the body to be parsed before another was called
         // - We are in debug mode and had our thunks switched to DeferParseThunk
