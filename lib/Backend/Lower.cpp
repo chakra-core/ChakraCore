@@ -16744,12 +16744,12 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                     InsertConvertFloat64ToFloat32(reg, regSrc, stElem);
 
                     // MOVSS indirOpnd, reg
-                    InsertMove(indirOpnd, reg, stElem);
+                    InsertMove(indirOpnd, reg, stElem, false);
                 }
                 else
                 {
                     // MOVSD indirOpnd, regSrc
-                    InsertMove(indirOpnd, regSrc, stElem);
+                    InsertMove(indirOpnd, regSrc, stElem, false);
                 }
                 emitBailout = true;
             }

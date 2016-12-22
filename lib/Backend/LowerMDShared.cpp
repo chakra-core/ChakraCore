@@ -4751,7 +4751,9 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 
     // Now insert write barrier if necessary
 #ifdef RECYCLER_WRITE_BARRIER_JIT
-    if (isPossibleBarrieredDest && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
+    if (isPossibleBarrieredDest 
+        && assignInstr->m_opcode == Js::OpCode::MOV // ignore SSE instructions like MOVSD
+        && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
     {
         func->GetTopFunc()->m_lowerer->GetLowererMD()->GenerateWriteBarrier(assignInstr);
     }
