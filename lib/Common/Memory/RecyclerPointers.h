@@ -145,10 +145,14 @@ template <>
 struct _ArrayItemWriteBarrierPolicy<_write_barrier_policy>
     { typedef _write_barrier_policy Policy; };
 
+template <class T, int N> // in case calling with type WriteBarrierPtr<void> [N]
+struct _ArrayItemWriteBarrierPolicy<WriteBarrierPtr<T>[N]>
+    { typedef _write_barrier_policy Policy; };
+
 // Trigger write barrier on changing array content if element type determines
 // write barrier is needed. Ignore otherwise.
 //
-template <class T, class PolicyType = T, class Allocator = Recycler>
+template <class T, class PolicyType = T, class Allocator = Recycler, int size=0>
 void ArrayWriteBarrier(T * address, size_t count)
 {
     typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy ItemPolicy;

@@ -276,7 +276,7 @@ Recycler::AllocZeroWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 #endif
 
 #if DBG
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
     {
         this->FindHeapBlock(obj)->WBClearBits(obj);
     }

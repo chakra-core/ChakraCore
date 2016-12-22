@@ -851,7 +851,10 @@ LargeHeapBlock::VerifyMark()
 
             if (recycler->VerifyMark(target))
             {
-                Assert(this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)));
+                if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+                {
+                    Assert(this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)));
+                }
             }
 
             objectAddress += sizeof(void *);

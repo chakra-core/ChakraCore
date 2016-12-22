@@ -98,13 +98,18 @@ Opnd::IsWriteBarrierTriggerableValue()
     // Determines whether if an operand is used as a source in a store instruction, whether the store needs a write barrier
 
     // If it's a tagged value, we don't need a write barrier
-    if (!this->IsNotTaggedValue()) // SWB-TODO: change to: this->IsTaggedValue()
+    if (this->IsTaggedValue())
     {
         return false;
     }
 
     // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
     if (this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar)
+    {
+        return false;
+    }
+
+    if (TySize[this->GetType()] != sizeof(void*))
     {
         return false;
     }

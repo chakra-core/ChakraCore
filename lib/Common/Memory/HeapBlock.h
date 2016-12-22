@@ -437,6 +437,8 @@ public:
     SmallHeapBlockBitVector* markBits;
     SmallHeapBlockBitVector  freeBits;
 #if DBG
+    // TODO: (leish)(swb) move this to the block header if memory pressure on chk build is a problem
+    // this causes 1/64 more memory usage on x64 or 1/32 more on x86
     BVStatic<TBlockAttributes::PageCount * AutoSystemInfo::PageSize / sizeof(void*)> wbVerifyBits;
 #endif
 

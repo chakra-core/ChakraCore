@@ -101,34 +101,6 @@ Lowerer::Lower()
 
     this->LowerRange(m_func->m_headInstr, m_func->m_tailInstr, defaultDoFastPath, loopFastPath);
 
-#if DBG
-    // TODO: (leish)(swb) implement for arm
-#if defined(_M_IX86) || defined(_M_AMD64)
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
-    {
-        // find out all write barrier setting instr, call Recycler::WBSetBit for verification purpose
-        // should do this in LowererMD::GenerateWriteBarrier, however, can't insert call instruction there
-        FOREACH_INSTR_EDITING(instr, instrNext, m_func->m_headInstr)
-        if (instr->m_src1 && instr->m_src1->IsAddrOpnd())
-        {
-            IR::AddrOpnd* addrOpnd = instr->m_src1->AsAddrOpnd();
-            if (addrOpnd->GetAddrOpndKind() == IR::AddrOpndKindWriteBarrierCardTable)
-            {
-                auto& leaInstr = instr->m_prev->m_prev;
-                auto& shrInstr = instr->m_prev;
-                Assert(leaInstr->m_opcode == Js::OpCode::LEA);
-                Assert(shrInstr->m_opcode == Js::OpCode::SHR);
-                m_lowererMD.LoadHelperArgument(shrInstr, leaInstr->m_dst);
-                IR::Instr* instrCall = IR::Instr::New(Js::OpCode::Call, m_func);
-                shrInstr->InsertBefore(instrCall);
-                m_lowererMD.ChangeToHelperCall(instrCall, IR::HelperWriteBarrierSetVerifyBit);
-            }
-        }
-        NEXT_INSTR_EDITING
-    }
-#endif
-#endif
-
     this->m_func->ClearCloneMap();
 
     if (m_func->HasAnyStackNestedFunc())
@@ -10296,7 +10268,7 @@ Lowerer::LowerStSlot(IR::Instr *instr)
     }
     else
     {
-        m_lowererMD.ChangeToWriteBarrierAssign(instr);
+        m_lowererMD.ChangeToWriteBarrierAssign(instr, this->m_func);
     }
 
     return instr;
@@ -10568,7 +10540,7 @@ Lowerer::LowerStElemC(IR::Instr * stElem)
     IntConstType offset = base + (value << indirScale);
     Assert(Math::FitsInDWord(offset));
     indirOpnd->SetOffset((int32)offset);
-    m_lowererMD.ChangeToWriteBarrierAssign(stElem);
+    m_lowererMD.ChangeToWriteBarrierAssign(stElem, this->m_func);
 
     return instrPrev;
 }
@@ -13282,7 +13254,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
         }
 
         m_lowererMD.CreateAssign(
-            indexOpndForBailOutKind, IR::IntConstOpnd::New(instr->GetBailOutKind(), indexOpndForBailOutKind->GetType(), this->m_func), instr);
+            indexOpndForBailOutKind, IR::IntConstOpnd::New(instr->GetBailOutKind(), indexOpndForBailOutKind->GetType(), this->m_func), instr, false);
 
         // No point in doing this for BailOutFailedEquivalentTypeCheck or BailOutFailedEquivalentFixedFieldTypeCheck,
         // because the respective inline cache is already polymorphic, anyway.
@@ -13304,7 +13276,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
             }
 
             m_lowererMD.CreateAssign(
-                indexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr);
+                indexOpnd, IR::IntConstOpnd::New(bailOutInfo->polymorphicCacheIndex, TyUint32, this->m_func), instr, false);
         }
 
         if (bailOutInfo->bailOutRecord->GetType() == BailOutRecord::BailoutRecordType::Shared)
@@ -13319,7 +13291,7 @@ Lowerer::GenerateBailOut(IR::Instr * instr, IR::BranchInstr * branchInstr, IR::L
                 functionBodyOpnd = IR::MemRefOpnd::New((BYTE*)bailOutInfo->bailOutRecord + SharedBailOutRecord::GetOffsetOfFunctionBody(), TyMachPtr, this->m_func);
             }
             m_lowererMD.CreateAssign(
-                functionBodyOpnd, CreateFunctionBodyOpnd(instr->m_func), instr);
+                functionBodyOpnd, CreateFunctionBodyOpnd(instr->m_func), instr, false);
         }
 
         // GenerateBailOut should have replaced this as a label as we should have already lowered
@@ -14539,8 +14511,14 @@ IR::Instr *Lowerer::InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const in
     IR::Instr *const instr = IR::Instr::New(Js::OpCode::Ld_A, dst, src, func);
 
     insertBeforeInstr->InsertBefore(instr);
-
-    LowererMD::ChangeToWriteBarrierAssign(instr);
+    if (generateWriteBarrier)
+    {
+        LowererMD::ChangeToWriteBarrierAssign(instr, func);
+    }
+    else
+    {
+        LowererMD::ChangeToAssign(instr);
+    }
 
     return instr;
 }
@@ -16766,12 +16744,12 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
                     InsertConvertFloat64ToFloat32(reg, regSrc, stElem);
 
                     // MOVSS indirOpnd, reg
-                    InsertMove(indirOpnd, reg, stElem);
+                    InsertMove(indirOpnd, reg, stElem, false);
                 }
                 else
                 {
                     // MOVSD indirOpnd, regSrc
-                    InsertMove(indirOpnd, regSrc, stElem);
+                    InsertMove(indirOpnd, regSrc, stElem, false);
                 }
                 emitBailout = true;
             }
@@ -22436,7 +22414,7 @@ Lowerer::LowerSetConcatStrMultiItem(IR::Instr * instr)
 
     dstOpnd->SetOffset(dstOpnd->GetOffset() * sizeof(Js::JavascriptString *) + Js::ConcatStringMulti::GetOffsetOfSlots());
 
-    LowererMD::ChangeToWriteBarrierAssign(instr);
+    LowererMD::ChangeToWriteBarrierAssign(instr, func);
 }
 
 IR::RegOpnd *

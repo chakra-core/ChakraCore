@@ -55,8 +55,8 @@
 struct CodeGenNumberChunk
 {
     static int const MaxNumberCount = 3;
-    Js::JavascriptNumber * numbers[MaxNumberCount];
-    CodeGenNumberChunk * next;
+    Field(Js::JavascriptNumber*) numbers[MaxNumberCount];
+    Field(CodeGenNumberChunk*) next;
 };
 CompileAssert(
     sizeof(CodeGenNumberChunk) == HeapConstants::ObjectGranularity ||

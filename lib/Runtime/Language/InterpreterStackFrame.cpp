@@ -8698,7 +8698,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 Js::Throw::FatalInternalError();
             }
         }
-        ((Var*)(instance))[slotIndex] = value;
+        ((Field(Var)*)(instance))[slotIndex] = value;
     }
 
     void InterpreterStackFrame::OP_StEnvSlot(Var instance, int32 slotIndex1, int32 slotIndex2, Var value)

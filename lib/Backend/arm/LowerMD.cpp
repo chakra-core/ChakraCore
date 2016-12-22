@@ -2382,7 +2382,7 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
 }
 
 void
-LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr)
+LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 {
 #ifdef RECYCLER_WRITE_BARRIER_JIT
     // WriteBarrier-TODO- Implement ARM JIT
@@ -2422,9 +2422,9 @@ LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt)
+LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, bool generateWriteBarrier)
 {
-    return Lowerer::InsertMove(dst, src, instrInsertPt);
+    return Lowerer::InsertMove(dst, src, instrInsertPt, generateWriteBarrier);
 }
 
 ///----------------------------------------------------------------------------

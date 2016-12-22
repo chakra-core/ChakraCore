@@ -803,9 +803,9 @@ LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt)
+LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, bool generateWriteBarrier)
 {
-    return Lowerer::InsertMove(dst, src, instrInsertPt);
+    return Lowerer::InsertMove(dst, src, instrInsertPt, generateWriteBarrier);
 }
 
 ///----------------------------------------------------------------------------
@@ -4713,20 +4713,50 @@ LowererMD::GenerateLoadPolymorphicInlineCacheSlot(IR::Instr * instrLdSt, IR::Reg
 }
 
 void
-LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr)
+LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 {
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+    IR::Opnd* dest = assignInstr->GetDst();
+
+    auto threadContextInfo = func->GetTopFunc()->GetThreadContextInfo();
+    void* destAddr = nullptr;
+    bool isPossibleBarrieredDest = false;
+
+    if (TySize[dest->GetType()] == sizeof(void*))
+    {
+        if (dest->IsIndirOpnd())
+        {
+            Assert(!dest->AsIndirOpnd()->HasAddrKind());
+            isPossibleBarrieredDest = true;
+        }
+        else if (dest->IsMemRefOpnd())
+        {
+            // looks all thread context field access are from MemRefOpnd
+            destAddr = (void*)dest->AsMemRefOpnd()->GetMemLoc();
+            isPossibleBarrieredDest = destAddr != nullptr
+                && ((intptr_t)destAddr % sizeof(void*)) == 0
+                && destAddr != (void*)threadContextInfo->GetImplicitCallFlagsAddr()
+                && destAddr != (void*)threadContextInfo->GetDisableImplicitFlagsAddr()
+                && destAddr != (void*)threadContextInfo->GetBailOutRegisterSaveSpaceAddr();
+
+            if (isPossibleBarrieredDest)
+            {
+                Assert(Recycler::WBCheckIsRecyclerAddress((char*)destAddr));
+            }
+        }
+    }
+#endif
+
     ChangeToAssign(assignInstr);
 
     // Now insert write barrier if necessary
 #ifdef RECYCLER_WRITE_BARRIER_JIT
-    IR::Opnd* dest = assignInstr->GetDst();
-
-    bool isPossibleBarrieredDest = (dest->IsIndirOpnd() || dest->IsMemRefOpnd());
-
-    if (isPossibleBarrieredDest && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
+    if (isPossibleBarrieredDest 
+        && assignInstr->m_opcode == Js::OpCode::MOV // ignore SSE instructions like MOVSD
+        && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
     {
-        GenerateWriteBarrier(assignInstr);
-   }
+        func->GetTopFunc()->m_lowerer->GetLowererMD()->GenerateWriteBarrier(assignInstr);
+    }
 #endif
 }
 
@@ -4746,7 +4776,7 @@ LowererMD::GenerateWriteBarrierAssign(IR::MemRefOpnd * opndDst, IR::Opnd * opndS
         IR::Instr * movInstr = IR::Instr::New(Js::OpCode::MOV, cardTableEntry, IR::IntConstOpnd::New(1, TyInt8, insertBeforeInstr->m_func), insertBeforeInstr->m_func);
         insertBeforeInstr->InsertBefore(movInstr);
 #if DBG
-        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
         {
             this->LoadHelperArgument(insertBeforeInstr, opndDst);
             IR::Instr* instrCall = IR::Instr::New(Js::OpCode::Call, m_func);
@@ -4797,6 +4827,17 @@ LowererMD::GenerateWriteBarrier(IR::Instr * assignInstr)
     IR::Instr * loadIndexInstr = IR::Instr::New(Js::OpCode::LEA, indexOpnd, assignInstr->GetDst(), assignInstr->m_func);
     assignInstr->InsertBefore(loadIndexInstr);
 
+#if DBG
+    // CALL Recycler::WBSetBitJIT
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    {
+        this->LoadHelperArgument(assignInstr, indexOpnd);
+        IR::Instr* instrCall = IR::Instr::New(Js::OpCode::Call, m_func);
+        assignInstr->InsertBefore(instrCall);
+        this->ChangeToHelperCall(instrCall, IR::HelperWriteBarrierSetVerifyBit);
+    }
+#endif
+
     IR::Instr * shiftBitInstr = IR::Instr::New(Js::OpCode::SHR, indexOpnd, indexOpnd,
         IR::IntConstOpnd::New(12 /* 1 << 12 = 4096 */, TyInt8, assignInstr->m_func), assignInstr->m_func);
     assignInstr->InsertBefore(shiftBitInstr);
@@ -4813,6 +4854,8 @@ LowererMD::GenerateWriteBarrier(IR::Instr * assignInstr)
     //  SHR reg1, 12
     //  MOV [cardTableAddress + reg2], 1
     //
+
+    //TODO: (leish)(swb) hoist RecyclerWriteBarrierManager::GetAddressOfCardTable()
     IR::RegOpnd * cardTableRegOpnd = IR::RegOpnd::New(TyMachReg, assignInstr->m_func);
     IR::Instr * cardTableAddrInstr = IR::Instr::New(Js::OpCode::MOV, cardTableRegOpnd,
         IR::AddrOpnd::New(RecyclerWriteBarrierManager::GetAddressOfCardTable(), IR::AddrOpndKindWriteBarrierCardTable, assignInstr->m_func),
@@ -6255,7 +6298,7 @@ LowererMD::GenerateFastRecyclerAlloc(size_t allocSize, IR::RegOpnd* newObjDst, I
     insertionPointInstr->InsertBefore(branchToAllocHelperInstr);
 
     // MOV allocator->freeObjectList, nextMemBlock
-    Lowerer::InsertMove(freeListOpnd, nextMemBlockOpnd, insertionPointInstr);
+    Lowerer::InsertMove(freeListOpnd, nextMemBlockOpnd, insertionPointInstr, false);
 
     // JMP $allocDone
     IR::BranchInstr * branchToAllocDoneInstr = IR::BranchInstr::New(Js::OpCode::JMP, allocDoneLabel, this->m_func);
