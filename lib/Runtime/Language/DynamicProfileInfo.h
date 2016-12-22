@@ -84,11 +84,11 @@ namespace Js
 
     struct CallSiteInfo
     {
+        Field(ValueType) returnType;
         Field(uint16) isArgConstant : 13;
         Field(uint16) isConstructorCall : 1;
         Field(uint16) dontInline : 1;
         Field(uint16) isPolymorphic : 1;
-        Field(ValueType) returnType;
         Field(InlineCacheIndex) ldFldInlineCacheId;
         union _u_type
         {
@@ -522,9 +522,9 @@ namespace Js
         Field(uint32) m_recursiveInlineInfo; // Bit is set for each callsites where the function is called recursively
         Field(uint32) polymorphicCacheState;
         Field(uint32) bailOutOffsetForLastRejit;
-        Field(uint16) rejitCount;
+        Field(bool) hasFunctionBody;  // this is likely 1, try avoid 4-byte GC force reference
         Field(BYTE) currentInlinerVersion; // Used to detect when inlining profile changes
-        Field(bool) hasFunctionBody;
+        Field(uint16) rejitCount;
 #if DBG
         Field(bool) persistsAcrossScriptContexts;
 #endif

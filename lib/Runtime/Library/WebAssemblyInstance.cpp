@@ -158,7 +158,7 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
         }
         AsmJsScriptFunction * funcObj = ctx->GetLibrary()->CreateAsmJsScriptFunction(wasmModule->GetWasmFunctionInfo(i)->GetBody());
         FunctionBody* body = funcObj->GetFunctionBody();
-        funcObj->SetModuleMemory(env->GetStartPtr());
+        funcObj->SetModuleMemory((Field(Var)*)env->GetStartPtr());
         funcObj->SetSignature(body->GetAsmJsFunctionInfo()->GetWasmSignature());
         funcObj->SetEnvironment(frameDisplay);
         env->SetWasmFunction(i, funcObj);
