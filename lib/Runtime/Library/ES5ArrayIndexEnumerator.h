@@ -13,7 +13,7 @@ namespace Js
         Field(uint32) dataIndex;                       // Current data index
         Field(uint32) descriptorIndex;                 // Current descriptor index
         Field(IndexPropertyDescriptor*) descriptor;    // Current descriptor
-        FieldNoBarrier(void *) descriptorValidationToken;
+        Field(void *) descriptorValidationToken;
     protected:
         DEFINE_VTABLE_CTOR(ES5ArrayIndexEnumerator, JavascriptArrayIndexEnumeratorBase);
 

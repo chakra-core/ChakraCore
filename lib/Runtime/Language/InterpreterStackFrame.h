@@ -253,8 +253,8 @@ namespace Js
 
         Var LdEnv() const;
         void SetEnv(FrameDisplay *frameDisplay);
-        Var * NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope);
-        Var * NewScopeSlots();
+        Field(Var)* NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope);
+        Field(Var)* NewScopeSlots();
         Var NewScopeObject();
         FrameDisplay * NewFrameDisplay(void *argHead, void *argEnv);
 
