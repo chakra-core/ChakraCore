@@ -1053,7 +1053,7 @@ namespace Js
     {
         if (this->function->GetHasInlineCaches() && Js::ScriptFunctionWithInlineCache::Is(this->function))
         {
-            this->inlineCaches = Js::ScriptFunctionWithInlineCache::FromVar(this->function)->GetInlineCaches();
+            this->inlineCaches = (void**)Js::ScriptFunctionWithInlineCache::FromVar(this->function)->GetInlineCaches();
         }
         else
         {
@@ -2787,7 +2787,7 @@ namespace Js
                     scriptFuncObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
                     scriptFuncObj->GetFunctionBody()->GetAsmJsFunctionInfo()->SetModuleFunctionBody(asmJsModuleFunctionBody);
                 }
-                scriptFuncObj->SetModuleMemory(moduleMemoryPtr);
+                scriptFuncObj->SetModuleMemory((Field(Var)*)moduleMemoryPtr);
                 if (!info->IsRuntimeProcessed())
                 {
                     // don't reset entrypoint upon relinking

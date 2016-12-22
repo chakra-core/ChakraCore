@@ -69,7 +69,7 @@ namespace Js
             // Store the args excluding function obj and "this" arg
             if (args.Info.Count > 2)
             {
-                boundArgs = RecyclerNewArray(scriptContext->GetRecycler(), Var, count);
+                boundArgs = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), count);
 
                 for (uint i=0; i<count; i++)
                 {
@@ -96,7 +96,7 @@ namespace Js
 
         if (argsCount != 0)
         {
-            this->boundArgs = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Var, argsCount);
+            this->boundArgs = RecyclerNewArray(this->GetScriptContext()->GetRecycler(), Field(Var), argsCount);
 
             for (uint i = 0; i < argsCount; i++)
             {
@@ -562,7 +562,7 @@ namespace Js
 
         res->boundThis = bThis;
         res->count = ct;
-        res->boundArgs = args;
+        res->boundArgs = (Field(Var)*)args;
 
         res->targetFunction = function;
 

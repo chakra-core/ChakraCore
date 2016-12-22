@@ -268,8 +268,8 @@ namespace Js
     ModuleNamespace* SourceTextModuleRecord::GetNamespace()
     {
         Assert(localExportSlots != nullptr);
-        Assert(static_cast<ModuleNamespace*>(localExportSlots[GetLocalExportSlotCount()]) == __super::GetNamespace());
-        return static_cast<ModuleNamespace*>(localExportSlots[GetLocalExportSlotCount()]);
+        Assert(PointerValue(localExportSlots[GetLocalExportSlotCount()]) == __super::GetNamespace());
+        return (ModuleNamespace*)(void*)(localExportSlots[GetLocalExportSlotCount()]);
     }
 
     void SourceTextModuleRecord::SetNamespace(ModuleNamespace* moduleNamespace)
@@ -860,7 +860,7 @@ namespace Js
                 });
             }
             // Namespace object will be added to the end of the array though invisible through namespace object itself.
-            localExportSlots = RecyclerNewArray(recycler, Var, currentSlotCount + 1);
+            localExportSlots = RecyclerNewArray(recycler, Field(Var), currentSlotCount + 1);
             for (uint i = 0; i < currentSlotCount; i++)
             {
                 localExportSlots[i] = undefineValue;

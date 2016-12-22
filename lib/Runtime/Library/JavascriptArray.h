@@ -22,7 +22,7 @@ namespace Js
 
     protected:
         Field(uint32*)              keys;           // keys[i] == segments[i]->left
-        Field(SparseArraySegmentBase**) segments;   // Length of segmentCount.
+        Field(SparseArraySegmentBase**) segments;   // Length of segmentCount. Allocated with Leaf, no need to annotate inner pointer
         Field(SegmentBTree*)        children;       // Length of segmentCount+1.
         Field(uint32)               segmentCount;   // number of sparseArray segments in the Node
 
