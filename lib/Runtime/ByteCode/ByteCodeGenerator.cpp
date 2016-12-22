@@ -1166,12 +1166,7 @@ ParseNode* VisitBlock(ParseNode *pnode, ByteCodeGenerator* byteCodeGenerator, Pr
 FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLength, uint shortNameOffset, bool* pfuncExprWithName, ParseNode *pnode, Js::ParseableFunctionInfo * reuseNestedFunc)
 {
     bool funcExprWithName;
-    union
-    {
-        Js::ParseableFunctionInfo* parseableFunctionInfo;
-        Js::FunctionBody* parsedFunctionBody;
-    };
-    bool isDeferParsed = false;
+    Js::ParseableFunctionInfo* parseableFunctionInfo = nullptr;
 
     if (this->pCurrentFunction &&
         this->pCurrentFunction->IsFunctionParsed())
@@ -1181,7 +1176,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
 
         // This is the root function for the current AST subtree, and it already has a FunctionBody
         // (created by a deferred parse) which we're now filling in.
-        parsedFunctionBody = this->pCurrentFunction;
+        Js::FunctionBody * parsedFunctionBody = this->pCurrentFunction;
         parsedFunctionBody->RemoveDeferParseAttribute();
 
         if (parsedFunctionBody->GetBoundPropertyRecords() == nullptr)
@@ -1222,18 +1217,18 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
                 }
             }
         }
+
+        parseableFunctionInfo = parsedFunctionBody;
     }
     else
     {
         funcExprWithName = *pfuncExprWithName;
         Js::LocalFunctionId functionId = pnode->sxFnc.functionId;
 
-        isDeferParsed = (pnode->sxFnc.pnodeBody == nullptr);
-
         // Create a function body if:
         //  1. The parse node is not defer parsed
         //  2. Or creating function proxies is disallowed
-        bool createFunctionBody = !isDeferParsed && (!reuseNestedFunc || reuseNestedFunc->IsFunctionBody());
+        bool createFunctionBody = (pnode->sxFnc.pnodeBody != nullptr) && (!reuseNestedFunc || reuseNestedFunc->IsFunctionBody());
         if (!CONFIG_FLAG(CreateFunctionProxy)) createFunctionBody = true;
 
         Js::FunctionInfo::Attributes attributes = Js::FunctionInfo::Attributes::None;
@@ -1284,11 +1279,11 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
             if (reuseNestedFunc)
             {
                 Assert(reuseNestedFunc->IsFunctionBody());
-                parsedFunctionBody = reuseNestedFunc->GetFunctionBody();
+                parseableFunctionInfo = reuseNestedFunc->GetFunctionBody();
             }
             else
             {
-                parsedFunctionBody = Js::FunctionBody::NewFromRecycler(scriptContext, name, nameLength, shortNameOffset, pnode->sxFnc.nestedCount, m_utf8SourceInfo,
+                parseableFunctionInfo = Js::FunctionBody::NewFromRecycler(scriptContext, name, nameLength, shortNameOffset, pnode->sxFnc.nestedCount, m_utf8SourceInfo,
                     m_utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId, functionId, propertyRecordList
                     , attributes
                     , pnode->sxFnc.IsClassConstructor() ?
@@ -1351,7 +1346,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
 
         sym->SetIsFuncExpr(true);
 
-        sym->SetPosition(parsedFunctionBody->GetOrAddPropertyIdTracked(sym->GetName()));
+        sym->SetPosition(parseableFunctionInfo->GetOrAddPropertyIdTracked(sym->GetName()));
 
         pnode->sxFnc.SetFuncSymbol(sym);
     }
@@ -1398,8 +1393,9 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         funcInfo->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("ArgumentsObjectEscapes")));
     }
 
-    if (!isDeferParsed)
+    if (parseableFunctionInfo->IsFunctionBody())
     {
+        Js::FunctionBody * parsedFunctionBody = parseableFunctionInfo->GetFunctionBody();
         if (parsedFunctionBody->IsReparsed())
         {
             parsedFunctionBody->RestoreState(pnode);
