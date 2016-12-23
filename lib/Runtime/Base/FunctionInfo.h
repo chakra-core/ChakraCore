@@ -42,6 +42,7 @@ namespace Js
             AllowDirectSuper               = 0x100000
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
+        FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
 
         static bool Is(void *ptr);
         static DWORD GetFunctionBodyImplOffset() { return offsetof(FunctionInfo, functionBodyImpl); }
@@ -146,6 +147,10 @@ namespace Js
     public:
         NoProfileFunctionInfo(JavascriptMethod entryPoint)
             : FunctionInfo(entryPoint, Attributes::DoNotProfile)
+        {}
+
+        NoProfileFunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag)
+            : FunctionInfo(NO_WRITE_BARRIER_TAG(entryPoint), Attributes::DoNotProfile)
         {}
     };
 

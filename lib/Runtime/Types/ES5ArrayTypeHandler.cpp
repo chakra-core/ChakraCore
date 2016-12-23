@@ -9,7 +9,7 @@
 namespace Js
 {
     IndexPropertyDescriptorMap::IndexPropertyDescriptorMap(Recycler* recycler)
-        : recycler(recycler), indexList(NULL), lastIndexAt(-1)
+        : recycler(recycler), indexList(nullptr), lastIndexAt(-1)
     {
         indexPropertyMap = RecyclerNew(recycler, InnerMap, recycler);
     }

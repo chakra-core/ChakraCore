@@ -7,7 +7,7 @@
 namespace JsUtil
 {
     template<class T, class TAllocator>
-    DoublyLinkedListElement<T, TAllocator>::DoublyLinkedListElement() : previous(0), next(0)
+    DoublyLinkedListElement<T, TAllocator>::DoublyLinkedListElement() : previous(nullptr), next(nullptr)
     {
         TemplateParameter::SameOrDerivedFrom<T, DoublyLinkedListElement<T, TAllocator>>();
     }

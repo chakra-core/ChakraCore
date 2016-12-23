@@ -5099,7 +5099,7 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     Program::Program(RegexFlags flags)
-        : source(0)
+        : source(nullptr)
         , sourceLen(0)
         , flags(flags)
         , numGroups(0)
