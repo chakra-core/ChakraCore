@@ -94,7 +94,6 @@ static pthread_mutex_t init_critsec_mutex = PTHREAD_MUTEX_INITIALIZER;
    very first PAL_Initialize call, and is freed afterward. */
 static PCRITICAL_SECTION init_critsec = NULL;
 
-static BOOL INIT_IncreaseDescriptorLimit(void);
 static LPWSTR INIT_FormatCommandLine (int argc, const char * const *argv);
 static LPWSTR INIT_FindEXEPath(LPCSTR exe_name);
 
@@ -193,13 +192,6 @@ Initialize()
                 "to reflect the correct page size of %d.\n", getpagesize());
         }
 #endif  // _DEBUG
-
-        if (!INIT_IncreaseDescriptorLimit())
-        {
-            ERROR("Unable to increase the file descriptor limit!\n");
-            // We can continue if this fails; we'll just have problems if
-            // we use large numbers of threads or have many open files.
-        }
 
         /* initialize the shared memory infrastructure */
         if (!SHMInitialize())
@@ -742,40 +734,6 @@ void PALInitUnlock(void)
     InternalLeaveCriticalSection(pThread, init_critsec);
 }
 
-/* Internal functions *********************************************************/
-
-/*++
-Function:
-    INIT_IncreaseDescriptorLimit [internal]
-
-Abstract:
-    Calls setrlimit(2) to increase the maximum number of file descriptors
-    this process can open.
-
-Return value:
-    TRUE if the call to setrlimit succeeded; FALSE otherwise.
---*/
-static BOOL INIT_IncreaseDescriptorLimit(void)
-{
-    struct rlimit rlp;
-    int result;
-
-    result = getrlimit(RLIMIT_NOFILE, &rlp);
-    if (result != 0)
-    {
-        return FALSE;
-    }
-    // Set our soft limit for file descriptors to be the same
-    // as the max limit.
-    rlp.rlim_cur = rlp.rlim_max;
-    result = setrlimit(RLIMIT_NOFILE, &rlp);
-    if (result != 0)
-    {
-        return FALSE;
-    }
-
-    return TRUE;
-}
 
 /*++
 Function:
