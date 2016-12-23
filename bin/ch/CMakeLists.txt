@@ -34,7 +34,7 @@ target_include_directories (ch
 
 if(STATIC_LIBRARY)
   if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
-    set(LINKER_START_GROUP -Wl,--start-group)
+    set(LINKER_START_GROUP -pie -Wl,--start-group)
     set(LINKER_END_GROUP -Wl,--end-group -static-libstdc++)
   elseif(CC_TARGET_OS_OSX)
     set(LINKER_START_GROUP -Wl,-force_load,)
