@@ -319,14 +319,8 @@ public:
     WriteBarrierPtr() : ptr(nullptr) {}
     WriteBarrierPtr(T * ptr)
     {
-#ifdef _WIN32
         // WriteBarrier
         WriteBarrierSet(ptr);
-#else
-        // TODO: (leish)(swb) find a way to get dll load address on Linux, and initialize card table for
-        // image write copy region
-        NoWriteBarrierSet(ptr);
-#endif
     }
     WriteBarrierPtr(WriteBarrierPtr<T>& other)
     {

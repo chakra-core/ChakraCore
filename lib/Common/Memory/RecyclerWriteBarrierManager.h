@@ -57,10 +57,7 @@ namespace Memory
 class X64WriteBarrierCardTableManager
 {
 public:
-    X64WriteBarrierCardTableManager() :
-        _cardTable(nullptr)
-    {
-    }
+    X64WriteBarrierCardTableManager();
 
     ~X64WriteBarrierCardTableManager();
 
@@ -146,6 +143,7 @@ private:
 
 class RecyclerWriteBarrierManager
 {
+    friend class X64WriteBarrierCardTableManager;
 public:
     static void WriteBarrier(void * address);
     static void WriteBarrier(void * address, size_t bytes);

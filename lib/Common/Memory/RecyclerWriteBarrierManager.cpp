@@ -4,6 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
 
+#ifdef _M_X64_OR_ARM64
+#if !SYSINFO_IMAGE_BASE_AVAILABLE
+#define _GNU_SOURCE
+#include <link.h>
+#endif
+#endif
+
 // Initialization order
 //  AB AutoSystemInfo
 //  AD PerfCounter
@@ -13,11 +20,11 @@
 //  AP DbgHelpSymbolManager
 //  AQ CFGLogger
 //  AR LeakReport
-//  AS JavascriptDispatch/RecyclerObjectDumper
 //  AT HeapAllocator/RecyclerHeuristic
-//  AU RecyclerWriteBarrierManager
+//  AV RecyclerWriteBarrierManager
+//  AX JavascriptDispatch/RecyclerObjectDumper
 #pragma warning(disable:4075)       // initializers put in unrecognized initialization area on purpose
-#pragma init_seg(".CRT$XCAU")
+#pragma init_seg(".CRT$XCAV")
 
 #ifdef RECYCLER_WRITE_BARRIER
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -28,10 +35,9 @@ namespace Memory
 #endif
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
 #ifdef _M_X64_OR_ARM64
-X64WriteBarrierCardTableManager RecyclerWriteBarrierManager::x64CardTableManager;
-X64WriteBarrierCardTableManager::CommittedSectionBitVector X64WriteBarrierCardTableManager::committedSections(&HeapAllocator::Instance);
-
-BYTE* RecyclerWriteBarrierManager::cardTable = RecyclerWriteBarrierManager::x64CardTableManager.Initialize();
+BYTE* RecyclerWriteBarrierManager::cardTable;
+X64WriteBarrierCardTableManager::CommittedSectionBitVector X64WriteBarrierCardTableManager::committedSections INIT_PRIORITY(400) (&HeapAllocator::Instance);
+X64WriteBarrierCardTableManager RecyclerWriteBarrierManager::x64CardTableManager  INIT_PRIORITY(401);
 #else
 // Each byte in the card table covers 4096 bytes so the range covered by the table is 4GB
 BYTE RecyclerWriteBarrierManager::cardTable[1 * 1024 * 1024];
@@ -47,6 +53,12 @@ DWORD RecyclerWriteBarrierManager::cardTable[1 * 1024 * 1024];
 
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
 #ifdef _M_X64_OR_ARM64
+
+X64WriteBarrierCardTableManager::X64WriteBarrierCardTableManager() 
+    : _cardTable(nullptr)
+{
+    RecyclerWriteBarrierManager::cardTable = Initialize();
+}
 
 bool
 X64WriteBarrierCardTableManager::OnThreadInit()
@@ -254,20 +266,35 @@ X64WriteBarrierCardTableManager::Initialize()
         // On Win8, reserving 32 GB is fine since reservations don't incur a cost. On Win7, the cost
         // of a reservation can be approximated as 2KB per MB of reserved size. In our case, we take
         // an overhead of 96KB for our card table.
-        const unsigned __int64 maxUmProcessAddressSpace = (__int64) AutoSystemInfo::Data.lpMaximumApplicationAddress;
+        const unsigned __int64 maxUmProcessAddressSpace = (__int64)AutoSystemInfo::Data.lpMaximumApplicationAddress;
         _cardTableNumEntries = Math::Align<size_t>(maxUmProcessAddressSpace / AutoSystemInfo::PageSize, AutoSystemInfo::PageSize) /* s_writeBarrierPageSize */;
 
         LPVOID cardTableSpace = ::VirtualAlloc(NULL, _cardTableNumEntries, MEM_RESERVE, PAGE_READWRITE);
 
-        _cardTable = (BYTE*) cardTableSpace;
+        _cardTable = (BYTE*)cardTableSpace;
     }
 
     OnThreadInit();
 
 #if SYSINFO_IMAGE_BASE_AVAILABLE
     // Image WRITE_COPY region
-    // TODO: find a way for linux
     OnSegmentAlloc((char*)AutoSystemInfo::Data.dllLoadAddress, (AutoSystemInfo::Data.dllHighAddress - AutoSystemInfo::Data.dllLoadAddress) / AutoSystemInfo::Data.PageSize);
+#else
+    // TODO: find better a way for linux
+    dl_iterate_phdr([](struct dl_phdr_info *info, size_t size, void *data) ->int
+    {
+        for (int j = 0; j < info->dlpi_phnum; j++)
+        {
+            if (info->dlpi_phdr[j].p_flags & PF_W)
+            {
+                void* dllLoadAddress = (void *)(info->dlpi_addr + info->dlpi_phdr[j].p_vaddr);
+                size_t segsize = info->dlpi_phdr[j].p_memsz;
+                RecyclerWriteBarrierManager::x64CardTableManager.OnSegmentAlloc((char*)dllLoadAddress, segsize / AutoSystemInfo::Data.PageSize);
+                //printf("address=%10p, size=%dp\n", dllLoadAddress, segsize);
+            }
+        }
+        return 0;
+    }, nullptr);
 #endif
     return _cardTable;
 }
