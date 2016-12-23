@@ -22,9 +22,9 @@
 //  AP DbgHelpSymbolManager
 //  AQ CFGLogger
 //  AR LeakReport
-//  AS JavascriptDispatch/RecyclerObjectDumper
 //  AT HeapAllocator/RecyclerHeuristic
-//  AU RecyclerWriteBarrierManager
+//  AV RecyclerWriteBarrierManager
+//  AX JavascriptDispatch/RecyclerObjectDumper
 #pragma warning(disable:4075)       // initializers put in unrecognized initialization area on purpose
 #pragma init_seg(".CRT$XCAB")
 
