@@ -163,6 +163,7 @@ JsGetModuleHostInfo(
     _In_ JsModuleHostInfoKind moduleHostInfo,
     _Outptr_result_maybenull_ void** hostInfo);
 
+#ifdef CHAKRACOREBUILD_
 /// <summary>
 ///     Called by the runtime to load the source code of the serialized script.
 /// </summary>
@@ -493,5 +494,5 @@ CHAKRA_API
         _In_ JsSourceContext sourceContext,
         _In_ JsValueRef sourceUrl,
         _Out_ JsValueRef *result);
-
+#endif // CHAKRACOREBUILD_
 #endif // _CHAKRACORE_H_
