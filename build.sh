@@ -338,6 +338,13 @@ if [[ ${#_CXX} > 0 ]]; then
     CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
 fi
 
+# prepare DbgController.js.h
+CH_DIR="${CHAKRACORE_DIR}/bin/ch"
+"${CH_DIR}/jstoc.py" "${CH_DIR}/DbgController.js" controllerScript
+if [[ $? != 0 ]]; then
+    exit 1
+fi
+
 build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
 if [ ! -d "$build_directory" ]; then
     SAFE_RUN `mkdir -p $build_directory`

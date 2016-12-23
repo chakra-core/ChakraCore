@@ -3454,9 +3454,9 @@ CHAKRA_API JsTTDStart()
 
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
     TTDAssert(scriptContext->IsTTDRecordOrReplayModeEnabled(), "Need to create in TTD Record Mode.");
-
+#if ENABLE_NATIVE_CODEGEN
     TTDAssert(JITManager::GetJITManager() == nullptr || !JITManager::GetJITManager()->IsOOPJITEnabled(), "TTD cannot run with OOP JIT yet!!!");
-
+#endif
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
     {
         if(scriptContext->IsTTDRecordModeEnabled())

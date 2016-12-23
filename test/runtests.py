@@ -121,7 +121,7 @@ not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 if sys.platform != 'win32':
     not_tags.add('exclude_xplat')
     not_tags.add('Intl')
-    not_tags.add('require_debugger')
+
 if sys.platform == 'darwin':
     not_tags.add('exclude_mac')
 not_compile_flags = set(['-simdjs']) \

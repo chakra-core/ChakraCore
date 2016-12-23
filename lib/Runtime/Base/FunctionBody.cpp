@@ -883,11 +883,11 @@ namespace Js
         }
 #endif
 
-        PHASE_PRINT_TRACE(Js::RedeferralPhase, this, _u("Redeferring function %d.%d: %s\n"), 
+        PHASE_PRINT_TRACE(Js::RedeferralPhase, this, _u("Redeferring function %d.%d: %s\n"),
                           GetSourceContextId(), GetLocalFunctionId(),
                           GetDisplayName() ? GetDisplayName() : _u("Anonymous function)"));
 
-        ParseableFunctionInfo * parseableFunctionInfo = 
+        ParseableFunctionInfo * parseableFunctionInfo =
             Js::ParseableFunctionInfo::NewDeferredFunctionFromFunctionBody(this);
         FunctionInfo * functionInfo = this->GetFunctionInfo();
 
@@ -1423,7 +1423,7 @@ namespace Js
         CopyDeferParseField(m_cbLength);
 
         this->CopyNestedArray(other);
-#undef CopyDeferParseField 
+#undef CopyDeferParseField
    }
 
     void ParseableFunctionInfo::Copy(FunctionBody* other)
@@ -1608,7 +1608,7 @@ namespace Js
     ParseableFunctionInfo* ParseableFunctionInfo::New(ScriptContext* scriptContext, int nestedCount,
         LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, Js::PropertyRecordList* propertyRecords, FunctionInfo::Attributes attributes, FunctionBodyFlags flags)
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         Assert(
             scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk ||
             scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
@@ -1646,7 +1646,7 @@ namespace Js
             flags);
     }
 
-    ParseableFunctionInfo * 
+    ParseableFunctionInfo *
     ParseableFunctionInfo::NewDeferredFunctionFromFunctionBody(FunctionBody * functionBody)
     {
         ScriptContext * scriptContext = functionBody->GetScriptContext();
@@ -3455,7 +3455,7 @@ namespace Js
 #endif
         ;
     }
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
     bool FunctionProxy::HasValidProfileEntryPoint() const
     {
         JavascriptMethod directEntryPoint = this->GetDefaultEntryPointInfo()->jsMethod;
@@ -3500,7 +3500,7 @@ namespace Js
         {
             return this->HasValidNonProfileEntryPoint();
         }
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         if (m_scriptContext->IsProfiling())
         {
             return this->HasValidProfileEntryPoint();
@@ -3515,7 +3515,7 @@ namespace Js
 #endif
     void ParseableFunctionInfo::SetDeferredParsingEntryPoint()
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         Assert(m_scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk
             || m_scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
 #else
@@ -3528,13 +3528,13 @@ namespace Js
 
     void ParseableFunctionInfo::SetInitialDefaultEntryPoint()
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         Assert(m_scriptContext->CurrentThunk == ProfileEntryThunk || m_scriptContext->CurrentThunk == DefaultEntryThunk);
-        Assert(this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredParsingThunk || 
+        Assert(this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredParsingThunk ||
                this->GetOriginalEntryPoint_Unchecked() == ProfileDeferredParsingThunk ||
-               this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredDeserializeThunk || 
+               this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredDeserializeThunk ||
                this->GetOriginalEntryPoint_Unchecked() == ProfileDeferredDeserializeThunk ||
-               this->GetOriginalEntryPoint_Unchecked() == DefaultEntryThunk || 
+               this->GetOriginalEntryPoint_Unchecked() == DefaultEntryThunk ||
                this->GetOriginalEntryPoint_Unchecked() == ProfileEntryThunk);
 #else
         Assert(m_scriptContext->CurrentThunk == DefaultEntryThunk);
@@ -4951,12 +4951,12 @@ namespace Js
     {
         ProxyEntryPointInfo* defaultEntryPointInfo = this->GetDefaultEntryPointInfo();
         if (defaultEntryPointInfo->jsMethod != DefaultDeferredParsingThunk
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
             && defaultEntryPointInfo->jsMethod != ProfileDeferredParsingThunk
 #endif
             )
         {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
             // Just change the thunk, the cleanup will be done once the function gets called.
             if (this->m_scriptContext->CurrentThunk == ProfileEntryThunk)
             {

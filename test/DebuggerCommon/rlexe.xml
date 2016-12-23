@@ -37,7 +37,8 @@
       <files>ES6_intl_stepinto.js</files>
       <compile-flags>-dbgbaseline:ES6_intl_stepinto.js.dbg.baseline -Intl</compile-flags>
       <baseline>ES6_intl_stepinto.js.baseline</baseline>
-      <tags>fail_mutators,exclude_winglob</tags>
+      <!-- xplat-todo: enable back [intl support] -->
+      <tags>fail_mutators,exclude_winglob,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -242,7 +243,8 @@
       <files>ES6_intl_simple_attach.js</files>
       <compile-flags>-dbgbaseline:ES6_intl_simple_attach.js.dbg.baseline -Intl</compile-flags>
       <baseline>ES6_intl_simple_attach.js.baseline</baseline>
-      <tags>fail_mutators,exclude_winglob</tags>
+      <!-- xplat-todo: enable back [intl support] -->
+      <tags>fail_mutators,exclude_winglob,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -324,7 +326,8 @@
     <default>
       <files>ES6_intl_stepinto_libexpandos.js</files>
       <compile-flags>-debuglaunch -dbgbaseline:ES6_intl_stepinto_libexpandos.js.dbg.baseline -Intl</compile-flags>
-      <tags>fail_mutators,exclude_winglob</tags>
+      <!-- xplat-todo: enable back [intl support] -->
+      <tags>fail_mutators,exclude_winglob,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -513,7 +516,7 @@
   </test>
   <test>
     <default>
-      <files>array_protoTest.js</files>
+      <files>array_prototest.js</files>
       <compile-flags>-debuglaunch -dbgbaseline:array_prototest.js.dbg.baseline</compile-flags>
       <tags>fail_mutators</tags>
     </default>
@@ -571,7 +574,8 @@
     <default>
       <files>attachdetach-delaycapture.js</files>
       <compile-flags>-dbgbaseline:attachdetach-delaycapture.js.dbg.baseline</compile-flags>
-      <tags>BugFix</tags>
+      <!-- xplat-todo: enable back - investigate [background job thread fails] -->
+      <tags>BugFix,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -997,7 +1001,7 @@
     </default>
   </test>
   <test>
-    <default>     
+    <default>
       <files>jitAttach.js</files>
       <compile-flags> -maxinterpretcount:1 -off:simpleJit -EnableJitInDiagMode -dbgbaseline:jitAttach.js.dbg.baseline</compile-flags>
       <tags>fail_mutators,exclude_dynapogo</tags>
@@ -1278,14 +1282,16 @@
     <default>
       <files>returnedvaluetests1.js</files>
       <compile-flags>-dbgbaseline:returnedvaluetests1.js.dbg.baseline</compile-flags>
-      <tags>exclude_dynapogo,exclude_serialized</tags>
+      <!-- xplat-todo: enable back [intl support] -->
+      <tags>exclude_dynapogo,exclude_serialized,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>returnedvaluetests2.js</files>
       <compile-flags>-debugLaunch -dbgbaseline:returnedvaluetests2.js.dbg.baseline</compile-flags>
-      <tags>exclude_dynapogo,exclude_serialized</tags>
+      <!-- xplat-todo: enable back [intl support] -->
+      <tags>exclude_dynapogo,exclude_serialized,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -1378,6 +1384,8 @@
     <default>
       <files>TypedArray.js</files>
       <compile-flags>-ES6Species -debuglaunch -dbgbaseline:typedarray.js.dbg.baseline -InspectMaxStringLength:200</compile-flags>
+      <!-- xplat-todo: G.H #2064 -->
+      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>

@@ -15,6 +15,7 @@ void DummyJSRTCall()
     JsRuntimeHandle *runtime;
     JsRuntimeAttributes attr;
     JsCreateRuntime(attr, nullptr, runtime);
+    JsDiagStartDebugging(runtime, nullptr, nullptr);
 }
 #endif
 
@@ -30,4 +31,4 @@ EXTERN_C BOOL WINAPI DllMain(HINSTANCE hmod, DWORD dwReason, PVOID pvReserved)
     return TRUE;
 }
 
-static_assert(__LINE__ == 33, "You shouldn't add anything to this file or ChakraCoreDllFunc.cpp. Please consider again!");
+static_assert(__LINE__ == 34, "You shouldn't add anything to this file or ChakraCoreDllFunc.cpp. Please consider again!");
