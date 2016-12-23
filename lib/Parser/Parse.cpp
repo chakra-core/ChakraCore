@@ -13455,6 +13455,13 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNode *pnodeFnc, Recycler *recy
         }
         AssertOrFailFast(i < nestedCount);
 
+        if (pnodeChild->sxFnc.pnodeBody != nullptr)
+        {
+            // Anomalous case of a non-deferred function nested within a deferred one.
+            // Work around by discarding the stub tree.
+            return nullptr;
+        }
+
         if (pnodeChild->sxFnc.IsGeneratedDefault())
         {
             ++i;
