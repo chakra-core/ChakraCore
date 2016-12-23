@@ -4,7 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
 
-CodeGenAllocators::CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext, CustomHeap::CodePageAllocators * codePageAllocators, HANDLE processHandle)
+template<typename TAlloc, typename TPreReservedAlloc>
+CodeGenAllocators<TAlloc, TPreReservedAlloc>::CodeGenAllocators(AllocationPolicyManager * policyManager, Js::ScriptContext * scriptContext, CustomHeap::CodePageAllocators<TAlloc, TPreReservedAlloc> * codePageAllocators, HANDLE processHandle)
 : pageAllocator(policyManager, Js::Configuration::Global.flags, PageAllocatorType_BGJIT, 0)
 , allocator(_u("NativeCode"), &pageAllocator, Js::Throw::OutOfMemory)
 , emitBufferManager(&allocator, codePageAllocators, scriptContext, _u("JIT code buffer"), processHandle)
@@ -14,14 +15,21 @@ CodeGenAllocators::CodeGenAllocators(AllocationPolicyManager * policyManager, Js
 {
 }
 
-CodeGenAllocators::~CodeGenAllocators()
+template<typename TAlloc, typename TPreReservedAlloc>
+CodeGenAllocators<TAlloc, TPreReservedAlloc>::~CodeGenAllocators()
 {
 }
 
 #if DBG
+template<typename TAlloc, typename TPreReservedAlloc>
 void
-CodeGenAllocators::ClearConcurrentThreadId()
+CodeGenAllocators<TAlloc, TPreReservedAlloc>::ClearConcurrentThreadId()
 {    
     this->pageAllocator.ClearConcurrentThreadId();
 }
+#endif
+
+template class CodeGenAllocators<VirtualAllocWrapper, PreReservedVirtualAllocWrapper>;
+#if ENABLE_OOP_NATIVE_CODEGEN
+template class CodeGenAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>;
 #endif

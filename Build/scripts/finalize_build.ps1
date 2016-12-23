@@ -23,11 +23,13 @@ param (
     $corePathSegment = "" # e.g. "core"
 )
 
-$sourcesDir = $Env:BUILD_SOURCESDIRECTORY
-$coreSourcesDir = Join-Path $sourcesDir $corePathSegment
+. $PSScriptRoot\pre_post_util.ps1
 
-$OuterScriptRoot = $PSScriptRoot
-. "$PSScriptRoot\pre_post_util.ps1"
+$sourcesDir, $_, $_, $_ = `
+    ComputePaths `
+        -arch $arch -flavor $flavor -subtype $subtype -OuterScriptRoot $PSScriptRoot
+
+$coreSourcesDir = Join-Path $sourcesDir $corePathSegment
 
 $buildName = ConstructBuildName -arch $arch -flavor $flavor -subtype $subtype
 
@@ -118,7 +120,7 @@ Copy-Item -Verbose -Force $buildFlavorJsonFile $metadataDir
 
 # Search for *.nuspec files and copy them to $metadataDir
 Get-ChildItem -Path (Join-Path $sourcesDir "Build") "*.nuspec" `
-    | % { Copy-Item -Verbose -Force $_.FullName $metadataDir }
+    | ForEach-Object { Copy-Item -Verbose -Force $_.FullName $metadataDir }
 
 #
 # Copy POGO directory if present for this build

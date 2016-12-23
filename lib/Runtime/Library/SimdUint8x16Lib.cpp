@@ -238,7 +238,26 @@ namespace Js
         AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        return SIMDUtils::SIMD128TypedArrayLoad<JavascriptSIMDUint8x16>(args[1], args[2], 16 * INT8_SIZE, scriptContext);
+        Var tarray;
+        Var index;
+        if (args.Info.Count > 1)
+        {
+            tarray = args[1];
+        }
+        else
+        {
+            tarray = scriptContext->GetLibrary()->GetUndefined();
+        }
+        if (args.Info.Count > 2)
+        {
+            index = args[2];
+        }
+        else
+        {
+            index = scriptContext->GetLibrary()->GetUndefined();
+        }
+
+        return SIMDUtils::SIMD128TypedArrayLoad<JavascriptSIMDUint8x16>(tarray, index, 16 * INT8_SIZE, scriptContext);
     }
 
     Var SIMDUint8x16Lib::EntryStore(RecyclableObject* function, CallInfo callInfo, ...)

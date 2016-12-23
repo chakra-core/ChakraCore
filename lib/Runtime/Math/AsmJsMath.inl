@@ -2,6 +2,7 @@
 // Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 namespace Js
 {
 
@@ -89,30 +90,6 @@ namespace Js
     inline T AsmJsMath::Add( T aLeft, T aRight )
     {
         return aLeft + aRight;
-    }
-
-    template<>
-    inline int32 AsmJsMath::Div<int32>( int32 aLeft, int32 aRight )
-    {
-        return aRight == 0 ? 0 : ( aLeft == (1<<31) && aRight == -1) ? aLeft : aLeft / aRight;
-    }
-
-    template<>
-    inline uint32 AsmJsMath::Div<uint32>(uint32 aLeft, uint32 aRight)
-    {
-        return aRight == 0 ? 0 : aLeft / aRight;
-    }
-
-    template<typename T>
-    inline T AsmJsMath::Div( T aLeft, T aRight )
-    {
-        return aLeft / aRight;
-    }
-
-    template<typename T>
-    inline T AsmJsMath::Mul( T aLeft, T aRight )
-    {
-        return aLeft * aRight;
     }
 
     template<typename T>

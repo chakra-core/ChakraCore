@@ -154,3 +154,33 @@ guarded_call(function () {
         echo(output);
     }
 });
+
+scenario("TypedArray: toLocaleString should use length from internal slot");
+var o = new Int8Array(2);
+o[1] = 31;
+Object.defineProperty(o, 'length', {value : 4});
+
+guarded_call(function () {
+    output = Array.prototype.toLocaleString.apply(o);
+    // On OSX and Linux the values are printed as 0 instead 0.00. This is a valid workaround as we have still validated the toLocaleString behavior is correct.
+    if (output == "0, 31") {
+        echo("0.00, 31.00");
+    } else {
+        echo(output);
+    }
+});
+
+scenario("Array: toLocaleString should use length property");
+var o = [10, 20];
+o[2] = 30;
+Object.defineProperty(o, 'length', {value : 6});
+
+guarded_call(function () {
+    output = Array.prototype.toLocaleString.apply(o);
+    // On OSX and Linux the values are printed as 0 instead 0.00. This is a valid workaround as we have still validated the toLocaleString behavior is correct.
+    if (output == "10, 20, 30, , , ") {
+        echo("10.00, 20.00, 30.00, , , ");
+    } else {
+        echo(output);
+    }
+});

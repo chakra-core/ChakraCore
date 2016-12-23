@@ -1,1761 +1,355 @@
-{
-  "modules": [{
-    "filename": "conversions.0.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "conversions.wast",
-      "line": 29
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_1",
-      "file": "conversions.wast",
-      "line": 30
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_2",
-      "file": "conversions.wast",
-      "line": 31
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_3",
-      "file": "conversions.wast",
-      "line": 32
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_4",
-      "file": "conversions.wast",
-      "line": 33
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_5",
-      "file": "conversions.wast",
-      "line": 34
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_6",
-      "file": "conversions.wast",
-      "line": 36
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_7",
-      "file": "conversions.wast",
-      "line": 37
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_8",
-      "file": "conversions.wast",
-      "line": 38
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_9",
-      "file": "conversions.wast",
-      "line": 39
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_10",
-      "file": "conversions.wast",
-      "line": 40
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_11",
-      "file": "conversions.wast",
-      "line": 41
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_12",
-      "file": "conversions.wast",
-      "line": 43
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_13",
-      "file": "conversions.wast",
-      "line": 44
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_14",
-      "file": "conversions.wast",
-      "line": 45
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_15",
-      "file": "conversions.wast",
-      "line": 46
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_16",
-      "file": "conversions.wast",
-      "line": 47
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_17",
-      "file": "conversions.wast",
-      "line": 48
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_18",
-      "file": "conversions.wast",
-      "line": 49
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_19",
-      "file": "conversions.wast",
-      "line": 50
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_20",
-      "file": "conversions.wast",
-      "line": 51
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_21",
-      "file": "conversions.wast",
-      "line": 52
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_22",
-      "file": "conversions.wast",
-      "line": 53
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_23",
-      "file": "conversions.wast",
-      "line": 54
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_24",
-      "file": "conversions.wast",
-      "line": 56
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_25",
-      "file": "conversions.wast",
-      "line": 57
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_26",
-      "file": "conversions.wast",
-      "line": 58
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_27",
-      "file": "conversions.wast",
-      "line": 59
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_28",
-      "file": "conversions.wast",
-      "line": 60
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_29",
-      "file": "conversions.wast",
-      "line": 61
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_30",
-      "file": "conversions.wast",
-      "line": 62
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_31",
-      "file": "conversions.wast",
-      "line": 63
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_32",
-      "file": "conversions.wast",
-      "line": 64
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_33",
-      "file": "conversions.wast",
-      "line": 65
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_34",
-      "file": "conversions.wast",
-      "line": 66
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_35",
-      "file": "conversions.wast",
-      "line": 67
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_36",
-      "file": "conversions.wast",
-      "line": 68
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_37",
-      "file": "conversions.wast",
-      "line": 69
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_38",
-      "file": "conversions.wast",
-      "line": 70
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_39",
-      "file": "conversions.wast",
-      "line": 71
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_40",
-      "file": "conversions.wast",
-      "line": 72
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_41",
-      "file": "conversions.wast",
-      "line": 73
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_42",
-      "file": "conversions.wast",
-      "line": 74
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_43",
-      "file": "conversions.wast",
-      "line": 76
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_44",
-      "file": "conversions.wast",
-      "line": 77
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_45",
-      "file": "conversions.wast",
-      "line": 78
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_46",
-      "file": "conversions.wast",
-      "line": 79
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_47",
-      "file": "conversions.wast",
-      "line": 80
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_48",
-      "file": "conversions.wast",
-      "line": 81
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_49",
-      "file": "conversions.wast",
-      "line": 82
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_50",
-      "file": "conversions.wast",
-      "line": 83
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_51",
-      "file": "conversions.wast",
-      "line": 84
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_52",
-      "file": "conversions.wast",
-      "line": 85
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_53",
-      "file": "conversions.wast",
-      "line": 86
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_54",
-      "file": "conversions.wast",
-      "line": 87
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_55",
-      "file": "conversions.wast",
-      "line": 88
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_56",
-      "file": "conversions.wast",
-      "line": 89
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_57",
-      "file": "conversions.wast",
-      "line": 90
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_58",
-      "file": "conversions.wast",
-      "line": 91
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_59",
-      "file": "conversions.wast",
-      "line": 92
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_60",
-      "file": "conversions.wast",
-      "line": 93
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_61",
-      "file": "conversions.wast",
-      "line": 95
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_62",
-      "file": "conversions.wast",
-      "line": 96
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_63",
-      "file": "conversions.wast",
-      "line": 97
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_64",
-      "file": "conversions.wast",
-      "line": 98
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_65",
-      "file": "conversions.wast",
-      "line": 99
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_66",
-      "file": "conversions.wast",
-      "line": 100
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_67",
-      "file": "conversions.wast",
-      "line": 101
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_68",
-      "file": "conversions.wast",
-      "line": 102
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_69",
-      "file": "conversions.wast",
-      "line": 103
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_70",
-      "file": "conversions.wast",
-      "line": 104
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_71",
-      "file": "conversions.wast",
-      "line": 105
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_72",
-      "file": "conversions.wast",
-      "line": 106
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_73",
-      "file": "conversions.wast",
-      "line": 107
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_74",
-      "file": "conversions.wast",
-      "line": 108
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_75",
-      "file": "conversions.wast",
-      "line": 109
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_76",
-      "file": "conversions.wast",
-      "line": 110
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_77",
-      "file": "conversions.wast",
-      "line": 111
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_78",
-      "file": "conversions.wast",
-      "line": 112
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_79",
-      "file": "conversions.wast",
-      "line": 113
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_80",
-      "file": "conversions.wast",
-      "line": 115
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_81",
-      "file": "conversions.wast",
-      "line": 116
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_82",
-      "file": "conversions.wast",
-      "line": 117
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_83",
-      "file": "conversions.wast",
-      "line": 118
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_84",
-      "file": "conversions.wast",
-      "line": 119
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_85",
-      "file": "conversions.wast",
-      "line": 120
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_86",
-      "file": "conversions.wast",
-      "line": 121
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_87",
-      "file": "conversions.wast",
-      "line": 122
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_88",
-      "file": "conversions.wast",
-      "line": 123
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_89",
-      "file": "conversions.wast",
-      "line": 124
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_90",
-      "file": "conversions.wast",
-      "line": 125
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_91",
-      "file": "conversions.wast",
-      "line": 126
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_92",
-      "file": "conversions.wast",
-      "line": 127
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_93",
-      "file": "conversions.wast",
-      "line": 128
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_94",
-      "file": "conversions.wast",
-      "line": 129
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_95",
-      "file": "conversions.wast",
-      "line": 130
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_96",
-      "file": "conversions.wast",
-      "line": 131
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_97",
-      "file": "conversions.wast",
-      "line": 132
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_98",
-      "file": "conversions.wast",
-      "line": 133
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_99",
-      "file": "conversions.wast",
-      "line": 134
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_100",
-      "file": "conversions.wast",
-      "line": 135
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_101",
-      "file": "conversions.wast",
-      "line": 136
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_102",
-      "file": "conversions.wast",
-      "line": 138
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_103",
-      "file": "conversions.wast",
-      "line": 139
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_104",
-      "file": "conversions.wast",
-      "line": 140
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_105",
-      "file": "conversions.wast",
-      "line": 141
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_106",
-      "file": "conversions.wast",
-      "line": 142
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_107",
-      "file": "conversions.wast",
-      "line": 143
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_108",
-      "file": "conversions.wast",
-      "line": 144
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_109",
-      "file": "conversions.wast",
-      "line": 145
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_110",
-      "file": "conversions.wast",
-      "line": 146
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_111",
-      "file": "conversions.wast",
-      "line": 147
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_112",
-      "file": "conversions.wast",
-      "line": 148
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_113",
-      "file": "conversions.wast",
-      "line": 149
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_114",
-      "file": "conversions.wast",
-      "line": 150
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_115",
-      "file": "conversions.wast",
-      "line": 151
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_116",
-      "file": "conversions.wast",
-      "line": 152
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_117",
-      "file": "conversions.wast",
-      "line": 153
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_118",
-      "file": "conversions.wast",
-      "line": 154
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_119",
-      "file": "conversions.wast",
-      "line": 155
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_120",
-      "file": "conversions.wast",
-      "line": 156
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_121",
-      "file": "conversions.wast",
-      "line": 157
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_122",
-      "file": "conversions.wast",
-      "line": 158
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_123",
-      "file": "conversions.wast",
-      "line": 160
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_124",
-      "file": "conversions.wast",
-      "line": 161
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_125",
-      "file": "conversions.wast",
-      "line": 162
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_126",
-      "file": "conversions.wast",
-      "line": 163
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_127",
-      "file": "conversions.wast",
-      "line": 164
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_128",
-      "file": "conversions.wast",
-      "line": 165
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_129",
-      "file": "conversions.wast",
-      "line": 166
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_130",
-      "file": "conversions.wast",
-      "line": 167
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_131",
-      "file": "conversions.wast",
-      "line": 168
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_132",
-      "file": "conversions.wast",
-      "line": 169
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_133",
-      "file": "conversions.wast",
-      "line": 170
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_134",
-      "file": "conversions.wast",
-      "line": 171
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_135",
-      "file": "conversions.wast",
-      "line": 172
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_136",
-      "file": "conversions.wast",
-      "line": 173
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_137",
-      "file": "conversions.wast",
-      "line": 174
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_138",
-      "file": "conversions.wast",
-      "line": 175
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_139",
-      "file": "conversions.wast",
-      "line": 177
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_140",
-      "file": "conversions.wast",
-      "line": 178
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_141",
-      "file": "conversions.wast",
-      "line": 179
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_142",
-      "file": "conversions.wast",
-      "line": 180
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_143",
-      "file": "conversions.wast",
-      "line": 181
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_144",
-      "file": "conversions.wast",
-      "line": 182
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_145",
-      "file": "conversions.wast",
-      "line": 183
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_146",
-      "file": "conversions.wast",
-      "line": 184
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_147",
-      "file": "conversions.wast",
-      "line": 185
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_148",
-      "file": "conversions.wast",
-      "line": 186
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_149",
-      "file": "conversions.wast",
-      "line": 187
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_150",
-      "file": "conversions.wast",
-      "line": 188
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_151",
-      "file": "conversions.wast",
-      "line": 189
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_152",
-      "file": "conversions.wast",
-      "line": 190
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_153",
-      "file": "conversions.wast",
-      "line": 191
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_154",
-      "file": "conversions.wast",
-      "line": 192
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_155",
-      "file": "conversions.wast",
-      "line": 193
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_156",
-      "file": "conversions.wast",
-      "line": 194
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_157",
-      "file": "conversions.wast",
-      "line": 195
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_158",
-      "file": "conversions.wast",
-      "line": 196
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_159",
-      "file": "conversions.wast",
-      "line": 197
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_160",
-      "file": "conversions.wast",
-      "line": 199
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_161",
-      "file": "conversions.wast",
-      "line": 200
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_162",
-      "file": "conversions.wast",
-      "line": 201
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_163",
-      "file": "conversions.wast",
-      "line": 202
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_164",
-      "file": "conversions.wast",
-      "line": 203
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_165",
-      "file": "conversions.wast",
-      "line": 204
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_166",
-      "file": "conversions.wast",
-      "line": 205
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_167",
-      "file": "conversions.wast",
-      "line": 206
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_168",
-      "file": "conversions.wast",
-      "line": 207
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_169",
-      "file": "conversions.wast",
-      "line": 208
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_170",
-      "file": "conversions.wast",
-      "line": 209
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_171",
-      "file": "conversions.wast",
-      "line": 210
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_172",
-      "file": "conversions.wast",
-      "line": 211
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_173",
-      "file": "conversions.wast",
-      "line": 212
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_174",
-      "file": "conversions.wast",
-      "line": 213
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_175",
-      "file": "conversions.wast",
-      "line": 214
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_176",
-      "file": "conversions.wast",
-      "line": 215
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_177",
-      "file": "conversions.wast",
-      "line": 216
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_178",
-      "file": "conversions.wast",
-      "line": 217
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_179",
-      "file": "conversions.wast",
-      "line": 218
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_180",
-      "file": "conversions.wast",
-      "line": 220
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_181",
-      "file": "conversions.wast",
-      "line": 221
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_182",
-      "file": "conversions.wast",
-      "line": 222
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_183",
-      "file": "conversions.wast",
-      "line": 223
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_184",
-      "file": "conversions.wast",
-      "line": 224
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_185",
-      "file": "conversions.wast",
-      "line": 225
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_186",
-      "file": "conversions.wast",
-      "line": 227
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_187",
-      "file": "conversions.wast",
-      "line": 228
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_188",
-      "file": "conversions.wast",
-      "line": 229
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_189",
-      "file": "conversions.wast",
-      "line": 230
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_190",
-      "file": "conversions.wast",
-      "line": 232
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_191",
-      "file": "conversions.wast",
-      "line": 233
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_192",
-      "file": "conversions.wast",
-      "line": 234
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_193",
-      "file": "conversions.wast",
-      "line": 235
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_194",
-      "file": "conversions.wast",
-      "line": 236
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_195",
-      "file": "conversions.wast",
-      "line": 237
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_196",
-      "file": "conversions.wast",
-      "line": 239
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_197",
-      "file": "conversions.wast",
-      "line": 240
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_198",
-      "file": "conversions.wast",
-      "line": 241
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_199",
-      "file": "conversions.wast",
-      "line": 242
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_200",
-      "file": "conversions.wast",
-      "line": 244
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_201",
-      "file": "conversions.wast",
-      "line": 245
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_202",
-      "file": "conversions.wast",
-      "line": 246
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_203",
-      "file": "conversions.wast",
-      "line": 247
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_204",
-      "file": "conversions.wast",
-      "line": 248
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_205",
-      "file": "conversions.wast",
-      "line": 249
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_206",
-      "file": "conversions.wast",
-      "line": 251
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_207",
-      "file": "conversions.wast",
-      "line": 252
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_208",
-      "file": "conversions.wast",
-      "line": 253
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_209",
-      "file": "conversions.wast",
-      "line": 254
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_210",
-      "file": "conversions.wast",
-      "line": 255
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_211",
-      "file": "conversions.wast",
-      "line": 256
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_212",
-      "file": "conversions.wast",
-      "line": 258
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_213",
-      "file": "conversions.wast",
-      "line": 259
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_214",
-      "file": "conversions.wast",
-      "line": 260
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_215",
-      "file": "conversions.wast",
-      "line": 261
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_216",
-      "file": "conversions.wast",
-      "line": 263
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_217",
-      "file": "conversions.wast",
-      "line": 264
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_218",
-      "file": "conversions.wast",
-      "line": 265
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_219",
-      "file": "conversions.wast",
-      "line": 266
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_220",
-      "file": "conversions.wast",
-      "line": 267
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_221",
-      "file": "conversions.wast",
-      "line": 268
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_222",
-      "file": "conversions.wast",
-      "line": 270
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_223",
-      "file": "conversions.wast",
-      "line": 271
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_224",
-      "file": "conversions.wast",
-      "line": 273
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_225",
-      "file": "conversions.wast",
-      "line": 274
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_226",
-      "file": "conversions.wast",
-      "line": 275
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_227",
-      "file": "conversions.wast",
-      "line": 276
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_228",
-      "file": "conversions.wast",
-      "line": 277
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_229",
-      "file": "conversions.wast",
-      "line": 279
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_230",
-      "file": "conversions.wast",
-      "line": 280
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_231",
-      "file": "conversions.wast",
-      "line": 282
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_232",
-      "file": "conversions.wast",
-      "line": 283
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_233",
-      "file": "conversions.wast",
-      "line": 284
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_234",
-      "file": "conversions.wast",
-      "line": 285
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_235",
-      "file": "conversions.wast",
-      "line": 286
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_236",
-      "file": "conversions.wast",
-      "line": 288
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_237",
-      "file": "conversions.wast",
-      "line": 289
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_238",
-      "file": "conversions.wast",
-      "line": 290
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_239",
-      "file": "conversions.wast",
-      "line": 291
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_240",
-      "file": "conversions.wast",
-      "line": 292
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_241",
-      "file": "conversions.wast",
-      "line": 294
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_242",
-      "file": "conversions.wast",
-      "line": 295
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_243",
-      "file": "conversions.wast",
-      "line": 297
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_244",
-      "file": "conversions.wast",
-      "line": 298
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_245",
-      "file": "conversions.wast",
-      "line": 299
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_246",
-      "file": "conversions.wast",
-      "line": 300
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_247",
-      "file": "conversions.wast",
-      "line": 301
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_248",
-      "file": "conversions.wast",
-      "line": 302
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_249",
-      "file": "conversions.wast",
-      "line": 303
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_250",
-      "file": "conversions.wast",
-      "line": 304
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_251",
-      "file": "conversions.wast",
-      "line": 306
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_252",
-      "file": "conversions.wast",
-      "line": 308
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_253",
-      "file": "conversions.wast",
-      "line": 309
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_254",
-      "file": "conversions.wast",
-      "line": 310
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_255",
-      "file": "conversions.wast",
-      "line": 311
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_256",
-      "file": "conversions.wast",
-      "line": 313
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_257",
-      "file": "conversions.wast",
-      "line": 314
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_258",
-      "file": "conversions.wast",
-      "line": 315
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_259",
-      "file": "conversions.wast",
-      "line": 316
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_260",
-      "file": "conversions.wast",
-      "line": 317
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_261",
-      "file": "conversions.wast",
-      "line": 318
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_262",
-      "file": "conversions.wast",
-      "line": 319
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_263",
-      "file": "conversions.wast",
-      "line": 320
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_264",
-      "file": "conversions.wast",
-      "line": 321
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_265",
-      "file": "conversions.wast",
-      "line": 322
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_266",
-      "file": "conversions.wast",
-      "line": 323
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_267",
-      "file": "conversions.wast",
-      "line": 324
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_268",
-      "file": "conversions.wast",
-      "line": 325
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_269",
-      "file": "conversions.wast",
-      "line": 326
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_270",
-      "file": "conversions.wast",
-      "line": 327
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_271",
-      "file": "conversions.wast",
-      "line": 328
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_272",
-      "file": "conversions.wast",
-      "line": 329
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_273",
-      "file": "conversions.wast",
-      "line": 330
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_274",
-      "file": "conversions.wast",
-      "line": 331
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_275",
-      "file": "conversions.wast",
-      "line": 332
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_276",
-      "file": "conversions.wast",
-      "line": 333
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_277",
-      "file": "conversions.wast",
-      "line": 334
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_278",
-      "file": "conversions.wast",
-      "line": 335
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_279",
-      "file": "conversions.wast",
-      "line": 336
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_280",
-      "file": "conversions.wast",
-      "line": 337
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_281",
-      "file": "conversions.wast",
-      "line": 338
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_282",
-      "file": "conversions.wast",
-      "line": 339
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_283",
-      "file": "conversions.wast",
-      "line": 340
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_284",
-      "file": "conversions.wast",
-      "line": 341
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_285",
-      "file": "conversions.wast",
-      "line": 342
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_286",
-      "file": "conversions.wast",
-      "line": 343
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_287",
-      "file": "conversions.wast",
-      "line": 344
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_288",
-      "file": "conversions.wast",
-      "line": 345
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_289",
-      "file": "conversions.wast",
-      "line": 346
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_290",
-      "file": "conversions.wast",
-      "line": 347
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_291",
-      "file": "conversions.wast",
-      "line": 348
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_292",
-      "file": "conversions.wast",
-      "line": 349
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_293",
-      "file": "conversions.wast",
-      "line": 350
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_294",
-      "file": "conversions.wast",
-      "line": 351
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_295",
-      "file": "conversions.wast",
-      "line": 352
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_296",
-      "file": "conversions.wast",
-      "line": 353
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_297",
-      "file": "conversions.wast",
-      "line": 354
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_298",
-      "file": "conversions.wast",
-      "line": 355
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_299",
-      "file": "conversions.wast",
-      "line": 356
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_300",
-      "file": "conversions.wast",
-      "line": 357
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_301",
-      "file": "conversions.wast",
-      "line": 358
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_302",
-      "file": "conversions.wast",
-      "line": 359
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_303",
-      "file": "conversions.wast",
-      "line": 360
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_304",
-      "file": "conversions.wast",
-      "line": 361
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_305",
-      "file": "conversions.wast",
-      "line": 363
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_306",
-      "file": "conversions.wast",
-      "line": 364
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_307",
-      "file": "conversions.wast",
-      "line": 365
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_308",
-      "file": "conversions.wast",
-      "line": 366
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_309",
-      "file": "conversions.wast",
-      "line": 367
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_310",
-      "file": "conversions.wast",
-      "line": 368
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_311",
-      "file": "conversions.wast",
-      "line": 369
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_312",
-      "file": "conversions.wast",
-      "line": 370
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_313",
-      "file": "conversions.wast",
-      "line": 371
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_314",
-      "file": "conversions.wast",
-      "line": 372
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_315",
-      "file": "conversions.wast",
-      "line": 376
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_316",
-      "file": "conversions.wast",
-      "line": 377
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_317",
-      "file": "conversions.wast",
-      "line": 378
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_318",
-      "file": "conversions.wast",
-      "line": 379
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_319",
-      "file": "conversions.wast",
-      "line": 380
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_320",
-      "file": "conversions.wast",
-      "line": 381
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_321",
-      "file": "conversions.wast",
-      "line": 382
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_322",
-      "file": "conversions.wast",
-      "line": 383
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_323",
-      "file": "conversions.wast",
-      "line": 384
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_324",
-      "file": "conversions.wast",
-      "line": 385
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_325",
-      "file": "conversions.wast",
-      "line": 389
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_326",
-      "file": "conversions.wast",
-      "line": 390
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_327",
-      "file": "conversions.wast",
-      "line": 391
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_328",
-      "file": "conversions.wast",
-      "line": 392
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_329",
-      "file": "conversions.wast",
-      "line": 393
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_330",
-      "file": "conversions.wast",
-      "line": 394
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_331",
-      "file": "conversions.wast",
-      "line": 395
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_332",
-      "file": "conversions.wast",
-      "line": 396
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_333",
-      "file": "conversions.wast",
-      "line": 397
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_334",
-      "file": "conversions.wast",
-      "line": 398
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_335",
-      "file": "conversions.wast",
-      "line": 399
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_336",
-      "file": "conversions.wast",
-      "line": 400
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_337",
-      "file": "conversions.wast",
-      "line": 401
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_338",
-      "file": "conversions.wast",
-      "line": 405
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_339",
-      "file": "conversions.wast",
-      "line": 406
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_340",
-      "file": "conversions.wast",
-      "line": 407
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_341",
-      "file": "conversions.wast",
-      "line": 408
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_342",
-      "file": "conversions.wast",
-      "line": 409
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_343",
-      "file": "conversions.wast",
-      "line": 410
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_344",
-      "file": "conversions.wast",
-      "line": 411
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_345",
-      "file": "conversions.wast",
-      "line": 412
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_346",
-      "file": "conversions.wast",
-      "line": 413
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_347",
-      "file": "conversions.wast",
-      "line": 414
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_348",
-      "file": "conversions.wast",
-      "line": 415
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_349",
-      "file": "conversions.wast",
-      "line": 416
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_350",
-      "file": "conversions.wast",
-      "line": 417
-    }]
-  }]
-}
+{"source_filename": "conversions.wast",
+ "commands": [
+  {"type": "module", "line": 1, "filename": "conversions.0.wasm"}, 
+  {"type": "assert_return", "line": 29, "action": {"type": "invoke", "field": "i64.extend_s_i32", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 30, "action": {"type": "invoke", "field": "i64.extend_s_i32", "args": [{"type": "i32", "value": "10000"}]}, "expected": [{"type": "i64", "value": "10000"}]}, 
+  {"type": "assert_return", "line": 31, "action": {"type": "invoke", "field": "i64.extend_s_i32", "args": [{"type": "i32", "value": "4294957296"}]}, "expected": [{"type": "i64", "value": "18446744073709541616"}]}, 
+  {"type": "assert_return", "line": 32, "action": {"type": "invoke", "field": "i64.extend_s_i32", "args": [{"type": "i32", "value": "4294967295"}]}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 33, "action": {"type": "invoke", "field": "i64.extend_s_i32", "args": [{"type": "i32", "value": "2147483647"}]}, "expected": [{"type": "i64", "value": "2147483647"}]}, 
+  {"type": "assert_return", "line": 34, "action": {"type": "invoke", "field": "i64.extend_s_i32", "args": [{"type": "i32", "value": "2147483648"}]}, "expected": [{"type": "i64", "value": "18446744071562067968"}]}, 
+  {"type": "assert_return", "line": 36, "action": {"type": "invoke", "field": "i64.extend_u_i32", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 37, "action": {"type": "invoke", "field": "i64.extend_u_i32", "args": [{"type": "i32", "value": "10000"}]}, "expected": [{"type": "i64", "value": "10000"}]}, 
+  {"type": "assert_return", "line": 38, "action": {"type": "invoke", "field": "i64.extend_u_i32", "args": [{"type": "i32", "value": "4294957296"}]}, "expected": [{"type": "i64", "value": "4294957296"}]}, 
+  {"type": "assert_return", "line": 39, "action": {"type": "invoke", "field": "i64.extend_u_i32", "args": [{"type": "i32", "value": "4294967295"}]}, "expected": [{"type": "i64", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 40, "action": {"type": "invoke", "field": "i64.extend_u_i32", "args": [{"type": "i32", "value": "2147483647"}]}, "expected": [{"type": "i64", "value": "2147483647"}]}, 
+  {"type": "assert_return", "line": 41, "action": {"type": "invoke", "field": "i64.extend_u_i32", "args": [{"type": "i32", "value": "2147483648"}]}, "expected": [{"type": "i64", "value": "2147483648"}]}, 
+  {"type": "assert_return", "line": 43, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "18446744073709551615"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 44, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "18446744073709451616"}]}, "expected": [{"type": "i32", "value": "4294867296"}]}, 
+  {"type": "assert_return", "line": 45, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "2147483648"}]}, "expected": [{"type": "i32", "value": "2147483648"}]}, 
+  {"type": "assert_return", "line": 46, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "18446744071562067967"}]}, "expected": [{"type": "i32", "value": "2147483647"}]}, 
+  {"type": "assert_return", "line": 47, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "18446744069414584320"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 48, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "18446744069414584319"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 49, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "18446744069414584321"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 50, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "0"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 51, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "1311768467463790320"}]}, "expected": [{"type": "i32", "value": "2596069104"}]}, 
+  {"type": "assert_return", "line": 52, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "4294967295"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 53, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "4294967296"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 54, "action": {"type": "invoke", "field": "i32.wrap_i64", "args": [{"type": "i64", "value": "4294967297"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 56, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "0"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 57, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "2147483648"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 58, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "1"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 59, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "2147483649"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 60, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "1065353216"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 61, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "1066192077"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 62, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "1069547520"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 63, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "3212836864"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 64, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "3213675725"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 65, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "3217031168"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 66, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "3220386611"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 67, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "3221225472"}]}, "expected": [{"type": "i32", "value": "4294967294"}]}, 
+  {"type": "assert_return", "line": 68, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "1325400063"}]}, "expected": [{"type": "i32", "value": "2147483520"}]}, 
+  {"type": "assert_return", "line": 69, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "3472883712"}]}, "expected": [{"type": "i32", "value": "2147483648"}]}, 
+  {"type": "assert_trap", "line": 70, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "1325400064"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 71, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "3472883713"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 72, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "2139095040"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 73, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "4286578688"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 74, "action": {"type": "invoke", "field": "i32.trunc_s_f32", "args": [{"type": "f32", "value": "2143289344"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_return", "line": 76, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "0"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 77, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "2147483648"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 78, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "1"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 79, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "2147483649"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 80, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "1065353216"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 81, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "1066192077"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 82, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "1069547520"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 83, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "1072902963"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 84, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "1073741824"}]}, "expected": [{"type": "i32", "value": "2"}]}, 
+  {"type": "assert_return", "line": 85, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "1325400064"}]}, "expected": [{"type": "i32", "value": "2147483648"}]}, 
+  {"type": "assert_return", "line": 86, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "1333788671"}]}, "expected": [{"type": "i32", "value": "4294967040"}]}, 
+  {"type": "assert_return", "line": 87, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "3211159142"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 88, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "3212836863"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_trap", "line": 89, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "1333788672"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 90, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "3212836864"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 91, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "2139095040"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 92, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "4286578688"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 93, "action": {"type": "invoke", "field": "i32.trunc_u_f32", "args": [{"type": "f32", "value": "2143289344"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_return", "line": 95, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "0"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 96, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "9223372036854775808"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 97, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "1"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 98, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "9223372036854775809"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 99, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "4607182418800017408"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 100, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "4607632778762754458"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 101, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "4609434218613702656"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 102, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "13830554455654793216"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 103, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "13831004815617530266"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 104, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "13832806255468478464"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 105, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "13834607695319426662"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 106, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "13835058055282163712"}]}, "expected": [{"type": "i32", "value": "4294967294"}]}, 
+  {"type": "assert_return", "line": 107, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "4746794007244308480"}]}, "expected": [{"type": "i32", "value": "2147483647"}]}, 
+  {"type": "assert_return", "line": 108, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "13970166044103278592"}]}, "expected": [{"type": "i32", "value": "2147483648"}]}, 
+  {"type": "assert_trap", "line": 109, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "4746794007248502784"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 110, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "13970166044105375744"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 111, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "9218868437227405312"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 112, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "18442240474082181120"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 113, "action": {"type": "invoke", "field": "i32.trunc_s_f64", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_return", "line": 115, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "0"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 116, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "9223372036854775808"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 117, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "1"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 118, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "9223372036854775809"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 119, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4607182418800017408"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 120, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4607632778762754458"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 121, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4609434218613702656"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 122, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4611235658464650854"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 123, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4611686018427387904"}]}, "expected": [{"type": "i32", "value": "2"}]}, 
+  {"type": "assert_return", "line": 124, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4746794007248502784"}]}, "expected": [{"type": "i32", "value": "2147483648"}]}, 
+  {"type": "assert_return", "line": 125, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4751297606873776128"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 126, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "13829653735729319117"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 127, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "13830554455654793215"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 128, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4726483295884279808"}]}, "expected": [{"type": "i32", "value": "100000000"}]}, 
+  {"type": "assert_trap", "line": 129, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4751297606875873280"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 130, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "13830554455654793216"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 131, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4846369599423283200"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 132, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "5055640609639927018"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 133, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "4890909195324358656"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 134, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "9218868437227405312"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 135, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "18442240474082181120"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 136, "action": {"type": "invoke", "field": "i32.trunc_u_f64", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_return", "line": 138, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "0"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 139, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "2147483648"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 140, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "1"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 141, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "2147483649"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 142, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "1065353216"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 143, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "1066192077"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 144, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "1069547520"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 145, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "3212836864"}]}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 146, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "3213675725"}]}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 147, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "3217031168"}]}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 148, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "3220386611"}]}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 149, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "3221225472"}]}, "expected": [{"type": "i64", "value": "18446744073709551614"}]}, 
+  {"type": "assert_return", "line": 150, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "1333788672"}]}, "expected": [{"type": "i64", "value": "4294967296"}]}, 
+  {"type": "assert_return", "line": 151, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "3481272320"}]}, "expected": [{"type": "i64", "value": "18446744069414584320"}]}, 
+  {"type": "assert_return", "line": 152, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "1593835519"}]}, "expected": [{"type": "i64", "value": "9223371487098961920"}]}, 
+  {"type": "assert_return", "line": 153, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "3741319168"}]}, "expected": [{"type": "i64", "value": "9223372036854775808"}]}, 
+  {"type": "assert_trap", "line": 154, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "1593835520"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 155, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "3741319169"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 156, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "2139095040"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 157, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "4286578688"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 158, "action": {"type": "invoke", "field": "i64.trunc_s_f32", "args": [{"type": "f32", "value": "2143289344"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_return", "line": 160, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "0"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 161, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "2147483648"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 162, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "1"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 163, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "2147483649"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 164, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "1065353216"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 165, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "1066192077"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 166, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "1069547520"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 167, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "1333788672"}]}, "expected": [{"type": "i64", "value": "4294967296"}]}, 
+  {"type": "assert_return", "line": 168, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "1602224127"}]}, "expected": [{"type": "i64", "value": "18446742974197923840"}]}, 
+  {"type": "assert_return", "line": 169, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "3211159142"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 170, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "3212836863"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_trap", "line": 171, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "1602224128"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 172, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "3212836864"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 173, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "2139095040"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 174, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "4286578688"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 175, "action": {"type": "invoke", "field": "i64.trunc_u_f32", "args": [{"type": "f32", "value": "2143289344"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_return", "line": 177, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "0"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 178, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "9223372036854775808"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 179, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "1"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 180, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "9223372036854775809"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 181, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "4607182418800017408"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 182, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "4607632778762754458"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 183, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "4609434218613702656"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 184, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "13830554455654793216"}]}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 185, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "13831004815617530266"}]}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 186, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "13832806255468478464"}]}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 187, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "13834607695319426662"}]}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 188, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "13835058055282163712"}]}, "expected": [{"type": "i64", "value": "18446744073709551614"}]}, 
+  {"type": "assert_return", "line": 189, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "4751297606875873280"}]}, "expected": [{"type": "i64", "value": "4294967296"}]}, 
+  {"type": "assert_return", "line": 190, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "13974669643730649088"}]}, "expected": [{"type": "i64", "value": "18446744069414584320"}]}, 
+  {"type": "assert_return", "line": 191, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "4890909195324358655"}]}, "expected": [{"type": "i64", "value": "9223372036854774784"}]}, 
+  {"type": "assert_return", "line": 192, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "14114281232179134464"}]}, "expected": [{"type": "i64", "value": "9223372036854775808"}]}, 
+  {"type": "assert_trap", "line": 193, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "4890909195324358656"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 194, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "14114281232179134465"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 195, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "9218868437227405312"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 196, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "18442240474082181120"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 197, "action": {"type": "invoke", "field": "i64.trunc_s_f64", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_return", "line": 199, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "0"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 200, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "9223372036854775808"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 201, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "1"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 202, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "9223372036854775809"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 203, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "4607182418800017408"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 204, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "4607632778762754458"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 205, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "4609434218613702656"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 206, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "4751297606873776128"}]}, "expected": [{"type": "i64", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 207, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "4751297606875873280"}]}, "expected": [{"type": "i64", "value": "4294967296"}]}, 
+  {"type": "assert_return", "line": 208, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "4895412794951729151"}]}, "expected": [{"type": "i64", "value": "18446744073709549568"}]}, 
+  {"type": "assert_return", "line": 209, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "13829653735729319117"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 210, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "13830554455654793215"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 211, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "4726483295884279808"}]}, "expected": [{"type": "i64", "value": "100000000"}]}, 
+  {"type": "assert_return", "line": 212, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "4846369599423283200"}]}, "expected": [{"type": "i64", "value": "10000000000000000"}]}, 
+  {"type": "assert_return", "line": 213, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "4890909195324358656"}]}, "expected": [{"type": "i64", "value": "9223372036854775808"}]}, 
+  {"type": "assert_trap", "line": 214, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "4895412794951729152"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 215, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "13830554455654793216"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 216, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "9218868437227405312"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 217, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "18442240474082181120"}]}, "text": "integer overflow"}, 
+  {"type": "assert_trap", "line": 218, "action": {"type": "invoke", "field": "i64.trunc_u_f64", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "text": "invalid conversion to integer"}, 
+  {"type": "assert_return", "line": 220, "action": {"type": "invoke", "field": "f32.convert_s_i32", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "f32", "value": "1065353216"}]}, 
+  {"type": "assert_return", "line": 221, "action": {"type": "invoke", "field": "f32.convert_s_i32", "args": [{"type": "i32", "value": "4294967295"}]}, "expected": [{"type": "f32", "value": "3212836864"}]}, 
+  {"type": "assert_return", "line": 222, "action": {"type": "invoke", "field": "f32.convert_s_i32", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "f32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 223, "action": {"type": "invoke", "field": "f32.convert_s_i32", "args": [{"type": "i32", "value": "2147483647"}]}, "expected": [{"type": "f32", "value": "1325400064"}]}, 
+  {"type": "assert_return", "line": 224, "action": {"type": "invoke", "field": "f32.convert_s_i32", "args": [{"type": "i32", "value": "2147483648"}]}, "expected": [{"type": "f32", "value": "3472883712"}]}, 
+  {"type": "assert_return", "line": 225, "action": {"type": "invoke", "field": "f32.convert_s_i32", "args": [{"type": "i32", "value": "1234567890"}]}, "expected": [{"type": "f32", "value": "1318267910"}]}, 
+  {"type": "assert_return", "line": 227, "action": {"type": "invoke", "field": "f32.convert_s_i32", "args": [{"type": "i32", "value": "16777217"}]}, "expected": [{"type": "f32", "value": "1266679808"}]}, 
+  {"type": "assert_return", "line": 228, "action": {"type": "invoke", "field": "f32.convert_s_i32", "args": [{"type": "i32", "value": "4278190079"}]}, "expected": [{"type": "f32", "value": "3414163456"}]}, 
+  {"type": "assert_return", "line": 229, "action": {"type": "invoke", "field": "f32.convert_s_i32", "args": [{"type": "i32", "value": "16777219"}]}, "expected": [{"type": "f32", "value": "1266679810"}]}, 
+  {"type": "assert_return", "line": 230, "action": {"type": "invoke", "field": "f32.convert_s_i32", "args": [{"type": "i32", "value": "4278190077"}]}, "expected": [{"type": "f32", "value": "3414163458"}]}, 
+  {"type": "assert_return", "line": 232, "action": {"type": "invoke", "field": "f32.convert_s_i64", "args": [{"type": "i64", "value": "1"}]}, "expected": [{"type": "f32", "value": "1065353216"}]}, 
+  {"type": "assert_return", "line": 233, "action": {"type": "invoke", "field": "f32.convert_s_i64", "args": [{"type": "i64", "value": "18446744073709551615"}]}, "expected": [{"type": "f32", "value": "3212836864"}]}, 
+  {"type": "assert_return", "line": 234, "action": {"type": "invoke", "field": "f32.convert_s_i64", "args": [{"type": "i64", "value": "0"}]}, "expected": [{"type": "f32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 235, "action": {"type": "invoke", "field": "f32.convert_s_i64", "args": [{"type": "i64", "value": "9223372036854775807"}]}, "expected": [{"type": "f32", "value": "1593835520"}]}, 
+  {"type": "assert_return", "line": 236, "action": {"type": "invoke", "field": "f32.convert_s_i64", "args": [{"type": "i64", "value": "9223372036854775808"}]}, "expected": [{"type": "f32", "value": "3741319168"}]}, 
+  {"type": "assert_return", "line": 237, "action": {"type": "invoke", "field": "f32.convert_s_i64", "args": [{"type": "i64", "value": "314159265358979"}]}, "expected": [{"type": "f32", "value": "1468980468"}]}, 
+  {"type": "assert_return", "line": 239, "action": {"type": "invoke", "field": "f32.convert_s_i64", "args": [{"type": "i64", "value": "16777217"}]}, "expected": [{"type": "f32", "value": "1266679808"}]}, 
+  {"type": "assert_return", "line": 240, "action": {"type": "invoke", "field": "f32.convert_s_i64", "args": [{"type": "i64", "value": "18446744073692774399"}]}, "expected": [{"type": "f32", "value": "3414163456"}]}, 
+  {"type": "assert_return", "line": 241, "action": {"type": "invoke", "field": "f32.convert_s_i64", "args": [{"type": "i64", "value": "16777219"}]}, "expected": [{"type": "f32", "value": "1266679810"}]}, 
+  {"type": "assert_return", "line": 242, "action": {"type": "invoke", "field": "f32.convert_s_i64", "args": [{"type": "i64", "value": "18446744073692774397"}]}, "expected": [{"type": "f32", "value": "3414163458"}]}, 
+  {"type": "assert_return", "line": 244, "action": {"type": "invoke", "field": "f64.convert_s_i32", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "f64", "value": "4607182418800017408"}]}, 
+  {"type": "assert_return", "line": 245, "action": {"type": "invoke", "field": "f64.convert_s_i32", "args": [{"type": "i32", "value": "4294967295"}]}, "expected": [{"type": "f64", "value": "13830554455654793216"}]}, 
+  {"type": "assert_return", "line": 246, "action": {"type": "invoke", "field": "f64.convert_s_i32", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "f64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 247, "action": {"type": "invoke", "field": "f64.convert_s_i32", "args": [{"type": "i32", "value": "2147483647"}]}, "expected": [{"type": "f64", "value": "4746794007244308480"}]}, 
+  {"type": "assert_return", "line": 248, "action": {"type": "invoke", "field": "f64.convert_s_i32", "args": [{"type": "i32", "value": "2147483648"}]}, "expected": [{"type": "f64", "value": "13970166044103278592"}]}, 
+  {"type": "assert_return", "line": 249, "action": {"type": "invoke", "field": "f64.convert_s_i32", "args": [{"type": "i32", "value": "987654321"}]}, "expected": [{"type": "f64", "value": "4741568253304766464"}]}, 
+  {"type": "assert_return", "line": 251, "action": {"type": "invoke", "field": "f64.convert_s_i64", "args": [{"type": "i64", "value": "1"}]}, "expected": [{"type": "f64", "value": "4607182418800017408"}]}, 
+  {"type": "assert_return", "line": 252, "action": {"type": "invoke", "field": "f64.convert_s_i64", "args": [{"type": "i64", "value": "18446744073709551615"}]}, "expected": [{"type": "f64", "value": "13830554455654793216"}]}, 
+  {"type": "assert_return", "line": 253, "action": {"type": "invoke", "field": "f64.convert_s_i64", "args": [{"type": "i64", "value": "0"}]}, "expected": [{"type": "f64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 254, "action": {"type": "invoke", "field": "f64.convert_s_i64", "args": [{"type": "i64", "value": "9223372036854775807"}]}, "expected": [{"type": "f64", "value": "4890909195324358656"}]}, 
+  {"type": "assert_return", "line": 255, "action": {"type": "invoke", "field": "f64.convert_s_i64", "args": [{"type": "i64", "value": "9223372036854775808"}]}, "expected": [{"type": "f64", "value": "14114281232179134464"}]}, 
+  {"type": "assert_return", "line": 256, "action": {"type": "invoke", "field": "f64.convert_s_i64", "args": [{"type": "i64", "value": "4669201609102990"}]}, "expected": [{"type": "f64", "value": "4841535201405015694"}]}, 
+  {"type": "assert_return", "line": 258, "action": {"type": "invoke", "field": "f64.convert_s_i64", "args": [{"type": "i64", "value": "9007199254740993"}]}, "expected": [{"type": "f64", "value": "4845873199050653696"}]}, 
+  {"type": "assert_return", "line": 259, "action": {"type": "invoke", "field": "f64.convert_s_i64", "args": [{"type": "i64", "value": "18437736874454810623"}]}, "expected": [{"type": "f64", "value": "14069245235905429504"}]}, 
+  {"type": "assert_return", "line": 260, "action": {"type": "invoke", "field": "f64.convert_s_i64", "args": [{"type": "i64", "value": "9007199254740995"}]}, "expected": [{"type": "f64", "value": "4845873199050653698"}]}, 
+  {"type": "assert_return", "line": 261, "action": {"type": "invoke", "field": "f64.convert_s_i64", "args": [{"type": "i64", "value": "18437736874454810621"}]}, "expected": [{"type": "f64", "value": "14069245235905429506"}]}, 
+  {"type": "assert_return", "line": 263, "action": {"type": "invoke", "field": "f32.convert_u_i32", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "f32", "value": "1065353216"}]}, 
+  {"type": "assert_return", "line": 264, "action": {"type": "invoke", "field": "f32.convert_u_i32", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "f32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 265, "action": {"type": "invoke", "field": "f32.convert_u_i32", "args": [{"type": "i32", "value": "2147483647"}]}, "expected": [{"type": "f32", "value": "1325400064"}]}, 
+  {"type": "assert_return", "line": 266, "action": {"type": "invoke", "field": "f32.convert_u_i32", "args": [{"type": "i32", "value": "2147483648"}]}, "expected": [{"type": "f32", "value": "1325400064"}]}, 
+  {"type": "assert_return", "line": 267, "action": {"type": "invoke", "field": "f32.convert_u_i32", "args": [{"type": "i32", "value": "305419896"}]}, "expected": [{"type": "f32", "value": "1301390004"}]}, 
+  {"type": "assert_return", "line": 268, "action": {"type": "invoke", "field": "f32.convert_u_i32", "args": [{"type": "i32", "value": "4294967295"}]}, "expected": [{"type": "f32", "value": "1333788672"}]}, 
+  {"type": "assert_return", "line": 270, "action": {"type": "invoke", "field": "f32.convert_u_i32", "args": [{"type": "i32", "value": "16777217"}]}, "expected": [{"type": "f32", "value": "1266679808"}]}, 
+  {"type": "assert_return", "line": 271, "action": {"type": "invoke", "field": "f32.convert_u_i32", "args": [{"type": "i32", "value": "16777219"}]}, "expected": [{"type": "f32", "value": "1266679810"}]}, 
+  {"type": "assert_return", "line": 273, "action": {"type": "invoke", "field": "f32.convert_u_i64", "args": [{"type": "i64", "value": "1"}]}, "expected": [{"type": "f32", "value": "1065353216"}]}, 
+  {"type": "assert_return", "line": 274, "action": {"type": "invoke", "field": "f32.convert_u_i64", "args": [{"type": "i64", "value": "0"}]}, "expected": [{"type": "f32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 275, "action": {"type": "invoke", "field": "f32.convert_u_i64", "args": [{"type": "i64", "value": "9223372036854775807"}]}, "expected": [{"type": "f32", "value": "1593835520"}]}, 
+  {"type": "assert_return", "line": 276, "action": {"type": "invoke", "field": "f32.convert_u_i64", "args": [{"type": "i64", "value": "9223372036854775808"}]}, "expected": [{"type": "f32", "value": "1593835520"}]}, 
+  {"type": "assert_return", "line": 277, "action": {"type": "invoke", "field": "f32.convert_u_i64", "args": [{"type": "i64", "value": "18446744073709551615"}]}, "expected": [{"type": "f32", "value": "1602224128"}]}, 
+  {"type": "assert_return", "line": 279, "action": {"type": "invoke", "field": "f32.convert_u_i64", "args": [{"type": "i64", "value": "16777217"}]}, "expected": [{"type": "f32", "value": "1266679808"}]}, 
+  {"type": "assert_return", "line": 280, "action": {"type": "invoke", "field": "f32.convert_u_i64", "args": [{"type": "i64", "value": "16777219"}]}, "expected": [{"type": "f32", "value": "1266679810"}]}, 
+  {"type": "assert_return", "line": 282, "action": {"type": "invoke", "field": "f64.convert_u_i32", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "f64", "value": "4607182418800017408"}]}, 
+  {"type": "assert_return", "line": 283, "action": {"type": "invoke", "field": "f64.convert_u_i32", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "f64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 284, "action": {"type": "invoke", "field": "f64.convert_u_i32", "args": [{"type": "i32", "value": "2147483647"}]}, "expected": [{"type": "f64", "value": "4746794007244308480"}]}, 
+  {"type": "assert_return", "line": 285, "action": {"type": "invoke", "field": "f64.convert_u_i32", "args": [{"type": "i32", "value": "2147483648"}]}, "expected": [{"type": "f64", "value": "4746794007248502784"}]}, 
+  {"type": "assert_return", "line": 286, "action": {"type": "invoke", "field": "f64.convert_u_i32", "args": [{"type": "i32", "value": "4294967295"}]}, "expected": [{"type": "f64", "value": "4751297606873776128"}]}, 
+  {"type": "assert_return", "line": 288, "action": {"type": "invoke", "field": "f64.convert_u_i64", "args": [{"type": "i64", "value": "1"}]}, "expected": [{"type": "f64", "value": "4607182418800017408"}]}, 
+  {"type": "assert_return", "line": 289, "action": {"type": "invoke", "field": "f64.convert_u_i64", "args": [{"type": "i64", "value": "0"}]}, "expected": [{"type": "f64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 290, "action": {"type": "invoke", "field": "f64.convert_u_i64", "args": [{"type": "i64", "value": "9223372036854775807"}]}, "expected": [{"type": "f64", "value": "4890909195324358656"}]}, 
+  {"type": "assert_return", "line": 291, "action": {"type": "invoke", "field": "f64.convert_u_i64", "args": [{"type": "i64", "value": "9223372036854775808"}]}, "expected": [{"type": "f64", "value": "4890909195324358656"}]}, 
+  {"type": "assert_return", "line": 292, "action": {"type": "invoke", "field": "f64.convert_u_i64", "args": [{"type": "i64", "value": "18446744073709551615"}]}, "expected": [{"type": "f64", "value": "4895412794951729152"}]}, 
+  {"type": "assert_return", "line": 294, "action": {"type": "invoke", "field": "f64.convert_u_i64", "args": [{"type": "i64", "value": "9007199254740993"}]}, "expected": [{"type": "f64", "value": "4845873199050653696"}]}, 
+  {"type": "assert_return", "line": 295, "action": {"type": "invoke", "field": "f64.convert_u_i64", "args": [{"type": "i64", "value": "9007199254740995"}]}, "expected": [{"type": "f64", "value": "4845873199050653698"}]}, 
+  {"type": "assert_return", "line": 297, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "0"}]}, "expected": [{"type": "f64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 298, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "2147483648"}]}, "expected": [{"type": "f64", "value": "9223372036854775808"}]}, 
+  {"type": "assert_return", "line": 299, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "1"}]}, "expected": [{"type": "f64", "value": "3936146074321813504"}]}, 
+  {"type": "assert_return", "line": 300, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "2147483649"}]}, "expected": [{"type": "f64", "value": "13159518111176589312"}]}, 
+  {"type": "assert_return", "line": 301, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "1065353216"}]}, "expected": [{"type": "f64", "value": "4607182418800017408"}]}, 
+  {"type": "assert_return", "line": 302, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "3212836864"}]}, "expected": [{"type": "f64", "value": "13830554455654793216"}]}, 
+  {"type": "assert_return", "line": 303, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "4286578687"}]}, "expected": [{"type": "f64", "value": "14407015207421345792"}]}, 
+  {"type": "assert_return", "line": 304, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "2139095039"}]}, "expected": [{"type": "f64", "value": "5183643170566569984"}]}, 
+  {"type": "assert_return", "line": 306, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "67108864"}]}, "expected": [{"type": "f64", "value": "4071254063142928384"}]}, 
+  {"type": "assert_return", "line": 308, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "2118632255"}]}, "expected": [{"type": "f64", "value": "5172657297058430976"}]}, 
+  {"type": "assert_return", "line": 309, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "2139095040"}]}, "expected": [{"type": "f64", "value": "9218868437227405312"}]}, 
+  {"type": "assert_return", "line": 310, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "4286578688"}]}, "expected": [{"type": "f64", "value": "18442240474082181120"}]}, 
+  {"type": "assert_return", "line": 311, "action": {"type": "invoke", "field": "f64.promote_f32", "args": [{"type": "f32", "value": "2143289344"}]}, "expected": [{"type": "f64", "value": "9221120237041090560"}]}, 
+  {"type": "assert_return", "line": 313, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "0"}]}, "expected": [{"type": "f32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 314, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "9223372036854775808"}]}, "expected": [{"type": "f32", "value": "2147483648"}]}, 
+  {"type": "assert_return", "line": 315, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "1"}]}, "expected": [{"type": "f32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 316, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "9223372036854775809"}]}, "expected": [{"type": "f32", "value": "2147483648"}]}, 
+  {"type": "assert_return", "line": 317, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4607182418800017408"}]}, "expected": [{"type": "f32", "value": "1065353216"}]}, 
+  {"type": "assert_return", "line": 318, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "13830554455654793216"}]}, "expected": [{"type": "f32", "value": "3212836864"}]}, 
+  {"type": "assert_return", "line": 319, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4039728865214464000"}]}, "expected": [{"type": "f32", "value": "8388608"}]}, 
+  {"type": "assert_return", "line": 320, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "13263100902069239808"}]}, "expected": [{"type": "f32", "value": "2155872256"}]}, 
+  {"type": "assert_return", "line": 321, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4039728865214463999"}]}, "expected": [{"type": "f32", "value": "8388607"}]}, 
+  {"type": "assert_return", "line": 322, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "13263100902069239807"}]}, "expected": [{"type": "f32", "value": "2155872255"}]}, 
+  {"type": "assert_return", "line": 323, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "3936146074321813504"}]}, "expected": [{"type": "f32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 324, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "13159518111176589312"}]}, "expected": [{"type": "f32", "value": "2147483649"}]}, 
+  {"type": "assert_return", "line": 325, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "5183643170298134528"}]}, "expected": [{"type": "f32", "value": "2139095038"}]}, 
+  {"type": "assert_return", "line": 326, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "14407015207152910336"}]}, "expected": [{"type": "f32", "value": "4286578686"}]}, 
+  {"type": "assert_return", "line": 327, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "5183643170298134529"}]}, "expected": [{"type": "f32", "value": "2139095039"}]}, 
+  {"type": "assert_return", "line": 328, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "14407015207152910337"}]}, "expected": [{"type": "f32", "value": "4286578687"}]}, 
+  {"type": "assert_return", "line": 329, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "5183643170566569984"}]}, "expected": [{"type": "f32", "value": "2139095039"}]}, 
+  {"type": "assert_return", "line": 330, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "14407015207421345792"}]}, "expected": [{"type": "f32", "value": "4286578687"}]}, 
+  {"type": "assert_return", "line": 331, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "5183643170835005439"}]}, "expected": [{"type": "f32", "value": "2139095039"}]}, 
+  {"type": "assert_return", "line": 332, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "14407015207689781247"}]}, "expected": [{"type": "f32", "value": "4286578687"}]}, 
+  {"type": "assert_return", "line": 333, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "5183643170835005440"}]}, "expected": [{"type": "f32", "value": "2139095040"}]}, 
+  {"type": "assert_return", "line": 334, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "14407015207689781248"}]}, "expected": [{"type": "f32", "value": "4286578688"}]}, 
+  {"type": "assert_return", "line": 335, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4071254063142928384"}]}, "expected": [{"type": "f32", "value": "67108864"}]}, 
+  {"type": "assert_return", "line": 336, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "5172657297058430976"}]}, "expected": [{"type": "f32", "value": "2118632255"}]}, 
+  {"type": "assert_return", "line": 337, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "9218868437227405312"}]}, "expected": [{"type": "f32", "value": "2139095040"}]}, 
+  {"type": "assert_return", "line": 338, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "18442240474082181120"}]}, "expected": [{"type": "f32", "value": "4286578688"}]}, 
+  {"type": "assert_return", "line": 339, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4607182418800017409"}]}, "expected": [{"type": "f32", "value": "1065353216"}]}, 
+  {"type": "assert_return", "line": 340, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4607182418800017407"}]}, "expected": [{"type": "f32", "value": "1065353216"}]}, 
+  {"type": "assert_return", "line": 341, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4607182419068452864"}]}, "expected": [{"type": "f32", "value": "1065353216"}]}, 
+  {"type": "assert_return", "line": 342, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4607182419068452865"}]}, "expected": [{"type": "f32", "value": "1065353217"}]}, 
+  {"type": "assert_return", "line": 343, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4607182419605323775"}]}, "expected": [{"type": "f32", "value": "1065353217"}]}, 
+  {"type": "assert_return", "line": 344, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4607182419605323776"}]}, "expected": [{"type": "f32", "value": "1065353218"}]}, 
+  {"type": "assert_return", "line": 345, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4607182420142194688"}]}, "expected": [{"type": "f32", "value": "1065353218"}]}, 
+  {"type": "assert_return", "line": 346, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4715268810125344768"}]}, "expected": [{"type": "f32", "value": "1266679808"}]}, 
+  {"type": "assert_return", "line": 347, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4715268810125344769"}]}, "expected": [{"type": "f32", "value": "1266679809"}]}, 
+  {"type": "assert_return", "line": 348, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4715268810662215679"}]}, "expected": [{"type": "f32", "value": "1266679809"}]}, 
+  {"type": "assert_return", "line": 349, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4715268810662215680"}]}, "expected": [{"type": "f32", "value": "1266679810"}]}, 
+  {"type": "assert_return", "line": 350, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "5094955347580439664"}]}, "expected": [{"type": "f32", "value": "1973901096"}]}, 
+  {"type": "assert_return", "line": 351, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4101111194527827589"}]}, "expected": [{"type": "f32", "value": "122722105"}]}, 
+  {"type": "assert_return", "line": 352, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4038806939559600639"}]}, "expected": [{"type": "f32", "value": "7529997"}]}, 
+  {"type": "assert_return", "line": 353, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "13836913116900734306"}]}, "expected": [{"type": "f32", "value": "3224680794"}]}, 
+  {"type": "assert_return", "line": 354, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "14338315240173327556"}]}, "expected": [{"type": "f32", "value": "4158615026"}]}, 
+  {"type": "assert_return", "line": 355, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "expected": [{"type": "f32", "value": "2143289344"}]}, 
+  {"type": "assert_return", "line": 356, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "4503599627370496"}]}, "expected": [{"type": "f32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 357, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "9227875636482146304"}]}, "expected": [{"type": "f32", "value": "2147483648"}]}, 
+  {"type": "assert_return", "line": 358, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "3931642474694443008"}]}, "expected": [{"type": "f32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 359, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "13155014511549218816"}]}, "expected": [{"type": "f32", "value": "2147483648"}]}, 
+  {"type": "assert_return", "line": 360, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "3931642474694443009"}]}, "expected": [{"type": "f32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 361, "action": {"type": "invoke", "field": "f32.demote_f64", "args": [{"type": "f64", "value": "13155014511549218817"}]}, "expected": [{"type": "f32", "value": "2147483649"}]}, 
+  {"type": "assert_return", "line": 363, "action": {"type": "invoke", "field": "f32.reinterpret_i32", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "f32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 364, "action": {"type": "invoke", "field": "f32.reinterpret_i32", "args": [{"type": "i32", "value": "2147483648"}]}, "expected": [{"type": "f32", "value": "2147483648"}]}, 
+  {"type": "assert_return", "line": 365, "action": {"type": "invoke", "field": "f32.reinterpret_i32", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "f32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 366, "action": {"type": "invoke", "field": "f32.reinterpret_i32", "args": [{"type": "i32", "value": "4294967295"}]}, "expected": [{"type": "f32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 367, "action": {"type": "invoke", "field": "f32.reinterpret_i32", "args": [{"type": "i32", "value": "123456789"}]}, "expected": [{"type": "f32", "value": "123456789"}]}, 
+  {"type": "assert_return", "line": 368, "action": {"type": "invoke", "field": "f32.reinterpret_i32", "args": [{"type": "i32", "value": "2147483649"}]}, "expected": [{"type": "f32", "value": "2147483649"}]}, 
+  {"type": "assert_return", "line": 369, "action": {"type": "invoke", "field": "f32.reinterpret_i32", "args": [{"type": "i32", "value": "2139095040"}]}, "expected": [{"type": "f32", "value": "2139095040"}]}, 
+  {"type": "assert_return", "line": 370, "action": {"type": "invoke", "field": "f32.reinterpret_i32", "args": [{"type": "i32", "value": "4286578688"}]}, "expected": [{"type": "f32", "value": "4286578688"}]}, 
+  {"type": "assert_return", "line": 371, "action": {"type": "invoke", "field": "f32.reinterpret_i32", "args": [{"type": "i32", "value": "2143289344"}]}, "expected": [{"type": "f32", "value": "2143289344"}]}, 
+  {"type": "assert_return", "line": 372, "action": {"type": "invoke", "field": "f32.reinterpret_i32", "args": [{"type": "i32", "value": "4290772992"}]}, "expected": [{"type": "f32", "value": "4290772992"}]}, 
+  {"type": "assert_return", "line": 376, "action": {"type": "invoke", "field": "f64.reinterpret_i64", "args": [{"type": "i64", "value": "0"}]}, "expected": [{"type": "f64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 377, "action": {"type": "invoke", "field": "f64.reinterpret_i64", "args": [{"type": "i64", "value": "1"}]}, "expected": [{"type": "f64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 378, "action": {"type": "invoke", "field": "f64.reinterpret_i64", "args": [{"type": "i64", "value": "18446744073709551615"}]}, "expected": [{"type": "f64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 379, "action": {"type": "invoke", "field": "f64.reinterpret_i64", "args": [{"type": "i64", "value": "9223372036854775808"}]}, "expected": [{"type": "f64", "value": "9223372036854775808"}]}, 
+  {"type": "assert_return", "line": 380, "action": {"type": "invoke", "field": "f64.reinterpret_i64", "args": [{"type": "i64", "value": "1234567890"}]}, "expected": [{"type": "f64", "value": "1234567890"}]}, 
+  {"type": "assert_return", "line": 381, "action": {"type": "invoke", "field": "f64.reinterpret_i64", "args": [{"type": "i64", "value": "9223372036854775809"}]}, "expected": [{"type": "f64", "value": "9223372036854775809"}]}, 
+  {"type": "assert_return", "line": 382, "action": {"type": "invoke", "field": "f64.reinterpret_i64", "args": [{"type": "i64", "value": "9218868437227405312"}]}, "expected": [{"type": "f64", "value": "9218868437227405312"}]}, 
+  {"type": "assert_return", "line": 383, "action": {"type": "invoke", "field": "f64.reinterpret_i64", "args": [{"type": "i64", "value": "18442240474082181120"}]}, "expected": [{"type": "f64", "value": "18442240474082181120"}]}, 
+  {"type": "assert_return", "line": 384, "action": {"type": "invoke", "field": "f64.reinterpret_i64", "args": [{"type": "i64", "value": "9221120237041090560"}]}, "expected": [{"type": "f64", "value": "9221120237041090560"}]}, 
+  {"type": "assert_return", "line": 385, "action": {"type": "invoke", "field": "f64.reinterpret_i64", "args": [{"type": "i64", "value": "18444492273895866368"}]}, "expected": [{"type": "f64", "value": "18444492273895866368"}]}, 
+  {"type": "assert_return", "line": 389, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "0"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
+  {"type": "assert_return", "line": 390, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "2147483648"}]}, "expected": [{"type": "i32", "value": "2147483648"}]}, 
+  {"type": "assert_return", "line": 391, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "1"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 392, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "4294967295"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
+  {"type": "assert_return", "line": 393, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "2147483649"}]}, "expected": [{"type": "i32", "value": "2147483649"}]}, 
+  {"type": "assert_return", "line": 394, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "1065353216"}]}, "expected": [{"type": "i32", "value": "1065353216"}]}, 
+  {"type": "assert_return", "line": 395, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "1078530010"}]}, "expected": [{"type": "i32", "value": "1078530010"}]}, 
+  {"type": "assert_return", "line": 396, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "2139095039"}]}, "expected": [{"type": "i32", "value": "2139095039"}]}, 
+  {"type": "assert_return", "line": 397, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "4286578687"}]}, "expected": [{"type": "i32", "value": "4286578687"}]}, 
+  {"type": "assert_return", "line": 398, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "2139095040"}]}, "expected": [{"type": "i32", "value": "2139095040"}]}, 
+  {"type": "assert_return", "line": 399, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "4286578688"}]}, "expected": [{"type": "i32", "value": "4286578688"}]}, 
+  {"type": "assert_return", "line": 400, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "2143289344"}]}, "expected": [{"type": "i32", "value": "2143289344"}]}, 
+  {"type": "assert_return", "line": 401, "action": {"type": "invoke", "field": "i32.reinterpret_f32", "args": [{"type": "f32", "value": "4290772992"}]}, "expected": [{"type": "i32", "value": "4290772992"}]}, 
+  {"type": "assert_return", "line": 405, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "0"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
+  {"type": "assert_return", "line": 406, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "9223372036854775808"}]}, "expected": [{"type": "i64", "value": "9223372036854775808"}]}, 
+  {"type": "assert_return", "line": 407, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "1"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
+  {"type": "assert_return", "line": 408, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "18446744073709551615"}]}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 409, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "9223372036854775809"}]}, "expected": [{"type": "i64", "value": "9223372036854775809"}]}, 
+  {"type": "assert_return", "line": 410, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "4607182418800017408"}]}, "expected": [{"type": "i64", "value": "4607182418800017408"}]}, 
+  {"type": "assert_return", "line": 411, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "4614256656552045841"}]}, "expected": [{"type": "i64", "value": "4614256656552045841"}]}, 
+  {"type": "assert_return", "line": 412, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "9218868437227405311"}]}, "expected": [{"type": "i64", "value": "9218868437227405311"}]}, 
+  {"type": "assert_return", "line": 413, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "18442240474082181119"}]}, "expected": [{"type": "i64", "value": "18442240474082181119"}]}, 
+  {"type": "assert_return", "line": 414, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "9218868437227405312"}]}, "expected": [{"type": "i64", "value": "9218868437227405312"}]}, 
+  {"type": "assert_return", "line": 415, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "18442240474082181120"}]}, "expected": [{"type": "i64", "value": "18442240474082181120"}]}, 
+  {"type": "assert_return", "line": 416, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "expected": [{"type": "i64", "value": "9221120237041090560"}]}, 
+  {"type": "assert_return", "line": 417, "action": {"type": "invoke", "field": "i64.reinterpret_f64", "args": [{"type": "f64", "value": "18444492273895866368"}]}, "expected": [{"type": "i64", "value": "18444492273895866368"}]}
+]}

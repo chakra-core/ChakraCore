@@ -150,7 +150,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     inlineCacheThreadInfoAllocator(_u("TC-InlineCacheInfo"), GetPageAllocator(), Js::Throw::OutOfMemory),
     isInstInlineCacheThreadInfoAllocator(_u("TC-IsInstInlineCacheInfo"), GetPageAllocator(), Js::Throw::OutOfMemory),
     equivalentTypeCacheInfoAllocator(_u("TC-EquivalentTypeCacheInfo"), GetPageAllocator(), Js::Throw::OutOfMemory),
-    preReservedVirtualAllocator(GetCurrentProcess()),
+    preReservedVirtualAllocator(),
     protoInlineCacheByPropId(&inlineCacheThreadInfoAllocator, 512),
     storeFieldInlineCacheByPropId(&inlineCacheThreadInfoAllocator, 256),
     isInstInlineCacheByFunction(&isInstInlineCacheThreadInfoAllocator, 128),
@@ -1939,12 +1939,8 @@ ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDe
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     if (!JITManager::GetJITManager()->IsConnected())
     {
-        HRESULT hr = JITManager::GetJITManager()->ConnectRpcServer(processHandle, serverSecurityDescriptor, connectionId);
-        if (FAILED(hr))
-        {
-            // TODO: michhol OOP JIT is this correct?
-            Js::Throw::InternalError();
-        }
+        // TODO: return HRESULT
+        JITManager::GetJITManager()->ConnectRpcServer(processHandle, serverSecurityDescriptor, connectionId);
     }
 }
 void
@@ -1952,7 +1948,10 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 {
 #if ENABLE_OOP_NATIVE_CODEGEN
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-    Assert(JITManager::GetJITManager()->IsConnected());
+    if (!JITManager::GetJITManager()->IsConnected())
+    {
+        return;
+    }
 
     if (m_remoteThreadContextInfo)
     {
@@ -2111,15 +2110,19 @@ ThreadContext::ExecuteRecyclerCollectionFunction(Recycler * recycler, Collection
 void
 ThreadContext::DisposeObjects(Recycler * recycler)
 {
-    if(this->IsDisableImplicitCall())
+    if (this->IsDisableImplicitCall())
     {
         // Don't dispose objects when implicit calls are disabled, since disposing may cause implicit calls. Objects will remain
         // in the dispose queue and will be disposed later when implicit calls are not disabled.
         return;
     }
 
-    // we shouldn't dispose in noscriptscope as it might lead to script execution.
-    Assert(!this->IsNoScriptScope());
+    // We shouldn't DisposeObjects in NoScriptScope as this might lead to script execution.
+    // Callers of DisposeObjects should ensure !IsNoScriptScope() before calling DisposeObjects.
+    if (this->IsNoScriptScope())
+    {
+        FromDOM_NoScriptScope_fatal_error();
+    }
 
     if (!this->IsScriptActive())
     {
@@ -2595,19 +2598,23 @@ ThreadContext::PostCollectionCallBack()
                 scriptContext->CleanupWeakReferenceDictionaries();
             }
         }
-
-        if (this->DoTryRedeferral())
-        {
-            HRESULT hr = S_OK;
-            BEGIN_TRANSLATE_OOM_TO_HRESULT
-            {
-                this->TryRedeferral();
-            }
-            END_TRANSLATE_OOM_TO_HRESULT(hr);
-        }
-
-        this->UpdateRedeferralState();
     }
+}
+
+void
+ThreadContext::PostSweepRedeferralCallBack()
+{
+    if (this->DoTryRedeferral())
+    {
+        HRESULT hr = S_OK;
+        BEGIN_TRANSLATE_OOM_TO_HRESULT
+        {
+            this->TryRedeferral();
+        }
+        END_TRANSLATE_OOM_TO_HRESULT(hr);
+    }
+
+    this->UpdateRedeferralState();
 }
 
 bool
@@ -4065,7 +4072,6 @@ void DumpRecyclerObjectGraph()
 #if ENABLE_NATIVE_CODEGEN
 BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
 {
-    boolean result;
 #if ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
@@ -4082,6 +4088,7 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
             return false;
         }
 
+        boolean result;
         HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
         JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
         return result;
@@ -4097,7 +4104,7 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
 
         if (!this->IsAllJITCodeInPreReservedRegion())
         {
-            CustomHeap::CodePageAllocators::AutoLock autoLock(&this->codePageAllocators);
+            AutoCriticalSection autoLock(&this->codePageAllocators.cs);
             return this->codePageAllocators.IsInNonPreReservedPageAllocator(pCodeAddr);
         }
         return FALSE;

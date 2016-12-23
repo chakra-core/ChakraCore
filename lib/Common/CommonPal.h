@@ -94,8 +94,10 @@ __forceinline void  __int2c()
 #include <wchar.h>
 #include <math.h>
 #include <time.h>
+#if defined(_AMD64_) || defined(__i686__)
 #include <smmintrin.h>
 #include <xmmintrin.h>
+#endif // defined(_AMD64_) || defined(__i686__)
 #endif
 
 #include "inc/pal.h"
@@ -115,6 +117,7 @@ typedef GUID UUID;
 #define FILE PAL_FILE
 #endif
 
+#if defined(_AMD64_) || defined(__i686__)
 // xplat-todo: verify below is correct
 #include <cpuid.h>
 inline int get_cpuid(int cpuInfo[4], int function_id)
@@ -126,6 +129,14 @@ inline int get_cpuid(int cpuInfo[4], int function_id)
             reinterpret_cast<unsigned int*>(&cpuInfo[2]),
             reinterpret_cast<unsigned int*>(&cpuInfo[3]));
 }
+#elif defined(_ARM_)
+inline int get_cpuid(int cpuInfo[4], int function_id)
+{
+    int empty[4] = {0};
+    memcpy(cpuInfo, empty, sizeof(int) * 4);
+    // xplat-todo: implement me!!
+}
+#endif
 
 inline void DebugBreak()
 {
@@ -622,7 +633,7 @@ namespace PlatformAgnostic
 {
     __forceinline unsigned char _BitTestAndSet(LONG *_BitBase, int _BitPos)
     {
-#if defined(__clang__)
+#if defined(__clang__) && !defined(_ARM_)
         // Clang doesn't expand _bittestandset intrinic to bts, and it's implemention also doesn't work for _BitPos >= 32
         unsigned char retval = 0;
         asm(
@@ -638,9 +649,9 @@ namespace PlatformAgnostic
 #endif
     }
 
-    __forceinline unsigned char _BitTest(const LONG *_BitBase, int _BitPos)
+    __forceinline unsigned char _BitTest(LONG *_BitBase, int _BitPos)
     {
-#if defined(__clang__)
+#if defined(__clang__) && !defined(_ARM_)
         // Clang doesn't expand _bittest intrinic to bt, and it's implemention also doesn't work for _BitPos >= 32
         unsigned char retval;
         asm(
@@ -658,7 +669,7 @@ namespace PlatformAgnostic
 
     __forceinline unsigned char _InterlockedBitTestAndSet(volatile LONG *_BitBase, int _BitPos)
     {
-#if defined(__clang__)
+#if defined(__clang__) && !defined(_ARM_)
         // Clang doesn't expand _interlockedbittestandset intrinic to lock bts, and it's implemention also doesn't work for _BitPos >= 32
         unsigned char retval;
         asm(
@@ -679,3 +690,4 @@ namespace PlatformAgnostic
 #include "PlatformAgnostic/Numbers.h"
 #include "PlatformAgnostic/SystemInfo.h"
 #include "PlatformAgnostic/Thread.h"
+#include "PlatformAgnostic/AssemblyCommon.h"

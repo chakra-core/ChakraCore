@@ -13,9 +13,8 @@
     va_start(_vl, callInfo);                                        \
     Js::Var* va = (Js::Var*)_vl
 #else
-#if defined(_M_X64) || defined(_M_IX86)
 // We use a custom calling convention to invoke JavascriptMethod based on
-// System V AMD64 ABI. At entry of JavascriptMethod the stack layout is:
+// System ABI. At entry of JavascriptMethod the stack layout is:
 //      [Return Address] [function] [callInfo] [arg0] [arg1] ...
 //
 #define DECLARE_ARGS_VARARRAY_N(va, n)                              \
@@ -58,10 +57,6 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 {
     return 5;
 }
-
-#else
-#error Not yet implemented
-#endif
 #endif
 
 
@@ -75,6 +70,10 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 #define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
     entryPoint(function, callInfo, nullptr, nullptr, nullptr, nullptr, \
                function, callInfo, ##__VA_ARGS__)
+#elif defined(_ARM_)
+// xplat-todo: fix me ARM
+#define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
+    entryPoint(function, callInfo, ##__VA_ARGS__)
 #else
 #error CALL_ENTRYPOINT not yet implemented
 #endif

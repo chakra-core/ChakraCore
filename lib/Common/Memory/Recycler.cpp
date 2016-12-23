@@ -1264,9 +1264,9 @@ bool Recycler::ExplicitFreeInternal(void* buffer, size_t size, size_t sizeCat)
 
 #if ENABLE_CONCURRENT_GC
     // We shouldn't be freeing object when we are running GC in thread
-    Assert(this->IsConcurrentState() || !this->CollectionInProgress() || this->collectionState == CollectionStatePostCollectionCallback);
+    Assert(this->IsConcurrentState() || !this->CollectionInProgress() || this->IsAllocatableCallbackState());
 #else
-    Assert(!this->CollectionInProgress() || this->collectionState == CollectionStatePostCollectionCallback);
+    Assert(!this->CollectionInProgress() || this->IsAllocatableCallbackState());
 #endif
 
     DebugOnly(RecyclerHeapObjectInfo info);
@@ -3046,6 +3046,10 @@ Recycler::Sweep(bool concurrent)
 
     RECYCLER_PROFILE_EXEC_END(this, concurrent? Js::ConcurrentSweepPhase : Js::SweepPhase);
 
+    this->collectionState = CollectionStatePostSweepRedeferralCallback;
+    // Note that PostSweepRedeferralCallback can't have exception escape.
+    collectionWrapper->PostSweepRedeferralCallBack();
+
 #if ENABLE_CONCURRENT_GC
     if (concurrent)
     {
@@ -3062,6 +3066,7 @@ Recycler::Sweep(bool concurrent)
         return true;
     }
 #endif
+
     return false;
 }
 
@@ -3465,7 +3470,7 @@ Recycler::CollectNow()
     CompileAssert((flags & CollectOverride_ForceInThread) == 0 || (flags & (CollectMode_Concurrent | CollectMode_Partial)) == 0);
 
     // Collections not allowed when the recycler is currently executing the PostCollectionCallback
-    if (collectionState == CollectionStatePostCollectionCallback)
+    if (this->IsAllocatableCallbackState())
     {
         return false;
     }

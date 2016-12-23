@@ -5,5 +5,3 @@
 #pragma once
 
 #include "../Math/JavascriptMath.inl"
-#include "../Math/AsmJsMath.inl"
-#include "../Math/WasmMath.inl"

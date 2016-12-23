@@ -45,13 +45,9 @@ struct XDataAllocation sealed : public SecondaryAllocation
 //
 class XDataAllocator sealed : public SecondaryAllocator
 {
-    // -------- Private members ---------/
-private:
-    HANDLE processHandle;
-
     // --------- Public functions ---------/
 public:
-    XDataAllocator(BYTE* address, uint size, HANDLE processHandle);
+    XDataAllocator(BYTE* address, uint size);
 
     bool Initialize(void* segmentStart, void* segmentEnd);
     void Delete();

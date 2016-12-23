@@ -235,6 +235,36 @@ namespace Js
     template <>
     bool RangeUnitContains<SourceFunctionNode>(RangeUnit<SourceFunctionNode> unit, SourceFunctionNode n);
 
+    template <typename TRangeUnitData>
+    RangeUnit<TRangeUnitData> GetFullRange()
+    {
+        RangeUnit<TRangeUnitData> unit;
+        unit.i = INT_MIN;
+        unit.j = INT_MAX;
+        return unit;
+    }
+
+    template <>
+    RangeUnit<SourceFunctionNode> GetFullRange();
+
+    template <typename TRangeUnitData>
+    TRangeUnitData GetPrevious(TRangeUnitData unit)
+    {
+        return unit - 1;
+    }
+
+    template <>
+    SourceFunctionNode GetPrevious(SourceFunctionNode unit);
+
+    template <typename TRangeUnitData>
+    TRangeUnitData GetNext(TRangeUnitData unit)
+    {
+        return unit + 1;
+    }
+
+    template <>
+    SourceFunctionNode GetNext(SourceFunctionNode unit);
+
     ///----------------------------------------------------------------------------
     ///----------------------------------------------------------------------------
     ///
@@ -268,8 +298,9 @@ namespace Js
     public:
         inline  bool            InRange(TRangeUnitData i);
         inline  bool            ContainsAll();
-        inline  void            Add(TRangeUnitData i);
-        inline  void            Add(TRangeUnitData i, TRangeUnitData j);
+        inline  void            Add(TRangeUnitData i, RangeBase<TRangeUnitData>* oppositeRange = nullptr);
+        inline  void            Add(TRangeUnitData i, TRangeUnitData j, RangeBase<TRangeUnitData>* oppositeRange = nullptr);
+        inline  void            Clear();
 
 #if DBG_RANGE
         template <typename TFunction>
@@ -345,6 +376,7 @@ namespace Js
     public:
 
         void            Enable(Phase phase);
+        void            Disable(Phase phase);
         bool            IsEnabled(Phase phase);
         bool            IsEnabled(Phase phase, uint sourceContextId, Js::LocalFunctionId functionId);
         bool            IsEnabledForAll(Phase phase);
@@ -394,6 +426,7 @@ namespace Js
 
                 String*         GetAsString(Flag flag) const;
                 Phases*         GetAsPhase(Flag flag) const;
+                Flag            GetOppositePhaseFlag(Flag flag) const;
                 Boolean*        GetAsBoolean(Flag flag) const;
                 Number*         GetAsNumber(Flag flag) const;
                 NumberSet*      GetAsNumberSet(Flag flag) const;
@@ -812,16 +845,86 @@ namespace Js
 
 template <typename TRangeUnitData>
 void
-RangeBase<TRangeUnitData>::Add(TRangeUnitData i)
+RangeBase<TRangeUnitData>::Add(TRangeUnitData i, RangeBase<TRangeUnitData>* oppositeRange)
 {
-    Add(i, i);
+    Add(i, i, oppositeRange);
 }
 
 template <typename TRangeUnitData>
 void
-RangeBase<TRangeUnitData>::Add(TRangeUnitData i, TRangeUnitData j)
+RangeBase<TRangeUnitData>::Add(TRangeUnitData i, TRangeUnitData j, RangeBase<TRangeUnitData>* oppositeRange)
 {
-    range.Prepend(RangeUnit<TRangeUnitData>(i, j));
+    RangeUnit<TRangeUnitData> a(i, j);
+    range.Prepend(a);
+    if (oppositeRange)
+    {
+        if (oppositeRange->range.Empty())
+        {
+            oppositeRange->range.Prepend(GetFullRange<TRangeUnitData>());
+        }
+        // Do an intersection
+        auto it = oppositeRange->range.GetEditingIterator();
+        while (it.Next())
+        {
+            Unit& unit = it.Data();
+            bool c1 = RangeUnitContains(unit, i);
+            bool c2 = RangeUnitContains(unit, j);
+            bool c3 = RangeUnitContains(a, unit.i);
+            bool c4 = RangeUnitContains(a, unit.j);
+            enum IntersectionCase
+            {
+                NoIntersection = 0,
+                AddedFullyContained = 3, // [ u [a] ]
+                IntersectionAdded_Unit = 6, // [ a [ ] u ]
+                CommonLowBound_Unit = 7, // [[ a ] u ]
+                IntersectionUnit_Added = 9, // [ u [ ] a ]
+                CommonTopBound_Unit = 11, // [ u [ a ]]
+                UnitFullyContained = 12, // [ a [u] ]
+                CommonLowBound_Added = 13, // [[ u ] a ]
+                CommonTopBound_Added = 14, // [ a [ u ]]
+                FullIntersection = 15 // [[a, u]]
+            };
+            IntersectionCase intersectionCase = (IntersectionCase)((int)c1 | (c2 << 1) | (c3 << 2) | (c4 << 3));
+            switch (intersectionCase)
+            {
+            case NoIntersection:
+                // Nothing to do
+                break;
+            case AddedFullyContained:
+            {
+                // Need to break the current in 2
+                Unit lowUnit = unit;
+                Unit topUnit = unit;
+                lowUnit.j = GetPrevious(a.i);
+                topUnit.i = GetNext(a.j);
+                it.InsertBefore(lowUnit);
+                it.InsertBefore(topUnit);
+                it.RemoveCurrent();
+                break;
+            }
+            case IntersectionAdded_Unit:
+            case CommonLowBound_Unit:
+                // Move the unit lower bound after the added upper bound
+                unit.i = GetNext(a.j);
+                break;
+            case IntersectionUnit_Added:
+            case CommonTopBound_Unit:
+                // Move the unit upper bound before the added lower bound
+                unit.j = GetPrevious(a.i);
+                break;
+            case CommonTopBound_Added:
+            case CommonLowBound_Added:
+            case UnitFullyContained:
+            case FullIntersection:
+                // Remove the unit
+                it.RemoveCurrent();
+                break;
+            default:
+                Assert(UNREACHED);
+                break;
+            }
+        }
+    }
 }
 
 template <typename TRangeUnitData>
@@ -829,6 +932,13 @@ bool
 RangeBase<TRangeUnitData>::ContainsAll()
 {
     return range.Empty();
+}
+
+template <typename TRangeUnitData>
+void
+Js::RangeBase<TRangeUnitData>::Clear()
+{
+    range.Clear();
 }
 
 ///----------------------------------------------------------------------------

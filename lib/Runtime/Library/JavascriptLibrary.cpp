@@ -6863,7 +6863,7 @@ namespace Js
     {
         this->isPRNGSeeded = val;
 #if ENABLE_NATIVE_CODEGEN
-        if (JITManager::GetJITManager()->IsOOPJITEnabled())
+        if (JITManager::GetJITManager()->IsOOPJITEnabled() && JITManager::GetJITManager()->IsConnected())
         {
             HRESULT hr = JITManager::GetJITManager()->SetIsPRNGSeeded(GetScriptContext()->GetRemoteScriptAddr(), val);
             JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);

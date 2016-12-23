@@ -1,5 +1,5 @@
 add_library (ChakraCore SHARED
-  ChakraCoreDllFunc.cpp
+  ChakraCoreShared.cpp
   ConfigParserExternals.cpp
   TestHooks.cpp
 )
@@ -21,7 +21,7 @@ target_include_directories (
 #  stdc++/gcc_s: C++ runtime code
 #  dl: For shared library loading related functions
 #
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(LINKER_START_GROUP
     -Wl,--start-group
     -Wl,--whole-archive
@@ -30,8 +30,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
   set(LINKER_END_GROUP
     -Wl,--no-whole-archive
     -Wl,--end-group
+    -static-libstdc++
     )
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+elseif(CC_TARGET_OS_OSX)
   set(LINKER_START_GROUP -Wl,-force_load,)
 endif()
 
@@ -44,19 +45,20 @@ set(lib_target "${lib_target}"
   Chakra.Jsrt
   ${LINKER_END_GROUP}
   pthread
-  stdc++
   dl
   ${ICULIB}
   )
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(lib_target "${lib_target}"
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
     )
-endif()
-
-if(CC_TARGETS_X86)
-  set(lib_target "${lib_target} -m32")
+elseif(CC_TARGET_OS_OSX)
+  if(CC_TARGETS_X86)
+    set(lib_target "${lib_target} -arch i386")
+  elseif(CC_TARGETS_ARM)
+    set(lib_target "${lib_target} -arch arm")
+  endif()
 endif()
 
 target_link_libraries (ChakraCore ${lib_target})

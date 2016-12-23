@@ -1,291 +1,64 @@
-{
-  "modules": [{
-    "filename": "return.0.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "return.wast",
-      "line": 190
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_1",
-      "file": "return.wast",
-      "line": 191
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_2",
-      "file": "return.wast",
-      "line": 192
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_3",
-      "file": "return.wast",
-      "line": 193
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_4",
-      "file": "return.wast",
-      "line": 195
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_5",
-      "file": "return.wast",
-      "line": 196
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_6",
-      "file": "return.wast",
-      "line": 198
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_7",
-      "file": "return.wast",
-      "line": 199
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_8",
-      "file": "return.wast",
-      "line": 200
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_9",
-      "file": "return.wast",
-      "line": 201
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_10",
-      "file": "return.wast",
-      "line": 203
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_11",
-      "file": "return.wast",
-      "line": 204
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_12",
-      "file": "return.wast",
-      "line": 205
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_13",
-      "file": "return.wast",
-      "line": 206
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_14",
-      "file": "return.wast",
-      "line": 208
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_15",
-      "file": "return.wast",
-      "line": 209
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_16",
-      "file": "return.wast",
-      "line": 210
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_17",
-      "file": "return.wast",
-      "line": 212
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_18",
-      "file": "return.wast",
-      "line": 214
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_19",
-      "file": "return.wast",
-      "line": 215
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_20",
-      "file": "return.wast",
-      "line": 216
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_21",
-      "file": "return.wast",
-      "line": 218
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_22",
-      "file": "return.wast",
-      "line": 219
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_23",
-      "file": "return.wast",
-      "line": 220
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_24",
-      "file": "return.wast",
-      "line": 222
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_25",
-      "file": "return.wast",
-      "line": 224
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_26",
-      "file": "return.wast",
-      "line": 225
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_27",
-      "file": "return.wast",
-      "line": 226
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_28",
-      "file": "return.wast",
-      "line": 227
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_29",
-      "file": "return.wast",
-      "line": 228
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_30",
-      "file": "return.wast",
-      "line": 230
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_31",
-      "file": "return.wast",
-      "line": 231
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_32",
-      "file": "return.wast",
-      "line": 232
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_33",
-      "file": "return.wast",
-      "line": 233
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_34",
-      "file": "return.wast",
-      "line": 234
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_35",
-      "file": "return.wast",
-      "line": 236
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_36",
-      "file": "return.wast",
-      "line": 237
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_37",
-      "file": "return.wast",
-      "line": 238
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_38",
-      "file": "return.wast",
-      "line": 240
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_39",
-      "file": "return.wast",
-      "line": 241
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_40",
-      "file": "return.wast",
-      "line": 242
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_41",
-      "file": "return.wast",
-      "line": 243
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_42",
-      "file": "return.wast",
-      "line": 245
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_43",
-      "file": "return.wast",
-      "line": 247
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_44",
-      "file": "return.wast",
-      "line": 248
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_45",
-      "file": "return.wast",
-      "line": 250
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_46",
-      "file": "return.wast",
-      "line": 251
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_47",
-      "file": "return.wast",
-      "line": 252
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_48",
-      "file": "return.wast",
-      "line": 253
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_49",
-      "file": "return.wast",
-      "line": 255
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_50",
-      "file": "return.wast",
-      "line": 257
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_51",
-      "file": "return.wast",
-      "line": 258
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_52",
-      "file": "return.wast",
-      "line": 260
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_53",
-      "file": "return.wast",
-      "line": 262
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_54",
-      "file": "return.wast",
-      "line": 263
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_55",
-      "file": "return.wast",
-      "line": 265
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_56",
-      "file": "return.wast",
-      "line": 267
-    }]
-  }]
-}
+{"source_filename": "return.wast",
+ "commands": [
+  {"type": "module", "line": 3, "filename": "return.0.wasm"}, 
+  {"type": "assert_return", "line": 190, "action": {"type": "invoke", "field": "type-i32", "args": []}, "expected": []}, 
+  {"type": "assert_return", "line": 191, "action": {"type": "invoke", "field": "type-i64", "args": []}, "expected": []}, 
+  {"type": "assert_return", "line": 192, "action": {"type": "invoke", "field": "type-f32", "args": []}, "expected": []}, 
+  {"type": "assert_return", "line": 193, "action": {"type": "invoke", "field": "type-f64", "args": []}, "expected": []}, 
+  {"type": "assert_return", "line": 195, "action": {"type": "invoke", "field": "nullary", "args": []}, "expected": []}, 
+  {"type": "assert_return", "line": 196, "action": {"type": "invoke", "field": "unary", "args": []}, "expected": [{"type": "f64", "value": "4613937818241073152"}]}, 
+  {"type": "assert_return", "line": 198, "action": {"type": "invoke", "field": "as-func-first", "args": []}, "expected": [{"type": "i32", "value": "1"}]}, 
+  {"type": "assert_return", "line": 199, "action": {"type": "invoke", "field": "as-func-mid", "args": []}, "expected": [{"type": "i32", "value": "2"}]}, 
+  {"type": "assert_return", "line": 200, "action": {"type": "invoke", "field": "as-func-last", "args": []}, "expected": []}, 
+  {"type": "assert_return", "line": 201, "action": {"type": "invoke", "field": "as-func-value", "args": []}, "expected": [{"type": "i32", "value": "3"}]}, 
+  {"type": "assert_return", "line": 203, "action": {"type": "invoke", "field": "as-block-first", "args": []}, "expected": []}, 
+  {"type": "assert_return", "line": 204, "action": {"type": "invoke", "field": "as-block-mid", "args": []}, "expected": []}, 
+  {"type": "assert_return", "line": 205, "action": {"type": "invoke", "field": "as-block-last", "args": []}, "expected": []}, 
+  {"type": "assert_return", "line": 206, "action": {"type": "invoke", "field": "as-block-value", "args": []}, "expected": [{"type": "i32", "value": "2"}]}, 
+  {"type": "assert_return", "line": 208, "action": {"type": "invoke", "field": "as-loop-first", "args": []}, "expected": [{"type": "i32", "value": "3"}]}, 
+  {"type": "assert_return", "line": 209, "action": {"type": "invoke", "field": "as-loop-mid", "args": []}, "expected": [{"type": "i32", "value": "4"}]}, 
+  {"type": "assert_return", "line": 210, "action": {"type": "invoke", "field": "as-loop-last", "args": []}, "expected": [{"type": "i32", "value": "5"}]}, 
+  {"type": "assert_return", "line": 212, "action": {"type": "invoke", "field": "as-br-value", "args": []}, "expected": [{"type": "i32", "value": "9"}]}, 
+  {"type": "assert_return", "line": 214, "action": {"type": "invoke", "field": "as-br_if-cond", "args": []}, "expected": []}, 
+  {"type": "assert_return", "line": 215, "action": {"type": "invoke", "field": "as-br_if-value", "args": []}, "expected": [{"type": "i32", "value": "8"}]}, 
+  {"type": "assert_return", "line": 216, "action": {"type": "invoke", "field": "as-br_if-value-cond", "args": []}, "expected": [{"type": "i32", "value": "9"}]}, 
+  {"type": "assert_return", "line": 218, "action": {"type": "invoke", "field": "as-br_table-index", "args": []}, "expected": [{"type": "i64", "value": "9"}]}, 
+  {"type": "assert_return", "line": 219, "action": {"type": "invoke", "field": "as-br_table-value", "args": []}, "expected": [{"type": "i32", "value": "10"}]}, 
+  {"type": "assert_return", "line": 220, "action": {"type": "invoke", "field": "as-br_table-value-index", "args": []}, "expected": [{"type": "i32", "value": "11"}]}, 
+  {"type": "assert_return", "line": 222, "action": {"type": "invoke", "field": "as-return-value", "args": []}, "expected": [{"type": "i64", "value": "7"}]}, 
+  {"type": "assert_return", "line": 224, "action": {"type": "invoke", "field": "as-if-cond", "args": []}, "expected": [{"type": "i32", "value": "2"}]}, 
+  {"type": "assert_return", "line": 225, "action": {"type": "invoke", "field": "as-if-then", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "6"}]}, "expected": [{"type": "i32", "value": "3"}]}, 
+  {"type": "assert_return", "line": 226, "action": {"type": "invoke", "field": "as-if-then", "args": [{"type": "i32", "value": "0"}, {"type": "i32", "value": "6"}]}, "expected": [{"type": "i32", "value": "6"}]}, 
+  {"type": "assert_return", "line": 227, "action": {"type": "invoke", "field": "as-if-else", "args": [{"type": "i32", "value": "0"}, {"type": "i32", "value": "6"}]}, "expected": [{"type": "i32", "value": "4"}]}, 
+  {"type": "assert_return", "line": 228, "action": {"type": "invoke", "field": "as-if-else", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "6"}]}, "expected": [{"type": "i32", "value": "6"}]}, 
+  {"type": "assert_return", "line": 230, "action": {"type": "invoke", "field": "as-select-first", "args": [{"type": "i32", "value": "0"}, {"type": "i32", "value": "6"}]}, "expected": [{"type": "i32", "value": "5"}]}, 
+  {"type": "assert_return", "line": 231, "action": {"type": "invoke", "field": "as-select-first", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "6"}]}, "expected": [{"type": "i32", "value": "5"}]}, 
+  {"type": "assert_return", "line": 232, "action": {"type": "invoke", "field": "as-select-second", "args": [{"type": "i32", "value": "0"}, {"type": "i32", "value": "6"}]}, "expected": [{"type": "i32", "value": "6"}]}, 
+  {"type": "assert_return", "line": 233, "action": {"type": "invoke", "field": "as-select-second", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "6"}]}, "expected": [{"type": "i32", "value": "6"}]}, 
+  {"type": "assert_return", "line": 234, "action": {"type": "invoke", "field": "as-select-cond", "args": []}, "expected": [{"type": "i32", "value": "7"}]}, 
+  {"type": "assert_return", "line": 236, "action": {"type": "invoke", "field": "as-call-first", "args": []}, "expected": [{"type": "i32", "value": "12"}]}, 
+  {"type": "assert_return", "line": 237, "action": {"type": "invoke", "field": "as-call-mid", "args": []}, "expected": [{"type": "i32", "value": "13"}]}, 
+  {"type": "assert_return", "line": 238, "action": {"type": "invoke", "field": "as-call-last", "args": []}, "expected": [{"type": "i32", "value": "14"}]}, 
+  {"type": "assert_return", "line": 240, "action": {"type": "invoke", "field": "as-call_indirect-func", "args": []}, "expected": [{"type": "i32", "value": "20"}]}, 
+  {"type": "assert_return", "line": 241, "action": {"type": "invoke", "field": "as-call_indirect-first", "args": []}, "expected": [{"type": "i32", "value": "21"}]}, 
+  {"type": "assert_return", "line": 242, "action": {"type": "invoke", "field": "as-call_indirect-mid", "args": []}, "expected": [{"type": "i32", "value": "22"}]}, 
+  {"type": "assert_return", "line": 243, "action": {"type": "invoke", "field": "as-call_indirect-last", "args": []}, "expected": [{"type": "i32", "value": "23"}]}, 
+  {"type": "assert_return", "line": 245, "action": {"type": "invoke", "field": "as-set_local-value", "args": []}, "expected": [{"type": "i32", "value": "17"}]}, 
+  {"type": "assert_return", "line": 247, "action": {"type": "invoke", "field": "as-load-address", "args": []}, "expected": [{"type": "f32", "value": "1071225242"}]}, 
+  {"type": "assert_return", "line": 248, "action": {"type": "invoke", "field": "as-loadN-address", "args": []}, "expected": [{"type": "i64", "value": "30"}]}, 
+  {"type": "assert_return", "line": 250, "action": {"type": "invoke", "field": "as-store-address", "args": []}, "expected": [{"type": "i32", "value": "30"}]}, 
+  {"type": "assert_return", "line": 251, "action": {"type": "invoke", "field": "as-store-value", "args": []}, "expected": [{"type": "i32", "value": "31"}]}, 
+  {"type": "assert_return", "line": 252, "action": {"type": "invoke", "field": "as-storeN-address", "args": []}, "expected": [{"type": "i32", "value": "32"}]}, 
+  {"type": "assert_return", "line": 253, "action": {"type": "invoke", "field": "as-storeN-value", "args": []}, "expected": [{"type": "i32", "value": "33"}]}, 
+  {"type": "assert_return", "line": 255, "action": {"type": "invoke", "field": "as-unary-operand", "args": []}, "expected": [{"type": "f32", "value": "1079613850"}]}, 
+  {"type": "assert_return", "line": 257, "action": {"type": "invoke", "field": "as-binary-left", "args": []}, "expected": [{"type": "i32", "value": "3"}]}, 
+  {"type": "assert_return", "line": 258, "action": {"type": "invoke", "field": "as-binary-right", "args": []}, "expected": [{"type": "i64", "value": "45"}]}, 
+  {"type": "assert_return", "line": 260, "action": {"type": "invoke", "field": "as-test-operand", "args": []}, "expected": [{"type": "i32", "value": "44"}]}, 
+  {"type": "assert_return", "line": 262, "action": {"type": "invoke", "field": "as-compare-left", "args": []}, "expected": [{"type": "i32", "value": "43"}]}, 
+  {"type": "assert_return", "line": 263, "action": {"type": "invoke", "field": "as-compare-right", "args": []}, "expected": [{"type": "i32", "value": "42"}]}, 
+  {"type": "assert_return", "line": 265, "action": {"type": "invoke", "field": "as-convert-operand", "args": []}, "expected": [{"type": "i32", "value": "41"}]}, 
+  {"type": "assert_return", "line": 267, "action": {"type": "invoke", "field": "as-grow_memory-size", "args": []}, "expected": [{"type": "i32", "value": "40"}]}, 
+  {"type": "assert_invalid", "line": 270, "filename": "return.1.wasm", "text": "type mismatch"}, 
+  {"type": "assert_invalid", "line": 274, "filename": "return.2.wasm", "text": "type mismatch"}, 
+  {"type": "assert_invalid", "line": 278, "filename": "return.3.wasm", "text": "type mismatch"}
+]}

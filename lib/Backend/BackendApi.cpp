@@ -57,7 +57,7 @@ GenerateFunction(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * fn, Js:
 {
     nativeCodeGen->GenerateFunction(fn, function);
 }
-CodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator)
+InProcCodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator)
 {
     return nativeCodeGen->GetCodeGenAllocator(pageallocator);
 }

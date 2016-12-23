@@ -870,7 +870,7 @@ namespace Js
             localSlotCount = currentSlotCount;
 
 #if ENABLE_NATIVE_CODEGEN
-            if (JITManager::GetJITManager()->IsOOPJITEnabled())
+            if (JITManager::GetJITManager()->IsOOPJITEnabled() && JITManager::GetJITManager()->IsConnected())
             {
                 HRESULT hr = JITManager::GetJITManager()->AddModuleRecordInfo(
                     scriptContext->GetRemoteScriptAddr(),

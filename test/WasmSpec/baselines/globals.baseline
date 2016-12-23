@@ -1,1 +1,2 @@
-16/16 tests passed.
+(23) globals.wast:75: assert_invalid module globals.6.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+26/27 tests passed.

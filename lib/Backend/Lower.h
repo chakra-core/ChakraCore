@@ -206,6 +206,7 @@ private:
     IR::Instr *     LowerUnaryHelper(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg = nullptr);
     IR::Instr *     LowerUnaryHelperMem(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::Opnd* opndBailoutArg = nullptr);
     IR::Instr *     LowerUnaryHelperMemWithFuncBody(IR::Instr *instr, IR::JnHelperMethod helperMethod);
+    IR::Instr *     LowerUnaryHelperMemWithFunctionInfo(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerBinaryHelperMemWithFuncBody(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerUnaryHelperMemWithTemp(IR::Instr *instr, IR::JnHelperMethod helperMethod);
     IR::Instr *     LowerUnaryHelperMemWithTemp2(IR::Instr *instr, IR::JnHelperMethod helperMethod, IR::JnHelperMethod helperMethodWithTemp);
@@ -554,6 +555,7 @@ private:
     IR::Instr *         LoadScriptContext(IR::Instr *instr);
     IR::Instr *         LoadFunctionBody(IR::Instr * instr);
     IR::Opnd *          LoadFunctionBodyOpnd(IR::Instr *instr);
+    IR::Opnd *          LoadFunctionInfoOpnd(IR::Instr *instr);
     IR::Opnd *          LoadScriptContextOpnd(IR::Instr *instr);
     IR::Opnd *          LoadScriptContextValueOpnd(IR::Instr * instr, ScriptContextValue valueType);
     IR::Opnd *          LoadLibraryValueOpnd(IR::Instr * instr, LibraryValue valueType);

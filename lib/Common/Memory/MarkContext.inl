@@ -210,4 +210,3 @@ void MarkContext::ProcessMark()
 
     Assert(markStack.IsEmpty());
 }
-

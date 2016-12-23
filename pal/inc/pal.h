@@ -6624,8 +6624,6 @@ PALIMPORT void __cdecl _makepath(char *, const char *, const char *, const char 
 PALIMPORT void __cdecl _wmakepath(WCHAR *, const WCHAR *, const WCHAR *, const WCHAR *, const WCHAR *);
 PALIMPORT char * __cdecl _fullpath(char *, const char *, size_t);
 
-PALIMPORT void __cdecl _swab(char *, char *, int);
-
 #ifndef PAL_STDCPP_COMPAT
 PALIMPORT time_t __cdecl time(time_t *);
 
@@ -7080,6 +7078,24 @@ public:
 #define _O_APPEND   0x0008
 #define _O_TEXT     0x4000
 #define _O_BINARY   0x8000
+
+ULONG_PTR __stdcall GetCurrentSP();
+
+// xplat-todo: implement me
+#define IsProcessorFeaturePresent(x) false
+
+#if defined(_ARM_)
+#define _ARM_BARRIER_SY 0xF
+#define _InstructionSynchronizationBarrier() __isb(_ARM_BARRIER_SY)
+#endif
+
+#ifndef MAXUINT16
+#define MAXUINT16 ((unsigned short)-1)
+#endif
+
+#ifndef MAXUINT8
+#define MAXUINT8 ((unsigned char)-1)
+#endif
 
 #ifdef  __cplusplus
 }

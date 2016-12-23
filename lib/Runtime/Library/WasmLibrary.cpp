@@ -141,7 +141,7 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
         char16* msg = newEx.ReleaseErrorMessage();
         JavascriptLibrary *library = scriptContext->GetLibrary();
         JavascriptError *pError = library->CreateWebAssemblyCompileError();
-        JavascriptError::SetErrorMessage(pError, JSERR_WasmCompileError, msg, scriptContext);
+        JavascriptError::SetErrorMessage(pError, WASMERR_WasmCompileError, msg, scriptContext);
 
         func->GetDynamicType()->SetEntryPoint(WasmLazyTrapCallback);
         entypointInfo->jsMethod = WasmLazyTrapCallback;

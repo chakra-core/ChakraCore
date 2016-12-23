@@ -895,6 +895,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     workItem->GetJITData()->startTime = (int64)start_time.QuadPart;
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
+        if (!JITManager::GetJITManager()->IsConnected())
+        {
+            throw Js::OperationAbortedException();
+        }
         HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
             workItem->GetJITData(),
             scriptContext->GetRemoteScriptAddr(),
@@ -908,7 +912,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     }
     else
     {
-        CodeGenAllocators *const allocators =
+        InProcCodeGenAllocators *const allocators =
             foreground ? EnsureForegroundAllocators(pageAllocator) : GetBackgroundAllocator(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
         NoRecoverMemoryJitArenaAllocator jitArena(_u("JITArena"), pageAllocator, Js::Throw::OutOfMemory);
 #if DBG

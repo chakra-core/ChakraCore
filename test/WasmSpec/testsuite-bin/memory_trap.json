@@ -1,71 +1,17 @@
-{
-  "modules": [{
-    "filename": "memory_trap.0.wasm",
-    "commands": [{
-      "type": "assert_return",
-      "name": "$assert_return_0",
-      "file": "memory_trap.wast",
-      "line": 21
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_1",
-      "file": "memory_trap.wast",
-      "line": 22
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_2",
-      "file": "memory_trap.wast",
-      "line": 23
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_3",
-      "file": "memory_trap.wast",
-      "line": 24
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_4",
-      "file": "memory_trap.wast",
-      "line": 25
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_5",
-      "file": "memory_trap.wast",
-      "line": 26
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_6",
-      "file": "memory_trap.wast",
-      "line": 27
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_7",
-      "file": "memory_trap.wast",
-      "line": 28
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_8",
-      "file": "memory_trap.wast",
-      "line": 29
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_9",
-      "file": "memory_trap.wast",
-      "line": 30
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_10",
-      "file": "memory_trap.wast",
-      "line": 31
-    }, {
-      "type": "assert_trap",
-      "name": "$assert_trap_11",
-      "file": "memory_trap.wast",
-      "line": 32
-    }, {
-      "type": "assert_return",
-      "name": "$assert_return_12",
-      "file": "memory_trap.wast",
-      "line": 33
-    }]
-  }]
-}
+{"source_filename": "memory_trap.wast",
+ "commands": [
+  {"type": "module", "line": 1, "filename": "memory_trap.0.wasm"}, 
+  {"type": "assert_return", "line": 21, "action": {"type": "invoke", "field": "store", "args": [{"type": "i32", "value": "4294967292"}, {"type": "i32", "value": "42"}]}, "expected": []}, 
+  {"type": "assert_return", "line": 22, "action": {"type": "invoke", "field": "load", "args": [{"type": "i32", "value": "4294967292"}]}, "expected": [{"type": "i32", "value": "42"}]}, 
+  {"type": "assert_trap", "line": 23, "action": {"type": "invoke", "field": "store", "args": [{"type": "i32", "value": "4294967293"}, {"type": "i32", "value": "13"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 24, "action": {"type": "invoke", "field": "load", "args": [{"type": "i32", "value": "4294967293"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 25, "action": {"type": "invoke", "field": "store", "args": [{"type": "i32", "value": "4294967294"}, {"type": "i32", "value": "13"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 26, "action": {"type": "invoke", "field": "load", "args": [{"type": "i32", "value": "4294967294"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 27, "action": {"type": "invoke", "field": "store", "args": [{"type": "i32", "value": "4294967295"}, {"type": "i32", "value": "13"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 28, "action": {"type": "invoke", "field": "load", "args": [{"type": "i32", "value": "4294967295"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 29, "action": {"type": "invoke", "field": "store", "args": [{"type": "i32", "value": "0"}, {"type": "i32", "value": "13"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 30, "action": {"type": "invoke", "field": "load", "args": [{"type": "i32", "value": "0"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 31, "action": {"type": "invoke", "field": "store", "args": [{"type": "i32", "value": "2147483648"}, {"type": "i32", "value": "13"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_trap", "line": 32, "action": {"type": "invoke", "field": "load", "args": [{"type": "i32", "value": "2147483648"}]}, "text": "out of bounds memory access"}, 
+  {"type": "assert_return", "line": 33, "action": {"type": "invoke", "field": "grow_memory", "args": [{"type": "i32", "value": "65537"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}
+]}

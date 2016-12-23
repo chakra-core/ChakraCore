@@ -212,7 +212,6 @@ function_name() to call the system's implementation
 #define atof DUMMY_atof
 #define time DUMMY_time
 #define tm PAL_tm
-#define size_t DUMMY_size_t
 #define time_t PAL_time_t
 #define va_list DUMMY_va_list
 #define abs DUMMY_abs
@@ -573,7 +572,6 @@ function_name() to call the system's implementation
 #include <pwd.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <glob.h>
 
 #ifdef __APPLE__
 

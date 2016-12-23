@@ -13,13 +13,15 @@ target_include_directories (GCStress
   $<BUILD_INTERFACE:${ROOT_SOURCE_DIR}/lib/Common/Memory>
   )
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(LINKER_START_GROUP -Wl,--start-group)
   set(LINKER_END_GROUP -Wl,--end-group)
-endif()
-
-if(CC_TARGETS_X86)
-  set(lib_target "-m32")
+elseif(CC_TARGET_OS_OSX)
+  if(CC_TARGETS_X86)
+    set(lib_target "${lib_target} -arch i386")
+  elseif(CC_TARGETS_ARM)
+    set(lib_target "${lib_target} -arch arm")
+  endif()
 endif()
 
 # common link deps

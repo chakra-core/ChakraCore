@@ -6177,12 +6177,30 @@ LowererMD::GenerateCFGCheck(IR::Opnd * entryPointOpnd, IR::Instr * insertBeforeI
 
     if (m_func->CanAllocInPreReservedHeapPageSegment())
     {
-        PreReservedVirtualAllocWrapper * preReservedVirtualAllocator = m_func->GetThreadContextInfo()->GetPreReservedVirtualAllocator();
-        preReservedRegionStartAddress = (char *)preReservedVirtualAllocator->EnsurePreReservedRegion();
+        char* endAddressOfSegment = nullptr;
+#if ENABLE_OOP_NATIVE_CODEGEN
+        if (m_func->IsOOPJIT())
+        {
+            PreReservedSectionAllocWrapper * preReservedAllocator = m_func->GetOOPThreadContext()->GetPreReservedSectionAllocator();
+            preReservedRegionStartAddress = (char *)preReservedAllocator->EnsurePreReservedRegion();
+            if (preReservedRegionStartAddress != nullptr)
+            {
+                endAddressOfSegment = (char*)preReservedAllocator->GetPreReservedEndAddress();
+            }
+        }
+        else
+#endif
+        {
+            PreReservedVirtualAllocWrapper * preReservedVirtualAllocator = m_func->GetInProcThreadContext()->GetPreReservedVirtualAllocator();
+            preReservedRegionStartAddress = (char *)preReservedVirtualAllocator->EnsurePreReservedRegion();
+            if (preReservedRegionStartAddress != nullptr)
+            {
+                endAddressOfSegment = (char*)preReservedVirtualAllocator->GetPreReservedEndAddress();
+            }
+
+        }
         if (preReservedRegionStartAddress != nullptr)
         {
-            Assert(preReservedVirtualAllocator);
-            char* endAddressOfSegment = (char*)preReservedVirtualAllocator->GetPreReservedEndAddress();
 
             int32 segmentSize = (int32) (endAddressOfSegment - preReservedRegionStartAddress);
 
