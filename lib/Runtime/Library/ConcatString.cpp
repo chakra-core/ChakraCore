@@ -129,7 +129,7 @@ namespace Js
 
     ConcatStringBuilder::ConcatStringBuilder(ScriptContext* scriptContext, int initialSlotCount) :
         ConcatStringBase(scriptContext->GetLibrary()->GetStringTypeStatic()),
-        m_count(0), m_prevChunk(NULL)
+        m_count(0), m_prevChunk(nullptr)
     {
         Assert(scriptContext);
 

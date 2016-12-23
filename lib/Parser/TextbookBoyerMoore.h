@@ -110,7 +110,7 @@ namespace UnifiedRegex
 
     public:
 
-        inline TextbookBoyerMoore() : lastOccurrence(-1), goodSuffix(0) {}
+        inline TextbookBoyerMoore() : lastOccurrence(-1), goodSuffix(nullptr) {}
 
         // Construct Boyer-Moore tables for pattern pat:
         //  - pat must be of length patLen * skip

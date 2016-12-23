@@ -8,7 +8,7 @@
 namespace Js
 {
     FunctionCodeGenRuntimeData::FunctionCodeGenRuntimeData(FunctionBody *const functionBody)
-        : functionBody(functionBody), inlinees(nullptr), next(0)
+        : functionBody(functionBody), inlinees(nullptr), next(nullptr)
     {
     }
 

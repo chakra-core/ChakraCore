@@ -9,6 +9,9 @@ namespace Memory
 class Recycler;
 class RecyclerNonLeafAllocator;
 
+// Dummy tag class to mark no write barrier value
+struct _no_write_barrier_tag {};
+
 // Dummy tag classes to mark yes/no write barrier policy
 //
 struct _write_barrier_policy {};
@@ -317,16 +320,15 @@ class WriteBarrierPtr
 {
 public:
     WriteBarrierPtr() : ptr(nullptr) {}
+    WriteBarrierPtr(const std::nullptr_t&) : ptr(nullptr) {}
     WriteBarrierPtr(T * ptr)
     {
-#ifdef _WIN32
         // WriteBarrier
         WriteBarrierSet(ptr);
-#else
-        // TODO: (leish)(swb) find a way to get dll load address on Linux, and initialize card table for
-        // image write copy region
+    }
+    WriteBarrierPtr(T * ptr, const _no_write_barrier_tag&)
+    {
         NoWriteBarrierSet(ptr);
-#endif
     }
     WriteBarrierPtr(WriteBarrierPtr<T>& other)
     {

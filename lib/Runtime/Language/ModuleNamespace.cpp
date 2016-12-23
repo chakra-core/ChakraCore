@@ -13,7 +13,7 @@
 
 namespace Js
 {
-    Js::FunctionInfo ModuleNamespace::EntryInfo::SymbolIterator(ModuleNamespace::EntrySymbolIterator);
+    Js::FunctionInfo ModuleNamespace::EntryInfo::SymbolIterator(NO_WRITE_BARRIER_TAG(ModuleNamespace::EntrySymbolIterator));
 
     ModuleNamespace::ModuleNamespace(ModuleRecordBase* moduleRecord, DynamicType* type) :
         moduleRecord(moduleRecord), DynamicObject(type), unambiguousNonLocalExports(nullptr),

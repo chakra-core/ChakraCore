@@ -10,7 +10,8 @@ namespace Js
     // TypePropertyCacheElement
     // -------------------------------------------------------------------------------------------------------------------------
 
-    TypePropertyCacheElement::TypePropertyCacheElement() : id(Constants::NoProperty), tag(1), index(0), prototypeObjectWithProperty(0)
+    TypePropertyCacheElement::TypePropertyCacheElement()
+        : id(Constants::NoProperty), tag(1), index(0), prototypeObjectWithProperty(nullptr)
     {
     }
 

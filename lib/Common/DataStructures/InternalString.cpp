@@ -16,6 +16,14 @@ namespace Js
         AssertMsg(length < INT_MAX, "Length should be a valid string length");
     }
 
+    InternalString::InternalString(const char16* content, _no_write_barrier_tag, charcount_t length, unsigned char offset) :
+        m_content(NO_WRITE_BARRIER_TAG(content)),
+        m_charLength(length),
+        m_offset(offset)
+    {
+        AssertMsg(length < INT_MAX, "Length should be a valid string length");
+    }
+
     // This will make a copy of the entire buffer
     InternalString *InternalString::New(ArenaAllocator* alloc, const char16* content, charcount_t length)
     {

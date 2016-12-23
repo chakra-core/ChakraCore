@@ -68,9 +68,9 @@ namespace Js
 
     SegmentBTree::SegmentBTree()
         : segmentCount(0),
-          segments(NULL),
-          keys(NULL),
-          children(NULL)
+          segments(nullptr),
+          keys(nullptr),
+          children(nullptr)
     {
     }
 

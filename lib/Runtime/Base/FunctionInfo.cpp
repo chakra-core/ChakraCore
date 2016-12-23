@@ -14,6 +14,14 @@ namespace Js
 #endif
     }
 
+    FunctionInfo::FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes, LocalFunctionId functionId, FunctionProxy* functionBodyImpl)
+        : originalEntryPoint(entryPoint), attributes(attributes), functionBodyImpl(NO_WRITE_BARRIER_TAG(functionBodyImpl)), functionId(functionId), compileCount(0)
+    {
+#if !DYNAMIC_INTERPRETER_THUNK
+        Assert(entryPoint != nullptr);
+#endif
+    }
+
     bool FunctionInfo::Is(void* ptr)
     {
         if(!ptr)
