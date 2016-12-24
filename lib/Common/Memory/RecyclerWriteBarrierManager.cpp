@@ -264,11 +264,6 @@ X64WriteBarrierCardTableManager::Initialize()
 
     OnThreadInit();
 
-#if SYSINFO_IMAGE_BASE_AVAILABLE
-    // Image WRITE_COPY region
-    // TODO: find a way for linux
-    OnSegmentAlloc((char*)AutoSystemInfo::Data.dllLoadAddress, (AutoSystemInfo::Data.dllHighAddress - AutoSystemInfo::Data.dllLoadAddress) / AutoSystemInfo::Data.PageSize);
-#endif
     return _cardTable;
 }
 
