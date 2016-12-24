@@ -4755,7 +4755,7 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
         && assignInstr->m_opcode == Js::OpCode::MOV // ignore SSE instructions like MOVSD
         && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
     {
-        func->GetTopFunc()->m_lowerer->GetLowererMD()->GenerateWriteBarrier(assignInstr);
+		LowererMD::GenerateWriteBarrier(assignInstr);
     }
 #endif
 }
@@ -4826,18 +4826,6 @@ LowererMD::GenerateWriteBarrier(IR::Instr * assignInstr)
     IR::RegOpnd * indexOpnd = IR::RegOpnd::New(TyMachPtr, assignInstr->m_func);
     IR::Instr * loadIndexInstr = IR::Instr::New(Js::OpCode::LEA, indexOpnd, assignInstr->GetDst(), assignInstr->m_func);
     assignInstr->InsertBefore(loadIndexInstr);
-
-#if DBG
-    // CALL Recycler::WBSetBitJIT
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
-    {
-        this->LoadHelperArgument(assignInstr, indexOpnd);
-        IR::Instr* instrCall = IR::Instr::New(Js::OpCode::Call, m_func);
-        assignInstr->InsertBefore(instrCall);
-        this->ChangeToHelperCall(instrCall, IR::HelperWriteBarrierSetVerifyBit);
-    }
-#endif
-
     IR::Instr * shiftBitInstr = IR::Instr::New(Js::OpCode::SHR, indexOpnd, indexOpnd,
         IR::IntConstOpnd::New(12 /* 1 << 12 = 4096 */, TyInt8, assignInstr->m_func), assignInstr->m_func);
     assignInstr->InsertBefore(shiftBitInstr);

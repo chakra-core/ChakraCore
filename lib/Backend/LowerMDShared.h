@@ -398,7 +398,7 @@ private:
 
     IR::LabelInstr*   EmitLoadFloatCommon(IR::Opnd *dst, IR::Opnd *src, IR::Instr *insertInstr, bool needLabelHelper);
 #ifdef RECYCLER_WRITE_BARRIER
-    IR::Instr* GenerateWriteBarrier(IR::Instr * assignInstr);
+    static IR::Instr* GenerateWriteBarrier(IR::Instr * assignInstr);
 #endif
 
     // Data
