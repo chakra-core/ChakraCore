@@ -21,7 +21,7 @@ JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
 
 BOOL doTTRecord = false;
 BOOL doTTDebug = false;
-byte ttUri[MAX_PATH * sizeof(wchar_t)];
+byte ttUri[MAX_PATH * sizeof(WCHAR)];
 size_t ttUriByteLength = 0;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;

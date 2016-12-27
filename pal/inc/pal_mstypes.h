@@ -554,17 +554,9 @@ typedef LONG_PTR LPARAM;
 #define _PTRDIFF_T
 #endif
 
-// CC uses both char16_t and wchar_t internally
-#if !defined(PAL_WCHAR_T_DEFINED)
-#if defined(__cplusplus)
-#undef wchar_t
-#define wchar_t __wchar_16_cpp__
-typedef char16_t wchar_t;
-#else
+#if !defined(__cplusplus)
 typedef unsigned short char16_t;
 #endif // __cplusplus
-#define PAL_WCHAR_T_DEFINED
-#endif // PAL_WCHAR_T_DEFINED
 
 typedef char16_t WCHAR;
 #define WCHAR_IS_CHAR16_T 1

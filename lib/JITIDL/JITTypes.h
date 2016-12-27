@@ -435,7 +435,7 @@ typedef struct PropertyIdArrayIDL
 
 typedef struct JavascriptStringIDL
 {
-    IDL_DEF([size_is(m_charLength + 1)]) wchar_t* m_pszValue;
+    IDL_DEF([size_is(m_charLength + 1)]) WCHAR* m_pszValue;
     unsigned int m_charLength;
 } JavascriptStringIDL;
 
@@ -553,7 +553,7 @@ typedef struct FunctionBodyDataIDL
 
     IDL_DEF([size_is(referencedPropertyIdCount)]) int * referencedPropertyIdMap;
 
-    IDL_DEF([size_is(nameLength)]) wchar_t * displayName;
+    IDL_DEF([size_is(nameLength)]) WCHAR * displayName;
 
     IDL_DEF([size_is(literalRegexCount)]) CHAKRA_PTR * literalRegexes;
 

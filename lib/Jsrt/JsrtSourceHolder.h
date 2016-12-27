@@ -40,7 +40,7 @@ namespace Js
             return mappedSourceByteLength;
         };
 
-        void EnsureSource(MapRequestFor requestedFor, const wchar_t* reasonString);
+        void EnsureSource(MapRequestFor requestedFor, const WCHAR* reasonString);
 
     public:
         JsrtSourceHolder(_In_ TLoadCallback scriptLoadCallback,
@@ -73,13 +73,13 @@ namespace Js
         }
 
         // Following two methods are calls to EnsureSource before attempting to get the source
-        virtual LPCUTF8 GetSource(const wchar_t* reasonString) override
+        virtual LPCUTF8 GetSource(const WCHAR* reasonString) override
         {
             this->EnsureSource(MapRequestFor::Source, reasonString);
             return this->GetMappedSource();
         }
 
-        virtual size_t GetByteLength(const wchar_t* reasonString) override
+        virtual size_t GetByteLength(const WCHAR* reasonString) override
         {
             this->EnsureSource(MapRequestFor::Length, reasonString);
             return this->GetMappedSourceLength();

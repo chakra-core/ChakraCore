@@ -70,8 +70,6 @@
 #undef Yield /* winbase.h defines this but we want to use it for Js::OpCode::Yield; it is Win16 legacy, no harm undef'ing it */
 #pragma warning(pop)
 
-typedef wchar_t char16;
-
 // xplat-todo: get a better name for this macro
 #define _u(s) L##s
 #define INIT_PRIORITY(x)
@@ -635,7 +633,7 @@ void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
 #else
 #define __TRY_FINALLY_BEGIN __try
 #define __FINALLY   __finally
-#define __TRY_FINALLY_END 
+#define __TRY_FINALLY_END
 #endif
 
 namespace PlatformAgnostic

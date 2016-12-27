@@ -1571,8 +1571,8 @@ std::string toString( std::string const& value );
 std::string toString( std::wstring const& value );
 std::string toString( const char* const value );
 std::string toString( char* const value );
-std::string toString( const wchar_t* const value );
-std::string toString( wchar_t* const value );
+std::string toString( const WCHAR* const value );
+std::string toString( WCHAR* const value );
 std::string toString( int value );
 std::string toString( unsigned long value );
 std::string toString( unsigned int value );
@@ -8095,14 +8095,14 @@ std::string toString( char* const value ) {
     return Catch::toString( static_cast<const char*>( value ) );
 }
 
-std::string toString( const wchar_t* const value )
+std::string toString( const WCHAR* const value )
 {
 	return value ? Catch::toString( std::wstring(value) ) : std::string( "{null string}" );
 }
 
-std::string toString( wchar_t* const value )
+std::string toString( WCHAR* const value )
 {
-	return Catch::toString( static_cast<const wchar_t*>( value ) );
+	return Catch::toString( static_cast<const WCHAR*>( value ) );
 }
 
 std::string toString( int value ) {
@@ -10506,4 +10506,3 @@ int main (int argc, char * const argv[]) {
 using Catch::Detail::Approx;
 
 #endif // TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
-
