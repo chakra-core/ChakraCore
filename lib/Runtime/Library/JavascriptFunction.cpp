@@ -1122,23 +1122,23 @@ namespace Js
 
 #if _M_IX86
 #ifdef ASMJS_PLAT
-    template <> int JavascriptFunction::CallAsmJsFunction<int>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    template <> int JavascriptFunction::CallAsmJsFunction<int>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
     {
         return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retIntVal;
     }
-    template <> int64 JavascriptFunction::CallAsmJsFunction<int64>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    template <> int64 JavascriptFunction::CallAsmJsFunction<int64>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
     {
         return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retInt64Val;
     }
-    template <> float JavascriptFunction::CallAsmJsFunction<float>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    template <> float JavascriptFunction::CallAsmJsFunction<float>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
     {
         return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retFloatVal;
     }
-    template <> double JavascriptFunction::CallAsmJsFunction<double>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    template <> double JavascriptFunction::CallAsmJsFunction<double>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
     {
         return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retDoubleVal;
     }
-    template <> AsmJsSIMDValue JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv) 
+    template <> AsmJsSIMDValue JavascriptFunction::CallAsmJsFunction<AsmJsSIMDValue>(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv)
     {
         return CallAsmJsFunctionX86Thunk(function, entryPoint, argc, argv).retSimdVal;
     }
@@ -1149,7 +1149,7 @@ namespace Js
             IsFloat = 1 << AsmJsRetType::Float,
             IsDouble = 1 << AsmJsRetType::Double,
             IsInt64 = 1 << AsmJsRetType::Int64,
-            IsSimd = 
+            IsSimd =
             1 << AsmJsRetType::Int32x4 |
             1 << AsmJsRetType::Bool32x4 |
             1 << AsmJsRetType::Bool16x8 |
@@ -1677,10 +1677,10 @@ LABEL1:
         }
 
         DebugOnly(JavascriptMethod directEntryPoint = funcBody->GetDirectEntryPoint(funcBody->GetDefaultEntryPointInfo()));
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         Assert(directEntryPoint != DefaultDeferredParsingThunk
             && directEntryPoint != ProfileDeferredParsingThunk);
-#else // !ENABLE_SCRIPT_PROFILING
+#else // !ENABLE_SCRIPT_PROFILING && !ENABLE_SCRIPT_DEBUGGING
         Assert(directEntryPoint != DefaultDeferredParsingThunk);
 #endif
 

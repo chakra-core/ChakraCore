@@ -16,6 +16,8 @@
     <default>
       <compile-flags>-debuglaunch -dbgbaseline:JsDiagGetFunctionPosition.js.dbg.baseline</compile-flags>
       <files>JsDiagGetFunctionPosition.js</files>
+      <!-- xplat-todo: enable back [not supported] Intl -->
+      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>

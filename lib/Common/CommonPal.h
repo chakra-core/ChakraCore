@@ -629,6 +629,16 @@ void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
     finallyFunc(hasException);
 }
 
+#ifdef DISABLE_SEH
+#define __TRY_FINALLY_BEGIN TryFinally([&]()
+#define __FINALLY           , [&](bool /* hasException */)
+#define __TRY_FINALLY_END   );
+#else
+#define __TRY_FINALLY_BEGIN __try
+#define __FINALLY   __finally
+#define __TRY_FINALLY_END 
+#endif
+
 namespace PlatformAgnostic
 {
     __forceinline unsigned char _BitTestAndSet(LONG *_BitBase, int _BitPos)
@@ -691,3 +701,4 @@ namespace PlatformAgnostic
 #include "PlatformAgnostic/SystemInfo.h"
 #include "PlatformAgnostic/Thread.h"
 #include "PlatformAgnostic/AssemblyCommon.h"
+#include "PlatformAgnostic/Debugger.h"

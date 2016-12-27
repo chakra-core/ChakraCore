@@ -295,8 +295,9 @@ Encoder::Encode()
     {
         if (m_func->IsOOPJIT())
         {
-            Js::ThrowMapEntry * throwMap = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), Js::ThrowMapEntry, m_pragmaInstrToRecordMap->Count());
-            for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i++)
+            int allocSize = m_pragmaInstrToRecordMap->Count();
+            Js::ThrowMapEntry * throwMap = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), Js::ThrowMapEntry, allocSize);
+            for (int i = 0; i < allocSize; i++)
             {
                 IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
                 throwMap[i].nativeBufferOffset = inst->m_offsetInBuffer;

@@ -1471,7 +1471,7 @@ namespace Js
 
 #if DBG
         bool HasValidEntryPoint() const;
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         bool HasValidProfileEntryPoint() const;
 #endif
         bool HasValidNonProfileEntryPoint() const;

@@ -23,6 +23,7 @@ target_include_directories (
 #
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(LINKER_START_GROUP
+    -fPIC
     -Wl,--start-group
     -Wl,--whole-archive
     )

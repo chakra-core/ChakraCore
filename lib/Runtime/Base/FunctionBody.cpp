@@ -1612,7 +1612,7 @@ namespace Js
     ParseableFunctionInfo* ParseableFunctionInfo::New(ScriptContext* scriptContext, int nestedCount,
         LocalFunctionId functionId, Utf8SourceInfo* sourceInfo, const char16* displayName, uint displayNameLength, uint displayShortNameOffset, Js::PropertyRecordList* propertyRecords, FunctionInfo::Attributes attributes, FunctionBodyFlags flags)
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         Assert(
             scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk ||
             scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
@@ -3459,7 +3459,7 @@ namespace Js
 #endif
         ;
     }
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
     bool FunctionProxy::HasValidProfileEntryPoint() const
     {
         JavascriptMethod directEntryPoint = this->GetDefaultEntryPointInfo()->jsMethod;
@@ -3504,7 +3504,7 @@ namespace Js
         {
             return this->HasValidNonProfileEntryPoint();
         }
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         if (m_scriptContext->IsProfiling())
         {
             return this->HasValidProfileEntryPoint();
@@ -3519,7 +3519,7 @@ namespace Js
 #endif
     void ParseableFunctionInfo::SetDeferredParsingEntryPoint()
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         Assert(m_scriptContext->DeferredParsingThunk == ProfileDeferredParsingThunk
             || m_scriptContext->DeferredParsingThunk == DefaultDeferredParsingThunk);
 #else
@@ -3532,7 +3532,7 @@ namespace Js
 
     void ParseableFunctionInfo::SetInitialDefaultEntryPoint()
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         Assert(m_scriptContext->CurrentThunk == ProfileEntryThunk || m_scriptContext->CurrentThunk == DefaultEntryThunk);
         Assert(this->GetOriginalEntryPoint_Unchecked() == DefaultDeferredParsingThunk ||
                this->GetOriginalEntryPoint_Unchecked() == ProfileDeferredParsingThunk ||
@@ -4955,12 +4955,12 @@ namespace Js
     {
         ProxyEntryPointInfo* defaultEntryPointInfo = this->GetDefaultEntryPointInfo();
         if (defaultEntryPointInfo->jsMethod != DefaultDeferredParsingThunk
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
             && defaultEntryPointInfo->jsMethod != ProfileDeferredParsingThunk
 #endif
             )
         {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
             // Just change the thunk, the cleanup will be done once the function gets called.
             if (this->m_scriptContext->CurrentThunk == ProfileEntryThunk)
             {

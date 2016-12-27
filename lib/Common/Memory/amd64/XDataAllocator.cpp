@@ -34,6 +34,7 @@ bool XDataAllocator::Initialize(void* segmentStart, void* segmentEnd)
 
 XDataAllocator::~XDataAllocator()
 {
+    current = nullptr;
     ClearFreeList();
 }
 
@@ -42,7 +43,8 @@ void XDataAllocator::Delete()
     HeapDelete(this);
 }
 
-bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation)
+bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize,
+    ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation)
 {
     XDataAllocation* xdata = static_cast<XDataAllocation*>(allocation);
     Assert(start != nullptr);
@@ -107,6 +109,7 @@ void XDataAllocator::ClearFreeList()
     {
         entry = next;
         next = entry->next;
+        entry->address = nullptr;
         HeapDelete(entry);
     }
     this->freeList = NULL;
