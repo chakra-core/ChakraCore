@@ -180,7 +180,7 @@ namespace Js {
 
         Field(JavascriptExceptionContext) exceptionContext;
 #if ENABLE_DEBUG_STACK_BACK_TRACE
-        StackBackTrace * stackBackTrace;
+        Field(StackBackTrace*) stackBackTrace;
         static const int StackToSkip = 2;
         static const int StackTraceDepth = 30;
 #endif

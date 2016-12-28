@@ -94,7 +94,7 @@ if not args.variants:
 binary = args.binary
 if binary == None:
     if sys.platform == 'win32':
-        binary = 'Build/VcBuild/bin/{}_{}/ch.exe'.format(arch, flavor)
+        binary = 'Build\\VcBuild\\bin\\{}_{}\\ch.exe'.format(arch, flavor)
     else:
         binary = 'BuildLinux/{0}/ch'.format(flavor)
     binary = os.path.join(repo_root, binary)

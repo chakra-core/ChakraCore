@@ -2567,7 +2567,7 @@ namespace Js
         double* localDoubleSlots = (double*)(moduleMemoryPtr + moduleMemory.mDoubleOffset);
         Field(Var)* localFunctionImports = moduleMemoryPtr + moduleMemory.mFFIOffset ;
         Field(Var)* localModuleFunctions = moduleMemoryPtr + moduleMemory.mFuncOffset ;
-        Field(Var)** localFunctionTables = (Field(Var)**)(moduleMemoryPtr + moduleMemory.mFuncPtrOffset) ;
+        Field(Field(Var)*)* localFunctionTables = (Field(Field(Var)*)*)(moduleMemoryPtr + moduleMemory.mFuncPtrOffset) ;
 
         AsmJsSIMDValue* localSimdSlots = nullptr;
         if (scriptContext->GetConfig()->IsSimdjsEnabled())

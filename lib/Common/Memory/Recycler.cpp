@@ -7599,7 +7599,7 @@ Recycler::TrackAllocCore(void * object, size_t size, const TrackAllocData& track
         {
             size_t stackTraceSize = 16 * sizeof(void*);
             item = NoCheckHeapNewPlus(stackTraceSize, TrackerItem, typeInfo);
-            StackBackTrace::Capture((char*)&item[1], stackTraceSize, 0);
+            StackBackTrace::Capture((char*)&item[1], stackTraceSize, 7);
         }
         else
         {

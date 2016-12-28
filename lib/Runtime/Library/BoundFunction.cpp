@@ -159,7 +159,7 @@ namespace Js
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_ArgListTooLarge);
             }
 
-            Var *newValues = RecyclerNewArray(scriptContext->GetRecycler(), Var, boundFunction->count + argCount);
+            Field(Var) *newValues = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), boundFunction->count + argCount);
 
             uint index = 0;
 
@@ -202,7 +202,7 @@ namespace Js
                 newValues[index++] = args[i];
             }
 
-            actualArgs = Arguments(args.Info, newValues);
+            actualArgs = Arguments(args.Info, (Var*)newValues);
             actualArgs.Info.Count = boundFunction->count + argCount;
         }
         else

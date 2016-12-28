@@ -853,10 +853,10 @@ namespace TTD
             Js::RecyclableObject* bFunction = inflator->LookupObject(snapBoundInfo->TargetFunction);
             Js::RecyclableObject* bThis = (snapBoundInfo->BoundThis != TTD_INVALID_PTR_ID) ? inflator->LookupObject(snapBoundInfo->BoundThis) : nullptr;
 
-            Js::Var* bArgs = nullptr;
+            Field(Js::Var)* bArgs = nullptr;
             if(snapBoundInfo->ArgCount != 0)
             {
-                bArgs = RecyclerNewArray(ctx->GetRecycler(), Js::Var, snapBoundInfo->ArgCount);
+                bArgs = RecyclerNewArray(ctx->GetRecycler(), Field(Js::Var), snapBoundInfo->ArgCount);
 
                 for(uint i = 0; i < snapBoundInfo->ArgCount; i++)
                 {
@@ -864,7 +864,7 @@ namespace TTD
                 }
             }
 
-            return ctx->GetLibrary()->CreateBoundFunction_TTD(bFunction, bThis, snapBoundInfo->ArgCount, bArgs);
+            return ctx->GetLibrary()->CreateBoundFunction_TTD(bFunction, bThis, snapBoundInfo->ArgCount, (Js::Var*)bArgs);
         }
 
         void EmitAddtlInfo_SnapBoundFunctionInfo(const SnapObject* snpObject, FileWriter* writer)

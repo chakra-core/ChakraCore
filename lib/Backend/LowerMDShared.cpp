@@ -756,9 +756,15 @@ IR::Instr* LowererMD::ChangeToHelperCallMem(IR::Instr * instr,  IR::JnHelperMeth
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::ChangeToAssign(IR::Instr * instr)
+LowererMD::ChangeToAssignNoBarrierCheck(IR::Instr * instr)
 {
     return ChangeToAssign(instr, instr->GetDst()->GetType());
+}
+
+IR::Instr *
+LowererMD::ChangeToAssign(IR::Instr * instr)
+{
+    return ChangeToWriteBarrierAssign(instr, instr->m_func);
 }
 
 IR::Instr *
@@ -4712,7 +4718,7 @@ LowererMD::GenerateLoadPolymorphicInlineCacheSlot(IR::Instr * instrLdSt, IR::Reg
     instrLdSt->InsertBefore(instr);
 }
 
-void
+IR::Instr *
 LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 {
 #ifdef RECYCLER_WRITE_BARRIER_JIT
@@ -4747,7 +4753,7 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
     }
 #endif
 
-    ChangeToAssign(assignInstr);
+    IR::Instr * instr = ChangeToAssignNoBarrierCheck(assignInstr);
 
     // Now insert write barrier if necessary
 #ifdef RECYCLER_WRITE_BARRIER_JIT
@@ -4755,9 +4761,11 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
         && assignInstr->m_opcode == Js::OpCode::MOV // ignore SSE instructions like MOVSD
         && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
     {
-		LowererMD::GenerateWriteBarrier(assignInstr);
+        LowererMD::GenerateWriteBarrier(assignInstr);
     }
 #endif
+
+    return instr;
 }
 
 void

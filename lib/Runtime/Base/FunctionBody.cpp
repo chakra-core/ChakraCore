@@ -9611,6 +9611,15 @@ namespace Js
 #endif
                 if (validationCookie == currentCookie)
                 {
+                    if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
+                    {
+#if DBG
+                        // tag the jsMethod in case the native address is reused in recycler and create a false positive
+                        this->jsMethod = (Js::JavascriptMethod)((intptr_t)this->jsMethod | 1);
+#else
+                        this->jsMethod = nullptr;
+#endif
+                    }
                     scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress());
                 }
             }
@@ -9919,6 +9928,16 @@ namespace Js
 
                 if (validationCookie == currentCookie)
                 {
+                    if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
+                    {
+#if DBG
+                        // tag the jsMethod in case the native address is reused in recycler and create a false positive
+                        this->jsMethod = (Js::JavascriptMethod)((intptr_t)this->jsMethod | 1);
+#else
+                        this->jsMethod = nullptr;
+#endif
+                    }
+
                     scriptContext->FreeFunctionEntryPoint(reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()));
                 }
             }

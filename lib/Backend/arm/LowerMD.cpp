@@ -2343,9 +2343,15 @@ IR::Instr* LowererMD::ChangeToHelperCallMem(IR::Instr * instr,  IR::JnHelperMeth
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::ChangeToAssign(IR::Instr * instr)
+LowererMD::ChangeToAssignNoBarrierCheck(IR::Instr * instr)
 {
     return ChangeToAssign(instr, instr->GetDst()->GetType());
+}
+
+IR::Instr *
+LowererMD::ChangeToAssign(IR::Instr * instr)
+{
+    return ChangeToWriteBarrierAssign(instr, instr->m_func);
 }
 
 IR::Instr *
@@ -2381,13 +2387,13 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
     return instr;
 }
 
-void
+IR::Instr *
 LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 {
 #ifdef RECYCLER_WRITE_BARRIER_JIT
     // WriteBarrier-TODO- Implement ARM JIT
 #endif
-    ChangeToAssign(assignInstr);
+    return ChangeToAssignNoBarrierCheck(assignInstr);
 }
 
 ///----------------------------------------------------------------------------

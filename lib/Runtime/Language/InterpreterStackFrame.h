@@ -28,6 +28,10 @@ namespace Js
         InterpreterStackFrameFlags_ProcessingBailOutFromEHCode = 0x10,
         InterpreterStackFrameFlags_All = 0xFFFF,
     };
+
+    // TODO: (leish)(swb) this is not always stack allocated now
+    // with ES6 Generator, this can be allocated with recycler
+    // need to find a good way to set write barrier, or big refactor.
     struct InterpreterStackFrame   /* Stack allocated, no virtuals */
     {
         PREVENT_COPY(InterpreterStackFrame)

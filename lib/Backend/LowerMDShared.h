@@ -85,6 +85,7 @@ public:
     static  IR::Instr *     CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, bool generateWriteBarrier = true);
 
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr);
+    static  IR::Instr *     ChangeToAssignNoBarrierCheck(IR::Instr * instr);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type);
     static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false);
     static  void            ImmedSrcToReg(IR::Instr * instr, IR::Opnd * newOpnd, int srcNum);
@@ -305,7 +306,7 @@ public:
 
             void GenerateWriteBarrierAssign(IR::IndirOpnd * opndDst, IR::Opnd * opndSrc, IR::Instr * insertBeforeInstr);
             void GenerateWriteBarrierAssign(IR::MemRefOpnd * opndDst, IR::Opnd * opndSrc, IR::Instr * insertBeforeInstr);
-            static void ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func);
+            static IR::Instr * ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func);
 
             static IR::BranchInstr * GenerateLocalInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext, bool checkTypeWithoutProperty = false);
             static IR::BranchInstr * GenerateProtoInlineCacheCheck(IR::Instr * instrLdSt, IR::RegOpnd * opndType, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelNext);

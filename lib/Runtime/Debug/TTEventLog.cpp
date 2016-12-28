@@ -652,14 +652,14 @@ namespace TTD
 
     void EventLog::InitForTTDReplay(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes, bool debug)
     {
-		if (debug)
-		{
-			this->SetGlobalMode(TTDMode::DebuggerMode);
-		}
-		else
-		{
-			this->SetGlobalMode(TTDMode::ReplayMode);
-		}
+        if (debug)
+        {
+            this->SetGlobalMode(TTDMode::DebuggerMode);
+        }
+        else
+        {
+            this->SetGlobalMode(TTDMode::ReplayMode);
+        }
 
         this->ParseLogInto(iofp, uriByteLength, uriBytes);
 

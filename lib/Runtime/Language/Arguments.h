@@ -105,6 +105,9 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 
 namespace Js
 {
+    // TODO: (leish)(swb) this is not always stack allocated now
+    // with ES6 Generator, this can be allocated with recycler
+    // need to find a good way to set write barrier, or big refactor.
     struct Arguments
     {
     public:
