@@ -80,6 +80,7 @@ elseif(CC_TARGETS_X86)
 elseif(CC_TARGETS_ARM)
     set (CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
         arm/StackFrame.cpp
+        arm/arm_Thunks.S
     )
 endif()
 
