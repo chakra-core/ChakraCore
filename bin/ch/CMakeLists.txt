@@ -35,7 +35,12 @@ target_include_directories (ch
 if(STATIC_LIBRARY)
   if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
     set(LINKER_START_GROUP -pie -Wl,--start-group)
-    set(LINKER_END_GROUP -Wl,--end-group -static-libstdc++)
+    set(LINKER_END_GROUP -Wl,--end-group)
+    if (CC_TARGET_OS_LINUX) # do not embed libstdc++ statically on Android
+      set(LINKER_END_GROUP "${LINKER_END_GROUP} -static-libstdc++")
+    else()
+      set(LINKER_END_GROUP "${LINKER_END_GROUP} -llog")
+    endif()
   elseif(CC_TARGET_OS_OSX)
     set(LINKER_START_GROUP -Wl,-force_load,)
   endif()
