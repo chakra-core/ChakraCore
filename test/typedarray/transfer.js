@@ -2,6 +2,9 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+if (this.WScript && this.WScript.LoadScriptFile) { // Check for running in ch
+    this.WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
+}
 
 var buf1 = new ArrayBuffer(1<<21);
 new Int8Array(buf1)[0] = 42;
@@ -32,3 +35,13 @@ print(buf6.byteLength);
 var buf7 = ArrayBuffer.transfer(buf6, 0);
 print(buf6.byteLength);
 print(buf7.byteLength);
+
+// Test the DataView constructor with a detached buffer.
+function TestDataViewCostructorDetachedBuffer()
+{
+    var arrayBufferToDetach = new ArrayBuffer(16);
+    var arrayBufferNew = ArrayBuffer.transfer(arrayBufferToDetach, 0);
+    var dataView8 = new DataView(arrayBufferToDetach);
+}
+
+assert.throws(TestDataViewCostructorDetachedBuffer, TypeError, "", "'this' is not a DataView object");
