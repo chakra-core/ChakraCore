@@ -21,6 +21,7 @@ namespace Js
         RecyclableObject* iteratorObject;
         Var value;
         BOOL done;
+        SListBase<Js::PropertyRecord const *> propertyRecords;
     };
 
 }
