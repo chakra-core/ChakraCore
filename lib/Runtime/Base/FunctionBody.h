@@ -1487,6 +1487,8 @@ namespace Js
         // this is also now being used for function.name.
         const char16* GetShortDisplayName(charcount_t * shortNameLength);
 
+        bool GetDisplayNameIsRecyclerAllocated() { return m_displayNameIsRecyclerAllocated; }
+
         bool IsJitLoopBodyPhaseEnabled() const
         {
             // Consider: Allow JitLoopBody in generator functions for loops that do not yield.
@@ -1510,7 +1512,7 @@ namespace Js
 
     protected:
         // Static method(s)
-        static void SetDisplayName(const char16* srcName, FieldWithBarrier(const char16*)* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
+        static bool SetDisplayName(const char16* srcName, FieldWithBarrier(const char16*)* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
         static bool SetDisplayName(const char16* srcName, const char16** destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags = SetDisplayNameFlagsNone);
         static bool IsConstantFunctionName(const char16* srcName);
 
@@ -1525,6 +1527,8 @@ namespace Js
         FieldWithBarrier(bool) m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
         FieldWithBarrier(bool) m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
         FieldWithBarrier(bool) m_canBeDeferred : 1;
+        FieldWithBarrier(bool) m_displayNameIsRecyclerAllocated : 1;
+
 
         void CleanupFunctionProxyCounters()
         {

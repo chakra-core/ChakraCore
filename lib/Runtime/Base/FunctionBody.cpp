@@ -74,7 +74,8 @@ namespace Js
         m_scriptContext(scriptContext),
         m_utf8SourceInfo(utf8SourceInfo),
         m_functionNumber(functionNumber),
-        m_defaultEntryPointInfo(nullptr)
+        m_defaultEntryPointInfo(nullptr),
+        m_displayNameIsRecyclerAllocated(false)
     {
         PERF_COUNTER_INC(Code, TotalFunction);
     }
@@ -2037,7 +2038,7 @@ namespace Js
     {
         this->m_displayNameLength = displayNameLength;
         this->m_displayShortNameOffset = displayShortNameOffset;
-        FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
+        this->m_displayNameIsRecyclerAllocated = FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
     }
 
     LPCWSTR DeferDeserializeFunctionInfo::GetSourceInfo(int& lineNumber, int& columnNumber) const
@@ -2636,7 +2637,7 @@ namespace Js
         }
     }
 
-    void FunctionProxy::SetDisplayName(const char16* srcName, WriteBarrierPtr<const char16>* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags /* default to None */)
+    bool FunctionProxy::SetDisplayName(const char16* srcName, WriteBarrierPtr<const char16>* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags /* default to None */)
     {
         const char16* dest = nullptr;
         bool targetIsRecyclerMemory = SetDisplayName(srcName, &dest, displayNameLength, scriptContext, flags);
@@ -2649,6 +2650,7 @@ namespace Js
         {
             destName->NoWriteBarrierSet(dest);
         }
+        return targetIsRecyclerMemory;
     }
     void ParseableFunctionInfo::SetDisplayName(const char16* pszDisplayName)
     {
@@ -2664,7 +2666,8 @@ namespace Js
     {
         this->m_displayNameLength = displayNameLength;
         this->m_displayShortNameOffset = displayShortNameOffset;
-        FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
+
+        this->m_displayNameIsRecyclerAllocated = FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
     }
 
     // SourceInfo methods
