@@ -49,15 +49,8 @@ bool ChakraRTInterface::LoadChakraDll(ArgInfo* argInfo, HINSTANCE *outLibrary)
 #ifndef CHAKRA_STATIC_LIBRARY
     HINSTANCE library = nullptr;
 
-    char filename[_MAX_PATH];
-    char drive[_MAX_DRIVE];
-    char dir[_MAX_DIR];
-
-    char modulename[_MAX_PATH];
-    GetModuleFileNameA(NULL, modulename, _MAX_PATH);
-    _splitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
-    _makepath_s(filename, drive, dir, chakraDllName, nullptr);
-    LPCSTR dllName = filename;
+    char dllName[_MAX_PATH];
+    GetBinaryPathWithFileNameA(dllName, _MAX_PATH, chakraDllName);
 
     library = LoadChakraCore(dllName);
     *outLibrary = library;

@@ -65,7 +65,7 @@ AutoSystemInfo::Initialize()
 {
     Assert(!initialized);
 #ifndef _WIN32
-    PAL_InitializeDLL();
+    PAL_InitializeChakraCore();
     majorVersion = CHAKRA_CORE_MAJOR_VERSION;
     minorVersion = CHAKRA_CORE_MINOR_VERSION;
 #endif

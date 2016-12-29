@@ -257,3 +257,6 @@ inline JsErrorCode CreatePropertyIdFromString(const char* str, JsPropertyIdRef *
 {
     return ChakraRTInterface::JsCreatePropertyId(str, strlen(str), Id);
 }
+
+void GetBinaryLocation(char *path, const unsigned size);
+void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename);
