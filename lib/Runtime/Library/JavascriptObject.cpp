@@ -1161,7 +1161,8 @@ namespace Js
                     if (propertyRecord->IsSymbol())
                     {
                         symbol = scriptContext->GetLibrary()->CreateSymbol(propertyRecord);
-                        newArrForSymbols->DirectSetItemAt(symbolIndex++, CrossSite::MarshalVar(scriptContext, symbol));
+                        // no need to marshal symbol because it is created from scriptContext
+                        newArrForSymbols->DirectSetItemAt(symbolIndex++, symbol);
                         continue;
                     }
                 }
