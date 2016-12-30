@@ -1176,7 +1176,7 @@ CommonNumber:
                 {
                     if (propertyDescriptor.IsEnumerable())
                     {
-                        proxyResultToReturn->DirectSetItemAt(index++, element);
+                        proxyResultToReturn->DirectSetItemAt(index++, CrossSite::MarshalVar(scriptContext, element));
                     }
                 }
             }
