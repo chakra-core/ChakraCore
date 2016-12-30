@@ -2423,7 +2423,6 @@ namespace Js
 #include "SerializableFunctionFields.h"
 
     private:
-        FieldWithBarrier(bool) m_tag : 1;                     // Used to tag the low bit to prevent possible GC false references
         FieldWithBarrier(bool) m_nativeEntryPointUsed : 1;    // Code might have been generated but not yet used.
         FieldWithBarrier(bool) hasDoneLoopBodyCodeGen : 1;    // Code generated for loop body, but not necessary available to execute yet.
         FieldWithBarrier(bool) m_isFuncRegistered : 1;
@@ -2432,6 +2431,9 @@ namespace Js
         FieldWithBarrier(bool) m_hasBailoutInstrInJittedCode : 1; // Indicates whether function has bailout instructions. Valid only if hasDoneCodeGen is true
         FieldWithBarrier(bool) m_pendingLoopHeaderRelease : 1; // Indicates whether loop headers need to be released
         FieldWithBarrier(bool) hasExecutionDynamicProfileInfo : 1;
+#ifdef _M_X64_OR_ARM64
+        FieldWithBarrier(bool) m_tag : 1;                     // Used to tag the low bit to prevent possible GC false references
+#endif
 
         FieldWithBarrier(bool) cleanedUp: 1;
         FieldWithBarrier(bool) sourceInfoCleanedUp: 1;

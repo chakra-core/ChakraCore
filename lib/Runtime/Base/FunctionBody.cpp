@@ -643,8 +643,8 @@ namespace Js
         m_hasFuncExprScopeRegister(false),
         m_hasFirstTmpRegister(false),
         m_hasActiveReference(false),
-        m_tag(TRUE),
-        m_nativeEntryPointUsed(FALSE),
+        m_tag(true),
+        m_nativeEntryPointUsed(false),
         bailOnMisingProfileCount(0),
         bailOnMisingProfileRejitCount(0),
         byteCodeBlock(nullptr),
@@ -8355,7 +8355,7 @@ namespace Js
             return;
         }
 
-        this->utilArray = RecyclerNewArrayZ(recycler, byte, functionBody->GetInlineCacheCount());
+        this->utilArray = RecyclerNewArrayLeafZ(recycler, byte, functionBody->GetInlineCacheCount());
     }
 
 #if ENABLE_NATIVE_CODEGEN

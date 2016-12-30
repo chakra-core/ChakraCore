@@ -320,6 +320,8 @@ public:
     virtual void WBSetBits(char* addr, uint length) = 0;
     virtual void WBClearBits(char* addr) = 0;
 
+    void WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, char* target);
+
     virtual BOOL IsFreeObject(void* objectAddress) = 0;
 #endif
     virtual BOOL IsValidObject(void* objectAddress) = 0;

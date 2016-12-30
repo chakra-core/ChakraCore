@@ -11,7 +11,8 @@ namespace Js
     public:
         static const uint32 MaxLength;
 
-        Field(uint32) left;
+        Field(uint32) left; // TODO: (leish)(swb) this can easily be recycler false positive on x86, or on x64 if combine with length field
+                            // find a way to either tag this or find a better solution
         Field(uint32) length; //we use length instead of right so that we can denote a segment is empty
         Field(uint32) size;
         Field(SparseArraySegmentBase*) next;

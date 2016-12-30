@@ -851,10 +851,15 @@ LargeHeapBlock::VerifyMark()
 
             if (recycler->VerifyMark(target))
             {
+#if DBG
                 if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
                 {
-                    Assert(this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)));
+                    if (!this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)))
+                    {
+                        WBPrintMissingBarrier(recycler, objectAddress, (char*)target);
+                    }
                 }
+#endif
             }
 
             objectAddress += sizeof(void *);

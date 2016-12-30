@@ -782,6 +782,115 @@ SmallHeapBlockT<TBlockAttributes>::ClearExplicitFreeBitForObject(void* objectAdd
 
 #ifdef RECYCLER_VERIFY_MARK
 
+#if DBG
+void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, char* target)
+{
+#ifdef WIN32
+    uint offset = 0;
+    if (this->IsLargeHeapBlock())
+    {
+        offset = (uint)(objectAddress - (char*)((LargeHeapBlock*)this)->GetRealAddressFromInterior(objectAddress));
+    }
+    else
+    {
+        offset = (uint)(objectAddress - this->address) % this->GetObjectSize(objectAddress);
+    }
+    char* objectStartAddress = objectAddress - offset;
+    Recycler::TrackerData* trackerData = (Recycler::TrackerData*)this->GetTrackerData(objectStartAddress);
+    if (trackerData)
+    {
+        if (trackerData->isArray)
+        {
+            Output::Print(_u("Missing Barrier\nOn array of %S\n"), trackerData->typeinfo->name());
+            if (CONFIG_FLAG(KeepRecyclerTrackData))
+            {
+                Output::Print(_u("Allocation stack:\n"));
+                ((StackBackTrace*)(trackerData + 1))->Print();
+            }
+        }
+        else
+        {
+            if (strcmp(trackerData->typeinfo->name(), "class Js::DynamicProfileInfo") == 0)
+            {
+                // Js::DynamicProfileInfo allocate with non-Leaf in test/chk build
+                // TODO: (leish)(swb) find a way to set barrier for the Js::DynamicProfileInfo plus allocation
+                return;
+            }
+
+            if (offset <= Math::Align((3 * sizeof(uint)), sizeof(void*)) // left, length, size
+                && strstr(trackerData->typeinfo->name(), "class Js::SparseArraySegment") != nullptr)
+            {
+                // Js::SparseArraySegmentBase left, length and size can easily form a false positive
+                // TODO: (leish)(swb) find a way to tag these fields
+                return;
+            }
+
+            if (
+                offset >=// m_data offset on JavascriptDate
+#ifdef _M_X64_OR_ARM64
+                    0x20
+#else
+                    0x10
+#endif
+                && strcmp(trackerData->typeinfo->name(), "class Js::JavascriptDate") == 0)
+            {
+                // the fields on Js::DateImplementation can easily form a false positive
+                // TODO: (leish)(swb) find a way to tag these
+                return;
+            }
+
+            //TODO: (leish)(swb) analyze pdb to check if the field is a pointer field or not
+            Output::Print(_u("Missing Barrier\nOn type %S+0x%x\n"), trackerData->typeinfo->name(), offset);
+        }
+    }
+
+    HeapBlock* targetBlock = recycler->FindHeapBlock(target);
+    uint targetOffset = 0;
+    
+    if (targetBlock->IsLargeHeapBlock())
+    {
+        targetOffset = (uint)(target - (char*)((LargeHeapBlock*)targetBlock)->GetRealAddressFromInterior(target));
+    }
+    else
+    {
+        targetOffset = (uint)(target - targetBlock->GetAddress()) % targetBlock->GetObjectSize(nullptr);
+    }
+    char* targetStartAddress = target - targetOffset;
+    Recycler::TrackerData* targetTrackerData = (Recycler::TrackerData*)targetBlock->GetTrackerData(targetStartAddress);
+
+    if (targetOffset != 0)
+    {
+        Output::Print(_u("Target is not aligned with it's bucket, this indicate it's likely a false positive\n"));
+    }
+
+    if (targetTrackerData)
+    {
+        if (targetTrackerData->isArray)
+        {
+            Output::Print(_u("Target type (missing barrier field type) is array item of %S\n"), targetTrackerData->typeinfo->name());
+            if (CONFIG_FLAG(KeepRecyclerTrackData))
+            {
+                Output::Print(_u("Allocation stack:\n"));
+                ((StackBackTrace*)(targetTrackerData + 1))->Print();
+            }
+        }
+        else if (targetOffset == 0)
+        {
+            Output::Print(_u("Target type (missing barrier field type) is %S\n"), targetTrackerData->typeinfo->name());
+        }
+        else
+        {
+            Output::Print(_u("Target type (missing barrier field type) is pointing to %S+0x%x\n"), targetTrackerData->typeinfo->name(), targetOffset);
+        }
+    }
+
+    Output::Print(_u("---------------------------------\n"));
+#endif
+
+    AssertMsg(false, "Missing barrier.");
+}
+#endif
+
 template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::VerifyMark()
@@ -825,10 +934,16 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
                         void* target = *(void**) objectAddress;
                         if (recycler->VerifyMark(target))
                         {
+#if DBG
                             if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
                             {
-                                Assert(this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)));
+                                uint verifyBitIndex = (BVIndex)(objectAddress - this->address) / sizeof(void*);
+                                if (!this->wbVerifyBits.Test(verifyBitIndex))
+                                {
+                                    WBPrintMissingBarrier(recycler, objectAddress, (char*)target);
+                                }
                             }
+#endif
                         }
 
                         objectAddress += sizeof(void *);

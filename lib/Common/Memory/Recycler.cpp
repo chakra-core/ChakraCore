@@ -7595,6 +7595,7 @@ Recycler::TrackAllocCore(void * object, size_t size, const TrackAllocData& track
     
     if (!trackerDictionary->TryGetValue(typeInfo, &item))
     {
+#ifdef STACK_BACK_TRACE
         if (CONFIG_FLAG(KeepRecyclerTrackData) && isArray) // type info is not useful record stack instead
         {
             size_t stackTraceSize = 16 * sizeof(void*);
@@ -7602,6 +7603,7 @@ Recycler::TrackAllocCore(void * object, size_t size, const TrackAllocData& track
             StackBackTrace::Capture((char*)&item[1], stackTraceSize, 7);
         }
         else
+#endif
         {
             item = NoCheckHeapNew(TrackerItem, typeInfo);
         }

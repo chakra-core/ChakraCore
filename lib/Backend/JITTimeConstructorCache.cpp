@@ -51,7 +51,7 @@ JITTimeConstructorCache::Clone(JitArenaAllocator* allocator) const
 BVSparse<JitArenaAllocator>*
 JITTimeConstructorCache::GetGuardedPropOps() const
 {
-    return (BVSparse<JitArenaAllocator>*)m_data.guardedPropOps;
+    return (BVSparse<JitArenaAllocator>*)(m_data.guardedPropOps & ~(intptr_t)1);
 }
 
 void
@@ -60,6 +60,7 @@ JITTimeConstructorCache::EnsureGuardedPropOps(JitArenaAllocator* allocator)
     if (GetGuardedPropOps() == nullptr)
     {
         m_data.guardedPropOps = (intptr_t)Anew(allocator, BVSparse<JitArenaAllocator>, allocator);
+        m_data.guardedPropOps |= 1; // tag it to prevent false positive after the arena address reuse in recycler
     }
 }
 
