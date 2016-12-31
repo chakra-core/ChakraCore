@@ -754,8 +754,8 @@ private:
     uint weakReferenceCleanupId;
 
     void * transientPinnedObject;
-#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
     StackBackTrace * transientPinnedObjectStackBackTrace;
 #endif
 #endif

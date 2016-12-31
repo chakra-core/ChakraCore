@@ -482,8 +482,7 @@
 
 // xplat-todo: Depends on C++ type-info
 // enable later on non-VC++ compilers
-
-#ifdef _WIN32
+#ifndef __APPLE__
 #define PROFILE_RECYCLER_ALLOC
 // Needs to compile in debug mode
 // Just needs strings converted
@@ -512,15 +511,22 @@
 #define ARENA_MEMORY_VERIFY
 #define SEPARATE_ARENA
 
-// xplat-todo: This depends on C++ type-tracking
-// Need to re-enable on non-VC++ compilers
-#ifdef _WIN32
-#define HEAP_TRACK_ALLOC
+#ifndef _WIN32
+#ifdef _X64_OR_ARM64
+#define MAX_NATURAL_ALIGNMENT sizeof(ULONGLONG)
+#define MEMORY_ALLOCATION_ALIGNMENT 16
+#else
+#define MAX_NATURAL_ALIGNMENT sizeof(DWORD)
+#define MEMORY_ALLOCATION_ALIGNMENT 8
+#endif
 #endif
 
+// xplat: on apple looks typeid(char16_t) does not work, hit error: Undefined symbols for architecture x86_64: "typeinfo for char16_t"
+#ifndef __APPLE__
+#define HEAP_TRACK_ALLOC
 #define CHECK_MEMORY_LEAK
 #define LEAK_REPORT
-
+#endif
 
 #define PROJECTION_METADATA_TRACE
 #define ERROR_TRACE
@@ -680,9 +686,7 @@
 // HEAP_TRACK_ALLOC and RECYCLER_STATS
 #if defined(LEAK_REPORT) || defined(CHECK_MEMORY_LEAK)
 #define RECYCLER_DUMP_OBJECT_GRAPH
-#ifdef _WIN32
 #define HEAP_TRACK_ALLOC
-#endif
 #define RECYCLER_STATS
 #endif
 
@@ -698,9 +702,6 @@
 
 
 #if defined(HEAP_TRACK_ALLOC) || defined(PROFILE_RECYCLER_ALLOC)
-#ifndef _WIN32
-#error "Not yet supported on non-VC++ compiler"
-#endif
 
 #define TRACK_ALLOC
 #define TRACE_OBJECT_LIFETIME           // track a particular object's lifetime

@@ -68,7 +68,9 @@ struct HeapAllocRecord
     TrackAllocData    allocData;
     HeapAllocatorData* data;
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
     StackBackTrace * stacktrace;
+#endif
 #endif
 };
 struct HeapAllocatorData

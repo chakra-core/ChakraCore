@@ -21,5 +21,5 @@ namespace Js {
         FieldNoBarrier(JsFinalizeCallback) finalizeCallback;
         Field(void *) callbackState;
     };
-    AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(JsrtExternalArrayBuffer, &Js::RecyclableObject::DumpObjectFunction);
 }
+AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::JsrtExternalArrayBuffer, &Js::RecyclableObject::DumpObjectFunction);
