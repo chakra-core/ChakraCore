@@ -52,9 +52,3 @@ target_include_directories (
     ../Runtime/Debug
     ../Parser
     )
-
-if(CC_TARGET_OS_ANDROID)
-    add_custom_command(TARGET Chakra.Jsrt POST_BUILD
-        COMMAND ${ANDROID_TOOLCHAIN_DIR}/bin/ranlib ${CMAKE_CURRENT_BINARY_DIR}/libChakra.Jsrt.a
-    )
-endif()
