@@ -87,6 +87,8 @@ endif()
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(lib_target "${lib_target}"
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/ch.version
+    # reduce link time memory usage
+    -Xlinker --no-keep-memory
     )
 elseif(CC_TARGET_OS_OSX)
   if(CC_TARGETS_X86)
