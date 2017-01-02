@@ -312,6 +312,8 @@ endif(CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
     add_compile_options(-O3)
+else()
+    add_compile_options(-O0)
 endif(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
