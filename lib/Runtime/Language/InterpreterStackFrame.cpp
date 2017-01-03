@@ -7282,7 +7282,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         slotArray = (Field(Var)*)this->GetLocalClosure();
         Assert(slotArray != nullptr);
 
-        ScopeSlots scopeSlots(slotArray);
+        ScopeSlots scopeSlots((Js::Var*)slotArray);
         scopeSlots.SetCount(scopeSlotCount);
         scopeSlots.SetScopeMetadata((Var)functionBody->GetFunctionInfo());
         Var undef = functionBody->GetScriptContext()->GetLibrary()->GetUndefined();

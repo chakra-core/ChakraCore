@@ -57,11 +57,15 @@ public:
         , m_int64RegPairMap(nullptr)
 #endif
     {
+#ifdef RECYCLER_WRITE_BARRIER_JIT
         m_func->m_lowerer = this;
+#endif
     }
     ~Lowerer()
     {
+#ifdef RECYCLER_WRITE_BARRIER_JIT
         m_func->m_lowerer = nullptr;
+#endif
     }
 
     void Lower();

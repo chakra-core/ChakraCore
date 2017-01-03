@@ -673,7 +673,7 @@ namespace Js
         boxedValues.Add(slotArray, boxedSlotArray);
 
         ScopeSlots scopeSlots(slotArray);
-        ScopeSlots boxedScopeSlots(boxedSlotArray);
+        ScopeSlots boxedScopeSlots((Js::Var*)boxedSlotArray);
 
         boxedScopeSlots.SetCount(count);
         boxedScopeSlots.SetScopeMetadata(scopeSlots.GetScopeMetadataRaw());

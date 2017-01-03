@@ -7,10 +7,10 @@
 namespace Js
 {
     FunctionInfo JavascriptGeneratorFunction::functionInfo(
-        NO_WRITE_BARRIER_TAG(JavascriptGeneratorFunction::EntryGeneratorFunctionImplementation),
+        FORCE_NO_WRITE_BARRIER_TAG(JavascriptGeneratorFunction::EntryGeneratorFunctionImplementation),
         (FunctionInfo::Attributes)(FunctionInfo::DoNotProfile | FunctionInfo::ErrorOnNew));
     FunctionInfo JavascriptAsyncFunction::functionInfo(
-        NO_WRITE_BARRIER_TAG(JavascriptGeneratorFunction::EntryAsyncFunctionImplementation),
+        FORCE_NO_WRITE_BARRIER_TAG(JavascriptGeneratorFunction::EntryAsyncFunctionImplementation),
         (FunctionInfo::Attributes)(FunctionInfo::DoNotProfile | FunctionInfo::ErrorOnNew));
 
     JavascriptGeneratorFunction::JavascriptGeneratorFunction(DynamicType* type)

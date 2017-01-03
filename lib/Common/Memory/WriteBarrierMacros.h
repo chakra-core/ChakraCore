@@ -37,3 +37,7 @@
 #define NO_WRITE_BARRIER_TAG(arg) arg
 
 #endif
+
+
+// use with FieldWithBarrier structs
+#define FORCE_NO_WRITE_BARRIER_TAG(arg) arg, _no_write_barrier_tag()

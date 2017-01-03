@@ -590,7 +590,7 @@ namespace TTD
             Js::ScriptContext* ctx = inflator->LookupScriptContext(slotInfo->ScriptContextLogId);
             Field(Js::Var)* slotArray = RecyclerNewArray(ctx->GetRecycler(), Field(Js::Var), slotInfo->SlotCount + Js::ScopeSlots::FirstSlotIndex);
 
-            Js::ScopeSlots scopeSlots(slotArray);
+            Js::ScopeSlots scopeSlots((Js::Var*)slotArray);
             scopeSlots.SetCount(slotInfo->SlotCount);
 
             Js::Var undef = ctx->GetLibrary()->GetUndefined();
