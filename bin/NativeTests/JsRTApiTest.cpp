@@ -108,7 +108,7 @@ namespace JsRTApiTest
         REQUIRE(JsCreateObject(&object) == JsNoError);
 
         JsPropertyIdRef name1 = JS_INVALID_REFERENCE;
-        const wchar_t* name = nullptr;
+        const WCHAR* name = nullptr;
         REQUIRE(JsGetPropertyIdFromName(_u("stringProperty1"), &name1) == JsNoError);
         REQUIRE(JsGetPropertyNameFromId(name1, &name) == JsNoError);
         CHECK(!wcscmp(name, _u("stringProperty1")));
@@ -582,7 +582,7 @@ namespace JsRTApiTest
     JsValueRef CALLBACK ExternalFunctionPreScriptAbortionCallback(JsValueRef /* function */, bool /* isConstructCall */, JsValueRef * args /* args */, USHORT /* cargs */, void * /* callbackState */)
     {
         JsValueRef result = JS_INVALID_REFERENCE;
-        const wchar_t *scriptText = nullptr;
+        const WCHAR *scriptText = nullptr;
         size_t scriptTextLen;
 
         REQUIRE(JsStringToPointer(args[0], &scriptText, &scriptTextLen) == JsNoError);
@@ -593,7 +593,7 @@ namespace JsRTApiTest
     JsValueRef CALLBACK ExternalFunctionPostScriptAbortionCallback(JsValueRef /* function */, bool /* isConstructCall */, JsValueRef * args /* args */, USHORT /* cargs */, void * /* callbackState */)
     {
         JsValueRef result = JS_INVALID_REFERENCE;
-        const wchar_t *scriptText = nullptr;
+        const WCHAR *scriptText = nullptr;
         size_t scriptTextLen;
 
         REQUIRE(JsStringToPointer(args[0], &scriptText, &scriptTextLen) == JsNoError);
@@ -656,7 +656,7 @@ namespace JsRTApiTest
         REQUIRE(JsCreateFunction(ExternalFunctionCallback, nullptr, &function) == JsNoError);
         testConstructorName(function, _u(""), 0);
 
-        wchar_t name[] = _u("FooName");
+        WCHAR name[] = _u("FooName");
         JsValueRef nameString = JS_INVALID_REFERENCE;
         REQUIRE(JsPointerToString(name, _countof(name) - 1, &nameString) == JsNoError);
         REQUIRE(JsCreateNamedFunction(nameString, ExternalFunctionCallback, nullptr, &function) == JsNoError);
@@ -688,7 +688,7 @@ namespace JsRTApiTest
 
         JsValueRef args[] = { GetUndefined() };
 
-        // throw from script, handle in host        
+        // throw from script, handle in host
         REQUIRE(JsGetPropertyIdFromName(_u("throwAtHost"), &name) == JsNoError);
         REQUIRE(JsGetProperty(global, name, &function) == JsNoError);
         REQUIRE(JsCallFunction(function, args, _countof(args), &result) == JsErrorScriptException);
@@ -701,12 +701,12 @@ namespace JsRTApiTest
         REQUIRE(JsGetPropertyIdFromName(_u("callHost"), &name) == JsNoError);
         REQUIRE(JsSetProperty(global, name, result, true) == JsNoError);
 
-        // throw from host callback, catch in script        
+        // throw from host callback, catch in script
         REQUIRE(JsGetPropertyIdFromName(_u("callHostWithTryCatch"), &name) == JsNoError);
         REQUIRE(JsGetProperty(global, name, &function) == JsNoError);
         REQUIRE(JsCallFunction(function, args, _countof(args), &result) == JsNoError);
 
-        // throw from host callback, through script, handle in host        
+        // throw from host callback, through script, handle in host
         REQUIRE(JsGetPropertyIdFromName(_u("callHostWithNoTryCatch"), &name) == JsNoError);
         REQUIRE(JsGetProperty(global, name, &function) == JsNoError);
         REQUIRE(JsCallFunction(function, args, _countof(args), &result) == JsErrorScriptException);
@@ -855,7 +855,7 @@ namespace JsRTApiTest
             JsValueRef nameValue = JS_INVALID_REFERENCE;
             REQUIRE(JsGetIndexedProperty(propertyNames, indexValue, &nameValue) == JsNoError);
 
-            const wchar_t *name = nullptr;
+            const WCHAR *name = nullptr;
             size_t length;
             REQUIRE(JsStringToPointer(nameValue, &name, &length) == JsNoError);
 
@@ -879,7 +879,7 @@ namespace JsRTApiTest
         JsPropertyIdRef propertyId = JS_INVALID_REFERENCE;
         JsValueRef outValue = JS_INVALID_REFERENCE;
         JsValueRef propertySymbols = JS_INVALID_REFERENCE;
-        const wchar_t* name = nullptr;
+        const WCHAR* name = nullptr;
         JsPropertyIdType propertyIdType;
 
         REQUIRE(JsCreateObject(&object) == JsNoError);
@@ -1003,7 +1003,7 @@ namespace JsRTApiTest
         bool boolValue;
         BYTE *compiledScript = nullptr;
         unsigned int scriptSize = 0;
-        const wchar_t *stringValue;
+        const WCHAR *stringValue;
         size_t stringLength;
         ByteCodeCallbackTracker tracker = {};
 
@@ -1030,7 +1030,7 @@ namespace JsRTApiTest
 
         tracker.script = script;
         REQUIRE(JsRunSerializedScriptWithCallback(
-            [](JsSourceContext sourceContext, const wchar_t** scriptBuffer)
+            [](JsSourceContext sourceContext, const WCHAR** scriptBuffer)
         {
             ((ByteCodeCallbackTracker*)sourceContext)->loadedScript = true;
             *scriptBuffer = ((ByteCodeCallbackTracker*)sourceContext)->script;
@@ -1079,7 +1079,7 @@ namespace JsRTApiTest
         REQUIRE(oldProtect == PAGE_READWRITE);
         tracker.script = scriptFnToString;
         REQUIRE(JsRunSerializedScriptWithCallback(
-            [](JsSourceContext sourceContext, const wchar_t** scriptBuffer)
+            [](JsSourceContext sourceContext, const WCHAR** scriptBuffer)
         {
             ((ByteCodeCallbackTracker*)sourceContext)->loadedScript = true;
             *scriptBuffer = ((ByteCodeCallbackTracker*)sourceContext)->script;
@@ -1619,7 +1619,7 @@ namespace JsRTApiTest
             REQUIRE(JsCreateFunction(ExternalFunctionPostScriptAbortionCallback, nullptr, &postScriptAbortFunction) == JsNoError);
             JsValueRef scriptTextArg = JS_INVALID_REFERENCE;
 
-            wchar_t *scriptText = const_cast<wchar_t *>(terminationTests[i]);
+            WCHAR *scriptText = const_cast<WCHAR *>(terminationTests[i]);
             REQUIRE(JsPointerToString(scriptText, wcslen(scriptText), &scriptTextArg) == JsNoError);
             JsValueRef args[] = { scriptTextArg };
 

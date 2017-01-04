@@ -670,7 +670,7 @@ CHAKRA_API JsDiagGetObjectFromHandle(
 }
 
 CHAKRA_API JsDiagEvaluate(
-    _In_z_ const wchar_t *expression,
+    _In_z_ const WCHAR *expression,
     _In_ unsigned int stackFrameIndex,
     _Out_ JsValueRef *evalResult)
 {
