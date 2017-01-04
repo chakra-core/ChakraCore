@@ -3149,7 +3149,13 @@ namespace Js
         {
             Var aItem = args[idxArg];
 
-            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled() && !JavascriptOperators::IsConcatSpreadable(aItem))
+            bool concatSpreadable = !scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled() || JavascriptOperators::IsConcatSpreadable(aItem);
+            if (!JavascriptNativeIntArray::Is(pDestArray))
+            {
+                ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
+                return pDestArray;
+            }
+            if(!concatSpreadable)
             {
                 pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
                 idxDest = idxDest + 1;
@@ -3213,9 +3219,14 @@ namespace Js
         {
             Var aItem = args[idxArg];
 
-            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled() && !JavascriptOperators::IsConcatSpreadable(aItem))
+            bool concatSpreadable = !scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled() || JavascriptOperators::IsConcatSpreadable(aItem);
+            if (!JavascriptNativeFloatArray::Is(pDestArray))
             {
-
+                ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
+                return pDestArray;
+            }
+            if (!concatSpreadable)
+            {
                 pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
 
                 idxDest = idxDest + 1;
