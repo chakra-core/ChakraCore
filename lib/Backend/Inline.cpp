@@ -4667,6 +4667,11 @@ Inline::MapFormals(Func *inlinee,
             {
                 break;
             }
+            if (instr->m_func != inlinee)
+            {
+                // this can happen only when we are inlining a function which has inlined an apply call with the arguments object
+                formalCount = instr->m_func->GetJITFunctionBody()->GetInParamsCount();
+            }
 
             IR::Opnd *restDst = instr->GetDst();
 
