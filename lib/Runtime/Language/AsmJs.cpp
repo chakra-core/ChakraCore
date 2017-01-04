@@ -919,7 +919,11 @@ varDeclEnd:
     {
         ParseNode* endStmt = m.GetCurrentParserNode();
 
-        Assert( endStmt->nop == knopList );
+        if (endStmt->nop != knopList)
+        {
+            return m.Fail(endStmt, _u("Module must have a return"));
+        }
+
         ParseNode* node = ParserWrapper::GetBinaryLeft( endStmt );
         ParseNode* endNode = ParserWrapper::GetBinaryRight( endStmt );
 
