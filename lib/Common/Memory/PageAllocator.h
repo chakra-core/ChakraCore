@@ -393,26 +393,32 @@ class MemoryOperationLastError
 public:
     static void RecordLastError()
     {
+#if ENABLE_OOP_NATIVE_CODEGEN
         if (MemOpLastError == 0)
         {
             MemOpLastError = GetLastError();
         }
+#endif
     }
     static void RecordLastErrorAndThrow()
     {
+#if ENABLE_OOP_NATIVE_CODEGEN
         if (MemOpLastError == 0)
         {
             MemOpLastError = GetLastError();
             throw Js::InternalErrorException();
         }
+#endif
     }
     static void CheckProcessAndThrowFatalError(HANDLE hProcess)
     {
         DWORD lastError = GetLastError();
+#if ENABLE_OOP_NATIVE_CODEGEN
         if (MemOpLastError == 0)
         {
             MemOpLastError = lastError;
         }
+#endif
         if (lastError != 0)
         {
             DWORD exitCode = STILL_ACTIVE;
@@ -432,14 +438,22 @@ public:
     }
     static void ClearLastError()
     {
+#if ENABLE_OOP_NATIVE_CODEGEN
         MemOpLastError = 0;
+#endif
     }
     static DWORD GetLastError()
     {
+#if ENABLE_OOP_NATIVE_CODEGEN
         return MemOpLastError;
+#else
+        return 0;
+#endif
     }
+#if ENABLE_OOP_NATIVE_CODEGEN
 private:
     THREAD_LOCAL static DWORD MemOpLastError;
+#endif
 };
 
 class PageAllocatorBaseCommon
