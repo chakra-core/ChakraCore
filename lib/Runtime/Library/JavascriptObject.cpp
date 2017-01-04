@@ -1726,6 +1726,7 @@ namespace Js
 
             tempVar = JavascriptOperators::GetProperty(props, propId, scriptContext);
 
+            AnalysisAssert(descCount < descSize);
             if (!JavascriptOperators::ToPropertyDescriptor(tempVar, &descriptors[descCount].descriptor, scriptContext))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_PropertyDescriptor_Invalid, scriptContext->GetPropertyName(propId)->GetBuffer());
