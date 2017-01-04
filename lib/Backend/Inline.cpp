@@ -2394,7 +2394,7 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
     IR::Instr * explicitThisArgOut = nullptr;
     IR::Instr * argumentsObjArgOut = nullptr;
     uint argOutCount = 0;
-    this->GetArgInstrsForCallAndApply(callInstr, &implicitThisArgOut, &explicitThisArgOut, &argumentsObjArgOut, argOutCount);
+    this->GetArgInstrsForCallAndApply(callInstr, &implicitThisArgOut, &explicitThisArgOut, &argumentsObjArgOut, argOutCount, false /*moveArgsCloseToCall*/);
 
     //      BailOnNotEqual  s4.var                  ---------------New additional BAILOUT if not stack args or actuals exceed 16 at runtime.
     //      Bailout: #004e (BailOutOnInlineFunction)
@@ -2441,6 +2441,14 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
     // Optimize .init.apply(this, arguments);
     IR::Instr* builtInStartInstr;
     InsertInlineeBuiltInStartEndTags(callInstr, 3, &builtInStartInstr); //3 args (implicit this + explicit this + arguments = 3)
+
+    // Move argouts close to call. Globopt expects this for arguments object tracking.
+    IR::Instr* argInsertInstr = builtInStartInstr;
+    builtInStartInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
+        argInstr->Move(argInsertInstr);
+        argInsertInstr = argInstr;
+        return false;
+    });
 
     IR::Instr *startCall = IR::Instr::New(Js::OpCode::StartCall, callInstr->m_func);
     startCall->SetDst(IR::RegOpnd::New(TyVar, callInstr->m_func));
@@ -2580,7 +2588,7 @@ IR::Instr * Inline::InlineApplyWithoutArrayArgument(IR::Instr *callInstr, const 
     return callInstr;
 }
 
-void Inline::GetArgInstrsForCallAndApply(IR::Instr* callInstr, IR::Instr** implicitThisArgOut, IR::Instr** explicitThisArgOut, IR::Instr** argumentsOrArrayArgOut, uint &argOutCount)
+void Inline::GetArgInstrsForCallAndApply(IR::Instr* callInstr, IR::Instr** implicitThisArgOut, IR::Instr** explicitThisArgOut, IR::Instr** argumentsOrArrayArgOut, uint &argOutCount, bool moveArgsCloseToCall)
 {
     IR::Opnd * linkOpnd = callInstr->GetSrc2()->AsSymOpnd();
     IR::Instr * argInsertInstr = callInstr;
@@ -2595,7 +2603,10 @@ void Inline::GetArgInstrsForCallAndApply(IR::Instr* callInstr, IR::Instr** impli
         linkOpnd->AsSymOpnd()->m_sym->AsStackSym()->m_allocated = true;
         ConvertToInlineBuiltInArgOut(argInstr);
 
-        argInstr->Move(argInsertInstr);
+        if (moveArgsCloseToCall)
+        {
+            argInstr->Move(argInsertInstr);
+        }
         argInsertInstr = argInstr;
 
         linkOpnd = argInstr->GetSrc2();
