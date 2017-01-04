@@ -3654,15 +3654,20 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
                     PushFuncInfo(_u("StartEmitFunction"), funcInfo);
                 }
 
-                if (paramScope && !paramScope->GetCanMergeWithBodyScope())
+                // In DeferParse scenario, ByteCodeGenerator would not have yet visited the nested
+                // scopes, so the emitter should also not process these nodes either.
+                if (pnode->sxFnc.pnodeBody)
                 {
-                    // Before emitting the body scoped functions let us switch the special scope slot to use the body ones
-                    pnode->sxFnc.funcInfo->UseInnerSpecialScopeSlots();
-                    this->EmitScopeList(pnode->sxFnc.pnodeBodyScope->sxBlock.pnodeScopes);
-                }
-                else
-                {
-                    this->EmitScopeList(pnode->sxFnc.pnodeScopes);
+                    if (paramScope && !paramScope->GetCanMergeWithBodyScope())
+                    {
+                        // Before emitting the body scoped functions let us switch the special scope slot to use the body ones
+                        pnode->sxFnc.funcInfo->UseInnerSpecialScopeSlots();
+                        this->EmitScopeList(pnode->sxFnc.pnodeBodyScope->sxBlock.pnodeScopes);
+                    }
+                    else
+                    {
+                        this->EmitScopeList(pnode->sxFnc.pnodeScopes);
+                    }
                 }
 
                 this->EmitOneFunction(pnode);
@@ -4135,9 +4140,15 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
 
         PushScope(paramScope);
 
-        // While emitting the functions we have to stop when we see the body scope block.
-        // Otherwise functions defined in the body scope will not be able to get the right references.
-        this->EmitScopeList(paramBlock->sxBlock.pnodeScopes, pnodeFnc->sxFnc.pnodeBodyScope);
+        // In DeferParse scenario, ByteCodeGenerator would not have yet visited the nested
+        // scopes, so the emitter should also not process these nodes either.
+        if (pnodeFnc->sxFnc.pnodeBody)
+        {
+            // While emitting the functions we have to stop when we see the body scope block.
+            // Otherwise functions defined in the body scope will not be able to get the right references.
+            this->EmitScopeList(paramBlock->sxBlock.pnodeScopes, pnodeFnc->sxFnc.pnodeBodyScope);
+        }
+
         Assert(this->GetCurrentScope() == paramScope);
     }
 

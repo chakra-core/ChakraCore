@@ -1175,6 +1175,32 @@ var tests = [
             return h();
         }
         assert.areEqual(9, f2(), "Paramater scope remains split");
+
+        // Bug 8971506: This used to throw an ASSERT. The test is considered to be passing if no ASSERT is thrown.
+        function f3(a1 = class c1 extends eval('') { }) {
+        }
+
+        // Bug 8971506: This used to throw an ASSERT. The test is considered to be passing if no ASSERT is thrown.
+        var f4 = function () {
+        };
+        {
+            f4();
+        }
+        function f5() {
+            function f6(a2 = class c2 extends eval('') { }) {
+            }
+        }
+
+        // Bug 8971506: This used to throw an ASSERT. The test is considered to be passing if no ASSERT is thrown.
+        (eval(`
+        function f6(jirfmx = class c3 {}) { };
+        `));
+
+        // Bug 8971506: This used to throw an ASSERT. The test is considered to be passing if no ASSERT is thrown.
+        (eval(`
+        function f7(a3 = class c4 extends false {
+        }) { };
+        `));
     }
   },
   {  
