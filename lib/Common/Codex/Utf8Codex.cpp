@@ -397,7 +397,9 @@ LFastPath:
 LSlowPath:
         while (cch-- > 0)
         {
-            *buffer++ = Decode(ptr, ptr + 4, localOptions); // WARNING: Assume cch correct, suppress end-of-buffer checking
+            LPCUTF8 end = ptr + cch + 1; // WARNING: Assume cch correct, suppress end-of-buffer checking
+
+            *buffer++ = Decode(ptr, end, localOptions);
             if (ShouldFastPath(ptr, buffer)) goto LFastPath;
         }
     }
@@ -466,7 +468,9 @@ LSlowPath:
         DecodeOptions localOptions = options;
         while (cch-- > 0)
         {
-            if (*pch++ != utf8::Decode(bch, bch + 4, localOptions)) // WARNING: Assume cch correct, suppress end-of-buffer checking
+            LPCUTF8 end = bch + cch + 1; // WARNING: Assume cch correct, suppress end-of-buffer checking
+
+            if (*pch++ != utf8::Decode(bch, end, localOptions))
                 return false;
         }
         return true;
