@@ -1960,7 +1960,7 @@ namespace Js
         {
             functionResult = JavascriptFunction::CallFunction<true>(this, this->GetEntryPoint(), args);
         }
-        return functionResult;
+        return CrossSite::MarshalVar(scriptContext, functionResult);
     }
 
     Var JavascriptProxy::FunctionCallTrap(RecyclableObject* function, CallInfo callInfo, ...)
