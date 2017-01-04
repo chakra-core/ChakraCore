@@ -739,7 +739,7 @@
   </test>
   <test>
     <default>
-      <files>proxybug.js</files>
+      <files>proxy_cctx_bugs.js</files>
     </default>
   </test>
   <test>
