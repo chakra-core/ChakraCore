@@ -70,4 +70,31 @@ function test4() {
 }
 test4();
 
+
+function test5() {
+  function makeArrayLength() {
+  }
+  function leaf() {
+  }
+  var obj1 = {};
+  var arrObj0 = {};
+  var func1 = function () {
+  };
+  obj1.method0 = func1;
+  obj1.method1 = func1;
+  var protoObj1 = Object();
+  var proxyHandler = {};
+  var v0 = new Proxy(obj1.method0, proxyHandler);
+  var sc9 = WScript.LoadScript('', 'samethread');
+  sc9.arrObj0 = arrObj0;
+  sc9.obj1 = obj1;
+  sc9.protoObj1 = protoObj1;
+  sc9.v0 = v0;
+  sc9.makeArrayLength = makeArrayLength;
+  sc9.leaf = leaf;
+  var sc9_cctx = sc9.WScript.LoadScript('function test() {var b = 1; arrObj0.length= makeArrayLength((arrObj0.length != arrObj0.prop4));\n       var d = obj1.method1.call(protoObj1 , (((new v0((protoObj1.length >>>= -866043558),(protoObj1.prop0 = 1),leaf,leaf)) , (b ? 1 : 16678541)) & (typeof(arrObj0.prop4)  == \'number\') ), ((1) * (d %= (1 * obj1.length - b)) + obj1.method0.call(arrObj0 , ("a" instanceof ((typeof RegExp == \'function\' ) ? RegExp : Object)), (\'prop0\' in arrObj0), leaf, leaf)), leaf, leaf);\n       var uniqobj21 = Object.create(arrObj0);\n       arrObj0.length= makeArrayLength(((1 ) % -520343586));\n       ;\n       }');
+  sc9_cctx.test();
+}
+test5();
+
 print(passed ? "passed" : "failed");
