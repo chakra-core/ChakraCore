@@ -486,7 +486,7 @@ namespace Js
         if (type == TypeIds_HostDispatch)
         {
             RecyclableObject* hostDispatchObject = RecyclableObject::FromVar(thisArg);
-            DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
+            const DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
             if (!remoteObject)
             {
                 Var result = nullptr;
@@ -1726,6 +1726,7 @@ namespace Js
 
             tempVar = JavascriptOperators::GetProperty(props, propId, scriptContext);
 
+            AnalysisAssert(descCount < descSize);
             if (!JavascriptOperators::ToPropertyDescriptor(tempVar, &descriptors[descCount].descriptor, scriptContext))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_PropertyDescriptor_Invalid, scriptContext->GetPropertyName(propId)->GetBuffer());
@@ -1900,7 +1901,7 @@ namespace Js
                 && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->GetDisplayName(), _u("get")) == 0)
             {
                 // modify to name.get
-                char16* finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
+                const char16* finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
                 if (finalName != nullptr)
                 {
                     FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
@@ -1915,7 +1916,7 @@ namespace Js
                 && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->GetDisplayName(), _u("set")) == 0)
             {
                 // modify to name.set
-                char16* finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
+                const char16* finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
                 if (finalName != nullptr)
                 {
                     FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
@@ -1932,7 +1933,7 @@ namespace Js
         BOOL returnValue;
         obj->ThrowIfCannotDefineProperty(propId, descriptor);
 
-        Type* oldType = obj->GetType();
+        const Type* oldType = obj->GetType();
         obj->ClearWritableDataOnlyDetectionBit();
 
         // HostDispatch: it doesn't support changing property attributes and default attributes are not per ES5,
