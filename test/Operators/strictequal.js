@@ -27,3 +27,38 @@ for (var i=0; i<all.length; ++i) {
         write("all[" + i + "](" + all[i] + ") === all[" + j + "](" + all[j] + ") = " + (all[i] === all[j]));
     }
 }
+
+function test(o1, o2)
+{
+  if(typeof o1 !== typeof o2){
+    return false;
+  }
+  if(o1 === o2){
+    return true;
+  }
+  
+  if(typeof o1 == "object"){
+    var props = {};
+    for(var prop in o1) {
+      if (!test(o1[prop], o2[prop])) return false;
+      props[prop] = true;
+    }
+    for(var prop in o2) {
+      if (!props[prop]) 
+        return false;
+    }
+    return true;
+  }
+  else{
+    return false
+  }
+}
+
+print(test({prop1: {}, prop2: "abc", prop3: true}, {prop1: {}, prop2: "abc", prop3: true}));
+print(test("abc", "abc"));
+print(test({int: 1, string: "xyz"}, {int: 1, string: "xyz"}));
+print(test({int: 1, string: "xyz", bool: false}, {int: 1, string: "xyz", float: 1.2}));
+print(test({}, {}));
+print(test(1,2));
+print(test(true, false));
+print(test(new Object(), true));

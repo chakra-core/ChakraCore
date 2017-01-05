@@ -2807,3 +2807,10 @@ all[52](function foo() {}) === all[49](1,2,3) = false
 all[52](function foo() {}) === all[50]([object Object]) = false
 all[52](function foo() {}) === all[51](1,2,3) = false
 all[52](function foo() {}) === all[52](function foo() {}) = true
+true
+true
+true
+false
+false
+true
+false
