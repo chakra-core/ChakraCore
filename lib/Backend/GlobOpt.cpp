@@ -9621,10 +9621,9 @@ GlobOpt::OptConstFoldUnary(
             }
             else
             {
-                // disable const fold for Math.abs(INT32_MIN) because it causes dst to be float type which
-                // could be different with previous type spec result in LoopPrePass. The latter does int
-                // type spec for Math.abs(INT32_MIN).
-                return false;
+                // Rejit with AggressiveIntTypeSpecDisabled for Math.abs(INT32_MIN) because it causes dst
+                // to be float type which could be different with previous type spec result in LoopPrePass
+                throw Js::RejitException(RejitReason::AggressiveIntTypeSpecDisabled);
             }
         }
         else
