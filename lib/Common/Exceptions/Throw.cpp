@@ -15,7 +15,6 @@
 
 #include "StackOverflowException.h"
 #include "AsmJsParseException.h"
-#include "InternalErrorException.h"
 #include "OutOfMemoryException.h"
 #include "NotImplementedException.h"
 
@@ -81,10 +80,17 @@ namespace Js {
         RaiseException((DWORD)DBG_TERMINATE_PROCESS, EXCEPTION_NONCONTINUABLE, 0, NULL);
     }
 
+#if ENABLE_JS_REENTRANCY_CHECK
+    void Throw::FatalJsReentrancyError()
+    {
+        AssertMsg(false, "Js reentrancy error!!");
+        ReportFatalException(NULL, E_UNEXPECTED, Fatal_JsReentrancy_Error, 0);
+    }
+#endif
+
     void Throw::InternalError()
     {
-        AssertMsg(false, "Internal error!!");
-        throw InternalErrorException();
+        AssertOrFailFastMsg(false, "Internal error!!");
     }
 
     void Throw::OutOfMemory()
