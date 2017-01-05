@@ -2442,6 +2442,14 @@ IR::Instr * Inline::InlineApplyWithArgumentsObject(IR::Instr * callInstr, IR::In
     IR::Instr* builtInStartInstr;
     InsertInlineeBuiltInStartEndTags(callInstr, 3, &builtInStartInstr); //3 args (implicit this + explicit this + arguments = 3)
 
+    // Move argouts close to call. Globopt expects this for arguments object tracking.
+    IR::Instr* argInsertInstr = builtInStartInstr;
+    builtInStartInstr->IterateArgInstrs([&](IR::Instr* argInstr) {
+        argInstr->Move(argInsertInstr);
+        argInsertInstr = argInstr;
+        return false;
+    });
+
     IR::Instr *startCall = IR::Instr::New(Js::OpCode::StartCall, callInstr->m_func);
     startCall->SetDst(IR::RegOpnd::New(TyVar, callInstr->m_func));
     startCall->SetSrc1(IR::IntConstOpnd::New(2, TyInt32, callInstr->m_func)); //2 args (this pointer & ArgOut_A_From_StackArgs for this direct call to init
