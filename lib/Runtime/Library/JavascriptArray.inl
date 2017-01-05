@@ -158,7 +158,7 @@ namespace Js
         size_t allocationPlusSize;
         uint alignedInlineElementSlots;
         DetermineAllocationSizeForArrayObjects<className, 0>(
-            0,
+            SparseArraySegmentBase::SMALL_CHUNK_SIZE,
             &allocationPlusSize,
             &alignedInlineElementSlots);
         return RecyclerNewPlusZ(recycler, allocationPlusSize, className, type, alignedInlineElementSlots);

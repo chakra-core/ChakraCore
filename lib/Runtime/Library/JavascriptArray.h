@@ -379,6 +379,7 @@ namespace Js
         }
 
         static JavascriptArray* CreateArrayFromConstructor(RecyclableObject* constructor, uint32 length, ScriptContext* scriptContext);
+        static JavascriptArray* CreateArrayFromConstructorNoArg(RecyclableObject* constructor, ScriptContext* scriptContext);
 
         template<typename unitType, typename className>
         static className* New(Recycler* recycler, DynamicType* arrayType);
