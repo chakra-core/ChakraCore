@@ -91,10 +91,7 @@ def CreateBuildTask = { isPR, buildArch, buildType, machine, configTag, buildExt
     if (nonDefaultTaskSetup == null) {
         if (isPR) {
             def osTag = machineTypeToOSTagMap.get(machine)
-            // Set up checks which apply to PRs targeting any branch
-            Utilities.addGithubPRTrigger(newJob, "${osTag} ${config}")
-            // To enable PR checks only for specific target branches, use the following instead:
-            // Utilities.addGithubPRTriggerForBranch(newJob, branch, checkName)
+            Utilities.addGithubPRTriggerForBranch(newJob, branch, "${osTag} ${config}")
         } else {
             Utilities.addGithubPushTrigger(newJob)
         }
@@ -158,7 +155,6 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
     if (nonDefaultTaskSetup == null) {
         if (isPR) {
             def osTag = machineTypeToOSTagMap.get(machine)
-            // Set up checks which apply to PRs targeting any branch
             Utilities.addGithubPRTriggerForBranch(newJob, xplatBranch, "${osTag} ${config}")
         } else {
             Utilities.addGithubPushTrigger(newJob)
@@ -197,7 +193,7 @@ def DailyBuildTaskSetup = { newJob, isPR, triggerName, groupRegex ->
     // The addition of triggers makes the job non-default in GitHub.
     if (isPR) {
         def triggerRegex = "(${dailyRegex}|${groupRegex}|${triggerName})"
-        Utilities.addGithubPRTrigger(newJob,
+        Utilities.addGithubPRTriggerForBranch(newJob, branch,
             triggerName, // GitHub task name
             "(?i).*test\\W+${triggerRegex}.*")
     } else {
@@ -218,7 +214,7 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
         Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
         if (isPR) {
             // Set PR trigger.
-            Utilities.addGithubPRTrigger(newJob, checkName)
+            Utilities.addGithubPRTriggerForBranch(newJob, branch, checkName)
         } else {
             // Set a push trigger
             Utilities.addGithubPushTrigger(newJob)
