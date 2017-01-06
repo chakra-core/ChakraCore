@@ -15,7 +15,6 @@
 
 #include "StackOverflowException.h"
 #include "AsmJsParseException.h"
-#include "InternalErrorException.h"
 #include "OutOfMemoryException.h"
 #include "NotImplementedException.h"
 
@@ -83,8 +82,7 @@ namespace Js {
 
     void Throw::InternalError()
     {
-        AssertMsg(false, "Internal error!!");
-        throw InternalErrorException();
+        AssertOrFailFastMsg(false, "Internal error!!");
     }
 
     void Throw::OutOfMemory()
