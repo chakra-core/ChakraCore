@@ -64,7 +64,10 @@ elseif(CC_TARGET_OS_OSX)
   endif()
 endif()
 
-target_link_libraries (ChakraCore ${lib_target})
+target_link_libraries (ChakraCore
+  ${lib_target}
+  ${CC_LTO_ENABLED}
+  )
 
 if(NOT CC_XCODE_PROJECT)
   set(CC_LIB_EXT "so")

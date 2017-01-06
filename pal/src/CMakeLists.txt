@@ -188,5 +188,6 @@ else() # Linux
   target_link_libraries(Chakra.Pal
     ${PTHREAD}
     dl
-  )
+    ${CC_LTO_ENABLED}
+    )
 endif()

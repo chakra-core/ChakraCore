@@ -306,12 +306,27 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     endif()
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
-if(ENABLE_FULL_LTO_SH)
-    unset(DENABLE_FULL_LTO_SH CACHE)
-    add_compile_options(-flto)
-elseif(ENABLE_THIN_LTO_SH)
-    unset(ENABLE_THIN_LTO_SH CACHE)
-    add_compile_options(-flto=thin)
+if (ENABLE_FULL_LTO_SH OR ENABLE_THIN_LTO_SH)
+    if (CC_TARGET_OS_LINUX)
+        set(CC_LTO_ENABLED
+            -fuse-ld=gold
+            -Xlinker -plugin=${CHAKRACORE_BINARY_DIR}/../../cc-toolchain/build/lib/LLVMgold.so
+            )
+    endif()
+
+    if (ENABLE_FULL_LTO_SH)
+        unset(DENABLE_FULL_LTO_SH CACHE)
+        add_compile_options(-flto)
+        if (CC_LTO_ENABLED)
+            set(CC_LTO_ENABLED "${CC_LTO_ENABLED} -flto")
+        endif()
+    elseif (ENABLE_THIN_LTO_SH)
+        unset(ENABLE_THIN_LTO_SH CACHE)
+        add_compile_options(-flto=thin)
+        if (CC_LTO_ENABLED)
+            set(CC_LTO_ENABLED "${CC_LTO_ENABLED} -flto=thin")
+        endif()
+    endif()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)

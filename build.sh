@@ -196,10 +196,12 @@ while [[ $# -gt 0 ]]; do
 
     --lto)
         LTO="-DENABLE_FULL_LTO_SH=1"
+        HAS_LTO=1
         ;;
 
     --lto-thin)
         LTO="-DENABLE_THIN_LTO_SH=1"
+        HAS_LTO=1
         ;;
 
     -n | --ninja)
@@ -281,6 +283,11 @@ while [[ $# -gt 0 ]]; do
 
     shift
 done
+
+if [ "${HAS_LTO}${OS_LINUX}" == "11" ]; then
+    echo "lto: ranlib disabled"
+    export RANLIB=/bin/true
+fi
 
 if [[ ${#_VERBOSE} > 0 ]]; then
     # echo options back to the user

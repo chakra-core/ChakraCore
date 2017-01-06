@@ -99,7 +99,10 @@ elseif(CC_TARGET_OS_OSX)
 endif()
 
 
-target_link_libraries (ch ${lib_target})
+target_link_libraries (ch
+  ${lib_target}
+  ${CC_LTO_ENABLED}
+  )
 
 if(NOT CC_XCODE_PROJECT)
   # Add a post build event to the ch target
