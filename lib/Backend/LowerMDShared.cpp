@@ -954,6 +954,7 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
     case Js::OpCode::BrNotNull_A:
     case Js::OpCode::BrOnObject_A:
     case Js::OpCode::BrOnClassConstructor:
+    case Js::OpCode::BrOnBaseConstructorKind:
         Assert(!opndSrc1->IsFloat64());
         AssertMsg(instr->GetSrc2() == nullptr, "Expected 1 src on boolean branch");
         instrPrev = IR::Instr::New(Js::OpCode::TEST, this->m_func);
