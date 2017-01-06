@@ -2113,16 +2113,31 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
 {
     if (this->scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled() && funcInfo->IsClassConstructor())
     {
-        // Derived class constructors initialize 'this' to be Undecl
+        // Derived class constructors initialize 'this' to be Undecl except "extends null" cases
         //   - we'll check this value during a super call and during 'this' access
-        // Base class constructors initialize 'this' to a new object using new.target
+        //
+        // Base class constructors or "extends null" cases initialize 'this' to a new object using new.target
         if (funcInfo->IsBaseClassConstructor())
         {
             EmitBaseClassConstructorThisObject(funcInfo);
         }
         else
         {
-            this->m_writer.Reg1(Js::OpCode::InitUndecl, funcInfo->thisPointerRegister);
+            Js::ByteCodeLabel thisLabel = this->Writer()->DefineLabel();
+            Js::ByteCodeLabel skipLabel = this->Writer()->DefineLabel();
+
+            Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
+            this->Writer()->Reg1(Js::OpCode::LdFuncObj, tmpReg);
+            this->Writer()->BrReg1(Js::OpCode::BrOnBaseConstructorKind, thisLabel, tmpReg);  // branch when [[ConstructorKind]]=="base"
+            funcInfo->ReleaseTmpRegister(tmpReg);
+
+            this->m_writer.Reg1(Js::OpCode::InitUndecl, funcInfo->thisPointerRegister);  // not "extends null" case
+            this->Writer()->Br(Js::OpCode::Br, skipLabel);
+
+            this->Writer()->MarkLabel(thisLabel);
+            EmitBaseClassConstructorThisObject(funcInfo);  // "extends null" case
+
+            this->Writer()->MarkLabel(skipLabel);
         }
     }
     else if (!funcInfo->IsGlobalFunction() || (this->flags & fscrEval))
@@ -2410,12 +2425,6 @@ void ByteCodeGenerator::EmitClassConstructorEndCode(FuncInfo *funcInfo)
         // We need to try and load 'this' from the scope slot, if there is one.
         EmitScopeSlotLoadThis(funcInfo, funcInfo->thisPointerRegister);
         this->Writer()->Reg2(Js::OpCode::Ld_A, ByteCodeGenerator::ReturnRegister, funcInfo->thisPointerRegister);
-    }
-    else
-    {
-        // This is the case where we don't have any references to this or super in the constructor or any nested lambda functions.
-        // We know 'this' must be undecl so let's just emit the ReferenceError as part of the fallthrough.
-        EmitUseBeforeDeclarationRuntimeError(this, ByteCodeGenerator::ReturnRegister);
     }
 }
 
