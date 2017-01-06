@@ -1168,6 +1168,8 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
     bool funcExprWithName;
     Js::ParseableFunctionInfo* parseableFunctionInfo = nullptr;
 
+    Js::AutoRestoreFunctionInfo autoRestoreFunctionInfo(reuseNestedFunc, reuseNestedFunc ? reuseNestedFunc->GetOriginalEntryPoint() : nullptr);
+
     if (this->pCurrentFunction &&
         this->pCurrentFunction->IsFunctionParsed())
     {
@@ -1228,7 +1230,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         // Create a function body if:
         //  1. The parse node is not defer parsed
         //  2. Or creating function proxies is disallowed
-        bool createFunctionBody = (pnode->sxFnc.pnodeBody != nullptr) && (!reuseNestedFunc || reuseNestedFunc->IsFunctionBody());
+        bool createFunctionBody = (pnode->sxFnc.pnodeBody != nullptr);
         if (!CONFIG_FLAG(CreateFunctionProxy)) createFunctionBody = true;
 
         Js::FunctionInfo::Attributes attributes = Js::FunctionInfo::Attributes::None;
@@ -1278,8 +1280,17 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
             propertyRecordList = EnsurePropertyRecordList();
             if (reuseNestedFunc)
             {
-                Assert(reuseNestedFunc->IsFunctionBody());
-                parseableFunctionInfo = reuseNestedFunc->GetFunctionBody();
+                if (!reuseNestedFunc->IsFunctionBody())
+                {
+                    Js::FunctionBody * parsedFunctionBody =
+                        Js::FunctionBody::NewFromParseableFunctionInfo(reuseNestedFunc->GetParseableFunctionInfo());
+                    autoRestoreFunctionInfo.funcBody = parsedFunctionBody;
+                    parseableFunctionInfo = parsedFunctionBody;
+                }
+                else
+                {
+                    parseableFunctionInfo = reuseNestedFunc->GetFunctionBody();
+                }
             }
             else
             {
@@ -1309,7 +1320,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
             if (reuseNestedFunc)
             {
                 Assert(!reuseNestedFunc->IsFunctionBody() || reuseNestedFunc->GetFunctionBody()->GetByteCode() != nullptr);
-                pnode->sxFnc.pnodeBody = nullptr;
+                Assert(pnode->sxFnc.pnodeBody == nullptr);
                 parseableFunctionInfo = reuseNestedFunc;
             }
             else
@@ -1436,6 +1447,8 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
     {
         this->maxAstSize = currentAstSize;
     }
+
+    autoRestoreFunctionInfo.Clear();
 
     return funcInfo;
 }
