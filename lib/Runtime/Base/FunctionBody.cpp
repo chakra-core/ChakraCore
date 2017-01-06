@@ -2343,22 +2343,7 @@ namespace Js
             }
             END_LEAVE_SCRIPT_INTERNAL(m_scriptContext);
 
-            if (hr == E_OUTOFMEMORY)
-            {
-                JavascriptError::ThrowOutOfMemoryError(m_scriptContext);
-            }
-            else if(hr == VBSERR_OutOfStack)
-            {
-                JavascriptError::ThrowStackOverflowError(m_scriptContext);
-            }
-            else if(hr == E_ABORT)
-            {
-                throw Js::ScriptAbortException();
-            }
-            else if(FAILED(hr))
-            {
-                throw Js::InternalErrorException();
-            }
+            THROW_KNOWN_HRESULT_EXCEPTIONS(hr, m_scriptContext);
 
             Assert(hr == NO_ERROR);
 
