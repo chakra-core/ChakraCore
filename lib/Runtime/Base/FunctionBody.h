@@ -1524,6 +1524,8 @@ namespace Js
 
         FieldWithBarrier(uint) m_functionNumber;  // Per thread global function number
 
+        FieldWithBarrier(bool) m_tag11 : 1;
+
         FieldWithBarrier(bool) m_isTopLevel : 1; // Indicates that this function is top-level function, currently being used in script profiler and debugger
         FieldWithBarrier(bool) m_isPublicLibraryCode: 1; // Indicates this function is public boundary library code that should be visible in JS stack
         FieldWithBarrier(bool) m_canBeDeferred : 1;
@@ -2096,6 +2098,7 @@ namespace Js
             }
         }
 
+        FieldWithBarrier(bool) m_tag21 : 1;
         FieldWithBarrier(bool) m_hasBeenParsed : 1;       // Has function body been parsed- true for actual function bodies, false for deferparse
         FieldWithBarrier(bool) m_isDeclaration : 1;
         FieldWithBarrier(bool) m_isAccessor : 1;          // Function is a property getter or setter
@@ -2103,6 +2106,8 @@ namespace Js
         FieldWithBarrier(bool) m_isNamedFunctionExpression : 1;
         FieldWithBarrier(bool) m_isNameIdentifierRef  : 1;
         FieldWithBarrier(bool) m_isClassMember : 1;
+        // 8 bits from last tag
+
         FieldWithBarrier(bool) m_isStrictMode : 1;
         FieldWithBarrier(bool) m_isAsmjsMode : 1;
         FieldWithBarrier(bool) m_isAsmJsFunction : 1;
@@ -2111,6 +2116,8 @@ namespace Js
         FieldWithBarrier(bool) m_doBackendArgumentsOptimization : 1;
         FieldWithBarrier(bool) m_doScopeObjectCreation : 1;
         FieldWithBarrier(bool) m_usesArgumentsObject : 1;
+        // 16 bits from last tag
+
         FieldWithBarrier(bool) m_isEval : 1;              // Source code is in 'eval'
         FieldWithBarrier(bool) m_isDynamicFunction : 1;   // Source code is in 'Function'
         FieldWithBarrier(bool) m_hasImplicitArgIns : 1;
@@ -2422,7 +2429,11 @@ namespace Js
 #define CURRENT_ACCESS_MODIFIER public:
 #include "SerializableFunctionFields.h"
 
-    private:
+    private:        
+        FieldWithBarrier(uint) inactiveCount;
+
+        // aligned with 8
+        FieldWithBarrier(bool) m_tag32 : 1;
         FieldWithBarrier(bool) m_nativeEntryPointUsed : 1;    // Code might have been generated but not yet used.
         FieldWithBarrier(bool) hasDoneLoopBodyCodeGen : 1;    // Code generated for loop body, but not necessary available to execute yet.
         FieldWithBarrier(bool) m_isFuncRegistered : 1;
@@ -2430,11 +2441,9 @@ namespace Js
         FieldWithBarrier(bool) funcEscapes : 1;
         FieldWithBarrier(bool) m_hasBailoutInstrInJittedCode : 1; // Indicates whether function has bailout instructions. Valid only if hasDoneCodeGen is true
         FieldWithBarrier(bool) m_pendingLoopHeaderRelease : 1; // Indicates whether loop headers need to be released
-        FieldWithBarrier(bool) hasExecutionDynamicProfileInfo : 1;
-#ifdef _M_X64_OR_ARM64
-        FieldWithBarrier(bool) m_tag : 1;                     // Used to tag the low bit to prevent possible GC false references
-#endif
+        // 8 bits from last tag
 
+        FieldWithBarrier(bool) hasExecutionDynamicProfileInfo : 1;
         FieldWithBarrier(bool) cleanedUp: 1;
         FieldWithBarrier(bool) sourceInfoCleanedUp: 1;
         FieldWithBarrier(bool) dontRethunkAfterBailout : 1;
@@ -2442,6 +2451,8 @@ namespace Js
         FieldWithBarrier(bool) disableInlineSpread : 1;
         FieldWithBarrier(bool) hasHotLoop: 1;
         FieldWithBarrier(bool) wasCalledFromLoop : 1;
+        // 16 bits from last tag
+
         FieldWithBarrier(bool) hasNestedLoop : 1;
         FieldWithBarrier(bool) recentlyBailedOutOfJittedLoopBody : 1;
         FieldWithBarrier(bool) m_firstFunctionObject: 1;
@@ -2454,19 +2465,21 @@ namespace Js
         FieldWithBarrier(bool) m_hasAllNonLocalReferenced : 1;
         FieldWithBarrier(bool) m_hasFunExprNameReference : 1;
         FieldWithBarrier(bool) m_ChildCallsEval : 1;
+        // 24 bits from last tag
+
         FieldWithBarrier(bool) m_CallsEval : 1;
         FieldWithBarrier(bool) m_hasReferenceableBuiltInArguments : 1;
         FieldWithBarrier(bool) m_isParamAndBodyScopeMerged : 1;
-
         // Used in the debug purpose. This is to avoid setting all locals to non-local-referenced, multiple times for each child function.
         FieldWithBarrier(bool) m_hasDoneAllNonLocalReferenced : 1;
-
         // Used by the script profiler, once the function compiled is sent this will be set to true.
         FieldWithBarrier(bool) m_hasFunctionCompiledSent : 1;
-
         FieldWithBarrier(bool) m_isFromNativeCodeModule : 1;
         FieldWithBarrier(bool) m_isPartialDeserializedFunction : 1;
         FieldWithBarrier(bool) m_isAsmJsScheduledForFullJIT : 1;
+        // 32 bits from last tag
+
+        FieldWithBarrier(bool) m_tag33 : 1;
         FieldWithBarrier(bool) m_hasLocalClosureRegister : 1;
         FieldWithBarrier(bool) m_hasParamClosureRegister : 1;
         FieldWithBarrier(bool) m_hasLocalFrameDisplayRegister : 1;
@@ -2474,6 +2487,8 @@ namespace Js
         FieldWithBarrier(bool) m_hasThisRegisterForEventHandler : 1;
         FieldWithBarrier(bool) m_hasFirstInnerScopeRegister : 1;
         FieldWithBarrier(bool) m_hasFuncExprScopeRegister : 1;
+        // 8 bits from last tag
+
         FieldWithBarrier(bool) m_hasFirstTmpRegister : 1;
         FieldWithBarrier(bool) m_hasActiveReference : 1;
 #if DBG
@@ -2514,7 +2529,6 @@ namespace Js
         FieldWithBarrier(uint16) committedProfiledIterations;
 
         FieldWithBarrier(uint) m_depth; // Indicates how many times the function has been entered (so increases by one on each recursive call, decreases by one when we're done)
-        FieldWithBarrier(uint) inactiveCount;
 
         FieldWithBarrier(uint32) interpretedCount;
         FieldWithBarrier(uint32) lastInterpretedCount;

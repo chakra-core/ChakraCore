@@ -75,7 +75,8 @@ namespace Js
         m_utf8SourceInfo(utf8SourceInfo),
         m_functionNumber(functionNumber),
         m_defaultEntryPointInfo(nullptr),
-        m_displayNameIsRecyclerAllocated(false)
+        m_displayNameIsRecyclerAllocated(false),
+        m_tag11(true)
     {
         PERF_COUNTER_INC(Code, TotalFunction);
     }
@@ -504,7 +505,9 @@ namespace Js
         m_hasFuncExprScopeRegister(false),
         m_hasFirstTmpRegister(false),
         m_hasActiveReference(false),
-        m_tag(TRUE),
+        m_tag31(true),
+        m_tag32(true),
+        m_tag33(true),
         m_nativeEntryPointUsed(FALSE),
         bailOnMisingProfileCount(0),
         bailOnMisingProfileRejitCount(0),
@@ -643,7 +646,9 @@ namespace Js
         m_hasFuncExprScopeRegister(false),
         m_hasFirstTmpRegister(false),
         m_hasActiveReference(false),
-        m_tag(true),
+        m_tag31(true),
+        m_tag32(true),
+        m_tag33(true),
         m_nativeEntryPointUsed(false),
         bailOnMisingProfileCount(0),
         bailOnMisingProfileRejitCount(0),
@@ -1536,7 +1541,8 @@ namespace Js
       scopeSlotArraySize(0),
       paramScopeSlotArraySize(0),
       m_reparsed(false),
-      m_isAsmJsFunction(false)
+      m_isAsmJsFunction(false),
+      m_tag21(true)
 #if DBG
       ,m_wasEverAsmjsMode(false)
       ,scopeObjectSize(0)
@@ -1585,7 +1591,8 @@ namespace Js
       m_isNameIdentifierRef (proxy->GetIsNameIdentifierRef()),
       m_isStaticNameFunction(proxy->GetIsStaticNameFunction()),
       m_reportedInParamCount(proxy->GetReportedInParamsCount()),
-      m_reparsed(proxy->IsReparsed())
+      m_reparsed(proxy->IsReparsed()),
+      m_tag21(true)
 #if DBG
       ,m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
 #endif
@@ -9612,17 +9619,21 @@ namespace Js
                 Assert(this->validationCookie != nullptr);
                 currentCookie = (void*)currentNativeCodegen;
 #endif
+
+                if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
+                {
+#if DBG
+                    // tag the jsMethod in case the native address is reused in recycler and create a false positive
+                    // not checking validationCookie because this can happen while debugger attaching, native address
+                    // are batch freed through deleting NativeCodeGenerator
+                    this->jsMethod = (Js::JavascriptMethod)((intptr_t)this->jsMethod | 1);
+#else
+                    this->jsMethod = nullptr;
+#endif
+                }
+
                 if (validationCookie == currentCookie)
                 {
-                    if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
-                    {
-#if DBG
-                        // tag the jsMethod in case the native address is reused in recycler and create a false positive
-                        this->jsMethod = (Js::JavascriptMethod)((intptr_t)this->jsMethod | 1);
-#else
-                        this->jsMethod = nullptr;
-#endif
-                    }
                     scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress());
                 }
             }
@@ -9929,18 +9940,20 @@ namespace Js
                 currentCookie = (void*)currentNativeCodegen;
 #endif
 
+                if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
+                {
+#if DBG
+                    // tag the jsMethod in case the native address is reused in recycler and create a false positive
+                    // not checking validationCookie because this can happen while debugger attaching, native address
+                    // are batch freed through deleting NativeCodeGenerator
+                    this->jsMethod = (Js::JavascriptMethod)((intptr_t)this->jsMethod | 1);
+#else
+                    this->jsMethod = nullptr;
+#endif
+                }
+
                 if (validationCookie == currentCookie)
                 {
-                    if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
-                    {
-#if DBG
-                        // tag the jsMethod in case the native address is reused in recycler and create a false positive
-                        this->jsMethod = (Js::JavascriptMethod)((intptr_t)this->jsMethod | 1);
-#else
-                        this->jsMethod = nullptr;
-#endif
-                    }
-
                     scriptContext->FreeFunctionEntryPoint(reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()));
                 }
             }

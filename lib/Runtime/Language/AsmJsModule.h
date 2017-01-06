@@ -358,7 +358,7 @@ namespace Js {
                 Field(double) doubleInit;
                 Field(AsmJsSIMDValue) simdInit;
             };
-            Field(InitialiserType) initialiser;
+            Field(InitialiserType) initialiser; // (leish)(swb) false positive found here
             Field(bool) isMutable;
         };
         struct ModuleVarImport
