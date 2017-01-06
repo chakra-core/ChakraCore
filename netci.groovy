@@ -234,6 +234,17 @@ def CreateStyleCheckTasks = { taskString, taskName, checkName ->
 
 CreateBuildTasks('Windows_NT', null, null, null, true, null, null)
 
+// Add some additional daily configs to trigger per-PR as a quality gate:
+// x64_debug Slow Tests
+CreateBuildTask(true, 'x64', 'debug',
+    'Windows_NT', 'ci_slow', null, '-includeSlow', false, null, null)
+// x64_debug DisableJIT
+CreateBuildTask(true, 'x64', 'debug',
+    'Windows_NT', 'ci_disablejit', '"/p:BuildJIT=false"', '-disablejit', false, null, null)
+// x64_debug Legacy
+CreateBuildTask(true, 'x64', 'debug',
+    'Windows 7', 'ci_dev12', 'msbuild12', '-win7 -includeSlow', false, null, null)
+
 // -----------------
 // DAILY BUILD TASKS
 // -----------------
