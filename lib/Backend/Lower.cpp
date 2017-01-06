@@ -2154,6 +2154,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             break;
 
+        case Js::OpCode::BrOnBaseConstructorKind:
+            this->LowerBrOnClassConstructor(instr, IR::HelperOp_IsBaseConstructorKind);
+            break;
+
         case Js::OpCode::BrOnClassConstructor:
             this->LowerBrOnClassConstructor(instr, IR::HelperOp_IsClassConstructor);
             break;
