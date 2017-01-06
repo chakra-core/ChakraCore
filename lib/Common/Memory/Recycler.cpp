@@ -252,6 +252,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #endif
     , objectBeforeCollectCallbackMap(nullptr)
     , objectBeforeCollectCallbackState(ObjectBeforeCollectCallback_None)
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    , pendingWriteBarrierBlockMap(&HeapAllocator::Instance)
+#endif
 {
 #ifdef RECYCLER_MARK_TRACK
     this->markMap = NoCheckHeapNew(MarkMap, &NoCheckHeapAllocator::Instance, 163, &markMapCriticalSection);
@@ -4205,6 +4208,16 @@ Recycler::BackgroundRescan(RescanFlags rescanFlags)
 
     GCETW(GC_BACKGROUNDRESCAN_START, (this, backgroundRescanCount));
     RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, Js::BackgroundRescanPhase);
+    
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        pendingWriteBarrierBlockMap.Map([](void* address, size_t size)
+        {
+            RecyclerWriteBarrierManager::WriteBarrier(address, size);
+        });
+    }
+#endif
 
     size_t rescannedPageCount = heapBlockMap.Rescan(this, ((rescanFlags & RescanFlags_ResetWriteWatch) != 0));
 
@@ -8521,6 +8534,26 @@ Recycler::NotifyFree(__in char *address, size_t size)
     }
 #endif
 }
+
+#if GLOBAL_ENABLE_WRITE_BARRIER
+void 
+Recycler::RegisterPendingWriteBarrierBlock(void* address, size_t bytes)
+{
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        RecyclerWriteBarrierManager::WriteBarrier(address, bytes);
+        pendingWriteBarrierBlockMap.Item(address, bytes);
+    }
+}
+void 
+Recycler::UnRegisterPendingWriteBarrierBlock(void* address)
+{
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        pendingWriteBarrierBlockMap.Remove(address);
+    }
+}
+#endif
 
 #if DBG
 void 

@@ -1928,6 +1928,16 @@ private:
 
     bool ProcessObjectBeforeCollectCallbacks(bool atShutdown = false);
 
+#if GLOBAL_ENABLE_WRITE_BARRIER
+private:
+    typedef JsUtil::BaseDictionary<void *, size_t, HeapAllocator, PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::NoResizeLock> PendingWriteBarrierBlockMap;
+
+    PendingWriteBarrierBlockMap pendingWriteBarrierBlockMap;
+public:
+    void RegisterPendingWriteBarrierBlock(void* address, size_t bytes);
+    void UnRegisterPendingWriteBarrierBlock(void* address);
+#endif
+
 #if DBG
 private:
     static Recycler* recyclerList;

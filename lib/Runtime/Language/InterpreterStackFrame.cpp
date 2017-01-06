@@ -1930,7 +1930,7 @@ namespace Js
 
                 newInstance->m_reader.Create(executeFunction);
 
-                generator->SetFrame(newInstance);
+                generator->SetFrame(newInstance, varSizeInBytes);
             }
         }
         else
