@@ -140,6 +140,14 @@ function test1(arr)
 
 WScript.Echo("arr.length = " + test1(new Array(10)));
 
+// OS 9357224: Array.prototype.unshift does not marshal parameters correctly
+function crossSiteUnshift() {
+    var sc0 = WScript.LoadScript('', 'samethread');
+    sc0.ary = [1];
+    return sc0.eval('Array.prototype.unshift.call(ary, null)');
+}
+WScript.Echo("Crosssite new length: " + crossSiteUnshift()); // 2
+
 //
 // To check bailouts for inlined unshift
 //
@@ -164,4 +172,3 @@ function foo()
 Array.prototype.unshift = function(){WScript.Echo ("Overridden unshift")};
 foo();
 WScript.Echo (a);
-

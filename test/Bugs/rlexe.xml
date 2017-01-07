@@ -298,6 +298,13 @@
   </test>
   <test>
     <default>
+      <files>bug8554038.js</files>
+      <baseline>bug8554038.baseline</baseline>
+      <compile-flags>-maxinterpretcount:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>b208_asmjs.js</files>
       <baseline>b208_asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship,require_backend</tags>

@@ -87,6 +87,7 @@ typedef void* HANDLE;
 typedef unsigned char BYTE;
 typedef BYTE byte;
 typedef UINT32 DWORD;
+typedef unsigned short WCHAR;
 #endif
 
 #endif //  defined(_WIN32) && defined(_MSC_VER)

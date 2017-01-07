@@ -2973,10 +2973,10 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
             top->AssignUndefinedConstRegister();
 
             top->AssignNewTargetRegister();
+            top->AssignThisRegister();
 
             if (top->GetCallsEval() || top->GetChildCallsEval())
             {
-                top->AssignThisRegister();
                 top->SetIsThisLexicallyCaptured();
                 top->SetIsNewTargetLexicallyCaptured();
                 top->SetIsSuperLexicallyCaptured();

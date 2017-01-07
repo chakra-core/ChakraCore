@@ -39,7 +39,8 @@ namespace Js
             Module                         = 0x20000, // The function is the function body wrapper for a module
             EnclosedByGlobalFunc           = 0x40000,
             CanDefer                       = 0x80000,
-            AllowDirectSuper               = 0x100000
+            AllowDirectSuper               = 0x100000,
+            BaseConstructorKind            = 0x200000
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
         FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
@@ -132,6 +133,8 @@ namespace Js
         bool GetEnclosedByGlobalFunc() const { return (attributes & Attributes::EnclosedByGlobalFunc) != 0; }
         void SetAllowDirectSuper() { attributes = (Attributes)(attributes | Attributes::AllowDirectSuper); }
         bool GetAllowDirectSuper() const { return (attributes & Attributes::AllowDirectSuper) != 0; }
+        void SetBaseConstructorKind() { attributes = (Attributes)(attributes | Attributes::BaseConstructorKind); }
+        bool GetBaseConstructorKind() const { return (attributes & Attributes::BaseConstructorKind) != 0; }
 
     protected:
         FieldNoBarrier(JavascriptMethod) originalEntryPoint;

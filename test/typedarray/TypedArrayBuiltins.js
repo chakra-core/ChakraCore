@@ -338,6 +338,60 @@ var tests = [
                 test(taCtor);
             }
         }
+    },
+    {
+        name: "TypedArray : Error cases for constructor TypedArray( buffer, byteOffset, length )",
+        body: function () {
+            var sourceArrayBuffer1 = new ArrayBuffer(10);
+
+            // offset > byteLength
+            function TestOffsetBeyondSourceArrayBufferLength()
+            {
+                new Int16Array(sourceArrayBuffer1, 12);
+            }
+
+            assert.throws(
+                TestOffsetBeyondSourceArrayBufferLength, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as (offset > byteLength).", 
+                "Invalid offset/length when creating typed array")
+
+            // offset % elementSize != 0
+            function TestIncorrectOffset()
+            {
+                new Int16Array(sourceArrayBuffer1, 7, 1);
+            }
+
+            assert.throws(
+                TestIncorrectOffset, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as (offset % elementSize) != 0.", 
+                "Invalid offset/length when creating typed array")
+
+            // (Length * elementSize + offset) beyond array buffer length.
+            function TestLengthBeyondSourceArrayBufferLength()
+            {
+                new Int16Array(sourceArrayBuffer1, 6, 4);
+            }
+
+            assert.throws(
+                TestLengthBeyondSourceArrayBufferLength, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as ((Length * elementSize + offset)) != byteLength.", 
+                "Invalid offset/length when creating typed array")
+
+            // (byteLength - offset) % elementSize != 0
+            function TestOffsetPlusElementSizeBeyondSourceArrayBufferLength()
+            {
+                new Int32Array(sourceArrayBuffer1, 4);
+            }
+
+            assert.throws(
+                TestOffsetPlusElementSizeBeyondSourceArrayBufferLength, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as (byteLength - offset) % elementSize != 0.", 
+                "Invalid offset/length when creating typed array")
+        }
     }
 ];
 

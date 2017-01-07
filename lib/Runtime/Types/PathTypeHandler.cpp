@@ -1552,6 +1552,16 @@ namespace Js
                     Assert(cachedDynamicTypeHandler->GetInlineSlotCapacity() >= roundedInlineSlotCapacity);
                     Assert(cachedDynamicTypeHandler->GetInlineSlotCapacity() >= GetPropertyCount());
                     cachedDynamicTypeHandler->ShrinkSlotAndInlineSlotCapacity();
+
+                    // If slot capacity doesn't match after shrinking, it could be because oldType was shrunk and
+                    // newType evolved. In that case, we should update the cache with new type
+                    if (cachedDynamicTypeHandler->GetInlineSlotCapacity() != roundedInlineSlotCapacity)
+                    {
+                        cachedDynamicType = nullptr;
+#if DBG
+                        swprintf_s(reason, 1024, _u("InlineSlotCapacity mismatch after shrinking. Required = %d, Cached = %d"), roundedInlineSlotCapacity, cachedDynamicTypeHandler->GetInlineSlotCapacity());
+#endif
+                    }
                 }
             }
         }

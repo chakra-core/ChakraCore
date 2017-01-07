@@ -5,7 +5,6 @@
 #pragma once
 #include "PageAllocatorDefines.h"
 #include "Exceptions/ExceptionBase.h"
-#include "Exceptions/InternalErrorException.h"
 
 #ifdef PROFILE_MEM
 struct PageMemoryData;
@@ -406,7 +405,7 @@ public:
         if (MemOpLastError == 0)
         {
             MemOpLastError = GetLastError();
-            throw Js::InternalErrorException();
+            AssertOrFailFast(false);
         }
 #endif
     }

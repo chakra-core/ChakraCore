@@ -65,6 +65,28 @@ namespace std {
 #endif
 #endif // __APPLE__ ?
 
+#ifdef __ANDROID__
+#define S_IREAD   0000400
+#define S_IWRITE  0000200
+#define S_IEXEC   0000100
+
+#ifndef CC_AND_TAG
+#define CC_AND_TAG "chakracore-log"
+#endif
+#include <android/log.h>
+#include <stdarg.h>
+#define PRINT_LOG(...) \
+    __android_log_print(ANDROID_LOG_INFO, CC_AND_TAG, __VA_ARGS__)
+#define PRINT_ERROR(...) \
+    __android_log_print(ANDROID_LOG_ERROR, CC_AND_TAG, __VA_ARGS__)
+#else
+typedef __builtin_va_list va_list;
+#define PRINT_LOG(...) \
+    swprintf(stdout, __VA_ARGS__)
+#define PRINT_ERROR(...) \
+    swprintf(stderr, __VA_ARGS__)
+#endif
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -187,36 +209,12 @@ extern "C" {
 
 /******************* Compiler-specific glue *******************************/
 
-#ifndef _MSC_VER
 #define FEATURE_PAL_SXS 1
-#endif // !_MSC_VER
-
-#if defined(_MSC_VER) || defined(__llvm__)
 #define DECLSPEC_ALIGN(x)   __declspec(align(x))
-#else
-#define DECLSPEC_ALIGN(x)
-#endif
-
 #define DECLSPEC_NORETURN   PAL_NORETURN
-
-#ifndef _MSC_VER
 #define __assume(x) (void)0
 #define __annotation(x)
-#endif //!MSC_VER
-
-#ifdef _MSC_VER
-
-#if defined(_M_MRX000) || defined(_M_ALPHA) || defined(_M_PPC) || defined(_M_IA64)
-#define UNALIGNED __unaligned
-#else
 #define UNALIGNED
-#endif
-
-#else // _MSC_VER
-
-#define UNALIGNED
-
-#endif // _MSC_VER
 
 #ifndef FORCEINLINE
 #if _MSC_VER < 1200
@@ -226,122 +224,7 @@ extern "C" {
 #endif
 #endif
 
-#ifndef PAL_STDCPP_COMPAT
-
-#ifdef _M_ALPHA
-
-typedef struct {
-    char *a0;       /* pointer to first homed integer argument */
-    int offset;     /* byte offset of next parameter */
-} va_list;
-
-#define va_start(list, v) __builtin_va_start(list, v, 1)
-#define va_end(list)
-
-#elif __GNUC__
-
-#if defined(_AIX)
-
-typedef __builtin_va_list __gnuc_va_list;
-typedef __builtin_va_list va_list;
-#define va_start(v,l)   __builtin_va_start(v,l)
-#define va_end          __builtin_va_end
-#define va_arg          __builtin_va_arg
-
-#else // _AIX
-
-#if __GNUC__ == 2
-typedef void * va_list;
-#else
-typedef __builtin_va_list va_list;
-#endif  // __GNUC__
-
-/* We should consider if the va_arg definition here is actually necessary.
-   Could we use the standard va_arg definition? */
-
-#if __GNUC__ == 2
-#if defined(_SPARC_) || defined(_PARISC_) // ToDo: is this the right thing for PARISC?
-#define va_start(list, v) (__builtin_next_arg(v), list = (char *) __builtin_saveregs())
-#define __va_rounded_size(TYPE)  \
-  (((sizeof (TYPE) + sizeof (int) - 1) / sizeof (int)) * sizeof (int))
-#define __record_type_class 12
-#define __real_type_class 8
-#define va_arg(pvar,TYPE)                                       \
-__extension__                                                   \
-(*({((__builtin_classify_type (*(TYPE*) 0) >= __record_type_class \
-      || (__builtin_classify_type (*(TYPE*) 0) == __real_type_class \
-          && sizeof (TYPE) == 16))                              \
-    ? ((pvar) = (char *)(pvar) + __va_rounded_size (TYPE *),    \
-       *(TYPE **) (void *) ((char *)(pvar) - __va_rounded_size (TYPE *))) \
-    : __va_rounded_size (TYPE) == 8                             \
-    ? ({ union {char __d[sizeof (TYPE)]; int __i[2];} __u;      \
-         __u.__i[0] = ((int *) (void *) (pvar))[0];             \
-         __u.__i[1] = ((int *) (void *) (pvar))[1];             \
-         (pvar) = (char *)(pvar) + 8;                           \
-         (TYPE *) (void *) __u.__d; })                          \
-    : ((pvar) = (char *)(pvar) + __va_rounded_size (TYPE),      \
-       ((TYPE *) (void *) ((char *)(pvar) - __va_rounded_size (TYPE)))));}))
-#else   // _SPARC_ or _PARISC_
-// GCC 2.95.3 on non-SPARC
-#define __va_size(type) (((sizeof(type) + sizeof(int) - 1) / sizeof(int)) * sizeof(int))
-#define va_start(list, v) ((list) = (va_list) __builtin_next_arg(v))
-#define va_arg(ap, type) (*(type *)((ap) += __va_size(type), (ap) - __va_size(type)))
-#endif  // _SPARC_ or _PARISC_
-#else // __GNUC__ == 2
-#define va_start    __builtin_va_start
-#define va_arg      __builtin_va_arg
-#endif // __GNUC__ == 2
-
-#define va_copy     __builtin_va_copy
-#define va_end      __builtin_va_end
-
-#endif // _AIX
-
-#define VOID void
-
-#define PUB __attribute__((visibility("default")))
-
-#else // __GNUC__
-
-typedef char * va_list;
-
-#define _INTSIZEOF(n)   ( (sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1) )
-
-#if _MSC_VER >= 1400
-
-#ifdef  __cplusplus
-#define _ADDRESSOF(v)   ( &reinterpret_cast<const char &>(v) )
-#else
-#define _ADDRESSOF(v)   ( &(v) )
-#endif
-
-#define _crt_va_start(ap,v)  ( ap = (va_list)_ADDRESSOF(v) + _INTSIZEOF(v) )
-#define _crt_va_arg(ap,t)    ( *(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t)) )
-#define _crt_va_end(ap)      ( ap = (va_list)0 )
-
-#define va_start _crt_va_start
-#define va_arg _crt_va_arg
-#define va_end _crt_va_end
-
-#else  // _MSC_VER
-
-#define va_start(ap,v)    (ap = (va_list) (&(v)) + _INTSIZEOF(v))
-#define va_arg(ap,t)    ( *(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t)) )
-#define va_end(ap)
-
-#endif // _MSC_VER
-
-#define va_copy(dest,src) (dest = src)
-
-#endif // __GNUC__
-
-#endif // !PAL_STDCPP_COMPAT
-
-#if defined(__CLANG__) || defined(__GNUC__)
 #define PAL_GLOBAL __attribute__((init_priority(200)))
-#else
-#define PAL_GLOBAL
-#endif
 /******************* PAL-Specific Entrypoints *****************************/
 
 #define IsDebuggerPresent PAL_IsDebuggerPresent
@@ -525,26 +408,6 @@ typedef long time_t;
 typedef DWORD (PALAPI *PTHREAD_START_ROUTINE)(LPVOID lpThreadParameter);
 typedef PTHREAD_START_ROUTINE LPTHREAD_START_ROUTINE;
 
-
-/******************* Tracing Initialization *******************************/
-
-#if defined(__LINUX__)
-
-// Constructor priority is set to 200, which allows for constructors to
-// guarantee that they run before or after this constructor by setting
-// their priority appropriately.
-
-// Priority values must be greater than 100.  The lower the value,
-// the higher the priority.
-static
-void
-__attribute__((__unused__))
-__attribute__((constructor (200)))
-PAL_InitializeTracing(void);
-
-#endif
-
-
 /******************* PAL-Specific Entrypoints *****************************/
 
 PALIMPORT
@@ -558,12 +421,6 @@ PALIMPORT
 int
 PALAPI
 PAL_InitializeDLL();
-
-PALIMPORT
-DWORD
-PALAPI
-PAL_InitializeCoreCLR(
-    const char *szExePath);
 
 PALIMPORT
 DWORD

@@ -423,6 +423,7 @@ namespace Js
         BOOL OP_BrOnNoProperty(Var argInstance, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnNoEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnClassConstructor(Var aValue);
+        BOOL OP_BrOnBaseConstructorKind(Var aValue);
 
         RecyclableObject * OP_CallGetFunc(Var target);
 

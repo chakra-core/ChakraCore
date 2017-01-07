@@ -834,17 +834,12 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
     {
         hr = E_ABORT;
     }
-    catch (Js::InternalErrorException)
-    {
-        hr = E_FAIL;
-    }
     catch (...)
     {
-        AssertMsg(false, "Unknown exception caught in JIT server call.");
-        hr = E_FAIL;
+        AssertOrFailFastMsg(false, "Unknown exception caught in JIT server call.");
     }
 
-    if (hr == E_OUTOFMEMORY || hr == E_FAIL)
+    if (hr == E_OUTOFMEMORY)
     {
         if (HRESULT_FROM_WIN32(MemoryOperationLastError::GetLastError()) != S_OK)
         {

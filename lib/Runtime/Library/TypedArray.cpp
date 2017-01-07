@@ -388,6 +388,7 @@ namespace Js
     Var TypedArrayBase::CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray)
     {
         uint32 byteLength = 0;
+        uint32 newByteLength = 0;
         int32 offset = 0;
         int32 mappedLength = -1;
         uint32 elementCount = 0;
@@ -509,12 +510,15 @@ namespace Js
             if (args.Info.Count > 3 && !JavascriptOperators::IsUndefinedObject(args[3]))
             {
                 mappedLength = ArrayBuffer::ToIndex(args[3], JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize, false);
+                newByteLength = mappedLength * elementSize;
 
-                if ((uint32)mappedLength > (byteLength - offset)/ elementSize)
+                if (offset + newByteLength > byteLength)
                 {
                     JavascriptError::ThrowRangeError(
                         scriptContext, JSERR_InvalidTypedArrayLength);
                 }
+
+                byteLength = newByteLength;
             }
             else
             {

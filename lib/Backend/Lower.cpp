@@ -2183,6 +2183,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             }
             break;
 
+        case Js::OpCode::BrOnBaseConstructorKind:
+            this->LowerBrOnClassConstructor(instr, IR::HelperOp_IsBaseConstructorKind);
+            break;
+
         case Js::OpCode::BrOnClassConstructor:
             this->LowerBrOnClassConstructor(instr, IR::HelperOp_IsClassConstructor);
             break;
@@ -10720,6 +10724,7 @@ Lowerer::LowerArgIn(IR::Instr *instrArgIn)
         }
         else
         {
+            Assert(instrArgIn->m_func == this->m_func);
             IR::Instr * instrCount = m_lowererMD.LoadInputParamCount(instrArgIn, -this->m_func->GetInParamsCount());
             IR::Opnd * excessOpnd = instrCount->GetDst();
 
