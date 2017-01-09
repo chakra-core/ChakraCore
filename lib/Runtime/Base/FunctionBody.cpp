@@ -900,6 +900,10 @@ namespace Js
             {
                 functionType->SetEntryPoint(GetScriptContext()->DeferredParsingThunk);
             }
+            if (!CrossSite::IsThunk(functionType->GetEntryPointInfo()->jsMethod))
+            {
+                functionType->GetEntryPointInfo()->jsMethod = GetScriptContext()->DeferredParsingThunk;
+            }
         });
 
         this->Cleanup(false);
