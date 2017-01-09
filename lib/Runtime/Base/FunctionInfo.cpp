@@ -22,6 +22,13 @@ namespace Js
 #endif
     }
 
+    FunctionInfo::FunctionInfo(FunctionInfo& that)
+        : originalEntryPoint(that.originalEntryPoint), attributes(that.attributes), 
+        functionBodyImpl(FORCE_NO_WRITE_BARRIER_TAG(that.functionBodyImpl)), functionId(that.functionId), compileCount(that.compileCount)
+    {
+
+    }
+
     bool FunctionInfo::Is(void* ptr)
     {
         if(!ptr)
