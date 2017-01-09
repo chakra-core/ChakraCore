@@ -7,6 +7,15 @@ if (this.WScript && this.WScript.LoadScriptFile) {
   this.WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 }
 
+function getPropertiesString(obj) {
+  var props = []
+  for (var x in obj) {
+    props.push(x);
+  }
+  props = props.sort();
+  return props.join();
+}
+
 var Tests = [function () {
     var obj = {}; // Starts with preinitialized object literal type T0
     obj.a1 = 1; // New type T1 with inlineSlotCapacity 0, a1 goes to auxSlot of capacity 4, new TypePath
@@ -300,6 +309,48 @@ var Tests = [function () {
     };
     func4();
     func4();
+  },
+  function () {
+    var obj1 = {};
+    obj1.o1 = 1;
+    var obj2 = {};
+    obj2.o2 = 1; // Set a property (last)
+    obj2.__proto__ = obj1; // Modify the prototype
+    delete obj2.o2; // Trigger delete last property
+    assert.areEqual(1, obj2.o1, "");
+  },
+  function () {
+    var obj1 = {};
+    obj1.p1 = 1;
+    var obj2 = {};
+    obj2.__proto__ = obj1; // Change prototype first
+    obj2.p2 = 1; // Add a last property
+    delete obj2.p2; // Trigger delete last property
+    assert.areEqual(1, obj2.p1, "");
+  },
+  function () {
+    var obj1 = {};
+    obj1.q1 = 1;
+    obj1.q2 = 1;
+    var obj2 = {};
+    obj2.q3 = 1; // Add last property to object
+    obj1.q4 = 1; // Add another property to prototype
+    obj2.__proto__ = obj1; // Change prototype
+    delete obj2.q3; // Delete last property
+    assert.areEqual('q1,q2,q4', getPropertiesString(obj2), "");
+  },
+  function () {
+    var obj1 = {};
+    obj1.r1 = 1;
+    obj1.r2 = 1;
+    var obj2 = {};
+    obj2.r3 = 1; // Add a property
+    obj2.r4 = 1; // Add another (last) property
+    obj2.__proto__ = obj1; // Change prototype
+    delete obj2.r4; // Trigger delete last property
+    assert.areEqual('r1,r2,r3', getPropertiesString(obj2), "");
+    delete obj2.r3;
+    assert.areEqual('r1,r2', getPropertiesString(obj2), "");
   }
 ]
 
