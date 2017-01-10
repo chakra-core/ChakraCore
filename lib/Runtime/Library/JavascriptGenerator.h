@@ -50,9 +50,10 @@ namespace Js
         }
 
         Var CallGenerator(ResumeYieldData* yieldData, const char16* apiNameForErrorMessage);
+        JavascriptGenerator(DynamicType* type, Arguments& args, ScriptFunction* scriptFunction);
 
     public:
-        JavascriptGenerator(DynamicType* type, Arguments& args, ScriptFunction* scriptFunction);
+        static JavascriptGenerator* New(Recycler* recycler, DynamicType* generatorType, Arguments& args, ScriptFunction* scriptFunction);
 
         bool IsExecuting() const { return state == GeneratorState::Executing; }
         bool IsSuspended() const { return state == GeneratorState::Suspended; }

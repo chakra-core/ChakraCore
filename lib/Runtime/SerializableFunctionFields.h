@@ -16,6 +16,9 @@
 #define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType)
 #endif
 
+#ifndef DECLARE_TAG_FIELD
+#define DECLARE_TAG_FIELD(type, name, serializableType)
+#endif
 
 #ifdef CURRENT_ACCESS_MODIFIER
 #define PROTECTED_FIELDS protected:
@@ -47,6 +50,7 @@ CURRENT_ACCESS_MODIFIER
 #endif
 
 #if DEFINE_FUNCTION_BODY_FIELDS
+
 PUBLIC_FIELDS
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, VarCount, RegSlot);           // Count of non-constant locals
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ConstantCount, RegSlot);         // Count of enregistered constants
@@ -68,7 +72,9 @@ PRIVATE_FIELDS
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledReturnTypeCount, UInt16);
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledSlotCount, UInt16);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LoopCount, RegSlot);
-    DECLARE_SERIALIZABLE_FIELD(bool, m_tag31, Bool); // Used to tag the low bit to prevent possible GC false references
+
+    DECLARE_TAG_FIELD(bool, m_tag31, Bool); // Used to tag the low bit to prevent possible GC false references
+
     DECLARE_SERIALIZABLE_FIELD(bool, m_hasFinally, Bool);
     DECLARE_SERIALIZABLE_FIELD(bool, hasScopeObject, Bool);
     DECLARE_SERIALIZABLE_FIELD(bool, hasCachedScopePropIds, Bool);
@@ -103,3 +109,4 @@ CURRENT_ACCESS_MODIFIER
 #undef PROTECTED_FIELDS
 #undef PRIVATE_FIELDS
 #undef PUBLIC_FIELDS
+#undef DECLARE_TAG_FIELD

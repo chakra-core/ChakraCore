@@ -2140,6 +2140,7 @@ namespace Js
         // This is generally the same as m_cchStartOffset unless the buffer has a BOM
 
 #define DEFINE_PARSEABLE_FUNCTION_INFO_FIELDS 1
+#define DECLARE_TAG_FIELD(type, name, serializableType) Field(type) name
 #define CURRENT_ACCESS_MODIFIER protected:
 #include "SerializableFunctionFields.h"
 
@@ -2426,6 +2427,7 @@ namespace Js
         static const int LocalsChangeDirtyValue = 1;
 
 #define DEFINE_FUNCTION_BODY_FIELDS 1
+#define DECLARE_TAG_FIELD(type, name, serializableType) Field(type) name
 #define CURRENT_ACCESS_MODIFIER public:
 #include "SerializableFunctionFields.h"
 

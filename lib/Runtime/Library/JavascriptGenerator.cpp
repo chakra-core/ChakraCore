@@ -16,7 +16,20 @@ namespace Js
             this->GetScriptContext()->GetRecycler()->RegisterPendingWriteBarrierBlock(this->args.Values, this->args.Info.Count * sizeof(Var));
         }
 #endif
-        RecyclerWriteBarrierManager::WriteBarrier(&this->args.Values);
+    }
+
+    JavascriptGenerator* JavascriptGenerator::New(Recycler* recycler, DynamicType* generatorType, Arguments& args, ScriptFunction* scriptFunction)
+    {
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            return RecyclerNewFinalized(recycler, JavascriptGenerator, generatorType, args, scriptFunction);
+        }
+        else
+#endif
+        {
+            return RecyclerNew(recycler, JavascriptGenerator, generatorType, args, scriptFunction);
+        }
     }
 
     bool JavascriptGenerator::Is(Var var)
