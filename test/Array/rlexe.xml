@@ -728,4 +728,9 @@
       <tags>BugFix</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug_9575461.js</files>
+    </default>
+  </test>
 </regress-exe>

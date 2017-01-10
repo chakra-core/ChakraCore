@@ -2997,7 +2997,9 @@ namespace Js
     }
 
     template<typename T>
-    void JavascriptArray::ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest, BOOL FirstPromotedItemIsSpreadable, BigIndex FirstPromotedItemLength)
+    void JavascriptArray::ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds,
+        Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest,
+        BOOL FirstPromotedItemIsSpreadable, BigIndex FirstPromotedItemLength, bool spreadableCheckedAndTrue)
     {
         // This never gets called.
         Throw::InternalError();
@@ -3006,7 +3008,9 @@ namespace Js
     // Helper for EntryConcat. Concat args or elements of arg arrays into dest array.
     //
     template<typename T>
-    void JavascriptArray::ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, uint startIdxDest, BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength)
+    void JavascriptArray::ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds,
+        Js::Arguments& args, ScriptContext* scriptContext, uint start, uint startIdxDest,
+        BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength, bool spreadableCheckedAndTrue)
     {
         JavascriptArray* pDestArray = nullptr;
 
@@ -3019,8 +3023,8 @@ namespace Js
         for (uint idxArg = start; idxArg < args.Info.Count; idxArg++)
         {
             Var aItem = args[idxArg];
-            BOOL spreadable = false;
-            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
+            bool spreadable = spreadableCheckedAndTrue;
+            if (!spreadable && scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
                 // firstPromotedItemIsSpreadable is ONLY used to resume after a type promotion from uint32 to uint64
                 // we do this because calls to IsConcatSpreadable are observable (a big deal for proxies) and we don't
@@ -3033,6 +3037,10 @@ namespace Js
                     ++idxDest;
                     continue;
                 }
+            }
+            else
+            {
+                spreadableCheckedAndTrue = false; // if it was `true`, reset after the first use
             }
 
             if (pDestArray && JavascriptArray::IsDirectAccessArray(aItem) && JavascriptArray::IsDirectAccessArray(pDestArray)
@@ -3151,6 +3159,7 @@ namespace Js
             pDestArray->SetLength(ConvertToIndex<T, uint32>(idxDest, scriptContext));
         }
     }
+
     bool JavascriptArray::PromoteToBigIndex(BigIndex lhs, BigIndex rhs)
     {
         return false; // already a big index
@@ -3173,17 +3182,25 @@ namespace Js
         for (uint idxArg = 0; idxArg < args.Info.Count; idxArg++)
         {
             Var aItem = args[idxArg];
+            bool spreadableCheckedAndTrue = false;
 
-            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled() && !JavascriptOperators::IsConcatSpreadable(aItem))
+            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
-                pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
-                idxDest = idxDest + 1;
-                if (!JavascriptNativeIntArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                if (JavascriptOperators::IsConcatSpreadable(aItem))
                 {
-                    ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
-                    return pDestArray;
+                    spreadableCheckedAndTrue = true;
                 }
-                continue;
+                else
+                {
+                    pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
+                    idxDest = idxDest + 1;
+                    if (!JavascriptNativeIntArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                    {
+                        ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
+                        return pDestArray;
+                    }
+                    continue;
+                }
             }
 
             if (JavascriptNativeIntArray::Is(aItem)) // Fast path
@@ -3220,7 +3237,7 @@ namespace Js
             else
             {
                 JavascriptArray *pVarDestArray = JavascriptNativeIntArray::ConvertToVarArray(pDestArray);
-                ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
+                ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue);
                 return pVarDestArray;
             }
         }
@@ -3238,18 +3255,26 @@ namespace Js
         {
             Var aItem = args[idxArg];
 
-            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled() && !JavascriptOperators::IsConcatSpreadable(aItem))
+            bool spreadableCheckedAndTrue = false;
+
+            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
-
-                pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
-
-                idxDest = idxDest + 1;
-                if (!JavascriptNativeFloatArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                if (JavascriptOperators::IsConcatSpreadable(aItem))
                 {
-                    ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
-                    return pDestArray;
+                    spreadableCheckedAndTrue = true;
                 }
-                continue;
+                else
+                {
+                    pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
+
+                    idxDest = idxDest + 1;
+                    if (!JavascriptNativeFloatArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                    {
+                        ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
+                        return pDestArray;
+                    }
+                    continue;
+                }
             }
 
             bool converted;
@@ -3270,9 +3295,10 @@ namespace Js
                 else
                 {
                     JavascriptArray *pVarDestArray = JavascriptNativeFloatArray::ConvertToVarArray(pDestArray);
-                    ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
+                    ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue);
                     return pVarDestArray;
                 }
+
                 if (converted)
                 {
                     // Copying the last array forced a conversion, so switch over to the var version
