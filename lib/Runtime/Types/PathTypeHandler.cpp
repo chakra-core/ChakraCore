@@ -1229,6 +1229,9 @@ namespace Js
             {
                 // The new type isn't shared yet.  We will make it shared when the second instance attains it.
                 nextType = instance->DuplicateType();
+                // nextType's prototype and predecessorType's prototype can only be different here
+                // only for SetPrototype scenario where predecessorType is the cachedType with newPrototype
+                nextType->SetPrototype(predecessorType->GetPrototype());
                 nextType->typeHandler = nextPath;
                 markTypeAsShared ? nextType->SetIsLockedAndShared() : nextType->SetIsLocked();
             }
@@ -1576,6 +1579,7 @@ namespace Js
             SimplePathTypeHandler* newTypeHandler = SimplePathTypeHandler::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, static_cast<PropertyIndex>(this->GetSlotCapacity()), this->GetInlineSlotCapacity(), this->GetOffsetOfInlineSlots(), true, true);
 
             cachedDynamicType = instance->DuplicateType();
+            cachedDynamicType->SetPrototype(newPrototype);
             cachedDynamicType->typeHandler = newTypeHandler;
 
             // Make type locked, shared only if we are using cache
@@ -1661,8 +1665,7 @@ namespace Js
         Assert(cachedDynamicType->GetTypeHandler()->GetOffsetOfInlineSlots() == GetOffsetOfInlineSlots());
         Assert(cachedDynamicType->GetTypeHandler()->GetSlotCapacity() == this->GetSlotCapacity());
         Assert(DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(this, cachedDynamicType->GetTypeHandler()));
-
-        cachedDynamicType->SetPrototype(newPrototype);
+        Assert(cachedDynamicType->GetPrototype() == newPrototype);
         instance->ReplaceType(cachedDynamicType);
     }
 
