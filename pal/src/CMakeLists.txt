@@ -100,6 +100,7 @@ set(SOURCES
   cruntime/thread.cpp
   cruntime/wchar.cpp
   cruntime/wchartls.cpp
+  cruntime/runtime_proxy.cpp
   safecrt/makepath_s.c
   safecrt/mbusafecrt.c
   safecrt/safecrt_input_s.c
