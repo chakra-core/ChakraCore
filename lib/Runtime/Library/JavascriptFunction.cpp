@@ -1648,10 +1648,6 @@ LABEL1:
 
         Assert(functionInfo);
 
-        // Prevent redeferring during parsing
-        bool canBeDeferred = functionInfo->CanBeDeferred();
-        functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() & ~FunctionInfo::Attributes::CanDefer));
-
         if (functionInfo->IsDeferredParseFunction())
         {
             if (ScriptFunctionWithInlineCache::Is(*functionRef))
@@ -1683,12 +1679,6 @@ LABEL1:
 #else // !ENABLE_SCRIPT_PROFILING
         Assert(directEntryPoint != DefaultDeferredParsingThunk);
 #endif
-
-        // Restore the can-be-deferred attribute.
-        if (canBeDeferred)
-        {
-            funcBody->SetAttributes((FunctionInfo::Attributes)(funcBody->GetAttributes() | FunctionInfo::Attributes::CanDefer));
-        }
 
         JavascriptMethod thunkEntryPoint = (*functionRef)->UpdateUndeferredBody(funcBody);
 

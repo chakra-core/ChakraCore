@@ -66,10 +66,6 @@ namespace Js
         FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
         AssertMsg(functionProxy!= nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
 
-        // Prevent redeferral if GC happens during creation of function object.
-        // REVIEW: Should we treat creation of a function object as a "use" of the function body?
-        Js::AutoDisableRedeferral autoDisableRedeferral(functionProxy->GetFunctionInfo());
-
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
 
         bool hasSuperReference = functionProxy->HasSuperReference();

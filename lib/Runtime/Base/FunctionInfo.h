@@ -153,25 +153,4 @@ namespace Js
             : FunctionInfo(entryPoint, Attributes::DoNotProfile)
         {}
     };
-
-    class AutoDisableRedeferral
-    {
-    public:
-        bool canBeDeferred;
-        FunctionInfo * functionInfo;
-        AutoDisableRedeferral(FunctionInfo* functionInfo)
-        {
-            this->functionInfo = functionInfo;
-            this->canBeDeferred = functionInfo->CanBeDeferred();
-            this->functionInfo->SetAttributes((FunctionInfo::Attributes)(this->functionInfo->GetAttributes() & ~FunctionInfo::Attributes::CanDefer));
-        }
-
-        ~AutoDisableRedeferral()
-        {
-            if (this->canBeDeferred)
-            {
-                this->functionInfo->SetAttributes((FunctionInfo::Attributes)(this->functionInfo->GetAttributes() | FunctionInfo::Attributes::CanDefer));
-            }
-        }
-    };
 };
