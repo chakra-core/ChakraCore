@@ -207,7 +207,7 @@ namespace Js
     template<class T, typename FieldsEnum>
     inline void* AuxPtrs<T, FieldsEnum>::GetAuxPtr(const T* host, FieldsEnum e)
     {
-        auto tmpAuxPtrs = host->auxPtrs;
+        auto tmpAuxPtrs = PointerValue(host->auxPtrs);
         if (tmpAuxPtrs->count == AuxPtrs16::MaxCount)
         {
             return ((AuxPtrs16*)(void*)tmpAuxPtrs)->Get(e);
