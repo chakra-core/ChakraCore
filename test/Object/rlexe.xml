@@ -88,7 +88,7 @@
         <files>toLocaleString.js</files>
         <baseline>toLocaleString.arm.baseline</baseline>
         <compile-flags>-Intl</compile-flags>
-        <tags>exclude_x86,exclude_amd64</tags>
+        <tags>exclude_x86,exclude_x64</tags>
     </default>
 </test>
 <test>
@@ -172,7 +172,7 @@
   <test>
     <default>
       <files>Slow.js</files>
-      <tags>exclude_chk</tags>
+      <tags>exclude_debug</tags>
     </default>
   </test>
   <test>

@@ -334,13 +334,21 @@ goto :main
 
   set _BuildArchMapped=%_BuildArch%
   set _BuildTypeMapped=%_BuildType%
+  :: _NewBuildArchMapped and _NewBuildTypeMapped store new terms of the build and architecture
+  :: _NewBuildArchMapped: x86/x64 _BuildArchMapped:x86/amd64
+  :: _NewBuildTypeMapped: debug/test _BuildTypeMapped:chk/fre
+  set _NewBuildArchMapped=%_BuildArch%
+  set _NewBuildTypeMapped=%_BuildType%
 
   :: Map new build arch and type names to old names until rl test tags are
   :: updated to the new names
   if "%_BuildArchMapped%" == "x64" set _BuildArchMapped=amd64
   if "%_BuildTypeMapped%" == "debug" set _BuildTypeMapped=chk
   if "%_BuildTypeMapped%" == "test" set _BuildTypeMapped=fre
-  if "%_BuildTypeMapped%" == "codecoverage" set _BuildTypeMapped=fre
+  if "%_BuildTypeMapped%" == "codecoverage" (
+    set _BuildTypeMapped=fre
+    set _NewBuildTypeMapped=test
+  )
 
   if "%Disable_JIT%" == "1" (
       set _dynamicprofilecache=
@@ -465,7 +473,9 @@ goto :main
   set _rlArgs=%_rlArgs% -nottags:exclude_%_TESTCONFIG%
   set _rlArgs=%_rlArgs% -nottags:exclude_%TARGET_OS%
   set _rlArgs=%_rlArgs% -nottags:exclude_%_BuildArchMapped%
+  set _rlArgs=%_rlArgs% -nottags:exclude_%_NewBuildArchMapped%
   set _rlArgs=%_rlArgs% -nottags:exclude_%_BuildTypeMapped%
+  set _rlArgs=%_rlArgs% -nottags:exclude_%_NewBuildTypeMapped%
   set _rlArgs=%_rlArgs% %_exclude_serialized%
   set _rlArgs=%_rlArgs% %_exclude_forcedeferparse%
   set _rlArgs=%_rlArgs% %_exclude_nodeferparse%
