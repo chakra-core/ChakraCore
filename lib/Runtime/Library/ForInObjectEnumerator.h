@@ -12,10 +12,9 @@ namespace Js
         JavascriptStaticEnumerator enumerator;
         struct ShadowData
         {
-            ShadowData(RecyclableObject * initObject, RecyclableObject * firstPrototype, RecyclableObject * firstPrototypeWithEnumerableProperties, Recycler * recycler);
+            ShadowData(RecyclableObject * initObject, RecyclableObject * firstPrototype, Recycler * recycler);
             RecyclableObject * currentObject;
             RecyclableObject * firstPrototype;
-            RecyclableObject * firstPrototypeWithEnumerableProperties;
             BVSparse<Recycler> propertyIds;
             SListBase<Js::PropertyRecord const *> newPropertyStrings;
         } *shadowData;
