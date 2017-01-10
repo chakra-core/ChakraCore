@@ -2145,6 +2145,7 @@ namespace Js
         // - This is an already parsed asm.js module, which has been invalidated at link time and must be reparsed as a non-asm.js function
         if (!this->m_hasBeenParsed)
         {
+            this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
             funcBody = FunctionBody::NewFromParseableFunctionInfo(this);
             autoRestoreFunctionInfo.funcBody = funcBody;
 
