@@ -20,18 +20,12 @@
 #define _ASSERTE_SAFEMATH _ASSERTE
 #else
 // Otherwise (eg. we're being used from a tool like SOS) there isn't much
-// we can rely on that is both available everywhere and rotor-safe.  In 
+// we can rely on that is both available everywhere and rotor-safe.  In
 // several other tools we just take the recourse of disabling asserts,
-// we'll do the same here.  
+// we'll do the same here.
 // Ideally we'd have a collection of common utilities available evererywhere.
-#define _ASSERTE_SAFEMATH(a) 
+#define _ASSERTE_SAFEMATH(a)
 #endif
-#endif
-
-// CC uses both char16_t and wchar_t internally
-#if defined(__cplusplus)
-#undef wchar_t
-#define wchar_t void*
 #endif
 
 #if !defined(__IOS__) && !defined(OSX_SDK_TR1) && defined(__APPLE__)
@@ -46,12 +40,6 @@
 #else
 #include <type_traits>
 #endif
-
-#if defined(__cplusplus)
-#undef wchar_t
-#define wchar_t __wchar_16_cpp__
-typedef char16_t wchar_t;
-#endif // __cplusplus
 
 //==================================================================
 // Semantics: if val can be represented as the exact same value

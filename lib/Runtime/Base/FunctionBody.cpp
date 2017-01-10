@@ -910,6 +910,10 @@ namespace Js
             {
                 functionType->SetEntryPoint(GetScriptContext()->DeferredParsingThunk);
             }
+            if (!CrossSite::IsThunk(functionType->GetEntryPointInfo()->jsMethod))
+            {
+                functionType->GetEntryPointInfo()->jsMethod = GetScriptContext()->DeferredParsingThunk;
+            }
         });
 
         this->Cleanup(false);
@@ -2144,28 +2148,7 @@ namespace Js
         bool isDebugOrAsmJsReparse = false;
         FunctionBody* funcBody = nullptr;
 
-        // If we throw or fail with the function body in an unfinished state, make sure the function info is still
-        // pointing to the old ParseableFunctionInfo and has the right attributes.
-        class AutoRestoreFunctionInfo {
-        public:
-            AutoRestoreFunctionInfo(ParseableFunctionInfo *pfi) : pfi(pfi), funcBody(nullptr) {}
-            ~AutoRestoreFunctionInfo() {
-                if (this->pfi != nullptr && this->pfi->GetFunctionInfo()->GetFunctionProxy() != this->pfi)
-                {
-                    FunctionInfo *functionInfo = this->pfi->functionInfo;
-                    functionInfo->SetAttributes(
-                        (FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
-                    functionInfo->SetFunctionProxy(this->pfi);
-                    functionInfo->SetOriginalEntryPoint(DefaultEntryThunk);
-                }
-
-                Assert(this->pfi == nullptr || (this->pfi->GetFunctionInfo()->GetFunctionProxy() == this->pfi && !this->pfi->IsFunctionBody()));
-            }
-            void Clear() { pfi = nullptr; funcBody = nullptr; }
-
-            ParseableFunctionInfo * pfi;
-            FunctionBody          * funcBody;
-        } autoRestoreFunctionInfo(this);
+        AutoRestoreFunctionInfo autoRestoreFunctionInfo(this, DefaultEntryThunk);
 
         // If m_hasBeenParsed = true, one of the following things happened:
         // - We had multiple function objects which were all defer-parsed, but with the same function body and one of them
@@ -2355,22 +2338,7 @@ namespace Js
             }
             END_LEAVE_SCRIPT_INTERNAL(m_scriptContext);
 
-            if (hr == E_OUTOFMEMORY)
-            {
-                JavascriptError::ThrowOutOfMemoryError(m_scriptContext);
-            }
-            else if(hr == VBSERR_OutOfStack)
-            {
-                JavascriptError::ThrowStackOverflowError(m_scriptContext);
-            }
-            else if(hr == E_ABORT)
-            {
-                throw Js::ScriptAbortException();
-            }
-            else if(FAILED(hr))
-            {
-                throw Js::InternalErrorException();
-            }
+            THROW_KNOWN_HRESULT_EXCEPTIONS(hr, m_scriptContext);
 
             Assert(hr == NO_ERROR);
 

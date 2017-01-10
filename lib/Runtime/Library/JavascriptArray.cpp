@@ -7568,7 +7568,7 @@ Case0:
         {
            return res;
         }
-        if (JavascriptArray::Is(args[0]))
+        if (JavascriptArray::Is(args[0]) && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject())
         {
 #if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);

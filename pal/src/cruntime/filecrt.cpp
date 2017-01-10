@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -28,6 +28,7 @@ Abstract:
 #include "pal/file.h"
 #include "pal/cruntime.h"
 
+#include <stdarg.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -55,7 +56,7 @@ _open_osfhandle( INT_PTR osfhandle, int flags )
     IPalObject *pobjFile = NULL;
     CFileProcessLocalData *pLocalData = NULL;
     IDataLock *pDataLock = NULL;
-    INT nRetVal = -1;  
+    INT nRetVal = -1;
     INT openFlags = 0;
 
     PERF_ENTRY(_open_osfhandle);
@@ -109,7 +110,7 @@ _open_osfhandle( INT_PTR osfhandle, int flags )
 
             nRetVal = pLocalData->unix_fd;
         }
-        
+
         if ( nRetVal == -1 )
         {
             ERROR( "Error: %s.\n", strerror( errno ) );
@@ -131,7 +132,7 @@ EXIT:
     {
         pobjFile->ReleaseReference(pthrCurrent);
     }
- 
+
     LOGEXIT( "_open_osfhandle return nRetVal:%d\n", nRetVal);
     PERF_EXIT(_open_osfhandle);
     return nRetVal;
@@ -173,12 +174,12 @@ is copied into szBuf.
 nSize = size, in bytes, of the array referenced by szBuf.
 
 Return value:
-    A pointer to the pathname if successful, otherwise NULL is returned 
+    A pointer to the pathname if successful, otherwise NULL is returned
 --*/
-char * 
-__cdecl 
+char *
+__cdecl
 PAL__getcwd(
-    char *szBuf, 
+    char *szBuf,
     size_t nSize
     )
 {
@@ -198,8 +199,8 @@ szNameTemplate = template to follow when naming the created file
 Return value:
     Open file descriptor on success, -1 if file could not be created
 --*/
-int 
-__cdecl 
+int
+__cdecl
 PAL_mkstemp(char *szNameTemplate)
 {
     return InternalMkstemp(szNameTemplate);
@@ -217,7 +218,7 @@ szNameTemplate = template to follow when naming the created file
 Return value:
     Open file descriptor on success, -1 if file could not be created
 --*/
-int 
+int
 CorUnix::InternalMkstemp(
     char *szNameTemplate
     )
@@ -249,15 +250,15 @@ Return value:
 int
 __cdecl
 PAL__open(
-    const char *szPath, 
-    int nFlags, 
+    const char *szPath,
+    int nFlags,
     ...
     )
 {
     int nRet = -1;
     int mode = 0;
     va_list ap;
-    
+
     // If nFlags does not contain O_CREAT, the mode parameter will be ignored.
     if (nFlags & O_CREAT)
     {
@@ -265,7 +266,7 @@ PAL__open(
         mode = va_arg(ap, int);
         va_end(ap);
     }
-    
+
     nRet = InternalOpen(szPath, nFlags, mode);
     return nRet;
 }
@@ -348,7 +349,7 @@ Return value:
 int
 __cdecl
 PAL_rename(
-    const char *szOldName, 
+    const char *szOldName,
     const char *szNewName
     )
 {
@@ -371,19 +372,19 @@ Return value:
     Returns a pointer to the string storing the characters on success
     and NULL on failure.
 --*/
-char * 
-__cdecl 
+char *
+__cdecl
 PAL_fgets(
-    char *sz, 
-    int nSize, 
+    char *sz,
+    int nSize,
     PAL_FILE *pf
     )
 {
     char * szBuf;
-    
+
     PERF_ENTRY(fgets);
     ENTRY( "fgets(sz=%p (%s) nSize=%d pf=%p)\n", sz, sz, nSize, pf);
-    
+
     if (pf != NULL)
     {
         szBuf = InternalFgets(sz, nSize, pf->bsdFilePtr, pf->bTextMode);
@@ -392,7 +393,7 @@ PAL_fgets(
     {
         szBuf = NULL;
     }
-    
+
     LOGEXIT("fgets() returns %p\n", szBuf);
     PERF_EXIT(fgets);
 
@@ -489,12 +490,12 @@ pf = stream to write characters to
 Return value:
     Returns the number of objects written.
 --*/
-size_t 
-__cdecl 
+size_t
+__cdecl
 PAL_fwrite(
-    const void *pvBuffer, 
-    size_t nSize, 
-    size_t nCount, 
+    const void *pvBuffer,
+    size_t nSize,
+    size_t nCount,
     PAL_FILE *pf
     )
 {
@@ -546,10 +547,10 @@ CorUnix::InternalFwrite(
 
     nWrittenBytes = fwrite(pvBuffer, nSize, nCount, f);
 
-    // Make sure no error ocurred. 
+    // Make sure no error ocurred.
     if ( nWrittenBytes < nCount )
     {
-        // Set the FILE* error code 
+        // Set the FILE* error code
         *pnErrorCode = PAL_FILE_ERROR;
     }
 
@@ -574,8 +575,8 @@ Return value:
 int
 _cdecl
 PAL_fseek(
-    PAL_FILE * pf, 
-    LONG lOffset, 
+    PAL_FILE * pf,
+    LONG lOffset,
     int nWhence
     )
 {

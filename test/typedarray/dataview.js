@@ -2,7 +2,6 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-
 var getFuncs = ['getInt8', 'getUint8', 'getInt16', 'getUint16', 'getInt32', 'getUint32', 'getFloat32', 'getFloat64'];
 var setFuncs = ['setInt8', 'setUint8', 'setInt16', 'setUint16', 'setInt32', 'setUint32', 'setFloat32', 'setFloat64'];
 var dataSize = [1,1,2,2,4,4,4,8];
@@ -104,7 +103,7 @@ function testOneOffset(dataView, offSet, value)
                 print(getFuncs[j] + " = " +  result);
                 }
 
-            print("set little endian value offset " + offSet + " value " + value + " method " + setFuncs[i]);
+            print("set big endian value offset " + offSet + " value " + value + " method " + setFuncs[i]);
             print("results of little endian reads are: ");
             dataView[setFuncs[i]](offSet, value, false);
             for (var j = 0; j < getFuncs.length; j++)

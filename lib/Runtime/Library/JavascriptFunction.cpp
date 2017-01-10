@@ -709,7 +709,7 @@ namespace Js
         {
             // Just don't execute anything if we are in an assert
             // throw the exception directly to avoid additional assert in Js::Throw::InternalError
-            throw Js::InternalErrorException();
+            AssertOrFailFast(false);
         }
 #endif
 

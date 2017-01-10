@@ -31,7 +31,11 @@ ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, int32 cch)
     ULONG luHash = 0;
 
     while (cch-- > 0)
-        luHash = 17 * luHash + utf8::Decode(prgch, prgch + 4, options); // WARNING: Assume cch correct, suppress end-of-buffer checking
+    {
+        LPCUTF8 end = prgch + cch + 1; // WARNING: Assume cch correct, suppress end-of-buffer checking
+
+        luHash = 17 * luHash + utf8::Decode(prgch, end, options);
+    }
     return luHash;
 }
 

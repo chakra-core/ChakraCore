@@ -213,7 +213,6 @@ function_name() to call the system's implementation
 #define time DUMMY_time
 #define tm PAL_tm
 #define time_t PAL_time_t
-#define va_list DUMMY_va_list
 #define abs DUMMY_abs
 #define llabs DUMMY_llabs
 #define atan DUMMY_atan
@@ -312,15 +311,6 @@ function_name() to call the system's implementation
 
 // The standard headers define va_start and va_end as macros,
 // To avoid redefinition problems, undefine those macros.
-#ifdef va_start
-#undef va_start
-#endif
-#ifdef va_end
-#undef va_end
-#endif
-#ifdef va_copy
-#undef va_copy
-#endif
 
 #define ptrdiff_t PAL_ptrdiff_t
 #define intptr_t PAL_intptr_t
@@ -435,10 +425,6 @@ function_name() to call the system's implementation
 #undef unlink
 #undef size_t
 #undef time_t
-#undef va_list
-#undef va_start
-#undef va_end
-#undef va_copy
 #undef stdin
 #undef stdout
 #undef stderr
@@ -696,5 +682,26 @@ inline T* InterlockedCompareExchangePointerT(
 #endif
 
 #define StackOverflowMessage "Process is terminated due to StackOverflowException.\n"
+
+#ifdef __ANDROID__
+#define S_IREAD   0000400
+#define S_IWRITE  0000200
+#define S_IEXEC   0000100
+
+#ifndef CC_AND_TAG
+#define CC_AND_TAG "chakracore-log"
+#endif
+#include <android/log.h>
+#include <stdarg.h>
+#define PRINT_LOG(...) \
+    __android_log_print(ANDROID_LOG_INFO, CC_AND_TAG, __VA_ARGS__)
+#define PRINT_ERROR(...) \
+    __android_log_print(ANDROID_LOG_ERROR, CC_AND_TAG, __VA_ARGS__)
+#else
+#define PRINT_LOG(...) \
+    swprintf(stdout, __VA_ARGS__)
+#define PRINT_ERROR(...) \
+    swprintf(stderr, __VA_ARGS__)
+#endif
 
 #endif /* _PAL_INTERNAL_H_ */

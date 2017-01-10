@@ -2140,6 +2140,7 @@ namespace Js
         // This is generally the same as m_cchStartOffset unless the buffer has a BOM
 
 #define DEFINE_PARSEABLE_FUNCTION_INFO_FIELDS 1
+#define DECLARE_TAG_FIELD(type, name, serializableType) Field(type) name
 #define CURRENT_ACCESS_MODIFIER protected:
 #include "SerializableFunctionFields.h"
 
@@ -2426,6 +2427,7 @@ namespace Js
         static const int LocalsChangeDirtyValue = 1;
 
 #define DEFINE_FUNCTION_BODY_FIELDS 1
+#define DECLARE_TAG_FIELD(type, name, serializableType) Field(type) name
 #define CURRENT_ACCESS_MODIFIER public:
 #include "SerializableFunctionFields.h"
 
@@ -3698,6 +3700,30 @@ namespace Js
         StatementAdjustmentRecordList* GetStatementAdjustmentRecords();
     };
 
+    class AutoRestoreFunctionInfo {
+    public:
+        AutoRestoreFunctionInfo(ParseableFunctionInfo *pfi, const JavascriptMethod originalEntryPoint) : pfi(pfi), funcBody(nullptr), originalEntryPoint(originalEntryPoint) {}
+        ~AutoRestoreFunctionInfo() {
+            if (this->pfi != nullptr && this->pfi->GetFunctionInfo()->GetFunctionProxy() != this->pfi)
+            {
+                FunctionInfo *functionInfo = this->pfi->GetFunctionInfo();
+                functionInfo->SetAttributes(
+                    (FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
+                functionInfo->SetFunctionProxy(this->pfi);
+                functionInfo->SetOriginalEntryPoint(originalEntryPoint);
+            }
+
+            Assert(this->pfi == nullptr || (this->pfi->GetFunctionInfo()->GetFunctionProxy() == this->pfi && !this->pfi->IsFunctionBody()));
+        }
+        void Clear() { pfi = nullptr; funcBody = nullptr; }
+
+        ParseableFunctionInfo * pfi;
+        FunctionBody          * funcBody;
+        const JavascriptMethod originalEntryPoint;
+    };
+
+    // If we throw or fail with the function body in an unfinished state, make sure the function info is still
+    // pointing to the old ParseableFunctionInfo and has the right attributes.
     typedef SynchronizableList<FunctionBody*, JsUtil::List<FunctionBody*, ArenaAllocator, false, Js::FreeListedRemovePolicy> > FunctionBodyList;
 
     struct ScopeSlots

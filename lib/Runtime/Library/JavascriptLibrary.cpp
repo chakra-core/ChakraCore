@@ -6153,16 +6153,7 @@ namespace Js
     {
         Assert(scriptContext->GetConfig()->IsES6GeneratorsEnabled());
         DynamicType* generatorType = CreateGeneratorType(prototype);
-#if GLOBAL_ENABLE_WRITE_BARRIER
-        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
-        {
-            return RecyclerNewFinalized(this->GetRecycler(), JavascriptGenerator, generatorType, args, scriptFunction);
-        }
-        else
-#endif
-        {
-            return RecyclerNew(this->GetRecycler(), JavascriptGenerator, generatorType, args, scriptFunction);
-        }
+        return JavascriptGenerator::New(this->GetRecycler(), generatorType, args, scriptFunction);
     }
 
     JavascriptError* JavascriptLibrary::CreateError()

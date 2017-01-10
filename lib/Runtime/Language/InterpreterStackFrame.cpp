@@ -8212,6 +8212,11 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         return JavascriptOperators::IsClassConstructor(aValue);
     }
 
+    BOOL InterpreterStackFrame::OP_BrOnBaseConstructorKind(Var aValue)
+    {
+        return JavascriptOperators::IsBaseConstructorKind(aValue);
+    }
+
     template<class T>
     void InterpreterStackFrame::OP_LdLen(const unaligned T * const playout)
     {

@@ -10,8 +10,26 @@ namespace Js
     JavascriptGenerator::JavascriptGenerator(DynamicType* type, Arguments &args, ScriptFunction* scriptFunction)
         : DynamicObject(type), frame(nullptr), state(GeneratorState::Suspended), args(args), scriptFunction(scriptFunction)
     {
-        this->GetScriptContext()->GetRecycler()->RegisterPendingWriteBarrierBlock(this->args.Values, this->args.Info.Count * sizeof(Var));
-        RecyclerWriteBarrierManager::WriteBarrier(&this->args.Values);
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            this->GetScriptContext()->GetRecycler()->RegisterPendingWriteBarrierBlock(this->args.Values, this->args.Info.Count * sizeof(Var));
+        }
+#endif
+    }
+
+    JavascriptGenerator* JavascriptGenerator::New(Recycler* recycler, DynamicType* generatorType, Arguments& args, ScriptFunction* scriptFunction)
+    {
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            return RecyclerNewFinalized(recycler, JavascriptGenerator, generatorType, args, scriptFunction);
+        }
+        else
+#endif
+        {
+            return RecyclerNew(recycler, JavascriptGenerator, generatorType, args, scriptFunction);
+        }
     }
 
     bool JavascriptGenerator::Is(Var var)
