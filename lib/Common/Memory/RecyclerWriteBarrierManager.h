@@ -46,6 +46,13 @@ namespace Memory
 #define WRITE_BARRIER_PAGE_BIT 0x0
 #endif
 
+// indicate the barrier has ever been cleared
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+#define WRITE_BARRIER_CLEAR_MARK 0x4
+#else
+#define WRITE_BARRIER_CLEAR_MARK 0x0
+#endif
+
 #endif
 
 #ifdef _M_X64_OR_ARM64

@@ -70,6 +70,13 @@ ArenaAllocatorBase<TFreeListPolicy, ObjectAlignmentBitShiftArg, RequireObjectAli
     ArenaMemoryTracking::ReportFreeAll(this);
     ArenaMemoryTracking::ArenaDestroyed(this);
 
+#if DBG
+    // tag the fields in case the address is reused in recycler and create a false positive
+    this->cacheBlockEnd = (char*)((intptr_t)this->cacheBlockEnd | 1);
+#else
+    this->cacheBlockEnd = nullptr;
+#endif
+
     if (!pageAllocator->IsClosed())
     {
         ReleasePageMemory();
@@ -79,6 +86,7 @@ ArenaAllocatorBase<TFreeListPolicy, ObjectAlignmentBitShiftArg, RequireObjectAli
 #ifdef PROFILE_MEM
     LogEnd();
 #endif
+
 }
 
 template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg, bool RequireObjectAlignment, size_t MaxObjectSize>

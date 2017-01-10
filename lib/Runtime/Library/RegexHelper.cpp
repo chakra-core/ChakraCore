@@ -963,7 +963,7 @@ namespace Js
         CharCount nextSourcePosition = 0;
 
         size_t previousNumberOfCapturesToKeep = 0;
-        Var* captures = nullptr;
+        Field(Var)* captures = nullptr;
 
         BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("RegexHelper"))
         {
@@ -987,13 +987,13 @@ namespace Js
                 size_t numberOfCapturesToKeep = (size_t) min(numberOfCaptures, maxNumberOfCaptures);
                 if (captures == nullptr)
                 {
-                    captures = RecyclerNewArray(recycler, Var, numberOfCapturesToKeep + 1);
+                    captures = RecyclerNewArray(recycler, Field(Var), numberOfCapturesToKeep + 1);
                 }
                 else if (numberOfCapturesToKeep != previousNumberOfCapturesToKeep)
                 {
                     size_t existingBytes = (previousNumberOfCapturesToKeep + 1) * sizeof(Var*);
                     size_t requestedBytes = (numberOfCapturesToKeep + 1) * sizeof(Var*);
-                    captures = (Var*) recycler->Realloc(captures, existingBytes, requestedBytes);
+                    captures = (Field(Var)*) recycler->Realloc(captures, existingBytes, requestedBytes);
                 }
                 previousNumberOfCapturesToKeep = numberOfCapturesToKeep;
 
@@ -1016,7 +1016,7 @@ namespace Js
                     CharCount substringLength = position - nextSourcePosition;
                     accumulatedResultBuilder.Append(input, nextSourcePosition, substringLength);
 
-                    appendReplacement(accumulatedResultBuilder, tempAlloc, matchStr, (int) numberOfCapturesToKeep, captures, position);
+                    appendReplacement(accumulatedResultBuilder, tempAlloc, matchStr, (int) numberOfCapturesToKeep, (Var*)captures, position);
 
                     nextSourcePosition = JavascriptRegExp::AddIndex(position, matchStr->GetLength());
                 }

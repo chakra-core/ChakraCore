@@ -252,6 +252,9 @@ Recycler::Recycler(AllocationPolicyManager * policyManager, IdleDecommitPageAllo
 #endif
     , objectBeforeCollectCallbackMap(nullptr)
     , objectBeforeCollectCallbackState(ObjectBeforeCollectCallback_None)
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    , pendingWriteBarrierBlockMap(&HeapAllocator::Instance)
+#endif
 {
 #ifdef RECYCLER_MARK_TRACK
     this->markMap = NoCheckHeapNew(MarkMap, &NoCheckHeapAllocator::Instance, 163, &markMapCriticalSection);
@@ -617,8 +620,8 @@ Recycler::RootAddRef(void* obj, uint *count)
             this->scanPinnedObjectMap = true;
             RECYCLER_PERF_COUNTER_INC(PinnedObject);
         }
-#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
         if (GetRecyclerFlagsTable().LeakStackTrace)
         {
             StackBackTraceNode::Prepend(&NoCheckHeapAllocator::Instance, refCount.stackBackTraces,
@@ -636,8 +639,8 @@ Recycler::RootAddRef(void* obj, uint *count)
 
     transientPinnedObject = obj;
 
-#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
     if (GetRecyclerFlagsTable().LeakStackTrace)
     {
         transientPinnedObjectStackBackTrace = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance);
@@ -661,8 +664,8 @@ Recycler::RootRelease(void* obj, uint *count)
             *count = (refCount != nullptr) ? *refCount : 0;
         }
 
-#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
         if (GetRecyclerFlagsTable().LeakStackTrace)
         {
             transientPinnedObjectStackBackTrace->Delete(&NoCheckHeapAllocator::Instance);
@@ -693,8 +696,8 @@ Recycler::RootRelease(void* obj, uint *count)
 
         if (newRefCount != 0)
         {
-#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
             if (GetRecyclerFlagsTable().LeakStackTrace)
             {
                 StackBackTraceNode::Prepend(&NoCheckHeapAllocator::Instance, refCount->stackBackTraces,
@@ -704,8 +707,8 @@ Recycler::RootRelease(void* obj, uint *count)
 #endif
             return;
         }
-#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
         StackBackTraceNode::DeleteAll(&NoCheckHeapAllocator::Instance, refCount->stackBackTraces);
         refCount->stackBackTraces = nullptr;
 #endif
@@ -1770,8 +1773,8 @@ size_t Recycler::ScanPinnedObjects()
             {
                 if (refCount == 0)
                 {
-#ifdef STACK_BACK_TRACE
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
                     Assert(refCount.stackBackTraces == nullptr);
 #endif
 #endif
@@ -4205,6 +4208,16 @@ Recycler::BackgroundRescan(RescanFlags rescanFlags)
 
     GCETW(GC_BACKGROUNDRESCAN_START, (this, backgroundRescanCount));
     RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, Js::BackgroundRescanPhase);
+    
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        pendingWriteBarrierBlockMap.Map([](void* address, size_t size)
+        {
+            RecyclerWriteBarrierManager::WriteBarrier(address, size);
+        });
+    }
+#endif
 
     size_t rescannedPageCount = heapBlockMap.Rescan(this, ((rescanFlags & RescanFlags_ResetWriteWatch) != 0));
 
@@ -7550,6 +7563,10 @@ Recycler::DoProfileAllocTracker()
         doTracker = true;
     }
 #endif
+    if (CONFIG_FLAG(KeepRecyclerTrackData))
+    {
+        doTracker = true;
+    }
     return doTracker || MemoryProfiler::DoTrackRecyclerAllocation();
 }
 
@@ -7595,13 +7612,15 @@ Recycler::TrackAllocCore(void * object, size_t size, const TrackAllocData& track
     
     if (!trackerDictionary->TryGetValue(typeInfo, &item))
     {
+#ifdef STACK_BACK_TRACE
         if (CONFIG_FLAG(KeepRecyclerTrackData) && isArray) // type info is not useful record stack instead
         {
             size_t stackTraceSize = 16 * sizeof(void*);
             item = NoCheckHeapNewPlus(stackTraceSize, TrackerItem, typeInfo);
-            StackBackTrace::Capture((char*)&item[1], stackTraceSize, 0);
+            StackBackTrace::Capture((char*)&item[1], stackTraceSize, 7);
         }
         else
+#endif
         {
             item = NoCheckHeapNew(TrackerItem, typeInfo);
         }
@@ -8515,6 +8534,26 @@ Recycler::NotifyFree(__in char *address, size_t size)
     }
 #endif
 }
+
+#if GLOBAL_ENABLE_WRITE_BARRIER
+void 
+Recycler::RegisterPendingWriteBarrierBlock(void* address, size_t bytes)
+{
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        RecyclerWriteBarrierManager::WriteBarrier(address, bytes);
+        pendingWriteBarrierBlockMap.Item(address, bytes);
+    }
+}
+void 
+Recycler::UnRegisterPendingWriteBarrierBlock(void* address)
+{
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        pendingWriteBarrierBlockMap.Remove(address);
+    }
+}
+#endif
 
 #if DBG
 void 

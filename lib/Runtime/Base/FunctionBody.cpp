@@ -74,7 +74,9 @@ namespace Js
         m_scriptContext(scriptContext),
         m_utf8SourceInfo(utf8SourceInfo),
         m_functionNumber(functionNumber),
-        m_defaultEntryPointInfo(nullptr)
+        m_defaultEntryPointInfo(nullptr),
+        m_displayNameIsRecyclerAllocated(false),
+        m_tag11(true)
     {
         PERF_COUNTER_INC(Code, TotalFunction);
     }
@@ -503,7 +505,9 @@ namespace Js
         m_hasFuncExprScopeRegister(false),
         m_hasFirstTmpRegister(false),
         m_hasActiveReference(false),
-        m_tag(TRUE),
+        m_tag31(true),
+        m_tag32(true),
+        m_tag33(true),
         m_nativeEntryPointUsed(FALSE),
         bailOnMisingProfileCount(0),
         bailOnMisingProfileRejitCount(0),
@@ -642,8 +646,10 @@ namespace Js
         m_hasFuncExprScopeRegister(false),
         m_hasFirstTmpRegister(false),
         m_hasActiveReference(false),
-        m_tag(TRUE),
-        m_nativeEntryPointUsed(FALSE),
+        m_tag31(true),
+        m_tag32(true),
+        m_tag33(true),
+        m_nativeEntryPointUsed(false),
         bailOnMisingProfileCount(0),
         bailOnMisingProfileRejitCount(0),
         byteCodeBlock(nullptr),
@@ -1535,7 +1541,8 @@ namespace Js
       scopeSlotArraySize(0),
       paramScopeSlotArraySize(0),
       m_reparsed(false),
-      m_isAsmJsFunction(false)
+      m_isAsmJsFunction(false),
+      m_tag21(true)
 #if DBG
       ,m_wasEverAsmjsMode(false)
       ,scopeObjectSize(0)
@@ -1584,7 +1591,8 @@ namespace Js
       m_isNameIdentifierRef (proxy->GetIsNameIdentifierRef()),
       m_isStaticNameFunction(proxy->GetIsStaticNameFunction()),
       m_reportedInParamCount(proxy->GetReportedInParamsCount()),
-      m_reparsed(proxy->IsReparsed())
+      m_reparsed(proxy->IsReparsed()),
+      m_tag21(true)
 #if DBG
       ,m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
 #endif
@@ -2037,7 +2045,7 @@ namespace Js
     {
         this->m_displayNameLength = displayNameLength;
         this->m_displayShortNameOffset = displayShortNameOffset;
-        FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
+        this->m_displayNameIsRecyclerAllocated = FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
     }
 
     LPCWSTR DeferDeserializeFunctionInfo::GetSourceInfo(int& lineNumber, int& columnNumber) const
@@ -2636,7 +2644,7 @@ namespace Js
         }
     }
 
-    void FunctionProxy::SetDisplayName(const char16* srcName, WriteBarrierPtr<const char16>* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags /* default to None */)
+    bool FunctionProxy::SetDisplayName(const char16* srcName, WriteBarrierPtr<const char16>* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags /* default to None */)
     {
         const char16* dest = nullptr;
         bool targetIsRecyclerMemory = SetDisplayName(srcName, &dest, displayNameLength, scriptContext, flags);
@@ -2649,6 +2657,7 @@ namespace Js
         {
             destName->NoWriteBarrierSet(dest);
         }
+        return targetIsRecyclerMemory;
     }
     void ParseableFunctionInfo::SetDisplayName(const char16* pszDisplayName)
     {
@@ -2664,7 +2673,8 @@ namespace Js
     {
         this->m_displayNameLength = displayNameLength;
         this->m_displayShortNameOffset = displayShortNameOffset;
-        FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
+
+        this->m_displayNameIsRecyclerAllocated = FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
     }
 
     // SourceInfo methods
@@ -8352,7 +8362,7 @@ namespace Js
             return;
         }
 
-        this->utilArray = RecyclerNewArrayZ(recycler, byte, functionBody->GetInlineCacheCount());
+        this->utilArray = RecyclerNewArrayLeafZ(recycler, byte, functionBody->GetInlineCacheCount());
     }
 
 #if ENABLE_NATIVE_CODEGEN
@@ -9609,6 +9619,19 @@ namespace Js
                 Assert(this->validationCookie != nullptr);
                 currentCookie = (void*)currentNativeCodegen;
 #endif
+
+                if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
+                {
+#if DBG
+                    // tag the jsMethod in case the native address is reused in recycler and create a false positive
+                    // not checking validationCookie because this can happen while debugger attaching, native address
+                    // are batch freed through deleting NativeCodeGenerator
+                    this->jsMethod = (Js::JavascriptMethod)((intptr_t)this->jsMethod | 1);
+#else
+                    this->jsMethod = nullptr;
+#endif
+                }
+
                 if (validationCookie == currentCookie)
                 {
                     scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress());
@@ -9916,6 +9939,18 @@ namespace Js
                 Assert(this->validationCookie != nullptr);
                 currentCookie = (void*)currentNativeCodegen;
 #endif
+
+                if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
+                {
+#if DBG
+                    // tag the jsMethod in case the native address is reused in recycler and create a false positive
+                    // not checking validationCookie because this can happen while debugger attaching, native address
+                    // are batch freed through deleting NativeCodeGenerator
+                    this->jsMethod = (Js::JavascriptMethod)((intptr_t)this->jsMethod | 1);
+#else
+                    this->jsMethod = nullptr;
+#endif
+                }
 
                 if (validationCookie == currentCookie)
                 {

@@ -451,6 +451,7 @@ HeapAllocatorData::LogAlloc(HeapAllocRecord * record, size_t requestedBytes, Tra
     allocCount++;
 
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
     // REVIEW: Okay to use global flags?
     if (Js::Configuration::Global.flags.LeakStackTrace)
     {
@@ -461,6 +462,7 @@ HeapAllocatorData::LogAlloc(HeapAllocRecord * record, size_t requestedBytes, Tra
     {
         record->stacktrace = nullptr;
     }
+#endif
 #endif
 }
 
@@ -498,10 +500,12 @@ HeapAllocatorData::LogFree(HeapAllocRecord * record)
     deleteCount++;
     outstandingBytes -= record->size;
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
     if (record->stacktrace != nullptr)
     {
         record->stacktrace->Delete(&NoCheckHeapAllocator::Instance);
     }
+#endif
 #endif
 }
 
@@ -523,6 +527,7 @@ HeapAllocatorData::CheckLeaks()
                 ((char*)current) + ::Math::Align<size_t>(sizeof(HeapAllocRecord), MEMORY_ALLOCATION_ALIGNMENT),
                 current->size);
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
             // REVIEW: Okay to use global flags?
             if (Js::Configuration::Global.flags.LeakStackTrace && current->stacktrace)
             {
@@ -530,6 +535,7 @@ HeapAllocatorData::CheckLeaks()
                 Output::Print(_u(" Allocation Stack:\n"));
                 current->stacktrace->Print();
             }
+#endif
 #endif
             current = current->next;
         }

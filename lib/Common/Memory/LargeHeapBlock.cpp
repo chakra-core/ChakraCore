@@ -851,10 +851,15 @@ LargeHeapBlock::VerifyMark()
 
             if (recycler->VerifyMark(target))
             {
+#if DBG
                 if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
                 {
-                    Assert(this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)));
+                    if (!this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)))
+                    {
+                        WBPrintMissingBarrier(recycler, objectAddress, (char*)target);
+                    }
                 }
+#endif
             }
 
             objectAddress += sizeof(void *);
@@ -1069,9 +1074,14 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
 
         // Check the write watch bit to see if we need to rescan
         // REVIEW: large object size if bigger than one page, to use header index 0 here should be OK
+        LargeObjectHeader* header = this->GetHeader(0u);
+        if ((header->GetAttributes(this->heapInfo->recycler->Cookie) & LeafBit) == LeafBit)
+        {
+            return false;
+        }
         bool hasWriteBarrier = false;
 #ifdef RECYCLER_WRITE_BARRIER
-        hasWriteBarrier = this->GetHeader(0u)->hasWriteBarrier;
+        hasWriteBarrier = header->hasWriteBarrier;
 #endif
         if (!IsPageDirty(this->GetBeginAddress(), flags, hasWriteBarrier))
         {

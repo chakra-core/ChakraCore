@@ -143,7 +143,9 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , m_forInEnumeratorArrayOffset(-1)
     , argInsCount(0)
     , m_globalObjTypeSpecFldInfoArray(nullptr)
+#ifdef RECYCLER_WRITE_BARRIER_JIT
     , m_lowerer(nullptr)
+#endif
 {
 
     Assert(this->IsInlined() == !!runtimeInfo);

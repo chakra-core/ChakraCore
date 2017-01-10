@@ -124,7 +124,7 @@ namespace Js
 
     const Field(void*) *CompoundString::Block::Pointers(const void *const buffer)
     {
-        return static_cast<const Field(void*)*>(buffer);
+        return (const Field(void*)*)(buffer);
     }
 
     Field(void*) *CompoundString::Block::Pointers(void *const buffer)
@@ -1085,7 +1085,7 @@ namespace Js
                 Assert(block);
                 block = block->Previous();
                 Assert(block);
-                blockPointers = block->Pointers();
+                blockPointers = (Field(void*) const *)block->Pointers();
                 pointerIndex = block->PointerLength();
             }
 

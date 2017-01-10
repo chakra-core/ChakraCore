@@ -3500,9 +3500,27 @@ public:
 
         serialization_alignment SerializedFieldList* definedFields = (serialization_alignment SerializedFieldList*) functionBytes;
 
-        auto displayName = (bitflags & ffIsAnonymous) ? Constants::AnonymousFunction :
-            deferDeserializeFunctionInfo != nullptr ? deferDeserializeFunctionInfo->GetDisplayName() :
-            GetString16ById(displayNameId);
+        FunctionProxy::SetDisplayNameFlags displayNameFlags = FunctionProxy::SetDisplayNameFlags::SetDisplayNameFlagsDontCopy;
+        const char16* displayName = nullptr;
+        if (bitflags & ffIsAnonymous)
+        {
+            displayName = Constants::AnonymousFunction;
+        }
+        else
+        {
+            if (deferDeserializeFunctionInfo != nullptr)
+            {
+                displayName = deferDeserializeFunctionInfo->GetDisplayName();
+                if (deferDeserializeFunctionInfo->GetDisplayNameIsRecyclerAllocated())
+                {
+                    displayNameFlags = (FunctionProxy::SetDisplayNameFlags)(displayNameFlags | FunctionProxy::SetDisplayNameFlags::SetDisplayNameFlagsRecyclerAllocated);
+                }
+            }
+            else
+            {
+                displayName = GetString16ById(displayNameId);
+            }
+        }
 
         uint displayNameLength = (bitflags & ffIsAnonymous) ? Constants::AnonymousFunctionLength :
             deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetDisplayNameLength() :
@@ -3559,7 +3577,7 @@ public:
 #endif
                 );
 
-            (*functionBody)->SetDisplayName(displayName, displayNameLength, displayShortNameOffset, FunctionProxy::SetDisplayNameFlags::SetDisplayNameFlagsDontCopy);
+            (*functionBody)->SetDisplayName(displayName, displayNameLength, displayShortNameOffset, displayNameFlags);
 
             Assert(!(*functionBody)->GetIsSerialized());
             (*functionBody)->SetByteCodeCache(cache);

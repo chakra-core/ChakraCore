@@ -539,13 +539,13 @@ void* __cdecl memcpy(WriteBarrierPtr<T> *dst, const void *src, size_t count)
 template <typename T>
 errno_t __cdecl memcpy_s(WriteBarrierPtr<T> *dst, size_t dstSize, const void *src, size_t srcSize)
 {
-    CompileAssert(false);
+    static_assert(false, "Use CopyArray instead");
 }
 
 template <typename T>
 void __stdcall js_memcpy_s(__bcount(sizeInBytes) WriteBarrierPtr<T> *dst, size_t sizeInBytes, __bcount(count) const void *src, size_t count)
 {
-    CompileAssert(false);
+    static_assert(false, "Use CopyArray instead");
 }
 
 template <typename T>

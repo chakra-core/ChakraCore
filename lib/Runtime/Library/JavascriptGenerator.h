@@ -59,8 +59,12 @@ namespace Js
         bool IsCompleted() const { return state == GeneratorState::Completed; }
         bool IsSuspendedStart() const { return state == GeneratorState::Suspended && this->frame == nullptr; }
 
-        void SetFrame(InterpreterStackFrame* frame) { Assert(this->frame == nullptr); this->frame = frame; }
+        void SetFrame(InterpreterStackFrame* frame, size_t bytes);
         InterpreterStackFrame* GetFrame() const { return frame; }
+
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        virtual void Finalize(bool isShutdown) override;
+#endif
 
         const Arguments& GetArguments() const { return args; }
 

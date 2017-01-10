@@ -10,6 +10,8 @@ namespace Js
     JavascriptGenerator::JavascriptGenerator(DynamicType* type, Arguments &args, ScriptFunction* scriptFunction)
         : DynamicObject(type), frame(nullptr), state(GeneratorState::Suspended), args(args), scriptFunction(scriptFunction)
     {
+        this->GetScriptContext()->GetRecycler()->RegisterPendingWriteBarrierBlock(this->args.Values, this->args.Info.Count * sizeof(Var));
+        RecyclerWriteBarrierManager::WriteBarrier(&this->args.Values);
     }
 
     bool JavascriptGenerator::Is(Var var)
@@ -23,6 +25,35 @@ namespace Js
 
         return static_cast<JavascriptGenerator*>(var);
     }
+
+    void JavascriptGenerator::SetFrame(InterpreterStackFrame* frame, size_t bytes)
+    {
+        Assert(this->frame == nullptr); 
+        this->frame = frame; 
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            this->GetScriptContext()->GetRecycler()->RegisterPendingWriteBarrierBlock(frame, bytes);
+        }
+#endif
+    }
+
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    void JavascriptGenerator::Finalize(bool isShutdown)
+    {
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && !isShutdown)
+        {
+            if (this->frame)
+            {
+                this->GetScriptContext()->GetRecycler()->UnRegisterPendingWriteBarrierBlock(this->frame);
+            }
+            if (this->args.Values)
+            {
+                this->GetScriptContext()->GetRecycler()->UnRegisterPendingWriteBarrierBlock(this->args.Values);
+            }
+        }
+    }
+#endif
 
     Var JavascriptGenerator::CallGenerator(ResumeYieldData* yieldData, const char16* apiNameForErrorMessage)
     {

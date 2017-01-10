@@ -101,6 +101,34 @@ Lowerer::Lower()
 
     this->LowerRange(m_func->m_headInstr, m_func->m_tailInstr, defaultDoFastPath, loopFastPath);
 
+#if DBG
+    // TODO: (leish)(swb) implement for arm
+#if defined(_M_IX86) || defined(_M_AMD64)
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    {
+        // find out all write barrier setting instr, call Recycler::WBSetBit for verification purpose
+        // should do this in LowererMD::GenerateWriteBarrier, however, can't insert call instruction there
+        FOREACH_INSTR_EDITING(instr, instrNext, m_func->m_headInstr)
+            if (instr->m_src1 && instr->m_src1->IsAddrOpnd())
+            {
+                IR::AddrOpnd* addrOpnd = instr->m_src1->AsAddrOpnd();
+                if (addrOpnd->GetAddrOpndKind() == IR::AddrOpndKindWriteBarrierCardTable)
+                {
+                    auto& leaInstr = instr->m_prev->m_prev;
+                    auto& shrInstr = instr->m_prev;
+                    Assert(leaInstr->m_opcode == Js::OpCode::LEA);
+                    Assert(shrInstr->m_opcode == Js::OpCode::SHR);
+                    m_lowererMD.LoadHelperArgument(shrInstr, leaInstr->m_dst);
+                    IR::Instr* instrCall = IR::Instr::New(Js::OpCode::Call, m_func);
+                    shrInstr->InsertBefore(instrCall);
+                    m_lowererMD.ChangeToHelperCall(instrCall, IR::HelperWriteBarrierSetVerifyBit);
+                }
+            }
+        NEXT_INSTR_EDITING
+    }
+#endif
+#endif
+
     this->m_func->ClearCloneMap();
 
     if (m_func->HasAnyStackNestedFunc())
@@ -14530,7 +14558,7 @@ IR::Instr *Lowerer::InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const in
     }
     else
     {
-        LowererMD::ChangeToAssign(instr);
+        LowererMD::ChangeToAssignNoBarrierCheck(instr);
     }
 
     return instr;

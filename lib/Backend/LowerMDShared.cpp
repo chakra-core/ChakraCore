@@ -756,9 +756,15 @@ IR::Instr* LowererMD::ChangeToHelperCallMem(IR::Instr * instr,  IR::JnHelperMeth
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::ChangeToAssign(IR::Instr * instr)
+LowererMD::ChangeToAssignNoBarrierCheck(IR::Instr * instr)
 {
     return ChangeToAssign(instr, instr->GetDst()->GetType());
+}
+
+IR::Instr *
+LowererMD::ChangeToAssign(IR::Instr * instr)
+{
+    return ChangeToWriteBarrierAssign(instr, instr->m_func);
 }
 
 IR::Instr *
@@ -4712,7 +4718,7 @@ LowererMD::GenerateLoadPolymorphicInlineCacheSlot(IR::Instr * instrLdSt, IR::Reg
     instrLdSt->InsertBefore(instr);
 }
 
-void
+IR::Instr *
 LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 {
 #ifdef RECYCLER_WRITE_BARRIER_JIT
@@ -4747,7 +4753,7 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
     }
 #endif
 
-    ChangeToAssign(assignInstr);
+    IR::Instr * instr = ChangeToAssignNoBarrierCheck(assignInstr);
 
     // Now insert write barrier if necessary
 #ifdef RECYCLER_WRITE_BARRIER_JIT
@@ -4755,9 +4761,11 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
         && assignInstr->m_opcode == Js::OpCode::MOV // ignore SSE instructions like MOVSD
         && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
     {
-        func->GetTopFunc()->m_lowerer->GetLowererMD()->GenerateWriteBarrier(assignInstr);
+        LowererMD::GenerateWriteBarrier(assignInstr);
     }
 #endif
+
+    return instr;
 }
 
 void
@@ -4826,18 +4834,6 @@ LowererMD::GenerateWriteBarrier(IR::Instr * assignInstr)
     IR::RegOpnd * indexOpnd = IR::RegOpnd::New(TyMachPtr, assignInstr->m_func);
     IR::Instr * loadIndexInstr = IR::Instr::New(Js::OpCode::LEA, indexOpnd, assignInstr->GetDst(), assignInstr->m_func);
     assignInstr->InsertBefore(loadIndexInstr);
-
-#if DBG
-    // CALL Recycler::WBSetBitJIT
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
-    {
-        this->LoadHelperArgument(assignInstr, indexOpnd);
-        IR::Instr* instrCall = IR::Instr::New(Js::OpCode::Call, m_func);
-        assignInstr->InsertBefore(instrCall);
-        this->ChangeToHelperCall(instrCall, IR::HelperWriteBarrierSetVerifyBit);
-    }
-#endif
-
     IR::Instr * shiftBitInstr = IR::Instr::New(Js::OpCode::SHR, indexOpnd, indexOpnd,
         IR::IntConstOpnd::New(12 /* 1 << 12 = 4096 */, TyInt8, assignInstr->m_func), assignInstr->m_func);
     assignInstr->InsertBefore(shiftBitInstr);

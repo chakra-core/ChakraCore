@@ -615,6 +615,7 @@ Error:
 HRESULT ExecuteTestWithMemoryCheck(char* fileName)
 {
     HRESULT hr = E_FAIL;
+#ifdef _WIN32 // looks on linux it always leak ThreadContextTLSEntry since there's no DllMain
 #ifdef CHECK_MEMORY_LEAK
     // Always check memory leak, unless user specified the flag already
     if (!ChakraRTInterface::IsEnabledCheckMemoryFlag())
@@ -625,6 +626,7 @@ HRESULT ExecuteTestWithMemoryCheck(char* fileName)
     // Disable the output in case an unhandled exception happens
     // We will re-enable it if there is no unhandled exceptions
     ChakraRTInterface::SetEnableCheckMemoryLeakOutput(false);
+#endif
 #endif
 
 #ifdef _WIN32

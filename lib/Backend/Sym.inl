@@ -86,7 +86,7 @@ StackSym::IsArgSlotSym() const
 inline bool
 StackSym::IsParamSlotSym() const
 {
-	return m_isParamSym;
+    return m_isParamSym;
 }
 
 ///----------------------------------------------------------------------------

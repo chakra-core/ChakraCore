@@ -264,11 +264,6 @@ X64WriteBarrierCardTableManager::Initialize()
 
     OnThreadInit();
 
-#if SYSINFO_IMAGE_BASE_AVAILABLE
-    // Image WRITE_COPY region
-    // TODO: find a way for linux
-    OnSegmentAlloc((char*)AutoSystemInfo::Data.dllLoadAddress, (AutoSystemInfo::Data.dllHighAddress - AutoSystemInfo::Data.dllLoadAddress) / AutoSystemInfo::Data.PageSize);
-#endif
     return _cardTable;
 }
 
@@ -492,12 +487,12 @@ RecyclerWriteBarrierManager::ResetWriteBarrier(void * address, size_t pageCount)
     uintptr_t cardIndex = GetCardTableIndex(address);
     if (pageCount == 1)
     {
-        cardTable[cardIndex] = WRITE_BARRIER_PAGE_BIT;
+        cardTable[cardIndex] = WRITE_BARRIER_PAGE_BIT | WRITE_BARRIER_CLEAR_MARK;
     }
     else
     {
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
-        memset(&cardTable[cardIndex], WRITE_BARRIER_PAGE_BIT, pageCount);
+        memset(&cardTable[cardIndex], WRITE_BARRIER_PAGE_BIT | WRITE_BARRIER_CLEAR_MARK, pageCount);
 #else
         memset(&cardTable[cardIndex], 0, sizeof(DWORD) * pageCount);
 #endif

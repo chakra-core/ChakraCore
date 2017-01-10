@@ -1930,7 +1930,7 @@ namespace Js
 
                 newInstance->m_reader.Create(executeFunction);
 
-                generator->SetFrame(newInstance);
+                generator->SetFrame(newInstance, varSizeInBytes);
             }
         }
         else
@@ -2567,7 +2567,7 @@ namespace Js
         double* localDoubleSlots = (double*)(moduleMemoryPtr + moduleMemory.mDoubleOffset);
         Field(Var)* localFunctionImports = moduleMemoryPtr + moduleMemory.mFFIOffset ;
         Field(Var)* localModuleFunctions = moduleMemoryPtr + moduleMemory.mFuncOffset ;
-        Field(Var)** localFunctionTables = (Field(Var)**)(moduleMemoryPtr + moduleMemory.mFuncPtrOffset) ;
+        Field(Field(Var)*)* localFunctionTables = (Field(Field(Var)*)*)(moduleMemoryPtr + moduleMemory.mFuncPtrOffset) ;
 
         AsmJsSIMDValue* localSimdSlots = nullptr;
         if (scriptContext->GetConfig()->IsSimdjsEnabled())
@@ -7282,7 +7282,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         slotArray = (Field(Var)*)this->GetLocalClosure();
         Assert(slotArray != nullptr);
 
-        ScopeSlots scopeSlots(slotArray);
+        ScopeSlots scopeSlots((Js::Var*)slotArray);
         scopeSlots.SetCount(scopeSlotCount);
         scopeSlots.SetScopeMetadata((Var)functionBody->GetFunctionInfo());
         Var undef = functionBody->GetScriptContext()->GetLibrary()->GetUndefined();

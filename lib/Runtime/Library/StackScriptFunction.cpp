@@ -655,25 +655,25 @@ namespace Js
     {
         Assert(slotArray != nullptr);
         Assert(count != 0);
-        Var * boxedSlotArray;
+        Field(Var) * boxedSlotArray;
         if (boxedValues.TryGetValue(slotArray, (void **)&boxedSlotArray))
         {
-            return boxedSlotArray;
+            return (Var*)boxedSlotArray;
         }
 
         if (!ThreadContext::IsOnStack(slotArray))
         {
-            boxedSlotArray = slotArray;
+            boxedSlotArray = (Field(Var)*)slotArray;
         }
         else
         {
             // Create new scope slots when we allocate them on the stack
-            boxedSlotArray = RecyclerNewArray(scriptContext->GetRecycler(), Var, count + ScopeSlots::FirstSlotIndex);
+            boxedSlotArray = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), count + ScopeSlots::FirstSlotIndex);
         }
         boxedValues.Add(slotArray, boxedSlotArray);
 
         ScopeSlots scopeSlots(slotArray);
-        ScopeSlots boxedScopeSlots(boxedSlotArray);
+        ScopeSlots boxedScopeSlots((Js::Var*)boxedSlotArray);
 
         boxedScopeSlots.SetCount(count);
         boxedScopeSlots.SetScopeMetadata(scopeSlots.GetScopeMetadataRaw());
@@ -689,7 +689,7 @@ namespace Js
             }
             boxedScopeSlots.Set(i, slotValue);
         }
-        return boxedSlotArray;
+        return (Var*)boxedSlotArray;
     }
 
     ScriptFunction * StackScriptFunction::BoxState::BoxStackFunction(ScriptFunction * scriptFunction)
