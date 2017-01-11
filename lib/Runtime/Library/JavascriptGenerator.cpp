@@ -10,12 +10,6 @@ namespace Js
     JavascriptGenerator::JavascriptGenerator(DynamicType* type, Arguments &args, ScriptFunction* scriptFunction)
         : DynamicObject(type), frame(nullptr), state(GeneratorState::Suspended), args(args), scriptFunction(scriptFunction)
     {
-#if GLOBAL_ENABLE_WRITE_BARRIER
-        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
-        {
-            this->GetScriptContext()->GetRecycler()->RegisterPendingWriteBarrierBlock(this->args.Values, this->args.Info.Count * sizeof(Var));
-        }
-#endif
     }
 
     JavascriptGenerator* JavascriptGenerator::New(Recycler* recycler, DynamicType* generatorType, Arguments& args, ScriptFunction* scriptFunction)
@@ -23,7 +17,11 @@ namespace Js
 #if GLOBAL_ENABLE_WRITE_BARRIER
         if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
         {
-            return RecyclerNewFinalized(recycler, JavascriptGenerator, generatorType, args, scriptFunction);
+            JavascriptGenerator* obj = RecyclerNewFinalized(
+                recycler, JavascriptGenerator, generatorType, args, scriptFunction);
+            recycler->RegisterPendingWriteBarrierBlock(obj->args.Values, obj->args.Info.Count * sizeof(Var));
+            recycler->RegisterPendingWriteBarrierBlock(&obj->args.Values, sizeof(Var*));
+            return obj;
         }
         else
 #endif
@@ -46,8 +44,8 @@ namespace Js
 
     void JavascriptGenerator::SetFrame(InterpreterStackFrame* frame, size_t bytes)
     {
-        Assert(this->frame == nullptr); 
-        this->frame = frame; 
+        Assert(this->frame == nullptr);
+        this->frame = frame;
 #if GLOBAL_ENABLE_WRITE_BARRIER
         if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
         {
