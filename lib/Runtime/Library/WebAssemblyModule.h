@@ -64,7 +64,8 @@ public:
     WebAssemblyMemory * CreateMemory() const;
     bool HasMemory() const { return m_hasMemory; }
     bool HasMemoryImport() const { return m_memImport != nullptr; }
-    bool IsValidMemoryImport(const WebAssemblyMemory * memory) const;
+    uint32 GetMemoryInitSize() const { return m_memoryInitSize; }
+    uint32 GetMemoryMaxSize() const { return m_memoryMaxSize; }
 
     Wasm::WasmSignature * GetSignatures() const;
     Wasm::WasmSignature* GetSignature(uint32 index) const;
