@@ -1169,7 +1169,7 @@ void EmitAssignmentToFuncName(ParseNode *pnodeFnc, ByteCodeGenerator *byteCodeGe
             {
                 byteCodeGenerator->EmitPropStore(pnodeFnc->location, sym, nullptr, funcInfoParent);
             }
-            else
+            else if (!sym->GetIsBlockVar() || sym->HasRealBlockVarRef() || sym->GetScope()->GetIsObject())
             {
                 byteCodeGenerator->EmitLocalPropInit(pnodeFnc->location, sym, funcInfoParent);
             }
@@ -3839,6 +3839,21 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
     {
         // Only set the environment depth if it's truly known (i.e., not in eval or event handler).
         funcInfo->GetParsedFunctionBody()->SetEnvDepth(this->envDepth);
+
+        if (pnodeFnc->sxFnc.FIBPreventsDeferral())
+        {
+            for (Scope *scope = this->currentScope; scope; scope = scope->GetEnclosingScope())
+            {
+                if (scope->GetScopeType() != ScopeType_FunctionBody && 
+                    scope->GetScopeType() != ScopeType_Global &&
+                    scope->GetScopeType() != ScopeType_GlobalEvalBlock &&
+                    scope->GetMustInstantiate())
+                {
+                    funcInfo->byteCodeFunction->SetAttributes((Js::FunctionInfo::Attributes)(funcInfo->byteCodeFunction->GetAttributes() & ~Js::FunctionInfo::Attributes::CanDefer));
+                    break;
+                }
+            }
+        }
     }
 
     if (funcInfo->GetCallsEval())
