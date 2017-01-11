@@ -187,6 +187,21 @@ namespace Js
         }
         return (int64)_wcstoui64(buf, nullptr, radix);
     }
+
+    Var CreateI64ReturnObject(int64 val, ScriptContext* scriptContext)
+    {
+        Js::Var i64Object = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
+        Var low = JavascriptNumber::ToVar((uint)val, scriptContext);
+        Var high = JavascriptNumber::ToVar(val >> 32, scriptContext);
+
+        PropertyRecord const * lowPropRecord = nullptr;
+        PropertyRecord const * highPropRecord = nullptr;
+        scriptContext->GetOrAddPropertyRecord(_u("low"), (int)wcslen(_u("low")), &lowPropRecord);
+        scriptContext->GetOrAddPropertyRecord(_u("high"), (int)wcslen(_u("high")), &highPropRecord);
+        JavascriptOperators::OP_SetProperty(i64Object, lowPropRecord->GetPropertyId(), low, scriptContext);
+        JavascriptOperators::OP_SetProperty(i64Object, highPropRecord->GetPropertyId(), high, scriptContext);
+        return i64Object;
+    }
 #endif
 
     void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo)
@@ -254,8 +269,8 @@ namespace Js
                         RecyclableObject* object = RecyclableObject::FromVar(*origArgs);
                         PropertyRecord const * lowPropRecord = nullptr;
                         PropertyRecord const * highPropRecord = nullptr;
-                        scriptContext->GetOrAddPropertyRecord(_u("low"), lstrlen(_u("low")), &lowPropRecord);
-                        scriptContext->GetOrAddPropertyRecord(_u("high"), lstrlen(_u("high")), &highPropRecord);
+                        scriptContext->GetOrAddPropertyRecord(_u("low"), (int)wcslen(_u("low")), &lowPropRecord);
+                        scriptContext->GetOrAddPropertyRecord(_u("high"), (int)wcslen(_u("high")), &highPropRecord);
                         Var low = JavascriptOperators::OP_GetProperty(object, lowPropRecord->GetPropertyId(), scriptContext);
                         Var high = JavascriptOperators::OP_GetProperty(object, highPropRecord->GetPropertyId(), scriptContext);
 
@@ -425,21 +440,6 @@ namespace Js
         }
         // for convenience, lets take the opportunity to return the asm.js entrypoint address
         return address;
-    }
-
-    Var CreateI64ReturnObject(int64 val, ScriptContext* scriptContext)
-    {
-        Js::Var i64Object = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
-        Var low = JavascriptNumber::ToVar((uint)val, scriptContext);
-        Var high = JavascriptNumber::ToVar(val >> 32, scriptContext);
-
-        PropertyRecord const * lowPropRecord = nullptr;
-        PropertyRecord const * highPropRecord = nullptr;
-        scriptContext->GetOrAddPropertyRecord(_u("low"), lstrlen(_u("low")), &lowPropRecord);
-        scriptContext->GetOrAddPropertyRecord(_u("high"), lstrlen(_u("high")), &highPropRecord);
-        JavascriptOperators::OP_SetProperty(i64Object, lowPropRecord->GetPropertyId(), low, scriptContext);
-        JavascriptOperators::OP_SetProperty(i64Object, highPropRecord->GetPropertyId(), high, scriptContext);
-        return i64Object;
     }
 
 #if _M_X64
