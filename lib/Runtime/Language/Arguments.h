@@ -28,6 +28,9 @@ inline Js::Var* _get_va(void* addrOfReturnAddress, int n)
 {
     // All args are right after ReturnAddress by custom calling convention
     Js::Var* pArgs = reinterpret_cast<Js::Var*>(addrOfReturnAddress) + 1;
+#ifdef _ARM_
+    n += 2; // ip + fp
+#endif
     return pArgs + n;
 }
 

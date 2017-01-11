@@ -372,6 +372,10 @@ Error:
         }
         delete messageQueue;
     }
+
+    // We only call RunScript() once, safe to Uninitialize()
+    WScriptJsrt::Uninitialize();
+
     return hr;
 }
 
@@ -739,7 +743,10 @@ unsigned int WINAPI StaticThreadProc(void *lpParam)
 static char16** argv = nullptr;
 int main(int argc, char** c_argv)
 {
-    PAL_InitializeChakraCore(argc, c_argv);
+#ifndef CHAKRA_STATIC_LIBRARY
+// xplat-todo: PAL free CH ?
+    PAL_InitializeChakraCore();
+#endif
     argv = new char16*[argc];
     for (int i = 0; i < argc; i++)
     {

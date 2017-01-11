@@ -42,6 +42,10 @@ add_library (Chakra.Jsrt STATIC
 
 add_subdirectory(Core)
 
+target_link_libraries(Chakra.Jsrt
+  ${CC_LTO_ENABLED}
+  )
+
 target_include_directories (
     Chakra.Jsrt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
     ../Backend
@@ -52,9 +56,3 @@ target_include_directories (
     ../Runtime/Debug
     ../Parser
     )
-
-if(CC_TARGET_OS_ANDROID)
-    add_custom_command(TARGET Chakra.Jsrt POST_BUILD
-        COMMAND ${ANDROID_TOOLCHAIN_DIR}/bin/ranlib ${CMAKE_CURRENT_BINARY_DIR}/libChakra.Jsrt.a
-    )
-endif()

@@ -254,10 +254,28 @@ X64WriteBarrierCardTableManager::Initialize()
         // On Win8, reserving 32 GB is fine since reservations don't incur a cost. On Win7, the cost
         // of a reservation can be approximated as 2KB per MB of reserved size. In our case, we take
         // an overhead of 96KB for our card table.
-        const unsigned __int64 maxUmProcessAddressSpace = (__int64) AutoSystemInfo::Data.lpMaximumApplicationAddress;
+
+        // xplat: GetRLimit AS / RSS for ``the maximum size of the process's virtual memory``
+        size_t memoryLimit;
+        if (!PlatformAgnostic::SystemInfo::GetMaxVirtualMemory(&memoryLimit))
+        {
+            memoryLimit = (size_t) AutoSystemInfo::Data.lpMaximumApplicationAddress; // try upper limit
+        }
+        else
+        {
+            // Safest option : Max RSS can be beyond what we can allocate, aim the smaller one
+            memoryLimit = min(memoryLimit, (size_t) AutoSystemInfo::Data.lpMaximumApplicationAddress);
+        }
+        const unsigned __int64 maxUmProcessAddressSpace = (__int64) memoryLimit;
+
         _cardTableNumEntries = Math::Align<size_t>(maxUmProcessAddressSpace / AutoSystemInfo::PageSize, AutoSystemInfo::PageSize) /* s_writeBarrierPageSize */;
 
         LPVOID cardTableSpace = ::VirtualAlloc(NULL, _cardTableNumEntries, MEM_RESERVE, PAGE_READWRITE);
+        if (!cardTableSpace) // Crash Early with a meaningful message. Otherwise the behavior is undefined.
+        {
+            fprintf(stderr, "Out of Memory\n"); fflush(stderr);
+            abort();
+        }
 
         _cardTable = (BYTE*) cardTableSpace;
     }

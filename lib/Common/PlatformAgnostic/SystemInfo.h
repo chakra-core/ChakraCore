@@ -31,6 +31,8 @@ namespace PlatformAgnostic
             *totalRam = SystemInfo::data.totalRam;
             return true;
         }
+
+        static bool GetMaxVirtualMemory(size_t *totalAS);
     };
 } // namespace PlatformAgnostic
 

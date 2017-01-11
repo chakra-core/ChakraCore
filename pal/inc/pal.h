@@ -390,51 +390,14 @@ typedef long time_t;
 #define DLL_THREAD_DETACH  3
 #define DLL_PROCESS_DETACH 0
 
-#define PAL_INITIALIZE_NONE            0x00
-#define PAL_INITIALIZE_SYNC_THREAD     0x01
-#define PAL_INITIALIZE_EXEC_ALLOCATOR  0x02
-#define PAL_INITIALIZE_REGISTER_SIGTERM_HANDLER     0x08
-#define PAL_INITIALIZE_DEBUGGER_EXCEPTIONS          0x10
-
-// PAL_Initialize() flags
-#define PAL_INITIALIZE                 PAL_INITIALIZE_SYNC_THREAD
-
-// PAL_InitializeDLL() flags - don't start any of the helper threads
-#define PAL_INITIALIZE_DLL             PAL_INITIALIZE_NONE
-
-// PAL_InitializeChakraCore() flags
-#define PAL_INITIALIZE_CHAKRACORE         (PAL_INITIALIZE | PAL_INITIALIZE_EXEC_ALLOCATOR)
-
 typedef DWORD (PALAPI *PTHREAD_START_ROUTINE)(LPVOID lpThreadParameter);
 typedef PTHREAD_START_ROUTINE LPTHREAD_START_ROUTINE;
 
 /******************* PAL-Specific Entrypoints *****************************/
 
-PALIMPORT
 int
 PALAPI
-PAL_Initialize(
-    int argc,
-    const char * const argv[]);
-
-PALIMPORT
-int
-PALAPI
-PAL_InitializeDLL();
-
-PALIMPORT
-DWORD
-PALAPI
-PAL_InitializeChakraCore(
-    int argc,
-    char** argv);
-
-PALIMPORT
-DWORD_PTR
-PALAPI
-PAL_EntryPoint(
-    IN LPTHREAD_START_ROUTINE lpStartAddress,
-    IN LPVOID lpParameter);
+PAL_InitializeChakraCore();
 
 /// <summary>
 /// This function shuts down PAL WITHOUT exiting the current process.
@@ -463,30 +426,6 @@ void
 PALAPI
 PAL_TerminateEx(
     int exitCode);
-
-/*++
-Function:
-  PAL_SetShutdownCallback
-
-Abstract:
-  Sets a callback that is executed when the PAL is shut down because of
-  ExitProcess, TerminateProcess or PAL_Shutdown but not PAL_Terminate/Ex.
-
-  NOTE: Currently only one callback can be set at a time.
---*/
-typedef VOID (*PSHUTDOWN_CALLBACK)(void);
-
-PALIMPORT
-VOID
-PALAPI
-PAL_SetShutdownCallback(
-    IN PSHUTDOWN_CALLBACK callback);
-
-PALIMPORT
-void
-PALAPI
-PAL_InitializeDebug(
-    void);
 
 PALIMPORT
 VOID
@@ -521,15 +460,6 @@ PAL_Random(
     IN BOOL bStrong,
     IN OUT LPVOID lpBuffer,
     IN DWORD dwLength);
-
-// This helper will be used *only* by the CoreCLR to determine
-// if an address lies inside CoreCLR or not.
-//
-// This shouldnt be used by any other component that links into the PAL.
-PALIMPORT
-BOOL
-PALAPI
-PAL_IsIPInCoreCLR(IN PVOID address);
 
 #ifdef PLATFORM_UNIX
 
@@ -3266,6 +3196,8 @@ PALIMPORT BOOL PALAPI PAL_VirtualUnwindOutOfProc(CONTEXT *context,
 #define PAL_CS_NATIVE_DATA_SIZE 56
 #elif defined(__LINUX__) && defined(__x86_64__)
 #define PAL_CS_NATIVE_DATA_SIZE 96
+#elif defined(__ANDROID__) && defined(_ARM_)
+#define PAL_CS_NATIVE_DATA_SIZE 12
 #elif defined(__LINUX__) && defined(_ARM_)
 #define PAL_CS_NATIVE_DATA_SIZE 80
 #elif defined(__LINUX__) && defined(_ARM64_)
@@ -3300,7 +3232,6 @@ typedef struct _CRITICAL_SECTION {
 PALIMPORT VOID PALAPI EnterCriticalSection(IN OUT LPCRITICAL_SECTION lpCriticalSection);
 PALIMPORT VOID PALAPI LeaveCriticalSection(IN OUT LPCRITICAL_SECTION lpCriticalSection);
 PALIMPORT VOID PALAPI InitializeCriticalSection(OUT LPCRITICAL_SECTION lpCriticalSection);
-PALIMPORT BOOL PALAPI InitializeCriticalSectionAndSpinCount(LPCRITICAL_SECTION lpCriticalSection, DWORD dwSpinCount);
 PALIMPORT BOOL PALAPI InitializeCriticalSectionEx(LPCRITICAL_SECTION lpCriticalSection, DWORD dwSpinCount, DWORD Flags);
 PALIMPORT BOOL PALAPI InitializeCriticalSectionAndSpinCount(LPCRITICAL_SECTION lpCriticalSection, DWORD dwSpinCount);
 PALIMPORT VOID PALAPI DeleteCriticalSection(IN OUT LPCRITICAL_SECTION lpCriticalSection);

@@ -1282,6 +1282,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
             {
                 if (!reuseNestedFunc->IsFunctionBody())
                 {
+                    reuseNestedFunc->GetUtf8SourceInfo()->StopTrackingDeferredFunction(reuseNestedFunc->GetLocalFunctionId());
                     Js::FunctionBody * parsedFunctionBody =
                         Js::FunctionBody::NewFromParseableFunctionInfo(reuseNestedFunc->GetParseableFunctionInfo());
                     autoRestoreFunctionInfo.funcBody = parsedFunctionBody;

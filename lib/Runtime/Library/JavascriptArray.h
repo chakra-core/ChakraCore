@@ -784,9 +784,9 @@ namespace Js
         static void SetConcatItem(Var aItem, uint idxArg, JavascriptArray* pDestArray, RecyclableObject* pDestObj, T idxDest, ScriptContext *scriptContext);
 
         template<typename T>
-        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest, BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength);
+        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest, BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength, bool spreadableCheckedAndTrue = false);
         template<typename T>
-        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u, BOOL FirstPromotedItemIsSpreadable = false, BigIndex FirstPromotedItemLength = 0u);
+        static void ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start = 0, uint startIdxDest = 0u, BOOL FirstPromotedItemIsSpreadable = false, BigIndex FirstPromotedItemLength = 0u, bool spreadableCheckedAndTrue = false);
         static JavascriptArray* ConcatIntArgs(JavascriptNativeIntArray* pDestArray, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext);
         static bool PromoteToBigIndex(BigIndex lhs, BigIndex rhs);
         static bool PromoteToBigIndex(BigIndex lhs, uint32 rhs);

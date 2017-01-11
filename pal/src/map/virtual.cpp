@@ -2016,7 +2016,7 @@ VirtualProtect(
             if ( !VIRTUALIsPageCommitted( Index, pEntry ) )
             {
                 ERROR( "You can only change the protection attributes"
-                       " on committed memory.\n" )
+                       " on committed memory.\n" );
                 SetLastError( ERROR_INVALID_ADDRESS );
                 goto ExitVirtualProtect;
             }
