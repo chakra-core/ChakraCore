@@ -261,6 +261,7 @@ namespace Js
         DynamicType * uriErrorType;
         DynamicType * webAssemblyCompileErrorType;
         DynamicType * webAssemblyRuntimeErrorType;
+        DynamicType * webAssemblyLinkErrorType;
         StaticType  * numberTypeStatic;
         StaticType  * int64NumberTypeStatic;
         StaticType  * uint64NumberTypeStatic;
@@ -426,6 +427,8 @@ namespace Js
         RuntimeFunction* webAssemblyCompileErrorConstructor;
         DynamicObject* webAssemblyRuntimeErrorPrototype;
         RuntimeFunction* webAssemblyRuntimeErrorConstructor;
+        DynamicObject* webAssemblyLinkErrorPrototype;
+        RuntimeFunction* webAssemblyLinkErrorConstructor;
 
         DynamicObject* webAssemblyMemoryPrototype;
         RuntimeFunction* webAssemblyMemoryConstructor;
@@ -673,6 +676,8 @@ namespace Js
         DynamicObject* GetWebAssemblyCompileErrorConstructor() const { return webAssemblyCompileErrorConstructor; }
         DynamicObject* GetWebAssemblyRuntimeErrorPrototype() const { return webAssemblyRuntimeErrorPrototype; }
         DynamicObject* GetWebAssemblyRuntimeErrorConstructor() const { return webAssemblyRuntimeErrorConstructor; }
+        DynamicObject* GetWebAssemblyLinkErrorPrototype() const { return webAssemblyLinkErrorPrototype; }
+        DynamicObject* GetWebAssemblyLinkErrorConstructor() const { return webAssemblyLinkErrorConstructor; }
 
 #if ENABLE_TTD
         Js::PropertyId ExtractPrimitveSymbolId_TTD(Var value);
@@ -749,8 +754,9 @@ namespace Js
         DynamicType * GetSyntaxErrorType() const { return syntaxErrorType; }
         DynamicType * GetTypeErrorType() const { return typeErrorType; }
         DynamicType * GetURIErrorType() const { return uriErrorType; }
-        DynamicType * GetWebAssemblyRuntimeErrorType() const { return webAssemblyRuntimeErrorType; }
         DynamicType * GetWebAssemblyCompileErrorType() const { return webAssemblyCompileErrorType; }
+        DynamicType * GetWebAssemblyRuntimeErrorType() const { return webAssemblyRuntimeErrorType; }
+        DynamicType * GetWebAssemblyLinkErrorType() const { return webAssemblyLinkErrorType; }
         StaticType  * GetNumberTypeStatic() const { return numberTypeStatic; }
         StaticType  * GetInt64TypeStatic() const { return int64NumberTypeStatic; }
         StaticType  * GetUInt64TypeStatic() const { return uint64NumberTypeStatic; }
@@ -961,6 +967,7 @@ namespace Js
         JavascriptError* CreateOutOfMemoryError();
         JavascriptError* CreateWebAssemblyCompileError();
         JavascriptError* CreateWebAssemblyRuntimeError();
+        JavascriptError* CreateWebAssemblyLinkError();
         JavascriptSymbol* CreateSymbol(JavascriptString* description);
         JavascriptSymbol* CreateSymbol(const char16* description, int descriptionLength);
         JavascriptSymbol* CreateSymbol(const PropertyRecord* propertyRecord);
@@ -1225,6 +1232,7 @@ namespace Js
         STANDARD_INIT(AsyncFunction);
         STANDARD_INIT(WebAssemblyCompileError);
         STANDARD_INIT(WebAssemblyRuntimeError);
+        STANDARD_INIT(WebAssemblyLinkError);
         STANDARD_INIT(WebAssemblyMemory);
         STANDARD_INIT(WebAssemblyModule);
         STANDARD_INIT(WebAssemblyInstance);

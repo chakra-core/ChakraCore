@@ -215,10 +215,7 @@ WebAssemblyModule::CreateModule(
             currentBody->GetAsmJsFunctionInfo()->SetWasmReaderInfo(nullptr);
             SysFreeString(originalMessage);
         }
-        JavascriptLibrary *library = scriptContext->GetLibrary();
-        JavascriptError *pError = library->CreateWebAssemblyCompileError();
-        JavascriptError::SetErrorMessage(pError, WASMERR_WasmCompileError, newEx.ReleaseErrorMessage(), scriptContext);
-        JavascriptExceptionOperators::Throw(pError, scriptContext);
+        JavascriptError::ThrowWebAssemblyCompileErrorVar(scriptContext, WASMERR_WasmCompileError, newEx.ReleaseErrorMessage());
     }
 
     return webAssemblyModule;
