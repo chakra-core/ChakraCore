@@ -16,7 +16,7 @@ WAsmJs::TypedSlotInfo
 AsmJsJITInfo::GetTypedSlotInfo(WAsmJs::Types type) const
 {
     WAsmJs::TypedSlotInfo info;
-    if (type < WAsmJs::LIMIT)
+    if (type >= 0 && type < WAsmJs::LIMIT)
     {
         info.byteOffset = m_data.typedSlotInfos[type].byteOffset;
         info.constCount = m_data.typedSlotInfos[type].constCount;
