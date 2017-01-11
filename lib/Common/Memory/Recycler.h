@@ -1247,11 +1247,21 @@ public:
     void UnregisterExternalGuestArena(ArenaData* guestArena)
     {
         externalGuestArenaList.Remove(&NoThrowHeapAllocator::Instance, guestArena);
+
+        // Any time a root is removed during a GC, it indicates that an exhaustive
+        // collection is likely going to have work to do so trigger an exhaustive
+        // candidate GC to indicate this fact
+        this->CollectNow<CollectExhaustiveCandidate>();
     }
 
     void UnregisterExternalGuestArena(ArenaData** guestArena)
     {
         externalGuestArenaList.RemoveElement(&NoThrowHeapAllocator::Instance, guestArena);
+
+        // Any time a root is removed during a GC, it indicates that an exhaustive
+        // collection is likely going to have work to do so trigger an exhaustive
+        // candidate GC to indicate this fact
+        this->CollectNow<CollectExhaustiveCandidate>();
     }
 
 #ifdef RECYCLER_TEST_SUPPORT
