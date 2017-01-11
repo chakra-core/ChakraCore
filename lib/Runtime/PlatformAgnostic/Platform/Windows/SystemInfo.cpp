@@ -19,4 +19,13 @@ namespace PlatformAgnostic
             totalRam = static_cast<size_t>(ram) * 1024;
         }
     }
+
+    bool SystemInfo::GetMaxVirtualMemory(size_t *totalAS)
+    {
+        SYSTEM_INFO info;
+        GetSystemInfo(&info);
+        *totalAS = (size_t) info.lpMaximumApplicationAddress;
+        return true;
+    }
+
 }
