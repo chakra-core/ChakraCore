@@ -63,7 +63,7 @@
 <test>
   <default>
     <files>global.js</files>
-    <baseline>baselines\global.baseline</baseline>
+    <baseline>baselines/global.baseline</baseline>
     <compile-flags>-wasm -wasmi64</compile-flags>
   </default>
 </test>
@@ -84,14 +84,14 @@
 <test>
   <default>
     <files>table_imports.js</files>
-    <baseline>baselines\table_imports.baseline</baseline>
+    <baseline>baselines/table_imports.baseline</baseline>
     <compile-flags>-wasm -wasmi64</compile-flags>
   </default>
 </test>
 <test>
   <default>
     <files>call.js</files>
-    <baseline>baselines\call.baseline</baseline>
+    <baseline>baselines/call.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
   </default>
 </test>
@@ -111,14 +111,14 @@
 <test>
   <default>
     <files>api.js</files>
-    <baseline>baselines\api.baseline</baseline>
+    <baseline>baselines/api.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
   </default>
 </test>
 <test>
   <default>
     <files>api.js</files>
-    <baseline>baselines\api.baseline</baseline>
+    <baseline>baselines/api.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
   </default>
 </test>

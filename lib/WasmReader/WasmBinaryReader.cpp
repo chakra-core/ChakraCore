@@ -7,7 +7,7 @@
 
 #ifdef ENABLE_WASM
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-#include "Codex\Utf8Helper.h"
+#include "Codex/Utf8Helper.h"
 #endif
 
 namespace Wasm

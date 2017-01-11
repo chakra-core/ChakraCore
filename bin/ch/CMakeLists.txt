@@ -30,6 +30,7 @@ target_include_directories (ch
   ../../lib/Jsrt
   ../../lib/Runtime
   ../../lib/Parser
+  ../../lib/WasmReader
   )
 
 if(STATIC_LIBRARY)
