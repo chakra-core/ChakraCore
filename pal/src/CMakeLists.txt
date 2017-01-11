@@ -189,10 +189,6 @@ else() # Linux
   target_link_libraries(Chakra.Pal
     ${PTHREAD}
     dl
-  )
-  if(CC_TARGET_OS_ANDROID)
-      add_custom_command(TARGET Chakra.Pal POST_BUILD
-          COMMAND ${ANDROID_TOOLCHAIN_DIR}/bin/ranlib ${CMAKE_CURRENT_BINARY_DIR}/libChakra.Pal.a
-      )
-  endif()
+    ${CC_LTO_ENABLED}
+    )
 endif()

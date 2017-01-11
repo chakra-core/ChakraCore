@@ -121,7 +121,7 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
 #endif
 
 #ifndef _WIN32
-        PAL_InitializeChakraCore(0, NULL);
+        PAL_InitializeChakraCore();
 #endif
 
         HMODULE mod = GetModuleHandleW(NULL);

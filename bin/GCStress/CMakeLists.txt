@@ -32,6 +32,7 @@ set(lib_target "${lib_target}"
   Chakra.Pal
   Chakra.Jsrt
   ${LINKER_END_GROUP}
+  ${CC_LTO_ENABLED}
   )
 
 target_link_libraries (GCStress ${lib_target})

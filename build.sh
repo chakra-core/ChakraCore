@@ -47,6 +47,7 @@ PRINT_USAGE() {
     echo "                       e.g. undefined,signed-integer-overflow"
     echo "  -t, --test-build     Test build (by default Release build)"
     echo "      --target[=S]     Target OS"
+    echo "      --trace          Enables experimental built-in trace"
     echo "      --xcode          Generate XCode project"
     echo "      --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental"
@@ -80,6 +81,7 @@ OS_APT_GET=0
 OS_UNIX=0
 LTO=""
 TARGET_OS=""
+ENABLE_CC_XPLAT_TRACE=""
 
 if [ -f "/proc/version" ]; then
     OS_LINUX=1
@@ -194,10 +196,12 @@ while [[ $# -gt 0 ]]; do
 
     --lto)
         LTO="-DENABLE_FULL_LTO_SH=1"
+        HAS_LTO=1
         ;;
 
     --lto-thin)
         LTO="-DENABLE_THIN_LTO_SH=1"
+        HAS_LTO=1
         ;;
 
     -n | --ninja)
@@ -252,6 +256,10 @@ while [[ $# -gt 0 ]]; do
         fi
         ;;
 
+    --trace)
+        ENABLE_CC_XPLAT_TRACE="-DENABLE_CC_XPLAT_TRACE_SH=1"
+        ;;
+
     --without=*)
         FEATURES=$1
         FEATURES=${FEATURES:10}    # value after --without=
@@ -275,6 +283,11 @@ while [[ $# -gt 0 ]]; do
 
     shift
 done
+
+if [ "${HAS_LTO}${OS_LINUX}" == "11" ]; then
+    echo "lto: ranlib disabled"
+    export RANLIB=/bin/true
+fi
 
 if [[ ${#_VERBOSE} > 0 ]]; then
     # echo options back to the user
@@ -365,7 +378,7 @@ else
 fi
 
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS $ENABLE_CC_XPLAT_TRACE\
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES ../..
 
 _RET=$?

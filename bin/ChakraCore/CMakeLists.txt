@@ -53,6 +53,8 @@ set(lib_target "${lib_target}"
 if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(lib_target "${lib_target}"
     -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libChakraCoreLib.version
+    # reduce link time memory usage
+    -Xlinker --no-keep-memory
     )
 elseif(CC_TARGET_OS_OSX)
   if(CC_TARGETS_X86)
@@ -62,7 +64,10 @@ elseif(CC_TARGET_OS_OSX)
   endif()
 endif()
 
-target_link_libraries (ChakraCore ${lib_target})
+target_link_libraries (ChakraCore
+  ${lib_target}
+  ${CC_LTO_ENABLED}
+  )
 
 if(NOT CC_XCODE_PROJECT)
   set(CC_LIB_EXT "so")
