@@ -22,25 +22,14 @@ Var GetImportVariable(Wasm::WasmImport* wi, ScriptContext* ctx, Var ffi)
 
     const char16* name = wi->importName;
     uint32 nameLen = wi->importNameLen;
-    Var prop = nullptr;
-    if (nameLen > 0)
-    {
-        PropertyRecord const * propertyRecord = nullptr;
-        ctx->GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
+    PropertyRecord const * propertyRecord = nullptr;
+    ctx->GetOrAddPropertyRecord(name, nameLen, &propertyRecord);
 
-        if (!RecyclableObject::Is(modProp))
-        {
-            JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
-        }
-        prop = JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), ctx);
-    }
-    else
+    if (!RecyclableObject::Is(modProp))
     {
-        // Use only first level if name is missing
-        prop = modProp;
+        JavascriptError::ThrowTypeError(ctx, WASMERR_InvalidImport);
     }
-
-    return prop;
+    return JavascriptOperators::OP_GetProperty(modProp, propertyRecord->GetPropertyId(), ctx);
 }
 
 WebAssemblyInstance::WebAssemblyInstance(WebAssemblyModule * wasmModule, DynamicType * type) :
