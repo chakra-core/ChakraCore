@@ -30,8 +30,8 @@ set(CRLIB_SOURCE_CODES
     JavascriptArray.cpp
     JavascriptArrayIndexEnumerator.cpp
     JavascriptArrayIndexEnumeratorBase.cpp
-    JavascriptArrayIterator.cpp
     JavascriptArrayIndexSnapshotEnumerator.cpp
+    JavascriptArrayIterator.cpp
     JavascriptBoolean.cpp
     JavascriptBooleanObject.cpp
     JavascriptBuiltInFunctions.cpp
@@ -43,8 +43,8 @@ set(CRLIB_SOURCE_CODES
     JavascriptGenerator.cpp
     JavascriptGeneratorFunction.cpp
     JavascriptIterator.cpp
-    JavascriptListIterator.cpp
     JavascriptLibrary.cpp
+    JavascriptListIterator.cpp
     JavascriptMap.cpp
     JavascriptMapIterator.cpp
     JavascriptNumber.cpp

@@ -38,6 +38,7 @@ add_library (Chakra.Jsrt STATIC
     $<TARGET_OBJECTS:Chakra.Runtime.Types>
     $<TARGET_OBJECTS:Chakra.Runtime.PlatformAgnostic>
     $<TARGET_OBJECTS:Chakra.Parser>
+    $<TARGET_OBJECTS:Chakra.WasmReader>
     )
 
 add_subdirectory(Core)
