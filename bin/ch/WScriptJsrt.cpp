@@ -867,6 +867,15 @@ Error:
     return hr == S_OK;
 }
 
+bool WScriptJsrt::Uninitialize()
+{
+    // moduleRecordMap is a global std::map, its destructor may access overrided
+    // "operator delete" / global HeapAllocator::Instance. Clear it manually here
+    // to avoid worrying about global destructor order.
+    moduleRecordMap.clear();
+    return true;
+}
+
 #if ENABLE_TTD
 void CALLBACK WScriptJsrt::JsContextBeforeCollectCallback(JsRef contextRef, void *data)
 {

@@ -372,6 +372,10 @@ Error:
         }
         delete messageQueue;
     }
+
+    // We only call RunScript() once, safe to Uninitialize()
+    WScriptJsrt::Uninitialize();
+
     return hr;
 }
 
