@@ -102,14 +102,14 @@ Test 3: Expected Error: TypeError: Object expected
 Test 4: Expected Error: TypeError: Object expected
 Test 5: Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
 Test 6: Expected Error: TypeError: Unable to get property 'fn' of undefined or null reference
-Test 7: Expected Error: TypeError: Function expected
-Test 8: Expected Error: TypeError: Function called with invalid signature
-Test 9: Expected Error: TypeError: WebAssembly.Memory object expected
-Test 10: Expected Error: TypeError: WebAssembly.Memory object expected
-Test 11: Expected Error: TypeError: WebAssembly.Memory object expected
-Test 12: Expected Error: TypeError: WebAssembly.Table object expected
-Test 13: Expected Error: TypeError: WebAssembly.Table object expected
-Test 14: Expected Error: TypeError: WebAssembly.Table object expected
+Test 7: Expected Error: WebAssemblyLinkError: Function expected
+Test 8: Expected Error: WebAssemblyLinkError: Function called with invalid signature
+Test 9: Expected Error: WebAssemblyLinkError: WebAssembly.Memory object expected
+Test 10: Expected Error: WebAssemblyLinkError: WebAssembly.Memory object expected
+Test 11: Expected Error: WebAssemblyLinkError: WebAssembly.Memory object expected
+Test 12: Expected Error: WebAssemblyLinkError: WebAssembly.Table object expected
+Test 13: Expected Error: WebAssemblyLinkError: WebAssembly.Table object expected
+Test 14: Expected Error: WebAssemblyLinkError: WebAssembly.Table object expected
 Testing instance
 f1: 5
 fn: 1
