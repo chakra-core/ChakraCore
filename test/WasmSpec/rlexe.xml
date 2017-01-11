@@ -4,14 +4,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\address.baseline</baseline>
+      <baseline>baselines/address.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\address.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\address.baseline</baseline>
+      <baseline>baselines/address.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\address.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -19,14 +19,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\binary.baseline</baseline>
+      <baseline>baselines/binary.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\binary.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\binary.baseline</baseline>
+      <baseline>baselines/binary.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\binary.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -34,14 +34,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\block.baseline</baseline>
+      <baseline>baselines/block.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\block.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\block.baseline</baseline>
+      <baseline>baselines/block.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\block.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -49,14 +49,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\br.baseline</baseline>
+      <baseline>baselines/br.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\br.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\br.baseline</baseline>
+      <baseline>baselines/br.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\br.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -64,14 +64,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\br_if.baseline</baseline>
+      <baseline>baselines/br_if.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\br_if.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\br_if.baseline</baseline>
+      <baseline>baselines/br_if.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\br_if.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -79,14 +79,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\br_table.baseline</baseline>
+      <baseline>baselines/br_table.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\br_table.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\br_table.baseline</baseline>
+      <baseline>baselines/br_table.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\br_table.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -94,14 +94,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\break-drop.baseline</baseline>
+      <baseline>baselines/break-drop.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\break-drop.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\break-drop.baseline</baseline>
+      <baseline>baselines/break-drop.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\break-drop.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -109,14 +109,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\call.baseline</baseline>
+      <baseline>baselines/call.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\call.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\call.baseline</baseline>
+      <baseline>baselines/call.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\call.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -124,14 +124,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\call_indirect.baseline</baseline>
+      <baseline>baselines/call_indirect.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\call_indirect.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\call_indirect.baseline</baseline>
+      <baseline>baselines/call_indirect.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\call_indirect.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -139,14 +139,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\chakra_i64.baseline</baseline>
+      <baseline>baselines/chakra_i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\chakra_i64.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\chakra_i64.baseline</baseline>
+      <baseline>baselines/chakra_i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\chakra_i64.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -154,14 +154,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\comments.baseline</baseline>
+      <baseline>baselines/comments.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\comments.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\comments.baseline</baseline>
+      <baseline>baselines/comments.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\comments.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -169,14 +169,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\conversions.baseline</baseline>
+      <baseline>baselines/conversions.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\conversions.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\conversions.baseline</baseline>
+      <baseline>baselines/conversions.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\conversions.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -199,14 +199,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\endianness.baseline</baseline>
+      <baseline>baselines/endianness.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\endianness.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\endianness.baseline</baseline>
+      <baseline>baselines/endianness.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\endianness.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -214,14 +214,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\exports.baseline</baseline>
+      <baseline>baselines/exports.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\exports.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\exports.baseline</baseline>
+      <baseline>baselines/exports.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\exports.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -229,14 +229,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\f32.baseline</baseline>
+      <baseline>baselines/f32.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\f32.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\f32.baseline</baseline>
+      <baseline>baselines/f32.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\f32.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -244,14 +244,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\f32_cmp.baseline</baseline>
+      <baseline>baselines/f32_cmp.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\f32_cmp.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\f32_cmp.baseline</baseline>
+      <baseline>baselines/f32_cmp.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\f32_cmp.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -259,14 +259,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\f64.baseline</baseline>
+      <baseline>baselines/f64.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\f64.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\f64.baseline</baseline>
+      <baseline>baselines/f64.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\f64.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -274,14 +274,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\f64_cmp.baseline</baseline>
+      <baseline>baselines/f64_cmp.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\f64_cmp.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\f64_cmp.baseline</baseline>
+      <baseline>baselines/f64_cmp.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\f64_cmp.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -289,14 +289,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\fac.baseline</baseline>
+      <baseline>baselines/fac.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\fac.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\fac.baseline</baseline>
+      <baseline>baselines/fac.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\fac.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -304,14 +304,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\float_exprs.baseline</baseline>
+      <baseline>baselines/float_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\float_exprs.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\float_exprs.baseline</baseline>
+      <baseline>baselines/float_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\float_exprs.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -319,14 +319,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\float_literals.baseline</baseline>
+      <baseline>baselines/float_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\float_literals.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\float_literals.baseline</baseline>
+      <baseline>baselines/float_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\float_literals.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -334,14 +334,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\float_memory.baseline</baseline>
+      <baseline>baselines/float_memory.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\float_memory.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\float_memory.baseline</baseline>
+      <baseline>baselines/float_memory.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\float_memory.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -349,14 +349,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\float_misc.baseline</baseline>
+      <baseline>baselines/float_misc.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\float_misc.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\float_misc.baseline</baseline>
+      <baseline>baselines/float_misc.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\float_misc.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -364,14 +364,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\forward.baseline</baseline>
+      <baseline>baselines/forward.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\forward.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\forward.baseline</baseline>
+      <baseline>baselines/forward.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\forward.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -379,14 +379,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\func.baseline</baseline>
+      <baseline>baselines/func.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\func.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\func.baseline</baseline>
+      <baseline>baselines/func.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\func.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -394,14 +394,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\func_ptrs.baseline</baseline>
+      <baseline>baselines/func_ptrs.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\func_ptrs.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\func_ptrs.baseline</baseline>
+      <baseline>baselines/func_ptrs.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\func_ptrs.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -409,14 +409,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\get_local.baseline</baseline>
+      <baseline>baselines/get_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\get_local.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\get_local.baseline</baseline>
+      <baseline>baselines/get_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\get_local.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -424,14 +424,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\globals.baseline</baseline>
+      <baseline>baselines/globals.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\globals.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\globals.baseline</baseline>
+      <baseline>baselines/globals.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\globals.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -439,14 +439,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\i32.baseline</baseline>
+      <baseline>baselines/i32.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\i32.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\i32.baseline</baseline>
+      <baseline>baselines/i32.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\i32.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -454,14 +454,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\i64.baseline</baseline>
+      <baseline>baselines/i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\i64.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\i64.baseline</baseline>
+      <baseline>baselines/i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\i64.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -469,14 +469,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\imports.baseline</baseline>
+      <baseline>baselines/imports.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\imports.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\imports.baseline</baseline>
+      <baseline>baselines/imports.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\imports.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -484,14 +484,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\int_exprs.baseline</baseline>
+      <baseline>baselines/int_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\int_exprs.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\int_exprs.baseline</baseline>
+      <baseline>baselines/int_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\int_exprs.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -499,14 +499,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\int_literals.baseline</baseline>
+      <baseline>baselines/int_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\int_literals.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\int_literals.baseline</baseline>
+      <baseline>baselines/int_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\int_literals.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -514,14 +514,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\labels.baseline</baseline>
+      <baseline>baselines/labels.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\labels.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\labels.baseline</baseline>
+      <baseline>baselines/labels.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\labels.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -529,14 +529,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\left-to-right.baseline</baseline>
+      <baseline>baselines/left-to-right.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\left-to-right.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\left-to-right.baseline</baseline>
+      <baseline>baselines/left-to-right.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\left-to-right.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -544,14 +544,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\linking.baseline</baseline>
+      <baseline>baselines/linking.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\linking.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\linking.baseline</baseline>
+      <baseline>baselines/linking.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\linking.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -559,14 +559,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\loop.baseline</baseline>
+      <baseline>baselines/loop.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\loop.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\loop.baseline</baseline>
+      <baseline>baselines/loop.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\loop.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -574,14 +574,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\memory.baseline</baseline>
+      <baseline>baselines/memory.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\memory.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\memory.baseline</baseline>
+      <baseline>baselines/memory.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\memory.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -589,14 +589,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\memory_redundancy.baseline</baseline>
+      <baseline>baselines/memory_redundancy.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\memory_redundancy.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\memory_redundancy.baseline</baseline>
+      <baseline>baselines/memory_redundancy.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\memory_redundancy.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -604,14 +604,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\memory_trap.baseline</baseline>
+      <baseline>baselines/memory_trap.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\memory_trap.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\memory_trap.baseline</baseline>
+      <baseline>baselines/memory_trap.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\memory_trap.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -619,14 +619,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\names.baseline</baseline>
+      <baseline>baselines/names.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\names.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\names.baseline</baseline>
+      <baseline>baselines/names.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\names.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -634,14 +634,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\nop.baseline</baseline>
+      <baseline>baselines/nop.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\nop.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\nop.baseline</baseline>
+      <baseline>baselines/nop.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\nop.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -649,14 +649,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\resizing.baseline</baseline>
+      <baseline>baselines/resizing.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\resizing.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\resizing.baseline</baseline>
+      <baseline>baselines/resizing.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\resizing.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -664,14 +664,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\return.baseline</baseline>
+      <baseline>baselines/return.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\return.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\return.baseline</baseline>
+      <baseline>baselines/return.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\return.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -679,14 +679,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\select.baseline</baseline>
+      <baseline>baselines/select.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\select.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\select.baseline</baseline>
+      <baseline>baselines/select.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\select.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -694,14 +694,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\set_local.baseline</baseline>
+      <baseline>baselines/set_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\set_local.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\set_local.baseline</baseline>
+      <baseline>baselines/set_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\set_local.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -709,14 +709,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\skip-stack-guard-page.baseline</baseline>
+      <baseline>baselines/skip-stack-guard-page.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\skip-stack-guard-page.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\skip-stack-guard-page.baseline</baseline>
+      <baseline>baselines/skip-stack-guard-page.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\skip-stack-guard-page.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -724,14 +724,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\stack.baseline</baseline>
+      <baseline>baselines/stack.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\stack.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\stack.baseline</baseline>
+      <baseline>baselines/stack.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\stack.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -739,14 +739,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\start.baseline</baseline>
+      <baseline>baselines/start.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\start.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\start.baseline</baseline>
+      <baseline>baselines/start.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\start.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -754,14 +754,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\store_retval.baseline</baseline>
+      <baseline>baselines/store_retval.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\store_retval.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\store_retval.baseline</baseline>
+      <baseline>baselines/store_retval.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\store_retval.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -769,14 +769,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\switch.baseline</baseline>
+      <baseline>baselines/switch.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\switch.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\switch.baseline</baseline>
+      <baseline>baselines/switch.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\switch.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -784,14 +784,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\tee_local.baseline</baseline>
+      <baseline>baselines/tee_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\tee_local.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\tee_local.baseline</baseline>
+      <baseline>baselines/tee_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\tee_local.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -799,14 +799,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\traps.baseline</baseline>
+      <baseline>baselines/traps.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\traps.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\traps.baseline</baseline>
+      <baseline>baselines/traps.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\traps.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -814,14 +814,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\typecheck.baseline</baseline>
+      <baseline>baselines/typecheck.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\typecheck.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\typecheck.baseline</baseline>
+      <baseline>baselines/typecheck.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\typecheck.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -829,14 +829,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\unreachable.baseline</baseline>
+      <baseline>baselines/unreachable.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\unreachable.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\unreachable.baseline</baseline>
+      <baseline>baselines/unreachable.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\unreachable.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -844,14 +844,14 @@
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\unwind.baseline</baseline>
+      <baseline>baselines/unwind.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\unwind.json -endargs</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>baselines\unwind.baseline</baseline>
+      <baseline>baselines/unwind.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\unwind.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
