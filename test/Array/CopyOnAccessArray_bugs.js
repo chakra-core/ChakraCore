@@ -119,5 +119,27 @@ var tests = [
             assert.areEqual('1,0,0,0,0', q.toString(), 'Setting array element through Proxy');
         }
     },
+    {
+        name: "Reflect.defineProperty",
+        body: function ()
+        {
+            var b = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+            Reflect.defineProperty(b, "length", {value: 0});
+            assert.areEqual(b.length, 0, "Setting length property to 0");
+        }
+    },
+    {
+        name: "Array.of",
+        body: function ()
+        {
+            var target = [1,2,3,4,5];
+            function constructor()
+            {
+                return target;
+            }
+            var a = Array.of.call(constructor);
+            assert.areEqual(a, [], "Array.of.call with custom constructor");
+        }
+    }
 ];
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
