@@ -6612,73 +6612,36 @@ Lowerer::GenerateScriptFunctionInit(IR::RegOpnd * regOpnd, IR::Opnd * vtableAddr
     Js::FunctionInfoPtrPtr nestedInfo, IR::Opnd * envOpnd, IR::Instr * insertBeforeInstr, bool isZeroed)
 {
     Func * func = this->m_func;
-    IR::Opnd * functionProxyOpnd;
-    IR::Opnd * functionInfoOpnd = nullptr;
-    IR::Opnd * typeOpnd = nullptr;
-    bool doCheckTypeOpnd = true;
-    if (m_func->IsOOPJIT() || !CONFIG_FLAG(OOPJITMissingOpts) || (*nestedInfo)->IsDeferred())
-    {
-        functionInfoOpnd = IR::RegOpnd::New(TyMachPtr, func);
-        InsertMove(functionInfoOpnd, IR::MemRefOpnd::New(nestedInfo, TyMachPtr, func), insertBeforeInstr);
-        functionProxyOpnd = IR::RegOpnd::New(TyMachPtr, func);
-        InsertMove(functionProxyOpnd, IR::IndirOpnd::New(functionInfoOpnd->AsRegOpnd(), Js::FunctionInfo::GetOffsetOfFunctionProxy(), TyMachPtr, func), insertBeforeInstr);
-        typeOpnd = IR::RegOpnd::New(TyMachPtr, func);
-        InsertMove(typeOpnd, IR::IndirOpnd::New(functionProxyOpnd->AsRegOpnd(), Js::FunctionProxy::GetOffsetOfDeferredPrototypeType(),
-            TyMachPtr, func), insertBeforeInstr);
-    }
-    else
-    {
-        Js::FunctionBody * functionBody = (*nestedInfo)->GetFunctionBody();
-        functionProxyOpnd = CreateFunctionBodyOpnd(functionBody);
-        Js::ScriptFunctionType * type = functionBody->GetDeferredPrototypeType();
-        if (type != nullptr)
-        {
-            typeOpnd = IR::AddrOpnd::New(type, IR::AddrOpndKindDynamicType, func);
-            doCheckTypeOpnd = false;
-        }
-        else
-        {
-            typeOpnd = IR::RegOpnd::New(TyMachPtr, func);
-            InsertMove(typeOpnd,
-                IR::MemRefOpnd::New(((byte *)functionBody) + Js::FunctionProxy::GetOffsetOfDeferredPrototypeType(), TyMachPtr, func),
-                insertBeforeInstr);
-        }
-    }
 
-    if (doCheckTypeOpnd)
-    {
-        IR::LabelInstr * labelHelper = IR::LabelInstr::New(Js::OpCode::Label, func, true);
-        InsertTestBranch(typeOpnd, typeOpnd, Js::OpCode::BrEq_A, labelHelper, insertBeforeInstr);
-        IR::LabelInstr * labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
-        InsertBranch(Js::OpCode::Br, labelDone, insertBeforeInstr);
-        insertBeforeInstr->InsertBefore(labelHelper);
-        m_lowererMD.LoadHelperArgument(insertBeforeInstr, functionProxyOpnd);
+    IR::Opnd * functionInfoOpnd = IR::RegOpnd::New(TyMachPtr, func);
+    InsertMove(functionInfoOpnd, IR::MemRefOpnd::New(nestedInfo, TyMachPtr, func), insertBeforeInstr);
+    IR::Opnd * functionProxyOpnd = IR::RegOpnd::New(TyMachPtr, func);
+    InsertMove(functionProxyOpnd, IR::IndirOpnd::New(functionInfoOpnd->AsRegOpnd(), Js::FunctionInfo::GetOffsetOfFunctionProxy(), TyMachPtr, func), insertBeforeInstr);
+    IR::Opnd * typeOpnd = IR::RegOpnd::New(TyMachPtr, func);
+    InsertMove(typeOpnd, IR::IndirOpnd::New(functionProxyOpnd->AsRegOpnd(), Js::FunctionProxy::GetOffsetOfDeferredPrototypeType(),
+        TyMachPtr, func), insertBeforeInstr);
+    
+    IR::LabelInstr * labelHelper = IR::LabelInstr::New(Js::OpCode::Label, func, true);
+    InsertTestBranch(typeOpnd, typeOpnd, Js::OpCode::BrEq_A, labelHelper, insertBeforeInstr);
+    IR::LabelInstr * labelDone = IR::LabelInstr::New(Js::OpCode::Label, func, false);
+    InsertBranch(Js::OpCode::Br, labelDone, insertBeforeInstr);
+    insertBeforeInstr->InsertBefore(labelHelper);
+    m_lowererMD.LoadHelperArgument(insertBeforeInstr, functionProxyOpnd);
 
-        IR::Instr * callHelperInstr = IR::Instr::New(Js::OpCode::Call, typeOpnd,
-            IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperEnsureFunctionProxyDeferredPrototypeType, func), func);
-        insertBeforeInstr->InsertBefore(callHelperInstr);
-        m_lowererMD.LowerCall(callHelperInstr, 0);
-        insertBeforeInstr->InsertBefore(labelDone);
-    }
-
+    IR::Instr * callHelperInstr = IR::Instr::New(Js::OpCode::Call, typeOpnd,
+        IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperEnsureFunctionProxyDeferredPrototypeType, func), func);
+    insertBeforeInstr->InsertBefore(callHelperInstr);
+    m_lowererMD.LowerCall(callHelperInstr, 0);
+    insertBeforeInstr->InsertBefore(labelDone);
+    
     GenerateMemInit(regOpnd, 0, vtableAddressOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfType(), typeOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInitNull(regOpnd, Js::ScriptFunction::GetOffsetOfAuxSlots(), insertBeforeInstr, isZeroed);
     GenerateMemInitNull(regOpnd, Js::ScriptFunction::GetOffsetOfObjectArray(), insertBeforeInstr, isZeroed);
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfConstructorCache(),
-        LoadLibraryValueOpnd(insertBeforeInstr, LibraryValue::ValueConstructorCacheDefaultInstance),
+    LoadLibraryValueOpnd(insertBeforeInstr, LibraryValue::ValueConstructorCacheDefaultInstance),
         insertBeforeInstr, isZeroed);
-    if (!functionInfoOpnd)
-    {
-        if (functionProxyOpnd->IsRegOpnd())
-        {
-            functionInfoOpnd = IR::IndirOpnd::New(functionProxyOpnd->AsRegOpnd(), Js::FunctionProxy::GetOffsetOfFunctionInfo(), TyMachReg, func);
-        }
-        else
-        {
-            functionInfoOpnd = IR::MemRefOpnd::New((BYTE*)functionProxyOpnd->AsAddrOpnd()->m_address + Js::FunctionProxy::GetOffsetOfFunctionInfo(), TyMachReg, func);
-        }
-    }
+    
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfFunctionInfo(), functionInfoOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInit(regOpnd, Js::ScriptFunction::GetOffsetOfEnvironment(), envOpnd, insertBeforeInstr, isZeroed);
     GenerateMemInitNull(regOpnd, Js::ScriptFunction::GetOffsetOfCachedScopeObj(), insertBeforeInstr, isZeroed);

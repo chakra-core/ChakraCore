@@ -20,11 +20,9 @@ add_library (Chakra.Common.Core STATIC
     SysInfo.cpp
 )
 
+target_link_libraries(Chakra.Common.Core
+  ${CC_LTO_ENABLED}
+  )
+
 target_include_directories (
     Chakra.Common.Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-if(CC_TARGET_OS_ANDROID)
-    add_custom_command(TARGET Chakra.Common.Core POST_BUILD
-        COMMAND ${ANDROID_TOOLCHAIN_DIR}/bin/ranlib ${CMAKE_CURRENT_BINARY_DIR}/libChakra.Common.Core.a
-    )
-endif()

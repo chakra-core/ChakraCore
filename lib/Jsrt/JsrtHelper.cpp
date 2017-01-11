@@ -5,7 +5,7 @@
 
 #include "JsrtPch.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__ANDROID__)
 #include <pthread.h>
 #endif
 
@@ -121,7 +121,7 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
 #endif
 
 #ifndef _WIN32
-        PAL_InitializeChakraCore(0, NULL);
+        PAL_InitializeChakraCore();
 #endif
 
         HMODULE mod = GetModuleHandleW(NULL);

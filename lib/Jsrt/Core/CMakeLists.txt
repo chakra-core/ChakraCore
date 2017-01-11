@@ -1,5 +1,6 @@
 add_library (Chakra.Jsrt.Core OBJECT
     JsrtContextCore.cpp
+    JsrtCore.cpp
     )
 
 target_include_directories (

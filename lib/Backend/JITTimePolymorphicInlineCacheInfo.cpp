@@ -36,6 +36,7 @@ JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInf
         while (iter.Next())
         {
             Js::PolymorphicInlineCacheInfo * inlineeInfo = iter.Data();
+            __analysis_assume(i < inlineeList->Count());
             JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(recycler, inlineeInfo, &inlineeInfoIDL[i]);
             ++i;
         }
