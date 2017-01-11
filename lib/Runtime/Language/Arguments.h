@@ -105,9 +105,6 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 
 namespace Js
 {
-    // TODO: (leish)(swb) this is not always stack allocated now
-    // with ES6 Generator, this can be allocated with recycler
-    // need to find a good way to set write barrier, or big refactor.
     struct Arguments
     {
     public:
@@ -127,8 +124,11 @@ namespace Js
             AssertMsg((idxArg < (int)Info.Count) && (idxArg >= 0), "Ensure a valid argument index");
             return Values[idxArg];
         }
-        CallInfo Info;
-        Var* Values;
+
+        // swb: Arguments is mostly used on stack and does not need write barrier.
+        // It is recycler allocated with ES6 generators. We handle that specially.
+        FieldNoBarrier(CallInfo) Info;
+        FieldNoBarrier(Var*) Values;
 
         static uint32 GetCallInfoOffset() { return offsetof(Arguments, Info); }
         static uint32 GetValuesOffset() { return offsetof(Arguments, Values); }
