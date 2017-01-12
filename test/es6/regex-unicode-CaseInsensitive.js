@@ -110,4 +110,30 @@ assertMatches(/\u{a69a}/iu, 0xa69b, '\u{a69b}');
 assertMatches(/\u{a69b}/iu, 0xa69a, '\u{a69a}');
 assertMatches(/\u{a69b}/iu, 0xa69b, '\u{a69b}');
 
+// New Cherokee case-mapped pairs
+assertMatches(/\u{13f0}/iu, 0x13f0, '\u{13f0}');
+assertMatches(/\u{13f0}/iu, 0x13f8, '\u{13f8}');
+assertMatches(/\u{13f8}/iu, 0x13f0, '\u{13f0}');
+assertMatches(/\u{13f8}/iu, 0x13f8, '\u{13f8}');
+assertMatches(/\u{13f1}/iu, 0x13f1, '\u{13f1}');
+assertMatches(/\u{13f1}/iu, 0x13f9, '\u{13f9}');
+assertMatches(/\u{13f9}/iu, 0x13f1, '\u{13f1}');
+assertMatches(/\u{13f9}/iu, 0x13f9, '\u{13f9}');
+assertMatches(/\u{13f2}/iu, 0x13f2, '\u{13f2}');
+assertMatches(/\u{13f2}/iu, 0x13fa, '\u{13fa}');
+assertMatches(/\u{13fa}/iu, 0x13f2, '\u{13f2}');
+assertMatches(/\u{13fa}/iu, 0x13fa, '\u{13fa}');
+assertMatches(/\u{13f3}/iu, 0x13f3, '\u{13f3}');
+assertMatches(/\u{13f3}/iu, 0x13fb, '\u{13fb}');
+assertMatches(/\u{13fb}/iu, 0x13f3, '\u{13f3}');
+assertMatches(/\u{13fb}/iu, 0x13fb, '\u{13fb}');
+assertMatches(/\u{13f4}/iu, 0x13f4, '\u{13f4}');
+assertMatches(/\u{13f4}/iu, 0x13fc, '\u{13fc}');
+assertMatches(/\u{13fc}/iu, 0x13f4, '\u{13f4}');
+assertMatches(/\u{13fc}/iu, 0x13fc, '\u{13fc}');
+assertMatches(/\u{13f5}/iu, 0x13f5, '\u{13f5}');
+assertMatches(/\u{13f5}/iu, 0x13fd, '\u{13fd}');
+assertMatches(/\u{13fd}/iu, 0x13f5, '\u{13f5}');
+assertMatches(/\u{13fd}/iu, 0x13fd, '\u{13fd}');
+
 console.log("PASS");
