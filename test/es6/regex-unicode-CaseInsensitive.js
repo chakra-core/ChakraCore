@@ -17,6 +17,8 @@ function assertDoesNotMatch(re, codepoint, str) {
     }
 }
 
+// TODO: All of these tests should pass even without the Unicode flag. See Microsoft/ChakraCore#517
+
 //
 // Detect regressions in the CaseInsensitive table
 //
