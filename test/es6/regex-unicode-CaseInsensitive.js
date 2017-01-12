@@ -22,16 +22,16 @@ function assertDoesNotMatch(re, codepoint, str) {
 //
 
 // 01BA != 01BB under /i.
-assertDoesNotMatch(/\u{01ba}/iu, 0x01bb, "\u01bb");
-assertDoesNotMatch(/\u{01bb}/iu, 0x01ba, "\u01ba");
+assertDoesNotMatch(/\u{01ba}/iu, 0x01bb, "\u{01bb}");
+assertDoesNotMatch(/\u{01bb}/iu, 0x01ba, "\u{01ba}");
 
 // 01F0 doesn't match anything
-assertDoesNotMatch(/\u{01f0}/iu, 0x01f1, "\u01f1");
-assertDoesNotMatch(/\u{01f1}/iu, 0x01f0, "\u01f0");
+assertDoesNotMatch(/\u{01f0}/iu, 0x01f1, "\u{01f1}");
+assertDoesNotMatch(/\u{01f1}/iu, 0x01f0, "\u{01f0}");
 
 // 01F4-5 match (G with ACUTE)
-assertMatches(/\u{01f4}/iu, 0x01f5, "\u01f5");
-assertMatches(/\u{01f5}/iu, 0x01f4, "\u01f4");
+assertMatches(/\u{01f4}/iu, 0x01f5, "\u{01f5}");
+assertMatches(/\u{01f5}/iu, 0x01f4, "\u{01f4}");
 
 //
 // Latin ligature triples DZ WITH CARON, LJ, NJ (01C4-01CC); DZ (01F1-3)
