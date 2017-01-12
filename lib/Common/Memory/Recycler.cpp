@@ -463,12 +463,12 @@ Recycler::~Recycler()
 #if ENABLE_CONCURRENT_GC
     Assert(!this->isAborting);
 #endif
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     if (recyclerList == this)
     {
         recyclerList = this->next;
     }
-    else
+    else if(recyclerList)
     {
         Recycler* list = recyclerList;
         while (list->next != this)
@@ -734,7 +734,7 @@ Recycler::RootRelease(void* obj, uint *count)
     // another GC if there is an exhaustive GC going on.
     this->CollectNow<CollectExhaustiveCandidate>();
 }
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 Recycler* Recycler::recyclerList = nullptr;
 #endif
 
@@ -921,7 +921,7 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
 #else
     Assert(!needWriteWatch);
 #endif
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     this->next = recyclerList;
     recyclerList = this;
 #endif
@@ -8555,7 +8555,7 @@ Recycler::UnRegisterPendingWriteBarrierBlock(void* address)
 }
 #endif
 
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 void 
 Recycler::WBSetBit(char* addr)
 {

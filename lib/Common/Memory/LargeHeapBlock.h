@@ -303,7 +303,7 @@ public:
     void ** GetTrackerDataArray();
 #endif
 
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 private:
     BVSparse<HeapAllocator> wbVerifyBits;
 public:

@@ -101,7 +101,7 @@ Lowerer::Lower()
 
     this->LowerRange(m_func->m_headInstr, m_func->m_tailInstr, defaultDoFastPath, loopFastPath);
 
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     // TODO: (leish)(swb) implement for arm
 #if defined(_M_IX86) || defined(_M_AMD64)
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
