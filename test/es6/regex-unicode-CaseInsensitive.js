@@ -138,4 +138,26 @@ assertMatches(/\u{13f5}/iu, 0x13fd, '\u{13fd}');
 assertMatches(/\u{13fd}/iu, 0x13f5, '\u{13f5}');
 assertMatches(/\u{13fd}/iu, 0x13fd, '\u{13fd}');
 
+// Latin extensions added in Unicode 7.0
+assertMatches(/\u{a796}/iu, 0xa796, '\u{a796}');
+assertMatches(/\u{a796}/iu, 0xa797, '\u{a797}');
+assertMatches(/\u{a797}/iu, 0xa796, '\u{a796}');
+assertMatches(/\u{a797}/iu, 0xa797, '\u{a797}');
+assertMatches(/\u{a798}/iu, 0xa798, '\u{a798}');
+assertMatches(/\u{a798}/iu, 0xa799, '\u{a799}');
+assertMatches(/\u{a799}/iu, 0xa798, '\u{a798}');
+assertMatches(/\u{a799}/iu, 0xa799, '\u{a799}');
+assertMatches(/\u{a79a}/iu, 0xa79a, '\u{a79a}');
+assertMatches(/\u{a79a}/iu, 0xa79b, '\u{a79b}');
+assertMatches(/\u{a79b}/iu, 0xa79a, '\u{a79a}');
+assertMatches(/\u{a79b}/iu, 0xa79b, '\u{a79b}');
+assertMatches(/\u{a79c}/iu, 0xa79c, '\u{a79c}');
+assertMatches(/\u{a79c}/iu, 0xa79d, '\u{a79d}');
+assertMatches(/\u{a79d}/iu, 0xa79c, '\u{a79c}');
+assertMatches(/\u{a79d}/iu, 0xa79d, '\u{a79d}');
+assertMatches(/\u{a79e}/iu, 0xa79e, '\u{a79e}');
+assertMatches(/\u{a79e}/iu, 0xa79f, '\u{a79f}');
+assertMatches(/\u{a79f}/iu, 0xa79e, '\u{a79e}');
+assertMatches(/\u{a79f}/iu, 0xa79f, '\u{a79f}');
+
 console.log("PASS");
