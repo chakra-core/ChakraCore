@@ -18,7 +18,14 @@ class B extends A {
     }
 }
 let b = new B();
-if (count !== 3) {
+class async extends A {
+    constructor() {
+        super();
+        let Q = async A => { A };
+    }
+}
+let a = new async();
+if (count !== 4) {
     WScript.Echo('fail');
 }
 

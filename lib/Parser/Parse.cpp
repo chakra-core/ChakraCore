@@ -2863,6 +2863,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     _Inout_opt_ charcount_t *plastRParen /*= nullptr*/)
 {
     ParseNodePtr pnode = nullptr;
+    PidRefStack *savedTopAsyncRef = nullptr;
     charcount_t ichMin = 0;
     size_t iecpMin = 0;
     size_t iuMin;
@@ -2914,6 +2915,13 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
             {
                 isLambdaExpr = true;
                 goto LFunction;
+            }
+            else if (m_token.tk == tkLParen)
+            {
+                // This is potentially an async arrow function. Save the state of the async references
+                // in case it needs to be restored. (Note that the case of a single parameter with no ()'s
+                // is detected upstream and need not be handled here.)
+                savedTopAsyncRef = pid->GetTopRef();
             }
         }
 
@@ -3268,6 +3276,18 @@ LFunction :
     }
 
     pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, isAsyncExpr, &fCanAssign, &term, pfIsDotOrIndex);
+
+    if (savedTopAsyncRef != nullptr &&
+        this->m_token.tk == tkDArrow)
+    {
+        // This is an async arrow function; we're going to back up and reparse it.
+        // Make sure we don't leave behind a bogus reference to the 'async' identifier.
+        for (IdentPtr pid = wellKnownPropertyPids.async; pid->GetTopRef() != savedTopAsyncRef;)
+        {
+            Assert(pid->GetTopRef() != nullptr);
+            pid->RemovePrevPidRef(nullptr);
+        }
+    }
 
     // Pass back identifier if requested
     if (pToken && term.tk == tkID)
