@@ -192,6 +192,11 @@ Debugger::Debugger(JsRuntimeHandle runtime)
 
 Debugger::~Debugger()
 {
+    if (this->m_context != JS_INVALID_REFERENCE)
+    {
+        ChakraRTInterface::JsRelease(this->m_context, nullptr);
+        this->m_context = JS_INVALID_REFERENCE;
+    }
     this->m_runtime = JS_INVALID_RUNTIME_HANDLE;
 }
 
@@ -225,7 +230,9 @@ bool Debugger::Initialize()
     // Create a new context and run dbgcontroller.js in that context
     // setup dbgcontroller.js callbacks
 
+    Assert(this->m_context == JS_INVALID_REFERENCE);
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateContext(this->m_runtime, &this->m_context));
+    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsAddRef(this->m_context, nullptr)); // Pin context
 
     AutoRestoreContext autoRestoreContext(this->m_context);
 
