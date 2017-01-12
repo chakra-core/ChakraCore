@@ -3930,7 +3930,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         }
         GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeIntArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex());
-        headOpnd = GenerateArrayAlloc<Js::JavascriptNativeIntArray>(instr, &size, arrayInfo, &isZeroed);
+        headOpnd = GenerateArrayLiteralsAlloc<Js::JavascriptNativeIntArray>(instr, &size, arrayInfo, &isZeroed);
         const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
 
         GenerateMemInit(dstOpnd, Js::JavascriptNativeIntArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func), instr, isZeroed);
@@ -3948,7 +3948,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
         }
         GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeFloatArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex());
-        headOpnd = GenerateArrayAlloc<Js::JavascriptNativeFloatArray>(instr, &size, arrayInfo, &isZeroed);
+        headOpnd = GenerateArrayLiteralsAlloc<Js::JavascriptNativeFloatArray>(instr, &size, arrayInfo, &isZeroed);
         const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
 
         GenerateMemInit(dstOpnd, Js::JavascriptNativeFloatArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func), instr, isZeroed);
@@ -3971,7 +3971,7 @@ Lowerer::GenerateProfiledNewScArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteI
             return;
         }
         uint const offsetStart = sizeof(Js::SparseArraySegmentBase);
-        headOpnd = GenerateArrayAlloc<Js::JavascriptArray>(instr, &size, arrayInfo, &isZeroed);
+        headOpnd = GenerateArrayLiteralsAlloc<Js::JavascriptArray>(instr, &size, arrayInfo, &isZeroed);
         const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
         for (; i < size; i++)
         {
@@ -4026,7 +4026,22 @@ IR::JnHelperMethod GetArrayAllocMemHelper<Js::JavascriptNativeFloatArray>()
 
 template <typename ArrayType>
 IR::RegOpnd *
-Lowerer::GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool isArrayObjCtor /* = false */)
+Lowerer::GenerateArrayLiteralsAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed)
+{
+    return GenerateArrayAllocHelper<ArrayType>(instr, psize, arrayInfo, pIsHeadSegmentZeroed, false /* isArrayObjCtor */, false /* isNoArgs */);
+}
+
+template <typename ArrayType>
+IR::RegOpnd *
+Lowerer::GenerateArrayObjectsAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool isNoArgs)
+{
+    return GenerateArrayAllocHelper<ArrayType>(instr, psize, arrayInfo, pIsHeadSegmentZeroed, true /* isArrayObjCtor */, isNoArgs);
+}
+
+
+template <typename ArrayType>
+IR::RegOpnd *
+Lowerer::GenerateArrayAllocHelper(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteInfo * arrayInfo, bool * pIsHeadSegmentZeroed, bool isArrayObjCtor, bool isNoArgs)
 {
     Func * func = this->m_func;
     IR::RegOpnd * dstOpnd = instr->GetDst()->AsRegOpnd();
@@ -4045,7 +4060,8 @@ Lowerer::GenerateArrayAlloc(IR::Instr *instr, uint32 * psize, Js::ArrayCallSiteI
     {
         if (isArrayObjCtor)
         {
-            arrayAllocSize = Js::JavascriptArray::DetermineAllocationSizeForArrayObjects<ArrayType, 0>(count, nullptr, &alignedHeadSegmentSize);
+            uint32 allocCount = isNoArgs ? Js::SparseArraySegmentBase::SMALL_CHUNK_SIZE : count;
+            arrayAllocSize = Js::JavascriptArray::DetermineAllocationSizeForArrayObjects<ArrayType, 0>(allocCount, nullptr, &alignedHeadSegmentSize);
         }
         else
         {
@@ -4234,7 +4250,7 @@ Lowerer::GenerateArrayAlloc(IR::Instr *instr, IR::Opnd * arrayLenOpnd, Js::Array
 
 
 void
-Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length, IR::LabelInstr* labelDone)
+Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSiteInfo * arrayInfo, intptr_t arrayInfoAddr, intptr_t weakFuncRef, uint32 length, IR::LabelInstr* labelDone, bool isNoArgs)
 {
     if (PHASE_OFF(Js::ArrayCtorFastPathPhase, m_func))
     {
@@ -4252,7 +4268,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     {
         GenerateArrayInfoIsNativeIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeIntArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex());
-        headOpnd = GenerateArrayAlloc<Js::JavascriptNativeIntArray>(instr, &size, arrayInfo, &isZeroed, true);
+        headOpnd = GenerateArrayObjectsAlloc<Js::JavascriptNativeIntArray>(instr, &size, arrayInfo, &isZeroed, isNoArgs);
 
         GenerateMemInit(dstOpnd, Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex(), IR::IntConstOpnd::New(profileId, TyUint16, func, true), instr, isZeroed);
         GenerateMemInit(dstOpnd, Js::JavascriptNativeIntArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func), instr, isZeroed);
@@ -4266,7 +4282,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     {
         GenerateArrayInfoIsNativeFloatAndNotIntArrayTest(instr, arrayInfo, arrayInfoAddr, helperLabel);
         Assert(Js::JavascriptNativeFloatArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex());
-        headOpnd = GenerateArrayAlloc<Js::JavascriptNativeFloatArray>(instr, &size, arrayInfo, &isZeroed, true);
+        headOpnd = GenerateArrayObjectsAlloc<Js::JavascriptNativeFloatArray>(instr, &size, arrayInfo, &isZeroed, isNoArgs);
 
         GenerateMemInit(dstOpnd, Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex(), IR::IntConstOpnd::New(profileId, TyUint16, func, true), instr, isZeroed);
         GenerateMemInit(dstOpnd, Js::JavascriptNativeFloatArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func), instr, isZeroed);
@@ -4285,7 +4301,7 @@ Lowerer::GenerateProfiledNewScObjArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     else
     {
         uint const offsetStart = sizeof(Js::SparseArraySegmentBase);
-        headOpnd = GenerateArrayAlloc<Js::JavascriptArray>(instr, &size, arrayInfo, &isZeroed, true);
+        headOpnd = GenerateArrayObjectsAlloc<Js::JavascriptArray>(instr, &size, arrayInfo, &isZeroed, isNoArgs);
         for (uint i = 0; i < size; i++)
         {
             GenerateMemInit(
@@ -4436,7 +4452,7 @@ Lowerer::GenerateProfiledNewScIntArrayFastPath(IR::Instr *instr, Js::ArrayCallSi
     bool isHeadSegmentZeroed;
     IR::RegOpnd * dstOpnd = instr->GetDst()->AsRegOpnd();
     Assert(Js::JavascriptNativeIntArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeIntArray::GetOffsetOfArrayCallSiteIndex());
-    IR::RegOpnd * headOpnd = GenerateArrayAlloc<Js::JavascriptNativeIntArray>(instr, &size, arrayInfo, &isHeadSegmentZeroed);
+    IR::RegOpnd * headOpnd = GenerateArrayLiteralsAlloc<Js::JavascriptNativeIntArray>(instr, &size, arrayInfo, &isHeadSegmentZeroed);
     const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
 
     GenerateMemInit(dstOpnd, Js::JavascriptNativeIntArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicMisc, m_func), instr, isHeadSegmentZeroed);
@@ -4508,7 +4524,7 @@ Lowerer::GenerateProfiledNewScFloatArrayFastPath(IR::Instr *instr, Js::ArrayCall
     bool isHeadSegmentZeroed;
     IR::RegOpnd * dstOpnd = instr->GetDst()->AsRegOpnd();
     Assert(Js::JavascriptNativeFloatArray::GetOffsetOfArrayFlags() + sizeof(uint16) == Js::JavascriptNativeFloatArray::GetOffsetOfArrayCallSiteIndex());
-    IR::RegOpnd * headOpnd = GenerateArrayAlloc<Js::JavascriptNativeFloatArray>(instr, &size, arrayInfo, &isHeadSegmentZeroed);
+    IR::RegOpnd * headOpnd = GenerateArrayLiteralsAlloc<Js::JavascriptNativeFloatArray>(instr, &size, arrayInfo, &isHeadSegmentZeroed);
     const IR::AutoReuseOpnd autoReuseHeadOpnd(headOpnd, func);
 
     GenerateMemInit(dstOpnd, Js::JavascriptNativeFloatArray::GetOffsetOfWeakFuncRef(), IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, m_func), instr, isHeadSegmentZeroed);
@@ -5507,7 +5523,7 @@ Lowerer::LowerNewScObjArray(IR::Instr *newObjInstr)
                 int32 length = linkSym->GetIntConstValue();
                 if (length >= 0 && length <= upperBoundValue)
                 {
-                    GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, (uint32)length, labelDone);
+                    GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, (uint32)length, labelDone, false);
                 }
                 else
                 {
@@ -5625,7 +5641,7 @@ Lowerer::LowerNewScObjArrayNoArg(IR::Instr *newObjInstr)
     }
 
     IR::LabelInstr *labelDone = IR::LabelInstr::New(Js::OpCode::Label, func);
-    GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, 0, labelDone);
+    GenerateProfiledNewScObjArrayFastPath(newObjInstr, arrayInfo, arrayInfoAddr, weakFuncRef, 0, labelDone, true);
     newObjInstr->InsertAfter(labelDone);
 
     m_lowererMD.LoadHelperArgument(newObjInstr, IR::AddrOpnd::New(weakFuncRef, IR::AddrOpndKindDynamicFunctionBodyWeakRef, func));

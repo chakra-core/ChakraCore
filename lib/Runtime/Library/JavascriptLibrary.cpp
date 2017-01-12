@@ -311,6 +311,7 @@ namespace Js
         {
             INIT_ERROR_PROTO(webAssemblyCompileErrorPrototype, InitializeWebAssemblyCompileErrorPrototype);
             INIT_ERROR_PROTO(webAssemblyRuntimeErrorPrototype, InitializeWebAssemblyRuntimeErrorPrototype);
+            INIT_ERROR_PROTO(webAssemblyLinkErrorPrototype, InitializeWebAssemblyLinkErrorPrototype);
         }
 #endif
 
@@ -471,6 +472,7 @@ namespace Js
         {
             INIT_SIMPLE_TYPE(webAssemblyCompileErrorType, TypeIds_Error, webAssemblyCompileErrorPrototype);
             INIT_SIMPLE_TYPE(webAssemblyRuntimeErrorType, TypeIds_Error, webAssemblyRuntimeErrorPrototype);
+            INIT_SIMPLE_TYPE(webAssemblyLinkErrorType, TypeIds_Error, webAssemblyLinkErrorPrototype);
         }
 #endif
 
@@ -826,6 +828,9 @@ namespace Js
 
         case kjstWebAssemblyRuntimeError:
             return GetWebAssemblyRuntimeErrorType();
+
+        case kjstWebAssemblyLinkError:
+            return GetWebAssemblyLinkErrorType();
         }
 
         return nullptr;
@@ -1525,6 +1530,10 @@ namespace Js
                 DeferredTypeHandler<InitializeWebAssemblyRuntimeErrorConstructor>::GetDefaultInstance(),
                 nativeErrorPrototype);
 
+            webAssemblyLinkErrorConstructor = CreateBuiltinConstructor(&JavascriptError::EntryInfo::NewWebAssemblyLinkErrorInstance,
+                DeferredTypeHandler<InitializeWebAssemblyLinkErrorConstructor>::GetDefaultInstance(),
+                nativeErrorPrototype);
+
             webAssemblyInstanceConstructor = CreateBuiltinConstructor(&WebAssemblyInstance::EntryInfo::NewInstance,
                 DeferredTypeHandler<InitializeWebAssemblyInstanceConstructor>::GetDefaultInstance(), webAssemblyInstancePrototype);
 
@@ -2101,6 +2110,7 @@ namespace Js
     INIT_ERROR(URIError);
     INIT_ERROR(WebAssemblyCompileError);
     INIT_ERROR(WebAssemblyRuntimeError);
+    INIT_ERROR(WebAssemblyLinkError);
 
 #undef INIT_ERROR
 
@@ -2842,6 +2852,7 @@ namespace Js
 
         library->AddFunction(webAssemblyObject, PropertyIds::CompileError, library->webAssemblyCompileErrorConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::RuntimeError, library->webAssemblyRuntimeErrorConstructor);
+        library->AddFunction(webAssemblyObject, PropertyIds::LinkError, library->webAssemblyLinkErrorConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::Memory, library->webAssemblyMemoryConstructor);
         library->AddFunction(webAssemblyObject, PropertyIds::Table, library->webAssemblyTableConstructor);
     }
@@ -6216,6 +6227,9 @@ namespace Js
         case kjstWebAssemblyRuntimeError:
             baseErrorType = webAssemblyRuntimeErrorType;
             break;
+        case kjstWebAssemblyLinkError:
+            baseErrorType = webAssemblyLinkErrorType;
+            break;
         }
 
         JavascriptError *pError = RecyclerNew(recycler, JavascriptError, baseErrorType, TRUE);
@@ -6240,6 +6254,7 @@ namespace Js
     CREATE_ERROR(URIError, uriErrorType, kjstURIError);
     CREATE_ERROR(WebAssemblyCompileError, webAssemblyCompileErrorType, kjstWebAssemblyCompileError);
     CREATE_ERROR(WebAssemblyRuntimeError, webAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError);
+    CREATE_ERROR(WebAssemblyLinkError, webAssemblyLinkErrorType, kjstWebAssemblyLinkError);
 
 #undef CREATE_ERROR
 

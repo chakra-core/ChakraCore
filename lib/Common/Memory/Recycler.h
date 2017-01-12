@@ -1148,9 +1148,29 @@ public:
     void SetExternalRootMarker(ExternalRootMarker fn, void * context);
     ArenaAllocator * CreateGuestArena(char16 const * name, void (*outOfMemoryFunc)());
     void DeleteGuestArena(ArenaAllocator * arenaAllocator);
-    ArenaData ** RegisterExternalGuestArena(ArenaData* guestArena);
-    void UnregisterExternalGuestArena(ArenaData* guestArena);
-    void UnregisterExternalGuestArena(ArenaData** guestArena);
+    ArenaData ** RegisterExternalGuestArena(ArenaData* guestArena)
+    {
+        return externalGuestArenaList.PrependNode(&NoThrowHeapAllocator::Instance, guestArena);
+    }
+    void UnregisterExternalGuestArena(ArenaData* guestArena)
+    {
+        externalGuestArenaList.Remove(&NoThrowHeapAllocator::Instance, guestArena);
+
+        // Any time a root is removed during a GC, it indicates that an exhaustive
+        // collection is likely going to have work to do so trigger an exhaustive
+        // candidate GC to indicate this fact
+        this->CollectNow<CollectExhaustiveCandidate>();
+    }
+
+    void UnregisterExternalGuestArena(ArenaData** guestArena)
+    {
+        externalGuestArenaList.RemoveElement(&NoThrowHeapAllocator::Instance, guestArena);
+
+        // Any time a root is removed during a GC, it indicates that an exhaustive
+        // collection is likely going to have work to do so trigger an exhaustive
+        // candidate GC to indicate this fact
+        this->CollectNow<CollectExhaustiveCandidate>();
+    }
 
 #ifdef RECYCLER_TEST_SUPPORT
     void SetCheckFn(BOOL(*checkFn)(char* addr, size_t size));

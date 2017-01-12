@@ -15,13 +15,13 @@ const imports = {
     g1: 45,
     g2: -8,
   },
-  table: new WebAssembly.Table({element: "anyfunc", initial: 30, maximum: 100})
+  table: {"": new WebAssembly.Table({element: "anyfunc", initial: 30, maximum: 100})}
 };
 
 function overrideImports(overrides) {
   return {
     test: Object.assign({}, imports.test, overrides),
-    table: overrides.table || imports.table
+    table: overrides.table ? {"":overrides.table} : imports.table
   };
 }
 

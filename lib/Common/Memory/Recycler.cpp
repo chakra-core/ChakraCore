@@ -729,9 +729,9 @@ Recycler::RootRelease(void* obj, uint *count)
         RECYCLER_PERF_COUNTER_DEC(PinnedObject);
     }
 
-    // Not a real collection. This doesn't activate GC.
-    // This tell the GC that we have an exhaustive candidate, and should trigger
-    // another GC if there is an exhaustive GC going on.
+    // Any time a root is removed during a GC, it indicates that an exhaustive
+    // collection is likely going to have work to do so trigger an exhaustive
+    // candidate GC to indicate this fact
     this->CollectNow<CollectExhaustiveCandidate>();
 }
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
@@ -4208,7 +4208,7 @@ Recycler::BackgroundRescan(RescanFlags rescanFlags)
 
     GCETW(GC_BACKGROUNDRESCAN_START, (this, backgroundRescanCount));
     RECYCLER_PROFILE_EXEC_BACKGROUND_BEGIN(this, Js::BackgroundRescanPhase);
-    
+
 #if GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
     {
@@ -6133,24 +6133,6 @@ Recycler::SetExternalRootMarker(ExternalRootMarker fn, void * context)
     externalRootMarker = fn;
     externalRootMarkerContext = context;
 }
-// TODO: (leish) remove following function? seems not make sense to re-allocate in recycler
-ArenaData **
-Recycler::RegisterExternalGuestArena(ArenaData* guestArena)
-{
-    return externalGuestArenaList.PrependNode(&NoThrowHeapAllocator::Instance, guestArena);
-}
-
-void
-Recycler::UnregisterExternalGuestArena(ArenaData* guestArena)
-{
-    externalGuestArenaList.Remove(&NoThrowHeapAllocator::Instance, guestArena);
-}
-
-void
-Recycler::UnregisterExternalGuestArena(ArenaData** guestArena)
-{
-    externalGuestArenaList.RemoveElement(&NoThrowHeapAllocator::Instance, guestArena);
-}
 
 void
 Recycler::SetCollectionWrapper(RecyclerCollectionWrapper * wrapper)
@@ -6163,6 +6145,7 @@ Recycler::SetCollectionWrapper(RecyclerCollectionWrapper * wrapper)
 #endif
 }
 
+// TODO: (leish) remove following function? seems not make sense to re-allocate in recycler
 char *
 Recycler::Realloc(void* buffer, DECLSPEC_GUARD_OVERFLOW size_t existingBytes, DECLSPEC_GUARD_OVERFLOW size_t requestedBytes, bool truncate)
 {
@@ -7609,7 +7592,7 @@ Recycler::TrackAllocCore(void * object, size_t size, const TrackAllocData& track
         isArray = false;
         allocCount = 1;
     }
-    
+
     if (!trackerDictionary->TryGetValue(typeInfo, &item))
     {
 #ifdef STACK_BACK_TRACE
@@ -8051,6 +8034,11 @@ Recycler::DeleteGuestArena(ArenaAllocator * arenaAllocator)
     {
         guestArenaList.RemoveElement(&HeapAllocator::Instance, guestArenaAllocator);
     }
+
+    // Any time a root is removed during a GC, it indicates that an exhaustive
+    // collection is likely going to have work to do so trigger an exhaustive
+    // candidate GC to indicate this fact
+    this->CollectNow<CollectExhaustiveCandidate>();
 }
 
 #ifdef LEAK_REPORT
@@ -8536,7 +8524,7 @@ Recycler::NotifyFree(__in char *address, size_t size)
 }
 
 #if GLOBAL_ENABLE_WRITE_BARRIER
-void 
+void
 Recycler::RegisterPendingWriteBarrierBlock(void* address, size_t bytes)
 {
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
@@ -8545,7 +8533,7 @@ Recycler::RegisterPendingWriteBarrierBlock(void* address, size_t bytes)
         pendingWriteBarrierBlockMap.Item(address, bytes);
     }
 }
-void 
+void
 Recycler::UnRegisterPendingWriteBarrierBlock(void* address)
 {
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
@@ -8556,7 +8544,7 @@ Recycler::UnRegisterPendingWriteBarrierBlock(void* address)
 #endif
 
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
-void 
+void
 Recycler::WBSetBit(char* addr)
 {
     Recycler* recycler = Recycler::recyclerList;
@@ -8585,7 +8573,7 @@ Recycler::WBSetBits(char* addr, uint length)
         recycler = recycler->next;
     }
 }
-bool 
+bool
 Recycler::WBCheckIsRecyclerAddress(char* addr)
 {
     Recycler* recycler = Recycler::recyclerList;
