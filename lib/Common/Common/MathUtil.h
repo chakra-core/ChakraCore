@@ -44,7 +44,7 @@ public:
     }
 
     static bool     FitsInDWord(int32 value) { return true; }
-    static bool     FitsInDWord(int64 value) { return ((int64)(signed int)(value & 0xFFFFFFFF) == value); }
+    static bool     FitsInDWord(int64 value) { return value < 0 ? value >> 32 == -1 : value >> 32 == 0; }
     static bool     FitsInDWord(size_t value)
     {
 #if TARGET_32
