@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
 //
 
 /*++
@@ -21,15 +21,7 @@ Abstract:
 
 #include "pal/palinternal.h"
 #include "pal/dbgmsg.h"
-
-#if defined(__cplusplus)
-#undef wchar_t
-#endif
 #include <math.h>
-#if defined(__cplusplus)
-#undef wchar_t
-#define wchar_t __wchar_16_cpp__
-#endif // __cplusplus
 
 #if HAVE_IEEEFP_H
 #include <ieeefp.h>
@@ -106,8 +98,8 @@ Function:
 
 See MSDN doc
 --*/
-double
-__cdecl
+double 
+__cdecl 
 _copysign(
           double x,
           double y)
@@ -254,7 +246,7 @@ PALIMPORT double __cdecl PAL_exp(double x)
     PERF_ENTRY(exp);
     ENTRY("exp (x=%f)\n", x);
 #if !HAVE_COMPATIBLE_EXP
-    if (x == 1.0)
+    if (x == 1.0) 
     {
         ret = M_E;
     }
@@ -282,8 +274,8 @@ PALIMPORT LONG __cdecl PAL_labs(LONG l)
 
     PERF_ENTRY(labs);
     ENTRY("labs (l=%ld)\n", l);
-
-    lRet = labs(l);
+    
+    lRet = labs(l);    
 
     LOGEXIT("labs returns long %ld\n", lRet);
     PERF_EXIT(labs);
