@@ -175,7 +175,7 @@ LargeHeapBlock::LargeHeapBlock(__in char * address, size_t pageCount, Segment * 
 #if defined(RECYCLER_PAGE_HEAP) && defined(STACK_BACK_TRACE)
     , pageHeapAllocStack(nullptr), pageHeapFreeStack(nullptr)
 #endif
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     ,wbVerifyBits(&HeapAllocator::Instance)
 #endif
 {
@@ -851,7 +851,7 @@ LargeHeapBlock::VerifyMark()
 
             if (recycler->VerifyMark(target))
             {
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
                 if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
                 {
                     if (!this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)))
@@ -2103,7 +2103,7 @@ LargeHeapBlock::CapturePageHeapFreeStack()
 }
 #endif
 
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 void LargeHeapBlock::WBSetBit(char* addr)
 {
     uint index = (uint)(addr - this->address) / sizeof(void*);

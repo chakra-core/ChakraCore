@@ -1938,7 +1938,7 @@ public:
     void UnRegisterPendingWriteBarrierBlock(void* address);
 #endif
 
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 private:
     static Recycler* recyclerList;
     Recycler* next;
@@ -2121,11 +2121,13 @@ public:
 class CollectedRecyclerWeakRefHeapBlock : public HeapBlock
 {
 public:
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     virtual void WBSetBit(char* addr) override { Assert(false); }
     virtual void WBSetBits(char* addr, uint length) override { Assert(false); }
     virtual void WBClearBits(char* addr) override { Assert(false); }
+#endif
 
+#if DBG
     virtual BOOL IsFreeObject(void* objectAddress) override { Assert(false); return false; }
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override { Assert(false); return false; }

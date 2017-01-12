@@ -330,7 +330,7 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address)
         Output::Print(_u("Writing to 0x%p (CIndex: %u)\n"), address, index);
     }
 #endif
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
     {
         Recycler::WBSetBit((char*)address);
@@ -352,7 +352,7 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t bytes)
     memset(cardTable + startIndex, WRITE_BARRIER_PAGE_BIT | DIRTYBIT, endIndex - startIndex);
     GlobalSwbVerboseTrace(_u("Writing to 0x%p (CIndex: %u-%u)\n"), address, startIndex, endIndex);
 
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
     {
         Recycler::WBSetBits((char*)address, (uint)bytes / sizeof(void*));

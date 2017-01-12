@@ -785,7 +785,7 @@ SmallHeapBlockT<TBlockAttributes>::ClearExplicitFreeBitForObject(void* objectAdd
 
 #ifdef RECYCLER_VERIFY_MARK
 
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, char* target)
 {
 #ifdef TRACK_ALLOC
@@ -968,7 +968,7 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
                         void* target = *(void**) objectAddress;
                         if (recycler->VerifyMark(target))
                         {
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
                             if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
                             {
                                 uint verifyBitIndex = (BVIndex)(objectAddress - this->address) / sizeof(void*);
@@ -1418,7 +1418,7 @@ SmallHeapBlockT<TBlockAttributes>::EnqueueProcessedObject(FreeObject ** list, vo
     freeObject->SetNext(*list);
     *list = freeObject;
 
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
     {
         this->WBClearBits((char*)objectAddress);
