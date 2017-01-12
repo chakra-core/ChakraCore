@@ -83,4 +83,31 @@ assertMatches(/\u{037f}/iu, 0x03f3, '\u{03f3}');
 assertMatches(/\u{03f3}/iu, 0x037f, '\u{037f}');
 assertMatches(/\u{03f3}/iu, 0x03f3, '\u{03f3}');
 
+// New Cyrillic case-mapped pairs
+assertMatches(/\u{0528}/iu, 0x0528, '\u{0528}');
+assertMatches(/\u{0528}/iu, 0x0529, '\u{0529}');
+assertMatches(/\u{0529}/iu, 0x0528, '\u{0528}');
+assertMatches(/\u{0529}/iu, 0x0529, '\u{0529}');
+assertMatches(/\u{052a}/iu, 0x052a, '\u{052a}');
+assertMatches(/\u{052a}/iu, 0x052b, '\u{052b}');
+assertMatches(/\u{052b}/iu, 0x052a, '\u{052a}');
+assertMatches(/\u{052b}/iu, 0x052b, '\u{052b}');
+assertMatches(/\u{052c}/iu, 0x052c, '\u{052c}');
+assertMatches(/\u{052c}/iu, 0x052d, '\u{052d}');
+assertMatches(/\u{052d}/iu, 0x052c, '\u{052c}');
+assertMatches(/\u{052d}/iu, 0x052d, '\u{052d}');
+assertMatches(/\u{052e}/iu, 0x052e, '\u{052e}');
+assertMatches(/\u{052e}/iu, 0x052f, '\u{052f}');
+assertMatches(/\u{052f}/iu, 0x052e, '\u{052e}');
+assertMatches(/\u{052f}/iu, 0x052f, '\u{052f}');
+
+assertMatches(/\u{a698}/iu, 0xa698, '\u{a698}');
+assertMatches(/\u{a698}/iu, 0xa699, '\u{a699}');
+assertMatches(/\u{a699}/iu, 0xa698, '\u{a698}');
+assertMatches(/\u{a699}/iu, 0xa699, '\u{a699}');
+assertMatches(/\u{a69a}/iu, 0xa69a, '\u{a69a}');
+assertMatches(/\u{a69a}/iu, 0xa69b, '\u{a69b}');
+assertMatches(/\u{a69b}/iu, 0xa69a, '\u{a69a}');
+assertMatches(/\u{a69b}/iu, 0xa69b, '\u{a69b}');
+
 console.log("PASS");
