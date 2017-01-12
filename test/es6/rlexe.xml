@@ -999,6 +999,11 @@
   </test>
   <test>
     <default>
+      <files>regex-unicode-CaseInsensitive.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>regex-set.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>

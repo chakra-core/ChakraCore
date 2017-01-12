@@ -295,7 +295,7 @@ END {
             1, MappingSource::UnicodeData, 0x01cc, 0x01cc, -2, -1, 0, 0,
             2, MappingSource::UnicodeData, 0x01cd, 0x01dc, -1, 1, 1, 1,
             1, MappingSource::UnicodeData, 0x01dd, 0x01dd, -79, 0, 0, 0,
-            2, MappingSource::UnicodeData, 0x01de, 0x01f5, -1, 1, 1, 1,
+            2, MappingSource::UnicodeData, 0x01de, 0x01ef, -1, 1, 1, 1,
             1, MappingSource::UnicodeData, 0x01f1, 0x01f1, 0, 1, 2, 2,
             1, MappingSource::UnicodeData, 0x01f2, 0x01f2, -1, 0, 1, 1,
             1, MappingSource::UnicodeData, 0x01f3, 0x01f3, -2, -1, 0, 0,
