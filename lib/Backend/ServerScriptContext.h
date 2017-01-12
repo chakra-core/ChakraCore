@@ -71,7 +71,7 @@ public:
     typedef JsUtil::BaseDictionary<uint, Js::ServerSourceTextModuleRecord*, Memory::HeapAllocator> ServerModuleRecords;
     ServerModuleRecords m_moduleRecords;
 
-    virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
+    virtual Field(Js::Var)* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
 
     void SetIsPRNGSeeded(bool value);
     void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);

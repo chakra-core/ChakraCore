@@ -1745,7 +1745,7 @@ private:
         virtual bool IsRecyclerVerifyEnabled() const override;
         virtual uint GetRecyclerVerifyPad() const override;
 
-        virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
+        virtual Field(Js::Var)* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
 
         Js::SourceTextModuleRecord* GetModuleRecord(uint moduleId) const
         {

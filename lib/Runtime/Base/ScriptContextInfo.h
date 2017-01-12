@@ -48,7 +48,7 @@ public:
 
     virtual bool IsClosed() const = 0;
 
-    virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) = 0;
+    virtual Field(Js::Var)* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) = 0;
 
     virtual intptr_t GetDebuggingFlagsAddr() const = 0;
     virtual intptr_t GetDebugStepTypeAddr() const = 0;

@@ -6598,14 +6598,14 @@ CommonNumber:
         return propertyId;
     }
 
-    Var* JavascriptOperators::OP_GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex, ScriptContextInfo* scriptContext)
+    Field(Var)* JavascriptOperators::OP_GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex, ScriptContextInfo* scriptContext)
     {
         return scriptContext->GetModuleExportSlotArrayAddress(moduleIndex, slotIndex);
     }
 
-    Var* JavascriptOperators::OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
+    Field(Var)* JavascriptOperators::OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
     {
-        Var* moduleRecordSlots = OP_GetModuleExportSlotArrayAddress(moduleIndex, slotIndex, scriptContext);
+        Field(Var)* moduleRecordSlots = OP_GetModuleExportSlotArrayAddress(moduleIndex, slotIndex, scriptContext);
         Assert(moduleRecordSlots != nullptr);
 
         return &moduleRecordSlots[slotIndex];
@@ -6613,7 +6613,7 @@ CommonNumber:
 
     Var JavascriptOperators::OP_LdModuleSlot(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext)
     {
-        Var* addr = OP_GetModuleExportSlotAddress(moduleIndex, slotIndex, scriptContext);
+        Field(Var)* addr = OP_GetModuleExportSlotAddress(moduleIndex, slotIndex, scriptContext);
 
         Assert(addr != nullptr);
 
@@ -6624,7 +6624,7 @@ CommonNumber:
     {
         Assert(value != nullptr);
 
-        Var* addr = OP_GetModuleExportSlotAddress(moduleIndex, slotIndex, scriptContext);
+        Field(Var)* addr = OP_GetModuleExportSlotAddress(moduleIndex, slotIndex, scriptContext);
 
         Assert(addr != nullptr);
 

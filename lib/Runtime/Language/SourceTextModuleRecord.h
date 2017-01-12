@@ -87,8 +87,7 @@ namespace Js
 
         uint GetLocalExportSlotIndexByExportName(PropertyId exportNameId);
         uint GetLocalExportSlotIndexByLocalName(PropertyId localNameId);
-        Var* GetLocalExportSlots() const { return (Var*)(Field(Var)*)localExportSlots; }
-        Var* GetLocalExportSlotAddr(uint slotIndex) const { return (Var*)(Field(Var)*)&localExportSlots[slotIndex]; }
+        Field(Var)* GetLocalExportSlots() const { return localExportSlots; }
         uint GetLocalExportSlotCount() const { return localSlotCount; }
         uint GetModuleId() const { return moduleId; }
         uint GetLocalExportCount() const { return localExportCount; }
@@ -160,6 +159,6 @@ namespace Js
     struct ServerSourceTextModuleRecord
     {
         uint moduleId;
-        Var* localExportSlotsAddr;
+        Field(Var)* localExportSlotsAddr;
     };
 }
