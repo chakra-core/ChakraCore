@@ -28,36 +28,37 @@ PRINT_USAGE() {
     echo "build.sh [options]"
     echo ""
     echo "options:"
-    echo "      --arch=[*]       Set target arch (x86)"
-    echo "      --cc=PATH        Path to Clang   (see example below)"
-    echo "      --cxx=PATH       Path to Clang++ (see example below)"
-    echo "      --create-deb=V   Create .deb package with given V version"
-    echo "  -d, --debug          Debug build (by default Release build)"
-    echo "      --embed-icu      Download and embed ICU-57 statically"
-    echo "  -h, --help           Show help"
-    echo "      --icu=PATH       Path to ICU include folder (see example below)"
-    echo "  -j [N], --jobs[=N]   Multicore build, allow N jobs at once"
-    echo "  -n, --ninja          Build with ninja instead of make"
-    echo "      --no-icu         Compile without unicode/icu support"
-    echo "      --no-jit         Disable JIT"
-    echo "      --lto            Enables LLVM Full LTO"
-    echo "      --lto-thin       Enables LLVM Thin LTO - xcode 8+ or clang 3.9+"
-    echo "      --static         Build as static library (by default shared library)"
-    echo "      --sanitize=CHECKS Build with clang -fsanitize checks,"
-    echo "                       e.g. undefined,signed-integer-overflow"
-    echo "  -t, --test-build     Test build (by default Release build)"
-    echo "      --target[=S]     Target OS"
-    echo "      --trace          Enables experimental built-in trace"
-    echo "      --xcode          Generate XCode project"
-    echo "      --without=FEATURE,FEATURE,..."
+    echo "     --arch[=S]        Set target arch (arm, x86, amd64)"
+    echo "     --cc=PATH         Path to Clang   (see example below)"
+    echo "     --cxx=PATH        Path to Clang++ (see example below)"
+    echo "     --create-deb[=V]  Create .deb package with given V version."
+    echo " -d, --debug           Debug build. Default: Release"
+    echo "     --embed-icu       Download and embed ICU-57 statically."
+    echo " -h, --help            Show help"
+    echo "     --icu=PATH        Path to ICU include folder (see example below)"
+    echo " -j[=N], --jobs[=N]    Multicore build, allow N jobs at once."
+    echo " -n, --ninja           Build with ninja instead of make."
+    echo "     --no-icu          Compile without unicode/icu support."
+    echo "     --no-jit          Disable JIT"
+    echo "     --lto             Enables LLVM Full LTO"
+    echo "     --lto-thin        Enables LLVM Thin LTO - xcode 8+ or clang 3.9+"
+    echo "     --static          Build as static library. Default: shared library"
+    echo "     --sanitize=CHECKS Build with clang -fsanitize checks,"
+    echo "                       e.g. undefined,signed-integer-overflow."
+    echo " -t, --test-build      Test build. Enables test flags on a release build."
+    echo "     --target-os[=S]   Target OS"
+    echo "     --target-path[=S] Output path for compiled binaries. Default: BuildLinux/"
+    echo "     --trace           Enables experimental built-in trace."
+    echo "     --xcode           Generate XCode project."
+    echo "     --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental"
     echo "                       features."
-    echo "  -v, --verbose        Display verbose output including all options"
-    echo "      --wb-check CPPFILE"
+    echo " -v, --verbose         Display verbose output including all options"
+    echo "     --wb-check CPPFILE"
     echo "                       Write-barrier check given CPPFILE (git path)"
-    echo "      --wb-analyze CPPFILE"
+    echo "     --wb-analyze CPPFILE"
     echo "                       Write-barrier analyze given CPPFILE (git path)"
-    echo "      --wb-args=PLUGIN_ARGS"
+    echo "     --wb-args=PLUGIN_ARGS"
     echo "                       Write-barrier clang plugin args"
     echo ""
     echo "example:"
@@ -81,7 +82,7 @@ STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
 SANITIZE=
 WITHOUT_FEATURES=""
 CREATE_DEB=0
-ARCH="-DCC_TARGETS_AMD64_SH=1"
+ARCH=""
 OS_LINUX=0
 OS_APT_GET=0
 OS_UNIX=0
@@ -91,6 +92,7 @@ ENABLE_CC_XPLAT_TRACE=""
 WB_CHECK=
 WB_ANALYZE=
 WB_ARGS=
+TARGET_PATH=0
 
 if [ -f "/proc/version" ]; then
     OS_LINUX=1
@@ -269,6 +271,11 @@ while [[ $# -gt 0 ]]; do
         ENABLE_CC_XPLAT_TRACE="-DENABLE_CC_XPLAT_TRACE_SH=1"
         ;;
 
+    --target-path=*)
+        TARGET_PATH=$1
+        TARGET_PATH=${TARGET_PATH:14}
+        ;;
+
     --without=*)
         FEATURES=$1
         FEATURES=${FEATURES:10}    # value after --without=
@@ -384,11 +391,15 @@ if [[ ${#_CXX} > 0 ]]; then
     CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
 fi
 
-# prepare DbgController.js.h
-CH_DIR="${CHAKRACORE_DIR}/bin/ch"
-"${CH_DIR}/jstoc.py" "${CH_DIR}/DbgController.js" controllerScript
-if [[ $? != 0 ]]; then
-    exit 1
+if [[ $TARGET_PATH == 0 ]]; then
+    TARGET_PATH="$CHAKRACORE_DIR/BuildLinux"
+else
+    if [[ $TARGET_PATH =~ "~/" ]]; then
+        echo "Do not use '~/' for '--target-path'"
+        echo -e "\nAborting Build."
+        exit 1
+    fi
+    echo "Build path: ${TARGET_PATH}/${BUILD_TYPE:0}"
 fi
 
 ################# Write-barrier check/analyze run #################
@@ -439,23 +450,28 @@ if [[ $WB_CHECK || $WB_ANALYZE ]]; then
     fi
 fi
 
-build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
+# prepare DbgController.js.h
+CH_DIR="${CHAKRACORE_DIR}/bin/ch"
+"${CH_DIR}/jstoc.py" "${CH_DIR}/DbgController.js" controllerScript
+if [[ $? != 0 ]]; then
+    exit 1
+fi
+
+build_directory="${TARGET_PATH}/${BUILD_TYPE:0}"
 if [ ! -d "$build_directory" ]; then
     SAFE_RUN `mkdir -p $build_directory`
 fi
-
 pushd $build_directory > /dev/null
 
 if [[ $ARCH =~ "x86" ]]; then
     ARCH="-DCC_TARGETS_X86_SH=1"
     echo "Compile Target : x86"
-else
-    if [[ $ARCH =~ "arm" ]]; then
-        ARCH="-DCC_TARGETS_ARM_SH=1"
-        echo "Compile Target : arm"
-    else
-        echo "Compile Target : amd64"
-    fi
+elif [[ $ARCH =~ "arm" ]]; then
+    ARCH="-DCC_TARGETS_ARM_SH=1"
+    echo "Compile Target : arm"
+elif [[ $ARCH =~ "amd64" ]]; then
+    ARCH="-DCC_TARGETS_AMD64_SH=1"
+    echo "Compile Target : amd64"
 fi
 
 echo Generating $BUILD_TYPE makefiles
