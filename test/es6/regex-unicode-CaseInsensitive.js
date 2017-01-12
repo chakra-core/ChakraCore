@@ -216,57 +216,33 @@ assertMatches(/\u03f3/i, 0x037f, '\u037f');
 assertMatches(/\u03f3/i, 0x03f3, '\u03f3');
 
 // New Cyrillic case-mapped pairs
-assertMatches(/\u0528/iu, 0x0528, '\u0528');
 assertMatches(/\u0528/iu, 0x0529, '\u0529');
 assertMatches(/\u0529/iu, 0x0528, '\u0528');
-assertMatches(/\u0529/iu, 0x0529, '\u0529');
-assertMatches(/\u052a/iu, 0x052a, '\u052a');
 assertMatches(/\u052a/iu, 0x052b, '\u052b');
 assertMatches(/\u052b/iu, 0x052a, '\u052a');
-assertMatches(/\u052b/iu, 0x052b, '\u052b');
-assertMatches(/\u052c/iu, 0x052c, '\u052c');
 assertMatches(/\u052c/iu, 0x052d, '\u052d');
 assertMatches(/\u052d/iu, 0x052c, '\u052c');
-assertMatches(/\u052d/iu, 0x052d, '\u052d');
-assertMatches(/\u052e/iu, 0x052e, '\u052e');
 assertMatches(/\u052e/iu, 0x052f, '\u052f');
 assertMatches(/\u052f/iu, 0x052e, '\u052e');
-assertMatches(/\u052f/iu, 0x052f, '\u052f');
 
-assertMatches(/\ua698/iu, 0xa698, '\ua698');
 assertMatches(/\ua698/iu, 0xa699, '\ua699');
 assertMatches(/\ua699/iu, 0xa698, '\ua698');
-assertMatches(/\ua699/iu, 0xa699, '\ua699');
-assertMatches(/\ua69a/iu, 0xa69a, '\ua69a');
 assertMatches(/\ua69a/iu, 0xa69b, '\ua69b');
 assertMatches(/\ua69b/iu, 0xa69a, '\ua69a');
-assertMatches(/\ua69b/iu, 0xa69b, '\ua69b');
 
-assertMatches(/\u0528/i, 0x0528, '\u0528');
 assertMatches(/\u0528/i, 0x0529, '\u0529');
 assertMatches(/\u0529/i, 0x0528, '\u0528');
-assertMatches(/\u0529/i, 0x0529, '\u0529');
-assertMatches(/\u052a/i, 0x052a, '\u052a');
 assertMatches(/\u052a/i, 0x052b, '\u052b');
 assertMatches(/\u052b/i, 0x052a, '\u052a');
-assertMatches(/\u052b/i, 0x052b, '\u052b');
-assertMatches(/\u052c/i, 0x052c, '\u052c');
 assertMatches(/\u052c/i, 0x052d, '\u052d');
 assertMatches(/\u052d/i, 0x052c, '\u052c');
-assertMatches(/\u052d/i, 0x052d, '\u052d');
-assertMatches(/\u052e/i, 0x052e, '\u052e');
 assertMatches(/\u052e/i, 0x052f, '\u052f');
 assertMatches(/\u052f/i, 0x052e, '\u052e');
-assertMatches(/\u052f/i, 0x052f, '\u052f');
 
-assertMatches(/\ua698/i, 0xa698, '\ua698');
 assertMatches(/\ua698/i, 0xa699, '\ua699');
 assertMatches(/\ua699/i, 0xa698, '\ua698');
-assertMatches(/\ua699/i, 0xa699, '\ua699');
-assertMatches(/\ua69a/i, 0xa69a, '\ua69a');
 assertMatches(/\ua69a/i, 0xa69b, '\ua69b');
 assertMatches(/\ua69b/i, 0xa69a, '\ua69a');
-assertMatches(/\ua69b/i, 0xa69b, '\ua69b');
 
 // New Cherokee uppercase-lowercase mappings and case-mapping pairs.
 assertMatches(/\u13a0/iu, 0xab70, '\uab70');
@@ -318,46 +294,26 @@ assertDoesNotMatch(/\u13f5/i, 0x13fd, '\u13fd');
 assertDoesNotMatch(/\u13fd/i, 0x13f5, '\u13f5');
 
 // Latin extensions added in Unicode 7.0
-assertMatches(/\ua796/iu, 0xa796, '\ua796');
 assertMatches(/\ua796/iu, 0xa797, '\ua797');
 assertMatches(/\ua797/iu, 0xa796, '\ua796');
-assertMatches(/\ua797/iu, 0xa797, '\ua797');
-assertMatches(/\ua798/iu, 0xa798, '\ua798');
 assertMatches(/\ua798/iu, 0xa799, '\ua799');
 assertMatches(/\ua799/iu, 0xa798, '\ua798');
-assertMatches(/\ua799/iu, 0xa799, '\ua799');
-assertMatches(/\ua79a/iu, 0xa79a, '\ua79a');
 assertMatches(/\ua79a/iu, 0xa79b, '\ua79b');
 assertMatches(/\ua79b/iu, 0xa79a, '\ua79a');
-assertMatches(/\ua79b/iu, 0xa79b, '\ua79b');
-assertMatches(/\ua79c/iu, 0xa79c, '\ua79c');
 assertMatches(/\ua79c/iu, 0xa79d, '\ua79d');
 assertMatches(/\ua79d/iu, 0xa79c, '\ua79c');
-assertMatches(/\ua79d/iu, 0xa79d, '\ua79d');
-assertMatches(/\ua79e/iu, 0xa79e, '\ua79e');
 assertMatches(/\ua79e/iu, 0xa79f, '\ua79f');
 assertMatches(/\ua79f/iu, 0xa79e, '\ua79e');
-assertMatches(/\ua79f/iu, 0xa79f, '\ua79f');
 
-assertMatches(/\ua796/i, 0xa796, '\ua796');
 assertMatches(/\ua796/i, 0xa797, '\ua797');
 assertMatches(/\ua797/i, 0xa796, '\ua796');
-assertMatches(/\ua797/i, 0xa797, '\ua797');
-assertMatches(/\ua798/i, 0xa798, '\ua798');
 assertMatches(/\ua798/i, 0xa799, '\ua799');
 assertMatches(/\ua799/i, 0xa798, '\ua798');
-assertMatches(/\ua799/i, 0xa799, '\ua799');
-assertMatches(/\ua79a/i, 0xa79a, '\ua79a');
 assertMatches(/\ua79a/i, 0xa79b, '\ua79b');
 assertMatches(/\ua79b/i, 0xa79a, '\ua79a');
-assertMatches(/\ua79b/i, 0xa79b, '\ua79b');
-assertMatches(/\ua79c/i, 0xa79c, '\ua79c');
 assertMatches(/\ua79c/i, 0xa79d, '\ua79d');
 assertMatches(/\ua79d/i, 0xa79c, '\ua79c');
-assertMatches(/\ua79d/i, 0xa79d, '\ua79d');
-assertMatches(/\ua79e/i, 0xa79e, '\ua79e');
 assertMatches(/\ua79e/i, 0xa79f, '\ua79f');
 assertMatches(/\ua79f/i, 0xa79e, '\ua79e');
-assertMatches(/\ua79f/i, 0xa79f, '\ua79f');
 
 console.log("PASS");
