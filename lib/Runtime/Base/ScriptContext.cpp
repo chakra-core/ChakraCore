@@ -5940,7 +5940,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return nameLen;
     }
 
-    Js::Var* ScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
+    Field(Js::Var)* ScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
     {
         Js::SourceTextModuleRecord* moduleRecord = this->GetModuleRecord(moduleIndex);
         Assert(moduleRecord != nullptr);
