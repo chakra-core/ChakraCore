@@ -17,7 +17,9 @@ function assertDoesNotMatch(re, codepoint, str) {
     }
 }
 
+//
 // Detect regressions in the CaseInsensitive table
+//
 
 // 01BA != 01BB under /i.
 assertDoesNotMatch(/\u{01ba}/iu, 0x01bb, "\u01bb");
@@ -74,5 +76,11 @@ assertMatches(/\u{01f2}/iu, 0x01f3, '\u{01f3}');
 assertMatches(/\u{01f3}/iu, 0x01f1, '\u{01f1}');
 assertMatches(/\u{01f3}/iu, 0x01f2, '\u{01f2}');
 assertMatches(/\u{01f3}/iu, 0x01f3, '\u{01f3}');
+
+// 037F and 03F3 - GREEK LETTER YOT
+assertMatches(/\u{037f}/iu, 0x037f, '\u{037f}');
+assertMatches(/\u{037f}/iu, 0x03f3, '\u{03f3}');
+assertMatches(/\u{03f3}/iu, 0x037f, '\u{037f}');
+assertMatches(/\u{03f3}/iu, 0x03f3, '\u{03f3}');
 
 console.log("PASS");
