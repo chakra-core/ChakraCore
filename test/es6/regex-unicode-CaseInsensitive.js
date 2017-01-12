@@ -269,92 +269,52 @@ assertMatches(/\ua69b/i, 0xa69a, '\ua69a');
 assertMatches(/\ua69b/i, 0xa69b, '\ua69b');
 
 // New Cherokee uppercase-lowercase mappings
-assertMatches(/\u13a0/iu, 0x13a0, '\u13a0');
 assertMatches(/\u13a0/iu, 0xab70, '\uab70');
 assertMatches(/\uab70/iu, 0x13a0, '\u13a0');
-assertMatches(/\uab70/iu, 0xab70, '\uab70');
-assertMatches(/\u13a1/iu, 0x13a1, '\u13a1');
 assertMatches(/\u13a1/iu, 0xab71, '\uab71');
 assertMatches(/\uab71/iu, 0x13a1, '\u13a1');
-assertMatches(/\uab71/iu, 0xab71, '\uab71');
 // ...
-assertMatches(/\u13ee/iu, 0x13ee, '\u13ee');
 assertMatches(/\u13ee/iu, 0xabbe, '\uabbe');
 assertMatches(/\uabbe/iu, 0x13ee, '\u13ee');
-assertMatches(/\uabbe/iu, 0xabbe, '\uabbe');
-assertMatches(/\u13ef/iu, 0x13ef, '\u13ef');
 assertMatches(/\u13ef/iu, 0xabbf, '\uabbf');
 assertMatches(/\uabbf/iu, 0x13ef, '\u13ef');
-assertMatches(/\uabbf/iu, 0xabbf, '\uabbf');
 
-assertMatches(/\u13a0/i, 0x13a0, '\u13a0');
 assertMatches(/\u13a0/i, 0xab70, '\uab70');
 assertMatches(/\uab70/i, 0x13a0, '\u13a0');
-assertMatches(/\uab70/i, 0xab70, '\uab70');
-assertMatches(/\u13a1/i, 0x13a1, '\u13a1');
 assertMatches(/\u13a1/i, 0xab71, '\uab71');
 assertMatches(/\uab71/i, 0x13a1, '\u13a1');
-assertMatches(/\uab71/i, 0xab71, '\uab71');
 // ...
-assertMatches(/\u13ee/i, 0x13ee, '\u13ee');
 assertMatches(/\u13ee/i, 0xabbe, '\uabbe');
 assertMatches(/\uabbe/i, 0x13ee, '\u13ee');
-assertMatches(/\uabbe/i, 0xabbe, '\uabbe');
-assertMatches(/\u13ef/i, 0x13ef, '\u13ef');
 assertMatches(/\u13ef/i, 0xabbf, '\uabbf');
 assertMatches(/\uabbf/i, 0x13ef, '\u13ef');
-assertMatches(/\uabbf/i, 0xabbf, '\uabbf');
 
 // New Cherokee case-mapping pairs
-assertMatches(/\u13f0/iu, 0x13f0, '\u13f0');
 assertMatches(/\u13f0/iu, 0x13f8, '\u13f8');
 assertMatches(/\u13f8/iu, 0x13f0, '\u13f0');
-assertMatches(/\u13f8/iu, 0x13f8, '\u13f8');
-assertMatches(/\u13f1/iu, 0x13f1, '\u13f1');
 assertMatches(/\u13f1/iu, 0x13f9, '\u13f9');
 assertMatches(/\u13f9/iu, 0x13f1, '\u13f1');
-assertMatches(/\u13f9/iu, 0x13f9, '\u13f9');
-assertMatches(/\u13f2/iu, 0x13f2, '\u13f2');
 assertMatches(/\u13f2/iu, 0x13fa, '\u13fa');
 assertMatches(/\u13fa/iu, 0x13f2, '\u13f2');
-assertMatches(/\u13fa/iu, 0x13fa, '\u13fa');
-assertMatches(/\u13f3/iu, 0x13f3, '\u13f3');
 assertMatches(/\u13f3/iu, 0x13fb, '\u13fb');
 assertMatches(/\u13fb/iu, 0x13f3, '\u13f3');
-assertMatches(/\u13fb/iu, 0x13fb, '\u13fb');
-assertMatches(/\u13f4/iu, 0x13f4, '\u13f4');
 assertMatches(/\u13f4/iu, 0x13fc, '\u13fc');
 assertMatches(/\u13fc/iu, 0x13f4, '\u13f4');
-assertMatches(/\u13fc/iu, 0x13fc, '\u13fc');
-assertMatches(/\u13f5/iu, 0x13f5, '\u13f5');
 assertMatches(/\u13f5/iu, 0x13fd, '\u13fd');
 assertMatches(/\u13fd/iu, 0x13f5, '\u13f5');
-assertMatches(/\u13fd/iu, 0x13fd, '\u13fd');
 
-assertMatches(/\u13f0/i, 0x13f0, '\u13f0');
 assertMatches(/\u13f0/i, 0x13f8, '\u13f8');
 assertMatches(/\u13f8/i, 0x13f0, '\u13f0');
-assertMatches(/\u13f8/i, 0x13f8, '\u13f8');
-assertMatches(/\u13f1/i, 0x13f1, '\u13f1');
 assertMatches(/\u13f1/i, 0x13f9, '\u13f9');
 assertMatches(/\u13f9/i, 0x13f1, '\u13f1');
-assertMatches(/\u13f9/i, 0x13f9, '\u13f9');
-assertMatches(/\u13f2/i, 0x13f2, '\u13f2');
 assertMatches(/\u13f2/i, 0x13fa, '\u13fa');
 assertMatches(/\u13fa/i, 0x13f2, '\u13f2');
-assertMatches(/\u13fa/i, 0x13fa, '\u13fa');
-assertMatches(/\u13f3/i, 0x13f3, '\u13f3');
 assertMatches(/\u13f3/i, 0x13fb, '\u13fb');
 assertMatches(/\u13fb/i, 0x13f3, '\u13f3');
-assertMatches(/\u13fb/i, 0x13fb, '\u13fb');
-assertMatches(/\u13f4/i, 0x13f4, '\u13f4');
 assertMatches(/\u13f4/i, 0x13fc, '\u13fc');
 assertMatches(/\u13fc/i, 0x13f4, '\u13f4');
-assertMatches(/\u13fc/i, 0x13fc, '\u13fc');
-assertMatches(/\u13f5/i, 0x13f5, '\u13f5');
 assertMatches(/\u13f5/i, 0x13fd, '\u13fd');
 assertMatches(/\u13fd/i, 0x13f5, '\u13f5');
-assertMatches(/\u13fd/i, 0x13fd, '\u13fd');
 
 // Latin extensions added in Unicode 7.0
 assertMatches(/\ua796/iu, 0xa796, '\ua796');
