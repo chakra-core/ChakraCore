@@ -221,7 +221,7 @@ CodeGenNumberThreadAllocator::Integrate()
         {
             Js::Throw::OutOfMemory();
         }
-#if DBG
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
         if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
         {
             Recycler::WBSetBits(record.blockAddress, BlockSize / sizeof(void*));
