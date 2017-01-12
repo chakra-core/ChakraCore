@@ -19,6 +19,58 @@ function assertDoesNotMatch(re, codepoint, str) {
 
 // TODO: All of these tests should pass even without the Unicode flag. See Microsoft/ChakraCore#517
 
+(function missedMappingsWithUnicodeFlag() {
+
+    assertMatches(/\u{0345}/iu, 0x0399, '\u{0399}');
+
+    assertMatches(/\u{01f1}/iu, 0x01f3, '\u{01f3}');
+    assertMatches(/\u{0345}/iu, 0x03b9, '\u{03b9}');
+    assertMatches(/\u{037f}/iu, 0x03f3, '\u{03f3}');
+    assertMatches(/\u{0528}/iu, 0x0529, '\u{0529}');
+    assertMatches(/\u{052a}/iu, 0x052b, '\u{052b}');
+    assertMatches(/\u{052c}/iu, 0x052d, '\u{052d}');
+    assertMatches(/\u{052e}/iu, 0x052f, '\u{052f}');
+    assertMatches(/\u{a698}/iu, 0xa699, '\u{a699}');
+    assertMatches(/\u{a69a}/iu, 0xa69b, '\u{a69b}');
+    assertMatches(/\u{a796}/iu, 0xa797, '\u{a797}');
+    assertMatches(/\u{a798}/iu, 0xa799, '\u{a799}');
+    assertMatches(/\u{a79a}/iu, 0xa79b, '\u{a79b}');
+    assertMatches(/\u{a79c}/iu, 0xa79d, '\u{a79d}');
+    assertMatches(/\u{a79e}/iu, 0xa79f, '\u{a79f}');
+    assertMatches(/\u{a7ab}/iu, 0x025c, '\u{025c}');
+    assertMatches(/\u{a7ac}/iu, 0x0261, '\u{0261}');
+    assertMatches(/\u{a7ad}/iu, 0x026c, '\u{026c}');
+    assertMatches(/\u{a7b0}/iu, 0x029e, '\u{029e}');
+    assertMatches(/\u{a7b1}/iu, 0x0287, '\u{0287}');
+
+})();
+
+(function missedMappingsWithoutUnicodeFlag() {
+
+    assertMatches(/\u{0345}/i, 0x0399, '\u{0399}');
+
+    assertMatches(/\u{01f1}/i, 0x01f3, '\u{01f3}');
+    assertMatches(/\u{0345}/i, 0x03b9, '\u{03b9}');
+    assertMatches(/\u{037f}/i, 0x03f3, '\u{03f3}');
+    assertMatches(/\u{0528}/i, 0x0529, '\u{0529}');
+    assertMatches(/\u{052a}/i, 0x052b, '\u{052b}');
+    assertMatches(/\u{052c}/i, 0x052d, '\u{052d}');
+    assertMatches(/\u{052e}/i, 0x052f, '\u{052f}');
+    assertMatches(/\u{a698}/i, 0xa699, '\u{a699}');
+    assertMatches(/\u{a69a}/i, 0xa69b, '\u{a69b}');
+    assertMatches(/\u{a796}/i, 0xa797, '\u{a797}');
+    assertMatches(/\u{a798}/i, 0xa799, '\u{a799}');
+    assertMatches(/\u{a79a}/i, 0xa79b, '\u{a79b}');
+    assertMatches(/\u{a79c}/i, 0xa79d, '\u{a79d}');
+    assertMatches(/\u{a79e}/i, 0xa79f, '\u{a79f}');
+    assertMatches(/\u{a7ab}/i, 0x025c, '\u{025c}');
+    assertMatches(/\u{a7ac}/i, 0x0261, '\u{0261}');
+    assertMatches(/\u{a7ad}/i, 0x026c, '\u{026c}');
+    assertMatches(/\u{a7b0}/i, 0x029e, '\u{029e}');
+    assertMatches(/\u{a7b1}/i, 0x0287, '\u{0287}');
+
+}); // TODO: Enable this test once the issue with non-unicode-flag tagged regexes is fixed.
+
 //
 // Detect regressions in the CaseInsensitive table
 //
