@@ -17,199 +17,386 @@ function assertDoesNotMatch(re, codepoint, str) {
     }
 }
 
-// TODO: All of these tests should pass even without the Unicode flag. See Microsoft/ChakraCore#517
-
 (function missedMappingsWithUnicodeFlag() {
 
-    assertMatches(/\u{0345}/iu, 0x0399, '\u{0399}');
+    assertMatches(/\u0345/iu, 0x0345, '\u0345');
+    assertMatches(/\u0345/iu, 0x03b9, '\u0399');
+    assertMatches(/\u0345/iu, 0x03b9, '\u03b9');
+    assertMatches(/\u0345/iu, 0x1fbe, '\u1fbe');
+    assertMatches(/\u0399/iu, 0x0345, '\u0345');
+    assertMatches(/\u0399/iu, 0x03b9, '\u0399');
+    assertMatches(/\u0399/iu, 0x03b9, '\u03b9');
+    assertMatches(/\u0399/iu, 0x1fbe, '\u1fbe');
+    assertMatches(/\u03b9/iu, 0x0345, '\u0345');
+    assertMatches(/\u03b9/iu, 0x03b9, '\u0399');
+    assertMatches(/\u03b9/iu, 0x03b9, '\u03b9');
+    assertMatches(/\u03b9/iu, 0x1fbe, '\u1fbe');
+    assertMatches(/\u1fbe/iu, 0x0345, '\u0345');
+    assertMatches(/\u1fbe/iu, 0x03b9, '\u0399');
+    assertMatches(/\u1fbe/iu, 0x03b9, '\u03b9');
+    assertMatches(/\u1fbe/iu, 0x1fbe, '\u1fbe');
 
-    assertMatches(/\u{01f1}/iu, 0x01f3, '\u{01f3}');
-    assertMatches(/\u{0345}/iu, 0x03b9, '\u{03b9}');
-    assertMatches(/\u{037f}/iu, 0x03f3, '\u{03f3}');
-    assertMatches(/\u{0528}/iu, 0x0529, '\u{0529}');
-    assertMatches(/\u{052a}/iu, 0x052b, '\u{052b}');
-    assertMatches(/\u{052c}/iu, 0x052d, '\u{052d}');
-    assertMatches(/\u{052e}/iu, 0x052f, '\u{052f}');
-    assertMatches(/\u{a698}/iu, 0xa699, '\u{a699}');
-    assertMatches(/\u{a69a}/iu, 0xa69b, '\u{a69b}');
-    assertMatches(/\u{a796}/iu, 0xa797, '\u{a797}');
-    assertMatches(/\u{a798}/iu, 0xa799, '\u{a799}');
-    assertMatches(/\u{a79a}/iu, 0xa79b, '\u{a79b}');
-    assertMatches(/\u{a79c}/iu, 0xa79d, '\u{a79d}');
-    assertMatches(/\u{a79e}/iu, 0xa79f, '\u{a79f}');
-    assertMatches(/\u{a7ab}/iu, 0x025c, '\u{025c}');
-    assertMatches(/\u{a7ac}/iu, 0x0261, '\u{0261}');
-    assertMatches(/\u{a7ad}/iu, 0x026c, '\u{026c}');
-    assertMatches(/\u{a7b0}/iu, 0x029e, '\u{029e}');
-    assertMatches(/\u{a7b1}/iu, 0x0287, '\u{0287}');
+    assertMatches(/\u01f1/iu, 0x01f3, '\u01f3');
+    assertMatches(/\u0345/iu, 0x03b9, '\u03b9');
+    assertMatches(/\u037f/iu, 0x03f3, '\u03f3');
+    assertMatches(/\u0528/iu, 0x0529, '\u0529');
+    assertMatches(/\u052a/iu, 0x052b, '\u052b');
+    assertMatches(/\u052c/iu, 0x052d, '\u052d');
+    assertMatches(/\u052e/iu, 0x052f, '\u052f');
+    assertMatches(/\ua698/iu, 0xa699, '\ua699');
+    assertMatches(/\ua69a/iu, 0xa69b, '\ua69b');
+    assertMatches(/\ua796/iu, 0xa797, '\ua797');
+    assertMatches(/\ua798/iu, 0xa799, '\ua799');
+    assertMatches(/\ua79a/iu, 0xa79b, '\ua79b');
+    assertMatches(/\ua79c/iu, 0xa79d, '\ua79d');
+    assertMatches(/\ua79e/iu, 0xa79f, '\ua79f');
+    assertMatches(/\ua7ab/iu, 0x025c, '\u025c');
+    assertMatches(/\ua7ac/iu, 0x0261, '\u0261');
+    assertMatches(/\ua7ad/iu, 0x026c, '\u026c');
+    assertMatches(/\ua7b0/iu, 0x029e, '\u029e');
+    assertMatches(/\ua7b1/iu, 0x0287, '\u0287');
 
 })();
 
 (function missedMappingsWithoutUnicodeFlag() {
 
-    assertMatches(/\u{0345}/i, 0x0399, '\u{0399}');
+    assertMatches(/\u0345/i, 0x0345, '\u0345');
+    assertMatches(/\u0345/i, 0x03b9, '\u0399');
+    assertMatches(/\u0345/i, 0x03b9, '\u03b9');
+    assertMatches(/\u0345/i, 0x1fbe, '\u1fbe');
+    assertMatches(/\u0399/i, 0x0345, '\u0345');
+    assertMatches(/\u0399/i, 0x03b9, '\u0399');
+    assertMatches(/\u0399/i, 0x03b9, '\u03b9');
+    assertMatches(/\u0399/i, 0x1fbe, '\u1fbe');
+    assertMatches(/\u03b9/i, 0x0345, '\u0345');
+    assertMatches(/\u03b9/i, 0x03b9, '\u0399');
+    assertMatches(/\u03b9/i, 0x03b9, '\u03b9');
+    assertMatches(/\u03b9/i, 0x1fbe, '\u1fbe');
+    assertMatches(/\u1fbe/i, 0x0345, '\u0345');
+    assertMatches(/\u1fbe/i, 0x03b9, '\u0399');
+    assertMatches(/\u1fbe/i, 0x03b9, '\u03b9');
+    assertMatches(/\u1fbe/i, 0x1fbe, '\u1fbe');
 
-    assertMatches(/\u{01f1}/i, 0x01f3, '\u{01f3}');
-    assertMatches(/\u{0345}/i, 0x03b9, '\u{03b9}');
-    assertMatches(/\u{037f}/i, 0x03f3, '\u{03f3}');
-    assertMatches(/\u{0528}/i, 0x0529, '\u{0529}');
-    assertMatches(/\u{052a}/i, 0x052b, '\u{052b}');
-    assertMatches(/\u{052c}/i, 0x052d, '\u{052d}');
-    assertMatches(/\u{052e}/i, 0x052f, '\u{052f}');
-    assertMatches(/\u{a698}/i, 0xa699, '\u{a699}');
-    assertMatches(/\u{a69a}/i, 0xa69b, '\u{a69b}');
-    assertMatches(/\u{a796}/i, 0xa797, '\u{a797}');
-    assertMatches(/\u{a798}/i, 0xa799, '\u{a799}');
-    assertMatches(/\u{a79a}/i, 0xa79b, '\u{a79b}');
-    assertMatches(/\u{a79c}/i, 0xa79d, '\u{a79d}');
-    assertMatches(/\u{a79e}/i, 0xa79f, '\u{a79f}');
-    assertMatches(/\u{a7ab}/i, 0x025c, '\u{025c}');
-    assertMatches(/\u{a7ac}/i, 0x0261, '\u{0261}');
-    assertMatches(/\u{a7ad}/i, 0x026c, '\u{026c}');
-    assertMatches(/\u{a7b0}/i, 0x029e, '\u{029e}');
-    assertMatches(/\u{a7b1}/i, 0x0287, '\u{0287}');
+    assertMatches(/\u01f1/i, 0x01f3, '\u01f3');
+    assertMatches(/\u037f/i, 0x03f3, '\u03f3');
+    assertMatches(/\u0528/i, 0x0529, '\u0529');
+    assertMatches(/\u052a/i, 0x052b, '\u052b');
+    assertMatches(/\u052c/i, 0x052d, '\u052d');
+    assertMatches(/\u052e/i, 0x052f, '\u052f');
+    assertMatches(/\ua698/i, 0xa699, '\ua699');
+    assertMatches(/\ua69a/i, 0xa69b, '\ua69b');
+    assertMatches(/\ua796/i, 0xa797, '\ua797');
+    assertMatches(/\ua798/i, 0xa799, '\ua799');
+    assertMatches(/\ua79a/i, 0xa79b, '\ua79b');
+    assertMatches(/\ua79c/i, 0xa79d, '\ua79d');
+    assertMatches(/\ua79e/i, 0xa79f, '\ua79f');
+    assertMatches(/\ua7ab/i, 0x025c, '\u025c');
+    assertMatches(/\ua7ac/i, 0x0261, '\u0261');
+    assertMatches(/\ua7ad/i, 0x026c, '\u026c');
+    assertMatches(/\ua7b0/i, 0x029e, '\u029e');
+    assertMatches(/\ua7b1/i, 0x0287, '\u0287');
 
-}); // TODO: Enable this test once the issue with non-unicode-flag tagged regexes is fixed.
+})();
 
 //
 // Detect regressions in the CaseInsensitive table
 //
 
 // 01BA != 01BB under /i.
-assertDoesNotMatch(/\u{01ba}/iu, 0x01bb, "\u{01bb}");
-assertDoesNotMatch(/\u{01bb}/iu, 0x01ba, "\u{01ba}");
+assertDoesNotMatch(/\u01ba/iu, 0x01bb, "\u01bb");
+assertDoesNotMatch(/\u01bb/iu, 0x01ba, "\u01ba");
+assertDoesNotMatch(/\u01ba/i, 0x01bb, "\u01bb");
+assertDoesNotMatch(/\u01bb/i, 0x01ba, "\u01ba");
 
 // 01F0 doesn't match anything
-assertDoesNotMatch(/\u{01f0}/iu, 0x01f1, "\u{01f1}");
-assertDoesNotMatch(/\u{01f1}/iu, 0x01f0, "\u{01f0}");
+assertDoesNotMatch(/\u01f0/iu, 0x01f1, "\u01f1");
+assertDoesNotMatch(/\u01f1/iu, 0x01f0, "\u01f0");
+assertDoesNotMatch(/\u01f0/i, 0x01f1, "\u01f1");
+assertDoesNotMatch(/\u01f1/i, 0x01f0, "\u01f0");
 
 // 01F4-5 match (G with ACUTE)
-assertMatches(/\u{01f4}/iu, 0x01f5, "\u{01f5}");
-assertMatches(/\u{01f5}/iu, 0x01f4, "\u{01f4}");
+assertMatches(/\u01f4/iu, 0x01f5, "\u01f5");
+assertMatches(/\u01f5/iu, 0x01f4, "\u01f4");
+assertMatches(/\u01f4/i, 0x01f5, "\u01f5");
+assertMatches(/\u01f5/i, 0x01f4, "\u01f4");
 
 //
 // Latin ligature triples DZ WITH CARON, LJ, NJ (01C4-01CC); DZ (01F1-3)
 //
 
-assertMatches(/\u{01c4}/iu, 0x01c4, '\u{01c4}');
-assertMatches(/\u{01c4}/iu, 0x01c5, '\u{01c5}');
-assertMatches(/\u{01c4}/iu, 0x01c6, '\u{01c6}');
-assertMatches(/\u{01c5}/iu, 0x01c4, '\u{01c4}');
-assertMatches(/\u{01c5}/iu, 0x01c5, '\u{01c5}');
-assertMatches(/\u{01c5}/iu, 0x01c6, '\u{01c6}');
-assertMatches(/\u{01c6}/iu, 0x01c4, '\u{01c4}');
-assertMatches(/\u{01c6}/iu, 0x01c5, '\u{01c5}');
-assertMatches(/\u{01c6}/iu, 0x01c6, '\u{01c6}');
+assertMatches(/\u01c4/iu, 0x01c4, '\u01c4');
+assertMatches(/\u01c4/iu, 0x01c5, '\u01c5');
+assertMatches(/\u01c4/iu, 0x01c6, '\u01c6');
+assertMatches(/\u01c5/iu, 0x01c4, '\u01c4');
+assertMatches(/\u01c5/iu, 0x01c5, '\u01c5');
+assertMatches(/\u01c5/iu, 0x01c6, '\u01c6');
+assertMatches(/\u01c6/iu, 0x01c4, '\u01c4');
+assertMatches(/\u01c6/iu, 0x01c5, '\u01c5');
+assertMatches(/\u01c6/iu, 0x01c6, '\u01c6');
 
-assertMatches(/\u{01c7}/iu, 0x01c7, '\u{01c7}');
-assertMatches(/\u{01c7}/iu, 0x01c8, '\u{01c8}');
-assertMatches(/\u{01c7}/iu, 0x01c9, '\u{01c9}');
-assertMatches(/\u{01c9}/iu, 0x01c7, '\u{01c7}');
-assertMatches(/\u{01c9}/iu, 0x01c8, '\u{01c8}');
-assertMatches(/\u{01c9}/iu, 0x01c9, '\u{01c9}');
-assertMatches(/\u{01c8}/iu, 0x01c7, '\u{01c7}');
-assertMatches(/\u{01c8}/iu, 0x01c8, '\u{01c8}');
-assertMatches(/\u{01c8}/iu, 0x01c9, '\u{01c9}');
+assertMatches(/\u01c7/iu, 0x01c7, '\u01c7');
+assertMatches(/\u01c7/iu, 0x01c8, '\u01c8');
+assertMatches(/\u01c7/iu, 0x01c9, '\u01c9');
+assertMatches(/\u01c9/iu, 0x01c7, '\u01c7');
+assertMatches(/\u01c9/iu, 0x01c8, '\u01c8');
+assertMatches(/\u01c9/iu, 0x01c9, '\u01c9');
+assertMatches(/\u01c8/iu, 0x01c7, '\u01c7');
+assertMatches(/\u01c8/iu, 0x01c8, '\u01c8');
+assertMatches(/\u01c8/iu, 0x01c9, '\u01c9');
 
-assertMatches(/\u{01ca}/iu, 0x01ca, '\u{01ca}');
-assertMatches(/\u{01ca}/iu, 0x01cb, '\u{01cb}');
-assertMatches(/\u{01ca}/iu, 0x01cc, '\u{01cc}');
-assertMatches(/\u{01cb}/iu, 0x01ca, '\u{01ca}');
-assertMatches(/\u{01cb}/iu, 0x01cb, '\u{01cb}');
-assertMatches(/\u{01cb}/iu, 0x01cc, '\u{01cc}');
-assertMatches(/\u{01cc}/iu, 0x01ca, '\u{01ca}');
-assertMatches(/\u{01cc}/iu, 0x01cb, '\u{01cb}');
-assertMatches(/\u{01cc}/iu, 0x01cc, '\u{01cc}');
+assertMatches(/\u01ca/iu, 0x01ca, '\u01ca');
+assertMatches(/\u01ca/iu, 0x01cb, '\u01cb');
+assertMatches(/\u01ca/iu, 0x01cc, '\u01cc');
+assertMatches(/\u01cb/iu, 0x01ca, '\u01ca');
+assertMatches(/\u01cb/iu, 0x01cb, '\u01cb');
+assertMatches(/\u01cb/iu, 0x01cc, '\u01cc');
+assertMatches(/\u01cc/iu, 0x01ca, '\u01ca');
+assertMatches(/\u01cc/iu, 0x01cb, '\u01cb');
+assertMatches(/\u01cc/iu, 0x01cc, '\u01cc');
 
-assertMatches(/\u{01f1}/iu, 0x01f1, '\u{01f1}');
-assertMatches(/\u{01f1}/iu, 0x01f2, '\u{01f2}');
-assertMatches(/\u{01f1}/iu, 0x01f3, '\u{01f3}');
-assertMatches(/\u{01f2}/iu, 0x01f2, '\u{01f2}');
-assertMatches(/\u{01f2}/iu, 0x01f1, '\u{01f1}');
-assertMatches(/\u{01f2}/iu, 0x01f3, '\u{01f3}');
-assertMatches(/\u{01f3}/iu, 0x01f1, '\u{01f1}');
-assertMatches(/\u{01f3}/iu, 0x01f2, '\u{01f2}');
-assertMatches(/\u{01f3}/iu, 0x01f3, '\u{01f3}');
+assertMatches(/\u01f1/iu, 0x01f1, '\u01f1');
+assertMatches(/\u01f1/iu, 0x01f2, '\u01f2');
+assertMatches(/\u01f1/iu, 0x01f3, '\u01f3');
+assertMatches(/\u01f2/iu, 0x01f2, '\u01f2');
+assertMatches(/\u01f2/iu, 0x01f1, '\u01f1');
+assertMatches(/\u01f2/iu, 0x01f3, '\u01f3');
+assertMatches(/\u01f3/iu, 0x01f1, '\u01f1');
+assertMatches(/\u01f3/iu, 0x01f2, '\u01f2');
+assertMatches(/\u01f3/iu, 0x01f3, '\u01f3');
+
+assertMatches(/\u01c4/i, 0x01c4, '\u01c4');
+assertMatches(/\u01c4/i, 0x01c5, '\u01c5');
+assertMatches(/\u01c4/i, 0x01c6, '\u01c6');
+assertMatches(/\u01c5/i, 0x01c4, '\u01c4');
+assertMatches(/\u01c5/i, 0x01c5, '\u01c5');
+assertMatches(/\u01c5/i, 0x01c6, '\u01c6');
+assertMatches(/\u01c6/i, 0x01c4, '\u01c4');
+assertMatches(/\u01c6/i, 0x01c5, '\u01c5');
+assertMatches(/\u01c6/i, 0x01c6, '\u01c6');
+
+assertMatches(/\u01c7/i, 0x01c7, '\u01c7');
+assertMatches(/\u01c7/i, 0x01c8, '\u01c8');
+assertMatches(/\u01c7/i, 0x01c9, '\u01c9');
+assertMatches(/\u01c9/i, 0x01c7, '\u01c7');
+assertMatches(/\u01c9/i, 0x01c8, '\u01c8');
+assertMatches(/\u01c9/i, 0x01c9, '\u01c9');
+assertMatches(/\u01c8/i, 0x01c7, '\u01c7');
+assertMatches(/\u01c8/i, 0x01c8, '\u01c8');
+assertMatches(/\u01c8/i, 0x01c9, '\u01c9');
+
+assertMatches(/\u01ca/i, 0x01ca, '\u01ca');
+assertMatches(/\u01ca/i, 0x01cb, '\u01cb');
+assertMatches(/\u01ca/i, 0x01cc, '\u01cc');
+assertMatches(/\u01cb/i, 0x01ca, '\u01ca');
+assertMatches(/\u01cb/i, 0x01cb, '\u01cb');
+assertMatches(/\u01cb/i, 0x01cc, '\u01cc');
+assertMatches(/\u01cc/i, 0x01ca, '\u01ca');
+assertMatches(/\u01cc/i, 0x01cb, '\u01cb');
+assertMatches(/\u01cc/i, 0x01cc, '\u01cc');
+
+assertMatches(/\u01f1/i, 0x01f1, '\u01f1');
+assertMatches(/\u01f1/i, 0x01f2, '\u01f2');
+assertMatches(/\u01f1/i, 0x01f3, '\u01f3');
+assertMatches(/\u01f2/i, 0x01f2, '\u01f2');
+assertMatches(/\u01f2/i, 0x01f1, '\u01f1');
+assertMatches(/\u01f2/i, 0x01f3, '\u01f3');
+assertMatches(/\u01f3/i, 0x01f1, '\u01f1');
+assertMatches(/\u01f3/i, 0x01f2, '\u01f2');
+assertMatches(/\u01f3/i, 0x01f3, '\u01f3');
 
 // 037F and 03F3 - GREEK LETTER YOT
-assertMatches(/\u{037f}/iu, 0x037f, '\u{037f}');
-assertMatches(/\u{037f}/iu, 0x03f3, '\u{03f3}');
-assertMatches(/\u{03f3}/iu, 0x037f, '\u{037f}');
-assertMatches(/\u{03f3}/iu, 0x03f3, '\u{03f3}');
+assertMatches(/\u037f/iu, 0x037f, '\u037f');
+assertMatches(/\u037f/iu, 0x03f3, '\u03f3');
+assertMatches(/\u03f3/iu, 0x037f, '\u037f');
+assertMatches(/\u03f3/iu, 0x03f3, '\u03f3');
+
+assertMatches(/\u037f/i, 0x037f, '\u037f');
+assertMatches(/\u037f/i, 0x03f3, '\u03f3');
+assertMatches(/\u03f3/i, 0x037f, '\u037f');
+assertMatches(/\u03f3/i, 0x03f3, '\u03f3');
 
 // New Cyrillic case-mapped pairs
-assertMatches(/\u{0528}/iu, 0x0528, '\u{0528}');
-assertMatches(/\u{0528}/iu, 0x0529, '\u{0529}');
-assertMatches(/\u{0529}/iu, 0x0528, '\u{0528}');
-assertMatches(/\u{0529}/iu, 0x0529, '\u{0529}');
-assertMatches(/\u{052a}/iu, 0x052a, '\u{052a}');
-assertMatches(/\u{052a}/iu, 0x052b, '\u{052b}');
-assertMatches(/\u{052b}/iu, 0x052a, '\u{052a}');
-assertMatches(/\u{052b}/iu, 0x052b, '\u{052b}');
-assertMatches(/\u{052c}/iu, 0x052c, '\u{052c}');
-assertMatches(/\u{052c}/iu, 0x052d, '\u{052d}');
-assertMatches(/\u{052d}/iu, 0x052c, '\u{052c}');
-assertMatches(/\u{052d}/iu, 0x052d, '\u{052d}');
-assertMatches(/\u{052e}/iu, 0x052e, '\u{052e}');
-assertMatches(/\u{052e}/iu, 0x052f, '\u{052f}');
-assertMatches(/\u{052f}/iu, 0x052e, '\u{052e}');
-assertMatches(/\u{052f}/iu, 0x052f, '\u{052f}');
+assertMatches(/\u0528/iu, 0x0528, '\u0528');
+assertMatches(/\u0528/iu, 0x0529, '\u0529');
+assertMatches(/\u0529/iu, 0x0528, '\u0528');
+assertMatches(/\u0529/iu, 0x0529, '\u0529');
+assertMatches(/\u052a/iu, 0x052a, '\u052a');
+assertMatches(/\u052a/iu, 0x052b, '\u052b');
+assertMatches(/\u052b/iu, 0x052a, '\u052a');
+assertMatches(/\u052b/iu, 0x052b, '\u052b');
+assertMatches(/\u052c/iu, 0x052c, '\u052c');
+assertMatches(/\u052c/iu, 0x052d, '\u052d');
+assertMatches(/\u052d/iu, 0x052c, '\u052c');
+assertMatches(/\u052d/iu, 0x052d, '\u052d');
+assertMatches(/\u052e/iu, 0x052e, '\u052e');
+assertMatches(/\u052e/iu, 0x052f, '\u052f');
+assertMatches(/\u052f/iu, 0x052e, '\u052e');
+assertMatches(/\u052f/iu, 0x052f, '\u052f');
 
-assertMatches(/\u{a698}/iu, 0xa698, '\u{a698}');
-assertMatches(/\u{a698}/iu, 0xa699, '\u{a699}');
-assertMatches(/\u{a699}/iu, 0xa698, '\u{a698}');
-assertMatches(/\u{a699}/iu, 0xa699, '\u{a699}');
-assertMatches(/\u{a69a}/iu, 0xa69a, '\u{a69a}');
-assertMatches(/\u{a69a}/iu, 0xa69b, '\u{a69b}');
-assertMatches(/\u{a69b}/iu, 0xa69a, '\u{a69a}');
-assertMatches(/\u{a69b}/iu, 0xa69b, '\u{a69b}');
+assertMatches(/\ua698/iu, 0xa698, '\ua698');
+assertMatches(/\ua698/iu, 0xa699, '\ua699');
+assertMatches(/\ua699/iu, 0xa698, '\ua698');
+assertMatches(/\ua699/iu, 0xa699, '\ua699');
+assertMatches(/\ua69a/iu, 0xa69a, '\ua69a');
+assertMatches(/\ua69a/iu, 0xa69b, '\ua69b');
+assertMatches(/\ua69b/iu, 0xa69a, '\ua69a');
+assertMatches(/\ua69b/iu, 0xa69b, '\ua69b');
 
-// New Cherokee case-mapped pairs
-assertMatches(/\u{13f0}/iu, 0x13f0, '\u{13f0}');
-assertMatches(/\u{13f0}/iu, 0x13f8, '\u{13f8}');
-assertMatches(/\u{13f8}/iu, 0x13f0, '\u{13f0}');
-assertMatches(/\u{13f8}/iu, 0x13f8, '\u{13f8}');
-assertMatches(/\u{13f1}/iu, 0x13f1, '\u{13f1}');
-assertMatches(/\u{13f1}/iu, 0x13f9, '\u{13f9}');
-assertMatches(/\u{13f9}/iu, 0x13f1, '\u{13f1}');
-assertMatches(/\u{13f9}/iu, 0x13f9, '\u{13f9}');
-assertMatches(/\u{13f2}/iu, 0x13f2, '\u{13f2}');
-assertMatches(/\u{13f2}/iu, 0x13fa, '\u{13fa}');
-assertMatches(/\u{13fa}/iu, 0x13f2, '\u{13f2}');
-assertMatches(/\u{13fa}/iu, 0x13fa, '\u{13fa}');
-assertMatches(/\u{13f3}/iu, 0x13f3, '\u{13f3}');
-assertMatches(/\u{13f3}/iu, 0x13fb, '\u{13fb}');
-assertMatches(/\u{13fb}/iu, 0x13f3, '\u{13f3}');
-assertMatches(/\u{13fb}/iu, 0x13fb, '\u{13fb}');
-assertMatches(/\u{13f4}/iu, 0x13f4, '\u{13f4}');
-assertMatches(/\u{13f4}/iu, 0x13fc, '\u{13fc}');
-assertMatches(/\u{13fc}/iu, 0x13f4, '\u{13f4}');
-assertMatches(/\u{13fc}/iu, 0x13fc, '\u{13fc}');
-assertMatches(/\u{13f5}/iu, 0x13f5, '\u{13f5}');
-assertMatches(/\u{13f5}/iu, 0x13fd, '\u{13fd}');
-assertMatches(/\u{13fd}/iu, 0x13f5, '\u{13f5}');
-assertMatches(/\u{13fd}/iu, 0x13fd, '\u{13fd}');
+assertMatches(/\u0528/i, 0x0528, '\u0528');
+assertMatches(/\u0528/i, 0x0529, '\u0529');
+assertMatches(/\u0529/i, 0x0528, '\u0528');
+assertMatches(/\u0529/i, 0x0529, '\u0529');
+assertMatches(/\u052a/i, 0x052a, '\u052a');
+assertMatches(/\u052a/i, 0x052b, '\u052b');
+assertMatches(/\u052b/i, 0x052a, '\u052a');
+assertMatches(/\u052b/i, 0x052b, '\u052b');
+assertMatches(/\u052c/i, 0x052c, '\u052c');
+assertMatches(/\u052c/i, 0x052d, '\u052d');
+assertMatches(/\u052d/i, 0x052c, '\u052c');
+assertMatches(/\u052d/i, 0x052d, '\u052d');
+assertMatches(/\u052e/i, 0x052e, '\u052e');
+assertMatches(/\u052e/i, 0x052f, '\u052f');
+assertMatches(/\u052f/i, 0x052e, '\u052e');
+assertMatches(/\u052f/i, 0x052f, '\u052f');
+
+assertMatches(/\ua698/i, 0xa698, '\ua698');
+assertMatches(/\ua698/i, 0xa699, '\ua699');
+assertMatches(/\ua699/i, 0xa698, '\ua698');
+assertMatches(/\ua699/i, 0xa699, '\ua699');
+assertMatches(/\ua69a/i, 0xa69a, '\ua69a');
+assertMatches(/\ua69a/i, 0xa69b, '\ua69b');
+assertMatches(/\ua69b/i, 0xa69a, '\ua69a');
+assertMatches(/\ua69b/i, 0xa69b, '\ua69b');
+
+// New Cherokee uppercase-lowercase mappings
+assertMatches(/\u13a0/iu, 0x13a0, '\u13a0');
+assertMatches(/\u13a0/iu, 0xab70, '\uab70');
+assertMatches(/\uab70/iu, 0x13a0, '\u13a0');
+assertMatches(/\uab70/iu, 0xab70, '\uab70');
+assertMatches(/\u13a1/iu, 0x13a1, '\u13a1');
+assertMatches(/\u13a1/iu, 0xab71, '\uab71');
+assertMatches(/\uab71/iu, 0x13a1, '\u13a1');
+assertMatches(/\uab71/iu, 0xab71, '\uab71');
+// ...
+assertMatches(/\u13ee/iu, 0x13ee, '\u13ee');
+assertMatches(/\u13ee/iu, 0xabbe, '\uabbe');
+assertMatches(/\uabbe/iu, 0x13ee, '\u13ee');
+assertMatches(/\uabbe/iu, 0xabbe, '\uabbe');
+assertMatches(/\u13ef/iu, 0x13ef, '\u13ef');
+assertMatches(/\u13ef/iu, 0xabbf, '\uabbf');
+assertMatches(/\uabbf/iu, 0x13ef, '\u13ef');
+assertMatches(/\uabbf/iu, 0xabbf, '\uabbf');
+
+assertMatches(/\u13a0/i, 0x13a0, '\u13a0');
+assertMatches(/\u13a0/i, 0xab70, '\uab70');
+assertMatches(/\uab70/i, 0x13a0, '\u13a0');
+assertMatches(/\uab70/i, 0xab70, '\uab70');
+assertMatches(/\u13a1/i, 0x13a1, '\u13a1');
+assertMatches(/\u13a1/i, 0xab71, '\uab71');
+assertMatches(/\uab71/i, 0x13a1, '\u13a1');
+assertMatches(/\uab71/i, 0xab71, '\uab71');
+// ...
+assertMatches(/\u13ee/i, 0x13ee, '\u13ee');
+assertMatches(/\u13ee/i, 0xabbe, '\uabbe');
+assertMatches(/\uabbe/i, 0x13ee, '\u13ee');
+assertMatches(/\uabbe/i, 0xabbe, '\uabbe');
+assertMatches(/\u13ef/i, 0x13ef, '\u13ef');
+assertMatches(/\u13ef/i, 0xabbf, '\uabbf');
+assertMatches(/\uabbf/i, 0x13ef, '\u13ef');
+assertMatches(/\uabbf/i, 0xabbf, '\uabbf');
+
+// New Cherokee case-mapping pairs
+assertMatches(/\u13f0/iu, 0x13f0, '\u13f0');
+assertMatches(/\u13f0/iu, 0x13f8, '\u13f8');
+assertMatches(/\u13f8/iu, 0x13f0, '\u13f0');
+assertMatches(/\u13f8/iu, 0x13f8, '\u13f8');
+assertMatches(/\u13f1/iu, 0x13f1, '\u13f1');
+assertMatches(/\u13f1/iu, 0x13f9, '\u13f9');
+assertMatches(/\u13f9/iu, 0x13f1, '\u13f1');
+assertMatches(/\u13f9/iu, 0x13f9, '\u13f9');
+assertMatches(/\u13f2/iu, 0x13f2, '\u13f2');
+assertMatches(/\u13f2/iu, 0x13fa, '\u13fa');
+assertMatches(/\u13fa/iu, 0x13f2, '\u13f2');
+assertMatches(/\u13fa/iu, 0x13fa, '\u13fa');
+assertMatches(/\u13f3/iu, 0x13f3, '\u13f3');
+assertMatches(/\u13f3/iu, 0x13fb, '\u13fb');
+assertMatches(/\u13fb/iu, 0x13f3, '\u13f3');
+assertMatches(/\u13fb/iu, 0x13fb, '\u13fb');
+assertMatches(/\u13f4/iu, 0x13f4, '\u13f4');
+assertMatches(/\u13f4/iu, 0x13fc, '\u13fc');
+assertMatches(/\u13fc/iu, 0x13f4, '\u13f4');
+assertMatches(/\u13fc/iu, 0x13fc, '\u13fc');
+assertMatches(/\u13f5/iu, 0x13f5, '\u13f5');
+assertMatches(/\u13f5/iu, 0x13fd, '\u13fd');
+assertMatches(/\u13fd/iu, 0x13f5, '\u13f5');
+assertMatches(/\u13fd/iu, 0x13fd, '\u13fd');
+
+assertMatches(/\u13f0/i, 0x13f0, '\u13f0');
+assertMatches(/\u13f0/i, 0x13f8, '\u13f8');
+assertMatches(/\u13f8/i, 0x13f0, '\u13f0');
+assertMatches(/\u13f8/i, 0x13f8, '\u13f8');
+assertMatches(/\u13f1/i, 0x13f1, '\u13f1');
+assertMatches(/\u13f1/i, 0x13f9, '\u13f9');
+assertMatches(/\u13f9/i, 0x13f1, '\u13f1');
+assertMatches(/\u13f9/i, 0x13f9, '\u13f9');
+assertMatches(/\u13f2/i, 0x13f2, '\u13f2');
+assertMatches(/\u13f2/i, 0x13fa, '\u13fa');
+assertMatches(/\u13fa/i, 0x13f2, '\u13f2');
+assertMatches(/\u13fa/i, 0x13fa, '\u13fa');
+assertMatches(/\u13f3/i, 0x13f3, '\u13f3');
+assertMatches(/\u13f3/i, 0x13fb, '\u13fb');
+assertMatches(/\u13fb/i, 0x13f3, '\u13f3');
+assertMatches(/\u13fb/i, 0x13fb, '\u13fb');
+assertMatches(/\u13f4/i, 0x13f4, '\u13f4');
+assertMatches(/\u13f4/i, 0x13fc, '\u13fc');
+assertMatches(/\u13fc/i, 0x13f4, '\u13f4');
+assertMatches(/\u13fc/i, 0x13fc, '\u13fc');
+assertMatches(/\u13f5/i, 0x13f5, '\u13f5');
+assertMatches(/\u13f5/i, 0x13fd, '\u13fd');
+assertMatches(/\u13fd/i, 0x13f5, '\u13f5');
+assertMatches(/\u13fd/i, 0x13fd, '\u13fd');
 
 // Latin extensions added in Unicode 7.0
-assertMatches(/\u{a796}/iu, 0xa796, '\u{a796}');
-assertMatches(/\u{a796}/iu, 0xa797, '\u{a797}');
-assertMatches(/\u{a797}/iu, 0xa796, '\u{a796}');
-assertMatches(/\u{a797}/iu, 0xa797, '\u{a797}');
-assertMatches(/\u{a798}/iu, 0xa798, '\u{a798}');
-assertMatches(/\u{a798}/iu, 0xa799, '\u{a799}');
-assertMatches(/\u{a799}/iu, 0xa798, '\u{a798}');
-assertMatches(/\u{a799}/iu, 0xa799, '\u{a799}');
-assertMatches(/\u{a79a}/iu, 0xa79a, '\u{a79a}');
-assertMatches(/\u{a79a}/iu, 0xa79b, '\u{a79b}');
-assertMatches(/\u{a79b}/iu, 0xa79a, '\u{a79a}');
-assertMatches(/\u{a79b}/iu, 0xa79b, '\u{a79b}');
-assertMatches(/\u{a79c}/iu, 0xa79c, '\u{a79c}');
-assertMatches(/\u{a79c}/iu, 0xa79d, '\u{a79d}');
-assertMatches(/\u{a79d}/iu, 0xa79c, '\u{a79c}');
-assertMatches(/\u{a79d}/iu, 0xa79d, '\u{a79d}');
-assertMatches(/\u{a79e}/iu, 0xa79e, '\u{a79e}');
-assertMatches(/\u{a79e}/iu, 0xa79f, '\u{a79f}');
-assertMatches(/\u{a79f}/iu, 0xa79e, '\u{a79e}');
-assertMatches(/\u{a79f}/iu, 0xa79f, '\u{a79f}');
+assertMatches(/\ua796/iu, 0xa796, '\ua796');
+assertMatches(/\ua796/iu, 0xa797, '\ua797');
+assertMatches(/\ua797/iu, 0xa796, '\ua796');
+assertMatches(/\ua797/iu, 0xa797, '\ua797');
+assertMatches(/\ua798/iu, 0xa798, '\ua798');
+assertMatches(/\ua798/iu, 0xa799, '\ua799');
+assertMatches(/\ua799/iu, 0xa798, '\ua798');
+assertMatches(/\ua799/iu, 0xa799, '\ua799');
+assertMatches(/\ua79a/iu, 0xa79a, '\ua79a');
+assertMatches(/\ua79a/iu, 0xa79b, '\ua79b');
+assertMatches(/\ua79b/iu, 0xa79a, '\ua79a');
+assertMatches(/\ua79b/iu, 0xa79b, '\ua79b');
+assertMatches(/\ua79c/iu, 0xa79c, '\ua79c');
+assertMatches(/\ua79c/iu, 0xa79d, '\ua79d');
+assertMatches(/\ua79d/iu, 0xa79c, '\ua79c');
+assertMatches(/\ua79d/iu, 0xa79d, '\ua79d');
+assertMatches(/\ua79e/iu, 0xa79e, '\ua79e');
+assertMatches(/\ua79e/iu, 0xa79f, '\ua79f');
+assertMatches(/\ua79f/iu, 0xa79e, '\ua79e');
+assertMatches(/\ua79f/iu, 0xa79f, '\ua79f');
+
+assertMatches(/\ua796/i, 0xa796, '\ua796');
+assertMatches(/\ua796/i, 0xa797, '\ua797');
+assertMatches(/\ua797/i, 0xa796, '\ua796');
+assertMatches(/\ua797/i, 0xa797, '\ua797');
+assertMatches(/\ua798/i, 0xa798, '\ua798');
+assertMatches(/\ua798/i, 0xa799, '\ua799');
+assertMatches(/\ua799/i, 0xa798, '\ua798');
+assertMatches(/\ua799/i, 0xa799, '\ua799');
+assertMatches(/\ua79a/i, 0xa79a, '\ua79a');
+assertMatches(/\ua79a/i, 0xa79b, '\ua79b');
+assertMatches(/\ua79b/i, 0xa79a, '\ua79a');
+assertMatches(/\ua79b/i, 0xa79b, '\ua79b');
+assertMatches(/\ua79c/i, 0xa79c, '\ua79c');
+assertMatches(/\ua79c/i, 0xa79d, '\ua79d');
+assertMatches(/\ua79d/i, 0xa79c, '\ua79c');
+assertMatches(/\ua79d/i, 0xa79d, '\ua79d');
+assertMatches(/\ua79e/i, 0xa79e, '\ua79e');
+assertMatches(/\ua79e/i, 0xa79f, '\ua79f');
+assertMatches(/\ua79f/i, 0xa79e, '\ua79e');
+assertMatches(/\ua79f/i, 0xa79f, '\ua79f');
 
 console.log("PASS");
