@@ -33,23 +33,17 @@ import "wtypes.idl";
 #define IDL_DEF(def)
 #endif
 
-#if defined(__midl)
 #define IDL_PAD1(num) byte struct_pad_##num;
 #define IDL_PAD2(num) short struct_pad_##num;
 #define IDL_PAD4(num) int struct_pad_##num;
-#else
-#define IDL_PAD1(num)
-#define IDL_PAD2(num)
-#define IDL_PAD4(num)
-#endif
 
-#if defined(__midl) && (defined(_M_X64) || defined(_M_ARM64))
+#if defined(_M_X64) || defined(_M_ARM64)
 #define X64_PAD4(num) int struct_pad_##num;
 #else
 #define X64_PAD4(num)
 #endif
 
-#if defined(__midl) && (defined(_M_IX86) || defined(_M_ARM))
+#if defined(_M_IX86) || defined(_M_ARM)
 #define X86_PAD4(num) int struct_pad_##num;
 #else
 #define X86_PAD4(num)

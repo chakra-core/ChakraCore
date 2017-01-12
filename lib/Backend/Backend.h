@@ -110,9 +110,6 @@ enum IRDumpFlags
 // BackEnd includes
 //
 
-#ifdef _WIN32
-#include "../JITIDL/JITTypes.h"
-#endif
 #include "JITTimeProfileInfo.h"
 #include "JITRecyclableObject.h"
 #include "JITTimeFixedField.h"
