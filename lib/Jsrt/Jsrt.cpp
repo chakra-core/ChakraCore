@@ -3433,7 +3433,7 @@ CHAKRA_API JsTTDNotifyContextDestroy(_In_ JsContextRef context)
     return JsErrorCategoryUsage;
 #else
     ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
-    if(threadContext->IsRuntimeInTTDMode())
+    if(threadContext && threadContext->IsRuntimeInTTDMode())
     {
         Js::ScriptContext* ctx = static_cast<JsrtContext*>(context)->GetScriptContext();
         threadContext->TTDContext->NotifyCtxDestroyInRecord(ctx);
