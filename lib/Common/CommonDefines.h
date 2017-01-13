@@ -621,7 +621,7 @@
 #define ASMJS_PLAT
 #endif
 
-#if defined(ASMJS_PLAT)
+#if defined(ASMJS_PLAT) && defined(_WIN32)
 #define ENABLE_WASM
 #endif
 
