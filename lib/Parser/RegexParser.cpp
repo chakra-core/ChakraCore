@@ -1694,7 +1694,14 @@ namespace UnifiedRegex
             case 'w':
                 {
                     MatchSetNode *setNode = Anew(ctAllocator, MatchSetNode, false, false);
-                    standardChars->SetWordChars(ctAllocator, setNode->set);
+                    if (this->unicodeFlagPresent && this->caseInsensitiveFlagPresent)
+                    {
+                        standardChars->SetWordIUChars(ctAllocator, setNode->set);
+                    }
+                    else
+                    {
+                        standardChars->SetWordChars(ctAllocator, setNode->set);
+                    }
                     node = setNode;
                     return false; // not an assertion
                 }
@@ -3006,7 +3013,14 @@ namespace UnifiedRegex
                 standardChars->SetNonDigits(ctAllocator, partialPrefixSetNode->set);
                 break;
             case 'W':
-                standardChars->SetNonWordChars(ctAllocator, partialPrefixSetNode->set);
+                if (this->caseInsensitiveFlagPresent)
+                {
+                    standardChars->SetNonWordIUChars(ctAllocator, partialPrefixSetNode->set);
+                }
+                else
+                {
+                    standardChars->SetNonWordChars(ctAllocator, partialPrefixSetNode->set);
+                }
                 break;
             default:
                 AssertMsg(false, "");
