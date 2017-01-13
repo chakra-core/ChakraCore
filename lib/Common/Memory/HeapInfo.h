@@ -506,7 +506,6 @@ inline char *
 HeapInfo::MediumAlloc(Recycler * recycler, size_t sizeCat, size_t size)
 {
     auto& bucket = this->GetMediumBucket<(ObjectInfoBits)(attributes & GetBlockTypeBitMask)>(sizeCat);
-
     return bucket.template RealAlloc<attributes, nothrow>(recycler, sizeCat, size);
 }
 

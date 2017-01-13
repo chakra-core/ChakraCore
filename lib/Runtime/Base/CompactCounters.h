@@ -24,13 +24,13 @@ namespace Js
             Fields() {}
         };
 
-        uint8 fieldSize;
+        FieldWithBarrier(uint8) fieldSize;
 #if DBG
 
-        mutable bool bgThreadCallStarted;
-        bool isCleaningUp;
+        mutable FieldWithBarrier(bool) bgThreadCallStarted;
+        FieldWithBarrier(bool) isCleaningUp;
 #endif
-        WriteBarrierPtr<Fields> fields;
+        FieldWithBarrier(Fields*) fields;
 
         CompactCounters() { }
         CompactCounters(T* host)

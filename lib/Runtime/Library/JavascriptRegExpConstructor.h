@@ -56,16 +56,16 @@ namespace Js
 
         void EnsureValues();
 
-        UnifiedRegex::RegexPattern* lastPattern;
-        JavascriptString* lastInput;
-        UnifiedRegex::GroupInfo lastMatch;
-        bool reset; // true if following fields must be recalculated from above before first use
-        Var lastParen;
-        Var lastIndex;
-        Var index;
-        Var leftContext;
-        Var rightContext;
-        Var captures[NumCtorCaptures];
+        Field(UnifiedRegex::RegexPattern*) lastPattern;
+        Field(JavascriptString*) lastInput;
+        Field(UnifiedRegex::GroupInfo) lastMatch;
+        Field(bool) reset; // true if following fields must be recalculated from above before first use
+        Field(Var) lastParen;
+        Field(Var) lastIndex;
+        Field(Var) index;
+        Field(Var) leftContext;
+        Field(Var) rightContext;
+        Field(Var) captures[NumCtorCaptures];
     };
 
     class JavascriptRegExpConstructorProperties

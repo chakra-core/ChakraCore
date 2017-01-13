@@ -68,8 +68,9 @@ public:
             IR::Instr *     ChangeToHelperCall(IR::Instr * instr, IR::JnHelperMethod helperMethod, IR::LabelInstr *labelBailOut = nullptr,
                                                IR::Opnd *opndInstance = nullptr, IR::PropertySymOpnd * propSymOpnd = nullptr, bool isHelperContinuation = false);
             IR::Instr *     ChangeToHelperCallMem(IR::Instr * instr, IR::JnHelperMethod helperMethod);
-    static  IR::Instr *     CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt);
+    static  IR::Instr *     CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, bool generateWriteBarrier = true);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr);
+    static  IR::Instr *     ChangeToAssignNoBarrierCheck(IR::Instr * instr);
     static  IR::Instr *     ChangeToAssign(IR::Instr * instr, IRType type);
     static  IR::Instr *     ChangeToLea(IR::Instr *const instr, bool postRegAlloc = false);
     static  IR::Instr *     ForceDstToReg(IR::Instr *instr);
@@ -270,7 +271,7 @@ public:
             static void GenerateStFldFromLocalInlineCache(IR::Instr * instrStFld, IR::RegOpnd * opndBase, IR::Opnd * opndSrc, IR::RegOpnd * opndInlineCache, IR::LabelInstr * labelFallThru, bool isInlineSlot);
             void        GenerateFunctionObjectTest(IR::Instr * callInstr, IR::RegOpnd  *functionOpnd, bool isHelper, IR::LabelInstr* continueAfterExLabel = nullptr);
 
-            static void ChangeToWriteBarrierAssign(IR::Instr * assignInstr);
+            static IR::Instr * ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func);
 
             int                 GetHelperArgsCount() { return this->helperCallArgsCount; }
             void                ResetHelperArgsCount() { this->helperCallArgsCount = 0; }

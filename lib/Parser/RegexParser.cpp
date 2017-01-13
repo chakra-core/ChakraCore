@@ -3052,7 +3052,7 @@ namespace UnifiedRegex
         if (litbuf != 0)
         {
             ctAllocator->Free(litbuf, litbufLen);
-            litbuf = 0;
+            litbuf = nullptr;
             litbufLen = 0;
             litbufNext = 0;
         }

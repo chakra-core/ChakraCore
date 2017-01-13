@@ -169,7 +169,7 @@ namespace Js
             return JavascriptBoolean::ToVar(FALSE, scriptContext);
         }
         FrameDisplay* frame = ((ScriptFunction*)function)->GetEnvironment();
-        Var* moduleArrayBuffer = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
+        Field(Var)* moduleArrayBuffer = (Field(Var)*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
         *moduleArrayBuffer = newArrayBuffer;
         return JavascriptBoolean::ToVar(TRUE, scriptContext);
     }

@@ -3235,7 +3235,7 @@ JsErrorCode RunSerializedScriptCore(
 
         SourceContextInfo *sourceContextInfo;
         SRCINFO *hsi;
-        Js::FunctionBody *functionBody = nullptr;
+        Field(Js::FunctionBody*) functionBody = nullptr;
 
         HRESULT hr;
 
@@ -3792,7 +3792,7 @@ CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(_In_ JsRuntimeHandle runtimeHandle,
 
 #ifdef __APPLE__
     //TODO: Explicit cast of ptr since compiler gets confused -- resolve in PAL later
-    static_assert(sizeof(int64_t) == sizeof(int64));
+    static_assert(sizeof(int64_t) == sizeof(int64), "int64_t and int64 size mis-match");
     *targetStartSnapTime = threadContext->TTDLog->FindSnapTimeForEventTime(*targetEventTime, (int64*)targetEndSnapTime);
 #else
     *targetStartSnapTime = threadContext->TTDLog->FindSnapTimeForEventTime(*targetEventTime, targetEndSnapTime);
@@ -3813,7 +3813,7 @@ CHAKRA_API JsTTDGetSnapShotBoundInterval(_In_ JsRuntimeHandle runtimeHandle, _In
 
 #ifdef __APPLE__
     //TODO: Explicit cast of ptr since compiler gets confused -- resolve in PAL later
-    static_assert(sizeof(int64_t) == sizeof(int64));
+    static_assert(sizeof(int64_t) == sizeof(int64), "int64_t and int64 size mis-match");
     threadContext->TTDLog->GetSnapShotBoundInterval(targetEventTime, (int64*)startSnapTime, (int64*)endSnapTime);
 #else
     threadContext->TTDLog->GetSnapShotBoundInterval(targetEventTime, startSnapTime, endSnapTime);

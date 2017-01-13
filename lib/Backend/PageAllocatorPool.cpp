@@ -86,7 +86,7 @@ PageAllocator* PageAllocatorPool::GetPageAllocator()
 void PageAllocatorPool::ReturnPageAllocator(PageAllocator* pageAllocator)
 {
     AutoCriticalSection autoCS(&cs);
-    if (!this->pageAllocators.PrependNoThrow(&HeapAllocator::Instance, pageAllocator))
+    if (!this->pageAllocators.PrependNoThrow(&NoThrowHeapAllocator::Instance, pageAllocator))
     {
         HeapDelete(pageAllocator);
     }

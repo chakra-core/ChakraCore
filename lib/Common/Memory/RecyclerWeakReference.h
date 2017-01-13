@@ -35,20 +35,19 @@ public:
 
 protected:
 
-    char* strongRef;
-    HeapBlock * strongRefHeapBlock;
-    HeapBlock * weakRefHeapBlock;
-    RecyclerWeakReferenceBase* next;
+    FieldNoBarrier(char*) strongRef;
+    FieldNoBarrier(HeapBlock *) strongRefHeapBlock;
+    FieldNoBarrier(HeapBlock *) weakRefHeapBlock;
+    FieldNoBarrier(RecyclerWeakReferenceBase*) next;
 #if DBG
 #if ENABLE_RECYCLER_TYPE_TRACKING
-    type_info const * typeInfo;
-#endif
-    
-#if defined TRACK_ALLOC && defined(PERF_COUNTERS)
-    PerfCounter::Counter * counter;
-#endif
+    FieldNoBarrier(type_info const *) typeInfo;
 #endif
 
+#if defined TRACK_ALLOC && defined(PERF_COUNTERS)
+    FieldNoBarrier(PerfCounter::Counter *) counter;
+#endif
+#endif
 };
 
 /// Wrapper class template that can be used to acquire the underlying strong reference from the weak reference

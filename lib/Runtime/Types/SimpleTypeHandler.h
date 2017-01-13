@@ -11,8 +11,8 @@ namespace Js
     {
         friend class NullTypeHandlerBase;
     private:
-        int propertyCount;
-        SimplePropertyDescriptor descriptors[size];
+        Field(int) propertyCount;
+        Field(SimplePropertyDescriptor) descriptors[size];
 
     public:
         DEFINE_GETCPPNAME();
@@ -23,10 +23,10 @@ namespace Js
         DEFINE_VTABLE_CTOR_NO_REGISTER(SimpleTypeHandler, DynamicTypeHandler);
 
     public:
-        SimpleTypeHandler(const PropertyRecord* id, PropertyAttributes attributes = PropertyNone, PropertyTypes propertyTypes = PropertyTypesNone, uint16 inlineSlotCapacity = 0, uint16 offsetOfInlineSlots = 0);
+        SimpleTypeHandler(NO_WRITE_BARRIER_TAG_TYPE(const PropertyRecord* id), PropertyAttributes attributes = PropertyNone, PropertyTypes propertyTypes = PropertyTypesNone, uint16 inlineSlotCapacity = 0, uint16 offsetOfInlineSlots = 0);
         // Constructor of a shared typed handler
 
-        SimpleTypeHandler(SimplePropertyDescriptor const (&SharedFunctionPropertyDescriptors)[size], PropertyTypes propertyTypes = PropertyTypesNone, uint16 inlineSlotCapacity = 0, uint16 offsetOfInlineSlots = 0);
+        SimpleTypeHandler(NO_WRITE_BARRIER_TAG_TYPE(SimplePropertyDescriptor const (&SharedFunctionPropertyDescriptors)[size]), PropertyTypes propertyTypes = PropertyTypesNone, uint16 inlineSlotCapacity = 0, uint16 offsetOfInlineSlots = 0);
 
         virtual BOOL IsLockable() const override { return true; }
         virtual BOOL IsSharable() const override { return true; }

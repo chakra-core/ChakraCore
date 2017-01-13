@@ -157,8 +157,8 @@ namespace Js
         static HRESULT SerializeToBuffer(ScriptContext * scriptContext, ArenaAllocator * alloc, DWORD sourceCodeLength, LPCUTF8 utf8Source, FunctionBody * function, SRCINFO const* srcInfo, bool allocateBuffer, byte ** buffer, DWORD * bufferBytes, DWORD dwFlags = 0);
 
         // Deserialize a function body. The content of utf8Source must be the same as was originally passed to SerializeToBuffer
-        static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
-        static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
+        static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
+        static HRESULT DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
 
         static FunctionBody* DeserializeFunction(ScriptContext* scriptContext, DeferDeserializeFunctionInfo* deferredFunction);
 
@@ -169,6 +169,6 @@ namespace Js
         static void ReadSourceInfo(const DeferDeserializeFunctionInfo* deferredFunction, int& lineNumber, int& columnNumber, bool& m_isEval, bool& m_isDynamicFunction);
 
     private:
-        static HRESULT DeserializeFromBufferInternal(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
+        static HRESULT DeserializeFromBufferInternal(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex = Js::Constants::InvalidSourceIndex);
     };
 }

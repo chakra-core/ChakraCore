@@ -9,6 +9,8 @@ class ServerThreadContext : public ThreadContextInfo
 {
 #if ENABLE_OOP_NATIVE_CODEGEN
 public:
+    typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
+
     ServerThreadContext(ThreadContextDataIDL * data);
     ~ServerThreadContext();
 

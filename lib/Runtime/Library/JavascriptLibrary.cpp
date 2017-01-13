@@ -25,44 +25,44 @@ namespace Js
 {
     SimplePropertyDescriptor const JavascriptLibrary::SharedFunctionPropertyDescriptors[2] =
     {
-        SimplePropertyDescriptor(BuiltInPropertyRecords::prototype, PropertyWritable),
-        SimplePropertyDescriptor(BuiltInPropertyRecords::name, PropertyConfigurable)
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyWritable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable)
     };
 
     SimplePropertyDescriptor const JavascriptLibrary::FunctionWithLengthAndNameTypeDescriptors[2] =
     {
-        SimplePropertyDescriptor(BuiltInPropertyRecords::length, PropertyConfigurable),
-        SimplePropertyDescriptor(BuiltInPropertyRecords::name, PropertyConfigurable)
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable)
     };
 
     SimplePropertyDescriptor const JavascriptLibrary::ModuleNamespaceTypeDescriptors[2] =
     {
-        SimplePropertyDescriptor(BuiltInPropertyRecords::_symbolToStringTag, PropertyConfigurable),
-        SimplePropertyDescriptor(BuiltInPropertyRecords::_symbolIterator, PropertyConfigurable)
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::_symbolToStringTag), PropertyConfigurable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::_symbolIterator), PropertyConfigurable)
     };
 
-    SimpleTypeHandler<1> JavascriptLibrary::SharedPrototypeTypeHandler(BuiltInPropertyRecords::constructor, PropertyWritable | PropertyConfigurable, PropertyTypesWritableDataOnly, 4, sizeof(DynamicObject));
-    SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithoutPrototypeTypeHandler(BuiltInPropertyRecords::name, PropertyConfigurable);
-    SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandlerV11(BuiltInPropertyRecords::prototype, PropertyWritable);
-    SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandler(SharedFunctionPropertyDescriptors);
-    SimpleTypeHandler<1> JavascriptLibrary::SharedIdMappedFunctionWithPrototypeTypeHandler(BuiltInPropertyRecords::prototype);
-    SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandler(BuiltInPropertyRecords::length);
-    SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandler(FunctionWithLengthAndNameTypeDescriptors);
-    SimpleTypeHandler<2> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(ModuleNamespaceTypeDescriptors);
+    SimpleTypeHandler<1> JavascriptLibrary::SharedPrototypeTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::constructor), PropertyWritable | PropertyConfigurable, PropertyTypesWritableDataOnly, 4, sizeof(DynamicObject));
+    SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithoutPrototypeTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::name), PropertyConfigurable);
+    SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandlerV11(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyWritable);
+    SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithPrototypeTypeHandler(NO_WRITE_BARRIER_TAG(SharedFunctionPropertyDescriptors));
+    SimpleTypeHandler<1> JavascriptLibrary::SharedIdMappedFunctionWithPrototypeTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype));
+    SimpleTypeHandler<1> JavascriptLibrary::SharedFunctionWithLengthTypeHandler(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length));
+    SimpleTypeHandler<2> JavascriptLibrary::SharedFunctionWithLengthAndNameTypeHandler(NO_WRITE_BARRIER_TAG(FunctionWithLengthAndNameTypeDescriptors));
+    SimpleTypeHandler<2> JavascriptLibrary::SharedNamespaceSymbolTypeHandler(NO_WRITE_BARRIER_TAG(ModuleNamespaceTypeDescriptors));
     MissingPropertyTypeHandler JavascriptLibrary::MissingPropertyHolderTypeHandler;
 
 
     SimplePropertyDescriptor const JavascriptLibrary::HeapArgumentsPropertyDescriptors[3] =
     {
-        SimplePropertyDescriptor(BuiltInPropertyRecords::length, PropertyConfigurable | PropertyWritable),
-        SimplePropertyDescriptor(BuiltInPropertyRecords::callee, PropertyConfigurable | PropertyWritable),
-        SimplePropertyDescriptor(BuiltInPropertyRecords::_symbolIterator, PropertyConfigurable | PropertyWritable)
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable | PropertyWritable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::callee), PropertyConfigurable | PropertyWritable),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::_symbolIterator), PropertyConfigurable | PropertyWritable)
     };
 
     SimplePropertyDescriptor const JavascriptLibrary::FunctionWithLengthAndPrototypeTypeDescriptors[2] =
     {
-        SimplePropertyDescriptor(BuiltInPropertyRecords::prototype, PropertyNone),
-        SimplePropertyDescriptor(BuiltInPropertyRecords::length, PropertyConfigurable)
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::prototype), PropertyNone),
+        SimplePropertyDescriptor(NO_WRITE_BARRIER_TAG(BuiltInPropertyRecords::length), PropertyConfigurable)
     };
 
     void JavascriptLibrary::Initialize(ScriptContext* scriptContext, GlobalObject * globalObject)
@@ -78,7 +78,7 @@ namespace Js
         typesEnsuredToHaveOnlyWritableDataPropertiesInItAndPrototypeChain = RecyclerNew(recycler, JsUtil::List<Type *>, recycler);
 
         // Library is not zero-initialized. memset the memory occupied by builtinFunctions array to 0.
-        memset(builtinFunctions, 0, sizeof(JavascriptFunction *) * BuiltinFunction::Count);
+        ClearArray(builtinFunctions, BuiltinFunction::Count);
 
         // Note: InitializePrototypes and InitializeTypes must be called first.
         InitializePrototypes();
@@ -1214,7 +1214,7 @@ namespace Js
 
         // Note: Any global function added/removed/changed here should also be updated in JavascriptLibrary::ProfilerRegisterBuiltinFunctions
         // so that the new functions show up in the profiler too.
-        JavascriptFunction ** builtinFuncs = this->GetBuiltinFunctions();
+        Field(JavascriptFunction*)* builtinFuncs = this->GetBuiltinFunctions();
 
         evalFunctionObject = AddFunctionToLibraryObject(globalObject, PropertyIds::eval, &GlobalObject::EntryInfo::Eval, 1);
         parseIntFunctionObject = AddFunctionToLibraryObject(globalObject, PropertyIds::parseInt, &GlobalObject::EntryInfo::ParseInt, 2);
@@ -1601,7 +1601,7 @@ namespace Js
         // so that the update is in sync with profiler
         ScriptContext* scriptContext = arrayConstructor->GetScriptContext();
         JavascriptLibrary* library = arrayConstructor->GetLibrary();
-        JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
         library->AddMember(arrayConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
         library->AddMember(arrayConstructor, PropertyIds::prototype, scriptContext->GetLibrary()->arrayPrototype, PropertyNone);
@@ -1644,7 +1644,7 @@ namespace Js
         JavascriptLibrary* library = arrayPrototype->GetLibrary();
         library->AddMember(arrayPrototype, PropertyIds::constructor, library->arrayConstructor);
 
-        JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
         builtinFuncs[BuiltinFunction::JavascriptArray_Push]               = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::push,            &JavascriptArray::EntryInfo::Push,              1);
         builtinFuncs[BuiltinFunction::JavascriptArray_Concat]             = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::concat,          &JavascriptArray::EntryInfo::Concat,            1);
@@ -2567,7 +2567,7 @@ namespace Js
         // so that the update is in sync with profiler
         ScriptContext* scriptContext = functionPrototype->GetScriptContext();
         JavascriptLibrary* library = functionPrototype->GetLibrary();
-        JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
         library->AddMember(functionPrototype, PropertyIds::constructor, library->functionConstructor);
         library->AddMember(functionPrototype, PropertyIds::length, TaggedInt::ToVarUnchecked(0), PropertyConfigurable);
@@ -2648,7 +2648,7 @@ namespace Js
         library->AddMember(mathObject, PropertyIds::SQRT1_2, JavascriptNumber::New(Math::SQRT1_2, scriptContext), PropertyNone);
         library->AddMember(mathObject, PropertyIds::SQRT2,   JavascriptNumber::New(Math::SQRT2,   scriptContext), PropertyNone);
 
-        JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
         builtinFuncs[BuiltinFunction::Math_Abs]    = library->AddFunctionToLibraryObject(mathObject, PropertyIds::abs,    &Math::EntryInfo::Abs,    1);
         builtinFuncs[BuiltinFunction::Math_Acos]   = library->AddFunctionToLibraryObject(mathObject, PropertyIds::acos,   &Math::EntryInfo::Acos,   1);
@@ -2867,7 +2867,7 @@ namespace Js
         JavascriptLibrary* library = simdObject->GetLibrary();
 
         // only functions to be inlined to be added to builtinFuncs
-        JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
         /*** Float32x4 ***/
         JavascriptFunction* float32x4Function = library->AddFunctionToLibraryObjectWithPrototype(simdObject, PropertyIds::Float32x4, &SIMDFloat32x4Lib::EntryInfo::Float32x4, 5, library->simdFloat32x4Prototype, nullptr);
@@ -3723,7 +3723,8 @@ namespace Js
 
 #if DBG
     /*static*/
-    void JavascriptLibrary::CheckRegisteredBuiltIns(JavascriptFunction** builtInFuncs, ScriptContext *scriptContext)
+    void JavascriptLibrary::CheckRegisteredBuiltIns(
+        Field(JavascriptFunction*)* builtInFuncs, ScriptContext *scriptContext)
     {
         byte count = BuiltinFunction::Count;
         for (byte index = 0; index < count; index++)
@@ -4210,7 +4211,7 @@ namespace Js
         // so that the update is in sync with profiler
         JavascriptFunction * func;
         JavascriptLibrary* library = regexPrototype->GetLibrary();
-        JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
         library->AddMember(regexPrototype, PropertyIds::constructor, library->regexConstructor);
         library->regexConstructorSlotIndex = 0;
@@ -4306,7 +4307,7 @@ namespace Js
         JavascriptLibrary* library = stringConstructor->GetLibrary();
         ScriptContext* scriptContext = stringConstructor->GetScriptContext();
 
-        JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
         library->AddMember(stringConstructor, PropertyIds::length, TaggedInt::ToVarUnchecked(1), PropertyNone);
         library->AddMember(stringConstructor, PropertyIds::prototype, library->stringPrototype, PropertyNone);
 
@@ -4336,7 +4337,7 @@ namespace Js
         // so that the update is in sync with profiler
         ScriptContext* scriptContext = stringPrototype->GetScriptContext();
         JavascriptLibrary* library = stringPrototype->GetLibrary();
-        JavascriptFunction ** builtinFuncs = library->GetBuiltinFunctions();
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
         library->AddMember(stringPrototype, PropertyIds::constructor, library->stringConstructor);
 
         builtinFuncs[BuiltinFunction::JavascriptString_IndexOf]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::indexOf,            &JavascriptString::EntryInfo::IndexOf,              1);
@@ -4678,7 +4679,7 @@ namespace Js
         }
 
         ConstructorCache* ctorCache = ((functionInfo->GetAttributes() & FunctionInfo::Attributes::SkipDefaultNewObject) != 0) ?
-            this->builtInConstructorCache : &ConstructorCache::DefaultInstance;
+            static_cast<ConstructorCache*>(this->builtInConstructorCache) : &ConstructorCache::DefaultInstance;
 
         DynamicType* type = DynamicType::New(scriptContext, TypeIds_Function, prototype, functionInfo->GetOriginalEntryPoint(), typeHandler);
 
@@ -5330,7 +5331,7 @@ namespace Js
 
     Js::RecyclableObject* JavascriptLibrary::CreateRevokeFunction_TTD(RecyclableObject* proxy)
     {
-        RuntimeFunction* revoker = RecyclerNewEnumClass(this->scriptContext->GetRecycler(), this->EnumFunctionClass, RuntimeFunction, this->CreateFunctionWithLengthType(&JavascriptProxy::EntryInfo::Revoke), &JavascriptProxy::EntryInfo::Revoke);
+        RuntimeFunction* revoker = RecyclerNewEnumClass(this->scriptContext->GetRecycler(), JavascriptLibrary::EnumFunctionClass, RuntimeFunction, this->CreateFunctionWithLengthType(&JavascriptProxy::EntryInfo::Revoke), &JavascriptProxy::EntryInfo::Revoke);
 
         revoker->SetPropertyWithAttributes(Js::PropertyIds::length, Js::TaggedInt::ToVarUnchecked(0), PropertyNone, NULL);
         revoker->SetInternalProperty(Js::InternalPropertyIds::RevocableProxy, proxy, PropertyOperationFlags::PropertyOperation_Force, nullptr);
@@ -6163,7 +6164,7 @@ namespace Js
     {
         Assert(scriptContext->GetConfig()->IsES6GeneratorsEnabled());
         DynamicType* generatorType = CreateGeneratorType(prototype);
-        return RecyclerNew(this->GetRecycler(), JavascriptGenerator, generatorType, args, scriptFunction);
+        return JavascriptGenerator::New(this->GetRecycler(), generatorType, args, scriptFunction);
     }
 
     JavascriptError* JavascriptLibrary::CreateError()
@@ -6867,7 +6868,7 @@ namespace Js
             || constructor == library->GetFloat64ArrayConstructor();
     }
 
-    JavascriptFunction ** JavascriptLibrary::GetBuiltinFunctions()
+    Field(JavascriptFunction*)* JavascriptLibrary::GetBuiltinFunctions()
     {
         AssertMsg(this->builtinFunctions, "builtinFunctions table must've been initialized as part of library initialization!");
         return this->builtinFunctions;
@@ -7026,7 +7027,8 @@ namespace Js
         // The last void* is the linklist connecting to next block.
         if (bindRefChunkCurrent == bindRefChunkEnd)
         {
-            void** tmpBindRefChunk = RecyclerNewArrayZ(recycler, void *, HeapConstants::ObjectGranularity / sizeof(void *));
+            Field(void*)* tmpBindRefChunk = RecyclerNewArrayZ(recycler,
+                Field(void*), HeapConstants::ObjectGranularity / sizeof(void *));
             // reserve the last void* as the linklist node.
             bindRefChunkEnd = tmpBindRefChunk + (HeapConstants::ObjectGranularity / sizeof(void *) -1 );
             if (bindRefChunkBegin == nullptr)

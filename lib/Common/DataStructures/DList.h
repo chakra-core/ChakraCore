@@ -59,6 +59,10 @@ public:
     template <typename TParam1, typename TParam2, typename TParam3, typename TParam4>
     DListNode(TParam1 param1, TParam2 param2, TParam3 param3, TParam4 param4) : data(param1, param2, param3, param4) {}
 
+    // Constructing with parameter
+    template <typename TParam1, typename TParam2, typename TParam3, typename TParam4, typename TParam5>
+    DListNode(TParam1 param1, TParam2 param2, TParam3 param3, TParam4 param4, TParam5 param5) : data(param1, param2, param3, param4, param5) {}
+
     // Constructing using copy constructor
     DListNode(TData const& data) : data(data) {};
     TData data;
@@ -299,6 +303,19 @@ public:
     TData * PrependNode(TAllocator * allocator, TParam1 param1, TParam2 param2, TParam3 param3, TParam4 param4)
     {
         Node * newNode = AllocatorNew(TAllocator, allocator, Node, param1, param2, param3, param4);
+        if (newNode)
+        {
+            DListBase::InsertNodeBefore(this->Next(), newNode);
+            this->IncrementCount();
+            return &newNode->data;
+        }
+        return nullptr;
+    }
+
+    template <typename TAllocator, typename TParam1, typename TParam2, typename TParam3, typename TParam4, typename TParam5>
+    TData * PrependNode(TAllocator * allocator, TParam1 param1, TParam2 param2, TParam3 param3, TParam4 param4, TParam5 param5)
+    {
+        Node * newNode = AllocatorNew(TAllocator, allocator, Node, param1, param2, param3, param4, param5);
         if (newNode)
         {
             DListBase::InsertNodeBefore(this->Next(), newNode);

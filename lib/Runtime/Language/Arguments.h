@@ -119,17 +119,28 @@ namespace Js
 
         Arguments(VirtualTableInfoCtorEnum v) : Info(v) {}
 
+        Arguments(const Arguments& other) : Info(other.Info), Values(other.Values) {}
+
         Var operator [](int idxArg) { return const_cast<Var>(static_cast<const Arguments&>(*this)[idxArg]); }
         const Var operator [](int idxArg) const
         {
             AssertMsg((idxArg < (int)Info.Count) && (idxArg >= 0), "Ensure a valid argument index");
             return Values[idxArg];
         }
-        CallInfo Info;
-        Var* Values;
+
+        // swb: Arguments is mostly used on stack and does not need write barrier.
+        // It is recycler allocated with ES6 generators. We handle that specially.
+        FieldNoBarrier(CallInfo) Info;
+        FieldNoBarrier(Var*) Values;
 
         static uint32 GetCallInfoOffset() { return offsetof(Arguments, Info); }
         static uint32 GetValuesOffset() { return offsetof(Arguments, Values); }
+
+        // Prevent heap/recycler allocation, so we don't need write barrier for this
+        static void* operator new   (size_t)    = delete;
+        static void* operator new[] (size_t)    = delete;
+        static void  operator delete   (void*)  = delete;
+        static void  operator delete[] (void*)  = delete;
     };
 
     struct ArgumentReader : public Arguments

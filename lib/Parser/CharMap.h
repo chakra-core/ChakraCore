@@ -229,10 +229,10 @@ namespace UnifiedRegex
             }
         };
 
-        BVStatic<directSize> isInMap;
-        V defv;
-        V directMap[directSize];
-        Node* root;
+        Field(BVStatic<directSize>) isInMap;
+        Field(V) defv;
+        Field(V) directMap[directSize];
+        FieldNoBarrier(Node*) root;
 
     public:
         CharMap(V defv)

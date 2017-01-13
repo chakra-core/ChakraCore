@@ -74,7 +74,9 @@ namespace Js
         m_scriptContext(scriptContext),
         m_utf8SourceInfo(utf8SourceInfo),
         m_functionNumber(functionNumber),
-        m_defaultEntryPointInfo(nullptr)
+        m_defaultEntryPointInfo(nullptr),
+        m_displayNameIsRecyclerAllocated(false),
+        m_tag11(true)
     {
         PERF_COUNTER_INC(Code, TotalFunction);
     }
@@ -503,7 +505,9 @@ namespace Js
         m_hasFuncExprScopeRegister(false),
         m_hasFirstTmpRegister(false),
         m_hasActiveReference(false),
-        m_tag(TRUE),
+        m_tag31(true),
+        m_tag32(true),
+        m_tag33(true),
         m_nativeEntryPointUsed(FALSE),
         bailOnMisingProfileCount(0),
         bailOnMisingProfileRejitCount(0),
@@ -642,8 +646,10 @@ namespace Js
         m_hasFuncExprScopeRegister(false),
         m_hasFirstTmpRegister(false),
         m_hasActiveReference(false),
-        m_tag(TRUE),
-        m_nativeEntryPointUsed(FALSE),
+        m_tag31(true),
+        m_tag32(true),
+        m_tag33(true),
+        m_nativeEntryPointUsed(false),
         bailOnMisingProfileCount(0),
         bailOnMisingProfileRejitCount(0),
         byteCodeBlock(nullptr),
@@ -756,7 +762,7 @@ namespace Js
         return !!pActiveFuncs->TestAndSet(this->GetFunctionNumber());
     }
 
-    void FunctionBody::UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *parentData, FunctionCodeGenRuntimeData **dataSet, uint count) const
+    void FunctionBody::UpdateActiveFunctionsForOneDataSet(ActiveFunctionSet *pActiveFuncs, FunctionCodeGenRuntimeData *parentData, Field(FunctionCodeGenRuntimeData*)* dataSet, uint count) const
     {
         FunctionCodeGenRuntimeData *inlineeData;
         for (uint i = 0; i < count; i++)
@@ -793,15 +799,19 @@ namespace Js
         {
             return;
         }
-        FunctionCodeGenRuntimeData **data = this->GetCodeGenRuntimeData();
-        if (data != nullptr)
         {
-            this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetProfiledCallSiteCount());
+            Field(FunctionCodeGenRuntimeData*)* data = this->GetCodeGenRuntimeData();
+            if (data != nullptr)
+            {
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetProfiledCallSiteCount());
+            }
         }
-        data = this->GetCodeGenGetSetRuntimeData();
-        if (data != nullptr)
         {
-            this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetInlineCacheCount());
+            Field(FunctionCodeGenRuntimeData*)* data = this->GetCodeGenGetSetRuntimeData();
+            if (data != nullptr)
+            {
+                this->UpdateActiveFunctionsForOneDataSet(pActiveFuncs, nullptr, data, this->GetInlineCacheCount());
+            }
         }
     }
 
@@ -1134,7 +1144,7 @@ namespace Js
         m_DEBUG_executionCount++;
 #endif
         // Don't allow loop headers to be released while the function is executing
-        ::InterlockedIncrement(this->m_depth.AddressOf());
+        ::InterlockedIncrement(&this->m_depth);
     }
 
 
@@ -1186,7 +1196,7 @@ namespace Js
 
         m_DEBUG_executionCount--;
 #endif
-        uint depth = ::InterlockedDecrement(this->m_depth.AddressOf());
+        uint depth = ::InterlockedDecrement(&this->m_depth);
 
         // If loop headers were determined to be no longer needed
         // during the execution of the function, we release them now
@@ -1535,7 +1545,8 @@ namespace Js
       scopeSlotArraySize(0),
       paramScopeSlotArraySize(0),
       m_reparsed(false),
-      m_isAsmJsFunction(false)
+      m_isAsmJsFunction(false),
+      m_tag21(true)
 #if DBG
       ,m_wasEverAsmjsMode(false)
       ,scopeObjectSize(0)
@@ -1584,7 +1595,8 @@ namespace Js
       m_isNameIdentifierRef (proxy->GetIsNameIdentifierRef()),
       m_isStaticNameFunction(proxy->GetIsStaticNameFunction()),
       m_reportedInParamCount(proxy->GetReportedInParamsCount()),
-      m_reparsed(proxy->IsReparsed())
+      m_reparsed(proxy->IsReparsed()),
+      m_tag21(true)
 #if DBG
       ,m_wasEverAsmjsMode(proxy->m_wasEverAsmjsMode)
 #endif
@@ -2037,7 +2049,7 @@ namespace Js
     {
         this->m_displayNameLength = displayNameLength;
         this->m_displayShortNameOffset = displayShortNameOffset;
-        FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
+        this->m_displayNameIsRecyclerAllocated = FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
     }
 
     LPCWSTR DeferDeserializeFunctionInfo::GetSourceInfo(int& lineNumber, int& columnNumber) const
@@ -2153,18 +2165,18 @@ namespace Js
 
             if (!this->GetSourceContextInfo()->IsDynamic())
             {
-                PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d; Is Top Level: %s; Source Url: %s\n"), m_functionNumber, m_displayName, this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"), this->GetSourceContextInfo()->url);
+                PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d; Is Top Level: %s; Source Url: %s\n"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"), this->GetSourceContextInfo()->url);
             }
             else
             {
-                PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;"), m_functionNumber, m_displayName, this->m_cchLength, this->GetNestedCount(),  this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"));
+                PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(),  this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"));
             }
 
             if (!this->GetIsTopLevel() &&
                 !this->GetSourceContextInfo()->IsDynamic() &&
                 this->m_scriptContext->DoUndeferGlobalFunctions())
             {
-                this->GetUtf8SourceInfo()->UndeferGlobalFunctions([this](JsUtil::SimpleDictionaryEntry<Js::LocalFunctionId, Js::ParseableFunctionInfo*> func)
+                this->GetUtf8SourceInfo()->UndeferGlobalFunctions([this](const Utf8SourceInfo::DeferredFunctionsDictionary::EntryType& func)
                 {
                     Js::ParseableFunctionInfo *nextFunc = func.Value();
                     JavascriptExceptionObject* pExceptionObject = nullptr;
@@ -2409,11 +2421,11 @@ namespace Js
 
         if (!this->GetSourceContextInfo()->IsDynamic())
         {
-            PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d; Is Top Level: %s; Source Url: %s\n"), m_functionNumber, m_displayName, this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"), this->GetSourceContextInfo()->url);
+            PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d; Is Top Level: %s; Source Url: %s\n"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"), this->GetSourceContextInfo()->url);
         }
         else
         {
-            PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;"), m_functionNumber, m_displayName, this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"));
+            PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"));
         }
 
 #if ENABLE_PROFILE_INFO
@@ -2601,7 +2613,7 @@ namespace Js
         }
     }
 
-    void FunctionProxy::SetDisplayName(const char16* srcName, WriteBarrierPtr<const char16>* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags /* default to None */)
+    bool FunctionProxy::SetDisplayName(const char16* srcName, WriteBarrierPtr<const char16>* destName, uint displayNameLength, ScriptContext * scriptContext, SetDisplayNameFlags flags /* default to None */)
     {
         const char16* dest = nullptr;
         bool targetIsRecyclerMemory = SetDisplayName(srcName, &dest, displayNameLength, scriptContext, flags);
@@ -2614,6 +2626,7 @@ namespace Js
         {
             destName->NoWriteBarrierSet(dest);
         }
+        return targetIsRecyclerMemory;
     }
     void ParseableFunctionInfo::SetDisplayName(const char16* pszDisplayName)
     {
@@ -2629,7 +2642,8 @@ namespace Js
     {
         this->m_displayNameLength = displayNameLength;
         this->m_displayShortNameOffset = displayShortNameOffset;
-        FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
+
+        this->m_displayNameIsRecyclerAllocated = FunctionProxy::SetDisplayName(pszDisplayName, &this->m_displayName, displayNameLength, m_scriptContext, flags);
     }
 
     // SourceInfo methods
@@ -3087,7 +3101,7 @@ namespace Js
     {
         // Safe to be used by the JIT thread
         Assert(this->GetConstTable() != nullptr);
-        return (Js::RootObjectBase *)this->GetConstTable()[Js::FunctionBody::RootObjectRegSlot - FunctionBody::FirstRegSlot];
+        return (Js::RootObjectBase *)PointerValue(this->GetConstTable()[Js::FunctionBody::RootObjectRegSlot - FunctionBody::FirstRegSlot]);
     }
 
     Js::RootObjectBase * FunctionBody::LoadRootObject() const
@@ -3328,7 +3342,7 @@ namespace Js
     {
         if (this->NeedEnsureDynamicProfileInfo())
         {
-            m_scriptContext->AddDynamicProfileInfo(this, &this->dynamicProfileInfo);
+            m_scriptContext->AddDynamicProfileInfo(this, this->dynamicProfileInfo);
             Assert(!this->HasExecutionDynamicProfileInfo());
             this->hasExecutionDynamicProfileInfo = true;
         }
@@ -5375,7 +5389,7 @@ namespace Js
     {
         int indent = (GetScopeDepth() - 1) * 4;
 
-        Output::Print(indent, _u("Begin scope: Address: %p Type: %s Location: %d Sibling: %p Range: [%d, %d]\n "), this, GetDebuggerScopeTypeString(scopeType), scopeLocation, this->siblingScope, range.begin, range.end);
+        Output::Print(indent, _u("Begin scope: Address: %p Type: %s Location: %d Sibling: %p Range: [%d, %d]\n "), this, GetDebuggerScopeTypeString(scopeType), scopeLocation, PointerValue(this->siblingScope), range.begin, range.end);
         if (this->HasProperties())
         {
             this->scopeProperties->Map( [=] (int i, Js::DebuggerScopeProperty& scopeProperty) {
@@ -6074,17 +6088,17 @@ namespace Js
         return IncObjLiteralCount();
     }
 
-    DynamicType ** FunctionBody::GetObjectLiteralTypeRef(uint index)
+    Field(DynamicType*)* FunctionBody::GetObjectLiteralTypeRef(uint index)
     {
         Assert(index < GetObjLiteralCount());
-        DynamicType ** literalTypes = this->GetObjectLiteralTypes();
+        auto literalTypes = this->GetObjectLiteralTypes();
         Assert(literalTypes != nullptr);
         return literalTypes + index;
     }
-    DynamicType ** FunctionBody::GetObjectLiteralTypeRefWithLock(uint index)
+    Field(DynamicType*)* FunctionBody::GetObjectLiteralTypeRefWithLock(uint index)
     {
         Assert(index < GetObjLiteralCount());
-        DynamicType ** literalTypes = this->GetObjectLiteralTypesWithLock();
+        auto literalTypes = this->GetObjectLiteralTypesWithLock();
         Assert(literalTypes != nullptr);
         return literalTypes + index;
     }
@@ -6317,7 +6331,7 @@ namespace Js
     {
         Assert(inlineCacheIndex < this->GetInlineCacheCount());
 
-        FunctionCodeGenRuntimeData ** data = (FunctionCodeGenRuntimeData **)this->GetCodeGenGetSetRuntimeDataWithLock();
+        auto data = this->GetCodeGenGetSetRuntimeDataWithLock();
         return (data != nullptr) ? data[inlineCacheIndex] : nullptr;
     }
 
@@ -6336,7 +6350,7 @@ namespace Js
             this->SetCodeGenGetSetRuntimeData(codeGenRuntimeData);
         }
 
-        FunctionCodeGenRuntimeData **codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
+        auto codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
         const auto inlineeData = codeGenGetSetRuntimeData[inlineCacheIndex];
         if (inlineeData)
         {
@@ -6950,7 +6964,7 @@ namespace Js
             scale -= limitScale;
             Assert(limit == 0 || scale == 0);
 
-            if(&limit == simpleJitLimit.AddressOf())
+            if(&limit == &simpleJitLimit)
             {
                 FunctionEntryPointInfo *const simpleJitEntryPointInfo = GetSimpleJitEntryPointInfo();
                 if(GetDefaultFunctionEntryPointInfo() == simpleJitEntryPointInfo)
@@ -7059,12 +7073,12 @@ namespace Js
     {
         Assert(initializedExecutionModeAndLimits);
         Assert(
-            &limit == interpreterLimit.AddressOf() ||
-            &limit == autoProfilingInterpreter0Limit.AddressOf() ||
-            &limit == profilingInterpreter0Limit.AddressOf() ||
-            &limit == autoProfilingInterpreter1Limit.AddressOf() ||
-            &limit == simpleJitLimit.AddressOf() ||
-            &limit == profilingInterpreter1Limit.AddressOf());
+            &limit == &interpreterLimit ||
+            &limit == &autoProfilingInterpreter0Limit ||
+            &limit == &profilingInterpreter0Limit ||
+            &limit == &autoProfilingInterpreter1Limit ||
+            &limit == &simpleJitLimit ||
+            &limit == &profilingInterpreter1Limit);
 
         const uint16 clampedExecutedIterations = executedIterations >= limit ? limit : static_cast<uint16>(executedIterations);
         Assert(fullJitThreshold >= clampedExecutedIterations);
@@ -7072,9 +7086,9 @@ namespace Js
         limit -= clampedExecutedIterations;
         VerifyExecutionModeLimits();
 
-        if(&limit == profilingInterpreter0Limit.AddressOf() ||
-            (!CONFIG_FLAG(NewSimpleJit) && &limit == simpleJitLimit.AddressOf()) ||
-            &limit == profilingInterpreter1Limit.AddressOf())
+        if(&limit == &profilingInterpreter0Limit ||
+            (!CONFIG_FLAG(NewSimpleJit) && &limit == &simpleJitLimit) ||
+            &limit == &profilingInterpreter1Limit)
         {
             const uint16 newCommittedProfiledIterations = committedProfiledIterations + clampedExecutedIterations;
             committedProfiledIterations =
@@ -7689,12 +7703,12 @@ namespace Js
             }
         }
 
-        FunctionCodeGenRuntimeData **codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
+        auto codeGenGetSetRuntimeData = this->GetCodeGenGetSetRuntimeData();
         if (codeGenGetSetRuntimeData != nullptr)
         {
             for (uint i = 0; i < this->GetInlineCacheCount(); i++)
             {
-                const FunctionCodeGenRuntimeData* runtimeData = codeGenGetSetRuntimeData[i];
+                auto runtimeData = codeGenGetSetRuntimeData[i];
                 if (nullptr != runtimeData)
                 {
                     runtimeData->MapInlineCaches([&](InlineCache* inlineCache)
@@ -8317,7 +8331,7 @@ namespace Js
             return;
         }
 
-        this->utilArray = RecyclerNewArrayZ(recycler, byte, functionBody->GetInlineCacheCount());
+        this->utilArray = RecyclerNewArrayLeafZ(recycler, byte, functionBody->GetInlineCacheCount());
     }
 
 #if ENABLE_NATIVE_CODEGEN
@@ -8459,7 +8473,7 @@ namespace Js
             // The original heap allocated array will be freed at the end of NativeCodeGenerator::CheckCodeGenDone
             void** jitPinnedTypeRefs = this->jitTransferData->GetRuntimeTypeRefs();
             size_t jitPinnedTypeRefCount = this->jitTransferData->GetRuntimeTypeRefCount();
-            this->runtimeTypeRefs = RecyclerNewArray(recycler, void*, jitPinnedTypeRefCount + 1);
+            this->runtimeTypeRefs = RecyclerNewArray(recycler, Field(void*), jitPinnedTypeRefCount + 1);
             //js_memcpy_s(this->runtimeTypeRefs, jitPinnedTypeRefCount * sizeof(void*), jitPinnedTypeRefs, jitPinnedTypeRefCount * sizeof(void*));
             for (size_t i = 0; i < jitPinnedTypeRefCount; i++)
             {
@@ -8584,7 +8598,7 @@ namespace Js
         if (jitTransferData->typeGuardTransferData.entries != nullptr)
         {
             this->propertyGuardCount = jitTransferData->typeGuardTransferData.propertyGuardCount;
-            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), FakePropertyGuardWeakReference*, this->propertyGuardCount);
+            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(FakePropertyGuardWeakReference*), this->propertyGuardCount);
             ThreadContext* threadContext = scriptContext->GetThreadContext();
             auto next = &jitTransferData->typeGuardTransferData.entries;
             while (*next)
@@ -8634,7 +8648,7 @@ namespace Js
         if (this->jitTransferData->propertyGuardsByPropertyId != nullptr)
         {
             this->propertyGuardCount = this->jitTransferData->propertyGuardCount;
-            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), FakePropertyGuardWeakReference*, this->propertyGuardCount);
+            this->propertyGuardWeakRefs = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(FakePropertyGuardWeakReference*), this->propertyGuardCount);
 
             ThreadContext* threadContext = scriptContext->GetThreadContext();
 
@@ -9020,7 +9034,7 @@ namespace Js
                 else
                 {
                     HeapDeletePlus(offsetof(PinnedTypeRefsIDL, typeRefs) + sizeof(void*)*jitTransferData->runtimeTypeRefs->count - sizeof(PinnedTypeRefsIDL),
-                        jitTransferData->runtimeTypeRefs);
+                        PointerValue(jitTransferData->runtimeTypeRefs));
                 }
                 jitTransferData->runtimeTypeRefs = nullptr;
             }
@@ -9574,6 +9588,19 @@ namespace Js
                 Assert(this->validationCookie != nullptr);
                 currentCookie = (void*)currentNativeCodegen;
 #endif
+
+                if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
+                {
+#if DBG
+                    // tag the jsMethod in case the native address is reused in recycler and create a false positive
+                    // not checking validationCookie because this can happen while debugger attaching, native address
+                    // are batch freed through deleting NativeCodeGenerator
+                    this->jsMethod = (Js::JavascriptMethod)((intptr_t)this->jsMethod | 1);
+#else
+                    this->jsMethod = nullptr;
+#endif
+                }
+
                 if (validationCookie == currentCookie)
                 {
                     scriptContext->FreeFunctionEntryPoint((Js::JavascriptMethod)this->GetNativeAddress());
@@ -9772,7 +9799,7 @@ namespace Js
                 }
                 else
                 {
-                    Assert(!functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo() || 
+                    Assert(!functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo() ||
                         ((FunctionEntryPointInfo*)functionType->GetEntryPointInfo())->IsCleanedUp()
                         || (DWORD_PTR)functionType->GetEntryPoint() != this->GetNativeAddress());
                 }
@@ -9881,6 +9908,18 @@ namespace Js
                 Assert(this->validationCookie != nullptr);
                 currentCookie = (void*)currentNativeCodegen;
 #endif
+
+                if (this->jsMethod == reinterpret_cast<Js::JavascriptMethod>(this->GetNativeAddress()))
+                {
+#if DBG
+                    // tag the jsMethod in case the native address is reused in recycler and create a false positive
+                    // not checking validationCookie because this can happen while debugger attaching, native address
+                    // are batch freed through deleting NativeCodeGenerator
+                    this->jsMethod = (Js::JavascriptMethod)((intptr_t)this->jsMethod | 1);
+#else
+                    this->jsMethod = nullptr;
+#endif
+                }
 
                 if (validationCookie == currentCookie)
                 {

@@ -84,9 +84,8 @@
     <default>
       <tags>StackTrace,exclude_ship</tags>
       <files>StackTraceLimitOOS.js</files>
-      <compile-flags>-ExtendedErrorStackForTestHost -on:interruptprobe</compile-flags>
       <baseline>StackTraceLimitOOS.baseline</baseline>
-      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
+      <compile-flags>-ExtendedErrorStackForTestHost -on:interruptprobe</compile-flags>
     </default>
   </test>
   <test>

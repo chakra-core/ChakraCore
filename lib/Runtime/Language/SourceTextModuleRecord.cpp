@@ -115,9 +115,13 @@ namespace Js
 
                 LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
                     (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
+
+                Utf8SourceInfo* pResultSourceInfo = nullptr;
                 this->parseTree = scriptContext->ParseScript(parser, sourceText,
-                    sourceLength, srcInfo, &se, &pSourceInfo, _u("module"),
+                    sourceLength, srcInfo, &se, &pResultSourceInfo, _u("module"),
                     loadScriptFlag, &sourceIndex, nullptr);
+                this->pSourceInfo = pResultSourceInfo;
+
                 if (parseTree == nullptr)
                 {
                     hr = E_FAIL;
@@ -264,8 +268,8 @@ namespace Js
     ModuleNamespace* SourceTextModuleRecord::GetNamespace()
     {
         Assert(localExportSlots != nullptr);
-        Assert(static_cast<ModuleNamespace*>(localExportSlots[GetLocalExportSlotCount()]) == __super::GetNamespace());
-        return static_cast<ModuleNamespace*>(localExportSlots[GetLocalExportSlotCount()]);
+        Assert(PointerValue(localExportSlots[GetLocalExportSlotCount()]) == __super::GetNamespace());
+        return (ModuleNamespace*)(void*)(localExportSlots[GetLocalExportSlotCount()]);
     }
 
     void SourceTextModuleRecord::SetNamespace(ModuleNamespace* moduleNamespace)
@@ -415,7 +419,7 @@ namespace Js
             Assert(*exportRecord == nullptr);
             return true;
         }
-        resolveSet->Prepend({ this, exportName });
+        resolveSet->Prepend(ModuleNameRecord(this, exportName));
 
         if (localExportRecordList != nullptr)
         {
@@ -856,7 +860,7 @@ namespace Js
                 });
             }
             // Namespace object will be added to the end of the array though invisible through namespace object itself.
-            localExportSlots = RecyclerNewArray(recycler, Var, currentSlotCount + 1);
+            localExportSlots = RecyclerNewArray(recycler, Field(Var), currentSlotCount + 1);
             for (uint i = 0; i < currentSlotCount; i++)
             {
                 localExportSlots[i] = undefineValue;

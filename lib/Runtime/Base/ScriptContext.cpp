@@ -1227,7 +1227,7 @@ namespace Js
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         if (DynamicProfileInfo::NeedProfileInfoList())
         {
-            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), SListBase<DynamicProfileInfo *>), recycler);
+            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), DynamicProfileInfoList), recycler);
         }
 #endif
 #endif
@@ -2324,13 +2324,13 @@ namespace Js
         EnsureDynamicSourceContextInfoMap();
         if (this->GetSourceContextInfo(hash) != nullptr)
         {
-            return const_cast<SourceContextInfo*>(this->cache->noContextSourceContextInfo);
+            return this->cache->noContextSourceContextInfo;
         }
 
         if (this->cache->dynamicSourceContextInfoMap->Count() > INMEMORY_CACHE_MAX_PROFILE_MANAGER)
         {
             OUTPUT_TRACE(Js::DynamicProfilePhase, _u("Max of dynamic script profile info reached.\n"));
-            return const_cast<SourceContextInfo*>(this->cache->noContextSourceContextInfo);
+            return this->cache->noContextSourceContextInfo;
         }
 
         // This is capped so we can continue allocating in the arena
@@ -2406,7 +2406,7 @@ namespace Js
     {
         if (sourceContext == Js::Constants::NoHostSourceContext)
         {
-            return const_cast<SourceContextInfo*>(this->cache->noContextSourceContextInfo);
+            return this->cache->noContextSourceContextInfo;
         }
 
         // We only init sourceContextInfoMap, don't need to lock.
@@ -2439,8 +2439,8 @@ namespace Js
             {
                 uint newCount = moduleID + 4;  // Preallocate 4 more slots, moduleID don't usually grow much
 
-                SRCINFO const ** newModuleSrcInfo = RecyclerNewArrayZ(this->GetRecycler(), SRCINFO const*, newCount);
-                memcpy(newModuleSrcInfo, cache->moduleSrcInfo, sizeof(SRCINFO const *)* moduleSrcInfoCount);
+                Field(SRCINFO const *)* newModuleSrcInfo = RecyclerNewArrayZ(this->GetRecycler(), Field(SRCINFO const*), newCount);
+                CopyArray(newModuleSrcInfo, newCount, cache->moduleSrcInfo, moduleSrcInfoCount);
                 cache->moduleSrcInfo = newModuleSrcInfo;
                 moduleSrcInfoCount = newCount;
                 cache->moduleSrcInfo[0] = this->cache->noContextGlobalSourceInfo;
@@ -4840,12 +4840,14 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     }
 
 #if ENABLE_PROFILE_INFO
-    void ScriptContext::AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo)
+    template<template<typename> class BarrierT>
+    void ScriptContext::AddDynamicProfileInfo(
+        FunctionBody * functionBody, BarrierT<DynamicProfileInfo>& dynamicProfileInfo)
     {
         Assert(functionBody->GetScriptContext() == this);
         Assert(functionBody->HasValidSourceInfo());
 
-        DynamicProfileInfo * newDynamicProfileInfo = *dynamicProfileInfo;
+        DynamicProfileInfo * newDynamicProfileInfo = dynamicProfileInfo;
         // If it is a dynamic script - we should create a profile info bound to the threadContext for its lifetime.
         SourceContextInfo* sourceContextInfo = functionBody->GetSourceContextInfo();
         SourceDynamicProfileManager* profileManager = sourceContextInfo->sourceDynamicProfileManager;
@@ -4858,7 +4860,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 {
                     newDynamicProfileInfo = DynamicProfileInfo::New(this->GetRecycler(), functionBody, true /* persistsAcrossScriptContexts */);
                     profileManager->UpdateDynamicProfileInfo(functionBody->GetLocalFunctionId(), newDynamicProfileInfo);
-                    *dynamicProfileInfo = newDynamicProfileInfo;
+                    dynamicProfileInfo = newDynamicProfileInfo;
                 }
                 profileManager->MarkAsExecuted(functionBody->GetLocalFunctionId());
                 newDynamicProfileInfo->UpdateFunctionInfo(functionBody, this->GetRecycler());
@@ -4869,7 +4871,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 {
                     newDynamicProfileInfo = functionBody->AllocateDynamicProfile();
                 }
-                *dynamicProfileInfo = newDynamicProfileInfo;
+                dynamicProfileInfo = newDynamicProfileInfo;
             }
         }
         else
@@ -4877,7 +4879,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             if (newDynamicProfileInfo == nullptr)
             {
                 newDynamicProfileInfo = functionBody->AllocateDynamicProfile();
-                *dynamicProfileInfo = newDynamicProfileInfo;
+                dynamicProfileInfo = newDynamicProfileInfo;
             }
             Assert(functionBody->GetInterpretedCount() == 0);
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
@@ -4892,8 +4894,9 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 profileManager->MarkAsExecuted(functionBody->GetLocalFunctionId());
             }
         }
-        Assert(*dynamicProfileInfo != nullptr);
+        Assert(dynamicProfileInfo != nullptr);
     }
+    template void  ScriptContext::AddDynamicProfileInfo<WriteBarrierPtr>(FunctionBody *, WriteBarrierPtr<DynamicProfileInfo>&);
 #endif
 
     CharClassifier const * ScriptContext::GetCharClassifier(void) const
@@ -5937,7 +5940,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return nameLen;
     }
 
-    Js::Var* ScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
+    Field(Js::Var)* ScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
     {
         Js::SourceTextModuleRecord* moduleRecord = this->GetModuleRecord(moduleIndex);
         Assert(moduleRecord != nullptr);

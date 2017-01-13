@@ -18,7 +18,7 @@ namespace Js
         ScriptContext* scriptContext, bool isLibraryCode, Js::Var scriptSource):
         sourceHolder(mappableSource),
         m_cchLength(cchLength),
-        m_pOriginalSourceInfo(nullptr),
+        m_pHostBuffer(nullptr),
         m_srcInfo(srcInfo),
         m_secondaryHostSourceContext(secondaryHostSourceContext),
         m_debugDocument(nullptr),

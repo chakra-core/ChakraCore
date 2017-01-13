@@ -575,5 +575,5 @@ RegNum LinearScanMD::GetRegisterFromSaveIndex(uint offset)
 
 RegNum LinearScanMD::GetParamReg(IR::SymOpnd *symOpnd, Func *func)
 {
-	return RegNOREG;
+    return RegNOREG;
 }

@@ -58,10 +58,20 @@ Opnd::IsNotNumber() const
     {
         return true;
     }
-    if (this->IsRegOpnd() && this->AsRegOpnd()->m_sym->m_isNotInt)
+    if (this->IsRegOpnd())
     {
-        // m_isNotInt actually means "is not number". It should not be set to true for definitely-float values.
-        return true;
+        const IR::RegOpnd* regOpnd = this->AsRegOpnd();
+
+        if (regOpnd->m_sym == nullptr)
+        {
+            return true;
+        }
+
+        if (regOpnd->m_sym->m_isNotInt)
+        {
+            // m_isNotInt actually means "is not number". It should not be set to true for definitely-float values.
+            return true;
+        }
     }
     return false;
 }
@@ -86,13 +96,33 @@ bool
 Opnd::IsWriteBarrierTriggerableValue()
 {
     // Determines whether if an operand is used as a source in a store instruction, whether the store needs a write barrier
-    //
-    // If it's not a tagged value, and one of the two following conditions are true, then a write barrier is needed
+
+    // If it's a tagged value, we don't need a write barrier
+    if (this->IsTaggedValue())
+    {
+        return false;
+    }
+
     // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
+    if (this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar)
+    {
+        return false;
+    }
+
+    if (TySize[this->GetType()] != sizeof(void*))
+    {
+        return false;
+    }
+
+#if DBG
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    {
+        return true; // No further optimization if we are in verification
+    }
+#endif
+
     // If its null/boolean/undefined, we don't need a write barrier since the javascript library will keep those guys alive
-    return this->IsNotTaggedValue() &&
-        !((this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar) ||
-          (this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined()));
+    return !(this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined());
 }
 
 /*

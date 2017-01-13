@@ -2614,11 +2614,11 @@ namespace Js
 
 
 #if DEBUG
-        Var * slotArray = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
+        Field(Var) * slotArray = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
 #else
-        Var * slotArray = RecyclerNewArray(scriptContext->GetRecycler(), Var, moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
+        Field(Var) * slotArray = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
 #endif
-        ScopeSlots scopeSlots(slotArray);
+        ScopeSlots scopeSlots((Js::Var*)slotArray);
         scopeSlots.SetCount(moduleBody->scopeSlotArraySize);
         scopeSlots.SetScopeMetadata(moduleBody->GetFunctionInfo());
 

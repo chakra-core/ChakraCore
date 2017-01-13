@@ -53,6 +53,12 @@ PRINT_USAGE() {
     echo "                       Disable FEATUREs from JSRT experimental"
     echo "                       features."
     echo "  -v, --verbose        Display verbose output including all options"
+    echo "      --wb-check CPPFILE"
+    echo "                       Write-barrier check given CPPFILE (git path)"
+    echo "      --wb-analyze CPPFILE"
+    echo "                       Write-barrier analyze given CPPFILE (git path)"
+    echo "      --wb-args=PLUGIN_ARGS"
+    echo "                       Write-barrier clang plugin args"
     echo ""
     echo "example:"
     echo "  ./build.sh --cxx=/path/to/clang++ --cc=/path/to/clang -j"
@@ -82,6 +88,9 @@ OS_UNIX=0
 LTO=""
 TARGET_OS=""
 ENABLE_CC_XPLAT_TRACE=""
+WB_CHECK=
+WB_ANALYZE=
+WB_ARGS=
 
 if [ -f "/proc/version" ]; then
     OS_LINUX=1
@@ -274,6 +283,30 @@ while [[ $# -gt 0 ]]; do
         done
         ;;
 
+    --wb-check)
+        if [[ "$2" =~ ^[^-] ]]; then
+            WB_CHECK="$2"
+            shift
+        else
+            WB_CHECK="*"  # check all files
+        fi
+        ;;
+
+    --wb-analyze)
+        if [[ "$2" =~ ^[^-] ]]; then
+            WB_ANALYZE="$2"
+            shift
+        else
+            PRINT_USAGE && exit 1
+        fi
+        ;;
+
+    --wb-args=*)
+        WB_ARGS=$1
+        WB_ARGS=${WB_ARGS:10}
+        WB_ARGS=${WB_ARGS// /;}  # replace space with ; to generate a cmake list
+        ;;
+
     *)
         echo "Unknown option $1"
         PRINT_USAGE
@@ -358,6 +391,54 @@ if [[ $? != 0 ]]; then
     exit 1
 fi
 
+################# Write-barrier check/analyze run #################
+WB_FLAG=
+WB_TARGET=
+if [[ $WB_CHECK || $WB_ANALYZE ]]; then
+    $CHAKRACORE_DIR/tools/RecyclerChecker/build.sh || exit 1
+
+    if [[ $MAKE != 'ninja' ]]; then
+        echo "--wb-check/wb-analyze only works with --ninja" && exit 1
+    fi
+    if [[ $WB_CHECK && $WB_ANALYZE ]]; then
+        echo "Please run only one of --wb-check or --wb-analyze" && exit 1
+    fi
+    if [[ $WB_CHECK ]]; then
+        WB_FLAG="-DWB_CHECK_SH=1"
+        WB_FILE=$WB_CHECK
+    fi
+    if [[ $WB_ANALYZE ]]; then
+        WB_FLAG="-DWB_ANALYZE_SH=1"
+        WB_FILE=$WB_ANALYZE
+    fi
+
+    if [[ $WB_ARGS ]]; then
+        if [[ $WB_ARGS =~ "-fix" ]]; then
+            MULTICORE_BUILD="-j 1"  # 1 job only if doing write barrier fix
+        fi
+        WB_ARGS="-DWB_ARGS_SH=$WB_ARGS"
+    fi
+
+    if [[ $WB_FILE != "*" ]]; then
+        if [[ -f $CHAKRACORE_DIR/$WB_FILE ]]; then
+            touch $CHAKRACORE_DIR/$WB_FILE
+        else
+            echo "$CHAKRACORE_DIR/$WB_FILE not found. Please use full git path for $WB_FILE." && exit 1
+        fi
+
+        WB_FILE_DIR=`dirname $WB_FILE`
+        WB_FILE_BASE=`basename $WB_FILE`
+
+        WB_FILE_CMAKELISTS="$CHAKRACORE_DIR/$WB_FILE_DIR/CMakeLists.txt"
+        if [[ -f $WB_FILE_CMAKELISTS ]]; then
+            SUBDIR=$(grep -i add_library $WB_FILE_CMAKELISTS | sed "s/.*(\([^ ]*\) .*/\1/")
+        else
+            echo "$WB_FILE_CMAKELISTS not found." && exit 1
+        fi
+        WB_TARGET="$WB_FILE_DIR/CMakeFiles/$SUBDIR.dir/$WB_FILE_BASE.o"
+    fi
+fi
+
 build_directory="$CHAKRACORE_DIR/BuildLinux/${BUILD_TYPE:0}"
 if [ ! -d "$build_directory" ]; then
     SAFE_RUN `mkdir -p $build_directory`
@@ -378,13 +459,16 @@ else
 fi
 
 echo Generating $BUILD_TYPE makefiles
-cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS $ENABLE_CC_XPLAT_TRACE\
-    -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT $WITHOUT_FEATURES ../..
+cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
+    $ENABLE_CC_XPLAT_TRACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT \
+    $WITHOUT_FEATURES $WB_FLAG $WB_ARGS -DCMAKE_EXPORT_COMPILE_COMMANDS=ON  \
+    ../..
+# -DCMAKE_EXPORT_COMPILE_COMMANDS=ON useful for clang-query tool
 
 _RET=$?
 if [[ $? == 0 ]]; then
     if [[ $MAKE != 0 ]]; then
-        $MAKE $MULTICORE_BUILD $_VERBOSE 2>&1 | tee build.log
+        $MAKE $MULTICORE_BUILD $_VERBOSE $WB_TARGET 2>&1 | tee build.log
         _RET=${PIPESTATUS[0]}
     else
         echo "Visit given folder above for xcode project file ----^"

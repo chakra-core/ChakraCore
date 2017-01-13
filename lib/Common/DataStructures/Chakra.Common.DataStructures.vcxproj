@@ -40,7 +40,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FixedBitVectorEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)InternalStringNoCaseComparer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SizePolicy.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SparseBitVector.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonDataStructuresPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -65,6 +64,7 @@
     <ClInclude Include="PageStack.h" />
     <ClInclude Include="Pair.h" />
     <ClInclude Include="Queue.h" />
+    <ClInclude Include="QuickSort.h" />
     <ClInclude Include="RegexKey.h" />
     <ClInclude Include="SizePolicy.h" />
     <ClInclude Include="InternalString.h" />

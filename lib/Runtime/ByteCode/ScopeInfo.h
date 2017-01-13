@@ -22,36 +22,36 @@ namespace Js {
         {
             union
             {
-                PropertyId propertyId;
-                PropertyRecord const* name;
+                Field(PropertyId) propertyId;
+                Field(PropertyRecord const*) name;
             };
-            SymbolType symbolType;
-            bool hasFuncAssignment;
-            bool isBlockVariable;
-            bool isFuncExpr;
-            bool isModuleExportStorage;
-            bool isModuleImport;
+            Field(SymbolType) symbolType;
+            Field(bool) hasFuncAssignment;
+            Field(bool) isBlockVariable;
+            Field(bool) isFuncExpr;
+            Field(bool) isModuleExportStorage;
+            Field(bool) isModuleImport;
         };
 
     private:
-        FunctionInfo * const parent;    // link to parent function
-        ScopeInfo* funcExprScopeInfo;   // optional func expr scope info
-        ScopeInfo* paramScopeInfo;      // optional param scope info
+        Field(FunctionInfo * const) parent;    // link to parent function
+        Field(ScopeInfo*) funcExprScopeInfo;   // optional func expr scope info
+        Field(ScopeInfo*) paramScopeInfo;      // optional param scope info
 
-        BYTE isDynamic : 1;             // isDynamic bit affects how deferredChild access global ref
-        BYTE isObject : 1;              // isObject bit affects how deferredChild access closure symbols
-        BYTE mustInstantiate : 1;       // the scope must be instantiated as an object/array
-        BYTE isCached : 1;              // indicates that local vars and functions are cached across invocations
-        BYTE isGlobalEval : 1;
-        BYTE areNamesCached : 1;
-        BYTE canMergeWithBodyScope : 1;
-        BYTE hasLocalInClosure : 1;
-        BYTE parentOnly : 1;
+        Field(BYTE) isDynamic : 1;             // isDynamic bit affects how deferredChild access global ref
+        Field(BYTE) isObject : 1;              // isObject bit affects how deferredChild access closure symbols
+        Field(BYTE) mustInstantiate : 1;       // the scope must be instantiated as an object/array
+        Field(BYTE) isCached : 1;              // indicates that local vars and functions are cached across invocations
+        Field(BYTE) isGlobalEval : 1;
+        Field(BYTE) areNamesCached : 1;
+        Field(BYTE) canMergeWithBodyScope : 1;
+        Field(BYTE) hasLocalInClosure : 1;
+        Field(BYTE) parentOnly : 1;
 
-        Scope *scope;
-        int scopeId;
-        int symbolCount;                // symbol count in this scope
-        SymbolInfo symbols[];           // symbol PropertyIDs, index == sym.scopeSlot
+        Field(Scope *) scope;
+        Field(int) scopeId;
+        Field(int) symbolCount;                // symbol count in this scope
+        Field(SymbolInfo) symbols[];           // symbol PropertyIDs, index == sym.scopeSlot
 
     private:
         ScopeInfo(FunctionInfo * parent, int symbolCount)

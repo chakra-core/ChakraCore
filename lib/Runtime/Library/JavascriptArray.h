@@ -21,10 +21,10 @@ namespace Js
         // Introduction to Algorithms by Corman, Leiserson, and Rivest.
 
     protected:
-        uint32*              keys;           // keys[i] == segments[i]->left
-        SparseArraySegmentBase** segments;   // Length of segmentCount.
-        SegmentBTree*        children;       // Length of segmentCount+1.
-        uint32               segmentCount;   // number of sparseArray segments in the Node
+        Field(uint32*)              keys;           // keys[i] == segments[i]->left
+        Field(SparseArraySegmentBase**) segments;   // Length of segmentCount. Allocated with Leaf, no need to annotate inner pointer
+        Field(SegmentBTree*)        children;       // Length of segmentCount+1.
+        Field(uint32)               segmentCount;   // number of sparseArray segments in the Node
 
     public:
         static const uint MinDegree = 20; // Degree is the minimum branching factor. (If non-root, and non-leaf.)
@@ -81,7 +81,7 @@ namespace Js
         void Add(Recycler* recycler, SparseArraySegmentBase* newSeg);
         void Find(uint itemIndex, SparseArraySegmentBase*& prevOrMatch, SparseArraySegmentBase*& matchOrNext);
 
-        SparseArraySegmentBase * lastUsedSegment;
+        Field(SparseArraySegmentBase *) lastUsedSegment;
     };
 
     class JavascriptArray : public ArrayObject
@@ -99,14 +99,17 @@ namespace Js
         DEFINE_VTABLE_CTOR(JavascriptArray, ArrayObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptArray);
     private:
-        bool isInitialized;
+        Field(bool) isInitialized;
     protected:
-        SparseArraySegmentBase* head;
-        union
+        Field(SparseArraySegmentBase*) head;
+        union SegmentUnionType
         {
-            SparseArraySegmentBase* lastUsedSegment;
-            SegmentBTreeRoot* segmentBTreeRoot;
-        }segmentUnion;
+            Field(SparseArraySegmentBase*) lastUsedSegment;
+            Field(SegmentBTreeRoot*) segmentBTreeRoot;
+
+            SegmentUnionType() {}
+        };
+        Field(SegmentUnionType) segmentUnion;
     public:
         typedef Var TElement;
 
@@ -182,7 +185,7 @@ namespace Js
 #if ENABLE_PROFILE_INFO
         template<typename T> inline void DirectProfiledSetItemInHeadSegmentAt(const uint32 offset, const T newValue, StElemInfo *const stElemInfo);
 #endif
-        template<typename T> static void CopyValueToSegmentBuferNoCheck(T* buffer, uint32 length, T value);
+        template<typename T> static void CopyValueToSegmentBuferNoCheck(Field(T)* buffer, uint32 length, T value);
         template<typename T> void DirectSetItem_Full(uint32 itemIndex, T newValue);
         template<typename T> SparseArraySegment<T>* PrepareSegmentForMemOp(uint32 startIndex, uint32 length);
         template<typename T> bool DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue);
@@ -564,14 +567,15 @@ namespace Js
         template<typename T> void AllocateHead();
         template<typename T> void EnsureHead();
 
-        uint32 sort(__inout_ecount(*length) Var *orig, uint32 *length, ScriptContext *scriptContext);
+        uint32 sort(__inout_ecount(*length) Field(Var) *orig, uint32 *length, ScriptContext *scriptContext);
 
         BOOL GetPropertyBuiltIns(PropertyId propertyId, Var* value);
         bool GetSetterBuiltIns(PropertyId propertyId, PropertyValueInfo* info, DescriptorFlags* descriptorFlags);
     private:
-        struct Element {
-            Var Value;
-            JavascriptString* StringValue;
+        struct Element
+        {
+            Field(Var) Value;
+            Field(JavascriptString*) StringValue;
         };
 
         static int __cdecl CompareElements(void* context, const void* elem1, const void* elem2);
@@ -879,7 +883,7 @@ namespace Js
         // For BoxStackInstance
         JavascriptNativeArray(JavascriptNativeArray * instance);
 
-        RecyclerWeakReference<FunctionBody> *weakRefToFuncBody;
+        Field(RecyclerWeakReference<FunctionBody> *) weakRefToFuncBody;
 
     public:
         static bool Is(Var aValue);

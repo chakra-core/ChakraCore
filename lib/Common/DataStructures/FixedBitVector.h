@@ -312,7 +312,7 @@ public:
 
 // Data
 private:
-    BVUnit data[wordCount];
+    Field(BVUnit) data[wordCount];
 
 public:
     // Break on member changes. We rely on the layout of this class being static so we can

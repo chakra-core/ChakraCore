@@ -49,6 +49,9 @@ public:
 #endif
         size_t sizeCat = GetAlignedAllocSize();
         Assert(HeapInfo::IsSmallObject(sizeCat));
+
+        // TODO: SWB, currently RecyclerFastAllocator only used for number allocating, which is Leaf
+        // need to add WithBarrierBit if we have other usage with NonLeaf
         char * memBlock = allocator.template InlinedAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask)>(recycler, sizeCat);
 
         if (memBlock == nullptr)

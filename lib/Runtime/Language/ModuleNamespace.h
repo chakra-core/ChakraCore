@@ -84,13 +84,13 @@ namespace Js
         virtual void SetPrototype(RecyclableObject* newPrototype) override { Assert(false); return; }
 
     private:
-        ModuleRecordBase* moduleRecord;
-        UnambiguousExportMap* unambiguousNonLocalExports;
-        SimplePropertyDescriptorMap* propertyMap;   // local exports.
-        ListForListIterator* sortedExportedNames;   // sorted exported names for both local and indirect exports; excludes symbols.
-        Var* nsSlots;
+        Field(ModuleRecordBase*) moduleRecord;
+        Field(UnambiguousExportMap*) unambiguousNonLocalExports;
+        Field(SimplePropertyDescriptorMap*) propertyMap;   // local exports.
+        Field(ListForListIterator*) sortedExportedNames;   // sorted exported names for both local and indirect exports; excludes symbols.
+        Field(Field(Var)*) nsSlots;
 
-        void SetNSSlotsForModuleNS(Var* nsSlot) { this->nsSlots = nsSlot; }
+        void SetNSSlotsForModuleNS(Field(Var)* nsSlot) { this->nsSlots = nsSlot; }
         Var GetNSSlot(BigPropertyIndex propertyIndex);
         void AddUnambiguousNonLocalExport(PropertyId exportId, ModuleNameRecord* nonLocalExportNameRecord);
         UnambiguousExportMap* GetUnambiguousNonLocalExports() const { return unambiguousNonLocalExports; }

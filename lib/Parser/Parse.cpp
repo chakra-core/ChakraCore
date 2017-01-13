@@ -31,11 +31,11 @@ bool Parser::IsES6DestructuringEnabled() const
 
 struct DeferredFunctionStub
 {
-    RestorePoint restorePoint;
-    uint fncFlags;
-    uint nestedCount;
-    DeferredFunctionStub *deferredStubs;
-    charcount_t ichMin;
+    Field(RestorePoint) restorePoint;
+    Field(uint) fncFlags;
+    Field(uint) nestedCount;
+    Field(DeferredFunctionStub *) deferredStubs;
+    Field(charcount_t) ichMin;
 };
 
 struct StmtNest

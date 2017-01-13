@@ -57,6 +57,15 @@ public:
         , m_int64RegPairMap(nullptr)
 #endif
     {
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+        m_func->m_lowerer = this;
+#endif
+    }
+    ~Lowerer()
+    {
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+        m_func->m_lowerer = nullptr;
+#endif
     }
 
     void Lower();
@@ -327,7 +336,7 @@ private:
 public:
     static IR::LabelInstr *     InsertLabel(const bool isHelper, IR::Instr *const insertBeforeInstr);
 
-    static IR::Instr *          InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr, bool generateWriteBarrier = false);
+    static IR::Instr *          InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr, bool generateWriteBarrier = true);
     static IR::Instr *          InsertMoveWithBarrier(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
 #if _M_X64
     static IR::Instr *          InsertMoveBitCast(IR::Opnd *const dst, IR::Opnd *const src1, IR::Instr *const insertBeforeInstr);

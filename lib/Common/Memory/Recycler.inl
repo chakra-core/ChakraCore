@@ -44,7 +44,7 @@ public:
 
 template <ObjectInfoBits attributes, bool nothrow>
 inline char *
-Recycler::AllocWithAttributesInlined(size_t size)
+Recycler::AllocWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 {
     // All tracked objects are client tracked objects
     CompileAssert((attributes & TrackBit) == 0 || (attributes & ClientTrackedBit) != 0);
@@ -91,7 +91,29 @@ Recycler::AllocWithAttributesInlined(size_t size)
     }
 #endif
 
-    char* memBlock = RealAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+    char* memBlock = nullptr;
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && (attributes & InternalObjectInfoBitMask ) != LeafBit)
+    {
+        // explicitly adding "& ~LeafBit" to avoid the CompilerAssert in SmallFinalizableHeapBucket.h
+        // pure LeafBit going through the else below, and use the LeafBit specialization to get the bucket
+        // if there FinalizeBit, it goes through FinalizeWithBarrier bucket, whatever there's LeafBit or not
+        memBlock = RealAlloc<(ObjectInfoBits)(((attributes | WithBarrierBit) & ~LeafBit) & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+#if DBG
+        // Above does not allocate in a Leaf bucket and would trigger write
+        // barrier verifyMark failure for its fields. To work around, manually
+        // set write barrier bits right now.
+        if (attributes & LeafBit)
+        {
+            Recycler::WBSetBits(memBlock, (uint)(HeapInfo::GetAlignedSizeNoCheck(allocSize) / sizeof(void*)));
+        }
+#endif
+    }
+    else
+#endif
+    {
+        memBlock = RealAlloc<(ObjectInfoBits)(attributes & InternalObjectInfoBitMask), nothrow>(&autoHeap, allocSize);
+    }
 
     if (nothrow)
     {
@@ -159,13 +181,17 @@ Recycler::AllocWithAttributesInlined(size_t size)
     SwbVerboseTrace(this->GetRecyclerFlagsTable(), _u("Allocated SWB memory: 0x%p\n"), memBlock);
 
 #pragma prefast(suppress:6313, "attributes is a template parameter and can be 0")
-    if (attributes & (NewTrackBit))
+    if (attributes & NewTrackBit & WithBarrierBit)
     {
+        //REVIEW: is following comment correct? I added WithBarrierBit above
+        // why we need to set write barrier bit for none write barrier page address
+
         // For objects allocated with NewTrackBit, we need to trigger the write barrier since
         // there could be a GC triggered by an allocation in the constructor, and we'd miss
         // calling track on the partially constructed object. To deal with this, we set the write
         // barrier on all the pages of objects allocated with the NewTrackBit
-        RecyclerWriteBarrierManager::WriteBarrier(memBlock, size / sizeof(void*));
+
+        RecyclerWriteBarrierManager::WriteBarrier(memBlock, size);
     }
 #endif
 
@@ -199,7 +225,7 @@ Recycler::AllocWithAttributesInlined(size_t size)
 
 template <ObjectInfoBits attributes, bool nothrow>
 inline char *
-Recycler::AllocZeroWithAttributesInlined(size_t size)
+Recycler::AllocZeroWithAttributesInlined(DECLSPEC_GUARD_OVERFLOW size_t size)
 {
     char* obj = AllocWithAttributesInlined<attributes, nothrow>(size);
 
@@ -248,6 +274,14 @@ Recycler::AllocZeroWithAttributesInlined(size_t size)
 #if DBG
     VerifyPageHeapFillAfterAlloc<attributes>(obj, size);
 #endif
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    {
+        this->FindHeapBlock(obj)->WBClearBits(obj);
+    }
+#endif
+
     return obj;
 }
 

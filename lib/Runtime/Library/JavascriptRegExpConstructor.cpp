@@ -88,7 +88,8 @@ namespace Js
                 for (int groupId = 1; groupId < min(numGroups, NumCtorCaptures); groupId++)
                     captures[groupId] = RegexHelper::GetGroup(scriptContext, pattern, lastInput, nonMatchValue, groupId);
 
-                this->lastParen = numGroups <= NumCtorCaptures ? captures[numGroups - 1] :
+                this->lastParen = numGroups <= NumCtorCaptures ?
+                    PointerValue(captures[numGroups - 1]) :
                     RegexHelper::GetGroup(scriptContext, pattern, lastInput, nonMatchValue, numGroups - 1);
             }
             else

@@ -20,7 +20,9 @@
 // TODO: OOP JIT, move equiv set to backend?
 // forward decl
 class JITType;
-class JITTypeHolder;
+template <class TAllocator> class JITTypeHolderBase;
+typedef JITTypeHolderBase<void> JITTypeHolder;
+typedef JITTypeHolderBase<Recycler> RecyclerJITTypeHolder;
 
 namespace Js
 {
@@ -373,20 +375,20 @@ namespace Js
         static const bool IsPolymorphic = true;
 
     private:
-        InlineCache * inlineCaches;
-        FunctionBody * functionBody;
-        uint16 size;
-        bool ignoreForEquivalentObjTypeSpec;
-        bool cloneForJitTimeUse;
+        FieldNoBarrier(InlineCache *) inlineCaches;
+        Field(FunctionBody *) functionBody;
+        Field(uint16) size;
+        Field(bool) ignoreForEquivalentObjTypeSpec;
+        Field(bool) cloneForJitTimeUse;
 
-        int32 inlineCachesFillInfo;
+        Field(int32) inlineCachesFillInfo;
 
         // DList chaining all polymorphic inline caches of a FunctionBody together.
         // Since PolymorphicInlineCache is a leaf object, these references do not keep
         // the polymorphic inline caches alive. When a PolymorphicInlineCache is finalized,
         // it removes itself from the list and deletes its inline cache array.
-        PolymorphicInlineCache * next;
-        PolymorphicInlineCache * prev;
+        Field(PolymorphicInlineCache *) next;
+        Field(PolymorphicInlineCache *) prev;
 
         PolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, FunctionBody * functionBody)
             : inlineCaches(inlineCaches), functionBody(functionBody), size(size), ignoreForEquivalentObjTypeSpec(false), cloneForJitTimeUse(true), inlineCachesFillInfo(0), next(nullptr), prev(nullptr)
@@ -542,12 +544,12 @@ namespace Js
     class EquivalentTypeSet
     {
     private:
-        bool sortedAndDuplicatesRemoved;
-        uint16 count;
-        JITTypeHolder * types;
+        Field(bool) sortedAndDuplicatesRemoved;
+        Field(uint16) count;
+        Field(RecyclerJITTypeHolder *) types;
 
     public:
-        EquivalentTypeSet(JITTypeHolder * types, uint16 count);
+        EquivalentTypeSet(RecyclerJITTypeHolder * types, uint16 count);
 
         uint16 GetCount() const
         {
@@ -557,8 +559,6 @@ namespace Js
         JITTypeHolder GetFirstType() const;
 
         JITTypeHolder GetType(uint16 index) const;
-
-        JITTypeHolder * GetTypes() const;
 
         bool GetSortedAndDuplicatesRemoved() const
         {
@@ -588,50 +588,50 @@ namespace Js
 
         struct GuardStruct
         {
-            CtorCacheGuardValues value;
+            Field(CtorCacheGuardValues) value;
         };
 
         struct ContentStruct
         {
-            DynamicType* type;
-            ScriptContext* scriptContext;
+            Field(DynamicType*) type;
+            Field(ScriptContext*) scriptContext;
             // In a pinch we could eliminate this and store type pending sharing in the type field as long
             // as the guard value flags fit below the object alignment boundary.  However, this wouldn't
             // keep the type alive, so it would only work if we zeroed constructor caches before GC.
-            DynamicType* pendingType;
+            Field(DynamicType*) pendingType;
 
             // We cache only types whose slotCount < 64K to ensure the slotCount field doesn't look like a pointer to the recycler.
-            int slotCount;
+            Field(int) slotCount;
 
             // This layout (i.e. one-byte bit fields first, then the one-byte updateAfterCtor, and then the two byte inlineSlotCount) is
             // chosen intentionally to make sure the whole four bytes never look like a pointer and create a false reference pinning something
             // in recycler heap.  The isPopulated bit is always set when the cache holds any data - even if it got invalidated.
-            bool isPopulated : 1;
-            bool isPolymorphic : 1;
-            bool typeUpdatePending : 1;
-            bool ctorHasNoExplicitReturnValue : 1;
-            bool skipDefaultNewObject : 1;
+            Field(bool) isPopulated : 1;
+            Field(bool) isPolymorphic : 1;
+            Field(bool) typeUpdatePending : 1;
+            Field(bool) ctorHasNoExplicitReturnValue : 1;
+            Field(bool) skipDefaultNewObject : 1;
             // This field indicates that the type stored in this cache is the final type after constructor.
-            bool typeIsFinal : 1;
+            Field(bool) typeIsFinal : 1;
             // This field indicates that the constructor cache has been invalidated due to a constructor's prototype property change.
             // We use this flag to determine if we should mark the cache as polymorphic and not attempt subsequent optimizations.
             // The cache may also be invalidated due to a guard invalidation resulting from some property change (e.g. in proto chain),
             // in which case we won't deem the cache polymorphic.
-            bool hasPrototypeChanged : 1;
+            Field(bool) hasPrototypeChanged : 1;
 
-            uint8 callCount;
+            Field(uint8) callCount;
 
             // Separate from the bit field below for convenient compare from the JIT-ed code. Doesn't currently increase the size.
             // If size becomes an issue, we could merge back into the bit field and use a TEST instead of CMP.
-            bool updateAfterCtor;
+            Field(bool) updateAfterCtor;
 
-            int16 inlineSlotCount;
+            Field(int16) inlineSlotCount;
         };
 
         union
         {
-            GuardStruct guard;
-            ContentStruct content;
+            Field(GuardStruct) guard;
+            Field(ContentStruct) content;
         };
 
         CompileAssert(offsetof(GuardStruct, value) == offsetof(ContentStruct, type));

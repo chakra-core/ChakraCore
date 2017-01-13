@@ -134,9 +134,9 @@ namespace UnifiedRegex
     {
         if(goodSuffix)
         {
-            AdeleteArray(allocator, patLen + 1, goodSuffix);
+            AdeleteArray(allocator, patLen + 1, PointerValue(goodSuffix));
 #if DBG
-            goodSuffix = 0;
+            goodSuffix = nullptr;
 #endif
         }
         lastOccurrence.FreeBody(allocator);

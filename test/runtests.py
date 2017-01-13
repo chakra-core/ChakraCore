@@ -56,6 +56,8 @@ parser.add_argument('--tag', nargs='*',
                     help='select tests with given tags')
 parser.add_argument('--not-tag', nargs='*',
                     help='exclude tests with given tags')
+parser.add_argument('--flags', default='',
+                    help='global test flags to ch')
 parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
                     help='test timeout (default ' + str(DEFAULT_TIMEOUT) + ' seconds)')
 parser.add_argument('-l', '--logfile', metavar='logfile', help='file to log results to', default=None)
@@ -92,7 +94,7 @@ if not args.variants:
 binary = args.binary
 if binary == None:
     if sys.platform == 'win32':
-        binary = 'Build/VcBuild/bin/{}_{}/ch.exe'.format(arch, flavor)
+        binary = 'Build\\VcBuild\\bin\\{}_{}\\ch.exe'.format(arch, flavor)
     else:
         binary = 'BuildLinux/{0}/ch'.format(flavor)
     binary = os.path.join(repo_root, binary)
@@ -392,9 +394,11 @@ class TestVariant(object):
 
         working_path = os.path.dirname(js_file)
 
-        flags = test.get('compile-flags')
+        flags = test.get('compile-flags') or ''
         flags = self._expand_compile_flags(test) + \
-                    (flags.split() if flags else [])
+                    args.flags.split() + \
+                    flags.split()
+
         cmd = [binary] + flags + [os.path.basename(js_file)]
 
         test.start()

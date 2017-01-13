@@ -552,7 +552,7 @@ Encoder::Encode()
                 equivalentTypeGuardOffsets->guards[i].cache.record.propertyOffset = NativeCodeData::GetDataTotalOffset(cache->record.properties);
                 for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE; j++)
                 {
-                    equivalentTypeGuardOffsets->guards[i].cache.types[j] = (intptr_t)cache->types[j];
+                    equivalentTypeGuardOffsets->guards[i].cache.types[j] = (intptr_t)PointerValue(cache->types[j]);
                 }
                 i++;
             });

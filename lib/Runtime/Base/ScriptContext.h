@@ -42,20 +42,57 @@ class SRCINFO
     // In future, when we do make it freeable and will be able to allocate more than one per Module,
     // we can move variables m_isGlobalFunc and m_isEval from FunctionBody.cpp here.
 public:
-    SourceContextInfo * sourceContextInfo;
-    ULONG dlnHost;             // Line number passed to ParseScriptText
-    ULONG ulColumnHost;        // Column number on the line where the parse script text started
-    ULONG lnMinHost;           // Line offset of first host-supplied line
-    ULONG ichMinHost;          // Range of host supplied characters
-    ULONG ichLimHost;
-    ULONG ulCharOffset;        // Char offset of the source text relative to the document. (Populated using IActiveScriptContext)
-    Js::ModuleID moduleID;
-    ULONG grfsi;
+    Field(SourceContextInfo *) sourceContextInfo;
+    Field(ULONG) dlnHost;             // Line number passed to ParseScriptText
+    Field(ULONG) ulColumnHost;        // Column number on the line where the parse script text started
+    Field(ULONG) lnMinHost;           // Line offset of first host-supplied line
+    Field(ULONG) ichMinHost;          // Range of host supplied characters
+    Field(ULONG) ichLimHost;
+    Field(ULONG) ulCharOffset;        // Char offset of the source text relative to the document. (Populated using IActiveScriptContext)
+    Field(Js::ModuleID) moduleID;
+    Field(ULONG) grfsi;
 
     static SRCINFO* Copy(Recycler* recycler, const SRCINFO* srcInfo)
     {
         SRCINFO* copySrcInfo = RecyclerNew(recycler, SRCINFO, *srcInfo);
         return copySrcInfo;
+    }
+
+    SRCINFO()
+    {
+    }
+    SRCINFO(const SRCINFO& other)
+        :sourceContextInfo(other.sourceContextInfo),
+        dlnHost(other.dlnHost),
+        ulColumnHost(other.ulColumnHost),
+        lnMinHost(other.lnMinHost),
+        ichMinHost(other.ichMinHost),
+        ichLimHost(other.ichLimHost),
+        ulCharOffset(other.ulCharOffset),
+        moduleID(other.moduleID),
+        grfsi(other.grfsi)
+    {
+    }
+    SRCINFO(
+        SourceContextInfo*sourceContextInfo,
+        ULONG dlnHost,
+        ULONG ulColumnHost,
+        ULONG lnMinHost,
+        ULONG ichMinHost,
+        ULONG ichLimHost,
+        ULONG ulCharOffset,
+        Js::ModuleID moduleID,
+        ULONG grfsi
+    ):sourceContextInfo(sourceContextInfo),
+        dlnHost(dlnHost),
+        ulColumnHost(ulColumnHost),
+        lnMinHost(lnMinHost),
+        ichMinHost(ichMinHost),
+        ichLimHost(ichLimHost),
+        ulCharOffset(ulCharOffset),
+        moduleID(moduleID),
+        grfsi(grfsi)
+    {
     }
 };
 
@@ -344,10 +381,10 @@ namespace Js
     // valid if object!= NULL
     struct EnumeratedObjectCache {
         static const int kMaxCachedPropStrings=16;
-        DynamicObject* object;
-        DynamicType* type;
-        PropertyString* propertyStrings[kMaxCachedPropStrings];
-        int validPropStrings;
+        Field(DynamicObject*) object;
+        Field(DynamicType*) type;
+        Field(PropertyString*) propertyStrings[kMaxCachedPropStrings];
+        Field(int) validPropStrings;
     };
 
     typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
@@ -362,19 +399,19 @@ namespace Js
         virtual void Dispose(bool isShutdown) override {}
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
-        JavascriptString * lastNumberToStringRadix10String;
-        EnumeratedObjectCache enumObjCache;
-        JavascriptString * lastUtcTimeFromStrString;
-        EvalCacheDictionary* evalCacheDictionary;
-        EvalCacheDictionary* indirectEvalCacheDictionary;
-        NewFunctionCache* newFunctionCache;
-        RegexPatternMruMap *dynamicRegexMap;
-        SourceContextInfoMap* sourceContextInfoMap;   // maps host provided context cookie to the URL of the script buffer passed.
-        DynamicSourceContextInfoMap* dynamicSourceContextInfoMap;
-        SourceContextInfo* noContextSourceContextInfo;
-        SRCINFO* noContextGlobalSourceInfo;
-        SRCINFO const ** moduleSrcInfo;
-        BuiltInLibraryFunctionMap* builtInLibraryFunctions;
+        Field(JavascriptString *) lastNumberToStringRadix10String;
+        Field(EnumeratedObjectCache) enumObjCache;
+        Field(JavascriptString *) lastUtcTimeFromStrString;
+        Field(EvalCacheDictionary*) evalCacheDictionary;
+        Field(EvalCacheDictionary*) indirectEvalCacheDictionary;
+        Field(NewFunctionCache*) newFunctionCache;
+        Field(RegexPatternMruMap *) dynamicRegexMap;
+        Field(SourceContextInfoMap*) sourceContextInfoMap;   // maps host provided context cookie to the URL of the script buffer passed.
+        Field(DynamicSourceContextInfoMap*) dynamicSourceContextInfoMap;
+        Field(SourceContextInfo*) noContextSourceContextInfo;
+        Field(SRCINFO*) noContextGlobalSourceInfo;
+        Field(Field(SRCINFO const *)*) moduleSrcInfo;
+        Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
     };
 
     class ScriptContext : public ScriptContextBase, public ScriptContextInfo
@@ -707,8 +744,8 @@ public:
 
         struct FieldAccessStatsEntry
         {
-            RecyclerWeakReference<FunctionBody>* functionBodyWeakRef;
-            FieldAccessStatsList stats;
+            Field(RecyclerWeakReference<FunctionBody>*) functionBodyWeakRef;
+            Field(FieldAccessStatsList) stats;
 
             FieldAccessStatsEntry(RecyclerWeakReference<FunctionBody>* functionBodyWeakRef, Recycler* recycler)
                 : functionBodyWeakRef(functionBodyWeakRef), stats(recycler) {}
@@ -842,7 +879,7 @@ private:
 
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
-        RecyclerRootPtr<SListBase<DynamicProfileInfo *>> profileInfoList;
+        RecyclerRootPtr<DynamicProfileInfoList> profileInfoList;
 #endif
 #endif
         // List of weak reference dictionaries. We'll walk through them
@@ -1064,7 +1101,7 @@ private:
             }
         }
 
-        SListBase<DynamicProfileInfo *> * GetProfileInfoList() { return profileInfoList; }
+        DynamicProfileInfoList * GetProfileInfoList() { return profileInfoList; }
 #endif
 #endif
 
@@ -1632,7 +1669,8 @@ private:
         void SaveStartupProfileAndRelease(bool isSaveOnClose = false);
 
 #if ENABLE_PROFILE_INFO
-        void AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo);
+        template<template<typename> class BarrierT>
+        void AddDynamicProfileInfo(FunctionBody * functionBody, BarrierT<DynamicProfileInfo>& dynamicProfileInfo);
 #endif
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
         uint allocId;
@@ -1707,7 +1745,7 @@ private:
         virtual bool IsRecyclerVerifyEnabled() const override;
         virtual uint GetRecyclerVerifyPad() const override;
 
-        virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
+        virtual Field(Js::Var)* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
 
         Js::SourceTextModuleRecord* GetModuleRecord(uint moduleId) const
         {

@@ -20,20 +20,23 @@ namespace UnifiedRegex
 
         struct UnifiedRep
         {
-            Program* program;
-            Matcher* matcher;
-            TrigramInfo* trigramInfo;
+            Field(Program*) program;
+            Field(Matcher*) matcher;
+            Field(TrigramInfo*) trigramInfo;
         };
 
-        Js::JavascriptLibrary *const library;
+        Field(Js::JavascriptLibrary *) const library;
 
-        bool isLiteral : 1;
-        bool isShallowClone : 1;
+        Field(bool) isLiteral : 1;
+        Field(bool) isShallowClone : 1;
 
         union Rep
         {
-            struct UnifiedRep unified;
-        } rep;
+            Field(UnifiedRep) unified;
+
+            Rep() : unified() {}
+        };
+        Field(Rep) rep;
 
         RegexPattern(Js::JavascriptLibrary *const library, Program* program, bool isLiteral);
 

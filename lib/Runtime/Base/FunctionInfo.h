@@ -43,6 +43,8 @@ namespace Js
             BaseConstructorKind            = 0x200000
         };
         FunctionInfo(JavascriptMethod entryPoint, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
+        FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes = None, LocalFunctionId functionId = Js::Constants::NoFunctionId, FunctionProxy* functionBodyImpl = nullptr);
+        FunctionInfo(FunctionInfo& that); // Todo: (leish)(swb) find a way to prevent non-static initializer calling this ctor
 
         static bool Is(void *ptr);
         static DWORD GetFunctionBodyImplOffset() { return offsetof(FunctionInfo, functionBodyImpl); }
@@ -90,8 +92,7 @@ namespace Js
         ParseableFunctionInfo* GetParseableFunctionInfo() const
         {
             Assert(functionBodyImpl == nullptr || !IsDeferredDeserializeFunction());
-            FunctionProxy * proxy = this->functionBodyImpl;
-            return (ParseableFunctionInfo*)proxy;
+            return (ParseableFunctionInfo*)PointerValue(functionBodyImpl);
         }
         ParseableFunctionInfo** GetParseableFunctionInfoRef() const
         {
@@ -101,8 +102,7 @@ namespace Js
         DeferDeserializeFunctionInfo* GetDeferDeserializeFunctionInfo() const
         {
             Assert(functionBodyImpl == nullptr || IsDeferredDeserializeFunction());
-            FunctionProxy * proxy = this->functionBodyImpl;
-            return (DeferDeserializeFunctionInfo*)proxy;
+            return (DeferDeserializeFunctionInfo*)PointerValue(functionBodyImpl);
         }
         FunctionBody * GetFunctionBody() const;
 
@@ -138,11 +138,11 @@ namespace Js
         bool GetBaseConstructorKind() const { return (attributes & Attributes::BaseConstructorKind) != 0; }
 
     protected:
-        JavascriptMethod originalEntryPoint;
-        WriteBarrierPtr<FunctionProxy> functionBodyImpl;     // Implementation of the function- null if the function doesn't have a body
-        LocalFunctionId functionId;        // Per host source context (source file) function Id
-        uint compileCount;
-        Attributes attributes;
+        FieldNoBarrier(JavascriptMethod) originalEntryPoint;
+        FieldWithBarrier(FunctionProxy *) functionBodyImpl;     // Implementation of the function- null if the function doesn't have a body
+        Field(LocalFunctionId) functionId;        // Per host source context (source file) function Id
+        Field(uint) compileCount;
+        Field(Attributes) attributes;
     };
 
     // Helper FunctionInfo for builtins that we don't want to profile (script profiler).
@@ -151,6 +151,10 @@ namespace Js
     public:
         NoProfileFunctionInfo(JavascriptMethod entryPoint)
             : FunctionInfo(entryPoint, Attributes::DoNotProfile)
+        {}
+
+        NoProfileFunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag)
+            : FunctionInfo(FORCE_NO_WRITE_BARRIER_TAG(entryPoint), Attributes::DoNotProfile)
         {}
     };
 

@@ -485,7 +485,7 @@ int
     }
     else if (kind == TK_JSCRIPT || kind==TK_HTML || kind == TK_COMMAND)
     {
-        char tempExtraCCFlags[MAX_PATH] = {0};
+        char tempExtraCCFlags[MAX_PATH*2] = {0};
 
         // Only append when EXTRA_CC_FLAGS isn't empty.
         if (EXTRA_CC_FLAGS[0])

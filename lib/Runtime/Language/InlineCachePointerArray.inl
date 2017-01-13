@@ -26,7 +26,7 @@ namespace Js
             return;
         }
 
-        inlineCaches = RecyclerNewArrayZ(recycler, T *, functionBody->GetInlineCacheCount());
+        inlineCaches = RecyclerNewArrayZ(recycler, Field(T*), functionBody->GetInlineCacheCount());
 #if DBG
         inlineCacheCount = functionBody->GetInlineCacheCount();
 #endif

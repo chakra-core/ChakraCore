@@ -59,11 +59,11 @@ namespace Js
 
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override
         {
-            __super::CopyImpl(buffer, N, m_slots, nestedStringTreeCopyInfos, recursionDepth);
+            __super::CopyImpl(buffer, N, AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
         }
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const
         {
-            items = m_slots;
+            items = AddressOf(m_slots[0]);
             return N;
         }
 
@@ -73,7 +73,7 @@ namespace Js
         void SetItem(_In_range_(0, N - 1) int index, JavascriptString* value);
 
     protected:
-        JavascriptString* m_slots[N];   // These contain the child nodes. 1 slot is per 1 item (JavascriptString*).
+        Field(JavascriptString*) m_slots[N];   // These contain the child nodes. 1 slot is per 1 item (JavascriptString*).
     };
 
     // Concat string that uses binary tree, each node has 2 children.
@@ -129,10 +129,10 @@ namespace Js
         static const int c_maxChunkSlotCount = 1024;
         int GetItemCount() const;
 
-        JavascriptString** m_slots; // Array of child nodes.
-        int m_slotCount;   // Number of allocated slots (1 slot holds 1 item) in this chunk.
-        int m_count;       // Actual number of items in this chunk.
-        ConcatStringBuilder* m_prevChunk;
+        Field(Field(JavascriptString*)*) m_slots; // Array of child nodes.
+        Field(int) m_slotCount;   // Number of allocated slots (1 slot holds 1 item) in this chunk.
+        Field(int) m_count;       // Actual number of items in this chunk.
+        Field(ConcatStringBuilder*) m_prevChunk;
     };
 
     // Concat string that wraps another string.
@@ -153,12 +153,12 @@ namespace Js
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override sealed
         {
             const_cast<ConcatStringWrapping *>(this)->EnsureAllSlots();
-            __super::CopyImpl(buffer, _countof(m_slots), m_slots, nestedStringTreeCopyInfos, recursionDepth);
+            __super::CopyImpl(buffer, _countof(m_slots), AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
         }
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const override sealed
         {
             const_cast<ConcatStringWrapping *>(this)->EnsureAllSlots();
-            items = m_slots;
+            items = AddressOf(m_slots[0]);
             return _countof(m_slots);
         }
     public:
@@ -171,10 +171,11 @@ namespace Js
             m_slots[1] = m_inner;
             m_slots[2] = this->GetLastItem();
         }
-        JavascriptString * m_inner;
+
+        Field(JavascriptString *) m_inner;
 
         // Use the padding space for the concat
-        JavascriptString * m_slots[3];
+        Field(JavascriptString *) m_slots[3];
     };
 
     // Make sure the padding doesn't add tot he size of ConcatStringWrapping
@@ -202,12 +203,12 @@ namespace Js
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override
         {
             Assert(IsFilled());
-            __super::CopyImpl(buffer, slotCount, m_slots, nestedStringTreeCopyInfos, recursionDepth);
+            __super::CopyImpl(buffer, slotCount, AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
         }
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const
         {
             Assert(IsFilled());
-            items = m_slots;
+            items = AddressOf(m_slots[0]);
             return slotCount;
         }
 
@@ -222,8 +223,8 @@ namespace Js
         static uint32 GetOffsetOfSlotCount() { return offsetof(ConcatStringMulti, slotCount); }
         static uint32 GetOffsetOfSlots() { return offsetof(ConcatStringMulti, m_slots); }
     protected:
-        uint slotCount;
-        JavascriptString* m_slots[];   // These contain the child nodes.
+        Field(uint) slotCount;
+        Field(JavascriptString*) m_slots[];   // These contain the child nodes.
 
 #if DBG
         bool IsFilled() const;

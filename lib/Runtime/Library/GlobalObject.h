@@ -10,7 +10,7 @@ namespace Js
     class GlobalObject : public RootObjectBase
     {
     public:
-        JavascriptLibrary* library;
+        Field(JavascriptLibrary*) library;
     private:
         DEFINE_VTABLE_CTOR(GlobalObject, RootObjectBase);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(GlobalObject);
@@ -111,7 +111,7 @@ namespace Js
         static GlobalObject* FromVar(Var aValue);
 
         typedef ScriptFunction* (*EvalHelperType)(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
-        EvalHelperType EvalHelper;
+        FieldNoBarrier(EvalHelperType) EvalHelper;
 
         static Var EntryEvalHelper(ScriptContext* scriptContext, RecyclableObject* function, CallInfo callInfo, Arguments& args);
         static Var VEval(JavascriptLibrary* library, FrameDisplay* environment, ModuleID moduleID, bool isStrictMode, bool isIndirect,
@@ -161,11 +161,11 @@ namespace Js
         static BOOL MatchPatternHelper(JavascriptString *propertyName, JavascriptString *pattern, ScriptContext *scriptContext);
 
     private:
-        RecyclableObject* directHostObject;
-        RecyclableObject* secureDirectHostObject;
+        Field(RecyclableObject*) directHostObject;
+        Field(RecyclableObject*) secureDirectHostObject;
 
         typedef JsUtil::BaseHashSet<PropertyId, Recycler, PowerOf2SizePolicy> ReservedPropertiesHashSet;
-        ReservedPropertiesHashSet * reservedProperties;
+        Field(ReservedPropertiesHashSet *) reservedProperties;
 
 #if ENABLE_TTD
     public:

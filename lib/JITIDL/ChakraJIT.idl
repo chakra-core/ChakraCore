@@ -3,7 +3,12 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+cpp_quote("#ifndef __JITTypes_h__")
+cpp_quote("#define __JITTypes_h__")
+
 #include "JITTypes.h"
+
+cpp_quote("#endif //__JITTypes_h__")
 
 [
     uuid(ead694ed-2243-44cb-a9dc-85d3ba934dab),

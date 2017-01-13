@@ -15,8 +15,8 @@ namespace Js
         Js::InlineCache * GetInlineCache() const { return inlineCache; }
         uint GetRefCount() { return refCount; }
     private:
-        uint refCount;
-        Js::InlineCache * inlineCache;
+        Field(uint) refCount;
+        Field(Js::InlineCache *) inlineCache;
     };
 
     class RootObjectBase: public DynamicObject
@@ -65,12 +65,12 @@ namespace Js
         RootObjectBase(DynamicType * type);
         RootObjectBase(DynamicType * type, ScriptContext* scriptContext);
 
-        HostObjectBase * hostObject;
+        Field(HostObjectBase *) hostObject;
 
         typedef JsUtil::BaseDictionary<PropertyRecord const *, RootObjectInlineCache *, Recycler> RootObjectInlineCacheMap;
-        RootObjectInlineCacheMap * loadInlineCacheMap;
-        RootObjectInlineCacheMap * loadMethodInlineCacheMap;
-        RootObjectInlineCacheMap * storeInlineCacheMap;
+        Field(RootObjectInlineCacheMap *) loadInlineCacheMap;
+        Field(RootObjectInlineCacheMap *) loadMethodInlineCacheMap;
+        Field(RootObjectInlineCacheMap *) storeInlineCacheMap;
     };
 
     template <typename Fn>

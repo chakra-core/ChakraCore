@@ -8,12 +8,12 @@
 namespace Js
 {
 
-    bool JavascriptStaticEnumerator::Initialize(JavascriptEnumerator * prefixEnumerator, ArrayObject * arrayToEnumerate, 
+    bool JavascriptStaticEnumerator::Initialize(JavascriptEnumerator * prefixEnumerator, ArrayObject * arrayToEnumerate,
         DynamicObject * objectToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache)
     {
         this->prefixEnumerator = prefixEnumerator;
         this->arrayEnumerator = arrayToEnumerate ? arrayToEnumerate->GetIndexEnumerator(flags, requestContext) : nullptr;
-        this->currentEnumerator = prefixEnumerator ? prefixEnumerator : arrayEnumerator;
+        this->currentEnumerator = prefixEnumerator ? prefixEnumerator : PointerValue(arrayEnumerator);
         return this->propertyEnumerator.Initialize(objectToEnumerate, flags, requestContext, forInCache);
     }
 

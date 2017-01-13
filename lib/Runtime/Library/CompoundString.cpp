@@ -38,6 +38,8 @@ namespace Js
         Assert(charLength <= charCapacity);
 
         js_wmemcpy_s(Chars(), charLength, Chars(buffer), charLength);
+        // SWB: buffer may contain chars or pointers. Trigger write barrier for the whole buffer.
+        ArrayWriteBarrier(Pointers(), PointerLengthFromCharLength(charLength));
     }
 
     CompoundString::Block::Block(const Block &other, const CharCount usedCharLength)
@@ -120,18 +122,14 @@ namespace Js
         return static_cast<char16 *>(buffer);
     }
 
-    #endif
-
-    inline void *const *CompoundString::Block::Pointers(const void *const buffer)
+    const Field(void*) *CompoundString::Block::Pointers(const void *const buffer)
     {
-        return static_cast<void *const *>(buffer);
+        return (const Field(void*)*)(buffer);
     }
 
-    #ifndef IsJsDiag
-
-    void **CompoundString::Block::Pointers(void *const buffer)
+    Field(void*) *CompoundString::Block::Pointers(void *const buffer)
     {
-        return static_cast<void **>(buffer);
+        return static_cast<Field(void*)*>(buffer);
     }
 
     CharCount CompoundString::Block::PointerCapacityFromCharCapacity(const CharCount charCapacity)
@@ -146,7 +144,7 @@ namespace Js
 
     #endif
 
-    // ChakraDiag includes CompoundString.cpp as a header file so this method needs to be marked as inline 
+    // ChakraDiag includes CompoundString.cpp as a header file so this method needs to be marked as inline
     // to handle that case
     JS_DIAG_INLINE CharCount CompoundString::Block::PointerLengthFromCharLength(const CharCount charLength)
     {
@@ -226,12 +224,12 @@ namespace Js
         return charCapacity;
     }
 
-    void *const *CompoundString::Block::Pointers() const
+    const Field(void*) *CompoundString::Block::Pointers() const
     {
         return Pointers(Buffer());
     }
 
-    void **CompoundString::Block::Pointers()
+    Field(void*) *CompoundString::Block::Pointers()
     {
         return Pointers(Buffer());
     }
@@ -306,7 +304,7 @@ namespace Js
         return charCapacity;
     }
 
-    void **CompoundString::BlockInfo::Pointers() const
+    Field(void*) *CompoundString::BlockInfo::Pointers() const
     {
         return Block::Pointers(buffer);
     }
@@ -384,7 +382,9 @@ namespace Js
         {
             AllocateBuffer(charCapacity, recycler);
             charLength = usedCharLength;
-            js_wmemcpy_s((char16*)(this->buffer), charCapacity, (char16*)(buffer), usedCharLength);
+            js_wmemcpy_s(Chars(), charCapacity, (const char16*)(buffer), usedCharLength);
+            // SWB: buffer may contain chars or pointers. Trigger write barrier for the whole buffer.
+            ArrayWriteBarrier(Pointers(), PointerLength());
             return nullptr;
         }
 
@@ -403,8 +403,10 @@ namespace Js
             void *const newBuffer = RecyclerNewArray(recycler, char16, newCharCapacity);
             charCapacity = newCharCapacity;
             const CharCount charLength = CharLength();
-            js_wmemcpy_s((char16*)newBuffer, charCapacity, (char16*)buffer, charLength);
+            js_wmemcpy_s((char16*)newBuffer, charCapacity, (char16*)PointerValue(buffer), charLength);
             buffer = newBuffer;
+            // SWB: buffer may contain chars or pointers. Trigger write barrier for the whole buffer.
+            ArrayWriteBarrier(Pointers(), PointerLength());
             return nullptr;
         }
 
@@ -679,7 +681,7 @@ namespace Js
         return lastBlockInfo.CharCapacity();
     }
 
-    void **CompoundString::LastBlockPointers() const
+    Field(void*) *CompoundString::LastBlockPointers() const
     {
         return lastBlockInfo.Pointers();
     }
@@ -1074,7 +1076,7 @@ namespace Js
         CharCount remainingCharLengthToCopy = totalCharLength;
         const Block *const lastBlock = this->lastBlock;
         const Block *block = lastBlock;
-        void *const *blockPointers = LastBlockPointers();
+        Field(void*) const *blockPointers = LastBlockPointers();
         CharCount pointerIndex = LastBlockPointerLength();
         while(remainingCharLengthToCopy > directCharLength)
         {
@@ -1083,7 +1085,7 @@ namespace Js
                 Assert(block);
                 block = block->Previous();
                 Assert(block);
-                blockPointers = block->Pointers();
+                blockPointers = (Field(void*) const *)block->Pointers();
                 pointerIndex = block->PointerLength();
             }
 
@@ -1184,6 +1186,7 @@ namespace Js
                 {
                     Assert(remainingCharLengthToCopy >= blockCharLength);
                     remainingCharLengthToCopy -= blockCharLength;
+                    // SWB: this is copying "direct chars" and there should be no pointers here. No write barrier needed.
                     js_wmemcpy_s(&buffer[remainingCharLengthToCopy], blockCharLength, blockChars, blockCharLength);
                     if(remainingCharLengthToCopy == 0)
                         break;

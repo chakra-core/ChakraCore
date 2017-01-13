@@ -139,7 +139,7 @@ namespace Js
 
         if (index < inlineSlotCapacity)
         {
-            Var * slots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(instance) + offsetOfInlineSlots);
+            Field(Var) * slots = reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(instance) + offsetOfInlineSlots);
             slots[index] = value;
         }
         else
@@ -160,7 +160,8 @@ namespace Js
         AssertMsg(index >= (int)(offsetOfInlineSlots / sizeof(Var)), "index should be relative to the address of the object");
         Assert(index - (int)(offsetOfInlineSlots / sizeof(Var)) < this->GetInlineSlotCapacity());
         Assert(propertyId == Constants::NoProperty || CanStorePropertyValueDirectly(instance, propertyId, allowLetConst));
-        Var * slots = reinterpret_cast<Var*>(instance);
+
+        Field(Var) * slots = reinterpret_cast<Field(Var)*>(instance);
         slots[index] = value;
     }
 
@@ -658,7 +659,8 @@ namespace Js
         // Allocate new aux slot array
         Recycler *const recycler = object->GetRecycler();
         TRACK_ALLOC_INFO(recycler, Var, Recycler, 0, newAuxSlotCapacity);
-        Var *const newAuxSlots = reinterpret_cast<Var *>(recycler->AllocZero(newAuxSlotCapacity * sizeof(Var)));
+        Field(Var) *const newAuxSlots = reinterpret_cast<Field(Var) *>(
+            recycler->AllocZero(newAuxSlotCapacity * sizeof(Field(Var))));
 
         DynamicTypeHandler *const oldTypeHandler = object->GetTypeHandler();
         const PropertyIndex oldInlineSlotCapacity = oldTypeHandler->GetInlineSlotCapacity();
@@ -669,7 +671,7 @@ namespace Js
             if(oldAuxSlotCapacity > 0)
             {
                 // Copy aux slots to the new array
-                Var *const oldAuxSlots = object->auxSlots;
+                Field(Var) *const oldAuxSlots = object->auxSlots;
                 Assert(oldAuxSlots);
                 int i = 0;
                 do
@@ -715,7 +717,7 @@ namespace Js
                 Output::Print(_u("ObjectHeaderInlining: Moving inlined properties out of the object header.\n"));
                 Output::Flush();
             }
-            Var *const newInlineSlots = reinterpret_cast<Var *>(object + 1);
+            Field(Var) *const newInlineSlots = reinterpret_cast<Field(Var) *>(object + 1);
             PropertyIndex i = newInlineSlotCapacity;
             do
             {
@@ -749,7 +751,7 @@ namespace Js
         {
             return TRUE;
         }
-        
+
         return DeleteProperty(instance, propertyRecord->GetPropertyId(), flags);
     }
 

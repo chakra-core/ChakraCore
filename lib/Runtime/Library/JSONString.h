@@ -44,8 +44,8 @@ namespace Js
         DEFINE_VTABLE_CTOR(JSONString, JavascriptString);
         DECLARE_CONCRETE_STRING_CLASS;
     private:
-        JavascriptString* m_originalString;
-        charcount_t m_start; /* start of the escaping operation */
+        Field(JavascriptString*) m_originalString;
+        Field(charcount_t) m_start; /* start of the escaping operation */
 
     private:
         JSONString(JavascriptString* originalString, charcount_t start, charcount_t length);

@@ -10,10 +10,10 @@ namespace Js
     class InlineCachePointerArray
     {
     public:
-        WriteBarrierPtr<T*> inlineCaches;
+        FieldWithBarrier(Field(T*)*) inlineCaches;
     private:
 #if DBG
-        uint inlineCacheCount;
+        Field(uint) inlineCacheCount;
 #endif
 
     public:

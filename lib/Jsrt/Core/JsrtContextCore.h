@@ -19,7 +19,8 @@ private:
     DEFINE_VTABLE_CTOR(JsrtContextCore, JsrtContext);
     JsrtContextCore(JsrtRuntime * runtime);
     Js::ScriptContext* EnsureScriptContext();
-    ChakraCoreHostScriptContext* hostContext;
+
+    FieldNoBarrier(ChakraCoreHostScriptContext*) hostContext;
 };
 
 class ChakraCoreHostScriptContext sealed : public HostScriptContext
