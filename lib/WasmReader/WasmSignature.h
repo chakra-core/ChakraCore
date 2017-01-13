@@ -30,6 +30,8 @@ public:
     static WasmSignature * FromIDL(WasmSignatureIDL* sig);
 
     static uint GetOffsetOfShortSig() { return offsetof(WasmSignature, m_shortSig); }
+
+    void Dump();
 private:
     WasmTypes::WasmType m_resultType;
     uint32 m_id;
