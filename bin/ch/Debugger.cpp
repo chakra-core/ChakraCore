@@ -174,10 +174,7 @@ JsValueRef Debugger::Evaluate(JsValueRef callee, bool isConstructCall, JsValueRe
     if (argumentCount > 2)
     {
         IfJsErrorFailLogAndRet(ChakraRTInterface::JsNumberToInt(arguments[1], &stackFrameIndex));
-
-        AutoString argstr(arguments[2]);
-        IfJsErrorFailLogAndRet(argstr.GetError());
-        ChakraRTInterface::JsDiagEvaluateUtf8(argstr.GetString(), stackFrameIndex, &result);
+        ChakraRTInterface::JsDiagEvaluate(arguments[2], stackFrameIndex, JsParseScriptAttributeNone, &result);
     }
 
     return result;

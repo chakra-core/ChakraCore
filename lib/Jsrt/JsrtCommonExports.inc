@@ -115,5 +115,4 @@
     JsRunSerialized
     JsCreatePropertyId
     JsCopyPropertyId
-    JsDiagEvaluateUtf8
 #endif
