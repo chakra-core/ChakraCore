@@ -843,6 +843,7 @@ private:
         // this is to indicate the actual close is called once only.
         bool isScriptContextActuallyClosed;
         bool isFinalized;
+        bool isEvalRestrict;
 #if DBG
         bool isInitialized;
         bool isCloningGlobal;
@@ -941,6 +942,8 @@ private:
         bool IsFinalized() const { return isFinalized; }
         void SetIsFinalized() { isFinalized = true; }
         bool IsActuallyClosed() const { return isScriptContextActuallyClosed; }
+        void SetEvalRestriction(bool set) { this->isEvalRestrict = set; }
+        bool IsEvalRestriction() const { return this->isEvalRestrict; }
 #if ENABLE_NATIVE_CODEGEN
         bool IsClosedNativeCodeGenerator() const
         {
