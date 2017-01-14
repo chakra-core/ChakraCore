@@ -31,6 +31,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.filters$' |
     grep -v -E '\.targets$' |
     grep -v -E '\.nuspec$' |
+    grep -v -E '\.pack-version$' |
     grep -v -E '\.def$' |
     grep -v -E '\.inc$' |
     grep -v -E '\.cmake$' |
