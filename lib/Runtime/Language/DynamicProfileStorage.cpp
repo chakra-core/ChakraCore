@@ -133,7 +133,7 @@ _Success_(return) bool DynamicProfileStorageReaderWriter::ReadUtf8String(__deref
         HeapDeleteArray(urllen, tempBuffer);
         return false;
     }
-    utf8::DecodeIntoAndNullTerminate(name, tempBuffer, length);
+    utf8::DecodeIntoAndNullTerminate(name, tempBuffer, tempBuffer + urllen, length);
     NoCheckHeapDeleteArray(urllen, tempBuffer);
     *str = name;
     *len = length;

@@ -16,8 +16,9 @@
  *  of the hash function so things don't go out of sync.
  */
 
-ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, int32 cch)
+ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, LPCOLESTR end, int32 cch)
 {
+    Unused(end);
     ULONG luHash = 0;
 
     while (cch-- > 0)
@@ -25,22 +26,21 @@ ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, int32 cch)
     return luHash;
 }
 
-ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, int32 cch)
+ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, LPCUTF8 end, int32 cch)
 {
     utf8::DecodeOptions options = utf8::doAllowThreeByteSurrogates;
     ULONG luHash = 0;
 
     while (cch-- > 0)
     {
-        LPCUTF8 end = prgch + cch + 1; // WARNING: Assume cch correct, suppress end-of-buffer checking
-
         luHash = 17 * luHash + utf8::Decode(prgch, end, options);
     }
     return luHash;
 }
 
-ULONG CaseSensitiveComputeHashCch(char const * prgch, int32 cch)
+ULONG CaseSensitiveComputeHashCch(char const * prgch, char const * end, int32 cch)
 {
+    Unused(end);
     ULONG luHash = 0;
 
     while (cch-- > 0)

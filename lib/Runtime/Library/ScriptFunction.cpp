@@ -486,7 +486,9 @@ namespace Js
             BufferStringBuilder builder(pFuncBody->LengthInChars(), scriptContext);
             // TODO: What about surrogate pairs?
             utf8::DecodeOptions options = pFuncBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-            utf8::DecodeInto(builder.DangerousGetWritableBuffer(), pFuncBody->GetSource(_u("ScriptFunction::EnsureSourceString")), pFuncBody->LengthInChars(), options);
+            LPCUTF8 ptr = pFuncBody->GetSource(_u("ScriptFunction::EnsureSourceString"));
+            size_t cbLength = pFuncBody->GetUtf8SourceInfo()->GetCbLength(_u("ScriptFunction::EnsureSourceString"));
+            utf8::DecodeInto(builder.DangerousGetWritableBuffer(), ptr, ptr + cbLength, pFuncBody->LengthInChars(), options);
             if (pFuncBody->IsLambda() || isActiveScript || this->GetFunctionInfo()->IsClassConstructor()
 #ifdef ENABLE_PROJECTION
                 || scriptContext->GetConfig()->IsWinRTEnabled()

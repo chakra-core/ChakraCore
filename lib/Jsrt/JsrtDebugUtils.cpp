@@ -59,7 +59,8 @@ void JsrtDebugUtils::AddSourceLengthAndTextToObject(Js::DynamicObject* object, J
     Assert(statementMap != nullptr);
 
     LPCUTF8 source = functionBody->GetStartOfDocument(_u("Source for debugging"));
-    size_t startByte = utf8::CharacterIndexToByteIndex(source, functionBody->GetUtf8SourceInfo()->GetCbLength(), (const charcount_t)statementMap->sourceSpan.begin);
+    size_t cbLength = functionBody->GetUtf8SourceInfo()->GetCbLength();
+    size_t startByte = utf8::CharacterIndexToByteIndex(source, cbLength, (const charcount_t)statementMap->sourceSpan.begin);
 
     int byteLength = statementMap->sourceSpan.end - statementMap->sourceSpan.begin;
 
@@ -69,7 +70,7 @@ void JsrtDebugUtils::AddSourceLengthAndTextToObject(Js::DynamicObject* object, J
     if (sourceContent != nullptr)
     {
         utf8::DecodeOptions options = functionBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-        utf8::DecodeIntoAndNullTerminate(sourceContent, source + startByte, byteLength, options);
+        utf8::DecodeIntoAndNullTerminate(sourceContent, source + startByte, source + startByte + cbLength, byteLength, options);
         JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceText, sourceContent, byteLength, functionBody->GetScriptContext());
     }
     else
@@ -92,8 +93,10 @@ void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8Source
     AutoArrayPtr<char16> sourceContent(HeapNewNoThrowArray(char16, cchLength + 1), cchLength + 1);
     if (sourceContent != nullptr)
     {
+        LPCUTF8 source = utf8SourceInfo->GetSource();
+        size_t cbLength = utf8SourceInfo->GetCbLength();
         utf8::DecodeOptions options = utf8SourceInfo->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-        utf8::DecodeIntoAndNullTerminate(sourceContent, utf8SourceInfo->GetSource(), cchLength, options);
+        utf8::DecodeIntoAndNullTerminate(sourceContent, source, source + cbLength, cchLength, options);
         JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::source, sourceContent, cchLength, utf8SourceInfo->GetScriptContext());
     }
     else

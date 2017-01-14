@@ -21,8 +21,8 @@ typedef StaticSymLen<0> StaticSym;
 /***************************************************************************
 Hashing functions. Definitions in core\hashfunc.cpp.
 ***************************************************************************/
-ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, int32 cch);
-ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, int32 cch);
+ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, LPCOLESTR end, int32 cch);
+ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, LPCUTF8 end, int32 cch);
 ULONG CaseInsensitiveComputeHash(LPCOLESTR posz);
 
 enum
@@ -351,14 +351,17 @@ public:
     }
 
     template <typename CharType>
+    IdentPtr PidHashNameLen(CharType const * psz, CharType const * end, uint32 cch);
+    template <typename CharType>
     IdentPtr PidHashNameLen(CharType const * psz, uint32 cch);
     template <typename CharType>
-    IdentPtr PidHashNameLenWithHash(_In_reads_(cch) CharType const * psz, int32 cch, uint32 luHash);
+    IdentPtr PidHashNameLenWithHash(_In_reads_(cch) CharType const * psz, CharType const * end, int32 cch, uint32 luHash);
 
 
     template <typename CharType>
     inline IdentPtr FindExistingPid(
         CharType const * prgch,
+        CharType const * end,
         int32 cch,
         uint32 luHash,
         IdentPtr **pppInsert,
@@ -404,16 +407,18 @@ private:
     uint CountAndVerifyItems(IdentPtr *buckets, uint bucketCount, uint mask);
 #endif
 
-    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(cch2) LPCOLESTR psz2, int32 cch2)
+    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(cch2) LPCOLESTR psz2, LPCOLESTR psz2end, int32 cch2)
     {
+        Unused(psz2end);
         return memcmp(psz1, psz2, cch2 * sizeof(OLECHAR)) == 0;
     }
-    static bool CharsAreEqual(__in_z LPCOLESTR psz1, LPCUTF8 psz2, int32 cch2)
+    static bool CharsAreEqual(__in_z LPCOLESTR psz1, LPCUTF8 psz2, LPCUTF8 psz2end, int32 cch2)
     {
-        return utf8::CharsAreEqual(psz1, psz2, cch2, utf8::doAllowThreeByteSurrogates);
+        return utf8::CharsAreEqual(psz1, psz2, psz2end, cch2, utf8::doAllowThreeByteSurrogates);
     }
-    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(cch2) char const * psz2, int32 cch2)
+    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(cch2) char const * psz2, char const * psz2end, int32 cch2)
     {
+        Unused(psz2end);
         while (cch2-- > 0)
         {
             if (*psz1++ != *psz2++)
@@ -421,17 +426,19 @@ private:
         }
         return true;
     }
-    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, __in_ecount(cch) LPCOLESTR psz2, int32 cch)
+    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, __in_ecount(cch) LPCOLESTR psz2, LPCOLESTR psz2end, int32 cch)
     {
+        Unused(psz2end);
         js_memcpy_s(psz1, cch * sizeof(OLECHAR), psz2, cch * sizeof(OLECHAR));
         psz1[cch] = 0;
     }
-    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, LPCUTF8 psz2, int32 cch)
+    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, LPCUTF8 psz2, LPCUTF8 psz2end, int32 cch)
     {
-        utf8::DecodeIntoAndNullTerminate(psz1, psz2, cch);
+        utf8::DecodeIntoAndNullTerminate(psz1, psz2, psz2end, cch);
     }
-    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, __in_ecount(cch) char const * psz2, int32 cch)
+    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, __in_ecount(cch) char const * psz2, char const * psz2end, int32 cch)
     {
+        Unused(psz2end);
         while (cch-- > 0)
             *(psz1++) = *psz2++;
         *psz1 = 0;

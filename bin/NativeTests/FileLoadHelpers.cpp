@@ -119,7 +119,7 @@ HRESULT FileLoadHelpers::LoadScriptFromFile(LPCSTR filename, LPCWSTR& contents, 
             IfFailGo(E_OUTOFMEMORY);
         }
 
-        utf8::DecodeIntoAndNullTerminate((char16*) contents, pRawBytes, cUtf16Chars, decodeOptions);
+        utf8::DecodeIntoAndNullTerminate((char16*) contents, pRawBytes, pRawBytes + lengthBytes, cUtf16Chars, decodeOptions);
     }
 
 Error:

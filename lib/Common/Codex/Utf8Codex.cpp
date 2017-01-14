@@ -377,7 +377,7 @@ LFourByte:
             return ptr;
     }
 
-    void DecodeInto(__out_ecount_full(cch) char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options)
+    void DecodeInto(__out_ecount_full(cch) char16 *buffer, LPCUTF8 ptr, LPCUTF8 end, size_t cch, DecodeOptions options)
     {
         DecodeOptions localOptions = options;
 
@@ -397,16 +397,14 @@ LFastPath:
 LSlowPath:
         while (cch-- > 0)
         {
-            LPCUTF8 end = ptr + cch + 1; // WARNING: Assume cch correct, suppress end-of-buffer checking
-
             *buffer++ = Decode(ptr, end, localOptions);
             if (ShouldFastPath(ptr, buffer)) goto LFastPath;
         }
     }
 
-    void DecodeIntoAndNullTerminate(__out_ecount(cch+1) __nullterminated char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options)
+    void DecodeIntoAndNullTerminate(__out_ecount(cch+1) __nullterminated char16 *buffer, LPCUTF8 ptr, LPCUTF8 end, size_t cch, DecodeOptions options)
     {
-        DecodeInto(buffer, ptr, cch, options);
+        DecodeInto(buffer, ptr, end, cch, options);
         buffer[cch] = 0;
     }
 
@@ -463,13 +461,11 @@ LSlowPath:
         return result;
     }
 
-    bool CharsAreEqual(__in_ecount(cch) LPCOLESTR pch, LPCUTF8 bch, size_t cch, DecodeOptions options)
+    bool CharsAreEqual(__in_ecount(cch) LPCOLESTR pch, LPCUTF8 bch, LPCUTF8 end, size_t cch, DecodeOptions options)
     {
         DecodeOptions localOptions = options;
         while (cch-- > 0)
         {
-            LPCUTF8 end = bch + cch + 1; // WARNING: Assume cch correct, suppress end-of-buffer checking
-
             if (*pch++ != utf8::Decode(bch, end, localOptions))
                 return false;
         }

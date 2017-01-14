@@ -77,8 +77,11 @@ namespace Js
 
         void RetrieveSourceText(__out_ecount_full(cchLim - cchMin) LPOLESTR cpText, charcount_t cchMin, charcount_t cchLim) const
         {
-            size_t cbMin = GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText")) == GetCchLength() ? cchMin : utf8::CharacterIndexToByteIndex(GetSource(_u("Utf8SourceInfo::RetrieveSourceText")), GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText")), cchMin, utf8::doAllowThreeByteSurrogates);
-            utf8::DecodeInto(cpText, GetSource(_u("Utf8SourceInfo::RetrieveSourceText")) + cbMin, cchLim - cchMin, utf8::doAllowThreeByteSurrogates);
+            size_t cbLength = GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText"));
+            LPCUTF8 pSource = GetSource(_u("Utf8SourceInfo::RetrieveSourceText"));
+            size_t cbMin = cbLength == GetCchLength() ? cchMin : utf8::CharacterIndexToByteIndex(pSource, cbLength, cchMin, utf8::doAllowThreeByteSurrogates);
+            
+            utf8::DecodeInto(cpText, pSource + cbMin, pSource + cbMin + cbLength, cchLim - cchMin, utf8::doAllowThreeByteSurrogates);
         }
 
         size_t CharacterIndexToByteIndex(charcount_t cchIndex) const
