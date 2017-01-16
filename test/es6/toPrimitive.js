@@ -474,6 +474,58 @@ var tests = [
             });
         }
     },
+    {
+       name: "Array type conversion tests",
+       body: function ()
+       {
+            var p1 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a1, "0", {configurable : true, get: function(){ return 30;}});
+                    return a1.length;
+                }
+            };
+            var a1 = [1, 2, 3, 4, 5];
+            assert.areEqual(3, a1.lastIndexOf(4, p1), "ToPrimitive: LastIndexOf returned incorrect result as array type changed to ES5 array.");
+
+            var p2 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a2, "0", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+            var a2 = [1, 2, 3, 4, 5];
+            assert.areEqual(3, a2.indexOf(4, p2), "ToPrimitive: IndexOf returned incorrect result as array type changed to ES5 array.");
+
+            var p3 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a3, "0", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+            var a3 = [1, 2, 3, 4, 5];
+            var b3 = a3.splice(p3);
+            assert.areEqual("30,2,3,4,5", b3.toString(), "ToPrimitive: Splice returned incorrect result as array type changed to ES5 array.");
+
+            var p4 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a4, "0", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+            var a4 = [1, 2, 3, 4, 5];
+            var b4 = a4.slice(p4);
+            assert.areEqual("30,2,3,4,5", b4.toString(), "ToPrimitive: Slice returned incorrect result as array type changed to ES5 array.");
+
+            var p5 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a5, "0", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+            var a5 = [1, 2, 3, 4, 5];
+            assert.isTrue(a5.includes(30, p5), "ToPrimitive: Includes returned incorrect result as array type changed to ES5 array.");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
