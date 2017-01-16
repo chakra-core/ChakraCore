@@ -533,10 +533,14 @@ template <class Policy>
 struct _QuickSortImpl
 {
     template<class T, class Comparer>
-    static void Sort(T* arr, size_t count, const Comparer& comparer, void* context)
+    static void Sort(T* arr, size_t count, const Comparer& comparer, void* context, size_t elementSize = sizeof(T))
     {
+#ifndef _WIN32
+        JsUtil::QuickSort<Policy, char, Comparer>::Sort((char*)arr, count, elementSize, comparer, context);
+#else
         // by default use system qsort_s
-        ::qsort_s(arr, count, sizeof(T), comparer, context);
+        ::qsort_s(arr, count, elementSize, comparer, context);
+#endif
     }
 };
 #ifdef RECYCLER_WRITE_BARRIER
@@ -544,10 +548,11 @@ template <>
 struct _QuickSortImpl<_write_barrier_policy>
 {
     template<class T, class Comparer>
-    static void Sort(T* arr, size_t count, const Comparer& comparer, void* context)
+    static void Sort(T* arr, size_t count, const Comparer& comparer, void* context,
+        size_t _ = 1 /* QuickSortSwap does not memcpy when SWB policy is in place*/)
     {
         // Use custom implementation if policy needs write barrier
-        JsUtil::QuickSort<T, Comparer>::Sort(arr, arr + count - 1, comparer, context);
+        JsUtil::QuickSort<_write_barrier_policy, T, Comparer>::Sort(arr, count, 1, comparer, context);
     }
 };
 #endif
@@ -559,6 +564,18 @@ void qsort_s(T* arr, size_t count, const Comparer& comparer, void* context)
     typedef typename AllocatorWriteBarrierPolicy<Allocator, ItemPolicy>::Policy Policy;
     _QuickSortImpl<Policy>::Sort(arr, count, comparer, context);
 }
+
+#ifndef _WIN32
+// on xplat we use our custom qsort_s
+template<class T, class PolicyType = T, class Allocator = Recycler, class Comparer>
+void qsort_s(T* arr, size_t count, size_t size, const Comparer& comparer, void* context)
+{
+    typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy ItemPolicy;
+    typedef typename AllocatorWriteBarrierPolicy<Allocator, ItemPolicy>::Policy Policy;
+    _QuickSortImpl<Policy>::Sort(arr, count, comparer, context, size);
+}
+#endif
+
 template<class T, class Comparer>
 void qsort_s(WriteBarrierPtr<T>* _Base, size_t _NumOfElements, size_t _SizeOfElements,
              const Comparer& comparer, void* _Context)
@@ -567,7 +584,6 @@ void qsort_s(WriteBarrierPtr<T>* _Base, size_t _NumOfElements, size_t _SizeOfEle
 }
 
 // Disallow memcpy, memmove of WriteBarrierPtr
-
 template <typename T>
 void *  __cdecl memmove(_Out_writes_bytes_all_opt_(_Size) WriteBarrierPtr<T> * _Dst, _In_reads_bytes_opt_(_Size) const void * _Src, _In_ size_t _Size)
 {
@@ -597,7 +613,6 @@ void *  __cdecl memset(_Out_writes_bytes_all_(_Size) WriteBarrierPtr<T> * _Dst, 
 {
     CompileAssert(false);
 }
-
 
 // This class abstract a pointer value with its last 2 bits set to avoid conservative GC tracking.
 template <class T>

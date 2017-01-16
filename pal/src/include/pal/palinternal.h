@@ -390,8 +390,6 @@ function_name() to call the system's implementation
 #undef malloc
 #undef realloc
 #undef free
-#undef qsort
-#undef qsort_s
 #undef bsearch
 #undef time
 #undef tm
