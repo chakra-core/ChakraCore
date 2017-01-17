@@ -645,6 +645,21 @@ namespace Js
         }
         else
         {
+            // ES2017 Spec'ed (9.1.9.1): 
+            // If existingDescriptor is not undefined, then
+            //    If IsAccessorDescriptor(existingDescriptor) is true, return false.
+            //    If existingDescriptor.[[Writable]] is false, return false.
+
+            if (proxyPropertyDescriptor.IsAccessorDescriptor())
+            {
+                return FALSE;
+            }
+
+            if (proxyPropertyDescriptor.WritableSpecified() && !proxyPropertyDescriptor.IsWritable())
+            {
+                return FALSE;
+            }
+
             proxyPropertyDescriptor.SetValue(value);
             proxyPropertyDescriptor.SetOriginal(nullptr);
             return Js::JavascriptOperators::DefineOwnPropertyDescriptor(this, propertyId, proxyPropertyDescriptor, true, scriptContext);
