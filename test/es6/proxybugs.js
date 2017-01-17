@@ -37,6 +37,70 @@ var tests = [
                 assert.areEqual(target.x, 20, "target object should work as expected even after proxy object is added to map");
             });
         }
+    },
+    {
+        name: "Assertion validation : returning descriptor during getOwnPropertyDescriptor should not pollute the descriptor",
+        body() {
+            var target = {};
+            var handler = {};
+            var getOwnPropertyDescriptorCalled = false;
+            handler['defineProperty'] = function () {
+                assert.fail("This function will not be called as 'getOwnPropertyDescriptor' will add accessor");
+            };
+            
+            handler['getOwnPropertyDescriptor'] = function (t, property) {
+                getOwnPropertyDescriptorCalled = true;
+                Object.defineProperty(t, 'abc', { set: function () { } });
+                return Reflect.getOwnPropertyDescriptor(t, property);
+            };
+            
+            var proxy = new Proxy(target, handler);
+            proxy.abc = undefined;
+            assert.isTrue(getOwnPropertyDescriptorCalled);
+        }
+    },
+    {
+        name: "Assertion validation : returning descriptor with writable false should not defineProperty again.",
+        body() {
+            var target = {};
+            var handler = {};
+            var getOwnPropertyDescriptorCalled = false;
+            handler['defineProperty'] = function () {
+                assert.fail("This function will not be called as 'getOwnPropertyDescriptor' will add property with writable false");
+            };
+            
+            handler['getOwnPropertyDescriptor'] = function (t, property) {
+                getOwnPropertyDescriptorCalled = true;
+                Object.defineProperty(t, 'abc', { value : 1, writable : false });
+                return Reflect.getOwnPropertyDescriptor(t, property);
+            };
+            
+            var proxy = new Proxy(target, handler);
+            proxy.abc = undefined;
+            assert.isTrue(getOwnPropertyDescriptorCalled);
+        }
+    },
+    {
+        name: "No property found at getOwnPropertyDescriptor will call defineProperty",
+        body() {
+            var target = {};
+            var handler = {};
+            var definePropertyCalled = false;
+            var getOwnPropertyDescriptorCalled = false;
+            handler['defineProperty'] = function () {
+                definePropertyCalled = true;
+            };
+            
+            handler['getOwnPropertyDescriptor'] = function (t, property) {
+                getOwnPropertyDescriptorCalled = true;
+                return Reflect.getOwnPropertyDescriptor(t, property);
+            };
+            
+            var proxy = new Proxy(target, handler);
+            proxy.abc = undefined;
+            assert.isTrue(definePropertyCalled);
+            assert.isTrue(getOwnPropertyDescriptorCalled);
+        }
     }
 ];
 
