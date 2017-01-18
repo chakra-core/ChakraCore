@@ -112,6 +112,14 @@ public:
 };
 
 template <>
+class SmallHeapBlockType<(ObjectInfoBits)(WithBarrierBit|LeafBit), SmallAllocationBlockAttributes>
+{
+public:
+    typedef SmallLeafHeapBlock BlockType;
+    typedef SmallLeafHeapBucketT<SmallAllocationBlockAttributes> BucketType;
+};
+
+template <>
 class SmallHeapBlockType<FinalizableWithBarrierBit, SmallAllocationBlockAttributes>
 {
 public:
@@ -152,6 +160,14 @@ class SmallHeapBlockType<WithBarrierBit, MediumAllocationBlockAttributes>
 public:
     typedef MediumNormalWithBarrierHeapBlock BlockType;
     typedef MediumNormalWithBarrierHeapBucket BucketType;
+};
+
+template <>
+class SmallHeapBlockType<(ObjectInfoBits)(WithBarrierBit | LeafBit), MediumAllocationBlockAttributes>
+{
+public:
+    typedef MediumLeafHeapBlock BlockType;
+    typedef SmallLeafHeapBucketT<MediumAllocationBlockAttributes> BucketType;
 };
 
 template <>
@@ -222,6 +238,19 @@ class HeapBucketGroup
         static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
         {
             return heapBucketGroup->smallNormalWithBarrierHeapBucket;
+        }
+    };
+
+    template <>
+    class BucketGetter<(ObjectInfoBits)(WithBarrierBit | LeafBit)>
+    {
+    public:
+        typedef typename SmallHeapBlockType<(ObjectInfoBits)(WithBarrierBit | LeafBit), TBlockAttributes>::BucketType BucketType;
+        static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
+        {
+            // WithBarrierBit | LeafBit combination should not exist, this is only for compilation purpose
+            Assert(false);
+            return heapBucketGroup->leafHeapBucket;
         }
     };
 
