@@ -66,9 +66,9 @@ async function testInvalidCases(tests) {
     }
     try {
       await testCase();
-      console.log(`Test ${i++}: Should have thrown error`);
+      console.log(`Test ${i++} failed. Should have thrown error`);
     } catch (e) {
-      console.log(`Test ${i++}: Expected Error: ${e}`);
+      console.log(`Test ${i++} passed. Expected Error: ${e}`);
     }
   }
 }
@@ -101,6 +101,13 @@ const invalidImports = [
   123,
   function() {},
   {wrongNamespace: imports.test, table: imports.table},
+];
+
+const invalidModules = [
+  null,
+  "123",
+  {},
+  new Proxy({}, {})
 ];
 
 async function testValidate() {
@@ -150,6 +157,85 @@ async function testModuleConstructor() {
   ]);
   const module = new WebAssembly.Module(buf);
   test(module);
+}
+
+async function testModuleApi() {
+  console.log("\nWebAssembly.Module api tests");
+  console.log("\nWebAssembly.Module.exports invalid tests");
+  await testInvalidCases([
+    ...(invalidModules.map(b => () => WebAssembly.Module.exports(b))),
+  ]);
+
+  console.log("\nWebAssembly.Module.imports invalid tests");
+  await testInvalidCases([
+    ...(invalidModules.map(b => () => WebAssembly.Module.imports(b))),
+  ]);
+}
+
+async function testModuleCustomSection(baseModule) {
+  console.log("\nWebAssembly.Module.customSections tests");
+  await testInvalidCases([
+    ...(invalidModules.map(b => () => WebAssembly.Module.customSections(b))),
+    () => WebAssembly.Module.customSections(baseModule),
+    () => WebAssembly.Module.customSections(baseModule, {toString() {throw new Error("Doesn't support toString");}}),
+    () => WebAssembly.Module.customSections(baseModule, Symbol()),
+  ]);
+
+  const baseSections = WebAssembly.Module.customSections(baseModule, "");
+  if (!Array.isArray(baseSections) || baseSections.length !== 0) {
+    console.log("Invalid result for WebAssembly.Module.customSections");
+    console.log(baseSections);
+  }
+
+  let passed = 0, failed = 0;
+  function compare(module, customSectionName, expected) {
+    const sections = WebAssembly.Module.customSections(module, customSectionName);
+    if (sections.length !== expected.length) {
+      console.log(`Invalid length. Got ${sections.length}, expected ${expected.length}. ${(new Error()).stack}`);
+      ++failed;
+      return;
+    }
+    let asExpected = true;
+    for (let iSection = 0; iSection < sections.length; ++iSection) {
+      const resBuffer = sections[iSection];
+      const expectedStr = expected[iSection];
+
+      const view = new Uint8Array(resBuffer);
+      let resStr = "";
+      for (let i = 0; i < view.length; ++i) {
+        resStr += String.fromCharCode(view[i]);
+      }
+      if (resStr !== expectedStr) {
+        asExpected = false;
+        console.log(`Invalid buffer result. Got ${resStr}, expected ${expectedStr}. ${(new Error()).stack}`);
+      }
+    }
+    passed += asExpected;
+    failed += !asExpected;
+  }
+
+  // See wasts/custom_section.wast for reference
+  const module1 = new WebAssembly.Module(createView("\x00\x61\x73\x6d\x0d\x00\x00\x00\x00\x24\x10\x61\x20\x63\x75\x73\x74\x6f\x6d\x20\x73\x65\x63\x74\x69\x6f\x6e\x74\x68\x69\x73\x20\x69\x73\x20\x74\x68\x65\x20\x70\x61\x79\x6c\x6f\x61\x64\x00\x20\x10\x61\x20\x63\x75\x73\x74\x6f\x6d\x20\x73\x65\x63\x74\x69\x6f\x6e\x74\x68\x69\x73\x20\x69\x73\x20\x70\x61\x79\x6c\x6f\x61\x64\x00\x11\x10\x61\x20\x63\x75\x73\x74\x6f\x6d\x20\x73\x65\x63\x74\x69\x6f\x6e\x00\x10\x00\x74\x68\x69\x73\x20\x69\x73\x20\x70\x61\x79\x6c\x6f\x61\x64\x00\x01\x00\x00\x24\x10\x00\x00\x63\x75\x73\x74\x6f\x6d\x20\x73\x65\x63\x74\x69\x6f\x00\x74\x68\x69\x73\x20\x69\x73\x20\x74\x68\x65\x20\x70\x61\x79\x6c\x6f\x61\x64"));
+  compare(module1, "a custom section", [
+    "this is the payload",
+    "this is payload",
+    "",
+  ]);
+  compare(module1, "", [
+    "this is payload",
+    "",
+  ]);
+  compare(module1, "\00\00custom sectio\00", [
+    "this is the payload",
+  ]);
+  const module2 = new WebAssembly.Module(createView("\x00\x61\x73\x6d\x0d\x00\x00\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x01\x01\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x02\x01\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x03\x01\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x04\x01\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x05\x01\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x06\x01\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x07\x01\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x09\x01\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x0a\x01\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x0b\x01\x00\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64\x00\x0e\x06\x63\x75\x73\x74\x6f\x6d\x70\x61\x79\x6c\x6f\x61\x64"));
+  compare(module2, "custom", new Proxy({length: 22}, {
+    get: (target, name) => name in target ? target[name] : "payload"
+  }));
+  const module3 = new WebAssembly.Module(createView("\x00\x61\x73\x6d\x0d\x00\x00\x00\x01\x07\x01\x60\x02\x7f\x7f\x01\x7f\x00\x1a\x06\x63\x75\x73\x74\x6f\x6d\x74\x68\x69\x73\x20\x69\x73\x20\x74\x68\x65\x20\x70\x61\x79\x6c\x6f\x61\x64\x03\x02\x01\x00\x07\x0a\x01\x06\x61\x64\x64\x54\x77\x6f\x00\x00\x0a\x09\x01\x07\x00\x20\x00\x20\x01\x6a\x0b\x00\x1b\x07\x63\x75\x73\x74\x6f\x6d\x32\x74\x68\x69\x73\x20\x69\x73\x20\x74\x68\x65\x20\x70\x61\x79\x6c\x6f\x61\x64"));
+  compare(module3, "custom", ["this is the payload"]);
+  compare(module3, "custom2", ["this is the payload"]);
+  console.log(`${passed}/${passed + failed} tests passed`);
 }
 
 async function testInstanceConstructor(module) {
@@ -325,17 +411,24 @@ async function main() {
 
   const baseModule = new WebAssembly.Module(buf);
   const tests = [
-    testValidate,
-    testCompile,
-    testInstantiate,
-    testModuleConstructor,
-    testInstanceConstructor,
-    testMemoryApi,
-    testTableApi,
+    /*0*/ testValidate,
+    /*1*/ testCompile,
+    /*2*/ testInstantiate,
+    /*3*/ testModuleConstructor,
+    /*4*/ testModuleApi,
+    /*5*/ testModuleCustomSection,
+    /*6*/ testInstanceConstructor,
+    /*7*/ testMemoryApi,
+    /*8*/ testTableApi,
   ];
   for (let i = 0; i < tests.length; ++i) {
     if (i >= start && i <= end) {
-      await tests[i](baseModule);
+      try {
+        await tests[i](baseModule);
+      } catch (e) {
+        console.log("Unexpected error");
+        console.log(e.stack);
+      }
     }
   }
 }
