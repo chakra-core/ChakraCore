@@ -49,6 +49,8 @@ namespace Js
         HeapDelete(scriptContext);
     }
 
+    CriticalSection JITPageAddrToFuncRangeCache::cs;
+
     ScriptContext::ScriptContext(ThreadContext* threadContext) :
         ScriptContextBase(),
         interpreterArena(nullptr),
@@ -194,6 +196,7 @@ namespace Js
         , bailOutOffsetBytes(0)
 #endif
         , debugContext(nullptr)
+        , jitFuncRangeCache(nullptr)
     {
        // This may allocate memory and cause exception, but it is ok, as we all we have done so far
        // are field init and those dtor will be called if exception occurs
@@ -478,6 +481,11 @@ namespace Js
         {
             DeleteNativeCodeGenerator(this->nativeCodeGen);
             nativeCodeGen = NULL;
+        }
+        if (jitFuncRangeCache != nullptr)
+        {
+            HeapDelete(jitFuncRangeCache);
+            jitFuncRangeCache = nullptr;
         }
 #endif
 
@@ -1242,6 +1250,7 @@ namespace Js
 #if ENABLE_NATIVE_CODEGEN
         // Create the native code gen before the profiler
         this->nativeCodeGen = NewNativeCodeGenerator(this);
+        this->jitFuncRangeCache = HeapNew(JITPageAddrToFuncRangeCache);
 #endif
 
 #ifdef PROFILE_EXEC
@@ -4347,6 +4356,12 @@ void ScriptContext::RegisterConstructorCache(Js::PropertyId propertyId, Js::Cons
 }
 #endif
 
+JITPageAddrToFuncRangeCache * 
+ScriptContext::GetJitFuncRangeCache()
+{
+    return jitFuncRangeCache;
+}
+
 void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext()
 {
     Assert(!IsClosed());
@@ -4419,7 +4434,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #if ENABLE_NATIVE_CODEGEN
     BOOL ScriptContext::IsNativeAddress(void * codeAddr)
     {
-        return this->GetThreadContext()->IsNativeAddress(codeAddr);
+        return this->GetThreadContext()->IsNativeAddress(codeAddr, this);
     }
 #endif
 
@@ -5915,4 +5930,119 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return moduleRecord->GetLocalExportSlots();
     }
 
+    void JITPageAddrToFuncRangeCache::ClearCache()
+    {
+        if (jitPageAddrToFuncRangeMap != nullptr)
+        {
+            jitPageAddrToFuncRangeMap->Map(
+                [](void* key, RangeMap* value) {
+                HeapDelete(value);
+            });
+
+            HeapDelete(jitPageAddrToFuncRangeMap);
+            jitPageAddrToFuncRangeMap = nullptr;
+        }
+
+        if (largeJitFuncToSizeMap != nullptr)
+        {
+            HeapDelete(largeJitFuncToSizeMap);
+            largeJitFuncToSizeMap = nullptr;
+        }
+    }
+
+    void JITPageAddrToFuncRangeCache::AddFuncRange(void * address, uint bytes)
+    {
+        AutoCriticalSection autocs(GetCriticalSection());
+
+        if (bytes <= AutoSystemInfo::PageSize)
+        {
+            if (jitPageAddrToFuncRangeMap == nullptr)
+            {
+                jitPageAddrToFuncRangeMap = HeapNew(JITPageAddrToFuncRangeMap, &HeapAllocator::Instance);
+            }
+
+            void * pageAddr = GetPageAddr(address);
+            RangeMap * rangeMap = nullptr;
+            bool isPageAddrFound = jitPageAddrToFuncRangeMap->TryGetValue(pageAddr, &rangeMap);
+            if (rangeMap == nullptr)
+            {
+                Assert(!isPageAddrFound);
+                rangeMap = HeapNew(RangeMap, &HeapAllocator::Instance);
+                jitPageAddrToFuncRangeMap->Add(pageAddr, rangeMap);
+            }
+            uint byteCount = 0;
+            Assert(!rangeMap->TryGetValue(address, &byteCount));
+            rangeMap->Add(address, bytes);
+        }
+        else
+        {
+            if (largeJitFuncToSizeMap == nullptr)
+            {
+                largeJitFuncToSizeMap = HeapNew(LargeJITFuncAddrToSizeMap, &HeapAllocator::Instance);
+            }
+
+            uint byteCount = 0;
+            Assert(!largeJitFuncToSizeMap->TryGetValue(address, &byteCount));
+            largeJitFuncToSizeMap->Add(address, bytes);
+        }
+    }
+
+    void* JITPageAddrToFuncRangeCache::GetPageAddr(void * address)
+    {
+        return (void*)((uintptr_t)address & ~(AutoSystemInfo::PageSize - 1));
+    }
+
+    void JITPageAddrToFuncRangeCache::RemoveFuncRange(void * address)
+    {
+        AutoCriticalSection autocs(GetCriticalSection());
+
+        void * pageAddr = GetPageAddr(address);
+
+        RangeMap * rangeMap = nullptr;
+        uint bytes = 0;
+        if (jitPageAddrToFuncRangeMap && jitPageAddrToFuncRangeMap->TryGetValue(pageAddr, &rangeMap))
+        {
+            Assert(rangeMap->Count() != 0);
+            rangeMap->Remove(address);
+
+            if (rangeMap->Count() == 0)
+            {
+                HeapDelete(rangeMap);
+                rangeMap = nullptr;
+                jitPageAddrToFuncRangeMap->Remove(pageAddr);
+            }
+            return;
+        }
+        else if (largeJitFuncToSizeMap && largeJitFuncToSizeMap->TryGetValue(address, &bytes))
+        {
+            largeJitFuncToSizeMap->Remove(address);
+        }
+        else
+        {
+            AssertMsg(false, "Page address not found to remove the func range");
+        }
+    }
+
+    bool JITPageAddrToFuncRangeCache::IsNativeAddr(void * address)
+    {
+        AutoCriticalSection autocs(GetCriticalSection());
+
+        void * pageAddr = GetPageAddr(address);
+        RangeMap * rangeMap = nullptr;
+        if (jitPageAddrToFuncRangeMap && jitPageAddrToFuncRangeMap->TryGetValue(pageAddr, &rangeMap))
+        {
+            if (rangeMap->MapUntil(
+                [&](void* key, uint value) {
+                return (key <= address && (uintptr_t)address < ((uintptr_t)key + value));
+            }))
+            {
+                return true;
+            }
+        }
+
+        return largeJitFuncToSizeMap && largeJitFuncToSizeMap->MapUntil(
+            [&](void *key, uint value) {
+            return (key <= address && (uintptr_t)address < ((uintptr_t)key + value));
+        });
+    }
 } // End namespace Js
