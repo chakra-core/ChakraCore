@@ -297,6 +297,18 @@ MACRO_EXTEND_WMS( Conv_Check_FTUL            , Long1Float1     , None           
 MACRO_EXTEND_WMS( Conv_Check_DTL             , Long1Double1    , None            )
 MACRO_EXTEND_WMS( Conv_Check_DTUL            , Long1Double1    , None            )
 
+
+// InOut tracing opcodes
+MACRO_EXTEND_WMS( PrintFuncName    , Int2, None)
+MACRO_EXTEND    ( PrintArgSeparator, Empty, None)
+MACRO_EXTEND    ( PrintBeginCall   , Empty, None)
+MACRO_EXTEND    ( PrintNewLine     , Empty, None)
+MACRO_EXTEND_WMS( PrintEndCall     , Int2, None)
+MACRO_EXTEND_WMS( PrintI32, Int2   , None)
+MACRO_EXTEND_WMS( PrintI64, Long2  , None)
+MACRO_EXTEND_WMS( PrintF32, Float2 , None)
+MACRO_EXTEND_WMS( PrintF64, Double2, None)
+
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO(opcode, asmjsLayout, opCodeAttrAsmJs)
 #define MACRO_SIMD_WMS(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_WMS(opcode, asmjsLayout, opCodeAttrAsmJs)
 #define MACRO_SIMD_ASMJS_ONLY_WMS(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_WMS(opcode, asmjsLayout, opCodeAttrAsmJs)

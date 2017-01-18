@@ -171,6 +171,46 @@ WasmModuleGenerator::GenerateModule()
         GenerateFunctionHeader(i);
     }
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    WasmFunctionInfo* firstThunk = nullptr, *lastThunk = nullptr;
+    for (uint32 i = 0; i < funcCount; ++i)
+    {
+        WasmFunctionInfo* info = m_module->GetWasmFunctionInfo(i);
+        Assert(info->GetBody());
+        if (PHASE_TRACE(Js::WasmInOutPhase, info->GetBody()))
+        {
+            uint index = m_module->GetWasmFunctionCount();
+            WasmFunctionInfo* newInfo = m_module->AddWasmFunctionInfo(info->GetSignature());
+            if (!firstThunk)
+            {
+                firstThunk = newInfo;
+            }
+            lastThunk = newInfo;
+            GenerateFunctionHeader(index);
+            m_module->SwapWasmFunctionInfo(i, index);
+            m_module->AttachCustomInOutTracingReader(newInfo, index);
+        }
+    }
+
+    if (firstThunk)
+    {
+        int sourceId = (int)firstThunk->GetBody()->GetSourceContextId();
+        char16 range[64];
+        swprintf_s(range, 64, _u("%d.%d-%d.%d"),
+                   sourceId, firstThunk->GetBody()->GetLocalFunctionId(),
+                   sourceId, lastThunk->GetBody()->GetLocalFunctionId());
+        char16 offFullJit[128];
+        swprintf_s(offFullJit, 128, _u("-off:fulljit:%s"), range);
+        char16 offSimpleJit[128];
+        swprintf_s(offSimpleJit, 128, _u("-off:simplejit:%s"), range);
+        char16 offLoopJit[128];
+        swprintf_s(offLoopJit, 128, _u("-off:jitloopbody:%s"), range);
+        char16* argv[] = { nullptr, offFullJit, offSimpleJit, offLoopJit };
+        CmdLineArgsParser parser(nullptr);
+        parser.Parse(ARRAYSIZE(argv), argv);
+    }
+#endif
+
 #if DBG_DUMP
     if (PHASE_TRACE1(Js::WasmReaderPhase))
     {
@@ -359,7 +399,7 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
     m_funcInfo = readerInfo->m_funcInfo;
     m_module = readerInfo->m_module;
     // Init reader to current func offset
-    GetReader()->SeekToFunctionBody(m_funcInfo->m_readerInfo);
+    GetReader()->SeekToFunctionBody(m_funcInfo);
 
     // Use binary size to estimate bytecode size
     const long astSize = readerInfo->m_funcInfo->m_readerInfo.size;
@@ -587,6 +627,10 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig == 2);\
         info = EmitUnaryExpr(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
+        break;
+#define WASM_EMPTY__OPCODE(opname, opcode, asmjsop, nyi) \
+    case wb##opname: \
+        m_writer->EmptyAsm(Js::OpCodeAsmJs::##asmjsop);\
         break;
 #include "WasmBinaryOpCodes.h"
     default:
@@ -1136,6 +1180,11 @@ WasmBytecodeGenerator::EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmTy
     EmitInfo info = PopEvalStack(inputType);
 
     ReleaseLocation(&info);
+    if (resultType == WasmTypes::Void)
+    {
+        m_writer->AsmReg2(op, 0, info.location);
+        return EmitInfo();
+    }
 
     Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
 

@@ -324,7 +324,6 @@ WasmBinaryReader::ReadFunctionHeaders()
         WasmFunctionInfo* funcInfo = m_module->GetWasmFunctionInfo(funcIndex);
 
         const uint32 funcSize = LEB128(len);
-        funcInfo->m_readerInfo.index = funcIndex;
         funcInfo->m_readerInfo.size = funcSize;
         funcInfo->m_readerInfo.startOffset = (m_pc - m_start);
         CheckBytesLeft(funcSize);
@@ -334,9 +333,9 @@ WasmBinaryReader::ReadFunctionHeaders()
     }
 }
 
-void
-WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
+void WasmBinaryReader::SeekToFunctionBody(class WasmFunctionInfo* funcInfo)
 {
+    FunctionBodyReaderInfo readerInfo = funcInfo->m_readerInfo;
     if (readerInfo.startOffset >= (m_end - m_start))
     {
         ThrowDecodingError(_u("Function byte offset out of bounds"));
@@ -357,8 +356,6 @@ WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
     uint32 len = 0;
     uint32 entryCount = LEB128(len);
     m_funcState.count += len;
-
-    WasmFunctionInfo* funcInfo = m_module->GetWasmFunctionInfo(readerInfo.index);
 
     // locals
     for (uint32 j = 0; j < entryCount; j++)

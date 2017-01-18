@@ -40,7 +40,7 @@ namespace Wasm
         bool ReadNextSection(SectionCode nextSection);
         // Fully read the section in the reader. Return true if the section fully read
         bool ProcessCurrentSection();
-        virtual void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo) override;
+        virtual void SeekToFunctionBody(class WasmFunctionInfo* funcInfo) override;
         virtual bool IsCurrentFunctionCompleted() const override;
         virtual WasmOp ReadExpr() override;
         virtual void FunctionEnd() override;

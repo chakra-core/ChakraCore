@@ -11,7 +11,7 @@ namespace Wasm
     {
     public:
         WasmCustomReader(ArenaAllocator* alloc);
-        virtual void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo) override;
+        virtual void SeekToFunctionBody(class WasmFunctionInfo* funcInfo) override;
         virtual bool IsCurrentFunctionCompleted() const override;
         virtual WasmOp ReadExpr() override;
         virtual void FunctionEnd() override;

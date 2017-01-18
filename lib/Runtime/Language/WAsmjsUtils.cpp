@@ -53,7 +53,93 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
         }
         Output::Print(_u("){\n"));
     }
+
+    namespace Tracing
+    {
+        // This can be broken if exception are thrown from wasm frames
+        int callDepth = 0;
+        int GetPrintCol()
+        {
+            return callDepth;
+        }
+
+        void PrintArgSeparator()
+        {
+            Output::Print(_u(", "));
+        }
+
+        void PrintBeginCall()
+        {
+            ++callDepth;
+            Output::Print(_u(") {\n"));
+        }
+
+        void PrintNewLine()
+        {
+            Output::Print(_u("\n"));
+        }
+
+        void PrintEndCall(int hasReturn)
+        {
+            callDepth = callDepth > 0 ? callDepth - 1 : 0;
+            Output::Print(_u("%*s}"), GetPrintCol(), _u(""));
+            if (hasReturn)
+            {
+                Output::Print(_u(" = "));
+            }
+        }
+
+        int PrintI32(int val)
+        {
+            Output::Print(_u("%d"), val);
+            return val;
+        }
+
+        int64 PrintI64(int64 val)
+        {
+            Output::Print(_u("%lld"), val);
+            return val;
+        }
+
+        float PrintF32(float val)
+        {
+            Output::Print(_u("%.4f"), val);
+            return val;
+        }
+
+        double PrintF64(double val)
+        {
+            Output::Print(_u("%.4f"), val);
+            return val;
+        }
+    }
 #endif
+    void JitFunctionIfReady(Js::ScriptFunction* func, uint interpretedCount /*= 0*/)
+    {
+#if ENABLE_NATIVE_CODEGEN
+        Js::FunctionBody* body = func->GetFunctionBody();
+        if (WAsmJs::ShouldJitFunction(body, interpretedCount))
+        {
+            GenerateFunction(body->GetScriptContext()->GetNativeCodeGenerator(), body, func);
+            body->SetIsAsmJsFullJitScheduled(true);
+        }
+#endif
+    }
+
+    bool ShouldJitFunction(Js::FunctionBody* body, uint interpretedCount)
+    {
+#if ENABLE_NATIVE_CODEGEN
+        const bool noJit = PHASE_OFF(Js::BackEndPhase, body) ||
+            PHASE_OFF(Js::FullJitPhase, body) ||
+            body->GetScriptContext()->GetConfig()->IsNoNative() ||
+            body->GetIsAsmJsFullJitScheduled();
+        const uint minAsmJsInterpretRunCount = (int)CONFIG_FLAG(MinAsmJsInterpreterRunCount);
+        const uint maxAsmJsInterpretRunCount = (int)CONFIG_FLAG(MaxAsmJsInterpreterRunCount);
+        return !noJit && (interpretedCount >= minAsmJsInterpretRunCount || interpretedCount >= maxAsmJsInterpretRunCount);
+#else
+        return false;
+#endif
+    }
 
     uint32 ConvertOffset(uint32 ptr, uint32 fromSize, uint32 toSize)
     {
