@@ -45,7 +45,7 @@ public:
 
     static bool     FitsInDWord(int32 value) { return true; }
     static bool     FitsInDWord(size_t value) { return ((size_t)(signed int)(value & 0xFFFFFFFF) == value); }
-    static bool     FitsInDWord(int64 value) { return FitsInDWord((size_t)value); }
+    static bool     FitsInDWord(int64 value) { return ((int64)(signed int)(value & 0xFFFFFFFF) == value); }
 
     static UINT_PTR Rand();
     static bool     IsPow2(int32 val) { return (val > 0 && ((val-1) & val) == 0); }
