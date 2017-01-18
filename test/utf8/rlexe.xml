@@ -17,7 +17,11 @@
   <test>
     <default>
       <files>surrogatepair.js</files>
-      <baseline />
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bugGH2386.js</files>
     </default>
   </test>
 </regress-exe>
