@@ -179,6 +179,8 @@ namespace Js
         void OP_I_SetOutAsmSimd(RegSlot outRegisterID, AsmJsSIMDValue val);
         template<bool toJs>
         void OP_InvalidWasmTypeConversion(...);
+        void OP_WasmPrintFunc(int index);
+        template <class T> void OP_WasmPrintFunc(const unaligned T* playout) { OP_WasmPrintFunc((int)playout->I1);  }
 
         void SetOut(ArgSlot outRegisterID, Var bValue);
         void SetOut(ArgSlot_OneByte outRegisterID, Var bValue);

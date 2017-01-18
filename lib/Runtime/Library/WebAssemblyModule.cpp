@@ -447,6 +447,102 @@ WebAssemblyModule::GetWasmFunctionInfo(uint index) const
 }
 
 void
+WebAssemblyModule::SwapWasmFunctionInfo(uint i1, uint i2)
+{
+    Wasm::WasmFunctionInfo* f1 = GetWasmFunctionInfo(i1);
+    Wasm::WasmFunctionInfo* f2 = GetWasmFunctionInfo(i2);
+    m_functionsInfo->SetItem(i1, f2);
+    m_functionsInfo->SetItem(i2, f1);
+}
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+void
+WebAssemblyModule::AttachCustomInOutTracingReader(Wasm::WasmFunctionInfo* func, uint callIndex)
+{
+    Wasm::WasmFunctionInfo* calledFunc = GetWasmFunctionInfo(callIndex);
+    Wasm::WasmSignature* signature = calledFunc->GetSignature();
+    if (!calledFunc->GetSignature()->IsEquivalent(signature))
+    {
+        throw Wasm::WasmCompilationException(_u("InOut tracing reader signature mismatch"));
+    }
+    // Create the custom reader to generate the import thunk
+    Wasm::WasmCustomReader* customReader = Anew(&m_alloc, Wasm::WasmCustomReader, &m_alloc);
+    // Print the function name we are calling
+    {
+        Wasm::WasmNode nameNode;
+        nameNode.op = Wasm::wbI32Const;
+        nameNode.cnst.i32 = callIndex;
+        customReader->AddNode(nameNode);
+        nameNode.op = Wasm::wbPrintFuncName;
+        customReader->AddNode(nameNode);
+    }
+
+    for (uint32 iParam = 0; iParam < signature->GetParamCount(); iParam++)
+    {
+        Wasm::WasmNode node;
+        node.op = Wasm::wbGetLocal;
+        node.var.num = iParam;
+        customReader->AddNode(node);
+
+        Wasm::Local param = signature->GetParam(iParam);
+        switch (param)
+        {
+        case Wasm::Local::I32: node.op = Wasm::wbPrintI32; break;
+        case Wasm::Local::I64: node.op = Wasm::wbPrintI64; break;
+        case Wasm::Local::F32: node.op = Wasm::wbPrintF32; break;
+        case Wasm::Local::F64: node.op = Wasm::wbPrintF64; break;
+        default:
+            throw Wasm::WasmCompilationException(_u("Unknown param type"));
+        }
+        customReader->AddNode(node);
+
+        if (iParam < signature->GetParamCount() - 1)
+        {
+            node.op = Wasm::wbPrintArgSeparator;
+            customReader->AddNode(node);
+        }
+    }
+
+    Wasm::WasmNode beginNode;
+    beginNode.op = Wasm::wbPrintBeginCall;
+    customReader->AddNode(beginNode);
+
+    Wasm::WasmNode callNode;
+    callNode.op = Wasm::wbCall;
+    callNode.call.num = callIndex;
+    callNode.call.funcType = Wasm::FunctionIndexTypes::Function;
+    customReader->AddNode(callNode);
+
+    Wasm::WasmTypes::WasmType returnType = signature->GetResultType();
+    Wasm::WasmNode endNode;
+    endNode.op = Wasm::wbI32Const;
+    endNode.cnst.i32 = returnType;
+    customReader->AddNode(endNode);
+    endNode.op = Wasm::wbPrintEndCall;
+    customReader->AddNode(endNode);
+
+    if (returnType != Wasm::WasmTypes::Void)
+    {
+        Wasm::WasmNode node;
+        switch (returnType)
+        {
+        case Wasm::WasmTypes::I32: node.op = Wasm::wbPrintI32; break;
+        case Wasm::WasmTypes::I64: node.op = Wasm::wbPrintI64; break;
+        case Wasm::WasmTypes::F32: node.op = Wasm::wbPrintF32; break;
+        case Wasm::WasmTypes::F64: node.op = Wasm::wbPrintF64; break;
+        default:
+            throw Wasm::WasmCompilationException(_u("Unknown return type"));
+        }
+        customReader->AddNode(node);
+    }
+    endNode.op = Wasm::wbPrintNewLine;
+    customReader->AddNode(endNode);
+
+    func->SetCustomReader(customReader);
+}
+#endif
+
+void
 WebAssemblyModule::AllocateFunctionExports(uint32 entries)
 {
     m_exports = AnewArrayZ(&m_alloc, Wasm::WasmExport, entries);

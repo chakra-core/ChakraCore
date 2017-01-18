@@ -40,11 +40,14 @@
 #define WASM_BINARY_OPCODE(opname, opcode, sig, asmjop, nyi) WASM_OPCODE(opname, opcode, sig, nyi)
 #endif
 
+#ifndef WASM_EMPTY__OPCODE
+#define WASM_EMPTY__OPCODE(opname, opcode, asmjop, nyi) WASM_OPCODE(opname, opcode, Limit, nyi)
+#endif
+
 // built-in opcode signatures
 //              id, retType, arg0, arg1, arg2
 WASM_SIGNATURE(I_II,    3,   WasmTypes::I32, WasmTypes::I32, WasmTypes::I32)
 WASM_SIGNATURE(I_I,     2,   WasmTypes::I32, WasmTypes::I32)
-WASM_SIGNATURE(I_V,     1,   WasmTypes::I32)
 WASM_SIGNATURE(I_FF,    3,   WasmTypes::I32, WasmTypes::F32, WasmTypes::F32)
 WASM_SIGNATURE(I_F,     2,   WasmTypes::I32, WasmTypes::F32)
 WASM_SIGNATURE(I_DD,    3,   WasmTypes::I32, WasmTypes::F64, WasmTypes::F64)
@@ -69,6 +72,18 @@ WASM_SIGNATURE(D_L,     2,   WasmTypes::F64, WasmTypes::I64)
 WASM_SIGNATURE(D_ID,    3,   WasmTypes::F64, WasmTypes::I32, WasmTypes::F64)
 WASM_SIGNATURE(F_IF,    3,   WasmTypes::F32, WasmTypes::I32, WasmTypes::F32)
 WASM_SIGNATURE(L_IL,    3,   WasmTypes::I64, WasmTypes::I32, WasmTypes::I64)
+
+WASM_SIGNATURE(V_I,     2,   WasmTypes::Void, WasmTypes::I32)
+WASM_SIGNATURE(V_L,     2,   WasmTypes::Void, WasmTypes::I64)
+WASM_SIGNATURE(V_F,     2,   WasmTypes::Void, WasmTypes::F32)
+WASM_SIGNATURE(V_D,     2,   WasmTypes::Void, WasmTypes::I64)
+
+WASM_SIGNATURE(I,       1,   WasmTypes::I32)
+WASM_SIGNATURE(L,       1,   WasmTypes::I64)
+WASM_SIGNATURE(F,       1,   WasmTypes::F32)
+WASM_SIGNATURE(D,       1,   WasmTypes::I64)
+WASM_SIGNATURE(V,       1,   WasmTypes::Void)
+WASM_SIGNATURE(Limit,   1,   WasmTypes::Void)
 
 // Control flow operators
 WASM_CTRL_OPCODE(Unreachable, 0x00, Limit, false)
@@ -281,6 +296,18 @@ WASM_UNARY__OPCODE(I64ReinterpretF64, 0xbd, L_D , Reinterpret_DTL, false)
 WASM_UNARY__OPCODE(F32ReinterpretI32, 0xbe, F_I , Reinterpret_ITF, false)
 WASM_UNARY__OPCODE(F64ReinterpretI64, 0xbf, D_L , Reinterpret_LTD, false)
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+WASM_UNARY__OPCODE(PrintFuncName    , 0xf0, V_I , PrintFuncName    , false)
+WASM_EMPTY__OPCODE(PrintArgSeparator, 0xf1,       PrintArgSeparator, false)
+WASM_EMPTY__OPCODE(PrintBeginCall   , 0xf2,       PrintBeginCall   , false)
+WASM_EMPTY__OPCODE(PrintNewLine     , 0xf3,       PrintNewLine     , false)
+WASM_UNARY__OPCODE(PrintEndCall     , 0xf4, V_I , PrintEndCall     , false)
+WASM_UNARY__OPCODE(PrintI32         , 0xfc, I_I , PrintI32         , false)
+WASM_UNARY__OPCODE(PrintI64         , 0xfd, L_L , PrintI64         , false)
+WASM_UNARY__OPCODE(PrintF32         , 0xfe, F_F , PrintF32         , false)
+WASM_UNARY__OPCODE(PrintF64         , 0xff, D_D , PrintF64         , false)
+#endif
+
 #undef WASM_OPCODE
 #undef WASM_SIGNATURE
 #undef WASM_CTRL_OPCODE
@@ -290,3 +317,4 @@ WASM_UNARY__OPCODE(F64ReinterpretI64, 0xbf, D_L , Reinterpret_LTD, false)
 #undef WASM_MEMSTORE_OPCODE
 #undef WASM_UNARY__OPCODE
 #undef WASM_BINARY_OPCODE
+#undef WASM_EMPTY__OPCODE

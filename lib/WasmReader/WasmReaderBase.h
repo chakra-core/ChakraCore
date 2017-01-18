@@ -9,7 +9,6 @@ namespace Wasm
 {
     struct FunctionBodyReaderInfo
     {
-        Field(uint32) index;
         Field(uint32) size;
         Field(intptr_t) startOffset;
     };
@@ -17,7 +16,7 @@ namespace Wasm
     class WasmReaderBase
     {
     public:
-        virtual void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo) = 0;
+        virtual void SeekToFunctionBody(class WasmFunctionInfo* funcInfo) = 0;
         virtual bool IsCurrentFunctionCompleted() const = 0;
         virtual WasmOp ReadExpr() = 0;
         virtual void FunctionEnd() = 0;

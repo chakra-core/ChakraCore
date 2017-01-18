@@ -14,9 +14,9 @@ WasmCustomReader::WasmCustomReader(ArenaAllocator* alloc) : m_nodes(alloc)
 
 }
 
-void
-WasmCustomReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
+void WasmCustomReader::SeekToFunctionBody(class WasmFunctionInfo* funcInfo)
 {
+    Assert(funcInfo->GetCustomReader() == this);
     m_state = 0;
 }
 
