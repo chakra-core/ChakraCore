@@ -218,8 +218,19 @@ WebAssemblyModule::CreateModule(
     try
     {
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
-        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
+        SourceContextInfo * sourceContextInfo = scriptContext->CreateSourceContextInfo(scriptContext->GetNextSourceContextId(), nullptr, 0, nullptr);
+        SRCINFO si = {
+            /* sourceContextInfo   */ sourceContextInfo,
+            /* dlnHost             */ 0,
+            /* ulColumnHost        */ 0,
+            /* lnMinHost           */ 0,
+            /* ichMinHost          */ 0,
+            /* ichLimHost          */ 0,
+            /* ulCharOffset        */ 0,
+            /* mod                 */ 0,
+            /* grfsi               */ 0
+        };
+        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, &si, false);
 
         // copy buffer so external changes to it don't cause issues when defer parsing
         byte* newBuffer = RecyclerNewArray(scriptContext->GetRecycler(), byte, lengthBytes);
