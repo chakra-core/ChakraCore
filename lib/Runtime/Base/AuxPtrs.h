@@ -20,7 +20,7 @@ namespace Js
     {
         static const uint8 MaxCount;
         FieldWithBarrier(uint8) count;                 // always saving maxCount
-        FieldWithBarrier(FieldsEnum) type[_MaxCount];  // save instantiated pointer enum
+        typename FieldWithBarrier(FieldsEnum) type[_MaxCount];  // save instantiated pointer enum
         FieldWithBarrier(void*) ptr[_MaxCount];        // save instantiated pointer address
         AuxPtrsFix();
         AuxPtrsFix(AuxPtrsFix<FieldsEnum, 16>* ptr16); // called when promoting from AuxPtrs16 to AuxPtrs32

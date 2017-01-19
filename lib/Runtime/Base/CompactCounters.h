@@ -30,7 +30,7 @@ namespace Js
         mutable FieldWithBarrier(bool) bgThreadCallStarted;
         FieldWithBarrier(bool) isCleaningUp;
 #endif
-        FieldWithBarrier(Fields*) fields;
+        typename FieldWithBarrier(Fields*) fields;
 
         CompactCounters() { }
         CompactCounters(T* host)

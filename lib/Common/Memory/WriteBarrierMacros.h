@@ -16,12 +16,12 @@
 //
 
 #define FieldWithBarrier(type, ...) \
-    typename WriteBarrierFieldTypeTraits<type, ##__VA_ARGS__>::Type
+    WriteBarrierFieldTypeTraits<type, ##__VA_ARGS__>::Type
 
 #if GLOBAL_ENABLE_WRITE_BARRIER
 
 #define Field(type, ...) \
-    FieldWithBarrier(type, ##__VA_ARGS__)
+    typename FieldWithBarrier(type, ##__VA_ARGS__)
 #define FieldNoBarrier(type) \
     typename WriteBarrierFieldTypeTraits<type, _no_write_barrier_policy, _no_write_barrier_policy>::Type
 
