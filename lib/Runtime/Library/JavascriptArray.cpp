@@ -477,6 +477,11 @@ namespace Js
 
     bool JavascriptArray::IsMissingItem(uint32 index)
     {
+        if (this->length <= index)
+        {
+            return false;
+        }
+
         bool isIntArray = false, isFloatArray = false;
         this->GetArrayTypeAndConvert(&isIntArray, &isFloatArray);
 
@@ -5767,7 +5772,7 @@ Case0:
         // Prototype lookup for missing elements
         if (!pArr->HasNoMissingValues())
         {
-            for (uint32 i = 0; i < newLen; i++)
+            for (uint32 i = 0; i < newLen && (i + start) < pArr->length; i++)
             {
                 // array type might be changed in the below call to DirectGetItemAtFull
                 // need recheck array type before checking array item [i + start]
