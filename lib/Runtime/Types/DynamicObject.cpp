@@ -305,6 +305,8 @@ namespace Js
         Assert(!predecessorType->GetIsLocked() || predecessorType->GetTypeHandler()->GetIsLocked());
         Assert(!predecessorType->GetIsShared() || predecessorType->GetTypeHandler()->GetIsShared());
 
+        Assert(this->GetType()->GetPrototype() == predecessorType->GetPrototype());
+
         PathTypeHandlerBase* currentPathTypeHandler = (PathTypeHandlerBase*)this->GetTypeHandler();
         PathTypeHandlerBase* predecessorPathTypeHandler = (PathTypeHandlerBase*)predecessorType->GetTypeHandler();
 
