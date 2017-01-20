@@ -83,7 +83,7 @@ namespace Js
         deferredBody(false),
         isScriptContextActuallyClosed(false),
         isFinalized(false),
-        isEvalRestrict(false),
+        isEvalRestricted(false),
         isInvalidatedForHostObjects(false),
         fastDOMenabled(false),
         directHostTypeId(TypeIds_GlobalObject),
