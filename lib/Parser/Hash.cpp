@@ -225,6 +225,9 @@ IdentPtr HashTbl::PidHashNameLen(CharType const * prgch, CharType const * end, u
     uint32 luHash = CaseSensitiveComputeHashCch(prgch, end, cch);
     return PidHashNameLenWithHash(prgch, end, cch, luHash);
 }
+template IdentPtr HashTbl::PidHashNameLen<utf8char_t>(utf8char_t const * prgch, utf8char_t const * end, uint32 cch);
+template IdentPtr HashTbl::PidHashNameLen<char>(char const * prgch, char const * end, uint32 cch);
+template IdentPtr HashTbl::PidHashNameLen<char16>(char16 const * prgch, char16 const * end, uint32 cch);
 
 template <typename CharType>
 IdentPtr HashTbl::PidHashNameLen(CharType const * prgch, uint32 cch)
