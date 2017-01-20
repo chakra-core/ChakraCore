@@ -4097,15 +4097,14 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             MapFormals(pnodeFnc, ensureScopeSlot);
             MapFormalsFromPattern(pnodeFnc, ensureScopeSlot);
 
-            if (!paramScope->GetCanMergeWithBodyScope())
+            if (funcInfo->GetHasArguments())
             {
                 sym = funcInfo->GetArgumentsSymbol();
-                if (sym && funcInfo->GetHasArguments())
-                {
-                    // There is no eval so the arguments may be captured in a lambda. In split scope case
-                    // we have to make sure the param arguments is also put in a slot.
-                    sym->EnsureScopeSlot(funcInfo);
-                }
+                Assert(sym);
+
+                // There is no eval so the arguments may be captured in a lambda.
+                // But we cannot relay on slots getting allocated while the lambda is emitted as the function body may be reparsed.
+                sym->EnsureScopeSlot(funcInfo);
             }
 
             if (pnodeFnc->sxFnc.pnodeBody)
