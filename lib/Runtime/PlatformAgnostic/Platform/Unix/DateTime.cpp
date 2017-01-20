@@ -30,6 +30,7 @@ namespace DateTime
 
         char tz_name[128];
         CFStringRef abbr = CFTimeZoneCopyAbbreviation(timeZone, absoluteTime);
+        CFRelease(timeZone);
         CFStringGetCString(abbr, tz_name, sizeof(tz_name), kCFStringEncodingUTF16);
         wcscpy_s(data.standardName, 32, reinterpret_cast<WCHAR*>(tz_name));
         data.standardNameLength = CFStringGetLength(abbr);
@@ -52,7 +53,9 @@ namespace DateTime
         absoluteTime -= kCFAbsoluteTimeIntervalSince1970;
         *offset = (int)CFTimeZoneGetSecondsFromGMT(timeZone, (CFAbsoluteTime)absoluteTime);
 
-        return CFTimeZoneIsDaylightSavingTime(timeZone, (CFAbsoluteTime)absoluteTime);
+        time_t result = CFTimeZoneIsDaylightSavingTime(timeZone, (CFAbsoluteTime)absoluteTime);
+        CFRelease(timeZone);
+        return result;
     }
 
     static void YMDLocalToUtc(double localtv, YMD *utc)
