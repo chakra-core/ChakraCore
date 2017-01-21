@@ -600,9 +600,21 @@ struct PnFinally : PnStmt
     ParseNodePtr pnodeBody;
 };
 
+enum JsType : byte 
+{
+	t_object,
+	t_string,
+	t_int,
+	t_double,
+	t_bool,
+	t_array,
+	t_function
+};
+
 struct ParseNode
 {
     OpCode nop;
+    JsType typeHint; //Not sure if putting it here is the best idea
     ushort grfpn;
     charcount_t ichMin;         // start offset into the original source buffer
     charcount_t ichLim;         // end offset into the original source buffer

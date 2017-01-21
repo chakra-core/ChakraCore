@@ -162,6 +162,8 @@ Scanner<EncodingPolicy>::Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, 
 
     m_fYieldIsKeyword = false;
     m_fAwaitIsKeyword = false;
+
+    m_typeHintsOn = true;
 }
 
 template <typename EncodingPolicy>
@@ -1140,6 +1142,57 @@ tokens Scanner<EncodingPolicy>::ScanStringTemplateMiddleOrEnd(EncodedCharPtr *pp
     return ScanError(m_currentCharacter, tkStrTmplEnd);
 }
 
+template<typename EncodingPolicy>
+tokens Scanner<EncodingPolicy>::ScanTypeAnnotationType(EncodedCharPtr *pp)
+{
+    OLECHAR ch;
+    EncodedCharPtr p = *pp;
+    EncodedCharPtr last = m_pchLast;
+    tokens token;
+    switch (ch = this->ReadFirst(p, last))
+    {
+    case 'i':
+        if (p[0] == 'n' && p[1] == 't' && p[2] == '}')
+        {
+            p += 3;
+            token = tkTypeInt;
+            break;
+        }
+        Error(ERRsyntax);
+    case 'f':
+        if (p[0] == 'l' && p[1] == 'o' && p[2] == 'a' && p[3] == 't' && p[4] == '}')
+        {
+            p += 5;
+            token = tkTypeFloat;
+            break;
+        }
+        Error(ERRsyntax);
+    case 'b':
+        if (p[0] == 'o' && p[1] == 'o' && p[2] == 'l' && p[3] == '}')
+        {
+            p += 4;
+            token = tkTypeBool;
+            break;
+        }
+        Error(ERRsyntax);
+    default:
+        Error(ERRsyntax);
+    }
+    //Consume the rest of the multiline comment ...*/
+    for (;;)
+    {
+        switch (ch = this->ReadFirst(p, last))
+        {
+        case '*':
+            if (*p == '/') {
+                *pp = p + 1;
+                return token;
+            }
+        }
+    }
+
+}
+
 /*****************************************************************************
 *
 *  Parses a string constant. Note that the string value is stored in
@@ -1588,6 +1641,98 @@ tokens Scanner<EncodingPolicy>::ScanStringConstant(OLECHAR delim, EncodedCharPtr
 
 /*****************************************************************************
 *
+*  Scan annotations used for type hints and function ids.
+*  Pointer is expected to be inside a multiline comment
+*  Return tkNone if there are no annotations inside this comment
+*/
+template<typename EncodingPolicy>
+tokens Scanner<EncodingPolicy>::ScanAnnotations(EncodedCharPtr *pp)
+{
+	EncodedCharPtr p = *pp;
+	EncodedCharPtr last = m_pchLast;
+	OLECHAR ch;
+	//FCASTE: IMPORTANT
+	for (;;)
+	{
+		switch ((ch = this->ReadFirst(p, last)))
+		{
+		case '*':
+			if (*p == '/')
+			{
+				*pp = p + 1;
+				if (m_fSyntaxColor)
+				{
+					m_scanState = ScanStateNormal;
+					return tkComment;
+				}
+				return tkNone;
+			}
+			break;
+		case '@':
+			switch (p[0])
+			{
+			case 't':
+				if (p[1] == 'y' && p[2] == 'p' && p[3] == 'e' && !IsIdContinueNext(p + 4, last))
+				{
+                    //+5 so we skip the space (change that)
+					p += 5;//FCASTE: don't like this code, revisit 
+                    switch ((ch = this->ReadFirst(p, last))) 
+                    {
+                    case '{':
+                        *pp = p;
+                        return tkTypeAnnBegin;
+                    }
+				}
+				Error(ERRsyntax);
+			default:
+				Error(ERRsyntax);
+			}
+		case kchLS:         // 0x2028, classifies as new line
+		case kchPS:         // 0x2029, classifies as new line
+		LEcmaLineBreak:
+			goto LLineBreak;
+
+		case kchRET:
+		case kchNWL:
+		LLineBreak:
+			m_fHadEol = TRUE;
+			m_currentCharacter = p;
+			ScanNewLine(ch);
+			p = m_currentCharacter;
+			break;
+
+		case kchNUL:
+			if (p >= last)
+			{
+				m_currentCharacter = p - 1;
+				*pp = p - 1;
+				if (m_fSyntaxColor)
+				{
+					m_scanState = ScanStateMultiLineComment;
+					return tkComment;
+				}
+				Error(ERRnoCmtEnd);
+			}
+			break;
+
+		default:
+			if (this->IsMultiUnitChar(ch))
+			{
+				ch = this->template ReadRest<true>(ch, p, last);
+				switch (ch)
+				{
+				case kchLS:
+				case kchPS:
+					goto LEcmaLineBreak;
+				}
+			}
+			break;
+		}
+	}
+}
+
+/*****************************************************************************
+*
 *  Consume a C-style comment.
 */
 template<typename EncodingPolicy>
@@ -1598,7 +1743,7 @@ tokens Scanner<EncodingPolicy>::SkipComment(EncodedCharPtr *pp, /* out */ bool* 
     *containTypeDef = false;
     EncodedCharPtr last = m_pchLast;
     OLECHAR ch;
-
+	//FCASTE: IMPORTANT
     for (;;)
     {
         switch((ch = this->ReadFirst(p, last)))
@@ -1786,8 +1931,10 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
                 goto LScanStringConstant;
             }
         }
-        if (m_scanState == ScanStateStringTemplateMiddleOrEnd)
+
+        switch (m_scanState)
         {
+        case ScanStateStringTemplateMiddleOrEnd:
             AssertMsg(m_fStringTemplateDepth > 0,
                 "Shouldn't be trying to parse a string template end or middle token if we aren't scanning a string template");
 
@@ -1795,6 +1942,14 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
 
             pchT = p;
             token = ScanStringTemplateMiddleOrEnd(&pchT);
+            p = pchT;
+
+            goto LDone;
+        case ScanStateTypeAnnotationMiddle:
+            m_scanState = ScanStateNormal;
+
+            pchT = p;
+            token = ScanTypeAnnotationType(&pchT);
             p = pchT;
 
             goto LDone;
@@ -2024,7 +2179,7 @@ LIdentifier:
             Assert(chType == _C_RC);
             token = tkRCurly;
             break;
-
+			
         case '\\':
             pchT = p - 1;
             token = ScanIdentifier(identifyKwds, &pchT);
@@ -2234,8 +2389,9 @@ LMultiLineComment:
                 pchT = p;
                 commentStartLine = m_line;
                 bool containTypeDef;
-                if (tkNone == (token = SkipComment(&pchT, &containTypeDef)))
-                {
+                //FCASTE: Add parsing of @type here
+                token = m_typeHintsOn ? ScanAnnotations(&pchT) : SkipComment(&pchT, &containTypeDef);
+                if (token == tkNone) {
                     // Subtract the comment length from the total char count for the purpose
                     // of deciding whether to defer AST and byte code generation.
                     m_parser->ReduceDeferredScriptLength((ULONG)(pchT - m_pchMinTok));
