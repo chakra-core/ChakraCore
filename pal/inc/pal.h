@@ -82,9 +82,9 @@ namespace std {
 #else
 typedef __builtin_va_list va_list;
 #define PRINT_LOG(...) \
-    swprintf(stdout, __VA_ARGS__)
+    fprintf(stdout, __VA_ARGS__)
 #define PRINT_ERROR(...) \
-    swprintf(stderr, __VA_ARGS__)
+    fprintf(stderr, __VA_ARGS__)
 #endif
 
 #ifdef  __cplusplus

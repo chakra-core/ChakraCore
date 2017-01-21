@@ -82,7 +82,7 @@ STATIC_LIBRARY="-DSHARED_LIBRARY_SH=1"
 SANITIZE=
 WITHOUT_FEATURES=""
 CREATE_DEB=0
-ARCH=""
+ARCH="-DCC_USES_SYSTEM_ARCH_SH=1"
 OS_LINUX=0
 OS_APT_GET=0
 OS_UNIX=0
@@ -472,6 +472,8 @@ elif [[ $ARCH =~ "arm" ]]; then
 elif [[ $ARCH =~ "amd64" ]]; then
     ARCH="-DCC_TARGETS_AMD64_SH=1"
     echo "Compile Target : amd64"
+else
+    echo "Compile Target : System Default"
 fi
 
 echo Generating $BUILD_TYPE makefiles
