@@ -562,6 +562,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/InlineCachePointerArray.inl"
 #include "Language/JavascriptOperators.inl"
 #include "Language/TaggedInt.inl"
+#include "Library/JavascriptGeneratorFunction.h"
 
 
 #ifndef USED_IN_STATIC_LIB
