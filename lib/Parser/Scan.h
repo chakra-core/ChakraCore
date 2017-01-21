@@ -382,6 +382,7 @@ public:
     {
         ScanStateNormal = 0,       
         ScanStateStringTemplateMiddleOrEnd = 1,
+        ScanStateTypeAnnotationMiddle = 2
     };
 
     ScanState GetScanState() { return m_scanState; }
@@ -685,6 +686,7 @@ private:
     bool es6UnicodeMode;                // True if ES6Unicode Extensions are enabled.
     bool m_fYieldIsKeyword;             // Whether to treat 'yield' as an identifier or keyword
     bool m_fAwaitIsKeyword;             // Whether to treat 'await' as an identifier or keyword
+    bool m_typeHintsOn;					// True if Type Hint annotations are enabled.
 
     // Temporary buffer.
     TemporaryBuffer m_tempChBuf;
@@ -755,6 +757,8 @@ private:
     tokens ScanIdentifier(bool identifyKwds, EncodedCharPtr *pp);
     BOOL FastIdentifierContinue(EncodedCharPtr&p, EncodedCharPtr last);
     tokens ScanIdentifierContinue(bool identifyKwds, bool fHasEscape, bool fHasMultiChar, EncodedCharPtr pchMin, EncodedCharPtr p, EncodedCharPtr *pp);
+    tokens ScanAnnotations(EncodedCharPtr *pp);
+    tokens ScanTypeAnnotationType(EncodedCharPtr *pp);
     tokens SkipComment(EncodedCharPtr *pp, /* out */ bool* containTypeDef);
     tokens ScanRegExpConstant(ArenaAllocator* alloc);
     tokens ScanRegExpConstantNoAST(ArenaAllocator* alloc);

@@ -3276,6 +3276,14 @@ LFunction :
         }
     }
 
+    //FCASTE: after parsing a term, check if there is a type annotation and parse it
+    if (m_token.tk == tkTypeAnnBegin)
+    {
+        m_pscan->SetScanState(Scanner_t::ScanState::ScanStateTypeAnnotationMiddle);
+        m_pscan->Scan();
+        //Do something with the type annotation
+        m_pscan->Scan();
+    }
     // Pass back identifier if requested
     if (pToken && term.tk == tkID)
     {
@@ -4545,6 +4553,8 @@ BOOL Parser::IsDeferredFnc()
 
     return false;
 }
+
+
 
 template<bool buildAST>
 ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen)
@@ -6415,7 +6425,7 @@ ParseNodePtr Parser::GenerateModuleFunctionWrapper()
 {
     ParseNodePtr pnodeFnc = ParseFncDecl<buildAST>(fFncModule, nullptr, false, true, true);
     ParseNodePtr callNode = CreateCallNode(knopCall, pnodeFnc, nullptr);
-
+	 
     return callNode;
 }
 
@@ -7960,6 +7970,7 @@ bool Parser::ParseOptionalExpr(ParseNodePtr* pnode, bool fUnaryOrParen, int oplM
     return true;
 }
 
+//FCASTE: first parsing of expression
 /***************************************************************************
 Parse a sub expression.
 'fAllowIn' indicates if the 'in' operator should be allowed in the initializing
@@ -8683,6 +8694,7 @@ BlockInfoStack* Parser::GetCurrentFunctionBlockInfo()
     return m_currentBlockInfo->pBlockInfoFunction;
 }
 
+//FCASTE: variable declaration parsing
 /***************************************************************************
 Parse a variable declaration.
 'fAllowIn' indicates if the 'in' operator should be allowed in the initializing
@@ -9168,6 +9180,7 @@ ParseNodePtr Parser::ParseCase(ParseNodePtr *ppnodeBody)
     return pnodeT;
 }
 
+//FCASTE: Important first parsing of statement
 /***************************************************************************
 Parse a single statement. Digest a trailing semicolon.
 ***************************************************************************/
@@ -9246,7 +9259,6 @@ LRestart:
             pnode = nullptr;
         }
         break;
-
     case tkFUNCTION:
     {
 LFunctionStatement:
