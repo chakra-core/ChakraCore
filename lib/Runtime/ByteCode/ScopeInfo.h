@@ -48,7 +48,7 @@ namespace Js {
         Field(BYTE) hasLocalInClosure : 1;
         Field(BYTE) parentOnly : 1;
 
-        Field(Scope *) scope;
+        FieldNoBarrier(Scope *) scope;
         Field(int) scopeId;
         Field(int) symbolCount;                // symbol count in this scope
         Field(SymbolInfo) symbols[];           // symbol PropertyIDs, index == sym.scopeSlot

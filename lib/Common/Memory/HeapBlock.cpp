@@ -788,22 +788,41 @@ SmallHeapBlockT<TBlockAttributes>::ClearExplicitFreeBitForObject(void* objectAdd
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, char* target)
 {
+    HeapBlock* targetBlock = recycler->FindHeapBlock(target);
+    if (targetBlock == nullptr)
+    {
+        return;
+    }
+
 #ifdef TRACK_ALLOC
+    Recycler::TrackerData* trackerData = nullptr;
+    Recycler::TrackerData* targetTrackerData = nullptr;
+    const char* typeName = nullptr;
+    const char* targetTypeName = nullptr;
+    uint offset = 0;
+    uint targetOffset = 0;
+    char* objectStartAddress = nullptr;
+    char* targetStartAddress = nullptr;
+    byte barrier = RecyclerWriteBarrierManager::GetWriteBarrier(objectAddress);
+    Unused(barrier);
+
     if (Recycler::DoProfileAllocTracker())
     {
         // need CheckMemoryLeak or KeepRecyclerTrackData flag to have the tracker data and show following detailed info
 #ifdef __clang__
-        char buffer[1024];
-        auto getDemangledName = [&buffer](const type_info* typeinfo) ->const char*
+        auto getDemangledName = [](const type_info* typeinfo) ->const char*
         {
             int status;
+            char buffer[1024];
             size_t buflen = 1024;
             char* name = abi::__cxa_demangle(typeinfo->name(), buffer, &buflen, &status);
             if (status != 0)
             {
                 Output::Print(_u("Demangle failed: result=%d, buflen=%d\n"), status, buflen);
             }
-            return name;
+            char* demangledName = (char*)malloc(buflen);
+            memcpy(demangledName, name, buflen);
+            return demangledName;
         };
 #else
         auto getDemangledName = [](const type_info* typeinfo) ->const char*
@@ -812,7 +831,6 @@ void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, c
         };
 #endif
 
-        uint offset = 0;
         if (this->IsLargeHeapBlock())
         {
             offset = (uint)(objectAddress - (char*)((LargeHeapBlock*)this)->GetRealAddressFromInterior(objectAddress));
@@ -821,11 +839,11 @@ void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, c
         {
             offset = (uint)(objectAddress - this->address) % this->GetObjectSize(objectAddress);
         }
-        char* objectStartAddress = objectAddress - offset;
-        Recycler::TrackerData* trackerData = (Recycler::TrackerData*)this->GetTrackerData(objectStartAddress);
+        objectStartAddress = objectAddress - offset;
+        trackerData = (Recycler::TrackerData*)this->GetTrackerData(objectStartAddress);
         if (trackerData)
         {
-            const char* typeName = getDemangledName(trackerData->typeinfo);
+            typeName = getDemangledName(trackerData->typeinfo);
             if (trackerData->isArray)
             {
                 Output::Print(_u("Missing Barrier\nOn array of %S\n"), typeName);
@@ -839,18 +857,28 @@ void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, c
             }
             else
             {
-                if (strcmp(typeName, "class Js::DynamicProfileInfo") == 0)
+                auto dumpFalsePositive = [&]() 
+                {
+                    if (CONFIG_FLAG(Verbose))
+                    {
+                        Output::Print(_u("False Positive: %S+0x%x => 0x%p -> 0x%p\n"), typeName, offset, objectAddress, target);
+                    }
+                };
+
+                if (strstr(typeName, "Js::DynamicProfileInfo") != nullptr)
                 {
                     // Js::DynamicProfileInfo allocate with non-Leaf in test/chk build
                     // TODO: (leish)(swb) find a way to set barrier for the Js::DynamicProfileInfo plus allocation
+                    dumpFalsePositive();
                     return;
                 }
 
                 if (offset <= Math::Align((3 * sizeof(uint)), sizeof(void*)) // left, length, size
-                    && strstr(typeName, "class Js::SparseArraySegment") != nullptr)
+                    && strstr(typeName, "Js::SparseArraySegment") != nullptr)
                 {
                     // Js::SparseArraySegmentBase left, length and size can easily form a false positive
                     // TODO: (leish)(swb) find a way to tag these fields
+                    dumpFalsePositive();
                     return;
                 }
 
@@ -861,20 +889,27 @@ void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, c
 #else
                     0x10
 #endif
-                    && strcmp(typeName, "class Js::JavascriptDate") == 0)
+                    && strstr(typeName, "Js::JavascriptDate") != nullptr)
                 {
                     // the fields on Js::DateImplementation can easily form a false positive
                     // TODO: (leish)(swb) find a way to tag these
+                    dumpFalsePositive();
+                    return;
+                }
+
+                if (offset == 0x20 // scope field in scopeInfo
+                    && strstr(typeName, "Js::ScopeInfo") != nullptr)
+                {
+                    // Js::ScopeInfo scope field is arena allocated and can be reused in recycler
+                    // TODO: (leish)(swb) find a good location to clear/tag this field
+                    dumpFalsePositive();
                     return;
                 }
 
                 //TODO: (leish)(swb) analyze pdb to check if the field is a pointer field or not
                 Output::Print(_u("Missing Barrier\nOn type %S+0x%x\n"), typeName, offset);
             }
-        }
-
-        HeapBlock* targetBlock = recycler->FindHeapBlock(target);
-        uint targetOffset = 0;
+        }        
 
         if (targetBlock->IsLargeHeapBlock())
         {
@@ -884,8 +919,8 @@ void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, c
         {
             targetOffset = (uint)(target - targetBlock->GetAddress()) % targetBlock->GetObjectSize(nullptr);
         }
-        char* targetStartAddress = target - targetOffset;
-        Recycler::TrackerData* targetTrackerData = (Recycler::TrackerData*)targetBlock->GetTrackerData(targetStartAddress);
+        targetStartAddress = target - targetOffset;
+        targetTrackerData = (Recycler::TrackerData*)targetBlock->GetTrackerData(targetStartAddress);
 
         if (targetOffset != 0)
         {
@@ -894,10 +929,10 @@ void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, c
 
         if (targetTrackerData)
         {
-            const char* typeName = getDemangledName(targetTrackerData->typeinfo);
+            targetTypeName = getDemangledName(targetTrackerData->typeinfo);
             if (targetTrackerData->isArray)
             {
-                Output::Print(_u("Target type (missing barrier field type) is array item of %S\n"), typeName);
+                Output::Print(_u("Target type (missing barrier field type) is array item of %S\n"), targetTypeName);
 #ifdef STACK_BACK_TRACE
                 if (CONFIG_FLAG(KeepRecyclerTrackData))
                 {
@@ -908,11 +943,11 @@ void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, c
             }
             else if (targetOffset == 0)
             {
-                Output::Print(_u("Target type (missing barrier field type) is %S\n"), typeName);
+                Output::Print(_u("Target type (missing barrier field type) is %S\n"), targetTypeName);
             }
             else
             {
-                Output::Print(_u("Target type (missing barrier field type) is pointing to %S+0x%x\n"), typeName, targetOffset);
+                Output::Print(_u("Target type (missing barrier field type) is pointing to %S+0x%x\n"), targetTypeName, targetOffset);
             }
         }
 
@@ -969,13 +1004,9 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
                         if (recycler->VerifyMark(target))
                         {
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
-                            if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+                            if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
                             {
-                                uint verifyBitIndex = (BVIndex)(objectAddress - this->address) / sizeof(void*);
-                                if (!this->wbVerifyBits.Test(verifyBitIndex))
-                                {
-                                    WBPrintMissingBarrier(recycler, objectAddress, (char*)target);
-                                }
+                                this->WBVerifyBitIsSet(objectAddress);
                             }
 #endif
                         }
@@ -1421,7 +1452,7 @@ SmallHeapBlockT<TBlockAttributes>::EnqueueProcessedObject(FreeObject ** list, vo
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
     {
-        this->WBClearBits((char*)objectAddress);
+        this->WBClearObject((char*)objectAddress);
     }
 #endif
 

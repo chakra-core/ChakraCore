@@ -317,8 +317,10 @@ public:
     }
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     virtual void WBSetBit(char* addr) = 0;
-    virtual void WBSetBits(char* addr, uint length) = 0;
-    virtual void WBClearBits(char* addr) = 0;
+    virtual void WBSetBitRange(char* addr, uint count) = 0;
+    virtual void WBClearBit(char* addr) = 0;
+    virtual void WBVerifyBitIsSet(char* addr) = 0;
+    virtual void WBClearObject(char* addr) = 0;
     void WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, char* target);
 #endif
 
@@ -464,18 +466,32 @@ public:
     void RestoreUnusablePages() {}
 
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    virtual void WBVerifyBitIsSet(char* addr) override
+    {
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        if (!wbVerifyBits.Test(index))
+        {
+            WBPrintMissingBarrier(this->GetRecycler(), addr, *(char**)addr);
+        }
+    }
     virtual void WBSetBit(char* addr) override
     {
         uint index = (uint)(addr - this->address) / sizeof(void*);
         wbVerifyBits.Set(index);
     }
-    virtual void WBSetBits(char* addr, uint length) override
+    virtual void WBSetBitRange(char* addr, uint count) override
     {
         uint index = (uint)(addr - this->address) / sizeof(void*);
-        wbVerifyBits.SetRange(index, length);
+        wbVerifyBits.SetRange(index, count);
     }
-    virtual void WBClearBits(char* addr) override
+    virtual void WBClearBit(char* addr) override
     {
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        wbVerifyBits.Clear(index);
+    }
+    virtual void WBClearObject(char* addr) override
+    {
+        Assert((uint)(addr - this->address) % this->objectSize == 0);
         uint index = (uint)(addr - this->address) / sizeof(void*);
         wbVerifyBits.ClearRange(index, this->objectSize / sizeof(void*));
     }

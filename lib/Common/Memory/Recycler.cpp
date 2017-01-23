@@ -8545,6 +8545,21 @@ Recycler::UnRegisterPendingWriteBarrierBlock(void* address)
 
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 void
+Recycler::WBVerifyBitIsSet(char* addr, char* target)
+{
+    Recycler* recycler = Recycler::recyclerList;
+    while (recycler)
+    {
+        auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
+        if (heapBlock)
+        {
+            heapBlock->WBVerifyBitIsSet(addr);
+            break;
+        }
+        recycler = recycler->next;
+    }
+}
+void
 Recycler::WBSetBit(char* addr)
 {
     Recycler* recycler = Recycler::recyclerList;
@@ -8560,7 +8575,7 @@ Recycler::WBSetBit(char* addr)
     }
 }
 void
-Recycler::WBSetBits(char* addr, uint length)
+Recycler::WBSetBitRange(char* addr, uint count)
 {
     Recycler* recycler = Recycler::recyclerList;
     while (recycler)
@@ -8568,7 +8583,8 @@ Recycler::WBSetBits(char* addr, uint length)
         auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
         if (heapBlock)
         {
-            heapBlock->WBSetBits(addr, length);
+            heapBlock->WBSetBitRange(addr, count);
+            break;
         }
         recycler = recycler->next;
     }

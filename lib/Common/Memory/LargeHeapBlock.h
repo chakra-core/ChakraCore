@@ -308,8 +308,10 @@ private:
     BVSparse<HeapAllocator> wbVerifyBits;
 public:
     virtual void WBSetBit(char* addr) override;
-    virtual void WBSetBits(char* addr, uint length) override;
-    virtual void WBClearBits(char* addr) override;
+    virtual void WBSetBitRange(char* addr, uint count) override;
+    virtual void WBClearBit(char* addr) override;
+    virtual void WBVerifyBitIsSet(char* addr) override;
+    virtual void WBClearObject(char* addr) override;
 #endif
 };
 }

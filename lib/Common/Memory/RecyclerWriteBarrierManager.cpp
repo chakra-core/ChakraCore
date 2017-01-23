@@ -331,7 +331,7 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address)
     }
 #endif
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
     {
         Recycler::WBSetBit((char*)address);
     }
@@ -353,9 +353,9 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t bytes)
     GlobalSwbVerboseTrace(_u("Writing to 0x%p (CIndex: %u-%u)\n"), address, startIndex, endIndex);
 
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
     {
-        Recycler::WBSetBits((char*)address, (uint)bytes / sizeof(void*));
+        Recycler::WBSetBitRange((char*)address, (uint)bytes / sizeof(void*));
     }
 #endif
 
@@ -503,18 +503,30 @@ void
 RecyclerWriteBarrierManager::ResetWriteBarrier(void * address, size_t pageCount)
 {
     uintptr_t cardIndex = GetCardTableIndex(address);
+
+#if DBG
+    for (size_t i = 0; i < pageCount; i++)
+    {
+        if (cardTable[cardIndex + i] & DIRTYBIT)
+        {
+            cardTable[cardIndex + i] = WRITE_BARRIER_CLEAR_MARK | (cardTable[cardIndex + i] & ~DIRTYBIT);
+        }
+    }
+#else
     if (pageCount == 1)
     {
-        cardTable[cardIndex] = WRITE_BARRIER_PAGE_BIT | WRITE_BARRIER_CLEAR_MARK;
+        cardTable[cardIndex] = WRITE_BARRIER_PAGE_BIT;
     }
     else
     {
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
-        memset(&cardTable[cardIndex], WRITE_BARRIER_PAGE_BIT | WRITE_BARRIER_CLEAR_MARK, pageCount);
+        memset(&cardTable[cardIndex], WRITE_BARRIER_PAGE_BIT, pageCount);
 #else
         memset(&cardTable[cardIndex], 0, sizeof(DWORD) * pageCount);
 #endif
     }
+#endif
+
 #if DBG_DUMP
     // Global to process, use global configuration here
     if (PHASE_VERBOSE_TRACE1(Js::SWBPhase))

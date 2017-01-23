@@ -224,7 +224,7 @@ CodeGenNumberThreadAllocator::Integrate()
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
         if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
         {
-            Recycler::WBSetBits(record.blockAddress, BlockSize / sizeof(void*));
+            Recycler::WBSetBitRange(record.blockAddress, BlockSize / sizeof(void*));
         }
 #endif
         pendingIntegrationChunkBlock.RemoveHead(&NoThrowHeapAllocator::Instance);

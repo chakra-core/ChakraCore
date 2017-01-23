@@ -115,7 +115,7 @@ Opnd::IsWriteBarrierTriggerableValue()
     }
 
 #if DBG
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
     {
         return true; // No further optimization if we are in verification
     }

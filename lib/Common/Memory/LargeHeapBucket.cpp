@@ -257,7 +257,7 @@ LargeHeapBucket::AddLargeHeapBlock(size_t size, bool nothrow)
     recycler->VerifyZeroFill(address, pageCount * AutoSystemInfo::PageSize);
 #endif
     uint objectCount = LargeHeapBlock::GetMaxLargeObjectCount(pageCount, size);
-    LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, objectCount, supportFreeList ? this : nullptr);
+    LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, objectCount, this);
 #if DBG
     LargeAllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Allocated new large heap block 0x%p for sizeCat 0x%x\n"), heapBlock, sizeCat);
 #endif

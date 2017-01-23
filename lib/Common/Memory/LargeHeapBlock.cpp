@@ -852,12 +852,9 @@ LargeHeapBlock::VerifyMark()
             if (recycler->VerifyMark(target))
             {
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
-                if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+                if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
                 {
-                    if (!this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)))
-                    {
-                        WBPrintMissingBarrier(recycler, objectAddress, (char*)target);
-                    }
+                    this->WBVerifyBitIsSet(objectAddress);
                 }
 #endif
             }
@@ -2116,13 +2113,13 @@ void LargeHeapBlock::WBSetBit(char* addr)
     {
     }
 }
-void LargeHeapBlock::WBSetBits(char* addr, uint length)
+void LargeHeapBlock::WBSetBitRange(char* addr, uint count)
 {
     uint index = (uint)(addr - this->address) / sizeof(void*);
     try
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_DisableCheck));
-        for (uint i = 0; i < length; i++)
+        for (uint i = 0; i < count; i++)
         {
             wbVerifyBits.Set(index + i);
         }
@@ -2131,7 +2128,20 @@ void LargeHeapBlock::WBSetBits(char* addr, uint length)
     {
     }
 }
-void LargeHeapBlock::WBClearBits(char* addr)
+void LargeHeapBlock::WBClearBit(char* addr)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    wbVerifyBits.Clear(index);
+}
+void LargeHeapBlock::WBVerifyBitIsSet(char* addr)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    if (!wbVerifyBits.Test(index))
+    {
+        WBPrintMissingBarrier(this->GetRecycler(), addr, *(char**)addr);
+    }
+}
+void LargeHeapBlock::WBClearObject(char* addr)
 {
     uint index = (uint)(addr - this->address) / sizeof(void*);
     size_t objectSize = this->GetHeader(addr)->objectSize;
