@@ -3281,8 +3281,19 @@ LFunction :
     {
         m_pscan->SetScanState(Scanner_t::ScanState::ScanStateTypeAnnotationMiddle);
         m_pscan->Scan();
-        //Do something with the type annotation
-        m_pscan->Scan();
+        switch (m_token.tk)
+        {
+        case tkTypeInt:
+            pnode->typeHint = JsType::t_int;
+            break;
+        case tkTypeFloat:
+            pnode->typeHint = JsType::t_float;
+            break;
+        case tkTypeBool:
+            pnode->typeHint = JsType::t_bool;
+            break;
+        }
+        m_pscan->Scan(); //Leave the scanner pointing to the next token
     }
     // Pass back identifier if requested
     if (pToken && term.tk == tkID)
@@ -11039,7 +11050,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 
     if (tkEOF != m_token.tk)
         Error(ERRsyntax);
-
+    //FCASTE: End of parsing
     // Append an EndCode node.
     AddToNodeList(&pnodeProg->sxFnc.pnodeBody, &lastNodeRef,
         CreateNodeWithScanner<knopEndCode>());
