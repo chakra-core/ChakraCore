@@ -226,20 +226,24 @@ extern Volatile<BOOL> dbg_master_switch ;
 #ifndef ENABLE_CC_XPLAT_TRACE
 
 /* compile out these trace levels; see the definition of NOTRACE */
+#if !defined(DEBUG)
 #define TRACE     NOTRACE
-#define TRACE_(x) NOTRACE
-#define WARN      NOTRACE
-#define WARN_(x)  NOTRACE
-#define ENTRY_EXTERNAL NOTRACE
-#define ENTRY     NOTRACE
-#define ENTRY_(x) NOTRACE
-#define LOGEXIT   NOTRACE
-#define LOGEXIT_(x) NOTRACE
-#define DBGOUT     NOTRACE
-#define DBGOUT_(x) NOTRACE
-#define ERROR     NOTRACE
-#define ERROR_(x) NOTRACE
-#define DBG_PRINTF(level, channel, bHeader) NOTRACE
+#else
+#define TRACE     {if (!PAL_InitializeChakraCoreCalled) abort();}
+#endif
+#define TRACE_(x) TRACE
+#define WARN      TRACE
+#define WARN_(x)  TRACE
+#define ENTRY_EXTERNAL TRACE
+#define ENTRY     TRACE
+#define ENTRY_(x) TRACE
+#define LOGEXIT   TRACE
+#define LOGEXIT_(x) TRACE
+#define DBGOUT     TRACE
+#define DBGOUT_(x) TRACE
+#define ERROR     TRACE
+#define ERROR_(x) TRACE
+#define DBG_PRINTF(level, channel, bHeader) TRACE
 
 #define CHECK_STACK_ALIGN
 
@@ -313,6 +317,7 @@ bool DBG_ShouldCheckStackAlignment();
         DBG_PRINTF2
 
 #define DBG_PRINTF2(...)\
+        if (!PAL_InitializeChakraCoreCalled) abort(); \
         PRINT_ERROR("] %s %s:%d",__FUNCTION__,__FILE__,\
                        __LINE__);\
         PRINT_ERROR(__VA_ARGS__);\
