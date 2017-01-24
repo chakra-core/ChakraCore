@@ -66,9 +66,10 @@ function getArgsStr(args) {
 }
 
 function getActionStr(action) {
+  const moduleName = action.module || "$$";
   switch (action.type) {
-    case "invoke": return `${action.field}(${getArgsStr(action.args)})`;
-    case "get": return `${action.module || "$$"}[${action.field}]`;
+    case "invoke": return `${moduleName}.${action.field}(${getArgsStr(action.args)})`;
+    case "get": return `${moduleName}[${action.field}]`;
     default: return "Unkown action type";
   }
 }
@@ -78,13 +79,16 @@ function getCommandStr(command) {
   switch (command.type) {
     case "module": return `${base}: generate module ${command.filename}${command.name ? ` as ${command.name}` : ""}`;
     case "register": return `${base}: register module ${command.name || "$$"} as ${command.as}`;
-    case "assert_malformed": return `${base}: assert_malformed module ${command.filename}`;
-    case "assert_unlinkable": return `${base}: assert_unlinkable module ${command.filename}`;
-    case "assert_invalid": return `${base}: assert_invalid module ${command.filename}`;
-    case "action": return `${base}: action ${getActionStr(command.action)}`;
-    case "assert_trap": return `${base}: assert_trap ${getActionStr(command.action)}`;
-    case "assert_return": return `${base}: assert_return ${getActionStr(command.action)} == ${getArgsStr(command.expected)}`;
-    case "assert_return_nan": return `${base}: assert_return_nan ${getActionStr(command.action)}`;
+    case "assert_malformed":
+    case "assert_unlinkable":
+    case "assert_uninstantiable":
+    case "assert_invalid": return `${base}: ${command.type} module ${command.filename}`;
+    case "assert_return": return `${base}: assert_return(${getActionStr(command.action)} == ${getArgsStr(command.expected)})`;
+    case "action":
+    case "assert_trap":
+    case "assert_return_nan":
+    case "assert_exhaustion":
+      return `${base}: ${command.type}(${getActionStr(command.action)})`;
   }
   return base;
 }
