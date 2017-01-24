@@ -18,8 +18,8 @@
 (assert_return (invoke "i32.load") (i32.const 0x0))
 (assert_return (invoke "f32.load") (f32.const 0.0))
 (invoke "f32.store")
-;;(assert_return (invoke "i32.load") (i32.const 0x7fa00000))
-;;(assert_return (invoke "f32.load") (f32.const nan:0x200000)) Fails in x86 test Fails in x86 test
+;;(assert_return (invoke "i32.load") (i32.const 0x7fa00000)) Fails in x86 test
+;;(assert_return (invoke "f32.load") (f32.const nan:0x200000)) Fails in x86 test
 (invoke "reset")
 (assert_return (invoke "i32.load") (i32.const 0x0))
 (assert_return (invoke "f32.load") (f32.const 0.0))

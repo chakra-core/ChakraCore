@@ -8,16 +8,26 @@ const jsBeautify = require("js-beautify");
 const fs = require("fs-extra");
 const stringArgv = require("string-argv");
 const {execFile, spawn} = require("child_process");
+const which = require("which");
 
 const rlRoot = path.join(__dirname, "..");
 const baselineDir = path.join(rlRoot, "baselines");
 
 const argv = require("yargs")
+  .help()
+  .alias("help", "h")
   .options({
     bin: {
       string: true,
       alias: "b",
       description: "Path to wast2wasm exe",
+      default: (() => {
+        try {
+          return which.sync("wast2wasm");
+        } catch (e) {
+          return;
+        }
+      })(),
       demand: true,
     },
     suite: {
