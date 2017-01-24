@@ -162,10 +162,20 @@ WebAssembly::ReadBufferSource(Var val, ScriptContext * ctx, _Out_ BYTE** buffer,
         *buffer = arrayBuffer->GetBuffer();
         *byteLength = arrayBuffer->GetByteLength();
     }
-
-    if (*buffer == nullptr || *byteLength == 0)
+    else
     {
+        // The buffer was not a TypedArray nor an ArrayBuffer
         JavascriptError::ThrowTypeError(ctx, WASMERR_NeedBufferSource);
+    }
+
+    if (*buffer == nullptr)
+    {
+        // ArrayBuffer and TypedArray return nullptr when the buffer is empty
+        // assign a dummy buffer to let the flow continue because this doesn't always result in an exception
+        static BYTE emptyBuffer[] = { 0, 0, 0, 0 };
+        *buffer = emptyBuffer;
+        Assert(*byteLength == 0);
+        *byteLength = 0;
     }
 }
 

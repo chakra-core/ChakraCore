@@ -120,7 +120,11 @@ async function testValidate() {
       }
     })),
   ]);
-  console.log(`Validate: ${WebAssembly.validate(buf)}`);
+  // Make sure empty buffer doesn't validate and doesn't throw
+  const emptyBuffer = new ArrayBuffer();
+  console.log(`WebAssembly.validate(new ArrayBuffer()) = ${WebAssembly.validate(emptyBuffer)}`);
+  console.log(`WebAssembly.validate(new Uint8Array(emptyBuffer)) = ${WebAssembly.validate(new Uint8Array(emptyBuffer))}`);
+  console.log(`api.wasm valid: ${WebAssembly.validate(buf)}`);
 }
 
 async function testCompile() {
