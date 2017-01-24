@@ -1201,22 +1201,18 @@ PAL_wcslen(
 {
     size_t nChar = 0;
 
-    PERF_ENTRY(wcslen);
-    ENTRY("wcslen (string=%p (%S))\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING);
+    // no logging here. PAL's internal output also uses this method
 
     if ( !string )
     {
-        LOGEXIT("wcslen returning size_t %u\n", 0);
-        PERF_EXIT(wcslen);
         return 0;
     }
+
     while (*string++)
     {
         nChar++;
     }
 
-    LOGEXIT("wcslen returning size_t %u\n", nChar);
-    PERF_EXIT(wcslen);
     return nChar;
 }
 
