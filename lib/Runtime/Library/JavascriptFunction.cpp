@@ -3057,7 +3057,10 @@ LABEL1:
                 {
                     charcount_t count = min(DIAG_MAX_FUNCTION_STRING, func->LengthInChars());
                     utf8::DecodeOptions options = sourceInfo->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-                    utf8::DecodeInto(stringBuilder->AllocBufferSpace(count), func->GetSource(_u("JavascriptFunction::GetDiagValueString")), count, options);
+                    LPCUTF8 source = func->GetSource(_u("JavascriptFunction::GetDiagValueString"));
+                    size_t cbLength = sourceInfo->GetCbLength(_u("JavascriptFunction::GetDiagValueString"));
+                    size_t cbIndex = utf8::CharacterIndexToByteIndex(source, cbLength, count, options);
+                    utf8::DecodeUnitsInto(stringBuilder->AllocBufferSpace(count), source, source + cbIndex, options);
                     stringBuilder->IncreaseCount(count);
                     return TRUE;
                 }

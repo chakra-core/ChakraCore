@@ -376,42 +376,9 @@ LFourByte:
         else
             return ptr;
     }
-
-    void DecodeInto(__out_ecount_full(cch) char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options)
-    {
-        DecodeOptions localOptions = options;
-
-        if (!ShouldFastPath(ptr, buffer)) goto LSlowPath;
-
-LFastPath:
-        while (cch >= 4)
-        {
-            uint32 bytes = *(uint32 *)ptr;
-            if ((bytes & 0x80808080) != 0) goto LSlowPath;
-            ((uint32 *)buffer)[0] = (bytes & 0x7F) | ((bytes << 8) & 0x7F0000);
-            ((uint32 *)buffer)[1] = ((bytes >> 16) & 0x7F) | ((bytes >> 8) & 0x7F0000);
-            ptr += 4;
-            buffer += 4;
-            cch -= 4;
-        }
-LSlowPath:
-        while (cch-- > 0)
-        {
-            LPCUTF8 end = ptr + cch + 1; // WARNING: Assume cch correct, suppress end-of-buffer checking
-
-            *buffer++ = Decode(ptr, end, localOptions);
-            if (ShouldFastPath(ptr, buffer)) goto LFastPath;
-        }
-    }
-
-    void DecodeIntoAndNullTerminate(__out_ecount(cch+1) __nullterminated char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options)
-    {
-        DecodeInto(buffer, ptr, cch, options);
-        buffer[cch] = 0;
-    }
-
-    _Ret_range_(0, pbEnd - _Old_(pbUtf8))
-    size_t DecodeUnitsInto(_Out_writes_(pbEnd - pbUtf8) char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    
+    _Use_decl_annotations_
+    size_t DecodeUnitsInto(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
     {
         DecodeOptions localOptions = options;
 
@@ -456,22 +423,29 @@ LSlowPath:
         return dest - buffer;
     }
 
-    size_t DecodeUnitsIntoAndNullTerminate(__out_ecount(pbEnd - pbUtf8 + 1) __nullterminated char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    _Use_decl_annotations_
+    size_t DecodeUnitsIntoAndNullTerminate(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
     {
         size_t result = DecodeUnitsInto(buffer, pbUtf8, pbEnd, options);
         buffer[(int)result] = 0;
         return result;
     }
 
-    bool CharsAreEqual(__in_ecount(cch) LPCOLESTR pch, LPCUTF8 bch, size_t cch, DecodeOptions options)
+    _Use_decl_annotations_
+    size_t DecodeUnitsIntoAndNullTerminateNoAdvance(char16 *buffer, LPCUTF8 pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    {
+        return DecodeUnitsIntoAndNullTerminate(buffer, pbUtf8, pbEnd, options);
+    }
+
+    bool CharsAreEqual(LPCOLESTR pch, LPCUTF8 bch, LPCUTF8 end, DecodeOptions options)
     {
         DecodeOptions localOptions = options;
-        while (cch-- > 0)
+        while (bch < end)
         {
-            LPCUTF8 end = bch + cch + 1; // WARNING: Assume cch correct, suppress end-of-buffer checking
-
             if (*pch++ != utf8::Decode(bch, end, localOptions))
+            {
                 return false;
+            }
         }
         return true;
     }
