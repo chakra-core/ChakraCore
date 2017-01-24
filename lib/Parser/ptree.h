@@ -605,7 +605,7 @@ enum JsType : byte
 	t_object,
 	t_string,
 	t_int,
-	t_double,
+	t_float,
 	t_bool,
 	t_array,
 	t_function
