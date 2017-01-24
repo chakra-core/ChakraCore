@@ -426,22 +426,22 @@ private:
         }
         return true;
     }
-    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, __in_ecount(cch) LPCOLESTR psz2, LPCOLESTR psz2end, int32 cch)
+    static void CopyString(__in_ecount((psz2end - psz2) + 1) LPOLESTR psz1, __in_ecount(psz2end - psz2) LPCOLESTR psz2, LPCOLESTR psz2end)
     {
-        Unused(psz2end);
+        size_t cch = psz2end - psz2;
         js_memcpy_s(psz1, cch * sizeof(OLECHAR), psz2, cch * sizeof(OLECHAR));
         psz1[cch] = 0;
     }
-    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, LPCUTF8 psz2, LPCUTF8 psz2end, int32 cch)
+    static void CopyString(LPOLESTR psz1, LPCUTF8 psz2, LPCUTF8 psz2end)
     {
-        Unused(cch);
         utf8::DecodeUnitsIntoAndNullTerminate(psz1, psz2, psz2end);
     }
-    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, __in_ecount(cch) char const * psz2, char const * psz2end, int32 cch)
+    static void CopyString(LPOLESTR psz1, char const * psz2, char const * psz2end)
     {
-        Unused(psz2end);
-        while (cch-- > 0)
+        while (psz2 < psz2end)
+        {
             *(psz1++) = *psz2++;
+        }
         *psz1 = 0;
     }
 

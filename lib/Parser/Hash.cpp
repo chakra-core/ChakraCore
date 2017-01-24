@@ -324,7 +324,7 @@ IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch,
     pid->m_propertyId = Js::Constants::NoProperty;
     pid->assignmentState = NotAssigned;
 
-    HashTbl::CopyString(pid->m_sz, prgch, end, cch);
+    HashTbl::CopyString(pid->m_sz, prgch, end);
 
     return pid;
 }
