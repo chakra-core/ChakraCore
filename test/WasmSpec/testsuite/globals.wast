@@ -95,3 +95,61 @@
   (module (global i32 (get_global 1)) (global i32 (i32.const 0)))
   "unknown global"
 )
+
+(module
+  (import "spectest" "global" (global i32))
+)
+(assert_malformed
+  (module
+    "\00asm" "\0d\00\00\00"
+    "\02\94\80\80\80\00"             ;; import section
+      "\01"                          ;; length 1
+      "\08\73\70\65\63\74\65\73\74"  ;; "spectest"
+      "\06\67\6c\6f\62\61\6c"        ;; "global"
+      "\03"                          ;; GlobalImport
+      "\7f"                          ;; i32
+      "\02"                          ;; invalid mutability
+  )
+  "invalid mutability"
+)
+(assert_malformed
+  (module
+    "\00asm" "\0d\00\00\00"
+    "\02\94\80\80\80\00"             ;; import section
+      "\01"                          ;; length 1
+      "\08\73\70\65\63\74\65\73\74"  ;; "spectest"
+      "\06\67\6c\6f\62\61\6c"        ;; "global"
+      "\03"                          ;; GlobalImport
+      "\7f"                          ;; i32
+      "\ff"                          ;; invalid mutability
+  )
+  "invalid mutability"
+)
+
+(module
+  (global i32 (i32.const 0))
+)
+(assert_malformed
+  (module
+    "\00asm" "\0d\00\00\00"
+    "\06\86\80\80\80\00"  ;; global section
+      "\01"               ;; length 1
+      "\7f"               ;; i32
+      "\02"               ;; invalid mutability
+      "\41\00"            ;; i32.const 0
+      "\0b"               ;; end
+  )
+  "invalid mutability"
+)
+(assert_malformed
+  (module
+    "\00asm" "\0d\00\00\00"
+    "\06\86\80\80\80\00"  ;; global section
+      "\01"               ;; length 1
+      "\7f"               ;; i32
+      "\ff"               ;; invalid mutability
+      "\41\00"            ;; i32.const 0
+      "\0b"               ;; end
+  )
+  "invalid mutability"
+)

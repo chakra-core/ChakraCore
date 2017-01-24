@@ -7,6 +7,7 @@
   (func (export "func->i32") (result i32) (i32.const 22))
   (func (export "func->f32") (result f32) (f32.const 11))
   (func (export "func-i32->i32") (param i32) (result i32) (get_local 0))
+  (func (export "func-i64->i64") (param i64) (result i64) (get_local 0))
   (global (export "global-i32") i32 (i32.const 55))
   (global (export "global-f32") f32 (f32.const 44))
   (table (export "table-10-inf") 10 anyfunc)
@@ -23,19 +24,28 @@
 (module
   (type $func_i32 (func (param i32)))
   (type $func_i64 (func (param i64)))
+  (type $func_f32 (func (param f32)))
+  (type $func_f64 (func (param f64)))
 
   (import "spectest" "print" (func (param i32)))
-  (func (import "spectest" "print") (param i64))
+  ;; JavaScript can't handle i64 yet.
+  ;; (func (import "spectest" "print") (param i64))
   (import "spectest" "print" (func $print_i32 (param i32)))
-  (import "spectest" "print" (func $print_i64 (param i64)))
+  ;; JavaScript can't handle i64 yet.
+  ;; (import "spectest" "print" (func $print_i64 (param i64)))
+  (import "spectest" "print" (func $print_f32 (param f32)))
+  (import "spectest" "print" (func $print_f64 (param f64)))
   (import "spectest" "print" (func $print_i32_f32 (param i32 f32)))
-  (import "spectest" "print" (func $print_i64_f64 (param i64 f64)))
+  (import "spectest" "print" (func $print_f64_f64 (param f64 f64)))
   (func $print_i32-2 (import "spectest" "print") (param i32))
-  (func $print_i64-2 (import "spectest" "print") (param i64))
+  (func $print_f64-2 (import "spectest" "print") (param f64))
+  (import "test" "func-i64->i64" (func $i64->i64 (param i64) (result i64)))
 
-  (table anyfunc (elem $print_i32 $print_i64))
+  (table anyfunc (elem $print_i32 $print_f64))
 
   (func (export "print32") (param $i i32)
+    (local $x f32)
+    (set_local $x (f32.convert_s/i32 (get_local $i)))
     (call 0 (get_local $i))
     (call $print_i32_f32
       (i32.add (get_local $i) (i32.const 1))
@@ -43,23 +53,29 @@
     )
     (call $print_i32 (get_local $i))
     (call $print_i32-2 (get_local $i))
+    (call $print_f32 (get_local $x))
     (call_indirect $func_i32 (get_local $i) (i32.const 0))
   )
 
   (func (export "print64") (param $i i64)
-    (call 1 (get_local $i))
-    (call $print_i64_f64
-      (i64.add (get_local $i) (i64.const 1))
+    (local $x f64)
+    (set_local $x (f64.convert_s/i64 (call $i64->i64 (get_local $i))))
+    ;; JavaScript can't handle i64 yet.
+    ;; (call 1 (get_local $i))
+    (call $print_f64_f64
+      (f64.add (get_local $x) (f64.const 1))
       (f64.const 53)
     )
-    (call $print_i64 (get_local $i))
-    (call $print_i64-2 (get_local $i))
-    (call_indirect $func_i64 (get_local $i) (i32.const 1))
+    ;; JavaScript can't handle i64 yet.
+    ;; (call $print_i64 (get_local $i))
+    (call $print_f64 (get_local $x))
+    (call $print_f64-2 (get_local $x))
+    (call_indirect $func_f64 (get_local $x) (i32.const 1))
   )
 )
 
 (assert_return (invoke "print32" (i32.const 13)))
-;;(assert_return (invoke "print64" (i64.const 24)))
+(assert_return (invoke "print64" (i64.const 24)))
 
 (module (import "test" "func" (func)))
 (module (import "test" "func-i32" (func (param i32))))
@@ -67,6 +83,7 @@
 (module (import "test" "func->i32" (func (result i32))))
 (module (import "test" "func->f32" (func (result f32))))
 (module (import "test" "func-i32->i32" (func (param i32) (result i32))))
+(module (import "test" "func-i64->i64" (func (param i64) (result i64))))
 
 (assert_unlinkable
   (module (import "test" "unknown" (func)))
@@ -177,7 +194,8 @@
   (import "spectest" "global" (global $x i32))
   (global $y (import "spectest" "global") i32)
 
-  ;;(import "spectest" "global" (global i64))
+  ;; JavaScript can't handle i64 yet.
+  ;; (import "spectest" "global" (global i64))
   (import "spectest" "global" (global f32))
   (import "spectest" "global" (global f64))
 

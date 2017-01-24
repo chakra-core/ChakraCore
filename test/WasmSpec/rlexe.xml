@@ -184,6 +184,21 @@
   <test>
     <default>
       <files>spec.js</files>
+      <baseline>baselines\custom_section.baseline</baseline>
+      <compile-flags>-wasm -args testsuite-bin\custom_section.json -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines\custom_section.baseline</baseline>
+      <compile-flags>-wasm -args testsuite-bin\custom_section.json -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
       <baseline>baselines\endianness.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin\endianness.json -endargs</compile-flags>
     </default>

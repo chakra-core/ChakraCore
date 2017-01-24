@@ -134,6 +134,10 @@ function run(inPath, iStart, iEnd) {
         assertUnlinkable(inDir, command, registry);
         break;
 
+      case "assert_uninstantiable":
+        assertUninstantiable(inDir, command, registry);
+        break;
+
       case "assert_invalid":
         assertMalformed(inDir, command, registry);
         break;
@@ -154,6 +158,10 @@ function run(inPath, iStart, iEnd) {
 
       case "assert_return_nan":
         assertReturn(moduleRegistry, command, true);
+        break;
+
+      case "assert_exhaustion":
+        assertStackExhaustion(moduleRegistry, command);
         break;
 
       case "assert_trap":
@@ -227,7 +235,7 @@ function assertMalformed(baseDir, command) {
 function assertUnlinkable(baseDir, command, registry) {
   const {filename, text} = command;
   // Test hook to prevent deferred parsing
-  WebAssembly.Module.prototype.deferred = false;
+  WScript.Flag("-off:wasmdeferred");
   const output = {};
   try {
     createModule(baseDir, filename, registry, output);
@@ -246,7 +254,33 @@ function assertUnlinkable(baseDir, command, registry) {
     }
   } finally {
     // Reset the test hook
-    WebAssembly.Module.prototype.deferred = undefined;
+    WScript.Flag("-on:wasmdeferred");
+  }
+}
+
+function assertUninstantiable(baseDir, command, registry) {
+  const {filename, text} = command;
+  // Test hook to prevent deferred parsing
+  WScript.Flag("-off:wasmdeferred");
+  const output = {};
+  try {
+    createModule(baseDir, filename, registry, output);
+    ++failed;
+    print(`${getCommandStr(command)} failed. Should have had an error`);
+  } catch (e) {
+    if (e instanceof WebAssembly.RuntimeError) {
+      ++passed;
+      if (verbose) {
+        print(`${getCommandStr(command)} passed. Had instanciation error: ${e}`);
+        print(`  Spec expected error: ${text}`);
+      }
+    } else {
+      ++failed;
+      print(`${getCommandStr(command)} failed. Expected a instanciation error: ${e}`);
+    }
+  } finally {
+    // Reset the test hook
+    WScript.Flag("-on:wasmdeferred");
   }
 }
 
@@ -323,7 +357,7 @@ function assertTrap(moduleRegistry, command) {
     print(`${getCommandStr(command)} failed. Should have had an error`);
     failed++;
   } catch (e) {
-    if (e instanceof WebAssembly.RuntimeError || e.message.indexOf("Out of stack") !== -1) {
+    if (e instanceof WebAssembly.RuntimeError) {
       passed++;
       if (verbose) {
         print(`${getCommandStr(command)} passed. Error thrown: ${e}`);
@@ -335,6 +369,33 @@ function assertTrap(moduleRegistry, command) {
     }
   }
 }
+
+let StackOverflow;
+function assertStackExhaustion(moduleRegistry, command) {
+  if (!StackOverflow) {
+    // Get the stack overflow exception type
+    // Javascript and WebAssembly must throw the same type of error
+    try { (function f() { 1 + f() })() } catch (e) { StackOverflow = e.constructor }
+  }
+
+  const {action, text} = command;
+  try {
+    runAction(moduleRegistry, action);
+    print(`${getCommandStr(command)} failed. Should have exhausted the stack`);
+    failed++;
+  } catch (e) {
+    if (e instanceof StackOverflow) {
+      passed++;
+      if (verbose) {
+        print(`${getCommandStr(command)} passed. Had a StackOverflow`);
+      }
+    } else {
+      failed++;
+      print(`${getCommandStr(command)} failed. Unexpected error thrown: ${e}`);
+    }
+  }
+}
+
 
 function runSimpleAction(moduleRegistry, command) {
   try {
