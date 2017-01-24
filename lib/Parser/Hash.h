@@ -21,8 +21,8 @@ typedef StaticSymLen<0> StaticSym;
 /***************************************************************************
 Hashing functions. Definitions in core\hashfunc.cpp.
 ***************************************************************************/
-ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, LPCOLESTR end, int32 cch);
-ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, LPCUTF8 end, int32 cch);
+ULONG CaseSensitiveComputeHash(LPCOLESTR prgch, LPCOLESTR end);
+ULONG CaseSensitiveComputeHash(LPCUTF8 prgch, LPCUTF8 end);
 ULONG CaseInsensitiveComputeHash(LPCOLESTR posz);
 
 enum
@@ -407,22 +407,22 @@ private:
     uint CountAndVerifyItems(IdentPtr *buckets, uint bucketCount, uint mask);
 #endif
 
-    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(cch2) LPCOLESTR psz2, LPCOLESTR psz2end, int32 cch2)
+    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(psz2end - psz2) LPCOLESTR psz2, LPCOLESTR psz2end)
     {
-        Unused(psz2end);
-        return memcmp(psz1, psz2, cch2 * sizeof(OLECHAR)) == 0;
+        return memcmp(psz1, psz2, (psz2end - psz2) * sizeof(OLECHAR)) == 0;
     }
-    static bool CharsAreEqual(__in_z LPCOLESTR psz1, LPCUTF8 psz2, LPCUTF8 psz2end, int32 cch2)
+    static bool CharsAreEqual(__in_z LPCOLESTR psz1, LPCUTF8 psz2, LPCUTF8 psz2end)
     {
-        return utf8::CharsAreEqual(psz1, psz2, psz2end, cch2, utf8::doAllowThreeByteSurrogates);
+        return utf8::CharsAreEqual(psz1, psz2, psz2end, utf8::doAllowThreeByteSurrogates);
     }
-    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(cch2) char const * psz2, char const * psz2end, int32 cch2)
+    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(psz2end - psz2) char const * psz2, char const * psz2end)
     {
-        Unused(psz2end);
-        while (cch2-- > 0)
+        while (psz2 < psz2end)
         {
             if (*psz1++ != *psz2++)
+            {
                 return false;
+            }
         }
         return true;
     }

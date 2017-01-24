@@ -437,13 +437,15 @@ LSlowPath:
         return DecodeUnitsIntoAndNullTerminate(buffer, pbUtf8, pbEnd, options);
     }
 
-    bool CharsAreEqual(__in_ecount(cch) LPCOLESTR pch, LPCUTF8 bch, LPCUTF8 end, size_t cch, DecodeOptions options)
+    bool CharsAreEqual(LPCOLESTR pch, LPCUTF8 bch, LPCUTF8 end, DecodeOptions options)
     {
         DecodeOptions localOptions = options;
-        while (cch-- > 0)
+        while (bch < end)
         {
             if (*pch++ != utf8::Decode(bch, end, localOptions))
+            {
                 return false;
+            }
         }
         return true;
     }

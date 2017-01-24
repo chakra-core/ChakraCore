@@ -222,7 +222,7 @@ IdentPtr HashTbl::PidHashNameLen(CharType const * prgch, CharType const * end, u
     // NOTE: We use case sensitive hash during compilation, but the runtime
     // uses case insensitive hashing so it can do case insensitive lookups.
 
-    uint32 luHash = CaseSensitiveComputeHashCch(prgch, end, cch);
+    uint32 luHash = CaseSensitiveComputeHash(prgch, end);
     return PidHashNameLenWithHash(prgch, end, cch, luHash);
 }
 template IdentPtr HashTbl::PidHashNameLen<utf8char_t>(utf8char_t const * prgch, utf8char_t const * end, uint32 cch);
@@ -244,7 +244,7 @@ IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch,
 {
     Assert(cch >= 0);
     AssertArrMemR(prgch, cch);
-    Assert(luHash == CaseSensitiveComputeHashCch(prgch, end, cch));
+    Assert(luHash == CaseSensitiveComputeHash(prgch, end));
 
     IdentPtr * ppid;
     IdentPtr pid;
@@ -352,7 +352,7 @@ IdentPtr HashTbl::FindExistingPid(
     for (bucketCount = 0; nullptr != (pid = *ppid); ppid = &pid->m_pidNext, bucketCount++)
     {
         if (pid->m_luHash == luHash && (int)pid->m_cch == cch &&
-            HashTbl::CharsAreEqual(pid->m_sz, prgch, end, cch))
+            HashTbl::CharsAreEqual(pid->m_sz, prgch, end))
         {
             return pid;
         }
@@ -394,12 +394,12 @@ template IdentPtr HashTbl::FindExistingPid<char16>(
 
 bool HashTbl::Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch)
 {
-    uint32 luHash = CaseSensitiveComputeHashCch(prgch, prgch + cch, cch);
+    uint32 luHash = CaseSensitiveComputeHash(prgch, prgch + cch);
 
     for (auto pid = m_prgpidName[luHash & m_luMask]; pid; pid = pid->m_pidNext)
     {
         if (pid->m_luHash == luHash && (int)pid->m_cch == cch &&
-            HashTbl::CharsAreEqual(pid->m_sz, prgch + cch, prgch, cch))
+            HashTbl::CharsAreEqual(pid->m_sz, prgch + cch, prgch))
         {
             return true;
         }
@@ -419,7 +419,7 @@ bool HashTbl::Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch)
 // This method is used during colorizing when scanner isn't interested in storing the actual id and does not care about conversion of escape sequences
 tokens HashTbl::TkFromNameLenColor(_In_reads_(cch) LPCOLESTR prgch, uint32 cch)
 {
-    uint32 luHash = CaseSensitiveComputeHashCch(prgch, prgch + cch, cch);
+    uint32 luHash = CaseSensitiveComputeHash(prgch, prgch + cch);
 
     // look for a keyword
 #include "kwds_sw.h"
@@ -446,7 +446,7 @@ LDefault:
 // This method is used during colorizing when scanner isn't interested in storing the actual id and does not care about conversion of escape sequences
 tokens HashTbl::TkFromNameLen(_In_reads_(cch) LPCOLESTR prgch, uint32 cch, bool isStrictMode)
 {
-    uint32 luHash = CaseSensitiveComputeHashCch(prgch, prgch + cch, cch);
+    uint32 luHash = CaseSensitiveComputeHash(prgch, prgch + cch);
 
     // look for a keyword
 #include "kwds_sw.h"
