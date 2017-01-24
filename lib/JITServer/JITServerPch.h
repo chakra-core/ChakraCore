@@ -13,3 +13,6 @@
 #include "Backend.h"
 #include "JITServer.h"
 #include "PageAllocatorPool.h"
+
+#include <Psapi.h>
+

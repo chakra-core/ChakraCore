@@ -25,6 +25,10 @@ void UCrtC99MathApis::Ensure()
 
     if (IsAvailable())
     {
+#if _WIN32
+        GetModuleFileNameW(m_hModule, FullName, MAX_PATH);
+#endif
+
         m_pfnlog2  = (PFNMathFn)GetFunction("log2");
         m_pfnlog1p = (PFNMathFn)GetFunction("log1p");
         m_pfnexpm1 = (PFNMathFn)GetFunction("expm1");

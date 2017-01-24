@@ -19,7 +19,9 @@ private:
     PFNMathFn m_pfncbrt;
 
     void Ensure();
-
+#if _WIN32
+    WCHAR FullName[MAX_PATH + 1];
+#endif
 public:
     static const LPCWSTR LibraryName;
 
@@ -29,6 +31,17 @@ public:
     virtual LPCWSTR GetLibraryName() const override { return LibraryName; }
 
     bool IsAvailable() { Ensure(); return DelayLoadLibrary::IsAvailable(); }
+
+#if _WIN32
+    LPCWSTR GetFullPath()
+    {
+        if (!IsAvailable())
+        {
+            return nullptr;
+        }
+        return (LPCWSTR)FullName;
+    }
+#endif
 
     double log2 (_In_ double x) { Assert(IsAvailable()); return m_pfnlog2 (x); }
     double log1p(_In_ double x) { Assert(IsAvailable()); return m_pfnlog1p(x); }
