@@ -1194,6 +1194,7 @@ Function:
 See MSDN or the man page for wcslen.
 
 --*/
+__attribute__((no_instrument_function))
 size_t
 __cdecl
 PAL_wcslen(
