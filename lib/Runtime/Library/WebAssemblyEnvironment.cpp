@@ -10,7 +10,8 @@
 namespace Js
 {
 
-WebAssemblyEnvironment::WebAssemblyEnvironment(WebAssemblyModule* module)
+WebAssemblyEnvironment::WebAssemblyEnvironment(WebAssemblyModule* module):
+    m_alloc(_u("WebAssemblyEnvironment"), module->GetScriptContext()->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory)
 {
     this->module = module;
     ScriptContext* scriptContext = module->GetScriptContext();
@@ -34,8 +35,10 @@ WebAssemblyEnvironment::WebAssemblyEnvironment(WebAssemblyModule* module)
         JavascriptError::ThrowOutOfMemoryError(scriptContext);
     }
     AssertMsg(globals + globalsSize + 0x10 > end, "We don't expect to allocate much more memory than what's needed");
-}
 
+    elementSegmentOffsets = AnewArrayZ(&m_alloc, uint, module->GetElementSegCount());
+    dataSegmentOffsets = AnewArrayZ(&m_alloc, uint, module->GetDataSegCount());
+}
 
 template<typename T>
 void Js::WebAssemblyEnvironment::CheckPtrIsValid(intptr_t ptr) const
@@ -184,6 +187,69 @@ void WebAssemblyEnvironment::SetGlobalValue(Wasm::WasmGlobal* global, Wasm::Wasm
     default:
         Js::Throw::InternalError();
     }
+}
+
+void WebAssemblyEnvironment::CalculateOffsets(WebAssemblyTable* table, WebAssemblyMemory* memory)
+{
+    DebugOnly(offsetInitialized = true);
+    ScriptContext* scriptContext = module->GetScriptContext();
+    if (!table || !memory)
+    {
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
+    }
+
+    int32 hCode = WASMERR_ElementSegOutOfRange;
+    auto outOfRangeError = [scriptContext, &hCode] { JavascriptError::ThrowWebAssemblyLinkError(scriptContext, hCode); };
+
+    for (uint elementsIndex = 0; elementsIndex < module->GetElementSegCount(); ++elementsIndex)
+    {
+        Wasm::WasmElementSegment* eSeg = module->GetElementSeg(elementsIndex);
+        uint offset = module->GetOffsetFromInit(eSeg->GetOffsetExpr(), this);
+        if (UInt32Math::Add(offset, eSeg->GetNumElements(), outOfRangeError) > table->GetCurrentLength())
+        {
+            outOfRangeError();
+        }
+        this->elementSegmentOffsets[elementsIndex] = offset;
+    }
+
+    ArrayBuffer * buffer = memory->GetBuffer();
+    Assert(!buffer->IsDetached());
+    hCode = WASMERR_DataSegOutOfRange;
+    for (uint32 iSeg = 0; iSeg < module->GetDataSegCount(); ++iSeg)
+    {
+        Wasm::WasmDataSegment* segment = module->GetDataSeg(iSeg);
+        Assert(segment != nullptr);
+        const uint32 offset = module->GetOffsetFromInit(segment->GetOffsetExpr(), this);
+        const uint32 size = segment->GetSourceSize();
+
+        if (UInt32Math::Add(offset, size, outOfRangeError) > buffer->GetByteLength())
+        {
+            outOfRangeError();
+        }
+        this->dataSegmentOffsets[iSeg] = offset;
+    }
+}
+
+uint32 WebAssemblyEnvironment::GetElementSegmentOffset(uint32 index) const
+{
+    Assert(offsetInitialized);
+    if (index >= module->GetElementSegCount())
+    {
+        AssertMsg(UNREACHED, "We should only be using valid indexes");
+        JavascriptError::ThrowRangeError(module->GetScriptContext(), JSERR_ArgumentOutOfRange);
+    }
+    return elementSegmentOffsets[index];
+}
+
+uint32 WebAssemblyEnvironment::GetDataSegmentOffset(uint32 index) const
+{
+    Assert(offsetInitialized);
+    if (index >= module->GetDataSegCount())
+    {
+        AssertMsg(UNREACHED, "We should only be using valid indexes");
+        JavascriptError::ThrowRangeError(module->GetScriptContext(), JSERR_ArgumentOutOfRange);
+    }
+    return dataSegmentOffsets[index];
 }
 
 } // namespace Js
