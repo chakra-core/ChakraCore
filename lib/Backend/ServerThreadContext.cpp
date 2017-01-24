@@ -9,6 +9,7 @@
 #include "JITServer/JITServer.h"
 
 ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
+    m_autoProcessHandle((HANDLE)data->processHandle),
     m_threadContextData(*data),
     m_refCount(0),
     m_numericPropertyBV(nullptr),

@@ -123,17 +123,6 @@ ServerShutdown(
     return ShutdownCommon();
 }
 
-HRESULT
-ServerCleanupProcess(
-    /* [in] */ handle_t binding,
-    /* [in] */ intptr_t processHandle)
-{
-    ServerContextManager::CleanUpForProcess((HANDLE)processHandle);
-    CloseHandle((HANDLE)processHandle);
-    return S_OK;
-}
-
-
 void
 __RPC_USER PTHREADCONTEXT_HANDLE_rundown(__RPC__in PTHREADCONTEXT_HANDLE phContext)
 {
@@ -174,6 +163,7 @@ ServerInitializeThreadContext(
     }
     catch (Js::OutOfMemoryException)
     {
+        CloseHandle((HANDLE)threadContextData->processHandle);
         return E_OUTOFMEMORY;
     }
 
@@ -728,42 +718,6 @@ void ServerContextManager::UnRegisterThreadContext(ServerThreadContext* threadCo
             iter.RemoveCurrent();
         }
         iter.MoveNext();
-    }
-}
-
-void ServerContextManager::CleanUpForProcess(HANDLE hProcess)
-{
-    // there might be multiple thread context(webworker)
-    AutoCriticalSection autoCS(&cs);
-
-    auto iterScriptCtx = scriptContexts.GetIteratorWithRemovalSupport();
-    while (iterScriptCtx.IsValid())
-    {
-        ServerScriptContext* scriptContext = iterScriptCtx.Current().Key();
-        if (scriptContext->GetThreadContext()->GetProcessHandle() == hProcess)
-        {
-            if (!scriptContext->IsClosed())
-            {
-                scriptContext->Close();
-            }
-            iterScriptCtx.RemoveCurrent();
-        }
-        iterScriptCtx.MoveNext();
-    }
-
-    auto iterThreadCtx = threadContexts.GetIteratorWithRemovalSupport();
-    while (iterThreadCtx.IsValid())
-    {
-        ServerThreadContext* threadContext = iterThreadCtx.Current().Key();
-        if (threadContext->GetProcessHandle() == hProcess)
-        {
-            if (!threadContext->IsClosed())
-            {
-                threadContext->Close();
-            }
-            iterThreadCtx.RemoveCurrent();
-        }
-        iterThreadCtx.MoveNext();
     }
 }
 

@@ -1959,7 +1959,15 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     }
 
     ThreadContextDataIDL contextData;
-    contextData.processHandle = (intptr_t)JITManager::GetJITManager()->GetJITTargetHandle();
+    HANDLE serverHandle = JITManager::GetJITManager()->GetServerHandle();
+
+    HANDLE jitTargetHandle = nullptr;
+    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), serverHandle, &jitTargetHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
+    {
+        return;
+    }
+
+    contextData.processHandle = (intptr_t)jitTargetHandle;
 
     contextData.chakraBaseAddress = (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr();
     contextData.crtBaseAddress = (intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName);

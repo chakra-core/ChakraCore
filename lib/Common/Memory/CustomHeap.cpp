@@ -402,6 +402,10 @@ Allocation* Heap<TAlloc, TPreReservedAlloc>::AllocLargeObject(size_t bytes, usho
         }
 
         char* localAddr = this->codePageAllocators->AllocLocal(address, pages*AutoSystemInfo::PageSize, segment);
+        if (!localAddr)
+        {
+            return nullptr;
+        }
         FillDebugBreak((BYTE*)localAddr, pages*AutoSystemInfo::PageSize);
         this->codePageAllocators->FreeLocal(localAddr, segment);
 
@@ -660,6 +664,10 @@ Page* Heap<TAlloc, TPreReservedAlloc>::AllocNewPage(BucketId bucket, bool canAll
     }
 
     char* localAddr = this->codePageAllocators->AllocLocal(address, AutoSystemInfo::PageSize, pageSegment);
+    if (!localAddr)
+    {
+        return nullptr;
+    }
     FillDebugBreak((BYTE*)localAddr, AutoSystemInfo::PageSize);
     this->codePageAllocators->FreeLocal(localAddr, pageSegment);
 
@@ -816,6 +824,11 @@ bool Heap<TAlloc, TPreReservedAlloc>::FreeAllocation(Allocation* object)
 
             // Fill the old buffer with debug breaks
             char* localAddr = this->codePageAllocators->AllocLocal(object->address, object->size, page->segment);
+            if (!localAddr)
+            {
+                MemoryOperationLastError::CheckProcessAndThrowFatalError(this->processHandle);
+                return false;
+            }
             FillDebugBreak((BYTE*)localAddr, object->size);
             this->codePageAllocators->FreeLocal(localAddr, page->segment);
 
@@ -883,9 +896,15 @@ void Heap<TAlloc, TPreReservedAlloc>::FreeAllocationHelper(Allocation* object, B
 
     // Fill the old buffer with debug breaks
     char* localAddr = this->codePageAllocators->AllocLocal(object->address, object->size, page->segment);
-    FillDebugBreak((BYTE*)localAddr, object->size);
-    this->codePageAllocators->FreeLocal(localAddr, page->segment);
-
+    if (localAddr)
+    {
+        FillDebugBreak((BYTE*)localAddr, object->size);
+        this->codePageAllocators->FreeLocal(localAddr, page->segment);
+    }
+    else
+    {
+        MemoryOperationLastError::CheckProcessAndThrowFatalError(this->processHandle);
+    }
     VerboseHeapTrace(_u("Setting %d bits starting at bit %d, Free bit vector in page was "), length, index);
 #if VERBOSE_HEAP
     page->freeBitVector.DumpWord();

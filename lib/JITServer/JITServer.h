@@ -9,11 +9,8 @@ public:
     static void RegisterThreadContext(ServerThreadContext* threadContext);
     static void UnRegisterThreadContext(ServerThreadContext* threadContext);
 
-    static void CleanUpForProcess(HANDLE hProcess);
-
     static void RegisterScriptContext(ServerScriptContext* scriptContext);
     static void UnRegisterScriptContext(ServerScriptContext* scriptContext);
-
     static bool CheckLivenessAndAddref(ServerScriptContext* context);
     static bool CheckLivenessAndAddref(ServerThreadContext* context);
 
