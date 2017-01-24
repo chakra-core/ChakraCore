@@ -2516,11 +2516,12 @@ HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(int32 ichMinLine, __out BSTR*
     }
 
     typename EncodingPolicy::EncodedCharPtr pStart = static_cast<size_t>(ichMinLine) == IchMinLine() ? m_pchMinLine : m_pchBase + this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, ichMinLine);
-    typename EncodingPolicy::EncodedCharPtr pEnd = AdjustedLast();
 
     // Determine the length by scanning for the next newline
-    charcount_t cch = LineLength(pStart, pEnd);
+    charcount_t cch = LineLength(pStart, m_pchLast);
     Assert(cch <= LONG_MAX);
+
+    typename EncodingPolicy::EncodedCharPtr pEnd = static_cast<size_t>(ichMinLine) == IchMinLine() ? m_pchMinLine + cch : m_pchBase + this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, cch);
 
     *pbstrLine = SysAllocStringLen(NULL, cch);
     if (!*pbstrLine)

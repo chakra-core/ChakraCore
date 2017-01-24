@@ -20,4 +20,17 @@
       <baseline />
     </default>
   </test>
+  <test>
+    <default>
+      <files>bugGH2386.js</files>
+      <baseline />
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>unicode_sequence_serialized.js</files>
+      <baseline />
+      <compile-flags>-forceserialized -oopjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>

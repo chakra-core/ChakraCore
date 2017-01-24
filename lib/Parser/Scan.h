@@ -294,7 +294,7 @@ protected:
     void ConvertToUnicode(__out_ecount_full(cch) LPOLESTR pch, charcount_t cch, EncodedCharPtr start, EncodedCharPtr end)
     {
         m_decodeOptions = (utf8::DecodeOptions)(m_decodeOptions & ~utf8::doSecondSurrogatePair);
-        utf8::DecodeInto(pch, start, end, cch, m_decodeOptions);
+        utf8::DecodeUnitsInto(pch, start, end, m_decodeOptions);
     }
 
 

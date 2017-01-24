@@ -434,7 +434,8 @@ private:
     }
     static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, LPCUTF8 psz2, LPCUTF8 psz2end, int32 cch)
     {
-        utf8::DecodeIntoAndNullTerminate(psz1, psz2, psz2end, cch);
+        Unused(cch);
+        utf8::DecodeUnitsIntoAndNullTerminate(psz1, psz2, psz2end);
     }
     static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, __in_ecount(cch) char const * psz2, char const * psz2end, int32 cch)
     {

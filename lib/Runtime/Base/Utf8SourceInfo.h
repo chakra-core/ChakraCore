@@ -78,10 +78,22 @@ namespace Js
         void RetrieveSourceText(__out_ecount_full(cchLim - cchMin) LPOLESTR cpText, charcount_t cchMin, charcount_t cchLim) const
         {
             size_t cbLength = GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText"));
-            LPCUTF8 pSource = GetSource(_u("Utf8SourceInfo::RetrieveSourceText"));
-            size_t cbMin = cbLength == GetCchLength() ? cchMin : utf8::CharacterIndexToByteIndex(pSource, cbLength, cchMin, utf8::doAllowThreeByteSurrogates);
+            LPCUTF8 source = GetSource(_u("Utf8SourceInfo::RetrieveSourceText"));
+            LPCUTF8 pbStart = nullptr;
+            LPCUTF8 pbEnd = nullptr;
             
-            utf8::DecodeInto(cpText, pSource + cbMin, pSource + cbMin + cbLength, cchLim - cchMin, utf8::doAllowThreeByteSurrogates);
+            if (cbLength == GetCchLength())
+            {
+                pbStart = source + cchMin;
+                pbEnd = source + cchLim;
+            }
+            else
+            {
+                pbStart = source + utf8::CharacterIndexToByteIndex(source, cbLength, cchMin, utf8::doAllowThreeByteSurrogates);
+                pbEnd = source + utf8::CharacterIndexToByteIndex(source, cbLength, cchLim, utf8::doAllowThreeByteSurrogates);
+            }
+            
+            utf8::DecodeUnitsInto(cpText, pbStart, pbEnd, utf8::doAllowThreeByteSurrogates);
         }
 
         size_t CharacterIndexToByteIndex(charcount_t cchIndex) const
