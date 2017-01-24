@@ -492,7 +492,7 @@ public:
         string16Table.list = string16Table.list->ReverseCurrentList();
 
         // Prepend all sections (in reverse order because of prepend)
-        all.list = all.list->Prepend(&functionsTable, alloc);
+        all.list = regex::ImmutableList<Js::BufferBuilder*>::OfSingle(&functionsTable, alloc);
         all.list = all.list->Prepend(&functionCount, alloc);
         all.list = all.list->Prepend(&lineInfoCache, alloc);
         all.list = all.list->Prepend(&lineInfoCacheCount, alloc);
@@ -588,7 +588,7 @@ public:
             {
                 // First item in the list is the first string.
                 auto stringIndexEntry = Anew(alloc, BufferBuilderRelativeOffset, _u("First String16 Index"), stringEntry);
-                string16IndexTable.list = string16IndexTable.list->Prepend(stringIndexEntry, alloc);
+                string16IndexTable.list = regex::ImmutableList<Js::BufferBuilder*>::OfSingle(stringIndexEntry, alloc);
                 PrependByte(string16IndexTable, _u("isPropertyRecord"), (BYTE)isPropertyRecord);
             }
 
@@ -3728,7 +3728,7 @@ public:
             }
 
             // Byte code
-            current = ReadByteBlock(current, [&functionBody, this](int contentLength, const byte* buffer) 
+            current = ReadByteBlock(current, [&functionBody, this](int contentLength, const byte* buffer)
             {
                 if (contentLength == 0)
                 {
