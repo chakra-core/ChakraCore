@@ -47,7 +47,7 @@ set _HadFailures=0
   call jenkins.parsetestargs.cmd %*
   set _LogDir=%_TestDir%\logs\%_TestArch%_%_TestType%
   set _TestArgs=%_TestArch%%_TestType%
-  set _BinDir=%_RootDir%\Build\VcBuild%_NoJIT%\bin
+  set _BinDir=%_RootDir%\Build\VcBuild%_SpecialBuild%\bin
 
   call :doSilent rd /s/q %_LogDir%
 

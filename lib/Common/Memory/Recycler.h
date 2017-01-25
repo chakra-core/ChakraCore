@@ -1722,7 +1722,8 @@ private:
     void VerifyMarkArena(ArenaData * arena);
     void VerifyMarkBigBlockList(BigBlock * memoryBlocks);
     void VerifyMarkArenaMemoryBlockList(ArenaMemoryBlock * memoryBlocks);
-    bool VerifyMark(void * address);
+    bool VerifyMark(void * objectAddress, void * target);
+    bool VerifyMark(void * target);
 #endif
 #if DBG_DUMP
     bool forceTraceMark;
@@ -1950,7 +1951,7 @@ private:
 
 #if GLOBAL_ENABLE_WRITE_BARRIER
 private:
-    typedef JsUtil::BaseDictionary<void *, size_t, HeapAllocator, PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::NoResizeLock> PendingWriteBarrierBlockMap;
+    typedef JsUtil::BaseDictionary<void *, size_t, HeapAllocator, PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::AsymetricResizeLock> PendingWriteBarrierBlockMap;
 
     PendingWriteBarrierBlockMap pendingWriteBarrierBlockMap;
 public:
@@ -1968,7 +1969,8 @@ public:
         return WBSetBit(addr);
     }
     static void WBSetBit(char* addr);
-    static void WBSetBits(char* addr, uint length);
+    static void WBSetBitRange(char* addr, uint length);
+    static void WBVerifyBitIsSet(char* addr, char* target);
     static bool WBCheckIsRecyclerAddress(char* addr);
 #endif
 };
@@ -2142,9 +2144,11 @@ class CollectedRecyclerWeakRefHeapBlock : public HeapBlock
 {
 public:
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    virtual void WBVerifyBitIsSet(char* addr) override { Assert(false); }
     virtual void WBSetBit(char* addr) override { Assert(false); }
-    virtual void WBSetBits(char* addr, uint length) override { Assert(false); }
-    virtual void WBClearBits(char* addr) override { Assert(false); }
+    virtual void WBSetBitRange(char* addr, uint count) override { Assert(false); }
+    virtual void WBClearBit(char* addr) override { Assert(false); }
+    virtual void WBClearObject(char* addr) override { Assert(false); }
 #endif
 
 #if DBG
@@ -2158,7 +2162,7 @@ public:
     virtual void SetObjectMarkedBit(void* objectAddress) override { Assert(false); }
 
 #ifdef RECYCLER_VERIFY_MARK
-    virtual bool VerifyMark(void * objectAddress) override { Assert(false); return false; }
+    virtual bool VerifyMark(void * objectAddress, void * target) override { Assert(false); return false; }
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override { Assert(false); }

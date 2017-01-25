@@ -849,15 +849,12 @@ LargeHeapBlock::VerifyMark()
         {
             void* target = *(void **)objectAddress;
 
-            if (recycler->VerifyMark(target))
+            if (recycler->VerifyMark(objectAddress, target))
             {
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
-                if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+                if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
                 {
-                    if (!this->wbVerifyBits.Test((BVIndex)(objectAddress - this->address) / sizeof(void*)))
-                    {
-                        WBPrintMissingBarrier(recycler, objectAddress, (char*)target);
-                    }
+                    this->WBVerifyBitIsSet(objectAddress);
                 }
 #endif
             }
@@ -868,9 +865,9 @@ LargeHeapBlock::VerifyMark()
 }
 
 bool
-LargeHeapBlock::VerifyMark(void * objectAddress)
+LargeHeapBlock::VerifyMark(void * objectAddress, void* target)
 {
-    LargeObjectHeader * header = GetHeader(objectAddress);
+    LargeObjectHeader * header = GetHeader(target);
 
     if ((char *)header < this->address)
     {
@@ -891,10 +888,13 @@ LargeHeapBlock::VerifyMark(void * objectAddress)
         return false;
     }
 
-    bool isMarked = this->heapInfo->recycler->heapBlockMap.IsMarked(objectAddress);
+    bool isMarked = this->heapInfo->recycler->heapBlockMap.IsMarked(target);
 
 #if DBG
-    Assert(isMarked);
+    if (!isMarked)
+    {
+        PrintVerifyMarkFailure(this->GetRecycler(), (char*)objectAddress, (char*)target);
+    }
 #else
     if (!isMarked)
     {
@@ -1571,7 +1571,7 @@ LargeHeapBlock::SweepObject<SweepMode_InThread>(Recycler * recycler, LargeObject
 
         bool objectTrimmed = false;
 
-        if (this->bucket == nullptr)
+        if (!this->bucket->SupportFreeList())
         {
             objectTrimmed = TrimObject(recycler, header, sizeOfObject);
         }
@@ -1737,7 +1737,7 @@ LargeHeapBlock::SweepObjects(Recycler * recycler)
 
         SweepObject<mode>(recycler, header);
 
-        if (this->bucket != nullptr
+        if (this->bucket->SupportFreeList()
 #ifdef RECYCLER_STATS
             && !isForceSweeping
 #endif
@@ -1794,7 +1794,7 @@ LargeHeapBlock::DisposeObjects(Recycler * recycler)
 
         bool objectTrimmed = false;
 
-        if (this->bucket == nullptr)
+        if (this->bucket->SupportFreeList())
         {
             objectTrimmed = TrimObject(recycler, header, header->objectSize, true /* need suspend */);
         }
@@ -2104,25 +2104,28 @@ LargeHeapBlock::CapturePageHeapFreeStack()
 #endif
 
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+CriticalSection LargeHeapBlock::wbVerifyBitsLock;
 void LargeHeapBlock::WBSetBit(char* addr)
 {
     uint index = (uint)(addr - this->address) / sizeof(void*);
     try
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_DisableCheck));
+        AutoCriticalSection autoCs(&wbVerifyBitsLock);
         wbVerifyBits.Set(index);
     }
     catch (Js::OutOfMemoryException&)
     {
     }
 }
-void LargeHeapBlock::WBSetBits(char* addr, uint length)
+void LargeHeapBlock::WBSetBitRange(char* addr, uint count)
 {
     uint index = (uint)(addr - this->address) / sizeof(void*);
     try
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_DisableCheck));
-        for (uint i = 0; i < length; i++)
+        AutoCriticalSection autoCs(&wbVerifyBitsLock);
+        for (uint i = 0; i < count; i++)
         {
             wbVerifyBits.Set(index + i);
         }
@@ -2131,10 +2134,25 @@ void LargeHeapBlock::WBSetBits(char* addr, uint length)
     {
     }
 }
-void LargeHeapBlock::WBClearBits(char* addr)
+void LargeHeapBlock::WBClearBit(char* addr)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    AutoCriticalSection autoCs(&wbVerifyBitsLock);
+    wbVerifyBits.Clear(index);
+}
+void LargeHeapBlock::WBVerifyBitIsSet(char* addr)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    if (!wbVerifyBits.Test(index))
+    {
+        PrintVerifyMarkFailure(this->GetRecycler(), addr, *(char**)addr);
+    }
+}
+void LargeHeapBlock::WBClearObject(char* addr)
 {
     uint index = (uint)(addr - this->address) / sizeof(void*);
     size_t objectSize = this->GetHeader(addr)->objectSize;
+    AutoCriticalSection autoCs(&wbVerifyBitsLock);
     for (uint i = 0; i < (uint)objectSize / sizeof(void*); i++)
     {
         wbVerifyBits.Clear(index + i);

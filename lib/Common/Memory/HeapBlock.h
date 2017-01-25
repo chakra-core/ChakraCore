@@ -315,12 +315,17 @@ public:
 
         return false;
     }
-#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+#if DBG
+#if GLOBAL_ENABLE_WRITE_BARRIER
     virtual void WBSetBit(char* addr) = 0;
-    virtual void WBSetBits(char* addr, uint length) = 0;
-    virtual void WBClearBits(char* addr) = 0;
-    void WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, char* target);
+    virtual void WBSetBitRange(char* addr, uint count) = 0;
+    virtual void WBClearBit(char* addr) = 0;
+    virtual void WBVerifyBitIsSet(char* addr) = 0;
+    virtual void WBClearObject(char* addr) = 0;
 #endif
+    static void PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, char* target);
+#endif
+
 
 #if DBG
     virtual BOOL IsFreeObject(void* objectAddress) = 0;
@@ -334,7 +339,7 @@ public:
     virtual void SetObjectMarkedBit(void* objectAddress) = 0;
 
 #ifdef RECYCLER_VERIFY_MARK
-    virtual bool VerifyMark(void * objectAddress) = 0;
+    virtual bool VerifyMark(void * objectAddress, void * target) = 0;
 #endif
 #ifdef PROFILE_RECYCLER_ALLOC
     virtual void * GetTrackerData(void * address) = 0;
@@ -464,20 +469,41 @@ public:
     void RestoreUnusablePages() {}
 
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    virtual void WBVerifyBitIsSet(char* addr) override
+    {
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        if (!wbVerifyBits.Test(index)) // TODO: (leish)(swb) need interlocked? seems not
+        {
+            PrintVerifyMarkFailure(this->GetRecycler(), addr, *(char**)addr);
+        }
+    }
     virtual void WBSetBit(char* addr) override
     {
         uint index = (uint)(addr - this->address) / sizeof(void*);
-        wbVerifyBits.Set(index);
+        wbVerifyBits.TestAndSetInterlocked(index);
     }
-    virtual void WBSetBits(char* addr, uint length) override
+    virtual void WBSetBitRange(char* addr, uint count) override
     {
         uint index = (uint)(addr - this->address) / sizeof(void*);
-        wbVerifyBits.SetRange(index, length);
+        for (uint i = 0; i < count; i++)
+        {
+            wbVerifyBits.TestAndSetInterlocked(index + i);
+        }
     }
-    virtual void WBClearBits(char* addr) override
+    virtual void WBClearBit(char* addr) override
     {
         uint index = (uint)(addr - this->address) / sizeof(void*);
-        wbVerifyBits.ClearRange(index, this->objectSize / sizeof(void*));
+        wbVerifyBits.TestAndClearInterlocked(index);
+    }
+    virtual void WBClearObject(char* addr) override
+    {
+        Assert((uint)(addr - this->address) % this->objectSize == 0);
+        uint index = (uint)(addr - this->address) / sizeof(void*);
+        uint count = (uint)(this->objectSize / sizeof(void*));
+        for (uint i = 0; i < count; i++)
+        {
+            wbVerifyBits.TestAndClearInterlocked(index + i);
+        }
     }
 #endif
 
@@ -631,7 +657,7 @@ public:
 #endif
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
-    virtual bool VerifyMark(void * objectAddress) override;
+    virtual bool VerifyMark(void * objectAddress, void * target) override;
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override sealed;

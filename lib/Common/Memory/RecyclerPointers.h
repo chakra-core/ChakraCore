@@ -169,9 +169,10 @@ void ArrayWriteBarrier(T * address, size_t count)
 template <class T, class PolicyType = T, class Allocator = Recycler>
 void CopyArray(T* dst, size_t dstCount, const T* src, size_t srcCount)
 {
+    ArrayWriteBarrier<T, PolicyType, Allocator>(dst, dstCount);
+
     js_memcpy_s(reinterpret_cast<void*>(dst), sizeof(T) * dstCount,
                 reinterpret_cast<const void*>(src), sizeof(T) * srcCount);
-    ArrayWriteBarrier<T, PolicyType, Allocator>(dst, dstCount);
 }
 template <class T, class PolicyType = T, class Allocator = Recycler>
 void CopyArray(WriteBarrierPtr<T>& dst, size_t dstCount,
@@ -368,10 +369,10 @@ public:
     }
     void WriteBarrierSet(T * ptr)
     {
-        NoWriteBarrierSet(ptr);
 #ifdef RECYCLER_WRITE_BARRIER
         RecyclerWriteBarrierManager::WriteBarrier(this);
 #endif
+        NoWriteBarrierSet(ptr);
     }
 
     WriteBarrierPtr& operator=(WriteBarrierPtr const& other)
@@ -382,10 +383,10 @@ public:
 
     WriteBarrierPtr& operator++()  // prefix ++
     {
-        ++ptr;
 #ifdef RECYCLER_WRITE_BARRIER
         RecyclerWriteBarrierManager::WriteBarrier(this);
 #endif
+        ++ptr;
         return *this;
     }
 
@@ -398,10 +399,10 @@ public:
 
     WriteBarrierPtr& operator--()  // prefix --
     {
-        --ptr;
 #ifdef RECYCLER_WRITE_BARRIER
         RecyclerWriteBarrierManager::WriteBarrier(this);
 #endif
+        --ptr;
         return *this;
     }
 

@@ -104,7 +104,7 @@ Lowerer::Lower()
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
     // TODO: (leish)(swb) implement for arm
 #if defined(_M_IX86) || defined(_M_AMD64)
-    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
     {
         // find out all write barrier setting instr, call Recycler::WBSetBit for verification purpose
         // should do this in LowererMD::GenerateWriteBarrier, however, can't insert call instruction there

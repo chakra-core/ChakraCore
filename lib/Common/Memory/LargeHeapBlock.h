@@ -171,7 +171,7 @@ public:
 #endif
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
-    virtual bool VerifyMark(void * objectAddress) override;
+    virtual bool VerifyMark(void * objectAddress, void * target) override;
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override;
@@ -305,11 +305,14 @@ public:
 
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 private:
+    static CriticalSection wbVerifyBitsLock;
     BVSparse<HeapAllocator> wbVerifyBits;
 public:
     virtual void WBSetBit(char* addr) override;
-    virtual void WBSetBits(char* addr, uint length) override;
-    virtual void WBClearBits(char* addr) override;
+    virtual void WBSetBitRange(char* addr, uint count) override;
+    virtual void WBClearBit(char* addr) override;
+    virtual void WBVerifyBitIsSet(char* addr) override;
+    virtual void WBClearObject(char* addr) override;
 #endif
 };
 }

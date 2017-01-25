@@ -75,6 +75,13 @@ HeapBlockMap32::Mark(void * candidate, MarkContext * markContext)
         return;
     }
 
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
+    {
+        Recycler::WBVerifyBitIsSet((char*)markContext->parentRef, (char*)candidate);
+    }
+#endif
+
     uint id2 = GetLevel2Id(candidate);
     HeapBlock::HeapBlockType blockType = chunk->blockInfo[id2].blockType;
 

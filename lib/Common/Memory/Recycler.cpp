@@ -4212,10 +4212,12 @@ Recycler::BackgroundRescan(RescanFlags rescanFlags)
 #if GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
     {
+        pendingWriteBarrierBlockMap.LockResize();
         pendingWriteBarrierBlockMap.Map([](void* address, size_t size)
         {
             RecyclerWriteBarrierManager::WriteBarrier(address, size);
         });
+        pendingWriteBarrierBlockMap.UnlockResize();
     }
 #endif
 
@@ -7968,29 +7970,36 @@ Recycler::VerifyMarkStack()
     for (;stackTop < stackStart; stackTop++)
     {
         void* candidate = *stackTop;
-        VerifyMark(candidate);
+        VerifyMark(nullptr, candidate);
     }
 
     void** registers = this->savedThreadContext.GetRegisters();
     for (int i = 0; i < SavedRegisterState::NumRegistersToSave; i++)
     {
-        VerifyMark(registers[i]);
+        VerifyMark(nullptr, registers[i]);
     }
 }
 
+bool 
+Recycler::VerifyMark(void * target)
+{
+    return VerifyMark(nullptr, target);
+}
+
+// objectAddress is nullptr in case of roots
 bool
-Recycler::VerifyMark(void * candidate)
+Recycler::VerifyMark(void * objectAddress, void * target)
 {
     void * realAddress;
     HeapBlock * heapBlock;
     if (this->enableScanInteriorPointers)
     {
-        heapBlock = heapBlockMap.GetHeapBlock(candidate);
+        heapBlock = heapBlockMap.GetHeapBlock(target);
         if (heapBlock == nullptr)
         {
             return false;
         }
-        realAddress = heapBlock->GetRealAddressFromInterior(candidate);
+        realAddress = heapBlock->GetRealAddressFromInterior(target);
         if (realAddress == nullptr)
         {
             return false;
@@ -7998,14 +8007,14 @@ Recycler::VerifyMark(void * candidate)
     }
     else
     {
-        heapBlock = this->FindHeapBlock(candidate);
+        heapBlock = this->FindHeapBlock(target);
         if (heapBlock == nullptr)
         {
             return false;
         }
-        realAddress = candidate;
+        realAddress = target;
     }
-    return heapBlock->VerifyMark(realAddress);
+    return heapBlock->VerifyMark(objectAddress, realAddress);
 }
 #endif
 
@@ -8545,6 +8554,21 @@ Recycler::UnRegisterPendingWriteBarrierBlock(void* address)
 
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
 void
+Recycler::WBVerifyBitIsSet(char* addr, char* target)
+{
+    Recycler* recycler = Recycler::recyclerList;
+    while (recycler)
+    {
+        auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
+        if (heapBlock)
+        {
+            heapBlock->WBVerifyBitIsSet(addr);
+            break;
+        }
+        recycler = recycler->next;
+    }
+}
+void
 Recycler::WBSetBit(char* addr)
 {
     Recycler* recycler = Recycler::recyclerList;
@@ -8560,7 +8584,7 @@ Recycler::WBSetBit(char* addr)
     }
 }
 void
-Recycler::WBSetBits(char* addr, uint length)
+Recycler::WBSetBitRange(char* addr, uint count)
 {
     Recycler* recycler = Recycler::recyclerList;
     while (recycler)
@@ -8568,7 +8592,8 @@ Recycler::WBSetBits(char* addr, uint length)
         auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
         if (heapBlock)
         {
-            heapBlock->WBSetBits(addr, length);
+            heapBlock->WBSetBitRange(addr, count);
+            break;
         }
         recycler = recycler->next;
     }
