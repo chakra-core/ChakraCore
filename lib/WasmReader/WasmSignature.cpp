@@ -184,8 +184,9 @@ WasmSignature::FromIDL(WasmSignatureIDL* sig)
 void
 WasmSignature::Dump()
 {
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
     Output::Print(_u("("));
-    for(uint32 i=0; i<this->GetParamCount(); i++)
+    for(uint32 i = 0; i < this->GetParamCount(); i++)
     {
         if(i != 0)
         {
@@ -227,6 +228,7 @@ WasmSignature::Dump()
             Output::Print(_u("f64"));
             break;
     }
+#endif
 }
 
 } // namespace Wasm
