@@ -3062,7 +3062,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         if (!funcInfo->IsGlobalFunction())
         {
-            if (CanStackNestedFunc(funcInfo, true))
+            // Note: Do not set the stack nested func flag if the function has been redeferred and recompiled.
+            // In that case the flag already has the value we want.
+            if (CanStackNestedFunc(funcInfo, true) && byteCodeFunction->GetCompileCount() == 0)
             {
 #if DBG
                 byteCodeFunction->SetCanDoStackNestedFunc();
