@@ -160,7 +160,7 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
 
 
 
-    LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, 1, nullptr);
+    LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, 1, this);
     if (!heapBlock)
     {
         pageAllocator->SuspendIdleDecommit();

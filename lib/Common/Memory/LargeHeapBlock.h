@@ -171,7 +171,7 @@ public:
 #endif
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
-    virtual bool VerifyMark(void * objectAddress) override;
+    virtual bool VerifyMark(void * objectAddress, void * target) override;
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override;

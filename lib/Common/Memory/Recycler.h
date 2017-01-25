@@ -1722,7 +1722,8 @@ private:
     void VerifyMarkArena(ArenaData * arena);
     void VerifyMarkBigBlockList(BigBlock * memoryBlocks);
     void VerifyMarkArenaMemoryBlockList(ArenaMemoryBlock * memoryBlocks);
-    bool VerifyMark(void * address);
+    bool VerifyMark(void * objectAddress, void * target);
+    bool VerifyMark(void * target);
 #endif
 #if DBG_DUMP
     bool forceTraceMark;
@@ -2161,7 +2162,7 @@ public:
     virtual void SetObjectMarkedBit(void* objectAddress) override { Assert(false); }
 
 #ifdef RECYCLER_VERIFY_MARK
-    virtual bool VerifyMark(void * objectAddress) override { Assert(false); return false; }
+    virtual bool VerifyMark(void * objectAddress, void * target) override { Assert(false); return false; }
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override { Assert(false); }

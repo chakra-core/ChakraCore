@@ -785,9 +785,14 @@ SmallHeapBlockT<TBlockAttributes>::ClearExplicitFreeBitForObject(void* objectAdd
 
 #ifdef RECYCLER_VERIFY_MARK
 
-#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
-void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, char* target)
+#if DBG
+void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, char* target)
 {
+    HeapBlock* block = recycler->FindHeapBlock(objectAddress);
+    if (block == nullptr)
+    {
+        return;
+    }
     HeapBlock* targetBlock = recycler->FindHeapBlock(target);
     if (targetBlock == nullptr)
     {
@@ -831,16 +836,16 @@ void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, c
         };
 #endif
 
-        if (this->IsLargeHeapBlock())
+        if (block->IsLargeHeapBlock())
         {
-            offset = (uint)(objectAddress - (char*)((LargeHeapBlock*)this)->GetRealAddressFromInterior(objectAddress));
+            offset = (uint)(objectAddress - (char*)((LargeHeapBlock*)block)->GetRealAddressFromInterior(objectAddress));
         }
         else
         {
-            offset = (uint)(objectAddress - this->address) % this->GetObjectSize(objectAddress);
+            offset = (uint)(objectAddress - block->address) % block->GetObjectSize(objectAddress);
         }
         objectStartAddress = objectAddress - offset;
-        trackerData = (Recycler::TrackerData*)this->GetTrackerData(objectStartAddress);
+        trackerData = (Recycler::TrackerData*)block->GetTrackerData(objectStartAddress);
         if (trackerData)
         {
             typeName = getDemangledName(trackerData->typeinfo);
@@ -897,7 +902,9 @@ void HeapBlock::WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, c
                     return;
                 }
 
-                if (offset == 0x20 // scope field in scopeInfo
+                if ((offset == 0x20 // scope field in scopeInfo
+                    || (offset >= 0x30 && (offset &0xf)==0) // symbol array at the end of scopeInfo, can point to arena allocated propertyRecord
+                    )
                     && strstr(typeName, "Js::ScopeInfo") != nullptr)
                 {
                     // Js::ScopeInfo scope field is arena allocated and can be reused in recycler
@@ -1001,7 +1008,7 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
                     for (uint i = 0; i < objectWordCount; i++)
                     {
                         void* target = *(void**) objectAddress;
-                        if (recycler->VerifyMark(target))
+                        if (recycler->VerifyMark(objectAddress, target))
                         {
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
                             if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
@@ -1022,21 +1029,24 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
 
 template <class TBlockAttributes>
 bool
-SmallHeapBlockT<TBlockAttributes>::VerifyMark(void * objectAddress)
+SmallHeapBlockT<TBlockAttributes>::VerifyMark(void * objectAddress, void * target)
 {
     // Because we mark through new object, we might have a false reference
     // somewhere that we have scanned before this new block is allocated
     // so the object will not be marked even though it looks like a reference
     // Can't verify when the block is new
-    if (this->heapBucket->GetRecycler()->heapBlockMap.IsAddressInNewChunk(objectAddress))
+    if (this->heapBucket->GetRecycler()->heapBlockMap.IsAddressInNewChunk(target))
     {
         return false;
     }
 
-    ushort bitIndex = GetAddressBitIndex(objectAddress);
+    ushort bitIndex = GetAddressBitIndex(target);
     bool isMarked = this->GetMarkedBitVector()->Test(bitIndex) == TRUE;
 #if DBG
-    Assert(isMarked);
+    if (!isMarked)
+    {
+        PrintVerifyMarkFailure(this->GetRecycler(), (char*)objectAddress, (char*)target);
+    }
 #else
     if (!isMarked)
     {

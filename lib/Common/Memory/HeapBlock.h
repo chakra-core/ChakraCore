@@ -315,14 +315,17 @@ public:
 
         return false;
     }
-#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+#if DBG
+#if GLOBAL_ENABLE_WRITE_BARRIER
     virtual void WBSetBit(char* addr) = 0;
     virtual void WBSetBitRange(char* addr, uint count) = 0;
     virtual void WBClearBit(char* addr) = 0;
     virtual void WBVerifyBitIsSet(char* addr) = 0;
     virtual void WBClearObject(char* addr) = 0;
-    void WBPrintMissingBarrier(Recycler* recycler, char* objectAddress, char* target);
 #endif
+    static void PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, char* target);
+#endif
+
 
 #if DBG
     virtual BOOL IsFreeObject(void* objectAddress) = 0;
@@ -336,7 +339,7 @@ public:
     virtual void SetObjectMarkedBit(void* objectAddress) = 0;
 
 #ifdef RECYCLER_VERIFY_MARK
-    virtual bool VerifyMark(void * objectAddress) = 0;
+    virtual bool VerifyMark(void * objectAddress, void * target) = 0;
 #endif
 #ifdef PROFILE_RECYCLER_ALLOC
     virtual void * GetTrackerData(void * address) = 0;
@@ -471,18 +474,21 @@ public:
         uint index = (uint)(addr - this->address) / sizeof(void*);
         if (!wbVerifyBits.Test(index))
         {
-            WBPrintMissingBarrier(this->GetRecycler(), addr, *(char**)addr);
+            PrintVerifyMarkFailure(this->GetRecycler(), addr, *(char**)addr);
         }
     }
     virtual void WBSetBit(char* addr) override
     {
         uint index = (uint)(addr - this->address) / sizeof(void*);
-        wbVerifyBits.Set(index);
+        wbVerifyBits.TestAndSetInterlocked(index);
     }
     virtual void WBSetBitRange(char* addr, uint count) override
     {
         uint index = (uint)(addr - this->address) / sizeof(void*);
-        wbVerifyBits.SetRange(index, count);
+        for (uint i = 0; i < count; i++)
+        {
+            wbVerifyBits.TestAndSetInterlocked(index + i);
+        }
     }
     virtual void WBClearBit(char* addr) override
     {
@@ -647,7 +653,7 @@ public:
 #endif
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
-    virtual bool VerifyMark(void * objectAddress) override;
+    virtual bool VerifyMark(void * objectAddress, void * target) override;
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override sealed;

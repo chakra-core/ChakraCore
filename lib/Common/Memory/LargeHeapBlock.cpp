@@ -849,7 +849,7 @@ LargeHeapBlock::VerifyMark()
         {
             void* target = *(void **)objectAddress;
 
-            if (recycler->VerifyMark(target))
+            if (recycler->VerifyMark(objectAddress, target))
             {
 #if DBG && GLOBAL_ENABLE_WRITE_BARRIER
                 if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
@@ -865,9 +865,9 @@ LargeHeapBlock::VerifyMark()
 }
 
 bool
-LargeHeapBlock::VerifyMark(void * objectAddress)
+LargeHeapBlock::VerifyMark(void * objectAddress, void* target)
 {
-    LargeObjectHeader * header = GetHeader(objectAddress);
+    LargeObjectHeader * header = GetHeader(target);
 
     if ((char *)header < this->address)
     {
@@ -888,10 +888,13 @@ LargeHeapBlock::VerifyMark(void * objectAddress)
         return false;
     }
 
-    bool isMarked = this->heapInfo->recycler->heapBlockMap.IsMarked(objectAddress);
+    bool isMarked = this->heapInfo->recycler->heapBlockMap.IsMarked(target);
 
 #if DBG
-    Assert(isMarked);
+    if (!isMarked)
+    {
+        PrintVerifyMarkFailure(this->GetRecycler(), (char*)objectAddress, (char*)target);
+    }
 #else
     if (!isMarked)
     {
@@ -1568,7 +1571,7 @@ LargeHeapBlock::SweepObject<SweepMode_InThread>(Recycler * recycler, LargeObject
 
         bool objectTrimmed = false;
 
-        if (this->bucket == nullptr)
+        if (!this->bucket->SupportFreeList())
         {
             objectTrimmed = TrimObject(recycler, header, sizeOfObject);
         }
@@ -1734,7 +1737,7 @@ LargeHeapBlock::SweepObjects(Recycler * recycler)
 
         SweepObject<mode>(recycler, header);
 
-        if (this->bucket != nullptr
+        if (this->bucket->SupportFreeList()
 #ifdef RECYCLER_STATS
             && !isForceSweeping
 #endif
@@ -1791,7 +1794,7 @@ LargeHeapBlock::DisposeObjects(Recycler * recycler)
 
         bool objectTrimmed = false;
 
-        if (this->bucket == nullptr)
+        if (this->bucket->SupportFreeList())
         {
             objectTrimmed = TrimObject(recycler, header, header->objectSize, true /* need suspend */);
         }
@@ -2138,7 +2141,7 @@ void LargeHeapBlock::WBVerifyBitIsSet(char* addr)
     uint index = (uint)(addr - this->address) / sizeof(void*);
     if (!wbVerifyBits.Test(index))
     {
-        WBPrintMissingBarrier(this->GetRecycler(), addr, *(char**)addr);
+        PrintVerifyMarkFailure(this->GetRecycler(), addr, *(char**)addr);
     }
 }
 void LargeHeapBlock::WBClearObject(char* addr)

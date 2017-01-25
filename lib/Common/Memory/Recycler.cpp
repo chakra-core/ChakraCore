@@ -7968,29 +7968,36 @@ Recycler::VerifyMarkStack()
     for (;stackTop < stackStart; stackTop++)
     {
         void* candidate = *stackTop;
-        VerifyMark(candidate);
+        VerifyMark(nullptr, candidate);
     }
 
     void** registers = this->savedThreadContext.GetRegisters();
     for (int i = 0; i < SavedRegisterState::NumRegistersToSave; i++)
     {
-        VerifyMark(registers[i]);
+        VerifyMark(nullptr, registers[i]);
     }
 }
 
+bool 
+Recycler::VerifyMark(void * target)
+{
+    return VerifyMark(nullptr, target);
+}
+
+// objectAddress is nullptr in case of roots
 bool
-Recycler::VerifyMark(void * candidate)
+Recycler::VerifyMark(void * objectAddress, void * target)
 {
     void * realAddress;
     HeapBlock * heapBlock;
     if (this->enableScanInteriorPointers)
     {
-        heapBlock = heapBlockMap.GetHeapBlock(candidate);
+        heapBlock = heapBlockMap.GetHeapBlock(target);
         if (heapBlock == nullptr)
         {
             return false;
         }
-        realAddress = heapBlock->GetRealAddressFromInterior(candidate);
+        realAddress = heapBlock->GetRealAddressFromInterior(target);
         if (realAddress == nullptr)
         {
             return false;
@@ -7998,14 +8005,14 @@ Recycler::VerifyMark(void * candidate)
     }
     else
     {
-        heapBlock = this->FindHeapBlock(candidate);
+        heapBlock = this->FindHeapBlock(target);
         if (heapBlock == nullptr)
         {
             return false;
         }
-        realAddress = candidate;
+        realAddress = target;
     }
-    return heapBlock->VerifyMark(realAddress);
+    return heapBlock->VerifyMark(objectAddress, realAddress);
 }
 #endif
 
