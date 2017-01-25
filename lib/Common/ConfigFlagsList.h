@@ -726,13 +726,12 @@ PHASE(All)
 #define DEFAULT_CONFIG_KeepRecyclerTrackData  (false)
 #define DEFAULT_CONFIG_EnableBGFreeZero (true)
 
-#ifdef _WIN32
+#if !GLOBAL_ENABLE_WRITE_BARRIER
 #define DEFAULT_CONFIG_ForceSoftwareWriteBarrier  (false)
-#define DEFAULT_CONFIG_WriteBarrierTest (false)
 #else
 #define DEFAULT_CONFIG_ForceSoftwareWriteBarrier  (true)
-#define DEFAULT_CONFIG_WriteBarrierTest (false)
 #endif
+#define DEFAULT_CONFIG_WriteBarrierTest (false)
 #define DEFAULT_CONFIG_VerifyBarrierBit  (false)
 
 #define TraceLevel_Error        (1)

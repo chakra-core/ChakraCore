@@ -159,10 +159,12 @@
 #endif
 
 #ifdef RECYCLER_WRITE_BARRIER
+#if !GLOBAL_ENABLE_WRITE_BARRIER
 #ifdef _WIN32
 #define GLOBAL_ENABLE_WRITE_BARRIER 0
 #else
 #define GLOBAL_ENABLE_WRITE_BARRIER 1
+#endif
 #endif
 #endif
 

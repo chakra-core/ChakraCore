@@ -40,6 +40,7 @@ Build/.vs/
 Build/ipch/
 Build/swum-cache.txt
 Build/VCBuild.NoJIT/
+Build/VCBuild.SWB/
 Build/VCBuild/
 buildchk.*
 buildfre.*
