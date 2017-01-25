@@ -422,7 +422,7 @@
   </test>
   <test>
     <default>
-      <files>ForInEnumCacheBuiltIn.js</files>
+      <files>forinenumcachebuiltin.js</files>
       <baseline />
     </default>
   </test>

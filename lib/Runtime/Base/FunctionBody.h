@@ -1391,7 +1391,7 @@ namespace Js
         void SetLocalFunctionId(LocalFunctionId functionId);
 
         ParseableFunctionInfo* GetParseableFunctionInfo() const;
-        ParseableFunctionInfo** GetParseableFunctionInfoRef() const;
+        void SetParseableFunctionInfo(ParseableFunctionInfo* func);
         DeferDeserializeFunctionInfo* GetDeferDeserializeFunctionInfo() const;
         FunctionBody * GetFunctionBody() const;
 
@@ -1684,11 +1684,11 @@ namespace Js
         GetFunctionInfo()->SetAttributes(attributes);
     }
 
-    inline ParseableFunctionInfo** FunctionProxy::GetParseableFunctionInfoRef() const
+    inline void FunctionProxy::SetParseableFunctionInfo(ParseableFunctionInfo* func)
     {
         Assert(GetFunctionInfo());
         Assert(GetFunctionInfo()->GetFunctionProxy() == this);
-        return GetFunctionInfo()->GetParseableFunctionInfoRef();
+        GetFunctionInfo()->SetParseableFunctionInfo(func);
     }
 
     inline bool FunctionProxy::IsLambda() const
@@ -2377,7 +2377,7 @@ namespace Js
     private:
         FieldWithBarrier(ByteBlock*) byteCodeBlock;                // Function byte-code for script functions
         FieldWithBarrier(FunctionEntryPointList*) entryPoints;
-        FieldWithBarrier(Var*) m_constTable;
+        FieldWithBarrier(Field(Var)*) m_constTable;
         FieldWithBarrier(void**) inlineCaches;
         FieldWithBarrier(InlineCachePointerArray<PolymorphicInlineCache>) polymorphicInlineCaches; // Contains the latest polymorphic inline caches
         FieldWithBarrier(PropertyId*) cacheIdToPropertyIdMap;
@@ -2431,7 +2431,7 @@ namespace Js
 #define CURRENT_ACCESS_MODIFIER public:
 #include "SerializableFunctionFields.h"
 
-    private:        
+    private:
         FieldWithBarrier(uint) inactiveCount;
 
         // aligned with 8
@@ -3323,8 +3323,8 @@ namespace Js
         void RecordStrictNullDisplayConstant(RegSlot location);
         void InitConstantSlots(Var *dstSlots);
         Var GetConstantVar(RegSlot location);
-        Field(Js::Var)* GetConstTable() const { return (Field(Js::Var)*)PointerValue(this->m_constTable); }
-        void SetConstTable(Js::Var* constTable) { this->m_constTable = constTable; }
+        Field(Js::Var)* GetConstTable() const { return this->m_constTable; }
+        void SetConstTable(Field(Js::Var)* constTable) { this->m_constTable = constTable; }
 
         void MarkScript(ByteBlock * pblkByteCode, ByteBlock * pblkAuxiliaryData, ByteBlock* auxContextBlock,
             uint byteCodeCount, uint byteCodeInLoopCount, uint byteCodeWithoutLDACount);

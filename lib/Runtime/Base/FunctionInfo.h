@@ -92,12 +92,12 @@ namespace Js
         ParseableFunctionInfo* GetParseableFunctionInfo() const
         {
             Assert(functionBodyImpl == nullptr || !IsDeferredDeserializeFunction());
-            return (ParseableFunctionInfo*)PointerValue(functionBodyImpl);
+            return (ParseableFunctionInfo*)GetFunctionProxy();
         }
-        ParseableFunctionInfo** GetParseableFunctionInfoRef() const
+        void SetParseableFunctionInfo(ParseableFunctionInfo* func)
         {
-            Assert(functionBodyImpl == NULL || !IsDeferredDeserializeFunction());
-            return (ParseableFunctionInfo**)&functionBodyImpl;
+            Assert(functionBodyImpl == nullptr || !IsDeferredDeserializeFunction());
+            SetFunctionProxy((FunctionProxy*)func);
         }
         DeferDeserializeFunctionInfo* GetDeferDeserializeFunctionInfo() const
         {

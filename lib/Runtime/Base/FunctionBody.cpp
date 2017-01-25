@@ -2316,9 +2316,12 @@ namespace Js
                         Js::AutoDynamicCodeReference dynamicFunctionReference(m_scriptContext);
 
                         bool forceNoNative = isDebugOrAsmJsReparse ? this->GetScriptContext()->IsInterpreted() : false;
+
+                        ParseableFunctionInfo* rootFunc = funcBody->GetParseableFunctionInfo();
                         hrParseCodeGen = GenerateByteCode(parseTree, grfscr, m_scriptContext,
-                            funcBody->GetParseableFunctionInfoRef(), funcBody->GetSourceIndex(),
+                            &rootFunc, funcBody->GetSourceIndex(),
                             forceNoNative, &ps, &se, funcBody->GetScopeInfo(), functionRef);
+                        funcBody->SetParseableFunctionInfo(rootFunc);
 
                         if (se.ei.scode == JSERR_AsmJsCompileError)
                         {
@@ -4077,7 +4080,7 @@ namespace Js
         Assert(this->GetConstTable() == nullptr);
         Assert(GetConstantCount() > FirstRegSlot);
 
-        this->SetConstTable(RecyclerNewArrayZ(this->m_scriptContext->GetRecycler(), Var, GetConstantCount()));
+        this->SetConstTable(RecyclerNewArrayZ(this->m_scriptContext->GetRecycler(), Field(Var), GetConstantCount()));
 
         // Initialize with the root object, which will always be recorded here.
         Js::RootObjectBase * rootObject = this->LoadRootObject();

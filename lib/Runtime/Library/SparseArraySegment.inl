@@ -241,7 +241,7 @@ namespace Js
             }
             for (i = (start + step-1)/step; i < (size/step); i++)
             {
-                ((Var*)(this->elements))[i] = fill;
+                ((Var*)(this->elements))[i] = fill; // swb: no write barrier, set to non-GC pointer
             }
             if ((i *= step) < size)
             {
@@ -257,7 +257,7 @@ namespace Js
 
             for (uint i = start; i < size * step; i++)
             {
-                ((Var*)(this->elements))[i] = fill;
+                ((Var*)(this->elements))[i] = fill; // swb: no write barrier, set to non-GC pointer
             }
         }
     }
