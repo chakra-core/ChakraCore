@@ -1627,7 +1627,7 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
                 pid = pnode->sxVar.pid;
                 if (backgroundPidRef)
                 {
-                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Cch(), pid->Hash(), nullptr, nullptr
+                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Psz() + pid->Cch(), pid->Cch(), pid->Hash(), nullptr, nullptr
 #if PROFILE_DICTIONARY
                                                                   , depth
 #endif
@@ -1643,7 +1643,7 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
                 pid = pnode->sxPid.pid;
                 if (backgroundPidRef)
                 {
-                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Cch(), pid->Hash(), nullptr, nullptr
+                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Psz() + pid->Cch(), pid->Cch(), pid->Hash(), nullptr, nullptr
 #if PROFILE_DICTIONARY
                                                                   , depth
 #endif
@@ -6054,7 +6054,9 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
         {
             // Multiple names. Turn the source into an IdentPtr.
             pnodeFnc->sxFnc.pid = m_phtbl->PidHashNameLen(
-                m_pscan->PchBase() + ichMinNames, ichLimNames - ichMinNames);
+                m_pscan->PchBase() + ichMinNames, 
+                m_pscan->AdjustedLast(),
+                ichLimNames - ichMinNames);
         }
     }
 

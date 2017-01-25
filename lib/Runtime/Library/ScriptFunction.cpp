@@ -483,10 +483,12 @@ namespace Js
             // Consider: Should we have a JavascriptUtf8Substring class which defers decoding
             // until it's needed?
 
-            BufferStringBuilder builder(pFuncBody->LengthInChars(), scriptContext);
-            // TODO: What about surrogate pairs?
+            charcount_t cch = pFuncBody->LengthInChars();
+            size_t cbLength = pFuncBody->LengthInBytes();
+            LPCUTF8 pbStart = pFuncBody->GetSource(_u("ScriptFunction::EnsureSourceString"));
+            BufferStringBuilder builder(cch, scriptContext);
             utf8::DecodeOptions options = pFuncBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-            utf8::DecodeInto(builder.DangerousGetWritableBuffer(), pFuncBody->GetSource(_u("ScriptFunction::EnsureSourceString")), pFuncBody->LengthInChars(), options);
+            utf8::DecodeUnitsInto(builder.DangerousGetWritableBuffer(), pbStart, pbStart + cbLength, options);
             if (pFuncBody->IsLambda() || isActiveScript || this->GetFunctionInfo()->IsClassConstructor()
 #ifdef ENABLE_PROJECTION
                 || scriptContext->GetConfig()->IsWinRTEnabled()

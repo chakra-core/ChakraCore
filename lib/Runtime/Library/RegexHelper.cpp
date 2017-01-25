@@ -219,7 +219,7 @@ namespace Js
 
         const auto recycler = scriptContext->GetRecycler();
         UnifiedRegex::Program* program = UnifiedRegex::Program::New(recycler, flags);
-        parser.CaptureSourceAndGroups(recycler, program, psz, csz);
+        parser.CaptureSourceAndGroups(recycler, program, psz, csz, csz);
 
         UnifiedRegex::RegexPattern* pattern = UnifiedRegex::RegexPattern::New(scriptContext, program, isLiteralSource);
 

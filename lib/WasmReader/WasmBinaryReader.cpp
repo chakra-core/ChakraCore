@@ -1019,7 +1019,7 @@ WasmBinaryReader::CvtUtf8Str(LPCUTF8 name, uint32 nameLen, charcount_t* dstLengt
     {
         Js::Throw::OutOfMemory();
     }
-    utf8::DecodeIntoAndNullTerminate(contents, name, utf16Len, decodeOptions);
+    utf8::DecodeUnitsIntoAndNullTerminate(contents, name, name + nameLen, decodeOptions);
     if (dstLength)
     {
         *dstLength = utf16Len;
