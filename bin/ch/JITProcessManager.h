@@ -9,7 +9,6 @@ class JITProcessManager
 {
 public:
     static HRESULT StartRpcServer(int argc, __in_ecount(argc) LPWSTR argv[]);
-    static void StopRpcServer(HINSTANCE chakraLibrary);
     static void TerminateJITServer();
 
     static HANDLE GetRpcProccessHandle();
