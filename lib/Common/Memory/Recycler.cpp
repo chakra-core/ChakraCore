@@ -4212,10 +4212,12 @@ Recycler::BackgroundRescan(RescanFlags rescanFlags)
 #if GLOBAL_ENABLE_WRITE_BARRIER
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
     {
+        pendingWriteBarrierBlockMap.LockResize();
         pendingWriteBarrierBlockMap.Map([](void* address, size_t size)
         {
             RecyclerWriteBarrierManager::WriteBarrier(address, size);
         });
+        pendingWriteBarrierBlockMap.UnlockResize();
     }
 #endif
 

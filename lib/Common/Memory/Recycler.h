@@ -1951,7 +1951,7 @@ private:
 
 #if GLOBAL_ENABLE_WRITE_BARRIER
 private:
-    typedef JsUtil::BaseDictionary<void *, size_t, HeapAllocator, PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::NoResizeLock> PendingWriteBarrierBlockMap;
+    typedef JsUtil::BaseDictionary<void *, size_t, HeapAllocator, PrimeSizePolicy, RecyclerPointerComparer, JsUtil::SimpleDictionaryEntry, JsUtil::AsymetricResizeLock> PendingWriteBarrierBlockMap;
 
     PendingWriteBarrierBlockMap pendingWriteBarrierBlockMap;
 public:
