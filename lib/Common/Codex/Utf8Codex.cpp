@@ -377,30 +377,93 @@ LFourByte:
             return ptr;
     }
 
+    inline static size_t GetUtf8Length(LPCUTF8 ptr, size_t cch)
+    {
+        size_t n = 0;
+        for (size_t i = 0; i < cch; i++)
+        {
+            size_t len = 0;
+            char chr = ptr[n];
+
+            if ((chr & 0x80) == 0)
+            {
+                len = 1;
+            }
+            else if ((chr & 0xE0) == 0xC0)
+            {
+                len = 2;
+            }
+            else if ((chr & 0xF0) == 0xE0)
+            {
+                len = 3;
+            }
+            else if ((chr & 0xF8) == 0xF0)
+            {
+                len = 4;
+            }
+            else
+            {
+                len = 4; // len >= 3
+            }
+
+            n += len;
+        }
+        return n;
+    }
+
     void DecodeInto(__out_ecount_full(cch) char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options)
     {
-        DecodeOptions localOptions = options;
-
-        if (!ShouldFastPath(ptr, buffer)) goto LSlowPath;
-
-LFastPath:
-        while (cch >= 4)
+        size_t n = 0;
+        for (size_t i = 0; i < cch; i++)
         {
-            uint32 bytes = *(uint32 *)ptr;
-            if ((bytes & 0x80808080) != 0) goto LSlowPath;
-            ((uint32 *)buffer)[0] = (bytes & 0x7F) | ((bytes << 8) & 0x7F0000);
-            ((uint32 *)buffer)[1] = ((bytes >> 16) & 0x7F) | ((bytes >> 8) & 0x7F0000);
-            ptr += 4;
-            buffer += 4;
-            cch -= 4;
-        }
-LSlowPath:
-        while (cch-- > 0)
-        {
-            LPCUTF8 end = ptr + cch + 1; // WARNING: Assume cch correct, suppress end-of-buffer checking
+            char chr = ptr[n];
 
-            *buffer++ = Decode(ptr, end, localOptions);
-            if (ShouldFastPath(ptr, buffer)) goto LFastPath;
+            if ((chr & 0x80) == 0)
+            {
+                buffer[i] = (char16)chr;
+                n++;
+                continue;
+            }
+
+            size_t len = 0;
+            if ((chr & 0xE0) == 0xC0)
+            {
+                int chr2 = ptr[n+1] & 0xFF;
+                if (chr2 && 0xC0 == 0x80)
+                {
+                    buffer[i] = ((chr & 0x1F) << 6) | (chr2 & 0x3F);
+                    n += 2;
+                    continue;
+                }
+                else
+                {
+                    len = 2;
+                }
+            }
+
+            if ((chr & 0xF0) == 0xE0)
+            {
+                len = 3;
+            }
+            else if ((chr & 0xF8) == 0xF0)
+            {
+                len = 4;
+            }
+            else if (len == 0)
+            {
+                len = 4; // let Decode find out.
+            }
+            LPCUTF8 ptrn = ptr + n;
+            LPCUTF8 tmp = ptrn;
+            buffer[i] = Decode(ptrn, ptrn + len, options);
+            size_t diff = ptrn - tmp;
+
+            if (diff)
+            {
+                len = diff;
+            }
+
+            n += len;
         }
     }
 
@@ -466,10 +529,9 @@ LSlowPath:
     bool CharsAreEqual(__in_ecount(cch) LPCOLESTR pch, LPCUTF8 bch, size_t cch, DecodeOptions options)
     {
         DecodeOptions localOptions = options;
+        LPCUTF8 end = bch + GetUtf8Length(bch, cch);
         while (cch-- > 0)
         {
-            LPCUTF8 end = bch + cch + 1; // WARNING: Assume cch correct, suppress end-of-buffer checking
-
             if (*pch++ != utf8::Decode(bch, end, localOptions))
                 return false;
         }
