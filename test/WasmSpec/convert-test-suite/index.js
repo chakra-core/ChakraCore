@@ -9,6 +9,7 @@ const fs = require("fs-extra");
 const stringArgv = require("string-argv");
 const {execFile, spawn} = require("child_process");
 const which = require("which");
+const slash = require("slash");
 
 const rlRoot = path.join(__dirname, "..");
 const baselineDir = path.join(rlRoot, "baselines");
@@ -25,7 +26,7 @@ const argv = require("yargs")
         try {
           return which.sync("wast2wasm");
         } catch (e) {
-          return;
+          return undefined;
         }
       })(),
       demand: true,
@@ -61,6 +62,9 @@ const argv = require("yargs")
 
 // Make sure all arguments are valid
 argv.output = path.resolve(argv.output);
+if(typeof argv.bin == 'undefined') {
+  throw new Error("Unable to automatically find wast2wasm; please specify it with --bin");
+}
 fs.statSync(argv.bin).isFile();
 fs.statSync(argv.suite).isDirectory();
 
@@ -93,7 +97,7 @@ function hostFlags(specFile, {useFullpath} = {}) {
 }
 
 function getBaselinePath(specFile) {
-  return `${path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, ".json")))}.baseline`;
+  return `${slash(path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, ".json"))))}.baseline`;
 }
 
 function removePossiblyEmptyFolder(folder) {
