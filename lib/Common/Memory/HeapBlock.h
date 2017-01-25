@@ -472,7 +472,7 @@ public:
     virtual void WBVerifyBitIsSet(char* addr) override
     {
         uint index = (uint)(addr - this->address) / sizeof(void*);
-        if (!wbVerifyBits.Test(index))
+        if (!wbVerifyBits.Test(index)) // TODO: (leish)(swb) need interlocked? seems not
         {
             PrintVerifyMarkFailure(this->GetRecycler(), addr, *(char**)addr);
         }
@@ -493,13 +493,17 @@ public:
     virtual void WBClearBit(char* addr) override
     {
         uint index = (uint)(addr - this->address) / sizeof(void*);
-        wbVerifyBits.Clear(index);
+        wbVerifyBits.TestAndClearInterlocked(index);
     }
     virtual void WBClearObject(char* addr) override
     {
         Assert((uint)(addr - this->address) % this->objectSize == 0);
         uint index = (uint)(addr - this->address) / sizeof(void*);
-        wbVerifyBits.ClearRange(index, this->objectSize / sizeof(void*));
+        uint count = (uint)(this->objectSize / sizeof(void*));
+        for (uint i = 0; i < count; i++)
+        {
+            wbVerifyBits.TestAndClearInterlocked(index + i);
+        }
     }
 #endif
 

@@ -436,6 +436,12 @@ public:
         return bit;
     }
 
+    BOOLEAN TestAndClearInterlocked(BVIndex i)
+    {
+        AssertRange(i);
+        return PlatformAgnostic::_InterlockedBitTestAndReset((LONG *)this->data, (LONG)i);
+    }
+
     void OrComplimented(const BVStatic * bv) { this->for_each(bv, &BVUnit::OrComplimented); ClearEnd(); }
     void Or(const BVStatic *bv) { this->for_each(bv, &BVUnit::Or); }
     void And(const BVStatic *bv) { this->for_each(bv, &BVUnit::And); }

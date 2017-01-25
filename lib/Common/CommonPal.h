@@ -692,6 +692,24 @@ namespace PlatformAgnostic
         return _interlockedbittestandset(_BitBase, _BitPos);
 #endif
     }
+
+    __forceinline unsigned char _InterlockedBitTestAndReset(volatile LONG *_BitBase, int _BitPos)
+    {
+#if defined(__clang__) && !defined(_ARM_)
+        // Clang doesn't expand _interlockedbittestandset intrinic to lock btr, and it's implemention also doesn't work for _BitPos >= 32
+        unsigned char retval;
+        asm(
+            "lock btr %[_BitPos], %[_BitBase]\n\t"
+            "setc %b[retval]\n\t"
+            : [_BitBase] "+m" (*_BitBase), [retval] "+rm" (retval)
+            : [_BitPos] "ri" (_BitPos)
+            : "cc" // clobber condition code
+        );
+        return retval;
+#else
+        return _interlockedbittestandreset(_BitBase, _BitPos);
+#endif
+    }
 };
 
 #include "PlatformAgnostic/DateTime.h"
