@@ -2,6 +2,18 @@ if(BuildJIT)
     add_definitions(-D_ENABLE_DYNAMIC_THUNKS=1)
 endif()
 
+if(CC_TARGETS_AMD64)
+    set(Wasm_dep
+    WasmLibrary.cpp
+    WebAssembly.cpp
+    WebAssemblyEnvironment.cpp
+    WebAssemblyInstance.cpp
+    WebAssemblyMemory.cpp
+    WebAssemblyModule.cpp
+    WebAssemblyTable.cpp
+    )
+endif()
+
 set(CRLIB_SOURCE_CODES
     ArgumentsObject.cpp
     ArgumentsObjectEnumerator.cpp
@@ -114,13 +126,7 @@ set(CRLIB_SOURCE_CODES
     TypedArray.cpp
     TypedArrayIndexEnumerator.cpp
     UriHelper.cpp
-    WasmLibrary.cpp
-    WebAssembly.cpp
-    WebAssemblyEnvironment.cpp
-    WebAssemblyInstance.cpp
-    WebAssemblyMemory.cpp
-    WebAssemblyModule.cpp
-    WebAssemblyTable.cpp
+    ${Wasm_dep}
     )
 
 if(CC_TARGETS_AMD64)
