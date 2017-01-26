@@ -871,16 +871,10 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         exitCode = ExecuteTestWithMemoryCheck(argInfo.filename);
 #endif
 
-#if ENABLE_NATIVE_CODEGEN && defined(_WIN32)
-        JITProcessManager::StopRpcServer(chakraLibrary);
-#endif
         ChakraRTInterface::UnloadChakraDll(chakraLibrary);
     }
 #if ENABLE_NATIVE_CODEGEN && defined(_WIN32)
-    else
-    {
-        JITProcessManager::TerminateJITServer();
-    }
+    JITProcessManager::TerminateJITServer();
 #endif
 
     PAL_Shutdown();
