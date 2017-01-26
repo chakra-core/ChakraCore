@@ -606,21 +606,21 @@ struct PnFinally : PnStmt
     ParseNodePtr pnodeBody;
 };
 
-enum JsType : byte 
+enum class JsType : byte 
 {
-	t_object,
-	t_string,
-	t_int,
-	t_float,
-	t_bool,
-	t_array,
-	t_function
+    Unknown,
+	Object,
+	String,
+	Int,
+	Float,
+	Bool,
+	Array,
+	Function
 };
 
 struct ParseNode
 {
     OpCode nop;
-    JsType typeHint; //Not sure if putting it here is the best idea
     ushort grfpn;
     charcount_t ichMin;         // start offset into the original source buffer
     charcount_t ichLim;         // end offset into the original source buffer
@@ -630,6 +630,7 @@ struct ParseNode
     bool notEscapedUse;         // Use by byte code generator.  Currently, only used by child of knopComma
     bool isInList;
     bool isCallApplyTargetLoad;
+    JsType typeHint;
 #ifdef EDIT_AND_CONTINUE
     ParseNodePtr parent;
 #endif
