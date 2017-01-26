@@ -12265,6 +12265,12 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     {
         m_pscan->Scan();
         ++parenCount;
+        if (m_reparsingLambdaParams)
+        {
+            // Match the block increment we do upon entering parenthetical expressions
+            // so that the block ID's will match on reparsing of parameters.
+            GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
+        }
     }
 
     if (m_token.tk == tkEllipsis)
