@@ -420,7 +420,7 @@ namespace Js
     }
 
     FunctionBody *
-    FunctionBody::NewFromParseableFunctionInfo(ParseableFunctionInfo * parseableFunctionInfo)
+    FunctionBody::NewFromParseableFunctionInfo(ParseableFunctionInfo * parseableFunctionInfo, PropertyRecordList * boundPropertyRecords)
     {
         ScriptContext * scriptContext = parseableFunctionInfo->GetScriptContext();
         uint nestedCount = parseableFunctionInfo->GetNestedCount();
@@ -428,6 +428,10 @@ namespace Js
         FunctionBody * functionBody = RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(),
             FunctionBody,
             parseableFunctionInfo);
+        if (!functionBody->GetBoundPropertyRecords())
+        {
+            functionBody->SetBoundPropertyRecords(boundPropertyRecords);
+        }
 
         // Initialize nested function array, update back pointers
         for (uint i = 0; i < nestedCount; i++)
@@ -2146,7 +2150,7 @@ namespace Js
         if (!this->m_hasBeenParsed)
         {
             this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
-            funcBody = FunctionBody::NewFromParseableFunctionInfo(this);
+            funcBody = FunctionBody::NewFromParseableFunctionInfo(this, propertyRecordList);
             autoRestoreFunctionInfo.funcBody = funcBody;
 
             PERF_COUNTER_DEC(Code, DeferredFunction);
