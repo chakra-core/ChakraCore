@@ -112,7 +112,9 @@ void MainVisitor::ProcessUnbarriedFields(CXXRecordDecl* recordDecl,
         // If an annotated field type is struct/class/union (RecordType), the
         // field type in turn should likely be annoatated.
         if (StartsWith(fieldTypeName, "typename WriteBarrierFieldTypeTraits") ||
+            StartsWith(fieldTypeName, "WriteBarrierFieldTypeTraits") ||
             StartsWith(fieldTypeName, "const typename WriteBarrierFieldTypeTraits") ||
+            StartsWith(fieldTypeName, "const WriteBarrierFieldTypeTraits") ||
             fieldName.length() == 0) // anonymous union/struct
         {
             // Do not track down FieldNoBarrier types
