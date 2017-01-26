@@ -217,7 +217,8 @@ namespace Js
 
         AsmJsModuleInfo::EnsureHeapAttached(func);
 
-        uint actualArgCount = callInfo.Count - 1; // -1 for ScriptFunction
+        ArgumentReader reader(&callInfo, origArgs);
+        uint actualArgCount = reader.Info.Count - 1; // -1 for ScriptFunction
         argDst = argDst + MachPtr; // add one first so as to skip the ScriptFunction argument
         for (ArgSlot i = 0; i < info->GetArgCount(); i++)
         {
