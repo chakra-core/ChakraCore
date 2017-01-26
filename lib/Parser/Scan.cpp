@@ -1652,41 +1652,41 @@ tokens Scanner<EncodingPolicy>::ScanAnnotations(EncodedCharPtr *pp)
 	EncodedCharPtr last = m_pchLast;
 	OLECHAR ch;
 	//FCASTE: IMPORTANT
-	for (;;)
-	{
-		switch ((ch = this->ReadFirst(p, last)))
-		{
-		case '*':
-			if (*p == '/')
-			{
-				*pp = p + 1;
-				if (m_fSyntaxColor)
-				{
-					m_scanState = ScanStateNormal;
-					return tkComment;
-				}
-				return tkNone;
-			}
-			break;
-		case '@':
-			switch (p[0])
-			{
-			case 't':
-				if (p[1] == 'y' && p[2] == 'p' && p[3] == 'e' && !IsIdContinueNext(p + 4, last))
-				{
+    for (;;)
+    {
+        switch ((ch = this->ReadFirst(p, last)))
+        {
+        case '*':
+            if (*p == '/')
+            {
+                *pp = p + 1;
+                if (m_fSyntaxColor)
+                {
+                    m_scanState = ScanStateNormal;
+                    return tkComment;
+                }
+                return tkNone;
+            }
+            break;
+        case '@':
+            switch (p[0])
+            {
+            case 't':
+                if (p[1] == 'y' && p[2] == 'p' && p[3] == 'e' && !IsIdContinueNext(p + 4, last))
+                {
                     //+5 so we skip the space (change that)
-					p += 5;//FCASTE: don't like this code, revisit 
+                    p += 5;//FCASTE: don't like this code, revisit 
                     switch ((ch = this->ReadFirst(p, last))) 
                     {
                     case '{':
                         *pp = p;
                         return tkTypeAnnBegin;
                     }
-				}
-				Error(ERRsyntax);
-			default:
-				Error(ERRsyntax);
-			}
+                }
+                Error(ERRsyntax);
+            default:
+                Error(ERRsyntax);
+            }
 		case kchLS:         // 0x2028, classifies as new line
 		case kchPS:         // 0x2029, classifies as new line
 		LEcmaLineBreak:

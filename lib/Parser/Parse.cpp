@@ -676,6 +676,7 @@ void Parser::InitNode(OpCode nop,ParseNodePtr pnode) {
     pnode->notEscapedUse = false;
     pnode->isInList = false;
     pnode->isCallApplyTargetLoad = false;
+    pnode->typeHint = JsType::Unknown;
 }
 
 // Create nodes using Arena
@@ -3237,13 +3238,13 @@ LFunction :
         switch (m_token.tk)
         {
         case tkTypeInt:
-            pnode->typeHint = JsType::t_int;
+            pnode->typeHint = JsType::Int;
             break;
         case tkTypeFloat:
-            pnode->typeHint = JsType::t_float;
+            pnode->typeHint = JsType::Float;
             break;
         case tkTypeBool:
-            pnode->typeHint = JsType::t_bool;
+            pnode->typeHint = JsType::Bool;
             break;
         }
         m_pscan->Scan(); //Leave the scanner pointing to the next token
