@@ -21,4 +21,10 @@ let b = new B();
 if (count !== 3) {
     WScript.Echo('fail');
 }
+
+{
+    ([((iydvhw)), gpvpgk]) => {/*jjj*/};
+}
+var iydvhw=function(){return this};
+
 WScript.Echo('pass');
