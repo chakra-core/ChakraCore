@@ -170,23 +170,32 @@ set(SOURCES
 )
 
 add_library(Chakra.Pal
-  STATIC
+  OBJECT
   ${SOURCES}
   ${PLATFORM_SOURCES}
   ${ARCH_SOURCES}
 )
 
-if(CC_TARGET_OS_OSX)
-  target_link_libraries(Chakra.Pal
-    "-framework CoreFoundation"
-    "-framework Security"
+if (NOT STATIC_LIBRARY)
+  add_library(Chakra.Pal.Singular
+    STATIC
+    ${SOURCES}
+    ${PLATFORM_SOURCES}
+    ${ARCH_SOURCES}
   )
-else() # Linux
+
+  if(CC_TARGET_OS_OSX)
+    target_link_libraries(Chakra.Pal.Singular
+      "-framework CoreFoundation"
+      "-framework Security"
+      )
+  endif()
+
   if (NOT CC_TARGET_OS_ANDROID)
     set(PTHREAD pthread)
   endif()
 
-  target_link_libraries(Chakra.Pal
+  target_link_libraries(Chakra.Pal.Singular
     ${PTHREAD}
     dl
     ${CC_LTO_ENABLED}
