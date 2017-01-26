@@ -2606,7 +2606,7 @@ namespace Js
 #endif
             );
 
-        static FunctionBody * NewFromParseableFunctionInfo(ParseableFunctionInfo * info);
+        static FunctionBody * NewFromParseableFunctionInfo(ParseableFunctionInfo * info, PropertyRecordList *boundPropertyRecords);
 
         FunctionEntryPointInfo * GetEntryPointInfo(int index) const;
         FunctionEntryPointInfo * TryGetEntryPointInfo(int index) const;
