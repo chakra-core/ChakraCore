@@ -6433,7 +6433,7 @@ ParseNodePtr Parser::GenerateModuleFunctionWrapper()
 {
     ParseNodePtr pnodeFnc = ParseFncDecl<buildAST>(fFncModule, nullptr, false, true, true);
     ParseNodePtr callNode = CreateCallNode(knopCall, pnodeFnc, nullptr);
-	 
+     
     return callNode;
 }
 
@@ -8231,7 +8231,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     {
         ichMin = m_pscan->IchMinTok();
         BOOL fLikelyPattern = FALSE;
-		//FCASTE: parsing of terms, add here the type information parsing
+        //FCASTE: parsing of terms, add here the type information parsing
         pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr, &fIsDotOrIndex);
         if (pfLikelyPattern != nullptr)
         {
