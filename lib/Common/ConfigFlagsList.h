@@ -1362,6 +1362,7 @@ FLAGNR(Boolean, TraceAsyncDebugCalls  , "Trace calls to async debugging API (def
 #ifdef TRACK_DISPATCH
 FLAGNR(Boolean, TrackDispatch         , "Save stack traces of where JavascriptDispatch/HostVariant are created", false)
 #endif
+FLAGNR(Boolean, TypeAnnotations, "Enables the usage of type annotations in comments (default: false)", false)
 FLAGNR(Boolean, Verbose               , "Dump details", DEFAULT_CONFIG_Verbose)
 FLAGNR(Boolean, UseFullName           , "Enable fully qualified name", DEFAULT_CONFIG_UseFullName)
 FLAGNR(Boolean, UseFunctionIdForTrace , "Use function id instead of function number for trace output", false)

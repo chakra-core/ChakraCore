@@ -3231,7 +3231,7 @@ LFunction :
     pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, isAsyncExpr, &fCanAssign, &term, pfIsDotOrIndex);
 
     //FCASTE: after parsing a term, check if there is a type annotation and parse it
-    if (m_token.tk == tkTypeAnnBegin)
+    if (Js::Configuration::Global.flags.TypeAnnotations && m_token.tk == tkTypeAnnBegin)
     {
         m_pscan->SetScanState(Scanner_t::ScanState::ScanStateTypeAnnotationMiddle);
         m_pscan->Scan();

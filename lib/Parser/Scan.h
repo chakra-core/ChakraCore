@@ -691,7 +691,7 @@ private:
     bool es6UnicodeMode;                // True if ES6Unicode Extensions are enabled.
     bool m_fYieldIsKeyword;             // Whether to treat 'yield' as an identifier or keyword
     bool m_fAwaitIsKeyword;             // Whether to treat 'await' as an identifier or keyword
-    bool m_typeHintsOn;					// True if Type Hint annotations are enabled.
+    bool m_typeAnnotationsOn;           // True if Type Hint annotations are enabled.
 
     // Temporary buffer.
     TemporaryBuffer m_tempChBuf;
