@@ -107,7 +107,7 @@ Scanner<EncodingPolicy>::Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, 
     m_fYieldIsKeyword = false;
     m_fAwaitIsKeyword = false;
 
-    m_typeAnnotationsOn = Js::Configuration::Global.flags.TypeAnnotations;
+    m_typeAnnotationsOn = CONFIG_FLAG(TypeAnnotations);
 }
 
 template <typename EncodingPolicy>
