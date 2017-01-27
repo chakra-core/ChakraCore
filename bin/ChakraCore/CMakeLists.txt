@@ -4,6 +4,11 @@ add_library (ChakraCore SHARED
   TestHooks.cpp
 )
 
+
+if(CC_TARGETS_AMD64)
+  set(Wasm_dep ${CHAKRACORE_SOURCE_DIR}/lib/WasmReader)
+endif()
+
 target_include_directories (
   ChakraCore PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -11,6 +16,7 @@ target_include_directories (
   ${CHAKRACORE_SOURCE_DIR}/lib/Runtime
   ${CHAKRACORE_SOURCE_DIR}/lib/Parser
   ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
+  ${Wasm_dep}
   )
 
 #

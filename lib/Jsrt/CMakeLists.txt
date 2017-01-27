@@ -2,6 +2,11 @@ if(BuildJIT)
     set(chakra_backend_objects $<TARGET_OBJECTS:Chakra.Backend>)
 endif()
 
+
+if(CC_TARGETS_AMD64)
+    set(Wasm_dep $<TARGET_OBJECTS:Chakra.WasmReader>)
+endif()
+
 add_library (Chakra.Jsrt STATIC
     Jsrt.cpp
     JsrtDebugUtils.cpp
@@ -38,6 +43,7 @@ add_library (Chakra.Jsrt STATIC
     $<TARGET_OBJECTS:Chakra.Runtime.Types>
     $<TARGET_OBJECTS:Chakra.Runtime.PlatformAgnostic>
     $<TARGET_OBJECTS:Chakra.Parser>
+    ${Wasm_dep}
     )
 
 add_subdirectory(Core)
