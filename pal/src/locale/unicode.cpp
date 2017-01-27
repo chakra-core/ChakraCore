@@ -43,7 +43,7 @@ Revision History:
 #endif // __APPLE__
 #include <errno.h>
 #if HAVE_COREFOUNDATION
-#include <corefoundation/corefoundation.h>
+#include <CoreFoundation/CoreFoundation.h>
 #endif // HAVE_COREFOUNDATION
 
 #include <debugmacrosext.h>
