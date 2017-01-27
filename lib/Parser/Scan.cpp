@@ -107,7 +107,7 @@ Scanner<EncodingPolicy>::Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, 
     m_fYieldIsKeyword = false;
     m_fAwaitIsKeyword = false;
 
-    m_typeHintsOn = true;
+    m_typeAnnotationsOn = Js::Configuration::Global.flags.TypeAnnotations;
 }
 
 template <typename EncodingPolicy>
@@ -2261,7 +2261,7 @@ LCommentLineBreak:
                 commentStartLine = m_line;
                 bool containTypeDef;
                 //FCASTE: Add parsing of @type here
-                token = m_typeHintsOn ? ScanAnnotations(&pchT) : SkipComment(&pchT, &containTypeDef);
+                token = m_typeAnnotationsOn ? ScanAnnotations(&pchT) : SkipComment(&pchT, &containTypeDef);
                 if (token == tkNone) {
                     // Subtract the comment length from the total char count for the purpose
                     // of deciding whether to defer AST and byte code generation.
