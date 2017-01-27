@@ -92,7 +92,7 @@ function convertTest(filename) {
 
 function hostFlags(specFile, {useFullpath} = {}) {
   return `-wasm -args ${
-    useFullpath ? specFile : path.relative(rlRoot, specFile)
+    useFullpath ? specFile : slash(path.relative(rlRoot, specFile))
   } -endargs`;
 }
 
@@ -169,7 +169,7 @@ function main() {
   ))/*.then(specFiles => {
     const cleanFullPaths = specFiles.map(specFile => new Promise((resolve, reject) => {
       const specDescription = require(specFile);
-      specDescription.source_filename = path.basename(specDescription.source_filename);
+      specDescription.source_filename = slash(path.basename(specDescription.source_filename));
       fs.writeFile(
         specFile,
         jsBeautify(
