@@ -865,6 +865,10 @@ namespace Js
 
     ArrayBuffer * WebAssemblyArrayBuffer::TransferInternal(uint32 newBufferLength)
     {
+        if (newBufferLength == this->bufferLength)
+        {
+            return this;
+        }
 #if ENABLE_FAST_ARRAYBUFFER
         ReportDifferentialAllocation(newBufferLength);
         Assert(this->buffer);

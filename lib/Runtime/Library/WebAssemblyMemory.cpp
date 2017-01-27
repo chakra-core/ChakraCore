@@ -133,6 +133,11 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
     const uint32 oldPageCount = oldBytes / WebAssembly::PageSize;
     Assert(oldBytes % WebAssembly::PageSize == 0);
 
+    if (deltaBytes == 0)
+    {
+        return (int32)oldPageCount;
+    }
+
     const uint32 newPageCount = oldPageCount + deltaPages;
     if (newPageCount > m_maximum)
     {
