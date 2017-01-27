@@ -676,6 +676,7 @@ void Parser::InitNode(OpCode nop,ParseNodePtr pnode) {
     pnode->notEscapedUse = false;
     pnode->isInList = false;
     pnode->isCallApplyTargetLoad = false;
+    pnode->typeHint = JsType::Unknown;
 }
 
 // Create nodes using Arena
@@ -1368,7 +1369,7 @@ ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr localName)
 
     return declNode;
 }
-
+//FCASTE: var declaration node
 ParseNodePtr Parser::CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject, ParseNodePtr pnodeFnc, bool errorOnRedecl)
 {
     ParseNodePtr pnode = CreateDeclNode(knopVarDecl, pid, symbolType, errorOnRedecl);
@@ -3229,6 +3230,25 @@ LFunction :
 
     pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, isAsyncExpr, &fCanAssign, &term, pfIsDotOrIndex);
 
+    //FCASTE: after parsing a term, check if there is a type annotation and parse it
+    if (CONFIG_FLAG(TypeAnnotations) && m_token.tk == tkTypeAnnBegin)
+    {
+        m_pscan->SetScanState(Scanner_t::ScanState::ScanStateTypeAnnotationMiddle);
+        m_pscan->Scan();
+        switch (m_token.tk)
+        {
+        case tkTypeInt:
+            pnode->typeHint = JsType::Int;
+            break;
+        case tkTypeFloat:
+            pnode->typeHint = JsType::Float;
+            break;
+        case tkTypeBool:
+            pnode->typeHint = JsType::Bool;
+            break;
+        }
+        m_pscan->Scan(); //Leave the scanner pointing to the next token
+    }
     // Pass back identifier if requested
     if (pToken && term.tk == tkID)
     {
@@ -4494,6 +4514,8 @@ BOOL Parser::IsDeferredFnc()
 
     return false;
 }
+
+
 
 template<bool buildAST>
 ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool needsPIDOnRCurlyScan, bool resetParsingSuperRestrictionState, bool fUnaryOrParen)
@@ -6411,7 +6433,7 @@ ParseNodePtr Parser::GenerateModuleFunctionWrapper()
 {
     ParseNodePtr pnodeFnc = ParseFncDecl<buildAST>(fFncModule, nullptr, false, true, true);
     ParseNodePtr callNode = CreateCallNode(knopCall, pnodeFnc, nullptr);
-
+     
     return callNode;
 }
 
@@ -7980,6 +8002,7 @@ bool Parser::ParseOptionalExpr(ParseNodePtr* pnode, bool fUnaryOrParen, int oplM
     return true;
 }
 
+//FCASTE: first parsing of expression
 /***************************************************************************
 Parse a sub expression.
 'fAllowIn' indicates if the 'in' operator should be allowed in the initializing
@@ -8208,6 +8231,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     {
         ichMin = m_pscan->IchMinTok();
         BOOL fLikelyPattern = FALSE;
+        //FCASTE: parsing of terms, add here the type information parsing
         pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr, &fIsDotOrIndex);
         if (pfLikelyPattern != nullptr)
         {
@@ -8687,6 +8711,7 @@ BlockInfoStack* Parser::GetCurrentFunctionBlockInfo()
     return m_currentBlockInfo->pBlockInfoFunction;
 }
 
+//FCASTE: variable declaration parsing
 /***************************************************************************
 Parse a variable declaration.
 'fAllowIn' indicates if the 'in' operator should be allowed in the initializing
@@ -9172,6 +9197,7 @@ ParseNodePtr Parser::ParseCase(ParseNodePtr *ppnodeBody)
     return pnodeT;
 }
 
+//FCASTE: Important first parsing of statement
 /***************************************************************************
 Parse a single statement. Digest a trailing semicolon.
 ***************************************************************************/
@@ -9250,7 +9276,6 @@ LRestart:
             pnode = nullptr;
         }
         break;
-
     case tkFUNCTION:
     {
 LFunctionStatement:
@@ -11027,7 +11052,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 
     if (tkEOF != m_token.tk)
         Error(ERRsyntax);
-
+    //FCASTE: End of parsing
     // Append an EndCode node.
     AddToNodeList(&pnodeProg->sxFnc.pnodeBody, &lastNodeRef,
         CreateNodeWithScanner<knopEndCode>());
