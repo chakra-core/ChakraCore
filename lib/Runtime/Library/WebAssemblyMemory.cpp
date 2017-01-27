@@ -190,7 +190,7 @@ WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptCont
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
     ArrayBuffer* buffer;
 #if ENABLE_FAST_ARRAYBUFFER
-    if (PHASE_ON1(Js::WasmFastArrayPhase))
+    if (CONFIG_FLAG(WasmFastArray))
     {
         buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
     }

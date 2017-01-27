@@ -1118,12 +1118,10 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 IR::Instr *
 LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
-#if ENABLE_FAST_ARRAYBUFFER
-    if (PHASE_ON1(Js::WasmFastArrayPhase))
+    if (CONFIG_FLAG(WasmFastArray))
     {
         return instr;
     }
-#endif
 
     Assert(instr->GetSrc2());
     IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);

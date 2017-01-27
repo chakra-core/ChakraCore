@@ -41,7 +41,6 @@ PHASE(All)
         PHASE(WasmFunctionBody)
         PHASE(WasmDeferred)
         PHASE(WasmValidatePrejit)
-        PHASE(WasmFastArray)
     PHASE(Asmjs)
         PHASE(AsmjsTmpRegisterAllocation)
         PHASE(AsmjsEncoder)
@@ -382,7 +381,12 @@ PHASE(All)
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #endif
 #define DEFAULT_CONFIG_WASM               (false)
-#define DEFAULT_CONFIG_WASM_I64           (false)
+#define DEFAULT_CONFIG_WasmI64            (false)
+#if ENABLE_FAST_ARRAYBUFFER
+    #define DEFAULT_CONFIG_WasmFastArray    (true)
+#else
+    #define DEFAULT_CONFIG_WasmFastArray    (false)
+#endif
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo     (true)
@@ -848,7 +852,8 @@ FLAGNR(String,  AsmDumpMode           , "Dump the final assembly to a file witho
 FLAGR (Boolean, Asmjs                 , "Enable Asmjs", DEFAULT_CONFIG_ASMJS)
 FLAGNR(Boolean, AsmJsStopOnError      , "Stop execution on any AsmJs validation errors", DEFAULT_CONFIG_AsmJsStopOnError)
 FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have backward incompatible changes or not validate on old demos", DEFAULT_CONFIG_AsmJsEdge)
-FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. ArgIns can be [number,string,{low:number,high:number}]. Return values will be {low:number,high:number}", DEFAULT_CONFIG_WASM_I64)
+FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. ArgIns can be [number,string,{low:number,high:number}]. Return values will be {low:number,high:number}", DEFAULT_CONFIG_WasmI64)
+FLAGNR(Boolean, WasmFastArray         , "Enable fast array implementation for WebAssembly", DEFAULT_CONFIG_WasmFastArray)
 
 #ifndef COMPILE_DISABLE_Simdjs
     #define COMPILE_DISABLE_Simdjs 0

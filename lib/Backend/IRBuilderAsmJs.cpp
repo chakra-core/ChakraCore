@@ -1581,7 +1581,7 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
     }
 
 #if ENABLE_FAST_ARRAYBUFFER
-    if (isWasm && !PHASE_ON1(Js::WasmFastArrayPhase))
+    if (isWasm && !CONFIG_FLAG(WasmFastArray))
 #endif
     {
         instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));

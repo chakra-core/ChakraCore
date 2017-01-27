@@ -988,7 +988,7 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
         lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
     }
 
-    lowererMD->m_lowerer->GenerateThrow(IR::IntConstOpnd::New(WASMERR_ArrayIndexOutOfRange, TyInt32, m_func), loadLabel);
+    lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, WASMERR_ArrayIndexOutOfRange, IR::HelperOp_WebAssemblyRuntimeError);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
 
     Assert(indexPair.low->IsRegOpnd());

@@ -568,52 +568,37 @@ namespace Js
 #endif
     }
 
-    bool JavascriptArrayBuffer::IsValidAsmJsBufferLength(uint length, bool forceCheck)
+    bool JavascriptArrayBuffer::IsValidAsmJsBufferLengthAlgo(uint length, bool forceCheck)
     {
-#if ENABLE_FAST_ARRAYBUFFER
         /*
         1. length >= 2^16
         2. length is power of 2 or (length > 2^24 and length is multiple of 2^24)
         3. length is a multiple of 4K
         */
-        return ((length >= 0x10000) &&
-            (((length & (~length + 1)) == length) ||
-            (length >= 0x1000000 && ((length & 0xFFFFFF) == 0))
-                ) &&
-                ((length % AutoSystemInfo::PageSize) == 0)
-            );
-
-#else
-        if (forceCheck)
-        {
-            return ((length >= 0x10000) &&
-                (((length & (~length + 1)) == length) ||
-                (length >= 0x1000000 && ((length & 0xFFFFFF) == 0))
-                    ) &&
-                    ((length & 0x0FFF) == 0)
-                );
-        }
-        return false;
+        const bool isLongEnough = length >= 0x10000;
+        const bool isPow2 = ::Math::IsPow2(length);
+        // No need to check for length > 2^24, because it already has to be non zero length
+        const bool isMultipleOf2e24 = (length & 0xFFFFFF) == 0;
+        const bool isPageSizeMultiple = (length % AutoSystemInfo::PageSize) == 0;
+        return (
+#ifndef ENABLE_FAST_ARRAYBUFFER
+            forceCheck &&
 #endif
+            isLongEnough &&
+            (isPow2 || isMultipleOf2e24) &&
+            isPageSizeMultiple
+        );
+    }
 
+    bool JavascriptArrayBuffer::IsValidAsmJsBufferLength(uint length, bool forceCheck)
+    {
+        return IsValidAsmJsBufferLengthAlgo(length, forceCheck);
     }
 
     bool JavascriptArrayBuffer::IsValidVirtualBufferLength(uint length)
     {
 #if ENABLE_FAST_ARRAYBUFFER
-        /*
-        1. length >= 2^16
-        2. length is power of 2 or (length > 2^24 and length is multiple of 2^24)
-        3. length is a multiple of 4K
-        */
-        return (
-            !PHASE_OFF1(Js::TypedArrayVirtualPhase) &&
-            (length >= 0x10000) &&
-            (
-            ((length & (~length + 1)) == length) ||
-                (length >= 0x1000000 && ((length & 0xFFFFFF) == 0))
-                ) &&
-                ((length % AutoSystemInfo::PageSize) == 0));
+        return !PHASE_OFF1(Js::TypedArrayVirtualPhase) && IsValidAsmJsBufferLengthAlgo(length, true);
 #else
         return false;
 #endif
@@ -826,7 +811,10 @@ namespace Js
 
 
     WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(uint32 length, DynamicType * type) :
-#if ENABLE_FAST_ARRAYBUFFER
+#ifndef ENABLE_FAST_ARRAYBUFFER
+        // Treat as a normal JavascriptArrayBuffer
+        JavascriptArrayBuffer(length, type) {}
+#else
         JavascriptArrayBuffer(length, type, WasmVirtualAllocator)
     {
         // Make sure we always have a buffer even if the length is 0
@@ -835,12 +823,12 @@ namespace Js
             // We want to allocate an empty buffer using virtual memory
             Assert(length == 0);
             buffer = (BYTE*)WasmVirtualAllocator(0);
-            // We should throw out of memory if the allocation fails
-            Assert(buffer != nullptr);
+            if (buffer == nullptr)
+            {
+                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+            }
         }
     }
-#else
-        JavascriptArrayBuffer(length, type) {}
 #endif
 
     WebAssemblyArrayBuffer::WebAssemblyArrayBuffer(byte* buffer, uint32 length, DynamicType * type):
@@ -985,5 +973,4 @@ namespace Js
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayBufferInfo*, TTD::NSSnapObjects::SnapObjectType::SnapArrayBufferObject>(objData, sabi);
     }
 #endif
-
 }

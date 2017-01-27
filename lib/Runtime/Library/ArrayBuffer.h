@@ -14,7 +14,7 @@ namespace Js
     class ArrayBufferBase : public DynamicObject
     {
     protected:
-#if _WIN64
+#if ENABLE_FAST_ARRAYBUFFER
 #define MAX_ASMJS_ARRAYBUFFER_LENGTH 0x100000000 // 4GB
 #define MAX_WASM__ARRAYBUFFER_LENGTH 0x200000000 // 8GB
 #define AsmJsVirtualAllocator Js::ArrayBuffer::AllocWrapper<MAX_ASMJS_ARRAYBUFFER_LENGTH>
@@ -51,7 +51,7 @@ namespace Js
 #else
         static void* __cdecl AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length)
         {
-            // This allocator should only be used
+            // This allocator should never be used
             Js::Throw::FatalInternalError();
         }
 #define AsmJsVirtualAllocator Js::ArrayBuffer::AllocWrapper
@@ -254,8 +254,8 @@ namespace Js
         virtual void Dispose(bool isShutdown) override;
         virtual void Finalize(bool isShutdown) override;
 
+        static bool IsValidAsmJsBufferLengthAlgo(uint length, bool forceCheck);
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) override;
-
         virtual bool IsValidVirtualBufferLength(uint length) override;
 
         virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
