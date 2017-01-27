@@ -609,13 +609,13 @@ struct PnFinally : PnStmt
 enum class JsType : byte 
 {
     Unknown,
-	Object,
-	String,
-	Int,
-	Float,
-	Bool,
-	Array,
-	Function
+    Object,
+    String,
+    Int,
+    Float,
+    Bool,
+    Array,
+    Function
 };
 
 struct ParseNode

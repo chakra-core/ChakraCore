@@ -1554,10 +1554,10 @@ tokens Scanner<EncodingPolicy>::ScanStringConstant(OLECHAR delim, EncodedCharPtr
 template<typename EncodingPolicy>
 tokens Scanner<EncodingPolicy>::ScanAnnotations(EncodedCharPtr *pp)
 {
-	EncodedCharPtr p = *pp;
-	EncodedCharPtr last = m_pchLast;
-	OLECHAR ch;
-	//FCASTE: IMPORTANT
+    EncodedCharPtr p = *pp;
+    EncodedCharPtr last = m_pchLast;
+    OLECHAR ch;
+    //FCASTE: IMPORTANT
     for (;;)
     {
         switch ((ch = this->ReadFirst(p, last)))
@@ -1593,48 +1593,48 @@ tokens Scanner<EncodingPolicy>::ScanAnnotations(EncodedCharPtr *pp)
             default:
                 Error(ERRsyntax);
             }
-		case kchLS:         // 0x2028, classifies as new line
-		case kchPS:         // 0x2029, classifies as new line
-		LEcmaLineBreak:
-			goto LLineBreak;
+        case kchLS:         // 0x2028, classifies as new line
+        case kchPS:         // 0x2029, classifies as new line
+        LEcmaLineBreak:
+            goto LLineBreak;
 
-		case kchRET:
-		case kchNWL:
-		LLineBreak:
-			m_fHadEol = TRUE;
-			m_currentCharacter = p;
-			ScanNewLine(ch);
-			p = m_currentCharacter;
-			break;
+        case kchRET:
+        case kchNWL:
+        LLineBreak:
+            m_fHadEol = TRUE;
+            m_currentCharacter = p;
+            ScanNewLine(ch);
+            p = m_currentCharacter;
+            break;
 
-		case kchNUL:
-			if (p >= last)
-			{
-				m_currentCharacter = p - 1;
-				*pp = p - 1;
-				if (m_fSyntaxColor)
-				{
-					m_scanState = ScanStateMultiLineComment;
-					return tkComment;
-				}
-				Error(ERRnoCmtEnd);
-			}
-			break;
+        case kchNUL:
+            if (p >= last)
+            {
+                m_currentCharacter = p - 1;
+                *pp = p - 1;
+                if (m_fSyntaxColor)
+                {
+                    m_scanState = ScanStateMultiLineComment;
+                    return tkComment;
+                }
+                Error(ERRnoCmtEnd);
+            }
+            break;
 
-		default:
-			if (this->IsMultiUnitChar(ch))
-			{
-				ch = this->template ReadRest<true>(ch, p, last);
-				switch (ch)
-				{
-				case kchLS:
-				case kchPS:
-					goto LEcmaLineBreak;
-				}
-			}
-			break;
-		}
-	}
+        default:
+            if (this->IsMultiUnitChar(ch))
+            {
+                ch = this->template ReadRest<true>(ch, p, last);
+                switch (ch)
+                {
+                case kchLS:
+                case kchPS:
+                    goto LEcmaLineBreak;
+                }
+            }
+            break;
+        }
+    }
 }
 
 /*****************************************************************************
@@ -1649,7 +1649,7 @@ tokens Scanner<EncodingPolicy>::SkipComment(EncodedCharPtr *pp, /* out */ bool* 
     *containTypeDef = false;
     EncodedCharPtr last = m_pchLast;
     OLECHAR ch;
-	//FCASTE: IMPORTANT
+    //FCASTE: IMPORTANT
     for (;;)
     {
         switch((ch = this->ReadFirst(p, last)))
@@ -2060,7 +2060,7 @@ LIdentifier:
             Assert(chType == _C_RC);
             token = tkRCurly;
             break;
-			
+            
         case '\\':
             pchT = p - 1;
             token = ScanIdentifier(identifyKwds, &pchT);
