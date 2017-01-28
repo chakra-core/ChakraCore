@@ -2,6 +2,11 @@ if(BuildJIT)
     set(chakra_backend_objects $<TARGET_OBJECTS:Chakra.Backend>)
 endif()
 
+if(CC_TARGETS_AMD64)
+    set(wasm_objects $<TARGET_OBJECTS:Chakra.WasmReader>)
+    set(wasm_includes ${CHAKRACORE_SOURCE_DIR}/lib/WasmReader)
+endif()
+
 add_library (ChakraCoreStatic STATIC
   $<TARGET_OBJECTS:Chakra.Pal>
   $<TARGET_OBJECTS:Chakra.Common.Core>
@@ -23,6 +28,7 @@ add_library (ChakraCoreStatic STATIC
   $<TARGET_OBJECTS:Chakra.Runtime.Types>
   $<TARGET_OBJECTS:Chakra.Runtime.PlatformAgnostic>
   $<TARGET_OBJECTS:Chakra.Parser>
+  ${wasm_objects}
 )
 
 if(CC_TARGET_OS_OSX)
@@ -51,7 +57,7 @@ target_include_directories (
   ${CHAKRACORE_SOURCE_DIR}/lib/Runtime/ByteCode
   ${CHAKRACORE_SOURCE_DIR}/lib/Parser
   ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
-  ${Wasm_dep}
+  ${wasm_includes}
   )
 
 if (NOT STATIC_LIBRARY)
