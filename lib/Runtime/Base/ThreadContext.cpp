@@ -1943,19 +1943,19 @@ ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDe
         JITManager::GetJITManager()->ConnectRpcServer(processHandle, serverSecurityDescriptor, connectionId);
     }
 }
-void
+bool
 ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 {
 #if ENABLE_OOP_NATIVE_CODEGEN
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     if (!JITManager::GetJITManager()->IsConnected())
     {
-        return;
+        return false;
     }
 
     if (m_remoteThreadContextInfo)
     {
-        return;
+        return true;
     }
 
     ThreadContextDataIDL contextData;
@@ -1964,7 +1964,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     HANDLE jitTargetHandle = nullptr;
     if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), serverHandle, &jitTargetHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
     {
-        return;
+        return false;
     }
 
     contextData.processHandle = (intptr_t)jitTargetHandle;
@@ -1996,6 +1996,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
     JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
 
+    return m_remoteThreadContextInfo != nullptr;
 #endif
 }
 #endif
