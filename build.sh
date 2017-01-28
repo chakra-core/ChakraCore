@@ -101,8 +101,10 @@ if [ -f "/proc/version" ]; then
        || $PROC_INFO =~ 'Linaro' ]]; then
         OS_APT_GET=1
     fi
-else
+elif [[ $(uname -s) =~ "Darwin" ]]; then
     OS_UNIX=1
+else
+    echo -e "Warning: Installation script couldn't detect host OS..\n" # exit ?
 fi
 
 while [[ $# -gt 0 ]]; do
