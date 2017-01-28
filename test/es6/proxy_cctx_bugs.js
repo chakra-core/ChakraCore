@@ -51,5 +51,48 @@ function test2() {
   sc9_cctx.test();
 }
 
+function test3() {
+  var obj1 = {};
+  var arrObj0 = {};
+  var x=1
+  var proxyHandler = {};
+  proxyHandler['get'] = function () {};
+  proxyHandler['defineProperty'] = function (target, property, descriptor) {    
+    return Reflect.defineProperty(target, property, descriptor);
+  };
+  proxyHandler['isExtensible'] = function (target) {  
+    arrObj0.prop0;
+    arrObj0 = new Proxy(arrObj0, proxyHandler);
+    return Reflect.isExtensible(target);
+  };
+  arrObj0 = new Proxy(arrObj0, proxyHandler);
+  arrObj0 = new Proxy(arrObj0, proxyHandler);
+  do {
+    var sc3 = WScript.LoadScript('function test(){arrObj0.length = arrObj0[obj1];}', 'samethread');
+    sc3.obj1 = obj1;
+    sc3.arrObj0 = arrObj0;
+    sc3.test();
+  } while (x--);
+}
+
+function test4() {
+  var func3 = function () { };
+  var ary = Array();
+  var proxyHandler = {};
+  var ownkeys = Reflect.ownKeys(ary);
+  proxyHandler['ownKeys'] = function () {
+    func3() == 0;
+    return ownkeys;
+  };
+
+  ary = new Proxy(ary, proxyHandler);
+  var sc2 = WScript.LoadScript('function test(){for (var x in ary);}', 'samethread');
+  sc2.ary = ary;
+  sc2.func3 = func3;
+  sc2.test();
+}
+
 test1();
 test2();
+test3();
+test4();
