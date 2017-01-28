@@ -23,6 +23,10 @@ set_target_properties(ch
 
 include_directories(..)
 
+if(CC_TARGETS_AMD64)
+    set(Wasm_dep ../../lib/WasmReader)
+endif()
+
 target_include_directories (ch
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   ../ChakraCore
@@ -30,6 +34,7 @@ target_include_directories (ch
   ../../lib/Jsrt
   ../../lib/Runtime
   ../../lib/Parser
+  ${Wasm_dep}
   )
 
 if(STATIC_LIBRARY)

@@ -87,14 +87,19 @@
   </test>
   <test>
     <default>
+      <files>formatting_xplat.js</files>
+      <tags>exclude_jenkins</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>formatting.js</files>
       <baseline>formatting.baseline</baseline>
       <compile-flags>-ForceOldDateAPI</compile-flags>
       <!-- test is timezone-sensitive; remove exclude_jenkins after fix -->
       <!-- on DST pass Win OldDateAPI jumps back to 01:00 after 01:59 -->
       <!-- todo: Do not force OLDDateAPI ? -->
-      <!-- xplat: on Linux Test build (post JIT) mktime returns PST within series of PDT -->
-      <tags>exclude_jenkins,exclude_mac,exclude_xplat</tags>
+      <tags>exclude_jenkins,exclude_xplat</tags>
     </default>
     <condition order="1" type="include">
       <os>win8</os>

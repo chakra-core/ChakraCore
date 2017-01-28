@@ -12,7 +12,6 @@ namespace PlatformAgnostic
 {
 namespace DateTime
 {
-
     static inline bool IsLeap(const int year)
     {
         return (0 == (year & 3)) && (0 != (year % 100) || 0 == (year % 400));
@@ -137,10 +136,10 @@ namespace DateTime
     const WCHAR *Utility::GetStandardName(size_t *nameLength, const DateTime::YMD *ymd)
     {
         AssertMsg(ymd != NULL, "xplat needs DateTime::YMD is defined for this call");
-        struct tm time_tm;
+        struct tm time_tm = {0};
         bool leap_added;
         YMD_TO_TM(ymd, &time_tm, &leap_added);
-        mktime(&time_tm); // get zone name for the given date
+        timelocal(&time_tm); // get zone name for the given date
         CopyTimeZoneName(data.standardName, &data.standardNameLength, time_tm.tm_zone);
         *nameLength = data.standardNameLength;
         return data.standardName;
@@ -154,7 +153,7 @@ namespace DateTime
 
     static void YMDLocalToUtc(YMD *local, YMD *utc)
     {
-        struct tm local_tm;
+        struct tm local_tm = {0};
         bool leap_added;
         YMD_TO_TM(local, (&local_tm), &leap_added);
 
@@ -162,15 +161,13 @@ namespace DateTime
         int milliseconds = local->time % 1000;
 
         tzset();
-        time_t utime = timegm(&local_tm);
+        time_t utime = timelocal(&local_tm);
+        if (local_tm.tm_isdst)
+        {
+            utime -= 3600;
+        }
 
-        // we alter the original date
-        // and mktime doesn't know that
-        // so calculate gmtoff manually and keep dst from being included
-        mktime(&local_tm);
-        utime -= local_tm.tm_gmtoff;
-
-        struct tm utc_tm;
+        struct tm utc_tm = {0};
         if (gmtime_r(&utime, &utc_tm) == 0)
         {
             AssertMsg(false, "gmtime() failed");
@@ -184,7 +181,7 @@ namespace DateTime
     static void YMDUtcToLocal(YMD *utc, YMD *local,
                           int &bias, int &offset, bool &isDaylightSavings)
     {
-        struct tm utc_tm;
+        struct tm utc_tm = {0};
         bool leap_added;
         YMD_TO_TM(utc, &utc_tm, &leap_added);
 
@@ -193,23 +190,16 @@ namespace DateTime
 
         tzset();
         time_t ltime = timegm(&utc_tm);
-        struct tm local_tm;
+
+        struct tm local_tm = {0};
         localtime_r(&ltime, &local_tm);
 
         TM_TO_YMD((&local_tm), local, leap_added, utc->year);
         // put milliseconds back
         local->time += milliseconds;
 
-        // ugly hack but;
-        // right in between dst pass
-        // we need mktime trick to get the correct dst
-        utc_tm.tm_isdst = 1;
-        ltime = mktime(&utc_tm);
-        ltime += utc_tm.tm_gmtoff;
-        localtime_r(&ltime, &utc_tm);
-
-        isDaylightSavings = utc_tm.tm_isdst;
-        offset = utc_tm.tm_gmtoff / 60;
+        isDaylightSavings = local_tm.tm_isdst ? false : true;
+        offset = (local_tm.tm_gmtoff / 60);
         bias = offset;
     }
 
