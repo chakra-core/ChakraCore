@@ -22,5 +22,7 @@ function testFunction()
 {
     telemetryLog(`functionCode1: ${functionCode1("Hello")}`, true); //Hello
     telemetryLog(`functionCode2: ${functionCode2("Hello")}`, true); //Hello ok
+
+    emitTTDLog(ttdLogURI);
 }
 

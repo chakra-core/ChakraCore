@@ -41,5 +41,7 @@ function testFunction()
         else
             telemetryLog(`${obj[i]}`, true);
     }
+
+    emitTTDLog(ttdLogURI);
 }
 

@@ -132,63 +132,61 @@ namespace TTD
             char asciiResourceName[64];
             sprintf_s(asciiResourceName, 64, "src%s_%I64u.js", (fromEvent ? "_ld" : ""), static_cast<uint64>(docId));
 
-            const TTUriString& uri = threadContext->TTDContext->TTDUri;
-            const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
-
-            JsTTDStreamHandle srcStream = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, false, true, nullptr, nullptr);
+            TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
+            JsTTDStreamHandle srcStream = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, false, true);
+            TTDAssert(srcStream != nullptr, "Failed to open code resource stream for writing.");
 
             if(isUtf8Source)
             {
                 byte byteOrderArray[3] = { 0xEF, 0xBB, 0xBF };
                 size_t byteOrderCount = 0;
-                bool okBOC = iops.pfWriteBytesToStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
+                bool okBOC = iofp.pfWriteBytesToStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
                 TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray), "Write Failed!!!");
             }
             else
             {
                 byte byteOrderArray[2] = { 0xFF, 0xFE };
                 size_t byteOrderCount = 0;
-                bool okBOC = iops.pfWriteBytesToStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
+                bool okBOC = iofp.pfWriteBytesToStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
                 TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray), "Write Failed!!!");
             }
 
             size_t writtenCount = 0;
-            bool ok = iops.pfWriteBytesToStream(srcStream, sourceBuffer, length, &writtenCount);
+            bool ok = iofp.pfWriteBytesToStream(srcStream, sourceBuffer, length, &writtenCount);
             TTDAssert(ok && writtenCount == length, "Write Failed!!!");
 
-            iops.pfFlushAndCloseStream(srcStream, false, true);
+            iofp.pfFlushAndCloseStream(srcStream, false, true);
         }
 
-        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length, byte** relocatedUri, size_t* relocatedUriLength)
+        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length)
         {
             char asciiResourceName[64];
             sprintf_s(asciiResourceName, 64, "src%s_%I64u.js", (fromEvent ? "_ld" : ""), static_cast<uint64>(docId));
 
-            const TTUriString& uri = threadContext->TTDContext->TTDUri;
-            const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
-
-            JsTTDStreamHandle srcStream = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, true, false, relocatedUri, relocatedUriLength);
+            TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
+            JsTTDStreamHandle srcStream = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, true, false);
+            TTDAssert(srcStream != nullptr, "Failed to open code resource stream for reading.");
 
             if(isUtf8Source)
             {
                 byte byteOrderArray[3] = { 0x0, 0x0, 0x0 };
                 size_t byteOrderCount = 0;
-                bool okBOC = iops.pfReadBytesFromStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
+                bool okBOC = iofp.pfReadBytesFromStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
                 TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray) && byteOrderArray[0] == 0xEF && byteOrderArray[1] == 0xBB && byteOrderArray[2] == 0xBF, "Read Failed!!!");
             }
             else
             {
                 byte byteOrderArray[2] = { 0x0, 0x0 };
                 size_t byteOrderCount = 0;
-                bool okBOC = iops.pfReadBytesFromStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
+                bool okBOC = iofp.pfReadBytesFromStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
                 TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray) && byteOrderArray[0] == 0xFF && byteOrderArray[1] == 0xFE, "Read Failed!!!");
             }
 
             size_t readCount = 0;
-            bool ok = iops.pfReadBytesFromStream(srcStream, sourceBuffer, length, &readCount);
+            bool ok = iofp.pfReadBytesFromStream(srcStream, sourceBuffer, length, &readCount);
             TTDAssert(ok && readCount == length, "Read Failed!!!");
 
-            iops.pfFlushAndCloseStream(srcStream, true, false);
+            iofp.pfFlushAndCloseStream(srcStream, true, false);
         }
     }
 
@@ -1158,19 +1156,7 @@ namespace TTD
             }
             else
             {
-                byte* relocatedUri = nullptr;
-                size_t relocatedUriLength = 0;
-
-                JsSupport::ReadCodeFromFile(threadContext, false, fbInfo->DocumentID, fbInfo->IsUtf8, fbInfo->SourceBuffer, fbInfo->ByteLength, &relocatedUri, &relocatedUriLength);
-
-                if(relocatedUri != nullptr)
-                {
-                    alloc.CopyStringIntoWLength((char16*)relocatedUri, (uint32)relocatedUriLength, fbInfo->RelocatedSourceUri);
-
-                    //We may want to make this auto-freeing
-                    CoTaskMemFree(relocatedUri);
-                    relocatedUri = nullptr;
-                }
+                JsSupport::ReadCodeFromFile(threadContext, false, fbInfo->DocumentID, fbInfo->IsUtf8, fbInfo->SourceBuffer, fbInfo->ByteLength);
             }
 
             fbInfo->DbgSerializedBytecodeSize = 0;

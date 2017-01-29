@@ -36,15 +36,13 @@ namespace TTD
         this->m_contextList.Add(ctx);
     }
 
-    ThreadContextTTD::ThreadContextTTD(ThreadContext* threadContext, void* runtimeHandle, size_t uriByteLength, const byte* ttdUri, uint32 snapInterval, uint32 snapHistoryLength)
+    ThreadContextTTD::ThreadContextTTD(ThreadContext* threadContext, void* runtimeHandle, uint32 snapInterval, uint32 snapHistoryLength)
         : m_threadCtx(threadContext), m_runtimeHandle(runtimeHandle), m_contextCreatedOrDestoyedInReplay(false),
-        TTDUri(), SnapInterval(snapInterval), SnapHistoryLength(snapHistoryLength),
+        SnapInterval(snapInterval), SnapHistoryLength(snapHistoryLength),
         m_activeContext(nullptr), m_contextList(&HeapAllocator::Instance), m_deadScriptRecordList(&HeapAllocator::Instance), m_ttdContextToExternalRefMap(&HeapAllocator::Instance),
         m_ttdRootSet(), m_ttdLocalRootSet(), m_ttdRootTagIdMap(&HeapAllocator::Instance),
-        TTDWriteInitializeFunction(nullptr), TTDStreamFunctions({ 0 }), TTDExternalObjectFunctions({ 0 })
+        TTDataIOInfo({ 0 }), TTDExternalObjectFunctions({ 0 })
     {
-        this->TTDUri.SetUriValue(uriByteLength, ttdUri);
-
         Recycler* tctxRecycler = this->m_threadCtx->GetRecycler();
 
         this->m_ttdRootSet.Root(RecyclerNew(tctxRecycler, TTD::ObjectPinSet, tctxRecycler), tctxRecycler);

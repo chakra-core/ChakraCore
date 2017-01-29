@@ -1243,6 +1243,7 @@ namespace Js
         if(scriptContext->GetThreadContext()->IsRuntimeInTTDMode())
         {
             AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("telemetryLog"), &GlobalObject::EntryInfo::TelemetryLog, 3);
+            AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("emitTTDLog"), &GlobalObject::EntryInfo::EmitTTDLog, 2);
         }
 #endif
 

@@ -375,7 +375,7 @@ namespace TTD
 
         //Initialize the log so that it is ready to perform TTD (record or replay) and set into the correct global mode
         void InitForTTDRecord();
-        void InitForTTDReplay(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes, bool debug);
+        void InitForTTDReplay(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength, bool debug);
 
         //reset the bottom (global) mode with the specific value
         void SetGlobalMode(TTDMode m);
@@ -426,6 +426,12 @@ namespace TTD
 
         //Replay a user telemetry event
         void ReplayTelemetryLogEvent(Js::JavascriptString* infoStringJs);
+
+        //Log an event generated to write the log to a given uri
+        void RecordEmitLogEvent(Js::JavascriptString* uriString);
+
+        //Replay a event that writes the log to a given uri
+        void ReplayEmitLogEvent();
 
         //Log a time that is fetched during date operations
         void RecordDateTimeEvent(double time);
@@ -709,8 +715,8 @@ namespace TTD
         ////////////////////////////////
         //Emit code and support
 
-        void EmitLog();
-        void ParseLogInto(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes);
+        void EmitLog(const char* emitUri, size_t emitUriLength);
+        void ParseLogInto(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength);
     };
 
     //A class to ensure that even when exceptions are thrown the pop action for the TTD call stack is executed -- defined after EventLog so we can refer to it in the .h file

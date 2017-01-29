@@ -27,7 +27,6 @@ JsTTDCreateContext
 JsTTDNotifyContextDestroy
 JsTTDStart
 JsTTDStop
-JsTTDEmitRecording
 
 JsTTDPauseTimeTravelBeforeRuntimeOperation
 JsTTDReStartTimeTravelAfterRuntimeOperation

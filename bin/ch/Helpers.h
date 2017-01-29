@@ -13,14 +13,10 @@ public :
     static HRESULT LoadBinaryFile(LPCSTR filename, LPCSTR& contents, UINT& lengthBytes, bool printFileOpenError = true);
 
     static void TTReportLastIOErrorAsNeeded(BOOL ok, const char* msg);
-    static void CreateDirectoryIfNeeded(size_t uriByteLength, const byte* uriBytes);
-    static void CleanDirectory(size_t uriByteLength, const byte* uriBytes);
+    static void CreateTTDDirectoryAsNeeded(size_t* uriLength, char* uri, const char* asciiDir1, const wchar* asciiDir2);
+    static void GetTTDDirectory(const wchar* curi, size_t* uriLength, char* uri);
 
-    static void GetTTDDirectory(const wchar* curi, size_t* uriByteLength, byte* uriBytes);
-
-    static void CALLBACK TTInitializeForWriteLogStreamCallback(size_t uriByteLength, const byte* uriBytes);
-    static JsTTDStreamHandle CALLBACK TTCreateStreamCallback(size_t uriByteLength, const byte* uriBytes, const char* asciiResourceName, bool read, bool write, byte** relocatedUri, size_t* relocatedUriLength);
-
+    static JsTTDStreamHandle CALLBACK TTCreateStreamCallback(size_t uriLength, const char* uri, size_t asciiNameLength, const char* asciiName, bool read, bool write);
     static bool CALLBACK TTReadBytesFromStreamCallback(JsTTDStreamHandle handle, byte* buff, size_t size, size_t* readCount);
     static bool CALLBACK TTWriteBytesToStreamCallback(JsTTDStreamHandle handle, const byte* buff, size_t size, size_t* writtenCount);
     static void CALLBACK TTFlushAndCloseStreamCallback(JsTTDStreamHandle handle, bool read, bool write);

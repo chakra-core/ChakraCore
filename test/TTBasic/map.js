@@ -47,4 +47,6 @@ function testFunction()
     telemetryLog(`post update 2 -- x.has(five): ${x.has(five)}`, true); //true
     telemetryLog(`post update 2 -- x.get(five): ${x.get(five)}`, true); //5
     telemetryLog(`post update 2 -- x.get(three): ${x.get(three)}`, true); //4
+
+    emitTTDLog(ttdLogURI);
 }

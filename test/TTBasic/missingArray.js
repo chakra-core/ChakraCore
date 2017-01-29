@@ -52,4 +52,6 @@ function testFunction()
 
     telemetryLog(`[] missing value:${arr1[2]}`, true);
     telemetryLog(`Array() missing value:${IntArr0[1]}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

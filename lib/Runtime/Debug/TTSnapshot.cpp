@@ -560,11 +560,11 @@ namespace TTD
         char asciiResourceName[64];
         sprintf_s(asciiResourceName, 64, "snap_%I64i.snp", snapId);
 
-        const TTUriString& uri = threadContext->TTDContext->TTDUri;
-        const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
-        JsTTDStreamHandle snapHandle = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, false, true, nullptr, nullptr);
+        TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
+        JsTTDStreamHandle snapHandle = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, false, true);
+        TTDAssert(snapHandle != nullptr, "Failed to open snapshot resource stream for writing.");
 
-        TTD_SNAP_WRITER snapwriter(snapHandle, TTD_COMPRESSED_OUTPUT, iops.pfWriteBytesToStream, iops.pfFlushAndCloseStream);
+        TTD_SNAP_WRITER snapwriter(snapHandle, iofp.pfWriteBytesToStream, iofp.pfFlushAndCloseStream);
 
         this->EmitSnapshotToFile(&snapwriter, threadContext);
         snapwriter.FlushAndClose();
@@ -575,11 +575,11 @@ namespace TTD
         char asciiResourceName[64];
         sprintf_s(asciiResourceName, 64, "snap_%I64i.snp", snapId);
 
-        const TTUriString& uri = threadContext->TTDContext->TTDUri;
-        const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
-        JsTTDStreamHandle snapHandle = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, true, false, nullptr, nullptr);
+        TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
+        JsTTDStreamHandle snapHandle = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, true, false);
+        TTDAssert(snapHandle != nullptr, "Failed to open snapshot resource stream for reading.");
 
-        TTD_SNAP_READER snapreader(snapHandle, TTD_COMPRESSED_OUTPUT, iops.pfReadBytesFromStream, iops.pfFlushAndCloseStream);
+        TTD_SNAP_READER snapreader(snapHandle, iofp.pfReadBytesFromStream, iofp.pfFlushAndCloseStream);
         SnapShot* snap = SnapShot::ParseSnapshotFromFile(&snapreader);
 
         return snap;

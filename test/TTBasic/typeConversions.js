@@ -83,4 +83,6 @@ function testFunction()
 
     telemetryLog(`x9[0]: ${x9[0]}`, true); //0
     telemetryLog(`x9[1]: ${x9[1]}`, true); //undef
+
+    emitTTDLog(ttdLogURI);
 }

@@ -1091,19 +1091,7 @@ namespace TTD
 
             cpInfo->SourceCode = alloc.SlabAllocateArray<byte>(cpAction->AdditionalInfo->SourceByteLength);
 
-            byte* relocatedUri = nullptr;
-            size_t relocatedUriLength = 0;
-
-            JsSupport::ReadCodeFromFile(threadContext, true, cpInfo->DocumentID, cpInfo->IsUtf8, cpInfo->SourceCode, cpInfo->SourceByteLength, &relocatedUri, &relocatedUriLength);
-
-            if(relocatedUri != nullptr)
-            {
-                alloc.CopyStringIntoWLength((char16*)relocatedUri, (uint32)relocatedUriLength, cpInfo->RelocatedSourceUri);
-
-                //We may want to make this auto-freeing
-                CoTaskMemFree(relocatedUri);
-                relocatedUri = nullptr;
-            }
+            JsSupport::ReadCodeFromFile(threadContext, true, cpInfo->DocumentID, cpInfo->IsUtf8, cpInfo->SourceCode, cpInfo->SourceByteLength);
         }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS

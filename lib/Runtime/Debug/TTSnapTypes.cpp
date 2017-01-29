@@ -64,6 +64,22 @@ namespace TTD
             return newPropertyRecord;
         }
 
+        void EmitPropertyRecordAsSnapPropertyRecord(const Js::PropertyRecord* pRecord, FileWriter* writer, NSTokens::Separator separator)
+        {
+            writer->WriteRecordStart(separator);
+
+            writer->WriteUInt32(NSTokens::Key::propertyId, pRecord->GetPropertyId());
+
+            writer->WriteBool(NSTokens::Key::isNumeric, pRecord->IsNumeric(), NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::isBound, pRecord->IsBound(), NSTokens::Separator::CommaSeparator);
+            writer->WriteBool(NSTokens::Key::isSymbol, pRecord->IsSymbol(), NSTokens::Separator::CommaSeparator);
+
+            writer->WriteKey(NSTokens::Key::name, NSTokens::Separator::CommaSeparator);
+            writer->WriteInlinePropertyRecordName(pRecord->GetBuffer(), pRecord->GetLength());
+
+            writer->WriteRecordEnd();
+        }
+
         void EmitSnapPropertyRecord(const SnapPropertyRecord* sRecord, FileWriter* writer, NSTokens::Separator separator)
         {
             writer->WriteRecordStart(separator);

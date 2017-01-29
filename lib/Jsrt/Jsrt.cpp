@@ -226,9 +226,8 @@ void CALLBACK SetActiveJsRTContext_TTDCallback(void* runtimeHandle, Js::ScriptCo
 
 //A create runtime function that we can funnel to for regular and record or debug aware creation
 JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
-    _In_opt_ const byte* optTTUri, size_t optTTUriCount, bool isRecord, bool isReplay, bool isDebug,
+    _In_opt_ const char* optTTUri, size_t optTTUriCount, bool isRecord, bool isReplay, bool isDebug,
     _In_ UINT32 snapInterval, _In_ UINT32 snapHistoryLength,
-    _In_opt_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction,
     _In_opt_ TTDOpenResourceStreamCallback openResourceStream, _In_opt_ JsTTDReadBytesFromStreamCallback readBytesFromStream,
     _In_opt_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_opt_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
     _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtimeHandle)
@@ -339,7 +338,7 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
             return JsErrorInvalidArgument; //A debug runtime also needs to be in runtime mode (and we are going to be strict about it)
         }
 
-        if(optTTUri == nullptr)
+        if(isReplay && optTTUri == nullptr)
         {
             return JsErrorInvalidArgument; //We must have a location to store data into
         }
@@ -349,9 +348,9 @@ JsErrorCode CreateRuntimeCore(_In_ JsRuntimeAttributes attributes,
             ThreadContextScope scope(threadContext);
             threadContext->EnsureRecycler();
 
-            threadContext->InitTimeTravel(threadContext, *runtimeHandle, optTTUriCount, optTTUri, snapInterval, max<uint32>(2, snapHistoryLength));
-            threadContext->InitHostFunctionsAndTTData(isRecord, isReplay, isDebug,
-                writeInitializeFunction, openResourceStream, readBytesFromStream, writeBytesToStream, flushAndCloseStream,
+            threadContext->InitTimeTravel(threadContext, *runtimeHandle, snapInterval, max<uint32>(2, snapHistoryLength));
+            threadContext->InitHostFunctionsAndTTData(isRecord, isReplay, isDebug, optTTUriCount, optTTUri,
+                openResourceStream, readBytesFromStream, writeBytesToStream, flushAndCloseStream,
                 &CreateExternalObject_TTDCallback, &CreateJsRTContext_TTDCallback, &ReleaseJsRTContext_TTDCallback, &SetActiveJsRTContext_TTDCallback);
 
             return JsNoError;
@@ -369,7 +368,7 @@ CHAKRA_API JsCreateRuntime(_In_ JsRuntimeAttributes attributes, _In_opt_ JsThrea
     return CreateRuntimeCore(attributes,
         nullptr /*optRecordUri*/, 0 /*optRecordUriCount */, false /*isRecord*/, false /*isReplay*/, false /*isDebug*/,
         UINT_MAX /*optSnapInterval*/, UINT_MAX /*optLogLength*/,
-        nullptr, nullptr, nullptr, nullptr, nullptr, /*TTD IO handlers*/
+        nullptr, nullptr, nullptr, nullptr, /*TTD IO handlers*/
         threadService, runtimeHandle);
 }
 
@@ -3366,9 +3365,8 @@ CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCa
 
 /////////////////////
 
-CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_reads_(infoUriCount) const byte* infoUri, _In_ size_t infoUriCount, _In_ size_t snapInterval, _In_ size_t snapHistoryLength,
-    _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, _In_ TTDOpenResourceStreamCallback openResourceStream,
-    _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
+CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_ size_t snapInterval, _In_ size_t snapHistoryLength,
+    _In_ TTDOpenResourceStreamCallback openResourceStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
     _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
 #if !ENABLE_TTD
@@ -3379,15 +3377,14 @@ CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_rea
         return JsErrorInvalidArgument;
     }
 
-    return CreateRuntimeCore(attributes, infoUri, infoUriCount, true, false, false, (uint32)snapInterval, (uint32)snapHistoryLength,
-        writeInitializeFunction, openResourceStream, readBytesFromStream, writeBytesToStream, flushAndCloseStream,
+    return CreateRuntimeCore(attributes, nullptr, 0, true, false, false, (uint32)snapInterval, (uint32)snapHistoryLength,
+        openResourceStream, nullptr, writeBytesToStream, flushAndCloseStream,
         threadService, runtime);
 #endif
 }
 
-CHAKRA_API JsTTDCreateReplayRuntime(_In_ JsRuntimeAttributes attributes, _In_reads_(infoUriCount) const byte* infoUri, _In_ size_t infoUriCount, _In_ bool enableDebugging,
-    _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction, _In_ TTDOpenResourceStreamCallback openResourceStream,
-    _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
+CHAKRA_API JsTTDCreateReplayRuntime(_In_ JsRuntimeAttributes attributes, _In_reads_(infoUriCount) const char* infoUri, _In_ size_t infoUriCount, _In_ bool enableDebugging,
+    _In_ TTDOpenResourceStreamCallback openResourceStream, _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream, _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
     _In_opt_ JsThreadServiceCallback threadService, _Out_ JsRuntimeHandle *runtime)
 {
 #if !ENABLE_TTD
@@ -3395,7 +3392,7 @@ CHAKRA_API JsTTDCreateReplayRuntime(_In_ JsRuntimeAttributes attributes, _In_rea
 #else
 
     return CreateRuntimeCore(attributes, infoUri, infoUriCount, false, true, enableDebugging, UINT_MAX, UINT_MAX,
-        writeInitializeFunction, openResourceStream, readBytesFromStream, writeBytesToStream, flushAndCloseStream,
+        openResourceStream, readBytesFromStream, nullptr, flushAndCloseStream,
         threadService, runtime);
 #endif
 }
@@ -3492,27 +3489,6 @@ CHAKRA_API JsTTDStop()
         {
             scriptContext->GetThreadContext()->TTDLog->UnloadAllLogData();
         }
-
-        return JsNoError;
-    });
-#endif
-}
-
-CHAKRA_API JsTTDEmitRecording()
-{
-#if !ENABLE_TTD
-    return JsErrorCategoryUsage;
-#else
-    JsrtContext *currentContext = JsrtContext::GetCurrent();
-    JsErrorCode cCheck = CheckContext(currentContext, true);
-    TTDAssert(cCheck == JsNoError, "Must have valid context when starting TTD.");
-
-    Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
-    TTDAssert(scriptContext->ShouldPerformRecordAction(), "Need to be running in TTD mode.");
-
-    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
-    {
-        scriptContext->GetThreadContext()->TTDLog->EmitLog();
 
         return JsNoError;
     });

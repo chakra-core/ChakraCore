@@ -49,8 +49,8 @@ namespace TTD
         this->m_pfWrite(this->m_hfile, buff, bufflen, &bwp);
     }
 
-    FileWriter::FileWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
-        : m_hfile(handle), m_pfWrite(pfWrite), m_pfClose(pfClose), m_doCompression(doCompression), m_cursor(0), m_buffer(nullptr)
+    FileWriter::FileWriter(JsTTDStreamHandle handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
+        : m_hfile(handle), m_pfWrite(pfWrite), m_pfClose(pfClose), m_cursor(0), m_buffer(nullptr)
     {
         this->m_buffer = TT_HEAP_ALLOC_ARRAY(byte, TTD_SERIALIZATION_BUFFER_SIZE);
     }
@@ -163,8 +163,8 @@ namespace TTD
 
     //////////////////
 
-    TextFormatWriter::TextFormatWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
-        : FileWriter(handle, doCompression, pfWrite, pfClose), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr), m_indentSize(0)
+    TextFormatWriter::TextFormatWriter(JsTTDStreamHandle handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
+        : FileWriter(handle, pfWrite, pfClose), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr), m_indentSize(0)
     {
         byte byteOrderMarker[2] = { 0xFF, 0xFE };
         this->WriteRawByteBuff(byteOrderMarker, 2);
@@ -402,7 +402,7 @@ namespace TTD
         this->WriteRawChar(_u('~'));
     }
 
-    void TextFormatWriter::WriteInlineCode(_In_reads_(length) char16* code, uint32 length, NSTokens::Separator separator)
+    void TextFormatWriter::WriteInlineCode(_In_reads_(length) const char16* code, uint32 length, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
 
@@ -413,8 +413,19 @@ namespace TTD
         this->WriteRawChar(_u('\"'));
     }
 
-    BinaryFormatWriter::BinaryFormatWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
-        : FileWriter(handle, doCompression, pfWrite, pfClose)
+    void TextFormatWriter::WriteInlinePropertyRecordName(_In_reads_(length) const char16* pname, uint32 length, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+
+        this->WriteFormattedCharData(_u("@%I32u"), length);
+
+        this->WriteRawChar(_u('\"'));
+        this->WriteRawCharBuff(pname, length);
+        this->WriteRawChar(_u('\"'));
+    }
+
+    BinaryFormatWriter::BinaryFormatWriter(JsTTDStreamHandle handle, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
+        : FileWriter(handle, pfWrite, pfClose)
     {
         ;
     }
@@ -562,12 +573,20 @@ namespace TTD
         this->WriteRawByteBuff((const byte*)val, charLen * sizeof(char16));
     }
 
-    void BinaryFormatWriter::WriteInlineCode(_In_reads_(length) char16* code, uint32 length, NSTokens::Separator separator)
+    void BinaryFormatWriter::WriteInlineCode(_In_reads_(length) const char16* code, uint32 length, NSTokens::Separator separator)
     {
         this->WriteSeperator(separator);
 
         this->WriteRawByteBuff_Fixed<uint32>(length);
         this->WriteRawByteBuff((const byte*)code, length * sizeof(char16));
+    }
+
+    void BinaryFormatWriter::WriteInlinePropertyRecordName(_In_reads_(length) const char16* pname, uint32 length, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+
+        this->WriteRawByteBuff_Fixed<uint32>(length);
+        this->WriteRawByteBuff((const byte*)pname, length * sizeof(char16));
     }
 
     //////////////////
@@ -582,8 +601,8 @@ namespace TTD
         *readSize = (size_t)bwp;
     }
 
-    FileReader::FileReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
-        : m_hfile(handle), m_pfRead(pfRead), m_pfClose(pfClose), m_peekChar(-1), m_doDecompress(doDecompress), m_cursor(0), m_buffCount(0), m_buffer(nullptr)
+    FileReader::FileReader(JsTTDStreamHandle handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
+        : m_hfile(handle), m_pfRead(pfRead), m_pfClose(pfClose), m_peekChar(-1), m_cursor(0), m_buffCount(0), m_buffer(nullptr)
     {
         this->m_buffer = TT_HEAP_ALLOC_ARRAY(byte, TTD_SERIALIZATION_BUFFER_SIZE);
     }
@@ -1141,8 +1160,8 @@ namespace TTD
         return val;
     }
 
-    TextFormatReader::TextFormatReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
-        : FileReader(handle, doDecompress, pfRead, pfClose), m_charListPrimary(&HeapAllocator::Instance), m_charListOpt(&HeapAllocator::Instance), m_charListDiscard(&HeapAllocator::Instance), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr)
+    TextFormatReader::TextFormatReader(JsTTDStreamHandle handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
+        : FileReader(handle, pfRead, pfClose), m_charListPrimary(&HeapAllocator::Instance), m_charListOpt(&HeapAllocator::Instance), m_charListDiscard(&HeapAllocator::Instance), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr)
     {
         byte byteOrderMarker[2] = { 0x0, 0x0 };
         this->ReadBytesInto(byteOrderMarker, 2);
@@ -1432,8 +1451,8 @@ namespace TTD
         js_memcpy_s(code, length * sizeof(char16), this->m_charListOpt.GetBuffer(), this->m_charListOpt.Count() * sizeof(char16));
     }
 
-    BinaryFormatReader::BinaryFormatReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
-        : FileReader(handle, doDecompress, pfRead, pfClose)
+    BinaryFormatReader::BinaryFormatReader(JsTTDStreamHandle handle, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
+        : FileReader(handle, pfRead, pfClose)
     {
         ;
     }
@@ -1814,8 +1833,8 @@ namespace TTD
     TraceLogger::TraceLogger(FILE* outfile)
         : m_currLength(0), m_indentSize(0), m_outfile(outfile)
     {
-        this->m_buffer = (char*)CoTaskMemAlloc(TRACE_LOGGER_BUFFER_SIZE);
-        this->m_indentBuffer = (char*)CoTaskMemAlloc(TRACE_LOGGER_INDENT_BUFFER_SIZE);
+        this->m_buffer = (char*)malloc(TRACE_LOGGER_BUFFER_SIZE);
+        this->m_indentBuffer = (char*)malloc(TRACE_LOGGER_INDENT_BUFFER_SIZE);
 
         memset(this->m_buffer, 0, TRACE_LOGGER_BUFFER_SIZE);
         memset(this->m_indentBuffer, 0, TRACE_LOGGER_INDENT_BUFFER_SIZE);
@@ -1830,8 +1849,8 @@ namespace TTD
             fclose(this->m_outfile);
         }
 
-        CoTaskMemFree(this->m_buffer);
-        CoTaskMemFree(this->m_indentBuffer);
+        free(this->m_buffer);
+        free(this->m_indentBuffer);
     }
 
     void TraceLogger::ForceFlush()

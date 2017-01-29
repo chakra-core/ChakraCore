@@ -833,6 +833,18 @@ namespace TTD
             callEvt->AdditionalInfo->BeginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
             callEvt->AdditionalInfo->EndTime = reader->ReadDouble(NSTokens::Key::endTime, true);
         }
+
+        //////////////////
+
+        void ExplicitLogWriteEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
+        {
+            ; //We don't track any extra data with this
+        }
+
+        void ExplicitLogWriteEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        {
+            ; //We don't track any extra data with this
+        }
     }
 }
 
