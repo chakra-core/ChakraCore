@@ -2605,7 +2605,7 @@ LowererMDArch::EmitLongToInt(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInser
 }
 
 bool
-LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
+LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed, bool bailOutOnHelper, IR::LabelInstr * labelBailOut)
 {
     // if(doShiftFirst)
     // {
@@ -2663,9 +2663,29 @@ LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllo
         instrLoad->InsertBefore(instr);
     }
 
-    // It could be an integer in this case
-    if (!isNotInt)
+    if (isNotInt)
     {
+        // Known to be non-integer. If we are required to bail out on helper call, just re-jit.
+        if (!doFloatToIntFastPath && bailOutOnHelper)
+        {
+            if(!GlobOpt::DoAggressiveIntTypeSpec(this->m_func))
+            {
+                // Aggressive int type specialization is already off for some reason. Prevent trying to rejit again
+                // because it won't help and the same thing will happen again. Just abort jitting this function.
+                if(PHASE_TRACE(Js::BailOutPhase, this->m_func))
+                {
+                    Output::Print(_u("    Aborting JIT because AggressiveIntTypeSpec is already off\n"));
+                    Output::Flush();
+                }
+                throw Js::OperationAbortedException();
+            }
+
+            throw Js::RejitException(RejitReason::AggressiveIntTypeSpecDisabled);
+        }
+    }
+    else
+    {
+        // It could be an integer in this case
         if(doShiftFirst)
         {
             // r1 = SAR r1, VarTag_Shift (move last-shifted bit into CF)
@@ -2781,7 +2801,13 @@ LowererMDArch::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllo
             return true;
         }
 
-        if (conversionFromObjectAllowed)
+        if (bailOutOnHelper)
+        {
+            Assert(labelBailOut);
+            lowererMD->m_lowerer->InsertBranch(Js::OpCode::Br, labelBailOut, instrLoad);
+            instrLoad->Remove();
+        }
+        else if (conversionFromObjectAllowed)
         {
             lowererMD->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
         }
