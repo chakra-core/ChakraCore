@@ -81,7 +81,7 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
 
                 def msbuildType = msbuildTypeMap.get(buildType)
                 def msbuildFlavor = "build_${buildArch}${msbuildType}"
-                def archivalString = "test/${msbuildFlavor}.*,test/logs/**"
+                def archivalString = "test/${msbuildFlavor}.*,test/logs/**,Build/VcBuild/bin/${buildArch}_${msbuildType}/**"
                 archivalString += analysisConfig ? ',CodeAnalysis.err' : ''
                 Utilities.addArchival(newJob, archivalString,
                     '', // no exclusions from archival
