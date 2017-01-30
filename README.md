@@ -103,7 +103,7 @@ _A note about using ChakraCore_: ChakraCore is the foundational JavaScript engin
 
 Contributions to ChakraCore are welcome.  Here is how you can contribute to ChakraCore:
 
-* [Submit bugs](https://github.com/Microsoft/ChakraCore/issues) and help us verify fixes
+* [Submit bugs](https://github.com/Microsoft/ChakraCore/issues) and help us verify fixes (please refer to [External Issues](https://github.com/Microsoft/ChakraCore/wiki/External-Issues) for anything external, such as Microsoft Edge or Node-ChakraCore issues)
 * [Submit pull requests](https://github.com/Microsoft/ChakraCore/pulls) for bug fixes and features and discuss existing proposals
 * Chat about [@ChakraCore](https://twitter.com/ChakraCore) on Twitter
 
