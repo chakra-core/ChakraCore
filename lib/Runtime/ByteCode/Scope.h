@@ -39,6 +39,7 @@ private:
     BYTE hasDuplicateFormals : 1;
     BYTE canMergeWithBodyScope : 1;
     BYTE hasLocalInClosure : 1;
+    BYTE isBlockInLoop : 1;
 public:
 #if DBG
     BYTE isRestored : 1;
@@ -56,6 +57,7 @@ public:
         hasDuplicateFormals(false),
         canMergeWithBodyScope(true),
         hasLocalInClosure(false),
+        isBlockInLoop(false),
         location(Js::Constants::NoRegister),
         m_symList(nullptr),
         m_count(0),
@@ -247,6 +249,9 @@ public:
 
     void SetHasOwnLocalInClosure(bool has) { hasLocalInClosure = has; }
     bool GetHasOwnLocalInClosure() const { return hasLocalInClosure; }
+
+    void SetIsBlockInLoop(bool is = true) { isBlockInLoop = is; }
+    bool IsBlockInLoop() const { return isBlockInLoop; }
 
     bool HasInnerScopeIndex() const { return innerScopeIndex != (uint)-1; }
     uint GetInnerScopeIndex() const { return innerScopeIndex; }

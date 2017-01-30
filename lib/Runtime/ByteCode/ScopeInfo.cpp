@@ -122,7 +122,7 @@ namespace Js
     //
     void ScopeInfo::SaveParentScopeInfo(FuncInfo* parentFunc, FuncInfo* func)
     {
-        Assert(func->IsDeferred());
+        Assert(func->IsDeferred() || func->byteCodeFunction->CanBeDeferred());
 
         // Parent must be parsed
         FunctionBody* parent = parentFunc->byteCodeFunction->GetFunctionBody();
@@ -144,7 +144,7 @@ namespace Js
         ParseableFunctionInfo* funcBody = func->byteCodeFunction;
 
         Assert((!func->IsGlobalFunction() || byteCodeGenerator->GetFlags() & fscrEvalCode) &&
-            (func->HasDeferredChild() || (funcBody->IsReparsed())));
+            (func->HasDeferredChild() || func->HasRedeferrableChild() || funcBody->IsReparsed()));
 
         // If we are reparsing a deferred function, we already have correct "parent" info in
         // funcBody->scopeInfo. parentFunc is the knopProg shell and should not be used in this
@@ -194,11 +194,22 @@ namespace Js
 
         Scope* currentScope = byteCodeGenerator->GetCurrentScope();
         Assert(currentScope == funcInfo->GetBodyScope());
-        if (funcInfo->IsDeferred())
+        if (funcInfo->HasDeferredChild() ||
+            funcInfo->HasRedeferrableChild() ||
+            (!funcInfo->IsGlobalFunction() &&
+                funcInfo->byteCodeFunction &&
+                funcInfo->byteCodeFunction->IsReparsed() &&
+                funcInfo->byteCodeFunction->GetFunctionBody()->HasAllNonLocalReferenced()))
+        {
+            // When we reparse due to attach, we would need to capture all of them, since they were captured before going to debug mode.
+
+            Js::ScopeInfo::SaveScopeInfo(byteCodeGenerator, parentFunc, funcInfo);
+        }
+        else if (funcInfo->IsDeferred() || funcInfo->IsRedeferrable())
         {
             // Don't need to remember the parent function if we have a global function
             if (!parentFunc->IsGlobalFunction() ||
-                ((byteCodeGenerator->GetFlags() & fscrEvalCode) && parentFunc->HasDeferredChild()))
+                ((byteCodeGenerator->GetFlags() & fscrEvalCode) && (parentFunc->HasDeferredChild() || parentFunc->HasRedeferrableChild())))
             {
                 // TODO: currently we only support defer nested function that is in function scope (no block scope, no with scope, etc.)
 #if DBG
@@ -227,25 +238,17 @@ namespace Js
                     {
                         Assert(!funcInfo->GetParamScope()->GetCanMergeWithBodyScope());
                     }
+#if 0
                     else
                     { 
                         Assert(currentScope->GetEnclosingScope() ==
                             (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
                     }
+#endif
                 }
 #endif
                 Js::ScopeInfo::SaveParentScopeInfo(parentFunc, funcInfo);
             }
-        }
-        else if (funcInfo->HasDeferredChild() ||
-            (!funcInfo->IsGlobalFunction() &&
-                funcInfo->byteCodeFunction &&
-                funcInfo->byteCodeFunction->IsReparsed() &&
-                funcInfo->byteCodeFunction->GetFunctionBody()->HasAllNonLocalReferenced()))
-        {
-            // When we reparse due to attach, we would need to capture all of them, since they were captured before going to debug mode.
-
-            Js::ScopeInfo::SaveScopeInfo(byteCodeGenerator, parentFunc, funcInfo);
         }
     }
 
