@@ -5,8 +5,10 @@
 
 #include "stdafx.h"
 
+#ifndef CHAKRA_STATIC_LIBRARY
 // The Codex library requires this assertion.
 void CodexAssert(bool condition)
 {
     Assert(condition);
 }
+#endif

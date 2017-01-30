@@ -30,6 +30,7 @@
 
 // #define TRACE_OUTPUT_TARGET_FILE // <- uncomment this if you want the trace is written to a file (TraceOutput.txt)
 // #define TRACE_OUTPUT_TO_LOGCAT // <- uncomment this if you want to target Logcat for Android instead of stderr
+// #define TRACE_FIND_DLI_FNAME // <- uncomment this if you need a binary path for each method address
 
 // #define ENABLE_CC_XPLAT_TRACE // uncomment this to use this code with your project or add ENABLE_CC_XPLAT_TRACE to your compile definitions
 #ifdef ENABLE_CC_XPLAT_TRACE
@@ -218,6 +219,7 @@ CLOSE_TRACE_FILE ()
     IN_TRACE = 0;
 }
 
+#if defined(TRACE_FIND_DLI_FNAME)
 __attribute__((no_instrument_function))
 static bool
 CMP_REVERSE(const char * fname)
@@ -236,6 +238,7 @@ CMP_REVERSE(const char * fname)
 
     return true;
 }
+#endif
 
 __attribute__((no_instrument_function))
 static void
@@ -243,6 +246,7 @@ print_function(void *func)
 {
     print_to_buffer("[%p]", func);
 
+#ifdef TRACE_FIND_DLI_FNAME
     Dl_info info;
     if (dladdr(func, &info) != 0)
     {
@@ -255,6 +259,7 @@ print_function(void *func)
             print_to_buffer("<%s>", info.dli_fname);
         }
     }
+#endif
 }
 
 __attribute__((no_instrument_function))

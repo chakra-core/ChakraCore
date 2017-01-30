@@ -1165,6 +1165,7 @@ SetThreadPriority(
     CPalThread *pThread;
     PAL_ERROR palError = NO_ERROR;
 
+#if !defined(__IOS__) && !defined(__ANDROID__)
     PERF_ENTRY(SetThreadPriority);
     ENTRY("SetThreadPriority(hThread=%p, nPriority=%#x)\n", hThread, nPriority);
 
@@ -1183,7 +1184,7 @@ SetThreadPriority(
 
     LOGEXIT("SetThreadPriority returns BOOL %d\n", NO_ERROR == palError);
     PERF_EXIT(SetThreadPriority);
-
+#endif
     return NO_ERROR == palError;
 }
 
@@ -1199,6 +1200,7 @@ CorUnix::InternalSetThreadPriority(
     IPalObject *pobjThread = NULL;
 
     int policy;
+    int set_sched_error;
     struct sched_param schedParam;
     int max_priority;
     int min_priority;
@@ -1263,7 +1265,8 @@ CorUnix::InternalSetThreadPriority(
             &schedParam
             ) != 0)
     {
-        ASSERT("Unable to get current thread scheduling information\n");
+        // permission denied ? do not assert
+        TRACE("Unable to get current thread scheduling information\n");
         palError = ERROR_INTERNAL_ERROR;
         goto InternalSetThreadPriorityExit;
     }
@@ -1322,23 +1325,24 @@ CorUnix::InternalSetThreadPriority(
           iNewPriority, schedParam.sched_priority);
 
     /* Finally, set the new priority into place */
-    if (pthread_setschedparam(
-            pTargetThread->GetPThreadSelf(),
-            policy,
-            &schedParam
-            ) != 0)
+    set_sched_error = pthread_setschedparam(
+          pTargetThread->GetPThreadSelf(),
+          policy,
+          &schedParam
+          );
+    if (set_sched_error != 0)
     {
-#if SET_SCHEDPARAM_NEEDS_PRIVS
-        if (EPERM == errno)
+        if (EPERM == set_sched_error)
         {
-            // UNIXTODO: Should log a warning to the event log
             TRACE("Caller does not have OS privileges to call pthread_setschedparam\n");
             pTargetThread->m_iThreadPriority = iNewPriority;
             goto InternalSetThreadPriorityExit;
         }
-#endif
 
-        ASSERT("Unable to set thread priority (errno %d)\n", errno);
+        // do not assert fail here. OS may not update the priority...
+        TRACE("Unable to set thread priority (error %d)\n", set_sched_error);
+        if (ESRCH == set_sched_error) goto InternalSetThreadPriorityExit;
+
         palError = ERROR_INTERNAL_ERROR;
         goto InternalSetThreadPriorityExit;
     }

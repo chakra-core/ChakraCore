@@ -858,19 +858,6 @@ set(CMAKE_REQUIRED_DEFINITIONS)
 set(SYNCHMGR_SUSPENSION_SAFE_CONDITION_SIGNALING 1)
 set(ERROR_FUNC_FOR_GLOB_HAS_FIXED_PARAMS 1)
 
-check_cxx_source_compiles("
-#include <libunwind.h>
-#include <ucontext.h>
-
-int main(int argc, char **argv)
-{
-        unw_context_t libUnwindContext;
-        ucontext_t uContext;
-
-        libUnwindContext = uContext;
-        return 0;
-}" UNWIND_CONTEXT_IS_UCONTEXT_T)
-
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(HAVE_COREFOUNDATION 1)
   set(HAVE__NSGETENVIRON 1)
@@ -1016,7 +1003,6 @@ else() # ANDROID
   # -DSYNCHMGR_SUSPENSION_SAFE_CONDITION_SIGNALING
   # -DERROR_FUNC_FOR_GLOB_HAS_FIXED_PARAMS
   # -DHAS_FTRUNCATE_LENGTH_ISSUE
-  # -DUNWIND_CONTEXT_IS_UCONTEXT_T
   # -DCHECK_TRACE_SPECIFIERS 0)
   # -DPROCFS_MEM_NAME=""
   # -DHAVE_GETHRTIME 1)

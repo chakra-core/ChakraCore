@@ -449,14 +449,20 @@ Return:
   An error code, if it failed
 
 --*/
-static bool pal_was_initialized = false;
+#if defined(ENABLE_CC_XPLAT_TRACE) || defined(DEBUG)
+bool PAL_InitializeChakraCoreCalled = false;
+#endif
+
 int
 PALAPI
 PAL_InitializeChakraCore()
 {
     // this is not thread safe but PAL_InitializeChakraCore is per process
     // besides, calling Jsrt initializer function is thread safe
-    if (pal_was_initialized) return ERROR_SUCCESS;
+    if (init_count > 0) return ERROR_SUCCESS;
+#if defined(ENABLE_CC_XPLAT_TRACE) || defined(DEBUG)
+    PAL_InitializeChakraCoreCalled = true;
+#endif
 
     if (Initialize())
     {
@@ -484,7 +490,6 @@ PAL_InitializeChakraCore()
     if (InterlockedIncrement(&g_chakraCoreInitialized) > 1)
     {
         PAL_Enter(PAL_BoundaryTop);
-        pal_was_initialized = true;
         return ERROR_SUCCESS;
     }
 
@@ -493,7 +498,6 @@ PAL_InitializeChakraCore()
         return ERROR_GEN_FAILURE;
     }
 
-    pal_was_initialized = true;
     return ERROR_SUCCESS;
 }
 

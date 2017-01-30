@@ -61,9 +61,7 @@ if(STATIC_LIBRARY)
   set(lib_target "${lib_target}"
     -Wl,-undefined,error
     ${LINKER_START_GROUP}
-    Chakra.Pal
-    Chakra.Common.Core
-    Chakra.Jsrt
+    ChakraCoreStatic
     ${LINKER_END_GROUP}
     dl
     ${ICULIB}
@@ -74,7 +72,12 @@ if(STATIC_LIBRARY)
       "-framework CoreFoundation"
       "-framework Security"
       )
-  endif() # Linux ?
+  elseif (NOT CC_TARGET_OS_ANDROID)
+    set(lib_target "${lib_target}"
+      "pthread"
+      )
+  endif()
+
 else() # // shared library below
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE")
 
@@ -83,7 +86,7 @@ else() # // shared library below
   endif()
 
   set(lib_target
-    PRIVATE Chakra.Pal
+    PRIVATE Chakra.Pal.Singular
     PRIVATE Chakra.Common.Codex.Singular
     PRIVATE Chakra.Runtime.PlatformAgnostic.Singular
     )

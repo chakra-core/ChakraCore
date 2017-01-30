@@ -29,7 +29,6 @@
     <None Include="inc\pal_error.h" />
     <None Include="inc\pal_mstypes.h" />
     <None Include="inc\pal_safecrt.h" />
-    <None Include="inc\pal_unwind.h" />
     <None Include="inc\safemath.h" />
     <None Include="inc\strsafe.h" />
     <None Include="inc\volatile.h" />
@@ -123,7 +122,6 @@
     <None Include="src\exception\machexception.cpp" />
     <None Include="src\exception\machmessage.cpp" />
     <None Include="src\exception\seh.cpp" />
-    <None Include="src\exception\seh-unwind.cpp" />
     <None Include="src\exception\signal.cpp" />
     <None Include="src\file\directory.cpp" />
     <None Include="src\file\filetime.cpp" />
