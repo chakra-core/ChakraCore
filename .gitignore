@@ -97,3 +97,4 @@ deps/
 .DS_Store
 android-toolchain-arm/
 cc-toolchain/
+/TraceOutput.txt

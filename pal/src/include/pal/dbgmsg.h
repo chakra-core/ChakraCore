@@ -218,37 +218,37 @@ extern LPCWSTR W16_NULLSTRING;
 extern DWORD dbg_channel_flags[DCI_LAST];
 extern BOOL g_Dbg_asserts_enabled;
 
-/* we must use stdio functions directly rather that rely on PAL functions for
-  output, because those functions do tracing and we need to avoid recursion */
-extern FILE *output_file;
-
 /* master switch for debug channel enablement, to be modified by debugger */
 extern Volatile<BOOL> dbg_master_switch ;
 
 
 /* conditionnal compilation for other debug messages */
-#if !_ENABLE_DEBUG_MESSAGES_
+#ifndef ENABLE_CC_XPLAT_TRACE
 
 /* compile out these trace levels; see the definition of NOTRACE */
+#if !defined(DEBUG)
 #define TRACE     NOTRACE
-#define TRACE_(x) NOTRACE
-#define WARN      NOTRACE
-#define WARN_(x)  NOTRACE
-#define ENTRY_EXTERNAL NOTRACE
-#define ENTRY     NOTRACE
-#define ENTRY_(x) NOTRACE
-#define LOGEXIT   NOTRACE
-#define LOGEXIT_(x) NOTRACE
-#define DBGOUT     NOTRACE
-#define DBGOUT_(x) NOTRACE
-#define ERROR     NOTRACE
-#define ERROR_(x) NOTRACE
-#define DBG_PRINTF(level, channel, bHeader) NOTRACE
+#else
+#define TRACE     {if (!PAL_InitializeChakraCoreCalled) abort();}
+#endif
+#define TRACE_(x) TRACE
+#define WARN      TRACE
+#define WARN_(x)  TRACE
+#define ENTRY_EXTERNAL TRACE
+#define ENTRY     TRACE
+#define ENTRY_(x) TRACE
+#define LOGEXIT   TRACE
+#define LOGEXIT_(x) TRACE
+#define DBGOUT     TRACE
+#define DBGOUT_(x) TRACE
+#define ERROR     TRACE
+#define ERROR_(x) TRACE
+#define DBG_PRINTF(level, channel, bHeader) TRACE
 
 #define CHECK_STACK_ALIGN
 
 #define SET_DEFAULT_DEBUG_CHANNEL(x)
-#define DBG_ENABLED(level, channel)
+#define DBG_ENABLED(level, channel) (false)
 
 #else /* _ENABLE_DEBUG_MESSAGES_ */
 
@@ -258,9 +258,8 @@ extern Volatile<BOOL> dbg_master_switch ;
     static const DBG_CHANNEL_ID defdbgchan = DCI_##x
 
 /* Is debug output enabled for the given level and channel? */
-#define DBG_ENABLED(level, channel) (output_file &&                     \
-                                     dbg_master_switch &&               \
-                                     (dbg_channel_flags[channel] & (1 << (level))))
+#define DBG_ENABLED(level, channel) (true)
+
 #define TRACE \
     DBG_PRINTF(DLI_TRACE,defdbgchan,TRUE)
 
@@ -315,24 +314,15 @@ bool DBG_ShouldCheckStackAlignment();
 #define DBG_PRINTF(level, channel, bHeader) \
 {\
     if( DBG_ENABLED(level, channel) ) {         \
-        DBG_CHANNEL_ID __chanid=channel;\
-        DBG_LEVEL_ID __levid=level;\
-        BOOL __bHeader = bHeader;\
         DBG_PRINTF2
 
-#ifdef __GNUC__
-#define DBG_PRINTF2(args...)\
-        DBG_printf_gcc(__chanid,__levid,__bHeader,__FUNCTION__,__FILE__,\
-                       __LINE__,args);\
-    }\
-}
-#else /* __GNUC__ */
 #define DBG_PRINTF2(...)\
-      DBG_printf_c99(__chanid,__levid,__bHeader,__FILE__,__LINE__,__VA_ARGS__);\
+        if (!PAL_InitializeChakraCoreCalled) abort(); \
+        PRINT_ERROR("] %s %s:%d",__FUNCTION__,__FILE__,\
+                       __LINE__);\
+        PRINT_ERROR(__VA_ARGS__);\
     }\
 }
-#endif /* __GNUC__ */
-
 #endif /* _ENABLE_DEBUG_MESSAGES_ */
 
 /* Use GNU C-specific features if available : __FUNCTION__ pseudo-macro,
@@ -362,21 +352,15 @@ bool DBG_ShouldCheckStackAlignment();
 
 #else /* defined(_DEBUG) */
 
-#define ASSERT(args...)                                                 \
-{                                                                       \
-    __ASSERT_ENTER();                                                   \
-    if (output_file && dbg_master_switch)                               \
-    {                                                                   \
-        DBG_printf_gcc(defdbgchan,DLI_ASSERT,TRUE,__FUNCTION__,__FILE__,__LINE__,args); \
-    }                                                                   \
-    if (g_Dbg_asserts_enabled)                                          \
-    {                                                                   \
-        DebugBreak();                                                   \
-    }                                                                   \
+#define ASSERT(...) \
+{ \
+    PRINT_ERROR("] %s %s:%d",__FUNCTION__,__FILE__,\
+                   __LINE__);\
+    PRINT_ERROR(__VA_ARGS__);\
 }
 
-#define _ASSERT(expr) do { if (!(expr)) { ASSERT(""); } } while(0)
 #define _ASSERTE(expr) do { if (!(expr)) { ASSERT("Expression: " #expr "\n"); } } while(0)
+#define _ASSERT _ASSERTE
 #define _ASSERT_MSG(expr, args...) \
     do { \
         if (!(expr)) \
@@ -405,18 +389,11 @@ bool DBG_ShouldCheckStackAlignment();
 
 #else /* defined(_DEBUG) */
 
-#define ASSERT(...)                                                     \
-{                                                                       \
-    __ASSERT_ENTER();                                                   \
-    if (output_file && dbg_master_switch)                               \
-    {                                                                   \
-        DBG_printf_c99(defdbgchan,DLI_ASSERT,TRUE,__FILE__,__LINE__,__VA_ARGS__); \
-    }                                                                   \
-    if(g_Dbg_asserts_enabled)                                           \
-    {                                                                   \
-        PAL_Leave();                                                    \
-        DebugBreak();                                                   \
-    }                                                                   \
+#define ASSERT(...) \
+{ \
+    PRINT_ERROR("] %s %s:%d",__FUNCTION__,__FILE__,\
+                   __LINE__);\
+    PRINT_ERROR(__VA_ARGS__);\
 }
 
 #define _ASSERT(expr) do { if (!(expr)) { ASSERT(""); } } while(0)

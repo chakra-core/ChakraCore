@@ -2,6 +2,18 @@ if(BuildJIT)
     add_definitions(-D_ENABLE_DYNAMIC_THUNKS=1)
 endif()
 
+if(CC_TARGETS_AMD64)
+    set(Wasm_dep
+    WasmLibrary.cpp
+    WebAssembly.cpp
+    WebAssemblyEnvironment.cpp
+    WebAssemblyInstance.cpp
+    WebAssemblyMemory.cpp
+    WebAssemblyModule.cpp
+    WebAssemblyTable.cpp
+    )
+endif()
+
 set(CRLIB_SOURCE_CODES
     ArgumentsObject.cpp
     ArgumentsObjectEnumerator.cpp
@@ -30,8 +42,8 @@ set(CRLIB_SOURCE_CODES
     JavascriptArray.cpp
     JavascriptArrayIndexEnumerator.cpp
     JavascriptArrayIndexEnumeratorBase.cpp
-    JavascriptArrayIterator.cpp
     JavascriptArrayIndexSnapshotEnumerator.cpp
+    JavascriptArrayIterator.cpp
     JavascriptBoolean.cpp
     JavascriptBooleanObject.cpp
     JavascriptBuiltInFunctions.cpp
@@ -43,8 +55,8 @@ set(CRLIB_SOURCE_CODES
     JavascriptGenerator.cpp
     JavascriptGeneratorFunction.cpp
     JavascriptIterator.cpp
-    JavascriptListIterator.cpp
     JavascriptLibrary.cpp
+    JavascriptListIterator.cpp
     JavascriptMap.cpp
     JavascriptMapIterator.cpp
     JavascriptNumber.cpp
@@ -114,6 +126,7 @@ set(CRLIB_SOURCE_CODES
     TypedArray.cpp
     TypedArrayIndexEnumerator.cpp
     UriHelper.cpp
+    ${Wasm_dep}
     )
 
 if(CC_TARGETS_AMD64)

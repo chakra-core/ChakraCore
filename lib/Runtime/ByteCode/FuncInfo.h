@@ -134,6 +134,7 @@ public:
     uint applyEnclosesArgs : 1;
     uint escapes : 1;
     uint hasDeferredChild : 1; // switch for DeferNested to persist outer scopes
+    uint hasRedeferrableChild : 1;
     uint childHasWith : 1; // deferNested needs to know if child has with
     uint hasLoop : 1;
     uint hasEscapedUseNestedFunc : 1;
@@ -430,6 +431,16 @@ public:
     void SetHasDeferredChild() {
         hasDeferredChild = true;
     }
+
+    bool HasRedeferrableChild() const {
+        return hasRedeferrableChild;
+    }
+
+    void SetHasRedeferrableChild() {
+        hasRedeferrableChild = true;
+    }
+
+    bool IsRedeferrable() const;
 
     Js::FunctionBody* GetParsedFunctionBody() const
     {

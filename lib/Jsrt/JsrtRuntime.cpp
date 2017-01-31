@@ -53,6 +53,9 @@ void JsrtRuntime::Uninitialize()
     while (currentThreadContext)
     {
         Assert(!currentThreadContext->IsScriptActive());
+#ifdef CHAKRA_STATIC_LIBRARY
+        if (currentThreadContext->IsInScript()) break;
+#endif
         JsrtRuntime* currentRuntime = static_cast<JsrtRuntime*>(currentThreadContext->GetJSRTRuntime());
         tmpThreadContext = currentThreadContext;
         currentThreadContext = currentThreadContext->Next();

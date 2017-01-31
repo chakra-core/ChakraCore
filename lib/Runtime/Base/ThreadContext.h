@@ -503,7 +503,7 @@ public:
     }
 
     static void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
-    void EnsureJITThreadContext(bool allowPrereserveAlloc);
+    bool EnsureJITThreadContext(bool allowPrereserveAlloc);
 
     PTHREADCONTEXT_HANDLE GetRemoteThreadContextAddr()
     {

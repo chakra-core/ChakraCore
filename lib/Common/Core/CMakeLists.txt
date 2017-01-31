@@ -1,4 +1,4 @@
-add_library (Chakra.Common.Core STATIC
+add_library (Chakra.Common.Core OBJECT
     Api.cpp
     BinaryFeatureControl.cpp
     CmdParser.cpp
@@ -19,10 +19,6 @@ add_library (Chakra.Common.Core STATIC
     StackBackTrace.cpp
     SysInfo.cpp
 )
-
-target_link_libraries(Chakra.Common.Core
-  ${CC_LTO_ENABLED}
-  )
 
 target_include_directories (
     Chakra.Common.Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

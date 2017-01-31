@@ -23,6 +23,10 @@ set_target_properties(ch
 
 include_directories(..)
 
+if(CC_TARGETS_AMD64)
+    set(Wasm_dep ../../lib/WasmReader)
+endif()
+
 target_include_directories (ch
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   ../ChakraCore
@@ -30,6 +34,7 @@ target_include_directories (ch
   ../../lib/Jsrt
   ../../lib/Runtime
   ../../lib/Parser
+  ${Wasm_dep}
   )
 
 if(STATIC_LIBRARY)
@@ -56,9 +61,7 @@ if(STATIC_LIBRARY)
   set(lib_target "${lib_target}"
     -Wl,-undefined,error
     ${LINKER_START_GROUP}
-    Chakra.Pal
-    Chakra.Common.Core
-    Chakra.Jsrt
+    ChakraCoreStatic
     ${LINKER_END_GROUP}
     dl
     ${ICULIB}
@@ -69,7 +72,12 @@ if(STATIC_LIBRARY)
       "-framework CoreFoundation"
       "-framework Security"
       )
-  endif() # Linux ?
+  elseif (NOT CC_TARGET_OS_ANDROID)
+    set(lib_target "${lib_target}"
+      "pthread"
+      )
+  endif()
+
 else() # // shared library below
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fPIE")
 
@@ -78,7 +86,7 @@ else() # // shared library below
   endif()
 
   set(lib_target
-    PRIVATE Chakra.Pal
+    PRIVATE Chakra.Pal.Singular
     PRIVATE Chakra.Common.Codex.Singular
     PRIVATE Chakra.Runtime.PlatformAgnostic.Singular
     )

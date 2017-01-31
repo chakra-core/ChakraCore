@@ -706,8 +706,11 @@ namespace PlatformAgnostic
             : "cc" // clobber condition code
         );
         return retval;
+#elif !defined(__ANDROID__)
+        return _interlockedbittestandreset(_BitBase, (long)_BitPos);
 #else
-        return _interlockedbittestandreset(_BitBase, _BitPos);
+        // xplat-todo: Implement _interlockedbittestandreset for Android
+        abort();
 #endif
     }
 };

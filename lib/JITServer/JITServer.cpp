@@ -99,23 +99,6 @@ ShutdownCommon()
     return status;
 }
 
-__declspec(dllexport)
-HRESULT
-JsShutdownJITServer()
-{
-    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-
-    if (JITManager::GetJITManager()->IsConnected())
-    {
-        // if client is hosting jit process directly, call to remotely shutdown
-        return JITManager::GetJITManager()->Shutdown();
-    }
-    else
-    {
-        return ShutdownCommon();
-    }
-}
-
 HRESULT
 ServerShutdown(
     /* [in] */ handle_t binding)

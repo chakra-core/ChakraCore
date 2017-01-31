@@ -413,8 +413,6 @@ typedef unsigned __int32 uint32_t;
     ///         HAVE_CHILDRENS = 0x2,
     ///         READ_ONLY_VALUE = 0x4,
     ///     </para>
-    /// </remarks>
-    /// <remarks>
     ///     <para>
     ///     {
     ///         "thisObject": {

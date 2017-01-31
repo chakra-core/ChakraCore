@@ -83,6 +83,7 @@ namespace Wasm
         // Primitive reader
         template <WasmTypes::WasmType type> void ConstNode();
         template <typename T> T ReadConst();
+        uint8 ReadVarUInt7();
         bool ReadMutableValue();
         const char16* ReadInlineName(uint32& length, uint32& nameLength);
         const char16* CvtUtf8Str(LPCUTF8 name, uint32 nameLen, charcount_t* dstLength = nullptr);
