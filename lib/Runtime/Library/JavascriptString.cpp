@@ -403,7 +403,7 @@ case_2:
         }
     }
 
-    inline JavascriptString* JavascriptString::ConcatDestructive(JavascriptString* pstRight)
+    JavascriptString* JavascriptString::ConcatDestructive(JavascriptString* pstRight)
     {
         Assert(pstRight);
 
