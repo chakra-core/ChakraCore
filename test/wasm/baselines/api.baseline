@@ -21,7 +21,7 @@ Test 4 passed. Expected Error: TypeError: BufferSource expected
 Test 5 passed. Expected Error: TypeError: BufferSource expected
 Test 6 passed. Expected Error: TypeError: BufferSource expected
 Test 7 passed. Expected Error: TypeError: BufferSource expected
-Test 8 passed. Expected Error: WebAssemblyCompileError: Invalid LEB128 format
+Test 8 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 1, Left: 0
 Test 9 passed. Expected Error: TypeError: BufferSource expected
 Testing module
 exports
@@ -38,7 +38,7 @@ Test 4 passed. Expected Error: TypeError: BufferSource expected
 Test 5 passed. Expected Error: TypeError: BufferSource expected
 Test 6 passed. Expected Error: TypeError: BufferSource expected
 Test 7 passed. Expected Error: TypeError: BufferSource expected
-Test 8 passed. Expected Error: WebAssemblyCompileError: Invalid LEB128 format
+Test 8 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 1, Left: 0
 Test 9 passed. Expected Error: TypeError: BufferSource expected
 Test 10 passed. Expected Error: TypeError: Object expected
 Test 11 passed. Expected Error: TypeError: Object expected
@@ -86,7 +86,7 @@ Test 6 passed. Expected Error: TypeError: BufferSource expected
 Test 7 passed. Expected Error: TypeError: BufferSource expected
 Test 8 passed. Expected Error: TypeError: BufferSource expected
 Test 9 passed. Expected Error: TypeError: BufferSource expected
-Test 10 passed. Expected Error: WebAssemblyCompileError: Invalid LEB128 format
+Test 10 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 1, Left: 0
 Test 11 passed. Expected Error: TypeError: BufferSource expected
 Testing module
 exports
