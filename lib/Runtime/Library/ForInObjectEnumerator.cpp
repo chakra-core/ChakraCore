@@ -160,6 +160,10 @@ namespace Js
         {
             propertyId = Constants::NoProperty;
             Var currentIndex = enumerator.MoveAndGetNext(propertyId, &attributes);
+
+            // The object type may have changed and we may not be able to use fast path anymore.
+            this->canUseJitFastPath = enumerator.CanUseJITFastPath();
+
             if (currentIndex)
             {
                 if (this->shadowData == nullptr)

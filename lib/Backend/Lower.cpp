@@ -9519,17 +9519,12 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
         Js::OpCode::BrNeq_A, labelHelper, instr);
 
     // MOV cachedDataOpnd, forInEnumeratorOpnd->enumerator.cachedData
-    // CMP cachedDataOpnd, nullptr
-    // JEQ $helper
     // MOV enumeratedCountOpnd, forInEnumeratorOpnd->enumerator.enumeratedCount
     // CMP enumeratedCountOpnd, cachedDataOpnd->cachedCount
     // JLT $loopBody
     IR::RegOpnd * cachedDataOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
     InsertMove(cachedDataOpnd,
         GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorCachedData(), TyMachPtr), instr);
-
-    InsertCompareBranch(cachedDataOpnd, IR::AddrOpnd::NewNull(m_func), Js::OpCode::BrEq_A, labelHelper, instr);
-
     IR::RegOpnd * enumeratedCountOpnd = IR::RegOpnd::New(TyUint32, m_func);
     InsertMove(enumeratedCountOpnd,
         GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorEnumeratedCount(), TyUint32), instr);
