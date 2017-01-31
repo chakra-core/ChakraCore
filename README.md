@@ -116,7 +116,7 @@ Please refer to [Contribution guidelines](CONTRIBUTING.md) for more details.
 Code licensed under the [MIT License](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt).
 
 ## Roadmap
-For details on our planned features and future direction please refer to our [roadmap](https://github.com/Microsoft/ChakraCore/wiki/Roadmap).
+For details on our planned features and future direction please refer to our [roadmap](https://github.com/Microsoft/ChakraCore/wiki/Roadmap)
 
 ## Contact us
 For questions about ChakraCore, you can reach us on [Gitter](https://gitter.im/Microsoft/ChakraCore) or open an [issue](https://github.com/Microsoft/ChakraCore/issues/new) and prefix the issue title with [Question]. See [Question](https://github.com/Microsoft/ChakraCore/issues?q=label%3AQuestion) tag for already-opened questions.
