@@ -1124,7 +1124,7 @@ namespace Js
         functionTypeDisplayString = CreateStringFromCppLiteral(_u("function"));
         booleanTypeDisplayString = CreateStringFromCppLiteral(_u("boolean"));
         numberTypeDisplayString = CreateStringFromCppLiteral(_u("number"));
-        moduleTypeDisplayString = CreateStringFromCppLiteral(_u("module"));
+        moduleTypeDisplayString = CreateStringFromCppLiteral(_u("Module"));
         variantDateTypeDisplayString = CreateStringFromCppLiteral(_u("date"));
         promiseResolveFunction = nullptr;
         generatorNextFunction = nullptr;
