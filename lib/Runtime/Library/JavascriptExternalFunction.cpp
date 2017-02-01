@@ -144,7 +144,7 @@ namespace Js
                 {
                 case Js::TypeIds_GlobalObject:
                     {
-                        Js::GlobalObject* srcGlobalObject = static_cast<Js::GlobalObject*>(thisVar);
+                        Js::GlobalObject* srcGlobalObject = (Js::GlobalObject*)(void*)(thisVar);
                         directHostObject = srcGlobalObject->GetDirectHostObject();
                         // For jsrt, direct host object can be null. If thats the case don't change it.
                         if (directHostObject != nullptr)

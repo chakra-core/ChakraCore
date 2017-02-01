@@ -326,7 +326,7 @@ namespace Js
         if (forcePoly)
         {
             uint16 typeCount = 1;
-            JITTypeHolder* types = RecyclerNewArray(recycler, JITTypeHolder, typeCount);
+            RecyclerJITTypeHolder* types = RecyclerNewArray(recycler, RecyclerJITTypeHolder, typeCount);
             types[0].t = RecyclerNew(recycler, JITType);
             JITType::BuildFromJsType(type, types[0].t);
             EquivalentTypeSet* typeSet = RecyclerNew(recycler, EquivalentTypeSet, types, typeCount);
@@ -533,7 +533,7 @@ namespace Js
 
         // Need to create a local array here and not allocate one from the recycler,
         // as the allocation may trigger a GC which can clear the inline caches.
-        FixedFieldInfo localFixedFieldInfoArray[Js::DynamicProfileInfo::maxPolymorphicInliningSize] = { 0 };
+        FixedFieldInfo localFixedFieldInfoArray[Js::DynamicProfileInfo::maxPolymorphicInliningSize] = { };
 
         // For polymorphic field loads we only support fixed functions on prototypes. This helps keep the equivalence check helper simple.
         // Since all types in the polymorphic cache share the same prototype, it's enough to grab the fixed function from the prototype object.
@@ -619,12 +619,13 @@ namespace Js
         if (gatherDataForInlining)
         {
             fixedFieldInfoArray = RecyclerNewArrayZ(recycler, FixedFieldInfo, fixedFunctionCount);
-            memcpy(fixedFieldInfoArray, localFixedFieldInfoArray, fixedFunctionCount * sizeof(FixedFieldInfo));
+            CopyArray<FixedFieldInfo, Field(Var)>(
+                fixedFieldInfoArray, fixedFunctionCount, localFixedFieldInfoArray, fixedFunctionCount);
         }
         else
         {
             fixedFieldInfoArray = RecyclerNewArrayZ(recycler, FixedFieldInfo, 1);
-            memcpy(fixedFieldInfoArray, localFixedFieldInfoArray, 1 * sizeof(FixedFieldInfo));
+            CopyArray<FixedFieldInfo, Field(Var)>(fixedFieldInfoArray, 1, localFixedFieldInfoArray, 1);
         }
 
         Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);
@@ -642,7 +643,7 @@ namespace Js
         Assert(jitTransferData != nullptr);
         if (areEquivalent || areStressEquivalent)
         {
-            JITTypeHolder* types = RecyclerNewArray(recycler, JITTypeHolder, typeCount);
+            RecyclerJITTypeHolder* types = RecyclerNewArray(recycler, RecyclerJITTypeHolder, typeCount);
             for (uint16 i = 0; i < typeCount; i++)
             {
                 jitTransferData->AddJitTimeTypeRef(localTypes[i], recycler);
@@ -789,7 +790,7 @@ namespace Js
             return;
         }
 
-        this->infoArray = RecyclerNewArrayZ(recycler, ObjTypeSpecFldInfo*, functionBody->GetInlineCacheCount());
+        this->infoArray = RecyclerNewArrayZ(recycler, Field(ObjTypeSpecFldInfo*), functionBody->GetInlineCacheCount());
 #if DBG
         this->infoCount = functionBody->GetInlineCacheCount();
 #endif

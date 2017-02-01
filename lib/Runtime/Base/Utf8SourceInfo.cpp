@@ -18,7 +18,7 @@ namespace Js
         ScriptContext* scriptContext, bool isLibraryCode, Js::Var scriptSource):
         sourceHolder(mappableSource),
         m_cchLength(cchLength),
-        m_pOriginalSourceInfo(nullptr),
+        m_pHostBuffer(nullptr),
         m_srcInfo(srcInfo),
         m_secondaryHostSourceContext(secondaryHostSourceContext),
         m_debugDocument(nullptr),
@@ -411,7 +411,7 @@ namespace Js
 
     bool Utf8SourceInfo::GetDebugDocumentName(BSTR * sourceName)
     {
-#ifdef ENABLE_SCRIPT_DEBUGGING
+#if defined(ENABLE_SCRIPT_DEBUGGING) && defined(_WIN32)
         if (this->HasDebugDocument() && this->GetDebugDocument()->HasDocumentText())
         {
             // ToDo (SaAgarwa): Fix for JsRT debugging

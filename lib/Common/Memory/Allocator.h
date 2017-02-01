@@ -27,6 +27,10 @@ enum PageHeapMode
 
 namespace Memory
 {
+
+    template<typename> class WriteBarrierPtr;
+    template<typename> class NoWriteBarrierPtr;
+
 #ifdef TRACK_ALLOC
 struct TrackAllocData
 {
@@ -184,6 +188,7 @@ template <typename TAllocator, bool isLeaf>
 class ListTypeAllocatorFunc
 {
 public:
+    typedef TAllocator EffectiveAllocatorType;  // used by write barrier type traits
     typedef char * (TAllocator::*AllocFuncType)(size_t);
     typedef void(TAllocator::*FreeFuncType)(void*, size_t);
 
@@ -223,6 +228,24 @@ struct ForceLeafAllocator
 
 template <typename TAllocator, typename T>
 void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj)
+{
+    obj->~T();
+
+    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
+    (allocator->*freeFunc)(obj, sizeof(T));
+}
+
+template <typename TAllocator, typename T>
+void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, WriteBarrierPtr<T> obj)
+{
+    obj->~T();
+
+    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
+    (allocator->*freeFunc)(obj, sizeof(T));
+}
+
+template <typename TAllocator, typename T>
+void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, NoWriteBarrierPtr<T> obj)
 {
     obj->~T();
 

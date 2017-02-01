@@ -992,7 +992,7 @@ ThreadContext::UncheckedAddPropertyId(JsUtil::CharacterBuffer<WCHAR> const& prop
         if(this->TTDContext->GetActiveScriptContext() != nullptr && this->TTDContext->GetActiveScriptContext()->ShouldPerformReplayAction())
         {
             //We reload all properties that occour in the trace so they only way we get here in TTD mode is:
-            //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or 
+            //(1) if the program is creating a new symbol (which always gets a fresh id) and we should recreate it or
             //(2) if it is forcing arguments in debug parse mode (instead of regular which we recorded in)
             Js::PropertyId propertyId = Js::Constants::NoProperty;
             this->TTDLog->ReplaySymbolCreationEvent(&propertyId);
@@ -1983,7 +1983,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 #endif
 
     m_jitNumericProperties = HeapNew(BVSparse<HeapAllocator>, &HeapAllocator::Instance);
-    
+
     for (auto iter = propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
     {
         if (iter.CurrentKey()->IsNumeric())
@@ -2010,7 +2010,7 @@ void ThreadContext::InitTimeTravel(ThreadContext* threadContext, void* runtimeHa
     this->TTDLog = HeapNew(TTD::EventLog, this);
 }
 
-void ThreadContext::InitHostFunctionsAndTTData(bool record, bool replay, bool debug, 
+void ThreadContext::InitHostFunctionsAndTTData(bool record, bool replay, bool debug,
     TTD::TTDInitializeForWriteLogStreamCallback writeInitializefp,
     TTD::TTDOpenResourceStreamCallback getResourceStreamfp, TTD::TTDReadBytesFromStreamCallback readBytesFromStreamfp,
     TTD::TTDWriteBytesToStreamCallback writeBytesToStreamfp, TTD::TTDFlushAndCloseStreamCallback flushAndCloseStreamfp,
@@ -2027,7 +2027,7 @@ void ThreadContext::InitHostFunctionsAndTTData(bool record, bool replay, bool de
     {
         this->TTDLog->InitForTTDRecord();
     }
-    else 
+    else
     {
         this->TTDLog->InitForTTDReplay(this->TTDContext->TTDStreamFunctions, this->TTDContext->TTDUri.UriByteLength, this->TTDContext->TTDUri.UriBytes, debug);
     }
@@ -2055,7 +2055,7 @@ ThreadContext::ExecuteRecyclerCollectionFunction(Recycler * recycler, Collection
 
 #if ENABLE_TTD
     //
-    //TODO: We lose any events that happen in the callbacks (such as JsRelease) which may be a problem in the future. 
+    //TODO: We lose any events that happen in the callbacks (such as JsRelease) which may be a problem in the future.
     //      It may be possible to defer the collection of these objects to an explicit collection at the yield loop (same for weak set/map).
     //      We already indirectly do this for ScriptContext collection.
     //
@@ -2749,7 +2749,7 @@ ThreadContext::TryRedeferral()
         this->recoveredBytes = 0;
 #endif
     }
-    
+
     uint inactiveThreshold = this->GetRedeferralInactiveThreshold();
     Js::ScriptContext *scriptContext;
     for (scriptContext = GetScriptContextList(); scriptContext; scriptContext = scriptContext->next)
@@ -2997,9 +2997,10 @@ ThreadContext::UnregisterExpirableObject(ExpirableObject* object)
 {
     Assert(this->expirableObjectList);
     Assert(object->registrationHandle != nullptr);
-    Assert(this->expirableObjectList->HasElement((ExpirableObject* const *) object->registrationHandle));
+    Assert(this->expirableObjectList->HasElement(
+        (ExpirableObject* const *)PointerValue(object->registrationHandle)));
 
-    ExpirableObject** registrationData = (ExpirableObject**) object->registrationHandle;
+    ExpirableObject** registrationData = (ExpirableObject**)PointerValue(object->registrationHandle);
     Assert(*registrationData == object);
 
     this->expirableObjectList->MoveElementTo(registrationData, this->expirableObjectDisposeList);
@@ -3362,7 +3363,7 @@ ThreadContext::CompactInlineCacheList(InlineCacheList* inlineCacheList)
     {
         if (inlineCache == nullptr)
         {
-            iterator.RemoveCurrent(&this->inlineCacheThreadInfoAllocator);
+            iterator.RemoveCurrent();
             cacheCount++;
         }
     }
@@ -4349,7 +4350,7 @@ void ThreadContext::RemoveExternalWeakReferenceCache(ExternalWeakReferenceCache 
 
 void ThreadContext::MarkExternalWeakReferencedObjects(bool inPartialCollect)
 {
-    SListBase<ExternalWeakReferenceCache *>::Iterator iteratorWeakRefCache(&this->externalWeakReferenceCacheList);
+    SListBase<ExternalWeakReferenceCache *, HeapAllocator>::Iterator iteratorWeakRefCache(&this->externalWeakReferenceCacheList);
     while (iteratorWeakRefCache.Next())
     {
         iteratorWeakRefCache.Data()->MarkNow(recycler, inPartialCollect);
@@ -4358,7 +4359,7 @@ void ThreadContext::MarkExternalWeakReferencedObjects(bool inPartialCollect)
 
 void ThreadContext::ResolveExternalWeakReferencedObjects()
 {
-    SListBase<ExternalWeakReferenceCache *>::Iterator iteratorWeakRefCache(&this->externalWeakReferenceCacheList);
+    SListBase<ExternalWeakReferenceCache *, HeapAllocator>::Iterator iteratorWeakRefCache(&this->externalWeakReferenceCacheList);
     while (iteratorWeakRefCache.Next())
     {
         iteratorWeakRefCache.Data()->ResolveNow(recycler);

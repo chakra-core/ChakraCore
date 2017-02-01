@@ -181,6 +181,56 @@ WasmSignature::FromIDL(WasmSignatureIDL* sig)
     return reinterpret_cast<WasmSignature*>(sig);
 }
 
+void
+WasmSignature::Dump()
+{
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+    Output::Print(_u("("));
+    for(uint32 i = 0; i < this->GetParamCount(); i++)
+    {
+        if(i != 0)
+        {
+            Output::Print(_u(", "));
+        }
+        switch(this->GetParam(i)) {
+            case WasmTypes::WasmType::Void:
+                Output::Print(_u("void"));
+                break;
+            case WasmTypes::WasmType::I32:
+                Output::Print(_u("i32"));
+                break;
+            case WasmTypes::WasmType::I64:
+                Output::Print(_u("i64"));
+                break;
+            case WasmTypes::WasmType::F32:
+                Output::Print(_u("f32"));
+                break;
+            case WasmTypes::WasmType::F64:
+                Output::Print(_u("f64"));
+                break;
+        }
+    }
+    Output::Print(_u(") -> "));
+    switch(this->GetResultType()) {
+        case WasmTypes::WasmType::Void:
+            Output::Print(_u("void"));
+            break;
+        case WasmTypes::WasmType::I32:
+            Output::Print(_u("i32"));
+            break;
+        case WasmTypes::WasmType::I64:
+            Output::Print(_u("i64"));
+            break;
+        case WasmTypes::WasmType::F32:
+            Output::Print(_u("f32"));
+            break;
+        case WasmTypes::WasmType::F64:
+            Output::Print(_u("f64"));
+            break;
+    }
+#endif
+}
+
 } // namespace Wasm
 
 #endif // ENABLE_WASM

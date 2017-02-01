@@ -474,7 +474,8 @@ namespace Js
                     {
                         for (int k = 0; k < trigramInfo->resultCount; k++)
                         {
-                            arrayResult->DirectSetItemAt(k, trigramInfo->cachedResult[k]);
+                            arrayResult->DirectSetItemAt(k,
+                                static_cast<Js::JavascriptString*>(trigramInfo->cachedResult[k]));
                         }
                     }
                     else
@@ -565,7 +566,7 @@ namespace Js
             {
                 // Overall match already captured in index 0 by above, so just grab the groups
                 Var nonMatchValue = NonMatchValue(scriptContext, false);
-                Var *elements = ((SparseArraySegment<Var>*)arrayResult->GetHead())->elements;
+                Field(Var) *elements = ((SparseArraySegment<Var>*)arrayResult->GetHead())->elements;
                 for (uint groupId = 1; groupId < (uint)numGroups; groupId++)
                 {
                     Assert(groupId < arrayResult->GetHead()->left + arrayResult->GetHead()->length);
@@ -619,7 +620,7 @@ namespace Js
         Assert(numGroups >= 0);
         JavascriptArray* result = CreateExecResult(stackAllocationPointer, scriptContext, numGroups, input, match);
         Var nonMatchValue = NonMatchValue(scriptContext, false);
-        Var *elements = ((SparseArraySegment<Var>*)result->GetHead())->elements;
+        Field(Var) *elements = ((SparseArraySegment<Var>*)result->GetHead())->elements;
         for (uint groupId = 0; groupId < (uint)numGroups; groupId++)
         {
             Assert(groupId < result->GetHead()->left + result->GetHead()->length);
@@ -962,7 +963,7 @@ namespace Js
         CharCount nextSourcePosition = 0;
 
         size_t previousNumberOfCapturesToKeep = 0;
-        Var* captures = nullptr;
+        Field(Var)* captures = nullptr;
 
         BEGIN_TEMP_ALLOCATOR(tempAlloc, scriptContext, _u("RegexHelper"))
         {
@@ -986,13 +987,13 @@ namespace Js
                 size_t numberOfCapturesToKeep = (size_t) min(numberOfCaptures, maxNumberOfCaptures);
                 if (captures == nullptr)
                 {
-                    captures = RecyclerNewArray(recycler, Var, numberOfCapturesToKeep + 1);
+                    captures = RecyclerNewArray(recycler, Field(Var), numberOfCapturesToKeep + 1);
                 }
                 else if (numberOfCapturesToKeep != previousNumberOfCapturesToKeep)
                 {
                     size_t existingBytes = (previousNumberOfCapturesToKeep + 1) * sizeof(Var*);
                     size_t requestedBytes = (numberOfCapturesToKeep + 1) * sizeof(Var*);
-                    captures = (Var*) recycler->Realloc(captures, existingBytes, requestedBytes);
+                    captures = (Field(Var)*) recycler->Realloc(captures, existingBytes, requestedBytes);
                 }
                 previousNumberOfCapturesToKeep = numberOfCapturesToKeep;
 
@@ -1015,7 +1016,7 @@ namespace Js
                     CharCount substringLength = position - nextSourcePosition;
                     accumulatedResultBuilder.Append(input, nextSourcePosition, substringLength);
 
-                    appendReplacement(accumulatedResultBuilder, tempAlloc, matchStr, (int) numberOfCapturesToKeep, captures, position);
+                    appendReplacement(accumulatedResultBuilder, tempAlloc, matchStr, (int) numberOfCapturesToKeep, (Var*)captures, position);
 
                     nextSourcePosition = JavascriptRegExp::AddIndex(position, matchStr->GetLength());
                 }

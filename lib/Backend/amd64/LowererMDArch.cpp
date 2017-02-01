@@ -949,7 +949,7 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
         Lowerer::InsertMove(
             this->GetArgSlotOpnd(index, helperSym, /*isHelper*/!shouldHomeParams),
             helperSrc,
-            callInstr);
+            callInstr, false);
         --argsLeft;
     }
 
@@ -970,7 +970,7 @@ LowererMDArch::LowerCall(IR::Instr * callInstr, uint32 argCount)
             Lowerer::InsertMove(
                 IR::SymOpnd::New(sym, TyMachReg, this->m_func),
                 IR::RegOpnd::New(nullptr, s_argRegs[i], TyMachReg, this->m_func),
-                callInstr);
+                callInstr, false);
         }
     }
 #endif
@@ -1323,7 +1323,7 @@ LowererMDArch::LoadHelperArgument(IR::Instr *instr, IR::Opnd *opndArg)
     {
         destOpnd = IR::RegOpnd::New(opndArg->GetType(), this->m_func);
         instrToReturn = instr->m_prev;
-        Lowerer::InsertMove(destOpnd, opndArg, instr);
+        Lowerer::InsertMove(destOpnd, opndArg, instr, false);
         instrToReturn = instrToReturn->m_next;
     }
 

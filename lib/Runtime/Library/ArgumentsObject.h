@@ -55,15 +55,15 @@ namespace Js
 
     private:
         // We currently support only 2^24 arguments
-        uint32              numOfArguments:31;
-        uint32              callerDeleted:1;
+        Field(uint32)              numOfArguments:31;
+        Field(uint32)              callerDeleted:1;
 
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(HeapArgumentsObject);
 
     protected:
-        uint32              formalCount;
-        ActivationObject*   frameObject;
-        BVSparse<Recycler>* deletedArgs;
+        Field(uint32)              formalCount;
+        Field(ActivationObject*)   frameObject;
+        Field(BVSparse<Recycler>*) deletedArgs;
 
     public:
         HeapArgumentsObject(DynamicType * type);

@@ -652,6 +652,15 @@ namespace TTD
 
     void EventLog::InitForTTDReplay(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes, bool debug)
     {
+        if (debug)
+        {
+            this->SetGlobalMode(TTDMode::DebuggerMode);
+        }
+        else
+        {
+            this->SetGlobalMode(TTDMode::ReplayMode);
+        }
+
         this->ParseLogInto(iofp, uriByteLength, uriBytes);
 
         Js::PropertyId maxPid = TotalNumberOfBuiltInProperties + 1;
@@ -672,15 +681,6 @@ namespace TTD
             {
                 this->m_propertyRecordPinSet->AddNew(const_cast<Js::PropertyRecord*>(newPropertyRecord));
             }
-        }
-
-        if(debug)
-        {
-            this->SetGlobalMode(TTDMode::DebuggerMode);
-        }
-        else
-        {
-            this->SetGlobalMode(TTDMode::ReplayMode);
         }
     }
 
@@ -2974,6 +2974,17 @@ namespace TTD
 
         writer.WriteString(NSTokens::Key::arch, archString);
 
+        TTString platformString;
+#if defined(_WIN32)
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("Windows"), platformString);
+#elif defined(__APPLE__)
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("macOS"), platformString);
+#else
+        this->m_miscSlabAllocator.CopyNullTermStringInto(_u("Linux"), platformString);
+#endif
+
+        writer.WriteString(NSTokens::Key::platform, platformString);
+
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         bool diagEnabled = true;
 #else
@@ -3166,6 +3177,10 @@ namespace TTD
 #else
         TTDAssert(false, "Unknown arch!!!");
 #endif
+
+        //This is informational only so just read off the value and ignore
+        TTString platformString;
+        reader.ReadString(NSTokens::Key::platform, this->m_miscSlabAllocator, platformString);
 
         bool diagEnabled = reader.ReadBool(NSTokens::Key::diagEnabled, true);
 

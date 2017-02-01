@@ -670,14 +670,57 @@ CHAKRA_API JsDiagGetObjectFromHandle(
 }
 
 CHAKRA_API JsDiagEvaluate(
-    _In_z_ const wchar_t *expression,
+    _In_ JsValueRef expressionVal,
     _In_ unsigned int stackFrameIndex,
+    _In_ JsParseScriptAttributes parseAttributes,
     _Out_ JsValueRef *evalResult)
 {
     return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
 
-        PARAM_NOT_NULL(expression);
+        PARAM_NOT_NULL(expressionVal);
         PARAM_NOT_NULL(evalResult);
+
+        bool isArrayBuffer = Js::ArrayBuffer::Is(expressionVal),
+             isString = false;
+        bool isUtf8   = !(parseAttributes & JsParseScriptAttributeArrayBufferIsUtf16Encoded);
+
+        if (!isArrayBuffer)
+        {
+            isString = Js::JavascriptString::Is(expressionVal);
+            if (!isString)
+            {
+                return JsErrorInvalidArgument;
+            }
+        }
+
+        const size_t len = isArrayBuffer ?
+            Js::ArrayBuffer::FromVar(expressionVal)->GetByteLength() :
+            Js::JavascriptString::FromVar(expressionVal)->GetLength();
+
+        if (len > INT_MAX)
+        {
+            return JsErrorInvalidArgument;
+        }
+
+        const WCHAR* expression;
+        utf8::NarrowToWide wide_expression;
+        if (isArrayBuffer && isUtf8)
+        {
+            wide_expression.Initialize(
+                (const char*)Js::ArrayBuffer::FromVar(expressionVal)->GetBuffer(), len);
+            if (!wide_expression)
+            {
+                return JsErrorOutOfMemory;
+            }
+            expression = wide_expression;
+        }
+        else
+        {
+            expression = !isArrayBuffer ?
+                Js::JavascriptString::FromVar(expressionVal)->GetSz() // String
+                :
+                (const WCHAR*)Js::ArrayBuffer::FromVar(expressionVal)->GetBuffer(); // ArrayBuffer;
+        }
 
         *evalResult = JS_INVALID_REFERENCE;
 
@@ -696,12 +739,6 @@ CHAKRA_API JsDiagEvaluate(
             return JsErrorDiagObjectNotFound;
         }
 
-        size_t len = wcslen(expression);
-        if (len != static_cast<int>(len))
-        {
-            return JsErrorInvalidArgument;
-        }
-
         Js::DynamicObject* result = nullptr;
         bool success = debuggerStackFrame->Evaluate(scriptContext, expression, static_cast<int>(len), false, &result);
 
@@ -713,19 +750,4 @@ CHAKRA_API JsDiagEvaluate(
         return success ? JsNoError : JsErrorScriptException;
 
     }, false /*allowInObjectBeforeCollectCallback*/, true /*scriptExceptionAllowed*/);
-}
-
-CHAKRA_API JsDiagEvaluateUtf8(
-    _In_z_ const char *expression,
-    _In_ unsigned int stackFrameIndex,
-    _Out_ JsValueRef *evalResult)
-{
-    PARAM_NOT_NULL(expression);
-    utf8::NarrowToWide wstr(expression, strlen(expression));
-    if (!wstr)
-    {
-        return JsErrorOutOfMemory;
-    }
-
-    return JsDiagEvaluate(wstr, stackFrameIndex, evalResult);
 }

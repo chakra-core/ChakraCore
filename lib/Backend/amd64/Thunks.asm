@@ -31,15 +31,12 @@ align 16
 
 
 ifdef _CONTROL_FLOW_GUARD
-        sub rsp, 30h                            ;allocate stack space for the callee params(min 4 slots is mandate + 1 for saving call target + 1 for alignment)
+        sub rsp, 20h                            ; allocate stack space for the callee params(min 4 slots is mandate)
         call ?CheckCodeGen@NativeCodeGenerator@@SAP6APEAXPEAVRecyclableObject@Js@@UCallInfo@3@ZZPEAVScriptFunction@3@@Z
-
-        mov [rsp + 28h], rax                    ;save rax (call target) [6th slot will have call target and 5th slot is left untouched]
         mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
         call [__guard_check_icall_fptr]         ; verify that the call target is valid
-
-        add rsp, 28h                            ;de-allocate stack space for the callee params(min 4 slots is mandate + 1 for alignment )
-        pop rax                                 ;restore call target
+        add rsp, 20h                            ;de-allocate stack space for the callee params(min 4 slots is mandate + 1 for alignment )
+        mov rax, rcx
 else
         sub rsp, 20h                            ;allocate stack space for the callee params(min 4 slots is mandate)
         call ?CheckCodeGen@NativeCodeGenerator@@SAP6APEAXPEAVRecyclableObject@Js@@UCallInfo@3@ZZPEAVScriptFunction@3@@Z

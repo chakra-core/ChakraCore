@@ -13,9 +13,8 @@
     va_start(_vl, callInfo);                                        \
     Js::Var* va = (Js::Var*)_vl
 #else
-#if defined(_M_X64) || defined(_M_IX86)
 // We use a custom calling convention to invoke JavascriptMethod based on
-// System V AMD64 ABI. At entry of JavascriptMethod the stack layout is:
+// System ABI. At entry of JavascriptMethod the stack layout is:
 //      [Return Address] [function] [callInfo] [arg0] [arg1] ...
 //
 #define DECLARE_ARGS_VARARRAY_N(va, n)                              \
@@ -29,6 +28,9 @@ inline Js::Var* _get_va(void* addrOfReturnAddress, int n)
 {
     // All args are right after ReturnAddress by custom calling convention
     Js::Var* pArgs = reinterpret_cast<Js::Var*>(addrOfReturnAddress) + 1;
+#ifdef _ARM_
+    n += 2; // ip + fp
+#endif
     return pArgs + n;
 }
 
@@ -58,10 +60,6 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 {
     return 5;
 }
-
-#else
-#error Not yet implemented
-#endif
 #endif
 
 
@@ -75,6 +73,10 @@ inline int _count_args(const T1&, const T2&, const T3&, const T4&, Js::CallInfo 
 #define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
     entryPoint(function, callInfo, nullptr, nullptr, nullptr, nullptr, \
                function, callInfo, ##__VA_ARGS__)
+#elif defined(_ARM_)
+// xplat-todo: fix me ARM
+#define CALL_ENTRYPOINT(entryPoint, function, callInfo, ...) \
+    entryPoint(function, callInfo, ##__VA_ARGS__)
 #else
 #error CALL_ENTRYPOINT not yet implemented
 #endif
@@ -117,17 +119,28 @@ namespace Js
 
         Arguments(VirtualTableInfoCtorEnum v) : Info(v) {}
 
+        Arguments(const Arguments& other) : Info(other.Info), Values(other.Values) {}
+
         Var operator [](int idxArg) { return const_cast<Var>(static_cast<const Arguments&>(*this)[idxArg]); }
         const Var operator [](int idxArg) const
         {
             AssertMsg((idxArg < (int)Info.Count) && (idxArg >= 0), "Ensure a valid argument index");
             return Values[idxArg];
         }
-        CallInfo Info;
-        Var* Values;
+
+        // swb: Arguments is mostly used on stack and does not need write barrier.
+        // It is recycler allocated with ES6 generators. We handle that specially.
+        FieldNoBarrier(CallInfo) Info;
+        FieldNoBarrier(Var*) Values;
 
         static uint32 GetCallInfoOffset() { return offsetof(Arguments, Info); }
         static uint32 GetValuesOffset() { return offsetof(Arguments, Values); }
+
+        // Prevent heap/recycler allocation, so we don't need write barrier for this
+        static void* operator new   (size_t)    = delete;
+        static void* operator new[] (size_t)    = delete;
+        static void  operator delete   (void*)  = delete;
+        static void  operator delete[] (void*)  = delete;
     };
 
     struct ArgumentReader : public Arguments

@@ -33,14 +33,7 @@ Abstract:
 #include "config.h"
 #endif
 
-#if HAVE_COREFOUNDATION
-#define CF_EXCLUDE_CSTD_HEADERS
-#include <CoreFoundation/CoreFoundation.h>
-#include <wctype.h>
-#else
-#include <wctype.h>
-#endif
-
+#include "runtime_proxy.h"
 #include <errno.h>
 
 SET_DEFAULT_DEBUG_CHANNEL(CRT);
@@ -306,7 +299,7 @@ PAL_iswspace(char16_t c)
     PERF_ENTRY(iswspace);
     ENTRY("PAL_iswspace (c=%C)\n", c);
 
-    ret = iswspace(c);
+    ret = proxy_iswspace(c);
 
     LOGEXIT("PAL_iswspace returns int %d\n", ret);
     PERF_EXIT(iswspace);
@@ -1201,6 +1194,7 @@ Function:
 See MSDN or the man page for wcslen.
 
 --*/
+__attribute__((no_instrument_function))
 size_t
 __cdecl
 PAL_wcslen(
@@ -1208,22 +1202,18 @@ PAL_wcslen(
 {
     size_t nChar = 0;
 
-    PERF_ENTRY(wcslen);
-    ENTRY("wcslen (string=%p (%S))\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING);
+    // no logging here. PAL's internal output also uses this method
 
     if ( !string )
     {
-        LOGEXIT("wcslen returning size_t %u\n", 0);
-        PERF_EXIT(wcslen);
         return 0;
     }
+
     while (*string++)
     {
         nChar++;
     }
 
-    LOGEXIT("wcslen returning size_t %u\n", nChar);
-    PERF_EXIT(wcslen);
     return nChar;
 }
 
@@ -1900,7 +1890,7 @@ PAL_iswprint( char16_t c )
     PERF_ENTRY(iswprint);
     ENTRY("PAL_iswprint (%#X)\n", c);
 
-    ret = iswprint(c);
+    ret = proxy_iswprint(c);
 
     LOGEXIT("PAL_iswprint returns %d\n", ret);
     PERF_EXIT(iswprint);

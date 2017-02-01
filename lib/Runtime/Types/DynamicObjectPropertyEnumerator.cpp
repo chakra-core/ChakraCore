@@ -6,17 +6,17 @@
 
 namespace Js
 {
-    bool DynamicObjectPropertyEnumerator::GetEnumNonEnumerable() const 
-    { 
-        return !!(flags & EnumeratorFlags::EnumNonEnumerable); 
+    bool DynamicObjectPropertyEnumerator::GetEnumNonEnumerable() const
+    {
+        return !!(flags & EnumeratorFlags::EnumNonEnumerable);
     }
-    bool DynamicObjectPropertyEnumerator::GetEnumSymbols() const 
-    { 
-        return !!(flags & EnumeratorFlags::EnumSymbols); 
+    bool DynamicObjectPropertyEnumerator::GetEnumSymbols() const
+    {
+        return !!(flags & EnumeratorFlags::EnumSymbols);
     }
-    bool DynamicObjectPropertyEnumerator::GetSnapShotSemantics() const 
-    { 
-        return !!(flags & EnumeratorFlags::SnapShotSemantics); 
+    bool DynamicObjectPropertyEnumerator::GetSnapShotSemantics() const
+    {
+        return !!(flags & EnumeratorFlags::SnapShotSemantics);
     }
 
     bool DynamicObjectPropertyEnumerator::GetUseCache() const
@@ -58,7 +58,7 @@ namespace Js
             if (!object->GetDynamicType()->GetTypeHandler()->EnsureObjectReady(object))
             {
                 return false;
-            }            
+            }
             Initialize(object->GetDynamicType(), nullptr, GetSnapShotSemantics() ? this->object->GetPropertyCount() : Constants::NoBigSlot);
             return true;
         }
@@ -69,7 +69,7 @@ namespace Js
         if (forInCache && type == forInCache->type)
         {
             // We shouldn't have a for in cache when asking to enum symbols
-            Assert(!GetEnumSymbols());            
+            Assert(!GetEnumSymbols());
             data = (CachedData *)forInCache->data;
 
             Assert(data != nullptr);
@@ -82,7 +82,7 @@ namespace Js
                 return true;
             }
         }
-      
+
         data = (CachedData *)requestContext->GetThreadContext()->GetDynamicObjectEnumeratorCache(type);
 
         if (data != nullptr && data->scriptContext == this->scriptContext && data->enumNonEnumerable == GetEnumNonEnumerable() && data->enumSymbols == GetEnumSymbols())
@@ -112,11 +112,11 @@ namespace Js
 
         uint propertyCount = this->object->GetPropertyCount();
         data = RecyclerNewStructPlus(requestContext->GetRecycler(),
-            propertyCount * sizeof(PropertyString *) + propertyCount * sizeof(BigPropertyIndex) + propertyCount * sizeof(PropertyAttributes), CachedData);
+            propertyCount * sizeof(Field(PropertyString*)) + propertyCount * sizeof(BigPropertyIndex) + propertyCount * sizeof(PropertyAttributes), CachedData);
         data->scriptContext = requestContext;
         data->cachedCount = 0;
         data->propertyCount = propertyCount;
-        data->strings = (PropertyString **)(data + 1);
+        data->strings = reinterpret_cast<Field(PropertyString*)*>(data + 1);
         data->indexes = (BigPropertyIndex *)(data->strings + propertyCount);
         data->attributes = (PropertyAttributes*)(data->indexes + propertyCount);
         data->completed = false;
@@ -163,7 +163,7 @@ namespace Js
             GetSnapShotSemantics() &&
             initialType->GetIsLocked() &&
             CONFIG_FLAG(TypeSnapshotEnumeration)
-            ? initialType
+            ? PointerValue(initialType)
             : object->GetDynamicType();
     }
 

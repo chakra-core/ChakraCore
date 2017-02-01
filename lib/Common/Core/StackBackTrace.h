@@ -9,6 +9,7 @@ class StackBackTrace
 {
 public:
     static const ULONG DefaultFramesToCapture = 30;
+    static StackBackTrace * Capture(char* buffer, size_t bufSize, ULONG framesToSkip = 0);
     template <typename TAllocator> _NOINLINE
         static StackBackTrace * Capture(TAllocator * alloc, ULONG framesToSkip = 0, ULONG framesToCapture = DefaultFramesToCapture);
 
@@ -119,6 +120,22 @@ private:
 };
 
 //
+// A buffer of requested "size", dynamically allocated or statically embedded.
+//
+template <ULONG size, bool useStatic>
+struct _SimpleBuffer
+{
+    BYTE* _buf;
+    _SimpleBuffer() { _buf = new BYTE[size]; }
+    ~_SimpleBuffer() { delete[] _buf; }
+};
+template <ULONG size>
+struct _SimpleBuffer<size, true>
+{
+    BYTE _buf[size];
+};
+
+//
 // Capture multiple call stack traces using an in-memory ring buffer. Useful for instrumenting source
 // code to track calls.
 //
@@ -127,7 +144,12 @@ private:
 //  HEADER:     Number of pointer-sized data reserved in the header of each trace. You can save runtime
 //              data in the header of each trace to record runtime state of the stack trace.
 //  FRAMES:     Number of stack frames for each trace.
-//  SKIPFRAMES: Top frames to skip for each capture. e.g., at least StackBackTraceRing::Capture frame is useless.
+//              This can be 0, only captures header data without stack.
+//  SKIPFRAMES: Top frames to skip for each capture. e.g., at least the "StackBackTraceRing::Capture"
+//              frame is useless.
+//  USE_STATIC_BUFFER:
+//              Use embedded buffer instead of dynamically allocate. This may be helpful to avoid
+//              initialization problem when global static StackBackTraceRing.
 //
 //  Usage: Following captures the last 100 stacks that changes scriptContext->debuggerMode:
 //      Declare an instance:                            StackBackTraceRing<100> s_debuggerMode;
@@ -139,38 +161,37 @@ private:
 //      Inspect trace N:            dds [buf]+0n32*4*N
 //      Inspect last trace:         dds [buf]+0n32*4*[cur-1]
 //
-template <ULONG BUFFERS, ULONG HEADER = 2, ULONG FRAMES = 30, ULONG SKIPFRAMES = 1>
+template <ULONG BUFFERS, ULONG HEADER = 2, ULONG FRAMES = 30, ULONG SKIPFRAMES = 1,
+          bool USE_STATIC_BUFFER = false>
 class StackBackTraceRing
 {
     static const ULONG ONE_TRACE = HEADER + FRAMES;
 
-private:
-    LPVOID* buf;
+protected:
+    _SimpleBuffer<sizeof(LPVOID) * ONE_TRACE * BUFFERS, USE_STATIC_BUFFER> _simple_buf;
     ULONG cur;
 
 public:
     StackBackTraceRing()
     {
-        buf = new LPVOID[ONE_TRACE * BUFFERS];
         cur = 0;
-    }
-
-    ~StackBackTraceRing()
-    {
-        delete[] buf;
     }
 
     template <class HeaderFunc>
     void CaptureWithHeader(HeaderFunc writeHeader)
     {
-        LPVOID* buffer = &buf[ONE_TRACE * cur++];
+        cur = cur % BUFFERS;
+        LPVOID* buffer = reinterpret_cast<LPVOID*>(_simple_buf._buf) + ONE_TRACE * cur++;
         cur = cur % BUFFERS;
 
         memset(buffer, 0, sizeof(LPVOID) * ONE_TRACE);
         writeHeader(buffer);
 
-        LPVOID* frames = &buffer[HEADER];
-        CaptureStackBackTrace(SKIPFRAMES, FRAMES, frames, nullptr);
+        if (FRAMES > 0)
+        {
+            LPVOID* frames = &buffer[HEADER];
+            CaptureStackBackTrace(SKIPFRAMES, FRAMES, frames, nullptr);
+        }
     }
 
     // Capture a stack trace
@@ -204,6 +225,29 @@ public:
             buffer[0] = reinterpret_cast<LPVOID>(data0);
             buffer[1] = reinterpret_cast<LPVOID>(data1);
         });
+    }
+
+    template <class T0, class T1, class T2>
+    void Capture(T0 data0, T1 data1, T2 data2) {
+      C_ASSERT(HEADER >= 3);
+
+      CaptureWithHeader([=](_Out_writes_(HEADER) LPVOID* buffer) {
+        buffer[0] = reinterpret_cast<LPVOID>(data0);
+        buffer[1] = reinterpret_cast<LPVOID>(data1);
+        buffer[2] = reinterpret_cast<LPVOID>(data2);
+      });
+    }
+
+    template <class T0, class T1, class T2, class T3>
+    void Capture(T0 data0, T1 data1, T2 data2, T3 data3) {
+      C_ASSERT(HEADER >= 4);
+
+      CaptureWithHeader([=](_Out_writes_(HEADER) LPVOID* buffer) {
+        buffer[0] = reinterpret_cast<LPVOID>(data0);
+        buffer[1] = reinterpret_cast<LPVOID>(data1);
+        buffer[2] = reinterpret_cast<LPVOID>(data2);
+        buffer[3] = reinterpret_cast<LPVOID>(data3);
+      });
     }
 };
 

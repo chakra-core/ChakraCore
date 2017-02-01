@@ -147,6 +147,7 @@
     <ClInclude Include="MemoryLogger.h" />
     <ClInclude Include="StressTest.h" />
     <ClInclude Include="VirtualAllocWrapper.h" />
+    <ClInclude Include="WriteBarrierMacros.h" />
     <ClInclude Include="XDataAllocator.h" />
   </ItemGroup>
   <ItemGroup>

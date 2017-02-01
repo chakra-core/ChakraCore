@@ -513,7 +513,7 @@ void ByteCodeGenerator::LoadUncachedHeapArguments(FuncInfo *funcInfo)
     Symbol *argSym = funcInfo->GetArgumentsSymbol();
     Assert(argSym && argSym->GetIsArguments());
     Js::RegSlot argumentsLoc = argSym->GetLocation();
-    
+
 
     Js::OpCode opcode = !funcInfo->root->sxFnc.HasNonSimpleParameterList() ? Js::OpCode::LdHeapArguments : Js::OpCode::LdLetHeapArguments;
     bool hasRest = funcInfo->root->sxFnc.pnodeRest != nullptr;
@@ -682,7 +682,7 @@ void ByteCodeGenerator::InitBlockScopedContent(ParseNode *pnodeBlock, Js::Debugg
             {
                 TrackSlotArrayPropertyForDebugger(debuggerScope, sym, sym->EnsurePosition(this), pnode->nop == knopConstDecl ? Js::DebuggerScopePropertyFlags_Const : Js::DebuggerScopePropertyFlags_None);
             }
-            else 
+            else
             {
                 TrackRegisterPropertyForDebugger(debuggerScope, sym, funcInfo, pnode->nop == knopConstDecl ? Js::DebuggerScopePropertyFlags_Const : Js::DebuggerScopePropertyFlags_None);
             }
@@ -1534,9 +1534,9 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
 
     // Create and fill the array of local property ID's.
     // They all have slots assigned to them already (if they need them): see StartEmitFunction.
-    
+
     Js::PropertyIdArray *propIds = funcInfo->GetParsedFunctionBody()->AllocatePropertyIdArrayForFormals(extraAlloc, slotCount, Js::ActivationObjectEx::ExtraSlotCount());
-    
+
     ParseNode *pnodeFnc = funcInfo->root;
     ParseNode *pnode;
     Symbol *sym;
@@ -1688,7 +1688,7 @@ void ByteCodeGenerator::EmitScopeObjectInit(FuncInfo *funcInfo)
     slots[3] = funcInfo->GetParsedFunctionBody()->NewObjectLiteral();
 
     propIds->hasNonSimpleParams = funcInfo->root->sxFnc.HasNonSimpleParameterList();
-    
+
     funcInfo->GetParsedFunctionBody()->SetHasCachedScopePropIds(true);
 }
 
@@ -2718,7 +2718,8 @@ void ByteCodeGenerator::EmitFunctionBody(FuncInfo *funcInfo)
                     Assert(decl);
                     if (PHASE_TRACE(Js::DelayCapturePhase, funcInfo->byteCodeFunction))
                     {
-                        Output::Print(_u("--- DelayCapture: Committed symbol '%s' to slot.\n"), sym->GetName());
+                        Output::Print(_u("--- DelayCapture: Committed symbol '%s' to slot.\n"),
+                            sym->GetName().GetBuffer());
                         Output::Flush();
                     }
                     // REVIEW[ianhall]: HACK to work around this causing an error due to sym not yet being initialized
@@ -4212,7 +4213,8 @@ bool ByteCodeGenerator::EnsureSymbolModuleSlots(Symbol* sym, FuncInfo* funcInfo)
 
         AnalysisAssert(moduleNameRecord != nullptr);
         Assert(moduleNameRecord->module->IsSourceTextModuleRecord());
-        Js::SourceTextModuleRecord* resolvedModuleRecord = (Js::SourceTextModuleRecord*)moduleNameRecord->module;
+        Js::SourceTextModuleRecord* resolvedModuleRecord =
+            (Js::SourceTextModuleRecord*)PointerValue(moduleNameRecord->module);
 
         moduleIndex = resolvedModuleRecord->GetModuleId();
         moduleSlotIndex = resolvedModuleRecord->GetLocalExportSlotIndexByLocalName(moduleNameRecord->bindingName);
@@ -6541,7 +6543,7 @@ void EmitDestructuredArrayCore(
 // try {
 //    CallIteratorClose
 // } catch (e) {
-//    do nothing 
+//    do nothing
 // }
 
 void EmitTryCatchAroundClose(
@@ -6766,7 +6768,7 @@ void EmitDestructuredArray(
         regOffset = funcInfo->AcquireTmpRegister();
     }
 
-    // Insert try node here 
+    // Insert try node here
     Js::ByteCodeLabel finallyLabel = byteCodeGenerator->Writer()->DefineLabel();
     Js::ByteCodeLabel catchLabel = byteCodeGenerator->Writer()->DefineLabel();
     byteCodeGenerator->Writer()->RecordCrossFrameEntryExitRecord(true);
@@ -7756,7 +7758,7 @@ void EmitCallTarget(
 
         Emit(pnodeTarget->sxBin.pnode1, byteCodeGenerator, funcInfo, false);
         Js::PropertyId propertyId = pnodeTarget->sxBin.pnode2->sxPid.PropertyIdFromNameNode();
-        
+
         Js::RegSlot protoLocation =
             (pnodeTarget->sxBin.pnode1->nop == knopSuper) ?
             byteCodeGenerator->EmitLdObjProto(Js::OpCode::LdHomeObjProto, funcInfo->superRegister, funcInfo) :
@@ -9297,7 +9299,7 @@ void EmitIteratorNext(Js::RegSlot itemLocation, Js::RegSlot iteratorLocation, Js
 // Generating
 // if (hasReturnFunction) {
 //     value = Call Retrun;
-//     if (value != Object) 
+//     if (value != Object)
 //        throw TypeError;
 // }
 
@@ -9424,7 +9426,7 @@ void EmitForIn(ParseNode *loopNode,
 
     // branch past loop when MoveAndGetNext returns nullptr
     byteCodeGenerator->Writer()->BrReg1Unsigned1(Js::OpCode::BrOnEmpty, continuePastLoop, loopNode->sxForInOrForOf.itemLocation, forInLoopLevel);
-    
+
     EmitForInOfLoopBody(loopNode, loopEntrance, continuePastLoop, byteCodeGenerator, funcInfo, fReturnValue);
 
     byteCodeGenerator->Writer()->ExitLoop(loopId);
@@ -9508,7 +9510,7 @@ void EmitForInOrForOf(ParseNode *loopNode, ByteCodeGenerator *byteCodeGenerator,
 
     // These two temp variables store the information of return function to be called or not.
     // one variable is used for catch block and one is used for finally block. These variable will be set to true when we think that return function
-    // to be called on abrupt loop break. 
+    // to be called on abrupt loop break.
     // Why two variables? since these are temps and JIT does like not flow if single variable is used in multiple blocks.
     Js::RegSlot shouldCallReturnFunctionLocation = funcInfo->AcquireTmpRegister();
     Js::RegSlot shouldCallReturnFunctionLocationFinally = funcInfo->AcquireTmpRegister();
@@ -10680,7 +10682,7 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             Js::PropertyId propertyId = pexpr->sxBin.pnode2->sxPid.PropertyIdFromNameNode();
             funcInfo->ReleaseLoc(pexpr->sxBin.pnode1);
             funcInfo->AcquireLoc(pnode);
-            
+
             if (pexpr->sxBin.pnode1->nop == knopSuper)
             {
                 byteCodeGenerator->Writer()->W1(Js::OpCode::RuntimeReferenceError, SCODE_CODE(JSERR_DeletePropertyWithSuper));

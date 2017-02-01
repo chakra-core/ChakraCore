@@ -23,7 +23,6 @@ Abstract:
 #include "pal/cs.hpp"
 #include "pal/malloc.hpp"
 #include "pal/file.hpp"
-#include "pal/seh.hpp"
 #include "pal/dbgmsg.h"
 #include "pal/virtual.h"
 #include "pal/map.h"
@@ -724,56 +723,6 @@ static DWORD VIRTUALConvertVirtualFlags( IN BYTE VirtualProtect )
     }
     return MemAccessControl;
 }
-
-
-/***
- *  Displays the linked list.
- *
- */
-#if defined _DEBUG
-static void VIRTUALDisplayList( void  )
-{
-    if (!DBG_ENABLED(DLI_TRACE, defdbgchan))
-        return;
-
-    PCMI p;
-    SIZE_T count;
-    SIZE_T index;
-    CPalThread * pthrCurrent = InternalGetCurrentThread();
-
-    InternalEnterCriticalSection(pthrCurrent, &virtual_critsec);
-
-    p = pVirtualMemory;
-    count = 0;
-    while ( p ) {
-
-        DBGOUT( "Entry %d : \n", count );
-        DBGOUT( "\t startBoundary %#x \n", p->startBoundary );
-        DBGOUT( "\t memSize %d \n", p->memSize );
-
-        DBGOUT( "\t pAllocState " );
-        for ( index = 0; index < p->memSize / VIRTUAL_PAGE_SIZE; index++)
-        {
-            DBGOUT( "[%d] ", VIRTUALGetAllocationType( index, p ) );
-        }
-        DBGOUT( "\t pProtectionState " );
-        for ( index = 0; index < p->memSize / VIRTUAL_PAGE_SIZE; index++ )
-        {
-            DBGOUT( "[%d] ", (UINT)p->pProtectionState[ index ] );
-        }
-        DBGOUT( "\n" );
-        DBGOUT( "\t accessProtection %d \n", p->accessProtection );
-        DBGOUT( "\t allocationType %d \n", p->allocationType );
-        DBGOUT( "\t pNext %p \n", p->pNext );
-        DBGOUT( "\t pLast %p \n", p->pLast );
-
-        count++;
-        p = p->pNext;
-    }
-
-    InternalLeaveCriticalSection(pthrCurrent, &virtual_critsec);
-}
-#endif
 
 /****
  *  VIRTUALStoreAllocationInfo()
@@ -1622,6 +1571,13 @@ VirtualAllocEx(
 {
     return VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
 }
+
+__attribute__((no_instrument_function, noinline))
+static bool PAL_Initialize_Check_Once()
+{
+    int error = PAL_InitializeChakraCore();
+    return error == ERROR_SUCCESS;
+}
 /*++
 Function:
   VirtualAlloc
@@ -1642,6 +1598,12 @@ VirtualAlloc(
          IN DWORD flAllocationType, /* Type of allocation */
          IN DWORD flProtect)        /* Type of access protection */
 {
+    static bool was_pal_initialized = PAL_Initialize_Check_Once();
+
+    if (!was_pal_initialized) // do not assert. leave it as is.
+    {
+        abort();
+    }
     LPVOID  pRetVal       = NULL;
     CPalThread *pthrCurrent;
 
@@ -1715,9 +1677,6 @@ VirtualAlloc(
     }
 
 done:
-#if defined _DEBUG
-    VIRTUALDisplayList();
-#endif
     LOGEXIT("VirtualAlloc returning %p\n ", pRetVal  );
     PERF_EXIT(VirtualAlloc);
     return pRetVal;
@@ -2017,7 +1976,7 @@ VirtualProtect(
             if ( !VIRTUALIsPageCommitted( Index, pEntry ) )
             {
                 ERROR( "You can only change the protection attributes"
-                       " on committed memory.\n" )
+                       " on committed memory.\n" );
                 SetLastError( ERROR_INVALID_ADDRESS );
                 goto ExitVirtualProtect;
             }
@@ -2065,9 +2024,6 @@ VirtualProtect(
 ExitVirtualProtect:
     InternalLeaveCriticalSection(pthrCurrent, &virtual_critsec);
 
-#if defined _DEBUG
-    VIRTUALDisplayList();
-#endif
     LOGEXIT( "VirtualProtect returning %s.\n", bRetVal == TRUE ? "TRUE" : "FALSE" );
     PERF_EXIT(VirtualProtect);
     return bRetVal;
@@ -2355,48 +2311,6 @@ ExitVirtualQuery:
     LOGEXIT( "VirtualQuery returning %d.\n", sizeof( *lpBuffer ) );
     PERF_EXIT(VirtualQuery);
     return sizeof( *lpBuffer );
-}
-
-/*++
-Function:
-  GetWriteWatch
-
-See MSDN doc.
---*/
-UINT
-PALAPI
-GetWriteWatch(
-  IN DWORD dwFlags,
-  IN PVOID lpBaseAddress,
-  IN SIZE_T dwRegionSize,
-  OUT PVOID *lpAddresses,
-  IN OUT PULONG_PTR lpdwCount,
-  OUT PULONG lpdwGranularity
-)
-{
-    // TODO: implement this method
-    *lpAddresses = NULL;
-    *lpdwCount = 0;
-    // Until it is implemented, return non-zero value as an indicator of failure
-    return 1;
-}
-
-/*++
-Function:
-  ResetWriteWatch
-
-See MSDN doc.
---*/
-UINT
-PALAPI
-ResetWriteWatch(
-  IN LPVOID lpBaseAddress,
-  IN SIZE_T dwRegionSize
-)
-{
-    // TODO: implement this method
-    // Until it is implemented, return non-zero value as an indicator of failure
-    return 1;
 }
 
 /*++

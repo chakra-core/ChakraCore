@@ -21,11 +21,11 @@ JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
 
 BOOL doTTRecord = false;
 BOOL doTTDebug = false;
-byte ttUri[MAX_PATH * sizeof(wchar_t)];
+byte ttUri[MAX_PATH * sizeof(WCHAR)];
 size_t ttUriByteLength = 0;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;
-LPWSTR connectionUuidString = NULL;
+LPCWSTR connectionUuidString = NULL;
 UINT32 startEventCount = 1;
 
 extern "C"
@@ -240,13 +240,13 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsValueRef bufferVa
 
         try
         {
-            JsTTDMoveMode moveMode = (JsTTDMoveMode)(JsTTDMoveMode::JsTTDMoveKthEvent | ((int64) startEventCount) << 32);
+            JsTTDMoveMode moveMode = JsTTDMoveMode::JsTTDMoveKthEvent;
             int64_t snapEventTime = -1;
             int64_t nextEventTime = -2;
 
             while(true)
             {
-                JsErrorCode error = ChakraRTInterface::JsTTDGetSnapTimeTopLevelEventMove(chRuntime, moveMode, &nextEventTime, &snapEventTime, nullptr);
+                JsErrorCode error = ChakraRTInterface::JsTTDGetSnapTimeTopLevelEventMove(chRuntime, moveMode, startEventCount, &nextEventTime, &snapEventTime, nullptr);
 
                 if(error != JsNoError)
                 {
@@ -290,7 +290,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsValueRef bufferVa
 
         JsErrorCode runScript;
         JsValueRef fname;
-        IfJsErrorFailLog(ChakraRTInterface::JsCreateStringUtf8((const unsigned char*)fullPath,
+        IfJsErrorFailLog(ChakraRTInterface::JsCreateString(fullPath,
             strlen(fullPath), &fname));
 
         if(bufferValue != nullptr)
@@ -372,6 +372,10 @@ Error:
         }
         delete messageQueue;
     }
+
+    // We only call RunScript() once, safe to Uninitialize()
+    WScriptJsrt::Uninitialize();
+
     return hr;
 }
 
@@ -615,6 +619,7 @@ Error:
 HRESULT ExecuteTestWithMemoryCheck(char* fileName)
 {
     HRESULT hr = E_FAIL;
+#ifdef _WIN32 // looks on linux it always leak ThreadContextTLSEntry since there's no DllMain
 #ifdef CHECK_MEMORY_LEAK
     // Always check memory leak, unless user specified the flag already
     if (!ChakraRTInterface::IsEnabledCheckMemoryFlag())
@@ -625,6 +630,7 @@ HRESULT ExecuteTestWithMemoryCheck(char* fileName)
     // Disable the output in case an unhandled exception happens
     // We will re-enable it if there is no unhandled exceptions
     ChakraRTInterface::SetEnableCheckMemoryLeakOutput(false);
+#endif
 #endif
 
 #ifdef _WIN32
@@ -737,7 +743,10 @@ unsigned int WINAPI StaticThreadProc(void *lpParam)
 static char16** argv = nullptr;
 int main(int argc, char** c_argv)
 {
-    PAL_InitializeChakraCore(argc, c_argv);
+#ifndef CHAKRA_STATIC_LIBRARY
+// xplat-todo: PAL free CH ?
+    PAL_InitializeChakraCore();
+#endif
     argv = new char16*[argc];
     for (int i = 0; i < argc; i++)
     {

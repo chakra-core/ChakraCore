@@ -119,7 +119,7 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
     ServerCleanupScriptContext(nullptr, &phContext);
 }
 
-#pragma warning(push)  
+#pragma warning(push)
 #pragma warning(disable:6387 28196) // PREFast does not understand the out context can be null here
 HRESULT
 ServerInitializeThreadContext(
@@ -188,7 +188,7 @@ ServerInitializeScriptContext(
         return S_OK;
     });
 }
-#pragma warning(pop) 
+#pragma warning(pop)
 
 HRESULT
 ServerCleanupThreadContext(
@@ -235,6 +235,7 @@ ServerUpdatePropertyRecordMap(
 
     return ServerCallWrapper(threadContextInfo, [&]()->HRESULT
     {
+        typedef ServerThreadContext::BVSparseNode BVSparseNode;
         CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
         threadContextInfo->UpdateNumericPropertyBV((BVSparseNode*)updatedPropsBVHead);
 

@@ -193,7 +193,7 @@ namespace Js
     }
 
     JavascriptString::JavascriptString(StaticType * type)
-        : RecyclableObject(type), m_charLength(0), m_pszValue(0)
+        : RecyclableObject(type), m_charLength(0), m_pszValue(nullptr)
     {
         Assert(type->GetTypeId() == TypeIds_String);
     }
@@ -559,7 +559,7 @@ case_2:
         return cs;
     }
 
-    inline JavascriptString* JavascriptString::Concat(JavascriptString* pstLeft, JavascriptString* pstRight)
+    JavascriptString* JavascriptString::Concat(JavascriptString* pstLeft, JavascriptString* pstRight)
     {
         AssertMsg(pstLeft != nullptr, "Must have a valid left string");
         AssertMsg(pstRight != nullptr, "Must have a valid right string");

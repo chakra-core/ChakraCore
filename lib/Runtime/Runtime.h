@@ -349,7 +349,7 @@ const Js::ModuleID kmodGlobal = 0;
 
 class SourceContextInfo;
 
-#ifdef ENABLE_SCRIPT_DEBUGGING
+#if defined(ENABLE_SCRIPT_DEBUGGING) && defined(_WIN32)
 #include "activdbg100.h"
 #endif
 
@@ -370,12 +370,8 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #define DBGPROP_ATTRIB_VALUE_PENDING_MUTATION 0x10000000
 #endif
 
-#ifdef _MSC_VER
-#include "JITClient.h"
-#else
-#include "JITTypes.h"
+#include "../JITIDL/JITTypes.h"
 #include "../JITClient/JITManager.h"
-#endif
 
 #include "Base/SourceHolder.h"
 #include "Base/Utf8SourceInfo.h"
@@ -566,6 +562,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/InlineCachePointerArray.inl"
 #include "Language/JavascriptOperators.inl"
 #include "Language/TaggedInt.inl"
+#include "Library/JavascriptGeneratorFunction.h"
 
 
 #ifndef USED_IN_STATIC_LIB

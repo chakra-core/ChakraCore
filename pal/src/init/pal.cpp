@@ -26,7 +26,6 @@ Abstract:
 #include "pal/file.hpp"
 #include "pal/map.hpp"
 #include "../objmgr/shmobjectmanager.hpp"
-#include "pal/seh.hpp"
 #include "pal/palinternal.h"
 #include "pal/dbgmsg.h"
 #include "pal/shmemory.h"
@@ -42,6 +41,8 @@ Abstract:
 
 #if HAVE_MACH_EXCEPTIONS
 #include "../exception/machexception.h"
+#else
+#include "../exception/signal.hpp"
 #endif
 
 #include <stdlib.h>
@@ -93,57 +94,12 @@ static pthread_mutex_t init_critsec_mutex = PTHREAD_MUTEX_INITIALIZER;
    very first PAL_Initialize call, and is freed afterward. */
 static PCRITICAL_SECTION init_critsec = NULL;
 
-static int Initialize(int argc, const char *const argv[], DWORD flags);
-static BOOL INIT_IncreaseDescriptorLimit(void);
 static LPWSTR INIT_FormatCommandLine (int argc, const char * const *argv);
 static LPWSTR INIT_FindEXEPath(LPCSTR exe_name);
 
 #ifdef _DEBUG
 extern void PROCDumpThreadList(void);
 #endif
-
-/*++
-Function:
-  PAL_Initialize
-
-Abstract:
-  This function is the first function of the PAL to be called.
-  Internal structure initialization is done here. It could be called
-  several time by the same process, a reference count is kept.
-
-Return:
-  0 if successful
-  -1 if it failed
-
---*/
-
-int
-PALAPI
-PAL_Initialize(
-    int argc,
-    const char *const argv[])
-{
-    return Initialize(argc, argv, PAL_INITIALIZE);
-}
-
-/*++
-Function:
-  PAL_InitializeDLL
-
-Abstract:
-    Initializes the non-runtime DLLs/modules like the DAC and SOS.
-
-Return:
-  0 if successful
-  -1 if it failed
-
---*/
-int
-PALAPI
-PAL_InitializeDLL()
-{
-    return Initialize(0, NULL, PAL_INITIALIZE_DLL);
-}
 
 /*++
 Function:
@@ -157,24 +113,19 @@ Return:
   -1 if it failed
 
 --*/
-int
-Initialize(
-    int argc,
-    const char *const argv[],
-    DWORD flags)
+static int
+Initialize()
 {
     PAL_ERROR palError = ERROR_GEN_FAILURE;
     CPalThread *pThread = NULL;
     CSharedMemoryObjectManager *pshmom = NULL;
-    LPWSTR command_line = NULL;
-    LPWSTR exe_path = NULL;
     int retval = -1;
     bool fFirstTimeInit = false;
 
     /* the first ENTRY within the first call to PAL_Initialize is a special
        case, since debug channels are not initialized yet. So in that case the
        ENTRY will be called after the DBG channels initialization */
-    ENTRY_EXTERNAL("PAL_Initialize(argc = %d argv = %p)\n", argc, argv);
+    ENTRY_EXTERNAL("PAL_Initialize()\n");
 
     /*Firstly initiate a lastError */
     SetLastError(ERROR_GEN_FAILURE);
@@ -231,7 +182,6 @@ Initialize(
         {
             goto done;
         }
-
 #if _DEBUG
         // Verify that our page size is what we think it is. If it's
         // different, we can't run.
@@ -243,13 +193,6 @@ Initialize(
         }
 #endif  // _DEBUG
 
-        if (!INIT_IncreaseDescriptorLimit())
-        {
-            ERROR("Unable to increase the file descriptor limit!\n");
-            // We can continue if this fails; we'll just have problems if
-            // we use large numbers of threads or have many open files.
-        }
-
         /* initialize the shared memory infrastructure */
         if (!SHMInitialize())
         {
@@ -260,7 +203,6 @@ Initialize(
         //
         // Initialize global process data
         //
-
         palError = InitializeProcessData();
         if (NO_ERROR != palError)
         {
@@ -271,7 +213,7 @@ Initialize(
 #if HAVE_MACH_EXCEPTIONS
         // Mach exception port needs to be set up before the thread
         // data or threads are set up.
-        if (!SEHInitializeMachExceptions(flags))
+        if (!SEHInitializeMachExceptions())
         {
             ERROR("SEHInitializeMachExceptions failed!\n");
             palError = ERROR_GEN_FAILURE;
@@ -282,7 +224,6 @@ Initialize(
         //
         // Initialize global thread data
         //
-
         palError = InitializeGlobalThreadData();
         if (NO_ERROR != palError)
         {
@@ -300,7 +241,6 @@ Initialize(
             ERROR("Unable to create initial thread data\n");
             goto CLEANUP1a;
         }
-
         PROCAddThread(pThread, pThread);
 
         //
@@ -317,7 +257,6 @@ Initialize(
         //
         // It's now safe to access our thread data
         //
-
         g_fThreadDataAvailable = TRUE;
 
         //
@@ -333,7 +272,6 @@ Initialize(
         //
         // Initialize the object manager
         //
-
         pshmom = InternalNew<CSharedMemoryObjectManager>();
         if (NULL == pshmom)
         {
@@ -372,63 +310,6 @@ Initialize(
 
     palError = ERROR_GEN_FAILURE;
 
-    if (argc > 0 && argv != NULL)
-    {
-        /* build the command line */
-        command_line = INIT_FormatCommandLine(argc, argv);
-        if (NULL == command_line)
-        {
-            ERROR("Error building command line\n");
-            goto CLEANUP1d;
-        }
-
-        /* find out the application's full path */
-        exe_path = INIT_FindEXEPath(argv[0]);
-        if (NULL == exe_path)
-        {
-            ERROR("Unable to find exe path\n");
-            goto CLEANUP1e;
-        }
-
-        if (NULL == command_line || NULL == exe_path)
-        {
-            ERROR("Failed to process command-line parameters!\n");
-            goto CLEANUP2;
-        }
-
-        palError = InitializeProcessCommandLine(
-            command_line,
-            exe_path);
-
-        if (NO_ERROR != palError)
-        {
-            ERROR("Unable to initialize command line\n");
-            goto CLEANUP2;
-        }
-
-        // InitializeProcessCommandLine took ownership of this memory.
-        command_line = NULL;
-
-#ifdef PAL_PERF
-        // Initialize the Profiling structure
-        if(FALSE == PERFInitialize(command_line, exe_path))
-        {
-            ERROR("Performance profiling initial failed\n");
-            goto CLEANUP2;
-        }
-        PERFAllocThreadInfo();
-#endif
-
-        if (!LOADSetExeName(exe_path))
-        {
-            ERROR("Unable to set exe name\n");
-            goto CLEANUP2;
-        }
-
-        // LOADSetExeName took ownership of this memory.
-        exe_path = NULL;
-    }
-
     if (init_count == 0)
     {
         //
@@ -438,30 +319,17 @@ Initialize(
         if (NO_ERROR != palError)
         {
             ERROR("Unable to create initial process and thread objects\n");
-            goto CLEANUP2;
-        }
-
-        if (flags & PAL_INITIALIZE_SYNC_THREAD)
-        {
-            //
-            // Tell the synchronization manager to start its worker thread
-            //
-            palError = CPalSynchMgrController::StartWorker(pThread);
-            if (NO_ERROR != palError)
-            {
-                ERROR("Synch manager failed to start worker thread\n");
-                goto CLEANUP5;
-            }
-        }
-
-        palError = ERROR_GEN_FAILURE;
-
-        /* initialize structured exception handling stuff (signals, etc) */
-        if (FALSE == SEHInitialize(pThread, flags))
-        {
-            ERROR("Unable to initialize SEH support\n");
             goto CLEANUP5;
         }
+
+#if !HAVE_MACH_EXCEPTIONS
+        if(!SEHInitializeSignals())
+        {
+            goto CLEANUP5;
+        }
+#endif
+
+        palError = ERROR_GEN_FAILURE;
 
         if (FALSE == TIMEInitialize())
         {
@@ -474,14 +342,6 @@ Initialize(
         {
             ERROR("Unable to initialize file mapping support\n");
             goto CLEANUP6;
-        }
-
-        /* Initialize the Virtual* functions. */
-        bool initializeExecutableMemoryAllocator = (flags & PAL_INITIALIZE_EXEC_ALLOCATOR) != 0;
-        if (FALSE == VIRTUALInitialize(initializeExecutableMemoryAllocator))
-        {
-            ERROR("Unable to initialize virtual memory support\n");
-            goto CLEANUP10;
         }
 
         /* create file objects for standard handles */
@@ -530,13 +390,8 @@ CLEANUP13:
 CLEANUP10:
     MAPCleanup();
 CLEANUP6:
-    SEHCleanup();
 CLEANUP5:
     PROCCleanupInitialProcess();
-CLEANUP2:
-    InternalFree(exe_path);
-CLEANUP1e:
-    InternalFree(command_line);
 CLEANUP1d:
     // Cleanup synchronization manager
 CLEANUP1c:
@@ -550,6 +405,7 @@ CLEANUP1:
 CLEANUP0:
     ERROR("PAL_Initialize failed\n");
     SetLastError(palError);
+
 done:
 #ifdef PAL_PERF
     if( retval == 0)
@@ -593,27 +449,47 @@ Return:
   An error code, if it failed
 
 --*/
-static bool pal_was_initialized = false;
-PAL_ERROR
+#if defined(ENABLE_CC_XPLAT_TRACE) || defined(DEBUG)
+bool PAL_InitializeChakraCoreCalled = false;
+#endif
+
+int
 PALAPI
-PAL_InitializeChakraCore(int argc, char** argv)
+PAL_InitializeChakraCore()
 {
     // this is not thread safe but PAL_InitializeChakraCore is per process
     // besides, calling Jsrt initializer function is thread safe
-    if (pal_was_initialized) return ERROR_SUCCESS;
+    if (init_count > 0) return ERROR_SUCCESS;
+#if defined(ENABLE_CC_XPLAT_TRACE) || defined(DEBUG)
+    PAL_InitializeChakraCoreCalled = true;
+#endif
 
-    // Fake up a command line to call PAL initialization with.
-    int result = Initialize(argc, argv, PAL_INITIALIZE_CHAKRACORE);
-    if (result != 0)
+    if (Initialize())
     {
         return GetLastError();
+    }
+
+    CPalThread *pThread = InternalGetCurrentThread();
+    //
+    // Tell the synchronization manager to start its worker thread
+    //
+    int error = CPalSynchMgrController::StartWorker(pThread);
+    if (NO_ERROR != error)
+    {
+        ERROR("Synch manager failed to start worker thread\n");
+        return error;
+    }
+
+    if (FALSE == VIRTUALInitialize(true))
+    {
+        ERROR("Unable to initialize virtual memory support\n");
+        return ERROR_GEN_FAILURE;
     }
 
     // Check for a repeated call (this is a no-op).
     if (InterlockedIncrement(&g_chakraCoreInitialized) > 1)
     {
         PAL_Enter(PAL_BoundaryTop);
-        pal_was_initialized = true;
         return ERROR_SUCCESS;
     }
 
@@ -622,7 +498,6 @@ PAL_InitializeChakraCore(int argc, char** argv)
         return ERROR_GEN_FAILURE;
     }
 
-    pal_was_initialized = true;
     return ERROR_SUCCESS;
 }
 
@@ -678,40 +553,6 @@ PAL_IsDebuggerPresent()
 #else
     return FALSE;
 #endif
-}
-
-/*++
-Function:
-  PAL_EntryPoint
-
-Abstract:
-  This function should be used to wrap code that uses PAL library on thread that was not created by PAL.
---*/
-PALIMPORT
-DWORD_PTR
-PALAPI
-PAL_EntryPoint(
-    IN LPTHREAD_START_ROUTINE lpStartAddress,
-    IN LPVOID lpParameter)
-{
-    CPalThread *pThread;
-    DWORD_PTR retval = (DWORD) -1;
-
-    ENTRY("PAL_EntryPoint(lpStartAddress=%p, lpParameter=%p)\n", lpStartAddress, lpParameter);
-
-    pThread = InternalGetCurrentThread();
-    if (NULL == pThread)
-    {
-        /* This function works only for thread that called PAL_Initialize for now. */
-        ERROR( "Unable to get the thread object.\n" );
-        goto done;
-    }
-
-    retval = (*lpStartAddress)(lpParameter);
-
-done:
-    LOGEXIT("PAL_EntryPoint returns int %d\n", retval);
-    return retval;
 }
 
 /*++
@@ -773,27 +614,6 @@ PAL_TerminateEx(
 
     LOGEXIT("PAL_TerminateEx is exiting the current process.\n");
     exit(exitCode);
-}
-
-/*++
-Function:
-  PAL_InitializeDebug
-
-Abstract:
-  This function is the called when cordbg attaches to the process.
---*/
-void
-PALAPI
-PAL_InitializeDebug(
-    void)
-{
-    PERF_ENTRY(PAL_InitializeDebug);
-    ENTRY("PAL_InitializeDebug()\n");
-#if HAVE_MACH_EXCEPTIONS
-    MachExceptionInitializeDebug();
-#endif
-    LOGEXIT("PAL_InitializeDebug returns\n");
-    PERF_EXIT(PAL_InitializeDebug);
 }
 
 /*++
@@ -918,40 +738,6 @@ void PALInitUnlock(void)
     InternalLeaveCriticalSection(pThread, init_critsec);
 }
 
-/* Internal functions *********************************************************/
-
-/*++
-Function:
-    INIT_IncreaseDescriptorLimit [internal]
-
-Abstract:
-    Calls setrlimit(2) to increase the maximum number of file descriptors
-    this process can open.
-
-Return value:
-    TRUE if the call to setrlimit succeeded; FALSE otherwise.
---*/
-static BOOL INIT_IncreaseDescriptorLimit(void)
-{
-    struct rlimit rlp;
-    int result;
-
-    result = getrlimit(RLIMIT_NOFILE, &rlp);
-    if (result != 0)
-    {
-        return FALSE;
-    }
-    // Set our soft limit for file descriptors to be the same
-    // as the max limit.
-    rlp.rlim_cur = rlp.rlim_max;
-    result = setrlimit(RLIMIT_NOFILE, &rlp);
-    if (result != 0)
-    {
-        return FALSE;
-    }
-
-    return TRUE;
-}
 
 /*++
 Function:

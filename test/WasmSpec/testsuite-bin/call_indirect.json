@@ -47,8 +47,8 @@
   {"type": "assert_return", "line": 218, "action": {"type": "invoke", "field": "odd", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "i32", "value": "44"}]}, 
   {"type": "assert_return", "line": 219, "action": {"type": "invoke", "field": "odd", "args": [{"type": "i32", "value": "200"}]}, "expected": [{"type": "i32", "value": "99"}]}, 
   {"type": "assert_return", "line": 220, "action": {"type": "invoke", "field": "odd", "args": [{"type": "i32", "value": "77"}]}, "expected": [{"type": "i32", "value": "44"}]}, 
-  {"type": "assert_trap", "line": 222, "action": {"type": "invoke", "field": "runaway", "args": []}, "text": "call stack exhausted"}, 
-  {"type": "assert_trap", "line": 223, "action": {"type": "invoke", "field": "mutual-runaway", "args": []}, "text": "call stack exhausted"}, 
+  {"type": "assert_exhaustion", "line": 222, "action": {"type": "invoke", "field": "runaway", "args": []}}, 
+  {"type": "assert_exhaustion", "line": 223, "action": {"type": "invoke", "field": "mutual-runaway", "args": []}}, 
   {"type": "assert_invalid", "line": 229, "filename": "call_indirect.1.wasm", "text": "unknown table"}, 
   {"type": "assert_invalid", "line": 237, "filename": "call_indirect.2.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 245, "filename": "call_indirect.3.wasm", "text": "type mismatch"}, 
@@ -63,5 +63,6 @@
   {"type": "assert_invalid", "line": 326, "filename": "call_indirect.12.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 336, "filename": "call_indirect.13.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 350, "filename": "call_indirect.14.wasm", "text": "unknown type"}, 
-  {"type": "assert_invalid", "line": 357, "filename": "call_indirect.15.wasm", "text": "unknown type"}
+  {"type": "assert_invalid", "line": 357, "filename": "call_indirect.15.wasm", "text": "unknown type"}, 
+  {"type": "assert_invalid", "line": 366, "filename": "call_indirect.16.wasm", "text": "unknown function 0"}
 ]}

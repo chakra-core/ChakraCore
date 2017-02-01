@@ -1832,28 +1832,17 @@ namespace Js
 
 #if ENABLE_TTD
             bool suppressGetterForTTDebug = requestContext->GetThreadContext()->IsRuntimeInTTDMode() && requestContext->GetThreadContext()->TTDLog->ShouldDoGetterInvocationSupression();
+            TTD::TTModeStackAutoPopper suppressModeAutoPopper(requestContext->GetThreadContext()->TTDLog);
             if(suppressGetterForTTDebug)
             {
-                requestContext->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::DebuggerSuppressGetter);
+                suppressModeAutoPopper.PushModeAndSetToAutoPop(TTD::TTDMode::DebuggerSuppressGetter);
             }
+#endif
 
-            BOOL success = Js::JavascriptOperators::GetProperty(obj, propId, &objValue, requestContext);
-
-            if(suppressGetterForTTDebug)
-            {
-                requestContext->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::DebuggerSuppressGetter);
-            }
-
-            if(success)
-            {
-                return objValue;
-            }
-#else
             if (Js::JavascriptOperators::GetProperty(obj, propId, &objValue, requestContext))
             {
                 return objValue;
             }
-#endif
         }
 
         return nullptr;
@@ -2197,9 +2186,10 @@ namespace Js
 
 #if ENABLE_TTD
         bool suppressGetterForTTDebug = scriptContext->GetThreadContext()->IsRuntimeInTTDMode() && scriptContext->GetThreadContext()->TTDLog->ShouldDoGetterInvocationSupression();
+        TTD::TTModeStackAutoPopper suppressModeAutoPopper(scriptContext->GetThreadContext()->TTDLog);
         if(suppressGetterForTTDebug)
         {
-            instance->GetScriptContext()->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::DebuggerSuppressGetter);
+            suppressModeAutoPopper.PushModeAndSetToAutoPop(TTD::TTDMode::DebuggerSuppressGetter);
         }
 #endif
 
@@ -2216,13 +2206,6 @@ namespace Js
         {
             retValue = Js::JavascriptOperators::GetProperty(originalInstance, instance, propertyId, value, scriptContext);
         }
-
-#if ENABLE_TTD
-        if(suppressGetterForTTDebug)
-        {
-            instance->GetScriptContext()->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::DebuggerSuppressGetter);
-        }
-#endif
 
         return retValue;
     }

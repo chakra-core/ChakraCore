@@ -82,7 +82,7 @@ namespace Js {
     {
         static const int32   MemoryTableBeginOffset = 0;
         // Memory is allocated in this order
-        int32 mArrayBufferOffset
+        Field(int32) mArrayBufferOffset
             , mStdLibOffset
             , mDoubleOffset
             , mFuncOffset
@@ -92,7 +92,7 @@ namespace Js {
             , mFloatOffset
             , mSimdOffset // in SIMDValues
             ;
-        int32   mMemorySize;
+        Field(int32)   mMemorySize;
     };
 
     struct AsmJsFunctionMemory
@@ -327,20 +327,20 @@ namespace Js {
 
     struct AsmJsSlot
     {
-        RegSlot location;
-        AsmJsSymbol::SymbolType symType;
+        Field(RegSlot) location;
+        Field(AsmJsSymbol::SymbolType) symType;
         union
         {
-            AsmJsVarType::Which varType;
-            ArrayBufferView::ViewType viewType;
-            double mathConstVal;
-            uint funcTableSize;
-            AsmJsModuleArg::ArgType argType;
-            AsmJSMathBuiltinFunction builtinMathFunc;
-            AsmJSTypedArrayBuiltinFunction builtinArrayFunc;
-            AsmJsSIMDBuiltinFunction builtinSIMDFunc;
+            Field(AsmJsVarType::Which) varType;
+            Field(ArrayBufferView::ViewType) viewType;
+            Field(double) mathConstVal;
+            Field(uint) funcTableSize;
+            Field(AsmJsModuleArg::ArgType) argType;
+            Field(AsmJSMathBuiltinFunction) builtinMathFunc;
+            Field(AsmJSTypedArrayBuiltinFunction) builtinArrayFunc;
+            Field(AsmJsSIMDBuiltinFunction) builtinSIMDFunc;
         };
-        bool isConstVar = false;
+        Field(bool) isConstVar = false;
     };
 
     class AsmJsModuleInfo
@@ -349,31 +349,32 @@ namespace Js {
         /// proxy of asmjs module
         struct ModuleVar
         {
-            RegSlot location;
-            AsmJsVarType::Which type;
-            union
+            Field(RegSlot) location;
+            Field(AsmJsVarType::Which) type;
+            union InitialiserType
             {
-                int intInit;
-                float floatInit;
-                double doubleInit;
-                AsmJsSIMDValue simdInit;
-            } initialiser;
-            bool isMutable;
+                Field(int) intInit;
+                Field(float) floatInit;
+                Field(double) doubleInit;
+                Field(AsmJsSIMDValue) simdInit;
+            };
+            Field(InitialiserType) initialiser; // (leish)(swb) false positive found here
+            Field(bool) isMutable;
         };
         struct ModuleVarImport
         {
-            RegSlot location;
-            AsmJsVarType::Which type;
-            PropertyId field;
+            Field(RegSlot) location;
+            Field(AsmJsVarType::Which) type;
+            Field(PropertyId) field;
         };
         struct ModuleFunctionImport
         {
-            RegSlot location;
-            PropertyId field;
+            Field(RegSlot) location;
+            Field(PropertyId) field;
         };
         struct ModuleFunction
         {
-            RegSlot location;
+            Field(RegSlot) location;
         };
         struct ModuleExport
         {
@@ -382,35 +383,35 @@ namespace Js {
         };
         struct ModuleFunctionTable
         {
-            uint size;
-            RegSlot* moduleFunctionIndex;
+            Field(uint) size;
+            Field(RegSlot*) moduleFunctionIndex;
         };
 
         typedef JsUtil::BaseDictionary<PropertyId, AsmJsSlot*, Memory::Recycler> AsmJsSlotMap;
 
     private:
-        Recycler* mRecycler;
-        int mArgInCount; // for runtime validation of arguments in
-        int mVarCount, mVarImportCount, mFunctionImportCount, mFunctionCount, mFunctionTableCount, mExportsCount, mSlotsCount;
-        int mSimdRegCount; // part of mVarCount
+        FieldNoBarrier(Recycler*) mRecycler;
+        Field(int) mArgInCount; // for runtime validation of arguments in
+        Field(int) mVarCount, mVarImportCount, mFunctionImportCount, mFunctionCount, mFunctionTableCount, mExportsCount, mSlotsCount;
+        Field(int) mSimdRegCount; // part of mVarCount
 
-        PropertyIdArray*             mExports;
-        RegSlot*                     mExportsFunctionLocation;
-        RegSlot                      mExportFunctionIndex; // valid only if export object is empty
-        ModuleVar*                   mVars;
-        ModuleVarImport*             mVarImports;
-        ModuleFunctionImport*        mFunctionImports;
-        ModuleFunction*              mFunctions;
-        ModuleFunctionTable*         mFunctionTables;
-        AsmJsModuleMemory            mModuleMemory;
-        AsmJsSlotMap*                mSlotMap;
-        BVStatic<ASMMATH_BUILTIN_SIZE>  mAsmMathBuiltinUsed;
-        BVStatic<ASMARRAY_BUILTIN_SIZE> mAsmArrayBuiltinUsed;
-        BVStatic<ASMSIMD_BUILTIN_SIZE>  mAsmSimdBuiltinUsed;
+        Field(PropertyIdArray*)             mExports;
+        Field(RegSlot*)                     mExportsFunctionLocation;
+        Field(RegSlot)                      mExportFunctionIndex; // valid only if export object is empty
+        Field(ModuleVar*)                   mVars;
+        Field(ModuleVarImport*)             mVarImports;
+        Field(ModuleFunctionImport*)        mFunctionImports;
+        Field(ModuleFunction*)              mFunctions;
+        Field(ModuleFunctionTable*)         mFunctionTables;
+        Field(AsmJsModuleMemory)            mModuleMemory;
+        Field(AsmJsSlotMap*)                mSlotMap;
+        Field(BVStatic<ASMMATH_BUILTIN_SIZE>)  mAsmMathBuiltinUsed;
+        Field(BVStatic<ASMARRAY_BUILTIN_SIZE>) mAsmArrayBuiltinUsed;
+        Field(BVStatic<ASMSIMD_BUILTIN_SIZE>)  mAsmSimdBuiltinUsed;
 
-        uint                         mMaxHeapAccess;
-        bool                         mUsesChangeHeap;
-        bool                         mIsProcessed;
+        Field(uint)                         mMaxHeapAccess;
+        Field(bool)                         mUsesChangeHeap;
+        Field(bool)                         mIsProcessed;
     public:
         AsmJsModuleInfo( Recycler* recycler ) :
             mRecycler( recycler )

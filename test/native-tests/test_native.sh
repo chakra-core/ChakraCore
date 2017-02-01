@@ -4,6 +4,7 @@
 #-------------------------------------------------------------------------------------------------------
 
 CH_DIR=$1
+BUILD_TYPE=$2
 RES=
 CC=0
 CXX=0
@@ -65,10 +66,30 @@ RUN () {
     fi
 }
 
+RUN_CMD () {
+    TEST_PATH=$1
+    CMD=$2
+    echo "Testing $TEST_PATH"
+    SAFE_RUN `cd $TEST_PATH; $CMD`
+}
+
+# static lib tests
+
+# test-c98
+RUN "test-c98"
+
+# test-char
+RUN "test-char"
+
 # test-char16
 RUN "test-char16"
 
 # test-static-native
 RUN "test-static-native"
+
+# shared lib tests
+
+# test python
+RUN_CMD "test-python" "python helloWorld.py ${BUILD_TYPE}"
 
 SAFE_RUN `rm -rf Makefile`

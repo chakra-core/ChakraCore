@@ -53,7 +53,7 @@ namespace Js
             return GetDictionary()->TryGetValue(key, value);
         }
 
-        void Add(const TKey& key, TValue& newValue)
+        void Add(const TKey& key, const TValue& newValue)
         {
             Assert(!singleValue);
             NestedKey nestedKey;
@@ -90,11 +90,11 @@ namespace Js
         bool IsDictionaryEntry() const { return !singleValue; }
 
     private:
-        bool singleValue;
+        Field(bool) singleValue;
         union
         {
-            TValue value;
-            SecondaryDictionary* nestedMap;
+            Field(TValue) value;
+            Field(SecondaryDictionary*) nestedMap;
         };
     };
 
@@ -131,7 +131,7 @@ namespace Js
 
         bool TryGetValue(const Key& key, Value* value)
         {
-            EntryRecord** entryRecord;
+            EntryRecord* const * entryRecord;
             Key cachedKey;
             int index;
             bool success = dictionary->TryGetReference(key, &entryRecord, &index);
@@ -168,7 +168,7 @@ namespace Js
 
         void Add(const Key& key, Value value)
         {
-            EntryRecord** entryRecord;
+            EntryRecord* const * entryRecord;
             int index;
             bool success = dictionary->TryGetReference(key, &entryRecord, &index);
             if (success && ((*entryRecord) != nullptr))
@@ -195,7 +195,7 @@ namespace Js
         }
 
     private:
-        TopLevelDictionary* dictionary;
-        Recycler* recycler;
+        Field(TopLevelDictionary*) dictionary;
+        FieldNoBarrier(Recycler*) recycler;
     };
 }

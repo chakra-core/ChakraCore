@@ -9,6 +9,7 @@ include ksamd64.inc
 extrn __chkstk: PROC
 ifdef _CONTROL_FLOW_GUARD
 extrn __guard_check_icall_fptr:QWORD
+extrn __guard_dispatch_icall_fptr:QWORD
 
         subttl  "Control Flow Guard ICall Check Stub"
 ;++
@@ -135,20 +136,9 @@ amd64_CallFunction PROC FRAME
         ;; rbx = argc
         mov rbx, r9
 
-ifdef _CONTROL_FLOW_GUARD
-        mov     rsi, r8                 ; save CallInfo
-        mov     rdi, rcx                ; save function *
-        mov     rcx, rdx                ; save entry point (the call target)
-                                        ; it is guaranteed that icall check will preserve rcx
-        call    amd64_CheckICall        ; verify that the call target is valid
-        mov     rax, rcx                ; restore entry point to rax - same as non-CFG path
-        mov     rdx, rsi                ; restore CallInfo to rdx - same as non-CFG path
-        mov     rcx, rdi                ; restore function * back to rcx
-else
         ;; save entry point (rdx) and move CallInfo (r8) into rdx.
         mov rax, rdx
         mov rdx, r8
-endif
 
         mov r10, 0
 
@@ -208,8 +198,12 @@ setup_args_done:
         ;; allocate args register spill
         sub rsp, 20h
 
+ifdef _CONTROL_FLOW_GUARD
+        call    [__guard_dispatch_icall_fptr]
+else
         ;; (C) callsite
         call rax
+endif
 done:
         mov rsp, rbp
         pop rbp

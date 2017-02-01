@@ -4,14 +4,13 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-// Note: VirtualTableInfo<T>::RegisterVirtualTable can be put into .cpp file but for that
-// we'll have to define quite a lot of explicit template instantiations for all classes that
-// use DEFINE_VTABLE_CTOR, to fix unresolved externals.
-#if DBG
 // static
 template <typename T>
-inline INT_PTR VirtualTableInfo<T>::RegisterVirtualTable(INT_PTR vtable)
+inline INT_PTR VirtualTableInfo<T>::RegisterVirtualTable()
 {
+    INT_PTR vtable = *(INT_PTR const*)&T(VirtualTableInfoCtorValue);
+
+#if DBG
 #if ENABLE_VALIDATE_VTABLE_CTOR
     //printf("m_vtableMapHash->Add(VirtualTableInfo<%s>::Address, dummy);\n", typeid(T).name());
 #endif
@@ -19,13 +18,19 @@ inline INT_PTR VirtualTableInfo<T>::RegisterVirtualTable(INT_PTR vtable)
     {
         VirtualTableRegistry::Add(vtable, typeid(T).name());
     }
+#endif
+
     return vtable;
 }
-#else
-// static
+
 template <typename T>
-inline INT_PTR VirtualTableInfo<T>::RegisterVirtualTable(INT_PTR vtable)
+inline void VirtualTableInfo<T>::SetVirtualTable(void * ptr)
 {
-    return vtable;
+    VirtualTableInfoBase::SetVirtualTable(ptr,
+#ifdef _MSC_VER  // work around VC linker bug
+        *(INT_PTR const*)&T(VirtualTableInfoCtorValue)
+#else
+        Address
+#endif
+    );
 }
-#endif // DBG

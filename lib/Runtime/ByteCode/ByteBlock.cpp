@@ -92,7 +92,7 @@ namespace Js
             //
 
             Var *src = (Var*)initialContent;
-            Var *dst = (Var*)newBlock->m_content;
+            Var *dst = (Var*)(byte*)newBlock->m_content;
             size_t count = initialContentSize / sizeof(Var);
 
             for (size_t i = 0; i < count; i++)

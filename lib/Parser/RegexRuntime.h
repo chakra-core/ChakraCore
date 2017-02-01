@@ -56,12 +56,12 @@ namespace UnifiedRegex
     public:
         // Copy of original text of regex (without delimiting '/'s or trailing flags), null terminated.
         // In run-time allocator, owned by program
-        Char* source;
-        CharCount sourceLen; // length in char16's, NOT including terminating null
+        Field(Char*) source;
+        Field(CharCount) sourceLen; // length in char16's, NOT including terminating null
         // Number of capturing groups (including implicit overall group at index 0)
-        int numGroups;
-        int numLoops;
-        RegexFlags flags;
+        Field(int) numGroups;
+        Field(int) numLoops;
+        Field(RegexFlags) flags;
 
     private:
         enum ProgramTag : uint8
@@ -76,63 +76,66 @@ namespace UnifiedRegex
             BOILiteral2Tag
         };
 
-        ProgramTag tag;
+        Field(ProgramTag) tag;
 
         struct Instructions
         {
             // Instruction array, in run-time allocator, owned by program, never null
-            uint8* insts;
-            CharCount instsLen; // in bytes
+            Field(uint8*) insts;
+            Field(CharCount) instsLen; // in bytes
             // Literals
             // In run-time allocator, owned by program, may be 0
-            CharCount litbufLen; // length of litbuf in char16's, no terminating null
-            Char* litbuf;
+            Field(CharCount) litbufLen; // length of litbuf in char16's, no terminating null
+            Field(Char*) litbuf;
 
             // These scanner infos are used by ScannersMixin, which is used by only SyncToLiteralsAndBackupInst. There will only
             // ever be only one of those instructions per program. Since scanners are large (> 1 KB), for that instruction they
             // are allocated on the recycler with pointers stored here to reference them.
-            ScannerInfo **scannersForSyncToLiterals;
+            Field(Field(ScannerInfo *)*) scannersForSyncToLiterals;
         };
 
         struct SingleChar
         {
-            Char c;
-            uint8 padding[sizeof(Instructions) - sizeof(Char)];
+            Field(Char) c;
+            Field(uint8) padding[sizeof(Instructions) - sizeof(Char)];
         };
 
         struct Octoquad
         {
-            OctoquadMatcher* matcher;
-            uint8 padding[sizeof(Instructions) - sizeof(void*)];
+            Field(OctoquadMatcher*) matcher;
+            Field(uint8) padding[sizeof(Instructions) - sizeof(void*)];
         };
 
         struct BOILiteral2
         {
-            DWORD literal;
-            uint8 padding[sizeof(Instructions) - sizeof(DWORD)];
+            Field(DWORD) literal;
+            Field(uint8) padding[sizeof(Instructions) - sizeof(DWORD)];
         };
 
         struct LeadingTrailingSpaces
         {
-            CharCount beginMinMatch;
-            CharCount endMinMatch;
-            uint8 padding[sizeof(Instructions) - (sizeof(CharCount) * 2)];
+            Field(CharCount) beginMinMatch;
+            Field(CharCount) endMinMatch;
+            Field(uint8) padding[sizeof(Instructions) - (sizeof(CharCount) * 2)];
         };
 
         struct Other
         {
-            uint8 padding[sizeof(Instructions)];
+            Field(uint8) padding[sizeof(Instructions)];
         };
 
-        union
+        union RepType
         {
-            Instructions insts;
-            SingleChar singleChar;
-            Octoquad octoquad;
-            BOILiteral2 boiLiteral2;
-            LeadingTrailingSpaces leadingTrailingSpaces;
-            Other other;
-        } rep;
+            Field(Instructions) insts;
+            Field(SingleChar) singleChar;
+            Field(Octoquad) octoquad;
+            Field(BOILiteral2) boiLiteral2;
+            Field(LeadingTrailingSpaces) leadingTrailingSpaces;
+            Field(Other) other;
+
+            RepType() {}
+        };
+        Field(RepType) rep;
 
     public:
         Program(RegexFlags flags);
@@ -143,7 +146,7 @@ namespace UnifiedRegex
         static size_t GetOffsetOfBOILiteral2Literal() { return offsetof(BOILiteral2, literal); }
         static ProgramTag GetBOILiteral2Tag() { return ProgramTag::BOILiteral2Tag; }
 
-        ScannerInfo **CreateScannerArrayForSyncToLiterals(Recycler *const recycler);
+        Field(ScannerInfo *)*CreateScannerArrayForSyncToLiterals(Recycler *const recycler);
         ScannerInfo *AddScannerForSyncToLiterals(
             Recycler *const recycler,
             const int scannerIndex,
@@ -335,8 +338,8 @@ namespace UnifiedRegex
 
     struct LiteralMixin
     {
-        CharCount offset;  // into program's literal buffer
-        CharCount length;  // in char16's
+        Field(CharCount) offset;  // into program's literal buffer
+        Field(CharCount) length;  // in char16's
 
         inline LiteralMixin(CharCount offset, CharCount length) : offset(offset), length(length) {}
 
@@ -374,7 +377,7 @@ namespace UnifiedRegex
     template <typename ScannerT>
     struct ScannerMixinT : LiteralMixin
     {
-        ScannerT scanner;
+        Field(ScannerT) scanner;
 
         // scanner must be setup
         ScannerMixinT(CharCount offset, CharCount length) : LiteralMixin(offset, length) {}
@@ -408,7 +411,7 @@ namespace UnifiedRegex
 
     struct ScannerInfo : ScannerMixin
     {
-        bool isEquivClass;
+        Field(bool) isEquivClass;
 
         // scanner must be setup
         inline ScannerInfo(CharCount offset, CharCount length, bool isEquivClass) : ScannerMixin(offset, length), isEquivClass(isEquivClass) {}
@@ -423,7 +426,7 @@ namespace UnifiedRegex
         static const int MaxNumSyncLiterals = 4;
 
         int numLiterals;
-        ScannerInfo** infos;
+        Field(ScannerInfo*)* infos;
 
         // scanner mixins must be added
         inline ScannersMixin(Recycler *const recycler, Program *const program)
@@ -627,7 +630,7 @@ namespace UnifiedRegex
 #undef MTemplate
         };
 
-        InstTag tag;
+        Field(InstTag) tag;
 
         inline Inst(InstTag tag) : tag(tag) {}
         void FreeBody(ArenaAllocator* rtAllocator) {}
@@ -1232,7 +1235,7 @@ namespace UnifiedRegex
 
         inline LoopSetInst(InstTag tag, int loopId, const CountDomain& repeats, bool hasOuterLoops)
             : Inst(tag), loopId(loopId), repeats(repeats), hasOuterLoops(hasOuterLoops) {}
-        
+
         INST_BODY
         INST_BODY_FREE(SetMixin)
     };
@@ -1440,7 +1443,7 @@ namespace UnifiedRegex
         CharCount number;            // current iteration number
         CharCount startInputOffset;  // input offset where the iteration started
         JsUtil::List<CharCount, ArenaAllocator>* offsetsOfFollowFirst; // list of offsets from startInputOffset where we matched with followFirst
-        
+
         inline void Reset()
         {
 #if DBG
@@ -1463,8 +1466,8 @@ namespace UnifiedRegex
 
     struct GroupInfo : protected Chars<char16>
     {
-        CharCount offset;
-        CharCountOrFlag length;  // CharCountFlag => group is undefined
+        Field(CharCount) offset;
+        Field(CharCountOrFlag) length;  // CharCountFlag => group is undefined
 
         inline GroupInfo() : offset(0), length(CharCountFlag) {}
 
@@ -1726,12 +1729,12 @@ namespace UnifiedRegex
         static const uint TimePerQc; // milliseconds
 
     private:
-        RegexPattern *const pattern;
-        StandardChars<Char>* standardChars;
-        const Program* program;
+        Field(RegexPattern *) const pattern;
+        Field(StandardChars<Char>*) standardChars;
+        Field(const Program*) program;
 
-        GroupInfo* groupInfos;
-        LoopInfo* loopInfos;
+        Field(GroupInfo*) groupInfos;
+        Field(LoopInfo*) loopInfos;
 
         // Furthest offsets in the input string that we tried to match during a scan.
         // This is used to prevent unnecessary retraversal of the input string.
@@ -1745,15 +1748,15 @@ namespace UnifiedRegex
         //
         // However, if we cache the furthest offsets we tried, we can skip the searches
         // for "foo" after the first time.
-        CharCount* literalNextSyncInputOffsets;
+        Field(CharCount*) literalNextSyncInputOffsets;
 
-        Recycler* recycler;
+        FieldNoBarrier(Recycler*) recycler;
 
-        uint previousQcTime;
+        Field(uint) previousQcTime;
 
 #if ENABLE_REGEX_CONFIG_OPTIONS
-        RegexStats* stats;
-        DebugWriter* w;
+        FieldNoBarrier(RegexStats*) stats;
+        FieldNoBarrier(DebugWriter*) w;
 #endif
 
     public:
@@ -1856,7 +1859,7 @@ namespace UnifiedRegex
     private:
 
         typedef bool (UnifiedRegex::Matcher::*ComparerForSingleChar)(const Char left, const Char right);
-        ComparerForSingleChar comparerForSingleChar;
+        Field(ComparerForSingleChar) comparerForSingleChar;
 
         // Specialized matcher for regex c - case insensitive
         inline bool MatchSingleCharCaseInsensitive(const Char* const input, const CharCount inputLength, CharCount offset, const Char c);

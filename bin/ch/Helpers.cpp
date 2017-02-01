@@ -6,6 +6,14 @@
 
 #include <sys/stat.h>
 
+#if defined(__APPLE__)
+#include <mach-o/dyld.h> // _NSGetExecutablePath
+#elif defined(__linux__)
+#include <unistd.h> // readlink
+#elif !defined(_WIN32)
+#error "How to get the executable path for this platform?"
+#endif // _WIN32 ?
+
 //TODO: x-plat definitions
 #ifdef _WIN32
 typedef char16 TTDHostCharType;
@@ -35,36 +43,51 @@ void TTDHostInitFromUriBytes(TTDHostCharType* dst, const byte* uriBytes, size_t 
     AssertMsg(wcslen(dst) == (uriBytesLength / sizeof(TTDHostCharType)), "We have an null in the uri or our math is wrong somewhere.");
 }
 
-void TTDHostAppend(TTDHostCharType* dst, const TTDHostCharType* src)
+void TTDHostAppend(TTDHostCharType* dst, size_t dstLength, const TTDHostCharType* src)
 {
-    size_t dpos = TTDHostStringLength(dst);
     size_t srcLength = TTDHostStringLength(src);
+    size_t dpos = TTDHostStringLength(dst);
+    Helpers::TTReportLastIOErrorAsNeeded(dpos < dstLength, "The end of the string already exceeds the buffer");
+
     size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
+    size_t dstRemainingByteLength = (dstLength - dpos - 1) * sizeof(TTDHostCharType);
+    Helpers::TTReportLastIOErrorAsNeeded(srcByteLength <= dstRemainingByteLength, "The source string must be able to fit within the destination buffer");
 
-    memcpy_s(dst + dpos, srcByteLength, src, srcByteLength);
+    memcpy_s(dst + dpos, dstRemainingByteLength, src, srcByteLength);
     dst[dpos + srcLength] = _u('\0');
 }
 
-void TTDHostAppendWChar(TTDHostCharType* dst, const wchar* src)
+void TTDHostAppendWChar(TTDHostCharType* dst, size_t dstLength, const wchar* src)
 {
-    size_t dpos = TTDHostStringLength(dst);
     size_t srcLength = wcslen(src);
+    size_t dpos = TTDHostStringLength(dst);
+    Helpers::TTReportLastIOErrorAsNeeded(dpos < dstLength, "The end of the string already exceeds the buffer");
+
+    size_t dstRemainingLength = dstLength - dpos - 1;
+    Helpers::TTReportLastIOErrorAsNeeded(srcLength <= dstRemainingLength, "The source string must be able to fit within the destination buffer");
 
     for(size_t i = 0; i < srcLength; ++i)
     {
         dst[dpos + i] = (char16)src[i];
     }
+
     dst[dpos + srcLength] = _u('\0');
 }
 
-void TTDHostAppendAscii(TTDHostCharType* dst, const char* src)
+void TTDHostAppendAscii(TTDHostCharType* dst, size_t dstLength, const char* src)
 {
-    size_t dpos = TTDHostStringLength(dst);
     size_t srcLength = strlen(src);
+    size_t dpos = TTDHostStringLength(dst);
+    Helpers::TTReportLastIOErrorAsNeeded(dpos < dstLength, "The end of the string already exceeds the buffer");
+
+    size_t dstRemainingLength = dstLength - dpos - 1;
+    Helpers::TTReportLastIOErrorAsNeeded(srcLength <= dstRemainingLength, "The source string must be able to fit within the destination buffer");
+
     for(size_t i = 0; i < srcLength; ++i)
     {
         dst[dpos + i] = (char16)src[i];
     }
+
     dst[dpos + srcLength] = _u('\0');
 }
 
@@ -80,7 +103,7 @@ void TTDHostBuildCurrentExeDirectory(TTDHostCharType* path, size_t pathBufferLen
     }
     exePath[i + 1] = _u('\0');
 
-    TTDHostAppendWChar(path, exePath);
+    TTDHostAppendWChar(path, pathBufferLength, exePath);
 }
 
 JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
@@ -91,8 +114,8 @@ JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
     return (JsTTDStreamHandle)res;
 }
 
-#define TTDHostCWD(dst) _wgetcwd(dst, MAX_PATH)
-#define TTDDoPathInit(dst)
+#define TTDHostCWD(dst, dstLength) _wgetcwd(dst, dstLength)
+#define TTDDoPathInit(dst, dstLength)
 #define TTDHostTok(opath, TTDHostPathSeparator, context) wcstok_s(opath, TTDHostPathSeparator, context)
 #define TTDHostStat(cpath, statVal) _wstat(cpath, statVal)
 
@@ -148,30 +171,44 @@ void TTDHostInitFromUriBytes(TTDHostCharType* dst, const byte* uriBytes, size_t 
     AssertMsg(TTDHostStringLength(dst) == (uriBytesLength / sizeof(TTDHostCharType)), "We have an null in the uri or our math is wrong somewhere.");
 }
 
-void TTDHostAppend(TTDHostCharType* dst, const TTDHostCharType* src)
+void TTDHostAppend(TTDHostCharType* dst, size_t dstLength, const TTDHostCharType* src)
 {
-    size_t dpos = TTDHostStringLength(dst);
     size_t srcLength = TTDHostStringLength(src);
-    size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
+    size_t dpos = TTDHostStringLength(dst);
+    Helpers::TTReportLastIOErrorAsNeeded(dpos < dstLength, "The end of the string already exceeds the buffer");
 
-    memcpy_s(dst + dpos, srcByteLength, src, srcByteLength);
+    size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
+    size_t dstRemainingByteLength = (dstLength - dpos - 1) * sizeof(TTDHostCharType);
+    Helpers::TTReportLastIOErrorAsNeeded(srcByteLength <= dstRemainingByteLength, "The source string must be able to fit within the destination buffer");
+
+    memcpy_s(dst + dpos, dstRemainingByteLength, src, srcByteLength);
     dst[dpos + srcLength] = '\0';
 }
 
-void TTDHostAppendWChar(TTDHostCharType* dst, const wchar* src)
+void TTDHostAppendWChar(TTDHostCharType* dst, size_t dstLength, const wchar* src)
 {
-    size_t dpos = TTDHostStringLength(dst);
     size_t srcLength = wcslen(src);
+    size_t dpos = TTDHostStringLength(dst);
+    Helpers::TTReportLastIOErrorAsNeeded(dpos < dstLength, "The end of the string already exceeds the buffer");
+
+    size_t dstRemainingLength = dstLength - dpos - 1;
+    Helpers::TTReportLastIOErrorAsNeeded(srcLength <= dstRemainingLength, "The source string must be able to fit within the destination buffer");
+
+    // TODO - analyze this function further
     utf8::EncodeIntoAndNullTerminate(dst + dpos, src, srcLength);
 }
 
-void TTDHostAppendAscii(TTDHostCharType* dst, const char* src)
+void TTDHostAppendAscii(TTDHostCharType* dst, size_t dstLength, const char* src)
 {
-    size_t dpos = TTDHostStringLength(dst);
     size_t srcLength = strlen(src);
-    size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
+    size_t dpos = TTDHostStringLength(dst);
+    Helpers::TTReportLastIOErrorAsNeeded(dpos < dstLength, "The end of the string already exceeds the buffer");
 
-    memcpy_s(dst + dpos, srcByteLength, src, srcByteLength);
+    size_t srcByteLength = srcLength * sizeof(TTDHostCharType);
+    size_t dstRemainingByteLength = (dstLength - dpos - 1) * sizeof(TTDHostCharType);
+    Helpers::TTReportLastIOErrorAsNeeded(srcByteLength <= dstRemainingByteLength, "The source string must be able to fit within the destination buffer");
+
+    memcpy_s(dst + dpos, dstRemainingByteLength, src, srcByteLength);
     dst[dpos + srcLength] = '\0';
 }
 
@@ -192,9 +229,10 @@ void TTDHostBuildCurrentExeDirectory(TTDHostCharType* path, size_t pathBufferLen
     {
         --i;
     }
+
     exePath[i + 1] = '\0';
 
-    TTDHostAppend(path, exePath);
+    TTDHostAppend(path, pathBufferLength, exePath);
 }
 
 JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
@@ -202,8 +240,8 @@ JsTTDStreamHandle TTDHostOpen(const TTDHostCharType* path, bool isWrite)
     return (JsTTDStreamHandle)fopen(TTDHostCharConvert(path), isWrite ? "w+b" : "r+b");
 }
 
-#define TTDHostCWD(dst) TTDHostUtf8CharConvert(getcwd(TTDHostCharConvert(dst), MAX_PATH))
-#define TTDDoPathInit(dst) TTDHostAppend(dst, TTDHostPathSeparator)
+#define TTDHostCWD(dst, dstLength) TTDHostUtf8CharConvert(getcwd(TTDHostCharConvert(dst), dstLength))
+#define TTDDoPathInit(dst, dstLength) TTDHostAppend(dst, dstLength, TTDHostPathSeparator)
 #define TTDHostTok(opath, TTDHostPathSeparator, context) TTDHostUtf8CharConvert(strtok(TTDHostCharConvert(opath), TTDHostCharConvert(TTDHostPathSeparator)))
 #define TTDHostStat(cpath, statVal) stat(TTDHostCharConvert(cpath), statVal)
 
@@ -504,6 +542,7 @@ Error:
 
     return hr;
 }
+
 void Helpers::TTReportLastIOErrorAsNeeded(BOOL ok, const char* msg)
 {
     if(!ok)
@@ -530,19 +569,19 @@ void Helpers::CreateDirectoryIfNeeded(size_t uriByteLength, const byte* uriBytes
 
     TTDHostCharType cpath[MAX_PATH];
     TTDHostInitEmpty(cpath);
-    TTDDoPathInit(cpath);
+    TTDDoPathInit(cpath, MAX_PATH);
 
     TTDHostStatType statVal;
     TTDHostCharType* context = nullptr;
     TTDHostCharType* token = TTDHostTok(opath, TTDHostPathSeparator, &context);
-    TTDHostAppend(cpath, token);
+    TTDHostAppend(cpath, MAX_PATH, token);
 
     //At least 1 part of the path must exist so iterate until we find it
     while(TTDHostStat(cpath, &statVal) == -1)
     {
         token = TTDHostTok(nullptr, TTDHostPathSeparator, &context);
-        TTDHostAppend(cpath, TTDHostPathSeparator);
-        TTDHostAppend(cpath, token);
+        TTDHostAppend(cpath, MAX_PATH, TTDHostPathSeparator);
+        TTDHostAppend(cpath, MAX_PATH, token);
     }
 
     //Now continue until we hit the part that doesn't exist (or the end of the path)
@@ -551,8 +590,8 @@ void Helpers::CreateDirectoryIfNeeded(size_t uriByteLength, const byte* uriBytes
         token = TTDHostTok(nullptr, TTDHostPathSeparator, &context);
         if(token != nullptr)
         {
-            TTDHostAppend(cpath, TTDHostPathSeparator);
-            TTDHostAppend(cpath, token);
+            TTDHostAppend(cpath, MAX_PATH, TTDHostPathSeparator);
+            TTDHostAppend(cpath, MAX_PATH, token);
         }
     }
 
@@ -569,8 +608,8 @@ void Helpers::CreateDirectoryIfNeeded(size_t uriByteLength, const byte* uriBytes
         token = TTDHostTok(nullptr, TTDHostPathSeparator, &context);
         if(token != nullptr)
         {
-            TTDHostAppend(cpath, TTDHostPathSeparator);
-            TTDHostAppend(cpath, token);
+            TTDHostAppend(cpath, MAX_PATH, TTDHostPathSeparator);
+            TTDHostAppend(cpath, MAX_PATH, token);
         }
     }
 }
@@ -582,7 +621,7 @@ void Helpers::CleanDirectory(size_t uriByteLength, const byte* uriBytes)
 
     TTDHostCharType strPattern[MAX_PATH];
     TTDHostInitFromUriBytes(strPattern, uriBytes, uriByteLength);
-    TTDHostAppendAscii(strPattern, "*.*");
+    TTDHostAppendAscii(strPattern, MAX_PATH, "*.*");
 
     hFile = TTDHostFindFirst(strPattern, &FileInformation);
     if(hFile != TTDHostFindInvalid)
@@ -593,7 +632,7 @@ void Helpers::CleanDirectory(size_t uriByteLength, const byte* uriBytes)
             {
                 TTDHostCharType strFilePath[MAX_PATH];
                 TTDHostInitFromUriBytes(strFilePath, uriBytes, uriByteLength);
-                TTDHostAppend(strFilePath, TTDHostDirInfoName(FileInformation));
+                TTDHostAppend(strFilePath, MAX_PATH, TTDHostDirInfoName(FileInformation));
 
                 // Set file attributes
                 int statusch = TTDHostCHMod(strFilePath, S_IREAD | S_IWRITE);
@@ -616,27 +655,27 @@ void Helpers::GetTTDDirectory(const wchar* curi, size_t* uriByteLength, byte* ur
 
     if(curi[0] != _u('~'))
     {
-        TTDHostCharType* status = TTDHostCWD(turi);
+        TTDHostCharType* status = TTDHostCWD(turi, MAX_PATH);
         Helpers::TTReportLastIOErrorAsNeeded(status != nullptr, "Failed to chmod directory");
 
-        TTDHostAppend(turi, TTDHostPathSeparator);
+        TTDHostAppend(turi, MAX_PATH, TTDHostPathSeparator);
 
-        TTDHostAppendWChar(turi, curi);
+        TTDHostAppendWChar(turi, MAX_PATH, curi);
     }
     else
     {
         TTDHostBuildCurrentExeDirectory(turi, MAX_PATH);
 
-        TTDHostAppendAscii(turi, "_ttdlog");
-        TTDHostAppend(turi, TTDHostPathSeparator);
+        TTDHostAppendAscii(turi, MAX_PATH, "_ttdlog");
+        TTDHostAppend(turi, MAX_PATH, TTDHostPathSeparator);
 
-        TTDHostAppendWChar(turi, curi + 1);
+        TTDHostAppendWChar(turi, MAX_PATH, curi + 1);
     }
 
     //add a path separator if one is not already present
     if(curi[wcslen(curi) - 1] != (wchar)TTDHostPathSeparatorChar)
     {
-        TTDHostAppend(turi, TTDHostPathSeparator);
+        TTDHostAppend(turi, MAX_PATH, TTDHostPathSeparator);
     }
 
     size_t turiLength = TTDHostStringLength(turi);
@@ -665,7 +704,7 @@ JsTTDStreamHandle CALLBACK Helpers::TTCreateStreamCallback(size_t uriByteLength,
     void* res = nullptr;
     TTDHostCharType path[MAX_PATH];
     TTDHostInitFromUriBytes(path, uriBytes, uriByteLength);
-    TTDHostAppendAscii(path, asciiResourceName);
+    TTDHostAppendAscii(path, MAX_PATH, asciiResourceName);
 
     res = TTDHostOpen(path, write);
     if(res == nullptr)
@@ -725,3 +764,97 @@ void CALLBACK Helpers::TTFlushAndCloseStreamCallback(JsTTDStreamHandle handle, b
     fclose((FILE*)handle);
 }
 
+#define SET_BINARY_PATH_ERROR_MESSAGE(path, msg) \
+    str_len = (int) strlen(msg);                 \
+    memcpy(path, msg, (size_t)str_len);          \
+    path[str_len] = char(0)
+
+void GetBinaryLocation(char *path, const unsigned size)
+{
+    AssertMsg(path != nullptr, "Path can not be nullptr");
+    AssertMsg(size < INT_MAX, "Isn't it too big for a path buffer?");
+#ifdef _WIN32
+    LPWSTR wpath = (WCHAR*)malloc(sizeof(WCHAR) * size);
+    int str_len;
+    if (!wpath)
+    {
+        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed. OutOfMemory!");
+        return;
+    }
+    str_len = GetModuleFileNameW(NULL, wpath, size - 1);
+    if (str_len <= 0)
+    {
+        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed.");
+        free(wpath);
+        return;
+    }
+
+    str_len = WideCharToMultiByte(CP_UTF8, 0, wpath, str_len, path, size, NULL, NULL);
+    free(wpath);
+
+    if (str_len <= 0)
+    {
+        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName (WideCharToMultiByte) has failed.");
+        return;
+    }
+
+    if ((unsigned)str_len > size - 1)
+    {
+        str_len = (int) size - 1;
+    }
+    path[str_len] = char(0);
+#elif defined(__APPLE__)
+    uint32_t path_size = (uint32_t)size;
+    char *tmp = nullptr;
+    int str_len;
+    if (_NSGetExecutablePath(path, &path_size))
+    {
+        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: _NSGetExecutablePath has failed.");
+        return;
+    }
+
+    tmp = (char*)malloc(size);
+    char *result = realpath(path, tmp);
+    str_len = strlen(result);
+    memcpy(path, result, str_len);
+    free(tmp);
+    path[str_len] = char(0);
+#elif defined(__linux__)
+    int str_len = readlink("/proc/self/exe", path, size - 1);
+    if (str_len <= 0)
+    {
+        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: /proc/self/exe has failed.");
+        return;
+    }
+    path[str_len] = char(0);
+#else
+#warning "Implement GetBinaryLocation for this platform"
+#endif
+}
+
+// xplat-todo: Implement a corresponding solution for GetModuleFileNameW
+// and cleanup PAL. [ https://github.com/Microsoft/ChakraCore/pull/2288 should be merged first ]
+// GetModuleFileName* PAL is not reliable and forces us to explicitly double initialize PAL
+// with argc / argv....
+void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename)
+{
+    char fullpath[_MAX_PATH];
+    char drive[_MAX_DRIVE];
+    char dir[_MAX_DIR];
+
+    char modulename[_MAX_PATH];
+    GetBinaryLocation(modulename, _MAX_PATH);
+    _splitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
+    _makepath_s(fullpath, drive, dir, filename, nullptr);
+
+    size_t len = strlen(fullpath);
+    if (len < buffer_size)
+    {
+        memcpy(path, fullpath, len * sizeof(char));
+    }
+    else
+    {
+        len = 0;
+    }
+    path[len] = char(0);
+}

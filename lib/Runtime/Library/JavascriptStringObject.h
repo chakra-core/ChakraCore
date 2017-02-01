@@ -12,7 +12,7 @@ namespace Js
         static PropertyId const specialPropertyIds[];
 
     protected:
-        JavascriptString* value;
+        Field(JavascriptString*) value;
 
         DEFINE_VTABLE_CTOR(JavascriptStringObject, DynamicObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptStringObject);

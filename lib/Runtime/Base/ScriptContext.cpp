@@ -83,6 +83,7 @@ namespace Js
         deferredBody(false),
         isScriptContextActuallyClosed(false),
         isFinalized(false),
+        isEvalRestricted(false),
         isInvalidatedForHostObjects(false),
         fastDOMenabled(false),
         directHostTypeId(TypeIds_GlobalObject),
@@ -1227,7 +1228,7 @@ namespace Js
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         if (DynamicProfileInfo::NeedProfileInfoList())
         {
-            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), SListBase<DynamicProfileInfo *>), recycler);
+            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), DynamicProfileInfoList), recycler);
         }
 #endif
 #endif
@@ -2324,13 +2325,13 @@ namespace Js
         EnsureDynamicSourceContextInfoMap();
         if (this->GetSourceContextInfo(hash) != nullptr)
         {
-            return const_cast<SourceContextInfo*>(this->cache->noContextSourceContextInfo);
+            return this->cache->noContextSourceContextInfo;
         }
 
         if (this->cache->dynamicSourceContextInfoMap->Count() > INMEMORY_CACHE_MAX_PROFILE_MANAGER)
         {
             OUTPUT_TRACE(Js::DynamicProfilePhase, _u("Max of dynamic script profile info reached.\n"));
-            return const_cast<SourceContextInfo*>(this->cache->noContextSourceContextInfo);
+            return this->cache->noContextSourceContextInfo;
         }
 
         // This is capped so we can continue allocating in the arena
@@ -2406,7 +2407,7 @@ namespace Js
     {
         if (sourceContext == Js::Constants::NoHostSourceContext)
         {
-            return const_cast<SourceContextInfo*>(this->cache->noContextSourceContextInfo);
+            return this->cache->noContextSourceContextInfo;
         }
 
         // We only init sourceContextInfoMap, don't need to lock.
@@ -2439,8 +2440,8 @@ namespace Js
             {
                 uint newCount = moduleID + 4;  // Preallocate 4 more slots, moduleID don't usually grow much
 
-                SRCINFO const ** newModuleSrcInfo = RecyclerNewArrayZ(this->GetRecycler(), SRCINFO const*, newCount);
-                memcpy(newModuleSrcInfo, cache->moduleSrcInfo, sizeof(SRCINFO const *)* moduleSrcInfoCount);
+                Field(SRCINFO const *)* newModuleSrcInfo = RecyclerNewArrayZ(this->GetRecycler(), Field(SRCINFO const*), newCount);
+                CopyArray(newModuleSrcInfo, newCount, cache->moduleSrcInfo, moduleSrcInfoCount);
                 cache->moduleSrcInfo = newModuleSrcInfo;
                 moduleSrcInfoCount = newCount;
                 cache->moduleSrcInfo[0] = this->cache->noContextGlobalSourceInfo;
@@ -3071,6 +3072,34 @@ namespace Js
         }
 
         HRESULT hr = S_OK;
+
+#ifndef _WIN32
+        BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
+        {
+            // xplat eh_frame handling is a bit different than Windows
+            // RecreateNativeCodeGenerator call below will be cleaning up
+            // XDataAllocation and we won't be able to __DEREGISTER_FRAME
+
+            // xplat-todo: make eh_frame handling better
+            this->sourceList->Map([=](uint i, RecyclerWeakReference<Js::Utf8SourceInfo>* sourceInfoWeakRef) {
+                Js::Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
+
+                if (sourceInfo != nullptr)
+                {
+                    sourceInfo->MapFunction([](Js::FunctionBody* functionBody) {
+                        functionBody->ResetEntryPoint();
+                    });
+                }
+            });
+        }
+        END_TRANSLATE_OOM_TO_HRESULT(hr);
+
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+#endif
+
         if (!CONFIG_FLAG(ForceDiagnosticsMode))
         {
 #if ENABLE_NATIVE_CODEGEN
@@ -3113,12 +3142,14 @@ namespace Js
                             functionBody->SetEntryToDeferParseForDebugger();
                         });
                     }
+#ifdef _WIN32
                     else
                     {
                         sourceInfo->MapFunction([](Js::FunctionBody* functionBody) {
                             functionBody->ResetEntryPoint();
                         });
                     }
+#endif
                 }
             });
         }
@@ -3134,7 +3165,6 @@ namespace Js
             this->RegisterDebugThunk();
         }
 
-
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         // Reset the dynamic profile list
@@ -3147,12 +3177,12 @@ namespace Js
         return hr;
     }
 
+#if defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
     // We use ProfileThunk under debugger.
     void ScriptContext::RegisterDebugThunk(bool calledDuringAttach /*= true*/)
     {
         if (this->IsExceptionWrapperForBuiltInsEnabled())
         {
-#ifdef ENABLE_SCRIPT_PROFILING
             this->CurrentThunk = ProfileEntryThunk;
             this->CurrentCrossSiteThunk = CrossSite::ProfileThunk;
 #if ENABLE_NATIVE_CODEGEN
@@ -3163,16 +3193,14 @@ namespace Js
             // are created with entry point set to the ProfileThunk.
             this->javascriptLibrary->SetProfileMode(true);
             this->javascriptLibrary->SetDispatchProfile(true, DispatchProfileInvoke);
+
+#ifdef ENABLE_SCRIPT_PROFILING
             if (!calledDuringAttach)
             {
-#ifdef ENABLE_SCRIPT_PROFILING
                 m_fTraceDomCall = TRUE; // This flag is always needed in DebugMode to wrap external functions with DebugProfileThunk
-#endif
                 // Update the function objects currently present in there.
                 this->SetFunctionInRecyclerToProfileMode(true/*enumerateNonUserFunctionsOnly*/);
             }
-#else
-            AssertMsg(false, "Profiling needs to be enabled to call RegisterDebugThunk");
 #endif
         }
     }
@@ -3194,6 +3222,7 @@ namespace Js
             }
         }
     }
+#endif // defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
 
 #ifdef ENABLE_SCRIPT_PROFILING
     HRESULT ScriptContext::RegisterBuiltinFunctions(RegisterExternalLibraryType RegisterExternalLibrary)
@@ -3329,8 +3358,34 @@ namespace Js
 
         if (proxy == nullptr)
         {
+            // Not a user defined function, we need to wrap them with try-catch for "continue after exception"
+            if (!pFunction->IsScriptFunction() && IsExceptionWrapperForBuiltInsEnabled(scriptContext))
+            {
+#if defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
+                if (scriptContext->IsScriptContextInDebugMode())
+                {
+                    // We are attaching.
+                    // For built-ins, WinRT and DOM functions which are already in recycler, change entry points to route to debug/profile thunk.
+                    ScriptContext::SetEntryPointToProfileThunk(pFunction);
+                }
+                else
+                {
+                    // We are detaching.
+                    // For built-ins, WinRT and DOM functions which are already in recycler, restore entry points to original.
+                    if (!scriptContext->IsProfiling())
+                    {
+                        ScriptContext::RestoreEntryPointFromProfileThunk(pFunction);
+                    }
+                    // If we are profiling, don't change anything.
+                }
+#else
+                AssertMsg(false, "Debugging/Profiling needs to be enabled to change thunks");
+#endif
+            }
+
             return;
         }
+
         Assert(proxy->GetFunctionInfo() == info);
 
         if (!proxy->IsFunctionBody())
@@ -3389,7 +3444,7 @@ namespace Js
         scriptFunction->ChangeEntryPoint(pBody->GetDefaultFunctionEntryPointInfo(), newEntryPoint);
     }
 
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
     void ScriptContext::RecyclerEnumClassEnumeratorCallback(void *address, size_t size)
     {
         // TODO: we are assuming its function because for now we are enumerating only on functions
@@ -3430,6 +3485,7 @@ namespace Js
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
+#if defined(ENABLE_SCRIPT_PROFILING)
             OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("ScriptContext::RecyclerEnumClassEnumeratorCallback\n"));
             OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\tFunctionProxy : 0x%08X, FunctionNumber : %s, DeferredParseAttributes : %d, EntryPoint : 0x%08X"),
                 (DWORD_PTR)proxy, proxy->GetDebugNumberSet(debugStringBuffer), proxy->GetAttributes(), (DWORD_PTR)entryPoint);
@@ -3438,6 +3494,7 @@ namespace Js
                 IsTrueOrFalse(IsIntermediateCodeGenThunk(entryPoint)), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
 #endif
             OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\n"));
+#endif
 
 #if ENABLE_NATIVE_CODEGEN
             if (!IsIntermediateCodeGenThunk(entryPoint) && entryPoint != DynamicProfileInfo::EnsureDynamicProfileInfoThunk)
@@ -3448,7 +3505,7 @@ namespace Js
                 ScriptFunction * scriptFunction = ScriptFunction::FromVar(pFunction);
                 scriptFunction->ChangeEntryPoint(proxy->GetDefaultEntryPointInfo(), Js::ScriptContext::GetProfileModeThunk(entryPoint));
 
-#if ENABLE_NATIVE_CODEGEN
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SCRIPT_PROFILING)
                 OUTPUT_TRACE(Js::ScriptProfilerPhase, _u("\tUpdated entrypoint : 0x%08X (isNative : %s)\n"), (DWORD_PTR)pFunction->GetEntryPoint(), IsTrueOrFalse(scriptContext->IsNativeAddress(entryPoint)));
 #endif
             }
@@ -3489,9 +3546,9 @@ namespace Js
 
     JavascriptMethod ScriptContext::GetProfileModeThunk(JavascriptMethod entryPoint)
     {
-#if ENABLE_NATIVE_CODEGEN
+    #if ENABLE_NATIVE_CODEGEN
         Assert(!IsIntermediateCodeGenThunk(entryPoint));
-#endif
+    #endif
         if (entryPoint == DefaultDeferredParsingThunk || entryPoint == ProfileDeferredParsingThunk)
         {
             return ProfileDeferredParsingThunk;
@@ -3508,7 +3565,7 @@ namespace Js
         }
         return ProfileEntryThunk;
     }
-#endif // ENABLE_SCRIPT_PROFILING
+#endif // defined(ENABLE_SCRIPT_PROFILING) || defiend(ENABLE_SCRIPT_DEBUGGING)
 
 #if _M_IX86
     __declspec(naked)
@@ -3717,12 +3774,7 @@ namespace Js
         Assert(!AsmJsScriptFunction::IsWasmScriptFunction(callable));
         JavascriptFunction* function = JavascriptFunction::FromVar(callable);
         ScriptContext* scriptContext = function->GetScriptContext();
-        PROFILER_TOKEN scriptId = -1;
-        PROFILER_TOKEN functionId = -1;
         bool functionEnterEventSent = false;
-
-        const bool isProfilingUserCode = scriptContext->GetThreadContext()->IsProfilingUserCode();
-        const bool isUserCode = !function->IsLibraryCode();
         char16 *pwszExtractedFunctionName = NULL;
         const char16 *pwszFunctionName = NULL;
         HRESULT hrOfEnterEvent = S_OK;
@@ -3730,6 +3782,12 @@ namespace Js
         // We can come here when profiling is not on
         // e.g. User starts profiling, we update all thinks and then stop profiling - we don't update thunk
         // So we still get this call
+#if defined(ENABLE_SCRIPT_PROFILING)
+        PROFILER_TOKEN scriptId = -1;
+        PROFILER_TOKEN functionId = -1;
+        const bool isProfilingUserCode = scriptContext->GetThreadContext()->IsProfilingUserCode();
+        const bool isUserCode = !function->IsLibraryCode();
+
         const bool fProfile = (isUserCode || isProfilingUserCode) // Only report user code or entry library code
             && scriptContext->GetProfileInfo(function, scriptId, functionId);
 
@@ -3754,7 +3812,7 @@ namespace Js
                 }
                 AssertMsg(pBody == NULL || pBody->GetProfileSession() == pBody->GetScriptContext()->GetProfileSession(), "Function info wasn't reported for this profile session");
             }
-#endif
+#endif // DEBUG
 
             if (functionId == -1)
             {
@@ -3803,11 +3861,32 @@ namespace Js
 
             scriptContext->GetThreadContext()->SetIsProfilingUserCode(isUserCode); // Update IsProfilingUserCode state
         }
+#endif // ENABLE_SCRIPT_PROFILING
 
         Var aReturn = NULL;
         JavascriptMethod origEntryPoint = function->GetFunctionInfo()->GetOriginalEntryPoint();
 
-        __try
+        if (scriptContext->IsEvalRestriction())
+        {
+            if (origEntryPoint == Js::GlobalObject::EntryEval)
+            {
+                origEntryPoint = Js::GlobalObject::EntryEvalRestrictedMode;
+            }
+            else if (origEntryPoint == Js::JavascriptFunction::NewInstance)
+            {
+                origEntryPoint = Js::JavascriptFunction::NewInstanceRestrictedMode;
+            }
+            else if (origEntryPoint == Js::JavascriptGeneratorFunction::NewInstance)
+            {
+                origEntryPoint = Js::JavascriptGeneratorFunction::NewInstanceRestrictedMode;
+            }
+            else if (origEntryPoint == Js::JavascriptFunction::NewAsyncFunctionInstance)
+            {
+                origEntryPoint = Js::JavascriptFunction::NewAsyncFunctionInstanceRestrictedMode;
+            }
+        }
+
+        __TRY_FINALLY_BEGIN // SEH is not guaranteed, see the implementation
         {
             Assert(!function->IsScriptFunction() || function->GetFunctionProxy());
 
@@ -3848,14 +3927,15 @@ namespace Js
                     {
                         threadContext->GetDebugManager()->GetDebuggingFlags()->SetIsBuiltInWrapperPresent(false);
                     }
-                    __try
+                    __TRY_FINALLY_BEGIN // SEH is not guaranteed, see the implementation
                     {
                         aReturn = JavascriptFunction::CallFunction<true>(function, origEntryPoint, args);
                     }
-                    __finally
+                    __FINALLY
                     {
                         threadContext->GetDebugManager()->GetDebuggingFlags()->SetIsBuiltInWrapperPresent(isOrigWrapperPresent);
                     }
+                    __TRY_FINALLY_END
                 }
                 else
                 {
@@ -3866,8 +3946,9 @@ namespace Js
                 }
             }
         }
-        __finally
+        __FINALLY
         {
+#if defined(ENABLE_SCRIPT_PROFILING)
             if (fProfile)
             {
                 if (hrOfEnterEvent != ACTIVPROF_E_PROFILER_ABSENT)
@@ -3892,12 +3973,14 @@ namespace Js
 
                 scriptContext->GetThreadContext()->SetIsProfilingUserCode(isProfilingUserCode); // Restore IsProfilingUserCode state
             }
+#endif
 
             if (scriptContext->IsScriptContextInDebugMode())
             {
                 scriptContext->GetDebugContext()->GetProbeContainer()->EndRecordingCall(aReturn, function);
             }
         }
+        __TRY_FINALLY_END
 
         return aReturn;
 #else
@@ -3905,7 +3988,7 @@ namespace Js
 #endif // defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
     }
 
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
     // Part of ProfileModeThunk which is called in debug mode (debug or debug & profile).
     Var ScriptContext::ProfileModeThunk_DebugModeWrapper(JavascriptFunction* function, ScriptContext* scriptContext, JavascriptMethod entryPoint, Arguments& args)
     {
@@ -3917,7 +4000,9 @@ namespace Js
 
         return aReturn;
     }
+#endif
 
+#ifdef ENABLE_SCRIPT_PROFILING
     HRESULT ScriptContext::OnScriptCompiled(PROFILER_TOKEN scriptId, PROFILER_SCRIPT_TYPE type, IUnknown *pIDebugDocumentContext)
     {
         // TODO : can we do a delay send of these events or can we send an event before doing all this stuff that could calculate overhead?
@@ -4025,7 +4110,7 @@ namespace Js
 
     HRESULT ScriptContext::RegisterLibraryFunction(const char16 *pwszObjectName, const char16 *pwszFunctionName, Js::PropertyId functionPropertyId, JavascriptMethod entryPoint)
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING)
 #if DEBUG
         const char16 *pwszObjectNameFromProperty = const_cast<char16 *>(GetPropertyName(functionPropertyId)->GetBuffer());
         if (GetPropertyName(functionPropertyId)->IsSymbol())
@@ -4804,12 +4889,14 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     }
 
 #if ENABLE_PROFILE_INFO
-    void ScriptContext::AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo)
+    template<template<typename> class BarrierT>
+    void ScriptContext::AddDynamicProfileInfo(
+        FunctionBody * functionBody, BarrierT<DynamicProfileInfo>& dynamicProfileInfo)
     {
         Assert(functionBody->GetScriptContext() == this);
         Assert(functionBody->HasValidSourceInfo());
 
-        DynamicProfileInfo * newDynamicProfileInfo = *dynamicProfileInfo;
+        DynamicProfileInfo * newDynamicProfileInfo = dynamicProfileInfo;
         // If it is a dynamic script - we should create a profile info bound to the threadContext for its lifetime.
         SourceContextInfo* sourceContextInfo = functionBody->GetSourceContextInfo();
         SourceDynamicProfileManager* profileManager = sourceContextInfo->sourceDynamicProfileManager;
@@ -4822,7 +4909,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 {
                     newDynamicProfileInfo = DynamicProfileInfo::New(this->GetRecycler(), functionBody, true /* persistsAcrossScriptContexts */);
                     profileManager->UpdateDynamicProfileInfo(functionBody->GetLocalFunctionId(), newDynamicProfileInfo);
-                    *dynamicProfileInfo = newDynamicProfileInfo;
+                    dynamicProfileInfo = newDynamicProfileInfo;
                 }
                 profileManager->MarkAsExecuted(functionBody->GetLocalFunctionId());
                 newDynamicProfileInfo->UpdateFunctionInfo(functionBody, this->GetRecycler());
@@ -4833,7 +4920,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 {
                     newDynamicProfileInfo = functionBody->AllocateDynamicProfile();
                 }
-                *dynamicProfileInfo = newDynamicProfileInfo;
+                dynamicProfileInfo = newDynamicProfileInfo;
             }
         }
         else
@@ -4841,7 +4928,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             if (newDynamicProfileInfo == nullptr)
             {
                 newDynamicProfileInfo = functionBody->AllocateDynamicProfile();
-                *dynamicProfileInfo = newDynamicProfileInfo;
+                dynamicProfileInfo = newDynamicProfileInfo;
             }
             Assert(functionBody->GetInterpretedCount() == 0);
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
@@ -4856,8 +4943,9 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 profileManager->MarkAsExecuted(functionBody->GetLocalFunctionId());
             }
         }
-        Assert(*dynamicProfileInfo != nullptr);
+        Assert(dynamicProfileInfo != nullptr);
     }
+    template void  ScriptContext::AddDynamicProfileInfo<WriteBarrierPtr>(FunctionBody *, WriteBarrierPtr<DynamicProfileInfo>&);
 #endif
 
     CharClassifier const * ScriptContext::GetCharClassifier(void) const
@@ -5901,7 +5989,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return nameLen;
     }
 
-    Js::Var* ScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
+    Field(Js::Var)* ScriptContext::GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex)
     {
         Js::SourceTextModuleRecord* moduleRecord = this->GetModuleRecord(moduleIndex);
         Assert(moduleRecord != nullptr);

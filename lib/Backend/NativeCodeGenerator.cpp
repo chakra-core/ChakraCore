@@ -940,7 +940,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
             scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), allocators,
 #if !FLOATVAR
-            pNumberAllocator, 
+            pNumberAllocator,
 #endif
             codeGenProfiler, !foreground);
     }
@@ -1548,7 +1548,7 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
 
     if(!nativeCodeGen->Processor()->PrioritizeJob(nativeCodeGen, entryPoint, function))
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
 #define originalEntryPoint_IS_ProfileDeferredParsingThunk \
             (originalEntryPoint == ProfileDeferredParsingThunk)
 #else
@@ -2005,7 +2005,7 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
             Assert(workItem->GetCodeAddress() != NULL);
 
             uint loopNum = loopBodyCodeGen->GetJITData()->loopNumber;
-            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);            
+            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);
             entryPoint->SetCodeGenDone();
         }
         else
@@ -2041,6 +2041,7 @@ NativeCodeGenerator::UpdateJITState()
 
         if (scriptContext->GetThreadContext()->JITNeedsPropUpdate())
         {
+            typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
             CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
             BVSparseNodeIDL * bvHead = (BVSparseNodeIDL*)scriptContext->GetThreadContext()->GetJITNumericProperties()->head;
             HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), bvHead);
@@ -2986,7 +2987,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 #endif
 
         uint objTypeSpecFldInfoCount = objTypeSpecFldInfoList->Count();
-        jitTimeData->SetGlobalObjTypeSpecFldInfoArray(RecyclerNewArray(recycler, Js::ObjTypeSpecFldInfo*, objTypeSpecFldInfoCount), objTypeSpecFldInfoCount);
+        jitTimeData->SetGlobalObjTypeSpecFldInfoArray(RecyclerNewArray(recycler, Field(Js::ObjTypeSpecFldInfo*), objTypeSpecFldInfoCount), objTypeSpecFldInfoCount);
         uint propertyInfoId = objTypeSpecFldInfoCount - 1;
         FOREACH_SLISTCOUNTED_ENTRY(Js::ObjTypeSpecFldInfo*, info, objTypeSpecFldInfoList)
         {

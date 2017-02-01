@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -27,31 +27,37 @@ Abstract:
 
 #include <stdarg.h>
 
+#ifndef __ANDROID__
+typedef __builtin_va_list va_list;
+#else
+typedef __va_list va_list;
+#endif
+
 #ifdef __cplusplus
 
 extern "C"
-{                               
-    int 
+{
+    int
     __cdecl
     PAL__vsnprintf(
-        LPSTR Buffer, 
-        size_t Count, 
-        LPCSTR Format, 
-        va_list ap);
-    
-    int 
-    __cdecl    
-    PAL__wvsnprintf(
-        LPWSTR Buffer, 
-        size_t Count, 
-        LPCWSTR Format, 
+        LPSTR Buffer,
+        size_t Count,
+        LPCSTR Format,
         va_list ap);
 
-    int 
-    __cdecl 
+    int
+    __cdecl
+    PAL__wvsnprintf(
+        LPWSTR Buffer,
+        size_t Count,
+        LPCWSTR Format,
+        va_list ap);
+
+    int
+    __cdecl
     PAL_vfprintf(
-        PAL_FILE *stream, 
-        const char *format, 
+        PAL_FILE *stream,
+        const char *format,
         va_list ap);
 
     int
@@ -59,32 +65,32 @@ extern "C"
     PAL_vfwprintf(
         PAL_FILE *stream,
         const char16_t *format,
-        va_list ap);  
-} 
+        va_list ap);
+}
 
 namespace CorUnix
 {
-    int 
+    int
     InternalVfprintf(
-        CPalThread *pthrCurrent, 
-        PAL_FILE *stream, 
-        const char *format, 
-        va_list ap);
-    	
-    int 
-    InternalWvsnprintf(
-        CPalThread *pthrCurrent, 
-        LPWSTR Buffer, 
-        size_t Count, 
-        LPCWSTR Format, 
+        CPalThread *pthrCurrent,
+        PAL_FILE *stream,
+        const char *format,
         va_list ap);
 
-    int 
+    int
+    InternalWvsnprintf(
+        CPalThread *pthrCurrent,
+        LPWSTR Buffer,
+        size_t Count,
+        LPCWSTR Format,
+        va_list ap);
+
+    int
     InternalVsnprintf(
-        CPalThread *pthrCurrent, 
-        LPSTR Buffer, 
-        size_t Count, 
-        LPCSTR Format, 
+        CPalThread *pthrCurrent,
+        LPSTR Buffer,
+        size_t Count,
+        LPCSTR Format,
         va_list ap);
 
     int
@@ -92,32 +98,32 @@ namespace CorUnix
         CPalThread *pthrCurrent,
         PAL_FILE *stream,
         const char16_t *format,
-        va_list ap); 
-    
+        va_list ap);
+
 }
 #else // __cplusplus
 
     int
     __cdecl
     PAL__vsnprintf(
-        LPSTR Buffer, 
-        size_t Count, 
-        LPCSTR Format, 
+        LPSTR Buffer,
+        size_t Count,
+        LPCSTR Format,
         va_list ap);
 
     int
     __cdecl
     PAL__wvsnprintf(
-        LPWSTR Buffer, 
-        size_t Count, 
-        LPCWSTR Format, 
+        LPWSTR Buffer,
+        size_t Count,
+        LPCWSTR Format,
         va_list ap);
 
-    int 
-    __cdecl 
+    int
+    __cdecl
     PAL_vfprintf(
-        PAL_FILE *stream, 
-        const char *format, 
+        PAL_FILE *stream,
+        const char *format,
         va_list ap);
 
     int
@@ -125,7 +131,7 @@ namespace CorUnix
     PAL_vfwprintf(
         PAL_FILE *stream,
         const char16_t *format,
-        va_list ap);     
+        va_list ap);
 
 #endif // __cplusplus
 

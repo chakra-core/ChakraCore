@@ -105,17 +105,14 @@
     JsSetPromiseContinuationCallback
 #ifndef NTBUILD
     JsCreateString
-    JsCreateStringUtf8
     JsCreateStringUtf16
     JsCopyString
-    JsCopyStringUtf8
     JsCopyStringUtf16
     JsParse
     JsRun
     JsSerialize
     JsParseSerialized
     JsRunSerialized
-    JsCreatePropertyIdUtf8
-    JsCopyPropertyIdUtf8
-    JsDiagEvaluateUtf8
+    JsCreatePropertyId
+    JsCopyPropertyId
 #endif

@@ -9,9 +9,9 @@ namespace Js
     class JavascriptSIMDObject : public DynamicObject
     {
     private:
-        Var value;            //The SIMDType var contained by the wrapper object
-        uint numLanes;        //Number of lanes
-        TypeId typeDescriptor;//The SIMDType contained by the wrapper object. 
+        Field(Var) value;               //The SIMDType var contained by the wrapper object
+        Field(uint) numLanes;           //Number of lanes
+        Field(TypeId) typeDescriptor;   //The SIMDType contained by the wrapper object. 
         DEFINE_VTABLE_CTOR(JavascriptSIMDObject, DynamicObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptSIMDObject);
         void SetTypeDescriptor(TypeId tid);

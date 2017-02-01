@@ -10,6 +10,8 @@ template <class TBlockAttributes>
 class SmallNormalHeapBlockT : public SmallHeapBlockT<TBlockAttributes>
 {
     typedef SmallHeapBlockT<TBlockAttributes> Base;
+    using Base::SmallNormalBlockType;
+    using Base::MediumNormalBlockType;
     friend class HeapBucketT<SmallNormalHeapBlockT>;
 public:
     typedef typename Base::HeapBlockType HeapBlockType;

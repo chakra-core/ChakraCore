@@ -95,6 +95,7 @@ private:
 template <typename T>
 class AutoReleasePtr : public BasePtr<T>
 {
+    using BasePtr<T>::ptr;
 public:
     AutoReleasePtr(T * ptr = nullptr) : BasePtr<T>(ptr) {}
     ~AutoReleasePtr()

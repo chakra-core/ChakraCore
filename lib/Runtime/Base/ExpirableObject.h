@@ -28,6 +28,6 @@ public:
     }
 
 private:
-    void* registrationHandle;
-    bool isUsed;
+    Field(void*) registrationHandle;
+    Field(bool) isUsed;
 };

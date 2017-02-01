@@ -57,7 +57,7 @@ Abstract:
 #include <sys/types.h>
 #include <sys/mman.h>
 
-#if defined(__LINUX__)
+#if defined(__LINUX__) && !defined(__ANDROID__)
 #include <gnu/lib-names.h>
 #endif
 
@@ -1143,24 +1143,18 @@ static BOOL LOADCallDllMainSafe(MODSTRUCT *module, DWORD dwReason, LPVOID lpRese
     param.lpReserved = lpReserved;
     param.ret = FALSE;
 
-    PAL_TRY(Param *, pParam, &param)
     {
         TRACE("Calling DllMain (%p) for module %S\n",
-              pParam->module->pDllMain,
-              pParam->module->lib_name ? pParam->module->lib_name : W16_NULLSTRING);
+              param.module->pDllMain,
+              param.module->lib_name ? param.module->lib_name : W16_NULLSTRING);
 
         {
             // This module may be foreign to our PAL, so leave our PAL.
             // If it depends on us, it will re-enter.
             PAL_LeaveHolder holder;
-            pParam->ret = pParam->module->pDllMain(pParam->module->hinstance, pParam->dwReason, pParam->lpReserved);
+            param.ret = param.module->pDllMain(param.module->hinstance, param.dwReason, param.lpReserved);
         }
     }
-    PAL_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-    {
-        WARN("Call to DllMain (%p) got an unhandled exception; ignoring.\n", module->pDllMain);
-    }
-    PAL_ENDTRY
 
 #if _ENABLE_DEBUG_MESSAGES_
     /* ...and set nesting level back to what it was */

@@ -669,25 +669,25 @@ namespace Js
 #ifdef _M_ARM
     // Provide template specialization (only) for memory access at unaligned float/double address which causes data alignment exception otherwise.
     template<>
-    Var DataView::GetValueWithCheck<float>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    Var DataView::GetValueWithCheck<float>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian)
     {
         return this->GetValueWithCheck<float, float UNALIGNED*>(byteOffset, isLittleEndian, funcName);
     }
 
     template<>
-    Var DataView::GetValueWithCheck<double>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    Var DataView::GetValueWithCheck<double>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian)
     {
         return this->GetValueWithCheck<double, double UNALIGNED*>(byteOffset, isLittleEndian, funcName);
     }
 
     template<>
-    void DataView::SetValue<float>(uint32 byteOffset, float value, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    void DataView::SetValue<float>(uint32 byteOffset, float value, const char16 *funcName, BOOL isLittleEndian)
     {
         this->SetValue<float, float UNALIGNED*>(byteOffset, value, isLittleEndian, funcName);
     }
 
     template<>
-    void DataView::SetValue<double>(uint32 byteOffset, double value, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    void DataView::SetValue<double>(uint32 byteOffset, double value, const char16 *funcName, BOOL isLittleEndian)
     {
         this->SetValue<double, double UNALIGNED*>(byteOffset, value, isLittleEndian, funcName);
     }

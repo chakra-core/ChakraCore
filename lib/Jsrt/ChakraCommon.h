@@ -71,6 +71,7 @@ typedef BYTE* ChakraBytePtr;
 #define CHAKRA_API extern "C" SET_API_VISIBILITY JsErrorCode
 #else
 #define CHAKRA_API extern     SET_API_VISIBILITY JsErrorCode
+#include <stdbool.h>
 #endif
 
 #include <stddef.h>  // for size_t
@@ -86,9 +87,18 @@ typedef void* HANDLE;
 typedef unsigned char BYTE;
 typedef BYTE byte;
 typedef UINT32 DWORD;
+typedef unsigned short WCHAR;
 #endif
 
 #endif //  defined(_WIN32) && defined(_MSC_VER)
+
+#if (defined(_MSC_VER) && _MSC_VER < 1900) || (!defined(_MSC_VER) && __cplusplus <= 199711L) // !C++11
+typedef unsigned short uint16_t;
+#endif
+
+#if !defined(NTBUILD) && !defined(CHAKRACOREBUILD_)
+#define CHAKRACOREBUILD_
+#endif
 
     /// <summary>
     ///     An error code returned from a Chakra hosting API.
@@ -321,7 +331,7 @@ typedef UINT32 DWORD;
     /// <summary>
     ///     An invalid runtime handle.
     /// </summary>
-    const JsRuntimeHandle JS_INVALID_RUNTIME_HANDLE = nullptr;
+    const JsRuntimeHandle JS_INVALID_RUNTIME_HANDLE = 0;
 
     /// <summary>
     ///     A reference to an object owned by the Chakra garbage collector.
@@ -338,7 +348,7 @@ typedef UINT32 DWORD;
     /// <summary>
     ///     An invalid reference.
     /// </summary>
-    const JsRef JS_INVALID_REFERENCE = nullptr;
+    const JsRef JS_INVALID_REFERENCE = 0;
 
     /// <summary>
     ///     A reference to a script context.

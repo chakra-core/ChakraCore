@@ -63,7 +63,7 @@
 <test>
   <default>
     <files>global.js</files>
-    <baseline>baselines\global.baseline</baseline>
+    <baseline>baselines/global.baseline</baseline>
     <compile-flags>-wasm -wasmi64</compile-flags>
   </default>
 </test>
@@ -84,14 +84,14 @@
 <test>
   <default>
     <files>table_imports.js</files>
-    <baseline>baselines\table_imports.baseline</baseline>
+    <baseline>baselines/table_imports.baseline</baseline>
     <compile-flags>-wasm -wasmi64</compile-flags>
   </default>
 </test>
 <test>
   <default>
     <files>call.js</files>
-    <baseline>baselines\call.baseline</baseline>
+    <baseline>baselines/call.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
   </default>
 </test>
@@ -111,14 +111,14 @@
 <test>
   <default>
     <files>api.js</files>
-    <baseline>baselines\api.baseline</baseline>
+    <baseline>baselines/api.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
   </default>
 </test>
 <test>
   <default>
     <files>api.js</files>
-    <baseline>baselines\api.baseline</baseline>
+    <baseline>baselines/api.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
   </default>
 </test>
@@ -153,6 +153,34 @@
     <files>wasmcctx.js</files>
     <compile-flags>-wasm -dbgbaseline:wasmcctx.js.dbg.baseline</compile-flags>
     <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>oom_wasm.js</files>
+    <compile-flags>-wasm -args 0 16384 -endargs</compile-flags>
+    <tags>exclude_amd64</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>oom_wasm.js</files>
+    <compile-flags>-wasm -args 3 16381 -endargs</compile-flags>
+    <tags>exclude_amd64</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>oom.js</files>
+    <compile-flags>-wasm -args 0 16384 -endargs</compile-flags>
+    <tags>exclude_amd64</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>oom.js</files>
+    <compile-flags>-wasm -args 3 16381 -endargs</compile-flags>
+    <tags>exclude_amd64</tags>
   </default>
 </test>
 </regress-exe>

@@ -41,7 +41,7 @@ public:
         T* context;
         union {
             DWORD runtimeProcId;
-            ServerThreadContext* threadCtx; 
+            ServerThreadContext* threadCtx;
         };
         StackBackTrace* stack;
     };
@@ -49,11 +49,11 @@ public:
     static void RecordCloseContext(ServerThreadContext* context)
     {
         auto record = HeapNewNoThrow(ClosedContextEntry<ServerThreadContext>, context);
-        if (record) 
+        if (record)
         {
             record->runtimeProcId = context->GetRuntimePid();
         }
-        ClosedThreadContextList.PrependNoThrow(&HeapAllocator::Instance, record);
+        ClosedThreadContextList.PrependNoThrow(&NoThrowHeapAllocator::Instance, record);
     }
     static void RecordCloseContext(ServerScriptContext* context)
     {
@@ -62,7 +62,7 @@ public:
         {
             record->threadCtx = context->GetThreadContext();
         }
-        ClosedScriptContextList.PrependNoThrow(&HeapAllocator::Instance, record);
+        ClosedScriptContextList.PrependNoThrow(&NoThrowHeapAllocator::Instance, record);
     }
 
     static SList<ClosedContextEntry<ServerThreadContext>*, NoThrowHeapAllocator> ClosedThreadContextList;

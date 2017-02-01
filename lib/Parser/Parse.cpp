@@ -31,11 +31,11 @@ bool Parser::IsES6DestructuringEnabled() const
 
 struct DeferredFunctionStub
 {
-    RestorePoint restorePoint;
-    uint fncFlags;
-    uint nestedCount;
-    DeferredFunctionStub *deferredStubs;
-    charcount_t ichMin;
+    Field(RestorePoint) restorePoint;
+    Field(uint) fncFlags;
+    Field(uint) nestedCount;
+    Field(DeferredFunctionStub *) deferredStubs;
+    Field(charcount_t) ichMin;
 };
 
 struct StmtNest
@@ -336,7 +336,7 @@ HRESULT Parser::ParseSourceInternal(
     AssertMem(parseTree);
     AssertPsz(pszSrc);
     AssertMemN(pse);
-   
+
     if (this->IsBackgroundParser())
     {
         PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
@@ -451,7 +451,7 @@ HRESULT Parser::ParseSourceInternal(
     m_scriptContext->ProfileEnd(Js::ParsePhase);
 #endif
     JS_ETW_INTERNAL(EventWriteJSCRIPT_PARSE_STOP(m_scriptContext, 0));
-    
+
     return hr;
 }
 
@@ -814,7 +814,7 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         Assert(this->m_reparsingLambdaParams);
         refForDecl->funcId = GetCurrentFunctionNode()->sxFnc.functionId;
     }
-    
+
     if (blockInfo == GetCurrentBlockInfo())
     {
         refForUse = refForDecl;
@@ -1714,7 +1714,7 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             sym->PromoteAssignmentState();
             if (m_currentNodeFunc && sym->GetIsFormal())
             {
-                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);                
+                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);
             }
         }
 
@@ -1731,7 +1731,7 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
 
         if (m_currentNodeFunc && ref->isEscape && sym->GetSymbolType() == STFunction)
         {
-            if (m_sourceContextInfo ? 
+            if (m_sourceContextInfo ?
                     !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
                     !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
             {
@@ -1770,7 +1770,7 @@ void Parser::MarkEscapingRef(ParseNodePtr pnode, IdentToken *pToken)
 
 void Parser::SetNestedFuncEscapes() const
 {
-    if (m_sourceContextInfo ? 
+    if (m_sourceContextInfo ?
             !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
             !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
     {
@@ -2129,7 +2129,7 @@ ParseNodePtr Parser::ParseMetaProperty(tokens metaParentKeyword, charcount_t ich
     return nullptr;
 }
 
-template<bool buildAST> 
+template<bool buildAST>
 void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* importOrExportEntryList, bool isExportClause)
 {
     Assert(m_token.tk == tkLCurly);
@@ -2616,7 +2616,7 @@ LFunction:
             // Rewind back to the function token and let the helper handle the parsing.
             m_pscan->SeekTo(parsedFunction);
             pnode = ParseFncDecl<buildAST>(flags);
-            
+
             if (buildAST)
             {
                 AnalysisAssert(pnode != nullptr);
@@ -4841,7 +4841,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
     RestorePoint beginNameHint;
     m_pscan->Capture(&beginNameHint);
 
-    ParseNodePtr pnodeFncExprScope = nullptr;    
+    ParseNodePtr pnodeFncExprScope = nullptr;
     Scope *fncExprScope = nullptr;
     if (!fDeclaration)
     {
@@ -9538,7 +9538,7 @@ LDefaultTokenFor:
                 pnode->sxForInOrForOf.pnodeLval = pnodeT;
                 pnode->sxForInOrForOf.pnodeObj = pnodeObj;
                 pnode->ichLim = ichLim;
-                
+
                 TrackAssignment<true>(pnodeT, nullptr);
             }
             PushStmt<buildAST>(&stmt, pnode, isForOf ? knopForOf : knopForIn, pnodeLabel, pLabelIdList);

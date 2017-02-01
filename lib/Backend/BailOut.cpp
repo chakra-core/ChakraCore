@@ -1494,7 +1494,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 
             newInstance->m_reader.Create(executeFunction);
 
-            generator->SetFrame(newInstance);
+            generator->SetFrame(newInstance, varSizeInBytes);
         }
     }
     else

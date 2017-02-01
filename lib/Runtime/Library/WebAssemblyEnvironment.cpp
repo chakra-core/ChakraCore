@@ -15,7 +15,7 @@ WebAssemblyEnvironment::WebAssemblyEnvironment(WebAssemblyModule* module)
     this->module = module;
     ScriptContext* scriptContext = module->GetScriptContext();
     uint32 size = module->GetModuleEnvironmentSize();
-    this->start = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, size);
+    this->start = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), size);
     this->end = start + size;
     Assert(start < end);
     this->memory = this->start + module->GetMemoryOffset();
@@ -40,7 +40,7 @@ WebAssemblyEnvironment::WebAssemblyEnvironment(WebAssemblyModule* module)
 template<typename T>
 void Js::WebAssemblyEnvironment::CheckPtrIsValid(intptr_t ptr) const
 {
-    if (ptr < (intptr_t)start || (intptr_t)(ptr + sizeof(T)) > (intptr_t)end)
+    if (ptr < (intptr_t)PointerValue(start) || (intptr_t)(ptr + sizeof(T)) > (intptr_t)PointerValue(end))
     {
         Js::Throw::InternalError();
     }
@@ -90,7 +90,7 @@ AsmJsScriptFunction* WebAssemblyEnvironment::GetWasmFunction(uint32 index) const
     {
         Js::Throw::InternalError();
     }
-    return GetVarElement<AsmJsScriptFunction>(functions, index, module->GetWasmFunctionCount());
+    return GetVarElement<AsmJsScriptFunction>((Var*)PointerValue(functions), index, module->GetWasmFunctionCount());
 }
 
 void WebAssemblyEnvironment::SetWasmFunction(uint32 index, AsmJsScriptFunction* func)
@@ -101,38 +101,38 @@ void WebAssemblyEnvironment::SetWasmFunction(uint32 index, AsmJsScriptFunction* 
     {
         Js::Throw::InternalError();
     }
-    SetVarElement<AsmJsScriptFunction>(functions, func, index, module->GetWasmFunctionCount());
+    SetVarElement<AsmJsScriptFunction>((Var*)PointerValue(functions), func, index, module->GetWasmFunctionCount());
 }
 
 void WebAssemblyEnvironment::SetImportedFunction(uint32 index, Var importedFunc)
 {
-    SetVarElement<JavascriptFunction>(imports, (JavascriptFunction*)importedFunc, index, module->GetWasmFunctionCount());
+    SetVarElement<JavascriptFunction>((Var*)PointerValue(imports), (JavascriptFunction*)importedFunc, index, module->GetWasmFunctionCount());
 }
 
 Js::WebAssemblyTable* WebAssemblyEnvironment::GetTable(uint32 index) const
 {
-    return GetVarElement<WebAssemblyTable>(table, index, 1);
+    return GetVarElement<WebAssemblyTable>((Var*)PointerValue(table), index, 1);
 }
 
 void WebAssemblyEnvironment::SetTable(uint32 index, WebAssemblyTable* table)
 {
-    SetVarElement<WebAssemblyTable>(this->table, table, index, 1);
+    SetVarElement<WebAssemblyTable>((Var*)PointerValue(this->table), table, index, 1);
 }
 
 WebAssemblyMemory* WebAssemblyEnvironment::GetMemory(uint32 index) const
 {
-    return GetVarElement<WebAssemblyMemory>(memory, index, 1);
+    return GetVarElement<WebAssemblyMemory>((Var*)PointerValue(memory), index, 1);
 }
 
 void WebAssemblyEnvironment::SetMemory(uint32 index, WebAssemblyMemory* mem)
 {
-    SetVarElement<WebAssemblyMemory>(this->memory, mem, index, 1);
+    SetVarElement<WebAssemblyMemory>((Var*)PointerValue(this->memory), mem, index, 1);
 }
 
 template<typename T>
 T WebAssemblyEnvironment::GetGlobalInternal(uint32 offset) const
 {
-    T* ptr = (T*)start + offset;
+    T* ptr = (T*)PointerValue(start) + offset;
     CheckPtrIsValid<T>((intptr_t)ptr);
     return *ptr;
 }
@@ -140,8 +140,8 @@ T WebAssemblyEnvironment::GetGlobalInternal(uint32 offset) const
 template<typename T>
 void WebAssemblyEnvironment::SetGlobalInternal(uint32 offset, T val)
 {
-    T* ptr = (T*)start + offset;
-    CheckPtrIsValid<T>((intptr_t)ptr);
+    Field(T*) ptr = (T*)PointerValue(start) + offset;
+    CheckPtrIsValid<T>((intptr_t)PointerValue(ptr));
     AssertMsg(*ptr == 0, "We shouln't overwrite anything on the environment once it is set");
     *ptr = val;
 }

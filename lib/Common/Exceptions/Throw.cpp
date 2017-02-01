@@ -36,6 +36,7 @@ namespace Memory {
 using namespace Memory;
 #include "Memory/Allocator.h"
 #include "Memory/HeapAllocator.h"
+#include "Memory/RecyclerPointers.h"
 
 // Data structure
 #include "DataStructures/Comparer.h"
@@ -70,6 +71,7 @@ namespace Js {
         int scenario = 2;
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
     }
+
     void Throw::FatalInternalErrorEx(int scenario)
     {
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);

@@ -10,9 +10,9 @@ static const char controllerScript[] = {
     '\0'
 };
 #else
-static const char controllerScript[] = { '\0' };
+#include "DbgController.js.h"
 #endif
-    
+
 class Debugger
 {
 public:

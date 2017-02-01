@@ -561,7 +561,7 @@ namespace TTD
                     compareMap.DiagnosticAssert((!!v1->u_boolValue) == (!!v2->u_boolValue));
                     break;
                 case Js::TypeIds_Number:
-                    compareMap.DiagnosticAssert(v1->u_doubleValue == v2->u_doubleValue); //This may be problematic wrt. precise FP values
+                    compareMap.DiagnosticAssert(CheckSnapEquivTTDDouble(v1->u_doubleValue, v2->u_doubleValue));
                     break;
                 case Js::TypeIds_Int64Number:
                     compareMap.DiagnosticAssert(v1->u_int64Value == v2->u_int64Value);
@@ -588,9 +588,9 @@ namespace TTD
         Js::Var* InflateSlotArrayInfo(const SlotArrayInfo* slotInfo, InflateMap* inflator)
         {
             Js::ScriptContext* ctx = inflator->LookupScriptContext(slotInfo->ScriptContextLogId);
-            Js::Var* slotArray = RecyclerNewArray(ctx->GetRecycler(), Js::Var, slotInfo->SlotCount + Js::ScopeSlots::FirstSlotIndex);
+            Field(Js::Var)* slotArray = RecyclerNewArray(ctx->GetRecycler(), Field(Js::Var), slotInfo->SlotCount + Js::ScopeSlots::FirstSlotIndex);
 
-            Js::ScopeSlots scopeSlots(slotArray);
+            Js::ScopeSlots scopeSlots((Js::Var*)slotArray);
             scopeSlots.SetCount(slotInfo->SlotCount);
 
             Js::Var undef = ctx->GetLibrary()->GetUndefined();
@@ -654,7 +654,7 @@ namespace TTD
                 }
             }
 
-            return slotArray;
+            return (Js::Var*)slotArray;
         }
 
         void EmitSlotArrayInfo(const SlotArrayInfo* slotInfo, FileWriter* writer, NSTokens::Separator separator)

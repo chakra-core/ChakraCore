@@ -14,15 +14,15 @@ namespace Js
     class TypePropertyCacheElement
     {
     private:
-        DynamicObject *prototypeObjectWithProperty;
+        Field(DynamicObject *) prototypeObjectWithProperty;
 
         // tag the bit fields to avoid false positive
-        bool tag : 1;
-        bool isInlineSlot : 1;
-        bool isSetPropertyAllowed : 1;
-        bool isMissing : 1;
-        PropertyIndex index;
-        PropertyId id;
+        Field(bool) tag : 1;
+        Field(bool) isInlineSlot : 1;
+        Field(bool) isSetPropertyAllowed : 1;
+        Field(bool) isMissing : 1;
+        Field(PropertyIndex) index;
+        Field(PropertyId) id;
 
     public:
         TypePropertyCacheElement();
@@ -50,7 +50,7 @@ namespace Js
     class TypePropertyCache
     {
     private:
-        TypePropertyCacheElement elements[TypePropertyCache_NumElements];
+        Field(TypePropertyCacheElement) elements[TypePropertyCache_NumElements];
 
     private:
         static size_t ElementIndex(const PropertyId id);

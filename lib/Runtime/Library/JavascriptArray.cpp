@@ -68,9 +68,9 @@ namespace Js
 
     SegmentBTree::SegmentBTree()
         : segmentCount(0),
-          segments(NULL),
-          keys(NULL),
-          children(NULL)
+          segments(nullptr),
+          keys(nullptr),
+          children(nullptr)
     {
     }
 
@@ -158,7 +158,7 @@ namespace Js
 
             if (node->IsLeaf())
             {
-                matchOrNext = (i == 0 ? node->segments[0] : prev->next);
+                matchOrNext = (i == 0 ? node->segments[0] : PointerValue(prev->next));
             }
             else
             {
@@ -254,7 +254,7 @@ namespace Js
             newNode.keys[i] = child->keys[i+MinDegree];
 
             // Do not leave false positive references around in the b-tree
-            child->segments[i+MinDegree] = NULL;
+            child->segments[i+MinDegree] = nullptr;
         }
 
         // If children exist move those as well.
@@ -266,8 +266,8 @@ namespace Js
                 newNode.children[j] = child->children[j+MinDegree];
 
                 // Do not leave false positive references around in the b-tree
-                child->children[j+MinDegree].segments = NULL;
-                child->children[j+MinDegree].children = NULL;
+                child->children[j+MinDegree].segments = nullptr;
+                child->children[j+MinDegree].children = nullptr;
             }
         }
         child->segmentCount = MinKeys;
@@ -292,7 +292,7 @@ namespace Js
         parent->keys[iChild] = child->keys[MinKeys];
 
         // Do not leave false positive references around in the b-tree
-        child->segments[MinKeys] = NULL;
+        child->segments[MinKeys] = nullptr;
 
         parent->segmentCount++;
     }
@@ -407,7 +407,7 @@ namespace Js
         Var fill = Js::JavascriptArray::MissingItem;
         for (uint i = 0; i < size; i++)
         {
-            ((SparseArraySegment<Var>*)head)->elements[i] = fill;
+            SparseArraySegment<Var>::From(head)->elements[i] = fill;
         }
     }
 
@@ -425,7 +425,7 @@ namespace Js
     {
         SetHeadAndLastUsedSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, false>(this));
         head->size = size;
-        ((SparseArraySegment<int32>*)head)->FillSegmentBuffer(0, size);
+        SparseArraySegment<int32>::From(head)->FillSegmentBuffer(0, size);
     }
 
     JavascriptNativeFloatArray::JavascriptNativeFloatArray(uint32 length, uint32 size, DynamicType * type)
@@ -442,7 +442,7 @@ namespace Js
     {
         SetHeadAndLastUsedSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, false>(this));
         head->size = size;
-        ((SparseArraySegment<double>*)head)->FillSegmentBuffer(0, size);
+        SparseArraySegment<double>::From(head)->FillSegmentBuffer(0, size);
     }
 
     bool JavascriptArray::Is(Var aValue)
@@ -470,7 +470,7 @@ namespace Js
     template<typename T>
     bool JavascriptArray::IsMissingItemAt(uint32 index) const
     {
-        SparseArraySegment<T>* headSeg = (SparseArraySegment<T>*)this->head;
+        SparseArraySegment<T>* headSeg = SparseArraySegment<T>::From(this->head);
 
         return SparseArraySegment<T>::IsMissingItem(&headSeg->elements[index]);
     }
@@ -700,7 +700,7 @@ namespace Js
     {
         Assert(index < head->length);
 
-        return SparseArraySegment<T>::IsMissingItem(&static_cast<SparseArraySegment<T> *>(head)->elements[index]);
+        return SparseArraySegment<T>::IsMissingItem(&SparseArraySegment<T>::From(head)->elements[index]);
     }
 
     bool JavascriptArray::IsMissingHeadSegmentItem(const uint32 index) const
@@ -830,9 +830,9 @@ namespace Js
         // Called only to create array literals: size is known.
         JavascriptArray *arr = scriptContext->GetLibrary()->CreateArrayLiteral(elementCount);
 
-        SparseArraySegment<Var> *head = (SparseArraySegment<Var>*)arr->head;
+        SparseArraySegment<Var> *head = SparseArraySegment<Var>::From(arr->head);
         Assert(elementCount <= head->length);
-        js_memcpy_s(head->elements, sizeof(Var) * head->length, elements, sizeof(Var) * elementCount);
+        CopyArray(head->elements, head->length, elements, elementCount);
 
 #ifdef VALIDATE_ARRAY
         arr->ValidateArray();
@@ -846,7 +846,7 @@ namespace Js
         // Called only to create array literals: size is known.
         JavascriptArray *const array = static_cast<JavascriptArray *>(OP_NewScArray(elementCount, scriptContext));
         array->SetHasNoMissingValues(false);
-        SparseArraySegment<Var> *head = (SparseArraySegment<Var>*)array->head;
+        SparseArraySegment<Var> *head = SparseArraySegment<Var>::From(array->head);
         head->FillSegmentBuffer(0, elementCount);
 
         return array;
@@ -877,7 +877,7 @@ namespace Js
     {
         uint32 count = ints->count;
         JavascriptArray *arr = scriptContext->GetLibrary()->CreateArrayLiteral(count);
-        SparseArraySegment<Var> *head = (SparseArraySegment<Var>*)arr->head;
+        SparseArraySegment<Var> *head = SparseArraySegment<Var>::From(arr->head);
         Assert(count > 0 && count == head->length);
         for (uint i = 0; i < count; i++)
         {
@@ -909,9 +909,9 @@ namespace Js
 #endif
             {
                 arr = scriptContext->GetLibrary()->CreateNativeIntArrayLiteral(count);
-                SparseArraySegment<int32> *head = static_cast<SparseArraySegment<int32>*>(arr->head);
+                SparseArraySegment<int32> *head = SparseArraySegment<int32>::From(arr->head);
                 Assert(count > 0 && count == head->length);
-                js_memcpy_s(head->elements, sizeof(int32)* head->length, ints->elements, sizeof(int32)* count);
+                CopyArray(head->elements, head->length, ints->elements, count);
             }
 
             arr->SetArrayProfileInfo(weakFuncRef, arrayInfo);
@@ -922,7 +922,7 @@ namespace Js
         if (arrayInfo->IsNativeFloatArray())
         {
             JavascriptNativeFloatArray *arr = scriptContext->GetLibrary()->CreateNativeFloatArrayLiteral(count);
-            SparseArraySegment<double> *head = (SparseArraySegment<double>*)arr->head;
+            SparseArraySegment<double> *head = SparseArraySegment<double>::From(arr->head);
             Assert(count > 0 && count == head->length);
             for (uint i = 0; i < count; i++)
             {
@@ -941,7 +941,7 @@ namespace Js
     {
         uint32 count = doubles->count;
         JavascriptArray *arr = scriptContext->GetLibrary()->CreateArrayLiteral(count);
-        SparseArraySegment<Var> *head = (SparseArraySegment<Var>*)arr->head;
+        SparseArraySegment<Var> *head = SparseArraySegment<Var>::From(arr->head);
         Assert(count > 0 && count == head->length);
         for (uint i = 0; i < count; i++)
         {
@@ -968,9 +968,9 @@ namespace Js
             arrayInfo->SetIsNotNativeIntArray();
             uint32 count = doubles->count;
             JavascriptNativeFloatArray *arr = scriptContext->GetLibrary()->CreateNativeFloatArrayLiteral(count);
-            SparseArraySegment<double> *head = (SparseArraySegment<double>*)arr->head;
+            SparseArraySegment<double> *head = SparseArraySegment<double>::From(arr->head);
             Assert(count > 0 && count == head->length);
-            js_memcpy_s(head->elements, sizeof(double) * head->length, doubles->elements, sizeof(double) * count);
+            CopyArray(head->elements, head->length, doubles->elements, count);
             arr->SetArrayProfileInfo(weakFuncRef, arrayInfo);
 
             return arr;
@@ -2305,7 +2305,7 @@ namespace Js
     template<typename T>
     void JavascriptArray::SetArrayLiteralItem(uint32 index, T value)
     {
-        SparseArraySegment<T> * segment = (SparseArraySegment<T>*)this->head;
+        SparseArraySegment<T> * segment = SparseArraySegment<T>::From(this->head);
 
         Assert(segment->left == 0);
         Assert(index < segment->length);
@@ -2431,7 +2431,9 @@ namespace Js
 
     SparseArraySegmentBase * JavascriptArray::GetLastUsedSegment() const
     {
-        return (HasSegmentMap() ? segmentUnion.segmentBTreeRoot->lastUsedSegment : segmentUnion.lastUsedSegment);
+        return HasSegmentMap() ?
+            PointerValue(segmentUnion.segmentBTreeRoot->lastUsedSegment) :
+            PointerValue(segmentUnion.lastUsedSegment);
     }
 
     void JavascriptArray::SetHeadAndLastUsedSegment(SparseArraySegmentBase * segment)
@@ -2569,7 +2571,7 @@ namespace Js
         SegmentBTreeRoot * segmentMap = GetSegmentMap();
         if(!useSegmentMap || !segmentMap)
         {
-            return seg ? seg : this->head;
+            return seg ? seg : PointerValue(this->head);
         }
 
         if(seg)
@@ -2637,7 +2639,7 @@ namespace Js
                     }
                 }
             }
-            current = (SparseArraySegment<T>*)current->next;
+            current = SparseArraySegment<T>::From(current->next);
             if (current != NULL)
             {
                 if (candidateIndex < current->left)
@@ -2684,7 +2686,7 @@ namespace Js
             // 5 <=
 
             SparseArraySegmentBase* next = GetBeginLookupSegment(newLength - 1); // head, or next.left < newLength
-            SparseArraySegmentBase** prev = &head;
+            Field(SparseArraySegmentBase*)* prev = &head;
 
             while(next != nullptr)
             {
@@ -2903,7 +2905,7 @@ namespace Js
                 }
                 break;
             }
-            next = (SparseArraySegment<T>*)next->next;
+            next = SparseArraySegment<T>::From(next->next);
         }
 #ifdef VALIDATE_ARRAY
         ValidateArray();
@@ -2962,7 +2964,9 @@ namespace Js
     }
 
     template<typename T>
-    void JavascriptArray::ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest, BOOL FirstPromotedItemIsSpreadable, BigIndex FirstPromotedItemLength)
+    void JavascriptArray::ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds,
+        Js::Arguments& args, ScriptContext* scriptContext, uint start, BigIndex startIdxDest,
+        BOOL FirstPromotedItemIsSpreadable, BigIndex FirstPromotedItemLength, bool spreadableCheckedAndTrue)
     {
         // This never gets called.
         Throw::InternalError();
@@ -2971,7 +2975,9 @@ namespace Js
     // Helper for EntryConcat. Concat args or elements of arg arrays into dest array.
     //
     template<typename T>
-    void JavascriptArray::ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds, Js::Arguments& args, ScriptContext* scriptContext, uint start, uint startIdxDest, BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength)
+    void JavascriptArray::ConcatArgs(RecyclableObject* pDestObj, TypeId* remoteTypeIds,
+        Js::Arguments& args, ScriptContext* scriptContext, uint start, uint startIdxDest,
+        BOOL firstPromotedItemIsSpreadable, BigIndex firstPromotedItemLength, bool spreadableCheckedAndTrue)
     {
         JavascriptArray* pDestArray = nullptr;
 
@@ -2984,8 +2990,8 @@ namespace Js
         for (uint idxArg = start; idxArg < args.Info.Count; idxArg++)
         {
             Var aItem = args[idxArg];
-            BOOL spreadable = false;
-            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
+            bool spreadable = spreadableCheckedAndTrue;
+            if (!spreadable && scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
                 // firstPromotedItemIsSpreadable is ONLY used to resume after a type promotion from uint32 to uint64
                 // we do this because calls to IsConcatSpreadable are observable (a big deal for proxies) and we don't
@@ -2998,6 +3004,10 @@ namespace Js
                     ++idxDest;
                     continue;
                 }
+            }
+            else
+            {
+                spreadableCheckedAndTrue = false; // if it was `true`, reset after the first use
             }
 
             if (pDestArray && JavascriptArray::IsDirectAccessArray(aItem) && JavascriptArray::IsDirectAccessArray(pDestArray)
@@ -3116,6 +3126,7 @@ namespace Js
             pDestArray->SetLength(ConvertToIndex<T, uint32>(idxDest, scriptContext));
         }
     }
+
     bool JavascriptArray::PromoteToBigIndex(BigIndex lhs, BigIndex rhs)
     {
         return false; // already a big index
@@ -3138,17 +3149,25 @@ namespace Js
         for (uint idxArg = 0; idxArg < args.Info.Count; idxArg++)
         {
             Var aItem = args[idxArg];
+            bool spreadableCheckedAndTrue = false;
 
-            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled() && !JavascriptOperators::IsConcatSpreadable(aItem))
+            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
-                pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
-                idxDest = idxDest + 1;
-                if (!JavascriptNativeIntArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                if (JavascriptOperators::IsConcatSpreadable(aItem))
                 {
-                    ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
-                    return pDestArray;
+                    spreadableCheckedAndTrue = true;
                 }
-                continue;
+                else
+                {
+                    pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
+                    idxDest = idxDest + 1;
+                    if (!JavascriptNativeIntArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                    {
+                        ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
+                        return pDestArray;
+                    }
+                    continue;
+                }
             }
 
             if (JavascriptNativeIntArray::Is(aItem)) // Fast path
@@ -3185,7 +3204,7 @@ namespace Js
             else
             {
                 JavascriptArray *pVarDestArray = JavascriptNativeIntArray::ConvertToVarArray(pDestArray);
-                ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
+                ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue);
                 return pVarDestArray;
             }
         }
@@ -3203,18 +3222,26 @@ namespace Js
         {
             Var aItem = args[idxArg];
 
-            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled() && !JavascriptOperators::IsConcatSpreadable(aItem))
+            bool spreadableCheckedAndTrue = false;
+
+            if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
-
-                pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
-
-                idxDest = idxDest + 1;
-                if (!JavascriptNativeFloatArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                if (JavascriptOperators::IsConcatSpreadable(aItem))
                 {
-                    ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
-                    return pDestArray;
+                    spreadableCheckedAndTrue = true;
                 }
-                continue;
+                else
+                {
+                    pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
+
+                    idxDest = idxDest + 1;
+                    if (!JavascriptNativeFloatArray::Is(pDestArray)) // SetItem could convert pDestArray to a var array if aItem is not an integer if so fall back
+                    {
+                        ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg + 1, idxDest);
+                        return pDestArray;
+                    }
+                    continue;
+                }
             }
 
             bool converted;
@@ -3235,9 +3262,10 @@ namespace Js
                 else
                 {
                     JavascriptArray *pVarDestArray = JavascriptNativeFloatArray::ConvertToVarArray(pDestArray);
-                    ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
+                    ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue);
                     return pVarDestArray;
                 }
+
                 if (converted)
                 {
                     // Copying the last array forced a conversion, so switch over to the var version
@@ -4056,7 +4084,7 @@ namespace Js
     }
 
     template<>
-    void JavascriptArray::CopyValueToSegmentBuferNoCheck(double* buffer, uint32 length, double value)
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(Field(double)* buffer, uint32 length, double value)
     {
         if (JavascriptNumber::IsZero(value) && !JavascriptNumber::IsNegZero(value))
         {
@@ -4072,7 +4100,7 @@ namespace Js
     }
 
     template<>
-    void JavascriptArray::CopyValueToSegmentBuferNoCheck(int32* buffer, uint32 length, int32 value)
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(Field(int32)* buffer, uint32 length, int32 value)
     {
         if (value == 0 || AreAllBytesEqual(value))
         {
@@ -4088,7 +4116,7 @@ namespace Js
     }
 
     template<>
-    void JavascriptArray::CopyValueToSegmentBuferNoCheck(Js::Var* buffer, uint32 length, Js::Var value)
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(Field(Js::Var)* buffer, uint32 length, Js::Var value)
     {
         for (uint32 i = 0; i < length; i++)
         {
@@ -5324,7 +5352,7 @@ Case0:
             {
                 if (pArr->head && pArr->head->next && SparseArraySegmentBase::IsLeafSegment(pArr->head, recycler))
                 {
-                    pArr->ReallocNonLeafSegment((SparseArraySegment<int32>*)pArr->head, pArr->head->next);
+                    pArr->ReallocNonLeafSegment(SparseArraySegment<int32>::From(pArr->head), pArr->head->next);
                 }
                 pArr->EnsureHeadStartsFromZero<int32>(recycler);
             }
@@ -5332,7 +5360,7 @@ Case0:
             {
                 if (pArr->head && pArr->head->next && SparseArraySegmentBase::IsLeafSegment(pArr->head, recycler))
                 {
-                    pArr->ReallocNonLeafSegment((SparseArraySegment<double>*)pArr->head, pArr->head->next);
+                    pArr->ReallocNonLeafSegment(SparseArraySegment<double>::From(pArr->head), pArr->head->next);
                 }
                 pArr->EnsureHeadStartsFromZero<double>(recycler);
             }
@@ -5452,21 +5480,21 @@ Case0:
     {
         Recycler * recycler = scriptContext->GetRecycler();
 
-        SparseArraySegment<T>* next = (SparseArraySegment<T>*)pArr->head->next;
+        SparseArraySegment<T>* next = SparseArraySegment<T>::From(pArr->head->next);
         while (next)
         {
             next->left--;
-            next = (SparseArraySegment<T>*)next->next;
+            next = SparseArraySegment<T>::From(next->next);
         }
 
         // head and next might overlap as the next segment left is decremented
-        next = (SparseArraySegment<T>*)pArr->head->next;
+        next = SparseArraySegment<T>::From(pArr->head->next);
         if (next && (pArr->head->size > next->left))
         {
             AssertMsg(pArr->head->left == 0, "Array always points to a head starting at index 0");
             AssertMsg(pArr->head->size == next->left + 1, "Shift next->left overlaps current segment by more than 1 element");
 
-            SparseArraySegment<T> *head = (SparseArraySegment<T>*)pArr->head;
+            SparseArraySegment<T> *head = SparseArraySegment<T>::From(pArr->head);
             // Merge the two adjacent segments
             if (next->length != 0)
             {
@@ -5497,7 +5525,7 @@ Case0:
                 {
                     head = head->GrowByMin(recycler, next->length - 1); //-1 is to account for unshift
                 }
-                memmove(head->elements + offset, next->elements, next->length * sizeof(T));
+                MoveArray(head->elements + offset, next->elements, next->length);
                 head->length = offset + next->length;
                 pArr->head = head;
             }
@@ -5570,7 +5598,7 @@ Case0:
             {
                 if(isIntArray)
                 {
-                    int32 nativeResult = ((SparseArraySegment<int32>*)pArr->head)->GetElement(0);
+                    int32 nativeResult = SparseArraySegment<int32>::From(pArr->head)->GetElement(0);
 
                     if(SparseArraySegment<int32>::IsMissingItem(&nativeResult))
                     {
@@ -5580,11 +5608,11 @@ Case0:
                     {
                         res = Js::JavascriptNumber::ToVar(nativeResult, scriptContext);
                     }
-                    ((SparseArraySegment<int32>*)pArr->head)->RemoveElement(recycler, 0);
+                    SparseArraySegment<int32>::From(pArr->head)->RemoveElement(recycler, 0);
                 }
                 else if (isFloatArray)
                 {
-                    double nativeResult = ((SparseArraySegment<double>*)pArr->head)->GetElement(0);
+                    double nativeResult = SparseArraySegment<double>::From(pArr->head)->GetElement(0);
 
                     if(SparseArraySegment<double>::IsMissingItem(&nativeResult))
                     {
@@ -5594,11 +5622,11 @@ Case0:
                     {
                         res = Js::JavascriptNumber::ToVarNoCheck(nativeResult, scriptContext);
                     }
-                    ((SparseArraySegment<double>*)pArr->head)->RemoveElement(recycler, 0);
+                    SparseArraySegment<double>::From(pArr->head)->RemoveElement(recycler, 0);
                 }
                 else
                 {
-                    res = ((SparseArraySegment<Var>*)pArr->head)->GetElement(0);
+                    res = SparseArraySegment<Var>::From(pArr->head)->GetElement(0);
 
                     if(SparseArraySegment<Var>::IsMissingItem(&res))
                     {
@@ -5608,7 +5636,7 @@ Case0:
                     {
                         res = CrossSite::MarshalVar(scriptContext, res);
                     }
-                    ((SparseArraySegment<Var>*)pArr->head)->RemoveElement(recycler, 0);
+                    SparseArraySegment<Var>::From(pArr->head)->RemoveElement(recycler, 0);
                 }
             }
 
@@ -5730,11 +5758,11 @@ Case0:
     template<typename T>
     void JavascriptArray::SliceHelper(JavascriptArray* pArr,  JavascriptArray* pnewArr, uint32 start, uint32 newLen)
     {
-        SparseArraySegment<T>* headSeg = (SparseArraySegment<T>*)pArr->head;
-        SparseArraySegment<T>* pnewHeadSeg = (SparseArraySegment<T>*)pnewArr->head;
+        SparseArraySegment<T>* headSeg = SparseArraySegment<T>::From(pArr->head);
+        SparseArraySegment<T>* pnewHeadSeg = SparseArraySegment<T>::From(pnewArr->head);
 
         // Fill the newly created sliced array
-        js_memcpy_s(pnewHeadSeg->elements, sizeof(T) * newLen, headSeg->elements + start, sizeof(T) * newLen);
+        CopyArray(pnewHeadSeg->elements, newLen, headSeg->elements + start, newLen);
         pnewHeadSeg->length = newLen;
 
         Assert(pnewHeadSeg->length <= pnewHeadSeg->size);
@@ -6219,13 +6247,13 @@ Case0:
         }
     }
 
-    static void hybridSort(__inout_ecount(length) Var *elements, uint32 length, CompareVarsInfo* compareInfo)
+    static void hybridSort(__inout_ecount(length) Field(Var) *elements, uint32 length, CompareVarsInfo* compareInfo)
     {
         // The cost of memory moves starts to be more expensive than additional comparer calls (given a simple comparer)
         // for arrays of more than 512 elements.
         if (length > 512)
         {
-            qsort_s(elements, length, sizeof(Var), compareVars, compareInfo);
+            qsort_s(elements, length, compareVars, compareInfo);
             return;
         }
 
@@ -6250,7 +6278,7 @@ Case0:
 
                 // insert value right before first:
                 Var value = elements[i];
-                memmove(elements + first + 1, elements + first, (i - first) * sizeof(Var));
+                MoveArray(elements + first + 1, elements + first, (i - first));
                 elements[first] = value;
             }
         }
@@ -6277,7 +6305,7 @@ Case0:
         ClearSegmentMap();
 
         uint32 countUndefined = 0;
-        SparseArraySegment<Var>* startSeg = (SparseArraySegment<Var>*)head;
+        SparseArraySegment<Var>* startSeg = SparseArraySegment<Var>::From(head);
 
         // Sort may have side effects on the array. Setting a dummy head so that original array is not affected
         uint32 saveLength = length;
@@ -6321,7 +6349,7 @@ Case0:
                     {
                         allElements = SparseArraySegment<Var>::CopySegment(recycler, allElements, nextIndex, next, next->left, next->length);
                     }
-                    next = (SparseArraySegment<Var>*)next->next;
+                    next = SparseArraySegment<Var>::From(next->next);
                     nextIndex = allElements->length;
 
 #ifdef VALIDATE_ARRAY
@@ -6359,7 +6387,7 @@ Case0:
             uint32 index = head->length - 1;
             while (countNull < head->length)
             {
-                if (((SparseArraySegment<Var>*)head)->elements[index] != NULL)
+                if (SparseArraySegment<Var>::From(head)->elements[index] != NULL)
                 {
                     break;
                 }
@@ -6376,13 +6404,13 @@ Case0:
             uint32 newLength = head->length + countUndefined;
             if (newLength > head->size)
             {
-                head = ((SparseArraySegment<Var>*)head)->GrowByMin(recycler, newLength - head->size);
+                head = SparseArraySegment<Var>::From(head)->GrowByMin(recycler, newLength - head->size);
             }
 
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
             for (uint32 i = head->length; i < newLength; i++)
             {
-                ((SparseArraySegment<Var>*)head)->elements[i] = undefined;
+                SparseArraySegment<Var>::From(head)->elements[i] = undefined;
             }
             head->length = newLength;
         }
@@ -6395,7 +6423,7 @@ Case0:
         return;
     }
 
-    uint32 JavascriptArray::sort(__inout_ecount(*len) Var *orig, uint32 *len, ScriptContext *scriptContext)
+    uint32 JavascriptArray::sort(__inout_ecount(*len) Field(Var) *orig, uint32 *len, ScriptContext *scriptContext)
     {
         uint32 count = 0, countUndefined = 0;
         Element *elements = RecyclerNewArrayZ(scriptContext->GetRecycler(), Element, *len);
@@ -6455,7 +6483,8 @@ Case0:
 
     void JavascriptArray::SortElements(Element* elements, uint32 left, uint32 right)
     {
-        qsort_s(elements, right - left + 1, sizeof(Element), CompareElements, this);
+        // Note: use write barrier policy of Field(Var)
+        qsort_s<Element, Field(Var)>(elements, right - left + 1, CompareElements, this);
     }
 
     Var JavascriptArray::EntrySort(RecyclableObject* function, CallInfo callInfo, ...)
@@ -6578,8 +6607,8 @@ Case0:
                     uint32 removeIndex = sortArray->head->length;
                     for (uint32 i = 0; i < removeIndex; i++)
                     {
-                        AssertMsg(!SparseArraySegment<Var>::IsMissingItem(&((SparseArraySegment<Var>*)sortArray->head)->elements[i]), "No gaps expected in sorted array");
-                        h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(pObj, pObj, i, ((SparseArraySegment<Var>*)sortArray->head)->elements[i], scriptContext));
+                        AssertMsg(!SparseArraySegment<Var>::IsMissingItem(&SparseArraySegment<Var>::From(sortArray->head)->elements[i]), "No gaps expected in sorted array");
+                        h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(pObj, pObj, i, SparseArraySegment<Var>::From(sortArray->head)->elements[i], scriptContext));
                     }
                     for (int i = 0; i < indexList->Count(); i++)
                     {
@@ -6807,15 +6836,15 @@ Case0:
                 {
                     if (isIntArray)
                     {
-                        ArraySegmentSpliceHelper<int32>(newArr, (SparseArraySegment<int32>*)pArr->head, (SparseArraySegment<int32>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
+                        ArraySegmentSpliceHelper<int32>(newArr, SparseArraySegment<int32>::From(pArr->head), (SparseArraySegment<int32>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
                     }
                     else if (isFloatArray)
                     {
-                        ArraySegmentSpliceHelper<double>(newArr, (SparseArraySegment<double>*)pArr->head, (SparseArraySegment<double>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
+                        ArraySegmentSpliceHelper<double>(newArr, SparseArraySegment<double>::From(pArr->head), (SparseArraySegment<double>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
                     }
                     else
                     {
-                        ArraySegmentSpliceHelper<Var>(newArr, (SparseArraySegment<Var>*)pArr->head, (SparseArraySegment<Var>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
+                        ArraySegmentSpliceHelper<Var>(newArr, SparseArraySegment<Var>::From(pArr->head), (SparseArraySegment<Var>**)&pArr->head, start, deleteLen, insertArgs, insertLen, recycler);
                     }
 
                     // Since the start index is within the bounds of the original array's head segment, it will not acquire any new
@@ -6904,11 +6933,11 @@ Case0:
 
         if (newLenOverflow.HasOverflowed())
         {
-            return ObjectSpliceHelper<BigIndex>(pObj, len, start, deleteLen, insertArgs, insertLen, scriptContext, newObj);
+            return ObjectSpliceHelper<BigIndex>(pObj, len, start, deleteLen, (Var*)insertArgs, insertLen, scriptContext, newObj);
         }
         else // Use uint32 version if no overflow
         {
-            return ObjectSpliceHelper<uint32>(pObj, len, start, deleteLen, insertArgs, insertLen, scriptContext, newObj);
+            return ObjectSpliceHelper<uint32>(pObj, len, start, deleteLen, (Var*)insertArgs, insertLen, scriptContext, newObj);
         }
     }
 
@@ -6934,7 +6963,7 @@ Case0:
         if (headDeleteLen != 0)
         {
             pnewArr->InvalidateLastUsedSegment();
-            pnewArr->head = SparseArraySegment<T>::CopySegment(recycler, (SparseArraySegment<T>*)pnewArr->head, 0, seg, start, headDeleteLen);
+            pnewArr->head = SparseArraySegment<T>::CopySegment(recycler, SparseArraySegment<T>::From(pnewArr->head), 0, seg, start, headDeleteLen);
         }
 
         if (newHeadLen != 0)
@@ -6959,9 +6988,9 @@ Case0:
             if (headDeleteLen != insertLen)
             {
                 uint32 noElementsToMove = seg->length - (relativeStart + headDeleteLen);
-                memmove(seg->elements + relativeStart + insertLen,
-                                     seg->elements + relativeStart + headDeleteLen,
-                                     sizeof(T) * noElementsToMove);
+                MoveArray(seg->elements + relativeStart + insertLen,
+                            seg->elements + relativeStart + headDeleteLen,
+                            noElementsToMove);
                 if (newHeadLen < seg->length) // truncate if necessary
                 {
                     seg->Truncate(seg->left + newHeadLen); // set end elements to null so that when we introduce null elements we are safe
@@ -6975,13 +7004,14 @@ Case0:
                    !VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(pnewArr));
 
                 // inserted elements starts at argument 3 of splice(start, deleteNumber, insertelem1, insertelem2, insertelem3, ...);
-                js_memcpy_s(seg->elements + relativeStart, sizeof(Var) * insertLen, insertArgs, sizeof(Var) * insertLen);
+                CopyArray(seg->elements + relativeStart, insertLen,
+                          reinterpret_cast<const T*>(insertArgs), insertLen);
             }
             *prev = seg;
         }
         else
         {
-            *prev = (SparseArraySegment<T>*)seg->next;
+            *prev = SparseArraySegment<T>::From(seg->next);
         }
     }
 
@@ -6991,13 +7021,13 @@ Case0:
         // Skip pnewArr->EnsureHead(): we don't use existing segment at all.
         Recycler *recycler  = scriptContext->GetRecycler();
 
-        SparseArraySegmentBase** prevSeg  = &pArr->head;        // holds the next pointer of previous
-        SparseArraySegmentBase** prevPrevSeg  = &pArr->head;    // this holds the previous pointer to prevSeg dirty trick.
+        Field(SparseArraySegmentBase*)* prevSeg  = &pArr->head;        // holds the next pointer of previous
+        Field(SparseArraySegmentBase*)* prevPrevSeg  = &pArr->head;    // this holds the previous pointer to prevSeg dirty trick.
         SparseArraySegmentBase* savePrev = nullptr;
 
         Assert(pArr->head); // We should never have a null head.
         pArr->EnsureHead<T>();
-        SparseArraySegment<T>* startSeg = (SparseArraySegment<T>*)pArr->head;
+        SparseArraySegment<T>* startSeg = SparseArraySegment<T>::From(pArr->head);
 
         const uint32 limit = start + deleteLen;
         uint32 rightLimit;
@@ -7012,7 +7042,7 @@ Case0:
             savePrev = startSeg;
             prevPrevSeg = prevSeg;
             prevSeg = &startSeg->next;
-            startSeg = (SparseArraySegment<T>*)startSeg->next;
+            startSeg = SparseArraySegment<T>::From(startSeg->next);
 
             if (startSeg)
             {
@@ -7078,7 +7108,7 @@ Case0:
             else
             {
                 SparseArraySegment<T>* newHeadSeg = nullptr; // pnewArr->head is null
-                SparseArraySegmentBase** prevNewHeadSeg = &(pnewArr->head);
+                Field(SparseArraySegmentBase*)* prevNewHeadSeg = &pnewArr->head;
 
                 // delete till deleteLen and reuse segments for new array if it is possible.
                 // 3 steps -
@@ -7111,7 +7141,7 @@ Case0:
                     savePrev = startSeg;
                     prevPrevSeg = prevSeg;
                     prevSeg = &startSeg->next;
-                    startSeg = (SparseArraySegment<T>*)startSeg->next;
+                    startSeg = SparseArraySegment<T>::From(startSeg->next);
                 }
 
                 // Step (2) first we should do a hard copy if we have an inline head Segment
@@ -7136,14 +7166,14 @@ Case0:
 
                         // Remove the entire segment from the original array
                         *prevSeg = startSeg->next;
-                        startSeg = (SparseArraySegment<T>*)startSeg->next;
+                        startSeg = SparseArraySegment<T>::From(startSeg->next);
                     }
                     // if we have an inline head segment with 0 elements, remove it
                     else if (startSeg->left == 0 && startSeg->length == 0)
                     {
                         Assert(startSeg->size != 0);
                         *prevSeg = startSeg->next;
-                        startSeg = (SparseArraySegment<T>*)startSeg->next;
+                        startSeg = SparseArraySegment<T>::From(startSeg->next);
                     }
                 }
                 // Step (2) proper
@@ -7192,7 +7222,7 @@ Case0:
                     prevNewHeadSeg = &newHeadSeg->next;
 
                     // move the last segment
-                    memmove(startSeg->elements, startSeg->elements + headDeleteLen, sizeof(T) * (startSeg->length - headDeleteLen));
+                    MoveArray(startSeg->elements, startSeg->elements + headDeleteLen, startSeg->length - headDeleteLen);
                     startSeg->left = startSeg->left + headDeleteLen; // We are moving the left ahead to point to the right index
                     startSeg->length = startSeg->length - headDeleteLen;
                     startSeg->Truncate(startSeg->left + startSeg->length);
@@ -7215,7 +7245,7 @@ Case0:
                     {
                         startSeg->EnsureSizeInBound();
                     }
-                    startSeg = (SparseArraySegment<T>*)startSeg->next;
+                    startSeg = SparseArraySegment<T>::From(startSeg->next);
                 }
             }
         }
@@ -7265,7 +7295,8 @@ Case0:
 
             uint32 relativeStart = start - segInsert->left;
             // inserted elements starts at argument 3 of splice(start, deleteNumber, insertelem1, insertelem2, insertelem3, ...);
-            js_memcpy_s(segInsert->elements + relativeStart, sizeof(T) * insertLen, insertArgs, sizeof(T) * insertLen);
+            CopyArray(segInsert->elements + relativeStart, insertLen,
+                      reinterpret_cast<const T*>(insertArgs), insertLen);
         }
     }
 
@@ -7474,11 +7505,11 @@ Case0:
         if (nextToHeadSeg == nullptr)
         {
             pArr->EnsureHead<T>();
-            pArr->head = ((SparseArraySegment<T>*)pArr->head)->GrowByMin(recycler, unshiftElements);
+            pArr->head = SparseArraySegment<T>::From(pArr->head)->GrowByMin(recycler, unshiftElements);
         }
         else
         {
-            pArr->head = ((SparseArraySegment<T>*)pArr->head)->GrowByMinMax(recycler, unshiftElements, ((nextToHeadSeg->left + unshiftElements) - pArr->head->left - pArr->head->size));
+            pArr->head = SparseArraySegment<T>::From(pArr->head)->GrowByMinMax(recycler, unshiftElements, ((nextToHeadSeg->left + unshiftElements) - pArr->head->left - pArr->head->size));
         }
 
     }
@@ -7486,9 +7517,9 @@ Case0:
     template<typename T>
     void JavascriptArray::UnshiftHelper(JavascriptArray* pArr, uint32 unshiftElements, Js::Var * elements)
     {
-        SparseArraySegment<T>* head = (SparseArraySegment<T>*)pArr->head;
+        SparseArraySegment<T>* head = SparseArraySegment<T>::From(pArr->head);
         // Make enough room in the head segment to insert new elements at the front
-        memmove(head->elements + unshiftElements, head->elements, sizeof(T) * pArr->head->length);
+        MoveArray(head->elements + unshiftElements, head->elements, pArr->head->length);
         uint32 oldHeadLength = head->length;
         head->length += unshiftElements;
 
@@ -10108,7 +10139,7 @@ Case0:
             // some protection here. Save the head and switch this array to EmptySegment. Will be restored
             // correctly if allocating new segment succeeds.
             //
-            SparseArraySegment<T>* savedHead = (SparseArraySegment<T>*)this->head;
+            SparseArraySegment<T>* savedHead = SparseArraySegment<T>::From(this->head);
             SparseArraySegment<T>* savedLastUsedSegment = (SparseArraySegment<T>*)this->GetLastUsedSegment();
             SetHeadAndLastUsedSegment(const_cast<SparseArraySegmentBase*>(EmptySegment));
 
@@ -11238,7 +11269,7 @@ Case0:
         }
         ValidateArrayCommon();
         // Detailed segments validation
-        JavascriptArray::ValidateVarSegment((SparseArraySegment<Var>*)head);
+        JavascriptArray::ValidateVarSegment(SparseArraySegment<Var>::From(head));
     }
 
     void JavascriptNativeIntArray::ValidateArray()
@@ -11260,7 +11291,7 @@ Case0:
         }
         ValidateArrayCommon();
         // Detailed segments validation
-        JavascriptArray::ValidateSegment<int32>((SparseArraySegment<int32>*)head);
+        JavascriptArray::ValidateSegment<int32>(SparseArraySegment<int32>::From(head));
     }
 
     void JavascriptNativeFloatArray::ValidateArray()
@@ -11282,7 +11313,7 @@ Case0:
         }
         ValidateArrayCommon();
         // Detailed segments validation
-        JavascriptArray::ValidateSegment<double>((SparseArraySegment<double>*)head);
+        JavascriptArray::ValidateSegment<double>(SparseArraySegment<double>::From(head));
     }
 
 
@@ -11319,7 +11350,7 @@ Case0:
             }
             ValidateSegment(seg);
 
-            seg = (SparseArraySegment<Var>*)seg->next;
+            seg = SparseArraySegment<Var>::From(seg->next);
         }
     }
 
@@ -11340,7 +11371,7 @@ Case0:
                 i++;
             }
 
-            seg = (SparseArraySegment<T>*)seg->next;
+            seg = SparseArraySegment<T>::From(seg->next);
         }
     }
 #endif
@@ -11358,8 +11389,7 @@ Case0:
         dst->size = src->size;
         dst->next = src->next;
 
-        js_memcpy_s(dst->elements, sizeof(T) * dst->size, src->elements, sizeof(T) * src->size);
-
+        CopyArray(dst->elements, dst->size, src->elements, src->size);
     }
 
     JavascriptArray::JavascriptArray(JavascriptArray * instance, bool boxHead)
@@ -11367,7 +11397,7 @@ Case0:
     {
         if (boxHead)
         {
-            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptArray, 0, true>(this), (SparseArraySegment<Var>*)instance->head);
+            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptArray, 0, true>(this), SparseArraySegment<Var>::From(instance->head));
         }
         else
         {
@@ -11491,7 +11521,7 @@ Case0:
     {
         if (boxHead)
         {
-            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>(this), (SparseArraySegment<int>*)instance->head);
+            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeIntArray, 0, true>(this), SparseArraySegment<int>::From(instance->head));
         }
         else
         {
@@ -11537,7 +11567,7 @@ Case0:
     {
         if (boxHead)
         {
-            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>(this), (SparseArraySegment<double>*)instance->head);
+            InitBoxedInlineHeadSegment(DetermineInlineHeadSegmentPointer<JavascriptNativeFloatArray, 0, true>(this), SparseArraySegment<double>::From(instance->head));
         }
         else
         {

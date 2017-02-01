@@ -320,7 +320,7 @@ namespace Js
 #endif
         // Move all current inline slots up to object header inline offset
         Var *const oldInlineSlots = reinterpret_cast<Var *>(reinterpret_cast<uintptr_t>(object) + this->GetOffsetOfInlineSlots());
-        Var *const newInlineSlots = reinterpret_cast<Var *>(reinterpret_cast<uintptr_t>(object) + this->GetOffsetOfObjectHeaderInlineSlots());
+        Field(Var) *const newInlineSlots = reinterpret_cast<Field(Var) *>(reinterpret_cast<uintptr_t>(object) + this->GetOffsetOfObjectHeaderInlineSlots());
 
         PHASE_PRINT_TRACE1(ObjectHeaderInliningPhase, _u("ObjectHeaderInlining: Re-optimizing the object. Moving auxSlots properties to ObjectHeader.\n"));
 
@@ -1051,7 +1051,7 @@ namespace Js
 #endif
             for (uint i = 0; i < count; i++)
             {
-                PathTypeHandlerBase *pathHandler = (PathTypeHandlerBase *)type->typeHandler;
+                PathTypeHandlerBase *pathHandler = (PathTypeHandlerBase *)PointerValue(type->typeHandler);
                 Js::PropertyId propertyId = propIds->elements[i];
 
                 PropertyIndex propertyIndex = pathHandler->GetPropertyIndex(propertyId);

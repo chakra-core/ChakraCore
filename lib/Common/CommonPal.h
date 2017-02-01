@@ -70,8 +70,6 @@
 #undef Yield /* winbase.h defines this but we want to use it for Js::OpCode::Yield; it is Win16 legacy, no harm undef'ing it */
 #pragma warning(pop)
 
-typedef wchar_t char16;
-
 // xplat-todo: get a better name for this macro
 #define _u(s) L##s
 #define INIT_PRIORITY(x)
@@ -94,8 +92,10 @@ __forceinline void  __int2c()
 #include <wchar.h>
 #include <math.h>
 #include <time.h>
+#if defined(_AMD64_) || defined(__i686__)
 #include <smmintrin.h>
 #include <xmmintrin.h>
+#endif // defined(_AMD64_) || defined(__i686__)
 #endif
 
 #include "inc/pal.h"
@@ -115,6 +115,7 @@ typedef GUID UUID;
 #define FILE PAL_FILE
 #endif
 
+#if defined(_AMD64_) || defined(__i686__)
 // xplat-todo: verify below is correct
 #include <cpuid.h>
 inline int get_cpuid(int cpuInfo[4], int function_id)
@@ -126,6 +127,14 @@ inline int get_cpuid(int cpuInfo[4], int function_id)
             reinterpret_cast<unsigned int*>(&cpuInfo[2]),
             reinterpret_cast<unsigned int*>(&cpuInfo[3]));
 }
+#elif defined(_ARM_)
+inline int get_cpuid(int cpuInfo[4], int function_id)
+{
+    int empty[4] = {0};
+    memcpy(cpuInfo, empty, sizeof(int) * 4);
+    // xplat-todo: implement me!!
+}
+#endif
 
 inline void DebugBreak()
 {
@@ -193,6 +202,7 @@ inline void DebugBreak()
 // activscp.h
 #define SCRIPT_E_RECORDED                _HRESULT_TYPEDEF_(0x86664004L)
 
+#define GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS        (0x00000004)
 
 typedef
 enum tagBREAKPOINT_STATE
@@ -617,11 +627,21 @@ void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
     finallyFunc(hasException);
 }
 
+#ifdef DISABLE_SEH
+#define __TRY_FINALLY_BEGIN TryFinally([&]()
+#define __FINALLY           , [&](bool /* hasException */)
+#define __TRY_FINALLY_END   );
+#else
+#define __TRY_FINALLY_BEGIN __try
+#define __FINALLY   __finally
+#define __TRY_FINALLY_END
+#endif
+
 namespace PlatformAgnostic
 {
     __forceinline unsigned char _BitTestAndSet(LONG *_BitBase, int _BitPos)
     {
-#if defined(__clang__)
+#if defined(__clang__) && !defined(_ARM_)
         // Clang doesn't expand _bittestandset intrinic to bts, and it's implemention also doesn't work for _BitPos >= 32
         unsigned char retval = 0;
         asm(
@@ -637,9 +657,9 @@ namespace PlatformAgnostic
 #endif
     }
 
-    __forceinline unsigned char _BitTest(const LONG *_BitBase, int _BitPos)
+    __forceinline unsigned char _BitTest(LONG *_BitBase, int _BitPos)
     {
-#if defined(__clang__)
+#if defined(__clang__) && !defined(_ARM_)
         // Clang doesn't expand _bittest intrinic to bt, and it's implemention also doesn't work for _BitPos >= 32
         unsigned char retval;
         asm(
@@ -657,7 +677,7 @@ namespace PlatformAgnostic
 
     __forceinline unsigned char _InterlockedBitTestAndSet(volatile LONG *_BitBase, int _BitPos)
     {
-#if defined(__clang__)
+#if defined(__clang__) && !defined(_ARM_)
         // Clang doesn't expand _interlockedbittestandset intrinic to lock bts, and it's implemention also doesn't work for _BitPos >= 32
         unsigned char retval;
         asm(
@@ -672,9 +692,32 @@ namespace PlatformAgnostic
         return _interlockedbittestandset(_BitBase, _BitPos);
 #endif
     }
+
+    __forceinline unsigned char _InterlockedBitTestAndReset(volatile LONG *_BitBase, int _BitPos)
+    {
+#if defined(__clang__) && !defined(_ARM_)
+        // Clang doesn't expand _interlockedbittestandset intrinic to lock btr, and it's implemention also doesn't work for _BitPos >= 32
+        unsigned char retval;
+        asm(
+            "lock btr %[_BitPos], %[_BitBase]\n\t"
+            "setc %b[retval]\n\t"
+            : [_BitBase] "+m" (*_BitBase), [retval] "+rm" (retval)
+            : [_BitPos] "ri" (_BitPos)
+            : "cc" // clobber condition code
+        );
+        return retval;
+#elif !defined(__ANDROID__)
+        return _interlockedbittestandreset(_BitBase, (long)_BitPos);
+#else
+        // xplat-todo: Implement _interlockedbittestandreset for Android
+        abort();
+#endif
+    }
 };
 
 #include "PlatformAgnostic/DateTime.h"
 #include "PlatformAgnostic/Numbers.h"
 #include "PlatformAgnostic/SystemInfo.h"
 #include "PlatformAgnostic/Thread.h"
+#include "PlatformAgnostic/AssemblyCommon.h"
+#include "PlatformAgnostic/Debugger.h"

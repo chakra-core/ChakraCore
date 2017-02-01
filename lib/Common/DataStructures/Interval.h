@@ -8,8 +8,8 @@ namespace regex
 {
     struct Interval
     {
-        int begin;
-        int end;
+        Field(int) begin;
+        Field(int) end;
 
     public:
         Interval(): begin(0), end(0)

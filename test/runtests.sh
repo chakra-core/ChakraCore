@@ -52,7 +52,7 @@ fi
 
 RES=$(pwd)
 CH_ABSOLUTE_PATH="$RES/${test_path}/../BuildLinux/${binary_path}/ch"
-RES=$(cd $RES/$test_path/native-tests; ./test_native.sh ${CH_ABSOLUTE_PATH} 2>&1)
+RES=$(cd $RES/$test_path/native-tests; ./test_native.sh ${CH_ABSOLUTE_PATH} ${binary_path} 2>&1)
 if [[ $? != 0 ]]; then
     echo "Error: Native tests failed"
     echo -e "$RES"

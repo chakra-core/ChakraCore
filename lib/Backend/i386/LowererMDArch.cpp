@@ -1971,8 +1971,8 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
         Int64RegPair src1Pair = lowererMD->m_lowerer->FindOrCreateInt64Pair(src1);
         IR::Instr* lowLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.low, src1Pair.low, m_func);
 
-        lowererMD->ChangeToAssign(lowLoadInstr);
         instr->InsertBefore(lowLoadInstr);
+        lowererMD->ChangeToAssign(lowLoadInstr);
 
         // Do not store to memory if we wanted less than 8 bytes
         const bool canAssignHigh = !dst->IsIndirOpnd() || dstSize == 8;
@@ -1983,8 +1983,8 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
             {
                 // Normal case, assign source's high bits to dst's high bits
                 IR::Instr* highLoadInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, src1Pair.high, m_func);
-                lowererMD->ChangeToAssign(highLoadInstr);
                 instr->InsertBefore(highLoadInstr);
+                lowererMD->ChangeToAssign(highLoadInstr);
             }
             else
             {
@@ -2001,8 +2001,8 @@ LowererMDArch::LowerInt64Assign(IR::Instr * instr)
                 {
                     // If this is a signed assign from memory, we need to extend the sign
                     IR::Instr* highExtendInstr = IR::Instr::New(Js::OpCode::Ld_I4, dstPair.high, dstPair.low, m_func);
-                    lowererMD->ChangeToAssign(highExtendInstr);
                     instr->InsertBefore(highExtendInstr);
+                    lowererMD->ChangeToAssign(highExtendInstr);
 
                     highExtendInstr = IR::Instr::New(Js::OpCode::SAR, dstPair.high, dstPair.high, IR::IntConstOpnd::New(31, TyInt32, m_func), m_func);
                     instr->InsertBefore(highExtendInstr);

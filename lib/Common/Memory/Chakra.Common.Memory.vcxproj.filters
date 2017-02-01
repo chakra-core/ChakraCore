@@ -111,6 +111,7 @@
     <ClInclude Include="XDataAllocator.h" />
     <ClInclude Include="CollectionState.h" />
     <ClInclude Include="AllocationPolicyManager.h" />
+    <ClInclude Include="WriteBarrierMacros.h" />
     <ClInclude Include="arm64\XDataAllocator.h">
       <Filter>arm64</Filter>
     </ClInclude>

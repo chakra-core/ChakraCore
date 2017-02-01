@@ -20,8 +20,11 @@
 #define MBUSAFECRT_INTERNAL_H
 
 #include "pal_mstypes.h"
-
+#ifndef __ANDROID__
 typedef __builtin_va_list va_list;
+#else
+#include <stdarg.h>
+#endif
 
 // The ifdef below are to accommodate Unix build
 // that complains about them being declared in stdarg.h already.

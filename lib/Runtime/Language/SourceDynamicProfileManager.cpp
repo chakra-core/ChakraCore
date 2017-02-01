@@ -397,7 +397,7 @@ namespace Js
         // to be so from the profile - this helps with ensure inlined functions are marked as executed.
         if(!this->startupFunctions)
         {
-            this->startupFunctions = const_cast<BVFixed*>(this->cachedStartupFunctions);
+            this->startupFunctions = const_cast<BVFixed*>(static_cast<const BVFixed*>(this->cachedStartupFunctions));
         }
         else if(cachedStartupFunctions && this->cachedStartupFunctions->Length() == this->startupFunctions->Length())
         {
@@ -415,7 +415,7 @@ namespace Js
 #endif
 
             size_t bvSize = BVFixed::GetAllocSize(this->startupFunctions->Length()) ;
-            if (!writer->WriteArray((char *)this->startupFunctions, bvSize)
+            if (!writer->WriteArray((char *)static_cast<BVFixed*>(this->startupFunctions), bvSize)
                 || !writer->Write(this->dynamicProfileInfoMap.Count()))
             {
                 return false;

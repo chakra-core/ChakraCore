@@ -1286,6 +1286,10 @@ namespace Js
             fflush(stderr);
         }
 
+        if (globalFlags.FaultInjection == InstallExceptionHandlerOnly)
+        {
+            needDump = true;
+        }
 
         // create dump for this crash
         if (needDump)

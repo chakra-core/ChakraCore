@@ -206,6 +206,7 @@ PHASE(All)
                 PHASE(FrameDisplayFastPath)
                 PHASE(HoistMarkTempInit)
                 PHASE(HoistConstAddr)
+            PHASE(JitWriteBarrier)
             PHASE(PreLowererPeeps)
             PHASE(CFGInJit)
             PHASE(TypedArray)
@@ -650,7 +651,12 @@ PHASE(All)
 #define DEFAULT_CONFIG_EnumerationCompat    (false)
 #define DEFAULT_CONFIG_ConcurrentRuntime (false)
 #define DEFAULT_CONFIG_PrimeRecycler     (false)
+#if defined(_WIN32)
 #define DEFAULT_CONFIG_PrivateHeap       (true)
+#else // defined(_WIN32)
+// Don't use PrivateHeap on xplat where we statically link and override new/delete
+#define DEFAULT_CONFIG_PrivateHeap       (false)
+#endif // defined(_WIN32)
 #define DEFAULT_CONFIG_DisableRentalThreading (false)
 #define DEFAULT_CONFIG_DisableDebugObject (false)
 #define DEFAULT_CONFIG_DumpHeap (false)
@@ -716,6 +722,18 @@ PHASE(All)
 #if defined(_M_IX86) || defined(_M_X64)
 #define DEFAULT_CONFIG_ZeroMemoryWithNonTemporalStore (true)
 #endif
+
+#define DEFAULT_CONFIG_StrictWriteBarrierCheck  (false)
+#define DEFAULT_CONFIG_KeepRecyclerTrackData  (false)
+#define DEFAULT_CONFIG_EnableBGFreeZero (true)
+
+#if !GLOBAL_ENABLE_WRITE_BARRIER
+#define DEFAULT_CONFIG_ForceSoftwareWriteBarrier  (false)
+#else
+#define DEFAULT_CONFIG_ForceSoftwareWriteBarrier  (true)
+#endif
+#define DEFAULT_CONFIG_WriteBarrierTest (false)
+#define DEFAULT_CONFIG_VerifyBarrierBit  (false)
 
 #define TraceLevel_Error        (1)
 #define TraceLevel_Warning      (2)
@@ -1486,6 +1504,14 @@ FLAGNR(Boolean, CFG, "Force enable CFG on jshost. version in the jshost's manife
 
 FLAGR(Number, JITServerIdleTimeout, "Idle timeout in seconds to do the cleanup in JIT server", 10)
 FLAGR(Number, JITServerMaxInactivePageAllocatorCount, "Max inactive page allocators to keep before schedule a cleanup", 10)
+
+FLAGNR(Boolean, StrictWriteBarrierCheck, "Check write barrier setting on none write barrier pages", DEFAULT_CONFIG_StrictWriteBarrierCheck)
+FLAGNR(Boolean, WriteBarrierTest, "Always return true while checking barrier to test recycler regardless of annotation", DEFAULT_CONFIG_WriteBarrierTest)
+FLAGNR(Boolean, ForceSoftwareWriteBarrier, "Use to turn off write watch to test software write barrier on windows", DEFAULT_CONFIG_ForceSoftwareWriteBarrier)
+FLAGNR(Boolean, VerifyBarrierBit, "Verify software write barrier bit is set while marking", DEFAULT_CONFIG_VerifyBarrierBit)
+FLAGNR(Boolean, EnableBGFreeZero, "Use to turn off background freeing and zeroing to simulate linux", DEFAULT_CONFIG_EnableBGFreeZero)
+FLAGNR(Boolean, KeepRecyclerTrackData, "Keep recycler track data after sweep until reuse", DEFAULT_CONFIG_KeepRecyclerTrackData)
+
 #undef FLAG_REGOVR_EXP
 #undef FLAG_REGOVR_ASMJS
 

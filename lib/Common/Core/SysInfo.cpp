@@ -65,7 +65,7 @@ AutoSystemInfo::Initialize()
 {
     Assert(!initialized);
 #ifndef _WIN32
-    PAL_InitializeDLL();
+    PAL_InitializeChakraCore();
     majorVersion = CHAKRA_CORE_MAJOR_VERSION;
     minorVersion = CHAKRA_CORE_MINOR_VERSION;
 #endif
@@ -111,7 +111,11 @@ AutoSystemInfo::Initialize()
 
     this->shouldQCMoreFrequently = false;
     this->supportsOnlyMultiThreadedCOM = false;
+#if defined(__ANDROID__) || defined(__IOS__)
+    this->isLowMemoryDevice = true;
+#else
     this->isLowMemoryDevice = false;
+#endif
 
     // 0 indicates we haven't retrieved the available commit. We get it lazily.
     this->availableCommit = 0;
@@ -254,7 +258,7 @@ AutoSystemInfo::SSE2Available() const
     return false; // TODO: xplat support
 #endif
 #else
-    #error Unsupported platform.
+    return false;
 #endif
 }
 

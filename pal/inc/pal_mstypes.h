@@ -85,22 +85,8 @@ extern "C" {
 
 #endif // !_MSC_VER
 
-#ifdef _MSC_VER
-
-#if defined(PAL_IMPLEMENTATION)
-#define PALIMPORT
-#else
-#define PALIMPORT   __declspec(dllimport)
-#endif
-#define PAL_NORETURN __declspec(noreturn)
-
-#else
-
 #define PALIMPORT
 #define PAL_NORETURN    __attribute__((noreturn))
-
-#endif
-
 #define PALAPI      __stdcall
 #define PALAPIV     __cdecl
 
@@ -137,19 +123,6 @@ extern "C" {
 // Misc. type helpers
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-
-// MSVC's way of declaring large integer constants
-// If you define these in one step, without the _HELPER macros, you
-// get extra whitespace when composing these with other concatenating macros.
-#define I64_HELPER(x) x ## i64
-#define I64(x)        I64_HELPER(x)
-
-#define UI64_HELPER(x) x ## ui64
-#define UI64(x)        UI64_HELPER(x)
-
-#else // _MSC_VER
-
 // GCC's way of declaring large integer constants
 // If you define these in one step, without the _HELPER macros, you
 // get extra whitespace when composing these with other concatenating macros.
@@ -158,8 +131,6 @@ extern "C" {
 
 #define UI64_HELPER(x) x ## ULL
 #define UI64(x)        UI64_HELPER(x)
-
-#endif // _MSC_VER
 
 ////////////////////////////////////////////////////////////////////////
 // Misc. types
@@ -501,8 +472,6 @@ UShortToPtr(
 #define UShortToPtr( us )  ((VOID *)(UINT_PTR)((unsigned short)(s)))
 #endif // !defined(BIT64)
 
-
-
 #else
 
 typedef _W64 __int32 INT_PTR;
@@ -566,7 +535,7 @@ typedef LONG_PTR SSIZE_T, *PSSIZE_T;
 typedef unsigned long size_t;
 typedef long ptrdiff_t;
 #else // !BIT64
-typedef unsigned long size_t;
+typedef unsigned int size_t;
 typedef int ptrdiff_t;
 #endif // !BIT64
 #else
@@ -585,17 +554,9 @@ typedef LONG_PTR LPARAM;
 #define _PTRDIFF_T
 #endif
 
-// CC uses both char16_t and wchar_t internally
-#if !defined(_WCHAR_T_DEFINED)
-#if defined(__cplusplus)
-#undef wchar_t
-#define wchar_t __wchar_16_cpp__
-typedef char16_t wchar_t;
-#else
+#if !defined(__cplusplus)
 typedef unsigned short char16_t;
 #endif // __cplusplus
-#define _WCHAR_T_DEFINED
-#endif // _WCHAR_T_DEFINED
 
 typedef char16_t WCHAR;
 #define WCHAR_IS_CHAR16_T 1

@@ -71,7 +71,7 @@ namespace utf8
         }
 
         // Some node tests depend on the utf8 decoder not swallowing invalid unicode characters
-        // instead of replacing them with the "replacement" chracter. Pass a flag to our 
+        // instead of replacing them with the "replacement" chracter. Pass a flag to our
         // decoder to require such behavior
         utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(destString, (LPCUTF8) sourceString, (LPCUTF8) sourceString + cbSourceString, DecodeOptions::doAllowInvalidWCHARs);
         Assert(destString[cchDestString] == 0);
@@ -167,7 +167,17 @@ namespace utf8
         size_t dstCount;
 
     public:
+        NarrowWideConverter() : dst()
+        {
+            // do nothing
+        }
+
         NarrowWideConverter(const SrcType& src, size_t srcCount = -1): dst()
+        {
+            Initialize(src, srcCount);
+        }
+
+        void Initialize(const SrcType& src, size_t srcCount = -1)
         {
             if (srcCount == -1)
             {

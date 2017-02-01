@@ -30,9 +30,9 @@ namespace Js
             }
         }
 
-        Js::Var returnedValue;
-        Js::JavascriptFunction *calledFunction;
-        bool isValueOfReturnStatement;
+        Field(Js::Var) returnedValue;
+        Field(Js::JavascriptFunction *) calledFunction;
+        Field(bool) isValueOfReturnStatement;
     };
 
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;

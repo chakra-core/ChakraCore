@@ -1432,14 +1432,11 @@ var tests = [
             assert.areEqual([10,9,8,7,6,5,4,3,2,1], getTypedArray(10).sort(sortCallbackReverse), "%TypedArrayPrototype%.sort with a sort callback function which reverses elements");
             assert.areEqual([5,1,2,3,4,6,7,8,9,10], getTypedArray(10).sort(sortCallbackHate5), "%TypedArrayPrototype%.sort basic behavior with a lying sort callback which hates the number 5");
 
-            // exclude this particular test from xplat
-            // posix / bsd implementations of qsort is incompatible with the one on Windows
-            // result from the test below is strictly related to how qsort is implemented
-            // TODO (maybe) : implement consistent re-entrant qsort ?
-            // ChakraFull test host does not implements `Platform` below.
-            // So, consider that as Windows too
-            if (!WScript.Platform || WScript.Platform.OS == "win32") {
+            // we have a consistent qsort_r impl. on xplat.
+            if (!WScript.Platform || WScript.Platform.OS == "win32") { // Windows
                 assert.areEqual([9,8,7,2,10,5,4,3,1,6], getTypedArray(10).sort(sortCallbackMalformed), "%TypedArrayPrototype%.sort basic behavior with a sort callback which returns random values");
+            } else { // xplat
+                assert.areEqual([2,9,8,7,10,4,1,3,5,6], getTypedArray(10).sort(sortCallbackMalformed), "%TypedArrayPrototype%.sort basic behavior with a sort callback which returns random values");
             }
 
             assert.throws(function() { sort.call(); }, TypeError, "Calling %TypedArrayPrototype%.sort with no this throws TypeError", "'this' is not a typed array object");

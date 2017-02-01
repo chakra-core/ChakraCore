@@ -18,6 +18,12 @@ StackBackTrace::StackBackTrace(ULONG framesToCaptureLater) : requestedFramesToCa
 {
 }
 
+StackBackTrace *
+StackBackTrace::Capture(char* buffer, size_t bufSize, ULONG framesToSkip)
+{
+    return new (buffer) StackBackTrace(framesToSkip, (ULONG)(bufSize - offsetof(StackBackTrace, stackBackTrace)) / sizeof(void*));
+}
+
 // This can be called multiple times, together with Create, in which case we will use (overwrite) same buffer.
 ULONG StackBackTrace::Capture(ULONG framesToSkip)
 {

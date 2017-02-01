@@ -146,18 +146,19 @@ namespace Js
         static uint32 GetIndexFromVar(Js::Var arg, uint32 length, ScriptContext* scriptContext);
 
         //In most cases, the ArrayBuffer will only have one parent
-        RecyclerWeakReference<ArrayBufferParent>* primaryParent;
-        JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>* otherParents;
+        Field(RecyclerWeakReference<ArrayBufferParent>*) primaryParent;
+        typedef JsUtil::WeakReferenceDictionary<uintptr_t, ArrayBufferParent, PowerOf2SizePolicy> ArrayBufferParentsMap;
+        Field(ArrayBufferParentsMap*) otherParents;
 
 
-        BYTE  *buffer;             // Points to a heap allocated RGBA buffer, can be null
-        uint32 bufferLength;       // Number of bytes allocated
+        FieldNoBarrier(BYTE*) buffer;             // Points to a heap allocated RGBA buffer, can be null
+        Field(uint32) bufferLength;       // Number of bytes allocated
 
         // When an ArrayBuffer is detached, the TypedArray and DataView objects pointing to it must be made aware,
         // for this purpose the ArrayBuffer needs to hold WeakReferences to them
-        bool isDetached;
-        bool mIsAsmJsBuffer;
-        bool isBufferCleared;
+        Field(bool) isDetached;
+        Field(bool) mIsAsmJsBuffer;
+        Field(bool) isBufferCleared;
 
     };
 
@@ -167,7 +168,7 @@ namespace Js
         friend ArrayBufferBase;
 
     private:
-        ArrayBufferBase* arrayBuffer;
+        Field(ArrayBufferBase*) arrayBuffer;
 
     protected:
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBufferParent, ArrayObject);
@@ -178,7 +179,7 @@ namespace Js
         {
             arrayBuffer->AddParent(this);
         }
-
+        
         void ClearArrayBuffer()
         {
             if (this->arrayBuffer != nullptr)
@@ -221,13 +222,13 @@ namespace Js
             //throw out of memory
             if (!address)
             {
-                Js::Throw::OutOfMemory();
+                return nullptr;
             }
             LPVOID arrayAddress = VirtualAlloc(address, length, MEM_COMMIT, PAGE_READWRITE);
             if (!arrayAddress)
             {
                 VirtualFree(address, 0, MEM_RELEASE);
-                Js::Throw::OutOfMemory();
+                return nullptr;
             }
             return arrayAddress;
 #else

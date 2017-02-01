@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(_WIN32) && defined(ENABLE_SCRIPT_PROFILING)
 #include "activprof.h"
 #endif
 
@@ -42,20 +42,57 @@ class SRCINFO
     // In future, when we do make it freeable and will be able to allocate more than one per Module,
     // we can move variables m_isGlobalFunc and m_isEval from FunctionBody.cpp here.
 public:
-    SourceContextInfo * sourceContextInfo;
-    ULONG dlnHost;             // Line number passed to ParseScriptText
-    ULONG ulColumnHost;        // Column number on the line where the parse script text started
-    ULONG lnMinHost;           // Line offset of first host-supplied line
-    ULONG ichMinHost;          // Range of host supplied characters
-    ULONG ichLimHost;
-    ULONG ulCharOffset;        // Char offset of the source text relative to the document. (Populated using IActiveScriptContext)
-    Js::ModuleID moduleID;
-    ULONG grfsi;
+    Field(SourceContextInfo *) sourceContextInfo;
+    Field(ULONG) dlnHost;             // Line number passed to ParseScriptText
+    Field(ULONG) ulColumnHost;        // Column number on the line where the parse script text started
+    Field(ULONG) lnMinHost;           // Line offset of first host-supplied line
+    Field(ULONG) ichMinHost;          // Range of host supplied characters
+    Field(ULONG) ichLimHost;
+    Field(ULONG) ulCharOffset;        // Char offset of the source text relative to the document. (Populated using IActiveScriptContext)
+    Field(Js::ModuleID) moduleID;
+    Field(ULONG) grfsi;
 
     static SRCINFO* Copy(Recycler* recycler, const SRCINFO* srcInfo)
     {
         SRCINFO* copySrcInfo = RecyclerNew(recycler, SRCINFO, *srcInfo);
         return copySrcInfo;
+    }
+
+    SRCINFO()
+    {
+    }
+    SRCINFO(const SRCINFO& other)
+        :sourceContextInfo(other.sourceContextInfo),
+        dlnHost(other.dlnHost),
+        ulColumnHost(other.ulColumnHost),
+        lnMinHost(other.lnMinHost),
+        ichMinHost(other.ichMinHost),
+        ichLimHost(other.ichLimHost),
+        ulCharOffset(other.ulCharOffset),
+        moduleID(other.moduleID),
+        grfsi(other.grfsi)
+    {
+    }
+    SRCINFO(
+        SourceContextInfo*sourceContextInfo,
+        ULONG dlnHost,
+        ULONG ulColumnHost,
+        ULONG lnMinHost,
+        ULONG ichMinHost,
+        ULONG ichLimHost,
+        ULONG ulCharOffset,
+        Js::ModuleID moduleID,
+        ULONG grfsi
+    ):sourceContextInfo(sourceContextInfo),
+        dlnHost(dlnHost),
+        ulColumnHost(ulColumnHost),
+        lnMinHost(lnMinHost),
+        ichMinHost(ichMinHost),
+        ichLimHost(ichLimHost),
+        ulCharOffset(ulCharOffset),
+        moduleID(moduleID),
+        grfsi(grfsi)
+    {
     }
 };
 
@@ -344,10 +381,10 @@ namespace Js
     // valid if object!= NULL
     struct EnumeratedObjectCache {
         static const int kMaxCachedPropStrings=16;
-        DynamicObject* object;
-        DynamicType* type;
-        PropertyString* propertyStrings[kMaxCachedPropStrings];
-        int validPropStrings;
+        Field(DynamicObject*) object;
+        Field(DynamicType*) type;
+        Field(PropertyString*) propertyStrings[kMaxCachedPropStrings];
+        Field(int) validPropStrings;
     };
 
     typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
@@ -362,19 +399,19 @@ namespace Js
         virtual void Dispose(bool isShutdown) override {}
         virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
 
-        JavascriptString * lastNumberToStringRadix10String;
-        EnumeratedObjectCache enumObjCache;
-        JavascriptString * lastUtcTimeFromStrString;
-        EvalCacheDictionary* evalCacheDictionary;
-        EvalCacheDictionary* indirectEvalCacheDictionary;
-        NewFunctionCache* newFunctionCache;
-        RegexPatternMruMap *dynamicRegexMap;
-        SourceContextInfoMap* sourceContextInfoMap;   // maps host provided context cookie to the URL of the script buffer passed.
-        DynamicSourceContextInfoMap* dynamicSourceContextInfoMap;
-        SourceContextInfo* noContextSourceContextInfo;
-        SRCINFO* noContextGlobalSourceInfo;
-        SRCINFO const ** moduleSrcInfo;
-        BuiltInLibraryFunctionMap* builtInLibraryFunctions;
+        Field(JavascriptString *) lastNumberToStringRadix10String;
+        Field(EnumeratedObjectCache) enumObjCache;
+        Field(JavascriptString *) lastUtcTimeFromStrString;
+        Field(EvalCacheDictionary*) evalCacheDictionary;
+        Field(EvalCacheDictionary*) indirectEvalCacheDictionary;
+        Field(NewFunctionCache*) newFunctionCache;
+        Field(RegexPatternMruMap *) dynamicRegexMap;
+        Field(SourceContextInfoMap*) sourceContextInfoMap;   // maps host provided context cookie to the URL of the script buffer passed.
+        Field(DynamicSourceContextInfoMap*) dynamicSourceContextInfoMap;
+        Field(SourceContextInfo*) noContextSourceContextInfo;
+        Field(SRCINFO*) noContextGlobalSourceInfo;
+        Field(Field(SRCINFO const *)*) moduleSrcInfo;
+        Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
     };
 
     class ScriptContext : public ScriptContextBase, public ScriptContextInfo
@@ -492,9 +529,11 @@ namespace Js
         bool IsExceptionWrapperForBuiltInsEnabled();
         static bool IsExceptionWrapperForBuiltInsEnabled(ScriptContext* scriptContext);
         static bool IsExceptionWrapperForHelpersEnabled(ScriptContext* scriptContext);
-#ifdef ENABLE_SCRIPT_PROFILING
         bool IsEnumerateNonUserFunctionsOnly() const { return m_enumerateNonUserFunctionsOnly; }
+#ifdef ENABLE_SCRIPT_PROFILING
         bool IsTraceDomCall() const { return !!m_fTraceDomCall; }
+#elif defined(ENABLE_SCRIPT_DEBUGGING)
+        bool IsTraceDomCall() const { return false; }
 #endif
 
         InlineCache * GetValueOfInlineCache() const { return valueOfInlineCache;}
@@ -705,8 +744,8 @@ public:
 
         struct FieldAccessStatsEntry
         {
-            RecyclerWeakReference<FunctionBody>* functionBodyWeakRef;
-            FieldAccessStatsList stats;
+            Field(RecyclerWeakReference<FunctionBody>*) functionBodyWeakRef;
+            Field(FieldAccessStatsList) stats;
 
             FieldAccessStatsEntry(RecyclerWeakReference<FunctionBody>* functionBodyWeakRef, Recycler* recycler)
                 : functionBodyWeakRef(functionBodyWeakRef), stats(recycler) {}
@@ -804,6 +843,7 @@ private:
         // this is to indicate the actual close is called once only.
         bool isScriptContextActuallyClosed;
         bool isFinalized;
+        bool isEvalRestricted;
 #if DBG
         bool isInitialized;
         bool isCloningGlobal;
@@ -840,7 +880,7 @@ private:
 
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
-        RecyclerRootPtr<SListBase<DynamicProfileInfo *>> profileInfoList;
+        RecyclerRootPtr<DynamicProfileInfoList> profileInfoList;
 #endif
 #endif
         // List of weak reference dictionaries. We'll walk through them
@@ -902,6 +942,8 @@ private:
         bool IsFinalized() const { return isFinalized; }
         void SetIsFinalized() { isFinalized = true; }
         bool IsActuallyClosed() const { return isScriptContextActuallyClosed; }
+        void SetEvalRestriction(bool set) { this->isEvalRestricted = set; }
+        bool IsEvalRestriction() const { return this->isEvalRestricted; }
 #if ENABLE_NATIVE_CODEGEN
         bool IsClosedNativeCodeGenerator() const
         {
@@ -1062,7 +1104,7 @@ private:
             }
         }
 
-        SListBase<DynamicProfileInfo *> * GetProfileInfoList() { return profileInfoList; }
+        DynamicProfileInfoList * GetProfileInfoList() { return profileInfoList; }
 #endif
 #endif
 
@@ -1479,9 +1521,9 @@ private:
         typedef HRESULT (*RegisterExternalLibraryType)(Js::ScriptContext *pScriptContext);
 #ifdef ENABLE_SCRIPT_PROFILING
         HRESULT RegisterProfileProbe(IActiveScriptProfilerCallback *pProfileCallback, DWORD dwEventMask, DWORD dwContext, RegisterExternalLibraryType RegisterExternalLibrary, JavascriptMethod dispatchInvoke);
+        HRESULT DeRegisterProfileProbe(HRESULT hrReason, JavascriptMethod dispatchInvoke);
 #endif
         HRESULT SetProfileEventMask(DWORD dwEventMask);
-        HRESULT DeRegisterProfileProbe(HRESULT hrReason, JavascriptMethod dispatchInvoke);
 
         HRESULT RegisterScript(Js::FunctionProxy *pFunctionBody, BOOL fRegisterScript = TRUE);
 
@@ -1497,17 +1539,16 @@ private:
         HRESULT RegisterLibraryFunction(const char16 *pwszObjectName, const char16 *pwszFunctionName, Js::PropertyId functionPropertyId, JavascriptMethod entryPoint);
 
         HRESULT RegisterBuiltinFunctions(RegisterExternalLibraryType RegisterExternalLibrary);
-        void RegisterDebugThunk(bool calledDuringAttach = true);
-        void UnRegisterDebugThunk();
-
         void UpdateRecyclerFunctionEntryPointsForDebugger();
         void SetFunctionInRecyclerToProfileMode(bool enumerateNonUserFunctionsOnly = false);
-#ifdef ENABLE_SCRIPT_PROFILING
+
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
+        void RegisterDebugThunk(bool calledDuringAttach = true);
+        void UnRegisterDebugThunk();
         static void SetEntryPointToProfileThunk(JavascriptFunction* function);
         static void RestoreEntryPointFromProfileThunk(JavascriptFunction* function);
-#endif
-
         static void RecyclerEnumClassEnumeratorCallback(void *address, size_t size);
+#endif
         static void RecyclerFunctionCallbackForDebugger(void *address, size_t size);
 
         static ushort ProcessNameAndGetLength(Js::StringBuilder<ArenaAllocator>* nameBuffer, const WCHAR* name);
@@ -1597,10 +1638,13 @@ private:
         static JavascriptMethod ProfileModeDeferredDeserialize(ScriptFunction* function);
         static Var ProfileModeDeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...);
 
+#if defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
+        static Var ProfileModeThunk_DebugModeWrapper(JavascriptFunction* function, ScriptContext* scriptContext, JavascriptMethod entryPoint, Arguments& args);
+        static JavascriptMethod GetProfileModeThunk(JavascriptMethod entryPoint);
+#endif
+
 #ifdef ENABLE_SCRIPT_PROFILING
         void SetProfileMode(BOOL fSet);
-        static JavascriptMethod GetProfileModeThunk(JavascriptMethod entryPoint);
-        static Var ProfileModeThunk_DebugModeWrapper(JavascriptFunction* function, ScriptContext* scriptContext, JavascriptMethod entryPoint, Arguments& args);
         BOOL GetProfileInfo(
             JavascriptFunction* function,
             PROFILER_TOKEN &scriptId,
@@ -1628,7 +1672,8 @@ private:
         void SaveStartupProfileAndRelease(bool isSaveOnClose = false);
 
 #if ENABLE_PROFILE_INFO
-        void AddDynamicProfileInfo(FunctionBody * functionBody, WriteBarrierPtr<DynamicProfileInfo>* dynamicProfileInfo);
+        template<template<typename> class BarrierT>
+        void AddDynamicProfileInfo(FunctionBody * functionBody, BarrierT<DynamicProfileInfo>& dynamicProfileInfo);
 #endif
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
         uint allocId;
@@ -1703,7 +1748,7 @@ private:
         virtual bool IsRecyclerVerifyEnabled() const override;
         virtual uint GetRecyclerVerifyPad() const override;
 
-        virtual Js::Var* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
+        virtual Field(Js::Var)* GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex) override;
 
         Js::SourceTextModuleRecord* GetModuleRecord(uint moduleId) const
         {

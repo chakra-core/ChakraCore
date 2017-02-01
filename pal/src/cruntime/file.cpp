@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -40,7 +40,7 @@ SET_DEFAULT_DEBUG_CHANNEL(CRT);
 
 /* Global variables storing the std streams.*/
 PAL_FILE PAL_Stdout PAL_GLOBAL;
-PAL_FILE PAL_Stdin PAL_GLOBAL; 
+PAL_FILE PAL_Stdin PAL_GLOBAL;
 PAL_FILE PAL_Stderr PAL_GLOBAL;
 
 /*++
@@ -99,7 +99,7 @@ static LPSTR MapFileOpenModes(LPSTR str , BOOL * bTextMode)
     }
 
     /* The PAL behaves differently for some Windows file open modes:
-    
+
     c, n, S, R, and T: these are all hints to the system that aren't supported
     by the PAL. Since the user cannot depend on this behavior, it's safe to
     simply ignore these modes.
@@ -107,14 +107,14 @@ static LPSTR MapFileOpenModes(LPSTR str , BOOL * bTextMode)
     D: specifies a file as temporary. This file is expected to be deleted when
     the last file descriptor is closed. The PAL does not support this behavior
     and asserts when this mode is used.
-    
+
     t: represents opening in text mode. Calls to fdopen on Unix don't accept
-    't' so it is silently stripped out. However, the PAL supports the mode by 
-    having the PAL wrappers do the translation of CR-LF to LF and vice versa. 
-    
+    't' so it is silently stripped out. However, the PAL supports the mode by
+    having the PAL wrappers do the translation of CR-LF to LF and vice versa.
+
     t vs. b: To get binary mode, you must explicitly use 'b'. If neither mode
-    is specified on Windows, the default mode is defined by the global 
-    variable _fmode. The PAL simply defaults to text mode. After examining 
+    is specified on Windows, the default mode is defined by the global
+    variable _fmode. The PAL simply defaults to text mode. After examining
     CLR usage patterns, the PAL behavior seems acceptable. */
 
     /* Check if the mode specifies deleting the temporary file
@@ -191,44 +191,6 @@ static BOOL WriteOnlyMode(FILE* pFile)
     return FALSE;
 }
 #endif //UNGETC_NOT_RETURN_EOF
-
-/*++
-Function:
-  _getw
-
-Gets an integer from a stream.
-
-Return Value
-
-_getw returns the integer value read. A return value of EOF indicates
-either an error or end of file. However, because the EOF value is also
-a legitimate integer value, use feof or ferror to verify an
-end-of-file or error condition.
-
-Parameter
-
-file  Pointer to FILE structure
-
---*/
-int
-__cdecl
-_getw(PAL_FILE *f)
-{
-    INT ret = 0;
-    
-    PERF_ENTRY(_getw);
-    ENTRY("_getw (f=%p)\n", f);
-
-    _ASSERTE(f != NULL);
-
-    CLEARERR(f);
-    
-    ret = getw( f->bsdFilePtr );
-    LOGEXIT( "returning %d\n", ret );
-    PERF_EXIT(_getw);
-    
-    return ret;
-}
 
 
 /*++
@@ -328,7 +290,7 @@ PAL_fopen(const char * fileName, const char * mode)
             SetLastError(ERROR_NOT_ENOUGH_MEMORY);
             goto done;
         }
-        
+
         FILEDosToUnixPathA( UnixFileName );
 
         /*I am not checking for the case where stat fails
@@ -446,45 +408,6 @@ _wfsopen(
 }
 
 /*++
-Function:
-  _putw
-
-Writes an integer to a stream.
-
-Return Value
-
-_putw returns the value written. A return value of EOF may indicate an
-error. Because EOF is also a legitimate integer value, use ferror to
-verify an error.
-
-Parameters
-
-c     Binary integer to be output
-file  Pointer to FILE structure
-
---*/
-int
-__cdecl
-_putw(int c, PAL_FILE *f)
-{
-    INT ret = 0;
-
-    PERF_ENTRY(_putw);
-    ENTRY("_putw (c=0x%x, f=%p)\n", c, f);
-
-    _ASSERTE(f != NULL);
-
-    CLEARERR(f);
- 
-    ret = putw(c,  f->bsdFilePtr );
-    LOGEXIT( "returning %d\n", ret );
-    PERF_EXIT(_putw);
-
-    return ret;
-}
-
-
-/*++
 Function
     PAL_get_stdout.
 
@@ -556,7 +479,7 @@ int __cdecl PAL__close(int handle)
  {
     return fflush(NULL);
  }
- 
+
 char16_t *
 __cdecl
 PAL_fgetws(char16_t *s, int n, PAL_FILE *f)
@@ -583,7 +506,7 @@ PAL_fread(void * buffer, size_t size, size_t count, PAL_FILE * f)
     PERF_ENTRY(fread);
     ENTRY( "fread( buffer=%p, size=%d, count=%d, f=%p )\n",
            buffer, size, count, f );
-	
+
     _ASSERTE(f != NULL);
 
     CLEARERR(f);
@@ -620,7 +543,7 @@ PAL_fread(void * buffer, size_t size, size_t count, PAL_FILE * f)
         }
         nReadBytes = i;
     }
-	
+
 done:
     LOGEXIT( "fread returning size_t %d\n", nReadBytes );
     PERF_EXIT(fread);
@@ -700,11 +623,11 @@ PAL_setbuf(PAL_FILE * f, char * buffer)
 {
     PERF_ENTRY(setbuf);
     ENTRY( "setbuf( %p, %p )\n", f, buffer );
-    
+
     _ASSERTE(f != NULL);
 
     setbuf( f->bsdFilePtr, buffer );
-    
+
     LOGEXIT( "setbuf\n" );
     PERF_EXIT(setbuf);
 }
@@ -814,11 +737,11 @@ PAL_ftell(PAL_FILE * f)
         lRetVal = -1;
     }
 #endif
-	
+
     LOGEXIT( "ftell returning %ld\n", lRetVal );
     PERF_EXIT(ftell);
     /* This explicit cast to LONG is used to silence any potential warnings
-    due to implicitly casting the native long lRetVal to LONG when returning. */    
+    due to implicitly casting the native long lRetVal to LONG when returning. */
     return (LONG)lRetVal;
 }
 
@@ -848,7 +771,7 @@ PAL_fgetpos (
 
     PERF_ENTRY(fgetpos);
     ENTRY("fgetpos( f=%p, pos=%p )\n", f, pos);
-    
+
     _ASSERTE(f != NULL);
     _ASSERTE(pos != NULL);
 
@@ -861,7 +784,7 @@ PAL_fgetpos (
         ERROR ("Error: NULL pos pointer\n");
         errno = EINVAL;
     }
-  
+
     LOGEXIT( "fgetpos returning error code %d, pos %d\n", nRetVal, pos ? *pos : 0);
     PERF_EXIT(fgetpos);
     return nRetVal;
@@ -906,7 +829,7 @@ PAL_fsetpos (
         ERROR ("Error: NULL pos pointer\n");
         errno = EINVAL;
     }
-  
+
     LOGEXIT( "fsetpos returning error code %d\n", nRetVal);
     PERF_EXIT(fsetpos);
     return nRetVal;
@@ -1033,11 +956,11 @@ PAL_setvbuf(PAL_FILE *f, char *buf, int type, size_t size)
 
     PERF_ENTRY(setvbuf);
     ENTRY( "setvbuf( %p, %p, %d, %ul )\n", f, buf, type, size);
-    
+
     _ASSERTE(f != NULL);
-    
+
     nRetVal = setvbuf(f->bsdFilePtr, buf, type, size);
-    
+
     LOGEXIT( "setvbuf returning %d\n", nRetVal );
     PERF_EXIT(setvbuf);
     return nRetVal;

@@ -1149,7 +1149,7 @@ CHAKRA_API JsGetStringLength(_In_ JsValueRef value, _Out_ int *length)
     END_JSRT_NO_EXCEPTION
 }
 
-CHAKRA_API JsPointerToString(_In_reads_(stringLength) const wchar_t *stringValue, _In_ size_t stringLength, _Out_ JsValueRef *string)
+CHAKRA_API JsPointerToString(_In_reads_(stringLength) const WCHAR *stringValue, _In_ size_t stringLength, _Out_ JsValueRef *string)
 {
     return ContextAPINoScriptWrapper([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
         PERFORM_JSRT_TTD_RECORD_ACTION(scriptContext, RecordJsRTCreateString, stringValue, stringLength);
@@ -1173,7 +1173,7 @@ CHAKRA_API JsPointerToString(_In_reads_(stringLength) const wchar_t *stringValue
 // TODO: The annotation of stringPtr is wrong.  Need to fix definition in chakrart.h
 // The warning is '*stringPtr' could be '0' : this does not adhere to the specification for the function 'JsStringToPointer'.
 #pragma warning(suppress:6387)
-CHAKRA_API JsStringToPointer(_In_ JsValueRef stringValue, _Outptr_result_buffer_(*stringLength) const wchar_t **stringPtr, _Out_ size_t *stringLength)
+CHAKRA_API JsStringToPointer(_In_ JsValueRef stringValue, _Outptr_result_buffer_(*stringLength) const WCHAR **stringPtr, _Out_ size_t *stringLength)
 {
     VALIDATE_JSREF(stringValue);
     PARAM_NOT_NULL(stringPtr);
@@ -2704,7 +2704,7 @@ CHAKRA_API JsIsRuntimeExecutionDisabled(_In_ JsRuntimeHandle runtimeHandle, _Out
     return JsNoError;
 }
 
-CHAKRA_API JsGetPropertyIdFromName(_In_z_ const wchar_t *name, _Out_ JsPropertyIdRef *propertyId)
+CHAKRA_API JsGetPropertyIdFromName(_In_z_ const WCHAR *name, _Out_ JsPropertyIdRef *propertyId)
 {
     return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext * scriptContext) -> JsErrorCode {
         PARAM_NOT_NULL(name);
@@ -2767,7 +2767,7 @@ CHAKRA_API JsGetSymbolFromPropertyId(_In_ JsPropertyIdRef propertyId, _Out_ JsVa
 }
 
 #pragma prefast(suppress:6101, "Prefast doesn't see through the lambda")
-CHAKRA_API JsGetPropertyNameFromId(_In_ JsPropertyIdRef propertyId, _Outptr_result_z_ const wchar_t **name)
+CHAKRA_API JsGetPropertyNameFromId(_In_ JsPropertyIdRef propertyId, _Outptr_result_z_ const WCHAR **name)
 {
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         VALIDATE_INCOMING_PROPERTYID(propertyId);
@@ -2868,7 +2868,7 @@ CHAKRA_API JsSetPromiseContinuationCallback(_In_ JsPromiseContinuationCallback p
 
 JsErrorCode RunScriptCore(JsValueRef scriptSource, const byte *script, size_t cb,
     LoadScriptFlag loadScriptFlag, JsSourceContext sourceContext,
-    const wchar_t *sourceUrl, bool parseOnly, JsParseScriptAttributes parseAttributes,
+    const WCHAR *sourceUrl, bool parseOnly, JsParseScriptAttributes parseAttributes,
     bool isSourceModule, JsValueRef *result)
 {
     Js::JavascriptFunction *scriptFunction;
@@ -2886,7 +2886,7 @@ JsErrorCode RunScriptCore(JsValueRef scriptSource, const byte *script, size_t cb
         }
 
         const int chsize = (loadScriptFlag & LoadScriptFlag_Utf8Source) ?
-                            sizeof(utf8char_t) : sizeof(wchar_t);
+                            sizeof(utf8char_t) : sizeof(WCHAR);
 
         SRCINFO si = {
             /* sourceContextInfo   */ sourceContextInfo,
@@ -3045,28 +3045,28 @@ JsErrorCode RunScriptCore(const char *script, JsSourceContext sourceContext,
         isSourceModule, result);
 }
 
-JsErrorCode RunScriptCore(const wchar_t *script, JsSourceContext sourceContext,
-    const wchar_t *sourceUrl, bool parseOnly, JsParseScriptAttributes parseAttributes,
+JsErrorCode RunScriptCore(const WCHAR *script, JsSourceContext sourceContext,
+    const WCHAR *sourceUrl, bool parseOnly, JsParseScriptAttributes parseAttributes,
     bool isSourceModule, JsValueRef *result)
 {
     return RunScriptCore(nullptr, reinterpret_cast<const byte*>(script),
-        wcslen(script) * sizeof(wchar_t),
+        wcslen(script) * sizeof(WCHAR),
         LoadScriptFlag_None, sourceContext, sourceUrl, parseOnly,
         parseAttributes, isSourceModule, result);
 }
 
 #ifdef _WIN32
-CHAKRA_API JsParseScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext,
-    _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
+CHAKRA_API JsParseScript(_In_z_ const WCHAR * script, _In_ JsSourceContext sourceContext,
+    _In_z_ const WCHAR *sourceUrl, _Out_ JsValueRef * result)
 {
     return RunScriptCore(script, sourceContext, sourceUrl, true,
         JsParseScriptAttributeNone, false /*isModule*/, result);
 }
 
 CHAKRA_API JsParseScriptWithAttributes(
-    _In_z_ const wchar_t *script,
+    _In_z_ const WCHAR *script,
     _In_ JsSourceContext sourceContext,
-    _In_z_ const wchar_t *sourceUrl,
+    _In_z_ const WCHAR *sourceUrl,
     _In_ JsParseScriptAttributes parseAttributes,
     _Out_ JsValueRef *result)
 {
@@ -3074,15 +3074,15 @@ CHAKRA_API JsParseScriptWithAttributes(
         parseAttributes, false /*isModule*/, result);
 }
 
-CHAKRA_API JsRunScript(_In_z_ const wchar_t * script, _In_ JsSourceContext sourceContext,
-    _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
+CHAKRA_API JsRunScript(_In_z_ const WCHAR * script, _In_ JsSourceContext sourceContext,
+    _In_z_ const WCHAR *sourceUrl, _Out_ JsValueRef * result)
 {
     return RunScriptCore(script, sourceContext, sourceUrl, false,
         JsParseScriptAttributeNone, false /*isModule*/, result);
 }
 
-CHAKRA_API JsExperimentalApiRunModule(_In_z_ const wchar_t * script,
-    _In_ JsSourceContext sourceContext, _In_z_ const wchar_t *sourceUrl,
+CHAKRA_API JsExperimentalApiRunModule(_In_z_ const WCHAR * script,
+    _In_ JsSourceContext sourceContext, _In_z_ const WCHAR *sourceUrl,
     _Out_ JsValueRef * result)
 {
     return RunScriptCore(script, sourceContext, sourceUrl, false,
@@ -3115,7 +3115,7 @@ JsErrorCode JsSerializeScriptCore(const byte *script, size_t cb,
         SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(JS_SOURCE_CONTEXT_NONE, nullptr);
         Assert(sourceContextInfo != nullptr);
 
-        const int chsize = (loadScriptFlag & LoadScriptFlag_Utf8Source) ? sizeof(utf8char_t) : sizeof(wchar_t);
+        const int chsize = (loadScriptFlag & LoadScriptFlag_Utf8Source) ? sizeof(utf8char_t) : sizeof(WCHAR);
         SRCINFO si = {
             /* sourceContextInfo   */ sourceContextInfo,
             /* dlnHost             */ 0,
@@ -3200,11 +3200,11 @@ JsErrorCode JsSerializeScriptCore(const byte *script, size_t cb,
     });
 }
 
-CHAKRA_API JsSerializeScript(_In_z_ const wchar_t *script, _Out_writes_to_opt_(*bufferSize,
+CHAKRA_API JsSerializeScript(_In_z_ const WCHAR *script, _Out_writes_to_opt_(*bufferSize,
     *bufferSize) unsigned char *buffer,
     _Inout_ unsigned int *bufferSize)
 {
-    return JsSerializeScriptCore((const byte*)script, wcslen(script) * sizeof(wchar_t),
+    return JsSerializeScriptCore((const byte*)script, wcslen(script) * sizeof(WCHAR),
         LoadScriptFlag_None, nullptr, 0, buffer, bufferSize, nullptr);
 }
 
@@ -3213,7 +3213,7 @@ JsErrorCode RunSerializedScriptCore(
     TLoadCallback scriptLoadCallback, TUnloadCallback scriptUnloadCallback,
     JsSourceContext scriptLoadSourceContext, // only used by scriptLoadCallback
     unsigned char *buffer, JsValueRef bufferVal,
-    JsSourceContext sourceContext, const wchar_t *sourceUrl,
+    JsSourceContext sourceContext, const WCHAR *sourceUrl,
     bool parseOnly, JsValueRef *result)
 {
     Js::JavascriptFunction *function;
@@ -3235,7 +3235,7 @@ JsErrorCode RunSerializedScriptCore(
 
         SourceContextInfo *sourceContextInfo;
         SRCINFO *hsi;
-        Js::FunctionBody *functionBody = nullptr;
+        Field(Js::FunctionBody*) functionBody = nullptr;
 
         HRESULT hr;
 
@@ -3312,16 +3312,16 @@ static void CHAKRA_CALLBACK DummyScriptUnloadCallback(_In_ JsSourceContext sourc
 }
 
 #ifdef _WIN32
-static bool CHAKRA_CALLBACK DummyScriptLoadSourceCallback(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const wchar_t** scriptBuffer)
+static bool CHAKRA_CALLBACK DummyScriptLoadSourceCallback(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const WCHAR** scriptBuffer)
 {
     // sourceContext is actually the script source pointer
-    *scriptBuffer = reinterpret_cast<const wchar_t*>(sourceContext);
+    *scriptBuffer = reinterpret_cast<const WCHAR*>(sourceContext);
     return true;
 }
 
-CHAKRA_API JsParseSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned char *buffer,
+CHAKRA_API JsParseSerializedScript(_In_z_ const WCHAR * script, _In_ unsigned char *buffer,
     _In_ JsSourceContext sourceContext,
-    _In_z_ const wchar_t *sourceUrl,
+    _In_z_ const WCHAR *sourceUrl,
     _Out_ JsValueRef * result)
 {
     return RunSerializedScriptCore(
@@ -3330,9 +3330,9 @@ CHAKRA_API JsParseSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned 
         buffer, nullptr, sourceContext, sourceUrl, true, result);
 }
 
-CHAKRA_API JsRunSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned char *buffer,
+CHAKRA_API JsRunSerializedScript(_In_z_ const WCHAR * script, _In_ unsigned char *buffer,
     _In_ JsSourceContext sourceContext,
-    _In_z_ const wchar_t *sourceUrl,
+    _In_z_ const WCHAR *sourceUrl,
     _Out_ JsValueRef * result)
 {
     return RunSerializedScriptCore(
@@ -3344,7 +3344,7 @@ CHAKRA_API JsRunSerializedScript(_In_z_ const wchar_t * script, _In_ unsigned ch
 CHAKRA_API JsParseSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
     _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
     _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext,
-    _In_z_ const wchar_t *sourceUrl, _Out_ JsValueRef * result)
+    _In_z_ const WCHAR *sourceUrl, _Out_ JsValueRef * result)
 {
     return RunSerializedScriptCore(
         scriptLoadCallback, scriptUnloadCallback,
@@ -3355,7 +3355,7 @@ CHAKRA_API JsParseSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSource
 CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCallback scriptLoadCallback,
     _In_ JsSerializedScriptUnloadCallback scriptUnloadCallback,
     _In_ unsigned char *buffer, _In_ JsSourceContext sourceContext,
-    _In_z_ const wchar_t *sourceUrl, _Out_opt_ JsValueRef * result)
+    _In_z_ const WCHAR *sourceUrl, _Out_opt_ JsValueRef * result)
 {
     return RunSerializedScriptCore(
         scriptLoadCallback, scriptUnloadCallback,
@@ -3433,7 +3433,7 @@ CHAKRA_API JsTTDNotifyContextDestroy(_In_ JsContextRef context)
     return JsErrorCategoryUsage;
 #else
     ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
-    if(threadContext->IsRuntimeInTTDMode())
+    if(threadContext && threadContext->IsRuntimeInTTDMode())
     {
         Js::ScriptContext* ctx = static_cast<JsrtContext*>(context)->GetScriptContext();
         threadContext->TTDContext->NotifyCtxDestroyInRecord(ctx);
@@ -3454,9 +3454,9 @@ CHAKRA_API JsTTDStart()
 
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();
     TTDAssert(scriptContext->IsTTDRecordOrReplayModeEnabled(), "Need to create in TTD Record Mode.");
-
+#if ENABLE_NATIVE_CODEGEN
     TTDAssert(JITManager::GetJITManager() == nullptr || !JITManager::GetJITManager()->IsOOPJITEnabled(), "TTD cannot run with OOP JIT yet!!!");
-
+#endif
     return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
     {
         if(scriptContext->IsTTDRecordModeEnabled())
@@ -3742,8 +3742,9 @@ CHAKRA_API JsTTDCheckAndAssertIfTTDRunning(_In_ const char* msg)
 }
 
 CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(_In_ JsRuntimeHandle runtimeHandle,
-    _In_ JsTTDMoveMode moveMode, _Inout_ int64_t* targetEventTime,
-   _Out_ int64_t* targetStartSnapTime, _Out_opt_ int64_t* targetEndSnapTime)
+   _In_ JsTTDMoveMode moveMode, _In_opt_ uint32_t kthEvent,
+   _Inout_ int64_t* targetEventTime, _Out_ int64_t* targetStartSnapTime,
+   _Out_opt_ int64_t* targetEndSnapTime)
 {
 #if !ENABLE_TTD
     return JsErrorCategoryUsage;
@@ -3778,7 +3779,6 @@ CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(_In_ JsRuntimeHandle runtimeHandle,
     }
     else if((moveMode & JsTTDMoveMode::JsTTDMoveKthEvent) == JsTTDMoveMode::JsTTDMoveKthEvent)
     {
-        uint32 kthEvent = (uint32)(((int64)moveMode) >> 32);
         *targetEventTime = threadContext->TTDLog->GetKthEventTimeInLog(kthEvent);
         if(*targetEventTime == -1)
         {
@@ -3792,7 +3792,7 @@ CHAKRA_API JsTTDGetSnapTimeTopLevelEventMove(_In_ JsRuntimeHandle runtimeHandle,
 
 #ifdef __APPLE__
     //TODO: Explicit cast of ptr since compiler gets confused -- resolve in PAL later
-    static_assert(sizeof(int64_t) == sizeof(int64));
+    static_assert(sizeof(int64_t) == sizeof(int64), "int64_t and int64 size mis-match");
     *targetStartSnapTime = threadContext->TTDLog->FindSnapTimeForEventTime(*targetEventTime, (int64*)targetEndSnapTime);
 #else
     *targetStartSnapTime = threadContext->TTDLog->FindSnapTimeForEventTime(*targetEventTime, targetEndSnapTime);
@@ -3813,7 +3813,7 @@ CHAKRA_API JsTTDGetSnapShotBoundInterval(_In_ JsRuntimeHandle runtimeHandle, _In
 
 #ifdef __APPLE__
     //TODO: Explicit cast of ptr since compiler gets confused -- resolve in PAL later
-    static_assert(sizeof(int64_t) == sizeof(int64));
+    static_assert(sizeof(int64_t) == sizeof(int64), "int64_t and int64 size mis-match");
     threadContext->TTDLog->GetSnapShotBoundInterval(targetEventTime, (int64*)startSnapTime, (int64*)endSnapTime);
 #else
     threadContext->TTDLog->GetSnapShotBoundInterval(targetEventTime, startSnapTime, endSnapTime);
@@ -4066,7 +4066,7 @@ CHAKRA_API JsTTDReplayExecution(_Inout_ JsTTDMoveMode* moveMode, _Out_ int64_t* 
 #endif
 }
 
-#ifndef NTBUILD // ChakraCore Only
+#ifdef CHAKRACOREBUILD_
 
 template <class SrcChar, class DstChar>
 static void CastCopy(const SrcChar* src, DstChar* dst, size_t count)
@@ -4085,27 +4085,7 @@ CHAKRA_API JsCreateString(
 {
     PARAM_NOT_NULL(content);
 
-    AutoArrayPtr<uint16_t> data(HeapNewNoThrowArray(uint16_t, length), length);
-    if (!data)
-    {
-        return JsErrorOutOfMemory;
-    }
-
-    // Cast source char to "unsigned" for correct cast
-    CastCopy((unsigned char*)content, (uint16_t*)data, length);
-
-    return JsPointerToString(
-        reinterpret_cast<const char16*>((uint16_t*)data), length, value);
-}
-
-CHAKRA_API JsCreateStringUtf8(
-    _In_ const uint8_t *content,
-    _In_ size_t length,
-    _Out_ JsValueRef *value)
-{
-    PARAM_NOT_NULL(content);
-
-    utf8::NarrowToWide wstr((LPCSTR)content, length);
+    utf8::NarrowToWide wstr(content, length);
     if (!wstr)
     {
         return JsErrorOutOfMemory;
@@ -4172,31 +4152,6 @@ JsErrorCode WriteStringCopy(
     return JsNoError;
 }
 
-CHAKRA_API JsCopyString(
-    _In_ JsValueRef value,
-    _In_ int start,
-    _In_ int length,
-    _Out_opt_ char* buffer,
-    _Out_opt_ size_t* written)
-{
-    PARAM_NOT_NULL(value);
-    VALIDATE_JSREF(value);
-
-    return WriteStringCopy(value, start, length, written,
-        [buffer](const char16* src, size_t count, size_t *needed)
-        {
-            if (buffer)
-            {
-                CastCopy(src, buffer, count);
-            }
-            else
-            {
-                *needed = count;
-            }
-            return JsNoError;
-        });
-}
-
 CHAKRA_API JsCopyStringUtf16(
     _In_ JsValueRef value,
     _In_ int start,
@@ -4222,9 +4177,9 @@ CHAKRA_API JsCopyStringUtf16(
         });
 }
 
-CHAKRA_API JsCopyStringUtf8(
+CHAKRA_API JsCopyString(
     _In_ JsValueRef value,
-    _Out_opt_ uint8_t* buffer,
+    _Out_opt_ char* buffer,
     _In_ size_t bufferSize,
     _Out_opt_ size_t* length)
 {
@@ -4257,7 +4212,7 @@ CHAKRA_API JsCopyStringUtf8(
         count = utf8::CharacterIndexToByteIndex(
             (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
 
-        memmove(buffer, utf8Str, sizeof(uint8_t) * count);
+        memmove(buffer, utf8Str, sizeof(char) * count);
         if (length)
         {
             *length = count;
@@ -4286,7 +4241,7 @@ _ALWAYSINLINE JsErrorCode CompileRun(
     LoadScriptFlag scriptFlag = LoadScriptFlag_None;
     const byte* script;
     size_t cb;
-    const wchar_t *url;
+    const WCHAR *url;
 
     if (isExternalArray)
     {
@@ -4313,8 +4268,8 @@ _ALWAYSINLINE JsErrorCode CompileRun(
             Js::JavascriptString* jsString = Js::JavascriptString::FromVar(scriptVal);
             script = (const byte*)jsString->GetSz();
 
-            // JavascriptString is 2 bytes (wchar_t/char16)
-            cb = jsString->GetLength() * sizeof(wchar_t);
+            // JavascriptString is 2 bytes (WCHAR/char16)
+            cb = jsString->GetLength() * sizeof(WCHAR);
         }
 
         if (!Js::JavascriptString::Is(sourceUrl))
@@ -4359,7 +4314,7 @@ CHAKRA_API JsRun(
         result, false);
 }
 
-CHAKRA_API JsCreatePropertyIdUtf8(
+CHAKRA_API JsCreatePropertyId(
     _In_z_ const char *name,
     _In_ size_t length,
     _Out_ JsPropertyIdRef *propertyId)
@@ -4374,9 +4329,9 @@ CHAKRA_API JsCreatePropertyIdUtf8(
     return JsGetPropertyIdFromName(wname, propertyId);
 }
 
-CHAKRA_API JsCopyPropertyIdUtf8(
+CHAKRA_API JsCopyPropertyId(
     _In_ JsPropertyIdRef propertyId,
-    _Out_ uint8_t* buffer,
+    _Out_ char* buffer,
     _In_ size_t bufferSize,
     _Out_ size_t* length)
 {
@@ -4408,7 +4363,7 @@ CHAKRA_API JsCopyPropertyIdUtf8(
         count = utf8::CharacterIndexToByteIndex(
             (LPCUTF8)(const char*)utf8Str, utf8Str.Length(), maxFitChars);
 
-        memmove(buffer, utf8Str, sizeof(uint8_t) * count);
+        memmove(buffer, utf8Str, sizeof(char) * count);
         if (length)
         {
             *length = count;
@@ -4496,7 +4451,7 @@ CHAKRA_API JsParseSerialized(
     PARAM_NOT_NULL(bufferVal);
     PARAM_NOT_NULL(sourceUrl);
 
-    const wchar_t *url;
+    const WCHAR *url;
 
     if (Js::JavascriptString::Is(sourceUrl))
     {
@@ -4529,7 +4484,7 @@ CHAKRA_API JsRunSerialized(
     _Out_ JsValueRef *result)
 {
     PARAM_NOT_NULL(bufferVal);
-    const wchar_t *url;
+    const WCHAR *url;
 
     if (sourceUrl && Js::JavascriptString::Is(sourceUrl))
     {
@@ -4553,4 +4508,4 @@ CHAKRA_API JsRunSerialized(
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
         buffer, bufferVal, sourceContext, url, false, result);
 }
-#endif // NTBUILD
+#endif // CHAKRACOREBUILD_

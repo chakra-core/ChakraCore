@@ -77,6 +77,11 @@ elseif(CC_TARGETS_X86)
         i386/AsmJsJitTemplate.cpp
         i386/StackFrame.cpp
     )
+elseif(CC_TARGETS_ARM)
+    set (CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
+        arm/StackFrame.cpp
+        arm/arm_Thunks.S
+    )
 endif()
 
 add_library (Chakra.Runtime.Language OBJECT ${CRL_SOURCE_FILES})
