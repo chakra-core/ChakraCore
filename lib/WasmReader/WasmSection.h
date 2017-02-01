@@ -25,6 +25,7 @@ namespace Wasm
 
     struct SectionInfo
     {
+        SectionInfo(SectionFlag, SectionCode, const char16*, const char*, const uint32);
         SectionFlag flag;
         SectionCode precedent;
         const char16* name;
