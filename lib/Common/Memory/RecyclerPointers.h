@@ -117,6 +117,9 @@ struct _ArrayWriteBarrier
 #endif
 #endif
     }
+
+    template <class T>
+    static void WriteBarrierSetVerifyBits(T * address, size_t count) {   }
 };
 
 #ifdef RECYCLER_WRITE_BARRIER
@@ -127,6 +130,14 @@ struct _ArrayWriteBarrier<_write_barrier_policy>
     static void WriteBarrier(T * address, size_t count)
     {
         RecyclerWriteBarrierManager::WriteBarrier(address, sizeof(T) * count);
+    }
+
+    template <class T>
+    static void WriteBarrierSetVerifyBits(T * address, size_t count)
+    {
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+        Recycler::WBSetBitRange((char*)address, (uint)(sizeof(T) * count / sizeof(void*)));
+#endif
     }
 };
 #endif
@@ -163,16 +174,26 @@ void ArrayWriteBarrier(T * address, size_t count)
     return _ArrayWriteBarrier<Policy>::WriteBarrier(address, count);
 }
 
+template <class T, class PolicyType = T, class Allocator = Recycler>
+void ArrayWriteBarrierVerifyBits(T * address, size_t count)
+{
+    typedef typename _ArrayItemWriteBarrierPolicy<PolicyType>::Policy ItemPolicy;
+    typedef typename AllocatorWriteBarrierPolicy<Allocator, ItemPolicy>::Policy Policy;
+    return _ArrayWriteBarrier<Policy>::WriteBarrierSetVerifyBits(address, count);
+}
+
 // Copy array content. Triggers write barrier on the dst array content if if
 // Allocator and element type determines write barrier is needed.
 //
 template <class T, class PolicyType = T, class Allocator = Recycler>
 void CopyArray(T* dst, size_t dstCount, const T* src, size_t srcCount)
 {
-    ArrayWriteBarrier<T, PolicyType, Allocator>(dst, dstCount);
+    ArrayWriteBarrierVerifyBits<T, PolicyType, Allocator>(dst, dstCount);
 
     js_memcpy_s(reinterpret_cast<void*>(dst), sizeof(T) * dstCount,
                 reinterpret_cast<const void*>(src), sizeof(T) * srcCount);
+
+    ArrayWriteBarrier<T, PolicyType, Allocator>(dst, dstCount);
 }
 template <class T, class PolicyType = T, class Allocator = Recycler>
 void CopyArray(WriteBarrierPtr<T>& dst, size_t dstCount,
@@ -212,9 +233,12 @@ void CopyArray(WriteBarrierPtr<T>* dst, size_t dstCount,
 template <class T, class PolicyType = T, class Allocator = Recycler>
 void MoveArray(T* dst, const T* src, size_t count)
 {
+    ArrayWriteBarrierVerifyBits<T, PolicyType, Allocator>(dst, count);
+
     memmove(reinterpret_cast<void*>(dst),
             reinterpret_cast<const void*>(src),
             sizeof(T) * count);
+
     ArrayWriteBarrier<T, PolicyType, Allocator>(dst, count);
 }
 
@@ -369,10 +393,17 @@ public:
     }
     void WriteBarrierSet(T * ptr)
     {
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+        // set the verification bits before updating the reference so it's ready to verify while background marking hit the reference
+        Recycler::WBSetBit((char*)this);
+#endif
+
+        NoWriteBarrierSet(ptr);
+
 #ifdef RECYCLER_WRITE_BARRIER
+        // set the barrier bit after updating the reference to prevent a race issue that background thread is resetting all the dirty pages
         RecyclerWriteBarrierManager::WriteBarrier(this);
 #endif
-        NoWriteBarrierSet(ptr);
     }
 
     WriteBarrierPtr& operator=(WriteBarrierPtr const& other)
@@ -383,10 +414,15 @@ public:
 
     WriteBarrierPtr& operator++()  // prefix ++
     {
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+        Recycler::WBSetBit((char*)this);
+#endif
+
+        ++ptr;
+
 #ifdef RECYCLER_WRITE_BARRIER
         RecyclerWriteBarrierManager::WriteBarrier(this);
 #endif
-        ++ptr;
         return *this;
     }
 
@@ -399,10 +435,15 @@ public:
 
     WriteBarrierPtr& operator--()  // prefix --
     {
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+        Recycler::WBSetBit((char*)this);
+#endif
+
+        --ptr;
+
 #ifdef RECYCLER_WRITE_BARRIER
         RecyclerWriteBarrierManager::WriteBarrier(this);
 #endif
-        --ptr;
         return *this;
     }
 

@@ -128,6 +128,7 @@ namespace Js
     template<class T, typename FieldsEnum>
     AuxPtrs<T, FieldsEnum>::AuxPtrs(uint8 capacity, AuxPtrs* ptr)
     {
+        ArrayWriteBarrierVerifyBits(&this->ptrs, ptr->count);
         memcpy(this, ptr, offsetof(AuxPtrs, ptrs) + ptr->count * sizeof(void*));
         ArrayWriteBarrier(&this->ptrs, ptr->count);
         this->capacity = capacity;

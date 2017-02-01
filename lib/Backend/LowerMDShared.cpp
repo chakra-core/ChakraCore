@@ -4762,7 +4762,7 @@ LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
         && assignInstr->m_opcode == Js::OpCode::MOV // ignore SSE instructions like MOVSD
         && assignInstr->GetSrc1()->IsWriteBarrierTriggerableValue())
     {
-        LowererMD::GenerateWriteBarrier(assignInstr);
+        instr = LowererMD::GenerateWriteBarrier(assignInstr);
     }
 #endif
 
@@ -4837,7 +4837,7 @@ LowererMD::GenerateWriteBarrier(IR::Instr * assignInstr)
     assignInstr->InsertBefore(loadIndexInstr);
     IR::Instr * shiftBitInstr = IR::Instr::New(Js::OpCode::SHR, indexOpnd, indexOpnd,
         IR::IntConstOpnd::New(12 /* 1 << 12 = 4096 */, TyInt8, assignInstr->m_func), assignInstr->m_func);
-    assignInstr->InsertBefore(shiftBitInstr);
+    assignInstr->InsertAfter(shiftBitInstr);
 
     // The cardtable address is likely 64 bits already so we have to load it to a register
     // That is, we have to do the following:
@@ -4857,13 +4857,13 @@ LowererMD::GenerateWriteBarrier(IR::Instr * assignInstr)
     IR::Instr * cardTableAddrInstr = IR::Instr::New(Js::OpCode::MOV, cardTableRegOpnd,
         IR::AddrOpnd::New(RecyclerWriteBarrierManager::GetAddressOfCardTable(), IR::AddrOpndKindWriteBarrierCardTable, assignInstr->m_func),
         assignInstr->m_func);
-    assignInstr->InsertBefore(cardTableAddrInstr);
+    shiftBitInstr->InsertAfter(cardTableAddrInstr);
 
     IR::IndirOpnd * cardTableEntryOpnd = IR::IndirOpnd::New(cardTableRegOpnd, indexOpnd,
         TyInt8, assignInstr->m_func);
     IR::Instr * movInstr = IR::Instr::New(Js::OpCode::MOV, cardTableEntryOpnd, IR::IntConstOpnd::New(1, TyInt8, assignInstr->m_func), assignInstr->m_func);
-    assignInstr->InsertBefore(movInstr);
-    return movInstr;
+    cardTableAddrInstr->InsertAfter(movInstr);
+    return loadIndexInstr;
 #else
     Assert(writeBarrierAddrRegOpnd->IsRegOpnd());
     IR::RegOpnd * shiftBitOpnd = IR::RegOpnd::New(TyInt32, assignInstr->m_func);
