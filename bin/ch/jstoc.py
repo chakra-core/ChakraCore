@@ -4,7 +4,7 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
- # py 2.5
+from __future__ import print_function, with_statement # py 2.5
 import sys
 import os
 
