@@ -27,14 +27,6 @@ def machineTypeToOSTagMap = [
 
 def dailyRegex = 'dailies'
 
-// Only generate PR check triggers for the version of netci.groovy in the master branch
-// since those PR checks will apply for all branches.
-def jobTypesToGenerate = [false]
-if (branch.startsWith('master')) {
-    // OK to generate PR checks (this ensures we only generate one set of them)
-    jobTypesToGenerate += true
-}
-
 // ---------------
 // HELPER CLOSURES
 // ---------------
@@ -106,7 +98,7 @@ def CreateBuildTask = { isPR, buildArch, buildType, machine, configTag, buildExt
 }
 
 def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup ->
-    jobTypesToGenerate.each { isPR ->
+    [true, false].each { isPR ->
         ['x86', 'x64', 'arm'].each { buildArch ->
             ['debug', 'test', 'release'].each { buildType ->
                 CreateBuildTask(isPR, buildArch, buildType, machine, configTag, buildExtra, testExtra, runCodeAnalysis, excludeConfigIf, nonDefaultTaskSetup)
