@@ -31,6 +31,18 @@ async function main() {
       throw e;
     }
   }
+
+  {
+    const mod = new WebAssembly.Module(readbuffer("binaries/bugDeferred.wasm"));
+    const instance1 = new WebAssembly.Instance(mod);
+    const instance2 = new WebAssembly.Instance(mod);
+
+    // Change the type of the function on the first instance
+    instance1.exports.foo.asdf = 5;
+    instance1.exports.foo();
+    // Make sure the entrypoint has been correctly updated on the second instance
+    instance2.exports.foo();
+  }
 }
 
 main().then(() => console.log("PASSED"), console.log);
