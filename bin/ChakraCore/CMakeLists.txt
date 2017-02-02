@@ -123,7 +123,7 @@ if (NOT STATIC_LIBRARY)
 
   if(NOT CC_XCODE_PROJECT)
     # Post build step to copy the built shared library
-    # to BuildLinux (or whatever the CMakeBuildDir is)
+    # to out/{BUILD_TYPE}/ (or whatever the CMakeBuildDir is)
     add_custom_command(TARGET ChakraCore POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "${CHAKRACORE_BINARY_DIR}/bin/ChakraCore/libChakraCore.${DYN_LIB_EXT}"

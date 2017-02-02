@@ -47,7 +47,7 @@ PRINT_USAGE() {
     echo "                       e.g. undefined,signed-integer-overflow."
     echo " -t, --test-build      Test build. Enables test flags on a release build."
     echo "     --target-os[=S]   Target OS"
-    echo "     --target-path[=S] Output path for compiled binaries. Default: BuildLinux/"
+    echo "     --target-path[=S] Output path for compiled binaries. Default: out/"
     echo "     --trace           Enables experimental built-in trace."
     echo "     --xcode           Generate XCode project."
     echo "     --without=FEATURE,FEATURE,..."
@@ -394,7 +394,7 @@ if [[ ${#_CXX} > 0 ]]; then
 fi
 
 if [[ $TARGET_PATH == 0 ]]; then
-    TARGET_PATH="$CHAKRACORE_DIR/BuildLinux"
+    TARGET_PATH="$CHAKRACORE_DIR/out"
 else
     if [[ $TARGET_PATH =~ "~/" ]]; then
         echo "Do not use '~/' for '--target-path'"

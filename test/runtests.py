@@ -98,7 +98,7 @@ if binary == None:
         build = "VcBuild.SWB" if args.swb else "VcBuild"
         binary = 'Build\\' + build + '\\bin\\{}_{}\\ch.exe'.format(arch, flavor)
     else:
-        binary = 'BuildLinux/{0}/ch'.format(flavor)
+        binary = 'out/{0}/ch'.format(flavor)
     binary = os.path.join(repo_root, binary)
 if not os.path.isfile(binary):
     print('{} not found. Did you run ./build.sh already?'.format(binary))

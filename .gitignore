@@ -44,7 +44,7 @@ Build/VCBuild.SWB/
 Build/VCBuild/
 buildchk.*
 buildfre.*
-BuildLinux/
+out/
 _DROP/
 
 # Generated Files
