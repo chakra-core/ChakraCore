@@ -3727,46 +3727,75 @@ namespace Js
             length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
 
-        if (pArr)
+        Var search;
+        uint32 fromIndex = 0;
+        uint64 fromIndex64 = 0;
+
+        if ((pArr || TypedArrayBase::Is(obj)) && (length.IsSmallIndex() || length.IsUint32Max()))
         {
-            Var search;
-            uint32 fromIndex;
             uint32 len = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
             if (!GetParamForIndexOf(len, args, search, fromIndex, scriptContext))
             {
                 return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
             }
-            int32 index = pArr->HeadSegmentIndexOfHelper(search, fromIndex, len, includesAlgorithm, scriptContext);
-
-            // If we found the search value in the head segment, or if we determined there is no need to search other segments,
-            // we stop right here.
-            if (index != -1 || fromIndex == -1)
+        }
+        else if (length.IsSmallIndex())
+        {
+            if (!GetParamForIndexOf(length.GetSmallIndex(), args, search, fromIndex, scriptContext))
             {
-                if (includesAlgorithm)
-                {
-                    //Array.prototype.includes
-                    return (index == -1)? falseValue : trueValue;
-                }
-                else
-                {
-                    //Array.prototype.indexOf
-                    return JavascriptNumber::ToVar(index, scriptContext);
-                }
+                return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
             }
-
-            //  If we really must search other segments, let's do it now. We'll have to search the slow way (dealing with holes, etc.).
-
-            switch (pArr->GetTypeId())
+        }
+        else
+        {
+            if (!GetParamForIndexOf(length.GetBigIndex(), args, search, fromIndex64, scriptContext))
             {
-            case Js::TypeIds_Array:
-                return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext);
-            case Js::TypeIds_NativeIntArray:
-                return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeIntArray::FromVar(pArr), search, fromIndex, len, scriptContext);
-            case Js::TypeIds_NativeFloatArray:
-                return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeFloatArray::FromVar(pArr), search, fromIndex, len, scriptContext);
-            default:
-                AssertMsg(FALSE, "invalid array typeid");
-                return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext);
+                return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
+            }
+        }
+
+        // Side effects (such as defining a property in a ToPrimitive call) during evaluation of fromIndex argument may convert the array to an ES5 array.
+        if (!JavascriptArray::Is(args[0]))
+        {
+            pArr = nullptr;
+        }
+
+        if (pArr)
+        {
+            if (length.IsSmallIndex() || length.IsUint32Max())
+            {
+                uint32 len = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
+                int32 index = pArr->HeadSegmentIndexOfHelper(search, fromIndex, len, includesAlgorithm, scriptContext);
+
+                // If we found the search value in the head segment, or if we determined there is no need to search other segments,
+                // we stop right here.
+                if (index != -1 || fromIndex == -1)
+                {
+                    if (includesAlgorithm)
+                    {
+                        //Array.prototype.includes
+                        return (index == -1) ? falseValue : trueValue;
+                    }
+                    else
+                    {
+                        //Array.prototype.indexOf
+                        return JavascriptNumber::ToVar(index, scriptContext);
+                    }
+                }
+
+                //  If we really must search other segments, let's do it now. We'll have to search the slow way (dealing with holes, etc.).
+                switch (pArr->GetTypeId())
+                {
+                case Js::TypeIds_Array:
+                    return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext);
+                case Js::TypeIds_NativeIntArray:
+                    return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeIntArray::FromVar(pArr), search, fromIndex, len, scriptContext);
+                case Js::TypeIds_NativeFloatArray:
+                    return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeFloatArray::FromVar(pArr), search, fromIndex, len, scriptContext);
+                default:
+                    AssertMsg(FALSE, "invalid array typeid");
+                    return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext);
+                }
             }
         }
 
@@ -3775,35 +3804,16 @@ namespace Js
         {
             if (length.IsSmallIndex() || length.IsUint32Max())
             {
-                Var search;
-                uint32 fromIndex;
-                uint32 len = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
-                if (!GetParamForIndexOf(len, args, search, fromIndex, scriptContext))
-                {
-                    return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
-                }
                 return TemplatedIndexOfHelper<includesAlgorithm>(TypedArrayBase::FromVar(obj), search, fromIndex, length.GetSmallIndex(), scriptContext);
             }
         }
         if (length.IsSmallIndex())
         {
-            Var search;
-            uint32 fromIndex;
-            if (!GetParamForIndexOf(length.GetSmallIndex(), args, search, fromIndex, scriptContext))
-            {
-                return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
-            }
             return TemplatedIndexOfHelper<includesAlgorithm>(obj, search, fromIndex, length.GetSmallIndex(), scriptContext);
         }
         else
         {
-            Var search;
-            uint64 fromIndex;
-            if (!GetParamForIndexOf(length.GetBigIndex(), args, search, fromIndex, scriptContext))
-            {
-                return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
-            }
-            return TemplatedIndexOfHelper<includesAlgorithm>(obj, search, fromIndex, length.GetBigIndex(), scriptContext);
+            return TemplatedIndexOfHelper<includesAlgorithm>(obj, search, fromIndex64, length.GetBigIndex(), scriptContext);
         }
     }
 
@@ -4582,6 +4592,12 @@ Case0:
         if (!GetParamForLastIndexOf(length, args, search, fromIndex, scriptContext))
         {
             return TaggedInt::ToVarUnchecked(-1);
+        }
+
+        // Side effects (such as defining a property in a ToPrimitive call) during evaluation of fromIndex argument may convert the array to an ES5 array.
+        if (!JavascriptArray::Is(args[0]))
+        {
+            pArr = nullptr;
         }
 
         if (pArr)
@@ -5792,9 +5808,9 @@ Case0:
                 AssertMsg(!SparseArraySegment<T>::IsMissingItem(&headSeg->elements[i+start]), "Array marked incorrectly as having missing value");
             }
         }
-
 #endif
     }
+
     // If the creating profile data has changed, convert it to the type of array indicated
     // in the profile
     void JavascriptArray::GetArrayTypeAndConvert(bool* isIntArray, bool* isFloatArray)
@@ -5937,6 +5953,12 @@ Case0:
             }
 
             newLenT = endT > startT ? endT - startT : 0;
+        }
+
+        // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments start or end may convert the array to an ES5 array.
+        if (!JavascriptArray::Is(args[0]))
+        {
+            pArr = nullptr;
         }
 
         if (TypedArrayBase::IsDetachedTypedArray(obj))
@@ -6729,6 +6751,12 @@ Case0:
             }
             deleteLen = min(len - start, deleteLen);
             break;
+        }
+
+        // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments start or deleteCount may convert the array to an ES5 array.
+        if (!JavascriptArray::Is(args[0]))
+        {
+            isArr = false;
         }
 
         Var* insertArgs = args.Info.Count > 3 ? &args.Values[3] : nullptr;
