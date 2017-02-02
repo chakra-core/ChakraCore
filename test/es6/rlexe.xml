@@ -1002,14 +1002,23 @@
       <files>regex-unicode-CaseInsensitive.js</files>
     </default>
   </test>
+  <!--
+    The following two tests take close to 60 seconds in interpreted mode on OS X test machines,
+    so increase the timeout and mark the test as Slow, since there is no need to include this test in non-Slow:
+    all of the important cases are covered in regex-unicode-CaseInsensitive.js
+  -->
   <test>
     <default>
       <files>regex-unicode-CaseInsensitive-all-i.js</files>
+      <tags>Slow</tags>
+      <timeout>300</timeout>
     </default>
   </test>
   <test>
     <default>
       <files>regex-unicode-CaseInsensitive-all-iu.js</files>
+      <tags>Slow</tags>
+      <timeout>300</timeout>
     </default>
   </test>
   <test>
