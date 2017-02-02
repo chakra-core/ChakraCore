@@ -130,7 +130,8 @@ namespace Js
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
         m_remoteScriptContextAddr(nullptr),
-        isWeakReferenceDictionaryListCleared(false)
+        isWeakReferenceDictionaryListCleared(false),
+        weakReferenceDictionaryList(this->GeneralAllocator(), 1)
 #if ENABLE_PROFILE_INFO
         , referencesSharedDynamicSourceContextInfo(false)
 #endif
@@ -741,7 +742,7 @@ namespace Js
         pActiveScriptDirect = nullptr;
 
         isWeakReferenceDictionaryListCleared = true;
-        this->weakReferenceDictionaryList.Clear(this->GeneralAllocator());
+        this->weakReferenceDictionaryList.Clear();
 
         // This can be null if the script context initialization threw
         // and InternalClose gets called in the destructor code path
@@ -897,7 +898,12 @@ namespace Js
 
     void ScriptContext::RegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary)
     {
-        this->weakReferenceDictionaryList.Prepend(this->GeneralAllocator(), weakReferenceDictionary);
+        this->weakReferenceDictionaryList.Item(weakReferenceDictionary);
+    }
+
+    void ScriptContext::UnRegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary)
+    {
+        this->weakReferenceDictionaryList.Remove(weakReferenceDictionary);
     }
 
     RecyclableObject *ScriptContext::GetMissingPropertyResult()
@@ -1627,14 +1633,10 @@ namespace Js
     {
         if (!isWeakReferenceDictionaryListCleared)
         {
-            SListBase<JsUtil::IWeakReferenceDictionary*>::Iterator iter(&this->weakReferenceDictionaryList);
-
-            while (iter.Next())
+            this->weakReferenceDictionaryList.Map([](JsUtil::IWeakReferenceDictionary* weakReferenceDictionary)
             {
-                JsUtil::IWeakReferenceDictionary* weakReferenceDictionary = iter.Data();
-
                 weakReferenceDictionary->Cleanup();
-            }
+            });
         }
     }
 

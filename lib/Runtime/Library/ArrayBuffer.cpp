@@ -652,6 +652,12 @@ namespace Js
 
             buffer = nullptr;
             bufferLength = 0;
+
+            if (this->otherParents) 
+            {
+                this->GetScriptContext()->UnRegisterWeakReferenceDictionary(this->otherParents);
+                this->otherParents = nullptr;
+            }
     }
 
     void JavascriptArrayBuffer::Dispose(bool isShutdown)

@@ -849,7 +849,7 @@ private:
         // RegisterWeakReferenceDictionary. If you use JsUtil::WeakReferenceDictionary,
         // which also exposes the IWeakReferenceDictionary interface, it'll
         // automatically register the dictionary on the script context
-        SListBase<JsUtil::IWeakReferenceDictionary*> weakReferenceDictionaryList;
+        JsUtil::BaseHashSet<JsUtil::IWeakReferenceDictionary*, ArenaAllocator> weakReferenceDictionaryList;
         bool isWeakReferenceDictionaryListCleared;
 
         typedef void(*RaiseMessageToDebuggerFunctionType)(ScriptContext *, DEBUG_EVENT_INFO_TYPE, LPCWSTR, LPCWSTR);
@@ -1187,6 +1187,7 @@ private:
         BOOL IsNumericPropertyId(PropertyId propertyId, uint32* value);
 
         void RegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary);
+        void UnRegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary);
         void ResetWeakReferenceDictionaryList() { weakReferenceDictionaryList.Reset(); }
 
         BOOL ReserveStaticTypeIds(__in int first, __in int last);
