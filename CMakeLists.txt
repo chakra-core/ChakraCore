@@ -90,7 +90,6 @@ if(CC_EMBED_ICU_SH)
     unset(CC_EMBED_ICU_SH CACHE)
     set(CC_EMBED_ICU 1)
     set(ICU_INCLUDE_PATH "deps/icu/source/output/include/")
-    add_definitions(-DU_STATIC_IMPLEMENTATION)
 endif()
 
 if(ICU_INCLUDE_PATH_SH)

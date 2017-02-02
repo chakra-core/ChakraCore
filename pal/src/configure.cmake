@@ -916,7 +916,6 @@ else() # ANDROID
   set(HAVE_SYS_TIME_H 1)
   set(HAVE_PTHREAD_NP_H 0)
   set(HAVE_SYS_LWP_H 0)
-  set(HAVE_LIBUUID_H 1)
   set(HAVE_RUNETYPE_H 0)
   set(HAVE_KQUEUE 0)
   set(HAVE_GETPWUID_R 1)

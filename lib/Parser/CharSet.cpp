@@ -196,7 +196,7 @@ namespace UnifiedRegex
     // CharSetNode
     // ----------------------------------------------------------------------
 
-    inline CharSetNode* CharSetNode::For(ArenaAllocator* allocator, int level)
+    CharSetNode* CharSetNode::For(ArenaAllocator* allocator, int level)
     {
         if (level == 0)
             return Anew(allocator, CharSetLeaf);
