@@ -37,6 +37,7 @@ namespace Js
         Assert(buffer);
         Assert(charLength <= charCapacity);
 
+        ArrayWriteBarrierVerifyBits(Block::Pointers(Chars()), Block::PointerLengthFromCharLength(charLength));
         js_wmemcpy_s(Chars(), charLength, Chars(buffer), charLength);
         // SWB: buffer may contain chars or pointers. Trigger write barrier for the whole buffer.
         ArrayWriteBarrier(Pointers(), PointerLengthFromCharLength(charLength));
@@ -382,6 +383,8 @@ namespace Js
         {
             AllocateBuffer(charCapacity, recycler);
             charLength = usedCharLength;
+            
+            ArrayWriteBarrierVerifyBits(Block::Pointers(Chars()), Block::PointerLengthFromCharLength(charCapacity));
             js_wmemcpy_s(Chars(), charCapacity, (const char16*)(buffer), usedCharLength);
             // SWB: buffer may contain chars or pointers. Trigger write barrier for the whole buffer.
             ArrayWriteBarrier(Pointers(), PointerLength());
@@ -403,6 +406,8 @@ namespace Js
             void *const newBuffer = RecyclerNewArray(recycler, char16, newCharCapacity);
             charCapacity = newCharCapacity;
             const CharCount charLength = CharLength();
+
+            ArrayWriteBarrierVerifyBits(Block::Pointers(newBuffer), Block::PointerLengthFromCharLength(charCapacity));
             js_wmemcpy_s((char16*)newBuffer, charCapacity, (char16*)PointerValue(buffer), charLength);
             buffer = newBuffer;
             // SWB: buffer may contain chars or pointers. Trigger write barrier for the whole buffer.

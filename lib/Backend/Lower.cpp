@@ -114,13 +114,15 @@ Lowerer::Lower()
                 IR::AddrOpnd* addrOpnd = instr->m_src1->AsAddrOpnd();
                 if (addrOpnd->GetAddrOpndKind() == IR::AddrOpndKindWriteBarrierCardTable)
                 {
-                    auto& leaInstr = instr->m_prev->m_prev;
+                    auto& leaInstr = instr->m_prev->m_prev->m_prev;
+                    auto& movInstr = instr->m_prev->m_prev;
                     auto& shrInstr = instr->m_prev;
                     Assert(leaInstr->m_opcode == Js::OpCode::LEA);
+                    Assert(movInstr->m_opcode == Js::OpCode::MOV);
                     Assert(shrInstr->m_opcode == Js::OpCode::SHR);
-                    m_lowererMD.LoadHelperArgument(shrInstr, leaInstr->m_dst);
+                    m_lowererMD.LoadHelperArgument(movInstr, leaInstr->m_dst);
                     IR::Instr* instrCall = IR::Instr::New(Js::OpCode::Call, m_func);
-                    shrInstr->InsertBefore(instrCall);
+                    movInstr->InsertBefore(instrCall);
                     m_lowererMD.ChangeToHelperCall(instrCall, IR::HelperWriteBarrierSetVerifyBit);
                 }
             }
@@ -10292,7 +10294,7 @@ Lowerer::LowerStSlot(IR::Instr *instr)
     }
     else
     {
-        m_lowererMD.ChangeToWriteBarrierAssign(instr, this->m_func);
+        instr = m_lowererMD.ChangeToWriteBarrierAssign(instr, this->m_func);
     }
 
     return instr;
@@ -14533,12 +14535,12 @@ IR::Instr *Lowerer::InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const in
     {
         src = src->UseWithNewType(dst->GetType(), func);
     }
-    IR::Instr *const instr = IR::Instr::New(Js::OpCode::Ld_A, dst, src, func);
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::Ld_A, dst, src, func);
 
     insertBeforeInstr->InsertBefore(instr);
     if (generateWriteBarrier)
     {
-        LowererMD::ChangeToWriteBarrierAssign(instr, func);
+        instr = LowererMD::ChangeToWriteBarrierAssign(instr, func);
     }
     else
     {

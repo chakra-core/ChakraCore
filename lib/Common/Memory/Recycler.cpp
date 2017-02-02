@@ -8538,8 +8538,11 @@ Recycler::RegisterPendingWriteBarrierBlock(void* address, size_t bytes)
 {
     if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
     {
-        RecyclerWriteBarrierManager::WriteBarrier(address, bytes);
+#if DBG
+        WBSetBitRange((char*)address, (uint)bytes/sizeof(void*));
+#endif
         pendingWriteBarrierBlockMap.Item(address, bytes);
+        RecyclerWriteBarrierManager::WriteBarrier(address, bytes);
     }
 }
 void
@@ -8571,31 +8574,37 @@ Recycler::WBVerifyBitIsSet(char* addr, char* target)
 void
 Recycler::WBSetBit(char* addr)
 {
-    Recycler* recycler = Recycler::recyclerList;
-    while (recycler)
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
     {
-        auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
-        if (heapBlock)
+        Recycler* recycler = Recycler::recyclerList;
+        while (recycler)
         {
-            heapBlock->WBSetBit(addr);
-            break;
+            auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
+            if (heapBlock)
+            {
+                heapBlock->WBSetBit(addr);
+                break;
+            }
+            recycler = recycler->next;
         }
-        recycler = recycler->next;
     }
 }
 void
 Recycler::WBSetBitRange(char* addr, uint count)
 {
-    Recycler* recycler = Recycler::recyclerList;
-    while (recycler)
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
     {
-        auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
-        if (heapBlock)
+        Recycler* recycler = Recycler::recyclerList;
+        while (recycler)
         {
-            heapBlock->WBSetBitRange(addr, count);
-            break;
+            auto heapBlock = recycler->FindHeapBlock((void*)((UINT_PTR)addr&~HeapInfo::ObjectAlignmentMask));
+            if (heapBlock)
+            {
+                heapBlock->WBSetBitRange(addr, count);
+                break;
+            }
+            recycler = recycler->next;
         }
-        recycler = recycler->next;
     }
 }
 bool
