@@ -726,7 +726,9 @@ public:
 #endif
 
 #if DBG
+#if ENABLE_BACKGROUND_PAGE_ZEROING
     bool HasZeroQueuedPages() const;
+#endif
     virtual void SetDisableThreadAccessCheck() { disableThreadAccessCheck = true;}
     virtual void SetEnableThreadAccessCheck() { disableThreadAccessCheck = false; }
 

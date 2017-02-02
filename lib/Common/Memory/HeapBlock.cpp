@@ -808,8 +808,6 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
     uint targetOffset = 0;
     char* objectStartAddress = nullptr;
     char* targetStartAddress = nullptr;
-    byte barrier = RecyclerWriteBarrierManager::GetWriteBarrier(objectAddress);
-    Unused(barrier);
 
     if (Recycler::DoProfileAllocTracker())
     {

@@ -856,9 +856,7 @@ Recycler::Initialize(const bool forceInThread, JsUtil::ThreadService *threadServ
 #endif
 #endif
 
-#ifdef RECYCLER_WRITE_WATCH
     bool needWriteWatch = false;
-#endif
 
 #if ENABLE_CONCURRENT_GC
     // Default to non-concurrent
@@ -1023,7 +1021,7 @@ Recycler::GetRecyclerPageAllocator()
     else
 #endif
     {
-#ifdef RECYCLER_WRITE_WATCH
+#if defined(RECYCLER_WRITE_WATCH) || !defined(RECYCLER_WRITE_BARRIER_ALLOC_SEPARATE_PAGE)
         return &this->recyclerPageAllocator;
 #else
         return &this->recyclerWithBarrierPageAllocator;
@@ -2169,11 +2167,13 @@ Recycler::ProcessMarkContext(MarkContext * markContext)
 void
 Recycler::ProcessMark(bool background)
 {
+#if ENABLE_CONCURRENT_GC
     if (background)
     {
         GCETW(GC_BACKGROUNDMARK_START, (this, backgroundRescanCount));
     }
     else
+#endif
     {
         GCETW(GC_MARK_START, (this));
     }
@@ -2191,11 +2191,13 @@ Recycler::ProcessMark(bool background)
 
     RECYCLER_PROFILE_EXEC_THREAD_END(background, this, Js::MarkPhase);
 
+#if ENABLE_CONCURRENT_GC
     if (background)
     {
         GCETW(GC_BACKGROUNDMARK_STOP, (this, backgroundRescanCount));
     }
     else
+#endif
     {
         GCETW(GC_MARK_STOP, (this));
     }
@@ -2207,11 +2209,13 @@ Recycler::ProcessMark(bool background)
 void
 Recycler::ProcessParallelMark(bool background, MarkContext * markContext)
 {
+#if ENABLE_CONCURRENT_GC
     if (background)
     {
         GCETW(GC_BACKGROUNDPARALLELMARK_START, (this, backgroundRescanCount));
     }
     else
+#endif
     {
         GCETW(GC_PARALLELMARK_START, (this));
     }
@@ -2229,11 +2233,13 @@ Recycler::ProcessParallelMark(bool background, MarkContext * markContext)
 
     RECYCLER_PROFILE_EXEC_THREAD_END(background, this, Js::MarkPhase);
 
+#if ENABLE_CONCURRENT_GC
     if (background)
     {
         GCETW(GC_BACKGROUNDPARALLELMARK_STOP, (this, backgroundRescanCount));
     }
     else
+#endif
     {
         GCETW(GC_PARALLELMARK_STOP, (this));
     }
@@ -7753,7 +7759,9 @@ Recycler::TrackUnallocated(__in char* address, __in  char *endAddress, size_t si
 void
 Recycler::TrackAllocWeakRef(RecyclerWeakReferenceBase * weakRef)
 {
+#if ENABLE_RECYCLER_TYPE_TRACKING
     Assert(weakRef->typeInfo != nullptr);
+#endif
 #if DBG && defined(PERF_COUNTERS)
     if (this->trackerDictionary != nullptr)
     {
