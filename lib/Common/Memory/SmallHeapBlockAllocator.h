@@ -103,7 +103,9 @@ inline char*
 SmallHeapBlockAllocator<TBlockType>::InlinedAllocImpl(Recycler * recycler, size_t sizeCat, ObjectInfoBits attributes)
 {
     Assert((attributes & InternalObjectInfoBitMask) == attributes);
+#ifdef RECYCLER_WRITE_BARRIER
     Assert(!CONFIG_FLAG(ForceSoftwareWriteBarrier) || (attributes & WithBarrierBit) || (attributes & LeafBit));
+#endif
 
     AUTO_NO_EXCEPTION_REGION;
     if (canFaultInject)

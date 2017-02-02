@@ -815,6 +815,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::AddPageSegment(DListBa
     return segment;
 }
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
 template<typename TVirtualAlloc, typename TSegment, typename TPageSegment>
 char *
 PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::TryAllocFromZeroPagesList(
@@ -900,6 +901,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::TryAllocFromZeroPagesL
 
     return pages;
 }
+#endif
 
 template<typename TVirtualAlloc, typename TSegment, typename TPageSegment>
 char *
