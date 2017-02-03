@@ -20,7 +20,7 @@ if (!isStaticBuild) {
 \n\
 LIBRARY_PATH=" + binaryPath + "/lib\n\
 PLATFORM=" + platform + "\n\
-LDIR=$(LIBRARY_PATH)/../bin/ChakraCore/libChakraCoreStatic.a \n\
+LDIR=$(LIBRARY_PATH)/libChakraCoreStatic.a \n\
 \n\
 ifeq (darwin, ${PLATFORM})\n\
 \tICU4C_LIBRARY_PATH ?= /usr/local/opt/icu4c\n\

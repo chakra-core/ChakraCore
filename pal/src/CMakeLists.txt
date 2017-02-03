@@ -63,7 +63,6 @@ if(CC_TARGETS_AMD64 OR CC_TARGETS_X86)
   if(CC_TARGET_OS_OSX)
     set(PLATFORM_SOURCES ${PLATFORM_SOURCES}
       arch/i386/activationhandlerwrapper.S
-      arch/i386/context.S
       arch/i386/dispatchexceptionwrapper.S
     )
   endif()

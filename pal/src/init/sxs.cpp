@@ -198,55 +198,6 @@ PAL_HasEntered()
     return pThread->IsInPal();
 }
 
-/*++
-Function:
-  PAL_ReenterForEH
-
-Abstract:
-  This function needs to be called on a thread when it enters
-  a region of code that depends on this instance of the PAL
-  in the process, and it is unknown whether the current thread
-  is already running in the PAL.  Returns TRUE if and only if
-  the thread was not running in the PAL previously.
-
-  NOTE: This function must not modify LastError.
---*/
-BOOL
-PALAPI
-PAL_ReenterForEH()
-{
-    // Only trace if we actually reenter (otherwise, too verbose)
-    // ENTRY_EXTERNAL("PAL_ReenterForEH()\n");
-    // Thus we have to split up what ENTRY_EXTERNAL does.
-    CHECK_STACK_ALIGN;
-
-    BOOL fEntered = FALSE;
-
-    CPalThread *pThread = GetCurrentPalThread();
-    if (pThread == NULL)
-    {
-        ASSERT("PAL_ReenterForEH called on a thread unknown to this PAL\n");
-    }
-    else if (!pThread->IsInPal())
-    {
-#if _ENABLE_DEBUG_MESSAGES_
-        DBG_PRINTF(DLI_ENTRY, defdbgchan, TRUE)("PAL_ReenterForEH()\n");
-#endif
-
-        // We ignore the return code.  This call should only fail on internal
-        // error, and we assert at the actual failure.
-        pThread->Enter(PAL_BoundaryEH);
-        fEntered = TRUE;
-        LOGEXIT("PAL_ReenterForEH returns TRUE\n");
-    }
-    else
-    {
-        // LOGEXIT("PAL_ReenterForEH returns FALSE\n");
-    }
-
-    return fEntered;
-}
-
 PAL_ERROR CPalThread::Enter(PAL_Boundary /* boundary */)
 {
     if (m_fInPal)
