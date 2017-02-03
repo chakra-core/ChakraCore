@@ -663,11 +663,8 @@
 #define ENABLE_TRACE
 #endif
 
-// xplat-todo: Capture stack backtrace on non-win32 platforms
-#ifdef _WIN32
 #if DBG || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT) || defined(TRACK_DISPATCH) || defined(ENABLE_TRACE) || defined(RECYCLER_PAGE_HEAP)
 #define STACK_BACK_TRACE
-#endif
 #endif
 
 // ENABLE_DEBUG_STACK_BACK_TRACE is for capturing stack back trace for debug only.
@@ -677,7 +674,9 @@
 #endif
 
 #if defined(STACK_BACK_TRACE) || defined(CONTROL_FLOW_GUARD_LOGGER)
+#ifdef _WIN32
 #define DBGHELP_SYMBOL_MANAGER
+#endif
 #endif
 
 #if defined(TRACK_DISPATCH) || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)

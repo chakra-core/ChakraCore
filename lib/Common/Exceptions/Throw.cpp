@@ -253,7 +253,7 @@ namespace Js {
     {
         IsInAssert = true;
 
-#ifdef STACK_BACK_TRACE
+#if defined(GENERATE_DUMP) && defined(STACK_BACK_TRACE)
         // This should be the last thing to happen in the process. Therefore, leaks are not an issue.
         stackBackTrace = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance, Throw::StackToSkip, Throw::StackTraceDepth);
 #endif
