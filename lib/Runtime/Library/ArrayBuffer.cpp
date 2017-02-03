@@ -115,7 +115,7 @@ namespace Js
             if (this->otherParents == nullptr)
             {
                 ArrayBufferParentsMap* parents = RecyclerNew(this->GetRecycler(), ArrayBufferParentsMap, this->GetRecycler());
-                this->GetScriptContext()->RegisterWeakReferenceDictionary(parents);
+                this->GetScriptContext()->GetThreadContext()->RegisterWeakReferenceDictionary(parents);
                 this->otherParents = parents;
             }
             // Tag the parent to prevent a strong reference from ArrayBuffer to TypedArray
@@ -655,7 +655,7 @@ namespace Js
 
             if (this->otherParents) 
             {
-                this->GetScriptContext()->UnRegisterWeakReferenceDictionary(this->otherParents);
+                this->GetScriptContext()->GetThreadContext()->UnRegisterWeakReferenceDictionary(this->otherParents);
                 this->otherParents = nullptr;
             }
     }

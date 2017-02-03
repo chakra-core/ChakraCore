@@ -735,6 +735,9 @@ private:
     ArenaAllocator prototypeChainEnsuredToHaveOnlyWritableDataPropertiesAllocator;
     DListBase<Js::ScriptContext *> prototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext;
 
+    ArenaAllocator weakReferenceDictionaryListAllocator;
+    JsUtil::BaseHashSet<JsUtil::IWeakReferenceDictionary*, ArenaAllocator> weakReferenceDictionaryList;
+
     DListBase<CollectCallBack> collectCallBackList;
     CriticalSection csCollectionCallBack;
     bool hasCollectionCallBack;
@@ -1701,6 +1704,18 @@ public:
             --loopDepth;
         }
     }
+
+    void RegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary)
+    {
+        this->weakReferenceDictionaryList.Item(weakReferenceDictionary);
+    }
+
+    void UnRegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary)
+    {
+        this->weakReferenceDictionaryList.Remove(weakReferenceDictionary);
+    }
+
+    void ResetWeakReferenceDictionaryList() { weakReferenceDictionaryList.Reset(); }
 
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
     static void ReportAndCheckLeaksOnProcessDetach();

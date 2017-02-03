@@ -165,6 +165,8 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     hasCatchHandlerToUserCode(false),
     caseInvariantPropertySet(nullptr),
     entryPointToBuiltInOperationIdCache(&threadAlloc, 0),
+    weakReferenceDictionaryListAllocator(_u("TC-WeakRefDict"), GetPageAllocator(), Js::Throw::OutOfMemory),
+    weakReferenceDictionaryList(&weakReferenceDictionaryListAllocator, 1),
 #if ENABLE_NATIVE_CODEGEN
 #if !FLOATVAR
     codeGenNumberThreadAllocator(nullptr),
@@ -2602,11 +2604,20 @@ ThreadContext::PostCollectionCallBack()
         if (this->recycler->InCacheCleanupCollection())
         {
             this->recycler->ClearCacheCleanupCollection();
-            for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext; scriptContext = scriptContext->next)
+            //for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext; scriptContext = scriptContext->next)
+            //{
+            //    scriptContext->CleanupWeakReferenceDictionaries();
+            //}
+
+            //if (!isWeakReferenceDictionaryListCleared)
             {
-                scriptContext->CleanupWeakReferenceDictionaries();
+                this->weakReferenceDictionaryList.Map([](JsUtil::IWeakReferenceDictionary* weakReferenceDictionary)
+                {
+                    weakReferenceDictionary->Cleanup();
+                });
             }
         }
+
     }
 }
 
