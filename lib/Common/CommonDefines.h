@@ -623,8 +623,11 @@
 #define ASMJS_PLAT
 #endif
 
-#if defined(ASMJS_PLAT) && defined(_WIN32)
+#if defined(ASMJS_PLAT)
+// xplat-todo: once all the wasm tests are passing on xplat, enable it for release builds
+#if defined(_WIN32) || (defined(__clang__) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_WASM
+#endif
 #endif
 
 #if _M_IX86

@@ -5,6 +5,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/address.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/address.json -endargs</compile-flags>
     </default>
   </test>
@@ -13,13 +14,14 @@
       <files>spec.js</files>
       <baseline>baselines/address.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/address.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/binary.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/binary.json -endargs</compile-flags>
     </default>
   </test>
@@ -28,7 +30,7 @@
       <files>spec.js</files>
       <baseline>baselines/binary.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/binary.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -110,6 +112,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/call.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/call.json -endargs</compile-flags>
     </default>
   </test>
@@ -118,13 +121,14 @@
       <files>spec.js</files>
       <baseline>baselines/call.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/call.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/call_indirect.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/call_indirect.json -endargs</compile-flags>
     </default>
   </test>
@@ -133,13 +137,14 @@
       <files>spec.js</files>
       <baseline>baselines/call_indirect.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/call_indirect.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/chakra_i64.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/chakra_i64.json -endargs</compile-flags>
     </default>
   </test>
@@ -148,7 +153,7 @@
       <files>spec.js</files>
       <baseline>baselines/chakra_i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/chakra_i64.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -170,6 +175,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/conversions.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/conversions.json -endargs</compile-flags>
     </default>
   </test>
@@ -178,7 +184,7 @@
       <files>spec.js</files>
       <baseline>baselines/conversions.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/conversions.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -290,6 +296,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/fac.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/fac.json -endargs</compile-flags>
     </default>
   </test>
@@ -297,6 +304,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/fac.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/fac.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -395,6 +403,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/func_ptrs.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/func_ptrs.json -endargs</compile-flags>
     </default>
   </test>
@@ -402,6 +411,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/func_ptrs.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/func_ptrs.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -440,6 +450,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/i32.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/i32.json -endargs</compile-flags>
     </default>
   </test>
@@ -448,13 +459,14 @@
       <files>spec.js</files>
       <baseline>baselines/i32.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/i32.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/i64.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/i64.json -endargs</compile-flags>
     </default>
   </test>
@@ -463,13 +475,14 @@
       <files>spec.js</files>
       <baseline>baselines/i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/i64.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/imports.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/imports.json -endargs</compile-flags>
     </default>
   </test>
@@ -478,13 +491,14 @@
       <files>spec.js</files>
       <baseline>baselines/imports.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/imports.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
     <default>
       <files>spec.js</files>
       <baseline>baselines/int_exprs.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/int_exprs.json -endargs</compile-flags>
     </default>
   </test>
@@ -493,7 +507,7 @@
       <files>spec.js</files>
       <baseline>baselines/int_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/int_exprs.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -545,6 +559,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/linking.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/linking.json -endargs</compile-flags>
     </default>
   </test>
@@ -553,7 +568,7 @@
       <files>spec.js</files>
       <baseline>baselines/linking.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/linking.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -605,6 +620,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/memory_trap.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/memory_trap.json -endargs</compile-flags>
     </default>
   </test>
@@ -612,6 +628,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/memory_trap.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/memory_trap.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -650,6 +667,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/resizing.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/resizing.json -endargs</compile-flags>
     </default>
   </test>
@@ -658,7 +676,7 @@
       <files>spec.js</files>
       <baseline>baselines/resizing.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/resizing.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -680,6 +698,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/select.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/select.json -endargs</compile-flags>
     </default>
   </test>
@@ -687,6 +706,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/select.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/select.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -710,6 +730,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/skip-stack-guard-page.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/skip-stack-guard-page.json -endargs</compile-flags>
     </default>
   </test>
@@ -718,7 +739,7 @@
       <files>spec.js</files>
       <baseline>baselines/skip-stack-guard-page.baseline</baseline>
       <compile-flags>-wasm -args testsuite-bin/skip-stack-guard-page.json -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -740,6 +761,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/start.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/start.json -endargs</compile-flags>
     </default>
   </test>
@@ -747,6 +769,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/start.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/start.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -800,6 +823,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/traps.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/traps.json -endargs</compile-flags>
     </default>
   </test>
@@ -807,6 +831,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/traps.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/traps.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -830,6 +855,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/unreachable.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/unreachable.json -endargs</compile-flags>
     </default>
   </test>
@@ -837,6 +863,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/unreachable.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/unreachable.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -845,6 +872,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/unwind.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/unwind.json -endargs</compile-flags>
     </default>
   </test>
@@ -852,6 +880,7 @@
     <default>
       <files>spec.js</files>
       <baseline>baselines/unwind.baseline</baseline>
+      <tags>exclude_xplat</tags>
       <compile-flags>-wasm -args testsuite-bin/unwind.json -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
     </default>
