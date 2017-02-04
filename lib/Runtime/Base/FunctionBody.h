@@ -590,7 +590,7 @@ namespace Js
         Field(InlineeFrameMap*)   inlineeFrameMap;
 #endif
 #if ENABLE_DEBUG_STACK_BACK_TRACE
-        StackBackTrace*    cleanupStack;
+        FieldNoBarrier(StackBackTrace*) cleanupStack;  // NoCheckHeapAllocator
 #endif
     public:
         Field(uint) frameHeight;
