@@ -558,6 +558,7 @@ namespace Js
         , regAllocStoreCount(0)
         , callCountStats(0)
 #endif
+        , typeAnnotationsArray(nullptr)
     {
         SetCountField(CounterFields::ConstantCount, 1);
 
@@ -575,6 +576,11 @@ namespace Js
         // Sync entryPoints changes to etw rundown lock
         CriticalSection* syncObj = scriptContext->GetThreadContext()->GetEtwRundownCriticalSection();
         this->entryPoints = RecyclerNew(this->m_scriptContext->GetRecycler(), FunctionEntryPointList, this->m_scriptContext->GetRecycler(), syncObj);
+
+        if (CONFIG_FLAG(TypeAnnotations))
+        {
+            this->typeAnnotationsArray = RecyclerNew(this->m_scriptContext->GetRecycler(), TypeAnnotationsArray, this->m_scriptContext->GetRecycler());
+        }
 
         this->AddEntryPointToEntryPointList(this->GetDefaultFunctionEntryPointInfo());
 
@@ -697,6 +703,7 @@ namespace Js
         , regAllocStoreCount(0)
         , callCountStats(0)
 #endif
+        , typeAnnotationsArray(nullptr)
     {
         ScriptContext * scriptContext = proxy->GetScriptContext();
 
@@ -724,6 +731,11 @@ namespace Js
         this->entryPoints = RecyclerNew(scriptContext->GetRecycler(), FunctionEntryPointList, scriptContext->GetRecycler(), syncObj);
 
         this->AddEntryPointToEntryPointList(this->GetDefaultFunctionEntryPointInfo());
+
+        if (CONFIG_FLAG(TypeAnnotations))
+        {
+            this->typeAnnotationsArray = RecyclerNew(scriptContext->GetRecycler(), TypeAnnotationsArray, scriptContext->GetRecycler());
+        }
 
         Assert(this->GetDefaultEntryPointInfo()->jsMethod != nullptr);
 
@@ -10187,6 +10199,15 @@ namespace Js
     RegSlot FunctionBody::GetFuncExprScopeRegister() const
     {
         return m_hasFuncExprScopeRegister ? GetCountField(CounterFields::FuncExprScopeRegister) : Constants::NoRegister;
+    }
+
+    void FunctionBody::AddBytecodeOffsetTypeAnnotation(uint offset, RegSlot reg, TypeHint type) 
+    {
+        TypeInformation* typeInfo = RecyclerNew(this->m_scriptContext->GetRecycler(), TypeInformation);
+        typeInfo->regSlot = reg;
+        typeInfo->type = type;
+        typeInfo->bytecodeOffset = offset;
+        this->typeAnnotationsArray->Add(typeInfo);
     }
 
     void FunctionBody::SetFirstTmpRegister(RegSlot reg)

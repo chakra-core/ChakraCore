@@ -243,6 +243,23 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->literalRegexCount = functionBody->GetLiteralRegexCount();
     jitBody->literalRegexes = (intptr_t*)functionBody->GetLiteralRegexesWithLock();
 
+    if (CONFIG_FLAG(TypeAnnotations)) 
+    {
+        if (functionBody->typeAnnotationsArray->Count() > 0)
+        {
+            jitBody->typeAnnotations = AnewStruct(arena, TypeAnnotationsArrayIDL);
+            jitBody->typeAnnotations->count = functionBody->typeAnnotationsArray->Count();
+            jitBody->typeAnnotations->content = AnewArrayZ(arena, TypeInformationIDL, functionBody->typeAnnotationsArray->Count());
+            auto typeAnnotationsArray = functionBody->typeAnnotationsArray;
+            typeAnnotationsArray->Map([jitBody](int index, Js::FunctionBody::TypeInformation * info)
+            {
+                jitBody->typeAnnotations->content[index].bytecodeOffset = info->bytecodeOffset;
+                jitBody->typeAnnotations->content[index].regSlot = info->regSlot;
+                jitBody->typeAnnotations->content[index].type = (unsigned char)info->type;
+            });
+        }
+    }
+
 #ifdef ASMJS_PLAT
     if (functionBody->GetIsAsmJsFunction())
     {
@@ -1067,6 +1084,11 @@ Js::PropertyIdArray *
 JITTimeFunctionBody::GetFormalsPropIdArray() const
 {
     return  (Js::PropertyIdArray *)m_bodyData.formalsPropIdArray;
+}
+
+TypeAnnotationsArrayIDL * JITTimeFunctionBody::GetTypeAnnotationsArray() const
+{
+    return m_bodyData.typeAnnotations;
 }
 
 Js::ForInCache *
