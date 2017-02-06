@@ -685,7 +685,7 @@ void Parser::InitNode(OpCode nop,ParseNodePtr pnode) {
     pnode->notEscapedUse = false;
     pnode->isInList = false;
     pnode->isCallApplyTargetLoad = false;
-    pnode->typeHint = JsType::Unknown;
+    pnode->typeHint = Js::TypeHint::Unknown;
 }
 
 // Create nodes using Arena
@@ -3282,17 +3282,24 @@ LFunction :
     {
         m_pscan->SetScanState(Scanner_t::ScanState::ScanStateTypeAnnotationMiddle);
         m_pscan->Scan();
-        switch (m_token.tk)
+
+        if (buildAST) 
         {
-        case tkTypeInt:
-            pnode->typeHint = JsType::Int;
-            break;
-        case tkTypeFloat:
-            pnode->typeHint = JsType::Float;
-            break;
-        case tkTypeBool:
-            pnode->typeHint = JsType::Bool;
-            break;
+            switch (m_token.tk)
+            {
+            case tkTypeInt:
+                pnode->typeHint = Js::TypeHint::Int;
+                break;
+            case tkTypeFloat:
+                pnode->typeHint = Js::TypeHint::Float;
+                break;
+            case tkTypeBool:
+                pnode->typeHint = Js::TypeHint::Bool;
+                break;
+            case tkTypeObject:
+                pnode->typeHint = Js::TypeHint::Object;
+                break;
+            }
         }
         m_pscan->Scan(); //Leave the scanner pointing to the next token
     }
@@ -6318,7 +6325,33 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                 }
 
                 m_pscan->Scan();
+                //FCASTE: Process type annotation on param here
+                //FCASTE: after parsing a term, check if there is a type annotation and parse it
+                if (CONFIG_FLAG(TypeAnnotations) && m_token.tk == tkTypeAnnBegin)
+                {
+                    m_pscan->SetScanState(Scanner_t::ScanState::ScanStateTypeAnnotationMiddle);
+                    m_pscan->Scan();
 
+                    if (buildAST)
+                    {
+                        switch (m_token.tk)
+                        {
+                        case tkTypeInt:
+                            pnodeT->typeHint = Js::TypeHint::Int;
+                            break;
+                        case tkTypeFloat:
+                            pnodeT->typeHint = Js::TypeHint::Float;
+                            break;
+                        case tkTypeBool:
+                            pnodeT->typeHint = Js::TypeHint::Bool;
+                            break;
+                        case tkTypeObject:
+                            pnodeT->typeHint = Js::TypeHint::Object;
+                            break;
+                        }
+                    }
+                    m_pscan->Scan(); //Leave the scanner pointing to the next token
+                }
                 if (seenRestParameter && m_token.tk != tkRParen && m_token.tk != tkAsg)
                 {
                     Error(ERRRestLastArg);

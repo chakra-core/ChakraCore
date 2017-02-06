@@ -606,18 +606,6 @@ struct PnFinally : PnStmt
     ParseNodePtr pnodeBody;
 };
 
-enum class JsType : byte 
-{
-    Unknown,
-    Object,
-    String,
-    Int,
-    Float,
-    Bool,
-    Array,
-    Function
-};
-
 struct ParseNode
 {
     OpCode nop;
@@ -630,7 +618,7 @@ struct ParseNode
     bool notEscapedUse;         // Use by byte code generator.  Currently, only used by child of knopComma
     bool isInList;
     bool isCallApplyTargetLoad;
-    JsType typeHint;
+    Js::TypeHint typeHint;
 #ifdef EDIT_AND_CONTINUE
     ParseNodePtr parent;
 #endif
