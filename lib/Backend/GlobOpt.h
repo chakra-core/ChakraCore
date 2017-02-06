@@ -44,7 +44,7 @@ protected:
         // specific sym. Instead, a value info can be shared by multiple syms, and hence cannot specify tagged int
         // representation. Currently, the tagged int representation info can only be carried on the dst opnd of ToVar, and can't
         // even be propagated forward.
-        Assert(!type.IsTaggedInt());
+        //Assert(!type.IsTaggedInt());
 
         SetSymStore(nullptr);
     }
