@@ -243,6 +243,24 @@ namespace Js {
             return simdVal;
         };
 
+        static inline int32 SIMD128InnerExtractLaneB4(const SIMDValue src1, const uint32 lane) 
+        {
+            int val = SIMD128InnerExtractLaneI4(src1, lane);
+            return val ? 1 : 0;
+        };
+
+        static inline int16 SIMD128InnerExtractLaneB8(const SIMDValue src1, const uint32 lane)
+        {
+            int16 val = SIMD128InnerExtractLaneI8(src1, lane);
+            return val ? 1 : 0;
+        };
+
+        static inline int8 SIMD128InnerExtractLaneB16(const SIMDValue src1, const uint32 lane)
+        {
+            int8 val = SIMD128InnerExtractLaneI16(src1, lane);
+            return val ? 1 : 0;
+        };
+
         static inline float SIMD128InnerExtractLaneF4(const SIMDValue src1, const uint32 lane) { return src1.f32[lane]; };
         static inline int32 SIMD128InnerExtractLaneI4(const SIMDValue src1, const uint32 lane) { return src1.i32[lane]; };
         static inline int16 SIMD128InnerExtractLaneI8(const SIMDValue src1, const uint32 lane) { return src1.i16[lane]; };

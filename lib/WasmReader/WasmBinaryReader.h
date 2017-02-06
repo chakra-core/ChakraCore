@@ -14,6 +14,16 @@ namespace Wasm
         const int8 i64 = 0x80 - 0x2;
         const int8 f32 = 0x80 - 0x3;
         const int8 f64 = 0x80 - 0x4;
+        const int8 f32x4 = 0x80 - 0x5;
+        const int8 i32x4 = 0x80 - 0x6;
+        const int8 i16x8 = 0x80 - 0x7;
+        const int8 i8x16 = 0x80 - 0x8;
+        const int8 b32x4 = 0x80 - 0x9;
+        const int8 b16x8 = 0x80 - 0xa;
+        const int8 b8x16 = 0x80 - 0xb;
+        const int8 i64x2 = 0x80 - 0xc;
+        const int8 b64x2 = 0x80 - 0xd;
+        const int8 f64x2 = 0x80 - 0xe;
         const int8 anyfunc = 0x80 - 0x10;
         const int8 func = 0x80 - 0x20;
         const int8 emptyBlock = 0x80 - 0x40;
@@ -42,6 +52,8 @@ namespace Wasm
         bool ProcessCurrentSection();
         virtual void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo) override;
         virtual bool IsCurrentFunctionCompleted() const override;
+
+        WasmOp ReadOpCode(); //@TODO might need to be moved into WasmReaderBase
         virtual WasmOp ReadExpr() override;
         virtual void FunctionEnd() override;
 #if DBG_DUMP

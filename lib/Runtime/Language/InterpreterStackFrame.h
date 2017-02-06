@@ -177,7 +177,7 @@ namespace Js
         void OP_I_SetOutAsmFlt(RegSlot outRegisterID, float val);
         void OP_I_SetOutAsmLong(RegSlot outRegisterID, int64 val);
         void OP_I_SetOutAsmSimd(RegSlot outRegisterID, AsmJsSIMDValue val);
-        template<bool toJs>
+        template<int type, bool toJs>
         void OP_InvalidWasmTypeConversion(...);
 
         void SetOut(ArgSlot outRegisterID, Var bValue);

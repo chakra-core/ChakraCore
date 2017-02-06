@@ -13,7 +13,7 @@
 #include "Language/InterpreterStackFrame.h"
 #include "Library/JavascriptGeneratorFunction.h"
 #include "Library/ForInObjectEnumerator.h"
-
+#include "../../WasmReader/WasmParseTree.h"
 ///----------------------------------------------------------------------------
 ///
 /// macros PROCESS_INtoOUT
@@ -2322,12 +2322,27 @@ namespace Js
         *(AsmJsSIMDValue*)(&(m_outParams[outRegisterID])) = val;
     }
 
-    template<bool toJs>
+    template<int type, bool toJs>
     void InterpreterStackFrame::OP_InvalidWasmTypeConversion(...)
     {
+        Assert(type != Wasm::WasmTypes::Void); //
+        static const char16* typeNames[] = {
+            nullptr,       //Void = 0,
+            _u("int32"),   //I32 = 1,
+            _u("int64"),   //I64 = 2,
+            _u("float"),   //F32 = 3,
+            _u("double"),  //F64 = 4,
+#define STR(X) #X
+#define NAME(TYPE, BASE) _u( "" STR(TYPE) ),
+
+    FOREACH_SIMD_TYPE_NO64X2(NAME)
+#undef NAME
+#undef STR
+        };
+
         // Right now the only invalid wasm type conversion is with int64
-        const char16* fromType = toJs ? _u("int64") : _u("Javascript Variable");
-        const char16* toType = toJs ? _u("Javascript Variable") : _u("int64");
+        const char16* fromType = toJs ? typeNames[type] : _u("Javascript Variable");
+        const char16* toType = toJs ? _u("Javascript Variable") : typeNames[type];
         JavascriptError::ThrowTypeErrorVar(scriptContext, WASMERR_InvalidTypeConversion, fromType, toType);
     }
 

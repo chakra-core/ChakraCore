@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -7,6 +7,12 @@
 
 namespace Wasm
 {
+    const uint16 EXTENDED_OFFSET = 256;
+    namespace Simd {
+        const size_t VEC_WIDTH = 4;
+        typedef uint32 v128[VEC_WIDTH];
+    }
+
     namespace WasmTypes
     {
         enum WasmType
@@ -17,10 +23,21 @@ namespace Wasm
             I64 = 2,
             F32 = 3,
             F64 = 4,
+            F4 = 5,
+            I4 = 6,
+            I8 = 7,
+            I16 = 8,
+            B4 = 9,
+            B8 = 10,
+            B16 = 11,
+            F2 = 12,
+            I2 = 13,
+            B2 = 14,
             Limit,
             Any
         };
         bool IsLocalType(WasmTypes::WasmType type);
+        bool IsSIMDType(WasmTypes::WasmType type);
         uint32 GetTypeByteSize(WasmType type);
     }
 
@@ -62,7 +79,7 @@ namespace Wasm
 #include "WasmBinaryOpCodes.h"
     };
 
-    enum WasmOp : byte
+    enum WasmOp : uint16
     {
 #define WASM_OPCODE(opname, opcode, sig, nyi) wb##opname = opcode,
 #include "WasmBinaryOpCodes.h"
@@ -77,6 +94,7 @@ namespace Wasm
             double f64;
             int32 i32;
             int64 i64;
+            uint32 v128[Simd::VEC_WIDTH];
         };
     };
 

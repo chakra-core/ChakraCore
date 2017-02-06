@@ -119,6 +119,8 @@ namespace Wasm
     private:
         void GenerateFunction();
 
+        template <size_t lanes> 
+        EmitInfo WasmBytecodeGenerator::EmitSimdBuildExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
         void EmitExpr(WasmOp op);
         EmitInfo EmitBlock();
         void EmitBlockCommon(BlockInfo* blockInfo, bool* endOnElse = nullptr);
@@ -150,6 +152,9 @@ namespace Wasm
         EmitInfo EmitConst(WasmTypes::WasmType type, WasmConstLitNode cnst);
         void EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst);
         WasmConstLitNode GetZeroCnst();
+
+        EmitInfo EmitLoadIntConstIntoReg(uint val);
+        EmitInfo EmitLoadFloatConstIntoReg(uint val);
 
         void EnregisterLocals();
         void ReleaseLocation(EmitInfo* info);

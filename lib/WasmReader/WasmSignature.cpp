@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -125,6 +125,13 @@ uint32 WasmSignature::GetParamSize(uint index) const
         CompileAssert(sizeof(double) == sizeof(int64));
         return sizeof(int64);
         break;
+#define SIMD_CASE(TYPE, BASE) case WasmTypes::##TYPE:
+
+FOREACH_SIMD_TYPE(SIMD_CASE)
+#undef SIMD_CASE
+        return sizeof(WasmConstLitNode::v128);
+        CompileAssert(sizeof(WasmConstLitNode::v128) == sizeof(int) * 4); //TODO: introduce a const for 4 
+        break;
     default:
         throw WasmCompilationException(_u("Invalid param type"));
     }
@@ -142,13 +149,14 @@ WasmSignature::FinalizeSignature()
         m_paramSize += GetParamSize(i);
     }
 
-    CompileAssert(Local::Limit - 1 <= 4);
     CompileAssert(Local::Void == 0);
 
+#if 0
+    CompileAssert(Local::Limit - 1 <= 4);
     // 3 bits for result type, 2 for each arg
     // we don't need to reserve a sentinel bit because there is no result type with value of 7
     int sigSize = 3 + 2 * GetParamCount();
-    if (sigSize <= sizeof(m_shortSig) << 3)
+    if (sigSize <= sizeof(m_shortSig) << 3 && false)
     {
         m_shortSig = (m_shortSig << 3) | m_resultType;
         for (uint32 i = 0; i < GetParamCount(); ++i)
@@ -157,6 +165,7 @@ WasmSignature::FinalizeSignature()
             m_shortSig = (m_shortSig << 2) | (m_params[i] - 1);
         }
     }
+#endif
 }
 
 uint32
