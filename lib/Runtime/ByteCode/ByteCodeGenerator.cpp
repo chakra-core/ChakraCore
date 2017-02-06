@@ -1658,7 +1658,7 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
                     {
                         // Make sure no dynamic scope intrudes between the two bindings.
                         bool foundDynamicScope = false;
-                        for (Scope *tmpScope = symScope->GetEnclosingScope(); tmpScope != fncVarSym->GetScope(); tmpScope = symScope->GetEnclosingScope())
+                        for (Scope *tmpScope = symScope->GetEnclosingScope(); tmpScope != fncVarSym->GetScope(); tmpScope = tmpScope->GetEnclosingScope())
                         {
                             Assert(tmpScope);
                             if (tmpScope->GetIsDynamic())
