@@ -9535,10 +9535,11 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
     // CMP cacheData.completed, 0
     // JNE $loopEnd
     // JMP $helper
+    IR::LabelInstr * labelAfter = instr->GetOrCreateContinueLabel();
     InsertCompareBranch(
         IR::IndirOpnd::New(cachedDataOpnd, Js::DynamicObjectPropertyEnumerator::GetOffsetOfCachedDataCompleted(), TyInt8, this->m_func),
         IR::IntConstOpnd::New(0, TyInt8, this->m_func),
-        Js::OpCode::BrNeq_A, instr->AsBranchInstr()->GetTarget(), instr);
+        Js::OpCode::BrNeq_A, instr->m_opcode == Js::OpCode::BrOnNotEmpty ? labelAfter : instr->AsBranchInstr()->GetTarget(), instr);
     InsertBranch(Js::OpCode::Br, labelHelper, instr);
 
     // $loopBody:
@@ -9574,7 +9575,6 @@ Lowerer::GenerateFastBrBReturn(IR::Instr * instr)
         enumeratedCountOpnd, instr);
 
     // We know result propertyString (opndDst) != NULL
-    IR::LabelInstr * labelAfter = instr->GetOrCreateContinueLabel();
     InsertBranch(Js::OpCode::Br, instr->m_opcode == Js::OpCode::BrOnNotEmpty ? instr->AsBranchInstr()->GetTarget() : labelAfter, instr);
 
     // $helper
