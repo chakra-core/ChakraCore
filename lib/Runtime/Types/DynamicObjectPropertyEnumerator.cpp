@@ -260,6 +260,8 @@ namespace Js
         }
         if (this->object)
         {
+            // Once enters NoCache path, ensure never switches to Cache path above.
+            this->cachedData = nullptr;
             return MoveAndGetNextNoCache(propertyId, attributes);
         }
         return nullptr;

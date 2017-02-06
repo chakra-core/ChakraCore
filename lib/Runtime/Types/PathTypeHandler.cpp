@@ -53,36 +53,61 @@ namespace Js
         Assert(propertyId);
         Assert(type);
 
-        for (; index < GetPathLength(); ++index)
+        if (type == typeToEnumerate)
         {
-            const PropertyRecord* propertyRecord = typePath->GetPropertyId(index);
-
-            // Skip this property if it is a symbol and we are not including symbol properties
-            if (!(flags & EnumeratorFlags::EnumSymbols) && propertyRecord->IsSymbol())
+            for (; index < GetPathLength(); ++index)
             {
-                continue;
+                const PropertyRecord* propertyRecord = typePath->GetPropertyId(index);
+
+                // Skip this property if it is a symbol and we are not including symbol properties
+                if (!(flags & EnumeratorFlags::EnumSymbols) && propertyRecord->IsSymbol())
+                {
+                    continue;
+                }
+
+                if (attributes)
+                {
+                    *attributes = PropertyEnumerable;
+                }
+
+                *propertyId = propertyRecord->GetPropertyId();
+                PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
+                *propertyStringName = propertyString;
+
+                uint16 inlineOrAuxSlotIndex;
+                bool isInlineSlot;
+                PropertyIndexToInlineOrAuxSlotIndex(index, &inlineOrAuxSlotIndex, &isInlineSlot);
+
+                propertyString->UpdateCache(type, inlineOrAuxSlotIndex, isInlineSlot,
+                    !FixPropsOnPathTypes() || (this->GetPathLength() < this->typePath->GetMaxInitializedLength() && !this->typePath->GetIsFixedFieldAt(index, this->GetPathLength())));
+
+                return TRUE;
             }
 
-            if (attributes)
-            {
-                *attributes = PropertyEnumerable;
-            }
-
-            *propertyId = propertyRecord->GetPropertyId();
-            PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
-            *propertyStringName = propertyString;
-
-            uint16 inlineOrAuxSlotIndex;
-            bool isInlineSlot;
-            PropertyIndexToInlineOrAuxSlotIndex(index, &inlineOrAuxSlotIndex, &isInlineSlot);
-
-            propertyString->UpdateCache(type, inlineOrAuxSlotIndex, isInlineSlot,
-                !FixPropsOnPathTypes() || (this->GetPathLength() < this->typePath->GetMaxInitializedLength() && !this->typePath->GetIsFixedFieldAt(index, this->GetPathLength())));
-
-            return TRUE;
+            return FALSE;
         }
 
-        return FALSE;
+        // Need to enumerate a different type than the current one. This is because type snapshot enumerate is enabled and the
+        // object's type changed since enumeration began, so need to enumerate properties of the initial type.
+        DynamicTypeHandler *const typeHandlerToEnumerate = typeToEnumerate->GetTypeHandler();
+
+        if (!typeHandlerToEnumerate->IsPathTypeHandler())
+        {
+            AssertMsg(false, "Can only enumerate PathTypeHandler if types don't match.");
+            Js::Throw::InternalError();
+        }
+
+        PathTypeHandlerBase* pathTypeToEnumerate = (PathTypeHandlerBase*)typeHandlerToEnumerate;
+
+        BOOL found = pathTypeToEnumerate->FindNextProperty(scriptContext, index, propertyStringName, propertyId, attributes, typeToEnumerate, typeToEnumerate, flags);
+
+        // We got a property from previous type, but this property may have been deleted
+        if (found == TRUE && this->GetPropertyIndex(*propertyId) == Js::Constants::NoSlot)
+        {
+            return FALSE;
+        }
+
+        return found;
     }
 
     PropertyIndex PathTypeHandlerBase::GetPropertyIndex(const PropertyRecord* propertyRecord)
@@ -345,18 +370,8 @@ namespace Js
 
     BOOL PathTypeHandlerBase::DeleteLastProperty(DynamicObject *const object)
     {
-        // Optimize deleting last property under conditions
-        // - Need to have a predecessor type to move to
-        // - Current type shouldn't have a forInCache as the cache will try to enumerate the no. of properties when the
-        //   cache was populated and it can happen that we transition to a previous type and then add a new property
-        //   during forIn which will keep the number of properties same but the new property shouldn't be enumerated.
-        if (this->GetPredecessorType() == nullptr ||
-            object->GetScriptContext()->GetThreadContext()->GetDynamicObjectEnumeratorCache(object->GetDynamicType()) != nullptr)
-        {
-            return FALSE;
-        }
-
         DynamicType* predecessorType = this->GetPredecessorType();
+        Assert(predecessorType != nullptr);
 
         // -----------------------------------------------------------------------------------------
         //         Current Type     |      Predecessor Type      |       Action
@@ -430,7 +445,9 @@ namespace Js
 
         uint16 pathLength = GetPathLength();
 
-        if ((index + 1) == pathLength && this->DeleteLastProperty(instance))
+        if ((index + 1) == pathLength &&
+            this->GetPredecessorType() != nullptr &&
+            this->DeleteLastProperty(instance))
         {
             return TRUE;
         }
