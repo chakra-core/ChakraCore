@@ -1102,6 +1102,13 @@ tokens Scanner<EncodingPolicy>::ScanTypeAnnotationType(EncodedCharPtr *pp)
             token = tkTypeBool;
             break;
         }
+    case 'o':
+        if (p[0] == 'b' && p[1] == 'j' && p[2] == '}')
+        {
+            p += 3;
+            token = tkTypeObject;
+            break;
+        }
         Error(ERRsyntax);
     default:
         Error(ERRsyntax);
