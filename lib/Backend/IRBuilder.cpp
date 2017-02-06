@@ -4404,6 +4404,11 @@ IRBuilder::BuildElementRootCP(Js::OpCode newOpcode, uint32 offset)
     BuildElementCP(newOpcode, offset, Js::FunctionBody::RootObjectRegSlot, layout->Value, layout->inlineCacheIndex);
 }
 
+int __cdecl compareTypeInfos(const void * key, const void * elem)
+{
+    return (*(int*)key - ((Js::FunctionBody::TypeInformation*)elem)->bytecodeOffset);
+}
+
 void
 IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot instance, Js::RegSlot regSlot, Js::CacheId inlineCacheIndex)
 {
@@ -4441,7 +4446,6 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
         // Load
         // LdMethodFromFlags is backend only. Don't need to be added here.
         regOpnd = this->BuildDstOpnd(regSlot);
-
         if (isProfiled)
         {
             instr = this->BuildProfiledFieldLoad(newOpcode, regOpnd, fieldSymOpnd, inlineCacheIndex, &isLdFldThatWasNotProfiled);
@@ -4529,6 +4533,32 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
     default:
         AssertMsg(UNREACHED, "Unknown ElementCP opcode");
         Fatal();
+    }
+
+    if (CONFIG_FLAG(TypeAnnotations))
+    {
+        void* typeAnnotation;
+        if (m_func->GetJITFunctionBody()->GetTypeAnnotationsArray() && (typeAnnotation = bsearch(&offset,
+            m_func->GetJITFunctionBody()->GetTypeAnnotationsArray()->content,
+            m_func->GetJITFunctionBody()->GetTypeAnnotationsArray()->count,
+            sizeof(Js::FunctionBody::TypeInformation), compareTypeInfos)) != nullptr)
+        {
+            switch (((Js::FunctionBody::TypeInformation*)typeAnnotation)->type)
+            {
+            case Js::TypeHint::Int:
+                instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::Int.SetCanBeTaggedValue(true);
+                break;
+            case Js::TypeHint::Float:
+                instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::Float.SetCanBeTaggedValue(true);
+                break;
+            case Js::TypeHint::Bool:
+                instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::Boolean.SetCanBeTaggedValue(true);
+                break;
+            case Js::TypeHint::Object:
+                instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::UninitializedObject;
+                break;
+            }
+        }
     }
 
     this->AddInstr(instr, offset);
