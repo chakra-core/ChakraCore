@@ -2826,6 +2826,16 @@ namespace Js
         return GetType()->GetLibrary()->GetUndefined();
     }
 
+    DescriptorFlags JavascriptNativeIntArray::GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext)
+    {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif 
+        int32 value = 0;
+        return this->DirectGetItemAt(index, &value) ? WritableData : None;
+    }
+
+
     Var JavascriptNativeFloatArray::DirectGetItem(uint32 index)
     {
         SparseArraySegment<double> *seg = (SparseArraySegment<double>*)this->GetLastUsedSegment();
