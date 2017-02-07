@@ -10854,6 +10854,10 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         EmitSuperMethodBegin(pnode, byteCodeGenerator, funcInfo);
 
         uint cacheId = funcInfo->FindOrAddInlineCacheId(callObjLocation, propertyId, false, false);
+        if (pnode->typeHint != Js::TypeHint::Unknown)
+        {
+            funcInfo->GetParsedFunctionBody()->AddBytecodeOffsetTypeAnnotation(byteCodeGenerator->Writer()->GetCurrentOffset(), pnode->location, pnode->typeHint);
+        }
         if (pnode->IsCallApplyTargetLoad())
         {
             if (pnode->sxBin.pnode1->nop == knopSuper)
