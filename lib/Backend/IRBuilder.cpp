@@ -4552,7 +4552,7 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
                 instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::Float.SetCanBeTaggedValue(true);
                 break;
             case Js::TypeHint::Bool:
-                instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::Boolean.SetCanBeTaggedValue(true);
+                instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::Boolean;
                 break;
             case Js::TypeHint::Object:
                 instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::UninitializedObject;
@@ -4568,7 +4568,6 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
         InsertBailOnNoProfile(instr);
     }
 }
-
 
 ///----------------------------------------------------------------------------
 ///

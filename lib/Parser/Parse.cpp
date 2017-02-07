@@ -3280,28 +3280,7 @@ LFunction :
     //FCASTE: after parsing a term, check if there is a type annotation and parse it
     if (CONFIG_FLAG(TypeAnnotations) && m_token.tk == tkTypeAnnBegin)
     {
-        m_pscan->SetScanState(Scanner_t::ScanState::ScanStateTypeAnnotationMiddle);
-        m_pscan->Scan();
-
-        if (buildAST) 
-        {
-            switch (m_token.tk)
-            {
-            case tkTypeInt:
-                pnode->typeHint = Js::TypeHint::Int;
-                break;
-            case tkTypeFloat:
-                pnode->typeHint = Js::TypeHint::Float;
-                break;
-            case tkTypeBool:
-                pnode->typeHint = Js::TypeHint::Bool;
-                break;
-            case tkTypeObject:
-                pnode->typeHint = Js::TypeHint::Object;
-                break;
-            }
-        }
-        m_pscan->Scan(); //Leave the scanner pointing to the next token
+        AddTypeAnnotationToParseNode<buildAST>(pnode);
     }
     // Pass back identifier if requested
     if (pToken && term.tk == tkID)
@@ -6329,29 +6308,9 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                 //FCASTE: after parsing a term, check if there is a type annotation and parse it
                 if (CONFIG_FLAG(TypeAnnotations) && m_token.tk == tkTypeAnnBegin)
                 {
-                    m_pscan->SetScanState(Scanner_t::ScanState::ScanStateTypeAnnotationMiddle);
-                    m_pscan->Scan();
-
-                    if (buildAST)
-                    {
-                        switch (m_token.tk)
-                        {
-                        case tkTypeInt:
-                            pnodeT->typeHint = Js::TypeHint::Int;
-                            break;
-                        case tkTypeFloat:
-                            pnodeT->typeHint = Js::TypeHint::Float;
-                            break;
-                        case tkTypeBool:
-                            pnodeT->typeHint = Js::TypeHint::Bool;
-                            break;
-                        case tkTypeObject:
-                            pnodeT->typeHint = Js::TypeHint::Object;
-                            break;
-                        }
-                    }
-                    m_pscan->Scan(); //Leave the scanner pointing to the next token
+                    AddTypeAnnotationToParseNode<buildAST>(pnodeT);
                 }
+
                 if (seenRestParameter && m_token.tk != tkRParen && m_token.tk != tkAsg)
                 {
                     Error(ERRRestLastArg);
@@ -6463,6 +6422,33 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
         m_pscan->SetYieldIsKeyword(fPreviousYieldIsKeyword);
         m_pscan->SetAwaitIsKeyword(fPreviousAwaitIsKeyword);
     }
+}
+
+template<bool buildAST>
+void Parser::AddTypeAnnotationToParseNode(ParseNodePtr pnode)
+{
+    m_pscan->SetScanState(Scanner_t::ScanState::ScanStateTypeAnnotationMiddle);
+    m_pscan->Scan();
+
+    if (buildAST)
+    {
+        switch (m_token.tk)
+        {
+        case tkTypeInt:
+            pnode->typeHint = Js::TypeHint::Int;
+            break;
+        case tkTypeFloat:
+            pnode->typeHint = Js::TypeHint::Float;
+            break;
+        case tkTypeBool:
+            pnode->typeHint = Js::TypeHint::Bool;
+            break;
+        case tkTypeObject:
+            pnode->typeHint = Js::TypeHint::Object;
+            break;
+        }
+    }
+    m_pscan->Scan(); //Leave the scanner pointing to the next token
 }
 
 template<bool buildAST>
