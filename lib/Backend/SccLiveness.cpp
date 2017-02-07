@@ -53,24 +53,30 @@ SCCLiveness::Build()
             AssertMsg(instr->IsBranchInstr(), "Loop tail should be a branchInstr");
             AssertMsg(instr->AsBranchInstr()->IsLoopTail(this->func), "Loop tail not marked correctly");
 
-            FOREACH_SLIST_ENTRY(Lifetime *, lifetime, this->curLoop->regAlloc.extendedLifetime)
+            Loop *loop = this->curLoop;
+            while (loop && loop->regAlloc.loopEnd == this->curLoop->regAlloc.loopEnd)
             {
-                if (this->curLoop->regAlloc.hasNonOpHelperCall)
+                FOREACH_SLIST_ENTRY(Lifetime *, lifetime, loop->regAlloc.extendedLifetime)
                 {
-                    lifetime->isLiveAcrossUserCalls = true;
+                    if (loop->regAlloc.hasNonOpHelperCall)
+                    {
+                        lifetime->isLiveAcrossUserCalls = true;
+                    }
+                    if (loop->regAlloc.hasCall)
+                    {
+                        lifetime->isLiveAcrossCalls = true;
+                    }
+                    if (lifetime->end == loop->regAlloc.loopEnd)
+                    {
+                        lifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
+                    }
                 }
-                if (this->curLoop->regAlloc.hasCall)
-                {
-                    lifetime->isLiveAcrossCalls = true;
-                }
-                if(lifetime->end == this->curLoop->regAlloc.loopEnd)
-                {
-                    lifetime->totalOpHelperLengthByEnd = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
-                }
-            }
-            NEXT_SLIST_ENTRY;
+                NEXT_SLIST_ENTRY;
 
-            this->curLoop->regAlloc.helperLength = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
+                loop->regAlloc.helperLength = this->totalOpHelperFullVisitedLength + CurrentOpHelperVisitedLength(instr);
+                Assert(!loop->parent || loop->parent && loop->parent->regAlloc.loopEnd >= loop->regAlloc.loopEnd);
+                loop = loop->parent;
+            }
             while (this->curLoop && instrNum >= this->curLoop->regAlloc.loopEnd)
             {
                 this->curLoop = this->curLoop->parent;
