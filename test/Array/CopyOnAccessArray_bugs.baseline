@@ -30,6 +30,8 @@ PASSED
 PASSED
 *** Running test #12 (11): Reflect.defineProperty
 PASSED
-*** Running test #13 (12): Array.of
+*** Running test #13 (12): Reflect.set
 PASSED
-Summary of tests: total executed: 13; passed: 13; failed: 0
+*** Running test #14 (13): Array.of
+PASSED
+Summary of tests: total executed: 14; passed: 14; failed: 0

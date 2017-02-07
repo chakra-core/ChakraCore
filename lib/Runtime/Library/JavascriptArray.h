@@ -996,11 +996,7 @@ namespace Js
         virtual BOOL DirectGetVarItemAt(uint index, Var* outval, ScriptContext *scriptContext);
         virtual BOOL DirectGetItemAtFull(uint index, Var* outVal);
         virtual Var DirectGetItem(uint32 index);
-        virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override
-        {
-            int32 value = 0;
-            return this->DirectGetItemAt(index, &value) ? WritableData : None;
-        }
+        virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override;
 
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
