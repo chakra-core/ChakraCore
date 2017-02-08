@@ -20,7 +20,6 @@
 typedef WCHAR char16;
 #define _u(s) L##s
 #else
-typedef char16_t char16;
 #define _u(s) u##s
 #endif
 
@@ -164,7 +163,7 @@ namespace utf8
     // special cases ASCII to avoid a call the most common characters.
     LPUTF8 EncodeFull(char16 ch, __out_ecount(3) LPUTF8 ptr);
 
-    // Encode a surrogate pair into a utf8 sequence 
+    // Encode a surrogate pair into a utf8 sequence
     LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(4) LPUTF8 ptr);
 
     // Encode ch into a UTF8 sequence ignoring surrogate pairs (which are encoded as two
@@ -190,7 +189,7 @@ namespace utf8
         else if (ch < 0xD800 || (ch >= 0xE000 && ch <= 0xFFFF))
         {
             return EncodeFull(ch, ptr);
-        } 
+        }
 
         // We're now decoding a surrogate pair. If the input is malformed (eg. low surrogate is absent)
         // we'll instead encode the unicode replacement character as utf8
@@ -199,13 +198,13 @@ namespace utf8
             char16 surrogateHigh = ch;
             char16 surrogateLow = **source;
 
-            // Validate that the surrogate code units are within the appropriate 
+            // Validate that the surrogate code units are within the appropriate
             // ranges for high and low surrogates
             if ((surrogateHigh >= 0xD800 && surrogateHigh <= 0xDBFF) &&
                 (surrogateLow >= 0xDC00 && surrogateLow <= 0xDFFF))
             {
                 LPUTF8 retptr = EncodeSurrogatePair(surrogateHigh, surrogateLow, ptr);
-                
+
                 // SAL analysis gets confused if we call EncodeSurrogatePair after
                 // modifying cch
 
