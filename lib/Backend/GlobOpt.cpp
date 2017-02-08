@@ -8892,7 +8892,6 @@ GlobOpt::TypeSpecialization(
     {
         // Unary
         // Note make sure that native array StElemI gets to TypeSpecializeStElem. Do this for typed arrays, too?
-        bool runTypeSpec = true;
         int32 intConstantValue;
         if (!this->IsLoopPrePass() &&
             !instr->IsBranchInstr() &&
@@ -8910,30 +8909,20 @@ GlobOpt::TypeSpecialization(
             {
                 return instr;
             }
-
-            // need to run typespec if cannot const fold InlineMathAbs, or dst will be dead
-            if (instr->m_opcode != Js::OpCode::InlineMathAbs)
-            {
-                runTypeSpec = false;
-            }
         }
-
-        if (runTypeSpec)
-        {
-            if (this->TypeSpecializeUnary(
+        else if (this->TypeSpecializeUnary(
                     &instr,
                     &src1Val,
                     pDstVal,
                     src1OriginalVal,
                     redoTypeSpecRef,
                     forceInvariantHoistingRef))
-            {
-                return instr;
-            }
-            else if(*redoTypeSpecRef)
-            {
-                return instr;
-            }
+        {
+            return instr;
+        }
+        else if(*redoTypeSpecRef)
+        {
+            return instr;
         }
     }
     else if (instr->GetSrc2() && !instr->IsBranchInstr())
