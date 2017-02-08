@@ -78,6 +78,11 @@ void __stdcall PrintUsage()
 #endif
 }
 
+void __stdcall PrintVersion()
+{
+    wprintf(_u("%d.%d.%d\n"), CHAKRA_CORE_MAJOR_VERSION, CHAKRA_CORE_MINOR_VERSION, CHAKRA_CORE_PATCH_VERSION);
+}
+
 // On success the param byteCodeBuffer will be allocated in the function.
 HRESULT GetSerializedBuffer(LPCSTR fileContents, JsValueRef *byteCodeBuffer)
 {
@@ -770,7 +775,36 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     int cpos = 1;
     for(int i = 1; i < argc; ++i)
     {
-        if(wcsstr(argv[i], _u("-TTRecord=")) == argv[i])
+        wchar *arg = argv[i];
+        size_t arglen = wcsnlen(arg, 2); // just look for prefixes for now
+
+        // support - or / prefix for flags
+        if (arglen >= 1 && (arg[0] == _u('-')
+#ifdef _WIN32
+            || arg[0] == _u('/') // '/' prefix for legacy (Windows-only because it starts a path on Unix)
+#endif
+            ))
+        {
+            // support -- prefix for flags
+            if (arglen >= 2 && arg[0] == _u('-') && arg[1] == _u('-'))
+            {
+                arg += 2; // advance past -- prefix
+            }
+            else
+            {
+                arg += 1; // advance past - or / prefix
+            }
+        }
+
+        arglen = wcsnlen(arg, 8); // ensure that we get the entirety of "version" so we don't match e.g. "versions"
+        if (arglen == 1 && wcsncmp(arg, _u("v"), arglen) == 0 ||
+            arglen == 7 && wcsncmp(arg, _u("version"), arglen) == 0)
+        {
+            PrintVersion();
+            PAL_Shutdown();
+            return EXIT_SUCCESS;
+        }
+        else if(wcsstr(argv[i], _u("-TTRecord=")) == argv[i])
         {
             doTTRecord = true;
             wchar* ruri = argv[i] + wcslen(_u("-TTRecord="));
