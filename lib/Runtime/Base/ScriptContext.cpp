@@ -129,8 +129,7 @@ namespace Js
         cache(nullptr),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
-        m_remoteScriptContextAddr(nullptr),
-        isWeakReferenceDictionaryListCleared(false)
+        m_remoteScriptContextAddr(nullptr)
 #if ENABLE_PROFILE_INFO
         , referencesSharedDynamicSourceContextInfo(false)
 #endif
@@ -503,9 +502,6 @@ namespace Js
         }
 #endif
 
-        // In case there is something added to the list between close and dtor, just reset the list again
-        this->weakReferenceDictionaryList.Reset();
-
 #if ENABLE_NATIVE_CODEGEN
         if (m_remoteScriptContextAddr)
         {
@@ -740,9 +736,6 @@ namespace Js
 
         pActiveScriptDirect = nullptr;
 
-        isWeakReferenceDictionaryListCleared = true;
-        this->weakReferenceDictionaryList.Clear(this->GeneralAllocator());
-
         // This can be null if the script context initialization threw
         // and InternalClose gets called in the destructor code path
         if (javascriptLibrary != nullptr)
@@ -893,11 +886,6 @@ namespace Js
 #endif
 
         return isNumericPropertyId;
-    }
-
-    void ScriptContext::RegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary)
-    {
-        this->weakReferenceDictionaryList.Prepend(this->GeneralAllocator(), weakReferenceDictionary);
     }
 
     RecyclableObject *ScriptContext::GetMissingPropertyResult()
@@ -1619,21 +1607,6 @@ namespace Js
                 {
                     string->ClearPropertyCache();
                 }
-            }
-        }
-    }
-
-    void ScriptContext::CleanupWeakReferenceDictionaries()
-    {
-        if (!isWeakReferenceDictionaryListCleared)
-        {
-            SListBase<JsUtil::IWeakReferenceDictionary*>::Iterator iter(&this->weakReferenceDictionaryList);
-
-            while (iter.Next())
-            {
-                JsUtil::IWeakReferenceDictionary* weakReferenceDictionary = iter.Data();
-
-                weakReferenceDictionary->Cleanup();
             }
         }
     }

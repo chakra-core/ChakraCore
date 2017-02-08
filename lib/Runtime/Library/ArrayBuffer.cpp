@@ -95,9 +95,9 @@ namespace Js
 
         if (this->otherParents != nullptr)
         {
-            this->otherParents->Map([&](int index, RecyclerWeakReference<ArrayBufferParent>* item)
+            this->otherParents->Map([&](const uintptr_t&, const RecyclerWeakReference<ArrayBufferParent>* parent)
             {
-                this->ClearParentsLength(item->Get());
+                this->ClearParentsLength(parent->Get());
             });
         }
 
@@ -114,9 +114,12 @@ namespace Js
         {
             if (this->otherParents == nullptr)
             {
-                this->otherParents = JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>::New(this->GetRecycler());
+                ArrayBufferParentsMap* parents = RecyclerNew(this->GetRecycler(), ArrayBufferParentsMap, this->GetRecycler());
+                this->GetScriptContext()->GetThreadContext()->RegisterWeakReferenceDictionary(parents);
+                this->otherParents = parents;
             }
-            this->otherParents->Add(this->GetRecycler()->CreateWeakReferenceHandle(parent));
+            // Tag the parent to prevent a strong reference from ArrayBuffer to TypedArray
+            this->otherParents->Item((uintptr_t)parent + 1, this->GetRecycler()->CreateWeakReferenceHandle(parent));
         }
     }
 
@@ -128,23 +131,8 @@ namespace Js
         }
         else
         {
-            int foundIndex = -1;
-            bool parentFound = this->otherParents != nullptr && this->otherParents->MapUntil([&](int index, RecyclerWeakReference<ArrayBufferParent>* item)
-            {
-                if (item->Get() == parent)
-                {
-                    foundIndex = index;
-                    return true;
-                }
-                return false;
-
-            });
-
-            if (parentFound)
-            {
-                this->otherParents->RemoveAt(foundIndex);
-            }
-            else
+            RecyclerWeakReference<ArrayBufferParent>* item;
+            if (!this->otherParents->TryGetValueAndRemove((uintptr_t)parent + 1, &item))
             {
                 AssertMsg(false, "We shouldn't be clearing a parent that hasn't been set.");
             }
@@ -664,6 +652,12 @@ namespace Js
 
             buffer = nullptr;
             bufferLength = 0;
+
+            if (this->otherParents) 
+            {
+                this->GetScriptContext()->GetThreadContext()->UnRegisterWeakReferenceDictionary(this->otherParents);
+                this->otherParents = nullptr;
+            }
     }
 
     void JavascriptArrayBuffer::Dispose(bool isShutdown)

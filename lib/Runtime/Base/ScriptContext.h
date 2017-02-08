@@ -843,14 +843,6 @@ private:
         RecyclerRootPtr<SListBase<DynamicProfileInfo *>> profileInfoList;
 #endif
 #endif
-        // List of weak reference dictionaries. We'll walk through them
-        // and clean them up post-collection
-        // IWeakReferenceDictionary objects are added to this list by calling
-        // RegisterWeakReferenceDictionary. If you use JsUtil::WeakReferenceDictionary,
-        // which also exposes the IWeakReferenceDictionary interface, it'll
-        // automatically register the dictionary on the script context
-        SListBase<JsUtil::IWeakReferenceDictionary*> weakReferenceDictionaryList;
-        bool isWeakReferenceDictionaryListCleared;
 
         typedef void(*RaiseMessageToDebuggerFunctionType)(ScriptContext *, DEBUG_EVENT_INFO_TYPE, LPCWSTR, LPCWSTR);
         RaiseMessageToDebuggerFunctionType raiseMessageToDebuggerFunctionType;
@@ -1141,8 +1133,6 @@ private:
         void SetFirstInterpreterFrameReturnAddress(void * returnAddress) { firstInterpreterFrameReturnAddress = returnAddress;}
         void *GetFirstInterpreterFrameReturnAddress() { return firstInterpreterFrameReturnAddress;}
 
-        void CleanupWeakReferenceDictionaries();
-
         void Initialize();
         bool Close(bool inDestructor);
         void MarkForClose();
@@ -1185,9 +1175,6 @@ private:
         PropertyId GetOrAddPropertyIdTracked(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, __in int propertyNameLength);
         void GetOrAddPropertyRecord(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, __in int propertyNameLength, PropertyRecord const** propertyRecord);
         BOOL IsNumericPropertyId(PropertyId propertyId, uint32* value);
-
-        void RegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary);
-        void ResetWeakReferenceDictionaryList() { weakReferenceDictionaryList.Reset(); }
 
         BOOL ReserveStaticTypeIds(__in int first, __in int last);
         TypeId ReserveTypeIds(int count);

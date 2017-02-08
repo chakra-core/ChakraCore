@@ -1049,9 +1049,6 @@ namespace Js
     {
         if (scriptContext)
         {
-            // Clear the weak reference dictionary so we don't need to clean them
-            // during PostCollectCallBack before Dispose deleting the script context.
-            scriptContext->ResetWeakReferenceDictionaryList();
             scriptContext->SetIsFinalized();
             scriptContext->GetThreadContext()->UnregisterScriptContext(scriptContext);
         }
@@ -1075,6 +1072,28 @@ namespace Js
             }
             HeapDelete(scriptContext);
             scriptContext = nullptr;
+        }
+    }
+
+    void JavascriptLibrary::Finalize(bool isShutdown)
+    {
+        if (scriptContext)
+        {
+            if (jsrtExternalTypesCache)
+            {
+                scriptContext->GetThreadContext()->UnRegisterWeakReferenceDictionary(jsrtExternalTypesCache);
+                jsrtExternalTypesCache = nullptr;
+            }
+            if (propertyStringMap)
+            {
+                scriptContext->GetThreadContext()->UnRegisterWeakReferenceDictionary(propertyStringMap);
+                propertyStringMap = nullptr;
+            }
+        }
+        __super::Finalize(isShutdown);
+        if (this->referencedPropertyRecords != nullptr)
+        {
+            RECYCLER_PERF_COUNTER_SUB(PropertyRecordBindReference, this->referencedPropertyRecords->Count());
         }
     }
 
@@ -4749,7 +4768,7 @@ namespace Js
         {
             jsrtExternalTypesCache = RecyclerNew(recycler, JsrtExternalTypesCache, recycler, 3);
             // Register for periodic cleanup
-            scriptContext->RegisterWeakReferenceDictionary(jsrtExternalTypesCache);
+            scriptContext->GetThreadContext()->RegisterWeakReferenceDictionary(jsrtExternalTypesCache);
         }
         if (jsrtExternalTypesCache->TryGetValue(finalizeCallback, &dynamicTypeWeakRef))
         {
@@ -6621,7 +6640,7 @@ namespace Js
         if (this->propertyStringMap == nullptr)
         {
             this->propertyStringMap = RecyclerNew(this->recycler, PropertyStringCacheMap, this->GetRecycler());
-            this->scriptContext->RegisterWeakReferenceDictionary((JsUtil::IWeakReferenceDictionary*) this->propertyStringMap);
+            this->scriptContext->GetThreadContext()->RegisterWeakReferenceDictionary((JsUtil::IWeakReferenceDictionary*) this->propertyStringMap);
         }
         return this->propertyStringMap;
     }

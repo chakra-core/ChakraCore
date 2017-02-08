@@ -1315,14 +1315,7 @@ namespace Js
         
 
     public:
-        virtual void Finalize(bool isShutdown) override
-        {
-            __super::Finalize(isShutdown);
-            if (this->referencedPropertyRecords != nullptr)
-            {
-                RECYCLER_PERF_COUNTER_SUB(PropertyRecordBindReference, this->referencedPropertyRecords->Count());
-            }
-        }
+        virtual void Finalize(bool isShutdown) override;
 
 #if DBG
         void DumpLibraryByteCode();

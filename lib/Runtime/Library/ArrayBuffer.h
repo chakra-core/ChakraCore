@@ -147,7 +147,8 @@ namespace Js
 
         //In most cases, the ArrayBuffer will only have one parent
         RecyclerWeakReference<ArrayBufferParent>* primaryParent;
-        JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>* otherParents;
+        typedef JsUtil::WeakReferenceDictionary<uintptr_t, ArrayBufferParent, PowerOf2SizePolicy> ArrayBufferParentsMap;
+        ArrayBufferParentsMap* otherParents;
 
 
         BYTE  *buffer;             // Points to a heap allocated RGBA buffer, can be null
@@ -178,7 +179,7 @@ namespace Js
         {
             arrayBuffer->AddParent(this);
         }
-
+        
         void ClearArrayBuffer()
         {
             if (this->arrayBuffer != nullptr)
