@@ -670,6 +670,12 @@ namespace Js
         // SEH and ResumeForOutOfBoundsArrayRefs are not needed.
         ret = CallRootFunctionInternal(args, scriptContext, inScript);
 #else
+        if (scriptContext->GetThreadContext()->GetAbnormalExceptionCode() != 0)
+        {
+            // ensure that hosts are not doing SEH across Chakra frames, as that can lead to bad state (e.g. destructors not being called)
+            UnexpectedExceptionHandling_fatal_error();
+        }
+
         // mark volatile, because otherwise VC will incorrectly optimize away load in the finally block
         volatile uint32 exceptionCode = 0;
         volatile int exceptionAction = EXCEPTION_CONTINUE_SEARCH;
@@ -691,10 +697,10 @@ namespace Js
         __finally
         {
             // 0xE06D7363 is C++ exception code
-            if (exceptionCode != 0 && !IsDebuggerPresent() && exceptionCode != 0xE06D7363 && exceptionAction != EXCEPTION_CONTINUE_EXECUTION)
+            if (AbnormalTermination() && exceptionCode != 0 && !IsDebuggerPresent() && exceptionCode != 0xE06D7363)
             {
-                // ensure that hosts are not doing SEH across Chakra frames, as that can lead to bad state (e.g. destructors not being called)
-                UnexpectedExceptionHandling_fatal_error(&exceptionInfo);
+                scriptContext->GetThreadContext()->SetAbnormalExceptionCode(exceptionCode);
+                scriptContext->GetThreadContext()->SetAbnormalExceptionRecord(&exceptionInfo);
             }
         }
 #endif
