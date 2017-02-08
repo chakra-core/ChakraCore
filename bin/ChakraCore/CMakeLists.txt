@@ -58,6 +58,7 @@ target_include_directories (
   ${CHAKRACORE_SOURCE_DIR}/lib/Parser
   ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
   ${wasm_includes}
+  "-fvisibility=hidden"
   )
 
 if (NOT STATIC_LIBRARY)
