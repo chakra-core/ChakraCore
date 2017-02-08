@@ -26,7 +26,7 @@ interface IChakraJIT
     HRESULT UpdatePropertyRecordMap(
         [in] handle_t binding,
         [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        [in] BVSparseNodeIDL * updatedPropsBVHead);
+        [in, unique] BVSparseNodeIDL * updatedPropsBVHead);
 
     HRESULT AddDOMFastPathHelper(
         [in] handle_t binding,
