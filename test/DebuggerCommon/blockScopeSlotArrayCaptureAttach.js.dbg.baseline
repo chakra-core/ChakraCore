@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>",
       "Run1": "function <large string>"
@@ -59,9 +56,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "verify": "function function verify(){}",
       "Run": "function <large string>",
       "Run1": "function <large string>"

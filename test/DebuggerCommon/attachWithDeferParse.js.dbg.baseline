@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "inEvalFunc1": "function <large string>"
     },
@@ -31,9 +28,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "inEvalFunc1": "function <large string>"
     },
@@ -75,9 +69,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "inEvalFunc1": "function <large string>"
     },

@@ -17,9 +17,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },
@@ -61,9 +58,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },
@@ -118,9 +112,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },
@@ -162,9 +153,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Run": "function <large string>",
       "bar": "function <large string>"
     },

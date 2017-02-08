@@ -107,9 +107,6 @@
   {
     "evaluate": {
       "  this  ": {
-        "read": "function read",
-        "readbuffer": "function readbuffer",
-        "console": "Object {...}",
         "not_used": "number 0"
       }
     }
@@ -162,9 +159,6 @@
   {
     "evaluate": {
       "  this  ": {
-        "read": "function read",
-        "readbuffer": "function readbuffer",
-        "console": "Object {...}",
         "not_used": "number 0"
       }
     }

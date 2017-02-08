@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeTryCatchTestFunc": "function <large string>"
     },
     "arguments": {
@@ -28,9 +25,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeTryCatchTestFunc": "function <large string>"
     },
     "arguments": {

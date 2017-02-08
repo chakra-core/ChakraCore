@@ -3,9 +3,6 @@
     "this": "Object {...}",
     "{exception}": "number 1",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "undefined undefined"
@@ -15,9 +12,6 @@
     "this": "Object {...}",
     "{exception}": "Error Caught Error",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "undefined undefined"
@@ -25,9 +19,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"
@@ -64,9 +55,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FuncLevel1": "function <large string>",
       "outerFunc1": "function <large string>",
       "globalVar": "Object {...}"

@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeGlobalTestFunc": "function <large string>"
     },
     "arguments": {
@@ -25,9 +22,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "gC": "number 3",
       "gD": "number 4",
       "blockScopeGlobalTestFunc": "function <large string>"

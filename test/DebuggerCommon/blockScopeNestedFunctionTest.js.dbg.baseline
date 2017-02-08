@@ -21,9 +21,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -59,9 +56,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -97,9 +91,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -131,9 +122,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {
@@ -165,9 +153,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "blockScopeNestedFunctionTestFunc": "function <large string>"
     },
     "arguments": {

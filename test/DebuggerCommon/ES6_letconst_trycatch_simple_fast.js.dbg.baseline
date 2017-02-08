@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Call": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>",
@@ -32,9 +29,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "Call": "function <large string>",
       "bar": "function <large string>",
       "Run": "function <large string>",

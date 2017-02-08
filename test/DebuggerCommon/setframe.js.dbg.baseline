@@ -1,9 +1,6 @@
 [
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -32,9 +29,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -73,9 +67,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -142,9 +133,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"
@@ -183,9 +171,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "FFF": "function <large string>",
       "HHH": "function <large string>",
       "GGG": "function <large string>"

@@ -6,9 +6,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>"
     },
     "arguments": {

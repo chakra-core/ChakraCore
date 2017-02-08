@@ -160,9 +160,6 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -411,9 +408,6 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -662,9 +656,6 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",
@@ -913,9 +904,6 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "F2": "function <large string>",
       "F3": "function <large string>",
       "F5": "function <large string>",

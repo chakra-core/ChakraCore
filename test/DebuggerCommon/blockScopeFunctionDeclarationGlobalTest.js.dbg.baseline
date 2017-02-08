@@ -2,27 +2,18 @@
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "f": "undefined undefined"
     }
   },
   {
     "this": "Object {...}",
     "locals": {
-      "f": "function function f() { }",
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}"
+      "f": "function function f() { }"
     }
   },
   {
     "this": "Object {...}",
     "locals": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "f": "function function f() { }"
     }
   }

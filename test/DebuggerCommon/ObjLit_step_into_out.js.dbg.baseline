@@ -102,9 +102,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "sub_expression_step_into": "function <large string>",
       "a1": "number 10"

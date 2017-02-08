@@ -58,9 +58,6 @@
   },
   {
     "this": {
-      "read": "function read",
-      "readbuffer": "function readbuffer",
-      "console": "Object {...}",
       "foo": "function <large string>",
       "sub_expression_step_over": "function <large string>",
       "a1": "number 10"
