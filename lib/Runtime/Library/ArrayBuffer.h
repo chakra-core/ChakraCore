@@ -29,7 +29,6 @@ namespace Js
         virtual ArrayBuffer * GetAsArrayBuffer() = 0;
         virtual SharedArrayBuffer * GetAsSharedArrayBuffer() { return nullptr; }
         virtual void AddParent(ArrayBufferParent* parent) { }
-        virtual void RemoveParent(ArrayBufferParent* parent) { }
         virtual bool IsDetached() { return false; }
         virtual uint32 GetByteLength() const = 0;
         virtual BYTE* GetBuffer() const = 0;
@@ -122,7 +121,6 @@ namespace Js
         static int GetBufferOffset() { return offsetof(ArrayBuffer, buffer); }
 
         virtual void AddParent(ArrayBufferParent* parent) override;
-        virtual void RemoveParent(ArrayBufferParent* parent) override;
 #if _WIN64
         //maximum 2G -1  for amd64
         static const uint32 MaxArrayBufferLength = 0x7FFFFFFF;
@@ -130,6 +128,8 @@ namespace Js
         // maximum 1G to avoid arithmetic overflow.
         static const uint32 MaxArrayBufferLength = 1 << 30;
 #endif
+        static const uint32 ParentsCleanupThreshold = 1000;
+
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) { return false; }
         virtual bool IsArrayBuffer() override { return true; }
         virtual bool IsSharedArrayBuffer() override { return false; }
@@ -147,8 +147,17 @@ namespace Js
 
         //In most cases, the ArrayBuffer will only have one parent
         RecyclerWeakReference<ArrayBufferParent>* primaryParent;
-        JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>* otherParents;
 
+        struct OtherParents :public SList<RecyclerWeakReference<ArrayBufferParent>*, Recycler>
+        {
+            OtherParents(Recycler* recycler)
+                :SList<RecyclerWeakReference<ArrayBufferParent>*, Recycler>(recycler), increasedCount(0)
+            {
+            }
+            uint increasedCount;
+        };
+
+        OtherParents* otherParents;
 
         BYTE  *buffer;             // Points to a heap allocated RGBA buffer, can be null
         uint32 bufferLength;       // Number of bytes allocated
@@ -177,15 +186,6 @@ namespace Js
             arrayBuffer(arrayBuffer)
         {
             arrayBuffer->AddParent(this);
-        }
-
-        void ClearArrayBuffer()
-        {
-            if (this->arrayBuffer != nullptr)
-            {
-                this->arrayBuffer->RemoveParent(this);
-                this->arrayBuffer = nullptr;
-            }
         }
 
     public:
