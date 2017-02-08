@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "Core/AtomLockGuids.h"
+#include <CommonPal.h>
 #ifdef _WIN32
 #include <process.h>
 #endif
@@ -775,8 +776,8 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     int cpos = 1;
     for(int i = 1; i < argc; ++i)
     {
-        wchar *arg = argv[i];
-        size_t arglen = wcsnlen(arg, 2); // just look for prefixes for now
+        const wchar *arg = argv[i];
+        size_t arglen = wcslen(arg);
 
         // support - or / prefix for flags
         if (arglen >= 1 && (arg[0] == _u('-')
@@ -796,9 +797,9 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
             }
         }
 
-        arglen = wcsnlen(arg, 8); // ensure that we get the entirety of "version" so we don't match e.g. "versions"
-        if (arglen == 1 && wcsncmp(arg, _u("v"), arglen) == 0 ||
-            arglen == 7 && wcsncmp(arg, _u("version"), arglen) == 0)
+        arglen = wcslen(arg); // get length of flag after prefix
+        if ((arglen == 1 && wcsncmp(arg, _u("v"),       arglen) == 0) ||
+            (arglen == 7 && wcsncmp(arg, _u("version"), arglen) == 0))
         {
             PrintVersion();
             PAL_Shutdown();
