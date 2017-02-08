@@ -163,11 +163,7 @@ namespace Js
         });
         END_TRANSLATE_OOM_TO_HRESULT(hr);
 
-        if (hr != S_OK)
-        {
-            Assert(FALSE);
-            return hr;
-        }
+        DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
 
         // Cache ScriptContext as multiple calls below can go out of engine and ScriptContext can be closed which will delete DebugContext
         Js::ScriptContext* cachedScriptContext = this->scriptContext;
@@ -274,6 +270,8 @@ namespace Js
                         this->RegisterFunction(parseableFunctionInfo, dwDebugHostSourceContext, parseableFunctionInfo->GetSourceName());
                     }
                     END_TRANSLATE_OOM_TO_HRESULT(hr);
+
+                    DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
 
                     fHasDoneSourceRundown = true;
                 }
