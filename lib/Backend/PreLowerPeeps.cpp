@@ -101,10 +101,8 @@ IR::Instr *Lowerer::PeepShl(IR::Instr *instrShl)
 
     // Left shift operator (<<) on arm32 is implemented by LSL which doesn't discard bits beyond lowerest 5-bit.
     // Need to discard such bits to conform to << in JavaScript. This is not a problem for x86 and x64 because
-    // behavior of SHL is consistent with JavaScript.
-#if !defined(_M_IX86) && !defined(_M_AMD64)
+    // behavior of SHL is consistent with JavaScript but keep the below line for clarity.
     oldValue %= sizeof(int32) * 8;
-#endif
 
     oldValue = ~((1 << oldValue) - 1);
     src2->AsIntConstOpnd()->SetValue(oldValue);
