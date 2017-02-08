@@ -126,7 +126,7 @@ _NOINLINE void EntryExitRecord_Corrupted_fatal_error()
     ReportFatalException(NULL, E_UNEXPECTED, Fatal_EntryExitRecordCorruption, scenario);
 }
 
-_NOINLINE void UnexpectedExceptionHandling_fatal_error(EXCEPTION_POINTERS * originalException)
+_NOINLINE void UnexpectedExceptionHandling_fatal_error()
 {
     int scenario = 7;
     ReportFatalException(NULL, E_UNEXPECTED, Fatal_UnexpectedExceptionHandling, scenario);
