@@ -4880,7 +4880,7 @@ namespace Js
         this->GetUtf8SourceInfo()->DeleteLineOffsetCache();
 
         // Reset to default.
-        this->flags = Flags_HasNoExplicitReturnValue;
+        this->flags = this->IsClassConstructor() ? Flags_None : Flags_HasNoExplicitReturnValue;
 
         ResetInParams();
 
