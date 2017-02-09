@@ -992,7 +992,7 @@
     <default>
       <files>test141.js</files>
       <compile-flags>-bgJit- -off:simpleJit -fullJitAfter:2 -on:simulatePolyCacheWithOneTypeForFunction:1 -simulatePolyCacheWithOneTypeForInlineCacheIndex:3</compile-flags>
-      <tags>exclude_dynapogo,exclude_fre,exclude_ship</tags>
+      <tags>exclude_dynapogo,exclude_test,exclude_ship</tags>
     </default>
   </test>
   <test>
@@ -1290,7 +1290,7 @@
     <default>
       <files>bailonnoprofile_objtypespecstore.js</files>
       <compile-flags>-recyclerverify:run -off:simplejit -maxinterpretcount:2</compile-flags>
-      <tags>exclude_ship,exclude_fre,exclude_dynapogo</tags>
+      <tags>exclude_ship,exclude_test,exclude_dynapogo</tags>
       <baseline />
     </default>
   </test>

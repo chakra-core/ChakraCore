@@ -338,9 +338,7 @@ goto :main
   :: Map new build arch and type names to old names until rl test tags are
   :: updated to the new names
   if "%_BuildArchMapped%" == "x64" set _BuildArchMapped=amd64
-  if "%_BuildTypeMapped%" == "debug" set _BuildTypeMapped=chk
-  if "%_BuildTypeMapped%" == "test" set _BuildTypeMapped=fre
-  if "%_BuildTypeMapped%" == "codecoverage" set _BuildTypeMapped=fre
+  if "%_BuildTypeMapped%" == "codecoverage" set _BuildTypeMapped=test
 
   if "%Disable_JIT%" == "1" (
       set _dynamicprofilecache=

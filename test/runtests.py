@@ -85,7 +85,6 @@ if flavor == None:
     print("ERROR: Test build target wasn't defined.")
     print("Try '-t' (test build) or '-d' (debug build).")
     sys.exit(1)
-flavor_alias = 'chk' if flavor == 'Debug' else 'fre'
 
 # test variants
 if not args.variants:
@@ -108,10 +107,10 @@ if not os.path.isfile(binary):
 tags = set(args.tag or [])
 not_tags = set(args.not_tag or []).union(['fail', 'exclude_' + arch])
 
-if arch_alias:
+if arch:
     not_tags.add('exclude_' + arch_alias)
-if flavor_alias:
-    not_tags.add('exclude_' + flavor_alias)
+if flavor:
+    not_tags.add('exclude_' + flavor)
 if args.only_slow:
     tags.add('Slow')
 elif not args.include_slow:

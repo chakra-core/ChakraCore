@@ -172,7 +172,7 @@
   <test>
     <default>
       <files>Slow.js</files>
-      <tags>exclude_chk</tags>
+      <tags>exclude_debug</tags>
     </default>
   </test>
   <test>

@@ -76,7 +76,7 @@
       <files>deferunicode.js</files>
       <baseline>deferunicode.baseline</baseline>
       <compile-flags>-force:deferparse</compile-flags>
-      <tags>exclude_fre</tags>
+      <tags>exclude_test</tags>
     </default>
   </test>
   <test>
