@@ -32,6 +32,7 @@ namespace Js
         m_lineOffsetCache(nullptr),
         m_deferredFunctionsDictionary(nullptr),
         m_deferredFunctionsInitialized(false),
+        topLevelFunctionInfoList(nullptr),
         debugModeSource(nullptr),
         debugModeSourceIsEmpty(false),
         debugModeSourceLength(0),
@@ -138,6 +139,31 @@ namespace Js
 
         functionBodyDictionary->Item(functionId, functionBody);
         functionBody->SetIsFuncRegistered(true);
+    }
+
+    void Utf8SourceInfo::AddTopLevelFunctionInfo(FunctionInfo * functionInfo, Recycler * recycler)
+    {
+        JsUtil::List<FunctionInfo *, Recycler> * list = EnsureTopLevelFunctionInfoList(recycler);
+        Assert(!list->Contains(functionInfo));
+        list->Add(functionInfo);
+    }
+
+    void Utf8SourceInfo::ClearTopLevelFunctionInfoList()
+    {
+        if (this->topLevelFunctionInfoList)
+        {
+            this->topLevelFunctionInfoList->Clear();
+        }
+    }
+
+    JsUtil::List<FunctionInfo *, Recycler> *
+    Utf8SourceInfo::EnsureTopLevelFunctionInfoList(Recycler * recycler)
+    {
+        if (this->topLevelFunctionInfoList == nullptr)
+        {
+            this->topLevelFunctionInfoList = JsUtil::List<FunctionInfo *, Recycler>::New(recycler);
+        }
+        return this->topLevelFunctionInfoList;
     }
 
     void Utf8SourceInfo::EnsureInitialized(int initialFunctionCount)

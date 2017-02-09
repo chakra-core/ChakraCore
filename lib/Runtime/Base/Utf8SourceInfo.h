@@ -130,6 +130,14 @@ namespace Js
         void SetFunctionBody(FunctionBody * functionBody);
         void RemoveFunctionBody(FunctionBody* functionBodyBeingRemoved);
 
+        void AddTopLevelFunctionInfo(Js::FunctionInfo * functionInfo, Recycler * recycler);
+        void ClearTopLevelFunctionInfoList();
+        JsUtil::List<Js::FunctionInfo *, Recycler> * EnsureTopLevelFunctionInfoList(Recycler * recycler);
+        JsUtil::List<Js::FunctionInfo *, Recycler> * GetTopLevelFunctionInfoList() const
+        {
+            return this->topLevelFunctionInfoList;
+        }
+
         // The following functions could get called even if EnsureInitialized hadn't gotten called
         // (Namely in the OOM scenario), so we simply guard against that condition rather than
         // asserting
@@ -373,6 +381,7 @@ namespace Js
 
         Field(FunctionBodyDictionary*) functionBodyDictionary;
         Field(DeferredFunctionsDictionary*) m_deferredFunctionsDictionary;
+        Field(JsUtil::List<Js::FunctionInfo *, Recycler> *) topLevelFunctionInfoList;
 
         Field(DebugDocument*) m_debugDocument;
 

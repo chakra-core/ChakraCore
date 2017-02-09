@@ -1995,6 +1995,8 @@ namespace Js
         void SetReparsed(bool set) { m_reparsed = set; }
         bool GetExternalDisplaySourceName(BSTR* sourceName);
 
+        bool EndsAfter(size_t offset) const;
+
         void SetDoBackendArgumentsOptimization(bool set)
         {
             m_doBackendArgumentsOptimization = set;
@@ -2905,8 +2907,6 @@ namespace Js
         bool HasLineBreak(charcount_t start, charcount_t end) const;
 
         bool HasGeneratedFromByteCodeCache() const { return this->byteCodeCache != nullptr; }
-
-        bool EndsAfter(size_t offset) const;
 
         void TrackLoad(int ichMin);
 

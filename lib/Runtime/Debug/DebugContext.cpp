@@ -72,16 +72,38 @@ namespace Js
             return;
         }
 
-        FunctionBody * functionBody;
+        this->RegisterFunction(func, func->GetHostSourceContext(), title);
+    }
+
+    void DebugContext::RegisterFunction(Js::ParseableFunctionInfo * func, DWORD_PTR dwDebugSourceContext, LPCWSTR title)
+    {
+        if (!this->CanRegisterFunction())
+        {
+            return;
+        }
+
+        FunctionBody * functionBody = nullptr;
         if (func->IsDeferredParseFunction())
         {
-            functionBody = func->Parse();
+            HRESULT hr = S_OK;
+            Assert(!this->scriptContext->GetThreadContext()->IsScriptActive());
+
+            BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(this->scriptContext, false)
+            {
+                functionBody = func->Parse();
+            }
+            END_JS_RUNTIME_CALL_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT(hr);
+
+            if (FAILED(hr))
+            {
+                return;
+            }
         }
         else
         {
             functionBody = func->GetFunctionBody();
         }
-        this->RegisterFunction(functionBody, functionBody->GetHostSourceContext(), title);
+        this->RegisterFunction(functionBody, dwDebugSourceContext, title);
     }
 
     void DebugContext::RegisterFunction(Js::FunctionBody * functionBody, DWORD_PTR dwDebugSourceContext, LPCWSTR title)
@@ -123,7 +145,7 @@ namespace Js
             this->scriptContext, shouldPerformSourceRundown, shouldReparseFunctions);
 
         Js::TempArenaAllocatorObject *tempAllocator = nullptr;
-        JsUtil::List<Js::FunctionBody *, ArenaAllocator>* pFunctionsToRegister = nullptr;
+        JsUtil::List<Js::FunctionInfo *, Recycler>* pFunctionsToRegister = nullptr;
         JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer>* utf8SourceInfoList = nullptr;
 
         HRESULT hr = S_OK;
@@ -132,7 +154,6 @@ namespace Js
         BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
         tempAllocator = threadContext->GetTemporaryAllocator(_u("debuggerAlloc"));
 
-        pFunctionsToRegister = JsUtil::List<Js::FunctionBody*, ArenaAllocator>::New(tempAllocator->GetAllocator());
         utf8SourceInfoList = JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer>::New(this->scriptContext->GetRecycler());
 
         this->MapUTF8SourceInfoUntil([&](Js::Utf8SourceInfo * sourceInfo) -> bool
@@ -197,9 +218,9 @@ namespace Js
                 dwDebugHostSourceContext = this->hostDebugContext->GetHostSourceContext(sourceInfo);
             }
 
-            this->FetchTopLevelFunction(pFunctionsToRegister, sourceInfo);
+            pFunctionsToRegister = sourceInfo->GetTopLevelFunctionInfoList();
 
-            if (pFunctionsToRegister->Count() == 0)
+            if (pFunctionsToRegister == nullptr || pFunctionsToRegister->Count() == 0)
             {
                 // This could happen if there are no functions to re-compile.
                 return false;
@@ -221,21 +242,20 @@ namespace Js
                     return true;
                 }
 
-                Js::FunctionBody* pFuncBody = pFunctionsToRegister->Item(i);
-                if (pFuncBody == nullptr)
+                Js::FunctionInfo *functionInfo = pFunctionsToRegister->Item(i);
+                if (functionInfo == nullptr)
                 {
                     continue;
                 }
 
                 if (shouldReparseFunctions)
                 {
-
                     BEGIN_JS_RUNTIME_CALL_EX_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT_NESTED(cachedScriptContext, false)
                     {
-                        pFuncBody->Parse();
+                        functionInfo->GetParseableFunctionInfo()->Parse();
                         // This is the first call to the function, ensure dynamic profile info
 #if ENABLE_PROFILE_INFO
-                        pFuncBody->EnsureDynamicProfileInfo();
+                        functionInfo->GetFunctionBody()->EnsureDynamicProfileInfo();
 #endif
                     }
                     END_JS_RUNTIME_CALL_AND_TRANSLATE_EXCEPTION_AND_ERROROBJECT_TO_HRESULT(hr);
@@ -244,11 +264,14 @@ namespace Js
                     DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
                 }
 
+                // Parsing the function may change its FunctionProxy.
+                Js::ParseableFunctionInfo *parseableFunctionInfo = functionInfo->GetParseableFunctionInfo();
+
                 if (!fHasDoneSourceRundown && shouldPerformSourceRundown && !cachedScriptContext->IsClosed())
                 {
                     BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
                     {
-                        this->RegisterFunction(pFuncBody, dwDebugHostSourceContext, pFuncBody->GetSourceName());
+                        this->RegisterFunction(parseableFunctionInfo, dwDebugHostSourceContext, parseableFunctionInfo->GetSourceName());
                     }
                     END_TRANSLATE_OOM_TO_HRESULT(hr);
 
@@ -292,85 +315,6 @@ namespace Js
         threadContext->ReleaseTemporaryAllocator(tempAllocator);
 
         return hr;
-    }
-
-    void DebugContext::FetchTopLevelFunction(JsUtil::List<Js::FunctionBody *, ArenaAllocator>* pFunctions, Js::Utf8SourceInfo * sourceInfo)
-    {
-        Assert(pFunctions != nullptr);
-        Assert(sourceInfo != nullptr);
-
-        HRESULT hr = S_OK;
-
-        // Get FunctionBodys which are distinctly parseable, i.e. they are not enclosed in any other function (finding
-        // out root node of the sub-tree, in which root node is not enclosed in any other available function) this is
-        // by walking over all function and comparing their range.
-
-        BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
-        {
-            pFunctions->Clear();
-
-            sourceInfo->MapFunctionUntil([&](Js::FunctionBody* pFuncBody) -> bool
-            {
-                if (pFuncBody->GetIsGlobalFunc())
-                {
-                    if (pFuncBody->IsFakeGlobalFunc(pFuncBody->GetGrfscr()))
-                    {
-                        // This is created due to 'Function' code or deferred parsed functions, there is nothing to
-                        // re-compile in this function as this is just a place-holder/fake function.
-
-                        Assert(pFuncBody->GetByteCode() == NULL);
-
-                        return false;
-                    }
-
-                    if (!pFuncBody->GetIsTopLevel())
-                    {
-                        return false;
-                    }
-
-                    // If global function, there is no need to find out any other functions.
-
-                    pFunctions->Clear();
-                    pFunctions->Add(pFuncBody);
-                    return true;
-                }
-
-                if (pFuncBody->IsFunctionParsed())
-                {
-                    bool isNeedToAdd = true;
-                    for (int i = 0; i < pFunctions->Count(); i++)
-                    {
-                        Js::FunctionBody *currentFunction = pFunctions->Item(i);
-                        if (currentFunction != nullptr)
-                        {
-                            if (currentFunction->StartInDocument() > pFuncBody->StartInDocument() || !currentFunction->EndsAfter(pFuncBody->StartInDocument()))
-                            {
-                                if (pFuncBody->StartInDocument() <= currentFunction->StartInDocument() && pFuncBody->EndsAfter(currentFunction->StartInDocument()))
-                                {
-                                    // The stored item has got the parent, remove current Item
-                                    pFunctions->Item(i, nullptr);
-                                }
-                            }
-                            else
-                            {
-                                // Parent (the enclosing function) is already in the list
-                                isNeedToAdd = false;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (isNeedToAdd)
-                    {
-                        pFunctions->Add(pFuncBody);
-                    }
-                }
-                return false;
-            });
-        }
-        END_TRANSLATE_OOM_TO_HRESULT(hr);
-
-        Assert(hr == S_OK);
     }
 
     // Create an ordered flat list of sources to reparse. Caller of a source should be added to the list before we add the source itself.

@@ -205,7 +205,7 @@ namespace Js
     // Given an offset into the source buffer, determine if the end of this SourceInfo
     // lies after the given offset.
     bool
-    FunctionBody::EndsAfter(size_t offset) const
+    ParseableFunctionInfo::EndsAfter(size_t offset) const
     {
         return offset < this->StartOffset() + this->LengthInBytes();
     }

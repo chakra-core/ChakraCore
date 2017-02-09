@@ -775,6 +775,7 @@ void ByteCodeGenerator::SetRootFuncInfo(FuncInfo* func)
     }
 
     this->pRootFunc = func->byteCodeFunction->GetParseableFunctionInfo();
+    this->m_utf8SourceInfo->AddTopLevelFunctionInfo(func->byteCodeFunction->GetFunctionInfo(), scriptContext->GetRecycler());
 }
 
 Js::RegSlot ByteCodeGenerator::NextVarRegister()

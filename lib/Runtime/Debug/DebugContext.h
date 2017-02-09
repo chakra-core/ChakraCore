@@ -67,9 +67,9 @@ namespace Js
         ProbeContainer* diagProbesContainer;
 
         // Private Functions
-        void FetchTopLevelFunction(JsUtil::List<Js::FunctionBody *, ArenaAllocator>* pFunctions, Js::Utf8SourceInfo * sourceInfo);
         void WalkAndAddUtf8SourceInfo(Js::Utf8SourceInfo* sourceInfo, JsUtil::List<Js::Utf8SourceInfo *, Recycler, false, Js::CopyRemovePolicy, RecyclerPointerComparer> *utf8SourceInfoList);
         bool CanRegisterFunction() const;
+        void RegisterFunction(Js::ParseableFunctionInfo * func, DWORD_PTR dwDebugSourceContext, LPCWSTR title);
         void RegisterFunction(Js::FunctionBody * functionBody, DWORD_PTR dwDebugSourceContext, LPCWSTR title);
 
         template<class TMapFunction>
