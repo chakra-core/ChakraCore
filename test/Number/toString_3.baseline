@@ -13,6 +13,7 @@ n.toFixed(20):  444123.00000000000000000000
 RangeError: The number of fractional digits is out of range
 RangeError: The number of fractional digits is out of range
 n.toExponential():  4.44123e+5
+n.toExponential(undefined):  4.44123e+5
 n.toExponential(2):  4.44e+5
 n.toExponential(5):  4.44123e+5
 n.toPrecision():  444123
@@ -35,6 +36,7 @@ n.toFixed(20):  -444123.00000000000000000000
 RangeError: The number of fractional digits is out of range
 RangeError: The number of fractional digits is out of range
 n.toExponential():  -4.44123e+5
+n.toExponential(undefined):  -4.44123e+5
 n.toExponential(2):  -4.44e+5
 n.toExponential(5):  -4.44123e+5
 n.toPrecision():  -444123
@@ -57,6 +59,7 @@ n.toFixed(20):  444123.78912345680000000000
 RangeError: The number of fractional digits is out of range
 RangeError: The number of fractional digits is out of range
 n.toExponential():  4.441237891234568e+5
+n.toExponential(undefined):  4.441237891234568e+5
 n.toExponential(2):  4.44e+5
 n.toExponential(5):  4.44124e+5
 n.toPrecision():  444123.7891234568
@@ -79,6 +82,7 @@ n.toFixed(20):  -444123.78963636360000000000
 RangeError: The number of fractional digits is out of range
 RangeError: The number of fractional digits is out of range
 n.toExponential():  -4.441237896363636e+5
+n.toExponential(undefined):  -4.441237896363636e+5
 n.toExponential(2):  -4.44e+5
 n.toExponential(5):  -4.44124e+5
 n.toPrecision():  -444123.7896363636
@@ -101,6 +105,7 @@ n.toFixed(20):  0.00000000000000000000
 RangeError: The number of fractional digits is out of range
 RangeError: The number of fractional digits is out of range
 n.toExponential():  0e+0
+n.toExponential(undefined):  0e+0
 n.toExponential(2):  0.00e+0
 n.toExponential(5):  0.00000e+0
 n.toPrecision():  0
@@ -123,6 +128,7 @@ n.toFixed(20):  1e+21
 RangeError: The number of fractional digits is out of range
 RangeError: The number of fractional digits is out of range
 n.toExponential():  1e+21
+n.toExponential(undefined):  1e+21
 n.toExponential(2):  1.00e+21
 n.toExponential(5):  1.00000e+21
 n.toPrecision():  1e+21

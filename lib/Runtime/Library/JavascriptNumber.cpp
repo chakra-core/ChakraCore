@@ -585,6 +585,7 @@ namespace Js
         {
             //use the first arg as the fraction digits, ignore the rest.
             Var aFractionDigits = args[1];
+            bool noRangeCheck = false;
 
             // shortcut for tagged int's
             if(TaggedInt::Is(aFractionDigits))
@@ -592,12 +593,15 @@ namespace Js
                 fractionDigits = TaggedInt::ToInt32(aFractionDigits);
             }
             else if(JavascriptOperators::GetTypeId(aFractionDigits) == TypeIds_Undefined)
-                ; // fraction digits = -1
+            {
+                // fraction undefined -> digits = -1, output as many fractional digits as we can
+                noRangeCheck = true;
+            }
             else
             {
                 fractionDigits = (int)JavascriptConversion::ToInteger(aFractionDigits, scriptContext);
             }
-            if( fractionDigits < 0 || fractionDigits >20 )
+            if(!noRangeCheck && (fractionDigits < 0 || fractionDigits >20))
             {
                 JavascriptError::ThrowRangeError(scriptContext, JSERR_FractionOutOfRange);
             }
