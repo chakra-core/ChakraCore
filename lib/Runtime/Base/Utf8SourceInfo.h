@@ -10,6 +10,7 @@ namespace Js
     {
         typedef JsUtil::LeafValueDictionary<Js::LocalFunctionId, Js::FunctionBody*>::Type FunctionBodyDictionary;
         typedef JsUtil::LeafValueDictionary<Js::LocalFunctionId, Js::ParseableFunctionInfo*>::Type DeferredFunctionsDictionary;
+        typedef JsUtil::List<Js::FunctionInfo *, Recycler> FunctionInfoList;
 
         friend class RemoteUtf8SourceInfo;
         friend class ScriptContext;
@@ -381,7 +382,7 @@ namespace Js
 
         Field(FunctionBodyDictionary*) functionBodyDictionary;
         Field(DeferredFunctionsDictionary*) m_deferredFunctionsDictionary;
-        Field(JsUtil::List<Js::FunctionInfo *, Recycler> *) topLevelFunctionInfoList;
+        Field(FunctionInfoList*) topLevelFunctionInfoList;
 
         Field(DebugDocument*) m_debugDocument;
 
