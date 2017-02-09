@@ -503,7 +503,7 @@ public:
     }
 
     static void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
-    void EnsureJITThreadContext(bool allowPrereserveAlloc);
+    bool EnsureJITThreadContext(bool allowPrereserveAlloc);
 
     PTHREADCONTEXT_HANDLE GetRemoteThreadContextAddr()
     {
@@ -710,6 +710,8 @@ private:
     int stackProbeCount;
     // Count stack probes and poll for continuation every n probes
     static const int StackProbePollThreshold = 1000;
+    EXCEPTION_POINTERS exceptionInfo;
+    uint32 exceptionCode;
 
     ArenaAllocator inlineCacheThreadInfoAllocator;
     ArenaAllocator isInstInlineCacheThreadInfoAllocator;
@@ -865,6 +867,10 @@ public:
     Js::WindowsFoundationAdapter *GetWindowsFoundationAdapter();
 #endif
 #endif
+
+    void SetAbnormalExceptionRecord(EXCEPTION_POINTERS *exceptionInfo) { this->exceptionInfo = *exceptionInfo; }
+    void SetAbnormalExceptionCode(uint32 exceptionInfo) { this->exceptionCode = exceptionInfo; }
+    uint32 GetAbnormalExceptionCode() const { return this->exceptionCode; }
 
 #ifdef ENABLE_BASIC_TELEMETRY
     GUID activityId;

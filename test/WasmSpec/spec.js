@@ -234,7 +234,7 @@ function assertUnlinkable(baseDir, command, registry) {
     ++failed;
     print(`${getCommandStr(command)} failed. Should have had an error`);
   } catch (e) {
-    if (e instanceof WebAssembly.RuntimeError) {
+    if (e instanceof WebAssembly.LinkError) {
       ++passed;
       if (verbose) {
         print(`${getCommandStr(command)} passed. Had linking error: ${e}`);

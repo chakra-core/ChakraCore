@@ -110,7 +110,7 @@ _Success_(return) bool DynamicProfileStorageReaderWriter::ReadUtf8String(__deref
         return false;
     }
 
-    utf8char_t * tempBuffer = NoCheckHeapNewArray(utf8char_t, urllen);
+    utf8char_t* tempBuffer = NoCheckHeapNewArray(utf8char_t, urllen);
     if (tempBuffer == nullptr)
     {
         Output::Print(_u("ERROR: DynamicProfileStorage: Out of memory reading '%s'\n"), filename);
@@ -133,7 +133,7 @@ _Success_(return) bool DynamicProfileStorageReaderWriter::ReadUtf8String(__deref
         HeapDeleteArray(urllen, tempBuffer);
         return false;
     }
-    utf8::DecodeIntoAndNullTerminate(name, tempBuffer, length);
+    utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(name, tempBuffer, tempBuffer + urllen);
     NoCheckHeapDeleteArray(urllen, tempBuffer);
     *str = name;
     *len = length;

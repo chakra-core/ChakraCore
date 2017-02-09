@@ -19,10 +19,6 @@ interface IChakraJIT
         [out] PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         [out] CHAKRA_PTR * prereservedRegionAddr);
 
-    HRESULT CleanupProcess(
-        [in] handle_t binding,
-        [in] CHAKRA_PTR processHandle);
-
     HRESULT CleanupThreadContext(
         [in] handle_t binding,
         [in, out] PPTHREADCONTEXT_HANDLE threadContextInfoAddress);
@@ -30,7 +26,7 @@ interface IChakraJIT
     HRESULT UpdatePropertyRecordMap(
         [in] handle_t binding,
         [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        [in] BVSparseNodeIDL * updatedPropsBVHead);
+        [in, unique] BVSparseNodeIDL * updatedPropsBVHead);
 
     HRESULT AddDOMFastPathHelper(
         [in] handle_t binding,

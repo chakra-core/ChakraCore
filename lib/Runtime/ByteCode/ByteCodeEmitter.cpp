@@ -1169,7 +1169,7 @@ void EmitAssignmentToFuncName(ParseNode *pnodeFnc, ByteCodeGenerator *byteCodeGe
             {
                 byteCodeGenerator->EmitPropStore(pnodeFnc->location, sym, nullptr, funcInfoParent);
             }
-            else
+            else if (!sym->GetIsBlockVar() || sym->HasRealBlockVarRef() || sym->GetScope()->GetIsObject())
             {
                 byteCodeGenerator->EmitLocalPropInit(pnodeFnc->location, sym, funcInfoParent);
             }
@@ -2113,16 +2113,31 @@ void ByteCodeGenerator::LoadThisObject(FuncInfo *funcInfo, bool thisLoadedFromPa
 {
     if (this->scriptContext->GetConfig()->IsES6ClassAndExtendsEnabled() && funcInfo->IsClassConstructor())
     {
-        // Derived class constructors initialize 'this' to be Undecl
+        // Derived class constructors initialize 'this' to be Undecl except "extends null" cases
         //   - we'll check this value during a super call and during 'this' access
-        // Base class constructors initialize 'this' to a new object using new.target
+        //
+        // Base class constructors or "extends null" cases initialize 'this' to a new object using new.target
         if (funcInfo->IsBaseClassConstructor())
         {
             EmitBaseClassConstructorThisObject(funcInfo);
         }
         else
         {
-            this->m_writer.Reg1(Js::OpCode::InitUndecl, funcInfo->thisPointerRegister);
+            Js::ByteCodeLabel thisLabel = this->Writer()->DefineLabel();
+            Js::ByteCodeLabel skipLabel = this->Writer()->DefineLabel();
+
+            Js::RegSlot tmpReg = funcInfo->AcquireTmpRegister();
+            this->Writer()->Reg1(Js::OpCode::LdFuncObj, tmpReg);
+            this->Writer()->BrReg1(Js::OpCode::BrOnBaseConstructorKind, thisLabel, tmpReg);  // branch when [[ConstructorKind]]=="base"
+            funcInfo->ReleaseTmpRegister(tmpReg);
+
+            this->m_writer.Reg1(Js::OpCode::InitUndecl, funcInfo->thisPointerRegister);  // not "extends null" case
+            this->Writer()->Br(Js::OpCode::Br, skipLabel);
+
+            this->Writer()->MarkLabel(thisLabel);
+            EmitBaseClassConstructorThisObject(funcInfo);  // "extends null" case
+
+            this->Writer()->MarkLabel(skipLabel);
         }
     }
     else if (!funcInfo->IsGlobalFunction() || (this->flags & fscrEval))
@@ -2410,12 +2425,6 @@ void ByteCodeGenerator::EmitClassConstructorEndCode(FuncInfo *funcInfo)
         // We need to try and load 'this' from the scope slot, if there is one.
         EmitScopeSlotLoadThis(funcInfo, funcInfo->thisPointerRegister);
         this->Writer()->Reg2(Js::OpCode::Ld_A, ByteCodeGenerator::ReturnRegister, funcInfo->thisPointerRegister);
-    }
-    else
-    {
-        // This is the case where we don't have any references to this or super in the constructor or any nested lambda functions.
-        // We know 'this' must be undecl so let's just emit the ReferenceError as part of the fallthrough.
-        EmitUseBeforeDeclarationRuntimeError(this, ByteCodeGenerator::ReturnRegister);
     }
 }
 
@@ -3052,7 +3061,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
 
         if (!funcInfo->IsGlobalFunction())
         {
-            if (CanStackNestedFunc(funcInfo, true))
+            // Note: Do not set the stack nested func flag if the function has been redeferred and recompiled.
+            // In that case the flag already has the value we want.
+            if (CanStackNestedFunc(funcInfo, true) && byteCodeFunction->GetCompileCount() == 0)
             {
 #if DBG
                 byteCodeFunction->SetCanDoStackNestedFunc();
@@ -3828,6 +3839,21 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
     {
         // Only set the environment depth if it's truly known (i.e., not in eval or event handler).
         funcInfo->GetParsedFunctionBody()->SetEnvDepth(this->envDepth);
+
+        if (pnodeFnc->sxFnc.FIBPreventsDeferral())
+        {
+            for (Scope *scope = this->currentScope; scope; scope = scope->GetEnclosingScope())
+            {
+                if (scope->GetScopeType() != ScopeType_FunctionBody && 
+                    scope->GetScopeType() != ScopeType_Global &&
+                    scope->GetScopeType() != ScopeType_GlobalEvalBlock &&
+                    scope->GetMustInstantiate())
+                {
+                    funcInfo->byteCodeFunction->SetAttributes((Js::FunctionInfo::Attributes)(funcInfo->byteCodeFunction->GetAttributes() & ~Js::FunctionInfo::Attributes::CanDefer));
+                    break;
+                }
+            }
+        }
     }
 
     if (funcInfo->GetCallsEval())
@@ -4088,15 +4114,14 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
             MapFormals(pnodeFnc, ensureScopeSlot);
             MapFormalsFromPattern(pnodeFnc, ensureScopeSlot);
 
-            if (!paramScope->GetCanMergeWithBodyScope())
+            if (funcInfo->GetHasArguments())
             {
                 sym = funcInfo->GetArgumentsSymbol();
-                if (sym && funcInfo->GetHasArguments())
-                {
-                    // There is no eval so the arguments may be captured in a lambda. In split scope case
-                    // we have to make sure the param arguments is also put in a slot.
-                    sym->EnsureScopeSlot(funcInfo);
-                }
+                Assert(sym);
+
+                // There is no eval so the arguments may be captured in a lambda.
+                // But we cannot relay on slots getting allocated while the lambda is emitted as the function body may be reparsed.
+                sym->EnsureScopeSlot(funcInfo);
             }
 
             if (pnodeFnc->sxFnc.pnodeBody)

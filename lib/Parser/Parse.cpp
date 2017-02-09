@@ -55,6 +55,12 @@ struct StmtNest
         };
     };
     StmtNest *pstmtOuter;           // Enclosing statement.
+
+    OpCode GetNop() const 
+    { 
+        AnalysisAssert(isDeferred || pnodeStmt != nullptr);
+        return isDeferred ? op : pnodeStmt->nop; 
+    }
 };
 
 struct BlockInfoStack
@@ -110,6 +116,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_errorCallback = nullptr;
     m_uncertainStructure = FALSE;
     m_reparsingLambdaParams = false;
+    m_inFIB = false;
     currBackgroundParseItem = nullptr;
     backgroundParseItems = nullptr;
     fastScannedRegExpNodes = nullptr;
@@ -722,7 +729,7 @@ ParseNodePtr Parser::CreateNodeT(charcount_t ichMin,charcount_t ichLim)
     return pnode;
 }
 
-ParseNodePtr Parser::CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl)
+ParseNodePtr Parser::CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl, bool *isRedecl)
 {
     ParseNodePtr pnode = CreateNode(nop);
 
@@ -730,51 +737,38 @@ ParseNodePtr Parser::CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolT
 
     if (symbolType != STUnknown)
     {
-        pnode->sxVar.sym = AddDeclForPid(pnode, pid, symbolType, errorOnRedecl);
+        pnode->sxVar.sym = AddDeclForPid(pnode, pid, symbolType, errorOnRedecl, isRedecl);
     }
 
     return pnode;
 }
 
-Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl)
+Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl, bool *isRedecl)
 {
     Assert(pnode->IsVarLetOrConst());
 
     PidRefStack *refForUse = nullptr, *refForDecl = nullptr;
+
+    if (isRedecl)
+    {
+        *isRedecl = false;
+    }
 
     BlockInfoStack *blockInfo;
     bool fBlockScope = false;
     if (pnode->nop != knopVarDecl || symbolType == STFunction)
     {
         Assert(m_pstmtCur);
-        if (m_pstmtCur->isDeferred)
+        if (m_pstmtCur->GetNop() != knopBlock)
         {
-            // Deferred parsing: there's no pnodeStmt node, only an opcode on the Stmt struct.
-            if (m_pstmtCur->op != knopBlock)
-            {
-                // Let/const declared in a bare statement context.
-                Error(ERRDeclOutOfStmt);
-            }
-
-            if (m_pstmtCur->pstmtOuter && m_pstmtCur->pstmtOuter->op == knopSwitch)
-            {
-                // Let/const declared inside a switch block (requiring conservative use-before-decl check).
-                pnode->sxVar.isSwitchStmtDecl = true;
-            }
+            // Let/const declared in a bare statement context.
+            Error(ERRDeclOutOfStmt);
         }
-        else
-        {
-            if (m_pstmtCur->pnodeStmt->nop != knopBlock)
-            {
-                // Let/const declared in a bare statement context.
-                Error(ERRDeclOutOfStmt);
-            }
 
-            if (m_pstmtCur->pstmtOuter && m_pstmtCur->pstmtOuter->pnodeStmt->nop == knopSwitch)
-            {
-                // Let/const declared inside a switch block (requiring conservative use-before-decl check).
-                pnode->sxVar.isSwitchStmtDecl = true;
-            }
+        if (m_pstmtCur->pstmtOuter && m_pstmtCur->pstmtOuter->GetNop() == knopSwitch)
+        {
+            // Let/const declared inside a switch block (requiring conservative use-before-decl check).
+            pnode->sxVar.isSwitchStmtDecl = true;
         }
 
         fBlockScope = pnode->nop != knopVarDecl ||
@@ -833,6 +827,10 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
     Symbol *sym = refForDecl->GetSym();
     if (sym != nullptr)
     {
+        if (isRedecl)
+        {
+            *isRedecl = true;
+        }
         // Multiple declarations in the same scope. 3 possibilities: error, existing one wins, new one wins.
         switch (pnode->nop)
         {
@@ -901,6 +899,10 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         {
             Assert(blockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Regular);
             scope = Anew(&m_nodeAllocator, Scope, &m_nodeAllocator, ScopeType_Block);
+            if (this->IsCurBlockInLoop())
+            {
+                scope->SetIsBlockInLoop();
+            }
             blockInfo->pnodeBlock->sxBlock.scope = scope;
             PushScope(scope);
         }
@@ -959,6 +961,23 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         refForDecl->SetSym(sym);
     }
     return sym;
+}
+
+bool Parser::IsCurBlockInLoop() const
+{
+    for (StmtNest *stmt = this->m_pstmtCur; stmt != nullptr; stmt = stmt->pstmtOuter)
+    {
+        OpCode nop = stmt->GetNop();
+        if (ParseNode::Grfnop(nop) & fnopContinue)
+        {
+            return true;
+        }
+        if (nop == knopFncDecl)
+        {
+            return false;
+        }
+    }
+    return false;
 }
 
 void Parser::RestorePidRefForSym(Symbol *sym)
@@ -1369,9 +1388,9 @@ ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr localName)
     return declNode;
 }
 
-ParseNodePtr Parser::CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject, ParseNodePtr pnodeFnc, bool errorOnRedecl)
+ParseNodePtr Parser::CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject, ParseNodePtr pnodeFnc, bool errorOnRedecl, bool *isRedecl)
 {
-    ParseNodePtr pnode = CreateDeclNode(knopVarDecl, pid, symbolType, errorOnRedecl);
+    ParseNodePtr pnode = CreateDeclNode(knopVarDecl, pid, symbolType, errorOnRedecl, isRedecl);
 
     // Append the variable to the end of the current variable list.
     AssertMem(m_ppnodeVar);
@@ -1627,7 +1646,7 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
                 pid = pnode->sxVar.pid;
                 if (backgroundPidRef)
                 {
-                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Cch(), pid->Hash(), nullptr, nullptr
+                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Psz() + pid->Cch(), pid->Cch(), pid->Hash(), nullptr, nullptr
 #if PROFILE_DICTIONARY
                                                                   , depth
 #endif
@@ -1643,7 +1662,7 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
                 pid = pnode->sxPid.pid;
                 if (backgroundPidRef)
                 {
-                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Cch(), pid->Hash(), nullptr, nullptr
+                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Psz() + pid->Cch(), pid->Cch(), pid->Hash(), nullptr, nullptr
 #if PROFILE_DICTIONARY
                                                                   , depth
 #endif
@@ -4540,10 +4559,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
 
     if (fDeclaration)
     {
-        AnalysisAssert(m_pstmtCur->isDeferred || m_pstmtCur->pnodeStmt != nullptr);
-        noStmtContext =
-            (m_pstmtCur->isDeferred && m_pstmtCur->op != knopBlock) ||
-            (!m_pstmtCur->isDeferred && m_pstmtCur->pnodeStmt->nop != knopBlock);
+        noStmtContext = m_pstmtCur->GetNop() != knopBlock;
 
         if (noStmtContext)
         {
@@ -4712,8 +4728,13 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
             // level and we accomplish this by having each block scoped function
             // declaration assign to both the block scoped "let" binding, as well
             // as the function scoped "var" binding.
-            ParseNodePtr vardecl = CreateVarDeclNode(pnodeFnc->sxFnc.pnodeName->sxVar.pid, STVariable, false, nullptr, false);
+            bool isRedecl = false;
+            ParseNodePtr vardecl = CreateVarDeclNode(pnodeFnc->sxFnc.pnodeName->sxVar.pid, STVariable, false, nullptr, false, &isRedecl);
             vardecl->sxVar.isBlockScopeFncDeclVar = true;
+            if (isRedecl)
+            {
+                vardecl->sxVar.sym->SetHasBlockFncVarRedecl();
+            }
         }
     }
 
@@ -4906,7 +4927,6 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
     uint uDeferSave = m_grfscr & fscrDeferFncParse;
     if ((!fDeclaration && m_ppnodeExprScope) ||
-        fFunctionInBlock ||
         isEnclosedInParamScope ||
         (flags & (fFncNoName | fFncLambda)))
     {
@@ -4920,6 +4940,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         m_grfscr &= ~fscrDeferFncParse;
     }
 
+    bool saveInFIB = this->m_inFIB;
+    this->m_inFIB = fFunctionInBlock || this->m_inFIB;
 
     bool isTopLevelDeferredFunc = false;
 
@@ -4938,14 +4960,12 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
         BOOL isDeferredFnc = IsDeferredFnc();
         AnalysisAssert(isDeferredFnc || pnodeFnc);
+        // These are the conditions that prohibit upfront deferral *and* redeferral.
         isTopLevelDeferredFunc =
             (!fLambda
              && pnodeFnc
              && DeferredParse(pnodeFnc->sxFnc.functionId)
              && (!pnodeFnc->sxFnc.IsNested() || CONFIG_FLAG(DeferNested))
-            // Don't defer if this is a function expression not contained in a statement or other expression.
-            // Assume it will be called as part of this expression.
-             && (!isLikelyIIFE || !topLevelStmt || PHASE_FORCE_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->sxFnc.functionId))
              && !m_InAsmMode
             // Don't defer a module function wrapper because we need to do export resolution at parse time
              && !fModule
@@ -4954,9 +4974,25 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         if (pnodeFnc)
         {
             pnodeFnc->sxFnc.SetCanBeDeferred(isTopLevelDeferredFunc && PnFnc::CanBeRedeferred(pnodeFnc->sxFnc.fncFlags));
+            pnodeFnc->sxFnc.SetFIBPreventsDeferral(false);
         }
-        isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc;
 
+        if (this->m_inFIB)
+        {
+            if (isTopLevelDeferredFunc)
+            {
+                // Block-scoping is the only non-heuristic reason for not deferring this function up front.
+                // So on creating the full FunctionBody at byte code gen time, verify that there is no
+                // block-scoped content visible to this function so it can remain a redeferral candidate.
+                pnodeFnc->sxFnc.SetFIBPreventsDeferral(true);
+            }
+            isTopLevelDeferredFunc = false;
+        }        
+
+        // These are heuristic conditions that prohibit upfront deferral but not redeferral.
+        isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc && 
+            (!isLikelyIIFE || !topLevelStmt || PHASE_FORCE_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->sxFnc.functionId));
+;
         if (!fLambda &&
             !isDeferredFnc &&
             !isLikelyIIFE &&
@@ -5392,7 +5428,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
     {
         m_grfscr |= uDeferSave;
     }
-
+    m_inFIB = saveInFIB;
 
     m_pscan->SetYieldIsKeyword(fPreviousYieldIsKeyword);
     m_pscan->SetAwaitIsKeyword(fPreviousAwaitIsKeyword);
@@ -6054,7 +6090,9 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
         {
             // Multiple names. Turn the source into an IdentPtr.
             pnodeFnc->sxFnc.pid = m_phtbl->PidHashNameLen(
-                m_pscan->PchBase() + ichMinNames, ichLimNames - ichMinNames);
+                m_pscan->PchBase() + ichMinNames, 
+                m_pscan->AdjustedLast(),
+                ichLimNames - ichMinNames);
         }
     }
 
@@ -10010,21 +10048,14 @@ LGetJumpStatement:
                     }
                     else
                     {
-                        if (pstmt->isDeferred)
+                        if (ParseNode::Grfnop(pstmt->GetNop()) & fnop)
                         {
-                            if (ParseNode::Grfnop(pstmt->op) & fnop)
+                            if (!pstmt->isDeferred)
                             {
-                                goto LNeedTerminator;
-                            }
-                        }
-                        else
-                        {
-                            AnalysisAssert(pstmt->pnodeStmt);
-                            if (pstmt->pnodeStmt->Grfnop() & fnop)
-                            {
+                                AnalysisAssert(pstmt->pnodeStmt);
                                 pstmt->pnodeStmt->sxStmt.grfnop |= fnop;
-                                goto LNeedTerminator;
                             }
+                            goto LNeedTerminator;
                         }
                     }
                 }
@@ -12263,6 +12294,12 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     {
         m_pscan->Scan();
         ++parenCount;
+        if (m_reparsingLambdaParams)
+        {
+            // Match the block increment we do upon entering parenthetical expressions
+            // so that the block ID's will match on reparsing of parameters.
+            GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
+        }
     }
 
     if (m_token.tk == tkEllipsis)
@@ -13454,6 +13491,13 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNode *pnodeFnc, Recycler *recy
             continue;
         }
         AssertOrFailFast(i < nestedCount);
+
+        if (pnodeChild->sxFnc.pnodeBody != nullptr)
+        {
+            // Anomalous case of a non-deferred function nested within a deferred one.
+            // Work around by discarding the stub tree.
+            return nullptr;
+        }
 
         if (pnodeChild->sxFnc.IsGeneratedDefault())
         {

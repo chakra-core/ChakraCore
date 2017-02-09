@@ -739,7 +739,7 @@
   </test>
   <test>
     <default>
-      <files>proxybug.js</files>
+      <files>proxy_cctx_bugs.js</files>
     </default>
   </test>
   <test>
@@ -999,6 +999,21 @@
   </test>
   <test>
     <default>
+      <files>regex-unicode-CaseInsensitive.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regex-unicode-CaseInsensitive-all-i.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regex-unicode-CaseInsensitive-all-iu.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>regex-set.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
@@ -1013,6 +1028,11 @@
     <default>
       <files>regex-symbols.js</files>
       <compile-flags>-ES6RegExSymbols -ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regex-w-sharp-s-kelvin-sign.js</files>
     </default>
   </test>
   <test>

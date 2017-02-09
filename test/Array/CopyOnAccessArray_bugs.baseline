@@ -28,4 +28,10 @@ PASSED
 PASSED
 *** Running test #11 (10): OS3713376: Accessing COA through proxy
 PASSED
-Summary of tests: total executed: 11; passed: 11; failed: 0
+*** Running test #12 (11): Reflect.defineProperty
+PASSED
+*** Running test #13 (12): Reflect.set
+PASSED
+*** Running test #14 (13): Array.of
+PASSED
+Summary of tests: total executed: 14; passed: 14; failed: 0

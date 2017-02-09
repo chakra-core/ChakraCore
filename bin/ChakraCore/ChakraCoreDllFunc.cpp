@@ -214,9 +214,4 @@ HRESULT JsInitializeJITServer(
 {
     return E_NOTIMPL;
 }
-EXPORT_FUNC
-HRESULT JsShutdownJITServer()
-{
-    return E_NOTIMPL;
-}
 #endif

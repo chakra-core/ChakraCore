@@ -1109,15 +1109,8 @@ namespace Js
 
         if (callInfo.Count < 2)
         {
-            if (pNew == nullptr)
-            {
-                // No arguments passed to Array(), so create with the default size (0).
-                pNew = CreateArrayFromConstructor(function, 0, scriptContext);
-            }
-            else
-            {
-                pNew->SetLength((uint32)0);
-            }
+            // No arguments passed to Array(), so create with the default size (0).
+            pNew = CreateArrayFromConstructorNoArg(function, scriptContext);
 
             return isCtorSuperCall ?
                 JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), pNew, nullptr, scriptContext) :
@@ -1138,14 +1131,7 @@ namespace Js
                     JavascriptError::ThrowRangeError(scriptContext, JSERR_ArrayLengthConstructIncorrect);
                 }
 
-                if (pNew == nullptr)
-                {
-                    pNew = CreateArrayFromConstructor(function, elementCount, scriptContext);
-                }
-                else
-                {
-                    pNew->SetLength(elementCount);
-                }
+                pNew = CreateArrayFromConstructor(function, elementCount, scriptContext);
             }
             else if (JavascriptNumber::Is_NoTaggedIntCheck(firstArgument))
             {
@@ -1157,14 +1143,7 @@ namespace Js
                     JavascriptError::ThrowRangeError(scriptContext, JSERR_ArrayLengthConstructIncorrect);
                 }
 
-                if (pNew == nullptr)
-                {
-                    pNew = CreateArrayFromConstructor(function, uvalue, scriptContext);
-                }
-                else
-                {
-                    pNew->SetLength(uvalue);
-                }
+                pNew = CreateArrayFromConstructor(function, uvalue, scriptContext);
             }
             else
             {
@@ -1174,10 +1153,7 @@ namespace Js
                 // Set first element as the passed Var
                 //
 
-                if (pNew == nullptr)
-                {
-                    pNew = CreateArrayFromConstructor(function, 1, scriptContext);
-                }
+                pNew = CreateArrayFromConstructor(function, 1, scriptContext);
 
                 JavascriptOperators::SetItem(pNew, pNew, 0u, firstArgument, scriptContext, PropertyOperation_ThrowIfNotExtensible);
 
@@ -1193,22 +1169,7 @@ namespace Js
         {
             // Called with a list of initial element values.
             // Create an array of the appropriate length and walk the list.
-
-            if (pNew == nullptr)
-            {
-                pNew = CreateArrayFromConstructor(function, callInfo.Count - 1, scriptContext);
-            }
-            else
-            {
-                // If we were passed an uninitialized JavascriptArray as the this argument,
-                // we need to set the length. We should do this _after_ setting the
-                // elements as the array may have side effects such as a setter for property
-                // named '0' which would make the previous length of the array observable.
-                // Note: We don't support this case now as the DirectSetItemAt calls in FillFromArgs
-                // will not call the setter. Need to refactor that method.
-                pNew->SetLength(callInfo.Count - 1);
-            }
-
+            pNew = CreateArrayFromConstructor(function, callInfo.Count - 1, scriptContext);
             pNew->JavascriptArray::FillFromArgs(callInfo.Count - 1, 0, args.Values);
         }
 
@@ -1228,10 +1189,14 @@ namespace Js
         // Note: We need to use the library from the ScriptContext of the constructor, not the currently executing function.
         //       This is for the case where a built-in @@create method from a different JavascriptLibrary is installed on
         //       constructor.
-        JavascriptArray* arr = library->CreateArray(length);
+        return library->CreateArray(length);
+    }
 
-        return arr;
-}
+    JavascriptArray* JavascriptArray::CreateArrayFromConstructorNoArg(RecyclableObject* constructor, ScriptContext* scriptContext)
+    {
+        JavascriptLibrary* library = constructor->GetLibrary();
+        return library->CreateArray();
+    }
 
 #if ENABLE_PROFILE_INFO
     Var JavascriptArray::ProfiledNewInstanceNoArg(RecyclableObject *function, ScriptContext *scriptContext, ArrayCallSiteInfo *arrayInfo, RecyclerWeakReference<FunctionBody> *weakFuncRef)
@@ -2860,6 +2825,16 @@ namespace Js
         }
         return GetType()->GetLibrary()->GetUndefined();
     }
+
+    DescriptorFlags JavascriptNativeIntArray::GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext)
+    {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif 
+        int32 value = 0;
+        return this->DirectGetItemAt(index, &value) ? WritableData : None;
+    }
+
 
     Var JavascriptNativeFloatArray::DirectGetItem(uint32 index)
     {
@@ -7563,7 +7538,7 @@ Case0:
         {
            return res;
         }
-        if (JavascriptArray::Is(args[0]))
+        if (JavascriptArray::Is(args[0]) && !JavascriptArray::FromVar(args[0])->IsCrossSiteObject())
         {
 #if ENABLE_COPYONACCESS_ARRAY
             JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(args[0]);
@@ -7858,7 +7833,18 @@ Case0:
     template <typename T>
     JavascriptString* JavascriptArray::ToLocaleString(T* arr, ScriptContext* scriptContext)
     {
-        uint32 length = ItemTrace<T>::GetLength(arr, scriptContext);
+        uint32 length = 0;
+        if (TypedArrayBase::Is(arr))
+        {
+            // For a TypedArray use the actual length of the array.
+            length = TypedArrayBase::FromVar(arr)->GetLength();
+        }
+        else
+        {
+            //For anything else, use the "length" property if present.
+            length = ItemTrace<T>::GetLength(arr, scriptContext);
+        }
+
         if (length == 0 || scriptContext->CheckObject(arr))
         {
             return scriptContext->GetLibrary()->GetEmptyString();
@@ -12102,6 +12088,9 @@ Case0:
 
     BOOL JavascriptArray::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         uint32 indexValue;
         if (propertyId == PropertyIds::length)
         {
@@ -12123,6 +12112,9 @@ Case0:
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord*");
 
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         PropertyRecord const* propertyRecord;
         this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
 
@@ -12136,6 +12128,9 @@ Case0:
 
     BOOL JavascriptArray::SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)
     {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
         ScriptContext* scriptContext = GetScriptContext();
 
         if (propertyId == PropertyIds::length)

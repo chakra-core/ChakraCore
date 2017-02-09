@@ -925,22 +925,7 @@ namespace Js
 #ifdef PROFILE_EXEC
         scriptContext->ProfileEnd(Js::EvalCompilePhase);
 #endif
-        if (hr == E_OUTOFMEMORY)
-        {
-            JavascriptError::ThrowOutOfMemoryError(scriptContext);
-        }
-        else if(hr == VBSERR_OutOfStack)
-        {
-            JavascriptError::ThrowStackOverflowError(scriptContext);
-        }
-        else if(hr == E_ABORT)
-        {
-            throw Js::ScriptAbortException();
-        }
-        else if(FAILED(hr))
-        {
-            throw Js::InternalErrorException();
-        }
+        THROW_KNOWN_HRESULT_EXCEPTIONS(hr, scriptContext);
 
         if (!SUCCEEDED(hrParser))
         {
@@ -1087,22 +1072,7 @@ namespace Js
 #ifdef PROFILE_EXEC
         scriptContext->ProfileEnd(Js::EvalCompilePhase);
 #endif
-        if (hr == E_OUTOFMEMORY)
-        {
-            JavascriptError::ThrowOutOfMemoryError(scriptContext);
-        }
-        else if(hr == VBSERR_OutOfStack)
-        {
-            JavascriptError::ThrowStackOverflowError(scriptContext);
-        }
-        else if(hr == E_ABORT)
-        {
-            throw Js::ScriptAbortException();
-        }
-        else if(FAILED(hr))
-        {
-            throw Js::InternalErrorException();
-        }
+        THROW_KNOWN_HRESULT_EXCEPTIONS(hr);
 
         if (!SUCCEEDED(hrParser))
         {

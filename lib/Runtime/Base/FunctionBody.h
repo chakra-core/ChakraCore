@@ -1980,6 +1980,8 @@ namespace Js
         void SetReparsed(bool set) { m_reparsed = set; }
         bool GetExternalDisplaySourceName(BSTR* sourceName);
 
+        bool EndsAfter(size_t offset) const;
+
         void SetDoBackendArgumentsOptimization(bool set)
         {
             m_doBackendArgumentsOptimization = set;
@@ -2575,7 +2577,7 @@ namespace Js
 #endif
             );
 
-        static FunctionBody * NewFromParseableFunctionInfo(ParseableFunctionInfo * info);
+        static FunctionBody * NewFromParseableFunctionInfo(ParseableFunctionInfo * info, PropertyRecordList *boundPropertyRecords);
 
         FunctionEntryPointInfo * GetEntryPointInfo(int index) const;
         FunctionEntryPointInfo * TryGetEntryPointInfo(int index) const;
@@ -2874,8 +2876,6 @@ namespace Js
         bool HasLineBreak(charcount_t start, charcount_t end) const;
 
         bool HasGeneratedFromByteCodeCache() const { return this->byteCodeCache != nullptr; }
-
-        bool EndsAfter(size_t offset) const;
 
         void TrackLoad(int ichMin);
 
@@ -3669,6 +3669,30 @@ namespace Js
         StatementAdjustmentRecordList* GetStatementAdjustmentRecords();
     };
 
+    class AutoRestoreFunctionInfo {
+    public:
+        AutoRestoreFunctionInfo(ParseableFunctionInfo *pfi, const JavascriptMethod originalEntryPoint) : pfi(pfi), funcBody(nullptr), originalEntryPoint(originalEntryPoint) {}
+        ~AutoRestoreFunctionInfo() {
+            if (this->pfi != nullptr && this->pfi->GetFunctionInfo()->GetFunctionProxy() != this->pfi)
+            {
+                FunctionInfo *functionInfo = this->pfi->GetFunctionInfo();
+                functionInfo->SetAttributes(
+                    (FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
+                functionInfo->SetFunctionProxy(this->pfi);
+                functionInfo->SetOriginalEntryPoint(originalEntryPoint);
+            }
+
+            Assert(this->pfi == nullptr || (this->pfi->GetFunctionInfo()->GetFunctionProxy() == this->pfi && !this->pfi->IsFunctionBody()));
+        }
+        void Clear() { pfi = nullptr; funcBody = nullptr; }
+
+        ParseableFunctionInfo * pfi;
+        FunctionBody          * funcBody;
+        const JavascriptMethod originalEntryPoint;
+    };
+
+    // If we throw or fail with the function body in an unfinished state, make sure the function info is still
+    // pointing to the old ParseableFunctionInfo and has the right attributes.
     typedef SynchronizableList<FunctionBody*, JsUtil::List<FunctionBody*, ArenaAllocator, false, Js::FreeListedRemovePolicy> > FunctionBodyList;
 
     struct ScopeSlots

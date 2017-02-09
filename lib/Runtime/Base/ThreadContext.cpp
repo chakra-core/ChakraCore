@@ -186,6 +186,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     jsrtRuntime(nullptr),
     propertyMap(nullptr),
     rootPendingClose(nullptr),
+    exceptionCode(0),
     isProfilingUserCode(true),
     loopDepth(0),
     redeferralState(InitialRedeferralState),
@@ -1939,28 +1940,35 @@ ThreadContext::SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDe
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
     if (!JITManager::GetJITManager()->IsConnected())
     {
-        HRESULT hr = JITManager::GetJITManager()->ConnectRpcServer(processHandle, serverSecurityDescriptor, connectionId);
-        if (FAILED(hr))
-        {
-            // TODO: michhol OOP JIT is this correct?
-            Js::Throw::InternalError();
-        }
+        // TODO: return HRESULT
+        JITManager::GetJITManager()->ConnectRpcServer(processHandle, serverSecurityDescriptor, connectionId);
     }
 }
-void
+bool
 ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 {
 #if ENABLE_OOP_NATIVE_CODEGEN
     Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-    Assert(JITManager::GetJITManager()->IsConnected());
+    if (!JITManager::GetJITManager()->IsConnected())
+    {
+        return false;
+    }
 
     if (m_remoteThreadContextInfo)
     {
-        return;
+        return true;
     }
 
     ThreadContextDataIDL contextData;
-    contextData.processHandle = (intptr_t)JITManager::GetJITManager()->GetJITTargetHandle();
+    HANDLE serverHandle = JITManager::GetJITManager()->GetServerHandle();
+
+    HANDLE jitTargetHandle = nullptr;
+    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentProcess(), serverHandle, &jitTargetHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
+    {
+        return false;
+    }
+
+    contextData.processHandle = (intptr_t)jitTargetHandle;
 
     contextData.chakraBaseAddress = (intptr_t)AutoSystemInfo::Data.GetChakraBaseAddr();
     contextData.crtBaseAddress = (intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName);
@@ -1989,6 +1997,7 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
     HRESULT hr = JITManager::GetJITManager()->InitializeThreadContext(&contextData, &m_remoteThreadContextInfo, &m_prereservedRegionAddr);
     JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
 
+    return m_remoteThreadContextInfo != nullptr;
 #endif
 }
 #endif

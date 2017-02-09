@@ -315,6 +315,83 @@ var tests = [
             }));
             assert.areEqual(count, 1, "TypedArray.from calls proxy's getter with @@iterator as parameter only once");
         }
+    },
+    {
+        name: "ISSUE1896: TypedArray : toLocaleString should use length from internal slot",
+        body: function () {
+            var test = function(taCtor) {
+                var o = new this[taCtor](2);
+                o[1] = 31;
+                Object.defineProperty(o, 'length', {value : 4});
+                result = o.toLocaleString();
+
+                // On OSX and Linux the values are printed as 0 instead 0.00. This is a valid workaround as we have still validated the toLocaleString behavior is correct.
+                if (result == "0, 31") {
+                    result = "0.00, 31.00";
+                }
+
+                assert.areEqual("0.00, 31.00", result, "TypedArray" + helpers.getTypeOf(o) + ".toLocaleString should use length from internal slot.");
+                return result;
+            };
+
+            for (let taCtor of TypedArrayCtors) {
+                test(taCtor);
+            }
+        }
+    },
+    {
+        name: "TypedArray : Error cases for constructor TypedArray( buffer, byteOffset, length )",
+        body: function () {
+            var sourceArrayBuffer1 = new ArrayBuffer(10);
+
+            // offset > byteLength
+            function TestOffsetBeyondSourceArrayBufferLength()
+            {
+                new Int16Array(sourceArrayBuffer1, 12);
+            }
+
+            assert.throws(
+                TestOffsetBeyondSourceArrayBufferLength, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as (offset > byteLength).", 
+                "Invalid offset/length when creating typed array")
+
+            // offset % elementSize != 0
+            function TestIncorrectOffset()
+            {
+                new Int16Array(sourceArrayBuffer1, 7, 1);
+            }
+
+            assert.throws(
+                TestIncorrectOffset, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as (offset % elementSize) != 0.", 
+                "Invalid offset/length when creating typed array")
+
+            // (Length * elementSize + offset) beyond array buffer length.
+            function TestLengthBeyondSourceArrayBufferLength()
+            {
+                new Int16Array(sourceArrayBuffer1, 6, 4);
+            }
+
+            assert.throws(
+                TestLengthBeyondSourceArrayBufferLength, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as ((Length * elementSize + offset)) != byteLength.", 
+                "Invalid offset/length when creating typed array")
+
+            // (byteLength - offset) % elementSize != 0
+            function TestOffsetPlusElementSizeBeyondSourceArrayBufferLength()
+            {
+                new Int32Array(sourceArrayBuffer1, 4);
+            }
+
+            assert.throws(
+                TestOffsetPlusElementSizeBeyondSourceArrayBufferLength, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as (byteLength - offset) % elementSize != 0.", 
+                "Invalid offset/length when creating typed array")
+        }
     }
 ];
 

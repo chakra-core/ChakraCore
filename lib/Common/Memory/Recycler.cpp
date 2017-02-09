@@ -702,9 +702,9 @@ Recycler::RootRelease(void* obj, uint *count)
         RECYCLER_PERF_COUNTER_DEC(PinnedObject);
     }
 
-    // Not a real collection. This doesn't activate GC.
-    // This tell the GC that we have an exhaustive candidate, and should trigger
-    // another GC if there is an exhaustive GC going on.
+    // Any time a root is removed during a GC, it indicates that an exhaustive
+    // collection is likely going to have work to do so trigger an exhaustive
+    // candidate GC to indicate this fact
     this->CollectNow<CollectExhaustiveCandidate>();
 }
 
@@ -7717,6 +7717,11 @@ Recycler::DeleteGuestArena(ArenaAllocator * arenaAllocator)
     {
         guestArenaList.RemoveElement(&HeapAllocator::Instance, guestArenaAllocator);
     }
+
+    // Any time a root is removed during a GC, it indicates that an exhaustive
+    // collection is likely going to have work to do so trigger an exhaustive
+    // candidate GC to indicate this fact
+    this->CollectNow<CollectExhaustiveCandidate>();
 }
 
 #ifdef LEAK_REPORT

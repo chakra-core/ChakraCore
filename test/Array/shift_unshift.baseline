@@ -48,6 +48,7 @@ e instanceOf TypeError = true
 a.length = 1
 ary.length = 18
 arr.length = 6
+Crosssite new length: 2
 Overridden unshift
 Overridden unshift
 Overridden unshift

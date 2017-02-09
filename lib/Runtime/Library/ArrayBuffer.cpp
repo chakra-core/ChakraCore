@@ -95,7 +95,7 @@ namespace Js
 
         if (this->otherParents != nullptr)
         {
-            this->otherParents->Map([&](int index, RecyclerWeakReference<ArrayBufferParent>* item)
+            this->otherParents->Map([&](RecyclerWeakReference<ArrayBufferParent>* item)
             {
                 this->ClearParentsLength(item->Get());
             });
@@ -114,40 +114,25 @@ namespace Js
         {
             if (this->otherParents == nullptr)
             {
-                this->otherParents = JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>::New(this->GetRecycler());
+                this->otherParents = RecyclerNew(this->GetRecycler(), OtherParents, this->GetRecycler());
             }
-            this->otherParents->Add(this->GetRecycler()->CreateWeakReferenceHandle(parent));
-        }
-    }
 
-    void ArrayBuffer::RemoveParent(ArrayBufferParent* parent)
-    {
-        if (this->primaryParent != nullptr && this->primaryParent->Get() == parent)
-        {
-            this->primaryParent = nullptr;
-        }
-        else
-        {
-            int foundIndex = -1;
-            bool parentFound = this->otherParents != nullptr && this->otherParents->MapUntil([&](int index, RecyclerWeakReference<ArrayBufferParent>* item)
+            if (this->otherParents->increasedCount >= ParentsCleanupThreshold)
             {
-                if (item->Get() == parent)
+                auto iter = this->otherParents->GetEditingIterator();
+                while (iter.Next())
                 {
-                    foundIndex = index;
-                    return true;
+                    if (iter.Data()->Get() == nullptr)
+                    {
+                        iter.RemoveCurrent();
+                    }
                 }
-                return false;
 
-            });
+                this->otherParents->increasedCount = 0;
+            }
 
-            if (parentFound)
-            {
-                this->otherParents->RemoveAt(foundIndex);
-            }
-            else
-            {
-                AssertMsg(false, "We shouldn't be clearing a parent that hasn't been set.");
-            }
+            this->otherParents->PrependNode(this->GetRecycler()->CreateWeakReferenceHandle(parent));
+            this->otherParents->increasedCount++;
         }
     }
 
@@ -211,7 +196,7 @@ namespace Js
         uint32 byteLength = 0;
         if (args.Info.Count > 1)
         {
-            byteLength = ToIndex(args[1], JSERR_ArrayLengthConstructIncorrect, scriptContext, MaxArrayBufferLength, false);
+            byteLength = ToIndex(args[1], JSERR_ArrayLengthConstructIncorrect, scriptContext, MaxArrayBufferLength);
         }
 
         RecyclableObject* newArr = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);

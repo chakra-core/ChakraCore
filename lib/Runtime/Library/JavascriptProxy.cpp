@@ -645,6 +645,21 @@ namespace Js
         }
         else
         {
+            // ES2017 Spec'ed (9.1.9.1): 
+            // If existingDescriptor is not undefined, then
+            //    If IsAccessorDescriptor(existingDescriptor) is true, return false.
+            //    If existingDescriptor.[[Writable]] is false, return false.
+
+            if (proxyPropertyDescriptor.IsAccessorDescriptor())
+            {
+                return FALSE;
+            }
+
+            if (proxyPropertyDescriptor.WritableSpecified() && !proxyPropertyDescriptor.IsWritable())
+            {
+                return FALSE;
+            }
+
             proxyPropertyDescriptor.SetValue(value);
             proxyPropertyDescriptor.SetOriginal(nullptr);
             return Js::JavascriptOperators::DefineOwnPropertyDescriptor(this, propertyId, proxyPropertyDescriptor, true, scriptContext);
@@ -1855,7 +1870,7 @@ namespace Js
     {
         if (propertyDescriptor.ValueSpecified())
         {
-            return propertyDescriptor.GetValue();
+            return CrossSite::MarshalVar(requestContext, propertyDescriptor.GetValue());
         }
         if (propertyDescriptor.GetterSpecified())
         {
@@ -1960,7 +1975,7 @@ namespace Js
         {
             functionResult = JavascriptFunction::CallFunction<true>(this, this->GetEntryPoint(), args);
         }
-        return functionResult;
+        return CrossSite::MarshalVar(scriptContext, functionResult);
     }
 
     Var JavascriptProxy::FunctionCallTrap(RecyclableObject* function, CallInfo callInfo, ...)
@@ -2105,7 +2120,7 @@ namespace Js
         return trapResult;
     }
 
-    JavascriptArray* JavascriptProxy::PropertyKeysTrap(KeysTrapKind keysTrapKind)
+    JavascriptArray* JavascriptProxy::PropertyKeysTrap(KeysTrapKind keysTrapKind, ScriptContext* requestContext)
     {
         PROBE_STACK(GetScriptContext(), Js::Constants::MinStackDefault);
 
@@ -2134,7 +2149,7 @@ namespace Js
         //6. ReturnIfAbrupt(trap).
         //7. If trap is undefined, then
         //      a. Return target.[[OwnPropertyKeys]]().
-        JavascriptFunction* ownKeysMethod = GetMethodHelper(PropertyIds::ownKeys, scriptContext);
+        JavascriptFunction* ownKeysMethod = GetMethodHelper(PropertyIds::ownKeys, requestContext);
         Assert(!GetScriptContext()->IsHeapEnumInProgress());
 
         JavascriptArray *targetKeys;

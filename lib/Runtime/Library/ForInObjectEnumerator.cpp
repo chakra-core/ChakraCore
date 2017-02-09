@@ -11,14 +11,11 @@ namespace Js
     ForInObjectEnumerator::ShadowData::ShadowData(
         RecyclableObject * initObject,
         RecyclableObject * firstPrototype,
-        RecyclableObject * firstPrototypeWithEnumerableProperties,
         Recycler * recycler)
         : currentObject(initObject),
           firstPrototype(firstPrototype),
-          firstPrototypeWithEnumerableProperties(firstPrototypeWithEnumerableProperties),
           propertyIds(recycler)
     {
-
     }
 
     ForInObjectEnumerator::ForInObjectEnumerator(RecyclableObject* object, ScriptContext * scriptContext, bool enumSymbols)
@@ -53,9 +50,10 @@ namespace Js
         if (firstPrototypeWithEnumerableProperties != nullptr)
         {
             Recycler *recycler = requestContext->GetRecycler();
-            this->shadowData = RecyclerNew(recycler, ShadowData, initObject, firstPrototype, firstPrototypeWithEnumerableProperties, recycler);
+            this->shadowData = RecyclerNew(recycler, ShadowData, initObject, firstPrototype, recycler);
             flags = EnumeratorFlags::UseCache | EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EnumNonEnumerable | (enumSymbols ? EnumeratorFlags::EnumSymbols : EnumeratorFlags::None);
         }
+        // no enumerable properties in the prototype chain, no need to search it
         else
         {
             this->shadowData = nullptr;
@@ -162,6 +160,14 @@ namespace Js
         {
             propertyId = Constants::NoProperty;
             Var currentIndex = enumerator.MoveAndGetNext(propertyId, &attributes);
+
+            // The object type may have changed and we may not be able to use Jit fast path anymore.
+            // canUseJitFastPath is determined in ForInObjectEnumerator::Initialize, once we decide we can't use
+            // Jit fast path we will never go back to use fast path so && with current value  - if it's already
+            // false we don't call CanUseJITFastPath()
+
+            this->canUseJitFastPath = this->canUseJitFastPath && enumerator.CanUseJITFastPath();
+
             if (currentIndex)
             {
                 if (this->shadowData == nullptr)
@@ -203,36 +209,10 @@ namespace Js
                     }
                 }
 
-                //check for shadowed property
                 if (TestAndSetEnumerated(propertyId) //checks if the property is already enumerated or not
                     && (attributes & PropertyEnumerable))
                 {
-                    bool propertyShadowed = false;
-
-                    if (this->enumeratingPrototype)
-                    {
-                        // prototype checking begins from the first prototype object with enumerable properties,
-                        // but the property could be shadowed by a desendant prototype which has the same property but not enumerable.
-                        // Need to check that because that is ignored from the begining.
-                        RecyclableObject * prototypeObject = this->shadowData->firstPrototype;
-
-                        while (prototypeObject != nullptr && prototypeObject != this->shadowData->currentObject)
-                        {
-                            if (prototypeObject->HasProperty(propertyId))
-                            {
-                                propertyShadowed = true;
-                                break;
-                            }
-                            prototypeObject = prototypeObject->GetPrototype();
-
-                            Assert(prototypeObject != nullptr);
-                        }
-                    }
-
-                    if (!propertyShadowed)
-                    {
-                        return currentIndex;
-                    }
+                    return currentIndex;
                 }
             }
             else
@@ -244,10 +224,10 @@ namespace Js
                 }
 
                 RecyclableObject * object;
-                if (!enumeratingPrototype)
+                if (!this->enumeratingPrototype)
                 {  
                     this->enumeratingPrototype = true;
-                    object = this->shadowData->firstPrototypeWithEnumerableProperties;
+                    object = this->shadowData->firstPrototype;
                     this->shadowData->currentObject = object;
                 }
                 else

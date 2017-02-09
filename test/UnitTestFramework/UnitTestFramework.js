@@ -92,6 +92,11 @@ var helpers = function helpers() {
                 Object.defineProperty(object, propertyName, descriptor);
             }
         },
+
+        getTypeOf: function getTypeOf(object)
+        {
+            return Object.prototype.toString.call(object);
+        },
     }
 }(); // helpers module.
 

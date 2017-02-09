@@ -298,6 +298,13 @@
   </test>
   <test>
     <default>
+      <files>bug8554038.js</files>
+      <baseline>bug8554038.baseline</baseline>
+      <compile-flags>-maxinterpretcount:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>b208_asmjs.js</files>
       <baseline>b208_asmjs.baseline</baseline>
       <tags>exclude_dynapogo,exclude_ship,require_backend</tags>
@@ -364,6 +371,13 @@
     <default>
       <files>Math.abs_TypeSpecOnIntMin.js</files>
       <compile-flags>-loopinterpretcount:1 -bgjit- -maxsimplejitruncount:1 -maxinterpretcount:1 -oopjit-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug10026875.js</files>
+      <baseline>bug10026875.baseline</baseline>
+      <compile-flags>-maxinterpretcount:1 -off:simplejit</compile-flags>
     </default>
   </test>
 </regress-exe>

@@ -23,7 +23,7 @@ param (
     [string]$subtype = "default",
 
     [string]$srcpath = "",
-    [string]$binpath = "",
+    [string]$buildRoot = "",
     [string]$objpath = "",
 
     [Parameter(Mandatory=$True)]
@@ -44,28 +44,30 @@ param (
     [switch]$skipTests # or set $Env:SKIP_TESTS before invoking build
 )
 
+. $PSScriptRoot\pre_post_util.ps1
+
+$srcpath, $buildRoot, $objpath, $_ = `
+    ComputePaths `
+        -arch $arch -flavor $flavor -subtype $subtype -OuterScriptRoot $PSScriptRoot `
+        -srcpath $srcpath -buildRoot $buildRoot -objpath $objpath -binpath $_
+
 $skipTests = $skipTests -or (Test-Path Env:\SKIP_TESTS)
 
 $global:exitcode = 0
 
 if ($arch -eq "*") {
 
-    . "$PSScriptRoot\util.ps1"
     foreach ($arch in ("x86", "x64", "arm")) {
-        ExecuteCommand "$PSScriptRoot\post_build.ps1 -arch $arch -flavor $flavor -srcpath ""$srcpath"" -binpath ""$binpath"" -objpath ""$objpath"" -srcsrvcmdpath ""$srcsrvcmdpath"" -bvtcmdpath ""$bvtcmdpath"" -repo ""$repo""" -logFile ""$logFile""
+        ExecuteCommand "$PSScriptRoot\post_build.ps1 -arch $arch -flavor $flavor -srcpath ""$srcpath"" -buildRoot ""$buildRoot"" -objpath ""$objpath"" -srcsrvcmdpath ""$srcsrvcmdpath"" -bvtcmdpath ""$bvtcmdpath"" -repo ""$repo""" -logFile ""$logFile""
     }
 
 } elseif ($flavor -eq "*") {
 
-    . "$PSScriptRoot\util.ps1"
     foreach ($flavor in ("debug", "test", "release")) {
-        ExecuteCommand "$PSScriptRoot\post_build.ps1 -arch $arch -flavor $flavor -srcpath ""$srcpath"" -binpath ""$binpath"" -objpath ""$objpath"" -srcsrvcmdpath ""$srcsrvcmdpath"" -bvtcmdpath ""$bvtcmdpath"" -repo ""$repo""" -logFile ""$logFile""
+        ExecuteCommand "$PSScriptRoot\post_build.ps1 -arch $arch -flavor $flavor -srcpath ""$srcpath"" -buildRoot ""$buildRoot"" -objpath ""$objpath"" -srcsrvcmdpath ""$srcsrvcmdpath"" -bvtcmdpath ""$bvtcmdpath"" -repo ""$repo""" -logFile ""$logFile""
     }
 
 } else {
-
-    $OuterScriptRoot = $PSScriptRoot
-    . "$PSScriptRoot\pre_post_util.ps1"
 
     $buildName = ConstructBuildName -arch $arch -flavor $flavor -subtype $subtype
 
@@ -86,12 +88,12 @@ if ($arch -eq "*") {
     WriteMessage "BVT Command  : $bvtcmdpath"
     WriteMessage ""
 
-    $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $binpath, $buildName)
-    $prefastlog = ("{0}\logs\PrefastCheck.{1}.log" -f $binpath, $buildName)
+    $srcsrvcmd = ("{0} {1} {2} {3}\bin\{4}\*.pdb" -f $srcsrvcmdpath, $repo, $srcpath, $buildRoot, $buildName)
+    $prefastlog = ("{0}\logs\PrefastCheck.{1}.log" -f $buildRoot, $buildName)
     $prefastcmd = "$PSScriptRoot\check_prefast_error.ps1 -directory $objpath -logFile $prefastlog"
 
     # generate srcsrv
-    if ((Test-Path $srcsrvcmdpath) -and (Test-Path $srcpath) -and (Test-Path $binpath)) {
+    if ((Test-Path $srcsrvcmdpath) -and (Test-Path $srcpath) -and (Test-Path $buildRoot)) {
         ExecuteCommand($srcsrvcmd)
     }
 

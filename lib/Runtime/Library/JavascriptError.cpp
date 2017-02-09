@@ -146,6 +146,7 @@ namespace Js
     NEW_ERROR(URIError);
     NEW_ERROR(WebAssemblyCompileError);
     NEW_ERROR(WebAssemblyRuntimeError);
+    NEW_ERROR(WebAssemblyLinkError);
 
 #undef NEW_ERROR
 
@@ -301,6 +302,7 @@ namespace Js
     THROW_ERROR_IMPL(ThrowURIError, CreateURIError, GetURIErrorType, kjstURIError)
     THROW_ERROR_IMPL(ThrowWebAssemblyCompileError, CreateWebAssemblyCompileError, GetWebAssemblyCompileErrorType, kjstWebAssemblyCompileError)
     THROW_ERROR_IMPL(ThrowWebAssemblyRuntimeError, CreateWebAssemblyRuntimeError, GetWebAssemblyRuntimeErrorType, kjstWebAssemblyRuntimeError)
+    THROW_ERROR_IMPL(ThrowWebAssemblyLinkError, CreateWebAssemblyLinkError, GetWebAssemblyLinkErrorType, kjstWebAssemblyLinkError)
 #undef THROW_ERROR_IMPL
 
     void __declspec(noreturn) JavascriptError::ThrowUnreachable(ScriptContext* scriptContext) { ThrowWebAssemblyRuntimeError(scriptContext, WASMERR_Unreachable); }
@@ -324,6 +326,8 @@ namespace Js
           return CreateWebAssemblyCompileError(scriptContext);
         case kjstWebAssemblyRuntimeError:
           return CreateWebAssemblyRuntimeError(scriptContext);
+        case kjstWebAssemblyLinkError:
+            return CreateWebAssemblyLinkError(scriptContext);
         default:
             AssertMsg(FALSE, "Invalid error type");
             __assume(false);
@@ -784,6 +788,8 @@ namespace Js
             jsNewError = targetJavascriptLibrary->CreateWebAssemblyCompileError();
         case kjstWebAssemblyRuntimeError:
             jsNewError = targetJavascriptLibrary->CreateWebAssemblyRuntimeError();
+        case kjstWebAssemblyLinkError:
+            jsNewError = targetJavascriptLibrary->CreateWebAssemblyLinkError();
 
         case kjstCustomError:
         default:

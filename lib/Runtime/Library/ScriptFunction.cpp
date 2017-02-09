@@ -28,13 +28,13 @@ namespace Js
     ScriptFunction::ScriptFunction(DynamicType * type) :
         ScriptFunctionBase(type), environment((FrameDisplay*)&NullFrameDisplay),
         cachedScopeObj(nullptr), hasInlineCaches(false), hasSuperReference(false), homeObj(nullptr),
-        isActiveScript(false)
+        computedNameVar(nullptr), isActiveScript(false)
     {}
 
     ScriptFunction::ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType)
         : ScriptFunctionBase(deferredPrototypeType, proxy->GetFunctionInfo()),
         environment((FrameDisplay*)&NullFrameDisplay), cachedScopeObj(nullptr), homeObj(nullptr),
-        hasInlineCaches(false), hasSuperReference(false), isActiveScript(false)
+        hasInlineCaches(false), hasSuperReference(false), isActiveScript(false), computedNameVar(nullptr)
     {
         Assert(proxy->GetFunctionInfo()->GetFunctionProxy() == proxy);
         Assert(proxy->EnsureDeferredPrototypeType() == deferredPrototypeType);
@@ -65,10 +65,6 @@ namespace Js
         AssertMsg(infoRef!= nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
         FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
         AssertMsg(functionProxy!= nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
-
-        // Prevent redeferral if GC happens during creation of function object.
-        // REVIEW: Should we treat creation of a function object as a "use" of the function body?
-        Js::AutoDisableRedeferral autoDisableRedeferral(functionProxy->GetFunctionInfo());
 
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
 
@@ -483,10 +479,12 @@ namespace Js
             // Consider: Should we have a JavascriptUtf8Substring class which defers decoding
             // until it's needed?
 
-            BufferStringBuilder builder(pFuncBody->LengthInChars(), scriptContext);
-            // TODO: What about surrogate pairs?
+            charcount_t cch = pFuncBody->LengthInChars();
+            size_t cbLength = pFuncBody->LengthInBytes();
+            LPCUTF8 pbStart = pFuncBody->GetSource(_u("ScriptFunction::EnsureSourceString"));
+            BufferStringBuilder builder(cch, scriptContext);
             utf8::DecodeOptions options = pFuncBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-            utf8::DecodeInto(builder.DangerousGetWritableBuffer(), pFuncBody->GetSource(_u("ScriptFunction::EnsureSourceString")), pFuncBody->LengthInChars(), options);
+            utf8::DecodeUnitsInto(builder.DangerousGetWritableBuffer(), pbStart, pbStart + cbLength, options);
             if (pFuncBody->IsLambda() || isActiveScript || this->GetFunctionInfo()->IsClassConstructor()
 #ifdef ENABLE_PROJECTION
                 || scriptContext->GetConfig()->IsWinRTEnabled()

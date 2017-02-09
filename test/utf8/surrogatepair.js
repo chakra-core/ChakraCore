@@ -7,4 +7,9 @@
 // For this test case to work, please save this file with UTF-8 encoding
 var y = "function () { 'চ𐌲𐌿𐍄𐌹𐍃𐌺নির্বাচিত নিবন্ধ।' ;WScript.Echo('hello'); }"
 var x = function () { 'চ𐌲𐌿𐍄𐌹𐍃𐌺নির্বাচিত নিবন্ধ।' ;WScript.Echo('hello'); }
-WScript.Echo(x.toString() === y ? "PASS" : "FAIL");
+
+// 2 bytes 
+var y2 = "function () { 'üç kuğu' ;WScript.Echo('hello'); }" 
+var x2 = function () { 'üç kuğu' ;WScript.Echo('hello'); } 
+
+WScript.Echo((x.toString() === y && x2.toString() === y2) ? "PASS" : "FAIL");

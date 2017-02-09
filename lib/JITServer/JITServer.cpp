@@ -99,40 +99,12 @@ ShutdownCommon()
     return status;
 }
 
-__declspec(dllexport)
-HRESULT
-JsShutdownJITServer()
-{
-    Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
-
-    if (JITManager::GetJITManager()->IsConnected())
-    {
-        // if client is hosting jit process directly, call to remotely shutdown
-        return JITManager::GetJITManager()->Shutdown();
-    }
-    else
-    {
-        return ShutdownCommon();
-    }
-}
-
 HRESULT
 ServerShutdown(
     /* [in] */ handle_t binding)
 {
     return ShutdownCommon();
 }
-
-HRESULT
-ServerCleanupProcess(
-    /* [in] */ handle_t binding,
-    /* [in] */ intptr_t processHandle)
-{
-    ServerContextManager::CleanUpForProcess((HANDLE)processHandle);
-    CloseHandle((HANDLE)processHandle);
-    return S_OK;
-}
-
 
 void
 __RPC_USER PTHREADCONTEXT_HANDLE_rundown(__RPC__in PTHREADCONTEXT_HANDLE phContext)
@@ -174,6 +146,7 @@ ServerInitializeThreadContext(
     }
     catch (Js::OutOfMemoryException)
     {
+        CloseHandle((HANDLE)threadContextData->processHandle);
         return E_OUTOFMEMORY;
     }
 
@@ -250,7 +223,7 @@ HRESULT
 ServerUpdatePropertyRecordMap(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    /* [in] */ __RPC__in BVSparseNodeIDL * updatedPropsBVHead)
+    /* [in] */ __RPC__in_opt BVSparseNodeIDL * updatedPropsBVHead)
 {
     ServerThreadContext * threadContextInfo = (ServerThreadContext*)DecodePointer(threadContextInfoAddress);
 
@@ -730,42 +703,6 @@ void ServerContextManager::UnRegisterThreadContext(ServerThreadContext* threadCo
     }
 }
 
-void ServerContextManager::CleanUpForProcess(HANDLE hProcess)
-{
-    // there might be multiple thread context(webworker)
-    AutoCriticalSection autoCS(&cs);
-
-    auto iterScriptCtx = scriptContexts.GetIteratorWithRemovalSupport();
-    while (iterScriptCtx.IsValid())
-    {
-        ServerScriptContext* scriptContext = iterScriptCtx.Current().Key();
-        if (scriptContext->GetThreadContext()->GetProcessHandle() == hProcess)
-        {
-            if (!scriptContext->IsClosed())
-            {
-                scriptContext->Close();
-            }
-            iterScriptCtx.RemoveCurrent();
-        }
-        iterScriptCtx.MoveNext();
-    }
-
-    auto iterThreadCtx = threadContexts.GetIteratorWithRemovalSupport();
-    while (iterThreadCtx.IsValid())
-    {
-        ServerThreadContext* threadContext = iterThreadCtx.Current().Key();
-        if (threadContext->GetProcessHandle() == hProcess)
-        {
-            if (!threadContext->IsClosed())
-            {
-                threadContext->Close();
-            }
-            iterThreadCtx.RemoveCurrent();
-        }
-        iterThreadCtx.MoveNext();
-    }
-}
-
 void ServerContextManager::RegisterScriptContext(ServerScriptContext* scriptContext)
 {
     AutoCriticalSection autoCS(&cs);
@@ -833,17 +770,12 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
     {
         hr = E_ABORT;
     }
-    catch (Js::InternalErrorException)
-    {
-        hr = E_FAIL;
-    }
     catch (...)
     {
-        AssertMsg(false, "Unknown exception caught in JIT server call.");
-        hr = E_FAIL;
+        AssertOrFailFastMsg(false, "Unknown exception caught in JIT server call.");
     }
 
-    if (hr == E_OUTOFMEMORY || hr == E_FAIL)
+    if (hr == E_OUTOFMEMORY)
     {
         if (HRESULT_FROM_WIN32(MemoryOperationLastError::GetLastError()) != S_OK)
         {

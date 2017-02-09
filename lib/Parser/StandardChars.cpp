@@ -193,6 +193,8 @@ END {
     const char16* const StandardChars<char16>::whitespaceStr = _u("\x0009\x000d\x0020\x0020\x00a0\x00a0\x1680\x1680\x2000\x200a\x2028\x2029\x202f\x202f\x205f\x205f\x3000\x3000\xfeff\xfeff");
     const int StandardChars<char16>::numWordPairs = 4;
     const char16* const StandardChars<char16>::wordStr = _u("09AZ__az");
+    const int StandardChars<char16>::numWordIUPairs = 6; // Under /iu flags, Sharp S and Kelvin sign map to S and K, respectively.
+    const char16* const StandardChars<char16>::wordIUStr = _u("09AZ__az\x017F\x017F\x212A\x212A");
     const int StandardChars<char16>::numNewlinePairs = 3;
     const char16* const StandardChars<char16>::newlineStr = _u("\x000a\x000a\x000d\x000d\x2028\x2029");
 
@@ -237,6 +239,16 @@ END {
     void StandardChars<char16>::SetNonWordChars(ArenaAllocator* setAllocator, CharSet<Char> &set)
     {
         set.SetNotRanges(setAllocator, numWordPairs, wordStr);
+    }
+
+    void StandardChars<char16>::SetWordIUChars(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    {
+        set.SetRanges(setAllocator, numWordIUPairs, wordIUStr);
+    }
+
+    void StandardChars<char16>::SetNonWordIUChars(ArenaAllocator* setAllocator, CharSet<Char> &set)
+    {
+        set.SetNotRanges(setAllocator, numWordIUPairs, wordIUStr);
     }
 
     void StandardChars<char16>::SetNewline(ArenaAllocator* setAllocator, CharSet<Char> &set)

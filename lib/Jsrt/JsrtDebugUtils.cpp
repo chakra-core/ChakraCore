@@ -59,18 +59,21 @@ void JsrtDebugUtils::AddSourceLengthAndTextToObject(Js::DynamicObject* object, J
     Assert(statementMap != nullptr);
 
     LPCUTF8 source = functionBody->GetStartOfDocument(_u("Source for debugging"));
-    size_t startByte = utf8::CharacterIndexToByteIndex(source, functionBody->GetUtf8SourceInfo()->GetCbLength(), (const charcount_t)statementMap->sourceSpan.begin);
+    size_t cbLength = functionBody->GetUtf8SourceInfo()->GetCbLength();
+    size_t startByte = utf8::CharacterIndexToByteIndex(source, cbLength, (const charcount_t)statementMap->sourceSpan.begin);
+    size_t endByte = utf8::CharacterIndexToByteIndex(source, cbLength, (const charcount_t)statementMap->sourceSpan.end);
+    int cch = statementMap->sourceSpan.end - statementMap->sourceSpan.begin;
 
-    int byteLength = statementMap->sourceSpan.end - statementMap->sourceSpan.begin;
+    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceLength, (double)cch, functionBody->GetScriptContext());
 
-    JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceLength, (double)byteLength, functionBody->GetScriptContext());
-
-    AutoArrayPtr<char16> sourceContent(HeapNewNoThrowArray(char16, byteLength + 1), byteLength + 1);
+    AutoArrayPtr<char16> sourceContent(HeapNewNoThrowArray(char16, cch + 1), cch + 1);
     if (sourceContent != nullptr)
     {
+        LPCUTF8 pbStart = source + startByte;
+        LPCUTF8 pbEnd = pbStart + (endByte - startByte);
         utf8::DecodeOptions options = functionBody->GetUtf8SourceInfo()->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-        utf8::DecodeIntoAndNullTerminate(sourceContent, source + startByte, byteLength, options);
-        JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceText, sourceContent, byteLength, functionBody->GetScriptContext());
+        utf8::DecodeUnitsIntoAndNullTerminate(sourceContent, pbStart, pbEnd, options);
+        JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::sourceText, sourceContent, cch, functionBody->GetScriptContext());
     }
     else
     {
@@ -92,8 +95,10 @@ void JsrtDebugUtils::AddSouceToObject(Js::DynamicObject * object, Js::Utf8Source
     AutoArrayPtr<char16> sourceContent(HeapNewNoThrowArray(char16, cchLength + 1), cchLength + 1);
     if (sourceContent != nullptr)
     {
+        LPCUTF8 source = utf8SourceInfo->GetSource();
+        size_t cbLength = utf8SourceInfo->GetCbLength();
         utf8::DecodeOptions options = utf8SourceInfo->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-        utf8::DecodeIntoAndNullTerminate(sourceContent, utf8SourceInfo->GetSource(), cchLength, options);
+        utf8::DecodeUnitsIntoAndNullTerminate(sourceContent, source, source + cbLength, options);
         JsrtDebugUtils::AddPropertyToObject(object, JsrtDebugPropertyId::source, sourceContent, cchLength, utf8SourceInfo->GetScriptContext());
     }
     else

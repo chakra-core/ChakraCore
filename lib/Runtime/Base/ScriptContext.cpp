@@ -4500,6 +4500,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     {
         Assert(JITManager::GetJITManager()->IsOOPJITEnabled());
 
+        if (!JITManager::GetJITManager()->IsConnected())
+        {
+            return;
+        }
         ScriptContextDataIDL contextData;
         contextData.nullAddr = (intptr_t)GetLibrary()->GetNull();
         contextData.undefinedAddr = (intptr_t)GetLibrary()->GetUndefined();
@@ -4562,10 +4566,12 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #ifndef _CONTROL_FLOW_GUARD
         allowPrereserveAlloc = false;
 #endif
-        this->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc);
-
-        HRESULT hr = JITManager::GetJITManager()->InitializeScriptContext(&contextData, this->GetThreadContext()->GetRemoteThreadContextAddr(), &m_remoteScriptContextAddr);
-        JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+        // The EnsureJITThreadContext() call could fail if the JIT Server process has died. In such cases, we should not try to do anything further in the client process.
+        if (this->GetThreadContext()->EnsureJITThreadContext(allowPrereserveAlloc))
+        {
+            HRESULT hr = JITManager::GetJITManager()->InitializeScriptContext(&contextData, this->GetThreadContext()->GetRemoteThreadContextAddr(), &m_remoteScriptContextAddr);
+            JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
+        }
     }
 #endif
 

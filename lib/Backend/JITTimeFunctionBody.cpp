@@ -139,11 +139,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->attributes = functionBody->GetAttributes();
     jitBody->isInstInlineCacheCount = functionBody->GetIsInstInlineCacheCount();
 
-    if (functionBody->GetUtf8SourceInfo()->GetCbLength() > UINT_MAX)
-    {
-        Js::Throw::OutOfMemory();
-    }
-
     jitBody->byteCodeCount = functionBody->GetByteCodeCount();
     jitBody->byteCodeInLoopCount = functionBody->GetByteCodeInLoopCount();
     jitBody->nonLoadByteCodeCount = functionBody->GetByteCodeWithoutLDACount();

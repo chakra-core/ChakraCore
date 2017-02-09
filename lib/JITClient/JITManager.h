@@ -28,7 +28,6 @@ public:
     bool IsOOPJITEnabled() const;
     void EnableOOPJIT();
 
-    HANDLE GetJITTargetHandle() const;
     HANDLE GetServerHandle() const;
 
     HRESULT InitializeThreadContext(
@@ -41,7 +40,7 @@ public:
 
     HRESULT UpdatePropertyRecordMap(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __in BVSparseNodeIDL * updatedPropsBVHead);
+        __in_opt BVSparseNodeIDL * updatedPropsBVHead);
 
     HRESULT NewInterpreterThunkBlock(
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
@@ -66,8 +65,6 @@ public:
         __in ScriptContextDataIDL * data,
         __in  PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress);
-
-    HRESULT CleanupProcess();
 
     HRESULT CleanupScriptContext(
         __inout PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress);
@@ -109,7 +106,6 @@ private:
         __out RPC_BINDING_HANDLE* bindingHandle);
 
     RPC_BINDING_HANDLE m_rpcBindingHandle;
-    HANDLE m_targetHandle;
     HANDLE m_serverHandle;
     UUID m_jitConnectionId;
     bool m_oopJitEnabled;
@@ -132,8 +128,6 @@ public:
     bool IsOOPJITEnabled() const { return false; }
     void EnableOOPJIT() { Assert(false); }
 
-    HANDLE GetJITTargetHandle() const
-        { Assert(false); return HANDLE(); }
     HANDLE GetServerHandle() const
     {
         Assert(false); return HANDLE();
@@ -151,7 +145,7 @@ public:
 
     HRESULT UpdatePropertyRecordMap(
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        __in BVSparseNodeIDL * updatedPropsBVHead)
+        __in_opt BVSparseNodeIDL * updatedPropsBVHead)
         { Assert(false); return E_FAIL; }
 
     HRESULT AddDOMFastPathHelper(
@@ -175,9 +169,6 @@ public:
         __in ScriptContextDataIDL * data,
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out PPSCRIPTCONTEXT_HANDLE scriptContextInfoAddress)
-        { Assert(false); return E_FAIL; }
-
-    HRESULT CleanupProcess()
         { Assert(false); return E_FAIL; }
 
     HRESULT CleanupScriptContext(

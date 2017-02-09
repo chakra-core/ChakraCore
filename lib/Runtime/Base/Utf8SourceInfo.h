@@ -77,8 +77,23 @@ namespace Js
 
         void RetrieveSourceText(__out_ecount_full(cchLim - cchMin) LPOLESTR cpText, charcount_t cchMin, charcount_t cchLim) const
         {
-            size_t cbMin = GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText")) == GetCchLength() ? cchMin : utf8::CharacterIndexToByteIndex(GetSource(_u("Utf8SourceInfo::RetrieveSourceText")), GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText")), cchMin, utf8::doAllowThreeByteSurrogates);
-            utf8::DecodeInto(cpText, GetSource(_u("Utf8SourceInfo::RetrieveSourceText")) + cbMin, cchLim - cchMin, utf8::doAllowThreeByteSurrogates);
+            size_t cbLength = GetCbLength(_u("Utf8SourceInfo::RetrieveSourceText"));
+            LPCUTF8 source = GetSource(_u("Utf8SourceInfo::RetrieveSourceText"));
+            LPCUTF8 pbStart = nullptr;
+            LPCUTF8 pbEnd = nullptr;
+            
+            if (cbLength == GetCchLength())
+            {
+                pbStart = source + cchMin;
+                pbEnd = source + cchLim;
+            }
+            else
+            {
+                pbStart = source + utf8::CharacterIndexToByteIndex(source, cbLength, cchMin, utf8::doAllowThreeByteSurrogates);
+                pbEnd = source + utf8::CharacterIndexToByteIndex(source, cbLength, cchLim, utf8::doAllowThreeByteSurrogates);
+            }
+            
+            utf8::DecodeUnitsInto(cpText, pbStart, pbEnd, utf8::doAllowThreeByteSurrogates);
         }
 
         size_t CharacterIndexToByteIndex(charcount_t cchIndex) const
@@ -114,6 +129,14 @@ namespace Js
         // been initialized
         void SetFunctionBody(FunctionBody * functionBody);
         void RemoveFunctionBody(FunctionBody* functionBodyBeingRemoved);
+
+        void AddTopLevelFunctionInfo(Js::FunctionInfo * functionInfo, Recycler * recycler);
+        void ClearTopLevelFunctionInfoList();
+        JsUtil::List<Js::FunctionInfo *, Recycler> * EnsureTopLevelFunctionInfoList(Recycler * recycler);
+        JsUtil::List<Js::FunctionInfo *, Recycler> * GetTopLevelFunctionInfoList() const
+        {
+            return this->topLevelFunctionInfoList;
+        }
 
         // The following functions could get called even if EnsureInitialized hadn't gotten called
         // (Namely in the OOM scenario), so we simply guard against that condition rather than
@@ -361,6 +384,7 @@ namespace Js
 
         FunctionBodyDictionary* functionBodyDictionary;
         DeferredFunctionsDictionary* m_deferredFunctionsDictionary;
+        JsUtil::List<Js::FunctionInfo *, Recycler> *topLevelFunctionInfoList;
 
         DebugDocument* m_debugDocument;
 

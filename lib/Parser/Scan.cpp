@@ -111,7 +111,7 @@ IdentPtr Token::CreateIdentifier(HashTbl * hashTbl)
     if (this->u.pchMin)
     {
         Assert(IsIdentifier());
-        IdentPtr pid = hashTbl->PidHashNameLen(this->u.pchMin, this->u.length);
+        IdentPtr pid = hashTbl->PidHashNameLen(this->u.pchMin, this->u.pchMin + this->u.length, this->u.length);
         this->u.pid = pid;
         return pid;
     }
@@ -635,7 +635,7 @@ IdentPtr Scanner<EncodingPolicy>::PidOfIdentiferAt(EncodedCharPtr p, EncodedChar
     else if (EncodingPolicy::MultiUnitEncoding)
     {
         Assert(sizeof(EncodedChar) == 1);
-        return m_phtbl->PidHashNameLen(reinterpret_cast<const char *>(p), (int32)(last - p));
+        return m_phtbl->PidHashNameLen(reinterpret_cast<const char *>(p), reinterpret_cast<const char *>(last), (int32)(last - p));
     }
     else
     {
@@ -1009,11 +1009,11 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
     {
         // Avoid allocating pattern from recycler on background thread. The main thread will create the pattern
         // and hook it to this parse node.
-        pattern = parser.template CompileProgram<false>(root, m_currentCharacter, totalLen, bodyChars, totalChars, flags);
+        pattern = parser.template CompileProgram<false>(root, m_currentCharacter, totalLen, bodyChars, bodyLen, totalChars, flags);
     }
     else
     {
-        pattern = parser.template CompileProgram<true>(root, m_currentCharacter, totalLen, bodyChars, totalChars, flags);
+        pattern = parser.template CompileProgram<true>(root, m_currentCharacter, totalLen, bodyChars, bodyLen, totalChars, flags);
     }
     this->RestoreMultiUnits(this->m_cMultiUnits + parser.GetMultiUnits()); // m_currentCharacter changed, sync MultiUnits
 
@@ -1060,7 +1060,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstantNoAST(ArenaAllocator* alloc)
         // never reached
     }
 
-    UnifiedRegex::RegexPattern* pattern = parser.template CompileProgram<false>(nullptr, m_currentCharacter, totalLen, bodyChars, totalChars, UnifiedRegex::NoRegexFlags);
+    UnifiedRegex::RegexPattern* pattern = parser.template CompileProgram<false>(nullptr, m_currentCharacter, totalLen, bodyChars, bodyLen, totalChars, UnifiedRegex::NoRegexFlags);
     Assert(pattern == nullptr);  // BuildAST == false, CompileProgram should return nullptr
     this->RestoreMultiUnits(this->m_cMultiUnits + parser.GetMultiUnits()); // m_currentCharacter changed, sync MultiUnits
 
@@ -2516,11 +2516,12 @@ HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(int32 ichMinLine, __out BSTR*
     }
 
     typename EncodingPolicy::EncodedCharPtr pStart = static_cast<size_t>(ichMinLine) == IchMinLine() ? m_pchMinLine : m_pchBase + this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, ichMinLine);
-    typename EncodingPolicy::EncodedCharPtr pEnd = AdjustedLast();
 
     // Determine the length by scanning for the next newline
-    charcount_t cch = LineLength(pStart, pEnd);
+    charcount_t cch = LineLength(pStart, m_pchLast);
     Assert(cch <= LONG_MAX);
+
+    typename EncodingPolicy::EncodedCharPtr pEnd = static_cast<size_t>(ichMinLine) == IchMinLine() ? m_pchMinLine + cch : m_pchBase + this->CharacterOffsetToUnitOffset(m_pchBase, m_currentCharacter, m_pchLast, cch);
 
     *pbstrLine = SysAllocStringLen(NULL, cch);
     if (!*pbstrLine)
@@ -2528,7 +2529,7 @@ HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(int32 ichMinLine, __out BSTR*
         return E_OUTOFMEMORY;
     }
 
-    this->ConvertToUnicode(*pbstrLine, cch, pStart);
+    this->ConvertToUnicode(*pbstrLine, cch, pStart, pEnd);
     return S_OK;
 }
 

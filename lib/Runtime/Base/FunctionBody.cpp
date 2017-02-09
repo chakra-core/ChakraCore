@@ -203,7 +203,7 @@ namespace Js
     // Given an offset into the source buffer, determine if the end of this SourceInfo
     // lies after the given offset.
     bool
-    FunctionBody::EndsAfter(size_t offset) const
+    ParseableFunctionInfo::EndsAfter(size_t offset) const
     {
         return offset < this->StartOffset() + this->LengthInBytes();
     }
@@ -420,7 +420,7 @@ namespace Js
     }
 
     FunctionBody *
-    FunctionBody::NewFromParseableFunctionInfo(ParseableFunctionInfo * parseableFunctionInfo)
+    FunctionBody::NewFromParseableFunctionInfo(ParseableFunctionInfo * parseableFunctionInfo, PropertyRecordList * boundPropertyRecords)
     {
         ScriptContext * scriptContext = parseableFunctionInfo->GetScriptContext();
         uint nestedCount = parseableFunctionInfo->GetNestedCount();
@@ -428,6 +428,10 @@ namespace Js
         FunctionBody * functionBody = RecyclerNewWithBarrierFinalized(scriptContext->GetRecycler(),
             FunctionBody,
             parseableFunctionInfo);
+        if (!functionBody->GetBoundPropertyRecords())
+        {
+            functionBody->SetBoundPropertyRecords(boundPropertyRecords);
+        }
 
         // Initialize nested function array, update back pointers
         for (uint i = 0; i < nestedCount; i++)
@@ -899,6 +903,10 @@ namespace Js
             if (!CrossSite::IsThunk(functionType->GetEntryPoint()))
             {
                 functionType->SetEntryPoint(GetScriptContext()->DeferredParsingThunk);
+            }
+            if (!CrossSite::IsThunk(functionType->GetEntryPointInfo()->jsMethod))
+            {
+                functionType->GetEntryPointInfo()->jsMethod = GetScriptContext()->DeferredParsingThunk;
             }
         });
 
@@ -2132,37 +2140,17 @@ namespace Js
         bool isDebugOrAsmJsReparse = false;
         FunctionBody* funcBody = nullptr;
 
-        // If we throw or fail with the function body in an unfinished state, make sure the function info is still
-        // pointing to the old ParseableFunctionInfo and has the right attributes.
-        class AutoRestoreFunctionInfo {
-        public:
-            AutoRestoreFunctionInfo(ParseableFunctionInfo *pfi) : pfi(pfi), funcBody(nullptr) {}
-            ~AutoRestoreFunctionInfo() {
-                if (this->funcBody && this->funcBody->GetFunctionInfo()->GetFunctionProxy() == this->funcBody)
-                {
-                    FunctionInfo *functionInfo = funcBody->GetFunctionInfo();
-                    functionInfo->SetAttributes(
-                        (FunctionInfo::Attributes)(functionInfo->GetAttributes() | FunctionInfo::Attributes::DeferredParse));
-                    functionInfo->SetFunctionProxy(this->pfi);
-                    functionInfo->SetOriginalEntryPoint(DefaultEntryThunk);
-                }
-                Assert(this->pfi == nullptr || 
-                       (this->pfi->GetFunctionInfo()->GetFunctionProxy() == this->pfi && !this->pfi->IsFunctionBody()));
-            }
-            void Clear() { pfi = nullptr; funcBody = nullptr; }
-            
-            ParseableFunctionInfo * pfi;
-            FunctionBody          * funcBody;
-        } autoRestoreFunctionInfo(this);
+        AutoRestoreFunctionInfo autoRestoreFunctionInfo(this, DefaultEntryThunk);
 
-        // If m_hasBeenParsed = true, one of the following things happened things happened:
+        // If m_hasBeenParsed = true, one of the following things happened:
         // - We had multiple function objects which were all defer-parsed, but with the same function body and one of them
         //   got the body to be parsed before another was called
         // - We are in debug mode and had our thunks switched to DeferParseThunk
         // - This is an already parsed asm.js module, which has been invalidated at link time and must be reparsed as a non-asm.js function
         if (!this->m_hasBeenParsed)
         {
-            funcBody = FunctionBody::NewFromParseableFunctionInfo(this);
+            this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
+            funcBody = FunctionBody::NewFromParseableFunctionInfo(this, propertyRecordList);
             autoRestoreFunctionInfo.funcBody = funcBody;
 
             PERF_COUNTER_DEC(Code, DeferredFunction);
@@ -2343,22 +2331,7 @@ namespace Js
             }
             END_LEAVE_SCRIPT_INTERNAL(m_scriptContext);
 
-            if (hr == E_OUTOFMEMORY)
-            {
-                JavascriptError::ThrowOutOfMemoryError(m_scriptContext);
-            }
-            else if(hr == VBSERR_OutOfStack)
-            {
-                JavascriptError::ThrowStackOverflowError(m_scriptContext);
-            }
-            else if(hr == E_ABORT)
-            {
-                throw Js::ScriptAbortException();
-            }
-            else if(FAILED(hr))
-            {
-                throw Js::InternalErrorException();
-            }
+            THROW_KNOWN_HRESULT_EXCEPTIONS(hr, m_scriptContext);
 
             Assert(hr == NO_ERROR);
 

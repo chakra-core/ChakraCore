@@ -8159,6 +8159,21 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
 
     IntArrayCommon:
         Assert(dst->IsRegOpnd());
+        if (!this->DoAggressiveIntTypeSpec())
+        {
+            if (!dstVal)
+            {
+                if (srcVal)
+                {
+                    dstVal = this->ValueNumberTransferDst(instr, srcVal);
+                }
+                else
+                {
+                    dstVal = NewGenericValue(profiledElementType, dst);
+                }
+            }
+            return dstVal;
+        }
         TypeSpecializeIntDst(instr, instr->m_opcode, nullptr, nullptr, nullptr, bailOutKind, newMin, newMax, &dstVal);
         toType = TyInt32;
         break;
@@ -8171,6 +8186,21 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
     case ObjectType::Float64MixedArray:
     Float64Array:
         Assert(dst->IsRegOpnd());
+        if (!this->DoFloatTypeSpec())
+        {
+            if (!dstVal)
+            {
+                if (srcVal)
+                {
+                    dstVal = this->ValueNumberTransferDst(instr, srcVal);
+                }
+                else
+                {
+                    dstVal = NewGenericValue(profiledElementType, dst);
+                }
+            }
+            return dstVal;
+        }
         TypeSpecializeFloatDst(instr, nullptr, nullptr, nullptr, &dstVal);
         toType = TyFloat64;
         break;

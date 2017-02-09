@@ -79,7 +79,8 @@ var tests = [
                 assert.areEqual(undefined, foo[6], 'cannot get item in namespace obect');
                 assert.areEqual(false, Reflect.set(foo, Symbol.species, 20), 'no species property');
                 assert.areEqual(undefined, foo[Symbol.species], 'namespace is not contructor');
-                assert.areEqual("module", foo[Symbol.toStringTag], 'namespace toStringTag');
+                assert.areEqual("Module", foo[Symbol.toStringTag], 'namespace toStringTag');
+                assert.areEqual("[object Module]", Object.prototype.toString.call(foo), 'Object.prototype.toString uses the module namespace @@toStringTag value');
                 helpers.writeln("in iterator"); for (var i of foo) helpers.writeln(i);
                 helpers.writeln("done with iterator")
                 var symbols = Object.getOwnPropertySymbols(foo);
