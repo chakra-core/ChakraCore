@@ -65,17 +65,28 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 
 void __stdcall PrintUsageFormat()
 {
-    wprintf(_u("\nUsage: %s [flaglist] <source file>\n"), hostName);
+    wprintf(_u("\nUsage: %s [-v|-version] [-h|-help] [-?] [flaglist] <source file>\n"), hostName);
+    wprintf(_u("\t-v|-version\t\tDisplays version info\n"));
+    wprintf(_u("\t-h|-help\t\tDisplays this help message\n"));
+    wprintf(_u("\t-?\t\t\tDisplays this help message with complete [flaglist] info\n"));
 }
+
+#if !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+void __stdcall PrintReleaseUsage()
+{
+    wprintf(_u("\nUsage: %s [-v|-version] [-h|-help|-?] <source file> %s"), hostName,
+        _u("\nNote: [flaglist] is not supported in Release builds; try a Debug or Test build to enable these flags.\n"));
+    wprintf(_u("\t-v|-version\t\tDisplays version info\n"));
+    wprintf(_u("\t-h|-help|-?\t\tDisplays this help message\n"));
+}
+#endif
 
 void __stdcall PrintUsage()
 {
 #if !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-    wprintf(_u("\nUsage: %s <source file> %s"), hostName,
-            _u("\n[flaglist] is not supported for Release mode\n"));
+    PrintReleaseUsage();
 #else
     PrintUsageFormat();
-    wprintf(_u("Try '%s -?' for help\n"), hostName);
 #endif
 }
 
@@ -802,6 +813,18 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
             (arglen == 7 && wcsncmp(arg, _u("version"), arglen) == 0))
         {
             PrintVersion();
+            PAL_Shutdown();
+            return EXIT_SUCCESS;
+        }
+        else if (
+#if !defined(ENABLE_DEBUG_CONFIG_OPTIONS) // release builds can display some kind of help message
+            (arglen == 1 && wcsncmp(arg, _u("?"),    arglen) == 0) ||
+#endif
+            (arglen == 1 && wcsncmp(arg, _u("h"),    arglen) == 0) ||
+            (arglen == 4 && wcsncmp(arg, _u("help"), arglen) == 0)
+            )
+        {
+            PrintUsage();
             PAL_Shutdown();
             return EXIT_SUCCESS;
         }
