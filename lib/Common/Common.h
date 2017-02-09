@@ -35,6 +35,17 @@ namespace Js
 {
     typedef int32 PropertyId;
     typedef uint32 ModuleID;
+    enum class TypeHint : byte
+    {
+        Unknown = 0,
+        Object = 1,
+        String = 2,
+        Int = 3,
+        Float = 4,
+        Bool = 5,
+        Array = 6,
+        Function = 7
+    };
 }
 
 #define IsTrueOrFalse(value)     ((value) ? _u("True") : _u("False"))
