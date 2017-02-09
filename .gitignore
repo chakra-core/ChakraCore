@@ -78,6 +78,7 @@ install_manifest.txt
 # VIM
 .*.swo
 .*.swp
+tags
 
 # VS Code
 .vscode/

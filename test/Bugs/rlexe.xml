@@ -367,4 +367,11 @@
       <compile-flags>-maxinterpretcount:1 -off:simplejit</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>bug10026875.js</files>
+      <baseline>bug10026875.baseline</baseline>
+      <compile-flags>-maxinterpretcount:1 -off:simplejit</compile-flags>
+    </default>
+  </test>
 </regress-exe>
