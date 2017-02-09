@@ -6,6 +6,7 @@
 #include "Core/AtomLockGuids.h"
 #include <CommonPal.h>
 #ifdef _WIN32
+#include <winver.h>
 #include <process.h>
 #endif
 
@@ -90,9 +91,64 @@ void __stdcall PrintUsage()
 #endif
 }
 
+void __stdcall PrintChVersion()
+{
+    wprintf(_u("%s version %d.%d.%d.0\n"), hostName, CHAKRA_CORE_MAJOR_VERSION, CHAKRA_CORE_MINOR_VERSION, CHAKRA_CORE_PATCH_VERSION);
+}
+
+#ifdef _WIN32
+void __stdcall PrintChakraCoreVersion()
+{
+    char filename[_MAX_PATH];
+    char drive[_MAX_DRIVE];
+    char dir[_MAX_DIR];
+
+    LPCSTR chakraDllName = GetChakraDllName();
+
+    char modulename[_MAX_PATH];
+    GetModuleFileNameA(NULL, modulename, _MAX_PATH);
+    _splitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
+    _makepath_s(filename, drive, dir, chakraDllName, nullptr);
+
+    UINT size = 0;
+    LPBYTE lpBuffer = NULL;
+    DWORD verSize = GetFileVersionInfoSizeA(filename, NULL);
+
+    if (verSize != NULL)
+    {
+        LPSTR verData = new char[verSize];
+
+        if (GetFileVersionInfoA(filename, NULL, verSize, verData) &&
+            VerQueryValue(verData, _u("\\"), (VOID FAR * FAR *)&lpBuffer, &size) &&
+            (size != 0))
+        {
+            VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
+            if (verInfo->dwSignature == VS_FFI_SIGNATURE)
+            {
+                // Doesn't matter if you are on 32 bit or 64 bit,
+                // DWORD is always 32 bits, so first two revision numbers
+                // come from dwFileVersionMS, last two come from dwFileVersionLS
+                printf("%s version %d.%d.%d.%d\n",
+                    chakraDllName,
+                    (verInfo->dwFileVersionMS >> 16) & 0xffff,
+                    (verInfo->dwFileVersionMS >> 0) & 0xffff,
+                    (verInfo->dwFileVersionLS >> 16) & 0xffff,
+                    (verInfo->dwFileVersionLS >> 0) & 0xffff);
+            }
+        }
+
+        delete[] verData;
+    }
+}
+#endif
+
 void __stdcall PrintVersion()
 {
-    wprintf(_u("%d.%d.%d\n"), CHAKRA_CORE_MAJOR_VERSION, CHAKRA_CORE_MINOR_VERSION, CHAKRA_CORE_PATCH_VERSION);
+    PrintChVersion();
+
+#ifdef _WIN32
+    PrintChakraCoreVersion();
+#endif
 }
 
 // On success the param byteCodeBuffer will be allocated in the function.

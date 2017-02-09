@@ -37,6 +37,7 @@
         ole32.lib;
         kernel32.lib;
         Rpcrt4.lib;
+        version.lib;
       </AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

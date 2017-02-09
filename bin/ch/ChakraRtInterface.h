@@ -188,6 +188,8 @@ struct JsAPIHooks
     JsrtTTDReplayExecutionPtr pfJsrtTTDReplayExecution;
 };
 
+LPCSTR GetChakraDllName();
+
 class ChakraRTInterface
 {
 public:
