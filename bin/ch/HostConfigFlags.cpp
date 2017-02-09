@@ -78,7 +78,7 @@ void HostConfigFlags::PrintUsage()
         pfnPrintUsage();
     }
 
-    wprintf(_u("\nFlag List : \n"));
+    wprintf(_u("\nHost Config Flags: \n\n"));
     HostConfigFlags::PrintUsageString();
     ChakraRTInterface::PrintConfigFlagsUsageString();
 }
