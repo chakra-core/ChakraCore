@@ -11,7 +11,7 @@
   <default>
     <files>misc.js</files>
     <baseline>misc.baseline</baseline>
-    <compile-flags>-wasm </compile-flags>
+    <compile-flags>-wasm</compile-flags>
   </default>
 </test>
 <test>
@@ -31,6 +31,7 @@
 <test>
   <default>
     <files>math.js</files>
+    <tags>exclude_xplat</tags>
     <compile-flags>-wasm -wasmi64</compile-flags>
   </default>
 </test>
@@ -57,6 +58,7 @@
 <test>
   <default>
     <files>unreachable.js</files>
+    <tags>exclude_xplat</tags>
     <compile-flags>-wasm</compile-flags>
   </default>
 </test>
@@ -64,6 +66,7 @@
   <default>
     <files>global.js</files>
     <baseline>baselines/global.baseline</baseline>
+    <tags>exclude_xplat</tags>
     <compile-flags>-wasm -wasmi64</compile-flags>
   </default>
 </test>
@@ -85,6 +88,7 @@
   <default>
     <files>table_imports.js</files>
     <baseline>baselines/table_imports.baseline</baseline>
+    <tags>exclude_xplat</tags>
     <compile-flags>-wasm -wasmi64</compile-flags>
   </default>
 </test>
@@ -93,12 +97,14 @@
     <files>call.js</files>
     <baseline>baselines/call.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
+    <tags>exclude_xplat</tags>
   </default>
 </test>
 <test>
   <default>
     <files>array.js</files>
     <baseline>array.baseline</baseline>
+    <tags>exclude_xplat</tags>
     <compile-flags>-wasm</compile-flags>
   </default>
 </test>
@@ -106,6 +112,7 @@
   <default>
     <files>trunc.js</files>
     <compile-flags>-wasm</compile-flags>
+    <tags>exclude_xplat</tags>
   </default>
 </test>
 <test>
@@ -113,13 +120,7 @@
     <files>api.js</files>
     <baseline>baselines/api.baseline</baseline>
     <compile-flags>-wasm</compile-flags>
-  </default>
-</test>
-<test>
-  <default>
-    <files>api.js</files>
-    <baseline>baselines/api.baseline</baseline>
-    <compile-flags>-wasm</compile-flags>
+    <tags>exclude_xplat</tags>
   </default>
 </test>
 <test>
@@ -138,21 +139,21 @@
   <default>
     <files>debugger.js</files>
     <compile-flags>-wasm -dbgbaseline:debugger.js.dbg.baseline</compile-flags>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger</tags>
+    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_xplat</tags>
   </default>
 </test>
 <test>
   <default>
     <files>debugger.js</files>
     <compile-flags>-wasm -maic:1 -dbgbaseline:debugger.js.dbg.baseline</compile-flags>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger</tags>
+    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_xplat</tags>
   </default>
 </test>
 <test>
   <default>
     <files>wasmcctx.js</files>
     <compile-flags>-wasm -dbgbaseline:wasmcctx.js.dbg.baseline</compile-flags>
-    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger</tags>
+    <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_xplat</tags>
   </default>
 </test>
 <test>
