@@ -765,9 +765,3 @@
     #endif
 #endif // __APPLE__
 #endif // THREAD_LOCAL
-
-#ifndef _WIN32
-#define NO_EXPORT __attribute__((visibility("hidden")))
-#else
-#define NO_EXPORT
-#endif
