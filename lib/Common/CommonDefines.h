@@ -482,14 +482,10 @@
 #define PROFILE_BAILOUT_RECORD_MEMORY
 #define MEMSPECT_TRACKING
 
-// xplat-todo: Depends on C++ type-info
-// enable later on non-VC++ compilers
-#ifndef __APPLE__
 #define PROFILE_RECYCLER_ALLOC
 // Needs to compile in debug mode
 // Just needs strings converted
 #define PROFILE_DICTIONARY 1
-#endif
 
 #define PROFILE_STRINGS
 
@@ -523,12 +519,9 @@
 #endif
 #endif
 
-// xplat: on apple looks typeid(char16_t) does not work, hit error: Undefined symbols for architecture x86_64: "typeinfo for char16_t"
-#ifndef __APPLE__
 #define HEAP_TRACK_ALLOC
 #define CHECK_MEMORY_LEAK
 #define LEAK_REPORT
-#endif
 
 #define PROJECTION_METADATA_TRACE
 #define ERROR_TRACE
@@ -772,3 +765,9 @@
     #endif
 #endif // __APPLE__
 #endif // THREAD_LOCAL
+
+#ifndef _WIN32
+#define NO_EXPORT __attribute__((visibility("hidden")))
+#else
+#define NO_EXPORT
+#endif

@@ -10,7 +10,6 @@
 typedef WCHAR char16;
 #define _u(s) L##s
 #else
-typedef char16_t char16;
 #define _u(s) u##s
 #endif
 
@@ -18,7 +17,7 @@ typedef char16 wchar;
 typedef unsigned int uint;
 typedef unsigned short ushort;
 
-// Use of ulong is not allowed in ChakraCore- uint32 should be used instead since 
+// Use of ulong is not allowed in ChakraCore- uint32 should be used instead since
 // it's our cross-platform 32 bit integer value. However, legacy code in ChakraFull
 // still depends on ulong so it's allowed for full builds.
 #ifdef NTBUILD
@@ -62,4 +61,3 @@ namespace Js
 {
     typedef uint32 LocalFunctionId;
 };
-

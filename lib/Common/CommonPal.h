@@ -103,7 +103,6 @@ __forceinline void  __int2c()
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
 
-typedef char16_t char16;
 #define _u(s) u##s
 
 typedef GUID UUID;
