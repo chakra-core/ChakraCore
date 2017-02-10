@@ -56,10 +56,10 @@ namespace Js
         //  - scriptdirect.idl
         //  - LowererMDArch::LoadInputParamCount
         //
-        unsigned  Count : 24;
-        CallFlags Flags : 8;
+        Field(unsigned)  Count : 24;
+        Field(CallFlags) Flags : 8;
 #ifdef TARGET_64
-        unsigned unused : 32;
+        Field(unsigned) unused : 32;
 #endif
 
 #if DBG

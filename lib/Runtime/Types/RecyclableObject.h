@@ -206,7 +206,7 @@ namespace Js {
         void RecordAllocation(ScriptContext * scriptContext);
 #endif
     protected:
-        Type * type;
+        Field(Type *) type;
         DEFINE_VTABLE_CTOR_NOBASE(RecyclableObject);
 
         virtual RecyclableObject* GetPrototypeSpecial();
@@ -288,7 +288,7 @@ namespace Js {
         virtual BOOL IsExtensible() { return false; }
         virtual BOOL IsProtoImmutable() const { return false; }
         virtual BOOL PreventExtensions() { return false; };     // Sets [[Extensible]] flag of instance to false
-        virtual void ThrowIfCannotDefineProperty(PropertyId propId, PropertyDescriptor descriptor);
+        virtual void ThrowIfCannotDefineProperty(PropertyId propId, const PropertyDescriptor& descriptor);
         virtual void ThrowIfCannotGetOwnPropertyDescriptor(PropertyId propId) {}
         virtual BOOL GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor);
         virtual BOOL Seal() { return false; }                   // Seals the instance, no additional property can be added or deleted

@@ -990,12 +990,6 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
         }
     }
 
-    Js::RegSlot localClosureReg = newInstance->function->GetFunctionBody()->GetLocalClosureRegister();
-    if (regSlot == localClosureReg)
-    {
-        this->globalBailOutRecordTable->isScopeObjRestored = true;
-    }
-
     values[regSlot] = value;
 
     BAILOUT_VERBOSE_TRACE(newInstance->function->GetFunctionBody(), bailOutKind, _u("\n"));
@@ -1494,7 +1488,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 
             newInstance->m_reader.Create(executeFunction);
 
-            generator->SetFrame(newInstance);
+            generator->SetFrame(newInstance, varSizeInBytes);
         }
     }
     else
@@ -1633,6 +1627,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         Js::Var closure = newInstance->GetNonVarReg(localClosureReg);
         if (closure)
         {
+            bailOutRecord->globalBailOutRecordTable->isScopeObjRestored = true;
             newInstance->SetLocalClosure(closure);
             newInstance->SetNonVarReg(localClosureReg, nullptr);
         }

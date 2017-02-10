@@ -269,7 +269,7 @@ namespace Js
             this->SetAttributes(propertyId, attributes);
     }
 
-    void RecyclableObject::ThrowIfCannotDefineProperty(PropertyId propId, PropertyDescriptor descriptor)
+    void RecyclableObject::ThrowIfCannotDefineProperty(PropertyId propId, const PropertyDescriptor& descriptor)
     {
         // Do nothing
     }

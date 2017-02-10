@@ -3,6 +3,9 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "CommonMemoryPch.h"
+#ifdef __clang__
+#include <cxxabi.h>
+#endif
 
 template <typename TBlockAttributes>
 SmallNormalHeapBlockT<TBlockAttributes> *
@@ -173,8 +176,12 @@ SmallHeapBlockT<MediumAllocationBlockAttributes>::ProtectUnusablePages()
         DWORD oldProtect;
         BOOL ret = ::VirtualProtect(startPage, count * AutoSystemInfo::PageSize, PAGE_READONLY, &oldProtect);
         Assert(ret && oldProtect == PAGE_READWRITE);
-
-        ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
+#ifdef RECYCLER_WRITE_WATCH
+        if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            ::ResetWriteWatch(startPage, count*AutoSystemInfo::PageSize);
+        }
+#endif
     }
 }
 
@@ -778,6 +785,188 @@ SmallHeapBlockT<TBlockAttributes>::ClearExplicitFreeBitForObject(void* objectAdd
 
 #ifdef RECYCLER_VERIFY_MARK
 
+#if DBG
+void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, char* target)
+{
+    HeapBlock* block = recycler->FindHeapBlock(objectAddress);
+    if (block == nullptr)
+    {
+        return;
+    }
+    HeapBlock* targetBlock = recycler->FindHeapBlock(target);
+    if (targetBlock == nullptr)
+    {
+        return;
+    }
+
+#ifdef TRACK_ALLOC
+    Recycler::TrackerData* trackerData = nullptr;
+    Recycler::TrackerData* targetTrackerData = nullptr;
+    const char* typeName = nullptr;
+    const char* targetTypeName = nullptr;
+    uint offset = 0;
+    uint targetOffset = 0;
+    char* objectStartAddress = nullptr;
+    char* targetStartAddress = nullptr;
+    byte barrier = RecyclerWriteBarrierManager::GetWriteBarrier(objectAddress);
+    Unused(barrier);
+
+    if (Recycler::DoProfileAllocTracker())
+    {
+        // need CheckMemoryLeak or KeepRecyclerTrackData flag to have the tracker data and show following detailed info
+#ifdef __clang__
+        auto getDemangledName = [](const type_info* typeinfo) ->const char*
+        {
+            int status;
+            char buffer[1024];
+            size_t buflen = 1024;
+            char* name = abi::__cxa_demangle(typeinfo->name(), buffer, &buflen, &status);
+            if (status != 0)
+            {
+                Output::Print(_u("Demangle failed: result=%d, buflen=%d\n"), status, buflen);
+            }
+            char* demangledName = (char*)malloc(buflen);
+            memcpy(demangledName, name, buflen);
+            return demangledName;
+        };
+#else
+        auto getDemangledName = [](const type_info* typeinfo) ->const char*
+        {
+            return typeinfo->name();
+        };
+#endif
+
+        if (block->IsLargeHeapBlock())
+        {
+            offset = (uint)(objectAddress - (char*)((LargeHeapBlock*)block)->GetRealAddressFromInterior(objectAddress));
+        }
+        else
+        {
+            offset = (uint)(objectAddress - block->address) % block->GetObjectSize(objectAddress);
+        }
+        objectStartAddress = objectAddress - offset;
+        trackerData = (Recycler::TrackerData*)block->GetTrackerData(objectStartAddress);
+        if (trackerData)
+        {
+            typeName = getDemangledName(trackerData->typeinfo);
+            if (trackerData->isArray)
+            {
+                Output::Print(_u("Missing Barrier\nOn array of %S\n"), typeName);
+#ifdef STACK_BACK_TRACE
+                if (CONFIG_FLAG(KeepRecyclerTrackData))
+                {
+                    Output::Print(_u("Allocation stack:\n"));
+                    ((StackBackTrace*)(trackerData + 1))->Print();
+                }
+#endif
+            }
+            else
+            {
+                auto dumpFalsePositive = [&]() 
+                {
+                    if (CONFIG_FLAG(Verbose))
+                    {
+                        Output::Print(_u("False Positive: %S+0x%x => 0x%p -> 0x%p\n"), typeName, offset, objectAddress, target);
+                    }
+                };
+
+                if (strstr(typeName, "Js::DynamicProfileInfo") != nullptr)
+                {
+                    // Js::DynamicProfileInfo allocate with non-Leaf in test/chk build
+                    // TODO: (leish)(swb) find a way to set barrier for the Js::DynamicProfileInfo plus allocation
+                    dumpFalsePositive();
+                    return;
+                }
+
+                if (offset <= Math::Align((3 * sizeof(uint)), sizeof(void*)) // left, length, size
+                    && strstr(typeName, "Js::SparseArraySegment") != nullptr)
+                {
+                    // Js::SparseArraySegmentBase left, length and size can easily form a false positive
+                    // TODO: (leish)(swb) find a way to tag these fields
+                    dumpFalsePositive();
+                    return;
+                }
+
+                if (
+                    offset >=// m_data offset on JavascriptDate
+#ifdef _M_X64_OR_ARM64
+                    0x20
+#else
+                    0x10
+#endif
+                    && strstr(typeName, "Js::JavascriptDate") != nullptr)
+                {
+                    // the fields on Js::DateImplementation can easily form a false positive
+                    // TODO: (leish)(swb) find a way to tag these
+                    dumpFalsePositive();
+                    return;
+                }
+
+                if ((offset == 0x20 // scope field in scopeInfo
+                    || (offset >= 0x30 && (offset &0xf)==0) // symbol array at the end of scopeInfo, can point to arena allocated propertyRecord
+                    )
+                    && strstr(typeName, "Js::ScopeInfo") != nullptr)
+                {
+                    // Js::ScopeInfo scope field is arena allocated and can be reused in recycler
+                    // TODO: (leish)(swb) find a good location to clear/tag this field
+                    dumpFalsePositive();
+                    return;
+                }
+
+                //TODO: (leish)(swb) analyze pdb to check if the field is a pointer field or not
+                Output::Print(_u("Missing Barrier\nOn type %S+0x%x\n"), typeName, offset);
+            }
+        }        
+
+        if (targetBlock->IsLargeHeapBlock())
+        {
+            targetOffset = (uint)(target - (char*)((LargeHeapBlock*)targetBlock)->GetRealAddressFromInterior(target));
+        }
+        else
+        {
+            targetOffset = (uint)(target - targetBlock->GetAddress()) % targetBlock->GetObjectSize(nullptr);
+        }
+        targetStartAddress = target - targetOffset;
+        targetTrackerData = (Recycler::TrackerData*)targetBlock->GetTrackerData(targetStartAddress);
+
+        if (targetOffset != 0)
+        {
+            Output::Print(_u("Target is not aligned with it's bucket, this indicate it's likely a false positive\n"));
+        }
+
+        if (targetTrackerData)
+        {
+            targetTypeName = getDemangledName(targetTrackerData->typeinfo);
+            if (targetTrackerData->isArray)
+            {
+                Output::Print(_u("Target type (missing barrier field type) is array item of %S\n"), targetTypeName);
+#ifdef STACK_BACK_TRACE
+                if (CONFIG_FLAG(KeepRecyclerTrackData))
+                {
+                    Output::Print(_u("Allocation stack:\n"));
+                    ((StackBackTrace*)(targetTrackerData + 1))->Print();
+                }
+#endif
+            }
+            else if (targetOffset == 0)
+            {
+                Output::Print(_u("Target type (missing barrier field type) is %S\n"), targetTypeName);
+            }
+            else
+            {
+                Output::Print(_u("Target type (missing barrier field type) is pointing to %S+0x%x\n"), targetTypeName, targetOffset);
+            }
+        }
+
+        Output::Print(_u("---------------------------------\n"));
+    }
+#endif
+
+    Output::Print(_u("Missing barrier on 0x%p, target is 0x%p\n"), objectAddress, target);
+    AssertMsg(false, "Missing barrier.");
+}
+#endif
+
 template <class TBlockAttributes>
 void
 SmallHeapBlockT<TBlockAttributes>::VerifyMark()
@@ -809,7 +998,7 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
 
             if (!this->IsLeafBlock()
 #ifdef RECYCLER_WRITE_BARRIER
-                && !this->IsWithBarrier()
+                && (!this->IsWithBarrier() || CONFIG_FLAG(ForceSoftwareWriteBarrier))
 #endif
                 )
             {
@@ -819,7 +1008,15 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
                     for (uint i = 0; i < objectWordCount; i++)
                     {
                         void* target = *(void**) objectAddress;
-                        recycler->VerifyMark(target);
+                        if (recycler->VerifyMark(objectAddress, target))
+                        {
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+                            if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
+                            {
+                                this->WBVerifyBitIsSet(objectAddress);
+                            }
+#endif
+                        }
 
                         objectAddress += sizeof(void *);
                     }
@@ -831,28 +1028,32 @@ SmallHeapBlockT<TBlockAttributes>::VerifyMark()
 }
 
 template <class TBlockAttributes>
-void
-SmallHeapBlockT<TBlockAttributes>::VerifyMark(void * objectAddress)
+bool
+SmallHeapBlockT<TBlockAttributes>::VerifyMark(void * objectAddress, void * target)
 {
     // Because we mark through new object, we might have a false reference
     // somewhere that we have scanned before this new block is allocated
     // so the object will not be marked even though it looks like a reference
     // Can't verify when the block is new
-    if (this->heapBucket->GetRecycler()->heapBlockMap.IsAddressInNewChunk(objectAddress))
+    if (this->heapBucket->GetRecycler()->heapBlockMap.IsAddressInNewChunk(target))
     {
-        return;
+        return false;
     }
 
-    ushort bitIndex = GetAddressBitIndex(objectAddress);
-
+    ushort bitIndex = GetAddressBitIndex(target);
+    bool isMarked = this->GetMarkedBitVector()->Test(bitIndex) == TRUE;
 #if DBG
-    Assert(this->GetMarkedBitVector()->Test(bitIndex));
+    if (!isMarked)
+    {
+        PrintVerifyMarkFailure(this->GetRecycler(), (char*)objectAddress, (char*)target);
+    }
 #else
-    if (!this->GetMarkedBitVector()->Test(bitIndex))
+    if (!isMarked)
     {
         DebugBreak();
     }
 #endif
+    return isMarked;
 }
 
 #endif
@@ -1257,6 +1458,13 @@ SmallHeapBlockT<TBlockAttributes>::EnqueueProcessedObject(FreeObject ** list, vo
     FreeObject * freeObject = (FreeObject *)objectAddress;
     freeObject->SetNext(*list);
     *list = freeObject;
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+    {
+        this->WBClearObject((char*)objectAddress);
+    }
+#endif
 
     // clear the attributes so that when we are allocating a leaf, we don't have to set the attribute
     this->ObjectInfo(index) = 0;

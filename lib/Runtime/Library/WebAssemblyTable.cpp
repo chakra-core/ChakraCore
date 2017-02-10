@@ -12,7 +12,7 @@ namespace Js
 
 WebAssemblyTable::WebAssemblyTable(Var * values, uint32 currentLength, uint32 initialLength, uint32 maxLength, DynamicType * type) :
     DynamicObject(type),
-    m_values(values),
+    m_values((Field(Var)*)values),
     m_currentLength(currentLength),
     m_initialLength(initialLength),
     m_maxLength(maxLength)
@@ -124,8 +124,8 @@ WebAssemblyTable::EntryGrow(RecyclableObject* function, CallInfo callInfo, ...)
     CompileAssert(sizeof(table->m_maxLength) == sizeof(uint32));
 
     uint32 newLength = table->m_currentLength + delta;
-    Var * newValues = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, newLength);
-    memcpy_s(newValues, newLength * sizeof(Var), table->m_values, table->m_currentLength * sizeof(Var));
+    Field(Var) * newValues = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), newLength);
+    CopyArray(newValues, newLength, table->m_values, table->m_currentLength);
 
     table->m_values = newValues;
     table->m_currentLength = newLength;
@@ -213,12 +213,12 @@ WebAssemblyTable::EntrySet(RecyclableObject* function, CallInfo callInfo, ...)
 WebAssemblyTable *
 WebAssemblyTable::Create(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
-    Var * values = nullptr;
+    Field(Var) * values = nullptr;
     if (initial > 0)
     {
-        values = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, initial);
+        values = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), initial);
     }
-    return RecyclerNew(scriptContext->GetRecycler(), WebAssemblyTable, values, initial, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyTableType());
+    return RecyclerNew(scriptContext->GetRecycler(), WebAssemblyTable, (Var*)values, initial, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyTableType());
 }
 
 void
@@ -241,7 +241,7 @@ WebAssemblyTable::DirectGetValue(uint index) const
 Var *
 WebAssemblyTable::GetValues() const
 {
-    return m_values;
+    return (Var*)PointerValue(m_values);
 }
 
 uint32

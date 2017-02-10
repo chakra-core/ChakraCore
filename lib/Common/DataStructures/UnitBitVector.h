@@ -74,8 +74,7 @@ class BVUnitT
 {
 // Data
 private:
-
-    T word;
+    Field(T) word;
 
 // Constructor
 public:
@@ -84,9 +83,9 @@ public:
         word = initial;
     }
     typedef T BVUnitTContainer;
+
 // Implementation
 private:
-
     static void AssertRange(BVIndex index)
     {
         AssertMsg(index < BitsPerWord, "index out of bound");

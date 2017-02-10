@@ -20,7 +20,12 @@
 #pragma init_seg(".CRT$XCAU")
 
 #ifdef RECYCLER_WRITE_BARRIER
-
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+namespace Memory
+{
+    FN_VerifyIsNotBarrierAddress* g_verifyIsNotBarrierAddress = nullptr;
+}
+#endif
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
 #ifdef _M_X64_OR_ARM64
 X64WriteBarrierCardTableManager RecyclerWriteBarrierManager::x64CardTableManager;
@@ -30,6 +35,9 @@ BYTE* RecyclerWriteBarrierManager::cardTable = RecyclerWriteBarrierManager::x64C
 #else
 // Each byte in the card table covers 4096 bytes so the range covered by the table is 4GB
 BYTE RecyclerWriteBarrierManager::cardTable[1 * 1024 * 1024];
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+bool dummy = RecyclerWriteBarrierManager::Initialize();
+#endif
 #endif
 
 #else
@@ -48,19 +56,35 @@ X64WriteBarrierCardTableManager::OnThreadInit()
 
     // xplat-todo: Replace this on Windows too with GetCurrentThreadStackBounds
 #ifdef _WIN32
+    // check StackProber.cpp for the stack pages layout information
     NT_TIB* teb = (NT_TIB*) ::NtCurrentTeb();
-
     char* stackBase = (char*) teb->StackBase;
-    char* stackEnd  = (char*) teb->StackLimit;
+    char* stackEnd = (char*)__readgsqword(0x1478); // 0x1478 is offset of DeallocationStack field on ntdll!_TEB on x64
+                                                   // this is undocumented, verifying with following code
+#if DBG
+    MEMORY_BASIC_INFORMATION memInfo;
+    VirtualQuery((LPCVOID)teb->StackLimit, &memInfo, sizeof(memInfo));
+    Assert((char*)memInfo.AllocationBase == stackEnd);
+    Assert(memInfo.AllocationProtect == PAGE_READWRITE);
+#endif
 #else
     ULONG_PTR stackBase = 0;
     ULONG_PTR stackEnd = 0;
     ::GetCurrentThreadStackLimits(&stackEnd, &stackBase);
 #endif
-    
+
+#ifdef X64_WB_DIAG
+    this->_stackbase = (char*)stackBase;
+    this->_stacklimit = (char*)stackEnd;
+#endif
+
     size_t numPages = (stackBase - stackEnd) / AutoSystemInfo::PageSize;
     // stackEnd is the lower boundary
-    return OnSegmentAlloc((char*) stackEnd, numPages);
+    bool ret = OnSegmentAlloc((char*) stackEnd, numPages);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    RecyclerWriteBarrierManager::ToggleBarrier((char*)stackEnd, (stackBase - stackEnd), true);
+#endif
+    return ret;
 }
 
 bool
@@ -218,6 +242,10 @@ X64WriteBarrierCardTableManager::Initialize()
 {
     AutoCriticalSection critSec(&_cardTableInitCriticalSection);
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    RecyclerWriteBarrierManager::Initialize();
+#endif
+
     if (_cardTable == nullptr)
     {
         // We have two sizes for the card table on 64 bit builds
@@ -226,13 +254,33 @@ X64WriteBarrierCardTableManager::Initialize()
         // On Win8, reserving 32 GB is fine since reservations don't incur a cost. On Win7, the cost
         // of a reservation can be approximated as 2KB per MB of reserved size. In our case, we take
         // an overhead of 96KB for our card table.
-        const unsigned __int64 maxUmProcessAddressSpace = (__int64) AutoSystemInfo::Data.lpMaximumApplicationAddress;
+
+        // xplat: GetRLimit AS / RSS for ``the maximum size of the process's virtual memory``
+        size_t memoryLimit;
+        if (!PlatformAgnostic::SystemInfo::GetMaxVirtualMemory(&memoryLimit))
+        {
+            memoryLimit = (size_t) AutoSystemInfo::Data.lpMaximumApplicationAddress; // try upper limit
+        }
+        else
+        {
+            // Safest option : Max RSS can be beyond what we can allocate, aim the smaller one
+            memoryLimit = min(memoryLimit, (size_t) AutoSystemInfo::Data.lpMaximumApplicationAddress);
+        }
+        const unsigned __int64 maxUmProcessAddressSpace = (__int64) memoryLimit;
+
         _cardTableNumEntries = Math::Align<size_t>(maxUmProcessAddressSpace / AutoSystemInfo::PageSize, AutoSystemInfo::PageSize) /* s_writeBarrierPageSize */;
 
         LPVOID cardTableSpace = ::VirtualAlloc(NULL, _cardTableNumEntries, MEM_RESERVE, PAGE_READWRITE);
+        if (!cardTableSpace) // Crash Early with a meaningful message. Otherwise the behavior is undefined.
+        {
+            fprintf(stderr, "Out of Memory\n"); fflush(stderr);
+            abort();
+        }
 
         _cardTable = (BYTE*) cardTableSpace;
     }
+
+    OnThreadInit();
 
     return _cardTable;
 }
@@ -264,8 +312,11 @@ void
 RecyclerWriteBarrierManager::WriteBarrier(void * address)
 {
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    VerifyIsBarrierAddress(address);
+#endif
     const uintptr_t index = GetCardTableIndex(address);
-    cardTable[index] = 1;
+    cardTable[index] |= DIRTYBIT;
 #else
     uint bitShift = (((uint)address) >> s_BitArrayCardTableShift);
     uint bitMask = 1 << bitShift;
@@ -281,23 +332,26 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address)
 #endif
 }
 
-
 void
-RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t ptrCount)
+RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t bytes)
 {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    VerifyIsBarrierAddress(address, bytes);
+#endif
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
     uintptr_t startIndex = GetCardTableIndex(address);
-    char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + sizeof(void *) * ptrCount), s_WriteBarrierPageSize);
+    char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + bytes), s_WriteBarrierPageSize);
     uintptr_t endIndex = GetCardTableIndex(endAddress);
     Assert(startIndex <= endIndex);
-    memset(cardTable + startIndex, 1, endIndex - startIndex);
+    memset(cardTable + startIndex, WRITE_BARRIER_PAGE_BIT | DIRTYBIT, endIndex - startIndex);
     GlobalSwbVerboseTrace(_u("Writing to 0x%p (CIndex: %u-%u)\n"), address, startIndex, endIndex);
+
 #else
     uint bitShift = (((uint)address) >> s_BitArrayCardTableShift);
     uint bitMask = 0xFFFFFFFF << bitShift;
     uint cardIndex = ((uint)address) / s_BytesPerCard);
 
-    char * endAddress = (char *)Math::Align((INT_PTR)((char *)address + sizeof(void *) * ptrCount), s_BytesPerCardBit);
+    char * endAddress = (char *)Math::Align((INT_PTR)((char *)address + bytes), s_BytesPerCardBit);
     char * alignedAddress = (char *)Math::Align((INT_PTR)address, s_WriteBarrierPageSize);
     if (alignedAddress > endAddress)
     {
@@ -319,6 +373,113 @@ RecyclerWriteBarrierManager::WriteBarrier(void * address, size_t ptrCount)
 #endif
 }
 
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+void
+RecyclerWriteBarrierManager::ToggleBarrier(void * address, size_t bytes, bool enable)
+{
+    if (CONFIG_FLAG(StrictWriteBarrierCheck))
+    {
+        uintptr_t startIndex = GetCardTableIndex(address);
+        char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + bytes), s_WriteBarrierPageSize);
+        uintptr_t endIndex = GetCardTableIndex(endAddress);
+        if (enable)
+        {
+            for (uintptr_t i = startIndex; i < endIndex; i++)
+            {
+                cardTable[i] |= WRITE_BARRIER_PAGE_BIT;
+            }
+        }
+        else
+        {
+            for (uintptr_t i = startIndex; i < endIndex; i++)
+            {
+                cardTable[i] &= ~WRITE_BARRIER_PAGE_BIT;
+            }
+        }
+
+        GlobalSwbVerboseTrace(_u("Enableing 0x%p (CIndex: %u-%u)\n"), address, startIndex, endIndex);
+    }
+}
+
+bool
+RecyclerWriteBarrierManager::IsBarrierAddress(void * address)
+{
+    return IsBarrierAddress(GetCardTableIndex(address));
+}
+
+bool
+RecyclerWriteBarrierManager::IsBarrierAddress(uintptr_t index)
+{
+    return (cardTable[index] & WRITE_BARRIER_PAGE_BIT) == WRITE_BARRIER_PAGE_BIT;
+}
+
+// TODO: SWB, looks we didn't initialize card table for heap allocation.
+// we didn't hit such issue because we are not allocating write barrier
+// annotated struct with heap today.
+// after SWB is widely enabled and if an annotated structure can be allocated
+// with both Heap and Recycler/Arena we'll capture the issue
+
+void
+RecyclerWriteBarrierManager::VerifyIsBarrierAddress(void * address)
+{
+    if (CONFIG_FLAG(StrictWriteBarrierCheck))
+    {
+        if (!IsBarrierAddress(GetCardTableIndex(address)))
+        {
+            Js::Throw::FatalInternalError();
+        }
+    }
+}
+
+void
+RecyclerWriteBarrierManager::VerifyIsBarrierAddress(void * address, size_t bytes)
+{
+    if (CONFIG_FLAG(StrictWriteBarrierCheck))
+    {
+        uintptr_t startIndex = GetCardTableIndex(address);
+        char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + bytes), s_WriteBarrierPageSize);
+        uintptr_t endIndex = GetCardTableIndex(endAddress);
+        do
+        {
+            // no need to check if cardTable is commited or not, if it's not commited it'll AV instead of assertion
+            if (!IsBarrierAddress(startIndex))
+            {
+                Js::Throw::FatalInternalError();
+            }
+        } while (startIndex++ < endIndex);
+    }
+}
+
+void
+RecyclerWriteBarrierManager::VerifyIsNotBarrierAddress(void * address, size_t bytes)
+{
+    if (CONFIG_FLAG(StrictWriteBarrierCheck))
+    {
+        uintptr_t startIndex = GetCardTableIndex(address);
+        char * endAddress = (char *)Math::Align<INT_PTR>((INT_PTR)((char *)address + bytes), s_WriteBarrierPageSize);
+        uintptr_t endIndex = GetCardTableIndex(endAddress);
+        do
+        {
+            if(IsCardTableCommited(startIndex))
+            {
+                if (IsBarrierAddress(startIndex))
+                {
+                    Js::Throw::FatalInternalError();
+                }
+            }
+
+        } while (++startIndex < endIndex);
+    }
+}
+
+bool
+RecyclerWriteBarrierManager::Initialize()
+{
+    g_verifyIsNotBarrierAddress = RecyclerWriteBarrierManager::VerifyIsNotBarrierAddress;
+    return true;
+}
+#endif
+
 uintptr_t
 RecyclerWriteBarrierManager::GetCardTableIndex(void *address)
 {
@@ -329,18 +490,30 @@ void
 RecyclerWriteBarrierManager::ResetWriteBarrier(void * address, size_t pageCount)
 {
     uintptr_t cardIndex = GetCardTableIndex(address);
+
+#if DBG
+    for (size_t i = 0; i < pageCount; i++)
+    {
+        if (cardTable[cardIndex + i] & DIRTYBIT)
+        {
+            cardTable[cardIndex + i] = WRITE_BARRIER_CLEAR_MARK | (cardTable[cardIndex + i] & ~DIRTYBIT);
+        }
+    }
+#else
     if (pageCount == 1)
     {
-        cardTable[cardIndex] = 0;
+        cardTable[cardIndex] = WRITE_BARRIER_PAGE_BIT;
     }
     else
     {
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
-        memset(&cardTable[cardIndex], 0, pageCount);
+        memset(&cardTable[cardIndex], WRITE_BARRIER_PAGE_BIT, pageCount);
 #else
         memset(&cardTable[cardIndex], 0, sizeof(DWORD) * pageCount);
 #endif
     }
+#endif
+
 #if DBG_DUMP
     // Global to process, use global configuration here
     if (PHASE_VERBOSE_TRACE1(Js::SWBPhase))
@@ -357,7 +530,15 @@ DWORD
 #endif
 RecyclerWriteBarrierManager::GetWriteBarrier(void * address)
 {
-    return cardTable[GetCardTableIndex(address)];
+    // TODO: SWB remove after all write barrier annotation, this is in order to test the recycler change
+    if (CONFIG_FLAG(WriteBarrierTest))
+    {
+        return WRITE_BARRIER_PAGE_BIT | DIRTYBIT;
+    }
+    else
+    {
+        return cardTable[GetCardTableIndex(address)];
+    }
 }
 
 #endif

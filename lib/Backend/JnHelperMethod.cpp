@@ -215,7 +215,7 @@ DECLSPEC_GUARDIGNORE  _NOINLINE intptr_t GetNonTableMethodAddress(ThreadContextI
         return SHIFT_CRT_ADDR(context, (int(*)(void *, void *, size_t))memcmp);
 
     case HelperMemCpy:
-        return SHIFT_CRT_ADDR(context, (int(*)(void *, void *, size_t))memcpy);
+        return SHIFT_CRT_ADDR(context, (void*(*)(void *, void const*, size_t))memcpy);
 
     case HelperDirectMath_FloorFlt:
         return SHIFT_CRT_ADDR(context, (float(*)(float))floor);

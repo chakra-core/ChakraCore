@@ -924,7 +924,7 @@ namespace Js
 #endif
 #if ENABLE_NATIVE_CODEGEN
 
-    EquivalentTypeSet::EquivalentTypeSet(JITTypeHolder * types, uint16 count)
+    EquivalentTypeSet::EquivalentTypeSet(RecyclerJITTypeHolder * types, uint16 count)
         : types(types), count(count), sortedAndDuplicatesRemoved(false)
     {
     }
@@ -940,11 +940,6 @@ namespace Js
         return GetType(0);
     }
 
-    JITTypeHolder * EquivalentTypeSet::GetTypes() const
-    {
-        return this->types;
-    }
-
     bool EquivalentTypeSet::Contains(const JITTypeHolder type, uint16* pIndex)
     {
         if (!this->GetSortedAndDuplicatesRemoved())
@@ -953,7 +948,7 @@ namespace Js
         }
         for (uint16 ti = 0; ti < this->count; ti++)
         {
-            if (this->types[ti] == type)
+            if (this->GetType(ti) == type)
             {
                 if (pIndex)
                 {

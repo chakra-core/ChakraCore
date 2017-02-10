@@ -32,7 +32,8 @@ WebAssemblyModule::WebAssemblyModule(Js::ScriptContext* scriptContext, const byt
     m_signatures(nullptr),
     m_signaturesCount(0),
     m_startFuncIndex(Js::Constants::UninitializedValue),
-    m_binaryBuffer(binaryBuffer)
+    m_binaryBuffer(binaryBuffer),
+    m_customSections(nullptr)
 {
     //the first elm is the number of Vars in front of I32; makes for a nicer offset computation
     memset(m_globalCounts, 0, sizeof(uint) * Wasm::WasmTypes::Limit);
@@ -156,6 +157,51 @@ WebAssemblyModule::EntryImports(RecyclableObject* function, CallInfo callInfo, .
     return importArray;
 }
 
+Var WebAssemblyModule::EntryCustomSections(RecyclableObject* function, CallInfo callInfo, ...)
+{
+    PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+    ARGUMENTS(args, callInfo);
+    AssertMsg(args.Info.Count > 0, "Should always have implicit 'this'");
+    ScriptContext* scriptContext = function->GetScriptContext();
+
+    Assert(!(callInfo.Flags & CallFlags_New));
+
+    if (args.Info.Count < 2 || !WebAssemblyModule::Is(args[1]))
+    {
+        JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedModule);
+    }
+    if (args.Info.Count < 3)
+    {
+        JavascriptError::ThrowTypeErrorVar(scriptContext, JSERR_NeedString, _u("sectionName"));
+    }
+
+    WebAssemblyModule * module = WebAssemblyModule::FromVar(args[1]);
+    JavascriptString * sectionName = JavascriptConversion::ToString(args[2], scriptContext);
+    const char16* sectionNameBuf = sectionName->GetString();
+    charcount_t sectionNameLength = sectionName->GetLength();
+
+    Var customSections = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
+    for (uint32 i = 0; i < module->GetCustomSectionCount(); ++i)
+    {
+        Wasm::CustomSection customSection = module->GetCustomSection(i);
+        if (sectionNameLength == customSection.nameLength &&
+            // can't use string compare because null-terminator is a valid character for custom section names
+            memcmp(sectionNameBuf, customSection.name, sectionNameLength * sizeof(char16)) == 0)
+        {
+            const uint32 byteLength = customSection.payloadSize;
+            ArrayBuffer* arrayBuffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+            if (byteLength > 0)
+            {
+                js_memcpy_s(arrayBuffer->GetBuffer(), byteLength, customSection.payload, byteLength);
+            }
+            JavascriptArray::Push(scriptContext, customSections, arrayBuffer);
+        }
+    }
+
+    return customSections;
+}
+
 /* static */
 WebAssemblyModule *
 WebAssemblyModule::CreateModule(
@@ -172,8 +218,19 @@ WebAssemblyModule::CreateModule(
     try
     {
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
-        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
+        SourceContextInfo * sourceContextInfo = scriptContext->CreateSourceContextInfo(scriptContext->GetNextSourceContextId(), nullptr, 0, nullptr);
+        SRCINFO si = {
+            /* sourceContextInfo   */ sourceContextInfo,
+            /* dlnHost             */ 0,
+            /* ulColumnHost        */ 0,
+            /* lnMinHost           */ 0,
+            /* ichMinHost          */ 0,
+            /* ichLimHost          */ 0,
+            /* ulCharOffset        */ 0,
+            /* mod                 */ 0,
+            /* grfsi               */ 0
+        };
+        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, &si, false);
 
         // copy buffer so external changes to it don't cause issues when defer parsing
         byte* newBuffer = RecyclerNewArray(scriptContext->GetRecycler(), byte, lengthBytes);
@@ -215,10 +272,7 @@ WebAssemblyModule::CreateModule(
             currentBody->GetAsmJsFunctionInfo()->SetWasmReaderInfo(nullptr);
             SysFreeString(originalMessage);
         }
-        JavascriptLibrary *library = scriptContext->GetLibrary();
-        JavascriptError *pError = library->CreateWebAssemblyCompileError();
-        JavascriptError::SetErrorMessage(pError, WASMERR_WasmCompileError, newEx.ReleaseErrorMessage(), scriptContext);
-        JavascriptExceptionOperators::Throw(pError, scriptContext);
+        JavascriptError::ThrowWebAssemblyCompileErrorVar(scriptContext, WASMERR_WasmCompileError, newEx.ReleaseErrorMessage());
     }
 
     return webAssemblyModule;
@@ -685,14 +739,16 @@ WebAssemblyModule::GetStartFunction() const
     return m_startFuncIndex;
 }
 
-void WebAssemblyModule::SetSignatureCount(uint32 count)
+void
+WebAssemblyModule::SetSignatureCount(uint32 count)
 {
     Assert(m_signaturesCount == 0 && m_signatures == nullptr);
     m_signaturesCount = count;
     m_signatures = RecyclerNewArrayZ(GetRecycler(), Wasm::WasmSignature, count);
 }
 
-uint32 WebAssemblyModule::GetModuleEnvironmentSize() const
+uint32
+WebAssemblyModule::GetModuleEnvironmentSize() const
 {
     static const uint DOUBLE_SIZE_IN_INTS = sizeof(double) / sizeof(int);
     // 1 each for memory, table, and signatures
@@ -703,20 +759,25 @@ uint32 WebAssemblyModule::GetModuleEnvironmentSize() const
     return size;
 }
 
-void WebAssemblyModule::Finalize(bool isShutdown)
+void
+WebAssemblyModule::Finalize(bool isShutdown)
 {
     m_alloc.Clear();
 }
 
-void WebAssemblyModule::Dispose(bool isShutdown)
+void
+WebAssemblyModule::Dispose(bool isShutdown)
 {
     Assert(m_alloc.Size() == 0);
 }
 
-void WebAssemblyModule::Mark(Recycler * recycler)
+void
+WebAssemblyModule::Mark(Recycler * recycler)
 {
 }
-uint WebAssemblyModule::GetOffsetForGlobal(Wasm::WasmGlobal* global) const
+
+uint
+WebAssemblyModule::GetOffsetForGlobal(Wasm::WasmGlobal* global) const
 {
     Wasm::WasmTypes::WasmType type = global->GetType();
     if (type >= Wasm::WasmTypes::Limit)
@@ -737,7 +798,8 @@ uint WebAssemblyModule::GetOffsetForGlobal(Wasm::WasmGlobal* global) const
     return WAsmJs::ConvertOffset(offset, sizeof(byte), typeSize);
 }
 
-uint WebAssemblyModule::AddGlobalByteSizeToOffset(Wasm::WasmTypes::WasmType type, uint32 offset) const
+uint
+WebAssemblyModule::AddGlobalByteSizeToOffset(Wasm::WasmTypes::WasmType type, uint32 offset) const
 {
     uint32 typeSize = Wasm::WasmTypes::GetTypeByteSize(type);
     offset = ::Math::AlignOverflowCheck(offset, typeSize);
@@ -765,7 +827,8 @@ WebAssemblyModule::GetExternalKindString(ScriptContext * scriptContext, Wasm::Ex
     return nullptr;
 }
 
-uint WebAssemblyModule::GetGlobalsByteSize() const
+uint
+WebAssemblyModule::GetGlobalsByteSize() const
 {
     uint32 size = 0;
     for (Wasm::WasmTypes::WasmType type = (Wasm::WasmTypes::WasmType)(Wasm::WasmTypes::Void + 1); type < Wasm::WasmTypes::Limit; type = (Wasm::WasmTypes::WasmType)(type + 1))
@@ -773,6 +836,32 @@ uint WebAssemblyModule::GetGlobalsByteSize() const
         size = AddGlobalByteSizeToOffset(type, size);
     }
     return size;
+}
+
+void
+WebAssemblyModule::AddCustomSection(Wasm::CustomSection customSection)
+{
+    if (!m_customSections)
+    {
+        m_customSections = Anew(&m_alloc, CustomSectionsList, &m_alloc);
+    }
+    m_customSections->Add(customSection);
+}
+
+uint32
+WebAssemblyModule::GetCustomSectionCount() const
+{
+    return m_customSections ? (uint32)m_customSections->Count() : 0;
+}
+
+Wasm::CustomSection
+WebAssemblyModule::GetCustomSection(uint32 index) const
+{
+    if (index >= GetCustomSectionCount())
+    {
+        throw Wasm::WasmCompilationException(_u("Custom section index out of bounds %u"), index);
+    }
+    return m_customSections->Item(index);
 }
 
 } // namespace Js

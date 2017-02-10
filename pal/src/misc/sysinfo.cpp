@@ -269,7 +269,7 @@ GlobalMemoryStatusEx(
     if (lpBuffer->ullTotalPhys > 0)
     {
 #if defined(__ANDROID__)
-        lpBuffer->ullAvailPhys = lpBuffer->ullTotalPhys; // xplat-todo: fix this
+        lpBuffer->ullAvailPhys = sysconf(_SC_AVPHYS_PAGES) * sysconf( _SC_PAGE_SIZE );
         INT64 used_memory = lpBuffer->ullTotalPhys - lpBuffer->ullAvailPhys;
         lpBuffer->dwMemoryLoad = (DWORD)((used_memory * 100) / lpBuffer->ullTotalPhys);
 #elif defined(__LINUX__)

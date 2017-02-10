@@ -23,8 +23,10 @@ namespace Js
     Var IteratorObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         ScriptContext* scriptContext = GetScriptContext();
-        if (JavascriptOperators::IteratorStepAndValue(iteratorObject, scriptContext, &value))
+        Var resultValue = nullptr;
+        if (JavascriptOperators::IteratorStepAndValue(iteratorObject, scriptContext, &resultValue))
         {
+            this->value = resultValue;
             if (attributes != nullptr)
             {
                 *attributes = PropertyEnumerable;

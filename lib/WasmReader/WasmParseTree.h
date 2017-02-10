@@ -148,4 +148,12 @@ namespace Wasm
         uint32 importNameLen;
         const char16* importName;
     };
+
+    struct CustomSection
+    {
+        const char16* name;
+        charcount_t nameLength;
+        const byte* payload;
+        uint32 payloadSize;
+    };
 }

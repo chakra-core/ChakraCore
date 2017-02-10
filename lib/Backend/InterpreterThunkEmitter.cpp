@@ -304,7 +304,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
     BYTE* buffer;
 
     EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> * allocation = emitBufferManager.AllocateBuffer(BlockSize, &buffer);
-    if (allocation == nullptr) 
+    if (allocation == nullptr)
     {
         Js::Throw::OutOfMemory();
     }
@@ -683,10 +683,8 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
 }
 #endif
 
-
-
-inline /*static*/
-DWORD InterpreterThunkEmitter::FillDebugBreak(_In_ BYTE* dest, _In_ DWORD count)
+/*static*/
+DWORD InterpreterThunkEmitter::FillDebugBreak(_Out_writes_bytes_all_(count) BYTE* dest, _In_ DWORD count)
 {
 #if defined(_M_ARM)
     Assert(count % 2 == 0);
@@ -697,9 +695,7 @@ DWORD InterpreterThunkEmitter::FillDebugBreak(_In_ BYTE* dest, _In_ DWORD count)
     return count;
 }
 
-
-
-inline /*static*/
+/*static*/
 DWORD InterpreterThunkEmitter::CopyWithAlignment(
     _Out_writes_bytes_all_(sizeInBytes) BYTE* dest,
     _In_ const DWORD sizeInBytes,
@@ -876,4 +872,3 @@ bool ThunkBlock::IsFreeListEmpty() const
 }
 
 #endif
-

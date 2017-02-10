@@ -11,8 +11,8 @@ JITTimeConstructorCache::JITTimeConstructorCache(const Js::JavascriptFunction* c
 {
     Assert(constructor != nullptr);
     Assert(runtimeCache != nullptr);
-    m_data.runtimeCacheAddr = (intptr_t)runtimeCache;
-    m_data.runtimeCacheGuardAddr = (intptr_t)runtimeCache->GetAddressOfGuardValue();
+    m_data.runtimeCacheAddr = runtimeCache;
+    m_data.runtimeCacheGuardAddr = const_cast<void*>(runtimeCache->GetAddressOfGuardValue());
     m_data.slotCount = runtimeCache->content.slotCount;
     m_data.inlineSlotCount = runtimeCache->content.inlineSlotCount;
     m_data.skipNewScObject = runtimeCache->content.skipDefaultNewObject;
@@ -30,9 +30,9 @@ JITTimeConstructorCache::JITTimeConstructorCache(const JITTimeConstructorCache* 
 {
     Assert(other != nullptr);
     Assert(other->GetRuntimeCacheAddr() != 0);
-    m_data.runtimeCacheAddr = other->GetRuntimeCacheAddr();
-    m_data.runtimeCacheGuardAddr = other->GetRuntimeCacheGuardAddr();
-    m_data.type = *(TypeIDL*)other->GetType().t;
+    m_data.runtimeCacheAddr = reinterpret_cast<void*>(other->GetRuntimeCacheAddr());
+    m_data.runtimeCacheGuardAddr = reinterpret_cast<void*>(other->GetRuntimeCacheGuardAddr());
+    m_data.type = *(TypeIDL*)PointerValue(other->GetType().t);
     m_data.slotCount = other->GetSlotCount();
     m_data.inlineSlotCount = other->GetInlineSlotCount();
     m_data.skipNewScObject = other->SkipNewScObject();
@@ -51,7 +51,7 @@ JITTimeConstructorCache::Clone(JitArenaAllocator* allocator) const
 BVSparse<JitArenaAllocator>*
 JITTimeConstructorCache::GetGuardedPropOps() const
 {
-    return (BVSparse<JitArenaAllocator>*)m_data.guardedPropOps;
+    return (BVSparse<JitArenaAllocator>*)(m_data.guardedPropOps & ~(intptr_t)1);
 }
 
 void
@@ -60,6 +60,7 @@ JITTimeConstructorCache::EnsureGuardedPropOps(JitArenaAllocator* allocator)
     if (GetGuardedPropOps() == nullptr)
     {
         m_data.guardedPropOps = (intptr_t)Anew(allocator, BVSparse<JitArenaAllocator>, allocator);
+        m_data.guardedPropOps |= 1; // tag it to prevent false positive after the arena address reuse in recycler
     }
 }
 
@@ -80,13 +81,13 @@ JITTimeConstructorCache::AddGuardedPropOps(const BVSparse<JitArenaAllocator>* pr
 intptr_t
 JITTimeConstructorCache::GetRuntimeCacheAddr() const
 {
-    return m_data.runtimeCacheAddr;
+    return reinterpret_cast<intptr_t>(PointerValue(m_data.runtimeCacheAddr));
 }
 
 intptr_t
 JITTimeConstructorCache::GetRuntimeCacheGuardAddr() const
 {
-    return m_data.runtimeCacheGuardAddr;
+    return reinterpret_cast<intptr_t>(PointerValue(m_data.runtimeCacheGuardAddr));
 }
 
 JITTypeHolder

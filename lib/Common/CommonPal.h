@@ -202,6 +202,7 @@ inline void DebugBreak()
 // activscp.h
 #define SCRIPT_E_RECORDED                _HRESULT_TYPEDEF_(0x86664004L)
 
+#define GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS        (0x00000004)
 
 typedef
 enum tagBREAKPOINT_STATE
@@ -689,6 +690,27 @@ namespace PlatformAgnostic
         return retval;
 #else
         return _interlockedbittestandset(_BitBase, _BitPos);
+#endif
+    }
+
+    __forceinline unsigned char _InterlockedBitTestAndReset(volatile LONG *_BitBase, int _BitPos)
+    {
+#if defined(__clang__) && !defined(_ARM_)
+        // Clang doesn't expand _interlockedbittestandset intrinic to lock btr, and it's implemention also doesn't work for _BitPos >= 32
+        unsigned char retval;
+        asm(
+            "lock btr %[_BitPos], %[_BitBase]\n\t"
+            "setc %b[retval]\n\t"
+            : [_BitBase] "+m" (*_BitBase), [retval] "+rm" (retval)
+            : [_BitPos] "ri" (_BitPos)
+            : "cc" // clobber condition code
+        );
+        return retval;
+#elif !defined(__ANDROID__)
+        return _interlockedbittestandreset(_BitBase, (long)_BitPos);
+#else
+        // xplat-todo: Implement _interlockedbittestandreset for Android
+        abort();
 #endif
     }
 };

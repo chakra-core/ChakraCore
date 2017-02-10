@@ -684,10 +684,6 @@ inline T* InterlockedCompareExchangePointerT(
 #define StackOverflowMessage "Process is terminated due to StackOverflowException.\n"
 
 #ifdef __ANDROID__
-#define S_IREAD   0000400
-#define S_IWRITE  0000200
-#define S_IEXEC   0000100
-
 #ifndef CC_AND_TAG
 #define CC_AND_TAG "chakracore-log"
 #endif
@@ -697,11 +693,6 @@ inline T* InterlockedCompareExchangePointerT(
     __android_log_print(ANDROID_LOG_INFO, CC_AND_TAG, __VA_ARGS__)
 #define PRINT_ERROR(...) \
     __android_log_print(ANDROID_LOG_ERROR, CC_AND_TAG, __VA_ARGS__)
-#else
-#define PRINT_LOG(...) \
-    swprintf(stdout, __VA_ARGS__)
-#define PRINT_ERROR(...) \
-    swprintf(stderr, __VA_ARGS__)
 #endif
 
 #endif /* _PAL_INTERNAL_H_ */

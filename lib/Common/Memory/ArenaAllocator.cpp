@@ -14,7 +14,7 @@ const uint Memory::StandAloneFreeListPolicy::MaxEntriesGrowth;
 #endif
 
 // We need this function to be inlined for perf
-template _ALWAYSINLINE BVSparseNode * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut, bool create);
+template _ALWAYSINLINE BVSparseNode<JitArenaAllocator> * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, Field(BVSparseNode*, JitArenaAllocator)** prevNextFieldOut, bool create);
 
 ArenaData::ArenaData(PageAllocator * pageAllocator) :
     pageAllocator(pageAllocator),
@@ -70,6 +70,13 @@ ArenaAllocatorBase<TFreeListPolicy, ObjectAlignmentBitShiftArg, RequireObjectAli
     ArenaMemoryTracking::ReportFreeAll(this);
     ArenaMemoryTracking::ArenaDestroyed(this);
 
+#if DBG
+    // tag the fields in case the address is reused in recycler and create a false positive
+    this->cacheBlockEnd = (char*)((intptr_t)this->cacheBlockEnd | 1);
+#else
+    this->cacheBlockEnd = nullptr;
+#endif
+
     if (!pageAllocator->IsClosed())
     {
         ReleasePageMemory();
@@ -79,6 +86,7 @@ ArenaAllocatorBase<TFreeListPolicy, ObjectAlignmentBitShiftArg, RequireObjectAli
 #ifdef PROFILE_MEM
     LogEnd();
 #endif
+
 }
 
 template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg, bool RequireObjectAlignment, size_t MaxObjectSize>

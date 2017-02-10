@@ -11,8 +11,11 @@ namespace Js
     protected:
         ES5ArrayType(DynamicType * type);
     };
-    AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(ES5ArrayType, &RecyclableObject::DumpObjectFunction);
+}
+AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::ES5ArrayType, &Js::RecyclableObject::DumpObjectFunction);
 
+namespace Js
+{
     //
     // ES5Array supports attribute/getter/setter for index property names.
     //
@@ -100,5 +103,5 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
-    AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(ES5Array, &RecyclableObject::DumpObjectFunction);
 }
+AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::ES5Array, &Js::RecyclableObject::DumpObjectFunction);

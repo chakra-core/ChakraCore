@@ -2923,8 +2923,6 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     IR::Instr * ldInstr = this->prePassInstrMap->Lookup(propertySym->m_id, nullptr);
     Assert(ldInstr);
 
-    JITTypeHolder propertyType(nullptr);
-
     // Create instr to put in landing pad for compensation
     Assert(IsPREInstrCandidateLoad(ldInstr->m_opcode));
     IR::SymOpnd *ldSrc = ldInstr->GetSrc1()->AsSymOpnd();
@@ -2950,11 +2948,6 @@ BOOL GlobOpt::PreloadPRECandidate(Loop *loop, GlobHashBucket* candidate)
     {
         IR::PropertySymOpnd *propSymOpnd = ldSrc->AsPropertySymOpnd();
         IR::PropertySymOpnd *newPropSymOpnd;
-
-        if (propSymOpnd->IsMonoObjTypeSpecCandidate())
-        {
-            propertyType = propSymOpnd->GetType();
-        }
 
         newPropSymOpnd = propSymOpnd->AsPropertySymOpnd()->CopyWithoutFlowSensitiveInfo(this->func);
         ldInstr->ReplaceSrc1(newPropSymOpnd);
@@ -4214,7 +4207,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
         {
             instr->usesStackArgumentsObject = true;
         }
-        
+
         break;
     }
 
@@ -8159,6 +8152,21 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
 
     IntArrayCommon:
         Assert(dst->IsRegOpnd());
+        if (!this->DoAggressiveIntTypeSpec())
+        {
+            if (!dstVal)
+            {
+                if (srcVal)
+                {
+                    dstVal = this->ValueNumberTransferDst(instr, srcVal);
+                }
+                else
+                {
+                    dstVal = NewGenericValue(profiledElementType, dst);
+                }
+            }
+            return dstVal;
+        }
         TypeSpecializeIntDst(instr, instr->m_opcode, nullptr, nullptr, nullptr, bailOutKind, newMin, newMax, &dstVal);
         toType = TyInt32;
         break;
@@ -8171,6 +8179,21 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
     case ObjectType::Float64MixedArray:
     Float64Array:
         Assert(dst->IsRegOpnd());
+        if (!this->DoFloatTypeSpec())
+        {
+            if (!dstVal)
+            {
+                if (srcVal)
+                {
+                    dstVal = this->ValueNumberTransferDst(instr, srcVal);
+                }
+                else
+                {
+                    dstVal = NewGenericValue(profiledElementType, dst);
+                }
+            }
+            return dstVal;
+        }
         TypeSpecializeFloatDst(instr, nullptr, nullptr, nullptr, &dstVal);
         toType = TyFloat64;
         break;

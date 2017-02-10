@@ -109,7 +109,12 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
     // we do not track the main thread. When it exits do the cleanup below
 #ifdef CHAKRA_STATIC_LIBRARY
     atexit([]() {
-        ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread();
+        ThreadContext *threadContext = ThreadContext::GetContextForCurrentThread();
+        if (threadContext)
+        {
+            if (threadContext->IsInScript()) return;
+            ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread();
+        }
 
         JsrtRuntime::Uninitialize();
 
@@ -121,7 +126,7 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
 #endif
 
 #ifndef _WIN32
-        PAL_InitializeChakraCore(0, NULL);
+        PAL_InitializeChakraCore();
 #endif
 
         HMODULE mod = GetModuleHandleW(NULL);

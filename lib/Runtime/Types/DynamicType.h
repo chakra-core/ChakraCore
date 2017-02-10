@@ -25,12 +25,12 @@ namespace Js
         friend class SimpleDictionaryTypeHandlerBase;
 
     private:
-        DynamicTypeHandler * typeHandler;
-        bool isLocked;
-        bool isShared;
-        bool hasNoEnumerableProperties;
+        Field(DynamicTypeHandler *) typeHandler;
+        Field(bool) isLocked;
+        Field(bool) isShared;
+        Field(bool) hasNoEnumerableProperties;
 #if DBG
-        bool isCachedForChangePrototype;
+        Field(bool) isCachedForChangePrototype;
 #endif
 
     protected:

@@ -8,7 +8,7 @@ namespace Js
 {
     void MissingPropertyTypeHandler::SetUndefinedPropertySlot(DynamicObject* instance)
     {
-        Var * slots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(instance) + sizeof(DynamicObject));
+        Field(Var)* slots = reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(instance) + sizeof(DynamicObject));
         slots[0] = instance->GetLibrary()->GetUndefined();
     }
 

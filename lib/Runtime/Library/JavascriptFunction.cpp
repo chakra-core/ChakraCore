@@ -670,9 +670,14 @@ namespace Js
         // SEH and ResumeForOutOfBoundsArrayRefs are not needed.
         ret = CallRootFunctionInternal(args, scriptContext, inScript);
 #else
+        if (scriptContext->GetThreadContext()->GetAbnormalExceptionCode() != 0)
+        {
+            // ensure that hosts are not doing SEH across Chakra frames, as that can lead to bad state (e.g. destructors not being called)
+            UnexpectedExceptionHandling_fatal_error();
+        }
+
         // mark volatile, because otherwise VC will incorrectly optimize away load in the finally block
         volatile uint32 exceptionCode = 0;
-        volatile int exceptionAction = EXCEPTION_CONTINUE_SEARCH;
         EXCEPTION_POINTERS exceptionInfo = {0};
         __try
         {
@@ -683,7 +688,7 @@ namespace Js
             __except (
                 exceptionInfo = *GetExceptionInformation(),
                 exceptionCode = GetExceptionCode(),
-                exceptionAction = CallRootEventFilter(exceptionCode, GetExceptionInformation()))
+                CallRootEventFilter(exceptionCode, GetExceptionInformation()))
             {
                 Assert(UNREACHED);
             }
@@ -691,10 +696,10 @@ namespace Js
         __finally
         {
             // 0xE06D7363 is C++ exception code
-            if (exceptionCode != 0 && !IsDebuggerPresent() && exceptionCode != 0xE06D7363 && exceptionAction != EXCEPTION_CONTINUE_EXECUTION)
+            if (exceptionCode != 0 && exceptionCode != 0xE06D7363 && AbnormalTermination() && !IsDebuggerPresent() )
             {
-                // ensure that hosts are not doing SEH across Chakra frames, as that can lead to bad state (e.g. destructors not being called)
-                UnexpectedExceptionHandling_fatal_error(&exceptionInfo);
+                scriptContext->GetThreadContext()->SetAbnormalExceptionCode(exceptionCode);
+                scriptContext->GetThreadContext()->SetAbnormalExceptionRecord(&exceptionInfo);
             }
         }
 #endif
@@ -1648,10 +1653,6 @@ LABEL1:
 
         Assert(functionInfo);
 
-        // Prevent redeferring during parsing
-        bool canBeDeferred = functionInfo->CanBeDeferred();
-        functionInfo->SetAttributes((FunctionInfo::Attributes)(functionInfo->GetAttributes() & ~FunctionInfo::Attributes::CanDefer));
-
         if (functionInfo->IsDeferredParseFunction())
         {
             if (ScriptFunctionWithInlineCache::Is(*functionRef))
@@ -1683,12 +1684,6 @@ LABEL1:
 #else // !ENABLE_SCRIPT_PROFILING && !ENABLE_SCRIPT_DEBUGGING
         Assert(directEntryPoint != DefaultDeferredParsingThunk);
 #endif
-
-        // Restore the can-be-deferred attribute.
-        if (canBeDeferred)
-        {
-            funcBody->SetAttributes((FunctionInfo::Attributes)(funcBody->GetAttributes() | FunctionInfo::Attributes::CanDefer));
-        }
 
         JavascriptMethod thunkEntryPoint = (*functionRef)->UpdateUndeferredBody(funcBody);
 
@@ -3007,7 +3002,7 @@ LABEL1:
 
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-            Output::Print(_u("CtorCache: before invalidating cache (0x%p) for ctor %s (%s): "), this->constructorCache, ctorName,
+            Output::Print(_u("CtorCache: before invalidating cache (0x%p) for ctor %s (%s): "), PointerValue(this->constructorCache), ctorName,
                 body ? body->GetDebugNumberSet(debugStringBuffer) : _u("(null)"));
             this->constructorCache->Dump();
             Output::Print(_u("\n"));
@@ -3025,7 +3020,7 @@ LABEL1:
             const char16* ctorName = body != nullptr ? body->GetDisplayName() : _u("<unknown>");
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 
-            Output::Print(_u("CtorCache: after invalidating cache (0x%p) for ctor %s (%s): "), this->constructorCache, ctorName,
+            Output::Print(_u("CtorCache: after invalidating cache (0x%p) for ctor %s (%s): "), PointerValue(this->constructorCache), ctorName,
                 body ? body->GetDebugNumberSet(debugStringBuffer) : _u("(null)"));
             this->constructorCache->Dump();
             Output::Print(_u("\n"));
@@ -3057,7 +3052,10 @@ LABEL1:
                 {
                     charcount_t count = min(DIAG_MAX_FUNCTION_STRING, func->LengthInChars());
                     utf8::DecodeOptions options = sourceInfo->IsCesu8() ? utf8::doAllowThreeByteSurrogates : utf8::doDefault;
-                    utf8::DecodeInto(stringBuilder->AllocBufferSpace(count), func->GetSource(_u("JavascriptFunction::GetDiagValueString")), count, options);
+                    LPCUTF8 source = func->GetSource(_u("JavascriptFunction::GetDiagValueString"));
+                    size_t cbLength = sourceInfo->GetCbLength(_u("JavascriptFunction::GetDiagValueString"));
+                    size_t cbIndex = utf8::CharacterIndexToByteIndex(source, cbLength, count, options);
+                    utf8::DecodeUnitsInto(stringBuilder->AllocBufferSpace(count), source, source + cbIndex, options);
                     stringBuilder->IncreaseCount(count);
                     return TRUE;
                 }

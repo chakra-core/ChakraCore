@@ -241,7 +241,20 @@ void BVFixed::SetRange(Container* value, BVIndex start, BVIndex len)
     BVIndex iEnd = BVUnit::Position(end);
     BVIndex oStart = BVUnit::Offset(start);
     BVIndex oEnd = BVUnit::Offset(end);
-    BVUnit::BVUnitTContainer* bits = (BVUnit::BVUnitTContainer*)value;
+
+    BVUnit::BVUnitTContainer temp;
+    BVUnit::BVUnitTContainer* bits;
+    static_assert(sizeof(Container) == 1 || sizeof(Container) == sizeof(BVUnit::BVUnitTContainer),
+        "Container is not suitable to represent the calculated value");
+    if (sizeof(BVUnit::BVUnitTContainer) == 1)
+    {
+        temp = *((BVUnit::BVUnitTContainer*)value);
+        bits = &temp;
+    }
+    else
+    {
+        bits = (BVUnit::BVUnitTContainer*)value;
+    }
     const int oStartComplement = BVUnit::BitsPerWord - oStart;
     static_assert((BVUnit::BVUnitTContainer)BVUnit::AllOnesMask > 0, "Container type of BVFixed must be unsigned");
     //When making the mask, check the special case when we need all bits
@@ -299,6 +312,14 @@ void BVFixed::SetRange(Container* value, BVIndex start, BVIndex len)
             SET_RANGE(iEnd, bitsToSet, mask);
         }
     }
+
+    if (sizeof(Container) == 1)
+    {
+        // Calculation above might overflow the original container.
+        // normalize the overflow value. LE only
+        temp = (*((char*)bits)) + (*(((char*)bits) + 1));
+        memcpy(value, bits, 1);
+    }
 #undef MAKE_MASK
 #undef SET_RANGE
 }
@@ -312,7 +333,7 @@ public:
 
 // Data
 private:
-    BVUnit data[wordCount];
+    Field(BVUnit) data[wordCount];
 
 public:
     // Break on member changes. We rely on the layout of this class being static so we can
@@ -434,6 +455,12 @@ public:
         BOOLEAN bit = bvUnit->Test(offset);
         bvUnit->Clear(offset);
         return bit;
+    }
+
+    BOOLEAN TestAndClearInterlocked(BVIndex i)
+    {
+        AssertRange(i);
+        return PlatformAgnostic::_InterlockedBitTestAndReset((LONG *)this->data, (LONG)i);
     }
 
     void OrComplimented(const BVStatic * bv) { this->for_each(bv, &BVUnit::OrComplimented); ClearEnd(); }
@@ -664,7 +691,3 @@ public:
     }
 #endif
 };
-
-
-
-

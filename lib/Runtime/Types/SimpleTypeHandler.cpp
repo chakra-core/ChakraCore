@@ -31,12 +31,12 @@ namespace Js
     }
 
     template<size_t size>
-    SimpleTypeHandler<size>::SimpleTypeHandler(const PropertyRecord* id, PropertyAttributes attributes, PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
+    SimpleTypeHandler<size>::SimpleTypeHandler(NO_WRITE_BARRIER_TAG_TYPE(const PropertyRecord* id), PropertyAttributes attributes, PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
         DynamicTypeHandler(sizeof(descriptors) / sizeof(SimplePropertyDescriptor),
         inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | IsLockedFlag | MayBecomeSharedFlag | IsSharedFlag), propertyCount(1)
     {
         Assert((attributes & PropertyDeleted) == 0);
-        descriptors[0].Id = id;
+        NoWriteBarrierSet(descriptors[0].Id, id); // Used to init from global static BuiltInPropertyId
         descriptors[0].Attributes = attributes;
 
         Assert((propertyTypes & (PropertyTypesAll & ~PropertyTypesWritableDataOnly)) == 0);
@@ -45,15 +45,15 @@ namespace Js
     }
 
     template<size_t size>
-
-    SimpleTypeHandler<size>::SimpleTypeHandler(SimplePropertyDescriptor const (&SharedFunctionPropertyDescriptors)[size], PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
+    SimpleTypeHandler<size>::SimpleTypeHandler(NO_WRITE_BARRIER_TAG_TYPE(SimplePropertyDescriptor const (&SharedFunctionPropertyDescriptors)[size]), PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
          DynamicTypeHandler(sizeof(descriptors) / sizeof(SimplePropertyDescriptor),
          inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | IsLockedFlag | MayBecomeSharedFlag | IsSharedFlag), propertyCount(size)
     {
         for (size_t i = 0; i < size; i++)
         {
             Assert((SharedFunctionPropertyDescriptors[i].Attributes & PropertyDeleted) == 0);
-            descriptors[i].Id = SharedFunctionPropertyDescriptors[i].Id;
+             // Used to init from global static BuiltInPropertyId
+            NoWriteBarrierSet(descriptors[i].Id, SharedFunctionPropertyDescriptors[i].Id);
             descriptors[i].Attributes = SharedFunctionPropertyDescriptors[i].Attributes;
         }
         Assert((propertyTypes & (PropertyTypesAll & ~PropertyTypesWritableDataOnly)) == 0);
@@ -110,7 +110,7 @@ namespace Js
             Assert(value != nullptr || IsInternalPropertyId(descriptors[i].Id->GetPropertyId()));
             bool markAsFixed = allowFixedFields && !IsInternalPropertyId(descriptors[i].Id->GetPropertyId()) &&
                 (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : false);
-            newTypeHandler->Add(descriptors[i].Id, descriptors[i].Attributes, true, markAsFixed, false, scriptContext);
+            newTypeHandler->Add(PointerValue(descriptors[i].Id), descriptors[i].Attributes, true, markAsFixed, false, scriptContext);
         }
 
         newTypeHandler->SetFlags(IsPrototypeFlag | HasKnownSlot0Flag, this->GetFlags());

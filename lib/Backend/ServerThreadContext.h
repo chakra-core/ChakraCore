@@ -9,6 +9,8 @@ class ServerThreadContext : public ThreadContextInfo
 {
 #if ENABLE_OOP_NATIVE_CODEGEN
 public:
+    typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
+
     ServerThreadContext(ThreadContextDataIDL * data);
     ~ServerThreadContext();
 
@@ -51,6 +53,17 @@ public:
 private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
+
+    class AutoCloseHandle
+    {
+    public:
+        AutoCloseHandle(HANDLE handle) : handle(handle) { Assert(handle != GetCurrentProcess()); }
+        ~AutoCloseHandle() { CloseHandle(this->handle); }
+    private:
+        HANDLE handle;
+    };
+
+    AutoCloseHandle m_autoProcessHandle;
 
     BVSparse<HeapAllocator> * m_numericPropertyBV;
 

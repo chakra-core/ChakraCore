@@ -26,6 +26,7 @@
 #include "Common/Jobs.h"
 #include "Common/Jobs.inl"
 #include "Core/CommonMinMax.h"
+#include "Memory/RecyclerWriteBarrierManager.h"
 
 namespace JsUtil
 {
@@ -1224,6 +1225,11 @@ namespace JsUtil
     unsigned int WINAPI BackgroundJobProcessor::StaticThreadProc(void *lpParam)
     {
         Assert(lpParam);
+
+#ifdef _M_X64_OR_ARM64
+        Memory::RecyclerWriteBarrierManager::OnThreadInit();
+#endif
+
 #if !defined(_UCRT)
         HMODULE dllHandle = NULL;
         if (!GetModuleHandleEx(0, AutoSystemInfo::GetJscriptDllFileName(), &dllHandle))

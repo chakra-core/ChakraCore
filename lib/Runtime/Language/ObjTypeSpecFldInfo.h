@@ -17,9 +17,9 @@ namespace Js
 
     struct FixedFieldInfo
     {
-        Var fieldValue;
-        Type* type;
-        bool nextHasSameFixedField; // set to true if the next entry in the FixedFieldInfo array on ObjTypeSpecFldInfo has the same type
+        Field(Var) fieldValue;
+        Field(Type*) type;
+        Field(bool) nextHasSameFixedField; // set to true if the next entry in the FixedFieldInfo array on ObjTypeSpecFldInfo has the same type
     };
 
     // Union with uint16 flags for fast default initialization
@@ -27,24 +27,24 @@ namespace Js
     {
         struct
         {
-            bool falseReferencePreventionBit : 1;
-            bool isPolymorphic : 1;
-            bool isRootObjectNonConfigurableField : 1;
-            bool isRootObjectNonConfigurableFieldLoad : 1;
-            bool usesAuxSlot : 1;
-            bool isLocal : 1;
-            bool isLoadedFromProto : 1;
-            bool usesAccessor : 1;
-            bool hasFixedValue : 1;
-            bool keepFieldValue : 1;
-            bool isBeingStored : 1;
-            bool isBeingAdded : 1;
-            bool doesntHaveEquivalence : 1;
-            bool isBuiltIn : 1;
+            Field(bool) falseReferencePreventionBit : 1;
+            Field(bool) isPolymorphic : 1;
+            Field(bool) isRootObjectNonConfigurableField : 1;
+            Field(bool) isRootObjectNonConfigurableFieldLoad : 1;
+            Field(bool) usesAuxSlot : 1;
+            Field(bool) isLocal : 1;
+            Field(bool) isLoadedFromProto : 1;
+            Field(bool) usesAccessor : 1;
+            Field(bool) hasFixedValue : 1;
+            Field(bool) keepFieldValue : 1;
+            Field(bool) isBeingStored : 1;
+            Field(bool) isBeingAdded : 1;
+            Field(bool) doesntHaveEquivalence : 1;
+            Field(bool) isBuiltIn : 1;
         };
         struct
         {
-            uint16 flags;
+            Field(uint16) flags;
         };
         ObjTypeSpecFldInfoFlags(uint16 flags) : flags(flags) { }
     };
@@ -52,21 +52,21 @@ namespace Js
     class ObjTypeSpecFldInfo
     {
     private:
-        DynamicObject* protoObject;
-        PropertyGuard* propertyGuard;
-        EquivalentTypeSet* typeSet;
-        Type* initialType;
-        JITTimeConstructorCache* ctorCache;
-        FixedFieldInfo* fixedFieldInfoArray;
+        Field(DynamicObject*) protoObject;
+        Field(PropertyGuard*) propertyGuard;
+        Field(EquivalentTypeSet*) typeSet;
+        Field(Type*) initialType;
+        Field(JITTimeConstructorCache*) ctorCache;
+        Field(FixedFieldInfo*) fixedFieldInfoArray;
 
-        PropertyId propertyId;
-        Js::TypeId typeId;
-        uint id;
+        Field(PropertyId) propertyId;
+        Field(Js::TypeId) typeId;
+        Field(uint) id;
 
-        ObjTypeSpecFldInfoFlags flags;
-        uint16 slotIndex;
+        Field(ObjTypeSpecFldInfoFlags) flags;
+        Field(uint16) slotIndex;
 
-        uint16 fixedFieldCount; // currently used only for fields that are functions
+        Field(uint16) fixedFieldCount; // currently used only for fields that are functions
 
     public:
         ObjTypeSpecFldInfo() :
@@ -370,9 +370,9 @@ namespace Js
     class ObjTypeSpecFldInfoArray
     {
     private:
-        ObjTypeSpecFldInfo** infoArray;
+        Field(Field(ObjTypeSpecFldInfo*)*) infoArray;
 #if DBG
-        uint infoCount;
+        Field(uint) infoCount;
 #endif
     public:
         ObjTypeSpecFldInfoArray();
@@ -383,7 +383,7 @@ namespace Js
     public:
         ObjTypeSpecFldInfo* GetInfo(FunctionBody *const functionBody, const uint index) const;
         ObjTypeSpecFldInfo* GetInfo(const uint index) const;
-        ObjTypeSpecFldInfo** GetInfoArray() const { return infoArray; }
+        Field(ObjTypeSpecFldInfo*)* GetInfoArray() const { return infoArray; }
 
         void SetInfo(Recycler *const recycler, FunctionBody *const functionBody,
             const uint index, ObjTypeSpecFldInfo* info);

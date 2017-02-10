@@ -9,7 +9,7 @@ namespace Js
     class JavascriptSymbolObject : public DynamicObject
     {
     private:
-        JavascriptSymbol* value;
+        Field(JavascriptSymbol*) value;
 
         DEFINE_VTABLE_CTOR(JavascriptSymbolObject, DynamicObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptSymbolObject);

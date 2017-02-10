@@ -21,4 +21,8 @@ $1/build/tools/make-standalone-toolchain.sh \
     --install-dir=$TOOLCHAIN \
     --platform=$ANDROID_TARGET --force
 
+# use system python
 rm $TOOLCHAIN/bin/python
+
+# keep cmake from using system ranlib
+cp android-toolchain-arm/bin/arm-linux-androideabi-ranlib android-toolchain-arm/bin/ranlib

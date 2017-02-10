@@ -1694,7 +1694,14 @@ namespace UnifiedRegex
             case 'w':
                 {
                     MatchSetNode *setNode = Anew(ctAllocator, MatchSetNode, false, false);
-                    standardChars->SetWordChars(ctAllocator, setNode->set);
+                    if (this->unicodeFlagPresent && this->caseInsensitiveFlagPresent)
+                    {
+                        standardChars->SetWordIUChars(ctAllocator, setNode->set);
+                    }
+                    else
+                    {
+                        standardChars->SetWordChars(ctAllocator, setNode->set);
+                    }
                     node = setNode;
                     return false; // not an assertion
                 }
@@ -2877,6 +2884,7 @@ namespace UnifiedRegex
           const EncodedChar*& currentCharacter,
           const CharCount totalLen,
           const CharCount bodyChars,
+          const CharCount bodyEncodedChars,
           const CharCount totalChars,
           const RegexFlags flags )
     {
@@ -2888,7 +2896,7 @@ namespace UnifiedRegex
         {
             const auto recycler = this->scriptContext->GetRecycler();
             program = Program::New(recycler, flags);
-            this->CaptureSourceAndGroups(recycler, program, currentCharacter, bodyChars);
+            this->CaptureSourceAndGroups(recycler, program, currentCharacter, bodyChars, bodyEncodedChars);
         }
 
         currentCharacter += totalLen;
@@ -2961,7 +2969,7 @@ namespace UnifiedRegex
     }
 
     template <typename P, const bool IsLiteral>
-    void Parser<P, IsLiteral>::CaptureSourceAndGroups(Recycler* recycler, Program* program, const EncodedChar* body, CharCount bodyChars)
+    void Parser<P, IsLiteral>::CaptureSourceAndGroups(Recycler* recycler, Program* program, const EncodedChar* body, CharCount bodyChars, CharCount bodyEncodedChars)
     {
         Assert(program->source == 0);
         Assert(body != 0);
@@ -2969,7 +2977,8 @@ namespace UnifiedRegex
         // Program will own source string
         program->source = RecyclerNewArrayLeaf(recycler, Char, bodyChars + 1);
         // Don't need to zero out since we're writing to the buffer right here
-        this->ConvertToUnicode(program->source, bodyChars, body);
+        this->ConvertToUnicode(program->source, bodyChars, body, body + bodyEncodedChars);
+
         program->source[bodyChars] = 0;
         program->sourceLen = bodyChars;
 
@@ -3006,7 +3015,14 @@ namespace UnifiedRegex
                 standardChars->SetNonDigits(ctAllocator, partialPrefixSetNode->set);
                 break;
             case 'W':
-                standardChars->SetNonWordChars(ctAllocator, partialPrefixSetNode->set);
+                if (this->caseInsensitiveFlagPresent)
+                {
+                    standardChars->SetNonWordIUChars(ctAllocator, partialPrefixSetNode->set);
+                }
+                else
+                {
+                    standardChars->SetNonWordChars(ctAllocator, partialPrefixSetNode->set);
+                }
                 break;
             default:
                 AssertMsg(false, "");
@@ -3052,7 +3068,7 @@ namespace UnifiedRegex
         if (litbuf != 0)
         {
             ctAllocator->Free(litbuf, litbufLen);
-            litbuf = 0;
+            litbuf = nullptr;
             litbufLen = 0;
             litbufNext = 0;
         }
@@ -3060,7 +3076,7 @@ namespace UnifiedRegex
 
     // Instantiate all templates
 #define INSTANTIATE_REGEX_PARSER_COMPILE(EncodingPolicy, IsLiteral, BuildAST)    \
-    template RegexPattern* Parser<EncodingPolicy, IsLiteral>::CompileProgram<BuildAST>(Node* root, const EncodedChar*& currentCharacter, const CharCount totalLen, const CharCount bodyChars, const CharCount totalChars, const RegexFlags flags );
+    template RegexPattern* Parser<EncodingPolicy, IsLiteral>::CompileProgram<BuildAST>(Node* root, const EncodedChar*& currentCharacter, const CharCount totalLen, const CharCount bodyChars, const CharCount bodyEncodedChars, const CharCount totalChars, const RegexFlags flags );
 
 #define INSTANTIATE_REGEX_PARSER(EncodingPolicy)                     \
     INSTANTIATE_REGEX_PARSER_COMPILE(EncodingPolicy, false, false)   \

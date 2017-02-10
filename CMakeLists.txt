@@ -18,19 +18,26 @@ if(STATIC_LIBRARY_SH)
     set(STATIC_LIBRARY 1)
 endif()
 
+if(CC_USES_SYSTEM_ARCH_SH)
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+        set(CC_TARGETS_AMD64_SH 1)
+    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
+        set(CC_TARGETS_ARM_SH 1)
+    endif()
+    unset(CC_USES_SYSTEM_ARCH_SH CACHE)
+endif()
+
 if(CC_TARGETS_AMD64_SH)
-  set(CC_TARGETS_AMD64 1)
-endif()
-
-if(CC_TARGETS_X86_SH)
-    set(CC_TARGETS_X86 1)
-    set(CMAKE_SYSTEM_PROCESSOR "i386")
-endif()
-
-if(CC_TARGETS_ARM_SH)
+    set(CC_TARGETS_AMD64 1)
+elseif (CC_TARGETS_ARM_SH)
     set(CC_TARGETS_ARM 1)
     add_definitions(-D_ARM_=1)
     set(CMAKE_SYSTEM_PROCESSOR "armv7l")
+elseif(CC_TARGETS_X86_SH)
+    set(CC_TARGETS_X86 1)
+    set(CMAKE_SYSTEM_PROCESSOR "i386")
+else()
+    message(FATAL_ERROR "Couldn't detect target processor, try `--arch` argument with build.sh")
 endif()
 
 unset(CC_TARGETS_ARM_SH CACHE)
@@ -62,11 +69,27 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     set(CC_TARGET_OS_OSX 1)
 endif()
 
+if (ENABLE_CC_XPLAT_TRACE_SH)
+    unset(ENABLE_CC_XPLAT_TRACE_SH CACHE)
+    set(ENABLE_CC_XPLAT_TRACE 1)
+    if (CC_TARGET_OS_ANDROID)
+        add_definitions(-DTRACE_OUTPUT_TO_LOGCAT=1)
+    else()
+        add_definitions(-DTRACE_OUTPUT_TARGET_FILE=1)
+    endif()
+    add_definitions(-DENABLE_CC_XPLAT_TRACE=1)
+    add_compile_options(-finstrument-functions)
+    add_compile_options(-g)
+    add_compile_options(-ggdb)
+    if(NOT STATIC_LIBRARY)
+        message(FATAL_ERROR "Trace option is available only for --static builds")
+    endif()
+endif()
+
 if(CC_EMBED_ICU_SH)
     unset(CC_EMBED_ICU_SH CACHE)
     set(CC_EMBED_ICU 1)
     set(ICU_INCLUDE_PATH "deps/icu/source/output/include/")
-    add_definitions(-DU_STATIC_IMPLEMENTATION)
 endif()
 
 if(ICU_INCLUDE_PATH_SH)
@@ -176,12 +199,18 @@ elseif(CC_TARGET_OS_OSX)
     endif()
 
     if(NOT CC_XCODE_PROJECT)
-        set(CLR_CMAKE_PLATFORM_DARWIN 1)
+      set(OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET} CC")
+      if (${OSX_DEPLOYMENT_TARGET} STREQUAL " CC")
+        set(OSX_DEPLOYMENT_TARGET "10.7")
         add_compile_options(-mmacosx-version-min=10.7)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
             -mmacosx-version-min=10.7")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
             -mmacosx-version-min=10.7")
+      else()
+        set(OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET}")
+        message(WARNING "!! macOS Deployment Target was set to $ENV{MACOSX_DEPLOYMENT_TARGET}. Using it as is.")
+      endif()
     endif()
 else()
     message(FATAL_ERROR "This OS is not supported")
@@ -289,12 +318,27 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     endif()
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
-if(ENABLE_FULL_LTO_SH)
-    unset(DENABLE_FULL_LTO_SH CACHE)
-    add_compile_options(-flto)
-elseif(ENABLE_THIN_LTO_SH)
-    unset(ENABLE_THIN_LTO_SH CACHE)
-    add_compile_options(-flto=thin)
+if (ENABLE_FULL_LTO_SH OR ENABLE_THIN_LTO_SH)
+    if (CC_TARGET_OS_LINUX)
+        set(CC_LTO_ENABLED
+            -fuse-ld=gold
+            -Xlinker -plugin=${CHAKRACORE_BINARY_DIR}/../../cc-toolchain/build/lib/LLVMgold.so
+            )
+    endif()
+
+    if (ENABLE_FULL_LTO_SH)
+        unset(DENABLE_FULL_LTO_SH CACHE)
+        add_compile_options(-flto)
+        if (CC_LTO_ENABLED)
+            set(CC_LTO_ENABLED "${CC_LTO_ENABLED} -flto")
+        endif()
+    elseif (ENABLE_THIN_LTO_SH)
+        unset(ENABLE_THIN_LTO_SH CACHE)
+        add_compile_options(-flto=thin)
+        if (CC_LTO_ENABLED)
+            set(CC_LTO_ENABLED "${CC_LTO_ENABLED} -flto=thin")
+        endif()
+    endif()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -312,6 +356,8 @@ endif(CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
     add_compile_options(-O3)
+else()
+    add_compile_options(-O0)
 endif(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
@@ -335,6 +381,43 @@ if(WITHOUT_FEATURES_SH)
 endif(WITHOUT_FEATURES_SH)
 
 enable_language(ASM)
+
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(DYN_LIB_EXT "dylib")
+else()
+    set(DYN_LIB_EXT "so")
+endif()
+
+################# Write-barrier check/analyze ##################
+if (WB_CHECK_SH OR WB_ANALYZE_SH)
+    add_definitions(
+        -Xclang -load
+        -Xclang ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecyclerChecker/Build/libclangRecyclerChecker.${DYN_LIB_EXT}
+    )
+endif()
+if (WB_CHECK_SH)
+    unset(WB_CHECK_SH CACHE)    # don't cache
+    add_definitions(
+        -Xclang -add-plugin
+        -Xclang check-recycler
+    )
+endif()
+if (WB_ANALYZE_SH)
+    unset(WB_ANALYZE_SH CACHE)  # don't cache
+    add_definitions(
+        -Xclang -analyze
+        -Xclang -analyzer-checker=chakra.RecyclerChecker
+    )
+endif()
+if (WB_ARGS_SH)
+    foreach(wb_arg IN LISTS WB_ARGS_SH)
+        add_definitions(
+            -Xclang -plugin-arg-check-recycler
+            -Xclang ${wb_arg}
+        )
+    endforeach(wb_arg)
+    unset(WB_ARGS_SH CACHE)  # don't cache
+endif()
 
 include_directories(
     .

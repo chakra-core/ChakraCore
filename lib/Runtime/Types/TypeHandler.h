@@ -66,13 +66,13 @@ namespace Js
 
         // PropertyTypesReserved (0x1) is always on so that the DWORD formed with the following boolean doesn't look like
         // a pointer.
-        PropertyTypes propertyTypes;
-        BYTE flags;
-        uint16 offsetOfInlineSlots;
-        int slotCapacity;
-        uint16 unusedBytes;             // This always has it's lowest bit set to avoid false references
-        uint16 inlineSlotCapacity;
-        bool isNotPathTypeHandlerOrHasUserDefinedCtor;
+        Field(PropertyTypes) propertyTypes;
+        Field(BYTE) flags;
+        Field(uint16) offsetOfInlineSlots;
+        Field(int) slotCapacity;
+        Field(uint16) unusedBytes;             // This always has it's lowest bit set to avoid false references
+        Field(uint16) inlineSlotCapacity;
+        Field(bool) isNotPathTypeHandlerOrHasUserDefinedCtor;
 
     public:
         DEFINE_GETCPPNAME_ABSTRACT();

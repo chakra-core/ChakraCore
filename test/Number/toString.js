@@ -31,6 +31,7 @@ function runTest(numberToTestAsString)
     safeCall(function () { n.toFixed(21); });
 
     writeLine("n.toExponential():  " + n.toExponential());
+    writeLine("n.toExponential(undefined):  " + n.toExponential(undefined));
     writeLine("n.toExponential(2):  " + n.toExponential(2));
     writeLine("n.toExponential(5):  " + n.toExponential(5));
 

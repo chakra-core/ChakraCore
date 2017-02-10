@@ -76,12 +76,12 @@ namespace Js
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
     public:
-        //Field for tracking object allocation 
+        //Field for tracking object allocation
         TTD::DiagnosticOrigin TTDDiagOriginInfo;
 #endif
 
     private:
-        Var* auxSlots;
+        Field(Field(Var)*) auxSlots;
         // The objectArrayOrFlags field can store one of two things:
         //   a) a pointer to the object array holding numeric properties of this object, or
         //   b) a bitfield of flags.
@@ -95,11 +95,11 @@ namespace Js
 
         union
         {
-            ArrayObject * objectArray;          // Only if !IsAnyArray
+            Field(ArrayObject *) objectArray;          // Only if !IsAnyArray
             struct                                  // Only if IsAnyArray
             {
-                DynamicObjectFlags arrayFlags;
-                ProfileId arrayCallSiteIndex;
+                Field(DynamicObjectFlags) arrayFlags;
+                Field(ProfileId) arrayCallSiteIndex;
             };
         };
 
@@ -283,7 +283,7 @@ namespace Js
 
         void ChangeTypeIf(const Type* oldType);
 
-        BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, 
+        BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes,
             DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext) const;
 
         virtual BOOL HasDeferredTypeHandler() const sealed;
@@ -335,8 +335,8 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 
-        Js::Var* GetInlineSlots_TTD() const;
-        Js::Var* GetAuxSlots_TTD() const;
+        Js::Var const* GetInlineSlots_TTD() const;
+        Js::Var const* GetAuxSlots_TTD() const;
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
         void SetDiagOriginInfoAsNeeded();

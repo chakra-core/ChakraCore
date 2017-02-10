@@ -13,8 +13,10 @@ namespace Memory
 // Controls whether we're using a 128 byte granularity card table or a 4K granularity byte array to indicate that a range of memory is dirty
 #define RECYCLER_WRITE_BARRIER_BYTE
 
+#if GLOBAL_ENABLE_WRITE_BARRIER
 // Controls whether the JIT is software write barrier aware
-// #define RECYCLER_WRITE_BARRIER_JIT
+#define RECYCLER_WRITE_BARRIER_JIT
+#endif
 
 // Controls whether we can allocate SWB memory or not
 // Turning this on leaves the rest of the SWB infrastructure intact,
@@ -34,10 +36,30 @@ namespace Memory
 #endif
 #endif // RECYCLER_WRITE_BARRIER_ALLOC
 
+#ifdef RECYCLER_WRITE_BARRIER_BYTE
+
+#define DIRTYBIT 0x01
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+#define WRITE_BARRIER_PAGE_BIT 0x2
+#else
+#define WRITE_BARRIER_PAGE_BIT 0x0
+#endif
+
+// indicate the barrier has ever been cleared
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+#define WRITE_BARRIER_CLEAR_MARK 0x4
+#else
+#define WRITE_BARRIER_CLEAR_MARK 0x0
+#endif
+
+#endif
+
 #ifdef _M_X64_OR_ARM64
 #ifdef RECYCLER_WRITE_BARRIER_BYTE
 
 #define X64_WB_DIAG 1
+
 
 class X64WriteBarrierCardTableManager
 {
@@ -63,11 +85,19 @@ public:
     // Get the card table for the 64 bit address space
     BYTE * GetAddressOfCardTable() { return _cardTable; }
 
-#if DBG
+#if ENABLE_DEBUG_CONFIG_OPTIONS
     void AssertWriteToAddress(_In_ void* address)
     {
         Assert(_cardTable);
         Assert(committedSections.Test(GetSectionIndex(address)));
+    }
+    BOOLEAN IsCardTableCommited(_In_ uintptr_t index)
+    {
+        return committedSections.Test((BVIndex)(index/ AutoSystemInfo::PageSize));
+    }
+    BOOLEAN IsCardTableCommited(_In_ void* address)
+    {
+        return committedSections.Test(GetSectionIndex(address));
     }
 #endif
 
@@ -104,6 +134,8 @@ private:
     size_t _lastSectionIndexStart;
     size_t _lastSectionIndexLast;
     CommitState _lastCommitState;
+    char* _stackbase;
+    char* _stacklimit;
 #endif
 
 #ifdef X64_WB_DIAG
@@ -123,7 +155,35 @@ class RecyclerWriteBarrierManager
 {
 public:
     static void WriteBarrier(void * address);
-    static void WriteBarrier(void * address, size_t ptrCount);
+    static void WriteBarrier(void * address, size_t bytes);
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    static void ToggleBarrier(void * address, size_t bytes, bool enable);
+    static bool IsBarrierAddress(void * address);
+    static bool IsBarrierAddress(uintptr_t index);
+    static void VerifyIsBarrierAddress(void * address, size_t bytes);
+    static void VerifyIsNotBarrierAddress(void * address, size_t bytes);
+    static void VerifyIsBarrierAddress(void * address);
+    static bool Initialize();
+#endif
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    static bool IsCardTableCommited(_In_ uintptr_t index)
+    {
+#ifdef _M_X64_OR_ARM64
+        return x64CardTableManager.IsCardTableCommited(index) != FALSE;
+#else
+        return true;
+#endif
+    }
+    static bool IsCardTableCommitedAddress(_In_ void* address)
+    {
+#ifdef _M_X64_OR_ARM64
+        return x64CardTableManager.IsCardTableCommited(address) != FALSE;
+#else
+        return true;
+#endif
+    }
+#endif
 
     // For JIT
     static uintptr_t GetCardTableIndex(void * address);

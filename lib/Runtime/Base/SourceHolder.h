@@ -31,12 +31,12 @@ namespace Js
     {
         friend class ISourceHolder;
     private:
-        LPCUTF8 source;
-        size_t byteLength;
-        bool isEmpty;
+        Field(LPCUTF8) source;
+        Field(size_t) byteLength;
+        Field(bool) isEmpty;
 
-        SimpleSourceHolder(LPCUTF8 source, size_t byteLength, bool isEmpty)
-            : source(source),
+        SimpleSourceHolder(NO_WRITE_BARRIER_TAG_TYPE(LPCUTF8 source), size_t byteLength, bool isEmpty)
+            : source(NO_WRITE_BARRIER_TAG(source)),
             byteLength(byteLength),
             isEmpty(isEmpty)
         {

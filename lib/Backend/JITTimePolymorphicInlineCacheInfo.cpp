@@ -36,6 +36,7 @@ JITTimePolymorphicInlineCacheInfo::InitializeEntryPointPolymorphicInlineCacheInf
         while (iter.Next())
         {
             Js::PolymorphicInlineCacheInfo * inlineeInfo = iter.Data();
+            __analysis_assume(i < inlineeList->Count());
             JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(recycler, inlineeInfo, &inlineeInfoIDL[i]);
             ++i;
         }
@@ -53,8 +54,9 @@ JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(
     __in Js::PolymorphicInlineCacheInfo * runtimeInfo,
     __out PolymorphicInlineCacheInfoIDL * jitInfo)
 {
+#pragma warning(suppress: 6001)
     jitInfo->polymorphicCacheUtilizationArray = runtimeInfo->GetUtilByteArray();
-    jitInfo->functionBodyAddr = (intptr_t)runtimeInfo->GetFunctionBody();
+    jitInfo->functionBodyAddr = runtimeInfo->GetFunctionBody();
 
     if (runtimeInfo->GetPolymorphicInlineCaches()->HasInlineCaches())
     {
@@ -66,7 +68,7 @@ JITTimePolymorphicInlineCacheInfo::InitializePolymorphicInlineCacheInfo(
             if (pic != nullptr)
             {
                 jitInfo->polymorphicInlineCaches[j].size = pic->GetSize();
-                jitInfo->polymorphicInlineCaches[j].addr = (intptr_t)pic;
+                jitInfo->polymorphicInlineCaches[j].addr = pic;
                 jitInfo->polymorphicInlineCaches[j].inlineCachesAddr = (intptr_t)pic->GetInlineCaches();
             }
         }

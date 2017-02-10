@@ -652,6 +652,15 @@ namespace TTD
 
     void EventLog::InitForTTDReplay(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes, bool debug)
     {
+        if (debug)
+        {
+            this->SetGlobalMode(TTDMode::DebuggerMode);
+        }
+        else
+        {
+            this->SetGlobalMode(TTDMode::ReplayMode);
+        }
+
         this->ParseLogInto(iofp, uriByteLength, uriBytes);
 
         Js::PropertyId maxPid = TotalNumberOfBuiltInProperties + 1;
@@ -672,15 +681,6 @@ namespace TTD
             {
                 this->m_propertyRecordPinSet->AddNew(const_cast<Js::PropertyRecord*>(newPropertyRecord));
             }
-        }
-
-        if(debug)
-        {
-            this->SetGlobalMode(TTDMode::DebuggerMode);
-        }
-        else
-        {
-            this->SetGlobalMode(TTDMode::ReplayMode);
         }
     }
 

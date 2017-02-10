@@ -8,12 +8,12 @@ namespace Js
 {
     DEFINE_RECYCLER_TRACKER_WEAKREF_PERF_COUNTER(Type);
 
-    InternalString Type::ObjectTypeNameString    = InternalString(_u("object"), 6);
-    InternalString Type::UndefinedTypeNameString = InternalString(_u("undefined"), 9);
-    InternalString Type::BooleanTypeNameString   = InternalString(_u("boolean"), 7);
-    InternalString Type::StringTypeNameString    = InternalString(_u("string"), 6);
-    InternalString Type::NumberTypeNameString    = InternalString(_u("number"), 6);
-    InternalString Type::FunctionTypeNameString  = InternalString(_u("function"), 8);
+    InternalString Type::ObjectTypeNameString    = InternalString(NO_WRITE_BARRIER_TAG(_u("object")), 6);
+    InternalString Type::UndefinedTypeNameString = InternalString(NO_WRITE_BARRIER_TAG(_u("undefined")), 9);
+    InternalString Type::BooleanTypeNameString   = InternalString(NO_WRITE_BARRIER_TAG(_u("boolean")), 7);
+    InternalString Type::StringTypeNameString    = InternalString(NO_WRITE_BARRIER_TAG(_u("string")), 6);
+    InternalString Type::NumberTypeNameString    = InternalString(NO_WRITE_BARRIER_TAG(_u("number")), 6);
+    InternalString Type::FunctionTypeNameString  = InternalString(NO_WRITE_BARRIER_TAG(_u("function")), 8);
 
     Type::Type(ScriptContext* scriptContext, TypeId typeId, RecyclableObject* prototype, JavascriptMethod entryPoint) :
         javascriptLibrary(scriptContext->GetLibrary()),

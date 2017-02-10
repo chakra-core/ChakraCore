@@ -54,8 +54,8 @@ namespace Js
         friend bool IsValidCharCount(size_t);
 
     private:
-        const char16* m_pszValue;         // Flattened, '\0' terminated contents
-        charcount_t m_charLength;          // Length in characters, not including '\0'.
+        Field(const char16*) m_pszValue;         // Flattened, '\0' terminated contents
+        Field(charcount_t) m_charLength;          // Length in characters, not including '\0'.
 
         static const charcount_t MaxCharLength = INT_MAX - 1;  // Max number of chars not including '\0'.
 

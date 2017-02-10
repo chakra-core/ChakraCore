@@ -13,7 +13,7 @@ namespace Js
     class JavascriptSIMDFloat64x2 sealed : public RecyclableObject
     {
     private:
-        SIMDValue value;
+        Field(SIMDValue) value;
 
         DEFINE_VTABLE_CTOR(JavascriptSIMDFloat64x2, RecyclableObject);
 

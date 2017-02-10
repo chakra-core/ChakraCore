@@ -262,7 +262,9 @@ namespace Js
         DynamicTypeHandler(1),
         nextPropertyIndex(0),
         singletonInstance(nullptr),
+        _gc_tag(true),
         isUnordered(false),
+        hasNamelessPropertyId(false),
         numDeletedProperties(0)
     {
         SetIsInlineSlotCapacityLocked();
@@ -275,6 +277,7 @@ namespace Js
         DynamicTypeHandler(slotCapacity, inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | (isLocked ? IsLockedFlag : 0) | (isShared ? (MayBecomeSharedFlag | IsSharedFlag) : 0)),
         nextPropertyIndex(0),
         singletonInstance(nullptr),
+        _gc_tag(true),
         isUnordered(false),
         hasNamelessPropertyId(false),
         numDeletedProperties(0)
@@ -295,6 +298,7 @@ namespace Js
         DynamicTypeHandler(slotCapacity, inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | (isLocked ? IsLockedFlag : 0) | (isShared ? (MayBecomeSharedFlag | IsSharedFlag) : 0)),
         nextPropertyIndex(0),
         singletonInstance(nullptr),
+        _gc_tag(true),
         isUnordered(false),
         hasNamelessPropertyId(false),
         numDeletedProperties(0)
@@ -310,6 +314,7 @@ namespace Js
         DynamicTypeHandler(slotCapacity, inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | (isLocked ? IsLockedFlag : 0) | (isShared ? (MayBecomeSharedFlag | IsSharedFlag) : 0)),
         nextPropertyIndex(0),
         singletonInstance(nullptr),
+        _gc_tag(true),
         isUnordered(false),
         hasNamelessPropertyId(false),
         numDeletedProperties(0)
@@ -1559,7 +1564,7 @@ namespace Js
     {
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord* ");
-    
+
         if (!GetIsLocked())
         {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -1571,9 +1576,9 @@ namespace Js
                     ->DeleteProperty(instance, propertyNameString, propertyOperationFlags);
             }
 #endif
-    
+
             ScriptContext* scriptContext = instance->GetScriptContext();
-    
+
             JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
             SimpleDictionaryPropertyDescriptor<TPropertyIndex>* descriptor;
             if (propertyMap->TryGetReference(propertyName, &descriptor))
@@ -1590,7 +1595,7 @@ namespace Js
                 else if (!(descriptor->Attributes & PropertyConfigurable))
                 {
                     JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, propertyNameString->GetString()); // or propertyName->GetBuffer
-    
+
                     return false;
                 }
                 Assert(!(descriptor->Attributes & PropertyLetConstGlobal));
@@ -1606,7 +1611,7 @@ namespace Js
                             // property IDs. After this, enumeration order is nondeterministic.
                             // Also use JavascriptString* as the property map key so that PropertyRecords can be avoided
                             // entirely where possible.
-    
+
                             // Check if prototype chain has enumerable properties, according to logic used in
                             // ForInObjectEnumerator::Initialize().  If there are enumerable properties in the
                             // prototype chain, then enumerating this object's properties will require keeping
@@ -1618,7 +1623,7 @@ namespace Js
                             bool fConvertToStringKeyedHandler =
                                 !hasNamelessPropertyId &&
                                 ForInObjectEnumerator::GetFirstPrototypeWithEnumerableProperties(instance) == nullptr;
-    
+
                             if (fConvertToStringKeyedHandler)
                             {
                                 PHASE_PRINT_TESTTRACE1(Js::TypeHandlerTransitionPhase, _u("Transitioning to string keyed SimpleDictionaryUnorderedTypeHandler\n"));
@@ -1635,15 +1640,15 @@ namespace Js
                             }
                         }
                     }
-    
+
                     Assert(this->singletonInstance == nullptr || instance == this->singletonInstance->Get());
                     InvalidateFixedField(propertyNameString, descriptor, instance->GetScriptContext());
-    
+
                     if (this->GetFlags() & IsPrototypeFlag)
                     {
                         scriptContext->InvalidateProtoCaches(scriptContext->GetOrAddPropertyIdTracked(propertyNameString->GetSz(), propertyNameString->GetLength()));
                     }
-    
+
                     // If this is an unordered type handler, register the deleted property index so that it can be reused for
                     // other property IDs added later
                     if (!isUnordered ||
@@ -1653,7 +1658,7 @@ namespace Js
                     }
                 }
                 descriptor->Attributes = PropertyDeletedDefaults;
-    
+
                 // Change the type so as we can invalidate the cache in fast path jit
                 if (instance->GetType()->HasBeenCached())
                 {

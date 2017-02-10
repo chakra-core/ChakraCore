@@ -64,7 +64,7 @@ typedef JsErrorCode(CHAKRA_CALLBACK * FetchImportedModuleCallBack)(_In_ JsModule
 /// Notify the host after ModuleDeclarationInstantiation step (15.2.1.1.6.4) is finished. If there was error in the process, exceptionVar
 /// holds the exception. Otherwise the referencingModule is ready and the host should schedule execution afterwards.
 /// </remarks>
-/// <param name="referencingModule</param>The referencing module that have finished running ModuleDeclarationInstantiation step.
+/// <param name="referencingModule">The referencing module that have finished running ModuleDeclarationInstantiation step.</param>
 /// <param name="exceptionVar">If nullptr, the module is successfully initialized and host should queue the execution job
 ///                           otherwise it's the exception object.</param>
 /// <returns>
@@ -250,7 +250,7 @@ CHAKRA_API
 ///         In that case, `written` argument will return the length needed.
 ///     </para>
 ///     <para>
-///         when start is out of range or < 0, returns JsErrorInvalidArgument
+///         when start is out of range or &lt; 0, returns JsErrorInvalidArgument
 ///         and `written` will be equal to 0.
 ///         If calculated length is 0 (It can be due to string length or `start`
 ///         and length combination), then `written` will be equal to 0 and call

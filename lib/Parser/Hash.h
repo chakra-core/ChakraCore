@@ -21,8 +21,8 @@ typedef StaticSymLen<0> StaticSym;
 /***************************************************************************
 Hashing functions. Definitions in core\hashfunc.cpp.
 ***************************************************************************/
-ULONG CaseSensitiveComputeHashCch(LPCOLESTR prgch, int32 cch);
-ULONG CaseSensitiveComputeHashCch(LPCUTF8 prgch, int32 cch);
+ULONG CaseSensitiveComputeHash(LPCOLESTR prgch, LPCOLESTR end);
+ULONG CaseSensitiveComputeHash(LPCUTF8 prgch, LPCUTF8 end);
 ULONG CaseInsensitiveComputeHash(LPCOLESTR posz);
 
 enum
@@ -75,14 +75,15 @@ public:
 
 struct PidRefStack
 {
-    PidRefStack() : isAsg(false), isDynamic(false), id(0), funcId(0), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false) {}
-    PidRefStack(int id, Js::LocalFunctionId funcId) : isAsg(false), isDynamic(false), id(id), funcId(funcId), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false) {}
+    PidRefStack() : isAsg(false), isDynamic(false), id(0), funcId(0), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false), isFuncAssignment(false) {}
+    PidRefStack(int id, Js::LocalFunctionId funcId) : isAsg(false), isDynamic(false), id(id), funcId(funcId), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false), isFuncAssignment(false) {}
 
     int GetScopeId() const    { return id; }
     Js::LocalFunctionId GetFuncScopeId() const { return funcId; }
     Symbol *GetSym() const    { return sym; }
     void SetSym(Symbol *sym)  { this->sym = sym; }
     bool IsAssignment() const { return isAsg; }
+    bool IsFuncAssignment() const { return isFuncAssignment; }
     bool IsEscape() const { return isEscape; }
     void SetIsEscape(bool is) { isEscape = is; }
     bool IsDynamicBinding() const { return isDynamic; }
@@ -97,6 +98,7 @@ struct PidRefStack
     bool           isDynamic;
     bool           isModuleExport;
     bool           isEscape;
+    bool           isFuncAssignment;
     int            id;
     Js::LocalFunctionId funcId;
     Symbol        *sym;
@@ -351,14 +353,17 @@ public:
     }
 
     template <typename CharType>
+    IdentPtr PidHashNameLen(CharType const * psz, CharType const * end, uint32 cch);
+    template <typename CharType>
     IdentPtr PidHashNameLen(CharType const * psz, uint32 cch);
     template <typename CharType>
-    IdentPtr PidHashNameLenWithHash(_In_reads_(cch) CharType const * psz, int32 cch, uint32 luHash);
+    IdentPtr PidHashNameLenWithHash(_In_reads_(cch) CharType const * psz, CharType const * end, int32 cch, uint32 luHash);
 
 
     template <typename CharType>
     inline IdentPtr FindExistingPid(
         CharType const * prgch,
+        CharType const * end,
         int32 cch,
         uint32 luHash,
         IdentPtr **pppInsert,
@@ -404,36 +409,41 @@ private:
     uint CountAndVerifyItems(IdentPtr *buckets, uint bucketCount, uint mask);
 #endif
 
-    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(cch2) LPCOLESTR psz2, int32 cch2)
+    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(psz2end - psz2) LPCOLESTR psz2, LPCOLESTR psz2end)
     {
-        return memcmp(psz1, psz2, cch2 * sizeof(OLECHAR)) == 0;
+        return memcmp(psz1, psz2, (psz2end - psz2) * sizeof(OLECHAR)) == 0;
     }
-    static bool CharsAreEqual(__in_z LPCOLESTR psz1, LPCUTF8 psz2, int32 cch2)
+    static bool CharsAreEqual(__in_z LPCOLESTR psz1, LPCUTF8 psz2, LPCUTF8 psz2end)
     {
-        return utf8::CharsAreEqual(psz1, psz2, cch2, utf8::doAllowThreeByteSurrogates);
+        return utf8::CharsAreEqual(psz1, psz2, psz2end, utf8::doAllowThreeByteSurrogates);
     }
-    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(cch2) char const * psz2, int32 cch2)
+    static bool CharsAreEqual(__in_z LPCOLESTR psz1, __in_ecount(psz2end - psz2) char const * psz2, char const * psz2end)
     {
-        while (cch2-- > 0)
+        while (psz2 < psz2end)
         {
             if (*psz1++ != *psz2++)
+            {
                 return false;
+            }
         }
         return true;
     }
-    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, __in_ecount(cch) LPCOLESTR psz2, int32 cch)
+    static void CopyString(__in_ecount((psz2end - psz2) + 1) LPOLESTR psz1, __in_ecount(psz2end - psz2) LPCOLESTR psz2, LPCOLESTR psz2end)
     {
+        size_t cch = psz2end - psz2;
         js_memcpy_s(psz1, cch * sizeof(OLECHAR), psz2, cch * sizeof(OLECHAR));
         psz1[cch] = 0;
     }
-    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, LPCUTF8 psz2, int32 cch)
+    static void CopyString(LPOLESTR psz1, LPCUTF8 psz2, LPCUTF8 psz2end)
     {
-        utf8::DecodeIntoAndNullTerminate(psz1, psz2, cch);
+        utf8::DecodeUnitsIntoAndNullTerminate(psz1, psz2, psz2end);
     }
-    static void CopyString(__in_ecount(cch + 1) LPOLESTR psz1, __in_ecount(cch) char const * psz2, int32 cch)
+    static void CopyString(LPOLESTR psz1, char const * psz2, char const * psz2end)
     {
-        while (cch-- > 0)
+        while (psz2 < psz2end)
+        {
             *(psz1++) = *psz2++;
+        }
         *psz1 = 0;
     }
 

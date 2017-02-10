@@ -3,7 +3,12 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
+cpp_quote("#ifndef __JITTypes_h__")
+cpp_quote("#define __JITTypes_h__")
+
 #include "JITTypes.h"
+
+cpp_quote("#endif //__JITTypes_h__")
 
 [
     uuid(ead694ed-2243-44cb-a9dc-85d3ba934dab),
@@ -19,10 +24,6 @@ interface IChakraJIT
         [out] PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         [out] CHAKRA_PTR * prereservedRegionAddr);
 
-    HRESULT CleanupProcess(
-        [in] handle_t binding,
-        [in] CHAKRA_PTR processHandle);
-
     HRESULT CleanupThreadContext(
         [in] handle_t binding,
         [in, out] PPTHREADCONTEXT_HANDLE threadContextInfoAddress);
@@ -30,7 +31,7 @@ interface IChakraJIT
     HRESULT UpdatePropertyRecordMap(
         [in] handle_t binding,
         [in] PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-        [in] BVSparseNodeIDL * updatedPropsBVHead);
+        [in, unique] BVSparseNodeIDL * updatedPropsBVHead);
 
     HRESULT AddDOMFastPathHelper(
         [in] handle_t binding,

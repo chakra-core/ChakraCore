@@ -95,7 +95,7 @@ namespace Js
 
         if (this->otherParents != nullptr)
         {
-            this->otherParents->Map([&](int index, RecyclerWeakReference<ArrayBufferParent>* item)
+            this->otherParents->Map([&](RecyclerWeakReference<ArrayBufferParent>* item)
             {
                 this->ClearParentsLength(item->Get());
             });
@@ -114,40 +114,25 @@ namespace Js
         {
             if (this->otherParents == nullptr)
             {
-                this->otherParents = JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>::New(this->GetRecycler());
+                this->otherParents = RecyclerNew(this->GetRecycler(), OtherParents, this->GetRecycler());
             }
-            this->otherParents->Add(this->GetRecycler()->CreateWeakReferenceHandle(parent));
-        }
-    }
 
-    void ArrayBuffer::RemoveParent(ArrayBufferParent* parent)
-    {
-        if (this->primaryParent != nullptr && this->primaryParent->Get() == parent)
-        {
-            this->primaryParent = nullptr;
-        }
-        else
-        {
-            int foundIndex = -1;
-            bool parentFound = this->otherParents != nullptr && this->otherParents->MapUntil([&](int index, RecyclerWeakReference<ArrayBufferParent>* item)
+            if (this->otherParents->increasedCount >= ParentsCleanupThreshold)
             {
-                if (item->Get() == parent)
+                auto iter = this->otherParents->GetEditingIterator();
+                while (iter.Next())
                 {
-                    foundIndex = index;
-                    return true;
+                    if (iter.Data()->Get() == nullptr)
+                    {
+                        iter.RemoveCurrent();
+                    }
                 }
-                return false;
 
-            });
+                this->otherParents->increasedCount = 0;
+            }
 
-            if (parentFound)
-            {
-                this->otherParents->RemoveAt(foundIndex);
-            }
-            else
-            {
-                AssertMsg(false, "We shouldn't be clearing a parent that hasn't been set.");
-            }
+            this->otherParents->PrependNode(this->GetRecycler()->CreateWeakReferenceHandle(parent));
+            this->otherParents->increasedCount++;
         }
     }
 
@@ -215,6 +200,11 @@ namespace Js
         }
 
         RecyclableObject* newArr = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+        Assert(ArrayBuffer::Is(newArr));
+        if (byteLength > 0 && !ArrayBuffer::FromVar(newArr)->GetByteLength())
+        {
+            JavascriptError::ThrowRangeError(scriptContext, JSERR_FunctionArgument_Invalid);
+        }
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         if (Js::Configuration::Global.flags.IsEnabled(Js::autoProxyFlag))
         {
@@ -726,6 +716,10 @@ namespace Js
         if (newBufferLength == 0 || this->bufferLength == 0)
         {
             newArrayBuffer = GetLibrary()->CreateArrayBuffer(newBufferLength);
+            if (newBufferLength > 0 && !newArrayBuffer->GetByteLength())
+            {
+                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+            }
         }
         else
         {
@@ -745,7 +739,7 @@ namespace Js
                         LPVOID newMem = VirtualAlloc(this->buffer + this->bufferLength, newBufferLength - this->bufferLength, MEM_COMMIT, PAGE_READWRITE);
                         if (!newMem)
                         {
-                            recycler->ReportExternalMemoryFailure(newBufferLength);
+                            recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
                             JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
                         }
                     }
@@ -757,7 +751,7 @@ namespace Js
                     newBuffer = (BYTE*)malloc(newBufferLength);
                     if (!newBuffer)
                     {
-                        recycler->ReportExternalMemoryFailure(newBufferLength);
+                        recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
                         JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
                     }
                     MemCpyZero(newBuffer, newBufferLength, this->buffer, this->bufferLength);
@@ -769,6 +763,11 @@ namespace Js
                 {
                     // we are transferring from an unoptimized buffer, but new length can be optimized, so move to that
                     newBuffer = (BYTE*)JavascriptArrayBuffer::AllocWrapper(newBufferLength);
+                    if (!newBuffer)
+                    {
+                        recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
+                        JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+                    }
                     MemCpyZero(newBuffer, newBufferLength, this->buffer, this->bufferLength);
                 }
                 else if (newBufferLength != this->bufferLength)
@@ -777,7 +776,7 @@ namespace Js
                     newBuffer = ReallocZero(this->buffer, this->bufferLength, newBufferLength);
                     if (!newBuffer)
                     {
-                        recycler->ReportExternalMemoryFailure(newBufferLength);
+                        recycler->ReportExternalMemoryFailure(newBufferLength - this->bufferLength);
                         JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
                     }
                 }

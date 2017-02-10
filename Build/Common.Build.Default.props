@@ -59,6 +59,7 @@
     <OutBaseDir Condition="'$(OutBaseDir)'==''">$(SolutionDir)VcBuild</OutBaseDir>
     <OutBaseDir Condition="'$(Clang)'!=''">$(OutBaseDir).$(Clang)</OutBaseDir>    
     <OutBaseDir Condition="'$(BuildJIT)'=='false'">$(OutBaseDir).NoJIT</OutBaseDir>
+    <OutBaseDir Condition="'$(ForceSWB)'=='true'">$(OutBaseDir).SWB</OutBaseDir>
     <IntBaseDir Condition="'$(IntBaseDir)'==''">$(OutBaseDir)</IntBaseDir>
   </PropertyGroup>
 

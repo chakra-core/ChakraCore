@@ -13,7 +13,7 @@ JITTimePolymorphicInlineCache::JITTimePolymorphicInlineCache()
 intptr_t
 JITTimePolymorphicInlineCache::GetAddr() const
 {
-    return m_data.addr;
+    return reinterpret_cast<intptr_t>(PointerValue(m_data.addr));
 }
 
 intptr_t

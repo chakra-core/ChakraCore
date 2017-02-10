@@ -943,7 +943,7 @@ IRBuilderAsmJs::BuildArgInTracing()
     int32 doubleArgInCount = 0;
     int32 simd128ArgInCount = 0;
 
-    Js::ArgSlot nArgs = 0; 
+    Js::ArgSlot nArgs = 0;
     if (m_func->GetJITFunctionBody()->HasImplicitArgIns())
     {
         // -1 to remove the implicit this pointer
@@ -3260,7 +3260,7 @@ IRBuilderAsmJs::BuildLong1Double1(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::
 {
     IR::RegOpnd * srcOpnd = BuildSrcOpnd(src1RegSlot, TyFloat64);
     srcOpnd->SetValueType(ValueType::Float);
-    
+
     IRType dstType;
     Js::OpCode op;
     bool doTruncTrapCheck = false;
@@ -3536,7 +3536,7 @@ IR::Instr* IRBuilderAsmJs::GenerateStSlotForReturn(IR::RegOpnd* srcOpnd, IRType 
     return stSlotInstr;
 }
 
-inline Js::OpCode IRBuilderAsmJs::GetSimdOpcode(Js::OpCodeAsmJs asmjsOpcode)
+Js::OpCode IRBuilderAsmJs::GetSimdOpcode(Js::OpCodeAsmJs asmjsOpcode)
 {
     Js::OpCode opcode = (Js::OpCode) 0;
     Assert(IsSimd128AsmJsOpcode(asmjsOpcode));
@@ -5505,7 +5505,7 @@ IRBuilderAsmJs::BuildUint16x8_1Uint8x16_1(Js::OpCodeAsmJs newOpcode, uint32 offs
 void IRBuilderAsmJs::BuildUint8x16_1Int16(Js::OpCodeAsmJs newOpcode, uint32 offset, BUILD_SIMD_ARGS_REG17)
 {
     AssertMsg(newOpcode == Js::OpCodeAsmJs::Simd128_IntsToU16, "Unexpected opcode for this format.");
- 
+
     uint const LANES = 16;
     Js::RegSlot srcRegSlots[LANES];
 
