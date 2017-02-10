@@ -8159,7 +8159,10 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
 
     IntArrayCommon:
         Assert(dst->IsRegOpnd());
-        if (!this->DoAggressiveIntTypeSpec())
+
+        // If int type spec is disabled, it is ok to load int values as they can help float type spec, and merging int32 with float64 => float64.
+        // But if float type spec is also disabled, we'll have problems because float64 merged with var => float64...
+        if (!this->DoAggressiveIntTypeSpec() && !this->DoFloatTypeSpec())
         {
             if (!dstVal)
             {
@@ -8186,6 +8189,8 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
     case ObjectType::Float64MixedArray:
     Float64Array:
         Assert(dst->IsRegOpnd());
+        
+        // If float type spec is disabled, don't load float64 values
         if (!this->DoFloatTypeSpec())
         {
             if (!dstVal)
