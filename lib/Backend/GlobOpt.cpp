@@ -2552,7 +2552,7 @@ GlobOpt::CleanUpValueMaps()
                 // there is no backward data flow into the infinite loop block, but non empty callSequence still populates to it in this (forward) pass
                 // which causes error when looking up value for the syms in callSequence (cannot find the value).
                 // It would cause error to fill out the bailout information for the loop blocks.
-                // Remove dead syms from callSequence has some risk because there are varies associated counters which need to be consistent.
+                // Remove dead syms from callSequence has some risk because there are various associated counters which need to be consistent.
                 continue;
             }
             // Make sure symbol was created before backward pass.
@@ -8938,14 +8938,13 @@ GlobOpt::TypeSpecialization(
                 return instr;
             }
         }
-        else if (
-            this->TypeSpecializeUnary(
-                &instr,
-                &src1Val,
-                pDstVal,
-                src1OriginalVal,
-                redoTypeSpecRef,
-                forceInvariantHoistingRef))
+        else if (this->TypeSpecializeUnary(
+                    &instr,
+                    &src1Val,
+                    pDstVal,
+                    src1OriginalVal,
+                    redoTypeSpecRef,
+                    forceInvariantHoistingRef))
         {
             return instr;
         }
@@ -9639,8 +9638,9 @@ GlobOpt::OptConstFoldUnary(
             }
             else
             {
-                isInt = false;
-                fValue = -(FloatConstType)INT32_MIN;
+                // Rejit with AggressiveIntTypeSpecDisabled for Math.abs(INT32_MIN) because it causes dst
+                // to be float type which could be different with previous type spec result in LoopPrePass
+                throw Js::RejitException(RejitReason::AggressiveIntTypeSpecDisabled);
             }
         }
         else
