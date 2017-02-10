@@ -774,10 +774,13 @@ namespace JSON
         }
         else
         {
-            // we are some kind of array (including proxy to array and es5array). in all cases the length should have been 32bit and we
-            // shouldn't have overflow here.
-            length = (uint32)Js::JavascriptConversion::ToLength(Js::JavascriptOperators::OP_GetLength(value, scriptContext), scriptContext);
-            Assert(Js::JavascriptConversion::ToLength(Js::JavascriptOperators::OP_GetLength(value, scriptContext), scriptContext) == length);
+            int64 len = Js::JavascriptConversion::ToLength(Js::JavascriptOperators::OP_GetLength(value, scriptContext), scriptContext);
+            if (MaxCharCount <= len)
+            {
+                // If the length goes more than MaxCharCount we will eventually fail (as OOM) in ConcatStringBuilder - so failing early.
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
+            }
+            length = (uint32)len;
         }
 
         Js::JavascriptString* result;
