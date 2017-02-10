@@ -6636,17 +6636,6 @@ VOID
 PALAPI
 PAL_Reenter(PAL_Boundary boundary);
 
-// This function needs to be called on a thread when it enters
-// a region of code that depends on this instance of the PAL
-// in the process, and it is unknown whether the current thread
-// is already running in the PAL.  Returns TRUE if and only if
-// the thread was not running in the PAL previously.  Does not
-// modify LastError.
-PALIMPORT
-BOOL
-PALAPI
-PAL_ReenterForEH(VOID);
-
 // This function needs to be called on a thread when it leaves
 // a region of code that depends on this instance of the PAL
 // in the process.  Does not modify LastError.
