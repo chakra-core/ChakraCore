@@ -2484,13 +2484,9 @@ namespace Js
     void ParseableFunctionInfo::Finalize(bool isShutdown)
     {
         __super::Finalize(isShutdown);
-
+        this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
         if (!this->m_hasBeenParsed)
         {
-            if (!this->GetSourceContextInfo()->IsDynamic() && !this->GetIsTopLevel())
-            {
-                this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
-            }
             PERF_COUNTER_DEC(Code, DeferredFunction);
         }
     }
