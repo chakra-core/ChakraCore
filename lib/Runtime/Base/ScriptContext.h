@@ -414,6 +414,36 @@ namespace Js
         Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
     };
 
+    /*
+    * This class caches jitted func address ranges.
+    * This is to facilitate WER scenarios to use this cache for checking native addresses.
+    */
+    class JITPageAddrToFuncRangeCache
+    {
+    private:
+        typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator> RangeMap;
+        typedef JsUtil::BaseDictionary<void *, RangeMap*, HeapAllocator> JITPageAddrToFuncRangeMap;
+        typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator> LargeJITFuncAddrToSizeMap;
+
+        JITPageAddrToFuncRangeMap * jitPageAddrToFuncRangeMap;
+        LargeJITFuncAddrToSizeMap * largeJitFuncToSizeMap;
+
+        static CriticalSection cs;
+
+    public:
+        JITPageAddrToFuncRangeCache() :jitPageAddrToFuncRangeMap(nullptr), largeJitFuncToSizeMap(nullptr) {}
+        ~JITPageAddrToFuncRangeCache()
+        {
+            ClearCache();
+        }
+        void ClearCache();
+        void AddFuncRange(void * address, uint bytes);
+        void RemoveFuncRange(void * address);
+        void * GetPageAddr(void * address);
+        bool IsNativeAddr(void * address);
+        static CriticalSection * GetCriticalSection() { return &cs; }
+    };
+
     class ScriptContext : public ScriptContextBase, public ScriptContextInfo
     {
         friend class LowererMD;
@@ -426,6 +456,9 @@ namespace Js
         static DWORD GetOptimizationOverridesOffset() { return offsetof(ScriptContext, optimizationOverrides); }
         static DWORD GetRecyclerOffset() { return offsetof(ScriptContext, recycler); }
         static DWORD GetNumberAllocatorOffset() { return offsetof(ScriptContext, numberAllocator); }
+
+        JITPageAddrToFuncRangeCache * GetJitFuncRangeCache();
+        JITPageAddrToFuncRangeCache * jitFuncRangeCache;
 
         ScriptContext *next;
         ScriptContext *prev;

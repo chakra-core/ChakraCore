@@ -4080,7 +4080,7 @@ void DumpRecyclerObjectGraph()
 #endif
 
 #if ENABLE_NATIVE_CODEGEN
-BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
+BOOL ThreadContext::IsNativeAddress(void * pCodeAddr, Js::ScriptContext* currentScriptContext)
 {
 #if ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
@@ -4098,10 +4098,31 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
             return false;
         }
 
+#if DBG
         boolean result;
         HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
         JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
-        return result;
+#endif
+
+        bool isNativeAddr = false;
+        if (currentScriptContext && currentScriptContext->GetJitFuncRangeCache() != nullptr)
+        {
+            isNativeAddr = currentScriptContext->GetJitFuncRangeCache()->IsNativeAddr(pCodeAddr);
+        }
+
+        for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext && !isNativeAddr; scriptContext = scriptContext->next)
+        {
+            if (scriptContext->GetJitFuncRangeCache() == nullptr || scriptContext == currentScriptContext)
+            {
+                continue;
+            }
+            isNativeAddr = scriptContext->GetJitFuncRangeCache()->IsNativeAddr(pCodeAddr);
+        }
+
+#if DBG
+        Assert(result == (isNativeAddr? 1:0));
+#endif
+        return isNativeAddr;
     }
     else
 #endif
@@ -4114,8 +4135,24 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr)
 
         if (!this->IsAllJITCodeInPreReservedRegion())
         {
+#if DBG
             AutoCriticalSection autoLock(&this->codePageAllocators.cs);
-            return this->codePageAllocators.IsInNonPreReservedPageAllocator(pCodeAddr);
+#endif
+            
+            bool isNativeAddr = false;
+            for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext && !isNativeAddr; scriptContext = scriptContext->next)
+            {
+                if (scriptContext->GetJitFuncRangeCache() == nullptr)
+                {
+                    continue;
+                }
+                isNativeAddr = scriptContext->GetJitFuncRangeCache()->IsNativeAddr(pCodeAddr);
+            }
+
+#if DBG
+            Assert(this->codePageAllocators.IsInNonPreReservedPageAllocator(pCodeAddr) == isNativeAddr);
+#endif
+            return isNativeAddr;
         }
         return FALSE;
     }
