@@ -670,6 +670,7 @@ IRBuilder::Build()
     JsUtil::BaseDictionary<IR::Instr*, int, JitArenaAllocator> ignoreExBranchInstrToOffsetMap(m_tempAlloc);
 
     Js::LayoutSize layoutSize;
+    IR::Instr* lastProcessedInstrForJITLoopBody = nullptr;
     for (Js::OpCode newOpcode = m_jnReader.ReadOp(layoutSize); (uint)m_jnReader.GetCurrentOffset() <= lastOffset; newOpcode = m_jnReader.ReadOp(layoutSize))
     {
         Assert(newOpcode != Js::OpCode::EndOfBlock);
@@ -750,28 +751,41 @@ IRBuilder::Build()
             }
         }
 #endif
-        if (IsLoopBodyInTry() && m_lastInstr->GetDst() && m_lastInstr->GetDst()->IsRegOpnd() && m_lastInstr->GetDst()->GetStackSym()->HasByteCodeRegSlot())
-        {
-            StackSym * dstSym = m_lastInstr->GetDst()->GetStackSym();
-            Js::RegSlot dstRegSlot = dstSym->GetByteCodeRegSlot();
-            if (!this->RegIsTemp(dstRegSlot) && !this->RegIsConstant(dstRegSlot))
-            {
-                SymID symId = dstSym->m_id;
-                if (this->m_stSlots->Test(symId))
-                {
-                    // For jitted loop bodies that are in a try block, we consider any symbol that has a
-                    // non-temp bytecode reg slot, to be write-through. Hence, generating StSlots at all
-                    // defs for such symbols
-                    IR::Instr * stSlot = this->GenerateLoopBodyStSlot(dstRegSlot);
-                    AddInstr(stSlot, Js::Constants::NoByteCodeOffset);
 
-                    this->m_stSlots->Clear(symId);
-                }
-                else
+        if (IsLoopBodyInTry() && lastProcessedInstrForJITLoopBody != m_lastInstr)
+        {
+            FOREACH_INSTR_BACKWARD_EDITING_IN_RANGE(
+                instr,
+                instrPrev,
+                m_lastInstr,
+                lastProcessedInstrForJITLoopBody ? lastProcessedInstrForJITLoopBody->m_next : m_lastInstr)
+            {
+                if (instr->GetDst() && instr->GetDst()->IsRegOpnd() && instr->GetDst()->GetStackSym()->HasByteCodeRegSlot())
                 {
-                    Assert(dstSym->m_isCatchObjectSym);
+                    StackSym * dstSym = instr->GetDst()->GetStackSym();
+                    Js::RegSlot dstRegSlot = dstSym->GetByteCodeRegSlot();
+                    if (!this->RegIsTemp(dstRegSlot) && !this->RegIsConstant(dstRegSlot))
+                    {
+                        SymID symId = dstSym->m_id;
+                        if (this->m_stSlots->Test(symId))
+                        {
+                            // For jitted loop bodies that are in a try block, we consider any symbol that has a
+                            // non-temp bytecode reg slot, to be write-through. Hence, generating StSlots at all
+                            // defs for such symbols
+                            IR::Instr * stSlot = this->GenerateLoopBodyStSlot(dstRegSlot);
+                            AddInstr(stSlot, Js::Constants::NoByteCodeOffset);
+
+                            this->m_stSlots->Clear(symId);
+                        }
+                        else
+                        {
+                            Assert(dstSym->m_isCatchObjectSym);
+                        }
+                    }
                 }
-            }
+            } NEXT_INSTR_BACKWARD_EDITING_IN_RANGE;
+
+            lastProcessedInstrForJITLoopBody = m_lastInstr;
         }
 
         offset = m_jnReader.GetCurrentOffset();
