@@ -1920,6 +1920,7 @@ void Parser::CaptureState(ParserState *state)
     state->m_ppnodeScopeSave = m_ppnodeScope;
     state->m_ppnodeExprScopeSave = m_ppnodeExprScope;
     state->m_pCurrentAstSizeSave = m_pCurrentAstSize;
+    state->m_nextBlockId = m_nextBlockId;
 
     Assert(state->m_ppnodeScopeSave == nullptr || *state->m_ppnodeScopeSave == nullptr);
     Assert(state->m_ppnodeExprScopeSave == nullptr || *state->m_ppnodeExprScopeSave == nullptr);
@@ -1938,6 +1939,7 @@ void Parser::RestoreStateFrom(ParserState *state)
     m_funcInArrayDepth = state->m_funcInArrayDepthSave;
     *m_pnestedCount = state->m_nestedCountSave;
     m_pCurrentAstSize = state->m_pCurrentAstSizeSave;
+    m_nextBlockId = state->m_nextBlockId;
 
     if (state->m_ppnodeScopeSave != nullptr)
     {
@@ -8277,7 +8279,17 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         {
             m_pscan->SeekTo(termStart);
 
+            // As we are reparsing from the beginning of the destructured literal we need to reset the Block IDs as well to make sure the Block IDs
+            // on the pidref stack match.
+            int saveNextBlockId = m_nextBlockId;
+            m_nextBlockId = parserState.m_nextBlockId;
+
             ParseDestructuredLiteralWithScopeSave(tkLCurly, false/*isDecl*/, false /*topLevel*/, DIC_ShouldNotParseInitializer);
+
+            // Restore the Block ID at the end of the reparsing so it matches the one at the end of the first pass. We need to do this 
+            // because we don't parse initializers during reparse and there may be additional blocks (e.g. a class declaration)
+            // in the initializers that will cause the next Block ID at the end of the reparsing to be different.
+            m_nextBlockId = saveNextBlockId;
 
             if (buildAST)
             {
@@ -12311,12 +12323,17 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     int parenCount = 0;
     bool seenRest = false;
 
-    while (m_token.tk == tkLParen)
+    // Save the Block ID prior to the increments, so we can restore it back.
+    int originalCurrentBlockId = GetCurrentBlock()->sxBlock.blockId;
+
+    // Eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early.
+    if (!isDecl)
     {
-        m_pscan->Scan();
-        ++parenCount;
-        if (m_reparsingLambdaParams)
+        while (m_token.tk == tkLParen)
         {
+            m_pscan->Scan();
+            ++parenCount;
+
             // Match the block increment we do upon entering parenthetical expressions
             // so that the block ID's will match on reparsing of parameters.
             GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
@@ -12331,10 +12348,18 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         seenRest = true;
         m_pscan->Scan();
 
-        while (m_token.tk == tkLParen)
+        // Eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early.
+        if (!isDecl)
         {
-            m_pscan->Scan();
-            ++parenCount;
+            while (m_token.tk == tkLParen)
+            {
+                m_pscan->Scan();
+                ++parenCount;
+
+                // Match the block increment we do upon entering parenthetical expressions
+                // so that the block ID's will match on reparsing of parameters.
+                GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
+            }
         }
 
         if (m_token.tk != tkID && m_token.tk != tkSUPER && m_token.tk != tkLCurly && m_token.tk != tkLBrack)
@@ -12413,10 +12438,14 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     }
 
     // Swallow RParens before a default expression, if any.
-    while (m_token.tk == tkRParen)
+    // We eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early. We need to do the same for right parentheses.
+    if (!isDecl)
     {
-        m_pscan->Scan();
-        --parenCount;
+        while (m_token.tk == tkRParen)
+        {
+            m_pscan->Scan();
+            --parenCount;
+        }
     }
 
     if (hasSeenRest != nullptr)
@@ -12454,10 +12483,17 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         pnodeElem = pnodeRest;
     }
 
-    while (m_token.tk == tkRParen)
+    // We eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early. We need to do the same for right parentheses.
+    if (!isDecl)
     {
-        m_pscan->Scan();
-        --parenCount;
+        while (m_token.tk == tkRParen)
+        {
+            m_pscan->Scan();
+            --parenCount;
+        }
+
+        // Restore the Block ID of the current block after the parsing of destructured variable declarations and initializers.
+        GetCurrentBlock()->sxBlock.blockId = originalCurrentBlockId;
     }
 
     if (!(m_token.tk == tkComma || m_token.tk == tkRBrack || m_token.tk == tkRCurly))
