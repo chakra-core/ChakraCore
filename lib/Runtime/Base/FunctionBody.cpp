@@ -895,6 +895,9 @@ namespace Js
 
             // TODO: Get size of polymorphic caches, jitted code, etc.
         }
+
+        // We can't get here if the function is being jitted. Jitting was either completed or not begun.
+        this->counters.bgThreadCallStarted = false;
 #endif
 
         PHASE_PRINT_TRACE(Js::RedeferralPhase, this, _u("Redeferring function %d.%d: %s\n"),
