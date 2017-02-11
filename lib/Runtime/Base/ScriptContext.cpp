@@ -6045,4 +6045,15 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             return (key <= address && (uintptr_t)address < ((uintptr_t)key + value));
         });
     }
+
+    JITPageAddrToFuncRangeCache::JITPageAddrToFuncRangeMap * JITPageAddrToFuncRangeCache::GetJITPageAddrToFuncRangeMap()
+    {
+        return jitPageAddrToFuncRangeMap;
+    }
+    
+    JITPageAddrToFuncRangeCache::LargeJITFuncAddrToSizeMap * JITPageAddrToFuncRangeCache::GetLargeJITFuncAddrToSizeMap()
+    {
+        return largeJitFuncToSizeMap;
+    }
+
 } // End namespace Js

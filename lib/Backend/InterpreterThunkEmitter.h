@@ -132,6 +132,7 @@ public:
 
     InterpreterThunkEmitter(Js::ScriptContext * context, ArenaAllocator* allocator, CustomHeap::InProcCodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk = false);
     BYTE* GetNextThunk(PVOID* ppDynamicInterpreterThunk);
+    SListBase<ThunkBlock>* GetThunkBlocksList();
 
     void Close();
     void Release(BYTE* thunkAddress, bool addtoFreeList);

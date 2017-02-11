@@ -63,6 +63,11 @@ class SListNode : public SListNodeBase<TData>
 {
     friend class SListBase<TData, FakeCount>;
     friend class SListBase<TData, RealCount>;
+public:
+    TData* GetData()
+    {
+        return &data;
+    }
 private:
 
     SListNode() : data() {}
