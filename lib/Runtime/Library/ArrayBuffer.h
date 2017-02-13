@@ -154,7 +154,7 @@ namespace Js
                 :SList<RecyclerWeakReference<ArrayBufferParent>*, Recycler>(recycler), increasedCount(0)
             {
             }
-            uint increasedCount;
+            Field(uint) increasedCount;
         };
 
         Field(OtherParents*) otherParents;

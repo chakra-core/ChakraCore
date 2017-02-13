@@ -145,43 +145,43 @@ public:
 private:
     static JavascriptString * GetExternalKindString(ScriptContext * scriptContext, Wasm::ExternalKinds::ExternalKind kind);
 
-    bool m_hasTable;
-    bool m_hasMemory;
+    Field(bool) m_hasTable;
+    Field(bool) m_hasMemory;
     // The binary buffer is recycler allocated, tied the lifetime of the buffer to the module
-    const byte* m_binaryBuffer;
-    uint32 m_memoryInitSize;
-    uint32 m_memoryMaxSize;
-    uint32 m_tableInitSize;
-    uint32 m_tableMaxSize;
-    Wasm::WasmSignature* m_signatures;
-    uint32* m_indirectfuncs;
-    Wasm::WasmElementSegment** m_elementsegs;
+    Field(const byte*) m_binaryBuffer;
+    Field(uint32) m_memoryInitSize;
+    Field(uint32) m_memoryMaxSize;
+    Field(uint32) m_tableInitSize;
+    Field(uint32) m_tableMaxSize;
+    Field(Wasm::WasmSignature*) m_signatures;
+    Field(uint32*) m_indirectfuncs;
+    Field(Wasm::WasmElementSegment**) m_elementsegs;
     typedef JsUtil::List<Wasm::WasmFunctionInfo*, Recycler> WasmFunctionInfosList;
-    WasmFunctionInfosList* m_functionsInfo;
-    Wasm::WasmExport* m_exports;
+    Field(WasmFunctionInfosList*) m_functionsInfo;
+    Field(Wasm::WasmExport*) m_exports;
     typedef JsUtil::List<Wasm::WasmImport*, ArenaAllocator> WasmImportsList;
-    WasmImportsList* m_imports;
-    Wasm::WasmImport* m_memImport;
-    Wasm::WasmImport* m_tableImport;
-    uint32 m_importedFunctionCount;
-    Wasm::WasmDataSegment** m_datasegs;
-    Wasm::WasmBinaryReader* m_reader;
-    uint32* m_equivalentSignatureMap;
+    Field(WasmImportsList*) m_imports;
+    Field(Wasm::WasmImport*) m_memImport;
+    Field(Wasm::WasmImport*) m_tableImport;
+    Field(uint32) m_importedFunctionCount;
+    Field(Wasm::WasmDataSegment**) m_datasegs;
+    Field(Wasm::WasmBinaryReader*) m_reader;
+    Field(uint32*) m_equivalentSignatureMap;
     typedef JsUtil::List<Wasm::CustomSection, ArenaAllocator> CustomSectionsList;
-    CustomSectionsList* m_customSections;
+    Field(CustomSectionsList*) m_customSections;
 
-    uint m_globalCounts[Wasm::WasmTypes::Limit];
+    Field(uint) m_globalCounts[Wasm::WasmTypes::Limit];
     typedef JsUtil::List<Wasm::WasmGlobal*, ArenaAllocator> WasmGlobalsList;
-    WasmGlobalsList * m_globals;
+    Field(WasmGlobalsList *) m_globals;
 
-    uint m_signaturesCount;
-    uint m_exportCount;
-    uint32 m_datasegCount;
-    uint32 m_elementsegCount;
+    Field(uint) m_signaturesCount;
+    Field(uint) m_exportCount;
+    Field(uint32) m_datasegCount;
+    Field(uint32) m_elementsegCount;
 
-    uint32 m_startFuncIndex;
+    Field(uint32) m_startFuncIndex;
 
-    ArenaAllocator m_alloc;
+    FieldNoBarrier(ArenaAllocator) m_alloc;
 };
 
 } // namespace Js

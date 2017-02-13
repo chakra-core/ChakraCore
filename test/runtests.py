@@ -340,7 +340,7 @@ class TestVariant(object):
         if expected_output == None or timedout:
             self._print("\nOutput:")
             self._print("----------------------------")
-            self._print(output)
+            self._print(output.decode('utf-8'))
             self._print("----------------------------")
         else:
             lst_output = output.split(b'\n')

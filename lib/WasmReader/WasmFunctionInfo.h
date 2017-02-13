@@ -35,21 +35,21 @@ namespace Wasm
         WasmReaderBase* GetCustomReader() const { return m_customReader; }
         void SetCustomReader(WasmReaderBase* customReader) { m_customReader = customReader; }
 #if DBG_DUMP
-        WasmImport* importedFunctionReference;
+        FieldNoBarrier(WasmImport*) importedFunctionReference;
 #endif
 
-        FunctionBodyReaderInfo m_readerInfo;
+        Field(FunctionBodyReaderInfo) m_readerInfo;
     private:
 
-        ArenaAllocator* m_alloc;
+        FieldNoBarrier(ArenaAllocator*) m_alloc;
         typedef JsUtil::GrowingArray<Local, ArenaAllocator> WasmTypeArray;
-        WasmTypeArray m_locals;
-        Js::FunctionBody* m_body;
-        WasmSignature* m_signature;
-        Js::ByteCodeLabel m_ExitLabel;
-        WasmReaderBase* m_customReader;
-        const char16* m_name;
-        uint32 m_nameLength;
-        uint32 m_number;
+        Field(WasmTypeArray) m_locals;
+        Field(Js::FunctionBody*) m_body;
+        Field(WasmSignature*) m_signature;
+        Field(Js::ByteCodeLabel) m_ExitLabel;
+        Field(WasmReaderBase*) m_customReader;
+        Field(const char16*) m_name;
+        Field(uint32) m_nameLength;
+        Field(uint32) m_number;
     };
 } // namespace Wasm

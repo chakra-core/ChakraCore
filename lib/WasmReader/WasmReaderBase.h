@@ -9,9 +9,9 @@ namespace Wasm
 {
     struct FunctionBodyReaderInfo
     {
-        uint32 index;
-        uint32 size;
-        intptr_t startOffset;
+        Field(uint32) index;
+        Field(uint32) size;
+        Field(intptr_t) startOffset;
     };
 
     class WasmReaderBase

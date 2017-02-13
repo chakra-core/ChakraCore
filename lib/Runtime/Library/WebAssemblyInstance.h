@@ -32,7 +32,7 @@ namespace Js
         static void LoadGlobals(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
         static void LoadIndirectFunctionTable(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env);
 
-        WebAssemblyModule * m_module;
+        Field(WebAssemblyModule *) m_module;
     };
 
 } // namespace Js
