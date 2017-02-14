@@ -670,7 +670,7 @@ IRBuilder::Build()
     JsUtil::BaseDictionary<IR::Instr*, int, JitArenaAllocator> ignoreExBranchInstrToOffsetMap(m_tempAlloc);
 
     Js::LayoutSize layoutSize;
-    IR::Instr* lastProcessedInstrForJITLoopBody = nullptr;
+    IR::Instr* lastProcessedInstrForJITLoopBody = m_func->m_headInstr;
     for (Js::OpCode newOpcode = m_jnReader.ReadOp(layoutSize); (uint)m_jnReader.GetCurrentOffset() <= lastOffset; newOpcode = m_jnReader.ReadOp(layoutSize))
     {
         Assert(newOpcode != Js::OpCode::EndOfBlock);
@@ -760,7 +760,7 @@ IRBuilder::Build()
                 instr,
                 instrPrev,
                 m_lastInstr,
-                lastProcessedInstrForJITLoopBody ? lastProcessedInstrForJITLoopBody->m_next : m_lastInstr)
+                lastProcessedInstrForJITLoopBody->m_next)
             {
                 if (instr->GetDst() && instr->GetDst()->IsRegOpnd() && instr->GetDst()->GetStackSym()->HasByteCodeRegSlot())
                 {
