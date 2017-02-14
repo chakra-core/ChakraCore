@@ -465,6 +465,9 @@ namespace Js
         static int64 GetIndexFromVar(Js::Var arg, int64 length, ScriptContext* scriptContext);
         template <typename T>
         static Var MapHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        template <typename T>
+        static Var MapObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* newObj, JavascriptArray* newArr,
+            bool isBuiltinArrayCtor, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
         static Var FillHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext);
         static Var CopyWithinHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext);
         template <typename T>
@@ -483,18 +486,32 @@ namespace Js
         static Var ReverseHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var SliceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        static Var SliceObjectHelper(RecyclableObject* obj, uint32 sliceStart, uint32 start, JavascriptArray* newArr, RecyclableObject* newObj, uint32 newLen, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var EveryHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         template <typename T = uint32>
+        static Var EveryObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
+        template <typename T = uint32>
         static Var SomeHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        template <typename T = uint32>
+        static Var SomeObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
         template <bool findIndex>
         static Var FindHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, int64 length, Arguments& args, ScriptContext* scriptContext);
+        template <bool findIndex>
+        static Var FindObjectHelper(RecyclableObject* obj, int64 length, int64 start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var ReduceHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
         template <typename T>
+        static Var ReduceObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var accumulator, ScriptContext* scriptContext);
+            template <typename T>
         static Var FilterHelper(JavascriptArray* pArr, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        template <typename T>
+        static Var FilterObjectHelper(RecyclableObject* obj, T length, T start, JavascriptArray* newArr, RecyclableObject* newObj, T newStart,
+            RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext);
         template <typename T = uint32>
         static Var ReduceRightHelper(JavascriptArray* pArr, Js::TypedArrayBase* typedArrayBase, RecyclableObject* obj, T length, Arguments& args, ScriptContext* scriptContext);
+        template <typename T>
+        static Var ReduceRightObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var accumulator, ScriptContext* scriptContext);
         static Var OfHelper(bool isTypedArrayEntryPoint, Arguments& args, ScriptContext* scriptContext);
 
         static uint32 GetFromIndex(Var arg, uint32 length, ScriptContext *scriptContext);
@@ -604,9 +621,17 @@ namespace Js
 
                 if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                 {
-                    // The function has changed, go to another ForEachItemInRange
-                    JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
-                    return;
+                    // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to 
+                    // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
+                    if (JavascriptArray::Is(arr))
+                    {
+                        JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, missingItem, scriptContext, fn);
+                        return;
+                    }
+                    else
+                    {
+                        AssertOrFailFastMsg(ES5Array::Is(arr), "The array should have been converted to an ES5Array");
+                    }
                 }
             }
         }
@@ -623,9 +648,17 @@ namespace Js
 
                     if (hasSideEffect && MayChangeType<T>() && !T::Is(arr))
                     {
-                        // The function has changed, go to another ForEachItemInRange
-                        JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
-                        return;
+                        // The function has changed, go to another ForEachItemInRange. It is possible that the array might have changed to 
+                        // an ES5Array, in such cases we don't need to call the JavascriptArray specific implementation.
+                        if (JavascriptArray::Is(arr))
+                        {
+                            JavascriptArray::FromVar(arr)->template ForEachItemInRange<true>(i + 1, limitIndex, scriptContext, fn);
+                            return;
+                        }
+                        else
+                        {
+                            AssertOrFailFastMsg(ES5Array::Is(arr), "The array should have been converted to an ES5Array");
+                        }
                     }
                 }
             }
@@ -963,11 +996,7 @@ namespace Js
         virtual BOOL DirectGetVarItemAt(uint index, Var* outval, ScriptContext *scriptContext);
         virtual BOOL DirectGetItemAtFull(uint index, Var* outVal);
         virtual Var DirectGetItem(uint32 index);
-        virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override
-        {
-            int32 value = 0;
-            return this->DirectGetItemAt(index, &value) ? WritableData : None;
-        }
+        virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override;
 
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;

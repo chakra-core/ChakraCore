@@ -3,4 +3,7 @@ if(NOT CC_TARGET_OS_ANDROID)
 endif()
 
 add_subdirectory (ch)
-add_subdirectory (ChakraCore)
+
+if (NOT STATIC_LIBRARY)
+    add_subdirectory (ChakraCore)
+endif()

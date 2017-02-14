@@ -101,7 +101,208 @@ var tests = [
             assert.isTrue(definePropertyCalled);
             assert.isTrue(getOwnPropertyDescriptorCalled);
         }
-    }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in getPrototypeOf trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                getPrototypeOf : function(a, b) {
+                    trapCalled = true;
+                    obj.revoke();
+                    return {};
+                }
+            };
+            
+            var obj = Proxy.revocable({}, handler);
+            Object.getPrototypeOf(obj.proxy);
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in setPrototypeOf trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                setPrototypeOf : function(a, b) {
+                    trapCalled = true;
+                    obj.revoke();
+                    return true;
+                }
+            };
+            
+            var obj = Proxy.revocable({}, handler);
+            var ret = Object.setPrototypeOf(obj.proxy, {});
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in isExtensible trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                isExtensible : function(a, b) {
+                    trapCalled = true;
+                    obj.revoke();
+                    return true;
+                }
+            };
+            
+            var obj = Proxy.revocable({}, handler);
+            var ret = Object.isExtensible(obj.proxy);
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in preventExtensions trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                preventExtensions : function(a, b) {
+                    trapCalled = true;
+                    obj.revoke();
+               }
+            };
+            
+            var obj = Proxy.revocable({}, handler);
+            Object.preventExtensions(obj.proxy);
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in getOwnPropertyDescriptor trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                getOwnPropertyDescriptor : function(a, b, c) {
+                    trapCalled = true;
+                    obj.revoke();
+                }
+            };
+            
+            var obj = Proxy.revocable({}, handler);
+            assert.throws( () => { Object.getOwnPropertyDescriptor(obj.proxy, 'a'); }, TypeError);
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in has trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                has : function(a, b, c) {
+                    trapCalled = true;
+                    obj.revoke();
+                    return false;
+                }
+            };
+            
+            var obj = Proxy.revocable({}, handler);
+            'a' in obj.proxy;
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in get trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                get : function (a, b, c) {
+                    trapCalled = true;
+                    obj.revoke();
+                    return {};
+                }
+            };
+            
+            var obj = Proxy.revocable({}, handler);
+            var ret = obj.proxy.a;
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in set trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                set : function (a, b, c) {
+                    trapCalled = true;
+                    obj.revoke();
+                    return {};
+                }
+            };
+            
+            var obj = Proxy.revocable({}, handler);
+            obj.proxy.a = 10;
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in deleteProperty trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                deleteProperty : function (a, b, c) {
+                    trapCalled = true;
+                    obj.revoke();
+                    return {};
+                }
+            };
+            
+            var obj = Proxy.revocable({}, handler);
+            delete obj.proxy.a;
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in ownKeys trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                ownKeys : function (a, b, c) {
+                    trapCalled = true;
+                    obj.revoke();
+                    return {};
+                }
+            };
+            
+            var obj = Proxy.revocable({}, handler);
+            Object.keys(obj.proxy);
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in apply trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                get apply () {
+                    trapCalled = true;
+                    obj.revoke();
+                }
+            };
+            
+            var obj = Proxy.revocable(() => {}, handler);
+            obj.proxy();
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
+        name: "Assertion validation : revoking the proxy in construct trap",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                get construct () {
+                    trapCalled = true;
+                    obj.revoke();
+                    return () => { return {}; };
+                }
+            };
+            
+            var obj = Proxy.revocable(() => {}, handler);
+            new obj.proxy();
+            assert.isTrue(trapCalled);
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

@@ -2828,6 +2828,16 @@ namespace Js
         return GetType()->GetLibrary()->GetUndefined();
     }
 
+    DescriptorFlags JavascriptNativeIntArray::GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext)
+    {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif 
+        int32 value = 0;
+        return this->DirectGetItemAt(index, &value) ? WritableData : None;
+    }
+
+
     Var JavascriptNativeFloatArray::DirectGetItem(uint32 index)
     {
         SparseArraySegment<double> *seg = (SparseArraySegment<double>*)this->GetLastUsedSegment();
@@ -3727,46 +3737,79 @@ namespace Js
             length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
 
-        if (pArr)
+        Var search;
+        uint32 fromIndex = 0;
+        uint64 fromIndex64 = 0;
+
+        // The evaluation of method arguments may change the type of the array. Hence, we do that prior to the actual helper method calls.
+        // The if clause of the conditional statement below applies to an JavascriptArray or TypedArray instances. The rest of the conditional 
+        // clauses apply to an ES5Array or other valid Javascript objects.
+        if ((pArr || TypedArrayBase::Is(obj)) && (length.IsSmallIndex() || length.IsUint32Max()))
         {
-            Var search;
-            uint32 fromIndex;
             uint32 len = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
             if (!GetParamForIndexOf(len, args, search, fromIndex, scriptContext))
             {
                 return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
             }
-            int32 index = pArr->HeadSegmentIndexOfHelper(search, fromIndex, len, includesAlgorithm, scriptContext);
-
-            // If we found the search value in the head segment, or if we determined there is no need to search other segments,
-            // we stop right here.
-            if (index != -1 || fromIndex == -1)
+        }
+        else if (length.IsSmallIndex())
+        {
+            if (!GetParamForIndexOf(length.GetSmallIndex(), args, search, fromIndex, scriptContext))
             {
-                if (includesAlgorithm)
-                {
-                    //Array.prototype.includes
-                    return (index == -1)? falseValue : trueValue;
-                }
-                else
-                {
-                    //Array.prototype.indexOf
-                    return JavascriptNumber::ToVar(index, scriptContext);
-                }
+                return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
             }
-
-            //  If we really must search other segments, let's do it now. We'll have to search the slow way (dealing with holes, etc.).
-
-            switch (pArr->GetTypeId())
+        }
+        else
+        {
+            if (!GetParamForIndexOf(length.GetBigIndex(), args, search, fromIndex64, scriptContext))
             {
-            case Js::TypeIds_Array:
-                return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext);
-            case Js::TypeIds_NativeIntArray:
-                return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeIntArray::FromVar(pArr), search, fromIndex, len, scriptContext);
-            case Js::TypeIds_NativeFloatArray:
-                return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeFloatArray::FromVar(pArr), search, fromIndex, len, scriptContext);
-            default:
-                AssertMsg(FALSE, "invalid array typeid");
-                return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext);
+                return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
+            }
+        }
+
+        // Side effects (such as defining a property in a ToPrimitive call) during evaluation of fromIndex argument may convert the array to an ES5 array.
+        if (pArr && !JavascriptArray::Is(obj))
+        {
+            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            pArr = nullptr;
+        }
+
+        if (pArr)
+        {
+            if (length.IsSmallIndex() || length.IsUint32Max())
+            {
+                uint32 len = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
+                int32 index = pArr->HeadSegmentIndexOfHelper(search, fromIndex, len, includesAlgorithm, scriptContext);
+
+                // If we found the search value in the head segment, or if we determined there is no need to search other segments,
+                // we stop right here.
+                if (index != -1 || fromIndex == -1)
+                {
+                    if (includesAlgorithm)
+                    {
+                        //Array.prototype.includes
+                        return (index == -1) ? falseValue : trueValue;
+                    }
+                    else
+                    {
+                        //Array.prototype.indexOf
+                        return JavascriptNumber::ToVar(index, scriptContext);
+                    }
+                }
+
+                //  If we really must search other segments, let's do it now. We'll have to search the slow way (dealing with holes, etc.).
+                switch (pArr->GetTypeId())
+                {
+                case Js::TypeIds_Array:
+                    return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext);
+                case Js::TypeIds_NativeIntArray:
+                    return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeIntArray::FromVar(pArr), search, fromIndex, len, scriptContext);
+                case Js::TypeIds_NativeFloatArray:
+                    return TemplatedIndexOfHelper<includesAlgorithm>(JavascriptNativeFloatArray::FromVar(pArr), search, fromIndex, len, scriptContext);
+                default:
+                    AssertMsg(FALSE, "invalid array typeid");
+                    return TemplatedIndexOfHelper<includesAlgorithm>(pArr, search, fromIndex, len, scriptContext);
+                }
             }
         }
 
@@ -3775,35 +3818,16 @@ namespace Js
         {
             if (length.IsSmallIndex() || length.IsUint32Max())
             {
-                Var search;
-                uint32 fromIndex;
-                uint32 len = length.IsUint32Max() ? MaxArrayLength : length.GetSmallIndex();
-                if (!GetParamForIndexOf(len, args, search, fromIndex, scriptContext))
-                {
-                    return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
-                }
                 return TemplatedIndexOfHelper<includesAlgorithm>(TypedArrayBase::FromVar(obj), search, fromIndex, length.GetSmallIndex(), scriptContext);
             }
         }
         if (length.IsSmallIndex())
         {
-            Var search;
-            uint32 fromIndex;
-            if (!GetParamForIndexOf(length.GetSmallIndex(), args, search, fromIndex, scriptContext))
-            {
-                return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
-            }
             return TemplatedIndexOfHelper<includesAlgorithm>(obj, search, fromIndex, length.GetSmallIndex(), scriptContext);
         }
         else
         {
-            Var search;
-            uint64 fromIndex;
-            if (!GetParamForIndexOf(length.GetBigIndex(), args, search, fromIndex, scriptContext))
-            {
-                return includesAlgorithm ? falseValue : TaggedInt::ToVarUnchecked(-1);
-            }
-            return TemplatedIndexOfHelper<includesAlgorithm>(obj, search, fromIndex, length.GetBigIndex(), scriptContext);
+            return TemplatedIndexOfHelper<includesAlgorithm>(obj, search, fromIndex64, length.GetBigIndex(), scriptContext);
         }
     }
 
@@ -4582,6 +4606,13 @@ Case0:
         if (!GetParamForLastIndexOf(length, args, search, fromIndex, scriptContext))
         {
             return TaggedInt::ToVarUnchecked(-1);
+        }
+
+        // Side effects (such as defining a property in a ToPrimitive call) during evaluation of fromIndex argument may convert the array to an ES5 array.
+        if (pArr && !JavascriptArray::Is(obj))
+        {
+            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            pArr = nullptr;
         }
 
         if (pArr)
@@ -5400,7 +5431,8 @@ Case0:
             }
             else
             {
-                for (uint32 lower = 0; lower < middle; lower++)
+                Assert(middle <= UINT_MAX);
+                for (uint32 lower = 0; lower < (uint32)middle; lower++)
                 {
                     uint32 upper = (uint32)length - lower - 1;
 
@@ -5792,9 +5824,9 @@ Case0:
                 AssertMsg(!SparseArraySegment<T>::IsMissingItem(&headSeg->elements[i+start]), "Array marked incorrectly as having missing value");
             }
         }
-
 #endif
     }
+
     // If the creating profile data has changed, convert it to the type of array indicated
     // in the profile
     void JavascriptArray::GetArrayTypeAndConvert(bool* isIntArray, bool* isFloatArray)
@@ -5939,6 +5971,13 @@ Case0:
             newLenT = endT > startT ? endT - startT : 0;
         }
 
+        // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments start or end may convert the array to an ES5 array.
+        if (pArr && !JavascriptArray::Is(obj))
+        {
+            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            pArr = nullptr;
+        }
+
         if (TypedArrayBase::IsDetachedTypedArray(obj))
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("Array.prototype.slice"));
@@ -6046,6 +6085,14 @@ Case0:
             return newObj;
         }
 
+        // The ArraySpeciesCreate call above could have converted the source array into an ES5Array. If this happens
+        // we will process the array elements like an ES5Array.
+        if (pArr && !JavascriptArray::Is(obj))
+        {
+            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            pArr = nullptr;
+        }
+
         if (pArr)
         {
             // If we constructed a new Array object, we have some nice helpers here
@@ -6096,6 +6143,14 @@ Case0:
                         }
 
                         newArr->SetItem(i, element, PropertyOperation_None);
+
+                        // Side-effects in the prototype lookup may have changed the source array into an ES5Array. If this happens
+                        // we will process the rest of the array elements like an ES5Array.
+                        if (!JavascriptArray::Is(obj))
+                        {
+                            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                            return JavascriptArray::SliceObjectHelper(obj, start, i + 1, newArr, newObj, newLen, scriptContext);
+                        }
                     }
                 }
             }
@@ -6112,6 +6167,14 @@ Case0:
                     }
 
                     ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
+
+                    // Side-effects in the prototype lookup may have changed the source array into an ES5Array. If this happens
+                    // we will process the rest of the array elements like an ES5Array.
+                    if (!JavascriptArray::Is(obj))
+                    {
+                        AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                        return JavascriptArray::SliceObjectHelper(obj, start, i + 1, newArr, newObj, newLen, scriptContext);
+                    }
                 }
             }
         }
@@ -6154,27 +6217,43 @@ Case0:
         }
         else
         {
-            for (uint32 i = 0; i < newLen; i++)
-            {
-                if (JavascriptOperators::HasItem(obj, i + start))
-                {
-                    Var element = JavascriptOperators::GetItem(obj, i + start, scriptContext);
-                    if (newArr != nullptr)
-                    {
-                        newArr->SetItem(i, element, PropertyOperation_None);
-                    }
-                    else
-                    {
-                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
-                    }
-                }
-            }
+            return JavascriptArray::SliceObjectHelper(obj, start, 0u, newArr, newObj, newLen, scriptContext);
         }
 
         if (!isTypedArrayEntryPoint)
         {
             JavascriptOperators::SetProperty(newObj, newObj, Js::PropertyIds::length, JavascriptNumber::ToVar(newLen, scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible);
         }
+
+#ifdef VALIDATE_ARRAY
+        if (JavascriptArray::Is(newObj))
+        {
+            JavascriptArray::FromVar(newObj)->ValidateArray();
+        }
+#endif
+
+        return newObj;
+    }
+
+    Var JavascriptArray::SliceObjectHelper(RecyclableObject* obj, uint32 sliceStart, uint32 start, JavascriptArray* newArr, RecyclableObject* newObj, uint32 newLen, ScriptContext* scriptContext)
+    {
+        for (uint32 i = start; i < newLen; i++)
+        {
+            if (JavascriptOperators::HasItem(obj, i + sliceStart))
+            {
+                Var element = JavascriptOperators::GetItem(obj, i + sliceStart, scriptContext);
+                if (newArr != nullptr)
+                {
+                    newArr->SetItem(i, element, PropertyOperation_None);
+                }
+                else
+                {
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
+                }
+            }
+        }
+
+        JavascriptOperators::SetProperty(newObj, newObj, Js::PropertyIds::length, JavascriptNumber::ToVar(newLen, scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible);
 
 #ifdef VALIDATE_ARRAY
         if (JavascriptArray::Is(newObj))
@@ -6729,6 +6808,13 @@ Case0:
             }
             deleteLen = min(len - start, deleteLen);
             break;
+        }
+
+        // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments start or deleteCount may convert the array to an ES5 array.
+        if (isArr && !JavascriptArray::Is(pObj))
+        {
+            AssertOrFailFastMsg(ES5Array::Is(pObj), "The array should have been converted to an ES5Array");
+            isArr = false;
         }
 
         Var* insertArgs = args.Info.Count > 3 ? &args.Values[3] : nullptr;
@@ -7984,7 +8070,6 @@ Case0:
             length = JavascriptConversion::ToLength(lenValue, scriptContext);
         }
 
-
         return JavascriptArray::FindHelper<false>(pArr, nullptr, obj, length, args, scriptContext);
     }
 
@@ -8030,7 +8115,9 @@ Case0:
         if (pArr)
         {
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
-            for (uint32 k = 0; k < length; k++)
+
+            Assert(length <= UINT_MAX);
+            for (uint32 k = 0; k < (uint32)length; k++)
             {
                 element = undefined;
                 pArr->DirectGetItemAtFull(k, &element);
@@ -8046,11 +8133,20 @@ Case0:
                 {
                     return findIndex ? index : element;
                 }
+
+                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
+                // we will process the rest of the array elements like an ES5Array.
+                if (!JavascriptArray::Is(obj))
+                {
+                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    return JavascriptArray::FindObjectHelper<findIndex>(obj, length, k + 1, callBackFn, thisArg, scriptContext);
+                }
             }
         }
         else if (typedArrayBase)
         {
-            for (uint32 k = 0; k < length; k++)
+            Assert(length <= UINT_MAX);
+            for (uint32 k = 0; k < (uint32)length; k++)
             {
                 element = typedArrayBase->DirectGetItem(k);
 
@@ -8069,20 +8165,33 @@ Case0:
         }
         else
         {
-            for (uint32 k = 0; k < length; k++)
+            return JavascriptArray::FindObjectHelper<findIndex>(obj, length, 0u, callBackFn, thisArg, scriptContext);
+        }
+
+        return findIndex ? JavascriptNumber::ToVar(-1, scriptContext) : scriptContext->GetLibrary()->GetUndefined();
+    }
+
+    template <bool findIndex>
+    Var JavascriptArray::FindObjectHelper(RecyclableObject* obj, int64 length, int64 start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
+    {
+        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
+        CallFlags flags = CallFlags_Value;
+        Var element = nullptr;
+        Var testResult = nullptr;
+
+        for (int64 k = start; k < length; k++)
+        {
+            element = JavascriptOperators::GetItem(obj, (uint64)k, scriptContext);
+            Var index = JavascriptNumber::ToVar(k, scriptContext);
+
+            testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
+                element,
+                index,
+                obj);
+
+            if (JavascriptConversion::ToBoolean(testResult, scriptContext))
             {
-                element = JavascriptOperators::GetItem(obj, k, scriptContext);
-                Var index = JavascriptNumber::ToVar(k, scriptContext);
-
-                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
-                    element,
-                    index,
-                    obj);
-
-                if (JavascriptConversion::ToBoolean(testResult, scriptContext))
-                {
-                    return findIndex ? index : element;
-                }
+                return findIndex ? index : element;
             }
         }
 
@@ -8319,7 +8428,8 @@ Case0:
 
         if (pArr)
         {
-            for (uint32 k = 0; k < length; k++)
+            Assert(length <= UINT_MAX);
+            for (uint32 k = 0; k < (uint32)length; k++)
             {
                 if (!pArr->DirectGetItemAtFull(k, &element))
                 {
@@ -8335,13 +8445,21 @@ Case0:
                 {
                     return scriptContext->GetLibrary()->GetFalse();
                 }
+
+                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
+                // we will process the rest of the array elements like an ES5Array.
+                if (!JavascriptArray::Is(obj))
+                {
+                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    return JavascriptArray::EveryObjectHelper<T>(obj, length, k + 1, callBackFn, thisArg, scriptContext);
+                }
             }
         }
         else if (typedArrayBase)
         {
             Assert(length <= UINT_MAX);
 
-            for (uint32 k = 0; k < length; k++)
+            for (uint32 k = 0; k < (uint32)length; k++)
             {
                 if (!typedArrayBase->HasItem(k))
                 {
@@ -8363,22 +8481,35 @@ Case0:
         }
         else
         {
-            for (T k = 0; k < length; k++)
+            return JavascriptArray::EveryObjectHelper<T>(obj, length, 0u, callBackFn, thisArg, scriptContext);
+        }
+
+        return scriptContext->GetLibrary()->GetTrue();
+    }
+
+    template <typename T>
+    Var JavascriptArray::EveryObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
+    {
+        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
+        CallFlags flags = CallFlags_Value;
+        Var element = nullptr;
+        Var testResult = nullptr;
+
+        for (T k = start; k < length; k++)
+        {
+            // According to es6 spec, we need to call Has first before calling Get
+            if (JavascriptOperators::HasItem(obj, k))
             {
-                // According to es6 spec, we need to call Has first before calling Get
-                if (JavascriptOperators::HasItem(obj, k))
+                element = JavascriptOperators::GetItem(obj, k, scriptContext);
+
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
+                    element,
+                    JavascriptNumber::ToVar(k, scriptContext),
+                    obj);
+
+                if (!JavascriptConversion::ToBoolean(testResult, scriptContext))
                 {
-                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
-
-                    testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        obj);
-
-                    if (!JavascriptConversion::ToBoolean(testResult, scriptContext))
-                    {
-                        return scriptContext->GetLibrary()->GetFalse();
-                    }
+                    return scriptContext->GetLibrary()->GetFalse();
                 }
             }
         }
@@ -8430,7 +8561,7 @@ Case0:
             length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
 
-            if (length.IsSmallIndex())
+        if (length.IsSmallIndex())
         {
             return JavascriptArray::SomeHelper(pArr, nullptr, obj, length.GetSmallIndex(), args, scriptContext);
         }
@@ -8480,7 +8611,8 @@ Case0:
 
         if (pArr)
         {
-            for (uint32 k = 0; k < length; k++)
+            Assert(length <= UINT_MAX);
+            for (uint32 k = 0; k < (uint32)length; k++)
             {
                 if (!pArr->DirectGetItemAtFull(k, &element))
                 {
@@ -8496,13 +8628,21 @@ Case0:
                 {
                     return scriptContext->GetLibrary()->GetTrue();
                 }
+
+                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
+                // we will process the rest of the array elements like an ES5Array.
+                if (!JavascriptArray::Is(obj))
+                {
+                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    return JavascriptArray::SomeObjectHelper<T>(obj, length, k + 1, callBackFn, thisArg, scriptContext);
+                }
             }
         }
         else if (typedArrayBase)
         {
             Assert(length <= UINT_MAX);
 
-            for (uint32 k = 0; k < length; k++)
+            for (uint32 k = 0; k < (uint32)length; k++)
             {
                 // If k < typedArrayBase->length, we know that HasItem will return true.
                 // But we still have to call it in case there's a proxy trap or in the case that we are calling
@@ -8527,20 +8667,33 @@ Case0:
         }
         else
         {
-            for (T k = 0; k < length; k++)
-            {
-                if (JavascriptOperators::HasItem(obj, k))
-                {
-                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
-                    testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        obj);
+            return JavascriptArray::SomeObjectHelper<T>(obj, length, 0u, callBackFn, thisArg, scriptContext);
+        }
 
-                    if (JavascriptConversion::ToBoolean(testResult, scriptContext))
-                    {
-                        return scriptContext->GetLibrary()->GetTrue();
-                    }
+        return scriptContext->GetLibrary()->GetFalse();
+    }
+
+    template <typename T>
+    Var JavascriptArray::SomeObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
+    {
+        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
+        CallFlags flags = CallFlags_Value;
+        Var element = nullptr;
+        Var testResult = nullptr;
+
+        for (T k = start; k < length; k++)
+        {
+            if (JavascriptOperators::HasItem(obj, k))
+            {
+                element = JavascriptOperators::GetItem(obj, k, scriptContext);
+                testResult = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
+                    element,
+                    JavascriptNumber::ToVar(k, scriptContext),
+                    obj);
+
+                if (JavascriptConversion::ToBoolean(testResult, scriptContext))
+                {
+                    return scriptContext->GetLibrary()->GetTrue();
                 }
             }
         }
@@ -8752,6 +8905,13 @@ Case0:
             direction = 1;
         }
 
+        // Side effects (such as defining a property in a ToPrimitive call) during evaluation of arguments may convert the array to an ES5 array.
+        if (pArr && !JavascriptArray::Is(obj))
+        {
+            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            pArr = nullptr;
+        }
+
         // If we are going to copy elements from or to indices > 2^32-1 we'll execute this (slightly slower path)
         // It's possible to optimize here so that we use the normal code below except for the > 2^32-1 indices
         if ((direction == -1 && (fromVal >= MaxArrayLength || toVal >= MaxArrayLength))
@@ -8801,6 +8961,12 @@ Case0:
                         Var val = pArr->DirectGetItem(fromIndex);
 
                         pArr->SetItem(toIndex, val, Js::PropertyOperation_ThrowIfNotExtensible);
+
+                        if (!JavascriptArray::Is(obj))
+                        {
+                            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                            pArr = nullptr;
+                        }
                     }
                     else
                     {
@@ -8894,6 +9060,14 @@ Case0:
             if (args.Info.Count > 3 && !JavascriptOperators::IsUndefinedObject(args[3]))
             {
                 finalVal = JavascriptArray::GetIndexFromVar(args[3], length, scriptContext);
+            }
+
+            // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
+            // we will process the array elements like an ES5Array.
+            if (pArr && !JavascriptArray::Is(obj))
+            {
+                AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                pArr = nullptr;
             }
         }
 
@@ -9097,11 +9271,19 @@ Case0:
         // We at least have to have newObj as a valid object
         Assert(newObj);
 
+        // The ArraySpeciesCreate call above could have converted the source array into an ES5Array. If this happens
+        // we will process the array elements like an ES5Array.
+        if (pArr && !JavascriptArray::Is(obj))
+        {
+            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            pArr = nullptr;
+        }
+
         if (pArr != nullptr)
         {
             // If source is a JavascriptArray, newObj may or may not be an array based on what was in source's constructor property
-
-            for (uint32 k = 0; k < length; k++)
+            Assert(length <= UINT_MAX);
+            for (uint32 k = 0; k < (uint32)length; k++)
             {
                 if (!pArr->DirectGetItemAtFull(k, &element))
                 {
@@ -9120,7 +9302,15 @@ Case0:
                 }
                 else
                 {
-                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue), scriptContext, k);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, k, mappedValue), scriptContext, k);
+                }
+
+                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
+                // we will process the rest of the array elements like an ES5Array.
+                if (!JavascriptArray::Is(obj))
+                {
+                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    return JavascriptArray::MapObjectHelper<T>(obj, length, k + 1, newObj, newArr, isBuiltinArrayCtor, callBackFn, thisArg, scriptContext);
                 }
             }
         }
@@ -9134,7 +9324,8 @@ Case0:
                 newTypedArray = TypedArrayBase::FromVar(newObj);
             }
 
-            for (uint32 k = 0; k < length; k++)
+            Assert(length <= UINT_MAX);
+            for (uint32 k = 0; k < (uint32)length; k++)
             {
                 // We can't rely on the length value being equal to typedArrayBase->GetLength() because user code may lie and
                 // attach any length property to a TypedArray instance and pass it as this parameter when .calling
@@ -9165,30 +9356,52 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                    JavascriptArray::SetArrayLikeObjects(newObj, k, mappedValue);
                 }
             }
         }
         else
         {
-            for (uint32 k = 0; k < length; k++)
-            {
-                if (JavascriptOperators::HasItem(obj, k))
-                {
-                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
-                    mappedValue = CALL_FUNCTION(callBackFn, callBackFnInfo, thisArg,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        obj);
+            return JavascriptArray::MapObjectHelper<T>(obj, length, 0u, newObj, newArr, isBuiltinArrayCtor, callBackFn, thisArg, scriptContext);
+        }
 
-                    if (newArr && isBuiltinArrayCtor)
-                    {
-                        newArr->SetItem(k, mappedValue, PropertyOperation_None);
-                    }
-                    else
-                    {
-                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue), scriptContext, k);
-                    }
+#ifdef VALIDATE_ARRAY
+        if (JavascriptArray::Is(newObj))
+        {
+            newArr->ValidateArray();
+        }
+#endif
+
+        return newObj;
+    }
+
+    template<typename T>
+    Var JavascriptArray::MapObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* newObj, JavascriptArray* newArr,
+        bool isBuiltinArrayCtor, RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
+    {
+        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
+        CallFlags callBackFnflags = CallFlags_Value;
+        CallInfo callBackFnInfo = CallInfo(callBackFnflags, 4);
+        Var element = nullptr;
+        Var mappedValue = nullptr;
+
+        for (T k = start; k < length; k++)
+        {
+            if (JavascriptOperators::HasItem(obj, k))
+            {
+                element = JavascriptOperators::GetItem(obj, k, scriptContext);
+                mappedValue = CALL_FUNCTION(callBackFn, callBackFnInfo, thisArg,
+                    element,
+                    JavascriptNumber::ToVar(k, scriptContext),
+                    obj);
+
+                if (newArr && isBuiltinArrayCtor)
+                {
+                    newArr->SetItem((uint32)k, mappedValue, PropertyOperation_None);
+                }
+                else
+                {
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, BigIndex(k), mappedValue), scriptContext, BigIndex(k));
                 }
             }
         }
@@ -9295,6 +9508,14 @@ Case0:
             }
         }
 
+        // The ArraySpeciesCreate call above could have converted the source array into an ES5Array. If this happens
+        // we will process the array elements like an ES5Array.
+        if (pArr && !JavascriptArray::Is(obj))
+        {
+            AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+            pArr = nullptr;
+        }
+
         Var element = nullptr;
         Var selected = nullptr;
 
@@ -9303,7 +9524,8 @@ Case0:
             Assert(length <= MaxArrayLength);
             uint32 i = 0;
 
-            for (uint32 k = 0; k < length; k++)
+            Assert(length <= UINT_MAX);
+            for (uint32 k = 0; k < (uint32)length; k++)
             {
                 if (!pArr->DirectGetItemAtFull(k, &element))
                 {
@@ -9329,35 +9551,62 @@ Case0:
                     }
                     ++i;
                 }
+
+                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
+                // we will process the rest of the array elements like an ES5Array.
+                if (!JavascriptArray::Is(obj))
+                {
+                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    return JavascriptArray::FilterObjectHelper<T>(obj, length, k + 1, newArr, newObj, i, callBackFn, thisArg, scriptContext);
+                }
             }
         }
         else
         {
-            BigIndex i = 0u;
+            return JavascriptArray::FilterObjectHelper<T>(obj, length, 0u, newArr, newObj, 0u, callBackFn, thisArg, scriptContext);
+        }
 
-            for (T k = 0; k < length; k++)
+#ifdef VALIDATE_ARRAY
+        if (newArr)
+        {
+            newArr->ValidateArray();
+        }
+#endif
+
+        return newObj;
+    }
+
+    template <typename T>
+    Var JavascriptArray::FilterObjectHelper(RecyclableObject* obj, T length, T start, JavascriptArray* newArr, RecyclableObject* newObj, T newStart,
+        RecyclableObject* callBackFn, Var thisArg, ScriptContext* scriptContext)
+    {
+        Var element = nullptr;
+        Var selected = nullptr;
+        BigIndex i = BigIndex(newStart);
+
+        for (T k = start; k < length; k++)
+        {
+            if (JavascriptOperators::HasItem(obj, k))
             {
-                if (JavascriptOperators::HasItem(obj, k))
-                {
-                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
-                    selected = CALL_ENTRYPOINT(callBackFn->GetEntryPoint(), callBackFn, CallInfo(CallFlags_Value, 4),
-                        thisArg,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        obj);
+                element = JavascriptOperators::GetItem(obj, k, scriptContext);
+                selected = CALL_ENTRYPOINT(callBackFn->GetEntryPoint(), callBackFn, CallInfo(CallFlags_Value, 4),
+                    thisArg,
+                    element,
+                    JavascriptNumber::ToVar(k, scriptContext),
+                    obj);
 
-                    if (JavascriptConversion::ToBoolean(selected, scriptContext))
+                if (JavascriptConversion::ToBoolean(selected, scriptContext))
+                {
+                    if (newArr)
                     {
-                        if (newArr)
-                        {
-                            newArr->DirectSetItemAt(i, element);
-                        }
-                        else
-                        {
-                            ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
-                        }
-                        ++i;
+                        newArr->DirectSetItemAt(i, element);
                     }
+                    else
+                    {
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
+                    }
+
+                    ++i;
                 }
             }
         }
@@ -9475,6 +9724,14 @@ Case0:
                     bPresent = true;
                     accumulator = element;
                 }
+
+                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
+                // we will process the array elements like an ES5Array.
+                if (!JavascriptArray::Is(obj))
+                {
+                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    pArr = nullptr;
+                }
             }
             else if (typedArrayBase)
             {
@@ -9531,6 +9788,14 @@ Case0:
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     pArr);
+
+                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
+                // we will process the rest of the array elements like an ES5Array.
+                if (!JavascriptArray::Is(obj))
+                {
+                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    return JavascriptArray::ReduceObjectHelper<T>(obj, length, k + 1, callBackFn, accumulator, scriptContext);
+                }
             }
         }
         else if (typedArrayBase)
@@ -9554,18 +9819,30 @@ Case0:
         }
         else
         {
-            for (; k < length; k++)
-            {
-                if (JavascriptOperators::HasItem(obj, k))
-                {
-                    element = JavascriptOperators::GetItem(obj, k, scriptContext);
+            return JavascriptArray::ReduceObjectHelper<T>(obj, length, k, callBackFn, accumulator, scriptContext);
+        }
 
-                    accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
-                        accumulator,
-                        element,
-                        JavascriptNumber::ToVar(k, scriptContext),
-                        obj);
-                }
+        return accumulator;
+    }
+
+    template <typename T>
+    Var JavascriptArray::ReduceObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var accumulator, ScriptContext* scriptContext)
+    {
+        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
+        CallFlags flags = CallFlags_Value;
+        Var element = nullptr;
+
+        for (T k = start; k < length; k++)
+        {
+            if (JavascriptOperators::HasItem(obj, k))
+            {
+                element = JavascriptOperators::GetItem(obj, k, scriptContext);
+
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), scriptContext->GetLibrary()->GetUndefined(),
+                    accumulator,
+                    element,
+                    JavascriptNumber::ToVar(k, scriptContext),
+                    obj);
             }
         }
 
@@ -9674,6 +9951,14 @@ Case0:
                     bPresent = true;
                     accumulator = element;
                 }
+
+                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
+                // we will process the array elements like an ES5Array.
+                if (!JavascriptArray::Is(obj))
+                {
+                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    pArr = nullptr;
+                }
             }
             else if (typedArrayBase)
             {
@@ -9706,7 +9991,6 @@ Case0:
             {
                 JavascriptError::ThrowTypeError(scriptContext, VBSERR_ActionNotSupported);
             }
-
         }
 
         // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
@@ -9728,6 +10012,14 @@ Case0:
                     element,
                     JavascriptNumber::ToVar(index, scriptContext),
                     pArr);
+
+                // Side-effects in the callback function may have changed the source array into an ES5Array. If this happens
+                // we will process the rest of the array elements like an ES5Array.
+                if (!JavascriptArray::Is(obj))
+                {
+                    AssertOrFailFastMsg(ES5Array::Is(obj), "The array should have been converted to an ES5Array");
+                    return JavascriptArray::ReduceRightObjectHelper<T>(obj, length, k + 1, callBackFn, accumulator, scriptContext);
+                }
             }
         }
         else if (typedArrayBase)
@@ -9752,18 +10044,31 @@ Case0:
         }
         else
         {
-            for (; k < length; k++)
+            return JavascriptArray::ReduceRightObjectHelper<T>(obj, length, k, callBackFn, accumulator, scriptContext);
+        }
+
+        return accumulator;
+    }
+
+    template <typename T>
+    Var JavascriptArray::ReduceRightObjectHelper(RecyclableObject* obj, T length, T start, RecyclableObject* callBackFn, Var accumulator, ScriptContext* scriptContext)
+    {
+        // The correct flag value is CallFlags_Value but we pass CallFlags_None in compat modes
+        CallFlags flags = CallFlags_Value;
+        Var element = nullptr;
+        T index = 0;
+
+        for (T k = start; k < length; k++)
+        {
+            index = length - k - 1;
+            if (JavascriptOperators::HasItem(obj, index))
             {
-                index = length - k - 1;
-                if (JavascriptOperators::HasItem(obj, index))
-                {
-                    element = JavascriptOperators::GetItem(obj, index, scriptContext);
-                    accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), undefinedValue,
-                        accumulator,
-                        element,
-                        JavascriptNumber::ToVar(index, scriptContext),
-                        obj);
-                }
+                element = JavascriptOperators::GetItem(obj, index, scriptContext);
+                accumulator = CALL_FUNCTION(callBackFn, CallInfo(flags, 5), scriptContext->GetLibrary()->GetUndefined(),
+                    accumulator,
+                    element,
+                    JavascriptNumber::ToVar(index, scriptContext),
+                    obj);
             }
         }
 
@@ -9874,7 +10179,7 @@ Case0:
                 }
                 else
                 {
-                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, nextValue), scriptContext, k);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, k, nextValue), scriptContext, k);
                 }
 
                 k++;
@@ -9943,7 +10248,7 @@ Case0:
                 }
                 else
                 {
-                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue), scriptContext, k);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, k, kValue), scriptContext, k);
                 }
             }
 

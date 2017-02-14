@@ -489,6 +489,10 @@ private:
     BVSparse<HeapAllocator> * m_jitNumericProperties;
     bool m_jitNeedsPropertyUpdate;
 public:
+    intptr_t GetPreReservedRegionAddr()
+    {
+        return m_prereservedRegionAddr;
+    }
     BVSparse<HeapAllocator> * GetJITNumericProperties() const
     {
         return m_jitNumericProperties;
@@ -515,6 +519,7 @@ public:
 private:
     typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, Recycler, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
     typedef JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy> SymbolRegistrationMap;
+
 
     class SourceDynamicProfileManagerCache
     {
@@ -711,6 +716,8 @@ private:
     int stackProbeCount;
     // Count stack probes and poll for continuation every n probes
     static const int StackProbePollThreshold = 1000;
+    EXCEPTION_POINTERS exceptionInfo;
+    uint32 exceptionCode;
 
     ArenaAllocator inlineCacheThreadInfoAllocator;
     ArenaAllocator isInstInlineCacheThreadInfoAllocator;
@@ -866,6 +873,10 @@ public:
     Js::WindowsFoundationAdapter *GetWindowsFoundationAdapter();
 #endif
 #endif
+
+    void SetAbnormalExceptionRecord(EXCEPTION_POINTERS *exceptionInfo) { this->exceptionInfo = *exceptionInfo; }
+    void SetAbnormalExceptionCode(uint32 exceptionInfo) { this->exceptionCode = exceptionInfo; }
+    uint32 GetAbnormalExceptionCode() const { return this->exceptionCode; }
 
 #ifdef ENABLE_BASIC_TELEMETRY
     GUID activityId;
@@ -1174,7 +1185,7 @@ public:
     void RegisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
     void UnregisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
 #if ENABLE_NATIVE_CODEGEN
-    BOOL IsNativeAddress(void * pCodeAddr);
+    BOOL IsNativeAddress(void * pCodeAddr, Js::ScriptContext* currentScriptContext = nullptr);
     JsUtil::JobProcessor *GetJobProcessor();
     Js::Var * GetBailOutRegisterSaveSpace() const { return bailOutRegisterSaveSpace; }
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const override { return (intptr_t)bailOutRegisterSaveSpace; }

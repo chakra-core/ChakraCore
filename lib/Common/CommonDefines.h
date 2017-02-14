@@ -482,14 +482,10 @@
 #define PROFILE_BAILOUT_RECORD_MEMORY
 #define MEMSPECT_TRACKING
 
-// xplat-todo: Depends on C++ type-info
-// enable later on non-VC++ compilers
-#ifndef __APPLE__
 #define PROFILE_RECYCLER_ALLOC
 // Needs to compile in debug mode
 // Just needs strings converted
 #define PROFILE_DICTIONARY 1
-#endif
 
 #define PROFILE_STRINGS
 
@@ -523,12 +519,9 @@
 #endif
 #endif
 
-// xplat: on apple looks typeid(char16_t) does not work, hit error: Undefined symbols for architecture x86_64: "typeinfo for char16_t"
-#ifndef __APPLE__
 #define HEAP_TRACK_ALLOC
 #define CHECK_MEMORY_LEAK
 #define LEAK_REPORT
-#endif
 
 #define PROJECTION_METADATA_TRACE
 #define ERROR_TRACE
@@ -623,8 +616,11 @@
 #define ASMJS_PLAT
 #endif
 
-#if defined(ASMJS_PLAT) && defined(_WIN32)
+#if defined(ASMJS_PLAT)
+// xplat-todo: once all the wasm tests are passing on xplat, enable it for release builds
+#if defined(_WIN32) || (defined(__clang__) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_WASM
+#endif
 #endif
 
 #if _M_IX86
@@ -663,11 +659,8 @@
 #define ENABLE_TRACE
 #endif
 
-// xplat-todo: Capture stack backtrace on non-win32 platforms
-#ifdef _WIN32
 #if DBG || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT) || defined(TRACK_DISPATCH) || defined(ENABLE_TRACE) || defined(RECYCLER_PAGE_HEAP)
 #define STACK_BACK_TRACE
-#endif
 #endif
 
 // ENABLE_DEBUG_STACK_BACK_TRACE is for capturing stack back trace for debug only.
@@ -677,7 +670,9 @@
 #endif
 
 #if defined(STACK_BACK_TRACE) || defined(CONTROL_FLOW_GUARD_LOGGER)
+#ifdef _WIN32
 #define DBGHELP_SYMBOL_MANAGER
+#endif
 #endif
 
 #if defined(TRACK_DISPATCH) || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)

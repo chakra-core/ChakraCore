@@ -5,6 +5,11 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
+function AddNumbers(first, second)
+{
+    return first + second;
+}
+
 var tests = [
     {
        name: "Number Object Test",
@@ -473,6 +478,596 @@ var tests = [
                 assert.throws(()=>(o==Symbol()), TypeError, "o==Symbol()", "[Symbol.toPrimitive]: invalid argument");
             });
         }
+    },
+    {
+       name: "Array type conversion tests: lastIndexOf()",
+       body: function ()
+       {
+            var p1 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a1, "0", {configurable : true, get: function(){ return 30;}});
+                    return a1.length;
+                }
+            };
+            var a1 = [1, 2, 3, 4, 5];
+            assert.areEqual(3, a1.lastIndexOf(4, p1), "ToPrimitive: lastIndexOf() method returned incorrect result as array type changed to ES5 array.");
+
+            var a1_proto = {};
+            Object.defineProperty(a1_proto, "1", {
+                  get: function(){
+                        Object.defineProperty(a1_prototest, "0", {configurable : true, get: function(){ return 30;}});
+                        return 2;
+                  }
+            });
+
+            var a1_prototest = [, , 3, 4, 5];
+            a1_prototest.__proto__ = a1_proto;
+            var c1_prototest = [].lastIndexOf.call(a1_prototest, 30);
+            assert.areEqual(0, c1_prototest, "ToPrimitive: The lastIndexOf() method returned incorrect result as array type changed to ES5 array in the property getter of the prototype.");
+        }
+    },
+    {
+       name: "Array type conversion tests: indexOf()",
+       body: function ()
+       {
+            var p2 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a2, "0", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+            var a2 = [1, 2, 3, 4, 5];
+            assert.areEqual(3, a2.indexOf(4, p2), "ToPrimitive: indexOf() method returned incorrect result as array type changed to ES5 array.");
+
+            var a2_proto = {};
+            Object.defineProperty(a2_proto, "0", {
+                  get: function(){
+                        Object.defineProperty(a2_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 1;
+                  }
+            });
+
+            var a2_prototest = [, , 3, 4, 5];
+            a2_prototest.__proto__ = a2_proto;
+            var c2_prototest = [].indexOf.call(a2_prototest, 30);
+            assert.areEqual(1, c2_prototest, "ToPrimitive: The indexOf() method returned incorrect result as array type changed to ES5 array in the property getter of the prototype.");
+       }
+    },
+    {
+       name: "Array type conversion tests: splice()",
+       body: function ()
+       {
+            var p3 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a3, "0", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+            var a3 = [1, 2, 3, 4, 5];
+            var b3 = a3.splice(p3);
+            assert.areEqual([30,2,3,4,5], b3, "ToPrimitive: splice() method returned incorrect result as array type changed to ES5 array.");
+ 
+            var a3_proto = {};
+            Object.defineProperty(a3_proto, "0", {
+                  get: function(){
+                        Object.defineProperty(a3_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 1;
+                  }
+            });
+
+            var a3_prototest = [, , 3, 4, 5];
+            a3_prototest.__proto__ = a3_proto;
+            var c3_prototest = [].splice.call(a3_prototest, 0);
+            assert.areEqual([1,30,3,4,5], c3_prototest, "ToPrimitive: The splice() method returned incorrect result as array type changed to ES5 array in the property getter of the prototype.");
+
+            function a3_constructor(x) { };
+            a3_constructor[Symbol.species] = function () {
+                Object.defineProperty(a3_species, "0", { configurable: true, get: function () { return 30; } });
+                return {};
+            };
+
+            var a3_species = [1, 2, 3, 4, 5];
+            a3_species['constructor'] = a3_constructor;
+            var c3_species = a3_species.splice(0);
+            assert.areEqual(30, c3_species["0"], "The splice() method returned incorrect result as array was converted to an ES5Array.");            
+            assert.areEqual("30,2,3,4,5", [].join.call(c3_species, ","), "The splice() method returned incorrect result as array was converted to an ES5Array.");
+       }
+   },
+    {
+       name: "Array type conversion tests: slice()",
+       body: function ()
+       {
+            var p4 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a4, "0", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+            var a4 = [1, 2, 3, 4, 5];
+            var b4 = a4.slice(p4);
+            assert.areEqual([30,2,3,4,5], b4, "ToPrimitive: slice() method returned incorrect result as array type changed to ES5 array.");
+
+            var a4_proto = {};
+            Object.defineProperty(a4_proto, "0", {
+                  get: function(){
+                        Object.defineProperty(a4_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 1;
+                  }
+            });
+
+            var a4_prototest = [, , 3, 4, 5];
+            a4_prototest.__proto__ = a4_proto;
+            var c4_prototest = [].slice.call(a4_prototest, 0);
+            assert.areEqual([1,30,3,4,5], c4_prototest, "ToPrimitive: The slice() method returned incorrect result as array type changed to ES5 array in the property getter of the prototype.");
+ 
+            function a4_constructor(x) { };
+            a4_constructor[Symbol.species] = function () {
+                Object.defineProperty(a4_species, "0", { configurable: true, get: function () { return 30; } });
+                return {};
+            };
+
+            var a4_species = [1, 2, 3, 4, 5];
+            a4_species['constructor'] = a4_constructor;
+            var c4_species = a4_species.slice(0);
+            assert.areEqual(30, c4_species["0"], "The slice() method returned incorrect result as array was converted to an ES5Array.");            
+            assert.areEqual("30,2,3,4,5", [].join.call(c4_species, ","), "The slice() method returned incorrect result as array was converted to an ES5Array.");
+       }
+   },
+    {
+       name: "Array type conversion tests: includes()",
+       body: function ()
+       {
+            var p5 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a5, "0", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+            var a5 = [1, 2, 3, 4, 5];
+            assert.isTrue(a5.includes(30, p5), "ToPrimitive: includes() method returned incorrect result as array type changed to ES5 array.");
+
+            var a5_proto = {};
+            Object.defineProperty(a5_proto, "0", {
+                  get: function(){
+                        Object.defineProperty(a5_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 1;
+                  }
+            });
+
+            var a5_prototest = [, , 3, 4, 5];
+            a5_prototest.__proto__ = a5_proto;
+            assert.isTrue([].includes.call(a5_prototest, 30), "The includes() method returned incorrect result as array type changed to ES5 array in the property getter of the prototype.");
+       }
+    },
+    {
+       name: "Array type conversion tests: find() and findIndex().",
+       body: function ()
+       {
+            var p2 = {
+                [Symbol.toPrimitive] (hint) {
+                    // The first element changes during the visit to the first element; so it's side-effect won't be seen by Find method.
+                    Object.defineProperty(a2, "0", {configurable : true, get: function(){ return 20;}});
+
+                    // The second element changes during the visit to the first element; so it's side-effect will be seen by Find method.
+                    Object.defineProperty(a2, "1", {configurable : true, get: function(){ return 30;}});
+                    return 10;
+                }
+            };
+            var a2 = [1, 2, 3, 4, 5];
+            var c2 = a2.find(function(x) { return x % p2 == 0; });
+            assert.areEqual(30, c2, "The find() method returned incorrect result as array was converted to an ES5Array.");
+
+            var a2_prototest = [,, 3, 4, 5];
+            var a2_proto = {};
+            Object.defineProperty(a2_proto, "0", {
+                get: function(){
+                        Object.defineProperty(a2_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 7;
+                }
+            });
+
+            a2_prototest.__proto__ = a2_proto;
+            var c2_prototest = [].find.call(a2_prototest, function(x) { return x % 10 == 0; });
+            assert.areEqual(30, c2_prototest, "The find() method returned incorrect result as array was converted to an ES5Array in the property getter of the prototype.");
+
+            var p3 = {
+                [Symbol.toPrimitive] (hint) {
+                    // The first element changes during the visit to the first element; so it's side-effect won't be seen by FindIndex method.
+                    Object.defineProperty(a3, "0", {configurable : true, get: function(){ return 30;}});
+
+                    // The second element changes during the visit to the first element; so it's side-effect will be seen by FindIndex method.
+                    Object.defineProperty(a3, "1", {configurable : true, get: function(){ return 30;}});
+                    return 30;
+                }
+            };
+            var a3 = [1, 2, 3, 4, 5];
+            var c3 = a3.findIndex(function(x) { return x == p3; });
+            assert.areEqual(1, c3, "The findIndex() method returned incorrect result as array was converted to an ES5Array.");
+        }
+    },
+    {
+       name: "Array type conversion tests: map().",
+       body: function ()
+       {
+            var p4 = function(x)
+            {
+                    Object.defineProperty(a4, "1", {configurable : true, get: function(){ return 30;}});
+                    return x * x;
+            };
+            var a4 = [1, 2, 3, 4, 5];
+            var c4 = a4.map(p4);
+            assert.areEqual([1,900,9,16,25], c4, "The map() method returned incorrect result as array was converted to an ES5Array.");
+
+            var p4_typedarray = function(x)
+            {
+                    Object.defineProperty(a4_typedarray, "1", {configurable : false, value: 30});
+                    return x * x;
+            };
+            var a4_typedarray = new Int32Array([1, 2, 3, 4, 5]);
+            var c4_typedarray = a4_typedarray.map(p4_typedarray);
+            assert.areEqual([1,900,9,16,25], c4_typedarray, "The map() method returned incorrect result for TypedArray.");
+
+            function a4_constructor(x) { };
+            a4_constructor[Symbol.species] = function () {
+                Object.defineProperty(a4_species, "1", { configurable: true, get: function () { return 30; } });
+                return {};
+            };
+
+            var a4_species = [1, 2, 3, 4, 5];
+            a4_species['constructor'] = a4_constructor;
+            var c4_species = a4_species.map(function (x) { return x * x; });
+            assert.areEqual([1, 900, 9, 16, 25], c4_species, "Map returned incorrect result as array was converted to an ES5Array.");
+
+            var a4_proto = {};
+            Object.defineProperty(a4_proto, "0", {
+                get: function(){
+                        Object.defineProperty(a4_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 7;
+                }
+            });
+
+            var SquareNumber = function(x)
+            {
+                return x * x;
+            };
+            var a4_prototest = [, , 3, 4, 5];
+            a4_prototest.__proto__ = a4_proto;
+            var c4_prototest = [].map.call(a4_prototest, SquareNumber);
+            assert.areEqual([49,900,9,16,25], c4_prototest, "The map() method returned incorrect result as array was converted to an ES5Array in the property getter of the prototype.");
+       }
+    },
+    {
+       name: "Array type conversion tests: reduce().",
+       body: function ()
+       {
+            var p6 = {
+                [Symbol.toPrimitive] (hint) {
+                    // The first element changes during the visit to the first element; so it's side-effect won't be seen by Reduce method.
+                    Object.defineProperty(a6, "0", {configurable : true, get: function(){ return 30;}});
+
+                    // The second element changes during the visit to the first element; so it's side-effect will be seen by Reduce method.
+                    Object.defineProperty(a6, "1", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+
+            var a6 = [1, 2, 3, 4, 5];
+            var c6 = a6.reduce(AddNumbers, p6);
+            assert.areEqual(43, c6, "The reduce() method returned incorrect result as array was converted to an ES5Array.");
+
+            var a6_proto = {};
+            Object.defineProperty(a6_proto, "0", {
+                get: function(){
+                        Object.defineProperty(a6_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 1;
+                }
+            });
+
+            var a6_prototest = [, , 3, 4, 5];
+            a6_prototest.__proto__ = a6_proto;
+            var c6_prototest = [].reduce.call(a6_prototest, AddNumbers);
+            assert.areEqual(43, c6_prototest, "The reduce() method returned incorrect result as array was converted to an ES5Array in the property getter of the prototype.");
+
+            // Regression tests
+            var a6_es5 = [1, 2, 3, 4, 5];
+            Object.defineProperty(a6_es5, "0", {configurable : true, get: function(){ return 30;}});
+            var c6_es5 = a6_es5.reduce(AddNumbers);
+            assert.areEqual(44, c6_es5, "The reduce() method returned incorrect result for an ES5Array.");
+        }
+    },
+    {
+       name: "Array type conversion tests: reduceRight().",
+       body: function ()
+       {
+            var p7 = {
+                [Symbol.toPrimitive] (hint) {
+                    // The last element changes during the visit to the last element; so it's side-effect won't be seen by ReduceRight method.
+                    Object.defineProperty(a7, "4", {configurable : true, get: function(){ return 30;}});
+
+                    // The second element changes during the visit to the first element; so it's side-effect will be seen by ReduceRight method.
+                    Object.defineProperty(a7, "1", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+
+            var a7 = [1, 2, 3, 4, 5];
+            var c7 = a7.reduceRight(AddNumbers, p7);
+            assert.areEqual(43, c7, "The reduceRight() method returned incorrect result as array was converted to an ES5Array.");
+
+            var a7_proto = {};
+            Object.defineProperty(a7_proto, "4", {
+                get: function(){
+                        Object.defineProperty(a7_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 5;
+                }
+            });
+
+            var a7_prototest = [1, , 3, 4, ,];
+            a7_prototest.__proto__ = a7_proto;
+            var c7_prototest = [].reduceRight.call(a7_prototest, AddNumbers);
+            assert.areEqual(43, c7_prototest, "The reduceRight() method returned incorrect result as array was converted to an ES5Array in the property getter of the prototype.");
+
+            // Regression test
+            var a7_es5 = [1, 2, 3, 4, 5];
+            Object.defineProperty(a7_es5, "0", {configurable : true, get: function(){ return 30;}});
+            var c7_es5 = a7_es5.reduceRight(AddNumbers);
+            assert.areEqual(44, c7_es5, "The reduceRight() method returned incorrect result for an ES5Array.");
+        }
+    },
+    {
+       name: "Array type conversion tests: some().",
+       body: function ()
+       {
+            var p8 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a8, "1", {configurable : true, get: function(){ return 30;}});
+                    return 30;
+                }
+            };
+
+            function MatchNumber(numberToMatch)
+            {
+                return numberToMatch == p8;
+            }
+            var a8 = [1, 2, 3, 4, 5];
+            var c8 = a8.some(MatchNumber);
+            assert.isTrue(c8, "The some() method returned incorrect result as array was converted to an ES5Array.");
+
+            var a8_proto = {};
+            Object.defineProperty(a8_proto, "0", {
+                get: function(){
+                        Object.defineProperty(a8_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 5;
+                }
+            });
+
+            var a8_prototest = [, , 3, 4, 5];
+            a8_prototest.__proto__ = a8_proto;
+            var c8_prototest = [].some.call(a8_prototest, function(elem){ return elem == 30; });
+            assert.isTrue(c8_prototest, "The some() method returned incorrect result as array was converted to an ES5Array in the property getter of the prototype.");
+        }
+    },
+    {
+       name: "Array type conversion tests: every().",
+       body: function ()
+       {
+            var p9 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a9, "1", {configurable : true, get: function(){ return 30;}});
+                    return 30;
+                }
+            };
+
+            function CompareNumber(numberToMatch)
+            {
+                return numberToMatch < p9;
+            }
+            var a9 = [1, 2, 3, 4, 5];
+            var c9 = a9.every(CompareNumber);
+            assert.isFalse(c9, "The every() method returned incorrect result as array was converted to an ES5Array.");
+
+            var a9_proto = {};
+            Object.defineProperty(a9_proto, "0", {
+                get: function(){
+                        Object.defineProperty(a9_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 1;
+                }
+            });
+
+            var a9_prototest = [, , 3, 4, 5];
+            a9_prototest.__proto__ = a9_proto;
+            var c9_prototest = [].every.call(a9_prototest, function(elem){ return elem < 30;});
+            assert.isFalse(c9_prototest, "The every() method returned incorrect result as array was converted to an ES5Array in the property getter of the prototype.");
+        }
+    },
+    {
+        name: "Array type conversion tests: fill().",
+        body: function ()
+        {
+            var temp = 30;
+            var p10 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a10, 1, {configurable : true, get: function(){ return temp;}, set: function(value){ temp = value;}});
+                    return 0;
+                }
+            };
+            var a10 = [1, 2, 3, 4, 5];
+            var c10 = a10.fill(0, p10);
+            assert.areEqual([0,0,0,0,0], c10, "ToPrimitive: The fill() method returned incorrect result as array type changed to ES5 array.");
+        }
+    },
+    {
+       name: "Array type conversion tests: filter().",
+       body: function ()
+       {
+            var p11 = {
+                [Symbol.toPrimitive] (hint) {
+                    // The first element changes during the visit to the first element; so it's side-effect won't be seen by filter method.
+                    Object.defineProperty(a11, "0", {configurable : true, get: function(){ return 30;}});
+
+                    // The last element changes during the visit to the first element; so it's side-effect will be seen by filter method.
+                    Object.defineProperty(a11, "4", {configurable : true, get: function(){ return 30;}});
+                    return 0;
+                }
+            };
+
+            var a11 = [1, 2, 3, 4, 5];
+            var c11 = a11.filter(function(elem){ return elem %2 == p11; });
+            assert.areEqual([2,4,30], c11, "ToPrimitive: The filter() method returned incorrect result as array type changed to ES5 array.");
+
+            var a11_proto = {};
+            Object.defineProperty(a11_proto, "0", {
+                  get: function(){
+                        Object.defineProperty(a11_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 1;
+                  }
+            });
+
+            var a11_prototest = [, , 3, 4, 5];
+            a11_prototest.__proto__ = a11_proto;
+            var c11_prototest = [].filter.call(a11_prototest, function(elem){ return elem %2 == 0; });
+            assert.areEqual([30,4], c11_prototest, "ToPrimitive: The filter() method returned incorrect result as array type changed to ES5 array in the property getter of the prototype.");
+
+            var p11_typedarray = {
+                [Symbol.toPrimitive] (hint) {
+                    // The first element changes during the visit to the first element; so it's side-effect won't be seen by filter method.
+                    Object.defineProperty(a11_typedarray, "0", {configurable : false, value:30 });
+
+                    // The last element changes during the visit to the first element; so it's side-effect will be seen by filter method.
+                    Object.defineProperty(a11_typedarray, "4", {configurable : false, value:30 });
+                    return 0;
+                }
+            };
+
+            var a11_typedarray = new Int16Array([1,2,3,4,5]);
+            var c11_typedarray = a11_typedarray.filter(function(elem){ return elem %2 == p11_typedarray; });
+            assert.areEqual([2,4,30], c11_typedarray, "ToPrimitive: The filter() method returned incorrect result for TypedArray.");
+
+            function a11_constructor(x) { };
+            a11_constructor[Symbol.species] = function () {
+                Object.defineProperty(a11_species, "0", { configurable: true, get: function () { return 30; } });
+                return {};
+            };
+
+            var a11_species = [1, 2, 3, 4, 5];
+            a11_species['constructor'] = a11_constructor;
+            var c11_species = a11_species.filter(function (elem) { return elem % 2 == 0; });
+            assert.areEqual([30, 2, 4], c11_species, "The filter() returned incorrect result as array was converted to an ES5Array.");
+       }
+    },
+    {
+       name: "Array type conversion tests: foreach().",
+       body: function ()
+       {
+            var a18 = [1,2,3,4,5];
+            var c18 = "";
+
+            a18.forEach( function (item, index)
+                {
+                    if(index==0)
+                    {
+                        // The first element changes during the visit to the first element; so it's side-effect won't be seen by forEach method.
+                        Object.defineProperty(a18, "0", {configurable : true, get: function(){ return 30;}});
+
+                        // The last element changes during the visit to the first element; so it's side-effect will be seen by forEach method.
+                        Object.defineProperty(a18, "1", {configurable : true, get: function(){ return 30;}});
+                    }
+                    else
+                    {
+                        c18 = c18 + ","
+                    }
+
+                    c18 = c18 + item*item;
+                });
+            assert.areEqual("1,900,9,16,25", c18, "ToPrimitive: The forEach() method returned incorrect result for as array type changed to ES5 array.");
+
+            var a18_proto = {};
+            Object.defineProperty(a18_proto, "0", {
+                  get: function(){
+                        Object.defineProperty(a18_prototest, "1", {configurable : true, get: function(){ return 30;}});
+                        return 1;
+                  }
+            });
+
+            var a18_prototest  = [,,3,4,5];
+            a18_prototest.__proto__ = a18_proto;
+            var c18_prototest  = "";
+
+            [].forEach.call(a18_prototest, function (item, index)
+                {
+                    if(index>0)
+                    {
+                        c18_prototest  += ","
+                    }
+
+                    c18_prototest += item*item;
+                });
+            assert.areEqual("1,900,9,16,25", c18_prototest, "ToPrimitive: The forEach() method returned incorrect result for as array type changed to ES5 array.");
+
+            var a18_typedarray = new Int16Array([1,2,3,4,5]);
+            var c18_typedarray = "";
+
+            a18_typedarray.forEach( function (item, index)
+                {
+                    if(index==0)
+                    {
+                        // The first element changes during the visit to the first element; so it's side-effect won't be seen by forEach method.
+                        Object.defineProperty(a18_typedarray, "0", {configurable : false, value:30 });
+
+                        // The last element changes during the visit to the first element; so it's side-effect will be seen by forEach method.
+                        Object.defineProperty(a18_typedarray, "1", {configurable : false, value:30 });
+                    }
+                    else
+                    {
+                        c18_typedarray = c18_typedarray + ","
+                    }
+
+                    c18_typedarray = c18_typedarray + item*item;
+                });
+            assert.areEqual("1,900,9,16,25", c18_typedarray, "ToPrimitive: The forEach() returned incorrect result for TypedArray.");
+        }
+    },
+    {
+       name: "Array type conversion tests: copyWithin().",
+       body: function ()
+       {
+            var p21 = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a21, "0", {configurable : true, get: function(){ return 30;}});
+                    return -2;
+                }
+            };
+
+            var a21 = [1,2,3,4,5];
+            var c21 = a21.copyWithin(p21);
+            assert.areEqual([30,2,3,30,2], c21, "ToPrimitive: The copyWithin() method returned incorrect result as array type changed to ES5 array.");
+
+            //This test is failing due to following bug.
+            // 10747539: The CopyWithin array method implementation needs to do prototype lookup for property lookup (HasItem).
+            // var a21_proto = {};
+            // Object.defineProperty(a21_proto, "0", {
+            //       get: function(){
+            //             Object.defineProperty(a21_prototest, "1", {configurable : true, get: function(){ return 2;}});
+            //             return 30;
+            //       }
+            // });
+
+            // var a21_prototest = [,,3,4,5];
+            // a21_prototest.__proto__ = a21_proto;
+            // var c21_prototest = [].copyWithin.call(a21_prototest, -2);
+            // assert.areEqual("30,2,3,30,2", [].join.call(c21_prototest, ","), "ToPrimitive: The copyWithin() method returned incorrect result as array type changed to ES5Array in the property getter of the prototype.");
+
+            var p21_typedarray = {
+                [Symbol.toPrimitive] (hint) {
+                    Object.defineProperty(a21_typedarray, "0", {configurable : false, value:30 });
+                    return -2;
+                }
+            };
+
+            var a21_typedarray = new Int16Array([1,2,3,4,5]);
+            var c21_typedarray = a21_typedarray.copyWithin(p21_typedarray);
+            assert.areEqual([30,2,3,30,2], c21_typedarray, "ToPrimitive: The copyWithin() method returned incorrect result for TypedArray.");
+       }
     },
 ];
 

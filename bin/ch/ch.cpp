@@ -4,7 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "Core/AtomLockGuids.h"
+#include <CommonPal.h>
 #ifdef _WIN32
+#include <winver.h>
 #include <process.h>
 #endif
 
@@ -64,17 +66,88 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 
 void __stdcall PrintUsageFormat()
 {
-    wprintf(_u("\nUsage: %s [flaglist] <source file>\n"), hostName);
+    wprintf(_u("\nUsage: %s [-v|-version] [-h|-help] [-?] [flaglist] <source file>\n"), hostName);
+    wprintf(_u("\t-v|-version\t\tDisplays version info\n"));
+    wprintf(_u("\t-h|-help\t\tDisplays this help message\n"));
+    wprintf(_u("\t-?\t\t\tDisplays this help message with complete [flaglist] info\n"));
 }
+
+#if !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+void __stdcall PrintReleaseUsage()
+{
+    wprintf(_u("\nUsage: %s [-v|-version] [-h|-help|-?] <source file> %s"), hostName,
+        _u("\nNote: [flaglist] is not supported in Release builds; try a Debug or Test build to enable these flags.\n"));
+    wprintf(_u("\t-v|-version\t\tDisplays version info\n"));
+    wprintf(_u("\t-h|-help|-?\t\tDisplays this help message\n"));
+}
+#endif
 
 void __stdcall PrintUsage()
 {
 #if !defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-    wprintf(_u("\nUsage: %s <source file> %s"), hostName,
-            _u("\n[flaglist] is not supported for Release mode\n"));
+    PrintReleaseUsage();
 #else
     PrintUsageFormat();
-    wprintf(_u("Try '%s -?' for help\n"), hostName);
+#endif
+}
+
+void __stdcall PrintChVersion()
+{
+    wprintf(_u("%s version %d.%d.%d.0\n"), hostName, CHAKRA_CORE_MAJOR_VERSION, CHAKRA_CORE_MINOR_VERSION, CHAKRA_CORE_PATCH_VERSION);
+}
+
+#ifdef _WIN32
+void __stdcall PrintChakraCoreVersion()
+{
+    char filename[_MAX_PATH];
+    char drive[_MAX_DRIVE];
+    char dir[_MAX_DIR];
+
+    LPCSTR chakraDllName = GetChakraDllName();
+
+    char modulename[_MAX_PATH];
+    GetModuleFileNameA(NULL, modulename, _MAX_PATH);
+    _splitpath_s(modulename, drive, _MAX_DRIVE, dir, _MAX_DIR, nullptr, 0, nullptr, 0);
+    _makepath_s(filename, drive, dir, chakraDllName, nullptr);
+
+    UINT size = 0;
+    LPBYTE lpBuffer = NULL;
+    DWORD verSize = GetFileVersionInfoSizeA(filename, NULL);
+
+    if (verSize != NULL)
+    {
+        LPSTR verData = new char[verSize];
+
+        if (GetFileVersionInfoA(filename, NULL, verSize, verData) &&
+            VerQueryValue(verData, _u("\\"), (VOID FAR * FAR *)&lpBuffer, &size) &&
+            (size != 0))
+        {
+            VS_FIXEDFILEINFO *verInfo = (VS_FIXEDFILEINFO *)lpBuffer;
+            if (verInfo->dwSignature == VS_FFI_SIGNATURE)
+            {
+                // Doesn't matter if you are on 32 bit or 64 bit,
+                // DWORD is always 32 bits, so first two revision numbers
+                // come from dwFileVersionMS, last two come from dwFileVersionLS
+                printf("%s version %d.%d.%d.%d\n",
+                    chakraDllName,
+                    (verInfo->dwFileVersionMS >> 16) & 0xffff,
+                    (verInfo->dwFileVersionMS >> 0) & 0xffff,
+                    (verInfo->dwFileVersionLS >> 16) & 0xffff,
+                    (verInfo->dwFileVersionLS >> 0) & 0xffff);
+            }
+        }
+
+        delete[] verData;
+    }
+}
+#endif
+
+void __stdcall PrintVersion()
+{
+    PrintChVersion();
+
+#ifdef _WIN32
+    PrintChakraCoreVersion();
 #endif
 }
 
@@ -779,7 +852,48 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     int cpos = 1;
     for(int i = 1; i < argc; ++i)
     {
-        if(wcsstr(argv[i], _u("-TTRecord=")) == argv[i])
+        const wchar *arg = argv[i];
+        size_t arglen = wcslen(arg);
+
+        // support - or / prefix for flags
+        if (arglen >= 1 && (arg[0] == _u('-')
+#ifdef _WIN32
+            || arg[0] == _u('/') // '/' prefix for legacy (Windows-only because it starts a path on Unix)
+#endif
+            ))
+        {
+            // support -- prefix for flags
+            if (arglen >= 2 && arg[0] == _u('-') && arg[1] == _u('-'))
+            {
+                arg += 2; // advance past -- prefix
+            }
+            else
+            {
+                arg += 1; // advance past - or / prefix
+            }
+        }
+
+        arglen = wcslen(arg); // get length of flag after prefix
+        if ((arglen == 1 && wcsncmp(arg, _u("v"),       arglen) == 0) ||
+            (arglen == 7 && wcsncmp(arg, _u("version"), arglen) == 0))
+        {
+            PrintVersion();
+            PAL_Shutdown();
+            return EXIT_SUCCESS;
+        }
+        else if (
+#if !defined(ENABLE_DEBUG_CONFIG_OPTIONS) // release builds can display some kind of help message
+            (arglen == 1 && wcsncmp(arg, _u("?"),    arglen) == 0) ||
+#endif
+            (arglen == 1 && wcsncmp(arg, _u("h"),    arglen) == 0) ||
+            (arglen == 4 && wcsncmp(arg, _u("help"), arglen) == 0)
+            )
+        {
+            PrintUsage();
+            PAL_Shutdown();
+            return EXIT_SUCCESS;
+        }
+        else if(wcsstr(argv[i], _u("-TTRecord=")) == argv[i])
         {
             doTTRecord = true;
             wchar* ruri = argv[i] + wcslen(_u("-TTRecord="));

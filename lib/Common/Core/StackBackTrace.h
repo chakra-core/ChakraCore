@@ -5,6 +5,13 @@
 #pragma once
 
 #ifdef STACK_BACK_TRACE
+
+#ifndef _WIN32
+#include <execinfo.h>
+#define CaptureStackBackTrace(FramesToSkip, FramesToCapture, buffer, hash) \
+    backtrace(buffer, FramesToCapture)
+#endif  // !_WIN32
+
 class StackBackTrace
 {
 public:
@@ -119,136 +126,126 @@ private:
     StackBackTraceNode * next;
 };
 
+
 //
-// A buffer of requested "size", dynamically allocated or statically embedded.
+// In memory TraceRing
 //
-template <ULONG size, bool useStatic>
-struct _SimpleBuffer
+
+uint _trace_ring_next_id();
+
+//
+// A buffer of size "T[count]", dynamically allocated (!useStatic) or
+// statically embedded (useStatic).
+//
+template <class T, LONG count, bool useStatic>
+struct _TraceRingBuffer
 {
-    BYTE* _buf;
-    _SimpleBuffer() { _buf = new BYTE[size]; }
-    ~_SimpleBuffer() { delete[] _buf; }
+    T* buf;
+    _TraceRingBuffer() { buf = new T[count]; }
+    ~_TraceRingBuffer() { delete[] buf; }
 };
-template <ULONG size>
-struct _SimpleBuffer<size, true>
+template <class T, LONG count>
+struct _TraceRingBuffer<T, count, true>
 {
-    BYTE _buf[size];
+    T buf[count];
 };
 
 //
-// Capture multiple call stack traces using an in-memory ring buffer. Useful for instrumenting source
-// code to track calls.
+// A trace ring frame, consisting of id, header, and optionally stack
 //
-//  BUFFERS:    Number of stack traces to keep. When all the buffers are filled up, capture will start
-//              over from the beginning and overwrite older traces.
-//  HEADER:     Number of pointer-sized data reserved in the header of each trace. You can save runtime
-//              data in the header of each trace to record runtime state of the stack trace.
-//  FRAMES:     Number of stack frames for each trace.
-//              This can be 0, only captures header data without stack.
-//  SKIPFRAMES: Top frames to skip for each capture. e.g., at least the "StackBackTraceRing::Capture"
-//              frame is useless.
+template <class Header, uint STACK_FRAMES>
+struct _TraceRingFrame
+{
+    uint id;  // unique id in order
+    Header header;
+    void* stack[STACK_FRAMES];
+};
+
+//
+// Trace code execution using an in-memory ring buffer. Capture each trace
+// point with a frame, which contains of custom data and optional stack trace.
+// Useful for instrumenting source code to track execution.
+//
+//  Header:     Custom header data type to capture in each frame. Used to
+//              capture execution state at a trace point.
+//  COUNT:      Number of frames to keep in the ring buffer. When the buffer
+//              is filled up, capture will start over from the beginning.
+//  STACK_FRAMES:
+//              Number of stack frames to capture for each trace frame.
+//              This can be 0, only captures header data without stack trace.
 //  USE_STATIC_BUFFER:
-//              Use embedded buffer instead of dynamically allocate. This may be helpful to avoid
-//              initialization problem when global static StackBackTraceRing.
+//              Use embedded buffer instead of dynamically allocate. This may
+//              be helpful to avoid static data initialization problem.
+//  SKIP_TOP_FRAMES:
+//              Top stack frames to skip for each capture (only on _WIN32).
 //
-//  Usage: Following captures the last 100 stacks that changes scriptContext->debuggerMode:
-//      Declare an instance:                            StackBackTraceRing<100> s_debuggerMode;
-//      Call at every debuggerMode change point:        s_debugModeTrace.Capture(scriptContext, debuggerMode);
+//  Usage: Following captures the last 100 stacks that changes
+//  scriptContext->debuggerMode:
+//          struct DebugModeChange {
+//              ScriptContext* scriptContext;
+//              DebuggerMode debuggerMode;
+//          };
+//          static TraceRing<DebugModeChange, 100> s_ev;
+//      Call at every debuggerMode change point:
+//          DebugModeChange e = { scriptContext, debuggerMode };
+//          s_ev.Capture(e);
 //
-//      x86:
-//      Debug a dump in windbg:     ?? chakra!Js::s_debuggerMode
-//      Inspect trace 0:            dds [buf]
-//      Inspect trace N:            dds [buf]+0n32*4*N
-//      Inspect last trace:         dds [buf]+0n32*4*[cur-1]
+//  Examine trace frame i with its call stack in debugger:
+//  gdb:
+//      p s_ev.buf[i]
+//  windbg:
+//      ?? &s_ev.buf[i]
+//      dds/dqs [above address]
 //
-template <ULONG BUFFERS, ULONG HEADER = 2, ULONG FRAMES = 30, ULONG SKIPFRAMES = 1,
-          bool USE_STATIC_BUFFER = false>
-class StackBackTraceRing
+template <class Header, LONG COUNT,
+          uint STACK_FRAMES = 30,
+          bool USE_STATIC_BUFFER = false,
+          uint SKIP_TOP_FRAMES = 1>
+class TraceRing:
+    protected _TraceRingBuffer<_TraceRingFrame<Header, STACK_FRAMES>, COUNT, USE_STATIC_BUFFER>
 {
-    static const ULONG ONE_TRACE = HEADER + FRAMES;
-
 protected:
-    _SimpleBuffer<sizeof(LPVOID) * ONE_TRACE * BUFFERS, USE_STATIC_BUFFER> _simple_buf;
-    ULONG cur;
+    LONG cur;
 
 public:
-    StackBackTraceRing()
+    TraceRing()
     {
-        cur = 0;
+        cur = (uint)-1;
     }
 
     template <class HeaderFunc>
-    void CaptureWithHeader(HeaderFunc writeHeader)
+    void Capture(const HeaderFunc& writeHeader)
     {
-        cur = cur % BUFFERS;
-        LPVOID* buffer = reinterpret_cast<LPVOID*>(_simple_buf._buf) + ONE_TRACE * cur++;
-        cur = cur % BUFFERS;
-
-        memset(buffer, 0, sizeof(LPVOID) * ONE_TRACE);
-        writeHeader(buffer);
-
-        if (FRAMES > 0)
+        LONG i = InterlockedIncrement(&cur);
+        if (i >= COUNT)
         {
-            LPVOID* frames = &buffer[HEADER];
-            CaptureStackBackTrace(SKIPFRAMES, FRAMES, frames, nullptr);
+            InterlockedCompareExchange(&cur, i % COUNT, i);
+            i %= COUNT;
+        }
+
+        auto* frame = &this->buf[i];
+        *frame = {};
+        frame->id = _trace_ring_next_id();
+        writeHeader(&frame->header);
+        if (STACK_FRAMES > 0)
+        {
+            CaptureStackBackTrace(SKIP_TOP_FRAMES, STACK_FRAMES, frame->stack, nullptr);
         }
     }
 
-    // Capture a stack trace
+    void Capture(const Header& header)
+    {
+        Capture([&](Header* h)
+        {
+            *h = header;
+        });
+    }
+
+    // Capture a trace (no header data, stack only)
     void Capture()
     {
-        CaptureWithHeader([](LPVOID* buffer)
-        {
-        });
-    }
-
-    // Capture a stack trace and save data0 in header
-    template <class T0>
-    void Capture(T0 data0)
-    {
-        C_ASSERT(HEADER >= 1);
-
-        CaptureWithHeader([=](_Out_writes_(HEADER) LPVOID* buffer)
-        {
-            buffer[0] = reinterpret_cast<LPVOID>(data0);
-        });
-    }
-
-    // Capture a stack trace and save data0 and data1 in header
-    template <class T0, class T1>
-    void Capture(T0 data0, T1 data1)
-    {
-        C_ASSERT(HEADER >= 2);
-
-        CaptureWithHeader([=](_Out_writes_(HEADER) LPVOID* buffer)
-        {
-            buffer[0] = reinterpret_cast<LPVOID>(data0);
-            buffer[1] = reinterpret_cast<LPVOID>(data1);
-        });
-    }
-
-    template <class T0, class T1, class T2>
-    void Capture(T0 data0, T1 data1, T2 data2) {
-      C_ASSERT(HEADER >= 3);
-
-      CaptureWithHeader([=](_Out_writes_(HEADER) LPVOID* buffer) {
-        buffer[0] = reinterpret_cast<LPVOID>(data0);
-        buffer[1] = reinterpret_cast<LPVOID>(data1);
-        buffer[2] = reinterpret_cast<LPVOID>(data2);
-      });
-    }
-
-    template <class T0, class T1, class T2, class T3>
-    void Capture(T0 data0, T1 data1, T2 data2, T3 data3) {
-      C_ASSERT(HEADER >= 4);
-
-      CaptureWithHeader([=](_Out_writes_(HEADER) LPVOID* buffer) {
-        buffer[0] = reinterpret_cast<LPVOID>(data0);
-        buffer[1] = reinterpret_cast<LPVOID>(data1);
-        buffer[2] = reinterpret_cast<LPVOID>(data2);
-        buffer[3] = reinterpret_cast<LPVOID>(data3);
-      });
+        Capture([&](Header* h) { });
     }
 };
 
-#endif
+#endif  // STACK_BACK_TRACE

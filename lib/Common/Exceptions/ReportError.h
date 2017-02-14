@@ -59,7 +59,7 @@ void MarkStack_OOM_fatal_error();
 void Binary_Inconsistency_fatal_error();
 void Version_Inconsistency_fatal_error();
 void EntryExitRecord_Corrupted_fatal_error();
-void UnexpectedExceptionHandling_fatal_error(EXCEPTION_POINTERS * originalException);
+void UnexpectedExceptionHandling_fatal_error();
 
 #ifdef LARGEHEAPBLOCK_ENCODING
 void LargeHeapBlock_Metadata_Corrupted(

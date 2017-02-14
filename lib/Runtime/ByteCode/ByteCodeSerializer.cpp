@@ -3879,6 +3879,9 @@ public:
 
         (*function) = functionBody;
 
+        sourceInfo->ClearTopLevelFunctionInfoList();
+        sourceInfo->AddTopLevelFunctionInfo(functionBody->GetFunctionInfo(), this->scriptContext->GetRecycler());
+
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
         if (prejit)
         {

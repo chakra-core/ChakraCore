@@ -1695,6 +1695,9 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
         sym->SetIsModuleExportStorage(true);
     }
 
+    bool hasFuncAssignment = sym->GetHasFuncAssignment();
+    bool doesEscape = false;
+
     for (ref = pid->GetTopRef(); ref && ref->GetScopeId() >= blockId; ref = nextRef)
     {
         // Fix up sym* on PID ref.
@@ -1724,12 +1727,17 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             sym->SetHasNonLocalReference();
         }
 
-        if (ref->GetScopeId() == blockId)
+        if (ref->IsFuncAssignment())
         {
-            break;
+            hasFuncAssignment = true;
         }
 
-        if (m_currentNodeFunc && ref->isEscape && sym->GetSymbolType() == STFunction)
+        if (ref->IsEscape())
+        {
+            doesEscape = true;
+        }
+
+        if (m_currentNodeFunc && doesEscape && hasFuncAssignment)
         {
             if (m_sourceContextInfo ?
                     !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
@@ -1737,6 +1745,11 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             {
                 m_currentNodeFunc->sxFnc.SetNestedFuncEscapes();
             }
+        }
+
+        if (ref->GetScopeId() == blockId)
+        {
+            break;
         }
     }
 }
@@ -6617,7 +6630,10 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
         pnodeLambda->sxFnc.pnodeScopes->sxBlock.pnodeStmt = pnodeRet;
     }
 
-    ParseNodePtr result = ParseExpr<buildAST>(koplAsg, nullptr, TRUE, FALSE, nullptr);
+    IdentToken token;
+    ParseNodePtr result = ParseExpr<buildAST>(koplAsg, nullptr, TRUE, FALSE, nullptr, nullptr, nullptr, &token);
+
+    this->MarkEscapingRef(result, &token);
 
     if (buildAST)
     {
@@ -8492,6 +8508,11 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                     {
                         pnode->sxBin.pnode2->sxFnc.isNameIdentifierRef  = false;
                     }
+                    else if (pnode->sxBin.pnode1->nop == knopName)
+                    {
+                        PidRefStack *pidRef = pnode->sxBin.pnode1->sxPid.pid->GetTopRef();
+                        pidRef->isFuncAssignment = true;
+                    }
                 }
                 if (pnode->sxBin.pnode2->nop == knopClassDecl && pnode->sxBin.pnode1->nop == knopDot)
                 {
@@ -8842,7 +8863,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                         pnodeInit->sxFnc.hint = pNameHint;
                         pnodeInit->sxFnc.hintLength = nameHintLength;
                         pnodeInit->sxFnc.hintOffset = nameHintOffset;
-
+                        pnodeThis->sxVar.pid->GetTopRef()->isFuncAssignment = true;
                     }
                     else
                     {

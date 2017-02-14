@@ -789,8 +789,10 @@ bool WScriptJsrt::Initialize()
     JsValueRef buildValue;
 #ifdef _DEBUG
 #define BUILD_TYPE_STRING_CH "Debug" // (O0)
+#elif defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+#define BUILD_TYPE_STRING_CH "Test" // (O3 with debug config options)
 #else
-#define BUILD_TYPE_STRING_CH "Release" // consider Test is also Release build (O3)
+#define BUILD_TYPE_STRING_CH "Release" // (O3)
 #endif
     IfJsrtErrorFail(ChakraRTInterface::JsCreateString(
         BUILD_TYPE_STRING_CH, strlen(BUILD_TYPE_STRING_CH), &buildValue), false);

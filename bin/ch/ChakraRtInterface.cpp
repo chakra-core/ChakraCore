@@ -23,6 +23,11 @@ ChakraRTInterface::ArgInfo* ChakraRTInterface::m_argInfo = nullptr;
 TestHooks ChakraRTInterface::m_testHooks = { 0 };
 JsAPIHooks ChakraRTInterface::m_jsApiHooks = { 0 };
 
+LPCSTR GetChakraDllName()
+{
+    return chakraDllName;
+}
+
 // Wrapper functions to abstract out loading ChakraCore
 // and resolving its symbols
 // Currently, these functions resolve to the PAL on Linux

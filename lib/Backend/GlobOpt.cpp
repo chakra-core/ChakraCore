@@ -2552,7 +2552,7 @@ GlobOpt::CleanUpValueMaps()
                 // there is no backward data flow into the infinite loop block, but non empty callSequence still populates to it in this (forward) pass
                 // which causes error when looking up value for the syms in callSequence (cannot find the value).
                 // It would cause error to fill out the bailout information for the loop blocks.
-                // Remove dead syms from callSequence has some risk because there are varies associated counters which need to be consistent.
+                // Remove dead syms from callSequence has some risk because there are various associated counters which need to be consistent.
                 continue;
             }
             // Make sure symbol was created before backward pass.
@@ -8152,6 +8152,24 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
 
     IntArrayCommon:
         Assert(dst->IsRegOpnd());
+
+        // If int type spec is disabled, it is ok to load int values as they can help float type spec, and merging int32 with float64 => float64.
+        // But if float type spec is also disabled, we'll have problems because float64 merged with var => float64...
+        if (!this->DoAggressiveIntTypeSpec() && !this->DoFloatTypeSpec())
+        {
+            if (!dstVal)
+            {
+                if (srcVal)
+                {
+                    dstVal = this->ValueNumberTransferDst(instr, srcVal);
+                }
+                else
+                {
+                    dstVal = NewGenericValue(profiledElementType, dst);
+                }
+            }
+            return dstVal;
+        }
         TypeSpecializeIntDst(instr, instr->m_opcode, nullptr, nullptr, nullptr, bailOutKind, newMin, newMax, &dstVal);
         toType = TyInt32;
         break;
@@ -8164,6 +8182,23 @@ GlobOpt::ValueNumberLdElemDst(IR::Instr **pInstr, Value *srcVal)
     case ObjectType::Float64MixedArray:
     Float64Array:
         Assert(dst->IsRegOpnd());
+        
+        // If float type spec is disabled, don't load float64 values
+        if (!this->DoFloatTypeSpec())
+        {
+            if (!dstVal)
+            {
+                if (srcVal)
+                {
+                    dstVal = this->ValueNumberTransferDst(instr, srcVal);
+                }
+                else
+                {
+                    dstVal = NewGenericValue(profiledElementType, dst);
+                }
+            }
+            return dstVal;
+        }
         TypeSpecializeFloatDst(instr, nullptr, nullptr, nullptr, &dstVal);
         toType = TyFloat64;
         break;
@@ -8903,14 +8938,13 @@ GlobOpt::TypeSpecialization(
                 return instr;
             }
         }
-        else if (
-            this->TypeSpecializeUnary(
-                &instr,
-                &src1Val,
-                pDstVal,
-                src1OriginalVal,
-                redoTypeSpecRef,
-                forceInvariantHoistingRef))
+        else if (this->TypeSpecializeUnary(
+                    &instr,
+                    &src1Val,
+                    pDstVal,
+                    src1OriginalVal,
+                    redoTypeSpecRef,
+                    forceInvariantHoistingRef))
         {
             return instr;
         }
@@ -9604,8 +9638,9 @@ GlobOpt::OptConstFoldUnary(
             }
             else
             {
-                isInt = false;
-                fValue = -(FloatConstType)INT32_MIN;
+                // Rejit with AggressiveIntTypeSpecDisabled for Math.abs(INT32_MIN) because it causes dst
+                // to be float type which could be different with previous type spec result in LoopPrePass
+                throw Js::RejitException(RejitReason::AggressiveIntTypeSpecDisabled);
             }
         }
         else

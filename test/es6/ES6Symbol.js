@@ -972,6 +972,28 @@ var tests = [
             assert.throws(function () { o[Symbol.iterator](); }, TypeError, "Calling non-existent built-in symbol property with description fails", "Object doesn't support property or method 'Symbol(Symbol.iterator)'");
         }
     },
+    {
+        name: "Symbol equality logic",
+        body() {
+            assert.isTrue(Symbol.toPrimitive != 1);
+            assert.isTrue(Symbol.toPrimitive != NaN);
+            
+            var valueOfCalled = false;
+            var a = Symbol('f');
+            var b = {
+                valueOf : function() {
+                    valueOfCalled = true;
+                    return a;
+                }
+            };
+            assert.isTrue(a == b);
+            assert.isTrue(valueOfCalled);
+            valueOfCalled = false;
+            assert.isTrue(b == a);
+            assert.isTrue(valueOfCalled);
+            assert.isTrue(a == Object(a));
+        }
+    }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

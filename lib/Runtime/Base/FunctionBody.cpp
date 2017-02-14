@@ -205,7 +205,7 @@ namespace Js
     // Given an offset into the source buffer, determine if the end of this SourceInfo
     // lies after the given offset.
     bool
-    FunctionBody::EndsAfter(size_t offset) const
+    ParseableFunctionInfo::EndsAfter(size_t offset) const
     {
         return offset < this->StartOffset() + this->LengthInBytes();
     }
@@ -895,6 +895,9 @@ namespace Js
 
             // TODO: Get size of polymorphic caches, jitted code, etc.
         }
+
+        // We can't get here if the function is being jitted. Jitting was either completed or not begun.
+        this->counters.bgThreadCallStarted = false;
 #endif
 
         PHASE_PRINT_TRACE(Js::RedeferralPhase, this, _u("Redeferring function %d.%d: %s\n"),
@@ -2499,13 +2502,9 @@ namespace Js
     void ParseableFunctionInfo::Finalize(bool isShutdown)
     {
         __super::Finalize(isShutdown);
-
+        this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
         if (!this->m_hasBeenParsed)
         {
-            if (!this->GetSourceContextInfo()->IsDynamic() && !this->GetIsTopLevel())
-            {
-                this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
-            }
             PERF_COUNTER_DEC(Code, DeferredFunction);
         }
     }
@@ -4897,7 +4896,7 @@ namespace Js
         this->GetUtf8SourceInfo()->DeleteLineOffsetCache();
 
         // Reset to default.
-        this->flags = Flags_HasNoExplicitReturnValue;
+        this->flags = this->IsClassConstructor() ? Flags_None : Flags_HasNoExplicitReturnValue;
 
         ResetInParams();
 

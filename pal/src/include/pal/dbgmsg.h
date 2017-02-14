@@ -245,8 +245,6 @@ extern Volatile<BOOL> dbg_master_switch ;
 #define ERROR_(x) TRACE
 #define DBG_PRINTF(level, channel, bHeader) TRACE
 
-#define CHECK_STACK_ALIGN
-
 #define SET_DEFAULT_DEBUG_CHANNEL(x)
 #define DBG_ENABLED(level, channel) (false)
 
@@ -272,23 +270,13 @@ extern Volatile<BOOL> dbg_master_switch ;
 #define WARN_(x) \
     DBG_PRINTF(DLI_WARN,DCI_##x,TRUE)
 
-#if _DEBUG && defined(__APPLE__) && !defined(__i686__)
-bool DBG_ShouldCheckStackAlignment();
-#define CHECK_STACK_ALIGN   if (DBG_ShouldCheckStackAlignment()) DBG_CheckStackAlignment()
-#else
-#define CHECK_STACK_ALIGN
-#endif
-
 #define ENTRY_EXTERNAL \
-    CHECK_STACK_ALIGN; \
     DBG_PRINTF(DLI_ENTRY, defdbgchan,TRUE)
 
 #define ENTRY \
-    CHECK_STACK_ALIGN; \
     DBG_PRINTF(DLI_ENTRY, defdbgchan,TRUE)
 
 #define ENTRY_(x) \
-    CHECK_STACK_ALIGN; \
     DBG_PRINTF(DLI_ENTRY, DCI_##x,TRUE)
 
 #define LOGEXIT \

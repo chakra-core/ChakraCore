@@ -10,6 +10,7 @@ namespace Js
     {
         typedef JsUtil::LeafValueDictionary<Js::LocalFunctionId, Js::FunctionBody*>::Type FunctionBodyDictionary;
         typedef JsUtil::LeafValueDictionary<Js::LocalFunctionId, Js::ParseableFunctionInfo*>::Type DeferredFunctionsDictionary;
+        typedef JsUtil::List<Js::FunctionInfo *, Recycler> FunctionInfoList;
 
         friend class RemoteUtf8SourceInfo;
         friend class ScriptContext;
@@ -129,6 +130,14 @@ namespace Js
         // been initialized
         void SetFunctionBody(FunctionBody * functionBody);
         void RemoveFunctionBody(FunctionBody* functionBodyBeingRemoved);
+
+        void AddTopLevelFunctionInfo(Js::FunctionInfo * functionInfo, Recycler * recycler);
+        void ClearTopLevelFunctionInfoList();
+        JsUtil::List<Js::FunctionInfo *, Recycler> * EnsureTopLevelFunctionInfoList(Recycler * recycler);
+        JsUtil::List<Js::FunctionInfo *, Recycler> * GetTopLevelFunctionInfoList() const
+        {
+            return this->topLevelFunctionInfoList;
+        }
 
         // The following functions could get called even if EnsureInitialized hadn't gotten called
         // (Namely in the OOM scenario), so we simply guard against that condition rather than
@@ -373,6 +382,7 @@ namespace Js
 
         Field(FunctionBodyDictionary*) functionBodyDictionary;
         Field(DeferredFunctionsDictionary*) m_deferredFunctionsDictionary;
+        Field(FunctionInfoList*) topLevelFunctionInfoList;
 
         Field(DebugDocument*) m_debugDocument;
 

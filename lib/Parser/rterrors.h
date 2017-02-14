@@ -386,3 +386,4 @@ RT_ERROR_MSG(WASMERR_TableIndexOutOfRange, 7016, "", "Table index is out of rang
 RT_ERROR_MSG(WASMERR_ArrayIndexOutOfRange, 7017, "", "Memory index is out of range", kjstWebAssemblyRuntimeError, 0)
 RT_ERROR_MSG(WASMERR_InvalidInstantiateArgument, 7018, "", "Invalid arguments to instantiate", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_WasmLinkError, 7019, "%s", "Linking failed.", kjstWebAssemblyLinkError, 0)
+RT_ERROR_MSG(JSERR_OutOfBoundString, 7020, "", "String length is out of bound", kjstRangeError, 0)
