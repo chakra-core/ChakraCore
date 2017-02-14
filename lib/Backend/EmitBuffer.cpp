@@ -403,7 +403,7 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBuffer(TEmitBuff
     Assert(allocation != nullptr);
 
     BYTE *currentDestBuffer = destBuffer + allocation->GetBytesUsed();
-    BYTE *bufferToFlush = currentDestBuffer;
+    char *bufferToFlush = allocation->allocation->address + allocation->GetBytesUsed();
     Assert(allocation->BytesFree() >= bytes + alignPad);
 
     size_t bytesLeft = bytes + alignPad;
