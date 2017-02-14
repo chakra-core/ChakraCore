@@ -76,6 +76,8 @@ public:
     void SetIsPRNGSeeded(bool value);
     void AddModuleRecordInfo(unsigned int moduleId, __int64 localExportSlotsAddr);
     void UpdateGlobalObjectThisAddr(intptr_t globalThis);
+    OOPEmitBufferManager * GetEmitBufferManager(bool asmJsManager);
+    void DecommitEmitBufferManager(bool asmJsManager);
     Js::ScriptContextProfiler *  GetCodeGenProfiler() const;
     ServerThreadContext* GetThreadContext() { return threadContextHolder.threadContextInfo; }
 
@@ -90,6 +92,9 @@ private:
     Js::ScriptContextProfiler * m_codeGenProfiler;
 #endif
     ArenaAllocator m_sourceCodeArena;
+
+    OOPEmitBufferManager m_interpreterThunkBufferManager;
+    OOPEmitBufferManager m_asmJsInterpreterThunkBufferManager;
 
     ScriptContextDataIDL m_contextData;
     intptr_t m_globalThisAddr;

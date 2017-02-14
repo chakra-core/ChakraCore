@@ -15,6 +15,7 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_numericPropertyBV(nullptr),
     m_preReservedSectionAllocator((HANDLE)data->processHandle),
     m_sectionAllocator((HANDLE)data->processHandle),
+    m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, (HANDLE)data->processHandle),
     m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, (HANDLE)data->processHandle),
     m_codeGenAlloc(nullptr, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
     m_pageAlloc(nullptr, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
@@ -111,7 +112,13 @@ ServerThreadContext::GetProcessHandle() const
     return reinterpret_cast<HANDLE>(m_threadContextData.processHandle);
 }
 
-CustomHeap::CodePageAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>  *
+CustomHeap::OOPCodePageAllocators *
+ServerThreadContext::GetThunkPageAllocators()
+{
+    return &m_thunkPageAllocators;
+}
+
+CustomHeap::OOPCodePageAllocators *
 ServerThreadContext::GetCodePageAllocators()
 {
     return &m_codePageAllocators;
@@ -123,7 +130,7 @@ ServerThreadContext::GetSectionAllocator()
     return &m_sectionAllocator;
 }
 
-CodeGenAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>  *
+OOPCodeGenAllocators *
 ServerThreadContext::GetCodeGenAllocators()
 {
     return &m_codeGenAlloc;

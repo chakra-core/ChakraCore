@@ -332,7 +332,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
         &count
     );
 
-    if (!emitBufferManager.CommitReadWriteBufferForInterpreter(allocation, buffer, BlockSize))
+    if (!emitBufferManager.CommitBufferForInterpreter(allocation, buffer, BlockSize))
     {
         Js::Throw::OutOfMemory();
     }
@@ -727,11 +727,15 @@ InterpreterThunkEmitter::IsInHeap(void* address)
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        auto findAddr = ([&](const ThunkBlock& block)
+        PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
+        if (!remoteScript)
         {
-            return block.Contains((BYTE*)address);
-        });
-        return thunkBlocks.Find(findAddr) != nullptr || freeListedThunkBlocks.Find(findAddr) != nullptr;
+            return false;
+        }
+        boolean result;
+        HRESULT hr = JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
+        return result != FALSE;
     }
     else
 #endif
@@ -754,15 +758,18 @@ void InterpreterThunkEmitter::Close()
     thunkBlocks.Iterate(unregisterPdata);
     freeListedThunkBlocks.Iterate(unregisterPdata);
 #endif
+
+    this->thunkBlocks.Clear(allocator);
+    this->freeListedThunkBlocks.Clear(allocator);
+
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
-        auto unmapBlock = ([&](const ThunkBlock& block)
+        PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
+        if (remoteScript)
         {
-            NtdllLibrary::Instance->UnmapViewOfSection(GetCurrentProcess(), block.GetStart());
-        });
-        thunkBlocks.Iterate(unmapBlock);
-        freeListedThunkBlocks.Iterate(unmapBlock);
+            JITManager::GetJITManager()->DecommitInterpreterBufferManager(remoteScript, this->isAsmInterpreterThunk);
+        }
     }
     else
 #endif
@@ -770,8 +777,6 @@ void InterpreterThunkEmitter::Close()
         emitBufferManager.Decommit();
     }
 
-    this->thunkBlocks.Clear(allocator);
-    this->freeListedThunkBlocks.Clear(allocator);
 
     this->thunkBuffer = nullptr;
     this->thunkCount = 0;

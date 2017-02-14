@@ -36,7 +36,8 @@ public:
     ptrdiff_t GetCRTBaseAddressDifference() const;
 
     OOPCodeGenAllocators * GetCodeGenAllocators();
-    CustomHeap::CodePageAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>  * GetCodePageAllocators();
+    CustomHeap::OOPCodePageAllocators * GetThunkPageAllocators();
+    CustomHeap::OOPCodePageAllocators  * GetCodePageAllocators();
     SectionAllocWrapper * GetSectionAllocator();
     void UpdateNumericPropertyBV(BVSparseNode * newProps);
     void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
@@ -67,7 +68,8 @@ private:
 
     PreReservedSectionAllocWrapper m_preReservedSectionAllocator;
     SectionAllocWrapper m_sectionAllocator;
-    CustomHeap::CodePageAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>  m_codePageAllocators;
+    CustomHeap::OOPCodePageAllocators m_thunkPageAllocators;
+    CustomHeap::OOPCodePageAllocators  m_codePageAllocators;
     OOPCodeGenAllocators m_codeGenAlloc;
     // only allocate with this from foreground calls (never from CodeGen calls)
     PageAllocator m_pageAlloc;
