@@ -41,4 +41,6 @@ function testFunction()
     telemetryLog(`${Object.getOwnPropertyNames(c)}`, true);
     telemetryLog(`${Object.isFrozen(c)}`, true);
     telemetryLog(`${c.x}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

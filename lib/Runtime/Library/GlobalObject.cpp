@@ -1627,6 +1627,33 @@ LHexError:
 
         return function->GetScriptContext()->GetLibrary()->GetUndefined();
     }
+
+    //Write a copy of the current TTD log to a specified location
+    Var GlobalObject::EntryEmitTTDLog(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        TTDAssert(args.Info.Count == 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+
+        Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
+
+        if(function->GetScriptContext()->ShouldPerformReplayAction())
+        {
+            function->GetScriptContext()->GetThreadContext()->TTDLog->ReplayEmitLogEvent();
+
+            return jsString;
+        }
+
+        if(function->GetScriptContext()->ShouldPerformRecordAction())
+        {
+            function->GetScriptContext()->GetThreadContext()->TTDLog->RecordEmitLogEvent(jsString);
+
+            return jsString;
+        }
+
+        return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
 #endif
 
     //Pattern match is unique to RuntimeObject. Only leading and trailing * are implemented

@@ -43,6 +43,8 @@ function testFunction()
     telemetryLog(`ylength: ${y.length()}`, true); //3
     telemetryLog(`ynamed: ${y.named()}`, true); //2
     telemetryLog(`yposition: ${y.position()}`, true); //undefined
+
+    emitTTDLog(ttdLogURI);
 }
 
 

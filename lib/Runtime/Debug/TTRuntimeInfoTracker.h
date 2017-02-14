@@ -55,18 +55,16 @@ namespace TTD
         void AddNewScriptContext_Helper(Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative, bool debugMode);
 
     public:
-        TTUriString TTDUri;
         uint32 SnapInterval;
         uint32 SnapHistoryLength;
 
         //Callback functions provided by the host for writing info to some type of storage location
-        TTDInitializeForWriteLogStreamCallback TTDWriteInitializeFunction;
-        IOStreamFunctions TTDStreamFunctions;
+        TTDataIOInfo TTDataIOInfo;
 
         //Callback functions provided by the host for creating external objects 
         ExternalObjectFunctions TTDExternalObjectFunctions;
 
-        ThreadContextTTD(ThreadContext* threadContext, void* runtimeHandle, size_t uriByteLength, const byte* ttdUri, uint32 snapInterval, uint32 snapHistoryLength);
+        ThreadContextTTD(ThreadContext* threadContext, void* runtimeHandle, uint32 snapInterval, uint32 snapHistoryLength);
         ~ThreadContextTTD();
 
         ThreadContext* GetThreadContext();

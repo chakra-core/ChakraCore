@@ -52,4 +52,6 @@ function testFunction()
 
     telemetryLog(`post decrement -- fctr.inc(): ${fctr.inc()}`, true); //3
     telemetryLog(`post decrement -- gctr.inc(): ${gctr.inc()}`, true); //6
+
+    emitTTDLog(ttdLogURI);
 }

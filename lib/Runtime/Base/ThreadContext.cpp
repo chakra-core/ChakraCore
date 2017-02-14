@@ -2003,34 +2003,36 @@ ThreadContext::EnsureJITThreadContext(bool allowPrereserveAlloc)
 #endif
 
 #if ENABLE_TTD
-void ThreadContext::InitTimeTravel(ThreadContext* threadContext, void* runtimeHandle, size_t uriByteLength, const byte* ttdUri, uint32 snapInterval, uint32 snapHistoryLength)
+void ThreadContext::InitTimeTravel(ThreadContext* threadContext, void* runtimeHandle, uint32 snapInterval, uint32 snapHistoryLength)
 {
     TTDAssert(!this->IsRuntimeInTTDMode(), "We should only init once.");
 
-    this->TTDContext = HeapNew(TTD::ThreadContextTTD, this, runtimeHandle, uriByteLength, ttdUri, snapInterval, snapHistoryLength);
+    this->TTDContext = HeapNew(TTD::ThreadContextTTD, this, runtimeHandle, snapInterval, snapHistoryLength);
     this->TTDLog = HeapNew(TTD::EventLog, this);
 }
 
-void ThreadContext::InitHostFunctionsAndTTData(bool record, bool replay, bool debug,
-    TTD::TTDInitializeForWriteLogStreamCallback writeInitializefp,
-    TTD::TTDOpenResourceStreamCallback getResourceStreamfp, TTD::TTDReadBytesFromStreamCallback readBytesFromStreamfp,
+void ThreadContext::InitHostFunctionsAndTTData(bool record, bool replay, bool debug, size_t optTTUriLength, const char* optTTUri,
+    TTD::TTDOpenResourceStreamCallback openResourceStreamfp, TTD::TTDReadBytesFromStreamCallback readBytesFromStreamfp,
     TTD::TTDWriteBytesToStreamCallback writeBytesToStreamfp, TTD::TTDFlushAndCloseStreamCallback flushAndCloseStreamfp,
     TTD::TTDCreateExternalObjectCallback createExternalObjectfp,
     TTD::TTDCreateJsRTContextCallback createJsRTContextCallbackfp, TTD::TTDReleaseJsRTContextCallback releaseJsRTContextCallbackfp, TTD::TTDSetActiveJsRTContext setActiveJsRTContextfp)
 {
     AssertMsg(this->IsRuntimeInTTDMode(), "Need to call init first.");
 
-    this->TTDContext->TTDWriteInitializeFunction = writeInitializefp;
-    this->TTDContext->TTDStreamFunctions = { getResourceStreamfp, readBytesFromStreamfp, writeBytesToStreamfp, flushAndCloseStreamfp };
+    this->TTDContext->TTDataIOInfo = { openResourceStreamfp, readBytesFromStreamfp, writeBytesToStreamfp, flushAndCloseStreamfp, 0, nullptr };
     this->TTDContext->TTDExternalObjectFunctions = { createExternalObjectfp, createJsRTContextCallbackfp, releaseJsRTContextCallbackfp, setActiveJsRTContextfp };
 
     if(record)
     {
+        TTDAssert(optTTUri == nullptr, "No URI is needed in record mode (the host explicitly provides it when writing.");
+
         this->TTDLog->InitForTTDRecord();
     }
     else
     {
-        this->TTDLog->InitForTTDReplay(this->TTDContext->TTDStreamFunctions, this->TTDContext->TTDUri.UriByteLength, this->TTDContext->TTDUri.UriBytes, debug);
+        TTDAssert(optTTUri != nullptr, "We need a URI in replay mode so we can initialize the log from it");
+
+        this->TTDLog->InitForTTDReplay(this->TTDContext->TTDataIOInfo, optTTUri, optTTUriLength, debug);
     }
 }
 #endif

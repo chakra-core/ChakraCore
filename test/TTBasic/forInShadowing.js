@@ -78,4 +78,6 @@ function testFunction()
     telemetryLog(`${JSON.stringify(forInKeysToArray(childchild5))}`, true); //['d','x','y','z']
     telemetryLog(`${JSON.stringify(forInKeysToArray(child5))}`, true); //['c','w','x','z']
     telemetryLog(`${JSON.stringify(forInKeysToArray(proto5))}`, true); //['b','w','y','z']
+
+    emitTTDLog(ttdLogURI);
 }

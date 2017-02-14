@@ -209,6 +209,7 @@ namespace TTD
             SymbolCreationTag,
             ExternalCbRegisterCall,
             ExternalCallTag,
+            ExplicitLogWriteTag,
             //JsRTActionTag is a marker for where the JsRT actions begin
             JsRTActionTag,
 
@@ -502,7 +503,6 @@ namespace TTD
 
         //////////////////
 
-
         //A struct containing additional information on the external call
         struct ExternalCallEventLogEntry_AdditionalInfo
         {
@@ -550,6 +550,11 @@ namespace TTD
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void ExternalCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //////////////////
+
+        void ExplicitLogWriteEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
+        void ExplicitLogWriteEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
     }
 }
 

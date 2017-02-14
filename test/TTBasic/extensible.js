@@ -49,4 +49,6 @@ function testFunction()
     telemetryLog(`${Object.isSealed(e)}`, true);
     Object.defineProperty(e, "y", {writable: false});
     telemetryLog(`${Object.isFrozen(e)}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

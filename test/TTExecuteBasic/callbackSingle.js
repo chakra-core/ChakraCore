@@ -12,6 +12,8 @@ function foo()
     WScript.Echo("Hello World - CallBack");
     
     telemetryLog("End Foo", true);
+
+    emitTTDLog(ttdLogURI);
 }
 
 WScript.SetTimeout(foo, 250);

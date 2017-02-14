@@ -261,20 +261,22 @@ namespace TTD
     //Function pointer definitions and a struct for writing data out of memory (presumably to stable storage)
     typedef void* JsTTDStreamHandle;
 
-    typedef void(CALLBACK *TTDInitializeForWriteLogStreamCallback)(size_t uriByteLength, const byte* uriBytes);
-    typedef JsTTDStreamHandle(CALLBACK *TTDOpenResourceStreamCallback)(size_t uriByteLength, const byte* uriBytes, const char* asciiNameString, bool read, bool write, byte** relocatedUri, size_t* relocatedUriLength);
-
+    typedef JsTTDStreamHandle(CALLBACK *TTDOpenResourceStreamCallback)(size_t uriLength, const char* uri, size_t filenameLength, const char* filename, bool read, bool write);
     typedef bool(CALLBACK *TTDReadBytesFromStreamCallback)(JsTTDStreamHandle handle, byte* buff, size_t size, size_t* readCount);
     typedef bool(CALLBACK *TTDWriteBytesToStreamCallback)(JsTTDStreamHandle handle, const byte* buff, size_t size, size_t* writtenCount);
     typedef void(CALLBACK *TTDFlushAndCloseStreamCallback)(JsTTDStreamHandle handle, bool read, bool write);
 
-    struct IOStreamFunctions
+    struct TTDataIOInfo
     {
-        TTDOpenResourceStreamCallback pfGetResourceStream;
+        TTDOpenResourceStreamCallback pfOpenResourceStream;
 
         TTDReadBytesFromStreamCallback pfReadBytesFromStream;
         TTDWriteBytesToStreamCallback pfWriteBytesToStream;
         TTDFlushAndCloseStreamCallback pfFlushAndCloseStream;
+
+        //Current location that we are writing TT data into as a utf8 encoded uri (we may have several sub paths from the root for writting different parts of the log)
+        size_t ActiveTTUriLength;
+        const char* ActiveTTUri;
     };
 
     //Function pointer definitions for creating/interacting with external objects
@@ -355,26 +357,6 @@ namespace TTD
     //This is for diagnostic purposes only
     bool TTStringEQForDiagnostics(const TTString& str1, const TTString& str2);
 #endif
-
-    //A simple class for representing a uri from the host as an opaque sequence of bytes (which the host is responsible for interpreting as needed)
-    class TTUriString
-    {
-    public:
-        //Length of the uri data in bytes (including any null terminator)
-        size_t UriByteLength;
-
-        //Actual URI data which the host is responsible for interpreting (ascii, utf8, wchar, etc.)
-        byte* UriBytes;
-
-        TTUriString();
-        ~TTUriString();
-
-        //ensure no copy or assign
-        TTUriString(const TTUriString&) = delete;
-        TTUriString& operator=(const TTUriString&) = delete;
-
-        void SetUriValue(size_t byteLength, const byte* data);
-    };
 
     //A class that implements a simple slab memory allocator
     template <int32 canUnlink>

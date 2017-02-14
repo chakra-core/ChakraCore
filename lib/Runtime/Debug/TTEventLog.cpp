@@ -524,6 +524,7 @@ namespace TTD
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::SymbolCreationTag] = { NSLogEvents::ContextExecuteKind::None, nullptr, nullptr, NSLogEvents::SymbolCreationEventLogEntry_Emit, NSLogEvents::SymbolCreationEventLogEntry_Parse };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::ExternalCbRegisterCall] = { NSLogEvents::ContextExecuteKind::None, nullptr, nullptr, NSLogEvents::ExternalCbRegisterCallEventLogEntry_Emit, NSLogEvents::ExternalCbRegisterCallEventLogEntry_Parse };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::ExternalCallTag] = { NSLogEvents::ContextExecuteKind::None, nullptr, NSLogEvents::ExternalCallEventLogEntry_UnloadEventMemory, NSLogEvents::ExternalCallEventLogEntry_Emit, NSLogEvents::ExternalCallEventLogEntry_Parse };
+        this->m_eventListVTable[(uint32)NSLogEvents::EventKind::ExplicitLogWriteTag] = { NSLogEvents::ContextExecuteKind::None, nullptr, nullptr, NSLogEvents::ExplicitLogWriteEntry_Emit, NSLogEvents::ExplicitLogWriteEntry_Parse };
 
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::CreateScriptContextActionTag] = { NSLogEvents::ContextExecuteKind::GlobalAPIWrapper, NSLogEvents::CreateScriptContext_Execute, NSLogEvents::CreateScriptContext_UnloadEventMemory, NSLogEvents::CreateScriptContext_Emit, NSLogEvents::CreateScriptContext_Parse };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::SetActiveScriptContextActionTag] = { NSLogEvents::ContextExecuteKind::GlobalAPIWrapper, NSLogEvents::SetActiveScriptContext_Execute, nullptr, NSLogEvents::JsRTVarsArgumentAction_Emit<NSLogEvents::EventKind::SetActiveScriptContextActionTag>, NSLogEvents::JsRTVarsArgumentAction_Parse<NSLogEvents::EventKind::SetActiveScriptContextActionTag> };
@@ -650,7 +651,7 @@ namespace TTD
         this->SetGlobalMode(TTDMode::RecordMode);
     }
 
-    void EventLog::InitForTTDReplay(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes, bool debug)
+    void EventLog::InitForTTDReplay(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength, bool debug)
     {
         if (debug)
         {
@@ -661,7 +662,7 @@ namespace TTD
             this->SetGlobalMode(TTDMode::ReplayMode);
         }
 
-        this->ParseLogInto(iofp, uriByteLength, uriBytes);
+        this->ParseLogInto(iofp, parseUri, parseUriLength);
 
         Js::PropertyId maxPid = TotalNumberOfBuiltInProperties + 1;
         JsUtil::BaseDictionary<Js::PropertyId, NSSnapType::SnapPropertyRecord*, HeapAllocator> pidMap(&HeapAllocator::Instance);
@@ -860,6 +861,27 @@ namespace TTD
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.ForceFlush();
 #endif
+    }
+
+    void EventLog::RecordEmitLogEvent(Js::JavascriptString* uriString)
+    {
+        this->RecordGetInitializedEvent_DataOnly<void*, NSLogEvents::EventKind::ExplicitLogWriteTag>();
+
+        AutoArrayPtr<char> uri(HeapNewArrayZ(char, uriString->GetLength() * 3), uriString->GetLength() * 3);
+        size_t uriLength = utf8::EncodeInto((LPUTF8)((char*)uri), uriString->GetSz(), uriString->GetLength());
+
+        this->EmitLog(uri, uriLength);
+    }
+
+    void EventLog::ReplayEmitLogEvent()
+    {
+        this->ReplayGetReplayEvent_Helper<void*, NSLogEvents::EventKind::ExplicitLogWriteTag>();
+
+        //check if at end of log -- if so we are done and don't want to execute any more
+        if(!this->m_currentReplayEventIterator.IsValid())
+        {
+            this->AbortReplayReturnToHost();
+        }
     }
 
     void EventLog::RecordDateTimeEvent(double time)
@@ -2938,23 +2960,21 @@ namespace TTD
         return evt;
     }
 
-    void EventLog::EmitLog()
+    void EventLog::EmitLog(const char* emitUri, size_t emitUriLength)
     {
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.ForceFlush();
 #endif
 
-        const IOStreamFunctions& iofp = this->m_threadContext->TTDContext->TTDStreamFunctions;
+        TTDataIOInfo& iofp = this->m_threadContext->TTDContext->TTDataIOInfo;
+        iofp.ActiveTTUriLength = emitUriLength;
+        iofp.ActiveTTUri = emitUri;
 
-        //
-        //TODO: we want to update this so that we can output multiple snapshots to different sub-locations... also add input param with location info
-        //
-        const TTUriString& outUri = this->m_threadContext->TTDContext->TTDUri;
+        const char* logfilename = "ttdlog.log";
+        JsTTDStreamHandle logHandle = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(logfilename), logfilename, false, true);
+        TTDAssert(logHandle != nullptr, "Failed to initialize strem for writing TTD Log.");
 
-        this->m_threadContext->TTDContext->TTDWriteInitializeFunction(outUri.UriByteLength, outUri.UriBytes);
-
-        JsTTDStreamHandle logHandle = iofp.pfGetResourceStream(outUri.UriByteLength, outUri.UriBytes, "ttdlog.log", false, true, nullptr, nullptr);
-        TTD_LOG_WRITER writer(logHandle, TTD_COMPRESSED_OUTPUT, iofp.pfWriteBytesToStream, iofp.pfFlushAndCloseStream);
+        TTD_LOG_WRITER writer(logHandle, iofp.pfWriteBytesToStream, iofp.pfFlushAndCloseStream);
 
         writer.WriteRecordStart();
         writer.AdjustIndent(1);
@@ -3076,32 +3096,16 @@ namespace TTD
         writer.AdjustIndent(-1);
         writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
 
-        //we haven't moved the properties to their serialized form them take care of it
-        TTDAssert(this->m_propertyRecordList.Count() == 0, "We only compute this when we are ready to emit.");
-
-        for(auto iter = this->m_propertyRecordPinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
-        {
-            Js::PropertyRecord* pRecord = static_cast<Js::PropertyRecord*>(iter.CurrentValue());
-            NSSnapType::SnapPropertyRecord* sRecord = this->m_propertyRecordList.NextOpenEntry();
-
-            sRecord->PropertyId = pRecord->GetPropertyId();
-            sRecord->IsNumeric = pRecord->IsNumeric();
-            sRecord->IsBound = pRecord->IsBound();
-            sRecord->IsSymbol = pRecord->IsSymbol();
-
-            this->m_miscSlabAllocator.CopyStringIntoWLength(pRecord->GetBuffer(), pRecord->GetLength(), sRecord->PropertyName);
-        }
-
         //emit the properties
-        writer.WriteLengthValue(this->m_propertyRecordList.Count(), NSTokens::Separator::CommaSeparator);
+        writer.WriteLengthValue(this->m_propertyRecordPinSet->Count(), NSTokens::Separator::CommaSeparator);
 
         writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
         writer.AdjustIndent(1);
         bool firstProperty = true;
-        for(auto iter = this->m_propertyRecordList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        for(auto iter = this->m_propertyRecordPinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             NSTokens::Separator sep = (!firstProperty) ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator;
-            NSSnapType::EmitSnapPropertyRecord(iter.Current(), &writer, sep);
+            NSSnapType::EmitPropertyRecordAsSnapPropertyRecord(iter.CurrentValue(), &writer, sep);
 
             firstProperty = false;
         }
@@ -3156,12 +3160,21 @@ namespace TTD
         writer.WriteRecordEnd(NSTokens::Separator::BigSpaceSeparator);
 
         writer.FlushAndClose();
+
+        iofp.ActiveTTUriLength = 0;
+        iofp.ActiveTTUri = nullptr;
     }
 
-    void EventLog::ParseLogInto(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes)
+    void EventLog::ParseLogInto(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength)
     {
-        JsTTDStreamHandle logHandle = iofp.pfGetResourceStream(uriByteLength, uriBytes, "ttdlog.log", true, false, nullptr, nullptr);
-        TTD_LOG_READER reader(logHandle, TTD_COMPRESSED_OUTPUT, iofp.pfReadBytesFromStream, iofp.pfFlushAndCloseStream);
+        iofp.ActiveTTUriLength = parseUriLength;
+        iofp.ActiveTTUri = parseUri;
+
+        const char* logfilename = "ttdlog.log";
+        JsTTDStreamHandle logHandle = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(logfilename), logfilename, true, false);
+        TTDAssert(logHandle != nullptr, "Failed to initialize strem for reading TTD Log.");
+
+        TTD_LOG_READER reader(logHandle, iofp.pfReadBytesFromStream, iofp.pfFlushAndCloseStream);
 
         reader.ReadRecordStart();
 
