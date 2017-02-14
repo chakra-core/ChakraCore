@@ -443,4 +443,10 @@
       <baseline>redefer-recursive-inlinees.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>redefer-f-i-b-eval.js</files>
+      <compile-flags>-force:deferparse -force:redeferral</compile-flags>
+    </default>
+  </test>
 </regress-exe>
