@@ -47,14 +47,14 @@ void Js::WebAssemblyEnvironment::CheckPtrIsValid(intptr_t ptr) const
 }
 
 template<typename T>
-T* Js::WebAssemblyEnvironment::GetVarElement(Var* ptr, uint32 index, uint32 maxCount) const
+T* Js::WebAssemblyEnvironment::GetVarElement(Field(Var)* ptr, uint32 index, uint32 maxCount) const
 {
     if (index >= maxCount)
     {
         Js::Throw::InternalError();
     }
 
-    Var* functionPtr = ptr + index;
+    Field(Var)* functionPtr = ptr + index;
     CheckPtrIsValid<T*>((intptr_t)functionPtr);
     Var varFunc = *functionPtr;
     if (varFunc)
@@ -69,7 +69,7 @@ T* Js::WebAssemblyEnvironment::GetVarElement(Var* ptr, uint32 index, uint32 maxC
 }
 
 template<typename T>
-void Js::WebAssemblyEnvironment::SetVarElement(Var* ptr, T* val, uint32 index, uint32 maxCount)
+void Js::WebAssemblyEnvironment::SetVarElement(Field(Var)* ptr, T* val, uint32 index, uint32 maxCount)
 {
     if (index >= maxCount ||
         !T::Is(val))
@@ -77,7 +77,7 @@ void Js::WebAssemblyEnvironment::SetVarElement(Var* ptr, T* val, uint32 index, u
         Js::Throw::InternalError();
     }
 
-    Var* dst = ptr + index;
+    Field(Var)* dst = ptr + index;
     CheckPtrIsValid<Var>((intptr_t)dst);
     AssertMsg(*(T**)dst == nullptr, "We shouln't overwrite anything on the environment once it is set");
     *dst = val;
@@ -90,7 +90,7 @@ AsmJsScriptFunction* WebAssemblyEnvironment::GetWasmFunction(uint32 index) const
     {
         Js::Throw::InternalError();
     }
-    return GetVarElement<AsmJsScriptFunction>((Var*)PointerValue(functions), index, module->GetWasmFunctionCount());
+    return GetVarElement<AsmJsScriptFunction>(functions, index, module->GetWasmFunctionCount());
 }
 
 void WebAssemblyEnvironment::SetWasmFunction(uint32 index, AsmJsScriptFunction* func)
@@ -101,38 +101,38 @@ void WebAssemblyEnvironment::SetWasmFunction(uint32 index, AsmJsScriptFunction* 
     {
         Js::Throw::InternalError();
     }
-    SetVarElement<AsmJsScriptFunction>((Var*)PointerValue(functions), func, index, module->GetWasmFunctionCount());
+    SetVarElement<AsmJsScriptFunction>(functions, func, index, module->GetWasmFunctionCount());
 }
 
 void WebAssemblyEnvironment::SetImportedFunction(uint32 index, Var importedFunc)
 {
-    SetVarElement<JavascriptFunction>((Var*)PointerValue(imports), (JavascriptFunction*)importedFunc, index, module->GetWasmFunctionCount());
+    SetVarElement<JavascriptFunction>(imports, (JavascriptFunction*)importedFunc, index, module->GetWasmFunctionCount());
 }
 
 Js::WebAssemblyTable* WebAssemblyEnvironment::GetTable(uint32 index) const
 {
-    return GetVarElement<WebAssemblyTable>((Var*)PointerValue(table), index, 1);
+    return GetVarElement<WebAssemblyTable>(table, index, 1);
 }
 
 void WebAssemblyEnvironment::SetTable(uint32 index, WebAssemblyTable* table)
 {
-    SetVarElement<WebAssemblyTable>((Var*)PointerValue(this->table), table, index, 1);
+    SetVarElement<WebAssemblyTable>(this->table, table, index, 1);
 }
 
 WebAssemblyMemory* WebAssemblyEnvironment::GetMemory(uint32 index) const
 {
-    return GetVarElement<WebAssemblyMemory>((Var*)PointerValue(memory), index, 1);
+    return GetVarElement<WebAssemblyMemory>(memory, index, 1);
 }
 
 void WebAssemblyEnvironment::SetMemory(uint32 index, WebAssemblyMemory* mem)
 {
-    SetVarElement<WebAssemblyMemory>((Var*)PointerValue(this->memory), mem, index, 1);
+    SetVarElement<WebAssemblyMemory>(this->memory, mem, index, 1);
 }
 
 template<typename T>
 T WebAssemblyEnvironment::GetGlobalInternal(uint32 offset) const
 {
-    T* ptr = (T*)PointerValue(start) + offset;
+    Field(T)* ptr = (Field(T)*)PointerValue(start) + offset;
     CheckPtrIsValid<T>((intptr_t)ptr);
     return *ptr;
 }
@@ -140,7 +140,7 @@ T WebAssemblyEnvironment::GetGlobalInternal(uint32 offset) const
 template<typename T>
 void WebAssemblyEnvironment::SetGlobalInternal(uint32 offset, T val)
 {
-    Field(T*) ptr = (T*)PointerValue(start) + offset;
+    Field(T)* ptr = (Field(T)*)PointerValue(start) + offset;
     CheckPtrIsValid<T>((intptr_t)PointerValue(ptr));
     AssertMsg(*ptr == 0, "We shouln't overwrite anything on the environment once it is set");
     *ptr = val;

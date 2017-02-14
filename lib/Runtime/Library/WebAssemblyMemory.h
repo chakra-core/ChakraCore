@@ -43,10 +43,10 @@ namespace Js
     private:
         WebAssemblyMemory(ArrayBuffer * buffer, uint32 initial, uint32 maximum, DynamicType * type);
 
-        ArrayBuffer * m_buffer;
+        Field(ArrayBuffer *) m_buffer;
 
-        uint m_initial;
-        uint m_maximum;
+        Field(uint) m_initial;
+        Field(uint) m_maximum;
 #endif
     };
 
