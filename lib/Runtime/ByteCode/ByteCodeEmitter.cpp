@@ -3834,11 +3834,13 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
 
     FuncInfo *funcInfo = pnodeFnc->sxFnc.funcInfo;
 
-    if (funcInfo->byteCodeFunction->IsFunctionParsed() &&
-        !(flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+    if (funcInfo->byteCodeFunction->IsFunctionParsed())
     {
-        // Only set the environment depth if it's truly known (i.e., not in eval or event handler).
-        funcInfo->GetParsedFunctionBody()->SetEnvDepth(this->envDepth);
+        if (!(flags & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
+        {
+            // Only set the environment depth if it's truly known (i.e., not in eval or event handler).
+            funcInfo->GetParsedFunctionBody()->SetEnvDepth(this->envDepth);
+        }
 
         if (pnodeFnc->sxFnc.FIBPreventsDeferral())
         {
