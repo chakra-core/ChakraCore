@@ -92,7 +92,7 @@ typedef unsigned short WCHAR;
 
 #endif //  defined(_WIN32) && defined(_MSC_VER)
 
-#if (defined(_MSC_VER) && _MSC_VER < 1900) || (!defined(_MSC_VER) && __cplusplus <= 199711L) // !C++11
+#if (defined(_MSC_VER) && _MSC_VER <= 1900) || (!defined(_MSC_VER) && __cplusplus <= 199711L) // !C++11
 typedef unsigned short uint16_t;
 #endif
 

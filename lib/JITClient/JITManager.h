@@ -42,6 +42,10 @@ public:
         __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __in_opt BVSparseNodeIDL * updatedPropsBVHead);
 
+    HRESULT DecommitInterpreterBufferManager(
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+        __in boolean asmJsThunk);
+
     HRESULT NewInterpreterThunkBlock(
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __in InterpreterThunkInputIDL * thunkInput,
@@ -90,6 +94,14 @@ public:
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __out JITOutputIDL *jitData);
 
+#if DBG
+    HRESULT IsInterpreterThunkAddr(
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+        __in intptr_t address,
+        __in boolean asmjsThunk,
+        __out boolean * result);
+#endif
+
     HRESULT Shutdown();
 
 
@@ -137,6 +149,11 @@ public:
         __in ThreadContextDataIDL * data,
         __out PPTHREADCONTEXT_HANDLE threadContextInfoAddress,
         __out intptr_t *prereservedRegionAddr)
+        { Assert(false); return E_FAIL; }
+
+    HRESULT DecommitInterpreterBufferManager(
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+        __in boolean asmJsThunk)
         { Assert(false); return E_FAIL; }
 
     HRESULT CleanupThreadContext(
@@ -200,6 +217,15 @@ public:
         __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
         __out JITOutputIDL *jitData)
         { Assert(false); return E_FAIL; }
+
+#if DBG
+    HRESULT IsInterpreterThunkAddr(
+        __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+        __in intptr_t address,
+        __in boolean asmjsThunk,
+        __out boolean * result)
+        { Assert(false); return E_FAIL; }
+#endif
 
     HRESULT Shutdown()
         { Assert(false); return E_FAIL; }

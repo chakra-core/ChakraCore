@@ -6,38 +6,6 @@
 
 #include "JsrtRuntime.h"
 
-// This class abstract a pointer value with its last 2 bits set to avoid conservative GC tracking.
-template <class T>
-class GC_MARKED_OBJECT
-{
-public:
-    operator T*()          const { return GetPointerValue(); }
-    bool operator!= (T* p) const { return GetPointerValue() != p; }
-    bool operator== (T* p) const { return GetPointerValue() == p; }
-    T* operator-> ()       const { return GetPointerValue(); }
-    GC_MARKED_OBJECT<T>& operator= (T* inPtr)
-    {
-        SetPointerValue(inPtr);
-        return (*this);
-    }
-    GC_MARKED_OBJECT(T* inPtr) : ptr(inPtr)
-    {
-        SetPointerValue(inPtr);
-    }
-
-    GC_MARKED_OBJECT() : ptr(NULL) {};
-private:
-    T * GetPointerValue() const { return reinterpret_cast<T*>(reinterpret_cast<ULONG_PTR>(ptr) & ~3); }
-    T * SetPointerValue(T* inPtr)
-    {
-        AssertMsg((reinterpret_cast<ULONG_PTR>(inPtr) & 3) == 0, "Invalid pointer value, 2 least significant bits must be zero");
-        ptr = reinterpret_cast<T*>((reinterpret_cast<ULONG_PTR>(inPtr) | 3));
-        return ptr;
-    }
-
-    FieldNoBarrier(T*) ptr;
-};
-
 class JsrtContext : public FinalizableObject
 {
 public:
@@ -73,6 +41,6 @@ private:
 
     Field(JsrtRuntime *) runtime;
     Field(void*) externalData = nullptr;
-    Field(GC_MARKED_OBJECT<JsrtContext>) previous;
-    Field(GC_MARKED_OBJECT<JsrtContext>) next;
+    Field(TaggedPointer<JsrtContext>) previous;
+    Field(TaggedPointer<JsrtContext>) next;
 };

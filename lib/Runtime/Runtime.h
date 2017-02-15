@@ -444,13 +444,13 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Types/JavascriptStaticEnumerator.h"
 #include "Library/ExternalLibraryBase.h"
 #include "Library/JavascriptLibraryBase.h"
+#include "Library/MathLibrary.h"
 #include "Base/ThreadContextInfo.h"
 #include "Library/JavascriptLibrary.h"
 
 #include "Language/JavascriptExceptionOperators.h"
 #include "Language/JavascriptOperators.h"
 
-#include "Library/MathLibrary.h"
 #include "Library/WasmLibrary.h"
 // xplat-todo: We should get rid of this altogether and move the functionality it
 // encapsulates to the Platform Agnostic Interface

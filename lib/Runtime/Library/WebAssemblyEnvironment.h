@@ -45,8 +45,8 @@ namespace Js
 
     private:
         template<typename T> void CheckPtrIsValid(intptr_t ptr) const;
-        template<typename T> T* GetVarElement(Var* ptr, uint32 index, uint32 maxCount) const;
-        template<typename T> void SetVarElement(Var* ptr, T* val, uint32 index, uint32 maxCount);
+        template<typename T> T* GetVarElement(Field(Var)* ptr, uint32 index, uint32 maxCount) const;
+        template<typename T> void SetVarElement(Field(Var)* ptr, T* val, uint32 index, uint32 maxCount);
         template<typename T> T GetGlobalInternal(uint32 offset) const;
         template<typename T> void SetGlobalInternal(uint32 offset, T val);
     };

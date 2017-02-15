@@ -73,9 +73,9 @@ namespace Wasm
 
     struct WasmReaderInfo
     {
-        WasmFunctionInfo* m_funcInfo;
-        Js::WebAssemblyModule* m_module;
-        Js::Var m_bufferSrc;
+        Field(WasmFunctionInfo*) m_funcInfo;
+        Field(Js::WebAssemblyModule*) m_module;
+        Field(Js::Var) m_bufferSrc;
     };
 
     class WasmModuleGenerator

@@ -531,6 +531,7 @@ private:
         int32 *m_pCurrentAstSizeSave;
         uint m_funcInArrayDepthSave;
         uint m_nestedCountSave;
+        int m_nextBlockId;
 #if DEBUG
         // For very basic validation purpose - to check that we are not going restore to some other block.
         BlockInfoStack *m_currentBlockInfo;

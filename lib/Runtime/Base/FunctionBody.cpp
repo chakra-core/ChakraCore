@@ -2502,7 +2502,11 @@ namespace Js
     void ParseableFunctionInfo::Finalize(bool isShutdown)
     {
         __super::Finalize(isShutdown);
-        this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
+        if (this->GetFunctionInfo())
+        {
+            // (If function info was never set, then initialization didn't finish, so there's nothing to remove from the dictionary.)
+            this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
+        }
         if (!this->m_hasBeenParsed)
         {
             PERF_COUNTER_DEC(Code, DeferredFunction);

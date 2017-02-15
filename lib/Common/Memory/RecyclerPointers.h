@@ -4,6 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#include "WriteBarrierMacros.h"
+
 namespace Memory
 {
 class Recycler;
@@ -596,4 +598,35 @@ void *  __cdecl memset(_Out_writes_bytes_all_(_Size) WriteBarrierPtr<T> * _Dst, 
     CompileAssert(false);
 }
 
-#include <Memory/WriteBarrierMacros.h>
+
+// This class abstract a pointer value with its last 2 bits set to avoid conservative GC tracking.
+template <class T>
+class TaggedPointer
+{
+public:
+    operator T*()          const { return GetPointerValue(); }
+    bool operator!= (T* p) const { return GetPointerValue() != p; }
+    bool operator== (T* p) const { return GetPointerValue() == p; }
+    T* operator-> ()       const { return GetPointerValue(); }
+    TaggedPointer<T>& operator= (T* inPtr)
+    {
+        SetPointerValue(inPtr);
+        return (*this);
+    }
+    TaggedPointer(T* inPtr) : ptr(inPtr)
+    {
+        SetPointerValue(inPtr);
+    }
+
+    TaggedPointer() : ptr(NULL) {};
+private:
+    T * GetPointerValue() const { return reinterpret_cast<T*>(reinterpret_cast<ULONG_PTR>(ptr) & ~3); }
+    T * SetPointerValue(T* inPtr)
+    {
+        AssertMsg((reinterpret_cast<ULONG_PTR>(inPtr) & 3) == 0, "Invalid pointer value, 2 least significant bits must be zero");
+        ptr = reinterpret_cast<T*>((reinterpret_cast<ULONG_PTR>(inPtr) | 3));
+        return ptr;
+    }
+
+    FieldNoBarrier(T*) ptr;
+};

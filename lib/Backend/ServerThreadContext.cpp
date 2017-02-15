@@ -15,15 +15,16 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
     m_numericPropertyBV(nullptr),
     m_preReservedSectionAllocator((HANDLE)data->processHandle),
     m_sectionAllocator((HANDLE)data->processHandle),
+    m_thunkPageAllocators(nullptr, /* allocXData */ false, &m_sectionAllocator, nullptr, (HANDLE)data->processHandle),
     m_codePageAllocators(nullptr, ALLOC_XDATA, &m_sectionAllocator, &m_preReservedSectionAllocator, (HANDLE)data->processHandle),
     m_codeGenAlloc(nullptr, nullptr, &m_codePageAllocators, (HANDLE)data->processHandle),
     m_pageAlloc(nullptr, Js::Configuration::Global.flags, PageAllocatorType_BGJIT,
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
         PageAllocator::DefaultLowMaxFreePageCount :
         PageAllocator::DefaultMaxFreePageCount
-    ),
-    m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName))
+    )
 {
+    ucrtC99MathApis.Ensure();
     m_pid = GetProcessId((HANDLE)data->processHandle);
 
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
@@ -63,7 +64,7 @@ ServerThreadContext::GetChakraBaseAddressDifference() const
 ptrdiff_t
 ServerThreadContext::GetCRTBaseAddressDifference() const
 {
-    return GetRuntimeCRTBaseAddress() - m_jitCRTBaseAddress;
+    return GetRuntimeCRTBaseAddress() - GetJITCRTBaseAddress();
 }
 
 intptr_t
@@ -111,7 +112,13 @@ ServerThreadContext::GetProcessHandle() const
     return reinterpret_cast<HANDLE>(m_threadContextData.processHandle);
 }
 
-CustomHeap::CodePageAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>  *
+CustomHeap::OOPCodePageAllocators *
+ServerThreadContext::GetThunkPageAllocators()
+{
+    return &m_thunkPageAllocators;
+}
+
+CustomHeap::OOPCodePageAllocators *
 ServerThreadContext::GetCodePageAllocators()
 {
     return &m_codePageAllocators;
@@ -123,7 +130,7 @@ ServerThreadContext::GetSectionAllocator()
     return &m_sectionAllocator;
 }
 
-CodeGenAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>  *
+OOPCodeGenAllocators *
 ServerThreadContext::GetCodeGenAllocators()
 {
     return &m_codeGenAlloc;
@@ -139,6 +146,12 @@ intptr_t
 ServerThreadContext::GetRuntimeCRTBaseAddress() const
 {
     return static_cast<intptr_t>(m_threadContextData.crtBaseAddress);
+}
+
+intptr_t
+ServerThreadContext::GetJITCRTBaseAddress() const
+{
+    return (intptr_t)ucrtC99MathApis.GetHandle();
 }
 
 PageAllocator *

@@ -38,7 +38,8 @@ public:
     ptrdiff_t GetCRTBaseAddressDifference() const;
 
     OOPCodeGenAllocators * GetCodeGenAllocators();
-    CustomHeap::CodePageAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>  * GetCodePageAllocators();
+    CustomHeap::OOPCodePageAllocators * GetThunkPageAllocators();
+    CustomHeap::OOPCodePageAllocators  * GetCodePageAllocators();
     SectionAllocWrapper * GetSectionAllocator();
     void UpdateNumericPropertyBV(BVSparseNode * newProps);
     void SetWellKnownHostTypeId(Js::TypeId typeId) { this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId; }
@@ -50,9 +51,11 @@ public:
     DWORD GetRuntimePid() { return m_pid; }
 #endif
 
-private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
+    intptr_t GetJITCRTBaseAddress() const;
+
+private:
 
     class AutoCloseHandle
     {
@@ -69,7 +72,8 @@ private:
 
     PreReservedSectionAllocWrapper m_preReservedSectionAllocator;
     SectionAllocWrapper m_sectionAllocator;
-    CustomHeap::CodePageAllocators<SectionAllocWrapper, PreReservedSectionAllocWrapper>  m_codePageAllocators;
+    CustomHeap::OOPCodePageAllocators m_thunkPageAllocators;
+    CustomHeap::OOPCodePageAllocators  m_codePageAllocators;
     OOPCodeGenAllocators m_codeGenAlloc;
     // only allocate with this from foreground calls (never from CodeGen calls)
     PageAllocator m_pageAlloc;
@@ -79,7 +83,6 @@ private:
     DWORD m_pid; //save client process id for easier diagnose
 
     CriticalSection m_cs;
-    intptr_t m_jitCRTBaseAddress;
     uint m_refCount;
 #endif
 };

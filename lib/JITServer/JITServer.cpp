@@ -119,6 +119,74 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
     ServerCleanupScriptContext(nullptr, &phContext);
 }
 
+HRESULT CheckModuleAddress(HANDLE process, LPCVOID remoteImageBase, LPCVOID localImageBase)
+{
+    byte remoteImageHeader[0x1000];
+    MEMORY_BASIC_INFORMATION remoteImageInfo;
+    SIZE_T resultBytes = VirtualQueryEx(process, (LPCVOID)remoteImageBase, &remoteImageInfo, sizeof(remoteImageInfo));
+    if (resultBytes != sizeof(remoteImageInfo))
+    {
+        return E_ACCESSDENIED;
+    }
+    if (remoteImageInfo.BaseAddress != (PVOID)remoteImageBase)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (remoteImageInfo.Type != MEM_IMAGE)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (remoteImageInfo.State != MEM_COMMIT)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    if (remoteImageInfo.RegionSize < sizeof(remoteImageHeader))
+    {
+        return E_ACCESSDENIED;
+    }
+
+    if (!ReadProcessMemory(process, remoteImageBase, remoteImageHeader, sizeof(remoteImageHeader), &resultBytes))
+    {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    if (resultBytes < sizeof(remoteImageHeader))
+    {
+        return E_ACCESSDENIED;
+    }
+    PIMAGE_DOS_HEADER localDosHeader = (PIMAGE_DOS_HEADER)localImageBase;
+    PIMAGE_NT_HEADERS localNtHeader = (PIMAGE_NT_HEADERS)((BYTE*)localDosHeader + localDosHeader->e_lfanew);
+
+    PIMAGE_DOS_HEADER remoteDosHeader = (PIMAGE_DOS_HEADER)remoteImageHeader;
+    PIMAGE_NT_HEADERS remoteNtHeader = (PIMAGE_NT_HEADERS)((BYTE*)remoteDosHeader + remoteDosHeader->e_lfanew);
+
+    uintptr_t remoteHeaderMax = (uintptr_t)remoteImageHeader + sizeof(remoteImageHeader);
+    uintptr_t remoteMaxRead = (uintptr_t)remoteNtHeader + sizeof(IMAGE_NT_HEADERS);
+    if (remoteMaxRead >= remoteHeaderMax || remoteMaxRead < (uintptr_t)remoteImageHeader)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    if (localNtHeader->FileHeader.NumberOfSections != remoteNtHeader->FileHeader.NumberOfSections)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (localNtHeader->FileHeader.NumberOfSymbols != remoteNtHeader->FileHeader.NumberOfSymbols)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (localNtHeader->OptionalHeader.CheckSum != remoteNtHeader->OptionalHeader.CheckSum)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (localNtHeader->OptionalHeader.SizeOfImage != remoteNtHeader->OptionalHeader.SizeOfImage)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    return S_OK;
+}
+
 #pragma warning(push)
 #pragma warning(disable:6387 28196) // PREFast does not understand the out context can be null here
 HRESULT
@@ -141,7 +209,7 @@ ServerInitializeThreadContext(
     try
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory));
-        contextInfo = (ServerThreadContext*)HeapNew(ServerThreadContext, threadContextData);
+        contextInfo = HeapNew(ServerThreadContext, threadContextData);
         ServerContextManager::RegisterThreadContext(contextInfo);
     }
     catch (Js::OutOfMemoryException)
@@ -152,10 +220,37 @@ ServerInitializeThreadContext(
 
     return ServerCallWrapper(contextInfo, [&]()->HRESULT
     {
+        RPC_CALL_ATTRIBUTES CallAttributes = {0};
+
+        CallAttributes.Version = RPC_CALL_ATTRIBUTES_VERSION;
+        CallAttributes.Flags = RPC_QUERY_CLIENT_PID;
+        HRESULT hr = HRESULT_FROM_WIN32(RpcServerInqCallAttributes(binding, &CallAttributes));
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+        if (CallAttributes.ClientPID != (HANDLE)contextInfo->GetRuntimePid())
+        {
+            return E_ACCESSDENIED;
+        }
+        hr = CheckModuleAddress(contextInfo->GetProcessHandle(), (LPCVOID)contextInfo->GetRuntimeChakraBaseAddress(), (LPCVOID)AutoSystemInfo::Data.dllLoadAddress);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+        if (contextInfo->GetUCrtC99MathApis()->IsAvailable())
+        {
+            hr = CheckModuleAddress(contextInfo->GetProcessHandle(), (LPCVOID)contextInfo->GetRuntimeCRTBaseAddress(), (LPCVOID)contextInfo->GetJITCRTBaseAddress());
+            if (FAILED(hr))
+            {
+                return hr;
+            }
+        }
+
         *threadContextInfoAddress = (PTHREADCONTEXT_HANDLE)EncodePointer(contextInfo);
         *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedSectionAllocator()->EnsurePreReservedRegion();
 
-        return S_OK;
+        return hr;
     });
 }
 
@@ -367,6 +462,27 @@ ServerCloseScriptContext(
 }
 
 HRESULT
+ServerDecommitInterpreterBufferManager(
+    /* [in] */ handle_t binding,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ boolean asmJsManager)
+{
+    ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer((void*)scriptContextInfoAddress);
+
+    if (scriptContext == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
+
+    return ServerCallWrapper(scriptContext, [&]()->HRESULT
+    {
+        scriptContext->DecommitEmitBufferManager(asmJsManager != FALSE);
+        return S_OK;
+    });
+}
+
+HRESULT
 ServerNewInterpreterThunkBlock(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfo,
@@ -384,56 +500,50 @@ ServerNewInterpreterThunkBlock(
 
     return ServerCallWrapper(scriptContext, [&]()->HRESULT
     {
-        NtdllLibrary::OBJECT_ATTRIBUTES attr;
-        NtdllLibrary::Instance->InitializeObjectAttributes(&attr, NULL, NtdllLibrary::OBJ_KERNEL_HANDLE, NULL, NULL);
-        LARGE_INTEGER size = { 0 };
-#if TARGET_32
-        size.LowPart = InterpreterThunkEmitter::BlockSize;
-#elif TARGET_64
-        size.QuadPart = InterpreterThunkEmitter::BlockSize;
-#endif
-        HANDLE sectionHandle = nullptr;
-        int status = NtdllLibrary::Instance->CreateSection(&sectionHandle, SECTION_MAP_READ | SECTION_MAP_WRITE | SECTION_QUERY | SECTION_MAP_EXECUTE, &attr, &size, PAGE_EXECUTE_READWRITE, SEC_COMMIT, NULL);
-        if (status != 0)
+        ServerThreadContext * threadContext = scriptContext->GetThreadContext();
+
+        class AutoLocalAlloc
+        {
+        public:
+            AutoLocalAlloc(ServerThreadContext * threadContext) : localAddress(nullptr), threadContext(threadContext) { }
+            ~AutoLocalAlloc()
+            {
+                if (localAddress)
+                {
+                    threadContext->GetCodePageAllocators()->FreeLocal(this->localAddress, this->segment);
+                }
+            }
+            char * localAddress;
+            void * segment;
+            ServerThreadContext * threadContext;
+        } localAlloc(threadContext);
+
+        OOPEmitBufferManager * emitBufferManager = scriptContext->GetEmitBufferManager(thunkInput->asmJsThunk != FALSE);
+
+        BYTE* runtimeAddress;
+        EmitBufferAllocation<SectionAllocWrapper, PreReservedSectionAllocWrapper> * alloc = emitBufferManager->AllocateBuffer(InterpreterThunkEmitter::BlockSize, &runtimeAddress);
+
+        CompileAssert(InterpreterThunkEmitter::BlockSize <= CustomHeap::Page::MaxAllocationSize);
+        localAlloc.segment = alloc->allocation->page->segment;
+
+        localAlloc.localAddress = threadContext->GetCodePageAllocators()->AllocLocal((char*)runtimeAddress, InterpreterThunkEmitter::BlockSize, localAlloc.segment);
+        if (!localAlloc.localAddress)
         {
             Js::Throw::OutOfMemory();
         }
-
-        DWORD thunkCount = 0;
 
 #if PDATA_ENABLED
         PRUNTIME_FUNCTION pdataStart = {0};
         intptr_t epilogEnd = 0;
 #endif
-        ServerThreadContext * threadContext = scriptContext->GetThreadContext();
-
-        SIZE_T viewSize = 0;
-        LPVOID localBuffer = nullptr;
-        status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, GetCurrentProcess(), &localBuffer, NULL, NULL, NULL, &viewSize, NtdllLibrary::ViewUnmap, NULL, PAGE_READWRITE);
-        if (status != 0 || localBuffer == nullptr)
-        {
-            NtdllLibrary::Instance->Close(sectionHandle);
-            Js::Throw::OutOfMemory();
-        }
-
-        const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE;
-        viewSize = 0;
-        LPVOID runtimeAddress = nullptr;
-        status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, threadContext->GetProcessHandle(), &runtimeAddress, NULL, NULL, NULL, &viewSize, NtdllLibrary::ViewUnmap, NULL, allocProtectFlags);
-
-        NtdllLibrary::Instance->Close(sectionHandle);
-        if (status != 0 || runtimeAddress == nullptr)
-        {
-            NtdllLibrary::Instance->UnmapViewOfSection(GetCurrentProcess(), localBuffer);
-            Js::Throw::OutOfMemory();
-        }
+        DWORD thunkCount = 0;
 
         InterpreterThunkEmitter::FillBuffer(
             threadContext,
             thunkInput->asmJsThunk != FALSE,
             (intptr_t)runtimeAddress,
             InterpreterThunkEmitter::BlockSize,
-            (BYTE*)localBuffer,
+            (BYTE*)localAlloc.localAddress,
 #if PDATA_ENABLED
             &pdataStart,
             &epilogEnd,
@@ -441,9 +551,7 @@ ServerNewInterpreterThunkBlock(
             &thunkCount
         );
 
-        NtdllLibrary::Instance->UnmapViewOfSection(GetCurrentProcess(), localBuffer);
-
-        FlushInstructionCache(threadContext->GetProcessHandle(), runtimeAddress, InterpreterThunkEmitter::BlockSize);
+        emitBufferManager->CommitBufferForInterpreter(alloc, runtimeAddress, InterpreterThunkEmitter::BlockSize);
         // Call to set VALID flag for CFG check
         if (CONFIG_FLAG(OOPCFGRegistration))
         {
@@ -460,6 +568,35 @@ ServerNewInterpreterThunkBlock(
         return S_OK;
     });
 }
+
+#if DBG
+HRESULT
+ServerIsInterpreterThunkAddr(
+    /* [in] */ handle_t binding,
+    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ intptr_t address,
+    /* [in] */ boolean asmjsThunk,
+    /* [out] */ __RPC__out boolean * result)
+{
+    ServerScriptContext * context = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
+
+    if (context == nullptr)
+    {
+        *result = false;
+        return RPC_S_INVALID_ARG;
+    }
+    OOPEmitBufferManager * manager = context->GetEmitBufferManager(asmjsThunk != FALSE);
+    if (manager == nullptr)
+    {
+        *result = false;
+        return S_OK;
+    }
+
+    *result = manager->IsInHeap((void*)address);
+
+    return S_OK;
+}
+#endif
 
 HRESULT
 ServerFreeAllocation(

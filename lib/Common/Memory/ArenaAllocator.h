@@ -139,7 +139,10 @@ template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg = 3, bool Req
 class ArenaAllocatorBase : public Allocator, public ArenaData
 {
 private:
-    char * cacheBlockEnd;
+    // cacheBlockEnd may be the start address of actual GC memory, tag it to
+    // avoid GC false positive
+    TaggedPointer<char> cacheBlockEnd;
+
     size_t largestHole;
     uint blockState;        // 0 = no block, 1 = one big block, other more then one big block or have malloc blocks
 

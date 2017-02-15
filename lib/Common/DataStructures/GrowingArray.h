@@ -14,10 +14,11 @@ extern int listFreeAmount;
 
 namespace JsUtil
 {
-    template <class TValue, class TAllocator>
+    template <class ValueType, class TAllocator>
     class GrowingArray
     {
     public:
+        typedef Field(ValueType, TAllocator) TValue;
         typedef typename AllocatorInfo<TAllocator, TValue>::AllocatorType AllocatorType;
         static GrowingArray* Create(uint32 _length);
 
@@ -77,18 +78,17 @@ namespace JsUtil
                     TRACK_ALLOC_INFO(alloc, TValue, AllocatorType, 0, length),
                     TypeAllocatorFunc<AllocatorType, TValue>::GetAllocFunc(),
                     length);
-                const size_t byteSize = UInt32Math::Mul(length, sizeof(TValue));
-                js_memcpy_s(pNewArray->buffer, byteSize, buffer, byteSize);
+                CopyArray<TValue, TValue, TAllocator>(pNewArray->buffer, length, buffer, length);
             }
 
             return pNewArray;
         }
-    private:
 
-        TValue* buffer;
-        uint32 count;
-        uint32 length;
-        AllocatorType* alloc;
+    private:
+        Field(TValue*, TAllocator) buffer;
+        Field(uint32) count;
+        Field(uint32) length;
+        FieldNoBarrier(AllocatorType*) alloc;
 
         void EnsureArray()
         {
@@ -107,14 +107,13 @@ namespace JsUtil
                     TRACK_ALLOC_INFO(alloc, TValue, AllocatorType, 0, newLength),
                     TypeAllocatorFunc<AllocatorType, TValue>::GetAllocFunc(),
                     newLength);
-                const size_t lengthByteSize = UInt32Math::Mul(length, sizeof(TValue));
-                const size_t newLengthByteSize = UInt32Math::Mul(newLength, sizeof(TValue));
-                js_memcpy_s(newbuffer, newLengthByteSize, buffer, lengthByteSize);
+                CopyArray<TValue, TValue, TAllocator>(newbuffer, newLength, buffer, length);
 #ifdef DIAG_MEM
                 listFreeAmount += length;
 #endif
                 if (length != 0)
                 {
+                    const size_t lengthByteSize = UInt32Math::Mul(length, sizeof(TValue));
                     AllocatorFree(alloc, (TypeAllocatorFunc<AllocatorType, int>::GetFreeFunc()), buffer, lengthByteSize);
                 }
                 length = newLength;

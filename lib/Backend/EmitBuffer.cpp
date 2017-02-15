@@ -357,7 +357,7 @@ bool EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::ProtectBufferWith
 // Returns true if we successfully commit the buffer
 // Returns false if we OOM
 template <typename TAlloc, typename TPreReservedAlloc, class SyncObject>
-bool EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitReadWriteBufferForInterpreter(TEmitBufferAllocation* allocation, _In_reads_bytes_(bufferSize) BYTE* pBuffer, _In_ size_t bufferSize)
+bool EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitBufferForInterpreter(TEmitBufferAllocation* allocation, _In_reads_bytes_(bufferSize) BYTE* pBuffer, _In_ size_t bufferSize)
 {
     Assert(this->criticalSection.IsLocked());
 
@@ -376,7 +376,7 @@ bool EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::CommitReadWriteBu
     }
 #endif
 
-    if (!this->allocationHeap.ProtectAllocationWithExecuteReadOnly(allocation->allocation))
+    if (!JITManager::GetJITManager()->IsJITServer() && !this->allocationHeap.ProtectAllocationWithExecuteReadOnly(allocation->allocation))
     {
         return false;
     }
@@ -573,5 +573,6 @@ EmitBufferManager<TAlloc, TPreReservedAlloc, SyncObject>::DumpAndResetStats(char
 template class EmitBufferManager<VirtualAllocWrapper, PreReservedVirtualAllocWrapper, FakeCriticalSection>;
 template class EmitBufferManager<VirtualAllocWrapper, PreReservedVirtualAllocWrapper, CriticalSection>;
 #if ENABLE_OOP_NATIVE_CODEGEN
+template class EmitBufferManager<SectionAllocWrapper, PreReservedSectionAllocWrapper, FakeCriticalSection>;
 template class EmitBufferManager<SectionAllocWrapper, PreReservedSectionAllocWrapper, CriticalSection>;
 #endif

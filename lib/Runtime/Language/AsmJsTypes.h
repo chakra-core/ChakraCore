@@ -869,9 +869,9 @@ namespace Js
         Field(ArgSlot) mArgByteSize;
         Field(AsmJsRetType) mReturnType;
 #ifdef ENABLE_WASM
-        Wasm::WasmSignature * mSignature;
-        Wasm::WasmReaderInfo* mWasmReaderInfo;
-        WebAssemblyModule* mWasmModule;
+        Field(Wasm::WasmSignature *) mSignature;
+        Field(Wasm::WasmReaderInfo*) mWasmReaderInfo;
+        Field(WebAssemblyModule*) mWasmModule;
 #endif
         Field(bool) mIsHeapBufferConst;
         Field(bool) mUsesHeapBuffer;
