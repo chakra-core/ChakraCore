@@ -6110,13 +6110,12 @@ namespace Js
 
     uint FunctionBody::NewLiteralRegex()
     {
-        if (this->byteCodeBlock)
+        if (this->GetLiteralRegexes() != nullptr)
         {
-            // This is a function nested in a redeferred function, so we won't make use of the index.
-            // Don't increment to avoid breaking thread-safety requirements of the compact counters.
+            // This is a function nested in a redeferred function, so we won't regenerate byte code and won't make use of the index.
+            // The regex count is already correct, so don't increment it.
             return 0;
         }
-        Assert(!this->GetLiteralRegexes());
         return IncLiteralRegexCount();
     }
 
