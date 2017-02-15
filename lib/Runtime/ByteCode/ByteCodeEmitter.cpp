@@ -7056,6 +7056,11 @@ void EmitLoad(
     // in the process.
     // We usually get here as part of an op-equiv expression: x.y += z;
     // In such a case, x has to be emitted first, then the value of x.y loaded (by this function), then z emitted.
+   
+    if (CONFIG_FLAG(TypeAnnotations) && lhs->typeHint != Js::TypeHint::Unknown)
+    {
+        funcInfo->GetParsedFunctionBody()->AddBytecodeOffsetTypeAnnotation(byteCodeGenerator->Writer()->GetCurrentOffset(), lhs->location, lhs->typeHint);
+    }
     switch (lhs->nop)
     {
 
