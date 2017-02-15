@@ -1633,7 +1633,7 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
         bool didTransferToFncVarSym = false;
 
         if (!PHASE_OFF(Js::OptimizeBlockScopePhase, top->byteCodeFunction) &&
-            sym->GetIsBlockVar() && 
+            sym->GetIsBlockVar() &&
             !sym->GetScope()->IsBlockInLoop() &&
             sym->GetSymbolType() == STFunction)
         {
@@ -3318,13 +3318,23 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
 
             Js::ParseableFunctionInfo::NestedArray * parentNestedArray = parentFunc->GetNestedArray();
             Js::ParseableFunctionInfo* reuseNestedFunc = nullptr;
-            if (parentNestedArray && byteCodeGenerator->GetScriptContext()->IsScriptContextInNonDebugMode())
+            if (parentNestedArray)
             {
                 Assert(*pIndex < parentNestedArray->nestedCount);
                 Js::FunctionInfo * info = parentNestedArray->functionInfoArray[*pIndex];
                 if (info && info->HasParseableInfo())
                 {
                     reuseNestedFunc = info->GetParseableFunctionInfo();
+
+                    // If parentFunc was redeferred, try to set pCurrentFunction to this FunctionBody,
+                    // and cleanup to reparse (as previous cleanup stops at redeferred parentFunc).
+                    if (!byteCodeGenerator->IsInNonDebugMode()
+                        && !byteCodeGenerator->pCurrentFunction
+                        && reuseNestedFunc->IsFunctionBody())
+                    {
+                        byteCodeGenerator->pCurrentFunction = reuseNestedFunc->GetFunctionBody();
+                        byteCodeGenerator->pCurrentFunction->CleanupToReparse();
+                    }
                 }
             }
             PreVisitFunction(pnodeScope, byteCodeGenerator, reuseNestedFunc);
