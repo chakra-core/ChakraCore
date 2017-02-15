@@ -366,6 +366,27 @@ ServerCloseScriptContext(
 }
 
 HRESULT
+ServerDecommitInterpreterBufferManager(
+    /* [in] */ handle_t binding,
+    /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ boolean asmJsManager)
+{
+    ServerScriptContext * scriptContext = (ServerScriptContext *)DecodePointer((void*)scriptContextInfoAddress);
+
+    if (scriptContext == nullptr)
+    {
+        Assert(false);
+        return RPC_S_INVALID_ARG;
+    }
+
+    return ServerCallWrapper(scriptContext, [&]()->HRESULT
+    {
+        scriptContext->DecommitEmitBufferManager(asmJsManager != FALSE);
+        return S_OK;
+    });
+}
+
+HRESULT
 ServerNewInterpreterThunkBlock(
     /* [in] */ handle_t binding,
     /* [in] */ __RPC__in PSCRIPTCONTEXT_HANDLE scriptContextInfo,
@@ -383,56 +404,50 @@ ServerNewInterpreterThunkBlock(
 
     return ServerCallWrapper(scriptContext, [&]()->HRESULT
     {
-        NtdllLibrary::OBJECT_ATTRIBUTES attr;
-        NtdllLibrary::Instance->InitializeObjectAttributes(&attr, NULL, NtdllLibrary::OBJ_KERNEL_HANDLE, NULL, NULL);
-        LARGE_INTEGER size = { 0 };
-#if TARGET_32
-        size.LowPart = InterpreterThunkEmitter::BlockSize;
-#elif TARGET_64
-        size.QuadPart = InterpreterThunkEmitter::BlockSize;
-#endif
-        HANDLE sectionHandle = nullptr;
-        int status = NtdllLibrary::Instance->CreateSection(&sectionHandle, SECTION_MAP_READ | SECTION_MAP_WRITE | SECTION_QUERY | SECTION_MAP_EXECUTE, &attr, &size, PAGE_EXECUTE_READWRITE, SEC_COMMIT, NULL);
-        if (status != 0)
+        ServerThreadContext * threadContext = scriptContext->GetThreadContext();
+
+        class AutoLocalAlloc
+        {
+        public:
+            AutoLocalAlloc(ServerThreadContext * threadContext) : localAddress(nullptr), threadContext(threadContext) { }
+            ~AutoLocalAlloc()
+            {
+                if (localAddress)
+                {
+                    threadContext->GetCodePageAllocators()->FreeLocal(this->localAddress, this->segment);
+                }
+            }
+            char * localAddress;
+            void * segment;
+            ServerThreadContext * threadContext;
+        } localAlloc(threadContext);
+
+        OOPEmitBufferManager * emitBufferManager = scriptContext->GetEmitBufferManager(thunkInput->asmJsThunk != FALSE);
+
+        BYTE* runtimeAddress;
+        EmitBufferAllocation<SectionAllocWrapper, PreReservedSectionAllocWrapper> * alloc = emitBufferManager->AllocateBuffer(InterpreterThunkEmitter::BlockSize, &runtimeAddress);
+
+        CompileAssert(InterpreterThunkEmitter::BlockSize <= CustomHeap::Page::MaxAllocationSize);
+        localAlloc.segment = alloc->allocation->page->segment;
+
+        localAlloc.localAddress = threadContext->GetCodePageAllocators()->AllocLocal((char*)runtimeAddress, InterpreterThunkEmitter::BlockSize, localAlloc.segment);
+        if (!localAlloc.localAddress)
         {
             Js::Throw::OutOfMemory();
         }
-
-        DWORD thunkCount = 0;
 
 #if PDATA_ENABLED
         PRUNTIME_FUNCTION pdataStart = {0};
         intptr_t epilogEnd = 0;
 #endif
-        ServerThreadContext * threadContext = scriptContext->GetThreadContext();
-
-        SIZE_T viewSize = 0;
-        LPVOID localBuffer = nullptr;
-        status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, GetCurrentProcess(), &localBuffer, NULL, NULL, NULL, &viewSize, NtdllLibrary::ViewUnmap, NULL, PAGE_READWRITE);
-        if (status != 0 || localBuffer == nullptr)
-        {
-            NtdllLibrary::Instance->Close(sectionHandle);
-            Js::Throw::OutOfMemory();
-        }
-
-        const DWORD allocProtectFlags = AutoSystemInfo::Data.IsCFGEnabled() ? PAGE_EXECUTE_RO_TARGETS_INVALID : PAGE_EXECUTE;
-        viewSize = 0;
-        LPVOID runtimeAddress = nullptr;
-        status = NtdllLibrary::Instance->MapViewOfSection(sectionHandle, threadContext->GetProcessHandle(), &runtimeAddress, NULL, NULL, NULL, &viewSize, NtdllLibrary::ViewUnmap, NULL, allocProtectFlags);
-
-        NtdllLibrary::Instance->Close(sectionHandle);
-        if (status != 0 || runtimeAddress == nullptr)
-        {
-            NtdllLibrary::Instance->UnmapViewOfSection(GetCurrentProcess(), localBuffer);
-            Js::Throw::OutOfMemory();
-        }
+        DWORD thunkCount = 0;
 
         InterpreterThunkEmitter::FillBuffer(
             threadContext,
             thunkInput->asmJsThunk != FALSE,
             (intptr_t)runtimeAddress,
             InterpreterThunkEmitter::BlockSize,
-            (BYTE*)localBuffer,
+            (BYTE*)localAlloc.localAddress,
 #if PDATA_ENABLED
             &pdataStart,
             &epilogEnd,
@@ -440,9 +455,7 @@ ServerNewInterpreterThunkBlock(
             &thunkCount
         );
 
-        NtdllLibrary::Instance->UnmapViewOfSection(GetCurrentProcess(), localBuffer);
-
-        FlushInstructionCache(threadContext->GetProcessHandle(), runtimeAddress, InterpreterThunkEmitter::BlockSize);
+        emitBufferManager->CommitBufferForInterpreter(alloc, runtimeAddress, InterpreterThunkEmitter::BlockSize);
         // Call to set VALID flag for CFG check
         if (CONFIG_FLAG(OOPCFGRegistration))
         {
@@ -459,6 +472,35 @@ ServerNewInterpreterThunkBlock(
         return S_OK;
     });
 }
+
+#if DBG
+HRESULT
+ServerIsInterpreterThunkAddr(
+    /* [in] */ handle_t binding,
+    /* [in] */ PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    /* [in] */ intptr_t address,
+    /* [in] */ boolean asmjsThunk,
+    /* [out] */ __RPC__out boolean * result)
+{
+    ServerScriptContext * context = (ServerScriptContext*)DecodePointer((void*)scriptContextInfoAddress);
+
+    if (context == nullptr)
+    {
+        *result = false;
+        return RPC_S_INVALID_ARG;
+    }
+    OOPEmitBufferManager * manager = context->GetEmitBufferManager(asmjsThunk != FALSE);
+    if (manager == nullptr)
+    {
+        *result = false;
+        return S_OK;
+    }
+
+    *result = manager->IsInHeap((void*)address);
+
+    return S_OK;
+}
+#endif
 
 HRESULT
 ServerFreeAllocation(

@@ -22,6 +22,8 @@ ServerScriptContext::ServerScriptContext(ScriptContextDataIDL * contextData, Ser
     threadContextHolder(threadContextInfo),
     m_isPRNGSeeded(false),
     m_sourceCodeArena(_u("JITSourceCodeArena"), threadContextInfo->GetForegroundPageAllocator(), Js::Throw::OutOfMemory, nullptr),
+    m_interpreterThunkBufferManager(&m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Interpreter thunk buffer"), GetThreadContext()->GetProcessHandle()),
+    m_asmJsInterpreterThunkBufferManager(&m_sourceCodeArena, threadContextInfo->GetThunkPageAllocators(), nullptr, _u("Asm.js interpreter thunk buffer"), GetThreadContext()->GetProcessHandle()),
     m_domFastPathHelperMap(nullptr),
     m_moduleRecords(&HeapAllocator::Instance),
     m_globalThisAddr(0),
@@ -307,6 +309,25 @@ ArenaAllocator *
 ServerScriptContext::GetSourceCodeArena()
 {
     return &m_sourceCodeArena;
+}
+
+void
+ServerScriptContext::DecommitEmitBufferManager(bool asmJsManager)
+{
+    GetEmitBufferManager(asmJsManager)->Decommit();
+}
+
+OOPEmitBufferManager *
+ServerScriptContext::GetEmitBufferManager(bool asmJsManager)
+{
+    if (asmJsManager)
+    {
+        return &m_asmJsInterpreterThunkBufferManager;
+    }
+    else
+    {
+        return &m_interpreterThunkBufferManager;
+    }
 }
 
 IR::JnHelperMethod
