@@ -2585,7 +2585,7 @@ bool FuncAllowsDirectSuper(FuncInfo *funcInfo, ByteCodeGenerator *byteCodeGenera
     if (funcInfo->IsGlobalFunction() && ((byteCodeGenerator->GetFlags() & fscrEval) != 0))
     {
         Js::JavascriptFunction *caller = nullptr;
-        if (Js::JavascriptStackWalker::GetCaller(&caller, byteCodeGenerator->GetScriptContext()))
+        if (Js::JavascriptStackWalker::GetCaller(&caller, byteCodeGenerator->GetScriptContext()) && Js::ScriptFunction::Is(caller))
         {
             Js::FunctionBody * callerBody = caller->GetFunctionBody();
             Assert(callerBody);
