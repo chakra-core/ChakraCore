@@ -81,7 +81,6 @@ private:
     DWORD m_pid; //save client process id for easier diagnose
 
     CriticalSection m_cs;
-    intptr_t m_jitCRTBaseAddress;
     uint m_refCount;
 #endif
 };

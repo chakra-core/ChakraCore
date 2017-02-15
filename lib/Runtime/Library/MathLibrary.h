@@ -18,7 +18,6 @@ private:
     PFNMathFn m_pfntrunc;
     PFNMathFn m_pfncbrt;
 
-    void Ensure();
 
 public:
     static const LPCWSTR LibraryName;
@@ -29,6 +28,10 @@ public:
     virtual LPCWSTR GetLibraryName() const override { return LibraryName; }
 
     bool IsAvailable() { Ensure(); return DelayLoadLibrary::IsAvailable(); }
+
+    void Ensure();
+
+    HMODULE GetHandle() const { return m_hModule; }
 
     double log2 (_In_ double x) { Assert(IsAvailable()); return m_pfnlog2 (x); }
     double log1p(_In_ double x) { Assert(IsAvailable()); return m_pfnlog1p(x); }
