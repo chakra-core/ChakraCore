@@ -44,7 +44,7 @@ public:
     TEmitBufferAllocation* AllocateBuffer(DECLSPEC_GUARD_OVERFLOW __in size_t bytes, __deref_bcount(bytes) BYTE** ppBuffer, ushort pdataCount = 0, ushort xdataSize = 0, bool canAllocInPreReservedHeapPageSegment = false, bool isAnyJittedCode = false);
     bool CommitBuffer(TEmitBufferAllocation* allocation, __out_bcount(bytes) BYTE* destBuffer, __in size_t bytes, __in_bcount(bytes) const BYTE* sourceBuffer, __in DWORD alignPad = 0);
     bool ProtectBufferWithExecuteReadWriteForInterpreter(TEmitBufferAllocation* allocation);
-    bool CommitReadWriteBufferForInterpreter(TEmitBufferAllocation* allocation, _In_reads_bytes_(bufferSize) BYTE* pBuffer, _In_ size_t bufferSize);
+    bool CommitBufferForInterpreter(TEmitBufferAllocation* allocation, _In_reads_bytes_(bufferSize) BYTE* pBuffer, _In_ size_t bufferSize);
     void CompletePreviousAllocation(TEmitBufferAllocation* allocation);
     bool FreeAllocation(void* address);
     //Ends here
@@ -99,5 +99,6 @@ public:
 typedef EmitBufferManager<VirtualAllocWrapper, PreReservedVirtualAllocWrapper, CriticalSection> InProcEmitBufferManagerWithlock;
 typedef EmitBufferManager<VirtualAllocWrapper, PreReservedVirtualAllocWrapper, FakeCriticalSection> InProcEmitBufferManager;
 #if ENABLE_OOP_NATIVE_CODEGEN
-typedef EmitBufferManager<SectionAllocWrapper, PreReservedSectionAllocWrapper, CriticalSection> OOPEmitBufferManager;
+typedef EmitBufferManager<SectionAllocWrapper, PreReservedSectionAllocWrapper, CriticalSection> OOPEmitBufferManagerWithLock;
+typedef EmitBufferManager<SectionAllocWrapper, PreReservedSectionAllocWrapper, FakeCriticalSection> OOPEmitBufferManager;
 #endif
