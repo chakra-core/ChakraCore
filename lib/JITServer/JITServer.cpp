@@ -119,6 +119,74 @@ __RPC_USER PSCRIPTCONTEXT_HANDLE_rundown(__RPC__in PSCRIPTCONTEXT_HANDLE phConte
     ServerCleanupScriptContext(nullptr, &phContext);
 }
 
+HRESULT CheckModuleAddress(HANDLE process, LPCVOID remoteImageBase, LPCVOID localImageBase)
+{
+    byte remoteImageHeader[0x1000];
+    MEMORY_BASIC_INFORMATION remoteImageInfo;
+    SIZE_T resultBytes = VirtualQueryEx(process, (LPCVOID)remoteImageBase, &remoteImageInfo, sizeof(remoteImageInfo));
+    if (resultBytes != sizeof(remoteImageInfo))
+    {
+        return E_ACCESSDENIED;
+    }
+    if (remoteImageInfo.BaseAddress != (PVOID)remoteImageBase)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (remoteImageInfo.Type != MEM_IMAGE)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (remoteImageInfo.State != MEM_COMMIT)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    if (remoteImageInfo.RegionSize < sizeof(remoteImageHeader))
+    {
+        return E_ACCESSDENIED;
+    }
+
+    if (!ReadProcessMemory(process, remoteImageBase, remoteImageHeader, sizeof(remoteImageHeader), &resultBytes))
+    {
+        return HRESULT_FROM_WIN32(GetLastError());
+    }
+    if (resultBytes < sizeof(remoteImageHeader))
+    {
+        return E_ACCESSDENIED;
+    }
+    PIMAGE_DOS_HEADER localDosHeader = (PIMAGE_DOS_HEADER)localImageBase;
+    PIMAGE_NT_HEADERS localNtHeader = (PIMAGE_NT_HEADERS)((BYTE*)localDosHeader + localDosHeader->e_lfanew);
+
+    PIMAGE_DOS_HEADER remoteDosHeader = (PIMAGE_DOS_HEADER)remoteImageHeader;
+    PIMAGE_NT_HEADERS remoteNtHeader = (PIMAGE_NT_HEADERS)((BYTE*)remoteDosHeader + remoteDosHeader->e_lfanew);
+
+    uintptr_t remoteHeaderMax = (uintptr_t)remoteImageHeader + sizeof(remoteImageHeader);
+    uintptr_t remoteMaxRead = (uintptr_t)remoteNtHeader + sizeof(IMAGE_NT_HEADERS);
+    if (remoteMaxRead >= remoteHeaderMax || remoteMaxRead < (uintptr_t)remoteImageHeader)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    if (localNtHeader->FileHeader.NumberOfSections != remoteNtHeader->FileHeader.NumberOfSections)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (localNtHeader->FileHeader.NumberOfSymbols != remoteNtHeader->FileHeader.NumberOfSymbols)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (localNtHeader->OptionalHeader.CheckSum != remoteNtHeader->OptionalHeader.CheckSum)
+    {
+        return E_ACCESSDENIED;
+    }
+    if (localNtHeader->OptionalHeader.SizeOfImage != remoteNtHeader->OptionalHeader.SizeOfImage)
+    {
+        return E_ACCESSDENIED;
+    }
+
+    return S_OK;
+}
+
 #pragma warning(push)
 #pragma warning(disable:6387 28196) // PREFast does not understand the out context can be null here
 HRESULT
@@ -141,7 +209,7 @@ ServerInitializeThreadContext(
     try
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_OutOfMemory));
-        contextInfo = (ServerThreadContext*)HeapNew(ServerThreadContext, threadContextData);
+        contextInfo = HeapNew(ServerThreadContext, threadContextData);
         ServerContextManager::RegisterThreadContext(contextInfo);
     }
     catch (Js::OutOfMemoryException)
@@ -152,10 +220,34 @@ ServerInitializeThreadContext(
 
     return ServerCallWrapper(contextInfo, [&]()->HRESULT
     {
+        RPC_CALL_ATTRIBUTES CallAttributes = {0};
+
+        CallAttributes.Version = RPC_CALL_ATTRIBUTES_VERSION;
+        CallAttributes.Flags = RPC_QUERY_CLIENT_PID;
+        HRESULT hr = HRESULT_FROM_WIN32(RpcServerInqCallAttributes(binding, &CallAttributes));
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+        if (CallAttributes.ClientPID != (HANDLE)contextInfo->GetRuntimePid())
+        {
+            return E_ACCESSDENIED;
+        }
+        hr = CheckModuleAddress(contextInfo->GetProcessHandle(), (LPCVOID)contextInfo->GetRuntimeChakraBaseAddress(), (LPCVOID)AutoSystemInfo::Data.dllLoadAddress);
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+        hr = CheckModuleAddress(contextInfo->GetProcessHandle(), (LPCVOID)contextInfo->GetRuntimeCRTBaseAddress(), (LPCVOID)contextInfo->GetJITCRTBaseAddress());
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+
         *threadContextInfoAddress = (PTHREADCONTEXT_HANDLE)EncodePointer(contextInfo);
         *prereservedRegionAddr = (intptr_t)contextInfo->GetPreReservedSectionAllocator()->EnsurePreReservedRegion();
 
-        return S_OK;
+        return hr;
     });
 }
 

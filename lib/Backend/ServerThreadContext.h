@@ -51,9 +51,11 @@ public:
     DWORD GetRuntimePid() { return m_pid; }
 #endif
 
-private:
     intptr_t GetRuntimeChakraBaseAddress() const;
     intptr_t GetRuntimeCRTBaseAddress() const;
+    intptr_t GetJITCRTBaseAddress() const;
+
+private:
 
     class AutoCloseHandle
     {
