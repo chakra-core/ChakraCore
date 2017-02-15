@@ -195,6 +195,7 @@ private:
     bool                m_hasParallelJob;
     bool                m_doingFastScan;
     int                 m_nextBlockId;
+    charcount_t         m_lastRParen;
 
     // RegexPattern objects created for literal regexes are recycler-allocated and need to be kept alive until the function body
     // is created during byte code generation. The RegexPattern pointer is stored in the script context's guest

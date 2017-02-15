@@ -2987,6 +2987,11 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true);
         this->m_parenDepth--;
 
+        if (buildAST)
+        {
+            this->m_lastRParen = m_pscan->IchLimTok();
+        }
+
         ChkCurTok(tkRParen, ERRnoRparen);
 
         GetCurrentBlock()->sxBlock.blockId = saveCurrBlockId;
@@ -6633,6 +6638,7 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
     }
 
     IdentToken token;
+    this->m_lastRParen = 0;
     ParseNodePtr result = ParseExpr<buildAST>(koplAsg, nullptr, TRUE, FALSE, nullptr, nullptr, nullptr, &token);
 
     this->MarkEscapingRef(result, &token);
@@ -6649,7 +6655,7 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
         pnodeRet->sxStmt.grfnop = 0;
         pnodeRet->sxStmt.pnodeOuter = nullptr;
 
-        pnodeLambda->ichLim = pnodeRet->ichLim;
+        pnodeLambda->ichLim = max(pnodeRet->ichLim, this->m_lastRParen);
         pnodeLambda->sxFnc.cbLim = m_pscan->IecpLimTokPrevious();
         pnodeLambda->sxFnc.pnodeScopes->ichLim = pnodeRet->ichLim;
 
