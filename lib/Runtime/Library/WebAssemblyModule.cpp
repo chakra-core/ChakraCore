@@ -219,11 +219,12 @@ WebAssemblyModule::CreateModule(
     {
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
         SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
-        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
 
         // copy buffer so external changes to it don't cause issues when defer parsing
-        byte* newBuffer = RecyclerNewArray(scriptContext->GetRecycler(), byte, lengthBytes);
+        byte* newBuffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), byte, lengthBytes);
         js_memcpy_s(newBuffer, lengthBytes, buffer, lengthBytes);
+
+        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::NewWithNoCopy(scriptContext, (LPCUTF8)newBuffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
 
         Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, newBuffer, lengthBytes);
 
@@ -281,9 +282,14 @@ WebAssemblyModule::ValidateModule(
     {
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
         SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
-        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::New(scriptContext, (LPCUTF8)buffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
 
-        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, (byte*)buffer, lengthBytes);
+        // review: unsure if we need copy here, but seems safer to do it
+        byte* newBuffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), byte, lengthBytes);
+        js_memcpy_s(newBuffer, lengthBytes, buffer, lengthBytes);
+
+        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::NewWithNoCopy(scriptContext, (LPCUTF8)newBuffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
+
+        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, (byte*)newBuffer, lengthBytes);
 
         WebAssemblyModule * webAssemblyModule = bytecodeGen.GenerateModule();
 
