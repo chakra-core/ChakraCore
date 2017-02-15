@@ -148,6 +148,12 @@ ServerThreadContext::GetRuntimeCRTBaseAddress() const
     return static_cast<intptr_t>(m_threadContextData.crtBaseAddress);
 }
 
+intptr_t
+ServerThreadContext::GetJITCRTBaseAddress() const
+{
+    return m_jitCRTBaseAddress;
+}
+
 PageAllocator *
 ServerThreadContext::GetForegroundPageAllocator()
 {
