@@ -23484,7 +23484,7 @@ void Lowerer::LowerLdFrameDisplay(IR::Instr *instr, bool doStackFrameDisplay)
     // If the dst opnd is a byte code temp, that indicates we're prepending a block scope or some such and
     // shouldn't attempt to do this.
     if (envDepth == (uint16)-1 ||
-        (!doStackFrameDisplay && instr->GetDst()->AsRegOpnd()->m_sym->IsTempReg(instr->m_func)) ||
+        (!doStackFrameDisplay && (instr->isNonFastPathFrameDisplay || instr->GetDst()->AsRegOpnd()->m_sym->IsTempReg(instr->m_func))) ||
         PHASE_OFF(Js::FrameDisplayFastPathPhase, func))
     {
         if (isStrict)
