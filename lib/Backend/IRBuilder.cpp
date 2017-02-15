@@ -755,7 +755,7 @@ IRBuilder::Build()
         if (IsLoopBodyInTry() && lastProcessedInstrForJITLoopBody != m_lastInstr)
         {
             // traverse in backward so we get new/later value of given symId for storing instead of the earlier/stale
-            // symId value. m_stStores is used to prevent multiple stores to the same symId.
+            // symId value. m_stSlots is used to prevent multiple stores to the same symId.
             FOREACH_INSTR_BACKWARD_EDITING_IN_RANGE(
                 instr,
                 instrPrev,
