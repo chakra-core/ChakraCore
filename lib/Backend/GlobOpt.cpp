@@ -19051,6 +19051,38 @@ GlobOpt::OptDstIsInvariant(IR::RegOpnd *dst)
 }
 
 void
+GlobOpt::OptHoistToLandingPadUpdateValueType(
+    BasicBlock* landingPad,
+    IR::Opnd* opnd,
+    Value* opndVal)
+{
+    Sym* opndSym = opnd->GetSym();;
+
+    if (opndSym)
+    {
+        if (opndVal == nullptr)
+        {
+            opndVal = FindValue(opndSym);
+        }
+
+        Value* opndValueInLandingPad = FindValue(landingPad->globOptData.symToValueMap, opndSym);
+        Assert(opndVal->GetValueNumber() == opndValueInLandingPad->GetValueNumber());
+
+        opnd->SetValueType(opndValueInLandingPad->GetValueInfo()->Type());
+
+        if (opndSym->IsPropertySym())
+        {
+            // Also fix valueInfo on objPtr
+            StackSym* opndObjPtrSym = opndSym->AsPropertySym()->m_stackSym;
+            Value* opndObjPtrSymValInLandingPad = FindValue(landingPad->globOptData.symToValueMap, opndObjPtrSym);
+            ValueInfo* opndObjPtrSymValueInfoInLandingPad = opndObjPtrSymValInLandingPad->GetValueInfo();
+
+            opnd->AsSymOpnd()->SetPropertyOwnerValueType(opndObjPtrSymValueInfoInLandingPad->Type());
+        }
+    }
+}
+
+void
 GlobOpt::OptHoistInvariant(
     IR::Instr *instr,
     BasicBlock *block,
@@ -19062,6 +19094,30 @@ GlobOpt::OptHoistInvariant(
     IR::BailOutKind bailoutKind)
 {
     BasicBlock *landingPad = loop->landingPad;
+
+    IR::Opnd* src1 = instr->GetSrc1();
+    if (src1)
+    {
+        // We are hoisting this instruction possibly past other uses, which might invalidate the last use info. Clear it.
+        OptHoistToLandingPadUpdateValueType(landingPad, src1, src1Val);
+
+        if (src1->IsRegOpnd())
+        {
+            src1->AsRegOpnd()->m_isTempLastUse = false;
+        }
+
+        IR::Opnd* src2 = instr->GetSrc2();
+        if (src2)
+        {
+            OptHoistToLandingPadUpdateValueType(landingPad, src2, nullptr);
+
+            if (src2->IsRegOpnd())
+            {
+                src2->AsRegOpnd()->m_isTempLastUse = false;
+            }
+        }
+    }
+
     IR::RegOpnd *dst = instr->GetDst() ? instr->GetDst()->AsRegOpnd() : nullptr;
     if(dst)
     {
@@ -19300,26 +19356,6 @@ GlobOpt::OptHoistInvariant(
             // if the old bailout is deleted, reset capturedvalues cached in block
             block->globOptData.capturedValues = nullptr;
             block->globOptData.capturedValuesCandidate = nullptr;
-        }
-    }
-
-    if (instr->GetSrc1())
-    {
-        // We are hoisting this instruction possibly past other uses, which might invalidate the last use info. Clear it.
-        IR::Opnd *src1 = instr->GetSrc1();
-
-        if (src1->IsRegOpnd())
-        {
-            src1->AsRegOpnd()->m_isTempLastUse = false;
-        }
-        if (instr->GetSrc2())
-        {
-            IR::Opnd *src2 = instr->GetSrc2();
-
-            if (src2->IsRegOpnd())
-            {
-                src2->AsRegOpnd()->m_isTempLastUse = false;
-            }
         }
     }
 

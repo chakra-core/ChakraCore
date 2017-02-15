@@ -191,6 +191,7 @@ public:
     Opnd *              CloneDef(Func *func);
     Opnd *              CloneUse(Func *func);
     StackSym *          GetStackSym() const;
+    Sym *               GetSym() const;
     Opnd *              UseWithNewType(IRType type, Func * func);
 
     bool                IsEqual(Opnd *opnd);
