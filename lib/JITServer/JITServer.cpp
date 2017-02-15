@@ -238,10 +238,13 @@ ServerInitializeThreadContext(
         {
             return hr;
         }
-        hr = CheckModuleAddress(contextInfo->GetProcessHandle(), (LPCVOID)contextInfo->GetRuntimeCRTBaseAddress(), (LPCVOID)contextInfo->GetJITCRTBaseAddress());
-        if (FAILED(hr))
+        if (contextInfo->GetUCrtC99MathApis()->IsAvailable())
         {
-            return hr;
+            hr = CheckModuleAddress(contextInfo->GetProcessHandle(), (LPCVOID)contextInfo->GetRuntimeCRTBaseAddress(), (LPCVOID)contextInfo->GetJITCRTBaseAddress());
+            if (FAILED(hr))
+            {
+                return hr;
+            }
         }
 
         *threadContextInfoAddress = (PTHREADCONTEXT_HANDLE)EncodePointer(contextInfo);

@@ -5,7 +5,6 @@
 
 #pragma once
 
-// TODO michhol (OOP JIT): rename this
 class ThreadContextInfo
 {
 public:
@@ -112,7 +111,12 @@ public:
     Js::DelayLoadWinCoreMemory m_delayLoadWinCoreMemoryLibrary;
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
 #endif
+
+    UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
 protected:
+
+    UCrtC99MathApis ucrtC99MathApis;
+
     Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
 
     bool m_isAllJITCodeInPreReservedRegion;

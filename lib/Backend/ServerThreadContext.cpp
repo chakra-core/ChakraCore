@@ -22,9 +22,9 @@ ServerThreadContext::ServerThreadContext(ThreadContextDataIDL * data) :
         AutoSystemInfo::Data.IsLowMemoryProcess() ?
         PageAllocator::DefaultLowMaxFreePageCount :
         PageAllocator::DefaultMaxFreePageCount
-    ),
-    m_jitCRTBaseAddress((intptr_t)GetModuleHandle(UCrtC99MathApis::LibraryName))
+    )
 {
+    ucrtC99MathApis.Ensure();
     m_pid = GetProcessId((HANDLE)data->processHandle);
 
 #if !_M_X64_OR_ARM64 && _CONTROL_FLOW_GUARD
@@ -64,7 +64,7 @@ ServerThreadContext::GetChakraBaseAddressDifference() const
 ptrdiff_t
 ServerThreadContext::GetCRTBaseAddressDifference() const
 {
-    return GetRuntimeCRTBaseAddress() - m_jitCRTBaseAddress;
+    return GetRuntimeCRTBaseAddress() - GetJITCRTBaseAddress();
 }
 
 intptr_t
@@ -151,7 +151,7 @@ ServerThreadContext::GetRuntimeCRTBaseAddress() const
 intptr_t
 ServerThreadContext::GetJITCRTBaseAddress() const
 {
-    return m_jitCRTBaseAddress;
+    return (intptr_t)ucrtC99MathApis.GetHandle();
 }
 
 PageAllocator *
