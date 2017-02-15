@@ -141,16 +141,6 @@ HRESULT CheckModuleAddress(HANDLE process, LPCVOID remoteImageBase, LPCVOID loca
         return E_ACCESSDENIED;
     }
 
-    MEMORY_BASIC_INFORMATION localImageInfo;
-    resultBytes = VirtualQuery((LPCVOID)localImageBase, &localImageInfo, sizeof(localImageInfo));
-    if (resultBytes != sizeof(localImageInfo))
-    {
-        return E_ACCESSDENIED;
-    }
-    if (remoteImageInfo.RegionSize != localImageInfo.RegionSize)
-    {
-        return E_ACCESSDENIED;
-    }
     if (remoteImageInfo.RegionSize < sizeof(remoteImageHeader))
     {
         return E_ACCESSDENIED;
