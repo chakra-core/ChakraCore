@@ -378,12 +378,6 @@ WebAssemblyModule::CreateMemory() const
     return WebAssemblyMemory::CreateMemoryObject(m_memoryInitSize, m_memoryMaxSize, GetScriptContext());
 }
 
-bool
-WebAssemblyModule::IsValidMemoryImport(const WebAssemblyMemory * memory) const
-{
-    return m_memImport && memory->GetInitialLength() >= m_memoryInitSize && memory->GetMaximumLength() <= m_memoryMaxSize;
-}
-
 Wasm::WasmSignature *
 WebAssemblyModule::GetSignatures() const
 {

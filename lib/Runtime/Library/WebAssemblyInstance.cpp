@@ -328,9 +328,14 @@ void WebAssemblyInstance::LoadImports(
                     JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedMemoryObject);
                 }
                 WebAssemblyMemory * mem = WebAssemblyMemory::FromVar(prop);
-                if (!wasmModule->IsValidMemoryImport(mem))
+
+                if (mem->GetInitialLength() < wasmModule->GetMemoryInitSize())
                 {
-                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedMemoryObject);
+                    throw Wasm::WasmCompilationException(_u("Imported memory initial size (%u) is smaller than declared (%u)"), mem->GetInitialLength(), wasmModule->GetMemoryInitSize());
+                }
+                if (mem->GetMaximumLength() > wasmModule->GetMemoryMaxSize())
+                {
+                    throw Wasm::WasmCompilationException(_u("Imported memory maximum size (%u) is larger than declared (%u)"),mem->GetMaximumLength(), wasmModule->GetMemoryMaxSize());
                 }
                 env->SetMemory(counter, mem);
             }
