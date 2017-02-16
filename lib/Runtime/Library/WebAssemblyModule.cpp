@@ -235,7 +235,13 @@ WebAssemblyModule::CreateModule(
         byte* newBuffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), byte, lengthBytes);
         js_memcpy_s(newBuffer, lengthBytes, buffer, lengthBytes);
 
-        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::NewWithNoCopy(scriptContext, (LPCUTF8)newBuffer, lengthBytes / sizeof(char16), lengthBytes, &si, false);
+        // Note: We don't have real "source info" for Wasm. Following are just placeholders.
+        // Hack: Wasm handles debugging differently. Fake this as "LibraryCode" so that
+        // normal script debugging code ignores this source info and its functions.
+        const int32 cchLength = static_cast<int32>(lengthBytes / sizeof(char16));
+        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::NewWithNoCopy(
+            scriptContext, (LPCUTF8)newBuffer, cchLength, lengthBytes, &si, /*isLibraryCode*/true);
+        scriptContext->SaveSourceNoCopy(utf8SourceInfo, cchLength, /*isCesu8*/false);
 
         Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, newBuffer, lengthBytes);
 
@@ -298,7 +304,13 @@ WebAssemblyModule::ValidateModule(
         byte* newBuffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), byte, lengthBytes);
         js_memcpy_s(newBuffer, lengthBytes, buffer, lengthBytes);
 
-        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::NewWithNoCopy(scriptContext, (LPCUTF8)newBuffer, lengthBytes / sizeof(char16), lengthBytes, srcInfo, false);
+        // Note: We don't have real "source info" for Wasm. Following are just placeholders.
+        // Hack: Wasm handles debugging differently. Fake this as "LibraryCode" so that
+        // normal script debugging code ignores this source info and its functions.
+        const int32 cchLength = static_cast<int32>(lengthBytes / sizeof(char16));
+        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::NewWithNoCopy(
+            scriptContext, (LPCUTF8)newBuffer, cchLength, lengthBytes, srcInfo, /*isLibraryCode*/true);
+        scriptContext->SaveSourceNoCopy(utf8SourceInfo, cchLength, /*isCesu8*/false);
 
         Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, (byte*)newBuffer, lengthBytes);
 
@@ -534,7 +546,7 @@ WebAssemblyModule::AddFunctionImport(uint32 sigId, const char16* modName, uint32
     callNode.call.funcType = Wasm::FunctionIndexTypes::Import;
     customReader->AddNode(callNode);
     funcInfo->SetCustomReader(customReader);
-#if DBG_DUMP 
+#if DBG_DUMP
     funcInfo->importedFunctionReference = importInfo;
 #endif
 

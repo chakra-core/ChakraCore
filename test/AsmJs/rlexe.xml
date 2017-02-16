@@ -14,7 +14,7 @@
       <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
     </default>
   </test>
-    <test>
+  <test>
     <default>
       <files>BasicBranching.js</files>
       <baseline>BasicBranchingLinkFail.baseline</baseline>
@@ -813,6 +813,8 @@
       <baseline>vardeclnorhs.baseline</baseline>
       <compile-flags>-testtrace:asmjs -maic:1</compile-flags>
     </default>
+  </test>
+  <test>
     <default>
       <files>bugGH2270.js</files>
     </default>
