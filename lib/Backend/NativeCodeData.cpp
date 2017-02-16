@@ -54,13 +54,16 @@ NativeCodeData::AddFixupEntry(void* targetAddr, void* targetStartAddr, void* add
     Assert(targetChunk->len >= inDataOffset);
 
 #if DBG
-    bool foundTargetChunk = false;
-    while (chunkList)
+    if (CONFIG_FLAG(OOPJITFixupValidate))
     {
-        foundTargetChunk |= (chunkList == targetChunk);
-        chunkList = chunkList->next;
+        bool foundTargetChunk = false;
+        while (chunkList)
+        {
+            foundTargetChunk |= (chunkList == targetChunk);
+            chunkList = chunkList->next;
+        }
+        AssertMsg(foundTargetChunk, "current pointer is not allocated with NativeCodeData allocator?"); // change to valid check instead of assertion?
     }
-    AssertMsg(foundTargetChunk, "current pointer is not allocated with NativeCodeData allocator?"); // change to valid check instead of assertion?
 #endif
 
     DataChunk* chunk = NativeCodeData::GetDataChunk(startAddress);
