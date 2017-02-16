@@ -12362,7 +12362,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             }
         }
 
-        if (m_token.tk != tkID && m_token.tk != tkSUPER && m_token.tk != tkLCurly && m_token.tk != tkLBrack)
+        if (m_token.tk != tkID && m_token.tk != tkTHIS && m_token.tk != tkSUPER && m_token.tk != tkLCurly && m_token.tk != tkLBrack)
         {
             if (isDecl)
             {
@@ -12387,7 +12387,7 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             pnodeElem = ParsePostfixOperators<buildAST>(pnodeElem, TRUE, FALSE, FALSE, &fCanAssign, &token);
         }
     }
-    else if (m_token.tk == tkSUPER || m_token.tk == tkID)
+    else if (m_token.tk == tkSUPER || m_token.tk == tkID || m_token.tk == tkTHIS)
     {
         if (isDecl)
         {
