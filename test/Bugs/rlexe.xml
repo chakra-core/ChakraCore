@@ -386,4 +386,10 @@
       <compile-flags>-maxinterpretcount:1 -off:simplejit</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>MissToGenerateStStSlotForJITLoopBody.js</files>
+      <compile-flags>-mic:1 -off:simplejit -oopjit- -bgjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>
