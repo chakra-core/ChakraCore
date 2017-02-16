@@ -115,4 +115,5 @@
     JsRunSerialized
     JsCreatePropertyId
     JsCopyPropertyId
+    JsCreatePromise
 #endif
