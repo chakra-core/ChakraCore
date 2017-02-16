@@ -244,6 +244,12 @@ InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, Are
 {
 }
 
+SListBase<ThunkBlock>* 
+InterpreterThunkEmitter::GetThunkBlocksList()
+{
+    return &thunkBlocks;
+}
+
 //
 // Returns the next thunk. Batch allocated PageCount pages of thunks and issue them one at a time
 //
