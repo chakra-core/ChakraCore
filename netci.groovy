@@ -135,7 +135,7 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
         }
     }
 
-    def archivalString = "out/build.log"
+    def archivalString = "out/**"
     Utilities.addArchival(newJob, archivalString,
         '', // no exclusions from archival
         true, // doNotFailIfNothingArchived=false ~= failIfNothingArchived (true ~= doNotFail)
