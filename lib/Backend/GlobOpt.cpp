@@ -19060,9 +19060,15 @@ GlobOpt::OptDstIsInvariant(IR::RegOpnd *dst)
 void
 GlobOpt::OptHoistToLandingPadUpdateValueType(
     BasicBlock* landingPad,
+    IR::Instr* instr,
     IR::Opnd* opnd,
     Value* opndVal)
 {
+    if (instr->m_opcode == Js::OpCode::FromVar)
+    {
+        return;
+    }
+
     Sym* opndSym = opnd->GetSym();;
 
     if (opndSym)
@@ -19106,7 +19112,7 @@ GlobOpt::OptHoistInvariant(
     if (src1)
     {
         // We are hoisting this instruction possibly past other uses, which might invalidate the last use info. Clear it.
-        OptHoistToLandingPadUpdateValueType(landingPad, src1, src1Val);
+        OptHoistToLandingPadUpdateValueType(landingPad, instr, src1, src1Val);
 
         if (src1->IsRegOpnd())
         {
@@ -19116,7 +19122,7 @@ GlobOpt::OptHoistInvariant(
         IR::Opnd* src2 = instr->GetSrc2();
         if (src2)
         {
-            OptHoistToLandingPadUpdateValueType(landingPad, src2, nullptr);
+            OptHoistToLandingPadUpdateValueType(landingPad, instr, src2, nullptr);
 
             if (src2->IsRegOpnd())
             {
