@@ -494,5 +494,23 @@ CHAKRA_API
         _In_ JsSourceContext sourceContext,
         _In_ JsValueRef sourceUrl,
         _Out_ JsValueRef *result);
+
+/// <summary>
+///     Creates a new JavaScript Promise object.
+/// </summary>
+/// <remarks>
+///     Requires an active script context.
+/// </remarks>
+/// <param name="promise">The new Promise object.</param>
+/// <param name="resolveFunction">The function called to resolve the created Promise object.</param>
+/// <param name="rejectFunction">The function called to reject the created Promise object.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+JsCreatePromise(
+    _Out_ JsValueRef *promise,
+    _Out_ JsValueRef *resolveFunction,
+    _Out_ JsValueRef *rejectFunction);
 #endif // CHAKRACOREBUILD_
 #endif // _CHAKRACORE_H_
