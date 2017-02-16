@@ -1180,6 +1180,7 @@ public:
     void RegisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
     void UnregisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
 #if ENABLE_NATIVE_CODEGEN
+    bool IsNativeAddressHelper(void * pCodeAddr, Js::ScriptContext* currentScriptContext);
     BOOL IsNativeAddress(void * pCodeAddr, Js::ScriptContext* currentScriptContext = nullptr);
     JsUtil::JobProcessor *GetJobProcessor();
     Js::Var * GetBailOutRegisterSaveSpace() const { return bailOutRegisterSaveSpace; }

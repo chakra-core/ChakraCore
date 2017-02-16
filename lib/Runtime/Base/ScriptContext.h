@@ -383,11 +383,12 @@ namespace Js
     */
     class JITPageAddrToFuncRangeCache
     {
-    private:
+    public:
         typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator> RangeMap;
         typedef JsUtil::BaseDictionary<void *, RangeMap*, HeapAllocator> JITPageAddrToFuncRangeMap;
         typedef JsUtil::BaseDictionary<void *, uint, HeapAllocator> LargeJITFuncAddrToSizeMap;
 
+    private:
         JITPageAddrToFuncRangeMap * jitPageAddrToFuncRangeMap;
         LargeJITFuncAddrToSizeMap * largeJitFuncToSizeMap;
 
@@ -404,6 +405,8 @@ namespace Js
         void RemoveFuncRange(void * address);
         void * GetPageAddr(void * address);
         bool IsNativeAddr(void * address);
+        JITPageAddrToFuncRangeMap * GetJITPageAddrToFuncRangeMap();
+        LargeJITFuncAddrToSizeMap * GetLargeJITFuncAddrToSizeMap();
         static CriticalSection * GetCriticalSection() { return &cs; }
     };
 
