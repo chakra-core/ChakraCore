@@ -9195,7 +9195,7 @@ Lowerer::LowerLdArrViewElemWasm(IR::Instr * instr)
         newMove = InsertMove(dst, src1, done);
     }
 
-#ifdef ENABLE_FAST_ARRAYBUFFER
+#if ENABLE_FAST_ARRAYBUFFER
     // We need to have an AV when accessing out of bounds memory even if the dst is not used
     // Make sure LinearScan doesn't dead store this instruction
     newMove->hasSideEffects = true;

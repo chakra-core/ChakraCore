@@ -865,24 +865,22 @@ namespace Js
 
     ArrayBuffer * WebAssemblyArrayBuffer::TransferInternal(uint32 newBufferLength)
     {
-        if (newBufferLength == this->bufferLength)
-        {
-            return this;
-        }
 #if ENABLE_FAST_ARRAYBUFFER
         ReportDifferentialAllocation(newBufferLength);
         Assert(this->buffer);
 
         AssertMsg(newBufferLength > this->bufferLength, "The only supported scenario in WebAssembly is to grow the memory");
-        LPVOID newMem = VirtualAlloc(this->buffer + this->bufferLength, newBufferLength - this->bufferLength, MEM_COMMIT, PAGE_READWRITE);
-        if (!newMem)
+        if (newBufferLength > this->bufferLength)
         {
-            Recycler* recycler = this->GetRecycler();
-            recycler->ReportExternalMemoryFailure(newBufferLength);
-            JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+            LPVOID newMem = VirtualAlloc(this->buffer + this->bufferLength, newBufferLength - this->bufferLength, MEM_COMMIT, PAGE_READWRITE);
+            if (!newMem)
+            {
+                Recycler* recycler = this->GetRecycler();
+                recycler->ReportExternalMemoryFailure(newBufferLength);
+                JavascriptError::ThrowOutOfMemoryError(GetScriptContext());
+            }
         }
-        BYTE *newBuffer = this->buffer;
-        ArrayBuffer* newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(newBuffer, newBufferLength);
+        ArrayBuffer* newArrayBuffer = GetLibrary()->CreateWebAssemblyArrayBuffer(this->buffer, newBufferLength);
 
         AutoDiscardPTR<Js::ArrayBufferDetachedStateBase> state(DetachAndGetState());
         state->MarkAsClaimed();
