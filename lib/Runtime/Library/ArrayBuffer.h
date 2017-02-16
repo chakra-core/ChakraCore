@@ -17,8 +17,9 @@ namespace Js
 #if ENABLE_FAST_ARRAYBUFFER
 #define MAX_ASMJS_ARRAYBUFFER_LENGTH 0x100000000 // 4GB
 #define MAX_WASM__ARRAYBUFFER_LENGTH 0x200000000 // 8GB
-#define AsmJsVirtualAllocator Js::ArrayBuffer::AllocWrapper<MAX_ASMJS_ARRAYBUFFER_LENGTH>
-#define WasmVirtualAllocator Js::ArrayBuffer::AllocWrapper<MAX_WASM__ARRAYBUFFER_LENGTH>
+        typedef void*(*AllocWrapperType)(size_t);
+#define AsmJsVirtualAllocator ((AllocWrapperType)Js::ArrayBuffer::AllocWrapper<MAX_ASMJS_ARRAYBUFFER_LENGTH>)
+#define WasmVirtualAllocator ((AllocWrapperType)Js::ArrayBuffer::AllocWrapper<MAX_WASM__ARRAYBUFFER_LENGTH>)
         template<size_t MaxVirtualSize = MAX_ASMJS_ARRAYBUFFER_LENGTH>
         static void* __cdecl AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length)
         {
