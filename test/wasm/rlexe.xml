@@ -11,6 +11,7 @@
   <default>
     <files>fastarray.js</files>
     <compile-flags>-wasm -WasmFastArray-</compile-flags>
+    <tags>exclude_mac</tags>
   </default>
 </test>
 <test>
