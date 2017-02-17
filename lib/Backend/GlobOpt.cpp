@@ -5672,7 +5672,7 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
     // Uninitialized value type. Use the profiled value type from the instruction.
     const ValueType profiledValueType =
         instr->IsProfiledInstr() ? instr->AsProfiledInstr()->u.FldInfo().valueType : ValueType::Uninitialized;
-    Assert(!profiledValueType.IsDefinite()); // Hence the values created here don't need to be tracked for kills
+    //Assert(!profiledValueType.IsDefinite()); // Hence the values created here don't need to be tracked for kills
     initialValue = this->NewGenericValue(profiledValueType, propertySym);
     symStore = StackSym::New(this->func);
 
