@@ -57,7 +57,7 @@ namespace Js
 
     namespace ArrayBufferView
     {
-        enum ViewType: int
+        enum ViewType: uint8
         {
             TYPE_INT8 = 0,
             TYPE_UINT8,

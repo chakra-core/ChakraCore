@@ -1432,140 +1432,117 @@ IRBuilderAsmJs::BuildStartCall(Js::OpCodeAsmJs newOpcode, uint32 offset)
     }
 }
 
-template <typename SizePolicy>
 void
-IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset)
+IRBuilderAsmJs::InitializeMemAccessTypeInfo(Js::ArrayBufferView::ViewType viewType, _Out_ MemAccessTypeInfo * typeInfo)
 {
-    Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
-    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmTypedArr<SizePolicy>>();
-    BuildAsmTypedArr(newOpcode, offset, layout->SlotIndex, layout->Value, layout->ViewType);
-}
-
-void
-IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, int8 viewType)
-{
-    IRType type = TyInt32;
-    bool isWasm = this->m_func->GetJITFunctionBody()->IsWasmFunction();
-    bool isLd = newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::LdArrWasm || newOpcode == Js::OpCodeAsmJs::LdArrConst;
-
-    Js::OpCode op = isLd ? (isWasm ?
-        Js::OpCode::LdArrViewElemWasm : Js::OpCode::LdArrViewElem) : Js::OpCode::StArrViewElem;
-    ValueType arrayType;
-    WAsmJs::Types valueRegType = WAsmJs::INT32;
+    typeInfo->type = TyInt32;
+    typeInfo->valueRegType = WAsmJs::INT32;
 
     switch (viewType)
     {
     case Js::ArrayBufferView::TYPE_INT8_TO_INT64:
-        valueRegType = WAsmJs::INT64;
+        typeInfo->valueRegType = WAsmJs::INT64;
     case Js::ArrayBufferView::TYPE_INT8:
-        arrayType = ValueType::GetObject(ObjectType::Int8Array);
-        type = TyInt8;
+        typeInfo->arrayType = ValueType::GetObject(ObjectType::Int8Array);
+        typeInfo->type = TyInt8;
         break;
     case Js::ArrayBufferView::TYPE_UINT8_TO_INT64:
-        valueRegType = WAsmJs::INT64;
+        typeInfo->valueRegType = WAsmJs::INT64;
     case Js::ArrayBufferView::TYPE_UINT8:
-        arrayType = ValueType::GetObject(ObjectType::Uint8Array);
-        type = TyUint8;
+        typeInfo->arrayType = ValueType::GetObject(ObjectType::Uint8Array);
+        typeInfo->type = TyUint8;
         break;
     case Js::ArrayBufferView::TYPE_INT16_TO_INT64:
-        valueRegType = WAsmJs::INT64;
+        typeInfo->valueRegType = WAsmJs::INT64;
     case Js::ArrayBufferView::TYPE_INT16:
-        arrayType = ValueType::GetObject(ObjectType::Int16Array);
-        type = TyInt16;
+        typeInfo->arrayType = ValueType::GetObject(ObjectType::Int16Array);
+        typeInfo->type = TyInt16;
         break;
     case Js::ArrayBufferView::TYPE_UINT16_TO_INT64:
-        valueRegType = WAsmJs::INT64;
+        typeInfo->valueRegType = WAsmJs::INT64;
     case Js::ArrayBufferView::TYPE_UINT16:
-        arrayType = ValueType::GetObject(ObjectType::Uint16Array);
-        type = TyUint16;
+        typeInfo->arrayType = ValueType::GetObject(ObjectType::Uint16Array);
+        typeInfo->type = TyUint16;
         break;
     case Js::ArrayBufferView::TYPE_INT32_TO_INT64:
-        valueRegType = WAsmJs::INT64;
+        typeInfo->valueRegType = WAsmJs::INT64;
     case Js::ArrayBufferView::TYPE_INT32:
-        arrayType = ValueType::GetObject(ObjectType::Int32Array);
-        type = TyInt32;
+        typeInfo->arrayType = ValueType::GetObject(ObjectType::Int32Array);
+        typeInfo->type = TyInt32;
         break;
     case Js::ArrayBufferView::TYPE_UINT32_TO_INT64:
-        valueRegType = WAsmJs::INT64;
+        typeInfo->valueRegType = WAsmJs::INT64;
     case Js::ArrayBufferView::TYPE_UINT32:
-        arrayType = ValueType::GetObject(ObjectType::Uint32Array);
-        type = TyUint32;
+        typeInfo->arrayType = ValueType::GetObject(ObjectType::Uint32Array);
+        typeInfo->type = TyUint32;
         break;
     case Js::ArrayBufferView::TYPE_FLOAT32:
-        valueRegType = WAsmJs::FLOAT32;
-        arrayType = ValueType::GetObject(ObjectType::Float32Array);
-        type = TyFloat32;
+        typeInfo->valueRegType = WAsmJs::FLOAT32;
+        typeInfo->arrayType = ValueType::GetObject(ObjectType::Float32Array);
+        typeInfo->type = TyFloat32;
         break;
     case Js::ArrayBufferView::TYPE_FLOAT64:
-        valueRegType = WAsmJs::FLOAT64;
-        arrayType = ValueType::GetObject(ObjectType::Float64Array);
-        type = TyFloat64;
+        typeInfo->valueRegType = WAsmJs::FLOAT64;
+        typeInfo->arrayType = ValueType::GetObject(ObjectType::Float64Array);
+        typeInfo->type = TyFloat64;
         break;
     case Js::ArrayBufferView::TYPE_INT64:
-        valueRegType = WAsmJs::INT64;
-        arrayType = ValueType::GetObject(ObjectType::Int64Array);
-        type = TyInt64;
+        typeInfo->valueRegType = WAsmJs::INT64;
+        typeInfo->arrayType = ValueType::GetObject(ObjectType::Int64Array);
+        typeInfo->type = TyInt64;
         break;
     default:
         Assume(UNREACHED);
     }
+}
 
-    Js::RegSlot valueRegSlot = GetRegSlotFromTypedReg(value, valueRegType);
+template <typename SizePolicy>
+void
+IRBuilderAsmJs::BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset)
+{
+    Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_WasmMemAccess<SizePolicy>>();
+    BuildWasmMemAccess(newOpcode, offset, layout->SlotIndex, layout->Value, layout->Offset, layout->ViewType);
+}
+
+void
+IRBuilderAsmJs::BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, uint32 constOffset, Js::ArrayBufferView::ViewType viewType)
+{
+    bool isLd = newOpcode == Js::OpCodeAsmJs::LdArrWasm;
+    Js::OpCode op = isLd ? Js::OpCode::LdArrViewElemWasm : Js::OpCode::StArrViewElem;
+
+    MemAccessTypeInfo typeInfo;
+    InitializeMemAccessTypeInfo(viewType, &typeInfo);
+
+    Js::RegSlot valueRegSlot = GetRegSlotFromTypedReg(value, typeInfo.valueRegType);
     IR::Instr * instr = nullptr;
-    IR::Instr * maskInstr = nullptr;
     IR::RegOpnd * regOpnd = nullptr;
     IR::IndirOpnd * indirOpnd = nullptr;
 
-    // Get the index
-    if (newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::StArr)
-    {
-        uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
-        Js::RegSlot indexRegSlot = GetRegSlotFromIntReg(slotIndex);
-        IR::RegOpnd * maskedOpnd = nullptr;
-        if (mask != ~0 && !m_func->GetJITFunctionBody()->IsWasmFunction())
-        {
-            maskedOpnd = IR::RegOpnd::New(TyUint32, m_func);
-            maskInstr = IR::Instr::New(Js::OpCode::And_I4, maskedOpnd, BuildSrcOpnd(indexRegSlot, TyInt32), IR::IntConstOpnd::New(mask, TyUint32, m_func), m_func);
-            AddInstr(maskInstr, offset);
-        }
-        else
-        {
-            maskedOpnd = BuildSrcOpnd(indexRegSlot, TyInt32);
-        }
-        indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), maskedOpnd, type, m_func);
-        indirOpnd->GetBaseOpnd()->SetValueType(arrayType);
-    }
-    else if (newOpcode == Js::OpCodeAsmJs::LdArrWasm || newOpcode == Js::OpCodeAsmJs::StArrWasm)
-    {
-        Js::RegSlot indexRegSlot = GetRegSlotFromInt64Reg(slotIndex);
-        IR::RegOpnd * maskedOpnd = BuildSrcOpnd(indexRegSlot, TyUint64);
-        indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), maskedOpnd, type, m_func);
-        indirOpnd->GetBaseOpnd()->SetValueType(arrayType);
-    }
-    else
-    {
-        Assert(newOpcode == Js::OpCodeAsmJs::LdArrConst || newOpcode == Js::OpCodeAsmJs::StArrConst);
-        indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), slotIndex, type, m_func);
-        indirOpnd->GetBaseOpnd()->SetValueType(arrayType);
-    }
+    Js::RegSlot indexRegSlot = GetRegSlotFromIntReg(slotIndex);
+    IR::RegOpnd * indexOpnd = BuildSrcOpnd(indexRegSlot, TyUint32);
+    // don't support encoding in case of 
+    indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), constOffset, typeInfo.type, m_func, true);
+    indirOpnd->SetIndexOpnd(indexOpnd);
+    indirOpnd->GetBaseOpnd()->SetValueType(typeInfo.arrayType);
 
     // Setup the value/destination
-    if (valueRegType == WAsmJs::FLOAT32 || valueRegType == WAsmJs::FLOAT64)
+    if (typeInfo.valueRegType == WAsmJs::FLOAT32 || typeInfo.valueRegType == WAsmJs::FLOAT64)
     {
-        Assert(IRType_IsFloat(type));
-        regOpnd = !isLd ? BuildSrcOpnd(valueRegSlot, type) : BuildDstOpnd(valueRegSlot, type);
+        Assert(IRType_IsFloat(typeInfo.type));
+        regOpnd = !isLd ? BuildSrcOpnd(valueRegSlot, typeInfo.type) : BuildDstOpnd(valueRegSlot, typeInfo.type);
         regOpnd->SetValueType(ValueType::Float);
     }
-    else if (valueRegType == WAsmJs::INT64)
+    else if (typeInfo.valueRegType == WAsmJs::INT64)
     {
-        Assert(IRType_IsNativeInt(type));
+        Assert(IRType_IsNativeInt(typeInfo.type));
         regOpnd = !isLd ? BuildSrcOpnd(valueRegSlot, TyInt64) : BuildDstOpnd(valueRegSlot, TyInt64);
         regOpnd->SetValueType(ValueType::GetInt(false));
     }
     else
     {
-        Assert(IRType_IsNativeInt(type));
-        Assert(valueRegType == WAsmJs::INT32);
+        Assert(IRType_IsNativeInt(typeInfo.type));
+        Assert(typeInfo.valueRegType == WAsmJs::INT32);
         regOpnd = !isLd ? BuildSrcOpnd(valueRegSlot, TyInt32) : BuildDstOpnd(valueRegSlot, TyInt32);
         regOpnd->SetValueType(ValueType::GetInt(false));
     }
@@ -1581,11 +1558,92 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
     }
 
 #if ENABLE_FAST_ARRAYBUFFER
-    if (isWasm && !CONFIG_FLAG(WasmFastArray))
+    if (!CONFIG_FLAG(WasmFastArray))
 #endif
     {
         instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
     }
+    AddInstr(instr, offset);
+}
+
+template <typename SizePolicy>
+void
+IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset)
+{
+    Assert(OpCodeAttrAsmJs::HasMultiSizeLayout(newOpcode));
+    auto layout = m_jnReader.GetLayout<Js::OpLayoutT_AsmTypedArr<SizePolicy>>();
+    BuildAsmTypedArr(newOpcode, offset, layout->SlotIndex, layout->Value, layout->ViewType);
+}
+
+void
+IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, Js::ArrayBufferView::ViewType viewType)
+{
+    bool isLd = newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::LdArrConst;
+    Js::OpCode op = isLd ? Js::OpCode::LdArrViewElem : Js::OpCode::StArrViewElem;
+
+    MemAccessTypeInfo typeInfo;
+    InitializeMemAccessTypeInfo(viewType, &typeInfo);
+
+    Js::RegSlot valueRegSlot = GetRegSlotFromTypedReg(value, typeInfo.valueRegType);
+    IR::Instr * instr = nullptr;
+    IR::Instr * maskInstr = nullptr;
+    IR::RegOpnd * regOpnd = nullptr;
+    IR::IndirOpnd * indirOpnd = nullptr;
+
+    // Get the index
+    if (newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::StArr)
+    {
+        uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
+        Js::RegSlot indexRegSlot = GetRegSlotFromIntReg(slotIndex);
+        IR::RegOpnd * maskedOpnd = nullptr;
+        if (mask != ~0)
+        {
+            maskedOpnd = IR::RegOpnd::New(TyUint32, m_func);
+            maskInstr = IR::Instr::New(Js::OpCode::And_I4, maskedOpnd, BuildSrcOpnd(indexRegSlot, TyInt32), IR::IntConstOpnd::New(mask, TyUint32, m_func), m_func);
+            AddInstr(maskInstr, offset);
+        }
+        else
+        {
+            maskedOpnd = BuildSrcOpnd(indexRegSlot, TyInt32);
+        }
+        indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), maskedOpnd, typeInfo.type, m_func);
+        indirOpnd->GetBaseOpnd()->SetValueType(typeInfo.arrayType);
+    }
+    else
+    {
+        Assert(newOpcode == Js::OpCodeAsmJs::LdArrConst || newOpcode == Js::OpCodeAsmJs::StArrConst);
+        indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), slotIndex, typeInfo.type, m_func);
+        indirOpnd->GetBaseOpnd()->SetValueType(typeInfo.arrayType);
+    }
+
+    // Setup the value/destination
+    if (typeInfo.valueRegType == WAsmJs::FLOAT32 || typeInfo.valueRegType == WAsmJs::FLOAT64)
+    {
+        Assert(IRType_IsFloat(typeInfo.type));
+        regOpnd = !isLd ? BuildSrcOpnd(valueRegSlot, typeInfo.type) : BuildDstOpnd(valueRegSlot, typeInfo.type);
+        regOpnd->SetValueType(ValueType::Float);
+    }
+    else
+    {
+        Assert(IRType_IsNativeInt(typeInfo.type));
+        Assert(typeInfo.valueRegType == WAsmJs::INT32);
+        regOpnd = !isLd ? BuildSrcOpnd(valueRegSlot, TyInt32) : BuildDstOpnd(valueRegSlot, TyInt32);
+        regOpnd->SetValueType(ValueType::GetInt(false));
+    }
+
+    // Create the instruction
+    if (isLd)
+    {
+        instr = IR::Instr::New(op, regOpnd, indirOpnd, m_func);
+    }
+    else
+    {
+        instr = IR::Instr::New(op, indirOpnd, regOpnd, m_func);
+    }
+
+#if !ENABLE_FAST_ARRAYBUFFER
+    instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
+#endif
     AddInstr(instr, offset);
 }
 
@@ -6399,7 +6457,7 @@ void IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offs
 }
 
 void
-IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, int8 viewType, uint8 dataWidth)
+IRBuilderAsmJs::BuildAsmSimdTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, Js::ArrayBufferView::ViewType viewType, uint8 dataWidth)
 {
     IRType type = TySimd128F4;
     Js::RegSlot valueRegSlot = GetRegSlotFromSimd128Reg(value);

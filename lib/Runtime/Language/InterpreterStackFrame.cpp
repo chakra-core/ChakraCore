@@ -8458,7 +8458,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_LdArrWasm(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint64 index = (uint64)GetRegRawInt64(playout->SlotIndex);
+        const uint64 index = playout->Offset + (uint64)GetRegRawInt(playout->SlotIndex);
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {
@@ -8503,7 +8503,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     void InterpreterStackFrame::OP_StArrWasm(const unaligned T* playout)
     {
         Assert(playout->ViewType < Js::ArrayBufferView::TYPE_COUNT);
-        const uint64 index = (uint64)GetRegRawInt64(playout->SlotIndex);
+        const uint64 index = playout->Offset + (uint64)GetRegRawInt(playout->SlotIndex);
         JavascriptArrayBuffer* arr = *(JavascriptArrayBuffer**)GetNonVarReg(AsmJsFunctionMemory::ArrayBufferRegister);
         if (index + TypeToSizeMap[playout->ViewType] > arr->GetByteLength())
         {

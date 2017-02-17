@@ -1149,35 +1149,13 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
         throw WasmCompilationException(_u("Index expression must be of type I32"));
     }
 
-    Js::RegSlot addrReg = GetRegisterSpace(WasmTypes::I64)->AcquireTmpRegister();
-
-    if (offset != 0)
-    {
-        Js::RegSlot offsetReg = GetRegisterSpace(WasmTypes::I64)->AcquireTmpRegister();
-        m_writer.AsmLong1Const1(Js::OpCodeAsmJs::Ld_LongConst, offsetReg, offset);
-
-        Js::RegSlot indexReg = GetRegisterSpace(WasmTypes::I64)->AcquireTmpRegister();
-        m_writer.AsmReg2(Js::OpCodeAsmJs::Conv_UTL, indexReg, exprInfo.location);
-
-        GetRegisterSpace(WasmTypes::I64)->ReleaseTmpRegister(indexReg);
-        GetRegisterSpace(WasmTypes::I64)->ReleaseTmpRegister(offsetReg);
-
-        m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Long, addrReg, indexReg, offsetReg);
-    }
-    else
-    {
-        m_writer.AsmReg2(Js::OpCodeAsmJs::Conv_UTL, addrReg, exprInfo.location);
-    }
-
-    GetRegisterSpace(WasmTypes::I64)->ReleaseTmpRegister(addrReg);
-
     if (isStore) // Stores
     {
         if (rhsInfo.type != type)
         {
             throw WasmCompilationException(_u("Invalid type for store op"));
         }
-        m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArrWasm, rhsInfo.location, addrReg, viewType);
+        m_writer.WasmMemAccess(Js::OpCodeAsmJs::StArrWasm, rhsInfo.location, exprInfo.location, offset, viewType);
         ReleaseLocation(&rhsInfo);
         ReleaseLocation(&exprInfo);
 
@@ -1186,7 +1164,7 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
 
     ReleaseLocation(&exprInfo);
     Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();   
-    m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArrWasm, resultReg, addrReg, viewType);
+    m_writer.WasmMemAccess(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, offset, viewType);
 
     EmitInfo yieldInfo;
     if (!isStore)

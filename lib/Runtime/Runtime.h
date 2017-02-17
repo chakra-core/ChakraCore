@@ -262,7 +262,7 @@ namespace Js
     // asm.js
     namespace ArrayBufferView
     {
-        enum ViewType: int;
+        enum ViewType: uint8;
     }
     struct EmitExpressionInfo;
     struct AsmJsModuleMemory;

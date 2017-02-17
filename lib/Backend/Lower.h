@@ -183,6 +183,7 @@ private:
     IR::Instr *     LowerMemset(IR::Instr * instr, IR::RegOpnd * helperRet);
     IR::Instr *     LowerMemcopy(IR::Instr * instr, IR::RegOpnd * helperRet);
 
+    IR::Instr *     LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd);
     IR::Instr *     LowerLdArrViewElem(IR::Instr * instr);
     IR::Instr *     LowerStArrViewElem(IR::Instr * instr);
     IR::Instr *     LowerLdArrViewElemWasm(IR::Instr * instr);
