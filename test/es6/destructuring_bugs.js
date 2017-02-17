@@ -467,6 +467,34 @@ var tests = [
       assert.doesNotThrow(function () { [...this.x] = [1]; }, "array destructuring rest - referencing x from this in pattern is a correct syntax" );
     }
   },
+  {
+    name: "array destructuring as catch parameter can yield properly",
+    body: function () {
+        function * gn() {
+          try {
+            throw [];
+          } catch ([c = (yield 2)]) {
+          }
+        };
+        var it = gn();
+        var k = it.next();
+        assert.areEqual(2, k.value, "next should invoke the yield in the generator and which yields 2");
+    }
+  },
+  {
+    name: "array destructuring nested as catch parameter can yield properly",
+    body: function () {
+        function * gn() {
+          try {
+            throw [{x:[]}];
+          } catch ([{x:[c = (yield 2)]}]) {
+          }
+        };
+        var it = gn();
+        var k = it.next();
+        assert.areEqual(2, k.value, "next should invoke the yield in the generator and which yields 2");
+    }
+  }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
