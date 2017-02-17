@@ -492,6 +492,12 @@ typedef struct TypeAnnotationsArrayIDL
     IDL_DEF([size_is(count)]) TypeInformationIDL* content;
 } TypeAnnotationsArrayIDL;
 
+typedef struct ParameterTypeInfoIDL
+{
+    unsigned int count;
+    /* [size_is] */ unsigned char *content;
+}   ParameterTypeInfoIDL;
+
 // FunctionBody fields, read only in JIT, gathered in foreground
 typedef struct FunctionBodyDataIDL
 {
@@ -566,6 +572,7 @@ typedef struct FunctionBodyDataIDL
     SmallSpanSequenceIDL * statementMap;
 
     TypeAnnotationsArrayIDL * typeAnnotations;
+    ParameterTypeInfoIDL * parameterTypeInfo;
 
     IDL_DEF([size_is(fullStatementMapCount)]) StatementMapIDL * fullStatementMaps;
 

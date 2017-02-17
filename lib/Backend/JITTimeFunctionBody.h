@@ -183,6 +183,7 @@ public:
     Js::PropertyIdArray * GetFormalsPropIdArray() const;
     
     TypeAnnotationsArrayIDL* GetTypeAnnotationsArray() const;
+    ParameterTypeInfoIDL* GetParameterTypeInfo() const;
 
     Js::ForInCache * GetForInCache(uint profileId) const;
     bool InitializeStatementMap(Js::SmallSpanSequence * statementMap, ArenaAllocator* alloc) const;

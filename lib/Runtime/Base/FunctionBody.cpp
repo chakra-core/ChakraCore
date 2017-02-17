@@ -567,6 +567,7 @@ namespace Js
         , callCountStats(0)
 #endif
         , typeAnnotationsArray(nullptr)
+        , parameterTypeInfo(nullptr)
     {
         SetCountField(CounterFields::ConstantCount, 1);
 
@@ -588,6 +589,7 @@ namespace Js
         if (CONFIG_FLAG(TypeAnnotations))
         {
             this->typeAnnotationsArray = RecyclerNew(this->m_scriptContext->GetRecycler(), TypeAnnotationsArray, this->m_scriptContext->GetRecycler());
+            this->parameterTypeInfo = RecyclerNew(this->m_scriptContext->GetRecycler(), ParameterTypeInfo, this->m_scriptContext->GetRecycler());
         }
 
         this->AddEntryPointToEntryPointList(this->GetDefaultFunctionEntryPointInfo());
@@ -714,6 +716,7 @@ namespace Js
         , callCountStats(0)
 #endif
         , typeAnnotationsArray(nullptr)
+        , parameterTypeInfo(nullptr)
     {
         ScriptContext * scriptContext = proxy->GetScriptContext();
 
@@ -745,6 +748,7 @@ namespace Js
         if (CONFIG_FLAG(TypeAnnotations))
         {
             this->typeAnnotationsArray = RecyclerNew(scriptContext->GetRecycler(), TypeAnnotationsArray, scriptContext->GetRecycler());
+            this->parameterTypeInfo = RecyclerNew(scriptContext->GetRecycler(), ParameterTypeInfo, scriptContext->GetRecycler());
         }
 
         Assert(this->GetDefaultEntryPointInfo()->jsMethod != nullptr);

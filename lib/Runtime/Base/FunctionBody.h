@@ -2354,6 +2354,9 @@ namespace Js
             typedef JsUtil::List<TypeInformation*, Recycler> TypeAnnotationsArray;
             TypeAnnotationsArray* typeAnnotationsArray;
 
+            typedef JsUtil::List<Js::TypeHint, Recycler> ParameterTypeInfo;
+            ParameterTypeInfo* parameterTypeInfo;
+
             // Contains recorded at bytecode generation time information about statements and try-catch blocks.
             // Used by debugger.
             struct AuxStatementData
