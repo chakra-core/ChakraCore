@@ -9167,7 +9167,7 @@ Lowerer::LowerLdArrViewElem(IR::Instr * instr)
 IR::Instr *
 Lowerer::LowerLdArrViewElemWasm(IR::Instr * instr)
 {
-#ifdef ASMJS_PLAT
+#ifdef ENABLE_WASM
     Assert(m_func->GetJITFunctionBody()->IsWasmFunction());
     Assert(instr);
     Assert(instr->m_opcode == Js::OpCode::LdArrViewElemWasm);
@@ -9183,16 +9183,23 @@ Lowerer::LowerLdArrViewElemWasm(IR::Instr * instr)
     Assert(!dst->IsFloat64() || src1->IsFloat64());
     done = m_lowererMD.LowerWasmMemOp(instr, src1);
 
+    IR::Instr* newMove = nullptr;
     if (dst->IsInt64())
     {
         IR::Instr* movInt64 = IR::Instr::New(Js::OpCode::Ld_I4, dst, src1, m_func);
         done->InsertBefore(movInt64);
-        m_lowererMD.LowerInt64Assign(movInt64);
+        newMove = m_lowererMD.LowerInt64Assign(movInt64);
     }
     else
     {
-        InsertMove(dst, src1, done);
+        newMove = InsertMove(dst, src1, done);
     }
+
+#if ENABLE_FAST_ARRAYBUFFER
+    // We need to have an AV when accessing out of bounds memory even if the dst is not used
+    // Make sure LinearScan doesn't dead store this instruction
+    newMove->hasSideEffects = true;
+#endif
 
     instr->Remove();
     return instrPrev;

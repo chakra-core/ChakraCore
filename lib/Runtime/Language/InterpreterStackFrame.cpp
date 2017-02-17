@@ -2753,10 +2753,7 @@ namespace Js
             }
             localFunctionImports[import.location] = importFunc;
         }
-        if (*arrayBufferPtr)
-        {
-            (*(ArrayBuffer**)arrayBufferPtr)->SetIsAsmJsBuffer();
-        }
+
         threadContext->SetDisableImplicitFlags(prevDisableImplicitFlags);
         threadContext->SetImplicitCallFlags(saveImplicitcallFlags);
         // scope

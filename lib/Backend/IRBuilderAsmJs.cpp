@@ -1445,8 +1445,10 @@ void
 IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint32 slotIndex, Js::RegSlot value, int8 viewType)
 {
     IRType type = TyInt32;
+    bool isWasm = this->m_func->GetJITFunctionBody()->IsWasmFunction();
     bool isLd = newOpcode == Js::OpCodeAsmJs::LdArr || newOpcode == Js::OpCodeAsmJs::LdArrWasm || newOpcode == Js::OpCodeAsmJs::LdArrConst;
-    Js::OpCode op = isLd ? (this->m_func->GetJITFunctionBody()->IsWasmFunction() ?
+
+    Js::OpCode op = isLd ? (isWasm ?
         Js::OpCode::LdArrViewElemWasm : Js::OpCode::LdArrViewElem) : Js::OpCode::StArrViewElem;
     ValueType arrayType;
     WAsmJs::Types valueRegType = WAsmJs::INT32;
@@ -1578,14 +1580,12 @@ IRBuilderAsmJs::BuildAsmTypedArr(Js::OpCodeAsmJs newOpcode, uint32 offset, uint3
         instr = IR::Instr::New(op, indirOpnd, regOpnd, m_func);
     }
 
-#if _M_IX86 || !_WIN32
-    instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
-#else
-    if (this->m_func->GetJITFunctionBody()->IsWasmFunction())
+#if ENABLE_FAST_ARRAYBUFFER
+    if (isWasm && !CONFIG_FLAG(WasmFastArray))
+#endif
     {
         instr->SetSrc2(BuildSrcOpnd(AsmJsRegSlots::LengthReg, TyUint32));
     }
-#endif
     AddInstr(instr, offset);
 }
 

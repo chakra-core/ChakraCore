@@ -133,6 +133,11 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
     const uint32 oldPageCount = oldBytes / WebAssembly::PageSize;
     Assert(oldBytes % WebAssembly::PageSize == 0);
 
+    if (deltaBytes == 0)
+    {
+        return (int32)oldPageCount;
+    }
+
     const uint32 newPageCount = oldPageCount + deltaPages;
     if (newPageCount > m_maximum)
     {
@@ -188,7 +193,17 @@ WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
-    ArrayBuffer * buffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+    ArrayBuffer* buffer;
+#if ENABLE_FAST_ARRAYBUFFER
+    if (CONFIG_FLAG(WasmFastArray))
+    {
+        buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
+    }
+    else
+#endif
+    {
+        buffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+    }
     return RecyclerNewFinalized(scriptContext->GetRecycler(), WebAssemblyMemory, buffer, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyMemoryType());
 }
 
