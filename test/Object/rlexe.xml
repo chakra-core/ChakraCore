@@ -221,7 +221,6 @@
   <test>
     <default>
       <files>propertyStrings.js</files>
-      <baseline>propertyStrings.baseline</baseline>
     </default>
   </test>
   <test>

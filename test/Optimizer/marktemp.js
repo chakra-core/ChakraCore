@@ -61,6 +61,5 @@ if (x1 != 2.2 || x2 != 1.1 || !foo3())
 }
 else
 {
-    WScript.Echo("Passed");
+    WScript.Echo("Pass");
 }
-

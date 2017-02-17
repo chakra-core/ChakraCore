@@ -1040,7 +1040,6 @@
   <test>
     <default>
       <files>marktemp.js</files>
-      <baseline>marktemp.baseline</baseline>
     </default>
   </test>
   <test>
