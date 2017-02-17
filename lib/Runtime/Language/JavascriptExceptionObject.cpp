@@ -137,7 +137,15 @@ namespace Js
     FunctionBody* JavascriptExceptionObject::GetFunctionBody() const
     {
         // If it is a throwing function; it must be deserialized
-        return exceptionContext.ThrowingFunction() ? exceptionContext.ThrowingFunction()->GetFunctionBody() : NULL;
+        if (exceptionContext.ThrowingFunction())
+        {
+            ParseableFunctionInfo *info = exceptionContext.ThrowingFunction()->GetParseableFunctionInfo();
+            if (info->IsFunctionBody())
+            {
+                return info->GetFunctionBody();
+            }
+        }
+        return nullptr;
     }
 
     JavascriptExceptionContext::StackFrame::StackFrame(JavascriptFunction* func, const JavascriptStackWalker& walker, bool initArgumentTypes)
