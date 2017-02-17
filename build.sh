@@ -408,11 +408,9 @@ fi
 WB_FLAG=
 WB_TARGET=
 if [[ $WB_CHECK || $WB_ANALYZE ]]; then
-    $CHAKRACORE_DIR/tools/RecyclerChecker/build.sh || exit 1
+    # build software write barrier checker clang plugin
+    $CHAKRACORE_DIR/tools/RecyclerChecker/build.sh --cxx=$_CXX || exit 1
 
-    if [[ $MAKE != 'ninja' ]]; then
-        echo "--wb-check/wb-analyze only works with --ninja" && exit 1
-    fi
     if [[ $WB_CHECK && $WB_ANALYZE ]]; then
         echo "Please run only one of --wb-check or --wb-analyze" && exit 1
     fi
@@ -432,7 +430,12 @@ if [[ $WB_CHECK || $WB_ANALYZE ]]; then
         WB_ARGS="-DWB_ARGS_SH=$WB_ARGS"
     fi
 
+    # support --wb-check ONE_CPP_FILE
     if [[ $WB_FILE != "*" ]]; then
+        if [[ $MAKE != 'ninja' ]]; then
+            echo "--wb-check/wb-analyze ONE_FILE only works with --ninja" && exit 1
+        fi
+
         if [[ -f $CHAKRACORE_DIR/$WB_FILE ]]; then
             touch $CHAKRACORE_DIR/$WB_FILE
         else

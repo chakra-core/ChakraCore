@@ -12,12 +12,14 @@ echo ""
 echo "options:"
 echo "  -h, --help          Show help"
 echo "  --clang-inc=PATH    clang development include path"
+echo "  --cxx=PATH          Path to c++ compiler"
 echo "  --llvm-config=PATH  llvm-config executable"
 echo ""
 }
 
 SCRIPT_DIR=`dirname $0`
 CLANG_INC=
+CXX_COMPILER=
 LLVM_CONFIG=
 
 while [[ $# -gt 0 ]]; do
@@ -25,6 +27,11 @@ while [[ $# -gt 0 ]]; do
     --clang-inc=*)
         CLANG_INC=$1
         CLANG_INC="${CLANG_INC:12}"
+        ;;
+
+    --cxx=*)
+        CXX_COMPILER=$1
+        CXX_COMPILER=${CXX_COMPILER:6}
         ;;
 
     -h | --help)
@@ -46,10 +53,17 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ $CLANG_INC ]]; then
+    echo "CLANG_INCLUDE_DIRS: $CLANG_INC"
     CLANG_INC="-DCLANG_INCLUDE_DIRS:STRING=$CLANG_INC"
 fi
 
+if [[ $CXX_COMPILER ]]; then
+    echo "CXX_COMPILER: $CXX_COMPILER"
+    CXX_COMPILER="-DCMAKE_CXX_COMPILER=$CXX_COMPILER"
+fi
+
 if [[ $LLVM_CONFIG ]]; then
+    echo "LLVM_CONFIG: $LLVM_CONFIG"
     LLVM_CONFIG="-DLLVM_CONFIG_EXECUTABLE:STRING=$LLVM_CONFIG"
 fi
 
@@ -59,9 +73,8 @@ pushd $BUILD_DIR > /dev/null
 
 cmake \
     $CLANG_INC \
+    $CXX_COMPILER \
     $LLVM_CONFIG \
-    -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
-    -DCMAKE_BUILD_TYPE=Debug \
     .. \
 && make
 _RET=$?
