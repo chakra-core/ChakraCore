@@ -930,6 +930,20 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
                     return;
                 }
 
+                // Js::Type::entryPoint may contain outdated data uncleared, and reused by recycler
+                // Most often occurs with script function Type
+                if (offset ==
+#if TARGET_64
+                    0x18
+#else
+                    0x10
+#endif
+                    && strstr(typeName, "Js::ScriptFunctionType"))
+                {
+                    dumpFalsePositive();
+                    return;
+                }
+
                 //TODO: (leish)(swb) analyze pdb to check if the field is a pointer field or not
                 Output::Print(_u("Missing Barrier\nOn type %S+0x%x\n"), typeName, offset);
             }
