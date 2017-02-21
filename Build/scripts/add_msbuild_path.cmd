@@ -5,61 +5,42 @@
 
 :: add_msbuild_path.cmd
 ::
-:: Locate msbuild.exe and add it to the PATH
+:: Locate msbuild.exe and add it to the PATH.
+:: This script wraps the logic in locate_msbuild.ps1.
+::
+:: Note: we use the ugly pattern below because it seems to be the best (or only) way
+:: to take the output of a command and assign it to an environment variable.
+::     for /f "delims=" %%a in ('command') do @set VARIABLE=%%a
 
+@echo off
 set USE_MSBUILD_12=%1
 
 if "%USE_MSBUILD_12%" == "True" (
-    echo Skipping Dev14 and trying Dev12...
-    goto :LABEL_USE_MSBUILD_12
+    echo Trying Dev12 directly...
+    for /f "delims=" %%a in ('powershell -Command ". %~dp0\locate_msbuild.ps1; Split-Path -Parent (Locate-MSBuild-Version -version 12.0)"') do @set MSBUILD_PATH=%%a
+) else (
+    for /f "delims=" %%a in ('powershell -Command "[bool](Get-Command msbuild.exe -ErrorAction SilentlyContinue)"') do @set MSBUILD_FOUND=%%a
+    if "%MSBUILD_FOUND%" == "True" (
+        REM msbuild.exe is already on the PATH
+        goto :CleanUp
+    )
+    for /f "delims=" %%a in ('powershell -Command ". %~dp0\locate_msbuild.ps1; Split-Path -Parent (Locate-MSBuild)"') do @set MSBUILD_PATH=%%a
 )
 
-where /q msbuild.exe
-if "%ERRORLEVEL%" == "0" (
-    goto :SkipMsBuildSetup
-)
-
-REM Try Dev14 first
-set MSBUILD_VERSION=14.0
-set MSBUILD_PATH="%ProgramFiles%\msbuild\%MSBUILD_VERSION%\Bin\x86"
-
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    set MSBUILD_PATH="%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin"
-)
-
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    set MSBUILD_PATH="%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin\amd64"
-)
-
-if exist %MSBUILD_PATH%\msbuild.exe (
+REM Test whether msbuild.exe was found.
+if "%MSBUILD_PATH%" == "" (
+    REM msbuild.exe was not found
+    echo Can't locate msbuild.exe
+    goto :CleanUp
+) else (
     goto :MSBuildFound
-)
-
-echo Dev14 not found, trying Dev12...
-
-:LABEL_USE_MSBUILD_12
-set MSBUILD_VERSION=12.0
-set MSBUILD_PATH="%ProgramFiles%\msbuild\%MSBUILD_VERSION%\Bin\x86"
-echo Dev14 not found, trying Dev %MSBUILD_VERSION%
-
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    set MSBUILD_PATH="%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin"
-)
-
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    set MSBUILD_PATH="%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin\amd64"
-)
-
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    echo Can't find msbuild.exe in %MSBUILD_PATH%
-    goto :SkipMsBuildSetup
 )
 
 :MSBuildFound
 echo MSBuild located at %MSBUILD_PATH%
-
 set PATH=%MSBUILD_PATH%;%PATH%
+
+:CleanUp
 set USE_MSBUILD_12=
 set MSBUILD_PATH=
-
-:SkipMsBuildSetup
+set MSBUILD_FOUND=
