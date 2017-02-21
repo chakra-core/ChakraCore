@@ -1957,6 +1957,9 @@ namespace Js
             {
                 PROBE_STACK_PARTIAL_INITIALIZED_INTERPRETER_FRAME(functionScriptContext, Js::Constants::MinStackInterpreter + varSizeInBytes);
                 allocation = (Var*)_alloca(varSizeInBytes);
+#if DBG
+                memset(allocation, 0xFE, varSizeInBytes);
+#endif
                 stackAddr = reinterpret_cast<DWORD_PTR>(allocation);
             }
 
