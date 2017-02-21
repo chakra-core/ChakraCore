@@ -9,10 +9,10 @@
 
   <!-- Auto tool set selection -->
   <PropertyGroup>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='11.0'">v110</PlatformToolset>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='12.0'">v120</PlatformToolset>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='14.0'">v140</PlatformToolset>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='15.0'">v141</PlatformToolset> 
+    <PlatformToolset Condition="'$(VisualStudioVersion)'=='11.0' or '$(MSBuildToolsVersion)'=='11.0'">v110</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)'=='12.0' or '$(MSBuildToolsVersion)'=='12.0'">v120</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)'=='14.0' or '$(MSBuildToolsVersion)'=='14.0'">v140</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)'=='15.0' or '$(MSBuildToolsVersion)'=='15.0'">v141</PlatformToolset>
   </PropertyGroup>
 
   <!-- Default ChakraDevConfigDir -->
@@ -57,7 +57,7 @@
   <PropertyGroup>
     <OutBaseDir Condition="'$(OutBaseDir)'!=''">$(OutBaseDir)\$(SolutionName)</OutBaseDir>
     <OutBaseDir Condition="'$(OutBaseDir)'==''">$(SolutionDir)VcBuild</OutBaseDir>
-    <OutBaseDir Condition="'$(Clang)'!=''">$(OutBaseDir).$(Clang)</OutBaseDir>    
+    <OutBaseDir Condition="'$(Clang)'!=''">$(OutBaseDir).$(Clang)</OutBaseDir>
     <OutBaseDir Condition="'$(BuildJIT)'=='false'">$(OutBaseDir).NoJIT</OutBaseDir>
     <OutBaseDir Condition="'$(ForceSWB)'=='true'">$(OutBaseDir).SWB</OutBaseDir>
     <IntBaseDir Condition="'$(IntBaseDir)'==''">$(OutBaseDir)</IntBaseDir>
