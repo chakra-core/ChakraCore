@@ -240,7 +240,7 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
     {
         IR::IntConstOpnd *intConstOpnd = opnd->AsIntConstOpnd();
 
-        if (!this->IsLargeConstant(intConstOpnd->GetValue()))
+        if (!this->IsLargeConstant(intConstOpnd->AsInt32()))
         {
             return;
         }
