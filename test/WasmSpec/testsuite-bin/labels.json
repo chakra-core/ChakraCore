@@ -1,5 +1,6 @@
 {"source_filename": "labels.wast",
  "commands": [
+
   {"type": "module", "line": 1, "filename": "labels.0.wasm"}, 
   {"type": "assert_return", "line": 272, "action": {"type": "invoke", "field": "block", "args": []}, "expected": [{"type": "i32", "value": "1"}]}, 
   {"type": "assert_return", "line": 273, "action": {"type": "invoke", "field": "loop1", "args": []}, "expected": [{"type": "i32", "value": "5"}]}, 
@@ -27,5 +28,4 @@
   {"type": "assert_return", "line": 295, "action": {"type": "invoke", "field": "redefinition", "args": []}, "expected": [{"type": "i32", "value": "5"}]}, 
   {"type": "assert_invalid", "line": 298, "filename": "labels.1.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 302, "filename": "labels.2.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 306, "filename": "labels.3.wasm", "text": "type mismatch"}
-]}
+  {"type": "assert_invalid", "line": 306, "filename": "labels.3.wasm", "text": "type mismatch"}]}

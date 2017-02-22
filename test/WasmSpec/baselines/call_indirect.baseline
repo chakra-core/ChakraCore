@@ -1,1 +1,2 @@
-65/65 tests passed.
+(67) call_indirect.wast:385: assert_unlinkable module call_indirect.18.wasm failed. Expected a linking error: Error: Out of memory
+67/68 tests passed.

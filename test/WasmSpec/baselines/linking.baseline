@@ -1,5 +1,5 @@
-(66) linking.wast:180: assert_trap($Mt.call(i32:7)) failed. Should have had an error
-(68) linking.wast:192: assert_trap($Mt.call(i32:7)) failed. Should have had an error
-(92) linking.wast:273: assert_return($Mm.load(i32:0) == i32:0) failed. Returned 97
-(94) linking.wast:285: assert_return($Mm.load(i32:0) == i32:0) failed. Returned 97
-85/89 tests passed.
+(68) linking.wast:195: assert_trap($Mt.call(i32:7)) failed. Should have had an error
+(70) linking.wast:207: assert_trap($Mt.call(i32:7)) failed. Should have had an error
+(96) linking.wast:301: assert_return($Mm.load(i32:0) == i32:0) failed. Returned 97
+(98) linking.wast:313: assert_return($Mm.load(i32:0) == i32:0) failed. Returned 97
+89/93 tests passed.

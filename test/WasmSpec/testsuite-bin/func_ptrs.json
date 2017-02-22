@@ -1,5 +1,6 @@
 {"source_filename": "func_ptrs.wast",
  "commands": [
+
   {"type": "module", "line": 1, "filename": "func_ptrs.0.wasm"}, 
   {"type": "assert_return", "line": 26, "action": {"type": "invoke", "field": "one", "args": []}, "expected": [{"type": "i32", "value": "13"}]}, 
   {"type": "assert_return", "line": 27, "action": {"type": "invoke", "field": "two", "args": [{"type": "i32", "value": "13"}]}, "expected": [{"type": "i32", "value": "14"}]}, 
@@ -35,5 +36,4 @@
   {"type": "assert_trap", "line": 90, "action": {"type": "invoke", "field": "callu", "args": [{"type": "i32", "value": "4294967295"}]}, "text": "undefined element"}, 
   {"type": "module", "line": 92, "filename": "func_ptrs.9.wasm"}, 
   {"type": "assert_return", "line": 104, "action": {"type": "invoke", "field": "callt", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
-  {"type": "assert_return", "line": 105, "action": {"type": "invoke", "field": "callt", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "i32", "value": "2"}]}
-]}
+  {"type": "assert_return", "line": 105, "action": {"type": "invoke", "field": "callt", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "i32", "value": "2"}]}]}

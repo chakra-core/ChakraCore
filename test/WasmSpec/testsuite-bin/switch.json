@@ -1,5 +1,6 @@
 {"source_filename": "switch.wast",
  "commands": [
+
   {"type": "module", "line": 1, "filename": "switch.0.wasm"}, 
   {"type": "assert_return", "line": 120, "action": {"type": "invoke", "field": "stmt", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "assert_return", "line": 121, "action": {"type": "invoke", "field": "stmt", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
@@ -27,5 +28,4 @@
   {"type": "assert_return", "line": 145, "action": {"type": "invoke", "field": "arg", "args": [{"type": "i32", "value": "7"}]}, "expected": [{"type": "i32", "value": "1124"}]}, 
   {"type": "assert_return", "line": 146, "action": {"type": "invoke", "field": "arg", "args": [{"type": "i32", "value": "8"}]}, "expected": [{"type": "i32", "value": "126"}]}, 
   {"type": "assert_return", "line": 148, "action": {"type": "invoke", "field": "corner", "args": []}, "expected": [{"type": "i32", "value": "1"}]}, 
-  {"type": "assert_invalid", "line": 150, "filename": "switch.1.wasm", "text": "unknown label"}
-]}
+  {"type": "assert_invalid", "line": 150, "filename": "switch.1.wasm", "text": "unknown label"}]}

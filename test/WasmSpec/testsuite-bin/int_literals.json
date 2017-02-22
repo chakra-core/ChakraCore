@@ -1,5 +1,6 @@
 {"source_filename": "int_literals.wast",
  "commands": [
+
   {"type": "module", "line": 1, "filename": "int_literals.0.wasm"}, 
   {"type": "assert_return", "line": 27, "action": {"type": "invoke", "field": "i32.test", "args": []}, "expected": [{"type": "i32", "value": "195940365"}]}, 
   {"type": "assert_return", "line": 28, "action": {"type": "invoke", "field": "i32.umax", "args": []}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
@@ -22,5 +23,4 @@
   {"type": "assert_return", "line": 46, "action": {"type": "invoke", "field": "i64.neg_zero", "args": []}, "expected": [{"type": "i64", "value": "0"}]}, 
   {"type": "assert_return", "line": 47, "action": {"type": "invoke", "field": "i64.not_octal", "args": []}, "expected": [{"type": "i64", "value": "10"}]}, 
   {"type": "assert_return", "line": 48, "action": {"type": "invoke", "field": "i64.unsigned_decimal", "args": []}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
-  {"type": "assert_return", "line": 49, "action": {"type": "invoke", "field": "i64.plus_sign", "args": []}, "expected": [{"type": "i64", "value": "42"}]}
-]}
+  {"type": "assert_return", "line": 49, "action": {"type": "invoke", "field": "i64.plus_sign", "args": []}, "expected": [{"type": "i64", "value": "42"}]}]}
