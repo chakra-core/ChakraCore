@@ -60,7 +60,11 @@ class SListNode : public SListNodeBase<TAllocator>
 {
     friend class SListBase<TData, TAllocator, FakeCount>;
     friend class SListBase<TData, TAllocator, RealCount>;
-
+public:
+    TData* GetData()
+    {
+        return &data;
+    }
 private:
     SListNode() : data() {}
 

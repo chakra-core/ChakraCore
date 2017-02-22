@@ -381,7 +381,12 @@ PHASE(All)
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #endif
 #define DEFAULT_CONFIG_WASM               (false)
-#define DEFAULT_CONFIG_WASM_I64           (false)
+#define DEFAULT_CONFIG_WasmI64            (false)
+#if ENABLE_FAST_ARRAYBUFFER
+    #define DEFAULT_CONFIG_WasmFastArray    (true)
+#else
+    #define DEFAULT_CONFIG_WasmFastArray    (false)
+#endif
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo     (true)
@@ -663,6 +668,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
 #define DEFAULT_CONFIG_OOPJITMissingOpts (true)
 #define DEFAULT_CONFIG_OOPCFGRegistration (true)
+#define DEFAULT_CONFIG_RPCFailFastWait (3000)
 
 #define DEFAULT_CONFIG_FailFastIfDisconnectedDelegate    (false)
 
@@ -847,7 +853,8 @@ FLAGNR(String,  AsmDumpMode           , "Dump the final assembly to a file witho
 FLAGR (Boolean, Asmjs                 , "Enable Asmjs", DEFAULT_CONFIG_ASMJS)
 FLAGNR(Boolean, AsmJsStopOnError      , "Stop execution on any AsmJs validation errors", DEFAULT_CONFIG_AsmJsStopOnError)
 FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have backward incompatible changes or not validate on old demos", DEFAULT_CONFIG_AsmJsEdge)
-FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. ArgIns can be [number,string,{low:number,high:number}]. Return values will be {low:number,high:number}", DEFAULT_CONFIG_WASM_I64)
+FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. ArgIns can be [number,string,{low:number,high:number}]. Return values will be {low:number,high:number}", DEFAULT_CONFIG_WasmI64)
+FLAGNR(Boolean, WasmFastArray         , "Enable fast array implementation for WebAssembly", DEFAULT_CONFIG_WasmFastArray)
 
 #ifndef COMPILE_DISABLE_Simdjs
     #define COMPILE_DISABLE_Simdjs 0
@@ -1225,6 +1232,7 @@ FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
 FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", DEFAULT_CONFIG_OOPJITMissingOpts)
 FLAGNR(Boolean, OOPCFGRegistration    , "Do CFG registration OOP (under OOP JIT)", DEFAULT_CONFIG_OOPCFGRegistration)
+FLAGNR(Number,  RPCFailFastWait       , "Wait time for JIT process termination before triggering failfast on RPC failure", DEFAULT_CONFIG_RPCFailFastWait)
 #ifdef _ARM64_
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else

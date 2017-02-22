@@ -3674,7 +3674,7 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
 
     // we should not have RPC failure if JIT process is still around
     // since this is going to be a failfast, lets wait a bit in case server is in process of terminating
-    if (WaitForSingleObject(GetJITManager()->GetServerHandle(), 250) != WAIT_OBJECT_0)
+    if (WaitForSingleObject(GetJITManager()->GetServerHandle(), CONFIG_FLAG(RPCFailFastWait)) != WAIT_OBJECT_0)
     {
         RpcFailure_fatal_error(hr);
     }

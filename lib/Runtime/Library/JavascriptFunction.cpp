@@ -696,7 +696,7 @@ namespace Js
         __finally
         {
             // 0xE06D7363 is C++ exception code
-            if (exceptionCode != 0 && exceptionCode != 0xE06D7363 && AbnormalTermination() && !IsDebuggerPresent() )
+            if (exceptionCode != 0 && exceptionCode != 0xE06D7363 && AbnormalTermination() && !IsDebuggerPresent())
             {
                 scriptContext->GetThreadContext()->SetAbnormalExceptionCode(exceptionCode);
                 scriptContext->GetThreadContext()->SetAbnormalExceptionRecord(&exceptionInfo);
@@ -2239,19 +2239,32 @@ LABEL1:
         {
             return false;
         }
-        bool isAsmJs = func->GetFunctionBody()->GetIsAsmJsFunction();
         Js::FunctionBody* funcBody = func->GetFunctionBody();
+        bool isWAsmJs = funcBody->GetIsAsmJsFunction();
+        bool isWasmOnly = funcBody->IsWasmFunction();
         BYTE* buffer = nullptr;
-        if (isAsmJs)
+        if (isWAsmJs)
         {
-            Assert(!funcBody->IsWasmFunction());
             // some extra checks for asm.js because we have slightly more information that we can validate
             uintptr_t moduleMemory = (uintptr_t)((AsmJsScriptFunction*)func)->GetModuleMemory();
             if (!moduleMemory)
             {
                 return false;
             }
-            ArrayBuffer* arrayBuffer = *(ArrayBuffer**)(moduleMemory + AsmJsModuleMemory::MemoryTableBeginOffset);
+
+            ArrayBuffer* arrayBuffer = nullptr;
+#ifdef ENABLE_WASM
+            if (isWasmOnly)
+            {
+                WebAssemblyMemory* mem = *(WebAssemblyMemory**)(moduleMemory + WebAssemblyModule::GetMemoryOffset());
+                arrayBuffer = mem->GetBuffer();
+            }
+            else
+#endif
+            {
+                arrayBuffer = *(ArrayBuffer**)(moduleMemory + AsmJsModuleMemory::MemoryTableBeginOffset);
+            }
+
             if (!arrayBuffer || !arrayBuffer->GetBuffer())
             {
                 // don't have a heap buffer for asm.js... so this shouldn't be an asm.js heap access
@@ -2261,7 +2274,7 @@ LABEL1:
 
             uint bufferLength = arrayBuffer->GetByteLength();
 
-            if (!arrayBuffer->IsValidAsmJsBufferLength(bufferLength))
+            if (!isWasmOnly && !arrayBuffer->IsValidAsmJsBufferLength(bufferLength))
             {
                 return false;
             }
@@ -2282,9 +2295,16 @@ LABEL1:
         }
 
         // If asm.js, make sure the base address is that of the heap buffer
-        if (isAsmJs && (instrData.bufferValue != (uint64)buffer))
+        if (instrData.bufferValue != (uint64)buffer)
         {
-            return false;
+            if (isWAsmJs)
+            {
+                return false;
+            }
+        }
+        else if (isWasmOnly)
+        {
+            JavascriptError::ThrowWebAssemblyRuntimeError(func->GetScriptContext(), JSERR_InvalidTypedArrayIndex);
         }
 
         // SIMD loads/stores do bounds checks.

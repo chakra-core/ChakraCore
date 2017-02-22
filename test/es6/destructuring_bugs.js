@@ -443,16 +443,58 @@ var tests = [
         assert.areEqual(c4, 35, "The variable in the enclosing scope should not have been changed.");
         assert.areEqual(d4, 20, "The variable in the enclosing scope should not have been changed.");
     }
-},
-{
+  },
+  {
     name: "Destructuring pattern with rest parameter has nested blocks.",
     body: function () {
-    [...((a5))] = [1, 2, 3];
-    assert.areEqual(a5, [1, 2, 3], "The rest parameter with extra parentheses gets assigned correctly.");
+       [...((a5))] = [1, 2, 3];
+       assert.areEqual(a5, [1, 2, 3], "The rest parameter with extra parentheses gets assigned correctly.");
 
-    assert.doesNotThrow(function () { eval("[...((a))] = [1, 2, 3]") }, "Should not throw when rest parameter name is enclosed in extra parentheses.");
+       assert.doesNotThrow(function () { eval("[...((a))] = [1, 2, 3]") }, "Should not throw when rest parameter name is enclosed in extra parentheses.");
     }
-}
+  },
+  {
+    name: "Destructuring bug fix - a reference from a 'this' object should be valid statement",
+    body: function () {
+      assert.doesNotThrow(function () { [this.x] = []; }, "array destructuring - referencing x from this in pattern is a correct syntax" );
+      assert.doesNotThrow(function () { ({x:this.x} = {}); }, "object destructuring - referencing x from this in pattern is a correct syntax" );
+      (function () {
+          this.x = 1, this.y = 2;
+          [this.x, this.y] = [this.y, this.x];
+          assert.areEqual(this.x, 2);
+          assert.areEqual(this.y, 1);
+      })();
+      assert.doesNotThrow(function () { [...this.x] = [1]; }, "array destructuring rest - referencing x from this in pattern is a correct syntax" );
+    }
+  },
+  {
+    name: "array destructuring as catch parameter can yield properly",
+    body: function () {
+        function * gn() {
+          try {
+            throw [];
+          } catch ([c = (yield 2)]) {
+          }
+        };
+        var it = gn();
+        var k = it.next();
+        assert.areEqual(2, k.value, "next should invoke the yield in the generator and which yields 2");
+    }
+  },
+  {
+    name: "array destructuring nested as catch parameter can yield properly",
+    body: function () {
+        function * gn() {
+          try {
+            throw [{x:[]}];
+          } catch ([{x:[c = (yield 2)]}]) {
+          }
+        };
+        var it = gn();
+        var k = it.next();
+        assert.areEqual(2, k.value, "next should invoke the yield in the generator and which yields 2");
+    }
+  }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

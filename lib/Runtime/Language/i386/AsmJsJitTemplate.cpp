@@ -2786,6 +2786,7 @@ namespace Js
             return CompareDbOrFlt<JB, COMISD, double>(context, buffer, targetOffset, leftOffset, rightOffset);
         }
 
+        __declspec(align(8)) const double MaskConvUintDouble[] = { 0.0, 4294967296.0 };
 
         int UInt_To_Db::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int rightOffset )
         {
@@ -2806,7 +2807,6 @@ namespace Js
             size += SHR::EncodeInstruction<int32>( buffer, InstrParamsRegImm<int8>( regInt, 31 ) );
             templateData->InvalidateReg( regInt );
 
-            static __declspec(align(8)) const double MaskConvUintDouble[] = { 0.0, 4294967296.0 };
             size += ADDSD::EncodeInstruction<double>( buffer, InstrParamsRegAddr( regDouble, RegNOREG, regInt, 8, (int)MaskConvUintDouble ) );
 
             size += EncodingHelpers::SetStackReg<double>( buffer, templateData, targetOffset , regDouble);
@@ -2905,6 +2905,14 @@ namespace Js
             return size;
         }
 
+        __declspec(align(16)) const double MaskNegDouble[] = { -0.0, -0.0 };
+        const BYTE maskNegDoubleTemp[] = {
+            0x66, 0x0F, 0x57, 0x05,
+            (BYTE)(((int)(MaskNegDouble)) & 0xFF),
+            (BYTE)((((int)(MaskNegDouble)) >> 8) & 0xFF),
+            (BYTE)((((int)(MaskNegDouble)) >> 16) & 0xFF),
+            (BYTE)((((int)(MaskNegDouble)) >> 24) & 0xFF),
+        };
 
         int Neg_Db::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int rightOffset )
         {
@@ -2920,15 +2928,7 @@ namespace Js
                 size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsRegAddr( reg, RegEBP, rightOffset ) );
             }
 
-            static __declspec(align(16)) const double MaskNegDouble[] = { -0.0, -0.0 };
-            static const BYTE temp[] = {
-                0x66, 0x0F, 0x57, 0x05,
-                (BYTE)( ( (int)( MaskNegDouble ) ) & 0xFF ),
-                (BYTE)( ( ( (int)( MaskNegDouble ) ) >> 8 ) & 0xFF ),
-                (BYTE)( ( ( (int)( MaskNegDouble ) ) >> 16 ) & 0xFF ),
-                (BYTE)( ( ( (int)( MaskNegDouble ) ) >> 24 ) & 0xFF ),
-            };
-            size += ApplyCustomTemplate( buffer, temp, 8 );
+            size += ApplyCustomTemplate( buffer, maskNegDoubleTemp, 8 );
             //fix template for register
             buffer[-5] |= RegEncode[reg] << 3;
 
@@ -2936,6 +2936,14 @@ namespace Js
 
             return size;
         }
+
+        static const BYTE negFltTemp[] = {
+            0x0F, 0x57, 0x05,
+            (BYTE)(((int)(JavascriptNumber::MaskNegFloat)) & 0xFF),
+            (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 8) & 0xFF),
+            (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 16) & 0xFF),
+            (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 24) & 0xFF),
+        };
 
         int Neg_Flt::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int rightOffset)
         {
@@ -2951,14 +2959,7 @@ namespace Js
                 size += MOVSS::EncodeInstruction<float>(buffer, InstrParamsRegAddr(reg, RegEBP, rightOffset));
             }
 
-            static const BYTE temp[] = {
-                0x0F, 0x57, 0x05,
-                (BYTE)(((int)(JavascriptNumber::MaskNegFloat)) & 0xFF),
-                (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 8) & 0xFF),
-                (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 16) & 0xFF),
-                (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 24) & 0xFF),
-            };
-            size += ApplyCustomTemplate(buffer, temp, 7);
+            size += ApplyCustomTemplate(buffer, negFltTemp, 7);
             //fix template for register
             buffer[-5] |= RegEncode[reg] << 3;
 

@@ -11670,6 +11670,13 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             byteCodeGenerator->StartStatement(pnodeCatch);
             ParseNodePtr pnode1 = pnodeObj->sxParamPattern.pnode1;
             Assert(pnode1->IsPattern());
+
+            ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
+            if (funcInfo->byteCodeFunction->IsCoroutine())
+            {
+                byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForCatch);
+            }
+
             EmitAssignment(nullptr, pnode1, location, byteCodeGenerator, funcInfo);
             byteCodeGenerator->EndStatement(pnodeCatch);
         }
@@ -11686,12 +11693,12 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             byteCodeGenerator->StartStatement(pnodeCatch);
             byteCodeGenerator->Writer()->Empty(Js::OpCode::Nop);
             byteCodeGenerator->EndStatement(pnodeCatch);
-        }
 
-        ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
-        if (funcInfo->byteCodeFunction->IsCoroutine())
-        {
-            byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForCatch);
+            ByteCodeGenerator::TryScopeRecord tryRecForCatch(Js::OpCode::ResumeCatch, catchLabel);
+            if (funcInfo->byteCodeFunction->IsCoroutine())
+            {
+                byteCodeGenerator->tryScopeRecordsList.LinkToEnd(&tryRecForCatch);
+            }
         }
 
         Emit(pnodeCatch->sxCatch.pnodeBody, byteCodeGenerator, funcInfo, fReturnValue);

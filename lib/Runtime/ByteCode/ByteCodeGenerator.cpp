@@ -2585,14 +2585,9 @@ bool FuncAllowsDirectSuper(FuncInfo *funcInfo, ByteCodeGenerator *byteCodeGenera
     if (funcInfo->IsGlobalFunction() && ((byteCodeGenerator->GetFlags() & fscrEval) != 0))
     {
         Js::JavascriptFunction *caller = nullptr;
-        if (Js::JavascriptStackWalker::GetCaller(&caller, byteCodeGenerator->GetScriptContext()))
+        if (Js::JavascriptStackWalker::GetCaller(&caller, byteCodeGenerator->GetScriptContext()) && caller->GetFunctionInfo()->GetAllowDirectSuper())
         {
-            Js::FunctionBody * callerBody = caller->GetFunctionBody();
-            Assert(callerBody);
-            if (callerBody->GetFunctionInfo()->GetAllowDirectSuper())
-            {
-                return true;
-            }
+            return true;
         }
     }
 

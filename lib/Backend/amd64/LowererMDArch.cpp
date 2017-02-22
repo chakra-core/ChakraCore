@@ -1118,8 +1118,14 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 IR::Instr *
 LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
-    Assert(instr->GetSrc2());
+#if ENABLE_FAST_ARRAYBUFFER
+    if (CONFIG_FLAG(WasmFastArray))
+    {
+        return instr;
+    }
+#endif
 
+    Assert(instr->GetSrc2());
     IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
     IR::LabelInstr * loadLabel = Lowerer::InsertLabel(false, instr);
     IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr);
@@ -1133,7 +1139,7 @@ LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
     Lowerer::InsertAdd(true, cmpOpnd, indexOpnd, IR::IntConstOpnd::New(addrOpnd->GetSize(), TyUint64, m_func), helperLabel);
     lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGt_A, true, helperLabel, helperLabel);
 
-    lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, WASMERR_ArrayIndexOutOfRange, IR::HelperOp_WebAssemblyRuntimeError);
+    lowererMD->m_lowerer->GenerateThrow(IR::IntConstOpnd::New(WASMERR_ArrayIndexOutOfRange, TyInt32, m_func), loadLabel);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
     return doneLabel;
 }

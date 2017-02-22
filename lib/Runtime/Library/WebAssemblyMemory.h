@@ -12,9 +12,9 @@ namespace Js
     protected:
         DEFINE_VTABLE_CTOR( WebAssemblyMemory, DynamicObject );
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT( WebAssemblyMemory );
+
 #ifdef ENABLE_WASM
     public:
-
         class EntryInfo
         {
         public:

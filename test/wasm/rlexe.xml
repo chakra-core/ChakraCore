@@ -9,6 +9,20 @@
 </test>
 <test>
   <default>
+    <files>fastarray.js</files>
+    <compile-flags>-wasm -WasmFastArray-</compile-flags>
+    <tags>exclude_mac</tags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>fastarray.js</files>
+    <compile-flags>-wasm -WasmFastArray</compile-flags>
+    <tags>exclude_mac</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>misc.js</files>
     <baseline>misc.baseline</baseline>
     <compile-flags>-wasm</compile-flags>

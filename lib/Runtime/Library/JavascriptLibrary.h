@@ -909,6 +909,8 @@ namespace Js
         JavascriptArray* CreateArray(uint32 length, uint32 size);
         ArrayBuffer* CreateArrayBuffer(uint32 length);
         ArrayBuffer* CreateArrayBuffer(byte* buffer, uint32 length);
+        ArrayBuffer* CreateWebAssemblyArrayBuffer(uint32 length);
+        ArrayBuffer* CreateWebAssemblyArrayBuffer(byte* buffer, uint32 length);
         SharedArrayBuffer* CreateSharedArrayBuffer(uint32 length);
         SharedArrayBuffer* CreateSharedArrayBuffer(SharedContents *contents);
         ArrayBuffer* CreateProjectionArraybuffer(uint32 length);
