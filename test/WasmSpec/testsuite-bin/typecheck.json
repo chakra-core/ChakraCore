@@ -1,5 +1,6 @@
 {"source_filename": "typecheck.wast",
  "commands": [
+
   {"type": "assert_invalid", "line": 4, "filename": "typecheck.0.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 10, "filename": "typecheck.1.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 17, "filename": "typecheck.2.wasm", "text": "type mismatch"}, 
@@ -192,5 +193,4 @@
   {"type": "assert_invalid", "line": 420, "filename": "typecheck.189.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 421, "filename": "typecheck.190.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 422, "filename": "typecheck.191.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 425, "filename": "typecheck.192.wasm", "text": "type mismatch"}
-]}
+  {"type": "assert_invalid", "line": 425, "filename": "typecheck.192.wasm", "text": "type mismatch"}]}

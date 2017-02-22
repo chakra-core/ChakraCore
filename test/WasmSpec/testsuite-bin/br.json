@@ -1,5 +1,6 @@
 {"source_filename": "br.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "br.0.wasm"}, 
   {"type": "assert_return", "line": 288, "action": {"type": "invoke", "field": "type-i32", "args": []}, "expected": []}, 
   {"type": "assert_return", "line": 289, "action": {"type": "invoke", "field": "type-i64", "args": []}, "expected": []}, 
@@ -65,7 +66,7 @@
   {"type": "assert_invalid", "line": 372, "filename": "br.1.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 379, "filename": "br.2.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 385, "filename": "br.3.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 392, "filename": "br.4.wasm", "text": "unknown label"}, 
-  {"type": "assert_invalid", "line": 396, "filename": "br.5.wasm", "text": "unknown label"}, 
-  {"type": "assert_invalid", "line": 400, "filename": "br.6.wasm", "text": "unknown label"}
-]}
+  {"type": "assert_invalid", "line": 391, "filename": "br.4.wasm", "text": "type mismatch"}, 
+  {"type": "assert_invalid", "line": 398, "filename": "br.5.wasm", "text": "unknown label"}, 
+  {"type": "assert_invalid", "line": 402, "filename": "br.6.wasm", "text": "unknown label"}, 
+  {"type": "assert_invalid", "line": 406, "filename": "br.7.wasm", "text": "unknown label"}]}

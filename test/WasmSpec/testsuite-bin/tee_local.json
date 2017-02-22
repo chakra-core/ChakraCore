@@ -1,5 +1,6 @@
 {"source_filename": "tee_local.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "tee_local.0.wasm"}, 
   {"type": "assert_return", "line": 98, "action": {"type": "invoke", "field": "type-local-i32", "args": []}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "assert_return", "line": 99, "action": {"type": "invoke", "field": "type-local-i64", "args": []}, "expected": [{"type": "i64", "value": "0"}]}, 
@@ -34,5 +35,4 @@
   {"type": "assert_invalid", "line": 220, "filename": "tee_local.20.wasm", "text": "unknown local"}, 
   {"type": "assert_invalid", "line": 225, "filename": "tee_local.21.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 229, "filename": "tee_local.22.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 233, "filename": "tee_local.23.wasm", "text": "type mismatch"}
-]}
+  {"type": "assert_invalid", "line": 233, "filename": "tee_local.23.wasm", "text": "type mismatch"}]}

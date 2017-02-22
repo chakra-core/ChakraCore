@@ -1,5 +1,6 @@
 {"source_filename": "skip-stack-guard-page.wast",
  "commands": [
+
   {"type": "module", "line": 2, "filename": "skip-stack-guard-page.0.wasm"}, 
   {"type": "assert_exhaustion", "line": 2275, "action": {"type": "invoke", "field": "test-guard-page-skip", "args": [{"type": "i32", "value": "0"}]}}, 
   {"type": "assert_exhaustion", "line": 2276, "action": {"type": "invoke", "field": "test-guard-page-skip", "args": [{"type": "i32", "value": "100"}]}}, 
@@ -10,5 +11,4 @@
   {"type": "assert_exhaustion", "line": 2281, "action": {"type": "invoke", "field": "test-guard-page-skip", "args": [{"type": "i32", "value": "600"}]}}, 
   {"type": "assert_exhaustion", "line": 2282, "action": {"type": "invoke", "field": "test-guard-page-skip", "args": [{"type": "i32", "value": "700"}]}}, 
   {"type": "assert_exhaustion", "line": 2283, "action": {"type": "invoke", "field": "test-guard-page-skip", "args": [{"type": "i32", "value": "800"}]}}, 
-  {"type": "assert_exhaustion", "line": 2284, "action": {"type": "invoke", "field": "test-guard-page-skip", "args": [{"type": "i32", "value": "900"}]}}
-]}
+  {"type": "assert_exhaustion", "line": 2284, "action": {"type": "invoke", "field": "test-guard-page-skip", "args": [{"type": "i32", "value": "900"}]}}]}

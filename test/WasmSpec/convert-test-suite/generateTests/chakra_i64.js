@@ -75,8 +75,8 @@ function extractModule(moduleNode) {
   return module;
 }
 
-module.exports = function(argv) {
-  const originalI64Wast = path.resolve(argv.suite, "i64.wast");
+module.exports = function(suite) {
+  const originalI64Wast = path.resolve(suite, "core", "i64.wast");
   const originalContent = fs.readFileSync(originalI64Wast).toString();
   return new Promise((resolve, reject) => {
     let id = 0;

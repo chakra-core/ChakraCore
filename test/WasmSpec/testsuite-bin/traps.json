@@ -1,5 +1,6 @@
 {"source_filename": "traps.wast",
  "commands": [
+
   {"type": "module", "line": 5, "filename": "traps.0.wasm"}, 
   {"type": "assert_trap", "line": 16, "action": {"type": "invoke", "field": "no_dce.i32.div_s", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "0"}]}, "text": "integer divide by zero"}, 
   {"type": "assert_trap", "line": 17, "action": {"type": "invoke", "field": "no_dce.i32.div_u", "args": [{"type": "i32", "value": "1"}, {"type": "i32", "value": "0"}]}, "text": "integer divide by zero"}, 
@@ -23,5 +24,4 @@
   {"type": "assert_trap", "line": 66, "action": {"type": "invoke", "field": "no_dce.i32.load", "args": [{"type": "i32", "value": "65536"}]}, "text": "out of bounds memory access"}, 
   {"type": "assert_trap", "line": 67, "action": {"type": "invoke", "field": "no_dce.i64.load", "args": [{"type": "i32", "value": "65536"}]}, "text": "out of bounds memory access"}, 
   {"type": "assert_trap", "line": 68, "action": {"type": "invoke", "field": "no_dce.f32.load", "args": [{"type": "i32", "value": "65536"}]}, "text": "out of bounds memory access"}, 
-  {"type": "assert_trap", "line": 69, "action": {"type": "invoke", "field": "no_dce.f64.load", "args": [{"type": "i32", "value": "65536"}]}, "text": "out of bounds memory access"}
-]}
+  {"type": "assert_trap", "line": 69, "action": {"type": "invoke", "field": "no_dce.f64.load", "args": [{"type": "i32", "value": "65536"}]}, "text": "out of bounds memory access"}]}

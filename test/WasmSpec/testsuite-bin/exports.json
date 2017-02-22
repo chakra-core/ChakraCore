@@ -1,5 +1,6 @@
 {"source_filename": "exports.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "exports.0.wasm"}, 
   {"type": "module", "line": 4, "filename": "exports.1.wasm"}, 
   {"type": "module", "line": 5, "filename": "exports.2.wasm"}, 
@@ -79,5 +80,4 @@
   {"type": "assert_invalid", "line": 177, "filename": "exports.70.wasm", "text": "duplicate export name"}, 
   {"type": "assert_invalid", "line": 186, "filename": "exports.71.wasm", "text": "duplicate export name"}, 
   {"type": "assert_invalid", "line": 190, "filename": "exports.72.wasm", "text": "duplicate export name"}, 
-  {"type": "assert_invalid", "line": 194, "filename": "exports.73.wasm", "text": "duplicate export name"}
-]}
+  {"type": "assert_invalid", "line": 194, "filename": "exports.73.wasm", "text": "duplicate export name"}]}

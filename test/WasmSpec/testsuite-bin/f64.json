@@ -1,5 +1,6 @@
 {"source_filename": "f64.wast",
  "commands": [
+
   {"type": "module", "line": 4, "filename": "f64.0.wasm"}, 
   {"type": "assert_return", "line": 21, "action": {"type": "invoke", "field": "add", "args": [{"type": "f64", "value": "9223372036854775808"}, {"type": "f64", "value": "9223372036854775808"}]}, "expected": [{"type": "f64", "value": "9223372036854775808"}]}, 
   {"type": "assert_return", "line": 22, "action": {"type": "invoke", "field": "add", "args": [{"type": "f64", "value": "9223372036854775808"}, {"type": "f64", "value": "0"}]}, "expected": [{"type": "f64", "value": "0"}]}, 
@@ -2394,5 +2395,4 @@
   {"type": "assert_return", "line": 2411, "action": {"type": "invoke", "field": "neg", "args": [{"type": "f64", "value": "18442240474082181120"}]}, "expected": [{"type": "f64", "value": "9218868437227405312"}]}, 
   {"type": "assert_return", "line": 2412, "action": {"type": "invoke", "field": "neg", "args": [{"type": "f64", "value": "9218868437227405312"}]}, "expected": [{"type": "f64", "value": "18442240474082181120"}]}, 
   {"type": "assert_return", "line": 2413, "action": {"type": "invoke", "field": "neg", "args": [{"type": "f64", "value": "18444492273895866368"}]}, "expected": [{"type": "f64", "value": "9221120237041090560"}]}, 
-  {"type": "assert_return", "line": 2414, "action": {"type": "invoke", "field": "neg", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "expected": [{"type": "f64", "value": "18444492273895866368"}]}
-]}
+  {"type": "assert_return", "line": 2414, "action": {"type": "invoke", "field": "neg", "args": [{"type": "f64", "value": "9221120237041090560"}]}, "expected": [{"type": "f64", "value": "18444492273895866368"}]}]}

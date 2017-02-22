@@ -1,5 +1,6 @@
 {"source_filename": "start.wast",
  "commands": [
+
   {"type": "assert_invalid", "line": 2, "filename": "start.0.wasm", "text": "unknown function"}, 
   {"type": "assert_invalid", "line": 7, "filename": "start.1.wasm", "text": "start function"}, 
   {"type": "assert_invalid", "line": 14, "filename": "start.2.wasm", "text": "start function"}, 
@@ -18,5 +19,4 @@
   {"type": "module", "line": 80, "filename": "start.5.wasm"}, 
   {"type": "module", "line": 86, "filename": "start.6.wasm"}, 
   {"type": "module", "line": 92, "filename": "start.7.wasm"}, 
-  {"type": "assert_uninstantiable", "line": 98, "filename": "start.8.wasm", "text": "unreachable"}
-]}
+  {"type": "assert_uninstantiable", "line": 98, "filename": "start.8.wasm", "text": "unreachable"}]}

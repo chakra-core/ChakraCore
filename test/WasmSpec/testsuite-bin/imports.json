@@ -1,5 +1,6 @@
 {"source_filename": "imports.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "imports.0.wasm"}, 
   {"type": "register", "line": 19, "as": "test"}, 
   {"type": "module", "line": 24, "filename": "imports.1.wasm"}, 
@@ -128,5 +129,4 @@
   {"type": "assert_return", "line": 470, "action": {"type": "invoke", "field": "grow", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
   {"type": "assert_return", "line": 471, "action": {"type": "invoke", "field": "grow", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "i32", "value": "2"}]}, 
   {"type": "assert_return", "line": 472, "action": {"type": "invoke", "field": "grow", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
-  {"type": "assert_return", "line": 473, "action": {"type": "invoke", "field": "grow", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "i32", "value": "2"}]}
-]}
+  {"type": "assert_return", "line": 473, "action": {"type": "invoke", "field": "grow", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "i32", "value": "2"}]}]}

@@ -1,5 +1,6 @@
 {"source_filename": "func.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "func.0.wasm"}, 
   {"type": "assert_return", "line": 205, "action": {"type": "invoke", "field": "local-first-i32", "args": []}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "assert_return", "line": 206, "action": {"type": "invoke", "field": "local-first-i64", "args": []}, "expected": [{"type": "i64", "value": "0"}]}, 
@@ -96,5 +97,4 @@
   {"type": "assert_invalid", "line": 464, "filename": "func.27.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 471, "filename": "func.28.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 477, "filename": "func.29.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 483, "filename": "func.30.wasm", "text": "type mismatch"}
-]}
+  {"type": "assert_invalid", "line": 483, "filename": "func.30.wasm", "text": "type mismatch"}]}
