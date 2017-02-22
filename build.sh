@@ -409,7 +409,7 @@ WB_FLAG=
 WB_TARGET=
 if [[ $WB_CHECK || $WB_ANALYZE ]]; then
     # build software write barrier checker clang plugin
-    $CHAKRACORE_DIR/tools/RecyclerChecker/build.sh || exit 1
+    $CHAKRACORE_DIR/tools/RecyclerChecker/build.sh --cxx=$_CXX || exit 1
 
     if [[ $WB_CHECK && $WB_ANALYZE ]]; then
         echo "Please run only one of --wb-check or --wb-analyze" && exit 1
