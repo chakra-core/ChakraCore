@@ -1,5 +1,6 @@
 {"source_filename": "globals.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "globals.0.wasm"}, 
   {"type": "assert_return", "line": 29, "action": {"type": "invoke", "field": "get-a", "args": []}, "expected": [{"type": "i32", "value": "4294967294"}]}, 
   {"type": "assert_return", "line": 30, "action": {"type": "invoke", "field": "get-b", "args": []}, "expected": [{"type": "i64", "value": "18446744073709551611"}]}, 
@@ -32,5 +33,4 @@
   {"type": "assert_malformed", "line": 116, "filename": "globals.13.wasm", "text": "invalid mutability"}, 
   {"type": "module", "line": 129, "filename": "globals.14.wasm"}, 
   {"type": "assert_malformed", "line": 133, "filename": "globals.15.wasm", "text": "invalid mutability"}, 
-  {"type": "assert_malformed", "line": 145, "filename": "globals.16.wasm", "text": "invalid mutability"}
-]}
+  {"type": "assert_malformed", "line": 145, "filename": "globals.16.wasm", "text": "invalid mutability"}]}

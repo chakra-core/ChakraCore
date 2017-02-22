@@ -1,5 +1,6 @@
 {"source_filename": "float_misc.wast",
  "commands": [
+
   {"type": "module", "line": 17, "filename": "float_misc.0.wasm"}, 
   {"type": "assert_return", "line": 50, "action": {"type": "invoke", "field": "f32.add", "args": [{"type": "f32", "value": "1066388847"}, {"type": "f32", "value": "789036054"}]}, "expected": [{"type": "f32", "value": "1066388847"}]}, 
   {"type": "assert_return", "line": 51, "action": {"type": "invoke", "field": "f64.add", "args": [{"type": "f64", "value": "4607738418748954166"}, {"type": "f64", "value": "4458835772027226175"}]}, "expected": [{"type": "f64", "value": "4607738418749510135"}]}, 
@@ -417,5 +418,4 @@
   {"type": "assert_return", "line": 630, "action": {"type": "invoke", "field": "f32.nearest", "args": [{"type": "f32", "value": "3405774847"}]}, "expected": [{"type": "f32", "value": "3405774848"}]}, 
   {"type": "assert_return", "line": 631, "action": {"type": "invoke", "field": "f32.nearest", "args": [{"type": "f32", "value": "1258291199"}]}, "expected": [{"type": "f32", "value": "1258291200"}]}, 
   {"type": "assert_return", "line": 632, "action": {"type": "invoke", "field": "f64.nearest", "args": [{"type": "f64", "value": "14064741636278059007"}]}, "expected": [{"type": "f64", "value": "14064741636278059008"}]}, 
-  {"type": "assert_return", "line": 633, "action": {"type": "invoke", "field": "f64.nearest", "args": [{"type": "f64", "value": "4841369599423283199"}]}, "expected": [{"type": "f64", "value": "4841369599423283200"}]}
-]}
+  {"type": "assert_return", "line": 633, "action": {"type": "invoke", "field": "f64.nearest", "args": [{"type": "f64", "value": "4841369599423283199"}]}, "expected": [{"type": "f64", "value": "4841369599423283200"}]}]}

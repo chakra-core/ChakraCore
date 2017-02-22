@@ -1,5 +1,6 @@
 {"source_filename": "call_indirect.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "call_indirect.0.wasm"}, 
   {"type": "assert_return", "line": 167, "action": {"type": "invoke", "field": "type-i32", "args": []}, "expected": [{"type": "i32", "value": "306"}]}, 
   {"type": "assert_return", "line": 168, "action": {"type": "invoke", "field": "type-i64", "args": []}, "expected": [{"type": "i64", "value": "356"}]}, 
@@ -64,5 +65,7 @@
   {"type": "assert_invalid", "line": 336, "filename": "call_indirect.13.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 350, "filename": "call_indirect.14.wasm", "text": "unknown type"}, 
   {"type": "assert_invalid", "line": 357, "filename": "call_indirect.15.wasm", "text": "unknown type"}, 
-  {"type": "assert_invalid", "line": 366, "filename": "call_indirect.16.wasm", "text": "unknown function 0"}
-]}
+  {"type": "assert_invalid", "line": 368, "filename": "call_indirect.16.wasm", "text": "unknown function 0"}, 
+  {"type": "assert_unlinkable", "line": 376, "filename": "call_indirect.17.wasm", "text": "elements segment does not fit"}, 
+  {"type": "assert_unlinkable", "line": 385, "filename": "call_indirect.18.wasm", "text": "elements segment does not fit"}, 
+  {"type": "assert_unlinkable", "line": 394, "filename": "call_indirect.19.wasm", "text": "elements segment does not fit"}]}

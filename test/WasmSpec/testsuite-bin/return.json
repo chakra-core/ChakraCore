@@ -1,5 +1,6 @@
 {"source_filename": "return.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "return.0.wasm"}, 
   {"type": "assert_return", "line": 190, "action": {"type": "invoke", "field": "type-i32", "args": []}, "expected": []}, 
   {"type": "assert_return", "line": 191, "action": {"type": "invoke", "field": "type-i64", "args": []}, "expected": []}, 
@@ -60,5 +61,4 @@
   {"type": "assert_return", "line": 267, "action": {"type": "invoke", "field": "as-grow_memory-size", "args": []}, "expected": [{"type": "i32", "value": "40"}]}, 
   {"type": "assert_invalid", "line": 270, "filename": "return.1.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 274, "filename": "return.2.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 278, "filename": "return.3.wasm", "text": "type mismatch"}
-]}
+  {"type": "assert_invalid", "line": 278, "filename": "return.3.wasm", "text": "type mismatch"}]}

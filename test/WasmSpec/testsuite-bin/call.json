@@ -1,5 +1,6 @@
 {"source_filename": "call.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "call.0.wasm"}, 
   {"type": "assert_return", "line": 102, "action": {"type": "invoke", "field": "type-i32", "args": []}, "expected": [{"type": "i32", "value": "306"}]}, 
   {"type": "assert_return", "line": 103, "action": {"type": "invoke", "field": "type-i64", "args": []}, "expected": [{"type": "i64", "value": "356"}]}, 
@@ -47,5 +48,4 @@
   {"type": "assert_invalid", "line": 209, "filename": "call.9.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 216, "filename": "call.10.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 227, "filename": "call.11.wasm", "text": "unknown function"}, 
-  {"type": "assert_invalid", "line": 231, "filename": "call.12.wasm", "text": "unknown function"}
-]}
+  {"type": "assert_invalid", "line": 231, "filename": "call.12.wasm", "text": "unknown function"}]}

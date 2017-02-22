@@ -1,5 +1,6 @@
 {"source_filename": "br_table.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "br_table.0.wasm"}, 
   {"type": "assert_return", "line": 1208, "action": {"type": "invoke", "field": "type-i32", "args": []}, "expected": []}, 
   {"type": "assert_return", "line": 1209, "action": {"type": "invoke", "field": "type-i64", "args": []}, "expected": []}, 
@@ -147,14 +148,15 @@
   {"type": "assert_invalid", "line": 1386, "filename": "br_table.1.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 1393, "filename": "br_table.2.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 1399, "filename": "br_table.3.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 1406, "filename": "br_table.4.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 1412, "filename": "br_table.5.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 1418, "filename": "br_table.6.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 1424, "filename": "br_table.7.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 1431, "filename": "br_table.8.wasm", "text": "unknown label"}, 
-  {"type": "assert_invalid", "line": 1437, "filename": "br_table.9.wasm", "text": "unknown label"}, 
-  {"type": "assert_invalid", "line": 1443, "filename": "br_table.10.wasm", "text": "unknown label"}, 
-  {"type": "assert_invalid", "line": 1450, "filename": "br_table.11.wasm", "text": "unknown label"}, 
-  {"type": "assert_invalid", "line": 1456, "filename": "br_table.12.wasm", "text": "unknown label"}, 
-  {"type": "assert_invalid", "line": 1462, "filename": "br_table.13.wasm", "text": "unknown label"}
-]}
+  {"type": "assert_invalid", "line": 1405, "filename": "br_table.4.wasm", "text": "type mismatch"}, 
+  {"type": "assert_invalid", "line": 1417, "filename": "br_table.5.wasm", "text": "type mismatch"}, 
+  {"type": "assert_invalid", "line": 1423, "filename": "br_table.6.wasm", "text": "type mismatch"}, 
+  {"type": "assert_invalid", "line": 1429, "filename": "br_table.7.wasm", "text": "type mismatch"}, 
+  {"type": "assert_invalid", "line": 1435, "filename": "br_table.8.wasm", "text": "type mismatch"}, 
+  {"type": "assert_invalid", "line": 1441, "filename": "br_table.9.wasm", "text": "type mismatch"}, 
+  {"type": "assert_invalid", "line": 1448, "filename": "br_table.10.wasm", "text": "unknown label"}, 
+  {"type": "assert_invalid", "line": 1454, "filename": "br_table.11.wasm", "text": "unknown label"}, 
+  {"type": "assert_invalid", "line": 1460, "filename": "br_table.12.wasm", "text": "unknown label"}, 
+  {"type": "assert_invalid", "line": 1467, "filename": "br_table.13.wasm", "text": "unknown label"}, 
+  {"type": "assert_invalid", "line": 1473, "filename": "br_table.14.wasm", "text": "unknown label"}, 
+  {"type": "assert_invalid", "line": 1479, "filename": "br_table.15.wasm", "text": "unknown label"}]}

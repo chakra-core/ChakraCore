@@ -1,5 +1,6 @@
 {"source_filename": "endianness.wast",
  "commands": [
+
   {"type": "module", "line": 1, "filename": "endianness.0.wasm"}, 
   {"type": "assert_return", "line": 133, "action": {"type": "invoke", "field": "i32_load16_s", "args": [{"type": "i32", "value": "4294967295"}]}, "expected": [{"type": "i32", "value": "4294967295"}]}, 
   {"type": "assert_return", "line": 134, "action": {"type": "invoke", "field": "i32_load16_s", "args": [{"type": "i32", "value": "4294963054"}]}, "expected": [{"type": "i32", "value": "4294963054"}]}, 
@@ -68,5 +69,4 @@
   {"type": "assert_return", "line": 214, "action": {"type": "invoke", "field": "f64_store", "args": [{"type": "f64", "value": "13830554455654793216"}]}, "expected": [{"type": "f64", "value": "13830554455654793216"}]}, 
   {"type": "assert_return", "line": 215, "action": {"type": "invoke", "field": "f64_store", "args": [{"type": "f64", "value": "4653144502447687399"}]}, "expected": [{"type": "f64", "value": "4653144502447687399"}]}, 
   {"type": "assert_return", "line": 216, "action": {"type": "invoke", "field": "f64_store", "args": [{"type": "f64", "value": "4691032041816096430"}]}, "expected": [{"type": "f64", "value": "4691032041816096430"}]}, 
-  {"type": "assert_return", "line": 217, "action": {"type": "invoke", "field": "f64_store", "args": [{"type": "f64", "value": "9218868437227405311"}]}, "expected": [{"type": "f64", "value": "9218868437227405311"}]}
-]}
+  {"type": "assert_return", "line": 217, "action": {"type": "invoke", "field": "f64_store", "args": [{"type": "f64", "value": "9218868437227405311"}]}, "expected": [{"type": "f64", "value": "9218868437227405311"}]}]}

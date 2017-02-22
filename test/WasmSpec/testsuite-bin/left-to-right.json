@@ -1,5 +1,6 @@
 {"source_filename": "left-to-right.wast",
  "commands": [
+
   {"type": "module", "line": 1, "filename": "left-to-right.0.wasm"}, 
   {"type": "assert_return", "line": 181, "action": {"type": "invoke", "field": "i32_add", "args": []}, "expected": [{"type": "i32", "value": "258"}]}, 
   {"type": "assert_return", "line": 181, "action": {"type": "invoke", "field": "i64_add", "args": []}, "expected": [{"type": "i32", "value": "258"}]}, 
@@ -95,5 +96,4 @@
   {"type": "assert_return", "line": 230, "action": {"type": "invoke", "field": "f32_select", "args": []}, "expected": [{"type": "i32", "value": "66053"}]}, 
   {"type": "assert_return", "line": 230, "action": {"type": "invoke", "field": "f64_select", "args": []}, "expected": [{"type": "i32", "value": "66053"}]}, 
   {"type": "assert_return", "line": 232, "action": {"type": "invoke", "field": "br_if", "args": []}, "expected": [{"type": "i32", "value": "258"}]}, 
-  {"type": "assert_return", "line": 233, "action": {"type": "invoke", "field": "br_table", "args": []}, "expected": [{"type": "i32", "value": "258"}]}
-]}
+  {"type": "assert_return", "line": 233, "action": {"type": "invoke", "field": "br_table", "args": []}, "expected": [{"type": "i32", "value": "258"}]}]}
