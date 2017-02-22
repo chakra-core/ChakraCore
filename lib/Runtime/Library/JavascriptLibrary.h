@@ -439,7 +439,7 @@ namespace Js
         Field(DynamicObject*) webAssemblyTablePrototype;
         Field(RuntimeFunction*) webAssemblyTableConstructor;
 
-        Field(int) regexConstructorSlotIndex;
+        int regexConstructorSlotIndex;
         Field(int) regexExecSlotIndex;
         Field(int) regexFlagsGetterSlotIndex;
         Field(int) regexGlobalGetterSlotIndex;

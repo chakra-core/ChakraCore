@@ -101,7 +101,9 @@ void MainVisitor::ProcessUnbarriedFields(CXXRecordDecl* recordDecl,
     const auto& sourceMgr = _compilerInstance.getSourceManager();
     DiagnosticsEngine& diagEngine = _context.getDiagnostics();
     const unsigned diagID = diagEngine.getCustomDiagID(
-        DiagnosticsEngine::Error, "Unbarried field");
+        DiagnosticsEngine::Error,
+        "Unbarried field, see "
+        "https://github.com/microsoft/ChakraCore/wiki/Software-Write-Barrier#coding-rules");
 
     for (auto field : recordDecl->fields())
     {
