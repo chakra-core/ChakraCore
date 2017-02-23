@@ -30,4 +30,6 @@ WScript.SetTimeout(testFunction, 50);
 function testFunction()
 {
     telemetryLog(`o.a === 10: ${o.a === 10}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

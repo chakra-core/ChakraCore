@@ -44,4 +44,6 @@ function testFunction()
     delete third.prototype.value;
 
     check(obj1, 1);
+
+    emitTTDLog(ttdLogURI);
 }

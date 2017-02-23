@@ -61,4 +61,6 @@ function testFunction()
         threw = true;
     }
     telemetryLog(`proxy.foo (after revoke): ${threw}`, true); //true
+
+    emitTTDLog(ttdLogURI);
 }

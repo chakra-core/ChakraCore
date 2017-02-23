@@ -9,7 +9,7 @@
 namespace TTD
 {
     TTDJsRTFunctionCallActionPopperRecorder::TTDJsRTFunctionCallActionPopperRecorder()
-        : m_ctx(nullptr), m_callAction(nullptr)
+        : m_ctx(nullptr), m_beginTime(0.0), m_callAction(nullptr)
     {
         ;
     }
@@ -22,7 +22,6 @@ namespace TTD
 
             TTD::EventLog* elog = this->m_ctx->GetThreadContext()->TTDLog;
             NSLogEvents::JsRTCallFunctionAction* cfAction = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(this->m_callAction);
-            cfAction->AdditionalInfo->EndTime = elog->GetCurrentWallTime();
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             NSLogEvents::JsRTCallFunctionAction_ProcessDiagInfoPost(this->m_callAction, this->m_ctx->GetThreadContext()->TTDLog->GetLastEventTime());
@@ -31,17 +30,18 @@ namespace TTD
             //Update the time elapsed since a snapshot if needed
             if(cfAction->CallbackDepth == 0)
             {
-                double elapsedTime = (cfAction->AdditionalInfo->EndTime - cfAction->AdditionalInfo->BeginTime);
+                double elapsedTime = (elog->GetCurrentWallTime() - this->m_beginTime);
                 elog->IncrementElapsedSnapshotTime(elapsedTime);
             }
         }
     }
 
-    void TTDJsRTFunctionCallActionPopperRecorder::InitializeForRecording(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction)
+    void TTDJsRTFunctionCallActionPopperRecorder::InitializeForRecording(Js::ScriptContext* ctx, double beginWallTime, NSLogEvents::EventLogEntry* callAction)
     {
         TTDAssert(this->m_ctx == nullptr && this->m_callAction == nullptr, "Don't double initialize!!!");
 
         this->m_ctx = ctx;
+        this->m_beginTime = beginWallTime;
         this->m_callAction = callAction;
     }
 
@@ -524,6 +524,7 @@ namespace TTD
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::SymbolCreationTag] = { NSLogEvents::ContextExecuteKind::None, nullptr, nullptr, NSLogEvents::SymbolCreationEventLogEntry_Emit, NSLogEvents::SymbolCreationEventLogEntry_Parse };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::ExternalCbRegisterCall] = { NSLogEvents::ContextExecuteKind::None, nullptr, nullptr, NSLogEvents::ExternalCbRegisterCallEventLogEntry_Emit, NSLogEvents::ExternalCbRegisterCallEventLogEntry_Parse };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::ExternalCallTag] = { NSLogEvents::ContextExecuteKind::None, nullptr, NSLogEvents::ExternalCallEventLogEntry_UnloadEventMemory, NSLogEvents::ExternalCallEventLogEntry_Emit, NSLogEvents::ExternalCallEventLogEntry_Parse };
+        this->m_eventListVTable[(uint32)NSLogEvents::EventKind::ExplicitLogWriteTag] = { NSLogEvents::ContextExecuteKind::None, nullptr, nullptr, NSLogEvents::ExplicitLogWriteEntry_Emit, NSLogEvents::ExplicitLogWriteEntry_Parse };
 
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::CreateScriptContextActionTag] = { NSLogEvents::ContextExecuteKind::GlobalAPIWrapper, NSLogEvents::CreateScriptContext_Execute, NSLogEvents::CreateScriptContext_UnloadEventMemory, NSLogEvents::CreateScriptContext_Emit, NSLogEvents::CreateScriptContext_Parse };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::SetActiveScriptContextActionTag] = { NSLogEvents::ContextExecuteKind::GlobalAPIWrapper, NSLogEvents::SetActiveScriptContext_Execute, nullptr, NSLogEvents::JsRTVarsArgumentAction_Emit<NSLogEvents::EventKind::SetActiveScriptContextActionTag>, NSLogEvents::JsRTVarsArgumentAction_Parse<NSLogEvents::EventKind::SetActiveScriptContextActionTag> };
@@ -650,7 +651,7 @@ namespace TTD
         this->SetGlobalMode(TTDMode::RecordMode);
     }
 
-    void EventLog::InitForTTDReplay(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes, bool debug)
+    void EventLog::InitForTTDReplay(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength, bool debug)
     {
         if (debug)
         {
@@ -661,7 +662,7 @@ namespace TTD
             this->SetGlobalMode(TTDMode::ReplayMode);
         }
 
-        this->ParseLogInto(iofp, uriByteLength, uriBytes);
+        this->ParseLogInto(iofp, parseUri, parseUriLength);
 
         Js::PropertyId maxPid = TotalNumberOfBuiltInProperties + 1;
         JsUtil::BaseDictionary<Js::PropertyId, NSSnapType::SnapPropertyRecord*, HeapAllocator> pidMap(&HeapAllocator::Instance);
@@ -770,13 +771,13 @@ namespace TTD
         this->m_propertyRecordPinSet->AddNew(const_cast<Js::PropertyRecord*>(record));
     }
 
-    const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* EventLog::AddScriptLoad(Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag)
+    const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* EventLog::AddScriptLoad(Js::FunctionBody* fb, Js::ModuleID moduleId, uint64 sourceContextId, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag)
     {
         NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo = this->m_loadedTopLevelScripts.NextOpenEntry();
         uint64 fCount = (this->m_loadedTopLevelScripts.Count() + this->m_newFunctionTopLevelScripts.Count() + this->m_evalTopLevelScripts.Count());
         bool isUtf8 = ((loadFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source);
 
-        NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo(fbInfo, fb, fCount, moduleId, documentID, isUtf8, source, sourceLen, loadFlag, this->m_miscSlabAllocator);
+        NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo(fbInfo, fb, fCount, moduleId, sourceContextId, isUtf8, source, sourceLen, loadFlag, this->m_miscSlabAllocator);
 
         return fbInfo;
     }
@@ -862,6 +863,27 @@ namespace TTD
 #endif
     }
 
+    void EventLog::RecordEmitLogEvent(Js::JavascriptString* uriString)
+    {
+        this->RecordGetInitializedEvent_DataOnly<void*, NSLogEvents::EventKind::ExplicitLogWriteTag>();
+
+        AutoArrayPtr<char> uri(HeapNewArrayZ(char, uriString->GetLength() * 3), uriString->GetLength() * 3);
+        size_t uriLength = utf8::EncodeInto((LPUTF8)((char*)uri), uriString->GetSz(), uriString->GetLength());
+
+        this->EmitLog(uri, uriLength);
+    }
+
+    void EventLog::ReplayEmitLogEvent()
+    {
+        this->ReplayGetReplayEvent_Helper<void*, NSLogEvents::EventKind::ExplicitLogWriteTag>();
+
+        //check if at end of log -- if so we are done and don't want to execute any more
+        if(!this->m_currentReplayEventIterator.IsValid())
+        {
+            this->AbortReplayReturnToHost();
+        }
+    }
+
     void EventLog::RecordDateTimeEvent(double time)
     {
         NSLogEvents::DoubleEventLogEntry* dEvent = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::DoubleEventLogEntry, NSLogEvents::EventKind::DoubleTag>();
@@ -904,6 +926,12 @@ namespace TTD
 
     void EventLog::RecordPropertyEnumEvent(BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attributes, Js::JavascriptString* propertyName)
     {
+        //When we replay we can just skip this pid cause it should never matter -- but if return code is false then we need to record the "at end" info
+        if(returnCode && Js::IsInternalPropertyId(pid))
+        {
+            return;
+        }
+
         NSLogEvents::PropertyEnumStepEventLogEntry* peEvent = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::PropertyEnumStepEventLogEntry, NSLogEvents::EventKind::PropertyEnumTag>();
         peEvent->ReturnCode = returnCode;
         peEvent->Pid = pid;
@@ -938,6 +966,8 @@ namespace TTD
         if(*returnCode)
         {
             TTDAssert(*pid != Js::Constants::NoProperty, "This is so weird we need to figure out what this means.");
+            TTDAssert(!Js::IsInternalPropertyId(*pid), "We should skip recording this.");
+
             Js::PropertyString* propertyString = requestContext->GetPropertyString(*pid);
             *propertyName = propertyString;
 
@@ -978,7 +1008,7 @@ namespace TTD
         //We never fail with an exception (instead we set the HasRecordedException in script context)
         evt->ResultStatus = 0;
 
-        NSLogEvents::ExternalCallEventLogEntry_ProcessArgs(evt, rootDepth, func, argc, argv, checkExceptions, this->m_timer.Now(), this->m_eventSlabAllocator);
+        NSLogEvents::ExternalCallEventLogEntry_ProcessArgs(evt, rootDepth, func, argc, argv, checkExceptions, this->m_eventSlabAllocator);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         NSLogEvents::ExternalCallEventLogEntry_ProcessDiagInfoPre(evt, func, this->m_eventSlabAllocator);
@@ -993,7 +1023,7 @@ namespace TTD
 
     void EventLog::RecordExternalCallEvent_Complete(Js::JavascriptFunction* efunction, NSLogEvents::EventLogEntry* evt, Js::Var result)
     {
-        NSLogEvents::ExternalCallEventLogEntry_ProcessReturn(evt, result, this->GetLastEventTime(), this->m_timer.Now());
+        NSLogEvents::ExternalCallEventLogEntry_ProcessReturn(evt, result, this->GetLastEventTime());
 
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.WriteReturn(efunction, result, this->GetLastEventTime());
@@ -1259,6 +1289,11 @@ namespace TTD
     void EventLog::SetPendingTTDBPInfo(const TTDebuggerSourceLocation& BPLocation)
     {
         this->m_pendingTTDBP.SetLocation(BPLocation);
+    }
+
+    void EventLog::EnsureTTDBPInfoTopLevelBodyCtrPreInflate()
+    {
+        this->m_pendingTTDBP.EnsureTopLevelBodyCtrPreInflate();
     }
 
     int64 EventLog::GetPendingTTDMoveMode() const
@@ -1795,12 +1830,12 @@ namespace TTD
         this->PushMode(TTDMode::ExcludedExecutionTTAction);
 
         NSLogEvents::JsRTCallFunctionAction* rootCall = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(this->m_currentReplayEventIterator.Current());
-        if(rootCall->AdditionalInfo->RtRSnap == nullptr)
+        if(rootCall->AdditionalInfo->AdditionalReplayInfo->RtRSnap == nullptr)
         {
             //Be careful to ensure that caller is actually doing this
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_JavascriptException));
 
-            rootCall->AdditionalInfo->RtRSnap = this->DoSnapshotExtract_Helper();
+            rootCall->AdditionalInfo->AdditionalReplayInfo->RtRSnap = this->DoSnapshotExtract_Helper();
         }
 
         this->PopMode(TTDMode::ExcludedExecutionTTAction);
@@ -1939,7 +1974,7 @@ namespace TTD
                 if(rootEntry->AdditionalInfo->CallEventTime == etime)
                 {
                     restoreEventTime = rootEntry->AdditionalInfo->CallEventTime;
-                    snap = rootEntry->AdditionalInfo->RtRSnap;
+                    snap = rootEntry->AdditionalInfo->AdditionalReplayInfo->RtRSnap;
                     break;
                 }
             }
@@ -2200,6 +2235,7 @@ namespace TTD
 
             TTDAssert(ctx != nullptr, "This should be set!!!");
             TTDAssert(ctx->GetThreadContext()->GetRecordedException() == nullptr, "Shouldn't have outstanding exceptions (assume always CheckContext when recording).");
+            TTDAssert(this->m_threadContext->TTDContext->GetActiveScriptContext() == ctx, "Make sure the replay host didn't change contexts on us unexpectedly without resetting back to the correct one.");
 
             try
             {
@@ -2243,6 +2279,7 @@ namespace TTD
 
             TTDAssert(ctx != nullptr, "This should be set!!!");
             TTDAssert(ctx->GetThreadContext()->GetRecordedException() == nullptr, "Shouldn't have outstanding exceptions (assume always CheckContext when recording).");
+            TTDAssert(this->m_threadContext->TTDContext->GetActiveScriptContext() == ctx, "Make sure the replay host didn't change contexts on us unexpectedly without resetting back to the correct one.");
 
             try
             {
@@ -2559,8 +2596,12 @@ namespace TTD
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTByteBufferAction, NSLogEvents::EventKind::AllocateExternalArrayBufferActionTag>(&cAction);
         cAction->Length = size;
 
-        cAction->Buffer = this->m_eventSlabAllocator.SlabAllocateArray<byte>(cAction->Length);
-        js_memcpy_s(cAction->Buffer, cAction->Length, buff, size);
+        cAction->Buffer = nullptr; 
+        if(cAction->Length != 0)
+        {
+            cAction->Buffer = this->m_eventSlabAllocator.SlabAllocateArray<byte>(cAction->Length);
+            js_memcpy_s(cAction->Buffer, cAction->Length, buff, size);
+        }
 
         actionPopper.InitializeWithEventAndEnterWResult(evt, &(cAction->Result));
     }
@@ -2892,7 +2933,7 @@ namespace TTD
         cbrAction->RegisterLocation = nullptr;
     }
 
-    NSLogEvents::EventLogEntry* EventLog::RecordJsRTCodeParse(TTDJsRTActionResultAutoRecorder& actionPopper, LoadScriptFlag loadFlag, bool isUft8, const byte* script, uint32 scriptByteLength, DWORD_PTR sourceContextId, const char16* sourceUri)
+    NSLogEvents::EventLogEntry* EventLog::RecordJsRTCodeParse(TTDJsRTActionResultAutoRecorder& actionPopper, LoadScriptFlag loadFlag, bool isUft8, const byte* script, uint32 scriptByteLength, uint64 sourceContextId, const char16* sourceUri)
     {
         NSLogEvents::JsRTCodeParseAction* cpAction = nullptr;
         NSLogEvents::EventLogEntry* evt = this->RecordGetInitializedEvent<NSLogEvents::JsRTCodeParseAction, NSLogEvents::EventKind::CodeParseActionTag>(&cpAction);
@@ -2907,10 +2948,7 @@ namespace TTD
         js_memcpy_s(cpAction->AdditionalInfo->SourceCode, cpAction->AdditionalInfo->SourceByteLength, script, scriptByteLength);
 
         this->m_eventSlabAllocator.CopyNullTermStringInto(sourceUri, cpAction->AdditionalInfo->SourceUri);
-        cpAction->AdditionalInfo->DocumentID = sourceContextId;
-
-        //Not needed for record -- just ensure initialized to default value
-        InitializeAsNullPtrTTString(cpAction->AdditionalInfo->RelocatedSourceUri);
+        cpAction->AdditionalInfo->SourceContextId = sourceContextId;
 
         cpAction->AdditionalInfo->LoadFlag = loadFlag;
 
@@ -2926,8 +2964,7 @@ namespace TTD
 
         int64 evtTime = this->GetLastEventTime();
         int64 topLevelCallTime = (rootDepth == 0) ? evtTime : this->m_topLevelCallbackEventTime;
-        double wallTime = this->m_timer.Now();
-        NSLogEvents::JsRTCallFunctionAction_ProcessArgs(evt, rootDepth, evtTime, funcVar, argCount, args, wallTime, topLevelCallTime, this->m_eventSlabAllocator);
+        NSLogEvents::JsRTCallFunctionAction_ProcessArgs(evt, rootDepth, evtTime, funcVar, argCount, args, topLevelCallTime, this->m_eventSlabAllocator);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         NSLogEvents::JsRTCallFunctionAction_ProcessDiagInfoPre(evt, funcVar, this->m_eventSlabAllocator);
@@ -2938,23 +2975,21 @@ namespace TTD
         return evt;
     }
 
-    void EventLog::EmitLog()
+    void EventLog::EmitLog(const char* emitUri, size_t emitUriLength)
     {
 #if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
         this->m_diagnosticLogger.ForceFlush();
 #endif
 
-        const IOStreamFunctions& iofp = this->m_threadContext->TTDContext->TTDStreamFunctions;
+        TTDataIOInfo& iofp = this->m_threadContext->TTDContext->TTDataIOInfo;
+        iofp.ActiveTTUriLength = emitUriLength;
+        iofp.ActiveTTUri = emitUri;
 
-        //
-        //TODO: we want to update this so that we can output multiple snapshots to different sub-locations... also add input param with location info
-        //
-        const TTUriString& outUri = this->m_threadContext->TTDContext->TTDUri;
+        const char* logfilename = "ttdlog.log";
+        JsTTDStreamHandle logHandle = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(logfilename), logfilename, false, true);
+        TTDAssert(logHandle != nullptr, "Failed to initialize strem for writing TTD Log.");
 
-        this->m_threadContext->TTDContext->TTDWriteInitializeFunction(outUri.UriByteLength, outUri.UriBytes);
-
-        JsTTDStreamHandle logHandle = iofp.pfGetResourceStream(outUri.UriByteLength, outUri.UriBytes, "ttdlog.log", false, true, nullptr, nullptr);
-        TTD_LOG_WRITER writer(logHandle, TTD_COMPRESSED_OUTPUT, iofp.pfWriteBytesToStream, iofp.pfFlushAndCloseStream);
+        TTD_LOG_WRITER writer(logHandle, iofp.pfWriteBytesToStream, iofp.pfFlushAndCloseStream);
 
         writer.WriteRecordStart();
         writer.AdjustIndent(1);
@@ -2983,7 +3018,7 @@ namespace TTD
         this->m_miscSlabAllocator.CopyNullTermStringInto(_u("Linux"), platformString);
 #endif
 
-        writer.WriteString(NSTokens::Key::platform, platformString);
+        writer.WriteString(NSTokens::Key::platform, platformString, NSTokens::Separator::CommaSeparator);
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
         bool diagEnabled = true;
@@ -3076,32 +3111,16 @@ namespace TTD
         writer.AdjustIndent(-1);
         writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
 
-        //we haven't moved the properties to their serialized form them take care of it
-        TTDAssert(this->m_propertyRecordList.Count() == 0, "We only compute this when we are ready to emit.");
-
-        for(auto iter = this->m_propertyRecordPinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
-        {
-            Js::PropertyRecord* pRecord = static_cast<Js::PropertyRecord*>(iter.CurrentValue());
-            NSSnapType::SnapPropertyRecord* sRecord = this->m_propertyRecordList.NextOpenEntry();
-
-            sRecord->PropertyId = pRecord->GetPropertyId();
-            sRecord->IsNumeric = pRecord->IsNumeric();
-            sRecord->IsBound = pRecord->IsBound();
-            sRecord->IsSymbol = pRecord->IsSymbol();
-
-            this->m_miscSlabAllocator.CopyStringIntoWLength(pRecord->GetBuffer(), pRecord->GetLength(), sRecord->PropertyName);
-        }
-
         //emit the properties
-        writer.WriteLengthValue(this->m_propertyRecordList.Count(), NSTokens::Separator::CommaSeparator);
+        writer.WriteLengthValue(this->m_propertyRecordPinSet->Count(), NSTokens::Separator::CommaSeparator);
 
         writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
         writer.AdjustIndent(1);
         bool firstProperty = true;
-        for(auto iter = this->m_propertyRecordList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        for(auto iter = this->m_propertyRecordPinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             NSTokens::Separator sep = (!firstProperty) ? NSTokens::Separator::CommaAndBigSpaceSeparator : NSTokens::Separator::BigSpaceSeparator;
-            NSSnapType::EmitSnapPropertyRecord(iter.Current(), &writer, sep);
+            NSSnapType::EmitPropertyRecordAsSnapPropertyRecord(iter.CurrentValue(), &writer, sep);
 
             firstProperty = false;
         }
@@ -3156,12 +3175,21 @@ namespace TTD
         writer.WriteRecordEnd(NSTokens::Separator::BigSpaceSeparator);
 
         writer.FlushAndClose();
+
+        iofp.ActiveTTUriLength = 0;
+        iofp.ActiveTTUri = nullptr;
     }
 
-    void EventLog::ParseLogInto(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes)
+    void EventLog::ParseLogInto(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength)
     {
-        JsTTDStreamHandle logHandle = iofp.pfGetResourceStream(uriByteLength, uriBytes, "ttdlog.log", true, false, nullptr, nullptr);
-        TTD_LOG_READER reader(logHandle, TTD_COMPRESSED_OUTPUT, iofp.pfReadBytesFromStream, iofp.pfFlushAndCloseStream);
+        iofp.ActiveTTUriLength = parseUriLength;
+        iofp.ActiveTTUri = parseUri;
+
+        const char* logfilename = "ttdlog.log";
+        JsTTDStreamHandle logHandle = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(logfilename), logfilename, true, false);
+        TTDAssert(logHandle != nullptr, "Failed to initialize strem for reading TTD Log.");
+
+        TTD_LOG_READER reader(logHandle, iofp.pfReadBytesFromStream, iofp.pfFlushAndCloseStream);
 
         reader.ReadRecordStart();
 
@@ -3180,7 +3208,7 @@ namespace TTD
 
         //This is informational only so just read off the value and ignore
         TTString platformString;
-        reader.ReadString(NSTokens::Key::platform, this->m_miscSlabAllocator, platformString);
+        reader.ReadString(NSTokens::Key::platform, this->m_miscSlabAllocator, platformString, true);
 
         bool diagEnabled = reader.ReadBool(NSTokens::Key::diagEnabled, true);
 

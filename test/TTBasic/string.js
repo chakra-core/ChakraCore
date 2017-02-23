@@ -19,4 +19,6 @@ function testFunction()
     telemetryLog(`empty.length: ${empty.length}`, true); //0
     telemetryLog(`x.length: ${x.length}`, true); //5
     telemetryLog(`x + \' \' + y: ${x + ' ' + y}`, true); //Hello World
+
+    emitTTDLog(ttdLogURI);
 }

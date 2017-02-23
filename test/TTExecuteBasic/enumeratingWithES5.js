@@ -203,4 +203,6 @@ function testFunction()
 
     telemetryLog("Test 4: Accessors", true);
     TestAccessors();
+
+    emitTTDLog(ttdLogURI);
 }

@@ -397,7 +397,6 @@
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 0
 #endif
 
-#define TTD_COMPRESSED_OUTPUT 0
 #define TTD_LOG_READER TextFormatReader
 #define TTD_LOG_WRITER TextFormatWriter
 

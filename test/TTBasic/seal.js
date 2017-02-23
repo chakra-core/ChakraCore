@@ -36,4 +36,6 @@ function testFunction()
     telemetryLog(`${Object.getOwnPropertyNames(b)}`, true);
     telemetryLog(`${Object.isSealed(b)}`, true);
     telemetryLog(`${b.x}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

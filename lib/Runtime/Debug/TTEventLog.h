@@ -85,13 +85,14 @@ namespace TTD
     {
     private:
         Js::ScriptContext* m_ctx;
+        double m_beginTime;
         NSLogEvents::EventLogEntry* m_callAction;
 
     public:
         TTDJsRTFunctionCallActionPopperRecorder();
         ~TTDJsRTFunctionCallActionPopperRecorder();
 
-        void InitializeForRecording(Js::ScriptContext* ctx, NSLogEvents::EventLogEntry* callAction);
+        void InitializeForRecording(Js::ScriptContext* ctx, double beginWallTime, NSLogEvents::EventLogEntry* callAction);
     };
 
     //A by value class representing the state of the last returned from location in execution (return x or exception)
@@ -375,7 +376,7 @@ namespace TTD
 
         //Initialize the log so that it is ready to perform TTD (record or replay) and set into the correct global mode
         void InitForTTDRecord();
-        void InitForTTDReplay(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes, bool debug);
+        void InitForTTDReplay(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength, bool debug);
 
         //reset the bottom (global) mode with the specific value
         void SetGlobalMode(TTDMode m);
@@ -411,7 +412,7 @@ namespace TTD
         void AddPropertyRecord(const Js::PropertyRecord* record);
 
         //Add top level function load info to our sets
-        const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* AddScriptLoad(Js::FunctionBody* fb, Js::ModuleID moduleId, DWORD_PTR documentID, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag);
+        const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* AddScriptLoad(Js::FunctionBody* fb, Js::ModuleID moduleId, uint64 sourceContextId, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag);
         const NSSnapValues::TopLevelNewFunctionBodyResolveInfo* AddNewFunction(Js::FunctionBody* fb, Js::ModuleID moduleId, const char16* source, uint32 sourceLen);
         const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* AddEvalFunction(Js::FunctionBody* fb, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, uint32 grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode);
 
@@ -426,6 +427,12 @@ namespace TTD
 
         //Replay a user telemetry event
         void ReplayTelemetryLogEvent(Js::JavascriptString* infoStringJs);
+
+        //Log an event generated to write the log to a given uri
+        void RecordEmitLogEvent(Js::JavascriptString* uriString);
+
+        //Replay a event that writes the log to a given uri
+        void ReplayEmitLogEvent();
 
         //Log a time that is fetched during date operations
         void RecordDateTimeEvent(double time);
@@ -486,6 +493,7 @@ namespace TTD
         void GetPendingTTDBPInfo(TTDebuggerSourceLocation& BPLocation) const;
         void ClearPendingTTDBPInfo();
         void SetPendingTTDBPInfo(const TTDebuggerSourceLocation& BPLocation);
+        void EnsureTTDBPInfoTopLevelBodyCtrPreInflate();
 
         int64 GetPendingTTDMoveMode() const;
         void ClearPendingTTDMoveMode();
@@ -701,7 +709,7 @@ namespace TTD
         void RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCreate, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 callbackId);
 
         //Record code parse
-        NSLogEvents::EventLogEntry* RecordJsRTCodeParse(TTDJsRTActionResultAutoRecorder& actionPopper, LoadScriptFlag loadFlag, bool isUft8, const byte* script, uint32 scriptByteLength, DWORD_PTR sourceContextId, const char16* sourceUri);
+        NSLogEvents::EventLogEntry* RecordJsRTCodeParse(TTDJsRTActionResultAutoRecorder& actionPopper, LoadScriptFlag loadFlag, bool isUft8, const byte* script, uint32 scriptByteLength, uint64 sourceContextId, const char16* sourceUri);
 
         //Record callback of an existing function
         NSLogEvents::EventLogEntry* RecordJsRTCallFunction(TTDJsRTActionResultAutoRecorder& actionPopper, int32 rootDepth, Js::Var funcVar, uint32 argCount, Js::Var* args);
@@ -709,8 +717,8 @@ namespace TTD
         ////////////////////////////////
         //Emit code and support
 
-        void EmitLog();
-        void ParseLogInto(const IOStreamFunctions& iofp, size_t uriByteLength, const byte* uriBytes);
+        void EmitLog(const char* emitUri, size_t emitUriLength);
+        void ParseLogInto(TTDataIOInfo& iofp, const char* parseUri, size_t parseUriLength);
     };
 
     //A class to ensure that even when exceptions are thrown the pop action for the TTD call stack is executed -- defined after EventLog so we can refer to it in the .h file

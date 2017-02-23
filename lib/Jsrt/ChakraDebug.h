@@ -646,28 +646,20 @@ typedef unsigned __int32 uint32_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Ensure that the location specified for outputting the TTD data is clean. Specifically, ensure that any previous TTD
-    ///     in the location has been removed.
-    /// </summary>
-    /// <param name="uriByteLength">The length of the uriBytes array that the host passed in for storing log info.</param>
-    /// <param name="uriBytes">The bytes of the URI that the host passed in for storing log info.</param>
-    typedef void (CHAKRA_CALLBACK *JsTTDInitializeForWriteLogStreamCallback)(_In_ size_t uriByteLength, _In_reads_(uriByteLength) const byte* uriBytes);
-
-    /// <summary>
-    ///     TTD API -- may change in future versions:
     ///     Construct a JsTTDStreamHandle that will be used to read/write the event log portion of the TTD data based on the uri
     ///     provided by JsTTDInitializeUriCallback.
     /// </summary>
     /// <remarks>
     ///     <para>Exactly one of read or write will be set to true.</para>
     /// </remarks>
-    /// <param name="uriByteLength">The length of the uriBytes array that the host passed in for storing log info.</param>
-    /// <param name="uriBytes">The bytes of the URI that the host passed in for storing log info.</param>
-    /// <param name="asciiResourceName">A null terminated ascii string giving a unique name to the resource that the JsTTDStreamHandle will be created for.</param>
+    /// <param name="uriLength">The length of the uri array that the host passed in for storing log info.</param>
+    /// <param name="uri">The URI that the host passed in for storing log info.</param>
+    /// <param name="asciiNameLength">The length of the ascii name array that the host passed in for storing log info.</param>
+    /// <param name="asciiResourceName">An optional ascii string giving a unique name to the resource that the JsTTDStreamHandle will be created for.</param>
     /// <param name="read">If the handle should be opened for reading.</param>
     /// <param name="write">If the handle should be opened for writing.</param>
     /// <returns>A JsTTDStreamHandle opened in read/write mode as specified.</returns>
-    typedef JsTTDStreamHandle (CHAKRA_CALLBACK *TTDOpenResourceStreamCallback)(_In_ size_t uriByteLength, _In_reads_(uriByteLength) const byte* uriBytes, _In_z_ const char* asciiResourceName, _In_ bool read, _In_ bool write, _Out_opt_ byte** relocatedUri, _Out_opt_ size_t* relocatedUriLength);
+    typedef JsTTDStreamHandle (CHAKRA_CALLBACK *TTDOpenResourceStreamCallback)(_In_ size_t uriLength, _In_reads_(uriLength) const char* uri, _In_ size_t asciiNameLength, _In_reads_(asciiNameLength) const char* asciiResourceName, _In_ bool read, _In_ bool write);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -708,12 +700,9 @@ typedef unsigned __int32 uint32_t;
     ///     Creates a new runtime in Record Mode.
     /// </summary>
     /// <param name="attributes">The attributes of the runtime to be created.</param>
-    /// <param name="infoUri">The uri where the recorded Time-Travel data should be stored.</param>
     /// <param name="snapInterval">The interval to wait between snapshots (measured in millis).</param>
     /// <param name="snapHistoryLength">The amount of history to maintain before discarding -- measured in number of snapshots and controls how far back in time a trace can be reversed.</param>
-    /// <param name="writeInitializeFunction">The <c>JsTTDInitializeForWriteLogStreamCallback</c> function for performing any initialization needed prepare uri for storing time travel recording data.</param>
     /// <param name="openResourceStream">The <c>TTDOpenResourceStreamCallback</c> function for generating a JsTTDStreamHandle to read/write serialized data.</param>
-    /// <param name="readBytesFromStream">The <c>JsTTDReadBytesFromStreamCallback</c> function for reading bytes from a JsTTDStreamHandle.</param>
     /// <param name="writeBytesToStream">The <c>JsTTDWriteBytesToStreamCallback</c> function for writing bytes to a JsTTDStreamHandle.</param>
     /// <param name="flushAndCloseStream">The <c>JsTTDFlushAndCloseStreamCallback</c> function for flushing and closing a JsTTDStreamHandle as needed.</param>
     /// <param name="threadService">The thread service for the runtime. Can be null.</param>
@@ -727,13 +716,9 @@ typedef unsigned __int32 uint32_t;
     CHAKRA_API
         JsTTDCreateRecordRuntime(
             _In_ JsRuntimeAttributes attributes,
-            _In_reads_(infoUriCount) const byte* infoUri,
-            _In_ size_t infoUriCount,
             _In_ size_t snapInterval,
             _In_ size_t snapHistoryLength,
-            _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction,
             _In_ TTDOpenResourceStreamCallback openResourceStream,
-            _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream,
             _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream,
             _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
             _In_opt_ JsThreadServiceCallback threadService,
@@ -746,10 +731,8 @@ typedef unsigned __int32 uint32_t;
     /// <param name="attributes">The attributes of the runtime to be created.</param>
     /// <param name="infoUri">The uri where the recorded Time-Travel data should be loaded from.</param>
     /// <param name="enableDebugging">A flag to enable addtional debugging operation support during replay.</param>
-    /// <param name="writeInitializeFunction">The <c>JsTTDInitializeForWriteLogStreamCallback</c> function for performing any initialization needed prepare uri for storing time travel recording data.</param>
     /// <param name="openResourceStream">The <c>TTDOpenResourceStreamCallback</c> function for generating a JsTTDStreamHandle to read/write serialized data.</param>
     /// <param name="readBytesFromStream">The <c>JsTTDReadBytesFromStreamCallback</c> function for reading bytes from a JsTTDStreamHandle.</param>
-    /// <param name="writeBytesToStream">The <c>JsTTDWriteBytesToStreamCallback</c> function for writing bytes to a JsTTDStreamHandle.</param>
     /// <param name="flushAndCloseStream">The <c>JsTTDFlushAndCloseStreamCallback</c> function for flushing and closing a JsTTDStreamHandle as needed.</param>
     /// <param name="threadService">The thread service for the runtime. Can be null.</param>
     /// <param name="runtime">The runtime created.</param>
@@ -762,13 +745,11 @@ typedef unsigned __int32 uint32_t;
     CHAKRA_API
         JsTTDCreateReplayRuntime(
             _In_ JsRuntimeAttributes attributes,
-            _In_reads_(infoUriCount) const byte* infoUri,
+            _In_reads_(infoUriCount) const char* infoUri,
             _In_ size_t infoUriCount,
             _In_ bool enableDebugging,
-            _In_ JsTTDInitializeForWriteLogStreamCallback writeInitializeFunction,
             _In_ TTDOpenResourceStreamCallback openResourceStream,
             _In_ JsTTDReadBytesFromStreamCallback readBytesFromStream,
-            _In_ JsTTDWriteBytesToStreamCallback writeBytesToStream,
             _In_ JsTTDFlushAndCloseStreamCallback flushAndCloseStream,
             _In_opt_ JsThreadServiceCallback threadService,
             _Out_ JsRuntimeHandle *runtime);
@@ -801,7 +782,7 @@ typedef unsigned __int32 uint32_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Start Time-Travel Recording.
+    ///     Start Time-Travel record or replay at next turn of event loop.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
@@ -809,19 +790,11 @@ typedef unsigned __int32 uint32_t;
 
     /// <summary>
     ///     TTD API -- may change in future versions:
-    ///     Stop Time-Travel Recording.
+    ///     Stop Time-Travel record or replay.
     /// </summary>
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
         JsTTDStop();
-
-    /// <summary>
-    ///     TTD API -- may change in future versions:
-    ///     Emit Time-Travel Recording.
-    /// </summary>
-    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
-    CHAKRA_API
-        JsTTDEmitRecording();
 
     /// <summary>
     ///     TTD API -- may change in future versions:
@@ -838,7 +811,6 @@ typedef unsigned __int32 uint32_t;
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
         JsTTDReStartTimeTravelAfterRuntimeOperation();
-
 
     /// <summary>
     ///     TTD API -- may change in future versions:

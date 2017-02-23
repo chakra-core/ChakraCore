@@ -39,7 +39,7 @@ namespace TTD
                 const NSLogEvents::JsRTCallFunctionAction* rootEntry = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallFunctionAction, NSLogEvents::EventKind::CallExistingFunctionActionTag>(evt);
 
                 isRoot = true;
-                hasRtrSnap = rootEntry->AdditionalInfo->RtRSnap != nullptr;
+                hasRtrSnap = (rootEntry->AdditionalInfo->AdditionalReplayInfo != nullptr && rootEntry->AdditionalInfo->AdditionalReplayInfo->RtRSnap != nullptr);
                 return rootEntry->AdditionalInfo->CallEventTime;
             }
             else
@@ -387,7 +387,10 @@ namespace TTD
             Js::ArrayBuffer* abuff = ctx->GetLibrary()->CreateArrayBuffer(action->Length);
             TTDAssert(abuff->GetByteLength() == action->Length, "Something is wrong with our sizes.");
 
-            js_memcpy_s(abuff->GetBuffer(), abuff->GetByteLength(), action->Buffer, action->Length);
+            if(action->Length != 0)
+            {
+                js_memcpy_s(abuff->GetBuffer(), abuff->GetByteLength(), action->Buffer, action->Length);
+            }
 
             JsRTActionHandleResultForReplay<JsRTByteBufferAction, EventKind::AllocateExternalArrayBufferActionTag>(executeContext, evt, (Js::Var)abuff);
         }
@@ -957,28 +960,17 @@ namespace TTD
 
             byte* script = cpInfo->SourceCode;
             uint32 scriptByteLength = cpInfo->SourceByteLength;
-            DWORD_PTR sourceContext = cpInfo->DocumentID;
 
             TTDAssert(cpAction->AdditionalInfo->IsUtf8 == ((cpAction->AdditionalInfo->LoadFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source), "Utf8 status is inconsistent!!!");
 
-            SourceContextInfo * sourceContextInfo = ctx->GetSourceContextInfo(sourceContext, nullptr);
+            SourceContextInfo * sourceContextInfo = ctx->GetSourceContextInfo((DWORD_PTR)cpInfo->SourceContextId, nullptr);
 
             if(sourceContextInfo == nullptr)
             {
-                const char16* srcUri = nullptr;
-                uint32 srcUriLength = 0;
-                if(!IsNullPtrTTString(cpInfo->RelocatedSourceUri))
-                {
-                    srcUri = cpInfo->RelocatedSourceUri.Contents;
-                    srcUriLength = cpInfo->RelocatedSourceUri.Length;
-                }
-                else
-                {
-                    srcUri = cpInfo->SourceUri.Contents;
-                    srcUriLength = cpInfo->SourceUri.Length;
-                }
+                const char16* srcUri = cpInfo->SourceUri.Contents;
+                uint32 srcUriLength = cpInfo->SourceUri.Length;
 
-                sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, srcUri, srcUriLength, nullptr);
+                sourceContextInfo = ctx->CreateSourceContextInfo((DWORD_PTR)cpInfo->SourceContextId, srcUri, srcUriLength, nullptr);
             }
 
             TTDAssert(cpAction->AdditionalInfo->IsUtf8 || sizeof(wchar) == sizeof(char16), "Non-utf8 code only allowed on windows!!!");
@@ -1035,11 +1027,6 @@ namespace TTD
                 alloc.UnlinkString(cpInfo->SourceUri);
             }
 
-            if(!IsNullPtrTTString(cpInfo->RelocatedSourceUri))
-            {
-                alloc.UnlinkString(cpInfo->RelocatedSourceUri);
-            }
-
             alloc.UnlinkAllocation(cpAction->AdditionalInfo);
         }
 
@@ -1051,19 +1038,17 @@ namespace TTD
             writer->WriteKey(NSTokens::Key::argRetVal, NSTokens::Separator::CommaSeparator);
             NSSnapValues::EmitTTDVar(cpAction->Result, writer, NSTokens::Separator::NoSeparator);
 
-            writer->WriteUInt64(NSTokens::Key::documentId, (uint64)cpInfo->DocumentID, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt64(NSTokens::Key::sourceContextId, cpInfo->SourceContextId, NSTokens::Separator::CommaSeparator);
             writer->WriteTag<LoadScriptFlag>(NSTokens::Key::loadFlag, cpInfo->LoadFlag, NSTokens::Separator::CommaSeparator);
 
             writer->WriteUInt64(NSTokens::Key::bodyCounterId, cpAction->BodyCtrId, NSTokens::Separator::CommaSeparator);
 
             writer->WriteString(NSTokens::Key::uri, cpInfo->SourceUri, NSTokens::Separator::CommaSeparator);
 
-            //RelocatedSourceUri is not used (or set) during record so nothing to emit here
-
             writer->WriteBool(NSTokens::Key::boolVal, cpInfo->IsUtf8, NSTokens::Separator::CommaSeparator);
             writer->WriteLengthValue(cpInfo->SourceByteLength, NSTokens::Separator::CommaSeparator);
 
-            JsSupport::WriteCodeToFile(threadContext, true, cpInfo->DocumentID, cpInfo->IsUtf8, cpInfo->SourceCode, cpInfo->SourceByteLength);
+            JsSupport::WriteCodeToFile(threadContext, true, cpAction->BodyCtrId, cpInfo->IsUtf8, cpInfo->SourceCode, cpInfo->SourceByteLength);
         }
 
         void JsRTCodeParseAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
@@ -1076,34 +1061,19 @@ namespace TTD
             reader->ReadKey(NSTokens::Key::argRetVal, true);
             cpAction->Result = NSSnapValues::ParseTTDVar(false, reader);
 
-            cpInfo->DocumentID = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
+            cpInfo->SourceContextId = reader->ReadUInt64(NSTokens::Key::sourceContextId, true);
             cpInfo->LoadFlag = reader->ReadTag<LoadScriptFlag>(NSTokens::Key::loadFlag, true);
 
             cpAction->BodyCtrId = reader->ReadUInt64(NSTokens::Key::bodyCounterId, true);
 
             reader->ReadString(NSTokens::Key::uri, alloc, cpInfo->SourceUri, true);
 
-            //Not needed for record -- so nothing to parse just ensure initialized to default value
-            InitializeAsNullPtrTTString(cpInfo->RelocatedSourceUri);
-
             cpInfo->IsUtf8 = reader->ReadBool(NSTokens::Key::boolVal, true);
             cpInfo->SourceByteLength = reader->ReadLengthValue(true);
 
             cpInfo->SourceCode = alloc.SlabAllocateArray<byte>(cpAction->AdditionalInfo->SourceByteLength);
 
-            byte* relocatedUri = nullptr;
-            size_t relocatedUriLength = 0;
-
-            JsSupport::ReadCodeFromFile(threadContext, true, cpInfo->DocumentID, cpInfo->IsUtf8, cpInfo->SourceCode, cpInfo->SourceByteLength, &relocatedUri, &relocatedUriLength);
-
-            if(relocatedUri != nullptr)
-            {
-                alloc.CopyStringIntoWLength((char16*)relocatedUri, (uint32)relocatedUriLength, cpInfo->RelocatedSourceUri);
-
-                //We may want to make this auto-freeing
-                CoTaskMemFree(relocatedUri);
-                relocatedUri = nullptr;
-            }
+            JsSupport::ReadCodeFromFile(threadContext, true, cpAction->BodyCtrId, cpInfo->IsUtf8, cpInfo->SourceCode, cpInfo->SourceByteLength);
         }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -1129,7 +1099,6 @@ namespace TTD
             }
 
             //In case we don't terminate add these nicely
-            cfAction->AdditionalInfo->EndTime = -1.0;
             cfAction->AdditionalInfo->LastNestedEvent = TTD_EVENT_MAXTIME;
         }
 
@@ -1141,7 +1110,7 @@ namespace TTD
         }
 #endif
 
-        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::Var funcVar, uint32 argc, Js::Var* argv, double wallTime, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc)
+        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::Var funcVar, uint32 argc, Js::Var* argv, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc)
         {
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             cfAction->AdditionalInfo = alloc.SlabAllocateStruct<JsRTCallFunctionAction_AdditionalInfo>();
@@ -1155,17 +1124,11 @@ namespace TTD
             cfAction->ArgArray[0] = TTD_CONVERT_JSVAR_TO_TTDVAR(funcVar);
             js_memcpy_s(cfAction->ArgArray + 1, (cfAction->ArgCount -1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
 
-            cfAction->AdditionalInfo->BeginTime = wallTime;
-            cfAction->AdditionalInfo->EndTime = -1.0;
-
             cfAction->AdditionalInfo->CallEventTime = callEventTime;
 
             cfAction->AdditionalInfo->TopLevelCallbackEventTime = topLevelCallbackEventTime;
 
-            cfAction->AdditionalInfo->RtRSnap = nullptr;
-            cfAction->AdditionalInfo->ExecArgs = nullptr;
-
-            cfAction->AdditionalInfo->LastExecutedLocation.Initialize();
+            cfAction->AdditionalInfo->AdditionalReplayInfo = nullptr;
 
             //Result is initialized when we register this with the popper
         }
@@ -1191,9 +1154,9 @@ namespace TTD
                  Js::Var argi = InflateVarInReplay(executeContext, cfAction->ArgArray[i]);
                  TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(argi, ctx);
 
-                 cfAction->AdditionalInfo->ExecArgs[i - 1] = argi;
+                 cfAction->AdditionalInfo->AdditionalReplayInfo->ExecArgs[i - 1] = argi;
             }
-            Js::Arguments jsArgs(callInfo, cfAction->AdditionalInfo->ExecArgs);
+            Js::Arguments jsArgs(callInfo, cfAction->AdditionalInfo->AdditionalReplayInfo->ExecArgs);
 
             //If this isn't a root function then just call it -- don't need to reset anything and exceptions can just continue
             if(cfAction->CallbackDepth != 0)
@@ -1285,16 +1248,21 @@ namespace TTD
 
             alloc.UnlinkAllocation(cfAction->ArgArray);
 
-            if(cfInfo->ExecArgs != nullptr)
+            if(cfInfo->AdditionalReplayInfo != nullptr)
             {
-                alloc.UnlinkAllocation(cfInfo->ExecArgs);
-            }
+                if(cfInfo->AdditionalReplayInfo->ExecArgs != nullptr)
+                {
+                    alloc.UnlinkAllocation(cfInfo->AdditionalReplayInfo->ExecArgs);
+                }
 
-            JsRTCallFunctionAction_UnloadSnapshot(evt);
+                JsRTCallFunctionAction_UnloadSnapshot(evt);
 
-            if(cfInfo->LastExecutedLocation.HasValue())
-            {
-                cfInfo->LastExecutedLocation.Clear();
+                if(cfInfo->AdditionalReplayInfo->LastExecutedLocation.HasValue())
+                {
+                    cfInfo->AdditionalReplayInfo->LastExecutedLocation.Clear();
+                }
+
+                alloc.UnlinkAllocation(cfInfo->AdditionalReplayInfo);
             }
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
@@ -1323,9 +1291,6 @@ namespace TTD
                 NSSnapValues::EmitTTDVar(cfAction->ArgArray[i], writer, sep);
             }
             writer->WriteSequenceEnd();
-
-            writer->WriteDouble(NSTokens::Key::beginTime, cfInfo->BeginTime, NSTokens::Separator::CommaSeparator);
-            writer->WriteDouble(NSTokens::Key::endTime, cfInfo->EndTime, NSTokens::Separator::CommaSeparator);
 
             writer->WriteInt64(NSTokens::Key::eventTime, cfInfo->CallEventTime, NSTokens::Separator::CommaSeparator);
 
@@ -1358,17 +1323,17 @@ namespace TTD
             reader->ReadSequenceEnd();
 
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
-            cfInfo->BeginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
-            cfInfo->EndTime = reader->ReadDouble(NSTokens::Key::endTime, true);
 
             cfInfo->CallEventTime = reader->ReadInt64(NSTokens::Key::eventTime, true);
 
             cfInfo->TopLevelCallbackEventTime = reader->ReadInt64(NSTokens::Key::eventTime, true);
 
-            cfInfo->RtRSnap = nullptr;
-            cfInfo->ExecArgs = (cfAction->ArgCount > 1) ? alloc.SlabAllocateArray<Js::Var>(cfAction->ArgCount - 1) : nullptr; //ArgCount includes slot for function which we don't use in exec
+            cfInfo->AdditionalReplayInfo = alloc.SlabAllocateStruct<JsRTCallFunctionAction_ReplayAdditionalInfo>();
 
-            cfInfo->LastExecutedLocation.Initialize();
+            cfInfo->AdditionalReplayInfo->RtRSnap = nullptr;
+            cfInfo->AdditionalReplayInfo->ExecArgs = (cfAction->ArgCount > 1) ? alloc.SlabAllocateArray<Js::Var>(cfAction->ArgCount - 1) : nullptr; //ArgCount includes slot for function which we don't use in exec
+
+            cfInfo->AdditionalReplayInfo->LastExecutedLocation.Initialize();
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             cfInfo->LastNestedEvent = reader->ReadInt64(NSTokens::Key::i64Val, true);
@@ -1381,10 +1346,10 @@ namespace TTD
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
 
-            if(cfInfo->RtRSnap != nullptr)
+            if(cfInfo->AdditionalReplayInfo != nullptr && cfInfo->AdditionalReplayInfo->RtRSnap != nullptr)
             {
-                TT_HEAP_DELETE(SnapShot, cfInfo->RtRSnap);
-                cfInfo->RtRSnap = nullptr;
+                TT_HEAP_DELETE(SnapShot, cfInfo->AdditionalReplayInfo->RtRSnap);
+                cfInfo->AdditionalReplayInfo->RtRSnap = nullptr;
             }
         }
 
@@ -1393,16 +1358,16 @@ namespace TTD
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
 
-            cfInfo->LastExecutedLocation.SetLocation(lastSourceLocation);
+            cfInfo->AdditionalReplayInfo->LastExecutedLocation.SetLocation(lastSourceLocation);
         }
 
         bool JsRTCallFunctionAction_GetLastExecutedStatementAndFrameInfoForDebugger(const EventLogEntry* evt, TTDebuggerSourceLocation& lastSourceInfo)
         {
             const JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
-            if(cfInfo->LastExecutedLocation.HasValue())
+            if(cfInfo->AdditionalReplayInfo->LastExecutedLocation.HasValue())
             {
-                lastSourceInfo.SetLocation(cfInfo->LastExecutedLocation);
+                lastSourceInfo.SetLocation(cfInfo->AdditionalReplayInfo->LastExecutedLocation);
                 return true;
             }
             else

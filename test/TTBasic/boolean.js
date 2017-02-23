@@ -19,4 +19,6 @@ function testFunction()
 
     telemetryLog(`x && y: ${x && y}`, true); //false
     telemetryLog(`x || y: ${x || y}`, true); //true
+
+    emitTTDLog(ttdLogURI);
 }

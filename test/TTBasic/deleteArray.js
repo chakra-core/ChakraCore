@@ -32,4 +32,6 @@ function testFunction()
     
     telemetryLog(`${delete arr[n+1]}`, true); 
     telemetryLog(`T4:${arr.length} : ${arr}`, true);
+
+    emitTTDLog(ttdLogURI);
 }
