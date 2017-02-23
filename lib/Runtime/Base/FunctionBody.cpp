@@ -6248,8 +6248,12 @@ namespace Js
     {
         // This function body is about to be visited by the byte code generator after defer-parsing it. Since the previous visit
         // pass may have failed, we need to restore state that is tracked on the function body by the visit pass.
-
-        ResetLiteralRegexes();
+        // Note: do not reset literal regexes if the function has already been compiled (e.g., is a parsed function enclosed by a
+        // redeferred function) as we will not use the count of literals anyway, and the counters may be accessed by the background thread.
+        if (this->byteCodeBlock == nullptr)
+        {
+            ResetLiteralRegexes();
+        }
     }
 
 #if ENABLE_NATIVE_CODEGEN
