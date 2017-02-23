@@ -21,7 +21,6 @@ public:
     static bool TrySetCurrent(JsrtContext * context);
     static bool Is(void * ref);
 
-    virtual void Finalize(bool isShutdown) override sealed;
     virtual void Mark(Recycler * recycler) override sealed;
 
 #if ENABLE_TTD
@@ -35,7 +34,6 @@ protected:
     void Link();
     void Unlink();
     void SetJavascriptLibrary(Js::JavascriptLibrary * library);
-    void PinCurrentJsrtContext();
 private:
     Field(Js::JavascriptLibrary *) javascriptLibrary;
 

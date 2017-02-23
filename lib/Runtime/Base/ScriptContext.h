@@ -355,18 +355,6 @@ namespace Js
 #endif
     };
 
-    static const unsigned int EvalMRUSize = 15;
-    typedef JsUtil::BaseDictionary<DWORD_PTR, SourceContextInfo *, Recycler, PowerOf2SizePolicy> SourceContextInfoMap;
-    typedef JsUtil::BaseDictionary<uint, SourceContextInfo *, Recycler, PowerOf2SizePolicy> DynamicSourceContextInfoMap;
-
-    typedef JsUtil::BaseDictionary<EvalMapString, ScriptFunction*, RecyclerNonLeafAllocator, PrimeSizePolicy> SecondLevelEvalCache;
-    typedef TwoLevelHashRecord<FastEvalMapString, ScriptFunction*, SecondLevelEvalCache, EvalMapString> EvalMapRecord;
-    typedef JsUtil::Cache<FastEvalMapString, EvalMapRecord*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<FastEvalMapString, EvalMRUSize>, FastEvalMapStringComparer> EvalCacheTopLevelDictionary;
-    typedef JsUtil::Cache<EvalMapString, FunctionInfo*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<EvalMapString, EvalMRUSize>> NewFunctionCache;
-    typedef JsUtil::BaseDictionary<ParseableFunctionInfo*, ParseableFunctionInfo*, Recycler, PrimeSizePolicy, RecyclerPointerComparer> ParseableFunctionInfoMap;
-    // This is the dictionary used by script context to cache the eval.
-    typedef TwoLevelHashDictionary<FastEvalMapString, ScriptFunction*, EvalMapRecord, EvalCacheTopLevelDictionary, EvalMapString> EvalCacheDictionary;
-
     struct PropertyStringMap
     {
         PropertyString* strLen2[80];
@@ -378,41 +366,6 @@ namespace Js
         }
     };
 
-    // valid if object!= NULL
-    struct EnumeratedObjectCache {
-        static const int kMaxCachedPropStrings=16;
-        Field(DynamicObject*) object;
-        Field(DynamicType*) type;
-        Field(PropertyString*) propertyStrings[kMaxCachedPropStrings];
-        Field(int) validPropStrings;
-    };
-
-    typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
-
-    // this is allocated in GC directly to avoid force pinning the object, it is linked from JavascriptLibrary such that it has
-    // the same lifetime as JavascriptLibrary, and it can be collected without ScriptContext Close.
-    // Allocate it as Finalizable such that it will be still available during JavascriptLibrary Dispose time
-    class Cache : public FinalizableObject
-    {
-    public:
-        virtual void Finalize(bool isShutdown) override {}
-        virtual void Dispose(bool isShutdown) override {}
-        virtual void Mark(Recycler *recycler) override { AssertMsg(false, "Mark called on object that isn't TrackableObject"); }
-
-        Field(JavascriptString *) lastNumberToStringRadix10String;
-        Field(EnumeratedObjectCache) enumObjCache;
-        Field(JavascriptString *) lastUtcTimeFromStrString;
-        Field(EvalCacheDictionary*) evalCacheDictionary;
-        Field(EvalCacheDictionary*) indirectEvalCacheDictionary;
-        Field(NewFunctionCache*) newFunctionCache;
-        Field(RegexPatternMruMap *) dynamicRegexMap;
-        Field(SourceContextInfoMap*) sourceContextInfoMap;   // maps host provided context cookie to the URL of the script buffer passed.
-        Field(DynamicSourceContextInfoMap*) dynamicSourceContextInfoMap;
-        Field(SourceContextInfo*) noContextSourceContextInfo;
-        Field(SRCINFO*) noContextGlobalSourceInfo;
-        Field(Field(SRCINFO const *)*) moduleSrcInfo;
-        Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
-    };
 
     /*
     * This class caches jitted func address ranges.
@@ -575,9 +528,6 @@ namespace Js
         InlineCache * GetValueOfInlineCache() const { return valueOfInlineCache;}
         InlineCache * GetToStringInlineCache() const { return toStringInlineCache; }
 
-        FunctionBody * GetFakeGlobalFuncForUndefer() const { return fakeGlobalFuncForUndefer; }
-        void SetFakeGlobalFuncForUndefer(FunctionBody * func) { fakeGlobalFuncForUndefer.Root(func, GetRecycler()); }
-
     private:
         PropertyStringMap* propertyStrings[80];
 
@@ -647,7 +597,6 @@ namespace Js
         StringProfiler* stringProfiler;
 #endif
 
-        RecyclerRootPtr<FunctionBody> fakeGlobalFuncForUndefer;
 
 public:
 #ifdef PROFILE_TYPES
@@ -914,11 +863,6 @@ private:
         BOOL m_inProfileCallback;
 #endif // ENABLE_SCRIPT_PROFILING
 
-#if ENABLE_PROFILE_INFO
-#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
-        RecyclerRootPtr<DynamicProfileInfoList> profileInfoList;
-#endif
-#endif
         // List of weak reference dictionaries. We'll walk through them
         // and clean them up post-collection
         // IWeakReferenceDictionary objects are added to this list by calling
@@ -1030,9 +974,6 @@ private:
 
         uint callCount;
 
-        // Guest arena allocated cache holding references that need to be pinned.
-        Cache* cache;
-
         // if the current context is for webworker
         DWORD webWorkerId;
 
@@ -1070,6 +1011,7 @@ private:
         void InitializeGlobalObject();
         bool IsIntlEnabled();
         JavascriptLibrary* GetLibrary() const { return javascriptLibrary; }
+        Js::Cache* Cache() const{ return &this->javascriptLibrary->cache; }
         const JavascriptLibraryBase* GetLibraryBase() const { return javascriptLibrary->GetLibraryBase(); }
 #if DBG
         BOOL IsCloningGlobal() const { return isCloningGlobal;}
@@ -1118,14 +1060,9 @@ private:
 #if defined(LEAK_REPORT) || defined(CHECK_MEMORY_LEAK)
         void ClearSourceContextInfoMaps()
         {
-          if (this->cache != nullptr)
-          {
-              this->cache->sourceContextInfoMap = nullptr;
-              this->cache->dynamicSourceContextInfoMap = nullptr;
 #if ENABLE_PROFILE_INFO
               this->referencesSharedDynamicSourceContextInfo = false;
 #endif
-          }
         }
 #endif
 
@@ -1133,25 +1070,25 @@ private:
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         void ClearDynamicProfileList()
         {
-            if (profileInfoList)
+            if (this->Cache()->profileInfoList)
             {
-                profileInfoList->Reset();
-                profileInfoList.Unroot(this->recycler);
+                this->Cache()->profileInfoList->Reset();
+                this->Cache()->profileInfoList = nullptr;
             }
         }
 
-        DynamicProfileInfoList * GetProfileInfoList() { return profileInfoList; }
+        DynamicProfileInfoList * GetProfileInfoList() { return this->Cache()->profileInfoList; }
 #endif
 #endif
 
         SRCINFO const * GetModuleSrcInfo(Js::ModuleID moduleID);
         SourceContextInfoMap* GetSourceContextInfoMap()
         {
-            return (this->cache ? this->cache->sourceContextInfoMap : nullptr);
+            return this->Cache()->sourceContextInfoMap;
         }
         DynamicSourceContextInfoMap* GetDynamicSourceContextInfoMap()
         {
-            return (this->cache ? this->cache->dynamicSourceContextInfoMap : nullptr);
+            return this->Cache()->dynamicSourceContextInfoMap;
         }
 
 #if ENABLE_TTD
@@ -1356,7 +1293,7 @@ private:
         void DisposeScriptContextByFaultInjection();
         void SetDisposeDisposeByFaultInjectionEventHandler(EventHandler eventHandler);
 #endif
-        EnumeratedObjectCache* GetEnumeratedObjectCache() { return &(cache->enumObjCache); }
+        EnumeratedObjectCache* GetEnumeratedObjectCache() { return &(this->Cache()->enumObjCache); }
         PropertyString* TryGetPropertyString(PropertyId propertyId);
         PropertyString* GetPropertyString(PropertyId propertyId);
         void InvalidatePropertyStringCache(PropertyId propertyId, Type* type);
@@ -1504,7 +1441,7 @@ private:
         void SetLastUtcTimeFromStr(JavascriptString * str, double value);
         bool IsNoContextSourceContextInfo(SourceContextInfo *sourceContextInfo) const
         {
-            return sourceContextInfo == cache->noContextSourceContextInfo;
+            return sourceContextInfo == this->Cache()->noContextSourceContextInfo;
         }
 
         BOOL IsProfiling()
@@ -1526,7 +1463,7 @@ private:
         }
 
 #if DBG
-        SourceContextInfo const * GetNoContextSourceContextInfo() const { return cache->noContextSourceContextInfo; }
+        SourceContextInfo const * GetNoContextSourceContextInfo() const { return this->Cache()->noContextSourceContextInfo; }
 
 #ifdef ENABLE_SCRIPT_PROFILING
         int GetProfileSession()

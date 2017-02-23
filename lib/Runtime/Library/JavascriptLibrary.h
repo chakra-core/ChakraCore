@@ -28,6 +28,61 @@ namespace Projection
 
 namespace Js
 {
+    static const unsigned int EvalMRUSize = 15;
+    typedef JsUtil::BaseDictionary<DWORD_PTR, SourceContextInfo *, Recycler, PowerOf2SizePolicy> SourceContextInfoMap;
+    typedef JsUtil::BaseDictionary<uint, SourceContextInfo *, Recycler, PowerOf2SizePolicy> DynamicSourceContextInfoMap;
+
+    typedef JsUtil::BaseDictionary<EvalMapString, ScriptFunction*, RecyclerNonLeafAllocator, PrimeSizePolicy> SecondLevelEvalCache;
+    typedef TwoLevelHashRecord<FastEvalMapString, ScriptFunction*, SecondLevelEvalCache, EvalMapString> EvalMapRecord;
+    typedef JsUtil::Cache<FastEvalMapString, EvalMapRecord*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<FastEvalMapString, EvalMRUSize>, FastEvalMapStringComparer> EvalCacheTopLevelDictionary;
+    typedef JsUtil::Cache<EvalMapString, FunctionInfo*, RecyclerNonLeafAllocator, PrimeSizePolicy, JsUtil::MRURetentionPolicy<EvalMapString, EvalMRUSize>> NewFunctionCache;
+    typedef JsUtil::BaseDictionary<ParseableFunctionInfo*, ParseableFunctionInfo*, Recycler, PrimeSizePolicy, RecyclerPointerComparer> ParseableFunctionInfoMap;
+    // This is the dictionary used by script context to cache the eval.
+    typedef TwoLevelHashDictionary<FastEvalMapString, ScriptFunction*, EvalMapRecord, EvalCacheTopLevelDictionary, EvalMapString> EvalCacheDictionary;
+
+    typedef JsUtil::BaseDictionary<JavascriptMethod, JavascriptFunction*, Recycler, PowerOf2SizePolicy> BuiltInLibraryFunctionMap;
+
+    // valid if object!= NULL
+    struct EnumeratedObjectCache 
+    {
+        static const int kMaxCachedPropStrings = 16;
+        Field(DynamicObject*) object;
+        Field(DynamicType*) type;
+        Field(PropertyString*) propertyStrings[kMaxCachedPropStrings];
+        Field(int) validPropStrings;
+    };
+
+    // this is allocated in GC directly to avoid force pinning the object, it is linked from JavascriptLibrary such that it has
+    // the same lifetime as JavascriptLibrary, and it can be collected without ScriptContext Close.
+    // Allocate it as Finalizable such that it will be still available during JavascriptLibrary Dispose time
+    class Cache
+    {
+    public:
+        Cache()
+        {
+        }
+
+        FieldNoBarrier(ScriptContext*) scriptContext;
+        Field(JavascriptString *) lastNumberToStringRadix10String;
+        Field(EnumeratedObjectCache) enumObjCache;
+        Field(JavascriptString *) lastUtcTimeFromStrString;
+        Field(EvalCacheDictionary*) evalCacheDictionary;
+        Field(EvalCacheDictionary*) indirectEvalCacheDictionary;
+        Field(NewFunctionCache*) newFunctionCache;
+        Field(RegexPatternMruMap *) dynamicRegexMap;
+        Field(SourceContextInfoMap*) sourceContextInfoMap;   // maps host provided context cookie to the URL of the script buffer passed.
+        Field(DynamicSourceContextInfoMap*) dynamicSourceContextInfoMap;
+        Field(SourceContextInfo*) noContextSourceContextInfo;
+        Field(SRCINFO*) noContextGlobalSourceInfo;
+        Field(Field(SRCINFO const *)*) moduleSrcInfo;
+        Field(BuiltInLibraryFunctionMap*) builtInLibraryFunctions;
+#if ENABLE_PROFILE_INFO
+#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
+        Field(DynamicProfileInfoList*) profileInfoList;
+#endif
+#endif
+    };
+
     class MissingPropertyTypeHandler;
     class SourceTextModuleRecord;
     class ArrayBufferBase;
@@ -458,11 +513,12 @@ namespace Js
         Field(Field(void*)*) bindRefChunkCurrent;
         Field(Field(void*)*) bindRefChunkEnd;
         Field(TypePath*) rootPath;         // this should be in library instead of ScriptContext::Cache
-        Field(void*) scriptContextCache;   // forward declaration for point to ScriptContext::Cache such that we don't need to hard pin it.
+        Field(Js::Cache) cache;
         Field(FunctionReferenceList*) dynamicFunctionReference;
         Field(uint) dynamicFunctionReferenceDepth;
         Field(FinalizableObject*) jsrtContextObject;
         Field(JsrtExternalTypesCache*) jsrtExternalTypesCache;
+        Field(FunctionBody*) fakeGlobalFuncForUndefer;
 
         typedef JsUtil::BaseHashSet<RecyclerWeakReference<RecyclableObject>*, Recycler, PowerOf2SizePolicy, RecyclerWeakReference<RecyclableObject>*, StringTemplateCallsiteObjectComparer> StringTemplateCallsiteObjectList;
 
@@ -533,32 +589,32 @@ namespace Js
         static void InitializeProperties(ThreadContext * threadContext);
 
         JavascriptLibrary(GlobalObject* globalObject) :
-                              JavascriptLibraryBase(globalObject),
-                              inProfileMode(false),
-                              inDispatchProfileMode(false),
-                              propertyStringMap(nullptr),
-                              parseIntFunctionObject(nullptr),
-                              evalFunctionObject(nullptr),
-                              parseFloatFunctionObject(nullptr),
-                              arrayPrototypeToLocaleStringFunction(nullptr),
-                              arrayPrototypeToStringFunction(nullptr),
-                              identityFunction(nullptr),
-                              throwerFunction(nullptr),
-                              jsrtContextObject(nullptr),
-                              jsrtExternalTypesCache(nullptr),
-                              scriptContextCache(nullptr),
-                              externalLibraryList(nullptr),
+            JavascriptLibraryBase(globalObject),
+            inProfileMode(false),
+            inDispatchProfileMode(false),
+            propertyStringMap(nullptr),
+            parseIntFunctionObject(nullptr),
+            evalFunctionObject(nullptr),
+            parseFloatFunctionObject(nullptr),
+            arrayPrototypeToLocaleStringFunction(nullptr),
+            arrayPrototypeToStringFunction(nullptr),
+            identityFunction(nullptr),
+            throwerFunction(nullptr),
+            jsrtContextObject(nullptr),
+            jsrtExternalTypesCache(nullptr),
+            fakeGlobalFuncForUndefer(nullptr),
+            externalLibraryList(nullptr),
 #if ENABLE_COPYONACCESS_ARRAY
-                              cacheForCopyOnAccessArraySegments(nullptr),
+            cacheForCopyOnAccessArraySegments(nullptr),
 #endif
-                              referencedPropertyRecords(nullptr),
-                              stringTemplateCallsiteObjectList(nullptr),
-                              moduleRecordList(nullptr),
-                              rootPath(nullptr),
-                              bindRefChunkBegin(nullptr),
-                              bindRefChunkCurrent(nullptr),
-                              bindRefChunkEnd(nullptr),
-                              dynamicFunctionReference(nullptr)
+            referencedPropertyRecords(nullptr),
+            stringTemplateCallsiteObjectList(nullptr),
+            moduleRecordList(nullptr),
+            rootPath(nullptr),
+            bindRefChunkBegin(nullptr),
+            bindRefChunkCurrent(nullptr),
+            bindRefChunkEnd(nullptr),
+            dynamicFunctionReference(nullptr)
         {
             this->globalObject = globalObject;
         }
@@ -890,8 +946,8 @@ namespace Js
 
         void SetNativeHostPromiseContinuationFunction(PromiseContinuationCallback function, void *state);
 
-        void PinJsrtContextObject(FinalizableObject* jsrtContext);
-        FinalizableObject* GetPinnedJsrtContextObject();
+        void SetJsrtContext(FinalizableObject* jsrtContext);
+        FinalizableObject* GetJsrtContext();
         void EnqueueTask(Var taskVar);
 
         HeapArgumentsObject* CreateHeapArguments(Var frameObj, uint formalCount, bool isStrictMode = false);
@@ -1173,6 +1229,9 @@ namespace Js
         bool GetArrayObjectHasUserDefinedSpecies() const { return arrayObjectHasUserDefinedSpecies; }
         void SetArrayObjectHasUserDefinedSpecies(bool val) { arrayObjectHasUserDefinedSpecies = val; }
 
+        FunctionBody* GetFakeGlobalFuncForUndefer()const { return this->fakeGlobalFuncForUndefer; }
+        void SetFakeGlobalFuncForUndefer(FunctionBody* functionBody) { this->fakeGlobalFuncForUndefer = functionBody; }        
+
         ModuleRecordList* EnsureModuleRecordList();
         SourceTextModuleRecord* GetModuleRecord(uint moduleId);
 
@@ -1317,14 +1376,7 @@ namespace Js
 
 
     public:
-        virtual void Finalize(bool isShutdown) override
-        {
-            __super::Finalize(isShutdown);
-            if (this->referencedPropertyRecords != nullptr)
-            {
-                RECYCLER_PERF_COUNTER_SUB(PropertyRecordBindReference, this->referencedPropertyRecords->Count());
-            }
-        }
+        virtual void Finalize(bool isShutdown) override;
 
 #if DBG
         void DumpLibraryByteCode();

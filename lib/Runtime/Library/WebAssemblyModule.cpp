@@ -298,7 +298,7 @@ WebAssemblyModule::ValidateModule(
     try
     {
         Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
+        SRCINFO const * srcInfo = scriptContext->Cache()->noContextGlobalSourceInfo;
 
         // review: unsure if we need copy here, but seems safer to do it
         byte* newBuffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), byte, lengthBytes);

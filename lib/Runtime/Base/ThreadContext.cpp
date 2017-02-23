@@ -591,7 +591,8 @@ ThreadContext::~ThreadContext()
 void
 ThreadContext::SetJSRTRuntime(void* runtime)
 {
-    Assert(jsrtRuntime == nullptr); jsrtRuntime = runtime;
+    Assert(jsrtRuntime == nullptr);
+    jsrtRuntime = runtime;
 #ifdef ENABLE_BASIC_TELEMETRY
     Telemetry::EnsureInitializeForJSRT();
 #endif
@@ -3030,7 +3031,10 @@ ThreadContext::ClearScriptContextCaches()
 {
     for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext != nullptr; scriptContext = scriptContext->next)
     {
-        scriptContext->ClearScriptContextCaches();
+        if (!scriptContext->IsClosed())
+        {
+            scriptContext->ClearScriptContextCaches();
+        }
     }
 }
 
