@@ -23,8 +23,22 @@
 
 using namespace std;
 
+// Test ChakraCore.h is being included by multiple C source files
+extern "C"
+{
+    void Dummy1();
+    void Dummy2();
+}
+
+#ifndef nullptr
+#define nullptr 0
+#endif
+
 int main()
 {
+    Dummy1();
+    Dummy2();
+
     JsRuntimeHandle runtime;
     JsContextRef context;
     JsValueRef result;
