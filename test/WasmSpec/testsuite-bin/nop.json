@@ -1,5 +1,6 @@
 {"source_filename": "nop.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "nop.0.wasm"}, 
   {"type": "assert_return", "line": 179, "action": {"type": "invoke", "field": "as-func-first", "args": []}, "expected": [{"type": "i32", "value": "1"}]}, 
   {"type": "assert_return", "line": 180, "action": {"type": "invoke", "field": "as-func-mid", "args": []}, "expected": [{"type": "i32", "value": "2"}]}, 
@@ -54,5 +55,4 @@
   {"type": "assert_invalid", "line": 246, "filename": "nop.1.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 250, "filename": "nop.2.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 254, "filename": "nop.3.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 258, "filename": "nop.4.wasm", "text": "type mismatch"}
-]}
+  {"type": "assert_invalid", "line": 258, "filename": "nop.4.wasm", "text": "type mismatch"}]}

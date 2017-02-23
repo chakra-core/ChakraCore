@@ -17,4 +17,4 @@ s.parentNode.insertBefore(g,s); })();
 document.domain = "onlinenigeria.com";
  
 }
-WScript.Echo("Passed");  
+WScript.Echo("Pass");

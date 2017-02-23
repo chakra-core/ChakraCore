@@ -1,5 +1,6 @@
 {"source_filename": "chakra_i64.wast",
  "commands": [
+
   {"type": "module", "line": 7, "filename": "chakra_i64.0.wasm"}, 
   {"type": "assert_return", "line": 990, "action": {"type": "invoke", "field": "add0", "args": []}, "expected": [{"type": "i64", "value": "2"}]}, 
   {"type": "assert_return", "line": 991, "action": {"type": "invoke", "field": "add1", "args": [{"type": "i64", "value": "1"}]}, "expected": [{"type": "i64", "value": "2"}]}, 
@@ -980,5 +981,4 @@
   {"type": "assert_return", "line": 1966, "action": {"type": "invoke", "field": "ge_u976", "args": [{"type": "i64", "value": "9223372036854775807"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
   {"type": "assert_return", "line": 1967, "action": {"type": "invoke", "field": "ge_u977", "args": []}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "assert_return", "line": 1968, "action": {"type": "invoke", "field": "ge_u978", "args": [{"type": "i64", "value": "9223372036854775807"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
-  {"type": "assert_return", "line": 1969, "action": {"type": "invoke", "field": "ge_u979", "args": [{"type": "i64", "value": "9223372036854775808"}]}, "expected": [{"type": "i32", "value": "0"}]}
-]}
+  {"type": "assert_return", "line": 1969, "action": {"type": "invoke", "field": "ge_u979", "args": [{"type": "i64", "value": "9223372036854775808"}]}, "expected": [{"type": "i32", "value": "0"}]}]}

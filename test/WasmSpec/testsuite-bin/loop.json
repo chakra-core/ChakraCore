@@ -1,5 +1,6 @@
 {"source_filename": "loop.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "loop.0.wasm"}, 
   {"type": "assert_return", "line": 176, "action": {"type": "invoke", "field": "empty", "args": []}, "expected": []}, 
   {"type": "assert_return", "line": 177, "action": {"type": "invoke", "field": "singular", "args": []}, "expected": [{"type": "i32", "value": "7"}]}, 
@@ -48,5 +49,4 @@
   {"type": "assert_invalid", "line": 234, "filename": "loop.3.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 238, "filename": "loop.4.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 243, "filename": "loop.5.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 249, "filename": "loop.6.wasm", "text": "type mismatch"}
-]}
+  {"type": "assert_invalid", "line": 249, "filename": "loop.6.wasm", "text": "type mismatch"}]}

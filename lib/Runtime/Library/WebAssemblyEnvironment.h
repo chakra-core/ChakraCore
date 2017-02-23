@@ -32,6 +32,10 @@ namespace Js
         Wasm::WasmConstLitNode GetGlobalValue(Wasm::WasmGlobal* global) const;
         void SetGlobalValue(class Wasm::WasmGlobal* global, Wasm::WasmConstLitNode cnst);
 
+        void CalculateOffsets(WebAssemblyTable* table, WebAssemblyMemory* memory);
+        uint32 GetElementSegmentOffset(uint32 index) const;
+        uint32 GetDataSegmentOffset(uint32 index) const;
+
     private:
         Field(WebAssemblyModule*) module;
         Field(Field(Var)*) start;
@@ -43,6 +47,11 @@ namespace Js
         Field(Field(Var)*) table;
         Field(Field(Var)*) globals;
 
+        uint32* elementSegmentOffsets;
+        uint32* dataSegmentOffsets;
+        DebugOnly(bool offsetInitialized = false);
+
+        ArenaAllocator m_alloc;
     private:
         template<typename T> void CheckPtrIsValid(intptr_t ptr) const;
         template<typename T> T* GetVarElement(Field(Var)* ptr, uint32 index, uint32 maxCount) const;

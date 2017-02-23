@@ -1,5 +1,6 @@
 {"source_filename": "get_local.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "get_local.0.wasm"}, 
   {"type": "assert_return", "line": 64, "action": {"type": "invoke", "field": "type-local-i32", "args": []}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "assert_return", "line": 65, "action": {"type": "invoke", "field": "type-local-i64", "args": []}, "expected": [{"type": "i64", "value": "0"}]}, 
@@ -22,5 +23,4 @@
   {"type": "assert_invalid", "line": 132, "filename": "get_local.9.wasm", "text": "unknown local"}, 
   {"type": "assert_invalid", "line": 136, "filename": "get_local.10.wasm", "text": "unknown local"}, 
   {"type": "assert_invalid", "line": 141, "filename": "get_local.11.wasm", "text": "unknown local"}, 
-  {"type": "assert_invalid", "line": 145, "filename": "get_local.12.wasm", "text": "unknown local"}
-]}
+  {"type": "assert_invalid", "line": 145, "filename": "get_local.12.wasm", "text": "unknown local"}]}

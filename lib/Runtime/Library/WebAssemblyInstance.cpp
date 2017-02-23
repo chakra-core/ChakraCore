@@ -110,23 +110,32 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
         LoadImports(module, scriptContext, importObject, &environment);
         LoadGlobals(module, scriptContext, &environment);
         LoadFunctions(module, scriptContext, &environment);
-        LoadDataSegs(module, scriptContext, &environment);
-        LoadIndirectFunctionTable(module, scriptContext, &environment);
+        ValidateTableAndMemory(module, scriptContext, &environment);
+        try
+        {
+            LoadDataSegs(module, scriptContext, &environment);
+            LoadIndirectFunctionTable(module, scriptContext, &environment);
+        }
+        catch (...)
+        {
+            AssertMsg(UNREACHED, "By spec, we should not have any exceptions possible here");
+            throw;
+        }
         Js::Var exportsNamespace = BuildObject(module, scriptContext, &environment);
         JavascriptOperators::OP_SetProperty(newInstance, PropertyIds::exports, exportsNamespace, scriptContext);
-
-        uint32 startFuncIdx = module->GetStartFunction();
-        if (startFuncIdx != Js::Constants::UninitializedValue)
-        {
-            AsmJsScriptFunction* start = environment.GetWasmFunction(startFuncIdx);
-            Js::CallInfo info(Js::CallFlags_New, 1);
-            Js::Arguments startArg(info, (Var*)&start);
-            Js::JavascriptFunction::CallFunction<true>(start, start->GetEntryPoint(), startArg);
-        }
     }
     catch (Wasm::WasmCompilationException& e)
     {
         JavascriptError::ThrowWebAssemblyLinkErrorVar(scriptContext, WASMERR_WasmLinkError, e.ReleaseErrorMessage());
+    }
+
+    uint32 startFuncIdx = module->GetStartFunction();
+    if (startFuncIdx != Js::Constants::UninitializedValue)
+    {
+        AsmJsScriptFunction* start = environment.GetWasmFunction(startFuncIdx);
+        Js::CallInfo info(Js::CallFlags_New, 1);
+        Js::Arguments startArg(info, (Var*)&start);
+        Js::JavascriptFunction::CallFunction<true>(start, start->GetEntryPoint(), startArg);
     }
 
     return newInstance;
@@ -182,38 +191,18 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
 void WebAssemblyInstance::LoadDataSegs(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env)
 {
     WebAssemblyMemory* mem = env->GetMemory(0);
-    if (wasmModule->HasMemoryImport())
-    {
-        if (mem == nullptr)
-        {
-            JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedMemoryObject);
-        }
-    }
-    else
-    {
-        mem = wasmModule->CreateMemory();
-        env->SetMemory(0, mem);
-    }
+    Assert(mem);
+    ArrayBuffer* buffer = mem->GetBuffer();
 
-    ArrayBuffer * buffer = mem->GetBuffer();
-    if (buffer->IsDetached())
-    {
-        JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), JSERR_DetachedTypedArray);
-    }
     for (uint32 iSeg = 0; iSeg < wasmModule->GetDataSegCount(); ++iSeg)
     {
         Wasm::WasmDataSegment* segment = wasmModule->GetDataSeg(iSeg);
         Assert(segment != nullptr);
-        const uint32 offset = wasmModule->GetOffsetFromInit(segment->GetOffsetExpr(), env);
+        const uint32 offset = env->GetDataSegmentOffset(iSeg);
         const uint32 size = segment->GetSourceSize();
 
         if (size > 0)
         {
-            if (UInt32Math::Add(offset, size) > buffer->GetByteLength())
-            {
-                JavascriptError::ThrowWebAssemblyLinkError(wasmModule->GetScriptContext(), WASMERR_DataSegOutOfRange);
-            }
-
             js_memcpy_s(buffer->GetBuffer() + offset, (uint32)buffer->GetByteLength() - offset, segment->GetData(), size);
         }
     }
@@ -430,6 +419,29 @@ void WebAssemblyInstance::LoadGlobals(WebAssemblyModule * wasmModule, ScriptCont
 void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env)
 {
     WebAssemblyTable* table = env->GetTable(0);
+    Assert(table != nullptr);
+
+    for (uint elementsIndex = 0; elementsIndex < wasmModule->GetElementSegCount(); ++elementsIndex)
+    {
+        Wasm::WasmElementSegment* eSeg = wasmModule->GetElementSeg(elementsIndex);
+
+        if (eSeg->GetNumElements() > 0)
+        {
+            uint offset = env->GetElementSegmentOffset(elementsIndex);
+            for (uint segIndex = 0; segIndex < eSeg->GetNumElements(); ++segIndex)
+            {
+                uint funcIndex = eSeg->GetElement(segIndex);
+                Var funcObj = env->GetWasmFunction(funcIndex);
+                table->DirectSetValue(segIndex + offset, funcObj);
+            }
+        }
+    }
+}
+
+
+void WebAssemblyInstance::ValidateTableAndMemory(WebAssemblyModule * wasmModule, ScriptContext* ctx, WebAssemblyEnvironment* env)
+{
+    WebAssemblyTable* table = env->GetTable(0);
     if (wasmModule->HasTableImport())
     {
         if (table == nullptr)
@@ -443,25 +455,26 @@ void WebAssemblyInstance::LoadIndirectFunctionTable(WebAssemblyModule * wasmModu
         env->SetTable(0, table);
     }
 
-    for (uint elementsIndex = 0; elementsIndex < wasmModule->GetElementSegCount(); ++elementsIndex)
+    WebAssemblyMemory* mem = env->GetMemory(0);
+    if (wasmModule->HasMemoryImport())
     {
-        Wasm::WasmElementSegment* eSeg = wasmModule->GetElementSeg(elementsIndex);
-
-        if (eSeg->GetNumElements() > 0)
+        if (mem == nullptr)
         {
-            uint offset = wasmModule->GetOffsetFromInit(eSeg->GetOffsetExpr(), env);
-            if (UInt32Math::Add(offset, eSeg->GetNumElements()) > table->GetCurrentLength())
-            {
-                JavascriptError::ThrowWebAssemblyLinkError(wasmModule->GetScriptContext(), WASMERR_ElementSegOutOfRange);
-            }
-            for (uint segIndex = 0; segIndex < eSeg->GetNumElements(); ++segIndex)
-            {
-                uint funcIndex = eSeg->GetElement(segIndex);
-                Var funcObj = env->GetWasmFunction(funcIndex);
-                table->DirectSetValue(segIndex + offset, funcObj);
-            }
+            JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_NeedMemoryObject);
         }
     }
+    else
+    {
+        mem = wasmModule->CreateMemory();
+        env->SetMemory(0, mem);
+    }
+    ArrayBuffer * buffer = mem->GetBuffer();
+    if (buffer->IsDetached())
+    {
+        JavascriptError::ThrowTypeError(wasmModule->GetScriptContext(), JSERR_DetachedTypedArray);
+    }
+
+    env->CalculateOffsets(table, mem);
 }
 
 } // namespace Js

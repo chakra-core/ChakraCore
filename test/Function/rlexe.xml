@@ -316,7 +316,6 @@
   <test>
     <default>
       <files>FuncBody.bug236810.js</files>
-      <baseline>FuncBody.bug236810.baseline</baseline>
       <compile-flags>-off:deferparse</compile-flags>
     </default>
   </test>
@@ -331,7 +330,6 @@
   <test>
     <default>
       <files>bug_258259.js</files>
-      <baseline>bug_258259.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
     </default>
   </test>
@@ -404,7 +402,6 @@
     <default>
       <files>631838.js</files>
       <compile-flags>-nonative</compile-flags>
-      <baseline>631838.baseline</baseline>
       <!-- On ARM it would take TOO long (700s on Tegra 2 vs 20s on Intel Core i7) to run, as we need to use even bigger object -->
       <tags>exclude_dynapogo,exclude_arm,Slow</tags>
     </default>

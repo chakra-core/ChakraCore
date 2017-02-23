@@ -1,5 +1,6 @@
 {"source_filename": "i64.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "i64.0.wasm"}, 
   {"type": "assert_return", "line": 35, "action": {"type": "invoke", "field": "add", "args": [{"type": "i64", "value": "1"}, {"type": "i64", "value": "1"}]}, "expected": [{"type": "i64", "value": "2"}]}, 
   {"type": "assert_return", "line": 36, "action": {"type": "invoke", "field": "add", "args": [{"type": "i64", "value": "1"}, {"type": "i64", "value": "0"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
@@ -344,5 +345,4 @@
   {"type": "assert_return", "line": 403, "action": {"type": "invoke", "field": "ge_u", "args": [{"type": "i64", "value": "9223372036854775808"}, {"type": "i64", "value": "18446744073709551615"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "assert_return", "line": 404, "action": {"type": "invoke", "field": "ge_u", "args": [{"type": "i64", "value": "18446744073709551615"}, {"type": "i64", "value": "9223372036854775808"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
   {"type": "assert_return", "line": 405, "action": {"type": "invoke", "field": "ge_u", "args": [{"type": "i64", "value": "9223372036854775808"}, {"type": "i64", "value": "9223372036854775807"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
-  {"type": "assert_return", "line": 406, "action": {"type": "invoke", "field": "ge_u", "args": [{"type": "i64", "value": "9223372036854775807"}, {"type": "i64", "value": "9223372036854775808"}]}, "expected": [{"type": "i32", "value": "0"}]}
-]}
+  {"type": "assert_return", "line": 406, "action": {"type": "invoke", "field": "ge_u", "args": [{"type": "i64", "value": "9223372036854775807"}, {"type": "i64", "value": "9223372036854775808"}]}, "expected": [{"type": "i32", "value": "0"}]}]}

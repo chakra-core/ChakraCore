@@ -196,15 +196,8 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
     char * memBlock = heapBlock->Alloc(size, attributes);
     Assert(memBlock != nullptr);
 
-
-    if (this->largePageHeapBlockList)
-    {
-        HeapBlockList::Tail(this->largePageHeapBlockList)->SetNextBlock(heapBlock);
-    }
-    else
-    {
-        this->largePageHeapBlockList = heapBlock;
-    }
+    heapBlock->SetNextBlock(this->largePageHeapBlockList);
+    this->largePageHeapBlockList = heapBlock;
 
 #if ENABLE_PARTIAL_GC
     recycler->autoHeap.uncollectedNewPageCount += pageCount;

@@ -1,5 +1,6 @@
 {"source_filename": "float_literals.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "float_literals.0.wasm"}, 
   {"type": "assert_return", "line": 77, "action": {"type": "invoke", "field": "f32.nan", "args": []}, "expected": [{"type": "i32", "value": "2143289344"}]}, 
   {"type": "assert_return", "line": 78, "action": {"type": "invoke", "field": "f32.positive_nan", "args": []}, "expected": [{"type": "i32", "value": "2143289344"}]}, 
@@ -32,6 +33,7 @@
   {"type": "assert_return", "line": 110, "action": {"type": "invoke", "field": "f64.negative_nan", "args": []}, "expected": [{"type": "i64", "value": "18444492273895866368"}]}, 
   {"type": "assert_return", "line": 111, "action": {"type": "invoke", "field": "f64.plain_nan", "args": []}, "expected": [{"type": "i64", "value": "9221120237041090560"}]}, 
   {"type": "assert_return", "line": 113, "action": {"type": "invoke", "field": "f64.all_ones_nan", "args": []}, "expected": [{"type": "i64", "value": "18446744073709551615"}]}, 
+  {"type": "assert_return", "line": 116, "action": {"type": "invoke", "field": "f64.misc_negative_nan", "args": []}, "expected": [{"type": "i64", "value": "18442992325002076997"}]}, 
   {"type": "assert_return", "line": 117, "action": {"type": "invoke", "field": "f64.infinity", "args": []}, "expected": [{"type": "i64", "value": "9218868437227405312"}]}, 
   {"type": "assert_return", "line": 118, "action": {"type": "invoke", "field": "f64.positive_infinity", "args": []}, "expected": [{"type": "i64", "value": "9218868437227405312"}]}, 
   {"type": "assert_return", "line": 119, "action": {"type": "invoke", "field": "f64.negative_infinity", "args": []}, "expected": [{"type": "i64", "value": "18442240474082181120"}]}, 
@@ -52,5 +54,4 @@
   {"type": "assert_return", "line": 134, "action": {"type": "invoke", "field": "f64_dec.min_normal", "args": []}, "expected": [{"type": "i64", "value": "4503599627370496"}]}, 
   {"type": "assert_return", "line": 135, "action": {"type": "invoke", "field": "f64_dec.max_subnormal", "args": []}, "expected": [{"type": "i64", "value": "4503599627370495"}]}, 
   {"type": "assert_return", "line": 136, "action": {"type": "invoke", "field": "f64_dec.max_finite", "args": []}, "expected": [{"type": "i64", "value": "9218868437227405311"}]}, 
-  {"type": "assert_return", "line": 137, "action": {"type": "invoke", "field": "f64_dec.trailing_dot", "args": []}, "expected": [{"type": "i64", "value": "6103021453049119613"}]}
-]}
+  {"type": "assert_return", "line": 137, "action": {"type": "invoke", "field": "f64_dec.trailing_dot", "args": []}, "expected": [{"type": "i64", "value": "6103021453049119613"}]}]}

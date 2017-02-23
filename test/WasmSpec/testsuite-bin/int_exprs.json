@@ -1,5 +1,6 @@
 {"source_filename": "int_exprs.wast",
  "commands": [
+
   {"type": "module", "line": 6, "filename": "int_exprs.0.wasm"}, 
   {"type": "assert_return", "line": 18, "action": {"type": "invoke", "field": "i32.no_fold_cmp_s_offset", "args": [{"type": "i32", "value": "2147483647"}, {"type": "i32", "value": "0"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
   {"type": "assert_return", "line": 19, "action": {"type": "invoke", "field": "i32.no_fold_cmp_u_offset", "args": [{"type": "i32", "value": "4294967295"}, {"type": "i32", "value": "0"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
@@ -94,5 +95,4 @@
   {"type": "assert_return", "line": 296, "action": {"type": "invoke", "field": "i64.rem_s_7", "args": [{"type": "i64", "value": "71"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
   {"type": "assert_return", "line": 297, "action": {"type": "invoke", "field": "i64.rem_s_7", "args": [{"type": "i64", "value": "8070450532247928832"}]}, "expected": [{"type": "i64", "value": "0"}]}, 
   {"type": "assert_return", "line": 298, "action": {"type": "invoke", "field": "i64.rem_u_7", "args": [{"type": "i64", "value": "71"}]}, "expected": [{"type": "i64", "value": "1"}]}, 
-  {"type": "assert_return", "line": 299, "action": {"type": "invoke", "field": "i64.rem_u_7", "args": [{"type": "i64", "value": "16140901064495857664"}]}, "expected": [{"type": "i64", "value": "0"}]}
-]}
+  {"type": "assert_return", "line": 299, "action": {"type": "invoke", "field": "i64.rem_u_7", "args": [{"type": "i64", "value": "16140901064495857664"}]}, "expected": [{"type": "i64", "value": "0"}]}]}

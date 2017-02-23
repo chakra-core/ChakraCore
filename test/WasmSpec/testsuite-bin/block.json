@@ -1,5 +1,6 @@
 {"source_filename": "block.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "block.0.wasm"}, 
   {"type": "assert_return", "line": 114, "action": {"type": "invoke", "field": "empty", "args": []}, "expected": []}, 
   {"type": "assert_return", "line": 115, "action": {"type": "invoke", "field": "singular", "args": []}, "expected": [{"type": "i32", "value": "7"}]}, 
@@ -34,5 +35,4 @@
   {"type": "assert_invalid", "line": 226, "filename": "block.17.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 233, "filename": "block.18.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 240, "filename": "block.19.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 246, "filename": "block.20.wasm", "text": "type mismatch"}
-]}
+  {"type": "assert_invalid", "line": 246, "filename": "block.20.wasm", "text": "type mismatch"}]}

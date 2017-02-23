@@ -1,5 +1,6 @@
 {"source_filename": "f64_cmp.wast",
  "commands": [
+
   {"type": "module", "line": 4, "filename": "f64_cmp.0.wasm"}, 
   {"type": "assert_return", "line": 13, "action": {"type": "invoke", "field": "eq", "args": [{"type": "f64", "value": "9223372036854775808"}, {"type": "f64", "value": "9223372036854775808"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
   {"type": "assert_return", "line": 14, "action": {"type": "invoke", "field": "eq", "args": [{"type": "f64", "value": "9223372036854775808"}, {"type": "f64", "value": "0"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
@@ -1944,5 +1945,4 @@
   {"type": "assert_return", "line": 1953, "action": {"type": "invoke", "field": "ge", "args": [{"type": "f64", "value": "18444492273895866368"}, {"type": "f64", "value": "18444492273895866368"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "assert_return", "line": 1954, "action": {"type": "invoke", "field": "ge", "args": [{"type": "f64", "value": "18444492273895866368"}, {"type": "f64", "value": "9221120237041090560"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "assert_return", "line": 1955, "action": {"type": "invoke", "field": "ge", "args": [{"type": "f64", "value": "9221120237041090560"}, {"type": "f64", "value": "18444492273895866368"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
-  {"type": "assert_return", "line": 1956, "action": {"type": "invoke", "field": "ge", "args": [{"type": "f64", "value": "9221120237041090560"}, {"type": "f64", "value": "9221120237041090560"}]}, "expected": [{"type": "i32", "value": "0"}]}
-]}
+  {"type": "assert_return", "line": 1956, "action": {"type": "invoke", "field": "ge", "args": [{"type": "f64", "value": "9221120237041090560"}, {"type": "f64", "value": "9221120237041090560"}]}, "expected": [{"type": "i32", "value": "0"}]}]}

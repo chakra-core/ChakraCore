@@ -36,7 +36,7 @@ try {
     var filteredStack = filterFullFilePathFromCallstack([ex.stack].toString());
 
     if (filteredStack == expectedError) {
-        WScript.Echo("PASSED");
+        WScript.Echo("PASS");
     } else {
         WScript.Echo("FAILED");
         WScript.Echo("\nActual (raw):\n" + [ex.stack]);

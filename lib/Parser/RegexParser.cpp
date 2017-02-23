@@ -234,7 +234,7 @@ namespace UnifiedRegex
     // Helpers
     //
     template <typename P, const bool IsLiteral>
-    int Parser<P, IsLiteral>::TryParseExtendedUnicodeEscape(Char& c, bool& previousSurrogatePart, bool trackSurrogatePair = false)
+    int Parser<P, IsLiteral>::TryParseExtendedUnicodeEscape(Char& c, bool& previousSurrogatePart, bool trackSurrogatePair /* = false */)
     {
         if (!scriptContext->GetConfig()->IsES6UnicodeExtensionsEnabled())
         {
