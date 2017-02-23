@@ -2860,7 +2860,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     _Out_opt_ BOOL* pfCanAssign /*= nullptr*/,
     _Inout_opt_ BOOL* pfLikelyPattern /*= nullptr*/,
     _Out_opt_ bool* pfIsDotOrIndex /*= nullptr*/,
-    _Out_opt_ charcount_t *plastRParen /*= nullptr*/)
+    _Inout_opt_ charcount_t *plastRParen /*= nullptr*/)
 {
     ParseNodePtr pnode = nullptr;
     charcount_t ichMin = 0;
@@ -8059,7 +8059,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     _Inout_opt_ IdentToken* pToken,
     bool fUnaryOrParen,
     _Inout_opt_ bool* pfLikelyPattern,
-    _Out_opt_ charcount_t *plastRParen)
+    _Inout_opt_ charcount_t *plastRParen)
 {
     Assert(pToken == nullptr || pToken->tk == tkNone); // Must be empty initially
     int opl;
