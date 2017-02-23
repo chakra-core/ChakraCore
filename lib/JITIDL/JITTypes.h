@@ -481,6 +481,19 @@ typedef struct ConstTableContentIDL
     IDL_DEF([size_is(count)]) RecyclableObjectIDL** content;
 } ConstTableContentIDL;
 
+typedef struct TypeInformationIDL {
+    unsigned int bytecodeOffset;
+    unsigned int regSlot;
+    unsigned char type;
+} TypeInformationIDL;
+
+typedef struct TypeAnnotationsArrayIDL
+{
+    unsigned int count;
+    //Should I use some padding?
+    IDL_DEF([size_is(count)]) TypeInformationIDL* content;
+} TypeAnnotationsArrayIDL;
+
 // FunctionBody fields, read only in JIT, gathered in foreground
 typedef struct FunctionBodyDataIDL
 {
@@ -553,6 +566,8 @@ typedef struct FunctionBodyDataIDL
     IDL_DEF([size_is(propertyIdsForRegSlotsCount)]) int * propertyIdsForRegSlots;
 
     SmallSpanSequenceIDL * statementMap;
+
+    TypeAnnotationsArrayIDL * typeAnnotations;
 
     IDL_DEF([size_is(fullStatementMapCount)]) StatementMapIDL * fullStatementMaps;
 

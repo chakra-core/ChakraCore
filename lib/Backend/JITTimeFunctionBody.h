@@ -181,6 +181,8 @@ public:
     intptr_t GetAuxDataAddr(uint offset) const;
     const Js::PropertyIdArray * ReadPropertyIdArrayFromAuxData(uint offset) const;
     Js::PropertyIdArray * GetFormalsPropIdArray() const;
+    
+    TypeAnnotationsArrayIDL* GetTypeAnnotationsArray() const;
 
     Js::ForInCache * GetForInCache(uint profileId) const;
     bool InitializeStatementMap(Js::SmallSpanSequence * statementMap, ArenaAllocator* alloc) const;

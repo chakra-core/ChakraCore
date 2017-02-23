@@ -312,6 +312,8 @@ public:
     void WaitForBackgroundJobs(BackgroundParser *bgp, CompileScriptException *pse);
     HRESULT ParseFunctionInBackground(ParseNodePtr pnodeFunc, ParseContext *parseContext, bool topLevelDeferred, CompileScriptException *pse);
 
+    template<bool buildAST> void AddTypeAnnotationToParseNode(ParseNodePtr pnode);
+
     void CheckPidIsValid(IdentPtr pid, bool autoArgumentsObject = false);
     void AddVarDeclToBlock(ParseNode *pnode);
     // Add a var declaration. Only use while parsing. Assumes m_ppnodeVar is pointing to the right place already

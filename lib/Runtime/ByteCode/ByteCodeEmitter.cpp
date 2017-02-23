@@ -10783,6 +10783,10 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
         EmitSuperMethodBegin(pnode, byteCodeGenerator, funcInfo);
 
         uint cacheId = funcInfo->FindOrAddInlineCacheId(callObjLocation, propertyId, false, false);
+        if (pnode->typeHint != Js::TypeHint::Unknown)
+        {
+            funcInfo->GetParsedFunctionBody()->AddBytecodeOffsetTypeAnnotation(byteCodeGenerator->Writer()->GetCurrentOffset(), pnode->location, pnode->typeHint);
+        }
         if (pnode->IsCallApplyTargetLoad())
         {
             if (pnode->sxBin.pnode1->nop == knopSuper)
@@ -10841,6 +10845,10 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
 
     case knopName:
         funcInfo->AcquireLoc(pnode);
+        if (pnode->typeHint != Js::TypeHint::Unknown)
+        {
+            funcInfo->GetParsedFunctionBody()->AddBytecodeOffsetTypeAnnotation(byteCodeGenerator->Writer()->GetCurrentOffset(), pnode->location, pnode->typeHint);
+        }
         byteCodeGenerator->EmitPropLoad(pnode->location, pnode->sxPid.sym, pnode->sxPid.pid, funcInfo);
         break;
 

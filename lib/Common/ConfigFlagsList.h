@@ -713,6 +713,8 @@ PHASE(All)
 
 #define DEFAULT_CONFIG_SkipSplitWhenResultIgnored (false)
 
+#define DEFAULT_CONFIG_TypeAnnotations (false)
+
 #define DEFAULT_CONFIG_MinMemOpCount (16U)
 
 #if ENABLE_COPYONACCESS_ARRAY
@@ -1384,6 +1386,7 @@ FLAGNR(Boolean, TraceAsyncDebugCalls  , "Trace calls to async debugging API (def
 #ifdef TRACK_DISPATCH
 FLAGNR(Boolean, TrackDispatch         , "Save stack traces of where JavascriptDispatch/HostVariant are created", false)
 #endif
+FLAGNR(Boolean, TypeAnnotations       , "Enables the usage of type annotations in comments (default: false)", DEFAULT_CONFIG_TypeAnnotations)
 FLAGNR(Boolean, Verbose               , "Dump details", DEFAULT_CONFIG_Verbose)
 FLAGNR(Boolean, UseFullName           , "Enable fully qualified name", DEFAULT_CONFIG_UseFullName)
 FLAGNR(Boolean, UseFunctionIdForTrace , "Use function id instead of function number for trace output", false)

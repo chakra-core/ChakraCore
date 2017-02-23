@@ -2196,7 +2196,7 @@ namespace Js
             return sourceContextInfo->url;
         }
     }
-
+    
     class FunctionBody : public ParseableFunctionInfo
     {
         DEFINE_VTABLE_CTOR_NO_REGISTER(FunctionBody, ParseableFunctionInfo);
@@ -2331,6 +2331,14 @@ namespace Js
             // Note: isLeaf = true template param below means that recycler should not be used to dispose the items.
             typedef JsUtil::List<StatementAdjustmentRecord, Recycler, /* isLeaf = */ true> StatementAdjustmentRecordList;
             typedef JsUtil::List<CrossFrameEntryExitRecord, Recycler, /* isLeaf = */ true> CrossFrameEntryExitRecordList;
+
+            struct TypeInformation {
+                uint bytecodeOffset;
+                Js::RegSlot regSlot;
+                Js::TypeHint type;
+            };
+            typedef JsUtil::List<TypeInformation*, Recycler> TypeAnnotationsArray;
+            TypeAnnotationsArray* typeAnnotationsArray;
 
             // Contains recorded at bytecode generation time information about statements and try-catch blocks.
             // Used by debugger.
@@ -2683,6 +2691,8 @@ namespace Js
         void SetFuncExprScopeRegister(RegSlot reg);
         void MapAndSetFuncExprScopeRegister(RegSlot reg);
         RegSlot GetFuncExprScopeRegister() const;
+
+        void AddBytecodeOffsetTypeAnnotation(uint offset, RegSlot reg, TypeHint type);
 
         bool HasScopeObject() const { return hasScopeObject; }
         void SetHasScopeObject(bool has) { hasScopeObject = has; }

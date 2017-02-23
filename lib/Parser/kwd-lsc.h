@@ -182,6 +182,13 @@ TOK_DCL(tkStrTmplEnd    , No, knopNone   , No, knopNone   ) // }...`         Sin
                                                             //               we check to make sure the token after parsing the expression is a tkRCurly and put the scanner into a string template
                                                             //               scanning mode which will scan the string literal and search for the closing '${' or '`'.
 
+TOK_DCL(tkTypeAnnBegin  , No, knopNone   , No, knopNone   ) // /** @type { Marks the beginning of a type annotation
+TOK_DCL(tkTypeInt       , No, knopNone   , No, knopNone   )
+TOK_DCL(tkTypeFloat     , No, knopNone   , No, knopNone   )
+TOK_DCL(tkTypeBool      , No, knopNone   , No, knopNone   )
+TOK_DCL(tkTypeObject    , No, knopNone   , No, knopNone   )
+
+
 TOK_DCL(tkComment       , No, knopNone, No, knopNone ) // Comment for syntax coloring
 TOK_DCL(tkScanError     , No, knopNone, No, knopNone ) // Error in syntax coloring
 

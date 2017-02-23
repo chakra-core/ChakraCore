@@ -617,6 +617,7 @@ struct ParseNode
     bool notEscapedUse;         // Use by byte code generator.  Currently, only used by child of knopComma
     bool isInList;
     bool isCallApplyTargetLoad;
+    Js::TypeHint typeHint;
 #ifdef EDIT_AND_CONTINUE
     ParseNodePtr parent;
 #endif
