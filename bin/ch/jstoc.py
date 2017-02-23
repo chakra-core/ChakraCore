@@ -4,15 +4,15 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
-from __future__ import with_statement # py 2.5
+from __future__ import print_function, with_statement # py 2.5
 import sys
 import os
 
 def print_usage():
-    print "jstoc tool"
-    print "creates a (const char array) from a javascript file."
-    print ""
-    print "usage: jstoc.py <js file path> <variable name>"
+    print("jstoc tool")
+    print("creates a (const char array) from a javascript file.")
+    print("")
+    print("usage: jstoc.py <js file path> <variable name>")
     sys.exit(1)
 
 def convert():
@@ -53,9 +53,9 @@ def convert():
         h_file = open(h_file_name, "w")
         h_file.write(str_header)
         h_file.close()
-        print "-- " + h_file_name + " is created"
+        print("-- " + h_file_name + " is created")
     else:
-        print "-- " + h_file_name + " is up to date. skipping."
+        print("-- " + h_file_name + " is up to date. skipping.")
 
 if __name__ == '__main__':
     sys.exit(convert())
