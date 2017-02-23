@@ -19,11 +19,14 @@ if "%USE_MSBUILD_12%" == "True" (
     echo Trying Dev12 directly...
     for /f "delims=" %%a in ('powershell -Command ". %~dp0\locate_msbuild.ps1; Split-Path -Parent (Locate-MSBuild-Version -version 12.0)"') do @set MSBUILD_PATH=%%a
 ) else (
+setlocal EnableDelayedExpansion
     for /f "delims=" %%a in ('powershell -Command "[bool](Get-Command msbuild.exe -ErrorAction SilentlyContinue)"') do @set MSBUILD_FOUND=%%a
-    if "%MSBUILD_FOUND%" == "True" (
+    if "!MSBUILD_FOUND!" == "True" (
         REM msbuild.exe is already on the PATH
+endlocal EnableDelayedExpansion
         goto :CleanUp
     )
+endlocal EnableDelayedExpansion
     for /f "delims=" %%a in ('powershell -Command ". %~dp0\locate_msbuild.ps1; Split-Path -Parent (Locate-MSBuild)"') do @set MSBUILD_PATH=%%a
 )
 
