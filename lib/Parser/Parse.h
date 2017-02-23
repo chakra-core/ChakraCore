@@ -195,7 +195,6 @@ private:
     bool                m_hasParallelJob;
     bool                m_doingFastScan;
     int                 m_nextBlockId;
-    charcount_t         m_lastRParen;
 
     // RegexPattern objects created for literal regexes are recycler-allocated and need to be kept alive until the function body
     // is created during byte code generation. The RegexPattern pointer is stored in the script context's guest
@@ -824,7 +823,9 @@ private:
         uint32 *pShortNameOffset = nullptr,
         _Inout_opt_ IdentToken* pToken = NULL,
         bool fUnaryOrParen = false,
-        _Inout_opt_ bool* pfLikelyPattern = nullptr);
+        _Inout_opt_ bool* pfLikelyPattern = nullptr,
+        _Out_opt_ charcount_t *plastRParen = nullptr);
+
     template<bool buildAST> ParseNodePtr ParseTerm(
         BOOL fAllowCall = TRUE,
         LPCOLESTR pNameHint = nullptr,
@@ -834,7 +835,9 @@ private:
         bool fUnaryOrParen = false,
         _Out_opt_ BOOL* pfCanAssign = nullptr,
         _Inout_opt_ BOOL* pfLikelyPattern = nullptr,
-        _Out_opt_ bool* pfIsDotOrIndex = nullptr);
+        _Out_opt_ bool* pfIsDotOrIndex = nullptr,
+        _Out_opt_ charcount_t *plastRParen = nullptr);
+
     template<bool buildAST> ParseNodePtr ParsePostfixOperators(
         ParseNodePtr pnode,
         BOOL fAllowCall, 

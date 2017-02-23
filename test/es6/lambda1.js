@@ -470,6 +470,12 @@ var tests = [
             
             var l = async() => ({});
             assert.areEqual('async() => ({})', '' + l, "Async lambda should also be correct");
+            
+            var l = () => (() => (123))
+            assert.areEqual('() => (() => (123))', '' + l, "Nested lambda to string should be correct");
+            
+            var l = async() => (async() => ('str'));
+            assert.areEqual("async() => (async() => ('str'))", '' + l, "Nested async lambda should be correct");
         }
     }
 ];
