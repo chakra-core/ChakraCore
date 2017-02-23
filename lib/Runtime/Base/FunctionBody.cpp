@@ -6257,6 +6257,13 @@ namespace Js
         this->SetConstTable(nullptr);
         this->byteCodeBlock = nullptr;
 
+        // Also, remove the function body from the source info to prevent any further processing 
+        // of the function such as attempts to set breakpoints.
+        if (GetIsFuncRegistered())
+        {
+            this->GetUtf8SourceInfo()->RemoveFunctionBody(this);
+        }
+
         // There is other state that is set by the byte code generator but the state should be the same each time byte code
         // generation is done for the function, so it doesn't need to be reverted
     }
