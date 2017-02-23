@@ -69,7 +69,7 @@ private:
     void dump(const char* name, const unordered_set<const Type*> set);
 
     template <class PushFieldType>
-    void ProcessUnbarriedFields(CXXRecordDecl* recordDecl, const PushFieldType& pushFieldType);
+    void ProcessUnbarrieredFields(CXXRecordDecl* recordDecl, const PushFieldType& pushFieldType);
 
     bool MatchType(const string& type, const char* source, const char** pSourceEnd);
     const char* GetFieldTypeAnnotation(QualType qtype);
