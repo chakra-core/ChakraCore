@@ -9296,3 +9296,14 @@ LowererMD::LowerTypeof(IR::Instr* typeOfInstr)
     typeOfInstr->InsertAfter(doneLabel);
     m_lowerer->LowerUnaryHelperMem(typeOfInstr, IR::HelperOp_Typeof);
 }
+
+#if DBG
+//
+// Helps in debugging of fast paths.
+//
+void LowererMD::GenerateDebugBreak( IR::Instr * insertInstr )
+{
+    IR::Instr *int3 = IR::Instr::New(Js::OpCode::DEBUGBREAK, insertInstr->m_func);\
+    insertInstr->InsertBefore(int3);\
+}
+#endif
