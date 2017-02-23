@@ -127,68 +127,66 @@ namespace TTD
             }
         }
 
-        void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length)
+        void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, uint64 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length)
         {
             char asciiResourceName[64];
-            sprintf_s(asciiResourceName, 64, "src%s_%I64u.js", (fromEvent ? "_ld" : ""), static_cast<uint64>(docId));
+            sprintf_s(asciiResourceName, 64, "src%s_%I64u.js", (fromEvent ? "_ld" : ""), bodyId);
 
-            const TTUriString& uri = threadContext->TTDContext->TTDUri;
-            const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
-
-            JsTTDStreamHandle srcStream = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, false, true, nullptr, nullptr);
+            TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
+            JsTTDStreamHandle srcStream = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, false, true);
+            TTDAssert(srcStream != nullptr, "Failed to open code resource stream for writing.");
 
             if(isUtf8Source)
             {
                 byte byteOrderArray[3] = { 0xEF, 0xBB, 0xBF };
                 size_t byteOrderCount = 0;
-                bool okBOC = iops.pfWriteBytesToStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
+                bool okBOC = iofp.pfWriteBytesToStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
                 TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray), "Write Failed!!!");
             }
             else
             {
                 byte byteOrderArray[2] = { 0xFF, 0xFE };
                 size_t byteOrderCount = 0;
-                bool okBOC = iops.pfWriteBytesToStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
+                bool okBOC = iofp.pfWriteBytesToStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
                 TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray), "Write Failed!!!");
             }
 
             size_t writtenCount = 0;
-            bool ok = iops.pfWriteBytesToStream(srcStream, sourceBuffer, length, &writtenCount);
+            bool ok = iofp.pfWriteBytesToStream(srcStream, sourceBuffer, length, &writtenCount);
             TTDAssert(ok && writtenCount == length, "Write Failed!!!");
 
-            iops.pfFlushAndCloseStream(srcStream, false, true);
+            iofp.pfFlushAndCloseStream(srcStream, false, true);
         }
 
-        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length, byte** relocatedUri, size_t* relocatedUriLength)
+        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, uint64 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length)
         {
             char asciiResourceName[64];
-            sprintf_s(asciiResourceName, 64, "src%s_%I64u.js", (fromEvent ? "_ld" : ""), static_cast<uint64>(docId));
+            sprintf_s(asciiResourceName, 64, "src%s_%I64u.js", (fromEvent ? "_ld" : ""), bodyId);
 
-            const TTUriString& uri = threadContext->TTDContext->TTDUri;
-            const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
-
-            JsTTDStreamHandle srcStream = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, true, false, relocatedUri, relocatedUriLength);
+            TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
+            JsTTDStreamHandle srcStream = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, true, false);
+            TTDAssert(srcStream != nullptr, "Failed to open code resource stream for reading.");
 
             if(isUtf8Source)
             {
                 byte byteOrderArray[3] = { 0x0, 0x0, 0x0 };
                 size_t byteOrderCount = 0;
-                bool okBOC = iops.pfReadBytesFromStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
+                bool okBOC = iofp.pfReadBytesFromStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
                 TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray) && byteOrderArray[0] == 0xEF && byteOrderArray[1] == 0xBB && byteOrderArray[2] == 0xBF, "Read Failed!!!");
             }
             else
             {
                 byte byteOrderArray[2] = { 0x0, 0x0 };
                 size_t byteOrderCount = 0;
-                bool okBOC = iops.pfReadBytesFromStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
+                bool okBOC = iofp.pfReadBytesFromStream(srcStream, byteOrderArray, _countof(byteOrderArray), &byteOrderCount);
                 TTDAssert(okBOC && byteOrderCount == _countof(byteOrderArray) && byteOrderArray[0] == 0xFF && byteOrderArray[1] == 0xFE, "Read Failed!!!");
             }
 
             size_t readCount = 0;
-            bool ok = iops.pfReadBytesFromStream(srcStream, sourceBuffer, length, &readCount);
+            bool ok = iofp.pfReadBytesFromStream(srcStream, sourceBuffer, length, &readCount);
             TTDAssert(ok && readCount == length, "Read Failed!!!");
 
-            iops.pfFlushAndCloseStream(srcStream, true, false);
+            iofp.pfFlushAndCloseStream(srcStream, true, false);
         }
     }
 
@@ -1071,7 +1069,7 @@ namespace TTD
 
         //////////////////
 
-        void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, DWORD_PTR documentID, bool isUtf8source, const byte* source, uint32 sourceLen, SlabAllocator& alloc)
+        void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8source, const byte* source, uint32 sourceLen, SlabAllocator& alloc)
         {
             fbInfo->ScriptContextLogId = fb->GetScriptContext()->ScriptContextLogTag;
             fbInfo->TopLevelBodyCtr = topLevelCtr;
@@ -1079,11 +1077,8 @@ namespace TTD
             alloc.CopyNullTermStringInto(fb->GetDisplayName(), fbInfo->FunctionName);
 
             fbInfo->ModuleId = moduleId;
-            fbInfo->DocumentID = documentID;
+            fbInfo->SourceContextId = sourceContextId;
             alloc.CopyNullTermStringInto(fb->GetSourceContextInfo()->url, fbInfo->SourceUri);
-
-            //Not needed for record -- just ensure initialized to default value
-            InitializeAsNullPtrTTString(fbInfo->RelocatedSourceUri); 
 
             fbInfo->IsUtf8 = isUtf8source;
             fbInfo->ByteLength = sourceLen;
@@ -1105,10 +1100,8 @@ namespace TTD
             writer->WriteString(NSTokens::Key::name, fbInfo->FunctionName, NSTokens::Separator::CommaSeparator);
 
             writer->WriteUInt64(NSTokens::Key::moduleId, fbInfo->ModuleId, NSTokens::Separator::CommaSeparator);
-            writer->WriteUInt64(NSTokens::Key::documentId, fbInfo->DocumentID, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt64(NSTokens::Key::sourceContextId, fbInfo->SourceContextId, NSTokens::Separator::CommaSeparator);
             writer->WriteString(NSTokens::Key::uri, fbInfo->SourceUri, NSTokens::Separator::CommaSeparator);
-
-            //RelocatedSourceUri is not used (or set) during record so nothing to emit here
 
             writer->WriteBool(NSTokens::Key::boolVal, fbInfo->IsUtf8, NSTokens::Separator::CommaSeparator);
             writer->WriteLengthValue(fbInfo->ByteLength, NSTokens::Separator::CommaSeparator);
@@ -1124,7 +1117,7 @@ namespace TTD
             }
             else
             {
-                JsSupport::WriteCodeToFile(threadContext, false, fbInfo->DocumentID, fbInfo->IsUtf8, fbInfo->SourceBuffer, fbInfo->ByteLength);
+                JsSupport::WriteCodeToFile(threadContext, false, fbInfo->TopLevelBodyCtr, fbInfo->IsUtf8, fbInfo->SourceBuffer, fbInfo->ByteLength);
             }
         }
 
@@ -1137,11 +1130,8 @@ namespace TTD
             reader->ReadString(NSTokens::Key::name, alloc, fbInfo->FunctionName, true);
 
             fbInfo->ModuleId = (Js::ModuleID)reader->ReadUInt64(NSTokens::Key::moduleId, true);
-            fbInfo->DocumentID = (DWORD_PTR)reader->ReadUInt64(NSTokens::Key::documentId, true);
+            fbInfo->SourceContextId = reader->ReadUInt64(NSTokens::Key::sourceContextId, true);
             reader->ReadString(NSTokens::Key::uri, alloc, fbInfo->SourceUri, true);
-
-            //Not needed for record -- so nothing to parse just ensure initialized to default value
-            InitializeAsNullPtrTTString(fbInfo->RelocatedSourceUri);
 
             fbInfo->IsUtf8 = reader->ReadBool(NSTokens::Key::boolVal, true);
             fbInfo->ByteLength = reader->ReadLengthValue(true);
@@ -1158,19 +1148,7 @@ namespace TTD
             }
             else
             {
-                byte* relocatedUri = nullptr;
-                size_t relocatedUriLength = 0;
-
-                JsSupport::ReadCodeFromFile(threadContext, false, fbInfo->DocumentID, fbInfo->IsUtf8, fbInfo->SourceBuffer, fbInfo->ByteLength, &relocatedUri, &relocatedUriLength);
-
-                if(relocatedUri != nullptr)
-                {
-                    alloc.CopyStringIntoWLength((char16*)relocatedUri, (uint32)relocatedUriLength, fbInfo->RelocatedSourceUri);
-
-                    //We may want to make this auto-freeing
-                    CoTaskMemFree(relocatedUri);
-                    relocatedUri = nullptr;
-                }
+                JsSupport::ReadCodeFromFile(threadContext, false, fbInfo->TopLevelBodyCtr, fbInfo->IsUtf8, fbInfo->SourceBuffer, fbInfo->ByteLength);
             }
 
             fbInfo->DbgSerializedBytecodeSize = 0;
@@ -1184,12 +1162,8 @@ namespace TTD
             compareMap.DiagnosticAssert(fbInfo1->TopLevelBodyCtr == fbInfo2->TopLevelBodyCtr);
             compareMap.DiagnosticAssert(TTStringEQForDiagnostics(fbInfo1->FunctionName, fbInfo2->FunctionName));
 
-            //
-            //TODO: we don't force documentids to be the same accross re-inflate yet but when we do we should check this as well
-            //
-            //TTD_DIAGNOSTIC_ASSERT(fbInfo1->DocumentID, fbInfo2->DocumentID);
-
             compareMap.DiagnosticAssert(fbInfo1->ModuleId == fbInfo2->ModuleId);
+            compareMap.DiagnosticAssert(fbInfo1->SourceContextId == fbInfo2->SourceContextId);
 
             compareMap.DiagnosticAssert(TTStringEQForDiagnostics(fbInfo1->SourceUri, fbInfo2->SourceUri));
 
@@ -1208,9 +1182,9 @@ namespace TTD
         ////
         //Regular script-load functions
 
-        void ExtractTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, DWORD_PTR documentID, bool isUtf8, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag, SlabAllocator& alloc)
+        void ExtractTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag, SlabAllocator& alloc)
         {
-            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, fb, topLevelCtr, moduleId, documentID, isUtf8, source, sourceLen, alloc);
+            NSSnapValues::ExtractTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, fb, topLevelCtr, moduleId, sourceContextId, isUtf8, source, sourceLen, alloc);
 
             fbInfo->LoadFlag = loadFlag;
         }
@@ -1219,25 +1193,15 @@ namespace TTD
         {
             byte* script = fbInfo->TopLevelBase.SourceBuffer;
             uint32 scriptLength = fbInfo->TopLevelBase.ByteLength;
-            DWORD_PTR sourceContext = fbInfo->TopLevelBase.DocumentID;
+            uint64 sourceContext = fbInfo->TopLevelBase.SourceContextId;
 
-            TTDAssert(ctx->GetSourceContextInfo(sourceContext, nullptr) == nullptr, "On inflate we should either have clean ctxts or we want to optimize the inflate process by skipping redoing this work!!!");
+            TTDAssert(ctx->GetSourceContextInfo((DWORD_PTR)sourceContext, nullptr) == nullptr, "On inflate we should either have clean ctxts or we want to optimize the inflate process by skipping redoing this work!!!");
             TTDAssert(fbInfo->TopLevelBase.IsUtf8 == ((fbInfo->LoadFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source), "Utf8 status is inconsistent!!!");
 
-            const char16* srcUri = nullptr;
-            uint32 srcUriLength = 0;
-            if(!IsNullPtrTTString(fbInfo->TopLevelBase.RelocatedSourceUri))
-            {
-                srcUri = fbInfo->TopLevelBase.RelocatedSourceUri.Contents;
-                srcUriLength = fbInfo->TopLevelBase.RelocatedSourceUri.Length;
-            }
-            else
-            {
-                srcUri = fbInfo->TopLevelBase.SourceUri.Contents;
-                srcUriLength = fbInfo->TopLevelBase.SourceUri.Length;
-            }
+            const char16* srcUri = fbInfo->TopLevelBase.SourceUri.Contents;
+            uint32 srcUriLength = fbInfo->TopLevelBase.SourceUri.Length;
 
-            SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo(sourceContext, srcUri, srcUriLength, nullptr);
+            SourceContextInfo * sourceContextInfo = ctx->CreateSourceContextInfo((DWORD_PTR)sourceContext, srcUri, srcUriLength, nullptr);
 
             TTDAssert(fbInfo->TopLevelBase.IsUtf8 || sizeof(wchar) == sizeof(char16), "Non-utf8 code only allowed on windows!!!");
             const int chsize = (fbInfo->LoadFlag & LoadScriptFlag_Utf8Source) ? sizeof(char) : sizeof(char16);
@@ -1967,8 +1931,7 @@ namespace TTD
             compareMap.DiagnosticAssert(TTStringEQForDiagnostics(snapCtx1->ContextSRC, snapCtx2->ContextSRC));
 
             //
-            //TODO: Once loaded script has a unique identifier we can match (e.g. documentId) then we should match here.
-            //      For now just sanity check the number of top-level functions and let the FunctionBody matching drive any matching.
+            //TODO: For now just sanity check the number of top-level functions and let the FunctionBody matching drive any matching.
             //
 
             compareMap.DiagnosticAssert(snapCtx1->LoadedTopLevelScriptCount == snapCtx2->LoadedTopLevelScriptCount);

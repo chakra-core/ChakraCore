@@ -41,4 +41,6 @@ function testFunction()
     telemetryLog(`post update -- xd[3]: ${xd[3]}`, true); //10.0
     telemetryLog(`post update -- xd[5]: ${xd[5]}`, true); //undefined
     telemetryLog(`post update -- xd[10]: ${xd[10]}`, true); //10.0
+
+    emitTTDLog(ttdLogURI);
 }

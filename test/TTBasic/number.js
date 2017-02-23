@@ -33,4 +33,6 @@ function testFunction()
 
     telemetryLog(`Math.abs(-2): ${Math.abs(-2)}`, true); //2
     telemetryLog(`Math.floor(1.5): ${Math.floor(1.5)}`, true); //1.0
+
+    emitTTDLog(ttdLogURI);
 }

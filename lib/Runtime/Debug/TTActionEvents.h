@@ -276,7 +276,7 @@ namespace TTD
             reader->ReadSequenceStart_WDefaultKey(true);
             if(!badValue)
             {
-                bufferAction->Buffer = alloc.SlabAllocateArray<byte>(bufferAction->Length);
+                bufferAction->Buffer = (bufferAction->Length != 0) ? alloc.SlabAllocateArray<byte>(bufferAction->Length) : nullptr;
 
                 for(uint32 i = 0; i < bufferAction->Length; ++i)
                 {
@@ -531,12 +531,9 @@ namespace TTD
             byte* SourceCode;
             uint32 SourceByteLength;
 
-            //The URI the souce code was loaded from and the document id we gave it internally
+            //The URI the souce code was loaded from and the source context id
             TTString SourceUri;
-            DWORD_PTR DocumentID;
-
-            //The relocated URI -- if requested during replay
-            TTString RelocatedSourceUri;
+            uint64 SourceContextId;
 
             //The flags for loading this script
             LoadScriptFlag LoadFlag;
@@ -561,18 +558,9 @@ namespace TTD
         void JsRTCodeParseAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void JsRTCodeParseAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
-        //A struct for additional info associated with calls to script parse
-        struct JsRTCallFunctionAction_AdditionalInfo
+        //A struct for the replay-debugger info associated with a JsRTCallFunctionAction
+        struct JsRTCallFunctionAction_ReplayAdditionalInfo
         {
-            double BeginTime;
-            double EndTime;
-
-            //The actual event time associated with this call (is >= the TopLevelCallbackEventTime)
-            int64 CallEventTime;
-
-            //The event time that corresponds to the top-level event time around this call
-            int64 TopLevelCallbackEventTime;
-
             //ready-to-run snapshot information -- null if not set and if we want to unload it we just throw it away
             SnapShot* RtRSnap;
 
@@ -581,6 +569,19 @@ namespace TTD
 
             //Info on the last executed statement in this call
             TTDebuggerSourceLocation LastExecutedLocation;
+        };
+
+        //A struct for additional info associated with calls to script parse
+        struct JsRTCallFunctionAction_AdditionalInfo
+        {
+            //The actual event time associated with this call (is >= the TopLevelCallbackEventTime)
+            int64 CallEventTime;
+
+            //The event time that corresponds to the top-level event time around this call
+            int64 TopLevelCallbackEventTime;
+
+            //The additional info assocated with this action that we use in replay/debug but doesn't matter for record
+            JsRTCallFunctionAction_ReplayAdditionalInfo* AdditionalReplayInfo;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             //The last event time that is nested in this call
@@ -614,7 +615,7 @@ namespace TTD
         void JsRTCallFunctionAction_ProcessDiagInfoPost(EventLogEntry* evt, int64 lastNestedEvent);
 #endif
 
-        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::Var funcVar, uint32 argc, Js::Var* argv, double wallTime, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc);
+        void JsRTCallFunctionAction_ProcessArgs(EventLogEntry* evt, int32 rootDepth, int64 callEventTime, Js::Var funcVar, uint32 argc, Js::Var* argv, int64 topLevelCallbackEventTime, UnlinkableSlabAllocator& alloc);
 
         void JsRTCallFunctionAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void JsRTCallFunctionAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);

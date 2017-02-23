@@ -55,18 +55,16 @@ namespace TTD
         void AddNewScriptContext_Helper(Js::ScriptContext* ctx, HostScriptContextCallbackFunctor& callbackFunctor, bool noNative, bool debugMode);
 
     public:
-        TTUriString TTDUri;
         uint32 SnapInterval;
         uint32 SnapHistoryLength;
 
         //Callback functions provided by the host for writing info to some type of storage location
-        TTDInitializeForWriteLogStreamCallback TTDWriteInitializeFunction;
-        IOStreamFunctions TTDStreamFunctions;
+        TTDataIOInfo TTDataIOInfo;
 
         //Callback functions provided by the host for creating external objects 
         ExternalObjectFunctions TTDExternalObjectFunctions;
 
-        ThreadContextTTD(ThreadContext* threadContext, void* runtimeHandle, size_t uriByteLength, const byte* ttdUri, uint32 snapInterval, uint32 snapHistoryLength);
+        ThreadContextTTD(ThreadContext* threadContext, void* runtimeHandle, uint32 snapInterval, uint32 snapHistoryLength);
         ~ThreadContextTTD();
 
         ThreadContext* GetThreadContext();
@@ -173,14 +171,12 @@ namespace TTD
         void RegisterNewScript(Js::FunctionBody* body, uint64 bodyCtrId);
         void RegisterEvalScript(Js::FunctionBody* body, uint64 bodyCtrId);
 
-        //Lookup the parent bofy for a function body (or null for global code)
+        //Lookup the parent body for a function body (or null for global code)
         Js::FunctionBody* ResolveParentBody(Js::FunctionBody* body) const;
 
-        //
-        //TODO: we need to fix this later since filenames are not 100% always unique
-        //
-        //Find the body with the filename from our top-level function bodies
-        Js::FunctionBody* FindFunctionBodyByFileName(const char16* filename) const;
+        //Helpers for resolving top level bodies accross snapshots
+        uint64 FindTopLevelCtrForBody(Js::FunctionBody* body) const;
+        Js::FunctionBody* FindRootBodyByTopLevelCtr(uint64 bodyCtrId) const;
 
         void ClearLoadedSourcesForSnapshotRestore();
     };

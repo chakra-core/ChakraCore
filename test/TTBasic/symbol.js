@@ -37,4 +37,6 @@ function testFunction()
 
     telemetryLog(`obj[zs]: ${obj[zs]}`, true); //3
     telemetryLog(`obj[symObj]: ${obj[symObj]}`, true); //3
+
+    emitTTDLog(ttdLogURI);
 }

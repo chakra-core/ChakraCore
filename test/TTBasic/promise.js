@@ -28,6 +28,8 @@ function testFunction()
     telemetryLog(`v1: ${v1}`, true); //5
     telemetryLog(`v2: ${v2}`, true); //6
     telemetryLog(`v3: ${v3}`, true); //10
+
+    emitTTDLog(ttdLogURI);
 }
 
 

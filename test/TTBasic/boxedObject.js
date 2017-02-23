@@ -47,4 +47,6 @@ function testFunction()
     telemetryLog(`xs == \'bob\': ${xs == "bob"}`, true); //true
     telemetryLog(`xs === \'bob\': ${xs === "bob"}`, true); //false
     telemetryLog(`xs.foos: ${xs.foos}`, true); //3
+
+    emitTTDLog(ttdLogURI);
 }

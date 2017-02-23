@@ -22,9 +22,10 @@ LPCWSTR hostName = _u("ch");
 JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
 
 BOOL doTTRecord = false;
-BOOL doTTDebug = false;
-byte ttUri[MAX_PATH * sizeof(WCHAR)];
-size_t ttUriByteLength = 0;
+BOOL doTTReplay = false;
+const size_t ttUriBufferLength = MAX_PATH * 3;
+char ttUri[ttUriBufferLength];
+size_t ttUriLength = 0;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;
 LPCWSTR connectionUuidString = NULL;
@@ -303,13 +304,13 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsValueRef bufferVa
         wprintf(_u("Sential js file is only ok when in TTDebug mode!!!\n"));
         return E_FAIL;
 #else
-        if(!doTTDebug)
+        if(!doTTReplay)
         {
-            wprintf(_u("Sential js file is only ok when in TTDebug mode!!!\n"));
+            wprintf(_u("Sential js file is only ok when in TTReplay mode!!!\n"));
             return E_FAIL;
         }
 
-        ChakraRTInterface::JsTTDStart();
+        IfFailedReturn(ChakraRTInterface::JsTTDStart());
 
         try
         {
@@ -387,7 +388,17 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsValueRef bufferVa
 #if ENABLE_TTD
             if(doTTRecord)
             {
-                ChakraRTInterface::JsTTDStart();
+                JsPropertyIdRef ttProperty = nullptr;
+                JsValueRef ttString = nullptr;
+                JsValueRef global = nullptr;
+
+                IfFailedReturn(ChakraRTInterface::JsCreatePropertyId("ttdLogURI", strlen("ttdLogURI"), &ttProperty));
+                IfFailedReturn(ChakraRTInterface::JsCreateString(ttUri, ttUriLength, &ttString));
+                IfFailedReturn(ChakraRTInterface::JsGetGlobalObject(&global));
+
+                IfFailedReturn(ChakraRTInterface::JsSetProperty(global, ttProperty, ttString, false));
+
+                IfFailedReturn(ChakraRTInterface::JsTTDStart());
             }
 
             runScript = ChakraRTInterface::JsRun(scriptSource,
@@ -428,8 +439,7 @@ Error:
 #if ENABLE_TTD
     if(doTTRecord)
     {
-        ChakraRTInterface::JsTTDEmitRecording();
-        ChakraRTInterface::JsTTDStop();
+        IfFailedReturn(ChakraRTInterface::JsTTDStop());
     }
 #endif
 
@@ -527,15 +537,15 @@ HRESULT ExecuteTest(const char* fileName)
         wprintf(_u("Sentinel js file is only ok when in TTDebug mode!!!\n"));
         return E_FAIL;
 #else
-        if(!doTTDebug)
+        if(!doTTReplay)
         {
-            wprintf(_u("Sentinel js file is only ok when in TTDebug mode!!!\n"));
+            wprintf(_u("Sentinel js file is only ok when in TTReplay mode!!!\n"));
             return E_FAIL;
         }
 
         jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
 
-        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateReplayRuntime(jsrtAttributes, ttUri, ttUriByteLength, Helpers::TTInitializeForWriteLogStreamCallback, Helpers::TTCreateStreamCallback, Helpers::TTReadBytesFromStreamCallback, Helpers::TTWriteBytesToStreamCallback, Helpers::TTFlushAndCloseStreamCallback, nullptr, &runtime));
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateReplayRuntime(jsrtAttributes, ttUri, ttUriLength, Helpers::TTCreateStreamCallback, Helpers::TTReadBytesFromStreamCallback, Helpers::TTFlushAndCloseStreamCallback, nullptr, &runtime));
         chRuntime = runtime;
 
         JsContextRef context = JS_INVALID_REFERENCE;
@@ -572,7 +582,7 @@ HRESULT ExecuteTest(const char* fileName)
             //Ensure we run with experimental features (as that is what Node does right now).
             jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
 
-            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, ttUriByteLength, snapInterval, snapHistoryLength, Helpers::TTInitializeForWriteLogStreamCallback, Helpers::TTCreateStreamCallback, Helpers::TTReadBytesFromStreamCallback, Helpers::TTWriteBytesToStreamCallback, Helpers::TTFlushAndCloseStreamCallback, nullptr, &runtime));
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, snapInterval, snapHistoryLength, Helpers::TTCreateStreamCallback, Helpers::TTWriteBytesToStreamCallback, Helpers::TTFlushAndCloseStreamCallback, nullptr, &runtime));
             chRuntime = runtime;
 
             JsContextRef context = JS_INVALID_REFERENCE;
@@ -587,7 +597,7 @@ HRESULT ExecuteTest(const char* fileName)
         }
         else
         {
-            AssertMsg(!doTTDebug, "Should be handled in the else case above!!!");
+            AssertMsg(!doTTReplay, "Should be handled in the else case above!!!");
 
             IfJsErrorFailLog(ChakraRTInterface::JsCreateRuntime(jsrtAttributes, nullptr, &runtime));
             chRuntime = runtime;
@@ -897,13 +907,13 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         {
             doTTRecord = true;
             wchar* ruri = argv[i] + wcslen(_u("-TTRecord="));
-            Helpers::GetTTDDirectory(ruri, &ttUriByteLength, ttUri);
+            Helpers::GetTTDDirectory(ruri, &ttUriLength, ttUri, ttUriBufferLength);
         }
-        else if(wcsstr(argv[i], _u("-TTDebug=")) == argv[i])
+        else if(wcsstr(argv[i], _u("-TTReplay=")) == argv[i])
         {
-            doTTDebug = true;
-            wchar* ruri = argv[i] + wcslen(_u("-TTDebug="));
-            Helpers::GetTTDDirectory(ruri, &ttUriByteLength, ttUri);
+            doTTReplay = true;
+            wchar* ruri = argv[i] + wcslen(_u("-TTReplay="));
+            Helpers::GetTTDDirectory(ruri, &ttUriLength, ttUri, ttUriBufferLength);
         }
         else if(wcsstr(argv[i], _u("-TTSnapInterval=")) == argv[i])
         {
@@ -928,9 +938,9 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     }
     argc = cpos;
 
-    if(doTTRecord & doTTDebug)
+    if(doTTRecord & doTTReplay)
     {
-        fwprintf(stderr, _u("Cannot run in record and debug at same time!!!"));
+        fwprintf(stderr, _u("Cannot run in record and replay at same time!!!"));
         ExitProcess(0);
     }
 

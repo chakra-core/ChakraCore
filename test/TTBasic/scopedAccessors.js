@@ -53,4 +53,6 @@ function testFunction()
 
     telemetryLog("test3: nested setter and setter from this", true);
     foo3();
+
+    emitTTDLog(ttdLogURI);
 }

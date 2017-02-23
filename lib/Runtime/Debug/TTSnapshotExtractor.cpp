@@ -478,6 +478,15 @@ namespace TTD
             NSSnapValues::ExtractScriptContext(snpCtx, threadContext->TTDContext->GetTTDContexts().Item(i), objToLogIdMap, snap->GetSnapshotSlabAllocator());
         }
 
+        //extract the thread context symbol map info
+        JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler>* tcSymbolRegistrationMap = threadContext->GetSymbolRegistrationMap_TTD();
+        UnorderedArrayList<Js::PropertyId, TTD_ARRAY_LIST_SIZE_XSMALL>& tcSymbolMapInfo = this->m_pendingSnap->GetTCSymbolMapInfoList();
+        for(auto iter = tcSymbolRegistrationMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::PropertyId* tcpid = tcSymbolMapInfo.NextOpenEntry();
+            *tcpid = iter.CurrentValue()->GetPropertyId();
+        }
+
         //We extract all the global code function bodies with the context so clear their marks now
         JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelScriptLoad(&HeapAllocator::Instance);
         JsUtil::List<TopLevelFunctionInContextRelation, HeapAllocator> topLevelNewFunction(&HeapAllocator::Instance);

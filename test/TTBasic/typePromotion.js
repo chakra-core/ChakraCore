@@ -26,4 +26,6 @@ function testFunction()
     telemetryLog(o1.y, true);
     telemetryLog(o2.x, true);
     telemetryLog(o2.y, true);
+
+    emitTTDLog(ttdLogURI);
 }

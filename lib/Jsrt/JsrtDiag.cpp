@@ -436,6 +436,7 @@ CHAKRA_API JsDiagSetStepType(
             ThreadContext* threadContext = runtime->GetThreadContext();
             if(!threadContext->IsRuntimeInTTDMode())
             {
+                TTDAssert(false, "Must be in replay mode to use reverse-step - launch with \"--replay-debug\" flag in Node.");
                 return JsErrorInvalidArgument;
             }
 
@@ -456,6 +457,7 @@ CHAKRA_API JsDiagSetStepType(
             ThreadContext* threadContext = runtime->GetThreadContext();
             if(!threadContext->IsRuntimeInTTDMode())
             {
+                TTDAssert(false, "Must be in replay mode to use reverse-continue - launch with \"--replay-debug\" flag in Node.");
                 return JsErrorInvalidArgument;
             }
 

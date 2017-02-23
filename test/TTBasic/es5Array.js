@@ -67,4 +67,6 @@ function testFunction()
     telemetryLog(`isFrozen: ${Object.isFrozen(oIncFreeze)}`, true); // false, because length writable
     Object.defineProperty(oIncFreeze, "length", { writable: false });
     telemetryLog(`isFrozen: ${Object.isFrozen(oIncFreeze)}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

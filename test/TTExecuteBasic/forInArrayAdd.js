@@ -135,4 +135,6 @@ function testFunction()
         telemetryLog(`Index:${i} Value:${d[i]}`, true);
         counter++;
     }
+
+    emitTTDLog(ttdLogURI);
 }

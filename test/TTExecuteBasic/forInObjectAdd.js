@@ -87,4 +87,6 @@ function testFunction()
     {
         telemetryLog("FAILED: Entering enumeration of double", true);
     }
+
+    emitTTDLog(ttdLogURI);
 }
