@@ -32,6 +32,13 @@ namespace Js
             return nullptr;
         }
 
+        if (key->GetScriptContext()->GetLibrary()->GetUndefined() == weakMapKeyData)
+        {
+            // Assert to find out where this can happen.
+            Assert(false);
+            return nullptr;
+        }
+
         return static_cast<WeakMapKeyMap*>(weakMapKeyData);
     }
 
