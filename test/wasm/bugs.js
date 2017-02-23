@@ -12,8 +12,9 @@ function createView(bytes) {
   return view;
 }
 async function main() {
-  const {instance: {exports: {foo}}} = await WebAssembly.instantiate(readbuffer("binaries/bug_fitsdword.wasm"));
+  const {instance: {exports: {foo, bar}}} = await WebAssembly.instantiate(readbuffer("binaries/bug_fitsdword.wasm"));
   foo();
+  bar();
 
   try {
     new WebAssembly.Module(createView(`\x00asm\x0d\x00\x00\x00\xff\xff\xff\xff\x7f\x00\x00\x00`));
