@@ -202,7 +202,6 @@
     <default>
       <files>initlocals.js</files>
       <compile-flags>-bailout:8</compile-flags>
-      <baseline>initlocals.baseline</baseline>
       <tags>exclude_ship</tags>
     </default>
   </test>
