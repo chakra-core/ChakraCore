@@ -4694,7 +4694,7 @@ GlobOpt::CollectMemOpStElementI(IR::Instr *instr, Loop *loop)
 }
 
 bool
-GlobOpt::CollectMemOpInfo(IR::Instr *instr, Value *src1Val, Value *src2Val)
+GlobOpt::CollectMemOpInfo(IR::Instr *instrBegin, IR::Instr *instr, Value *src1Val, Value *src2Val)
 {
     Assert(this->currentBlock->loop);
 
@@ -4715,6 +4715,7 @@ GlobOpt::CollectMemOpInfo(IR::Instr *instr, Value *src1Val, Value *src2Val)
     Assert(loop->doMemOp);
 
     bool isIncr = true, isChangedByOne = false;
+
     switch (instr->m_opcode)
     {
     case Js::OpCode::StElemI_A:
@@ -4820,30 +4821,34 @@ MemOpCheckInductionVariable:
         // Fallthrough if not an induction variable
     }
     default:
-        if (IsInstrInvalidForMemOp(instr, loop, src1Val, src2Val))
+        FOREACH_INSTR_IN_RANGE(chkInstr, instrBegin->m_next, instr)
         {
-            loop->doMemOp = false;
-            return false;
-        }
-
-        // Make sure this instruction doesn't use the memcopy transfer sym before it is checked by StElemI
-        if (loop->memOpInfo && !loop->memOpInfo->candidates->Empty())
-        {
-            Loop::MemOpCandidate* prevCandidate = loop->memOpInfo->candidates->Head();
-            if (prevCandidate->IsMemCopy())
+            if (IsInstrInvalidForMemOp(chkInstr, loop, src1Val, src2Val))
             {
-                Loop::MemCopyCandidate* memcopyCandidate = prevCandidate->AsMemCopy();
-                if (memcopyCandidate->base == Js::Constants::InvalidSymID)
+                loop->doMemOp = false;
+                return false;
+            }
+
+            // Make sure this instruction doesn't use the memcopy transfer sym before it is checked by StElemI
+            if (loop->memOpInfo && !loop->memOpInfo->candidates->Empty())
+            {
+                Loop::MemOpCandidate* prevCandidate = loop->memOpInfo->candidates->Head();
+                if (prevCandidate->IsMemCopy())
                 {
-                    if (instr->FindRegUse(memcopyCandidate->transferSym))
+                    Loop::MemCopyCandidate* memcopyCandidate = prevCandidate->AsMemCopy();
+                    if (memcopyCandidate->base == Js::Constants::InvalidSymID)
                     {
-                        loop->doMemOp = false;
-                        TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, instr, _u("Found illegal use of LdElemI value(s%d)"), GetVarSymID(memcopyCandidate->transferSym));
-                        return false;
+                        if (chkInstr->FindRegUse(memcopyCandidate->transferSym))
+                        {
+                            loop->doMemOp = false;
+                            TRACE_MEMOP_PHASE_VERBOSE(MemCopy, loop, chkInstr, _u("Found illegal use of LdElemI value(s%d)"), GetVarSymID(memcopyCandidate->transferSym));
+                            return false;
+                        }
                     }
                 }
             }
         }
+        NEXT_INSTR_IN_RANGE;
     }
 
     return true;
@@ -4888,6 +4893,7 @@ GlobOpt::IsInstrInvalidForMemOp(IR::Instr *instr, Loop *loop, Value *src1Val, Va
         TRACE_MEMOP_VERBOSE(loop, instr, _u("Implicit call bailout detected"));
         return true;
     }
+
     return false;
 }
 
@@ -5218,7 +5224,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         (func->HasProfileInfo() && !func->GetReadOnlyProfileInfo()->IsMemOpDisabled()) &&
         this->currentBlock->loop->doMemOp)
     {
-        CollectMemOpInfo(instr, src1Val, src2Val);
+        CollectMemOpInfo(instrPrev, instr, src1Val, src2Val);
     }
 
     InsertNoImplicitCallUses(instr);
