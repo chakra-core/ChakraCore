@@ -19,7 +19,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     __out FunctionBodyDataIDL * jitBody)
 {
     Assert(functionBody != nullptr);
-
     // const table
     jitBody->constCount = functionBody->GetConstantCount();
     if (functionBody->GetConstantCount() > 0)
@@ -250,12 +249,21 @@ JITTimeFunctionBody::InitializeJITFunctionData(
             jitBody->typeAnnotations = AnewStruct(arena, TypeAnnotationsArrayIDL);
             jitBody->typeAnnotations->count = functionBody->typeAnnotationsArray->Count();
             jitBody->typeAnnotations->content = AnewArrayZ(arena, TypeInformationIDL, functionBody->typeAnnotationsArray->Count());
-            auto typeAnnotationsArray = functionBody->typeAnnotationsArray;
-            typeAnnotationsArray->Map([jitBody](int index, Js::FunctionBody::TypeInformation * info)
+            functionBody->typeAnnotationsArray->Map([jitBody](int index, Js::FunctionBody::TypeInformation * info)
             {
                 jitBody->typeAnnotations->content[index].bytecodeOffset = info->bytecodeOffset;
                 jitBody->typeAnnotations->content[index].regSlot = info->regSlot;
-                jitBody->typeAnnotations->content[index].type = (unsigned char)info->type;
+                jitBody->typeAnnotations->content[index].type = (unsigned char) info->type;
+            });
+        }
+        if (functionBody->parameterTypeInfo->Count() > 0)
+        {
+            jitBody->parameterTypeInfo = AnewStruct(arena, ParameterTypeInfoIDL);
+            jitBody->parameterTypeInfo->count = functionBody->parameterTypeInfo->Count();
+            jitBody->parameterTypeInfo->content = AnewArrayZ(arena, unsigned char, functionBody->parameterTypeInfo->Count());
+            functionBody->parameterTypeInfo->Map([jitBody](int index, Js::TypeHint info)
+            {
+                jitBody->parameterTypeInfo->content[index] = (unsigned char) info;
             });
         }
     }
@@ -1089,6 +1097,11 @@ JITTimeFunctionBody::GetFormalsPropIdArray() const
 TypeAnnotationsArrayIDL * JITTimeFunctionBody::GetTypeAnnotationsArray() const
 {
     return m_bodyData.typeAnnotations;
+}
+
+ParameterTypeInfoIDL * JITTimeFunctionBody::GetParameterTypeInfo() const
+{
+    return m_bodyData.parameterTypeInfo;
 }
 
 Js::ForInCache *

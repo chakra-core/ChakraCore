@@ -5672,7 +5672,7 @@ GlobOpt::SetLoopFieldInitialValue(Loop *loop, IR::Instr *instr, PropertySym *pro
     // Uninitialized value type. Use the profiled value type from the instruction.
     const ValueType profiledValueType =
         instr->IsProfiledInstr() ? instr->AsProfiledInstr()->u.FldInfo().valueType : ValueType::Uninitialized;
-    Assert(!profiledValueType.IsDefinite()); // Hence the values created here don't need to be tracked for kills
+    //Assert(!profiledValueType.IsDefinite()); // Hence the values created here don't need to be tracked for kills
     initialValue = this->NewGenericValue(profiledValueType, propertySym);
     symStore = StackSym::New(this->func);
 
@@ -5801,7 +5801,31 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 int paramSlotNum = sym->AsStackSym()->GetParamSlotNum() - 2;
                 if (paramSlotNum >= 0)
                 {
-                    const auto parameterType = instr->m_func->GetReadOnlyProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotNum));
+                    ValueType parameterType;
+                    if (instr->m_func->GetJITFunctionBody()->GetParameterTypeInfo() != nullptr)
+                    {
+                        Js::TypeHint typeHint = (Js::TypeHint) instr->m_func->GetJITFunctionBody()->GetParameterTypeInfo()->content[paramSlotNum];
+                        switch (typeHint)
+                        {
+                            case Js::TypeHint::Int:
+                                parameterType = ValueType::Int.SetCanBeTaggedValue(true);
+                                break;
+                            case Js::TypeHint::Float:
+                                parameterType = ValueType::Float.SetCanBeTaggedValue(true);
+                                break;
+                            case Js::TypeHint::Bool:
+                                parameterType = ValueType::Boolean;
+                                break;
+                            case Js::TypeHint::Object:
+                                parameterType = ValueType::UninitializedObject;
+                                break;
+                            default:
+                                parameterType = instr->m_func->GetReadOnlyProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotNum));
+                        }
+                    } else
+                    {
+                        parameterType = instr->m_func->GetReadOnlyProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotNum));
+                    }
                     val = NewGenericValue(parameterType);
                     opnd->SetValueType(val->GetValueInfo()->Type());
                     return val;

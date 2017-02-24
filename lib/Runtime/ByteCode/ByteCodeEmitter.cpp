@@ -3389,6 +3389,14 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             EmitFunctionBody(funcInfo);
         }
 
+        if (CONFIG_FLAG(TypeAnnotations))
+        {
+            MapFormalsWithoutRest(pnode, [&](ParseNode* argPnode)
+            {
+                funcInfo->GetParsedFunctionBody()->parameterTypeInfo->Add(argPnode->typeHint);
+            });
+        }
+
         if (pnode->sxFnc.pnodeBodyScope != nullptr)
         {
             ::EndEmitBlock(pnode->sxFnc.pnodeBodyScope, this, funcInfo);
