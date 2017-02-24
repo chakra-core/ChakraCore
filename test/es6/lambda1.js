@@ -454,6 +454,29 @@ var tests = [
             assert.throws(function () { eval('var a = {}; a.x \n => d;'); }, SyntaxError, "Verify that badly formed arrow functions return correct error even if a newline is before the => token", "Syntax error");
             assert.throws(function () { eval('var a = {}; a\n.x => d;'); }, SyntaxError, "Verify that badly formed arrow functions return correct error even if a newline is before the => token", "Syntax error");
         }
+    },
+    {
+        name: "Lambda consisting of single expression wrapped in parens should have correct source string",
+        body: function () {
+            var l = () => (123)
+            assert.areEqual('() => (123)', '' + l, "Lambda to string should include the parens wrapping the return expression");
+            
+            var l = () => (('๏บบ'))
+            assert.areEqual("() => (('๏บบ'))", '' + l, "Multi-byte characters should not break the string");
+            
+            var s = "() => ('\u{20ac}')";
+            var l = eval(s);
+            assert.areEqual(s, '' + l, "Unicode byte sequences should not break the string");
+            
+            var l = async() => ({});
+            assert.areEqual('async() => ({})', '' + l, "Async lambda should also be correct");
+            
+            var l = () => (() => (123))
+            assert.areEqual('() => (() => (123))', '' + l, "Nested lambda to string should be correct");
+            
+            var l = async() => (async() => ('str'));
+            assert.areEqual("async() => (async() => ('str'))", '' + l, "Nested async lambda should be correct");
+        }
     }
 ];
 
