@@ -689,17 +689,30 @@ namespace Js
         {
             this->SetInternalProperty(InternalPropertyIds::StackTrace, nullptr, PropertyOperation_None, nullptr);
         }
+        else
+        {
+            // Above GetInternalProperty fails - which means the stackTraceValue is filed with Missing result. Reset to null so that we will not restore it back below.
+            stackTraceValue = nullptr;
+        }
 
         Var weakMapKeyMapValue = nullptr;
         if (this->GetInternalProperty(this, InternalPropertyIds::WeakMapKeyMap, &weakMapKeyMapValue, nullptr, this->GetScriptContext()))
         {
             this->SetInternalProperty(InternalPropertyIds::WeakMapKeyMap, nullptr, PropertyOperation_Force, nullptr);
         }
+        else
+        {
+            weakMapKeyMapValue = nullptr;
+        }
 
         Var mutationBpValue = nullptr;
         if (this->GetInternalProperty(this, InternalPropertyIds::MutationBp, &mutationBpValue, nullptr, this->GetScriptContext()))
         {
             this->SetInternalProperty(InternalPropertyIds::MutationBp, nullptr, PropertyOperation_Force, nullptr);
+        }
+        else
+        {
+            mutationBpValue = nullptr;
         }
 
         if (keepProperties)
