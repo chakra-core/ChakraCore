@@ -1687,7 +1687,9 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
             sym->SetHasRealBlockVarRef();
         }
 
-        if (nonLocalRef)
+        // This may not be a non-local reference, but the symbol may still be accessed non-locally. ('with', e.g.)
+        // In that case, make sure we still process the symbol and its scope for closure capture.
+        if (nonLocalRef || sym->GetHasNonLocalReference())
         {
             // Symbol referenced through a closure. Mark it as such and give it a property ID.
             this->ProcessCapturedSym(sym);
