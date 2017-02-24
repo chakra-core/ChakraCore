@@ -4538,8 +4538,8 @@ CHAKRA_API JsCreatePromise(_Out_ JsValueRef *promise, _Out_ JsValueRef *resolve,
         *resolve = nullptr;
         *reject = nullptr;
 
-        Js::JavascriptPromiseResolveOrRejectFunction *jsResolve;
-        Js::JavascriptPromiseResolveOrRejectFunction *jsReject;
+        Js::JavascriptPromiseResolveOrRejectFunction *jsResolve = nullptr;
+        Js::JavascriptPromiseResolveOrRejectFunction *jsReject = nullptr;
         Js::JavascriptPromise *jsPromise = scriptContext->GetLibrary()->CreatePromise();
         Js::JavascriptPromise::InitializePromise(jsPromise, &jsResolve, &jsReject, scriptContext);
 
