@@ -3603,6 +3603,12 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 }
                 break;
             }
+        case tkTypeAnnBegin: 
+            if (CONFIG_FLAG(TypeAnnotations))
+            {
+                AddTypeAnnotationToParseNode<buildAST>(pnode);
+            }
+            break;
         default:
             return pnode;
         }
@@ -6441,6 +6447,9 @@ void Parser::AddTypeAnnotationToParseNode(ParseNodePtr pnode)
             break;
         case tkTypeObject:
             pnode->typeHint = Js::TypeHint::Object;
+            break;
+        case tkTypeFloatArray:
+            pnode->typeHint = Js::TypeHint::FloatArray;
             break;
         }
     }

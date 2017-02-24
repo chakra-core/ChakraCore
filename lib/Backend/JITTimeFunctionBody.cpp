@@ -1099,6 +1099,17 @@ TypeAnnotationsArrayIDL * JITTimeFunctionBody::GetTypeAnnotationsArray() const
     return m_bodyData.typeAnnotations;
 }
 
+TypeInformationIDL * JITTimeFunctionBody::GetTypeHint(uint32 idx) const
+{
+    if (m_bodyData.typeAnnotations != nullptr && idx < m_bodyData.typeAnnotations->count)
+    {
+        return &m_bodyData.typeAnnotations->content[idx];
+    } else 
+    {
+        return nullptr;
+    }
+}
+
 ParameterTypeInfoIDL * JITTimeFunctionBody::GetParameterTypeInfo() const
 {
     return m_bodyData.parameterTypeInfo;

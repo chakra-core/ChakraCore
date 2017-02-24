@@ -186,6 +186,7 @@ TOK_DCL(tkTypeAnnBegin  , No, knopNone   , No, knopNone   ) // /** @type { Marks
 TOK_DCL(tkTypeInt       , No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeFloat     , No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeBool      , No, knopNone   , No, knopNone   )
+TOK_DCL(tkTypeFloatArray, No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeObject    , No, knopNone   , No, knopNone   )
 
 

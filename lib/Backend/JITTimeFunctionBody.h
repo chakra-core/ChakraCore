@@ -183,6 +183,7 @@ public:
     Js::PropertyIdArray * GetFormalsPropIdArray() const;
     
     TypeAnnotationsArrayIDL* GetTypeAnnotationsArray() const;
+    TypeInformationIDL* GetTypeHint(uint32 idx) const;
     ParameterTypeInfoIDL* GetParameterTypeInfo() const;
 
     Js::ForInCache * GetForInCache(uint profileId) const;

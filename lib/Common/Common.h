@@ -44,7 +44,8 @@ namespace Js
         Float = 4,
         Bool = 5,
         Array = 6,
-        Function = 7
+        Function = 7,
+        FloatArray = 8
     };
 }
 
