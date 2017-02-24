@@ -4537,13 +4537,9 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
 
     if (CONFIG_FLAG(TypeAnnotations))
     {
-        void* typeAnnotation;
-        if (m_func->GetJITFunctionBody()->GetTypeAnnotationsArray() && (typeAnnotation = bsearch(&offset,
-            m_func->GetJITFunctionBody()->GetTypeAnnotationsArray()->content,
-            m_func->GetJITFunctionBody()->GetTypeAnnotationsArray()->count,
-            sizeof(Js::FunctionBody::TypeInformation), compareTypeInfos)) != nullptr)
+        if (m_func->GetJITFunctionBody()->GetTypeHint(this->m_currentTypeHintIdx) != nullptr && m_func->GetJITFunctionBody()->GetTypeHint(this->m_currentTypeHintIdx)->bytecodeOffset == offset)
         {
-            switch (((Js::FunctionBody::TypeInformation*)typeAnnotation)->type)
+            switch ((Js::TypeHint)m_func->GetJITFunctionBody()->GetTypeHint(this->m_currentTypeHintIdx++)->type)
             {
             case Js::TypeHint::Int:
                 instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::Int.SetCanBeTaggedValue(true);
@@ -4556,6 +4552,9 @@ IRBuilder::BuildElementCP(Js::OpCode newOpcode, uint32 offset, Js::RegSlot insta
                 break;
             case Js::TypeHint::Object:
                 instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::UninitializedObject;
+                break;
+            case Js::TypeHint::FloatArray:
+                instr->AsProfiledInstr()->u.FldInfo().valueType = ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(Js::TypeId::TypeIds_NativeFloatArray);
                 break;
             }
         }
@@ -5440,6 +5439,27 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
 
             regOpnd = this->BuildDstOpnd(regSlot);
 
+            if (CONFIG_FLAG(TypeAnnotations))
+            {
+                if (m_func->GetJITFunctionBody()->GetTypeHint(this->m_currentTypeHintIdx) != nullptr && m_func->GetJITFunctionBody()->GetTypeHint(this->m_currentTypeHintIdx)->bytecodeOffset == offset)
+                {
+                    switch ((Js::TypeHint)m_func->GetJITFunctionBody()->GetTypeHint(this->m_currentTypeHintIdx++)->type)
+                    {
+                    case Js::TypeHint::FloatArray:
+                        arrayType = ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(Js::TypeId::TypeIds_NativeFloatArray);
+                        regOpnd->SetValueType(arrayType);
+                        break;
+                    }
+                    if (newOpcode == Js::OpCode::LdElemI_A)
+                    {
+                        Js::LdElemInfo *const newLdElemInfo = JitAnew(m_func->m_alloc, Js::LdElemInfo, *ldElemInfo);
+                        newLdElemInfo->arrayType = arrayType;
+                        newLdElemInfo->elemType = arrayType;
+                        ldElemInfo = newLdElemInfo;
+                    }
+                }
+            }
+
             if (m_func->DoSimpleJitDynamicProfile() && isProfiledInstr)
             {
                 instr = IR::JitProfilingInstr::New(newOpcode, regOpnd, indirOpnd, m_func);
@@ -5695,6 +5715,39 @@ IRBuilder::BuildArgIn(uint32 offset, Js::RegSlot dstRegSlot, uint16 argument)
             ValueType profiledValueType;
             profiledValueType = this->m_func->GetReadOnlyProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotIndex));
             dstOpnd->SetValueType(profiledValueType);
+        }
+    }
+    if (CONFIG_FLAG(ParamTypeAnnotations) && 
+        this->m_func->GetJITFunctionBody()->GetParameterTypeInfo() != nullptr && 
+        this->m_func->GetJITFunctionBody()->GetParameterTypeInfo()->count > 0)
+    {
+        int paramSlotIndex = symSrc->GetParamSlotNum() - 2;
+        if (paramSlotIndex >= 0)
+        {
+            Js::TypeHint typeHint = (Js::TypeHint) this->m_func->GetJITFunctionBody()->GetParameterTypeInfo()->content[paramSlotIndex];
+            switch (typeHint)
+            {
+            case Js::TypeHint::Int:
+                dstOpnd->SetValueType(ValueType::Int.SetCanBeTaggedValue(true));
+                srcOpnd->SetValueType(ValueType::Int.SetCanBeTaggedValue(true));
+                break;
+            case Js::TypeHint::Float:
+                dstOpnd->SetValueType(ValueType::Float.SetCanBeTaggedValue(true));
+                srcOpnd->SetValueType(ValueType::Float.SetCanBeTaggedValue(true));
+                break;
+            case Js::TypeHint::Bool:
+                dstOpnd->SetValueType(ValueType::Boolean);
+                srcOpnd->SetValueType(ValueType::Boolean);
+                break;
+            case Js::TypeHint::Object:
+                dstOpnd->SetValueType(ValueType::UninitializedObject);
+                srcOpnd->SetValueType(ValueType::UninitializedObject);
+                break;
+            case Js::TypeHint::FloatArray:
+                dstOpnd->SetValueType(ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(Js::TypeId::TypeIds_NativeFloatArray));
+                srcOpnd->SetValueType(ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(Js::TypeId::TypeIds_NativeFloatArray));
+                break;
+            }
         }
     }
 

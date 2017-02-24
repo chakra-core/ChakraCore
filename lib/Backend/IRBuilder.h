@@ -82,6 +82,7 @@ public:
 #ifdef BYTECODE_BRANCH_ISLAND
         , longBranchMap(nullptr)
 #endif
+        ,m_currentTypeHintIdx(0)
     {
         auto loopCount = func->GetJITFunctionBody()->GetLoopCount();
         if (loopCount > 0) {
@@ -329,6 +330,8 @@ private:
     Js::RegSlot         firstTemp;
     IRBuilderSwitchAdapter m_switchAdapter;
     SwitchIRBuilder     m_switchBuilder;
+
+    uint32              m_currentTypeHintIdx;
 
     BVFixed *           m_ldSlots;
     BVFixed *           m_stSlots;

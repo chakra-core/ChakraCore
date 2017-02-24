@@ -5808,7 +5808,7 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                 if (paramSlotNum >= 0)
                 {
                     ValueType parameterType;
-                    if (instr->m_func->GetJITFunctionBody()->GetParameterTypeInfo() != nullptr)
+                    if (CONFIG_FLAG(ParamTypeAnnotations) && instr->m_func->GetJITFunctionBody()->GetParameterTypeInfo() != nullptr)
                     {
                         Js::TypeHint typeHint = (Js::TypeHint) instr->m_func->GetJITFunctionBody()->GetParameterTypeInfo()->content[paramSlotNum];
                         switch (typeHint)
@@ -5825,6 +5825,8 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                             case Js::TypeHint::Object:
                                 parameterType = ValueType::UninitializedObject;
                                 break;
+                            case Js::TypeHint::FloatArray:
+                                parameterType = ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(Js::TypeId::TypeIds_NativeFloatArray);
                             default:
                                 parameterType = instr->m_func->GetReadOnlyProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotNum));
                         }
