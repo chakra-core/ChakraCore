@@ -13,6 +13,7 @@
 #include "Common/ByteSwap.h"
 #include "Library/DataView.h"
 #include "Library/JavascriptSymbol.h"
+#include "Library/JavascriptPromise.h"
 #include "Base/ThreadContextTlsEntry.h"
 #include "Codex/Utf8Helper.h"
 
@@ -4522,5 +4523,31 @@ CHAKRA_API JsRunSerialized(
         scriptLoadCallback, DummyScriptUnloadCallback,
         sourceContext, // use the same user provided sourceContext as scriptLoadSourceContext
         buffer, bufferVal, sourceContext, url, false, result);
+}
+
+CHAKRA_API JsCreatePromise(_Out_ JsValueRef *promise, _Out_ JsValueRef *resolve, _Out_ JsValueRef *reject)
+{
+    return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+
+        PARAM_NOT_NULL(promise);
+        PARAM_NOT_NULL(resolve);
+        PARAM_NOT_NULL(reject);
+
+        *promise = nullptr;
+        *resolve = nullptr;
+        *reject = nullptr;
+
+        Js::JavascriptPromiseResolveOrRejectFunction *jsResolve;
+        Js::JavascriptPromiseResolveOrRejectFunction *jsReject;
+        Js::JavascriptPromise *jsPromise = scriptContext->GetLibrary()->CreatePromise();
+        Js::JavascriptPromise::InitializePromise(jsPromise, &jsResolve, &jsReject, scriptContext);
+
+        *promise = (JsValueRef)jsPromise;
+        *resolve = (JsValueRef)jsResolve;
+        *reject = (JsValueRef)jsReject;
+
+        return JsNoError;
+    });
 }
 #endif // CHAKRACOREBUILD_
