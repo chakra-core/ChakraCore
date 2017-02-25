@@ -3092,7 +3092,9 @@ bool FlowGraph::IsUnsignedOpnd(IR::Opnd *src, IR::Opnd **pShrSrc1)
         return false;
     }
 
-    *pShrSrc1 = shrUInstr->GetSrc1();
+    IR::Opnd *shrSrc = shrUInstr->GetSrc1();
+
+    *pShrSrc1 = shrSrc;
     return true;
 }
 
@@ -3112,7 +3114,8 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     //
     //  t1 = ShrU_A x, 0
     //  t2 = 10;
-    //  BrUnGt x, t2, L
+    //  t3 = Or_A x, 0
+    //  BrUnGt x, t3, L
     //       ByteCodeUse t1
     //
     // Hopefully dead-store can get rid of the ShrU
@@ -3186,10 +3189,16 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
         {
             bytecodeInstr->Set(cmpSrc1);
         }
-        cmpInstr->ReplaceSrc1(newSrc1);
+
+        IR::RegOpnd * unsignedSrc = IR::RegOpnd::New(newSrc1->GetType(), cmpInstr->m_func);
+        IR::Instr * orZero = IR::Instr::New(Js::OpCode::Or_A, unsignedSrc, newSrc1, IR::IntConstOpnd::New(0, TyMachReg, cmpInstr->m_func), cmpInstr->m_func);
+        orZero->SetByteCodeOffset(cmpInstr);
+        cmpInstr->InsertBefore(orZero);
+        cmpInstr->ReplaceSrc1(unsignedSrc);
         if (newSrc1->IsRegOpnd())
         {
             cmpInstr->GetSrc1()->AsRegOpnd()->SetIsJITOptimizedReg(true);
+            orZero->GetSrc1()->SetIsJITOptimizedReg(true);
         }
     }
     if (cmpSrc2 != newSrc2)
@@ -3198,10 +3207,16 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
         {
             bytecodeInstr->Set(cmpSrc2);
         }
-        cmpInstr->ReplaceSrc2(newSrc2);
+
+        IR::RegOpnd * unsignedSrc = IR::RegOpnd::New(newSrc2->GetType(), cmpInstr->m_func);
+        IR::Instr * orZero = IR::Instr::New(Js::OpCode::Or_A, unsignedSrc, newSrc2, IR::IntConstOpnd::New(0, TyMachReg, cmpInstr->m_func), cmpInstr->m_func);
+        orZero->SetByteCodeOffset(cmpInstr);
+        cmpInstr->InsertBefore(orZero);
+        cmpInstr->ReplaceSrc2(unsignedSrc);
         if (newSrc2->IsRegOpnd())
         {
             cmpInstr->GetSrc2()->AsRegOpnd()->SetIsJITOptimizedReg(true);
+            orZero->GetSrc1()->SetIsJITOptimizedReg(true);
         }
     }
 
