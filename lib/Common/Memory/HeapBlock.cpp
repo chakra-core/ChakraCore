@@ -917,13 +917,9 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
                     return;
                 }
 
-                if ((offset == 0x20 // scope field in scopeInfo
-                    || (offset >= 0x30 && (offset &0xf)==0) // symbol array at the end of scopeInfo, can point to arena allocated propertyRecord
-                    )
+                if (offset >= 0x30 && (offset & 0xf) == 0 // symbol array at the end of scopeInfo, can point to arena allocated propertyRecord
                     && strstr(typeName, "Js::ScopeInfo") != nullptr)
                 {
-                    // Js::ScopeInfo scope field is arena allocated and can be reused in recycler
-                    // TODO: (leish)(swb) find a good location to clear/tag this field
                     dumpFalsePositive();
                     return;
                 }
