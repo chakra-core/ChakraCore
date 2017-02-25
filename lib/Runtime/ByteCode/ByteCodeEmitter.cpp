@@ -3009,14 +3009,43 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
     // so they have pointers to the stub sub-trees they need.)
     byteCodeFunction->SetDeferredStubs(nullptr);
 
-    if (byteCodeFunction->GetByteCode() != nullptr)
-    {
-        // Previously compiled function nested within a re-deferred and re-compiled function.
-        return;
-    }
-
     try
     {
+        if (!funcInfo->IsGlobalFunction())
+        {
+            // Note: Do not set the stack nested func flag if the function has been redeferred and recompiled.
+            // In that case the flag already has the value we want.
+            if (CanStackNestedFunc(funcInfo, true) && byteCodeFunction->GetCompileCount() == 0)
+            {
+#if DBG
+                byteCodeFunction->SetCanDoStackNestedFunc();
+#endif
+                if (funcInfo->root->sxFnc.astSize <= PnFnc::MaxStackClosureAST)
+                {
+                    byteCodeFunction->SetStackNestedFunc(true);
+                }
+            }
+        }
+
+        if (byteCodeFunction->DoStackNestedFunc())
+        {
+            uint nestedCount = byteCodeFunction->GetNestedCount();
+            for (uint i = 0; i < nestedCount; i++)
+            {
+                Js::FunctionProxy * nested = byteCodeFunction->GetNestedFunctionProxy(i);
+                if (nested->IsFunctionBody())
+                {
+                    nested->GetFunctionBody()->SetStackNestedFuncParent(byteCodeFunction->GetFunctionInfo());
+                }
+            }
+        }
+
+        if (byteCodeFunction->GetByteCode() != nullptr)
+        {
+            // Previously compiled function nested within a re-deferred and re-compiled function.
+            return;
+        }
+
         // Bug : 301517
         // In the debug mode the hasOnlyThis optimization needs to be disabled, since user can break in this function
         // and do operation on 'this' and its property, which may not be defined yet.
@@ -3057,22 +3086,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
                 constAndLetCheck(funcInfo->root->sxFnc.pnodeScopes, &applyEnclosesArgs);
                 constAndLetCheck(funcInfo->root->sxFnc.pnodeBodyScope, &applyEnclosesArgs);
                 funcInfo->SetApplyEnclosesArgs(applyEnclosesArgs);
-            }
-        }
-
-        if (!funcInfo->IsGlobalFunction())
-        {
-            // Note: Do not set the stack nested func flag if the function has been redeferred and recompiled.
-            // In that case the flag already has the value we want.
-            if (CanStackNestedFunc(funcInfo, true) && byteCodeFunction->GetCompileCount() == 0)
-            {
-#if DBG
-                byteCodeFunction->SetCanDoStackNestedFunc();
-#endif
-                if (funcInfo->root->sxFnc.astSize <= PnFnc::MaxStackClosureAST)
-                {
-                    byteCodeFunction->SetStackNestedFunc(true);
-                }
             }
         }
 
@@ -3236,19 +3249,6 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             if (funcInfo->superCtorScopeSlot != Js::Constants::NoRegister)
             {
                 this->EmitInternalScopedSlotStore(funcInfo, funcInfo->superCtorScopeSlot, funcInfo->superCtorRegister);
-            }
-        }
-
-        if (byteCodeFunction->DoStackNestedFunc())
-        {
-            uint nestedCount = byteCodeFunction->GetNestedCount();
-            for (uint i = 0; i < nestedCount; i++)
-            {
-                Js::FunctionProxy * nested = byteCodeFunction->GetNestedFunctionProxy(i);
-                if (nested->IsFunctionBody())
-                {
-                    nested->GetFunctionBody()->SetStackNestedFuncParent(byteCodeFunction->GetFunctionInfo());
-                }
             }
         }
 
