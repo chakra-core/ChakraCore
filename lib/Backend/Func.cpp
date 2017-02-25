@@ -569,20 +569,23 @@ Func::TryCodegen()
                     next1->fixupFunc(next1->data, chunk);
                 }
 #if DBG
-                // Scan memory to see if there's missing pointer needs to be fixed up
-                // This can hit false positive if some data field happens to have value 
-                // falls into the NativeCodeData memory range.
-                NativeCodeData::DataChunk *next2 = chunk;
-                while (next2)
+                if (CONFIG_FLAG(OOPJITFixupValidate))
                 {
-                    for (unsigned int i = 0; i < next1->len / sizeof(void*); i++)
+                    // Scan memory to see if there's missing pointer needs to be fixed up
+                    // This can hit false positive if some data field happens to have value 
+                    // falls into the NativeCodeData memory range.
+                    NativeCodeData::DataChunk *next2 = chunk;
+                    while (next2)
                     {
-                        if (((void**)next1->data)[i] == (void*)next2->data)
+                        for (unsigned int i = 0; i < next1->len / sizeof(void*); i++)
                         {
-                            NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                            if (((void**)next1->data)[i] == (void*)next2->data)
+                            {
+                                NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                            }
                         }
+                        next2 = next2->next;
                     }
-                    next2 = next2->next;
                 }
 #endif
                 next1 = next1->next;

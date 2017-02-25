@@ -841,6 +841,7 @@ PHASE(All)
 #if DBG
 FLAGNR(Boolean, ArrayValidate         , "Validate each array for valid elements (default: false)", false)
 FLAGNR(Boolean, MemOpMissingValueValidate, "Validate Missing Value Tracking on memset/memcopy", false)
+FLAGNR(Boolean, OOPJITFixupValidate, "Validate that all entries in fixup list are allocated as NativeCodeData and that all NativeCodeData gets fixed up", false)
 #endif
 #ifdef ARENA_MEMORY_VERIFY
 FLAGNR(Boolean, ArenaNoFreeList       , "Do not free list in arena", false)
