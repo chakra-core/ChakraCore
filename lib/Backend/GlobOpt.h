@@ -358,9 +358,12 @@ public:
 class IntConstantValueInfo : public _IntConstantValueInfo<int, IntConstantValueInfo, ValueStructureKind::IntConstant>
 {
 public:
-    using _IntConstantValueInfo::New;
+    static IntConstantValueInfo *New(JitArenaAllocator *const allocator, const int intValue)
+    {
+        return _IntConstantValueInfo::New(allocator, intValue);
+    }
 private:
-    using _IntConstantValueInfo::_IntConstantValueInfo;
+    IntConstantValueInfo(int value) : _IntConstantValueInfo(value) {};
     static bool IsTaggable(const int i)
     {
 #if INT32VAR
@@ -377,10 +380,13 @@ private:
 class Int64ConstantValueInfo : public _IntConstantValueInfo<int64, Int64ConstantValueInfo, ValueStructureKind::Int64Constant>
 {
 public:
-    using _IntConstantValueInfo::New;
+    static Int64ConstantValueInfo *New(JitArenaAllocator *const allocator, const int64 intValue)
+    {
+        return _IntConstantValueInfo::New(allocator, intValue);
+    }
 private:
     static bool IsTaggable(const int64 i) { return false; }
-    using _IntConstantValueInfo::_IntConstantValueInfo;
+    Int64ConstantValueInfo(int64 value) : _IntConstantValueInfo(value) {};
 
     friend _IntConstantValueInfo;
 };

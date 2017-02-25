@@ -3715,7 +3715,7 @@ bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
     {
 #define BINARY_U(OPCODE,HANDLER) \
     case Js::OpCode::##OPCODE: \
-        value = HANDLER((SignedTypeTraits<T>::UnsignedType)src1Const, (SignedTypeTraits<T>::UnsignedType)src2Const); \
+        value = HANDLER((typename SignedTypeTraits<T>::UnsignedType)src1Const, (typename SignedTypeTraits<T>::UnsignedType)src2Const); \
         break;
 #define BINARY(OPCODE,HANDLER) \
     case Js::OpCode::##OPCODE: \
@@ -3749,8 +3749,8 @@ bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
             if (GetSrc1()->IsUnsigned())
             {
                 value = m_opcode == Js::OpCode::Div_I4 ?
-                    Js::AsmJsMath::Div<SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const) :
-                    Js::AsmJsMath::Rem<SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const);
+                    Js::AsmJsMath::Div<typename SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const) :
+                    Js::AsmJsMath::Rem<typename SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const);
             }
             else
             {
