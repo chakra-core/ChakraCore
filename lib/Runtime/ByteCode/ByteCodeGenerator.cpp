@@ -1642,7 +1642,7 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
             // (with/eval), and if the function is not declared in a loop. (Loops are problematic, because as the loop
             // iterates different instances can be captured. If we always capture the var-scoped binding, then we
             // always get the latest instance, when we should get the instance belonging to the iteration that captured it.)
-            if (sym->GetHasNonLocalReference() && !this->scriptContext->IsScriptContextInSourceRundownOrDebugMode())
+            if (sym->GetHasNonLocalReference())
             {
                 if (!scope)
                 {
