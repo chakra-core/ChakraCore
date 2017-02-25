@@ -366,6 +366,20 @@ Opnd::GetStackSym() const
     }
 }
 
+Sym*
+Opnd::GetSym() const
+{
+    switch (this->GetKind())
+    {
+        case OpndKindSym:
+            return static_cast<SymOpnd const *>(this)->m_sym;
+        case OpndKindReg:
+            return static_cast<RegOpnd const *>(this)->m_sym;
+        default:
+            return nullptr;
+    }
+}
+
 int64
 Opnd::GetImmediateValue(Func* func)
 {

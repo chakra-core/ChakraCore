@@ -1605,6 +1605,7 @@ private:
     bool                    TryHoistInvariant(IR::Instr *instr, BasicBlock *block, Value *dstVal, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv,
                                                 const bool lossy = false, const bool forceInvariantHoisting = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     void                    HoistInvariantValueInfo(ValueInfo *const invariantValueInfoToHoist, Value *const valueToUpdate, BasicBlock *const targetBlock);
+    void                    OptHoistToLandingPadUpdateValueType(BasicBlock* landingPad, IR::Instr* instr, IR::Opnd* opnd, Value *const srcVal);
 public:
     static bool             IsTypeSpecPhaseOff(Func* func);
     static bool             DoAggressiveIntTypeSpec(Func* func);
