@@ -37,7 +37,7 @@ HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
     return ChakraRTInterface::OnChakraCoreLoaded(testHooks);
 }
 
-JsRuntimeAttributes jsrtAttributes = JsRuntimeAttributeAllowScriptInterrupt;
+JsRuntimeAttributes jsrtAttributes = JsRuntimeAttributeNone;
 
 int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 {
