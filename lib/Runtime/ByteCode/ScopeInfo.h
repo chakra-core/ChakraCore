@@ -205,11 +205,6 @@ namespace Js {
             return paramScopeInfo;
         }
 
-        void SetScope(Scope *scope)
-        {
-            this->scope = scope;
-        }
-
         Scope * GetScope() const
         {
             return scope;
