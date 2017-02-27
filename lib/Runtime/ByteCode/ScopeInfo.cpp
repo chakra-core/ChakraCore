@@ -15,7 +15,7 @@ namespace Js
         bool needScopeSlot = !sym->GetIsArguments() && sym->GetHasNonLocalReference()
             && (!mapSymbolData->func->IsInnerArgumentsSymbol(sym) || mapSymbolData->func->GetHasArguments());
         Js::PropertyId scopeSlot = Constants::NoSlot;
-        
+
         if (sym->GetIsModuleExportStorage())
         {
             // Export symbols aren't in slots but we need to persist the fact that they are export storage
@@ -184,7 +184,7 @@ namespace Js
         // We will have to implement encoding block scope info to enable, which will also
         // enable defer parsing function that are in block scopes.
 
-        if (funcInfo->byteCodeFunction && 
+        if (funcInfo->byteCodeFunction &&
             funcInfo->byteCodeFunction->GetScopeInfo() != nullptr &&
             !funcInfo->byteCodeFunction->GetScopeInfo()->IsParentInfoOnly())
         {
@@ -223,7 +223,7 @@ namespace Js
                     {
                         Assert(currentScope->GetEnclosingScope() == funcInfo->GetFuncExprScope() &&
                             currentScope->GetEnclosingScope()->GetEnclosingScope() ==
-                            (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ? 
+                            (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ?
                              parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
                     }
                 }
@@ -240,7 +240,7 @@ namespace Js
                     }
 #if 0
                     else
-                    { 
+                    {
                         Assert(currentScope->GetEnclosingScope() ==
                             (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
                     }
@@ -285,6 +285,12 @@ namespace Js
             Assert(!this->isCached || scope == funcInfo->GetBodyScope());
             funcInfo->SetHasCachedScope(this->isCached);
             byteCodeGenerator->PushScope(scope);
+
+            // this->scope was created/saved during parsing and used by
+            // ByteCodeGenerator::RestoreScopeInfo. We no longer need it by now.
+            // Clear it to avoid GC false positive (arena memory later used by GC).
+            Assert(this->scope == scope);
+            this->scope = nullptr;
 
             // The scope is already populated, so we're done.
             return;
