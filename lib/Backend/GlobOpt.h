@@ -18,7 +18,6 @@ enum class ValueStructureKind
 };
 
 class IntConstantValueInfo;
-class Int64ConstantValueInfo;
 class IntRangeValueInfo;
 class IntBoundedValueInfo;
 class FloatConstantValueInfo;
@@ -192,7 +191,7 @@ private:
     bool                            IsIntConstant() const;
     bool                            IsInt64Constant() const;
     const IntConstantValueInfo *    AsIntConstant() const;
-    const Int64ConstantValueInfo *  AsInt64Constant() const;
+    const IntConstantValueInfo *    AsInt64Constant() const;
     bool                            IsIntRange() const;
     const IntRangeValueInfo *       AsIntRange() const;
 
@@ -322,49 +321,44 @@ public:
 
 template<> ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value);
 
-
-template <typename T, typename U, ValueStructureKind kind>
-class _IntConstantValueInfo : public ValueInfo
+class IntConstantValueInfo : public ValueInfo
 {
-private:
-    const T intValue;
+
 public:
-    static U *New(JitArenaAllocator *const allocator, const T intValue)
+    static IntConstantValueInfo *New(JitArenaAllocator *const allocator, const int32 intValue)
     {
-        return JitAnew(allocator, U, intValue);
+        return JitAnew(allocator, IntConstantValueInfo, intValue);
     }
 
-    U *Copy(JitArenaAllocator *const allocator) const
+    static IntConstantValueInfo *New(JitArenaAllocator *const allocator, const int64 intValue)
     {
-        return JitAnew(allocator, U, *((U*)this));
+        return JitAnew(allocator, IntConstantValueInfo, intValue);
     }
 
-    _IntConstantValueInfo(const T intValue)
-        : ValueInfo(GetInt(IsTaggable(intValue)), kind),
+    IntConstantValueInfo *Copy(JitArenaAllocator *const allocator) const
+    {
+        return JitAnew(allocator, IntConstantValueInfo, *this);
+    }
+
+    int32 IntValue() const     { return (int32)intValue; }
+    int64 Int64Value() const { return intValue; }
+
+protected:
+    IntConstantValueInfo(const int32 intValue)
+        : ValueInfo(GetInt(IsTaggable(intValue)), ValueStructureKind::IntConstant),
         intValue(intValue)
-    {}
-
-    static bool IsTaggable(const T i)
     {
-        return U::IsTaggable(i);
     }
 
-    T IntValue() const
+    IntConstantValueInfo(const int64 intValue)
+        : ValueInfo(GetInt(false), ValueStructureKind::Int64Constant),
+        intValue(intValue)
     {
-        return intValue;
     }
-};
 
-class IntConstantValueInfo : public _IntConstantValueInfo<int, IntConstantValueInfo, ValueStructureKind::IntConstant>
-{
-public:
-    static IntConstantValueInfo *New(JitArenaAllocator *const allocator, const int intValue)
-    {
-        return _IntConstantValueInfo::New(allocator, intValue);
-    }
 private:
-    IntConstantValueInfo(int value) : _IntConstantValueInfo(value) {};
-    static bool IsTaggable(const int i)
+    const int64 intValue;
+    static bool IsTaggable(const int32 i)
     {
 #if INT32VAR
         // All 32-bit ints are taggable on 64-bit architectures
@@ -373,22 +367,6 @@ private:
         return i >= Js::Constants::Int31MinValue && i <= Js::Constants::Int31MaxValue;
 #endif
     }
-
-    friend _IntConstantValueInfo;
-};
-
-class Int64ConstantValueInfo : public _IntConstantValueInfo<int64, Int64ConstantValueInfo, ValueStructureKind::Int64Constant>
-{
-public:
-    static Int64ConstantValueInfo *New(JitArenaAllocator *const allocator, const int64 intValue)
-    {
-        return _IntConstantValueInfo::New(allocator, intValue);
-    }
-private:
-    static bool IsTaggable(const int64 i) { return false; }
-    Int64ConstantValueInfo(int64 value) : _IntConstantValueInfo(value) {};
-
-    friend _IntConstantValueInfo;
 };
 
 class IntRangeValueInfo : public ValueInfo, public IntConstantBounds

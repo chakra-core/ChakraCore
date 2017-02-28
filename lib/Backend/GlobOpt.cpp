@@ -6938,7 +6938,7 @@ GlobOpt::NewInt64ConstantValue(const int64 intConst)
 {
     //TODO: to implement int64 VN caching we need liveness info
     //We need caching for CSE
-    Value * value = NewValue(Int64ConstantValueInfo::New(this->alloc, intConst));
+    Value * value = NewValue(IntConstantValueInfo::New(this->alloc, intConst));
     return value;
 }
 
@@ -20541,11 +20541,11 @@ ValueInfo::AsIntConstant() const
     Assert(IsIntConstant());
     return static_cast<const IntConstantValueInfo *>(this);
 }
-const Int64ConstantValueInfo *
+const IntConstantValueInfo *
 ValueInfo::AsInt64Constant() const
 {
     Assert(IsInt64Constant());
-    return static_cast<const Int64ConstantValueInfo *>(this);
+    return static_cast<const IntConstantValueInfo *>(this);
 }
 
 bool

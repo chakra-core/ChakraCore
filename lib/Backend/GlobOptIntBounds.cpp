@@ -186,7 +186,7 @@ bool ValueInfo::TryGetIntConstantValue(int64 *const intValueRef, const bool isUn
     Assert(intValueRef);
     if (structureKind == ValueStructureKind::Int64Constant)
     {
-        *intValueRef = AsInt64Constant()->IntValue();
+        *intValueRef = AsInt64Constant()->Int64Value();
         return true;
     }
     return false;
