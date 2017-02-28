@@ -5318,7 +5318,7 @@ Case0:
         JS_REENTRANT_UNLOCK(jsReentLock, return JavascriptArray::ReverseHelper(pArr, nullptr, obj, length.GetBigIndex(), scriptContext));
     }
 
-    bool JavascriptArray::HasAnyES5ArrayInPrototypeChain(JavascriptArray *arr)
+    bool JavascriptArray::HasAnyES5ArrayInPrototypeChain(JavascriptArray *arr, bool forceCheckProtoChain)
     {
         Assert(arr != nullptr);
 
@@ -5328,8 +5328,8 @@ Case0:
 
         bool hasAnyES5Array = false;
 
-        // If there is no gap we are not filling from the prototype - so no point checking for ES5Array.
-        if (arr->IsFillFromPrototypes())
+        // If there is no gap (unless forced) we are not filling from the prototype - so no point checking for ES5Array.
+        if (forceCheckProtoChain || arr->IsFillFromPrototypes())
         {
             RecyclableObject* prototype = arr->GetPrototype();
 
@@ -7768,7 +7768,8 @@ Case0:
 
         uint32 unshiftElements = args.Info.Count - 1;
 
-        bool useNoSideEffectUnshift = pArr != nullptr && (unshiftElements == 0 || !HasAnyES5ArrayInPrototypeChain(pArr));
+        // forceCheckProtoChain - since the array expand to accommodate new items thus we have to check if we have accessor on the proto chain.
+        bool useNoSideEffectUnshift = pArr != nullptr && (unshiftElements == 0 || !HasAnyES5ArrayInPrototypeChain(pArr, true /*forceCheckProtoChain*/));
 
         if (useNoSideEffectUnshift)
         {

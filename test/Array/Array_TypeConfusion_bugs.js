@@ -772,5 +772,19 @@ var tests = [
             assert.areEqual(6, arr.length);
         }
     },
+    {
+        name: "unshift : setter on the prototype will be called even though it is outside of current array's length",
+        body: function ()
+        {
+            var setterCalled = false;
+            var protoObj = {};
+            var arr = [1, 2];
+            // setter is put on the index outside of the current's array length (which is 2).
+            Object.defineProperty(protoObj, 3, {get : function() {  }, set : function(a) { setterCalled = true;} });
+            arr.__proto__ = protoObj;
+            Array.prototype.unshift.call(arr, 101, 104);
+            assert.isTrue(setterCalled);
+        }
+    },
 ];
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });
