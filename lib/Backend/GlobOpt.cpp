@@ -6463,12 +6463,16 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
                 }
 
                 const auto indir = src->AsIndirOpnd();
+                if ((int64)indir->GetOffset() + intConstantValue > INT32_MAX)
+                {
+                    continue;
+                }
                 if(opnd == indir->GetIndexOpnd())
                 {
                     Assert(indir->GetScale() == 0);
                     GOPT_TRACE_OPND(opnd, _u("Constant prop indir index into offset (value: %d)\n"), intConstantValue);
                     this->CaptureByteCodeSymUses(instr);
-                    indir->SetOffset(intConstantValue);
+                    indir->SetOffset(indir->GetOffset() + intConstantValue);
                     indir->SetIndexOpnd(nullptr);
                 }
             }

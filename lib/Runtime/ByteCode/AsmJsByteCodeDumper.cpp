@@ -509,67 +509,78 @@ namespace Js
         }
     }
 
+    void AsmJsByteCodeDumper::InitializeWAsmJsMemTag(ArrayBufferView::ViewType type, _Out_ WAsmJsMemTag * tag)
+    {
+        switch (type)
+        {
+        case ArrayBufferView::TYPE_INT8:
+            tag->heapTag = _u("HEAP8"); tag->valueTag = 'I';  break;
+        case ArrayBufferView::TYPE_UINT8:
+            tag->heapTag = _u("HEAPU8"); tag->valueTag = 'U'; break;
+        case ArrayBufferView::TYPE_INT16:
+            tag->heapTag = _u("HEAP16"); tag->valueTag = 'I'; break;
+        case ArrayBufferView::TYPE_UINT16:
+            tag->heapTag = _u("HEAPU16"); tag->valueTag = 'U'; break;
+        case ArrayBufferView::TYPE_INT32:
+            tag->heapTag = _u("HEAP32"); tag->valueTag = 'I'; break;
+        case ArrayBufferView::TYPE_UINT32:
+            tag->heapTag = _u("HEAPU32"); tag->valueTag = 'U'; break;
+        case ArrayBufferView::TYPE_FLOAT32:
+            tag->heapTag = _u("HEAPF32"); tag->valueTag = 'F'; break;
+        case ArrayBufferView::TYPE_FLOAT64:
+            tag->heapTag = _u("HEAPF64"); tag->valueTag = 'D'; break;
+        case ArrayBufferView::TYPE_INT64:
+            tag->heapTag = _u("HEAPI64"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_INT8_TO_INT64:
+            tag->heapTag = _u("HEAP8"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_UINT8_TO_INT64:
+            tag->heapTag = _u("HEAPU8"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_INT16_TO_INT64:
+            tag->heapTag = _u("HEAP16"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_UINT16_TO_INT64:
+            tag->heapTag = _u("HEAPU16"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_INT32_TO_INT64:
+            tag->heapTag = _u("HEAP32"); tag->valueTag = 'L'; break;
+        case ArrayBufferView::TYPE_UINT32_TO_INT64:
+            tag->heapTag = _u("HEAPU32"); tag->valueTag = 'L'; break;
+        default:
+            Assume(UNREACHED);
+        }
+    }
+
     template <class T>
     void AsmJsByteCodeDumper::DumpAsmTypedArr(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
     {
-        const char16* heapTag = nullptr;
-        char16 valueTag = 'I';
-        switch (data->ViewType)
-        {
-        case ArrayBufferView::TYPE_INT8:
-            heapTag = _u("HEAP8"); valueTag = 'I';  break;
-        case ArrayBufferView::TYPE_UINT8:
-            heapTag = _u("HEAPU8"); valueTag = 'U'; break;
-        case ArrayBufferView::TYPE_INT16:
-            heapTag = _u("HEAP16"); valueTag = 'I'; break;
-        case ArrayBufferView::TYPE_UINT16:
-            heapTag = _u("HEAPU16"); valueTag = 'U'; break;
-        case ArrayBufferView::TYPE_INT32:
-            heapTag = _u("HEAP32"); valueTag = 'I'; break;
-        case ArrayBufferView::TYPE_UINT32:
-            heapTag = _u("HEAPU32"); valueTag = 'U'; break;
-        case ArrayBufferView::TYPE_FLOAT32:
-            heapTag = _u("HEAPF32"); valueTag = 'F'; break;
-        case ArrayBufferView::TYPE_FLOAT64:
-            heapTag = _u("HEAPF64"); valueTag = 'D'; break;
-        case ArrayBufferView::TYPE_INT64:
-            heapTag = _u("HEAPI64"); valueTag = 'L'; break;
-        case ArrayBufferView::TYPE_INT8_TO_INT64:
-            heapTag = _u("HEAP8"); valueTag = 'L'; break;
-        case ArrayBufferView::TYPE_UINT8_TO_INT64:
-            heapTag = _u("HEAPU8"); valueTag = 'L'; break;
-        case ArrayBufferView::TYPE_INT16_TO_INT64:
-            heapTag = _u("HEAP16"); valueTag = 'L'; break;
-        case ArrayBufferView::TYPE_UINT16_TO_INT64:
-            heapTag = _u("HEAPU16"); valueTag = 'L'; break;
-        case ArrayBufferView::TYPE_INT32_TO_INT64:
-            heapTag = _u("HEAP32"); valueTag = 'L'; break;
-        case ArrayBufferView::TYPE_UINT32_TO_INT64:
-            heapTag = _u("HEAPU32"); valueTag = 'L'; break;
-        default:
-            Assert(false);
-            __assume(false);
-            break;
-        }
-
+        WAsmJsMemTag tag;
+        InitializeWAsmJsMemTag(data->ViewType, &tag);
         switch (op)
         {
         case OpCodeAsmJs::LdArr:
-            Output::Print(_u(" %c%d = %s[I%d]"), valueTag, data->Value, heapTag, data->SlotIndex); break;
-        case OpCodeAsmJs::LdArrWasm:
-            Output::Print(_u(" %c%d = %s[L%d]"), valueTag, data->Value, heapTag, data->SlotIndex); break;
+            Output::Print(_u(" %c%d = %s[I%d]"), tag.valueTag, data->Value, tag.heapTag, data->SlotIndex); break;
         case OpCodeAsmJs::LdArrConst:
-            Output::Print(_u(" %c%d = %s[%d]"), valueTag, data->Value, heapTag, data->SlotIndex); break;
+            Output::Print(_u(" %c%d = %s[%d]"), tag.valueTag, data->Value, tag.heapTag, data->SlotIndex); break;
         case OpCodeAsmJs::StArr:
-            Output::Print(_u(" %s[I%d] = %c%d"), heapTag, data->SlotIndex, valueTag, data->Value); break;
-        case OpCodeAsmJs::StArrWasm:
-            Output::Print(_u(" %s[L%d] = %c%d"), heapTag, data->SlotIndex, valueTag, data->Value); break;
+            Output::Print(_u(" %s[I%d] = %c%d"), tag.heapTag, data->SlotIndex, tag.valueTag, data->Value); break;
         case OpCodeAsmJs::StArrConst:
-            Output::Print(_u(" %s[%d] = %c%d"), heapTag, data->SlotIndex, valueTag, data->Value); break;
+            Output::Print(_u(" %s[%d] = %c%d"), tag.heapTag, data->SlotIndex, tag.valueTag, data->Value); break;
         default:
-            Assert(false);
-            __assume(false);
-            break;
+            Assume(UNREACHED);
+        }
+    }
+
+    template <class T>
+    void AsmJsByteCodeDumper::DumpWasmMemAccess(OpCodeAsmJs op, const unaligned T * data, FunctionBody * dumpFunction, ByteCodeReader& reader)
+    {
+        WAsmJsMemTag tag;
+        InitializeWAsmJsMemTag(data->ViewType, &tag);
+        switch (op)
+        {
+        case OpCodeAsmJs::LdArrWasm:
+            Output::Print(_u(" %c%d = %s[L%d + %d]"), tag.valueTag, data->Value, tag.heapTag, data->SlotIndex, data->Offset); break;
+        case OpCodeAsmJs::StArrWasm:
+            Output::Print(_u(" %s[L%d + %d] = %c%d"), tag.heapTag, data->SlotIndex, data->Offset, tag.valueTag, data->Value); break;
+        default:
+            Assume(UNREACHED);
         }
     }
 

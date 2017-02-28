@@ -359,10 +359,24 @@ namespace Js
     }
 
     template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteWasmMemAccess(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint32 offset, ArrayBufferView::ViewType viewType)
+    {
+        OpLayoutT_WasmMemAccess<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<ArrayBufferView::ViewType>(layout.ViewType, viewType)
+            && SizePolicy::Assign(layout.SlotIndex, slotIndex)
+            && SizePolicy::Assign(layout.Offset, offset))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteAsmTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType)
     {
         OpLayoutT_AsmTypedArr<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<int8>(layout.ViewType, (int8)viewType)
+        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<ArrayBufferView::ViewType>(layout.ViewType, viewType)
             && SizePolicy::Assign(layout.SlotIndex, slotIndex))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
@@ -375,7 +389,7 @@ namespace Js
     bool AsmJsByteCodeWriter::TryWriteAsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType)
     {
         OpLayoutT_AsmSimdTypedArr<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<int8>(layout.ViewType, (int8)viewType)
+        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<ArrayBufferView::ViewType>(layout.ViewType, viewType)
             && SizePolicy::Assign(layout.SlotIndex, slotIndex) && SizePolicy::template Assign<int8>(layout.DataWidth, dataWidth))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
@@ -540,6 +554,11 @@ namespace Js
     void AsmJsByteCodeWriter::AsmTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType)
     {
         MULTISIZE_LAYOUT_WRITE(AsmTypedArr, op, value, slotIndex, viewType);
+    }
+
+    void AsmJsByteCodeWriter::WasmMemAccess(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint32 offset, ArrayBufferView::ViewType viewType)
+    {
+        MULTISIZE_LAYOUT_WRITE(WasmMemAccess, op, value, slotIndex, offset, viewType);
     }
 
     void AsmJsByteCodeWriter::AsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType)

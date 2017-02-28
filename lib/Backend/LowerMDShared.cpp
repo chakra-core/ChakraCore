@@ -1169,22 +1169,25 @@ void LowererMD::ChangeToAdd(IR::Instr *const instr, const bool needFlags)
     instr->m_opcode = Js::OpCode::ADD;
     MakeDstEquSrc1(instr);
 
-    // Prefer INC for add by one
-    if((instr->GetDst()->IsEqual(instr->GetSrc1()) &&
+    if (!needFlags)
+    {
+        // Prefer INC for add by one
+        if ((instr->GetDst()->IsEqual(instr->GetSrc1()) &&
             instr->GetSrc2()->IsIntConstOpnd() &&
             instr->GetSrc2()->AsIntConstOpnd()->GetValue() == 1) ||
-        (instr->GetDst()->IsEqual(instr->GetSrc2()) &&
-            instr->GetSrc1()->IsIntConstOpnd() &&
-            instr->GetSrc1()->AsIntConstOpnd()->GetValue() == 1))
-    {
-        if(instr->GetSrc1()->IsIntConstOpnd())
+            (instr->GetDst()->IsEqual(instr->GetSrc2()) &&
+                instr->GetSrc1()->IsIntConstOpnd() &&
+                instr->GetSrc1()->AsIntConstOpnd()->GetValue() == 1))
         {
-            // Swap the operands, such that we would create (dst = INC src2)
-            instr->SwapOpnds();
-        }
+            if (instr->GetSrc1()->IsIntConstOpnd())
+            {
+                // Swap the operands, such that we would create (dst = INC src2)
+                instr->SwapOpnds();
+            }
 
-        instr->FreeSrc2();
-        instr->m_opcode = Js::OpCode::INC;
+            instr->FreeSrc2();
+            instr->m_opcode = Js::OpCode::INC;
+        }
     }
 }
 
