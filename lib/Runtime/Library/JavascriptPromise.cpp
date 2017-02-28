@@ -1805,18 +1805,42 @@ namespace Js
 #if ENABLE_TTD
     void JavascriptPromiseAllResolveElementFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        TTDAssert(false, "Not Implemented Yet");
+        TTDAssert(this->capabilities != nullptr && this->remainingElementsWrapper != nullptr && this->values != nullptr, "Don't think these can be null");
+
+        this->capabilities->MarkVisitPtrs(extractor);
+        extractor->MarkVisitVar(this->values);
     }
 
     TTD::NSSnapObjects::SnapObjectType JavascriptPromiseAllResolveElementFunction::GetSnapTag_TTD() const
     {
-        TTDAssert(false, "Not Implemented Yet");
-        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+        return TTD::NSSnapObjects::SnapObjectType::SnapPromiseAllResolveElementFunctionObject;
     }
 
     void JavascriptPromiseAllResolveElementFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        TTDAssert(false, "Not Implemented Yet");
+        TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo* sprai = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo>();
+
+        JsUtil::List<TTD_PTR_ID, HeapAllocator> depOnList(&HeapAllocator::Instance);
+        this->capabilities->ExtractSnapPromiseCapabilityInto(&sprai->Capabilities, depOnList, alloc);
+
+        sprai->Index = this->index;
+        sprai->RemainingElementsWrapperId = TTD_CONVERT_PROMISE_INFO_TO_PTR_ID(this->remainingElementsWrapper);
+        sprai->RemainingElementsValue = this->remainingElementsWrapper->remainingElements;
+
+        sprai->Values = TTD_CONVERT_VAR_TO_PTR_ID(this->values);
+        depOnList.Add(sprai->Values);
+
+        sprai->AlreadyCalled = this->alreadyCalled;
+
+        uint32 depOnCount = depOnList.Count();
+        TTD_PTR_ID* depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
+
+        for(uint32 i = 0; i < depOnCount; ++i)
+        {
+            depOnArray[i] = depOnList.Item(i);
+        }
+
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapPromiseAllResolveElementFunctionInfo*, TTD::NSSnapObjects::SnapObjectType::SnapPromiseAllResolveElementFunctionObject>(objData, sprai, alloc, depOnCount, depOnArray);
     }
 #endif
 

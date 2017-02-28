@@ -350,7 +350,7 @@ namespace TTD
                 //      will want to change this to a dump of the bit representation of the number
                 //
 
-                this->WriteFormattedCharData(_u("%.22f"), val);
+                this->WriteFormattedCharData(_u("%.32f"), val);
             }
         }
     }
@@ -1826,7 +1826,7 @@ namespace TTD
         }
         else
         {
-            this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, 64, "%.22f", dval);
+            this->m_currLength += sprintf_s(this->m_buffer + this->m_currLength, 64, "%.32f", dval);
         }
     }
 

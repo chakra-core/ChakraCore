@@ -607,7 +607,7 @@ namespace TTD
                 for(uint32 j = 0; j < slotInfo->SlotCount; j++)
                 {
                     Js::PropertyId trgtPid = slotInfo->PIDArray[j];
-                    for(uint32 i = 0; i < slotInfo->SlotCount; i++)
+                    for(uint32 i = 0; i < fbody->GetScopeSlotArraySize(); i++)
                     {
                         if(trgtPid == propertyIds[i])
                         {
@@ -771,14 +771,19 @@ namespace TTD
             for(uint32 i = 0; i < sai1->SlotCount; ++i)
             {
                 Js::PropertyId id1 = sai1->PIDArray[i];
+                bool found = false;
                 for(uint32 j = 0; j < sai1->SlotCount; ++j)
                 {
                     if(id1 == sai2->PIDArray[j])
                     {
                         AssertSnapEquivTTDVar_SlotArray(sai1->Slots[i], sai2->Slots[j], compareMap, i);
+                        found = true;
                         break;
                     }
                 }
+                //TODO: We see this hit in a case where record has all values in a slot array when replaying --replay-debug (but not --replay).
+                //      In the debug version the propertyId is in a Js::DebuggerScopeProperty instead. So this needs to be investigated in both extract and inflate.
+                compareMap.DiagnosticAssert(found);
             }
         }
 #endif
@@ -1314,9 +1319,6 @@ namespace TTD
             // But we want, for instance, to be able to verify that we did the right amount of deferred parsing.
             Js::ParseableFunctionInfo* functionInfo = pfuncScript->GetParseableFunctionInfo();
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
-
-            Js::EvalMapString key(source, length, moduleID, strictMode, /* isLibraryCode = */ false);
-            ctx->AddToNewFunctionMap(key, functionInfo->GetFunctionInfo());
 
             Js::FunctionBody* fb = JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
 

@@ -2012,6 +2012,13 @@ namespace TTD
 
         //check if we can reuse script contexts or we need to create new ones
         bool reuseInflateMap = (this->m_lastInflateMap != nullptr && this->m_lastInflateSnapshotTime == etime && !threadCtx->ContextCreatedOrDestoyedInReplay());
+
+        //Fast checks ok but make sure we aren't blocked by a non-restorable well known object
+        if(reuseInflateMap)
+        {
+            reuseInflateMap = snap->AllWellKnownObjectsReusable(this->m_lastInflateMap);
+        }
+
         if(reuseInflateMap)
         {
             this->m_lastInflateMap->PrepForReInflate(snap->ContextCount(), snap->HandlerCount(), snap->TypeCount(), snap->PrimitiveCount() + snap->ObjectCount(), snap->BodyCount(), dbgScopeCount, snap->EnvCount(), snap->SlotArrayCount());

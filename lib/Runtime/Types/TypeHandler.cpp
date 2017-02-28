@@ -815,5 +815,10 @@ namespace Js
     {
         this->flags |= Js::DynamicTypeHandler::IsExtensibleFlag;
     }
+
+    bool DynamicTypeHandler::IsResetableForTTD(uint32 snapMaxIndex) const
+    {
+        return false;
+    }
 #endif
 }

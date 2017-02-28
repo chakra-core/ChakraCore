@@ -624,16 +624,8 @@ namespace Js
          //Set the extensible flag info in the handler
          void SetExtensible_TTD();
 
-         //Return true if we should restore the given property id (we want to skip most internal property ids)
-         static bool ShouldRestorePropertyId_TTD(Js::PropertyId pid)
-         {
-             if((pid == Js::Constants::NoProperty) | Js::IsInternalPropertyId(pid))
-             {
-                 return false;
-             }
-
-             return true;
-         }
+         //Return true if this type handler is reseattable/false if we don't want to try
+         virtual bool IsResetableForTTD(uint32 snapMaxIndex) const;
 #endif
     };
 }

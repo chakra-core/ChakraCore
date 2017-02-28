@@ -704,7 +704,7 @@ namespace Js
         static void AddMapElementInflate_TTD(Js::JavascriptMap* map, Var key, Var value);
         static void AddWeakMapElementInflate_TTD(Js::JavascriptWeakMap* map, Var key, Var value);
 
-        Js::RecyclableObject* CreateExternalFunction_TTD(Js::JavascriptString* fname);
+        Js::RecyclableObject* CreateExternalFunction_TTD(Js::Var fname);
         Js::RecyclableObject* CreateBoundFunction_TTD(RecyclableObject* function, Var bThis, uint32 ct, Var* args);
 
         Js::RecyclableObject* CreateProxy_TTD(RecyclableObject* handler, RecyclableObject* target);
@@ -720,6 +720,9 @@ namespace Js
         JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* CreateAlreadyDefinedWrapper_TTD(bool alreadyDefined);
         Js::RecyclableObject* CreatePromiseResolveOrRejectFunction_TTD(RecyclableObject* promise, bool isReject, JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolved);
         Js::RecyclableObject* CreatePromiseReactionTaskFunction_TTD(JavascriptPromiseReaction* reaction, Var argument);
+
+        Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* CreateRemainingElementsWrapper_TTD(Js::ScriptContext* ctx, uint32 value);
+        Js::RecyclableObject* JavascriptLibrary::CreatePromiseAllResolveElementFunction_TTD(Js::JavascriptPromiseCapability* capabilities, uint32 index, Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* wrapper, Js::RecyclableObject* values, bool alreadyCalled);
 #endif
 
 #ifdef ENABLE_INTL_OBJECT
