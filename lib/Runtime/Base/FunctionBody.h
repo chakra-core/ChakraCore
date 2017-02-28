@@ -1304,8 +1304,8 @@ namespace Js
 
     class FunctionProxy;
 
-    typedef FieldWithBarrier(FunctionInfo*)* FunctionInfoArray;
-    typedef FieldWithBarrier(FunctionInfo*)* FunctionInfoPtrPtr;
+    typedef Field(FunctionInfo*)* FunctionInfoArray;
+    typedef Field(FunctionInfo*)* FunctionInfoPtrPtr;
 
     //
     // FunctionProxy represents a user defined function
@@ -1779,12 +1779,12 @@ namespace Js
         virtual uint GetShortDisplayNameOffset() const { return m_displayShortNameOffset; }
         LPCWSTR GetSourceInfo(int& lineNumber, int& columnNumber) const;
     private:
-        FieldWithBarrier(const byte*) m_functionBytes;
-        FieldWithBarrier(ByteCodeCache*) m_cache;
-        FieldWithBarrier(const char16 *) m_displayName;  // Optional name
-        FieldWithBarrier(uint) m_displayNameLength;
-        FieldWithBarrier(uint) m_displayShortNameOffset;
-        FieldWithBarrier(NativeModule *) m_nativeModule;
+        Field(const byte*) m_functionBytes;
+        Field(ByteCodeCache*) m_cache;
+        Field(const char16 *) m_displayName;  // Optional name
+        Field(uint) m_displayNameLength;
+        Field(uint) m_displayShortNameOffset;
+        Field(NativeModule *) m_nativeModule;
     };
 
     class ParseableFunctionInfo: public FunctionProxy
@@ -1816,8 +1816,8 @@ namespace Js
         {
             NestedArray(uint32 count): nestedCount(count) {}
 
-            FieldWithBarrier(uint32) nestedCount;
-            FieldWithBarrier(FunctionInfo*) functionInfoArray[];
+            Field(uint32) nestedCount;
+            Field(FunctionInfo*) functionInfoArray[];
         };
 
         template<typename Fn>
@@ -2338,10 +2338,10 @@ namespace Js
             {
                 // Contains statement adjustment data:
                 // For given bytecode, following statement needs an adjustment, see StatementAdjustmentType for details.
-                FieldWithBarrier(StatementAdjustmentRecordList*) m_statementAdjustmentRecords;
+                Field(StatementAdjustmentRecordList*) m_statementAdjustmentRecords;
 
                 // Contain data about entry/exit of blocks that cause processing in different interpreter stack frame, such as try or catch.
-                FieldWithBarrier(CrossFrameEntryExitRecordList*) m_crossFrameBlockEntryExisRecords;
+                Field(CrossFrameEntryExitRecordList*) m_crossFrameBlockEntryExisRecords;
 
                 AuxStatementData();
             };
@@ -3857,14 +3857,14 @@ namespace Js
         static ScopeType GetScopeType(void* scope);
 
     private:
-        FieldWithBarrier(bool) tag;              // Tag it so that the NativeCodeGenerator::IsValidVar would not think this is var
-        FieldWithBarrier(bool) strictMode;
-        FieldWithBarrier(uint16) length;
+        Field(bool) tag;              // Tag it so that the NativeCodeGenerator::IsValidVar would not think this is var
+        Field(bool) strictMode;
+        Field(uint16) length;
 
 #if defined(_M_X64_OR_ARM64)
-        FieldWithBarrier(uint32) unused;
+        Field(uint32) unused;
 #endif
-        FieldWithBarrier(void*) scopes[];
+        Field(void*) scopes[];
     };
 #pragma region Function Body helper classes
 #pragma region Debugging related source classes
@@ -4006,10 +4006,10 @@ namespace Js
     // and list of formals args if user has not used the arguments object in the script for the current function
     struct PropertyIdOnRegSlotsContainer
     {
-        FieldWithBarrier(PropertyId *) propertyIdsForRegSlots;
-        FieldWithBarrier(uint) length;
+        Field(PropertyId *) propertyIdsForRegSlots;
+        Field(uint) length;
 
-        FieldWithBarrier(PropertyIdArray *) propertyIdsForFormalArgs;
+        Field(PropertyIdArray *) propertyIdsForFormalArgs;
 
         PropertyIdOnRegSlotsContainer();
         static PropertyIdOnRegSlotsContainer * New(Recycler * recycler);
@@ -4140,9 +4140,9 @@ namespace Js
         // For with scope:  Has 1 property that represents the scoped object.
         // For catch scope: Has 1 property that represents the exception object.
         // For block scope: Has 0-n properties that represent let/const variables in that scope.
-        FieldWithBarrier(DebuggerScopePropertyList*) scopeProperties;
-        FieldWithBarrier(DiagExtraScopesType) scopeType; // The type of scope being represented (With, Catch, or Block scope).
-        FieldWithBarrier(DebuggerScope*) siblingScope;  // Valid only when current scope is slot/activationobject and symbols are on direct regslot
+        Field(DebuggerScopePropertyList*) scopeProperties;
+        Field(DiagExtraScopesType) scopeType; // The type of scope being represented (With, Catch, or Block scope).
+        Field(DebuggerScope*) siblingScope;  // Valid only when current scope is slot/activationobject and symbols are on direct regslot
         static const int InvalidScopeIndex = -1;
     private:
         int GetScopeDepth() const;
@@ -4150,10 +4150,10 @@ namespace Js
         void EnsurePropertyListIsAllocated();
 
     private:
-        FieldWithBarrier(DebuggerScope*) parentScope;
-        FieldWithBarrier(regex::Interval) range; // The start and end byte code writer offsets used when comparing where the debugger is currently stopped at (breakpoint location).
-        FieldWithBarrier(RegSlot) scopeLocation;
-        FieldWithBarrier(Recycler*) recycler;
+        Field(DebuggerScope*) parentScope;
+        Field(regex::Interval) range; // The start and end byte code writer offsets used when comparing where the debugger is currently stopped at (breakpoint location).
+        Field(RegSlot) scopeLocation;
+        FieldNoBarrier(Recycler*) recycler;
     };
 
     class ScopeObjectChain
@@ -4175,7 +4175,7 @@ namespace Js
         bool TryGetDebuggerScopePropertyInfo(PropertyId propertyId, RegSlot location, int offset, bool* isPropertyInDebuggerScope, bool *isConst, bool* isInDeadZone);
 
         // List of all Scope Objects in a function. Scopes are added to this list as when they are created in bytecode gen part.
-        FieldWithBarrier(ScopeObjectChainList*) pScopeChain;
+        Field(ScopeObjectChainList*) pScopeChain;
     };
 #pragma endregion
 } // namespace Js
