@@ -212,11 +212,11 @@ protected:
 
     static const uint HASH_TABLE_SIZE = 256;
 
-    __declspec(noreturn) void Error(HRESULT hr);
+    DECLSPEC_NORETURN void Error(HRESULT hr);
 private:
-    __declspec(noreturn) void Error(HRESULT hr, ParseNodePtr pnode);
-    __declspec(noreturn) void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim);
-    __declspec(noreturn) static void OutOfMemory();
+    DECLSPEC_NORETURN void Error(HRESULT hr, ParseNodePtr pnode);
+    DECLSPEC_NORETURN void Error(HRESULT hr, charcount_t ichMin, charcount_t ichLim);
+    DECLSPEC_NORETURN static void OutOfMemory();
 
     void GenerateCode(ParseNodePtr pnode, void *pvUser, int32 cbUser,
         LPCOLESTR pszSrc, int32 cchSrc, LPCOLESTR pszTitle);

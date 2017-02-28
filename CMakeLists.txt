@@ -177,15 +177,6 @@ if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
     endif()
 
     set(CLR_CMAKE_PLATFORM_LINUX 1)
-    # OSX 10.12 Clang deprecates libstdc++ [See GH #1599]
-    # So, -Werror is linux only for now
-    # + Android ARM ABI shows ld warnings
-    # xplat-todo: Do we need this ?
-    if (NOT CC_TARGET_OS_ANDROID)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-          -Werror"
-          )
-    endif()
 elseif(CC_TARGET_OS_OSX)
     add_definitions(
         -DPLATFORM_UNIX
@@ -254,59 +245,74 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -Wno-implicit-function-declaration"
     )
 
-    # todo: fix general visibility of the interface
-    # do not set to `fvisibility=hidden` as it is going to
-    # prevent the required interface is being exported
-    # clang by default sets fvisibility=default
+    if (NOT USES_GNU_COMPILER_SH)
+        # CXX WARNING FLAGS
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            -Wno-ignored-attributes\
+            -Wno-deprecated-declarations\
+            -Wno-parentheses-equality\
+            -Wno-missing-braces\
+            -Wno-reorder\
+            -Wno-microsoft\
+            -Wno-unused-value\
+            -Wno-int-to-void-pointer-cast\
+            -Wno-invalid-offsetof\
+            -Wno-undefined-inline\
+            -Wno-inconsistent-missing-override\
+            -Wno-c++14-extensions\
+            -Wno-macro-redefined\
+            -Wno-pragmas\
+            -Wno-invalid-token-paste\
+            -Wno-format\
+            -Wno-invalid-noreturn\
+            -Wno-null-arithmetic\
+            -Wno-tautological-constant-out-of-range-compare\
+            -Wno-tautological-undefined-compare\
+            -Wno-address-of-temporary\
+            -Wno-null-conversion\
+            -Wno-return-type\
+            -Wno-switch\
+            -Wno-int-to-pointer-cast"
+            )
 
-    # CXX WARNING FLAGS
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -Wno-ignored-attributes\
-        -Wno-deprecated-declarations\
-        -Wno-parentheses-equality\
-        -Wno-missing-braces\
-        -Wno-reorder\
-        -Wno-microsoft\
-        -Wno-unused-value\
-        -Wno-int-to-void-pointer-cast\
-        -Wno-invalid-offsetof\
-        -Wno-undefined-inline\
-        -Wno-inconsistent-missing-override\
-        -Wno-c++14-extensions\
-        -Wno-macro-redefined\
-        -Wno-pragmas\
-        -Wno-invalid-token-paste\
-        -Wno-format\
-        -Wno-invalid-noreturn\
-        -Wno-null-arithmetic\
-        -Wno-tautological-constant-out-of-range-compare\
-        -Wno-tautological-undefined-compare\
-        -Wno-address-of-temporary\
-        -Wno-null-conversion\
-        -Wno-return-type\
-        -Wno-switch\
-        -Wno-int-to-pointer-cast"
-    )
         # notes..
         # -Wno-address-of-temporary  # vtinfo.h, VirtualTableInfo<T>::RegisterVirtualTable
         # -Wno-null-conversion # Check shmemory.cpp and cs.cpp here...
         # -Wno-return-type # switch unreachable code
         # -Wno-switch # switch values not handled
 
-    include(Build/CMakeFeatureDetect.cmake)
+        include(Build/CMakeFeatureDetect.cmake)
 
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        ${CXX_DO_NOT_OPTIMIZE_SIBLING_CALLS} \
-        -fno-omit-frame-pointer \
-        -fdelayed-template-parsing"
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            ${CXX_DO_NOT_OPTIMIZE_SIBLING_CALLS} \
+            -fno-omit-frame-pointer \
+            -fdelayed-template-parsing"
+            )
+
+        # CXX / CC COMPILER FLAGS
+        add_compile_options(
+            -fasm-blocks
+            -fms-extensions
+            -fwrapv                 # Treat signed integer overflow as two's complement
         )
+    else()
+        set(USES_GNU_COMPILER 1)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            -Wno-error=old-style-cast \
+            -Wno-old-style-cast \
+            -Wno-error=format= \
+            -Wno-format \
+            -Wno-pointer-arith \
+            -Wno-conversion-null \
+            -fms-extensions \
+            -Wno-error \
+            -Wno-unused-parameter \
+            -Wno-narrowing \
+            -fpermissive \
+            -Wno-attributes")
+    endif() # USE_GNU_COMPILER
 
-    # CXX / CC COMPILER FLAGS
-    add_compile_options(
-        -fasm-blocks
-        -fms-extensions
-        -fwrapv                 # Treat signed integer overflow as two's complement
-    )
+    unset(USES_GNU_COMPILER_SH CACHE)
 
     # Clang -fsanitize.
     if (CLANG_SANITIZE_SH)
@@ -440,4 +446,8 @@ add_definitions(
     -DPAL_STDCPP_COMPAT
     )
 add_subdirectory (lib)
-add_subdirectory (bin)
+
+if (NOT USES_GNU_COMPILER)
+    # xplat-todo: enable this for GNU
+    add_subdirectory (bin)
+endif()

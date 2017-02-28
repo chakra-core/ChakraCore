@@ -137,6 +137,7 @@ namespace JsUtil
         typedef typename TCacheStoreType::AllocatorType AllocatorType;
         class CacheStore : public TCacheStoreType
         {
+            typedef TCacheStoreType _super_;
         public:
             CacheStore(AllocatorType* allocator, int capacity) : TCacheStoreType(allocator, capacity), inAdd(false) {};
             bool IsInAdd()
@@ -147,7 +148,7 @@ namespace JsUtil
             {
                 AutoRestoreValue<bool> var(&this->inAdd, true);
 
-                return __super::Add(key, value);
+                return _super_::Add(key, value);
             }
             void SetIsInAdd(bool value) {inAdd = value; }
         private:

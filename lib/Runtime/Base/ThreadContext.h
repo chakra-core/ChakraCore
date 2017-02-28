@@ -279,7 +279,7 @@ public:
 
 #define DEFINE_FLAG(threadFlag, globalFlag) \
     public: \
-        inline bool threadFlag() const { return m_##globalFlag##; } \
+        inline bool threadFlag() const { return m_##globalFlag; } \
     \
     private: \
         bool m_##globalFlag##;
@@ -800,7 +800,7 @@ private:
     bool isScriptActive;
 
     // When ETW rundown in background thread which needs to walk scriptContext/functionBody/entryPoint lists,
-    // or when JIT thread is getting auxPtrs from function body, we should not be modifying the list of 
+    // or when JIT thread is getting auxPtrs from function body, we should not be modifying the list of
     // functionBody/entrypoints, or expanding the auxPtrs
     CriticalSection csFunctionBody;
 

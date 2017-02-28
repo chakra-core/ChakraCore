@@ -11,7 +11,7 @@
 
 const int MachInt = 4;
 const int MachRegInt = 4;
-__declspec(selectany) const int MachPtr = 4;
+DECLSPEC_SELECTANY const int MachPtr = 4;
 const int MachDouble = 8;
 const int MachRegDouble = 8;
 const int MachMaxInstrSize = 11;

@@ -513,7 +513,7 @@ class ByteCodeUsesInstr : public Instr
 {
 private:
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed;
-    
+
 public:
     static ByteCodeUsesInstr * New(IR::Instr * originalBytecodeInstr);
     static ByteCodeUsesInstr * New(Func * containingFunction, uint32 offset);
@@ -630,7 +630,7 @@ class LabelInstr : public Instr
     friend class IRBuilderAsmJs;
     friend class MultiBranchInstr;
 
-
+    typedef Instr _super_;
 public:
     LabelInstr(JitArenaAllocator * allocator) : Instr(), labelRefs(allocator), m_isLoopTop(false), m_block(nullptr), isOpHelper(false),
         m_hasNonBranchRef(false), m_region(nullptr), m_loweredBasicBlock(nullptr), m_isDataLabel(false), m_isForInExit(false)
@@ -656,7 +656,7 @@ public:
     BYTE                    m_isDataLabel : 1;
 
     // Indicate whether the label is the target of a for in loop exit (BrOnEmpty or BrOnNotEmpty)
-    // It is used by Inliner to track inlinee for in loop level to assign stack allocated for in 
+    // It is used by Inliner to track inlinee for in loop level to assign stack allocated for in
     // This bit has unknown validity outside of inliner
     BYTE                    m_isForInExit : 1;
 #if DBG
@@ -958,6 +958,7 @@ public:
 
 class PragmaInstr : public Instr
 {
+    typedef Instr _super_;
 public:
     uint32               m_statementIndex;
     uint32               m_offsetInBuffer; // offset in the binary code buffer

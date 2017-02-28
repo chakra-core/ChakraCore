@@ -1579,7 +1579,7 @@ namespace Js
             c) Clean the arguments based on the arguments size
             d) push the return address back into the stack
     */
-    __declspec(naked)
+    DECLSPEC_NAKED
     void InterpreterStackFrame::InterpreterAsmThunk(AsmJsCallStackLayout* layout)
     {
             enum {
@@ -1699,7 +1699,7 @@ namespace Js
 
 #if DYNAMIC_INTERPRETER_THUNK
 #ifdef _M_IX86
-    __declspec(naked)
+    DECLSPEC_NAKED
     Var InterpreterStackFrame::DelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         __asm

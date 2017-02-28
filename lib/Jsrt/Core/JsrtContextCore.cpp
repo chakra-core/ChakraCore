@@ -130,4 +130,3 @@ HRESULT ChakraCoreHostScriptContext::NotifyHostAboutModuleReady(Js::ModuleRecord
     }
     return E_INVALIDARG;
 }
-

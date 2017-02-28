@@ -17,8 +17,12 @@
 cmake_minimum_required(VERSION 2.6)
 project(WABT)
 
-set(COMPILER_IS_CLANG 1)
-set(COMPILER_IS_GNU 0)
+if (NOT USES_GNU_COMPILER)
+  set(COMPILER_IS_CLANG 1)
+else()
+  set(COMPILER_IS_GNU 1)
+endif()
+
 set(COMPILER_IS_MSVC 0)
 
 include(CheckIncludeFile)
@@ -30,32 +34,12 @@ check_symbol_exists(snprintf "stdio.h" HAVE_SNPRINTF)
 check_symbol_exists(sysconf "unistd.h" HAVE_SYSCONF)
 check_symbol_exists(strcasecmp "strings.h" HAVE_STRCASECMP)
 
-include(CheckTypeSize)
-check_type_size(ssize_t SSIZE_T)
-check_type_size(size_t SIZEOF_SIZE_T)
-check_type_size(int SIZEOF_INT BUILTIN_TYPES_ONLY)
-check_type_size(long SIZEOF_LONG BUILTIN_TYPES_ONLY)
-check_type_size("long long" SIZEOF_LONG_LONG BUILTIN_TYPES_ONLY)
-
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/config.h.in
   ${CMAKE_CURRENT_SOURCE_DIR}/built/config.h
 )
 
 include_directories(chakra src ${CMAKE_CURRENT_SOURCE_DIR}/built)
-
-# disable -Wunused-parameter: this is really common when implementing
-#   interfaces, etc.
-# disable -Wpointer-arith: this is a GCC extension, and doesn't work in MSVC.
-add_definitions(
-  -g -std=c++11
-)
-
-if (MINGW)
-  # Mingw won't define format (e.g. PRIu64) or limit (e.g. UINT32_MAX) macros
-  # in C++ without these.
-  add_definitions(-D__STDC_LIMIT_MACROS=1 -D__STDC_FORMAT_MACROS=1)
-endif ()
 
 if (COMPILER_IS_GNU)
   # disable -Wclobbered: it seems to be guessing incorrectly about a local

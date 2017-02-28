@@ -54,7 +54,7 @@ namespace TTD
     class TTDebuggerSourceLocation;
 }
 
-void _NOINLINE __declspec(noreturn) TTDAbort_fatal_error(const char* msg);
+void _NOINLINE DECLSPEC_NORETURN TTDAbort_fatal_error(const char* msg);
 
 ////////
 //Memory allocators used by the TT code

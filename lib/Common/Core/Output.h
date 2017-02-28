@@ -4,8 +4,11 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if !defined(_WIN32) && !defined(__clang__)
+#include "ConfigFlagsTable.h"
+#endif
 // xplat-todo: error: ISO C++ forbids forward references to 'enum' types
-#if defined(ENABLE_TRACE) 
+#if defined(ENABLE_TRACE)
 namespace Js
 {
 enum Flag: unsigned short;
@@ -93,12 +96,12 @@ public:
         }
 
         return retValue;
-    }    
+    }
     static void     SetInMemoryLogger(Js::ILogger* logger);
 #ifdef STACK_BACK_TRACE
     static void     SetStackTraceHelper(Js::IStackTraceHelper* helper);
 #endif
-    
+
 #endif // ENABLE_TRACE
     static size_t __cdecl Print(const char16 *form, ...);
     static size_t __cdecl Print(int column, const char16 *form, ...);

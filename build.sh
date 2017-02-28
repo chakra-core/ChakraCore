@@ -50,6 +50,7 @@ PRINT_USAGE() {
     echo "     --target-os[=S]   Target OS"
     echo "     --target-path[=S] Output path for compiled binaries. Default: out/"
     echo "     --trace           Enables experimental built-in trace."
+    echo "     --use-gnu         Experiment with GNU compiler. Doesn't work at the moment"
     echo "     --xcode           Generate XCode project."
     echo "     --without=FEATURE,FEATURE,..."
     echo "                       Disable FEATUREs from JSRT experimental"
@@ -94,6 +95,7 @@ WB_CHECK=
 WB_ANALYZE=
 WB_ARGS=
 TARGET_PATH=0
+USES_GNU_COMPILER_SH=
 # -DCMAKE_EXPORT_COMPILE_COMMANDS=ON useful for clang-query tool
 CMAKE_EXPORT_COMPILE_COMMANDS="-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 LIBS_ONLY_BUILD=
@@ -287,6 +289,10 @@ while [[ $# -gt 0 ]]; do
         TARGET_PATH=${TARGET_PATH:14}
         ;;
 
+    --use-gnu)
+        USES_GNU_COMPILER_SH=1
+        ;;
+
     --without=*)
         FEATURES=$1
         FEATURES=${FEATURES:10}    # value after --without=
@@ -360,30 +366,31 @@ ERROR_CLANG() {
     exit 1
 }
 
-CLANG_PATH=
-if [[ ${#_CXX} > 0 || ${#_CC} > 0 ]]; then
-    if [[ ${#_CXX} == 0 || ${#_CC} == 0 ]]; then
-        echo "ERROR: '-cxx' and '-cc' options must be used together."
-        exit 1
-    fi
-    echo "Custom CXX ${_CXX}"
-    echo "Custom CC  ${_CC}"
+if [[ $USES_GNU_COMPILER_SH != 1 ]]; then
+    CLANG_PATH=
+    if [[ ${#_CXX} > 0 || ${#_CC} > 0 ]]; then
+        if [[ ${#_CXX} == 0 || ${#_CC} == 0 ]]; then
+            echo "ERROR: '-cxx' and '-cc' options must be used together."
+            exit 1
+        fi
+        echo "Custom CXX ${_CXX}"
+        echo "Custom CC  ${_CC}"
 
-    if [[ ! -f $_CXX || ! -f $_CC ]]; then
-        echo "ERROR: Custom compiler not found on given path"
-        exit 1
-    fi
-    CLANG_PATH=$_CXX
-else
-    RET_VAL=$(SAFE_RUN 'c++ --version')
-    if [[ ! $RET_VAL =~ "clang" ]]; then
-        echo "Searching for Clang..."
-        if [[ -f /usr/bin/clang++ ]]; then
-            echo "Clang++ found at /usr/bin/clang++"
-            _CXX=/usr/bin/clang++
-            _CC=/usr/bin/clang
-            CLANG_PATH=$_CXX
-        else
+        if [[ ! -f $_CXX || ! -f $_CC ]]; then
+            echo "ERROR: Custom compiler not found on given path"
+            exit 1
+        fi
+        CLANG_PATH=$_CXX
+    else
+        RET_VAL=$(SAFE_RUN 'c++ --version')
+        if [[ ! $RET_VAL =~ "clang" ]]; then
+            echo "Searching for Clang..."
+            if [[ -f /usr/bin/clang++ ]]; then
+                echo "Clang++ found at /usr/bin/clang++"
+                _CXX=/usr/bin/clang++
+                _CC=/usr/bin/clang
+                CLANG_PATH=$_CXX
+            else
             # try env CXX and CC
             if [[ ! -f $CXX  || ! -f $CC  ]]; then
                 ERROR_CLANG
@@ -397,24 +404,27 @@ else
                 ERROR_CLANG
             fi
             echo -e "Clang++ not found on PATH.\nTrying CCX -> ${CCX} and CC -> ${CC}"
+            fi
+        else
+            CLANG_PATH=c++
         fi
-    else
-        CLANG_PATH=c++
     fi
-fi
 
-# check clang version (min required 3.7)
-VERSION=$($CLANG_PATH --version | grep "version [0-9]*\.[0-9]*" --o -i | grep "[0-9]\.[0-9]*" --o)
-VERSION=${VERSION/./}
+    # check clang version (min required 3.7)
+    VERSION=$($CLANG_PATH --version | grep "version [0-9]*\.[0-9]*" --o -i | grep "[0-9]\.[0-9]*" --o)
+    VERSION=${VERSION/./}
 
-if [[ $VERSION -lt 37 ]]; then
-    echo "ERROR: Minimum required Clang version is 3.7"
-    exit 1
-fi
+    if [[ $VERSION -lt 37 ]]; then
+        echo "ERROR: Minimum required Clang version is 3.7"
+        exit 1
+    fi
 
-CC_PREFIX=""
-if [[ ${#_CXX} > 0 ]]; then
-    CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
+    CC_PREFIX=""
+    if [[ ${#_CXX} > 0 ]]; then
+        CC_PREFIX="-DCMAKE_CXX_COMPILER=$_CXX -DCMAKE_C_COMPILER=$_CC"
+    fi
+else
+    USES_GNU_COMPILER_SH="-DUSES_GNU_COMPILER_SH=1"
 fi
 
 if [[ $TARGET_PATH == 0 ]]; then
@@ -509,7 +519,7 @@ echo Generating $BUILD_TYPE makefiles
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
     $ENABLE_CC_XPLAT_TRACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT \
     $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\
-    ../..
+    $USES_GNU_COMPILER_SH ../..
 
 _RET=$?
 if [[ $? == 0 ]]; then

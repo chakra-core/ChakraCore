@@ -63,6 +63,9 @@ namespace std {
     typedef decltype(nullptr) nullptr_t;
 }
 #endif
+#elif defined(__cplusplus)
+#include <typeinfo>
+#define sealed
 #endif // __APPLE__ ?
 
 #ifdef __ANDROID__
@@ -86,6 +89,27 @@ typedef __builtin_va_list va_list;
 #define PRINT_ERROR(...) \
     fprintf(stderr, __VA_ARGS__)
 #endif
+
+#ifndef _DECLSPEC_DEFINED_
+#define _DECLSPEC_DEFINED_
+
+#if defined(__GNUC__) || defined(__clang__)
+#define DECLSPEC_NOVTABLE
+#define DECLSPEC_IMPORT
+#ifndef __clang__
+#define DECLSPEC_SELECTANY  __attribute__((weak))
+#else
+#define DECLSPEC_SELECTANY  _declspec(selectany)
+#define DECLSPEC_NAKED      _declspec(naked)
+#endif
+#else
+#define DECLSPEC_NAKED
+#define DECLSPEC_NOVTABLE
+#define DECLSPEC_IMPORT
+#define DECLSPEC_SELECTANY
+#endif
+
+#endif // !_DECLSPEC_DEFINED_
 
 #ifdef  __cplusplus
 extern "C" {
@@ -210,7 +234,14 @@ extern "C" {
 /******************* Compiler-specific glue *******************************/
 
 #define FEATURE_PAL_SXS 1
+#if defined(__GNUC__) && !defined(__clang__)
+#ifndef __forceinline
+    #define __forceinline __attribute__((always_inline))
+#endif
+#define DECLSPEC_ALIGN(x)   __attribute__((aligned(x)))
+#else
 #define DECLSPEC_ALIGN(x)   __declspec(align(x))
+#endif
 #define DECLSPEC_NORETURN   PAL_NORETURN
 #define __assume(x) (void)0
 #define __annotation(x)
@@ -2494,6 +2525,13 @@ typedef struct _M128U {
 // Same as _M128U but aligned to a 16-byte boundary
 typedef DECLSPEC_ALIGN(16) M128U M128A, *PM128A;
 
+#ifdef __clang__
+#define PM128A16_FloatingContext DECLSPEC_ALIGN(16) PM128A FloatingContext[16]
+#else
+typedef M128U *PM128A16[16] DECLSPEC_ALIGN(16);
+#define PM128A16_FloatingContext PM128A16 FloatingContext
+#endif
+
 typedef struct _XMM_SAVE_AREA32 {
     WORD   ControlWord;
     WORD   StatusWord;
@@ -2673,7 +2711,7 @@ typedef struct DECLSPEC_ALIGN(16) _CONTEXT {
 
 typedef struct _KNONVOLATILE_CONTEXT_POINTERS {
     union {
-        PM128A FloatingContext[16];
+        PM128A16_FloatingContext;
         struct {
             PM128A Xmm0;
             PM128A Xmm1;
@@ -5197,6 +5235,12 @@ InterlockedDecrement64(
     return __sync_sub_and_fetch(lpAddend, (LONGLONG)1);
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
+    #define __SWAP_ATOMIC(dest, src) __sync_lock_test_and_set(dest, src)
+#else
+    #define __SWAP_ATOMIC(dest, src) __sync_swap(dest, src)
+#endif
+
 /*++
 Function:
 InterlockedExchange
@@ -5227,7 +5271,7 @@ InterlockedExchange8(
     IN OUT char volatile *Target,
     IN char Value)
 {
-    return __sync_swap(Target, Value);
+    return __SWAP_ATOMIC(Target, Value);
 }
 
 EXTERN_C
@@ -5239,7 +5283,7 @@ InterlockedExchange16(
     IN OUT short volatile *Target,
     IN short Value)
 {
-    return __sync_swap(Target, Value);
+    return __SWAP_ATOMIC(Target, Value);
 }
 
 EXTERN_C
@@ -5251,7 +5295,7 @@ InterlockedExchange(
     IN OUT LONG volatile *Target,
     IN LONG Value)
 {
-    return __sync_swap(Target, Value);
+    return __SWAP_ATOMIC(Target, Value);
 }
 
 EXTERN_C
@@ -5263,7 +5307,7 @@ InterlockedExchange64(
     IN OUT LONGLONG volatile *Target,
     IN LONGLONG Value)
 {
-    return __sync_swap(Target, Value);
+    return __SWAP_ATOMIC(Target, Value);
 }
 
 /*++
@@ -6144,7 +6188,6 @@ PALIMPORT int __cdecl vsprintf(char *, const char *, va_list);
 PALIMPORT int __cdecl sscanf(const char *, const char *, ...);
 PALIMPORT int __cdecl atoi(const char *);
 PALIMPORT LONG __cdecl atol(const char *);
-PALIMPORT long long int __cdecl atoll(const char *);
 PALIMPORT ULONG __cdecl strtoul(const char *, char **, int);
 PALIMPORT double __cdecl atof(const char *);
 PALIMPORT double __cdecl strtod(const char *, char **);

@@ -8,18 +8,17 @@
 #undef Assert
 
 #if defined(DBG) && !defined(DIAG_DAC)
-
 // AutoDebug functions that are only available in DEBUG builds
-_declspec(selectany) int AssertCount = 0;
-_declspec(selectany) int AssertsToConsole = false;
+DECLSPEC_SELECTANY int AssertCount = 0;
+
+DECLSPEC_SELECTANY int AssertsToConsole = false;
 
 #if _WIN32
 _declspec(thread, selectany) int IsInAssert = false;
-#elif !defined(__IOS__)
+#elif defined(__clang__) && !defined(__IOS__)
 __declspec(thread, selectany) int IsInAssert = false;
 #else
-// todo: implement thread local variable for iOS ??
-__declspec(selectany) int IsInAssert = false;
+THREAD_LOCAL int IsInAssert = false;
 #endif
 
 #if !defined(USED_IN_STATIC_LIB)

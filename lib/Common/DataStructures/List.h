@@ -609,6 +609,7 @@ namespace Js
     >
     class SynchronizableList sealed: private ListType // Make base class private to lock down exposed methods
     {
+        typedef ListType _super_;
     private:
         FieldNoBarrier(SyncObject*) syncObj;
 
@@ -634,76 +635,76 @@ namespace Js
         int Count() const
         {
             typename LockPolicy::ReadLock autoLock(syncObj);
-            return __super::Count();
+            return _super_::Count();
         }
 
         const T& Item(int index) const
         {
             typename LockPolicy::ReadLock autoLock(syncObj);
-            return __super::Item(index);
+            return _super_::Item(index);
         }
 
         void Item(int index, const T& item)
         {
             typename LockPolicy::WriteLock autoLock(syncObj);
-            __super::Item(index, item);
+            _super_::Item(index, item);
         }
 
         void SetExistingItem(int index, const T& item)
         {
             typename LockPolicy::WriteLock autoLock(syncObj);
-            __super::SetExistingItem(index, item);
+            _super_::SetExistingItem(index, item);
         }
 
         bool IsItemValid(int index)
         {
             typename LockPolicy::ReadLock autoLock(syncObj);
-            return __super::IsItemValid(index);
+            return _super_::IsItemValid(index);
         }
 
         int SetAtFirstFreeSpot(const T& item)
         {
             typename LockPolicy::WriteLock autoLock(syncObj);
-            return __super::SetAtFirstFreeSpot(item);
+            return _super_::SetAtFirstFreeSpot(item);
         }
 
         void ClearAndZero()
         {
             typename LockPolicy::WriteLock autoLock(syncObj);
-            __super::ClearAndZero();
+            _super_::ClearAndZero();
         }
 
         void RemoveAt(int index)
         {
             typename LockPolicy::AddRemoveLock autoLock(syncObj);
-            return __super::RemoveAt(index);
+            return _super_::RemoveAt(index);
         }
 
         int Add(const T& item)
         {
             typename LockPolicy::AddRemoveLock autoLock(syncObj);
-            return __super::Add(item);
+            return _super_::Add(item);
         }
 
         template<class TMapFunction>
         void Map(TMapFunction map) const
         {
             typename LockPolicy::ReadLock autoLock(syncObj);
-            __super::Map(map);
+            _super_::Map(map);
         }
 
         template<class TMapFunction>
         bool MapUntil(TMapFunction map) const
         {
             typename LockPolicy::ReadLock autoLock(syncObj);
-            return __super::MapUntil(map);
+            return _super_::MapUntil(map);
         }
 
         template<class DebugSite, class TMapFunction>
         HRESULT Map(DebugSite site, TMapFunction map) const // external debugging version
         {
             // No lock needed. Threads are suspended during external debugging.
-            return __super::Map(site, map);
+            return _super_::Map(site, map);
         }
     };
 
@@ -888,7 +889,7 @@ namespace Js
             {
                 CleanupWeakReference(list);
             }
-            return __super::GetFreeItemIndex(list);
+            return Base::GetFreeItemIndex(list);
         }
     };
 }

@@ -571,23 +571,25 @@ class SListBaseCounted : public SListBase<TData, TAllocator, RealCount>
 template <typename TData, typename TAllocator = ArenaAllocator, typename TCount = DefaultCount>
 class SList : public SListBase<TData, TAllocator, TCount>
 {
+    typedef SListBase<TData, TAllocator, TCount> Base;
 public:
     class EditingIterator : public SListBase<TData, TAllocator, TCount>::EditingIterator
     {
+        typedef typename SListBase<TData, TAllocator, TCount>::EditingIterator _super_;
     public:
         EditingIterator() : SListBase<TData, TAllocator, TCount>::EditingIterator() {}
         EditingIterator(SList * list) : SListBase<TData, TAllocator, TCount>::EditingIterator(list) {}
         void RemoveCurrent()
         {
-            __super::RemoveCurrent(Allocator());
+            _super_::RemoveCurrent(Allocator());
         }
         Field(TData, TAllocator) * InsertNodeBefore()
         {
-            return __super::InsertNodeBefore(Allocator());
+            return _super_::InsertNodeBefore(Allocator());
         }
         bool InsertBefore(TData const& data)
         {
-            return __super::InsertBefore(Allocator(), data);
+            return _super_::InsertBefore(Allocator(), data);
         }
     private:
         TAllocator * Allocator() const
@@ -605,33 +607,33 @@ public:
     }
     void Clear()
     {
-        __super::Clear(allocator);
+        Base::Clear(allocator);
     }
     bool Prepend(TData const& data)
     {
-        return __super::Prepend(allocator, data);
+        return Base::Prepend(allocator, data);
     }
     Field(TData, TAllocator) * PrependNode()
     {
-        return __super::PrependNode(allocator);
+        return Base::PrependNode(allocator);
     }
     template <typename TParam>
     Field(TData, TAllocator) * PrependNode(TParam param)
     {
-        return __super::PrependNode(allocator, param);
+        return Base::PrependNode(allocator, param);
     }
     template <typename TParam1, typename TParam2>
     Field(TData, TAllocator) * PrependNode(TParam1 param1, TParam2 param2)
     {
-        return __super::PrependNode(allocator, param1, param2);
+        return Base::PrependNode(allocator, param1, param2);
     }
     void RemoveHead()
     {
-        __super::RemoveHead(allocator);
+        Base::RemoveHead(allocator);
     }
     bool Remove(TData const& data)
     {
-        return __super::Remove(allocator, data);
+        return Base::Remove(allocator, data);
     }
 
     // Stack like interface

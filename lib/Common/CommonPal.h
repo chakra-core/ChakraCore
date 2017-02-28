@@ -7,13 +7,15 @@
 #define __MAKE_WARNING__(X) "This compiler does not support '" ## X ## "'"
 // Define _ALWAYSINLINE for template that want to always inline, but doesn't allow inline linkage in clang
 #if defined(__GNUC__) || defined(__clang__)
-    #if __has_attribute(always_inline)
-        #define _ALWAYSINLINE __attribute__((always_inline))
-        #define __forceinline inline _ALWAYSINLINE
-    #else // No always_inline support
-        #pragma message __MAKE_WARNING__("always_inline")
-        #define _ALWAYSINLINE inline
-        #define __forceinline _ALWAYSINLINE
+    #ifndef __forceinline
+        #if __has_attribute(always_inline)
+            #define _ALWAYSINLINE __attribute__((always_inline))
+            #define __forceinline inline _ALWAYSINLINE
+        #else // No always_inline support
+            #pragma message __MAKE_WARNING__("always_inline")
+            #define _ALWAYSINLINE inline
+            #define __forceinline _ALWAYSINLINE
+        #endif
     #endif
     #if __has_attribute(noinline)
         #ifdef CLANG_HAS_DISABLE_TAIL_CALLS
@@ -32,10 +34,16 @@
 #endif
 
 // Only VC compiler support overflow guard
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__)
 #define DECLSPEC_GUARD_OVERFLOW
 #else // Windows
 #define DECLSPEC_GUARD_OVERFLOW __declspec(guard(overflow))
+#endif
+
+#if defined(_MSC_VER)
+#define DECLSPEC_SELECTANY  __declspec(selectany)
+#define DECLSPEC_NAKED      __declspec(naked)
+#define DECLSPEC_NORETURN   __declspec(noreturn)
 #endif
 
 #ifdef __clang__
@@ -49,7 +57,7 @@
 #else
 #define CLANG_WNO_BEGIN(x)
 #define CLANG_WNO_END
-#endif
+#endif // __clang__
 
 #ifndef __has_builtin
 #define __has_builtin(x) 0
@@ -278,14 +286,16 @@ typedef DWORD DBGPROP_INFO_FLAGS;
 #define _UNALIGNED
 #endif
 
+#if defined(_WIN32) || defined(__clang__)
 #ifdef __cplusplus
 extern "C++"
 {
   template <typename _CountofType, size_t _SizeOfArray>
   char(*__countof_helper(_UNALIGNED _CountofType(&_Array)[_SizeOfArray]))[_SizeOfArray];
+}
+#endif
 
 #define __crt_countof(_Array) (sizeof(*__countof_helper(_Array)) + 0)
-}
 #else
 #define __crt_countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
 #endif
@@ -709,7 +719,7 @@ namespace PlatformAgnostic
             : "cc" // clobber condition code
         );
         return retval;
-#elif !defined(__ANDROID__)
+#elif !defined(__ANDROID__) && !defined(__GNUC__)
         return _interlockedbittestandreset(_BitBase, (long)_BitPos);
 #else
         // xplat-todo: Implement _interlockedbittestandreset for Android

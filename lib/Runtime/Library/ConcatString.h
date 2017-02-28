@@ -51,7 +51,7 @@ namespace Js
     class ConcatStringN : public ConcatStringBase
     {
         friend JavascriptString;
-
+        typedef ConcatStringBase _super_;
     protected:
         ConcatStringN(StaticType* stringTypeStatic, bool doZeroSlotsAndLength = true);
         DEFINE_VTABLE_CTOR(ConcatStringN<N>, ConcatStringBase);
@@ -59,7 +59,7 @@ namespace Js
 
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override
         {
-            __super::CopyImpl(buffer, N, AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
+            _super_::CopyImpl(buffer, N, AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
         }
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const
         {
@@ -147,13 +147,15 @@ namespace Js
         JavascriptString* GetFirstItem() const;
         JavascriptString* GetLastItem() const;
 
+        typedef ConcatStringBase _super_;
+
     protected:
         DEFINE_VTABLE_CTOR(ConcatStringWrapping, ConcatStringBase);
         DECLARE_CONCRETE_STRING_CLASS;
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override sealed
         {
             const_cast<ConcatStringWrapping *>(this)->EnsureAllSlots();
-            __super::CopyImpl(buffer, _countof(m_slots), AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
+            _super_::CopyImpl(buffer, _countof(m_slots), AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
         }
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const override sealed
         {
@@ -195,6 +197,8 @@ namespace Js
     {
         friend JavascriptString;
 
+        typedef ConcatStringBase _super_;
+
     protected:
         ConcatStringMulti(uint slotCount, JavascriptString * a1, JavascriptString * a2, StaticType* stringTypeStatic);
         DEFINE_VTABLE_CTOR(ConcatStringMulti, ConcatStringBase);
@@ -203,7 +207,7 @@ namespace Js
         virtual void CopyVirtual(_Out_writes_(m_charLength) char16 *const buffer, StringCopyInfoStack &nestedStringTreeCopyInfos, const byte recursionDepth) override
         {
             Assert(IsFilled());
-            __super::CopyImpl(buffer, slotCount, AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
+            _super_::CopyImpl(buffer, slotCount, AddressOf(m_slots[0]), nestedStringTreeCopyInfos, recursionDepth);
         }
         virtual int GetRandomAccessItemsFromConcatString(Js::JavascriptString * const *& items) const
         {
@@ -231,5 +235,3 @@ namespace Js
 #endif
     };
 }
-
-

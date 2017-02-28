@@ -3616,7 +3616,7 @@ namespace Js
 #endif // defined(ENABLE_SCRIPT_PROFILING) || defiend(ENABLE_SCRIPT_DEBUGGING)
 
 #if _M_IX86
-    __declspec(naked)
+    DECLSPEC_NAKED
         Var ScriptContext::ProfileModeDeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
             // Register functions
@@ -3679,7 +3679,7 @@ namespace Js
     }
 
 #if _M_IX86
-    __declspec(naked)
+    DECLSPEC_NAKED
         Var ScriptContext::ProfileModeDeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
             // Register functions

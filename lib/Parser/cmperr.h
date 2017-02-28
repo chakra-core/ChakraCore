@@ -22,3 +22,23 @@ public:
 private:
     HRESULT m_hr;
 };
+
+typedef void (*ErrorCallback)(void *data, HRESULT hr);
+
+class ErrHandler
+{
+public:
+    HRESULT m_hr;
+
+    void *m_data;
+    ErrorCallback m_callback;
+
+    DECLSPEC_NORETURN void Throw(HRESULT hr);
+
+#if DEBUG
+    BOOL fInited;
+    ErrHandler()
+    { fInited = FALSE; }
+#endif //DEBUG
+};
+

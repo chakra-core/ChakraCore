@@ -445,6 +445,7 @@ namespace JsUtil
 
     class BackgroundJobProcessor sealed : public JobProcessor
     {
+        typedef JobProcessor _super_;
     private:
         CriticalSection criticalSection;
         Event jobReady;                 //This is an auto reset event, only one thread wakes up when the event is signaled.

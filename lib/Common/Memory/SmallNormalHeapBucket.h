@@ -90,11 +90,12 @@ typedef SmallNormalHeapBucketT<MediumAllocationBlockAttributes> MediumNormalHeap
 template <typename TBlockAttributes>
 class SmallNormalWithBarrierHeapBucketT : public SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlockT<TBlockAttributes>>
 {
+    typedef SmallNormalHeapBucketBase<SmallNormalWithBarrierHeapBlockT<TBlockAttributes>> _super_;
 public:
     void Initialize(HeapInfo * heapInfo, uint sizeCat)
     {
         CompileAssert(SmallNormalWithBarrierHeapBucketT::IsLeafBucket == false);
-        __super::Initialize(heapInfo, sizeCat);
+        _super_::Initialize(heapInfo, sizeCat);
     }
 };
 

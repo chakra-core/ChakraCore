@@ -53,7 +53,7 @@ src
 count
     Number of bytes (memmove) to copy.
 */
-void* __cdecl memmove_xplat(
+void* memmove_xplat(
     void * dst,
     const void * src,
     size_t count
@@ -92,7 +92,7 @@ src
 count
     Number of bytes (memmove_s) or characters (wmemmove_s) to copy.
 */
-int __cdecl memmove_s(
+int memmove_s(
     void * dst,
     size_t sizeInBytes,
     const void * src,

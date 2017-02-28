@@ -1726,7 +1726,7 @@ LABEL1:
     // Thunk for handling calls to functions that have not had byte code generated for them.
 
 #if _M_IX86
-    __declspec(naked)
+    DECLSPEC_NAKED
     Var JavascriptFunction::DeferredParsingThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         __asm
@@ -1779,7 +1779,7 @@ LABEL1:
     // Thunk for handling calls to functions that have not had byte code generated for them.
 
 #if _M_IX86
-    __declspec(naked)
+    DECLSPEC_NAKED
     Var JavascriptFunction::DeferredDeserializeThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         __asm

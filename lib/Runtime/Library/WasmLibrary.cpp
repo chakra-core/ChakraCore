@@ -41,7 +41,7 @@ namespace Js
     }
 
 #if _M_IX86
-    __declspec(naked)
+    DECLSPEC_NAKED
         Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         // Register functions
@@ -65,7 +65,8 @@ namespace Js
         }
     }
 
-    __declspec(naked) Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    DECLSPEC_NAKED
+        Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         // Register functions
         __asm

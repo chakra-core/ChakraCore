@@ -41,10 +41,10 @@
 #cmakedefine01 COMPILER_IS_GNU
 #cmakedefine01 COMPILER_IS_MSVC
 
-#define SIZEOF_SIZE_T @SIZEOF_SIZE_T@
-#define SIZEOF_INT @SIZEOF_INT@
-#define SIZEOF_LONG @SIZEOF_LONG@
-#define SIZEOF_LONG_LONG @SIZEOF_LONG_LONG@
+#define SIZEOF_SIZE_T 8
+#define SIZEOF_INT 4
+#define SIZEOF_LONG 8
+#define SIZEOF_LONG_LONG 8
 
 #if HAVE_ALLOCA_H
 #include <alloca.h>
@@ -251,10 +251,6 @@ int wabt_snprintf(char* str, size_t size, const char* format, ...);
 int wabt_vsnprintf(char* str, size_t size, const char* format, va_list ap);
 #else
 #define wabt_vsnprintf vsnprintf
-#endif
-
-#if !HAVE_SSIZE_T
-typedef int ssize_t;
 #endif
 
 #if !HAVE_STRCASECMP

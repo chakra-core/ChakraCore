@@ -4,6 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#ifndef _WIN32
+#include "pal.h"
+#endif
+
 namespace Js
 {
     typedef void* Var;

@@ -154,7 +154,7 @@ GetMethodAddress(ThreadContextInfo * context, IR::HelperCallOpnd* opnd)
 
 // TODO:  Remove this define once makes it into WINNT.h
 #ifndef DECLSPEC_GUARDIGNORE
-#if (_MSC_FULL_VER >= 170065501) && !defined(__clang__)
+#if (_MSC_FULL_VER >= 170065501) && !defined(__clang__) && !defined(__GNUC__)
 #define DECLSPEC_GUARDIGNORE  __declspec(guard(ignore))
 #else
 #define DECLSPEC_GUARDIGNORE

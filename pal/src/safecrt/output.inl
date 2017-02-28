@@ -552,12 +552,12 @@ LOCAL(void) write_string(const _TCHAR *string, int len, miniFILE *f, int *numwri
 
 #ifdef __GNUC_VA_LIST
 
-    #define get_int_arg(list)           va_arg(*list, int)
-    #define get_long_arg(list)          va_arg(*list, long)
-    #define get_long_long_arg(list)     va_arg(*list, long long)
-    #define get_int64_arg(list)         va_arg(*list, __int64)
-    #define get_crtdouble_arg(list)     va_arg(*list, _CRT_DOUBLE)
-    #define get_ptr_arg(list)           va_arg(*list, void *)
+    #define get_int_arg(list)           va_arg(*(list), int)
+    #define get_long_arg(list)          va_arg(*(list), long)
+    #define get_long_long_arg(list)     va_arg(*(list), long long)
+    #define get_int64_arg(list)         va_arg(*(list), __int64)
+    #define get_crtdouble_arg(list)     va_arg(*(list), _CRT_DOUBLE)
+    #define get_ptr_arg(list)           va_arg(*(list), void *)
 
 #else   // __GNUC_VA_LIST
 

@@ -116,7 +116,7 @@ typedef _W64 unsigned int   uintptr_t;
 #define _UINTPTR_T_DEFINED
 #endif
 
-#if defined(_MSC_VER) || (defined(__GNUC__) && (__GNUC__ >= 3))
+#if defined(_MSC_VER)
 #define SAFECRT_DEPRECATED __declspec(deprecated)
 #else
 #define SAFECRT_DEPRECATED

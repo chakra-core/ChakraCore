@@ -230,25 +230,6 @@ typedef enum tagEFaultRepRetVal
 #define THIS_
 #define THIS                void
 
-#ifndef _DECLSPEC_DEFINED_
-#define _DECLSPEC_DEFINED_
-
-#if  defined(_MSC_VER)
-#define DECLSPEC_NOVTABLE   __declspec(novtable)
-#define DECLSPEC_IMPORT     __declspec(dllimport)
-#define DECLSPEC_SELECTANY  __declspec(selectany)
-#elif defined(__GNUC__)
-#define DECLSPEC_NOVTABLE
-#define DECLSPEC_IMPORT
-#define DECLSPEC_SELECTANY  __attribute__((weak))
-#else
-#define DECLSPEC_NOVTABLE
-#define DECLSPEC_IMPORT
-#define DECLSPEC_SELECTANY
-#endif
-
-#endif // !_DECLSPEC_DEFINED_
-
 #define DECLARE_INTERFACE(iface)    interface DECLSPEC_NOVTABLE iface
 #define DECLARE_INTERFACE_(iface, baseiface)    interface DECLSPEC_NOVTABLE iface : public baseiface
 
@@ -1044,44 +1025,6 @@ errno_t __cdecl _i64tow_s(__int64 _Value, WCHAR *_Dst, size_t _SizeInWords, int 
     /* TODO: do not write past buffer size */
     _i64tow(_Value, _Dst, _Radix);
     return 0;
-}
-
-#endif
-
-/* getenv_s */
-/*
- * _ReturnValue indicates if the variable has been found and size needed
- */
-_SAFECRT__EXTERN_C
-errno_t __cdecl getenv_s(size_t *_ReturnValue, char *_Dst, size_t _SizeInWords, const char *_Name);
-
-#if defined(__cplusplus) && _SAFECRT_USE_CPP_OVERLOADS
-template <size_t _SizeInWords>
-inline
-errno_t __cdecl getenv_s(size_t *_ReturnValue, char *_Dst, size_t _SizeInWords, const char *_Name)
-{
-    return getenv_s(_ReturnValue, _Dst, _SizeInWords, _Name);
-}
-#endif
-
-#if _SAFECRT_USE_INLINES
-
-__inline
-errno_t __cdecl getenv_s(size_t *_ReturnValue, char *_Dst, size_t _SizeInWords, const char *_Name)
-{
-    char *szFound;
-
-    /* validation section */
-    _SAFECRT__VALIDATE_STRING(_Dst, _SizeInWords);
-
-    szFound = getenv(_Name);
-    if (szFound == nullptr)
-    {
-        *_ReturnValue = 0;
-        return 0;
-    }
-    *_ReturnValue = strlen(szFound) + 1;
-    return strcpy_s(_Dst, _SizeInWords, szFound);
 }
 
 #endif
