@@ -239,6 +239,7 @@ namespace TTD
             SnapPromiseObject,
             SnapPromiseResolveOrRejectFunctionObject,
             SnapPromiseReactionTaskFunctionObject,
+            SnapPromiseAllResolveElementFunctionObject,
 
             //objects that should always be well known but which may have other info we want to restore
             SnapWellKnownObject,

@@ -617,7 +617,15 @@ namespace Js
                 Throw::FatalInternalError();
             }
 #endif
+
+#if ENABLE_TTD
+            if(!scriptContext->IsTTDRecordOrReplayModeEnabled())
+            {
+                scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
+            }
+#else
             scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
+#endif
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

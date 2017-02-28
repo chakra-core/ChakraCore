@@ -2470,7 +2470,8 @@ namespace Js
 #endif
 
 #if ENABLE_TTD
-        AssertMsg(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext), "We never be fetching an opcode via this path if this is true!!!");
+        //Library code may not be put in debug mode even if the script context is? So we don't want to assert on that.
+        AssertMsg(!SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext) || !this->function->GetFunctionBody()->IsInDebugMode(), "We never be fetching an opcode via this path if this is true!!!");
 #endif
 
         OpCodeType op = (OpCodeType)ReadOpFunc(ip);
