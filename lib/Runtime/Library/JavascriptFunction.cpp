@@ -237,7 +237,14 @@ namespace Js
             Assert(functionInfo);
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
 
+#if ENABLE_TTD
+            if(!scriptContext->IsTTDRecordOrReplayModeEnabled())
+            {
+                scriptContext->AddToNewFunctionMap(key, functionInfo->GetFunctionInfo());
+            }
+#else
             scriptContext->AddToNewFunctionMap(key, functionInfo->GetFunctionInfo());
+#endif
         }
         else if (pfuncInfoCache->IsCoroutine())
         {

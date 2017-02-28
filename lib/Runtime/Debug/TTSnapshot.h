@@ -186,6 +186,9 @@ namespace TTD
         //Get the slab allocator for this snapshot context
         SlabAllocator& GetSnapshotSlabAllocator();
 
+        //Make sure that all well known objects can be re-used -- if not we will need to recreate all script contexts from scratch
+        bool AllWellKnownObjectsReusable(InflateMap* inflator) const;
+
         //Inflate the snapshot
         void Inflate(InflateMap* inflator, ThreadContextTTD* tCtx) const;
 
