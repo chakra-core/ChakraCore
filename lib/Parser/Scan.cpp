@@ -1166,6 +1166,12 @@ tokens Scanner<EncodingPolicy>::ScanTypeAnnotationType(EncodedCharPtr *pp)
             token = tkTypeFloat;
             break;
         }
+        else if (p[0] == 'l' && p[1] == 'o' && p[2] == 'a' && p[3] == 't' && p[4] == 'a' && p[5] == 'r' && p[6] == 'r' && p[7] == '}')
+        {
+            p += 8;
+            token = tkTypeFloatArray;
+            break;
+        }
         Error(ERRsyntax);
     case 'b':
         if (p[0] == 'o' && p[1] == 'o' && p[2] == 'l' && p[3] == '}')

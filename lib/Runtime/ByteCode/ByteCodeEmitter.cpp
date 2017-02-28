@@ -10757,6 +10757,10 @@ void Emit(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *func
             callObjLocation;
 
         EmitSuperMethodBegin(pnode, byteCodeGenerator, funcInfo);
+        if (pnode->typeHint != Js::TypeHint::Unknown)
+        {
+            funcInfo->GetParsedFunctionBody()->AddBytecodeOffsetTypeAnnotation(byteCodeGenerator->Writer()->GetCurrentOffset(), pnode->location, pnode->typeHint);
+        }
         byteCodeGenerator->Writer()->Element(
             Js::OpCode::LdElemI_A, pnode->location, protoLocation, pnode->sxBin.pnode2->location);
 
