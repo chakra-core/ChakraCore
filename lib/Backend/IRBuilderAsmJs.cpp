@@ -1521,8 +1521,7 @@ IRBuilderAsmJs::BuildWasmMemAccess(Js::OpCodeAsmJs newOpcode, uint32 offset, uin
 
     Js::RegSlot indexRegSlot = GetRegSlotFromIntReg(slotIndex);
     IR::RegOpnd * indexOpnd = BuildSrcOpnd(indexRegSlot, TyUint32);
-    // don't support encoding in case of 
-    indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), constOffset, typeInfo.type, m_func, true);
+    indirOpnd = IR::IndirOpnd::New(BuildSrcOpnd(AsmJsRegSlots::BufferReg, TyVar), constOffset, typeInfo.type, m_func);
     indirOpnd->SetIndexOpnd(indexOpnd);
     indirOpnd->GetBaseOpnd()->SetValueType(typeInfo.arrayType);
 
