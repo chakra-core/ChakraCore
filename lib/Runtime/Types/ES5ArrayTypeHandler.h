@@ -36,7 +36,7 @@ namespace Js
         typedef JsUtil::BaseDictionary<uint32, IndexPropertyDescriptor, ForceNonLeafAllocator<Recycler>::AllocatorType, PowerOf2SizePolicy>
             InnerMap;
 
-        Field(Recycler*) recycler;
+        FieldNoBarrier(Recycler*) recycler;
         Field(InnerMap*) indexPropertyMap; // The internal real index property map
         Field(uint32*) indexList;          // The index list that's created on demand
         Field(int) lastIndexAt;            // Last used index list entry
