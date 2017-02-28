@@ -1632,7 +1632,7 @@ case_2:
         AssertMsg(pMatch != nullptr, "Match string shouldn't be null");
         if (replacefn != nullptr)
         {
-            return RegexHelper::StringReplace(pMatch, input, replacefn);
+            return RegexHelper::StringReplace(scriptContext, pMatch, input, replacefn);
         }
         else
         {
