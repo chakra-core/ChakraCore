@@ -138,11 +138,7 @@ JITManager::CreateBinding(
         waitStatus = WaitForSingleObject(serverProcessHandle, sleepInterval);
         if (waitStatus == WAIT_OBJECT_0)
         {
-            DWORD exitCode = (DWORD)-1;
-
             // The server process died for some reason. No need to reattempt.
-            // We use -1 as the exit code if GetExitCodeProcess fails.
-            Assert(GetExitCodeProcess(serverProcessHandle, &exitCode));
             status = RPC_S_SERVER_UNAVAILABLE;
             break;
         }
