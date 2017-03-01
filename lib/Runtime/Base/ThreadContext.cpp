@@ -4123,11 +4123,10 @@ BOOL ThreadContext::IsNativeAddress(void * pCodeAddr, Js::ScriptContext* current
 #if DBG
         boolean result;
         HRESULT hr = JITManager::GetJITManager()->IsNativeAddr(this->m_remoteThreadContextInfo, (intptr_t)pCodeAddr, &result);
-        JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
 #endif
         bool isNativeAddr = IsNativeAddressHelper(pCodeAddr, currentScriptContext);
 #if DBG
-        Assert(result == (isNativeAddr? TRUE:FALSE));
+        Assert(FAILED(hr) || result == (isNativeAddr? TRUE:FALSE));
 #endif
         return isNativeAddr;
     }
