@@ -15435,6 +15435,7 @@ GlobOpt::AreValueInfosCompatible(const ValueInfo *const v0, const ValueInfo *con
 
 bool GlobOpt::OptConstFoldSimd128(IR::Instr ** pInstr, Value * src1Val, Value * src2Val, Value ** pDstVal)
 {
+#ifdef ENABLE_SIMDJS
     //TODO: later on we might want to add support for ops taking nonSIMD types such as extractLane/swizzle, select
     IR::Instr* &instr = *pInstr;
     SIMDValue result;
@@ -15495,6 +15496,9 @@ bool GlobOpt::OptConstFoldSimd128(IR::Instr ** pInstr, Value * src1Val, Value * 
     instr->m_opcode = Js::OpCode::Simd128_LdC;
     this->ToSimd128Dst(instr->GetDst()->GetType(), instr, instr->GetDst()->AsRegOpnd(), this->currentBlock);
     return true;
+#else
+    return false;
+#endif
 }
 
 #if DBG

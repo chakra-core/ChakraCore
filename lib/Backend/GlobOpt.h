@@ -501,33 +501,33 @@ public:
     }
 
 protected:
-	Simd128ConstantValueInfo(const SIMDValue v, IRType type)
-		: ValueInfo(convertSimdOpndToValueType(type), ValueStructureKind::Simd128Const),
-		value(v)
-	{
-	}
+    Simd128ConstantValueInfo(const SIMDValue v, IRType type)
+        : ValueInfo(convertSimdOpndToValueType(type), ValueStructureKind::Simd128Const),
+        value(v)
+    {
+    }
 
 private:
-	const SIMDValue value;
+    const SIMDValue value;
 
-	static ValueType convertSimdOpndToValueType(IRType type)
-	{
-
-		ValueType vt = ValueType::UninitializedObject;
-		switch (type)
-		{
+    static ValueType convertSimdOpndToValueType(IRType type)
+    {
+        ValueType vt = ValueType::UninitializedObject;
+#ifdef ENABLE_SIMDJS
+        switch (type)
+        {
 #define OPND2VALUE(_NAME_, _TAG_) \
                 case TySimd128##_TAG_##: \
                     vt =  ValueType::GetSimd128(ObjectType::Simd128##_NAME_##); \
                     break;
-			SIMD_EXPAND_W_NAME(OPND2VALUE)
-		default:
-			Assert(UNREACHED);
+            SIMD_EXPAND_W_NAME(OPND2VALUE)
+        default:
+            Assert(UNREACHED);
 #undef OPND2VALUE
-		}
-
-		return vt;
-	}
+        }
+#endif
+        return vt;
+    }
 
 };
 
