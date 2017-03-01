@@ -735,4 +735,12 @@
         <compile-flags>-off:deferparse -testtrace:asmjs -simdjs -bgjit- -maic:1</compile-flags>
      </default>
    </test>
+  <test>
+     <default>
+        <files>testConstFold.js</files>
+        <baseline>testConstFold.baseline</baseline>
+        <tags>exclude_dynapogo,exclude_ship</tags>
+        <compile-flags> -testtrace:asmjs -simdjs -bgjit- -maic:0</compile-flags>
+     </default>
+   </test>
 </regress-exe>
