@@ -364,6 +364,7 @@ RT_ERROR_MSG(JSERR_CannotSuspendBuffer, 5665, "", "Current agent cannot be suspe
 RT_ERROR_MSG(JSERR_CantDeleteNonConfigProp, 5666, "Cannot delete non-configurable property '%s'", "Cannot delete non-configurable property", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_CantRedefineProp, 5667, "Cannot redefine property '%s'", "Cannot redefine property", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_FunctionArgument_NeedArrayLike, 5668, "%s: argument is not an array or array-like object", "Array or array-like object expected", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_FatalMemoryExhaustion, 5669, "", "Encountered a non-recoverable OOM", kjstError, 0)
 
 // WebAssembly Errors
 RT_ERROR_MSG(WASMERR_WasmCompileError, 7000, "%s", "Compilation failed.", kjstWebAssemblyCompileError, 0)

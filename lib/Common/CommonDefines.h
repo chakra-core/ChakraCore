@@ -145,6 +145,8 @@
 #endif
 
 
+#define MAKE_HR(errnum) (MAKE_HRESULT(SEVERITY_ERROR, FACILITY_CONTROL, errnum))
+
 #if ENABLE_CONCURRENT_GC
 // Write-barrier refers to a software write barrier implementation using a card table.
 // Write watch refers to a hardware backed write-watch feature supported by the Windows memory manager.

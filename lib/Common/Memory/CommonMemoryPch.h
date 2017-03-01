@@ -21,6 +21,8 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #include "Exceptions/ExceptionBase.h"
 #include "Exceptions/OutOfMemoryException.h"
 
+#include "../Parser/rterror.h"
+
 // Other Memory headers
 #include "Memory/LeakReport.h"
 #include "Memory/AutoPtr.h"
@@ -47,6 +49,7 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 #include "Memory/LargeHeapBucket.inl"
 #include "Memory/HeapBlock.inl"
 #include "Memory/HeapBlockMap.inl"
+
 
 // Memory Protections
 #ifdef _CONTROL_FLOW_GUARD

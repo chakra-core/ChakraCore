@@ -13,7 +13,8 @@ enum class RemoteCallType
     CodeGen,
     ThunkCreation,
     HeapQuery,
-    StateUpdate
+    StateUpdate,
+    MemFree
 };
 
 #if _WIN32 || ENABLE_OOP_NATIVE_CODEGEN

@@ -341,7 +341,8 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
             // initialize number by WriteProcessMemory
             if (!WriteProcessMemory(hProcess, (void*)number, pLocalNumber, sizeCat, NULL))
             {
-                MemoryOperationLastError::RecordLastErrorAndThrow();
+                MemoryOperationLastError::RecordLastError();
+                Js::Throw::OutOfMemory();
             }
 
             return (Js::JavascriptNumber*) number;

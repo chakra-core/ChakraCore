@@ -3164,18 +3164,15 @@ bool NativeCodeGenerator::TryReleaseNonHiPriWorkItem(CodeGenWorkItem* workItem)
 void
 NativeCodeGenerator::FreeNativeCodeGenAllocation(void* address)
 {
-    if(this->backgroundAllocators)
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
         ThreadContext * context = this->scriptContext->GetThreadContext();
-        if (JITManager::GetJITManager()->IsOOPJITEnabled())
-        {
-            // OOP JIT TODO: need error handling?
-            JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
-        }
-        else
-        {
-            this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
-        }
+        HRESULT hr = JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::MemFree);
+    }
+    else if(this->backgroundAllocators)
+    {
+        this->backgroundAllocators->emitBufferManager.FreeAllocation(address);
     }
 }
 
@@ -3202,23 +3199,9 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
     }
 
     // The foreground allocators may have been used
-    ThreadContext * context = this->scriptContext->GetThreadContext();
-    if(this->foregroundAllocators)
+    if(this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(address))
     {
-        if (JITManager::GetJITManager()->IsOOPJITEnabled())
-        {
-            // TODO: OOP JIT, should we always just queue this in background?
-            // OOP JIT TODO: need error handling?
-            JITManager::GetJITManager()->FreeAllocation(context->GetRemoteThreadContextAddr(), (intptr_t)address);
-            return;
-        }
-        else
-        {
-            if (this->foregroundAllocators->emitBufferManager.FreeAllocation(address))
-            {
-                return;
-            }
-        }
+        return;
     }
 
     // The background allocators were used. Queue a job to free the allocation from the background thread.
@@ -3664,7 +3647,15 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
     case E_ABORT:
         throw Js::OperationAbortedException();
     case E_OUTOFMEMORY:
-        Js::Throw::OutOfMemory();
+        if (callType == RemoteCallType::MemFree)
+        {
+            // if freeing memory fails due to OOM, it means we failed to fill with debug breaks -- so failfast
+            RpcFailure_fatal_error(hr);
+        }
+        else
+        {
+            Js::Throw::OutOfMemory();
+        }
     case VBSERR_OutOfStack:
         throw Js::StackOverflowException();
     default:
@@ -3695,6 +3686,7 @@ JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
     case RemoteCallType::ThunkCreation:
         Js::Throw::OutOfMemory();
     case RemoteCallType::StateUpdate:
+    case RemoteCallType::MemFree:
         // if server process is gone, we can ignore failures updating its state
         return;
     default:
