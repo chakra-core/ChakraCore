@@ -78,6 +78,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespaceEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblySource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsmJs.h" />
@@ -151,6 +152,7 @@
     <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="ModuleNamespace.h" />
     <ClInclude Include="ModuleNamespaceEnumerator.h" />
+    <ClInclude Include="WebAssemblySource.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\amd64_Thunks.asm">

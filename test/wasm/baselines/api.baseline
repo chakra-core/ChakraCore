@@ -7,10 +7,12 @@ Test 3 passed. Expected Error: TypeError: BufferSource expected
 Test 4 passed. Expected Error: TypeError: BufferSource expected
 Test 5 passed. Expected Error: TypeError: BufferSource expected
 Test 6 passed. Expected Error: TypeError: BufferSource expected
-Test 7 passed. Expected Error: TypeError: BufferSource expected
+Test 7 passed. Expected Error: Error: Buffer source is the right type, but doesn't validate
 Test 8 passed. Expected Error: Error: Buffer source is the right type, but doesn't validate
 Test 9 passed. Expected Error: TypeError: BufferSource expected
-Validate: true
+WebAssembly.validate(new ArrayBuffer()) = false
+WebAssembly.validate(new Uint8Array(emptyBuffer)) = false
+api.wasm valid: true
 
 WebAssembly.compile tests
 Test 0 passed. Expected Error: TypeError: Object expected
@@ -20,7 +22,7 @@ Test 3 passed. Expected Error: TypeError: BufferSource expected
 Test 4 passed. Expected Error: TypeError: BufferSource expected
 Test 5 passed. Expected Error: TypeError: BufferSource expected
 Test 6 passed. Expected Error: TypeError: BufferSource expected
-Test 7 passed. Expected Error: TypeError: BufferSource expected
+Test 7 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 4, Left: 0
 Test 8 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 1, Left: 0
 Test 9 passed. Expected Error: TypeError: BufferSource expected
 Testing module
@@ -37,7 +39,7 @@ Test 3 passed. Expected Error: TypeError: BufferSource expected
 Test 4 passed. Expected Error: TypeError: BufferSource expected
 Test 5 passed. Expected Error: TypeError: BufferSource expected
 Test 6 passed. Expected Error: TypeError: BufferSource expected
-Test 7 passed. Expected Error: TypeError: BufferSource expected
+Test 7 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 4, Left: 0
 Test 8 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 1, Left: 0
 Test 9 passed. Expected Error: TypeError: BufferSource expected
 Test 10 passed. Expected Error: TypeError: Object expected
@@ -85,7 +87,7 @@ Test 5 passed. Expected Error: TypeError: BufferSource expected
 Test 6 passed. Expected Error: TypeError: BufferSource expected
 Test 7 passed. Expected Error: TypeError: BufferSource expected
 Test 8 passed. Expected Error: TypeError: BufferSource expected
-Test 9 passed. Expected Error: TypeError: BufferSource expected
+Test 9 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 4, Left: 0
 Test 10 passed. Expected Error: WebAssemblyCompileError: Out of file: Needed: 1, Left: 0
 Test 11 passed. Expected Error: TypeError: BufferSource expected
 Testing module

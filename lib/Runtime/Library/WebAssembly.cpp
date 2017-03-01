@@ -9,6 +9,7 @@
 // Included for AsmJsDefaultEntryThunk
 #include "Language/InterpreterStackFrame.h"
 #include "Language/AsmJsUtils.h"
+#include "Language/WebAssemblySource.h"
 
 namespace Js
 {
@@ -30,11 +31,8 @@ Var WebAssembly::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...
             JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
         }
 
-        BYTE* buffer;
-        uint byteLength;
-        WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
-
-        module = WebAssemblyModule::CreateModule(scriptContext, buffer, byteLength);
+        WebAssemblySource src(args[1], true, scriptContext);
+        module = WebAssemblyModule::CreateModule(scriptContext, &src);
     }
     catch (JavascriptError & e)
     {
@@ -76,11 +74,8 @@ Var WebAssembly::EntryInstantiate(RecyclableObject* function, CallInfo callInfo,
         }
         else
         {
-            BYTE* buffer;
-            uint byteLength;
-            WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
-
-            WebAssemblyModule * module = WebAssemblyModule::CreateModule(scriptContext, buffer, byteLength);
+            WebAssemblySource src(args[1], true, scriptContext);
+            WebAssemblyModule * module = WebAssemblyModule::CreateModule(scriptContext, &src);
 
             WebAssemblyInstance * instance = WebAssemblyInstance::CreateInstance(module, importObject);
 
@@ -116,11 +111,8 @@ Var WebAssembly::EntryValidate(RecyclableObject* function, CallInfo callInfo, ..
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
     }
 
-    BYTE* buffer;
-    uint byteLength;
-    WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
-
-    if (WebAssemblyModule::ValidateModule(scriptContext, buffer, byteLength))
+    WebAssemblySource src(args[1], false, scriptContext);
+    if (WebAssemblyModule::ValidateModule(scriptContext, &src))
     {
         return scriptContext->GetLibrary()->GetTrue();
     }
@@ -139,34 +131,6 @@ WebAssembly::ToNonWrappingUint32(Var val, ScriptContext * ctx)
         JavascriptError::ThrowRangeError(ctx, JSERR_ArgumentOutOfRange);
     }
     return (uint32)i;
-}
-
-void
-WebAssembly::ReadBufferSource(Var val, ScriptContext * ctx, _Out_ BYTE** buffer, _Out_ uint *byteLength)
-{
-    const BOOL isTypedArray = Js::TypedArrayBase::Is(val);
-    const BOOL isArrayBuffer = Js::ArrayBuffer::Is(val);
-
-    *buffer = nullptr;
-    *byteLength = 0;
-
-    if (isTypedArray)
-    {
-        Js::TypedArrayBase* array = Js::TypedArrayBase::FromVar(val);
-        *buffer = array->GetByteBuffer();
-        *byteLength = array->GetByteLength();
-    }
-    else if (isArrayBuffer)
-    {
-        Js::ArrayBuffer* arrayBuffer = Js::ArrayBuffer::FromVar(val);
-        *buffer = arrayBuffer->GetBuffer();
-        *byteLength = arrayBuffer->GetByteLength();
-    }
-
-    if (*buffer == nullptr || *byteLength == 0)
-    {
-        JavascriptError::ThrowTypeError(ctx, WASMERR_NeedBufferSource);
-    }
 }
 
 void
