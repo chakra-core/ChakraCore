@@ -2784,8 +2784,7 @@ LowererMDArch::LoadCheckedFloat(IR::RegOpnd *opndOrig, IR::RegOpnd *opndFloat, I
 {
     //
     //   if (TaggedInt::Is(opndOrig))
-    //       s1        = MOVSXD opndOrig_32
-    //       opndFloat = CVTSI2SD s1
+    //       opndFloat = CVTSI2SD opndOrig_32
     //                   JMP $labelInline
     //   else
     //                   JMP $labelOpndIsNotInt
@@ -2812,13 +2811,9 @@ LowererMDArch::LoadCheckedFloat(IR::RegOpnd *opndOrig, IR::RegOpnd *opndFloat, I
         instrInsert->InsertBefore(IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true));
     }
 
-    IR::RegOpnd *s1          = IR::RegOpnd::New(TyMachReg, this->m_func);
     IR::Opnd    *opndOrig_32 = opndOrig->UseWithNewType(TyInt32, this->m_func);
 
-    IR::Instr   *movsxd      = IR::Instr::New(Js::OpCode::MOVSXD, s1, opndOrig_32, this->m_func);
-    instrInsert->InsertBefore(movsxd);
-
-    IR::Instr   *cvtsi2sd    = IR::Instr::New(Js::OpCode::CVTSI2SD, opndFloat, s1, this->m_func);
+    IR::Instr   *cvtsi2sd    = IR::Instr::New(Js::OpCode::CVTSI2SD, opndFloat, opndOrig_32, this->m_func);
     instrInsert->InsertBefore(cvtsi2sd);
 
     IR::Instr   *jmpInline   = IR::BranchInstr::New(Js::OpCode::JMP, labelInline, this->m_func);
