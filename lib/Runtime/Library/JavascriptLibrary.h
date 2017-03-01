@@ -52,17 +52,8 @@ namespace Js
         Field(int) validPropStrings;
     };
 
-    // this is allocated in GC directly to avoid force pinning the object, it is linked from JavascriptLibrary such that it has
-    // the same lifetime as JavascriptLibrary, and it can be collected without ScriptContext Close.
-    // Allocate it as Finalizable such that it will be still available during JavascriptLibrary Dispose time
-    class Cache
+    struct Cache
     {
-    public:
-        Cache()
-        {
-        }
-
-        FieldNoBarrier(ScriptContext*) scriptContext;
         Field(JavascriptString *) lastNumberToStringRadix10String;
         Field(EnumeratedObjectCache) enumObjCache;
         Field(JavascriptString *) lastUtcTimeFromStrString;

@@ -3031,10 +3031,7 @@ ThreadContext::ClearScriptContextCaches()
 {
     for (Js::ScriptContext *scriptContext = scriptContextList; scriptContext != nullptr; scriptContext = scriptContext->next)
     {
-        if (!scriptContext->IsClosed())
-        {
-            scriptContext->ClearScriptContextCaches();
-        }
+        scriptContext->ClearScriptContextCaches();
     }
 }
 
