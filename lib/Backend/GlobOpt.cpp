@@ -6,8 +6,6 @@
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
 
-#define OPT_ON(X) CONFIG_FLAG(X)
-
 #define TESTTRACE_PHASE_INSTR(phase, instr, ...) \
     if(PHASE_TESTTRACE(phase, this->func)) \
     { \
@@ -22,8 +20,6 @@
     }
 
 #else // ENABLE_DEBUG_CONFIG_OPTIONS
-
-#define OPT_ON(X) false
 
 #define TESTTRACE_PHASE_INSTR(phase, instr, ...)
 
@@ -8981,7 +8977,7 @@ GlobOpt::TypeSpecialization(
         {
             if (GetIsAsmJSFunc())
             {
-                if (OPT_ON(WasmFold))
+                if (CONFIG_FLAG(WasmFold))
                 {
                     bool success = instr->GetSrc1()->IsInt64() ?
                         this->OptConstFoldBinaryWasm<int64>(&instr, src1Val, src2Val, pDstVal) :
