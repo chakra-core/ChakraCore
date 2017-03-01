@@ -12,6 +12,7 @@ set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     AsmJsTypes.cpp
     AsmJsUtils.cpp
     WAsmjsUtils.cpp
+    WebAssemblySource.cpp
     CacheOperators.cpp
     CodeGenRecyclableData.cpp
     DynamicProfileInfo.cpp

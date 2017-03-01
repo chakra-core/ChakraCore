@@ -6,6 +6,7 @@
 #include "WasmReaderPch.h"
 
 #ifdef ENABLE_WASM
+#include "Language/WebAssemblySource.h"
 
 #if DBG_DUMP
 #define DebugPrintOp(op) if (PHASE_TRACE(Js::WasmReaderPhase, GetFunctionBody())) { PrintOpName(op); }
@@ -68,12 +69,12 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
 typedef bool(*SectionProcessFunc)(WasmModuleGenerator*);
 typedef void(*AfterSectionCallback)(WasmModuleGenerator*);
 
-WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, const byte* binaryBuffer, uint binaryBufferLength) :
-    m_sourceInfo(sourceInfo),
+WasmModuleGenerator::WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::WebAssemblySource* src) :
+    m_sourceInfo(src->GetSourceInfo()),
     m_scriptContext(scriptContext),
     m_recycler(scriptContext->GetRecycler())
 {
-    m_module = RecyclerNewFinalized(m_recycler, Js::WebAssemblyModule, scriptContext, binaryBuffer, binaryBufferLength, scriptContext->GetLibrary()->GetWebAssemblyModuleType());
+    m_module = RecyclerNewFinalized(m_recycler, Js::WebAssemblyModule, scriptContext, src->GetBuffer(), src->GetBufferLength(), scriptContext->GetLibrary()->GetWebAssemblyModuleType());
 
     m_sourceInfo->EnsureInitialized(0);
     m_sourceInfo->GetSrcInfo()->sourceContextInfo->EnsureInitialized();

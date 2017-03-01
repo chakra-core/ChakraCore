@@ -45,13 +45,11 @@ public:
 
     static WebAssemblyModule * CreateModule(
         ScriptContext* scriptContext,
-        const byte* buffer,
-        const uint lengthBytes);
+        class WebAssemblySource* src);
 
     static bool ValidateModule(
         ScriptContext* scriptContext,
-        const byte* buffer,
-        const uint lengthBytes);
+        class WebAssemblySource* src);
 
 public:
     WebAssemblyModule(Js::ScriptContext* scriptContext, const byte* binaryBuffer, uint binaryBufferLength, DynamicType * type);
