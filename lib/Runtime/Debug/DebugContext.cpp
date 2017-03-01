@@ -163,7 +163,11 @@ namespace Js
         });
         END_TRANSLATE_OOM_TO_HRESULT(hr);
 
-        DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
+        if (FAILED(hr))
+        {
+            Assert(hr == E_OUTOFMEMORY);
+            return hr;
+        }
 
         // Cache ScriptContext as multiple calls below can go out of engine and ScriptContext can be closed which will delete DebugContext
         Js::ScriptContext* cachedScriptContext = this->scriptContext;
