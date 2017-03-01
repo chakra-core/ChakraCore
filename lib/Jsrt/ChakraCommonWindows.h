@@ -20,7 +20,7 @@
     /// <returns>
     ///     true if the operation succeeded, false otherwise.
     /// </returns>
-    typedef bool (CHAKRA_CALLBACK * JsSerializedScriptLoadSourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const wchar_t** scriptBuffer);
+    typedef bool (CHAKRA_CALLBACK * JsSerializedScriptLoadSourceCallback)(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const WCHAR** scriptBuffer);
 
     /// <summary>
     ///     Parses a script and returns a function representing the script.

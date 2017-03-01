@@ -13,10 +13,12 @@ print(a1.call(3));
 print(a1.call(4));
 
 //global offset
+/* const global in init expr not supported in MVP
 print(a1.call(6));
 print(a1.call(7));
 print(a1.call(8));
 print(a1.call(9));
+*/
 
 //imported global offset
 print(a1.call(10));

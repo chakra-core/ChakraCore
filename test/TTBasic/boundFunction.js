@@ -21,4 +21,6 @@ function testFunction()
     telemetryLog(`getX(1): ${getX(1)}`, true); //10
     telemetryLog(`module.getX(1): ${module.getX(1)}`, true); //82
     telemetryLog(`boundGetX(): ${boundGetX()}`, true); //84
+
+    emitTTDLog(ttdLogURI);
 }

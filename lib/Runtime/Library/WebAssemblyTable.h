@@ -9,6 +9,9 @@ namespace Js
 {
     class WebAssemblyTable : public DynamicObject
     {
+    protected:
+        DEFINE_VTABLE_CTOR( WebAssemblyTable, DynamicObject );
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT( WebAssemblyTable );
 #ifdef ENABLE_WASM
     public:
         class EntryInfo
@@ -44,11 +47,11 @@ namespace Js
         static uint32 GetOffsetOfValues() { return offsetof(WebAssemblyTable, m_values); }
         static uint32 GetOffsetOfCurrentLength() { return offsetof(WebAssemblyTable, m_currentLength); }
     private:
-        uint32 m_initialLength;
-        uint32 m_maxLength;
+        Field(uint32) m_initialLength;
+        Field(uint32) m_maxLength;
 
-        uint32 m_currentLength;
-        Var * m_values;
+        Field(uint32) m_currentLength;
+        Field(Field(Var)*) m_values;
 #endif
     };
 }

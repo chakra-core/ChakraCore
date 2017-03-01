@@ -354,6 +354,10 @@ namespace Js
         }
         Var thisArgument = args.Info.Count > 2 ? args[2] : undefinedValue;
         Var argArray = args.Info.Count > 3 ? args[3] : undefinedValue;
+        if (!(JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(argArray))))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedArrayLike, _u("Reflect.apply"));
+        }
 
         return JavascriptFunction::ApplyHelper(RecyclableObject::FromVar(target), thisArgument, argArray, scriptContext);
     }
@@ -405,6 +409,11 @@ namespace Js
         }
 
         Var argArray = args.Info.Count > 2 ? args[2] : undefinedValue;
+        if (!(JavascriptOperators::IsObjectType(JavascriptOperators::GetTypeId(argArray))))
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedArrayLike, _u("Reflect.construct"));
+        }
+
         return JavascriptFunction::ConstructHelper(RecyclableObject::FromVar(target), thisArg, newTarget, argArray, scriptContext);
     }
 }

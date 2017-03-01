@@ -27,7 +27,6 @@ JsTTDCreateContext
 JsTTDNotifyContextDestroy
 JsTTDStart
 JsTTDStop
-JsTTDEmitRecording
 
 JsTTDPauseTimeTravelBeforeRuntimeOperation
 JsTTDReStartTimeTravelAfterRuntimeOperation
@@ -52,4 +51,3 @@ JsModuleEvaluation
 JsSetModuleHostInfo
 JsGetModuleHostInfo
 JsInitializeJITServer
-JsShutdownJITServer

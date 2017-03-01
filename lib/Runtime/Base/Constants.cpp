@@ -37,5 +37,5 @@ const size_t Constants::StackLimitForScriptInterrupt = 0x7fffffff;
 #pragma warning(push)
 #pragma warning(disable:4815) // Allow no storage for zero-sized array at end of NullFrameDisplay struct.
 const Js::FrameDisplay Js::NullFrameDisplay = 0;
-const Js::FrameDisplay Js::StrictNullFrameDisplay = FrameDisplay(0, true);
+const Js::FrameDisplay Js::StrictNullFrameDisplay(0, true);
 #pragma warning(pop)

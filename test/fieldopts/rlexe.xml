@@ -379,7 +379,6 @@
   <test>
     <default>
       <files>fieldhoist_number.js</files>
-      <baseline>fieldhoist_number.baseline</baseline>
     </default>
   </test>
   <test>
@@ -874,6 +873,11 @@
     <default>
       <files>add-prop-to-dictionary.js</files>
       <baseline>add-prop-to-dictionary.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>argobjlengthhoist.js</files>
     </default>
   </test>
 </regress-exe>

@@ -21,7 +21,7 @@ param (
 
     [switch]$clean,
 
-    [string]$binDir = "", # will be inferred if not provided.
+    [string]$buildRoot = "", # will be inferred if not provided
     [string]$buildlogsSubdir = "buildlogs",
 
     # assume NuGet is on the path, otherwise the caller must specify an explicit path
@@ -44,20 +44,21 @@ param (
     [string]$binaryName = "ch.exe"
 )
 
-#
-# Configure logging
-#
-
-$OuterScriptRoot = $PSScriptRoot
 . $PSScriptRoot\pre_post_util.ps1
 . $PSScriptRoot\locate_msbuild.ps1
 
+# TODO (doilij) update all scripts that use pre_post_util.ps1 and rely on ComputeProjectPaths
+$_, $buildRoot, $_, $binpath = `
+    ComputePaths `
+        -arch $arch -flavor $flavor -subtype $subtype -OuterScriptRoot $PSScriptRoot `
+        -buildRoot $buildRoot -binpath $binpath
+
 $buildName = ConstructBuildName -arch $arch -flavor $flavor -subtype $subtype
 
-if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {
-    $logFile = "${Env:TF_BUILD_BINARIESDIRECTORY}\logs\run_build.${Env:BuildName}.log"
-}
+$buildlogsPath = Join-Path $buildRoot $buildlogsSubdir
+$logFile = UseValueOrDefault $logFile (Join-Path $buildRoot "logs\run_build.${buildName}.log")
 
+# Clear the log file
 if (($logFile -ne "") -and (Test-Path $logFile)) {
     Remove-Item $logFile -Force
 }
@@ -66,7 +67,10 @@ if (($logFile -ne "") -and (Test-Path $logFile)) {
 # NuGet restore
 #
 
-if (-not (Get-Command $nugetExe -ErrorAction SilentlyContinue)) {
+# To support both local builds where NuGet's location is known,
+# and VSO builds where the location is not known and which use a NuGet restore task instead:
+# Run `nuget restore` IFF $nugetExe exists.
+if (Get-Command $nugetExe -ErrorAction SilentlyContinue) {
     ExecuteCommand "& $nugetExe restore $solutionFile -NonInteractive"
 }
 
@@ -80,20 +84,18 @@ if (-not $msbuildExe) {
     exit 1
 }
 
-$binDir = UseValueOrDefault "$binDir" "${Env:BinariesDirectory}" "${Env:BUILD_SOURCESDIRECTORY}\Build\VcBuild"
-$buildlogsPath = Join-Path $binDir $buildlogsSubdir
-
 $skipPogo = $skipPogo -or (Test-Path Env:\SKIP_POGO)
 
-if (("$binpath" -ne "") -or (-not (Test-Path $binpath))) {
-    $binpath = Join-Path $binDir "bin\${buildName}"
+# If $binpath is not set, then infer it. A missing path is okay because it will be created.
+if (-not $binpath) {
+    $binpath = Join-Path $buildRoot "bin\${buildName}"
 }
 
 $defaultParams = "$solutionFile /nologo /m /nr:false /p:platform=`"${arch}`" /p:configuration=`"${flavor}`""
 $loggingParams = @(
-    "/fl1 `"/flp1:logfile=${buildlogsPath}\build.${Env:BuildName}.log;verbosity=normal`"",
-    "/fl2 `"/flp2:logfile=${buildlogsPath}\build.${Env:BuildName}.err;errorsonly`"",
-    "/fl3 `"/flp3:logfile=${buildlogsPath}\build.${Env:BuildName}.wrn;warningsonly`"",
+    "/fl1 `"/flp1:logfile=${buildlogsPath}\build.${buildName}.log;verbosity=normal`"",
+    "/fl2 `"/flp2:logfile=${buildlogsPath}\build.${buildName}.err;errorsonly`"",
+    "/fl3 `"/flp3:logfile=${buildlogsPath}\build.${buildName}.wrn;warningsonly`"",
     "/verbosity:normal"
     ) -join " "
 
@@ -153,8 +155,8 @@ if ($subtype -eq "pogo") {
 if (("$binpath" -ne "") -and (Test-Path $binpath)) {
     # remove *.pgc, *.pgd, and pgort*
     Get-ChildItem -Recurse -Path $binpath "*" `
-        | ? { $_.Name -match "(.*\.pg[cd]|pgort.*)" } `
-        | % { Remove-Item -Force $_.FullName }
+        | Where-Object { $_.Name -match "(.*\.pg[cd]|pgort.*)" } `
+        | ForEach-Object { Remove-Item -Force $_.FullName }
 }
 
 exit $global:lastexitcode

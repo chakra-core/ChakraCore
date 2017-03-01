@@ -221,7 +221,6 @@
   <test>
     <default>
       <files>propertyStrings.js</files>
-      <baseline>propertyStrings.baseline</baseline>
     </default>
   </test>
   <test>
@@ -418,6 +417,12 @@
       <files>ForInInline.js</files>
       <baseline>ForInInline.baseline</baseline>
       <compile-flags>-loopinterpretcount:1 -force:inline -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>forinenumcachebuiltin.js</files>
+      <baseline />
     </default>
   </test>
 </regress-exe>

@@ -323,7 +323,8 @@ LFourByte:
         return ptr;
     }
 
-    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(3) LPUTF8 ptr)
+    _Use_decl_annotations_
+    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, LPUTF8 ptr)
     {
         // A unicode codepoint is encoded into a surrogate pair by doing the following:
         //  subtract 0x10000 from the codepoint
@@ -375,40 +376,9 @@ LFourByte:
         else
             return ptr;
     }
-
-    void DecodeInto(__out_ecount_full(cch) char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options)
-    {
-        DecodeOptions localOptions = options;
-
-        if (!ShouldFastPath(ptr, buffer)) goto LSlowPath;
-
-LFastPath:
-        while (cch >= 4)
-        {
-            uint32 bytes = *(uint32 *)ptr;
-            if ((bytes & 0x80808080) != 0) goto LSlowPath;
-            ((uint32 *)buffer)[0] = (bytes & 0x7F) | ((bytes << 8) & 0x7F0000);
-            ((uint32 *)buffer)[1] = ((bytes >> 16) & 0x7F) | ((bytes >> 8) & 0x7F0000);
-            ptr += 4;
-            buffer += 4;
-            cch -= 4;
-        }
-LSlowPath:
-        while (cch-- > 0)
-        {
-            *buffer++ = Decode(ptr, ptr + 4, localOptions); // WARNING: Assume cch correct, suppress end-of-buffer checking
-            if (ShouldFastPath(ptr, buffer)) goto LFastPath;
-        }
-    }
-
-    void DecodeIntoAndNullTerminate(__out_ecount(cch+1) __nullterminated char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options)
-    {
-        DecodeInto(buffer, ptr, cch, options);
-        buffer[cch] = 0;
-    }
-
-    _Ret_range_(0, pbEnd - _Old_(pbUtf8))
-    size_t DecodeUnitsInto(_Out_writes_(pbEnd - pbUtf8) char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    
+    _Use_decl_annotations_
+    size_t DecodeUnitsInto(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
     {
         DecodeOptions localOptions = options;
 
@@ -453,28 +423,38 @@ LSlowPath:
         return dest - buffer;
     }
 
-    size_t DecodeUnitsIntoAndNullTerminate(__out_ecount(pbEnd - pbUtf8 + 1) __nullterminated char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    _Use_decl_annotations_
+    size_t DecodeUnitsIntoAndNullTerminate(char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
     {
         size_t result = DecodeUnitsInto(buffer, pbUtf8, pbEnd, options);
         buffer[(int)result] = 0;
         return result;
     }
 
-    bool CharsAreEqual(__in_ecount(cch) LPCOLESTR pch, LPCUTF8 bch, size_t cch, DecodeOptions options)
+    _Use_decl_annotations_
+    size_t DecodeUnitsIntoAndNullTerminateNoAdvance(char16 *buffer, LPCUTF8 pbUtf8, LPCUTF8 pbEnd, DecodeOptions options)
+    {
+        return DecodeUnitsIntoAndNullTerminate(buffer, pbUtf8, pbEnd, options);
+    }
+
+    bool CharsAreEqual(LPCOLESTR pch, LPCUTF8 bch, LPCUTF8 end, DecodeOptions options)
     {
         DecodeOptions localOptions = options;
-        while (cch-- > 0)
+        while (bch < end)
         {
-            if (*pch++ != utf8::Decode(bch, bch + 4, localOptions)) // WARNING: Assume cch correct, suppress end-of-buffer checking
+            if (*pch++ != utf8::Decode(bch, end, localOptions))
+            {
                 return false;
+            }
         }
         return true;
     }
 
     template <bool cesu8Encoding>
-    __range(0, cch * 3)
-    size_t EncodeIntoImpl(__out_ecount(cch * 3) LPUTF8 buffer, __in_ecount(cch) const char16 *source, charcount_t cch)
+    __range(0, cchIn * 3)
+    size_t EncodeIntoImpl(__out_ecount(cchIn * 3) LPUTF8 buffer, __in_ecount(cchIn) const char16 *source, charcount_t cchIn)
     {
+        charcount_t cch = cchIn; // SAL analysis gets confused by EncodeTrueUtf8's dest buffer requirement unless we alias cchIn with a local
         LPUTF8 dest = buffer;
 
         if (!ShouldFastPath(dest, source)) goto LSlowPath;

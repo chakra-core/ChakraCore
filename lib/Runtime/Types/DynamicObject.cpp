@@ -59,7 +59,7 @@ namespace Js
         int inlineSlotCapacity = GetTypeHandler()->GetInlineSlotCapacity();
         int inlineSlotCount = min(inlineSlotCapacity, propertyCount);
         Var * srcSlots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(instance) + typeHandler->GetOffsetOfInlineSlots());
-        Var * dstSlots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(this) + typeHandler->GetOffsetOfInlineSlots());
+        Field(Var) * dstSlots = reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(this) + typeHandler->GetOffsetOfInlineSlots());
 #if !FLOATVAR
         ScriptContext * scriptContext = this->GetScriptContext();
 #endif
@@ -305,6 +305,8 @@ namespace Js
         Assert(!predecessorType->GetIsLocked() || predecessorType->GetTypeHandler()->GetIsLocked());
         Assert(!predecessorType->GetIsShared() || predecessorType->GetTypeHandler()->GetIsShared());
 
+        Assert(this->GetType()->GetPrototype() == predecessorType->GetPrototype());
+
         PathTypeHandlerBase* currentPathTypeHandler = (PathTypeHandlerBase*)this->GetTypeHandler();
         PathTypeHandlerBase* predecessorPathTypeHandler = (PathTypeHandlerBase*)predecessorType->GetTypeHandler();
 
@@ -392,7 +394,7 @@ namespace Js
     }
 
     BOOL
-    DynamicObject::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, 
+    DynamicObject::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes,
         DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext) const
     {
         if(index == Constants::NoBigSlot)
@@ -687,17 +689,30 @@ namespace Js
         {
             this->SetInternalProperty(InternalPropertyIds::StackTrace, nullptr, PropertyOperation_None, nullptr);
         }
+        else
+        {
+            // Above GetInternalProperty fails - which means the stackTraceValue is filed with Missing result. Reset to null so that we will not restore it back below.
+            stackTraceValue = nullptr;
+        }
 
         Var weakMapKeyMapValue = nullptr;
         if (this->GetInternalProperty(this, InternalPropertyIds::WeakMapKeyMap, &weakMapKeyMapValue, nullptr, this->GetScriptContext()))
         {
             this->SetInternalProperty(InternalPropertyIds::WeakMapKeyMap, nullptr, PropertyOperation_Force, nullptr);
         }
+        else
+        {
+            weakMapKeyMapValue = nullptr;
+        }
 
         Var mutationBpValue = nullptr;
         if (this->GetInternalProperty(this, InternalPropertyIds::MutationBp, &mutationBpValue, nullptr, this->GetScriptContext()))
         {
             this->SetInternalProperty(InternalPropertyIds::MutationBp, nullptr, PropertyOperation_Force, nullptr);
+        }
+        else
+        {
+            mutationBpValue = nullptr;
         }
 
         if (keepProperties)
@@ -856,14 +871,15 @@ namespace Js
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<void*, TTD::NSSnapObjects::SnapObjectType::SnapDynamicObject>(objData, nullptr);
     }
 
-    Js::Var* DynamicObject::GetInlineSlots_TTD() const
+    Js::Var const* DynamicObject::GetInlineSlots_TTD() const
     {
-        return reinterpret_cast<Var*>(reinterpret_cast<size_t>(this) + this->GetTypeHandler()->GetOffsetOfInlineSlots());
+        return reinterpret_cast<Var const*>(
+            reinterpret_cast<size_t>(this) + this->GetTypeHandler()->GetOffsetOfInlineSlots());
     }
 
-    Js::Var* DynamicObject::GetAuxSlots_TTD() const
+    Js::Var const* DynamicObject::GetAuxSlots_TTD() const
     {
-        return this->auxSlots;
+        return AddressOf(this->auxSlots[0]);
     }
 
 #if ENABLE_OBJECT_SOURCE_TRACKING

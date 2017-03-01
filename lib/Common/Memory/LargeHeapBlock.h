@@ -30,6 +30,9 @@ private:
 
 public:
     bool markOnOOMRescan:1;
+#ifdef RECYCLER_WRITE_BARRIER
+    bool hasWriteBarrier:1;
+#endif
 #if DBG
     bool isExplicitFreed:1;
     bool isPageHeapFillVerified:1;
@@ -98,6 +101,7 @@ public:
 #endif
     virtual BOOL IsValidObject(void* objectAddress) override;
 
+    template <bool doSpecialMark>
     void Mark(void* objectAddress, MarkContext * markContext);
     virtual byte* GetRealAddressFromInterior(void* interiorAddress) override;
     bool TestObjectMarkedBit(void* objectAddress) override;
@@ -148,6 +152,9 @@ public:
     char* GetBeginAddress() const { return address; }
     char* GetEndAddress() const { return addressEnd; }
 
+    bool TryGetAttributes(void* objectAddress, unsigned char * pAttr);
+    bool TryGetAttributes(LargeObjectHeader *objectHeader, unsigned char * pAttr);
+
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes);
     char * TryAllocFromFreeList(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes);
 
@@ -164,7 +171,7 @@ public:
 #endif
 #ifdef RECYCLER_VERIFY_MARK
     void VerifyMark();
-    virtual void VerifyMark(void * objectAddress) override;
+    virtual bool VerifyMark(void * objectAddress, void * target) override;
 #endif
 #ifdef RECYCLER_PERF_COUNTERS
     virtual void UpdatePerfCountersOnFree() override;
@@ -203,8 +210,9 @@ private:
     char * AllocFreeListEntry(DECLSPEC_GUARD_OVERFLOW size_t size, ObjectInfoBits attributes, LargeHeapBlockFreeListEntry* entry);
 
 #if ENABLE_CONCURRENT_GC
-    bool RescanOnePage(Recycler * recycler, DWORD const writeWatchFlags);
-    size_t RescanMultiPage(Recycler * recycler, DWORD const writeWatchFlags);
+    bool IsPageDirty(char* page, RescanFlags flags, bool isWriteBarrier);
+    bool RescanOnePage(Recycler * recycler, RescanFlags flags);
+    size_t RescanMultiPage(Recycler * recycler, RescanFlags flags);
 #else
     bool RescanOnePage(Recycler * recycler);
     size_t RescanMultiPage(Recycler * recycler);
@@ -293,6 +301,18 @@ public:
     HeapInfo * heapInfo;
 #ifdef PROFILE_RECYCLER_ALLOC
     void ** GetTrackerDataArray();
+#endif
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+private:
+    static CriticalSection wbVerifyBitsLock;
+    BVSparse<HeapAllocator> wbVerifyBits;
+public:
+    virtual void WBSetBit(char* addr) override;
+    virtual void WBSetBitRange(char* addr, uint count) override;
+    virtual void WBClearBit(char* addr) override;
+    virtual void WBVerifyBitIsSet(char* addr) override;
+    virtual void WBClearObject(char* addr) override;
 #endif
 };
 }

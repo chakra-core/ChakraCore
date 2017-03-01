@@ -57,8 +57,8 @@ namespace TTD
         void CopyStringToHeapAllocatorWLength(const char16* string, uint32 length, TTString& into);
         void DeleteStringFromHeapAllocator(TTString& string);
 
-        void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
-        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, DWORD_PTR docId, bool isUtf8Source, byte* sourceBuffer, uint32 length, byte** relocatedUri, size_t* relocatedUriLength);
+        void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, uint64 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
+        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, uint64 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
     }
 
     namespace NSSnapValues
@@ -278,15 +278,12 @@ namespace TTD
             //The string name of the function
             TTString FunctionName;
 
-            //The module and document id
+            //The module id and source context
             Js::ModuleID ModuleId;
-            DWORD_PTR DocumentID;
+            uint64 SourceContextId;
 
             //Src URI may be null
             TTString SourceUri;
-
-            //The relocated URI -- if requested during replay
-            TTString RelocatedSourceUri;
 
             //The source length/buffer and if it is utf8 or char16 encoded
             bool IsUtf8;
@@ -302,7 +299,7 @@ namespace TTD
         };
 
         //Extract WITHOUT COPYING the info needed for this top level function -- use in script context when function is parsed to keep all the info together and then we do the copying later when doing snapshots
-        void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, DWORD_PTR documentID, bool isUtf8source, const byte* source, uint32 sourceLen, SlabAllocator& alloc);
+        void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8source, const byte* source, uint32 sourceLen, SlabAllocator& alloc);
         void EmitTopLevelCommonBodyResolveInfo(const TopLevelCommonBodyResolveInfo* fbInfo, bool emitInline, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator);
         void ParseTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, bool readSeperator, bool parseInline, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc);
 
@@ -320,7 +317,7 @@ namespace TTD
             LoadScriptFlag LoadFlag;
         };
 
-        void ExtractTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, DWORD_PTR documentID, bool isUtf8, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag, SlabAllocator& alloc);
+        void ExtractTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag, SlabAllocator& alloc);
         Js::FunctionBody* InflateTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx);
 
         void EmitTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator);

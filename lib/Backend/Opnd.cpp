@@ -58,10 +58,20 @@ Opnd::IsNotNumber() const
     {
         return true;
     }
-    if (this->IsRegOpnd() && this->AsRegOpnd()->m_sym->m_isNotInt)
+    if (this->IsRegOpnd())
     {
-        // m_isNotInt actually means "is not number". It should not be set to true for definitely-float values.
-        return true;
+        const IR::RegOpnd* regOpnd = this->AsRegOpnd();
+
+        if (regOpnd->m_sym == nullptr)
+        {
+            return true;
+        }
+
+        if (regOpnd->m_sym->m_isNotInt)
+        {
+            // m_isNotInt actually means "is not number". It should not be set to true for definitely-float values.
+            return true;
+        }
     }
     return false;
 }
@@ -86,13 +96,33 @@ bool
 Opnd::IsWriteBarrierTriggerableValue()
 {
     // Determines whether if an operand is used as a source in a store instruction, whether the store needs a write barrier
-    //
-    // If it's not a tagged value, and one of the two following conditions are true, then a write barrier is needed
+
+    // If it's a tagged value, we don't need a write barrier
+    if (this->IsTaggedValue())
+    {
+        return false;
+    }
+
     // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
+    if (this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar)
+    {
+        return false;
+    }
+
+    if (TySize[this->GetType()] != sizeof(void*))
+    {
+        return false;
+    }
+
+#if DBG
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
+    {
+        return true; // No further optimization if we are in verification
+    }
+#endif
+
     // If its null/boolean/undefined, we don't need a write barrier since the javascript library will keep those guys alive
-    return this->IsNotTaggedValue() &&
-        !((this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar) ||
-          (this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined()));
+    return !(this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined());
 }
 
 /*
@@ -363,6 +393,20 @@ Opnd::GetStackSym() const
         return static_cast<RegOpnd const *>(this)->GetStackSymInternal();
     default:
         return nullptr;
+    }
+}
+
+Sym*
+Opnd::GetSym() const
+{
+    switch (this->GetKind())
+    {
+        case OpndKindSym:
+            return static_cast<SymOpnd const *>(this)->m_sym;
+        case OpndKindReg:
+            return static_cast<RegOpnd const *>(this)->m_sym;
+        default:
+            return nullptr;
     }
 }
 
@@ -3483,7 +3527,15 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
 
         case IR::AddrOpndKindDynamicFunctionBody:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            DumpFunctionInfo(&buffer, &n, ((Js::FunctionBody *)address)->GetFunctionInfo(), printToConsole);
+            if (func->IsOOPJIT())
+            {
+                // TODO: OOP JIT, dump more info
+                WriteToBuffer(&buffer, &n, _u(" (FunctionBody)"));
+            }
+            else
+            {
+                DumpFunctionInfo(&buffer, &n, ((Js::FunctionBody *)address)->GetFunctionInfo(), printToConsole);
+            }
             break;
 
         case IR::AddrOpndKindDynamicFunctionBodyWeakRef:
@@ -3644,7 +3696,15 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
                 WriteToBuffer(&buffer, &n, _u(" (&StackLimit)"));
             }
             else if (func->CanAllocInPreReservedHeapPageSegment() &&
-                func->GetThreadContextInfo()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address))
+#if ENABLE_OOP_NATIVE_CODEGEN
+                (func->IsOOPJIT()
+                    ? func->GetOOPThreadContext()->GetPreReservedSectionAllocator()->IsPreReservedEndAddress(address)
+                    : func->GetInProcThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address)
+                )
+#else
+                func->GetInProcThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address)
+#endif
+                )
             {
                 WriteToBuffer(&buffer, &n, _u(" (PreReservedCodeSegmentEnd)"));
             }

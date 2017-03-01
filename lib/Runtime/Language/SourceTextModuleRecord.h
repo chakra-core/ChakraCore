@@ -87,8 +87,7 @@ namespace Js
 
         uint GetLocalExportSlotIndexByExportName(PropertyId exportNameId);
         uint GetLocalExportSlotIndexByLocalName(PropertyId localNameId);
-        Var* GetLocalExportSlots() const { return localExportSlots; }
-        Var* GetLocalExportSlotAddr(uint slotIndex) const { return &localExportSlots[slotIndex]; }
+        Field(Var)* GetLocalExportSlots() const { return localExportSlots; }
         uint GetLocalExportSlotCount() const { return localSlotCount; }
         uint GetModuleId() const { return moduleId; }
         uint GetLocalExportCount() const { return localExportCount; }
@@ -96,10 +95,8 @@ namespace Js
         ModuleNameRecord* GetNamespaceNameRecord() { return &namespaceRecord; }
 
         SourceTextModuleRecord* GetChildModuleRecord(LPCOLESTR specifier) const;
-#if DBG
-        void AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, uint32 specifierLength);
-#endif
 
+        void SetParent(SourceTextModuleRecord* parentRecord, LPCOLESTR moduleName);
         Utf8SourceInfo* GetSourceInfo() { return this->pSourceInfo; }
 
     private:
@@ -108,41 +105,41 @@ namespace Js
         const static uint InvalidSlotIndex = 0xffffffff;
         // TODO: move non-GC fields out to avoid false reference?
         // This is the parsed tree resulted from compilation. 
-        bool wasParsed;
-        bool wasDeclarationInitialized;
-        bool isRootModule;
-        bool hadNotifyHostReady;
-        ParseNodePtr parseTree;
-        Utf8SourceInfo* pSourceInfo;
-        uint sourceIndex;
-        Parser* parser;  // we'll need to keep the parser around till we are done with bytecode gen.
-        ScriptContext* scriptContext;
-        IdentPtrList* requestedModuleList;
-        ModuleImportOrExportEntryList* importRecordList;
-        ModuleImportOrExportEntryList* localExportRecordList;
-        ModuleImportOrExportEntryList* indirectExportRecordList;
-        ModuleImportOrExportEntryList* starExportRecordList;
-        ChildModuleRecordSet* childrenModuleSet;
-        ModuleRecordList* parentModuleList;
-        LocalExportMap* localExportMapByExportName;  // from propertyId to index map: for bytecode gen.
-        LocalExportMap* localExportMapByLocalName;  // from propertyId to index map: for bytecode gen.
-        LocalExportIndexList* localExportIndexList; // from index to propertyId: for typehandler.
-        uint numUnInitializedChildrenModule;
-        ExportedNames* exportedNames;
-        ResolvedExportMap* resolvedExportMap;
+        Field(bool) wasParsed;
+        Field(bool) wasDeclarationInitialized;
+        Field(bool) isRootModule;
+        Field(bool) hadNotifyHostReady;
+        Field(ParseNodePtr) parseTree;
+        Field(Utf8SourceInfo*) pSourceInfo;
+        Field(uint) sourceIndex;
+        FieldNoBarrier(Parser*) parser;  // we'll need to keep the parser around till we are done with bytecode gen.
+        Field(ScriptContext*) scriptContext;
+        Field(IdentPtrList*) requestedModuleList;
+        Field(ModuleImportOrExportEntryList*) importRecordList;
+        Field(ModuleImportOrExportEntryList*) localExportRecordList;
+        Field(ModuleImportOrExportEntryList*) indirectExportRecordList;
+        Field(ModuleImportOrExportEntryList*) starExportRecordList;
+        Field(ChildModuleRecordSet*) childrenModuleSet;
+        Field(ModuleRecordList*) parentModuleList;
+        Field(LocalExportMap*) localExportMapByExportName;  // from propertyId to index map: for bytecode gen.
+        Field(LocalExportMap*) localExportMapByLocalName;  // from propertyId to index map: for bytecode gen.
+        Field(LocalExportIndexList*) localExportIndexList; // from index to propertyId: for typehandler.
+        Field(uint) numUnInitializedChildrenModule;
+        Field(ExportedNames*) exportedNames;
+        Field(ResolvedExportMap*) resolvedExportMap;
 
-        Js::JavascriptFunction* rootFunction;
-        void* hostDefined;
-        Var normalizedSpecifier;
-        Var errorObject;
-        Var* localExportSlots;
-        uint localSlotCount;
+        Field(Js::JavascriptFunction*) rootFunction;
+        Field(void*) hostDefined;
+        Field(Var) normalizedSpecifier;
+        Field(Var) errorObject;
+        Field(Field(Var)*) localExportSlots;
+        Field(uint) localSlotCount;
 
         // module export allows aliasing, like export {foo as foo1, foo2, foo3}.
-        uint localExportCount;
-        uint moduleId;
+        Field(uint) localExportCount;
+        Field(uint) moduleId;
 
-        ModuleNameRecord namespaceRecord;
+        Field(ModuleNameRecord) namespaceRecord;
 
         HRESULT PostParseProcess();
         HRESULT PrepareForModuleDeclarationInitialization();
@@ -162,6 +159,6 @@ namespace Js
     struct ServerSourceTextModuleRecord
     {
         uint moduleId;
-        Var* localExportSlotsAddr;
+        Field(Var)* localExportSlotsAddr;
     };
 }

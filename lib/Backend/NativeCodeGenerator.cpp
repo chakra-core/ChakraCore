@@ -96,6 +96,11 @@ NativeCodeGenerator::~NativeCodeGenerator()
     }
 #endif
 
+    if (scriptContext->GetJitFuncRangeCache() != nullptr)
+    {
+        scriptContext->GetJitFuncRangeCache()->ClearCache();
+    }
+
     if(this->foregroundAllocators != nullptr)
     {
         HeapDelete(this->foregroundAllocators);
@@ -543,8 +548,6 @@ NativeCodeGenerator::GenerateFunction(Js::FunctionBody *fn, Js::ScriptFunction *
 
         // Set asmjs to be true in entrypoint
         entryPointInfo->SetIsAsmJSFunction(true);
-        // Move the ModuleAddress from old Entrypoint to new entry point
-        entryPointInfo->SetModuleAddress(oldFuncObjEntryPointInfo->GetModuleAddress());
 
         // Update the native address of the older entry point - this should be either the TJ entrypoint or the Interpreter Entry point
         entryPointInfo->SetNativeAddress(oldFuncObjEntryPointInfo->jsMethod);
@@ -645,10 +648,8 @@ void NativeCodeGenerator::GenerateLoopBody(Js::FunctionBody * fn, Js::LoopHeader
 #ifdef ASMJS_PLAT
     if (fn->GetIsAsmJsFunction())
     {
-        Js::FunctionEntryPointInfo* functionEntryPointInfo = (Js::FunctionEntryPointInfo*) fn->GetDefaultEntryPointInfo();
         Js::LoopEntryPointInfo* loopEntryPointInfo = (Js::LoopEntryPointInfo*)entryPoint;
         loopEntryPointInfo->SetIsAsmJSFunction(true);
-        loopEntryPointInfo->SetModuleAddress(functionEntryPointInfo->GetModuleAddress());
     }
 #endif
     JsLoopBodyCodeGen * workitem = this->NewLoopBodyCodeGen(fn, entryPoint, loopHeader);
@@ -899,6 +900,10 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     workItem->GetJITData()->startTime = (int64)start_time.QuadPart;
     if (JITManager::GetJITManager()->IsOOPJITEnabled())
     {
+        if (!JITManager::GetJITManager()->IsConnected())
+        {
+            throw Js::OperationAbortedException();
+        }
         HRESULT hr = JITManager::GetJITManager()->RemoteCodeGenCall(
             workItem->GetJITData(),
             scriptContext->GetRemoteScriptAddr(),
@@ -908,11 +913,16 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             // script context may close after codegen call starts, consider this as aborted codegen
             hr = E_ABORT;
         }
-        JITManager::HandleServerCallResult(hr);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::CodeGen);
+
+        if (!PreReservedVirtualAllocWrapper::IsInRange((void*)this->scriptContext->GetThreadContext()->GetPreReservedRegionAddr(), (void*)jitWriteData.codeAddress))
+        {
+            this->scriptContext->GetJitFuncRangeCache()->AddFuncRange((void*)jitWriteData.codeAddress, jitWriteData.codeSize);
+        }
     }
     else
     {
-        CodeGenAllocators *const allocators =
+        InProcCodeGenAllocators *const allocators =
             foreground ? EnsureForegroundAllocators(pageAllocator) : GetBackgroundAllocator(pageAllocator); // okay to do outside lock since the respective function is called only from one thread
         NoRecoverMemoryJitArenaAllocator jitArena(_u("JITArena"), pageAllocator, Js::Throw::OutOfMemory);
 #if DBG
@@ -940,10 +950,16 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         Func::Codegen(&jitArena, jitWorkItem, scriptContext->GetThreadContext(),
             scriptContext, &jitWriteData, epInfo, nullptr, jitWorkItem->GetPolymorphicInlineCacheInfo(), allocators,
 #if !FLOATVAR
-            pNumberAllocator, 
+            pNumberAllocator,
 #endif
             codeGenProfiler, !foreground);
+        
+        if (!this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator()->IsInRange((void*)jitWriteData.codeAddress))
+        {
+            this->scriptContext->GetJitFuncRangeCache()->AddFuncRange((void*)jitWriteData.codeAddress, jitWriteData.codeSize);
+        }
     }
+    
     if (JITManager::GetJITManager()->IsOOPJITEnabled() && PHASE_VERBOSE_TRACE(Js::BackEndPhase, workItem->GetFunctionBody()))
     {
         LARGE_INTEGER freq;
@@ -1548,7 +1564,7 @@ NativeCodeGenerator::CheckCodeGen(Js::ScriptFunction * function)
 
     if(!nativeCodeGen->Processor()->PrioritizeJob(nativeCodeGen, entryPoint, function))
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
 #define originalEntryPoint_IS_ProfileDeferredParsingThunk \
             (originalEntryPoint == ProfileDeferredParsingThunk)
 #else
@@ -1627,7 +1643,10 @@ NativeCodeGenerator::CheckCodeGenDone(
         {
             entryPointInfo->Cleanup(false /* isShutdown */, true /* capture cleanup stack */);
         }
-        jsMethod = functionBody->GetScriptContext()->CurrentThunk == ProfileEntryThunk ? ProfileEntryThunk : functionBody->GetOriginalEntryPoint();
+
+        // Do not profile WebAssembly functions
+        jsMethod = (functionBody->GetScriptContext()->CurrentThunk == ProfileEntryThunk
+                    && !functionBody->IsWasmFunction()) ? ProfileEntryThunk : functionBody->GetOriginalEntryPoint();
         entryPointInfo->jsMethod = jsMethod;
     }
     else
@@ -2002,7 +2021,7 @@ NativeCodeGenerator::JobProcessed(JsUtil::Job *const job, const bool succeeded)
             Assert(workItem->GetCodeAddress() != NULL);
 
             uint loopNum = loopBodyCodeGen->GetJITData()->loopNumber;
-            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);            
+            functionBody->SetLoopBodyEntryPoint(loopBodyCodeGen->loopHeader, entryPoint, (Js::JavascriptMethod)workItem->GetCodeAddress(), loopNum);
             entryPoint->SetCodeGenDone();
         }
         else
@@ -2038,11 +2057,12 @@ NativeCodeGenerator::UpdateJITState()
 
         if (scriptContext->GetThreadContext()->JITNeedsPropUpdate())
         {
+            typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
             CompileAssert(sizeof(BVSparseNode) == sizeof(BVSparseNodeIDL));
             BVSparseNodeIDL * bvHead = (BVSparseNodeIDL*)scriptContext->GetThreadContext()->GetJITNumericProperties()->head;
             HRESULT hr = JITManager::GetJITManager()->UpdatePropertyRecordMap(scriptContext->GetThreadContext()->GetRemoteThreadContextAddr(), bvHead);
 
-            JITManager::HandleServerCallResult(hr);
+            JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
             scriptContext->GetThreadContext()->ResetJITNeedsPropUpdate();
         }
     }
@@ -2983,7 +3003,7 @@ NativeCodeGenerator::GatherCodeGenData(Js::FunctionBody *const topFunctionBody, 
 #endif
 
         uint objTypeSpecFldInfoCount = objTypeSpecFldInfoList->Count();
-        jitTimeData->SetGlobalObjTypeSpecFldInfoArray(RecyclerNewArray(recycler, Js::ObjTypeSpecFldInfo*, objTypeSpecFldInfoCount), objTypeSpecFldInfoCount);
+        jitTimeData->SetGlobalObjTypeSpecFldInfoArray(RecyclerNewArray(recycler, Field(Js::ObjTypeSpecFldInfo*), objTypeSpecFldInfoCount), objTypeSpecFldInfoCount);
         uint propertyInfoId = objTypeSpecFldInfoCount - 1;
         FOREACH_SLISTCOUNTED_ENTRY(Js::ObjTypeSpecFldInfo*, info, objTypeSpecFldInfoList)
         {
@@ -3173,6 +3193,12 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
     {
         //DeRegister Entry Point for CFG
         ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(address, false);
+    }
+    
+    if ((!JITManager::GetJITManager()->IsOOPJITEnabled() && !this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator()->IsInRange((void*)address)) ||
+        (JITManager::GetJITManager()->IsOOPJITEnabled() && !PreReservedVirtualAllocWrapper::IsInRange((void*)this->scriptContext->GetThreadContext()->GetPreReservedRegionAddr(), (void*)address)))
+    {
+        this->scriptContext->GetJitFuncRangeCache()->RemoveFuncRange((void*)address);
     }
 
     // The foreground allocators may have been used
@@ -3626,13 +3652,15 @@ bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunct
     return true;
 }
 
+#if _WIN32
 void
-JITManager::HandleServerCallResult(HRESULT hr)
+JITManager::HandleServerCallResult(HRESULT hr, RemoteCallType callType)
 {
+    // handle the normal hresults
     switch (hr)
     {
     case S_OK:
-        break;
+        return;
     case E_ABORT:
         throw Js::OperationAbortedException();
     case E_OUTOFMEMORY:
@@ -3640,6 +3668,38 @@ JITManager::HandleServerCallResult(HRESULT hr)
     case VBSERR_OutOfStack:
         throw Js::StackOverflowException();
     default:
+        break;
+    }
+    // if jit process is terminated, we can handle certain abnormal hresults
+
+    // we should not have RPC failure if JIT process is still around
+    // since this is going to be a failfast, lets wait a bit in case server is in process of terminating
+    if (WaitForSingleObject(GetJITManager()->GetServerHandle(), CONFIG_FLAG(RPCFailFastWait)) != WAIT_OBJECT_0)
+    {
+        RpcFailure_fatal_error(hr);
+    }
+
+    // we only expect to see these hresults in case server has been closed. failfast otherwise
+    if (hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED) &&
+        hr != HRESULT_FROM_WIN32(RPC_S_CALL_FAILED_DNE) &&
+        hr != HRESULT_FROM_WIN32(RPC_X_SS_IN_NULL_CONTEXT))
+    {
+        RpcFailure_fatal_error(hr);
+    }
+    switch (callType)
+    {
+    case RemoteCallType::CodeGen:
+        // inform job manager that JIT work item has been cancelled
+        throw Js::OperationAbortedException();
+    case RemoteCallType::HeapQuery:
+    case RemoteCallType::ThunkCreation:
+        Js::Throw::OutOfMemory();
+    case RemoteCallType::StateUpdate:
+        // if server process is gone, we can ignore failures updating its state
+        return;
+    default:
+        Assert(UNREACHED);
         RpcFailure_fatal_error(hr);
     }
 }
+#endif

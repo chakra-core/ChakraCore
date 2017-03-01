@@ -39,7 +39,18 @@ namespace TTD
         writer->AdjustIndent(-1);
         writer->WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
 
-        writer->WriteLogTag(NSTokens::Key::ctxTag, this->m_activeScriptContext, NSTokens::Separator::CommaSeparator);
+        writer->WriteLengthValue(this->m_tcSymbolRegistrationMapContents.Count(), NSTokens::Separator::CommaAndBigSpaceSeparator);
+        writer->WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
+        bool firstTCSymbol = true;
+        for(auto iter = this->m_tcSymbolRegistrationMapContents.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            writer->WriteNakedUInt32((uint32)*iter.Current(), firstTCSymbol ? NSTokens::Separator::NoSeparator : NSTokens::Separator::CommaSeparator);
+
+            firstTCSymbol = false;
+        }
+        writer->WriteSequenceEnd();
+
+        writer->WriteLogTag(NSTokens::Key::ctxTag, this->m_activeScriptContext, NSTokens::Separator::CommaAndBigSpaceSeparator);
         SnapShot::EmitListHelper(&SnapShot::SnapRootPinEntryEmit, this->m_globalRootList, writer);
         SnapShot::EmitListHelper(&SnapShot::SnapRootPinEntryEmit, this->m_localRootList, writer);
 
@@ -106,6 +117,15 @@ namespace TTD
         {
             NSSnapValues::SnapContext* snpCtx = snap->m_ctxList.NextOpenEntry();
             NSSnapValues::ParseSnapContext(snpCtx, i != 0, reader, snap->GetSnapshotSlabAllocator());
+        }
+        reader->ReadSequenceEnd();
+
+        uint32 tcSymbolCount = reader->ReadLengthValue(true);
+        reader->ReadSequenceStart_WDefaultKey(true);
+        for(uint32 i = 0; i < tcSymbolCount; ++i)
+        {
+            Js::PropertyId* symid = snap->m_tcSymbolRegistrationMapContents.NextOpenEntry();
+            *symid = reader->ReadNakedUInt32(i != 0);
         }
         reader->ReadSequenceEnd();
 
@@ -190,7 +210,7 @@ namespace TTD
             res = ctx->TTDWellKnownInfo->LookupKnownObjectFromPath(snpObject->OptWellKnownToken);
 
             //Well known objects may always be dirty (e.g. we are re-using a context) so we always want to clean them
-            res = NSSnapObjects::ObjectPropertyReset(snpObject, Js::DynamicObject::FromVar(res), inflator, true);
+            res = NSSnapObjects::ObjectPropertyReset_WellKnown(snpObject, Js::DynamicObject::FromVar(res), inflator);
             TTDAssert(res != nullptr, "Should always produce a result!!!");
         }
         else
@@ -274,7 +294,8 @@ namespace TTD
 
     SnapShot::SnapShot()
         : m_slabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_LARGE),
-        m_ctxList(&this->m_slabAllocator), m_activeScriptContext(TTD_INVALID_LOG_PTR_ID), m_globalRootList(&this->m_slabAllocator), m_localRootList(&this->m_slabAllocator),
+        m_ctxList(&this->m_slabAllocator), m_tcSymbolRegistrationMapContents(&this->m_slabAllocator), m_activeScriptContext(TTD_INVALID_LOG_PTR_ID),
+        m_globalRootList(&this->m_slabAllocator), m_localRootList(&this->m_slabAllocator),
         m_handlerList(&this->m_slabAllocator), m_typeList(&this->m_slabAllocator),
         m_functionBodyList(&this->m_slabAllocator), m_primitiveObjectList(&this->m_slabAllocator), m_compoundObjectList(&this->m_slabAllocator),
         m_scopeEntries(&this->m_slabAllocator), m_slotArrayEntries(&this->m_slabAllocator),
@@ -328,6 +349,7 @@ namespace TTD
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseInfo };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseResolveOrRejectFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseResolveOrRejectFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseResolveOrRejectFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseResolveOrRejectFunctionInfo };
         this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseReactionTaskFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseReactionTaskFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseReactionTaskFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseReactionTaskFunctionInfo };
+        this->m_snapObjectVTableArray[(uint32)NSSnapObjects::SnapObjectType::SnapPromiseAllResolveElementFunctionObject] = { &NSSnapObjects::DoObjectInflation_SnapPromiseAllResolveElementFunctionInfo, nullptr, &NSSnapObjects::EmitAddtlInfo_SnapPromiseAllResolveElementFunctionInfo, &NSSnapObjects::ParseAddtlInfo_SnapPromiseAllResolveElementFunctionInfo };
 
         ////
         //For the objects that are always well known
@@ -401,6 +423,11 @@ namespace TTD
         return this->m_ctxList;
     }
 
+    UnorderedArrayList<Js::PropertyId, TTD_ARRAY_LIST_SIZE_XSMALL>& SnapShot::GetTCSymbolMapInfoList()
+    {
+        return this->m_tcSymbolRegistrationMapContents;
+    }
+
     TTD_LOG_PTR_ID SnapShot::GetActiveScriptContext() const
     {
         return this->m_activeScriptContext;
@@ -459,6 +486,26 @@ namespace TTD
     SlabAllocator& SnapShot::GetSnapshotSlabAllocator()
     {
         return this->m_slabAllocator;
+    }
+
+    bool SnapShot::AllWellKnownObjectsReusable(InflateMap* inflator) const
+    {
+        for(auto iter = this->m_compoundObjectList.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            const NSSnapObjects::SnapObject* snpObj = iter.Current();
+            if(snpObj->OptWellKnownToken != TTD_INVALID_WELLKNOWN_TOKEN)
+            {
+                Js::RecyclableObject* rObj = inflator->FindReusableObject_WellKnowReuseCheck(snpObj->ObjectPtrId);
+                bool blocking = NSSnapObjects::DoesObjectBlockScriptContextReuse(snpObj, Js::DynamicObject::FromVar(rObj), inflator);
+
+                if(blocking)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     void SnapShot::Inflate(InflateMap* inflator, ThreadContextTTD* tCtx) const
@@ -553,6 +600,18 @@ namespace TTD
 
             NSSnapValues::ResetPendingAsyncBufferModInfo(snpCtx, sctx, inflator);
         }
+
+        //reset the threadContext symbol map
+        JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler>* tcSymbolRegistrationMap = tCtx->GetThreadContext()->GetSymbolRegistrationMap_TTD();
+        tcSymbolRegistrationMap->Clear();
+
+        for(auto iter = this->m_tcSymbolRegistrationMapContents.GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::PropertyId pid = *iter.Current();
+            const Js::PropertyRecord* pRecord = tCtx->GetThreadContext()->GetPropertyName(pid);
+
+            tcSymbolRegistrationMap->Add(pRecord->GetBuffer(), pRecord);
+        }
     }
 
     void SnapShot::EmitSnapshot(int64 snapId, ThreadContext* threadContext) const
@@ -560,11 +619,11 @@ namespace TTD
         char asciiResourceName[64];
         sprintf_s(asciiResourceName, 64, "snap_%I64i.snp", snapId);
 
-        const TTUriString& uri = threadContext->TTDContext->TTDUri;
-        const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
-        JsTTDStreamHandle snapHandle = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, false, true, nullptr, nullptr);
+        TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
+        JsTTDStreamHandle snapHandle = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, false, true);
+        TTDAssert(snapHandle != nullptr, "Failed to open snapshot resource stream for writing.");
 
-        TTD_SNAP_WRITER snapwriter(snapHandle, TTD_COMPRESSED_OUTPUT, iops.pfWriteBytesToStream, iops.pfFlushAndCloseStream);
+        TTD_SNAP_WRITER snapwriter(snapHandle, iofp.pfWriteBytesToStream, iofp.pfFlushAndCloseStream);
 
         this->EmitSnapshotToFile(&snapwriter, threadContext);
         snapwriter.FlushAndClose();
@@ -575,11 +634,11 @@ namespace TTD
         char asciiResourceName[64];
         sprintf_s(asciiResourceName, 64, "snap_%I64i.snp", snapId);
 
-        const TTUriString& uri = threadContext->TTDContext->TTDUri;
-        const IOStreamFunctions& iops = threadContext->TTDContext->TTDStreamFunctions;
-        JsTTDStreamHandle snapHandle = iops.pfGetResourceStream(uri.UriByteLength, uri.UriBytes, asciiResourceName, true, false, nullptr, nullptr);
+        TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
+        JsTTDStreamHandle snapHandle = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, true, false);
+        TTDAssert(snapHandle != nullptr, "Failed to open snapshot resource stream for reading.");
 
-        TTD_SNAP_READER snapreader(snapHandle, TTD_COMPRESSED_OUTPUT, iops.pfReadBytesFromStream, iops.pfFlushAndCloseStream);
+        TTD_SNAP_READER snapreader(snapHandle, iofp.pfReadBytesFromStream, iofp.pfFlushAndCloseStream);
         SnapShot* snap = SnapShot::ParseSnapshotFromFile(&snapreader);
 
         return snap;
@@ -755,6 +814,23 @@ namespace TTD
             compareMap.DiagnosticAssert(ctx2 != nullptr);
 
             NSSnapValues::AssertSnapEquiv(ctx1, ctx2, allRootMap1, allRootMap2, compareMap);
+        }
+
+        //compare the contents of the two thread context symbol maps
+        compareMap.DiagnosticAssert(snap1->m_tcSymbolRegistrationMapContents.Count() == snap2->m_tcSymbolRegistrationMapContents.Count());
+        for(auto iter1 = snap1->m_tcSymbolRegistrationMapContents.GetIterator(); iter1.IsValid(); iter1.MoveNext())
+        {
+            const Js::PropertyId pid1 = *iter1.Current();
+            bool match = false;
+            for(auto iter2 = snap2->m_tcSymbolRegistrationMapContents.GetIterator(); iter2.IsValid(); iter2.MoveNext())
+            {
+                if(*iter2.Current() == pid1)
+                {
+                    match = true;
+                    break;
+                }
+            }
+            compareMap.DiagnosticAssert(match);
         }
 
         //Iterate on the worklist until we are done

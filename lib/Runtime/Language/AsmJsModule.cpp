@@ -1080,6 +1080,11 @@ namespace Js
     AsmJsFunc* AsmJsModuleCompiler::CreateNewFunctionEntry( ParseNode* pnodeFnc )
     {
         PropertyName name = ParserWrapper::FunctionName( pnodeFnc );
+        if ( !name )
+        {
+            return nullptr;
+        }
+
         GetByteCodeGenerator()->AssignPropertyId(name);
         AsmJsFunc* func = Anew( &mAllocator, AsmJsFunc, name, pnodeFnc, &mAllocator, mCx->scriptContext );
         if( func )
@@ -2609,13 +2614,13 @@ namespace Js
 
 
 #if DEBUG
-        Var * slotArray = RecyclerNewArrayZ(scriptContext->GetRecycler(), Var, moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
+        Field(Var) * slotArray = RecyclerNewArrayZ(scriptContext->GetRecycler(), Field(Var), moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
 #else
-        Var * slotArray = RecyclerNewArray(scriptContext->GetRecycler(), Var, moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
+        Field(Var) * slotArray = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), moduleBody->scopeSlotArraySize + ScopeSlots::FirstSlotIndex);
 #endif
-        ScopeSlots scopeSlots(slotArray);
+        ScopeSlots scopeSlots((Js::Var*)slotArray);
         scopeSlots.SetCount(moduleBody->scopeSlotArraySize);
-        scopeSlots.SetScopeMetadata(moduleBody);
+        scopeSlots.SetScopeMetadata(moduleBody->GetFunctionInfo());
 
         auto asmSlotMap = asmModuleInfo->GetAsmJsSlotMap();
         Assert((uint)asmModuleInfo->GetSlotsCount() >= moduleBody->scopeSlotArraySize);

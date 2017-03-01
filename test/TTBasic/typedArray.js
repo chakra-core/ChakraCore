@@ -64,4 +64,6 @@ function testFunction()
     ////
 
     telemetryLog(`viewz[0]: ${viewz[0]}`, true); //0.5
+
+    emitTTDLog(ttdLogURI);
 }

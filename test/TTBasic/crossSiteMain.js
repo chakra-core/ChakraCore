@@ -28,4 +28,6 @@ function testFunction()
     child_obj.xval = "passv"
 
     telemetryLog(`${child_obj.xval}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

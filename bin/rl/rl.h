@@ -30,7 +30,7 @@ typedef unsigned __int32 uint32;
 #define BUFFER_SIZE 1024
 #define MAXQUEUE    10000
 
-extern void assert(char *file, int line);
+extern void assert(const char *file, int line);
 #define ASSERT(ex) ((ex) ? (void)0 : assert(__FILE__, __LINE__))
 #define ASSERTNR ASSERT
 #define UNREACHED FALSE
@@ -41,13 +41,13 @@ extern void assert(char *file, int line);
 // Target machines
 
 typedef struct tagTARGETINFO {
-    char * name;
+    const char * name;
     BOOL fRL_MACHINEonly;
     BOOL fAutoCrossCompilation;
     BOOL fUseNoGPF;
-    char * TARGET_VM;
-    char * LINKFLAGS;
-    char * NotTags;
+    const char * TARGET_VM;
+    const char * LINKFLAGS;
+    const char * NotTags;
 } TARGETINFO;
 
 extern TARGETINFO TargetInfo[];
@@ -212,7 +212,7 @@ extern const char * const TestInfoKindName[];
 struct TestInfo
 {
    BOOL hasData[_TIK_COUNT];
-   char * data[_TIK_COUNT];
+   const char * data[_TIK_COUNT];
 };
 
 struct Tags
@@ -243,11 +243,15 @@ enum FILE_CONFIG_STATUS
     FCS_USER_SPECIFIED, FCS_US_FLAGS, FCS_READ
 };
 
-struct StringList
+template<typename T>
+struct ListNode
 {
-   StringList * next;
-   char * string;
+    ListNode *next;
+    T string;
 };
+
+typedef ListNode<char*> StringList;
+typedef ListNode<const char*> ConstStringList;
 
 struct TestVariant
 {
@@ -257,7 +261,7 @@ struct TestVariant
 
    // Exe optimization flags.
 
-   char * optFlags;
+   const char * optFlags;
 
    // Test-specific info.
 
@@ -274,7 +278,7 @@ struct Test
 
    // For directories
 
-   char * name;
+   const char * name;
    char * fullPath;
    int num;
 
@@ -629,13 +633,13 @@ public:
 
     TestList * GetTestList() { return &_testList; }
 
-    char* GetDirectoryName() { return _pDir->name; }
+    const char* GetDirectoryName() { return _pDir->name; }
     char* GetDirectoryPath() { return _pDir->fullPath; }
     int GetDirectoryNumber() { return _pDir->num; }
 
     BOOL HasTestInfoData(TestInfoKind testInfoKind) { return _pDir->defaultTestInfo.hasData[testInfoKind]; }
-    char* GetTestInfoData(TestInfoKind testInfoKind) { return _pDir->defaultTestInfo.data[testInfoKind]; }
-    char* GetFullPathFromSourceOrDirectory() { return HasTestInfoData(TIK_SOURCE_PATH) ? GetTestInfoData(TIK_SOURCE_PATH) : GetDirectoryPath(); }
+    const char* GetTestInfoData(TestInfoKind testInfoKind) { return _pDir->defaultTestInfo.data[testInfoKind]; }
+    const char* GetFullPathFromSourceOrDirectory() { return HasTestInfoData(TIK_SOURCE_PATH) ? GetTestInfoData(TIK_SOURCE_PATH) : GetDirectoryPath(); }
 
     bool IsBaseline() { return !_isDiffDirectory; }
     void SetDiffFlag() { _isDiffDirectory = true; }
@@ -771,7 +775,7 @@ public:
 
     // Track current test, for use in creating the title bar
 
-    void SetCurrentTest(char* dir, char* test, bool isBaseline);
+    void SetCurrentTest(const char* dir, const char* test, bool isBaseline);
 
     template <size_t bufSize>
     void GetCurrentTest(char (&currentTest)[bufSize])
@@ -824,7 +828,7 @@ class COutputBuffer
 
 public:
 
-    COutputBuffer(char* logfile, bool buffered = true);
+    COutputBuffer(const char* logfile, bool buffered = true);
 
     COutputBuffer(FILE* pfile, bool buffered = true);
 
@@ -844,11 +848,14 @@ public:
 
 /////////////////////////////////////////////////////////////////////////
 
-extern char *REGRESS, *MASTER_DIR, *DIFF_DIR;
-extern char *REGR_CL, *REGR_DIFF, *REGR_ASM, *REGR_SHOWD;
-extern char *EXTRA_CC_FLAGS, *EXEC_TESTS_FLAGS, *TARGET_VM;
-extern char *LINKER, *LINKFLAGS;
-extern char *JCBinary;
+extern const char *DIFF_DIR;
+extern char *REGRESS, *MASTER_DIR;
+extern const char *REGR_CL, *REGR_DIFF;
+extern char *REGR_ASM, *REGR_SHOWD;
+extern const char *TARGET_VM;
+extern char *EXTRA_CC_FLAGS, *EXEC_TESTS_FLAGS;
+extern const char *LINKER, *LINKFLAGS;
+extern const char *JCBinary;
 
 extern BOOL FBaseline;
 extern BOOL FRebase; // Whether creates .rebase file if testout mismatches baseline
@@ -865,7 +872,7 @@ extern BOOL FTest;
 extern BOOL FAppendTestNameToExtraCCFlags;
 
 #define MAXOPTIONS 60
-extern char *OptFlags[MAXOPTIONS + 1], *PogoOptFlags[MAXOPTIONS + 1];
+extern const char *OptFlags[MAXOPTIONS + 1], *PogoOptFlags[MAXOPTIONS + 1];
 
 #ifndef NODEBUG
 extern BOOL FDebug;
@@ -912,22 +919,22 @@ extern void __cdecl WriteLog(const char *fmt, ...);
 extern void __cdecl LogOut(const char *fmt, ...);
 extern void __cdecl LogError(const char *fmt, ...);
 extern void FlushOutput(void);
-extern char *mytmpnam(char* directory, char *prefix, char *filename);
+extern char *mytmpnam(const char* directory, const char *prefix, char *filename);
 extern int DoCompare(char *file1, char *file2);
 extern void UpdateTitleStatus();
-extern int mystrcmp(char *a, char *b);
-extern char * mystrtok(char *s, char *delim, char *term);
+extern int mystrcmp(const char *a, const char *b);
+extern char * mystrtok(char *s, const char *delim, const char *term);
 extern void FreeTestList(TestList * pTestList);
 #ifndef NODEBUG
 extern void DumpTestList(TestList * pTestList);
 #endif
-extern void DeleteMultipleFiles(CDirectory* pDir, char *pattern);
+extern void DeleteMultipleFiles(CDirectory* pDir, const char *pattern);
 extern char *GetFilenamePtr(char *path);
 extern const char* GetFilenameExt(const char *path);
 extern void DeleteFileMsg(char *filename);
-extern BOOL DeleteFileIfFound(char *filename);
+extern BOOL DeleteFileIfFound(const char *filename);
 extern void DeleteFileRetryMsg(char *filename);
-extern StringList * ParseStringList(char* p, char* delim);
+extern StringList * ParseStringList(const char* p, const char* delim);
 extern StringList * AppendStringList(StringList * stringList, StringList * appendList);
 extern StringList * AppendStringListCopy(StringList * stringList, StringList * appendList);
 extern void PrintTagsList(Tags* pTagsList);
@@ -985,7 +992,7 @@ extern int ExecTest(CDirectory* pDir, Test * pTest, TestVariant * pTestVariant);
 
 // rlmp.cpp
 
-extern int ExecuteCommand(char* path, char* CommandLine, DWORD millisecTimeout = INFINITE, void* localEnvVars = NULL);
+extern int ExecuteCommand(const char* path, const char* CommandLine, DWORD millisecTimeout = INFINITE, void* localEnvVars = NULL);
 
 extern int DoOneExternalTest(
     CDirectory* pDir,

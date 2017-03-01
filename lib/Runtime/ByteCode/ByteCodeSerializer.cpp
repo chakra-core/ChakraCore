@@ -492,7 +492,7 @@ public:
         string16Table.list = string16Table.list->ReverseCurrentList();
 
         // Prepend all sections (in reverse order because of prepend)
-        all.list = all.list->Prepend(&functionsTable, alloc);
+        all.list = regex::ImmutableList<Js::BufferBuilder*>::OfSingle(&functionsTable, alloc);
         all.list = all.list->Prepend(&functionCount, alloc);
         all.list = all.list->Prepend(&lineInfoCache, alloc);
         all.list = all.list->Prepend(&lineInfoCacheCount, alloc);
@@ -588,7 +588,7 @@ public:
             {
                 // First item in the list is the first string.
                 auto stringIndexEntry = Anew(alloc, BufferBuilderRelativeOffset, _u("First String16 Index"), stringEntry);
-                string16IndexTable.list = string16IndexTable.list->Prepend(stringIndexEntry, alloc);
+                string16IndexTable.list = regex::ImmutableList<Js::BufferBuilder*>::OfSingle(stringIndexEntry, alloc);
                 PrependByte(string16IndexTable, _u("isPropertyRecord"), (BYTE)isPropertyRecord);
             }
 
@@ -1471,7 +1471,7 @@ public:
         size += PrependInt32(builder, _u("Start Constant Table"), magicStartOfConstantTable);
 #endif
 
-        Js::Var * constTable = static_cast<Js::Var *>(function->GetConstTable());
+        auto constTable = function->GetConstTable();
         byte* tableEnd = (byte*)(constTable + function->GetConstantCount());
 
         for (int i = 0; i < WAsmJs::LIMIT; ++i)
@@ -2020,8 +2020,9 @@ public:
                   | FunctionInfo::Attributes::Generator
                   | FunctionInfo::Attributes::ClassConstructor
                   | FunctionInfo::Attributes::ClassMethod
-                  | FunctionInfo::Attributes::EnclosedByGlobalFunc)) == 0,
-                "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember|EnclosedByGlobalFunc attributes should be set on a serialized function");
+                  | FunctionInfo::Attributes::EnclosedByGlobalFunc
+                  | FunctionInfo::Attributes::AllowDirectSuper)) == 0,
+                "Only the ErrorOnNew|SuperReference|Lambda|CapturesThis|Generator|ClassConstructor|Async|ClassMember|EnclosedByGlobalFunc|AllowDirectSuper attributes should be set on a serialized function");
 
         PrependInt32(builder, _u("Offset Into Source"), sourceDiff);
         if (function->GetNestedCount() > 0)
@@ -2457,21 +2458,13 @@ public:
         *value = raw + offset;
         return next;
     }
-
-    const byte * ReadByteBlock(const byte * buffer, WriteBarrierPtr<ByteBlock>* byteBlock)
+    template<typename Fn>
+    const byte * ReadByteBlock(const byte * buffer, Fn fn)
     {
         int contentLength;
         buffer = ReadInt32(buffer, &contentLength);
 
-        if (contentLength == 0)
-        {
-            *byteBlock = nullptr;
-        }
-        else
-        {
-            // TODO: Abstract this out to ByteBlock::New
-            *byteBlock = RecyclerNewLeaf(scriptContext->GetRecycler(), ByteBlock, contentLength, (byte*)buffer);
-        }
+        fn(contentLength, buffer);
         return buffer + contentLength;
     }
 
@@ -2810,7 +2803,7 @@ public:
 
         function->CreateConstantTable();
 
-        Js::Var * constTable = static_cast<Js::Var *>(function->GetConstTable());
+        auto constTable = function->GetConstTable();
         byte* tableEnd = (byte*)(constTable + function->GetConstantCount());
 
         for (int i = 0; i < WAsmJs::LIMIT; ++i)
@@ -3507,9 +3500,27 @@ public:
 
         serialization_alignment SerializedFieldList* definedFields = (serialization_alignment SerializedFieldList*) functionBytes;
 
-        auto displayName = (bitflags & ffIsAnonymous) ? Constants::AnonymousFunction :
-            deferDeserializeFunctionInfo != nullptr ? deferDeserializeFunctionInfo->GetDisplayName() :
-            GetString16ById(displayNameId);
+        FunctionProxy::SetDisplayNameFlags displayNameFlags = FunctionProxy::SetDisplayNameFlags::SetDisplayNameFlagsDontCopy;
+        const char16* displayName = nullptr;
+        if (bitflags & ffIsAnonymous)
+        {
+            displayName = Constants::AnonymousFunction;
+        }
+        else
+        {
+            if (deferDeserializeFunctionInfo != nullptr)
+            {
+                displayName = deferDeserializeFunctionInfo->GetDisplayName();
+                if (deferDeserializeFunctionInfo->GetDisplayNameIsRecyclerAllocated())
+                {
+                    displayNameFlags = (FunctionProxy::SetDisplayNameFlags)(displayNameFlags | FunctionProxy::SetDisplayNameFlags::SetDisplayNameFlagsRecyclerAllocated);
+                }
+            }
+            else
+            {
+                displayName = GetString16ById(displayNameId);
+            }
+        }
 
         uint displayNameLength = (bitflags & ffIsAnonymous) ? Constants::AnonymousFunctionLength :
             deferDeserializeFunctionInfo ? deferDeserializeFunctionInfo->GetDisplayNameLength() :
@@ -3566,7 +3577,7 @@ public:
 #endif
                 );
 
-            (*functionBody)->SetDisplayName(displayName, displayNameLength, displayShortNameOffset, FunctionProxy::SetDisplayNameFlags::SetDisplayNameFlagsDontCopy);
+            (*functionBody)->SetDisplayName(displayName, displayNameLength, displayShortNameOffset, displayNameFlags);
 
             Assert(!(*functionBody)->GetIsSerialized());
             (*functionBody)->SetByteCodeCache(cache);
@@ -3717,7 +3728,18 @@ public:
             }
 
             // Byte code
-            current = ReadByteBlock(current, &(*functionBody)->byteCodeBlock);
+            current = ReadByteBlock(current, [&functionBody, this](int contentLength, const byte* buffer)
+            {
+                if (contentLength == 0)
+                {
+                    (*functionBody)->byteCodeBlock = nullptr;
+                }
+                else
+                {
+                    // TODO: Abstract this out to ByteBlock::New
+                    (*functionBody)->byteCodeBlock = RecyclerNewLeaf(scriptContext->GetRecycler(), ByteBlock, contentLength, (byte*)buffer);
+                }
+            });
 
             // Auxiliary
             current = ReadAuxiliary(current, *functionBody);
@@ -3838,7 +3860,7 @@ public:
     }
 
     // Read the top function body.
-    HRESULT ReadTopFunctionBody(FunctionBody** function, Utf8SourceInfo* sourceInfo, ByteCodeCache * cache, bool allowDefer, NativeModule *nativeModule)
+    HRESULT ReadTopFunctionBody(Field(FunctionBody*)* function, Utf8SourceInfo* sourceInfo, ByteCodeCache * cache, bool allowDefer, NativeModule *nativeModule)
     {
         auto topFunction = ReadInt32(functions, &functionCount);
         firstFunctionId = sourceInfo->GetSrcInfo()->sourceContextInfo->nextLocalFunctionId;
@@ -3856,6 +3878,9 @@ public:
         auto result = ReadFunctionBody(topFunction, (FunctionProxy **)&functionBody, sourceInfo, cache, nativeModule, true, !allowDefer /* don't deserialize nested if defer is allowed */);
 
         (*function) = functionBody;
+
+        sourceInfo->ClearTopLevelFunctionInfoList();
+        sourceInfo->AddTopLevelFunctionInfo(functionBody->GetFunctionInfo(), this->scriptContext->GetRecycler());
 
 #if ENABLE_NATIVE_CODEGEN && defined(ENABLE_PREJIT)
         if (prejit)
@@ -4122,17 +4147,17 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
     return hr;
 }
 
-HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex)
 {
     return ByteCodeSerializer::DeserializeFromBufferInternal(scriptContext, scriptFlags, utf8Source, /* sourceHolder */ nullptr, srcInfo, buffer, nativeModule, function, sourceIndex);
 }
 // Deserialize function body from supplied buffer
-HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBuffer(ScriptContext * scriptContext, uint32 scriptFlags, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex)
 {
     AssertMsg(sourceHolder != nullptr, "SourceHolder can't be null, if you have an empty source then pass ISourceHolder::GetEmptySourceHolder()");
     return ByteCodeSerializer::DeserializeFromBufferInternal(scriptContext, scriptFlags, /* utf8Source */ nullptr, sourceHolder, srcInfo, buffer, nativeModule, function, sourceIndex);
 }
-HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, FunctionBody** function, uint sourceIndex)
+HRESULT ByteCodeSerializer::DeserializeFromBufferInternal(ScriptContext * scriptContext, uint32 scriptFlags, LPCUTF8 utf8Source, ISourceHolder* sourceHolder, SRCINFO const * srcInfo, byte * buffer, NativeModule *nativeModule, Field(FunctionBody*)* function, uint sourceIndex)
 {
     //ETW Event start
     JS_ETW(EventWriteJSCRIPT_BYTECODEDESERIALIZE_START(scriptContext, 0));

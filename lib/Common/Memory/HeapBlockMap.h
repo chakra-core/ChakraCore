@@ -58,7 +58,7 @@ public:
     BVStatic<BitCount>* GetMarkBitVectorForPages(void * address);
 
     uint GetMarkCount(void* address, uint pageCount);
-    template <bool interlocked>
+    template <bool interlocked, bool doSpecialMark>
     void Mark(void * candidate, MarkContext * markContext);
     template <bool interlocked>
     void MarkInterior(void * candidate, MarkContext * markContext);
@@ -70,7 +70,7 @@ public:
     void ResetMarks();
 
 #if ENABLE_CONCURRENT_GC || ENABLE_PARTIAL_GC
-    void ResetWriteWatch(Recycler * recycler);
+    void ResetDirtyPages(Recycler * recycler);
     uint Rescan(Recycler * recycler, bool resetWriteWatch);
 #endif
     void MakeAllPagesReadOnly(Recycler* recycler);
@@ -112,10 +112,14 @@ public:
     }
 
 private:
+#if ENABLE_CONCURRENT_GC
+#ifdef RECYCLER_WRITE_WATCH
     static UINT GetWriteWatchHelper(Recycler * recycler, DWORD writeWatchFlags, void* baseAddress, size_t regionSize,
         void** addresses, ULONG_PTR* count, LPDWORD granularity);
     static UINT GetWriteWatchHelperOnOOM(DWORD writeWatchFlags, _In_ void* baseAddress, size_t regionSize,
         _Out_writes_(*count) void** addresses, _Inout_ ULONG_PTR* count, LPDWORD granularity);
+#endif
+#endif
 
     static void * GetAddressFromIds(uint id1, uint id2)
     {
@@ -188,6 +192,8 @@ private:
     template <bool interlocked>
     bool MarkInternal(L2MapChunk * chunk, void * candidate);
 
+    void OnSpecialMark(L2MapChunk * chunk, void * candidate);
+
     template <bool interlocked, bool updateChunk>
     bool MarkInteriorInternal(MarkContext * markContext, L2MapChunk *& chunk, void * originalCandidate, void * realCandidate);
 
@@ -246,7 +252,7 @@ public:
     BVStatic<BitCount>* GetMarkBitVectorForPages(void * address);
 
     uint GetMarkCount(void* address, uint pageCount);
-    template <bool interlocked>
+    template <bool interlocked, bool doSpecialMark>
     void Mark(void * candidate, MarkContext * markContext);
     template <bool interlocked>
     void MarkInterior(void * candidate, MarkContext * markContext);
@@ -258,7 +264,7 @@ public:
     void ResetMarks();
 
 #if ENABLE_CONCURRENT_GC || ENABLE_PARTIAL_GC
-    void ResetWriteWatch(Recycler * recycler);
+    void ResetDirtyPages(Recycler * recycler);
     uint Rescan(Recycler * recycler, bool resetWriteWatch);
 #endif
     void MakeAllPagesReadOnly(Recycler* recycler);

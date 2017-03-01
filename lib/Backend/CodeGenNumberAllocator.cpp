@@ -106,7 +106,7 @@ CodeGenNumberThreadAllocator::AllocNewNumberBlock()
     {
         Assert(cs.IsLocked());
         // Reserve the segment, but not committing it
-        currentNumberSegment = PageAllocator::AllocPageSegment(pendingIntegrationNumberSegment, this->recycler->GetRecyclerLeafPageAllocator(), false, true);
+        currentNumberSegment = PageAllocator::AllocPageSegment(pendingIntegrationNumberSegment, this->recycler->GetRecyclerLeafPageAllocator(), false, true, false);
         if (currentNumberSegment == nullptr)
         {
             currentNumberBlockEnd = nullptr;
@@ -144,6 +144,7 @@ CodeGenNumberThreadAllocator::AllocNewChunkBlock()
             Js::Throw::OutOfMemory();
         }
         // All integrated pages' object are all live initially, so don't need to rescan them
+        // todo: SWB: need to allocate number with write barrier pages
         ::ResetWriteWatch(currentChunkBlockEnd - BlockSize, BlockSize);
         pendingReferenceNumberBlock.MoveTo(&pendingFlushNumberBlock);
         hasNewChunkBlock = false;
@@ -153,7 +154,7 @@ CodeGenNumberThreadAllocator::AllocNewChunkBlock()
     {
         Assert(cs.IsLocked());
         // Reserve the segment, but not committing it
-        currentChunkSegment = PageAllocator::AllocPageSegment(pendingIntegrationChunkSegment, this->recycler->GetRecyclerPageAllocator(), false, true);
+        currentChunkSegment = PageAllocator::AllocPageSegment(pendingIntegrationChunkSegment, this->recycler->GetRecyclerPageAllocator(), false, true, false);
         if (currentChunkSegment == nullptr)
         {
             currentChunkBlockEnd = nullptr;
@@ -220,6 +221,12 @@ CodeGenNumberThreadAllocator::Integrate()
         {
             Js::Throw::OutOfMemory();
         }
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(RecyclerVerifyMark))
+        {
+            Recycler::WBSetBitRange(record.blockAddress, BlockSize / sizeof(void*));
+        }
+#endif
         pendingIntegrationChunkBlock.RemoveHead(&NoThrowHeapAllocator::Instance);
     }
 #ifdef TRACK_ALLOC
@@ -324,6 +331,9 @@ Js::JavascriptNumber* XProcNumberPageSegmentImpl::AllocateNumber(Func* func, dou
                 Recycler::FillPadNoCheck(pLocalNumber, sizeof(Js::JavascriptNumber), sizeCat, false);
                 pLocalNumber = new (pLocalNumber) Js::JavascriptNumber(localNumber);
             }
+#else
+            Assert(sizeCat == sizeof(Js::JavascriptNumber));
+            __analysis_assume(sizeCat == sizeof(Js::JavascriptNumber));
 #endif
             // change vtable to the remote one
             *(void**)pLocalNumber = (void*)func->GetScriptContextInfo()->GetVTableAddress(VTableValue::VtableJavascriptNumber);
@@ -401,7 +411,7 @@ void XProcNumberPageSegmentImpl::Initialize(bool recyclerVerifyEnabled, uint rec
         uint padAllocSize = (uint)AllocSizeMath::Add(sizeof(Js::JavascriptNumber) + sizeof(size_t), recyclerVerifyPad);
         allocSize = padAllocSize < allocSize ? allocSize : padAllocSize;
     }
-#endif    
+#endif
 
     allocSize = (uint)HeapInfo::GetAlignedSizeNoCheck(allocSize);
 
@@ -414,7 +424,7 @@ void XProcNumberPageSegmentImpl::Initialize(bool recyclerVerifyEnabled, uint rec
     sizeCat = allocSize;
 }
 
-Js::JavascriptNumber** ::XProcNumberPageSegmentManager::RegisterSegments(XProcNumberPageSegment* segments)
+Field(Js::JavascriptNumber*)* ::XProcNumberPageSegmentManager::RegisterSegments(XProcNumberPageSegment* segments)
 {
     Assert(segments->pageAddress && segments->allocStartAddress && segments->allocEndAddress);
     XProcNumberPageSegmentImpl* segmentImpl = (XProcNumberPageSegmentImpl*)segments;
@@ -427,7 +437,7 @@ Js::JavascriptNumber** ::XProcNumberPageSegmentManager::RegisterSegments(XProcNu
         temp = (XProcNumberPageSegmentImpl*)temp->nextSegment;
     }
 
-    Js::JavascriptNumber** numbers = RecyclerNewArray(this->recycler, Js::JavascriptNumber*, totalCount);
+    Field(Js::JavascriptNumber*)* numbers = RecyclerNewArray(this->recycler, Field(Js::JavascriptNumber*), totalCount);
 
     temp = segmentImpl;
     int count = 0;
@@ -475,7 +485,7 @@ XProcNumberPageSegment * XProcNumberPageSegmentManager::GetFreeSegment(Memory::A
             // remove from the list
             XProcNumberPageSegment * seg = (XProcNumberPageSegment *)AnewStructZ(alloc, XProcNumberPageSegmentImpl);
             temp->nextSegment = 0;
-            memcpy(seg, temp, sizeof(XProcNumberPageSegment));            
+            memcpy(seg, temp, sizeof(XProcNumberPageSegment));
             midl_user_free(temp);
             return seg;
         }
@@ -501,7 +511,7 @@ void XProcNumberPageSegmentManager::Integrate()
                 auto leafPageAllocator = recycler->GetRecyclerLeafPageAllocator();
                 DListBase<PageSegment> segmentList;
                 temp->pageSegment = (intptr_t)leafPageAllocator->AllocPageSegment(segmentList, leafPageAllocator,
-                    (void*)temp->pageAddress, XProcNumberPageSegmentImpl::PageCount, temp->committedEnd / AutoSystemInfo::PageSize);
+                    (void*)temp->pageAddress, XProcNumberPageSegmentImpl::PageCount, temp->committedEnd / AutoSystemInfo::PageSize, false);
 
                 if (temp->pageSegment)
                 {
@@ -525,7 +535,7 @@ void XProcNumberPageSegmentManager::Integrate()
                     }
                 }
 
-                if ((uintptr_t)temp->allocEndAddress + XProcNumberPageSegmentImpl::sizeCat 
+                if ((uintptr_t)temp->allocEndAddress + XProcNumberPageSegmentImpl::sizeCat
                     > (uintptr_t)temp->pageAddress + XProcNumberPageSegmentImpl::PageCount*AutoSystemInfo::PageSize)
                 {
                     *prev = (XProcNumberPageSegmentImpl*)temp->nextSegment;

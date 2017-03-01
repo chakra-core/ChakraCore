@@ -86,12 +86,12 @@ WasmModuleGenerator::GenerateModule()
 
     BVStatic<bSectLimit + 1> visitedSections;
 
-    for (SectionCode sectionCode = (SectionCode)(bSectInvalid + 1); sectionCode < bSectLimit ; sectionCode = (SectionCode)(sectionCode + 1))
+    for (uint8 sectionCode = bSectCustom + 1; sectionCode < bSectLimit ; ++sectionCode)
     {
         SectionCode precedent = SectionInfo::All[sectionCode].precedent;
         if (GetReader()->ReadNextSection((SectionCode)sectionCode))
         {
-            if (precedent != bSectInvalid && !visitedSections.Test(precedent))
+            if (precedent != bSectLimit && !visitedSections.Test(precedent))
             {
                 throw WasmCompilationException(_u("%s section missing before %s"),
                                                SectionInfo::All[precedent].name,
@@ -805,7 +805,7 @@ WasmBytecodeGenerator::EmitCall()
     {
     case wbCall:
         funcNum = GetReader()->m_currentNode.call.num;
-        calleeSignature = m_module->GetFunctionSignature(funcNum);
+        calleeSignature = m_module->GetWasmFunctionInfo(funcNum)->GetSignature();
         break;
     case wbCallIndirect:
         indirectIndexInfo = PopEvalStack();
@@ -1149,35 +1149,13 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
         throw WasmCompilationException(_u("Index expression must be of type I32"));
     }
 
-    Js::RegSlot addrReg = GetRegisterSpace(WasmTypes::I64)->AcquireTmpRegister();
-
-    if (offset != 0)
-    {
-        Js::RegSlot offsetReg = GetRegisterSpace(WasmTypes::I64)->AcquireTmpRegister();
-        m_writer.AsmLong1Const1(Js::OpCodeAsmJs::Ld_LongConst, offsetReg, offset);
-
-        Js::RegSlot indexReg = GetRegisterSpace(WasmTypes::I64)->AcquireTmpRegister();
-        m_writer.AsmReg2(Js::OpCodeAsmJs::Conv_UTL, indexReg, exprInfo.location);
-
-        GetRegisterSpace(WasmTypes::I64)->ReleaseTmpRegister(indexReg);
-        GetRegisterSpace(WasmTypes::I64)->ReleaseTmpRegister(offsetReg);
-
-        m_writer.AsmReg3(Js::OpCodeAsmJs::Add_Long, addrReg, indexReg, offsetReg);
-    }
-    else
-    {
-        m_writer.AsmReg2(Js::OpCodeAsmJs::Conv_UTL, addrReg, exprInfo.location);
-    }
-
-    GetRegisterSpace(WasmTypes::I64)->ReleaseTmpRegister(addrReg);
-
     if (isStore) // Stores
     {
         if (rhsInfo.type != type)
         {
             throw WasmCompilationException(_u("Invalid type for store op"));
         }
-        m_writer.AsmTypedArr(Js::OpCodeAsmJs::StArrWasm, rhsInfo.location, addrReg, viewType);
+        m_writer.WasmMemAccess(Js::OpCodeAsmJs::StArrWasm, rhsInfo.location, exprInfo.location, offset, viewType);
         ReleaseLocation(&rhsInfo);
         ReleaseLocation(&exprInfo);
 
@@ -1186,7 +1164,7 @@ WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* s
 
     ReleaseLocation(&exprInfo);
     Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();   
-    m_writer.AsmTypedArr(Js::OpCodeAsmJs::LdArrWasm, resultReg, addrReg, viewType);
+    m_writer.WasmMemAccess(Js::OpCodeAsmJs::LdArrWasm, resultReg, exprInfo.location, offset, viewType);
 
     EmitInfo yieldInfo;
     if (!isStore)
@@ -1484,7 +1462,7 @@ WasmBytecodeGenerator::PopEvalStack()
     EmitInfo info = m_evalStack.Pop();
     if (info.type == WasmTypes::Limit)
     {
-        throw WasmCompilationException(_u("Missing operand"));
+        throw WasmCompilationException(_u("Reached end of stack"));
     }
     return info;
 }

@@ -24,7 +24,7 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->constCount = functionBody->GetConstantCount();
     if (functionBody->GetConstantCount() > 0)
     {
-        jitBody->constTable = (intptr_t *)functionBody->GetConstTable();
+        jitBody->constTable = (intptr_t *)PointerValue(functionBody->GetConstTable());
         if (!functionBody->GetIsAsmJsFunction())
         {
             jitBody->constTableContent = AnewStructZ(arena, ConstTableContentIDL);
@@ -138,11 +138,6 @@ JITTimeFunctionBody::InitializeJITFunctionData(
     jitBody->paramScopeSlotArraySize = functionBody->paramScopeSlotArraySize;
     jitBody->attributes = functionBody->GetAttributes();
     jitBody->isInstInlineCacheCount = functionBody->GetIsInstInlineCacheCount();
-
-    if (functionBody->GetUtf8SourceInfo()->GetCbLength() > UINT_MAX)
-    {
-        Js::Throw::OutOfMemory();
-    }
 
     jitBody->byteCodeCount = functionBody->GetByteCodeCount();
     jitBody->byteCodeInLoopCount = functionBody->GetByteCodeInLoopCount();

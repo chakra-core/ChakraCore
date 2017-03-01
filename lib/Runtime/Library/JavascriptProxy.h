@@ -16,8 +16,8 @@ namespace Js
         DEFINE_VTABLE_CTOR(JavascriptProxy, DynamicObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptProxy);
     private:
-        RecyclableObject* handler;
-        RecyclableObject* target;
+        Field(RecyclableObject*) handler;
+        Field(RecyclableObject*) target;
 
         void RevokeObject();
     public:
@@ -111,7 +111,7 @@ namespace Js
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL IsExtensible() override;
         virtual BOOL PreventExtensions() override;
-        virtual void ThrowIfCannotDefineProperty(PropertyId propId, PropertyDescriptor descriptor) { }
+        virtual void ThrowIfCannotDefineProperty(PropertyId propId, const PropertyDescriptor& descriptor) { }
         virtual void ThrowIfCannotGetOwnPropertyDescriptor(PropertyId propId) {};
         virtual BOOL GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor) override;
         virtual BOOL Seal() override;
@@ -156,7 +156,7 @@ namespace Js
 
         void PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord);
 
-        JavascriptArray* PropertyKeysTrap(KeysTrapKind keysTrapKind);
+        JavascriptArray* PropertyKeysTrap(KeysTrapKind keysTrapKind, ScriptContext* requestContext);
 
         template <class Fn>
         void GetOwnPropertyKeysHelper(ScriptContext* scriptContext, RecyclableObject* trapResultArray, uint32 len, JavascriptArray* trapResult,

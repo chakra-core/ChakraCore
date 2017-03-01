@@ -144,7 +144,7 @@ namespace Js
                 {
                 case Js::TypeIds_GlobalObject:
                     {
-                        Js::GlobalObject* srcGlobalObject = static_cast<Js::GlobalObject*>(thisVar);
+                        Js::GlobalObject* srcGlobalObject = (Js::GlobalObject*)(void*)(thisVar);
                         directHostObject = srcGlobalObject->GetDirectHostObject();
                         // For jsrt, direct host object can be null. If thats the case don't change it.
                         if (directHostObject != nullptr)
@@ -344,12 +344,8 @@ namespace Js
 
     void JavascriptExternalFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        Js::JavascriptString* nameString = this->GetDisplayName();
-
-        TTD::TTString* snapName = alloc.SlabAllocateStruct<TTD::TTString>();
-        alloc.CopyStringIntoWLength(nameString->GetSz(), nameString->GetLength(), *snapName);
-
-        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::TTString*, TTD::NSSnapObjects::SnapObjectType::SnapExternalFunctionObject>(objData, snapName);
+        TTD::TTDVar fnameId = TTD_CONVERT_JSVAR_TO_TTDVAR(this->functionNameId);
+        TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::TTDVar, TTD::NSSnapObjects::SnapObjectType::SnapExternalFunctionObject>(objData, fnameId);
     }
 
     Var JavascriptExternalFunction::HandleRecordReplayExternalFunction_Thunk(Js::JavascriptFunction* function, CallInfo& callInfo, Arguments& args, ScriptContext* scriptContext)

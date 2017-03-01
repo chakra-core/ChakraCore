@@ -30,4 +30,6 @@ function testFunction()
 
     telemetryLog(`${x}`, true);
     telemetryLog(`${len}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

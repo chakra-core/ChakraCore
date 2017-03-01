@@ -496,6 +496,14 @@ var controllerObj = (function () {
         return objectDisplay;
     }
 
+    var stringToArrayBuffer = function stringToArrayBuffer(str) {
+        var arr = [];
+        for (var i = 0, len = str.length; i < len; i++) {
+            arr[i] = str.charCodeAt(i) & 0xFF;
+        }
+        return new Uint8Array(arr).buffer;
+    }
+
     function GetChild(obj, level) {
         function GetChildrens(obj, level) {
             var retArray = {};
@@ -719,6 +727,10 @@ var controllerObj = (function () {
                     if (typeof expandLevel != "number" || expandLevel <= 0) {
                         expandLevel = 0;
                     }
+
+                    if (WScript && typeof expression == 'string' && WScript.forceDebugArrayBuffer)
+                        expression = stringToArrayBuffer(expression);
+
                     var evalResult = callHostFunction(hostDebugObject.JsDiagEvaluate, _currentStackFrameIndex, expression);
                     var evaluateOutput = {};
                     evaluateOutput[evalResult.name] = GetChild(evalResult, expandLevel - 1);

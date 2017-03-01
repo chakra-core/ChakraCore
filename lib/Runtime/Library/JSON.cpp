@@ -14,8 +14,8 @@ using namespace Js;
 
 namespace JSON
 {
-    Js::FunctionInfo EntryInfo::Stringify(JSON::Stringify, Js::FunctionInfo::ErrorOnNew);
-    Js::FunctionInfo EntryInfo::Parse(JSON::Parse, Js::FunctionInfo::ErrorOnNew);
+    Js::FunctionInfo EntryInfo::Stringify(FORCE_NO_WRITE_BARRIER_TAG(JSON::Stringify), Js::FunctionInfo::ErrorOnNew);
+    Js::FunctionInfo EntryInfo::Parse(FORCE_NO_WRITE_BARRIER_TAG(JSON::Parse), Js::FunctionInfo::ErrorOnNew);
 
     Js::Var Parse(Js::JavascriptString* input, Js::RecyclableObject* reviver, Js::ScriptContext* scriptContext);
 
@@ -603,7 +603,7 @@ namespace JSON
             if (JavascriptProxy::Is(object))
             {
                 JavascriptProxy* proxyObject = JavascriptProxy::FromVar(object);
-                JavascriptArray* proxyResult = proxyObject->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind);
+                JavascriptArray* proxyResult = proxyObject->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, this->scriptContext);
 
                 // filter enumerable keys
                 uint32 resultLength = proxyResult->GetLength();
@@ -774,10 +774,13 @@ namespace JSON
         }
         else
         {
-            // we are some kind of array (including proxy to array and es5array). in all cases the length should have been 32bit and we
-            // shouldn't have overflow here.
-            length = (uint32)Js::JavascriptConversion::ToLength(Js::JavascriptOperators::OP_GetLength(value, scriptContext), scriptContext);
-            Assert(Js::JavascriptConversion::ToLength(Js::JavascriptOperators::OP_GetLength(value, scriptContext), scriptContext) == length);
+            int64 len = Js::JavascriptConversion::ToLength(Js::JavascriptOperators::OP_GetLength(value, scriptContext), scriptContext);
+            if (MaxCharCount <= len)
+            {
+                // If the length goes more than MaxCharCount we will eventually fail (as OOM) in ConcatStringBuilder - so failing early.
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
+            }
+            length = (uint32)len;
         }
 
         Js::JavascriptString* result;

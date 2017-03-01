@@ -145,9 +145,9 @@ namespace TTD
         int64 m_ftime;  //-1 indicates any ftime is OK
         int64 m_ltime;  //-1 indicates any ltime is OK
 
-        //The document
-        char16* m_sourceFile; //temp use until we make docid stable
-        uint32 m_docid;
+        //The function body that this location refers to or the top-level body it is contained in (for resolving the body accross snapshot/ inflates)
+        Js::FunctionBody* m_functionBody;
+        uint64 m_topLevelBodyId;
 
         //The position of the function in the document
         uint32 m_functionLine;
@@ -156,6 +156,9 @@ namespace TTD
         //The location in the fnuction
         uint32 m_line;
         uint32 m_column;
+
+        //Update the specific body of this location from the root body and line number info
+        bool UpdatePostInflateFunctionBody_Helper(Js::FunctionBody* rootBody);
 
     public:
         TTDebuggerSourceLocation();
@@ -181,9 +184,13 @@ namespace TTD
         int64 GetFunctionTime() const;
         int64 GetLoopTime() const;
 
-        Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx) const;
+        Js::FunctionBody* LoadFunctionBodyIfPossible(Js::ScriptContext* ctx);
+
         uint32 GetLine() const;
         uint32 GetColumn() const;
+
+        //Ensure that we have the top level body counter set and clear the (soon to be invalid) FunctionBody* ptr
+        void EnsureTopLevelBodyCtrPreInflate();
 
         //return true if this comes strictly before other in execution order
         bool IsBefore(const TTDebuggerSourceLocation& other) const;
@@ -209,6 +216,7 @@ namespace TTD
             SymbolCreationTag,
             ExternalCbRegisterCall,
             ExternalCallTag,
+            ExplicitLogWriteTag,
             //JsRTActionTag is a marker for where the JsRT actions begin
             JsRTActionTag,
 
@@ -502,14 +510,9 @@ namespace TTD
 
         //////////////////
 
-
         //A struct containing additional information on the external call
         struct ExternalCallEventLogEntry_AdditionalInfo
         {
-            //The wall clock times for this action
-            double BeginTime;
-            double EndTime;
-
             //The last event time that is nested in this external call
             int64 LastNestedEventTime;
 
@@ -544,12 +547,17 @@ namespace TTD
 
         int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
 
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool checkExceptions, double beginTime, UnlinkableSlabAllocator& alloc);
-        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent, double endTime);
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool checkExceptions, UnlinkableSlabAllocator& alloc);
+        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent);
 
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
         void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void ExternalCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        //////////////////
+
+        void ExplicitLogWriteEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
+        void ExplicitLogWriteEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
     }
 }
 

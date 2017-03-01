@@ -11,7 +11,7 @@ namespace Js
     class AsmJsCodeGenerator
     {
         ScriptContext* mScriptContext;
-        CodeGenAllocators* mForegroundAllocators;
+        InProcCodeGenAllocators* mForegroundAllocators;
         PageAllocator * mPageAllocator;
         AsmJsEncoder    mEncoder;
     public:

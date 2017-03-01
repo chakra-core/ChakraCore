@@ -31,11 +31,11 @@ bool Parser::IsES6DestructuringEnabled() const
 
 struct DeferredFunctionStub
 {
-    RestorePoint restorePoint;
-    uint fncFlags;
-    uint nestedCount;
-    DeferredFunctionStub *deferredStubs;
-    charcount_t ichMin;
+    Field(RestorePoint) restorePoint;
+    Field(uint) fncFlags;
+    Field(uint) nestedCount;
+    Field(DeferredFunctionStub *) deferredStubs;
+    Field(charcount_t) ichMin;
 };
 
 struct StmtNest
@@ -55,6 +55,12 @@ struct StmtNest
         };
     };
     StmtNest *pstmtOuter;           // Enclosing statement.
+
+    OpCode GetNop() const 
+    { 
+        AnalysisAssert(isDeferred || pnodeStmt != nullptr);
+        return isDeferred ? op : pnodeStmt->nop; 
+    }
 };
 
 struct BlockInfoStack
@@ -110,6 +116,7 @@ Parser::Parser(Js::ScriptContext* scriptContext, BOOL strictMode, PageAllocator 
     m_errorCallback = nullptr;
     m_uncertainStructure = FALSE;
     m_reparsingLambdaParams = false;
+    m_inFIB = false;
     currBackgroundParseItem = nullptr;
     backgroundParseItems = nullptr;
     fastScannedRegExpNodes = nullptr;
@@ -329,7 +336,7 @@ HRESULT Parser::ParseSourceInternal(
     AssertMem(parseTree);
     AssertPsz(pszSrc);
     AssertMemN(pse);
-   
+
     if (this->IsBackgroundParser())
     {
         PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
@@ -362,8 +369,7 @@ HRESULT Parser::ParseSourceInternal(
 
         if ((grfscr & fscrEvalCode) != 0)
         {
-            // This makes the parser to believe when eval() is called, it accept any super access in global scope.
-            this->m_parsingSuperRestrictionState = Parser::ParsingSuperRestrictionState_SuperCallAndPropertyAllowed;
+            this->m_parsingSuperRestrictionState = Parser::ParsingSuperRestrictionState_SuperPropertyAllowed;
         }
 
         if ((grfscr & fscrIsModuleCode) != 0)
@@ -445,7 +451,7 @@ HRESULT Parser::ParseSourceInternal(
     m_scriptContext->ProfileEnd(Js::ParsePhase);
 #endif
     JS_ETW_INTERNAL(EventWriteJSCRIPT_PARSE_STOP(m_scriptContext, 0));
-    
+
     return hr;
 }
 
@@ -723,7 +729,7 @@ ParseNodePtr Parser::CreateNodeT(charcount_t ichMin,charcount_t ichLim)
     return pnode;
 }
 
-ParseNodePtr Parser::CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl)
+ParseNodePtr Parser::CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl, bool *isRedecl)
 {
     ParseNodePtr pnode = CreateNode(nop);
 
@@ -731,51 +737,38 @@ ParseNodePtr Parser::CreateDeclNode(OpCode nop, IdentPtr pid, SymbolType symbolT
 
     if (symbolType != STUnknown)
     {
-        pnode->sxVar.sym = AddDeclForPid(pnode, pid, symbolType, errorOnRedecl);
+        pnode->sxVar.sym = AddDeclForPid(pnode, pid, symbolType, errorOnRedecl, isRedecl);
     }
 
     return pnode;
 }
 
-Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl)
+Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbolType, bool errorOnRedecl, bool *isRedecl)
 {
     Assert(pnode->IsVarLetOrConst());
 
     PidRefStack *refForUse = nullptr, *refForDecl = nullptr;
+
+    if (isRedecl)
+    {
+        *isRedecl = false;
+    }
 
     BlockInfoStack *blockInfo;
     bool fBlockScope = false;
     if (pnode->nop != knopVarDecl || symbolType == STFunction)
     {
         Assert(m_pstmtCur);
-        if (m_pstmtCur->isDeferred)
+        if (m_pstmtCur->GetNop() != knopBlock)
         {
-            // Deferred parsing: there's no pnodeStmt node, only an opcode on the Stmt struct.
-            if (m_pstmtCur->op != knopBlock)
-            {
-                // Let/const declared in a bare statement context.
-                Error(ERRDeclOutOfStmt);
-            }
-
-            if (m_pstmtCur->pstmtOuter && m_pstmtCur->pstmtOuter->op == knopSwitch)
-            {
-                // Let/const declared inside a switch block (requiring conservative use-before-decl check).
-                pnode->sxVar.isSwitchStmtDecl = true;
-            }
+            // Let/const declared in a bare statement context.
+            Error(ERRDeclOutOfStmt);
         }
-        else
-        {
-            if (m_pstmtCur->pnodeStmt->nop != knopBlock)
-            {
-                // Let/const declared in a bare statement context.
-                Error(ERRDeclOutOfStmt);
-            }
 
-            if (m_pstmtCur->pstmtOuter && m_pstmtCur->pstmtOuter->pnodeStmt->nop == knopSwitch)
-            {
-                // Let/const declared inside a switch block (requiring conservative use-before-decl check).
-                pnode->sxVar.isSwitchStmtDecl = true;
-            }
+        if (m_pstmtCur->pstmtOuter && m_pstmtCur->pstmtOuter->GetNop() == knopSwitch)
+        {
+            // Let/const declared inside a switch block (requiring conservative use-before-decl check).
+            pnode->sxVar.isSwitchStmtDecl = true;
         }
 
         fBlockScope = pnode->nop != knopVarDecl ||
@@ -821,7 +814,7 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         Assert(this->m_reparsingLambdaParams);
         refForDecl->funcId = GetCurrentFunctionNode()->sxFnc.functionId;
     }
-    
+
     if (blockInfo == GetCurrentBlockInfo())
     {
         refForUse = refForDecl;
@@ -834,6 +827,10 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
     Symbol *sym = refForDecl->GetSym();
     if (sym != nullptr)
     {
+        if (isRedecl)
+        {
+            *isRedecl = true;
+        }
         // Multiple declarations in the same scope. 3 possibilities: error, existing one wins, new one wins.
         switch (pnode->nop)
         {
@@ -902,6 +899,10 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         {
             Assert(blockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Regular);
             scope = Anew(&m_nodeAllocator, Scope, &m_nodeAllocator, ScopeType_Block);
+            if (this->IsCurBlockInLoop())
+            {
+                scope->SetIsBlockInLoop();
+            }
             blockInfo->pnodeBlock->sxBlock.scope = scope;
             PushScope(scope);
         }
@@ -960,6 +961,23 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         refForDecl->SetSym(sym);
     }
     return sym;
+}
+
+bool Parser::IsCurBlockInLoop() const
+{
+    for (StmtNest *stmt = this->m_pstmtCur; stmt != nullptr; stmt = stmt->pstmtOuter)
+    {
+        OpCode nop = stmt->GetNop();
+        if (ParseNode::Grfnop(nop) & fnopContinue)
+        {
+            return true;
+        }
+        if (nop == knopFncDecl)
+        {
+            return false;
+        }
+    }
+    return false;
 }
 
 void Parser::RestorePidRefForSym(Symbol *sym)
@@ -1370,9 +1388,9 @@ ParseNodePtr Parser::CreateModuleImportDeclNode(IdentPtr localName)
     return declNode;
 }
 
-ParseNodePtr Parser::CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject, ParseNodePtr pnodeFnc, bool errorOnRedecl)
+ParseNodePtr Parser::CreateVarDeclNode(IdentPtr pid, SymbolType symbolType, bool autoArgumentsObject, ParseNodePtr pnodeFnc, bool errorOnRedecl, bool *isRedecl)
 {
-    ParseNodePtr pnode = CreateDeclNode(knopVarDecl, pid, symbolType, errorOnRedecl);
+    ParseNodePtr pnode = CreateDeclNode(knopVarDecl, pid, symbolType, errorOnRedecl, isRedecl);
 
     // Append the variable to the end of the current variable list.
     AssertMem(m_ppnodeVar);
@@ -1628,7 +1646,7 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
                 pid = pnode->sxVar.pid;
                 if (backgroundPidRef)
                 {
-                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Cch(), pid->Hash(), nullptr, nullptr
+                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Psz() + pid->Cch(), pid->Cch(), pid->Hash(), nullptr, nullptr
 #if PROFILE_DICTIONARY
                                                                   , depth
 #endif
@@ -1644,7 +1662,7 @@ void Parser::BindPidRefs(BlockInfoStack *blockInfo, uint maxBlockId)
                 pid = pnode->sxPid.pid;
                 if (backgroundPidRef)
                 {
-                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Cch(), pid->Hash(), nullptr, nullptr
+                    pid = this->m_pscan->m_phtbl->FindExistingPid(pid->Psz(), pid->Psz() + pid->Cch(), pid->Cch(), pid->Hash(), nullptr, nullptr
 #if PROFILE_DICTIONARY
                                                                   , depth
 #endif
@@ -1677,6 +1695,9 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
         sym->SetIsModuleExportStorage(true);
     }
 
+    bool hasFuncAssignment = sym->GetHasFuncAssignment();
+    bool doesEscape = false;
+
     for (ref = pid->GetTopRef(); ref && ref->GetScopeId() >= blockId; ref = nextRef)
     {
         // Fix up sym* on PID ref.
@@ -1696,7 +1717,7 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             sym->PromoteAssignmentState();
             if (m_currentNodeFunc && sym->GetIsFormal())
             {
-                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);                
+                m_currentNodeFunc->sxFnc.SetHasAnyWriteToFormals(true);
             }
         }
 
@@ -1706,19 +1727,29 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
             sym->SetHasNonLocalReference();
         }
 
-        if (ref->GetScopeId() == blockId)
+        if (ref->IsFuncAssignment())
         {
-            break;
+            hasFuncAssignment = true;
         }
 
-        if (m_currentNodeFunc && ref->isEscape && sym->GetSymbolType() == STFunction)
+        if (ref->IsEscape())
         {
-            if (m_sourceContextInfo ? 
+            doesEscape = true;
+        }
+
+        if (m_currentNodeFunc && doesEscape && hasFuncAssignment)
+        {
+            if (m_sourceContextInfo ?
                     !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
                     !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
             {
                 m_currentNodeFunc->sxFnc.SetNestedFuncEscapes();
             }
+        }
+
+        if (ref->GetScopeId() == blockId)
+        {
+            break;
         }
     }
 }
@@ -1752,7 +1783,7 @@ void Parser::MarkEscapingRef(ParseNodePtr pnode, IdentToken *pToken)
 
 void Parser::SetNestedFuncEscapes() const
 {
-    if (m_sourceContextInfo ? 
+    if (m_sourceContextInfo ?
             !PHASE_OFF_RAW(Js::DisableStackFuncOnDeferredEscapePhase, m_sourceContextInfo->sourceContextId, m_currentNodeFunc->sxFnc.functionId) :
             !PHASE_OFF1(Js::DisableStackFuncOnDeferredEscapePhase))
     {
@@ -1889,6 +1920,7 @@ void Parser::CaptureState(ParserState *state)
     state->m_ppnodeScopeSave = m_ppnodeScope;
     state->m_ppnodeExprScopeSave = m_ppnodeExprScope;
     state->m_pCurrentAstSizeSave = m_pCurrentAstSize;
+    state->m_nextBlockId = m_nextBlockId;
 
     Assert(state->m_ppnodeScopeSave == nullptr || *state->m_ppnodeScopeSave == nullptr);
     Assert(state->m_ppnodeExprScopeSave == nullptr || *state->m_ppnodeExprScopeSave == nullptr);
@@ -1907,6 +1939,7 @@ void Parser::RestoreStateFrom(ParserState *state)
     m_funcInArrayDepth = state->m_funcInArrayDepthSave;
     *m_pnestedCount = state->m_nestedCountSave;
     m_pCurrentAstSize = state->m_pCurrentAstSizeSave;
+    m_nextBlockId = state->m_nextBlockId;
 
     if (state->m_ppnodeScopeSave != nullptr)
     {
@@ -2111,7 +2144,7 @@ ParseNodePtr Parser::ParseMetaProperty(tokens metaParentKeyword, charcount_t ich
     return nullptr;
 }
 
-template<bool buildAST> 
+template<bool buildAST>
 void Parser::ParseNamedImportOrExportClause(ModuleImportOrExportEntryList* importOrExportEntryList, bool isExportClause)
 {
     Assert(m_token.tk == tkLCurly);
@@ -2598,7 +2631,7 @@ LFunction:
             // Rewind back to the function token and let the helper handle the parsing.
             m_pscan->SeekTo(parsedFunction);
             pnode = ParseFncDecl<buildAST>(flags);
-            
+
             if (buildAST)
             {
                 AnalysisAssert(pnode != nullptr);
@@ -2826,7 +2859,8 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     bool fUnaryOrParen /*= false*/,
     _Out_opt_ BOOL* pfCanAssign /*= nullptr*/,
     _Inout_opt_ BOOL* pfLikelyPattern /*= nullptr*/,
-    _Out_opt_ bool* pfIsDotOrIndex /*= nullptr*/)
+    _Out_opt_ bool* pfIsDotOrIndex /*= nullptr*/,
+    _Inout_opt_ charcount_t *plastRParen /*= nullptr*/)
 {
     ParseNodePtr pnode = nullptr;
     charcount_t ichMin = 0;
@@ -2951,8 +2985,13 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
         GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
 
         this->m_parenDepth++;
-        pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true);
+        pnode = ParseExpr<buildAST>(koplNo, &fCanAssign, TRUE, FALSE, nullptr, nullptr /*nameLength*/, nullptr  /*pShortNameOffset*/, &term, true, nullptr, plastRParen);
         this->m_parenDepth--;
+
+        if (buildAST && plastRParen)
+        {
+            *plastRParen = m_pscan->IchLimTok();
+        }
 
         ChkCurTok(tkRParen, ERRnoRparen);
 
@@ -3228,7 +3267,7 @@ LFunction :
         break;
     }
 
-    pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, &fCanAssign, &term, pfIsDotOrIndex);
+    pnode = ParsePostfixOperators<buildAST>(pnode, fAllowCall, fInNew, isAsyncExpr, &fCanAssign, &term, pfIsDotOrIndex);
 
     // Pass back identifier if requested
     if (pToken && term.tk == tkID)
@@ -3323,6 +3362,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
     ParseNodePtr pnode,
     BOOL fAllowCall,
     BOOL fInNew,
+    BOOL isAsyncExpr,
     BOOL *pfCanAssign,
     _Inout_ IdentToken* pToken,
     _Out_opt_ bool* pfIsDotOrIndex /*= nullptr */)
@@ -3362,6 +3402,7 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         pToken->tk = tkNone; // This is no longer an identifier
                     }
                     fInNew = FALSE;
+                    ChkCurTok(tkRParen, ERRnoRparen);
                 }
                 else
                 {
@@ -3369,6 +3410,17 @@ ParseNodePtr Parser::ParsePostfixOperators(
                     if (!fAllowCall)
                     {
                         return pnode;
+                    }
+
+                    uint saveNextBlockId = m_nextBlockId;
+                    uint saveCurrBlockId = GetCurrentBlock()->sxBlock.blockId;
+
+                    if (isAsyncExpr)
+                    {
+                        // Advance the block ID here in case this parenthetical expression turns out to be a lambda parameter list.
+                        // That way the pid ref stacks will be created in their correct final form, and we can simply fix
+                        // up function ID's.
+                        GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
                     }
 
                     ParseNodePtr pnodeArgs = ParseArgList<buildAST>(&callOfConstants, &spreadArgCount, &count);
@@ -3405,8 +3457,20 @@ ParseNodePtr Parser::ParsePostfixOperators(
                         }
                         pToken->tk = tkNone; // This is no longer an identifier
                     }
+
+                    ChkCurTok(tkRParen, ERRnoRparen);
+
+                    if (isAsyncExpr)
+                    {
+                        GetCurrentBlock()->sxBlock.blockId = saveCurrBlockId;
+                        if (m_token.tk == tkDArrow)
+                        {
+                            // We're going to rewind and reinterpret the expression as a parameter list.
+                            // Put back the original next-block-ID so the existing pid ref stacks will be correct.
+                            m_nextBlockId = saveNextBlockId;
+                        }
+                    }
                 }
-                ChkCurTok(tkRParen, ERRnoRparen);
                 if (pfCanAssign)
                 {
                     *pfCanAssign = FALSE;
@@ -4516,10 +4580,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
 
     if (fDeclaration)
     {
-        AnalysisAssert(m_pstmtCur->isDeferred || m_pstmtCur->pnodeStmt != nullptr);
-        noStmtContext =
-            (m_pstmtCur->isDeferred && m_pstmtCur->op != knopBlock) ||
-            (!m_pstmtCur->isDeferred && m_pstmtCur->pnodeStmt->nop != knopBlock);
+        noStmtContext = m_pstmtCur->GetNop() != knopBlock;
 
         if (noStmtContext)
         {
@@ -4688,8 +4749,13 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
             // level and we accomplish this by having each block scoped function
             // declaration assign to both the block scoped "let" binding, as well
             // as the function scoped "var" binding.
-            ParseNodePtr vardecl = CreateVarDeclNode(pnodeFnc->sxFnc.pnodeName->sxVar.pid, STVariable, false, nullptr, false);
+            bool isRedecl = false;
+            ParseNodePtr vardecl = CreateVarDeclNode(pnodeFnc->sxFnc.pnodeName->sxVar.pid, STVariable, false, nullptr, false, &isRedecl);
             vardecl->sxVar.isBlockScopeFncDeclVar = true;
+            if (isRedecl)
+            {
+                vardecl->sxVar.sym->SetHasBlockFncVarRedecl();
+            }
         }
     }
 
@@ -4796,7 +4862,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
     RestorePoint beginNameHint;
     m_pscan->Capture(&beginNameHint);
 
-    ParseNodePtr pnodeFncExprScope = nullptr;    
+    ParseNodePtr pnodeFncExprScope = nullptr;
     Scope *fncExprScope = nullptr;
     if (!fDeclaration)
     {
@@ -4882,7 +4948,6 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
     uint uDeferSave = m_grfscr & fscrDeferFncParse;
     if ((!fDeclaration && m_ppnodeExprScope) ||
-        fFunctionInBlock ||
         isEnclosedInParamScope ||
         (flags & (fFncNoName | fFncLambda)))
     {
@@ -4896,6 +4961,8 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         m_grfscr &= ~fscrDeferFncParse;
     }
 
+    bool saveInFIB = this->m_inFIB;
+    this->m_inFIB = fFunctionInBlock || this->m_inFIB;
 
     bool isTopLevelDeferredFunc = false;
 
@@ -4914,14 +4981,12 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
         BOOL isDeferredFnc = IsDeferredFnc();
         AnalysisAssert(isDeferredFnc || pnodeFnc);
+        // These are the conditions that prohibit upfront deferral *and* redeferral.
         isTopLevelDeferredFunc =
             (!fLambda
              && pnodeFnc
              && DeferredParse(pnodeFnc->sxFnc.functionId)
              && (!pnodeFnc->sxFnc.IsNested() || CONFIG_FLAG(DeferNested))
-            // Don't defer if this is a function expression not contained in a statement or other expression.
-            // Assume it will be called as part of this expression.
-             && (!isLikelyIIFE || !topLevelStmt || PHASE_FORCE_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->sxFnc.functionId))
              && !m_InAsmMode
             // Don't defer a module function wrapper because we need to do export resolution at parse time
              && !fModule
@@ -4930,9 +4995,25 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         if (pnodeFnc)
         {
             pnodeFnc->sxFnc.SetCanBeDeferred(isTopLevelDeferredFunc && PnFnc::CanBeRedeferred(pnodeFnc->sxFnc.fncFlags));
+            pnodeFnc->sxFnc.SetFIBPreventsDeferral(false);
         }
-        isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc;
 
+        if (this->m_inFIB)
+        {
+            if (isTopLevelDeferredFunc)
+            {
+                // Block-scoping is the only non-heuristic reason for not deferring this function up front.
+                // So on creating the full FunctionBody at byte code gen time, verify that there is no
+                // block-scoped content visible to this function so it can remain a redeferral candidate.
+                pnodeFnc->sxFnc.SetFIBPreventsDeferral(true);
+            }
+            isTopLevelDeferredFunc = false;
+        }        
+
+        // These are heuristic conditions that prohibit upfront deferral but not redeferral.
+        isTopLevelDeferredFunc = isTopLevelDeferredFunc && !isDeferredFnc && 
+            (!isLikelyIIFE || !topLevelStmt || PHASE_FORCE_RAW(Js::DeferParsePhase, m_sourceContextInfo->sourceContextId, pnodeFnc->sxFnc.functionId));
+;
         if (!fLambda &&
             !isDeferredFnc &&
             !isLikelyIIFE &&
@@ -5368,7 +5449,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
     {
         m_grfscr |= uDeferSave;
     }
-
+    m_inFIB = saveInFIB;
 
     m_pscan->SetYieldIsKeyword(fPreviousYieldIsKeyword);
     m_pscan->SetAwaitIsKeyword(fPreviousAwaitIsKeyword);
@@ -6030,7 +6111,9 @@ bool Parser::ParseFncNames(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, u
         {
             // Multiple names. Turn the source into an IdentPtr.
             pnodeFnc->sxFnc.pid = m_phtbl->PidHashNameLen(
-                m_pscan->PchBase() + ichMinNames, ichLimNames - ichMinNames);
+                m_pscan->PchBase() + ichMinNames, 
+                m_pscan->AdjustedLast(),
+                ichLimNames - ichMinNames);
         }
     }
 
@@ -6555,7 +6638,11 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
         pnodeLambda->sxFnc.pnodeScopes->sxBlock.pnodeStmt = pnodeRet;
     }
 
-    ParseNodePtr result = ParseExpr<buildAST>(koplAsg, nullptr, TRUE, FALSE, nullptr);
+    IdentToken token;
+    charcount_t lastRParen = 0;
+    ParseNodePtr result = ParseExpr<buildAST>(koplAsg, nullptr, TRUE, FALSE, nullptr, nullptr, nullptr, &token, false, nullptr, &lastRParen);
+
+    this->MarkEscapingRef(result, &token);
 
     if (buildAST)
     {
@@ -6569,7 +6656,7 @@ void Parser::ParseExpressionLambdaBody(ParseNodePtr pnodeLambda)
         pnodeRet->sxStmt.grfnop = 0;
         pnodeRet->sxStmt.pnodeOuter = nullptr;
 
-        pnodeLambda->ichLim = pnodeRet->ichLim;
+        pnodeLambda->ichLim = max(pnodeRet->ichLim, lastRParen);
         pnodeLambda->sxFnc.cbLim = m_pscan->IecpLimTokPrevious();
         pnodeLambda->sxFnc.pnodeScopes->ichLim = pnodeRet->ichLim;
 
@@ -7971,7 +8058,8 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     uint32 *pShortNameOffset,
     _Inout_opt_ IdentToken* pToken,
     bool fUnaryOrParen,
-    _Inout_opt_ bool* pfLikelyPattern)
+    _Inout_opt_ bool* pfLikelyPattern,
+    _Inout_opt_ charcount_t *plastRParen)
 {
     Assert(pToken == nullptr || pToken->tk == tkNone); // Must be empty initially
     int opl;
@@ -8184,7 +8272,7 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
     {
         ichMin = m_pscan->IchMinTok();
         BOOL fLikelyPattern = FALSE;
-        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr, &fIsDotOrIndex);
+        pnode = ParseTerm<buildAST>(TRUE, pNameHint, &hintLength, &hintOffset, &term, fUnaryOrParen, &fCanAssign, IsES6DestructuringEnabled() ? &fLikelyPattern : nullptr, &fIsDotOrIndex, plastRParen);
         if (pfLikelyPattern != nullptr)
         {
             *pfLikelyPattern = !!fLikelyPattern;
@@ -8199,7 +8287,17 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
         {
             m_pscan->SeekTo(termStart);
 
+            // As we are reparsing from the beginning of the destructured literal we need to reset the Block IDs as well to make sure the Block IDs
+            // on the pidref stack match.
+            int saveNextBlockId = m_nextBlockId;
+            m_nextBlockId = parserState.m_nextBlockId;
+
             ParseDestructuredLiteralWithScopeSave(tkLCurly, false/*isDecl*/, false /*topLevel*/, DIC_ShouldNotParseInitializer);
+
+            // Restore the Block ID at the end of the reparsing so it matches the one at the end of the first pass. We need to do this 
+            // because we don't parse initializers during reparse and there may be additional blocks (e.g. a class declaration)
+            // in the initializers that will cause the next Block ID at the end of the reparsing to be different.
+            m_nextBlockId = saveNextBlockId;
 
             if (buildAST)
             {
@@ -8429,6 +8527,11 @@ ParseNodePtr Parser::ParseExpr(int oplMin,
                     if (pnode->sxBin.pnode1->nop == knopDot)
                     {
                         pnode->sxBin.pnode2->sxFnc.isNameIdentifierRef  = false;
+                    }
+                    else if (pnode->sxBin.pnode1->nop == knopName)
+                    {
+                        PidRefStack *pidRef = pnode->sxBin.pnode1->sxPid.pid->GetTopRef();
+                        pidRef->isFuncAssignment = true;
                     }
                 }
                 if (pnode->sxBin.pnode2->nop == knopClassDecl && pnode->sxBin.pnode1->nop == knopDot)
@@ -8780,7 +8883,7 @@ ParseNodePtr Parser::ParseVariableDeclaration(
                         pnodeInit->sxFnc.hint = pNameHint;
                         pnodeInit->sxFnc.hintLength = nameHintLength;
                         pnodeInit->sxFnc.hintOffset = nameHintOffset;
-
+                        pnodeThis->sxVar.pid->GetTopRef()->isFuncAssignment = true;
                     }
                     else
                     {
@@ -9389,7 +9492,7 @@ LFunctionStatement:
         default:
             {
 LDefaultTokenFor:
-               RestorePoint exprStart;
+                RestorePoint exprStart;
                 tokens beforeToken = tok;
                 m_pscan->Capture(&exprStart);
                 if (IsPossiblePatternStart())
@@ -9476,7 +9579,7 @@ LDefaultTokenFor:
                 pnode->sxForInOrForOf.pnodeLval = pnodeT;
                 pnode->sxForInOrForOf.pnodeObj = pnodeObj;
                 pnode->ichLim = ichLim;
-                
+
                 TrackAssignment<true>(pnodeT, nullptr);
             }
             PushStmt<buildAST>(&stmt, pnode, isForOf ? knopForOf : knopForIn, pnodeLabel, pLabelIdList);
@@ -9986,21 +10089,14 @@ LGetJumpStatement:
                     }
                     else
                     {
-                        if (pstmt->isDeferred)
+                        if (ParseNode::Grfnop(pstmt->GetNop()) & fnop)
                         {
-                            if (ParseNode::Grfnop(pstmt->op) & fnop)
+                            if (!pstmt->isDeferred)
                             {
-                                goto LNeedTerminator;
-                            }
-                        }
-                        else
-                        {
-                            AnalysisAssert(pstmt->pnodeStmt);
-                            if (pstmt->pnodeStmt->Grfnop() & fnop)
-                            {
+                                AnalysisAssert(pstmt->pnodeStmt);
                                 pstmt->pnodeStmt->sxStmt.grfnop |= fnop;
-                                goto LNeedTerminator;
                             }
+                            goto LNeedTerminator;
                         }
                     }
                 }
@@ -10110,9 +10206,79 @@ LGetJumpStatement:
 LDefaultToken:
     default:
     {
-        // An expression statement or a label.
-        IdentToken tokInner;
-        pnode = ParseExpr<buildAST>(koplNo, nullptr, TRUE, FALSE, nullptr, nullptr /*hintLength*/, nullptr /*hintOffset*/, &tokInner);
+        // First check for a label via lookahead. If not found,
+        // rewind and reparse as expression statement.
+        if (m_token.tk == tkLParen || m_token.tk == tkID)
+        {
+            RestorePoint idStart;
+            m_pscan->Capture(&idStart);
+
+            // Support legacy behavior of allowing parentheses around label identifiers.
+            // Require balanced parentheses for correcting parsing.  Note unbalanced cases
+            // take care of themselves correctly by resulting in rewind and parsing as
+            // an expression statement.
+            // REVIEW[ianhall]: Can this legacy functionality be removed? Chrome does not support this parsing behavior.
+            uint parenCount = 0;
+            while (m_token.tk == tkLParen)
+            {
+                parenCount += 1;
+                m_pscan->Scan();
+            }
+
+            if (m_token.tk == tkID)
+            {
+                IdentToken tokInner;
+                tokInner.tk = tkID;
+                tokInner.ichMin = m_pscan->IchMinTok();
+                tokInner.ichLim = m_pscan->IchLimTok();
+                tokInner.pid = m_token.GetIdentifier(m_phtbl);
+
+                m_pscan->Scan();
+
+                while (parenCount > 0 && m_token.tk == tkRParen)
+                {
+                    parenCount -= 1;
+                    m_pscan->Scan();
+                }
+
+                if (parenCount == 0 && m_token.tk == tkColon)
+                {
+                    // We have a label.
+                    // TODO[ianhall]: Refactor to eliminate separate code paths for buildAST and !buildAST
+                    if (buildAST)
+                    {
+                        // See if the label is already defined.
+                        if (nullptr != PnodeLabel(tokInner.pid, pnodeLabel))
+                        {
+                            Error(ERRbadLabel);
+                        }
+                        pnodeT = CreateNodeWithScanner<knopLabel>();
+                        pnodeT->sxLabel.pid = tokInner.pid;
+                        pnodeT->sxLabel.pnodeNext = pnodeLabel;
+                        pnodeLabel = pnodeT;
+                    }
+                    else
+                    {
+                        // See if the label is already defined.
+                        if (PnodeLabelNoAST(&tokInner, pLabelIdList))
+                        {
+                            Error(ERRbadLabel);
+                        }
+                        LabelId* pLabelId = CreateLabelId(&tokInner);
+                        pLabelId->next = pLabelIdList;
+                        pLabelIdList = pLabelId;
+                    }
+                    m_pscan->Scan();
+                    goto LRestart;
+                }
+            }
+
+            // No label, rewind back to the tkID and parse an expression
+            m_pscan->SeekTo(idStart);
+        }
+
+        // Must be an expression statement.
+        pnode = ParseExpr<buildAST>();
 
         if (m_hasDeferredShorthandInitError)
         {
@@ -10121,45 +10287,10 @@ LDefaultToken:
 
         if (buildAST)
         {
-            // Check for a label.
-            if (tkColon == m_token.tk &&
-                nullptr != pnode && knopName == pnode->nop)
-            {
-                // We have a label. See if it is already defined.
-                if (nullptr != PnodeLabel(pnode->sxPid.pid, pnodeLabel))
-                {
-                    Error(ERRbadLabel);
-                    // No recovery is necessary since this is a semantic, not structural, error
-                }
-                pnodeT = CreateNodeWithScanner<knopLabel>();
-                pnodeT->sxLabel.pid = pnode->sxPid.pid;
-                pnodeT->sxLabel.pnodeNext = pnodeLabel;
-                pnodeLabel = pnodeT;
-                m_pscan->Scan();
-                goto LRestart;
-            }
-
             expressionStmt = true;
 
             AnalysisAssert(pnode);
             pnode->isUsed = false;
-        }
-        else
-        {
-            // Check for a label.
-            if (tkColon == m_token.tk && tokInner.tk == tkID)
-            {
-                tokInner.pid = m_pscan->PidAt(tokInner.ichMin, tokInner.ichLim);
-                if (PnodeLabelNoAST(&tokInner, pLabelIdList))
-                {
-                    Error(ERRbadLabel);
-                }
-                LabelId* pLabelId = CreateLabelId(&tokInner);
-                pLabelId->next = pLabelIdList;
-                pLabelIdList = pLabelId;
-                m_pscan->Scan();
-                goto LRestart;
-            }
         }
     }
 
@@ -11111,7 +11242,7 @@ bool Parser::CheckAsmjsModeStrPid(IdentPtr pid)
     {
         // We would like to report this to debugger - they may choose to disable debugging.
         // TODO : localization of the string?
-        m_scriptContext->RaiseMessageToDebugger(DEIT_ASMJS_IN_DEBUGGING, _u("AsmJs initialization error - AsmJs disabled due to script debugger"), !m_sourceContextInfo->IsDynamic() ? m_sourceContextInfo->url : nullptr);
+        m_scriptContext->RaiseMessageToDebugger(DEIT_ASMJS_IN_DEBUGGING, _u("AsmJs initialization error - AsmJs disabled due to script debugger"), m_sourceContextInfo && !m_sourceContextInfo->IsDynamic() ? m_sourceContextInfo->url : nullptr);
         return false;
     }
 
@@ -11850,10 +11981,26 @@ ParseNodePtr Parser::ParseSuper(ParseNodePtr pnode, bool fAllowCall)
     }
     else if (this->m_parsingSuperRestrictionState == ParsingSuperRestrictionState_SuperPropertyAllowed)
     {
-        // Cannot call super within a class member
         if (m_token.tk == tkLParen)
         {
-            Error(ERRInvalidSuper);
+            if ((this->m_grfscr & fscrEval) == fscrNil)
+            {
+                // Cannot call super within a class member
+                Error(ERRInvalidSuper);
+            }
+            else
+            {
+                Js::JavascriptFunction * caller = nullptr;
+                if (Js::JavascriptStackWalker::GetCaller(&caller, m_scriptContext))
+                {
+                    Js::FunctionBody * callerBody = caller->GetFunctionBody();
+                    Assert(callerBody);
+                    if (!callerBody->GetFunctionInfo()->GetAllowDirectSuper())
+                    {
+                        Error(ERRInvalidSuper);
+                    }
+                }
+            }
         }
     }
     else
@@ -12184,10 +12331,21 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     int parenCount = 0;
     bool seenRest = false;
 
-    while (m_token.tk == tkLParen)
+    // Save the Block ID prior to the increments, so we can restore it back.
+    int originalCurrentBlockId = GetCurrentBlock()->sxBlock.blockId;
+
+    // Eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early.
+    if (!isDecl)
     {
-        m_pscan->Scan();
-        ++parenCount;
+        while (m_token.tk == tkLParen)
+        {
+            m_pscan->Scan();
+            ++parenCount;
+
+            // Match the block increment we do upon entering parenthetical expressions
+            // so that the block ID's will match on reparsing of parameters.
+            GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
+        }
     }
 
     if (m_token.tk == tkEllipsis)
@@ -12198,13 +12356,21 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         seenRest = true;
         m_pscan->Scan();
 
-        while (m_token.tk == tkLParen)
+        // Eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early.
+        if (!isDecl)
         {
-            m_pscan->Scan();
-            ++parenCount;
+            while (m_token.tk == tkLParen)
+            {
+                m_pscan->Scan();
+                ++parenCount;
+
+                // Match the block increment we do upon entering parenthetical expressions
+                // so that the block ID's will match on reparsing of parameters.
+                GetCurrentBlock()->sxBlock.blockId = m_nextBlockId++;
+            }
         }
 
-        if (m_token.tk != tkID && m_token.tk != tkSUPER && m_token.tk != tkLCurly && m_token.tk != tkLBrack)
+        if (m_token.tk != tkID && m_token.tk != tkTHIS && m_token.tk != tkSUPER && m_token.tk != tkLCurly && m_token.tk != tkLBrack)
         {
             if (isDecl)
             {
@@ -12226,10 +12392,10 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
             BOOL fCanAssign;
             IdentToken token;
             // Look for postfix operator
-            pnodeElem = ParsePostfixOperators<buildAST>(pnodeElem, TRUE, FALSE, &fCanAssign, &token);
+            pnodeElem = ParsePostfixOperators<buildAST>(pnodeElem, TRUE, FALSE, FALSE, &fCanAssign, &token);
         }
     }
-    else if (m_token.tk == tkSUPER || m_token.tk == tkID)
+    else if (m_token.tk == tkSUPER || m_token.tk == tkID || m_token.tk == tkTHIS)
     {
         if (isDecl)
         {
@@ -12280,10 +12446,14 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
     }
 
     // Swallow RParens before a default expression, if any.
-    while (m_token.tk == tkRParen)
+    // We eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early. We need to do the same for right parentheses.
+    if (!isDecl)
     {
-        m_pscan->Scan();
-        --parenCount;
+        while (m_token.tk == tkRParen)
+        {
+            m_pscan->Scan();
+            --parenCount;
+        }
     }
 
     if (hasSeenRest != nullptr)
@@ -12321,10 +12491,17 @@ ParseNodePtr Parser::ParseDestructuredVarDecl(tokens declarationType, bool isDec
         pnodeElem = pnodeRest;
     }
 
-    while (m_token.tk == tkRParen)
+    // We eat the left parentheses only when its not a declaration. This will make sure we throw syntax errors early. We need to do the same for right parentheses.
+    if (!isDecl)
     {
-        m_pscan->Scan();
-        --parenCount;
+        while (m_token.tk == tkRParen)
+        {
+            m_pscan->Scan();
+            --parenCount;
+        }
+
+        // Restore the Block ID of the current block after the parsing of destructured variable declarations and initializers.
+        GetCurrentBlock()->sxBlock.blockId = originalCurrentBlockId;
     }
 
     if (!(m_token.tk == tkComma || m_token.tk == tkRBrack || m_token.tk == tkRCurly))
@@ -13378,7 +13555,14 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNode *pnodeFnc, Recycler *recy
             pnodeChild = pnodeChild->sxBlock.pnodeNext;
             continue;
         }
-        Assert(i < nestedCount);
+        AssertOrFailFast(i < nestedCount);
+
+        if (pnodeChild->sxFnc.pnodeBody != nullptr)
+        {
+            // Anomalous case of a non-deferred function nested within a deferred one.
+            // Work around by discarding the stub tree.
+            return nullptr;
+        }
 
         if (pnodeChild->sxFnc.IsGeneratedDefault())
         {
@@ -13387,7 +13571,7 @@ DeferredFunctionStub * BuildDeferredStubTree(ParseNode *pnodeFnc, Recycler *recy
             continue;
         }
 
-        __analysis_assume(i < nestedCount);
+        AnalysisAssertOrFailFast(i < nestedCount);
 
         deferredStubs[i].fncFlags = pnodeChild->sxFnc.fncFlags;
         deferredStubs[i].nestedCount = pnodeChild->sxFnc.nestedCount;

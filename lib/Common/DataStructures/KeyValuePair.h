@@ -23,6 +23,10 @@ namespace JsUtil
             this->value = value;
         }
 
+        KeyValuePair(const KeyValuePair& other)
+            : key(other.key), value(other.value)
+        {}
+
         TKey Key() { return key; }
         const TKey Key() const { return key; }
 

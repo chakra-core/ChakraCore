@@ -16,9 +16,9 @@ namespace Js
     class JavascriptMapIterator : public DynamicObject
     {
     private:
-        JavascriptMap*                          m_map;
-        JavascriptMap::MapDataList::Iterator    m_mapIterator;
-        JavascriptMapIteratorKind               m_kind;
+        Field(JavascriptMap*)                          m_map;
+        Field(JavascriptMap::MapDataList::Iterator)    m_mapIterator;
+        Field(JavascriptMapIteratorKind)               m_kind;
 
     protected:
         DEFINE_VTABLE_CTOR(JavascriptMapIterator, DynamicObject);

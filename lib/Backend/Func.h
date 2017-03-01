@@ -103,7 +103,7 @@ public:
         JITOutputIDL * outputData,
         Js::EntryPointInfo* epInfo,
         const FunctionJITRuntimeInfo *const runtimeInfo,
-        JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+        JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, void * const codeGenAllocators,
 #if !FLOATVAR
         CodeGenNumberAllocator * numberAllocator,
 #endif
@@ -112,10 +112,22 @@ public:
         Js::RegSlot returnValueRegSlot = Js::Constants::NoRegister, const bool isInlinedConstructor = false,
         Js::ProfileId callSiteIdInParentFunc = UINT16_MAX, bool isGetterSetter = false);
 public:
-    CodeGenAllocators * const GetCodeGenAllocators()
+    void * const GetCodeGenAllocators()
     {
         return this->GetTopFunc()->m_codeGenAllocators;
     }
+    InProcCodeGenAllocators * const GetInProcCodeGenAllocators()
+    {
+        Assert(!JITManager::GetJITManager()->IsJITServer());
+        return reinterpret_cast<InProcCodeGenAllocators*>(this->GetTopFunc()->m_codeGenAllocators);
+    }
+#if ENABLE_OOP_NATIVE_CODEGEN
+    OOPCodeGenAllocators * const GetOOPCodeGenAllocators()
+    {
+        Assert(JITManager::GetJITManager()->IsJITServer());
+        return reinterpret_cast<OOPCodeGenAllocators*>(this->GetTopFunc()->m_codeGenAllocators);
+    }
+#endif
     NativeCodeData::Allocator *GetNativeCodeDataAllocator()
     {
         return &this->GetTopFunc()->nativeCodeDataAllocator;
@@ -130,10 +142,6 @@ public:
         return this->numberAllocator;
     }
 #endif
-    EmitBufferManager<CriticalSection> *GetEmitBufferManager() const
-    {
-        return &this->m_codeGenAllocators->emitBufferManager;
-    }
 
 #if !FLOATVAR
     XProcNumberPageSegmentImpl* GetXProcNumberAllocator()
@@ -221,6 +229,12 @@ public:
         return (ThreadContext*)m_threadContextInfo;
     }
 
+    ServerThreadContext* GetOOPThreadContext() const
+    {
+        Assert(IsOOPJIT());
+        return (ServerThreadContext*)m_threadContextInfo;
+    }
+
     ThreadContextInfo * GetThreadContextInfo() const
     {
         return m_threadContextInfo;
@@ -264,7 +278,7 @@ public:
         JITOutputIDL * outputData,
         Js::EntryPointInfo* epInfo, // for in-proc jit only
         const FunctionJITRuntimeInfo *const runtimeInfo,
-        JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+        JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, void * const codeGenAllocators,
 #if !FLOATVAR
         CodeGenNumberAllocator * numberAllocator,
 #endif
@@ -981,7 +995,7 @@ private:
 #endif
     int32           m_localVarSlotsOffset;
     int32           m_hasLocalVarChangedOffset;    // Offset on stack of 1 byte which indicates if any local var has changed.
-    CodeGenAllocators *const m_codeGenAllocators;
+    void * const    m_codeGenAllocators;
     YieldOffsetResumeLabelList * m_yieldOffsetResumeLabelList;
     StackArgWithFormalsTracker * stackArgWithFormalsTracker;
     JITObjTypeSpecFldInfo ** m_globalObjTypeSpecFldInfoArray;
@@ -995,6 +1009,10 @@ private:
     bool canHoistConstantAddressLoad;
 #if DBG
     VtableHashMap * vtableMap;
+#endif
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+public:
+    Lowerer* m_lowerer;
 #endif
 };
 

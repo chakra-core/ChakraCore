@@ -54,7 +54,7 @@ WebAssemblyMemory::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
 
     if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
     {
-        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("WebAssembly.Memory"));
+        JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject, _u("memoryDescriptor"));
     }
     DynamicObject * memoryDescriptor = JavascriptObject::FromVar(args[1]);
 
@@ -133,15 +133,32 @@ WebAssemblyMemory::GrowInternal(uint32 deltaPages)
     const uint32 oldPageCount = oldBytes / WebAssembly::PageSize;
     Assert(oldBytes % WebAssembly::PageSize == 0);
 
+    if (deltaBytes == 0)
+    {
+        return (int32)oldPageCount;
+    }
+
     const uint32 newPageCount = oldPageCount + deltaPages;
     if (newPageCount > m_maximum)
     {
         return -1;
     }
 
-    ArrayBuffer * newBuffer = m_buffer->TransferInternal(newBytes);
-    m_buffer = newBuffer;
+    ArrayBuffer * newBuffer = nullptr;
+    JavascriptExceptionObject* caughtExceptionObject = nullptr;
+    try
+    {
+        newBuffer = m_buffer->TransferInternal(newBytes);
+    }
+    catch (const JavascriptException& err)
+    {
+        caughtExceptionObject = err.GetAndClear();
+        Assert(caughtExceptionObject && caughtExceptionObject == ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject());
+        return -1;
+    }
 
+    Assert(newBuffer);
+    m_buffer = newBuffer;
     CompileAssert(ArrayBuffer::MaxArrayBufferLength / WebAssembly::PageSize <= INT32_MAX);
     return (int32)oldPageCount;
 }
@@ -176,7 +193,17 @@ WebAssemblyMemory *
 WebAssemblyMemory::CreateMemoryObject(uint32 initial, uint32 maximum, ScriptContext * scriptContext)
 {
     uint32 byteLength = UInt32Math::Mul<WebAssembly::PageSize>(initial);
-    ArrayBuffer * buffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+    ArrayBuffer* buffer;
+#if ENABLE_FAST_ARRAYBUFFER
+    if (CONFIG_FLAG(WasmFastArray))
+    {
+        buffer = scriptContext->GetLibrary()->CreateWebAssemblyArrayBuffer(byteLength);
+    }
+    else
+#endif
+    {
+        buffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
+    }
     return RecyclerNewFinalized(scriptContext->GetRecycler(), WebAssemblyMemory, buffer, initial, maximum, scriptContext->GetLibrary()->GetWebAssemblyMemoryType());
 }
 

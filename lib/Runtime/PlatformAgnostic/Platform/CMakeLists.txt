@@ -6,14 +6,15 @@ set(PL_SOURCE_FILES
   Linux/HiResTimer.cpp
   Linux/NumbersUtility.cpp
   Linux/Thread.cpp
+  Common/Trace.cpp
   )
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
 set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
   Linux/DateTime.cpp
   Linux/SystemInfo.cpp
   )
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+elseif(CC_TARGET_OS_OSX)
 set(PL_SOURCE_FILES ${PL_SOURCE_FILES}
   Unix/AssemblyCommon.cpp
   Unix/DateTime.cpp

@@ -136,6 +136,7 @@ namespace TTD
         {
             return nullptr;
         }
+        else
         {
             return this->m_oldObjectMap.LookupKnownItem(objid);
         }
@@ -151,6 +152,11 @@ namespace TTD
         {
             return this->m_oldFunctionBodyMap.LookupKnownItem(fbodyid);
         }
+    }
+
+    Js::RecyclableObject* InflateMap::FindReusableObject_WellKnowReuseCheck(TTD_PTR_ID objid) const
+    {
+        return this->m_objectMap.LookupKnownItem(objid);
     }
 
     Js::DynamicTypeHandler* InflateMap::LookupHandler(TTD_PTR_ID handlerId) const
@@ -391,6 +397,7 @@ namespace TTD
         this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseInfo;
         this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseResolveOrRejectFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseResolveOrRejectFunctionInfo;
         this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseReactionTaskFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseReactionTaskFunctionInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseAllResolveElementFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseAllResolveElementFunctionInfo;
     }
 
     TTDCompareMap::~TTDCompareMap()

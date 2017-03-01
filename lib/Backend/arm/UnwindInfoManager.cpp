@@ -96,7 +96,7 @@ DWORD UnwindInfoManager::GetPDataCount(DWORD length)
     return count;
 }
 
-void UnwindInfoManager::EmitUnwindInfo(JITOutput *jitOutput, EmitBufferAllocation * alloc)
+void UnwindInfoManager::EmitUnwindInfo(JITOutput *jitOutput, CustomHeap::Allocation * alloc)
 {
     this->jitOutput = jitOutput;
     this->alloc = alloc;
@@ -493,7 +493,7 @@ void UnwindInfoManager::EncodeExpandedUnwindData()
 
     size_t totalSize = (xDataDwordCount * 4);
 
-    size_t xdataFinal = this->jitOutput->RecordUnwindInfo(this->xdataTotal, xData, totalSize, this->alloc->allocation->xdata.address, this->processHandle);
+    size_t xdataFinal = this->jitOutput->RecordUnwindInfo(this->xdataTotal, xData, totalSize, this->alloc->xdata.address);
     // for OOP JIT, we will set UnwindData to be the offset to it. we can fix it up on other side
     DWORD unwindField = (DWORD)(JITManager::GetJITManager()->IsOOPJITEnabled() ? this->xdataTotal : xdataFinal);
     this->xdataTotal += totalSize;
@@ -541,7 +541,7 @@ DWORD UnwindInfoManager::EmitXdataStackAlloc(BYTE xData[], DWORD byte, DWORD sta
 
 void UnwindInfoManager::RecordPdataEntry(DWORD beginAddress, DWORD unwindData)
 {
-    RUNTIME_FUNCTION *function = this->alloc->allocation->xdata.GetPdataArray() + this->pdataIndex;
+    RUNTIME_FUNCTION *function = this->alloc->xdata.GetPdataArray() + this->pdataIndex;
     function->BeginAddress = beginAddress;
     function->UnwindData = unwindData;
 }

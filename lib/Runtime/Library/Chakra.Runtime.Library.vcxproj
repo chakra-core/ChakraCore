@@ -40,6 +40,7 @@
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>RuntimeLibraryPch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -161,6 +162,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyMemory.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyModule.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyTable.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyEnvironment.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
@@ -290,6 +292,7 @@
     <ClInclude Include="UriHelper.h" />
     <ClInclude Include="WasmLibrary.h" />
     <ClInclude Include="WebAssembly.h" />
+    <ClInclude Include="WebAssemblyEnvironment.h" />
     <ClInclude Include="WebAssemblyInstance.h" />
     <ClInclude Include="WebAssemblyMemory.h" />
     <ClInclude Include="WebAssemblyModule.h" />

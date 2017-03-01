@@ -29,17 +29,32 @@ public:
 
     void SetCodeAddress(intptr_t addr);
 
-    EmitBufferAllocation * RecordNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize);
-    void RecordNativeCode(Func *func, const BYTE* sourceBuffer, EmitBufferAllocation * alloc);
+    EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> * RecordInProcNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize);
+#if ENABLE_OOP_NATIVE_CODEGEN
+    EmitBufferAllocation<SectionAllocWrapper, PreReservedSectionAllocWrapper> * RecordOOPNativeCodeSize(Func *func, uint32 bytes, ushort pdataCount, ushort xdataSize);
+#endif
+    void RecordNativeCode(const BYTE* sourceBuffer, BYTE* localCodeAddress);
     void RecordInlineeFrameOffsetsInfo(unsigned int offsetsArrayOffset, unsigned int offsetsArrayCount);
 
-#if _M_X64 || _M_ARM
-    size_t RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr, HANDLE processHandle);
+#if _M_X64
+    void RecordUnwindInfo(BYTE *unwindInfo, size_t size, BYTE * xdataAddr, BYTE* localXdataAddr);
+#elif _M_ARM
+    size_t RecordUnwindInfo(size_t offset, BYTE *unwindInfo, size_t size, BYTE * xdataAddr);
 #endif
 
-    void FinalizeNativeCode(Func *func, EmitBufferAllocation * alloc);
+    void FinalizeNativeCode();
 
     JITOutputIDL * GetOutputData();
 private:
+    template <typename TEmitBufferAllocation, typename TCodeGenAllocators>
+    void RecordNativeCode(const BYTE* sourceBuffer, BYTE* localCodeAddress, TEmitBufferAllocation allocation, TCodeGenAllocators codeGenAllocators);
+    union
+    {
+        EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> * m_inProcAlloc;
+#if ENABLE_OOP_NATIVE_CODEGEN
+        EmitBufferAllocation<SectionAllocWrapper, PreReservedSectionAllocWrapper> * m_oopAlloc;
+#endif
+    };
+    Func * m_func;
     JITOutputIDL * m_outputData;
 };

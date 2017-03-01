@@ -8,6 +8,7 @@ namespace Js
 {
     class IteratorObjectEnumerator sealed : public JavascriptEnumerator
     {
+        typedef SListBase<Js::PropertyRecord const *, Memory::Recycler> PropertyRecordList;
     public:
         static IteratorObjectEnumerator * Create(ScriptContext* scriptContext, Var iteratorObject);
         virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
@@ -18,9 +19,10 @@ namespace Js
 
     private:
         void EnsureIterator();
-        RecyclableObject* iteratorObject;
-        Var value;
-        BOOL done;
+        Field(RecyclableObject*) iteratorObject;
+        Field(Var) value;
+        Field(BOOL) done;
+        Field(PropertyRecordList) propertyRecords;
     };
 
 }

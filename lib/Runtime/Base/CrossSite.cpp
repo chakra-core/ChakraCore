@@ -289,14 +289,14 @@ namespace Js
 
     bool CrossSite::IsThunk(JavascriptMethod thunk)
     {
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
         return (thunk == CrossSite::ProfileThunk || thunk == CrossSite::DefaultThunk);
 #else
         return (thunk == CrossSite::DefaultThunk);
 #endif
     }
 
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
     Var CrossSite::ProfileThunk(RecyclableObject* callable, CallInfo callInfo, ...)
     {
         JavascriptFunction* function = JavascriptFunction::FromVar(callable);
@@ -313,6 +313,21 @@ namespace Js
 
         TTD_XSITE_LOG(callable->GetScriptContext(), "DefaultOrProfileThunk", callable);
 
+#ifdef ENABLE_WASM
+        if (AsmJsScriptFunction::IsWasmScriptFunction(function))
+        {
+            AsmJsFunctionInfo* asmInfo = funcInfo->GetFunctionBody()->GetAsmJsFunctionInfo();
+            Assert(asmInfo);
+            if (asmInfo->IsWasmDeferredParse())
+            {
+                entryPoint = WasmLibrary::WasmDeferredParseExternalThunk;
+            }
+            else
+            {
+                entryPoint = Js::AsmJsExternalEntryPoint;
+            }
+        } else
+#endif
         if (funcInfo->HasBody())
         {
 #if ENABLE_DEBUG_CONFIG_OPTIONS

@@ -1554,7 +1554,7 @@ CommonNumber:
             return (int32)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     uint32 JavascriptConversion::F32TOU32(float src, ScriptContext * ctx)
@@ -1566,7 +1566,7 @@ CommonNumber:
             return (uint32)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     int32 JavascriptConversion::F64TOI32(double src, ScriptContext * ctx)
@@ -1578,7 +1578,7 @@ CommonNumber:
             return (int32)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     uint32 JavascriptConversion::F64TOU32(double src, ScriptContext * ctx)
@@ -1590,7 +1590,7 @@ CommonNumber:
             return (uint32)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     int64 JavascriptConversion::F32TOI64(float src, ScriptContext * ctx)
@@ -1602,7 +1602,7 @@ CommonNumber:
             return (int64)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     uint64 JavascriptConversion::F32TOU64(float src, ScriptContext * ctx)
@@ -1614,7 +1614,7 @@ CommonNumber:
             return (uint64)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     int64 JavascriptConversion::F64TOI64(double src, ScriptContext * ctx)
@@ -1626,7 +1626,7 @@ CommonNumber:
             return (int64)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     uint64 JavascriptConversion::F64TOU64(double src, ScriptContext * ctx)
@@ -1638,7 +1638,7 @@ CommonNumber:
             return (uint64)src;
         }
 
-        JavascriptError::ThrowError(ctx, VBSERR_Overflow);
+        JavascriptError::ThrowWebAssemblyRuntimeError(ctx, VBSERR_Overflow);
     }
 
     int64 JavascriptConversion::ToLength(Var aValue, ScriptContext* scriptContext)

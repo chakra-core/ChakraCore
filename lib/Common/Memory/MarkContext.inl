@@ -45,7 +45,7 @@ bool MarkContext::AddTrackedObject(FinalizableObject * obj)
 }
 #endif
 
-template <bool parallel, bool interior>
+template <bool parallel, bool interior, bool doSpecialMark>
 inline
 void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 {
@@ -74,9 +74,23 @@ void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 #else
         void * candidate = *(static_cast<void * volatile *>(obj));
 #endif
-        Mark<parallel, interior>(candidate, parentObject);
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
+        {
+            this->parentRef = obj;
+        }
+#endif
+        Mark<parallel, interior, doSpecialMark>(candidate, parentObject);
         obj++;
     } while (obj != objEnd);
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
+    {
+        this->parentRef = nullptr;
+    }
+#endif
 
 #if DBG_DUMP
     if (recycler->forceTraceMark || recycler->GetRecyclerFlagsTable().Trace.IsEnabled(Js::MarkPhase))
@@ -94,13 +108,13 @@ void MarkContext::ScanObject(void ** obj, size_t byteCount)
 {
     BEGIN_DUMP_OBJECT(recycler, obj);
 
-    ScanMemory<parallel, interior>(obj, byteCount);
+    ScanMemory<parallel, interior, false>(obj, byteCount);
 
     END_DUMP_OBJECT(recycler);
 }
 
 
-template <bool parallel, bool interior>
+template <bool parallel, bool interior, bool doSpecialMark>
 inline
 void MarkContext::Mark(void * candidate, void * parentReference)
 {
@@ -132,7 +146,7 @@ void MarkContext::Mark(void * candidate, void * parentReference)
         return;
     }
 
-    recycler->heapBlockMap.Mark<parallel>(candidate, this);
+    recycler->heapBlockMap.Mark<parallel, doSpecialMark>(candidate, this);
 
 #ifdef RECYCLER_MARK_TRACK
     this->OnObjectMarked(candidate, parentReference);
@@ -210,4 +224,3 @@ void MarkContext::ProcessMark()
 
     Assert(markStack.IsEmpty());
 }
-

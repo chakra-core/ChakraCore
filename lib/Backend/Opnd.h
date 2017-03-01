@@ -95,6 +95,7 @@ enum AddrOpndKind : BYTE {
     AddrOpndKindForInCache,
     AddrOpndKindForInCacheType,
     AddrOpndKindForInCacheData,
+    AddrOpndKindWriteBarrierCardTable,
 };
 
 ///---------------------------------------------------------------------------
@@ -144,6 +145,15 @@ protected:
         isDeleted = false;
 #endif
         m_kind = oldOpnd.m_kind;
+
+        // We will set isDeleted bit on a freed Opnd, this should not overlap with the next field of BVSparseNode
+        // because BVSparseNode* are used to maintain freelist of memory of BVSparseNode size
+#if DBG
+        typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
+        CompileAssert(
+            offsetof(Opnd, isDeleted) > offsetof(BVSparseNode, next) + sizeof(BVSparseNode*) ||
+            offsetof(Opnd, isDeleted) < offsetof(BVSparseNode, next) + sizeof(BVSparseNode*));
+#endif
     }
 public:
     bool                IsConstOpnd() const;
@@ -181,6 +191,7 @@ public:
     Opnd *              CloneDef(Func *func);
     Opnd *              CloneUse(Func *func);
     StackSym *          GetStackSym() const;
+    Sym *               GetSym() const;
     Opnd *              UseWithNewType(IRType type, Func * func);
 
     bool                IsEqual(Opnd *opnd);
@@ -300,13 +311,6 @@ public:
     bool                isDeleted;
 #endif
 };
-
-// We will set isDeleted bit on a freed Opnd, this should not overlap with the next field of BVSparseNode
-// because BVSparseNode* are used to maintain freelist of memory of BVSparseNode size
-#if DBG
-CompileAssert(offsetof(Opnd, isDeleted) > offsetof(BVSparseNode, next) + sizeof(BVSparseNode*) ||
-              offsetof(Opnd, isDeleted) < offsetof(BVSparseNode, next) + sizeof(BVSparseNode*));
-#endif
 
 ///---------------------------------------------------------------------------
 ///

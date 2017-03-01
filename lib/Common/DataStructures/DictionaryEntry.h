@@ -218,10 +218,8 @@ namespace JsUtil
     public:
         void Clear()
         {
-            // Assuming nullable keys for now
-            // This might change in future
-            this->key = NULL;
-            this->value = NULL;
+            this->key = TKey();
+            this->value = TValue();
         }
 
         static bool SupportsCleanup()

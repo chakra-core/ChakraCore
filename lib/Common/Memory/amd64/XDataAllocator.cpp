@@ -16,16 +16,12 @@ CompileAssert(false)
 #include "PlatformAgnostic/AssemblyCommon.h" // __REGISTER_FRAME / __DEREGISTER_FRAME
 #endif
 
-XDataAllocator::XDataAllocator(BYTE* address, uint size, HANDLE processHandle) :
+XDataAllocator::XDataAllocator(BYTE* address, uint size) :
     freeList(nullptr),
     start(address),
     current(address),
-    size(size),
-    processHandle(processHandle)
+    size(size)
 {
-#ifdef RECYCLER_MEMORY_VERIFY
-    ChakraMemSet(this->start, Recycler::VerifyMemFill, this->size, this->processHandle);
-#endif
     Assert(size > 0);
     Assert(address != nullptr);
 }
@@ -38,6 +34,7 @@ bool XDataAllocator::Initialize(void* segmentStart, void* segmentEnd)
 
 XDataAllocator::~XDataAllocator()
 {
+    current = nullptr;
     ClearFreeList();
 }
 
@@ -46,7 +43,8 @@ void XDataAllocator::Delete()
     HeapDelete(this);
 }
 
-bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation)
+bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize,
+    ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation)
 {
     XDataAllocation* xdata = static_cast<XDataAllocation*>(allocation);
     Assert(start != nullptr);
@@ -96,10 +94,6 @@ void XDataAllocator::Release(const SecondaryAllocation& allocation)
         freed->next = this->freeList;
         this->freeList = freed;
     }
-
-#ifdef RECYCLER_MEMORY_VERIFY
-    ChakraMemSet(allocation.address, Recycler::VerifyMemFill, XDATA_SIZE, this->processHandle);
-#endif
 }
 
 bool XDataAllocator::CanAllocate()
@@ -115,6 +109,7 @@ void XDataAllocator::ClearFreeList()
     {
         entry = next;
         next = entry->next;
+        entry->address = nullptr;
         HeapDelete(entry);
     }
     this->freeList = NULL;

@@ -2343,9 +2343,15 @@ IR::Instr* LowererMD::ChangeToHelperCallMem(IR::Instr * instr,  IR::JnHelperMeth
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::ChangeToAssign(IR::Instr * instr)
+LowererMD::ChangeToAssignNoBarrierCheck(IR::Instr * instr)
 {
     return ChangeToAssign(instr, instr->GetDst()->GetType());
+}
+
+IR::Instr *
+LowererMD::ChangeToAssign(IR::Instr * instr)
+{
+    return ChangeToWriteBarrierAssign(instr, instr->m_func);
 }
 
 IR::Instr *
@@ -2381,13 +2387,13 @@ LowererMD::ChangeToAssign(IR::Instr * instr, IRType type)
     return instr;
 }
 
-void
-LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr)
+IR::Instr *
+LowererMD::ChangeToWriteBarrierAssign(IR::Instr * assignInstr, const Func* func)
 {
 #ifdef RECYCLER_WRITE_BARRIER_JIT
     // WriteBarrier-TODO- Implement ARM JIT
 #endif
-    ChangeToAssign(assignInstr);
+    return ChangeToAssignNoBarrierCheck(assignInstr);
 }
 
 ///----------------------------------------------------------------------------
@@ -2422,9 +2428,9 @@ LowererMD::ChangeToLea(IR::Instr * instr, bool postRegAlloc)
 ///----------------------------------------------------------------------------
 
 IR::Instr *
-LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt)
+LowererMD::CreateAssign(IR::Opnd *dst, IR::Opnd *src, IR::Instr *instrInsertPt, bool generateWriteBarrier)
 {
-    return Lowerer::InsertMove(dst, src, instrInsertPt);
+    return Lowerer::InsertMove(dst, src, instrInsertPt, generateWriteBarrier);
 }
 
 ///----------------------------------------------------------------------------
@@ -2710,6 +2716,7 @@ LowererMD::LowerCondBranch(IR::Instr * instr)
         case Js::OpCode::BrNotNull_A:
         case Js::OpCode::BrOnObject_A:
         case Js::OpCode::BrOnClassConstructor:
+        case Js::OpCode::BrOnBaseConstructorKind:
             Assert(!opndSrc1->IsFloat64());
             AssertMsg(opndSrc1->IsRegOpnd(),"NYI for other operands");
             AssertMsg(instr->GetSrc2() == nullptr, "Expected 1 src on boolean branch");

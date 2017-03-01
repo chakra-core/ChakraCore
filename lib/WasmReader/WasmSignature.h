@@ -30,13 +30,15 @@ public:
     static WasmSignature * FromIDL(WasmSignatureIDL* sig);
 
     static uint GetOffsetOfShortSig() { return offsetof(WasmSignature, m_shortSig); }
+
+    void Dump();
 private:
-    WasmTypes::WasmType m_resultType;
-    uint32 m_id;
-    uint32 m_paramSize;
-    uint32 m_paramsCount;
-    size_t m_shortSig;
-    Local* m_params;
+    Field(WasmTypes::WasmType) m_resultType;
+    Field(uint32) m_id;
+    Field(uint32) m_paramSize;
+    Field(uint32) m_paramsCount;
+    Field(size_t) m_shortSig;
+    Field(Local*) m_params;
 };
 
 } // namespace Wasm

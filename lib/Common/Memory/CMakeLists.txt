@@ -18,7 +18,6 @@ set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
     MarkContext.cpp
     MemoryLogger.cpp
     MemoryTracking.cpp
-    MemUtils.cpp
     PageAllocator.cpp
     Recycler.cpp
     RecyclerHeuristic.cpp
@@ -43,6 +42,11 @@ if(CC_TARGETS_AMD64)
         amd64/XDataAllocator.cpp
         amd64/amd64_SAVE_REGISTERS.S
     )
+elseif(CC_TARGETS_ARM)
+  set (CCM_SOURCE_FILES ${CCM_SOURCE_FILES}
+      arm/XDataAllocator.cpp
+      arm/arm_SAVE_REGISTERS.S
+  )
 endif()
 
 add_library (Chakra.Common.Memory OBJECT

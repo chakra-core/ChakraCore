@@ -18,13 +18,13 @@ namespace Js {
     class JavascriptException : public ExceptionBase
     {
     private:
-        JavascriptExceptionObject** const addressOfException;
+        Field(JavascriptExceptionObject*)* const addressOfException;
 
     public:
         // Caller should have stored the JavascriptExceptionObject reference in
         // thread context data. addressOfException should be the thread context data
         // address.
-        JavascriptException(JavascriptExceptionObject** addressOfException)
+        JavascriptException(Field(JavascriptExceptionObject*)* addressOfException)
             : addressOfException(addressOfException)
         {
             Assert(addressOfException && *addressOfException);

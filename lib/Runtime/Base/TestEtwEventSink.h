@@ -35,7 +35,7 @@ public:
     typedef void (*RundownFunc)(bool start);
 
 private:
-    static char const * const TestEtwEventSink::CreateEventSinkProcName;
+    static char const * const CreateEventSinkProcName;
     typedef TestEtwEventSink * (*CreateEventSink)(RundownFunc rundown, bool trace);
 };
 #endif

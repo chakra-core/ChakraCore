@@ -120,7 +120,12 @@ namespace TTD
 
         //Check to see if we have an old version of this object around and, if so, clean up its type/handler/standard properties and return it
         Js::DynamicObject* ReuseObjectCheckAndReset(const SnapObject* snpObject, InflateMap* inflator);
-        Js::DynamicObject* ObjectPropertyReset(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator, bool isForWellKnown);
+
+        //TODO: this is a workaround check until we can reliably reset objects -- allows us to early check for non-resetability and fall back to fully recreating script contexts
+        bool DoesObjectBlockScriptContextReuse(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator);
+
+        Js::DynamicObject* ObjectPropertyReset_WellKnown(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator);
+        Js::DynamicObject* ObjectPropertyReset_General(const SnapObject* snpObject, Js::DynamicObject* dynObj, InflateMap* inflator);
 
         //Set all the general properties for the object 
         void StdPropertyRestore(const SnapObject* snpObject, Js::DynamicObject* obj, InflateMap* inflator);
@@ -432,6 +437,29 @@ namespace TTD
         void AssertSnapEquiv_SnapPromiseReactionTaskFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
 #endif
 
+        ////
+        //AllResolveElementFunctionObject Info
+        struct SnapPromiseAllResolveElementFunctionInfo
+        {
+            NSSnapValues::SnapPromiseCapabilityInfo Capabilities;
+            uint32 Index;
+
+            TTD_PTR_ID RemainingElementsWrapperId;
+            uint32 RemainingElementsValue;
+
+            TTD_PTR_ID Values;
+            bool AlreadyCalled;
+        };
+
+        Js::RecyclableObject* DoObjectInflation_SnapPromiseAllResolveElementFunctionInfo(const SnapObject* snpObject, InflateMap* inflator);
+        //DoAddtlValueInstantiation is a nop
+        void EmitAddtlInfo_SnapPromiseAllResolveElementFunctionInfo(const SnapObject* snpObject, FileWriter* writer);
+        void ParseAddtlInfo_SnapPromiseAllResolveElementFunctionInfo(SnapObject* snpObject, FileReader* reader, SlabAllocator& alloc);
+
+#if ENABLE_SNAPSHOT_COMPARE 
+        void AssertSnapEquiv_SnapPromiseAllResolveElementFunctionInfo(const SnapObject* sobj1, const SnapObject* sobj2, TTDCompareMap& compareMap);
+#endif
+
         //////////////////
 
         ////
@@ -635,7 +663,23 @@ namespace TTD
 
             if(snpObject->SnapType->JsTypeId == Js::TypeIds_Array)
             {
-                return (preAllocSpace > 0) ? jslib->CreateArray(preAllocSpace) : jslib->CreateArray();
+                if(preAllocSpace == 0)
+                {
+                    return jslib->CreateArray();
+                }
+                else
+                {
+                    Js::DynamicObject* rcObj = ReuseObjectCheckAndReset(snpObject, inflator);
+                    if(rcObj != nullptr)
+                    {
+                        Js::JavascriptArray::FromVar(rcObj)->SetLength(preAllocSpace);
+                        return rcObj;
+                    }
+                    else
+                    {
+                        return jslib->CreateArray(preAllocSpace);
+                    }
+                }
             }
             else if(snpObject->SnapType->JsTypeId == Js::TypeIds_NativeIntArray)
             {

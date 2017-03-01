@@ -209,7 +209,7 @@ IdentPtr HashTbl::PidFromTk(tokens token)
     {
         StaticSym const * sym = s_reservedWordInfo[token].sym;
         Assert(sym != nullptr);
-        rpid = this->PidHashNameLenWithHash(sym->sz, sym->cch, sym->luHash);
+        rpid = this->PidHashNameLenWithHash(sym->sz, sym->sz + sym->cch, sym->cch, sym->luHash);
         rpid->SetTk(token, s_reservedWordInfo[token].grfid);
         m_rpid[token] = rpid;
     }
@@ -217,23 +217,34 @@ IdentPtr HashTbl::PidFromTk(tokens token)
 }
 
 template <typename CharType>
-IdentPtr HashTbl::PidHashNameLen(CharType const * prgch, uint32 cch)
+IdentPtr HashTbl::PidHashNameLen(CharType const * prgch, CharType const * end, uint32 cch)
 {
     // NOTE: We use case sensitive hash during compilation, but the runtime
     // uses case insensitive hashing so it can do case insensitive lookups.
-    uint32 luHash = CaseSensitiveComputeHashCch(prgch, cch);
-    return PidHashNameLenWithHash(prgch, cch, luHash);
+
+    uint32 luHash = CaseSensitiveComputeHash(prgch, end);
+    return PidHashNameLenWithHash(prgch, end, cch, luHash);
+}
+template IdentPtr HashTbl::PidHashNameLen<utf8char_t>(utf8char_t const * prgch, utf8char_t const * end, uint32 cch);
+template IdentPtr HashTbl::PidHashNameLen<char>(char const * prgch, char const * end, uint32 cch);
+template IdentPtr HashTbl::PidHashNameLen<char16>(char16 const * prgch, char16 const * end, uint32 cch);
+
+template <typename CharType>
+IdentPtr HashTbl::PidHashNameLen(CharType const * prgch, uint32 cch)
+{
+    Assert(sizeof(CharType) == 2);
+    return PidHashNameLen(prgch, prgch + cch, cch);
 };
 template IdentPtr HashTbl::PidHashNameLen<utf8char_t>(utf8char_t const * prgch, uint32 cch);
 template IdentPtr HashTbl::PidHashNameLen<char>(char const * prgch, uint32 cch);
 template IdentPtr HashTbl::PidHashNameLen<char16>(char16 const * prgch, uint32 cch);
 
 template <typename CharType>
-IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch, int32 cch, uint32 luHash)
+IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch, CharType const * end, int32 cch, uint32 luHash)
 {
     Assert(cch >= 0);
     AssertArrMemR(prgch, cch);
-    Assert(luHash == CaseSensitiveComputeHashCch(prgch, cch));
+    Assert(luHash == CaseSensitiveComputeHash(prgch, end));
 
     IdentPtr * ppid;
     IdentPtr pid;
@@ -245,7 +256,7 @@ IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch,
     int depth = 0;
 #endif
 
-    pid = this->FindExistingPid(prgch, cch, luHash, &ppid, &bucketCount
+    pid = this->FindExistingPid(prgch, end, cch, luHash, &ppid, &bucketCount
 #if PROFILE_DICTIONARY
                                 , depth
 #endif
@@ -313,7 +324,7 @@ IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch,
     pid->m_propertyId = Js::Constants::NoProperty;
     pid->assignmentState = NotAssigned;
 
-    HashTbl::CopyString(pid->m_sz, prgch, cch);
+    HashTbl::CopyString(pid->m_sz, prgch, end);
 
     return pid;
 }
@@ -321,6 +332,7 @@ IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch,
 template <typename CharType>
 IdentPtr HashTbl::FindExistingPid(
     CharType const * prgch,
+    CharType const * end,
     int32 cch,
     uint32 luHash,
     IdentPtr **pppInsert,
@@ -340,7 +352,7 @@ IdentPtr HashTbl::FindExistingPid(
     for (bucketCount = 0; nullptr != (pid = *ppid); ppid = &pid->m_pidNext, bucketCount++)
     {
         if (pid->m_luHash == luHash && (int)pid->m_cch == cch &&
-            HashTbl::CharsAreEqual(pid->m_sz, prgch, cch))
+            HashTbl::CharsAreEqual(pid->m_sz, prgch, end))
         {
             return pid;
         }
@@ -362,19 +374,19 @@ IdentPtr HashTbl::FindExistingPid(
 }
 
 template IdentPtr HashTbl::FindExistingPid<utf8char_t>(
-    utf8char_t const * prgch, int32 cch, uint32 luHash, IdentPtr **pppInsert, int32 *pBucketCount
+    utf8char_t const * prgch, utf8char_t const * end, int32 cch, uint32 luHash, IdentPtr **pppInsert, int32 *pBucketCount
 #if PROFILE_DICTIONARY
     , int& depth
 #endif
     );
 template IdentPtr HashTbl::FindExistingPid<char>(
-    char const * prgch, int32 cch, uint32 luHash, IdentPtr **pppInsert, int32 *pBucketCount
+    char const * prgch, char const * end, int32 cch, uint32 luHash, IdentPtr **pppInsert, int32 *pBucketCount
 #if PROFILE_DICTIONARY
     , int& depth
 #endif
     );
 template IdentPtr HashTbl::FindExistingPid<char16>(
-    char16 const * prgch, int32 cch, uint32 luHash, IdentPtr **pppInsert, int32 *pBucketCount
+    char16 const * prgch, char16 const * end, int32 cch, uint32 luHash, IdentPtr **pppInsert, int32 *pBucketCount
 #if PROFILE_DICTIONARY
     , int& depth
 #endif
@@ -382,12 +394,12 @@ template IdentPtr HashTbl::FindExistingPid<char16>(
 
 bool HashTbl::Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch)
 {
-    uint32 luHash = CaseSensitiveComputeHashCch(prgch, cch);
+    uint32 luHash = CaseSensitiveComputeHash(prgch, prgch + cch);
 
     for (auto pid = m_prgpidName[luHash & m_luMask]; pid; pid = pid->m_pidNext)
     {
         if (pid->m_luHash == luHash && (int)pid->m_cch == cch &&
-            HashTbl::CharsAreEqual(pid->m_sz, prgch, cch))
+            HashTbl::CharsAreEqual(pid->m_sz, prgch + cch, prgch))
         {
             return true;
         }
@@ -407,7 +419,7 @@ bool HashTbl::Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch)
 // This method is used during colorizing when scanner isn't interested in storing the actual id and does not care about conversion of escape sequences
 tokens HashTbl::TkFromNameLenColor(_In_reads_(cch) LPCOLESTR prgch, uint32 cch)
 {
-    uint32 luHash = CaseSensitiveComputeHashCch(prgch, cch);
+    uint32 luHash = CaseSensitiveComputeHash(prgch, prgch + cch);
 
     // look for a keyword
 #include "kwds_sw.h"
@@ -434,7 +446,7 @@ LDefault:
 // This method is used during colorizing when scanner isn't interested in storing the actual id and does not care about conversion of escape sequences
 tokens HashTbl::TkFromNameLen(_In_reads_(cch) LPCOLESTR prgch, uint32 cch, bool isStrictMode)
 {
-    uint32 luHash = CaseSensitiveComputeHashCch(prgch, cch);
+    uint32 luHash = CaseSensitiveComputeHash(prgch, prgch + cch);
 
     // look for a keyword
 #include "kwds_sw.h"

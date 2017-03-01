@@ -15,15 +15,15 @@ binary_path=
 release_build=0
 test_variant=$1
 
-if [[ -f "$test_path/../BuildLinux/Debug/ch" ]]; then
+if [[ -f "$test_path/../out/Debug/ch" ]]; then
     echo "Warning: Debug build was found"
     binary_path="Debug";
     build_type="-d"
-elif [[ -f "$test_path/../BuildLinux/Test/ch" ]]; then
+elif [[ -f "$test_path/../out/Test/ch" ]]; then
     echo "Warning: Test build was found"
     binary_path="Test";
     build_type="-t"
-elif [[ -f "$test_path/../BuildLinux/Release/ch" ]]; then
+elif [[ -f "$test_path/../out/Release/ch" ]]; then
     binary_path="Release";
     echo "Warning: Release build was found"
     release_build=1
@@ -41,7 +41,7 @@ else
     # TEST flags are not enabled for release build
     # however we would like to test if the compiled binary
     # works or not
-    RES=$($test_path/../BuildLinux/${binary_path}/ch $test_path/basics/hello.js)
+    RES=$($test_path/../out/${binary_path}/ch $test_path/basics/hello.js)
     if [[ $RES =~ "Error :" ]]; then
         echo "FAILED"
         exit 1
@@ -51,8 +51,8 @@ else
 fi
 
 RES=$(pwd)
-CH_ABSOLUTE_PATH="$RES/${test_path}/../BuildLinux/${binary_path}/ch"
-RES=$(cd $RES/$test_path/native-tests; ./test_native.sh ${CH_ABSOLUTE_PATH} 2>&1)
+CH_ABSOLUTE_PATH="$RES/${test_path}/../out/${binary_path}/ch"
+RES=$(cd $RES/$test_path/native-tests; ./test_native.sh ${CH_ABSOLUTE_PATH} ${binary_path} 2>&1)
 if [[ $? != 0 ]]; then
     echo "Error: Native tests failed"
     echo -e "$RES"

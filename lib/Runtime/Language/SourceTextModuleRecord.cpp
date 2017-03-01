@@ -115,9 +115,13 @@ namespace Js
 
                 LoadScriptFlag loadScriptFlag = (LoadScriptFlag)(LoadScriptFlag_Expression | LoadScriptFlag_Module |
                     (isUtf8 ? LoadScriptFlag_Utf8Source : LoadScriptFlag_None));
+
+                Utf8SourceInfo* pResultSourceInfo = nullptr;
                 this->parseTree = scriptContext->ParseScript(parser, sourceText,
-                    sourceLength, srcInfo, &se, &pSourceInfo, _u("module"),
+                    sourceLength, srcInfo, &se, &pResultSourceInfo, _u("module"),
                     loadScriptFlag, &sourceIndex, nullptr);
+                this->pSourceInfo = pResultSourceInfo;
+
                 if (parseTree == nullptr)
                 {
                     hr = E_FAIL;
@@ -136,6 +140,15 @@ namespace Js
             if (SUCCEEDED(hr))
             {
                 hr = PostParseProcess();
+                if (hr == S_OK && this->errorObject != nullptr && this->hadNotifyHostReady)
+                {
+                    // This would be the case where the child module got error and current module has notified error already.
+                    if (*exceptionVar == nullptr)
+                    {
+                        *exceptionVar = this->errorObject;
+                    }
+                    return E_FAIL;
+                }
             }
         }
         if (FAILED(hr))
@@ -210,7 +223,6 @@ namespace Js
                 // We'll need to call the bytecode gen in the main thread as we are accessing GC.
                 ScriptContext* scriptContext = GetScriptContext();
                 Assert(!scriptContext->GetThreadContext()->IsScriptActive());
-                Assert(this->errorObject == nullptr);
 
                 ModuleDeclarationInstantiation();
                 if (!hadNotifyHostReady)
@@ -256,8 +268,8 @@ namespace Js
     ModuleNamespace* SourceTextModuleRecord::GetNamespace()
     {
         Assert(localExportSlots != nullptr);
-        Assert(static_cast<ModuleNamespace*>(localExportSlots[GetLocalExportSlotCount()]) == __super::GetNamespace());
-        return static_cast<ModuleNamespace*>(localExportSlots[GetLocalExportSlotCount()]);
+        Assert(PointerValue(localExportSlots[GetLocalExportSlotCount()]) == __super::GetNamespace());
+        return (ModuleNamespace*)(void*)(localExportSlots[GetLocalExportSlotCount()]);
     }
 
     void SourceTextModuleRecord::SetNamespace(ModuleNamespace* moduleNamespace)
@@ -407,7 +419,7 @@ namespace Js
             Assert(*exportRecord == nullptr);
             return true;
         }
-        resolveSet->Prepend({ this, exportName });
+        resolveSet->Prepend(ModuleNameRecord(this, exportName));
 
         if (localExportRecordList != nullptr)
         {
@@ -549,10 +561,36 @@ namespace Js
         return !ambiguousResolution;
     }
 
+    void SourceTextModuleRecord::SetParent(SourceTextModuleRecord* parentRecord, LPCOLESTR moduleName)
+    {
+        Assert(parentRecord != nullptr);
+        Assert(parentRecord->childrenModuleSet != nullptr);
+        if (!parentRecord->childrenModuleSet->ContainsKey(moduleName))
+        {
+            parentRecord->childrenModuleSet->AddNew(moduleName, this);
+
+            if (this->parentModuleList == nullptr)
+            {
+                Recycler* recycler = GetScriptContext()->GetRecycler();
+                this->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
+            }
+            bool contains = this->parentModuleList->Contains(parentRecord);
+            Assert(!contains);
+            if (!contains)
+            {
+                this->parentModuleList->Add(parentRecord);
+                if (!this->WasDeclarationInitialized())
+                {
+                    parentRecord->numUnInitializedChildrenModule++;
+                }
+            }
+        }
+    }
+
     HRESULT SourceTextModuleRecord::ResolveExternalModuleDependencies()
     {
         ScriptContext* scriptContext = GetScriptContext();
-        Recycler* recycler = scriptContext->GetRecycler();
+
         HRESULT hr = NOERROR;
         if (requestedModuleList != nullptr)
         {
@@ -574,16 +612,7 @@ namespace Js
                         return true;
                     }
                     moduleRecord = SourceTextModuleRecord::FromHost(moduleRecordBase);
-                    childrenModuleSet->AddNew(moduleName, moduleRecord);
-                    if (moduleRecord->parentModuleList == nullptr)
-                    {
-                        moduleRecord->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
-                    }
-                    moduleRecord->parentModuleList->Add(this);
-                    if (!moduleRecord->WasDeclarationInitialized())
-                    {
-                        numUnInitializedChildrenModule++;
-                    }
+                    moduleRecord->SetParent(this, moduleName);
                 }
                 return false;
             });
@@ -831,7 +860,7 @@ namespace Js
                 });
             }
             // Namespace object will be added to the end of the array though invisible through namespace object itself.
-            localExportSlots = RecyclerNewArray(recycler, Var, currentSlotCount + 1);
+            localExportSlots = RecyclerNewArray(recycler, Field(Var), currentSlotCount + 1);
             for (uint i = 0; i < currentSlotCount; i++)
             {
                 localExportSlots[i] = undefineValue;
@@ -841,13 +870,13 @@ namespace Js
             localSlotCount = currentSlotCount;
 
 #if ENABLE_NATIVE_CODEGEN
-            if (JITManager::GetJITManager()->IsOOPJITEnabled())
+            if (JITManager::GetJITManager()->IsOOPJITEnabled() && JITManager::GetJITManager()->IsConnected())
             {
                 HRESULT hr = JITManager::GetJITManager()->AddModuleRecordInfo(
                     scriptContext->GetRemoteScriptAddr(),
                     this->GetModuleId(),
                     (intptr_t)this->GetLocalExportSlots());
-                JITManager::HandleServerCallResult(hr);
+                JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);
             }
 #endif
         }
@@ -923,11 +952,4 @@ namespace Js
         }
         return slotIndex;
     }
-
-#if DBG
-    void SourceTextModuleRecord::AddParent(SourceTextModuleRecord* parentRecord, LPCWSTR specifier, uint32 specifierLength)
-    {
-
-    }
-#endif
 }

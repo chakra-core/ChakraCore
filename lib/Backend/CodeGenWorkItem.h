@@ -88,7 +88,7 @@ private:
     bool isAllocationCommitted;         // Whether the EmitBuffer allocation has been committed
 
     QueuedFullJitWorkItem *queuedFullJitWorkItem;
-    EmitBufferAllocation *allocation;
+    EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> *allocation;
 
 #ifdef IR_VIEWER
 public:
@@ -112,7 +112,8 @@ public:
     }
 #endif
 private:
-    EmitBufferAllocation *GetAllocation() { return allocation; }
+    // REVIEW: can we delete this?
+    EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> *GetAllocation() { return allocation; }
 
 public:
     Js::EntryPointInfo* GetEntryPoint() const

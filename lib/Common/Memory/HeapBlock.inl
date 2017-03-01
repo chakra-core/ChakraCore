@@ -11,8 +11,8 @@ SmallHeapBlockT<TBlockAttributes>::SetAttributes(void * address, unsigned char a
 {
     Assert(this->address != nullptr);
     Assert(this->segment != nullptr);
-    Assert(this->ObjectInfo(GetAddressIndex(address)) == 0);
     ushort index = GetAddressIndex(address);
+    Assert(this->ObjectInfo(index) == 0);
     Assert(index != SmallHeapBlockT<TBlockAttributes>::InvalidAddressBit);
     ObjectInfo(index) = attributes;
 }
@@ -153,7 +153,7 @@ SmallHeapBlockT<TBlockAttributes>::FindImplicitRootObject(void* candidate, Recyc
     return true;
 }
 
-template <typename Fn>
+template <bool doSpecialMark, typename Fn>
 bool
 HeapBlock::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * objectAddress, size_t objectSize, unsigned char attributes, Fn fn)
 {
@@ -205,6 +205,16 @@ HeapBlock::UpdateAttributesOfMarkedObjects(MarkContext * markContext, void * obj
             noOOMDuringMark = false;
         }
     }
+
+    // Special mark-time behavior for finalizable objects on certain GC's
+    if (doSpecialMark)
+    {
+        if (attributes & FinalizeBit)
+        {
+            FinalizableObject * trackedObject = (FinalizableObject *)objectAddress;
+            trackedObject->OnMark();
+        }
+    }        
 
 #ifdef RECYCLER_STATS
     RECYCLER_STATS_INTERLOCKED_INC(markContext->GetRecycler(), markData.markCount);

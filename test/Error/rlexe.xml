@@ -29,7 +29,6 @@
   <test>
     <default>
       <files>stack.js</files>
-      <baseline>stack.baseline</baseline>
     </default>
   </test>
   <test>

@@ -8,6 +8,12 @@
   </test>
   <test>
     <default>
+      <compile-flags>-dbgbaseline:JsDiagBreakpoints.js.dbg.baseline</compile-flags>
+      <files>JsDiagBreakpoints_ArrayBuffer.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <compile-flags>-debuglaunch -dbgbaseline:JsDiagEvaluate.js.dbg.baseline</compile-flags>
       <files>JsDiagEvaluate.js</files>
     </default>
@@ -16,6 +22,8 @@
     <default>
       <compile-flags>-debuglaunch -dbgbaseline:JsDiagGetFunctionPosition.js.dbg.baseline</compile-flags>
       <files>JsDiagGetFunctionPosition.js</files>
+      <!-- xplat-todo: enable back [not supported] Intl -->
+      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>

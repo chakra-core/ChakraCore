@@ -111,7 +111,7 @@ namespace Js
         {
             if (batch[i].size > 0)
             {
-                BYTE** field = (BYTE**)(((BYTE*)info + batch[i].offset));
+                Field(BYTE*)* field = (Field(BYTE*)*)(((BYTE*)info + batch[i].offset));
                 *field = current;
                 current += batch[i].size;
             }
@@ -1496,7 +1496,7 @@ namespace Js
             {
                 DumpProfiledValuesGroupedByValue(
                     _u("Element load"),
-                    this->ldElemInfo,
+                    static_cast<LdElemInfo*>(this->ldElemInfo),
                     this->functionBody->GetProfiledLdElemCount(),
                     [](const LdElemInfo *const ldElemInfo, const uint i) -> ValueType
                 {
@@ -1505,7 +1505,7 @@ namespace Js
                     dynamicProfileInfoAllocator);
                 DumpProfiledValuesGroupedByValue(
                     _u("Fld"),
-                    this->fldInfo,
+                    static_cast<FldInfo *>(this->fldInfo),
                     functionBody->GetProfiledFldCount(),
                     [](const FldInfo *const fldInfos, const uint i) -> ValueType
                 {
@@ -1617,12 +1617,13 @@ namespace Js
         }
     }
 
-    void DynamicProfileInfo::DumpList(SListBase<DynamicProfileInfo *> * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator)
+    void DynamicProfileInfo::DumpList(
+        DynamicProfileInfoList * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator)
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_DisableCheck);
         if (Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase))
         {
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 if (Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase, info->GetFunctionBody()->GetSourceContextId(), info->GetFunctionBody()->GetLocalFunctionId()))
                 {
@@ -1634,7 +1635,7 @@ namespace Js
 
         if (Configuration::Global.flags.Dump.IsEnabled(JITLoopBodyPhase) && !Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase))
         {
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 if (info->functionBody->GetLoopCount() > 0)
                 {
@@ -1655,7 +1656,7 @@ namespace Js
             uint elementAccessSaved = 0;
             uint fldAccessSaved = 0;
 
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 bool hasHotLoop = false;
                 if (info->functionBody->DoJITLoopBody())
@@ -1920,6 +1921,9 @@ namespace Js
 
             if (callSiteInfoCount != 0)
             {
+                // CallSiteInfo contains pointer "polymorphicCallSiteInfo", but
+                // we explicitly save that pointer in FunctionBody. Safe to
+                // allocate CallSiteInfo[] as Leaf here.
                 callSiteInfo = RecyclerNewArrayLeaf(recycler, CallSiteInfo, callSiteInfoCount);
                 if (!reader->ReadArray(callSiteInfo, callSiteInfoCount))
                 {
@@ -2058,8 +2062,8 @@ namespace Js
 
         // That means that the data will never go away, probably not a good policy if this is cached for web page in WININET.
 
-        SListBase<DynamicProfileInfo *> * profileInfoList = scriptContext->GetProfileInfoList();
-        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+        DynamicProfileInfoList * profileInfoList = scriptContext->GetProfileInfoList();
+        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
         {
             FunctionBody * functionBody = info->GetFunctionBody();
             SourceDynamicProfileManager * sourceDynamicProfileManager = functionBody->GetSourceContextInfo()->sourceDynamicProfileManager;
@@ -2073,13 +2077,13 @@ namespace Js
     CriticalSection DynamicProfileInfo::s_csOutput;
 
     template <typename T>
-    void DynamicProfileInfo::WriteData(T data, FILE * file)
+    void DynamicProfileInfo::WriteData(const T& data, FILE * file)
     {
         fwrite(&data, sizeof(T), 1, file);
     }
 
     template <>
-    void DynamicProfileInfo::WriteData<char16 const *>(char16 const * sz, FILE * file)
+    void DynamicProfileInfo::WriteData<char16 const *>(char16 const * const& sz, FILE * file)
     {
         if (sz)
         {
@@ -2107,8 +2111,14 @@ namespace Js
         }
     }
 
+    template <typename T>
+    void DynamicProfileInfo::WriteArray(uint count, WriteBarrierPtr<T> arr, FILE * file)
+    {
+        WriteArray(count, static_cast<T*>(arr), file);
+    }
+
     template <>
-    void DynamicProfileInfo::WriteData<FunctionBody *>(FunctionBody * functionBody, FILE * file)
+    void DynamicProfileInfo::WriteData<FunctionBody *>(FunctionBody * const& functionBody, FILE * file)
     {
         WriteData(functionBody->GetSourceContextInfo()->sourceContextId, file);
         WriteData(functionBody->GetLocalFunctionId(), file);
@@ -2143,7 +2153,7 @@ namespace Js
             });
         }
 
-        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, scriptContext->GetProfileInfoList())
+        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, scriptContext->GetProfileInfoList())
         {
             WriteData((byte)1, file);
             WriteData(info->functionBody, file);

@@ -410,7 +410,7 @@ namespace Js
                 (op == OpCode::NewScIntArray || op == OpCode::NewScFltArray || op == OpCode::NewScArray);
         }
 
-        uint ByteCodeWriter::GetTotalSize()
+        uint GetTotalSize()
         {
             return m_byteCodeData.GetCurrentOffset() + m_auxiliaryData.GetCurrentOffset() + m_auxContextData.GetCurrentOffset();
         }

@@ -6,7 +6,7 @@
 #include "JsrtInternal.h"
 #include "jsrtHelper.h"
 #include "JsrtContextCore.h"
-#include "chakracore.h"
+#include "ChakraCore.h"
 
 CHAKRA_API
 JsInitializeModuleRecord(
@@ -27,6 +27,10 @@ JsInitializeModuleRecord(
         if (normalizedSpecifier != JS_INVALID_REFERENCE)
         {
             childModuleRecord->SetSpecifier(normalizedSpecifier);
+            if (Js::SourceTextModuleRecord::Is(referencingModule) && Js::JavascriptString::Is(normalizedSpecifier))
+            {
+                childModuleRecord->SetParent(Js::SourceTextModuleRecord::FromHost(referencingModule), Js::JavascriptString::FromVar(normalizedSpecifier)->GetSz());
+            }
         }
         return JsNoError;
     });
@@ -156,10 +160,10 @@ JsSetModuleHostInfo(
             moduleRecord->SetHostDefined(hostInfo);
             break;
         case JsModuleHostInfo_FetchImportedModuleCallback:
-            currentContext->GetHostScriptContext()->SetFetchImportedModuleCallback(static_cast<FetchImportedModuleCallBack>(hostInfo));
+            currentContext->GetHostScriptContext()->SetFetchImportedModuleCallback(reinterpret_cast<FetchImportedModuleCallBack>(hostInfo));
             break;
         case JsModuleHostInfo_NotifyModuleReadyCallback:
-            currentContext->GetHostScriptContext()->SetNotifyModuleReadyCallback(static_cast<NotifyModuleReadyCallback>(hostInfo));
+            currentContext->GetHostScriptContext()->SetNotifyModuleReadyCallback(reinterpret_cast<NotifyModuleReadyCallback>(hostInfo));
             break;
         default:
             return JsInvalidModuleHostInfoKind;
@@ -197,10 +201,10 @@ JsGetModuleHostInfo(
             *hostInfo = moduleRecord->GetHostDefined();
             break;
         case JsModuleHostInfo_FetchImportedModuleCallback:
-            *hostInfo = currentContext->GetHostScriptContext()->GetFetchImportedModuleCallback();
+            *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetFetchImportedModuleCallback());
             break;
         case JsModuleHostInfo_NotifyModuleReadyCallback:
-            *hostInfo = currentContext->GetHostScriptContext()->GetNotifyModuleReadyCallback();
+            *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetNotifyModuleReadyCallback());
             break;
         default:
             return JsInvalidModuleHostInfoKind;

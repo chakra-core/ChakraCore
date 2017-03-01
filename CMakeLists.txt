@@ -5,96 +5,135 @@ project (CHAKRACORE)
 # option. Otherwise, CMake fails to update cached
 # references
 if(SHARED_LIBRARY_SH)
-  unset(SHARED_LIBRARY_SH CACHE)
-  unset(STATIC_LIBRARY_SH CACHE)
-  unset(STATIC_LIBRARY CACHE)
-  set(SHARED_LIBRARY 1)
+    unset(SHARED_LIBRARY_SH CACHE)
+    unset(STATIC_LIBRARY_SH CACHE)
+    unset(STATIC_LIBRARY CACHE)
+    set(SHARED_LIBRARY 1)
 endif()
 
 if(STATIC_LIBRARY_SH)
-  unset(SHARED_LIBRARY_SH CACHE)
-  unset(STATIC_LIBRARY_SH CACHE)
-  unset(SHARED_LIBRARY CACHE)
-  set(STATIC_LIBRARY 1)
+    unset(SHARED_LIBRARY_SH CACHE)
+    unset(STATIC_LIBRARY_SH CACHE)
+    unset(SHARED_LIBRARY CACHE)
+    set(STATIC_LIBRARY 1)
+endif()
+
+if(CC_USES_SYSTEM_ARCH_SH)
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+        set(CC_TARGETS_AMD64_SH 1)
+    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
+        set(CC_TARGETS_ARM_SH 1)
+    endif()
+    unset(CC_USES_SYSTEM_ARCH_SH CACHE)
 endif()
 
 if(CC_TARGETS_AMD64_SH)
-  unset(CC_TARGETS_X86 CACHE)
-  unset(CC_TARGETS_X86_SH CACHE)
-  unset(CC_TARGETS_AMD64_SH CACHE)
-  set(CC_TARGETS_AMD64 1)
+    set(CC_TARGETS_AMD64 1)
+elseif (CC_TARGETS_ARM_SH)
+    set(CC_TARGETS_ARM 1)
+    add_definitions(-D_ARM_=1)
+    set(CMAKE_SYSTEM_PROCESSOR "armv7l")
+elseif(CC_TARGETS_X86_SH)
+    set(CC_TARGETS_X86 1)
+    set(CMAKE_SYSTEM_PROCESSOR "i386")
+else()
+    message(FATAL_ERROR "Couldn't detect target processor, try `--arch` argument with build.sh")
 endif()
 
-if(CC_TARGETS_X86_SH)
-  unset(CC_TARGETS_X86_SH CACHE)
-  unset(CC_TARGETS_AMD64_SH CACHE)
-  unset(CC_TARGETS_AMD64 CACHE)
-  set(CC_TARGETS_X86 1)
-  set(CMAKE_SYSTEM_PROCESSOR "i386")
-endif()
+unset(CC_TARGETS_ARM_SH CACHE)
+unset(CC_TARGETS_X86_SH CACHE)
+unset(CC_TARGETS_AMD64_SH CACHE)
 
 if(ICU_SETTINGS_RESET)
-  unset(ICU_SETTINGS_RESET CACHE)
-  unset(ICU_INCLUDE_PATH CACHE)
-  unset(ICU_INCLUDE_PATH_SH CACHE)
-  unset(NO_ICU_PATH_GIVEN_SH CACHE)
-  unset(NO_ICU_PATH_GIVEN CACHE)
-  unset(CC_EMBED_ICU_SH CACHE)
+    unset(ICU_SETTINGS_RESET CACHE)
+    unset(ICU_INCLUDE_PATH CACHE)
+    unset(ICU_INCLUDE_PATH_SH CACHE)
+    unset(NO_ICU_PATH_GIVEN_SH CACHE)
+    unset(NO_ICU_PATH_GIVEN CACHE)
+    unset(CC_EMBED_ICU_SH CACHE)
+endif()
+
+if(CC_TARGET_OS_ANDROID_SH)
+    set(CC_TARGET_OS_ANDROID 1)
+    set(CMAKE_SYSTEM_NAME Android)
+    set(ANDROID_NDK "android-toolchain-arm/")
+    set(ANDROID_ABI armeabi-v7a)
+    set(CMAKE_SYSTEM_VERSION 21)
+    set(CMAKE_ANDROID_ARCH_ABI armeabi)
+    set(ANDROID_TOOLCHAIN_NAME arm-linux-androideabi-clang3.8)
+    set(ANDROID_STL "c++_static")
+    unset(CC_TARGET_OS_ANDROID_SH CACHE)
+elseif(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    set(CC_TARGET_OS_LINUX 1)
+elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(CC_TARGET_OS_OSX 1)
+endif()
+
+if (ENABLE_CC_XPLAT_TRACE_SH)
+    unset(ENABLE_CC_XPLAT_TRACE_SH CACHE)
+    set(ENABLE_CC_XPLAT_TRACE 1)
+    if (CC_TARGET_OS_ANDROID)
+        add_definitions(-DTRACE_OUTPUT_TO_LOGCAT=1)
+    else()
+        add_definitions(-DTRACE_OUTPUT_TARGET_FILE=1)
+    endif()
+    add_definitions(-DENABLE_CC_XPLAT_TRACE=1)
+    add_compile_options(-finstrument-functions)
+    add_compile_options(-g)
+    add_compile_options(-ggdb)
+    if(NOT STATIC_LIBRARY)
+        message(FATAL_ERROR "Trace option is available only for --static builds")
+    endif()
 endif()
 
 if(CC_EMBED_ICU_SH)
-  unset(CC_EMBED_ICU_SH CACHE)
-  set(CC_EMBED_ICU 1)
-  set(ICU_INCLUDE_PATH "deps/icu/source/output/include/")
-  add_definitions(-DU_STATIC_IMPLEMENTATION)
+    unset(CC_EMBED_ICU_SH CACHE)
+    set(CC_EMBED_ICU 1)
+    set(ICU_INCLUDE_PATH "deps/icu/source/output/include/")
 endif()
 
 if(ICU_INCLUDE_PATH_SH)
-  set(ICU_INCLUDE_PATH ${ICU_INCLUDE_PATH_SH})
-  unset(NO_ICU_PATH_GIVEN_SH CACHE)
-  unset(NO_ICU_PATH_GIVEN CACHE)
-  unset(ICU_INCLUDE_PATH_SH CACHE)
+    set(ICU_INCLUDE_PATH ${ICU_INCLUDE_PATH_SH})
+    unset(NO_ICU_PATH_GIVEN_SH CACHE)
+    unset(NO_ICU_PATH_GIVEN CACHE)
+    unset(ICU_INCLUDE_PATH_SH CACHE)
 endif()
 
 if(NO_ICU_PATH_GIVEN_SH)
-  set(NO_ICU_PATH_GIVEN ${NO_ICU_PATH_GIVEN_SH})
-  unset(NO_ICU_PATH_GIVEN_SH CACHE)
-  unset(ICU_INCLUDE_PATH_SH CACHE)
-  unset(ICU_INCLUDE_PATH CACHE)
+    set(NO_ICU_PATH_GIVEN ${NO_ICU_PATH_GIVEN_SH})
+    unset(NO_ICU_PATH_GIVEN_SH CACHE)
+    unset(ICU_INCLUDE_PATH_SH CACHE)
+    unset(ICU_INCLUDE_PATH CACHE)
 endif()
 
 function(clr_unknown_arch)
-  if (WIN32)
-      message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
-  else()
-      message(FATAL_ERROR "Only AMD64 and I386 are supported")
-  endif()
+    message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
 endfunction()
 
 if(ICU_INCLUDE_PATH)
-  add_definitions(-DHAS_REAL_ICU=1)
-  set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
-  find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-  find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-  find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-  if(ICUUC)
-    message("found libraries on ${ICU_CC_PATH}")
+    add_definitions(-DHAS_REAL_ICU=1)
+    set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
+    find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    if(ICUUC)
+      message("found libraries on ${ICU_CC_PATH}")
+      set(ICULIB
+        ${ICUUC}
+        ${ICU18}
+        ${ICUDATA}
+        )
+    endif()
+elseif(CC_EMBED_ICU)
+    set(ICU_CC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/icu/source/output/lib/")
+    find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
     set(ICULIB
       ${ICUUC}
       ${ICU18}
       ${ICUDATA}
       )
-  endif()
-elseif(CC_EMBED_ICU)
-  set(ICU_CC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/icu/source/output/lib/")
-  find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-  find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-  find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-  set(ICULIB
-    ${ICUUC}
-    ${ICU18}
-    ${ICUDATA}
-    )
 endif()
 
 set(CLR_CMAKE_PLATFORM_XPLAT 1)
@@ -110,11 +149,18 @@ elseif(CC_TARGETS_X86)
     set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
         -m32"
     )
+elseif(CC_TARGETS_ARM)
+    add_definitions(-D__arm__)
+    add_definitions(-D_M_IX86_OR_ARM32)
+    add_definitions(-D_M_ARM32_OR_ARM64)
+  if(CC_TARGET_OS_OSX)
+    add_compile_options(-arch arm)
+  endif()
 else()
     clr_unknown_arch()
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
     if(NOT ICULIB)
       if(NOT NO_ICU_PATH_GIVEN)
         if(NOT CC_EMBED_ICU)
@@ -127,10 +173,14 @@ if(CMAKE_SYSTEM_NAME STREQUAL Linux)
     set(CLR_CMAKE_PLATFORM_LINUX 1)
     # OSX 10.12 Clang deprecates libstdc++ [See GH #1599]
     # So, -Werror is linux only for now
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -Werror"
-        )
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    # + Android ARM ABI shows ld warnings
+    # xplat-todo: Do we need this ?
+    if (NOT CC_TARGET_OS_ANDROID)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+          -Werror"
+          )
+    endif()
+elseif(CC_TARGET_OS_OSX)
     add_definitions(
         -DPLATFORM_UNIX
     )
@@ -149,12 +199,18 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
     endif()
 
     if(NOT CC_XCODE_PROJECT)
-        set(CLR_CMAKE_PLATFORM_DARWIN 1)
-        add_compile_options(-mmacosx-version-min=10.7)
+      set(OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET} CC")
+      if (${OSX_DEPLOYMENT_TARGET} STREQUAL " CC")
+        set(OSX_DEPLOYMENT_TARGET "10.9")
+        add_compile_options(-mmacosx-version-min=10.9)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
-            -mmacosx-version-min=10.7")
+          -mmacosx-version-min=10.9 -std=gnu99")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-            -mmacosx-version-min=10.7")
+          -mmacosx-version-min=10.9 -std=gnu++11")
+      else()
+        set(OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET}")
+        message(WARNING "!! macOS Deployment Target was set to $ENV{MACOSX_DEPLOYMENT_TARGET}. Using it as is.")
+      endif()
     endif()
 else()
     message(FATAL_ERROR "This OS is not supported")
@@ -262,12 +318,27 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
     endif()
 endif(CLR_CMAKE_PLATFORM_XPLAT)
 
-if(ENABLE_FULL_LTO_SH)
-    unset(DENABLE_FULL_LTO_SH CACHE)
-    add_compile_options(-flto)
-elseif(ENABLE_THIN_LTO_SH)
-    unset(ENABLE_THIN_LTO_SH CACHE)
-    add_compile_options(-flto=thin)
+if (ENABLE_FULL_LTO_SH OR ENABLE_THIN_LTO_SH)
+    if (CC_TARGET_OS_LINUX)
+        set(CC_LTO_ENABLED
+            -fuse-ld=gold
+            -Xlinker -plugin=${CHAKRACORE_BINARY_DIR}/../../cc-toolchain/build/lib/LLVMgold.so
+            )
+    endif()
+
+    if (ENABLE_FULL_LTO_SH)
+        unset(DENABLE_FULL_LTO_SH CACHE)
+        add_compile_options(-flto)
+        if (CC_LTO_ENABLED)
+            set(CC_LTO_ENABLED "${CC_LTO_ENABLED} -flto")
+        endif()
+    elseif (ENABLE_THIN_LTO_SH)
+        unset(ENABLE_THIN_LTO_SH CACHE)
+        add_compile_options(-flto=thin)
+        if (CC_LTO_ENABLED)
+            set(CC_LTO_ENABLED "${CC_LTO_ENABLED} -flto=thin")
+        endif()
+    endif()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
@@ -285,6 +356,8 @@ endif(CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
     add_compile_options(-O3)
+else()
+    add_compile_options(-O0)
 endif(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
@@ -308,6 +381,43 @@ if(WITHOUT_FEATURES_SH)
 endif(WITHOUT_FEATURES_SH)
 
 enable_language(ASM)
+
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(DYN_LIB_EXT "dylib")
+else()
+    set(DYN_LIB_EXT "so")
+endif()
+
+################# Write-barrier check/analyze ##################
+if (WB_CHECK_SH OR WB_ANALYZE_SH)
+    add_definitions(
+        -Xclang -load
+        -Xclang ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecyclerChecker/Build/libclangRecyclerChecker.${DYN_LIB_EXT}
+    )
+endif()
+if (WB_CHECK_SH)
+    unset(WB_CHECK_SH CACHE)    # don't cache
+    add_definitions(
+        -Xclang -add-plugin
+        -Xclang check-recycler
+    )
+endif()
+if (WB_ANALYZE_SH)
+    unset(WB_ANALYZE_SH CACHE)  # don't cache
+    add_definitions(
+        -Xclang -analyze
+        -Xclang -analyzer-checker=chakra.RecyclerChecker
+    )
+endif()
+if (WB_ARGS_SH)
+    foreach(wb_arg IN LISTS WB_ARGS_SH)
+        add_definitions(
+            -Xclang -plugin-arg-check-recycler
+            -Xclang ${wb_arg}
+        )
+    endforeach(wb_arg)
+    unset(WB_ARGS_SH CACHE)  # don't cache
+endif()
 
 include_directories(
     .

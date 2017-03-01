@@ -28,6 +28,8 @@ function foo2()
     WScript.ClearTimeout(foo1id);
     
     telemetryLog("End Foo2", true);
+
+    emitTTDLog(ttdLogURI);
 }
 
 foo1id = WScript.SetTimeout(foo1, 500);

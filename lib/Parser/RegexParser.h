@@ -249,6 +249,7 @@ namespace UnifiedRegex
               const EncodedChar*& currentCharacter,
               const CharCount totalLen,
               const CharCount bodyChars,
+              const CharCount bodyEncodedChars,
               const CharCount totalChars,
               const RegexFlags flags );
 
@@ -256,7 +257,7 @@ namespace UnifiedRegex
 
         // bodyChars is number of unicode characters in program body, which may be less than the number
         // of underlying UTF-8 characters
-        void CaptureSourceAndGroups(Recycler* recycler, Program* program, const EncodedChar* body, CharCount bodyChars);
+        void CaptureSourceAndGroups(Recycler* recycler, Program* program, const EncodedChar* body, CharCount bodyChars, CharCount bodyEncodedChars);
 
         inline const Char* GetLitbuf() { return litbuf; }
 

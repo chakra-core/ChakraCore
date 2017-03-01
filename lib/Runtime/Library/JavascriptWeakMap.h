@@ -44,7 +44,7 @@ namespace Js
         typedef JsUtil::BaseDictionary<WeakMapId, Var, Recycler, PowerOf2SizePolicy, RecyclerPointerComparer> WeakMapKeyMap;
         typedef JsUtil::WeaklyReferencedKeyDictionary<DynamicObject, bool, RecyclerPointerComparer<const DynamicObject*>> KeySet;
 
-        KeySet keySet;
+        Field(KeySet) keySet;
 
         WeakMapKeyMap* GetWeakMapKeyMapFromKey(DynamicObject* key) const;
         WeakMapKeyMap* AddWeakMapKeyMapToKey(DynamicObject* key);

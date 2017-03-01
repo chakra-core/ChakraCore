@@ -64,31 +64,47 @@ namespace TTD
         return this->m_staticAbortMessage;
     }
 
+    bool TTDebuggerSourceLocation::UpdatePostInflateFunctionBody_Helper(Js::FunctionBody* rootBody)
+    {
+        for(uint32 i = 0; i < rootBody->GetNestedCount(); ++i)
+        {
+            Js::ParseableFunctionInfo* ipfi = rootBody->GetNestedFunctionForExecution(i);
+            Js::FunctionBody* ifb = JsSupport::ForceAndGetFunctionBody(ipfi);
+
+            if(this->m_functionLine == ifb->GetLineNumber() && this->m_functionColumn == ifb->GetColumnNumber())
+            {
+                this->m_functionBody = ifb;
+                return true;
+            }
+            else
+            {
+                bool found = this->UpdatePostInflateFunctionBody_Helper(ifb);
+                if(found)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     TTDebuggerSourceLocation::TTDebuggerSourceLocation()
-        : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
+        : m_etime(-1), m_ftime(0), m_ltime(0), m_functionBody(nullptr), m_topLevelBodyId(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
     {
         ;
     }
 
     TTDebuggerSourceLocation::TTDebuggerSourceLocation(int64 topLevelETime, const SingleCallCounter& callFrame)
-        : m_etime(-1), m_ftime(0), m_ltime(0), m_sourceFile(nullptr), m_docid(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
+        : m_etime(-1), m_ftime(0), m_ltime(0), m_functionBody(nullptr), m_topLevelBodyId(0), m_functionLine(0), m_functionColumn(0), m_line(0), m_column(0)
     {
         this->SetLocation(topLevelETime, callFrame);
     }
 
     TTDebuggerSourceLocation::TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other)
-        : m_etime(other.m_etime), m_ftime(other.m_ftime), m_ltime(other.m_ltime), m_sourceFile(nullptr), m_docid(other.m_docid), m_functionLine(other.m_functionLine), m_functionColumn(other.m_functionColumn), m_line(other.m_line), m_column(other.m_column)
+        : m_etime(other.m_etime), m_ftime(other.m_ftime), m_ltime(other.m_ltime), m_functionBody(other.m_functionBody), m_topLevelBodyId(other.m_topLevelBodyId), m_functionLine(other.m_functionLine), m_functionColumn(other.m_functionColumn), m_line(other.m_line), m_column(other.m_column)
     {
-        if(other.m_sourceFile != nullptr)
-        {
-            size_t char16Length = wcslen(other.m_sourceFile) + 1;
-            size_t byteLength = char16Length * sizeof(char16);
-
-            this->m_sourceFile = new char16[char16Length];
-            TTDAssert(this->m_sourceFile != nullptr, "Allocation failed!!!");
-
-            js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
-        }
+        ;
     }
 
     TTDebuggerSourceLocation::~TTDebuggerSourceLocation()
@@ -115,7 +131,8 @@ namespace TTD
         }
         else
         {
-            wprintf(_u("%ls l:%I32u c:%I32u (%I64i, %I64i, %I64i)"), this->m_sourceFile, this->m_line, this->m_column, this->m_etime, this->m_ftime, this->m_ltime);
+            const char16* fn = (this->m_functionBody != nullptr ? this->m_functionBody->GetDisplayName() : _u("[not set]"));
+            wprintf(_u("%ls l:%I32u c:%I32u (%I64i, %I64i, %I64i)"), fn, this->m_line, this->m_column, this->m_etime, this->m_ftime, this->m_ltime);
         }
 
         if(newline)
@@ -131,8 +148,8 @@ namespace TTD
         this->m_ftime = 0;
         this->m_ltime = 0;
 
-        this->m_sourceFile = nullptr;
-        this->m_docid = 0;
+        this->m_functionBody = nullptr;
+        this->m_topLevelBodyId = 0;
 
         this->m_functionLine = 0;
         this->m_functionColumn = 0;
@@ -151,19 +168,14 @@ namespace TTD
         this->m_ftime = 0;
         this->m_ltime = 0;
 
-        this->m_docid = 0;
+        this->m_functionBody = nullptr;
+        this->m_topLevelBodyId = 0;
 
         this->m_functionLine = 0;
         this->m_functionColumn = 0;
 
         this->m_line = 0;
         this->m_column = 0;
-
-        if(this->m_sourceFile != nullptr)
-        {
-            delete[] this->m_sourceFile;
-        }
-        this->m_sourceFile = nullptr;
     }
 
     void TTDebuggerSourceLocation::SetLocation(const TTDebuggerSourceLocation& other)
@@ -172,30 +184,14 @@ namespace TTD
         this->m_ftime = other.m_ftime;
         this->m_ltime = other.m_ltime;
 
-        this->m_docid = other.m_docid;
+        this->m_functionBody = other.m_functionBody;
+        this->m_topLevelBodyId = other.m_topLevelBodyId;
 
         this->m_functionLine = other.m_functionLine;
         this->m_functionColumn = other.m_functionColumn;
 
         this->m_line = other.m_line;
         this->m_column = other.m_column;
-
-        if(this->m_sourceFile != nullptr)
-        {
-            delete[] this->m_sourceFile;
-        }
-        this->m_sourceFile = nullptr;
-
-        if(other.m_sourceFile != nullptr)
-        {
-            size_t char16Length = wcslen(other.m_sourceFile) + 1;
-            size_t byteLength = char16Length * sizeof(char16);
-
-            this->m_sourceFile = new char16[char16Length];
-            TTDAssert(this->m_sourceFile != nullptr, "Allocation failed!!!");
-
-            js_memcpy_s(this->m_sourceFile, byteLength, other.m_sourceFile, byteLength);
-        }
     }
 
     void TTDebuggerSourceLocation::SetLocation(int64 topLevelETime, const SingleCallCounter& callFrame)
@@ -214,31 +210,14 @@ namespace TTD
         this->m_ftime = ftime;
         this->m_ltime = ltime;
 
-        this->m_docid = body->GetUtf8SourceInfo()->GetSourceInfoId();
+        this->m_functionBody = body;
+        this->m_topLevelBodyId = 0;
 
         this->m_functionLine = body->GetLineNumber();
         this->m_functionColumn = body->GetColumnNumber();
 
         this->m_line = (uint32)line;
         this->m_column = (uint32)column;
-
-        if(this->m_sourceFile != nullptr)
-        {
-            delete[] this->m_sourceFile;
-        }
-        this->m_sourceFile = nullptr;
-
-        const char16* sourceFile = body->GetSourceContextInfo()->url;
-        if(sourceFile != nullptr)
-        {
-            size_t char16Length = wcslen(sourceFile) + 1;
-            size_t byteLength = char16Length * sizeof(char16);
-
-            this->m_sourceFile = new char16[char16Length];
-            TTDAssert(this->m_sourceFile != nullptr, "Allocation failed!!!");
-
-            js_memcpy_s(this->m_sourceFile, byteLength, sourceFile, byteLength);
-        }
     }
 
     int64 TTDebuggerSourceLocation::GetRootEventTime() const
@@ -256,46 +235,29 @@ namespace TTD
         return this->m_ltime;
     }
 
-    Js::FunctionBody* TTDebuggerSourceLocation::ResolveAssociatedSourceInfo(Js::ScriptContext* ctx) const
+    Js::FunctionBody* TTDebuggerSourceLocation::LoadFunctionBodyIfPossible(Js::ScriptContext* inCtx)
     {
-        Js::FunctionBody* resBody = ctx->TTDContextInfo->FindFunctionBodyByFileName(this->m_sourceFile);
-
-        while(true)
+        if(this->m_functionBody == nullptr)
         {
-            for(uint32 i = 0; i < resBody->GetNestedCount(); ++i)
+            Js::FunctionBody* rootBody = inCtx->TTDContextInfo->FindRootBodyByTopLevelCtr(this->m_topLevelBodyId);
+            if(rootBody == nullptr)
             {
-                Js::ParseableFunctionInfo* ipfi = resBody->GetNestedFunctionForExecution(i);
-                Js::FunctionBody* ifb = JsSupport::ForceAndGetFunctionBody(ipfi);
-
-                if(this->m_functionLine == ifb->GetLineNumber() && this->m_functionColumn == ifb->GetColumnNumber())
-                {
-                    return ifb;
-                }
-
-                //if it starts on a larger line or if same line but larger column then we don't contain the target
-                TTDAssert(ifb->GetLineNumber() < this->m_functionLine || (ifb->GetLineNumber() == this->m_functionLine && ifb->GetColumnNumber() < this->m_functionColumn), "We went to far but didn't find our function??");
-
-                uint32 endLine = UINT32_MAX;
-                uint32 endColumn = UINT32_MAX;
-                if(i + 1 < resBody->GetNestedCount())
-                {
-                    Js::ParseableFunctionInfo* ipfinext = resBody->GetNestedFunctionForExecution(i + 1);
-                    Js::FunctionBody* ifbnext = JsSupport::ForceAndGetFunctionBody(ipfinext);
-
-                    endLine = ifbnext->GetLineNumber();
-                    endColumn = ifbnext->GetColumnNumber();
-                }
-
-                if(endLine > this->m_functionLine || (endLine == this->m_functionLine && endColumn > this->m_functionColumn))
-                {
-                    resBody = ifb;
-                    break;
-                }
+                return nullptr;
             }
+
+            if(this->m_functionLine == rootBody->GetLineNumber() && this->m_functionColumn == rootBody->GetColumnNumber())
+            {
+                this->m_functionBody = rootBody;
+            }
+            else
+            {
+                this->UpdatePostInflateFunctionBody_Helper(rootBody);
+            }
+
+            TTDAssert(this->m_functionBody != nullptr, "We failed to remap a breakpoint during reverse move.");
         }
 
-        TTDAssert(false, "We should never get here!!!");
-        return nullptr;
+        return this->m_functionBody;
     }
 
     uint32 TTDebuggerSourceLocation::GetLine() const
@@ -306,6 +268,15 @@ namespace TTD
     uint32 TTDebuggerSourceLocation::GetColumn() const
     {
         return this->m_column;
+    }
+
+    void TTDebuggerSourceLocation::EnsureTopLevelBodyCtrPreInflate()
+    {
+        if(this->m_functionBody != nullptr)
+        {
+            this->m_topLevelBodyId = this->m_functionBody->GetScriptContext()->TTDContextInfo->FindTopLevelCtrForBody(this->m_functionBody);
+            this->m_functionBody = nullptr;
+        }
     }
 
     bool TTDebuggerSourceLocation::IsBefore(const TTDebuggerSourceLocation& other) const
@@ -726,7 +697,7 @@ namespace TTD
             return callEvt->AdditionalInfo->LastNestedEventTime;
         }
 
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool checkExceptions, double beginTime, UnlinkableSlabAllocator& alloc)
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool checkExceptions, UnlinkableSlabAllocator& alloc)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
             callEvt->AdditionalInfo = alloc.SlabAllocateStruct<ExternalCallEventLogEntry_AdditionalInfo>();
@@ -740,21 +711,16 @@ namespace TTD
             callEvt->ArgArray[0] = static_cast<TTDVar>(function);
             js_memcpy_s(callEvt->ArgArray + 1, (callEvt->ArgCount - 1) * sizeof(TTDVar), argv, argc * sizeof(Js::Var));
 
-            //Initialize this info in case we terminate without completing (e.g. exit(1))
-            callEvt->AdditionalInfo->BeginTime = beginTime;
-            callEvt->AdditionalInfo->EndTime = -1.0;
-
             callEvt->ReturnValue = nullptr;
             callEvt->AdditionalInfo->LastNestedEventTime = TTD_EVENT_MAXTIME;
 
             callEvt->AdditionalInfo->CheckExceptionStatus = checkExceptions;
         }
 
-        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent, double endTime)
+        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent)
         {
             ExternalCallEventLogEntry* callEvt = GetInlineEventDataAs<ExternalCallEventLogEntry, EventKind::ExternalCallTag>(evt);
 
-            callEvt->AdditionalInfo->EndTime = endTime;
             callEvt->ReturnValue = TTD_CONVERT_JSVAR_TO_TTDVAR(res);
             callEvt->AdditionalInfo->LastNestedEventTime = lastNestedEvent;
         }
@@ -797,9 +763,6 @@ namespace TTD
             writer->WriteBool(NSTokens::Key::boolVal, callEvt->AdditionalInfo->CheckExceptionStatus, NSTokens::Separator::CommaSeparator);
 
             writer->WriteInt64(NSTokens::Key::i64Val, callEvt->AdditionalInfo->LastNestedEventTime, NSTokens::Separator::CommaSeparator);
-
-            writer->WriteDouble(NSTokens::Key::beginTime, callEvt->AdditionalInfo->BeginTime, NSTokens::Separator::CommaSeparator);
-            writer->WriteDouble(NSTokens::Key::endTime, callEvt->AdditionalInfo->EndTime, NSTokens::Separator::CommaSeparator);
         }
 
         void ExternalCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
@@ -829,9 +792,18 @@ namespace TTD
             callEvt->AdditionalInfo->CheckExceptionStatus = reader->ReadBool(NSTokens::Key::boolVal, true);
 
             callEvt->AdditionalInfo->LastNestedEventTime = reader->ReadInt64(NSTokens::Key::i64Val, true);
+        }
 
-            callEvt->AdditionalInfo->BeginTime = reader->ReadDouble(NSTokens::Key::beginTime, true);
-            callEvt->AdditionalInfo->EndTime = reader->ReadDouble(NSTokens::Key::endTime, true);
+        //////////////////
+
+        void ExplicitLogWriteEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
+        {
+            ; //We don't track any extra data with this
+        }
+
+        void ExplicitLogWriteEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
+        {
+            ; //We don't track any extra data with this
         }
     }
 }

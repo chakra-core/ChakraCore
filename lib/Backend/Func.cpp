@@ -17,7 +17,7 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     JITOutputIDL * outputData,
     Js::EntryPointInfo* epInfo,
     const FunctionJITRuntimeInfo *const runtimeInfo,
-    JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+    JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, void * const codeGenAllocators,
 #if !FLOATVAR
     CodeGenNumberAllocator * numberAllocator,
 #endif
@@ -143,6 +143,9 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     , m_forInEnumeratorArrayOffset(-1)
     , argInsCount(0)
     , m_globalObjTypeSpecFldInfoArray(nullptr)
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+    , m_lowerer(nullptr)
+#endif
 {
 
     Assert(this->IsInlined() == !!runtimeInfo);
@@ -272,7 +275,7 @@ Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
     JITOutputIDL * outputData,
     Js::EntryPointInfo* epInfo, // for in-proc jit only
     const FunctionJITRuntimeInfo *const runtimeInfo,
-    JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
+    JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, void * const codeGenAllocators,
 #if !FLOATVAR
     CodeGenNumberAllocator * numberAllocator,
 #endif
@@ -566,20 +569,23 @@ Func::TryCodegen()
                     next1->fixupFunc(next1->data, chunk);
                 }
 #if DBG
-                // Scan memory to see if there's missing pointer needs to be fixed up
-                // This can hit false positive if some data field happens to have value 
-                // falls into the NativeCodeData memory range.
-                NativeCodeData::DataChunk *next2 = chunk;
-                while (next2)
+                if (CONFIG_FLAG(OOPJITFixupValidate))
                 {
-                    for (unsigned int i = 0; i < next1->len / sizeof(void*); i++)
+                    // Scan memory to see if there's missing pointer needs to be fixed up
+                    // This can hit false positive if some data field happens to have value 
+                    // falls into the NativeCodeData memory range.
+                    NativeCodeData::DataChunk *next2 = chunk;
+                    while (next2)
                     {
-                        if (((void**)next1->data)[i] == (void*)next2->data)
+                        for (unsigned int i = 0; i < next1->len / sizeof(void*); i++)
                         {
-                            NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                            if (((void**)next1->data)[i] == (void*)next2->data)
+                            {
+                                NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                            }
                         }
+                        next2 = next2->next;
                     }
-                    next2 = next2->next;
                 }
 #endif
                 next1 = next1->next;
@@ -981,7 +987,16 @@ bool Func::CanAllocInPreReservedHeapPageSegment ()
         !IsJitInDebugMode() && GetThreadContextInfo()->IsCFGEnabled()
         //&& !GetScriptContext()->IsScriptContextInDebugMode()
 #if _M_IX86
-        && m_workItem->GetJitMode() == ExecutionMode::FullJit && GetCodeGenAllocators()->canCreatePreReservedSegment);
+        && m_workItem->GetJitMode() == ExecutionMode::FullJit
+
+#if ENABLE_OOP_NATIVE_CODEGEN
+        && (JITManager::GetJITManager()->IsJITServer()
+            ? GetOOPCodeGenAllocators()->canCreatePreReservedSegment
+            : GetInProcCodeGenAllocators()->canCreatePreReservedSegment)
+#else
+        && GetInProcCodeGenAllocators()->canCreatePreReservedSegment
+#endif
+        );
 #elif _M_X64
         && true);
 #else

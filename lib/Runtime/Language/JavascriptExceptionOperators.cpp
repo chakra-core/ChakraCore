@@ -764,7 +764,7 @@ namespace Js
         JavascriptExceptionContext::StackTrace *stackTrace = exceptionContext.GetStackTrace();
         for (int i=0; i < stackTrace->Count(); i++)
         {
-            Js::JavascriptExceptionContext::StackFrame currFrame = stackTrace->Item(i);
+            Js::JavascriptExceptionContext::StackFrame& currFrame = stackTrace->Item(i);
             ULONG lineNumber = 0;
             LONG characterPosition = 0;
             if (currFrame.IsScriptFunction() && !currFrame.GetFunctionBody()->GetUtf8SourceInfo()->GetIsLibraryCode())
@@ -870,7 +870,7 @@ namespace Js
         ThreadContext* threadContext = scriptContext? scriptContext->GetThreadContext() : ThreadContext::GetContextForCurrentThread();
 
         // Temporarily keep throwing exception object alive (thrown but not yet caught)
-        JavascriptExceptionObject** addr = threadContext->SaveTempUncaughtException(exceptionObject);
+        Field(JavascriptExceptionObject*)* addr = threadContext->SaveTempUncaughtException(exceptionObject);
 
         // Throw a wrapper JavascriptException. catch handler must GetAndClear() the exception object.
         throw JavascriptException(addr);
@@ -1043,6 +1043,11 @@ namespace Js
         JavascriptError::ThrowRangeError(scriptContext, MAKE_HR(messageId));
     }
 
+    Var JavascriptExceptionOperators::OP_WebAssemblyRuntimeError(MessageId messageId, ScriptContext *scriptContext)
+    {
+        JavascriptError::ThrowWebAssemblyRuntimeError(scriptContext, MAKE_HR(messageId));
+    }
+
     Var JavascriptExceptionOperators::OP_RuntimeReferenceError(MessageId messageId, ScriptContext *scriptContext)
     {
         JavascriptError::ThrowReferenceError(scriptContext, MAKE_HR(messageId));
@@ -1114,7 +1119,7 @@ namespace Js
 
             for (int i = 0; i < stackTrace->Count(); i++)
             {
-                Js::JavascriptExceptionContext::StackFrame currentFrame = stackTrace->Item(i);
+                Js::JavascriptExceptionContext::StackFrame& currentFrame = stackTrace->Item(i);
 
                 // Defend in depth. Discard cross domain frames if somehow they creped in.
                 if (currentFrame.IsScriptFunction())

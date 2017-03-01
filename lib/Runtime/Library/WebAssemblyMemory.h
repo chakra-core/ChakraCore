@@ -9,9 +9,12 @@ namespace Js
 {
     class WebAssemblyMemory : public DynamicObject
     {
+    protected:
+        DEFINE_VTABLE_CTOR( WebAssemblyMemory, DynamicObject );
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT( WebAssemblyMemory );
+
 #ifdef ENABLE_WASM
     public:
-
         class EntryInfo
         {
         public:
@@ -40,10 +43,10 @@ namespace Js
     private:
         WebAssemblyMemory(ArrayBuffer * buffer, uint32 initial, uint32 maximum, DynamicType * type);
 
-        ArrayBuffer * m_buffer;
+        Field(ArrayBuffer *) m_buffer;
 
-        uint m_initial;
-        uint m_maximum;
+        Field(uint) m_initial;
+        Field(uint) m_maximum;
 #endif
     };
 

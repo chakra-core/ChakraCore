@@ -8,16 +8,27 @@ const jsBeautify = require("js-beautify");
 const fs = require("fs-extra");
 const stringArgv = require("string-argv");
 const {execFile, spawn} = require("child_process");
+const which = require("which");
+const slash = require("slash");
 
 const rlRoot = path.join(__dirname, "..");
 const baselineDir = path.join(rlRoot, "baselines");
 
 const argv = require("yargs")
+  .help()
+  .alias("help", "h")
   .options({
     bin: {
       string: true,
       alias: "b",
       description: "Path to wast2wasm exe",
+      default: (() => {
+        try {
+          return which.sync("wast2wasm");
+        } catch (e) {
+          return undefined;
+        }
+      })(),
       demand: true,
     },
     suite: {
@@ -40,6 +51,34 @@ const argv = require("yargs")
       description: "Spec tests to exclude from the conversion (use for known failures)",
       default: []
     },
+    "xplat-excludes": {
+      array: true,
+      description: "Spec tests to exclude when running on xplat (use for known failures)",
+      default: [
+        "address",
+        "binary",
+        "call",
+        "call_indirect",
+        "chakra_i64",
+        "conversions",
+        "fac",
+        "func_ptrs",
+        "i32",
+        "i64",
+        "imports",
+        "int_exprs",
+        "linking",
+        "memory_trap",
+        "page",
+        "resizing",
+        "select",
+        "skip-stack-guard-page",
+        "start",
+        "traps",
+        "unreachable",
+        "unwind"
+      ]
+    },
     rebase: {
       string: true,
       description: "Path to host to run the test create/update the baselines"
@@ -49,6 +88,9 @@ const argv = require("yargs")
 
 // Make sure all arguments are valid
 argv.output = path.resolve(argv.output);
+if(typeof argv.bin == 'undefined') {
+  throw new Error("Unable to automatically find wast2wasm; please specify it with --bin");
+}
 fs.statSync(argv.bin).isFile();
 fs.statSync(argv.suite).isDirectory();
 
@@ -57,27 +99,30 @@ function changeExtension(filename, from, to) {
 }
 
 function convertTest(filename) {
-  return new Promise(resolve => {
-    execFile(argv.bin, [
-      filename,
-      "--spec",
-      "-o", path.join(argv.output, changeExtension(filename, ".wast", ".json"))
-    ], () => {
-      // If an error occurs here, handle manually
-      // There are official test files that raise errors when converting and it's normal
-      resolve();
-    });
+  const testDir = path.dirname(filename);
+  const outputPath = path.join(argv.output, changeExtension(filename, ".wast", ".json"));
+  const args = [
+    path.basename(filename),
+    "--spec",
+    "--no-check",
+    "-o", outputPath
+  ];
+  console.log(`${testDir}: ${argv.bin} ${args.join(" ")}`);
+  return new Promise((resolve, reject) => {
+    execFile(argv.bin, args, {
+      cwd: testDir
+    }, err => err ? reject(err) : resolve());
   });
 }
 
 function hostFlags(specFile, {useFullpath} = {}) {
-  return `-on:wasm -args ${
-    useFullpath ? specFile : path.relative(rlRoot, specFile)
+  return `-wasm -args ${
+    useFullpath ? specFile : slash(path.relative(rlRoot, specFile))
   } -endargs`;
 }
 
 function getBaselinePath(specFile) {
-  return `${path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, ".json")))}.baseline`;
+  return `${slash(path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, ".json"))))}.baseline`;
 }
 
 function removePossiblyEmptyFolder(folder) {
@@ -101,7 +146,7 @@ function main() {
     removePossiblyEmptyFolder(chakraTestsDestination),
   ]).then(() => {
     fs.ensureDirSync(chakraTestsDestination);
-    return Promise.all(chakraTests.map(test => test.getContent(argv)
+    return Promise.all(chakraTests.map(test => test.getContent(argv.suite)
       .then(content => new Promise((resolve, reject) => {
         if (!content) {
           return resolve();
@@ -127,26 +172,11 @@ function main() {
       .on("data", item => {
         if (
           path.extname(item.path) === ".wast" &&
+          item.path.indexOf(".fail") === -1 &&
           !argv.excludes.includes(path.basename(item.path, ".wast"))
         ) {
           conversions.push(convertTest(item.path));
         }
-        /*
-        else if(path.extname(item.path) === ".js") {
-          const wastFilePath = path.join(path.dirname(item.path), changeExtension(item.path, ".js", ".wast"));
-          conversions.push(
-            (new Promise((resolve, reject) => {
-              const testDetails = require(item.path);
-              fs.writeFile(wastFilePath, `;;AUTO-GENERATED do not modify\n${testDetails}`, err => {
-                if (err) {
-                  return reject(err);
-                }
-                resolve();
-              });
-            }))
-            .then(() => convertTest(wastFilePath))
-          );
-        }*/
       })
       .on("end", () => {
         Promise.all(conversions).then(resolve, reject);
@@ -161,20 +191,15 @@ function main() {
         .map(file => path.join(argv.output, file))
       );
     })
-  )).then(specFiles => {
+  ))/*.then(specFiles => {
     const cleanFullPaths = specFiles.map(specFile => new Promise((resolve, reject) => {
       const specDescription = require(specFile);
-      for (const module of specDescription.modules) {
-        for (const command of module.commands) {
-          // Remove hardcoded path here
-          command.file = path.basename(command.file);
-        }
-      }
+      specDescription.source_filename = slash(path.basename(specDescription.source_filename));
       fs.writeFile(
         specFile,
         jsBeautify(
           JSON.stringify(specDescription),
-          {indent_size: 2, end_with_newline: true}
+          {indent_size: 2, end_with_newline: true, wrap_line_length: 200}
         ), err => {
           if (err) {
             return reject(err);
@@ -183,24 +208,45 @@ function main() {
         }
       );
     }));
+    return Promise.all(cleanFullPaths).then(() => Promise.resolve(specFiles));
+  })*/.then(specFiles => {
+    const runs = specFiles.map(specFile => {
+      const isXplatExcluded = argv.xplatExcludes.indexOf(path.basename(specFile, ".json")) !== -1;
+      const baseline = getBaselinePath(specFile);
+      const flags = hostFlags(specFile);
+      const tests = [{
+        tags: [],
+        baseline: baseline,
+        flags: [flags]
+      }, {
+        tags: ["exclude_dynapogo"],
+        baseline: baseline,
+        flags: [flags, "-nonative"]
+      }]
+      if (isXplatExcluded) {
+        for (const test of tests) test.tags.push("exclude_xplat");
+      }
+      return tests;
+    });
     const rlexe = (
 `<?xml version="1.0" encoding="utf-8"?>
 <!-- Auto Generated by convert-test-suite -->
 <regress-exe>${
-  specFiles.map(specFile => `
+  runs.map(run => run.map(test => `
   <test>
     <default>
       <files>spec.js</files>
-      <baseline>${getBaselinePath(specFile)}</baseline>
-      <compile-flags>${hostFlags(specFile)}</compile-flags>
+      <baseline>${test.baseline}</baseline>
+      <compile-flags>${test.flags.join(" ")}</compile-flags>${test.tags.length > 0 ? `
+      <tags>${test.tags.join(",")}</tags>` : ""}
     </default>
-  </test>`
-  ).join("")
+  </test>`).join("")).join("")
 }
 </regress-exe>
 `);
-    fs.writeFileSync(path.join(__dirname, "..", "rlexe.xml"), rlexe);
-    return Promise.all(cleanFullPaths).then(() => Promise.resolve(specFiles));
+    return new Promise((resolve, reject) => {
+      fs.writeFile(path.join(__dirname, "..", "rlexe.xml"), rlexe, err => err ? reject(err) : resolve(specFiles));
+    });
   }).then(specFiles => {
     if (!argv.rebase) {
       return;

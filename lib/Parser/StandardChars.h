@@ -243,6 +243,8 @@ namespace UnifiedRegex
         static const Char* const whitespaceStr;
         static const int numWordPairs;
         static const Char* const wordStr;
+        static const int numWordIUPairs;
+        static const Char* const wordIUStr;
         static const int numNewlinePairs;
         static const Char* const newlineStr;
 
@@ -257,6 +259,8 @@ namespace UnifiedRegex
         CharSet<Char>* emptySet;
         CharSet<Char>* wordSet;
         CharSet<Char>* nonWordSet;
+        CharSet<Char>* wordIUSet;
+        CharSet<Char>* nonWordIUSet;
         CharSet<Char>* newlineSet;
         CharSet<Char>* whitespaceSet;
         CharSet<Char>* surrogateUpperRange;
@@ -279,7 +283,7 @@ namespace UnifiedRegex
             if (CTU(c) < ASCIIChars::NumChars)
                 return ASCIIChars::IsWhitespace(ASCIIChars::UTC(CTU(c)));
             else
-                return CTU(c) == 0x1680 || CTU(c) == 0x180e || (CTU(c) >= 0x2000 && CTU(c) <= 0x200a) ||
+                return CTU(c) == 0x1680 || (CTU(c) >= 0x2000 && CTU(c) <= 0x200a) ||
                        CTU(c) == 0x2028 || CTU(c) == 0x2029 || CTU(c) == 0x202f || CTU(c) == 0x205f ||
                        CTU(c) == 0x3000 || CTU(c) == 0xfeff;
         }
@@ -315,6 +319,8 @@ namespace UnifiedRegex
         void SetNonWhitespace(ArenaAllocator* setAllocator, CharSet<Char> &set);
         void SetWordChars(ArenaAllocator* setAllocator, CharSet<Char> &set);
         void SetNonWordChars(ArenaAllocator* setAllocator, CharSet<Char> &set);
+        void SetWordIUChars(ArenaAllocator* setAllocator, CharSet<Char> &set);
+        void SetNonWordIUChars(ArenaAllocator* setAllocator, CharSet<Char> &set);
         void SetNewline(ArenaAllocator* setAllocator, CharSet<Char> &set);
         void SetNonNewline(ArenaAllocator* setAllocator, CharSet<Char> &set);
 

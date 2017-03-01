@@ -242,7 +242,14 @@ namespace Js
 
     BOOL JavascriptSymbol::Equals(JavascriptSymbol* left, Var right, BOOL* value, ScriptContext * requestContext)
     {
-        switch (JavascriptOperators::GetTypeId(right))
+        TypeId typeId = JavascriptOperators::GetTypeId(right);
+        if (typeId != TypeIds_Symbol && typeId != TypeIds_SymbolObject)
+        {
+            right = JavascriptConversion::ToPrimitive(right, JavascriptHint::None, requestContext);
+            typeId = JavascriptOperators::GetTypeId(right);
+        }
+
+        switch (typeId)
         {
         case TypeIds_Symbol:
             *value = left->GetValue() == JavascriptSymbol::FromVar(right)->GetValue();
@@ -251,7 +258,7 @@ namespace Js
             *value = left->GetValue() == JavascriptSymbolObject::FromVar(right)->GetValue();
             break;
         default:
-            *value = JavascriptOperators::Equal_Full(right, left, requestContext);
+            *value = FALSE;
             break;
         }
 

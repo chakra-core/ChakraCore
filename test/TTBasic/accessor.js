@@ -62,4 +62,6 @@ function testFunction()
     oNotWritable.p = 10;
     telemetryLog(`oWritable.p: ${oWritable.p}`, true); //10
     telemetryLog(`oNotWritable.p: ${oNotWritable.p}`, true); //undef
+
+    emitTTDLog(ttdLogURI);
 }

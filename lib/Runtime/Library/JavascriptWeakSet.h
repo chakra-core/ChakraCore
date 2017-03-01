@@ -11,7 +11,7 @@ namespace Js
     private:
         typedef JsUtil::WeaklyReferencedKeyDictionary<DynamicObject, bool, RecyclerPointerComparer<const DynamicObject*>> KeySet;
 
-        KeySet keySet;
+        Field(KeySet) keySet;
 
         DEFINE_VTABLE_CTOR_MEMBER_INIT(JavascriptWeakSet, DynamicObject, keySet);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptWeakSet);

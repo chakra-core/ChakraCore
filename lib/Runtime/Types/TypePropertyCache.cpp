@@ -10,7 +10,8 @@ namespace Js
     // TypePropertyCacheElement
     // -------------------------------------------------------------------------------------------------------------------------
 
-    TypePropertyCacheElement::TypePropertyCacheElement() : id(Constants::NoProperty), tag(1), index(0), prototypeObjectWithProperty(0)
+    TypePropertyCacheElement::TypePropertyCacheElement()
+        : id(Constants::NoProperty), tag(1), index(0), prototypeObjectWithProperty(nullptr)
     {
     }
 
@@ -58,7 +59,7 @@ namespace Js
         this->isInlineSlot = isInlineSlot;
         this->isSetPropertyAllowed = isSetPropertyAllowed;
         this->isMissing = false;
-        this->prototypeObjectWithProperty = 0;
+        this->prototypeObjectWithProperty = nullptr;
     }
 
     void TypePropertyCacheElement::Cache(

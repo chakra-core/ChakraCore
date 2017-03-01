@@ -9,7 +9,7 @@ namespace Js
     class JavascriptSIMDType : public RecyclableObject
     {
     protected:
-        SIMDValue value;
+        Field(SIMDValue) value;
     public:
         DEFINE_VTABLE_CTOR(JavascriptSIMDType, RecyclableObject);
         JavascriptSIMDType(StaticType *type);

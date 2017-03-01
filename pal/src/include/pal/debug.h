@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -13,7 +13,7 @@ Module Name:
 
 Abstract:
 
-    Debug API utility functions 
+    Debug API utility functions
 
 
 
@@ -35,7 +35,7 @@ Function :
 
 (no parameters, no return value)
 --*/
-extern "C" VOID 
+extern "C" VOID
 DBG_DebugBreak();
 
 /*++
@@ -66,19 +66,6 @@ BOOL
 DBG_FlushInstructionCache(
                       IN LPCVOID lpBaseAddress,
                       IN SIZE_T dwSize);
-
-#if defined(__APPLE__)
-/*++
-Function:
-    DBG_CheckStackAlignment
-    
-    The Apple ABI requires 16-byte alignment on the stack pointer.
-    This function traps/interrupts otherwise.
---*/
-VOID
-DBG_CheckStackAlignment();
-#endif                       
-                      
 
 #ifdef __cplusplus
 }

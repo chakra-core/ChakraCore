@@ -29,6 +29,7 @@ PHASE(All)
         PHASE(ByteCodeSerialization)
             PHASE(VariableIntEncoding)
         PHASE(NativeCodeSerialization)
+        PHASE(OptimizeBlockScope)
     PHASE(Delay)
         PHASE(Speculation)
         PHASE(GatherCodeGenData)
@@ -39,7 +40,6 @@ PHASE(All)
         PHASE(WasmLEB128)
         PHASE(WasmFunctionBody)
         PHASE(WasmDeferred)
-        PHASE(WasmNativeTypeCallTest)
         PHASE(WasmValidatePrejit)
     PHASE(Asmjs)
         PHASE(AsmjsTmpRegisterAllocation)
@@ -206,6 +206,7 @@ PHASE(All)
                 PHASE(FrameDisplayFastPath)
                 PHASE(HoistMarkTempInit)
                 PHASE(HoistConstAddr)
+            PHASE(JitWriteBarrier)
             PHASE(PreLowererPeeps)
             PHASE(CFGInJit)
             PHASE(TypedArray)
@@ -380,6 +381,12 @@ PHASE(All)
     #define DEFAULT_CONFIG_SIMDJS               (false)
 #endif
 #define DEFAULT_CONFIG_WASM               (false)
+#define DEFAULT_CONFIG_WasmI64            (false)
+#if ENABLE_FAST_ARRAYBUFFER
+    #define DEFAULT_CONFIG_WasmFastArray    (true)
+#else
+    #define DEFAULT_CONFIG_WasmFastArray    (false)
+#endif
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo     (true)
@@ -649,13 +656,19 @@ PHASE(All)
 #define DEFAULT_CONFIG_EnumerationCompat    (false)
 #define DEFAULT_CONFIG_ConcurrentRuntime (false)
 #define DEFAULT_CONFIG_PrimeRecycler     (false)
+#if defined(_WIN32)
 #define DEFAULT_CONFIG_PrivateHeap       (true)
+#else // defined(_WIN32)
+// Don't use PrivateHeap on xplat where we statically link and override new/delete
+#define DEFAULT_CONFIG_PrivateHeap       (false)
+#endif // defined(_WIN32)
 #define DEFAULT_CONFIG_DisableRentalThreading (false)
 #define DEFAULT_CONFIG_DisableDebugObject (false)
 #define DEFAULT_CONFIG_DumpHeap (false)
 #define DEFAULT_CONFIG_PerfHintLevel (1)
 #define DEFAULT_CONFIG_OOPJITMissingOpts (true)
 #define DEFAULT_CONFIG_OOPCFGRegistration (true)
+#define DEFAULT_CONFIG_RPCFailFastWait (3000)
 
 #define DEFAULT_CONFIG_FailFastIfDisconnectedDelegate    (false)
 
@@ -715,6 +728,18 @@ PHASE(All)
 #if defined(_M_IX86) || defined(_M_X64)
 #define DEFAULT_CONFIG_ZeroMemoryWithNonTemporalStore (true)
 #endif
+
+#define DEFAULT_CONFIG_StrictWriteBarrierCheck  (false)
+#define DEFAULT_CONFIG_KeepRecyclerTrackData  (false)
+#define DEFAULT_CONFIG_EnableBGFreeZero (true)
+
+#if !GLOBAL_ENABLE_WRITE_BARRIER
+#define DEFAULT_CONFIG_ForceSoftwareWriteBarrier  (false)
+#else
+#define DEFAULT_CONFIG_ForceSoftwareWriteBarrier  (true)
+#endif
+#define DEFAULT_CONFIG_WriteBarrierTest (false)
+#define DEFAULT_CONFIG_VerifyBarrierBit  (false)
 
 #define TraceLevel_Error        (1)
 #define TraceLevel_Warning      (2)
@@ -816,6 +841,7 @@ PHASE(All)
 #if DBG
 FLAGNR(Boolean, ArrayValidate         , "Validate each array for valid elements (default: false)", false)
 FLAGNR(Boolean, MemOpMissingValueValidate, "Validate Missing Value Tracking on memset/memcopy", false)
+FLAGNR(Boolean, OOPJITFixupValidate, "Validate that all entries in fixup list are allocated as NativeCodeData and that all NativeCodeData gets fixed up", false)
 #endif
 #ifdef ARENA_MEMORY_VERIFY
 FLAGNR(Boolean, ArenaNoFreeList       , "Do not free list in arena", false)
@@ -828,6 +854,8 @@ FLAGNR(String,  AsmDumpMode           , "Dump the final assembly to a file witho
 FLAGR (Boolean, Asmjs                 , "Enable Asmjs", DEFAULT_CONFIG_ASMJS)
 FLAGNR(Boolean, AsmJsStopOnError      , "Stop execution on any AsmJs validation errors", DEFAULT_CONFIG_AsmJsStopOnError)
 FLAGNR(Boolean, AsmJsEdge             , "Enable asm.js features which may have backward incompatible changes or not validate on old demos", DEFAULT_CONFIG_AsmJsEdge)
+FLAGNR(Boolean, WasmI64               , "Enable Int64 testing for WebAssembly. ArgIns can be [number,string,{low:number,high:number}]. Return values will be {low:number,high:number}", DEFAULT_CONFIG_WasmI64)
+FLAGNR(Boolean, WasmFastArray         , "Enable fast array implementation for WebAssembly", DEFAULT_CONFIG_WasmFastArray)
 
 #ifndef COMPILE_DISABLE_Simdjs
     #define COMPILE_DISABLE_Simdjs 0
@@ -1205,6 +1233,7 @@ FLAGNR(Boolean, NoDeferParse          , "Disable deferred parsing", false)
 FLAGNR(Boolean, NoLogo                , "No logo, which we don't display anyways", false)
 FLAGNR(Boolean, OOPJITMissingOpts     , "Use optimizations that are missing from OOP JIT", DEFAULT_CONFIG_OOPJITMissingOpts)
 FLAGNR(Boolean, OOPCFGRegistration    , "Do CFG registration OOP (under OOP JIT)", DEFAULT_CONFIG_OOPCFGRegistration)
+FLAGNR(Number,  RPCFailFastWait       , "Wait time for JIT process termination before triggering failfast on RPC failure", DEFAULT_CONFIG_RPCFailFastWait)
 #ifdef _ARM64_
 FLAGR (Boolean, NoNative              , "Disable native codegen", true)
 #else
@@ -1484,6 +1513,14 @@ FLAGNR(Boolean, CFG, "Force enable CFG on jshost. version in the jshost's manife
 
 FLAGR(Number, JITServerIdleTimeout, "Idle timeout in seconds to do the cleanup in JIT server", 10)
 FLAGR(Number, JITServerMaxInactivePageAllocatorCount, "Max inactive page allocators to keep before schedule a cleanup", 10)
+
+FLAGNR(Boolean, StrictWriteBarrierCheck, "Check write barrier setting on none write barrier pages", DEFAULT_CONFIG_StrictWriteBarrierCheck)
+FLAGNR(Boolean, WriteBarrierTest, "Always return true while checking barrier to test recycler regardless of annotation", DEFAULT_CONFIG_WriteBarrierTest)
+FLAGNR(Boolean, ForceSoftwareWriteBarrier, "Use to turn off write watch to test software write barrier on windows", DEFAULT_CONFIG_ForceSoftwareWriteBarrier)
+FLAGNR(Boolean, VerifyBarrierBit, "Verify software write barrier bit is set while marking", DEFAULT_CONFIG_VerifyBarrierBit)
+FLAGNR(Boolean, EnableBGFreeZero, "Use to turn off background freeing and zeroing to simulate linux", DEFAULT_CONFIG_EnableBGFreeZero)
+FLAGNR(Boolean, KeepRecyclerTrackData, "Keep recycler track data after sweep until reuse", DEFAULT_CONFIG_KeepRecyclerTrackData)
+
 #undef FLAG_REGOVR_EXP
 #undef FLAG_REGOVR_ASMJS
 

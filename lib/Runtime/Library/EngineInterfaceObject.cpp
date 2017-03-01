@@ -95,18 +95,18 @@ namespace Js
         }
     }
 
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::GetErrorMessage(EngineInterfaceObject::Entry_GetErrorMessage);
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::LogDebugMessage(EngineInterfaceObject::Entry_LogDebugMessage);
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::TagPublicLibraryCode(EngineInterfaceObject::Entry_TagPublicLibraryCode);
+    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::GetErrorMessage(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_GetErrorMessage));
+    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::LogDebugMessage(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_LogDebugMessage));
+    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::TagPublicLibraryCode(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::Entry_TagPublicLibraryCode));
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::Intl_BuiltIn_##global##_##method##(global##::##method##); \
+    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::Intl_BuiltIn_##global##_##method##(FORCE_NO_WRITE_BARRIER_TAG(global##::##method##)); \
 
 #define GlobalBuiltInConstructor(global)
 
 #define BuiltInRaiseException(exceptionType, exceptionID) \
-    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::Intl_BuiltIn_raise##exceptionID(EngineInterfaceObject::EntryIntl_BuiltIn_raise##exceptionID); \
+    NoProfileFunctionInfo EngineInterfaceObject::EntryInfo::Intl_BuiltIn_raise##exceptionID(FORCE_NO_WRITE_BARRIER_TAG(EngineInterfaceObject::EntryIntl_BuiltIn_raise##exceptionID)); \
 
 #define BuiltInRaiseException1(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)
 #define BuiltInRaiseException2(exceptionType, exceptionID) BuiltInRaiseException(exceptionType, exceptionID)

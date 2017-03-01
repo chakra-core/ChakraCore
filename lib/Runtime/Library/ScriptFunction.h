@@ -28,13 +28,13 @@ namespace Js
     class ScriptFunction : public ScriptFunctionBase
     {
     private:
-        FrameDisplay* environment;  // Optional environment, for closures
-        ActivationObjectEx *cachedScopeObj;
-        Var homeObj;
-        Var computedNameVar;
-        bool hasInlineCaches;
-        bool hasSuperReference;
-        bool isActiveScript;
+        Field(FrameDisplay*) environment;  // Optional environment, for closures
+        Field(ActivationObjectEx *) cachedScopeObj;
+        Field(Var) homeObj;
+        Field(Var) computedNameVar;
+        Field(bool) hasInlineCaches;
+        Field(bool) hasSuperReference;
+        Field(bool) isActiveScript;
 
         Var FormatToString(JavascriptString* inputString);
     protected:
@@ -120,8 +120,8 @@ namespace Js
         static bool IsWasmScriptFunction(Var func);
         static AsmJsScriptFunction* FromVar(Var func);
 
-        void SetModuleMemory(Var* mem) { m_moduleMemory = mem; }
-        Var * GetModuleMemory() const { return m_moduleMemory; }
+        void SetModuleMemory(Field(Var)* mem) { m_moduleMemory = mem; }
+        Field(Var)* GetModuleMemory() const { return m_moduleMemory; }
 
 #ifdef ENABLE_WASM
         void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
@@ -135,27 +135,27 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(AsmJsScriptFunction);
 
     private:
-        Var * m_moduleMemory;
-        Wasm::WasmSignature * m_signature;
+        Field(Field(Var)*) m_moduleMemory;
+        Field(Wasm::WasmSignature *) m_signature;
     };
 
     class ScriptFunctionWithInlineCache : public ScriptFunction
     {
     private:
-        void** m_inlineCaches;
-        bool hasOwnInlineCaches;
+        Field(Field(void*)*) m_inlineCaches;
+        Field(bool) hasOwnInlineCaches;
 
 #if DBG
 #define InlineCacheTypeNone         0x00
 #define InlineCacheTypeInlineCache  0x01
 #define InlineCacheTypeIsInst       0x02
-        byte * m_inlineCacheTypes;
+        Field(byte *) m_inlineCacheTypes;
 #endif
-        uint inlineCacheCount;
-        uint rootObjectLoadInlineCacheStart;
-        uint rootObjectLoadMethodInlineCacheStart;
-        uint rootObjectStoreInlineCacheStart;
-        uint isInstInlineCacheCount;
+        Field(uint) inlineCacheCount;
+        Field(uint) rootObjectLoadInlineCacheStart;
+        Field(uint) rootObjectLoadMethodInlineCacheStart;
+        Field(uint) rootObjectStoreInlineCacheStart;
+        Field(uint) isInstInlineCacheCount;
 
     protected:
         ScriptFunctionWithInlineCache(DynamicType * type);
@@ -173,7 +173,8 @@ namespace Js
         void ClearBorrowedInlineCacheOnFunctionObject();
         InlineCache * GetInlineCache(uint index);
         uint GetInlineCacheCount() { return inlineCacheCount; }
-        void** GetInlineCaches() { return m_inlineCaches; }
+        Field(void*)* GetInlineCaches() { return m_inlineCaches; }
+        bool GetHasOwnInlineCaches() { return hasOwnInlineCaches; }
         void SetInlineCachesFromFunctionBody();
         static uint32 GetOffsetOfInlineCaches() { return offsetof(ScriptFunctionWithInlineCache, m_inlineCaches); };
         template<bool isShutdown>

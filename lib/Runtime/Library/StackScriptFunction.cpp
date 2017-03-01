@@ -286,7 +286,7 @@ namespace Js
 
                         if (callerFunctionBody->DoStackFrameDisplay())
                         {
-                            Js::FrameDisplay *stackFrameDisplay = 
+                            Js::FrameDisplay *stackFrameDisplay =
                                 this->GetFrameDisplayFromNativeFrame(walker, callerFunctionBody);
                             // Local frame display may be null if bailout didn't restore it, which means we don't need it.
                             if (stackFrameDisplay)
@@ -349,8 +349,8 @@ namespace Js
                         ScopeSlots slots(slotArray);
                         if (slots.IsFunctionScopeSlotArray())
                         {
-                            FunctionBody *functionBody = slots.GetFunctionBody();
-                            if (this->NeedBoxFrame(functionBody))
+                            FunctionProxy *functionProxy = slots.GetFunctionInfo()->GetFunctionProxy();
+                            if (functionProxy->IsFunctionBody() && this->NeedBoxFrame(functionProxy->GetFunctionBody()))
                             {
                                 break;
                             }
@@ -655,25 +655,25 @@ namespace Js
     {
         Assert(slotArray != nullptr);
         Assert(count != 0);
-        Var * boxedSlotArray;
+        Field(Var) * boxedSlotArray;
         if (boxedValues.TryGetValue(slotArray, (void **)&boxedSlotArray))
         {
-            return boxedSlotArray;
+            return (Var*)boxedSlotArray;
         }
 
         if (!ThreadContext::IsOnStack(slotArray))
         {
-            boxedSlotArray = slotArray;
+            boxedSlotArray = (Field(Var)*)slotArray;
         }
         else
         {
             // Create new scope slots when we allocate them on the stack
-            boxedSlotArray = RecyclerNewArray(scriptContext->GetRecycler(), Var, count + ScopeSlots::FirstSlotIndex);
+            boxedSlotArray = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), count + ScopeSlots::FirstSlotIndex);
         }
         boxedValues.Add(slotArray, boxedSlotArray);
 
         ScopeSlots scopeSlots(slotArray);
-        ScopeSlots boxedScopeSlots(boxedSlotArray);
+        ScopeSlots boxedScopeSlots((Js::Var*)boxedSlotArray);
 
         boxedScopeSlots.SetCount(count);
         boxedScopeSlots.SetScopeMetadata(scopeSlots.GetScopeMetadataRaw());
@@ -689,7 +689,7 @@ namespace Js
             }
             boxedScopeSlots.Set(i, slotValue);
         }
-        return boxedSlotArray;
+        return (Var*)boxedSlotArray;
     }
 
     ScriptFunction * StackScriptFunction::BoxState::BoxStackFunction(ScriptFunction * scriptFunction)
@@ -730,7 +730,8 @@ namespace Js
         }
 
         FunctionInfo * functionInfo = stackFunction->GetFunctionInfo();
-        boxedFunction = ScriptFunction::OP_NewScFunc(boxedFrameDisplay, &functionInfo);
+        boxedFunction = ScriptFunction::OP_NewScFunc(boxedFrameDisplay,
+            reinterpret_cast<FunctionInfoPtrPtr>(&functionInfo));
         stackFunction->boxedScriptFunction = boxedFunction;
         stackFunction->SetEnvironment(boxedFrameDisplay);
         return boxedFunction;

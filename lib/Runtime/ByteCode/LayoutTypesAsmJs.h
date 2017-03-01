@@ -118,6 +118,7 @@ LAYOUT_TYPE_DUP       ( StartCall     )
 LAYOUT_TYPE_DUP       ( Empty         )
 
 LAYOUT_TYPE_WMS       ( AsmTypedArr   )
+LAYOUT_TYPE_WMS       ( WasmMemAccess )
 LAYOUT_TYPE_WMS       ( AsmCall       )
 LAYOUT_TYPE           ( AsmBr         )
 LAYOUT_TYPE_WMS       ( AsmReg1       ) // Generic layout with 1 RegSlot

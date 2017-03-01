@@ -10,9 +10,19 @@ import "wtypes.idl";
 #endif
 
 #if defined(_M_IX86) || defined(_M_ARM)
+#ifdef __midl
+#define CHAKRA_WB_PTR int
+#else
+#define CHAKRA_WB_PTR void*
+#endif
 #define CHAKRA_PTR int
 #define BV_SHIFT 5
 #elif defined(_M_X64) || defined(_M_ARM64)
+#ifdef __midl
+#define CHAKRA_WB_PTR __int64
+#else
+#define CHAKRA_WB_PTR void*
+#endif
 #define CHAKRA_PTR __int64
 #define BV_SHIFT 6
 #endif
@@ -23,24 +33,18 @@ import "wtypes.idl";
 #define IDL_DEF(def)
 #endif
 
-#if defined(__midl)
-#define IDL_PAD1(num) byte struct_pad_##num;
-#define IDL_PAD2(num) short struct_pad_##num;
-#define IDL_PAD4(num) int struct_pad_##num;
-#else
-#define IDL_PAD1(num)
-#define IDL_PAD2(num)
-#define IDL_PAD4(num)
-#endif
+#define IDL_PAD1(num) IDL_Field(byte) struct_pad_##num;
+#define IDL_PAD2(num) IDL_Field(short) struct_pad_##num;
+#define IDL_PAD4(num) IDL_Field(int) struct_pad_##num;
 
-#if defined(__midl) && (defined(_M_X64) || defined(_M_ARM64))
-#define X64_PAD4(num) int struct_pad_##num;
+#if defined(_M_X64) || defined(_M_ARM64)
+#define X64_PAD4(num) IDL_Field(int) struct_pad_##num;
 #else
 #define X64_PAD4(num)
 #endif
 
-#if defined(__midl) && (defined(_M_IX86) || defined(_M_ARM))
-#define X86_PAD4(num) int struct_pad_##num;
+#if defined(_M_IX86) || defined(_M_ARM)
+#define X86_PAD4(num) IDL_Field(int) struct_pad_##num;
 #else
 #define X86_PAD4(num)
 #endif
@@ -50,6 +54,17 @@ import "wtypes.idl";
 typedef unsigned char boolean;
 #endif
 #endif
+
+#ifdef __midl
+#define IDL_Field(type)             type
+#define IDL_FieldNoBarrier(type)    type
+#else
+#define IDL_Field(type)             Field(type)
+#define IDL_FieldNoBarrier(type)    FieldNoBarrier(type)
+#endif
+
+#ifndef __JITTypes_h__
+#define __JITTypes_h__
 
 // TODO: OOP JIT, how do we make this better?
 const int VTABLE_COUNT = 47;
@@ -63,30 +78,30 @@ typedef IDL_DEF([ref]) PSCRIPTCONTEXT_HANDLE * PPSCRIPTCONTEXT_HANDLE;
 
 typedef struct TypeHandlerIDL
 {
-    boolean isObjectHeaderInlinedTypeHandler;
-    boolean isLocked;
+    IDL_Field(boolean) isObjectHeaderInlinedTypeHandler;
+    IDL_Field(boolean) isLocked;
 
-    unsigned short inlineSlotCapacity;
-    unsigned short offsetOfInlineSlots;
+    IDL_Field(unsigned short) inlineSlotCapacity;
+    IDL_Field(unsigned short) offsetOfInlineSlots;
     IDL_PAD2(0)
     X64_PAD4(1)
-    int slotCapacity;
+    IDL_Field(int) slotCapacity;
 } TypeHandlerIDL;
 
 typedef struct TypeIDL
 {
-    unsigned char flags;
-    boolean isShared;
+    IDL_Field(unsigned char) flags;
+    IDL_Field(boolean) isShared;
     IDL_PAD2(0)
-    int typeId;
+    IDL_Field(int) typeId;
 
-    CHAKRA_PTR libAddr;
-    CHAKRA_PTR protoAddr;
-    CHAKRA_PTR entrypointAddr;
-    CHAKRA_PTR propertyCacheAddr;
-    CHAKRA_PTR addr;
+    IDL_Field(CHAKRA_WB_PTR) libAddr;
+    IDL_Field(CHAKRA_WB_PTR) protoAddr;
+    IDL_Field(CHAKRA_PTR) entrypointAddr;
+    IDL_Field(CHAKRA_WB_PTR) propertyCacheAddr;
+    IDL_Field(CHAKRA_WB_PTR) addr;
 
-    TypeHandlerIDL handler;
+    IDL_Field(TypeHandlerIDL) handler;
 } TypeIDL;
 
 typedef struct EquivalentTypeSetIDL
@@ -112,22 +127,22 @@ typedef struct FixedFieldIDL
 
 typedef struct JITTimeConstructorCacheIDL
 {
-    boolean skipNewScObject;
-    boolean ctorHasNoExplicitReturnValue;
-    boolean typeIsFinal;
-    boolean isUsed;
+    IDL_Field(boolean) skipNewScObject;
+    IDL_Field(boolean) ctorHasNoExplicitReturnValue;
+    IDL_Field(boolean) typeIsFinal;
+    IDL_Field(boolean) isUsed;
 
-    short inlineSlotCount;
+    IDL_Field(short) inlineSlotCount;
 
     IDL_PAD2(0)
-    int slotCount;
+    IDL_Field(int) slotCount;
 
     X64_PAD4(1)
-    TypeIDL type;
+    IDL_Field(TypeIDL) type;
 
-    CHAKRA_PTR runtimeCacheAddr;
-    CHAKRA_PTR runtimeCacheGuardAddr;
-    CHAKRA_PTR guardedPropOps;
+    IDL_Field(CHAKRA_WB_PTR) runtimeCacheAddr;
+    IDL_Field(CHAKRA_WB_PTR) runtimeCacheGuardAddr;
+    IDL_Field(CHAKRA_PTR) guardedPropOps;
 } JITTimeConstructorCacheIDL;
 
 typedef struct ObjTypeSpecFldIDL
@@ -435,7 +450,7 @@ typedef struct PropertyIdArrayIDL
 
 typedef struct JavascriptStringIDL
 {
-    IDL_DEF([size_is(m_charLength + 1)]) wchar_t* m_pszValue;
+    IDL_DEF([size_is(m_charLength + 1)]) WCHAR* m_pszValue;
     unsigned int m_charLength;
 } JavascriptStringIDL;
 
@@ -553,7 +568,7 @@ typedef struct FunctionBodyDataIDL
 
     IDL_DEF([size_is(referencedPropertyIdCount)]) int * referencedPropertyIdMap;
 
-    IDL_DEF([size_is(nameLength)]) wchar_t * displayName;
+    IDL_DEF([size_is(nameLength)]) WCHAR * displayName;
 
     IDL_DEF([size_is(literalRegexCount)]) CHAKRA_PTR * literalRegexes;
 
@@ -632,21 +647,21 @@ typedef struct XProcNumberPageSegment
 
 typedef struct PolymorphicInlineCacheIDL
 {
-    unsigned short size;
+    IDL_Field(unsigned short) size;
     IDL_PAD2(0)
     X64_PAD4(1)
-    CHAKRA_PTR addr;
-    CHAKRA_PTR inlineCachesAddr;
+    IDL_Field(CHAKRA_WB_PTR) addr;
+    IDL_Field(CHAKRA_PTR) inlineCachesAddr;
 } PolymorphicInlineCacheIDL;
 
 typedef struct PolymorphicInlineCacheInfoIDL
 {
-    unsigned int polymorphicInlineCacheCount;
-    unsigned int bogus1;
-    IDL_DEF([size_is(polymorphicInlineCacheCount)]) byte * polymorphicCacheUtilizationArray;
-    IDL_DEF([size_is(polymorphicInlineCacheCount)]) PolymorphicInlineCacheIDL * polymorphicInlineCaches;
+    IDL_Field(unsigned int) polymorphicInlineCacheCount;
+    IDL_Field(unsigned int) bogus1;
+    IDL_DEF([size_is(polymorphicInlineCacheCount)]) IDL_Field(byte *) polymorphicCacheUtilizationArray;
+    IDL_DEF([size_is(polymorphicInlineCacheCount)]) IDL_Field(PolymorphicInlineCacheIDL *) polymorphicInlineCaches;
 
-    CHAKRA_PTR functionBodyAddr;
+    IDL_Field(CHAKRA_WB_PTR) functionBodyAddr;
 } PolymorphicInlineCacheInfoIDL;
 
 // CodeGenWorkItem fields, read only in JIT
@@ -815,11 +830,18 @@ typedef struct JITOutputIDL
     __int64 startTime;
 } JITOutputIDL;
 
-typedef struct InterpreterThunkInfoIDL
+typedef struct InterpreterThunkInputIDL
+{
+    boolean asmJsThunk;
+} InterpreterThunkInputIDL;
+
+typedef struct InterpreterThunkOutputIDL
 {
     unsigned int thunkCount;
     X64_PAD4(0)
+    CHAKRA_PTR mappedBaseAddr;
     CHAKRA_PTR pdataTableStart;
     CHAKRA_PTR epilogEndAddr;
-    CHAKRA_PTR thunkBlockAddr;
-} InterpreterThunkInfoIDL;
+} InterpreterThunkOutputIDL;
+
+#endif //__JITTypes_h__

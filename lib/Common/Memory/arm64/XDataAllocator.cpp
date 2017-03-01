@@ -11,8 +11,7 @@ CompileAssert(false)
 #include "XDataAllocator.h"
 #include "Core/DelayLoadLibrary.h"
 
-XDataAllocator::XDataAllocator(BYTE* address, uint size, HANDLE processHandle) :
-    processHandle(processHandle)
+XDataAllocator::XDataAllocator(BYTE* address, uint size)
 {
     __debugbreak();
 }

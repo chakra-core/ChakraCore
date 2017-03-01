@@ -9,7 +9,7 @@
 namespace Js
 {
     IndexPropertyDescriptorMap::IndexPropertyDescriptorMap(Recycler* recycler)
-        : recycler(recycler), indexList(NULL), lastIndexAt(-1)
+        : recycler(recycler), indexList(nullptr), lastIndexAt(-1)
     {
         indexPropertyMap = RecyclerNew(recycler, InnerMap, recycler);
     }
@@ -21,7 +21,7 @@ namespace Js
             Js::Throw::OutOfMemory(); // Would possibly overflow our dictionary
         }
 
-        indexList = NULL; // Discard indexList on change
+        indexList = nullptr; // Discard indexList on change
         indexPropertyMap->Add(key, value);
     }
 
@@ -174,8 +174,8 @@ namespace Js
 
             if (descriptor->Attributes & PropertyConfigurable)
             {
-                descriptor->Getter = NULL;
-                descriptor->Setter = NULL;
+                descriptor->Getter = nullptr;
+                descriptor->Setter = nullptr;
                 descriptor->Attributes = PropertyDeleted | PropertyWritable | PropertyConfigurable;
             }
             else
@@ -371,7 +371,7 @@ namespace Js
         // Reject if we need to grow non-writable length
         if (!CanSetItemAt(arr, index))
         {
-            return false;
+            return CantExtend(flags, scriptContext);
         }
 
         IndexPropertyDescriptor* descriptor;
@@ -646,8 +646,8 @@ namespace Js
             }
 
             arr->DirectDeleteItemAt<Var>(index);
-            descriptor->Getter = NULL;
-            descriptor->Setter = NULL;
+            descriptor->Getter = nullptr;
+            descriptor->Setter = nullptr;
             descriptor->Attributes = PropertyDeleted | PropertyWritable | PropertyConfigurable;
             return true;
         }

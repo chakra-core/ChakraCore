@@ -14,17 +14,28 @@
 
 namespace Js
 {
-    // White Space characters are defined in ES6 Section 11.2
-    // There are 26 white space characters we need to correctly class:
-    //0x0009
-    //0x000a
-    //0x000b
-    //0x000c
-    //0x000d
-    //0x0020
-    //0x00a0
+    // White Space characters are defined in ES 2017 Section 11.2 #sec-white-space
+    // There are 25 white space characters we need to correctly class.
+    // - 6 of these are explicitly specified in ES 2017 Section 11.2 #sec-white-space
+    // - 15 of these are Unicode category "Zs" ("Space_Separator") and not explicitly specified above.
+    //   - Note: In total, 17 of these are Unicode category "Zs".
+    // - 4 of these are actually LineTerminator characters.
+    //   - Note: for various reasons it is convenient to group LineTerminator with Whitespace
+    //     in the definition of IsWhiteSpaceCharacter.
+    //     This does not cause problems because of the syntactic nature of LineTerminators
+    //     and their meaning of ending a line in RegExp.
+    //   - See: #sec-string.prototype.trim "The definition of white space is the union of WhiteSpace and LineTerminator."
+    // Note: ES intentionally excludes characters which have Unicode property "White_Space" but which are not "Zs".
+    // See http://www.unicode.org/Public/9.0.0/ucd/UnicodeData.txt for character classes.
+    // The 25 white space characters are:
+    //0x0009 // <TAB>
+    //0x000a // <LF> LineTerminator (LINE FEED)
+    //0x000b // <VT>
+    //0x000c // <FF>
+    //0x000d // <CR> LineTerminator (CARRIAGE RETURN)
+    //0x0020 // <SP>
+    //0x00a0 // <NBSP>
     //0x1680
-    //0x180e
     //0x2000
     //0x2001
     //0x2002
@@ -36,18 +47,18 @@ namespace Js
     //0x2008
     //0x2009
     //0x200a
-    //0x2028
-    //0x2029
+    //0x2028 // <LS> LineTerminator (LINE SEPARATOR)
+    //0x2029 // <PS> LineTerminator (PARAGRAPH SEPARATOR)
     //0x202f
     //0x205f
     //0x3000
-    //0xfeff
+    //0xfeff // <ZWNBSP>
     bool IsWhiteSpaceCharacter(char16 ch)
     {
         return ch >= 0x9 &&
             (ch <= 0xd ||
                 (ch <= 0x200a &&
-                    (ch >= 0x2000 || ch == 0x20 || ch == 0xa0 || ch == 0x1680 || ch == 0x180e)
+                    (ch >= 0x2000 || ch == 0x20 || ch == 0xa0 || ch == 0x1680)
                 ) ||
                 (ch >= 0x2028 &&
                     (ch <= 0x2029 || ch == 0x202f || ch == 0x205f || ch == 0x3000 || ch == 0xfeff)
@@ -182,7 +193,7 @@ namespace Js
     }
 
     JavascriptString::JavascriptString(StaticType * type)
-        : RecyclableObject(type), m_charLength(0), m_pszValue(0)
+        : RecyclableObject(type), m_charLength(0), m_pszValue(nullptr)
     {
         Assert(type->GetTypeId() == TypeIds_String);
     }
@@ -392,7 +403,7 @@ case_2:
         }
     }
 
-    inline JavascriptString* JavascriptString::ConcatDestructive(JavascriptString* pstRight)
+    JavascriptString* JavascriptString::ConcatDestructive(JavascriptString* pstRight)
     {
         Assert(pstRight);
 
@@ -548,7 +559,7 @@ case_2:
         return cs;
     }
 
-    inline JavascriptString* JavascriptString::Concat(JavascriptString* pstLeft, JavascriptString* pstRight)
+    JavascriptString* JavascriptString::Concat(JavascriptString* pstLeft, JavascriptString* pstRight)
     {
         AssertMsg(pstLeft != nullptr, "Must have a valid left string");
         AssertMsg(pstRight != nullptr, "Must have a valid right string");
@@ -1621,7 +1632,7 @@ case_2:
         AssertMsg(pMatch != nullptr, "Match string shouldn't be null");
         if (replacefn != nullptr)
         {
-            return RegexHelper::StringReplace(pMatch, input, replacefn);
+            return RegexHelper::StringReplace(scriptContext, pMatch, input, replacefn);
         }
         else
         {

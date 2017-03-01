@@ -1020,7 +1020,7 @@ namespace Js
         // install exception filter to smart dump for faultinjection
         // when reproing in debugger, only let debugger catch the exception
         // can't do this in ctor because the global flags are not initialized yet
-        static auto dummy = InstallExceptionFilters();
+        InstallExceptionFilters();
 
         bool validInjectionPoint = IsFaultEnabled(fType);
         if (!validInjectionPoint)
@@ -1095,7 +1095,7 @@ namespace Js
         // try to lookup stack hash, to see if it matches
         if (!shouldInjectionFault)
         {
-            const static UINT_PTR expectedHash = HexStrToAddress((LPCWSTR)globalFlags.FaultInjectionStackHash);
+            const UINT_PTR expectedHash = HexStrToAddress((LPCWSTR)globalFlags.FaultInjectionStackHash);
             if (expectedHash != 0)
             {
                 void* StackFrames[MAX_FRAME_COUNT];
@@ -1286,6 +1286,10 @@ namespace Js
             fflush(stderr);
         }
 
+        if (globalFlags.FaultInjection == InstallExceptionHandlerOnly)
+        {
+            needDump = true;
+        }
 
         // create dump for this crash
         if (needDump)

@@ -61,4 +61,6 @@ function testFunction()
         telemetryLog(`zname: ${zname === zo[idx]}`, true); //true
         idx++;    
     }
+
+    emitTTDLog(ttdLogURI);
 }

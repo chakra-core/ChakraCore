@@ -19,7 +19,7 @@
 #define ProfileEntryThunk Js::ScriptContext::DebugProfileProbeThunk
 
 #define DefaultDeferredParsingThunk Js::JavascriptFunction::DeferredParsingThunk
-#ifdef ENABLE_SCRIPT_PROFILING
+#if defined(ENABLE_SCRIPT_PROFILING) || defined(ENABLE_SCRIPT_DEBUGGING)
 #define ProfileDeferredParsingThunk Js::ScriptContext::ProfileModeDeferredParsingThunk
 #endif
 
@@ -49,6 +49,7 @@ typedef double  FloatConstType;
 #include "JnHelperMethod.h"
 #include "IRType.h"
 #include "InlineeFrameInfo.h"
+#include "CodeGenAllocators.h"
 
 NativeCodeGenerator * NewNativeCodeGenerator(Js::ScriptContext * nativeCodeGen);
 void DeleteNativeCodeGenerator(NativeCodeGenerator * nativeCodeGen);
@@ -61,7 +62,7 @@ CriticalSection *GetNativeCodeGenCriticalSection(NativeCodeGenerator *pNativeCod
 bool TryReleaseNonHiPriWorkItem(Js::ScriptContext* scriptContext, CodeGenWorkItem* workItem);
 void NativeCodeGenEnterScriptStart(NativeCodeGenerator * nativeCodeGen);
 void FreeNativeCodeGenAllocation(Js::ScriptContext* scriptContext, Js::JavascriptMethod address);
-CodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator);
+InProcCodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator);
 void GenerateFunction(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * functionBody, Js::ScriptFunction * function = NULL);
 void GenerateLoopBody(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * functionBody, Js::LoopHeader * loopHeader, Js::EntryPointInfo* entryPointInfo, uint localCount, Js::Var localSlots[]);
 #ifdef ENABLE_PREJIT

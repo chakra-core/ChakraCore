@@ -59,6 +59,9 @@ namespace TTD
         Js::RecyclableObject* FindReusableObjectIfExists(TTD_PTR_ID objid) const;
         Js::FunctionBody* FindReusableFunctionBodyIfExists(TTD_PTR_ID fbodyid) const;
 
+        //A version of FindReusableObjectIfExists but we haven't moved the last inflate objects to oldObjects yet so we need to look in a differnt location
+        Js::RecyclableObject* FindReusableObject_WellKnowReuseCheck(TTD_PTR_ID objid) const;
+
         ////
 
         Js::DynamicTypeHandler* LookupHandler(TTD_PTR_ID handlerId) const;

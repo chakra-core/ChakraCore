@@ -21,8 +21,8 @@ var script1 = WScript.LoadScript("\
   function Script1Func3() { scriptFunc3(); } \
   function setFunc2(func) { scriptFunc2 = func; } \
   function setFunc3(func) { scriptFunc3 = func; }",
-  "samethread", "Script1.js");
-  
+  "samethread");
+
 var script2 = WScript.LoadScript(" \
   var script1Func2; \
   var script1Func3; \
@@ -31,8 +31,8 @@ var script2 = WScript.LoadScript(" \
   function Script2Func3() { script1Func3(); } \
   function setFunc2(func) { script1Func2 = func; } \
   function setFunc3(func) { script1Func3 = func; }",
-  "samethread", "Script2.js");
-  
+  "samethread");
+
 function Func2() {
   Func1();
 }

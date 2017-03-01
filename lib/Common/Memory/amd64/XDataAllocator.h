@@ -62,12 +62,10 @@ private:
     uint  size;
 
     XDataAllocationEntry* freeList;
-    HANDLE processHandle;
 
 // --------- Public functions ---------/
 public:
-    XDataAllocator(BYTE* address, uint size, HANDLE processHandle);
-
+    XDataAllocator(BYTE* address, uint size);
     virtual ~XDataAllocator();
 
     bool Initialize(void* segmentStart, void* segmentEnd);
@@ -99,5 +97,4 @@ private:
 
     void ClearFreeList();
 };
-
 }

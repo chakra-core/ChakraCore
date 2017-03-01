@@ -204,12 +204,12 @@ namespace CodexTest
     {
         const charcount_t charCount = 3;
         utf8char_t encodedBuffer[(charCount + 1) * 3]; // +1 since the buffer will be null terminated
-        char16* sourceBuffer = L"abc";
+        const char16* sourceBuffer = L"abc";
         size_t numEncodedBytes = utf8::EncodeTrueUtf8IntoAndNullTerminate(encodedBuffer, sourceBuffer, charCount);
         CHECK(numEncodedBytes == charCount);
         for (int i = 0; i < charCount; i++)
         {
-            CHECK(sourceBuffer[i] == (char16)encodedBuffer[i]);
+            CHECK(sourceBuffer[i] == (const char16)encodedBuffer[i]);
         }
     }
 };

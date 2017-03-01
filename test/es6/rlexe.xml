@@ -15,13 +15,13 @@
   <test>
     <default>
       <files>lambda-params-shadow.js</files>
-      <compile-flags>-off:deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-off:deferparse -es7asyncawait</compile-flags>
     </default>
   </test>
   <test>
     <default>
       <files>lambda-params-shadow.js</files>
-      <compile-flags>-force:deferparse -args summary -endargs</compile-flags>
+      <compile-flags>-force:deferparse -es7asyncawait</compile-flags>
     </default>
   </test>
   <test>
@@ -999,6 +999,30 @@
   </test>
   <test>
     <default>
+      <files>regex-unicode-CaseInsensitive.js</files>
+    </default>
+  </test>
+  <!--
+    The following two tests take close to 60 seconds in interpreted mode on OS X test machines,
+    so increase the timeout and mark the test as Slow, since there is no need to include this test in non-Slow:
+    all of the important cases are covered in regex-unicode-CaseInsensitive.js
+  -->
+  <test>
+    <default>
+      <files>regex-unicode-CaseInsensitive-all-i.js</files>
+      <tags>Slow</tags>
+      <timeout>300</timeout>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regex-unicode-CaseInsensitive-all-iu.js</files>
+      <tags>Slow</tags>
+      <timeout>300</timeout>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>regex-set.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
     </default>
@@ -1013,6 +1037,11 @@
     <default>
       <files>regex-symbols.js</files>
       <compile-flags>-ES6RegExSymbols -ES6RegExPrototypeProperties -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>regex-w-sharp-s-kelvin-sign.js</files>
     </default>
   </test>
   <test>
@@ -1281,46 +1310,43 @@
     <tags>exclude_dynapogo, exclude_xplat</tags>
   </default>
 </test>
-  <test>
+<test>
     <default>
-      <files>moduletest1.js</files>
-      <compile-flags>-ES6Module</compile-flags>
-      <tags>exclude_dynapogo, exclude_xplat</tags>
+        <files>moduletest1.js</files>
+        <compile-flags>-ES6Module</compile-flags>
+        <tags>exclude_dynapogo</tags>
     </default>
-  </test>
+</test>
 <test>
     <default>
         <files>module-syntax.js</files>
         <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-        <tags>exclude_xplat</tags>
+        <tags>exclude_dynapogo</tags>
     </default>
 </test>
 <test>
     <default>
         <files>module-syntax1.js</files>
         <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-        <tags>exclude_xplat</tags>
     </default>
 </test>
 <test>
     <default>
         <files>module-functionality.js</files>
         <compile-flags>-ES6Module -args summary -endargs</compile-flags>
-        <tags>exclude_xplat,exclude_dynapogo</tags>
+        <tags>exclude_dynapogo</tags>
     </default>
 </test>
 <test>
     <default>
         <files>module-syntax.js</files>
         <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
-        <tags>exclude_xplat</tags>
     </default>
 </test>
 <test>
     <default>
         <files>module-syntax1.js</files>
         <compile-flags>-ES6Module -force:deferparse -args summary -endargs</compile-flags>
-        <tags>exclude_xplat</tags>
     </default>
 </test>
 <test>
@@ -1328,7 +1354,6 @@
         <files>module-namespace.js</files>
         <compile-flags>-ES6Module -Es6ToStringTag</compile-flags>
         <baseline>module-namespace.baseline</baseline>
-        <tags>exclude_xplat</tags>
     </default>
 </test>
 <test>

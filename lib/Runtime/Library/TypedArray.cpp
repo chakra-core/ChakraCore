@@ -400,39 +400,38 @@ namespace Js
         if (args.Info.Count > 1)
         {
             Var firstArgument = args[1];
-            if (TypedArrayBase::Is(firstArgument))
-            {
-                // Constructor(TypedArray array)
-                typedArraySource = static_cast<TypedArrayBase*>(firstArgument);
-                if (typedArraySource->IsDetachedBuffer())
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
-                }
-
-                elementCount = typedArraySource->GetLength();
-                if (elementCount >= ArrayBuffer::MaxArrayBufferLength/elementSize)
-                {
-                    JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayLength);
-                }
-            }
-            else if (ArrayBufferBase::Is(firstArgument))
-            {
-                // Constructor(ArrayBuffer buffer,
-                //  optional uint32 byteOffset, optional uint32 length)
-                arrayBuffer = ArrayBufferBase::FromVar(firstArgument);
-                if (arrayBuffer->IsDetached())
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
-                }
-            }
-            else if (JavascriptNumber::Is(firstArgument) ||
-                    TaggedInt::Is(firstArgument))
+            if (!Js::JavascriptOperators::IsObject(firstArgument))
             {
                 elementCount = ArrayBuffer::ToIndex(firstArgument, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
             }
             else
             {
-                if (JavascriptOperators::IsObject(firstArgument))
+                if (TypedArrayBase::Is(firstArgument))
+                {
+                    // Constructor(TypedArray array)
+                    typedArraySource = static_cast<TypedArrayBase*>(firstArgument);
+                    if (typedArraySource->IsDetachedBuffer())
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
+                    }
+
+                    elementCount = typedArraySource->GetLength();
+                    if (elementCount >= ArrayBuffer::MaxArrayBufferLength / elementSize)
+                    {
+                        JavascriptError::ThrowRangeError(scriptContext, JSERR_InvalidTypedArrayLength);
+                    }
+                }
+                else if (ArrayBufferBase::Is(firstArgument))
+                {
+                    // Constructor(ArrayBuffer buffer,
+                    //  optional uint32 byteOffset, optional uint32 length)
+                    arrayBuffer = ArrayBufferBase::FromVar(firstArgument);
+                    if (arrayBuffer->IsDetached())
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray]"));
+                    }
+                }
+                else
                 {
                     // Use GetIteratorFunction instead of GetIterator to check if it is the built-in array iterator
                     RecyclableObject* iteratorFn = JavascriptOperators::GetIteratorFunction(firstArgument, scriptContext, true /* optional */);
@@ -448,47 +447,44 @@ namespace Js
                         }
                         return CreateNewInstanceFromIterator(RecyclableObject::FromVar(iterator), scriptContext, elementSize, pfnCreateTypedArray);
                     }
-                    else if (JavascriptConversion::ToObject(firstArgument, scriptContext, &jsArraySource))
+
+                    if (!JavascriptConversion::ToObject(firstArgument, scriptContext, &jsArraySource))
                     {
-                        ArrayBuffer *temp = nullptr;
-                        HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &temp);
-                        arrayBuffer = static_cast<ArrayBufferBase *> (temp);
-                        switch (hr)
-                        {
-                        case S_OK:
-                            // We found an IBuffer
-                            fromExternalObject = true;
-                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query succeeded with HR=0x%08X\n"), hr);
-                            // We have an ArrayBuffer now, so we can skip all the object probing.
-                            break;
-
-                        case S_FALSE:
-                            // We didn't find an IBuffer - fall through
-                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n"), hr);
-                            break;
-
-                        default:
-                            // Any FAILURE HRESULT or unexpected HRESULT
-                            OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query failed with HR=0x%08X\n"), hr);
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
-                            break;
-                        }
-                        if (!fromExternalObject)
-                        {
-                            Var lengthVar = JavascriptOperators::OP_GetProperty(jsArraySource, PropertyIds::length, scriptContext);
-                            if (JavascriptOperators::GetTypeId(lengthVar) == TypeIds_Undefined)
-                            {
-                                JavascriptError::ThrowTypeError(
-                                    scriptContext, JSERR_InvalidTypedArray_Constructor);
-                            }
-
-                            elementCount = ArrayBuffer::ToIndex(lengthVar, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
-                        }
+                        // REVIEW: unclear why this JavascriptConversion::ToObject() call is being made.
+                        // It ends up calling RecyclableObject::ToObject which at least Proxy objects can
+                        // hit with non-trivial behavior.
+                        Js::Throw::FatalInternalError();
                     }
-                }
-                else
-                {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
+
+                    ArrayBuffer *temp = nullptr;
+                    HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &temp);
+                    arrayBuffer = static_cast<ArrayBufferBase *> (temp);
+                    switch (hr)
+                    {
+                    case S_OK:
+                        // We found an IBuffer
+                        fromExternalObject = true;
+                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query succeeded with HR=0x%08X\n"), hr);
+                        // We have an ArrayBuffer now, so we can skip all the object probing.
+                        break;
+
+                    case S_FALSE:
+                        // We didn't find an IBuffer - fall through
+                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query aborted safely with HR=0x%08X (non-handled type)\n"), hr);
+                        break;
+
+                    default:
+                        // Any FAILURE HRESULT or unexpected HRESULT
+                        OUTPUT_TRACE(TypedArrayPhase, _u("Projection ArrayBuffer query failed with HR=0x%08X\n"), hr);
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidTypedArray_Constructor);
+                        break;
+                    }
+
+                    if (!fromExternalObject)
+                    {
+                        Var lengthVar = JavascriptOperators::OP_GetLength(jsArraySource, scriptContext);
+                        elementCount = ArrayBuffer::ToIndex(lengthVar, JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize);
+                    }
                 }
             }
         }
@@ -512,13 +508,7 @@ namespace Js
 
             if (args.Info.Count > 3 && !JavascriptOperators::IsUndefinedObject(args[3]))
             {
-                mappedLength = ArrayBuffer::ToIndex(args[3], JSERR_InvalidTypedArrayLength, scriptContext, ArrayBuffer::MaxArrayBufferLength / elementSize, false);
-
-                if ((uint32)mappedLength > (byteLength - offset)/ elementSize)
-                {
-                    JavascriptError::ThrowRangeError(
-                        scriptContext, JSERR_InvalidTypedArrayLength);
-                }
+                mappedLength = ArrayBuffer::ToIndex(args[3], JSERR_InvalidTypedArrayLength, scriptContext, (byteLength - offset) / elementSize, false);
             }
             else
             {
@@ -530,7 +520,8 @@ namespace Js
                 mappedLength = (byteLength - offset)/elementSize;
             }
         }
-        else {
+        else
+        {
             // Null arrayBuffer - could be new constructor or copy constructor.
             byteLength = elementCount * elementSize;
             arrayBuffer = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
@@ -1058,71 +1049,6 @@ namespace Js
             hr = E_INVALIDARG;
         }
         return hr;
-
-    }
-
-    template <typename TypeName, bool clamped, bool virtualAllocated>
-    TypedArray<TypeName, clamped, virtualAllocated>::TypedArray(ArrayBufferBase* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type) :
-        TypedArrayBase(arrayBuffer, byteOffset, mappedLength, sizeof(TypeName), type)
-    {
-        AssertMsg(arrayBuffer->GetByteLength() >= byteOffset, "invalid offset");
-        AssertMsg(mappedLength*sizeof(TypeName)+byteOffset <= arrayBuffer->GetByteLength(), "invalid length");
-        buffer = arrayBuffer->GetBuffer() + byteOffset;
-        if (arrayBuffer->IsValidVirtualBufferLength(arrayBuffer->GetByteLength()) &&
-             (byteOffset == 0) &&
-             (mappedLength == (arrayBuffer->GetByteLength() / sizeof(TypeName)))
-           )
-        {
-            // update the vtable
-            switch (type->GetTypeId())
-            {
-            case TypeIds_Int8Array:
-                VirtualTableInfo<Int8VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Uint8Array:
-                VirtualTableInfo<Uint8VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Uint8ClampedArray:
-                VirtualTableInfo<Uint8ClampedVirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Int16Array:
-                VirtualTableInfo<Int16VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Uint16Array:
-                VirtualTableInfo<Uint16VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Int32Array:
-                VirtualTableInfo<Int32VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Uint32Array:
-                VirtualTableInfo<Uint32VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Float32Array:
-                VirtualTableInfo<Float32VirtualArray>::SetVirtualTable(this);
-                break;
-            case TypeIds_Float64Array:
-                VirtualTableInfo<Float64VirtualArray>::SetVirtualTable(this);
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
-    template <typename TypeName, bool clamped, bool virtualAllocated>
-    inline Var TypedArray<TypeName, clamped, virtualAllocated>::Create(ArrayBufferBase* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary)
-    {
-        uint32 totalLength, mappedByteLength;
-
-        if (UInt32Math::Mul(mappedLength, sizeof(TypeName), &mappedByteLength) ||
-            UInt32Math::Add(byteOffSet, mappedByteLength, &totalLength) ||
-            (totalLength > arrayBuffer->GetByteLength()))
-        {
-            JavascriptError::ThrowRangeError(arrayBuffer->GetScriptContext(), JSERR_InvalidTypedArrayLength);
-        }
-
-        DynamicType *type = javascriptLibrary->GetTypedArrayType<TypeName, clamped>(0);
-        return RecyclerNew(javascriptLibrary->GetRecycler(), TypedArray, arrayBuffer, byteOffSet, mappedLength, type);
 
     }
 
@@ -2238,6 +2164,12 @@ namespace Js
                 dblResult = JavascriptConversion::ToNumber_Full(retVal, scriptContext);
             }
 
+            // ToNumber may execute user-code which can cause the array to become detached
+            if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
+            }
+
             if (dblResult < 0)
             {
                 return -1;
@@ -2609,7 +2541,7 @@ namespace Js
         return Js::JavascriptNumber::ToVarNoCheck(currentRes, scriptContext);
     }
 
-    // static 
+    // static
     TypedArrayBase * TypedArrayBase::ValidateTypedArray(Arguments &args, ScriptContext *scriptContext, LPCWSTR apiName)
     {
         if (args.Info.Count == 0)
@@ -3483,18 +3415,4 @@ namespace Js
 #endif
         return object;
     }
-
-    // Instantiate the constructor function directly
-    template TypedArray<int8>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<uint8,false>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<uint8,true>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<int16>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<uint16>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<int32>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<uint32>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<float>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<double>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<int64>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<uint64>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
-    template TypedArray<bool>::TypedArray(ArrayBufferBase*, uint32, uint32, DynamicType*);
 }

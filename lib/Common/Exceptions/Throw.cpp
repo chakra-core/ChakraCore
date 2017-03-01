@@ -15,7 +15,6 @@
 
 #include "StackOverflowException.h"
 #include "AsmJsParseException.h"
-#include "InternalErrorException.h"
 #include "OutOfMemoryException.h"
 #include "NotImplementedException.h"
 
@@ -37,6 +36,7 @@ namespace Memory {
 using namespace Memory;
 #include "Memory/Allocator.h"
 #include "Memory/HeapAllocator.h"
+#include "Memory/RecyclerPointers.h"
 
 // Data structure
 #include "DataStructures/Comparer.h"
@@ -71,6 +71,7 @@ namespace Js {
         int scenario = 2;
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
     }
+
     void Throw::FatalInternalErrorEx(int scenario)
     {
         ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, scenario);
@@ -83,8 +84,7 @@ namespace Js {
 
     void Throw::InternalError()
     {
-        AssertMsg(false, "Internal error!!");
-        throw InternalErrorException();
+        AssertOrFailFastMsg(false, "Internal error!!");
     }
 
     void Throw::OutOfMemory()
@@ -253,7 +253,7 @@ namespace Js {
     {
         IsInAssert = true;
 
-#ifdef STACK_BACK_TRACE
+#if defined(GENERATE_DUMP) && defined(STACK_BACK_TRACE)
         // This should be the last thing to happen in the process. Therefore, leaks are not an issue.
         stackBackTrace = StackBackTrace::Capture(&NoCheckHeapAllocator::Instance, Throw::StackToSkip, Throw::StackTraceDepth);
 #endif

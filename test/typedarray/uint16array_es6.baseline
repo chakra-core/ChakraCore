@@ -363,11 +363,33 @@ foo == bar
 byteLength = 24
 
 test10
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Uint16Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test10.1
 succeed with catchingRangeError: Invalid offset/length when creating typed array
 test11
-succeed with catchingTypeError: Typed array constructor argument is invalid
+undefined
+constructor is
+function Uint16Array() { [native code] }
+byteLength = undefined
+object is
+
+byteLength = 0
+object after expando is
+
+foo == bar
+byteLength = 0
+
 test11.1
 10
 constructor is

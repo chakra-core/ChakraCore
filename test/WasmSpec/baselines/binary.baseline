@@ -1,0 +1,2 @@
+(5) binary.wast:6: assert_malformed module binary.4.wasm failed. Expected a compile error: TypeError: BufferSource expected
+15/16 tests passed.

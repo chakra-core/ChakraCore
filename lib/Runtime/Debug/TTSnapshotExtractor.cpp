@@ -110,7 +110,7 @@ namespace TTD
 
             if(slots.IsFunctionScopeSlotArray())
             {
-                Js::FunctionBody* fb = slots.GetFunctionBody();
+                Js::FunctionBody* fb = slots.GetFunctionInfo()->GetFunctionBody();
 
                 slotInfo->isFunctionBodyMetaData = true;
                 slotInfo->OptFunctionBodyId = TTD_CONVERT_FUNCTIONBODY_TO_PTR_ID(fb);
@@ -384,7 +384,7 @@ namespace TTD
 
                         if(slotArray.IsFunctionScopeSlotArray())
                         {
-                            this->MarkFunctionBody(slotArray.GetFunctionBody());
+                            this->MarkFunctionBody(slotArray.GetFunctionInfo()->GetFunctionBody());
                         }
 
                         for(uint j = 0; j < slotArrayCount; j++)
@@ -476,6 +476,15 @@ namespace TTD
         {
             NSSnapValues::SnapContext* snpCtx = snpCtxs.NextOpenEntry();
             NSSnapValues::ExtractScriptContext(snpCtx, threadContext->TTDContext->GetTTDContexts().Item(i), objToLogIdMap, snap->GetSnapshotSlabAllocator());
+        }
+
+        //extract the thread context symbol map info
+        JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler>* tcSymbolRegistrationMap = threadContext->GetSymbolRegistrationMap_TTD();
+        UnorderedArrayList<Js::PropertyId, TTD_ARRAY_LIST_SIZE_XSMALL>& tcSymbolMapInfo = this->m_pendingSnap->GetTCSymbolMapInfoList();
+        for(auto iter = tcSymbolRegistrationMap->GetIterator(); iter.IsValid(); iter.MoveNext())
+        {
+            Js::PropertyId* tcpid = tcSymbolMapInfo.NextOpenEntry();
+            *tcpid = iter.CurrentValue()->GetPropertyId();
         }
 
         //We extract all the global code function bodies with the context so clear their marks now

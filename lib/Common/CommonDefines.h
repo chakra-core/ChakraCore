@@ -67,6 +67,13 @@
 #define TARGET_64 1
 #endif
 
+// Memory Protections
+#ifdef _CONTROL_FLOW_GUARD
+#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE | PAGE_TARGETS_INVALID)
+#else
+#define PAGE_EXECUTE_RO_TARGETS_INVALID   (PAGE_EXECUTE)
+#endif
+
 //----------------------------------------------------------------------------------------------------
 // Enabled features
 //----------------------------------------------------------------------------------------------------
@@ -106,8 +113,6 @@
 #ifdef _WIN32
 // dep: TIME_ZONE_INFORMATION, DaylightTimeHelper, Windows.Globalization
 #define ENABLE_GLOBALIZATION
-// dep: IDebugDocumentContext
-#define ENABLE_SCRIPT_DEBUGGING
 // dep: IActiveScriptProfilerCallback, IActiveScriptProfilerHeapEnum
 #define ENABLE_SCRIPT_PROFILING
 #ifndef __clang__
@@ -118,23 +123,56 @@
 #define ENABLE_CUSTOM_ENTROPY
 #endif
 
-// GC features
+// dep: IDebugDocumentContext
+#define ENABLE_SCRIPT_DEBUGGING
 
-// Concurrent and Partial GC are disabled on non-Windows builds
-// xplat-todo: re-enable this in the future
-// These are disabled because these GC features depend on hardware
-// write-watch support that the Windows Memory Manager provides.
+// GC features
+#define BUCKETIZE_MEDIUM_ALLOCATIONS 1              // *** TODO: Won't build if disabled currently
+#define SMALLBLOCK_MEDIUM_ALLOC 1                   // *** TODO: Won't build if disabled currently
+#define LARGEHEAPBLOCK_ENCODING 1                   // Large heap block metadata encoding
+#define IDLE_DECOMMIT_ENABLED 1                     // Idle Decommit
+#define RECYCLER_PAGE_HEAP                          // PageHeap support
+
 #ifdef _WIN32
 #define SYSINFO_IMAGE_BASE_AVAILABLE 1
 #define ENABLE_CONCURRENT_GC 1
+#define SUPPORT_WIN32_SLIST 1
+#define ENABLE_JS_ETW                               // ETW support
+#else
+#define SYSINFO_IMAGE_BASE_AVAILABLE 0
+#define ENABLE_CONCURRENT_GC 1
+#define SUPPORT_WIN32_SLIST 0
+#endif
+
+
+#if ENABLE_CONCURRENT_GC
+// Write-barrier refers to a software write barrier implementation using a card table.
+// Write watch refers to a hardware backed write-watch feature supported by the Windows memory manager.
+// Both are used for detecting changes to memory for concurrent and partial GC.
+// RECYCLER_WRITE_BARRIER controls the former, RECYCLER_WRITE_WATCH controls the latter.
+// GLOBAL_ENABLE_WRITE_BARRIER controls the smart pointer wrapper at compile time, every Field annotation on the
+// recycler allocated class will take effect if GLOBAL_ENABLE_WRITE_BARRIER is 1, otherwise only the class declared
+// with FieldWithBarrier annotations use the WriteBarrierPtr<>, see WriteBarrierMacros.h and RecyclerPointers.h for detail
+#define RECYCLER_WRITE_BARRIER                      // Write Barrier support
+#ifdef _WIN32
+#define RECYCLER_WRITE_WATCH                        // Support hardware write watch
+#endif
+
+#ifdef RECYCLER_WRITE_BARRIER
+#if !GLOBAL_ENABLE_WRITE_BARRIER
+#ifdef _WIN32
+#define GLOBAL_ENABLE_WRITE_BARRIER 0
+#else
+#define GLOBAL_ENABLE_WRITE_BARRIER 1
+#endif
+#endif
+#endif
+
 #define ENABLE_PARTIAL_GC 1
 #define ENABLE_BACKGROUND_PAGE_ZEROING 1
 #define ENABLE_BACKGROUND_PAGE_FREEING 1
 #define ENABLE_RECYCLER_TYPE_TRACKING 1
-#define ENABLE_JS_ETW                               // ETW support
 #else
-#define SYSINFO_IMAGE_BASE_AVAILABLE 0
-#define ENABLE_CONCURRENT_GC 0
 #define ENABLE_PARTIAL_GC 0
 #define ENABLE_BACKGROUND_PAGE_ZEROING 0
 #define ENABLE_BACKGROUND_PAGE_FREEING 0
@@ -144,13 +182,6 @@
 #if ENABLE_BACKGROUND_PAGE_ZEROING && !ENABLE_BACKGROUND_PAGE_FREEING
 #error "Background page zeroing can't be turned on if freeing pages in the background is disabled"
 #endif
-
-#define BUCKETIZE_MEDIUM_ALLOCATIONS 1              // *** TODO: Won't build if disabled currently
-#define SMALLBLOCK_MEDIUM_ALLOC 1                   // *** TODO: Won't build if disabled currently
-#define LARGEHEAPBLOCK_ENCODING 1                   // Large heap block metadata encoding
-#define RECYCLER_WRITE_BARRIER                      // Write Barrier support
-#define IDLE_DECOMMIT_ENABLED 1                     // Idle Decommit
-#define RECYCLER_PAGE_HEAP                          // PageHeap support
 
 // JIT features
 
@@ -185,6 +216,10 @@
 #ifdef _WIN32
 #define ENABLE_OOP_NATIVE_CODEGEN 1     // Out of process JIT
 #endif
+
+#if _WIN64
+#define ENABLE_FAST_ARRAYBUFFER 1
+#endif
 #endif
 
 // Other features
@@ -203,6 +238,10 @@
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS) || defined(CHAKRA_CORE_DOWN_COMPAT)
 #define DELAYLOAD_SET_CFG_TARGET 1
+#endif
+
+#ifndef NTBUILD
+#define DELAYLOAD_SECTIONAPI 1
 #endif
 
 #ifdef NTBUILD
@@ -328,15 +367,27 @@
 #endif
 #endif // ENABLE_DEBUG_CONFIG_OPTIONS
 
-#if !defined(NTBUILD) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 ////////
 //Time Travel flags
+//Include TTD code in the build when building for Chakra (except NT/Edge) or for debug/test builds
+#if !defined(NTBUILD) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
 #define ENABLE_TTD 1
+#else
+#define ENABLE_TTD 0
+#endif
 
+#if ENABLE_TTD
+#define TTDAssert(C, M) { if(!(C)) TTDAbort_fatal_error(M); }
+#else
+#define TTDAssert(C, M)
+#endif
+
+#if ENABLE_TTD
 //A workaround for profile based creation of Native Arrays -- we may or may not want to allow since it differs in record/replay and (currently) asserts in our snap compare
 #define TTD_NATIVE_PROFILE_ARRAY_WORK_AROUND 1
 
-#define ENABLE_TTD_ASSERT 1
+//See also -- Disabled fast path on property enumeration, random number generation, disabled new/eval code cache, and others.
+//            Disabled ActivationObjectEx and others.
 
 //Force debug or notjit mode
 #define TTD_FORCE_DEBUG_MODE 0
@@ -349,17 +400,20 @@
 #define ENABLE_TTD_INTERNAL_DIAGNOSTICS 0
 #endif
 
-#define TTD_COMPRESSED_OUTPUT 0
 #define TTD_LOG_READER TextFormatReader
 #define TTD_LOG_WRITER TextFormatWriter
 
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+//For now always use the (lower performance) text format for snapshots for easier debugging etc.
 #define TTD_SNAP_READER TextFormatReader
 #define TTD_SNAP_WRITER TextFormatWriter
-#else
-#define TTD_SNAP_READER BinaryFormatReader
-#define TTD_SNAP_WRITER BinaryFormatWriter
-#endif
+
+//#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+//#define TTD_SNAP_READER TextFormatReader
+//#define TTD_SNAP_WRITER TextFormatWriter
+//#else
+//#define TTD_SNAP_READER BinaryFormatReader
+//#define TTD_SNAP_WRITER BinaryFormatWriter
+//#endif
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
 #define ENABLE_SNAPSHOT_COMPARE 1
@@ -434,15 +488,10 @@
 #define PROFILE_BAILOUT_RECORD_MEMORY
 #define MEMSPECT_TRACKING
 
-// xplat-todo: Depends on C++ type-info
-// enable later on non-VC++ compilers
-
-#ifdef _WIN32
 #define PROFILE_RECYCLER_ALLOC
 // Needs to compile in debug mode
 // Just needs strings converted
 #define PROFILE_DICTIONARY 1
-#endif
 
 #define PROFILE_STRINGS
 
@@ -466,15 +515,19 @@
 #define ARENA_MEMORY_VERIFY
 #define SEPARATE_ARENA
 
-// xplat-todo: This depends on C++ type-tracking
-// Need to re-enable on non-VC++ compilers
-#ifdef _WIN32
-#define HEAP_TRACK_ALLOC
+#ifndef _WIN32
+#ifdef _X64_OR_ARM64
+#define MAX_NATURAL_ALIGNMENT sizeof(ULONGLONG)
+#define MEMORY_ALLOCATION_ALIGNMENT 16
+#else
+#define MAX_NATURAL_ALIGNMENT sizeof(DWORD)
+#define MEMORY_ALLOCATION_ALIGNMENT 8
+#endif
 #endif
 
+#define HEAP_TRACK_ALLOC
 #define CHECK_MEMORY_LEAK
 #define LEAK_REPORT
-
 
 #define PROJECTION_METADATA_TRACE
 #define ERROR_TRACE
@@ -569,8 +622,11 @@
 #define ASMJS_PLAT
 #endif
 
-#if defined(ASMJS_PLAT) && defined(_WIN32)
+#if defined(ASMJS_PLAT)
+// xplat-todo: once all the wasm tests are passing on xplat, enable it for release builds
+#if defined(_WIN32) || (defined(__clang__) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_WASM
+#endif
 #endif
 
 #if _M_IX86
@@ -609,11 +665,8 @@
 #define ENABLE_TRACE
 #endif
 
-// xplat-todo: Capture stack backtrace on non-win32 platforms
-#ifdef _WIN32
 #if DBG || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT) || defined(TRACK_DISPATCH) || defined(ENABLE_TRACE) || defined(RECYCLER_PAGE_HEAP)
 #define STACK_BACK_TRACE
-#endif
 #endif
 
 // ENABLE_DEBUG_STACK_BACK_TRACE is for capturing stack back trace for debug only.
@@ -623,7 +676,9 @@
 #endif
 
 #if defined(STACK_BACK_TRACE) || defined(CONTROL_FLOW_GUARD_LOGGER)
+#ifdef _WIN32
 #define DBGHELP_SYMBOL_MANAGER
+#endif
 #endif
 
 #if defined(TRACK_DISPATCH) || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
@@ -634,9 +689,7 @@
 // HEAP_TRACK_ALLOC and RECYCLER_STATS
 #if defined(LEAK_REPORT) || defined(CHECK_MEMORY_LEAK)
 #define RECYCLER_DUMP_OBJECT_GRAPH
-#ifdef _WIN32
 #define HEAP_TRACK_ALLOC
-#endif
 #define RECYCLER_STATS
 #endif
 
@@ -652,9 +705,6 @@
 
 
 #if defined(HEAP_TRACK_ALLOC) || defined(PROFILE_RECYCLER_ALLOC)
-#ifndef _WIN32
-#error "Not yet supported on non-VC++ compiler"
-#endif
 
 #define TRACK_ALLOC
 #define TRACE_OBJECT_LIFETIME           // track a particular object's lifetime

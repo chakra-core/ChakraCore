@@ -36,16 +36,17 @@ public:
     ArenaAllocator* GetAllocator() { return &m_allocator; }
 };
 
+static ArenaHost s_arenaHost1(_u("For Output::Trace (1)"));
+static ArenaHost s_arenaHost2(_u("For Output::Trace (2)"));
+
 ArenaAllocator* GetOutputAllocator1()
 {
-    static ArenaHost s_arenaHost(_u("For Output::Trace (1)"));
-    return s_arenaHost.GetAllocator();
+    return s_arenaHost1.GetAllocator();
 }
 
 ArenaAllocator* GetOutputAllocator2()
 {
-    static ArenaHost s_arenaHost(_u("For Output::Trace (2)"));
-    return s_arenaHost.GetAllocator();
+    return s_arenaHost2.GetAllocator();
 }
 #endif
 
@@ -61,7 +62,6 @@ void ConfigParser::ParseOnModuleLoad(CmdLineArgsParser& parser, HANDLE hmod)
 
 void ConfigParser::ParseRegistry(CmdLineArgsParser &parser)
 {
-    // xplat-todo: registry?
 #ifdef _WIN32
     HKEY hk;
     bool includeUserHive = true;
@@ -92,7 +92,6 @@ void ConfigParser::ParseRegistry(CmdLineArgsParser &parser)
 
 void ConfigParser::ParseRegistryKey(HKEY hk, CmdLineArgsParser &parser)
 {
-    // xplat-todo: registry?
 #ifdef _WIN32
     DWORD dwSize;
     DWORD dwValue;

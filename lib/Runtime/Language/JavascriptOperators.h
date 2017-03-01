@@ -220,6 +220,7 @@ namespace Js
         static BOOL IsUndefinedObject(Var instance, JavascriptLibrary* library);
         static BOOL IsAnyNumberValue(Var instance);
         static BOOL IsClassConstructor(Var instance);
+        static BOOL IsBaseConstructorKind(Var instance);
 
         static bool CanShortcutOnUnknownPropertyName(RecyclableObject * instance);
         static bool CanShortcutInstanceOnUnknownPropertyName(RecyclableObject *instance);
@@ -291,8 +292,8 @@ namespace Js
         static void OP_InitClassMemberSet(Var object, PropertyId propertyId, Var setter);
         static void OP_InitClassMemberSetComputedName(Var object, Var elementName, Var getter, ScriptContext* scriptContext, PropertyOperationFlags flags = PropertyOperation_None);
 
-        static Var* OP_GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex, ScriptContextInfo* scriptContext);
-        static Var* OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
+        static Field(Var)* OP_GetModuleExportSlotArrayAddress(uint moduleIndex, uint slotIndex, ScriptContextInfo* scriptContext);
+        static Field(Var)* OP_GetModuleExportSlotAddress(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
         static Var OP_LdModuleSlot(uint moduleIndex, uint slotIndex, ScriptContext* scriptContext);
         static void OP_StModuleSlot(uint moduleIndex, uint slotIndex, Var value, ScriptContext* scriptContext);
 
@@ -383,14 +384,14 @@ namespace Js
         static Var OP_CmGt_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);
         static Var OP_CmGe_A(Js::Var a,Js::Var b,ScriptContext* scriptContext);
 
-        static FunctionInfo * JavascriptOperators::GetConstructorFunctionInfo(Var instance, ScriptContext * scriptContext);
+        static FunctionInfo * GetConstructorFunctionInfo(Var instance, ScriptContext * scriptContext);
         // Detach the type array buffer, if possible, and returns the state of the object which can be used to initialize another object
         static DetachedStateBase* DetachVarAndGetState(Var var);
         static bool IsObjectDetached(Var var);
         // This will return a new object from the state returned by the above operation
         static Var NewVarFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library);
-        static Var NewScObjectLiteral(ScriptContext* scriptContext, const Js::PropertyIdArray *propIds, DynamicType ** literalType);
-        static DynamicType * EnsureObjectLiteralType(ScriptContext* scriptContext, const Js::PropertyIdArray *propIds, DynamicType ** literalType);
+        static Var NewScObjectLiteral(ScriptContext* scriptContext, const Js::PropertyIdArray *propIds, Field(DynamicType*)* literalType);
+        static DynamicType * EnsureObjectLiteralType(ScriptContext* scriptContext, const Js::PropertyIdArray *propIds, Field(DynamicType*)* literalType);
         static uint GetLiteralSlotCapacity(Js::PropertyIdArray const * propIds);
         static uint GetLiteralInlineSlotCapacity(Js::PropertyIdArray const * propIds);
         static Var NewJavascriptObjectNoArg(ScriptContext* requestContext);
@@ -448,14 +449,14 @@ namespace Js
         static Var LoadHeapArgsCached(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var *pParams, Var frameObj, ScriptContext* scriptContext, bool nonSimpleParamList);
         static Var FillScopeObject(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, Var * paramAddr, Js::PropertyIdArray *propIds, HeapArgumentsObject * argsObj, ScriptContext * scriptContext, bool nonSimpleParamList, bool useCachedScope);
         static HeapArgumentsObject *CreateHeapArguments(JavascriptFunction *funcCallee, uint32 actualsCount, uint32 formalsCount, Var frameObj, ScriptContext* scriptContext);
-        static Var OP_InitCachedScope(Var varFunc, const PropertyIdArray *propIds, DynamicType ** literalType, bool formalsAreLetDecls, ScriptContext *scriptContext);
+        static Var OP_InitCachedScope(Var varFunc, const PropertyIdArray *propIds, Field(DynamicType*)* literalType, bool formalsAreLetDecls, ScriptContext *scriptContext);
         static void OP_InvalidateCachedScope(Var varEnv, int32 envIndex);
         static void OP_InitCachedFuncs(Var varScope, FrameDisplay *pDisplay, const FuncInfoArray *info, ScriptContext *scriptContext);
         static Var OP_NewScopeObject(ScriptContext* scriptContext);
         static Var OP_NewScopeObjectWithFormals(ScriptContext* scriptContext, JavascriptFunction * funcCallee, bool nonSimpleParamList);
-        static Var* OP_NewScopeSlots(unsigned int count, ScriptContext *scriptContext, Var scope);
-        static Var* OP_NewScopeSlotsWithoutPropIds(unsigned int count, int index, ScriptContext *scriptContext, FunctionBody *functionBody);
-        static Var* OP_CloneScopeSlots(Var *scopeSlots, ScriptContext *scriptContext);
+        static Field(Var)* OP_NewScopeSlots(unsigned int count, ScriptContext *scriptContext, Var scope);
+        static Field(Var)* OP_NewScopeSlotsWithoutPropIds(unsigned int count, int index, ScriptContext *scriptContext, FunctionBody *functionBody);
+        static Field(Var)* OP_CloneScopeSlots(Field(Var) *scopeSlots, ScriptContext *scriptContext);
         static Var OP_NewPseudoScope(ScriptContext *scriptContext);
         static Var OP_NewBlockScope(ScriptContext *scriptContext);
         static Var OP_CloneBlockScope(BlockActivationObject *blockScope, ScriptContext *scriptContext);
@@ -515,6 +516,7 @@ namespace Js
         static bool IsStaticTypeObjTypeSpecEquivalent(const TypeEquivalenceRecord& equivalenceRecord, uint& failedIndex);
         static bool IsStaticTypeObjTypeSpecEquivalent(const EquivalentPropertyEntry *entry);
         static bool CheckIfTypeIsEquivalent(Type* type, JitEquivalentTypeGuard* guard);
+        static bool CheckIfTypeIsEquivalentForFixedField(Type* type, JitEquivalentTypeGuard* guard);
 
         static void GetPropertyIdForInt(uint64 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
         static void GetPropertyIdForInt(uint32 value, ScriptContext* scriptContext, PropertyRecord const ** propertyRecord);
@@ -523,9 +525,9 @@ namespace Js
         static BOOL ToPropertyDescriptor(Var propertySpec, PropertyDescriptor* descriptor, ScriptContext* scriptContext);
 
 
-        static Var FromPropertyDescriptor(PropertyDescriptor descriptor, ScriptContext* scriptContext);
+        static Var FromPropertyDescriptor(const PropertyDescriptor& descriptor, ScriptContext* scriptContext);
         static void CompletePropertyDescriptor(PropertyDescriptor* resultDescriptor, PropertyDescriptor* likePropertyDescriptor, ScriptContext* requestContext);
-        static BOOL SetPropertyDescriptor(RecyclableObject* object, PropertyId propId, PropertyDescriptor descriptor);
+        static BOOL SetPropertyDescriptor(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor);
         static BOOL DefineOwnPropertyDescriptor(RecyclableObject* object, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
         static BOOL DefineOwnPropertyForArray(JavascriptArray* arr, PropertyId propId, const PropertyDescriptor& descriptor, bool throwOnError, ScriptContext* scriptContext);
 

@@ -13,6 +13,51 @@ namespace Js
     class SharedArrayBuffer;
     class ArrayBufferBase : public DynamicObject
     {
+    protected:
+#if ENABLE_FAST_ARRAYBUFFER
+#define MAX_ASMJS_ARRAYBUFFER_LENGTH 0x100000000 // 4GB
+#define MAX_WASM__ARRAYBUFFER_LENGTH 0x200000000 // 8GB
+        typedef void*(*AllocWrapperType)(size_t);
+#define AsmJsVirtualAllocator ((AllocWrapperType)Js::ArrayBuffer::AllocWrapper<MAX_ASMJS_ARRAYBUFFER_LENGTH>)
+#define WasmVirtualAllocator ((AllocWrapperType)Js::ArrayBuffer::AllocWrapper<MAX_WASM__ARRAYBUFFER_LENGTH>)
+        template<size_t MaxVirtualSize = MAX_ASMJS_ARRAYBUFFER_LENGTH>
+        static void* __cdecl AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length)
+        {
+            LPVOID address = VirtualAlloc(nullptr, MaxVirtualSize, MEM_RESERVE, PAGE_NOACCESS);
+            //throw out of memory
+            if (!address)
+            {
+                return nullptr;
+            }
+
+            if (length == 0)
+            {
+                return address;
+            }
+
+            LPVOID arrayAddress = VirtualAlloc(address, length, MEM_COMMIT, PAGE_READWRITE);
+            if (!arrayAddress)
+            {
+                VirtualFree(address, 0, MEM_RELEASE);
+                return nullptr;
+            }
+            return arrayAddress;
+        }
+
+        static void FreeMemAlloc(Var ptr)
+        {
+            BOOL fSuccess = VirtualFree((LPVOID)ptr, 0, MEM_RELEASE);
+            Assert(fSuccess);
+        }
+#else
+        static void* __cdecl AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length)
+        {
+            // This allocator should never be used
+            Js::Throw::FatalInternalError();
+        }
+#define AsmJsVirtualAllocator Js::ArrayBuffer::AllocWrapper
+#define WasmVirtualAllocator Js::ArrayBuffer::AllocWrapper
+#endif
     public:
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBufferBase, DynamicObject);
 
@@ -29,7 +74,6 @@ namespace Js
         virtual ArrayBuffer * GetAsArrayBuffer() = 0;
         virtual SharedArrayBuffer * GetAsSharedArrayBuffer() { return nullptr; }
         virtual void AddParent(ArrayBufferParent* parent) { }
-        virtual void RemoveParent(ArrayBufferParent* parent) { }
         virtual bool IsDetached() { return false; }
         virtual uint32 GetByteLength() const = 0;
         virtual BYTE* GetBuffer() const = 0;
@@ -45,7 +89,6 @@ namespace Js
         // we need to install cross-site thunk on the nested array buffer when marshaling
         // typed array.
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBuffer, ArrayBufferBase);
-#define MAX_ASMJS_ARRAYBUFFER_LENGTH 0x100000000 //4GB
     private:
         void ClearParentsLength(ArrayBufferParent* parent);
     public:
@@ -113,7 +156,6 @@ namespace Js
 
         virtual ArrayBufferDetachedStateBase* DetachAndGetState();
         virtual bool IsDetached() override { return this->isDetached; }
-        void SetIsAsmJsBuffer(){ mIsAsmJsBuffer = true; }
         virtual uint32 GetByteLength() const override { return bufferLength; }
         virtual BYTE* GetBuffer() const override { return buffer; }
 
@@ -122,7 +164,6 @@ namespace Js
         static int GetBufferOffset() { return offsetof(ArrayBuffer, buffer); }
 
         virtual void AddParent(ArrayBufferParent* parent) override;
-        virtual void RemoveParent(ArrayBufferParent* parent) override;
 #if _WIN64
         //maximum 2G -1  for amd64
         static const uint32 MaxArrayBufferLength = 0x7FFFFFFF;
@@ -130,6 +171,8 @@ namespace Js
         // maximum 1G to avoid arithmetic overflow.
         static const uint32 MaxArrayBufferLength = 1 << 30;
 #endif
+        static const uint32 ParentsCleanupThreshold = 1000;
+
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) { return false; }
         virtual bool IsArrayBuffer() override { return true; }
         virtual bool IsSharedArrayBuffer() override { return false; }
@@ -146,19 +189,25 @@ namespace Js
         static uint32 GetIndexFromVar(Js::Var arg, uint32 length, ScriptContext* scriptContext);
 
         //In most cases, the ArrayBuffer will only have one parent
-        RecyclerWeakReference<ArrayBufferParent>* primaryParent;
-        JsUtil::List<RecyclerWeakReference<ArrayBufferParent>*>* otherParents;
+        Field(RecyclerWeakReference<ArrayBufferParent>*) primaryParent;
 
+        struct OtherParents :public SList<RecyclerWeakReference<ArrayBufferParent>*, Recycler>
+        {
+            OtherParents(Recycler* recycler)
+                :SList<RecyclerWeakReference<ArrayBufferParent>*, Recycler>(recycler), increasedCount(0)
+            {
+            }
+            Field(uint) increasedCount;
+        };
 
-        BYTE  *buffer;             // Points to a heap allocated RGBA buffer, can be null
-        uint32 bufferLength;       // Number of bytes allocated
+        Field(OtherParents*) otherParents;
+
+        FieldNoBarrier(BYTE*) buffer;             // Points to a heap allocated RGBA buffer, can be null
+        Field(uint32) bufferLength;       // Number of bytes allocated
 
         // When an ArrayBuffer is detached, the TypedArray and DataView objects pointing to it must be made aware,
         // for this purpose the ArrayBuffer needs to hold WeakReferences to them
-        bool isDetached;
-        bool mIsAsmJsBuffer;
-        bool isBufferCleared;
-
+        Field(bool) isDetached;
     };
 
     class ArrayBufferParent : public ArrayObject
@@ -167,7 +216,7 @@ namespace Js
         friend ArrayBufferBase;
 
     private:
-        ArrayBufferBase* arrayBuffer;
+        Field(ArrayBufferBase*) arrayBuffer;
 
     protected:
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBufferParent, ArrayObject);
@@ -177,15 +226,6 @@ namespace Js
             arrayBuffer(arrayBuffer)
         {
             arrayBuffer->AddParent(this);
-        }
-
-        void ClearArrayBuffer()
-        {
-            if (this->arrayBuffer != nullptr)
-            {
-                this->arrayBuffer->RemoveParent(this);
-                this->arrayBuffer = nullptr;
-            }
         }
 
     public:
@@ -214,43 +254,21 @@ namespace Js
         static JavascriptArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
         virtual void Dispose(bool isShutdown) override;
         virtual void Finalize(bool isShutdown) override;
-        static void*__cdecl  AllocWrapper(DECLSPEC_GUARD_OVERFLOW size_t length)
-        {
-#if _WIN64
-            LPVOID address = VirtualAlloc(nullptr, MAX_ASMJS_ARRAYBUFFER_LENGTH, MEM_RESERVE, PAGE_NOACCESS);
-            //throw out of memory
-            if (!address)
-            {
-                Js::Throw::OutOfMemory();
-            }
-            LPVOID arrayAddress = VirtualAlloc(address, length, MEM_COMMIT, PAGE_READWRITE);
-            if (!arrayAddress)
-            {
-                VirtualFree(address, 0, MEM_RELEASE);
-                Js::Throw::OutOfMemory();
-            }
-            return arrayAddress;
-#else
-            Assert(false);
-            return nullptr;
-#endif
-        }
 
-        static void FreeMemAlloc(Var ptr)
-        {
-            BOOL fSuccess = VirtualFree((LPVOID)ptr, 0, MEM_RELEASE);
-            Assert(fSuccess);
-        }
-
+        static bool IsValidAsmJsBufferLengthAlgo(uint length, bool forceCheck);
         virtual bool IsValidAsmJsBufferLength(uint length, bool forceCheck = false) override;
-
         virtual bool IsValidVirtualBufferLength(uint length) override;
 
         virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
+
+        void ReportDifferentialAllocation(uint32 newBufferLength);
+
     protected:
         JavascriptArrayBuffer(DynamicType * type);
         virtual ArrayBufferDetachedStateBase* CreateDetachedState(BYTE* buffer, DECLSPEC_GUARD_OVERFLOW uint32 bufferLength) override;
-    private:
+
+        template<typename Allocator>
+        JavascriptArrayBuffer(uint32 length, DynamicType * type, Allocator allocator): ArrayBuffer(length, type, allocator){}
         JavascriptArrayBuffer(uint32 length, DynamicType * type);
         JavascriptArrayBuffer(byte* buffer, uint32 length, DynamicType * type);
 
@@ -259,6 +277,19 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
+    };
+
+    class WebAssemblyArrayBuffer : public JavascriptArrayBuffer
+    {
+        WebAssemblyArrayBuffer(uint32 length, DynamicType * type);
+        WebAssemblyArrayBuffer(byte* buffer, uint32 length, DynamicType * type);
+    protected:
+        DEFINE_VTABLE_CTOR(WebAssemblyArrayBuffer, JavascriptArrayBuffer);
+        DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(WebAssemblyArrayBuffer);
+    public:
+        static WebAssemblyArrayBuffer* Create(byte* buffer, DECLSPEC_GUARD_OVERFLOW uint32 length, DynamicType * type);
+        virtual bool IsValidVirtualBufferLength(uint length) override;
+        virtual ArrayBuffer * TransferInternal(DECLSPEC_GUARD_OVERFLOW uint32 newBufferLength) override;
     };
 
     // the memory must be allocated via CoTaskMemAlloc.

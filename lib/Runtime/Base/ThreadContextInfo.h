@@ -5,7 +5,6 @@
 
 #pragma once
 
-// TODO michhol (OOP JIT): rename this
 class ThreadContextInfo
 {
 public:
@@ -17,7 +16,8 @@ public:
 
     intptr_t GetAbsDoubleCstAddr() const;
     intptr_t GetAbsFloatCstAddr() const;
-    intptr_t GetSgnBitCst() const;
+    intptr_t GetSgnDoubleBitCst() const;
+    intptr_t GetSgnFloatBitCst() const;
     intptr_t GetMaskNegFloatAddr() const;
     intptr_t GetMaskNegDoubleAddr() const;
     intptr_t GetDoubleOnePointZeroAddr() const;
@@ -95,7 +95,6 @@ public:
     virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const = 0;
 #endif
     virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const = 0;
-    virtual PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() = 0;
 #endif
 
     virtual bool IsNumericProperty(Js::PropertyId propertyId) = 0;
@@ -112,7 +111,12 @@ public:
     Js::DelayLoadWinCoreMemory m_delayLoadWinCoreMemoryLibrary;
     Js::DelayLoadWinCoreProcessThreads m_delayLoadWinCoreProcessThreads;
 #endif
+
+    UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
 protected:
+
+    UCrtC99MathApis ucrtC99MathApis;
+
     Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
 
     bool m_isAllJITCodeInPreReservedRegion;

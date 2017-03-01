@@ -493,7 +493,7 @@ namespace Js
         // TODO: Handle call from global scope, strict mode
         BOOL isIndirect = FALSE;
 
-        if (args.Info.Flags & CallFlags_ExtraArg)
+        if (Js::CallInfo::isDirectEvalCall(args.Info.Flags))
         {
             // This was recognized as an eval call at compile time. The last one or two args are internal to us.
             // Argcount will be one of the following when called from global code
@@ -617,7 +617,15 @@ namespace Js
                 Throw::FatalInternalError();
             }
 #endif
+
+#if ENABLE_TTD
+            if(!scriptContext->IsTTDRecordOrReplayModeEnabled())
+            {
+                scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
+            }
+#else
             scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
+#endif
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -925,22 +933,7 @@ namespace Js
 #ifdef PROFILE_EXEC
         scriptContext->ProfileEnd(Js::EvalCompilePhase);
 #endif
-        if (hr == E_OUTOFMEMORY)
-        {
-            JavascriptError::ThrowOutOfMemoryError(scriptContext);
-        }
-        else if(hr == VBSERR_OutOfStack)
-        {
-            JavascriptError::ThrowStackOverflowError(scriptContext);
-        }
-        else if(hr == E_ABORT)
-        {
-            throw Js::ScriptAbortException();
-        }
-        else if(FAILED(hr))
-        {
-            throw Js::InternalErrorException();
-        }
+        THROW_KNOWN_HRESULT_EXCEPTIONS(hr, scriptContext);
 
         if (!SUCCEEDED(hrParser))
         {
@@ -1087,22 +1080,7 @@ namespace Js
 #ifdef PROFILE_EXEC
         scriptContext->ProfileEnd(Js::EvalCompilePhase);
 #endif
-        if (hr == E_OUTOFMEMORY)
-        {
-            JavascriptError::ThrowOutOfMemoryError(scriptContext);
-        }
-        else if(hr == VBSERR_OutOfStack)
-        {
-            JavascriptError::ThrowStackOverflowError(scriptContext);
-        }
-        else if(hr == E_ABORT)
-        {
-            throw Js::ScriptAbortException();
-        }
-        else if(FAILED(hr))
-        {
-            throw Js::InternalErrorException();
-        }
+        THROW_KNOWN_HRESULT_EXCEPTIONS(hr);
 
         if (!SUCCEEDED(hrParser))
         {
@@ -1656,6 +1634,53 @@ LHexError:
         }
 
         return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+
+    //Check if diagnostic trace writing is enabled
+    Var GlobalObject::EntryEnabledDiagnosticsTrace(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        if(function->GetScriptContext()->ShouldPerformRecordOrReplayAction())
+        {
+            return function->GetScriptContext()->GetLibrary()->GetTrue();
+        }
+        else
+        {
+            return function->GetScriptContext()->GetLibrary()->GetFalse();
+        }
+    }
+
+    //Write a copy of the current TTD log to a specified location
+    Var GlobalObject::EntryEmitTTDLog(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        Js::JavascriptLibrary* jslib = function->GetScriptContext()->GetLibrary();
+
+        if(args.Info.Count != 2 || !Js::JavascriptString::Is(args[1]))
+        {
+            return jslib->GetFalse();
+        }
+
+        if(function->GetScriptContext()->ShouldPerformReplayAction())
+        {
+            function->GetScriptContext()->GetThreadContext()->TTDLog->ReplayEmitLogEvent();
+
+            return jslib->GetTrue();
+        }
+
+        if(function->GetScriptContext()->ShouldPerformRecordAction())
+        {
+            Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
+            function->GetScriptContext()->GetThreadContext()->TTDLog->RecordEmitLogEvent(jsString);
+
+            return jslib->GetTrue();
+        }
+
+        return jslib->GetFalse();
     }
 #endif
 

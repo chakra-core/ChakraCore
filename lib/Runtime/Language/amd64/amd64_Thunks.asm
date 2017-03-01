@@ -8,6 +8,7 @@ include ksamd64.inc
 
 ifdef _CONTROL_FLOW_GUARD
     extrn __guard_check_icall_fptr:QWORD
+    extrn __guard_dispatch_icall_fptr:QWORD
 endif
 
 ifdef _ENABLE_DYNAMIC_THUNKS
@@ -307,9 +308,9 @@ endif
 ;;============================================================================================================
 
 extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
-extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z : PROC
-; extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNM@Z : PROC
-extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNMT__m128@@@Z : PROC
+extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z : PROC
+; extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@_JNMT__m128@@@Z : PROC
+extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@_JNMT__m128@@@Z : PROC
 
 extrn ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z : PROC
 
@@ -352,15 +353,9 @@ align 16
 
         sub rsp, 20h ; so stack space for unboxing function isn't same as where it is unboxing into. allocate args spill space for unboxing function.
         ; unboxing function also does stack probe
-        call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z
+        call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z
         ; rax = target function address
 
-ifdef _CONTROL_FLOW_GUARD
-        mov     rcx, rax
-        ; it is guaranteed that icall check will preserve rcx
-        call    [__guard_check_icall_fptr]
-        mov     rax, rcx ; restore entry point to rax
-endif
         add rsp, 20h
 
         ; move first 4 arguments into registers.
@@ -418,12 +413,15 @@ endif
         pop rsi
         pop rdi
 
+ifdef _CONTROL_FLOW_GUARD
+        call    [__guard_dispatch_icall_fptr]
+else
         ; call entry point
         call rax
-
+endif
         ; Var BoxAsmJsReturnValue(ScriptFunction* func, int intRetVal, double doubleRetVal, float floatRetVal)
         mov rcx, rsi
-        mov edx, eax
+        mov rdx, rax
         movsd xmm2, xmm0
         movss xmm3, xmm0
 
@@ -433,7 +431,7 @@ endif
         movups [rsp + 30h], xmm0
         lea rsi, [rsp + 30h]
         mov qword ptr [rsp + 20h], rsi
-        call ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNMT__m128@@@Z
+        call ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@_JNMT__m128@@@Z
 
         mov rsp, rdi ; restore stack pointer
     Epilogue:

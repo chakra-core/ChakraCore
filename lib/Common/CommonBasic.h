@@ -8,6 +8,13 @@
 #include "CommonDefines.h"
 #define _CRT_RAND_S         // Enable rand_s in the CRT
 
+#if defined(PROFILE_RECYCLER_ALLOC) || defined(HEAP_TRACK_ALLOC) || defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+#ifdef __clang__
+#include <typeinfo>
+using std::type_info;
+#endif
+#endif
+
 #include "CommonPal.h"
 
 // === Core Header Files ===

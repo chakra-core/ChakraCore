@@ -20,17 +20,14 @@
 #define DEST_PLATFORM_TEXT "win32"
 #else // ! _WIN32
 #if defined(__APPLE__)
-#include <mach-o/dyld.h> // _NSGetExecutablePath
 #ifdef __IOS__
 #define DEST_PLATFORM_TEXT "ios"
 #else // ! iOS
 #define DEST_PLATFORM_TEXT "darwin"
 #endif // iOS ?
 #elif defined(__ANDROID__)
-#include <unistd.h> // readlink
 #define DEST_PLATFORM_TEXT "android"
 #elif defined(__linux__)
-#include <unistd.h> // readlink
 #define DEST_PLATFORM_TEXT "posix"
 #elif defined(__FreeBSD__) || defined(__unix__)
 #define DEST_PLATFORM_TEXT "bsd"
@@ -51,14 +48,12 @@ DWORD_PTR WScriptJsrt::sourceContext = 0;
         char *errorMessageNarrow;                                                   \
         if (FAILED(WideStringToNarrowDynamic(errorMessage, &errorMessageNarrow)))   \
         {                                                                           \
-            errorCode = ChakraRTInterface::JsCreateStringUtf8(                      \
-                (const uint8_t*)outOfMemoryString,                                  \
+            errorCode = ChakraRTInterface::JsCreateString(outOfMemoryString,        \
                 strlen(outOfMemoryString), &errorMessageString);                    \
         }                                                                           \
         else                                                                        \
         {                                                                           \
-            errorCode = ChakraRTInterface::JsCreateStringUtf8(                      \
-                (const uint8_t*)errorMessageNarrow,                                 \
+            errorCode = ChakraRTInterface::JsCreateString(errorMessageNarrow,       \
                 strlen(errorMessageNarrow), &errorMessageString);                   \
             free(errorMessageNarrow);                                               \
         }                                                                           \
@@ -90,8 +85,8 @@ bool WScriptJsrt::CreateArgumentsObject(JsValueRef *argsObject)
         {
             return false;
         }
-        JsErrorCode errCode  = ChakraRTInterface::JsCreateStringUtf8(
-            (const uint8_t*)argNarrow,
+        JsErrorCode errCode  = ChakraRTInterface::JsCreateString(
+            argNarrow,
             strlen(argNarrow), &value);
         free(argNarrow);
         IfJsrtErrorFail(errCode, false);
@@ -325,8 +320,8 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
     if (moduleRecordEntry == moduleRecordMap.end())
     {
         JsValueRef specifier;
-        errorCode = ChakraRTInterface::JsCreateStringUtf8(
-            (const uint8_t*)fileName, strlen(fileName), &specifier);
+        errorCode = ChakraRTInterface::JsCreateString(
+            fileName, strlen(fileName), &specifier);
         if (errorCode == JsNoError)
         {
             errorCode = ChakraRTInterface::JsInitializeModuleRecord(
@@ -413,7 +408,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
         IfJsrtErrorSetGo(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContent,
             (unsigned int)strlen(fileContent), nullptr, nullptr, &scriptSource));
         JsValueRef fname;
-        IfJsrtErrorSetGo(ChakraRTInterface::JsCreateStringUtf8((const uint8_t*)fullPathNarrow,
+        IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(fullPathNarrow,
             strlen(fullPathNarrow), &fname));
         errorCode = ChakraRTInterface::JsRun(scriptSource, GetNextSourceContext(),
             fname, JsParseScriptAttributeNone, &returnValue);
@@ -446,7 +441,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
         IfJsrtErrorSetGo(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContent,
             (unsigned int)strlen(fileContent), nullptr, nullptr, &scriptSource));
         JsValueRef fname;
-        IfJsrtErrorSetGo(ChakraRTInterface::JsCreateStringUtf8((const uint8_t*)fullPathNarrow,
+        IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(fullPathNarrow,
             strlen(fullPathNarrow), &fname));
         errorCode = ChakraRTInterface::JsRun(scriptSource, GetNextSourceContext(),
             fname, JsParseScriptAttributeNone, &returnValue);
@@ -723,8 +718,8 @@ bool WScriptJsrt::CreateNamedFunction(const char* nameString, JsNativeFunction c
     JsValueRef* functionVar)
 {
     JsValueRef nameVar;
-    IfJsrtErrorFail(ChakraRTInterface::JsCreateStringUtf8(
-        (const uint8_t*)nameString, strlen(nameString), &nameVar), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateString(
+        nameString, strlen(nameString), &nameVar), false);
     IfJsrtErrorFail(ChakraRTInterface::JsCreateNamedFunction(nameVar, callback,
         nullptr, functionVar), false);
     return true;
@@ -740,74 +735,6 @@ bool WScriptJsrt::InstallObjectsOnObject(JsValueRef object, const char* name,
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(object, propertyId,
         propertyValueRef, true), false);
     return true;
-}
-
-#define SET_BINARY_PATH_ERROR_MESSAGE(path, msg) \
-    str_len = (int) strlen(msg);                 \
-    memcpy(path, msg, (size_t)str_len);          \
-    path[str_len] = char(0)
-
-void GetBinaryLocation(char *path, const unsigned size)
-{
-    AssertMsg(size >= 512 && path != nullptr, "Min path buffer size 512 and path can not be nullptr");
-    AssertMsg(size < INT_MAX, "Isn't it too big for a path buffer?");
-#ifdef _WIN32
-    LPWSTR wpath = (WCHAR*)malloc(sizeof(WCHAR) * size);
-    int str_len;
-    if (!wpath)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed. OutOfMemory!");
-        return;
-    }
-    str_len = GetModuleFileNameW(NULL, wpath, size - 1);
-    if (str_len <= 0)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName has failed.");
-        free(wpath);
-        return;
-    }
-
-    str_len = WideCharToMultiByte(CP_UTF8, 0, wpath, str_len, path, size, NULL, NULL);
-    free(wpath);
-
-    if (str_len <= 0)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: GetModuleFileName (WideCharToMultiByte) has failed.");
-        return;
-    }
-
-    if ((unsigned)str_len > size - 1)
-    {
-        str_len = (int) size - 1;
-    }
-    path[str_len] = char(0);
-#elif defined(__APPLE__)
-    uint32_t path_size = (uint32_t)size;
-    char *tmp = nullptr;
-    int str_len;
-    if (_NSGetExecutablePath(path, &path_size))
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: _NSGetExecutablePath has failed.");
-        return;
-    }
-
-    tmp = (char*)malloc(size);
-    char *result = realpath(path, tmp);
-    str_len = strlen(result);
-    memcpy(path, result, str_len);
-    free(tmp);
-    path[str_len] = char(0);
-#elif defined(__linux__)
-    int str_len = readlink("/proc/self/exe", path, size - 1);
-    if (str_len <= 0)
-    {
-        SET_BINARY_PATH_ERROR_MESSAGE(path, "GetBinaryLocation: /proc/self/exe has failed.");
-        return;
-    }
-    path[str_len] = char(0);
-#else
-#warning "Implement GetBinaryLocation for this platform"
-#endif
 }
 
 bool WScriptJsrt::Initialize()
@@ -836,6 +763,7 @@ bool WScriptJsrt::Initialize()
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "RequestAsyncBreak", RequestAsyncBreakCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadBinaryFile", LoadBinaryFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadTextFile", LoadTextFileCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Flag", FlagCallback));
 
     // ToDo Remove
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Edit", EmptyCallback));
@@ -850,17 +778,34 @@ bool WScriptJsrt::Initialize()
     JsPropertyIdRef archProperty;
     IfJsrtErrorFail(CreatePropertyIdFromString("ARCH", &archProperty), false);
     JsValueRef archValue;
-    IfJsrtErrorFail(ChakraRTInterface::JsCreateStringUtf8(
-        (const uint8_t*)CPU_ARCH_TEXT, strlen(CPU_ARCH_TEXT), &archValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateString(
+        CPU_ARCH_TEXT, strlen(CPU_ARCH_TEXT), &archValue), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, archProperty,
         archValue, true), false);
+
+    // Set Build Type
+    JsPropertyIdRef buildProperty;
+    IfJsrtErrorFail(CreatePropertyIdFromString("BUILD_TYPE", &buildProperty), false);
+    JsValueRef buildValue;
+#ifdef _DEBUG
+#define BUILD_TYPE_STRING_CH "Debug" // (O0)
+#elif defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+#define BUILD_TYPE_STRING_CH "Test" // (O3 with debug config options)
+#else
+#define BUILD_TYPE_STRING_CH "Release" // (O3)
+#endif
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateString(
+        BUILD_TYPE_STRING_CH, strlen(BUILD_TYPE_STRING_CH), &buildValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, buildProperty,
+        buildValue, true), false);
+#undef BUILD_TYPE_STRING_CH
 
     // Set Link Type [static / shared]
     JsPropertyIdRef linkProperty;
     IfJsrtErrorFail(CreatePropertyIdFromString("LINK_TYPE", &linkProperty), false);
     JsValueRef linkValue;
-    IfJsrtErrorFail(ChakraRTInterface::JsCreateStringUtf8(
-        (const uint8_t*)LINK_TYPE, strlen(LINK_TYPE), &linkValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateString(
+        LINK_TYPE, strlen(LINK_TYPE), &linkValue), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, linkProperty,
       linkValue, true), false);
 
@@ -871,8 +816,8 @@ bool WScriptJsrt::Initialize()
     JsPropertyIdRef binaryPathProperty;
     IfJsrtErrorFail(CreatePropertyIdFromString("BINARY_PATH", &binaryPathProperty), false);
 
-    IfJsrtErrorFail(ChakraRTInterface::JsCreateStringUtf8(
-        (const uint8_t*)CH_BINARY_LOCATION,
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateString(
+        CH_BINARY_LOCATION,
         strlen(CH_BINARY_LOCATION), &binaryPathValue), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(
         platformObject, binaryPathProperty, binaryPathValue, true), false);
@@ -881,9 +826,8 @@ bool WScriptJsrt::Initialize()
     JsPropertyIdRef osProperty;
     IfJsrtErrorFail(CreatePropertyIdFromString("OS", &osProperty), false);
     JsValueRef osValue;
-    IfJsrtErrorFail(ChakraRTInterface::JsCreateStringUtf8(
-        (const uint8_t*)DEST_PLATFORM_TEXT,
-        strlen(DEST_PLATFORM_TEXT), &osValue), false);
+    IfJsrtErrorFail(ChakraRTInterface::JsCreateString(
+        DEST_PLATFORM_TEXT, strlen(DEST_PLATFORM_TEXT), &osValue), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(platformObject, osProperty,
         osValue, true), false);
 
@@ -925,6 +869,15 @@ Error:
     return hr == S_OK;
 }
 
+bool WScriptJsrt::Uninitialize()
+{
+    // moduleRecordMap is a global std::map, its destructor may access overrided
+    // "operator delete" / global HeapAllocator::Instance. Clear it manually here
+    // to avoid worrying about global destructor order.
+    moduleRecordMap.clear();
+    return true;
+}
+
 #if ENABLE_TTD
 void CALLBACK WScriptJsrt::JsContextBeforeCollectCallback(JsRef contextRef, void *data)
 {
@@ -962,9 +915,8 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
             else
             {
                 JsValueRef stringObject;
-                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateStringUtf8(
-                    (const uint8_t*)fileContent,
-                    lengthBytes, &stringObject));
+                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(
+                    fileContent, lengthBytes, &stringObject));
                 return stringObject;
             }
         }
@@ -1022,6 +974,28 @@ JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee,
             }
         }
     }
+
+Error:
+    return returnValue;
+}
+
+JsValueRef __stdcall WScriptJsrt::FlagCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+{
+    HRESULT hr = E_FAIL;
+    JsValueRef returnValue = JS_INVALID_REFERENCE;
+    JsErrorCode errorCode = JsNoError;
+
+    IfJsrtErrorSetGo(ChakraRTInterface::JsGetUndefinedValue(&returnValue));
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    if (argumentCount > 1)
+    {
+        AutoString cmd;
+        IfJsrtErrorSetGo(cmd.Initialize(arguments[1]));
+        char16* argv[] = { nullptr, cmd.GetWideString() };
+        ChakraRTInterface::SetConfigFlags(2, argv, nullptr);
+    }
+#endif
 
 Error:
     return returnValue;
@@ -1166,7 +1140,7 @@ HRESULT WScriptJsrt::CallbackMessage::CallFunction(LPCSTR fileName)
         IfJsrtErrorHR(ChakraRTInterface::JsConvertValueToString(m_function, &stringValue));
 
         JsValueRef fname;
-        ChakraRTInterface::JsCreateStringUtf8((const uint8_t*)"", strlen(""), &fname);
+        ChakraRTInterface::JsCreateString("", strlen(""), &fname);
         // Run the code
         errorCode = ChakraRTInterface::JsRun(stringValue, JS_SOURCE_CONTEXT_NONE,
           fname, JsParseScriptAttributeArrayBufferIsUtf16Encoded,

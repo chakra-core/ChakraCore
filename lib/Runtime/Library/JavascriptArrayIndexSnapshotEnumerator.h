@@ -9,7 +9,7 @@ namespace Js
     class JavascriptArrayIndexSnapshotEnumerator : public JavascriptArrayIndexEnumeratorBase
     {
     private:
-        uint32 initialLength;
+        Field(uint32) initialLength;
 
     protected:
         DEFINE_VTABLE_CTOR(JavascriptArrayIndexSnapshotEnumerator, JavascriptArrayIndexEnumeratorBase);

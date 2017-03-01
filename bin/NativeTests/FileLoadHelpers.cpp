@@ -9,7 +9,7 @@ HRESULT FileLoadHelpers::LoadScriptFromFile(LPCSTR filename, LPCWSTR& contents, 
 {
     HRESULT hr = S_OK;
     LPCWSTR contentsRaw = nullptr;
-    byte * pRawBytes = nullptr;
+    LPCUTF8 pRawBytes = nullptr;
     UINT lengthBytes = 0;
     bool isUtf8 = false;
     contents = nullptr;
@@ -67,11 +67,13 @@ HRESULT FileLoadHelpers::LoadScriptFromFile(LPCSTR filename, LPCWSTR& contents, 
     //
     // Read the entire content as a binary block.
     //
-    size_t readBytes = fread((void*)contentsRaw, sizeof(char), lengthBytes, file);
-    if (readBytes < lengthBytes)
     {
-        fwprintf(stderr, _u("readBytes should be equal to lengthBytes"));
-        IfFailGo(E_FAIL);
+        size_t readBytes = fread((void*)contentsRaw, sizeof(char), lengthBytes, file);
+        if (readBytes < lengthBytes)
+        {
+            fwprintf(stderr, _u("readBytes should be equal to lengthBytes"));
+            IfFailGo(E_FAIL);
+        }
     }
 
     fclose(file);
@@ -119,7 +121,7 @@ HRESULT FileLoadHelpers::LoadScriptFromFile(LPCSTR filename, LPCWSTR& contents, 
             IfFailGo(E_OUTOFMEMORY);
         }
 
-        utf8::DecodeIntoAndNullTerminate((char16*) contents, pRawBytes, cUtf16Chars, decodeOptions);
+        utf8::DecodeUnitsIntoAndNullTerminate((char16*)contents, pRawBytes, pRawBytes + lengthBytes, decodeOptions);
     }
 
 Error:

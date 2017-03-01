@@ -56,8 +56,11 @@ parser.add_argument('--tag', nargs='*',
                     help='select tests with given tags')
 parser.add_argument('--not-tag', nargs='*',
                     help='exclude tests with given tags')
+parser.add_argument('--flags', default='',
+                    help='global test flags to ch')
 parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
                     help='test timeout (default ' + str(DEFAULT_TIMEOUT) + ' seconds)')
+parser.add_argument('--swb', action='store_true', help='use binary from VcBuild.SWB to run the test')
 parser.add_argument('-l', '--logfile', metavar='logfile', help='file to log results to', default=None)
 parser.add_argument('--x86', action='store_true', help='use x86 build')
 parser.add_argument('--x64', action='store_true', help='use x64 build')
@@ -92,9 +95,10 @@ if not args.variants:
 binary = args.binary
 if binary == None:
     if sys.platform == 'win32':
-        binary = 'Build/VcBuild/bin/{}_{}/ch.exe'.format(arch, flavor)
+        build = "VcBuild.SWB" if args.swb else "VcBuild"
+        binary = 'Build\\' + build + '\\bin\\{}_{}\\ch.exe'.format(arch, flavor)
     else:
-        binary = 'BuildLinux/{0}/ch'.format(flavor)
+        binary = 'out/{0}/ch'.format(flavor)
     binary = os.path.join(repo_root, binary)
 if not os.path.isfile(binary):
     print('{} not found. Did you run ./build.sh already?'.format(binary))
@@ -121,7 +125,7 @@ not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 if sys.platform != 'win32':
     not_tags.add('exclude_xplat')
     not_tags.add('Intl')
-    not_tags.add('require_debugger')
+
 if sys.platform == 'darwin':
     not_tags.add('exclude_mac')
 not_compile_flags = set(['-simdjs']) \
@@ -336,7 +340,7 @@ class TestVariant(object):
         if expected_output == None or timedout:
             self._print("\nOutput:")
             self._print("----------------------------")
-            self._print(output)
+            self._print(output.decode('utf-8'))
             self._print("----------------------------")
         else:
             lst_output = output.split(b'\n')
@@ -392,9 +396,11 @@ class TestVariant(object):
 
         working_path = os.path.dirname(js_file)
 
-        flags = test.get('compile-flags')
+        flags = test.get('compile-flags') or ''
         flags = self._expand_compile_flags(test) + \
-                    (flags.split() if flags else [])
+                    args.flags.split() + \
+                    flags.split()
+
         cmd = [binary] + flags + [os.path.basename(js_file)]
 
         test.start()

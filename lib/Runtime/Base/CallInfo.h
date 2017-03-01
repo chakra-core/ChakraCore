@@ -56,10 +56,10 @@ namespace Js
         //  - scriptdirect.idl
         //  - LowererMDArch::LoadInputParamCount
         //
-        unsigned  Count : 24;
-        CallFlags Flags : 8;
+        Field(unsigned)  Count : 24;
+        Field(CallFlags) Flags : 8;
 #ifdef TARGET_64
-        unsigned unused : 32;
+        Field(unsigned) unused : 32;
 #endif
 
 #if DBG
@@ -72,6 +72,16 @@ namespace Js
         static const ushort ksizeofCount;
         static const ushort ksizeofCallFlags;
         static const uint kMaxCountArgs;
+
+        static bool isDirectEvalCall(CallFlags flags)
+        {
+            // This was recognized as an eval call at compile time. The last one or two args are internal to us.
+            // Argcount will be one of the following when called from global code
+            //  - eval("...")     : argcount 3 : this, evalString, frameDisplay
+            //  - eval.call("..."): argcount 2 : this(which is string) , frameDisplay
+
+            return (flags & (CallFlags_ExtraArg | CallFlags_NewTarget)) == CallFlags_ExtraArg;  // ExtraArg == 1 && NewTarget == 0
+        }
     };
 
     struct InlineeCallInfo

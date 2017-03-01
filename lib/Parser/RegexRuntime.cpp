@@ -605,7 +605,7 @@ namespace UnifiedRegex
         {
             infos[i]->FreeBody(rtAllocator);
 #if DBG
-            infos[i] = 0;
+            infos[i] = nullptr;
 #endif
         }
 #if DBG
@@ -3055,7 +3055,7 @@ namespace UnifiedRegex
     inline bool LoopSetWithFollowFirstInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
     {
         LoopInfo* loopInfo = matcher.LoopIdToLoopInfo(loopId);
-        
+
         // If loop is contained in an outer loop, continuation stack may already have a RewindLoopFixed entry for
         // this loop. We must make sure it's state is preserved on backtrack.
         if (hasOuterLoops)
@@ -4213,12 +4213,12 @@ namespace UnifiedRegex
 
         LoopSetInst* begin = matcher.L2I(LoopSet, beginLabel);
         LoopInfo* loopInfo = matcher.LoopIdToLoopInfo(begin->loopId);
-        
+
         // loopInfo->number is the number of iterations completed before trying follow
         Assert(loopInfo->number > begin->repeats.lower);
         // Try follow with fewer iterations
         loopInfo->number--;
-        
+
         // Rewind input
         inputOffset = loopInfo->startInputOffset + loopInfo->number;
 
@@ -5099,18 +5099,18 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     Program::Program(RegexFlags flags)
-        : source(0)
+        : source(nullptr)
         , sourceLen(0)
         , flags(flags)
         , numGroups(0)
         , numLoops(0)
     {
         tag = InstructionsTag;
-        rep.insts.insts = 0;
+        rep.insts.insts = nullptr;
         rep.insts.instsLen = 0;
-        rep.insts.litbuf = 0;
+        rep.insts.litbuf = nullptr;
         rep.insts.litbufLen = 0;
-        rep.insts.scannersForSyncToLiterals = 0;
+        rep.insts.scannersForSyncToLiterals = nullptr;
     }
 
     Program *Program::New(Recycler *recycler, RegexFlags flags)
@@ -5118,7 +5118,7 @@ namespace UnifiedRegex
         return RecyclerNew(recycler, Program, flags);
     }
 
-    ScannerInfo **Program::CreateScannerArrayForSyncToLiterals(Recycler *const recycler)
+    Field(ScannerInfo *)*Program::CreateScannerArrayForSyncToLiterals(Recycler *const recycler)
     {
         Assert(tag == InstructionsTag);
         Assert(!rep.insts.scannersForSyncToLiterals);
@@ -5126,7 +5126,7 @@ namespace UnifiedRegex
 
         return
             rep.insts.scannersForSyncToLiterals =
-                RecyclerNewArrayZ(recycler, ScannerInfo *, ScannersMixin::MaxNumSyncLiterals);
+                RecyclerNewArrayZ(recycler, Field(ScannerInfo *), ScannersMixin::MaxNumSyncLiterals);
     }
 
     ScannerInfo *Program::AddScannerForSyncToLiterals(
@@ -5153,7 +5153,7 @@ namespace UnifiedRegex
         if(tag != InstructionsTag || !rep.insts.insts)
             return;
 
-        Inst *inst = reinterpret_cast<Inst *>(rep.insts.insts);
+        Inst *inst = reinterpret_cast<Inst *>(PointerValue(rep.insts.insts));
         const auto instEnd = reinterpret_cast<Inst *>(reinterpret_cast<uint8 *>(inst) + rep.insts.instsLen);
         Assert(inst < instEnd);
         do
@@ -5182,7 +5182,7 @@ namespace UnifiedRegex
         Assert(inst == instEnd);
 
 #if DBG
-        rep.insts.insts = 0;
+        rep.insts.insts = nullptr;
         rep.insts.instsLen = 0;
 #endif
     }
@@ -5193,7 +5193,7 @@ namespace UnifiedRegex
         const bool isBaselineMode = Js::Configuration::Global.flags.BaselineMode;
         w->PrintEOL(_u("Program {"));
         w->Indent();
-        w->PrintEOL(_u("source:       %s"), source);
+        w->PrintEOL(_u("source:       %s"), PointerValue(source));
         w->Print(_u("flags:        "));
         if ((flags & GlobalRegexFlag) != 0) w->Print(_u("global "));
         if ((flags & MultilineRegexFlag) != 0) w->Print(_u("multiline "));

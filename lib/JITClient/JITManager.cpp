@@ -30,20 +30,20 @@ JITManager::JITManager() :
     m_rpcBindingHandle(nullptr),
     m_oopJitEnabled(false),
     m_isJITServer(false),
-    m_targetHandle(nullptr),
+    m_serverHandle(nullptr),
     m_jitConnectionId()
 {
 }
 
 JITManager::~JITManager()
 {
-    if (m_targetHandle)
-    {
-        CleanupProcess();
-    }
     if (m_rpcBindingHandle)
     {
         RpcBindingFree(&m_rpcBindingHandle);
+    }
+    if (m_serverHandle)
+    {
+        CloseHandle(m_serverHandle);
     }
 }
 
@@ -138,11 +138,7 @@ JITManager::CreateBinding(
         waitStatus = WaitForSingleObject(serverProcessHandle, sleepInterval);
         if (waitStatus == WAIT_OBJECT_0)
         {
-            DWORD exitCode = (DWORD)-1;
-
             // The server process died for some reason. No need to reattempt.
-            // We use -1 as the exit code if GetExitCodeProcess fails.
-            Assert(GetExitCodeProcess(serverProcessHandle, &exitCode));
             status = RPC_S_SERVER_UNAVAILABLE;
             break;
         }
@@ -165,14 +161,9 @@ JITManager::CreateBinding(
         }
     } while (status != RPC_S_OK); // redundant check, but compiler would not allow true here.
 
-    if (status != RPC_S_OK)
-    {
-        RpcBindingFree(&localBindingHandle);
-        return HRESULT_FROM_WIN32(status);
-    }
-
     *bindingHandle = localBindingHandle;
-    return S_OK;
+
+    return HRESULT_FROM_WIN32(status);
 }
 
 bool
@@ -192,7 +183,13 @@ bool
 JITManager::IsConnected() const
 {
     Assert(IsOOPJITEnabled());
-    return m_rpcBindingHandle != nullptr && m_targetHandle != nullptr;
+    return m_rpcBindingHandle != nullptr;
+}
+
+HANDLE
+JITManager::GetServerHandle() const
+{
+    return m_serverHandle;
 }
 
 void
@@ -207,68 +204,48 @@ JITManager::IsOOPJITEnabled() const
     return m_oopJitEnabled;
 }
 
-HANDLE
-JITManager::GetJITTargetHandle() const
-{
-    if (!IsOOPJITEnabled())
-    {
-        return GetCurrentProcess();
-    }
-    Assert(m_targetHandle != nullptr);
-    return m_targetHandle;
-}
-
 HRESULT
 JITManager::ConnectRpcServer(__in HANDLE jitProcessHandle, __in_opt void* serverSecurityDescriptor, __in UUID connectionUuid)
 {
     Assert(IsOOPJITEnabled());
+    Assert(m_rpcBindingHandle == nullptr);
+    Assert(m_serverHandle == nullptr);
 
-    HRESULT hr;
-    RPC_BINDING_HANDLE localBindingHandle;
+    HRESULT hr = E_FAIL;
 
-    if (IsConnected() && (connectionUuid != m_jitConnectionId))
+    if (IsConnected())
     {
+        Assert(UNREACHED);
         return E_FAIL;
     }
 
-    hr = CreateBinding(jitProcessHandle, serverSecurityDescriptor, &connectionUuid, &localBindingHandle);
-
-    HANDLE targetHandle;
-    BOOL succeeded = DuplicateHandle(
-        GetCurrentProcess(), GetCurrentProcess(),
-        jitProcessHandle, &targetHandle,
-        NULL, FALSE, DUPLICATE_SAME_ACCESS);
-
-    if (!succeeded)
+    if (!DuplicateHandle(GetCurrentProcess(), jitProcessHandle, GetCurrentProcess(), &m_serverHandle, 0, FALSE, DUPLICATE_SAME_ACCESS))
     {
-        return HRESULT_FROM_WIN32(GetLastError());
+        hr = HRESULT_FROM_WIN32(GetLastError());
+        goto FailureCleanup;
     }
 
-    m_targetHandle = targetHandle;
-    m_rpcBindingHandle = localBindingHandle;
+    hr = CreateBinding(jitProcessHandle, serverSecurityDescriptor, &connectionUuid, &m_rpcBindingHandle);
+    if (FAILED(hr))
+    {
+        goto FailureCleanup;
+    }
+
     m_jitConnectionId = connectionUuid;
 
     return hr;
-}
 
-HRESULT
-JITManager::CleanupProcess()
-{
-    Assert(JITManager::IsOOPJITEnabled());
-    Assert(m_targetHandle != nullptr);
-
-    HRESULT hr = E_FAIL;
-    RpcTryExcept
+FailureCleanup:
+    if (m_serverHandle)
     {
-        hr = ClientCleanupProcess(m_rpcBindingHandle, (intptr_t)m_targetHandle);
+        CloseHandle(m_serverHandle);
+        m_serverHandle = nullptr;
     }
-    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    if (m_rpcBindingHandle)
     {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+        RpcBindingFree(&m_rpcBindingHandle);
+        m_rpcBindingHandle = nullptr;
     }
-    RpcEndExcept;
-
-    m_targetHandle = nullptr;
 
     return hr;
 }
@@ -281,8 +258,6 @@ JITManager::Shutdown()
     HRESULT hr = S_OK;
     Assert(IsOOPJITEnabled());
     Assert(m_rpcBindingHandle != nullptr);
-
-    CleanupProcess();
 
     RpcTryExcept
     {
@@ -384,17 +359,38 @@ JITManager::SetIsPRNGSeeded(
 }
 
 HRESULT
-JITManager::NewInterpreterThunkBlock(
+JITManager::DecommitInterpreterBufferManager(
     __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-    __in boolean asmJsThunk,
-    __out InterpreterThunkInfoIDL * thunkInfo)
+    __in boolean asmJsThunk)
 {
     Assert(IsOOPJITEnabled());
 
     HRESULT hr = E_FAIL;
     RpcTryExcept
     {
-        hr = ClientNewInterpreterThunkBlock(m_rpcBindingHandle, scriptContextInfoAddress, asmJsThunk, thunkInfo);
+        hr = ClientDecommitInterpreterBufferManager(m_rpcBindingHandle, scriptContextInfoAddress, asmJsThunk);
+    }
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+
+HRESULT
+JITManager::NewInterpreterThunkBlock(
+    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    __in InterpreterThunkInputIDL * thunkInput,
+    __out InterpreterThunkOutputIDL * thunkOutput)
+{
+    Assert(IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientNewInterpreterThunkBlock(m_rpcBindingHandle, scriptContextInfoAddress, thunkInput, thunkOutput);
     }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
@@ -454,7 +450,7 @@ JITManager::SetWellKnownHostTypeId(
 HRESULT
 JITManager::UpdatePropertyRecordMap(
     __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
-    __in BVSparseNodeIDL * updatedPropsBVHead)
+    __in_opt BVSparseNodeIDL * updatedPropsBVHead)
 {
     Assert(IsOOPJITEnabled());
 
@@ -555,31 +551,6 @@ JITManager::FreeAllocation(
     return hr;
 }
 
-#if DBG
-HRESULT
-JITManager::IsInterpreterThunkAddr(
-    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
-    __in intptr_t address,
-    __in boolean asmjsThunk,
-    __out boolean * result)
-{
-    Assert(IsOOPJITEnabled());
-
-    HRESULT hr = E_FAIL;
-    RpcTryExcept
-    {
-        hr = ClientIsInterpreterThunkAddr(m_rpcBindingHandle, scriptContextInfoAddress, address, asmjsThunk, result);
-    }
-        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
-    {
-        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
-    }
-    RpcEndExcept;
-
-    return hr;
-}
-#endif
-
 HRESULT
 JITManager::IsNativeAddr(
     __in PTHREADCONTEXT_HANDLE threadContextInfoAddress,
@@ -623,3 +594,28 @@ JITManager::RemoteCodeGenCall(
 
     return hr;
 }
+
+#if DBG
+HRESULT
+JITManager::IsInterpreterThunkAddr(
+    __in PSCRIPTCONTEXT_HANDLE scriptContextInfoAddress,
+    __in intptr_t address,
+    __in boolean asmjsThunk,
+    __out boolean * result)
+{
+    Assert(IsOOPJITEnabled());
+
+    HRESULT hr = E_FAIL;
+    RpcTryExcept
+    {
+        hr = ClientIsInterpreterThunkAddr(m_rpcBindingHandle, scriptContextInfoAddress, address, asmjsThunk, result);
+    }
+        RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        hr = HRESULT_FROM_WIN32(RpcExceptionCode());
+    }
+    RpcEndExcept;
+
+    return hr;
+}
+#endif

@@ -13,23 +13,36 @@ target_include_directories (GCStress
   $<BUILD_INTERFACE:${ROOT_SOURCE_DIR}/lib/Common/Memory>
   )
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   set(LINKER_START_GROUP -Wl,--start-group)
   set(LINKER_END_GROUP -Wl,--end-group)
-endif()
-
-if(CC_TARGETS_X86)
-  set(lib_target "-m32")
+elseif(CC_TARGET_OS_OSX)
+  if(CC_TARGETS_X86)
+    set(lib_target "${lib_target} -arch i386")
+  elseif(CC_TARGETS_ARM)
+    set(lib_target "${lib_target} -arch arm")
+  endif()
 endif()
 
 # common link deps
 set(lib_target "${lib_target}"
   -Wl,-undefined,error
   ${LINKER_START_GROUP}
-  Chakra.Common.Core
-  Chakra.Pal
-  Chakra.Jsrt
+  ChakraCoreStatic
   ${LINKER_END_GROUP}
+  ${CC_LTO_ENABLED}
+  dl
   )
+
+if(CC_TARGET_OS_OSX)
+  set(lib_target "${lib_target}"
+    "-framework CoreFoundation"
+    "-framework Security"
+    )
+elseif(NOT CC_TARGET_OS_ANDROID)
+  set(lib_target "${lib_target}"
+    "pthread"
+    )
+endif()
 
 target_link_libraries (GCStress ${lib_target})

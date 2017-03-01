@@ -16,8 +16,30 @@
 void
 Encoder::Encode()
 {
-    NoRecoverMemoryArenaAllocator localAlloc(_u("BE-Encoder"), m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
-    m_tempAlloc = &localAlloc;
+    NoRecoverMemoryArenaAllocator localArena(_u("BE-Encoder"), m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+    m_tempAlloc = &localArena;
+
+#if ENABLE_OOP_NATIVE_CODEGEN
+    class AutoLocalAlloc {
+    public:
+        AutoLocalAlloc(Func * func) : localXdataAddr(nullptr), localAddress(nullptr), segment(nullptr), func(func) { }
+        ~AutoLocalAlloc()
+        {
+            if (localAddress)
+            {
+                this->func->GetOOPThreadContext()->GetCodePageAllocators()->FreeLocal(this->localAddress, this->segment);
+            }
+            if (localXdataAddr)
+            {
+                this->func->GetOOPThreadContext()->GetCodePageAllocators()->FreeLocal(this->localXdataAddr, this->segment);
+            }
+        }
+        Func * func;
+        char * localXdataAddr;
+        char * localAddress;
+        void * segment;
+    } localAlloc(m_func);
+#endif
 
     uint32 instrCount = m_func->GetInstrCount();
     size_t totalJmpTableSizeInBytes = 0;
@@ -273,8 +295,9 @@ Encoder::Encode()
     {
         if (m_func->IsOOPJIT())
         {
-            Js::ThrowMapEntry * throwMap = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), Js::ThrowMapEntry, m_pragmaInstrToRecordMap->Count());
-            for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i++)
+            int allocSize = m_pragmaInstrToRecordMap->Count();
+            Js::ThrowMapEntry * throwMap = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), Js::ThrowMapEntry, allocSize);
+            for (int i = 0; i < allocSize; i++)
             {
                 IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
                 throwMap[i].nativeBufferOffset = inst->m_offsetInBuffer;
@@ -319,9 +342,33 @@ Encoder::Encode()
 
     TryCopyAndAddRelocRecordsForSwitchJumpTableEntries(m_encodeBuffer, codeSize, jumpTableListForSwitchStatement, totalJmpTableSizeInBytes);
 
-    EmitBufferAllocation * alloc = m_func->GetJITOutput()->RecordNativeCodeSize(m_func, (DWORD)codeSize, pdataCount, xdataSize);
+    CustomHeap::Allocation * allocation = nullptr;
+    bool inPrereservedRegion = false;
+    char * localAddress = nullptr;
+#if ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsJITServer())
+    {
+        EmitBufferAllocation<SectionAllocWrapper, PreReservedSectionAllocWrapper> * alloc = m_func->GetJITOutput()->RecordOOPNativeCodeSize(m_func, (DWORD)codeSize, pdataCount, xdataSize);
+        allocation = alloc->allocation;
+        inPrereservedRegion = alloc->inPrereservedRegion;
+        localAlloc.segment = (alloc->bytesCommitted > CustomHeap::Page::MaxAllocationSize) ? allocation->largeObjectAllocation.segment : allocation->page->segment;
+        localAddress = m_func->GetOOPThreadContext()->GetCodePageAllocators()->AllocLocal(allocation->address, alloc->bytesCommitted, localAlloc.segment);
+        localAlloc.localAddress = localAddress;
+        if (localAddress == nullptr)
+        {
+            Js::Throw::OutOfMemory();
+        }
+    }
+    else
+#endif
+    {
+        EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> * alloc = m_func->GetJITOutput()->RecordInProcNativeCodeSize(m_func, (DWORD)codeSize, pdataCount, xdataSize);
+        allocation = alloc->allocation;
+        inPrereservedRegion = alloc->inPrereservedRegion;
+        localAddress = allocation->address;
+    }
 
-    if (!alloc->inPrereservedRegion)
+    if (!inPrereservedRegion)
     {
         m_func->GetThreadContextInfo()->ResetIsAllJITCodeInPreReservedRegion();
     }
@@ -332,14 +379,14 @@ Encoder::Encode()
     });
 
     // Relocs
-    m_encoderMD.ApplyRelocs((size_t)alloc->allocation->address, codeSize, &bufferCRC, isSuccessBrShortAndLoopAlign);
+    m_encoderMD.ApplyRelocs((size_t)allocation->address, codeSize, &bufferCRC, isSuccessBrShortAndLoopAlign);
 
-    m_func->GetJITOutput()->RecordNativeCode(m_func, m_encodeBuffer, alloc);
+    m_func->GetJITOutput()->RecordNativeCode(m_encodeBuffer, (BYTE *)localAddress);
 
 #if defined(_M_IX86) || defined(_M_X64)
     if (!JITManager::GetJITManager()->IsJITServer())
     {
-        ValidateCRCOnFinalBuffer((BYTE *)alloc->allocation->address, codeSize, totalJmpTableSizeInBytes, m_encodeBuffer, initialCRCSeed, bufferCRC, isSuccessBrShortAndLoopAlign);
+        ValidateCRCOnFinalBuffer((BYTE *)allocation->address, codeSize, totalJmpTableSizeInBytes, m_encodeBuffer, initialCRCSeed, bufferCRC, isSuccessBrShortAndLoopAlign);
     }
 #endif
 
@@ -347,25 +394,40 @@ Encoder::Encode()
     m_func->m_prologEncoder.FinalizeUnwindInfo(
         (BYTE*)m_func->GetJITOutput()->GetCodeAddress(), (DWORD)codeSize);
 
+    char * localXdataAddr = nullptr;
+#if ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsJITServer())
+    {
+        localXdataAddr = m_func->GetOOPThreadContext()->GetCodePageAllocators()->AllocLocal((char*)allocation->xdata.address, XDATA_SIZE, localAlloc.segment);
+        localAlloc.localXdataAddr = localXdataAddr;
+        if (localXdataAddr == nullptr)
+        {
+            Js::Throw::OutOfMemory();
+        }
+    }
+    else
+#endif
+    {
+        localXdataAddr = (char*)allocation->xdata.address;
+    }
     m_func->GetJITOutput()->RecordUnwindInfo(
-        0,
         m_func->m_prologEncoder.GetUnwindInfo(),
         m_func->m_prologEncoder.SizeOfUnwindInfo(),
-        alloc->allocation->xdata.address,
-        m_func->GetThreadContextInfo()->GetProcessHandle());
+        allocation->xdata.address,
+        (BYTE*)localXdataAddr);
 #elif _M_ARM
-    m_func->m_unwindInfo.EmitUnwindInfo(m_func->GetJITOutput(), alloc);
+    m_func->m_unwindInfo.EmitUnwindInfo(m_func->GetJITOutput(), allocation);
     if (m_func->IsOOPJIT())
     {
-        size_t allocSize = XDataAllocator::GetAllocSize(alloc->allocation->xdata.pdataCount, alloc->allocation->xdata.xdataSize);
+        size_t allocSize = XDataAllocator::GetAllocSize(allocation->xdata.pdataCount, allocation->xdata.xdataSize);
         BYTE * xprocXdata = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), BYTE, allocSize);
-        memcpy_s(xprocXdata, allocSize, alloc->allocation->xdata.address, allocSize);
+        memcpy_s(xprocXdata, allocSize, allocation->xdata.address, allocSize);
         m_func->GetJITOutput()->RecordXData(xprocXdata);
     }
     else
     {
-        XDataAllocator::Register(&alloc->allocation->xdata, m_func->GetJITOutput()->GetCodeAddress(), m_func->GetJITOutput()->GetCodeSize());
-        m_func->GetInProcJITEntryPointInfo()->SetXDataInfo(&alloc->allocation->xdata);
+        XDataAllocator::Register(&allocation->xdata, m_func->GetJITOutput()->GetCodeAddress(), m_func->GetJITOutput()->GetCodeSize());
+        m_func->GetInProcJITEntryPointInfo()->SetXDataInfo(&allocation->xdata);
     }
 
     m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
@@ -490,7 +552,7 @@ Encoder::Encode()
                 equivalentTypeGuardOffsets->guards[i].cache.record.propertyOffset = NativeCodeData::GetDataTotalOffset(cache->record.properties);
                 for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE; j++)
                 {
-                    equivalentTypeGuardOffsets->guards[i].cache.types[j] = (intptr_t)cache->types[j];
+                    equivalentTypeGuardOffsets->guards[i].cache.types[j] = (intptr_t)PointerValue(cache->types[j]);
                 }
                 i++;
             });
@@ -702,7 +764,7 @@ Encoder::Encode()
             m_func->GetInProcJITEntryPointInfo()->RecordCtorCacheGuards(ctorCachesTransferRecord, ctorCachesTransferSize);
         }
     }
-    m_func->GetJITOutput()->FinalizeNativeCode(m_func, alloc);
+    m_func->GetJITOutput()->FinalizeNativeCode();
 
     END_CODEGEN_PHASE(m_func, Js::EmitterPhase);
 
@@ -953,7 +1015,6 @@ uint Encoder::CalculateCRC(uint bufferCRC, size_t data)
     }
 #endif
 #endif
-
     return CalculateCRC32(bufferCRC, data);
 }
 

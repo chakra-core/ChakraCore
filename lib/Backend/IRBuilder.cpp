@@ -70,13 +70,7 @@ IRBuilder::InsertBailOutForDebugger(uint byteCodeOffset, IR::BailOutKind kind, I
     IR::BailOutInstr * instr = IR::BailOutInstr::New(Js::OpCode::BailForDebugger, kind, bailOutInfo, bailOutInfo->bailOutFunc);
     if (insertBeforeInstr)
     {
-        instr->SetByteCodeOffset(byteCodeOffset);
-        uint32 offset = insertBeforeInstr->GetByteCodeOffset();
-        if (m_offsetToInstruction[offset] == insertBeforeInstr)
-        {
-            m_offsetToInstruction[offset] = instr;
-        }
-        insertBeforeInstr->InsertBefore(instr);
+        InsertInstr(instr, insertBeforeInstr);
     }
     else
     {
@@ -164,13 +158,7 @@ void IRBuilder::InsertBailOnNoProfile(IR::Instr *const insertBeforeInstr)
     Assert(DoBailOnNoProfile());
 
     IR::Instr *const bailOnNoProfileInstr = IR::Instr::New(Js::OpCode::BailOnNoProfile, m_func);
-    bailOnNoProfileInstr->SetByteCodeOffset(insertBeforeInstr);
-    uint32 offset = insertBeforeInstr->GetByteCodeOffset();
-    if (m_offsetToInstruction[offset] == insertBeforeInstr)
-    {
-        m_offsetToInstruction[offset] = bailOnNoProfileInstr;
-    }
-    insertBeforeInstr->InsertBefore(bailOnNoProfileInstr);
+    InsertInstr(bailOnNoProfileInstr, insertBeforeInstr);
 }
 
 #ifdef BAILOUT_INJECTION
@@ -682,6 +670,7 @@ IRBuilder::Build()
     JsUtil::BaseDictionary<IR::Instr*, int, JitArenaAllocator> ignoreExBranchInstrToOffsetMap(m_tempAlloc);
 
     Js::LayoutSize layoutSize;
+    IR::Instr* lastProcessedInstrForJITLoopBody = m_func->m_headInstr;
     for (Js::OpCode newOpcode = m_jnReader.ReadOp(layoutSize); (uint)m_jnReader.GetCurrentOffset() <= lastOffset; newOpcode = m_jnReader.ReadOp(layoutSize))
     {
         Assert(newOpcode != Js::OpCode::EndOfBlock);
@@ -762,29 +751,43 @@ IRBuilder::Build()
             }
         }
 #endif
-        if (IsLoopBodyInTry() && m_lastInstr->GetDst() && m_lastInstr->GetDst()->IsRegOpnd() && m_lastInstr->GetDst()->GetStackSym()->HasByteCodeRegSlot())
-        {
-            StackSym * dstSym = m_lastInstr->GetDst()->GetStackSym();
-            Js::RegSlot dstRegSlot = dstSym->GetByteCodeRegSlot();
-            if (!this->RegIsTemp(dstRegSlot) && !this->RegIsConstant(dstRegSlot))
-            {
-                SymID symId = dstSym->m_id;
-                if (this->m_stSlots->Test(symId))
-                {
-                    // For jitted loop bodies that are in a try block, we consider any symbol that has a
-                    // non-temp bytecode reg slot, to be write-through. Hence, generating StSlots at all
-                    // defs for such symbols
-                    IR::Instr * stSlot = this->GenerateLoopBodyStSlot(dstRegSlot);
-                    m_lastInstr->InsertAfter(stSlot);
-                    m_lastInstr = stSlot;
 
-                    this->m_stSlots->Clear(symId);
-                }
-                else
+        if (IsLoopBodyInTry() && lastProcessedInstrForJITLoopBody != m_lastInstr)
+        {
+            // traverse in backward so we get new/later value of given symId for storing instead of the earlier/stale
+            // symId value. m_stSlots is used to prevent multiple stores to the same symId.
+            FOREACH_INSTR_BACKWARD_EDITING_IN_RANGE(
+                instr,
+                instrPrev,
+                m_lastInstr,
+                lastProcessedInstrForJITLoopBody->m_next)
+            {
+                if (instr->GetDst() && instr->GetDst()->IsRegOpnd() && instr->GetDst()->GetStackSym()->HasByteCodeRegSlot())
                 {
-                    Assert(dstSym->m_isCatchObjectSym);
+                    StackSym * dstSym = instr->GetDst()->GetStackSym();
+                    Js::RegSlot dstRegSlot = dstSym->GetByteCodeRegSlot();
+                    if (!this->RegIsTemp(dstRegSlot) && !this->RegIsConstant(dstRegSlot))
+                    {
+                        SymID symId = dstSym->m_id;
+                        if (this->m_stSlots->Test(symId))
+                        {
+                            // For jitted loop bodies that are in a try block, we consider any symbol that has a
+                            // non-temp bytecode reg slot, to be write-through. Hence, generating StSlots at all
+                            // defs for such symbols
+                            IR::Instr * stSlot = this->GenerateLoopBodyStSlot(dstRegSlot);
+                            AddInstr(stSlot, Js::Constants::NoByteCodeOffset);
+
+                            this->m_stSlots->Clear(symId);
+                        }
+                        else
+                        {
+                            Assert(dstSym->m_isCatchObjectSym);
+                        }
+                    }
                 }
-            }
+            } NEXT_INSTR_BACKWARD_EDITING_IN_RANGE;
+
+            lastProcessedInstrForJITLoopBody = m_lastInstr;
         }
 
         offset = m_jnReader.GetCurrentOffset();
@@ -1106,6 +1109,25 @@ IRBuilder::CreateLabel(IR::BranchInstr * branchInstr, uint& offset)
         }
     }
     return labelInstr;
+}
+
+void IRBuilder::InsertInstr(IR::Instr *instr, IR::Instr* insertBeforeInstr)
+{
+    Assert(insertBeforeInstr->GetByteCodeOffset() < m_offsetToInstructionCount);
+    instr->SetByteCodeOffset(insertBeforeInstr);
+    uint32 offset = insertBeforeInstr->GetByteCodeOffset();
+    if (m_offsetToInstruction[offset] == insertBeforeInstr)
+    {
+        m_offsetToInstruction[offset] = instr;
+    }
+    insertBeforeInstr->InsertBefore(instr);
+
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::IRBuilderPhase, m_func->GetTopFunc()))
+    {
+        instr->Dump();
+    }
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -3817,7 +3839,7 @@ IRBuilder::BuildElementSlotI2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot r
         case Js::OpCode::LdModuleSlot:
         case Js::OpCode::StModuleSlot:
         {
-            Js::Var* moduleExportVarArrayAddr = Js::JavascriptOperators::OP_GetModuleExportSlotArrayAddress(slotId1, slotId2, m_func->GetScriptContextInfo());
+            Field(Js::Var)* moduleExportVarArrayAddr = Js::JavascriptOperators::OP_GetModuleExportSlotArrayAddress(slotId1, slotId2, m_func->GetScriptContextInfo());
             IR::AddrOpnd* addrOpnd = IR::AddrOpnd::New(moduleExportVarArrayAddr, IR::AddrOpndKindConstantAddress, m_func, true);
             regOpnd = IR::RegOpnd::New(TyVar, m_func);
             instr = IR::Instr::New(Js::OpCode::Ld_A, regOpnd, addrOpnd, m_func);
@@ -6947,19 +6969,14 @@ IRBuilder::ResolveVirtualLongBranch(IR::BranchInstr * branchInstr, uint offset)
     if (!IsLoopBodyReturnIPInstr(branchInstr->m_prev))
     {
         IR::Instr * returnIPInstr = CreateLoopBodyReturnIPInstr(targetOffset, branchInstr->GetByteCodeOffset());
-        branchInstr->InsertBefore(returnIPInstr);
 
         // Any jump to this branch to jump to the return IP load instr first
         uint32 branchInstrByteCodeOffset = branchInstr->GetByteCodeOffset();
-        if (this->m_offsetToInstruction[branchInstrByteCodeOffset] == branchInstr)
-        {
-            this->m_offsetToInstruction[branchInstrByteCodeOffset] = returnIPInstr;
-        }
-        else
-        {
-            Assert(this->m_offsetToInstruction[branchInstrByteCodeOffset]->HasBailOutInfo() &&
-                   this->m_offsetToInstruction[branchInstrByteCodeOffset]->GetBailOutKind() == IR::BailOutInjected);
-        }
+        Assert(this->m_offsetToInstruction[branchInstrByteCodeOffset] == branchInstr ||
+            (this->m_offsetToInstruction[branchInstrByteCodeOffset]->HasBailOutInfo() &&
+            this->m_offsetToInstruction[branchInstrByteCodeOffset]->GetBailOutKind() == IR::BailOutInjected));
+
+        InsertInstr(returnIPInstr, branchInstr);
     }
     return GetLoopBodyExitInstrOffset();
 }
@@ -7366,7 +7383,7 @@ IR::Instr *
 IRBuilder::CreateLoopBodyReturnIPInstr(uint targetOffset, uint offset)
 {
     IR::RegOpnd * retOpnd = IR::RegOpnd::New(m_loopBodyRetIPSym, TyMachReg, m_func);
-    IR::IntConstOpnd * exitOffsetOpnd = IR::IntConstOpnd::New(targetOffset, TyInt32, m_func);
+    IR::IntConstOpnd * exitOffsetOpnd = IR::IntConstOpnd::New(targetOffset, TyMachReg, m_func);
     return IR::Instr::New(Js::OpCode::Ld_I4, retOpnd, exitOffsetOpnd, m_func);
 }
 
@@ -7406,15 +7423,7 @@ IRBuilder::InsertIncrLoopBodyLoopCounter(IR::LabelInstr *loopTopLabelInstr)
     loopCounterOpnd->SetIsJITOptimizedReg(true);
 
     IR::Instr* nextRealInstr = loopTopLabelInstr->GetNextRealInstr();
-    nextRealInstr->InsertBefore(incr);
-
-    Assert(nextRealInstr->GetByteCodeOffset() < m_offsetToInstructionCount);
-    if(this->m_offsetToInstruction[nextRealInstr->GetByteCodeOffset()] == nextRealInstr)
-    {
-        this->m_offsetToInstruction[nextRealInstr->GetByteCodeOffset()] = incr;
-    }
-    incr->SetByteCodeOffset(nextRealInstr->GetByteCodeOffset());
-    return;
+    InsertInstr(incr, nextRealInstr);
 }
 
 void

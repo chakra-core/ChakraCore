@@ -39,15 +39,15 @@ $changeInfo = (Get-Content $changeJson) -join "`n" | ConvertFrom-Json
 # between the partially-composed root and the metadata directories.
 # Exclude change.json and build.json, the results of a previous composition already in the root.
 Get-ChildItem -Path $rootPath "*.json" -Recurse `
-    | ? { -not ($_.Name -in @("change.json", "build.json")) } `
-    | % { Move-Item -Verbose -Force -Path $_.FullName -Destination $rootPath }
+    | Where-Object { -not ($_.Name -in @("change.json", "build.json")) } `
+    | ForEach-Object { Move-Item -Verbose -Force -Path $_.FullName -Destination $rootPath }
 
 # Determine the overall build status. Mark the build as "passed" until "failed" is encountered.
 $overallBuildStatus = "passed"
 
 $files = Get-ChildItem -Path $rootPath "*.json" -Recurse `
-    | ? { -not ($_.Name -in @("change.json", "build.json")) } `
-    | % { $_.FullName }
+    | Where-Object { -not ($_.Name -in @("change.json", "build.json")) } `
+    | ForEach-Object { $_.FullName }
 $builds = New-Object System.Collections.ArrayList
 foreach ($file in $files) {
     $json = (Get-Content $file) -join "`n" | ConvertFrom-Json

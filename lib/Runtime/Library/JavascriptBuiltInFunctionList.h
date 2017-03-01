@@ -25,6 +25,9 @@ BUILTIN(GlobalObject, CollectGarbage, EntryCollectGarbage, FunctionInfo::ErrorOn
 
 #if ENABLE_TTD
 BUILTIN(GlobalObject, TelemetryLog, EntryTelemetryLog, FunctionInfo::ErrorOnNew)
+
+BUILTIN(GlobalObject, EnabledDiagnosticsTrace, EntryEnabledDiagnosticsTrace, FunctionInfo::ErrorOnNew)
+BUILTIN(GlobalObject, EmitTTDLog, EntryEmitTTDLog, FunctionInfo::ErrorOnNew)
 #endif
 
 #ifdef IR_VIEWER
@@ -131,6 +134,7 @@ BUILTIN(JavascriptError, NewTypeErrorInstance, NewTypeErrorInstance, FunctionInf
 BUILTIN(JavascriptError, NewURIErrorInstance, NewURIErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewWebAssemblyCompileErrorInstance, NewWebAssemblyCompileErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewWebAssemblyRuntimeErrorInstance, NewWebAssemblyRuntimeErrorInstance, FunctionInfo::None)
+BUILTIN(JavascriptError, NewWebAssemblyLinkErrorInstance, NewWebAssemblyLinkErrorInstance, FunctionInfo::None)
 #ifdef ENABLE_PROJECTION
 BUILTIN(JavascriptError, NewWinRTErrorInstance, NewWinRTErrorInstance, FunctionInfo::None)
 #endif
@@ -309,6 +313,7 @@ BUILTIN(WebAssembly, Instantiate, EntryInstantiate, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyModule, Exports, EntryExports, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyModule, Imports, EntryImports, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyModule, CustomSections, EntryCustomSections, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyMemory, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(WebAssemblyMemory, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
@@ -318,9 +323,6 @@ BUILTIN(WebAssemblyTable, GetterLength, EntryGetterLength, FunctionInfo::ErrorOn
 BUILTIN(WebAssemblyTable, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyTable, Get, EntryGet, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyTable, Set, EntrySet, FunctionInfo::ErrorOnNew)
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-BUILTIN(WebAssembly, NativeTypeCallTest, EntryNativeTypeCallTest, FunctionInfo::ErrorOnNew)
-#endif
 #endif
 
 // SIMDFloat32x4Lib entry points

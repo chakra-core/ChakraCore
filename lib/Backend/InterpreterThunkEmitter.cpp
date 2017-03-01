@@ -234,7 +234,7 @@ const BYTE InterpreterThunkEmitter::HeaderSize = sizeof(InterpreterThunk);
 const BYTE InterpreterThunkEmitter::ThunkSize = sizeof(Call);
 const uint InterpreterThunkEmitter::ThunksPerBlock = (BlockSize - HeaderSize) / ThunkSize;
 
-InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, ArenaAllocator* allocator, CustomHeap::CodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
+InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, ArenaAllocator* allocator, CustomHeap::InProcCodePageAllocators * codePageAllocators, bool isAsmInterpreterThunk) :
     emitBufferManager(allocator, codePageAllocators, /*scriptContext*/ nullptr, _u("Interpreter thunk buffer"), GetCurrentProcess()),
     scriptContext(context),
     allocator(allocator),
@@ -242,6 +242,12 @@ InterpreterThunkEmitter::InterpreterThunkEmitter(Js::ScriptContext* context, Are
     thunkBuffer(nullptr),
     isAsmInterpreterThunk(isAsmInterpreterThunk)
 {
+}
+
+SListBase<ThunkBlock>* 
+InterpreterThunkEmitter::GetThunkBlocksList()
+{
+    return &thunkBlocks;
 }
 
 //
@@ -303,8 +309,8 @@ void InterpreterThunkEmitter::NewThunkBlock()
     Assert(this->thunkCount == 0);
     BYTE* buffer;
 
-    EmitBufferAllocation * allocation = emitBufferManager.AllocateBuffer(BlockSize, &buffer);
-    if (allocation == nullptr) 
+    EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> * allocation = emitBufferManager.AllocateBuffer(BlockSize, &buffer);
+    if (allocation == nullptr)
     {
         Js::Throw::OutOfMemory();
     }
@@ -332,7 +338,7 @@ void InterpreterThunkEmitter::NewThunkBlock()
         &count
     );
 
-    if (!emitBufferManager.CommitReadWriteBufferForInterpreter(allocation, buffer, BlockSize))
+    if (!emitBufferManager.CommitBufferForInterpreter(allocation, buffer, BlockSize))
     {
         Js::Throw::OutOfMemory();
     }
@@ -356,16 +362,19 @@ void InterpreterThunkEmitter::NewThunkBlock()
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
 void InterpreterThunkEmitter::NewOOPJITThunkBlock()
 {
-    InterpreterThunkInfoIDL thunkInfo;
-    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(
-        this->scriptContext->GetRemoteScriptAddr(),
-        this->isAsmInterpreterThunk,
-        &thunkInfo
-    );
-    JITManager::HandleServerCallResult(hr);
+    if (!JITManager::GetJITManager()->IsConnected())
+    {
+        Js::Throw::OutOfMemory();
+    }
+    InterpreterThunkInputIDL thunkInput;
+    thunkInput.asmJsThunk = this->isAsmInterpreterThunk;
+
+    InterpreterThunkOutputIDL thunkOutput;
+    HRESULT hr = JITManager::GetJITManager()->NewInterpreterThunkBlock(this->scriptContext->GetRemoteScriptAddr(), &thunkInput, &thunkOutput);
+    JITManager::HandleServerCallResult(hr, RemoteCallType::ThunkCreation);
 
 
-    BYTE* buffer = (BYTE*)thunkInfo.thunkBlockAddr;
+    BYTE* buffer = (BYTE*)thunkOutput.mappedBaseAddr;
 
     if (!CONFIG_FLAG(OOPCFGRegistration))
     {
@@ -376,14 +385,14 @@ void InterpreterThunkEmitter::NewOOPJITThunkBlock()
     auto block = this->thunkBlocks.PrependNode(allocator, buffer);
 #if PDATA_ENABLED
     void* pdataTable;
-    PDataManager::RegisterPdata((PRUNTIME_FUNCTION)thunkInfo.pdataTableStart, (ULONG_PTR)buffer, (ULONG_PTR)thunkInfo.epilogEndAddr, &pdataTable);
+    PDataManager::RegisterPdata((PRUNTIME_FUNCTION)thunkOutput.pdataTableStart, (ULONG_PTR)thunkOutput.mappedBaseAddr, (ULONG_PTR)thunkOutput.epilogEndAddr, &pdataTable);
     block->SetPdata(pdataTable);
 #else
     Unused(block);
 #endif
 
-    this->thunkCount = thunkInfo.thunkCount;
-    this->thunkBuffer = (BYTE*)thunkInfo.thunkBlockAddr;
+    this->thunkBuffer = (BYTE*)thunkOutput.mappedBaseAddr;
+    this->thunkCount = thunkOutput.thunkCount;
 }
 #endif
 
@@ -393,7 +402,7 @@ void InterpreterThunkEmitter::FillBuffer(
     _In_ bool asmJsThunk,
     _In_ intptr_t finalAddr,
     _In_ size_t bufferSize,
-    _Out_writes_bytes_all_(bufferSize) BYTE* buffer,
+    _Out_writes_bytes_all_(BlockSize) BYTE* buffer,
 #if PDATA_ENABLED
     _Out_ PRUNTIME_FUNCTION * pdataTableStart,
     _Out_ intptr_t * epilogEndAddr,
@@ -680,27 +689,23 @@ void InterpreterThunkEmitter::EncodeInterpreterThunk(
 }
 #endif
 
-
-
-inline /*static*/
-DWORD InterpreterThunkEmitter::FillDebugBreak(_In_ BYTE* dest, _In_ DWORD count)
+/*static*/
+DWORD InterpreterThunkEmitter::FillDebugBreak(_Out_writes_bytes_all_(count) BYTE* dest, _In_ DWORD count)
 {
 #if defined(_M_ARM)
     Assert(count % 2 == 0);
 #elif defined(_M_ARM64)
     Assert(count % 4 == 0);
 #endif
-    CustomHeap::FillDebugBreak(dest, count, GetCurrentProcess());
+    CustomHeap::FillDebugBreak(dest, count);
     return count;
 }
 
-
-
-inline /*static*/
+/*static*/
 DWORD InterpreterThunkEmitter::CopyWithAlignment(
-    _In_ BYTE* dest,
+    _Out_writes_bytes_all_(sizeInBytes) BYTE* dest,
     _In_ const DWORD sizeInBytes,
-    _In_ const BYTE* src,
+    _In_reads_bytes_(srcSize) const BYTE* src,
     _In_ const DWORD srcSize,
     _In_ const DWORD alignment)
 {
@@ -731,7 +736,7 @@ InterpreterThunkEmitter::IsInHeap(void* address)
         }
         boolean result;
         HRESULT hr = JITManager::GetJITManager()->IsInterpreterThunkAddr(remoteScript, (intptr_t)address, this->isAsmInterpreterThunk, &result);
-        JITManager::HandleServerCallResult(hr);
+        JITManager::HandleServerCallResult(hr, RemoteCallType::HeapQuery);
         return result != FALSE;
     }
     else
@@ -755,14 +760,26 @@ void InterpreterThunkEmitter::Close()
     thunkBlocks.Iterate(unregisterPdata);
     freeListedThunkBlocks.Iterate(unregisterPdata);
 #endif
+
     this->thunkBlocks.Clear(allocator);
     this->freeListedThunkBlocks.Clear(allocator);
+
 #ifdef ENABLE_OOP_NATIVE_CODEGEN
-    if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+    if (JITManager::GetJITManager()->IsOOPJITEnabled())
+    {
+        PSCRIPTCONTEXT_HANDLE remoteScript = this->scriptContext->GetRemoteScriptAddr(false);
+        if (remoteScript)
+        {
+            JITManager::GetJITManager()->DecommitInterpreterBufferManager(remoteScript, this->isAsmInterpreterThunk);
+        }
+    }
+    else
 #endif
     {
         emitBufferManager.Decommit();
     }
+
+
     this->thunkBuffer = nullptr;
     this->thunkCount = 0;
 }
@@ -866,4 +883,3 @@ bool ThunkBlock::IsFreeListEmpty() const
 }
 
 #endif
-

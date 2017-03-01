@@ -44,6 +44,7 @@ HELPERCALL(ScrObj_OP_IsInst, Js::JavascriptOperators::OP_IsInst, AttrCanThrow)
 HELPERCALL(Op_IsIn, Js::JavascriptOperators::IsIn, AttrCanThrow)
 HELPERCALL(Op_IsObject, Js::JavascriptOperators::IsObject, AttrCanThrow)
 HELPERCALL(Op_IsClassConstructor, Js::JavascriptOperators::IsClassConstructor, AttrCanThrow)
+HELPERCALL(Op_IsBaseConstructorKind, Js::JavascriptOperators::IsBaseConstructorKind, AttrCanThrow)
 HELPERCALL(Op_LoadHeapArguments, Js::JavascriptOperators::LoadHeapArguments, 0)
 HELPERCALL(Op_LoadHeapArgsCached, Js::JavascriptOperators::LoadHeapArgsCached, 0)
 HELPERCALL(OP_InitCachedScope, Js::JavascriptOperators::OP_InitCachedScope, 0)
@@ -254,6 +255,7 @@ HELPERCALL(Op_ScopedGetMethod, ((Js::Var (*)(Js::FunctionBody *const, Js::Inline
 HELPERCALL(Op_ScopedGetMethodPolymorphic, ((Js::Var (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, bool))Js::JavascriptOperators::PatchScopedGetMethod<true, Js::PolymorphicInlineCache>), AttrCanThrow)
 
 HELPERCALL(CheckIfTypeIsEquivalent, Js::JavascriptOperators::CheckIfTypeIsEquivalent, 0)
+HELPERCALL(CheckIfTypeIsEquivalentForFixedField, Js::JavascriptOperators::CheckIfTypeIsEquivalentForFixedField, 0)
 
 HELPERCALL(Op_Delete, Js::JavascriptOperators::Delete, AttrCanThrow)
 HELPERCALL(OP_InitSetter, Js::JavascriptOperators::OP_InitSetter, AttrCanThrow)
@@ -331,6 +333,10 @@ HELPERCALL(OP_CmGe_A, Js::JavascriptOperators::OP_CmGe_A, AttrCanThrow)
 
 HELPERCALL(Conv_ToUInt32_Full, Js::JavascriptConversion::ToUInt32_Full, AttrCanThrow)
 HELPERCALL(Conv_ToUInt32, (uint32 (*)(Js::Var, Js::ScriptContext *))Js::JavascriptConversion::ToUInt32, AttrCanThrow)
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+HELPERCALL(WriteBarrierSetVerifyBit, Memory::Recycler::WBSetBitJIT, 0)
+#endif
 #ifdef _M_IX86
 HELPERCALL(Op_Int32ToAtom, Js::JavascriptOperators::Int32ToVar, 0)
 HELPERCALL(Op_Int32ToAtomInPlace, Js::JavascriptOperators::Int32ToVarInPlace, 0)
@@ -354,6 +360,7 @@ HELPERCALL(Op_Throw, Js::JavascriptExceptionOperators::OP_Throw, AttrCanThrow)
 HELPERCALL(Op_RuntimeTypeError, Js::JavascriptExceptionOperators::OP_RuntimeTypeError, AttrCanThrow)
 HELPERCALL(Op_RuntimeRangeError, Js::JavascriptExceptionOperators::OP_RuntimeRangeError, AttrCanThrow)
 HELPERCALL(Op_RuntimeReferenceError, Js::JavascriptExceptionOperators::OP_RuntimeReferenceError, AttrCanThrow)
+HELPERCALL(Op_WebAssemblyRuntimeError, Js::JavascriptExceptionOperators::OP_WebAssemblyRuntimeError, AttrCanThrow)
 HELPERCALL(Op_OutOfMemoryError, Js::Throw::OutOfMemory, AttrCanThrow)
 HELPERCALL(Op_FatalInternalError, Js::Throw::FatalInternalError, AttrCanThrow)
 
@@ -562,8 +569,8 @@ HELPERCALL(DirectMath_Exp, nullptr, 0)
 HELPERCALL(DirectMath_Log, nullptr, 0)
 HELPERCALL(DirectMath_Sin, nullptr, 0)
 HELPERCALL(DirectMath_Tan, nullptr, 0)
-HELPERCALL(DirectMath_Int64DivS, ((int64(*)(int64, int64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivOverflow<int64, &Wasm::WasmMath::Div<int64>, LONGLONG_MIN>), AttrCanThrow)
-HELPERCALL(DirectMath_Int64DivU, ((uint64(*)(uint64, uint64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivRemCheck<uint64, &Wasm::WasmMath::Div<uint64>>), AttrCanThrow)
+HELPERCALL(DirectMath_Int64DivS, ((int64(*)(int64, int64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivOverflow<int64, &Js::AsmJsMath::Div<int64>, LONGLONG_MIN>), AttrCanThrow)
+HELPERCALL(DirectMath_Int64DivU, ((uint64(*)(uint64, uint64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivRemCheck<uint64, &Js::AsmJsMath::Div<uint64>>), AttrCanThrow)
 HELPERCALL(DirectMath_Int64RemS, ((int64(*)(int64, int64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivRemCheck<int64, &Wasm::WasmMath::Rem<int64>>), AttrCanThrow)
 HELPERCALL(DirectMath_Int64RemU, ((uint64(*)(uint64, uint64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivRemCheck<uint64, &Wasm::WasmMath::Rem<uint64>>), AttrCanThrow)
 HELPERCALL(DirectMath_Int64Mul , (int64(*)(int64,int64)) Js::AsmJsMath::Mul<int64>, 0)

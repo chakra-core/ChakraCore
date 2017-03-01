@@ -28,21 +28,21 @@ namespace Js
         template <typename TData>
         friend class MapOrSetDataList;
 
-        MapOrSetDataNode<TData>* next;
-        MapOrSetDataNode<TData>* prev;
+        Field(MapOrSetDataNode<TData>*) next;
+        Field(MapOrSetDataNode<TData>*) prev;
 
         MapOrSetDataNode(TData& data) : data(data), next(nullptr), prev(nullptr) { }
 
     public:
-        TData data;
+        Field(TData) data;
     };
 
     template <typename TData>
     class MapOrSetDataList
     {
     private:
-        MapOrSetDataNode<TData>* first;
-        MapOrSetDataNode<TData>* last;
+        Field(MapOrSetDataNode<TData>*) first;
+        Field(MapOrSetDataNode<TData>*) last;
 
     public:
         MapOrSetDataList(VirtualTableInfoCtorEnum) {};
@@ -50,8 +50,8 @@ namespace Js
 
         class Iterator
         {
-            MapOrSetDataList<TData>* list;
-            MapOrSetDataNode<TData>* current;
+            Field(MapOrSetDataList<TData>*) list;
+            Field(MapOrSetDataNode<TData>*) current;
         public:
             Iterator() : list(nullptr), current(nullptr) { }
             Iterator(MapOrSetDataList<TData>* list) : list(list), current(nullptr) { }
@@ -120,7 +120,7 @@ namespace Js
                 return false;
             }
 
-            TData& Current()
+            const TData& Current() const
             {
                 return current->data;
             }

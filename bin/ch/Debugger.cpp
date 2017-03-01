@@ -174,10 +174,7 @@ JsValueRef Debugger::Evaluate(JsValueRef callee, bool isConstructCall, JsValueRe
     if (argumentCount > 2)
     {
         IfJsErrorFailLogAndRet(ChakraRTInterface::JsNumberToInt(arguments[1], &stackFrameIndex));
-
-        AutoString argstr(arguments[2]);
-        IfJsErrorFailLogAndRet(argstr.GetError());
-        ChakraRTInterface::JsDiagEvaluateUtf8(argstr.GetString(), stackFrameIndex, &result);
+        ChakraRTInterface::JsDiagEvaluate(arguments[2], stackFrameIndex, JsParseScriptAttributeNone, &result);
     }
 
     return result;
@@ -192,6 +189,11 @@ Debugger::Debugger(JsRuntimeHandle runtime)
 
 Debugger::~Debugger()
 {
+    if (this->m_context != JS_INVALID_REFERENCE)
+    {
+        ChakraRTInterface::JsRelease(this->m_context, nullptr);
+        this->m_context = JS_INVALID_REFERENCE;
+    }
     this->m_runtime = JS_INVALID_RUNTIME_HANDLE;
 }
 
@@ -225,7 +227,9 @@ bool Debugger::Initialize()
     // Create a new context and run dbgcontroller.js in that context
     // setup dbgcontroller.js callbacks
 
+    Assert(this->m_context == JS_INVALID_REFERENCE);
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateContext(this->m_runtime, &this->m_context));
+    IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsAddRef(this->m_context, nullptr)); // Pin context
 
     AutoRestoreContext autoRestoreContext(this->m_context);
 
@@ -235,8 +239,8 @@ bool Debugger::Initialize()
         (void*)controllerScript, (unsigned int)strlen(controllerScript),
         nullptr, nullptr, &scriptSource));
     JsValueRef fname;
-    ChakraRTInterface::JsCreateStringUtf8(
-        (const uint8_t*)"DbgController.js", strlen("DbgController.js"), &fname);
+    ChakraRTInterface::JsCreateString(
+        "DbgController.js", strlen("DbgController.js"), &fname);
     IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsParse(scriptSource,
         JS_SOURCE_CONTEXT_NONE, fname, JsParseScriptAttributeLibraryCode,
         &globalFunc));
@@ -323,8 +327,8 @@ bool Debugger::SetBaseline()
                 script[numChars] = '\0';
 
                 JsValueRef wideScriptRef;
-                IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateStringUtf8(
-                  (const uint8_t*)script, strlen(script), &wideScriptRef));
+                IfJsrtErrorFailLogAndRetFalse(ChakraRTInterface::JsCreateString(
+                  script, strlen(script), &wideScriptRef));
 
                 this->CallFunctionNoResult("SetBaseline", wideScriptRef);
             }

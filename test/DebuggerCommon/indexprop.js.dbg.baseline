@@ -153,6 +153,7 @@
         "RequestAsyncBreak": "function <large string>",
         "LoadBinaryFile": "function LoadBinaryFile",
         "LoadTextFile": "function LoadTextFile",
+        "Flag": "function Flag",
         "Edit": "function Edit",
         "Platform": "Object {...}",
         "Arguments": "Array []"

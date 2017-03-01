@@ -45,6 +45,7 @@ namespace Js
         void AsmStartCall    ( OpCodeAsmJs op, ArgSlot ArgCount, bool isPatching = false);
         void AsmCall         ( OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType );
         void AsmSlot         ( OpCodeAsmJs op, RegSlot value, RegSlot instance, int32 slotId );
+        void WasmMemAccess     ( OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint32 offset, ArrayBufferView::ViewType viewType );
         void AsmTypedArr     ( OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType );
         void AsmSimdTypedArr ( OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType );
 
@@ -82,6 +83,7 @@ namespace Js
         template <typename SizePolicy> bool TryWriteAsmBrReg1Const1 ( OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1 );
         template <typename SizePolicy> bool TryWriteAsmCall         ( OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType );
         template <typename SizePolicy> bool TryWriteAsmSlot         ( OpCodeAsmJs op, RegSlot value, RegSlot instance, int32 slotId );
+        template <typename SizePolicy> bool TryWriteWasmMemAccess   ( OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint32 offset, ArrayBufferView::ViewType viewType );
         template <typename SizePolicy> bool TryWriteAsmTypedArr     ( OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType );
         template <typename SizePolicy> bool TryWriteAsmSimdTypedArr ( OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType );
         template <typename SizePolicy> bool TryWriteAsmJsUnsigned1  ( OpCodeAsmJs op, uint C1 );

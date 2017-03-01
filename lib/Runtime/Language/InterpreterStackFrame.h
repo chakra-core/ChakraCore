@@ -28,6 +28,10 @@ namespace Js
         InterpreterStackFrameFlags_ProcessingBailOutFromEHCode = 0x10,
         InterpreterStackFrameFlags_All = 0xFFFF,
     };
+
+    // TODO: (leish)(swb) this is not always stack allocated now
+    // with ES6 Generator, this can be allocated with recycler
+    // need to find a good way to set write barrier, or big refactor.
     struct InterpreterStackFrame   /* Stack allocated, no virtuals */
     {
         PREVENT_COPY(InterpreterStackFrame)
@@ -253,8 +257,8 @@ namespace Js
 
         Var LdEnv() const;
         void SetEnv(FrameDisplay *frameDisplay);
-        Var * NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope);
-        Var * NewScopeSlots();
+        Field(Var)* NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope);
+        Field(Var)* NewScopeSlots();
         Var NewScopeObject();
         FrameDisplay * NewFrameDisplay(void *argHead, void *argEnv);
 
@@ -419,6 +423,7 @@ namespace Js
         BOOL OP_BrOnNoProperty(Var argInstance, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnNoEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnClassConstructor(Var aValue);
+        BOOL OP_BrOnBaseConstructorKind(Var aValue);
 
         RecyclableObject * OP_CallGetFunc(Var target);
 

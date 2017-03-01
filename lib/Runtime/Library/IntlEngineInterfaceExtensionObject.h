@@ -95,16 +95,16 @@ namespace Js
         static Var EntryIntl_BuiltIn_CallInstanceFunction(RecyclableObject *function, CallInfo callInfo, ...);
 
     private:
-        JavascriptFunction* dateToLocaleString;
-        JavascriptFunction* dateToLocaleTimeString;
-        JavascriptFunction* dateToLocaleDateString;
-        JavascriptFunction* numberToLocaleString;
-        JavascriptFunction* stringLocaleCompare;
+        Field(JavascriptFunction*) dateToLocaleTimeString;
+        Field(JavascriptFunction*) dateToLocaleDateString;
+        Field(JavascriptFunction*) numberToLocaleString;
+        Field(JavascriptFunction*) stringLocaleCompare;
+        Field(JavascriptFunction*) dateToLocaleString;
 
-        DynamicObject* intlNativeInterfaces;
-        FunctionBody* intlByteCode;
+        Field(DynamicObject*) intlNativeInterfaces;
+        Field(FunctionBody*) intlByteCode;
 
-        bool wasInitialized;
+        Field(bool) wasInitialized;
         void EnsureIntlByteCode(_In_ ScriptContext * scriptContext);
         static void deletePrototypePropertyHelper(ScriptContext* scriptContext, DynamicObject* intlObject, Js::PropertyId objectPropertyId, Js::PropertyId getterFunctionId);
         static WindowsGlobalizationAdapter* GetWindowsGlobalizationAdapter(_In_ ScriptContext*);

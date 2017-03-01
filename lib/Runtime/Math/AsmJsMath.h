@@ -16,6 +16,7 @@ namespace Js
         template<typename T> static T Rem( T aLeft, T aRight );
         template<typename T> static T Min( T aLeft, T aRight );
         template<typename T> static T Max( T aLeft, T aRight );
+        template<typename T> static T Abs( T aLeft );
 
         template<typename T = int> static T And( T aLeft, T aRight );
         template<typename T = int> static T Or( T aLeft, T aRight );
@@ -36,7 +37,6 @@ namespace Js
         template<typename T> static int CmpEq( T aLeft, T aRight );
         template<typename T> static int CmpNe( T aLeft, T aRight );
     };
-
-
-
 }
+
+#include "AsmJsMath.inl"

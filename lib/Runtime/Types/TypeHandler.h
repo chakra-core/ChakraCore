@@ -66,13 +66,13 @@ namespace Js
 
         // PropertyTypesReserved (0x1) is always on so that the DWORD formed with the following boolean doesn't look like
         // a pointer.
-        PropertyTypes propertyTypes;
-        BYTE flags;
-        uint16 offsetOfInlineSlots;
-        int slotCapacity;
-        uint16 unusedBytes;             // This always has it's lowest bit set to avoid false references
-        uint16 inlineSlotCapacity;
-        bool isNotPathTypeHandlerOrHasUserDefinedCtor;
+        Field(PropertyTypes) propertyTypes;
+        Field(BYTE) flags;
+        Field(uint16) offsetOfInlineSlots;
+        Field(int) slotCapacity;
+        Field(uint16) unusedBytes;             // This always has it's lowest bit set to avoid false references
+        Field(uint16) inlineSlotCapacity;
+        Field(bool) isNotPathTypeHandlerOrHasUserDefinedCtor;
 
     public:
         DEFINE_GETCPPNAME_ABSTRACT();
@@ -624,16 +624,8 @@ namespace Js
          //Set the extensible flag info in the handler
          void SetExtensible_TTD();
 
-         //Return true if we should restore the given property id (we want to skip most internal property ids)
-         static bool ShouldRestorePropertyId_TTD(Js::PropertyId pid)
-         {
-             if((pid == Js::Constants::NoProperty) | Js::IsInternalPropertyId(pid))
-             {
-                 return false;
-             }
-
-             return true;
-         }
+         //Return true if this type handler is reseattable/false if we don't want to try
+         virtual bool IsResetableForTTD(uint32 snapMaxIndex) const;
 #endif
     };
 }

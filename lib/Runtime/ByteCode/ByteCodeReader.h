@@ -13,6 +13,9 @@ namespace Js
         static uint32 GetCurrentLocationOffset() { return offsetof(ByteCodeReader, m_currentLocation); }
 
     private:
+        // TODO: (leish)(swb) this is not always stack allocated now
+        // with ES6 Generator, this can be allocated with recycler
+        // need to find a good way to set write barrier, or big refactor.
         const byte * m_startLocation;
         const byte * m_currentLocation;
 

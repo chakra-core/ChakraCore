@@ -34,7 +34,7 @@ public:
     JsFinalizeCallback GetJsFinalizeCallback() const { return this->jsFinalizeCallback; }
 
 private:
-    JsFinalizeCallback jsFinalizeCallback;
+    FieldNoBarrier(JsFinalizeCallback) jsFinalizeCallback;
 };
 AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(JsrtExternalType, &Js::Type::DumpObjectFunction);
 
@@ -49,6 +49,7 @@ public:
 
     static bool Is(Js::Var value);
     static JsrtExternalObject * FromVar(Js::Var value);
+    static JsrtExternalObject * Create(void *data, JsFinalizeCallback finalizeCallback, Js::ScriptContext *scriptContext);
 
     JsrtExternalType * GetExternalType() const { return (JsrtExternalType *)this->GetType(); }
 
@@ -63,7 +64,7 @@ public:
     void SetSlotData(void * data);
 
 private:
-    void * slot;
+    Field(void *) slot;
 
 #if ENABLE_TTD
 public:

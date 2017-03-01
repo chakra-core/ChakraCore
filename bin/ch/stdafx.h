@@ -182,12 +182,11 @@ public:
         if (errorCode == JsNoError)
         {
             size_t len = 0;
-            errorCode = ChakraRTInterface::JsCopyStringUtf8(strValue, nullptr, 0, &len);
+            errorCode = ChakraRTInterface::JsCopyString(strValue, nullptr, 0, &len);
             if (errorCode == JsNoError)
             {
                 data = (char*) malloc((len + 1) * sizeof(char));
-                uint8_t *udata = (uint8_t*)data;
-                ChakraRTInterface::JsCopyStringUtf8(strValue, udata, len + 1, &length);
+                ChakraRTInterface::JsCopyString(strValue, data, len + 1, &length);
                 AssertMsg(len == length, "If you see this message.. There is something seriously wrong. Good Luck!");
                 *(data + len) = char(0);
             }
@@ -256,5 +255,8 @@ public:
 
 inline JsErrorCode CreatePropertyIdFromString(const char* str, JsPropertyIdRef *Id)
 {
-    return ChakraRTInterface::JsCreatePropertyIdUtf8(str, strlen(str), Id);
+    return ChakraRTInterface::JsCreatePropertyId(str, strlen(str), Id);
 }
+
+void GetBinaryLocation(char *path, const unsigned size);
+void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename);
