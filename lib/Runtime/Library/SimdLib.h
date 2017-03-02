@@ -31,8 +31,3 @@
 #include "Library/SimdBool32x4Lib.h"
 #include "Library/SimdBool16x8Lib.h"
 #include "Library/SimdBool8x16Lib.h"
-
-// SIMD ops
-//
-
-#include "Language/SimdInt32x4Operation.h"
