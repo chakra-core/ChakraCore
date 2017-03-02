@@ -26,7 +26,6 @@ namespace Js
             pActiveScriptDirect(nullptr) {}
         JavascriptLibrary* GetLibrary() const { return javascriptLibrary; }
         void SetLibrary(JavascriptLibrary* library) { javascriptLibrary = library;}
-        void ClearGlobalObject();
         void SetGlobalObject(GlobalObject *globalObject);
         GlobalObject* GetGlobalObject() const { return globalObject; }
         IActiveScriptDirect* GetActiveScriptDirect()

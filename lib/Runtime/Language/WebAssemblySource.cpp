@@ -60,7 +60,7 @@ void WebAssemblySource::CreateSourceInfo(bool createNewContext, ScriptContext* s
         /* mod                 */ 0,
         /* grfsi               */ 0
     };
-    SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
+    SRCINFO const * srcInfo = scriptContext->Cache()->noContextGlobalSourceInfo;
     if (createNewContext)
     {
         si.sourceContextInfo = scriptContext->CreateSourceContextInfo(scriptContext->GetNextSourceContextId(), nullptr, 0, nullptr);

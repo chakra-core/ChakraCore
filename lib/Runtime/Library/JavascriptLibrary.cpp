@@ -1054,6 +1054,7 @@ namespace Js
             scriptContext->ResetWeakReferenceDictionaryList();
             scriptContext->SetIsFinalized();
             scriptContext->GetThreadContext()->UnregisterScriptContext(scriptContext);
+            scriptContext->MarkForClose();
         }
     }
 
@@ -1061,20 +1062,19 @@ namespace Js
     {
         if (scriptContext)
         {
-            if (isShutdown)
-            {
-                // during shut down the global object might not be closed yet.
-                // Clear the global object from the script context so it doesn't
-                // get unpinned (which may fail because the recycler is shutting down)
-                scriptContext->Close(true);
-                scriptContext->ClearGlobalObject();
-            }
-            else
-            {
-                Assert(scriptContext->IsClosed());
-            }
             HeapDelete(scriptContext);
             scriptContext = nullptr;
+        }
+    }
+    void JavascriptLibrary::Finalize(bool isShutdown)
+    {
+        __super::Finalize(isShutdown);
+
+        this->SetFakeGlobalFuncForUndefer(nullptr);
+
+        if (this->referencedPropertyRecords != nullptr)
+        {
+            RECYCLER_PERF_COUNTER_SUB(PropertyRecordBindReference, this->referencedPropertyRecords->Count());
         }
     }
 
@@ -4943,7 +4943,7 @@ namespace Js
         this->nativeHostPromiseContinuationFunctionState = state;
     }
 
-    void JavascriptLibrary::PinJsrtContextObject(FinalizableObject* jsrtContext)
+    void JavascriptLibrary::SetJsrtContext(FinalizableObject* jsrtContext)
     {
         // With JsrtContext supporting cross context, ensure that it doesn't get GCed
         // prematurely. So pin the instance to javascriptLibrary so it will stay alive
@@ -4952,7 +4952,7 @@ namespace Js
         this->jsrtContextObject = jsrtContext;
     }
 
-    FinalizableObject* JavascriptLibrary::GetPinnedJsrtContextObject()
+    FinalizableObject* JavascriptLibrary::GetJsrtContext()
     {
         return this->jsrtContextObject;
     }
@@ -7084,7 +7084,6 @@ namespace Js
     {
         bindRefChunkCurrent = nullptr;
         bindRefChunkEnd = nullptr;
-        scriptContextCache = nullptr;
     }
 
     void JavascriptLibrary::BeginDynamicFunctionReferences()

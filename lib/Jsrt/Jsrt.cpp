@@ -460,6 +460,16 @@ CHAKRA_API JsDisposeRuntime(_In_ JsRuntimeHandle runtimeHandle)
             runtime->GetJsrtDebugManager()->ClearDebuggerObjects();
         }
 
+        Js::ScriptContext *scriptContext;
+        for (scriptContext = threadContext->GetScriptContextList(); scriptContext; scriptContext = scriptContext->next)
+        {
+            if (runtime->GetJsrtDebugManager() != nullptr)
+            {
+                runtime->GetJsrtDebugManager()->ClearDebugDocument(scriptContext);
+            }
+            scriptContext->MarkForClose();
+        }
+
         // Close any open Contexts.
         // We need to do this before recycler shutdown, because ScriptEngine->Close won't work then.
         runtime->CloseContexts();
@@ -808,7 +818,7 @@ CHAKRA_API JsGetContextOfObject(_In_ JsValueRef object, _Out_ JsContextRef *cont
             RETURN_NO_EXCEPTION(JsErrorArgumentNotObject);
         }
         Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(object);
-        *context = (JsContextRef)obj->GetScriptContext()->GetLibrary()->GetPinnedJsrtContextObject();
+        *context = (JsContextRef)obj->GetScriptContext()->GetLibrary()->GetJsrtContext();
     }
     END_JSRT_NO_EXCEPTION
 }

@@ -2119,7 +2119,7 @@ void ByteCodeGenerator::Begin(
         this->propertyRecords = nullptr;
     }
 
-    Js::FunctionBody *fakeGlobalFunc = scriptContext->GetFakeGlobalFuncForUndefer();
+    Js::FunctionBody *fakeGlobalFunc = scriptContext->GetLibrary()->GetFakeGlobalFuncForUndefer();
     if (fakeGlobalFunc)
     {
         fakeGlobalFunc->ClearBoundPropertyRecords();
@@ -5509,11 +5509,11 @@ bool ByteCodeGenerator::NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNod
 
 Js::FunctionBody *ByteCodeGenerator::EnsureFakeGlobalFuncForUndefer(ParseNode *pnode)
 {
-    Js::FunctionBody *func = scriptContext->GetFakeGlobalFuncForUndefer();
+    Js::FunctionBody *func = scriptContext->GetLibrary()->GetFakeGlobalFuncForUndefer();
     if (!func)
     {
         func = this->MakeGlobalFunctionBody(pnode);
-        scriptContext->SetFakeGlobalFuncForUndefer(func);
+        scriptContext->GetLibrary()->SetFakeGlobalFuncForUndefer(func);
     }
     else
     {
