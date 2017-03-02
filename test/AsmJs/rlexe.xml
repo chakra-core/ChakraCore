@@ -822,21 +822,7 @@
   <test>
     <default>
       <files>constFoldTests.js</files>
-      <compile-flags>-asmjs -maic:0 -wasmfold</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>FunctionCalls.js</files>
-      <baseline>FunctionCalls.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -wasmfold -maic:0 -simdjs</compile-flags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>BasicLooping.js</files>
-      <baseline>BasicLooping.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -wasmfold -maic:0 -simdjs</compile-flags>
+      <compile-flags>-asmjs -maic:0</compile-flags>
     </default>
   </test>
 </regress-exe>

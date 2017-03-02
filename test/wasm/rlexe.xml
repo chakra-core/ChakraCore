@@ -201,7 +201,7 @@
 <test>
   <default>
     <files>i64cf.js</files>
-    <compile-flags>-wasm -wasmfold -maic:0</compile-flags>
+    <compile-flags>-wasm -maic:0</compile-flags>
     <tags>exclude_amd64</tags>
   </default>
 </test>
