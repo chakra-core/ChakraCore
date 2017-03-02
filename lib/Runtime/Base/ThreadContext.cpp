@@ -591,7 +591,8 @@ ThreadContext::~ThreadContext()
 void
 ThreadContext::SetJSRTRuntime(void* runtime)
 {
-    Assert(jsrtRuntime == nullptr); jsrtRuntime = runtime;
+    Assert(jsrtRuntime == nullptr);
+    jsrtRuntime = runtime;
 #ifdef ENABLE_BASIC_TELEMETRY
     Telemetry::EnsureInitializeForJSRT();
 #endif

@@ -337,7 +337,6 @@ namespace TTD
 }
 
 #include "PlatformAgnostic/ChakraPlatform.h"
-#include "DataStructures/EvalMapString.h"
 
 bool IsMathLibraryId(Js::PropertyId propertyId);
 #include "ByteCode/PropertyIdArray.h"
@@ -446,6 +445,9 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/JavascriptLibraryBase.h"
 #include "Library/MathLibrary.h"
 #include "Base/ThreadContextInfo.h"
+#include "DataStructures/EvalMapString.h"
+#include "Language/EvalMapRecord.h"
+#include "Base/RegexPatternMruMap.h"
 #include "Library/JavascriptLibrary.h"
 
 #include "Language/JavascriptExceptionOperators.h"
@@ -480,8 +482,6 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Base/StackProber.h"
 #include "Base/ScriptContextProfiler.h"
 
-#include "Language/EvalMapRecord.h"
-#include "Base/RegexPatternMruMap.h"
 #include "Language/JavascriptConversion.h"
 
 #include "Base/ScriptContextOptimizationOverrideInfo.h"
