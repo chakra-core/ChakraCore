@@ -115,25 +115,18 @@ if(ICU_INCLUDE_PATH)
     set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
     find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
     find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
     if(ICUUC)
-      message("found libraries on ${ICU_CC_PATH}")
+      message("-- found ICU libs: ${ICU_CC_PATH}")
+      find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+      if (NOT ICUDATA)
+          set(ICUDATA "")
+      endif()
       set(ICULIB
         ${ICUUC}
         ${ICU18}
         ${ICUDATA}
         )
     endif()
-elseif(CC_EMBED_ICU)
-    set(ICU_CC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/icu/source/output/lib/")
-    find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    set(ICULIB
-      ${ICUUC}
-      ${ICU18}
-      ${ICUDATA}
-      )
 endif()
 
 set(CLR_CMAKE_PLATFORM_XPLAT 1)
@@ -186,16 +179,8 @@ elseif(CC_TARGET_OS_OSX)
     )
 
     if(NOT ICULIB)
-      if(NOT NO_ICU_PATH_GIVEN)
-        add_definitions(-DHAS_REAL_ICU=1)
-        if(NOT CC_EMBED_ICU)
-          set(ICULIB "icucore")
-          add_definitions(
-            -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
-            )
-        endif()
-        message("using ICU from system default: ${ICULIB}")
-      endif()
+      set(NO_ICU_PATH_GIVEN 1)
+      message("-- Couldn't find ICU. Falling back to --no-icu build")
     endif()
 
     if(NOT CC_XCODE_PROJECT)
@@ -209,7 +194,7 @@ elseif(CC_TARGET_OS_OSX)
           -mmacosx-version-min=10.9 -std=gnu++11")
       else()
         set(OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET}")
-        message(WARNING "!! macOS Deployment Target was set to $ENV{MACOSX_DEPLOYMENT_TARGET}. Using it as is.")
+        message(WARNING "-- !! macOS Deployment Target was set to $ENV{MACOSX_DEPLOYMENT_TARGET}. Using it as is.")
       endif()
     endif()
 else()
