@@ -1099,8 +1099,10 @@ LinearScan::SetUses(IR::Instr *instr, IR::Opnd *opnd)
         {
             IR::IndirOpnd * indirOpnd = opnd->AsIndirOpnd();
 
-            this->SetUse(instr, indirOpnd->GetBaseOpnd());
-
+            if (indirOpnd->GetBaseOpnd())
+            {
+                this->SetUse(instr, indirOpnd->GetBaseOpnd());
+            }
             if (indirOpnd->GetIndexOpnd())
             {
                 this->SetUse(instr, indirOpnd->GetIndexOpnd());

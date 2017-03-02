@@ -2244,9 +2244,6 @@ IndirOpnd::New(RegOpnd *baseOpnd, RegOpnd *indexOpnd, IRType type, Func *func)
 {
     IndirOpnd * indirOpnd;
 
-    AssertMsg(baseOpnd, "An IndirOpnd needs a valid baseOpnd.");
-    Assert(baseOpnd->GetSize() == TySize[TyMachReg]);
-
     indirOpnd = JitAnew(func->m_alloc, IR::IndirOpnd);
 
     indirOpnd->m_func = func;
@@ -2273,6 +2270,35 @@ IndirOpnd *
 IndirOpnd::New(RegOpnd *baseOpnd, RegOpnd *indexOpnd, byte scale, IRType type, Func *func)
 {
     IndirOpnd * indirOpnd = IndirOpnd::New(baseOpnd, indexOpnd, type, func);
+
+    indirOpnd->m_scale = scale;
+
+    return indirOpnd;
+}
+
+///----------------------------------------------------------------------------
+///
+/// IndirOpnd::New
+///
+///     Creates a new IndirOpnd.
+///
+///----------------------------------------------------------------------------
+
+IndirOpnd *
+IndirOpnd::New(RegOpnd *indexOpnd, int32 offset, byte scale, IRType type, Func *func)
+{
+    IndirOpnd * indirOpnd;
+
+    indirOpnd = JitAnew(func->m_alloc, IR::IndirOpnd);
+
+    indirOpnd->m_func = func;
+    indirOpnd->SetBaseOpnd(nullptr);
+    indirOpnd->SetOffset(offset, true);
+    indirOpnd->SetIndexOpnd(indexOpnd);
+    indirOpnd->m_type = type;
+    indirOpnd->SetIsJITOptimizedReg(false);
+
+    indirOpnd->m_kind = OpndKindIndir;
 
     indirOpnd->m_scale = scale;
 
@@ -2458,7 +2484,8 @@ IndirOpnd::IsEqualInternal(Opnd *opnd)
     }
     IndirOpnd *indirOpnd = opnd->AsIndirOpnd();
 
-    return m_offset == indirOpnd->m_offset && m_baseOpnd->IsEqual(indirOpnd->m_baseOpnd)
+    return m_offset == indirOpnd->m_offset
+        && ((m_baseOpnd == nullptr && indirOpnd->m_baseOpnd == nullptr) || (m_baseOpnd && indirOpnd->m_baseOpnd && m_baseOpnd->IsEqual(indirOpnd->m_baseOpnd)))
         && ((m_indexOpnd == nullptr && indirOpnd->m_indexOpnd == nullptr) || (m_indexOpnd && indirOpnd->m_indexOpnd && m_indexOpnd->IsEqual(indirOpnd->m_indexOpnd)));
 }
 
@@ -3180,11 +3207,14 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
         IndirOpnd *indirOpnd = this->AsIndirOpnd();
 
         Output::Print(_u("["));
-        indirOpnd->GetBaseOpnd()->Dump(flags, func);
+        if (indirOpnd->GetBaseOpnd())
+        {
+            indirOpnd->GetBaseOpnd()->Dump(flags, func);
+            Output::Print(_u("+"));
+        }
 
         if (indirOpnd->GetIndexOpnd())
         {
-            Output::Print(_u("+"));
             indirOpnd->GetIndexOpnd()->Dump(flags, func);
             if (indirOpnd->GetScale() > 0)
             {
