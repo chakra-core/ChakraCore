@@ -163,9 +163,9 @@ namespace Js
         });
         END_TRANSLATE_OOM_TO_HRESULT(hr);
 
-        if (hr != S_OK)
+        if (FAILED(hr))
         {
-            Assert(FALSE);
+            Assert(hr == E_OUTOFMEMORY);
             return hr;
         }
 
@@ -274,6 +274,8 @@ namespace Js
                         this->RegisterFunction(parseableFunctionInfo, dwDebugHostSourceContext, parseableFunctionInfo->GetSourceName());
                     }
                     END_TRANSLATE_OOM_TO_HRESULT(hr);
+
+                    DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr);
 
                     fHasDoneSourceRundown = true;
                 }
