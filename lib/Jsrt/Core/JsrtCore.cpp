@@ -119,7 +119,7 @@ JsModuleEvaluation(
         *result = JS_INVALID_REFERENCE;
     }
     Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
-    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetPinnedJsrtContextObject();
+    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetJsrtContext();
     JsErrorCode errorCode = SetContextAPIWrapper(jsrtContext, [&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         SmartFPUControl smartFpuControl;
         if (smartFpuControl.HasErr())
@@ -148,7 +148,7 @@ JsSetModuleHostInfo(
     }
     Js::SourceTextModuleRecord* moduleRecord = Js::SourceTextModuleRecord::FromHost(requestModule);
     Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
-    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetPinnedJsrtContextObject();
+    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetJsrtContext();
     JsErrorCode errorCode = SetContextAPIWrapper(jsrtContext, [&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         JsrtContextCore* currentContext = static_cast<JsrtContextCore*>(JsrtContextCore::GetCurrent());
         switch (moduleHostInfo)
@@ -186,7 +186,7 @@ JsGetModuleHostInfo(
     *hostInfo = nullptr;
     Js::SourceTextModuleRecord* moduleRecord = Js::SourceTextModuleRecord::FromHost(requestModule);
     Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
-    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetPinnedJsrtContextObject();
+    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetJsrtContext();
     JsErrorCode errorCode = SetContextAPIWrapper(jsrtContext, [&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         JsrtContextCore* currentContext = static_cast<JsrtContextCore*>(JsrtContextCore::GetCurrent());
         switch (moduleHostInfo)
