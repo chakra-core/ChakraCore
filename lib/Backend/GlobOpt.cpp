@@ -5730,10 +5730,10 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         val = this->GetIntConstantValue(opnd->AsIntConstOpnd()->AsInt32(), instr);
         opnd->SetValueType(val->GetValueInfo()->Type());
         return val;
-
     case IR::OpndKindInt64Const:
-        return nullptr;
-
+        val = this->GetIntConstantValue(opnd->AsInt64ConstOpnd()->GetValue(), instr);
+        opnd->SetValueType(val->GetValueInfo()->Type());
+        return val;
     case IR::OpndKindFloatConst:
     {
         const FloatConstType floatValue = opnd->AsFloatConstOpnd()->m_value;
@@ -6923,6 +6923,23 @@ GlobOpt::GetIntConstantValue(const int32 intConst, IR::Instr * instr, IR::Opnd *
     }
 
     return this->InsertNewValue(value, opnd);
+}
+
+Value *
+GlobOpt::GetIntConstantValue(const int64 intConst, IR::Instr * instr, IR::Opnd *const opnd)
+{
+    Assert(instr->m_func->GetJITFunctionBody()->IsWasmFunction());
+    Value *value = NewInt64ConstantValue(intConst);
+    return this->InsertNewValue(value, opnd);
+}
+
+Value *
+GlobOpt::NewInt64ConstantValue(const int64 intConst)
+{
+    //TODO: to implement int64 VN caching we need liveness info
+    //We need caching for CSE
+    Value * value = NewValue(IntConstantValueInfo::New(this->alloc, intConst));
+    return value;
 }
 
 Value *
@@ -8962,16 +8979,33 @@ GlobOpt::TypeSpecialization(
         // Binary
         if (!this->IsLoopPrePass())
         {
-            // OptConstFoldBinary doesn't do type spec, so only deal with things we are sure are int (IntConstant and IntRange)
-            // and not just likely ints  TypeSpecializeBinary will deal with type specializing them and fold them again
-            IntConstantBounds src1IntConstantBounds, src2IntConstantBounds;
-            if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantBounds(&src1IntConstantBounds))
+            if (GetIsAsmJSFunc())
             {
-                if (src2Val && src2Val->GetValueInfo()->TryGetIntConstantBounds(&src2IntConstantBounds))
+                if (CONFIG_FLAG(WasmFold))
                 {
-                    if (this->OptConstFoldBinary(&instr, src1IntConstantBounds, src2IntConstantBounds, pDstVal))
+                    bool success = instr->GetSrc1()->IsInt64() ?
+                        this->OptConstFoldBinaryWasm<int64>(&instr, src1Val, src2Val, pDstVal) :
+                        this->OptConstFoldBinaryWasm<int>(&instr, src1Val, src2Val, pDstVal);
+
+                    if (success)
                     {
                         return instr;
+                    }
+                }
+            }
+            else
+            {
+                // OptConstFoldBinary doesn't do type spec, so only deal with things we are sure are int (IntConstant and IntRange)
+                // and not just likely ints  TypeSpecializeBinary will deal with type specializing them and fold them again
+                IntConstantBounds src1IntConstantBounds, src2IntConstantBounds;
+                if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantBounds(&src1IntConstantBounds))
+                {
+                    if (src2Val && src2Val->GetValueInfo()->TryGetIntConstantBounds(&src2IntConstantBounds))
+                    {
+                        if (this->OptConstFoldBinary(&instr, src1IntConstantBounds, src2IntConstantBounds, pDstVal))
+                        {
+                            return instr;
+                        }
                     }
                 }
             }
@@ -9296,6 +9330,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         return false;
     }
 
+    int64 left64, right64;
     Js::Var src1Var = this->GetConstantVar(instr->GetSrc1(), src1Val);
 
     Js::Var src2Var = nullptr;
@@ -9319,6 +9354,29 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
     int32 constVal;
     switch (instr->m_opcode)
     {
+#define BRANCH(OPCODE,CMP,TYPE,UNSIGNEDNESS) \
+    case Js::OpCode::##OPCODE: \
+        if (src1Val->GetValueInfo()->TryGetInt64ConstantValue(&left64, UNSIGNEDNESS) && \
+            src2Val->GetValueInfo()->TryGetInt64ConstantValue(&right64, UNSIGNEDNESS)) \
+        { \
+            result = (TYPE)left64 CMP (TYPE)right64; \
+        } \
+        else \
+        { \
+            return false; \
+        } \
+        break;
+
+    BRANCH(BrEq_I4, == , int64, false)
+    BRANCH(BrGe_I4, >= , int64, false)
+    BRANCH(BrGt_I4, >, int64, false)
+    BRANCH(BrLt_I4, <, int64, false)
+    BRANCH(BrLe_I4, <= , int64, false)
+    BRANCH(BrNeq_I4, != , int64, false)
+    BRANCH(BrUnGe_I4, >= , uint64, true)
+    BRANCH(BrUnGt_I4, >, uint64, true)
+    BRANCH(BrUnLt_I4, <, uint64, true)
+    BRANCH(BrUnLe_I4, <= , uint64, true)
     case Js::OpCode::BrEq_A:
     case Js::OpCode::BrNotNeq_A:
         if (!src1Var || !src2Var)
@@ -9491,6 +9549,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
 
     default:
         return false;
+#undef BRANCH
     }
 
     this->OptConstFoldBr(!!result, instr);
@@ -15100,6 +15159,90 @@ GlobOpt::MakeLive(StackSym *const sym, GlobOptBlockData *const blockData, const 
     blockData->liveVarSyms->Set(sym->m_id);
 }
 
+static void SetIsConstFlag(StackSym* dstSym, int64 value)
+{
+    Assert(dstSym);
+    dstSym->SetIsInt64Const();
+}
+
+static void SetIsConstFlag(StackSym* dstSym, int value)
+{
+    Assert(dstSym);
+    dstSym->SetIsIntConst(value);
+}
+
+static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int64 value) 
+{
+    return (IR::Opnd*)IR::Int64ConstOpnd::New(value, instr->GetDst()->GetType(), instr->m_func);
+}
+
+static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int value)
+{
+    return (IR::Opnd*)IR::IntConstOpnd::New(value, instr->GetDst()->GetType(), instr->m_func);
+}
+
+template <typename T>
+IR::Opnd* GlobOpt::ReplaceWConst(IR::Instr **pInstr, T value, Value **pDstVal)
+{
+    IR::Instr * &instr = *pInstr;
+    IR::Opnd * constOpnd = CreateIntConstOpnd(instr, value);
+
+    instr->ReplaceSrc1(constOpnd);
+    instr->FreeSrc2();
+
+    this->OptSrc(constOpnd, &instr);
+
+    IR::Opnd *dst = instr->GetDst();
+    StackSym *dstSym = dst->AsRegOpnd()->m_sym;
+    if (dstSym->IsSingleDef())
+    {
+        SetIsConstFlag(dstSym, value);
+    }
+
+    GOPT_TRACE_INSTR(instr, _u("Constant folding to %d: \n"), value);
+    *pDstVal = GetIntConstantValue(value, instr, dst);
+    return dst;
+}
+
+template <typename T>
+bool GlobOpt::OptConstFoldBinaryWasm(
+    IR::Instr** pInstr,
+    const Value* src1,
+    const Value* src2,
+    Value **pDstVal)
+{
+    IR::Instr* &instr = *pInstr;
+
+    if (!DoConstFold())
+    {
+        return false;
+    }
+
+    T src1IntConstantValue, src2IntConstantValue;
+    if (!src1 || !src1->GetValueInfo()->TryGetIntConstantValue(&src1IntConstantValue, false) || //a bit sketchy: false for int32 means likelyInt = false 
+        !src2 || !src2->GetValueInfo()->TryGetIntConstantValue(&src2IntConstantValue, false)    //and unsigned = false for int64
+        )
+    {
+        return false;
+    }
+
+    int64 tmpValueOut;
+    if (!instr->BinaryCalculatorT<T>(src1IntConstantValue, src2IntConstantValue, &tmpValueOut))
+    {
+        return false;
+    }
+
+    this->CaptureByteCodeSymUses(instr);
+
+    IR::Opnd *dst = (instr->GetDst()->IsInt64()) ? //dst can be int32 for int64 comparison operators
+        ReplaceWConst(pInstr, tmpValueOut, pDstVal) :
+        ReplaceWConst(pInstr, (int)tmpValueOut, pDstVal);
+
+    instr->m_opcode = Js::OpCode::Ld_I4;
+    this->ToInt32Dst(instr, dst->AsRegOpnd(), this->currentBlock);
+    return true;
+}
+
 bool
 GlobOpt::OptConstFoldBinary(
     IR::Instr * *pInstr,
@@ -20428,10 +20571,22 @@ ValueInfo::IsIntConstant() const
     return IsInt() && structureKind == ValueStructureKind::IntConstant;
 }
 
+bool
+ValueInfo::IsInt64Constant() const
+{
+    return IsInt() && structureKind == ValueStructureKind::Int64Constant;
+}
+
 const IntConstantValueInfo *
 ValueInfo::AsIntConstant() const
 {
     Assert(IsIntConstant());
+    return static_cast<const IntConstantValueInfo *>(this);
+}
+const IntConstantValueInfo *
+ValueInfo::AsInt64Constant() const
+{
+    Assert(IsInt64Constant());
     return static_cast<const IntConstantValueInfo *>(this);
 }
 

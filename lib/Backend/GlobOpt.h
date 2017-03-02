@@ -8,6 +8,7 @@ enum class ValueStructureKind
 {
     Generic,
     IntConstant,
+    Int64Constant,
     IntRange,
     IntBounded,
     FloatConstant,
@@ -188,7 +189,9 @@ public:
 
 private:
     bool                            IsIntConstant() const;
+    bool                            IsInt64Constant() const;
     const IntConstantValueInfo *    AsIntConstant() const;
+    const IntConstantValueInfo *    AsInt64Constant() const;
     bool                            IsIntRange() const;
     const IntRangeValueInfo *       AsIntRange() const;
 
@@ -216,6 +219,8 @@ public:
 public:
     bool HasIntConstantValue(const bool includeLikelyInt = false) const;
     bool TryGetIntConstantValue(int32 *const intValueRef, const bool includeLikelyInt = false) const;
+    bool TryGetIntConstantValue(int64 *const intValueRef, const bool isUnsigned) const;
+    bool TryGetInt64ConstantValue(int64 *const intValueRef, const bool isUnsigned) const;
     bool TryGetIntConstantLowerBound(int32 *const intConstantBoundRef, const bool includeLikelyInt = false) const;
     bool TryGetIntConstantUpperBound(int32 *const intConstantBoundRef, const bool includeLikelyInt = false) const;
     bool TryGetIntConstantBounds(IntConstantBounds *const intConstantBoundsRef, const bool includeLikelyInt = false) const;
@@ -318,18 +323,14 @@ template<> ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *co
 
 class IntConstantValueInfo : public ValueInfo
 {
-private:
-    const int32 intValue;
-
-protected:
-    IntConstantValueInfo(const int32 intValue)
-        : ValueInfo(GetInt(IsTaggable(intValue)), ValueStructureKind::IntConstant),
-        intValue(intValue)
-    {
-    }
 
 public:
     static IntConstantValueInfo *New(JitArenaAllocator *const allocator, const int32 intValue)
+    {
+        return JitAnew(allocator, IntConstantValueInfo, intValue);
+    }
+
+    static IntConstantValueInfo *New(JitArenaAllocator *const allocator, const int64 intValue)
     {
         return JitAnew(allocator, IntConstantValueInfo, intValue);
     }
@@ -339,13 +340,24 @@ public:
         return JitAnew(allocator, IntConstantValueInfo, *this);
     }
 
-public:
-    int32 IntValue() const
+    int32 IntValue() const     { return (int32)intValue; }
+    int64 Int64Value() const { return intValue; }
+
+protected:
+    IntConstantValueInfo(const int32 intValue)
+        : ValueInfo(GetInt(IsTaggable(intValue)), ValueStructureKind::IntConstant),
+        intValue(intValue)
     {
-        return intValue;
+    }
+
+    IntConstantValueInfo(const int64 intValue)
+        : ValueInfo(GetInt(false), ValueStructureKind::Int64Constant),
+        intValue(intValue)
+    {
     }
 
 private:
+    const int64 intValue;
     static bool IsTaggable(const int32 i)
     {
 #if INT32VAR
@@ -1381,7 +1393,9 @@ private:
     Value *                 NewGenericValue(const ValueType valueType, IR::Opnd *const opnd);
     Value *                 NewGenericValue(const ValueType valueType, Sym *const sym);
     Value *                 GetIntConstantValue(const int32 intConst, IR::Instr * instr, IR::Opnd *const opnd = nullptr);
+    Value *                 GetIntConstantValue(const int64 intConst, IR::Instr * instr, IR::Opnd *const opnd = nullptr);
     Value *                 NewIntConstantValue(const int32 intConst, IR::Instr * instr, bool isTaggable);
+    Value *                 NewInt64ConstantValue(const int64 intConst);
     ValueInfo *             NewIntRangeValueInfo(const int32 min, const int32 max, const bool wasNegativeZeroPreventedByBailout);
     ValueInfo *             NewIntRangeValueInfo(const ValueInfo *const originalValueInfo, const int32 min, const int32 max) const;
     Value *                 NewIntRangeValue(const int32 min, const int32 max, const bool wasNegativeZeroPreventedByBailout, IR::Opnd *const opnd = nullptr);
@@ -1423,6 +1437,10 @@ private:
     int                     GetBoundCheckOffsetForSimd(ValueType arrValueType, const IR::Instr *instr, const int oldOffset = -1);
 
     IR::Instr *             OptNewScObject(IR::Instr** instrPtr, Value* srcVal);
+    template <typename T>
+    bool                    OptConstFoldBinaryWasm(IR::Instr * *pInstr, const Value* src1, const Value* src2, Value **pDstVal);
+    template <typename T>
+    IR::Opnd*               ReplaceWConst(IR::Instr **pInstr, T value, Value **pDstVal);
     bool                    OptConstFoldBinary(IR::Instr * *pInstr, const IntConstantBounds &src1IntConstantBounds, const IntConstantBounds &src2IntConstantBounds, Value **pDstVal);
     bool                    OptConstFoldUnary(IR::Instr * *pInstr, const int32 intConstantValue, const bool isUsingOriginalSrc1Value, Value **pDstVal);
     bool                    OptConstPeep(IR::Instr *instr, IR::Opnd *constSrc, Value **pDstVal, ValueInfo *vInfo);

@@ -3706,6 +3706,73 @@ bool Instr::IsCmCC_I4()
     return (this->m_opcode >= Js::OpCode::CmEq_I4 && this->m_opcode <= Js::OpCode::CmUnGe_I4);
 }
 
+template <typename T>
+bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
+{
+    T value = 0;
+    bool check = true;
+    switch (this->m_opcode)
+    {
+#define BINARY_U(OPCODE,HANDLER) \
+    case Js::OpCode::##OPCODE: \
+        value = HANDLER((typename SignedTypeTraits<T>::UnsignedType)src1Const, (typename SignedTypeTraits<T>::UnsignedType)src2Const); \
+        break;
+#define BINARY(OPCODE,HANDLER) \
+    case Js::OpCode::##OPCODE: \
+        value = HANDLER(src1Const, src2Const); \
+        break;
+        BINARY(CmEq_I4, Js::AsmJsMath::CmpEq)
+        BINARY(CmNeq_I4, Js::AsmJsMath::CmpNe)
+        BINARY(CmLt_I4, Js::AsmJsMath::CmpLt)
+        BINARY(CmGt_I4, Js::AsmJsMath::CmpGt)
+        BINARY(CmLe_I4, Js::AsmJsMath::CmpLe)
+        BINARY(CmGe_I4, Js::AsmJsMath::CmpGe)
+        BINARY_U(CmUnLt_I4, Js::AsmJsMath::CmpLt)
+        BINARY_U(CmUnGt_I4, Js::AsmJsMath::CmpGt)
+        BINARY_U(CmUnLe_I4, Js::AsmJsMath::CmpLe)
+        BINARY_U(CmUnGe_I4, Js::AsmJsMath::CmpGe)
+        //
+        BINARY(Add_I4, Js::AsmJsMath::Add)
+        BINARY(Sub_I4, Js::AsmJsMath::Sub)
+        BINARY(Mul_I4, Js::AsmJsMath::Mul)
+        BINARY(And_I4, Js::AsmJsMath::And)
+        BINARY(Or_I4, Js::AsmJsMath::Or)
+        BINARY(Xor_I4, Js::AsmJsMath::Xor)
+        BINARY(Shl_I4, Wasm::WasmMath::Shl)
+        BINARY(Shr_I4, Wasm::WasmMath::Shr)
+        BINARY_U(ShrU_I4, Wasm::WasmMath::ShrU)
+        case Js::OpCode::Div_I4:
+            check = GetSrc1()->IsUnsigned() || !(src1Const == SignedTypeTraits<T>::MinValue && src2Const == -1);
+        case Js::OpCode::Rem_I4:
+        if (check && (src2Const != 0))
+        {
+            if (GetSrc1()->IsUnsigned())
+            {
+                value = m_opcode == Js::OpCode::Div_I4 ?
+                    Js::AsmJsMath::Div<typename SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const) :
+                    Js::AsmJsMath::Rem<typename SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const);
+            }
+            else
+            {
+                value = m_opcode == Js::OpCode::Div_I4 ?
+                    Js::AsmJsMath::Div<T>(src1Const, src2Const) :
+                    Js::AsmJsMath::Rem<T>(src1Const, src2Const);
+            }
+        }
+        break;
+        default:
+            return false;
+#undef BINARY
+#undef BINARY_U
+    }
+
+    *pResult = value;
+    return true;
+}
+
+template bool Instr::BinaryCalculatorT<int>(int src1Const64, int src2Const64, int64 *pResult);
+template bool Instr::BinaryCalculatorT<int64>(int64 src1Const64, int64 src2Const64, int64 *pResult);
+
 bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult)
 {
     IntConstType value = 0;
@@ -4538,3 +4605,4 @@ Instr::DumpRange(Instr *instrEnd)
 #endif
 
 } // namespace IR
+

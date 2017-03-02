@@ -162,10 +162,39 @@ bool ValueInfo::HasIntConstantValue(const bool includeLikelyInt) const
     return TryGetIntConstantValue(&constantValue, includeLikelyInt);
 }
 
+bool ValueInfo::TryGetInt64ConstantValue(int64 *const intValueRef, const bool isUnsigned) const
+{
+    Assert(intValueRef);
+    if (TryGetIntConstantValue(intValueRef, isUnsigned))
+    {
+        return true;
+    }
+    else
+    {
+        int32 int32ValueRef;
+        if (TryGetIntConstantValue(&int32ValueRef, false))
+        {
+            *intValueRef = (isUnsigned) ? (uint)int32ValueRef : int32ValueRef;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ValueInfo::TryGetIntConstantValue(int64 *const intValueRef, const bool isUnsigned) const
+{
+    Assert(intValueRef);
+    if (structureKind == ValueStructureKind::Int64Constant)
+    {
+        *intValueRef = AsInt64Constant()->Int64Value();
+        return true;
+    }
+    return false;
+}
+
 bool ValueInfo::TryGetIntConstantValue(int32 *const intValueRef, const bool includeLikelyInt) const
 {
     Assert(intValueRef);
-
     if(!(includeLikelyInt ? IsLikelyInt() : IsInt()))
     {
         return false;
