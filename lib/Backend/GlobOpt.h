@@ -1641,11 +1641,12 @@ private:
     bool                    OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, bool isNotTypeSpecConv, bool allowNonPrimitives, Value **loopHeadValRef = nullptr);
     bool                    OptDstIsInvariant(IR::RegOpnd *dst);
     bool                    OptIsInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv, const bool forceInvariantHoisting = false);
-    void                    OptHoistInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *dstVal, Value *const src1Val, bool isNotTypeSpecConv, bool lossy = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
+    void                    OptHoistInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *dstVal, Value *const src1Val, Value *const src2Value,
+                                                bool isNotTypeSpecConv, bool lossy = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     bool                    TryHoistInvariant(IR::Instr *instr, BasicBlock *block, Value *dstVal, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv,
                                                 const bool lossy = false, const bool forceInvariantHoisting = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     void                    HoistInvariantValueInfo(ValueInfo *const invariantValueInfoToHoist, Value *const valueToUpdate, BasicBlock *const targetBlock);
-    void                    OptHoistToLandingPadUpdateValueType(BasicBlock* landingPad, IR::Instr* instr, IR::Opnd* opnd, Value *const srcVal);
+    void                    OptHoistUpdateValueType(Loop* loop, IR::Instr* instr, IR::Opnd* srcOpnd, Value *const srcVal);
 public:
     static bool             IsTypeSpecPhaseOff(Func* func);
     static bool             DoAggressiveIntTypeSpec(Func* func);

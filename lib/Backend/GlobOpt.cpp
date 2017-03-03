@@ -14811,7 +14811,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                     ))
                 {
                     Assert(!this->IsLoopPrePass());
-                    this->OptHoistInvariant(newInstr, block, block->loop, val, val, false);
+                    this->OptHoistInvariant(newInstr, block, block->loop, val, val, nullptr, false);
                 }
             }
 
@@ -19198,30 +19198,54 @@ GlobOpt::OptDstIsInvariant(IR::RegOpnd *dst)
 }
 
 void
-GlobOpt::OptHoistToLandingPadUpdateValueType(
-    BasicBlock* landingPad,
+GlobOpt::OptHoistUpdateValueType(
+    Loop* loop,
     IR::Instr* instr,
-    IR::Opnd* opnd,
+    IR::Opnd* srcOpnd,
     Value* opndVal)
 {
-    if (instr->m_opcode == Js::OpCode::FromVar)
+    if (opndVal == nullptr || instr->m_opcode == Js::OpCode::FromVar)
     {
         return;
     }
 
-    Sym* opndSym = opnd->GetSym();;
+    Sym* opndSym = srcOpnd->GetSym();;
 
     if (opndSym)
     {
-        if (opndVal == nullptr)
-        {
-            opndVal = FindValue(opndSym);
-        }
-
+        BasicBlock* landingPad = loop->landingPad;
         Value* opndValueInLandingPad = FindValue(landingPad->globOptData.symToValueMap, opndSym);
         Assert(opndVal->GetValueNumber() == opndValueInLandingPad->GetValueNumber());
 
-        opnd->SetValueType(opndValueInLandingPad->GetValueInfo()->Type());
+        ValueType opndValueTypeInLandingPad = opndValueInLandingPad->GetValueInfo()->Type();
+
+        if (srcOpnd->GetValueType() != opndValueTypeInLandingPad)
+        {
+            if (instr->m_opcode == Js::OpCode::SetConcatStrMultiItemBE)
+            {
+                Assert(!opndValueTypeInLandingPad.IsString());
+                Assert(instr->GetDst());
+
+                IR::RegOpnd* strOpnd = IR::RegOpnd::New(TyVar, instr->m_func);
+                strOpnd->SetValueType(ValueType::String);
+                strOpnd->SetValueTypeFixed();
+                IR::Instr* convPrimStrInstr =
+                    IR::Instr::New(Js::OpCode::Conv_PrimStr, strOpnd, srcOpnd->Use(instr->m_func), instr->m_func);
+                instr->ReplaceSrc(srcOpnd, strOpnd);
+
+                if (loop->bailOutInfo->bailOutInstr)
+                {
+                    loop->bailOutInfo->bailOutInstr->InsertBefore(convPrimStrInstr);
+                }
+                else
+                {
+                    landingPad->InsertAfter(convPrimStrInstr);
+                }
+            }
+
+            srcOpnd->SetValueType(opndValueTypeInLandingPad);
+        }
+
 
         if (opndSym->IsPropertySym())
         {
@@ -19230,7 +19254,7 @@ GlobOpt::OptHoistToLandingPadUpdateValueType(
             Value* opndObjPtrSymValInLandingPad = FindValue(landingPad->globOptData.symToValueMap, opndObjPtrSym);
             ValueInfo* opndObjPtrSymValueInfoInLandingPad = opndObjPtrSymValInLandingPad->GetValueInfo();
 
-            opnd->AsSymOpnd()->SetPropertyOwnerValueType(opndObjPtrSymValueInfoInLandingPad->Type());
+            srcOpnd->AsSymOpnd()->SetPropertyOwnerValueType(opndObjPtrSymValueInfoInLandingPad->Type());
         }
     }
 }
@@ -19242,6 +19266,7 @@ GlobOpt::OptHoistInvariant(
     Loop *loop,
     Value *dstVal,
     Value *const src1Val,
+    Value *const src2Val,
     bool isNotTypeSpecConv,
     bool lossy,
     IR::BailOutKind bailoutKind)
@@ -19252,7 +19277,7 @@ GlobOpt::OptHoistInvariant(
     if (src1)
     {
         // We are hoisting this instruction possibly past other uses, which might invalidate the last use info. Clear it.
-        OptHoistToLandingPadUpdateValueType(landingPad, instr, src1, src1Val);
+        OptHoistUpdateValueType(loop, instr, src1, src1Val);
 
         if (src1->IsRegOpnd())
         {
@@ -19262,7 +19287,7 @@ GlobOpt::OptHoistInvariant(
         IR::Opnd* src2 = instr->GetSrc2();
         if (src2)
         {
-            OptHoistToLandingPadUpdateValueType(landingPad, instr, src2, nullptr);
+            OptHoistUpdateValueType(loop, instr, src2, src2Val);
 
             if (src2->IsRegOpnd())
             {
@@ -19807,7 +19832,7 @@ GlobOpt::TryHoistInvariant(
             Assert(tempByteCodeUse->Count() == 0 && propertySymUse == NULL);
         }
 #endif
-        OptHoistInvariant(instr, block, loop, dstVal, src1Val, isNotTypeSpecConv, lossy, bailoutKind);
+        OptHoistInvariant(instr, block, loop, dstVal, src1Val, src2Val, isNotTypeSpecConv, lossy, bailoutKind);
         return true;
     }
 

@@ -1378,4 +1378,10 @@
       <compile-flags>-lic:1 -off:simplejit -off:aggressiveinttypespec -bgjit-</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>HoistStringConcat.js</files>
+      <compile-flags>-lic:1 -off:simplejit -bgjit-</compile-flags>
+    </default>
+  </test>
 </regress-exe>
