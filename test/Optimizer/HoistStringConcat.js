@@ -17,3 +17,5 @@ function test0() {
   }
 }
 test0();
+
+print("pass");
