@@ -6,6 +6,11 @@
 
 #include "ParseFlags.h"
 
+namespace Js
+{
+    class ScopeInfo;
+};
+
 // Operator precedence levels
 enum
 {
@@ -369,7 +374,6 @@ private:
     bool m_inDeferredNestedFunc; // true if parsing a function in deferred mode, nested within the current node
     bool m_isInBackground;
     bool m_reparsingLambdaParams;
-    bool m_inFIB;
 
     // This bool is used for deferring the shorthand initializer error ( {x = 1}) - as it is allowed in the destructuring grammar.
     bool m_hasDeferredShorthandInitError;
@@ -976,8 +980,8 @@ private:
     void RemovePrevPidRef(IdentPtr pid, PidRefStack *lastRef);
     void SetPidRefsInScopeDynamic(IdentPtr pid, int blockId);
 
-    void RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody);
-    void FinishScopeInfo(Js::ParseableFunctionInfo* functionBody);
+    void RestoreScopeInfo(Js::ScopeInfo * scopeInfo);
+    void FinishScopeInfo(Js::ScopeInfo * scopeInfo);
 
     BOOL PnodeLabelNoAST(IdentToken* pToken, LabelId* pLabelIdList);
     LabelId* CreateLabelId(IdentToken* pToken);
@@ -1011,7 +1015,7 @@ private:
     }
 
     template <class Fn>
-    void VisitFunctionsInScope(ParseNodePtr pnodeScopeList, Fn fn);
+    void FinishFunctionsInScope(ParseNodePtr pnodeScopeList, Fn fn);
     void FinishDeferredFunction(ParseNodePtr pnodeScopeList);
 
     /***********************************************************************

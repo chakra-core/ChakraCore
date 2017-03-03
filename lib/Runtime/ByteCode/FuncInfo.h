@@ -263,24 +263,39 @@ public:
     //    1) new Function code's global code
     //    2) global code generated from the reparsing deferred parse function
 
-    bool IsFakeGlobalFunction(uint32 flags) const {
+    bool IsFakeGlobalFunction(uint32 flags) const 
+    {
         return IsGlobalFunction() && !(flags & fscrGlobalCode);
     }
 
-    Scope *GetBodyScope() const {
+    Scope *GetBodyScope() const 
+    {
         return bodyScope;
     }
 
-    Scope *GetParamScope() const {
+    void SetBodyScope(Scope * scope)
+    {
+        bodyScope = scope;
+    }
+
+    Scope *GetParamScope() const 
+    {
         return paramScope;
     }
 
-    Scope *GetTopLevelScope() const {
+    void SetParamScope(Scope * scope)
+    {
+        paramScope = scope;
+    }
+
+    Scope *GetTopLevelScope() const 
+    {
         // Top level scope will be the same for knopProg and knopFncDecl.
         return paramScope;
     }
 
-    Scope* GetFuncExprScope() const {
+    Scope* GetFuncExprScope() const 
+    {
         return funcExprScope;
     }
 

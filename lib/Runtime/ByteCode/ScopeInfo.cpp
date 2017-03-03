@@ -42,15 +42,6 @@ namespace Js
         TRACE_BYTECODE(_u("%12s %d\n"), sym->GetName().GetBuffer(), sym->GetScopeSlot());
     }
 
-    //
-    // Create scope info for a deferred child to refer to its parent ParseableFunctionInfo.
-    //
-    ScopeInfo* ScopeInfo::FromParent(FunctionBody* parent)
-    {
-        return RecyclerNew(parent->GetScriptContext()->GetRecycler(), // Alloc with ParseableFunctionInfo
-            ScopeInfo, parent->GetFunctionInfo(), 0);
-    }
-
     inline void AddSlotCount(int& count, int addCount)
     {
         if (addCount != 0 && Int32Math::Add(count, addCount, &count))
@@ -60,10 +51,13 @@ namespace Js
     }
 
     //
-    // Create scope info for an outer scope.
+    // Create scope info for a single scope.
     //
-    ScopeInfo* ScopeInfo::FromScope(ByteCodeGenerator* byteCodeGenerator, ParseableFunctionInfo* parent, Scope* scope, ScriptContext *scriptContext)
+    ScopeInfo* ScopeInfo::SaveOneScopeInfo(/*ByteCodeGenerator* byteCodeGenerator, ParseableFunctionInfo* parent,*/ Scope* scope, ScriptContext *scriptContext)
     {
+        Assert(scope->GetScopeInfo() == nullptr);
+        Assert(scope->GetScopeType() != ScopeType_Global);
+
         int count = scope->Count();
 
         // Add argsPlaceHolder which includes same name args and destructuring patterns on parameters
@@ -74,25 +68,28 @@ namespace Js
 
         ScopeInfo* scopeInfo = RecyclerNewPlusZ(scriptContext->GetRecycler(),
             count * sizeof(SymbolInfo),
-            ScopeInfo, parent ? parent->GetFunctionInfo() : nullptr, count);
+            ScopeInfo, scope->GetFunc()->byteCodeFunction->GetFunctionInfo(),/*parent ? parent->GetFunctionInfo() : nullptr,*/ count);
+        scopeInfo->SetScopeType(scope->GetScopeType());
         scopeInfo->isDynamic = scope->GetIsDynamic();
         scopeInfo->isObject = scope->GetIsObject();
         scopeInfo->mustInstantiate = scope->GetMustInstantiate();
         scopeInfo->isCached = (scope->GetFunc()->GetBodyScope() == scope) && scope->GetFunc()->GetHasCachedScope();
-        scopeInfo->isGlobalEval = scope->GetScopeType() == ScopeType_GlobalEvalBlock;
         scopeInfo->canMergeWithBodyScope = scope->GetCanMergeWithBodyScope();
         scopeInfo->hasLocalInClosure = scope->GetHasOwnLocalInClosure();
+        
 
-        TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s #symbols: %d %s\n"),
-            scope->GetFunc()->name, parent ? parent->GetDisplayName() : _u(""), count,
+        TRACE_BYTECODE(_u("\nSave ScopeInfo: %s #symbols: %d %s\n"),
+            scope->GetFunc()->name, count,
             scopeInfo->isObject ? _u("isObject") : _u(""));
 
-        MapSymbolData mapSymbolData = { byteCodeGenerator, scope->GetFunc(), 0 };
+        MapSymbolData mapSymbolData = { scope->GetFunc(), 0 };
         scope->ForEachSymbol([&mapSymbolData, scopeInfo, scope](Symbol * sym)
         {
             Assert(scope == sym->GetScope());
             scopeInfo->SaveSymbolInfo(sym, &mapSymbolData);
         });
+
+        scope->SetScopeInfo(scopeInfo);
 
         return scopeInfo;
     }
@@ -107,75 +104,46 @@ namespace Js
             auto propertyName = scriptContext->GetPropertyName(symbols[i].propertyId);
             scriptContext->TrackPid(propertyName);
         }
-        if (funcExprScopeInfo)
-        {
-            funcExprScopeInfo->EnsurePidTracking(scriptContext);
-        }
-        if (paramScopeInfo)
-        {
-            paramScopeInfo->EnsurePidTracking(scriptContext);
-        }
     }
 
     //
-    // Save needed scope info for a deferred child func. The scope info is empty and only links to parent.
+    // Save scope info for an individual scope and link it to its enclosing scope.
     //
-    void ScopeInfo::SaveParentScopeInfo(FuncInfo* parentFunc, FuncInfo* func)
+    ScopeInfo * ScopeInfo::SaveScopeInfo(Scope * scope/*ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func*/, ScriptContext * scriptContext)
     {
-        Assert(func->IsDeferred() || func->byteCodeFunction->CanBeDeferred());
-
-        // Parent must be parsed
-        FunctionBody* parent = parentFunc->byteCodeFunction->GetFunctionBody();
-        ParseableFunctionInfo* funcBody = func->byteCodeFunction;
-
-        TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s\n\n"),
-            funcBody->GetDisplayName(), parent->GetDisplayName());
-
-        ScopeInfo *info = FromParent(parent);
-        info->parentOnly = true;
-        funcBody->SetScopeInfo(info);
-    }
-
-    //
-    // Save scope info for an outer func which has deferred child.
-    //
-    void ScopeInfo::SaveScopeInfo(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func)
-    {
-        ParseableFunctionInfo* funcBody = func->byteCodeFunction;
-
-        Assert((!func->IsGlobalFunction() || byteCodeGenerator->GetFlags() & fscrEvalCode) &&
-            (func->HasDeferredChild() || func->HasRedeferrableChild() || funcBody->IsReparsed()));
-
-        // If we are reparsing a deferred function, we already have correct "parent" info in
-        // funcBody->scopeInfo. parentFunc is the knopProg shell and should not be used in this
-        // case. We should use existing parent if available.
-        ParseableFunctionInfo * parent = funcBody->GetScopeInfo() ?
-            funcBody->GetScopeInfo()->GetParent() :
-            parentFunc ? parentFunc->byteCodeFunction : nullptr;
-
-        ScopeInfo* funcExprScopeInfo = nullptr;
-        Scope* funcExprScope = func->GetFuncExprScope();
-        if (funcExprScope && funcExprScope->GetMustInstantiate())
+        // Advance past scopes that will be excluded from the closure environment. (But note that we always want the body scope.)
+        while (scope && (!scope->GetMustInstantiate() && scope != scope->GetFunc()->GetBodyScope()))
         {
-            funcExprScopeInfo = FromScope(byteCodeGenerator, parent, funcExprScope, funcBody->GetScriptContext());
+            scope = scope->GetEnclosingScope();
         }
 
-        Scope* bodyScope = func->IsGlobalFunction() ? func->GetGlobalEvalBlockScope() : func->GetBodyScope();
-        ScopeInfo* paramScopeInfo = nullptr;
-        Scope* paramScope = func->GetParamScope();
-        if (paramScope && !paramScope->GetCanMergeWithBodyScope())
+        // If we've exhausted the scope chain, we're done.
+        if (scope == nullptr || scope->GetScopeType() == ScopeType_Global)
         {
-            paramScopeInfo = FromScope(byteCodeGenerator, parent, paramScope, funcBody->GetScriptContext());
+            return nullptr;
         }
 
-        ScopeInfo* scopeInfo = FromScope(byteCodeGenerator, parent, bodyScope, funcBody->GetScriptContext());
-        scopeInfo->SetFuncExprScopeInfo(funcExprScopeInfo);
-        scopeInfo->SetParamScopeInfo(paramScopeInfo);
+        // If we've already collected info for this scope, we're done.
+        ScopeInfo * scopeInfo = scope->GetScopeInfo();
+        if (scopeInfo != nullptr)
+        {
+            return scopeInfo;
+        }
 
-        funcBody->SetScopeInfo(scopeInfo);
+        // Do the work for this scope.
+        scopeInfo = ScopeInfo::SaveOneScopeInfo(scope, scriptContext);
+
+        // Link to the parent (if any).
+        scope = scope->GetEnclosingScope();
+        if (scope)
+        {
+            scopeInfo->SetParentScopeInfo(ScopeInfo::SaveScopeInfo(scope, scriptContext));
+        }
+
+        return scopeInfo;
     }
 
-    void ScopeInfo::SaveScopeInfoForDeferParse(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* funcInfo)
+    void ScopeInfo::SaveEnclosingScopeInfo(ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo)
     {
         // TODO: Not technically necessary, as we always do scope look up on eval if it is
         // not found in the scope chain, and block scopes are always objects in eval.
@@ -185,116 +153,51 @@ namespace Js
         // enable defer parsing function that are in block scopes.
 
         if (funcInfo->byteCodeFunction &&
-            funcInfo->byteCodeFunction->GetScopeInfo() != nullptr &&
-            !funcInfo->byteCodeFunction->GetScopeInfo()->IsParentInfoOnly())
+            funcInfo->byteCodeFunction->GetScopeInfo() != nullptr)
         {
             // No need to regenerate scope info if we re-compile an enclosing function
             return;
         }
 
         Scope* currentScope = byteCodeGenerator->GetCurrentScope();
-        Assert(currentScope == funcInfo->GetBodyScope());
-        if (funcInfo->HasDeferredChild() ||
-            funcInfo->HasRedeferrableChild() ||
-            (!funcInfo->IsGlobalFunction() &&
-                funcInfo->byteCodeFunction &&
-                funcInfo->byteCodeFunction->IsReparsed() &&
-                funcInfo->byteCodeFunction->GetFunctionBody()->HasAllNonLocalReferenced()))
-        {
-            // When we reparse due to attach, we would need to capture all of them, since they were captured before going to debug mode.
+        Assert(currentScope->GetFunc() == funcInfo);
 
-            Js::ScopeInfo::SaveScopeInfo(byteCodeGenerator, parentFunc, funcInfo);
-        }
-        else if (funcInfo->IsDeferred() || funcInfo->IsRedeferrable())
+        while (currentScope->GetFunc() == funcInfo)
         {
-            // Don't need to remember the parent function if we have a global function
-            if (!parentFunc->IsGlobalFunction() ||
-                ((byteCodeGenerator->GetFlags() & fscrEvalCode) && (parentFunc->HasDeferredChild() || parentFunc->HasRedeferrableChild())))
-            {
-                // TODO: currently we only support defer nested function that is in function scope (no block scope, no with scope, etc.)
-#if DBG
-                if (funcInfo->GetFuncExprScope() && funcInfo->GetFuncExprScope()->GetIsObject())
-                {
-                    if (funcInfo->paramScope && !funcInfo->paramScope->GetCanMergeWithBodyScope())
-                    {
-                        Assert(currentScope->GetEnclosingScope()->GetEnclosingScope() == funcInfo->GetFuncExprScope());
-                    }
-                    else
-                    {
-                        Assert(currentScope->GetEnclosingScope() == funcInfo->GetFuncExprScope() &&
-                            currentScope->GetEnclosingScope()->GetEnclosingScope() ==
-                            (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ?
-                             parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
-                    }
-                }
-                else
-                {
-                    if (currentScope->GetEnclosingScope() == parentFunc->GetParamScope())
-                    {
-                        Assert(!parentFunc->GetParamScope()->GetCanMergeWithBodyScope());
-                        Assert(funcInfo->GetParamScope()->GetCanMergeWithBodyScope());
-                    }
-                    else if (currentScope->GetEnclosingScope() == funcInfo->GetParamScope())
-                    {
-                        Assert(!funcInfo->GetParamScope()->GetCanMergeWithBodyScope());
-                    }
-#if 0
-                    else
-                    {
-                        Assert(currentScope->GetEnclosingScope() ==
-                            (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
-                    }
-#endif
-                }
-#endif
-                Js::ScopeInfo::SaveParentScopeInfo(parentFunc, funcInfo);
-            }
+            currentScope = currentScope->GetEnclosingScope();
+        }
+
+        ScopeInfo * scopeInfo = ScopeInfo::SaveScopeInfo(currentScope, byteCodeGenerator->GetScriptContext());
+        if (scopeInfo != nullptr)
+        {
+            funcInfo->byteCodeFunction->SetScopeInfo(scopeInfo);
         }
     }
 
     //
     // Load persisted scope info.
     //
-    void ScopeInfo::GetScopeInfo(Parser *parser, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Scope* scope)
+    void ScopeInfo::ExtractScopeInfo(Parser *parser, /*ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo,*/ Scope* scope)
     {
         ScriptContext* scriptContext;
         ArenaAllocator* alloc;
 
         // Load scope attributes and push onto scope stack.
+        scope->SetMustInstantiate(this->mustInstantiate);
+        scope->SetHasOwnLocalInClosure(this->hasLocalInClosure);
         scope->SetIsDynamic(this->isDynamic);
         if (this->isObject)
         {
             scope->SetIsObject();
         }
-        scope->SetMustInstantiate(this->mustInstantiate);
         if (!this->GetCanMergeWithBodyScope())
         {
             scope->SetCannotMergeWithBodyScope();
         }
-        scope->SetHasOwnLocalInClosure(this->hasLocalInClosure);
-        if (parser)
-        {
-            scriptContext = parser->GetScriptContext();
-            alloc = parser->GetAllocator();
-        }
-        else
-        {
-            TRACE_BYTECODE(_u("\nRestore ScopeInfo: %s #symbols: %d %s\n"),
-                funcInfo->name, symbolCount, isObject ? _u("isObject") : _u(""));
+        Assert(parser);
 
-            Assert(!this->isCached || scope == funcInfo->GetBodyScope());
-            funcInfo->SetHasCachedScope(this->isCached);
-            byteCodeGenerator->PushScope(scope);
-
-            // this->scope was created/saved during parsing and used by
-            // ByteCodeGenerator::RestoreScopeInfo. We no longer need it by now.
-            // Clear it to avoid GC false positive (arena memory later used by GC).
-            Assert(this->scope == scope);
-            this->scope = nullptr;
-
-            // The scope is already populated, so we're done.
-            return;
-        }
+        scriptContext = parser->GetScriptContext();
+        alloc = parser->GetAllocator();
 
         // Load scope symbols
         // On first access to the scopeinfo, replace the ID's with PropertyRecord*'s to save the dictionary lookup

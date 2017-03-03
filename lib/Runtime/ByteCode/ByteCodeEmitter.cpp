@@ -2993,6 +2993,11 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         deferParseFunction->SetReportedInParamsCount(funcInfo->inArgsCount);
     }
 
+    if (deferParseFunction->IsDeferred() || deferParseFunction->CanBeDeferred())
+    {
+        Js::ScopeInfo::SaveEnclosingScopeInfo(this, funcInfo);        
+    }
+
     if (funcInfo->root->sxFnc.pnodeBody == nullptr)
     {
         if (!PHASE_OFF1(Js::SkipNestedDeferredPhase))
@@ -3658,13 +3663,7 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
                 }
                 this->StartEmitFunction(pnode);
 
-                // Persist outer func scope info if nested func is deferred
-                if (CONFIG_FLAG(DeferNested))
-                {
-                    FuncInfo* parentFunc = TopFuncInfo();
-                    Js::ScopeInfo::SaveScopeInfoForDeferParse(this, parentFunc, funcInfo);
-                    PushFuncInfo(_u("StartEmitFunction"), funcInfo);
-                }
+                PushFuncInfo(_u("StartEmitFunction"), funcInfo);
 
                 if (paramScope && !paramScope->GetCanMergeWithBodyScope())
                 {
@@ -3841,21 +3840,6 @@ void ByteCodeGenerator::StartEmitFunction(ParseNode *pnodeFnc)
         {
             // Only set the environment depth if it's truly known (i.e., not in eval or event handler).
             funcInfo->GetParsedFunctionBody()->SetEnvDepth(this->envDepth);
-        }
-
-        if (pnodeFnc->sxFnc.FIBPreventsDeferral())
-        {
-            for (Scope *scope = this->currentScope; scope; scope = scope->GetEnclosingScope())
-            {
-                if (scope->GetScopeType() != ScopeType_FunctionBody && 
-                    scope->GetScopeType() != ScopeType_Global &&
-                    scope->GetScopeType() != ScopeType_GlobalEvalBlock &&
-                    scope->GetMustInstantiate())
-                {
-                    funcInfo->byteCodeFunction->SetAttributes((Js::FunctionInfo::Attributes)(funcInfo->byteCodeFunction->GetAttributes() & ~Js::FunctionInfo::Attributes::CanDefer));
-                    break;
-                }
-            }
         }
     }
 

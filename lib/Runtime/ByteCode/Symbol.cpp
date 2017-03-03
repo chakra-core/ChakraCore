@@ -200,7 +200,7 @@ Symbol * Symbol::GetFuncScopeVarSym() const
         Scope* paramScope = parentFuncInfo->GetParamScope();
         fncScopeSym = paramScope->FindLocalSymbol(this->GetName());
     }
-    Assert(fncScopeSym);
+
     // Parser should have added a fake var decl node for block scoped functions in non-strict mode
     // IsBlockVar() indicates a user let declared variable at function scope which
     // shadows the function's var binding, thus only emit the var binding init if

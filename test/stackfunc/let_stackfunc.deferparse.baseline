@@ -2,17 +2,18 @@ HasFuncDecl: test
 HasFuncDecl: nested
 HasFuncDecl: test
 HasFuncDecl: nested
-HasMaybeEscapedUse: x
-HasMaybeEscapedUse: x
 HasFuncAssignment: f
 HasMaybeEscapedUse: i
 HasFuncAssignment: f2
 HasFuncAssignment: f3
 DoStackNestedFunc: test (function  (#1.1), #2)
 HasFuncDecl: nested
+HasMaybeEscapedUse: x
 test1glo yes
 test2glo yes
+HasMaybeEscapedUse: x
 0
+HasMaybeEscapedUse: x
 f30
 undefined
 f3undefined
