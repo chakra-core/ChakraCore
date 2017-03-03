@@ -819,4 +819,10 @@
       <files>bugGH2270.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>constFoldTests.js</files>
+      <compile-flags>-asmjs -maic:0</compile-flags>
+    </default>
+  </test>
 </regress-exe>
