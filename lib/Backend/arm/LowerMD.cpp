@@ -9303,7 +9303,7 @@ LowererMD::LowerTypeof(IR::Instr* typeOfInstr)
 //
 void LowererMD::GenerateDebugBreak( IR::Instr * insertInstr )
 {
-    IR::Instr *int3 = IR::Instr::New(Js::OpCode::DEBUGBREAK, insertInstr->m_func);\
-    insertInstr->InsertBefore(int3);\
+    IR::Instr *int3 = IR::Instr::New(Js::OpCode::DEBUGBREAK, insertInstr->m_func);
+    insertInstr->InsertBefore(int3);
 }
 #endif

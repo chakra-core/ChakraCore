@@ -44,6 +44,7 @@ struct TestHooks
 #define FLAG_Phases(name)
 #define FLAG_NumberSet(name)
 #define FLAG_NumberPairSet(name)
+#define FLAG_NumberTrioSet(name)
 #define FLAG_NumberRange(name)
 #include "ConfigFlagsList.h"
 #undef FLAG
@@ -53,6 +54,7 @@ struct TestHooks
 #undef FLAG_Phases
 #undef FLAG_NumberSet
 #undef FLAG_NumberPairSet
+#undef FLAG_NumberTrioSet
 #undef FLAG_NumberRange
 
 #if ENABLE_NATIVE_CODEGEN

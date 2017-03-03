@@ -73,6 +73,7 @@ private:
             void                       ParseFlag();
             void                       ParseNumberSet(Js::NumberSet * numberSet);
             void                       ParseNumberPairSet(Js::NumberPairSet * numberPairSet);
+            void                       ParseNumberTrioSet(Js::NumberTrioSet * numberTrioSet);
             void                       PrintUsage();
 
             char16 CurChar()
