@@ -441,6 +441,8 @@ private:
     void            LowerBailOnInvalidatedArrayLength(IR::Instr *const instr, const bool isInHelperBlock);
     void            LowerBailOnCreatedMissingValue(IR::Instr *const instr, const bool isInHelperBlock);
     void            LowerBoundCheck(IR::Instr *const instr);
+    IR::Opnd*       GetFuncObjectOpnd(IR::Instr* insertBeforeInstr);
+    IR::Instr*      LoadFuncExpression(IR::Instr *instrFuncExpr);
 
     IR::Instr *     LowerBailTarget(IR::Instr * instr);
     IR::Instr *     SplitBailOnImplicitCall(IR::Instr *& instr);

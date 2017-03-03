@@ -2243,28 +2243,6 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
     return instrPrev;
 }
 
-IR::Instr *
-LowererMD::LoadFuncExpression(IR::Instr * instrFuncExpr)
-{
-    ASSERT_INLINEE_FUNC(instrFuncExpr);
-    Func *func = instrFuncExpr->m_func;
-
-    IR::Opnd *paramOpnd = nullptr;
-    if (func->IsInlinee())
-    {
-        paramOpnd = func->GetInlineeFunctionObjectSlotOpnd();
-    }
-    else
-    {
-        //function object is first argument and mark it as IsParamSlotSym.
-        StackSym * paramSym = GetImplicitParamSlotSym(0);
-        paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, this->m_func);
-    }
-    instrFuncExpr->SetSrc1(paramOpnd);
-    this->ChangeToAssign(instrFuncExpr);
-    return instrFuncExpr;
-}
-
 ///----------------------------------------------------------------------------
 ///
 /// LowererMD::ChangeToHelperCall

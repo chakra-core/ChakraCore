@@ -473,53 +473,6 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
     return instrPrev;
 }
 
-///----------------------------------------------------------------------------
-///
-/// LowererMDArch::LoadFuncExpression
-///
-///     Load the function expression to src1 from [ebp + 8]
-///
-///----------------------------------------------------------------------------
-
-IR::Instr *
-LowererMDArch::LoadFuncExpression(IR::Instr *instrFuncExpr)
-{
-    ASSERT_INLINEE_FUNC(instrFuncExpr);
-    Func *func = instrFuncExpr->m_func;
-
-    IR::Opnd *paramOpnd = nullptr;
-    if (func->IsInlinee())
-    {
-        paramOpnd = func->GetInlineeFunctionObjectSlotOpnd();
-    }
-    else
-    {
-        //
-        // dst = current function ([ebp + 8])
-        //
-        StackSym *paramSym = StackSym::New(TyMachReg, func);
-        this->m_func->SetArgOffset(paramSym, 2 * MachPtr);
-        paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
-    }
-
-    if (instrFuncExpr->m_func->GetJITFunctionBody()->IsCoroutine())
-    {
-        // the function object for generator calls is a GeneratorVirtualScriptFunction object
-        // and we need to return the real JavascriptGeneratorFunction object so grab it before
-        // assigning to the dst
-        IR::RegOpnd *tmpOpnd = IR::RegOpnd::New(TyMachReg, func);
-        LowererMD::CreateAssign(tmpOpnd, paramOpnd, instrFuncExpr);
-
-        paramOpnd = IR::IndirOpnd::New(tmpOpnd, Js::GeneratorVirtualScriptFunction::GetRealFunctionOffset(), TyMachPtr, func);
-    }
-
-    // mov dst, param
-    instrFuncExpr->SetSrc1(paramOpnd);
-    LowererMD::ChangeToAssign(instrFuncExpr);
-
-    return instrFuncExpr;
-}
-
 //
 // Load the parameter in the first argument slot
 //

@@ -83,7 +83,6 @@ public:
             IR::Instr *     LoadInputParamPtr(IR::Instr * instrInsert, IR::RegOpnd * optionalDstOpnd = nullptr);
             IR::Instr *     LoadInputParamCount(IR::Instr * instr, int adjust = 0, bool needFlags = false);
             IR::Instr *     LoadArgumentsFromFrame(IR::Instr * instr);
-            IR::Instr *     LoadFuncExpression(IR::Instr * instr);
             IR::Instr *     LowerRet(IR::Instr * instr);
     static  IR::Instr *     LowerUncondBranch(IR::Instr * instr);
     static  IR::Instr *     LowerMultiBranch(IR::Instr * instr);

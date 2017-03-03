@@ -654,12 +654,6 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
     return this->lowererMDArch.LoadHeapArgsCached(instrArgs);
 }
 
-IR::Instr *
-LowererMD::LoadFuncExpression(IR::Instr * instrFuncExpr)
-{
-    return this->lowererMDArch.LoadFuncExpression(instrFuncExpr);
-}
-
 ///----------------------------------------------------------------------------
 ///
 /// LowererMD::ChangeToHelperCall

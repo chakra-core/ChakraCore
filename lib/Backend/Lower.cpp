@@ -308,30 +308,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
                     // s3 = formals are let decls
                     this->m_lowererMD.LoadHelperArgument(instr, IR::IntConstOpnd::New(currFunc->GetHasNonSimpleParams() ? TRUE : FALSE, TyUint8, currFunc));
 
-                    if (currFunc->IsInlinee())
-                    {
-                        // s2 = current function.
-                        this->m_lowererMD.LoadHelperArgument(instr, currFunc->GetInlineeFunctionObjectSlotOpnd());
-                    }
-                    else
-                    {
-                        // s2 = current function
-                        StackSym * paramSym = StackSym::New(TyMachReg, currFunc);
-                        currFunc->SetArgOffset(paramSym, 2 * MachPtr);
-                        IR::Opnd * srcOpnd = IR::SymOpnd::New(paramSym, TyMachReg, currFunc);
-
-                        if (currFunc->GetJITFunctionBody()->IsCoroutine())
-                        {
-                            // the function object for generator calls is a GeneratorVirtualScriptFunction object
-                            // and we need to pass the real JavascriptGeneratorFunction object so grab it instead
-                            IR::RegOpnd *tmpOpnd = IR::RegOpnd::New(TyMachReg, currFunc);
-                            LowererMD::CreateAssign(tmpOpnd, srcOpnd, instr);
-
-                            srcOpnd = IR::IndirOpnd::New(tmpOpnd, Js::GeneratorVirtualScriptFunction::GetRealFunctionOffset(), TyMachPtr, currFunc);
-                        }
-
-                        this->m_lowererMD.LoadHelperArgument(instr, srcOpnd);
-                    }
+                    // s2 = current function.
+                    IR::Opnd * paramOpnd = GetFuncObjectOpnd(instr);
+                    this->m_lowererMD.LoadHelperArgument(instr, paramOpnd);
+                    
                     m_lowererMD.ChangeToHelperCallMem(instr, IR::HelperOP_NewScopeObjectWithFormals);
                 }
                 else
@@ -2755,7 +2735,7 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::LdFuncExpr:
             // src = function Expression
-            m_lowererMD.LoadFuncExpression(instr);
+            LoadFuncExpression(instr);
             this->GenerateGetCurrentFunctionObject(instr);
             break;
 
@@ -12791,6 +12771,63 @@ void Lowerer::LowerBailOnCreatedMissingValue(IR::Instr *const instr, const bool 
     //     $skipBailOut:
 }
 
+
+IR::Opnd*
+Lowerer::GetFuncObjectOpnd(IR::Instr* insertBeforeInstr)
+{
+    Func * func = insertBeforeInstr->m_func;
+    IR::Opnd *paramOpnd = nullptr;
+    if (func->IsInlinee())
+    {
+        paramOpnd = func->GetInlineeFunctionObjectSlotOpnd();
+    }
+    else
+    {
+#if defined(_M_ARM)
+        StackSym * paramSym = this->m_lowererMD.GetImplicitParamSlotSym(0);
+#else
+        StackSym *paramSym = StackSym::New(TyMachReg, this->m_func);
+        this->m_func->SetArgOffset(paramSym, 2 * MachPtr);
+        this->m_func->SetHasImplicitParamLoad();
+#endif
+        paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, this->m_func);
+    }
+
+    if (func->GetJITFunctionBody()->IsCoroutine())
+    {
+        // the function object for generator calls is a GeneratorVirtualScriptFunction object
+        // and we need to return the real JavascriptGeneratorFunction object so grab it before
+        // assigning to the dst
+        Assert(!func->IsInlinee());
+        IR::RegOpnd *tmpOpnd = IR::RegOpnd::New(TyMachReg, func);
+        LowererMD::CreateAssign(tmpOpnd, paramOpnd, insertBeforeInstr);
+
+        paramOpnd = IR::IndirOpnd::New(tmpOpnd, Js::GeneratorVirtualScriptFunction::GetRealFunctionOffset(), TyMachPtr, func);
+    }
+    return paramOpnd;
+}
+
+///----------------------------------------------------------------------------
+///
+/// Lowerer::LoadFuncExpression
+///
+///     Load the function expression to src1 from [ebp + 8]
+///
+///----------------------------------------------------------------------------
+
+IR::Instr *
+Lowerer::LoadFuncExpression(IR::Instr *instrFuncExpr)
+{
+    ASSERT_INLINEE_FUNC(instrFuncExpr);
+    IR::Opnd *paramOpnd = GetFuncObjectOpnd(instrFuncExpr);
+
+    // mov dst, param
+    instrFuncExpr->SetSrc1(paramOpnd);
+    LowererMD::ChangeToAssign(instrFuncExpr);
+
+    return instrFuncExpr;
+}
+
 void Lowerer::LowerBoundCheck(IR::Instr *const instr)
 {
     Assert(instr);
@@ -22232,7 +22269,7 @@ Lowerer::GenerateLoadNewTarget(IR::Instr* instrInsert)
 
     IR::Instr* loadFuncInstr = IR::Instr::New(Js::OpCode::AND, func);
     loadFuncInstr->SetDst(instrInsert->GetDst());
-    m_lowererMD.LoadFuncExpression(loadFuncInstr);
+    LoadFuncExpression(loadFuncInstr);
 
     instrInsert->InsertBefore(loadFuncInstr);
     InsertBranch(Js::OpCode::Br, labelDone, instrInsert);
@@ -22285,7 +22322,7 @@ Lowerer::GetInlineCacheFromFuncObjectForRuntimeUse(IR::Instr * instr, IR::Proper
     IR::RegOpnd * funcObjOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
     IR::Instr * funcObjInstr = IR::Instr::New(Js::OpCode::Ld_A, funcObjOpnd, instr->m_func);
     instr->InsertBefore(funcObjInstr);
-    this->m_lowererMD.LoadFuncExpression(funcObjInstr);
+    LoadFuncExpression(funcObjInstr);
 
     IR::RegOpnd * funcObjHasInlineCachesOpnd = IR::RegOpnd::New(TyMachPtr, instr->m_func);
     this->m_lowererMD.CreateAssign(funcObjHasInlineCachesOpnd, IR::IndirOpnd::New(funcObjOpnd, Js::ScriptFunction::GetOffsetOfHasInlineCaches(), TyUint8, instr->m_func), instr);
