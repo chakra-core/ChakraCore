@@ -73,7 +73,7 @@ MACRO(CVTDQ2PD, Reg2,   None,          RNON,   f(MODRM),   o(CVTDQ2PD),DDST|DNO1
 MACRO(CVTDQ2PS, Reg2,   None,          RNON,   f(MODRM),   o(CVTDQ2PS),DDST|DNO16,                  OLB_0F)
 
 MACRO(CVTSD2SI, Reg2,   None,          RNON,   f(MODRM),   o(CVTSD2SI),DDST|DNO16|DF2,              OLB_0F)
-MACRO(CVTSI2SD, Reg2,   None,          RNON,   f(MODRM),   o(CVTSI2SD),DDST|DNO16|DF2,              OLB_0F)
+MACRO(CVTSI2SD, Reg2,   None,          RNON,   f(MODRM),   o(CVTSI2SD),DDST|DNO16|DF2|DREXSRC,      OLB_0F)
 MACRO(CVTSI2SS, Reg2,   None,          RNON,   f(MODRM),   o(CVTSI2SS),DDST|DNO16|DF3|DREXSRC,      OLB_0F)
 MACRO(CVTPD2PS, Reg2,   None,          RNON,   f(MODRM),   o(CVTPD2PS),DDST|DNO16|D66,              OLB_0F)
 
