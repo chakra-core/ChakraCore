@@ -19,12 +19,7 @@ You can stay up-to-date on progress by following the [MSEdge developer blog](htt
 | __OS X 10.9 (x64)<sup>[a]</sup>__        | [![osx_a_debug][osx_a_dbgicon]][osx_a_dbglink] | [![osx_a_test][osx_a_testicon]][osx_a_testlink] | [![osx_a_release][osx_a_relicon]][osx_a_rellink] |
 | __OS X 10.9 (x64)<sup>[s][n]</sup>__     | * | [![osx_sn_test][osx_sn_testicon]][osx_sn_testlink] | * |
 
-* <sup>[a]</sup> Static (as applies to Linux / OSX)
-* <sup>[s]</sup> Shared (as applies to Linux / OSX)
-* <sup>[n]</sup> NoJIT: Compiled without JIT support
-* \* We do not run these builds because we believe the builds we do run are sufficient for coverage.
-
-*If you see badges reading "Build: Unknown" it is likely because a build was skipped due to changes being only in files known not to affect the health of the build.*
+<sup>[a]</sup> Static | <sup>[s]</sup> Shared | <sup>[n]</sup> NoJIT | * Omitted
 
 [x64dbgicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/badge/icon
 [x64dbglink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/x64_debug/
@@ -82,7 +77,7 @@ You can stay up-to-date on progress by following the [MSEdge developer blog](htt
 [osx_sn_relicon]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_release/badge/icon
 [osx_sn_rellink]: https://ci.dot.net/job/Microsoft_ChakraCore/job/master/job/_no_jit_shared_osx_osx_release/
 
-Above is a table of our rolling build status. We run additional builds on a daily basis. See [Build Status](https://github.com/Microsoft/ChakraCore/wiki/Build-Status) for the status of all builds.
+Above is a table of our rolling build status. We run additional builds on a daily basis. See [Build Status](https://github.com/Microsoft/ChakraCore/wiki/Build-Status) for the status of all builds and additional details.
 
 ## Security
 
