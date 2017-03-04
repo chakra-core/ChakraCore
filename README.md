@@ -92,7 +92,7 @@ If you believe you have found a security issue in ChakraCore, please share it wi
 * [Contribution guidelines](CONTRIBUTING.md)
 * [Blogs, talks and other resources](https://github.com/Microsoft/ChakraCore/wiki/Resources)
 
-## Building ChakraCore
+## [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Building-ChakraCore)
 
 You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 or above, with either Visual Studio 2013 or 2015 with C++ support installed.  Once you have Visual Studio installed:
 
@@ -128,7 +128,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 Please refer to [Contribution guidelines](CONTRIBUTING.md) for more details.
 
-## License
+## [License](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt)
 
 Code licensed under the [MIT License](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt).
 
