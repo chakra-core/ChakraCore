@@ -485,7 +485,7 @@ namespace Js
 
         // ES5Array type handler specific methods. Only implemented by ES5ArrayTypeHandlers.
         virtual bool IsLengthWritable() const { Assert(false); return false; }
-        virtual void SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags) { Assert(false); }
+        virtual uint32 SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags) { Assert(false); return 0; }
         virtual BOOL IsObjectArrayFrozen(ES5Array* arr) { Assert(false); return FALSE; }
         virtual BOOL IsItemEnumerable(ES5Array* arr, uint32 index) { Assert(false); return FALSE; }
         virtual BOOL IsValidDescriptorToken(void * descriptorValidationToken) const { Assert(false); return FALSE; }

@@ -349,4 +349,9 @@
       <baseline>es5array_enum_edit.baseline</baseline>
     </default>
   </test>
+  <test>
+    <default>
+      <files>es5_defineProperty_arrayLength.js</files>
+    </default>
+  </test>
 </regress-exe>

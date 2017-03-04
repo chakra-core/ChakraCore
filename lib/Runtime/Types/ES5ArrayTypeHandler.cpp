@@ -950,7 +950,7 @@ namespace Js
     }
 
     template <class T>
-    void ES5ArrayTypeHandlerBase<T>::SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags)
+    uint32 ES5ArrayTypeHandlerBase<T>::SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags)
     {
         Assert(IsLengthWritable()); // Should have already checked
 
@@ -966,6 +966,7 @@ namespace Js
         // Strict mode TODO: In strict mode we may need to throw if we cannot delete to
         // requested newLen (ES5 15.4.5.1 3.l.III.4).
         //
+        return newLen;
     }
 
     template <class T>

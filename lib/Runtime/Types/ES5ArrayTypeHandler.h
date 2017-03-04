@@ -187,7 +187,7 @@ namespace Js
         virtual BOOL SetAttributes(DynamicObject* instance, PropertyId propertyId, PropertyAttributes attributes) override;
 
         virtual bool IsLengthWritable() const override;
-        virtual void SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags) override;
+        virtual uint32 SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags) override;
         virtual BOOL IsObjectArrayFrozen(ES5Array* arr) override;
         virtual BOOL IsItemEnumerable(ES5Array* arr, uint32 index) override;
         virtual BOOL IsValidDescriptorToken(void * descriptorValidationToken) const override;
