@@ -166,6 +166,7 @@ public:
     static void  SafeRemoveInstr(IR::Instr *instr);
     void         SortLoopLists();
     FlowEdge *   FindEdge(BasicBlock *predBlock, BasicBlock *succBlock);
+    void         UpwardInlineeEndBeforeRemoving(BasicBlock * block, IR::Instr * inlineeEnd);
 
 #if DBG_DUMP
     void         Dump();
