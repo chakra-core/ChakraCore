@@ -29,7 +29,7 @@ namespace Wasm
         const char* name;
     };
 
-    static const unsigned int experimentalVersion = 0xd;
+    static const unsigned int binaryVersion = 0x1;
 
     class WasmBinaryReader : public WasmReaderBase
     {
