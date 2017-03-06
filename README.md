@@ -1,6 +1,7 @@
 # ChakraCore
 
 [![Join the chat at https://gitter.im/Microsoft/ChakraCore](https://badges.gitter.im/Microsoft/ChakraCore.svg)](https://gitter.im/Microsoft/ChakraCore?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Licensed under the MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt)
 
 ChakraCore is the core part of Chakra, the high-performance JavaScript engine that powers Microsoft Edge and Windows applications written in HTML/CSS/JS.  ChakraCore supports Just-in-time (JIT) compilation of JavaScript for x86/x64/ARM, garbage collection, and a wide range of the latest JavaScript features.  ChakraCore also supports the [JavaScript Runtime (JSRT) APIs](https://github.com/Microsoft/ChakraCore/wiki/JavaScript-Runtime-%28JSRT%29-Overview), which allows you to easily embed ChakraCore in your applications.
 
@@ -91,7 +92,7 @@ If you believe you have found a security issue in ChakraCore, please share it wi
 * [Contribution guidelines](CONTRIBUTING.md)
 * [Blogs, talks and other resources](https://github.com/Microsoft/ChakraCore/wiki/Resources)
 
-## Building ChakraCore
+## [Building ChakraCore](https://github.com/Microsoft/ChakraCore/wiki/Building-ChakraCore)
 
 You can build ChakraCore on Windows 7 SP1 or above, and Windows Server 2008 R2 or above, with either Visual Studio 2013 or 2015 with C++ support installed.  Once you have Visual Studio installed:
 
@@ -127,7 +128,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 Please refer to [Contribution guidelines](CONTRIBUTING.md) for more details.
 
-## License
+## [License](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt)
 
 Code licensed under the [MIT License](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt).
 
