@@ -6,7 +6,6 @@
 
 #ifdef ENABLE_TEST_HOOKS
 
-HRESULT OnChakraCoreLoaded();
 interface ICustomConfigFlags;
 
 #if defined(_WIN32) || defined(_MSC_VER)
@@ -65,5 +64,8 @@ struct TestHooks
 
     NotifyUnhandledExceptionPtr pfnNotifyUnhandledException;
 };
+
+typedef HRESULT(__stdcall *OnChakraCoreLoadedPtr)(TestHooks &testHooks);
+HRESULT OnChakraCoreLoaded(OnChakraCoreLoadedPtr pfChakraCoreLoaded = NULL);
 
 #endif

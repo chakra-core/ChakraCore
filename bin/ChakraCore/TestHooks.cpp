@@ -125,13 +125,15 @@ void __stdcall NotifyUnhandledException(PEXCEPTION_POINTERS exceptionInfo)
 #undef FLAG_NumberPairSet
 #undef FLAG_NumberRange
 
-HRESULT OnChakraCoreLoaded()
+HRESULT OnChakraCoreLoaded(OnChakraCoreLoadedPtr pfChakraCoreLoaded)
 {
-    typedef HRESULT(__stdcall *OnChakraCoreLoadedPtr)(TestHooks &testHooks);
-    OnChakraCoreLoadedPtr pfChakraCoreLoaded = (OnChakraCoreLoadedPtr)GetProcAddress(GetModuleHandle(NULL), "OnChakraCoreLoadedEntry");
     if (pfChakraCoreLoaded == nullptr)
     {
-        return S_OK;
+        pfChakraCoreLoaded = (OnChakraCoreLoadedPtr)GetProcAddress(GetModuleHandle(NULL), "OnChakraCoreLoadedEntry");
+        if (pfChakraCoreLoaded == nullptr)
+        {
+            return S_OK;
+        }
     }
 
     TestHooks testHooks =
@@ -167,7 +169,6 @@ HRESULT OnChakraCoreLoaded()
 #endif
         NotifyUnhandledException
     };
-
     return pfChakraCoreLoaded(testHooks);
 }
 
