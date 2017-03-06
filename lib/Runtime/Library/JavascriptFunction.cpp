@@ -720,8 +720,7 @@ namespace Js
         if (IsInAssert != 0)
         {
             // Just don't execute anything if we are in an assert
-            // throw the exception directly to avoid additional assert in Js::Throw::InternalError
-            AssertOrFailFast(false);
+            Js::Throw::FatalInternalError();
         }
 #endif
 
