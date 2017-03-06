@@ -213,6 +213,8 @@ namespace Js
         virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override;
 
         virtual Js::BigPropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord) override;
+
+        virtual bool IsResetableForTTD(uint32 snapMaxIndex) const override;
 #endif
     };
 
