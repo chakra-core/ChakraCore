@@ -20,8 +20,15 @@
  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+if(typeof(WScript) === "undefined")
+{
+    var WScript = {
+        Echo: print
+    }
+}
 
 function record(time) {
     document.getElementById("console").innerHTML = time + "ms";
@@ -193,7 +200,7 @@ for ( var n = 3; n <= 24; n *= 2 ) {
            Sun(),Jupiter(),Saturn(),Uranus(),Neptune()
         ));
         var max = n * 100;
-        
+
         ret += bodies.energy();
         for (var i=0; i<max; i++){
             bodies.advance(0.01);

@@ -20,8 +20,15 @@
  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+if(typeof(WScript) === "undefined")
+{
+    var WScript = {
+        Echo: print
+    }
+}
 
 function record(time) {
     document.getElementById("console").innerHTML = time + "ms";
@@ -47,22 +54,22 @@ Date.prototype.formatDate = function (input,time) {
     // input : format string
     // time : epoch time (seconds, and optional)
     //
-    // if time is not passed, formatting is based on 
+    // if time is not passed, formatting is based on
     // the current "this" date object's set time.
     //
     // supported:
-    // a, A, B, d, D, F, g, G, h, H, i, j, l (lowercase L), L, 
+    // a, A, B, d, D, F, g, G, h, H, i, j, l (lowercase L), L,
     // m, M, n, O, r, s, S, t, U, w, W, y, Y, z
     //
     // unsupported:
-    // I (capital i), T, Z    
+    // I (capital i), T, Z
 
-    var switches =    ["a", "A", "B", "d", "D", "F", "g", "G", "h", "H", 
-                       "i", "j", "l", "L", "m", "M", "n", "O", "r", "s", 
+    var switches =    ["a", "A", "B", "d", "D", "F", "g", "G", "h", "H",
+                       "i", "j", "l", "L", "m", "M", "n", "O", "r", "s",
                        "S", "t", "U", "w", "W", "y", "Y", "z"];
-    var daysLong =    ["Sunday", "Monday", "Tuesday", "Wednesday", 
+    var daysLong =    ["Sunday", "Monday", "Tuesday", "Wednesday",
                        "Thursday", "Friday", "Saturday"];
-    var daysShort =   ["Sun", "Mon", "Tue", "Wed", 
+    var daysShort =   ["Sun", "Mon", "Tue", "Wed",
                        "Thu", "Fri", "Sat"];
     var monthsShort = ["Jan", "Feb", "Mar", "Apr",
                        "May", "Jun", "Jul", "Aug", "Sep",
@@ -90,8 +97,8 @@ Date.prototype.formatDate = function (input,time) {
         // since I was feeling lazy:
         // http://www.xs4all.nl/~ppk/js/beat.html
         var off = (self.getTimezoneOffset() + 60)*60;
-        var theSeconds = (self.getHours() * 3600) + 
-                         (self.getMinutes() * 60) + 
+        var theSeconds = (self.getHours() * 3600) +
+                         (self.getMinutes() * 60) +
                           self.getSeconds() + off;
         var beat = Math.floor(theSeconds/86.4);
         if (beat > 1000) beat -= 1000;
@@ -100,7 +107,7 @@ Date.prototype.formatDate = function (input,time) {
         if ((""+beat).length == 2) beat = "0"+beat;
         return beat;
     }
-    
+
     function d() {
         // Day of the month, 2 digits with leading zeros
         return new String(self.getDate()).length == 1?
@@ -128,11 +135,11 @@ Date.prototype.formatDate = function (input,time) {
           var s = new String(self.getHours()-12);
           return s.length == 1?
           "0"+ (self.getHours()-12) : self.getHours()-12;
-        } else { 
+        } else {
           var s = new String(self.getHours());
           return s.length == 1?
           "0"+self.getHours() : self.getHours();
-        }  
+        }
     }
     function H() {
         // 24-hour format of an hour with leading zeros
@@ -141,13 +148,13 @@ Date.prototype.formatDate = function (input,time) {
     }
     function i() {
         // Minutes with leading zeros
-        return new String(self.getMinutes()).length == 1? 
-        "0"+self.getMinutes() : self.getMinutes(); 
+        return new String(self.getMinutes()).length == 1?
+        "0"+self.getMinutes() : self.getMinutes();
     }
     function j() {
         // Day of the month without leading zeros
         return self.getDate();
-    }    
+    }
     function l() {
         // A full textual representation of the day of the week
         return daysLong[self.getDay()];
@@ -156,7 +163,7 @@ Date.prototype.formatDate = function (input,time) {
         // leap year or not. 1 if leap year, 0 if not.
         // the logic should match iso's 8601 standard.
         var y_ = Y();
-        if (         
+        if (
             (y_ % 4 == 0 && y_ % 100 != 0) ||
             (y_ % 4 == 0 && y_ % 100 == 0 && y_ % 400 == 0)
             ) {
@@ -168,7 +175,7 @@ Date.prototype.formatDate = function (input,time) {
     function m() {
         // Numeric representation of a month, with leading zeros
         return self.getMonth() < 9?
-        "0"+(self.getMonth()+1) : 
+        "0"+(self.getMonth()+1) :
         self.getMonth()+1;
     }
     function M() {
@@ -220,7 +227,7 @@ Date.prototype.formatDate = function (input,time) {
     function W() {
         // Weeknumber, as per ISO specification:
         // http://www.cl.cam.ac.uk/~mgk25/iso-time.html
-        
+
         // if the day is three days before newyears eve,
         // there's a chance it's "week 1" of next year.
         // here we check for that.
@@ -235,8 +242,8 @@ Date.prototype.formatDate = function (input,time) {
         var ny = new Date("January 1 " + Y() + " 00:00:00");
         var nyDay = ny.getDay()!=0?ny.getDay()-1:6;
         if (
-            (afterNY <= 2) && 
-            (nyDay >=4)  && 
+            (afterNY <= 2) &&
+            (nyDay >=4)  &&
             (afterNY >= (6-nyDay))
             ) {
             // Since I'm not sure we can just always return 53,
@@ -246,7 +253,7 @@ Date.prototype.formatDate = function (input,time) {
             var prevNY = new Date("December 31 " + (Y()-1) + " 00:00:00");
             return prevNY.formatDate("W");
         }
-        
+
         // week 1, is the week that has the first thursday in it.
         // note that this value is not zero index.
         if (nyDay <= 3) {
@@ -261,7 +268,7 @@ Date.prototype.formatDate = function (input,time) {
         // Numeric representation of the day of the week
         return self.getDay();
     }
-    
+
     function Y() {
         // A full numeric representation of a year, 4 digits
 
@@ -271,7 +278,7 @@ Date.prototype.formatDate = function (input,time) {
         if (self.getFullYear) {
             var newDate = new Date("January 1 2001 00:00:00 +0000");
             var x = newDate .getFullYear();
-            if (x == 2001) {              
+            if (x == 2001) {
                 // i trust the method now
                 return self.getFullYear();
             }
@@ -295,14 +302,14 @@ Date.prototype.formatDate = function (input,time) {
         var diff = self.getTime() - t.getTime();
         return Math.floor(diff/1000/60/60/24);
     }
-        
+
     var self = this;
     if (time) {
         // save time
         var prevTime = self.getTime();
         self.setTime(time);
     }
-    
+
     var ia = input.split("");
     var ij = 0;
     while (ia[ij]) {

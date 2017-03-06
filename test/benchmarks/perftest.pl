@@ -30,8 +30,10 @@ my $OFFICIAL;
 my $is_official = 0;
 my $is_baseline = 0;
 my $basefile = "perfbase.txt";
+my $testfile = "perftest.txt";
 my $binary = "";
 my $dir = "";
+my $skipCheckSwitch = 0;  # use with non-chakra hosts
 my $highprecisiondate = 1;
 my $args;
 my $parse_scores = 0;
@@ -85,7 +87,11 @@ print "Switches: $other_switches\n" unless ($other_switches eq "");
 
 $other_switches .= " -highprecisiondate" if $highprecisiondate;
 
-if(!$is_baseline)
+if($is_baseline)
+{
+    delete_file($basefile);
+}
+else
 {
     open(my $IN, '<', $basefile) or die "Couldn't open $basefile for reading.";
     while(<$IN>)
@@ -117,10 +123,8 @@ if(!$is_baseline)
         }
     }
     close($IN);
-}
-else
-{
-    delete_baseline();
+
+    delete_file($testfile);
 }
 
 # run the benchmark tests
@@ -367,10 +371,13 @@ if($is_official)
 }
 
 
-# if it's a baseline run, just output to the baseline file and exit
-if($is_baseline)
+# output to the baseline file or test result file and exit
+saveResult($is_baseline ? $basefile : $testfile);
+
+sub saveResult()
 {
-    open(my $OUT, '>', $basefile) or die "Couldn't open $basefile for writing.";
+    my $result_file = shift;
+    open(my $OUT, '>', $result_file) or die "Couldn't open $result_file for writing.";
 
     foreach my $test(@testlist)
     {
@@ -391,6 +398,7 @@ if($is_baseline)
     close($OUT);
     exit(0);
 }
+
 sub processResult()
 {
     my $test = shift;
@@ -564,8 +572,10 @@ sub usage
     print "  -baseline              Generates a baseline, updating your local baseline file.  \n";
     print "                         NOTE: use only with base binary with clean clone from the Chakracore repo\n";
     print "  -basefile:<file>       Uses <file> as your perf baseline (default: perfbase.txt)\n";
+    print "  -testfile:<file>       Uses <file> to save your perf test result (default: perftest.txt)\n";
     print "  -dir:<dirpath>         Uses the test files in the <dirpath>.\n";
     print "  -binary:<filepath>     Uses <filepath> to run the JS files.\n";
+    print "  -skipCheckSwitch       Skip checking binary command line switches (use with non-chakra hosts)";
     print "  -iterations:<iter>     Number of iterations to run tests (default: 11)\n";
     print "  -official:<name>       Generates an official report into results-<name>.xml\n";
     print "  -native                Only run -native variation (default)\n";
@@ -603,9 +613,18 @@ sub parse_args
             $basefile = $1;
             badswitch() if $is_official;
         }
+        elsif($ARGV[$i] =~ /[-\/]testfile:(.*)$/)
+        {
+            $testfile = $1;
+            badswitch() if $is_official;
+        }
         elsif($ARGV[$i] =~ /[-\/]binary:(.*)$/)
         {
             $binary = $1;
+        }
+        elsif($ARGV[$i] =~ /[-\/]skipCheckSwitch/)
+        {
+            $skipCheckSwitch = 1;
         }
         elsif($ARGV[$i] =~ /[-\/]dir:(.*)$/)
         {
@@ -667,8 +686,9 @@ sub parse_args
             $parse_time = 0;
             $parse_scores = 1;
             $parse_latency = 1;
-            $dir = "octane";
+            $dir = "Octane";
             $basefile = "perfbase$dir.txt";
+            $testfile = "perftest$dir.txt";
             $is_dynamicProfileRun = 0; # Currently octane dyna-pogo info is not avialable in the browser - remove this when it is.
         }
         elsif($ARGV[$i] =~ /[-\/]jetstream/)
@@ -684,6 +704,7 @@ sub parse_args
             $parse_latency = 0;
             $dir = "jetstream";
             $basefile = "perfbase$dir.txt";
+            $testfile = "perftest$dir.txt";
             $is_dynamicProfileRun = 0; # Currently  dyna-pogo info is not avialable in the browser - remove this when it is.
         }
         elsif($ARGV[$i] =~ /[-\/]kraken/i)
@@ -696,8 +717,9 @@ sub parse_args
              "imaging-desaturate", "imaging-gaussian-blur", "json-parse-financial", "json-stringify-tinderbox",
              "stanford-crypto-aes", "stanford-crypto-ccm", "stanford-crypto-pbkdf2", "stanford-crypto-sha256-iterative");
             $testDescription = "kraken benchmark";
-            $dir = "kraken";
+            $dir = "Kraken";
             $basefile = "perfbase$dir.txt";
+            $testfile = "perftest$dir.txt";
             $highprecisiondate = 0;
         }
         elsif($ARGV[$i] =~ /[-\/]sunspider/i)
@@ -708,8 +730,9 @@ sub parse_args
             "crypto-sha1", "date-format-tofte", "date-format-xparb", "math-cordic", "math-partial-sums",
             "math-spectral-norm", "regexp-dna", "string-base64", "string-fasta", "string-tagcloud",
             "string-unpack-code", "string-validate-input");
-            $dir = "sunspider";
+            $dir = "SunSpider";
             $basefile = "perfbase$dir.txt";
+            $testfile = "perftest$dir.txt";
             $is_dynamicProfileRun = 1;
         }
         elsif($ARGV[$i] =~ /[-\/]file:(.*).js$/i)
@@ -816,7 +839,14 @@ sub official_end_test
 
 sub check_switch
 {
-    system("$binary /? > _time.txt");
+    # Use -skipCheckSwitch to avoid checking command line switches with
+    # non-chakra hosts (Following "... -?" may enter host command loop.)
+    if ($skipCheckSwitch)
+    {
+        return;
+    }
+
+    system("$binary -? > _time.txt");
     open(my $IN, '<', "_time.txt") or die;
     my $dynamicProfileSupported = 0;
     my $highprecisiondateSupported = 0;
@@ -847,29 +877,19 @@ sub delete_profile
 {
     if($is_dynamicProfileRun)
     {
-        if(-e $profileFile)
-        {
-            unlink($profileFile);
-            if(-e $profileFile)
-            {
-                 print "File could not be deleted: $profileFile\n";
-                 die();
-            }
-        }
+        delete_file($profileFile);
     }
 }
-sub delete_baseline
+sub delete_file()
 {
-    if($is_baseline)
+    my $f = shift;
+    if(-e $f)
     {
-        if(-e $basefile)
+        unlink($f);
+        if(-e $f)
         {
-            unlink($basefile);
-            if(-e $basefile)
-            {
-                 print "File could not be deleted: $basefile\n";
-                 die();
-            }
+            print "File could not be deleted: $f\n";
+            die();
         }
     }
 }

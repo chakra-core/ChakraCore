@@ -20,8 +20,15 @@
  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+if(typeof(WScript) === "undefined")
+{
+    var WScript = {
+        Echo: print
+    }
+}
 
 function record(time) {
     document.getElementById("console").innerHTML = time + "ms";
@@ -128,7 +135,7 @@ function base64ToString(data) {
         var padding = (data.charCodeAt(i) == base64Pad.charCodeAt(0));
         // Skip illegal characters and whitespace
         if (c == -1) continue;
-        
+
         // Collect data into leftdata, update bitcount
         leftdata = (leftdata << 6) | c;
         leftbits += 6;
