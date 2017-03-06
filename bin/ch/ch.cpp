@@ -255,16 +255,6 @@ Error:
     return hr;
 }
 
-static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callbackState)
-{
-    Assert(task != JS_INVALID_REFERENCE);
-    Assert(callbackState != JS_INVALID_REFERENCE);
-    MessageQueue * messageQueue = (MessageQueue *)callbackState;
-
-    WScriptJsrt::CallbackMessage *msg = new WScriptJsrt::CallbackMessage(0, task);
-    messageQueue->InsertSorted(msg);
-}
-
 static bool CHAKRA_CALLBACK DummyJsSerializedScriptLoadUtf8Source(
     JsSourceContext sourceContext,
     JsValueRef* scriptBuffer,
@@ -296,7 +286,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, JsValueRef bufferVa
     MessageQueue * messageQueue = new MessageQueue();
     WScriptJsrt::AddMessageQueue(messageQueue);
 
-    IfJsErrorFailLog(ChakraRTInterface::JsSetPromiseContinuationCallback(PromiseContinuationCallback, (void*)messageQueue));
+    IfJsErrorFailLog(ChakraRTInterface::JsSetPromiseContinuationCallback(WScriptJsrt::PromiseContinuationCallback, (void*)messageQueue));
 
     if(strlen(fileName) >= 14 && strcmp(fileName + strlen(fileName) - 14, "ttdSentinal.js") == 0)
     {
