@@ -434,6 +434,8 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
 
         IfJsrtErrorSetGo(ChakraRTInterface::JsSetCurrentContext(newContext));
 
+        IfJsErrorFailLog(ChakraRTInterface::JsSetPromiseContinuationCallback(PromiseContinuationCallback, (void*)messageQueue));
+
         // Initialize the host objects
         Initialize();
 
@@ -1280,4 +1282,14 @@ JsErrorCode WScriptJsrt::NotifyModuleReadyCallback(_In_opt_ JsModuleRecord refer
         WScriptJsrt::PushMessage(moduleMessage);
     }
     return JsNoError;
+}
+
+void WScriptJsrt::PromiseContinuationCallback(JsValueRef task, void *callbackState)
+{
+    Assert(task != JS_INVALID_REFERENCE);
+    Assert(callbackState != JS_INVALID_REFERENCE);
+    MessageQueue * messageQueue = (MessageQueue *)callbackState;
+
+    WScriptJsrt::CallbackMessage *msg = new WScriptJsrt::CallbackMessage(0, task);
+    messageQueue->InsertSorted(msg);
 }

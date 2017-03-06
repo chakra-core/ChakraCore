@@ -591,6 +591,16 @@
   </test>
   <test>
     <default>
+      <files>CrossContextPromiseFile1.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>CrossContextPromise.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>spread.js</files>
       <compile-flags>-ES6Spread -args summary -endargs</compile-flags>
     </default>
