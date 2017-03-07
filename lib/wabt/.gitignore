@@ -5,3 +5,4 @@
 /fuzz-out
 /emscripten
 *.pyc
+/built
