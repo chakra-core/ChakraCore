@@ -2847,8 +2847,16 @@ namespace Js
 
     void JavascriptLibrary::InitializeWebAssemblyObject(DynamicObject* webAssemblyObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
-        typeHandler->Convert(webAssemblyObject, mode, 8);
         JavascriptLibrary* library = webAssemblyObject->GetLibrary();
+#ifdef ENABLE_WABT
+        typeHandler->Convert(webAssemblyObject, mode, 9);
+        // Build wabt object
+        Js::DynamicObject* wabtObject = library->CreateObject(true);
+        library->AddFunctionToLibraryObject(wabtObject, PropertyIds::convertWast2Wasm, &WabtInterface::EntryInfo::ConvertWast2Wasm, 2);
+        library->AddMember(webAssemblyObject, PropertyIds::wabt, wabtObject, PropertyNone);
+#else
+        typeHandler->Convert(webAssemblyObject, mode, 8);
+#endif
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WebAssembly::EntryInfo::Compile, 2);
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::validate, &WebAssembly::EntryInfo::Validate, 2);
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::instantiate, &WebAssembly::EntryInfo::Instantiate, 2);

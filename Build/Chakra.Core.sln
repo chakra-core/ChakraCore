@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChakraCore", "..\bin\ChakraCore\ChakraCore.vcxproj", "{EA882C8D-81FC-42FE-ABD5-2666DB933FDB}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -104,7 +104,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Runtime.Math", "..\l
 		{2F6A1847-BFAF-4B8A-9463-AC39FB46B96A} = {2F6A1847-BFAF-4B8A-9463-AC39FB46B96A}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Util", "..\lib\Common\Util\Chakra.Common.Util.vcxproj", "{6979EC58-7A28-465C-A694-F3323A1F5401}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Chakra.Common.Util", "..\lib\Common\util\Chakra.Common.Util.vcxproj", "{6979EC58-7A28-465C-A694-F3323A1F5401}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{158C8616-750C-4E0E-BD3D-5721D3C555E6}"
 EndProject
@@ -152,6 +152,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreManifests", "..\manifests\CoreManifests.vcxproj", "{2F6A1847-BFAF-4B8A-9463-AC39FB46B96A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pal", "..\pal\pal.vcxproj", "{02D4FD92-AD34-40CA-85DF-4D6C7E3A1F22}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wabt", "..\lib\wabt\wabt.vcxproj", "{F48B3491-81DF-4F49-B35F-3308CBE6A379}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -697,6 +699,19 @@ Global
 		{02D4FD92-AD34-40CA-85DF-4D6C7E3A1F22}.Test|ARM.ActiveCfg = Release|x64
 		{02D4FD92-AD34-40CA-85DF-4D6C7E3A1F22}.Test|x64.ActiveCfg = Release|x64
 		{02D4FD92-AD34-40CA-85DF-4D6C7E3A1F22}.Test|x86.ActiveCfg = Release|Win32
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Debug|ARM.ActiveCfg = Debug|ARM
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Debug|x64.ActiveCfg = Debug|x64
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Debug|x64.Build.0 = Debug|x64
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Debug|x86.ActiveCfg = Debug|Win32
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Debug|x86.Build.0 = Debug|Win32
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Release|ARM.ActiveCfg = Release|ARM
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Release|x64.ActiveCfg = Release|x64
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Release|x86.ActiveCfg = Release|Win32
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Test|ARM.ActiveCfg = Test|ARM
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Test|x64.ActiveCfg = Test|x64
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Test|x64.Build.0 = Test|x64
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Test|x86.ActiveCfg = Test|Win32
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379}.Test|x86.Build.0 = Test|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -738,5 +753,6 @@ Global
 		{984BE359-87F7-4BD7-A823-AD8A59739801} = {158C8616-750C-4E0E-BD3D-5721D3C555E6}
 		{2F6A1847-BFAF-4B8A-9463-AC39FB46B96A} = {984BE359-87F7-4BD7-A823-AD8A59739801}
 		{02D4FD92-AD34-40CA-85DF-4D6C7E3A1F22} = {546172B2-F084-4363-BE35-06010663D319}
+		{F48B3491-81DF-4F49-B35F-3308CBE6A379} = {D8216B93-BD6E-4293-8D98-79CEF7CF66BC}
 	EndGlobalSection
 EndGlobal
