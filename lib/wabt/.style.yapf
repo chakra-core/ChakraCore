@@ -1,0 +1,4 @@
+[style]
+split_before_named_assigns = False
+based_on_style = chromium
+column_limit = 79

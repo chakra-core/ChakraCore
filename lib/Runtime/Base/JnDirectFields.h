@@ -296,6 +296,9 @@ ENTRY(customSections)
 ENTRY(initial)
 ENTRY(maximum)
 ENTRY(element)
+// wabt
+ENTRY(wabt)
+ENTRY(convertWast2Wasm)
 // End Wasm
 
 // SIMD_JS

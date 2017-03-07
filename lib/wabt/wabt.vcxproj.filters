@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\ast.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\ast-parser-lexer-shared.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\prebuilt\ast-lexer-gen.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\prebuilt\ast-parser-gen.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\type-checker.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\validator.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\binary-reader.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\binary-writer.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\binary-writer-spec.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\binary-reader-ast.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\binding-hash.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\ast-writer.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\binary-reader-interpreter.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\apply-names.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\generate-names.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\resolve-names.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\binary.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\common.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\config.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\literal.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\stream.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\vector.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\writer.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\binary-writer.h" />
+    <ClInclude Include="src\binary-writer-spec.h" />
+    <ClInclude Include="src\binding-hash.h" />
+    <ClInclude Include="src\common.h" />
+    <ClInclude Include="src\generate-names.h" />
+    <ClInclude Include="src\literal.h" />
+    <ClInclude Include="src\resolve-names.h" />
+    <ClInclude Include="src\stream.h" />
+    <ClInclude Include="src\type-checker.h" />
+    <ClInclude Include="src\type-vector.h" />
+    <ClInclude Include="src\validator.h" />
+    <ClInclude Include="src\vector.h" />
+    <ClInclude Include="src\vector-sort.h" />
+    <ClInclude Include="src\wasm-link.h" />
+    <ClInclude Include="src\writer.h" />
+    <ClInclude Include="src\apply-names.h" />
+    <ClInclude Include="src\array.h" />
+    <ClInclude Include="src\ast.h" />
+    <ClInclude Include="src\ast-lexer.h" />
+    <ClInclude Include="src\ast-parser.h" />
+    <ClInclude Include="src\ast-parser-lexer-shared.h" />
+    <ClInclude Include="src\ast-writer.h" />
+    <ClInclude Include="src\binary.h" />
+    <ClInclude Include="src\binary-reader.h" />
+    <ClInclude Include="src\binary-reader-ast.h" />
+    <ClInclude Include="src\binary-reader-interpreter.h" />
+    <ClInclude Include="src\binary-reader-linker.h" />
+    <ClInclude Include="src\binary-reader-objdump.h" />
+    <ClInclude Include="src\binary-reader-opcnt.h" />
+    <ClInclude Include="src\win_prebuilt\config.h" />
+  </ItemGroup>
+</Project>

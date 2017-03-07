@@ -323,6 +323,10 @@ BUILTIN(WebAssemblyTable, GetterLength, EntryGetterLength, FunctionInfo::ErrorOn
 BUILTIN(WebAssemblyTable, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyTable, Get, EntryGet, FunctionInfo::ErrorOnNew)
 BUILTIN(WebAssemblyTable, Set, EntrySet, FunctionInfo::ErrorOnNew)
+#ifdef ENABLE_WABT
+// wabt entry points
+BUILTIN(WabtInterface, ConvertWast2Wasm, EntryConvertWast2Wasm, FunctionInfo::ErrorOnNew)
+#endif
 #endif
 
 // SIMDFloat32x4Lib entry points
