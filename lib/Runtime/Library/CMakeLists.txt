@@ -11,6 +11,12 @@ if(CC_TARGETS_AMD64)
     WebAssemblyMemory.cpp
     WebAssemblyModule.cpp
     WebAssemblyTable.cpp
+    WabtInterface.cpp
+    )
+    include_directories(
+    ../../wabt/src
+    ../../wabt/prebuilt
+    ../../wabt/built
     )
 endif()
 
