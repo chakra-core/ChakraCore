@@ -1367,6 +1367,12 @@
     </default>
 </test>
 <test>
+    <default>
+        <files>test_bug_2645.js</files>
+        <compile-flags>-ES6Module</compile-flags>
+    </default>
+</test>
+<test>
   <default>
     <files>OS_5500719.js</files>
     <compile-flags>-forceserialized</compile-flags>
