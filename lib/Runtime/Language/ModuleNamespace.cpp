@@ -77,8 +77,7 @@ namespace Js
                 AssertMsg(exportNameId != Js::Constants::NoProperty, "should have been initialized already");
                 // ignore local exports that are actually indirect exports.
                 if (sourceTextModuleRecord->GetImportEntryList() == nullptr ||
-                    (sourceTextModuleRecord->ResolveImport(localNameId, &importRecord)
-                    && importRecord == nullptr))
+                    !sourceTextModuleRecord->ResolveImport(localNameId, &importRecord))
                 {
                     BigPropertyIndex index = sourceTextModuleRecord->GetLocalExportSlotIndexByExportName(exportNameId);
                     Assert((uint)index < sourceTextModuleRecord->GetLocalExportCount());
