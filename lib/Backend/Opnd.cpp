@@ -2244,7 +2244,8 @@ IndirOpnd::New(RegOpnd *baseOpnd, RegOpnd *indexOpnd, IRType type, Func *func)
 {
     IndirOpnd * indirOpnd;
 
-    indirOpnd = JitAnew(func->m_alloc, IR::IndirOpnd);
+    AssertMsg(baseOpnd, "An IndirOpnd needs a valid baseOpnd.");
+    indirOpnd = JitAnew(func->m_alloc, IndirOpnd);
 
     indirOpnd->m_func = func;
     indirOpnd->SetBaseOpnd(baseOpnd);
@@ -2289,7 +2290,7 @@ IndirOpnd::New(RegOpnd *indexOpnd, int32 offset, byte scale, IRType type, Func *
 {
     IndirOpnd * indirOpnd;
 
-    indirOpnd = JitAnew(func->m_alloc, IR::IndirOpnd);
+    indirOpnd = JitAnew(func->m_alloc, IndirOpnd);
 
     indirOpnd->m_func = func;
     indirOpnd->SetBaseOpnd(nullptr);
@@ -2318,7 +2319,7 @@ IndirOpnd::New(RegOpnd *baseOpnd, int32 offset, IRType type, Func *func, bool do
 {
     IndirOpnd * indirOpnd;
 
-    indirOpnd = JitAnew(func->m_alloc, IR::IndirOpnd);
+    indirOpnd = JitAnew(func->m_alloc, IndirOpnd);
 
     indirOpnd->m_func = func;
     indirOpnd->SetBaseOpnd(baseOpnd);
@@ -3204,24 +3205,31 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
 
     case OpndKindIndir:
     {
-        IndirOpnd *indirOpnd = this->AsIndirOpnd();
+        IndirOpnd * indirOpnd = this->AsIndirOpnd();
+        RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
+        RegOpnd * indexOpnd = indirOpnd->GetIndexOpnd();
+        const int32 offset = indirOpnd->GetOffset();
 
         Output::Print(_u("["));
-        if (indirOpnd->GetBaseOpnd())
+        if (baseOpnd != nullptr)
         {
-            indirOpnd->GetBaseOpnd()->Dump(flags, func);
-            Output::Print(_u("+"));
+            baseOpnd->Dump(flags, func);
+        }
+        else
+        {
+            Output::Print(_u("<null>"));
         }
 
-        if (indirOpnd->GetIndexOpnd())
+        if (indexOpnd != nullptr)
         {
-            indirOpnd->GetIndexOpnd()->Dump(flags, func);
+            Output::Print(_u("+"));
+            indexOpnd->Dump(flags, func);
             if (indirOpnd->GetScale() > 0)
             {
                 Output::Print(_u("*%d"), 1 << indirOpnd->GetScale());
             }
         }
-        if (indirOpnd->GetOffset())
+        if (offset != 0)
         {
             if (!Js::Configuration::Global.flags.DumpIRAddresses && indirOpnd->HasAddrKind())
             {
@@ -3229,14 +3237,14 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
             }
             else
             {
-                const auto sign = indirOpnd->GetOffset() >= 0 ? _u("+") : _u("");
+                const auto sign = offset >= 0 ? _u("+") : _u("");
                 if (AsmDumpMode)
                 {
-                    Output::Print(_u("%sXXXX%04d"), sign, indirOpnd->GetOffset() & 0xffff);
+                    Output::Print(_u("%sXXXX%04d"), sign, offset & 0xffff);
                 }
                 else
                 {
-                    Output::Print(_u("%s%d"), sign, indirOpnd->GetOffset());
+                    Output::Print(_u("%s%d"), sign, offset);
                 }
             }
         }

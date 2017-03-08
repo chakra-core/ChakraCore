@@ -38,6 +38,7 @@ IR::Instr *Lowerer::PreLowerPeepInstr(IR::Instr *instr, IR::Instr **pInstrPrev)
 IR::Instr *
 Lowerer::TryShiftAdd(IR::Instr *instrAdd, IR::Opnd * opndFold, IR::Opnd * opndAdd)
 {
+    Assert(instrAdd->m_opcode == Js::OpCode::Add_I4);
     if (!opndFold->GetIsDead())
     {
         return instrAdd;
@@ -97,6 +98,8 @@ Lowerer::TryShiftAdd(IR::Instr *instrAdd, IR::Opnd * opndFold, IR::Opnd * opndAd
         }
     }
 
+    StackSym * defSrc1Sym = instrDef->GetSrc1()->AsRegOpnd()->m_sym;
+    StackSym * foldSym = opndFold->AsRegOpnd()->m_sym;
     FOREACH_INSTR_IN_RANGE(instrIter, instrDef->m_next, instrAdd->m_prev)
     {
         // if any branch between def-use, don't do peeps on it because branch target might depend on the def
@@ -108,28 +111,45 @@ Lowerer::TryShiftAdd(IR::Instr *instrAdd, IR::Opnd * opndFold, IR::Opnd * opndAd
         {
             return instrAdd;
         }
-        if (instrIter->FindRegDef(instrDef->GetSrc1()->AsRegOpnd()->m_sym))
+        if (instrIter->FindRegDef(defSrc1Sym))
         {
             return instrAdd;
         }
-        if (instrIter->FindRegUse(opndFold->AsRegOpnd()->m_sym))
+        if (instrIter->FindRegUse(foldSym))
         {
             return instrAdd;
         }
     } NEXT_INSTR_IN_RANGE;
 
-    IR::IndirOpnd * leaOpnd = nullptr;
-    if (opndAdd->IsInt32() && opndAdd->IsIntConstOpnd())
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::PreLowererPeepsPhase, instrAdd->m_func))
     {
-        leaOpnd = IR::IndirOpnd::New(instrDef->UnlinkSrc1()->AsRegOpnd(), opndAdd->AsIntConstOpnd()->AsInt32(), scale, opndFold->GetType(), instrAdd->m_func);
+        Output::Print(_u("PeepShiftAdd : %s (%d) : folding:\n"), instrAdd->m_func->GetJITFunctionBody()->GetDisplayName(), instrAdd->m_func->GetFunctionNumber());
+        instrDef->Dump();
+        instrAdd->Dump();
+    }
+#endif
+
+    IR::IndirOpnd * leaOpnd = nullptr;
+    if (opndAdd->IsRegOpnd())
+    {
+        leaOpnd = IR::IndirOpnd::New(opndAdd->AsRegOpnd(), instrDef->UnlinkSrc1()->AsRegOpnd(), scale, opndFold->GetType(), instrAdd->m_func);
     }
     else
     {
-        Assert(opndAdd->IsRegOpnd());
-        leaOpnd = IR::IndirOpnd::New(opndAdd->AsRegOpnd(), instrDef->UnlinkSrc1()->AsRegOpnd(), scale, opndFold->GetType(), instrAdd->m_func);
+        Assert(opndAdd->IsInt32() && opndAdd->IsIntConstOpnd());
+        leaOpnd = IR::IndirOpnd::New(instrDef->UnlinkSrc1()->AsRegOpnd(), opndAdd->AsIntConstOpnd()->AsInt32(), scale, opndFold->GetType(), instrAdd->m_func);
     }
 
     IR::Instr * leaInstr = InsertLea(instrAdd->UnlinkDst()->AsRegOpnd(), leaOpnd, instrAdd);
+
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::PreLowererPeepsPhase, instrAdd->m_func))
+    {
+        Output::Print(_u("into:\n"), instrAdd->m_func->GetJITFunctionBody()->GetDisplayName(), instrAdd->m_func->GetFunctionNumber());
+        leaInstr->Dump();
+    }
+#endif
 
     instrAdd->Remove();
     instrDef->Remove();
@@ -140,6 +160,8 @@ Lowerer::TryShiftAdd(IR::Instr *instrAdd, IR::Opnd * opndFold, IR::Opnd * opndAd
 IR::Instr *
 Lowerer::PeepShiftAdd(IR::Instr *instrAdd)
 {
+    Assert(instrAdd->m_opcode == Js::OpCode::Add_I4);
+
     // Peep:
     //    t1 = SHL X, 0|1|2|3    / t1 = MUL X, 1|2|4|8
     //    t2 = ADD t1, Y
