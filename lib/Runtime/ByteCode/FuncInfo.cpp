@@ -13,7 +13,7 @@ FuncInfo::FuncInfo(
     Js::ParseableFunctionInfo* byteCodeFunction)
     : alloc(alloc),
     varRegsCount(0),
-    constRegsCount(2),
+    constRegsCount(InitialConstRegsCount),
     inArgsCount(0),
     innerScopeCount(0),
     currentInnerScopeIndex((uint)-1),
