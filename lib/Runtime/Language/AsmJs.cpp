@@ -965,6 +965,10 @@ varDeclEnd:
         }
 
         ParseNode* objectElement = ParserWrapper::GetUnaryNode(objNode);
+        if (!objectElement)
+        {
+            return m.Fail(node, _u("Return object must not be empty"));
+        }
         while( objectElement )
         {
             ParseNode* member = nullptr;
