@@ -9840,6 +9840,9 @@ Case0:
 
                 if (JavascriptArray::Is(newObj))
                 {
+#if ENABLE_COPYONACCESS_ARRAY
+                    JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
                     newArr = JavascriptArray::FromVar(newObj);
                 }
             }
@@ -9890,6 +9893,9 @@ Case0:
 
                 if (JavascriptArray::Is(newObj))
                 {
+#if ENABLE_COPYONACCESS_ARRAY
+                    JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
                     newArr = JavascriptArray::FromVar(newObj);
                 }
             }
@@ -10000,6 +10006,9 @@ Case0:
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
             if (JavascriptArray::Is(newObj))
             {
+#if ENABLE_COPYONACCESS_ARRAY
+                JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
                 newArr = JavascriptArray::FromVar(newObj);
             }
             else if (TypedArrayBase::Is(newObj))
