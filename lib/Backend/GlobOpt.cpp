@@ -544,10 +544,11 @@ GlobOpt::OptBlock(BasicBlock *block)
     IR::Instr * upwardedInstr = nullptr;
     if (this->func->m_fg->RemoveUnreachableBlock(block, this, &upwardedInstr))
     {
-        if (upwardedInstr)
+        if (upwardedInstr &&
+            upwardedInstr->m_opcode == Js::OpCode::InlineeEnd &&
+            upwardedInstr->m_func->m_hasInlineArgsOpt)
         {
-            bool isInstrRemoved = false;
-            this->OptInstr(upwardedInstr, &isInstrRemoved);
+            RecordInlineeFrameInfo(upwardedInstr);
         }
         GOPT_TRACE(_u("Removing unreachable block #%d\n"), block->GetBlockNum());
         return;
