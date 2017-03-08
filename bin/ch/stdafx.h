@@ -260,3 +260,4 @@ inline JsErrorCode CreatePropertyIdFromString(const char* str, JsPropertyIdRef *
 
 void GetBinaryLocation(char *path, const unsigned size);
 void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename);
+extern "C" HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks);
