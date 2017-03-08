@@ -541,8 +541,14 @@ GlobOpt::ForwardPass()
 void
 GlobOpt::OptBlock(BasicBlock *block)
 {
-    if (this->func->m_fg->RemoveUnreachableBlock(block, this))
+    IR::Instr * upwardedInstr = nullptr;
+    if (this->func->m_fg->RemoveUnreachableBlock(block, this, &upwardedInstr))
     {
+        if (upwardedInstr)
+        {
+            bool isInstrRemoved = false;
+            this->OptInstr(upwardedInstr, &isInstrRemoved);
+        }
         GOPT_TRACE(_u("Removing unreachable block #%d\n"), block->GetBlockNum());
         return;
     }

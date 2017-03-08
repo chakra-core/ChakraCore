@@ -658,8 +658,11 @@ namespace Js
         this->EnsureClearDebugDocument();
         if (this->debugContext != nullptr)
         {
-            this->debugContext->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
-            this->debugContext->GetProbeContainer()->UninstallDebuggerScriptOptionCallback();
+            if(this->debugContext->GetProbeContainer())
+            {
+                this->debugContext->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
+                this->debugContext->GetProbeContainer()->UninstallDebuggerScriptOptionCallback();
+            }
 
             // Guard the closing and deleting of DebugContext as in meantime PDM might
             // call OnBreakFlagChange
