@@ -2760,9 +2760,9 @@ LABEL1:
                 Var args = nullptr;
                 //Create a copy of the arguments and return it.
 
-                CallInfo const *callInfo = walker.GetCallInfo();
+                const CallInfo callInfo = walker.GetCallInfo();
                 args = JavascriptOperators::LoadHeapArguments(
-                    this, callInfo->Count - 1,
+                    this, callInfo.Count - 1,
                     walker.GetJavascriptArgs(),
                     scriptContext->GetLibrary()->GetNull(),
                     scriptContext->GetLibrary()->GetNull(),

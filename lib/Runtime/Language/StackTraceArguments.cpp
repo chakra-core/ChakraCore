@@ -68,9 +68,10 @@ namespace Js {
         types = 0;
         if (!walker.IsCallerGlobalFunction())
         {
-            int64 numberOfArguments = walker.GetCallInfo()->Count;
+            const CallInfo callInfo = walker.GetCallInfo();
+            int64 numberOfArguments = callInfo.Count;
             if (numberOfArguments > 0) numberOfArguments --; // Don't consider 'this'
-            if (walker.GetCallInfo()->Flags & Js::CallFlags_ExtraArg)
+            if (callInfo.Flags & Js::CallFlags_ExtraArg)
             {
                 Assert(numberOfArguments > 0 );
                 // skip the last FrameDisplay argument.
