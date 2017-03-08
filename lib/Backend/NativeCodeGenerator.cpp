@@ -3197,6 +3197,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
     {
         this->scriptContext->GetJitFuncRangeCache()->RemoveFuncRange((void*)address);
     }
+    // OOP JIT will always queue a job
 
     // The foreground allocators may have been used
     if(this->foregroundAllocators && this->foregroundAllocators->emitBufferManager.FreeAllocation(address))
