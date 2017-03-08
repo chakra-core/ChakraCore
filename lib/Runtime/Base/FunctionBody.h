@@ -1951,6 +1951,20 @@ namespace Js
         void SetScopeInfo(ScopeInfo* scopeInfo) {  this->SetAuxPtr(AuxPointerType::ScopeInfo, scopeInfo); }
         PropertyId GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName);
         bool IsTrackedPropertyId(PropertyId pid);
+
+        void SetScopeSlotArraySizes(uint scopeSlotCount, uint scopeSlotCountForParamScope)
+        {
+            this->scopeSlotArraySize = scopeSlotCount;
+            this->paramScopeSlotArraySize = scopeSlotCountForParamScope;
+        }
+
+        PropertyId * GetPropertyIdsForScopeSlotArray() const { return static_cast<Js::PropertyId *>(this->GetAuxPtr(AuxPointerType::PropertyIdsForScopeSlotArray)); }
+        void SetPropertyIdsForScopeSlotArray(Js::PropertyId * propertyIdsForScopeSlotArray, uint scopeSlotCount, uint scopeSlotCountForParamScope = 0)
+        {
+            SetScopeSlotArraySizes(scopeSlotCount, scopeSlotCountForParamScope);
+            this->SetAuxPtr(AuxPointerType::PropertyIdsForScopeSlotArray, propertyIdsForScopeSlotArray);
+        }
+
         Js::PropertyRecordList* GetBoundPropertyRecords() { return this->m_boundPropertyRecords; }
         void SetBoundPropertyRecords(Js::PropertyRecordList* boundPropertyRecords)
         {
@@ -3149,19 +3163,6 @@ namespace Js
                 !PHASE_OFF(Js::PolymorphicInlinePhase, this) && !PHASE_OFF(Js::PolymorphicInlinePhase, topFunctionBody) &&
                 !PHASE_OFF(Js::FixedMethodsPhase, this) && !PHASE_OFF(Js::FixedMethodsPhase, topFunctionBody) &&
                 !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, this) && !PHASE_OFF(Js::PolymorphicInlineFixedMethodsPhase, topFunctionBody);
-        }
-
-        void SetScopeSlotArraySizes(uint scopeSlotCount, uint scopeSlotCountForParamScope)
-        {
-            this->scopeSlotArraySize = scopeSlotCount;
-            this->paramScopeSlotArraySize = scopeSlotCountForParamScope;
-        }
-
-        Js::PropertyId * GetPropertyIdsForScopeSlotArray() const { return static_cast<Js::PropertyId *>(this->GetAuxPtr(AuxPointerType::PropertyIdsForScopeSlotArray)); }
-        void SetPropertyIdsForScopeSlotArray(Js::PropertyId * propertyIdsForScopeSlotArray, uint scopeSlotCount, uint scopeSlotCountForParamScope = 0)
-        {
-            SetScopeSlotArraySizes(scopeSlotCount, scopeSlotCountForParamScope);
-            this->SetAuxPtr(AuxPointerType::PropertyIdsForScopeSlotArray, propertyIdsForScopeSlotArray);
         }
 
         Js::PropertyIdOnRegSlotsContainer * GetPropertyIdOnRegSlotsContainer() const

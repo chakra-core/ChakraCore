@@ -1435,6 +1435,12 @@ namespace Js
 
         other->SetFunctionObjectTypeList(this->GetFunctionObjectTypeList());
 
+        PropertyId * propertyIds = this->GetPropertyIdsForScopeSlotArray();
+        if (propertyIds != nullptr)
+        {
+            other->SetPropertyIdsForScopeSlotArray(propertyIds, this->scopeSlotArraySize, this->paramScopeSlotArraySize);
+        }
+
         CopyDeferParseField(m_sourceIndex);
         CopyDeferParseField(m_cchStartOffset);
         CopyDeferParseField(m_cchLength);
