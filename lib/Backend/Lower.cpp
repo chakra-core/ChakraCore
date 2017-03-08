@@ -12846,13 +12846,13 @@ void Lowerer::LowerBoundCheck(IR::Instr *const instr)
         //     jo   $bailOut
         // $bailOut: (insertBeforeInstr)
         Assert(!offsetOpnd || offsetOpnd->GetValue() == offset);
-        IR::RegOpnd *const addResultOpnd = IR::RegOpnd::New(TyMachReg, func);
+        IR::RegOpnd *const addResultOpnd = IR::RegOpnd::New(TyInt32, func);
         autoReuseAddResultOpnd.Initialize(addResultOpnd, func);
         InsertAdd(
             true,
             addResultOpnd,
             rightOpnd,
-            offsetOpnd ? offsetOpnd->UseWithNewType(TyMachReg, func) : IR::IntConstOpnd::New(offset, TyMachReg, func, true),
+            offsetOpnd ? offsetOpnd->UseWithNewType(TyInt32, func) : IR::IntConstOpnd::New(offset, TyInt32, func, true),
             insertBeforeInstr);
         InsertBranch(LowererMD::MDOverflowBranchOpcode, bailOutLabel, insertBeforeInstr);
 
