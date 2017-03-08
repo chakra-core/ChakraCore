@@ -197,6 +197,5 @@ if (NOT STATIC_LIBRARY)
   target_link_libraries(Chakra.Pal.Singular
     ${PTHREAD}
     dl
-    ${CC_LTO_ENABLED}
     )
 endif()

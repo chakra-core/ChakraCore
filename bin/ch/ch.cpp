@@ -962,7 +962,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 
 #if defined(CHAKRA_STATIC_LIBRARY) && !defined(NDEBUG)
     // handle command line flags
-    OnChakraCoreLoaded();
+    OnChakraCoreLoaded(OnChakraCoreLoadedEntry);
 #endif
 
     if (argInfo.filename == nullptr)
