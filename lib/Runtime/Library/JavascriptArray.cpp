@@ -5282,6 +5282,11 @@ Case0:
                 pArr->SetHasNoMissingValues(false);
             }
 
+            // Above FillFromPrototypes call can change the length of the array. Our segment calculation below will
+            // not work with the stale length. Update the length.
+            // Note : since we are reversing the whole segment below - the functionality is not spec compliant already.
+            length = pArr->length;
+
             SparseArraySegmentBase* seg = pArr->head;
             SparseArraySegmentBase *prevSeg = nullptr;
             SparseArraySegmentBase *nextSeg = nullptr;
