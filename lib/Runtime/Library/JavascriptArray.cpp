@@ -6594,7 +6594,7 @@ Case0:
                 bool useDefaultComparer = typeId == TypeIds_Undefined;
                 if (!useDefaultComparer)
                 {
-                    JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedInternalObject, _u("Array.prototype.sort"));
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_NeedFunction, _u("Array.prototype.sort"));
                 }
             }
         }
