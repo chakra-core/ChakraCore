@@ -4,6 +4,8 @@ project (CHAKRACORE)
 # Keep CMake from caching static/shared library
 # option. Otherwise, CMake fails to update cached
 # references
+
+# todo: create a sub cmake file to take care of _SH uncaching...
 if(SHARED_LIBRARY_SH)
     unset(SHARED_LIBRARY_SH CACHE)
     unset(STATIC_LIBRARY_SH CACHE)
@@ -16,6 +18,11 @@ if(STATIC_LIBRARY_SH)
     unset(STATIC_LIBRARY_SH CACHE)
     unset(SHARED_LIBRARY CACHE)
     set(STATIC_LIBRARY 1)
+endif()
+
+if(LIBS_ONLY_BUILD_SH)
+    unset(LIBS_ONLY_BUILD_SH CACHE)
+    set(CC_LIBS_ONLY_BUILD 1)
 endif()
 
 if(CC_USES_SYSTEM_ARCH_SH)
