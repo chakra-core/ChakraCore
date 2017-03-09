@@ -76,7 +76,6 @@ public:
               IR::Instr *     LoadHeapArgsCached(IR::Instr * instr) { __debugbreak(); return 0; }
               IR::Instr *     LoadInputParamCount(IR::Instr * instr, int adjust = 0, bool needFlags = false) { __debugbreak(); return 0; }
               IR::Instr *     LoadArgumentsFromFrame(IR::Instr * instr) { __debugbreak(); return 0; }
-              IR::Instr *     LoadFuncExpression(IR::Instr * instr) { __debugbreak(); return 0; }
               IR::Instr *     LowerRet(IR::Instr * instr) { __debugbreak(); return 0; }
       static  IR::Instr *     LowerUncondBranch(IR::Instr * instr) { __debugbreak(); return 0; }
       static  IR::Instr *     LowerMultiBranch(IR::Instr * instr) { __debugbreak(); return 0; }
