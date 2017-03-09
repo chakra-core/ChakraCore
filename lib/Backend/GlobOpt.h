@@ -762,6 +762,24 @@ public:
     }
 };
 
+class ConvAttributes : public ExprAttributes
+{
+private:
+    static const uint DstUnsignedIndex = 0;
+    static const uint SrcUnsignedIndex = 1;
+
+public:
+    ConvAttributes(const ExprAttributes &exprAttributes) : ExprAttributes(exprAttributes)
+    {
+    }
+
+    ConvAttributes(const bool isDstUnsigned, const bool isSrcUnsigned)
+    {
+        SetBitAttribute(DstUnsignedIndex, isDstUnsigned);
+        SetBitAttribute(SrcUnsignedIndex, isSrcUnsigned);
+    }
+};
+
 class DstIsIntOrNumberAttributes : public ExprAttributes
 {
 private:

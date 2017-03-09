@@ -276,6 +276,10 @@ GlobOpt::CSEAddInstr(
             return;
         }
         break;
+
+    case Js::OpCode::Conv_Prim:
+        exprAttributes = ConvAttributes(instr->GetDst()->IsUnsigned(), instr->GetSrc1()->IsUnsigned());
+        break;
     }
 
     ValueInfo *valueInfo = NULL;
@@ -506,6 +510,10 @@ GlobOpt::CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSr
                 return false;
             }
             exprAttributes = IntMathExprAttributes(ignoredIntOverflowForCurrentInstr, ignoredNegativeZeroForCurrentInstr);
+            break;
+
+        case Js::OpCode::Conv_Prim:
+            exprAttributes = ConvAttributes(instr->GetDst()->IsUnsigned(), instr->GetSrc1()->IsUnsigned());
             break;
 
         default:
