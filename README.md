@@ -116,7 +116,7 @@ Once built, you have a few options for how you can use ChakraCore:
 
 _A note about using ChakraCore_: ChakraCore is the foundational JavaScript engine, but it does not include the external APIs that make up the modern JavaScript development experience.  For example, DOM APIs like ```document.write()``` are additional APIs that are not available by default and would need to be provided.  For debugging, you may instead want to use ```print()```.
 
-## Contribute
+## [Contribute](CONTRIBUTING.md)
 
 Contributions to ChakraCore are welcome.  Here is how you can contribute to ChakraCore:
 
@@ -126,14 +126,20 @@ Contributions to ChakraCore are welcome.  Here is how you can contribute to Chak
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-Please refer to [Contribution guidelines](CONTRIBUTING.md) for more details.
+Please refer to [Contribution Guidelines](CONTRIBUTING.md) for more details.
 
 ## [License](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt)
 
 Code licensed under the [MIT License](https://github.com/Microsoft/ChakraCore/blob/master/LICENSE.txt).
 
-## Roadmap
-For details on our planned features and future direction please refer to our [roadmap](https://github.com/Microsoft/ChakraCore/wiki/Roadmap).
+## [Roadmap](https://github.com/Microsoft/ChakraCore/wiki/Roadmap)
 
-## Contact us
-For questions about ChakraCore, you can reach us on [Gitter](https://gitter.im/Microsoft/ChakraCore) or open an [issue](https://github.com/Microsoft/ChakraCore/issues/new) and prefix the issue title with [Question]. See [Question](https://github.com/Microsoft/ChakraCore/issues?q=label%3AQuestion) tag for already-opened questions.
+For details on our planned features and future direction please refer to our [Roadmap](https://github.com/Microsoft/ChakraCore/wiki/Roadmap).
+
+## Contact Us
+
+If you have questions about ChakraCore, or you would like to reach out to us about an issue you're having or for development advice as you work on a ChakraCore issue, you can reach us as follows:
+
+* Open an [issue](https://github.com/Microsoft/ChakraCore/issues/new) and prefix the issue title with [Question]. See [Question](https://github.com/Microsoft/ChakraCore/issues?q=label%3AQuestion) tag for already-opened questions.
+* Discuss ChakraCore with the team and the community on our [Gitter Channel](https://gitter.im/Microsoft/ChakraCore).
+* You can also start private messages with individual ChakraCore developers via Gitter.
