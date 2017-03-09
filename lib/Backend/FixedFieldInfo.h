@@ -16,12 +16,12 @@ public:
     bool IsClassCtor() const;
     bool NextHasSameFixedField() const;
     ValueType GetValueType() const;
-    uint GetLocalFuncId() const;
+    Js::LocalFunctionId GetLocalFuncId() const;
     intptr_t GetFuncInfoAddr() const;
     intptr_t GetEnvironmentAddr() const;
     intptr_t GetFieldValue() const;
     JITType * GetType() const;
     FixedFieldIDL * GetRaw();
 private:
-    FixedFieldIDL m_data;
+    Field(FixedFieldIDL) m_data;
 };

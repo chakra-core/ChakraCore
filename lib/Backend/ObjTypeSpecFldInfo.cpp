@@ -114,7 +114,7 @@ Js::TypeId
 ObjTypeSpecFldInfo::GetTypeId(uint i) const
 {
     Assert(IsPoly());
-    return (Js::TypeId)m_data.fixedFieldInfoArray[i].type.typeId;
+    return (Js::TypeId)GetFixedFieldInfoArray()[i].GetType()->GetTypeId();
 }
 
 Js::PropertyId
@@ -144,20 +144,20 @@ ObjTypeSpecFldInfo::GetObjTypeSpecFldId() const
 intptr_t
 ObjTypeSpecFldInfo::GetProtoObject() const
 {
-    return m_data.protoObjectAddr;
+    return (intptr_t)PointerValue(m_data.protoObjectAddr);
 }
 
 intptr_t
 ObjTypeSpecFldInfo::GetFieldValue(uint i) const
 {
     Assert(IsPoly());
-    return m_data.fixedFieldInfoArray[i].fieldValue;
+    return GetFixedFieldInfoArray()[i].GetFieldValue();
 }
 
 intptr_t
 ObjTypeSpecFldInfo::GetPropertyGuardValueAddr() const
 {
-    return m_data.propertyGuardValueAddr;
+    return (intptr_t)PointerValue(m_data.propertyGuardValueAddr);
 }
 
 intptr_t
@@ -165,47 +165,44 @@ ObjTypeSpecFldInfo::GetFieldValueAsFixedDataIfAvailable() const
 {
     Assert(HasFixedValue() && GetFixedFieldCount() == 1);
 
-    return m_data.fixedFieldInfoArray[0].fieldValue;
+    return GetFixedFieldInfoArray()[0].GetFieldValue();
 }
 
 JITTimeConstructorCache *
 ObjTypeSpecFldInfo::GetCtorCache() const
 {
-    return (JITTimeConstructorCache*)m_data.ctorCache;
+    return (JITTimeConstructorCache*)PointerValue(m_data.ctorCache);
 }
 
 Js::EquivalentTypeSet *
 ObjTypeSpecFldInfo::GetEquivalentTypeSet() const
 {
-    return (Js::EquivalentTypeSet *)m_data.typeSet;
+    return (Js::EquivalentTypeSet *)PointerValue(m_data.typeSet);
 }
 
 JITTypeHolder
 ObjTypeSpecFldInfo::GetType() const
 {
     Assert(IsMono());
-    if (!m_data.fixedFieldInfoArray[0].type.exists)
-    {
-        return nullptr;
-    }
-    return JITTypeHolder((JITType *)&m_data.fixedFieldInfoArray[0].type);
+    return GetType(0);
 }
 
 JITTypeHolder
 ObjTypeSpecFldInfo::GetType(uint i) const
 {
-    Assert(IsPoly());
-    if (!m_data.fixedFieldInfoArray[i].type.exists)
+    Assert(i == 0 || IsPoly());
+    JITType * type = GetFixedFieldInfoArray()[i].GetType();
+    if (!type)
     {
         return nullptr;
     }
-    return JITTypeHolder((JITType *)&m_data.fixedFieldInfoArray[i].type);
+    return JITTypeHolder(GetFixedFieldInfoArray()[i].GetType());
 }
 
 JITTypeHolder
 ObjTypeSpecFldInfo::GetInitialType() const
 {
-    return JITTypeHolder((JITType *)m_data.initialType);
+    return JITTypeHolder((JITType *)(PointerValue(m_data.initialType)));
 }
 
 JITTypeHolder
@@ -226,10 +223,10 @@ ObjTypeSpecFldInfo::GetFixedFieldIfAvailableAsFixedFunction()
 {
     Assert(HasFixedValue());
     Assert(IsMono() || (IsPoly() && !DoesntHaveEquivalence()));
-    Assert(m_data.fixedFieldInfoArray);
-    if (m_data.fixedFieldInfoArray[0].funcInfoAddr != 0)
+    Assert(GetFixedFieldInfoArray());
+    if (GetFixedFieldInfoArray()[0].GetFuncInfoAddr() != 0)
     {
-        return (FixedFieldInfo *)&m_data.fixedFieldInfoArray[0];
+        return &GetFixedFieldInfoArray()[0];
     }
     return nullptr;
 }
@@ -239,17 +236,17 @@ ObjTypeSpecFldInfo::GetFixedFieldIfAvailableAsFixedFunction(uint i)
 {
     Assert(HasFixedValue());
     Assert(IsPoly());
-    if (m_data.fixedFieldCount > 0 && m_data.fixedFieldInfoArray[i].funcInfoAddr != 0)
+    if (m_data.fixedFieldCount > 0 && GetFixedFieldInfoArray()[i].GetFuncInfoAddr() != 0)
     {
-        return (FixedFieldInfo *)&m_data.fixedFieldInfoArray[i];
+        return &GetFixedFieldInfoArray()[i];
     }
     return nullptr;
 }
 
 FixedFieldInfo *
-ObjTypeSpecFldInfo::GetFixedFieldInfoArray()
+ObjTypeSpecFldInfo::GetFixedFieldInfoArray() const
 {
-    return (FixedFieldInfo*)m_data.fixedFieldInfoArray;
+    return (FixedFieldInfo*)(PointerValue(m_data.fixedFieldInfoArray));
 }
 
 ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cache, uint cacheId,
@@ -571,7 +568,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::InlineCache* cac
     if (forcePoly)
     {
         uint16 typeCount = 1;
-        JITTypeHolder* types = RecyclerNewArray(recycler, JITTypeHolder, typeCount);
+        RecyclerJITTypeHolder* types = RecyclerNewArray(recycler, RecyclerJITTypeHolder, typeCount);
         types[0].t = RecyclerNew(recycler, JITType);
         JITType::BuildFromJsType(type, types[0].t);
         Js::EquivalentTypeSet* typeSet = RecyclerNew(recycler, Js::EquivalentTypeSet, types, typeCount);
@@ -862,12 +859,13 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
     if (gatherDataForInlining)
     {
         fixedFieldInfoArray = RecyclerNewArrayZ(recycler, FixedFieldInfo, fixedFunctionCount);
-        memcpy(fixedFieldInfoArray, localFixedFieldInfoArray, fixedFunctionCount * sizeof(FixedFieldInfo));
+        CopyArray<FixedFieldInfo, Field(Js::Var)>(
+            fixedFieldInfoArray, fixedFunctionCount, localFixedFieldInfoArray, fixedFunctionCount);
     }
     else
     {
         fixedFieldInfoArray = RecyclerNewArrayZ(recycler, FixedFieldInfo, 1);
-        memcpy(fixedFieldInfoArray, localFixedFieldInfoArray, 1 * sizeof(FixedFieldInfo));
+        CopyArray<FixedFieldInfo, Field(Js::Var)>(fixedFieldInfoArray, 1, localFixedFieldInfoArray, 1);
     }
 
     Js::PropertyId propertyId = functionBody->GetPropertyIdFromCacheId(cacheId);
@@ -885,7 +883,7 @@ ObjTypeSpecFldInfo* ObjTypeSpecFldInfo::CreateFrom(uint id, Js::PolymorphicInlin
     Assert(jitTransferData != nullptr);
     if (areEquivalent || areStressEquivalent)
     {
-        JITTypeHolder* types = RecyclerNewArray(recycler, JITTypeHolder, typeCount);
+        RecyclerJITTypeHolder* types = RecyclerNewArray(recycler, RecyclerJITTypeHolder, typeCount);
         for (uint16 i = 0; i < typeCount; i++)
         {
             jitTransferData->AddJitTimeTypeRef(localTypes[i], recycler);
@@ -971,7 +969,7 @@ void ObjTypeSpecFldInfoArray::EnsureArray(Recycler *const recycler, Js::Function
         return;
     }
 
-    this->infoArray = RecyclerNewArrayZ(recycler, ObjTypeSpecFldInfo*, functionBody->GetInlineCacheCount());
+    this->infoArray = RecyclerNewArrayZ(recycler, Field(ObjTypeSpecFldInfo*), functionBody->GetInlineCacheCount());
 #if DBG
     this->infoCount = functionBody->GetInlineCacheCount();
 #endif

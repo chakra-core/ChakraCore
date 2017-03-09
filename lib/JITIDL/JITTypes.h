@@ -107,23 +107,23 @@ typedef struct TypeIDL
 
 typedef struct EquivalentTypeSetIDL
 {
-    boolean sortedAndDuplicatesRemoved;
+    IDL_Field(boolean) sortedAndDuplicatesRemoved;
     IDL_PAD1(0)
-    unsigned short count;
+    IDL_Field(unsigned short) count;
     X64_PAD4(1)
-    IDL_DEF([size_is(count)]) TypeIDL ** types;
+    IDL_DEF([size_is(count)]) IDL_Field(TypeIDL *)* types;
 } EquivalentTypeSetIDL;
 
 typedef struct FixedFieldIDL
 {
-    boolean nextHasSameFixedField;
-    boolean isClassCtor;
-    unsigned short valueType;
-    unsigned int localFuncId;
-    TypeIDL type;
-    CHAKRA_PTR fieldValue;
-    CHAKRA_PTR funcInfoAddr;
-    CHAKRA_PTR environmentAddr;
+    IDL_Field(boolean) nextHasSameFixedField;
+    IDL_Field(boolean) isClassCtor;
+    IDL_Field(unsigned short) valueType;
+    IDL_Field(unsigned int) localFuncId;
+    IDL_Field(TypeIDL) type;
+    IDL_Field(CHAKRA_WB_PTR) fieldValue;
+    IDL_Field(CHAKRA_WB_PTR) funcInfoAddr;
+    IDL_Field(CHAKRA_WB_PTR) environmentAddr;
 } FixedFieldIDL;
 
 typedef struct JITTimeConstructorCacheIDL
@@ -148,19 +148,19 @@ typedef struct JITTimeConstructorCacheIDL
 
 typedef struct ObjTypeSpecFldIDL
 {
-    unsigned short flags;
-    unsigned short slotIndex;
-    unsigned short fixedFieldCount;
-    unsigned short fixedFieldInfoArraySize; // 1 (when fixedFieldCount is 0) or fixedFieldCount
-    int propertyId;
-    int typeId;
-    unsigned int id;
-    CHAKRA_PTR protoObjectAddr;
-    CHAKRA_PTR propertyGuardValueAddr;
-    EquivalentTypeSetIDL * typeSet;
-    TypeIDL * initialType;
-    JITTimeConstructorCacheIDL * ctorCache;
-    IDL_DEF([size_is(fixedFieldInfoArraySize)]) FixedFieldIDL * fixedFieldInfoArray;
+    IDL_Field(unsigned short) flags;
+    IDL_Field(unsigned short) slotIndex;
+    IDL_Field(unsigned short) fixedFieldCount;
+    IDL_Field(unsigned short) fixedFieldInfoArraySize; // 1 (when fixedFieldCount is 0) or fixedFieldCount
+    IDL_Field(int) propertyId;
+    IDL_Field(int) typeId;
+    IDL_Field(unsigned int) id;
+    IDL_Field(CHAKRA_WB_PTR) protoObjectAddr;
+    IDL_Field(CHAKRA_WB_PTR) propertyGuardValueAddr;
+    IDL_Field(EquivalentTypeSetIDL *) typeSet;
+    IDL_Field(TypeIDL *) initialType;
+    IDL_Field(JITTimeConstructorCacheIDL *) ctorCache;
+    IDL_DEF([size_is(fixedFieldInfoArraySize)]) IDL_Field(FixedFieldIDL *) fixedFieldInfoArray;
 } ObjTypeSpecFldIDL;
 
 typedef struct PinnedTypeRefsIDL

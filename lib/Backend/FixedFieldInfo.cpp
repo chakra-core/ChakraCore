@@ -12,18 +12,18 @@ void
 FixedFieldInfo::PopulateFixedField(_In_opt_ Js::Type * type, _In_opt_ Js::Var var, _Out_ FixedFieldInfo * fixed)
 {
     FixedFieldIDL * rawFF = fixed->GetRaw();
-    rawFF->fieldValue = (intptr_t)var;
+    rawFF->fieldValue = var;
     rawFF->nextHasSameFixedField = false;
     if (var != nullptr && Js::JavascriptFunction::Is(var))
     {
         Js::JavascriptFunction * funcObj = Js::JavascriptFunction::FromVar(var);
         rawFF->valueType = ValueType::FromObject(funcObj).GetRawData();
-        rawFF->funcInfoAddr = (intptr_t)funcObj->GetFunctionInfo();
+        rawFF->funcInfoAddr = (void*)funcObj->GetFunctionInfo();
         rawFF->isClassCtor = funcObj->GetFunctionInfo()->IsClassConstructor();
-        rawFF->localFuncId = (intptr_t)funcObj->GetFunctionInfo()->GetLocalFunctionId();
+        rawFF->localFuncId = funcObj->GetFunctionInfo()->GetLocalFunctionId();
         if (Js::ScriptFunction::Is(var))
         {
-            rawFF->environmentAddr = (intptr_t)Js::ScriptFunction::FromVar(funcObj)->GetEnvironment();
+            rawFF->environmentAddr = (void*)Js::ScriptFunction::FromVar(funcObj)->GetEnvironment();
         }
     }
     if (type != nullptr)
@@ -50,7 +50,7 @@ FixedFieldInfo::NextHasSameFixedField() const
     return m_data.nextHasSameFixedField != FALSE;
 }
 
-uint
+Js::LocalFunctionId
 FixedFieldInfo::GetLocalFuncId() const
 {
     return m_data.localFuncId;
@@ -66,25 +66,32 @@ FixedFieldInfo::GetValueType() const
 intptr_t
 FixedFieldInfo::GetFieldValue() const
 {
-    return m_data.fieldValue;
+    return (intptr_t)PointerValue(m_data.fieldValue);
 }
 
 intptr_t
 FixedFieldInfo::GetFuncInfoAddr() const
 {
-    return m_data.funcInfoAddr;
+    return (intptr_t)PointerValue(m_data.funcInfoAddr);
 }
 
 intptr_t
 FixedFieldInfo::GetEnvironmentAddr() const
 {
-    return m_data.environmentAddr;
+    return (intptr_t)PointerValue(m_data.environmentAddr);
 }
 
 JITType *
 FixedFieldInfo::GetType() const
 {
-    return (JITType*)&m_data.type;
+    if (m_data.type.exists)
+    {
+        return (JITType*)&m_data.type;
+    }
+    else
+    {
+        return nullptr;
+    }
 }
 
 FixedFieldIDL *

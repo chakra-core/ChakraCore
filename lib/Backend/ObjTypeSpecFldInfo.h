@@ -12,24 +12,24 @@ union ObjTypeSpecFldInfoFlags
 {
     struct
     {
-        bool falseReferencePreventionBit : 1;
-        bool isPolymorphic : 1;
-        bool isRootObjectNonConfigurableField : 1;
-        bool isRootObjectNonConfigurableFieldLoad : 1;
-        bool usesAuxSlot : 1;
-        bool isLocal : 1;
-        bool isLoadedFromProto : 1;
-        bool usesAccessor : 1;
-        bool hasFixedValue : 1;
-        bool keepFieldValue : 1;
-        bool isBeingStored : 1;
-        bool isBeingAdded : 1;
-        bool doesntHaveEquivalence : 1;
-        bool isBuiltIn : 1;
+        Field(bool) falseReferencePreventionBit : 1;
+        Field(bool) isPolymorphic : 1;
+        Field(bool) isRootObjectNonConfigurableField : 1;
+        Field(bool) isRootObjectNonConfigurableFieldLoad : 1;
+        Field(bool) usesAuxSlot : 1;
+        Field(bool) isLocal : 1;
+        Field(bool) isLoadedFromProto : 1;
+        Field(bool) usesAccessor : 1;
+        Field(bool) hasFixedValue : 1;
+        Field(bool) keepFieldValue : 1;
+        Field(bool) isBeingStored : 1;
+        Field(bool) isBeingAdded : 1;
+        Field(bool) doesntHaveEquivalence : 1;
+        Field(bool) isBuiltIn : 1;
     };
     struct
     {
-        uint16 flags;
+        Field(uint16) flags;
     };
     ObjTypeSpecFldInfoFlags(uint16 flags) : flags(flags) { }
 };
@@ -46,8 +46,8 @@ public:
         m_data.flags = InitialObjTypeSpecFldInfoFlagValue;
         m_data.slotIndex = Js::Constants::NoSlot;
         m_data.propertyId = Js::Constants::NoProperty;
-        m_data.protoObjectAddr = 0;
-        m_data.propertyGuardValueAddr = 0;
+        m_data.protoObjectAddr = nullptr;
+        m_data.propertyGuardValueAddr = nullptr;
         m_data.ctorCache = nullptr;
         m_data.fixedFieldCount = 0;
         m_data.fixedFieldInfoArraySize = 0;
@@ -78,8 +78,8 @@ public:
         m_data.initialType = initialType->GetData();
         m_data.slotIndex = slotIndex;
         m_data.propertyId = propertyId;
-        m_data.protoObjectAddr = (intptr_t)protoObject;
-        m_data.propertyGuardValueAddr = (intptr_t)propertyGuard->GetAddressOfValue();
+        m_data.protoObjectAddr = protoObject;
+        m_data.propertyGuardValueAddr = (void*)propertyGuard->GetAddressOfValue();
         m_data.ctorCache = ctorCache->GetData();
         m_data.fixedFieldCount = 1;
         m_data.fixedFieldInfoArraySize = 1;
@@ -110,8 +110,8 @@ public:
         m_data.initialType = initialType->GetData();
         m_data.slotIndex = slotIndex;
         m_data.propertyId = propertyId;
-        m_data.protoObjectAddr = (intptr_t)protoObject;
-        m_data.propertyGuardValueAddr = (intptr_t)propertyGuard->GetAddressOfValue();
+        m_data.protoObjectAddr = protoObject;
+        m_data.propertyGuardValueAddr = (void*)propertyGuard->GetAddressOfValue();
         m_data.ctorCache = ctorCache->GetData();
         m_data.fixedFieldCount = fixedFieldCount;
         m_data.fixedFieldInfoArraySize = fixedFieldCount > 0 ? fixedFieldCount : 1;
@@ -143,7 +143,7 @@ public:
     void SetFieldValue(Js::Var value)
     {
         Assert(IsMono() || (IsPoly() && !DoesntHaveEquivalence()));
-        m_data.fixedFieldInfoArray[0].fieldValue = (intptr_t)value;
+        m_data.fixedFieldInfoArray[0].fieldValue = value;
     }
 
     bool IsBuiltin() const
@@ -192,7 +192,7 @@ public:
 
     FixedFieldInfo * GetFixedFieldIfAvailableAsFixedFunction();
     FixedFieldInfo * GetFixedFieldIfAvailableAsFixedFunction(uint i);
-    FixedFieldInfo * GetFixedFieldInfoArray();
+    FixedFieldInfo * GetFixedFieldInfoArray() const;
 
     void SetIsBeingStored(bool value); // REVIEW: this doesn't flow out of JIT, should it?
 
@@ -211,15 +211,15 @@ private:
     ObjTypeSpecFldInfoFlags GetFlags() const;
     ObjTypeSpecFldInfoFlags * GetFlagsPtr();
 
-    ObjTypeSpecFldIDL m_data;
+    Field(ObjTypeSpecFldIDL) m_data;
 };
 
 class ObjTypeSpecFldInfoArray
 {
 private:
-    ObjTypeSpecFldInfo** infoArray;
+    Field(ObjTypeSpecFldInfo*)* infoArray;
 #if DBG
-    uint infoCount;
+    Field(uint) infoCount;
 #endif
 public:
     ObjTypeSpecFldInfoArray();
@@ -230,7 +230,7 @@ private:
 public:
     ObjTypeSpecFldInfo* GetInfo(Js::FunctionBody *const functionBody, const uint index) const;
     ObjTypeSpecFldInfo* GetInfo(const uint index) const;
-    ObjTypeSpecFldInfo** GetInfoArray() const { return infoArray; }
+    Field(ObjTypeSpecFldInfo*)* GetInfoArray() const { return infoArray; }
 
     void SetInfo(Recycler *const recycler, Js::FunctionBody *const functionBody,
         const uint index, ObjTypeSpecFldInfo* info);
