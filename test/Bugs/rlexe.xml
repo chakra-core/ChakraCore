@@ -376,7 +376,7 @@
   <test>
     <default>
       <files>Math.abs_TypeSpecOnIntMin.js</files>
-      <compile-flags>-loopinterpretcount:1 -bgjit- -maxsimplejitruncount:1 -maxinterpretcount:1 -oopjit-</compile-flags>
+      <compile-flags>-lic:1 -bgjit- -maxsimplejitruncount:1 -maxinterpretcount:1 -oopjit-</compile-flags>
     </default>
   </test>
   <test>
@@ -390,6 +390,12 @@
     <default>
       <files>MissToGenerateStStSlotForJITLoopBody.js</files>
       <compile-flags>-mic:1 -off:simplejit -oopjit- -bgjit-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>MismatchTypeForMonoTypeCheck.js</files>
+      <compile-flags>-lic:1 -off:simplejit -force:fixdataprops -oopjit- -bgjit-</compile-flags>
     </default>
   </test>
 </regress-exe>
