@@ -5198,6 +5198,19 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
                         paramScope->SetCannotMergeWithBodyScope();
                     }
                 }
+                if (paramScope->GetCanMergeWithBodyScope() && !fDeclaration && pnodeFnc->sxFnc.pnodeName != nullptr)
+                {
+                    Symbol* funcSym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
+                    if (funcSym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
+                    {
+                        // This is a function expression with name captured in the param scope. In non-eval, non-split cases the function
+                        // name symbol is added to the body scope to make it accessible in the body. But if there is a function or var
+                        // declaration with the same name in the body then adding to the body will fail. So in this case we have to add
+                        // the name symbol to the param scope by splitting it.
+                        paramScope->SetCannotMergeWithBodyScope();
+                    }
+                }
+
             }
         }
 
