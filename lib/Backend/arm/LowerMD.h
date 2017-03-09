@@ -93,7 +93,7 @@ public:
             IR::Instr *     LowerLdSuper(IR::Instr * instr, IR::JnHelperMethod helperOpCode);
             IR::Instr *     GenerateSmIntPairTest(IR::Instr * instrInsert, IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::LabelInstr * labelFail);
 #if DBG
-    static  void            GenerateDebugBreak( IR::Instr * insertInstr );
+    static  void            GenerateDebugBreak(IR::Instr * insertInstr);
 #endif
             void            GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * instrInsert, IR::LabelInstr * labelHelper = nullptr);
             void            GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::Instr * insertInstr, IR::LabelInstr * labelTarget);
