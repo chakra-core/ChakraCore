@@ -2876,7 +2876,24 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::StatementBoundary:
             // This instruction is merely to help convey source info through the IR
             // and eventually generate the nativeOffset maps.
-            break;
+#if DBG_DUMP && DBG
+            // If we have a JITStatementBreakpoint, then we should break on this statement
+            {
+                uint32 statementIndex = instr->AsPragmaInstr()->m_statementIndex;
+                if (Js::Configuration::Global.flags.StatementDebugBreak.Contains(instr->m_func->GetSourceContextId(), instr->m_func->GetLocalFunctionId(), statementIndex))
+                {
+                    IR::Instr* tempinstr = instr;
+                    Assert(tempinstr != nullptr);
+                    // go past any labels, and then add a debug breakpoint
+                    while (tempinstr->m_next != nullptr && tempinstr->m_next->m_opcode == Js::OpCode::Label)
+                    {
+                        tempinstr = tempinstr->m_next;
+                    }
+                    this->m_lowererMD.GenerateDebugBreak(tempinstr);
+                }
+            }
+#endif
+        break;
 
         case Js::OpCode::BailOnNotPolymorphicInlinee:
             instrPrev = LowerBailOnNotPolymorphicInlinee(instr);

@@ -83,6 +83,9 @@ public:
               IR::Instr *     LoadFunctionObjectOpnd(IR::Instr *instr, IR::Opnd *&functionObjOpnd) { __debugbreak(); return 0; }
               IR::Instr *     LowerLdSuper(IR::Instr * instr, IR::JnHelperMethod helperOpCode) { __debugbreak(); return 0; }
               IR::Instr *     GenerateSmIntPairTest(IR::Instr * instrInsert, IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::LabelInstr * labelFail) { __debugbreak(); return 0; }
+#if DBG
+      static  void            GenerateDebugBreak(IR::Instr * insertInstr) { __debugbreak(); return 0; };
+#endif
               void            GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * instrInsert, IR::LabelInstr * labelHelper = NULL) { __debugbreak(); }
               void            GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::Instr * insertInstr, IR::LabelInstr * labelTarget) { __debugbreak(); }
               bool            GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false) { __debugbreak(); return false; }

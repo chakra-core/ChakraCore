@@ -434,6 +434,35 @@ CmdLineArgsParser::ParseNumberPairSet(Js::NumberPairSet * numberPairSet)
     }
 }
 
+void
+CmdLineArgsParser::ParseNumberTrioSet(Js::NumberTrioSet * numberTrioSet)
+{
+    while (true)
+    {
+        int line = ParseInteger();
+        int col = -1;
+        int stmt = -1;
+        if (CurChar() == ',')
+        {
+            NextChar();
+            col = ParseInteger();
+        }
+        if (CurChar() == ',')
+        {
+            NextChar();
+            stmt = ParseInteger();
+        }
+
+        numberTrioSet->Add(line, col, stmt);
+
+        if (CurChar() != ';')
+        {
+            break;
+        }
+        NextChar();
+    }
+}
+
 bool
 CmdLineArgsParser::ParseBoolean()
 {
@@ -556,6 +585,10 @@ CmdLineArgsParser::ParseFlag()
 
             case FlagNumberPairSet:
                 ParseNumberPairSet(this->flagTable.GetAsNumberPairSet(flag));
+                break;
+
+            case FlagNumberTrioSet:
+                ParseNumberTrioSet(this->flagTable.GetAsNumberTrioSet(flag));
                 break;
 
             case FlagNumberRange:
