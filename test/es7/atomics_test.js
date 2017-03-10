@@ -583,6 +583,20 @@ var tests = [{
             assert.areEqual(ret, "timed-out", "Negative infinity will be treated as 0 and so this will time-out");
 		}
 	},
+    {
+		name : "Atomics on virtual typedarray",
+		body : function () {
+            [2**15, 2**20, 2**25].forEach(function(size) {
+                IntViews.forEach(function(item) {
+                    var view = new item.ctor(new SharedArrayBuffer(size));
+                    Atomics.add(view, 0, 10);
+                    Atomics.store(view, 2**10, 20);
+                    assert.areEqual(Atomics.load(view, 0), 10);
+                    assert.areEqual(Atomics.load(view, 2**10), 20);
+                });
+            });
+		}
+	},
 ];
 
 testRunner.runTests(tests, {
