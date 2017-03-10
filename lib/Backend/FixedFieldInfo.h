@@ -8,7 +8,7 @@
 class FixedFieldInfo
 {
 public:
-    FixedFieldInfo() {};
+    FixedFieldInfo() : m_data() { }
     static void PopulateFixedField(_In_opt_ Js::Type * type, _In_opt_ Js::Var var, _Out_ FixedFieldInfo * fixed);
 
     void SetNextHasSameFixedField();
