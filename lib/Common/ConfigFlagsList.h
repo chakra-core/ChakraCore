@@ -914,6 +914,8 @@ FLAGNR(Boolean, CrashOnException      , "Removes the top-level exception handler
 FLAGNR(Boolean, Debug                 , "Disable phases (layout, security code, etc) which makes JIT output harder to debug", false)
 FLAGNR(NumberSet,  DebugBreak         , "Index of the function where you want to break", )
 FLAGNR(NumberTrioSet,  StatementDebugBreak, "Index of the statement where you want to break", )
+FLAGNR(Phases,  DebugBreakOnPhaseBegin, "Break into debugger at the beginning of given phase for listed function", )
+
 FLAGNR(Boolean, DebugWindow           , "Send console output to debugger window", false)
 FLAGNR(Boolean, DeferNested           , "Enable deferred parsing of nested function", DEFAULT_CONFIG_DeferNested)
 FLAGNR(Boolean, DeferTopLevelTillFirstCall      , "Enable tracking of deferred top level functions in a script file, until the first function of the script context is parsed.", DEFAULT_CONFIG_DeferTopLevelTillFirstCall)
