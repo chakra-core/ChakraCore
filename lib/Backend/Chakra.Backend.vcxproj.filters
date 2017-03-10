@@ -117,7 +117,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsJITInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITRuntimeInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITTimeInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITObjTypeSpecFldInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeConstructorCache.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCache.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCacheInfo.cpp" />
@@ -125,6 +124,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ServerScriptContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ServerThreadContext.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionCodeGenJitTimeData.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FixedFieldInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ObjTypeSpecFldInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFixedField.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PageAllocatorPool.cpp" />
   </ItemGroup>
@@ -326,7 +328,6 @@
     <ClInclude Include="AsmJsJITInfo.h" />
     <ClInclude Include="FunctionJITTimeInfo.h" />
     <ClInclude Include="FunctionJITRuntimeInfo.h" />
-    <ClInclude Include="JITObjTypeSpecFldInfo.h" />
     <ClInclude Include="JITTimeConstructorCache.h" />
     <ClInclude Include="JITType.h" />
     <ClInclude Include="JITTypeHandler.h" />
@@ -334,9 +335,11 @@
     <ClInclude Include="JITTimePolymorphicInlineCache.h" />
     <ClInclude Include="ServerThreadContext.h" />
     <ClInclude Include="ServerScriptContext.h" />
-    <ClInclude Include="JITTimeFixedField.h" />
     <ClInclude Include="ExternalLowerer.h" />
     <ClInclude Include="JITRecyclableObject.h" />
+    <ClInclude Include="FunctionCodeGenJitTimeData.h" />
+    <ClInclude Include="FixedFieldInfo.h" />
+    <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="CRC.h" />
     <ClInclude Include="PageAllocatorPool.h" />
   </ItemGroup>

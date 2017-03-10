@@ -566,7 +566,7 @@ void Inline::FillInlineesDataArrayUsingFixedMethods(
     const FunctionJITTimeInfo* inlineeJitTimeData,
         __inout_ecount(inlineesDataArrayLength) const FunctionJITTimeInfo ** inlineesDataArray,
         uint inlineesDataArrayLength,
-        __inout_ecount(cachedFixedInlineeCount) JITTimeFixedField* fixedFieldInfoArray,
+        __inout_ecount(cachedFixedInlineeCount) FixedFieldInfo* fixedFieldInfoArray,
         uint16 cachedFixedInlineeCount
         )
 {
@@ -730,7 +730,7 @@ Inline::InlinePolymorphicFunctionUsingFixedMethods(IR::Instr *callInstr, const F
         return InlinePolymorphicFunction(callInstr, inlinerData, symCallerThis, profileId, pIsInlined, recursiveInlineDepth, true);
     }
 
-    JITTimeFixedField* fixedFunctionInfoArray = methodPropertyOpnd->GetFixedFieldInfoArray();
+    FixedFieldInfo* fixedFunctionInfoArray = methodPropertyOpnd->GetFixedFieldInfoArray();
 
     // It might so be the case that two objects of different types call the same function (body), for e.g., if they share the prototype on which the function is defined.
     uint uniqueFixedFunctionCount = HandleDifferentTypesSameFunction(fixedFunctionInfoArray, cachedFixedInlineeCount);
@@ -1162,7 +1162,7 @@ void Inline::InsertOneInlinee(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd
 }
 
 uint
-Inline::HandleDifferentTypesSameFunction(__inout_ecount(cachedFixedInlineeCount) JITTimeFixedField* fixedFunctionInfoArray, uint16 cachedFixedInlineeCount)
+Inline::HandleDifferentTypesSameFunction(__inout_ecount(cachedFixedInlineeCount) FixedFieldInfo* fixedFunctionInfoArray, uint16 cachedFixedInlineeCount)
 {
     uint16 uniqueCount = cachedFixedInlineeCount;
     uint16 swapIndex;
@@ -1173,7 +1173,7 @@ Inline::HandleDifferentTypesSameFunction(__inout_ecount(cachedFixedInlineeCount)
         {
             if (fixedFunctionInfoArray[i].GetFieldValue() == fixedFunctionInfoArray[j].GetFieldValue())
             {
-                JITTimeFixedField tmpInfo = fixedFunctionInfoArray[j];
+                FixedFieldInfo tmpInfo = fixedFunctionInfoArray[j];
                 fixedFunctionInfoArray[j] = fixedFunctionInfoArray[swapIndex];
                 fixedFunctionInfoArray[swapIndex] = tmpInfo;
                 fixedFunctionInfoArray[swapIndex - 1].SetNextHasSameFixedField();
@@ -1479,7 +1479,7 @@ Inline::TryOptimizeCallInstrWithFixedMethod(IR::Instr *callInstr, const Function
         return false;
     }
 
-    JITTimeFixedField * fixedField = nullptr;
+    FixedFieldInfo * fixedField = nullptr;
     if (!isPolymorphic)
     {
         fixedField = methodPropertyOpnd->HasFixedValue() ? methodPropertyOpnd->GetFixedFunction() : nullptr;
@@ -3993,7 +3993,7 @@ Inline::SplitConstructorCallCommon(
     // into a call to one of these helpers.
     if (skipNewScObj)
     {
-        JITTimeFixedField* ctor = newObjInstr->GetFixedFunction();
+        FixedFieldInfo* ctor = newObjInstr->GetFixedFunction();
         intptr_t ctorInfo = ctor->GetFuncInfoAddr();
         if ((ctorInfo == topFunc->GetThreadContextInfo()->GetJavascriptObjectNewInstanceAddr() ||
             ctorInfo == topFunc->GetThreadContextInfo()->GetJavascriptArrayNewInstanceAddr()) &&
@@ -4884,7 +4884,7 @@ Inline::MapFormals(Func *inlinee,
                 if (funcObjOpnd->IsAddrOpnd())
                 {
                     instr->m_opcode = Js::OpCode::Ld_A;
-                    instr->SetSrc1(IR::AddrOpnd::New(((JITTimeFixedField*)funcObjOpnd->AsAddrOpnd()->m_metadata)->GetEnvironmentAddr(),
+                    instr->SetSrc1(IR::AddrOpnd::New(((FixedFieldInfo*)funcObjOpnd->AsAddrOpnd()->m_metadata)->GetEnvironmentAddr(),
                         IR::AddrOpndKindDynamicFrameDisplay, instr->m_func));
                 }
                 else
@@ -5344,7 +5344,7 @@ Inline::GetInlineeHasArgumentObject(Func * inlinee)
                         {
                             Assert(builtInOpnd->AsAddrOpnd()->m_isFunction);
 
-                            Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((JITTimeFixedField*)builtInOpnd->AsAddrOpnd()->m_metadata)->GetFuncInfoAddr(), this->topFunc->GetThreadContextInfo());
+                            Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((FixedFieldInfo*)builtInOpnd->AsAddrOpnd()->m_metadata)->GetFuncInfoAddr(), this->topFunc->GetThreadContextInfo());
                             if (builtinFunction == Js::BuiltinFunction::JavascriptFunction_Apply)
                             {
                                 this->SetIsInInlinedApplyCall(true);

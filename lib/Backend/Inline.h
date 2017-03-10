@@ -111,7 +111,7 @@ private:
         const FunctionJITTimeInfo* inlineeJitTimeData,
         __inout_ecount(inlineesDataArrayLength) const FunctionJITTimeInfo **inlineesDataArray,
         uint inlineesDataArrayLength,
-        __inout_ecount(cachedFixedInlineeCount) JITTimeFixedField* fixedFunctionInfoArray,
+        __inout_ecount(cachedFixedInlineeCount) FixedFieldInfo* fixedFunctionInfoArray,
         uint16 cachedFixedInlineeCount
         );
 
@@ -122,7 +122,7 @@ private:
     void InsertOneInlinee(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd,
         IR::Opnd* methodOpnd, const FunctionJITTimeInfo * inlineeJITData, const FunctionJITRuntimeInfo * inlineeRuntimeData, IR::LabelInstr* doneLabel, const StackSym* symCallerThis, bool fixedFunctionSafeThis, uint recursiveInlineDepth);
     void CompletePolymorphicInlining(IR::Instr* callInstr, IR::RegOpnd* returnValueOpnd, IR::LabelInstr* doneLabel, IR::Instr* dispatchStartLabel, IR::Instr* ldMethodFldInstr, IR::BailOutKind bailoutKind);
-    uint HandleDifferentTypesSameFunction(__inout_ecount(cachedFixedInlineeCount) JITTimeFixedField* fixedFunctionInfoArray, uint16 cachedFixedInlineeCount);
+    uint HandleDifferentTypesSameFunction(__inout_ecount(cachedFixedInlineeCount) FixedFieldInfo* fixedFunctionInfoArray, uint16 cachedFixedInlineeCount);
     void SetInlineeFrameStartSym(Func *inlinee, uint actualCount);
     void CloneCallSequence(IR::Instr* callInstr, IR::Instr* clonedCallInstr);
 

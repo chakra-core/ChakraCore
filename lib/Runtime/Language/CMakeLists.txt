@@ -19,7 +19,6 @@ set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     DynamicProfileMutator.cpp
     DynamicProfileStorage.cpp
     ExecutionMode.cpp
-    FunctionCodeGenJitTimeData.cpp
     FunctionCodeGenRuntimeData.cpp
     InlineCache.cpp
     InterpreterStackFrame.cpp
@@ -32,9 +31,7 @@ set(CRL_SOURCE_FILES ${CRL_SOURCE_FILES}
     JavascriptStackWalker.cpp
     ModuleNamespace.cpp
     ModuleNamespaceEnumerator.cpp
-    ObjTypeSpecFldInfo.cpp
     ProfilingHelpers.cpp
-    #ReadOnlyDynamicProfileInfo.cpp
     RuntimeLanguagePch.cpp
     SimdBool16x8Operation.cpp
     SimdBool16x8OperationX86X64.cpp

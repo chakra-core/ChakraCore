@@ -557,7 +557,7 @@ public:
 
 private:
     static PropertySymOpnd * New(PropertySym *propertySym, IRType type, Func *func);
-    void Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, JITTimePolymorphicInlineCache * runtimePolymorphicInlineCache, JITObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil);
+    void Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, JITTimePolymorphicInlineCache * runtimePolymorphicInlineCache, ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil);
 #if DBG
     virtual bool      DbgIsPropertySymOpnd() const override { return true; }
 #endif
@@ -566,7 +566,7 @@ public:
     intptr_t m_runtimeInlineCache;
     JITTimePolymorphicInlineCache* m_runtimePolymorphicInlineCache;
 private:
-    JITObjTypeSpecFldInfo* objTypeSpecFldInfo;
+    ObjTypeSpecFldInfo* objTypeSpecFldInfo;
 public:
     JITTypeHolder finalType;
     JITTypeHolder monoGuardType;
@@ -626,7 +626,7 @@ public:
         return this->objTypeSpecFldInfo != nullptr;
     }
 
-    void SetObjTypeSpecFldInfo(JITObjTypeSpecFldInfo *const objTypeSpecFldInfo)
+    void SetObjTypeSpecFldInfo(ObjTypeSpecFldInfo *const objTypeSpecFldInfo)
     {
         this->objTypeSpecFldInfo = objTypeSpecFldInfo;
 
@@ -661,7 +661,7 @@ public:
         return false;
     }
 
-    JITObjTypeSpecFldInfo* GetObjTypeSpecInfo() const
+    ObjTypeSpecFldInfo* GetObjTypeSpecInfo() const
     {
         return this->objTypeSpecFldInfo;
     }
@@ -811,13 +811,13 @@ public:
         return this->objTypeSpecFldInfo->GetProtoObject();
     }
 
-    JITTimeFixedField * GetFixedFunction() const
+    FixedFieldInfo * GetFixedFunction() const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFixedFieldIfAvailableAsFixedFunction();
     }
 
-    JITTimeFixedField * GetFixedFunction(uint i) const
+    FixedFieldInfo * GetFixedFunction(uint i) const
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFixedFieldIfAvailableAsFixedFunction(i);
@@ -835,7 +835,7 @@ public:
         return this->objTypeSpecFldInfo->GetFieldValue(i);
     }
 
-    JITTimeFixedField * GetFixedFieldInfoArray()
+    FixedFieldInfo * GetFixedFieldInfoArray()
     {
         Assert(HasObjTypeSpecFldInfo());
         return this->objTypeSpecFldInfo->GetFixedFieldInfoArray();

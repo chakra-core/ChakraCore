@@ -514,7 +514,7 @@ public:
 
 struct ObjectTypePropertyEntry
 {
-    JITObjTypeSpecFldInfo* fldInfo;
+    ObjTypeSpecFldInfo* fldInfo;
     uint blockNumber;
 };
 

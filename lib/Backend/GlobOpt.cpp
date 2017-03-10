@@ -4188,7 +4188,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                 {
                     Assert(builtinOpnd->AsAddrOpnd()->m_isFunction);
 
-                    Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((JITTimeFixedField*)builtinOpnd->AsAddrOpnd()->m_metadata)->GetFuncInfoAddr(), func->GetThreadContextInfo());
+                    Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((FixedFieldInfo*)builtinOpnd->AsAddrOpnd()->m_metadata)->GetFuncInfoAddr(), func->GetThreadContextInfo());
                     if (builtinFunction == Js::BuiltinFunction::JavascriptFunction_Apply)
                     {
                         ClearArgumentsSym(src1->AsRegOpnd());

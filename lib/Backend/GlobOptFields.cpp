@@ -2117,7 +2117,7 @@ GlobOpt::PreparePropertySymOpndForTypeCheckSeq(IR::PropertySymOpnd * propertySym
         return false;
     }
 
-    JITObjTypeSpecFldInfo* info = propertySymOpnd->GetObjTypeSpecInfo();
+    ObjTypeSpecFldInfo* info = propertySymOpnd->GetObjTypeSpecInfo();
 
     if (info->UsesAccessor() || info->IsRootObjectNonConfigurableFieldLoad())
     {

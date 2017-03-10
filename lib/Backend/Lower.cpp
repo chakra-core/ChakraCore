@@ -4810,7 +4810,7 @@ Lowerer::LowerNewScObject(IR::Instr *newObjInstr, bool callCtor, bool hasArgs, b
 
         // If we have no arguments (i.e. the argument chain is empty), we can recognize a couple of common special cases, such
         // as new Object() or new Array(), for which we have optimized helpers.
-        JITTimeFixedField* ctor = newObjInstr->GetFixedFunction();
+        FixedFieldInfo* ctor = newObjInstr->GetFixedFunction();
         intptr_t ctorInfo = ctor->GetFuncInfoAddr();
         if (!hasArgs && (ctorInfo == m_func->GetThreadContextInfo()->GetJavascriptObjectNewInstanceAddr() || ctorInfo == m_func->GetThreadContextInfo()->GetJavascriptArrayNewInstanceAddr()))
         {
@@ -5167,7 +5167,7 @@ bool Lowerer::TryLowerNewScObjectWithFixedCtorCache(IR::Instr* newObjInstr, IR::
 
     // If we are calling new on a class constructor, the contract is that we pass new.target as the 'this' argument.
     // function is the constructor on which we called new - which is new.target.
-    JITTimeFixedField* ctor = newObjInstr->GetFixedFunction();
+    FixedFieldInfo* ctor = newObjInstr->GetFixedFunction();
 
     if (ctor->IsClassCtor())
     {
@@ -7705,7 +7705,7 @@ Lowerer::CreateEquivalentTypeGuardAndLinkToGuardedProperties(JITTypeHolder type,
 
     FOREACH_BITSET_IN_SPARSEBV(propOpId, propOps)
     {
-        JITObjTypeSpecFldInfo* propOpInfo = this->m_func->GetGlobalObjTypeSpecFldInfo(propOpId);
+        ObjTypeSpecFldInfo* propOpInfo = this->m_func->GetGlobalObjTypeSpecFldInfo(propOpId);
         Js::PropertyId propertyId = propOpInfo->GetPropertyId();
         Js::PropertyIndex propOpIndex = Js::Constants::NoSlot;
         bool hasFixedValue = propOpInfo->HasFixedValue();
@@ -7821,7 +7821,7 @@ Lowerer::LinkGuardToGuardedProperties(const BVSparse<JitArenaAllocator>* guarded
     // For every entry in the bit vector, register the guard for the corresponding property ID.
     FOREACH_BITSET_IN_SPARSEBV(propertyOpId, guardedPropOps)
     {
-        JITObjTypeSpecFldInfo* propertyOpInfo = this->m_func->GetGlobalObjTypeSpecFldInfo(propertyOpId);
+        ObjTypeSpecFldInfo* propertyOpInfo = this->m_func->GetGlobalObjTypeSpecFldInfo(propertyOpId);
         Js::PropertyId propertyId = propertyOpInfo->GetPropertyId();
 
         // It's okay for an equivalent type check to be registered as a guard against a property becoming read-only. This transpires if, there is

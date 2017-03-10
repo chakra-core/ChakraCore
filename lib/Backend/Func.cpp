@@ -243,12 +243,12 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 
     if (this->IsTopFunc())
     {
-        m_globalObjTypeSpecFldInfoArray = JitAnewArrayZ(this->m_alloc, JITObjTypeSpecFldInfo*, GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
+        m_globalObjTypeSpecFldInfoArray = JitAnewArrayZ(this->m_alloc, ObjTypeSpecFldInfo*, GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
     }
 
     for (uint i = 0; i < GetJITFunctionBody()->GetInlineCacheCount(); ++i)
     {
-        JITObjTypeSpecFldInfo * info = GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(i);
+        ObjTypeSpecFldInfo * info = GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(i);
         if (info != nullptr)
         {
             Assert(info->GetObjTypeSpecFldId() < GetTopFunc()->GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
@@ -1335,7 +1335,7 @@ Func::GetPolyCacheUtil(const uint index) const
     return this->m_polymorphicInlineCacheInfo->GetUtil(index);
 }
 
-JITObjTypeSpecFldInfo*
+ObjTypeSpecFldInfo*
 Func::GetObjTypeSpecFldInfo(const uint index) const
 {
     if (GetJITFunctionBody()->GetInlineCacheCount() == 0)
@@ -1347,7 +1347,7 @@ Func::GetObjTypeSpecFldInfo(const uint index) const
     return GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(index);
 }
 
-JITObjTypeSpecFldInfo*
+ObjTypeSpecFldInfo*
 Func::GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const
 {
     Assert(propertyInfoId < GetTopFunc()->GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());

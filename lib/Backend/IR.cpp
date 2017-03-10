@@ -3379,10 +3379,10 @@ bool Instr::AreAllOpndInt64() const
     return isDstInt64 && isSrc1Int64 && isSrc2Int64;
 }
 
-JITTimeFixedField* Instr::GetFixedFunction() const
+FixedFieldInfo* Instr::GetFixedFunction() const
 {
     Assert(HasFixedFunctionAddressTarget());
-    JITTimeFixedField* function = (JITTimeFixedField*)this->m_src1->AsAddrOpnd()->m_metadata;
+    FixedFieldInfo* function = (FixedFieldInfo*)this->m_src1->AsAddrOpnd()->m_metadata;
     return function;
 }
 
