@@ -770,6 +770,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             case IR::JnHelperMethod::HelperString_Replace:
                 GenerateFastInlineStringReplace(instr);
                 break;
+            case IR::JnHelperMethod::HelperObject_HasOwnProperty:
+                this->GenerateFastInlineHasOwnProperty(instr);
+                break;
             }
             instrPrev = LowerCallDirect(instr);
             break;
@@ -17929,6 +17932,70 @@ Lowerer::GenerateFastInlineArrayPop(IR::Instr * instr)
     }
 
     GenerateHelperToArrayPopFastPath(instr, doneLabel, bailOutLabelHelper);
+}
+
+void
+Lowerer::GenerateFastInlineHasOwnProperty(IR::Instr * instr)
+{
+    Assert(instr->m_opcode == Js::OpCode::CallDirect);
+
+    //CallDirect src2
+    IR::Opnd * linkOpnd = instr->GetSrc2();
+    //ArgOut_A_InlineSpecialized
+    IR::Instr * tmpInstr = linkOpnd->AsSymOpnd()->m_sym->AsStackSym()->m_instrDef;
+
+    IR::Opnd * argsOpnd[2] = { 0 };
+    bool result = instr->FetchOperands(argsOpnd, 2);
+    Assert(result);
+    AnalysisAssert(argsOpnd[0] && argsOpnd[1]);
+
+    // fast path case where hasOwnProperty is being called using a property name loaded via a for-in loop
+    if (!argsOpnd[1]->GetValueType().IsString()
+        || argsOpnd[0]->GetValueType().IsNotObject()
+        || !argsOpnd[0]->IsRegOpnd()
+        || !argsOpnd[1]->IsRegOpnd()
+        || !argsOpnd[1]->AsRegOpnd()->m_sym->m_isSingleDef
+        || (argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->m_opcode != Js::OpCode::BrOnEmpty
+            && argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->m_opcode != Js::OpCode::BrOnNotEmpty))
+    {
+        return;
+    }
+
+    IR::LabelInstr *doneLabel = InsertLabel(false, instr->m_next);
+    IR::LabelInstr *labelHelper = InsertLabel(true, instr);
+    IR::Instr * insertInstr = labelHelper;
+    IR::RegOpnd * thisObj = argsOpnd[0]->AsRegOpnd();
+    IR::Opnd * forInEnumeratorOpnd = argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->GetSrc1();
+
+    // go to helper if we can't use JIT fastpath
+    IR::Opnd * canUseJitFastPathOpnd = GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfCanUseJitFastPath(), TyInt8);
+    InsertCompareBranch(canUseJitFastPathOpnd, IR::IntConstOpnd::New(0, TyInt8, this->m_func), Js::OpCode::BrEq_A, labelHelper, insertInstr);
+
+    if (!thisObj->IsNotTaggedValue())
+    {
+        m_lowererMD.GenerateObjectTest(thisObj, insertInstr, labelHelper);
+    }
+
+    // go to helper if initial type is not same as the object we are querying
+    IR::RegOpnd * cachedDataTypeOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    InsertMove(cachedDataTypeOpnd, GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorInitialType(), TyMachPtr), insertInstr);
+    InsertCompareBranch(cachedDataTypeOpnd, IR::IndirOpnd::New(thisObj, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, this->m_func), Js::OpCode::BrNeq_A, labelHelper, insertInstr);
+
+    // if we haven't yet gone to helper, then we can check if we are enumerating the prototype to know if property is an own property
+    IR::LabelInstr *falseLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+    IR::Opnd * enumeratingPrototype = GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratingPrototype(), TyInt8);
+    InsertCompareBranch(enumeratingPrototype, IR::IntConstOpnd::New(0, TyInt8, this->m_func), Js::OpCode::BrNeq_A, falseLabel, insertInstr);
+
+    // assume true is the main path
+    InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), insertInstr);
+    InsertBranch(Js::OpCode::Br, doneLabel, insertInstr);
+
+    // load false on helper path
+    insertInstr->InsertBefore(falseLabel);
+    InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse), insertInstr);
+    InsertBranch(Js::OpCode::Br, doneLabel, insertInstr);
+
+    RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
 }
 
 bool

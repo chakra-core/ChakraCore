@@ -3723,6 +3723,9 @@ namespace Js
         case PropertyIds::exec:
             return BuiltinFunction::JavascriptRegExp_Exec;
 
+        case PropertyIds::hasOwnProperty:
+            return BuiltinFunction::JavascriptObject_HasOwnProperty;
+
         default:
             return BuiltinFunction::None;
         }
@@ -4156,12 +4159,13 @@ namespace Js
     {
         JavascriptLibrary* library = objectPrototype->GetLibrary();
         ScriptContext* scriptContext = objectPrototype->GetScriptContext();
+        Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
 
         typeHandler->Convert(objectPrototype, mode, 11, true);
         // Note: Any new function addition/deletion/modification should also be updated in JavascriptLibrary::ProfilerRegisterObject
         // so that the update is in sync with profiler
         library->AddMember(objectPrototype, PropertyIds::constructor, library->objectConstructor);
-        library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::hasOwnProperty, &JavascriptObject::EntryInfo::HasOwnProperty, 1);
+        builtinFuncs[BuiltinFunction::JavascriptObject_HasOwnProperty] = library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::hasOwnProperty, &JavascriptObject::EntryInfo::HasOwnProperty, 1);
         library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::propertyIsEnumerable, &JavascriptObject::EntryInfo::PropertyIsEnumerable, 1);
         library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::isPrototypeOf, &JavascriptObject::EntryInfo::IsPrototypeOf, 1);
         library->AddFunctionToLibraryObject(objectPrototype, PropertyIds::toLocaleString, &JavascriptObject::EntryInfo::ToLocaleString, 0);
@@ -7016,7 +7020,6 @@ namespace Js
 
         case OpCode::InlineRegExpExec:
             return BuiltinFunction::JavascriptRegExp_Exec;
-
         }
 
         return BuiltinFunction::None;
