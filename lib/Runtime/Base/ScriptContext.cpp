@@ -294,7 +294,6 @@ namespace Js
 #endif
 
         // Do this after all operations that may cause potential exceptions
-        threadContext->RegisterScriptContext(this);
         numberAllocator.Initialize(this->GetRecycler());
 
 #if DEBUG
@@ -1404,6 +1403,8 @@ namespace Js
         // Assigned the global Object after we have successfully AddRef (in case of OOM)
         globalObject = localGlobalObject;
         globalObject->Initialize(this);
+
+        this->GetThreadContext()->RegisterScriptContext(this);
     }
 
     ArenaAllocator* ScriptContext::AllocatorForDiagnostics()
