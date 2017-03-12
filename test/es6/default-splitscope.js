@@ -1005,7 +1005,7 @@ var tests = [
         assert.areEqual(1, f24(1), "eval('arguments') inside split scope should work correctly");
         assert.areEqual([1, 2], f24([1, 2]), "eval('arguments') inside split scope should work correctly");
 
-        function f25(a, b = eval('() => () => eval("arguments[0]"')) {
+        function f25(a, b = eval('() => () => eval("arguments[0]")')) {
             return b()();
         }
         assert.areEqual(1, f25(1), "nested eval('arguments') inside split scope should work correctly");
