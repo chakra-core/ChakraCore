@@ -81,7 +81,7 @@ namespace Js
 
             const int32 index = TaggedInt::ToInt32(varIndex);
             const uint32 offset = index;
-            if(index < 0 || offset >= headSegmentLength || array && array->IsMissingHeadSegmentItem(offset))
+            if(index < 0 || offset >= headSegmentLength || (array && array->IsMissingHeadSegmentItem(offset)))
             {
                 ldElemInfo.neededHelperCall = true;
                 break;
@@ -446,7 +446,7 @@ namespace Js
         CallInfo callInfo,
         ...)
     {
-        ARGUMENTS(args, callInfo);
+        ARGUMENTS(args, callee, framePointer, profileId, arrayProfileId, callInfo);
         return
             ProfiledNewScObjArray(
                 callee,
@@ -617,7 +617,8 @@ namespace Js
                 calleeObject->GetTypeId() == TypeIds_Function
                     ? JavascriptFunction::FromVar(calleeObject)->GetFunctionInfo()
                     : nullptr;
-            callerFunctionBody->GetDynamicProfileInfo()->RecordCallSiteInfo(
+            DynamicProfileInfo *profileInfo = callerFunctionBody->GetDynamicProfileInfo();
+            profileInfo->RecordCallSiteInfo(
                 callerFunctionBody,
                 profileId,
                 calleeFunctionInfo,
@@ -625,6 +626,11 @@ namespace Js
                 args.Info.Count,
                 true,
                 inlineCacheIndex);
+            // We need to record information here, most importantly so that we handle array subclass
+            // creation properly, since optimizing those cases is important
+            Var retVal = JavascriptOperators::NewScObject(callee, args, scriptContext, spreadIndices);
+            profileInfo->RecordReturnTypeOnCallSiteInfo(callerFunctionBody, profileId, retVal);
+            return retVal;
         }
 
         return JavascriptOperators::NewScObject(callee, args, scriptContext, spreadIndices);
@@ -1105,11 +1111,11 @@ namespace Js
                 // Setting to __proto__ property invokes a setter and changes the prototype.So, although PatchPut* populates the cache,
                 // the setter invalidates it (since it changes the prototype). PretendTrySetProperty looks at the inline cache type to
                 // update the cacheType on PropertyOperationInfo, which is used in populating the field info flags for this operation on
-                // the profile. Since the cache was invalidated, we dont get a match with either the type of the object with property or
+                // the profile. Since the cache was invalidated, we don't get a match with either the type of the object with property or
                 // without it and the cacheType defaults to CacheType_None. This leads the profile info to say that this operation doesn't
-                // cause an accessor implicit call and JIT then doesn't kill live fields accross it and ends up putting a BailOutOnImplicitCalls
+                // cause an accessor implicit call and JIT then doesn't kill live fields across it and ends up putting a BailOutOnImplicitCalls
                 // if there were live fields. This bailout always bails out.
-                    Js::ImplicitCallFlags accessorCallFlag = (Js::ImplicitCallFlags)(Js::ImplicitCall_Accessor & ~Js::ImplicitCall_None);
+                Js::ImplicitCallFlags accessorCallFlag = (Js::ImplicitCallFlags)(Js::ImplicitCall_Accessor & ~Js::ImplicitCall_None);
                 if ((threadContext->GetImplicitCallFlags() & accessorCallFlag) != 0)
                 {
                     operationInfo.cacheType = CacheType_Setter;

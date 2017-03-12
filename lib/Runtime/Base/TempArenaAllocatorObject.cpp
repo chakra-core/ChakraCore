@@ -14,12 +14,8 @@ namespace Js
             _u("temp"), threadContext->GetPageAllocator(), Js::Throw::OutOfMemory);
         if (isGuestArena)
         {
-            wrapper->externalGuestArenaRef = recycler->RegisterExternalGuestArena(wrapper->GetAllocator());
             wrapper->recycler = recycler;
-            if (wrapper->externalGuestArenaRef == nullptr)
-            {
-                Js::Throw::OutOfMemory();
-            }
+            wrapper->AdviseInUse();
         }
         return wrapper;
     }
@@ -41,6 +37,35 @@ namespace Js
         }
 
         Assert(allocator.AllocatedSize() == 0);
+    }
+
+    template <bool isGuestArena>
+    void TempArenaAllocatorWrapper<isGuestArena>::AdviseInUse()
+    {
+        if (isGuestArena)
+        {
+            if (externalGuestArenaRef == nullptr)
+            {
+                externalGuestArenaRef = this->recycler->RegisterExternalGuestArena(this->GetAllocator());
+                if (externalGuestArenaRef == nullptr)
+                {
+                    Js::Throw::OutOfMemory();
+                }
+            }
+        }
+    }
+
+    template <bool isGuestArena>
+    void TempArenaAllocatorWrapper<isGuestArena>::AdviseNotInUse()
+    {
+        this->allocator.Reset();
+
+        if (isGuestArena)
+        {
+            Assert(externalGuestArenaRef != nullptr);
+            this->recycler->UnregisterExternalGuestArena(externalGuestArenaRef);
+            externalGuestArenaRef = nullptr;
+        }
     }
 
     // Explicit instantiation

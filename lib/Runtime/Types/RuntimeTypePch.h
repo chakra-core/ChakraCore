@@ -19,10 +19,6 @@
 #include "Types/DictionaryTypeHandler.h"
 #include "Types/ES5ArrayTypeHandler.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
-
 // .inl files
 #include "Language/CacheOperators.inl"
 

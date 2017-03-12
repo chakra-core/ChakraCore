@@ -165,6 +165,16 @@ int __cdecl _vswprintf_s (
     return retvalue;
 }
 
+int __cdecl vswprintf_s (
+        char16_t *string,
+        size_t sizeInWords,
+        const char16_t *format,
+        va_list ap
+        )
+{
+    return _vswprintf_s(string, sizeInWords, format, ap);
+}
+
 int __cdecl _vsnwprintf_s (
         char16_t *string,
         size_t sizeInWords,

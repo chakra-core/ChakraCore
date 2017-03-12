@@ -14,8 +14,8 @@ using namespace Js;
 
 namespace JSON
 {
-    Js::FunctionInfo EntryInfo::Stringify(JSON::Stringify, Js::FunctionInfo::ErrorOnNew);
-    Js::FunctionInfo EntryInfo::Parse(JSON::Parse, Js::FunctionInfo::ErrorOnNew);
+    Js::FunctionInfo EntryInfo::Stringify(FORCE_NO_WRITE_BARRIER_TAG(JSON::Stringify), Js::FunctionInfo::ErrorOnNew);
+    Js::FunctionInfo EntryInfo::Parse(FORCE_NO_WRITE_BARRIER_TAG(JSON::Parse), Js::FunctionInfo::ErrorOnNew);
 
     Js::Var Parse(Js::JavascriptString* input, Js::RecyclableObject* reviver, Js::ScriptContext* scriptContext);
 
@@ -603,7 +603,7 @@ namespace JSON
             if (JavascriptProxy::Is(object))
             {
                 JavascriptProxy* proxyObject = JavascriptProxy::FromVar(object);
-                JavascriptArray* proxyResult = proxyObject->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind);
+                JavascriptArray* proxyResult = proxyObject->PropertyKeysTrap(JavascriptProxy::KeysTrapKind::GetOwnPropertyNamesKind, this->scriptContext);
 
                 // filter enumerable keys
                 uint32 resultLength = proxyResult->GetLength();
@@ -631,14 +631,13 @@ namespace JSON
             else
             {
                 uint32 precisePropertyCount = 0;
-                Js::Var enumeratorVar;
-                if (object->GetEnumerator(FALSE, &enumeratorVar, scriptContext, true, false))
+                Js::JavascriptStaticEnumerator enumerator;
+                if (object->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics, scriptContext))
                 {
-                    Js::JavascriptEnumerator* enumerator = static_cast<Js::JavascriptEnumerator*>(enumeratorVar);
                     Js::RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
 
                     bool isPrecise;
-                    uint32 propertyCount = GetPropertyCount(object, enumerator, &isPrecise);
+                    uint32 propertyCount = GetPropertyCount(object, &enumerator, &isPrecise);
                     if (isPrecise)
                     {
                         precisePropertyCount = propertyCount;
@@ -649,8 +648,8 @@ namespace JSON
                     if (ReplacerFunction != replacerType)
                     {
                         Js::Var propertyNameVar;
-                        enumerator->Reset();
-                        while ((propertyNameVar = enumerator->MoveAndGetNext(id)) != NULL)
+                        enumerator.Reset();
+                        while ((propertyNameVar = enumerator.MoveAndGetNext(id)) != NULL)
                         {
                             if (!Js::JavascriptOperators::IsUndefinedObject(propertyNameVar, undefined))
                             {
@@ -672,7 +671,7 @@ namespace JSON
                         // Get the actual count first.
                         if (precisePropertyCount == 0)  // Check if it was updated in earlier step.
                         {
-                            precisePropertyCount = this->GetPropertyCount(object, enumerator);
+                            precisePropertyCount = this->GetPropertyCount(object, &enumerator);
                         }
 
                         // pick the property names before walking the object
@@ -689,24 +688,16 @@ namespace JSON
                                 ACQUIRE_TEMP_GUEST_ALLOCATOR(nameTableAlloc, scriptContext, _u("JSON"));
                                 nameTable = AnewArray(nameTableAlloc, Js::Var, precisePropertyCount);
                             }
-                            enumerator->Reset();
+                            enumerator.Reset();
                             uint32 index = 0;
                             Js::Var propertyNameVar;
-                            while ((propertyNameVar = enumerator->MoveAndGetNext(id)) != NULL && index < precisePropertyCount)
+                            while ((propertyNameVar = enumerator.MoveAndGetNext(id)) != NULL && index < precisePropertyCount)
                             {
                                 if (!Js::JavascriptOperators::IsUndefinedObject(propertyNameVar, undefined))
                                 {
                                     nameTable[index++] = propertyNameVar;
                                 }
                             }
-
-                            // In retail the stack packing causes enumerator to be overwritten here and the enumerator
-                            // object becomes eligible for collection. If the enumerator is the creator of the strings
-                            // it and our nameTable here will be the only objects holding references to those strings.
-                            // Thus we the nameTable needs to be in a GC guest arena so the GC can track those references.
-                            // Set enumerator to null in CHK build so that unit tests can verify that the strings are not
-                            // collected prematurely.
-                            DebugOnly(enumerator = nullptr);
 
                             // walk the property name list
                             for (uint k = 0; k < precisePropertyCount; k++)
@@ -783,10 +774,13 @@ namespace JSON
         }
         else
         {
-            // we are some kind of array (including proxy to array and es5array). in all cases the length should have been 32bit and we
-            // shouldn't have overflow here.
-            length = (uint32)Js::JavascriptConversion::ToLength(Js::JavascriptOperators::OP_GetLength(value, scriptContext), scriptContext);
-            Assert(Js::JavascriptConversion::ToLength(Js::JavascriptOperators::OP_GetLength(value, scriptContext), scriptContext) == length);
+            int64 len = Js::JavascriptConversion::ToLength(Js::JavascriptOperators::OP_GetLength(value, scriptContext), scriptContext);
+            if (MaxCharCount <= len)
+            {
+                // If the length goes more than MaxCharCount we will eventually fail (as OOM) in ConcatStringBuilder - so failing early.
+                JavascriptError::ThrowRangeError(scriptContext, JSERR_OutOfBoundString);
+            }
+            length = (uint32)len;
         }
 
         Js::JavascriptString* result;
@@ -919,7 +913,7 @@ namespace JSON
     }
 
     // Returns precise property count for given object and enumerator, does not count properties that are undefined.
-    inline uint32 StringifySession::GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptEnumerator* enumerator)
+    inline uint32 StringifySession::GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptStaticEnumerator* enumerator)
     {
         uint32 count = 0;
         Js::Var propertyNameVar;
@@ -942,7 +936,7 @@ namespace JSON
     // - object: the object to get the number of properties for.
     // - enumerator: the enumerator to enumerate the object.
     // - [out] pIsPrecise: receives a boolean indicating whether the value returned is precise or just guessed.
-    inline uint32 StringifySession::GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptEnumerator* enumerator, bool* pIsPrecise)
+    inline uint32 StringifySession::GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptStaticEnumerator* enumerator, bool* pIsPrecise)
     {
         Assert(pIsPrecise);
         *pIsPrecise = false;

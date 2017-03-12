@@ -25,10 +25,13 @@ namespace Js
         friend class SimpleDictionaryTypeHandlerBase;
 
     private:
-        DynamicTypeHandler * typeHandler;
-        bool isLocked;
-        bool isShared;
-        bool hasNoEnumerableProperties;
+        Field(DynamicTypeHandler *) typeHandler;
+        Field(bool) isLocked;
+        Field(bool) isShared;
+        Field(bool) hasNoEnumerableProperties;
+#if DBG
+        Field(bool) isCachedForChangePrototype;
+#endif
 
     protected:
         DynamicType(DynamicType * type) : Type(type), typeHandler(type->typeHandler), isLocked(false), isShared(false) {}
@@ -41,6 +44,10 @@ namespace Js
         void SetPrototype(RecyclableObject* newPrototype) { this->prototype = newPrototype; }
         bool GetIsLocked() const { return this->isLocked; }
         bool GetIsShared() const { return this->isShared; }
+#if DBG
+        bool GetIsCachedForChangePrototype() const { return this->isCachedForChangePrototype; }
+        void SetIsCachedForChangePrototype() { this->isCachedForChangePrototype = true; }
+#endif
         void SetEntryPoint(JavascriptMethod method) { entryPoint = method; }
 
         BOOL AllPropertiesAreEnumerable() { return typeHandler->AllPropertiesAreEnumerable(); }
@@ -80,14 +87,14 @@ namespace Js
 
         bool GetHasNoEnumerableProperties() const { return hasNoEnumerableProperties; }
         bool SetHasNoEnumerableProperties(bool value);
-        void PrepareForTypeSnapshotEnumeration();
+        bool PrepareForTypeSnapshotEnumeration();
 
         static bool Is(TypeId typeId);
         static DynamicType * New(ScriptContext* scriptContext, TypeId typeId, RecyclableObject* prototype, JavascriptMethod entryPoint, DynamicTypeHandler * typeHandler, bool isLocked = false, bool isShared = false);
 
         static uint32 GetOffsetOfTypeHandler() { return offsetof(DynamicType, typeHandler); }
         static uint32 GetOffsetOfIsShared() { return offsetof(DynamicType, isShared); }
-
+        static uint32 GetOffsetOfHasNoEnumerableProperties() { return offsetof(DynamicType, hasNoEnumerableProperties); }
     private:
         void SetIsLocked() { Assert(this->GetTypeHandler()->GetIsLocked()); this->isLocked = true; }
         void SetIsShared() { Assert(this->GetIsLocked() && this->GetTypeHandler()->GetIsShared()); this->isShared = true; }

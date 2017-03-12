@@ -45,11 +45,6 @@ struct XDataAllocation sealed  : public SecondaryAllocation
 //
 class XDataAllocator sealed : public SecondaryAllocator
 {
-// -------- Private members ---------/
-private:
-    ushort pdataCount;
-    FunctionTableHandle* functionTableHandles;
-
 // --------- Public functions ---------/
 public:
     XDataAllocator(BYTE* address, uint size);
@@ -57,11 +52,20 @@ public:
     bool Initialize(void* segmentStart, void* segmentEnd);
     void Delete();
     bool Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort pdataCount, ushort xdataSize, SecondaryAllocation* allocation);
-    void Register(XDataAllocation& allocation, DWORD functionStart, DWORD functionSize);
     void Release(const SecondaryAllocation& address);
     bool CanAllocate();
-    DWORD GetAllocSize(ushort pdataCount, ushort xdataSize)
+    static DWORD GetAllocSize(ushort pdataCount, ushort xdataSize)
     {
         return sizeof(RUNTIME_FUNCTION) * pdataCount + xdataSize;
     }
+
+    static void Register(XDataAllocation * xdataInfo, DWORD functionStart, DWORD functionSize);
+    static void Unregister(XDataAllocation * xdataInfo);
+#ifndef _WIN32
+    // Read .eh_frame data head (length record). 0 means empty.
+    static uint32 ReadHead(const void* p)
+    {
+        return *reinterpret_cast<const uint32*>(p);
+    }
+#endif
 };

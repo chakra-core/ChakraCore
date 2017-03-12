@@ -80,7 +80,9 @@ namespace JsUtil
         typedef TValue ValueType;
         typedef typename AllocatorInfo<TAllocator, TValue>::AllocatorType AllocatorType;
         typedef SizePolicy CurrentSizePolicy;
-        typedef Entry<TKey, TValue> EntryType;
+        typedef Entry<
+                    Field(TKey, TAllocator),
+                    Field(TValue, TAllocator)> EntryType;
 
         template<class TDictionary> class EntryIterator;
         template<class TDictionary> class BucketEntryIterator;
@@ -90,17 +92,17 @@ namespace JsUtil
         friend class Js::RemoteDictionary<BaseDictionary>;
         template <typename ValueOrKey> struct ComparerType { typedef Comparer<ValueOrKey> Type; }; // Used by diagnostics to access Comparer type
 
-        int* buckets;
-        EntryType* entries;
-        AllocatorType* alloc;
-        int size;
-        uint bucketCount;
-        int count;
-        int freeList;
-        int freeCount;
+        Field(int*, TAllocator) buckets;
+        Field(EntryType*, TAllocator) entries;
+        FieldNoBarrier(AllocatorType*) alloc;
+        Field(int) size;
+        Field(uint) bucketCount;
+        Field(int) count;
+        Field(int) freeList;
+        Field(int) freeCount;
 
 #if PROFILE_DICTIONARY
-        DictionaryStats *stats;
+        FieldNoBarrier(DictionaryStats*) stats;
 #endif
         enum InsertOperations
         {
@@ -179,11 +181,9 @@ namespace JsUtil
             freeList = other.freeList;
             freeCount = other.freeCount;
 
-            size_t copySize = bucketCount * sizeof(buckets[0]);
-            js_memcpy_s(buckets, copySize, other.buckets, copySize);
-
-            copySize = size * sizeof(entries[0]);
-            js_memcpy_s(entries, copySize, other.entries, copySize);
+            CopyArray(buckets, bucketCount, other.buckets, bucketCount);
+            CopyArray<EntryType, Field(ValueType, TAllocator), TAllocator>(
+                entries, size, other.entries, size);
 
 #if PROFILE_DICTIONARY
             stats = DictionaryStats::Create(typeid(this).name(), size);
@@ -219,6 +219,13 @@ namespace JsUtil
         }
 
         TValue Item(const TKey& key)
+        {
+            int i = FindEntry(key);
+            Assert(i >= 0);
+            return entries[i].Value();
+        }
+
+        const TValue Item(const TKey& key) const
         {
             int i = FindEntry(key);
             Assert(i >= 0);
@@ -373,7 +380,8 @@ namespace JsUtil
         template <typename TLookup>
         bool TryGetReference(const TLookup& key, TValue** value) const
         {
-            return TryGetReference(key, const_cast<const TValue **>(value));
+            int i;
+            return TryGetReference(key, value, &i);
         }
 
         template <typename TLookup>
@@ -382,7 +390,7 @@ namespace JsUtil
             int i = FindEntryWithKey(key);
             if (i >= 0)
             {
-                *value = &entries[i].Value();
+                *value = AddressOf(entries[i].Value());
                 *index = i;
                 return true;
             }
@@ -392,7 +400,14 @@ namespace JsUtil
         template <typename TLookup>
         bool TryGetReference(const TLookup& key, TValue** value, int* index) const
         {
-            return TryGetReference(key, const_cast<const TValue **>(value), index);
+            int i = FindEntryWithKey(key);
+            if (i >= 0)
+            {
+                *value = &entries[i].Value();
+                *index = i;
+                return true;
+            }
+            return false;
         }
 
         const TValue& GetValueAt(const int index) const
@@ -698,11 +713,9 @@ namespace JsUtil
             freeList = other->freeList;
             freeCount = other->freeCount;
 
-            size_t copySize = bucketCount * sizeof(buckets[0]);
-            js_memcpy_s(buckets, copySize, other->buckets, copySize);
-
-            copySize = size * sizeof(entries[0]);
-            js_memcpy_s(entries, copySize, other->entries, copySize);
+            CopyArray(buckets, bucketCount, other->buckets, bucketCount);
+            CopyArray<EntryType, Field(ValueType, TAllocator), TAllocator>(
+                entries, size, other->entries, size);
 
 #if PROFILE_DICTIONARY
             stats = DictionaryStats::Create(typeid(this).name(), size);
@@ -717,8 +730,10 @@ namespace JsUtil
             {
                 if(buckets[i] != -1)
                 {
-                    for (int currentIndex = buckets[i] ; currentIndex != -1 ; currentIndex = entries[currentIndex].next)
+                    int nextIndex = -1;
+                    for (int currentIndex = buckets[i] ; currentIndex != -1 ; currentIndex = nextIndex)
                     {
+                        nextIndex = entries[currentIndex].next;
                         if (fn(entries[currentIndex]))
                         {
                             return true; // fn condition succeeds
@@ -860,9 +875,14 @@ namespace JsUtil
             int initSize = max(capacity, 4);
             uint initBucketCount = SizePolicy::GetBucketSize(initSize);
             AssertMsg(initBucketCount > 0, "Size returned by policy should be greater than 0");
-            Allocate(&buckets, &entries, initBucketCount, initSize);
 
-            // Allocation can throw - assign the size only after allocation has succeeded.
+            int* newBuckets = nullptr;
+            EntryType* newEntries = nullptr;
+            Allocate(&newBuckets, &newEntries, initBucketCount, initSize);
+
+            // Allocation can throw - assign only after allocation has succeeded.
+            this->buckets = newBuckets;
+            this->entries = newEntries;
             this->bucketCount = initBucketCount;
             this->size = initSize;
             Assert(this->freeCount == 0);
@@ -872,7 +892,7 @@ namespace JsUtil
         }
 
         template <InsertOperations op>
-        int Insert(TKey key, TValue value)
+        int Insert(const TKey& key, const TValue& value)
         {
             int * localBuckets = buckets;
             if (localBuckets == nullptr)
@@ -1002,7 +1022,8 @@ namespace JsUtil
             {
                 // no need to rehash
                 newEntries = AllocateEntries(newSize);
-                js_memcpy_s(newEntries, sizeof(EntryType) * newSize, entries, sizeof(EntryType) * count);
+                CopyArray<EntryType, Field(ValueType, TAllocator), TAllocator>(
+                    newEntries, newSize, entries, count);
 
                 DeleteEntries(entries, size);
 
@@ -1012,7 +1033,8 @@ namespace JsUtil
             }
 
             Allocate(&newBuckets, &newEntries, newBucketCount, newSize);
-            js_memcpy_s(newEntries, sizeof(EntryType) * newSize, entries, sizeof(EntryType) * count);
+            CopyArray<EntryType, Field(ValueType, TAllocator), TAllocator>(
+                newEntries, newSize, entries, count);
 
             // When TAllocator is of type Recycler, it is possible that the Allocate above causes a collection, which
             // in turn can cause entries in the dictionary to be removed - i.e. the dictionary contains weak references
@@ -1037,10 +1059,10 @@ namespace JsUtil
             if (stats)
                 stats->Resize(newSize, /*emptyBuckets=*/ newSize - size);
 #endif
-            buckets = newBuckets;
+            this->buckets = newBuckets;
+            this->entries = newEntries;
             bucketCount = newBucketCount;
             size = newSize;
-            entries = newEntries;
         }
 
         __ecount(bucketCount) int *AllocateBuckets(DECLSPEC_GUARD_OVERFLOW const uint bucketCount)
@@ -1306,15 +1328,15 @@ namespace JsUtil
             {
                 Assert(dictionary.buckets == buckets);
                 Assert(dictionary.bucketCount == bucketCount);
-                Assert(entryIndex >= -1);
-                Assert(entryIndex < dictionary.count);
+                Assert(this->entryIndex >= -1);
+                Assert(this->entryIndex < dictionary.count);
                 Assert(bucketIndex == 0u - 1 || bucketIndex <= bucketCount);
                 Assert(previousEntryIndexInBucket >= -2);
                 Assert(previousEntryIndexInBucket < dictionary.count);
                 Assert(indexOfEntryAfterRemovedEntry >= -2);
                 Assert(indexOfEntryAfterRemovedEntry < dictionary.count);
 
-                return Base::IsValid() && entryIndex >= 0;
+                return Base::IsValid() && this->entryIndex >= 0;
             }
 
         public:
@@ -1322,13 +1344,13 @@ namespace JsUtil
             {
                 if(IsValid())
                 {
-                    previousEntryIndexInBucket = entryIndex;
-                    entryIndex = Current().next;
+                    previousEntryIndexInBucket = this->entryIndex;
+                    this->entryIndex = this->Current().next;
                 }
                 else
                 {
                     Assert(indexOfEntryAfterRemovedEntry >= -1);
-                    entryIndex = indexOfEntryAfterRemovedEntry;
+                    this->entryIndex = indexOfEntryAfterRemovedEntry;
                 }
 
                 if(!IsValid())
@@ -1344,7 +1366,7 @@ namespace JsUtil
 
                 while(++bucketIndex < bucketCount)
                 {
-                    entryIndex = buckets[bucketIndex];
+                    this->entryIndex = buckets[bucketIndex];
                     if(IsValid())
                     {
                         previousEntryIndexInBucket = -1;
@@ -1358,10 +1380,10 @@ namespace JsUtil
             {
                 Assert(previousEntryIndexInBucket >= -1);
 
-                indexOfEntryAfterRemovedEntry = Current().next;
-                dictionary.RemoveAt(entryIndex, previousEntryIndexInBucket, bucketIndex);
-                OnEntryRemoved();
-                entryIndex = -1;
+                indexOfEntryAfterRemovedEntry = this->Current().next;
+                dictionary.RemoveAt(this->entryIndex, previousEntryIndexInBucket, bucketIndex);
+                this->OnEntryRemoved();
+                this->entryIndex = -1;
             }
         };
 
@@ -1386,7 +1408,7 @@ namespace JsUtil
     class BaseHashSet : protected BaseDictionary<TKey, TElement, TAllocator, SizePolicy, Comparer, Entry, Lock>
     {
         typedef BaseDictionary<TKey, TElement, TAllocator, SizePolicy, Comparer, Entry, Lock> Base;
-        typedef Entry<TKey, TElement> EntryType;
+        typedef typename Base::EntryType EntryType;
         typedef typename Base::AllocatorType AllocatorType;
         friend struct JsDiag::RemoteDictionary<BaseHashSet<TElement, TAllocator, SizePolicy, TKey, Comparer, Entry, Lock>>;
 
@@ -1525,12 +1547,12 @@ namespace JsUtil
 
         BaseHashSet *Clone()
         {
-            return AllocatorNew(AllocatorType, alloc, BaseHashSet, *this);
+            return AllocatorNew(AllocatorType, this->alloc, BaseHashSet, *this);
         }
 
         void Copy(const BaseHashSet *const other)
         {
-            DoCopy(other);
+            this->DoCopy(other);
         }
 
         void LockResize()
@@ -1560,7 +1582,7 @@ namespace JsUtil
     class SynchronizedDictionary: protected BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry>
     {
     private:
-        SyncObject* syncObj;
+        FieldNoBarrier(SyncObject*) syncObj;
 
         typedef BaseDictionary<TKey, TValue, TAllocator, SizePolicy, Comparer, Entry> Base;
     public:
@@ -1812,4 +1834,3 @@ namespace JsUtil
         PREVENT_COPY(SynchronizedDictionary);
     };
 }
-

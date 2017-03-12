@@ -605,7 +605,7 @@ namespace UnifiedRegex
         {
             infos[i]->FreeBody(rtAllocator);
 #if DBG
-            infos[i] = 0;
+            infos[i] = nullptr;
 #endif
         }
 #if DBG
@@ -2494,7 +2494,7 @@ namespace UnifiedRegex
         //    state before backtracking to it.
         if (!isGreedy && hasOuterLoops)
         {
-            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -2565,7 +2565,7 @@ namespace UnifiedRegex
         // See comment (****) above.
         if (begin->hasInnerNondet)
         {
-            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -2749,7 +2749,7 @@ namespace UnifiedRegex
         if (begin->hasInnerNondet)
         {
             // May end up backtracking into loop body for iteration just completed: see above.
-            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -2816,7 +2816,7 @@ namespace UnifiedRegex
         if (begin->hasInnerNondet)
         {
             // May end up backtracking into loop body for iteration just completed: see above.
-            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, begin->loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -2883,7 +2883,7 @@ namespace UnifiedRegex
         // this loop. We must make sure it's state is preserved on backtrack.
         if (hasOuterLoops)
         {
-            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -2992,7 +2992,7 @@ namespace UnifiedRegex
         // this loop. We must make sure it's state is preserved on backtrack.
         if (hasOuterLoops)
         {
-            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -3052,6 +3052,83 @@ namespace UnifiedRegex
     }
 #endif
 
+    inline bool LoopSetWithFollowFirstInst::Exec(REGEX_INST_EXEC_PARAMETERS) const
+    {
+        LoopInfo* loopInfo = matcher.LoopIdToLoopInfo(loopId);
+
+        // If loop is contained in an outer loop, continuation stack may already have a RewindLoopFixed entry for
+        // this loop. We must make sure it's state is preserved on backtrack.
+        if (hasOuterLoops)
+        {
+            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo, matcher);
+#if ENABLE_REGEX_CONFIG_OPTIONS
+            matcher.PushStats(contStack, input);
+#endif
+        }
+
+        if (loopInfo->offsetsOfFollowFirst)
+        {
+            loopInfo->offsetsOfFollowFirst->Clear();
+        }
+        // startInputOffset will stay here for all iterations, and we'll use number of length to figure out
+        // where in the input to rewind to
+        loopInfo->startInputOffset = inputOffset;
+
+        // Consume as many elements of set as possible
+        const RuntimeCharSet<Char>& matchSet = this->set;
+        const CharCount loopMatchStart = inputOffset;
+        const CharCountOrFlag repeatsUpper = repeats.upper;
+        const CharCount inputEndOffset =
+            static_cast<CharCount>(repeatsUpper) >= inputLength - inputOffset
+            ? inputLength
+            : inputOffset + static_cast<CharCount>(repeatsUpper);
+#if ENABLE_REGEX_CONFIG_OPTIONS
+        matcher.CompStats();
+#endif
+        while (inputOffset < inputEndOffset && matchSet.Get(input[inputOffset]))
+        {
+#if ENABLE_REGEX_CONFIG_OPTIONS
+            matcher.CompStats();
+#endif
+            if (input[inputOffset] == this->followFirst)
+            {
+                loopInfo->EnsureOffsetsOfFollowFirst(matcher);
+                loopInfo->offsetsOfFollowFirst->Add(inputOffset - loopInfo->startInputOffset);
+            }
+            inputOffset++;
+        }
+
+        loopInfo->number = inputOffset - loopMatchStart;
+        if (loopInfo->number < repeats.lower)
+            return matcher.Fail(FAIL_PARAMETERS);
+        if (loopInfo->number > repeats.lower)
+        {
+            // CHOICEPOINT: If follow fails, try consuming one fewer characters
+            Assert(instPointer == (uint8*)this);
+            PUSH(contStack, RewindLoopSetWithFollowFirstCont, matcher.InstPointerToLabel(instPointer));
+#if ENABLE_REGEX_CONFIG_OPTIONS
+            matcher.PushStats(contStack, input);
+#endif
+        }
+        // else: failure of follow signals failure of entire loop
+
+        // Continue with follow
+        instPointer += sizeof(*this);
+        return false;
+    }
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+    int LoopSetWithFollowFirstInst::Print(DebugWriter* w, Label label, const Char* litbuf) const
+    {
+        w->Print(_u("L%04x: LoopSet(loopId: %d, followFirst: %c, "), label, loopId, followFirst);
+        repeats.Print(w);
+        w->Print(_u(", hasOuterLoops: %s, "), hasOuterLoops ? _u("true") : _u("false"));
+        SetMixin::Print(w, litbuf);
+        w->PrintEOL(_u(")"));
+        return sizeof(*this);
+    }
+#endif
+
     // ----------------------------------------------------------------------
     // BeginLoopFixedGroupLastIterationInst (optimized instruction)
     // ----------------------------------------------------------------------
@@ -3066,7 +3143,7 @@ namespace UnifiedRegex
         // for this loop. We must make sure it's state is preserved on backtrack.
         if (hasOuterLoops)
         {
-            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo);
+            PUSH(contStack, RestoreLoopCont, loopId, *loopInfo, matcher);
 #if ENABLE_REGEX_CONFIG_OPTIONS
             matcher.PushStats(contStack, input);
 #endif
@@ -3879,6 +3956,14 @@ namespace UnifiedRegex
     }
 #endif
 
+    void LoopInfo::EnsureOffsetsOfFollowFirst(Matcher& matcher)
+    {
+        if (this->offsetsOfFollowFirst == nullptr)
+        {
+            this->offsetsOfFollowFirst = JsUtil::List<CharCount, ArenaAllocator>::New(matcher.pattern->library->GetScriptContext()->RegexAllocator());
+        }
+    }
+
 #if ENABLE_REGEX_CONFIG_OPTIONS
     void GroupInfo::Print(DebugWriter* w, const Char* const input) const
     {
@@ -3921,6 +4006,18 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
     // RestoreLoopCont
     // ----------------------------------------------------------------------
+
+    inline RestoreLoopCont::RestoreLoopCont(int loopId, LoopInfo& origLoopInfo, Matcher& matcher) : Cont(RestoreLoop), loopId(loopId)
+    {
+        this->origLoopInfo.number = origLoopInfo.number;
+        this->origLoopInfo.startInputOffset = origLoopInfo.startInputOffset;
+        this->origLoopInfo.offsetsOfFollowFirst = nullptr;
+        if (origLoopInfo.offsetsOfFollowFirst != nullptr)
+        {
+            this->origLoopInfo.offsetsOfFollowFirst = JsUtil::List<CharCount, ArenaAllocator>::New(matcher.pattern->library->GetScriptContext()->RegexAllocator());
+            this->origLoopInfo.offsetsOfFollowFirst->Copy(origLoopInfo.offsetsOfFollowFirst);
+        }
+    }
 
     inline bool RestoreLoopCont::Exec(REGEX_CONT_EXEC_PARAMETERS)
     {
@@ -4117,9 +4214,9 @@ namespace UnifiedRegex
         LoopSetInst* begin = matcher.L2I(LoopSet, beginLabel);
         LoopInfo* loopInfo = matcher.LoopIdToLoopInfo(begin->loopId);
 
-        // >loopInfonumber is the number of iterations completed before trying follow
+        // loopInfo->number is the number of iterations completed before trying follow
         Assert(loopInfo->number > begin->repeats.lower);
-        // Try follow with one fewer iteration
+        // Try follow with fewer iterations
         loopInfo->number--;
 
         // Rewind input
@@ -4143,6 +4240,77 @@ namespace UnifiedRegex
     int RewindLoopSetCont::Print(DebugWriter* w, const Char* const input) const
     {
         w->PrintEOL(_u("RewindLoopSet(beginLabel: L%04x)"), beginLabel);
+        return sizeof(*this);
+    }
+#endif
+
+    // ----------------------------------------------------------------------
+    // RewindLoopSetWithFollowFirstCont
+    // ----------------------------------------------------------------------
+
+    inline bool RewindLoopSetWithFollowFirstCont::Exec(REGEX_CONT_EXEC_PARAMETERS)
+    {
+        matcher.QueryContinue(qcTicks);
+
+        LoopSetWithFollowFirstInst* begin = matcher.L2I(LoopSetWithFollowFirst, beginLabel);
+        LoopInfo* loopInfo = matcher.LoopIdToLoopInfo(begin->loopId);
+
+        // loopInfo->number is the number of iterations completed before trying follow
+        Assert(loopInfo->number > begin->repeats.lower);
+        // Try follow with fewer iterations
+
+        if (loopInfo->offsetsOfFollowFirst == nullptr)
+        {
+            if (begin->followFirst != MaxUChar)
+            {
+                // We determined the first character in the follow set at compile time,
+                // but didn't find a single match for it in the last iteration of the loop.
+                // So, there is no benefit in backtracking.
+                loopInfo->number = begin->repeats.lower; // stop backtracking
+            }
+            else
+            {
+                // We couldn't determine the first character in the follow set at compile time;
+                // fall back to backtracking by one character at a time.
+                loopInfo->number--;
+            }
+        }
+        else
+        {
+            if (loopInfo->offsetsOfFollowFirst->Empty())
+            {
+                // We have already backtracked to the first offset where we matched the LoopSet's followFirst;
+                // no point in backtracking more.
+                loopInfo->number = begin->repeats.lower; // stop backtracking
+            }
+            else
+            {
+                // Backtrack to the previous offset where we matched the LoopSet's followFirst
+                loopInfo->number = loopInfo->offsetsOfFollowFirst->RemoveAtEnd();
+            }
+        }
+
+        // Rewind input
+        inputOffset = loopInfo->startInputOffset + loopInfo->number;
+
+        if (loopInfo->number > begin->repeats.lower)
+        {
+            // Un-pop the continuation ready for next time
+            contStack.UnPop<RewindLoopSetWithFollowFirstCont>();
+#if ENABLE_REGEX_CONFIG_OPTIONS
+            matcher.UnPopStats(contStack, input);
+#endif
+        }
+        // else: Can't try any fewer iterations if follow fails, so leave continuation as popped and let failure propagate
+
+        instPointer = matcher.LabelToInstPointer(beginLabel + sizeof(LoopSetWithFollowFirstInst));
+        return true; // STOP BACKTRACKING
+    }
+
+#if ENABLE_REGEX_CONFIG_OPTIONS
+    int RewindLoopSetWithFollowFirstCont::Print(DebugWriter* w, const Char* const input) const
+    {
+        w->PrintEOL(_u("RewindLoopSetWithFollowFirst(beginLabel: L%04x)"), beginLabel);
         return sizeof(*this);
     }
 #endif
@@ -4473,7 +4641,6 @@ namespace UnifiedRegex
 #endif
 
         Run(input, inputLength, matchStart, nextSyncInputOffset, contStack, assertionStack, qcTicks, firstIteration);
-
         // Leave the continuation and assertion stack memory in place so we don't have to alloc next time
 
         return WasLastMatchSuccessful();
@@ -4932,18 +5099,18 @@ namespace UnifiedRegex
     // ----------------------------------------------------------------------
 
     Program::Program(RegexFlags flags)
-        : source(0)
+        : source(nullptr)
         , sourceLen(0)
         , flags(flags)
         , numGroups(0)
         , numLoops(0)
     {
         tag = InstructionsTag;
-        rep.insts.insts = 0;
+        rep.insts.insts = nullptr;
         rep.insts.instsLen = 0;
-        rep.insts.litbuf = 0;
+        rep.insts.litbuf = nullptr;
         rep.insts.litbufLen = 0;
-        rep.insts.scannersForSyncToLiterals = 0;
+        rep.insts.scannersForSyncToLiterals = nullptr;
     }
 
     Program *Program::New(Recycler *recycler, RegexFlags flags)
@@ -4951,7 +5118,7 @@ namespace UnifiedRegex
         return RecyclerNew(recycler, Program, flags);
     }
 
-    ScannerInfo **Program::CreateScannerArrayForSyncToLiterals(Recycler *const recycler)
+    Field(ScannerInfo *)*Program::CreateScannerArrayForSyncToLiterals(Recycler *const recycler)
     {
         Assert(tag == InstructionsTag);
         Assert(!rep.insts.scannersForSyncToLiterals);
@@ -4959,7 +5126,7 @@ namespace UnifiedRegex
 
         return
             rep.insts.scannersForSyncToLiterals =
-                RecyclerNewArrayZ(recycler, ScannerInfo *, ScannersMixin::MaxNumSyncLiterals);
+                RecyclerNewArrayZ(recycler, Field(ScannerInfo *), ScannersMixin::MaxNumSyncLiterals);
     }
 
     ScannerInfo *Program::AddScannerForSyncToLiterals(
@@ -4986,7 +5153,7 @@ namespace UnifiedRegex
         if(tag != InstructionsTag || !rep.insts.insts)
             return;
 
-        Inst *inst = reinterpret_cast<Inst *>(rep.insts.insts);
+        Inst *inst = reinterpret_cast<Inst *>(PointerValue(rep.insts.insts));
         const auto instEnd = reinterpret_cast<Inst *>(reinterpret_cast<uint8 *>(inst) + rep.insts.instsLen);
         Assert(inst < instEnd);
         do
@@ -5015,7 +5182,7 @@ namespace UnifiedRegex
         Assert(inst == instEnd);
 
 #if DBG
-        rep.insts.insts = 0;
+        rep.insts.insts = nullptr;
         rep.insts.instsLen = 0;
 #endif
     }
@@ -5026,7 +5193,7 @@ namespace UnifiedRegex
         const bool isBaselineMode = Js::Configuration::Global.flags.BaselineMode;
         w->PrintEOL(_u("Program {"));
         w->Indent();
-        w->PrintEOL(_u("source:       %s"), source);
+        w->PrintEOL(_u("source:       %s"), PointerValue(source));
         w->Print(_u("flags:        "));
         if ((flags & GlobalRegexFlag) != 0) w->Print(_u("global "));
         if ((flags & MultilineRegexFlag) != 0) w->Print(_u("multiline "));

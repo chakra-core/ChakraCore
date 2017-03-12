@@ -16,12 +16,14 @@
 #endif
 
 class ThreadContext;
+class ServerThreadContext;
 
 namespace Js
 {
     class PropertyRecord : public FinalizableObject
     {
         friend class ::ThreadContext;
+        friend class ::ServerThreadContext;
         template <int LEN>
         friend struct BuiltInPropertyRecord;
         friend class InternalPropertyRecords;
@@ -29,15 +31,15 @@ namespace Js
         friend class DOMBuiltInPropertyRecords;
 
     private:
-        PropertyId pid;
+        Field(PropertyId) pid;
         //Made this mutable so that we can set it for Built-In js property records when we are adding it.
         //If we try to set it when initializing; we get extra code added for each built in; and thus increasing the size of chakracore
-        mutable uint hash;
-        bool isNumeric;
-        bool isBound;
-        bool isSymbol;
+        mutable Field(uint) hash;
+        Field(bool) isNumeric;
+        Field(bool) isBound;
+        Field(bool) isSymbol;
         // Have the length before the buffer so that the buffer would have a BSTR format
-        DWORD byteCount;
+        Field(DWORD) byteCount;
 
         PropertyRecord(DWORD bytelength, bool isNumeric, uint hash, bool isSymbol);
         PropertyRecord(PropertyId pid, uint hash, bool isNumeric, DWORD byteCount, bool isSymbol);
@@ -48,7 +50,6 @@ namespace Js
 #ifdef DEBUG
         static bool IsPropertyNameNumeric(const char16* str, int length);
 #endif
-        static PropertyRecord * New(Recycler * recycler, JsUtil::CharacterBuffer<WCHAR> const& propertyName);
 
         static PropertyAttributes DefaultAttributesForPropertyId(PropertyId propertyId, bool __proto__AsDeleted);
 
@@ -265,7 +266,7 @@ namespace Js
           {
           }
 
-        uint caseInvariantHashCode;
+        Field(uint) caseInvariantHashCode;
     };
 }
 

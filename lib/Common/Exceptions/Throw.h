@@ -20,6 +20,7 @@ namespace Js {
         static void __declspec(noreturn) NotImplemented();
         static void __declspec(noreturn) InternalError();
         static void __declspec(noreturn) FatalInternalError();
+        static void __declspec(noreturn) FatalInternalErrorEx(int scenario);
         static void __declspec(noreturn) FatalProjectionError();
 
         static void CheckAndThrowOutOfMemory(BOOLEAN status);
@@ -33,7 +34,7 @@ namespace Js {
     private:
         static CriticalSection csGenerateDump;
 #ifdef STACK_BACK_TRACE
-        __declspec(thread) static  StackBackTrace * stackBackTrace;
+        THREAD_LOCAL static  StackBackTrace * stackBackTrace;
 
         static const int StackToSkip = 2;
         static const int StackTraceDepth = 40;
@@ -109,10 +110,6 @@ namespace Js {
 
 #define END_TRANSLATE_KNOWN_EXCEPTION_TO_HRESULT(hr) \
     } \
-    catch (Js::InternalErrorException)   \
-    {   \
-        hr = E_FAIL;    \
-    }   \
     catch (Js::OutOfMemoryException) \
     {   \
         hr = E_OUTOFMEMORY; \
@@ -134,13 +131,42 @@ namespace Js {
         hr = JSERR_AsmJsCompileError; \
     }
 
+// This should be the inverse of END_TRANSLATE_KNOWN_EXCEPTION_TO_HRESULT, and catch all the same cases.
+#define THROW_KNOWN_HRESULT_EXCEPTIONS(hr, scriptContext) \
+    if (hr == E_OUTOFMEMORY) \
+    { \
+        JavascriptError::ThrowOutOfMemoryError(scriptContext); \
+    } \
+    else if (hr == VBSERR_OutOfStack) \
+    { \
+        JavascriptError::ThrowStackOverflowError(scriptContext); \
+    } \
+    else if (hr == E_NOTIMPL) \
+    { \
+        throw Js::NotImplementedException(); \
+    } \
+    else if (hr == E_ABORT) \
+    { \
+        throw Js::ScriptAbortException(); \
+    } \
+    else if (hr == JSERR_AsmJsCompileError) \
+    { \
+        throw Js::AsmJsParseException(); \
+    } \
+    else if (FAILED(hr)) \
+    { \
+        /* Intended to be the inverse of E_FAIL in CATCH_UNHANDLED_EXCEPTION */ \
+        AssertOrFailFast(false); \
+    }
+
 #define CATCH_UNHANDLED_EXCEPTION(hr) \
     catch (...) \
-    {   \
-        AssertMsg(FALSE, "invalid exception thrown and didn't get handled");    \
-        hr = E_FAIL;    \
+    { \
+        AssertOrFailFastMsg(FALSE, "invalid exception thrown and didn't get handled"); \
+        hr = E_FAIL; /* Suppress C4701 */ \
     } \
     }
+
 
 #define END_TRANSLATE_EXCEPTION_TO_HRESULT(hr) \
     END_TRANSLATE_KNOWN_EXCEPTION_TO_HRESULT(hr)\
@@ -165,8 +191,9 @@ namespace Js {
     CATCH_UNHANDLED_EXCEPTION(hr)
 
 #define END_TRANSLATE_ERROROBJECT_TO_HRESULT_EX(hr, GetRuntimeErrorFunc) \
-    catch(Js::JavascriptExceptionObject *  exceptionObject)  \
+    catch(const Js::JavascriptException& err)  \
     {   \
+        Js::JavascriptExceptionObject* exceptionObject = err.GetAndClear(); \
         GET_RUNTIME_ERROR_IMPL(hr, GetRuntimeErrorFunc, exceptionObject); \
     }
 
@@ -192,58 +219,59 @@ namespace Js {
     END_TRANSLATE_ERROROBJECT_TO_HRESULT_EX(hr, Js::JavascriptError::GetRuntimeErrorWithScriptEnter)
 
 #define END_GET_ERROROBJECT(hr, scriptContext, exceptionObject) \
-    catch (Js::JavascriptExceptionObject *  _exceptionObject)  \
+    catch (const Js::JavascriptException& err)  \
     {   \
+        Js::JavascriptExceptionObject *  _exceptionObject = err.GetAndClear(); \
         BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED \
             exceptionObject = _exceptionObject; \
             exceptionObject = exceptionObject->CloneIfStaticExceptionObject(scriptContext);  \
         END_TRANSLATE_OOM_TO_HRESULT(hr) \
     }
 
-#define CATCH_STATIC_JAVASCRIPT_EXCEPTION_OBJECT \
+#define CATCH_STATIC_JAVASCRIPT_EXCEPTION_OBJECT(errCode) \
     catch (Js::OutOfMemoryException)  \
     {  \
-        return JsErrorOutOfMemory;  \
+        errCode = JsErrorOutOfMemory;  \
     } catch (Js::StackOverflowException)  \
     {  \
-        return JsErrorOutOfMemory;  \
+        errCode = JsErrorOutOfMemory;  \
     }  \
 
 #if ENABLE_TTD
-#define CATCH_OTHER_EXCEPTIONS  \
+#define CATCH_OTHER_EXCEPTIONS(errCode)  \
     catch (JsrtExceptionBase& e)  \
     {  \
-        return e.GetJsErrorCode();  \
+        errCode = e.GetJsErrorCode();  \
     }   \
     catch (Js::ExceptionBase)   \
     {   \
         AssertMsg(false, "Unexpected engine exception.");   \
-        return JsErrorFatal;    \
+        errCode = JsErrorFatal;    \
     }   \
     catch (TTD::TTDebuggerAbortException)   \
     {   \
-        throw;   \
+        throw; /*don't set errcode we treat this as non-termination of the code that was executing*/  \
     }   \
     catch (...) \
     {   \
         AssertMsg(false, "Unexpected non-engine exception.");   \
-        return JsErrorFatal;    \
+        errCode = JsErrorFatal;    \
     }
 #else
-#define CATCH_OTHER_EXCEPTIONS  \
+#define CATCH_OTHER_EXCEPTIONS(errCode)  \
     catch (JsrtExceptionBase& e)  \
     {  \
-        return e.GetJsErrorCode();  \
+        errCode = e.GetJsErrorCode();  \
     }   \
     catch (Js::ExceptionBase)   \
     {   \
         AssertMsg(false, "Unexpected engine exception.");   \
-        return JsErrorFatal;    \
+        errCode = JsErrorFatal;    \
     }   \
     catch (...) \
     {   \
         AssertMsg(false, "Unexpected non-engine exception.");   \
-        return JsErrorFatal;    \
+        errCode = JsErrorFatal;    \
     }
 #endif
 
@@ -256,4 +284,4 @@ namespace Js {
     catch (ex) \
     {
 
-#define DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr) if (hr != S_OK) Debugger_AttachDetach_fatal_error();
+#define DEBUGGER_ATTACHDETACH_FATAL_ERROR_IF_FAILED(hr) if (hr != S_OK) Debugger_AttachDetach_fatal_error(hr);

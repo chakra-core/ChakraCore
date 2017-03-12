@@ -4,14 +4,14 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Js
 {
     class ScriptContext;
     class AsmJsCodeGenerator
     {
         ScriptContext* mScriptContext;
-        CodeGenAllocators* mForegroundAllocators;
+        InProcCodeGenAllocators* mForegroundAllocators;
         PageAllocator * mPageAllocator;
         AsmJsEncoder    mEncoder;
     public:

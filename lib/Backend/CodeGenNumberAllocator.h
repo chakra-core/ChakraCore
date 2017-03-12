@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+#if !FLOATVAR
 /****************************************************************************
  * CodeGenNumberThreadAllocator
  *
@@ -54,8 +55,8 @@
 struct CodeGenNumberChunk
 {
     static int const MaxNumberCount = 3;
-    Js::JavascriptNumber * numbers[MaxNumberCount];
-    CodeGenNumberChunk * next;
+    Field(Js::JavascriptNumber*) numbers[MaxNumberCount];
+    Field(CodeGenNumberChunk*) next;
 };
 CompileAssert(
     sizeof(CodeGenNumberChunk) == HeapConstants::ObjectGranularity ||
@@ -63,6 +64,7 @@ CompileAssert(
 
 class CodeGenNumberThreadAllocator
 {
+    friend struct XProcNumberPageSegmentManager;
 public:
     CodeGenNumberThreadAllocator(Recycler * recycler);
     ~CodeGenNumberThreadAllocator();
@@ -98,7 +100,10 @@ private:
     bool hasNewChunkBlock;
     struct BlockRecord
     {
-        BlockRecord(__in_ecount_pagesize char * blockAddress, PageSegment * segment) : blockAddress(blockAddress), segment(segment) {};
+        BlockRecord(__in_ecount_pagesize char * blockAddress, PageSegment * segment)
+            : blockAddress(blockAddress), segment(segment)
+        {
+        }
         char * blockAddress;
         PageSegment * segment;
     };
@@ -109,19 +114,19 @@ private:
     size_t pendingIntegrationChunkSegmentPageCount;
     DListBase<PageSegment> pendingIntegrationNumberSegment;
     DListBase<PageSegment> pendingIntegrationChunkSegment;
-    SListBase<BlockRecord> pendingIntegrationNumberBlock;
-    SListBase<BlockRecord> pendingIntegrationChunkBlock;
+    SListBase<BlockRecord, NoThrowHeapAllocator> pendingIntegrationNumberBlock;
+    SListBase<BlockRecord, NoThrowHeapAllocator> pendingIntegrationChunkBlock;
 
     // These are finished pages during the code gen of the current function
     // We can't integrate them until the code gen is done for the function,
     // because the references for the number is not set on the entry point yet.
-    SListBase<BlockRecord> pendingFlushNumberBlock;
-    SListBase<BlockRecord> pendingFlushChunkBlock;
+    SListBase<BlockRecord, NoThrowHeapAllocator> pendingFlushNumberBlock;
+    SListBase<BlockRecord, NoThrowHeapAllocator> pendingFlushChunkBlock;
 
     // Numbers are reference by the chunks, so we need to wait until that is ready
     // to be flushed before the number page can be flushed. Otherwise, we might have number
     // integrated back to the GC, but the chunk hasn't yet, thus GC won't see the reference.
-    SListBase<BlockRecord> pendingReferenceNumberBlock;
+    SListBase<BlockRecord, NoThrowHeapAllocator> pendingReferenceNumberBlock;
 };
 
 class CodeGenNumberAllocator
@@ -144,3 +149,41 @@ private:
     bool finalized;
 #endif
 };
+
+namespace Js
+{
+    class StaticType;
+}
+
+struct XProcNumberPageSegmentImpl : public XProcNumberPageSegment
+{
+    XProcNumberPageSegmentImpl();
+    Js::JavascriptNumber* AllocateNumber(Func* func, double value);
+    unsigned int GetTotalSize() { return PageCount * AutoSystemInfo::PageSize; }
+    void* GetEndAddress() { return (void*)(this->pageAddress + PageCount * AutoSystemInfo::PageSize); }
+    void* GetCommitEndAddress() { return (void*)(this->pageAddress + this->committedEnd); }
+
+    static const uint BlockSize = SmallAllocationBlockAttributes::PageCount*AutoSystemInfo::PageSize;
+    static const uint PageCount = Memory::IdleDecommitPageAllocator::DefaultMaxAllocPageCount;
+    static uint sizeCat;
+    static void Initialize(bool recyclerVerifyEnabled, uint recyclerVerifyPad);
+};
+
+static_assert(sizeof(XProcNumberPageSegmentImpl) == sizeof(XProcNumberPageSegment), "should not have data member in XProcNumberPageSegmentImpl");
+
+struct XProcNumberPageSegmentManager
+{
+    CriticalSection cs;
+    XProcNumberPageSegmentImpl* segmentsList;
+    Recycler* recycler;
+    unsigned int integratedSegmentCount;
+    XProcNumberPageSegmentManager(Recycler* recycler);
+
+    ~XProcNumberPageSegmentManager();
+
+    XProcNumberPageSegment * GetFreeSegment(Memory::ArenaAllocator* alloc);
+    Field(Js::JavascriptNumber*)* RegisterSegments(XProcNumberPageSegment* segments);
+
+    void Integrate();
+};
+#endif

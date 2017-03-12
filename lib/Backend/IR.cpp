@@ -92,7 +92,7 @@ Instr::ChangeEquivalentToMonoTypeCheckBailOut()
     this->SetBailOutKind(IR::EquivalentToMonoTypeCheckBailOutKind(this->GetBailOutKind()));
 }
 
-Js::Var
+intptr_t
 Instr::TryOptimizeInstrWithFixedDataProperty(IR::Instr **pInstr, GlobOpt * globopt)
 {
     IR::Instr *&instr = *pInstr;
@@ -103,7 +103,7 @@ Instr::TryOptimizeInstrWithFixedDataProperty(IR::Instr **pInstr, GlobOpt * globo
     IR::PropertySymOpnd * propSymOpnd = src1->AsSymOpnd()->AsPropertySymOpnd();
     if (propSymOpnd->HasFixedValue() && !propSymOpnd->IsPoly())
     {
-        Js::Var fixedValue = propSymOpnd->GetFieldValueAsFixedData();
+        intptr_t fixedValue = propSymOpnd->GetFieldValueAsFixedData();
         Assert(instr->IsProfiledInstr());
         ValueType valType = instr->AsProfiledInstr()->u.FldInfo().valueType;
         if (fixedValue && ((Js::TaggedInt::Is(fixedValue) && (valType.IsUninitialized() || valType.IsLikelyInt())) || PHASE_ON1(Js::FixDataVarPropsPhase)))
@@ -120,18 +120,18 @@ Instr::TryOptimizeInstrWithFixedDataProperty(IR::Instr **pInstr, GlobOpt * globo
                 instr = instr->ConvertToBailOutInstr(instr, !propSymOpnd->HasEquivalentTypeSet() ? IR::BailOutFailedFixedFieldTypeCheck : IR::BailOutFailedEquivalentFixedFieldTypeCheck);
             }
 
-            IR::Instr* loadInstr = IR::Instr::NewConstantLoad(dataValueDstOpnd, fixedValue, instr->m_func);
+            IR::Instr* loadInstr = IR::Instr::NewConstantLoad(dataValueDstOpnd, (intptr_t)fixedValue, valType, instr->m_func);
 
             OUTPUT_VERBOSE_TRACE(Js::UseFixedDataPropsPhase,
-                _u("FixedFields: Replacing the source (fixed Data prop) with property id %s with 0x%x .\n"),
-                propSymOpnd->GetPropertySym()->GetName(), fixedValue);
+                _u("FixedFields: Replacing the source (fixed Data prop) with property id %u with 0x%x .\n"),
+                propSymOpnd->GetPropertyId(), fixedValue);
 
             instr->InsertAfter(loadInstr);
             propSymOpnd->SetUsesFixedValue(true);
             return fixedValue;
         }
     }
-    return nullptr;
+    return 0;
 }
 
 ///----------------------------------------------------------------------------
@@ -145,7 +145,7 @@ Instr::TryOptimizeInstrWithFixedDataProperty(IR::Instr **pInstr, GlobOpt * globo
 bool
 Instr::IsEqual(IR::Instr *compareInstr) const
 {
-    Assert(this && compareInstr);
+    Assert(compareInstr);
     if (this->GetKind() == compareInstr->GetKind()
         && this->m_opcode == compareInstr->m_opcode)
     {
@@ -870,35 +870,125 @@ ProfiledInstr::CopyProfiledInstr() const
 }
 
 ByteCodeUsesInstr *
-ByteCodeUsesInstr::New(Func * func)
+ByteCodeUsesInstr::New(IR::Instr * originalBytecodeInstr)
+{
+    Func* func = originalBytecodeInstr->m_func;
+    ByteCodeUsesInstr * byteCodeUses = JitAnew(func->m_alloc, IR::ByteCodeUsesInstr);
+    byteCodeUses->Init(Js::OpCode::ByteCodeUses, InstrKindByteCodeUses, func);
+    byteCodeUses->byteCodeUpwardExposedUsed = nullptr;
+    byteCodeUses->propertySymUse = nullptr;
+    byteCodeUses->SetByteCodeOffset(originalBytecodeInstr);
+    return byteCodeUses;
+}
+
+ByteCodeUsesInstr *
+ByteCodeUsesInstr::New(Func * func, uint32 offset)
 {
     ByteCodeUsesInstr * byteCodeUses = JitAnew(func->m_alloc, IR::ByteCodeUsesInstr);
     byteCodeUses->Init(Js::OpCode::ByteCodeUses, InstrKindByteCodeUses, func);
     byteCodeUses->byteCodeUpwardExposedUsed = nullptr;
     byteCodeUses->propertySymUse = nullptr;
+    byteCodeUses->SetByteCodeOffset(offset);
     return byteCodeUses;
 }
 
-ByteCodeUsesInstr *
-ByteCodeUsesInstr::New(IR::Instr* originalBytecodeInstr, SymID symid)
+const BVSparse<JitArenaAllocator> * ByteCodeUsesInstr::GetByteCodeUpwardExposedUsed() const
 {
-    Func* func = originalBytecodeInstr->m_func;
-    ByteCodeUsesInstr * byteCodeUses = JitAnew(func->m_alloc, IR::ByteCodeUsesInstr);
-    byteCodeUses->Init(Js::OpCode::ByteCodeUses, InstrKindByteCodeUses, func);
-    byteCodeUses->byteCodeUpwardExposedUsed = JitAnew(func->m_alloc, BVSparse<JitArenaAllocator>, func->m_alloc);
-    byteCodeUses->byteCodeUpwardExposedUsed->Set(symid);
-    byteCodeUses->SetByteCodeOffset(originalBytecodeInstr);
-    byteCodeUses->propertySymUse = nullptr;
-    return byteCodeUses;
+    return this->byteCodeUpwardExposedUsed;
 }
 
-void ByteCodeUsesInstr::Set(uint symId)
+// In the case of instances where you would like to add a ByteCodeUses to some sym,
+// which doesn't have an operand associated with it (like a block closure sym), use
+// this to set it without needing to pass the check for JIT-Optimized registers.
+void ByteCodeUsesInstr::SetNonOpndSymbol(uint symId)
 {
-    if(!byteCodeUpwardExposedUsed)
+    if (!this->byteCodeUpwardExposedUsed)
     {
-        byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
+        this->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
     }
-    byteCodeUpwardExposedUsed->Set(symId);
+    this->byteCodeUpwardExposedUsed->Set(symId);
+}
+
+// In cases where the operand you're working on may be changed between when you get
+// access to it and when you determine that you can set it in the ByteCodeUsesInstr
+// set method, cache the values and use this caller.
+void ByteCodeUsesInstr::SetRemovedOpndSymbol(bool isJITOptimizedReg, uint symId)
+{
+    if (isJITOptimizedReg)
+    {
+        AssertMsg(false, "Tried to add a jit-optimized register to a ByteCodeUses instruction!");
+        // Although we assert on debug builds, we should actually be ok with release builds
+        // if we ignore the operand; not ignoring it, however, can cause us to introduce an
+        // inconsistency in bytecode register lifetimes.
+        return;
+    }
+    if(!this->byteCodeUpwardExposedUsed)
+    {
+        this->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
+    }
+    this->byteCodeUpwardExposedUsed->Set(symId);
+}
+
+void ByteCodeUsesInstr::Set(IR::Opnd * originalOperand)
+{
+    Assert(originalOperand && originalOperand->GetStackSym());
+    bool isJITOptimizedReg = originalOperand->GetIsJITOptimizedReg();
+    SymID symId = originalOperand->GetStackSym()->m_id;
+    if (isJITOptimizedReg)
+    {
+        AssertMsg(false, "Tried to add a jit-optimized register to a ByteCodeUses instruction!");
+        // Although we assert on debug builds, we should actually be ok with release builds
+        // if we ignore the operand; not ignoring it, however, can cause us to introduce an
+        // inconsistency in bytecode register lifetimes.
+        return;
+    }
+    if (!this->byteCodeUpwardExposedUsed)
+    {
+        this->byteCodeUpwardExposedUsed = JitAnew(m_func->m_alloc, BVSparse<JitArenaAllocator>, m_func->m_alloc);
+    }
+    this->byteCodeUpwardExposedUsed->Set(symId);
+}
+
+void ByteCodeUsesInstr::Clear(uint symId)
+{
+    Assert(byteCodeUpwardExposedUsed != nullptr);
+    this->byteCodeUpwardExposedUsed->Clear(symId);
+}
+
+void ByteCodeUsesInstr::SetBV(BVSparse<JitArenaAllocator>* newbv)
+{
+    Assert(byteCodeUpwardExposedUsed == nullptr && newbv != nullptr);
+    byteCodeUpwardExposedUsed = newbv;
+}
+
+// If possible, we want to aggregate with subsequent ByteCodeUses Instructions, so
+// that we can do some optimizations in other places where we can simplify args in
+// a compare, but still need to generate them for bailouts. Without this, we cause
+// problems because we end up with an instruction losing atomicity in terms of its
+// bytecode use and generation lifetimes.
+void ByteCodeUsesInstr::Aggregate()
+{
+    IR::Instr* scanner = this->m_next;
+    while (scanner && scanner->m_opcode == Js::OpCode::ByteCodeUses && scanner->GetByteCodeOffset() == this->GetByteCodeOffset() && scanner->GetDst() == nullptr)
+    {
+        IR::ByteCodeUsesInstr* target = scanner->AsByteCodeUsesInstr();
+        Assert(this->m_func == target->m_func);
+        if (target->byteCodeUpwardExposedUsed)
+        {
+            if (this->byteCodeUpwardExposedUsed)
+            {
+                this->byteCodeUpwardExposedUsed->Or(target->byteCodeUpwardExposedUsed);
+                JitAdelete(target->byteCodeUpwardExposedUsed->GetAllocator(), target->byteCodeUpwardExposedUsed);
+                target->byteCodeUpwardExposedUsed = nullptr;
+            }
+            else
+            {
+                this->byteCodeUpwardExposedUsed = target->byteCodeUpwardExposedUsed;
+                target->byteCodeUpwardExposedUsed = nullptr;
+            }
+        }
+        scanner = scanner->m_next;
+    }
 }
 
 BailOutInfo *
@@ -1293,7 +1383,7 @@ BailOutInstrTemplate<InstrType>::New(Js::OpCode opcode, BailOutKind kind, BailOu
     // If the function has bailout instructions, we keep the loop bodies alive
     // in case we bail out to the interpreter, so that we can reuse the jitted
     // loop bodies
-    func->GetJnFunction()->SetHasBailoutInstrInJittedCode(true);
+    func->GetJITOutput()->SetHasBailoutInstr(true);
 
     return bailOutInstr;
 }
@@ -1865,15 +1955,12 @@ PragmaInstr::Record(uint32 nativeBufferOffset)
 {
     // Currently the only pragma instructions are for Source Info
     Assert(this->m_func->GetTopFunc()->DoRecordNativeMap());
-    this->m_func->GetTopFunc()->m_workItem->RecordNativeMap(nativeBufferOffset, m_statementIndex);
+    if (!m_func->IsOOPJIT())
+    {
+        m_func->GetTopFunc()->GetInProcJITEntryPointInfo()->RecordNativeMap(nativeBufferOffset, m_statementIndex);
+    }
 }
 #endif
-
-void
-PragmaInstr::RecordThrowMap(Js::SmallSpanSequenceIter& iter, uint32 nativeBufferOffset)
-{
-    m_func->GetTopFunc()->m_workItem->RecordNativeThrowMap(iter, nativeBufferOffset, m_statementIndex);
-}
 
 ///----------------------------------------------------------------------------
 ///
@@ -1997,6 +2084,7 @@ Instr::SetDst(Opnd * newDst)
             stackSym->m_instrDef    = nullptr;
             stackSym->m_isConst     = false;
             stackSym->m_isIntConst  = false;
+            stackSym->m_isInt64Const= false;
             stackSym->m_isTaggableIntConst  = false;
             stackSym->m_isNotInt    = false;
             stackSym->m_isStrConst  = false;
@@ -2279,27 +2367,6 @@ Instr::HoistSrc1(Js::OpCode assignOpcode, RegNum regNum, StackSym *newSym)
     return newInstr;
 }
 
-bool
-Instr::IsSrc1FunctionObject()
-{
-    if (!this->GetSrc1())
-    {
-        return false;
-    }
-    if (this->GetSrc1()->IsAddrOpnd())
-    {
-        return this->GetSrc1()->AsAddrOpnd()->m_isFunction;
-    }
-    if (this->GetSrc1()->IsRegOpnd())
-    {
-        return (this->GetSrc1()->AsRegOpnd()->m_sym->AsStackSym()->IsSingleDef() &&
-                this->GetSrc1()->AsRegOpnd()->m_sym->AsStackSym()->GetInstrDef()->GetSrc1()->IsAddrOpnd() &&
-                this->GetSrc1()->AsRegOpnd()->m_sym->AsStackSym()->GetInstrDef()->GetSrc1()->AsAddrOpnd()->m_isFunction);
-    }
-
-    return false;
-}
-
 ///----------------------------------------------------------------------------
 ///
 /// Instr::UnlinkSrc2
@@ -2449,10 +2516,11 @@ Instr::HoistMemRefAddress(MemRefOpnd *const memRefOpnd, const Js::OpCode loadOpC
 #if defined(_M_IX86) || defined(_M_X64)
     Assert(!LowererMDArch::IsLegalMemLoc(memRefOpnd));
 #endif
-    void * address = memRefOpnd->GetMemLoc();
+    intptr_t address = memRefOpnd->GetMemLoc();
     IR::AddrOpndKind kind = memRefOpnd->GetAddrKind();
     Func *const func = m_func;
-    IR::IndirOpnd * indirOpnd = func->GetTopFunc()->GetConstantAddressIndirOpnd(address, kind, memRefOpnd->GetType(), loadOpCode);
+    IR::AddrOpnd * addrOpnd = IR::AddrOpnd::New(address, kind, this->m_func, true);
+    IR::IndirOpnd * indirOpnd = func->GetTopFunc()->GetConstantAddressIndirOpnd(address, addrOpnd, kind, memRefOpnd->GetType(), loadOpCode);
 
     if (indirOpnd == nullptr)
     {
@@ -2467,7 +2535,8 @@ Instr::HoistMemRefAddress(MemRefOpnd *const memRefOpnd, const Js::OpCode loadOpC
 
         indirOpnd = IR::IndirOpnd::New(addressRegOpnd, 0, memRefOpnd->GetType(), func, true);
 #if DBG_DUMP
-        indirOpnd->SetAddrKind(kind, address);
+        // TODO: michhol oop jit, make intptr
+        indirOpnd->SetAddrKind(kind, (void*)address);
 #endif
     }
     return DeepReplace(memRefOpnd, indirOpnd)->AsIndirOpnd();
@@ -2893,6 +2962,18 @@ Instr::FindRegDef(StackSym *sym)
     return nullptr;
 }
 
+Instr*
+Instr::FindSingleDefInstr(Js::OpCode opCode, Opnd* src)
+{
+    RegOpnd* src1 = src->IsRegOpnd() ? src->AsRegOpnd() : nullptr;
+
+    return  src1 &&
+        src1->m_sym->IsSingleDef() &&
+        src1->m_sym->GetInstrDef()->m_opcode == opCode ?
+        src1->m_sym->GetInstrDef() :
+        nullptr;
+}
+
 void
 Instr::TransferDstAttributesTo(Instr * instr)
 {
@@ -3234,7 +3315,7 @@ IR::Instr* Instr::GetArgOutSnapshot()
 bool Instr::HasAnyImplicitCalls() const
 {
     // there can be no implicit calls in asm.js
-    if (m_func->GetJnFunction()->GetIsAsmjsMode())
+    if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
         return false;
     }
@@ -3244,8 +3325,8 @@ bool Instr::HasAnyImplicitCalls() const
     }
     if (OpCodeAttr::OpndHasImplicitCall(this->m_opcode))
     {
-        if (this->m_dst && 
-            ((this->m_dst->IsSymOpnd() && this->m_dst->AsSymOpnd()->m_sym->IsPropertySym()) || 
+        if (this->m_dst &&
+            ((this->m_dst->IsSymOpnd() && this->m_dst->AsSymOpnd()->m_sym->IsPropertySym()) ||
              this->m_dst->IsIndirOpnd()))
         {
             return true;
@@ -3285,23 +3366,23 @@ bool Instr::HasAnyImplicitCalls() const
 
 bool Instr::HasAnySideEffects() const
 {
-    if (OpCodeAttr::HasSideEffects(this->m_opcode))
-    {
-        return true;
-    }
-
-    if (this->HasAnyImplicitCalls())
-    {
-        return true;
-    }
-
-    return false;
+    return (hasSideEffects ||
+            OpCodeAttr::HasSideEffects(this->m_opcode) ||
+            this->HasAnyImplicitCalls());
 }
 
-Js::JavascriptFunction* Instr::GetFixedFunction() const
+bool Instr::AreAllOpndInt64() const
+{
+    bool isDstInt64 = !m_dst || IRType_IsInt64(m_dst->GetType());
+    bool isSrc1Int64 = !m_src1 || IRType_IsInt64(m_src1->GetType());
+    bool isSrc2Int64 = !m_src2 || IRType_IsInt64(m_src2->GetType());
+    return isDstInt64 && isSrc1Int64 && isSrc2Int64;
+}
+
+FixedFieldInfo* Instr::GetFixedFunction() const
 {
     Assert(HasFixedFunctionAddressTarget());
-    Js::JavascriptFunction* function = Js::JavascriptFunction::FromVar(this->m_src1->AsAddrOpnd()->m_address);
+    FixedFieldInfo* function = (FixedFieldInfo*)this->m_src1->AsAddrOpnd()->m_metadata;
     return function;
 }
 
@@ -3404,14 +3485,14 @@ bool Instr::CallsGetter(IR::PropertySymOpnd* methodOpnd)
         ((this->AsProfiledInstr()->u.FldInfo().flags & Js::FldInfo_FromAccessor) != 0);
 }
 
-IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, Js::Var varConst, Func* func)
+IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, intptr_t varConst, ValueType type, Func* func, Js::Var varLocal/* = nullptr*/)
 {
     IR::Opnd *srcOpnd = nullptr;
     IR::Instr *instr;
 
     if (Js::TaggedInt::Is(varConst))
     {
-        IntConstType value = Js::TaggedInt::ToInt32(varConst);
+        IntConstType value = Js::TaggedInt::ToInt32((Js::Var)varConst);
         instr = IR::Instr::New(Js::OpCode::LdC_A_I4, dstOpnd, IR::IntConstOpnd::New(value, TyInt32, func), func);
         if (dstOpnd->m_sym->IsSingleDef())
         {
@@ -3420,28 +3501,35 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, Js::Var varConst, Fu
     }
     else
     {
-        Js::RecyclableObject *obj;
-
-        if (varConst == (Js::Var)&Js::NullFrameDisplay)
+        if (varConst == func->GetThreadContextInfo()->GetNullFrameDisplayAddr())
         {
-            instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd,
-                IR::AddrOpnd::New((Js::Var)&Js::NullFrameDisplay, IR::AddrOpndKindDynamicMisc, func), func);
+            instr = IR::Instr::New(
+                Js::OpCode::Ld_A,
+                dstOpnd,
+                IR::AddrOpnd::New(
+                    func->GetThreadContextInfo()->GetNullFrameDisplayAddr(),
+                    IR::AddrOpndKindDynamicMisc,
+                    func),
+                func);
         }
-        else if (varConst == (Js::Var)&Js::StrictNullFrameDisplay)
+        else if (varConst == func->GetThreadContextInfo()->GetStrictNullFrameDisplayAddr())
         {
-            instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd,
-                IR::AddrOpnd::New((Js::Var)&Js::StrictNullFrameDisplay, IR::AddrOpndKindDynamicMisc, func), func);
+            instr = IR::Instr::New(
+                Js::OpCode::Ld_A,
+                dstOpnd,
+                IR::AddrOpnd::New(
+                    func->GetThreadContextInfo()->GetStrictNullFrameDisplayAddr(),
+                    IR::AddrOpndKindDynamicMisc,
+                    func),
+                func);
         }
         else
         {
-            ValueType valueType;
 
-            switch (Js::JavascriptOperators::GetTypeId(varConst))
+            ValueType valueType;
+            if(type.IsString())
             {
-            case Js::TypeIds_String:
-            {
-                obj = Js::RecyclableObject::FromVar(varConst);
-                srcOpnd = IR::AddrOpnd::New(obj, IR::AddrOpndKindDynamicVar, func, true);
+                srcOpnd = IR::AddrOpnd::New(varConst, IR::AddrOpndKindDynamicVar, func, true, varLocal);
                 instr = IR::Instr::New(Js::OpCode::LdStr, dstOpnd, srcOpnd, func);
                 Assert(dstOpnd->m_sym->m_isSingleDef);
                 if (dstOpnd->m_sym->IsSingleDef())
@@ -3451,12 +3539,25 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, Js::Var varConst, Fu
                 }
                 dstOpnd->SetValueType(ValueType::String);
                 srcOpnd->SetValueType(ValueType::String);
-                break;
             }
-            case Js::TypeIds_Number:
+            else if(type.IsNumber())
             {
-                Assert(Js::JavascriptNumber::Is(varConst));
-                srcOpnd = IR::FloatConstOpnd::New(varConst, TyFloat64, func);
+                // TODO (michhol): OOP JIT. we may need to unbox before sending over const table
+
+                if (!func->IsOOPJIT())
+                {
+                    srcOpnd = IR::FloatConstOpnd::New((Js::Var)varConst, TyFloat64, func);
+                }
+                else
+                {
+                    srcOpnd = IR::FloatConstOpnd::New((Js::Var)varConst, TyFloat64, func
+#if !FLOATVAR
+                        ,varLocal
+#endif
+                    );
+
+                }
+
                 instr = IR::Instr::New(Js::OpCode::LdC_A_R8, dstOpnd, srcOpnd, func);
                 if (dstOpnd->m_sym->IsSingleDef())
                 {
@@ -3467,25 +3568,23 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, Js::Var varConst, Fu
 #else
                     // Don't set m_isNotInt to true if the float constant value is an int32 or uint32. Uint32s may sometimes be
                     // treated as int32s for the purposes of int specialization.
-                    dstOpnd->m_sym->m_isNotInt = !Js::JavascriptNumber::IsInt32OrUInt32_NoChecks(varConst);
+                    dstOpnd->m_sym->m_isNotInt = !Js::JavascriptNumber::IsInt32OrUInt32(((IR::FloatConstOpnd*)srcOpnd)->m_value);
+
+
 #endif
                 }
-                break;
             }
-            case Js::TypeIds_Undefined:
-                valueType = ValueType::Undefined;
-                goto dynamicVar;
-            case Js::TypeIds_Null:
-                valueType = ValueType::Null;
-                goto dynamicVar;
-            case Js::TypeIds_Boolean:
-                valueType = ValueType::Boolean;
-                goto dynamicVar;
-            default:
-                valueType = ValueType::GetObject(ObjectType::Object);
-            dynamicVar:
-                obj = Js::RecyclableObject::FromVar(varConst);
-                srcOpnd = IR::AddrOpnd::New(obj, IR::AddrOpndKindDynamicVar, func, true);
+            else
+            {
+                if (type.IsUndefined() || type.IsNull() || type.IsBoolean())
+                {
+                    valueType = type;
+                }
+                else
+                {
+                    valueType = ValueType::GetObject(ObjectType::Object);
+                }
+                srcOpnd = IR::AddrOpnd::New(varConst, IR::AddrOpndKindDynamicVar, func, true, varLocal);
                 instr = IR::Instr::New(Js::OpCode::Ld_A, dstOpnd, srcOpnd, func);
                 if (dstOpnd->m_sym->IsSingleDef())
                 {
@@ -3493,7 +3592,6 @@ IR::Instr* IR::Instr::NewConstantLoad(IR::RegOpnd* dstOpnd, Js::Var varConst, Fu
                 }
                 dstOpnd->SetValueType(valueType);
                 srcOpnd->SetValueType(valueType);
-                break;
             }
         }
     }
@@ -3607,6 +3705,73 @@ bool Instr::IsCmCC_I4()
 {
     return (this->m_opcode >= Js::OpCode::CmEq_I4 && this->m_opcode <= Js::OpCode::CmUnGe_I4);
 }
+
+template <typename T>
+bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
+{
+    T value = 0;
+    bool check = true;
+    switch (this->m_opcode)
+    {
+#define BINARY_U(OPCODE,HANDLER) \
+    case Js::OpCode::##OPCODE: \
+        value = HANDLER((typename SignedTypeTraits<T>::UnsignedType)src1Const, (typename SignedTypeTraits<T>::UnsignedType)src2Const); \
+        break;
+#define BINARY(OPCODE,HANDLER) \
+    case Js::OpCode::##OPCODE: \
+        value = HANDLER(src1Const, src2Const); \
+        break;
+        BINARY(CmEq_I4, Js::AsmJsMath::CmpEq)
+        BINARY(CmNeq_I4, Js::AsmJsMath::CmpNe)
+        BINARY(CmLt_I4, Js::AsmJsMath::CmpLt)
+        BINARY(CmGt_I4, Js::AsmJsMath::CmpGt)
+        BINARY(CmLe_I4, Js::AsmJsMath::CmpLe)
+        BINARY(CmGe_I4, Js::AsmJsMath::CmpGe)
+        BINARY_U(CmUnLt_I4, Js::AsmJsMath::CmpLt)
+        BINARY_U(CmUnGt_I4, Js::AsmJsMath::CmpGt)
+        BINARY_U(CmUnLe_I4, Js::AsmJsMath::CmpLe)
+        BINARY_U(CmUnGe_I4, Js::AsmJsMath::CmpGe)
+        //
+        BINARY(Add_I4, Js::AsmJsMath::Add)
+        BINARY(Sub_I4, Js::AsmJsMath::Sub)
+        BINARY(Mul_I4, Js::AsmJsMath::Mul)
+        BINARY(And_I4, Js::AsmJsMath::And)
+        BINARY(Or_I4, Js::AsmJsMath::Or)
+        BINARY(Xor_I4, Js::AsmJsMath::Xor)
+        BINARY(Shl_I4, Wasm::WasmMath::Shl)
+        BINARY(Shr_I4, Wasm::WasmMath::Shr)
+        BINARY_U(ShrU_I4, Wasm::WasmMath::ShrU)
+        case Js::OpCode::Div_I4:
+            check = GetSrc1()->IsUnsigned() || !(src1Const == SignedTypeTraits<T>::MinValue && src2Const == -1);
+        case Js::OpCode::Rem_I4:
+        if (check && (src2Const != 0))
+        {
+            if (GetSrc1()->IsUnsigned())
+            {
+                value = m_opcode == Js::OpCode::Div_I4 ?
+                    Js::AsmJsMath::Div<typename SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const) :
+                    Js::AsmJsMath::Rem<typename SignedTypeTraits<T>::UnsignedType>(src1Const, src2Const);
+            }
+            else
+            {
+                value = m_opcode == Js::OpCode::Div_I4 ?
+                    Js::AsmJsMath::Div<T>(src1Const, src2Const) :
+                    Js::AsmJsMath::Rem<T>(src1Const, src2Const);
+            }
+        }
+        break;
+        default:
+            return false;
+#undef BINARY
+#undef BINARY_U
+    }
+
+    *pResult = value;
+    return true;
+}
+
+template bool Instr::BinaryCalculatorT<int>(int src1Const64, int src2Const64, int64 *pResult);
+template bool Instr::BinaryCalculatorT<int64>(int64 src1Const64, int64 src2Const64, int64 *pResult);
 
 bool Instr::BinaryCalculator(IntConstType src1Const, IntConstType src2Const, IntConstType *pResult)
 {
@@ -3769,7 +3934,7 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
         break;
 
     case Js::OpCode::Conv_Num:
-    case Js::OpCode::LdC_A_I4:
+    case Js::OpCode::Ld_I4:
         value = src1Const;
         break;
 
@@ -3799,7 +3964,7 @@ bool Instr::UnaryCalculator(IntConstType src1Const, IntConstType *pResult)
         }
         break;
 
-    case Js::OpCode::InlineMathClz32:
+    case Js::OpCode::InlineMathClz:
         DWORD clz;
         DWORD src1Const32;
         src1Const32 = (DWORD)src1Const;
@@ -3887,13 +4052,13 @@ Instr::DumpTestTrace()
         switch (propertySym->m_fieldKind)
         {
         case PropertyKindData:
+            if (!JITManager::GetJITManager()->IsOOPJITEnabled())
             {
-                Js::ScriptContext* scriptContext;
-                scriptContext = propertySym->GetFunc()->GetScriptContext();
-                Js::PropertyRecord const* fieldName = scriptContext->GetPropertyNameLocked(propertySym->m_propertyId);
+                Js::PropertyRecord const* fieldName = propertySym->GetFunc()->GetInProcThreadContext()->GetPropertyRecord(propertySym->m_propertyId);
                 Output::Print(_u("field: %s "), fieldName->GetBuffer());
                 break;
             }
+            // else fall through
         case PropertyKindSlots:
             Output::Print(_u("field: [%d] "), propertySym->m_propertyId);
             break;
@@ -3933,11 +4098,14 @@ Instr::DumpFieldCopyPropTestTrace()
     case Js::OpCode::TypeofElem:
 
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(_u("TestTrace fieldcopyprop: function %s (%s) "), this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(_u("TestTrace fieldcopyprop: function %s (%s) "),
+            this->m_func->GetJITFunctionBody()->GetDisplayName(),
+            this->m_func->GetDebugNumberSet(debugStringBuffer));
         if (this->IsInlined())
         {
-            Js::FunctionBody* topFunctionBody = this->m_func->GetTopFunc()->GetJnFunction();
-            Output::Print(_u("inlined caller function %s (%s) "), topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer));
+            Output::Print(_u("inlined caller function %s (%s) "),
+                this->m_func->GetTopFunc()->GetJITFunctionBody()->GetDisplayName(),
+                this->m_func->GetTopFunc()->GetDebugNumberSet(debugStringBuffer));
         }
         this->DumpTestTrace();
     default:
@@ -3989,7 +4157,7 @@ Instr::DumpByteCodeOffset()
     {
         Output::SkipToColumn(78);
         char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-        Output::Print(_u(" Func #%s"), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+        Output::Print(_u(" Func #%s"), this->m_func->GetDebugNumberSet(debugStringBuffer));
     }
 #ifdef BAILOUT_INJECTION
     if (this->bailOutByteCodeLocation != (uint)-1)
@@ -4000,7 +4168,7 @@ Instr::DumpByteCodeOffset()
 #endif
     if (this->m_opcode == Js::OpCode::InlineeStart)
     {
-        Output::Print(_u(" %s"), this->m_func->GetJnFunction()->GetDisplayName());
+        Output::Print(_u(" %s"), this->m_func->GetJITFunctionBody()->GetDisplayName());
     }
 }
 
@@ -4033,6 +4201,9 @@ Instr::Dump(IRDumpFlags flags)
         Output::Print(_u("%s "), Js::OpCodeUtil::GetOpCodeName(m_opcode));
         Output::SkipToColumn(38);
     };
+
+    // forward decl before goto statement
+    Opnd * dst = nullptr;
 
     if(m_opcode == Js::OpCode::BoundCheck || m_opcode == Js::OpCode::UnsignedBoundCheck)
     {
@@ -4099,18 +4270,18 @@ Instr::Dump(IRDumpFlags flags)
 
     Output::SkipToColumn(4);
 
-    Opnd * dst = this->GetDst();
+    dst = this->GetDst();
 
     if (dst)
     {
         dst->Dump(flags, this->m_func);
 
-        bool const dumpMarkTemp = PHASE_DUMP(Js::MarkTempPhase, m_func->GetJnFunction())
-            || PHASE_TRACE(Js::MarkTempPhase, m_func->GetJnFunction());
-        bool const dumpMarkTempNumber = dumpMarkTemp || PHASE_DUMP(Js::MarkTempNumberPhase, m_func->GetJnFunction())
-            || PHASE_TRACE(Js::MarkTempNumberPhase, m_func->GetJnFunction());
-        bool const dumpMarkTempObject = dumpMarkTemp || PHASE_DUMP(Js::MarkTempObjectPhase, m_func->GetJnFunction())
-            || PHASE_TRACE(Js::MarkTempObjectPhase, m_func->GetJnFunction());
+        bool const dumpMarkTemp = PHASE_DUMP(Js::MarkTempPhase, m_func)
+            || PHASE_TRACE(Js::MarkTempPhase, m_func);
+        bool const dumpMarkTempNumber = dumpMarkTemp || PHASE_DUMP(Js::MarkTempNumberPhase, m_func)
+            || PHASE_TRACE(Js::MarkTempNumberPhase, m_func);
+        bool const dumpMarkTempObject = dumpMarkTemp || PHASE_DUMP(Js::MarkTempObjectPhase, m_func)
+            || PHASE_TRACE(Js::MarkTempObjectPhase, m_func);
 
         if ((dumpMarkTempNumber && (this->dstIsTempNumberTransferred || this->dstIsTempNumber))
             || (dumpMarkTempObject && this->dstIsTempObject))
@@ -4187,7 +4358,7 @@ Instr::Dump(IRDumpFlags flags)
             if(branchInstr->m_isMultiBranch && branchInstr->IsMultiBranch())
             {
                 IR::MultiBranchInstr * multiBranchInstr = branchInstr->AsMultiBrInstr();
-                
+
                 // If this MultiBranchInstr has been lowered to a machine instruction, which means
                 // its opcode is not Js::OpCode::MultiBr, there is no need to print the labels.
                 if (this->m_opcode == Js::OpCode::MultiBr)
@@ -4221,32 +4392,39 @@ Instr::Dump(IRDumpFlags flags)
         Output::Print(_u("#%d"), this->AsPragmaInstr()->m_statementIndex);
     }
 
-    Opnd * src1 = this->GetSrc1();
-    if (this->m_opcode == Js::OpCode::NewScFunc || this->m_opcode == Js::OpCode::NewScGenFunc)
+    // scope
     {
-        Assert(src1->IsIntConstOpnd());
-        Js::ParseableFunctionInfo *function = this->m_func->GetJnFunction()->GetNestedFunctionForExecution((uint)src1->AsIntConstOpnd()->GetValue())->GetParseableFunctionInfo();
-        Output::Print(_u("func:%s()"), function ? function->GetDisplayName() : _u("???"));
-        Output::Print(_u(", env:"));
-        this->GetSrc2()->AsRegOpnd()->m_sym->Dump(flags);
-    }
-    else if (src1)
-    {
-        src1->Dump(flags, this->m_func);
-        Opnd * src2 = this->GetSrc2();
-        if (src2)
+        Opnd * src1 = this->GetSrc1();
+        if (this->m_opcode == Js::OpCode::NewScFunc || this->m_opcode == Js::OpCode::NewScGenFunc)
         {
-            Output::Print(_u(", "));
-            src2->Dump(flags, this->m_func);
+            Assert(src1->IsIntConstOpnd());
+            Js::ParseableFunctionInfo * function = nullptr;
+            if (!m_func->IsOOPJIT())
+            {
+                function = ((Js::ParseableFunctionInfo *)m_func->GetJITFunctionBody()->GetAddr())->GetNestedFunctionForExecution((uint)src1->AsIntConstOpnd()->GetValue())->GetParseableFunctionInfo();
+            }
+            Output::Print(_u("func:%s()"), function ? function->GetDisplayName() : _u("???"));
+            Output::Print(_u(", env:"));
+            this->GetSrc2()->AsRegOpnd()->m_sym->Dump(flags);
+        }
+        else if (src1)
+        {
+            src1->Dump(flags, this->m_func);
+            Opnd * src2 = this->GetSrc2();
+            if (src2)
+            {
+                Output::Print(_u(", "));
+                src2->Dump(flags, this->m_func);
+            }
         }
     }
 
     if (this->IsByteCodeUsesInstr())
     {
-        if (this->AsByteCodeUsesInstr()->byteCodeUpwardExposedUsed)
+        if (this->AsByteCodeUsesInstr()->GetByteCodeUpwardExposedUsed())
         {
             bool first = true;
-            FOREACH_BITSET_IN_SPARSEBV(id, this->AsByteCodeUsesInstr()->byteCodeUpwardExposedUsed)
+            FOREACH_BITSET_IN_SPARSEBV(id, this->AsByteCodeUsesInstr()->GetByteCodeUpwardExposedUsed())
             {
                 Output::Print(first? _u("s%d") : _u(", s%d"), id);
                 first = false;
@@ -4278,7 +4456,7 @@ PrintByteCodeOffsetEtc:
             if (!bailOutInfo->bailOutFunc->IsTopFunc())
             {
                 char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                Output::Print(_u(" Func %s"), bailOutInfo->bailOutFunc->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
+                Output::Print(_u(" Func %s"), bailOutInfo->bailOutFunc->GetDebugNumberSet(debugStringBuffer));
             }
             Output::Print(_u(" (%S)"), this->GetBailOutKindName());
         }
@@ -4342,7 +4520,15 @@ PragmaInstr::Dump(IRDumpFlags flags)
 {
     if (Js::Configuration::Global.flags.PrintSrcInDump && this->m_opcode == Js::OpCode::StatementBoundary)
     {
-        this->m_func->GetJnFunction()->PrintStatementSourceLine(this->m_statementIndex);
+        Js::FunctionBody * functionBody = nullptr;
+        if (!m_func->IsOOPJIT())
+        {
+            functionBody = ((Js::FunctionBody*)m_func->GetJITFunctionBody()->GetAddr());
+        }
+        if (functionBody)
+        {
+            functionBody->PrintStatementSourceLine(this->m_statementIndex);
+        }
     }
     __super::Dump(flags);
 }
@@ -4419,3 +4605,4 @@ Instr::DumpRange(Instr *instrEnd)
 #endif
 
 } // namespace IR
+

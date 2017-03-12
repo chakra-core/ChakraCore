@@ -6,12 +6,36 @@
 
 namespace Js
 {
-    FunctionInfo::FunctionInfo(JavascriptMethod entryPoint, Attributes attributes, LocalFunctionId functionId, FunctionBody* functionBodyImpl)
-        : originalEntryPoint(entryPoint), attributes(attributes), functionBodyImpl(functionBodyImpl), functionId(functionId)
+    FunctionInfo::FunctionInfo(JavascriptMethod entryPoint, Attributes attributes, LocalFunctionId functionId, FunctionProxy* functionBodyImpl)
+        : originalEntryPoint(entryPoint), attributes(attributes), functionBodyImpl(functionBodyImpl), functionId(functionId), compileCount(0)
     {
 #if !DYNAMIC_INTERPRETER_THUNK
         Assert(entryPoint != nullptr);
 #endif
+    }
+
+    FunctionInfo::FunctionInfo(JavascriptMethod entryPoint, _no_write_barrier_tag, Attributes attributes, LocalFunctionId functionId, FunctionProxy* functionBodyImpl)
+        : originalEntryPoint(entryPoint), attributes(attributes), functionBodyImpl(FORCE_NO_WRITE_BARRIER_TAG(functionBodyImpl)), functionId(functionId), compileCount(0)
+    {
+#if !DYNAMIC_INTERPRETER_THUNK
+        Assert(entryPoint != nullptr);
+#endif
+    }
+
+    FunctionInfo::FunctionInfo(FunctionInfo& that)
+        : originalEntryPoint(that.originalEntryPoint), attributes(that.attributes), 
+        functionBodyImpl(FORCE_NO_WRITE_BARRIER_TAG(that.functionBodyImpl)), functionId(that.functionId), compileCount(that.compileCount)
+    {
+
+    }
+
+    bool FunctionInfo::Is(void* ptr)
+    {
+        if(!ptr)
+        {
+            return false;
+        }
+        return VirtualTableInfo<FunctionInfo>::HasVirtualTable(ptr);
     }
 
     void FunctionInfo::VerifyOriginalEntryPoint() const
@@ -40,8 +64,7 @@ namespace Js
     FunctionBody *
     FunctionInfo::GetFunctionBody() const
     {
-        Assert(functionBodyImpl == nullptr || functionBodyImpl->IsFunctionBody());
-        return (FunctionBody *)functionBodyImpl;
+        return functionBodyImpl == nullptr ? nullptr : functionBodyImpl->GetFunctionBody();
     }
 
     FunctionInfo::Attributes FunctionInfo::GetAttributes(Js::RecyclableObject * function)

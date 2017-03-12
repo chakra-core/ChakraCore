@@ -1,0 +1,34 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 0,
+        "sourceText": "}",
+        "function": "foo"
+      },
+      {
+        "line": 16,
+        "column": 0,
+        "sourceText": "foo()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "return 0",
+        "function": "o.bar"
+      },
+      {
+        "line": 17,
+        "column": 0,
+        "sourceText": "o.bar()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

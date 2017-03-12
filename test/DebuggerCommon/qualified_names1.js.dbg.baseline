@@ -1,0 +1,146 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 10,
+        "column": 4,
+        "sourceText": "a++",
+        "function": "k"
+      },
+      {
+        "line": 12,
+        "column": 0,
+        "sourceText": "k()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 17,
+        "column": 4,
+        "sourceText": "a++",
+        "function": "k.subF1"
+      },
+      {
+        "line": 19,
+        "column": 0,
+        "sourceText": "k.subF1()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 23,
+        "column": 4,
+        "sourceText": "a++",
+        "function": "k.subF1.subsubF1"
+      },
+      {
+        "line": 27,
+        "column": 1,
+        "sourceText": "m()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 31,
+        "column": 4,
+        "sourceText": "a++",
+        "function": "k.subF2"
+      },
+      {
+        "line": 34,
+        "column": 1,
+        "sourceText": "k2()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 39,
+        "column": 4,
+        "sourceText": "a++",
+        "function": "k3"
+      },
+      {
+        "line": 42,
+        "column": 0,
+        "sourceText": "k3()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 47,
+        "column": 4,
+        "sourceText": "a++",
+        "function": "obj1[0]"
+      },
+      {
+        "line": 49,
+        "column": 0,
+        "sourceText": "obj1[0]()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 52,
+        "column": 4,
+        "sourceText": "a++",
+        "function": "obj1[test]"
+      },
+      {
+        "line": 54,
+        "column": 0,
+        "sourceText": "obj1[\"test\"]()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 59,
+        "column": 4,
+        "sourceText": "a++",
+        "function": "Anonymous function[2]"
+      },
+      {
+        "line": 61,
+        "column": 0,
+        "sourceText": "obj1[2]()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 65,
+        "column": 4,
+        "sourceText": "a++",
+        "function": "obj1[0][0]"
+      },
+      {
+        "line": 67,
+        "column": 0,
+        "sourceText": "obj1[0][0]()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

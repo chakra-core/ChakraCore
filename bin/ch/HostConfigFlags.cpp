@@ -78,9 +78,27 @@ void HostConfigFlags::PrintUsage()
         pfnPrintUsage();
     }
 
-    wprintf(_u("\nFlag List : \n"));
+    wprintf(_u("\nHost Config Flags: \n\n"));
     HostConfigFlags::PrintUsageString();
     ChakraRTInterface::PrintConfigFlagsUsageString();
+}
+
+int HostConfigFlags::FindArg(int argc, _In_reads_(argc) PWSTR argv[], PCWSTR targetArg, size_t targetArgLen)
+{
+    return FindArg(argc, argv, [=](PCWSTR arg) -> bool
+    {
+        return _wcsnicmp(arg, targetArg, targetArgLen) == 0;
+    });
+}
+
+void HostConfigFlags::RemoveArg(int& argc, _Inout_updates_to_(argc, argc) LPWSTR argv[], int index)
+{
+    Assert(index >= 0 && index < argc);
+    for (int i = index + 1; i < argc; ++i)
+    {
+        argv[i - 1] = argv[i];
+    }
+    --argc;
 }
 
 void HostConfigFlags::HandleArgsFlag(int& argc, _Inout_updates_to_(argc, argc) LPWSTR argv[])

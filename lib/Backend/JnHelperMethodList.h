@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #ifndef HELPERCALL
@@ -44,12 +44,14 @@ HELPERCALL(ScrObj_OP_IsInst, Js::JavascriptOperators::OP_IsInst, AttrCanThrow)
 HELPERCALL(Op_IsIn, Js::JavascriptOperators::IsIn, AttrCanThrow)
 HELPERCALL(Op_IsObject, Js::JavascriptOperators::IsObject, AttrCanThrow)
 HELPERCALL(Op_IsClassConstructor, Js::JavascriptOperators::IsClassConstructor, AttrCanThrow)
+HELPERCALL(Op_IsBaseConstructorKind, Js::JavascriptOperators::IsBaseConstructorKind, AttrCanThrow)
 HELPERCALL(Op_LoadHeapArguments, Js::JavascriptOperators::LoadHeapArguments, 0)
 HELPERCALL(Op_LoadHeapArgsCached, Js::JavascriptOperators::LoadHeapArgsCached, 0)
 HELPERCALL(OP_InitCachedScope, Js::JavascriptOperators::OP_InitCachedScope, 0)
 HELPERCALL(OP_InitCachedFuncs, Js::JavascriptOperators::OP_InitCachedFuncs, 0)
 HELPERCALL(OP_InvalidateCachedScope, Js::JavascriptOperators::OP_InvalidateCachedScope, 0)
 HELPERCALL(OP_NewScopeObject, Js::JavascriptOperators::OP_NewScopeObject, 0)
+HELPERCALL(OP_NewScopeObjectWithFormals, Js::JavascriptOperators::OP_NewScopeObjectWithFormals, 0)
 HELPERCALL(OP_NewScopeSlots, Js::JavascriptOperators::OP_NewScopeSlots, 0)
 HELPERCALL(OP_NewScopeSlotsWithoutPropIds, Js::JavascriptOperators::OP_NewScopeSlotsWithoutPropIds, 0)
 HELPERCALL(OP_NewBlockScope, Js::JavascriptOperators::OP_NewBlockScope, 0)
@@ -83,6 +85,11 @@ HELPERCALL(Op_TypeofElem_Int32, Js::JavascriptOperators::TypeofElem_Int32, 0)
 HELPERCALL(Op_TypeofPropertyScoped, Js::JavascriptOperators::OP_TypeofPropertyScoped, 0)
 HELPERCALL(Op_Rem_Double, Js::NumberUtilities::Modulus, 0)
 
+#ifdef ENABLE_WASM
+HELPERCALL(Op_CheckWasmSignature, Js::WebAssembly::CheckSignature, AttrCanThrow)
+HELPERCALL(Op_GrowWasmMemory, Js::WebAssemblyMemory::GrowHelper, 0)
+#endif
+
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Increment, Js::JavascriptMath::Increment, Js::SSE2::JavascriptMath::Increment, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Decrement, Js::JavascriptMath::Decrement, Js::SSE2::JavascriptMath::Decrement, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Negate, Js::JavascriptMath::Negate, Js::SSE2::JavascriptMath::Negate, AttrCanThrow)
@@ -95,7 +102,6 @@ HELPERCALL_FULL_OR_INPLACE_MATH(Op_Modulus, Js::JavascriptMath::Modulus, Js::SSE
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Multiply, Js::JavascriptMath::Multiply, Js::SSE2::JavascriptMath::Multiply, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Subtract, Js::JavascriptMath::Subtract, Js::SSE2::JavascriptMath::Subtract, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Exponentiation, Js::JavascriptMath::Exponentiation, Js::SSE2::JavascriptMath::Exponentiation, AttrCanThrow)
-
 
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_And, Js::JavascriptMath::And, Js::SSE2::JavascriptMath::And, AttrCanThrow)
 HELPERCALL_FULL_OR_INPLACE_MATH(Op_Or, Js::JavascriptMath::Or, Js::SSE2::JavascriptMath::Or, AttrCanThrow)
@@ -249,6 +255,7 @@ HELPERCALL(Op_ScopedGetMethod, ((Js::Var (*)(Js::FunctionBody *const, Js::Inline
 HELPERCALL(Op_ScopedGetMethodPolymorphic, ((Js::Var (*)(Js::FunctionBody *const, Js::PolymorphicInlineCache *const, const Js::InlineCacheIndex, Js::Var, Js::PropertyId, bool))Js::JavascriptOperators::PatchScopedGetMethod<true, Js::PolymorphicInlineCache>), AttrCanThrow)
 
 HELPERCALL(CheckIfTypeIsEquivalent, Js::JavascriptOperators::CheckIfTypeIsEquivalent, 0)
+HELPERCALL(CheckIfTypeIsEquivalentForFixedField, Js::JavascriptOperators::CheckIfTypeIsEquivalentForFixedField, 0)
 
 HELPERCALL(Op_Delete, Js::JavascriptOperators::Delete, AttrCanThrow)
 HELPERCALL(OP_InitSetter, Js::JavascriptOperators::OP_InitSetter, AttrCanThrow)
@@ -258,8 +265,7 @@ HELPERCALL(OP_InitElemGetter, Js::JavascriptOperators::OP_InitElemGetter, AttrCa
 HELPERCALL(OP_InitComputedProperty, Js::JavascriptOperators::OP_InitComputedProperty, AttrCanThrow)
 HELPERCALL(OP_InitProto, Js::JavascriptOperators::OP_InitProto, AttrCanThrow)
 
-HELPERCALL(Op_OP_GetForInEnumerator, Js::JavascriptOperators::OP_GetForInEnumerator, 0)
-HELPERCALL(Op_OP_ReleaseForInEnumerator, Js::JavascriptOperators::OP_ReleaseForInEnumerator, 0)
+HELPERCALL(Op_OP_InitForInEnumerator, Js::JavascriptOperators::OP_InitForInEnumerator, 0)
 HELPERCALL(Op_OP_BrOnEmpty, Js::JavascriptOperators::OP_BrOnEmpty, 0)
 
 HELPERCALL(Op_OP_BrFncEqApply, Js::JavascriptOperators::OP_BrFncEqApply, 0)
@@ -327,6 +333,10 @@ HELPERCALL(OP_CmGe_A, Js::JavascriptOperators::OP_CmGe_A, AttrCanThrow)
 
 HELPERCALL(Conv_ToUInt32_Full, Js::JavascriptConversion::ToUInt32_Full, AttrCanThrow)
 HELPERCALL(Conv_ToUInt32, (uint32 (*)(Js::Var, Js::ScriptContext *))Js::JavascriptConversion::ToUInt32, AttrCanThrow)
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+HELPERCALL(WriteBarrierSetVerifyBit, Memory::Recycler::WBSetBitJIT, 0)
+#endif
 #ifdef _M_IX86
 HELPERCALL(Op_Int32ToAtom, Js::JavascriptOperators::Int32ToVar, 0)
 HELPERCALL(Op_Int32ToAtomInPlace, Js::JavascriptOperators::Int32ToVarInPlace, 0)
@@ -350,6 +360,7 @@ HELPERCALL(Op_Throw, Js::JavascriptExceptionOperators::OP_Throw, AttrCanThrow)
 HELPERCALL(Op_RuntimeTypeError, Js::JavascriptExceptionOperators::OP_RuntimeTypeError, AttrCanThrow)
 HELPERCALL(Op_RuntimeRangeError, Js::JavascriptExceptionOperators::OP_RuntimeRangeError, AttrCanThrow)
 HELPERCALL(Op_RuntimeReferenceError, Js::JavascriptExceptionOperators::OP_RuntimeReferenceError, AttrCanThrow)
+HELPERCALL(Op_WebAssemblyRuntimeError, Js::JavascriptExceptionOperators::OP_WebAssemblyRuntimeError, AttrCanThrow)
 HELPERCALL(Op_OutOfMemoryError, Js::Throw::OutOfMemory, AttrCanThrow)
 HELPERCALL(Op_FatalInternalError, Js::Throw::FatalInternalError, AttrCanThrow)
 
@@ -487,14 +498,15 @@ HELPERCALL(EnsureFunctionProxyDeferredPrototypeType, &Js::FunctionProxy::EnsureF
 HELPERCALL(SpreadArrayLiteral, Js::JavascriptArray::SpreadArrayArgs, 0)
 HELPERCALL(SpreadCall, Js::JavascriptFunction::EntrySpreadCall, 0)
 
-HELPERCALL(LdSuper,             Js::JavascriptOperators::OP_LdSuper,            0)
-HELPERCALL(LdSuperCtor,         Js::JavascriptOperators::OP_LdSuperCtor,        0)
-HELPERCALL(ScopedLdSuper,       Js::JavascriptOperators::OP_ScopedLdSuper,      0)
-HELPERCALL(ScopedLdSuperCtor,   Js::JavascriptOperators::OP_ScopedLdSuperCtor,  0)
+HELPERCALL(LdHomeObj,           Js::JavascriptOperators::OP_LdHomeObj,          0)
+HELPERCALL(LdFuncObj,           Js::JavascriptOperators::OP_LdFuncObj,          0)
+HELPERCALL(ScopedLdHomeObj,     Js::JavascriptOperators::OP_ScopedLdHomeObj,    0)
+HELPERCALL(ScopedLdFuncObj,     Js::JavascriptOperators::OP_ScopedLdFuncObj,    0)
 HELPERCALL(SetHomeObj,          Js::JavascriptOperators::OP_SetHomeObj,         0)
+HELPERCALL(LdHomeObjProto,      Js::JavascriptOperators::OP_LdHomeObjProto,     0)
+HELPERCALL(LdFuncObjProto,      Js::JavascriptOperators::OP_LdFuncObjProto,     0)
 
 HELPERCALL(ResumeYield,   Js::JavascriptOperators::OP_ResumeYield,   AttrCanThrow)
-HELPERCALL(AsyncSpawn,    Js::JavascriptOperators::OP_AsyncSpawn,    AttrCanThrow)
 
 #include "ExternalHelperMethodList.h"
 
@@ -510,7 +522,6 @@ HELPERCALL(DirectMath_PowDoubleInt, (double(*)(double, int32))Js::JavascriptNumb
 HELPERCALL(DirectMath_Pow, (double(*)(double, double))Js::JavascriptNumber::DirectPow, 0)
 HELPERCALL_MATH(DirectMath_Random,  (double(*)(Js::ScriptContext*))Js::JavascriptMath::Random, (double(*)(Js::ScriptContext*))Js::SSE2::JavascriptMath::Random, 0)
 
-
 //
 // Putting dllimport function ptr in JnHelperMethodAddresses will cause the table to be allocated in read-write memory
 // as dynamic initialization is require to load these addresses.  Use nullptr instead and handle these function in GetNonTableMethodAddress().
@@ -524,6 +535,30 @@ HELPERCALL(DirectMath_FloorFlt, nullptr, 0)
 HELPERCALL(DirectMath_CeilDb, nullptr, 0)
 HELPERCALL(DirectMath_CeilFlt, nullptr, 0)
 
+HELPERCALL(DirectMath_TruncDb, (double(*)(double)) Wasm::WasmMath::Trunc<double>, 0)
+HELPERCALL(DirectMath_TruncFlt, (float(*)(float)) Wasm::WasmMath::Trunc<float>, 0)
+HELPERCALL(DirectMath_NearestDb, (double(*)(double)) Wasm::WasmMath::Nearest<double>, 0)
+HELPERCALL(DirectMath_NearestFlt, (float(*)(float)) Wasm::WasmMath::Nearest<float>, 0)
+
+HELPERCALL(PopCnt32, Math::PopCnt32, 0)
+HELPERCALL(PopCnt64, (int64(*)(int64)) Wasm::WasmMath::PopCnt<int64>, 0)
+
+#define CONVERSION_HELPER(HELPER_TYPE) HELPERCALL(HELPER_TYPE, Js::JavascriptConversion::##HELPER_TYPE, AttrCanThrow)
+CONVERSION_HELPER(F32TOI64)
+CONVERSION_HELPER(F32TOU64)
+CONVERSION_HELPER(F64TOI64)
+CONVERSION_HELPER(F64TOU64)
+#undef CONVERSION_HELPER
+
+HELPERCALL(I64TOF64,        Js::JavascriptConversion::LongToDouble,        0)
+HELPERCALL(UI64TOF64,       Js::JavascriptConversion::ULongToDouble,       0)
+HELPERCALL(I64TOF32,        Js::JavascriptConversion::LongToFloat,         0)
+HELPERCALL(UI64TOF32,       Js::JavascriptConversion::ULongToFloat,        0)
+
+#if (defined(ASMJS_PLAT) || defined(ENABLE_WASM)) && defined(ENABLE_DEBUG_CONFIG_OPTIONS)
+HELPERCALL(TraceAsmJsArgIn, WAsmJs::TraceAsmJsArgsIn, 0)
+#endif
+
 #ifdef _M_IX86
 HELPERCALL(DirectMath_Acos, nullptr, 0)
 HELPERCALL(DirectMath_Asin, nullptr, 0)
@@ -534,6 +569,18 @@ HELPERCALL(DirectMath_Exp, nullptr, 0)
 HELPERCALL(DirectMath_Log, nullptr, 0)
 HELPERCALL(DirectMath_Sin, nullptr, 0)
 HELPERCALL(DirectMath_Tan, nullptr, 0)
+HELPERCALL(DirectMath_Int64DivS, ((int64(*)(int64, int64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivOverflow<int64, &Js::AsmJsMath::Div<int64>, LONGLONG_MIN>), AttrCanThrow)
+HELPERCALL(DirectMath_Int64DivU, ((uint64(*)(uint64, uint64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivRemCheck<uint64, &Js::AsmJsMath::Div<uint64>>), AttrCanThrow)
+HELPERCALL(DirectMath_Int64RemS, ((int64(*)(int64, int64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivRemCheck<int64, &Wasm::WasmMath::Rem<int64>>), AttrCanThrow)
+HELPERCALL(DirectMath_Int64RemU, ((uint64(*)(uint64, uint64, Js::ScriptContext*)) Js::InterpreterStackFrame::OP_DivRemCheck<uint64, &Wasm::WasmMath::Rem<uint64>>), AttrCanThrow)
+HELPERCALL(DirectMath_Int64Mul , (int64(*)(int64,int64)) Js::AsmJsMath::Mul<int64>, 0)
+HELPERCALL(DirectMath_Int64Shl , (int64(*)(int64,int64)) Wasm::WasmMath::Shl<int64>, 0)
+HELPERCALL(DirectMath_Int64Shr , (int64(*)(int64,int64)) Wasm::WasmMath::Shr<int64>, 0)
+HELPERCALL(DirectMath_Int64ShrU, (int64(*)(int64,int64)) Wasm::WasmMath::ShrU<uint64>, 0)
+HELPERCALL(DirectMath_Int64Rol , (int64(*)(int64,int64)) Wasm::WasmMath::Rol<int64>, 0)
+HELPERCALL(DirectMath_Int64Ror , (int64(*)(int64,int64)) Wasm::WasmMath::Ror<int64>, 0)
+HELPERCALL(DirectMath_Int64Clz , (int64(*)(int64)) Wasm::WasmMath::Clz<int64>, 0)
+HELPERCALL(DirectMath_Int64Ctz , (int64(*)(int64)) Wasm::WasmMath::Ctz<int64>, 0)
 #elif defined(_M_X64)
 // AMD64 regular CRT calls -- on AMD64 calling convention is already what we want -- args in XMM0, XMM1 rather than on stack which is slower.
 HELPERCALL(DirectMath_Acos, nullptr, 0)

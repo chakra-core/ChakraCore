@@ -147,7 +147,7 @@ namespace Js
                     {
                         Throw::FatalInternalError();
                     }
-                    DebugOnly(size = sizeof(uint16));
+                    DebugOnly(size = sizeof(uint16) + 1);
                     *(serialization_alignment byte*)(buffer + this->offset) = TWO_BYTE_SENTINEL;
                     *(serialization_alignment uint16*)(buffer + this->offset + SENTINEL_BYTE_COUNT) = (uint16) this->value;
                 }
@@ -159,6 +159,7 @@ namespace Js
                     }
                     *(serialization_alignment byte*)(buffer + this->offset) = FOUR_BYTE_SENTINEL;
                     *(serialization_alignment T*)(buffer + this->offset + SENTINEL_BYTE_COUNT) = this->value;
+                    DebugOnly(size = sizeof(T) + 1);
 #if INSTRUMENT_BUFFER_INTS
                     printf("[BCGENSTATS] %d, %d\n", value, sizeof(T));
 #endif

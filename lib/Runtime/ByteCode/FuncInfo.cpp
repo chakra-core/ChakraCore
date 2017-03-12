@@ -62,11 +62,15 @@ FuncInfo::FuncInfo(
     applyEnclosesArgs(false),
     escapes(false),
     hasDeferredChild(false),
+    hasRedeferrableChild(false),
     childHasWith(false),
     hasLoop(false),
     hasEscapedUseNestedFunc(false),
     needEnvRegister(false),
     hasCapturedThis(false),
+#if DBG
+    isReused(false),
+#endif
     staticFuncId(-1),
     inlineCacheMap(nullptr),
     slotProfileIdMap(alloc),
@@ -96,7 +100,9 @@ FuncInfo::FuncInfo(
     stringToRegister(alloc, 17),
     doubleConstantToRegister(alloc, 17),
     stringTemplateCallsiteRegisterMap(alloc, 17),
-    targetStatements(alloc)
+    targetStatements(alloc),
+    nextForInLoopLevel(0),
+    maxForInLoopLevel(0)
 {
     this->byteCodeFunction = byteCodeFunction;
     bodyScope->SetFunc(this);
@@ -118,6 +124,11 @@ bool FuncInfo::IsGlobalFunction() const
 bool FuncInfo::IsDeferred() const
 {
     return root && root->sxFnc.pnodeBody == nullptr;
+}
+
+bool FuncInfo::IsRedeferrable() const
+{
+    return byteCodeFunction && byteCodeFunction->CanBeDeferred();
 }
 
 BOOL FuncInfo::HasSuperReference() const

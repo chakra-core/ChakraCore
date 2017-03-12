@@ -109,10 +109,10 @@ namespace Js
             static const uint MaxChainedBlockSize;
 
         private:
-            Block *const bufferOwner;
-            CharCount charLength;
-            CharCount charCapacity;
-            const Block *const previous;
+            Field(Block *const) bufferOwner;
+            Field(CharCount) charLength;
+            Field(CharCount) charCapacity;
+            Field(const Block *const) previous;
 
         private:
             Block(const CharCount charCapacity, const Block *const previous);
@@ -133,8 +133,8 @@ namespace Js
         public:
             static const char16 *Chars(const void *const buffer);
             static char16 *Chars(void *const buffer);
-            static void *const *Pointers(const void *const buffer);
-            static void **Pointers(void *const buffer);
+            static const Field(void*) *Pointers(const void *const buffer);
+            static Field(void*) *Pointers(void *const buffer);
             static CharCount PointerCapacityFromCharCapacity(const CharCount charCapacity);
             static CharCount CharCapacityFromPointerCapacity(const CharCount pointerCapacity);
             static CharCount PointerLengthFromCharLength(const CharCount charLength);
@@ -157,8 +157,8 @@ namespace Js
             CharCount CharCapacity() const;
 
         public:
-            void *const *Pointers() const;
-            void **Pointers();
+            const Field(void*) *Pointers() const;
+            Field(void*) *Pointers();
             CharCount PointerLength() const;
             CharCount PointerCapacity() const;
 
@@ -182,9 +182,9 @@ namespace Js
         class BlockInfo
         {
         private:
-            void *buffer;
-            CharCount charLength;
-            CharCount charCapacity;
+            Field(void *) buffer;
+            Field(CharCount) charLength;
+            Field(CharCount) charCapacity;
 
         public:
             BlockInfo();
@@ -197,7 +197,7 @@ namespace Js
             CharCount CharCapacity() const;
 
         public:
-            void **Pointers() const;
+            Field(void*) *Pointers() const;
             CharCount PointerLength() const;
             void SetPointerLength(const CharCount pointerLength);
             CharCount PointerCapacity() const;
@@ -268,7 +268,7 @@ namespace Js
             CharCount LastBlockCharCapacity() const;
 
         private:
-            void **LastBlockPointers();
+            Field(void*) *LastBlockPointers();
             CharCount LastBlockPointerLength() const;
             void SetLastBlockPointerLength(const CharCount pointerLength);
             CharCount LastBlockPointerCapacity() const;
@@ -315,10 +315,10 @@ namespace Js
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private:
-        BlockInfo lastBlockInfo;
-        CharCount directCharLength;
-        bool ownsLastBlock;
-        Block *lastBlock;
+        Field(BlockInfo) lastBlockInfo;
+        Field(CharCount) directCharLength;
+        Field(bool) ownsLastBlock;
+        Field(Block *) lastBlock;
 
     private:
         CompoundString(const CharCount initialCharCapacity, JavascriptLibrary *const library);
@@ -366,7 +366,7 @@ namespace Js
         CharCount LastBlockCharCapacity() const;
 
     private:
-        void **LastBlockPointers() const;
+        Field(void*) *LastBlockPointers() const;
         CharCount LastBlockPointerLength() const;
         void SetLastBlockPointerLength(const CharCount pointerLength);
         CharCount LastBlockPointerCapacity() const;
@@ -538,7 +538,7 @@ namespace Js
     }
 
     template<CharCount MinimumCharCapacity>
-    void **CompoundString::Builder<MinimumCharCapacity>::LastBlockPointers()
+    Field(void*) *CompoundString::Builder<MinimumCharCapacity>::LastBlockPointers()
     {
         return Block::Pointers(buffer);
     }
@@ -957,7 +957,7 @@ namespace Js
         const CharCount appendPointerLength = 2 + !!packedSubstringInfo2;
         if(blockPointerLength < toString->LastBlockPointerCapacity() - (appendPointerLength - 1))
         {
-            void * *const pointers = toString->LastBlockPointers();
+            Field(void*)* pointers = toString->LastBlockPointers();
             pointers[blockPointerLength] = GetImmutableOrScriptUnreferencedString(s);
             if(packedSubstringInfo2)
                 pointers[blockPointerLength + 1] = packedSubstringInfo2;

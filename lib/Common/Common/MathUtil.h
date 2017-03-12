@@ -14,6 +14,19 @@ class Math
 {
 public:
 
+    static uint32 PopCnt32(uint32 x)
+    {
+        // sum set bits in every bit pair
+        x -= (x >> 1) & 0x55555555u;
+        // sum pairs into quads
+        x = (x & 0x33333333u) + ((x >> 2) & 0x33333333u);
+        // sum quads into octets
+        x = (x + (x >> 4)) & 0x0f0f0f0fu;
+        // sum octets into topmost octet
+        x *= 0x01010101u;
+        return x >> 24;
+    }
+
     // Explicit cast to integral (may truncate).  Avoids warning C4302 'type cast': truncation
     template <typename T>
     static T PointerCastToIntegralTruncate(void * pointer)
@@ -30,7 +43,10 @@ public:
         return value;
     }
 
-    static bool     FitsInDWord(size_t value);
+    static bool     FitsInDWord(int32 value) { return true; }
+    static bool     FitsInDWord(size_t value) { return ((size_t)(signed int)(value & 0xFFFFFFFF) == value); }
+    static bool     FitsInDWord(int64 value) { return ((int64)(signed int)(value & 0xFFFFFFFF) == value); }
+
     static UINT_PTR Rand();
     static bool     IsPow2(int32 val) { return (val > 0 && ((val-1) & val) == 0); }
     static uint32   NextPowerOf2(uint32 n);

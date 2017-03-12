@@ -223,6 +223,14 @@ namespace Js {
     };
 
     template <typename SizePolicy>
+    struct OpLayoutT_BrReg1Unsigned1
+    {
+        JumpOffset  RelativeJumpOffset;
+        typename SizePolicy::RegSlotType     R1;
+        typename SizePolicy::RegSlotType     C2;
+    };
+
+    template <typename SizePolicy>
     struct OpLayoutT_BrReg2       // if (R1 op R2) goto Offset
     {
         JumpOffset  RelativeJumpOffset;

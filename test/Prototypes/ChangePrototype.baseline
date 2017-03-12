@@ -1,0 +1,31 @@
+TypeSharing: Updating prototype object's InlineSlot cache in CreateObject.
+TypeSharing: Updating prototype object's InlineSlot cache in CreateObject.
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+obj1.protoProp = 1
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+obj3.protoProp = 1
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+obj2.protoProp = 1
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+date1.protoProp = 1
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+date2.protoProp = 1
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+re.protoProp = 1
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+buff.protoProp = 1
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+i8.protoProp = 1
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+i16.protoProp = 1
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+i8_custom.protoProp = 1
+done
+TypeSharing: Updating prototype object's InlineSlot cache in CreateObject.
+Changing __proto__
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+Changing __proto__
+TypeSharing: Reusing prototype object's DictionarySlot cache in __proto__.
+TypeSharing: Updating prototype object's InlineSlot cache in CreateObject.
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.
+TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.

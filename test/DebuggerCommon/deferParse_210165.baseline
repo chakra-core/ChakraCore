@@ -1,0 +1,6 @@
+function func2() {
+        return 0;
+    }
+function func2() {
+        return 0;
+    }

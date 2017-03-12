@@ -107,20 +107,26 @@ enum TypeId
     TypeIds_MapIterator = 64,
     TypeIds_SetIterator = 65,
     TypeIds_StringIterator = 66,
-    TypeIds_JavascriptEnumeratorIterator = 67,
+    TypeIds_JavascriptEnumeratorIterator = 67,      /* Unused */
     TypeIds_Generator = 68,
     TypeIds_Promise = 69,
+    TypeIds_SharedArrayBuffer = 70,
 
-    TypeIds_LastBuiltinDynamicObject = TypeIds_Promise,
-    TypeIds_GlobalObject = 70,
-    TypeIds_ModuleRoot = 71,
+    TypeIds_WebAssemblyModule = 71,
+    TypeIds_WebAssemblyInstance = 72,
+    TypeIds_WebAssemblyMemory = 73,
+    TypeIds_WebAssemblyTable = 74,
+
+    TypeIds_LastBuiltinDynamicObject = TypeIds_WebAssemblyTable,
+    TypeIds_GlobalObject = 75,
+    TypeIds_ModuleRoot = 76,
     TypeIds_LastTrueJavascriptObjectType = TypeIds_ModuleRoot,
 
-    TypeIds_HostObject = 72,
-    TypeIds_ActivationObject = 73,
-    TypeIds_SpreadArgument = 74,
-    TypeIds_ModuleNamespace = 75,
-    TypeIds_ListIterator = 76,
+    TypeIds_HostObject = 77,
+    TypeIds_ActivationObject = 78,
+    TypeIds_SpreadArgument = 79,
+    TypeIds_ModuleNamespace = 80,
+    TypeIds_ListIterator = 81,
 
     TypeIds_Limit //add a new TypeId before TypeIds_Limit or before TypeIds_LastTrueJavascriptObjectType
 };

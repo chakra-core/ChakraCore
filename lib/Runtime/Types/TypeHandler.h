@@ -66,13 +66,13 @@ namespace Js
 
         // PropertyTypesReserved (0x1) is always on so that the DWORD formed with the following boolean doesn't look like
         // a pointer.
-        PropertyTypes propertyTypes;
-        BYTE flags;
-        uint16 offsetOfInlineSlots;
-        int slotCapacity;
-        uint16 unusedBytes;             // This always has it's lowest bit set to avoid false references
-        uint16 inlineSlotCapacity;
-        bool isNotPathTypeHandlerOrHasUserDefinedCtor;
+        Field(PropertyTypes) propertyTypes;
+        Field(BYTE) flags;
+        Field(uint16) offsetOfInlineSlots;
+        Field(int) slotCapacity;
+        Field(uint16) unusedBytes;             // This always has it's lowest bit set to avoid false references
+        Field(uint16) inlineSlotCapacity;
+        Field(bool) isNotPathTypeHandlerOrHasUserDefinedCtor;
 
     public:
         DEFINE_GETCPPNAME_ABSTRACT();
@@ -402,9 +402,9 @@ namespace Js
         virtual PropertyId GetPropertyId(ScriptContext* scriptContext, PropertyIndex index) = 0;
         virtual PropertyId GetPropertyId(ScriptContext* scriptContext, BigPropertyIndex index) = 0;
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false) = 0;
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags) = 0;
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false);
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags);
         virtual PropertyIndex GetPropertyIndex(PropertyRecord const* propertyRecord) = 0;
         virtual bool GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info) = 0;
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const Js::TypeEquivalenceRecord& record, uint& failedPropertyIndex) = 0;
@@ -423,7 +423,7 @@ namespace Js
         virtual DescriptorFlags GetSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext);
         virtual DescriptorFlags GetSetter(DynamicObject* instance, JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext);
         virtual BOOL DeleteProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags flags) = 0;
-
+        virtual BOOL DeleteProperty(DynamicObject* instance, JavascriptString* propertyNameString, PropertyOperationFlags flags);
         // ===================================================================================================================
         // Special versions of the various *Property methods that recognize PropertyLetConstGlobal properties.
         // Only used for GlobalObject and ModuleRoot and so only recognized by SimpleDictionary and Dictionary type handlers.
@@ -485,7 +485,7 @@ namespace Js
 
         // ES5Array type handler specific methods. Only implemented by ES5ArrayTypeHandlers.
         virtual bool IsLengthWritable() const { Assert(false); return false; }
-        virtual void SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags) { Assert(false); }
+        virtual uint32 SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags) { Assert(false); return 0; }
         virtual BOOL IsObjectArrayFrozen(ES5Array* arr) { Assert(false); return FALSE; }
         virtual BOOL IsItemEnumerable(ES5Array* arr, uint32 index) { Assert(false); return FALSE; }
         virtual BOOL IsValidDescriptorToken(void * descriptorValidationToken) const { Assert(false); return FALSE; }
@@ -586,6 +586,10 @@ namespace Js
 
     protected:
         void SetPropertyUpdateSideEffect(DynamicObject* instance, PropertyId propertyId, Var value, SideEffects possibleSideEffects);
+        void SetPropertyUpdateSideEffect(DynamicObject* instance, JsUtil::CharacterBuffer<WCHAR> const& propertyName, Var value, SideEffects possibleSideEffects);
+        PropertyId TMapKey_GetPropertyId(ScriptContext* scriptContext, const PropertyId key);
+        PropertyId TMapKey_GetPropertyId(ScriptContext* scriptContext, const PropertyRecord* key);
+        PropertyId TMapKey_GetPropertyId(ScriptContext* scriptContext, JavascriptString* key);
         bool VerifyIsExtensible(ScriptContext* scriptContext, bool alwaysThrow);
 
         void SetOffsetOfInlineSlots(const uint16 offsetOfInlineSlots) { this->offsetOfInlineSlots = offsetOfInlineSlots; }
@@ -612,7 +616,7 @@ namespace Js
          virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const = 0;
 
          //Use to lookup the slotid for a propertyid 
-         virtual Js::PropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord);
+         virtual Js::BigPropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord);
 
          //Extract the snap handler info
          void ExtractSnapHandler(TTD::NSSnapType::SnapHandler* handler, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const;
@@ -620,16 +624,8 @@ namespace Js
          //Set the extensible flag info in the handler
          void SetExtensible_TTD();
 
-         //Return true if we should restore the given property id (we want to skip most internal property ids)
-         static bool ShouldRestorePropertyId_TTD(Js::PropertyId pid)
-         {
-             if((pid == Js::Constants::NoProperty) | Js::IsInternalPropertyId(pid))
-             {
-                 return false;
-             }
-
-             return true;
-         }
+         //Return true if this type handler is reseattable/false if we don't want to try
+         virtual bool IsResetableForTTD(uint32 snapMaxIndex) const;
 #endif
     };
 }

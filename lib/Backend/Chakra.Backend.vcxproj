@@ -26,12 +26,16 @@
     <ClCompile>
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory);
+        $(MSBuildThisFileDirectory)..;
         $(MSBuildThisFileDirectory)\$(PlatformPathNameAlt);
         $(MSBuildThisFileDirectory)..\Common;
         $(MSBuildThisFileDirectory)..\Runtime;
+        $(MSBuildThisFileDirectory)..\JITClient;
         $(MSBuildThisFileDirectory)..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\Runtime\Math;
         $(MSBuildThisFileDirectory)..\Parser;
+        $(MSBuildThisFileDirectory)..\WasmReader;
+        $(ChakraJITIDLIntDir);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -176,6 +180,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)NativeCodeData.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NativeCodeGenerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Opnd.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)PageAllocatorPool.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PDataManager.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Peeps.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PreLowerPeeps.cpp" />
@@ -191,6 +196,24 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)TempTracker.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ValueRelativeOffset.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Inline.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITOutput.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFunctionBody.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeProfileInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeScriptContext.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeWorkItem.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsJITInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITRuntimeInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITTimeInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ObjTypeSpecFldInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeConstructorCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCacheInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITType.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JITTypeHandler.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ServerScriptContext.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ServerThreadContext.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FixedFieldInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionCodeGenJitTimeData.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -227,6 +250,10 @@
     <ClInclude Include="arm64\UnwindInfoManager.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="AsmJsJITInfo.h" />
+    <ClInclude Include="FunctionCodeGenJitTimeData.h" />
+    <ClInclude Include="FunctionJITRuntimeInfo.h" />
+    <ClInclude Include="FunctionJITTimeInfo.h" />
     <ClInclude Include="IRBaseTypeList.h" />
     <ClInclude Include="IRBuilderAsmJs.h" />
     <ClInclude Include="BackendOpCodeAttrAsmJs.h" />
@@ -340,6 +367,7 @@
     <ClInclude Include="DbCheckPostLower.h" />
     <ClInclude Include="EmitBuffer.h" />
     <ClInclude Include="Encoder.h" />
+    <ClInclude Include="ExternalLowerer.h" />
     <ClInclude Include="FlowGraph.h" />
     <ClInclude Include="Func.h" />
     <ClInclude Include="GlobHashTable.h" />
@@ -358,6 +386,19 @@
     <ClInclude Include="IRViewer.h" />
     <ClInclude Include="IRType.h" />
     <ClInclude Include="IRTypeList.h" />
+    <ClInclude Include="ObjTypeSpecFldInfo.h" />
+    <ClInclude Include="JITOutput.h" />
+    <ClInclude Include="JITRecyclableObject.h" />
+    <ClInclude Include="JITTimeConstructorCache.h" />
+    <ClInclude Include="FixedFieldInfo.h" />
+    <ClInclude Include="JITTimeFunctionBody.h" />
+    <ClInclude Include="JITTimePolymorphicInlineCache.h" />
+    <ClInclude Include="JITTimePolymorphicInlineCacheInfo.h" />
+    <ClInclude Include="JITTimeProfileInfo.h" />
+    <ClInclude Include="JITTimeScriptContext.h" />
+    <ClInclude Include="JITType.h" />
+    <ClInclude Include="JITTypeHandler.h" />
+    <ClInclude Include="JITTimeWorkItem.h" />
     <ClInclude Include="JnHelperMethod.h" />
     <ClInclude Include="JnHelperMethodList.h" />
     <ClInclude Include="Lifetime.h" />
@@ -365,6 +406,7 @@
     <ClInclude Include="LinearScanMDShared.h" />
     <ClInclude Include="LowerMDShared.h" />
     <ClInclude Include="NativeCodeData.h" />
+    <ClInclude Include="PageAllocatorPool.h" />
     <ClInclude Include="PDataManager.h" />
     <ClInclude Include="PrologEncoder.h">
       <ExcludedFromBuild Condition="'$(Platform)'!='x64'">true</ExcludedFromBuild>
@@ -377,6 +419,8 @@
     <ClInclude Include="Region.h" />
     <ClInclude Include="SccLiveness.h" />
     <ClInclude Include="Security.h" />
+    <ClInclude Include="ServerScriptContext.h" />
+    <ClInclude Include="ServerThreadContext.h" />
     <ClInclude Include="SimpleJitProfilingHelpers.h" />
     <ClInclude Include="SimpleLayout.h" />
     <ClInclude Include="Sym.h" />
@@ -406,9 +450,25 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM'">true</ExcludedFromBuild>
       <ObjectFileName Condition="'$(Platform)'!='ARM'">$(IntDir)\arm</ObjectFileName>
     </ARMASM>
+    <None Include="amd64\LinearScanMdA.S">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </None>
+    <None Include="amd64\Thunks.S">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </None>
     <None Include="IR.inl" />
     <None Include="Opnd.inl" />
     <None Include="Sym.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CRC.h">
+      <FileType>CppCode</FileType>
+    </ClInclude>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

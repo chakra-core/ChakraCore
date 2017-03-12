@@ -7,6 +7,17 @@ class ScriptSite;
 namespace Js
 {
 
+#if ENABLE_TTD
+#define DEFINE_TTD_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(T) \
+    virtual void MarshalCrossSite_TTDInflate() \
+    { \
+        AssertMsg(VirtualTableInfo<T>::HasVirtualTable(this), "Derived class need to define marshal"); \
+        VirtualTableInfo<Js::CrossSiteObject<T>>::SetVirtualTable(this); \
+    }
+#else
+#define DEFINE_TTD_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(T)
+#endif
+
 #if !defined(USED_IN_STATIC_LIB)
 #define DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(T) \
     friend class Js::CrossSiteObject<T>; \
@@ -15,7 +26,8 @@ namespace Js
         Assert(this->GetScriptContext() != scriptContext); \
         AssertMsg(VirtualTableInfo<T>::HasVirtualTable(this), "Derived class need to define marshal to script context"); \
         VirtualTableInfo<Js::CrossSiteObject<T>>::SetVirtualTable(this); \
-    }
+    }\
+    DEFINE_TTD_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(T)
 #else
 #define DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(T)  \
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext)  {Assert(FALSE);}
@@ -48,7 +60,7 @@ namespace Js
         friend class CrossSite;
         friend class DynamicTypeHandler;
         friend class ModuleNamespace;
-        template <bool enumNonEnumerable, bool enumSymbols, bool snapShotSemantics> friend class DynamicObjectEnumerator;
+        friend class DynamicObjectEnumerator;
         friend class RecyclableObject;
         friend struct InlineCache;
         friend class ForInObjectEnumerator; // for cache enumerator
@@ -64,12 +76,12 @@ namespace Js
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
     public:
-        //Field for tracking object allocation 
+        //Field for tracking object allocation
         TTD::DiagnosticOrigin TTDDiagOriginInfo;
 #endif
 
     private:
-        Var* auxSlots;
+        Field(Field(Var)*) auxSlots;
         // The objectArrayOrFlags field can store one of two things:
         //   a) a pointer to the object array holding numeric properties of this object, or
         //   b) a bitfield of flags.
@@ -83,11 +95,11 @@ namespace Js
 
         union
         {
-            ArrayObject * objectArray;          // Only if !IsAnyArray
+            Field(ArrayObject *) objectArray;          // Only if !IsAnyArray
             struct                                  // Only if IsAnyArray
             {
-                DynamicObjectFlags arrayFlags;
-                ProfileId arrayCallSiteIndex;
+                Field(DynamicObjectFlags) arrayFlags;
+                Field(ProfileId) arrayCallSiteIndex;
             };
         };
 
@@ -97,6 +109,7 @@ namespace Js
         void InitSlots(DynamicObject * instance, ScriptContext * scriptContext);
         void SetTypeHandler(DynamicTypeHandler * typeHandler, bool hasChanged);
         void ReplaceType(DynamicType * type);
+        void ReplaceTypeWithPredecessorType(DynamicType * previousType);
 
     protected:
         DEFINE_VTABLE_CTOR(DynamicObject, RecyclableObject);
@@ -223,6 +236,7 @@ namespace Js
         virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = nullptr) override;
         virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsFixedProperty(PropertyId propertyId) override;
         virtual BOOL HasItem(uint32 index) override;
         virtual BOOL HasOwnItem(uint32 index) override;
@@ -232,7 +246,7 @@ namespace Js
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
         virtual BOOL ToPrimitive(JavascriptHint hint, Var* result, ScriptContext * requestContext) override;
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* scriptContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * scriptContext, ForInCache * forInCache = nullptr) override;
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override;
         virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override;
         virtual BOOL IsWritable(PropertyId propertyId) override;
@@ -269,10 +283,8 @@ namespace Js
 
         void ChangeTypeIf(const Type* oldType);
 
-        Var GetNextProperty(PropertyIndex& index, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false);
-        Var GetNextProperty(BigPropertyIndex& index, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false);
-        
-        BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false) const;
+        BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes,
+            DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext) const;
 
         virtual BOOL HasDeferredTypeHandler() const sealed;
         static DWORD GetOffsetOfAuxSlots();
@@ -287,6 +299,8 @@ namespace Js
 
         void SetObjectArray(ArrayObject* objectArray);
     protected:
+        BOOL GetEnumeratorWithPrefix(JavascriptEnumerator * prefixEnumerator, JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * scriptContext, ForInCache * forInCache);
+
         // These are only call for arrays
         void InitArrayFlags(DynamicObjectFlags flags);
         DynamicObjectFlags GetArrayFlags() const;
@@ -321,8 +335,8 @@ namespace Js
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 
-        Js::Var* GetInlineSlots_TTD() const;
-        Js::Var* GetAuxSlots_TTD() const;
+        Js::Var const* GetInlineSlots_TTD() const;
+        Js::Var const* GetAuxSlots_TTD() const;
 
 #if ENABLE_OBJECT_SOURCE_TRACKING
         void SetDiagOriginInfoAsNeeded();

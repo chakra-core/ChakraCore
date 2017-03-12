@@ -1,0 +1,21 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "i": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "innerConst": "number 2",
+      "i": "number 0"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}"
+  }
+]

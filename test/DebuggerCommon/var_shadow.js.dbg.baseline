@@ -1,0 +1,170 @@
+[
+  {
+    "evaluate": {
+      "e": "string abc"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "e": "number 1",
+      "x": "string abc"
+    }
+  },
+  {
+    "evaluate": {
+      "e": "string throw 1"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "foo": "function <large string>",
+      "e": "string outer",
+      "x": "string throw 1",
+      "x2": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "e": "string throw 2"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "e": "string outer",
+      "foo": "function <large string>",
+      "x": "string throw 1",
+      "x2": "string throw 2"
+    }
+  },
+  {
+    "evaluate": {
+      "e": "string throw 1"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "foo": "function <large string>",
+      "e": "string outer",
+      "x": "string throw 1",
+      "m": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "e": "string throw 2"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "e": "string throw 2",
+      "x": "string throw 1",
+      "foo": "function <large string>",
+      "m": "string throw 2"
+    }
+  },
+  {
+    "evaluate": {
+      "a1": "string level1"
+    }
+  },
+  {
+    "evaluate": {
+      "a2": "number 222"
+    }
+  },
+  {
+    "evaluate": {
+      "a3": "string a3_const"
+    }
+  },
+  {
+    "evaluate": {
+      "a4": "string a4_level1"
+    }
+  },
+  {
+    "evaluate": {
+      "a5": "string a5_let"
+    }
+  },
+  {
+    "evaluate": {
+      "a2": "number 222"
+    }
+  },
+  {
+    "evaluate": {
+      "a1": "string level1"
+    }
+  },
+  {
+    "evaluate": {
+      "a3": "string a3_level1"
+    }
+  },
+  {
+    "evaluate": {
+      "a4": "string a4_const"
+    }
+  },
+  {
+    "evaluate": {
+      "a1": "string level2"
+    }
+  },
+  {
+    "evaluate": {
+      "a2": "string level2a3_2"
+    }
+  },
+  {
+    "evaluate": {
+      "a3": "string a3_2"
+    }
+  },
+  {
+    "evaluate": {
+      "a4": "string a4_const"
+    }
+  },
+  {
+    "evaluate": {
+      "a1": "number 10"
+    }
+  },
+  {
+    "evaluate": {
+      "a2": "number 10"
+    }
+  },
+  {
+    "evaluate": {
+      "b1": "number 22"
+    }
+  },
+  {
+    "evaluate": {
+      "a1": "number 10"
+    }
+  },
+  {
+    "evaluate": {
+      "b1": "number 22"
+    }
+  },
+  {
+    "evaluate": {
+      "a1": "string level2"
+    }
+  }
+]

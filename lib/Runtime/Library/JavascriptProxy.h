@@ -16,8 +16,8 @@ namespace Js
         DEFINE_VTABLE_CTOR(JavascriptProxy, DynamicObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptProxy);
     private:
-        RecyclableObject* handler;
-        RecyclableObject* target;
+        Field(RecyclableObject*) handler;
+        Field(RecyclableObject*) target;
 
         void RevokeObject();
     public:
@@ -93,6 +93,7 @@ namespace Js
         virtual BOOL InitPropertyScoped(PropertyId propertyId, Var value) override;
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsFixedProperty(PropertyId propertyId) override;
         virtual BOOL HasItem(uint32 index) override;
         virtual BOOL HasOwnItem(uint32 index) override;
@@ -101,7 +102,7 @@ namespace Js
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override;
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr) override;
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override;
         virtual BOOL Equals(__in Var other, __out BOOL* value, ScriptContext* requestContext) override;
         virtual BOOL StrictEquals(__in Var other, __out BOOL* value, ScriptContext* requestContext) override;
@@ -110,7 +111,7 @@ namespace Js
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL IsExtensible() override;
         virtual BOOL PreventExtensions() override;
-        virtual void ThrowIfCannotDefineProperty(PropertyId propId, PropertyDescriptor descriptor) { }
+        virtual void ThrowIfCannotDefineProperty(PropertyId propId, const PropertyDescriptor& descriptor) { }
         virtual void ThrowIfCannotGetOwnPropertyDescriptor(PropertyId propId) {};
         virtual BOOL GetDefaultPropertyDescriptor(PropertyDescriptor& descriptor) override;
         virtual BOOL Seal() override;
@@ -155,7 +156,7 @@ namespace Js
 
         void PropertyIdFromInt(uint32 index, PropertyRecord const** propertyRecord);
 
-        JavascriptArray* PropertyKeysTrap(KeysTrapKind keysTrapKind);
+        JavascriptArray* PropertyKeysTrap(KeysTrapKind keysTrapKind, ScriptContext* requestContext);
 
         template <class Fn>
         void GetOwnPropertyKeysHelper(ScriptContext* scriptContext, RecyclableObject* trapResultArray, uint32 len, JavascriptArray* trapResult,
@@ -178,14 +179,17 @@ namespace Js
                 JavascriptConversion::ToPropertyKey(element, scriptContext, &propertyRecord);
                 propertyId = propertyRecord->GetPropertyId();
 
-                if (propertyId != Constants::NoProperty)
+                if (!targetToTrapResultMap.ContainsKey(propertyId))
                 {
-                    targetToTrapResultMap.Add(propertyId, true);
-                }
+                    if (propertyId != Constants::NoProperty)
+                    {
+                        targetToTrapResultMap.Add(propertyId, true);
+                    }
 
-                if (fn(propertyRecord))
-                {
-                    trapResult->DirectSetItemAt(trapResultIndex++, element);
+                    if (fn(propertyRecord))
+                    {
+                        trapResult->DirectSetItemAt(trapResultIndex++, element);
+                    }
                 }
             }
         }

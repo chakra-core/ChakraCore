@@ -41,17 +41,21 @@ StackSym::New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func)
     stackSym->m_isSingleDef = true;
     stackSym->m_isEncodedConstant = false;
     stackSym->m_isFltConst = false;
+    stackSym->m_isInt64Const = false;
     stackSym->m_isStrConst = false;
     stackSym->m_isStrEmpty = false;
     stackSym->m_allocated = false;
     stackSym->m_isTypeSpec = false;
     stackSym->m_isArgSlotSym = false;
+    stackSym->m_isArgSlotRegSym = false;
+    stackSym->m_isParamSym = false;
+    stackSym->m_isImplicitParamSym = false;
     stackSym->m_isBailOutReferenced = false;
     stackSym->m_isArgCaptured = false;
     stackSym->m_requiresBailOnNotNumber = false;
     stackSym->m_isCatchObjectSym = false;
     stackSym->m_builtInIndex = Js::BuiltinFunction::None;
-    stackSym->m_paramSlotNum = StackSym::InvalidSlot;
+    stackSym->m_slotNum = StackSym::InvalidSlot;
 
     stackSym->m_type = type;
     stackSym->m_equivNext = stackSym;
@@ -109,20 +113,24 @@ StackSym::New(IRType type, Func *func)
     return StackSym::New(func->m_symTable->NewID(), type, Js::Constants::NoRegister, func);
 }
 
+StackSym *
+StackSym::NewImplicitParamSym(Js::ArgSlot paramSlotNum, Func * func)
+{
+    return func->m_symTable->GetImplicitParam(paramSlotNum);
+}
 
 StackSym *
 StackSym::NewParamSlotSym(Js::ArgSlot paramSlotNum, Func * func)
 {
-    StackSym * stackSym = StackSym::New(func);
-    stackSym->m_paramSlotNum = paramSlotNum;
-    return stackSym;
+    return NewParamSlotSym(paramSlotNum, func, TyVar);
 }
 
 StackSym *
 StackSym::NewParamSlotSym(Js::ArgSlot paramSlotNum, Func * func, IRType type)
 {
     StackSym * stackSym = StackSym::New(type, func);
-    stackSym->m_paramSlotNum = paramSlotNum;
+    stackSym->m_isParamSym = true;
+    stackSym->m_slotNum = paramSlotNum;
     return stackSym;
 }
 
@@ -131,8 +139,8 @@ StackSym *
 StackSym::NewArgSlotRegSym(Js::ArgSlot argSlotNum, Func * func, IRType type /* = TyVar */)
 {
     StackSym * stackSym = StackSym::New(type, func);
-    stackSym->m_isArgSlotSym = false;
-    stackSym->m_argSlotNum = argSlotNum;
+    stackSym->m_isArgSlotRegSym = true;
+    stackSym->m_slotNum = argSlotNum;
 
 #if defined(_M_X64)
     stackSym->m_argPosition = 0;
@@ -146,7 +154,7 @@ StackSym::NewArgSlotSym(Js::ArgSlot argSlotNum, Func * func, IRType type /* = Ty
 {
     StackSym * stackSym = StackSym::New(type, func);
     stackSym->m_isArgSlotSym = true;
-    stackSym->m_argSlotNum = argSlotNum;
+    stackSym->m_slotNum = argSlotNum;
 
 #if defined(_M_X64)
     stackSym->m_argPosition = 0;
@@ -158,7 +166,7 @@ StackSym::NewArgSlotSym(Js::ArgSlot argSlotNum, Func * func, IRType type /* = Ty
 bool
 StackSym::IsTempReg(Func *const func) const
 {
-    return !HasByteCodeRegSlot() || GetByteCodeRegSlot() >= func->GetJnFunction()->GetFirstTmpReg();
+    return !HasByteCodeRegSlot() || GetByteCodeRegSlot() >= func->GetJITFunctionBody()->GetFirstTmpReg();
 }
 
 #if DBG
@@ -206,6 +214,15 @@ StackSym::IsIntConst() const
 }
 
 bool
+StackSym::IsInt64Const() const
+{
+#if DBG
+    VerifyConstFlags();
+#endif
+    return m_isInt64Const;
+}
+
+bool
 StackSym::IsTaggableIntConst() const
 {
 #if DBG
@@ -247,6 +264,11 @@ StackSym::SetIsConst()
         Assert(this->m_instrDef->m_opcode == Js::OpCode::Ld_I4 ||  this->m_instrDef->m_opcode == Js::OpCode::LdC_A_I4 || LowererMD::IsAssign(this->m_instrDef));
         this->SetIsIntConst(src->AsIntConstOpnd()->GetValue());
     }
+    else if (src->IsInt64ConstOpnd())
+    {
+        Assert(this->m_instrDef->m_opcode == Js::OpCode::Ld_I4 || LowererMD::IsAssign(this->m_instrDef));
+        this->SetIsInt64Const();
+    }
     else if (src->IsFloatConstOpnd())
     {
         Assert(this->m_instrDef->m_opcode == Js::OpCode::LdC_A_R8);
@@ -270,9 +292,24 @@ StackSym::SetIsConst()
                 this->m_isIntConst = true;
                 this->m_isTaggableIntConst = true;
             }
-            else if (var && Js::JavascriptNumber::Is(var) && Js::JavascriptNumber::IsInt32_NoChecks(var))
+            else if (var)
             {
-                this->m_isIntConst = true;
+#if !FLOATVAR
+                if (JITManager::GetJITManager()->IsOOPJITEnabled())
+                {
+                    if (addrOpnd->m_localAddress && Js::JavascriptNumber::Is(addrOpnd->m_localAddress) && Js::JavascriptNumber::IsInt32_NoChecks(addrOpnd->m_localAddress))
+                    {
+                        this->m_isIntConst = true;
+                    }
+                }
+                else
+#endif
+                {
+                    if (Js::JavascriptNumber::Is(var) && Js::JavascriptNumber::IsInt32_NoChecks(var))
+                    {
+                        this->m_isIntConst = true;
+                    }
+                }
             }
         }
     }
@@ -285,7 +322,19 @@ StackSym::SetIsIntConst(IntConstType value)
     Assert(this->m_instrDef);
     this->m_isConst = true;
     this->m_isIntConst = true;
+    this->m_isInt64Const = false;
     this->m_isTaggableIntConst = !Js::TaggedInt::IsOverflow(value);
+    this->m_isFltConst = false;
+}
+
+void StackSym::SetIsInt64Const()
+{
+    Assert(this->m_isSingleDef);
+    Assert(this->m_instrDef);
+    this->m_isConst = true;
+    this->m_isInt64Const = true;
+    this->m_isIntConst = false;
+    this->m_isTaggableIntConst = false;
     this->m_isFltConst = false;
 }
 
@@ -332,14 +381,14 @@ void
 StackSym::IncrementArgSlotNum()
 {
     Assert(IsArgSlotSym());
-    m_argSlotNum++;
+    m_slotNum++;
 }
 
 void
 StackSym::DecrementArgSlotNum()
 {
     Assert(IsArgSlotSym());
-    m_argSlotNum--;
+    m_slotNum--;
 }
 
 void
@@ -439,15 +488,17 @@ StackSym::CloneDef(Func *func)
         newSym->m_isIntConst = m_isIntConst;
         newSym->m_isTaggableIntConst = m_isTaggableIntConst;
         newSym->m_isArgSlotSym = m_isArgSlotSym;
+        newSym->m_isArgSlotRegSym = m_isArgSlotRegSym;
+        newSym->m_isParamSym = m_isParamSym;
+        newSym->m_isImplicitParamSym = m_isImplicitParamSym;
         newSym->m_isArgCaptured = m_isArgCaptured;
         newSym->m_isBailOutReferenced = m_isBailOutReferenced;
-        newSym->m_argSlotNum = m_argSlotNum;
+        newSym->m_slotNum = m_slotNum;
 
 #if defined(_M_X64)
         newSym->m_argPosition = m_argPosition;
 #endif
 
-        newSym->m_paramSlotNum = m_paramSlotNum;
         newSym->m_offset = m_offset;
         newSym->m_allocated = m_allocated;
         newSym->m_isInlinedArgSlot = m_isInlinedArgSlot;
@@ -571,11 +622,11 @@ Js::Var StackSym::GetFloatConstValueAsVar_PostGlobOpt() const
     }
 
     const Js::Var address = addrOpnd->m_address;
-    Assert(Js::JavascriptNumber::Is(address));
+    Assert(Js::JavascriptNumber::Is(addrOpnd->m_localAddress? addrOpnd->m_localAddress: addrOpnd->m_address));
     return address;
 }
 
-void *StackSym::GetConstAddress() const
+void *StackSym::GetConstAddress(bool useLocal /*= false*/) const
 {
     Assert(this->IsConst());
     IR::Instr *defInstr = this->m_instrDef;
@@ -597,7 +648,7 @@ void *StackSym::GetConstAddress() const
 
     Assert(src1->IsAddrOpnd());
     Assert(defInstr->m_opcode == Js::OpCode::Ld_A || defInstr->m_opcode == Js::OpCode::LdStr || defInstr->m_opcode == Js::OpCode::ArgOut_A_InlineBuiltIn || LowererMD::IsAssign(defInstr));
-    return src1->AsAddrOpnd()->m_address;
+    return useLocal ? src1->AsAddrOpnd()->m_localAddress : src1->AsAddrOpnd()->m_address;
 }
 
 intptr_t StackSym::GetLiteralConstValue_PostGlobOpt() const
@@ -694,6 +745,11 @@ StackSym::GetConstOpnd() const
         {
             Assert(defInstr->m_opcode == Js::OpCode::Ld_I4 || LowererMD::IsAssign(defInstr) || defInstr->m_opcode == Js::OpCode::ArgOut_A_InlineBuiltIn);
         }
+    }
+    else if (src1->IsInt64ConstOpnd())
+    {
+        Assert(this->m_isInt64Const);
+        Assert(defInstr->m_opcode == Js::OpCode::Ld_I4 || LowererMD::IsAssign(defInstr));
     }
     else if (src1->IsFloatConstOpnd())
     {
@@ -951,17 +1007,6 @@ PropertySym::FindOrCreate(SymID stackSymID, int32 propertyId, uint32 propertyIdI
 
     return PropertySym::New(stackSymID, propertyId, propertyIdIndex, inlineCacheIndex, fieldKind, func);
 }
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-const char16* PropertySym::GetName() const
-{
-    if (this->m_fieldKind == PropertyKindData)
-    {
-        return m_func->GetJnFunction()->GetScriptContext()->GetPropertyNameLocked(this->m_propertyId)->GetBuffer();
-    }
-    Assert(false);
-    return _u("");
-}
-#endif
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
 
 ///----------------------------------------------------------------------------
@@ -987,96 +1032,117 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
             Output::Print(_u("param "));
         }
     }
-    else
+    else if (this->IsStackSym())
     {
-        if (this->IsStackSym() && this->AsStackSym()->IsArgSlotSym())
+        StackSym *stackSym = this->AsStackSym();
+
+        if (stackSym->IsArgSlotSym())
         {
-            if (this->AsStackSym()->m_isInlinedArgSlot)
+            if (stackSym->m_isInlinedArgSlot)
             {
-                Output::Print(_u("iarg%d"), this->AsStackSym()->GetArgSlotNum());
+                Output::Print(_u("iarg%d"), stackSym->GetArgSlotNum());
             }
             else
             {
-                Output::Print(_u("arg%d"), this->AsStackSym()->GetArgSlotNum());
+                Output::Print(_u("arg%d"), stackSym->GetArgSlotNum());
             }
             Output::Print(_u("(s%d)"), m_id);
         }
-        else if (this->IsStackSym() && this->AsStackSym()->IsParamSlotSym())
+        else if (stackSym->IsParamSlotSym())
         {
-            Output::Print(_u("prm%d"), this->AsStackSym()->GetParamSlotNum());
+            if (stackSym->IsImplicitParamSym())
+            {
+                switch (stackSym->GetParamSlotNum())
+                {
+                case 1:
+                    Output::Print(_u("callInfo"));
+                    break;
+                case 2:
+                    Output::Print(_u("funcInfo"));
+                    break;
+                case 3:
+                    Output::Print(_u("genObj"));
+                    break;
+                case 4:
+                    Output::Print(_u("genFrame"));
+                    break;
+                default:
+                    Output::Print(_u("implPrm%d"), stackSym->GetParamSlotNum());
+                }
+            }
+            else
+            {
+                Output::Print(_u("prm%d"), stackSym->GetParamSlotNum());
+            }
         }
         else
         {
-            if (!this->IsPropertySym() || !SimpleForm)
+            Output::Print(_u("s%d"), m_id);
+
+            if (Js::Configuration::Global.flags.Debug && stackSym->HasByteCodeRegSlot())
             {
-                Output::Print(_u("s%d"), m_id);
-            }
-            if (this->IsStackSym())
-            {
-                if(Js::Configuration::Global.flags.Debug && this->AsStackSym()->HasByteCodeRegSlot())
+                if (!JITManager::GetJITManager()->IsOOPJITEnabled())
                 {
-                    StackSym* sym =  this->AsStackSym();
-                    Js::FunctionBody* functionBody = sym->GetByteCodeFunc()->GetJnFunction();
-                    if(functionBody->GetPropertyIdOnRegSlotsContainer())
+                    Js::FunctionBody* functionBody = (Js::FunctionBody*)stackSym->GetByteCodeFunc()->GetJITFunctionBody()->GetAddr();
+                    if (functionBody->GetPropertyIdOnRegSlotsContainer())
                     {
-                        if(functionBody->IsNonTempLocalVar(sym->GetByteCodeRegSlot()))
+                        if (functionBody->IsNonTempLocalVar(stackSym->GetByteCodeRegSlot()))
                         {
-                            uint index = sym->GetByteCodeRegSlot() - functionBody->GetConstantCount();
+                            uint index = stackSym->GetByteCodeRegSlot() - stackSym->GetByteCodeFunc()->GetJITFunctionBody()->GetConstCount();
                             Js::PropertyId propertyId = functionBody->GetPropertyIdOnRegSlotsContainer()->propertyIdsForRegSlots[index];
-                            Output::Print(_u("(%s)"), functionBody->GetScriptContext()->GetPropertyNameLocked(propertyId)->GetBuffer());
+                            Output::Print(_u("(%s)"), stackSym->GetByteCodeFunc()->GetInProcThreadContext()->GetPropertyRecord(propertyId)->GetBuffer());
                         }
                     }
                 }
-                if (this->AsStackSym()->IsVar())
+            }
+            if (stackSym->IsVar())
+            {
+                if (stackSym->HasObjectTypeSym() && !SimpleForm)
                 {
-                    if (this->AsStackSym()->HasObjectTypeSym() && !SimpleForm)
-                    {
-                        Output::Print(_u("<s%d>"), this->AsStackSym()->GetObjectTypeSym()->m_id);
-                    }
-                }
-                else
-                {
-                    StackSym *varSym = this->AsStackSym()->GetVarEquivSym(nullptr);
-                    if (varSym)
-                    {
-                        Output::Print(_u("(s%d)"), varSym->m_id);
-                    }
-                }
-                if (!SimpleForm)
-                {
-                    if (this->AsStackSym()->m_builtInIndex != Js::BuiltinFunction::None)
-                    {
-                        Output::Print(_u("[ffunc]"));
-                    }
+                    Output::Print(_u("<s%d>"), stackSym->GetObjectTypeSym()->m_id);
                 }
             }
-        }
-        if(IsStackSym())
-        {
+            else
+            {
+                StackSym *varSym = stackSym->GetVarEquivSym(nullptr);
+                if (varSym)
+                {
+                    Output::Print(_u("(s%d)"), varSym->m_id);
+                }
+            }
+            if (!SimpleForm)
+            {
+                if (stackSym->m_builtInIndex != Js::BuiltinFunction::None)
+                {
+                    Output::Print(_u("[ffunc]"));
+                }
+            }
             IR::Opnd::DumpValueType(valueType);
         }
     }
-
-    if (this->IsPropertySym())
+    else if (this->IsPropertySym())
     {
         PropertySym *propertySym = this->AsPropertySym();
 
         if (!SimpleForm)
         {
-            Output::Print(_u("("));
+            Output::Print(_u("s%d("), m_id);
         }
 
-        Js::ScriptContext* scriptContext;
         switch (propertySym->m_fieldKind)
         {
         case PropertyKindData:
-        {
             propertySym->m_stackSym->Dump(flags, valueType);
-            scriptContext = propertySym->m_func->GetScriptContext();
-            Js::PropertyRecord const* fieldName = scriptContext->GetPropertyNameLocked(propertySym->m_propertyId);
-            Output::Print(_u("->%s"), fieldName->GetBuffer());
+            if (JITManager::GetJITManager()->IsOOPJITEnabled())
+            {
+                Output::Print(_u("->#%d"), propertySym->m_propertyId);
+            }
+            else
+            {
+                Js::PropertyRecord const* fieldName = propertySym->m_func->GetInProcThreadContext()->GetPropertyRecord(propertySym->m_propertyId);
+                Output::Print(_u("->%s"), fieldName->GetBuffer());
+            }
             break;
-        }
         case PropertyKindSlots:
         case PropertyKindSlotArray:
             propertySym->m_stackSym->Dump(flags, valueType);
@@ -1097,6 +1163,7 @@ Sym::Dump(IRDumpFlags flags, const ValueType valueType)
         }
     }
 }
+
 
 void
 Sym::Dump(const ValueType valueType)

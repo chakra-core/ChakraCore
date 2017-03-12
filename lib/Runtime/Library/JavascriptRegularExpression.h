@@ -16,7 +16,7 @@ namespace Js
         static PropertyId const specialPropertyIdsWithoutUnicode[];
         static const uint defaultSpecialPropertyIdsCount = 6;
 
-        UnifiedRegex::RegexPattern* pattern;
+        Field(UnifiedRegex::RegexPattern*) pattern;
 
         // The pattern used by String.prototype.split could be different than the normal pattern. Even
         // when the sticky flag is present in the normal pattern, split() should look for the pattern
@@ -24,9 +24,9 @@ namespace Js
         //
         // Initialization of this pattern is deferred until split() is called, or it's copied from another
         // RegExp object.
-        UnifiedRegex::RegexPattern* splitPattern;
+        Field(UnifiedRegex::RegexPattern*) splitPattern;
 
-        Var lastIndexVar;  // null => must build lastIndexVar from current lastIndex
+        Field(Var) lastIndexVar;  // null => must build lastIndexVar from current lastIndex
 
     public:
 
@@ -37,7 +37,7 @@ namespace Js
         //  2. ToNumber(lastIndexVar) yields +inf or -inf or an integer not in range [0, MaxCharCount]
         static const CharCount InvalidValue = CharCountFlag;
         //  3. ToNumber(lastIndexVar) yields NaN, +0, -0 or an integer in range [0, MaxCharCount]
-        CharCount lastIndexOrFlag;
+        Field(CharCount) lastIndexOrFlag;
 
         static JavascriptRegExp * GetJavascriptRegExp(Arguments& args, PCWSTR varName, ScriptContext* scriptContext);
         static JavascriptRegExp * ToRegExp(Var var, PCWSTR varName, ScriptContext* scriptContext);
@@ -117,7 +117,7 @@ namespace Js
         inline void SetLastIndex(CharCount lastIndex)
         {
             Assert(lastIndex <= MaxCharCount);
-            lastIndexVar = 0;
+            lastIndexVar = nullptr;
             this->lastIndexOrFlag = lastIndex;
         }
 
@@ -189,6 +189,7 @@ namespace Js
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = NULL) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual DescriptorFlags GetSetter(PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;

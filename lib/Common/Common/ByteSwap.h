@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if (defined(_M_IX86) && (_MSC_FULL_VER > 13009037)) || ((defined(_M_AMD64) || defined(_M_IA64)) && (_MSC_FULL_VER > 13009175)) || defined(_M_ARM32_OR_ARM64)
+#if (defined(_M_IX86) && (_MSC_FULL_VER > 13009037)) || ((defined(_M_AMD64) || defined(_M_IA64)) && (_MSC_FULL_VER > 13009175)) || (defined(_M_ARM32_OR_ARM64) && defined(_MSC_FULL_VER))
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -50,11 +50,16 @@ RtlUlonglongByteSwap(
 #endif
 
 #elif defined(__APPLE__)
-#include <libkern/OSByteOrder.h> 
+#include <libkern/OSByteOrder.h>
 
 #define RtlUshortByteSwap(_x)    OSSwapInt16((_x))
 #define RtlUlongByteSwap(_x)     OSSwapInt32((_x))
 #define RtlUlonglongByteSwap(_x) OSSwapInt64((_x))
+
+#elif defined(__ANDROID__)
+#define RtlUshortByteSwap(_x)    __builtin_bswap16((_x))
+#define RtlUlongByteSwap(_x)     __builtin_bswap32((_x))
+#define RtlUlonglongByteSwap(_x) __builtin_bswap64((_x))
 
 #elif defined(__linux__)
 #include <byteswap.h>

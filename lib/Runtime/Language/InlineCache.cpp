@@ -4,6 +4,10 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
+#if ENABLE_NATIVE_CODEGEN
+#include "JITType.h"
+#endif
+
 namespace Js
 {
     void InlineCache::CacheLocal(
@@ -49,6 +53,12 @@ namespace Js
         u.local.isLocal = true;
         u.local.slotIndex = propertyIndex;
         u.local.requiredAuxSlotCapacity = requiredAuxSlotCapacity;
+
+        type->SetHasBeenCached();
+        if (typeWithoutProperty)
+        {
+            typeWithoutProperty->SetHasBeenCached();
+        }
 
         DebugOnly(VerifyRegistrationForInvalidation(this, requestContext, propertyId));
 
@@ -113,6 +123,8 @@ namespace Js
             u.proto.type = TypeWithAuxSlotTag(type);
         }
 
+        prototypeObjectWithProperty->GetType()->SetHasBeenCached();
+
         DebugOnly(VerifyRegistrationForInvalidation(this, requestContext, propertyId));
         Assert(u.proto.isMissing == (uint16)(u.proto.prototypeObject == requestContext->GetLibrary()->GetMissingPropertyHolder()));
 
@@ -175,6 +187,8 @@ namespace Js
         u.accessor.type = isInlineSlot ? type : TypeWithAuxSlotTag(type);
         u.accessor.slotIndex = propertyIndex;
         u.accessor.object = object;
+
+        type->SetHasBeenCached();
 
         DebugOnly(VerifyRegistrationForInvalidation(this, requestContext, propertyId));
 
@@ -908,8 +922,25 @@ namespace Js
         }
     }
 #endif
+#if ENABLE_NATIVE_CODEGEN
 
-    bool EquivalentTypeSet::Contains(const Js::Type * type, uint16* pIndex)
+    EquivalentTypeSet::EquivalentTypeSet(RecyclerJITTypeHolder * types, uint16 count)
+        : types(types), count(count), sortedAndDuplicatesRemoved(false)
+    {
+    }
+
+    JITTypeHolder EquivalentTypeSet::GetType(uint16 index) const
+    {
+        Assert(this->types != nullptr && this->count > 0 && index < this->count);
+        return this->types[index];
+    }
+
+    JITTypeHolder EquivalentTypeSet::GetFirstType() const
+    {
+        return GetType(0);
+    }
+
+    bool EquivalentTypeSet::Contains(const JITTypeHolder type, uint16* pIndex)
     {
         if (!this->GetSortedAndDuplicatesRemoved())
         {
@@ -917,7 +948,7 @@ namespace Js
         }
         for (uint16 ti = 0; ti < this->count; ti++)
         {
-            if (this->types[ti] == type)
+            if (this->GetType(ti) == type)
             {
                 if (pIndex)
                 {
@@ -947,14 +978,15 @@ namespace Js
             return false;
         }
 
-        if (memcmp(left->types, right->types, left->count * sizeof(Type*)) == 0)
+        // TODO: OOP JIT, optimize this (previously we had memcmp)
+        for (uint i = 0; i < left->count; ++i)
         {
-            return true;
+            if (left->types[i] != right->types[i])
+            {
+                return false;
+            }
         }
-        else
-        {
-            return false;
-        }
+        return true;
     }
 
     bool EquivalentTypeSet::IsSubsetOf(EquivalentTypeSet * left, EquivalentTypeSet * right)
@@ -1014,7 +1046,7 @@ namespace Js
             uint16 j = i;
             while (j > 0 && (this->types[j - 1] > this->types[j]))
             {
-                Type* tmp = this->types[j];
+                JITTypeHolder tmp = this->types[j];
                 this->types[j] = this->types[j - 1];
                 this->types[j - 1] = tmp;
                 j--;
@@ -1033,11 +1065,12 @@ namespace Js
         this->count = ++i;
         for (i; i < oldCount; i++)
         {
-            this->types[i] = nullptr;
+            this->types[i] = JITTypeHolder(nullptr);
         }
 
         this->sortedAndDuplicatesRemoved = true;
     }
+#endif
 
     ConstructorCache ConstructorCache::DefaultInstance;
 
@@ -1174,5 +1207,23 @@ namespace Js
             scriptContext->RegisterIsInstInlineCache(this, function);
             this->Set(instanceType, function, result);
         }
+    }
+
+    /* static */
+    uint32 IsInstInlineCache::OffsetOfFunction()
+    {
+        return offsetof(IsInstInlineCache, function);
+    }
+
+    /* static */
+    uint32 IsInstInlineCache::OffsetOfType()
+    {
+        return offsetof(IsInstInlineCache, type);
+    }
+
+    /* static */
+    uint32 IsInstInlineCache::OffsetOfResult()
+    {
+        return offsetof(IsInstInlineCache, result);
     }
 }

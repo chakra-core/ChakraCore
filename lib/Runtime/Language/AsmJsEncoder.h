@@ -5,7 +5,7 @@
 
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Js
 {
     class AsmJsEncoder
@@ -34,7 +34,7 @@ namespace Js
         BYTE* mEncodeBuffer;
         BYTE* mPc;
         PageAllocator* mPageAllocator;
-        CodeGenAllocators* mForegroundAllocators;
+        InProcCodeGenAllocators* mForegroundAllocators;
         FunctionBody* mFunctionBody;
         RelocLabelMap* mRelocLabelMap;
         ArenaAllocator* mLocalAlloc;
@@ -48,8 +48,8 @@ namespace Js
         void* GetTemplateData() { return mTemplateData; }
         inline PageAllocator* GetPageAllocator() const{return mPageAllocator;}
         inline void SetPageAllocator( PageAllocator* val ){mPageAllocator = val;}
-        inline CodeGenAllocators* GetCodeGenAllocator() const{return mForegroundAllocators;}
-        inline void SetCodeGenAllocator( CodeGenAllocators* val ){mForegroundAllocators = val;}
+        inline InProcCodeGenAllocators* GetCodeGenAllocator() const{return mForegroundAllocators;}
+        inline void SetCodeGenAllocator( InProcCodeGenAllocators* val ){mForegroundAllocators = val;}
         FunctionBody* GetFunctionBody() { return mFunctionBody; }
 
     private:
@@ -70,6 +70,7 @@ namespace Js
         template <class T> void OP_LdUndef( const unaligned T* playout );
         template <class T> void OP_Br( const unaligned T* playout );
         template <class T> void OP_BrEq( const unaligned T* playout );
+        template <class T> void OP_BrEqConst( const unaligned T* playout );
         template <class T> void OP_BrTrue( const unaligned T* playout );
         template <class T> void OP_Empty( const unaligned T* playout );
         template <class T> void Op_LdSlot_Db( const unaligned T* playout );

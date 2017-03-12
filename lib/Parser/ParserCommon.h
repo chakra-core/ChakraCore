@@ -25,6 +25,9 @@ enum ErrorTypeEnum
     kjstSyntaxError,
     kjstTypeError,
     kjstURIError,
+    kjstWebAssemblyCompileError,
+    kjstWebAssemblyRuntimeError,
+    kjstWebAssemblyLinkError,
     kjstCustomError,
 #ifdef ENABLE_PROJECTION
     kjstWinRTError,

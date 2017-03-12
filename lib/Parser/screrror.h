@@ -25,8 +25,6 @@ inline void FreeExcepInfo(EXCEPINFO *pei)
 
 void CopyException (EXCEPINFO *pexcepinfoDest, const EXCEPINFO *pexcepinfoSource);
 
-HRESULT GetErrorInfo(EXCEPINFO *pexcepinfo);
-
 HRESULT MapHr(HRESULT hr, ErrorTypeEnum * errorTypeOut = nullptr);
 
 class SRCINFO;

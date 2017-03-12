@@ -493,7 +493,7 @@ namespace Js
         // TODO: Handle call from global scope, strict mode
         BOOL isIndirect = FALSE;
 
-        if (args.Info.Flags & CallFlags_ExtraArg)
+        if (Js::CallInfo::isDirectEvalCall(args.Info.Flags))
         {
             // This was recognized as an eval call at compile time. The last one or two args are internal to us.
             // Argcount will be one of the following when called from global code
@@ -617,7 +617,15 @@ namespace Js
                 Throw::FatalInternalError();
             }
 #endif
+
+#if ENABLE_TTD
+            if(!scriptContext->IsTTDRecordOrReplayModeEnabled())
+            {
+                scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
+            }
+#else
             scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
+#endif
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -636,7 +644,7 @@ namespace Js
         //
         //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
         //
-        if(!isLibraryCode && (scriptContext->ShouldPerformRecordTopLevelFunction() | scriptContext->ShouldPerformDebugAction()))
+        if(!isLibraryCode && (scriptContext->IsTTDRecordModeEnabled() || scriptContext->ShouldPerformReplayAction()))
         {
             //Make sure we have the body and text information available
             FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
@@ -644,7 +652,7 @@ namespace Js
             {
                 uint64 bodyIdCtr = 0;
 
-                if(scriptContext->ShouldPerformRecordTopLevelFunction())
+                if(scriptContext->IsTTDRecordModeEnabled())
                 {
                     const TTD::NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* tbfi = scriptContext->GetThreadContext()->TTDLog->AddEvalFunction(globalBody, moduleID, sourceString, sourceLen, additionalGrfscr, registerDocument, isIndirect, strictMode);
 
@@ -657,7 +665,7 @@ namespace Js
                     bodyIdCtr = tbfi->TopLevelBase.TopLevelBodyCtr;
                 }
 
-                if(scriptContext->ShouldPerformDebugAction())
+                if(scriptContext->ShouldPerformReplayAction())
                 {
                     bodyIdCtr = scriptContext->GetThreadContext()->TTDLog->ReplayTopLevelCodeAction();
                 }
@@ -764,6 +772,7 @@ namespace Js
         {
             // This could happen if the top level function is marked as deferred, we need to parse this to generate the script compile information (RegisterScript depends on that)
             Js::JavascriptFunction::DeferredParse(&pEvalFunction);
+            proxy = pEvalFunction->GetFunctionProxy();
         }
 
         scriptContext->RegisterScript(proxy);
@@ -872,7 +881,8 @@ namespace Js
             // The function body is created in GenerateByteCode but the source info isn't passed in, only the index
             // So we need to pin it here (TODO: Change GenerateByteCode to take in the sourceInfo itself)
             ENTER_PINNED_SCOPE(Utf8SourceInfo, sourceInfo);
-            sourceInfo = Utf8SourceInfo::New(scriptContext, utf8Source, cchSource, cbSource, pSrcInfo, ((grfscr & fscrIsLibraryCode) != 0));
+            sourceInfo = Utf8SourceInfo::New(scriptContext, utf8Source, cchSource,
+              cbSource, pSrcInfo, ((grfscr & fscrIsLibraryCode) != 0), nullptr);
 
             Parser parser(scriptContext, strictMode);
             bool forceNoNative = false;
@@ -923,22 +933,7 @@ namespace Js
 #ifdef PROFILE_EXEC
         scriptContext->ProfileEnd(Js::EvalCompilePhase);
 #endif
-        if (hr == E_OUTOFMEMORY)
-        {
-            JavascriptError::ThrowOutOfMemoryError(scriptContext);
-        }
-        else if(hr == VBSERR_OutOfStack)
-        {
-            JavascriptError::ThrowStackOverflowError(scriptContext);
-        }
-        else if(hr == E_ABORT)
-        {
-            throw Js::ScriptAbortException();
-        }
-        else if(FAILED(hr))
-        {
-            throw Js::InternalErrorException();
-        }
+        THROW_KNOWN_HRESULT_EXCEPTIONS(hr, scriptContext);
 
         if (!SUCCEEDED(hrParser))
         {
@@ -984,7 +979,7 @@ namespace Js
                 {
                     FunctionBody* parentFuncBody = pfuncCaller->GetFunctionBody();
                     Utf8SourceInfo* parentUtf8SourceInfo = parentFuncBody->GetUtf8SourceInfo();
-                    Utf8SourceInfo* utf8SourceInfo = funcBody->GetFunctionProxy()->GetUtf8SourceInfo();
+                    Utf8SourceInfo* utf8SourceInfo = funcBody->GetUtf8SourceInfo();
                     utf8SourceInfo->SetCallerUtf8SourceInfo(parentUtf8SourceInfo);
                 }
             }
@@ -995,7 +990,7 @@ namespace Js
                 funcBody = funcBody->GetParseableFunctionInfo(); // RegisterFunction may parse and update function body
             }
 
-            ScriptFunction* pfuncScript = funcBody->IsGenerator() ?
+            ScriptFunction* pfuncScript = funcBody->IsCoroutine() ?
                 scriptContext->GetLibrary()->CreateGeneratorVirtualScriptFunction(funcBody) :
                 scriptContext->GetLibrary()->CreateScriptFunction(funcBody);
 
@@ -1085,22 +1080,7 @@ namespace Js
 #ifdef PROFILE_EXEC
         scriptContext->ProfileEnd(Js::EvalCompilePhase);
 #endif
-        if (hr == E_OUTOFMEMORY)
-        {
-            JavascriptError::ThrowOutOfMemoryError(scriptContext);
-        }
-        else if(hr == VBSERR_OutOfStack)
-        {
-            JavascriptError::ThrowStackOverflowError(scriptContext);
-        }
-        else if(hr == E_ABORT)
-        {
-            throw Js::ScriptAbortException();
-        }
-        else if(FAILED(hr))
-        {
-            throw Js::InternalErrorException();
-        }
+        THROW_KNOWN_HRESULT_EXCEPTIONS(hr);
 
         if (!SUCCEEDED(hrParser))
         {
@@ -1576,7 +1556,6 @@ LHexError:
         Assert(!(callInfo.Flags & CallFlags_New));
 
         ScriptContext* scriptContext = function->GetScriptContext();
-
         if (!scriptContext->GetConfig()->IsCollectGarbageEnabled()
 #ifdef ENABLE_PROJECTION
             && scriptContext->GetConfig()->GetHostType() != HostType::HostTypeApplication
@@ -1623,19 +1602,19 @@ LHexError:
         return scriptContext->GetLibrary()->GetUndefined();
     }
 
-#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_TTD
     //Log a string in the telemetry system (and print to the console)
     Var GlobalObject::EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...)
     {
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         ARGUMENTS(args, callInfo);
 
-        AssertMsg(args.Info.Count >= 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
+        TTDAssert(args.Info.Count >= 2 && Js::JavascriptString::Is(args[1]), "Bad arguments!!!");
 
         Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
         bool doPrint = (args.Info.Count == 3) && Js::JavascriptBoolean::Is(args[2]) && (Js::JavascriptBoolean::FromVar(args[2])->GetValue());
 
-        if(function->GetScriptContext()->ShouldPerformDebugAction())
+        if(function->GetScriptContext()->ShouldPerformReplayAction())
         {
             function->GetScriptContext()->GetThreadContext()->TTDLog->ReplayTelemetryLogEvent(jsString);
         }
@@ -1655,6 +1634,53 @@ LHexError:
         }
 
         return function->GetScriptContext()->GetLibrary()->GetUndefined();
+    }
+
+    //Check if diagnostic trace writing is enabled
+    Var GlobalObject::EntryEnabledDiagnosticsTrace(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        if(function->GetScriptContext()->ShouldPerformRecordOrReplayAction())
+        {
+            return function->GetScriptContext()->GetLibrary()->GetTrue();
+        }
+        else
+        {
+            return function->GetScriptContext()->GetLibrary()->GetFalse();
+        }
+    }
+
+    //Write a copy of the current TTD log to a specified location
+    Var GlobalObject::EntryEmitTTDLog(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(args, callInfo);
+
+        Js::JavascriptLibrary* jslib = function->GetScriptContext()->GetLibrary();
+
+        if(args.Info.Count != 2 || !Js::JavascriptString::Is(args[1]))
+        {
+            return jslib->GetFalse();
+        }
+
+        if(function->GetScriptContext()->ShouldPerformReplayAction())
+        {
+            function->GetScriptContext()->GetThreadContext()->TTDLog->ReplayEmitLogEvent();
+
+            return jslib->GetTrue();
+        }
+
+        if(function->GetScriptContext()->ShouldPerformRecordAction())
+        {
+            Js::JavascriptString* jsString = Js::JavascriptString::FromVar(args[1]);
+            function->GetScriptContext()->GetThreadContext()->TTDLog->RecordEmitLogEvent(jsString);
+
+            return jslib->GetTrue();
+        }
+
+        return jslib->GetFalse();
     }
 #endif
 
@@ -2115,6 +2141,18 @@ LHexError:
         }
 
         // Non-existent property
+        return TRUE;
+    }
+
+    BOOL GlobalObject::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        PropertyRecord const *propertyRecord = nullptr;
+        if (JavascriptOperators::ShouldTryDeleteProperty(this, propertyNameString, &propertyRecord))
+        {
+            Assert(propertyRecord);
+            return DeleteProperty(propertyRecord->GetPropertyId(), flags);
+        }
+
         return TRUE;
     }
 

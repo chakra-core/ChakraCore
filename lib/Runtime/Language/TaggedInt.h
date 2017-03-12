@@ -32,6 +32,9 @@ namespace Js {
 
         static Var Speculative_And(Var aLeft, Var aRight);
 
+#if defined(__clang__) && defined(_M_IX86)
+        static bool IsOverflow(intptr_t nValue);
+#endif
         static bool IsOverflow(int32 nValue);
         static bool IsOverflow(uint32 nValue);
         static bool IsOverflow(int64 nValue);
@@ -39,16 +42,18 @@ namespace Js {
 
 
         static bool Is(Var aValue);
+        static bool Is(intptr_t aValue);
         static bool IsPair(Var aLeft, Var aRight);
         static double ToDouble(Var aValue);
         static int32 ToInt32(Var aValue);
+        static int32 ToInt32(intptr_t aValue);
         static uint32 ToUInt32(Var aValue);
         static int64 ToInt64(Var aValue);
         static uint16 ToUInt16(Var aValue);
         static Var ToVarUnchecked(int nValue);
-        static void TaggedInt::ToBuffer(Var aValue, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
-        static void TaggedInt::ToBuffer(int value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
-        static void TaggedInt::ToBuffer(uint value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
+        static void ToBuffer(Var aValue, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
+        static void ToBuffer(int value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
+        static void ToBuffer(uint value, __out_ecount_z(bufSize) char16 * buffer, uint bufSize);
         static JavascriptString* ToString(Var aValue,ScriptContext* scriptContext);
         static JavascriptString* ToString(int value,ScriptContext* scriptContext);
         static JavascriptString* ToString(uint value,ScriptContext* scriptContext);

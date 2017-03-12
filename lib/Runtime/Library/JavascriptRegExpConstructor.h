@@ -32,11 +32,12 @@ namespace Js
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = NULL) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
         virtual BOOL IsConfigurable(PropertyId propertyId) override;
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr) override;
         BOOL GetSpecialNonEnumerablePropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext);
         uint GetSpecialNonEnumerablePropertyCount() const;
         PropertyId const * GetSpecialNonEnumerablePropertyIds() const;
@@ -55,16 +56,16 @@ namespace Js
 
         void EnsureValues();
 
-        UnifiedRegex::RegexPattern* lastPattern;
-        JavascriptString* lastInput;
-        UnifiedRegex::GroupInfo lastMatch;
-        bool reset; // true if following fields must be recalculated from above before first use
-        Var lastParen;
-        Var lastIndex;
-        Var index;
-        Var leftContext;
-        Var rightContext;
-        Var captures[NumCtorCaptures];
+        Field(UnifiedRegex::RegexPattern*) lastPattern;
+        Field(JavascriptString*) lastInput;
+        Field(UnifiedRegex::GroupInfo) lastMatch;
+        Field(bool) reset; // true if following fields must be recalculated from above before first use
+        Field(Var) lastParen;
+        Field(Var) lastIndex;
+        Field(Var) index;
+        Field(Var) leftContext;
+        Field(Var) rightContext;
+        Field(Var) captures[NumCtorCaptures];
     };
 
     class JavascriptRegExpConstructorProperties

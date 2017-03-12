@@ -55,27 +55,22 @@
 #include "Types/ES5ArrayTypeHandler.h"
 #include "Library/ES5Array.h"
 
-#include "Library/ArgumentsObjectEnumerator.h"
-#include "Library/JavascriptArrayEnumeratorBase.h"
-#include "Library/JavascriptArrayEnumerator.h"
-#include "Library/JavascriptArraySnapshotEnumerator.h"
-#include "Library/JavascriptArrayNonIndexSnapshotEnumerator.h"
+#include "Library/JavascriptArrayIndexEnumeratorBase.h"
 #include "Library/JavascriptArrayIndexEnumerator.h"
-#include "Library/ES5ArrayEnumerator.h"
-#include "Library/ES5ArrayNonIndexEnumerator.h"
+#include "Library/JavascriptArrayIndexSnapshotEnumerator.h"
+#include "Library/JavascriptArrayIndexStaticEnumerator.h"
 #include "Library/ES5ArrayIndexEnumerator.h"
-#include "Library/TypedArrayEnumerator.h"
+#include "Library/ES5ArrayIndexStaticEnumerator.h"
+#include "Library/TypedArrayIndexEnumerator.h"
 #include "Library/JavascriptStringEnumerator.h"
 #include "Library/JavascriptRegExpEnumerator.h"
 #include "Library/IteratorObjectEnumerator.h"
-
 
 #include "Library/JavascriptIterator.h"
 #include "Library/JavascriptArrayIterator.h"
 #include "Library/JavascriptMapIterator.h"
 #include "Library/JavascriptSetIterator.h"
 #include "Library/JavascriptStringIterator.h"
-#include "Library/JavascriptEnumeratorIterator.h"
 #include "Library/JavascriptListIterator.h"
 
 #include "Library/UriHelper.h"
@@ -89,6 +84,8 @@
 // SIMD_JS
 #include "Library/SimdLib.h"
 #include "Language/SimdOps.h"
+
+#include "Library/WebAssemblyInstance.h"
 
 #include "Language/JavascriptStackWalker.h"
 

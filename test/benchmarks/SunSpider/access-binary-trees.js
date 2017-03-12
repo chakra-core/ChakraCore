@@ -20,8 +20,15 @@
  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+if(typeof(WScript) === "undefined")
+{
+    var WScript = {
+        Echo: print
+    }
+}
 
 function record(time) {
     document.getElementById("console").innerHTML = time + "ms";
@@ -66,9 +73,9 @@ for ( var n = 4; n <= 7; n += 1 ) {
     var minDepth = 4;
     var maxDepth = Math.max(minDepth + 2, n);
     var stretchDepth = maxDepth + 1;
-    
+
     var check = bottomUpTree(0,stretchDepth).itemCheck();
-    
+
     var longLivedTree = bottomUpTree(0,maxDepth);
     for (var depth=minDepth; depth<=maxDepth; depth+=2){
         var iterations = 1 << (maxDepth - depth + minDepth);

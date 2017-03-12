@@ -32,6 +32,13 @@ namespace Js
             return nullptr;
         }
 
+        if (key->GetScriptContext()->GetLibrary()->GetUndefined() == weakMapKeyData)
+        {
+            // Assert to find out where this can happen.
+            Assert(false);
+            return nullptr;
+        }
+
         return static_cast<WeakMapKeyMap*>(weakMapKeyData);
     }
 
@@ -71,7 +78,7 @@ namespace Js
         Var newTarget = callInfo.Flags & CallFlags_NewTarget ? args.Values[args.Info.Count] : args[0];
         bool isCtorSuperCall = (callInfo.Flags & CallFlags_New) && newTarget != nullptr && !JavascriptOperators::IsUndefined(newTarget);
         Assert(isCtorSuperCall || !(callInfo.Flags & CallFlags_New) || args[0] == nullptr);
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(WeakMapCount);
+        CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_WeakMap);
 
         JavascriptWeakMap* weakMapObject = nullptr;
 
@@ -249,7 +256,7 @@ namespace Js
         //TODO: This makes the map decidedly less weak -- forces it to only release when we clean the tracking set but determinizes the behavior nicely
         //      We want to improve this.
         //
-        if(scriptContext->ShouldPerformDebugAction() | scriptContext->ShouldPerformRecordAction())
+        if(scriptContext->IsTTDRecordOrReplayModeEnabled())
         {
             scriptContext->TTDContextInfo->TTDWeakReferencePinSet->Add(keyObj);
         }
@@ -339,6 +346,15 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    void JavascriptWeakMap::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
+    {
+        this->Map([&](DynamicObject* key, Js::Var value)
+        {
+            extractor->MarkVisitVar(key);
+            extractor->MarkVisitVar(value);
+        });
+    }
+
     TTD::NSSnapObjects::SnapObjectType JavascriptWeakMap::GetSnapTag_TTD() const
     {
         return TTD::NSSnapObjects::SnapObjectType::SnapMapObject;

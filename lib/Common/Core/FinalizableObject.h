@@ -20,4 +20,7 @@ public:
 
     // Used only by TrackableObjects (created with TrackedBit on by RecyclerNew*Tracked)
     virtual void Mark(Recycler * recycler) = 0;
+
+    // Special behavior on certain GC's
+    virtual void OnMark() {}
 };

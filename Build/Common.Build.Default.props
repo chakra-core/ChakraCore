@@ -9,9 +9,10 @@
 
   <!-- Auto tool set selection -->
   <PropertyGroup>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='11.0'">v110</PlatformToolset>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='12.0'">v120</PlatformToolset>
-    <PlatformToolset Condition="'$(VisualStudioVersion)'=='14.0'">v140</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)'=='11.0' or '$(MSBuildToolsVersion)'=='11.0'">v110</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)'=='12.0' or '$(MSBuildToolsVersion)'=='12.0'">v120</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)'=='14.0' or '$(MSBuildToolsVersion)'=='14.0'">v140</PlatformToolset>
+    <PlatformToolset Condition="'$(VisualStudioVersion)'=='15.0' or '$(MSBuildToolsVersion)'=='15.0'">v141</PlatformToolset>
   </PropertyGroup>
 
   <!-- Default ChakraDevConfigDir -->
@@ -28,12 +29,6 @@
   <PropertyGroup>
     <OptimizedBuild />
     <OptimizedBuild Condition="'$(Configuration)'=='Release' or '$(Configuration)'=='Test'">true</OptimizedBuild>
-    <NtTargetVersion>$(NtTargetVersion_Win7)</NtTargetVersion>
-
-    <!-- On ARM we depend an API that was added in Win8 timeframe, specifically GetCurrentThreadLimits.
-         Note that for ARM we don't need to support running on Win7, so it's fine to require Win8 as minimum. -->
-    <NtTargetVersion Condition="'$(Platform)'=='ARM' or '$(Platform)'=='Arm64'">$(NtTargetVersion_Win8)</NtTargetVersion>
-
     <WindowsSDKDesktopARMSupport Condition="'$(Platform)'=='ARM'">true</WindowsSDKDesktopARMSupport>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
@@ -58,18 +53,22 @@
     <PlatformPathNameAlt Condition="'$(Platform)'=='x64'">amd64</PlatformPathNameAlt>
   </PropertyGroup>
 
-
   <!-- Default output directories -->
   <PropertyGroup>
     <OutBaseDir Condition="'$(OutBaseDir)'!=''">$(OutBaseDir)\$(SolutionName)</OutBaseDir>
     <OutBaseDir Condition="'$(OutBaseDir)'==''">$(SolutionDir)VcBuild</OutBaseDir>
-    <OutBaseDir Condition="'$(Clang)'!=''">$(OutBaseDir).$(Clang)</OutBaseDir>    
+    <OutBaseDir Condition="'$(Clang)'!=''">$(OutBaseDir).$(Clang)</OutBaseDir>
     <OutBaseDir Condition="'$(BuildJIT)'=='false'">$(OutBaseDir).NoJIT</OutBaseDir>
+    <OutBaseDir Condition="'$(ForceSWB)'=='true'">$(OutBaseDir).SWB</OutBaseDir>
     <IntBaseDir Condition="'$(IntBaseDir)'==''">$(OutBaseDir)</IntBaseDir>
   </PropertyGroup>
 
   <!-- Import generated build info -->
-  <Import Project="$(TF_BUILD_BUILDDIRECTORY)\Chakra.Generated.BuildInfo.props" Condition="'$(TF_BUILD_BUILDDIRECTORY)' != '' AND exists('$(TF_BUILD_BUILDDIRECTORY)\Chakra.Generated.BuildInfo.props')" />
+  <PropertyGroup>
+    <ObjectDirectory Condition="'$(TF_BUILD_BUILDDIRECTORY)'!=''">$(TF_BUILD_BUILDDIRECTORY)</ObjectDirectory>
+    <ObjectDirectory Condition="'$(TF_BUILD_BUILDDIRECTORY)'==''">$(IntBaseDir)\obj\$(PlatformPathName.ToLower())_$(Configuration.ToLower())</ObjectDirectory>
+  </PropertyGroup>
+  <Import Project="$(ObjectDirectory)\Chakra.Generated.BuildInfo.props" Condition="'$(ObjectDirectory)'!='' AND exists('$(ObjectDirectory)\Chakra.Generated.BuildInfo.props')" />
 
   <!-- Output directories -->
   <PropertyGroup>
@@ -81,5 +80,6 @@
     <OutputPath>$(OutDir)</OutputPath>
 
     <ChakraParserIntDir>$(IntDir)..\Chakra.Parser</ChakraParserIntDir>
+    <ChakraJITIDLIntDir>$(IntDir)..\Chakra.JITIDL</ChakraJITIDLIntDir>
   </PropertyGroup>
 </Project>

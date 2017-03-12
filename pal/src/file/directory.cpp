@@ -136,11 +136,6 @@ RemoveDirectoryHelper (
     *dwLastError = 0; 
 
     FILEDosToUnixPathA( lpPathName );
-    if ( !FILEGetFileNameFromSymLink(lpPathName))
-    {
-        FILEGetProperNotFoundError( lpPathName, dwLastError );
-        goto done;
-    }
 
     if ( rmdir(lpPathName) != 0 )
     {
@@ -179,7 +174,6 @@ RemoveDirectoryHelper (
         bRet = TRUE;
     }
 
-done:
     return bRet;
 }
 

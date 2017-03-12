@@ -9,16 +9,20 @@
 
 namespace Js
 {
-    DiagStackFrame::DiagStackFrame(int frameIndex) :
-        frameIndex(frameIndex)
+    DiagStackFrame::DiagStackFrame():
+        isTopFrame(false)
     {
-        Assert(frameIndex >= 0);
     }
 
     // Returns whether or not this frame is on the top of the callstack.
     bool DiagStackFrame::IsTopFrame()
     {
-        return this->frameIndex == 0 && GetScriptContext()->GetDebugContext()->GetProbeContainer()->IsPrimaryBrokenToDebuggerContext();
+        return this->isTopFrame && GetScriptContext()->GetDebugContext()->GetProbeContainer()->IsPrimaryBrokenToDebuggerContext();
+    }
+
+    void DiagStackFrame::SetIsTopFrame()
+    {
+        this->isTopFrame = true;
     }
 
     ScriptFunction* DiagStackFrame::GetScriptFunction()
@@ -394,8 +398,7 @@ namespace Js
         return GetNonVarRegValue(location);
     }
 
-    DiagInterpreterStackFrame::DiagInterpreterStackFrame(InterpreterStackFrame* frame, int frameIndex) :
-        DiagStackFrame(frameIndex),
+    DiagInterpreterStackFrame::DiagInterpreterStackFrame(InterpreterStackFrame* frame) :
         m_interpreterFrame(frame)
     {
         Assert(m_interpreterFrame != NULL);
@@ -475,9 +478,7 @@ namespace Js
         ScriptFunction* function,
         int byteCodeOffset,
         void* stackAddr,
-        void *codeAddr,
-        int frameIndex) :
-        DiagStackFrame(frameIndex),
+        void *codeAddr) :
         m_function(function),
         m_byteCodeOffset(byteCodeOffset),
         m_stackAddr(stackAddr),
@@ -600,8 +601,7 @@ namespace Js
 #endif
 
 
-    DiagRuntimeStackFrame::DiagRuntimeStackFrame(JavascriptFunction* function, PCWSTR displayName, void* stackAddr, int frameIndex):
-        DiagStackFrame(frameIndex),
+    DiagRuntimeStackFrame::DiagRuntimeStackFrame(JavascriptFunction* function, PCWSTR displayName, void* stackAddr):
         m_function(function),
         m_displayName(displayName),
         m_stackAddr(stackAddr)

@@ -193,6 +193,7 @@ bool Js::CharClassifier::BigCharIsIdContinueDefault(codepoint_t ch, const Js::Ch
 {
     return (instance->getBigCharFlagsFunc(ch, instance) & PlatformAgnostic::UnicodeText::CharacterTypeFlags::IdChar) != 0;
 }
+#endif
 
 CharTypes Js::CharClassifier::GetBigCharTypeES5(codepoint_t codepoint, const Js::CharClassifier *instance)
 {
@@ -358,7 +359,6 @@ bool Js::CharClassifier::BigCharIsIdContinueES6(codepoint_t codePoint, const Cha
 
     return PlatformAgnostic::UnicodeText::IsIdContinue(codePoint);
 }
-#endif
 
 template <bool isBigChar>
 bool Js::CharClassifier::IsWhiteSpaceFast(codepoint_t ch) const
@@ -419,11 +419,12 @@ Js::CharClassifier::CharClassifier(ScriptContext * scriptContext)
     }
 #endif
 
-#if ENABLE_UNICODE_API
     // If we're in ES6 mode, and we have full support for Unicode character classification
     // from an external library, then use the ES6/Surrogate pair supported versions of the functions
     // Otherwise, fallback to the ES5 versions which don't need an external library
+#if ENABLE_UNICODE_API
     if (isES6UnicodeModeEnabled && isFullUnicodeSupportAvailable)
+#endif
     {
         bigCharIsIdStartFunc = &CharClassifier::BigCharIsIdStartES6;
         bigCharIsIdContinueFunc = &CharClassifier::BigCharIsIdContinueES6;
@@ -435,8 +436,8 @@ Js::CharClassifier::CharClassifier(ScriptContext * scriptContext)
         getBigCharTypeFunc = &CharClassifier::GetBigCharTypeES6;
         getBigCharFlagsFunc = &CharClassifier::GetBigCharFlagsES6;
     }
+#if ENABLE_UNICODE_API
     else
-#endif
     {
         bigCharIsIdStartFunc = &CharClassifier::BigCharIsIdStartDefault;
         bigCharIsIdContinueFunc = &CharClassifier::BigCharIsIdContinueDefault;
@@ -448,6 +449,8 @@ Js::CharClassifier::CharClassifier(ScriptContext * scriptContext)
         getBigCharTypeFunc = &CharClassifier::GetBigCharTypeES5;
         getBigCharFlagsFunc = &CharClassifier::GetBigCharFlagsES5;
     }
+#endif
+
 }
 
 const OLECHAR* Js::CharClassifier::SkipWhiteSpaceNonSurrogate(LPCOLESTR psz, const CharClassifier *instance)
@@ -647,12 +650,7 @@ const LPCUTF8 Js::CharClassifier::SkipIdentifierSurrogateStartEnd(LPCUTF8 psz, L
 
 CharTypes Js::CharClassifier::GetCharType(codepoint_t ch) const
 {
-#if ENABLE_UNICODE_API
     return FBigChar(ch) ? getBigCharTypeFunc(ch, this) : charTypes[ch];
-#else
-    Assert(!FBigChar(ch));
-    return charTypes[ch];
-#endif
 }
 
 #if ENABLE_UNICODE_API

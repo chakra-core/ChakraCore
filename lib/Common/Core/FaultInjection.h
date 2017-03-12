@@ -64,6 +64,8 @@ namespace Js
             StackMatchCountOnly = 4,
             StackHashCountOnly = 5,
             DisplayAvailableFaultTypes = 6,
+            InstallExceptionHandlerOnly = 7,
+
         };
 
         uint countOfInjectionPoints;
@@ -132,7 +134,7 @@ namespace Js
         int InjectionRecordsCount;
         void dumpCurrentStackData(LPCWSTR name = nullptr, size_t size = 0);
 
-        static __declspec(thread) int(*pfnHandleAV)(int, PEXCEPTION_POINTERS);
+        static THREAD_LOCAL int(*pfnHandleAV)(int, PEXCEPTION_POINTERS);
 
     private:
         bool symInitialized;

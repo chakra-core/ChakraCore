@@ -21,7 +21,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLanguagePch.h"
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #include "ByteCode/Symbol.h"
 #include "ByteCode/FuncInfo.h"
 #include "ByteCode/ByteCodeWriter.h"
@@ -59,10 +59,12 @@ namespace Js
     AsmJSCompiler::CheckFunctionHead(AsmJsModuleCompiler &m, ParseNode *fn, bool isGlobal /*= true*/)
     {
         PnFnc fnc = fn->sxFnc;
+
         if (fnc.HasNonSimpleParameterList())
         {
             return m.Fail(fn, _u("default & rest args not allowed"));
         }
+
         if (fnc.IsStaticMember())
         {
             return m.Fail(fn, _u("static functions are not allowed"));
@@ -73,6 +75,11 @@ namespace Js
             return m.Fail(fn, _u("generator functions are not allowed"));
         }
 
+        if (fnc.IsAsync())
+        {
+            return m.Fail(fn, _u("async functions are not allowed"));
+        }
+
         if (fnc.IsLambda())
         {
             return m.Fail(fn, _u("lambda functions are not allowed"));
@@ -81,11 +88,6 @@ namespace Js
         if (!isGlobal && fnc.nestedCount != 0)
         {
             return m.Fail(fn, _u("closure functions are not allowed"));
-        }
-
-        if (fnc.HasDefaultArguments())
-        {
-            return m.Fail(fn, _u("default arguments not allowed"));
         }
 
         return true;
@@ -470,7 +472,7 @@ namespace Js
                 return m.Fail(ctorExpr, _u("invalid 'new' import"));
             }
             type = buffFunc->Cast<AsmJsTypedArrayFunction>()->GetViewType();
-            if (type == ArrayBufferView::TYPE_INVALID)
+            if (type == ArrayBufferView::TYPE_COUNT)
             {
                 return m.Fail(ctorExpr, _u("could not match typed array name"));
             }

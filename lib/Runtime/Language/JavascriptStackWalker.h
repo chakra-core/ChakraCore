@@ -54,6 +54,7 @@ namespace Js
         int32 GetInt32AtOffset(int offset) const;
         SIMDValue GetSimdValueAtOffset(int offset) const;
         char * GetValueChangeOffset(int offset) const;
+        ForInObjectEnumerator * GetForInObjectEnumeratorArrayAtOffset(int offset) const;
 
         static JavascriptCallStackLayout *FromFramePointer(void *const framePointer);
         static void* const ToFramePointer(JavascriptCallStackLayout* callstackLayout);
@@ -245,7 +246,8 @@ namespace Js
         bool GetDisplayCaller(JavascriptFunction ** ppFunc);
         PCWSTR GetCurrentNativeLibraryEntryName() const;
         static bool IsLibraryStackFrameEnabled(Js::ScriptContext * scriptContext);
-        
+        static bool IsWalkable(ScriptContext *scriptContext);
+
         // Walk frames (until walkFrame returns true)
         template <class WalkFrame>
         ushort WalkUntil(ushort stackTraceLimit, WalkFrame walkFrame, bool onlyOnDebugMode = false, bool filterDiagnosticsOM = false)
@@ -338,7 +340,7 @@ namespace Js
         bool TryGetByteCodeOffsetOfInlinee(Js::JavascriptFunction* function, uint loopNum, DWORD_PTR pCodeAddr, Js::FunctionBody** inlinee, uint32& offset, bool useInternalFrameInfo) const;
         uint GetLoopNumber(bool& usedInternalFrameInfo) const;
         bool InlinedFramesBeingWalked() const;
-		bool HasInlinedFramesOnStack() const;
+        bool HasInlinedFramesOnStack() const;
         bool PreviousInterpreterFrameIsFromBailout() const;
         InternalFrameInfo lastInternalFrameInfo;
 #endif
@@ -347,7 +349,7 @@ namespace Js
         Js::JavascriptFunction * UpdateFrame(bool includeInlineFrames);
         bool CheckJavascriptFrame(bool includeInlineFrames);
 
-        JavascriptFunction *JavascriptStackWalker::GetCurrentFunctionFromPhysicalFrame() const;
+        JavascriptFunction *GetCurrentFunctionFromPhysicalFrame() const;
      };
 
     class AutoPushReturnAddressForStackWalker

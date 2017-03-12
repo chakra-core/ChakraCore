@@ -41,10 +41,10 @@ WScript.Echo("test2: " + test2());
 // When hoisting an invariant with a new dst, value type of the old dst should be copied over to the new dst.
 function test3() {
   var func1 = function () {
-    return '6' + '\xb5!%$' + 'caller';
+    return '6' + 'b!%$' + 'caller';
   };
   var func2 = function () {
-     return '6' + '\xb5!%$' + 'caller';
+     return '6' + 'b!%$' + 'caller';
   };
   
   var ary = Array();

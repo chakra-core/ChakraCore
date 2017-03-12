@@ -6,7 +6,7 @@
 #include "JsrtRuntime.h"
 #include "Base/ThreadContextTlsEntry.h"
 
-DWORD JsrtContext::s_tlsSlot = TLS_OUT_OF_INDEXES;
+static THREAD_LOCAL JsrtContext* s_tlvSlot = nullptr;
 
 JsrtContext::JsrtContext(JsrtRuntime * runtime) :
     runtime(runtime), javascriptLibrary(nullptr)
@@ -16,12 +16,10 @@ JsrtContext::JsrtContext(JsrtRuntime * runtime) :
 void JsrtContext::SetJavascriptLibrary(Js::JavascriptLibrary * library)
 {
     this->javascriptLibrary = library;
-}
-
-void JsrtContext::PinCurrentJsrtContext()
-{
-    Assert(this->javascriptLibrary);
-    this->javascriptLibrary->PinJsrtContextObject(this);
+    if (this->javascriptLibrary)
+    {
+        this->javascriptLibrary->SetJsrtContext(this);
+    }
 }
 
 void JsrtContext::Link()
@@ -64,40 +62,15 @@ void JsrtContext::Unlink()
     }
 }
 
-
-/* static */
-bool JsrtContext::Initialize()
-{
-    Assert(s_tlsSlot == TLS_OUT_OF_INDEXES);
-    s_tlsSlot = TlsAlloc();
-    if (s_tlsSlot == TLS_OUT_OF_INDEXES)
-        return false;
-
-    return true;
-}
-
-/* static */
-void JsrtContext::Uninitialize()
-{
-    if (s_tlsSlot != TLS_OUT_OF_INDEXES)
-        TlsFree(s_tlsSlot);
-}
-
-
 /* static */
 JsrtContext * JsrtContext::GetCurrent()
 {
-    Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
-
-    return (JsrtContext *)TlsGetValue(s_tlsSlot);
+    return s_tlvSlot;
 }
-
 
 /* static */
 bool JsrtContext::TrySetCurrent(JsrtContext * context)
 {
-    Assert(s_tlsSlot != TLS_OUT_OF_INDEXES);
-
     ThreadContext * threadContext;
 
     //We are not pinning the context after SetCurrentContext, so if the context is not pinned
@@ -124,18 +97,14 @@ bool JsrtContext::TrySetCurrent(JsrtContext * context)
         }
     }
 
-    JsrtContext* originalContext = (JsrtContext*) TlsGetValue(s_tlsSlot);
+    JsrtContext* originalContext = s_tlvSlot;
     if (originalContext != nullptr)
     {
         originalContext->GetScriptContext()->GetRecycler()->RootRelease((LPVOID) originalContext);
     }
 
-    TlsSetValue(s_tlsSlot, context);
+    s_tlvSlot = context;
     return true;
-}
-
-void JsrtContext::Finalize(bool isShutdown)
-{
 }
 
 void JsrtContext::Mark(Recycler * recycler)

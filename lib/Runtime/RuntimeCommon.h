@@ -7,7 +7,7 @@
 // Runtime.h has both definitions and #include other runtime files.
 // Definitions here are extracted definitions (not #include's) from Runtime.h that core Runtime .h's can be used without #including full Runtime.h
 
-extern int TotalNumberOfBuiltInProperties;
+const extern int TotalNumberOfBuiltInProperties;
 
 namespace Js
 {

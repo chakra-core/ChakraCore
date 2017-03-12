@@ -1,0 +1,216 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 4,
+        "sourceText": "return ++i",
+        "function": "incrementI"
+      },
+      {
+        "line": 11,
+        "column": 0,
+        "sourceText": "WScript.Echo(`The count is ${incrementI() /**bp:resume('step_into');stack()**/}`)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 4,
+        "sourceText": "return ++i",
+        "function": "incrementI"
+      },
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "WScript.Echo(`The count is ${incrementI() /**bp:resume('step_into');stack();evaluate('i * i', 1)**/}`)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "i * i": "number 1"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 4,
+        "sourceText": "return ++i",
+        "function": "incrementI"
+      },
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "WScript.Echo(`The count is ${incrementI() /**bp:resume('step_into');stack();evaluate('i * i', 1)**/}`)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "i * i": "number 4"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 4,
+        "sourceText": "return ++i",
+        "function": "incrementI"
+      },
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "WScript.Echo(`The count is ${incrementI() /**bp:resume('step_into');stack();evaluate('i * i', 1)**/}`)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "i * i": "number 9"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 19,
+        "column": 4,
+        "sourceText": "WScript.Echo(substitutions)",
+        "function": "tempHandler"
+      },
+      {
+        "line": 21,
+        "column": 0,
+        "sourceText": "tempHandler`The count is\r\n${++i /**bp:stack();evaluate('tempHandler',3)**/}\r\n`",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 27,
+        "column": 4,
+        "sourceText": "return ++i",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 26,
+        "column": 0,
+        "sourceText": "WScript.Echo(String.raw`The count is ${(function() {\r\n    return ++i; /**bp:stack();evaluate('String', 2)**/\r\n})()}`)",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "String": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "length": "number 0",
+          "name": "string ",
+          "apply": "function <large string>",
+          "bind": "function <large string>",
+          "call": "function <large string>",
+          "toString": "function <large string>",
+          "Symbol.hasInstance": "function <large string>",
+          "caller": "Error <large string>",
+          "arguments": "Error <large string>"
+        },
+        "length": "number 1",
+        "prototype": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "indexOf": "function <large string>",
+          "lastIndexOf": "function <large string>",
+          "replace": "function <large string>",
+          "search": "function <large string>",
+          "slice": "function <large string>",
+          "codePointAt": "function <large string>",
+          "normalize": "function <large string>",
+          "charAt": "function <large string>",
+          "charCodeAt": "function <large string>",
+          "concat": "function <large string>",
+          "localeCompare": "function <large string>",
+          "match": "function <large string>",
+          "split": "function <large string>",
+          "substring": "function <large string>",
+          "substr": "function <large string>",
+          "toLocaleLowerCase": "function <large string>",
+          "toLocaleUpperCase": "function <large string>",
+          "toLowerCase": "function <large string>",
+          "toString": "function <large string>",
+          "toUpperCase": "function <large string>",
+          "trim": "function <large string>",
+          "valueOf": "function <large string>",
+          "anchor": "function <large string>",
+          "big": "function <large string>",
+          "blink": "function <large string>",
+          "bold": "function <large string>",
+          "fixed": "function <large string>",
+          "fontcolor": "function <large string>",
+          "fontsize": "function <large string>",
+          "italics": "function <large string>",
+          "link": "function <large string>",
+          "small": "function <large string>",
+          "strike": "function <large string>",
+          "sub": "function <large string>",
+          "sup": "function <large string>",
+          "repeat": "function <large string>",
+          "startsWith": "function <large string>",
+          "endsWith": "function <large string>",
+          "includes": "function <large string>",
+          "trimLeft": "function <large string>",
+          "trimRight": "function <large string>",
+          "Symbol.iterator": "function <large string>",
+          "padStart": "function <large string>",
+          "padEnd": "function <large string>",
+          "length": "number 0"
+        },
+        "name": "string String",
+        "fromCharCode": {
+          "#__proto__": "function <large string>",
+          "length": "number 1",
+          "name": "string fromCharCode",
+          "caller": "object null",
+          "arguments": "object null"
+        },
+        "fromCodePoint": {
+          "#__proto__": "function <large string>",
+          "length": "number 1",
+          "name": "string fromCodePoint",
+          "caller": "object null",
+          "arguments": "object null"
+        },
+        "raw": {
+          "#__proto__": "function <large string>",
+          "length": "number 1",
+          "name": "string raw",
+          "caller": "object null",
+          "arguments": "object null"
+        },
+        "caller": "object null",
+        "arguments": "object null"
+      }
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 26,
+        "column": 0,
+        "sourceText": "WScript.Echo(String.raw`The count is ${(function() {\r\n    return ++i; /**bp:stack();evaluate('String', 2)**/\r\n})()}`)",
+        "function": "Global code"
+      }
+    ]
+  }
+]

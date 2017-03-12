@@ -1,0 +1,47 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "argFunc0": "number 1",
+      "argMath1": "number 1",
+      "argArr2": "number 1"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "evaluate": {
+      "this.prop0": "number NaN"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "argFunc0": "number 1",
+      "argMath1": "number 1",
+      "argArr2": "number 1"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "evaluate": {
+      "this.prop0": "number NaN"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "argFunc0": "number 1",
+      "argMath1": "number 1",
+      "argArr2": "number 1"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "evaluate": {
+      "this.prop0": "number NaN"
+    }
+  }
+]

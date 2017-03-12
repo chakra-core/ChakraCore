@@ -40,7 +40,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)FixedBitVectorEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)InternalStringNoCaseComparer.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SizePolicy.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SparseBitVector.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)CommonDataStructuresPch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -65,6 +64,7 @@
     <ClInclude Include="PageStack.h" />
     <ClInclude Include="Pair.h" />
     <ClInclude Include="Queue.h" />
+    <ClInclude Include="QuickSort.h" />
     <ClInclude Include="RegexKey.h" />
     <ClInclude Include="SizePolicy.h" />
     <ClInclude Include="InternalString.h" />
@@ -80,7 +80,6 @@
     <ClInclude Include="KeyValuePair.h" />
     <ClInclude Include="LargeStack.h" />
     <ClInclude Include="List.h" />
-    <ClInclude Include="quicksort.h" />
     <ClInclude Include="SimpleHashTable.h" />
     <ClInclude Include="SList.h" />
     <ClInclude Include="SparseArray.h" />
@@ -96,6 +95,11 @@
   <ItemGroup>
     <None Include="DoublyLinkedList.inl" />
     <None Include="DoublyLinkedListElement.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

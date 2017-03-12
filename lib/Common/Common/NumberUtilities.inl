@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
@@ -165,6 +165,16 @@ namespace Js
     NUMBER_UTIL_INLINE uint32 NumberUtilities::ToSpecial(float value)
     {
         return  *(reinterpret_cast<uint32 *>(&value));
+    }
+
+    NUMBER_UTIL_INLINE float NumberUtilities::ReinterpretBits(int value)
+    {
+        return  *(reinterpret_cast<float *>(&value));
+    }
+
+    NUMBER_UTIL_INLINE double NumberUtilities::ReinterpretBits(int64 value)
+    {
+        return  *(reinterpret_cast<double *>(&value));
     }
 
     NUMBER_UTIL_INLINE bool NumberUtilities::IsFloat32NegZero(float value)

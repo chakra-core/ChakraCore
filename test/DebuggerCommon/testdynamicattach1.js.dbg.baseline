@@ -1,0 +1,43 @@
+[
+  {
+    "breakpoints": []
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "arguments": "Object {...}",
+      "a1": "undefined undefined"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 9,
+        "column": 1,
+        "sourceText": "debugger",
+        "function": "foo"
+      }
+    ]
+  },
+  {
+    "breakpoints": []
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "arguments": "Object {...}",
+      "a1": "Array [...]",
+      "inEval": "number 11"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 14,
+        "column": 1,
+        "sourceText": "debugger",
+        "function": "foo"
+      }
+    ]
+  }
+]

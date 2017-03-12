@@ -35,7 +35,7 @@ FlowGraph::Build(void)
     // (BailOnSimpleJitToFullJitLoopBody). For that purpose, we need the flow from try to catch.
     if (this->func->HasTry() &&
         (this->func->DoOptimizeTryCatch() ||
-        this->func->IsSimpleJit() && this->func->GetJnFunction()->DoJITLoopBody()
+            (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody())
         )
        )
     {
@@ -138,7 +138,7 @@ FlowGraph::Build(void)
                         argInstr->m_opcode != Js::OpCode::ArgOut_A_SpreadArg)
                     {
                         // don't have bailout in asm.js so we don't need BytecodeArgOutCapture
-                        if (!argInstr->m_func->GetJnFunction()->GetIsAsmjsMode())
+                        if (!argInstr->m_func->GetJITFunctionBody()->IsAsmJsMode())
                         {
                             // Need to always generate byte code arg out capture,
                             // because bailout can't restore from the arg out as it is
@@ -323,6 +323,7 @@ FlowGraph::RunPeeps()
         case Js::OpCode::BrFncCachedScopeNeq:
         case Js::OpCode::BrOnObject_A:
         case Js::OpCode::BrOnClassConstructor:
+        case Js::OpCode::BrOnBaseConstructorKind:
             if (tryUnsignedCmpPeep)
             {
                 this->UnsignedCmpPeep(instr);
@@ -642,7 +643,7 @@ FlowGraph::CanonicalizeLoops()
 {
     if (this->func->HasProfileInfo())
     {
-        this->implicitCallFlags = this->func->GetProfileInfo()->GetImplicitCallFlags();
+        this->implicitCallFlags = this->func->GetReadOnlyProfileInfo()->GetImplicitCallFlags();
         for (Loop *loop = this->loopList; loop; loop = loop->next)
         {
             this->implicitCallFlags = (Js::ImplicitCallFlags)(this->implicitCallFlags | loop->GetImplicitCallFlags());
@@ -762,9 +763,9 @@ FlowGraph::BuildLoop(BasicBlock *headBlock, BasicBlock *tailBlock, Loop *parentL
     if (firstInstr->IsProfiledLabelInstr())
     {
         loop->SetImplicitCallFlags(firstInstr->AsProfiledLabelInstr()->loopImplicitCallFlags);
-        if (this->func->GetProfileInfo()->IsLoopImplicitCallInfoDisabled())
+        if (this->func->HasProfileInfo() && this->func->GetReadOnlyProfileInfo()->IsLoopImplicitCallInfoDisabled())
         {
-            loop->SetImplicitCallFlags(this->func->GetProfileInfo()->GetImplicitCallFlags());
+            loop->SetImplicitCallFlags(this->func->GetReadOnlyProfileInfo()->GetImplicitCallFlags());
         }
         loop->SetLoopFlags(firstInstr->AsProfiledLabelInstr()->loopFlags);
     }
@@ -1099,7 +1100,7 @@ FlowGraph::Destroy(void)
                 // Skipping Try blocks as we have dependency on blocks to get the last instr(see below in this function)
                 if (!fHasTry)
                 {
-                    if (this->func->GetJnFunction()->IsGenerator())
+                    if (this->func->GetJITFunctionBody()->IsCoroutine())
                     {
                         // the label could be a yield resume label, in which case we also need to remove it from the YieldOffsetResumeLabels list
                         this->func->MapUntilYieldOffsetResumeLabels([this, &labelInstr](int i, const YieldOffsetResumeLabel& yorl)
@@ -1248,7 +1249,7 @@ FlowGraph::Destroy(void)
                     case Js::OpCode::BrOnNoException:
                         Assert(this->func->HasTry() &&
                                ((!this->func->HasFinally() && !this->func->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this->func)) ||
-                               (this->func->IsSimpleJit() && this->func->GetJnFunction()->DoJITLoopBody()))); // should be relaxed as more bailouts are added in Simple Jit
+                               (this->func->IsSimpleJit() && this->func->GetJITFunctionBody()->DoJITLoopBody()))); // should be relaxed as more bailouts are added in Simple Jit
 
                         Assert(region->GetType() == RegionTypeTry || region->GetType() == RegionTypeCatch);
                         if (region->GetType() == RegionTypeCatch)
@@ -1721,7 +1722,7 @@ FlowGraph::RemoveUnreachableBlocks()
 
 // If block has no predecessor, remove it.
 bool
-FlowGraph::RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt)
+FlowGraph::RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt, IR::Instr ** pUpwardedInstr)
 {
     bool isDead = false;
 
@@ -1744,7 +1745,7 @@ FlowGraph::RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt)
 
     if (isDead)
     {
-        this->RemoveBlock(block, globOpt);
+        this->RemoveBlock(block, globOpt, false /* tailDuping */, pUpwardedInstr);
         return true;
     }
     return false;
@@ -2085,6 +2086,7 @@ FlowGraph::PeepCm(IR::Instr *instr)
     Func* origBrFunc = instrBr->m_func;
     uint32 origBrByteCodeOffset = instrBr->GetByteCodeOffset();
     uint32 origBranchSrcSymId = instrBr->GetSrc1()->GetStackSym()->m_id;
+    bool origBranchSrcOpndIsJITOpt = instrBr->GetSrc1()->GetIsJITOptimizedReg();
 
     instrBr->Unlink();
     instr->InsertBefore(instrBr);
@@ -2142,8 +2144,8 @@ FlowGraph::PeepCm(IR::Instr *instr)
 
     instrBr->m_opcode = newOpcode;
 
-    IR::AddrOpnd* trueOpnd = IR::AddrOpnd::New(func->GetScriptContext()->GetLibrary()->GetTrue(), IR::AddrOpndKindDynamicVar, func, true);
-    IR::AddrOpnd* falseOpnd = IR::AddrOpnd::New(func->GetScriptContext()->GetLibrary()->GetFalse(), IR::AddrOpndKindDynamicVar, func, true);
+    IR::AddrOpnd* trueOpnd = IR::AddrOpnd::New(func->GetScriptContextInfo()->GetTrueAddr(), IR::AddrOpndKindDynamicVar, func, true);
+    IR::AddrOpnd* falseOpnd = IR::AddrOpnd::New(func->GetScriptContextInfo()->GetFalseAddr(), IR::AddrOpndKindDynamicVar, func, true);
 
     trueOpnd->SetValueType(ValueType::Boolean);
     falseOpnd->SetValueType(ValueType::Boolean);
@@ -2211,7 +2213,7 @@ FlowGraph::PeepCm(IR::Instr *instr)
     // Fix InlineeEnd
     if (inlineeEndInstr)
     {
-        this->InsertInlineeOnFLowEdge(instrBr->AsBranchInstr(), inlineeEndInstr, instrByteCode , origBrFunc, origBrByteCodeOffset, origBranchSrcSymId);
+        this->InsertInlineeOnFLowEdge(instrBr->AsBranchInstr(), inlineeEndInstr, instrByteCode , origBrFunc, origBrByteCodeOffset, origBranchSrcOpndIsJITOpt, origBranchSrcSymId);
     }
 
     if (instr->GetDst()->AsRegOpnd()->m_sym->HasByteCodeRegSlot())
@@ -2351,14 +2353,14 @@ FlowGraph::PeepCm(IR::Instr *instr)
     // InlineeEnd?
     if (inlineeEndInstr2)
     {
-        this->InsertInlineeOnFLowEdge(instrBr->AsBranchInstr(), inlineeEndInstr2, instrByteCode, origBrFunc, origBrByteCodeOffset, origBranchSrcSymId);
+        this->InsertInlineeOnFLowEdge(instrBr->AsBranchInstr(), inlineeEndInstr2, instrByteCode, origBrFunc, origBrByteCodeOffset, origBranchSrcOpndIsJITOpt, origBranchSrcSymId);
     }
 
     return instrBr;
 }
 
 void
-FlowGraph::InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeEndInstr, IR::Instr *instrBytecode, Func* origBrFunc, uint32 origByteCodeOffset, uint32 origBranchSrcSymId)
+FlowGraph::InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeEndInstr, IR::Instr *instrBytecode, Func* origBrFunc, uint32 origByteCodeOffset, bool origBranchSrcOpndIsJITOpt, uint32 origBranchSrcSymId)
 {
     // Helper for PeepsCm code.
     //
@@ -2390,19 +2392,17 @@ FlowGraph::InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeE
     newInlineeEnd->SetIsCloned(true);  // Mark it as cloned - this is used later by the inlinee args optimization
     newBr->InsertBefore(newInlineeEnd);
 
-    IR::ByteCodeUsesInstr * useOrigBranchSrcInstr = IR::ByteCodeUsesInstr::New(origBrFunc);
-    useOrigBranchSrcInstr->SetByteCodeOffset(origByteCodeOffset);
-    useOrigBranchSrcInstr->byteCodeUpwardExposedUsed = JitAnew(origBrFunc->m_alloc, BVSparse<JitArenaAllocator>,origBrFunc->m_alloc);
-    useOrigBranchSrcInstr->byteCodeUpwardExposedUsed->Set(origBranchSrcSymId);
+    IR::ByteCodeUsesInstr * useOrigBranchSrcInstr = IR::ByteCodeUsesInstr::New(origBrFunc, origByteCodeOffset);
+    useOrigBranchSrcInstr->SetRemovedOpndSymbol(origBranchSrcOpndIsJITOpt, origBranchSrcSymId);
     newBr->InsertBefore(useOrigBranchSrcInstr);
 
-    uint newBrFnNumber = newBr->m_func->m_workItem->GetFunctionNumber();
-    Assert(newBrFnNumber == origBrFunc->m_workItem->GetFunctionNumber());
+    uint newBrFnNumber = newBr->m_func->GetFunctionNumber();
+    Assert(newBrFnNumber == origBrFunc->GetFunctionNumber());
 
     // The function numbers of the new branch and the inlineeEnd instruction should be different (ensuring that the new branch is not added in the inlinee but in the inliner).
     // Only case when they can be same is recursive calls - inlinee and inliner are the same function
-    Assert(newBrFnNumber != inlineeEndInstr->m_func->m_workItem->GetFunctionNumber() ||
-        newBrFnNumber == inlineeEndInstr->m_func->GetParentFunc()->m_workItem->GetFunctionNumber());
+    Assert(newBrFnNumber != inlineeEndInstr->m_func->GetFunctionNumber() ||
+        newBrFnNumber == inlineeEndInstr->m_func->GetParentFunc()->GetFunctionNumber());
 }
 
 BasicBlock *
@@ -2590,7 +2590,19 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
             return instr;
         }
 
+        /*
+        *   Scope object has to be implicitly live whenever Heap Arguments object is live.
+        *       - When we restore HeapArguments object in the bail out path, it expects the scope object also to be restored - if one was created.
+        */
         Js::OpCode opcode = instr->m_opcode;
+        if (opcode == Js::OpCode::LdElemI_A && instr->DoStackArgsOpt(this->func) &&
+            globOpt->IsArgumentsOpnd(instr->GetSrc1()) && instr->m_func->GetScopeObjSym())
+        {
+            IR::ByteCodeUsesInstr * byteCodeUsesInstr = IR::ByteCodeUsesInstr::New(instr);
+            byteCodeUsesInstr->SetNonOpndSymbol(instr->m_func->GetScopeObjSym()->m_id);
+            instr->InsertAfter(byteCodeUsesInstr);
+        }
+
         IR::ByteCodeUsesInstr * newByteCodeUseInstr = globOpt->ConvertToByteCodeUses(instr);
         if (newByteCodeUseInstr != nullptr)
         {
@@ -2625,8 +2637,73 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
     }
 }
 
+// We cannot just remove Js::OpCode::InlineeEnd from cold path, need to make a copy 
+// or it to after BailOnNoProfile above current InlineeEnd. The new InlineeEnd will be
+// visited by linearscan to generate InlineeFrameRecord.
 void
-FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping)
+FlowGraph::UpwardInlineeEndBeforeRemoving(
+    BasicBlock * block,
+    IR::Instr * inlineeEnd,
+    BVSparse<JitArenaAllocator> * visitedBlocks,
+    IR::Instr ** pUpwardedInstr)
+{
+
+    if (visitedBlocks->Test(block->GetBlockNum()))
+    {
+        return;
+    }
+    else
+    {
+        visitedBlocks->Set(block->GetBlockNum());
+    }
+    bool stopUpward = false;
+
+    FOREACH_INSTR_BACKWARD_IN_BLOCK_EDITING(instr, instrPrev, block)
+    {
+        switch (instr->m_opcode)
+        {
+            case Js::OpCode::Label:
+            case Js::OpCode::ByteCodeUses:
+            {
+                continue;
+            }
+
+            case Js::OpCode::BailOnNoProfile:
+            {
+                Assert(pUpwardedInstr != nullptr);
+
+                IR::Instr * copiedInstr = inlineeEnd->Copy();
+                *pUpwardedInstr = copiedInstr;
+                instr->InsertAfter(copiedInstr);
+
+                stopUpward = true;
+                break;
+            }
+
+            default:
+            {
+                stopUpward = true;
+                break;
+            }
+        }
+
+        if (stopUpward)
+        {
+            break;
+        }
+    } NEXT_INSTR_BACKWARD_EDITING_IN_RANGE;
+
+    if (!stopUpward)
+    {
+        FOREACH_SLISTBASECOUNTED_ENTRY(FlowEdge*, edge, block->GetDeadPredList())
+        {
+            UpwardInlineeEndBeforeRemoving(edge->GetPred(), inlineeEnd, visitedBlocks, pUpwardedInstr);
+        } NEXT_SLISTBASECOUNTED_ENTRY;
+    }
+}
+
+void
+FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping, IR::Instr ** pUpwardedInstr)
 {
     Assert(!block->isDead && !block->isDeleted);
     IR::Instr * lastInstr = nullptr;
@@ -2639,6 +2716,7 @@ FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping)
             // rid of the epilog.
             break;
         }
+
         if (instr == block->GetFirstInstr())
         {
             Assert(instr->IsLabelInstr());
@@ -2646,6 +2724,18 @@ FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping)
         }
         else
         {
+            if (instr->m_opcode == Js::OpCode::InlineeEnd && instr->m_func->m_hasInlineArgsOpt &&
+                pUpwardedInstr != nullptr && instr->GetSrc2()->GetStackSym()->GetInstrDef())
+            {
+                NoRecoverMemoryJitArenaAllocator tempAlloc(_u("BE-FlowGraph-RemoveBlock"), this->func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+                BVSparse<JitArenaAllocator> * visitedBlocks = JitAnew(&tempAlloc, BVSparse<JitArenaAllocator>, &tempAlloc);
+
+                FOREACH_SLISTBASECOUNTED_ENTRY(FlowEdge*, edge, block->GetDeadPredList())
+                {
+                    UpwardInlineeEndBeforeRemoving(edge->GetPred(), instr, visitedBlocks, pUpwardedInstr);
+                } NEXT_SLISTBASECOUNTED_ENTRY;
+            }
+
             lastInstr = this->RemoveInstr(instr, globOpt);
         }
     } NEXT_INSTR_IN_BLOCK_EDITING;
@@ -2834,7 +2924,7 @@ Loop::CanDoFieldCopyProp()
         Js::Configuration::Global.flags.Trace.IsEnabled(Js::HostOptPhase))
     {
         Output::Print(_u("fieldcopyprop disabled because external: loop count: %d"), GetLoopNumber());
-        GetFunc()->GetJnFunction()->DumpFullFunctionName();
+        GetFunc()->DumpFullFunctionName();
         Output::Print(_u("\n"));
         Output::Flush();
     }
@@ -3022,8 +3112,8 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     //
     //  t1 = ShrU_A x, 0
     //  t2 = 10;
-    //       ByteCodeUse t1
     //  BrUnGt x, t2, L
+    //       ByteCodeUse t1
     //
     // Hopefully dead-store can get rid of the ShrU
 
@@ -3087,16 +3177,14 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
         return false;
     }
 
-    IR::ByteCodeUsesInstr * bytecodeInstr = IR::ByteCodeUsesInstr::New(cmpInstr->m_func);
-    bytecodeInstr->SetByteCodeOffset(cmpInstr);
-    bytecodeInstr->byteCodeUpwardExposedUsed = Anew(cmpInstr->m_func->m_alloc, BVSparse<JitArenaAllocator>,cmpInstr->m_func->m_alloc);
-    cmpInstr->InsertBefore(bytecodeInstr);
+    IR::ByteCodeUsesInstr * bytecodeInstr = IR::ByteCodeUsesInstr::New(cmpInstr);
+    cmpInstr->InsertAfter(bytecodeInstr);
 
     if (cmpSrc1 != newSrc1)
     {
-        if (cmpSrc1->IsRegOpnd())
+        if (cmpSrc1->IsRegOpnd() && !cmpSrc1->GetIsJITOptimizedReg())
         {
-            bytecodeInstr->byteCodeUpwardExposedUsed->Set(cmpSrc1->AsRegOpnd()->m_sym->m_id);
+            bytecodeInstr->Set(cmpSrc1);
         }
         cmpInstr->ReplaceSrc1(newSrc1);
         if (newSrc1->IsRegOpnd())
@@ -3106,9 +3194,9 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     }
     if (cmpSrc2 != newSrc2)
     {
-        if (cmpSrc2->IsRegOpnd())
+        if (cmpSrc2->IsRegOpnd() && !cmpSrc2->GetIsJITOptimizedReg())
         {
-            bytecodeInstr->byteCodeUpwardExposedUsed->Set(cmpSrc2->AsRegOpnd()->m_sym->m_id);
+            bytecodeInstr->Set(cmpSrc2);
         }
         cmpInstr->ReplaceSrc2(newSrc2);
         if (newSrc2->IsRegOpnd())
@@ -3356,7 +3444,7 @@ AddPropertyCacheBucket::Dump() const
 {
     Assert(this->initialType != nullptr);
     Assert(this->finalType != nullptr);
-    Output::Print(_u(" initial type: 0x%x, final type: 0x%x "), this->initialType, this->finalType);
+    Output::Print(_u(" initial type: 0x%x, final type: 0x%x "), this->initialType->GetAddr(), this->finalType->GetAddr());
 }
 
 void

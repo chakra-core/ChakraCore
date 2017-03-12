@@ -1,0 +1,460 @@
+var performance = performance || {};
+performance.now = function() {
+    return performance.now || performance.mozNow || performance.msNow || performance.oNow || performance.webkitNow || Date.now
+}();
+
+function Benchmark(a, c, b, d, e, f, g, h, l) {
+    this.name = a;
+    this.doWarmup = c;
+    this.doDeterministic = b;
+    this.deterministicIterations = d;
+    this.run = e;
+    this.Setup = f ? f : function() {};
+    this.TearDown = g ? g : function() {};
+    this.rmsResult = h ? h : null;
+    this.minIterations = l ? l : 32
+}
+
+function BenchmarkResult(a, c, b) {
+    this.benchmark = a;
+    this.time = c;
+    this.latency = b
+}
+BenchmarkResult.prototype.valueOf = function() {
+    return this.time
+};
+
+function BenchmarkSuite(a, c, b) {
+    this.name = a;
+    this.reference = c;
+    this.benchmarks = b;
+    BenchmarkSuite.suites.push(this)
+}
+BenchmarkSuite.suites = [];
+BenchmarkSuite.version = "9";
+BenchmarkSuite.config = {
+    doWarmup: void 0,
+    doDeterministic: void 0
+};
+alert = function(a) {
+    throw "Alert called with argument: " + a;
+};
+BenchmarkSuite.ResetRNG = function() {
+    Math.random = function() {
+        var a = 49734321;
+        return function() {
+            a = a + 2127912214 + (a << 12) & 4294967295;
+            a = (a ^ 3345072700 ^ a >>> 19) & 4294967295;
+            a = a + 374761393 + (a << 5) & 4294967295;
+            a = (a + 3550635116 ^ a << 9) & 4294967295;
+            a = a + 4251993797 + (a << 3) & 4294967295;
+            a = (a ^ 3042594569 ^ a >>> 16) & 4294967295;
+            return (a & 268435455) / 268435456
+        }
+    }()
+};
+BenchmarkSuite.RunSuites = function(a, c) {
+    function b() {
+        for (; d || g < f;) {
+            if (d) d = d();
+            else {
+                var h = e[g++];
+                a.NotifyStart && a.NotifyStart(h.name); - 1 < c.indexOf(h.name) ? h.NotifySkipped(a) : d = h.RunStep(a)
+            }
+            if (d && "undefined" != typeof window && window.setTimeout) {
+                window.setTimeout(b, 25);
+                return
+            }
+        }
+        a.NotifyScore && (h = BenchmarkSuite.GeometricMean(BenchmarkSuite.scores), h = BenchmarkSuite.FormatScore(100 * h), a.NotifyScore(h))
+    }
+    c = "undefined" === typeof c ? [] : c;
+    var d = null,
+        e = BenchmarkSuite.suites,
+        f = e.length;
+    BenchmarkSuite.scores = [];
+    var g =
+        0;
+    b()
+};
+BenchmarkSuite.CountBenchmarks = function() {
+    for (var a = 0, c = BenchmarkSuite.suites, b = 0; b < c.length; b++) a += c[b].benchmarks.length;
+    return a
+};
+BenchmarkSuite.GeometricMean = function(a) {
+    for (var c = 0, b = 0; b < a.length; b++) c += Math.log(a[b]);
+    return Math.pow(Math.E, c / a.length)
+};
+BenchmarkSuite.GeometricMeanTime = function(a) {
+    for (var c = 0, b = 0; b < a.length; b++) c += Math.log(a[b].time);
+    return Math.pow(Math.E, c / a.length)
+};
+BenchmarkSuite.GeometricMeanLatency = function(a) {
+    for (var c = 0, b = !1, d = 0; d < a.length; d++) 0 != a[d].latency && (c += Math.log(a[d].latency), b = !0);
+    return b ? Math.pow(Math.E, c / a.length) : 0
+};
+BenchmarkSuite.FormatScore = function(a) {
+    return 100 < a ? a.toFixed(0) : a.toPrecision(3)
+};
+BenchmarkSuite.prototype.NotifyStep = function(a) {
+    this.results.push(a);
+    this.runner.NotifyStep && this.runner.NotifyStep(a.benchmark.name)
+};
+BenchmarkSuite.prototype.NotifyResult = function() {
+    var a = BenchmarkSuite.GeometricMeanTime(this.results),
+        a = this.reference[0] / a;
+    BenchmarkSuite.scores.push(a);
+    this.runner.NotifyResult && (a = BenchmarkSuite.FormatScore(100 * a), this.runner.NotifyResult(this.name, a));
+    2 == this.reference.length && (a = BenchmarkSuite.GeometricMeanLatency(this.results), 0 != a && (a = this.reference[1] / a, BenchmarkSuite.scores.push(a), this.runner.NotifyResult && (a = BenchmarkSuite.FormatScore(100 * a), this.runner.NotifyResult(this.name + "Latency",
+        a))))
+};
+BenchmarkSuite.prototype.NotifySkipped = function(a) {
+    BenchmarkSuite.scores.push(1);
+    a.NotifyResult && a.NotifyResult(this.name, "Skipped")
+};
+BenchmarkSuite.prototype.NotifyError = function(a) {
+    this.runner.NotifyError && this.runner.NotifyError(this.name, a);
+    this.runner.NotifyStep && this.runner.NotifyStep(this.name)
+};
+BenchmarkSuite.prototype.RunSingleBenchmark = function(a, c) {
+    function b(b) {
+        for (var c = 0, d = new Date, f = 0; e ? f < a.deterministicIterations : 1E3 > c; f++) a.run(), c = new Date - d;
+        null != b && (b.runs += f, b.elapsed += c)
+    }
+    var d = BenchmarkSuite.config,
+        e = void 0 !== d.doDeterministic ? d.doDeterministic : a.doDeterministic;
+    (void 0 !== d.doWarmup ? d.doWarmup : a.doWarmup) || null != c || (c = {
+        runs: 0,
+        elapsed: 0
+    });
+    if (null == c) return b(null), {
+        runs: 0,
+        elapsed: 0
+    };
+    b(c);
+    if (c.runs < a.minIterations) return c;
+    var d = 1E3 * c.elapsed / c.runs,
+        f = null != a.rmsResult ? a.rmsResult() :
+        0;
+    this.NotifyStep(new BenchmarkResult(a, d, f));
+    return null
+};
+BenchmarkSuite.prototype.RunStep = function(a) {
+    function c() {
+        if (f < e) {
+            try {
+                g.benchmarks[f].Setup()
+            } catch (a) {
+                return g.NotifyError(a), null
+            }
+            return b
+        }
+        g.NotifyResult();
+        return null
+    }
+
+    function b() {
+        try {
+            h = g.RunSingleBenchmark(g.benchmarks[f], h)
+        } catch (a) {
+            return g.NotifyError(a), null
+        }
+        return null == h ? d : b()
+    }
+
+    function d() {
+        try {
+            g.benchmarks[f++].TearDown()
+        } catch (a) {
+            return g.NotifyError(a), null
+        }
+        return c
+    }
+    BenchmarkSuite.ResetRNG();
+    this.results = [];
+    this.runner = a;
+    var e = this.benchmarks.length,
+        f = 0,
+        g = this,
+        h;
+    return c()
+};
+var NavierStokes = new BenchmarkSuite("NavierStokes", [1484E3, 2E3], [new Benchmark("NavierStokes", !0, !0, 180, runNavierStokes, setupNavierStokes, tearDownNavierStokes, null, 16)]),
+    solver = null,
+    nsFrameCounter = 0;
+
+function runNavierStokes() {
+    solver.update();
+    nsFrameCounter++;
+    15 == nsFrameCounter && checkResult(solver.getDens())
+}
+
+function checkResult(a) {
+    this.result = 0;
+    for (var c = 7E3; 7100 > c; c++) this.result += ~~(10 * a[c]);
+    if (77 != this.result) throw Error("checksum failed");
+}
+
+function setupNavierStokes() {
+    solver = new FluidField(null);
+    solver.setResolution(128, 128);
+    solver.setIterations(20);
+    solver.setDisplayFunction(function() {});
+    solver.setUICallback(prepareFrame);
+    solver.reset()
+}
+
+function tearDownNavierStokes() {
+    solver = null
+}
+
+function addPoints(a) {
+    for (var c = 1; 64 >= c; c++) a.setVelocity(c, c, 64, 64), a.setDensity(c, c, 5), a.setVelocity(c, 64 - c, -64, -64), a.setDensity(c, 64 - c, 20), a.setVelocity(128 - c, 64 + c, -64, -64), a.setDensity(128 - c, 64 + c, 30)
+}
+var framesTillAddingPoints = 0,
+    framesBetweenAddingPoints = 5;
+
+function prepareFrame(a) {
+    0 == framesTillAddingPoints ? (addPoints(a), framesTillAddingPoints = framesBetweenAddingPoints, framesBetweenAddingPoints++) : framesTillAddingPoints--
+}
+
+function FluidField(a) {
+    function c(a, b, c) { //addFields
+        for (var d = 0; d < Zb; d++) a[d] += c * b[d]
+    }
+
+    function b(a, b) { //set_bnd
+        if (1 === a) {
+            for (var c = 1; c <= E; c++) b[c] = b[c + Xb], b[c + (M + 1) * Xb] = b[c + M * Xb];
+            for (c = 1; c <= M; c++) b[c * Xb] = -b[1 + c * Xb], b[E + 1 + c * Xb] = -b[E + c * Xb]
+        } else {
+            if (2 === a)
+                for (c = 1; c <= E; c++) b[c] = -b[c + Xb], b[c + (M + 1) * Xb] = -b[c + M * Xb];
+            else
+                for (c = 1; c <= E; c++) b[c] = b[c + Xb], b[c + (M + 1) * Xb] = b[c + M * Xb];
+            for (c = 1; c <= M; c++) b[c * Xb] = b[1 + c * Xb], b[E + 1 + c * Xb] = b[E + c * Xb]
+        }
+        c = (M + 1) * Xb;
+        b[0] = .5 * (b[1] + b[Xb]);
+        b[c] = .5 * (b[1 + c] + b[M * Xb]);
+        b[E + 1] = .5 * (b[E] + b[E + 1 + Xb]);
+        b[E + 1 + c] = .5 * (b[E + c] + b[E + 1 + M * Xb])
+    }
+
+    function d(a, c, d, e, f) { //lin_solve
+        if (0 === e && 1 === f) {
+            for (f = 1; f <= M; f++) {
+                var g = f * Xb;
+                ++g;
+                for (var h = 0; h < E; h++) c[g] = d[g], ++g
+            }
+            b(a, c)
+        } else
+            for (var l = 1 / f, p = 0; p < m; p++) {
+                for (f = 1; f <= M; f++) {
+                    var q = (f - 1) * Xb,
+                        g = f * Xb,
+                        y = (f + 1) * Xb,
+                        A = c[g];
+                    ++g;
+                    for (h = 1; h <= E; h++) A = c[g] = (d[g] + e * (A + c[++g] + c[++q] + c[++y])) * l
+                }
+                b(a, c)
+            }
+    }
+
+    function e(a, c, d, e, f, g) { // advect
+        var h = g * E;
+        g *= M;
+        for (var l = E + .5, m = M + .5, p = 1; p <= M; p++)
+            for (var q = p * Xb, y = 1; y <= E; y++) {
+                var A = y - h * e[++q],
+                    B = p - g * f[q];
+                .5 > A ? A = .5 : A > l && (A = l);
+                var H = A | 0,
+                    K = H + 1;
+                .5 > B ? B = .5 : B > m && (B = m);
+                var aa = B | 0,
+                    A = A - H,
+                    B = B - aa,
+                    Zb = 1 - B,
+                    rc = aa * Xb,
+                    aa = (aa + 1) * Xb;
+                c[q] = (1 - A) * (Zb * d[H + rc] + B * d[H + aa]) + A * (Zb * d[K + rc] + B * d[K + aa])
+            }
+        b(a, c)
+    }
+
+    function f(a, c, e, f) { // project
+        for (var g = -.5 / Math.sqrt(E * M), h = 1; h <= M; h++)
+            for (var l = h * Xb,
+                 m = (h - 1) * Xb,
+                 p = l - 1,
+                 q = l,
+                 y = l + 1,
+                 l = (h + 1) * Xb,
+                 A = 1; A <= E; A++) {
+                    f[++q] = g * (a[++y] - a[++p] + c[++l] - c[++m]);
+                    e[q] = 0;
+                }
+        b(0, f);
+        b(0, e);
+        d(0, e, f, 1, 4);
+        f = .5 * E;
+        g = .5 * M;
+        for (h = 1; h <= M; h++)
+            for (m = h * Xb - 1,
+                 p = h * Xb,
+                 q = h * Xb + 1,
+                 y = (h - 1) * Xb,
+                 l = (h + 1) * Xb,
+                 A = 1; A <= E; A++) {
+                     a[++p] -= f * (e[++q] - e[++m]);
+                     c[p] -= g * (e[++l] - e[++y]);
+                }
+        b(1, a);
+        b(2, c)
+    }
+
+    function g(a, b, c) {
+        this.setDensity = function(b,
+            c, d) {
+            a[b + 1 + (c + 1) * Xb] = d
+        };
+        this.getDensity = function(b, c) {
+            return a[b + 1 + (c + 1) * Xb]
+        };
+        this.setVelocity = function(a, d, e, f) {
+            b[a + 1 + (d + 1) * Xb] = e;
+            c[a + 1 + (d + 1) * Xb] = f
+        };
+        this.getXVelocity = function(a, c) {
+            return b[a + 1 + (c + 1) * Xb]
+        };
+        this.getYVelocity = function(a, b) {
+            return c[a + 1 + (b + 1) * Xb]
+        };
+        this.width = function() {
+            return E
+        };
+        this.height = function() {
+            return M
+        }
+    }
+
+    function h() {
+        Xb = E + 2;
+        Zb = (E + 2) * (M + 2);
+        p = Array(Zb);
+        y = Array(Zb);
+        A = Array(Zb);
+        B = Array(Zb);
+        K = Array(Zb);
+        H = Array(Zb);
+        for (var a = 0; a < Zb; a++) y[a] = B[a] = H[a] = p[a] = A[a] = K[a] = 0
+    }
+    var l = function(a,
+        b, c) {};
+    this.update = function() {
+        // queryUI inline
+        for (var a = y, h = B, m = H, bc = 0; bc < Zb; bc++) h[bc] = m[bc] = a[bc] = 0;
+        l(new g(a, h, m)); // uiCallback(new Field(d, u, v))
+        // end queryUI inline
+        // vel_step inline
+        var a = A,
+            h = K,
+            m = B,
+            bc = H,
+            ec = q;
+        c(a, m, ec); // addFields(u, u0, dt)
+        c(h, bc, ec); // addFields(v, v0, dt)
+        // diffuse2 inline
+        // lin_solve2 inline
+        // note that it also figures out that a===0 and c===1 statically, so it only inlines the first half of lin_solve2
+        for (var jc = m, m = a, a = jc, jc = bc, bc = h, h = jc, jc = a, cc = m, dc = h, gc = bc, hc = 1; hc <= M; hc++) {
+            var fc = hc * Xb;
+            ++fc;
+            for (var kc = 0; kc < E; kc++) jc[fc] = cc[fc], dc[fc] = gc[fc], ++fc
+        }
+        b(1, jc);
+        b(2, dc);
+        // end lin_solve2 inline
+        // end diffuse2 inline
+        f(a, h, m, bc); // project(u, v, u0, v0)
+        jc = m;
+        m = a;
+        a = jc;
+        jc = bc;
+        bc = h;
+        h = jc;
+        e(1, a, m, m, bc, ec); // advect(1, u, u0, u0, v0, dt)
+        e(2, h, bc, m, bc, ec); // advect(2, v, v0, u0, v0, dt)
+        f(a, h, m, bc); // project(u, v, u0, v0)
+        // end vel_step inline
+        // dens_step inline
+        a = p;
+        h = y;
+        m = A;
+        bc = K;
+        ec = q;
+        c(a, h, ec); // addFields(x, x0, dt)
+        // begin diffuse inline
+        d(0, h, a, 0, 1); // lin_solve(b, x, x0, a, 1 + 4*a)
+        // end diffuse inline
+        e(0, a, h, m, bc, ec); // advect(0, x, x0, u, v, dt)
+        // end dens_step inline
+        aa(new g(p, A, K)) // displayFunc(new Field(dens, u, v))
+    };
+    this.setDisplayFunction =
+        function(a) {
+            aa = a
+        };
+    this.iterations = function() {
+        return m
+    };
+    this.setIterations = function(a) {
+        0 < a && 100 >= a && (m = a)
+    };
+    this.setUICallback = function(a) {
+        l = a
+    };
+    var m = 10,
+        q = .1,
+        p, y, A, B, K, H, E, M, Xb, Zb, aa;
+    this.reset = h;
+    this.getDens = function() {
+        return p
+    };
+    this.setResolution = function(a, b) {
+        var c = b * a;
+        return 0 < c && 1E6 > c && (b != E || a != M) ? (E = b, M = a, h(), !0) : !1
+    };
+    this.setResolution(64, 64)
+};
+////////////////////////////////////////////////////////////////////////////////
+// Runner
+////////////////////////////////////////////////////////////////////////////////
+
+var success = true;
+
+function NotifyStart(name) {}
+
+function NotifyError(name, error) {
+    WScript.Echo(name + " : ERROR : " + error.stack);
+    success = false;
+}
+
+function NotifyResult(name, score) {
+    if (success) {
+        WScript.Echo("### SCORE:", score);
+    }
+}
+
+function NotifyScore(score) {}
+
+BenchmarkSuite.RunSuites({
+    NotifyStart: NotifyStart,
+    NotifyError: NotifyError,
+    NotifyResult: NotifyResult,
+    NotifyScore: NotifyScore
+});

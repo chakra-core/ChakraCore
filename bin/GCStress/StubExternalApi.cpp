@@ -111,11 +111,3 @@ HRESULT MemProtectHeapSynchronizeWithCollector(void * heapHandle) { return E_NOT
 #if DBG && defined(INTERNAL_MEM_PROTECT_HEAP_ALLOC)
 void MemProtectHeapSetDisableConcurrentThreadExitedCheck(void * heapHandle) {};
 #endif
-
-#ifdef ENABLE_BASIC_TELEMETRY
-namespace Js
-{
-    void GCTelemetry::LogGCPauseStartTime() {};
-    void GCTelemetry::LogGCPauseEndTime() {};
-};
-#endif

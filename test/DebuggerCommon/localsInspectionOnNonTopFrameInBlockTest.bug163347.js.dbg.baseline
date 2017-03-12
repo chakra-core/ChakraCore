@@ -1,0 +1,9 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "y": "number 100"
+    }
+  }
+]

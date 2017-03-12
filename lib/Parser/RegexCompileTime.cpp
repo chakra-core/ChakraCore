@@ -3460,6 +3460,12 @@ namespace UnifiedRegex
         innerFollow->UnionInPlace(compiler.ctAllocator, *accumFollow);
         innerFollow->UnionInPlace(compiler.ctAllocator, *body->firstSet);
 
+        if (followSet->IsSingleton())
+        {
+            Assert(followSet->IsCompact());
+            followFirst = followSet->GetCompactChar(0);
+        }
+
         /*
         All of the following must be true for the loop body's follow to be irrefutable:
 
@@ -3883,7 +3889,14 @@ namespace UnifiedRegex
                 //   LoopSet
                 //
                 Assert(body->IsSimpleOneChar());
-                EMIT(compiler, LoopSetInst, compiler.NextLoopId(), repeats, !isNotInLoop)->set.CloneFrom(compiler.rtAllocator, *body->firstSet);
+                if (followFirst == MaxChar || PHASE_OFF1(Js::RegexOptBTPhase))
+                {
+                    EMIT(compiler, LoopSetInst, compiler.NextLoopId(), repeats, !isNotInLoop)->set.CloneFrom(compiler.rtAllocator, *body->firstSet);
+                }
+                else
+                {
+                    EMIT(compiler, LoopSetWithFollowFirstInst, compiler.NextLoopId(), repeats, !isNotInLoop, followFirst)->set.CloneFrom(compiler.rtAllocator, *body->firstSet);
+                }
                 break;
             }
 
@@ -4360,7 +4373,7 @@ namespace UnifiedRegex
 
     void Compiler::CaptureNoLiterals(Program* program)
     {
-        program->rep.insts.litbuf = 0;
+        program->rep.insts.litbuf = nullptr;
         program->rep.insts.litbufLen = 0;
     }
 
@@ -4435,7 +4448,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (w != 0)
         {
-            w->PrintEOL(_u("REGEX AST /%s/ {"), program->source);
+            w->PrintEOL(_u("REGEX AST /%s/ {"), PointerValue(program->source));
             w->Indent();
             root->Print(w, litbuf);
             w->Unindent();
@@ -4485,18 +4498,18 @@ namespace UnifiedRegex
 
                 OctoquadIdentifier oi(numCodes, *codeToChar, *charToCode);
                 // We haven't captured literals yet: temporarily set the program's litbuf to be the parser's litbuf
-                Assert(program->rep.insts.litbuf == 0);
+                Assert(program->rep.insts.litbuf == nullptr);
                 program->rep.insts.litbuf = (Char*)litbuf;
                 if (root->IsOctoquad(compiler, &oi) && oi.IsOctoquad())
                 {
-                    program->rep.insts.litbuf = 0;
+                    program->rep.insts.litbuf = nullptr;
                     oi.InitializeTrigramInfo(scriptContext, pattern);
                     program->tag = Program::OctoquadTag;
                     program->rep.octoquad.matcher = OctoquadMatcher::New(scriptContext->GetRecycler(), standardChars, program->GetCaseMappingSource(), &oi);
                     compiled = true;
                 }
                 else
-                    program->rep.insts.litbuf = 0;
+                    program->rep.insts.litbuf = nullptr;
             }
         }
 
@@ -4547,7 +4560,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
                     if (w != 0)
                     {
-                        w->PrintEOL(_u("REGEX ANNOTATED AST /%s/ {"), program->source);
+                        w->PrintEOL(_u("REGEX ANNOTATED AST /%s/ {"), PointerValue(program->source));
                         w->Indent();
                         root->Print(w, program->rep.insts.litbuf);
                         w->Unindent();
@@ -4620,7 +4633,7 @@ namespace UnifiedRegex
 #if ENABLE_REGEX_CONFIG_OPTIONS
         if (w != 0)
         {
-            w->PrintEOL(_u("REGEX PROGRAM /%s/ "), program->source);
+            w->PrintEOL(_u("REGEX PROGRAM /%s/ "), PointerValue(program->source));
             program->Print(w);
             w->Flush();
         }

@@ -8,6 +8,11 @@
   </test>
   <test>
     <default>
+      <files>array_qsortr.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>array_init.js</files>
       <baseline>array_init.baseline</baseline>
       <tags>Slow</tags>
@@ -158,7 +163,7 @@
   <test>
     <default>
       <files>bug612012.js</files>
-      <compile-flags>-maxinterpretcount:1 -loopinterpretcount:1 -force:fieldhoist -ForceArrayBTree</compile-flags>
+      <compile-flags>-maxinterpretcount:1 -loopinterpretcount:1 -force:fieldhoist -ForceArrayBTree -oopjit-</compile-flags>
       <tags>exclude_ship,exclude_serialized</tags>
     </default>
   </test>
@@ -721,6 +726,11 @@
       <files>Array_TypeConfusion_bugs.js</files>
       <compile-flags>-args summary -endargs</compile-flags>
       <tags>BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>bug_9575461.js</files>
     </default>
   </test>
 </regress-exe>

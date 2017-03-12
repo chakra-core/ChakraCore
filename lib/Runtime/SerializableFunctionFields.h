@@ -9,13 +9,16 @@
 
 // Default declaration for FunctionBody.h
 #ifndef DECLARE_SERIALIZABLE_FIELD
-#define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) type name
+#define DECLARE_SERIALIZABLE_FIELD(type, name, serializableType) Field(type) name
 #endif
 
 #ifndef DECLARE_SERIALIZABLE_ACCESSOR_FIELD
 #define DECLARE_SERIALIZABLE_ACCESSOR_FIELD(type, name, serializableType)
 #endif
 
+#ifndef DECLARE_TAG_FIELD
+#define DECLARE_TAG_FIELD(type, name, serializableType)
+#endif
 
 #ifdef CURRENT_ACCESS_MODIFIER
 #define PROTECTED_FIELDS protected:
@@ -37,6 +40,7 @@ PROTECTED_FIELDS
     DECLARE_SERIALIZABLE_FIELD(charcount_t, m_cchLength, CharCount);        // length of the function in code points (not bytes)
     DECLARE_SERIALIZABLE_FIELD(uint, m_cbLength, UInt32);                   // length of the function in bytes
     DECLARE_SERIALIZABLE_FIELD(uint, m_displayShortNameOffset, UInt32);     // Offset into the display name where the short name is found
+    DECLARE_SERIALIZABLE_FIELD(FunctionBodyFlags, flags, FunctionBodyFlags);
 
 PUBLIC_FIELDS
     DECLARE_SERIALIZABLE_FIELD(UINT, scopeSlotArraySize, UInt32);
@@ -46,6 +50,7 @@ CURRENT_ACCESS_MODIFIER
 #endif
 
 #if DEFINE_FUNCTION_BODY_FIELDS
+
 PUBLIC_FIELDS
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, VarCount, RegSlot);           // Count of non-constant locals
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ConstantCount, RegSlot);         // Count of enregistered constants
@@ -67,10 +72,13 @@ PRIVATE_FIELDS
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledReturnTypeCount, UInt16);
     DECLARE_SERIALIZABLE_FIELD(ProfileId, profiledSlotCount, UInt16);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LoopCount, RegSlot);
-    DECLARE_SERIALIZABLE_FIELD(FunctionBodyFlags, flags, FunctionBodyFlags);
+
+    DECLARE_TAG_FIELD(bool, m_tag31, Bool); // Used to tag the low bit to prevent possible GC false references
+
     DECLARE_SERIALIZABLE_FIELD(bool, m_hasFinally, Bool);
     DECLARE_SERIALIZABLE_FIELD(bool, hasScopeObject, Bool);
     DECLARE_SERIALIZABLE_FIELD(bool, hasCachedScopePropIds, Bool);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ForInLoopDepth, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, InlineCacheCount, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, RootObjectLoadInlineCacheStart, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, RootObjectLoadMethodInlineCacheStart, UInt32);
@@ -80,6 +88,7 @@ PRIVATE_FIELDS
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, ObjLiteralCount, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, LiteralRegexCount, UInt32);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(uint, InnerScopeCount, UInt32);
+    DECLARE_SERIALIZABLE_ACCESSOR_FIELD(ProfileId, ProfiledForInLoopCount, UInt16);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalClosureRegister, RegSlot);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, ParamClosureRegister, RegSlot);
     DECLARE_SERIALIZABLE_ACCESSOR_FIELD(RegSlot, LocalFrameDisplayRegister, RegSlot);
@@ -100,3 +109,4 @@ CURRENT_ACCESS_MODIFIER
 #undef PROTECTED_FIELDS
 #undef PRIVATE_FIELDS
 #undef PUBLIC_FIELDS
+#undef DECLARE_TAG_FIELD

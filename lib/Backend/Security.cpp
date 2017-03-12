@@ -240,7 +240,11 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
     {
         IR::IntConstOpnd *intConstOpnd = opnd->AsIntConstOpnd();
 
-        if (!this->IsLargeConstant(intConstOpnd->AsInt32()))
+        if (
+#if TARGET_64
+            IRType_IsInt64(intConstOpnd->GetType()) ? !this->IsLargeConstant(intConstOpnd->GetValue()) :
+#endif
+            !this->IsLargeConstant(intConstOpnd->AsInt32()))
         {
             return;
         }
@@ -331,6 +335,7 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
             {
                 dstSym->m_isConst = false;
                 dstSym->m_isIntConst = false;
+                dstSym->m_isInt64Const = false;
                 dstSym->m_isTaggableIntConst = false;
                 dstSym->m_isFltConst = false;
             }
@@ -350,7 +355,7 @@ Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue,
         )
     {
         int32 cookie = (int32)Math::Rand();
-        IR::RegOpnd *regOpnd = IR::RegOpnd::New(StackSym::New(opnd->GetType(), instr->m_func), opnd->GetType(), instr->m_func);
+        IR::RegOpnd *regOpnd = IR::RegOpnd::New(StackSym::New(TyInt32, instr->m_func), TyInt32, instr->m_func);
         IR::Instr * instrNew = LowererMD::CreateAssign(regOpnd, opnd, instr);
 
         IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, TyInt32, instr->m_func);
@@ -379,7 +384,7 @@ Security::EncodeValue(IR::Instr *instr, IR::Opnd *opnd, IntConstType constValue,
     else if (opnd->GetType() == TyUint32 || opnd->GetType() == TyUint16 || opnd->GetType() == TyUint8)
     {
         uint32 cookie = (uint32)Math::Rand();
-        IR::RegOpnd *regOpnd = IR::RegOpnd::New(StackSym::New(opnd->GetType(), instr->m_func), opnd->GetType(), instr->m_func);
+        IR::RegOpnd *regOpnd = IR::RegOpnd::New(StackSym::New(TyUint32, instr->m_func), TyUint32, instr->m_func);
         IR::Instr * instrNew = LowererMD::CreateAssign(regOpnd, opnd, instr);
 
         IR::IntConstOpnd * cookieOpnd = IR::IntConstOpnd::New(cookie, TyUint32, instr->m_func);
@@ -426,7 +431,7 @@ Security::EncodeAddress(IR::Instr *instr, IR::Opnd *opnd, size_t value, IR::RegO
     instrNew = LowererMD::CreateAssign(regOpnd, opnd, instr);
 
     size_t cookie = (size_t)Math::Rand();
-    IR::AddrOpnd *cookieOpnd = IR::AddrOpnd::New((Js::Var)cookie, IR::AddrOpndKindConstant, instr->m_func);
+    IR::IntConstOpnd *cookieOpnd = IR::IntConstOpnd::New(cookie, TyMachReg, instr->m_func);
     instrNew = IR::Instr::New(Js::OpCode::XOR, regOpnd, regOpnd, cookieOpnd, instr->m_func);
     instr->InsertBefore(instrNew);
     LowererMD::Legalize(instrNew);

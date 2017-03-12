@@ -18,7 +18,7 @@ namespace Js
     private:
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptError);
 
-        ErrorTypeEnum m_errorType;
+        Field(ErrorTypeEnum) m_errorType;
 
     protected:
         DEFINE_VTABLE_CTOR(JavascriptError, DynamicObject);
@@ -60,6 +60,9 @@ namespace Js
             static FunctionInfo NewSyntaxErrorInstance;
             static FunctionInfo NewTypeErrorInstance;
             static FunctionInfo NewURIErrorInstance;
+            static FunctionInfo NewWebAssemblyCompileErrorInstance;
+            static FunctionInfo NewWebAssemblyRuntimeErrorInstance;
+            static FunctionInfo NewWebAssemblyLinkErrorInstance;
 #ifdef ENABLE_PROJECTION
             static FunctionInfo NewWinRTErrorInstance;
 #endif
@@ -73,6 +76,9 @@ namespace Js
         static Var NewSyntaxErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewTypeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static Var NewURIErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewWebAssemblyCompileErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewWebAssemblyRuntimeErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var NewWebAssemblyLinkErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
 #ifdef ENABLE_PROJECTION
         static Var NewWinRTErrorInstance(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
@@ -80,23 +86,28 @@ namespace Js
         static Var EntryToString(RecyclableObject* function, CallInfo callInfo, ...);
 
         static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr);
-        static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO *ei, IErrorInfo * perrinfo = nullptr, RestrictedErrorStrings * proerrstr = nullptr, bool useErrInfoDescription = false);
-        static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei, bool useErrInfoDescription = false);
-        static JavascriptError* MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType, IErrorInfo * perrinfo = nullptr, RestrictedErrorStrings * proerrstr = nullptr);
+        static void __declspec(noreturn) MapAndThrowError(ScriptContext* scriptContext, HRESULT hr, ErrorTypeEnum errorType, EXCEPINFO *ei);
+        static void __declspec(noreturn) SetMessageAndThrowError(ScriptContext* scriptContext, JavascriptError *pError, int32 hCode, EXCEPINFO* pei);
+        static JavascriptError* MapError(ScriptContext* scriptContext, ErrorTypeEnum errorType);
+
+        //HELPERCALL needs a non-overloaded function pointer
+        static void __declspec(noreturn) ThrowUnreachable(ScriptContext* scriptContext);
 
 #define THROW_ERROR_DECL(err_method) \
-        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* ei, IErrorInfo* perrinfo = nullptr, RestrictedErrorStrings* proerrstr = nullptr, bool useErrInfoDescription = false); \
+        static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, EXCEPINFO* ei); \
         static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, PCWSTR varName = nullptr); \
         static void __declspec(noreturn) err_method(ScriptContext* scriptContext, int32 hCode, JavascriptString* varName); \
         static void __declspec(noreturn) err_method##Var(ScriptContext* scriptContext, int32 hCode, ...);
 
         THROW_ERROR_DECL(ThrowError)
-        THROW_ERROR_DECL(ThrowEvalError)
         THROW_ERROR_DECL(ThrowRangeError)
         THROW_ERROR_DECL(ThrowReferenceError)
         THROW_ERROR_DECL(ThrowSyntaxError)
         THROW_ERROR_DECL(ThrowTypeError)
         THROW_ERROR_DECL(ThrowURIError)
+        THROW_ERROR_DECL(ThrowWebAssemblyCompileError)
+        THROW_ERROR_DECL(ThrowWebAssemblyRuntimeError)
+        THROW_ERROR_DECL(ThrowWebAssemblyLinkError)
 
 #undef THROW_ERROR_DECL
         static void __declspec(noreturn) ThrowDispatchError(ScriptContext* scriptContext, HRESULT hCode, PCWSTR message);
@@ -117,6 +128,7 @@ namespace Js
         static bool ThrowCantAssignIfStrictMode(PropertyOperationFlags flags, ScriptContext* scriptContext);
         static bool ThrowCantExtendIfStrictMode(PropertyOperationFlags flags, ScriptContext* scriptContext);
         static bool ThrowCantDeleteIfStrictMode(PropertyOperationFlags flags, ScriptContext* scriptContext, PCWSTR varName);
+        static bool ThrowCantDelete(PropertyOperationFlags flags, ScriptContext* scriptContext, PCWSTR varName);
         static bool ThrowIfStrictModeUndefinedSetter(PropertyOperationFlags flags, Var setterValue, ScriptContext* scriptContext);
         static bool ThrowIfNotExtensibleUndefinedSetter(PropertyOperationFlags flags, Var setterValue, ScriptContext* scriptContext);
 
@@ -139,18 +151,18 @@ namespace Js
 
         static int32 GetErrorNumberFromResourceID(int32 resourceId);
 
-        JavascriptError* CreateNewErrorOfSameType(JavascriptLibrary* targetJavascriptLibrary);
+        virtual JavascriptError* CreateNewErrorOfSameType(JavascriptLibrary* targetJavascriptLibrary);
         JavascriptError* CloneErrorMsgAndNumber(JavascriptLibrary* targetJavascriptLibrary);
         static void TryThrowTypeError(ScriptContext * checkScriptContext, ScriptContext * scriptContext, int32 hCode, PCWSTR varName = nullptr);
         static JavascriptError* CreateFromCompileScriptException(ScriptContext* scriptContext, CompileScriptException* cse);
 
     private:
 
-        BOOL isExternalError;
-        BOOL isPrototype;
-        bool isStackPropertyRedefined;
-        char16 const * originalRuntimeErrorMessage;
-        JavascriptExceptionObject *exceptionObject;
+        Field(BOOL) isExternalError;
+        Field(BOOL) isPrototype;
+        Field(bool) isStackPropertyRedefined;
+        Field(char16 const *) originalRuntimeErrorMessage;
+        Field(JavascriptExceptionObject *) exceptionObject;
 
 #ifdef ERROR_TRACE
         static void Trace(const char16 *form, ...) // const

@@ -35,10 +35,11 @@ namespace Js
         }
     }
 
-    BOOL JavascriptRegExpConstructor::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL JavascriptRegExpConstructor::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
-        *enumerator = RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptRegExpObjectEnumerator, this, requestContext, enumNonEnumerable, enumSymbols);
-        return true;
+        return GetEnumeratorWithPrefix(
+            RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptRegExpEnumerator, this, flags, requestContext),
+            enumerator, flags, requestContext, forInCache);
     }
 
     void JavascriptRegExpConstructor::SetLastMatch(UnifiedRegex::RegexPattern* lastPattern, JavascriptString* lastInput, UnifiedRegex::GroupInfo lastMatch)
@@ -87,7 +88,8 @@ namespace Js
                 for (int groupId = 1; groupId < min(numGroups, NumCtorCaptures); groupId++)
                     captures[groupId] = RegexHelper::GetGroup(scriptContext, pattern, lastInput, nonMatchValue, groupId);
 
-                this->lastParen = numGroups <= NumCtorCaptures ? captures[numGroups - 1] :
+                this->lastParen = numGroups <= NumCtorCaptures ?
+                    PointerValue(captures[numGroups - 1]) :
                     RegexHelper::GetGroup(scriptContext, pattern, lastInput, nonMatchValue, numGroups - 1);
             }
             else
@@ -385,6 +387,38 @@ namespace Js
         default:
             return JavascriptFunction::DeleteProperty(propertyId, flags);
         }
+    }
+
+    BOOL JavascriptRegExpConstructor::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::input.Equals(propertyName)
+            || BuiltInPropertyRecords::$_.Equals(propertyName)
+            || BuiltInPropertyRecords::length.Equals(propertyName)
+            || BuiltInPropertyRecords::lastMatch.Equals(propertyName)
+            || BuiltInPropertyRecords::$Ampersand.Equals(propertyName)
+            || BuiltInPropertyRecords::lastParen.Equals(propertyName)
+            || BuiltInPropertyRecords::$Plus.Equals(propertyName)
+            || BuiltInPropertyRecords::leftContext.Equals(propertyName)
+            || BuiltInPropertyRecords::$BackTick.Equals(propertyName)
+            || BuiltInPropertyRecords::rightContext.Equals(propertyName)
+            || BuiltInPropertyRecords::$Tick.Equals(propertyName)
+            || BuiltInPropertyRecords::$1.Equals(propertyName)
+            || BuiltInPropertyRecords::$2.Equals(propertyName)
+            || BuiltInPropertyRecords::$3.Equals(propertyName)
+            || BuiltInPropertyRecords::$4.Equals(propertyName)
+            || BuiltInPropertyRecords::$5.Equals(propertyName)
+            || BuiltInPropertyRecords::$6.Equals(propertyName)
+            || BuiltInPropertyRecords::$7.Equals(propertyName)
+            || BuiltInPropertyRecords::$8.Equals(propertyName)
+            || BuiltInPropertyRecords::$9.Equals(propertyName)
+            || BuiltInPropertyRecords::index.Equals(propertyName))
+        {
+            JavascriptError::ThrowCantDeleteIfStrictMode(flags, GetScriptContext(), propertyNameString->GetString());
+            return false;
+        }
+
+        return JavascriptFunction::DeleteProperty(propertyNameString, flags);
     }
 
     BOOL JavascriptRegExpConstructor::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)

@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLanguagePch.h"
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 
 #include "CodeGenAllocators.h"
 #ifdef DBG_DUMP
@@ -191,7 +191,6 @@ namespace Js
         }
 #endif
 
-        AsmJsRetType retType = asmInfo->GetReturnType();
         AsmJsJitTemplate::FunctionEntry::ApplyTemplate( this, mPc );
         while( ReadOp() ){}
         AsmJsJitTemplate::FunctionExit::ApplyTemplate( this, mPc );
@@ -208,12 +207,13 @@ namespace Js
             Assert( ::Math::FitsInDWord( codeSize ) );
 
             BYTE *buffer;
-            EmitBufferAllocation *allocation = GetCodeGenAllocator()->emitBufferManager.AllocateBuffer( codeSize, &buffer, 0, 0 );
+            EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> *allocation = GetCodeGenAllocator()->emitBufferManager.AllocateBuffer( codeSize, &buffer, 0, 0 );
             functionBody->GetAsmJsFunctionInfo()->mTJBeginAddress = buffer;
 
-            Assert( allocation != nullptr );
-            if( buffer == nullptr )
+            if (buffer == nullptr)
+            {
                 Js::Throw::OutOfMemory();
+            }
 
             if (!GetCodeGenAllocator()->emitBufferManager.CommitBuffer(allocation, buffer, codeSize, mEncodeBuffer))
             {

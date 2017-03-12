@@ -23,4 +23,6 @@ function testFunction()
 
     telemetryLog(`f(): ${f()}`, true); //called f
     telemetryLog(`g(): ${g()}`, true); //called f
+
+    emitTTDLog(ttdLogURI);
 }

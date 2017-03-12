@@ -4,5 +4,15 @@ x.b: 4
 x.onlyone: null
 x.foo: 6
 x.b: 7
+Object.getOwnPropertyDescriptor(y.pdata): {"value":24,"writable":false,"enumerable":false,"configurable":false}
+Object.getOwnPropertyDescriptor(y.pwrite): {"value":12,"writable":true,"enumerable":false,"configurable":false}
+Object.getOwnPropertyDescriptor(y.pdel): {"enumerable":false,"configurable":true}
+Object.getOwnPropertyDescriptor(y.pconfig): {"enumerable":false,"configurable":true}
+Object.getOwnPropertyDescriptor(y.penum): {"enumerable":true,"configurable":false}
+y.pdel: pdel
+y.pdel: undefined
+Object.getOwnPropertyDescriptor(y.pdel): undefined
+oWritable.p: 10
+oNotWritable.p: undefined
 
 Reached end of Execution -- Exiting.

@@ -42,22 +42,11 @@ extern "C" {
 
 #ifdef __i386__
 
-#if !defined(__stdcall)
-#define __stdcall      __attribute__((stdcall))
-#endif
-#if !defined(_stdcall)
-#define _stdcall       __stdcall
-#endif
-
-#if !defined(__cdecl)
-#define __cdecl        __attribute__((cdecl))
-#endif
-#if !defined(_cdecl)
-#define _cdecl         __cdecl
-#endif
-#if !defined(CDECL)
-#define CDECL          __cdecl
-#endif
+#define __stdcall
+#define _stdcall
+#define __cdecl
+#define _cdecl
+#define CDECL
 
 #ifndef PAL_STDCPP_COMPAT
 #undef __fastcall
@@ -96,22 +85,8 @@ extern "C" {
 
 #endif // !_MSC_VER
 
-#ifdef _MSC_VER
-
-#if defined(PAL_IMPLEMENTATION)
-#define PALIMPORT
-#else
-#define PALIMPORT   __declspec(dllimport)
-#endif
-#define PAL_NORETURN __declspec(noreturn)
-
-#else
-
 #define PALIMPORT
 #define PAL_NORETURN    __attribute__((noreturn))
-
-#endif
-
 #define PALAPI      __stdcall
 #define PALAPIV     __cdecl
 
@@ -148,19 +123,6 @@ extern "C" {
 // Misc. type helpers
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-
-// MSVC's way of declaring large integer constants
-// If you define these in one step, without the _HELPER macros, you
-// get extra whitespace when composing these with other concatenating macros.
-#define I64_HELPER(x) x ## i64
-#define I64(x)        I64_HELPER(x)
-
-#define UI64_HELPER(x) x ## ui64
-#define UI64(x)        UI64_HELPER(x)
-
-#else // _MSC_VER
-
 // GCC's way of declaring large integer constants
 // If you define these in one step, without the _HELPER macros, you
 // get extra whitespace when composing these with other concatenating macros.
@@ -169,8 +131,6 @@ extern "C" {
 
 #define UI64_HELPER(x) x ## ULL
 #define UI64(x)        UI64_HELPER(x)
-
-#endif // _MSC_VER
 
 ////////////////////////////////////////////////////////////////////////
 // Misc. types
@@ -321,7 +281,6 @@ typedef signed __int64 LONG64;
 #endif
 
 #ifdef BIT64
-
 #define _atoi64 (__int64)atoll
 
 typedef __int64 INT_PTR, *PINT_PTR;
@@ -513,8 +472,6 @@ UShortToPtr(
 #define UShortToPtr( us )  ((VOID *)(UINT_PTR)((unsigned short)(s)))
 #endif // !defined(BIT64)
 
-
-
 #else
 
 typedef _W64 __int32 INT_PTR;
@@ -597,20 +554,12 @@ typedef LONG_PTR LPARAM;
 #define _PTRDIFF_T
 #endif
 
-// CC uses both char16_t and wchar_t internally
-#if !defined(_WCHAR_T_DEFINED)
-#if defined(__cplusplus)
-#undef wchar_t
-#define wchar_t __wchar_16_cpp__
-typedef char16_t wchar_t;
-#else
+#if !defined(__cplusplus)
 typedef unsigned short char16_t;
 #endif // __cplusplus
-#define _WCHAR_T_DEFINED
-#endif // _WCHAR_T_DEFINED
 
+typedef char16_t char16;
 typedef char16_t WCHAR;
-#define WCHAR_IS_CHAR16_T 1
 
 #ifdef PAL_STDCPP_COMPAT
 
@@ -623,7 +572,7 @@ typedef unsigned long int uintptr_t;
 typedef unsigned int uintptr_t;
 #endif // !BIT64
 #endif
- 
+
 #else // !PAL_STDCPP_COMPAT
 
 #if defined(__LINUX__)

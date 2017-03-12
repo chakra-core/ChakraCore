@@ -15,7 +15,11 @@ public:
     static const ObjectInfoBits RequiredAttributes = LeafBit;
     typedef TBlockAttributes HeapBlockAttributes;
 
-    SmallLeafHeapBlockT * GetNextBlock() const { return Base::GetNextBlock()->template AsLeafBlock<TBlockAttributes>(); }
+    SmallLeafHeapBlockT * GetNextBlock() const
+    {
+        HeapBlock* block = Base::GetNextBlock();
+        return block ? block->template AsLeafBlock<TBlockAttributes>() : nullptr;
+    }
     void SetNextBlock(SmallLeafHeapBlockT * next) { Base::SetNextBlock(next); }
 
     void ScanNewImplicitRoots(Recycler * recycler);

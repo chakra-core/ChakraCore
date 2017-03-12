@@ -32,12 +32,12 @@ namespace TTD
         JsUtil::BaseDictionary<TTD_PTR_ID, void*, HeapAllocator> m_promiseDataMap;
 
         //A set we use to pin all the inflated objects live during/after the inflate process (to avoid accidental collection)
-        ObjectPinSet* m_inflatePinSet;
-        EnvironmentPinSet* m_environmentPinSet;
-        SlotArrayPinSet* m_slotArrayPinSet;
+        RecyclerRootPtr<ObjectPinSet> m_inflatePinSet;
+        RecyclerRootPtr<EnvironmentPinSet> m_environmentPinSet;
+        RecyclerRootPtr<SlotArrayPinSet> m_slotArrayPinSet;
 
         //A set we use to keep some old objects alive during inflate in case we want to re-use them
-        ObjectPinSet* m_oldInflatePinSet;
+        RecyclerRootPtr<ObjectPinSet> m_oldInflatePinSet;
 
         //Temp data structures for holding info during the inflate process
         TTDIdentifierDictionary<TTD_PTR_ID, Js::RecyclableObject*> m_oldObjectMap;
@@ -58,6 +58,9 @@ namespace TTD
 
         Js::RecyclableObject* FindReusableObjectIfExists(TTD_PTR_ID objid) const;
         Js::FunctionBody* FindReusableFunctionBodyIfExists(TTD_PTR_ID fbodyid) const;
+
+        //A version of FindReusableObjectIfExists but we haven't moved the last inflate objects to oldObjects yet so we need to look in a differnt location
+        Js::RecyclableObject* FindReusableObject_WellKnowReuseCheck(TTD_PTR_ID objid) const;
 
         ////
 
@@ -111,7 +114,7 @@ namespace TTD
         template <typename T>
         T* LookupInflatedPromiseInfo(TTD_PTR_ID ptrId) const
         {
-            return (T*)this->m_promiseDataMap.LookupWithKey(ptrId, nullptr);
+            return (T*)this->m_promiseDataMap.Item(ptrId);
         }
     };
 
@@ -177,6 +180,7 @@ namespace TTD
     class TTDCompareMap
     {
     public:
+        bool StrictCrossSite;
 
         JsUtil::Queue<TTD_PTR_ID, HeapAllocator> H1PtrIdWorklist;
         JsUtil::BaseDictionary<TTD_PTR_ID, TTD_PTR_ID, HeapAllocator> H1PtrToH2PtrMap;

@@ -6,7 +6,7 @@
 #include "JsrtInternal.h"
 #include "jsrtHelper.h"
 #include "JsrtContextCore.h"
-#include "chakracore.h"
+#include "ChakraCore.h"
 
 CHAKRA_API
 JsInitializeModuleRecord(
@@ -18,7 +18,7 @@ JsInitializeModuleRecord(
 
     Js::SourceTextModuleRecord* childModuleRecord = nullptr;
 
-    JsErrorCode errorCode = ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
+    JsErrorCode errorCode = ContextAPIWrapper_NoRecord<true>([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         childModuleRecord = Js::SourceTextModuleRecord::Create(scriptContext);
         if (referencingModule == nullptr)
         {
@@ -27,6 +27,10 @@ JsInitializeModuleRecord(
         if (normalizedSpecifier != JS_INVALID_REFERENCE)
         {
             childModuleRecord->SetSpecifier(normalizedSpecifier);
+            if (Js::SourceTextModuleRecord::Is(referencingModule) && Js::JavascriptString::Is(normalizedSpecifier))
+            {
+                childModuleRecord->SetParent(Js::SourceTextModuleRecord::FromHost(referencingModule), Js::JavascriptString::FromVar(normalizedSpecifier)->GetSz());
+            }
         }
         return JsNoError;
     });
@@ -69,7 +73,7 @@ JsParseModuleSource(
         return JsErrorModuleParsed;
     }
     Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
-    JsErrorCode errorCode = GlobalAPIWrapper([&]() -> JsErrorCode {
+    JsErrorCode errorCode = GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         SourceContextInfo* sourceContextInfo = scriptContext->GetSourceContextInfo(sourceContext, nullptr);
         if (sourceContextInfo == nullptr)
         {
@@ -115,7 +119,7 @@ JsModuleEvaluation(
         *result = JS_INVALID_REFERENCE;
     }
     Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
-    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetPinnedJsrtContextObject();
+    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetJsrtContext();
     JsErrorCode errorCode = SetContextAPIWrapper(jsrtContext, [&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         SmartFPUControl smartFpuControl;
         if (smartFpuControl.HasErr())
@@ -144,7 +148,7 @@ JsSetModuleHostInfo(
     }
     Js::SourceTextModuleRecord* moduleRecord = Js::SourceTextModuleRecord::FromHost(requestModule);
     Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
-    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetPinnedJsrtContextObject();
+    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetJsrtContext();
     JsErrorCode errorCode = SetContextAPIWrapper(jsrtContext, [&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         JsrtContextCore* currentContext = static_cast<JsrtContextCore*>(JsrtContextCore::GetCurrent());
         switch (moduleHostInfo)
@@ -156,10 +160,10 @@ JsSetModuleHostInfo(
             moduleRecord->SetHostDefined(hostInfo);
             break;
         case JsModuleHostInfo_FetchImportedModuleCallback:
-            currentContext->GetHostScriptContext()->SetFetchImportedModuleCallback(static_cast<FetchImportedModuleCallBack>(hostInfo));
+            currentContext->GetHostScriptContext()->SetFetchImportedModuleCallback(reinterpret_cast<FetchImportedModuleCallBack>(hostInfo));
             break;
         case JsModuleHostInfo_NotifyModuleReadyCallback:
-            currentContext->GetHostScriptContext()->SetNotifyModuleReadyCallback(static_cast<NotifyModuleReadyCallback>(hostInfo));
+            currentContext->GetHostScriptContext()->SetNotifyModuleReadyCallback(reinterpret_cast<NotifyModuleReadyCallback>(hostInfo));
             break;
         default:
             return JsInvalidModuleHostInfoKind;
@@ -182,7 +186,7 @@ JsGetModuleHostInfo(
     *hostInfo = nullptr;
     Js::SourceTextModuleRecord* moduleRecord = Js::SourceTextModuleRecord::FromHost(requestModule);
     Js::ScriptContext* scriptContext = moduleRecord->GetScriptContext();
-    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetPinnedJsrtContextObject();
+    JsrtContext* jsrtContext = (JsrtContext*)scriptContext->GetLibrary()->GetJsrtContext();
     JsErrorCode errorCode = SetContextAPIWrapper(jsrtContext, [&](Js::ScriptContext *scriptContext) -> JsErrorCode {
         JsrtContextCore* currentContext = static_cast<JsrtContextCore*>(JsrtContextCore::GetCurrent());
         switch (moduleHostInfo)
@@ -197,10 +201,10 @@ JsGetModuleHostInfo(
             *hostInfo = moduleRecord->GetHostDefined();
             break;
         case JsModuleHostInfo_FetchImportedModuleCallback:
-            *hostInfo = currentContext->GetHostScriptContext()->GetFetchImportedModuleCallback();
+            *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetFetchImportedModuleCallback());
             break;
         case JsModuleHostInfo_NotifyModuleReadyCallback:
-            *hostInfo = currentContext->GetHostScriptContext()->GetNotifyModuleReadyCallback();
+            *hostInfo = reinterpret_cast<void*>(currentContext->GetHostScriptContext()->GetNotifyModuleReadyCallback());
             break;
         default:
             return JsInvalidModuleHostInfoKind;

@@ -99,11 +99,13 @@ namespace Js
     void
     RootObjectBase::ReleaseInlineCache(Js::PropertyId propertyId, bool isLoadMethod, bool isStore, bool isShutdown)
     {
+        uint unregisteredInlineCacheCount = 0;
+
         RootObjectInlineCacheMap * inlineCacheMap = isStore ? storeInlineCacheMap :
             isLoadMethod ? loadMethodInlineCacheMap : loadInlineCacheMap;
         bool found = false;
         inlineCacheMap->RemoveIfWithKey(propertyId,
-            [this, isShutdown, &found](PropertyRecord const * propertyRecord, RootObjectInlineCache * rootObjectInlineCache)
+            [this, isShutdown, &unregisteredInlineCacheCount, &found](PropertyRecord const * propertyRecord, RootObjectInlineCache * rootObjectInlineCache)
             {
                 found = true;
                 if (rootObjectInlineCache->Release() == 0)
@@ -114,7 +116,11 @@ namespace Js
                     // Close called) and thus the invalidation lists are safe to keep references to caches from this script context.
                     if (!isShutdown)
                     {
-                        rootObjectInlineCache->GetInlineCache()->RemoveFromInvalidationList();
+                        if (rootObjectInlineCache->GetInlineCache()->RemoveFromInvalidationList())
+                        {
+                            unregisteredInlineCacheCount++;
+
+                        }
                         AllocatorDelete(InlineCacheAllocator, this->GetScriptContext()->GetInlineCacheAllocator(), rootObjectInlineCache->GetInlineCache());
                     }
                     return true; // Remove from the map
@@ -123,6 +129,10 @@ namespace Js
             }
         );
         Assert(found);
+        if (unregisteredInlineCacheCount > 0)
+        {
+            this->GetScriptContext()->GetThreadContext()->NotifyInlineCacheBatchUnregistered(unregisteredInlineCacheCount);
+        }
     }
 
     BOOL

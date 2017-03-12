@@ -1,0 +1,51 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "string [Uninitialized block variable]",
+      "cConst": "string [Uninitialized block variable]",
+      "a": "number 0"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "number 1",
+      "cConst": "number 2",
+      "a": "number 0"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "dConst": "string [Uninitialized block variable]",
+      "e": "string [Uninitialized block variable]",
+      "b": "number 1",
+      "cConst": "number 2",
+      "a": "number 0"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "dConst": "number 3",
+      "e": "number 4",
+      "b": "number 1",
+      "cConst": "number 2",
+      "a": "number 0"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "number 1",
+      "cConst": "number 2",
+      "a": "number 0"
+    }
+  }
+]

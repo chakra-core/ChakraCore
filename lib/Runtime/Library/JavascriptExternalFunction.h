@@ -8,7 +8,7 @@ typedef HRESULT(__cdecl *InitializeMethod)(Js::Var instance);
 
 namespace Js
 {
-    typedef Var (__stdcall *StdCallJavascriptMethod)(RecyclableObject *callee, bool isConstructCall, Var *args, USHORT cargs, void *callbackState);
+    typedef Var (__stdcall *StdCallJavascriptMethod)(Var callee, bool isConstructCall, Var *args, USHORT cargs, void *callbackState);
     typedef int JavascriptTypeId;
 
     class JavascriptExternalFunction : public RuntimeFunction
@@ -49,26 +49,26 @@ namespace Js
         void SetExternalFlags(UINT64 flags) { this->flags = flags; }
 
     private:
-        Var signature;
-        void *callbackState;
+        Field(Var) signature;
+        Field(void *) callbackState;
         union
         {
-            ExternalMethod nativeMethod;
-            JavascriptExternalFunction* wrappedMethod;
-            StdCallJavascriptMethod stdCallNativeMethod;
+            FieldNoBarrier(ExternalMethod) nativeMethod;
+            Field(JavascriptExternalFunction*) wrappedMethod;
+            FieldNoBarrier(StdCallJavascriptMethod) stdCallNativeMethod;
         };
-        InitializeMethod initMethod;
+        Field(InitializeMethod) initMethod;
 
         // Ensure GC doesn't pin
-        unsigned int oneBit:1;
+        Field(unsigned int) oneBit:1;
         // Count of type slots for
-        unsigned int typeSlots:15;
+        Field(unsigned int) typeSlots:15;
         // Determines if we need are a dictionary type
-        unsigned int hasAccessors:1;
-        unsigned int unused:15;
+        Field(unsigned int) hasAccessors:1;
+        Field(unsigned int) unused:15;
 
-        JavascriptTypeId prototypeTypeId;
-        UINT64 flags;
+        Field(JavascriptTypeId) prototypeTypeId;
+        Field(UINT64) flags;
 
         static Var ExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
         static Var WrappedFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...);
@@ -82,6 +82,11 @@ namespace Js
     public:
         virtual TTD::NSSnapObjects::SnapObjectType GetSnapTag_TTD() const override;
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
+
+        static Var HandleRecordReplayExternalFunction_Thunk(Js::JavascriptFunction* function, CallInfo& callInfo, Arguments& args, ScriptContext* scriptContext);
+        static Var HandleRecordReplayExternalFunction_StdThunk(Js::RecyclableObject* function, CallInfo& callInfo, Arguments& args, ScriptContext* scriptContext);
+
+        static Var __stdcall TTDReplayDummyExternalMethod(Js::Var callee, bool isConstructCall, Var *args, USHORT cargs, void *callbackState);
 #endif
 
         friend class JavascriptLibrary;

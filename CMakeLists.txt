@@ -1,69 +1,211 @@
 cmake_minimum_required(VERSION 3.2)
 project (CHAKRACORE)
 
+# Keep CMake from caching static/shared library
+# option. Otherwise, CMake fails to update cached
+# references
+
+# todo: create a sub cmake file to take care of _SH uncaching...
+if(SHARED_LIBRARY_SH)
+    unset(SHARED_LIBRARY_SH CACHE)
+    unset(STATIC_LIBRARY_SH CACHE)
+    unset(STATIC_LIBRARY CACHE)
+    set(SHARED_LIBRARY 1)
+endif()
+
+if(STATIC_LIBRARY_SH)
+    unset(SHARED_LIBRARY_SH CACHE)
+    unset(STATIC_LIBRARY_SH CACHE)
+    unset(SHARED_LIBRARY CACHE)
+    set(STATIC_LIBRARY 1)
+endif()
+
+if(LIBS_ONLY_BUILD_SH)
+    unset(LIBS_ONLY_BUILD_SH CACHE)
+    set(CC_LIBS_ONLY_BUILD 1)
+endif()
+
+if(CC_USES_SYSTEM_ARCH_SH)
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+        set(CC_TARGETS_AMD64_SH 1)
+    elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "armv7l")
+        set(CC_TARGETS_ARM_SH 1)
+    endif()
+    unset(CC_USES_SYSTEM_ARCH_SH CACHE)
+endif()
+
+if(CC_TARGETS_AMD64_SH)
+    set(CC_TARGETS_AMD64 1)
+elseif (CC_TARGETS_ARM_SH)
+    set(CC_TARGETS_ARM 1)
+    add_definitions(-D_ARM_=1)
+    set(CMAKE_SYSTEM_PROCESSOR "armv7l")
+elseif(CC_TARGETS_X86_SH)
+    set(CC_TARGETS_X86 1)
+    set(CMAKE_SYSTEM_PROCESSOR "i386")
+else()
+    message(FATAL_ERROR "Couldn't detect target processor, try `--arch` argument with build.sh")
+endif()
+
+unset(CC_TARGETS_ARM_SH CACHE)
+unset(CC_TARGETS_X86_SH CACHE)
+unset(CC_TARGETS_AMD64_SH CACHE)
+
+if(ICU_SETTINGS_RESET)
+    unset(ICU_SETTINGS_RESET CACHE)
+    unset(ICU_INCLUDE_PATH CACHE)
+    unset(ICU_INCLUDE_PATH_SH CACHE)
+    unset(NO_ICU_PATH_GIVEN_SH CACHE)
+    unset(NO_ICU_PATH_GIVEN CACHE)
+    unset(CC_EMBED_ICU_SH CACHE)
+endif()
+
+if(CC_TARGET_OS_ANDROID_SH)
+    set(CC_TARGET_OS_ANDROID 1)
+    set(CMAKE_SYSTEM_NAME Android)
+    set(ANDROID_NDK "android-toolchain-arm/")
+    set(ANDROID_ABI armeabi-v7a)
+    set(CMAKE_SYSTEM_VERSION 21)
+    set(CMAKE_ANDROID_ARCH_ABI armeabi)
+    set(ANDROID_TOOLCHAIN_NAME arm-linux-androideabi-clang3.8)
+    set(ANDROID_STL "c++_static")
+    unset(CC_TARGET_OS_ANDROID_SH CACHE)
+elseif(CMAKE_SYSTEM_NAME STREQUAL Linux)
+    set(CC_TARGET_OS_LINUX 1)
+elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(CC_TARGET_OS_OSX 1)
+endif()
+
+if (ENABLE_CC_XPLAT_TRACE_SH)
+    unset(ENABLE_CC_XPLAT_TRACE_SH CACHE)
+    set(ENABLE_CC_XPLAT_TRACE 1)
+    if (CC_TARGET_OS_ANDROID)
+        add_definitions(-DTRACE_OUTPUT_TO_LOGCAT=1)
+    else()
+        add_definitions(-DTRACE_OUTPUT_TARGET_FILE=1)
+    endif()
+    add_definitions(-DENABLE_CC_XPLAT_TRACE=1)
+    add_compile_options(-finstrument-functions)
+    add_compile_options(-g)
+    add_compile_options(-ggdb)
+    if(NOT STATIC_LIBRARY)
+        message(FATAL_ERROR "Trace option is available only for --static builds")
+    endif()
+endif()
+
+if(CC_EMBED_ICU_SH)
+    unset(CC_EMBED_ICU_SH CACHE)
+    set(CC_EMBED_ICU 1)
+    set(ICU_INCLUDE_PATH "deps/icu/source/output/include/")
+endif()
+
+if(ICU_INCLUDE_PATH_SH)
+    set(ICU_INCLUDE_PATH ${ICU_INCLUDE_PATH_SH})
+    unset(NO_ICU_PATH_GIVEN_SH CACHE)
+    unset(NO_ICU_PATH_GIVEN CACHE)
+    unset(ICU_INCLUDE_PATH_SH CACHE)
+endif()
+
+if(NO_ICU_PATH_GIVEN_SH)
+    set(NO_ICU_PATH_GIVEN ${NO_ICU_PATH_GIVEN_SH})
+    unset(NO_ICU_PATH_GIVEN_SH CACHE)
+    unset(ICU_INCLUDE_PATH_SH CACHE)
+    unset(ICU_INCLUDE_PATH CACHE)
+endif()
 
 function(clr_unknown_arch)
-    if (WIN32)
-        message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
-    else()
-        message(FATAL_ERROR "Only AMD64 and ARM are supported")
-    endif()
+    message(FATAL_ERROR "Only AMD64, ARM and I386 are supported")
 endfunction()
 
 if(ICU_INCLUDE_PATH)
-  set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
-  find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-  find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-  find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-  if(ICUUC)
-    message("found libraries on ${ICU_CC_PATH}")
-    set(ICULIB
-      ${ICUUC}
-      ${ICU18}
-      ${ICUDATA}
-      )
-  endif()
+    add_definitions(-DHAS_REAL_ICU=1)
+    set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
+    find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+    if(ICUUC)
+      message("-- found ICU libs: ${ICU_CC_PATH}")
+      find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+      if (NOT ICUDATA)
+          set(ICUDATA "")
+      endif()
+      set(ICULIB
+        ${ICUUC}
+        ${ICU18}
+        ${ICUDATA}
+        )
+    endif()
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+set(CLR_CMAKE_PLATFORM_XPLAT 1)
+if(CC_TARGETS_AMD64)
+    add_definitions(-D_M_X64_OR_ARM64)
+    add_compile_options(-msse4.2)
+elseif(CC_TARGETS_X86)
+    add_definitions(-D__i686__)
+    add_definitions(-D_M_IX86_OR_ARM32)
+    add_compile_options(-arch i386)
+    add_compile_options(-msse3)
+
+    set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} \
+        -m32"
+    )
+elseif(CC_TARGETS_ARM)
+    add_definitions(-D__arm__)
+    add_definitions(-D_M_IX86_OR_ARM32)
+    add_definitions(-D_M_ARM32_OR_ARM64)
+  if(CC_TARGET_OS_OSX)
+    add_compile_options(-arch arm)
+  endif()
+else()
+    clr_unknown_arch()
+endif()
+
+if(CC_TARGET_OS_LINUX OR CC_TARGET_OS_ANDROID)
     if(NOT ICULIB)
-      set(ICULIB "icuuc")
+      if(NOT NO_ICU_PATH_GIVEN)
+        if(NOT CC_EMBED_ICU)
+          set(ICULIB "icuuc")
+        endif()
+        add_definitions(-DHAS_REAL_ICU=1)
+      endif()
     endif()
 
-    set(CLR_CMAKE_PLATFORM_UNIX 1)
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
-        set(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64 1)
-    else()
-        clr_unknown_arch()
-    endif()
     set(CLR_CMAKE_PLATFORM_LINUX 1)
-elseif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    # OSX 10.12 Clang deprecates libstdc++ [See GH #1599]
+    # So, -Werror is linux only for now
+    # + Android ARM ABI shows ld warnings
+    # xplat-todo: Do we need this ?
+    if (NOT CC_TARGET_OS_ANDROID)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+          -Werror"
+          )
+    endif()
+elseif(CC_TARGET_OS_OSX)
     add_definitions(
         -DPLATFORM_UNIX
     )
 
     if(NOT ICULIB)
-      set(ICULIB "icucore")
-      add_definitions(
-        -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
-        )
-      message("using ICU from system default: ${ICULIB}")
+      set(NO_ICU_PATH_GIVEN 1)
+      message("-- Couldn't find ICU. Falling back to --no-icu build")
     endif()
 
-    set(CLR_CMAKE_PLATFORM_UNIX 1)
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64)
-        set(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64 1)
-    else()
-        clr_unknown_arch()
+    if(NOT CC_XCODE_PROJECT)
+      set(OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET} CC")
+      if (${OSX_DEPLOYMENT_TARGET} STREQUAL " CC")
+        set(OSX_DEPLOYMENT_TARGET "10.9")
+        add_compile_options(-mmacosx-version-min=10.9)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} \
+          -mmacosx-version-min=10.9 -std=gnu99")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+          -mmacosx-version-min=10.9 -std=gnu++11")
+      else()
+        set(OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET}")
+        message(WARNING "-- !! macOS Deployment Target was set to $ENV{MACOSX_DEPLOYMENT_TARGET}. Using it as is.")
+      endif()
     endif()
-    set(CLR_CMAKE_PLATFORM_DARWIN 1)
 else()
-    clr_unknown_arch()
-endif()
-
-if(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64)
-    add_definitions(-D_M_X64_OR_ARM64)
-    set(CLR_CMAKE_PLATFORM_ARCH_AMD64 1)
+    message(FATAL_ERROR "This OS is not supported")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang
@@ -77,29 +219,26 @@ if(STATIC_LIBRARY)
     add_definitions(-DCHAKRA_STATIC_LIBRARY=1)
 endif()
 
-if(CLR_CMAKE_PLATFORM_UNIX)
+if(CLR_CMAKE_PLATFORM_XPLAT)
+    add_definitions(-DFEATURE_PAL)
     add_definitions(-DPLATFORM_UNIX=1)
 
     if(CLR_CMAKE_PLATFORM_LINUX)
         add_definitions(-D__LINUX__=1)
-        if(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64)
-            message("Detected Linux x86_64")
+        if(CC_TARGETS_AMD64)
             add_definitions(-DLINUX64)
-        else()
-            clr_unknown_arch()
-        endif(CLR_CMAKE_PLATFORM_UNIX_TARGET_AMD64)
+        endif(CC_TARGETS_AMD64)
     endif(CLR_CMAKE_PLATFORM_LINUX)
 
-    if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64)
+    if(CC_TARGETS_AMD64)
         set(IS_64BIT_BUILD 1)
         add_definitions(-D_M_X64 -D_M_AMD64 -D_AMD64_)
-    endif(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64)
+    endif(CC_TARGETS_AMD64)
 
     add_definitions(
         -DUNICODE
         -D_SAFECRT_USE_CPP_OVERLOADS=1
         -D__STDC_WANT_LIB_EXT1__=1
-        -DDISABLE_JIT=1  # xplat-todo: enable the JIT for Linux
         )
 
     set(CMAKE_CXX_STANDARD 11)
@@ -114,17 +253,11 @@ if(CLR_CMAKE_PLATFORM_UNIX)
     # prevent the required interface is being exported
     # clang by default sets fvisibility=default
 
-if(NOT CC_XCODE_PROJECT)
-    # todo: enable for XCode too
-    # XCode is a bit more strict
-    # keep this until we fix all the warnings there.
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -Werror"
-        )
-endif()
-
     # CXX WARNING FLAGS
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Wno-ignored-attributes\
+        -Wno-deprecated-declarations\
+        -Wno-parentheses-equality\
         -Wno-missing-braces\
         -Wno-reorder\
         -Wno-microsoft\
@@ -154,24 +287,50 @@ endif()
         # -Wno-return-type # switch unreachable code
         # -Wno-switch # switch values not handled
 
-    # CXX COMPILER FLAGS
+    include(Build/CMakeFeatureDetect.cmake)
 
-    # xplat-todo for release build
-    # -fno-inline.... -> -mno-omit.... are needed for more accurate stack inf.
-    # Release Builds: Not sure if this has to be as strict as the debug/test?
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -fdelayed-template-parsing\
-        -fno-omit-frame-pointer\
-        -fno-optimize-sibling-calls\
-        -mno-omit-leaf-frame-pointer" # this is for compat reasons. i.e. It is a noop with gcc
-    )
+        ${CXX_DO_NOT_OPTIMIZE_SIBLING_CALLS} \
+        -fno-omit-frame-pointer \
+        -fdelayed-template-parsing"
+        )
 
     # CXX / CC COMPILER FLAGS
     add_compile_options(
+        -fasm-blocks
         -fms-extensions
-        -msse4.1
+        -fwrapv                 # Treat signed integer overflow as two's complement
     )
-endif(CLR_CMAKE_PLATFORM_UNIX)
+
+    # Clang -fsanitize.
+    if (CLANG_SANITIZE_SH)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
+        set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -fsanitize=${CLANG_SANITIZE_SH}")
+        unset(CLANG_SANITIZE_SH CACHE)      # don't cache
+    endif()
+endif(CLR_CMAKE_PLATFORM_XPLAT)
+
+if (ENABLE_FULL_LTO_SH OR ENABLE_THIN_LTO_SH)
+    if (CC_TARGET_OS_LINUX)
+        set(CC_LTO_ENABLED -use-gold-plugin)
+        set(CC_LTO_ENABLED_C -c)
+    endif()
+
+    if (ENABLE_FULL_LTO_SH)
+        unset(DENABLE_FULL_LTO_SH CACHE)
+        add_compile_options(-flto ${CC_LTO_ENABLED_C})
+
+        if (CC_LTO_ENABLED)
+            set(CC_LTO_ENABLED "${CC_LTO_ENABLED} -flto")
+        endif()
+    elseif (ENABLE_THIN_LTO_SH)
+        unset(ENABLE_THIN_LTO_SH CACHE)
+        add_compile_options(-flto=thin)
+        if (CC_LTO_ENABLED)
+            set(CC_LTO_ENABLED "${CC_LTO_ENABLED} -flto=thin")
+        endif()
+    endif()
+endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
     add_definitions(
@@ -187,9 +346,9 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Test)
 endif(CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -O3"
-    )
+    add_compile_options(-O3)
+else()
+    add_compile_options(-O0)
 endif(NOT CMAKE_BUILD_TYPE STREQUAL Debug)
 
 if(IS_64BIT_BUILD)
@@ -199,15 +358,57 @@ if(IS_64BIT_BUILD)
     )
 endif(IS_64BIT_BUILD)
 
-if(CLR_CMAKE_PLATFORM_UNIX)
-   add_definitions(-DFEATURE_PAL)
-endif(CLR_CMAKE_PLATFORM_UNIX)
+if(NO_JIT_SH)
+    unset(NO_JIT_SH CACHE)      # don't cache
+    unset(BuildJIT CACHE)       # also clear it just in case
+    add_definitions(-DDISABLE_JIT=1)
+else()
+    set(BuildJIT 1)
+endif()
 
-if(WITHOUT_FEATURES)
-   add_definitions(${WITHOUT_FEATURES})
-endif(WITHOUT_FEATURES)
+if(WITHOUT_FEATURES_SH)
+    unset(WITHOUT_FEATURES_SH CACHE)    # don't cache
+    add_definitions(${WITHOUT_FEATURES_SH})
+endif(WITHOUT_FEATURES_SH)
 
 enable_language(ASM)
+
+if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(DYN_LIB_EXT "dylib")
+else()
+    set(DYN_LIB_EXT "so")
+endif()
+
+################# Write-barrier check/analyze ##################
+if (WB_CHECK_SH OR WB_ANALYZE_SH)
+    add_definitions(
+        -Xclang -load
+        -Xclang ${CMAKE_CURRENT_SOURCE_DIR}/tools/RecyclerChecker/Build/libclangRecyclerChecker.${DYN_LIB_EXT}
+    )
+endif()
+if (WB_CHECK_SH)
+    unset(WB_CHECK_SH CACHE)    # don't cache
+    add_definitions(
+        -Xclang -add-plugin
+        -Xclang check-recycler
+    )
+endif()
+if (WB_ANALYZE_SH)
+    unset(WB_ANALYZE_SH CACHE)  # don't cache
+    add_definitions(
+        -Xclang -analyze
+        -Xclang -analyzer-checker=chakra.RecyclerChecker
+    )
+endif()
+if (WB_ARGS_SH)
+    foreach(wb_arg IN LISTS WB_ARGS_SH)
+        add_definitions(
+            -Xclang -plugin-arg-check-recycler
+            -Xclang ${wb_arg}
+        )
+    endforeach(wb_arg)
+    unset(WB_ARGS_SH CACHE)  # don't cache
+endif()
 
 include_directories(
     .

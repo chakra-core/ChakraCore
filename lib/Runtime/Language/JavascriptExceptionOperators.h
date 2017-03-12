@@ -48,6 +48,9 @@ namespace Js
         static void __declspec(noreturn) ThrowExceptionObject(Js::JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger = false, PVOID returnAddress = NULL, bool resetStack = false);
         static void __declspec(noreturn) RethrowExceptionObject(Js::JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext, bool considerPassingToDebugger = false);
 
+        static void __declspec(noreturn) DoThrow(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext);
+        static void __declspec(noreturn) DoThrowCheckClone(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext);
+
 #ifdef _M_X64
         static void *OP_TryCatch(void *try_, void *catch_, void *frame, size_t spillSize, size_t argsSize, int hasBailedOutOffset, ScriptContext *scriptContext);
         static void *OP_TryFinally(void *try_, void *finally_, void *frame, size_t spillSize, size_t argsSize, ScriptContext *scriptContext);
@@ -66,14 +69,12 @@ namespace Js
         static Var OP_RuntimeTypeError(MessageId messageId, ScriptContext* scriptContext);
         static Var OP_RuntimeRangeError(MessageId messageId, ScriptContext* scriptContext);
         static Var OP_RuntimeReferenceError(MessageId messageId, ScriptContext* scriptContext);
+        static Var OP_WebAssemblyRuntimeError(MessageId messageId, ScriptContext* scriptContext);
         static void __declspec(noreturn) ThrowOutOfMemory(ScriptContext* scriptContext);
         static void __declspec(noreturn) ThrowStackOverflow(ScriptContext* scriptContext, PVOID returnAddress);
 
         static uint64 GetStackTraceLimit(Var thrownObject, ScriptContext* scriptContext);
-        static Var ThrowTypeErrorAccessor(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var ThrowTypeErrorCallerAccessor(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var ThrowTypeErrorCalleeAccessor(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var ThrowTypeErrorArgumentsAccessor(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var ThrowTypeErrorRestrictedPropertyAccessor(RecyclableObject* function, CallInfo callInfo, ...);
         static Var StackTraceAccessor(RecyclableObject* function, CallInfo callInfo, ...);
         static void WalkStackForExceptionContext(ScriptContext& scriptContext, JavascriptExceptionContext& exceptionContext, Var thrownObject, uint64 stackCrawlLimit, PVOID returnAddress, bool isThrownException = true, bool resetSatck = false);
         static void AddStackTraceToObject(Var obj, JavascriptExceptionContext::StackTrace* stackTrace, ScriptContext& scriptContext, bool isThrownException = true, bool resetSatck = false);
@@ -82,13 +83,10 @@ namespace Js
         class EntryInfo
         {
         public:
-            static FunctionInfo ThrowTypeErrorAccessor;
             static FunctionInfo StackTraceAccessor;
 
             // For strict mode
-            static FunctionInfo ThrowTypeErrorCallerAccessor;
-            static FunctionInfo ThrowTypeErrorCalleeAccessor;
-            static FunctionInfo ThrowTypeErrorArgumentsAccessor;
+            static FunctionInfo ThrowTypeErrorRestrictedPropertyAccessor;
         };
 
       private:

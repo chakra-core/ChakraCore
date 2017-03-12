@@ -28,19 +28,23 @@ namespace Js
         InterpreterStackFrameFlags_ProcessingBailOutFromEHCode = 0x10,
         InterpreterStackFrameFlags_All = 0xFFFF,
     };
+
+    // TODO: (leish)(swb) this is not always stack allocated now
+    // with ES6 Generator, this can be allocated with recycler
+    // need to find a good way to set write barrier, or big refactor.
     struct InterpreterStackFrame   /* Stack allocated, no virtuals */
     {
         PREVENT_COPY(InterpreterStackFrame)
 
-        friend class BailOutRecord;
+        friend class ::BailOutRecord;
         friend class JavascriptGeneratorFunction;
         friend class JavascriptGenerator;
 
         class Setup
         {
         public:
-            Setup(ScriptFunction * function, Arguments& args, bool inlinee = false);
-            Setup(ScriptFunction * function, Var * inParams, int inSlotsCount, bool inlinee = false);
+            Setup(ScriptFunction * function, Arguments& args, bool bailout = false, bool inlinee = false);
+            Setup(ScriptFunction * function, Var * inParams, int inSlotsCount);
             size_t GetAllocationVarCount() const { return varAllocCount; }
 
             InterpreterStackFrame * AllocateAndInitialize(bool doProfile, bool * releaseAlloc);
@@ -69,6 +73,7 @@ namespace Js
             uint varAllocCount;
             uint inlineCacheCount;
             Js::CallFlags callFlags;
+            bool bailedOut;
             bool bailedOutOfInlinee;
         };
     private:
@@ -85,6 +90,7 @@ namespace Js
         Var localClosure;
         Var paramClosure;
         Var *innerScopeArray;
+        ForInObjectEnumerator * forInObjectEnumerators;
         ScriptContext* scriptContext;
         ScriptFunction * function;
         FunctionBody * m_functionBody;
@@ -112,6 +118,7 @@ namespace Js
 
         bool closureInitDone : 1;
         bool isParamScopeDone : 1;
+        bool shouldCacheSP : 1; // Helps in determining if we need to cache the sp in ProcessTryFinally
 #if ENABLE_PROFILE_INFO
         bool switchProfileMode : 1;
         bool isAutoProfiling : 1;
@@ -133,9 +140,14 @@ namespace Js
 
         // Asm.js stack pointer
         int* m_localIntSlots;
+        int64* m_localInt64Slots;
         double* m_localDoubleSlots;
         float* m_localFloatSlots;
 
+#ifdef ENABLE_WASM
+        Wasm::WasmSignature* m_signatures;
+        WebAssemblyMemory * m_wasmMemory;
+#endif
          _SIMDValue* m_localSimdSlots;
 
         EHBailoutData * ehBailoutData;
@@ -145,24 +157,28 @@ namespace Js
 
         static const int LocalsThreshold = 32 * 1024; // Number of locals vars we'll allocate on the frame.
                                                       // If there are more, we'll use an arena.
-
+#ifndef TEMP_DISABLE_ASMJS
         typedef void(InterpreterStackFrame::*ArrFunc)(uint32, RegSlot);
-
-        static const ArrFunc StArrFunc[8];
-        static const ArrFunc LdArrFunc[8];
+        static const ArrFunc StArrFunc[15];
+        static const ArrFunc LdArrFunc[15];
+        static const int     TypeToSizeMap[15];
+#endif
 
         //This class must have an empty ctor (otherwise it will break the code in InterpreterStackFrame::InterpreterThunk
         inline InterpreterStackFrame() { }
 
         void ProcessTryFinally(const byte* ip, Js::JumpOffset jumpOffset, Js::RegSlot regException = Js::Constants::NoRegister, Js::RegSlot regOffset = Js::Constants::NoRegister, bool hasYield = false);
     public:
-        void OP_SetOutAsmDb(RegSlot outRegisterID, double val);
         void OP_SetOutAsmInt(RegSlot outRegisterID, int val);
+        void OP_SetOutAsmFlt(RegSlot outRegisterID, float val);
+        void OP_SetOutAsmDb(RegSlot outRegisterID, double val);
         void OP_I_SetOutAsmInt(RegSlot outRegisterID, int val);
         void OP_I_SetOutAsmDb(RegSlot outRegisterID, double val);
         void OP_I_SetOutAsmFlt(RegSlot outRegisterID, float val);
-
+        void OP_I_SetOutAsmLong(RegSlot outRegisterID, int64 val);
         void OP_I_SetOutAsmSimd(RegSlot outRegisterID, AsmJsSIMDValue val);
+        template<bool toJs>
+        void OP_InvalidWasmTypeConversion(...);
 
         void SetOut(ArgSlot outRegisterID, Var bValue);
         void SetOut(ArgSlot_OneByte outRegisterID, Var bValue);
@@ -177,6 +193,12 @@ namespace Js
         void SetClosureInitDone(bool done) { closureInitDone = done; }
 
         void ValidateRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
+        int OP_GetMemorySize();
+        int32 OP_GrowMemory(int32 delta);
+        void OP_Unreachable();
+        template <typename T> using AsmJsMathPtr = T(*)(T a, T b);
+        template <typename T, AsmJsMathPtr<T> func, T MIN> static T OP_DivOverflow(T a, T b, ScriptContext* scriptContext);
+        template <typename T, AsmJsMathPtr<T> func> static T OP_DivRemCheck(T a, T b, ScriptContext* scriptContext);
         void ValidateSetRegValue(Var value, bool allowStackVar = false, bool allowStackVarOnDisabledStackNestedFunc = true) const;
         template <typename RegSlotType> Var GetReg(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetReg(RegSlotType localRegisterID, Var bValue);
@@ -184,6 +206,8 @@ namespace Js
         template <typename RegSlotType> void SetRegAllowStackVar(RegSlotType localRegisterID, Var bValue);
         template <typename RegSlotType> int GetRegRawInt( RegSlotType localRegisterID ) const;
         template <typename RegSlotType> void SetRegRawInt( RegSlotType localRegisterID, int bValue );
+        template <typename RegSlotType> int64 GetRegRawInt64( RegSlotType localRegisterID ) const;
+        template <typename RegSlotType> void SetRegRawInt64( RegSlotType localRegisterID, int64 bValue );
         template <typename RegSlotType> double GetRegRawDouble(RegSlotType localRegisterID) const;
         template <typename RegSlotType> float GetRegRawFloat(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void SetRegRawDouble(RegSlotType localRegisterID, double bValue);
@@ -193,7 +217,6 @@ namespace Js
 
         template <typename RegSlotType> AsmJsSIMDValue GetRegRawSimd(RegSlotType localRegisterID) const;
         template <typename RegSlotType> void           SetRegRawSimd(RegSlotType localRegisterID, AsmJsSIMDValue bValue);
-        static DWORD GetAsmSimdValOffSet(AsmJsCallStackLayout* stack);
         template <class T> void OP_SimdLdArrGeneric(const unaligned T* playout);
         template <class T> void OP_SimdLdArrConstIndex(const unaligned T* playout);
         template <class T> void OP_SimdStArrGeneric(const unaligned T* playout);
@@ -230,12 +253,12 @@ namespace Js
         UINT16 GetFlags() const { return m_flags; }
         void OrFlags(UINT16 addTo) { m_flags |= addTo; }
         bool IsInCatchOrFinallyBlock();
-        static bool IsDelayDynamicInterpreterThunk(void* entryPoint);
+        static bool IsDelayDynamicInterpreterThunk(JavascriptMethod entryPoint);
 
         Var LdEnv() const;
         void SetEnv(FrameDisplay *frameDisplay);
-        Var * NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope);
-        Var * NewScopeSlots();
+        Field(Var)* NewScopeSlots(unsigned int size, ScriptContext *scriptContext, Var scope);
+        Field(Var)* NewScopeSlots();
         Var NewScopeObject();
         FrameDisplay * NewFrameDisplay(void *argHead, void *argEnv);
 
@@ -248,7 +271,8 @@ namespace Js
         static uint32 GetOffsetOfArguments() { return offsetof(InterpreterStackFrame, m_arguments); }
         static uint32 GetOffsetOfInParams() { return offsetof(InterpreterStackFrame, m_inParams); }
         static uint32 GetOffsetOfInSlotsCount() { return offsetof(InterpreterStackFrame, m_inSlotsCount); }
-        void PrintStack(const int* const intSrc, const float* const fltSrc, const double* const dblSrc, int intConstCount, int floatConstCount, int doubleConstCount, const char16* state);
+        static uint32 GetOffsetOfStackNestedFunctions() { return offsetof(InterpreterStackFrame, stackNestedFunctions); }
+        static uint32 GetOffsetOfForInEnumerators() { return offsetof(InterpreterStackFrame, forInObjectEnumerators); }
 
         static uint32 GetStartLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetStartLocationOffset(); }
         static uint32 GetCurrentLocationOffset() { return offsetof(InterpreterStackFrame, m_reader) + ByteCodeReader::GetCurrentLocationOffset(); }
@@ -259,7 +283,8 @@ namespace Js
         static bool IsBrLong(OpCode op, const byte * ip)
         {
 #ifdef BYTECODE_BRANCH_ISLAND
-            return (op == OpCode::ExtendedOpcodePrefix) && ((OpCode)(ByteCodeReader::PeekByteOp(ip) + (OpCode::ExtendedOpcodePrefix << 8)) == OpCode::BrLong);
+            CompileAssert(Js::OpCodeInfo<Js::OpCode::BrLong>::IsExtendedOpcode);
+            return (op == OpCode::ExtendedOpcodePrefix) && ((OpCode)(ByteCodeReader::PeekExtOp(ip)) == OpCode::BrLong);
 #else
             return false;
 #endif
@@ -268,18 +293,18 @@ namespace Js
         DWORD_PTR GetStackAddress() const;
         void* GetAddressOfReturnAddress() const;
 
+        template <typename T>
+        static T GetAsmJsRetVal(InterpreterStackFrame* instance);
 #if _M_IX86
         static int GetRetType(JavascriptFunction* func);
         static int GetAsmJsArgSize(AsmJsCallStackLayout * stack);
         static int GetDynamicRetType(AsmJsCallStackLayout * stack);
-        static DWORD GetAsmIntDbValOffSet(AsmJsCallStackLayout * stack);
+        static DWORD GetAsmJsReturnValueOffset(AsmJsCallStackLayout * stack);
         _NOINLINE   static int  AsmJsInterpreter(AsmJsCallStackLayout * stack);
 #elif _M_X64
         template <typename T>
         static T AsmJsInterpreter(AsmJsCallStackLayout* layout);
         static void * GetAsmJsInterpreterEntryPoint(AsmJsCallStackLayout* stack);
-        template <typename T>
-        static T GetAsmJsRetVal(InterpreterStackFrame* instance);
 
         static Var AsmJsDelayDynamicInterpreterThunk(RecyclableObject* function, CallInfo callInfo, ...);
 
@@ -302,12 +327,16 @@ namespace Js
 #if DYNAMIC_INTERPRETER_THUNK
         static JavascriptMethod EnsureDynamicInterpreterThunk(Js::ScriptFunction * function);
 #endif
-        template<typename T>
-        T ReadByteOp( const byte *& ip
-#if DBG_DUMP
-                           , bool isExtended = false
+        template<typename OpCodeType, Js::OpCode (ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
+        OpCodeType ReadOp(const byte *& ip);
+
+        static void TraceOpCode(InterpreterStackFrame* that, Js::OpCode op);
+        static void TraceAsmJsOpCode(InterpreterStackFrame* that, Js::OpCodeAsmJs op);
+
+#if ENABLE_TTD
+        template<typename OpCodeType, Js::OpCode(ReadOpFunc)(const byte*&), void (TracingFunc)(InterpreterStackFrame*, OpCodeType)>
+        OpCodeType ReadOp_WPreviousStmtTracking(const byte *& ip);
 #endif
-                           );
 
         void* __cdecl operator new(size_t byteSize, void* previousAllocation) throw();
         void __cdecl operator delete(void* allocationToFree, void* previousAllocation) throw();
@@ -325,10 +354,10 @@ namespace Js
         Var ProcessProfiled();
         Var ProcessUnprofiled();
 
-        const byte* ProcessProfiledExtendedOpCodePrefix(const byte* ip);
-        const byte* ProcessUnprofiledExtendedOpCodePrefix(const byte* ip);
-        const byte* ProcessWithDebuggingExtendedOpCodePrefix(const byte* ip);
-        const byte* ProcessAsmJsExtendedOpCodePrefix(const byte* ip);
+        const byte* ProcessProfiledExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessUnprofiledExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessWithDebuggingExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessAsmJsExtendedOpcodePrefix(const byte* ip);
 
         const byte* ProcessProfiledMediumLayoutPrefix(const byte* ip, Var&);
         const byte* ProcessUnprofiledMediumLayoutPrefix(const byte* ip, Var&);
@@ -353,6 +382,24 @@ namespace Js
         Var ProcessWithDebugging();
         Var DebugProcess();
 
+#if ENABLE_TTD
+        Var ProcessWithDebugging_PreviousStmtTracking();
+        const byte* ProcessWithDebugging_PreviousStmtTrackingExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessWithDebugging_PreviousStmtTrackingMediumLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessWithDebugging_PreviousStmtTrackingExtendedMediumLayoutPrefix(const byte* ip);
+        const byte* ProcessWithDebugging_PreviousStmtTrackingLargeLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessWithDebugging_PreviousStmtTrackingExtendedLargeLayoutPrefix(const byte* ip);
+
+#if ENABLE_TTD_DIAGNOSTICS_TRACING
+        Var ProcessUnprofiled_PreviousStmtTracking();
+        const byte* ProcessUnprofiled_PreviousStmtTrackingExtendedOpcodePrefix(const byte* ip);
+        const byte* ProcessUnprofiled_PreviousStmtTrackingMediumLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessUnprofiled_PreviousStmtTrackingExtendedMediumLayoutPrefix(const byte* ip);
+        const byte* ProcessUnprofiled_PreviousStmtTrackingLargeLayoutPrefix(const byte* ip, Var&);
+        const byte* ProcessUnprofiled_PreviousStmtTrackingExtendedLargeLayoutPrefix(const byte* ip);
+#endif
+#endif
+
         bool IsInDebugMode() const { return this->GetFunctionBody()->IsInDebugMode(); }
 
         // This will be called for reseting outs when resume from break on error happened
@@ -376,6 +423,7 @@ namespace Js
         BOOL OP_BrOnNoProperty(Var argInstance, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnNoEnvProperty(Var envInstance, int32 slotIndex, uint propertyIdIndex, ScriptContext* scriptContext);
         BOOL OP_BrOnClassConstructor(Var aValue);
+        BOOL OP_BrOnBaseConstructorKind(Var aValue);
 
         RecyclableObject * OP_CallGetFunc(Var target);
 
@@ -570,18 +618,21 @@ namespace Js
         template <class T> inline void OP_InitClassMemberSet(const unaligned T * playout);
         template <class T> inline void OP_InitClassMemberGetComputedName(const unaligned T * playout);
         template <class T> inline void OP_InitClassMemberSetComputedName(const unaligned T * playout);
-        template<typename T> uint32 LogSizeOf();
-        template <typename T2> inline void OP_LdArr(  uint32 index, RegSlot value  );
+        template <typename ArrayType, typename RegType = ArrayType> inline void OP_LdArr(  uint32 index, RegSlot value  );
         template <class T> inline void OP_LdArrFunc(const unaligned T* playout);
+        template <class T> inline void OP_LdArrWasmFunc(const unaligned T* playout);
+        template <class T> inline void OP_CheckSignature(const unaligned T* playout);
         template <class T> inline void OP_ReturnDb(const unaligned T* playout);
         template<typename T> T GetArrayViewOverflowVal();
-        template <typename T2> inline void OP_StArr( uint32 index, RegSlot value );
+        template <typename ArrayType, typename RegType = ArrayType> inline void OP_StArr( uint32 index, RegSlot value );
         template <class T> inline Var OP_LdAsmJsSlot(Var instance, const unaligned T* playout );
         template <class T, typename T2> inline void OP_StSlotPrimitive(const unaligned T* playout);
         template <class T, typename T2> inline void OP_LdSlotPrimitive( const unaligned T* playout );
         template <class T> inline void OP_LdArrGeneric   ( const unaligned T* playout );
+        template <class T> inline void OP_LdArrWasm      ( const unaligned T* playout );
         template <class T> inline void OP_LdArrConstIndex( const unaligned T* playout );
         template <class T> inline void OP_StArrGeneric   ( const unaligned T* playout );
+        template <class T> inline void OP_StArrWasm      ( const unaligned T* playout );
         template <class T> inline void OP_StArrConstIndex( const unaligned T* playout );
         inline Var OP_LdSlot(Var instance, int32 slotIndex);
         inline Var OP_LdObjSlot(Var instance, int32 slotIndex);
@@ -612,7 +663,7 @@ namespace Js
         inline void OP_StModuleSlot(Var instance, int32 slotIndex1, int32 slotIndex2);
         inline void* OP_LdArgCnt();
         template <bool letArgs> Var LdHeapArgumentsImpl(Var argsArray, ScriptContext* scriptContext);
-        inline Var OP_LdHeapArguments(ScriptContext* scriptContext);
+        Var OP_LdHeapArguments(ScriptContext* scriptContext);
         inline Var OP_LdLetHeapArguments(ScriptContext* scriptContext);
         inline Var OP_LdHeapArgsCached(ScriptContext* scriptContext);
         inline Var OP_LdLetHeapArgsCached(ScriptContext* scriptContext);
@@ -660,10 +711,10 @@ namespace Js
         inline Var OP_ResumeYield(Var yieldDataVar, RegSlot yieldStarIterator = Js::Constants::NoRegister);
         template <typename T> void OP_IsInst(const unaligned T * playout);
         template <class T> void OP_InitClass(const unaligned OpLayoutT_Class<T> * playout);
-        inline Var OP_LdSuper(ScriptContext * scriptContext);
-        inline Var OP_LdSuperCtor(ScriptContext * scriptContext);
-        inline Var OP_ScopedLdSuper(ScriptContext * scriptContext);
-        inline Var OP_ScopedLdSuperCtor(ScriptContext * scriptContext);
+        inline Var OP_LdHomeObj(ScriptContext * scriptContext);
+        inline Var OP_LdFuncObj(ScriptContext * scriptContext);
+        inline Var OP_ScopedLdHomeObj(ScriptContext * scriptContext);
+        inline Var OP_ScopedLdFuncObj(ScriptContext * scriptContext);
         template <typename T> void OP_LdElementUndefined(const unaligned OpLayoutT_ElementU<T>* playout);
         template <typename T> void OP_LdLocalElementUndefined(const unaligned OpLayoutT_ElementRootU<T>* playout);
         template <typename T> void OP_LdElementUndefinedScoped(const unaligned OpLayoutT_ElementScopedU<T>* playout);
@@ -675,7 +726,7 @@ namespace Js
         template <class T> void OP_EmitTmpRegCount(const unaligned OpLayoutT_Unsigned1<T> * ip);
 
         HeapArgumentsObject * CreateEmptyHeapArgumentsObject(ScriptContext* scriptContext);
-        void TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext, bool hasNonSimpleParam);
+        void TrySetFrameObjectInHeapArgObj(ScriptContext * scriptContext, bool hasNonSimpleParam, bool isScopeObjRestored);
         Var InnerScopeFromIndex(uint32 index) const;
         void SetInnerScopeFromIndex(uint32 index, Var scope);
         void OP_NewInnerScopeSlots(uint index, uint count, int scopeIndex, ScriptContext *scriptContext, FunctionBody *functionBody);
@@ -707,6 +758,10 @@ namespace Js
         template <class T> void OP_InitComputedProperty(const unaligned T * playout);
         template <class T> void OP_InitProto(const unaligned T * playout);
         void OP_BeginBodyScope();
+
+        void OP_InitForInEnumerator(Var object, uint forInLoopLevel);
+        void OP_InitForInEnumeratorWithCache(Var object, uint forInLoopLevel, ProfileId profileId);
+        ForInObjectEnumerator * GetForInEnumerator(uint forInLoopLevel);
 
         uint CallLoopBody(JavascriptMethod address);
         uint CallAsmJsLoopBody(JavascriptMethod address);
@@ -786,7 +841,7 @@ namespace Js
         ~InterpreterThunkStackCountTracker() { --s_count; }
         static int GetCount() { return s_count; }
     private:
-        __declspec(thread) static int s_count;
+        THREAD_LOCAL static int s_count;
     };
 #endif
 

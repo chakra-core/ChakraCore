@@ -14,7 +14,6 @@ public:
     uint GetAllocationGranularityPageCount() const;
     uint GetAllocationGranularityPageSize() const;
 
-    HANDLE GetProcessHandle() { return this->processHandle; }
     bool DisableDebugScopeCapture() const { return this->disableDebugScopeCapture; }
     bool IsCFGEnabled();
     bool IsWin8OrLater();
@@ -28,8 +27,10 @@ public:
 #if defined(_M_IX86) || defined(_M_X64)
     BOOL SSE3Available() const;
     BOOL SSE4_1Available() const;
+    BOOL SSE4_2Available() const;
     BOOL PopCntAvailable() const;
     BOOL LZCntAvailable() const;
+    BOOL TZCntAvailable() const;
     bool IsAtomPlatform() const;
 #endif
     bool IsLowMemoryProcess();
@@ -37,6 +38,10 @@ public:
     void SetAvailableCommit(ULONG64 commit);
     DWORD GetNumberOfLogicalProcessors() const { return this->dwNumberOfProcessors; }
     DWORD GetNumberOfPhysicalProcessors() const { return this->dwNumberOfPhysicalProcessors; }
+
+#if SYSINFO_IMAGE_BASE_AVAILABLE
+    UINT_PTR GetChakraBaseAddr() const;
+#endif
 
 #if defined(_M_ARM32_OR_ARM64)
     bool ArmDivAvailable() const { return this->armDivAvailable; }

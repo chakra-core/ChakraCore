@@ -486,7 +486,7 @@ namespace Js
         if (type == TypeIds_HostDispatch)
         {
             RecyclableObject* hostDispatchObject = RecyclableObject::FromVar(thisArg);
-            DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
+            const DynamicObject* remoteObject = hostDispatchObject->GetRemoteObject();
             if (!remoteObject)
             {
                 Var result = nullptr;
@@ -687,7 +687,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectGetPrototypeOfCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_getPrototypeOf);
 
         // 19.1.2.9
         // Object.getPrototypeOf ( O )
@@ -765,7 +765,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectSealCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_seal);
 
         // Spec update in Rev29 under section 19.1.2.17
         if (args.Info.Count < 2)
@@ -798,7 +798,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectFreezeCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_freeze);
 
         // Spec update in Rev29 under section 19.1.2.5
         if (args.Info.Count < 2)
@@ -830,7 +830,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectPreventExtensionCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_preventExtensions);
 
         // Spec update in Rev29 under section 19.1.2.15
         if (args.Info.Count < 2)
@@ -863,7 +863,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectIsSealedCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_isSealed);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
@@ -891,7 +891,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectIsFrozenCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_isFrozen);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsObject(args[1]))
         {
@@ -917,7 +917,7 @@ namespace Js
 
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectIsExtensibleCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_isExtensible);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -946,7 +946,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectGetOwnPropertyNamesCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_getOwnPropertyNames);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
         RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
@@ -995,7 +995,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectKeysCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_keys);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
         RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
@@ -1063,7 +1063,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectValuesCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_values);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
         RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
@@ -1079,7 +1079,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectEntriesCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_entries);
 
         Var tempVar = args.Info.Count < 2 ? scriptContext->GetLibrary()->GetUndefined() : args[1];
         RecyclableObject *object = RecyclableObject::FromVar(JavascriptOperators::ToObject(tempVar, scriptContext));
@@ -1125,16 +1125,23 @@ namespace Js
         //5. Return keys.
         AssertMsg(includeStringProperties || includeSymbolProperties, "Should either get string or symbol properties.");
 
-        Var enumeratorVar;
+        JavascriptStaticEnumerator enumerator;
         JavascriptArray* newArr = scriptContext->GetLibrary()->CreateArray(0);
         JavascriptArray* newArrForSymbols = scriptContext->GetLibrary()->CreateArray(0);
-
-        if (!object->GetEnumerator(includeNonEnumerable, &enumeratorVar, scriptContext, false, includeSymbolProperties))
+        EnumeratorFlags flags = EnumeratorFlags::None;
+        if (includeNonEnumerable)
+        {
+            flags |= EnumeratorFlags::EnumNonEnumerable;
+        }
+        if (includeSymbolProperties)
+        {
+            flags |= EnumeratorFlags::EnumSymbols;
+        }
+        if (!object->GetEnumerator(&enumerator, flags, scriptContext))
         {
             return newArr;  // Return an empty array if we don't have an enumerator
         }
 
-        JavascriptEnumerator *pEnumerator = JavascriptEnumerator::FromVar(enumeratorVar);
         RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
         Var propertyName = nullptr;
         PropertyId propertyId;
@@ -1143,7 +1150,7 @@ namespace Js
         const PropertyRecord* propertyRecord;
         JavascriptSymbol* symbol;
 
-        while ((propertyName = pEnumerator->MoveAndGetNext(propertyId)) != NULL)
+        while ((propertyName = enumerator.MoveAndGetNext(propertyId)) != NULL)
         {
             if (!JavascriptOperators::IsUndefinedObject(propertyName, undefined)) //There are some code paths in which GetCurrentIndex can return undefined
             {
@@ -1154,7 +1161,8 @@ namespace Js
                     if (propertyRecord->IsSymbol())
                     {
                         symbol = scriptContext->GetLibrary()->CreateSymbol(propertyRecord);
-                        newArrForSymbols->DirectSetItemAt(symbolIndex++, CrossSite::MarshalVar(scriptContext, symbol));
+                        // no need to marshal symbol because it is created from scriptContext
+                        newArrForSymbols->DirectSetItemAt(symbolIndex++, symbol);
                         continue;
                     }
                 }
@@ -1248,7 +1256,7 @@ namespace Js
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectDefinePropertiesCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_defineProperties);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -1508,20 +1516,19 @@ namespace Js
 
     void JavascriptObject::AssignForGenericObjects(RecyclableObject* from, RecyclableObject* to, ScriptContext* scriptContext)
     {
-        Var enumeratorVar = nullptr;
-        if (!from->GetEnumerator(FALSE /*only enumerable properties*/, &enumeratorVar, scriptContext, true, true))
+        JavascriptStaticEnumerator enumerator;
+        if (!from->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics | EnumeratorFlags::EnumSymbols, scriptContext))
         {
             //nothing to enumerate, continue with the nextSource.
             return;
         }
 
-        JavascriptEnumerator *pEnumerator = JavascriptEnumerator::FromVar(enumeratorVar);
         PropertyId nextKey = Constants::NoProperty;
         Var propValue = nullptr;
         Var propertyVar = nullptr;
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((propertyVar = pEnumerator->MoveAndGetNext(nextKey)) != NULL)
+        while ((propertyVar = enumerator.MoveAndGetNext(nextKey)) != NULL)
         {
             if (nextKey == Constants::NoProperty)
             {
@@ -1602,7 +1609,7 @@ namespace Js
         Recycler *recycler = scriptContext->GetRecycler();
 
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ObjectCreateCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Object_Constructor_create)
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -1662,18 +1669,16 @@ namespace Js
         size_t descCount = 0;
         struct DescriptorMap
         {
-            PropertyRecord const * propRecord;
-            PropertyDescriptor descriptor;
-            Var originalVar;
+            Field(PropertyRecord const *) propRecord;
+            Field(PropertyDescriptor) descriptor;
+            Field(Var) originalVar;
         };
 
-        Var tempVar = nullptr;
-        if (!props->GetEnumerator(FALSE, &tempVar, scriptContext, false, true))
+        JavascriptStaticEnumerator enumerator;
+        if (!props->GetEnumerator(&enumerator, EnumeratorFlags::EnumSymbols, scriptContext))
         {
             return object;
         }
-
-        JavascriptEnumerator *pEnumerator = JavascriptEnumerator::FromVar(tempVar);
 
         ENTER_PINNED_SCOPE(DescriptorMap, descriptors);
         descriptors = RecyclerNewArray(scriptContext->GetRecycler(), DescriptorMap, descSize);
@@ -1682,9 +1687,10 @@ namespace Js
         PropertyRecord const * propertyRecord;
         JavascriptString* propertyName = nullptr;
         RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
+        Var tempVar;
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((tempVar = pEnumerator->MoveAndGetNext(propId)) != NULL)
+        while ((tempVar = enumerator.MoveAndGetNext(propId)) != NULL)
         {
             if (propId == Constants::NoProperty) //try current property id query first
             {
@@ -1720,6 +1726,7 @@ namespace Js
 
             tempVar = JavascriptOperators::GetProperty(props, propId, scriptContext);
 
+            AnalysisAssert(descCount < descSize);
             if (!JavascriptOperators::ToPropertyDescriptor(tempVar, &descriptors[descCount].descriptor, scriptContext))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_PropertyDescriptor_Invalid, scriptContext->GetPropertyName(propId)->GetBuffer());
@@ -1759,8 +1766,8 @@ namespace Js
         size_t descCount = 0;
         struct DescriptorMap
         {
-            PropertyRecord const * propRecord;
-            PropertyDescriptor descriptor;
+            Field(PropertyRecord const *) propRecord;
+            Field(PropertyDescriptor) descriptor;
         };
 
         //3.  Let keys be props.[[OwnPropertyKeys]]().
@@ -1894,7 +1901,7 @@ namespace Js
                 && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetGetter())->GetFunctionProxy()->GetDisplayName(), _u("get")) == 0)
             {
                 // modify to name.get
-                char16* finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
+                const char16* finalName = ConstructName(propertyRecord, _u(".get"), scriptContext);
                 if (finalName != nullptr)
                 {
                     FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
@@ -1909,7 +1916,7 @@ namespace Js
                 && _wcsicmp(Js::ScriptFunction::FromVar(descriptor.GetSetter())->GetFunctionProxy()->GetDisplayName(), _u("set")) == 0)
             {
                 // modify to name.set
-                char16* finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
+                const char16* finalName = ConstructName(propertyRecord, _u(".set"), scriptContext);
                 if (finalName != nullptr)
                 {
                     FunctionProxy::SetDisplayNameFlags flags = (FunctionProxy::SetDisplayNameFlags) (FunctionProxy::SetDisplayNameFlagsDontCopy | FunctionProxy::SetDisplayNameFlagsRecyclerAllocated);
@@ -1926,7 +1933,7 @@ namespace Js
         BOOL returnValue;
         obj->ThrowIfCannotDefineProperty(propId, descriptor);
 
-        Type* oldType = obj->GetType();
+        const Type* oldType = obj->GetType();
         obj->ClearWritableDataOnlyDetectionBit();
 
         // HostDispatch: it doesn't support changing property attributes and default attributes are not per ES5,

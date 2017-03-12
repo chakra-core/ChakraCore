@@ -164,7 +164,6 @@ private:
     void EncodeExpandedUnwindData();
     BYTE * GetBaseAddress();
 
-    bool IsPdataPacked(const DWORD *pdata) const;
     bool IsR4SavedRegRange(bool saveR11) const;
     static bool IsR4SavedRegRange(DWORD saveRegMask);
 

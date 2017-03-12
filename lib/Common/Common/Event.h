@@ -4,8 +4,6 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-// xplat-todo: Support this on Linux too, currently tied to CreateEvent API
-#ifdef _WIN32
 class Event
 {
 private:
@@ -48,4 +46,3 @@ public:
 
     bool Wait(const unsigned int milliseconds = INFINITE) const;
 };
-#endif

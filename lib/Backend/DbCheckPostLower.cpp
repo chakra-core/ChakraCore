@@ -142,10 +142,30 @@ DbCheckPostLower::Check()
             this->Check(instr->GetSrc2());
 
 #if defined(_M_IX86) || defined(_M_X64)
+            // for op-eq's and assignment operators, make  sure the types match
+            // for shift operators make sure the types match and the third is an 8-bit immediate
+            // for cmp operators similarly check types are same
             if (EncoderMD::IsOPEQ(instr))
             {
                 Assert(instr->GetDst()->IsEqual(instr->GetSrc1()));
+
+#if defined(_M_X64)
+                Assert(!instr->GetSrc2() || instr->GetDst()->GetSize() == instr->GetSrc2()->GetSize() ||
+                    ((EncoderMD::IsSHIFT(instr) || instr->m_opcode == Js::OpCode::BTR ||
+                        instr->m_opcode == Js::OpCode::BTS ||
+                        instr->m_opcode == Js::OpCode::BT) && instr->GetSrc2()->GetSize() == 1) ||
+                    // Is src2 is TyVar and src1 is TyInt32/TyUint32, make sure the address fits in 32 bits 
+                        (instr->GetSrc2()->GetType() == TyVar && instr->GetDst()->GetSize() == 4 &&
+                         instr->GetSrc2()->IsAddrOpnd() && Math::FitsInDWord(reinterpret_cast<int64>(instr->GetSrc2()->AsAddrOpnd()->m_address))));
+#else
+                Assert(!instr->GetSrc2() || instr->GetDst()->GetSize() == instr->GetSrc2()->GetSize() ||
+                    ((EncoderMD::IsSHIFT(instr) || instr->m_opcode == Js::OpCode::BTR ||
+                        instr->m_opcode == Js::OpCode::BT) && instr->GetSrc2()->GetSize() == 1));
+#endif
             }
+            Assert(!LowererMD::IsAssign(instr) || instr->GetDst()->GetSize() == instr->GetSrc1()->GetSize());
+            Assert(instr->m_opcode != Js::OpCode::CMP || instr->GetSrc1()->GetType() == instr->GetSrc1()->GetType());
+
             switch (instr->m_opcode)
             {
             case Js::OpCode::CMOVA:

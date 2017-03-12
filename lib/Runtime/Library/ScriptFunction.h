@@ -28,15 +28,14 @@ namespace Js
     class ScriptFunction : public ScriptFunctionBase
     {
     private:
-        FrameDisplay* environment;  // Optional environment, for closures
-        ActivationObjectEx *cachedScopeObj;
-        Var homeObj;
-        Var computedNameVar;
-        bool hasInlineCaches;
-        bool hasSuperReference;
-        bool isActiveScript;
+        Field(FrameDisplay*) environment;  // Optional environment, for closures
+        Field(ActivationObjectEx *) cachedScopeObj;
+        Field(Var) homeObj;
+        Field(Var) computedNameVar;
+        Field(bool) hasInlineCaches;
+        Field(bool) hasSuperReference;
+        Field(bool) isActiveScript;
 
-        bool HasFunctionBody();
         Var FormatToString(JavascriptString* inputString);
     protected:
         ScriptFunction(DynamicType * type);
@@ -47,7 +46,7 @@ namespace Js
         ScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
         static bool Is(Var func);
         static ScriptFunction * FromVar(Var func);
-        static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionProxy** proxyRef);
+        static ScriptFunction * OP_NewScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef);
 
         ProxyEntryPointInfo* GetEntryPointInfo() const;
         FunctionEntryPointInfo* GetFunctionEntryPointInfo() const
@@ -73,6 +72,7 @@ namespace Js
 
         void ChangeEntryPoint(ProxyEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
         JavascriptMethod UpdateThunkEntryPoint(FunctionEntryPointInfo* entryPointInfo, JavascriptMethod entryPoint);
+        bool IsNewEntryPointAvailable();
         JavascriptMethod UpdateUndeferredBody(FunctionBody* newFunctionInfo);
 
         virtual ScriptFunctionType * DuplicateType() override;
@@ -99,6 +99,7 @@ namespace Js
 
         virtual JavascriptFunction* GetRealFunctionObject() { return this; }
 
+        bool HasFunctionBody();
 #if ENABLE_TTD
     public:
         virtual void MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor) override;
@@ -115,9 +116,18 @@ namespace Js
     public:
         AsmJsScriptFunction(FunctionProxy * proxy, ScriptFunctionType* deferredPrototypeType);
 
-        void SetModuleMemory(Var* mem) { m_moduleMemory = mem; }
-        Var * GetModuleMemory() const { return m_moduleMemory; }
+        static bool Is(Var func);
+        static bool IsWasmScriptFunction(Var func);
+        static AsmJsScriptFunction* FromVar(Var func);
 
+        void SetModuleMemory(Field(Var)* mem) { m_moduleMemory = mem; }
+        Field(Var)* GetModuleMemory() const { return m_moduleMemory; }
+
+#ifdef ENABLE_WASM
+        void SetSignature(Wasm::WasmSignature * sig) { m_signature = sig; }
+        Wasm::WasmSignature * GetSignature() const { return m_signature; }
+        static uint32 GetOffsetOfSignature() { return offsetof(AsmJsScriptFunction, m_signature); }
+#endif
         static uint32 GetOffsetOfModuleMemory() { return offsetof(AsmJsScriptFunction, m_moduleMemory); }
     protected:
         AsmJsScriptFunction(DynamicType * type);
@@ -125,26 +135,27 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(AsmJsScriptFunction);
 
     private:
-        Var * m_moduleMemory;
+        Field(Field(Var)*) m_moduleMemory;
+        Field(Wasm::WasmSignature *) m_signature;
     };
 
     class ScriptFunctionWithInlineCache : public ScriptFunction
     {
     private:
-        void** m_inlineCaches;
-        bool hasOwnInlineCaches;
+        Field(Field(void*)*) m_inlineCaches;
+        Field(bool) hasOwnInlineCaches;
 
 #if DBG
 #define InlineCacheTypeNone         0x00
 #define InlineCacheTypeInlineCache  0x01
 #define InlineCacheTypeIsInst       0x02
-        byte * m_inlineCacheTypes;
+        Field(byte *) m_inlineCacheTypes;
 #endif
-        uint inlineCacheCount;
-        uint rootObjectLoadInlineCacheStart;
-        uint rootObjectLoadMethodInlineCacheStart;
-        uint rootObjectStoreInlineCacheStart;
-        uint isInstInlineCacheCount;
+        Field(uint) inlineCacheCount;
+        Field(uint) rootObjectLoadInlineCacheStart;
+        Field(uint) rootObjectLoadMethodInlineCacheStart;
+        Field(uint) rootObjectStoreInlineCacheStart;
+        Field(uint) isInstInlineCacheCount;
 
     protected:
         ScriptFunctionWithInlineCache(DynamicType * type);
@@ -159,9 +170,11 @@ namespace Js
         void CreateInlineCache();
         void AllocateInlineCache();
         void ClearInlineCacheOnFunctionObject();
+        void ClearBorrowedInlineCacheOnFunctionObject();
         InlineCache * GetInlineCache(uint index);
         uint GetInlineCacheCount() { return inlineCacheCount; }
-        void** GetInlineCaches() { return m_inlineCaches; }
+        Field(void*)* GetInlineCaches() { return m_inlineCaches; }
+        bool GetHasOwnInlineCaches() { return hasOwnInlineCaches; }
         void SetInlineCachesFromFunctionBody();
         static uint32 GetOffsetOfInlineCaches() { return offsetof(ScriptFunctionWithInlineCache, m_inlineCaches); };
         template<bool isShutdown>

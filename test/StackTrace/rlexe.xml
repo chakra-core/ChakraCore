@@ -74,7 +74,7 @@
   </test>
   <test>
     <default>
-      <tags>StackTrace</tags>
+      <tags>StackTrace,xplat_verifymark_slow</tags>
       <files>StackTraceLimitOOS.js</files>
       <baseline>StackTraceLimitOOS.baseline</baseline>
       <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
@@ -82,11 +82,10 @@
   </test>
   <test>
     <default>
-      <tags>StackTrace,exclude_ship</tags>
+      <tags>StackTrace,xplat_verifymark_slow,exclude_ship</tags>
       <files>StackTraceLimitOOS.js</files>
-      <compile-flags>-ExtendedErrorStackForTestHost -on:interruptprobe</compile-flags>
       <baseline>StackTraceLimitOOS.baseline</baseline>
-      <compile-flags>-ExtendedErrorStackForTestHost</compile-flags>
+      <compile-flags>-ExtendedErrorStackForTestHost -on:interruptprobe</compile-flags>
     </default>
   </test>
   <test>

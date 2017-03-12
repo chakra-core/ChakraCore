@@ -8,13 +8,14 @@
 
 namespace Js
 {
-    typedef Var (*PFNCreateTypedArray)(Js::ArrayBuffer* arrayBuffer, uint32 offSet, uint32 mappedLength, Js::JavascriptLibrary* javascriptLibrary);
+    typedef Var (*PFNCreateTypedArray)(Js::ArrayBufferBase* arrayBuffer, uint32 offSet, uint32 mappedLength, Js::JavascriptLibrary* javascriptLibrary);
 
     template<typename T> int __cdecl TypedArrayCompareElementsHelper(void* context, const void* elem1, const void* elem2);
 
     class TypedArrayBase : public ArrayBufferParent
     {
         friend ArrayBuffer;
+        friend ArrayBufferBase;
 
     protected:
         DEFINE_VTABLE_CTOR_ABSTRACT(TypedArrayBase, ArrayBufferParent);
@@ -61,7 +62,7 @@ namespace Js
             static FunctionInfo GetterSymbolSpecies;
         };
 
-        TypedArrayBase(ArrayBuffer* arrayBuffer, uint byteOffset, uint mappedLength, uint elementSize, DynamicType* type);
+        TypedArrayBase(ArrayBufferBase* arrayBuffer, uint byteOffset, uint mappedLength, uint elementSize, DynamicType* type);
 
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
 
@@ -109,8 +110,10 @@ namespace Js
         virtual BOOL SetProperty(Js::PropertyId propertyId, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info) override;
         virtual BOOL SetProperty(Js::JavascriptString* propertyNameString, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info) override;
         virtual BOOL DeleteProperty(Js::PropertyId propertyId, Js::PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, Js::PropertyOperationFlags flags) override;
         virtual BOOL GetItemReference(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * requestContext) override;
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Js::Var* enumerator, Js::ScriptContext * requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr) override;
+        virtual JavascriptEnumerator * GetIndexEnumerator(EnumeratorFlags flags, ScriptContext * requestContext) override;
 
         virtual BOOL IsEnumerable(PropertyId propertyId)  override;
         virtual BOOL IsConfigurable(PropertyId propertyId)  override;
@@ -129,12 +132,25 @@ namespace Js
         // Returns false if this is not a TypedArray or it's not detached
         static BOOL IsDetachedTypedArray(Var aValue);
         static HRESULT GetBuffer(Var aValue, ArrayBuffer** outBuffer, uint32* outOffset, uint32* outLength);
-        static Var ValidateTypedArray(Var aValue, ScriptContext *scriptContext);
+        static TypedArrayBase * ValidateTypedArray(Var aValue, ScriptContext *scriptContext, LPCWSTR apiName);
+        static TypedArrayBase * ValidateTypedArray(Arguments &args, ScriptContext *scriptContext, LPCWSTR apiName);
         static Var TypedArrayCreate(Var constructor, Arguments *args, uint32 length, ScriptContext *scriptContext);
 
         virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) = 0;
         virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) = 0;
         virtual Var  DirectGetItem(__in uint32 index) = 0;
+        virtual BOOL DirectSetItemNoDetachCheck(__in uint32 index, __in Js::Var value) = 0;
+        virtual Var  DirectGetItemNoDetachCheck(__in uint32 index) = 0;
+
+        virtual Var TypedAdd(__in uint32 index, Var second) = 0;
+        virtual Var TypedAnd(__in uint32 index, Var second) = 0;
+        virtual Var TypedLoad(__in uint32 index) = 0;
+        virtual Var TypedOr(__in uint32 index, Var second) = 0;
+        virtual Var TypedStore(__in uint32 index, Var second) = 0;
+        virtual Var TypedSub(__in uint32 index, Var second) = 0;
+        virtual Var TypedXor(__in uint32 index, Var second) = 0;
+        virtual Var TypedExchange(__in uint32 index, Var second) = 0;
+        virtual Var TypedCompareExchange(__in uint32 index, Var comparand, Var replacementValue) = 0;
 
         uint32 GetByteLength() const { return length * BYTES_PER_ELEMENT; }
         uint32 GetByteOffset() const { return byteOffset; }
@@ -145,6 +161,7 @@ namespace Js
         static Var CommonSubarray(Arguments& args);
 
         void SetObject(RecyclableObject* arraySource, uint32 targetLength, uint32 offset = 0);
+        void SetObjectNoDetachCheck(RecyclableObject* arraySource, uint32 targetLength, uint32 offset = 0);
         void Set(TypedArrayBase* typedArraySource, uint32 offset = 0);
 
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
@@ -160,19 +177,25 @@ namespace Js
         Var FindMinOrMax(Js::ScriptContext * scriptContext, TypeId typeId, bool findMax);
         template<typename T, bool checkNaNAndNegZero> Var FindMinOrMax(Js::ScriptContext * scriptContext, bool findMax);
 
+        static Var GetKeysEntriesValuesHelper(Arguments& args, ScriptContext *scriptContext, LPCWSTR apiName, JavascriptArrayIteratorKind kind);
+
+        static uint32 GetFromIndex(Var arg, uint32 length, ScriptContext *scriptContext);
+
+    private:
+        uint32 GetSourceLength(RecyclableObject* arraySource, uint32 targetLength, uint32 offset);
+
     protected:
         static Var CreateNewInstanceFromIterator(RecyclableObject *iterator, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray);
         static Var CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray );
-        static int32 ToLengthChecked(Var lengthVar, uint32 elementSize, ScriptContext* scriptContext);
         static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
 
         typedef int(__cdecl* CompareElementsFunction)(void*, const void*, const void*);
         virtual CompareElementsFunction GetCompareElementsFunction() = 0;
 
         virtual Var Subarray(uint32 begin, uint32 end) = 0;
-        int32 BYTES_PER_ELEMENT;
-        uint32 byteOffset;
-        BYTE* buffer;   // beginning of mapped array.
+        Field(int32) BYTES_PER_ELEMENT;
+        Field(uint32) byteOffset;
+        FieldNoBarrier(BYTE*) buffer;   // beginning of mapped array.
 
     public:
         static uint32 GetOffsetOfBuffer()  { return offsetof(TypedArrayBase, buffer); }
@@ -195,14 +218,22 @@ namespace Js
             Assert(this->GetScriptContext() != scriptContext);
             AssertMsg(VirtualTableInfo<TypedArray>::HasVirtualTable(this), "Derived class need to define marshal to script context");
             VirtualTableInfo<Js::CrossSiteObject<TypedArray<TypeName, clamped, virtualAllocated>>>::SetVirtualTable(this);
-            ArrayBuffer* arrayBuffer = this->GetArrayBuffer();
+            ArrayBufferBase* arrayBuffer = this->GetArrayBuffer();
             if (arrayBuffer && !arrayBuffer->IsCrossSiteObject())
             {
                 arrayBuffer->MarshalToScriptContext(scriptContext);
             }
         }
 
-        TypedArray(DynamicType *type): TypedArrayBase(null, 0, 0, sizeof(TypeName), type) { buffer = nullptr; }
+#if ENABLE_TTD
+        virtual void MarshalCrossSite_TTDInflate()
+        {
+            AssertMsg(VirtualTableInfo<TypedArray>::HasVirtualTable(this), "Derived class need to define marshal");
+            VirtualTableInfo<Js::CrossSiteObject<TypedArray<TypeName, clamped, virtualAllocated>>>::SetVirtualTable(this);
+        }
+#endif
+
+        TypedArray(DynamicType *type): TypedArrayBase(nullptr, 0, 0, sizeof(TypeName), type) { buffer = nullptr; }
 
     public:
         class EntryInfo
@@ -212,9 +243,9 @@ namespace Js
             static FunctionInfo Set;
         };
 
-        TypedArray(ArrayBuffer* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type);
+        TypedArray(ArrayBufferBase* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type);
 
-        static Var Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary);
+        static Var Create(ArrayBufferBase* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary);
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
 
         static Var EntrySet(RecyclableObject* function, CallInfo callInfo, ...);
@@ -254,6 +285,24 @@ namespace Js
                 return JavascriptNumber::ToVarWithCheck(typedBuffer[index], GetScriptContext());
             }
             return GetLibrary()->GetUndefined();
+        }
+
+        inline Var BaseTypedDirectGetItemNoDetachCheck(__in uint32 index)
+        {
+            Assert(!IsDetachedBuffer());
+            Assert(index < GetLength());
+            Assert((index + 1)* sizeof(TypeName) + GetByteOffset() <= GetArrayBuffer()->GetByteLength());
+            TypeName* typedBuffer = (TypeName*)buffer;
+            return JavascriptNumber::ToVar(typedBuffer[index], GetScriptContext());
+        }
+
+        inline Var DirectGetItemVarCheckNoDetachCheck(__in uint32 index)
+        {
+            Assert(!IsDetachedBuffer());
+            Assert(index < GetLength());
+            Assert((index + 1)* sizeof(TypeName) + GetByteOffset() <= GetArrayBuffer()->GetByteLength());
+            TypeName* typedBuffer = (TypeName*)buffer;
+            return JavascriptNumber::ToVarWithCheck(typedBuffer[index], GetScriptContext());
         }
 
         inline BOOL DirectSetItemAtRange(TypedArray *fromArray, __in int32 iSrcStart, __in int32 iDstStart, __in uint32 length, TypeName(*convFunc)(Var value, ScriptContext* scriptContext))
@@ -399,10 +448,38 @@ namespace Js
             return FALSE;
         }
 
+        inline BOOL BaseTypedDirectSetItemNoDetachCheck(__in uint32 index, __in Js::Var value, TypeName(*convFunc)(Var value, ScriptContext* scriptContext))
+        {
+            TypeName typedValue = convFunc(value, GetScriptContext());
+
+            // The caller of the function made sure that no IsDetached check required.
+            // The caller of the function also made sure that no length check required.
+
+            Assert(!IsDetachedBuffer());
+            AssertMsg(index < GetLength(), "Trying to set out of bound index for typed array.");
+            Assert((index + 1)* sizeof(TypeName) + GetByteOffset() <= GetArrayBuffer()->GetByteLength());
+            TypeName* typedBuffer = (TypeName*)buffer;
+
+            typedBuffer[index] = typedValue;
+
+            return TRUE;
+        }
+
+
         virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) override sealed;
         virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) override sealed;
         virtual Var  DirectGetItem(__in uint32 index) override sealed;
-
+        virtual BOOL DirectSetItemNoDetachCheck(__in uint32 index, __in Js::Var value) override sealed;
+        virtual Var  DirectGetItemNoDetachCheck(__in uint32 index) override sealed;
+        virtual Var TypedAdd(__in uint32 index, Var second) override;
+        virtual Var TypedAnd(__in uint32 index, Var second) override;
+        virtual Var TypedLoad(__in uint32 index) override;
+        virtual Var TypedOr(__in uint32 index, Var second) override;
+        virtual Var TypedStore(__in uint32 index, Var second) override;
+        virtual Var TypedSub(__in uint32 index, Var second) override;
+        virtual Var TypedXor(__in uint32 index, Var second) override;
+        virtual Var TypedExchange(__in uint32 index, Var second) override;
+        virtual Var TypedCompareExchange(__in uint32 index, Var comparand, Var replacementValue) override;
 
         static BOOL DirectSetItem(__in TypedArray* arr, __in uint32 index, __in Js::Var value)
         {
@@ -438,7 +515,7 @@ namespace Js
         static Var EntrySet(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntrySubarray(RecyclableObject* function, CallInfo callInfo, ...);
 
-        CharArray(ArrayBuffer* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type) :
+        CharArray(ArrayBufferBase* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type) :
         TypedArrayBase(arrayBuffer, byteOffset, mappedLength, sizeof(char16), type)
         {
             AssertMsg(arrayBuffer->GetByteLength() >= byteOffset, "invalid offset");
@@ -446,7 +523,7 @@ namespace Js
             buffer = arrayBuffer->GetBuffer() + byteOffset;
         }
 
-        static Var Create(ArrayBuffer* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary);
+        static Var Create(ArrayBufferBase* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary);
         static Var NewInstance(RecyclableObject* function, CallInfo callInfo, ...);
         static BOOL Is(Var aValue);
 
@@ -456,6 +533,18 @@ namespace Js
         virtual BOOL DirectSetItem(__in uint32 index, __in Js::Var value) override;
         virtual BOOL DirectSetItemNoSet(__in uint32 index, __in Js::Var value) override;
         virtual Var  DirectGetItem(__in uint32 index) override;
+        virtual BOOL DirectSetItemNoDetachCheck(__in uint32 index, __in Js::Var value) override;
+        virtual Var  DirectGetItemNoDetachCheck(__in uint32 index) override;
+
+        virtual Var TypedAdd(__in uint32 index, Var second) override;
+        virtual Var TypedAnd(__in uint32 index, Var second) override;
+        virtual Var TypedLoad(__in uint32 index) override;
+        virtual Var TypedOr(__in uint32 index, Var second) override;
+        virtual Var TypedStore(__in uint32 index, Var second) override;
+        virtual Var TypedSub(__in uint32 index, Var second) override;
+        virtual Var TypedXor(__in uint32 index, Var second) override;
+        virtual Var TypedExchange(__in uint32 index, Var second) override;
+        virtual Var TypedCompareExchange(__in uint32 index, Var comparand, Var replacementValue) override;
 
     protected:
         CompareElementsFunction GetCompareElementsFunction()
@@ -463,6 +552,71 @@ namespace Js
             return &TypedArrayCompareElementsHelper<char16>;
         }
     };
+
+
+    template <typename TypeName, bool clamped, bool virtualAllocated>
+    TypedArray<TypeName, clamped, virtualAllocated>::TypedArray(ArrayBufferBase* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type) :
+        TypedArrayBase(arrayBuffer, byteOffset, mappedLength, sizeof(TypeName), type)
+    {
+        AssertMsg(arrayBuffer->GetByteLength() >= byteOffset, "invalid offset");
+        AssertMsg(mappedLength*sizeof(TypeName)+byteOffset <= arrayBuffer->GetByteLength(), "invalid length");
+        buffer = arrayBuffer->GetBuffer() + byteOffset;
+        if (arrayBuffer->IsValidVirtualBufferLength(arrayBuffer->GetByteLength()) &&
+             (byteOffset == 0) &&
+             (mappedLength == (arrayBuffer->GetByteLength() / sizeof(TypeName)))
+           )
+        {
+            // update the vtable
+            switch (type->GetTypeId())
+            {
+            case TypeIds_Int8Array:
+                VirtualTableInfo<Int8VirtualArray>::SetVirtualTable(this);
+                break;
+            case TypeIds_Uint8Array:
+                VirtualTableInfo<Uint8VirtualArray>::SetVirtualTable(this);
+                break;
+            case TypeIds_Uint8ClampedArray:
+                VirtualTableInfo<Uint8ClampedVirtualArray>::SetVirtualTable(this);
+                break;
+            case TypeIds_Int16Array:
+                VirtualTableInfo<Int16VirtualArray>::SetVirtualTable(this);
+                break;
+            case TypeIds_Uint16Array:
+                VirtualTableInfo<Uint16VirtualArray>::SetVirtualTable(this);
+                break;
+            case TypeIds_Int32Array:
+                VirtualTableInfo<Int32VirtualArray>::SetVirtualTable(this);
+                break;
+            case TypeIds_Uint32Array:
+                VirtualTableInfo<Uint32VirtualArray>::SetVirtualTable(this);
+                break;
+            case TypeIds_Float32Array:
+                VirtualTableInfo<Float32VirtualArray>::SetVirtualTable(this);
+                break;
+            case TypeIds_Float64Array:
+                VirtualTableInfo<Float64VirtualArray>::SetVirtualTable(this);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    template <typename TypeName, bool clamped, bool virtualAllocated>
+    Var TypedArray<TypeName, clamped, virtualAllocated>::Create(ArrayBufferBase* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary)
+    {
+        uint32 totalLength, mappedByteLength;
+
+        if (UInt32Math::Mul(mappedLength, sizeof(TypeName), &mappedByteLength) ||
+            UInt32Math::Add(byteOffSet, mappedByteLength, &totalLength) ||
+            (totalLength > arrayBuffer->GetByteLength()))
+        {
+            JavascriptError::ThrowRangeError(arrayBuffer->GetScriptContext(), JSERR_InvalidTypedArrayLength);
+        }
+
+        DynamicType *type = javascriptLibrary->GetTypedArrayType<TypeName, clamped>(0);
+        return RecyclerNew(javascriptLibrary->GetRecycler(), TypedArray, arrayBuffer, byteOffSet, mappedLength, type);
+    }
 
 #if defined(__clang__)
 // hack for clang message: "...add an explicit instantiation declaration to .."

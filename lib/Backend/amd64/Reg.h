@@ -14,9 +14,29 @@
 enum RegNum {
 #define REGDAT(Name, Listing,    Encode,    Type,    BitVec)  Reg ## Name,
 #include "RegList.h"
-#undef REGDAT
+    RegNumCount,
 
-    RegNumCount,  // Number of operations
+// alias RegArg0, RegArg1, ...
+#define REG_INT_ARG(Index, Name)  RegArg ## Index = Reg ## Name,
+#include "RegList.h"
+
+// alias RegXmmArg0, RegXmmArg1, ...
+#define REG_XMM_ARG(Index, Name)  RegXmmArg ## Index = Reg ## Name,
+#include "RegList.h"
+};
+
+// IntArgRegsCount
+enum _IntArgRegs {
+#define REG_INT_ARG(Index, Name)  _RegArg ## Index,
+#include "RegList.h"
+    IntArgRegsCount
+};
+
+// XmmArgRegsCount
+enum _XmmArgRegs {
+#define REG_XMM_ARG(Index, Name)  _RegXmmArg ## Index,
+#include "RegList.h"
+    XmmArgRegsCount
 };
 
 #define REGNUM_ISXMMXREG(r) ((r) >= RegXMM0 && (r) <= RegXMM15)

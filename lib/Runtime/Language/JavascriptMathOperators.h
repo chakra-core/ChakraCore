@@ -5,5 +5,5 @@
 #pragma once
 
 #include "JavascriptMath.h"
-#include "AsmJsMath.h"
+
 

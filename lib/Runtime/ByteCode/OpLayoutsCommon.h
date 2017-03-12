@@ -30,6 +30,7 @@ namespace Js {
         SmallLayout,
         MediumLayout,
         LargeLayout,
+        LayoutCount
     };
 
     template <LayoutSize layoutSize>

@@ -1,0 +1,22 @@
+[
+  {
+    "evaluate": {
+      "a": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "number 0"
+    }
+  },
+  {
+    "evaluate": {
+      "c": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "evaluate": {
+      "c": "number 1"
+    }
+  }
+]

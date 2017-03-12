@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /***
@@ -20,8 +20,11 @@
 #define MBUSAFECRT_INTERNAL_H
 
 #include "pal_mstypes.h"
-
+#ifndef __ANDROID__
 typedef __builtin_va_list va_list;
+#else
+#include <stdarg.h>
+#endif
 
 // The ifdef below are to accommodate Unix build
 // that complains about them being declared in stdarg.h already.

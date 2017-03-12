@@ -74,8 +74,7 @@ class BVUnitT
 {
 // Data
 private:
-
-    T word;
+    Field(T) word;
 
 // Constructor
 public:
@@ -84,9 +83,9 @@ public:
         word = initial;
     }
     typedef T BVUnitTContainer;
+
 // Implementation
 private:
-
     static void AssertRange(BVIndex index)
     {
         AssertMsg(index < BitsPerWord, "index out of bound");
@@ -286,6 +285,11 @@ public:
     {
         T mask = ((T)AllOnesMask) >> (BitsPerWord - length) << index;
         return (this->word & mask) == mask;
+    }
+    BOOLEAN TestAnyInRange(const BVIndex index, uint length) const
+    {
+        T mask = ((T)AllOnesMask) >> (BitsPerWord - length) << index;
+        return (this->word & mask) != 0;
     }
     void SetRange(const BVIndex index, uint length)
     {

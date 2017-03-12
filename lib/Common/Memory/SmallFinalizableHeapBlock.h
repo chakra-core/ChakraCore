@@ -16,6 +16,7 @@ class SmallFinalizableHeapBlockT : public SmallNormalHeapBlockT<TBlockAttributes
     typedef typename Base::SmallHeapBlockBitVector SmallHeapBlockBitVector;
     typedef typename Base::HeapBlockType HeapBlockType;
     friend class HeapBucketT<SmallFinalizableHeapBlockT>;
+    using Base::MediumFinalizableBlockType;
 public:
     typedef TBlockAttributes HeapBlockAttributes;
 
@@ -23,9 +24,17 @@ public:
     static SmallFinalizableHeapBlockT * New(HeapBucketT<SmallFinalizableHeapBlockT> * bucket);
     static void Delete(SmallFinalizableHeapBlockT * block);
 
-    SmallFinalizableHeapBlockT * GetNextBlock() const { return SmallHeapBlockT<TBlockAttributes>::GetNextBlock()->template AsFinalizableBlock<TBlockAttributes>(); }
+    SmallFinalizableHeapBlockT * GetNextBlock() const
+    {
+        HeapBlock* block = SmallHeapBlockT<TBlockAttributes>::GetNextBlock();
+        return block ? block->template AsFinalizableBlock<TBlockAttributes>() : nullptr;
+    }
     void SetNextBlock(SmallFinalizableHeapBlockT * next) { Base::SetNextBlock(next); }
 
+    bool TryGetAddressOfAttributes(void* objectAddress, unsigned char **ppAttr);
+    bool TryGetAttributes(void* objectAddress, unsigned char *pAttr);
+
+    template <bool doSpecialMark>
     void ProcessMarkedObject(void* candidate, MarkContext * markContext);
 
     void SetAttributes(void * address, unsigned char attributes);
@@ -140,7 +149,11 @@ public:
     static SmallFinalizableWithBarrierHeapBlockT * New(HeapBucketT<SmallFinalizableWithBarrierHeapBlockT> * bucket);
     static void Delete(SmallFinalizableWithBarrierHeapBlockT * block);
 
-    SmallFinalizableWithBarrierHeapBlockT * GetNextBlock() const { return ((SmallHeapBlock*) this)->GetNextBlock()->AsFinalizableWriteBarrierBlock<TBlockAttributes>(); }
+    SmallFinalizableWithBarrierHeapBlockT * GetNextBlock() const
+    {
+        HeapBlock* block = SmallHeapBlockT<TBlockAttributes>::GetNextBlock();
+        return block ? block->template AsFinalizableWriteBarrierBlock<TBlockAttributes>() : nullptr;
+    }
 
     virtual bool FindHeapObject(void* objectAddress, Recycler * recycler, FindHeapObjectFlags flags, RecyclerHeapObjectInfo& heapObject) override sealed
     {

@@ -51,6 +51,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)arm\XDataAllocator.cpp">
       <Filter>arm</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)arm64\XDataAllocator.cpp">
+      <Filter>arm64</Filter>
+    </ClCompile>
+    <ClCompile Include="SectionAllocWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Allocator.h" />
@@ -107,6 +111,11 @@
     <ClInclude Include="XDataAllocator.h" />
     <ClInclude Include="CollectionState.h" />
     <ClInclude Include="AllocationPolicyManager.h" />
+    <ClInclude Include="WriteBarrierMacros.h" />
+    <ClInclude Include="arm64\XDataAllocator.h">
+      <Filter>arm64</Filter>
+    </ClInclude>
+    <ClInclude Include="SectionAllocWrapper.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="HeapBlock.inl" />
@@ -115,6 +124,9 @@
     <None Include="MarkContext.inl" />
     <None Include="Recycler.inl" />
     <None Include="SmallBlockDeclarations.inl" />
+    <None Include="amd64\amd64_SAVE_REGISTERS.S">
+      <Filter>amd64</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="amd64">

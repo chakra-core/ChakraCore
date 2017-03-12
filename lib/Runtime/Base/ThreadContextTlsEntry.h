@@ -20,9 +20,9 @@ public:
     static ThreadContextTLSEntry * GetEntryForCurrentThread();
     static ThreadContextTLSEntry * CreateEntryForCurrentThread();
     static ThreadContextId GetThreadContextId(ThreadContext * threadContext);
-
+#ifdef _WIN32
     static uint32 s_tlsSlot;
-
+#endif
     ThreadContext * GetThreadContext();
 
 private:
@@ -40,7 +40,7 @@ class ThreadContextScope
 public:
     ThreadContextScope(ThreadContext * threadContext)
     {
-        if (!threadContext->GetIsThreadBound())
+        if (!threadContext->IsThreadBound())
         {
             originalContext = ThreadContextTLSEntry::GetEntryForCurrentThread() ?
                 ThreadContextTLSEntry::GetEntryForCurrentThread()->GetThreadContext() : NULL;
@@ -102,4 +102,3 @@ private:
     bool wasInUse;
     ThreadContext* originalContext;
 };
-

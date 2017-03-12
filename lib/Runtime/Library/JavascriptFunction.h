@@ -9,6 +9,18 @@ EXTERN_C Js::JavascriptMethod checkCodeGenThunk;
 
 namespace Js
 {
+    struct PossibleAsmJsReturnValues
+    {
+        union
+        {
+            int retIntVal;
+            int64 retInt64Val;
+            float retFloatVal;
+            double retDoubleVal;
+            AsmJsSIMDValue retSimdVal;
+        };
+    };
+
 #if _M_X64
    extern "C" Var amd64_CallFunction(RecyclableObject *function, JavascriptMethod entryPoint, CallInfo callInfo, uint argc, Var *argv);
 #endif
@@ -19,11 +31,11 @@ namespace Js
         static PropertyId const specialPropertyIds[];
 
         // Need a constructor cache on every function (script and native) to avoid extra checks on the fast path, if the function isn't fixed.
-        ConstructorCache* constructorCache;
+        Field(ConstructorCache*) constructorCache;
 
     protected:
 
-        FunctionInfo * functionInfo;  // Underlying function
+        Field(FunctionInfo *) functionInfo;  // Underlying function
 
 
         DEFINE_VTABLE_CTOR(JavascriptFunction, DynamicObject);
@@ -89,8 +101,11 @@ namespace Js
         Var CallFunction(Arguments args);
         Var CallRootFunction(Arguments args, ScriptContext * scriptContext, bool inScript);
         Var CallRootFunctionInternal(Arguments args, ScriptContext * scriptContext, bool inScript);
+#ifdef ASMJS_PLAT
         template <typename T>
-        static T CallAsmJsFunction(RecyclableObject * function, void* entryPoint, uint argc, Var * argv);
+        static T CallAsmJsFunction(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
+#endif
+        static PossibleAsmJsReturnValues CallAsmJsFunctionX86Thunk(RecyclableObject * function, JavascriptMethod entryPoint, uint argc, Var * argv);
         template <bool isConstruct>
         static Var CalloutHelper(RecyclableObject* function, Var thisArg, Var overridingNewTarget, Var argArray, ScriptContext* scriptContext);
 
@@ -106,7 +121,7 @@ namespace Js
 #endif
         template <bool doStackProbe>
         static Var CallFunction(RecyclableObject* obj, JavascriptMethod entryPoint, Arguments args);
-        static Var CallSpreadFunction(RecyclableObject* obj, JavascriptMethod entryPoint, Arguments args, const Js::AuxArray<uint32> *spreadIndices);
+        static Var CallSpreadFunction(RecyclableObject* obj, Arguments args, const Js::AuxArray<uint32> *spreadIndices);
         static uint32 GetSpreadSize(const Arguments args, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static void SpreadArgs(const Arguments args, Arguments& destArgs, const Js::AuxArray<uint32> *spreadIndices, ScriptContext *scriptContext);
         static Var EntrySpreadCall(const Js::AuxArray<uint32> *spreadIndices, RecyclableObject* function, CallInfo callInfo, ...);
@@ -180,6 +195,7 @@ namespace Js
         virtual uint GetSpecialPropertyCount() const override;
         virtual PropertyId const * GetSpecialPropertyIds() const override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual Var GetTypeOfString(ScriptContext * requestContext) override;
@@ -190,8 +206,6 @@ namespace Js
         // This will be overridden for the BoundFunction
         virtual bool IsBoundFunction() const { return false; }
         virtual bool IsGeneratorFunction() const { return false; }
-
-        BOOL IsThrowTypeErrorFunction();
 
         void SetEntryPoint(JavascriptMethod method);
 #if DBG
@@ -233,7 +247,7 @@ namespace Js
             uint rexValue;
             RexByteValue() :isR(0), isX(0), isW(0), isB(0), rexValue(0){}
         };
-        static InstructionData CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo, FunctionBody* funcBody);
+        static InstructionData CheckValidInstr(BYTE* &pc, PEXCEPTION_POINTERS exceptionInfo);
     };
 #endif
 

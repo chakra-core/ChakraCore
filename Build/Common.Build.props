@@ -1,6 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemDefinitionGroup>
+    <Midl>
+      <StructMemberAlignment Condition="'%(Midl.StructMemberAlignment)' == ''">8</StructMemberAlignment>
+      <DefaultCharType>Unsigned</DefaultCharType>
+
+      <IdlType>Ole</IdlType>
+      <!-- Default Idl type -->
+
+      <!-- Force all MIDL compiles to be treated as English unless otherwise specified -->
+      <LocaleID>1033</LocaleID>
+
+      <!-- Disable the settings comment to make the headers more diff-able.  Only available in midl 8. razzle build already have this -->
+      <AdditionalOptions Condition="'$(BuildingWithBuildExe)'!='true'">%(AdditionalOptions) /no_settings_comment</AdditionalOptions>
+
+      <!--Disable midl timestamps wherever possible, razzle build already have this-->
+      <AdditionalOptions Condition="'$(BuildingWithBuildExe)'!='true'">%(AdditionalOptions) /no_stamp</AdditionalOptions>
+      
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+
+      <!-- Other defaults -->
+      <HeaderFileName>%(Filename).h</HeaderFileName>
+      <OutputDirectory>$(IntDir)</OutputDirectory>
+
+      <!-- ======== makefiledef ======== -->
+      <AdditionalOptions>%(AdditionalOptions) -sal</AdditionalOptions>
+      
+      <!-- ======== sources.inc ======== -->
+      <!-- generates SAL annotations for our interface -->
+      <AdditionalOptions>%(AdditionalOptions) -sal_local</AdditionalOptions>
+    </Midl>
     <ClCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);_CHAKRACOREBUILD;NOMINMAX;USE_EDGEMODE_JSRT</PreprocessorDefinitions>
       <!-- Some of our STDMETHOD can throw
@@ -12,6 +41,9 @@
       <!-- Add any preprocessor definitions passed using msbuild environment -->
       <PreprocessorDefinitions Condition="'$(AdditionalPreprocessorDefinitions)'!=''">%(PreprocessorDefinitions);$(AdditionalPreprocessorDefinitions)</PreprocessorDefinitions>
       
+      <!-- MIDL generate code uses this define -->
+      <PreprocessorDefinitions Condition="'$(Platform)'=='ARM'">%(PreprocessorDefinitions);_ARM_</PreprocessorDefinitions>
+            
       <!-- /W4 -->
       <WarningLevel>Level4</WarningLevel>
       <!-- /WX -->
@@ -81,6 +113,9 @@
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);DBG;ENABLE_DEBUG_CONFIG_OPTIONS=1</PreprocessorDefinitions>
     </ResourceCompile>
+    <Midl>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions);DBG</PreprocessorDefinitions>
+    </Midl>
   </ItemDefinitionGroup>
   <!-- fre and fretest build flags -->
   <ItemDefinitionGroup Condition="'$(OptimizedBuild)'=='true'">

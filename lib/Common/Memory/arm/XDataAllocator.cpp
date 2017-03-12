@@ -11,6 +11,10 @@ CompileAssert(false)
 #include "XDataAllocator.h"
 #include "Core/DelayLoadLibrary.h"
 
+#ifndef _WIN32
+#include "PlatformAgnostic/AssemblyCommon.h" // __REGISTER_FRAME / __DEREGISTER_FRAME
+#endif
+
 XDataAllocator::XDataAllocator(BYTE* address, uint size)
 {
     Assert(size == 0);
@@ -47,45 +51,60 @@ bool XDataAllocator::Alloc(ULONG_PTR functionStart, DWORD functionSize, ushort p
     return false; //fail;
 }
 
-void XDataAllocator::Register(XDataAllocation& allocation, DWORD functionStart, DWORD functionSize)
-{
-    RUNTIME_FUNCTION* pdataArray = allocation.GetPdataArray();
-    for(ushort i = 0; i < allocation.pdataCount; i++)
-    {
-        RUNTIME_FUNCTION* pdata = pdataArray + i;
-        Assert(pdata->UnwindData != 0);
-        Assert(pdata->BeginAddress != 0);
-        pdata->BeginAddress = pdata->BeginAddress - (DWORD)functionStart;
-        if(pdata->Flag != 1) // if it is not packed unwind data
-        {
-            pdata->UnwindData = pdata->UnwindData - (DWORD)functionStart;
-        }
-    }
-    Assert(allocation.functionTable == nullptr);
-
-    // Since we do not expect many thunk functions to be created, we are using 1 table/function
-    // for now. This can be optimized further if needed.
-    DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(&allocation.functionTable,
-        pdataArray,
-        /*MaxEntryCount*/ allocation.pdataCount,
-        /*Valid entry count*/ allocation.pdataCount,
-        /*RangeBase*/ functionStart,
-        /*RangeEnd*/ functionStart + functionSize);
-
-    Js::Throw::CheckAndThrowOutOfMemory(NT_SUCCESS(status));
-}
 
 void XDataAllocator::Release(const SecondaryAllocation& allocation)
 {
     const XDataAllocation& xdata = static_cast<const XDataAllocation&>(allocation);
     if(xdata.address  != nullptr)
     {
-        if(xdata.functionTable)
-        {
-            NtdllLibrary::Instance->DeleteGrowableFunctionTable(xdata.functionTable);
-        }
         HeapDeleteArray(GetAllocSize(xdata.pdataCount, xdata.xdataSize), xdata.address);
     }
+}
+
+/* static */
+void XDataAllocator::Register(XDataAllocation * xdataInfo, DWORD functionStart, DWORD functionSize)
+{
+#ifdef _WIN32
+    RUNTIME_FUNCTION* pdataArray = xdataInfo->GetPdataArray();
+    for (ushort i = 0; i < xdataInfo->pdataCount; i++)
+    {
+        RUNTIME_FUNCTION* pdata = pdataArray + i;
+        Assert(pdata->UnwindData != 0);
+        Assert(pdata->BeginAddress != 0);
+        pdata->BeginAddress = pdata->BeginAddress - (DWORD)functionStart;
+        if (pdata->Flag != 1) // if it is not packed unwind data
+        {
+            pdata->UnwindData = pdata->UnwindData - (DWORD)functionStart;
+        }
+    }
+    Assert(xdataInfo->functionTable == nullptr);
+
+    // Since we do not expect many thunk functions to be created, we are using 1 table/function
+    // for now. This can be optimized further if needed.
+    DWORD status = NtdllLibrary::Instance->AddGrowableFunctionTable(&xdataInfo->functionTable,
+        pdataArray,
+        /*MaxEntryCount*/ xdataInfo->pdataCount,
+        /*Valid entry count*/ xdataInfo->pdataCount,
+        /*RangeBase*/ functionStart,
+        /*RangeEnd*/ functionStart + functionSize);
+
+    Js::Throw::CheckAndThrowOutOfMemory(NT_SUCCESS(status));
+
+#else  // !_WIN32
+    Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
+    __REGISTER_FRAME(xdataInfo->address);
+#endif
+}
+
+/* static */
+void XDataAllocator::Unregister(XDataAllocation * xdataInfo)
+{
+#ifdef _WIN32
+    NtdllLibrary::Instance->DeleteGrowableFunctionTable(xdataInfo->functionTable);
+#else  // !_WIN32
+    Assert(ReadHead(xdataInfo->address));  // should be non-empty .eh_frame
+    __DEREGISTER_FRAME(xdataInfo->address);
+#endif
 }
 
 bool XDataAllocator::CanAllocate()

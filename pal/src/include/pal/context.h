@@ -1,22 +1,12 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
-/*++
-
-
-
-Module Name:
-
+/* Module Name:
     include/pal/context.h
-
 Abstract:
-
     Header file for thread context utility functions.
-
-
-
 --*/
 
 #ifndef _PAL_CONTEXT_H_
@@ -45,7 +35,62 @@ typedef ucontext_t native_context_t;
 #include <mach/mach_port.h>
 #endif // !HAVE_MACH_EXCEPTIONS else
 
-#if HAVE_GREGSET_T
+#if HAVE___GREGSET_T
+
+#ifdef BIT64
+#define MCREG_Rbx(mc)       ((mc).__gregs[_REG_RBX])
+#define MCREG_Rcx(mc)       ((mc).__gregs[_REG_RCX])
+#define MCREG_Rdx(mc)       ((mc).__gregs[_REG_RDX])
+#define MCREG_Rsi(mc)       ((mc).__gregs[_REG_RSI])
+#define MCREG_Rdi(mc)       ((mc).__gregs[_REG_RDI])
+#define MCREG_Rbp(mc)       ((mc).__gregs[_REG_RBP])
+#define MCREG_Rax(mc)       ((mc).__gregs[_REG_RAX])
+#define MCREG_Rip(mc)       ((mc).__gregs[_REG_RIP])
+#define MCREG_Rsp(mc)       ((mc).__gregs[_REG_RSP])
+#define MCREG_SegCs(mc)     ((mc).__gregs[_REG_CS])
+#define MCREG_SegSs(mc)     ((mc).__gregs[_REG_SS])
+#define MCREG_R8(mc)        ((mc).__gregs[_REG_R8])
+#define MCREG_R9(mc)        ((mc).__gregs[_REG_R9])
+#define MCREG_R10(mc)       ((mc).__gregs[_REG_R10])
+#define MCREG_R11(mc)       ((mc).__gregs[_REG_R11])
+#define MCREG_R12(mc)       ((mc).__gregs[_REG_R12])
+#define MCREG_R13(mc)       ((mc).__gregs[_REG_R13])
+#define MCREG_R14(mc)       ((mc).__gregs[_REG_R14])
+#define MCREG_R15(mc)       ((mc).__gregs[_REG_R15])
+#define MCREG_EFlags(mc)    ((mc).__gregs[_REG_RFLAGS])
+
+#define FPREG_Xmm(uc, index) *(M128A*)&(((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_xmm[index])
+
+#define FPREG_St(uc, index) *(M128A*)&(((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_87_ac[index])
+
+#define FPREG_ControlWord(uc) (((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_cw)
+#define FPREG_StatusWord(uc) (((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_sw)
+#define FPREG_TagWord(uc) (((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_tw)
+#define FPREG_ErrorOffset(uc) (*(DWORD*) &(((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_ip))
+#define FPREG_ErrorSelector(uc) *((WORD*) &(((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_ip) + 2)
+#define FPREG_DataOffset(uc) (*(DWORD*) &(((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_dp))
+#define FPREG_DataSelector(uc) *((WORD*) &(((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_dp) + 2)
+#define FPREG_MxCsr(uc) (((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_mxcsr)
+#define FPREG_MxCsr_Mask(uc) (((struct fxsave*)(&(uc)->uc_mcontext.__fpregs))->fx_mxcsr_mask)
+
+#else // BIT64
+
+#define MCREG_Ebx(mc)       ((mc).__gregs[_REG_EBX])
+#define MCREG_Ecx(mc)       ((mc).__gregs[_REG_ECX])
+#define MCREG_Edx(mc)       ((mc).__gregs[_REG_EDX])
+#define MCREG_Esi(mc)       ((mc).__gregs[_REG_ESI])
+#define MCREG_Edi(mc)       ((mc).__gregs[_REG_EDI])
+#define MCREG_Ebp(mc)       ((mc).__gregs[_REG_EBP])
+#define MCREG_Eax(mc)       ((mc).__gregs[_REG_EAX])
+#define MCREG_Eip(mc)       ((mc).__gregs[_REG_EIP])
+#define MCREG_Esp(mc)       ((mc).__gregs[_REG_ESP])
+#define MCREG_SegCs(mc)     ((mc).__gregs[_REG_CS])
+#define MCREG_SegSs(mc)     ((mc).__gregs[_REG_SS])
+#define MCREG_EFlags(mc)    ((mc).__gregs[_REG_RFLAGS])
+
+#endif // BIT64
+
+#elif HAVE_GREGSET_T
 
 #ifdef BIT64
 #define MCREG_Rbx(mc)       ((mc).gregs[REG_RBX])
@@ -57,7 +102,7 @@ typedef ucontext_t native_context_t;
 #define MCREG_Rax(mc)       ((mc).gregs[REG_RAX])
 #define MCREG_Rip(mc)       ((mc).gregs[REG_RIP])
 #define MCREG_Rsp(mc)       ((mc).gregs[REG_RSP])
-#define MCREG_SegCs(mc)     ((mc).gregs[REG_CSGSFS])
+#define MCREG_SegCs(mc)     (*(WORD*)&((mc).gregs[REG_CSGSFS]))
 #define MCREG_R8(mc)        ((mc).gregs[REG_R8])
 #define MCREG_R9(mc)        ((mc).gregs[REG_R9])
 #define MCREG_R10(mc)       ((mc).gregs[REG_R10])
@@ -67,19 +112,22 @@ typedef ucontext_t native_context_t;
 #define MCREG_R14(mc)       ((mc).gregs[REG_R14])
 #define MCREG_R15(mc)       ((mc).gregs[REG_R15])
 
-#define FPREG_Xmm(uc, index) *(M128U*)&((uc)->__fpregs_mem._xmm[index])
+#define FPREG_Fpstate(uc) ((uc)->uc_mcontext.fpregs)
+#define FPREG_Xmm(uc, index) *(M128A*)&(FPREG_Fpstate(uc)->_xmm[index])
 
-#define FPREG_St(uc, index) *(M128U*)&((uc)->__fpregs_mem._st[index])
+#define FPREG_St(uc, index) *(M128A*)&(FPREG_Fpstate(uc)->_st[index])
 
-#define FPREG_ControlWord(uc) ((uc)->__fpregs_mem.cwd)
-#define FPREG_StatusWord(uc) ((uc)->__fpregs_mem.swd)
-#define FPREG_TagWord(uc) ((uc)->__fpregs_mem.ftw)
-#define FPREG_ErrorOffset(uc) *(DWORD*)&((uc)->__fpregs_mem.rip)
-#define FPREG_ErrorSelector(uc) *(((WORD*)&((uc)->__fpregs_mem.rip)) + 2)
-#define FPREG_DataOffset(uc) *(DWORD*)&((uc)->__fpregs_mem.rdp)
-#define FPREG_DataSelector(uc) *(((WORD*)&((uc)->__fpregs_mem.rdp)) + 2)
-#define FPREG_MxCsr(uc) ((uc)->__fpregs_mem.mxcsr)
-#define FPREG_MxCsr_Mask(uc) ((uc)->__fpregs_mem.mxcr_mask)
+#define FPREG_ControlWord(uc) (FPREG_Fpstate(uc)->cwd)
+#define FPREG_StatusWord(uc) (FPREG_Fpstate(uc)->swd)
+#define FPREG_TagWord(uc) (FPREG_Fpstate(uc)->ftw)
+#define FPREG_ErrorOffset(uc) *(DWORD*)&(FPREG_Fpstate(uc)->rip)
+#define FPREG_ErrorSelector(uc) *(((WORD*)&(FPREG_Fpstate(uc)->rip)) + 2)
+#define FPREG_DataOffset(uc) *(DWORD*)&(FPREG_Fpstate(uc)->rdp)
+#define FPREG_DataSelector(uc) *(((WORD*)&(FPREG_Fpstate(uc)->rdp)) + 2)
+#define FPREG_MxCsr(uc) (FPREG_Fpstate(uc)->mxcsr)
+#define FPREG_MxCsr_Mask(uc) (FPREG_Fpstate(uc)->mxcr_mask)
+
+/////////////////////
 
 #else // BIT64
 
@@ -294,43 +342,47 @@ typedef ucontext_t native_context_t;
 
 #if HAVE_BSD_REGS_T
 
+#ifndef BSD_REGS_STYLE
+#error "struct reg" has unrecognized format
+#endif
+
 #ifdef BIT64
 
-#define BSDREG_Rbx(reg)     ((reg).r_rbx)
-#define BSDREG_Rcx(reg)     ((reg).r_rcx)
-#define BSDREG_Rdx(reg)     ((reg).r_rdx)
-#define BSDREG_Rsi(reg)     ((reg).r_rsi)
-#define BSDREG_Rdi(reg)     ((reg).r_rdi)
-#define BSDREG_Rbp(reg)     ((reg).r_rbp)
-#define BSDREG_Rax(reg)     ((reg).r_rax)
-#define BSDREG_Rip(reg)     ((reg).r_rip)
-#define BSDREG_SegCs(reg)   ((reg).r_cs)
-#define BSDREG_SegSs(reg)   ((reg).r_ss)
-#define BSDREG_Rsp(reg)     ((reg).r_rsp)
-#define BSDREG_R8(reg)      ((reg).r_r8)
-#define BSDREG_R9(reg)      ((reg).r_r9)
-#define BSDREG_R10(reg)     ((reg).r_r10)
-#define BSDREG_R11(reg)     ((reg).r_r11)
-#define BSDREG_R12(reg)     ((reg).r_r12)
-#define BSDREG_R13(reg)     ((reg).r_r13)
-#define BSDREG_R14(reg)     ((reg).r_r14)
-#define BSDREG_R15(reg)     ((reg).r_r15)
-#define BSDREG_EFlags(reg)  ((reg).r_rflags)
+#define BSDREG_Rbx(reg)     BSD_REGS_STYLE(reg,RBX,rbx)
+#define BSDREG_Rcx(reg)     BSD_REGS_STYLE(reg,RCX,rcx)
+#define BSDREG_Rdx(reg)     BSD_REGS_STYLE(reg,RDX,rdx)
+#define BSDREG_Rsi(reg)     BSD_REGS_STYLE(reg,RSI,rsi)
+#define BSDREG_Rdi(reg)     BSD_REGS_STYLE(reg,RDI,rdi)
+#define BSDREG_Rbp(reg)     BSD_REGS_STYLE(reg,RBP,rbp)
+#define BSDREG_Rax(reg)     BSD_REGS_STYLE(reg,RAX,rax)
+#define BSDREG_Rip(reg)     BSD_REGS_STYLE(reg,RIP,rip)
+#define BSDREG_SegCs(reg)   BSD_REGS_STYLE(reg,CS,cs)
+#define BSDREG_SegSs(reg)   BSD_REGS_STYLE(reg,SS,ss)
+#define BSDREG_Rsp(reg)     BSD_REGS_STYLE(reg,RSP,rsp)
+#define BSDREG_R8(reg)      BSD_REGS_STYLE(reg,R8,r8)
+#define BSDREG_R9(reg)      BSD_REGS_STYLE(reg,R9,r9)
+#define BSDREG_R10(reg)     BSD_REGS_STYLE(reg,R10,r10)
+#define BSDREG_R11(reg)     BSD_REGS_STYLE(reg,R11,r11)
+#define BSDREG_R12(reg)     BSD_REGS_STYLE(reg,R12,r12)
+#define BSDREG_R13(reg)     BSD_REGS_STYLE(reg,R13,r13)
+#define BSDREG_R14(reg)     BSD_REGS_STYLE(reg,R14,r14)
+#define BSDREG_R15(reg)     BSD_REGS_STYLE(reg,R15,r15)
+#define BSDREG_EFlags(reg)  BSD_REGS_STYLE(reg,RFLAGS,rflags)
 
 #else // BIT64
 
-#define BSDREG_Ebx(reg)     ((reg).r_ebx)
-#define BSDREG_Ecx(reg)     ((reg).r_ecx)
-#define BSDREG_Edx(reg)     ((reg).r_edx)
-#define BSDREG_Esi(reg)     ((reg).r_esi)
-#define BSDREG_Edi(reg)     ((reg).r_edi)
-#define BSDREG_Ebp(reg)     ((reg).r_ebp)
-#define BSDREG_Eax(reg)     ((reg).r_eax)
-#define BSDREG_Eip(reg)     ((reg).r_eip)
-#define BSDREG_SegCs(reg)   ((reg).r_cs)
-#define BSDREG_EFlags(reg)  ((reg).r_eflags)
-#define BSDREG_Esp(reg)     ((reg).r_esp)
-#define BSDREG_SegSs(reg)   ((reg).r_ss)
+#define BSDREG_Ebx(reg)     BSD_REGS_STYLE(reg,EBX,ebx)
+#define BSDREG_Ecx(reg)     BSD_REGS_STYLE(reg,ECX,ecx)
+#define BSDREG_Edx(reg)     BSD_REGS_STYLE(reg,EDX,edx)
+#define BSDREG_Esi(reg)     BSD_REGS_STYLE(reg,ESI,esi)
+#define BSDREG_Edi(reg)     BSD_REGS_STYLE(reg,EDI,edi)
+#define BSDREG_Ebp(reg)     BSD_REGS_STYLE(reg,EDP,ebp)
+#define BSDREG_Eax(reg)     BSD_REGS_STYLE(reg,EAX,eax)
+#define BSDREG_Eip(reg)     BSD_REGS_STYLE(reg,EIP,eip)
+#define BSDREG_SegCs(reg)   BSD_REGS_STYLE(reg,CS,cs)
+#define BSDREG_EFlags(reg)  BSD_REGS_STYLE(reg,EFLAGS,eflags)
+#define BSDREG_Esp(reg)     BSD_REGS_STYLE(reg,ESP,esp)
+#define BSDREG_SegSs(reg)   BSD_REGS_STYLE(reg,SS,ss)
 
 #endif // BIT64
 
@@ -340,6 +392,8 @@ inline static DWORD64 CONTEXTGetPC(LPCONTEXT pContext)
 {
 #if defined(_AMD64_)
     return pContext->Rip;
+#elif defined(__i686__)
+    return pContext->Eip;
 #elif defined(_ARM64_) || defined(_ARM_)
     return pContext->Pc;
 #else
@@ -351,6 +405,8 @@ inline static void CONTEXTSetPC(LPCONTEXT pContext, DWORD64 pc)
 {
 #if defined(_AMD64_)
     pContext->Rip = pc;
+#elif defined(__i686__)
+    pContext->Eip = pc;
 #elif defined(_ARM64_) || defined(_ARM_)
     pContext->Pc = pc;
 #else
@@ -361,14 +417,11 @@ inline static void CONTEXTSetPC(LPCONTEXT pContext, DWORD64 pc)
 /*++
 Function :
     CONTEXT_CaptureContext
-
     Captures the context of the caller.
     The returned context is suitable for performing
     a virtual unwind.
-
 Parameters :
     LPCONTEXT lpContext : new context
-
 --*/
 void
 CONTEXT_CaptureContext(
@@ -378,16 +431,12 @@ CONTEXT_CaptureContext(
 /*++
 Function :
     CONTEXT_SetThreadContext
-
     Processor-dependent implementation of SetThreadContext
-
 Parameters :
     HANDLE hThread : thread whose context is to be set
     CONTEXT *lpContext : new context
-
 Return value :
     TRUE on success, FALSE on failure
-
 --*/
 BOOL
 CONTEXT_SetThreadContext(
@@ -399,16 +448,12 @@ CONTEXT_SetThreadContext(
 /*++
 Function :
     CONTEXT_GetThreadContext
-
     Processor-dependent implementation of GetThreadContext
-
 Parameters :
     HANDLE hThread : thread whose context is to retrieved
     LPCONTEXT lpContext  : destination for thread's context
-
 Return value :
     TRUE on success, FALSE on failure
-
 --*/
 BOOL
 CONTEXT_GetThreadContext(
@@ -420,60 +465,62 @@ CONTEXT_GetThreadContext(
 /*++
 Function:
   CONTEXT_GetThreadContextFromPort
-
   Helper for GetThreadContext that uses a mach_port
 --*/
 kern_return_t
 CONTEXT_GetThreadContextFromPort(
-        mach_port_t Port,
-        LPCONTEXT lpContext);
+    mach_port_t Port,
+    LPCONTEXT lpContext);
 
 /*++
 Function:
   SetThreadContextOnPort
-
   Helper for CONTEXT_SetThreadContext
 --*/
 kern_return_t
 CONTEXT_SetThreadContextOnPort(
-           mach_port_t Port,
-           IN CONST CONTEXT *lpContext);
+   mach_port_t Port,
+   IN CONST CONTEXT *lpContext);
 
+/*++
+Function:
+  GetThreadContextFromThreadState
+  Helper for mach exception support
+--*/
+void
+CONTEXT_GetThreadContextFromThreadState(
+    thread_state_flavor_t stateFlavor,
+    thread_state_t threadState,
+    LPCONTEXT lpContext);
 
 #else // HAVE_MACH_EXCEPTIONS
 /*++
 Function :
     CONTEXTToNativeContext
-    
-    Converts a CONTEXT record to a native context.
 
+    Converts a CONTEXT record to a native context.
 Parameters :
-    CONST CONTEXT *lpContext : CONTEXT to convert, including 
+    CONST CONTEXT *lpContext : CONTEXT to convert, including
                                flags that determine which registers are valid in
                                lpContext and which ones to set in native
     native_context_t *native : native context to fill in
-
 Return value :
     None
-
 --*/
 void CONTEXTToNativeContext(CONST CONTEXT *lpContext, native_context_t *native);
 
 /*++
 Function :
     CONTEXTFromNativeContext
-    
-    Converts a native context to a CONTEXT record.
 
+    Converts a native context to a CONTEXT record.
 Parameters :
     const native_context_t *native : native context to convert
     LPCONTEXT lpContext : CONTEXT to fill in
     ULONG contextFlags : flags that determine which registers are valid in
                          native and which ones to set in lpContext
-
 Return value :
     None
-
 --*/
 void CONTEXTFromNativeContext(const native_context_t *native, LPCONTEXT lpContext,
                               ULONG contextFlags);
@@ -481,32 +528,26 @@ void CONTEXTFromNativeContext(const native_context_t *native, LPCONTEXT lpContex
 /*++
 Function :
     GetNativeContextPC
-    
-    Returns the program counter from the native context.
 
+    Returns the program counter from the native context.
 Parameters :
     const native_context_t *context : native context
-
 Return value :
     The program counter from the native context.
-
 --*/
 LPVOID GetNativeContextPC(const native_context_t *context);
 
 /*++
 Function :
     CONTEXTGetExceptionCodeForSignal
-    
-    Translates signal and context information to a Win32 exception code.
 
+    Translates signal and context information to a Win32 exception code.
 Parameters :
     const siginfo_t *siginfo : signal information from a signal handler
     const native_context_t *context : context information
-
 Return value :
     The Win32 exception code that corresponds to the signal and context
     information.
-
 --*/
 DWORD CONTEXTGetExceptionCodeForSignal(const siginfo_t *siginfo,
                                        const native_context_t *context);
@@ -517,4 +558,4 @@ DWORD CONTEXTGetExceptionCodeForSignal(const siginfo_t *siginfo,
 }
 #endif // __cplusplus
 
-#endif  // _PAL_CONTEXT_H_
+#endif // _PAL_CONTEXT_H_

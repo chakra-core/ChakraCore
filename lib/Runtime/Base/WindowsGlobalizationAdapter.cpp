@@ -374,6 +374,7 @@ namespace Js
         IfFailedReturn(CreateLanguage(scriptContext, languageTag, &language));
 
         IfFailedReturn(language->get_LanguageTag(result));
+        IfNullReturnError(*result, E_FAIL);
         return hr;
     }
 
@@ -397,13 +398,19 @@ namespace Js
         }
         // Retrieve canonicalize timeZone name
         IfFailThrowHr(timeZoneCalendar->GetTimeZone(result));
+        if (*result == nullptr)
+        {
+            return false;
+        }
         return true;
     }
 
-    void WindowsGlobalizationAdapter::GetDefaultTimeZoneId(_In_ ScriptContext* scriptContext, HSTRING *result)
+    HRESULT WindowsGlobalizationAdapter::GetDefaultTimeZoneId(_In_ ScriptContext* scriptContext, HSTRING *result)
     {
         HRESULT hr = S_OK;
         IfFailThrowHr(defaultTimeZoneCalendar->GetTimeZone(result));
+        IfNullReturnError(*result, E_FAIL);
+        return hr;
     }
 
     HRESULT WindowsGlobalizationAdapter::CreateTimeZoneOnCalendar(_In_ DelayLoadWindowsGlobalization *library, __out::ITimeZoneOnCalendar**  result)
@@ -634,6 +641,57 @@ if (this->object) \
     HRESULT WindowsGlobalizationAdapter::CreateSignificantDigitsRounder(_In_ ScriptContext* scriptContext, NumberFormatting::INumberRounder** numberRounder)
     {
         return significantDigitsRounderActivationFactory->ActivateInstance(reinterpret_cast<IInspectable**>(numberRounder));
+    }
+
+    HRESULT WindowsGlobalizationAdapter::GetResolvedLanguage(_In_ DateTimeFormatting::IDateTimeFormatter* formatter, HSTRING * locale)
+    {
+        HRESULT hr = formatter->get_ResolvedLanguage(locale);
+        return VerifyResult(locale, hr);
+    }
+
+    HRESULT WindowsGlobalizationAdapter::GetResolvedLanguage(_In_ NumberFormatting::INumberFormatterOptions* formatter, HSTRING * locale)
+    {
+        HRESULT hr = formatter->get_ResolvedLanguage(locale);
+        return VerifyResult(locale, hr);
+    }
+
+    HRESULT WindowsGlobalizationAdapter::GetNumeralSystem(_In_ NumberFormatting::INumberFormatterOptions* formatter, HSTRING * hNumeralSystem)
+    {
+        HRESULT hr = formatter->get_NumeralSystem(hNumeralSystem);
+        return VerifyResult(hNumeralSystem, hr);
+    }
+
+    HRESULT WindowsGlobalizationAdapter::GetNumeralSystem(_In_ DateTimeFormatting::IDateTimeFormatter* formatter, HSTRING * hNumeralSystem)
+    {
+        HRESULT hr = formatter->get_NumeralSystem(hNumeralSystem);
+        return VerifyResult(hNumeralSystem, hr);
+    }
+    
+    HRESULT WindowsGlobalizationAdapter::GetCalendar(_In_ DateTimeFormatting::IDateTimeFormatter* formatter, HSTRING * hCalendar)
+    {
+        HRESULT hr = formatter->get_Calendar(hCalendar);
+        return VerifyResult(hCalendar, hr);
+    }
+
+    HRESULT WindowsGlobalizationAdapter::GetClock(_In_ DateTimeFormatting::IDateTimeFormatter* formatter, HSTRING * hClock)
+    {
+        HRESULT hr = formatter->get_Clock(hClock);
+        return VerifyResult(hClock, hr);
+    }
+
+    HRESULT WindowsGlobalizationAdapter::GetItemAt(_In_ IVectorView<HSTRING>* vector, _In_ uint32 index, HSTRING * item)
+    {
+        HRESULT hr = vector->GetAt(index, item);
+        return VerifyResult(item, hr);
+    }
+
+    /* static */
+    HRESULT WindowsGlobalizationAdapter::VerifyResult(HSTRING * result, HRESULT errCode)
+    {
+        HRESULT hr = S_OK;
+        IfFailedReturn(errCode);
+        IfNullReturnError(*result, E_FAIL);
+        return hr;
     }
 #endif
 }

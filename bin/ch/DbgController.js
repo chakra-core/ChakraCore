@@ -441,6 +441,8 @@ var controllerObj = (function () {
                     if (execStr && execStr.toString().search("removeExpr()") != -1) {
                         _onasyncbreakCommands = undefined;
                     }
+                } else if (id === "debuggerStatement") {
+                    execStr = "dumpBreak();locals();stack();"
                 } else {
                     // Retrieve this breakpoint's execution string
                     execStr = bpManager.getExecStr(id);
@@ -492,6 +494,14 @@ var controllerObj = (function () {
         }
 
         return objectDisplay;
+    }
+
+    var stringToArrayBuffer = function stringToArrayBuffer(str) {
+        var arr = [];
+        for (var i = 0, len = str.length; i < len; i++) {
+            arr[i] = str.charCodeAt(i) & 0xFF;
+        }
+        return new Uint8Array(arr).buffer;
     }
 
     function GetChild(obj, level) {
@@ -630,7 +640,7 @@ var controllerObj = (function () {
                 internalPrint("LOG: " + str);
             },
             logJson: function (str) {
-                internalPrint(str);
+                recordEvent({ log: str });
             },
             resume: function (kind) {
                 if (_wasResumed) {
@@ -717,6 +727,10 @@ var controllerObj = (function () {
                     if (typeof expandLevel != "number" || expandLevel <= 0) {
                         expandLevel = 0;
                     }
+
+                    if (WScript && typeof expression == 'string' && WScript.forceDebugArrayBuffer)
+                        expression = stringToArrayBuffer(expression);
+
                     var evalResult = callHostFunction(hostDebugObject.JsDiagEvaluate, _currentStackFrameIndex, expression);
                     var evaluateOutput = {};
                     evaluateOutput[evalResult.name] = GetChild(evalResult, expandLevel - 1);
@@ -831,9 +845,11 @@ var controllerObj = (function () {
                     /*JsDiagDebugEventBreakpoint*/
                 case 3:
                     /*JsDiagDebugEventStepComplete*/
+                    handleBreakpoint(("breakpointId" in eventData) ? eventData.breakpointId : -1);
+                    break;
                 case 4:
                     /*JsDiagDebugEventDebuggerStatement*/
-                    handleBreakpoint(("breakpointId" in eventData) ? eventData.breakpointId : -1);
+                    handleBreakpoint("debuggerStatement");
                     break;
                 case 5:
                     /*JsDiagDebugEventAsyncBreak*/

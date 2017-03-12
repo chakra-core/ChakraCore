@@ -16,7 +16,6 @@
 #include "Language/AsmJsModule.h"
 #include "Language/ProfilingHelpers.h"
 #include "Language/FunctionCodeGenRuntimeData.h"
-#include "Language/FunctionCodeGenJitTimeData.h"
 #include "Language/JavascriptMathOperators.h"
 #include "Language/JavascriptMathOperators.inl"
 #include "Language/JavascriptStackWalker.h"
@@ -28,12 +27,8 @@
 #include "Library/JavascriptGeneratorFunction.h"
 
 #include "Language/InterpreterStackFrame.h"
-#include "Language/ReadOnlyDynamicProfileInfo.h"
 
 #include "Library/StackScriptFunction.h"
-
-#include "Language/InterpreterStackFrame.h"
-#include "Language/ReadOnlyDynamicProfileInfo.h"
 
 // SIMD_JS
 #include "Library/SimdLib.h"
@@ -113,8 +108,27 @@ enum IRDumpFlags
 // BackEnd includes
 //
 
-#include "NativeCodeData.h"
+#include "JITTimeProfileInfo.h"
+#include "JITRecyclableObject.h"
+#include "FixedFieldInfo.h"
+#include "JITTimePolymorphicInlineCache.h"
+#include "JITTimePolymorphicInlineCacheInfo.h"
+#include "CodeGenWorkItemType.h"
 #include "CodeGenAllocators.h"
+#include "JITTimeConstructorCache.h"
+#include "JITTypeHandler.h"
+#include "JITType.h"
+#include "ObjTypeSpecFldInfo.h"
+#include "FunctionCodeGenJitTimeData.h"
+#include "ServerScriptContext.h"
+#include "JITOutput.h"
+#include "JITTimeScriptContext.h"
+#include "AsmJsJITInfo.h"
+#include "FunctionJITRuntimeInfo.h"
+#include "JITTimeFunctionBody.h"
+#include "FunctionJITTimeInfo.h"
+#include "JITTimeWorkItem.h"
+#include "NativeCodeData.h"
 #include "IRType.h"
 #include "md.h"
 #include "../Runtime/ByteCode/BackendOpCodeAttr.h"
@@ -133,7 +147,6 @@ enum IRDumpFlags
 #include "InductionVariable.h"
 #include "GlobOpt.h"
 #include "GlobOptIntBounds.h"
-#include "CodeGenWorkItemType.h"
 #include "QueuedFullJitWorkItem.h"
 #include "CodeGenWorkItem.h"
 #include "SimpleJitProfilingHelpers.h"
@@ -146,6 +159,7 @@ enum IRDumpFlags
 
 #include "PDataManager.h"
 
+#include "ServerThreadContext.h"
 #include "CaseNode.h"
 #include "SwitchIRBuilder.h"
 #include "IRBuilder.h"

@@ -14,17 +14,27 @@ namespace Js {
         private:
             // Real script frames: functionBody, byteCodeOffset
             // Native library builtin (or potentially virtual) frames: name
-            FunctionBody* functionBody;
+            Field(FunctionBody*) functionBody;
             union
             {
-                uint32 byteCodeOffset;  // used for script functions        (functionBody != nullptr)
-                PCWSTR name;            // used for native/virtual frames   (functionBody == nullptr)
+                Field(uint32) byteCodeOffset;  // used for script functions        (functionBody != nullptr)
+                Field(PCWSTR) name;            // used for native/virtual frames   (functionBody == nullptr)
             };
-            StackTraceArguments argumentTypes;
+            Field(StackTraceArguments) argumentTypes;
 
         public:
             StackFrame() {}
             StackFrame(JavascriptFunction* func, const JavascriptStackWalker& walker, bool initArgumentTypes);
+            StackFrame(const StackFrame& other)
+                :functionBody(other.functionBody), name(other.name), argumentTypes(other.argumentTypes)
+            {}
+            StackFrame& operator=(const StackFrame& other)
+            {
+                functionBody = other.functionBody;
+                name = other.name;
+                argumentTypes = other.argumentTypes;
+                return *this;
+            }
 
             bool IsScriptFunction() const;
             FunctionBody* GetFunctionBody() const;
@@ -55,9 +65,9 @@ namespace Js {
         StackTrace* GetOriginalStackTrace() const { return m_originalStackTrace; }
 
     private:
-        JavascriptFunction* m_throwingFunction;
-        uint32 m_throwingFunctionByteCodeOffset;
-        StackTrace *m_stackTrace;
-        StackTrace *m_originalStackTrace;
+        Field(JavascriptFunction*) m_throwingFunction;
+        Field(uint32) m_throwingFunctionByteCodeOffset;
+        Field(StackTrace *) m_stackTrace;
+        Field(StackTrace *) m_originalStackTrace;
     };
 }

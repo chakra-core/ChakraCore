@@ -9,6 +9,7 @@ include ksamd64.inc
 extrn __chkstk: PROC
 ifdef _CONTROL_FLOW_GUARD
 extrn __guard_check_icall_fptr:QWORD
+extrn __guard_dispatch_icall_fptr:QWORD
 
         subttl  "Control Flow Guard ICall Check Stub"
 ;++
@@ -135,20 +136,9 @@ amd64_CallFunction PROC FRAME
         ;; rbx = argc
         mov rbx, r9
 
-ifdef _CONTROL_FLOW_GUARD
-        mov     rsi, r8                 ; save CallInfo
-        mov     rdi, rcx                ; save function *
-        mov     rcx, rdx                ; save entry point (the call target)
-                                        ; it is guaranteed that icall check will preserve rcx
-        call    amd64_CheckICall        ; verify that the call target is valid
-        mov     rax, rcx                ; restore entry point to rax - same as non-CFG path
-        mov     rdx, rsi                ; restore CallInfo to rdx - same as non-CFG path
-        mov     rcx, rdi                ; restore function * back to rcx
-else
         ;; save entry point (rdx) and move CallInfo (r8) into rdx.
         mov rax, rdx
         mov rdx, r8
-endif
 
         mov r10, 0
 
@@ -208,8 +198,12 @@ setup_args_done:
         ;; allocate args register spill
         sub rsp, 20h
 
+ifdef _CONTROL_FLOW_GUARD
+        call    [__guard_dispatch_icall_fptr]
+else
         ;; (C) callsite
         call rax
+endif
 done:
         mov rsp, rbp
         pop rbp
@@ -220,40 +214,48 @@ done:
 
 amd64_CallFunction ENDP
 
-ifdef _ENABLE_ASM_JS
+ifdef _ENABLE_DYNAMIC_THUNKS
 
 extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
 extrn ?GetArgsSizesArray@Js@@YAPEAIPEAVScriptFunction@1@@Z : PROC
 
-; float CallAsmJsFunction<float>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+; int64 CallAsmJsFunction<int64>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 align 16
-??$CallAsmJsFunction@M@JavascriptFunction@Js@@SAMPEAVRecyclableObject@1@PEAXIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SA_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@PEAXIPEAPEAX@Z
-??$CallAsmJsFunction@M@JavascriptFunction@Js@@SAMPEAVRecyclableObject@1@PEAXIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
+??$CallAsmJsFunction@_J@JavascriptFunction@Js@@SA_JPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
+
+; float CallAsmJsFunction<float>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
+align 16
+??$CallAsmJsFunction@M@JavascriptFunction@Js@@SAMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
+    .setframe rbp, 0
+    .endprolog
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
+??$CallAsmJsFunction@M@JavascriptFunction@Js@@SAMPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
 ; double CallAsmJsFunction<double>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 align 16
-??$CallAsmJsFunction@N@JavascriptFunction@Js@@SANPEAVRecyclableObject@1@PEAXIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@N@JavascriptFunction@Js@@SANPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@PEAXIPEAPEAX@Z
-??$CallAsmJsFunction@N@JavascriptFunction@Js@@SANPEAVRecyclableObject@1@PEAXIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
+??$CallAsmJsFunction@N@JavascriptFunction@Js@@SANPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
 ; __m128 JavascriptFunction::CallAsmJsFunction(RecyclableObject * function, void* entryPoint, uint argc, Var * argv);
 align 16
-??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SA?AT__m128@@PEAVRecyclableObject@1@PEAXIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SA?AT__m128@@PEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
     .setframe rbp, 0
     .endprolog
-    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@PEAXIPEAPEAX@Z
-??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SA?AT__m128@@PEAVRecyclableObject@1@PEAXIPEAPEAX@Z ENDP
+    rex_jmp_reg ??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z
+??$CallAsmJsFunction@T__m128@@@JavascriptFunction@Js@@SA?AT__m128@@PEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
 
 
 ; int CallAsmJsFunction<int>(RecyclableObject *function, JavascriptMethod entryPoint, uint argc, Var *argv);
 align 16
-??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@PEAXIPEAPEAX@Z PROC FRAME
+??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z PROC FRAME
 
         ; save these to stack for interpreter
         mov qword ptr [rsp + 8h],  rcx
@@ -408,9 +410,9 @@ done:
         pop rbx
         ret
 
-??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@PEAXIPEAPEAX@Z ENDP
+??$CallAsmJsFunction@H@JavascriptFunction@Js@@SAHPEAVRecyclableObject@1@P6APEAX0UCallInfo@1@ZZIPEAPEAX@Z ENDP
 
-endif ;; _ENABLE_ASM_JS
+endif ;; _ENABLE_DYNAMIC_THUNKS
 
 extrn ?DeferredParse@JavascriptFunction@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVScriptFunction@2@@Z : PROC
 align 16

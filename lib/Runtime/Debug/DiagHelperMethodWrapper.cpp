@@ -214,7 +214,7 @@ namespace Js
             exceptionObject == scriptContext->GetThreadContext()->GetPendingOOMErrorObject() ||
             exceptionObject == scriptContext->GetThreadContext()->GetPendingSOErrorObject())
         {
-            throw exceptionObject->CloneIfStaticExceptionObject(scriptContext);
+            JavascriptExceptionOperators::DoThrowCheckClone(exceptionObject, scriptContext);
         }
 
         if (doCheckParentInterpreterFrame)
@@ -231,7 +231,7 @@ namespace Js
             {
                 // If parent frame is interpreter frame, it already has try-catch around all calls,
                 // so that we don't need any special handling here.
-                throw exceptionObject->CloneIfStaticExceptionObject(scriptContext);
+                JavascriptExceptionOperators::DoThrowCheckClone(exceptionObject, scriptContext);
             }
         }
 
@@ -252,7 +252,7 @@ namespace Js
                 exceptionObject->GetFunctionBody(), &reader, exceptionObject->GetByteCodeOffset(), &nextStatementOffset))
             {
                 // Can't advance.
-                throw exceptionObject->CloneIfStaticExceptionObject(scriptContext);
+                JavascriptExceptionOperators::DoThrowCheckClone(exceptionObject, scriptContext);
             }
         }
 

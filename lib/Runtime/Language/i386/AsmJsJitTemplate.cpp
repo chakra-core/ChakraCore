@@ -523,11 +523,7 @@ namespace Js
         //CodeGenDone status is set by TJ
         if ((entryPointInfo->IsNotScheduled() || entryPointInfo->IsCodeGenDone()) && !PHASE_OFF(BackEndPhase, body) && !PHASE_OFF(FullJitPhase, body))
         {
-            if (entryPointInfo->callsCount < 255)
-            {
-                ++entryPointInfo->callsCount;
-            }
-            const int minTemplatizedJitRunCount = (int)CONFIG_FLAG(MinTemplatizedJitRunCount);
+            const uint32 minTemplatizedJitRunCount = (uint32)CONFIG_FLAG(MinTemplatizedJitRunCount);
             if ((entryPointInfo->callsCount >= minTemplatizedJitRunCount || body->IsHotAsmJsLoop()))
             {
                 if (PHASE_TRACE1(AsmjsEntryPointInfoPhase))
@@ -1391,12 +1387,15 @@ namespace Js
             return size;
         }
 
-        int BrEq::ApplyTemplate(TemplateContext context, BYTE*& buffer, int leftOffset, int rightOffset, BYTE** relocAddr, bool isBackEdge)
+        int BrEq::ApplyTemplate(TemplateContext context, BYTE*& buffer, int leftOffset, int rightOffset, BYTE** relocAddr, bool isBackEdge, bool isSrc2Const /*= false*/)
         {
             X86TemplateData* templateData = GetTemplateData( context );
             int size = 0;
             leftOffset -= templateData->GetBaseOffSet();
-            rightOffset -= templateData->GetBaseOffSet();
+            if (!isSrc2Const) 
+            {
+                rightOffset -= templateData->GetBaseOffSet();
+            }
             if (isBackEdge)
             {
                 RegNum regInc = templateData->GetReg<int>(0);
@@ -1404,9 +1403,9 @@ namespace Js
                 size += INC::EncodeInstruction<int>(buffer, InstrParamsAddr(regInc, context->GetFunctionBody()->GetAsmJsTotalLoopCountOffset()));
                 templateData->InvalidateReg(regInc);
             }
-            RegNum reg1, reg2;
+            RegNum reg1, reg2 = RegEAX;
             const int reg1Found = templateData->FindRegWithStackOffset<int>( reg1, leftOffset );
-            const int reg2Found = templateData->FindRegWithStackOffset<int>( reg2, rightOffset );
+            const int reg2Found = isSrc2Const || templateData->FindRegWithStackOffset<int>( reg2, rightOffset );
             switch( reg1Found & (reg2Found<<1) )
             {
             case 0:
@@ -1419,10 +1418,21 @@ namespace Js
                 size += CMP::EncodeInstruction<int32>( buffer, InstrParamsRegAddr( reg1, RegEBP, rightOffset ) );
                 break;
             case 2:
-                size += CMP::EncodeInstruction<int32>( buffer, InstrParamsRegAddr( reg2, RegEBP, leftOffset ) );
+                if (isSrc2Const) 
+                {
+                    size += CMP::EncodeInstruction<int32>(buffer, InstrParamsAddrImm<int32>(RegEBP, leftOffset, rightOffset));
+                }
+                else 
+                {
+                    size += CMP::EncodeInstruction<int32>(buffer, InstrParamsRegAddr(reg2, RegEBP, leftOffset));
+                }
                 break;
             case 3:
-                if( reg1 == reg2 )
+                if (isSrc2Const)
+                {
+                    size += CMP::EncodeInstruction<int32>(buffer, InstrParamsRegImm<int32>(reg1, rightOffset));
+                }
+                else if( reg1 == reg2 )
                 {
                     templateData->InvalidateAllReg();
                     *relocAddr = buffer;
@@ -1915,7 +1925,7 @@ namespace Js
             return size;
         }
 
-        int ShrU_Int::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int leftOffset, int rightOffset )
+        int Shr_UInt::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int leftOffset, int rightOffset )
         {
             X86TemplateData* templateData = GetTemplateData( context );
             int size = 0;
@@ -2776,6 +2786,7 @@ namespace Js
             return CompareDbOrFlt<JB, COMISD, double>(context, buffer, targetOffset, leftOffset, rightOffset);
         }
 
+        __declspec(align(8)) const double MaskConvUintDouble[] = { 0.0, 4294967296.0 };
 
         int UInt_To_Db::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int rightOffset )
         {
@@ -2796,7 +2807,6 @@ namespace Js
             size += SHR::EncodeInstruction<int32>( buffer, InstrParamsRegImm<int8>( regInt, 31 ) );
             templateData->InvalidateReg( regInt );
 
-            static __declspec(align(8)) const double MaskConvUintDouble[] = { 0.0, 4294967296.0 };
             size += ADDSD::EncodeInstruction<double>( buffer, InstrParamsRegAddr( regDouble, RegNOREG, regInt, 8, (int)MaskConvUintDouble ) );
 
             size += EncodingHelpers::SetStackReg<double>( buffer, templateData, targetOffset , regDouble);
@@ -2895,6 +2905,14 @@ namespace Js
             return size;
         }
 
+        __declspec(align(16)) const double MaskNegDouble[] = { -0.0, -0.0 };
+        const BYTE maskNegDoubleTemp[] = {
+            0x66, 0x0F, 0x57, 0x05,
+            (BYTE)(((int)(MaskNegDouble)) & 0xFF),
+            (BYTE)((((int)(MaskNegDouble)) >> 8) & 0xFF),
+            (BYTE)((((int)(MaskNegDouble)) >> 16) & 0xFF),
+            (BYTE)((((int)(MaskNegDouble)) >> 24) & 0xFF),
+        };
 
         int Neg_Db::ApplyTemplate( TemplateContext context, BYTE*& buffer, int targetOffset, int rightOffset )
         {
@@ -2910,15 +2928,7 @@ namespace Js
                 size += MOVSD::EncodeInstruction<double>( buffer, InstrParamsRegAddr( reg, RegEBP, rightOffset ) );
             }
 
-            static __declspec(align(16)) const double MaskNegDouble[] = { -0.0, -0.0 };
-            static const BYTE temp[] = {
-                0x66, 0x0F, 0x57, 0x05,
-                (BYTE)( ( (int)( MaskNegDouble ) ) & 0xFF ),
-                (BYTE)( ( ( (int)( MaskNegDouble ) ) >> 8 ) & 0xFF ),
-                (BYTE)( ( ( (int)( MaskNegDouble ) ) >> 16 ) & 0xFF ),
-                (BYTE)( ( ( (int)( MaskNegDouble ) ) >> 24 ) & 0xFF ),
-            };
-            size += ApplyCustomTemplate( buffer, temp, 8 );
+            size += ApplyCustomTemplate( buffer, maskNegDoubleTemp, 8 );
             //fix template for register
             buffer[-5] |= RegEncode[reg] << 3;
 
@@ -2926,6 +2936,14 @@ namespace Js
 
             return size;
         }
+
+        static const BYTE negFltTemp[] = {
+            0x0F, 0x57, 0x05,
+            (BYTE)(((int)(JavascriptNumber::MaskNegFloat)) & 0xFF),
+            (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 8) & 0xFF),
+            (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 16) & 0xFF),
+            (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 24) & 0xFF),
+        };
 
         int Neg_Flt::ApplyTemplate(TemplateContext context, BYTE*& buffer, int targetOffset, int rightOffset)
         {
@@ -2941,14 +2959,7 @@ namespace Js
                 size += MOVSS::EncodeInstruction<float>(buffer, InstrParamsRegAddr(reg, RegEBP, rightOffset));
             }
 
-            static const BYTE temp[] = {
-                0x0F, 0x57, 0x05,
-                (BYTE)(((int)(JavascriptNumber::MaskNegFloat)) & 0xFF),
-                (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 8) & 0xFF),
-                (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 16) & 0xFF),
-                (BYTE)((((int)(JavascriptNumber::MaskNegFloat)) >> 24) & 0xFF),
-            };
-            size += ApplyCustomTemplate(buffer, temp, 7);
+            size += ApplyCustomTemplate(buffer, negFltTemp, 7);
             //fix template for register
             buffer[-5] |= RegEncode[reg] << 3;
 

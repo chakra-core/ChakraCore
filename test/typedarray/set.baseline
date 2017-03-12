@@ -155,7 +155,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -259,7 +259,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -363,7 +363,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -467,7 +467,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -571,7 +571,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -675,7 +675,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -779,7 +779,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -883,7 +883,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -1067,7 +1067,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -1171,7 +1171,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -1275,7 +1275,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -1379,7 +1379,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -1483,7 +1483,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -1587,7 +1587,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -1691,7 +1691,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -1795,7 +1795,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -1979,7 +1979,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -2083,7 +2083,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -2187,7 +2187,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -2291,7 +2291,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -2395,7 +2395,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -2499,7 +2499,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -2603,7 +2603,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -2707,7 +2707,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -2891,7 +2891,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -2995,7 +2995,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -3099,7 +3099,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -3203,7 +3203,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -3307,7 +3307,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -3411,7 +3411,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -3515,7 +3515,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -3619,7 +3619,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -3803,7 +3803,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -3907,7 +3907,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -4011,7 +4011,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -4115,7 +4115,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -4219,7 +4219,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -4323,7 +4323,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -4427,7 +4427,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -4531,7 +4531,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -4715,7 +4715,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -4819,7 +4819,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -4923,7 +4923,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -5027,7 +5027,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -5131,7 +5131,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -5235,7 +5235,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -5339,7 +5339,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -5443,7 +5443,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -5627,7 +5627,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -5731,7 +5731,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -5835,7 +5835,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -5939,7 +5939,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -6043,7 +6043,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -6147,7 +6147,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -6251,7 +6251,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -6355,7 +6355,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -6539,7 +6539,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -6643,7 +6643,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -6747,7 +6747,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -6851,7 +6851,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -6955,7 +6955,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -7059,7 +7059,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -7163,7 +7163,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2
@@ -7267,7 +7267,7 @@ index 6 = 1
 index 7 = 2
 index 8 = 3
 index 9 = 4
-succeeded to throwTypeError: Invalid offset/length when creating typed array
+succeeded to throwRangeError: Invalid offset/length when creating typed array
 testing overlap:
 index 0 = 1
 index 1 = 2

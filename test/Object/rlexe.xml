@@ -221,7 +221,6 @@
   <test>
     <default>
       <files>propertyStrings.js</files>
-      <baseline>propertyStrings.baseline</baseline>
     </default>
   </test>
   <test>
@@ -269,6 +268,12 @@
   <test>
     <default>
       <files>objlit_type.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>PathTypeDeleteLastProperty.js</files>
+      <compile-flags>-mic:1 -msjrc:1</compile-flags>
     </default>
   </test>
   <test>
@@ -405,6 +410,19 @@
       <files>ObjectHeaderInlining_NewPropSharedInlineCache.js</files>
       <baseline />
       <compile-flags>-mic:1 -forcejitloopbody -off:interpreterautoprofile</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>ForInInline.js</files>
+      <baseline>ForInInline.baseline</baseline>
+      <compile-flags>-loopinterpretcount:1 -force:inline -off:simplejit</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>forinenumcachebuiltin.js</files>
+      <baseline />
     </default>
   </test>
 </regress-exe>

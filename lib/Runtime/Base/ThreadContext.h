@@ -14,6 +14,8 @@ namespace Js
     typedef JsUtil::List<ReturnedValue*> ReturnedValueList;
 }
 
+typedef BVSparse<ArenaAllocator> ActiveFunctionSet;
+
 using namespace PlatformAgnostic;
 
 struct IAuthorFileContext;
@@ -204,11 +206,13 @@ public:
 #endif
 #endif
 
+#ifdef NTBUILD
 struct ThreadContextWatsonTelemetryBlock
 {
     FILETIME lastScriptStartTime;
     FILETIME lastScriptEndTime;
 };
+#endif
 
 class NativeLibraryEntryRecord
 {
@@ -256,61 +260,6 @@ public:
     AutoTagNativeLibraryEntry(Js::RecyclableObject* function, Js::CallInfo callInfo, PCWSTR name, void* addr);
     ~AutoTagNativeLibraryEntry();
 };
-
-#ifdef ENABLE_BASIC_TELEMETRY
-#if ENABLE_NATIVE_CODEGEN
-struct JITStats
-{
-    uint lessThan5ms;
-    uint within5And10ms;
-    uint within10And20ms;
-    uint within20And50ms;
-    uint within50And100ms;
-    uint within100And300ms;
-    uint greaterThan300ms;
-};
-#endif
-
-struct ParserStats
-{
-    uint64 lessThan1ms;
-    uint64 within1And3ms;
-    uint64 within3And10ms;
-    uint64 within10And20ms;
-    uint64 within20And50ms;
-    uint64 within50And100ms;
-    uint64 within100And300ms;
-    uint64 greaterThan300ms;
-};
-
-class ParserTimer
-{
-private:
-    DateTime::HiResTimer timer;
-    ParserStats stats;
-public:
-    ParserTimer();
-    ParserStats GetStats();
-    void Reset();
-    double Now();
-    void LogTime(double ms);
-};
-
-#if ENABLE_NATIVE_CODEGEN
-class JITTimer
-{
-private:
-    DateTime::HiResTimer timer;
-    JITStats stats;
-public:
-    JITTimer();
-    JITStats GetStats();
-    void Reset();
-    double Now();
-    void LogTime(double ms);
-};
-#endif
-#endif
 
 #define AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, name) \
     AutoTagNativeLibraryEntry __tag(function, callInfo, name, _AddressOfReturnAddress())
@@ -372,7 +321,8 @@ private:
 
 class ThreadContext sealed :
     public DefaultRecyclerCollectionWrapper,
-    public JsUtil::DoublyLinkedListElement<ThreadContext>
+    public JsUtil::DoublyLinkedListElement<ThreadContext>,
+    public ThreadContextInfo
 {
 public:
     static void GlobalInitialize();
@@ -402,9 +352,8 @@ public:
         this->isThreadBound = true;
     }
     bool IsJSRT() const { return !this->isThreadBound; }
-    bool GetIsThreadBound() const { return this->isThreadBound; }
+    virtual bool IsThreadBound() const override { return this->isThreadBound; }
     void SetStackProber(StackProber * stackProber);
-    PBYTE GetScriptStackLimit() const;
     static DWORD GetStackLimitForCurrentThreadOffset() { return offsetof(ThreadContext, stackLimitForCurrentThread); }
 
     template <class Fn>
@@ -425,7 +374,7 @@ public:
         return curImplicitCallFlags;
     }
 
-    void * GetAddressOfStackLimitForCurrentThread()
+    void * GetAddressOfStackLimitForCurrentThread() const
     {
         FAULTINJECT_SCRIPT_TERMINATION
 
@@ -439,6 +388,10 @@ public:
     IActiveScriptProfilerHeapEnum* GetHeapEnum();
     void SetHeapEnum(IActiveScriptProfilerHeapEnum* newHeapEnum);
     void ClearHeapEnum();
+
+    Js::PropertyRecord const * GetPropertyRecord(Js::PropertyId propertyId);
+
+    virtual bool IsNumericProperty(Js::PropertyId propertyId) override;
 
 #ifdef ENABLE_BASIC_TELEMETRY
     Js::LanguageStats* GetLanguageStats()
@@ -473,7 +426,7 @@ public:
     void GetSimdFuncSignatureFromOpcode(Js::OpCode op, SimdFuncSignature &funcSignature);
 
 #if _M_IX86 || _M_AMD64
-    // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle. 
+    // auxiliary SIMD values in memory to help JIT'ed code. E.g. used for Int8x16 shuffle.
     _x86_SIMDValue X86_TEMP_SIMD[SIMD_TEMP_SIZE];
     _x86_SIMDValue * GetSimdTempArea() { return X86_TEMP_SIMD; }
 #endif
@@ -489,8 +442,8 @@ private:
     static CriticalSection s_csThreadContext;
 
     StackProber * GetStackProber() const { return this->stackProber; }
-    PBYTE GetStackLimitForCurrentThread() const;
-    void SetStackLimitForCurrentThread(PBYTE limit);
+    size_t GetStackLimitForCurrentThread() const;
+    void SetStackLimitForCurrentThread(size_t limit);
 
     // The current heap enumeration object being used during enumeration.
     IActiveScriptProfilerHeapEnum* heapEnum;
@@ -510,9 +463,9 @@ private:
         // (the code) is responsible for keeping it alive.
         // Each unique guard, is weakly referenced, such that it can be reclaimed if not referenced elsewhere even without being
         // invalidated.  The entry of a unique guard is removed from the table once the corresponding cache is invalidated.
-        Js::PropertyGuard* sharedGuard;
-        PropertyGuardHashSet uniqueGuards;
-        EntryPointDictionary* entryPoints;
+        Field(Js::PropertyGuard*) sharedGuard;
+        Field(PropertyGuardHashSet) uniqueGuards;
+        Field(EntryPointDictionary*) entryPoints;
 
         PropertyGuardEntry(Recycler* recycler) : sharedGuard(nullptr), uniqueGuards(recycler), entryPoints(nullptr) {}
     };
@@ -520,6 +473,7 @@ private:
 public:
     typedef JsUtil::BaseHashSet<const Js::PropertyRecord *, HeapAllocator, PrimeSizePolicy, const Js::PropertyRecord *,
         Js::PropertyRecordStringHashComparer, JsUtil::SimpleHashedEntry, JsUtil::AsymetricResizeLock> PropertyMap;
+    PropertyMap * propertyMap;
 
     typedef JsUtil::BaseHashSet<Js::CaseInvariantPropertyListWithHashCode*, Recycler, PowerOf2SizePolicy, Js::CaseInvariantPropertyListWithHashCode*, JsUtil::NoCaseComparer, JsUtil::SimpleDictionaryEntry>
         PropertyNoCaseSetType;
@@ -528,19 +482,55 @@ public:
     typedef JsUtil::WeaklyReferencedKeyDictionary<const Js::PropertyRecord, PropertyGuardEntry*, Js::PropertyRecordPointerComparer> PropertyGuardDictionary;
 
 private:
+    PTHREADCONTEXT_HANDLE m_remoteThreadContextInfo;
+    intptr_t m_prereservedRegionAddr;
+
+#if ENABLE_NATIVE_CODEGEN
+    BVSparse<HeapAllocator> * m_jitNumericProperties;
+    bool m_jitNeedsPropertyUpdate;
+public:
+    intptr_t GetPreReservedRegionAddr()
+    {
+        return m_prereservedRegionAddr;
+    }
+    BVSparse<HeapAllocator> * GetJITNumericProperties() const
+    {
+        return m_jitNumericProperties;
+    }
+    bool JITNeedsPropUpdate() const
+    {
+        return m_jitNeedsPropertyUpdate;
+    }
+    void ResetJITNeedsPropUpdate()
+    {
+        m_jitNeedsPropertyUpdate = false;
+    }
+
+    static void SetJITConnectionInfo(HANDLE processHandle, void* serverSecurityDescriptor, UUID connectionId);
+    bool EnsureJITThreadContext(bool allowPrereserveAlloc);
+
+    PTHREADCONTEXT_HANDLE GetRemoteThreadContextAddr()
+    {
+        Assert(m_remoteThreadContextInfo);
+        return m_remoteThreadContextInfo;
+    }
+#endif
+
+private:
     typedef JsUtil::BaseDictionary<uint, Js::SourceDynamicProfileManager*, Recycler, PowerOf2SizePolicy> SourceDynamicProfileManagerMap;
     typedef JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy> SymbolRegistrationMap;
+
 
     class SourceDynamicProfileManagerCache
     {
     public:
         SourceDynamicProfileManagerCache() : refCount(0), sourceProfileManagerMap(nullptr) {}
 
-        SourceDynamicProfileManagerMap* sourceProfileManagerMap;
+        Field(SourceDynamicProfileManagerMap*) sourceProfileManagerMap;
         void AddRef() { refCount++; }
         uint Release() { Assert(refCount > 0); return --refCount; }
     private:
-        uint refCount;              // For every script context using this cache, there is a ref count added.
+        Field(uint) refCount;              // For every script context using this cache, there is a ref count added.
     };
 
     typedef JsUtil::BaseDictionary<const WCHAR*, SourceDynamicProfileManagerCache*, Recycler, PowerOf2SizePolicy> SourceProfileManagersByUrlMap;
@@ -548,26 +538,29 @@ private:
     struct RecyclableData
     {
         RecyclableData(Recycler *const recycler);
-        Js::TempArenaAllocatorObject * temporaryArenaAllocators[MaxTemporaryArenaAllocators];
-        Js::TempGuestArenaAllocatorObject * temporaryGuestArenaAllocators[MaxTemporaryArenaAllocators];
+        Field(Js::TempArenaAllocatorObject *) temporaryArenaAllocators[MaxTemporaryArenaAllocators];
+        Field(Js::TempGuestArenaAllocatorObject *) temporaryGuestArenaAllocators[MaxTemporaryArenaAllocators];
 
-        Js::JavascriptExceptionObject * exceptionObject;
-        bool propagateException;
+        Field(Js::JavascriptExceptionObject *) exceptionObject;
+        Field(bool) propagateException;
 
         // We throw a JS catchable SO exception if we detect we might overflow the stack. Allocating this (JS)
         // object though might really overflow the stack. So use this thread global to identify them from the throw point
         // to where they are caught; where the stack has been unwound and it is safer to allocate the real exception
         // object and throw.
-        Js::JavascriptExceptionObject soErrorObject;
+        Field(Js::JavascriptExceptionObject) soErrorObject;
 
         // We can't allocate an out of memory object...  So use this static as a way to identify
         // them from the throw point to where they are caught.
-        Js::JavascriptExceptionObject oomErrorObject;
+        Field(Js::JavascriptExceptionObject) oomErrorObject;
 
         // This is for JsRT scenario where a runtime is not usable after a suspend request, before a resume runtime call is made
-        Js::JavascriptExceptionObject terminatedErrorObject;
+        Field(Js::JavascriptExceptionObject) terminatedErrorObject;
 
-        Js::JavascriptExceptionObject* unhandledExceptionObject;
+        Field(Js::JavascriptExceptionObject*) unhandledExceptionObject;
+
+        // Used to temporarily keep throwing exception object alive (thrown but not yet caught)
+        Field(Js::JavascriptExceptionObject*) tempUncaughtException;
 
         // Contains types that have property caches that need to be tracked, as the caches may need to be cleared. Types that
         // contain a property cache for a property that is on a prototype object will be tracked in this map since those caches
@@ -577,7 +570,7 @@ private:
         // they're searching through a bucket while registering a type or enumerating types to invalidate, or when a property ID
         // is reclaimed. If none of those happen, then this collection may contain weak reference handles to deleted objects
         // that would not get removed, but it would also not get any bigger.
-        PropertyIdToTypeHashSetDictionary typesWithProtoPropertyCache;
+        Field(PropertyIdToTypeHashSetDictionary) typesWithProtoPropertyCache;
 
         // The property guard dictionary contains property guards which need to be invalidated in response to properties changing
         // from writable to read-only and vice versa, properties being shadowed or unshadowed on prototypes, etc.  The dictionary
@@ -585,33 +578,34 @@ private:
         // When a guard is no longer needed it is garbage collected, but the weak references and dictionary entries remain, until
         // the guards for a given property get invalidated.
         // TODO: Create and use a self-cleaning weak reference dictionary, which would periodically remove any unused weak references.
-        PropertyGuardDictionary propertyGuards;
+        Field(PropertyGuardDictionary) propertyGuards;
 
 
-        PropertyNoCaseSetType * caseInvariantPropertySet;
+        Field(PropertyNoCaseSetType *) caseInvariantPropertySet;
 
-        JsUtil::List<Js::PropertyRecord const*>* boundPropertyStrings; // Recycler allocated list of property strings that we need to strongly reference so that they're not reclaimed
+        Field(JsUtil::List<Js::PropertyRecord const*>*) boundPropertyStrings; // Recycler allocated list of property strings that we need to strongly reference so that they're not reclaimed
 
-        SourceProfileManagersByUrlMap* sourceProfileManagersByUrl;
+        Field(SourceProfileManagersByUrlMap*) sourceProfileManagersByUrl;
 
         // Used to register recyclable data that needs to be kept alive while jitting
-        JsUtil::DoublyLinkedList<Js::CodeGenRecyclableData> codeGenRecyclableDatas;
+        typedef JsUtil::DoublyLinkedList<Js::CodeGenRecyclableData, Recycler> CodeGenRecyclableDataList;
+        Field(CodeGenRecyclableDataList) codeGenRecyclableDatas;
 
         // Used to root old entry points so that they're not prematurely collected
-        Js::FunctionEntryPointInfo* oldEntryPointInfo;
+        Field(Js::FunctionEntryPointInfo*) oldEntryPointInfo;
 
         // Used to store a mapping of string to Symbol for cross-realm Symbol registration
         // See ES6 (draft 22) 19.4.2.2
-        SymbolRegistrationMap* symbolRegistrationMap;
+        Field(SymbolRegistrationMap*) symbolRegistrationMap;
 
         // Just holding the reference to the returnedValueList of the stepController. This way that list will not get recycled prematurely.
-        Js::ReturnedValueList *returnedValueList;
+        Field(Js::ReturnedValueList *) returnedValueList;
 
-        uint constructorCacheInvalidationCount;
+        Field(uint) constructorCacheInvalidationCount;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         // use for autoProxy called from Debug.setAutoProxyName. we need to keep the buffer from GetSz() alive.
-        LPCWSTR autoProxyName;
+        Field(LPCWSTR) autoProxyName;
 #endif
     };
 
@@ -619,16 +613,17 @@ private:
 
     ThreadContextFlags threadContextFlags;
     DWORD currentThreadId;
-    mutable PBYTE stackLimitForCurrentThread;
+    mutable size_t stackLimitForCurrentThread;
     StackProber * stackProber;
     bool isThreadBound;
     bool hasThrownPendingException;
     bool callDispose;
-    bool isAllJITCodeInPreReservedRegion;
 
     AllocationPolicyManager * allocationPolicyManager;
 
     JsUtil::ThreadService threadService;
+    PreReservedVirtualAllocWrapper preReservedVirtualAllocator;
+
     uint callRootLevel;
 
 #if ENABLE_BACKGROUND_PAGE_FREEING
@@ -651,7 +646,6 @@ private:
 
     static const Js::PropertyRecord * const builtInPropertyRecords[];
 
-    PropertyMap * propertyMap;
     PropertyNoCaseSetType * caseInvariantPropertySet;
 
     Js::ScriptContext * rootPendingClose;
@@ -664,12 +658,27 @@ private:
     uint functionCount;
     uint sourceInfoCount;
 
+    enum RedeferralState
+    {
+        InitialRedeferralState,
+        StartupRedeferralState,
+        MainRedeferralState
+    };
+    RedeferralState redeferralState;
+    uint gcSinceLastRedeferral;
+    uint gcSinceCallCountsCollected;
+
+    static const uint InitialRedeferralDelay = 5;
+    static const uint StartupRedeferralCheckInterval = 10;
+    static const uint StartupRedeferralInactiveThreshold = 5;
+    static const uint MainRedeferralCheckInterval = 20;
+    static const uint MainRedeferralInactiveThreshold = 10;
+
     Js::TypeId nextTypeId;
     uint32 polymorphicCacheState;
-    Js::TypeId wellKnownHostTypeHTMLAllCollectionTypeId;
 
 #ifdef ENABLE_PROJECTION
-    SListBase<ExternalWeakReferenceCache *> externalWeakReferenceCacheList;
+    SListBase<ExternalWeakReferenceCache *, HeapAllocator> externalWeakReferenceCacheList;
 #if DBG_DUMP
     IProjectionContextMemoryInfo *projectionMemoryInformation;
 #endif
@@ -678,12 +687,14 @@ private:
 #if ENABLE_NATIVE_CODEGEN
     JsUtil::JobProcessor *jobProcessor;
     Js::Var * bailOutRegisterSaveSpace;
+#if !FLOATVAR
     CodeGenNumberThreadAllocator * codeGenNumberThreadAllocator;
-    PreReservedVirtualAllocWrapper preReservedVirtualAllocator;
-#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    CustomHeap::CodePageAllocators thunkPageAllocators;
+    XProcNumberPageSegmentManager * xProcNumberPageSegmentManager;
 #endif
-    CustomHeap::CodePageAllocators codePageAllocators;
+#if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
+    CustomHeap::InProcCodePageAllocators thunkPageAllocators;
+#endif
+    CustomHeap::InProcCodePageAllocators codePageAllocators;
 #endif
 
     RecyclerRootPtr<RecyclableData> recyclableData;
@@ -705,6 +716,8 @@ private:
     int stackProbeCount;
     // Count stack probes and poll for continuation every n probes
     static const int StackProbePollThreshold = 1000;
+    EXCEPTION_POINTERS exceptionInfo;
+    uint32 exceptionCode;
 
     ArenaAllocator inlineCacheThreadInfoAllocator;
     ArenaAllocator isInstInlineCacheThreadInfoAllocator;
@@ -718,6 +731,9 @@ private:
 
     uint registeredInlineCacheCount;
     uint unregisteredInlineCacheCount;
+#if DBG
+    uint totalUnregisteredCacheCount;
+#endif
 
     typedef JsUtil::BaseDictionary<Js::Var, Js::IsInstInlineCache*, ArenaAllocator> IsInstInlineCacheListMapByFunction;
     IsInstInlineCacheListMapByFunction isInstInlineCacheByFunction;
@@ -761,10 +777,6 @@ private:
     Js::DelayLoadWinRtFoundation delayLoadWinRtFoundationLibrary;
     Js::WindowsFoundationAdapter windowsFoundationAdapter;
 #endif
-#ifdef _CONTROL_FLOW_GUARD
-    Js::DelayLoadWinCoreMemory delayLoadWinCoreMemoryLibrary;
-#endif
-    Js::DelayLoadWinCoreProcessThreads delayLoadWinCoreProcessThreads;
 #endif
 
     // Number of script context attached with probe manager.
@@ -784,7 +796,7 @@ private:
 
     Js::ImplicitCallFlags implicitCallFlags;
 
-    __declspec(thread) static uint activeScriptSiteCount;
+    THREAD_LOCAL static uint activeScriptSiteCount;
     bool isScriptActive;
 
     // To synchronize with ETW rundown, which needs to walk scriptContext/functionBody/entryPoint lists.
@@ -799,12 +811,12 @@ private:
     typedef JsUtil::BaseDictionary<Js::DynamicType const *, void *, HeapAllocator, PowerOf2SizePolicy> DynamicObjectEnumeratorCacheMap;
     DynamicObjectEnumeratorCacheMap dynamicObjectEnumeratorCacheMap;
 
+#ifdef NTBUILD
     ThreadContextWatsonTelemetryBlock localTelemetryBlock;
     ThreadContextWatsonTelemetryBlock * telemetryBlock;
+#endif
 
     NativeLibraryEntryRecord nativeLibraryEntry;
-
-    UCrtC99MathApis ucrtC99MathApis;
 
     // Indicates the current loop depth as observed by the interpreter. The interpreter causes this value to be updated upon
     // entering and leaving a loop.
@@ -832,17 +844,12 @@ public:
 #if ENABLE_NATIVE_CODEGEN
     PreReservedVirtualAllocWrapper * GetPreReservedVirtualAllocator() { return &preReservedVirtualAllocator; }
 #if DYNAMIC_INTERPRETER_THUNK || defined(ASMJS_PLAT)
-    CustomHeap::CodePageAllocators * GetThunkPageAllocators() { return &thunkPageAllocators; }
+    CustomHeap::InProcCodePageAllocators * GetThunkPageAllocators() { return &thunkPageAllocators; }
 #endif
-    CustomHeap::CodePageAllocators * GetCodePageAllocators() { return &codePageAllocators; }
+    CustomHeap::InProcCodePageAllocators * GetCodePageAllocators() { return &codePageAllocators; }
 #endif // ENABLE_NATIVE_CODEGEN
 
-    void ResetIsAllJITCodeInPreReservedRegion() { isAllJITCodeInPreReservedRegion = false; }
-    bool IsAllJITCodeInPreReservedRegion() { return isAllJITCodeInPreReservedRegion; }
-
     CriticalSection* GetEtwRundownCriticalSection() { return &csEtwRundown; }
-
-    UCrtC99MathApis* GetUCrtC99MathApis() { return &ucrtC99MathApis; }
 
     Js::IsConcatSpreadableCache* GetIsConcatSpreadableCache() { return &isConcatSpreadableCache; }
 
@@ -861,17 +868,13 @@ public:
     Js::DelayLoadWinRtFoundation *GetWinRtFoundationLibrary();
     Js::WindowsFoundationAdapter *GetWindowsFoundationAdapter();
 #endif
-#ifdef _CONTROL_FLOW_GUARD
-    Js::DelayLoadWinCoreMemory * GetWinCoreMemoryLibrary();
-#endif
-    Js::DelayLoadWinCoreProcessThreads * GetWinCoreProcessThreads();
 #endif
 
+    void SetAbnormalExceptionRecord(EXCEPTION_POINTERS *exceptionInfo) { this->exceptionInfo = *exceptionInfo; }
+    void SetAbnormalExceptionCode(uint32 exceptionInfo) { this->exceptionCode = exceptionInfo; }
+    uint32 GetAbnormalExceptionCode() const { return this->exceptionCode; }
+
 #ifdef ENABLE_BASIC_TELEMETRY
-#if ENABLE_NATIVE_CODEGEN
-    JITTimer JITTelemetry;
-#endif
-    ParserTimer ParserTelemetry;
     GUID activityId;
 #endif
     void *tridentLoadAddress;
@@ -883,40 +886,6 @@ public:
     DirectCallTelemetry directCallTelemetry;
 #endif
 
-#ifdef ENABLE_BASIC_TELEMETRY
-#if ENABLE_NATIVE_CODEGEN
-    JITStats GetJITStats()
-    {
-        return JITTelemetry.GetStats();
-    }
-
-    void ResetJITStats()
-    {
-        JITTelemetry.Reset();
-    }
-#endif
-    
-    ParserStats GetParserStats()
-    {
-        return ParserTelemetry.GetStats();
-    }
-
-    void ResetParserStats()
-    {
-        ParserTelemetry.Reset();
-    }
-#endif
-
-    double maxGlobalFunctionExecTime;
-    double GetAndResetMaxGlobalFunctionExecTime()
-    {
-        double res = maxGlobalFunctionExecTime;
-        this->maxGlobalFunctionExecTime = 0.0;
-        return res;
-    }
-
-    bool IsCFGEnabled();
-    void SetValidCallTargetForCFG(PVOID callTargetAddress, bool isSetValid = true);
     BOOL HasPreviousHostScriptContext();
     HostScriptContext* GetPreviousHostScriptContext() ;
     void PushHostScriptContext(HostScriptContext* topProvider);
@@ -971,7 +940,8 @@ public:
     {
         Assert(this->recyclableData == nullptr || this->recyclableData->returnedValueList == nullptr);
     }
-
+#endif
+#if DBG || defined(RUNTIME_DATA_COLLECTION)
     uint GetScriptContextCount() const { return this->scriptContextCount; }
 #endif
     Js::ScriptContext* GetScriptContextList() const { return this->scriptContextList; }
@@ -990,28 +960,28 @@ public:
 #endif
 
 #if ENABLE_TTD
-    bool IsTTRecordRequested;
-    bool IsTTDebugRequested;
-    TTD::TTUriString TTDUri;
-    uint32 TTSnapInterval;
-    uint32 TTSnapHistoryLength;
+    //The class that holds info on the TTD state for the thread context
+    TTD::ThreadContextTTD* TTDContext;
 
     //The event log for time-travel (or null if TTD is not turned on)
     TTD::EventLog* TTDLog;
 
+    //Keep track of the number of re-entrant calls currently pending (i.e., if we make an external call it may call back into Chakra)
+    int32 TTDRootNestingCount;
+
+    bool IsRuntimeInTTDMode() const
+    {
+        return this->TTDLog != nullptr;
+    }
+
     //Initialize the context for time-travel
-    void InitTimeTravel(bool doRecord, bool doReplay);
-    void BeginCtxTimeTravel(Js::ScriptContext* ctx, const HostScriptContextCallbackFunctor& callbackFunctor);
-    void EndCtxTimeTravel(Js::ScriptContext* ctx);
+    void InitTimeTravel(ThreadContext* threadContext, void* runtimeHandle, uint32 snapInterval, uint32 snapHistoryLength);
 
-    //Emit the TT Log
-    void EmitTTDLogIfNeeded();
-
-    //
-    //Callback functions provided by the host for writing info to some type of storage location
-    //
-    TTD::TTDInitializeForWriteLogStreamCallback TTDWriteInitializeFunction;
-    TTD::IOStreamFunctions TTDStreamFunctions;
+    void InitHostFunctionsAndTTData(bool record, bool replay, bool debug, size_t optTTUriLength, const char* optTTUri,
+        TTD::TTDOpenResourceStreamCallback openResourceStreamfp, TTD::TTDReadBytesFromStreamCallback readBytesFromStreamfp,
+        TTD::TTDWriteBytesToStreamCallback writeBytesToStreamfp, TTD::TTDFlushAndCloseStreamCallback flushAndCloseStreamfp,
+        TTD::TTDCreateExternalObjectCallback createExternalObjectfp,
+        TTD::TTDCreateJsRTContextCallback createJsRTContextCallbackfp, TTD::TTDReleaseJsRTContextCallback releaseJsRTContextCallbackfp, TTD::TTDSetActiveJsRTContext fpSetActiveJsRTContext);
 #endif
 
     BOOL ReserveStaticTypeIds(__in int first, __in int last);
@@ -1049,6 +1019,15 @@ public:
         {
             jobProcessor->Close();
         }
+
+        if (JITManager::GetJITManager()->IsOOPJITEnabled() && m_remoteThreadContextInfo)
+        {
+            if (JITManager::GetJITManager()->CleanupThreadContext(&m_remoteThreadContextInfo) == S_OK)
+            {
+                Assert(m_remoteThreadContextInfo == nullptr);
+            }
+            m_remoteThreadContextInfo = nullptr;
+        }
 #endif
 #if ENABLE_CONCURRENT_GC
         if (this->recycler != nullptr)
@@ -1057,8 +1036,6 @@ public:
         }
 #endif
     }
-
-
 
     DateTime::HiResTimer * GetHiResTimer() { return &hTimer; }
     ArenaAllocator* GetThreadAlloc() { return &threadAlloc; }
@@ -1070,7 +1047,9 @@ public:
     ThreadConfiguration const * GetConfig() const { return &configuration; }
 
 public:
+#ifdef NTBUILD
     void SetTelemetryBlock(ThreadContextWatsonTelemetryBlock * telemetryBlock) { this->telemetryBlock = telemetryBlock; }
+#endif
 
     static ThreadContext* GetContextForCurrentThread();
 
@@ -1133,7 +1112,9 @@ private:
     RecyclerWeakReference<const Js::PropertyRecord> * CreatePropertyRecordWeakRef(const Js::PropertyRecord * propertyRecord);
     void AddCaseInvariantPropertyRecord(const Js::PropertyRecord * propertyRecord);
 
+#if DBG || defined(RUNTIME_DATA_COLLECTION)
     uint scriptContextCount;
+#endif
 
 public:
     void UncheckedAddBuiltInPropertyId();
@@ -1147,7 +1128,6 @@ public:
 
     void SetThreadServiceWrapper(ThreadServiceWrapper*);
     ThreadServiceWrapper* GetThreadServiceWrapper();
-    uint GetUnreleasedScriptContextCount(){return scriptContextCount;}
 
 #ifdef ENABLE_PROJECTION
     void AddExternalWeakReferenceCache(ExternalWeakReferenceCache *externalWeakReferenceCache);
@@ -1185,17 +1165,37 @@ public:
     static size_t  GetProcessCodeSize() { return processNativeCodeSize; }
     size_t GetSourceSize() { return sourceCodeSize; }
 
+    bool DoTryRedeferral() const;
+    void TryRedeferral();
+    bool DoRedeferFunctionBodies() const;
+    void UpdateRedeferralState();
+    uint GetRedeferralCollectionInterval() const;
+    uint GetRedeferralInactiveThreshold() const;
+    void GetActiveFunctions(ActiveFunctionSet * pActive);
+#if DBG
+    uint redeferredFunctions;
+    uint recoveredBytes;
+#endif
+
     Js::ScriptEntryExitRecord * GetScriptEntryExit() const { return entryExitRecord; }
     void RegisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
     void UnregisterCodeGenRecyclableData(Js::CodeGenRecyclableData *const codeGenRecyclableData);
 #if ENABLE_NATIVE_CODEGEN
-    BOOL IsNativeAddress(void * pCodeAddr);
+    bool IsNativeAddressHelper(void * pCodeAddr, Js::ScriptContext* currentScriptContext);
+    BOOL IsNativeAddress(void * pCodeAddr, Js::ScriptContext* currentScriptContext = nullptr);
     JsUtil::JobProcessor *GetJobProcessor();
     Js::Var * GetBailOutRegisterSaveSpace() const { return bailOutRegisterSaveSpace; }
+    virtual intptr_t GetBailOutRegisterSaveSpaceAddr() const override { return (intptr_t)bailOutRegisterSaveSpace; }
+#if !FLOATVAR
     CodeGenNumberThreadAllocator * GetCodeGenNumberThreadAllocator() const
     {
         return codeGenNumberThreadAllocator;
     }
+    XProcNumberPageSegmentManager * GetXProcNumberPageSegmentManager() const
+    {
+        return this->xProcNumberPageSegmentManager;
+    }
+#endif
 #endif
     void ResetFunctionCount() { Assert(this->GetScriptSiteHolderCount() == 0); this->functionCount = 0; }
     void PushEntryExitRecord(Js::ScriptEntryExitRecord *);
@@ -1250,6 +1250,22 @@ public:
     void RegisterUniquePropertyGuard(Js::PropertyId propertyId, RecyclerWeakReference<Js::PropertyGuard>* guardWeakRef);
     void RegisterConstructorCache(Js::PropertyId propertyId, Js::ConstructorCache* cache);
 #endif
+
+    virtual size_t GetScriptStackLimit() const override;
+
+    virtual HANDLE GetProcessHandle() const override;
+
+    virtual intptr_t GetThreadStackLimitAddr() const override;
+
+#if ENABLE_NATIVE_CODEGEN && defined(ENABLE_SIMDJS) && (defined(_M_IX86) || defined(_M_X64))
+    virtual intptr_t GetSimdTempAreaAddr(uint8 tempIndex) const override;
+#endif
+
+    virtual intptr_t GetDisableImplicitFlagsAddr() const override;
+    virtual intptr_t GetImplicitCallFlagsAddr() const override;
+
+    ptrdiff_t GetChakraBaseAddressDifference() const;
+    ptrdiff_t GetCRTBaseAddressDifference() const;
 
 private:
     void RegisterInlineCache(InlineCacheListMapByPropertyId& inlineCacheMap, Js::InlineCache* inlineCache, Js::PropertyId propertyId);
@@ -1325,6 +1341,7 @@ public:
     void ClearInvalidatedUniqueGuards();
     void ClearInlineCaches();
     void ClearIsInstInlineCaches();
+    void ClearForInCaches();
     void ClearEquivalentTypeCaches();
     void ClearScriptContextCaches();
 
@@ -1342,6 +1359,16 @@ public:
     void ResetHasUnhandledException() {hasUnhandledException = FALSE; }
     void SetUnhandledExceptionObject(Js::JavascriptExceptionObject* exceptionObject) {recyclableData->unhandledExceptionObject  = exceptionObject; }
     Js::JavascriptExceptionObject* GetUnhandledExceptionObject() const  { return recyclableData->unhandledExceptionObject; };
+
+    // To temporarily keep throwing exception object alive (thrown but not yet caught)
+    Field(Js::JavascriptExceptionObject*)* SaveTempUncaughtException(Js::JavascriptExceptionObject* exceptionObject)
+    {
+        // Previous save should have been caught and cleared
+        Assert(recyclableData->tempUncaughtException == nullptr);
+
+        recyclableData->tempUncaughtException = exceptionObject;
+        return &recyclableData->tempUncaughtException;
+    }
 
     bool HasCatchHandler() const { return hasCatchHandler; }
     void SetHasCatchHandler(bool hasCatchHandler) { this->hasCatchHandler = hasCatchHandler; }
@@ -1378,7 +1405,7 @@ public:
     }
 
 #if ENABLE_PROFILE_INFO
-    void ThreadContext::EnsureSourceProfileManagersByUrlMap();
+    void EnsureSourceProfileManagersByUrlMap();
     Js::SourceDynamicProfileManager* GetSourceDynamicProfileManager(_In_z_ const WCHAR* url, _In_ uint hash, _Inout_ bool* addref);
     uint ReleaseSourceDynamicProfileManagers(const WCHAR* url);
 #endif
@@ -1386,6 +1413,10 @@ public:
     void EnsureSymbolRegistrationMap();
     const Js::PropertyRecord* GetSymbolFromRegistrationMap(const char16* stringKey);
     const Js::PropertyRecord* AddSymbolToRegistrationMap(const char16* stringKey, charcount_t stringLength);
+
+#if ENABLE_TTD
+    JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy>* GetSymbolRegistrationMap_TTD();
+#endif
 
     inline void ClearPendingSOError()
     {
@@ -1442,7 +1473,7 @@ public:
         return entropy;
     }
 #endif
-    
+
     Js::ImplicitCallFlags * GetAddressOfImplicitCallFlags()
     {
         return &implicitCallFlags;
@@ -1528,6 +1559,8 @@ public:
     void ClearDisableImplicitFlags() { disableImplicitFlags = DisableImplicitNoFlag; }
 
     virtual uint GetRandomNumber() override;
+    virtual bool DoSpecialMarkOnScanStack() override { return this->DoRedeferFunctionBodies(); }
+    virtual void PostSweepRedeferralCallBack() override;
 
     // DefaultCollectWrapper
     virtual void PreCollectionCallBack(CollectionFlags flags) override;
@@ -1620,7 +1653,6 @@ public:
     void* GetJSRTRuntime() const { return jsrtRuntime; }
     void SetJSRTRuntime(void* runtime);
 
-    bool CanBeFalsy(Js::TypeId typeId);
 private:
     BOOL ExecuteRecyclerCollectionFunctionCommon(Recycler * recycler, CollectionFunction function, CollectionFlags flags);
 

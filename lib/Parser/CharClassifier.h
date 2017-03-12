@@ -116,13 +116,11 @@ namespace Js
         static bool BigCharIsIdStartES6(codepoint_t codePoint, const CharClassifier *instance);
         static bool BigCharIsIdContinueES6(codepoint_t codePoint, const CharClassifier *instance);
 
-#if ENABLE_UNICODE_API
         static CharTypes GetBigCharTypeES6(codepoint_t ch, const CharClassifier *instance);
         static PlatformAgnostic::UnicodeText::CharacterTypeFlags GetBigCharFlagsES6(codepoint_t ch, const CharClassifier *instance);
 
         static CharTypes GetBigCharTypeES5(codepoint_t ch, const CharClassifier *instance);
         static PlatformAgnostic::UnicodeText::CharacterTypeFlags GetBigCharFlagsES5(codepoint_t ch, const CharClassifier *instance);
-#endif
 
         static const OLECHAR* SkipWhiteSpaceSurrogate(LPCOLESTR psz, const CharClassifier *instance);
         static const OLECHAR* SkipWhiteSpaceSurrogateStartEnd(_In_reads_(pStrEnd - pStr) LPCOLESTR pStr, _In_ LPCOLESTR pStrEnd, const CharClassifier *instance);
@@ -134,14 +132,12 @@ namespace Js
         static const OLECHAR* SkipIdentifierNonSurrogate(LPCOLESTR psz, const CharClassifier *instance);
         static const LPCUTF8 SkipIdentifierNonSurrogateStartEnd(LPCUTF8 psz, LPCUTF8 end, const CharClassifier *instance);
 
-#if ENABLE_UNICODE_API
         CharTypes (*getBigCharTypeFunc)(codepoint_t ch, const CharClassifier *instance);
         PlatformAgnostic::UnicodeText::CharacterTypeFlags (*getBigCharFlagsFunc)(codepoint_t ch, const CharClassifier *instance);
 
         bool (*bigCharIsWhitespaceFunc)(codepoint_t ch, const CharClassifier *instance);
         bool (*bigCharIsIdStartFunc)(codepoint_t ch, const CharClassifier *instance);
         bool (*bigCharIsIdContinueFunc)(codepoint_t ch, const CharClassifier *instance);
-#endif
 
         const OLECHAR* (*skipWhiteSpaceFunc)(LPCOLESTR psz, const CharClassifier* instance);
         const OLECHAR* (*skipWhiteSpaceStartEndFunc)(LPCOLESTR pStr, LPCOLESTR pStrEnd, const CharClassifier* instance);

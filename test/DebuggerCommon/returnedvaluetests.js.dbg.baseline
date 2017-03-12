@@ -1,0 +1,156 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "k": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "k": "number 10"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[sum returned]": "number 9"
+    },
+    "locals": {
+      "k": "number 12"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[mul returned]": "number 20"
+    },
+    "locals": {
+      "k": "number 20"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[sum returned]": "number 11",
+      "[mul returned]": "number 55"
+    },
+    "locals": {
+      "k": "number 55"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "m": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "m": "number 10"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[get o.b returned]": "number 10"
+    },
+    "locals": {
+      "m": "number 10"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[set o.b returned]": "undefined undefined"
+    },
+    "locals": {
+      "m": "number 10"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "[Return value]": "undefined undefined",
+    "functionCallsReturn": {
+      "[get o.b returned]": "number 31",
+      "[sum returned]": "number 62"
+    },
+    "locals": {
+      "m": "number 62"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "j": "undefined undefined",
+      "j1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "j": "number 10",
+      "j1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[f2 returned]": "number 51"
+    },
+    "locals": {
+      "j": "number 10",
+      "j1": "number 51"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[f1 returned]": "function <large string>"
+    },
+    "locals": {
+      "j": "number 10",
+      "j1": "function <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[f1 returned]": "function <large string>",
+      "[Anonymous function returned]": "function <large string>"
+    },
+    "locals": {
+      "j": "number 10",
+      "j1": "function <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "[Return value]": "undefined undefined",
+    "functionCallsReturn": {
+      "[f1 returned]": "function <large string>",
+      "[Anonymous function returned]": "string inside"
+    },
+    "locals": {
+      "j": "number 10",
+      "j1": "function <large string>"
+    }
+  }
+]

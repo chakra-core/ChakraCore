@@ -10,6 +10,7 @@ from multiprocessing import Pool, Manager
 from threading import Timer
 import sys
 import os
+import glob
 import subprocess as SP
 import traceback
 import argparse
@@ -34,14 +35,19 @@ test a single file:
     runtests.py Basics/hello.js
 ''')
 
+DEFAULT_TIMEOUT = 60
+SLOW_TIMEOUT = 180
+
 parser.add_argument('folders', metavar='folder', nargs='*',
                     help='folder subset to run tests')
 parser.add_argument('-b', '--binary', metavar='bin', help='ch full path')
 parser.add_argument('-d', '--debug', action='store_true',
                     help='use debug build');
 parser.add_argument('-t', '--test', action='store_true', help='use test build')
+parser.add_argument('--variants', metavar='variant', nargs='+',
+                    help='run specified test variants')
 parser.add_argument('--include-slow', action='store_true',
-                    help='include slow tests')
+                    help='include slow tests (timeout ' + str(SLOW_TIMEOUT) + ' seconds)')
 parser.add_argument('--only-slow', action='store_true',
                     help='run only slow tests')
 parser.add_argument('--nightly', action='store_true',
@@ -50,8 +56,11 @@ parser.add_argument('--tag', nargs='*',
                     help='select tests with given tags')
 parser.add_argument('--not-tag', nargs='*',
                     help='exclude tests with given tags')
-parser.add_argument('--timeout', type=int, default=60,
-                    help='test timeout (default 60 seconds)')
+parser.add_argument('--flags', default='',
+                    help='global test flags to ch')
+parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
+                    help='test timeout (default ' + str(DEFAULT_TIMEOUT) + ' seconds)')
+parser.add_argument('--swb', action='store_true', help='use binary from VcBuild.SWB to run the test')
 parser.add_argument('-l', '--logfile', metavar='logfile', help='file to log results to', default=None)
 parser.add_argument('--x86', action='store_true', help='use x86 build')
 parser.add_argument('--x64', action='store_true', help='use x64 build')
@@ -78,13 +87,18 @@ if flavor == None:
     sys.exit(1)
 flavor_alias = 'chk' if flavor == 'Debug' else 'fre'
 
+# test variants
+if not args.variants:
+    args.variants = ['interpreted', 'dynapogo']
+
 # binary: full ch path
 binary = args.binary
 if binary == None:
     if sys.platform == 'win32':
-        binary = 'Build/VcBuild/bin/{}_{}/ch.exe'.format(arch, flavor)
+        build = "VcBuild.SWB" if args.swb else "VcBuild"
+        binary = 'Build\\' + build + '\\bin\\{}_{}\\ch.exe'.format(arch, flavor)
     else:
-        binary = 'BuildLinux/{0}/ch'.format(flavor)
+        binary = 'out/{0}/ch'.format(flavor)
     binary = os.path.join(repo_root, binary)
 if not os.path.isfile(binary):
     print('{} not found. Did you run ./build.sh already?'.format(binary))
@@ -102,6 +116,8 @@ if args.only_slow:
     tags.add('Slow')
 elif not args.include_slow:
     not_tags.add('Slow')
+elif args.include_slow and args.timeout == DEFAULT_TIMEOUT:
+    args.timeout = SLOW_TIMEOUT
 
 not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 
@@ -109,8 +125,7 @@ not_tags.add('exclude_nightly' if args.nightly else 'nightly')
 if sys.platform != 'win32':
     not_tags.add('exclude_xplat')
     not_tags.add('Intl')
-    not_tags.add('require_backend')
-    not_tags.add('require_debugger')
+
 if sys.platform == 'darwin':
     not_tags.add('exclude_mac')
 not_compile_flags = set(['-simdjs']) \
@@ -175,6 +190,7 @@ def normalize_new_line(text):
 
 # A test simply contains a collection of test attributes.
 # Misc attributes added by test run:
+#   id              unique counter to identify a test
 #   filename        full path of test file
 #   elapsed_time    elapsed time when running the test
 #
@@ -236,19 +252,34 @@ class TestResult(PassFailCount):
 #   interpreted: -maxInterpretCount:1 -maxSimpleJitRunCount:1 -bgjit-
 #   dynapogo: -forceNative -off:simpleJit -bgJitDelay:0
 class TestVariant(object):
-    def __init__(self, name, compile_flags=[]):
+    def __init__(self, name, compile_flags=[], variant_not_tags=[]):
         self.name = name
         self.compile_flags = \
             ['-WERExceptionSupport', '-ExtendedErrorStackForTestHost',
              '-BaselineMode'] + compile_flags
+        self._compile_flags_has_expansion = self._has_expansion(compile_flags)
         self.tags = tags.copy()
-        self.not_tags = not_tags.union(
+        self.not_tags = not_tags.union(variant_not_tags).union(
             ['{}_{}'.format(x, name) for x in ('fails','exclude')])
 
         self.msg_queue = Manager().Queue() # messages from multi processes
         self.test_result = TestResult()
+        self.test_count = 0
         self._print_lines = [] # _print lines buffer
         self._last_len = 0
+
+    @staticmethod
+    def _has_expansion(flags):
+        return any(re.match('.*\${.*}', f) for f in flags)
+
+    @staticmethod
+    def _expand(flag, test):
+        return re.sub('\${id}', str(test.id), flag)
+
+    def _expand_compile_flags(self, test):
+        if self._compile_flags_has_expansion:
+            return [self._expand(flag, test) for flag in self.compile_flags]
+        return self.compile_flags
 
     # check if this test variant should run a given test
     def _should_test(self, test):
@@ -309,7 +340,7 @@ class TestVariant(object):
         if expected_output == None or timedout:
             self._print("\nOutput:")
             self._print("----------------------------")
-            self._print(output)
+            self._print(output.decode('utf-8'))
             self._print("----------------------------")
         else:
             lst_output = output.split(b'\n')
@@ -365,8 +396,11 @@ class TestVariant(object):
 
         working_path = os.path.dirname(js_file)
 
-        flags = test.get('compile-flags')
-        flags = self.compile_flags + (flags.split() if flags else [])
+        flags = test.get('compile-flags') or ''
+        flags = self._expand_compile_flags(test) + \
+                    args.flags.split() + \
+                    flags.split()
+
         cmd = [binary] + flags + [os.path.basename(js_file)]
 
         test.start()
@@ -425,7 +459,7 @@ class TestVariant(object):
         self._log_result(test, fail=False)
 
     # run tests under this variant, using given multiprocessing Pool
-    def run(self, tests, pool):
+    def _run(self, tests, pool):
         print_and_log('\n############# Starting {} variant #############'\
                         .format(self.name))
         if self.tags:
@@ -436,7 +470,7 @@ class TestVariant(object):
 
         # filter tests to run
         tests = [x for x in tests if self._should_test(x)]
-        self.test_count = len(tests)
+        self.test_count += len(tests)
 
         # run tests in parallel
         result = pool.map_async(run_one, [(self,test) for test in tests])
@@ -452,6 +486,18 @@ class TestVariant(object):
         print_and_log("----------------------------")
         print_and_log('Total: {}'.format(self.test_result))
 
+    # run all tests from testLoader
+    def run(self, testLoader, pool, sequential_pool):
+        tests, sequential_tests = [], []
+        for folder in testLoader.folders():
+            if folder.tags.isdisjoint(self.not_tags):
+                dest = tests if not folder.is_sequential else sequential_tests
+                dest += folder.tests
+        if tests:
+            self._run(tests, pool)
+        if sequential_tests:
+            self._run(sequential_tests, sequential_pool)
+
 # global run one test function for multiprocessing, used by TestVariant
 def run_one(data):
     try:
@@ -461,9 +507,38 @@ def run_one(data):
         print('ERROR: Unhandled exception!!!')
         traceback.print_exc()
 
-# record folder/tags info from test_root/rlexedirs.xml
-class FolderTags(object):
-    def __init__(self):
+
+# A test folder contains a list of tests and maybe some tags.
+class TestFolder(object):
+    def __init__(self, tests, tags=_empty_set):
+        self.tests = tests
+        self.tags = tags
+        self.is_sequential = 'sequential' in tags
+
+# TestLoader loads all tests
+class TestLoader(object):
+    def __init__(self, paths):
+        self._folder_tags = self._load_folder_tags()
+        self._test_id = 0
+        self._folders = []
+
+        for path in paths:
+            if os.path.isfile(path):
+                folder, file = os.path.dirname(path), os.path.basename(path)
+            else:
+                folder, file = path, None
+
+            ftags = self._get_folder_tags(folder)
+            if ftags != None:  # Only honor entries listed in rlexedirs.xml
+                tests = self._load_tests(folder, file)
+                self._folders.append(TestFolder(tests, ftags))
+
+    def folders(self):
+        return self._folders
+
+    # load folder/tags info from test_root/rlexedirs.xml
+    @staticmethod
+    def _load_folder_tags():
         xmlpath = os.path.join(test_root, 'rlexedirs.xml')
         try:
             xml = ET.parse(xmlpath).getroot()
@@ -471,102 +546,117 @@ class FolderTags(object):
             print_and_log('ERROR: failed to read {}'.format(xmlpath))
             exit(-1)
 
-        self._folder_tags = {}
+        folder_tags = {}
         for x in xml:
             d = x.find('default')
             key = d.find('files').text.lower() # avoid case mismatch
             tags = d.find('tags')
-            self._folder_tags[key] = \
+            folder_tags[key] = \
                 split_tags(tags.text) if tags != None else _empty_set
+        return folder_tags
 
-    # check if should test a given folder
-    def should_test(self, folder):
+    # get folder tags if any
+    def _get_folder_tags(self, folder):
         key = os.path.basename(os.path.normpath(folder)).lower()
-        ftags = self._folder_tags.get(key)
+        return self._folder_tags.get(key)
 
-        # folder listed in rlexedirs.xml and not exlucded by global not_tags
-        return ftags != None and ftags.isdisjoint(not_tags)
+    def _next_test_id(self):
+        self._test_id += 1
+        return self._test_id
 
+    # load all tests in folder using rlexe.xml file
+    def _load_tests(self, folder, file):
+        try:
+            xmlpath = os.path.join(folder, 'rlexe.xml')
+            xml = ET.parse(xmlpath).getroot()
+        except IOError:
+            return []
 
-# load all tests in folder using rlexe.xml file
-def load_tests(folder, file):
-    try:
-        xmlpath = os.path.join(folder, 'rlexe.xml')
-        xml = ET.parse(xmlpath).getroot()
-    except IOError:
-        return []
+        def test_override(condition, check_tag, check_value, test):
+            target = condition.find(check_tag)
+            if target != None and target.text == check_value:
+                for override in condition.find('override'):
+                    test[override.tag] = override.text
 
-    def test_override(condition, check_tag, check_value, test):
-        target = condition.find(check_tag)
-        if target != None and target.text == check_value:
-            for override in condition.find('override'):
-                test[override.tag] = override.text
+        def load_test(testXml):
+            test = Test(folder=folder)
+            for c in testXml.find('default'):
+                if c.tag == 'timeout':                       # timeout seconds
+                    test[c.tag] = int(c.text)
+                elif c.tag == 'tags' and c.tag in test:      # merge multiple <tags>
+                    test[c.tag] = test[c.tag] + ',' + c.text
+                else:
+                    test[c.tag] = c.text
 
-    def load_test(testXml):
-        test = Test(folder=folder)
-        for c in testXml.find('default'):
-            if c.tag == 'timeout':                       # timeout seconds
-                test[c.tag] = int(c.text)
-            elif c.tag == 'tags' and c.tag in test:      # merge multiple <tags>
-                test[c.tag] = test[c.tag] + ',' + c.text
-            else:
-                test[c.tag] = c.text
+            condition = testXml.find('condition')
+            if condition != None:
+                test_override(condition, 'target', arch_alias, test)
 
-        condition = testXml.find('condition')
-        if condition != None:
-            test_override(condition, 'target', arch_alias, test)
+            return test
 
-        return test
+        tests = [load_test(x) for x in xml]
+        if file != None:
+            tests = [x for x in tests if x.files == file]
+            if len(tests) == 0 and self.is_jsfile(file):
+                tests = [Test(folder=folder, files=file, baseline='')]
 
-    tests = [load_test(x) for x in xml]
-    if file != None:
-        tests = [x for x in tests if x.files == file]
-        if len(tests) == 0 and is_jsfile(file):
-            tests = [Test(folder=folder, files=file, baseline='')]
-    return tests
+        for test in tests:  # assign unique test.id
+            test.id = self._next_test_id()
 
-def is_jsfile(path):
-    return os.path.splitext(path)[1] == '.js'
+        return tests
+
+    @staticmethod
+    def is_jsfile(path):
+        return os.path.splitext(path)[1] == '.js'
 
 def main():
+    # Set the right timezone, the tests need Pacific Standard Time
+    # TODO: Windows. time.tzset only supports Unix
+    if hasattr(time, 'tzset'):
+        os.environ['TZ'] = 'US/Pacific'
+        time.tzset()
+
     # By default run all tests
     if len(args.folders) == 0:
         files = (os.path.join(test_root, x) for x in os.listdir(test_root))
         args.folders = [f for f in sorted(files) if not os.path.isfile(f)]
 
-    # Set the right timezone, the tests need Pacific Standard Time
-    os.environ['TZ'] = 'US/Pacific'
-    time.tzset()
-
     # load all tests
-    tests = []
-    folder_tags = FolderTags()
-    for path in args.folders:
-        if os.path.isfile(path):
-            folder, file = os.path.dirname(path), os.path.basename(path)
-        else:
-            folder, file = path, None
-        if folder_tags.should_test(folder):
-            tests += load_tests(folder, file)
+    testLoader = TestLoader(args.folders)
 
     # test variants
-    variants = [
+    variants = [x for x in [
         TestVariant('interpreted', [
-            '-maxInterpretCount:1', '-maxSimpleJitRunCount:1', '-bgjit-'])
-    ]
+                '-maxInterpretCount:1', '-maxSimpleJitRunCount:1', '-bgjit-',
+                '-dynamicprofilecache:profile.dpl.${id}'
+            ]),
+        TestVariant('dynapogo', [
+                '-forceNative', '-off:simpleJit', '-bgJitDelay:0',
+                '-dynamicprofileinput:profile.dpl.${id}'
+            ]),
+        TestVariant('disable_jit', [
+                '-nonative'
+            ], [
+                'exclude_interpreted', 'fails_interpreted', 'require_backend'
+            ])
+    ] if x.name in args.variants]
+
+    # rm profile.dpl.*
+    for f in glob.glob(test_root + '/*/profile.dpl.*'):
+        os.remove(f)
 
     # run each variant
-    pool = Pool(1) # Use a multiprocessing process Pool -- TODO: forcing this to single threaded until we have support for sequential tag
+    pool, sequential_pool = Pool(), Pool(1)
     start_time = datetime.now()
     for variant in variants:
-        variant.run(tests, pool)
+        variant.run(testLoader, pool, sequential_pool)
     elapsed_time = datetime.now() - start_time
 
     # print summary
     for variant in variants:
         variant.print_summary()
-
     print()
+
     failed = any(variant.test_result.fail_count > 0 for variant in variants)
     print('[{}] {}'.format(
         str(elapsed_time), 'Success!' if not failed else 'Failed!'))

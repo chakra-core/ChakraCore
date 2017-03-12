@@ -60,7 +60,8 @@ void DebuggingFlags::ResetByteCodeOffsetAndFuncAfterIgnoreException()
     this->m_funcNumberAfterIgnoreException = InvalidFuncNumber;
 }
 
-size_t DebuggingFlags::GetByteCodeOffsetAfterIgnoreExceptionOffset() const
+/* static */
+size_t DebuggingFlags::GetByteCodeOffsetAfterIgnoreExceptionOffset()
 {
     return offsetof(DebuggingFlags, m_byteCodeOffsetAfterIgnoreException);
 }

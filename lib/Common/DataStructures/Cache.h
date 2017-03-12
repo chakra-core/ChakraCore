@@ -6,7 +6,7 @@
 
 namespace JsUtil
 {
-    template <typename T, uint size>
+    template <typename T, uint size, class TAllocator>
     class CircularBuffer
     {
     public:
@@ -87,16 +87,16 @@ namespace JsUtil
         }
 
     private:
-        uint writeIndex;
-        bool filled;
-        T entries[size];
+        Field(uint) writeIndex;
+        Field(bool) filled;
+        Field(T, TAllocator) entries[size];
     };
 
     template <class TKey, int MRUSize, class TAllocator = Recycler>
     class MRURetentionPolicy
     {
     public:
-        typedef CircularBuffer<TKey, MRUSize> TMRUStoreType;
+        typedef CircularBuffer<TKey, MRUSize, TAllocator> TMRUStoreType;
         MRURetentionPolicy(TAllocator* allocator)
         {
             store = AllocatorNew(TAllocator, allocator, TMRUStoreType);
@@ -118,7 +118,7 @@ namespace JsUtil
         }
 
     private:
-        TMRUStoreType* store;
+        Field(TMRUStoreType*, TAllocator) store;
     };
 
     template <
@@ -184,7 +184,7 @@ namespace JsUtil
             return cacheStore->TryGetValue(key, value);
         }
 
-        bool TryGetReference(const TKey& key, TValue** value, int* index)
+        bool TryGetReference(const TKey& key, const TValue** value, int* index)
         {
             return cacheStore->TryGetReference(key, value, index);
         }
@@ -243,8 +243,8 @@ namespace JsUtil
         }
 
     private:
-        CacheStore* cacheStore;
-        CacheRetentionPolicy cachePolicyType;
+        Field(CacheStore*) cacheStore;
+        Field(CacheRetentionPolicy) cachePolicyType;
     };
 
 }

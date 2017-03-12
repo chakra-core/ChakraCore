@@ -1,0 +1,10 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "bar": "function <large string>",
+      "x": "undefined undefined"
+    }
+  }
+]

@@ -15,9 +15,11 @@ _declspec(selectany) int AssertsToConsole = false;
 
 #if _WIN32
 _declspec(thread, selectany) int IsInAssert = false;
+#elif !defined(__IOS__)
+__declspec(thread, selectany) int IsInAssert = false;
 #else
-// xplat-todo: This is wrong but unblocking linux for now
-_declspec(selectany) int IsInAssert = false;
+// todo: implement thread local variable for iOS ??
+__declspec(selectany) int IsInAssert = false;
 #endif
 
 #if !defined(USED_IN_STATIC_LIB)
@@ -72,6 +74,18 @@ _declspec(selectany) int IsInAssert = false;
 
 #define AnalysisAssert(x)               Assert(x); __analysis_assume(x)
 #define AnalysisAssertMsg(x, comment)   AssertMsg(x, comment); __analysis_assume(x)
+
+#ifdef DBG
+#define AssertOrFailFast(x)                 Assert(x)
+#define AssertOrFailFastMsg(x, msg)         AssertMsg(x, msg)
+#define AnalysisAssertOrFailFast(x)         AnalysisAssert(x)
+#define AnalysisAssertOrFailFastMsg(x, msg) AnalysisAssertMsg(x, msg)
+#else
+#define AssertOrFailFast(x)                 do { if (!(x)) { Js::Throw::FatalInternalError(); } } while (false)
+#define AssertOrFailFastMsg(x, msg)         AssertOrFailFast(x)
+#define AnalysisAssertOrFailFast(x)         AssertOrFailFast(x)
+#define AnalysisAssertOrFailFastMsg(x, msg) AssertOrFailFast(x)
+#endif
 
 #define Unused(var) var;
 

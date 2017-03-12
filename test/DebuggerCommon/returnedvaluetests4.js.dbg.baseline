@@ -1,0 +1,101 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[Date returned]": "string <large string>"
+    },
+    "locals": {
+      "a": "string <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "[Return value]": "undefined undefined",
+    "functionCallsReturn": {
+      "[Echo returned]": "undefined undefined",
+      "[SetTimeout returned]": "number 1"
+    },
+    "locals": {
+      "a": "string <large string>"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "arr": "undefined undefined",
+      "str": "undefined undefined",
+      "str1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[Array returned]": "Array [a,b]"
+    },
+    "locals": {
+      "arr": "Array [a,b]",
+      "str": "undefined undefined",
+      "str1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[push returned]": "number 3"
+    },
+    "locals": {
+      "arr": "Array [a,b,c]",
+      "str": "undefined undefined",
+      "str1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[join returned]": "string a,b,c"
+    },
+    "locals": {
+      "arr": "Array [a,b,c]",
+      "str": "string a,b,c",
+      "str1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[Array.prototype.ucase returned]": "undefined undefined"
+    },
+    "locals": {
+      "arr": "Array [A,B,C]",
+      "str": "string a,b,c",
+      "str1": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "[Return value]": "undefined undefined",
+    "functionCallsReturn": {
+      "[join returned]": "string A,B,C"
+    },
+    "locals": {
+      "arr": "Array [A,B,C]",
+      "str": "string a,b,c",
+      "str1": "string All caps A,B,C"
+    }
+  }
+]

@@ -1,0 +1,19 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "func1": "function <large string>",
+      "obj0": "Object {...}",
+      "obj1": "Object {...}"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "__loopvar2": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  }
+]

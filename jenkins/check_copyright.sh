@@ -26,18 +26,28 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.txt$' |
     grep -v -E '\.baseline$' |
     grep -v -E '\.sln$' |
+    grep -v -E '\.wasm$' |
     grep -v -E '\.vcxproj$' |
     grep -v -E '\.filters$' |
     grep -v -E '\.targets$' |
     grep -v -E '\.nuspec$' |
+    grep -v -E '\.pack-version$' |
     grep -v -E '\.def$' |
     grep -v -E '\.inc$' |
+    grep -v -E '\.cmake$' |
+    grep -v -E '\.json$' |
+    grep -v -E '\.man$' |
+    grep -v -E 'test/WasmSpec/.*$' |
     grep -v -E 'test/benchmarks/.*\.js$' |
+    grep -v -E 'test/benchmarks/.*\.js_c$' |
     grep -v -E 'bin/External/.*$' |
     grep -v -E 'bin/NativeTests/Scripts/splay.js$' |
     grep -v -E 'pal/.*' |
     grep -v -E 'libChakraCoreLib.version|ch.version' |
+    grep -v -E 'lib/Backend/CRC.h' |
     xargs -I % sh -c "echo 'Check Copyright > Checking %'; python jenkins/check_copyright.py % > $ERRFILETEMP || cat $ERRFILETEMP >> $ERRFILE"
+
+rm -f $ERRFILETEMP
 
 if [ -e $ERRFILE ]; then # if error file exists then there were errors
     >&2 echo "--------------" # leading >&2 means echo to stderr

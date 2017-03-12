@@ -47,6 +47,7 @@ namespace Js
 #include "EnumClassHelp.h"
 #include "Common/Tick.h"
 
+#include "Common/IntMathCommon.h"
 #include "Common/Int16Math.h"
 #include "Common/Int32Math.h"
 #include "Common/UInt16Math.h"
@@ -73,8 +74,7 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 
 // Exceptions
 #include "Exceptions/ExceptionBase.h"
-#include "Exceptions/InScriptExceptionBase.h"
-#include "Exceptions/InternalErrorException.h"
+#include "Exceptions/JavascriptException.h"
 #include "Exceptions/OutOfMemoryException.h"
 #include "Exceptions/OperationAbortedException.h"
 #include "Exceptions/RejitException.h"
@@ -96,11 +96,11 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "Core/FinalizableObject.h"
 #include "Memory/RecyclerRootPtr.h"
 #include "Memory/RecyclerFastAllocator.h"
-#include "Memory/RecyclerPointers.h"
 #include "Util/Pinned.h"
 
 // Data Structures 2
 
+#include "DataStructures/QuickSort.h"
 #include "DataStructures/StringBuilder.h"
 #include "DataStructures/WeakReferenceDictionary.h"
 #include "DataStructures/LeafValueDictionary.h"
@@ -132,6 +132,8 @@ template<> struct IntMath<int64> { using Type = Int64Math; };
 #include "DataStructures/MruDictionary.h" // Depends on DoublyLinkedListElement
 
 #include "Common/SmartFpuControl.h"
+
+
 
 // This class is only used by AutoExp.dat
 class AutoExpDummyClass

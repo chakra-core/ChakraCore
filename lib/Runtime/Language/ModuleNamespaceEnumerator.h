@@ -10,25 +10,23 @@ namespace Js
     {
     protected:
         DEFINE_VTABLE_CTOR(ModuleNamespaceEnumerator, JavascriptEnumerator);
-        DEFINE_MARSHAL_ENUMERATOR_TO_SCRIPT_CONTEXT(ModuleNamespaceEnumerator);
-        ModuleNamespaceEnumerator(ModuleNamespace* nsObject, ScriptContext* scriptContext, bool enumNonEnumerable, bool enumSymbols = false);
+        ModuleNamespaceEnumerator(ModuleNamespace* nsObject, EnumeratorFlags flags, ScriptContext* scriptContext);
+        BOOL Init(ForInCache * forInCache);
 
     public:
-        static ModuleNamespaceEnumerator* New(ModuleNamespace* nsObject, ScriptContext* scriptContext, bool enumNonEnumerable, bool enumSymbols = false);
-        BOOL Init();
+        static ModuleNamespaceEnumerator* New(ModuleNamespace* nsObject, EnumeratorFlags flags, ScriptContext* scriptContext, ForInCache * forInCache);        
         virtual void Reset() override;
         virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr) override;
         virtual Var GetCurrentValue() { Assert(false); return nullptr; }
 
     private:
-        ModuleNamespace* nsObject;
-        JavascriptEnumerator* symbolEnumerator;
-        ModuleNamespace::UnambiguousExportMap* nonLocalMap;
-        BigPropertyIndex currentLocalMapIndex;
-        BigPropertyIndex currentNonLocalMapIndex;
-        bool doneWithLocalExports;
-        bool enumNonEnumerable;
-        bool enumSymbols;
-        bool doneWithSymbol;
+        Field(ModuleNamespace*) nsObject;
+        Field(JavascriptStaticEnumerator) symbolEnumerator;
+        Field(ModuleNamespace::UnambiguousExportMap*) nonLocalMap;
+        Field(BigPropertyIndex) currentLocalMapIndex;
+        Field(BigPropertyIndex) currentNonLocalMapIndex;
+        Field(bool) doneWithLocalExports;
+        Field(bool) doneWithSymbol;
+        Field(EnumeratorFlags) flags;
     };
 }

@@ -32,7 +32,7 @@ public:
             FloatConstType value;
         } floatConst;
     } u;
-    Js::Var ToVar(Func* func, Js::ScriptContext* scriptContext) const;
+    Js::Var ToVar(Func* func) const;
 };
 
 enum InlineeFrameInfoValueType
@@ -98,11 +98,11 @@ struct InlineeFrameRecord
 #endif
     {}
 
-    static InlineeFrameRecord* New(NativeCodeData::Allocator* alloc, uint argCount, uint constantCount, Js::FunctionBody* functionBody, InlineeFrameInfo* frameInfo)
+    static InlineeFrameRecord* New(NativeCodeData::Allocator* alloc, uint argCount, uint constantCount, intptr_t functionBodyAddr, InlineeFrameInfo* frameInfo)
     {
-        InlineeFrameRecord* record = NativeCodeDataNewZ(alloc, InlineeFrameRecord, argCount, functionBody, frameInfo);
-        record->argOffsets = NativeCodeDataNewArray(alloc, int, argCount);
-        record->constants = NativeCodeDataNewArray(alloc, Js::Var, constantCount);
+        InlineeFrameRecord* record = NativeCodeDataNewZ(alloc, InlineeFrameRecord, argCount, (Js::FunctionBody*)functionBodyAddr, frameInfo);
+        record->argOffsets = (int*)NativeCodeDataNewArrayNoFixup(alloc, IntType<DataDesc_InlineeFrameRecord_ArgOffsets>, argCount);
+        record->constants = (Js::Var*)NativeCodeDataNewArrayNoFixup(alloc, VarType<DataDesc_InlineeFrameRecord_Constants>, constantCount);
         DebugOnly(record->constantCount = constantCount);
         return record;
     }
@@ -115,6 +115,13 @@ struct InlineeFrameRecord
     void DumpOffset(int offset) const;
 #endif
 
+    void Fixup(NativeCodeData::DataChunk* chunkList)
+    {
+        FixupNativeDataPointer(argOffsets, chunkList);
+        FixupNativeDataPointer(constants, chunkList);
+        FixupNativeDataPointer(parent, chunkList);
+    }
+
 private:
     void Restore(Js::FunctionBody* functionBody, InlinedFrameLayout *outerMostFrame, Js::JavascriptCallStackLayout * layout) const;
     Js::Var Restore(int offset, bool isFloat64, bool isInt32, Js::JavascriptCallStackLayout * layout, Js::FunctionBody* functionBody) const;
@@ -125,6 +132,13 @@ struct NativeOffsetInlineeFramePair
 {
     uint32 offset;
     InlineeFrameRecord* record;
+};
+
+struct NativeOffsetInlineeFrameRecordOffset
+{
+    uint32 offset;
+    uint32 recordOffset;
+    static uint32 InvalidRecordOffset;
 };
 
 struct InlineeFrameInfo
@@ -183,7 +197,7 @@ struct InlineeFrameInfo
             callback(function.sym);
         }
     }
-    void AllocateRecord(Func* func, Js::FunctionBody* functionBody);
+    void AllocateRecord(Func* func, intptr_t functionBodyAddr);
 
 #if DBG_DUMP
     void Dump() const;

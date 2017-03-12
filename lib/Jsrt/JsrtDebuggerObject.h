@@ -126,7 +126,6 @@ public:
 private:
     uint frameIndex;
     Js::DiagStackFrame* stackFrame;
-    WeakArenaReference<Js::IDiagObjectModelWalkerBase>* pObjectModelWalker;
     JsrtDebuggerObjectsManager * debuggerObjectsManager;
 };
 
@@ -143,6 +142,7 @@ private:
 
     typedef JsUtil::BaseDictionary<uint, JsrtDebuggerStackFrame*, ArenaAllocator> FramesDictionary;
     FramesDictionary* framesDictionary;
+    void ClearFrameDictionary();
 };
 
 // Class managing objects we give to debugger, it maintains various mappings

@@ -1069,6 +1069,47 @@ var tests = [
             });
 		}
 	},    
+    {
+		name : "BugFix : yielding in the call expression under generator function",
+		body : function () {
+            var val = 0;
+            function bar(a, b, c) { val = b; }
+            function *foo(d) {
+                for (var k of [2, 3]) {
+                    bar(1, d ? yield : d, k);
+                }
+            }
+            var iter = foo(true);
+            iter.next();
+            iter.next();
+            iter.next(10);
+            assert.areEqual(val, 10, "yielding in the call expression under for..of is working correctly");
+		}
+	},    
+    {
+		name : "BugFix : yielding in the call expression under try catch",
+		body : function () {
+            var val = 0;
+            var counter = 0;
+            function bar(a, b, c) { val = b; }
+            function *foo(d) {
+                try {
+                     try {
+                         bar(1, d ? yield : d, 11);
+                     } finally {
+                         counter++;
+                     }
+                } finally {
+                    counter++;
+                }
+            }
+            var iter = foo(true);
+            iter.next();
+            iter.next(10);
+            assert.areEqual(val, 10, "yielding in the call expression under try/catch is working correctly");
+            assert.areEqual(counter, 2, "both finally called after yielding");
+		}
+	},    
 ];
 
 testRunner.runTests(tests, {

@@ -6,14 +6,17 @@
 // They become nameless compile time known PropertyRecords, stored as static
 // fields on the InternalPropertyRecords class.
 
-INTERNALPROPERTY(TypeOfPrototypeObject) // Used to store the type of the prototype object in the prototype objects slots
-INTERNALPROPERTY(NonExtensibleType)     // Used to store shared non-extensible type in PathTypeHandler::propertySuccessors map.
-INTERNALPROPERTY(SealedType)            // Used to store shared sealed type in PathTypeHandler::propertySuccessors map.
-INTERNALPROPERTY(FrozenType)            // Used to store shared frozen type in PathTypeHandler::propertySuccessors map.
-INTERNALPROPERTY(StackTrace)            // Stack trace object for Error.stack generation
-INTERNALPROPERTY(StackTraceCache)       // Cache of Error.stack string
-INTERNALPROPERTY(WeakMapKeyMap)         // WeakMap data stored on WeakMap key objects
-INTERNALPROPERTY(HiddenObject)          // Used to store hidden data for JS library code (Intl as an example will use this)
-INTERNALPROPERTY(RevocableProxy)        // Internal slot for [[RevokableProxy]] for revocable proxy in ES6
-INTERNALPROPERTY(MutationBp)            // Used to store strong reference to the mutation breakpoint object
+INTERNALPROPERTY(TypeOfPrototypeObjectInlined)     // Used to store the type of the prototype object in the prototype objects slots. Only DynamicTypes having TypeIds_Object are saved in this slot.
+// Used to store the type of the prototype object in the prototype objects slots. Everything else (except ExternalType) are stored in this slot as Dictionary.
+// Key in the Dictionary is combination of Type and TypeId and value is dynamicType object.
+INTERNALPROPERTY(TypeOfPrototypeObjectDictionary)  
+INTERNALPROPERTY(NonExtensibleType)               // Used to store shared non-extensible type in PathTypeHandler::propertySuccessors map.
+INTERNALPROPERTY(SealedType)                      // Used to store shared sealed type in PathTypeHandler::propertySuccessors map.
+INTERNALPROPERTY(FrozenType)                      // Used to store shared frozen type in PathTypeHandler::propertySuccessors map.
+INTERNALPROPERTY(StackTrace)                      // Stack trace object for Error.stack generation
+INTERNALPROPERTY(StackTraceCache)                 // Cache of Error.stack string
+INTERNALPROPERTY(WeakMapKeyMap)                   // WeakMap data stored on WeakMap key objects
+INTERNALPROPERTY(HiddenObject)                    // Used to store hidden data for JS library code (Intl as an example will use this)
+INTERNALPROPERTY(RevocableProxy)                  // Internal slot for [[RevokableProxy]] for revocable proxy in ES6
+INTERNALPROPERTY(MutationBp)                      // Used to store strong reference to the mutation breakpoint object
 #undef INTERNALPROPERTY

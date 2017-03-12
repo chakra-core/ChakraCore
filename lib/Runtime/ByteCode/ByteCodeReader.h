@@ -13,6 +13,9 @@ namespace Js
         static uint32 GetCurrentLocationOffset() { return offsetof(ByteCodeReader, m_currentLocation); }
 
     private:
+        // TODO: (leish)(swb) this is not always stack allocated now
+        // with ES6 Generator, this can be allocated with recycler
+        // need to find a good way to set write barrier, or big refactor.
         const byte * m_startLocation;
         const byte * m_currentLocation;
 
@@ -23,6 +26,11 @@ namespace Js
     public:
         void Create(FunctionBody* functionRead, uint startOffset = 0);
         void Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode);
+#if DBG
+        void Create(const byte * byteCodeStart, uint startOffset, uint byteCodeLength);
+#else
+        void Create(const byte * byteCodeStart, uint startOffset);
+#endif
         uint GetCurrentOffset() const;
         const byte * SetCurrentOffset(int byteOffset);
         const byte * SetCurrentRelativeOffset(const byte * ip, int byteOffset);
@@ -45,8 +53,10 @@ namespace Js
         OpCode PeekOp() const { LayoutSize layoutSize; return PeekOp(layoutSize); }
         OpCode PeekOp(const byte * ip, LayoutSize& layoutSize);
 
+        static OpCode PeekByteOp(const byte*  ip);
         static OpCode ReadByteOp(const byte*& ip);
-        static OpCode PeekByteOp(const byte * ip);
+        static OpCode PeekExtOp(const byte*  ip);
+        static OpCode ReadExtOp(const byte*& ip);
 
         // Declare reading functions
 #define LAYOUT_TYPE(layout) \
@@ -54,7 +64,7 @@ namespace Js
         const unaligned OpLayout##layout* layout(const byte*& ip);
 #include "LayoutTypes.h"
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #define LAYOUT_TYPE(layout) \
         const unaligned OpLayout##layout* layout(); \
         const unaligned OpLayout##layout* layout(const byte*& ip);
@@ -66,8 +76,8 @@ namespace Js
         static AuxArray<T> const * ReadAuxArray(uint offset, FunctionBody * functionBody);
         template <typename T>
         static AuxArray<T> const * ReadAuxArrayWithLock(uint offset, FunctionBody * functionBody);
-        static PropertyIdArray const * ReadPropertyIdArray(uint offset, FunctionBody * functionBody, uint extraSlots = 0);
-        static PropertyIdArray const * ReadPropertyIdArrayWithLock(uint offset, FunctionBody * functionBody, uint extraSlots = 0);
+        static PropertyIdArray const * ReadPropertyIdArray(uint offset, FunctionBody * functionBody);
+        static PropertyIdArray const * ReadPropertyIdArrayWithLock(uint offset, FunctionBody * functionBody);
         static VarArrayVarCount const * ReadVarArrayVarCount(uint offset, FunctionBody * functionBody);
         static VarArrayVarCount const * ReadVarArrayVarCountWithLock(uint offset, FunctionBody * functionBody);
 
@@ -80,5 +90,26 @@ namespace Js
         byte GetRawByte(int i);
 #endif
     };
+
+    template<typename LayoutType>
+    inline const unaligned LayoutType * ByteCodeReader::GetLayout()
+    {
+        size_t layoutSize = sizeof(LayoutType);
+
+        AssertMsg((layoutSize > 0) && (layoutSize < 100), "Ensure valid layout size");
+
+        const byte * layoutData = m_currentLocation;
+        m_currentLocation += layoutSize;
+
+        Assert(m_currentLocation <= m_endLocation);
+
+        return reinterpret_cast<const unaligned LayoutType *>(layoutData);
+    }
+
+    template<>
+    inline const unaligned OpLayoutEmpty * ByteCodeReader::GetLayout<OpLayoutEmpty>()
+    {
+        return nullptr;
+    }
 
 } // namespace Js

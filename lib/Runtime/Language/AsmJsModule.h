@@ -5,7 +5,7 @@
 
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 #define ASMMATH_BUILTIN_SIZE (32)
 #define ASMARRAY_BUILTIN_SIZE (16)
 #define ASMSIMD_BUILTIN_SIZE (512)
@@ -72,7 +72,7 @@ namespace Js {
     typedef Js::Tick AsmJsCompileTime;
     namespace AsmJsLookupSource
     {
-        enum Source
+        enum Source: int
         {
             AsmJsModule, AsmJsFunction
         };
@@ -82,7 +82,7 @@ namespace Js {
     {
         static const int32   MemoryTableBeginOffset = 0;
         // Memory is allocated in this order
-        int32 mArrayBufferOffset
+        Field(int32) mArrayBufferOffset
             , mStdLibOffset
             , mDoubleOffset
             , mFuncOffset
@@ -92,23 +92,27 @@ namespace Js {
             , mFloatOffset
             , mSimdOffset // in SIMDValues
             ;
-        int32   mMemorySize;
+        Field(int32)   mMemorySize;
     };
 
     struct AsmJsFunctionMemory
     {
-        // Register where module slots are loaded
-        static const RegSlot ModuleSlotRegister = 0;
-        static const RegSlot ReturnRegister = 0;
+        enum
+        {
+            // Register where module slots are loaded
+            ModuleSlotRegister = 0,
+            ReturnRegister = 0,
 
-        static const RegSlot FunctionRegister = 0;
-        static const RegSlot CallReturnRegister = 0;
-        static const RegSlot ModuleEnvRegister = 1;
-        static const RegSlot ArrayBufferRegister = 2;
-        static const RegSlot ArraySizeRegister = 3;
-        static const RegSlot ScriptContextBufferRegister = 4;
-        //Var Return register and Module Environment and Array Buffer
-        static const int32 RequiredVarConstants = 5;
+            FunctionRegister = 0,
+            CallReturnRegister = 0,
+            // These are created from the const table which starts after the FirstRegSlot
+            ModuleEnvRegister = FunctionBody::FirstRegSlot,
+            ArrayBufferRegister,
+            ArraySizeRegister,
+            ScriptContextBufferRegister,
+            //Var Return register and Module Environment and Array Buffer
+            RequiredVarConstants
+        };
     };
     namespace AsmJsCompilation
     {
@@ -137,12 +141,12 @@ namespace Js {
         typedef JsUtil::List<AsmJsFunctionTable*, ArenaAllocator> ModuleFunctionTableArray;
         typedef JsUtil::List<AsmJsModuleExport, ArenaAllocator> ModuleExportArray;
         typedef JsUtil::Queue<AsmJsArrayView *, ArenaAllocator> ModuleArrayViewList;
-        typedef AsmJsRegisterSpaceGeneric<int, 0> ModuleIntVars;
-        typedef AsmJsRegisterSpaceGeneric<double, 0> ModuleDoubleVars;
-        typedef AsmJsRegisterSpaceGeneric<float, 0> ModuleFloatVars;
-        typedef AsmJsRegisterSpaceGeneric<AsmJsImportFunction, 0> ModuleImportFunctions;
+        typedef WAsmJs::RegisterSpace ModuleIntVars;
+        typedef WAsmJs::RegisterSpace ModuleDoubleVars;
+        typedef WAsmJs::RegisterSpace ModuleFloatVars;
+        typedef WAsmJs::RegisterSpace ModuleImportFunctions;
 
-        typedef AsmJsRegisterSpaceGeneric<AsmJsSIMDValue, 0> ModuleSIMDVars;
+        typedef WAsmJs::RegisterSpace ModuleSIMDVars;
         typedef JsUtil::BaseDictionary<PropertyId, AsmJsSIMDFunction*, ArenaAllocator> SIMDNameMap;
 
         inline bool LookupStdLibSIMDNameInMap   (PropertyName name, AsmJsSIMDFunction **simdFunc, SIMDNameMap* map) const;
@@ -323,20 +327,20 @@ namespace Js {
 
     struct AsmJsSlot
     {
-        RegSlot location;
-        AsmJsSymbol::SymbolType symType;
+        Field(RegSlot) location;
+        Field(AsmJsSymbol::SymbolType) symType;
         union
         {
-            AsmJsVarType::Which varType;
-            ArrayBufferView::ViewType viewType;
-            double mathConstVal;
-            uint funcTableSize;
-            AsmJsModuleArg::ArgType argType;
-            AsmJSMathBuiltinFunction builtinMathFunc;
-            AsmJSTypedArrayBuiltinFunction builtinArrayFunc;
-            AsmJsSIMDBuiltinFunction builtinSIMDFunc;
+            Field(AsmJsVarType::Which) varType;
+            Field(ArrayBufferView::ViewType) viewType;
+            Field(double) mathConstVal;
+            Field(uint) funcTableSize;
+            Field(AsmJsModuleArg::ArgType) argType;
+            Field(AsmJSMathBuiltinFunction) builtinMathFunc;
+            Field(AsmJSTypedArrayBuiltinFunction) builtinArrayFunc;
+            Field(AsmJsSIMDBuiltinFunction) builtinSIMDFunc;
         };
-        bool isConstVar = false;
+        Field(bool) isConstVar = false;
     };
 
     class AsmJsModuleInfo
@@ -345,31 +349,32 @@ namespace Js {
         /// proxy of asmjs module
         struct ModuleVar
         {
-            RegSlot location;
-            AsmJsVarType::Which type;
-            union
+            Field(RegSlot) location;
+            Field(AsmJsVarType::Which) type;
+            union InitialiserType
             {
-                int intInit;
-                float floatInit;
-                double doubleInit;
-                AsmJsSIMDValue simdInit;
-            } initialiser;
-            bool isMutable;
+                Field(int) intInit;
+                Field(float) floatInit;
+                Field(double) doubleInit;
+                Field(AsmJsSIMDValue) simdInit;
+            };
+            Field(InitialiserType) initialiser; // (leish)(swb) false positive found here
+            Field(bool) isMutable;
         };
         struct ModuleVarImport
         {
-            RegSlot location;
-            AsmJsVarType::Which type;
-            PropertyId field;
+            Field(RegSlot) location;
+            Field(AsmJsVarType::Which) type;
+            Field(PropertyId) field;
         };
         struct ModuleFunctionImport
         {
-            RegSlot location;
-            PropertyId field;
+            Field(RegSlot) location;
+            Field(PropertyId) field;
         };
         struct ModuleFunction
         {
-            RegSlot location;
+            Field(RegSlot) location;
         };
         struct ModuleExport
         {
@@ -378,35 +383,35 @@ namespace Js {
         };
         struct ModuleFunctionTable
         {
-            uint size;
-            RegSlot* moduleFunctionIndex;
+            Field(uint) size;
+            Field(RegSlot*) moduleFunctionIndex;
         };
 
         typedef JsUtil::BaseDictionary<PropertyId, AsmJsSlot*, Memory::Recycler> AsmJsSlotMap;
 
     private:
-        Recycler* mRecycler;
-        int mArgInCount; // for runtime validation of arguments in
-        int mVarCount, mVarImportCount, mFunctionImportCount, mFunctionCount, mFunctionTableCount, mExportsCount, mSlotsCount;
-        int mSimdRegCount; // part of mVarCount
+        FieldNoBarrier(Recycler*) mRecycler;
+        Field(int) mArgInCount; // for runtime validation of arguments in
+        Field(int) mVarCount, mVarImportCount, mFunctionImportCount, mFunctionCount, mFunctionTableCount, mExportsCount, mSlotsCount;
+        Field(int) mSimdRegCount; // part of mVarCount
 
-        PropertyIdArray*             mExports;
-        RegSlot*                     mExportsFunctionLocation;
-        RegSlot                      mExportFunctionIndex; // valid only if export object is empty
-        ModuleVar*                   mVars;
-        ModuleVarImport*             mVarImports;
-        ModuleFunctionImport*        mFunctionImports;
-        ModuleFunction*              mFunctions;
-        ModuleFunctionTable*         mFunctionTables;
-        AsmJsModuleMemory            mModuleMemory;
-        AsmJsSlotMap*                mSlotMap;
-        BVStatic<ASMMATH_BUILTIN_SIZE>  mAsmMathBuiltinUsed;
-        BVStatic<ASMARRAY_BUILTIN_SIZE> mAsmArrayBuiltinUsed;
-        BVStatic<ASMSIMD_BUILTIN_SIZE>  mAsmSimdBuiltinUsed;
+        Field(PropertyIdArray*)             mExports;
+        Field(RegSlot*)                     mExportsFunctionLocation;
+        Field(RegSlot)                      mExportFunctionIndex; // valid only if export object is empty
+        Field(ModuleVar*)                   mVars;
+        Field(ModuleVarImport*)             mVarImports;
+        Field(ModuleFunctionImport*)        mFunctionImports;
+        Field(ModuleFunction*)              mFunctions;
+        Field(ModuleFunctionTable*)         mFunctionTables;
+        Field(AsmJsModuleMemory)            mModuleMemory;
+        Field(AsmJsSlotMap*)                mSlotMap;
+        Field(BVStatic<ASMMATH_BUILTIN_SIZE>)  mAsmMathBuiltinUsed;
+        Field(BVStatic<ASMARRAY_BUILTIN_SIZE>) mAsmArrayBuiltinUsed;
+        Field(BVStatic<ASMSIMD_BUILTIN_SIZE>)  mAsmSimdBuiltinUsed;
 
-        uint                         mMaxHeapAccess;
-        bool                         mUsesChangeHeap;
-        bool                         mIsProcessed;
+        Field(uint)                         mMaxHeapAccess;
+        Field(bool)                         mUsesChangeHeap;
+        Field(bool)                         mIsProcessed;
     public:
         AsmJsModuleInfo( Recycler* recycler ) :
             mRecycler( recycler )

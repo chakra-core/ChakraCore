@@ -20,8 +20,15 @@
  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+if(typeof(WScript) === "undefined")
+{
+    var WScript = {
+        Echo: print
+    }
+}
 
 function record(time) {
     document.getElementById("console").innerHTML = time + "ms";
@@ -41,14 +48,14 @@ function partial(n){
     var twothirds = 2.0/3.0;
     var alt = -1.0;
     var k2 = k3 = sk = ck = 0.0;
-    
+
     for (var k = 1; k <= n; k++){
         k2 = k*k;
         k3 = k2*k;
         sk = Math.sin(k);
         ck = Math.cos(k);
         alt = -alt;
-        
+
         a1 += Math.pow(twothirds,k-1);
         a2 += Math.pow(k,-0.5);
         a3 += 1.0/(k*(k+1.0));
@@ -59,7 +66,7 @@ function partial(n){
         a8 += alt/k;
         a9 += alt/(2*k -1);
     }
-    
+
     // NOTE: We don't try to validate anything from pow(),  sin() or cos() because those aren't
     // well-specified in ECMAScript.
     return a6 + a7 + a8 + a9;

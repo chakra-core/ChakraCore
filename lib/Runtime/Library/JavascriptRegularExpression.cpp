@@ -695,7 +695,7 @@ namespace Js
 
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolMatchCount);
+        CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_RegexSymbolMatch);
 
         PCWSTR const varName = _u("RegExp.prototype[Symbol.match]");
 
@@ -765,7 +765,7 @@ namespace Js
 
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolReplaceCount);
+        CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_RegexSymbolReplace);
 
         PCWSTR varName = _u("RegExp.prototype[Symbol.replace]");
 
@@ -799,7 +799,7 @@ namespace Js
 
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolSearchCount);
+        CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_RegexSymbolSearch);
 
         PCWSTR const varName = _u("RegExp.prototype[Symbol.search]");
 
@@ -828,7 +828,7 @@ namespace Js
 
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(RegexSymbolSplitCount);
+        CHAKRATEL_LANGSTATS_INC_DATACOUNT(ES6_RegexSymbolSplit);
 
         RecyclableObject *thisObj = GetThisObject(args, _u("RegExp.prototype[Symbol.match]"), scriptContext);
         JavascriptString* string = GetFirstStringArg(args, scriptContext);
@@ -1306,6 +1306,48 @@ namespace Js
         }
 
 #undef DELETE_PROPERTY
+    }
+
+    BOOL JavascriptRegExp::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+
+#define DELETE_PROPERTY(ownProperty) \
+        if (ownProperty) \
+        { \
+            JavascriptError::ThrowCantDeleteIfStrictMode(flags, this->GetScriptContext(), propertyNameString->GetString()); \
+            return false; \
+        } \
+        return DynamicObject::DeleteProperty(propertyNameString, flags);
+
+        if (BuiltInPropertyRecords::lastIndex.Equals(propertyName))
+        {
+            DELETE_PROPERTY(true);
+        }
+        else if (BuiltInPropertyRecords::global.Equals(propertyName)
+            || BuiltInPropertyRecords::multiline.Equals(propertyName)
+            || BuiltInPropertyRecords::ignoreCase.Equals(propertyName)
+            || BuiltInPropertyRecords::source.Equals(propertyName)
+            || BuiltInPropertyRecords::options.Equals(propertyName))
+        {
+            DELETE_PROPERTY(!scriptConfig->IsES6RegExPrototypePropertiesEnabled());
+        }
+        else if (BuiltInPropertyRecords::unicode.Equals(propertyName))
+        {
+            DELETE_PROPERTY(scriptConfig->IsES6UnicodeExtensionsEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
+        }
+        else if (BuiltInPropertyRecords::sticky.Equals(propertyName))
+        {
+            DELETE_PROPERTY(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled());
+        }
+        else
+        {
+            return DynamicObject::DeleteProperty(propertyNameString, flags);
+        }
+
+#undef DELETE_PROPERTY
+
     }
 
     DescriptorFlags JavascriptRegExp::GetSetter(PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext)

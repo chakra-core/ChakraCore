@@ -1,69 +1,95 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
+
 namespace Js
 {
+
     template<typename T>
-    inline T AsmJsMath::Min(T aLeft, T aRight)
+    inline T minCheckNan(T aLeft, T aRight)
     {
-        return aLeft < aRight ? aLeft : aRight;
+        if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
+        {
+            return (T)NumberConstants::NaN;
+        }
+        if (aLeft < aRight)
+        {
+            return aLeft;
+        }
+        if (aLeft == aRight)
+        {
+            if (aRight == 0 && JavascriptNumber::IsNegZero(aLeft))
+            {
+                return aLeft;
+            }
+        }
+        return aRight;
     }
 
     template<>
     inline double AsmJsMath::Min<double>(double aLeft, double aRight)
     {
-        if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
-        {
-            return NumberConstants::NaN;
-        }
-        return aLeft < aRight ? aLeft : aRight;
+        return minCheckNan(aLeft, aRight);
+    }
+
+    template<>
+    inline float AsmJsMath::Min<float>(float aLeft, float aRight)
+    {
+        return minCheckNan(aLeft, aRight);
     }
 
     template<typename T>
-    inline T AsmJsMath::Max(T aLeft, T aRight)
+    inline T maxCheckNan(T aLeft, T aRight)
     {
-        return aLeft > aRight ? aLeft : aRight;
+        if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
+        {
+            return (T)NumberConstants::NaN;
+        }
+        if (aLeft > aRight)
+        {
+            return aLeft;
+        }
+        if (aLeft == aRight)
+        {
+            if (aLeft == 0 && JavascriptNumber::IsNegZero(aRight))
+            {
+                return aLeft;
+            }
+        }
+        return aRight;
     }
 
     template<>
     inline double AsmJsMath::Max<double>(double aLeft, double aRight)
     {
-        if (NumberUtilities::IsNan(aLeft) || NumberUtilities::IsNan(aRight))
-        {
-            return NumberConstants::NaN;
-        }
-        return aLeft > aRight ? aLeft : aRight;
+        return maxCheckNan(aLeft, aRight);
+    }
+
+    template<>
+    inline float AsmJsMath::Max<float>(float aLeft, float aRight)
+    {
+        return maxCheckNan(aLeft, aRight);
+    }
+
+    template<>
+    inline double AsmJsMath::Abs<double>(double aLeft)
+    {
+        uint64 x = (*(uint64*)(&aLeft) & 0x7FFFFFFFFFFFFFFF);
+        return *(double*)(&x);
+    }
+
+    template<>
+    inline float AsmJsMath::Abs<float>(float aLeft)
+    {
+        uint32 x = (*(uint32*)(&aLeft) & 0x7FFFFFFF);
+        return *(float*)(&x);
     }
 
     template<typename T>
     inline T AsmJsMath::Add( T aLeft, T aRight )
     {
         return aLeft + aRight;
-    }
-
-    template<typename T>
-    inline T AsmJsMath::Div( T aLeft, T aRight )
-    {
-        return aRight == 0 ? 0 : ( aLeft == (1<<31) && aRight == -1) ? aLeft : aLeft / aRight;
-    }
-
-    template<>
-    inline double AsmJsMath::Div<double>( double aLeft, double aRight )
-    {
-        return aLeft / aRight;
-    }
-
-    template<typename T>
-    inline T AsmJsMath::Mul( T aLeft, T aRight )
-    {
-        return aLeft * aRight;
-    }
-
-    template<>
-    inline int AsmJsMath::Mul( int aLeft, int aRight )
-    {
-        return (int)((int64)aLeft * (int64)aRight);
     }
 
     template<typename T>
@@ -97,34 +123,40 @@ namespace Js
         return NumberUtilities::Modulus( aLeft, aRight );
     }
 
-    inline int AsmJsMath::And( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::And( T aLeft, T aRight )
     {
         return aLeft & aRight;
     }
 
-    inline int AsmJsMath::Or( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::Or( T aLeft, T aRight )
     {
         return aLeft | aRight;
     }
 
-    inline int AsmJsMath::Xor( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::Xor( T aLeft, T aRight )
     {
         return aLeft ^ aRight;
     }
 
-    inline int AsmJsMath::Shl( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::Shl( T aLeft, T aRight )
     {
         return aLeft << aRight;
     }
 
-    inline int AsmJsMath::Shr( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::Shr( T aLeft, T aRight )
     {
         return aLeft >> aRight;
     }
 
-    inline int AsmJsMath::ShrU( int aLeft, int aRight )
+    template<typename T> 
+    inline T AsmJsMath::ShrU( T aLeft, T aRight )
     {
-        return (unsigned int)aLeft >> (unsigned int)aRight;
+        return aLeft >> aRight;
     }
 
     template<typename T>

@@ -34,10 +34,11 @@ enum CollectionState
     Collection_ConcurrentSweep      = Collection_Concurrent | Collection_Sweep,
 #endif
     Collection_Parallel             = 0x00010000,
-
-    Collection_PostCollectionCallback     = 0x00020000,
-
-    Collection_WrapperCallback      = 0x00040000,
+    
+    Collection_PostCollectionCallback      = 0x00020000,
+    Collection_PostSweepRedeferralCallback = 0x00040000,
+    Collection_WrapperCallback             = 0x00080000,
+    
 
     // Actual states
     CollectionStateNotCollecting          = 0,                                                                // not collecting
@@ -69,6 +70,6 @@ enum CollectionState
     CollectionStateBackgroundParallelMark = Collection_ConcurrentMark | Collection_ExecutingConcurrent | Collection_Parallel,
     CollectionStateConcurrentWrapperCallback = Collection_Concurrent | Collection_ExecutingConcurrent | Collection_WrapperCallback,
 #endif
-
+    CollectionStatePostSweepRedeferralCallback = Collection_PostSweepRedeferralCallback,
     CollectionStatePostCollectionCallback = Collection_PostCollectionCallback,
 };

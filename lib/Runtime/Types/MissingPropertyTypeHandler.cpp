@@ -8,7 +8,7 @@ namespace Js
 {
     void MissingPropertyTypeHandler::SetUndefinedPropertySlot(DynamicObject* instance)
     {
-        Var * slots = reinterpret_cast<Var*>(reinterpret_cast<size_t>(instance) + sizeof(DynamicObject));
+        Field(Var)* slots = reinterpret_cast<Field(Var)*>(reinterpret_cast<size_t>(instance) + sizeof(DynamicObject));
         slots[0] = instance->GetLibrary()->GetUndefined();
     }
 
@@ -26,7 +26,7 @@ namespace Js
     }
 
     BOOL MissingPropertyTypeHandler::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         return FALSE;
     }

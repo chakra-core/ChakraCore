@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 //////////////////////////////////////////////////////////
@@ -13,6 +13,7 @@ namespace Js
     {
     public:
         static const UINT64 k_Nan = 0xFFF8000000000000ull;
+        static const UINT32 k_Nan32 = 0x7FFF8000ul;
     };
 
     class NumberUtilitiesBase

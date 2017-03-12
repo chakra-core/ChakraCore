@@ -20,8 +20,15 @@
  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
+if(typeof(WScript) === "undefined")
+{
+    var WScript = {
+        Echo: print
+    }
+}
 
 function record(time) {
     document.getElementById("console").innerHTML = time + "ms";
@@ -84,7 +91,7 @@ function ShiftRows(s, Nb) {    // shift row r of state S left by r bytes [§5.1.
     for (var c=0; c<4; c++) t[c] = s[r][(c+r)%Nb];  // shift into temp copy
     for (var c=0; c<4; c++) s[r][c] = t[c];         // and copy back
   }          // note that this will work for Nb=4,5,6, but not 7,8 (always 4 for AES):
-  return s;  // see fp.gladman.plus.com/cryptography_technology/rijndael/aes.spec.311.pdf 
+  return s;  // see fp.gladman.plus.com/cryptography_technology/rijndael/aes.spec.311.pdf
 }
 
 
@@ -183,12 +190,12 @@ var Rcon = [ [0x00, 0x00, 0x00, 0x00],
              [0x40, 0x00, 0x00, 0x00],
              [0x80, 0x00, 0x00, 0x00],
              [0x1b, 0x00, 0x00, 0x00],
-             [0x36, 0x00, 0x00, 0x00] ]; 
+             [0x36, 0x00, 0x00, 0x00] ];
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  */
 
-/* 
+/*
  * Use AES to encrypt 'plaintext' with 'password' using 'nBits' key, in 'Counter' mode of operation
  *                           - see http://csrc.nist.gov/publications/nistpubs/800-38a/sp800-38a.pdf
  *   for each block
@@ -198,7 +205,7 @@ var Rcon = [ [0x00, 0x00, 0x00, 0x00],
 function AESEncryptCtr(plaintext, password, nBits) {
   if (!(nBits==128 || nBits==192 || nBits==256)) return '';  // standard allows 128/192/256 bit keys
 
-  // for this example script, generate the key by applying Cipher to 1st 16/24/32 chars of password; 
+  // for this example script, generate the key by applying Cipher to 1st 16/24/32 chars of password;
   // for real-world applications, a more secure approach would be to hash the password e.g. with SHA-1
   var nBytes = nBits/8;  // no bytes in key
   var pwBytes = new Array(nBytes);
@@ -214,14 +221,14 @@ function AESEncryptCtr(plaintext, password, nBits) {
 
   // encode nonce in two stages to cater for JavaScript 32-bit limit on bitwise ops
   for (var i=0; i<4; i++) counterBlock[i] = (nonce >>> i*8) & 0xff;
-  for (var i=0; i<4; i++) counterBlock[i+4] = (nonce/0x100000000 >>> i*8) & 0xff; 
+  for (var i=0; i<4; i++) counterBlock[i+4] = (nonce/0x100000000 >>> i*8) & 0xff;
 
   // generate key schedule - an expansion of the key into distinct Key Rounds for each round
   var keySchedule = KeyExpansion(key);
 
   var blockCount = Math.ceil(plaintext.length/blockSize);
   var ciphertext = new Array(blockCount);  // ciphertext as array of strings
-  
+
   for (var b=0; b<blockCount; b++) {
     // set counter (block #) in last 8 bytes of counter block (leaving nonce in 1st 8 bytes)
     // again done in two stages for 32-bit ops
@@ -229,7 +236,7 @@ function AESEncryptCtr(plaintext, password, nBits) {
     for (var c=0; c<4; c++) counterBlock[15-c-4] = (b/0x100000000 >>> c*8)
 
     var cipherCntr = Cipher(counterBlock, keySchedule);  // -- encrypt counter block --
-    
+
     // calculate length of final block:
     var blockLength = b<blockCount-1 ? blockSize : (plaintext.length-1)%blockSize+1;
 
@@ -254,7 +261,7 @@ function AESEncryptCtr(plaintext, password, nBits) {
 }
 
 
-/* 
+/*
  * Use AES to decrypt 'ciphertext' with 'password' using 'nBits' key, in Counter mode of operation
  *
  *   for each block
@@ -273,7 +280,7 @@ function AESDecryptCtr(ciphertext, password, nBits) {
 
   var keySchedule = KeyExpansion(key);
 
-  ciphertext = ciphertext.split('-');  // split ciphertext into array of block-length strings 
+  ciphertext = ciphertext.split('-');  // split ciphertext into array of block-length strings
 
   // recover nonce from 1st element of ciphertext
   var blockSize = 16;  // block size fixed at 16 bytes / 128 bits (Nb=4) for AES
@@ -325,29 +332,29 @@ var b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
 function encodeBase64(str) {  // http://tools.ietf.org/html/rfc4648
    var o1, o2, o3, h1, h2, h3, h4, bits, i=0, enc='';
-   
+
    str = encodeUTF8(str);  // encode multi-byte chars into UTF-8 for byte-array
 
    do {  // pack three octets into four hexets
       o1 = str.charCodeAt(i++);
       o2 = str.charCodeAt(i++);
       o3 = str.charCodeAt(i++);
-      
+
       bits = o1<<16 | o2<<8 | o3;
-      
+
       h1 = bits>>18 & 0x3f;
       h2 = bits>>12 & 0x3f;
       h3 = bits>>6 & 0x3f;
       h4 = bits & 0x3f;
-      
+
       // end of string? index to '=' in b64
       if (isNaN(o3)) h4 = 64;
       if (isNaN(o2)) h3 = 64;
-      
+
       // use hexets to index into b64, and append result to encoded string
       enc += b64.charAt(h1) + b64.charAt(h2) + b64.charAt(h3) + b64.charAt(h4);
    } while (i < str.length);
-   
+
    return enc;
 }
 
@@ -359,13 +366,13 @@ function decodeBase64(str) {
       h2 = b64.indexOf(str.charAt(i++));
       h3 = b64.indexOf(str.charAt(i++));
       h4 = b64.indexOf(str.charAt(i++));
-      
+
       bits = h1<<18 | h2<<12 | h3<<6 | h4;
-      
+
       o1 = bits>>16 & 0xff;
       o2 = bits>>8 & 0xff;
       o3 = bits & 0xff;
-      
+
       if (h3 == 64)      enc += String.fromCharCode(o1);
       else if (h4 == 64) enc += String.fromCharCode(o1, o2);
       else               enc += String.fromCharCode(o1, o2, o3);
@@ -374,17 +381,17 @@ function decodeBase64(str) {
    return decodeUTF8(enc);  // decode UTF-8 byte-array back to Unicode
 }
 
-function encodeUTF8(str) {  // encode multi-byte string into utf-8 multiple single-byte characters 
+function encodeUTF8(str) {  // encode multi-byte string into utf-8 multiple single-byte characters
   str = str.replace(
       /[\u0080-\u07ff]/g,  // U+0080 - U+07FF = 2-byte chars
-      function(c) { 
+      function(c) {
         var cc = c.charCodeAt(0);
         return String.fromCharCode(0xc0 | cc>>6, 0x80 | cc&0x3f); }
     );
   str = str.replace(
       /[\u0800-\uffff]/g,  // U+0800 - U+FFFF = 3-byte chars
-      function(c) { 
-        var cc = c.charCodeAt(0); 
+      function(c) {
+        var cc = c.charCodeAt(0);
         return String.fromCharCode(0xe0 | cc>>12, 0x80 | cc>>6&0x3F, 0x80 | cc&0x3f); }
     );
   return str;
@@ -393,14 +400,14 @@ function encodeUTF8(str) {  // encode multi-byte string into utf-8 multiple sing
 function decodeUTF8(str) {  // decode utf-8 encoded string back into multi-byte characters
   str = str.replace(
       /[\u00c0-\u00df][\u0080-\u00bf]/g,                 // 2-byte chars
-      function(c) { 
+      function(c) {
         var cc = (c.charCodeAt(0)&0x1f)<<6 | c.charCodeAt(1)&0x3f;
         return String.fromCharCode(cc); }
     );
   str = str.replace(
       /[\u00e0-\u00ef][\u0080-\u00bf][\u0080-\u00bf]/g,  // 3-byte chars
-      function(c) { 
-        var cc = (c.charCodeAt(0)&0x0f)<<12 | (c.charCodeAt(1)&0x3f<<6) | c.charCodeAt(2)&0x3f; 
+      function(c) {
+        var cc = (c.charCodeAt(0)&0x0f)<<12 | (c.charCodeAt(1)&0x3f<<6) | c.charCodeAt(2)&0x3f;
         return String.fromCharCode(cc); }
     );
   return str;

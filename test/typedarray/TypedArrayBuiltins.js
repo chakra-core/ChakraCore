@@ -9,6 +9,18 @@ if (this.WScript && this.WScript.LoadScriptFile) { // Check for running in ch
     this.WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 }
 
+var TypedArrayCtors = [
+    'Int8Array',
+    'Uint8Array',
+    'Uint8ClampedArray',
+    'Int16Array',
+    'Uint16Array',
+    'Int32Array',
+    'Uint32Array',
+    'Float32Array',
+    'Float64Array'
+];
+
 function mangle(u8) {
     u8.length = -2;
     u8.byteLength = 2000;
@@ -46,6 +58,109 @@ var tests = [
         }
     },
     {
+        name: "TypedArray constructors treat explicit undefined/null first argument as zero",
+        body: function () {
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor](undefined);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(undefined) yields an array with zero length");
+
+                ta = new this[taCtor](undefined, undefined, undefined);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(undefined, undefined, undefined) yields an array with zero length");
+
+                ta = new this[taCtor](null);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(null) yields an array with zero length");
+
+                ta = new this[taCtor](null, null, null);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(null, null, null) yields an array with zero length");
+            }
+        }
+    },
+    {
+        name: "TypedArray constructors treat bool true and false first argument as 1 and 0 respectively",
+        body: function () {
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor](true);
+                assert.areEqual(1, ta.length, "new " + taCtor + "(true) yields an array with length one");
+
+                ta = new this[taCtor](false);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(false) yields an array with length zero");
+            }
+        }
+    },
+    {
+        name: "TypedArray constructors treat string first argument using conversion to index via ToIndex",
+        body: function () {
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor]("0");
+                assert.areEqual(0, ta.length, "new " + taCtor + "('0') yields an array with length zero");
+
+                ta = new this[taCtor]("25");
+                assert.areEqual(25, ta.length, "new " + taCtor + "('25') yields an array with length 25");
+
+                ta = new this[taCtor]("abc");
+                assert.areEqual(0, ta.length, "new " + taCtor + "('abc') yields an array with length zero because NaN converts to zero");
+            }
+        }
+    },
+    {
+        name: "TypedArray constructors throw TypeError when first argument is a symbol",
+        body: function () {
+            for (let taCtor of TypedArrayCtors) {
+                assert.throws(function () { new this[taCtor](Symbol()); }, TypeError, "new " + taCtor + "(<symbol>) throws TypeError", "Number expected");
+            }
+        }
+    },
+    {
+        name: "TypedArray constructors treat object first argument as array-like (unless iterable) (and therefore do not pass them through ToIndex)",
+        body: function () {
+            let objEmpty = { };
+            let objWithLength = { length: 2 };
+            let objWithToString = { toString() { return 3; } };
+            let objWithValueOf = { valueOf() { return 4; } };
+            let objWithToPrimitive = { [Symbol.toPrimitive]() { return 5; } };
+
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor](objEmpty);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(<empty object>) yields an array with length zero");
+
+                ta = new this[taCtor](objWithLength);
+                assert.areEqual(2, ta.length, "new " + taCtor + "(<object with 'length: 2' property>) yields an array with length two");
+
+                ta = new this[taCtor](objWithToString);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(<object with toString method>) yields an array with length zero");
+
+                ta = new this[taCtor](objWithValueOf);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(<object with valueOf method>) yields an array with length zero");
+
+                ta = new this[taCtor](objWithToPrimitive);
+                assert.areEqual(0, ta.length, "new " + taCtor + "(<object with @@toPrimitive method>) yields an array with length zero");
+            }
+        }
+    },
+    {
+        name: "TypedArray constructors create array from iterable object",
+        body: function () {
+            let objIterable = {
+                [Symbol.iterator]() {
+                    let i = 0;
+                    return {
+                        next() {
+                            return { done: i == 3, value: i++ };
+                        }
+                    };
+                }
+            };
+
+            for (let taCtor of TypedArrayCtors) {
+                let ta = new this[taCtor](objIterable);
+                assert.areEqual(3, ta.length, "new " + taCtor + "(<iterable object with three elements>) yields an array with length three");
+                assert.areEqual(0, ta[0], "[" + taCtor + "]: first element is zero");
+                assert.areEqual(1, ta[1], "[" + taCtor + "]: second element is one");
+                assert.areEqual(2, ta[2], "[" + taCtor + "]: third element is two");
+            }
+        }
+    },
+    {
         name: "TypedArray constructed out of an iterable object",
         body: function () {
             function getIterableObj (array)
@@ -79,19 +194,7 @@ var tests = [
                 };
             }
 
-            var TypedArray = [
-                'Int8Array',
-                'Uint8Array',
-                'Uint8ClampedArray',
-                'Int16Array',
-                'Uint16Array',
-                'Int32Array',
-                'Uint32Array',
-                'Float32Array',
-                'Float64Array'
-            ];
-
-            for(var t of TypedArray) {
+            for(var t of TypedArrayCtors) {
                 var arr = new this[t](getIterableObj([1,2,3,4]));
                 assert.areEqual(3, arr.length, "TypedArray " + t + " created from iterable has length == 3");
                 assert.areEqual(1, arr[0], "TypedArray " + t + " created from iterable has element #0 == 1");
@@ -101,7 +204,7 @@ var tests = [
 
             // change array's iterator
             (function() {
-                for(var t of TypedArray) {
+                for(var t of TypedArrayCtors) {
                     var a = [1,2,3,4];
                     a[Symbol.iterator] = getIterableObj([99,0])[Symbol.iterator];
                     var arr = new this[t](a);
@@ -211,6 +314,83 @@ var tests = [
                 }
             }));
             assert.areEqual(count, 1, "TypedArray.from calls proxy's getter with @@iterator as parameter only once");
+        }
+    },
+    {
+        name: "ISSUE1896: TypedArray : toLocaleString should use length from internal slot",
+        body: function () {
+            var test = function(taCtor) {
+                var o = new this[taCtor](2);
+                o[1] = 31;
+                Object.defineProperty(o, 'length', {value : 4});
+                result = o.toLocaleString();
+
+                // On OSX and Linux the values are printed as 0 instead 0.00. This is a valid workaround as we have still validated the toLocaleString behavior is correct.
+                if (result == "0, 31") {
+                    result = "0.00, 31.00";
+                }
+
+                assert.areEqual("0.00, 31.00", result, "TypedArray" + helpers.getTypeOf(o) + ".toLocaleString should use length from internal slot.");
+                return result;
+            };
+
+            for (let taCtor of TypedArrayCtors) {
+                test(taCtor);
+            }
+        }
+    },
+    {
+        name: "TypedArray : Error cases for constructor TypedArray( buffer, byteOffset, length )",
+        body: function () {
+            var sourceArrayBuffer1 = new ArrayBuffer(10);
+
+            // offset > byteLength
+            function TestOffsetBeyondSourceArrayBufferLength()
+            {
+                new Int16Array(sourceArrayBuffer1, 12);
+            }
+
+            assert.throws(
+                TestOffsetBeyondSourceArrayBufferLength, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as (offset > byteLength).", 
+                "Invalid offset/length when creating typed array")
+
+            // offset % elementSize != 0
+            function TestIncorrectOffset()
+            {
+                new Int16Array(sourceArrayBuffer1, 7, 1);
+            }
+
+            assert.throws(
+                TestIncorrectOffset, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as (offset % elementSize) != 0.", 
+                "Invalid offset/length when creating typed array")
+
+            // (Length * elementSize + offset) beyond array buffer length.
+            function TestLengthBeyondSourceArrayBufferLength()
+            {
+                new Int16Array(sourceArrayBuffer1, 6, 4);
+            }
+
+            assert.throws(
+                TestLengthBeyondSourceArrayBufferLength, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as ((Length * elementSize + offset)) != byteLength.", 
+                "Invalid offset/length when creating typed array")
+
+            // (byteLength - offset) % elementSize != 0
+            function TestOffsetPlusElementSizeBeyondSourceArrayBufferLength()
+            {
+                new Int32Array(sourceArrayBuffer1, 4);
+            }
+
+            assert.throws(
+                TestOffsetPlusElementSizeBeyondSourceArrayBufferLength, 
+                RangeError, 
+                "TypedArray: Expected the function to throw RangeError as (byteLength - offset) % elementSize != 0.", 
+                "Invalid offset/length when creating typed array")
         }
     }
 ];

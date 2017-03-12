@@ -13,7 +13,7 @@ namespace TTD
         m_tagToGlobalObjectMap(), m_objectMap(),
         m_functionBodyMap(), m_environmentMap(), m_slotArrayMap(), m_promiseDataMap(&HeapAllocator::Instance),
         m_debuggerScopeHomeBodyMap(), m_debuggerScopeChainIndexMap(),
-        m_inflatePinSet(nullptr), m_environmentPinSet(nullptr), m_slotArrayPinSet(nullptr), m_oldInflatePinSet(nullptr),
+        m_inflatePinSet(), m_environmentPinSet(), m_oldInflatePinSet(),
         m_oldObjectMap(), m_oldFunctionBodyMap(), m_propertyReset(&HeapAllocator::Instance)
     {
         ;
@@ -23,26 +23,22 @@ namespace TTD
     {
         if(this->m_inflatePinSet != nullptr)
         {
-            this->m_inflatePinSet->GetAllocator()->RootRelease(this->m_inflatePinSet);
-            this->m_inflatePinSet = nullptr;
+            this->m_inflatePinSet.Unroot(this->m_inflatePinSet->GetAllocator());
         }
 
         if(this->m_environmentPinSet != nullptr)
         {
-            this->m_environmentPinSet->GetAllocator()->RootRelease(this->m_environmentPinSet);
-            this->m_environmentPinSet = nullptr;
+            this->m_environmentPinSet.Unroot(this->m_environmentPinSet->GetAllocator());
         }
 
         if(this->m_slotArrayPinSet != nullptr)
         {
-            this->m_slotArrayPinSet->GetAllocator()->RootRelease(this->m_slotArrayPinSet);
-            this->m_slotArrayPinSet = nullptr;
+            this->m_slotArrayPinSet.Unroot(this->m_slotArrayPinSet->GetAllocator());
         }
 
         if(this->m_oldInflatePinSet != nullptr)
         {
-            this->m_oldInflatePinSet->GetAllocator()->RootRelease(this->m_oldInflatePinSet);
-            this->m_oldInflatePinSet = nullptr;
+            this->m_oldInflatePinSet.Unroot(this->m_oldInflatePinSet->GetAllocator());
         }
     }
 
@@ -59,14 +55,10 @@ namespace TTD
         this->m_slotArrayMap.Initialize(slotCount);
         this->m_promiseDataMap.Clear();
 
-        this->m_inflatePinSet = RecyclerNew(threadContext->GetRecycler(), ObjectPinSet, threadContext->GetRecycler(), objectCount);
-        threadContext->GetRecycler()->RootAddRef(this->m_inflatePinSet);
-
-        this->m_environmentPinSet = RecyclerNew(threadContext->GetRecycler(), EnvironmentPinSet, threadContext->GetRecycler(), objectCount);
-        threadContext->GetRecycler()->RootAddRef(this->m_environmentPinSet);
-
-        this->m_slotArrayPinSet = RecyclerNew(threadContext->GetRecycler(), SlotArrayPinSet, threadContext->GetRecycler(), objectCount);
-        threadContext->GetRecycler()->RootAddRef(this->m_slotArrayPinSet);
+        Recycler * recycler = threadContext->GetRecycler();
+        this->m_inflatePinSet.Root(RecyclerNew(recycler, ObjectPinSet, recycler, objectCount), recycler);
+        this->m_environmentPinSet.Root(RecyclerNew(recycler, EnvironmentPinSet, recycler, objectCount), recycler);
+        this->m_slotArrayPinSet.Root(RecyclerNew(recycler, SlotArrayPinSet, recycler, objectCount), recycler);
     }
 
     void InflateMap::PrepForReInflate(uint32 ctxCount, uint32 handlerCount, uint32 typeCount, uint32 objectCount, uint32 bodyCount, uint32 dbgScopeCount, uint32 envCount, uint32 slotCount)
@@ -89,10 +81,9 @@ namespace TTD
         this->m_oldFunctionBodyMap.MoveDataInto(this->m_functionBodyMap);
 
         //allocate the old pin set and fill it
-        AssertMsg(this->m_oldInflatePinSet == nullptr, "Old pin set is not null.");
+        TTDAssert(this->m_oldInflatePinSet == nullptr, "Old pin set is not null.");
         Recycler* pinRecycler = this->m_inflatePinSet->GetAllocator();
-        this->m_oldInflatePinSet = RecyclerNew(pinRecycler, ObjectPinSet, pinRecycler, this->m_inflatePinSet->Count());
-        pinRecycler->RootAddRef(this->m_oldInflatePinSet);
+        this->m_oldInflatePinSet.Root(RecyclerNew(pinRecycler, ObjectPinSet, pinRecycler, this->m_inflatePinSet->Count()), pinRecycler);
 
         for(auto iter = this->m_inflatePinSet->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
@@ -125,8 +116,7 @@ namespace TTD
 
         if(this->m_oldInflatePinSet != nullptr)
         {
-            this->m_oldInflatePinSet->GetAllocator()->RootRelease(this->m_oldInflatePinSet);
-            this->m_oldInflatePinSet = nullptr;
+            this->m_oldInflatePinSet.Unroot(this->m_oldInflatePinSet->GetAllocator());
         }
     }
 
@@ -146,6 +136,7 @@ namespace TTD
         {
             return nullptr;
         }
+        else
         {
             return this->m_oldObjectMap.LookupKnownItem(objid);
         }
@@ -161,6 +152,11 @@ namespace TTD
         {
             return this->m_oldFunctionBodyMap.LookupKnownItem(fbodyid);
         }
+    }
+
+    Js::RecyclableObject* InflateMap::FindReusableObject_WellKnowReuseCheck(TTD_PTR_ID objid) const
+    {
+        return this->m_objectMap.LookupKnownItem(objid);
     }
 
     Js::DynamicTypeHandler* InflateMap::LookupHandler(TTD_PTR_ID handlerId) const
@@ -248,7 +244,7 @@ namespace TTD
 
     void InflateMap::UpdateFBScopes(const NSSnapValues::SnapFunctionBodyScopeChain& scopeChainInfo, Js::FunctionBody* fb)
     {
-        AssertMsg((int32)scopeChainInfo.ScopeCount == (fb->GetScopeObjectChain() != nullptr ? fb->GetScopeObjectChain()->pScopeChain->Count() : 0), "Mismatch in scope counts!!!");
+        TTDAssert((int32)scopeChainInfo.ScopeCount == (fb->GetScopeObjectChain() != nullptr ? fb->GetScopeObjectChain()->pScopeChain->Count() : 0), "Mismatch in scope counts!!!");
 
         if(fb->GetScopeObjectChain() != nullptr)
         {
@@ -352,7 +348,7 @@ namespace TTD
             wprintf(_u("%ls_%ls[%I64i]"), (isFirst ? _u("") : _u(".")), this->m_step.OptName, this->m_step.IndexOrPID);
             break;
         default:
-            AssertMsg(false, "Unknown tag in switch statement!!!");
+            TTDAssert(false, "Unknown tag in switch statement!!!");
             break;
         }
 
@@ -363,7 +359,7 @@ namespace TTD
     }
 
     TTDCompareMap::TTDCompareMap(ThreadContext* threadContext)
-        : H1PtrIdWorklist(&HeapAllocator::Instance), H1PtrToH2PtrMap(&HeapAllocator::Instance), SnapObjCmpVTable(nullptr), H1PtrToPathMap(&HeapAllocator::Instance), 
+        : StrictCrossSite(false), H1PtrIdWorklist(&HeapAllocator::Instance), H1PtrToH2PtrMap(&HeapAllocator::Instance), SnapObjCmpVTable(nullptr), H1PtrToPathMap(&HeapAllocator::Instance), 
         CurrentPath(nullptr), CurrentH1Ptr(TTD_INVALID_PTR_ID), CurrentH2Ptr(TTD_INVALID_PTR_ID), Context(threadContext),
         //
         H1ValueMap(&HeapAllocator::Instance), H1SlotArrayMap(&HeapAllocator::Instance), H1FunctionScopeInfoMap(&HeapAllocator::Instance),
@@ -374,6 +370,8 @@ namespace TTD
         H2FunctionTopLevelLoadMap(&HeapAllocator::Instance), H2FunctionTopLevelNewMap(&HeapAllocator::Instance), H2FunctionTopLevelEvalMap(&HeapAllocator::Instance),
         H2FunctionBodyMap(&HeapAllocator::Instance), H2ObjectMap(&HeapAllocator::Instance), H2PendingAsyncModBufferSet(&HeapAllocator::Instance)
     {
+        this->StrictCrossSite = !threadContext->TTDLog->IsDebugModeFlagSet();
+
         this->PathBuffer = TT_HEAP_ALLOC_ARRAY_ZERO(char16, 256);
 
         this->SnapObjCmpVTable = TT_HEAP_ALLOC_ARRAY_ZERO(fPtr_AssertSnapEquivAddtlInfo, (int32)NSSnapObjects::SnapObjectType::Limit);
@@ -399,6 +397,7 @@ namespace TTD
         this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseInfo;
         this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseResolveOrRejectFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseResolveOrRejectFunctionInfo;
         this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseReactionTaskFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseReactionTaskFunctionInfo;
+        this->SnapObjCmpVTable[(int32)NSSnapObjects::SnapObjectType::SnapPromiseAllResolveElementFunctionObject] = &NSSnapObjects::AssertSnapEquiv_SnapPromiseAllResolveElementFunctionInfo;
     }
 
     TTDCompareMap::~TTDCompareMap()
@@ -426,7 +425,7 @@ namespace TTD
             }
         }
 
-        AssertMsg(condition, "Diagnostic compare assertion failed!!!");
+        TTDAssert(condition, "Diagnostic compare assertion failed!!!");
     }
 
     void TTDCompareMap::CheckConsistentAndAddPtrIdMapping_Helper(TTD_PTR_ID h1PtrId, TTD_PTR_ID h2PtrId, TTDComparePath::StepKind stepKind, const TTDComparePath::PathEntry& next)
@@ -437,14 +436,14 @@ namespace TTD
         }
         else if(this->H1PtrToH2PtrMap.ContainsKey(h1PtrId))
         {
-            this->DiagnosticAssert(this->H1PtrToH2PtrMap.Lookup(h1PtrId, TTD_INVALID_PTR_ID) == h2PtrId);
+            this->DiagnosticAssert(this->H1PtrToH2PtrMap.Item(h1PtrId) == h2PtrId);
         }
         else if(this->H1ValueMap.ContainsKey(h1PtrId))
         {
             this->DiagnosticAssert(this->H2ValueMap.ContainsKey(h2PtrId));
 
-            const NSSnapValues::SnapPrimitiveValue* v1 = this->H1ValueMap.Lookup(h1PtrId, nullptr);
-            const NSSnapValues::SnapPrimitiveValue* v2 = this->H2ValueMap.Lookup(h2PtrId, nullptr);
+            const NSSnapValues::SnapPrimitiveValue* v1 = this->H1ValueMap.Item(h1PtrId);
+            const NSSnapValues::SnapPrimitiveValue* v2 = this->H2ValueMap.Item(h2PtrId);
             NSSnapValues::AssertSnapEquiv(v1, v2, *this);
         }
         else
@@ -490,7 +489,7 @@ namespace TTD
         }
         else if(this->H1PtrToH2PtrMap.ContainsKey(h1PtrId))
         {
-            this->DiagnosticAssert(this->H1PtrToH2PtrMap.Lookup(h1PtrId, TTD_INVALID_PTR_ID) == h2PtrId);
+            this->DiagnosticAssert(this->H1PtrToH2PtrMap.Item(h1PtrId) == h2PtrId);
         }
         else
         {
@@ -509,10 +508,9 @@ namespace TTD
         else
         {
             *h1PtrId = this->H1PtrIdWorklist.Dequeue();
-            *h2PtrId = this->H1PtrToH2PtrMap.Lookup(*h1PtrId, TTD_INVALID_PTR_ID);
-            AssertMsg(*h2PtrId != TTD_INVALID_PTR_ID, "Id not mapped!!!");
+            *h2PtrId = this->H1PtrToH2PtrMap.Item(*h1PtrId);
 
-            this->CurrentPath = this->H1PtrToPathMap.Lookup(*h1PtrId, nullptr);
+            this->CurrentPath = this->H1PtrToPathMap.Item(*h1PtrId);
             this->CurrentH1Ptr = *h1PtrId;
             this->CurrentH2Ptr = *h2PtrId;
 
@@ -553,8 +551,8 @@ namespace TTD
             }
             else
             {
-                AssertMsg(!this->H1ValueMap.ContainsKey(*h1PtrId), "Should be comparing by value!!!");
-                AssertMsg(false, "Id not found in any of the maps!!!");
+                TTDAssert(!this->H1ValueMap.ContainsKey(*h1PtrId), "Should be comparing by value!!!");
+                TTDAssert(false, "Id not found in any of the maps!!!");
                 *tag = TTDCompareTag::Done;
             }
         }
@@ -562,50 +560,50 @@ namespace TTD
 
     void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::SlotArrayInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::SlotArrayInfo** val2)
     {
-        AssertMsg(compareTag == TTDCompareTag::SlotArray, "Should be a type");
-        *val1 = this->H1SlotArrayMap.Lookup(h1PtrId, nullptr);
-        *val2 = this->H2SlotArrayMap.Lookup(h2PtrId, nullptr);
+        TTDAssert(compareTag == TTDCompareTag::SlotArray, "Should be a type");
+        *val1 = this->H1SlotArrayMap.Item(h1PtrId);
+        *val2 = this->H2SlotArrayMap.Item(h2PtrId);
     }
 
     void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::ScriptFunctionScopeInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::ScriptFunctionScopeInfo** val2)
     {
-        AssertMsg(compareTag == TTDCompareTag::FunctionScopeInfo, "Should be a type");
-        *val1 = this->H1FunctionScopeInfoMap.Lookup(h1PtrId, nullptr);
-        *val2 = this->H2FunctionScopeInfoMap.Lookup(h2PtrId, nullptr);
+        TTDAssert(compareTag == TTDCompareTag::FunctionScopeInfo, "Should be a type");
+        *val1 = this->H1FunctionScopeInfoMap.Item(h1PtrId);
+        *val2 = this->H2FunctionScopeInfoMap.Item(h2PtrId);
     }
 
     void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, uint64* val1, TTD_PTR_ID h2PtrId, uint64* val2)
     {
         if(compareTag == TTDCompareTag::TopLevelLoadFunction)
         {
-            *val1 = this->H1FunctionTopLevelLoadMap.Lookup(h1PtrId, 0);
-            *val2 = this->H2FunctionTopLevelLoadMap.Lookup(h2PtrId, 0);
+            *val1 = this->H1FunctionTopLevelLoadMap.Item(h1PtrId);
+            *val2 = this->H2FunctionTopLevelLoadMap.Item(h2PtrId);
         }
         else if(compareTag == TTDCompareTag::TopLevelNewFunction)
         {
-            *val1 = this->H1FunctionTopLevelNewMap.Lookup(h1PtrId, 0);
-            *val2 = this->H2FunctionTopLevelNewMap.Lookup(h2PtrId, 0);
+            *val1 = this->H1FunctionTopLevelNewMap.Item(h1PtrId);
+            *val2 = this->H2FunctionTopLevelNewMap.Item(h2PtrId);
         }
         else
         {
-            AssertMsg(compareTag == TTDCompareTag::TopLevelEvalFunction, "Should be a type");
-            *val1 = this->H1FunctionTopLevelEvalMap.Lookup(h1PtrId, 0);
-            *val2 = this->H2FunctionTopLevelEvalMap.Lookup(h2PtrId, 0);
+            TTDAssert(compareTag == TTDCompareTag::TopLevelEvalFunction, "Should be a type");
+            *val1 = this->H1FunctionTopLevelEvalMap.Item(h1PtrId);
+            *val2 = this->H2FunctionTopLevelEvalMap.Item(h2PtrId);
         }
     }
 
     void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapValues::FunctionBodyResolveInfo** val1, TTD_PTR_ID h2PtrId, const NSSnapValues::FunctionBodyResolveInfo** val2)
     {
-        AssertMsg(compareTag == TTDCompareTag::FunctionBody, "Should be a type");
-        *val1 = this->H1FunctionBodyMap.Lookup(h1PtrId, nullptr);
-        *val2 = this->H2FunctionBodyMap.Lookup(h2PtrId, nullptr);
+        TTDAssert(compareTag == TTDCompareTag::FunctionBody, "Should be a type");
+        *val1 = this->H1FunctionBodyMap.Item(h1PtrId);
+        *val2 = this->H2FunctionBodyMap.Item(h2PtrId);
     }
 
     void TTDCompareMap::GetCompareValues(TTDCompareTag compareTag, TTD_PTR_ID h1PtrId, const NSSnapObjects::SnapObject** val1, TTD_PTR_ID h2PtrId, const NSSnapObjects::SnapObject** val2)
     {
-        AssertMsg(compareTag == TTDCompareTag::SnapObject, "Should be a type");
-        *val1 = this->H1ObjectMap.Lookup(h1PtrId, nullptr);
-        *val2 = this->H2ObjectMap.Lookup(h2PtrId, nullptr);
+        TTDAssert(compareTag == TTDCompareTag::SnapObject, "Should be a type");
+        *val1 = this->H1ObjectMap.Item(h1PtrId);
+        *val2 = this->H2ObjectMap.Item(h2PtrId);
     }
 #endif
 }

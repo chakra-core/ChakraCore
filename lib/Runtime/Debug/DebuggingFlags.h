@@ -70,7 +70,7 @@ public:
     void SetByteCodeOffsetAfterIgnoreException(int offset);
     void SetByteCodeOffsetAndFuncAfterIgnoreException(int offset, uint functionNumber);
     void ResetByteCodeOffsetAndFuncAfterIgnoreException();
-    size_t GetByteCodeOffsetAfterIgnoreExceptionOffset() const;
+    static size_t GetByteCodeOffsetAfterIgnoreExceptionOffset();
 
     bool IsBuiltInWrapperPresent() const;
     void SetIsBuiltInWrapperPresent(bool value = true);

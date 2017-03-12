@@ -20,7 +20,7 @@
 #   $Env:TF_BUILD_BUILDDIRECTORY    (a.k.a. $objpath)
 #   $Env:TF_BUILD_BINARIESDIRECTORY (a.k.a. $binpath)
 #
-# Optional information:
+# Optional information (metadata only):
 #   $Env:TF_BUILD_BUILDDEFINITIONNAME
 #   $Env:TF_BUILD_BUILDNUMBER
 #   $Env:TF_BUILD_BUILDURI
@@ -32,7 +32,6 @@ param (
     [Parameter(Mandatory=$True)]
     [ValidateSet("debug", "release", "test", "codecoverage")]
     [string]$flavor,
-
     [ValidateSet("default", "codecoverage", "pogo")]
     [string]$subtype = "default",
 
@@ -43,24 +42,28 @@ param (
 
     [string]$corePath = "core",
 
-    [Parameter(Mandatory=$True)]
     [string]$oauth
 )
 
-$OuterScriptRoot = $PSScriptRoot # Used in pre_post_util.ps1
-. "$PSScriptRoot\pre_post_util.ps1"
+. $PSScriptRoot\pre_post_util.ps1
 
-if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {
-    if (-not(Test-Path -Path "${Env:TF_BUILD_BINARIESDIRECTORY}\logs")) {
-        $dummy = New-Item -Path "${Env:TF_BUILD_BINARIESDIRECTORY}\logs" -ItemType Directory -Force
+$srcpath, $buildRoot, $objpath, $binpath = `
+    ComputePaths `
+        -arch $arch -flavor $flavor -subtype $subtype -OuterScriptRoot $PSScriptRoot `
+        -srcpath $srcpath -buildRoot $buildRoot -objpath $objpath -binpath $binpath
+
+WriteCommonArguments
+
+$buildName = ConstructBuildName $arch $flavor $subtype
+if (($logFile -eq "") -and (Test-Path $buildRoot)) {
+    if (-not(Test-Path -Path "${buildRoot}\logs")) {
+        $dummy = New-Item -Path "${buildRoot}\logs" -ItemType Directory -Force
     }
-    $logFile = "${Env:TF_BUILD_BINARIESDIRECTORY}\logs\pre_build.${Env:BuildName}.log"
+    $logFile = "${buildRoot}\logs\pre_build.${buildName}.log"
     if (Test-Path -Path $logFile) {
         Remove-Item $logFile -Force
     }
 }
-
-WriteCommonArguments
 
 #
 # Create packages.config files
@@ -74,7 +77,7 @@ $packagesConfigFileText = @"
 "@
 
 $packagesFiles = Get-ChildItem -Path $Env:TF_BUILD_SOURCESDIRECTORY *.vcxproj -Recurse `
-    | % { Join-Path $_.DirectoryName "packages.config" }
+    | ForEach-Object { Join-Path $_.DirectoryName "packages.config" }
 
 foreach ($file in $packagesFiles) {
     if (-not (Test-Path $file)) {
@@ -93,7 +96,7 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
 
     $CoreHash = ""
     if (Test-Path $corePath) {
-        $CoreHash = iex "$gitExe rev-parse ${commitHash}:core"
+        $CoreHash = Invoke-Expression "$gitExe rev-parse ${commitHash}:core"
         if (-not $?) {
             $CoreHash = ""
         }
@@ -108,13 +111,13 @@ if (Test-Path Env:\TF_BUILD_SOURCEGETVERSION)
 
     $info = GetBuildInfo $oauth $commitHash
 
-    $BuildDate = ([datetime]$info.push.date).toString("yyMMdd-HHmm")
+    $BuildDate = ([DateTime]$info.push.date).toString("yyMMdd-HHmm")
 
     $buildPushId, $buildPushIdPart1, $buildPushIdPart2, $buildPushIdString = GetBuildPushId $info
 
     # commit message
-    $command = "$gitExe log -1 --name-status -p $commitHash"
-    $CommitMessageLines = iex $command
+    $command = "$gitExe log -1 --name-status -m --first-parent -p $commitHash"
+    $CommitMessageLines = Invoke-Expression $command
     $CommitMessage = $CommitMessageLines -join "`r`n"
 
     $changeTextFile = Join-Path -Path $outputDir -ChildPath "change.txt"
@@ -157,12 +160,12 @@ $CommitMessage
     $changeJson | Add-Member -type NoteProperty -name PushIdPart2 -value $BuildPushIdPart2
     $changeJson | Add-Member -type NoteProperty -name PushIdString -value $BuildPushIdString
     $changeJson | Add-Member -type NoteProperty -name Username -value $Env:Username
-    $changeJson | Add-Member -type NoteProperty -name CommitMessage -value $CommitMessage
+    $changeJson | Add-Member -type NoteProperty -name CommitMessage -value $CommitMessageLines
 
     Write-Output "-----"
     Write-Output $outputJsonFile
     $changeJson | ConvertTo-Json | Write-Output
-    $changeJson | ConvertTo-Json | Out-File $outputJsonFile -Encoding Ascii
+    $changeJson | ConvertTo-Json | Out-File $outputJsonFile -Encoding utf8
 
     $buildInfoOutputDir = $objpath
     if (-not(Test-Path -Path $buildInfoOutputDir)) {
@@ -185,7 +188,7 @@ $CommitMessage
 </Project>
 "@
 
-    $propsFileContent = $propsFileTemplate -f $binpath, $objpath, $buildPushIdPart1, $buildPushIdPart2, $buildCommit, $buildDate
+    $propsFileContent = $propsFileTemplate -f $buildRoot, $objpath, $buildPushIdPart1, $buildPushIdPart2, $buildCommit, $buildDate
 
     Write-Output "-----"
     Write-Output $propsFile

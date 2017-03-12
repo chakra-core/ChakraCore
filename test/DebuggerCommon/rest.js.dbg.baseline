@@ -1,0 +1,48 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 0,
+        "sourceText": "}",
+        "function": "justRest"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "Array []"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "Array []"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 17,
+        "column": 0,
+        "sourceText": "}",
+        "function": "someParams"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "undefined undefined",
+      "b": "undefined undefined",
+      "c": "Array []"
+    }
+  },
+  {
+    "evaluate": {
+      "[a, b, c]": "Array [,,]"
+    }
+  }
+]

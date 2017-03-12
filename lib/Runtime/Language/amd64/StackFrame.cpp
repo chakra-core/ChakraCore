@@ -43,7 +43,7 @@ bool Js::Amd64StackFrame::InitializeByReturnAddress(void *returnAddress, ScriptC
 
     this->stackCheckCodeHeight =
         scriptContext->GetThreadContext()->DoInterruptProbe() ? stackCheckCodeHeightWithInterruptProbe
-        : scriptContext->GetThreadContext()->GetIsThreadBound() ? stackCheckCodeHeightThreadBound
+        : scriptContext->GetThreadContext()->IsThreadBound() ? stackCheckCodeHeightThreadBound
         : stackCheckCodeHeightNotThreadBound;
 
     // this is the context for the current function

@@ -14,23 +14,24 @@ namespace Js
         friend class SimplePathTypeHandler;
         friend class PathTypeHandler;
     private:
-        TypePath* typePath;
-        DynamicType* predecessorType; // Strong reference to predecessor type so that predecessor types remain in the cache even though they might not be used
+        Field(TypePath*) typePath;
+        Field(DynamicType*) predecessorType; // Strong reference to predecessor type so that predecessor types remain in the cache even though they might not be used
 
     public:
         DEFINE_GETCPPNAME();
+        typedef JsUtil::WeaklyReferencedKeyDictionary<DynamicType, DynamicType*> TypeTransitionMap;
 
     protected:
         PathTypeHandlerBase(TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
 
-        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandlerBase, DynamicTypeHandler, typePath(0));
+        DEFINE_VTABLE_CTOR_INIT_NO_REGISTER(PathTypeHandlerBase, DynamicTypeHandler, typePath(nullptr));
 
     public:
         virtual BOOL IsLockable() const override { return true; }
         virtual BOOL IsSharable() const override { return true; }
         virtual void DoShareTypeHandler(ScriptContext* scriptContext) override;
 
-        static bool UsePathTypeHandlerForObjectLiteral(const PropertyIdArray *const propIds, ScriptContext *const scriptContext, bool *const check__proto__Ref = nullptr);
+        static bool UsePathTypeHandlerForObjectLiteral(const PropertyIdArray *const propIds, bool *const check__proto__Ref = nullptr);
         static DynamicType* CreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType);
         static DynamicType* CreateNewScopeObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, PropertyAttributes extraAttributes = PropertyNone, uint extraAttributesSlotCount = UINT_MAX);
 
@@ -44,7 +45,7 @@ namespace Js
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const TypeEquivalenceRecord& record, uint& failedPropertyIndex) override;
         virtual bool IsObjTypeSpecEquivalent(const Type* type, const EquivalentPropertyEntry* entry) override;
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false) override;
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags) override;
         virtual BOOL HasProperty(DynamicObject* instance, PropertyId propertyId, __out_opt bool *noRedecl = nullptr) override;
         virtual BOOL HasProperty(DynamicObject* instance, JavascriptString* propertyNameString) override;
         virtual BOOL GetProperty(DynamicObject* instance, Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
@@ -202,6 +203,8 @@ namespace Js
     public:
         virtual void ShrinkSlotAndInlineSlotCapacity(uint16 newInlineSlotCapacity) = 0;
         virtual bool GetMaxPathLength(uint16 * maxPathLength) = 0;
+        void MoveAuxSlotsToObjectHeader(DynamicObject *const object);
+        BOOL DeleteLastProperty(DynamicObject *const object);
 
 #if ENABLE_TTD
     public:
@@ -209,7 +212,9 @@ namespace Js
 
         virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override;
 
-        virtual Js::PropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord) override;
+        virtual Js::BigPropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord) override;
+
+        virtual bool IsResetableForTTD(uint32 snapMaxIndex) const override;
 #endif
     };
 
@@ -218,8 +223,8 @@ namespace Js
     class SimplePathTypeHandler sealed : public PathTypeHandlerBase
     {
     private:
-        const PropertyRecord * successorPropertyRecord;
-        RecyclerWeakReference<DynamicType> * successorTypeWeakRef;
+        Field(const PropertyRecord *) successorPropertyRecord;
+        Field(RecyclerWeakReference<DynamicType> *) successorTypeWeakRef;
 
     public:
         DEFINE_GETCPPNAME();
@@ -242,7 +247,7 @@ namespace Js
 
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
         static SimplePathTypeHandler * New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, const PropertyIndex slotCapacity, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked = false, bool isShared = false, DynamicType* predecessorType = nullptr);
-        static SimplePathTypeHandler * SimplePathTypeHandler::New(ScriptContext * scriptContext, SimplePathTypeHandler * typeHandler, bool isLocked, bool isShared);
+        static SimplePathTypeHandler * New(ScriptContext * scriptContext, SimplePathTypeHandler * typeHandler, bool isLocked, bool isShared);
     };
 
     class PathTypeHandler sealed : public PathTypeHandlerBase
@@ -251,7 +256,7 @@ namespace Js
 
     private:
         typedef JsUtil::WeakReferenceDictionary<PropertyId, DynamicType, DictionarySizePolicy<PowerOf2Policy, 1>> PropertySuccessorsMap;
-        PropertySuccessorsMap * propertySuccessors;
+        Field(PropertySuccessorsMap *) propertySuccessors;
 
     public:
         DEFINE_GETCPPNAME();

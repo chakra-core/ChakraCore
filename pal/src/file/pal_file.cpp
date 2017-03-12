@@ -1169,7 +1169,6 @@ DeleteFileA(
         IN LPCSTR lpFileName)
 {
     PAL_ERROR palError = NO_ERROR;
-    DWORD dwShareMode = SHARE_MODE_NOT_INITALIZED;
     CPalThread *pThread;
     int     result;
     BOOL    bRet = FALSE;
@@ -1196,12 +1195,6 @@ DeleteFileA(
     lpUnixFileNamePS.CloseBuffer(length);
     
     FILEDosToUnixPathA( lpUnixFileName );
-    
-    if ( !FILEGetFileNameFromSymLink(lpUnixFileName))
-    {
-        dwLastError = FILEGetLastErrorFromErrnoAndFilename(lpUnixFileName);
-        goto done;
-    }
 
     lpFullUnixFileName =  reinterpret_cast<LPSTR>(InternalMalloc(cchFullUnixFileName));
     if ( lpFullUnixFileName == NULL )
@@ -1228,31 +1221,9 @@ DeleteFileA(
         }
     }
 
-    palError = g_pFileLockManager->GetFileShareModeForFile(lpFullUnixFileName, &dwShareMode);
+    result = unlink( lpFullUnixFileName );
 
-    // Use unlink if we succesfully found the file to be opened with
-    // a FILE_SHARE_DELETE mode.
-    // Note that there is a window here where a race condition can occur:
-    //   the check for the sharing mode and the unlink are two separate actions
-    //   (not a single atomic action). So it's possible that between the check
-    //   happening and the unlink happening, the file may have been closed. If 
-    //   it is just closed and not re-opened, no problems.
-    //   If it is closed and re-opened without any sharing, we should be calling
-    //   InternalDelete instead which would have failed.
-    //   Instead, we call unlink which will succeed.
-
-    if (palError == NO_ERROR &&
-    dwShareMode != SHARE_MODE_NOT_INITALIZED &&
-    (dwShareMode & FILE_SHARE_DELETE) != 0)
-    {
-      result = unlink( lpFullUnixFileName );
-    }
-    else
-    {
-      result = InternalDeleteFile( lpFullUnixFileName );
-    }
-
-    if ( result < 0 )
+    if (result < 0)
     {
         TRACE("unlink returns %d\n", result);
         dwLastError = FILEGetLastErrorFromErrnoAndFilename(lpFullUnixFileName);
@@ -1471,13 +1442,6 @@ MoveFileExA(
     
     FILEDosToUnixPathA( dest );
 
-    if ( !FILEGetFileNameFromSymLink(source))
-    {
-        TRACE( "FILEGetFileNameFromSymLink failed\n" );
-        dwLastError = FILEGetLastErrorFromErrnoAndFilename(source);
-        goto done;
-    }
-
     if ( !(dwFlags & MOVEFILE_REPLACE_EXISTING) )
     {
 #if HAVE_CASE_SENSITIVE_FILESYSTEM
@@ -1558,9 +1522,9 @@ MoveFileExA(
         case ENOENT:
             {
                 struct stat buf;
-                if (stat(source, &buf) == -1)
+                if (lstat(source, &buf) == -1)
                 {
-                    FILEGetProperNotFoundError(dest, &dwLastError);
+                    FILEGetProperNotFoundError(source, &dwLastError);
                 }
                 else
                 {
@@ -4948,39 +4912,6 @@ void FILECleanupStdHandles(void)
     CloseHandle(stdin_handle);
     CloseHandle(stdout_handle);
     CloseHandle(stderr_handle);
-}
-
-
-/*++
-FILEGetFileNameFromSymLink
-
-Input parameters:
-
-source  = path to the file on input, path to the file with all 
-          symbolic links traversed on return
-
-Note: Assumes the maximum size of the source is MAX_LONGPATH
-
-Return value:
-    TRUE on success, FALSE on failure
---*/
-BOOL FILEGetFileNameFromSymLink(char *source)
-{
-    int ret;
-    char * sLinkData = (char*)InternalMalloc(MAX_LONGPATH);
-
-    do
-    {
-        ret = readlink(source, sLinkData, MAX_LONGPATH);
-        if (ret>0)
-        {
-            sLinkData[ret] = '\0';
-            strcpy_s(source, sizeof(char)*(MAX_LONGPATH), sLinkData);
-        }
-    } while (ret > 0);
-
-    InternalFree(sLinkData);
-    return (errno == EINVAL);
 }
 
 

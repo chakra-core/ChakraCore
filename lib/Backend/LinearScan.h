@@ -104,7 +104,6 @@ public:
         totalOpHelperFullVisitedLength(0), curLoop(NULL), currentBlock(nullptr), currentRegion(nullptr), m_bailOutRecordCount(0),
         globalBailOutRecordTables(nullptr), lastUpdatedRowIndices(nullptr)
     {
-        linearScanMD.Init(this);
     }
 
     void                RegAlloc();
@@ -221,5 +220,6 @@ private:
 #endif
 
     static IR::Instr *  InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
+    static IR::Instr *  InsertLea(IR::RegOpnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr);
 
 };

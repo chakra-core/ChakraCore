@@ -14,7 +14,7 @@ const uint Memory::StandAloneFreeListPolicy::MaxEntriesGrowth;
 #endif
 
 // We need this function to be inlined for perf
-template _ALWAYSINLINE BVSparseNode * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, BVSparseNode *** prevNextFieldOut, bool create);
+template _ALWAYSINLINE BVSparseNode<JitArenaAllocator> * BVSparse<JitArenaAllocator>::NodeFromIndex(BVIndex i, Field(BVSparseNode*, JitArenaAllocator)** prevNextFieldOut, bool create);
 
 ArenaData::ArenaData(PageAllocator * pageAllocator) :
     pageAllocator(pageAllocator),
@@ -56,6 +56,9 @@ ArenaAllocatorBase(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOf
     this->name = name;
     LogBegin();
 #endif
+#if DBG
+    needsDelayFreeList = false;
+#endif
     ArenaMemoryTracking::ArenaCreated(this, name);
 }
 
@@ -76,6 +79,7 @@ ArenaAllocatorBase<TFreeListPolicy, ObjectAlignmentBitShiftArg, RequireObjectAli
 #ifdef PROFILE_MEM
     LogEnd();
 #endif
+
 }
 
 template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg, bool RequireObjectAlignment, size_t MaxObjectSize>
@@ -166,7 +170,6 @@ ArenaAllocatorBase<TFreeListPolicy, ObjectAlignmentBitShiftArg, RequireObjectAli
 RealAllocInlined(size_t nbytes)
 {
     Assert(nbytes != 0);
-    Assert((nbytes & (ObjectAlignment - 1)) == 0);
 
 #ifdef ARENA_MEMORY_VERIFY
     if (Js::Configuration::Global.flags.ArenaUseHeapAlloc)
@@ -456,7 +459,11 @@ ReleaseHeapMemory()
 }
 
 template _ALWAYSINLINE char *ArenaAllocatorBase<InPlaceFreeListPolicy, 0, 0, 0>::AllocInternal(size_t requestedBytes);
+
+#if !(defined(__clang__) && defined(_M_IX86_OR_ARM32))
+// otherwise duplicate instantination of AllocInternal Error
 template _ALWAYSINLINE char *ArenaAllocatorBase<InPlaceFreeListPolicy, 3, 0, 0>::AllocInternal(size_t requestedBytes);
+#endif
 
 template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg, bool RequireObjectAlignment, size_t MaxObjectSize>
 char *
@@ -579,7 +586,15 @@ Free(void * buffer, size_t byteSize)
             }
         }
 
-        this->freeList = TFreeListPolicy::Free(this->freeList, buffer, size);
+        void **policy = &this->freeList;
+#if DBG
+        if (needsDelayFreeList)
+        {
+            void *delayFreeList = reinterpret_cast<FreeObject **>(this->freeList) + (MaxSmallObjectSize >> ObjectAlignmentBitShift);
+            policy = &delayFreeList;
+        }
+#endif
+        *policy = TFreeListPolicy::Free(*policy, buffer, size);
 
 #ifdef ARENA_ALLOCATOR_FREE_LIST_SIZE
         this->freeListSize += size;
@@ -653,6 +668,16 @@ Realloc(void* buffer, size_t existingBytes, size_t requestedBytes)
 
     return replacementBuf;
 }
+
+#if DBG
+template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg, bool RequireObjectAlignment, size_t MaxObjectSize>
+void
+ArenaAllocatorBase<TFreeListPolicy, ObjectAlignmentBitShiftArg, RequireObjectAlignment, MaxObjectSize>::MergeDelayFreeList()
+{
+    Assert(needsDelayFreeList);
+    TFreeListPolicy::MergeDelayFreeList(freeList);
+}
+#endif
 
 #ifdef PROFILE_MEM
 template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg, bool RequireObjectAlignment, size_t MaxObjectSize>
@@ -736,6 +761,14 @@ LogReuse(size_t size)
 
 void * InPlaceFreeListPolicy::New(ArenaAllocatorBase<InPlaceFreeListPolicy> * allocator)
 {
+#if DBG
+    // Allocate freeList followed by delayFreeList
+    // A delayFreeList will enable us to detect use-after free scenarios in debug builds
+    if (allocator->HasDelayFreeList())
+    {
+        return AllocatorNewNoThrowNoRecoveryArrayZ(ArenaAllocator, allocator, FreeObject *, 2 * buckets);
+    }
+#endif
     return AllocatorNewNoThrowNoRecoveryArrayZ(ArenaAllocator, allocator, FreeObject *, buckets);
 }
 
@@ -766,11 +799,12 @@ void * InPlaceFreeListPolicy::Allocate(void * policy, size_t size)
 
     return freeObject;
 }
+
 void * InPlaceFreeListPolicy::Free(void * policy, void * object, size_t size)
 {
     Assert(policy);
-
-    FreeObject ** freeObjectLists = reinterpret_cast<FreeObject **>(policy);
+    void * freeList = policy;
+    FreeObject ** freeObjectLists = reinterpret_cast<FreeObject **>(freeList);
     FreeObject * freeObject = reinterpret_cast<FreeObject *>(object);
     size_t index = (size >> ArenaAllocator::ObjectAlignmentBitShift) - 1;
 
@@ -784,6 +818,45 @@ void * InPlaceFreeListPolicy::Reset(void * policy)
     return NULL;
 }
 
+#if DBG
+void InPlaceFreeListPolicy::MergeDelayFreeList(void * freeList)
+{
+    if (!freeList) return;
+
+    FreeObject ** freeObjectLists = reinterpret_cast<FreeObject **>(freeList);
+    FreeObject ** delayFreeObjectLists = freeObjectLists + buckets;
+
+    for (int i = 0; i < buckets; i++)
+    {
+        int size = (i + 1) << ArenaAllocator::ObjectAlignmentBitShift;
+        FreeObject *delayObject = delayFreeObjectLists[i];
+        FreeObject *lastDelayObject = nullptr;
+
+        while (delayObject != nullptr)
+        {
+            FreeObject *nextDelayObject = delayObject->next;
+            // DebugPatternFill is required here, because we set isDeleted bit on freed Opnd
+            PrepareFreeObject(delayObject, size);
+            delayObject->next = nextDelayObject;
+            lastDelayObject = delayObject;
+            delayObject = nextDelayObject;
+        }
+
+        if (freeObjectLists[i] == nullptr)
+        {
+            freeObjectLists[i] = delayFreeObjectLists[i];
+            delayFreeObjectLists[i] = nullptr;
+        }
+        else if (lastDelayObject != nullptr) {
+            FreeObject * firstFreeObject = freeObjectLists[i];
+            freeObjectLists[i] = delayFreeObjectLists[i];
+            lastDelayObject->next = firstFreeObject;
+            delayFreeObjectLists[i] = nullptr;
+        }
+    }
+}
+#endif
+
 #ifdef ARENA_MEMORY_VERIFY
 void InPlaceFreeListPolicy::VerifyFreeObjectIsFreeMemFilled(void * object, size_t size)
 {
@@ -794,11 +867,6 @@ void InPlaceFreeListPolicy::VerifyFreeObjectIsFreeMemFilled(void * object, size_
     }
 }
 #endif
-
-namespace Memory
-{
-    template class ArenaAllocatorBase<InPlaceFreeListPolicy>;
-}
 
 void * StandAloneFreeListPolicy::New(ArenaAllocatorBase<StandAloneFreeListPolicy> * /*allocator*/)
 {
@@ -863,6 +931,13 @@ void * StandAloneFreeListPolicy::Reset(void * policy)
 
     return NULL;
 }
+
+#if DBG
+void StandAloneFreeListPolicy::MergeDelayFreeList(void * freeList)
+{
+    AssertMsg(0, "StandAlone Policy, mergelists not supported");
+}
+#endif
 
 #ifdef ARENA_MEMORY_VERIFY
 void StandAloneFreeListPolicy::VerifyFreeObjectIsFreeMemFilled(void * object, size_t size)
@@ -932,11 +1007,6 @@ bool StandAloneFreeListPolicy::TryEnsureFreeListEntry(StandAloneFreeListPolicy *
     }
 
     return true;
-}
-
-namespace Memory
-{
-    template class ArenaAllocatorBase<StandAloneFreeListPolicy>;
 }
 
 #ifdef PERSISTENT_INLINE_CACHES
@@ -1010,6 +1080,13 @@ void * InlineCacheFreeListPolicy::Reset(void * policy)
     return NULL;
 }
 
+#if DBG
+void InlineCacheFreeListPolicy::MergeDelayFreeList(void * freeList)
+{
+    AssertMsg(0, "Inline policy, merge lists not supported");
+}
+#endif
+
 #ifdef ARENA_MEMORY_VERIFY
 void InlineCacheFreeListPolicy::VerifyFreeObjectIsFreeMemFilled(void * object, size_t size)
 {
@@ -1031,11 +1108,6 @@ void InlineCacheFreeListPolicy::Release(void * policy)
     {
         Reset(policy);
     }
-}
-
-namespace Memory
-{
-    template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
 }
 
 #if DBG
@@ -1366,8 +1438,6 @@ void InlineCacheAllocator::ClearCachesWithDeadWeakRefs(Recycler* recycler)
 
 #else
 
-template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
-
 #if DBG
 bool InlineCacheAllocator::IsAllZero()
 {
@@ -1443,7 +1513,7 @@ void InlineCacheAllocator::ZeroAll()
 #endif
 
 #if DBG
-bool IsInstInlineCacheAllocator::IsAllZero()
+bool CacheAllocator::IsAllZero()
 {
     UpdateCacheBlock();
     BigBlock *blockp = this->bigBlocks;
@@ -1489,7 +1559,7 @@ bool IsInstInlineCacheAllocator::IsAllZero()
 }
 #endif
 
-void IsInstInlineCacheAllocator::ZeroAll()
+void CacheAllocator::ZeroAll()
 {
     UpdateCacheBlock();
     BigBlock *blockp = this->bigBlocks;
@@ -1514,4 +1584,11 @@ void IsInstInlineCacheAllocator::ZeroAll()
     }
 }
 
-#undef ASSERT_TRHEAD
+#undef ASSERT_THREAD
+
+namespace Memory
+{
+    template class ArenaAllocatorBase<InPlaceFreeListPolicy>;
+    template class ArenaAllocatorBase<StandAloneFreeListPolicy>;
+    template class ArenaAllocatorBase<InlineCacheAllocatorTraits>;
+}

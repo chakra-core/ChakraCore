@@ -1,0 +1,43 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "nested": "function function nested() {\r\n        eval(\"\"); // eval here makes test's scope a non-dynamic object scope\r\n    }",
+      "l": "string [Uninitialized block variable]",
+      "c": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "nested": "function function nested() {\r\n        eval(\"\"); // eval here makes test's scope a non-dynamic object scope\r\n    }",
+      "l": "number 10",
+      "c": "string [Uninitialized block variable]"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "nested": "function function nested() {\r\n        eval(\"\"); // eval here makes test's scope a non-dynamic object scope\r\n    }",
+      "l": "number 10",
+      "c": "number 20"
+    }
+  },
+  {
+    "evaluate": {
+      "c=30": "Error Assignment to const"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "nested": "function function nested() {\r\n        eval(\"\"); // eval here makes test's scope a non-dynamic object scope\r\n    }",
+      "l": "number 10",
+      "c": "number 20"
+    }
+  }
+]

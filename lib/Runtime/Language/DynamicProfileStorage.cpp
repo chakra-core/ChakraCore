@@ -17,7 +17,7 @@ char16 DynamicProfileStorage::cacheDir[_MAX_DIR];
 char16 DynamicProfileStorage::catalogFilename[_MAX_PATH];
 CriticalSection DynamicProfileStorage::cs;
 DynamicProfileStorage::InfoMap DynamicProfileStorage::infoMap(&NoCheckHeapAllocator::Instance);
-DWORD DynamicProfileStorage::creationTime = 0;
+DynamicProfileStorage::TimeType DynamicProfileStorage::creationTime = DynamicProfileStorage::TimeType();
 int32 DynamicProfileStorage::lastOffset = 0;
 DWORD const DynamicProfileStorage::MagicNumber = 20100526;
 DWORD const DynamicProfileStorage::FileFormatVersion = 2;
@@ -110,7 +110,7 @@ _Success_(return) bool DynamicProfileStorageReaderWriter::ReadUtf8String(__deref
         return false;
     }
 
-    utf8char_t * tempBuffer = NoCheckHeapNewArray(utf8char_t, urllen);
+    utf8char_t* tempBuffer = NoCheckHeapNewArray(utf8char_t, urllen);
     if (tempBuffer == nullptr)
     {
         Output::Print(_u("ERROR: DynamicProfileStorage: Out of memory reading '%s'\n"), filename);
@@ -133,7 +133,7 @@ _Success_(return) bool DynamicProfileStorageReaderWriter::ReadUtf8String(__deref
         HeapDeleteArray(urllen, tempBuffer);
         return false;
     }
-    utf8::DecodeIntoAndNullTerminate(name, tempBuffer, length);
+    utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(name, tempBuffer, tempBuffer + urllen);
     NoCheckHeapDeleteArray(urllen, tempBuffer);
     *str = name;
     *len = length;
@@ -796,7 +796,7 @@ bool DynamicProfileStorage::CreateCacheCatalog()
     Assert(useCacheDir);
     Assert(locked);
     nextFileId = 0;
-    creationTime = _time32(NULL);
+    creationTime = GetCreationTime();
     DynamicProfileStorageReaderWriter catalogFile;
     if (!catalogFile.Init(catalogFilename, _u("wb"), true)
         || !catalogFile.Write(MagicNumber)

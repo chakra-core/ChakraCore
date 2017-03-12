@@ -1,0 +1,60 @@
+[
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "Run": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "z": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "Run": "function <large string>"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "Run": "function <large string>"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 0",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>"
+    },
+    "locals": {
+      "z": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "foo": "function <large string>",
+      "bar": "function <large string>",
+      "Run": "function <large string>"
+    }
+  }
+]

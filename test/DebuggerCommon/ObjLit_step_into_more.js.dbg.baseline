@@ -1,0 +1,217 @@
+[
+  {
+    "log": "globObj"
+  },
+  {
+    "callStack": [
+      {
+        "line": 9,
+        "column": 4,
+        "sourceText": "gb: foo()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "GlstepOver1"
+  },
+  {
+    "callStack": [
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "sub_expression_step_into_more()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "start"
+  },
+  {
+    "callStack": [
+      {
+        "line": 25,
+        "column": 4,
+        "sourceText": "a1",
+        "function": "sub_expression_step_into_more"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "sub_expression_step_into_more()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepOver1_at_obj_lit"
+  },
+  {
+    "callStack": [
+      {
+        "line": 33,
+        "column": 4,
+        "sourceText": "var obj = { \r\n        a: a1,  \r\n        b: a1++, \r\n        func : function(a, b) {\r\n            return 5;\r\n        },\r\n        globObj,\r\n        ev: eval('a1 + a1*2'),\r\n        c:  {\r\n                ca: a1 * 2, \r\n                cb: foo(),\r\n                cc: a1,\r\n                cd: bar(),\r\n                c3: a1 * 3\r\n            },\r\n        d: foo()    /**bp:  logJson('BP1'); stack(); resume('step_into');\r\n                            logJson('BP1stepIn1_inside_foo'); stack();\r\n                    **/\r\n        }",
+        "function": "sub_expression_step_into_more"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "sub_expression_step_into_more()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepIn1_inside_eval"
+  },
+  {
+    "callStack": [
+      {
+        "line": 40,
+        "column": 8,
+        "sourceText": "ev: eval('a1 + a1*2')",
+        "function": "sub_expression_step_into_more"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "sub_expression_step_into_more()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepIn3_inside_foo"
+  },
+  {
+    "callStack": [
+      {
+        "line": 16,
+        "column": 4,
+        "sourceText": "return a1 * 5",
+        "function": "foo"
+      },
+      {
+        "line": 43,
+        "column": 16,
+        "sourceText": "cb: foo()",
+        "function": "sub_expression_step_into_more"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "sub_expression_step_into_more()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepIn6_next_subexp"
+  },
+  {
+    "callStack": [
+      {
+        "line": 44,
+        "column": 16,
+        "sourceText": "cc: a1",
+        "function": "sub_expression_step_into_more"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "sub_expression_step_into_more()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepIn8_inside_bar"
+  },
+  {
+    "callStack": [
+      {
+        "line": 20,
+        "column": 4,
+        "sourceText": "a1 += 11",
+        "function": "bar"
+      },
+      {
+        "line": 45,
+        "column": 16,
+        "sourceText": "cd: bar()",
+        "function": "sub_expression_step_into_more"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "sub_expression_step_into_more()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "stepIn11_back_in_objLit"
+  },
+  {
+    "callStack": [
+      {
+        "line": 45,
+        "column": 16,
+        "sourceText": "cd: bar()",
+        "function": "sub_expression_step_into_more"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "sub_expression_step_into_more()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "BP1"
+  },
+  {
+    "callStack": [
+      {
+        "line": 48,
+        "column": 8,
+        "sourceText": "d: foo()",
+        "function": "sub_expression_step_into_more"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "sub_expression_step_into_more()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "log": "BP1stepIn1_inside_foo"
+  },
+  {
+    "callStack": [
+      {
+        "line": 16,
+        "column": 4,
+        "sourceText": "return a1 * 5",
+        "function": "foo"
+      },
+      {
+        "line": 48,
+        "column": 8,
+        "sourceText": "d: foo()",
+        "function": "sub_expression_step_into_more"
+      },
+      {
+        "line": 55,
+        "column": 0,
+        "sourceText": "sub_expression_step_into_more()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

@@ -380,7 +380,241 @@ var tests = [
     body: function () {
         assert.doesNotThrow(function () { eval("[ (a = function () { }) => {} ];"); }, "Lambda defined, inside an array literal, has a default as a function should not assert");
     }
-  }
+  },
+  {
+    name: "Shadowing arguments symbol",
+    body: function () {
+        function f1(a, b = arguments[0]) {
+            assert.areEqual(1, arguments[0], "Initial value of arguments symbol in the body should be same as the arguments from the param scope");
+            var arguments = [10, 20];
+            assert.areEqual(1, b, "Arguments value is the initial value in the param scope too");
+            assert.areEqual(10, arguments[0], "Arguments value is updated in the body");
+        }
+        f1(1);
+
+        function f2(a = 1, arguments) {
+            assert.areEqual(2, arguments, "Initial value of arguments symbol in the body should be same as the arguments from the param scope");
+            var arguments = [10, 20];
+            assert.areEqual(10, arguments[0], "Arguments value is updated in the body");
+        }
+        f2(undefined, 2);
+
+        function f3(a, b = arguments[0]) {
+            assert.areEqual(10, arguments(), "Arguments symbol is overwritten by the the function definition");
+            function arguments() {
+                return 10;
+            }
+            assert.areEqual(1, b, "Arguments value is the initial value in the param scope too");
+        }
+        f3(1);
+
+        function f4(a = 1, arguments, c = arguments) {
+            assert.areEqual(10, arguments(), "In the body function definition shadows the formal");
+            assert.areEqual(2, c, "Value of the formal is assigned properly");
+            function arguments() {
+                return 10;
+            }
+        }
+        f4(undefined, 2);
+
+        function f5(a, b = arguments) {
+            function arguments(c) {
+                return arguments;
+            }
+            assert.areEqual(30, arguments(10, 20, 30)[2], "Inside the arguments function the arguments symbol should points to the passed in values");
+            assert.areEqual(4, b[3], "In the param scope arguments symbol referes to the passed in values");
+        }
+        f5(1, undefined, 3, 4, 5);
+
+        function f6(a, b = arguments) {
+            function arguments(c) {
+                if (!arguments.length) {
+                    return arguments.callee(10, 20, 30);
+                }
+                return arguments;
+            }
+            assert.areEqual(20, arguments()[1], "In the function body arguments refers to the inner function");
+            assert.areEqual(3, b[2], "In the param scope arguments symbol referes to the passed in values");
+        }
+        f6(1, undefined, 3, 4);
+
+        function f7(a, b = function arguments(c) {
+            if (!c) {
+                return arguments.callee(10, 20);
+            }
+            return c + arguments[1];
+        }) {
+            assert.areEqual(30, b(), "Function defined in the param scope can be called recursively");
+            assert.areEqual(1, arguments[0], "Arguments symbol is unaffected by the function expression");
+        }
+        f7(1);
+
+        function f8(a, b = arguments) {
+            var c = function arguments(c) {
+                if (!arguments.length) {
+                    return arguments.callee(10, 20, 30);
+                }
+                return arguments;
+            }
+            assert.areEqual(30, c()[2], "In the function body the arguments function expression with name is not visible");
+            assert.areEqual(1, b[0], "In the param scope arguments symbol referes to the passed in values");
+        }
+        f8(1);
+
+        assert.throws(function () { eval("function f(a, b = arguments) { class arguments { } }"); }, SyntaxError, "Class cannot be named arguments", "Invalid usage of 'arguments' in strict mode");
+        assert.throws(function () { eval("function f(a, arguments) { class arguments { } }"); }, SyntaxError, "Class cannot be named arguments even when one of the formal is named arguments", "Let/Const redeclaration");
+
+        function f9( a = 0, b = {
+            arguments() {
+                return 10;
+            }
+        }, c = arguments) {
+            with (b) {
+                assert.areEqual(10, arguments(), "Inside with the right the arguments function inside the object is used in the body also");
+            }
+            assert.areEqual(1, arguments[0], "Arguments symbol should be unaffected after with construct");
+            assert.areEqual(1, c[0], "Arguments symbol from param scope should be unaffected after with construct");
+        }
+        f9(1);
+
+        function f10(a = 1, b = () => {
+            assert.areEqual(undefined, arguments, "Due to the decalration in the body arguments symbol is shadowed inside the lambda");
+            var arguments = 100;
+            assert.areEqual(100, arguments, "After the assignment value of arguments is updated inside the lambda");
+        }, c = arguments) {
+            assert.areEqual(10, arguments[0], "In the body the value of arguments is retained");
+            assert.areEqual(10, c[0], "Arguments symbol is not affected in the param scope");
+            b();
+        }
+        f10(10);
+
+        function f11(a = 1, b = () => {
+            assert.areEqual(100, arguments(), "Inside the lambda the function definition shadows the parent's arguments symbol");
+            function arguments() {
+                return 100;
+            }
+        }, c = arguments) {
+            assert.areEqual(10, arguments[0], "In the body the value of arguments is retained");
+            b();
+            assert.areEqual(10, c[0], "Arguments symbol is not affected in the param scope");
+        }
+        f11(10);
+
+        function f12({a = 1, arguments}) {
+            assert.areEqual(2, arguments, "Initial value of arguments symbol in the body should be same as the arguments from the param scope's destructured pattern");
+            var arguments = [10, 20];
+            assert.areEqual(10, arguments[0], "Arguments value is updated in the body");
+        }
+        f12({arguments : 2});
+
+        function f13(a = 1, {arguments, c = arguments}) {
+            assert.areEqual(10, arguments(), "In the body function definition shadows the destructured formal");
+            assert.areEqual(2, c, "Value of the formal is assigned properly");
+            function arguments() {
+                return 10;
+            }
+        }
+        f13(undefined, { arguments: 2 });
+
+        function f14(a, b = arguments[0]) {
+            assert.areEqual(1, arguments[0], "Function in block causes a var declaration to be hoisted and the initial value should be same as the arguments symbol");
+            {
+                {
+                    function arguments() {
+                        return 10;
+                    }
+                }
+            }
+            assert.areEqual(1, b, "Arguments value is the initial value in the param scope too");
+            assert.areEqual(10, arguments(), "Hoisted var binding is updated after the block is exected");
+        }
+        f14(1);
+
+        function f15() {
+            function f16() {
+                eval("");
+                this.arguments = 1;
+            }
+
+            var obj = new f16();
+            
+            function arguments() {
+                return 10;
+            }
+            assert.areEqual(1, obj.arguments, "Child function having eval should work fine with a duplicate arguments definition in the parent body");
+        };
+        f15();
+    }
+  },
+  {
+    name: "Shadowing arguments symbol - Eval",
+    body: function () {
+        function f1(a, b = arguments[0]) {
+            assert.areEqual(1, arguments[0], "Initial value of arguments symbol in the body should be same as the arguments from the param scope");
+            var arguments = [10, 20];
+            assert.areEqual(1, b, "Arguments value is the initial value in the param scope too");
+            assert.areEqual(10, eval("arguments[0]"), "Arguments value is updated in the body");
+        }
+        f1(1);
+
+        function f2(a = 1, arguments) {
+            assert.areEqual(2, eval("arguments"), "Initial value of arguments symbol in the body should be same as the arguments from the param scope");
+            var arguments = [10, 20];
+            assert.areEqual(10, arguments[0], "Arguments value is updated in the body");
+        }
+        f2(undefined, 2);
+
+        function f3(a, b = arguments[0]) {
+            assert.areEqual(10, eval("arguments()"), "Arguments symbol is overwritten by the the function definition");
+            function arguments() {
+                return 10;
+            }
+            assert.areEqual(1, b, "Arguments value is the initial value in the param scope too");
+        }
+        f3(1);
+
+        function f4(a = 1, arguments, c = arguments) {
+            assert.areEqual(10, arguments(), "In the body function definition shadows the formal");
+            assert.areEqual(2, eval("c"), "Value of the formal is assigned properly");
+            function arguments() {
+                return 10;
+            }
+        }
+        f4(undefined, 2);
+
+        function f5(a, b, c = arguments) {
+            function arguments(c) {
+                return eval("arguments");
+            }
+            assert.areEqual(30, arguments(10, 20, 30)[2], "In the function body arguments refers to the inner function");
+            assert.areEqual(2, c[1], "In the param scope arguments symbol referes to the passed in values");
+        }
+        f5(1, 2, undefined, 4);
+
+        function f6(a, b = function arguments(c) {
+            if (!c) {
+                return arguments.callee(10, 20);
+            }
+            return c + arguments[1];
+        }) {
+            assert.areEqual(30, eval("b()"), "Function defined in the param scope can be called recursively");
+            assert.areEqual(1, arguments[0], "Arguments symbol is unaffected by the function expression");
+        }
+        f6(1);
+
+        function f7(a, b = arguments) {
+            var c = function arguments(c) {
+                if (!arguments.length) {
+                    return arguments.callee(10, 20, 30);
+                }
+                return arguments;
+            }
+            assert.areEqual(10, eval("c()[0]"), "In the function body the arguments function expression with name is not visible");
+            assert.areEqual(4, b[3], "In the param scope arguments symbol referes to the passed in values");
+        }
+        f7(1, undefined, 3, 4);
+    }
+ }
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

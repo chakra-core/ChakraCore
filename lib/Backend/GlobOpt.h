@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 class BackwardPass;
@@ -8,6 +8,7 @@ enum class ValueStructureKind
 {
     Generic,
     IntConstant,
+    Int64Constant,
     IntRange,
     IntBounded,
     FloatConstant,
@@ -17,6 +18,7 @@ enum class ValueStructureKind
 };
 
 class IntConstantValueInfo;
+class Int64ConstantValueInfo;
 class IntRangeValueInfo;
 class IntBoundedValueInfo;
 class FloatConstantValueInfo;
@@ -111,6 +113,7 @@ public:
 
     using ValueType::HasBeenString;
     using ValueType::IsString;
+    using ValueType::HasHadStringTag;
     using ValueType::IsLikelyString;
     using ValueType::IsNotString;
 
@@ -187,7 +190,9 @@ public:
 
 private:
     bool                            IsIntConstant() const;
+    bool                            IsInt64Constant() const;
     const IntConstantValueInfo *    AsIntConstant() const;
+    const Int64ConstantValueInfo *  AsInt64Constant() const;
     bool                            IsIntRange() const;
     const IntRangeValueInfo *       AsIntRange() const;
 
@@ -215,6 +220,8 @@ public:
 public:
     bool HasIntConstantValue(const bool includeLikelyInt = false) const;
     bool TryGetIntConstantValue(int32 *const intValueRef, const bool includeLikelyInt = false) const;
+    bool TryGetIntConstantValue(int64 *const intValueRef, const bool isUnsigned) const;
+    bool TryGetInt64ConstantValue(int64 *const intValueRef, const bool isUnsigned) const;
     bool TryGetIntConstantLowerBound(int32 *const intConstantBoundRef, const bool includeLikelyInt = false) const;
     bool TryGetIntConstantUpperBound(int32 *const intConstantBoundRef, const bool includeLikelyInt = false) const;
     bool TryGetIntConstantBounds(IntConstantBounds *const intConstantBoundsRef, const bool includeLikelyInt = false) const;
@@ -315,37 +322,49 @@ public:
 
 template<> ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value);
 
-class IntConstantValueInfo : public ValueInfo
+
+template <typename T, typename U, ValueStructureKind kind>
+class _IntConstantValueInfo : public ValueInfo
 {
 private:
-    const int32 intValue;
+    const T intValue;
+public:
+    static U *New(JitArenaAllocator *const allocator, const T intValue)
+    {
+        return JitAnew(allocator, U, intValue);
+    }
 
-protected:
-    IntConstantValueInfo(const int32 intValue)
-        : ValueInfo(GetInt(IsTaggable(intValue)), ValueStructureKind::IntConstant),
+    U *Copy(JitArenaAllocator *const allocator) const
+    {
+        return JitAnew(allocator, U, *((U*)this));
+    }
+
+    _IntConstantValueInfo(const T intValue)
+        : ValueInfo(GetInt(IsTaggable(intValue)), kind),
         intValue(intValue)
+    {}
+
+    static bool IsTaggable(const T i)
     {
+        return U::IsTaggable(i);
     }
 
-public:
-    static IntConstantValueInfo *New(JitArenaAllocator *const allocator, const int32 intValue)
-    {
-        return JitAnew(allocator, IntConstantValueInfo, intValue);
-    }
-
-    IntConstantValueInfo *Copy(JitArenaAllocator *const allocator) const
-    {
-        return JitAnew(allocator, IntConstantValueInfo, *this);
-    }
-
-public:
-    int32 IntValue() const
+    T IntValue() const
     {
         return intValue;
     }
+};
 
+class IntConstantValueInfo : public _IntConstantValueInfo<int, IntConstantValueInfo, ValueStructureKind::IntConstant>
+{
+public:
+    static IntConstantValueInfo *New(JitArenaAllocator *const allocator, const int intValue)
+    {
+        return _IntConstantValueInfo::New(allocator, intValue);
+    }
 private:
-    static bool IsTaggable(const int32 i)
+    IntConstantValueInfo(int value) : _IntConstantValueInfo(value) {};
+    static bool IsTaggable(const int i)
     {
 #if INT32VAR
         // All 32-bit ints are taggable on 64-bit architectures
@@ -354,6 +373,22 @@ private:
         return i >= Js::Constants::Int31MinValue && i <= Js::Constants::Int31MaxValue;
 #endif
     }
+
+    friend _IntConstantValueInfo;
+};
+
+class Int64ConstantValueInfo : public _IntConstantValueInfo<int64, Int64ConstantValueInfo, ValueStructureKind::Int64Constant>
+{
+public:
+    static Int64ConstantValueInfo *New(JitArenaAllocator *const allocator, const int64 intValue)
+    {
+        return _IntConstantValueInfo::New(allocator, intValue);
+    }
+private:
+    static bool IsTaggable(const int64 i) { return false; }
+    Int64ConstantValueInfo(int64 value) : _IntConstantValueInfo(value) {};
+
+    friend _IntConstantValueInfo;
 };
 
 class IntRangeValueInfo : public ValueInfo, public IntConstantBounds
@@ -438,18 +473,19 @@ class VarConstantValueInfo : public ValueInfo
 {
 private:
     Js::Var const varValue;
+    Js::Var const localVarValue;
     bool isFunction;
 
 public:
-    VarConstantValueInfo(Js::Var varValue, ValueType valueType, bool isFunction = false)
+    VarConstantValueInfo(Js::Var varValue, ValueType valueType, bool isFunction = false, Js::Var localVarValue = nullptr)
         : ValueInfo(valueType, ValueStructureKind::VarConstant),
-        varValue(varValue), isFunction(isFunction)
+        varValue(varValue), localVarValue(localVarValue), isFunction(isFunction)
     {
     }
 
-    static VarConstantValueInfo *New(JitArenaAllocator *const allocator, Js::Var varValue, ValueType valueType, bool isFunction = false)
+    static VarConstantValueInfo *New(JitArenaAllocator *const allocator, Js::Var varValue, ValueType valueType, bool isFunction = false, Js::Var localVarValue = nullptr)
     {
-        return JitAnew(allocator, VarConstantValueInfo, varValue, valueType, isFunction);
+        return JitAnew(allocator, VarConstantValueInfo, varValue, valueType, isFunction, localVarValue);
     }
 
     VarConstantValueInfo *Copy(JitArenaAllocator *const allocator) const
@@ -458,9 +494,16 @@ public:
     }
 
 public:
-    Js::Var VarValue() const
+    Js::Var VarValue(bool useLocal = false) const
     {
-        return this->varValue;
+        if(useLocal && this->localVarValue)
+        {
+            return this->localVarValue;
+        }
+        else
+        {
+            return this->varValue;
+        }
     }
 
     bool IsFunction() const
@@ -471,7 +514,7 @@ public:
 
 struct ObjectTypePropertyEntry
 {
-    Js::ObjTypeSpecFldInfo* fldInfo;
+    ObjTypeSpecFldInfo* fldInfo;
     uint blockNumber;
 };
 
@@ -480,12 +523,12 @@ typedef JsUtil::BaseDictionary<Js::PropertyId, ObjectTypePropertyEntry, JitArena
 class JsTypeValueInfo : public ValueInfo
 {
 private:
-    const Js::Type * jsType;
+    JITTypeHolder jsType;
     Js::EquivalentTypeSet * jsTypeSet;
     bool isShared;
 
 public:
-    JsTypeValueInfo(Js::Type * type)
+    JsTypeValueInfo(JITTypeHolder type)
         : ValueInfo(Uninitialized, ValueStructureKind::JsType),
         jsType(type), jsTypeSet(nullptr), isShared(false)
     {
@@ -503,7 +546,7 @@ public:
     {
     }
 
-    static JsTypeValueInfo * New(JitArenaAllocator *const allocator, Js::Type * typeSet)
+    static JsTypeValueInfo * New(JitArenaAllocator *const allocator, JITTypeHolder typeSet)
     {
         return JitAnew(allocator, JsTypeValueInfo, typeSet);
     }
@@ -513,13 +556,13 @@ public:
         return JitAnew(allocator, JsTypeValueInfo, typeSet);
     }
 
-    JsTypeValueInfo(const Js::Type* type, Js::EquivalentTypeSet * typeSet)
+    JsTypeValueInfo(const JITTypeHolder type, Js::EquivalentTypeSet * typeSet)
         : ValueInfo(Uninitialized, ValueStructureKind::JsType),
         jsType(type), jsTypeSet(typeSet), isShared(false)
     {
     }
 
-    static JsTypeValueInfo * New(JitArenaAllocator *const allocator, const Js::Type* type, Js::EquivalentTypeSet * typeSet)
+    static JsTypeValueInfo * New(JitArenaAllocator *const allocator, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet)
     {
         return JitAnew(allocator, JsTypeValueInfo, type, typeSet);
     }
@@ -532,12 +575,12 @@ public:
         return newInfo;
     }
 
-    const Js::Type * GetJsType() const
+    JITTypeHolder GetJsType() const
     {
         return this->jsType;
     }
 
-    void SetJsType(const Js::Type * value)
+    void SetJsType(const JITTypeHolder value)
     {
         Assert(!this->isShared);
         this->jsType = value;
@@ -614,7 +657,7 @@ public:
         Assert(allocator);
 
         return
-            copyHeadSegment && headSegmentSym || copyHeadSegmentLength && headSegmentLengthSym || copyLength && lengthSym
+            (copyHeadSegment && headSegmentSym) || (copyHeadSegmentLength && headSegmentLengthSym) || (copyLength && lengthSym)
                 ? New(
                     allocator,
                     Type(),
@@ -716,6 +759,24 @@ public:
     {
         SetBitAttribute(IgnoredIntOverflowIndex, ignoredIntOverflow);
         SetBitAttribute(IgnoredNegativeZeroIndex, ignoredNegativeZero);
+    }
+};
+
+class ConvAttributes : public ExprAttributes
+{
+private:
+    static const uint DstUnsignedIndex = 0;
+    static const uint SrcUnsignedIndex = 1;
+
+public:
+    ConvAttributes(const ExprAttributes &exprAttributes) : ExprAttributes(exprAttributes)
+    {
+    }
+
+    ConvAttributes(const bool isDstUnsigned, const bool isSrcUnsigned)
+    {
+        SetBitAttribute(DstUnsignedIndex, isDstUnsigned);
+        SetBitAttribute(SrcUnsignedIndex, isSrcUnsigned);
     }
 };
 
@@ -1131,8 +1192,8 @@ public:
 
         return
             killsAllArrays ||
-            killsArraysWithNoMissingValues && valueType.HasNoMissingValues() ||
-            killsNativeArrays && !valueType.HasVarElements();
+            (killsArraysWithNoMissingValues && valueType.HasNoMissingValues()) ||
+            (killsNativeArrays && !valueType.HasVarElements());
     }
 
     bool AreSubsetOf(const JsArrayKills &other) const
@@ -1256,6 +1317,7 @@ private:
 
     bool                    doPowIntIntTypeSpec : 1;
     bool                    isAsmJSFunc : 1;
+    bool                    doTagChecks : 1;
     OpndList *              noImplicitCallUsesToInsert;
 
     ValueSetByValueNumber * valuesCreatedForClone;
@@ -1282,6 +1344,7 @@ public:
 
     IR::ByteCodeUsesInstr * ConvertToByteCodeUses(IR::Instr * isntr);
     bool GetIsAsmJSFunc()const{ return isAsmJSFunc; };
+    BOOLEAN                 IsArgumentsOpnd(IR::Opnd* opnd);
 private:
     bool                    IsLoopPrePass() const { return this->prePassLoop != nullptr; }
     void                    OptBlock(BasicBlock *block);
@@ -1311,6 +1374,7 @@ private:
     void                    MergeCapturedValues(GlobOptBlockData * toData, SListBase<CapturedList> * toList, SListBase<CapturedList> * fromList, CapturedItemsAreEqual itemsAreEqual);
     void                    MergeBlockData(GlobOptBlockData *toData, BasicBlock *toBlock, BasicBlock *fromBlock, BVSparse<JitArenaAllocator> *const symsRequiringCompensation, BVSparse<JitArenaAllocator> *const symsCreatedForMerge, bool forceTypeSpecOnLoopHeader);
     void                    DeleteBlockData(GlobOptBlockData *data);
+    void                    TryReplaceLdLen(IR::Instr *& instr);
     IR::Instr *             OptInstr(IR::Instr *&instr, bool* isInstrCleared);
     Value*                  OptDst(IR::Instr **pInstr, Value *dstVal, Value *src1Val, Value *src2Val, Value *dstIndirIndexVal, Value *src1IndirIndexVal);
     void                    CopyPropDstUses(IR::Opnd *opnd, IR::Instr *instr, Value *src1Val);
@@ -1325,7 +1389,6 @@ private:
     IR::Instr *             SetTypeCheckBailOut(IR::Opnd *opnd, IR::Instr *instr, BailOutInfo *bailOutInfo);
     void                    OptArguments(IR::Instr *Instr);
     void                    TrackInstrsForScopeObjectRemoval(IR::Instr * instr);
-    BOOLEAN                 IsArgumentsOpnd(IR::Opnd* opnd);
     bool                    AreFromSameBytecodeFunc(IR::RegOpnd* src1, IR::RegOpnd* dst);
     void                    TrackArgumentsSym(IR::RegOpnd* opnd);
     void                    ClearArgumentsSym(IR::RegOpnd* opnd);
@@ -1370,7 +1433,9 @@ private:
     Value *                 NewGenericValue(const ValueType valueType, IR::Opnd *const opnd);
     Value *                 NewGenericValue(const ValueType valueType, Sym *const sym);
     Value *                 GetIntConstantValue(const int32 intConst, IR::Instr * instr, IR::Opnd *const opnd = nullptr);
+    Value *                 GetIntConstantValue(const int64 intConst, IR::Instr * instr, IR::Opnd *const opnd = nullptr);
     Value *                 NewIntConstantValue(const int32 intConst, IR::Instr * instr, bool isTaggable);
+    Value *                 NewInt64ConstantValue(const int64 intConst);
     ValueInfo *             NewIntRangeValueInfo(const int32 min, const int32 max, const bool wasNegativeZeroPreventedByBailout);
     ValueInfo *             NewIntRangeValueInfo(const ValueInfo *const originalValueInfo, const int32 min, const int32 max) const;
     Value *                 NewIntRangeValue(const int32 min, const int32 max, const bool wasNegativeZeroPreventedByBailout, IR::Opnd *const opnd = nullptr);
@@ -1412,6 +1477,10 @@ private:
     int                     GetBoundCheckOffsetForSimd(ValueType arrValueType, const IR::Instr *instr, const int oldOffset = -1);
 
     IR::Instr *             OptNewScObject(IR::Instr** instrPtr, Value* srcVal);
+    template <typename T>
+    bool                    OptConstFoldBinaryWasm(IR::Instr * *pInstr, const Value* src1, const Value* src2, Value **pDstVal);
+    template <typename T>
+    IR::Opnd*               ReplaceWConst(IR::Instr **pInstr, T value, Value **pDstVal);
     bool                    OptConstFoldBinary(IR::Instr * *pInstr, const IntConstantBounds &src1IntConstantBounds, const IntConstantBounds &src2IntConstantBounds, Value **pDstVal);
     bool                    OptConstFoldUnary(IR::Instr * *pInstr, const int32 intConstantValue, const bool isUsingOriginalSrc1Value, Value **pDstVal);
     bool                    OptConstPeep(IR::Instr *instr, IR::Opnd *constSrc, Value **pDstVal, ValueInfo *vInfo);
@@ -1590,10 +1659,12 @@ private:
     bool                    OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, bool isNotTypeSpecConv, bool allowNonPrimitives, Value **loopHeadValRef = nullptr);
     bool                    OptDstIsInvariant(IR::RegOpnd *dst);
     bool                    OptIsInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv, const bool forceInvariantHoisting = false);
-    void                    OptHoistInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *dstVal, Value *const src1Val, bool isNotTypeSpecConv, bool lossy = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
+    void                    OptHoistInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *dstVal, Value *const src1Val, Value *const src2Value,
+                                                bool isNotTypeSpecConv, bool lossy = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     bool                    TryHoistInvariant(IR::Instr *instr, BasicBlock *block, Value *dstVal, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv,
                                                 const bool lossy = false, const bool forceInvariantHoisting = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     void                    HoistInvariantValueInfo(ValueInfo *const invariantValueInfoToHoist, Value *const valueToUpdate, BasicBlock *const targetBlock);
+    void                    OptHoistUpdateValueType(Loop* loop, IR::Instr* instr, IR::Opnd* srcOpnd, Value *const srcVal);
 public:
     static bool             IsTypeSpecPhaseOff(Func* func);
     static bool             DoAggressiveIntTypeSpec(Func* func);
@@ -1607,7 +1678,6 @@ public:
     static bool             DoTypedArrayTypeSpec(Func* func);
     static bool             DoNativeArrayTypeSpec(Func* func);
     static bool             IsSwitchOptEnabled(Func* func);
-    static bool             DoEquivObjTypeSpec(Func* func);
     static bool             DoInlineArgsOpt(Func* func);
     static bool             IsPREInstrCandidateLoad(Js::OpCode opcode);
     static bool             IsPREInstrCandidateStore(Js::OpCode opcode);
@@ -1640,6 +1710,7 @@ private:
     bool                    DoBoundCheckHoist() const;
     bool                    DoLoopCountBasedBoundCheckHoist() const;
     bool                    DoPowIntIntTypeSpec() const;
+    bool                    DoTagChecks() const;
 
 private:
     // GlobOptBailout.cpp
@@ -1648,11 +1719,11 @@ private:
     static void             TrackByteCodeSymUsed(IR::RegOpnd * opnd, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     static void             TrackByteCodeSymUsed(StackSym * sym, BVSparse<JitArenaAllocator> * instrByteCodeStackSymUsed);
     void                    CaptureValues(BasicBlock *block, BailOutInfo * bailOutInfo);
-    void                    GlobOpt::CaptureValuesFromScratch(
+    void                    CaptureValuesFromScratch(
                                 BasicBlock * block,
                                 SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
                                 SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
-    void                    GlobOpt::CaptureValuesIncremental(
+    void                    CaptureValuesIncremental(
                                 BasicBlock * block,
                                 SListBase<ConstantStackSymValue>::EditingIterator & bailOutConstValuesIter,
                                 SListBase<CopyPropSyms>::EditingIterator & bailOutCopyPropIter);
@@ -1699,7 +1770,6 @@ private:
     bool                    DoFieldHoisting() const;
     bool                    DoObjTypeSpec() const;
     bool                    DoObjTypeSpec(Loop * loop) const;
-    bool                    DoEquivObjTypeSpec() const { return DoEquivObjTypeSpec(this->func); }
     bool                    DoFieldRefOpts() const { return DoObjTypeSpec(); }
     bool                    DoFieldRefOpts(Loop * loop) const { return DoObjTypeSpec(loop); }
     bool                    DoFieldOpts(Loop * loop) const;
@@ -1754,12 +1824,12 @@ private:
     bool                    ProcessPropOpInTypeCheckSeq(IR::Instr* instr, IR::PropertySymOpnd *opnd, BasicBlock* block, bool updateExistingValue, bool* emitsTypeCheckOut = nullptr, bool* changesTypeValueOut = nullptr, bool *isObjTypeChecked = nullptr);
     void                    KillObjectHeaderInlinedTypeSyms(BasicBlock *block, bool isObjTypeSpecialized, SymID symId = (SymID)-1);
     void                    ValueNumberObjectType(IR::Opnd *dstOpnd, IR::Instr *instr);
-    void                    SetSingleTypeOnObjectTypeValue(Value* value, const Js::Type* type);
+    void                    SetSingleTypeOnObjectTypeValue(Value* value, const JITTypeHolder type);
     void                    SetTypeSetOnObjectTypeValue(Value* value, Js::EquivalentTypeSet* typeSet);
-    void                    UpdateObjectTypeValue(Value* value, const Js::Type* type, bool setType, Js::EquivalentTypeSet* typeSet, bool setTypeSet);
+    void                    UpdateObjectTypeValue(Value* value, const JITTypeHolder type, bool setType, Js::EquivalentTypeSet* typeSet, bool setTypeSet);
     void                    SetObjectTypeFromTypeSym(StackSym *typeSym, Value* value, BasicBlock* block = nullptr);
-    void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const Js::Type *type, Js::EquivalentTypeSet * typeSet, BasicBlock* block = nullptr, bool updateExistingValue = false);
-    void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const Js::Type *type, Js::EquivalentTypeSet * typeSet, GlobOptBlockData *blockData, bool updateExistingValue = false);
+    void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, BasicBlock* block = nullptr, bool updateExistingValue = false);
+    void                    SetObjectTypeFromTypeSym(StackSym *typeSym, const JITTypeHolder type, Js::EquivalentTypeSet * typeSet, GlobOptBlockData *blockData, bool updateExistingValue = false);
     void                    KillObjectType(StackSym *objectSym, BVSparse<JitArenaAllocator>* liveFields = nullptr);
     void                    KillAllObjectTypes(BVSparse<JitArenaAllocator>* liveFields = nullptr);
     void                    EndFieldLifetime(IR::SymOpnd *symOpnd);
@@ -1774,6 +1844,7 @@ private:
     void                    RemoveFlowEdgeToCatchBlock(IR::Instr * instr);
 
     void                    CSEAddInstr(BasicBlock *block, IR::Instr *instr, Value *dstVal, Value *src1Val, Value *src2Val, Value *dstIndirIndexVal, Value *src1IndirIndexVal);
+    void                    OptimizeChecks(IR::Instr * const instr, Value *src1Val, Value *src2Val);
     bool                    CSEOptimize(BasicBlock *block, IR::Instr * *const instrRef, Value **pSrc1Val, Value **pSrc2Val, Value **pSrc1IndirIndexVal, bool intMathExprOnly = false);
     bool                    GetHash(IR::Instr *instr, Value *src1Val, Value *src2Val, ExprAttributes exprAttributes, ExprHash *pHash);
     void                    ProcessArrayValueKills(IR::Instr *instr);

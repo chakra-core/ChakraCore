@@ -160,7 +160,7 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
 
 
 
-    LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, 1, nullptr);
+    LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, 1, this);
     if (!heapBlock)
     {
         pageAllocator->SuspendIdleDecommit();
@@ -196,15 +196,8 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
     char * memBlock = heapBlock->Alloc(size, attributes);
     Assert(memBlock != nullptr);
 
-
-    if (this->largePageHeapBlockList)
-    {
-        HeapBlockList::Tail(this->largePageHeapBlockList)->SetNextBlock(heapBlock);
-    }
-    else
-    {
-        this->largePageHeapBlockList = heapBlock;
-    }
+    heapBlock->SetNextBlock(this->largePageHeapBlockList);
+    this->largePageHeapBlockList = heapBlock;
 
 #if ENABLE_PARTIAL_GC
     recycler->autoHeap.uncollectedNewPageCount += pageCount;
@@ -257,7 +250,7 @@ LargeHeapBucket::AddLargeHeapBlock(size_t size, bool nothrow)
     recycler->VerifyZeroFill(address, pageCount * AutoSystemInfo::PageSize);
 #endif
     uint objectCount = LargeHeapBlock::GetMaxLargeObjectCount(pageCount, size);
-    LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, objectCount, supportFreeList ? this : nullptr);
+    LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, objectCount, this);
 #if DBG
     LargeAllocationVerboseTrace(recycler->GetRecyclerFlagsTable(), _u("Allocated new large heap block 0x%p for sizeCat 0x%x\n"), heapBlock, sizeCat);
 #endif
@@ -266,7 +259,7 @@ LargeHeapBucket::AddLargeHeapBlock(size_t size, bool nothrow)
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (segment->GetPageCount() > recycler->GetRecyclerLargeBlockPageAllocator()->GetMaxAllocPageCount())
     {
-        EventWriteJSCRIPT_INTERNAL_RECYCLER_EXTRALARGE_OBJECT_ALLOC(size);
+        JS_ETW_INTERNAL(EventWriteJSCRIPT_INTERNAL_RECYCLER_EXTRALARGE_OBJECT_ALLOC(size));
     }
 #endif
 #endif

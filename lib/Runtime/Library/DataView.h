@@ -39,7 +39,7 @@ namespace Js
             static FunctionInfo GetterByteOffset;
         };
 
-        DataView(ArrayBuffer* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type);
+        DataView(ArrayBufferBase* arrayBuffer, uint32 byteOffset, uint32 mappedLength, DynamicType* type);
 
         static BOOL Is(Var aValue);
 
@@ -76,7 +76,12 @@ namespace Js
 
         // objectArray support
         virtual BOOL SetItemWithAttributes(uint32 index, Var value, PropertyAttributes attributes) override;
-
+        virtual JavascriptEnumerator * GetIndexEnumerator(EnumeratorFlags flags, ScriptContext * requestContext) override
+        {
+            // Data View can not be an objectArray
+            Assert(false);
+            return nullptr;
+        }
     private:
         template<typename TypeName>
         void SwapRoutine(TypeName* input, TypeName* dest);
@@ -194,8 +199,8 @@ namespace Js
         template<> void SetValue<double>(uint32 byteOffset, double value, const char16 *funcName, BOOL isLittleEndian /* = FALSE */);
 #endif
 
-        uint32 byteOffset;
-        BYTE* buffer;   // beginning of buffer
+        Field(uint32) byteOffset;
+        Field(BYTE*) buffer;   // beginning of buffer
 
     };
 }

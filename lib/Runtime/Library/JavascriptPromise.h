@@ -8,7 +8,7 @@ namespace Js
 {
     struct JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper
     {
-        bool alreadyResolved;
+        Field(bool) alreadyResolved;
     };
 
     class JavascriptPromiseResolveOrRejectFunction : public RuntimeFunction
@@ -30,9 +30,9 @@ namespace Js
         void SetAlreadyResolved(bool is);
 
     private:
-        JavascriptPromise* promise;
-        bool isReject;
-        JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper* alreadyResolvedWrapper;
+        Field(JavascriptPromise*) promise;
+        Field(bool) isReject;
+        Field(JavascriptPromiseResolveOrRejectFunctionAlreadyResolvedWrapper*) alreadyResolvedWrapper;
 
 #if ENABLE_TTD
     public:
@@ -50,17 +50,17 @@ namespace Js
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptPromiseAsyncSpawnExecutorFunction);
 
     public:
-        JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generatorFunction, Var target);
+        JavascriptPromiseAsyncSpawnExecutorFunction(DynamicType* type, FunctionInfo* functionInfo, JavascriptGenerator* generator, Var target);
 
         inline static bool Is(Var var);
         inline static JavascriptPromiseAsyncSpawnExecutorFunction* FromVar(Var var);
 
-        JavascriptGenerator* GetGeneratorFunction();
+        JavascriptGenerator* GetGenerator();
         Var GetTarget();
 
     private:
-        JavascriptGenerator* generatorFunction;
-        Var target; // this
+        Field(JavascriptGenerator*) generator;
+        Field(Var) target; // this
 
 #if ENABLE_TTD
     public:
@@ -90,11 +90,11 @@ namespace Js
         Var GetArgument();
 
     private:
-        JavascriptGenerator* generator;
-        JavascriptFunction* reject;
-        JavascriptFunction* resolve;
-        bool isReject;
-        Var argument;
+        Field(JavascriptGenerator*) generator;
+        Field(JavascriptFunction*) reject;
+        Field(JavascriptFunction*) resolve;
+        Field(bool) isReject;
+        Field(Var) argument;
 
 #if ENABLE_TTD
     public:
@@ -120,7 +120,7 @@ namespace Js
         JavascriptPromiseCapability* GetCapability();
 
     private:
-        JavascriptPromiseCapability* capability;
+        Field(JavascriptPromiseCapability*) capability;
 
 #if ENABLE_TTD
     public:
@@ -168,9 +168,9 @@ namespace Js
 
 
     private:
-        JavascriptPromise* promise;
-        RecyclableObject* thenable;
-        RecyclableObject* thenFunction;
+        Field(JavascriptPromise*) promise;
+        Field(RecyclableObject*) thenable;
+        Field(RecyclableObject*) thenFunction;
 
 #if ENABLE_TTD
     public:
@@ -216,8 +216,8 @@ namespace Js
         Var GetArgument();
 
     private:
-        JavascriptPromiseReaction* reaction;
-        Var argument;
+        Field(JavascriptPromiseReaction*) reaction;
+        Field(Var) argument;
 
 #if ENABLE_TTD
     public:
@@ -230,7 +230,7 @@ namespace Js
 
     struct JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper
     {
-        uint32 remainingElements;
+        Field(uint32) remainingElements;
     };
 
     class JavascriptPromiseAllResolveElementFunction : public RuntimeFunction
@@ -256,11 +256,11 @@ namespace Js
         uint32 DecrementRemainingElements();
 
     private:
-        JavascriptPromiseCapability* capabilities;
-        uint32 index;
-        JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper;
-        JavascriptArray* values;
-        bool alreadyCalled;
+        Field(JavascriptPromiseCapability*) capabilities;
+        Field(uint32) index;
+        Field(JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper*) remainingElementsWrapper;
+        Field(JavascriptArray*) values;
+        Field(bool) alreadyCalled;
 
 #if ENABLE_TTD
     public:
@@ -305,9 +305,9 @@ namespace Js
         }
 
     private:
-        Var promise;
-        Var resolve;
-        Var reject;
+        Field(Var) promise;
+        Field(Var) resolve;
+        Field(Var) reject;
 
 #if ENABLE_TTD
     public:
@@ -350,8 +350,8 @@ namespace Js
         }
 
     private:
-        JavascriptPromiseCapability* capabilities;
-        RecyclableObject* handler;
+        Field(JavascriptPromiseCapability*) capabilities;
+        Field(RecyclableObject*) handler;
 
 #if ENABLE_TTD
     public:
@@ -422,6 +422,11 @@ namespace Js
         static bool Is(Var aValue);
         static JavascriptPromise* FromVar(Js::Var aValue);
 
+        static Var CreateRejectedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor = nullptr);
+        static Var CreateResolvedPromise(Var resolution, ScriptContext* scriptContext, Var promiseConstructor = nullptr);
+        static Var CreatePassThroughPromise(JavascriptPromise* sourcePromise, ScriptContext* scriptContext);
+        static Var CreateThenPromise(JavascriptPromise* sourcePromise, RecyclableObject* fulfillmentHandler, RecyclableObject* rejectionHandler, ScriptContext* scriptContext);
+
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
@@ -437,6 +442,9 @@ namespace Js
         static Var TryCallResolveOrRejectHandler(Var handler, Var value, ScriptContext* scriptContext);
         static Var TryRejectWithExceptionObject(JavascriptExceptionObject* exceptionObject, Var handler, ScriptContext* scriptContext);
 
+        Var Resolve(Var resolution, ScriptContext* scriptContext);
+        Var Reject(Var resolution, ScriptContext* scriptContext);
+
         enum PromiseStatus
         {
             PromiseStatusCode_Undefined,
@@ -449,10 +457,13 @@ namespace Js
         Var GetResult() const { return result; }
 
     protected:
-        PromiseStatus status;
-        Var result;
-        JavascriptPromiseReactionList* resolveReactions;
-        JavascriptPromiseReactionList* rejectReactions;
+        Var ResolveHelper(Var resolution, bool isRejecting, ScriptContext* scriptContext);
+
+    protected:
+        Field(PromiseStatus) status;
+        Field(Var) result;
+        Field(JavascriptPromiseReactionList*) resolveReactions;
+        Field(JavascriptPromiseReactionList*) rejectReactions;
 
     private :
         static void AsyncSpawnStep(JavascriptPromiseAsyncSpawnStepArgumentExecutorFunction* nextFunction, JavascriptGenerator* gen, JavascriptFunction* resolve, JavascriptFunction* reject);

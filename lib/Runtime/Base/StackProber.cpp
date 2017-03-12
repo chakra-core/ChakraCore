@@ -41,26 +41,26 @@ StackProber::Initialize()
     const size_t guardPageSize = Js::Constants::NumGuardPages * AutoSystemInfo::PageSize;
     const size_t stackOverflowBuffer = Js::Constants::StackOverflowHandlingBufferPages * AutoSystemInfo::PageSize;
 
-    PBYTE stackBottom = 0;      // This is the low address limit (here we consider stack growing down).
+    size_t stackBottom = 0;      // This is the low address limit (here we consider stack growing down).
     ULONG stackGuarantee = 0;
 
 #if defined(_M_IX86) && defined(_MSC_VER)
-    stackBottom = (PBYTE)__readfsdword(0xE0C); // points to the DeAllocationStack on the TEB - which turns to be the stack bottom.
+    stackBottom = __readfsdword(0xE0C); // points to the DeAllocationStack on the TEB - which turns to be the stack bottom.
 #elif defined(_M_AMD64) && defined(_MSC_VER)
-    stackBottom = (PBYTE)__readgsqword(0x1478);
+    stackBottom = __readgsqword(0x1478);
 #elif defined(_M_ARM)
     ULONG lowLimit, highLimit;
     ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
-    stackBottom = (PBYTE)lowLimit;
+    stackBottom = lowLimit;
 #elif defined(_M_ARM64)
     ULONG64 lowLimit, highLimit;
     ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
-    stackBottom = (PBYTE) lowLimit;
+    stackBottom =  lowLimit;
 #elif !defined(_MSC_VER)
     ULONG_PTR lowLimit = 0;
     ULONG_PTR highLimit = 0;
     ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
-    stackBottom = (PBYTE)lowLimit;
+    stackBottom = lowLimit;
 #else
     stackBottom = NULL;
     Js::Throw::NotImplemented();

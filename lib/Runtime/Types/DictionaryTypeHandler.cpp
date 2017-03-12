@@ -96,7 +96,7 @@ namespace Js
 
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -107,13 +107,13 @@ namespace Js
             DictionaryPropertyDescriptor<T> descriptor = propertyMap->GetValueAt(index);
             PropertyAttributes attribs = descriptor.Attributes;
 
-            if (!(attribs & PropertyDeleted) && (!requireEnumerable || (attribs & PropertyEnumerable)) &&
+            if (!(attribs & PropertyDeleted) && (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (attribs & PropertyEnumerable)) &&
                 (!(attribs & PropertyLetConstGlobal) || descriptor.HasNonLetConstGlobal()))
             {
                 const PropertyRecord* propertyRecord = propertyMap->GetKeyAt(index);
 
                 // Skip this property if it is a symbol and we are not including symbol properties
-                if (!enumSymbols && propertyRecord->IsSymbol())
+                if (!(flags & EnumeratorFlags::EnumSymbols) && propertyRecord->IsSymbol())
                 {
                     continue;
                 }
@@ -125,7 +125,7 @@ namespace Js
                 }
 
                 *propertyId = propertyRecord->GetPropertyId();
-                PropertyString* propertyString = type->GetScriptContext()->GetPropertyString(*propertyId);
+                PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
                 *propertyStringName = propertyString;
                 T dataSlot = descriptor.template GetDataPropertyIndex<false>();
                 if (dataSlot != NoSlots && (attribs & PropertyWritable))
@@ -153,7 +153,7 @@ namespace Js
 
     template <>
     BOOL DictionaryTypeHandlerBase<BigPropertyIndex>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(false);
         Throw::InternalError();
@@ -161,18 +161,18 @@ namespace Js
 
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         PropertyIndex local = (PropertyIndex)index;
         Assert(index <= Constants::UShortMaxValue || index == Constants::NoBigSlot);
-        BOOL result = this->FindNextProperty(scriptContext, local, propertyString, propertyId, attributes, type, typeToEnumerate, requireEnumerable, enumSymbols);
+        BOOL result = this->FindNextProperty(scriptContext, local, propertyString, propertyId, attributes, type, typeToEnumerate, flags);
         index = local;
         return result;
     }
 
     template <>
     BOOL DictionaryTypeHandlerBase<BigPropertyIndex>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -182,13 +182,13 @@ namespace Js
         {
             DictionaryPropertyDescriptor<BigPropertyIndex> descriptor = propertyMap->GetValueAt(index);
             PropertyAttributes attribs = descriptor.Attributes;
-            if (!(attribs & PropertyDeleted) && (!requireEnumerable || (attribs & PropertyEnumerable)) &&
+            if (!(attribs & PropertyDeleted) && (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (attribs & PropertyEnumerable)) &&
                 (!(attribs & PropertyLetConstGlobal) || descriptor.HasNonLetConstGlobal()))
             {
                 const PropertyRecord* propertyRecord = propertyMap->GetKeyAt(index);
 
                 // Skip this property if it is a symbol and we are not including symbol properties
-                if (!enumSymbols && propertyRecord->IsSymbol())
+                if (!(flags & EnumeratorFlags::EnumSymbols) && propertyRecord->IsSymbol())
                 {
                     continue;
                 }
@@ -199,7 +199,7 @@ namespace Js
                 }
 
                 *propertyId = propertyRecord->GetPropertyId();
-                *propertyStringName = type->GetScriptContext()->GetPropertyString(*propertyId);
+                *propertyStringName = scriptContext->GetPropertyString(*propertyId);
 
                 return TRUE;
             }
@@ -869,6 +869,81 @@ namespace Js
     }
 
     template <typename T>
+    BOOL DictionaryTypeHandlerBase<T>::DeleteProperty(DynamicObject *instance, JavascriptString *propertyNameString, PropertyOperationFlags propertyOperationFlags)
+    {
+        AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
+            "Numeric property names should have been converted to uint or PropertyRecord* ");
+
+        ScriptContext* scriptContext = instance->GetScriptContext();
+        DictionaryPropertyDescriptor<T>* descriptor;
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+
+        if (propertyMap->TryGetReference(propertyName, &descriptor))
+        {
+            Assert(descriptor->SanityCheckFixedBits());
+
+            if (descriptor->Attributes & PropertyDeleted)
+            {
+                return true;
+            }
+            else if (!(descriptor->Attributes & PropertyConfigurable))
+            {
+                // Let/const properties do not have attributes and they cannot be deleted
+                JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, propertyNameString->GetString());
+
+                return false;
+            }
+
+            Var undefined = scriptContext->GetLibrary()->GetUndefined();
+
+            if (descriptor->HasNonLetConstGlobal())
+            {
+                T dataSlot = descriptor->template GetDataPropertyIndex<false>();
+                if (dataSlot != NoSlots)
+                {
+                    SetSlotUnchecked(instance, dataSlot, undefined);
+                }
+                else
+                {
+                    Assert(descriptor->IsAccessor);
+                    SetSlotUnchecked(instance, descriptor->GetGetterPropertyIndex(), undefined);
+                    SetSlotUnchecked(instance, descriptor->GetSetterPropertyIndex(), undefined);
+                }
+
+                if (this->GetFlags() & IsPrototypeFlag)
+                {
+                    scriptContext->InvalidateProtoCaches(scriptContext->GetOrAddPropertyIdTracked(propertyNameString->GetString(), propertyNameString->GetLength()));
+                }
+
+                if ((descriptor->Attributes & PropertyLetConstGlobal) == 0)
+                {
+                    Assert(!descriptor->IsShadowed);
+                    descriptor->Attributes = PropertyDeletedDefaults;
+                }
+                else
+                {
+                    descriptor->Attributes &= ~PropertyDynamicTypeDefaults;
+                    descriptor->Attributes |= PropertyDeletedDefaults;
+                }
+                InvalidateFixedField(instance, propertyNameString, descriptor);
+
+                // Change the type so as we can invalidate the cache in fast path jit
+                if (instance->GetType()->HasBeenCached())
+                {
+                    instance->ChangeType();
+                }
+                SetPropertyUpdateSideEffect(instance, propertyName, nullptr, SideEffects_Any);
+                return true;
+            }
+
+            Assert(descriptor->Attributes & PropertyLetConstGlobal);
+            return false;
+        }
+
+        return true;
+    }
+
+    template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::DeleteRootProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags propertyOperationFlags)
     {
         AssertMsg(RootObjectBase::Is(instance), "Instance must be a root object!");
@@ -906,7 +981,7 @@ namespace Js
                 (allowLetConstGlobal && (descriptor->Attributes & PropertyLetConstGlobal)))
             {
                 // Let/const properties do not have attributes and they cannot be deleted
-                JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
+                JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
 
                 return false;
             }
@@ -945,7 +1020,10 @@ namespace Js
                 InvalidateFixedField(instance, propertyId, descriptor);
 
                 // Change the type so as we can invalidate the cache in fast path jit
-                instance->ChangeType();
+                if (instance->GetType()->HasBeenCached())
+                {
+                    instance->ChangeType();
+                }
                 SetPropertyUpdateSideEffect(instance, propertyId, nullptr, SideEffects_Any);
                 return true;
             }
@@ -1706,16 +1784,16 @@ namespace Js
             {
                 bool addingLetConstGlobal = (attributes & PropertyLetConstGlobal) != 0;
 
-                descriptor->AddShadowedData(nextPropertyIndex, addingLetConstGlobal);
-
                 if (addingLetConstGlobal)
                 {
-                    descriptor->Attributes = descriptor->Attributes | (attributes & PropertyNoRedecl) | PropertyLetConstGlobal;
+                    descriptor->Attributes = descriptor->Attributes | (attributes & PropertyNoRedecl);
                 }
                 else
                 {
-                    descriptor->Attributes = attributes | (descriptor->Attributes & PropertyNoRedecl) | PropertyLetConstGlobal;
+                    descriptor->Attributes = attributes | (descriptor->Attributes & PropertyNoRedecl);
                 }
+
+                descriptor->AddShadowedData(nextPropertyIndex, addingLetConstGlobal);
 
                 if (this->GetSlotCapacity() <= nextPropertyIndex)
                 {
@@ -2460,7 +2538,8 @@ namespace Js
     }
 
     template <typename T>
-    void DictionaryTypeHandlerBase<T>::InvalidateFixedField(DynamicObject* instance, PropertyId propertyId, DictionaryPropertyDescriptor<T>* descriptor)
+    template <typename TPropertyKey>
+    void DictionaryTypeHandlerBase<T>::InvalidateFixedField(DynamicObject* instance, TPropertyKey propertyKey, DictionaryPropertyDescriptor<T>* descriptor)
     {
         // DictionaryTypeHandlers are never shared, but if they were we would need to invalidate even if
         // there wasn't a singleton instance.  See SimpleDictionaryTypeHandler::InvalidateFixedFields.
@@ -2479,6 +2558,7 @@ namespace Js
                 // Invalidate any JIT-ed code that hard coded this method. No need to invalidate
                 // any store field inline caches, because they have never been populated.
 #if ENABLE_NATIVE_CODEGEN
+                PropertyId propertyId = TMapKey_GetPropertyId(instance->GetScriptContext(), propertyKey);
                 instance->GetScriptContext()->GetThreadContext()->InvalidatePropertyGuards(propertyId);
 #endif
                 descriptor->UsedAsFixed = false;
@@ -2662,12 +2742,12 @@ namespace Js
             //
 
             Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
-            if(!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid) | (!descriptor.IsInitialized) | (descriptor.Attributes & PropertyDeleted))
+            if((!DynamicTypeHandler::ShouldMarkPropertyId_TTD(pid)) | (!descriptor.IsInitialized) | (descriptor.Attributes & PropertyDeleted))
             {
                 continue;
             }
 
-            uint32 dIndex = descriptor.template GetDataPropertyIndex<false>();
+            T dIndex = descriptor.template GetDataPropertyIndex<false>();
             if(dIndex != NoSlots)
             {
                 Js::Var dValue = obj->GetSlot(dIndex);
@@ -2675,14 +2755,14 @@ namespace Js
             }
             else
             {
-                uint32 gIndex = descriptor.GetGetterPropertyIndex();
+                T gIndex = descriptor.GetGetterPropertyIndex();
                 if(gIndex != NoSlots)
                 {
                     Js::Var gValue = obj->GetSlot(gIndex);
                     extractor->MarkVisitVar(gValue);
                 }
 
-                uint32 sIndex = descriptor.GetSetterPropertyIndex();
+                T sIndex = descriptor.GetSetterPropertyIndex();
                 if(sIndex != NoSlots)
                 {
                     Js::Var sValue = obj->GetSlot(sIndex);
@@ -2695,38 +2775,40 @@ namespace Js
     template <typename T>
     uint32 DictionaryTypeHandlerBase<T>::ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const
     {
-        uint32 maxSlot = 0;
+        T maxSlot = 0;
 
         for(auto iter = this->propertyMap->GetIterator(); iter.IsValid(); iter.MoveNext())
         {
             DictionaryPropertyDescriptor<T> descriptor = iter.CurrentValue();
             Js::PropertyId pid = iter.CurrentKey()->GetPropertyId();
 
-            uint32 dIndex = descriptor.template GetDataPropertyIndex<false>();
+            T dIndex = descriptor.template GetDataPropertyIndex<false>();
             if(dIndex != NoSlots)
             {
                 maxSlot = max(maxSlot, dIndex);
 
-                TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Data : TTD::NSSnapType::SnapEntryDataKindTag::Uninitialized;
                 TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + dIndex, pid, descriptor.Attributes, tag);
             }
             else
             {
-                uint32 gIndex = descriptor.GetGetterPropertyIndex();
+                TTDAssert(descriptor.IsInitialized, "How can this not be initialized?");
+
+                T gIndex = descriptor.GetGetterPropertyIndex();
                 if(gIndex != NoSlots)
                 {
                     maxSlot = max(maxSlot, gIndex);
 
-                    TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Getter : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                    TTD::NSSnapType::SnapEntryDataKindTag tag = TTD::NSSnapType::SnapEntryDataKindTag::Getter;
                     TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + gIndex, pid, descriptor.Attributes, tag);
                 }
 
-                uint32 sIndex = descriptor.GetSetterPropertyIndex();
+                T sIndex = descriptor.GetSetterPropertyIndex();
                 if(sIndex != NoSlots)
                 {
                     maxSlot = max(maxSlot, sIndex);
 
-                    TTD::NSSnapType::SnapEntryDataKindTag tag = descriptor.IsInitialized ? TTD::NSSnapType::SnapEntryDataKindTag::Setter : TTD::NSSnapType::SnapEntryDataKindTag::Clear;
+                    TTD::NSSnapType::SnapEntryDataKindTag tag = TTD::NSSnapType::SnapEntryDataKindTag::Setter;
                     TTD::NSSnapType::ExtractSnapPropertyEntryInfo(entryInfo + sIndex, pid, descriptor.Attributes, tag);
                 }
             }
@@ -2738,31 +2820,26 @@ namespace Js
         }
         else
         {
-            return maxSlot + 1;
+            return (uint32)(maxSlot + 1);
         }
     }
 
     template <typename T>
-    Js::PropertyIndex DictionaryTypeHandlerBase<T>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    Js::BigPropertyIndex DictionaryTypeHandlerBase<T>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
     {
-        T index = NoSlots;
-        for(index = 0; index < this->propertyMap->Count(); index++)
+        for(Js::BigPropertyIndex index = 0; index < this->propertyMap->Count(); index++)
         {
             Js::PropertyId pid = this->propertyMap->GetKeyAt(index)->GetPropertyId();
             const DictionaryPropertyDescriptor<T>& idescriptor = propertyMap->GetValueAt(index);
 
             if(pid == pRecord->GetPropertyId() && !(idescriptor.Attributes & PropertyDeleted))
             {
-                break;
+                return index;
             }
         }
-        AssertMsg(index != NoSlots, "We found this and not accessor but noslots for index?");
 
-        if(index <= Constants::PropertyIndexMax)
-        {
-            return (PropertyIndex)index;
-        }
-        return Constants::NoSlot;
+        TTDAssert(false, "We found this and not accessor but NoBigSlot for index?");
+        return Js::Constants::NoBigSlot;
     }
 #endif
 

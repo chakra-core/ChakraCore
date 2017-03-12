@@ -25,7 +25,10 @@
         $(MSBuildThisFileDirectory)..\..\Backend;
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
+        $(MSBuildThisFileDirectory)..\..\WasmReader;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
+        $(MSBuildThisFileDirectory)..\..\JITClient;
+        $(ChakraJITIDLIntDir);
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -38,12 +41,11 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)DeferredTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DictionaryTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DynamicObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)DynamicObjectEnumerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)DynamicObjectSnapshotEnumerator.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)DynamicObjectSnapshotEnumeratorWPCache.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)DynamicObjectPropertyEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DynamicType.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ES5ArrayTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptStaticEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)MissingPropertyTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)NullTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)PathTypeHandler.cpp" />
@@ -71,13 +73,12 @@
     <ClInclude Include="DictionaryPropertyDescriptor.h" />
     <ClInclude Include="DictionaryTypeHandler.h" />
     <ClInclude Include="DynamicObject.h" />
-    <ClInclude Include="DynamicObjectEnumerator.h" />
-    <ClInclude Include="DynamicObjectSnapshotEnumerator.h" />
-    <ClInclude Include="DynamicObjectSnapshotEnumeratorWPCache.h" />
+    <ClInclude Include="DynamicObjectPropertyEnumerator.h" />
     <ClInclude Include="DynamicType.h" />
     <ClInclude Include="EdgeJavascriptTypeId.h" />
     <ClInclude Include="ES5ArrayTypeHandler.h" />
     <ClInclude Include="JavascriptEnumerator.h" />
+    <ClInclude Include="JavascriptStaticEnumerator.h" />
     <ClInclude Include="MissingPropertyTypeHandler.h" />
     <ClInclude Include="NullTypeHandler.h" />
     <ClInclude Include="PathTypeHandler.h" />
@@ -103,6 +104,11 @@
   <ItemGroup>
     <None Include="RecyclableObject.inl" />
     <None Include="DynamicObject.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">
+      <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(BuildConfigPropsPath)Chakra.Build.targets" Condition="exists('$(BuildConfigPropsPath)Chakra.Build.targets')" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

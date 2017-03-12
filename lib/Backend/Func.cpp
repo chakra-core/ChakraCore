@@ -9,16 +9,28 @@
 #include "Base/VTuneChakraProfile.h"
 #endif
 
-Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::FunctionCodeGenRuntimeData *const runtimeData,
-    Js::PolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, CodeGenAllocators *const codeGenAllocators,
-    CodeGenNumberAllocator * numberAllocator, Js::ReadOnlyDynamicProfileInfo *const profileInfo,
+#include "Library/ForInObjectEnumerator.h"
+
+Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
+    ThreadContextInfo * threadContextInfo,
+    ScriptContextInfo * scriptContextInfo,
+    JITOutputIDL * outputData,
+    Js::EntryPointInfo* epInfo,
+    const FunctionJITRuntimeInfo *const runtimeInfo,
+    JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, void * const codeGenAllocators,
+#if !FLOATVAR
+    CodeGenNumberAllocator * numberAllocator,
+#endif
     Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT, Func * parentFunc,
     uint postCallByteCodeOffset, Js::RegSlot returnValueRegSlot, const bool isInlinedConstructor,
     Js::ProfileId callSiteIdInParentFunc, bool isGetterSetter) :
     m_alloc(alloc),
     m_workItem(workItem),
-    m_jitTimeData(workItem->RecyclableData()->JitTimeData()),
-    m_runtimeData(runtimeData),
+    m_output(outputData),
+    m_entryPointInfo(epInfo),
+    m_threadContextInfo(threadContextInfo),
+    m_scriptContextInfo(scriptContextInfo),
+    m_runtimeInfo(runtimeInfo),
     m_polymorphicInlineCacheInfo(polymorphicInlineCacheInfo),
     m_codeGenAllocators(codeGenAllocators),
     m_inlineeId(0),
@@ -87,13 +99,15 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     hasImplicitCalls(false),
     hasTempObjectProducingInstr(false),
     isInlinedConstructor(isInlinedConstructor),
+#if !FLOATVAR
     numberAllocator(numberAllocator),
-    profileInfo(profileInfo),
+#endif
     loopCount(0),
     callSiteIdInParentFunc(callSiteIdInParentFunc),
     isGetterSetter(isGetterSetter),
     frameInfo(nullptr),
     isTJLoopBody(false),
+    m_nativeCodeDataSym(nullptr),
     isFlowGraphValid(false),
 #if DBG
     m_callSiteCount(0),
@@ -106,9 +120,6 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
 #endif
     , m_funcStartLabel(nullptr)
     , m_funcEndLabel(nullptr)
-#ifdef _M_X64
-    , m_prologEncoder(alloc)
-#endif
 #if DBG
     , hasCalledSetDoFastPaths(false)
     , allowRemoveBailOutArgInstr(false)
@@ -128,47 +139,56 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     , slotArrayCheckTable(nullptr)
     , frameDisplayCheckTable(nullptr)
     , stackArgWithFormalsTracker(nullptr)
+    , m_forInLoopBaseDepth(0)
+    , m_forInEnumeratorArrayOffset(-1)
     , argInsCount(0)
+    , m_globalObjTypeSpecFldInfoArray(nullptr)
+#ifdef RECYCLER_WRITE_BARRIER_JIT
+    , m_lowerer(nullptr)
+#endif
 {
-    Assert(this->IsInlined() == !!runtimeData);
+
+    Assert(this->IsInlined() == !!runtimeInfo);
+
+    if (this->IsTopFunc())
+    {
+        outputData->hasJittedStackClosure = false;
+        outputData->localVarSlotsOffset = m_localVarSlotsOffset;
+        outputData->localVarChangedOffset = m_hasLocalVarChangedOffset;
+    }
 
     if (this->IsInlined())
     {
         m_inlineeId = ++(GetTopFunc()->m_inlineeId);
     }
+    bool doStackNestedFunc = GetJITFunctionBody()->DoStackNestedFunc();
 
-    m_jnFunction = m_workItem->GetFunctionBody();
-    bool doStackNestedFunc = m_jnFunction->DoStackNestedFunc();
-    bool doStackClosure = m_jnFunction->DoStackClosure() && !PHASE_OFF(Js::FrameDisplayFastPathPhase, this);
+    bool doStackClosure = GetJITFunctionBody()->DoStackClosure() && !PHASE_OFF(Js::FrameDisplayFastPathPhase, this) && !PHASE_OFF(Js::StackClosurePhase, this);
     Assert(!doStackClosure || doStackNestedFunc);
     this->stackClosure = doStackClosure && this->IsTopFunc();
     if (this->stackClosure)
     {
-        m_workItem->GetEntryPoint()->SetHasJittedStackClosure();
+        // TODO: calculate on runtime side?
+        m_output.SetHasJITStackClosure();
     }
 
-    if (m_workItem->Type() == JsFunctionType)
+    if (m_workItem->Type() == JsFunctionType &&
+        GetJITFunctionBody()->DoBackendArgumentsOptimization() &&
+        !GetJITFunctionBody()->HasTry())
     {
-        if (m_jnFunction->GetDoBackendArgumentsOptimization() && !m_jnFunction->GetHasTry())
-        {
-            // doBackendArgumentsOptimization bit is set when there is no eval inside a function
-            // as determined by the bytecode generator.
-            SetHasStackArgs(true);
-        }
-        if (doStackNestedFunc && m_jnFunction->GetNestedCount() != 0 &&
-            this->GetTopFunc()->m_workItem->Type() != JsLoopBodyWorkItemType) // make sure none of the functions inlined in a jitted loop body allocate nested functions on the stack
-        {
-            Assert(!(this->IsJitInDebugMode() && !m_jnFunction->GetUtf8SourceInfo()->GetIsLibraryCode()));
-            stackNestedFunc = true;
-            this->GetTopFunc()->hasAnyStackNestedFunc = true;
-        }
+        // doBackendArgumentsOptimization bit is set when there is no eval inside a function
+        // as determined by the bytecode generator.
+        SetHasStackArgs(true);
     }
-    else
+    if (doStackNestedFunc && GetJITFunctionBody()->GetNestedCount() != 0 &&
+        (this->IsTopFunc() || this->GetTopFunc()->m_workItem->Type() != JsLoopBodyWorkItemType)) // make sure none of the functions inlined in a jitted loop body allocate nested functions on the stack
     {
-        Assert(m_workItem->Type() == JsLoopBodyWorkItemType);
+        Assert(!(this->IsJitInDebugMode() && !GetJITFunctionBody()->IsLibraryCode()));
+        stackNestedFunc = true;
+        this->GetTopFunc()->hasAnyStackNestedFunc = true;
     }
 
-    if (m_jnFunction->GetHasOrParentHasArguments() || parentFunc && parentFunc->thisOrParentInlinerHasArguments)
+    if (GetJITFunctionBody()->HasOrParentHasArguments() || (parentFunc && parentFunc->thisOrParentInlinerHasArguments))
     {
         thisOrParentInlinerHasArguments = true;
     }
@@ -178,6 +198,8 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
         inlineDepth = 0;
         m_symTable = JitAnew(alloc, SymTable);
         m_symTable->Init(this);
+        m_symTable->SetStartingID(static_cast<SymID>(workItem->GetJITFunctionBody()->GetLocalsCount() + 1));
+
         Assert(Js::Constants::NoByteCodeOffset == postCallByteCodeOffset);
         Assert(Js::Constants::NoRegister == returnValueRegSlot);
 
@@ -197,7 +219,7 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
     }
 
     this->constructorCacheCount = 0;
-    this->constructorCaches = AnewArrayZ(this->m_alloc, Js::JitTimeConstructorCache*, this->m_jnFunction->GetProfiledCallSiteCount());
+    this->constructorCaches = AnewArrayZ(this->m_alloc, JITTimeConstructorCache*, GetJITFunctionBody()->GetProfiledCallSiteCount());
 
 #if DBG_DUMP
     m_codeSize = -1;
@@ -214,150 +236,136 @@ Func::Func(JitArenaAllocator *alloc, CodeGenWorkItem* workItem, const Js::Functi
         m_nonTempLocalVars = Anew(this->m_alloc, BVSparse<JitArenaAllocator>, this->m_alloc);
     }
 
-    if (this->m_jnFunction->IsGenerator())
+    if (GetJITFunctionBody()->IsCoroutine())
     {
         m_yieldOffsetResumeLabelList = YieldOffsetResumeLabelList::New(this->m_alloc);
     }
 
-    canHoistConstantAddressLoad = !PHASE_OFF(Js::HoistConstAddrPhase, this);
-}
+    if (this->IsTopFunc())
+    {
+        m_globalObjTypeSpecFldInfoArray = JitAnewArrayZ(this->m_alloc, ObjTypeSpecFldInfo*, GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
+    }
 
-bool
-Func::IsLoopBody() const
-{
-    return this->m_workItem->Type() == JsLoopBodyWorkItemType;
+    for (uint i = 0; i < GetJITFunctionBody()->GetInlineCacheCount(); ++i)
+    {
+        ObjTypeSpecFldInfo * info = GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(i);
+        if (info != nullptr)
+        {
+            Assert(info->GetObjTypeSpecFldId() < GetTopFunc()->GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
+            GetTopFunc()->m_globalObjTypeSpecFldInfoArray[info->GetObjTypeSpecFldId()] = info;
+        }
+    }
+
+    canHoistConstantAddressLoad = !PHASE_OFF(Js::HoistConstAddrPhase, this);
+
+    m_forInLoopMaxDepth = this->GetJITFunctionBody()->GetForInLoopDepth();
 }
 
 bool
 Func::IsLoopBodyInTry() const
 {
-    return IsLoopBody() && ((JsLoopBodyCodeGen*)this->m_workItem)->loopHeader->isInTry;
+    return IsLoopBody() && m_workItem->GetLoopHeader()->isInTry;
+}
+
+/* static */
+void
+Func::Codegen(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
+    ThreadContextInfo * threadContextInfo,
+    ScriptContextInfo * scriptContextInfo,
+    JITOutputIDL * outputData,
+    Js::EntryPointInfo* epInfo, // for in-proc jit only
+    const FunctionJITRuntimeInfo *const runtimeInfo,
+    JITTimePolymorphicInlineCacheInfo * const polymorphicInlineCacheInfo, void * const codeGenAllocators,
+#if !FLOATVAR
+    CodeGenNumberAllocator * numberAllocator,
+#endif
+    Js::ScriptContextProfiler *const codeGenProfiler, const bool isBackgroundJIT)
+{
+    bool rejit;
+    do
+    {
+        Func func(alloc, workItem, threadContextInfo,
+            scriptContextInfo, outputData, epInfo, runtimeInfo,
+            polymorphicInlineCacheInfo, codeGenAllocators, 
+#if !FLOATVAR
+            numberAllocator,
+#endif
+            codeGenProfiler, isBackgroundJIT);
+        try
+        {
+            func.TryCodegen();
+            rejit = false;
+        }
+        catch (Js::RejitException ex)
+        {
+            // The work item needs to be rejitted, likely due to some optimization that was too aggressive
+            if (ex.Reason() == RejitReason::AggressiveIntTypeSpecDisabled)
+            {
+                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableAggressiveIntTypeSpec(func.IsLoopBody());
+                outputData->disableAggressiveIntTypeSpec = TRUE;
+            }
+            else if (ex.Reason() == RejitReason::InlineApplyDisabled)
+            {
+                workItem->GetJITFunctionBody()->DisableInlineApply();
+                outputData->disableInlineApply = TRUE;
+            }
+            else if (ex.Reason() == RejitReason::InlineSpreadDisabled)
+            {
+                workItem->GetJITFunctionBody()->DisableInlineSpread();
+                outputData->disableInlineSpread = TRUE;
+            }
+            else if (ex.Reason() == RejitReason::DisableStackArgOpt)
+            {
+                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableStackArgOpt();
+                outputData->disableStackArgOpt = TRUE;
+            }
+            else if (ex.Reason() == RejitReason::DisableSwitchOptExpectingInteger ||
+                ex.Reason() == RejitReason::DisableSwitchOptExpectingString)
+            {
+                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableSwitchOpt();
+                outputData->disableSwitchOpt = TRUE;
+            }
+            else
+            {
+                Assert(ex.Reason() == RejitReason::TrackIntOverflowDisabled);
+                workItem->GetJITFunctionBody()->GetProfileInfo()->DisableTrackCompoundedIntOverflow();
+                outputData->disableTrackCompoundedIntOverflow = TRUE;
+            }
+
+            if (PHASE_TRACE(Js::ReJITPhase, &func))
+            {
+                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+                Output::Print(
+                    _u("Rejit (compile-time): function: %s (%s) reason: %S\n"),
+                    workItem->GetJITFunctionBody()->GetDisplayName(),
+                    workItem->GetJITTimeInfo()->GetDebugNumberSet(debugStringBuffer),
+                    ex.ReasonName());
+            }
+
+            rejit = true;
+        }
+        // Either the entry point has a reference to the number now, or we failed to code gen and we
+        // don't need to numbers, we can flush the completed page now.
+        //
+        // If the number allocator is NULL then we are shutting down the thread context and so too the
+        // code generator. The number allocator must be freed before the recycler (and thus before the
+        // code generator) so we can't and don't need to flush it.
+
+        // TODO: OOP JIT, allocator cleanup
+    } while (rejit);
 }
 
 ///----------------------------------------------------------------------------
 ///
-/// Func::Codegen
+/// Func::TryCodegen
 ///
-///     Codegen this function.
+///     Attempt to Codegen this function.
 ///
 ///----------------------------------------------------------------------------
 void
-Func::Codegen()
+Func::TryCodegen()
 {
-    Assert(!IsJitInDebugMode() || !m_jnFunction->GetHasTry());
-
-    Js::ScriptContext* scriptContext = this->GetScriptContext();
-
-    {
-        if(IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_START()))
-        {
-            WCHAR displayNameBuffer[256];
-            WCHAR* displayName = displayNameBuffer;
-            size_t sizeInChars = this->m_workItem->GetDisplayName(displayName, 256);
-            if(sizeInChars > 256)
-            {
-                displayName = new WCHAR[sizeInChars];
-                this->m_workItem->GetDisplayName(displayName, 256);
-            }
-            JS_ETW(EventWriteJSCRIPT_FUNCTION_JIT_START(
-                this->GetFunctionNumber(),
-                displayName,
-                this->GetScriptContext(),
-                this->m_workItem->GetInterpretedCount(),
-                (const unsigned int)this->m_jnFunction->LengthInBytes(),
-                this->m_jnFunction->GetByteCodeCount(),
-                this->m_jnFunction->GetByteCodeInLoopCount(),
-                (int)this->m_workItem->GetJitMode()));
-
-            if(displayName != displayNameBuffer)
-            {
-                delete[] displayName;
-            }
-        }
-    }
-
-#if DBG_DUMP
-    if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::BackEndPhase))
-    {
-        if (this->IsLoopBody())
-        {
-            Output::Print(_u("---BeginBackEnd: function: %s, loop:%d---\r\n"), this->GetJnFunction()->GetDisplayName(),
-                static_cast<JsLoopBodyCodeGen *>(this->m_workItem)->GetLoopNumber());
-        }
-        else
-        {
-            Output::Print(_u("---BeginBackEnd: function: %s---\r\n"), this->GetJnFunction()->GetDisplayName());
-        }
-        Output::Flush();
-    }
-#endif
-
-    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    LARGE_INTEGER start_time = { 0 };
-
-    if(PHASE_TRACE(Js::BackEndPhase, GetJnFunction()))
-    {
-        QueryPerformanceCounter(&start_time);
-        if (this->IsLoopBody())
-        {
-            Output::Print(
-                _u("BeginBackEnd - function: %s (%s, line %u), loop: %u, mode: %S"),
-                GetJnFunction()->GetDisplayName(),
-                GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
-                GetJnFunction()->GetLineNumber(),
-                static_cast<JsLoopBodyCodeGen *>(this->m_workItem)->GetLoopNumber(),
-                ExecutionModeName(m_workItem->GetJitMode()));
-            if (this->m_jnFunction->GetIsAsmjsMode())
-            {
-                Output::Print(_u(" (Asmjs)\n"));
-            }
-            else
-            {
-                Output::Print(_u("\n"));
-            }
-        }
-        else
-        {
-            Output::Print(
-                _u("BeginBackEnd - function: %s (%s, line %u), mode: %S"),
-                GetJnFunction()->GetDisplayName(),
-                GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
-                GetJnFunction()->GetLineNumber(),
-                ExecutionModeName(m_workItem->GetJitMode()));
-
-            if (this->m_jnFunction->GetIsAsmjsMode())
-            {
-                Output::Print(_u(" (Asmjs)\n"));
-            }
-            else
-            {
-                Output::Print(_u("\n"));
-            }
-        }
-        Output::Flush();
-    }
-#ifdef FIELD_ACCESS_STATS
-    if (PHASE_TRACE(Js::ObjTypeSpecPhase, this->GetJnFunction()) || PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->GetJnFunction()))
-    {
-        if (this->m_jitTimeData->inlineCacheStats)
-        {
-            auto stats = this->m_jitTimeData->inlineCacheStats;
-            Output::Print(_u("ObjTypeSpec: jitting function %s (#%s): inline cache stats:\n"), this->GetJnFunction()->GetDisplayName(), this->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
-            Output::Print(_u("    overall: total %u, no profile info %u\n"), stats->totalInlineCacheCount, stats->noInfoInlineCacheCount);
-            Output::Print(_u("    mono: total %u, empty %u, cloned %u\n"),
-                stats->monoInlineCacheCount, stats->emptyMonoInlineCacheCount, stats->clonedMonoInlineCacheCount);
-            Output::Print(_u("    poly: total %u (high %u, low %u), null %u, empty %u, ignored %u, disabled %u, equivalent %u, non-equivalent %u, cloned %u\n"),
-                stats->polyInlineCacheCount, stats->highUtilPolyInlineCacheCount, stats->lowUtilPolyInlineCacheCount,
-                stats->nullPolyInlineCacheCount, stats->emptyPolyInlineCacheCount, stats->ignoredPolyInlineCacheCount, stats->disabledPolyInlineCacheCount,
-                stats->equivPolyInlineCacheCount, stats->nonEquivPolyInlineCacheCount, stats->clonedPolyInlineCacheCount);
-        }
-        else
-        {
-            Output::Print(_u("EquivObjTypeSpec: function %s (%s): inline cache stats unavailable\n"), this->GetJnFunction()->GetDisplayName(), this->GetJnFunction()->GetDebugNumberSet(debugStringBuffer));
-        }
-        Output::Flush();
-    }
-#endif
+    Assert(!IsJitInDebugMode() || !GetJITFunctionBody()->HasTry());
 
     BEGIN_CODEGEN_PHASE(this, Js::BackEndPhase);
     {
@@ -365,12 +373,14 @@ Func::Codegen()
 
         BEGIN_CODEGEN_PHASE(this, Js::IRBuilderPhase);
 
-        if (m_jnFunction->GetIsAsmjsMode())
+#ifdef ASMJS_PLAT
+        if (GetJITFunctionBody()->IsAsmJsMode())
         {
             IRBuilderAsmJs asmIrBuilder(this);
             asmIrBuilder.Build();
         }
         else
+#endif
         {
             IRBuilder irBuilder(this);
             irBuilder.Build();
@@ -384,19 +394,13 @@ Func::Codegen()
 
         BEGIN_CODEGEN_PHASE(this, Js::InlinePhase);
 
-        InliningHeuristics heuristics(this->GetJnFunction(), this->IsLoopBody());
+        InliningHeuristics heuristics(GetWorkItem()->GetJITTimeInfo(), this->IsLoopBody());
         Inline inliner(this, heuristics);
         inliner.Optimize();
 
         END_CODEGEN_PHASE(this, Js::InlinePhase);
 
-        if (scriptContext->IsClosed())
-        {
-            // Should not be jitting something in the foreground when the script context is actually closed
-            Assert(IsBackgroundJIT() || !scriptContext->IsActuallyClosed());
-
-            throw Js::OperationAbortedException();
-        }
+        ThrowIfScriptClosed();
 
         // FlowGraph
         {
@@ -446,8 +450,7 @@ Func::Codegen()
         BEGIN_CODEGEN_PHASE(this, Js::EncodeConstantsPhase)
         security.EncodeLargeConstants();
         END_CODEGEN_PHASE(this, Js::EncodeConstantsPhase);
-
-        if (this->GetScriptContext()->GetThreadContext()->DoInterruptProbe(this->GetJnFunction()))
+        if (GetJITFunctionBody()->DoInterruptProbe())
         {
             BEGIN_CODEGEN_PHASE(this, Js::InterruptProbePhase)
             lowerer.DoInterruptProbes();
@@ -501,7 +504,7 @@ Func::Codegen()
 
         // Prolog/Epilog
         BEGIN_CODEGEN_PHASE(this, Js::PrologEpilogPhase);
-        if (m_jnFunction->GetIsAsmjsMode())
+        if (GetJITFunctionBody()->IsAsmJsMode())
         {
             lowerer.LowerPrologEpilogAsmJs();
         }
@@ -528,105 +531,12 @@ Func::Codegen()
 #endif /* IR_VIEWER */
 
     }
-    END_CODEGEN_PHASE(this, Js::BackEndPhase);
-
-#if DBG_DUMP
-    if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::BackEndPhase))
-    {
-        Output::Print(_u("---EndBackEnd---\r\n"));
-        Output::Flush();
-    }
-#endif
-
-#ifdef PROFILE_BAILOUT_RECORD_MEMORY
-    if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
-    {
-        scriptContext->codeSize += this->m_codeSize;
-    }
-#endif
-
-    if (PHASE_TRACE(Js::BackEndPhase, GetJnFunction()))
-    {
-        LARGE_INTEGER freq;
-        LARGE_INTEGER end_time;
-        QueryPerformanceCounter(&end_time);
-        QueryPerformanceFrequency(&freq);
-        if (this->IsLoopBody())
-        {
-            Output::Print(
-                _u("EndBackEnd - function: %s (%s, line %u), loop: %u, mode: %S, time:%8.6f mSec"),
-                GetJnFunction()->GetDisplayName(),
-                GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
-                GetJnFunction()->GetLineNumber(),
-                static_cast<JsLoopBodyCodeGen *>(this->m_workItem)->GetLoopNumber(),
-                ExecutionModeName(m_workItem->GetJitMode()),
-                (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
-
-            if (this->m_jnFunction->GetIsAsmjsMode())
-            {
-                Output::Print(_u(" (Asmjs)\n"));
-            }
-            else
-            {
-                Output::Print(_u("\n"));
-            }
-        }
-        else
-        {
-            Output::Print(
-                _u("EndBackEnd - function: %s (%s, line %u), mode: %S time:%8.6f mSec"),
-                GetJnFunction()->GetDisplayName(),
-                GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
-                GetJnFunction()->GetLineNumber(),
-                ExecutionModeName(m_workItem->GetJitMode()),
-                (((double)((end_time.QuadPart - start_time.QuadPart)* (double)1000.0 / (double)freq.QuadPart))) / (1));
-
-            if (this->m_jnFunction->GetIsAsmjsMode())
-            {
-                Output::Print(_u(" (Asmjs)\n"));
-            }
-            else
-            {
-                Output::Print(_u("\n"));
-            }
-        }
-        Output::Flush();
-    }
-
-    {
-        if(IS_JS_ETW(EventEnabledJSCRIPT_FUNCTION_JIT_STOP()))
-        {
-            WCHAR displayNameBuffer[256];
-            WCHAR* displayName = displayNameBuffer;
-            size_t sizeInChars = this->m_workItem->GetDisplayName(displayName, 256);
-            if(sizeInChars > 256)
-            {
-                displayName = new WCHAR[sizeInChars];
-                this->m_workItem->GetDisplayName(displayName, 256);
-            }
-            void* entryPoint;
-            ptrdiff_t codeSize;
-            this->m_workItem->GetEntryPointAddress(&entryPoint, &codeSize);
-            JS_ETW(EventWriteJSCRIPT_FUNCTION_JIT_STOP(
-                this->GetFunctionNumber(),
-                displayName,
-                scriptContext,
-                this->m_workItem->GetInterpretedCount(),
-                entryPoint,
-                codeSize));
-
-            if(displayName != displayNameBuffer)
-            {
-                delete[] displayName;
-            }
-        }
-    }
 
 #if DBG_DUMP
     if (Js::Configuration::Global.flags.IsEnabled(Js::AsmDumpModeFlag))
     {
         FILE * oldFile = 0;
-        FILE * asmFile = scriptContext->GetNativeCodeGenerator()->asmFile;
+        FILE * asmFile = GetScriptContext()->GetNativeCodeGenerator()->asmFile;
         if (asmFile)
         {
             oldFile = Output::SetFile(asmFile);
@@ -643,6 +553,91 @@ Func::Codegen()
         }
     }
 #endif
+    if (this->IsOOPJIT())
+    {
+        BEGIN_CODEGEN_PHASE(this, Js::NativeCodeDataPhase);
+
+        auto dataAllocator = this->GetNativeCodeDataAllocator();
+        if (dataAllocator->allocCount > 0)
+        {
+            NativeCodeData::DataChunk *chunk = (NativeCodeData::DataChunk*)dataAllocator->chunkList;
+            NativeCodeData::DataChunk *next1 = chunk;
+            while (next1)
+            {
+                if (next1->fixupFunc)
+                {
+                    next1->fixupFunc(next1->data, chunk);
+                }
+#if DBG
+                if (CONFIG_FLAG(OOPJITFixupValidate))
+                {
+                    // Scan memory to see if there's missing pointer needs to be fixed up
+                    // This can hit false positive if some data field happens to have value 
+                    // falls into the NativeCodeData memory range.
+                    NativeCodeData::DataChunk *next2 = chunk;
+                    while (next2)
+                    {
+                        for (unsigned int i = 0; i < next1->len / sizeof(void*); i++)
+                        {
+                            if (((void**)next1->data)[i] == (void*)next2->data)
+                            {
+                                NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                            }
+                        }
+                        next2 = next2->next;
+                    }
+                }
+#endif
+                next1 = next1->next;
+            }
+
+            JITOutputIDL* jitOutputData = m_output.GetOutputData();
+            size_t allocSize = offsetof(NativeDataFixupTable, fixupRecords) + sizeof(NativeDataFixupRecord)* (dataAllocator->allocCount);
+            jitOutputData->nativeDataFixupTable = (NativeDataFixupTable*)midl_user_allocate(allocSize);
+            if (!jitOutputData->nativeDataFixupTable)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            __analysis_assume(jitOutputData->nativeDataFixupTable);
+            jitOutputData->nativeDataFixupTable->count = dataAllocator->allocCount;
+
+            jitOutputData->buffer = (NativeDataBuffer*)midl_user_allocate(offsetof(NativeDataBuffer, data) + dataAllocator->totalSize);
+            if (!jitOutputData->buffer)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            __analysis_assume(jitOutputData->buffer);
+
+            jitOutputData->buffer->len = dataAllocator->totalSize;
+
+            unsigned int len = 0;
+            unsigned int count = 0;
+            next1 = chunk;
+            while (next1)
+            {
+                memcpy(jitOutputData->buffer->data + len, next1->data, next1->len);
+                len += next1->len;
+
+                jitOutputData->nativeDataFixupTable->fixupRecords[count].index = next1->allocIndex;
+                jitOutputData->nativeDataFixupTable->fixupRecords[count].length = next1->len;
+                jitOutputData->nativeDataFixupTable->fixupRecords[count].startOffset = next1->offset;
+                jitOutputData->nativeDataFixupTable->fixupRecords[count].updateList = next1->fixupList;
+
+                count++;
+                next1 = next1->next;
+            }
+
+#if DBG
+            if (PHASE_TRACE1(Js::NativeCodeDataPhase))
+            {
+                Output::Print(_u("NativeCodeData Server Buffer: %p, len: %x, chunk head: %p\n"), jitOutputData->buffer->data, jitOutputData->buffer->len, chunk);
+            }
+#endif
+        }
+        END_CODEGEN_PHASE(this, Js::NativeCodeDataPhase);
+    }
+
+    END_CODEGEN_PHASE(this, Js::BackEndPhase);
 }
 
 ///----------------------------------------------------------------------------
@@ -717,8 +712,7 @@ Func::EnsureLocalVarSlots()
 
     if (!this->HasLocalVarSlotCreated())
     {
-        Assert(this->m_jnFunction != nullptr);
-        uint32 localSlotCount = this->m_jnFunction->GetNonTempLocalVarCount();
+        uint32 localSlotCount = GetJITFunctionBody()->GetNonTempLocalVarCount();
         if (localSlotCount && m_localVarSlotsOffset == Js::Constants::InvalidOffset)
         {
             // Allocate the slots.
@@ -726,14 +720,10 @@ Func::EnsureLocalVarSlots()
             m_localVarSlotsOffset = StackAllocate(size);
             m_hasLocalVarChangedOffset = StackAllocate(max(1, MachStackAlignment)); // Can't alloc less than StackAlignment bytes.
 
-            Assert(this->m_workItem->Type() == JsFunctionType);
+            Assert(m_workItem->Type() == JsFunctionType);
 
-            // Store in the entry point info, so that it will later be used when we do the variable inspection.
-            Js::FunctionEntryPointInfo * entryPointInfo = static_cast<Js::FunctionEntryPointInfo*>(this->m_workItem->GetEntryPoint());
-            Assert(entryPointInfo != nullptr);
-
-            entryPointInfo->localVarSlotsOffset = AdjustOffsetValue(m_localVarSlotsOffset);
-            entryPointInfo->localVarChangedOffset = AdjustOffsetValue(m_hasLocalVarChangedOffset);
+            m_output.SetVarSlotsOffset(AdjustOffsetValue(m_localVarSlotsOffset));
+            m_output.SetVarChangedOffset(AdjustOffsetValue(m_hasLocalVarChangedOffset));
         }
     }
 }
@@ -798,16 +788,13 @@ Func::GetHasLocalVarChangedOffset()
 bool
 Func::IsJitInDebugMode()
 {
-    return
-        Js::Configuration::Global.EnableJitInDebugMode() &&
-        this->m_workItem->IsJitInDebugMode();
+    return m_workItem->IsJitInDebugMode();
 }
 
 bool
 Func::IsNonTempLocalVar(uint32 slotIndex)
 {
-    Assert(this->m_jnFunction != nullptr);
-    return this->m_jnFunction->IsNonTempLocalVar(slotIndex);
+    return GetJITFunctionBody()->IsNonTempLocalVar(slotIndex);
 }
 
 int32
@@ -826,7 +813,7 @@ Func::AdjustOffsetValue(int32 offset)
 void
 Func::AjustLocalVarSlotOffset()
 {
-    if (m_jnFunction->GetNonTempLocalVarCount())
+    if (GetJITFunctionBody()->GetNonTempLocalVarCount())
     {
         // Turn positive SP-relative base locals offset into negative frame-pointer-relative offset
         // This is changing value for restoring the locals when read due to locals inspection.
@@ -834,20 +821,23 @@ Func::AjustLocalVarSlotOffset()
         int localsOffset = m_localVarSlotsOffset - (m_localStackHeight + m_ArgumentsOffset);
         int valueChangeOffset = m_hasLocalVarChangedOffset - (m_localStackHeight + m_ArgumentsOffset);
 
-        Js::FunctionEntryPointInfo * entryPointInfo = static_cast<Js::FunctionEntryPointInfo*>(this->m_workItem->GetEntryPoint());
-        Assert(entryPointInfo != nullptr);
-
-        entryPointInfo->localVarSlotsOffset = localsOffset;
-        entryPointInfo->localVarChangedOffset = valueChangeOffset;
+        m_output.SetVarSlotsOffset(localsOffset);
+        m_output.SetVarChangedOffset(valueChangeOffset);
     }
 }
 #endif
 
 bool
-Func::DoGlobOptsForGeneratorFunc()
+Func::DoGlobOptsForGeneratorFunc() const
 {
     // Disable GlobOpt optimizations for generators initially. Will visit and enable each one by one.
-    return !m_jnFunction->IsGenerator();
+    return !GetJITFunctionBody()->IsCoroutine();
+}
+
+bool
+Func::DoSimpleJitDynamicProfile() const
+{
+    return IsSimpleJit() && !PHASE_OFF(Js::SimpleJitDynamicProfilePhase, GetTopFunc()) && !CONFIG_FLAG(NewSimpleJit);
 }
 
 void
@@ -856,15 +846,11 @@ Func::SetDoFastPaths()
     // Make sure we only call this once!
     Assert(!this->hasCalledSetDoFastPaths);
 
-    bool isLeaf = this->m_isLeaf && !PHASE_OFF(Js::LeafFastPathPhase, this);
     bool doFastPaths = false;
 
-    if(!PHASE_OFF(Js::FastPathPhase, this) && (!IsSimpleJit() || Js::FunctionBody::IsNewSimpleJit()))
+    if(!PHASE_OFF(Js::FastPathPhase, this) && (!IsSimpleJit() || CONFIG_FLAG(NewSimpleJit)))
     {
-        if (isLeaf || this->GetScriptContext()->GetThreadContext()->GetSourceSize() < (size_t)CONFIG_FLAG(FastPathCap) || CONFIG_FLAG(ForceFastPath))
-        {
-            doFastPaths = true;
-        }
+        doFastPaths = true;
     }
 
     this->m_doFastPaths = doFastPaths;
@@ -885,7 +871,7 @@ Func::GetLocalsPointer() const
     }
 #endif
 
-    if (this->m_jnFunction->GetHasTry())
+    if (GetJITFunctionBody()->HasTry())
     {
         return ALT_LOCALS_PTR;
     }
@@ -965,7 +951,7 @@ void Func::InitLocalClosureSyms()
     // Allocate stack space for closure pointers. Do this only if we're jitting for stack closures, and
     // tell bailout that these are not byte code symbols so that we don't try to encode them in the bailout record,
     // as they don't have normal lifetimes.
-    Js::RegSlot regSlot = this->GetJnFunction()->GetLocalClosureRegister();
+    Js::RegSlot regSlot = GetJITFunctionBody()->GetLocalClosureReg();
     if (regSlot != Js::Constants::NoRegister)
     {
         this->m_localClosureSym =
@@ -974,17 +960,17 @@ void Func::InitLocalClosureSyms()
                                    this);
     }
 
-    regSlot = this->GetJnFunction()->GetParamClosureRegister();
+    regSlot = this->GetJITFunctionBody()->GetParamClosureReg();
     if (regSlot != Js::Constants::NoRegister)
     {
-        Assert(this->GetParamClosureSym() == nullptr && !this->GetJnFunction()->IsParamAndBodyScopeMerged());
+        Assert(this->GetParamClosureSym() == nullptr && !this->GetJITFunctionBody()->IsParamAndBodyScopeMerged());
         this->m_paramClosureSym =
             StackSym::FindOrCreate(static_cast<SymID>(regSlot),
-                                    this->DoStackFrameDisplay() ? (Js::RegSlot) - 1 : regSlot,
-                                    this);
+                this->DoStackFrameDisplay() ? (Js::RegSlot) - 1 : regSlot,
+                this);
     }
 
-    regSlot = this->GetJnFunction()->GetLocalFrameDisplayRegister();
+    regSlot = GetJITFunctionBody()->GetLocalFrameDisplayReg();
     if (regSlot != Js::Constants::NoRegister)
     {
         this->m_localFrameDisplaySym =
@@ -998,9 +984,19 @@ bool Func::CanAllocInPreReservedHeapPageSegment ()
 {
 #ifdef _CONTROL_FLOW_GUARD
     return PHASE_FORCE1(Js::PreReservedHeapAllocPhase) || (!PHASE_OFF1(Js::PreReservedHeapAllocPhase) &&
-        !IsJitInDebugMode() && !this->m_workItem->GetFunctionBody()->IsInDebugMode() && GetScriptContext()->GetThreadContext()->IsCFGEnabled()
+        !IsJitInDebugMode() && GetThreadContextInfo()->IsCFGEnabled()
+        //&& !GetScriptContext()->IsScriptContextInDebugMode()
 #if _M_IX86
-        && m_workItem->GetJitMode() == ExecutionMode::FullJit && GetCodeGenAllocators()->canCreatePreReservedSegment);
+        && m_workItem->GetJitMode() == ExecutionMode::FullJit
+
+#if ENABLE_OOP_NATIVE_CODEGEN
+        && (JITManager::GetJITManager()->IsJITServer()
+            ? GetOOPCodeGenAllocators()->canCreatePreReservedSegment
+            : GetInProcCodeGenAllocators()->canCreatePreReservedSegment)
+#else
+        && GetInProcCodeGenAllocators()->canCreatePreReservedSegment
+#endif
+        );
 #elif _M_X64
         && true);
 #else
@@ -1083,6 +1079,11 @@ Func::BeginPhase(Js::Phase tag)
 {
 #ifdef DBG
     this->GetTopFunc()->currentPhases.Push(tag);
+
+    if (PHASE_DEBUGBREAK_ON_PHASE_BEGIN(tag, this))
+    {
+        __debugbreak();
+    }
 #endif
 
 #ifdef PROFILE_EXEC
@@ -1131,13 +1132,18 @@ Func::EndPhase(Js::Phase tag, bool dump)
     {
         Output::Print(_u("-----------------------------------------------------------------------------\n"));
 
-        if (m_workItem->Type() == JsLoopBodyWorkItemType)
+        if (IsLoopBody())
         {
-            Output::Print(_u("************   IR after %s (%S) Loop %d ************\n"), Js::PhaseNames[tag], ExecutionModeName(m_workItem->GetJitMode()), ((JsLoopBodyCodeGen*)m_workItem)->GetLoopNumber());
+            Output::Print(_u("************   IR after %s (%S) Loop %d ************\n"),
+                Js::PhaseNames[tag],
+                ExecutionModeName(m_workItem->GetJitMode()),
+                m_workItem->GetLoopNumber());
         }
         else
         {
-            Output::Print(_u("************   IR after %s (%S)  ************\n"), Js::PhaseNames[tag], ExecutionModeName(m_workItem->GetJitMode()));
+            Output::Print(_u("************   IR after %s (%S)  ************\n"),
+                Js::PhaseNames[tag],
+                ExecutionModeName(m_workItem->GetJitMode()));
         }
         this->Dump(Js::Configuration::Global.flags.AsmDiff? IRDumpFlags_AsmDumpMode : IRDumpFlags_None);
     }
@@ -1177,6 +1183,7 @@ Func::EndPhase(Js::Phase tag, bool dump)
         dbCheck.Check();
 #endif
     }
+    this->m_alloc->MergeDelayFreeList();
 #endif
 }
 
@@ -1273,58 +1280,50 @@ Func::CreateInlineeStackSym()
     return stackSym;
 }
 
-uint8 *
-Func::GetCallsCountAddress() const
+uint16
+Func::GetArgUsedForBranch() const
 {
-    Assert(this->m_workItem->Type() == JsFunctionType);
-
-    JsFunctionCodeGen * functionCodeGen = static_cast<JsFunctionCodeGen *>(this->m_workItem);
-
-    return functionCodeGen->GetFunctionBody()->GetCallsCountAddress(functionCodeGen->GetEntryPoint());
+    // this value can change while JITing, so or these together
+    return GetJITFunctionBody()->GetArgUsedForBranch() | GetJITOutput()->GetArgUsedForBranch();
 }
 
-uint *
+intptr_t
 Func::GetJittedLoopIterationsSinceLastBailoutAddress() const
 {
     Assert(this->m_workItem->Type() == JsLoopBodyWorkItemType);
 
-    JsLoopBodyCodeGen * loopBodyCodeGen = static_cast<JsLoopBodyCodeGen *>(this->m_workItem);
-
-    return loopBodyCodeGen->GetFunctionBody()->GetJittedLoopIterationsSinceLastBailoutAddress(loopBodyCodeGen->GetEntryPoint());
+    return m_workItem->GetJittedLoopIterationsSinceLastBailoutAddr();
 }
 
-RecyclerWeakReference<Js::FunctionBody> *
+intptr_t
 Func::GetWeakFuncRef() const
 {
-    if (this->m_jitTimeData == nullptr)
-    {
-        return nullptr;
-    }
+    // TODO: OOP JIT figure out if this can be null
 
-    return this->m_jitTimeData->GetWeakFuncRef();
+    return m_workItem->GetJITTimeInfo()->GetWeakFuncRef();
 }
 
-Js::InlineCache *
+intptr_t
 Func::GetRuntimeInlineCache(const uint index) const
 {
-    if(this->m_runtimeData)
+    if(m_runtimeInfo != nullptr && m_runtimeInfo->HasClonedInlineCaches())
     {
-        const auto inlineCache = this->m_runtimeData->ClonedInlineCaches()->GetInlineCache(this->m_jnFunction, index);
+        intptr_t inlineCache = m_runtimeInfo->GetClonedInlineCache(index);
         if(inlineCache)
         {
             return inlineCache;
         }
     }
 
-    return this->m_jnFunction->GetInlineCache(index);
+    return GetJITFunctionBody()->GetInlineCache(index);
 }
 
-Js::PolymorphicInlineCache *
+JITTimePolymorphicInlineCache *
 Func::GetRuntimePolymorphicInlineCache(const uint index) const
 {
-    if (this->m_polymorphicInlineCacheInfo)
+    if (this->m_polymorphicInlineCacheInfo && this->m_polymorphicInlineCacheInfo->HasInlineCaches())
     {
-        return this->m_polymorphicInlineCacheInfo->GetPolymorphicInlineCaches()->GetInlineCache(this->m_jnFunction, index);
+        return this->m_polymorphicInlineCacheInfo->GetInlineCache(index);
     }
     return nullptr;
 }
@@ -1338,33 +1337,26 @@ Func::GetPolyCacheUtilToInitialize(const uint index) const
 byte
 Func::GetPolyCacheUtil(const uint index) const
 {
-    return this->m_polymorphicInlineCacheInfo->GetUtilArray()->GetUtil(this->m_jnFunction, index);
+    return this->m_polymorphicInlineCacheInfo->GetUtil(index);
 }
 
-Js::ObjTypeSpecFldInfo*
+ObjTypeSpecFldInfo*
 Func::GetObjTypeSpecFldInfo(const uint index) const
 {
-    if (this->m_jitTimeData == nullptr)
+    if (GetJITFunctionBody()->GetInlineCacheCount() == 0)
     {
+        Assert(UNREACHED);
         return nullptr;
     }
-    Assert(this->m_jitTimeData->GetObjTypeSpecFldInfoArray());
 
-    return this->m_jitTimeData->GetObjTypeSpecFldInfoArray()->GetInfo(this->m_jnFunction, index);
+    return GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(index);
 }
 
-Js::ObjTypeSpecFldInfo*
+ObjTypeSpecFldInfo*
 Func::GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const
 {
-    Assert(this->m_jitTimeData != nullptr);
-    return this->m_jitTimeData->GetGlobalObjTypeSpecFldInfo(propertyInfoId);
-}
-
-void
-Func::SetGlobalObjTypeSpecFldInfo(uint propertyInfoId, Js::ObjTypeSpecFldInfo* info)
-{
-    Assert(this->m_jitTimeData != nullptr);
-    this->m_jitTimeData->SetGlobalObjTypeSpecFldInfo(propertyInfoId, info);
+    Assert(propertyInfoId < GetTopFunc()->GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
+    return GetTopFunc()->m_globalObjTypeSpecFldInfoArray[propertyInfoId];
 }
 
 void
@@ -1393,20 +1385,20 @@ Func::EnsureSingleTypeGuards()
 }
 
 Js::JitTypePropertyGuard*
-Func::GetOrCreateSingleTypeGuard(Js::Type* type)
+Func::GetOrCreateSingleTypeGuard(intptr_t typeAddr)
 {
     EnsureSingleTypeGuards();
 
     Js::JitTypePropertyGuard* guard;
-    if (!this->singleTypeGuards->TryGetValue(type, &guard))
+    if (!this->singleTypeGuards->TryGetValue(typeAddr, &guard))
     {
         // Property guards are allocated by NativeCodeData::Allocator so that their lifetime extends as long as the EntryPointInfo is alive.
-        guard = NativeCodeDataNew(GetNativeCodeDataAllocator(), Js::JitTypePropertyGuard, type, this->indexedPropertyGuardCount++);
-        this->singleTypeGuards->Add(type, guard);
+        guard = NativeCodeDataNewNoFixup(GetNativeCodeDataAllocator(), Js::JitTypePropertyGuard, typeAddr, this->indexedPropertyGuardCount++);
+        this->singleTypeGuards->Add(typeAddr, guard);
     }
     else
     {
-        Assert(guard->GetType() == type);
+        Assert(guard->GetTypeAddr() == typeAddr);
     }
 
     return guard;
@@ -1422,15 +1414,23 @@ Func::EnsureEquivalentTypeGuards()
 }
 
 Js::JitEquivalentTypeGuard*
-Func::CreateEquivalentTypeGuard(Js::Type* type, uint32 objTypeSpecFldId)
+Func::CreateEquivalentTypeGuard(JITTypeHolder type, uint32 objTypeSpecFldId)
 {
     EnsureEquivalentTypeGuards();
 
-    Js::JitEquivalentTypeGuard* guard = NativeCodeDataNew(GetNativeCodeDataAllocator(), Js::JitEquivalentTypeGuard, type, this->indexedPropertyGuardCount++, objTypeSpecFldId);
+    Js::JitEquivalentTypeGuard* guard = NativeCodeDataNewNoFixup(GetNativeCodeDataAllocator(), Js::JitEquivalentTypeGuard, type->GetAddr(), this->indexedPropertyGuardCount++, objTypeSpecFldId);
 
     // If we want to hard code the address of the cache, we will need to go back to allocating it from the native code data allocator.
     // We would then need to maintain consistency (double write) to both the recycler allocated cache and the one on the heap.
-    Js::EquivalentTypeCache* cache = NativeCodeDataNewZ(GetTransferDataAllocator(), Js::EquivalentTypeCache);
+    Js::EquivalentTypeCache* cache = nullptr;
+    if (this->IsOOPJIT())
+    {
+        cache = JitAnewZ(this->m_alloc, Js::EquivalentTypeCache);
+    }
+    else
+    {
+        cache = NativeCodeDataNewZNoFixup(GetTransferDataAllocator(), Js::EquivalentTypeCache);
+    }
     guard->SetCache(cache);
 
     // Give the cache a back-pointer to the guard so that the guard can be cleared at runtime if necessary.
@@ -1477,7 +1477,7 @@ Func::LinkGuardToPropertyId(Js::PropertyId propertyId, Js::JitIndexedPropertyGua
 }
 
 void
-Func::LinkCtorCacheToPropertyId(Js::PropertyId propertyId, Js::JitTimeConstructorCache* cache)
+Func::LinkCtorCacheToPropertyId(Js::PropertyId propertyId, JITTimeConstructorCache* cache)
 {
     Assert(cache != nullptr);
     Assert(this->ctorCachesByPropertyId != nullptr);
@@ -1489,22 +1489,19 @@ Func::LinkCtorCacheToPropertyId(Js::PropertyId propertyId, Js::JitTimeConstructo
         this->ctorCachesByPropertyId->Add(propertyId, set);
     }
 
-    set->Item(cache->runtimeCache);
+    set->Item(cache->GetRuntimeCacheAddr());
 }
 
-Js::JitTimeConstructorCache* Func::GetConstructorCache(const Js::ProfileId profiledCallSiteId)
+JITTimeConstructorCache* Func::GetConstructorCache(const Js::ProfileId profiledCallSiteId)
 {
-    Assert(GetJnFunction() != nullptr);
-    Assert(profiledCallSiteId < GetJnFunction()->GetProfiledCallSiteCount());
+    Assert(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
     Assert(this->constructorCaches != nullptr);
     return this->constructorCaches[profiledCallSiteId];
 }
 
-void Func::SetConstructorCache(const Js::ProfileId profiledCallSiteId, Js::JitTimeConstructorCache* constructorCache)
+void Func::SetConstructorCache(const Js::ProfileId profiledCallSiteId, JITTimeConstructorCache* constructorCache)
 {
-    const auto functionBody = this->GetJnFunction();
-    Assert(functionBody != nullptr);
-    Assert(profiledCallSiteId < functionBody->GetProfiledCallSiteCount());
+    Assert(profiledCallSiteId < GetJITFunctionBody()->GetProfiledCallSiteCount());
     Assert(constructorCache != nullptr);
     Assert(this->constructorCaches != nullptr);
     Assert(this->constructorCaches[profiledCallSiteId] == nullptr);
@@ -1579,22 +1576,22 @@ Func::IsFormalsArraySym(SymID symId)
     return stackArgWithFormalsTracker->GetFormalsArraySyms()->Test(symId);
 }
 
-void 
+void
 Func::TrackFormalsArraySym(SymID symId)
 {
     EnsureStackArgWithFormalsTracker();
     stackArgWithFormalsTracker->SetFormalsArraySyms(symId);
 }
 
-void 
+void
 Func::TrackStackSymForFormalIndex(Js::ArgSlot formalsIndex, StackSym * sym)
 {
     EnsureStackArgWithFormalsTracker();
-    Js::ArgSlot formalsCount = GetJnFunction()->GetInParamsCount() - 1;
+    Js::ArgSlot formalsCount = GetJITFunctionBody()->GetInParamsCount() - 1;
     stackArgWithFormalsTracker->SetStackSymInFormalsIndexMap(sym, formalsIndex, formalsCount);
 }
 
-StackSym * 
+StackSym *
 Func::GetStackSymForFormal(Js::ArgSlot formalsIndex)
 {
     if (stackArgWithFormalsTracker == nullptr || stackArgWithFormalsTracker->GetFormalsIndexToStackSymMap() == nullptr)
@@ -1602,7 +1599,7 @@ Func::GetStackSymForFormal(Js::ArgSlot formalsIndex)
         return nullptr;
     }
 
-    Js::ArgSlot formalsCount = GetJnFunction()->GetInParamsCount() - 1;
+    Js::ArgSlot formalsCount = GetJITFunctionBody()->GetInParamsCount() - 1;
     StackSym ** formalsIndexToStackSymMap = stackArgWithFormalsTracker->GetFormalsIndexToStackSymMap();
     AssertMsg(formalsIndex < formalsCount, "OutOfRange ? ");
     return formalsIndexToStackSymMap[formalsIndex];
@@ -1625,7 +1622,21 @@ Func::SetScopeObjSym(StackSym * sym)
     stackArgWithFormalsTracker->SetScopeObjSym(sym);
 }
 
-StackSym* 
+StackSym *
+Func::GetNativeCodeDataSym() const
+{
+    Assert(IsOOPJIT());
+    return m_nativeCodeDataSym;
+}
+
+void
+Func::SetNativeCodeDataSym(StackSym * opnd)
+{
+    Assert(IsOOPJIT());
+    m_nativeCodeDataSym = opnd;
+}
+
+StackSym*
 Func::GetScopeObjSym()
 {
     if (stackArgWithFormalsTracker == nullptr)
@@ -1635,7 +1646,7 @@ Func::GetScopeObjSym()
     return stackArgWithFormalsTracker->GetScopeObjSym();
 }
 
-BVSparse<JitArenaAllocator> * 
+BVSparse<JitArenaAllocator> *
 StackArgWithFormalsTracker::GetFormalsArraySyms()
 {
     return formalsArraySyms;
@@ -1651,13 +1662,13 @@ StackArgWithFormalsTracker::SetFormalsArraySyms(SymID symId)
     formalsArraySyms->Set(symId);
 }
 
-StackSym ** 
+StackSym **
 StackArgWithFormalsTracker::GetFormalsIndexToStackSymMap()
 {
     return formalsIndexToStackSymMap;
 }
 
-void 
+void
 StackArgWithFormalsTracker::SetStackSymInFormalsIndexMap(StackSym * sym, Js::ArgSlot formalsIndex, Js::ArgSlot formalsCount)
 {
     if(formalsIndexToStackSymMap == nullptr)
@@ -1668,13 +1679,13 @@ StackArgWithFormalsTracker::SetStackSymInFormalsIndexMap(StackSym * sym, Js::Arg
     formalsIndexToStackSymMap[formalsIndex] = sym;
 }
 
-void 
+void
 StackArgWithFormalsTracker::SetScopeObjSym(StackSym * sym)
 {
     m_scopeObjSym = sym;
 }
 
-StackSym * 
+StackSym *
 StackArgWithFormalsTracker::GetScopeObjSym()
 {
     return m_scopeObjSym;
@@ -1721,17 +1732,16 @@ Cloner::RetargetClonedBranches()
 
 void Func::ThrowIfScriptClosed()
 {
-    Js::ScriptContext* scriptContext = this->GetScriptContext();
-    if(scriptContext->IsClosed())
+    if (GetScriptContextInfo()->IsClosed())
     {
         // Should not be jitting something in the foreground when the script context is actually closed
-        Assert(IsBackgroundJIT() || !scriptContext->IsActuallyClosed());
+        Assert(IsBackgroundJIT() || !GetScriptContext()->IsActuallyClosed());
 
         throw Js::OperationAbortedException();
     }
 }
 
-IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(void * address, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode)
+IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(intptr_t address, IR::Opnd * largeConstOpnd, IR::AddrOpndKind kind, IRType type, Js::OpCode loadOpCode)
 {
     Assert(this->GetTopFunc() == this);
     if (!canHoistConstantAddressLoad)
@@ -1744,8 +1754,11 @@ IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(void * address, IR::AddrOpndKi
     IR::RegOpnd ** foundRegOpnd = this->constantAddressRegOpnd.Find([address, &offset](IR::RegOpnd * regOpnd)
     {
         Assert(regOpnd->m_sym->IsSingleDef());
-        void * curr = regOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_address;
-        ptrdiff_t diff = (intptr_t)address - (intptr_t)curr;
+        Assert(regOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd() || regOpnd->m_sym->m_instrDef->GetSrc1()->IsIntConstOpnd());
+        void * curr = regOpnd->m_sym->m_instrDef->GetSrc1()->IsAddrOpnd() ?
+                      regOpnd->m_sym->m_instrDef->GetSrc1()->AsAddrOpnd()->m_address :
+                      (void *)regOpnd->m_sym->m_instrDef->GetSrc1()->AsIntConstOpnd()->GetValue();
+        ptrdiff_t diff = (uintptr_t)address - (uintptr_t)curr;
         if (!Math::FitsInDWord(diff))
         {
             return false;
@@ -1768,7 +1781,7 @@ IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(void * address, IR::AddrOpndKi
             IR::Instr::New(
             loadOpCode,
             addressRegOpnd,
-            IR::AddrOpnd::New(address, kind, this, true),
+            largeConstOpnd,
             this);
         this->constantAddressRegOpnd.Prepend(addressRegOpnd);
 
@@ -1782,7 +1795,8 @@ IR::IndirOpnd * Func::GetConstantAddressIndirOpnd(void * address, IR::AddrOpndKi
     }
     IR::IndirOpnd * indirOpnd =  IR::IndirOpnd::New(addressRegOpnd, offset, type, this, true);
 #if DBG_DUMP
-    indirOpnd->SetAddrKind(kind, address);
+    // TODO: michhol make intptr_t
+    indirOpnd->SetAddrKind(kind, (void*)address);
 #endif
     return indirOpnd;
 }
@@ -1818,6 +1832,52 @@ Func::GetFunctionEntryInsertionPoint()
     return insertInsert->m_next;
 }
 
+Js::Var
+Func::AllocateNumber(double value)
+{
+    Js::Var number = nullptr;
+#if FLOATVAR
+    number = Js::JavascriptNumber::NewCodeGenInstance((double)value, nullptr);
+#else
+    if (!IsOOPJIT()) // in-proc jit
+    {
+        number = Js::JavascriptNumber::NewCodeGenInstance(GetNumberAllocator(), (double)value, GetScriptContext());
+    }
+    else // OOP JIT
+    {
+        number = GetXProcNumberAllocator()->AllocateNumber(this, value);
+    }
+#endif
+
+    return number;
+}
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+void
+Func::DumpFullFunctionName()
+{
+    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+
+    Output::Print(_u("Function %s (%s)"), GetJITFunctionBody()->GetDisplayName(), GetDebugNumberSet(debugStringBuffer));
+}
+#endif
+
+void
+Func::UpdateForInLoopMaxDepth(uint forInLoopMaxDepth)
+{
+    Assert(this->IsTopFunc());
+    this->m_forInLoopMaxDepth = max(this->m_forInLoopMaxDepth, forInLoopMaxDepth);
+}
+
+int
+Func::GetForInEnumeratorArrayOffset() const
+{
+    Func const* topFunc = this->GetTopFunc();
+    Assert(this->m_forInLoopBaseDepth + this->GetJITFunctionBody()->GetForInLoopDepth() <= topFunc->m_forInLoopMaxDepth);
+    return topFunc->m_forInEnumeratorArrayOffset
+        + this->m_forInLoopBaseDepth * sizeof(Js::ForInObjectEnumerator);
+}
+
 #if DBG_DUMP
 ///----------------------------------------------------------------------------
 ///
@@ -1828,7 +1888,8 @@ void
 Func::DumpHeader()
 {
     Output::Print(_u("-----------------------------------------------------------------------------\n"));
-    this->m_jnFunction->DumpFullFunctionName();
+
+    DumpFullFunctionName();
 
     Output::SkipToColumn(50);
     Output::Print(_u("Instr Count:%d"), GetInstrCount());
@@ -1907,5 +1968,15 @@ bool Func::DoRecordNativeMap() const
 #else
     return false;
 #endif
+}
+#endif
+
+#ifdef PERF_HINT
+void WritePerfHint(PerfHints hint, Func* func, uint byteCodeOffset /*= Js::Constants::NoByteCodeOffset*/)
+{
+    if (!func->IsOOPJIT())
+    {
+        WritePerfHint(hint, (Js::FunctionBody*)func->GetJITFunctionBody()->GetAddr(), byteCodeOffset);
+    }
 }
 #endif

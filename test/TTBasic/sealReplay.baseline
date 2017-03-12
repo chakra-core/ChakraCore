@@ -1,0 +1,9 @@
+x,y
+true
+40
+TypeError: Cannot redefine non-configurable property 'x'
+x,y
+true
+40
+
+Reached end of Execution -- Exiting.

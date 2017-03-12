@@ -12,6 +12,24 @@ namespace Js
     {
     }
 
+    JavascriptGenerator* JavascriptGenerator::New(Recycler* recycler, DynamicType* generatorType, Arguments& args, ScriptFunction* scriptFunction)
+    {
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            JavascriptGenerator* obj = RecyclerNewFinalized(
+                recycler, JavascriptGenerator, generatorType, args, scriptFunction);
+            recycler->RegisterPendingWriteBarrierBlock(obj->args.Values, obj->args.Info.Count * sizeof(Var));
+            recycler->RegisterPendingWriteBarrierBlock(&obj->args.Values, sizeof(Var*));
+            return obj;
+        }
+        else
+#endif
+        {
+            return RecyclerNew(recycler, JavascriptGenerator, generatorType, args, scriptFunction);
+        }
+    }
+
     bool JavascriptGenerator::Is(Var var)
     {
         return JavascriptOperators::GetTypeId(var) == TypeIds_Generator;
@@ -23,6 +41,35 @@ namespace Js
 
         return static_cast<JavascriptGenerator*>(var);
     }
+
+    void JavascriptGenerator::SetFrame(InterpreterStackFrame* frame, size_t bytes)
+    {
+        Assert(this->frame == nullptr);
+        this->frame = frame;
+#if GLOBAL_ENABLE_WRITE_BARRIER
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier))
+        {
+            this->GetScriptContext()->GetRecycler()->RegisterPendingWriteBarrierBlock(frame, bytes);
+        }
+#endif
+    }
+
+#if GLOBAL_ENABLE_WRITE_BARRIER
+    void JavascriptGenerator::Finalize(bool isShutdown)
+    {
+        if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && !isShutdown)
+        {
+            if (this->frame)
+            {
+                this->GetScriptContext()->GetRecycler()->UnRegisterPendingWriteBarrierBlock(this->frame);
+            }
+            if (this->args.Values)
+            {
+                this->GetScriptContext()->GetRecycler()->UnRegisterPendingWriteBarrierBlock(this->args.Values);
+            }
+        }
+    }
+#endif
 
     Var JavascriptGenerator::CallGenerator(ResumeYieldData* yieldData, const char16* apiNameForErrorMessage)
     {
@@ -57,11 +104,12 @@ namespace Js
                 result = JavascriptFunction::CallFunction<1>(this->scriptFunction, this->scriptFunction->GetEntryPoint(), arguments);
                 helper.DidNotThrow();
             }
-            catch (Js::JavascriptExceptionObject* exceptionObj)
+            catch (const JavascriptException& err)
             {
+                Js::JavascriptExceptionObject* exceptionObj = err.GetAndClear();
                 if (!exceptionObj->IsGeneratorReturnException())
                 {
-                    throw exceptionObj;
+                    JavascriptExceptionOperators::DoThrow(exceptionObj, scriptContext);
                 }
                 result = exceptionObj->GetThrownObject(nullptr);
             }
@@ -175,4 +223,16 @@ namespace Js
         ResumeYieldData yieldData(input, RecyclerNew(scriptContext->GetRecycler(), JavascriptExceptionObject, input, scriptContext, nullptr));
         return generator->CallGenerator(&yieldData, _u("Generator.prototype.throw"));
     }
+
+#if ENABLE_TTD
+    TTD::NSSnapObjects::SnapObjectType JavascriptGenerator::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptGenerator::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTDAssert(false, "Invalid -- JavascriptGenerator");
+    }
+#endif
 }

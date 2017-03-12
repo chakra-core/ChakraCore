@@ -139,7 +139,10 @@ template <class TFreeListPolicy, size_t ObjectAlignmentBitShiftArg = 3, bool Req
 class ArenaAllocatorBase : public Allocator, public ArenaData
 {
 private:
-    char * cacheBlockEnd;
+    // cacheBlockEnd may be the start address of actual GC memory, tag it to
+    // avoid GC false positive
+    TaggedPointer<char> cacheBlockEnd;
+
     size_t largestHole;
     uint blockState;        // 0 = no block, 1 = one big block, other more then one big block or have malloc blocks
 
@@ -149,6 +152,9 @@ private:
 
 #ifdef PROFILE_MEM
     struct ArenaMemoryData * memoryData;
+#endif
+#if DBG
+    bool needsDelayFreeList;
 #endif
 
 public:
@@ -228,6 +234,17 @@ public:
 
     char* Realloc(void* buffer, DECLSPEC_GUARD_OVERFLOW size_t existingBytes, DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
     void Free(void * buffer, size_t byteSize);
+#if DBG
+    bool HasDelayFreeList() const
+    {
+        return needsDelayFreeList;
+    }
+    void SetNeedsDelayFreeList()
+    {
+        needsDelayFreeList = true;
+    }
+    void MergeDelayFreeList();
+#endif
 #ifdef TRACK_ALLOC
     // Doesn't support tracking information, dummy implementation
     ArenaAllocatorBase * TrackAllocInfo(TrackAllocData const& data) { return this; }
@@ -292,6 +309,9 @@ public:
     static void * Allocate(void * policy, DECLSPEC_GUARD_OVERFLOW size_t size);
     static void * Free(void * policy, void * object, size_t size);
     static void * Reset(void * policy);
+#if DBG
+    static void MergeDelayFreeList(void * freeList);
+#endif
     static void PrepareFreeObject(__out_bcount(size) void * object, _In_ size_t size)
     {
 #ifdef ARENA_MEMORY_VERIFY
@@ -352,6 +372,9 @@ public:
     }
 #ifdef ARENA_MEMORY_VERIFY
     static void VerifyFreeObjectIsFreeMemFilled(void * object, size_t size);
+#endif
+#if DBG
+    static void MergeDelayFreeList(void * freeList);
 #endif
     static void Release(void * policy);
 };
@@ -444,6 +467,7 @@ class JitArenaAllocator : public ArenaAllocator
     // Throughput improvement in the backend is substantial with this freeList.
 
 private:
+    typedef BVSparseNode<JitArenaAllocator> BVSparseNode;
     BVSparseNode *bvFreeList;
 
 public:
@@ -458,7 +482,6 @@ public:
         // Fast path
         if (sizeof(BVSparseNode) == requestedBytes)
         {
-            AssertMsg(Math::Align(requestedBytes, ArenaAllocatorBase::ObjectAlignment) == requestedBytes, "Assert for Perf, T should always be aligned");
             // Fast path for BVSparseNode allocation
             if (bvFreeList)
             {
@@ -614,6 +637,9 @@ public:
         memset(object, NULL, size);
 #endif
     }
+#if DBG
+    static void MergeDelayFreeList(void * freeList);
+#endif
 #ifdef ARENA_MEMORY_VERIFY
     static void VerifyFreeObjectIsFreeMemFilled(void * object, size_t size);
 #endif
@@ -735,40 +761,14 @@ public:
 
 #endif
 
-class IsInstInlineCacheAllocatorInfo
+
+#define CacheAllocatorTraits StandAloneFreeListPolicy
+
+class CacheAllocator : public ArenaAllocatorBase<CacheAllocatorTraits>
 {
 public:
-    struct CacheLayout
-    {
-        char bytes[4 * sizeof(intptr_t)];
-    };
-
-#if _M_X64 || _M_ARM64
-    CompileAssert(sizeof(CacheLayout) == 32);
-    static const size_t ObjectAlignmentBitShift = 5;
-#else
-    CompileAssert(sizeof(CacheLayout) == 16);
-    static const size_t ObjectAlignmentBitShift = 4;
-#endif
-
-    static const size_t ObjectAlignment = 1 << ObjectAlignmentBitShift;
-    static const size_t MaxObjectSize = sizeof(CacheLayout);
-};
-
-
-#define IsInstInlineCacheAllocatorTraits StandAloneFreeListPolicy
-
-class IsInstInlineCacheAllocator : public IsInstInlineCacheAllocatorInfo, public ArenaAllocatorBase<IsInstInlineCacheAllocatorTraits>
-{
-
-#ifdef POLY_INLINE_CACHE_SIZE_STATS
-private:
-    size_t polyCacheAllocSize;
-#endif
-
-public:
-    IsInstInlineCacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)()) :
-        ArenaAllocatorBase<IsInstInlineCacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) {}
+    CacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)()) :
+        ArenaAllocatorBase<CacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) {}
 
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
@@ -791,11 +791,6 @@ public:
 #endif
     void ZeroAll();
 
-#ifdef POLY_INLINE_CACHE_SIZE_STATS
-    size_t GetPolyInlineCacheSize() { return this->polyCacheAllocSize; }
-    void LogPolyCacheAlloc(size_t size) { this->polyCacheAllocSize += size; }
-    void LogPolyCacheFree(size_t size) { this->polyCacheAllocSize -= size; }
-#endif
 };
 
 

@@ -10,7 +10,7 @@ namespace Js
     class GlobalObject : public RootObjectBase
     {
     public:
-        JavascriptLibrary* library;
+        Field(JavascriptLibrary*) library;
     private:
         DEFINE_VTABLE_CTOR(GlobalObject, RootObjectBase);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(GlobalObject);
@@ -51,8 +51,11 @@ namespace Js
             static FunctionInfo UnEscape;
             static FunctionInfo CollectGarbage;
 
-#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_TTD
             static FunctionInfo TelemetryLog;
+
+            static FunctionInfo EnabledDiagnosticsTrace;
+            static FunctionInfo EmitTTDLog;
 #endif
 
 #ifdef IR_VIEWER
@@ -77,8 +80,11 @@ namespace Js
 
         static Var EntryCollectGarbage(RecyclableObject* function, CallInfo callInfo, ...);
 
-#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_TTD
         static Var EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...);
+
+        static Var EntryEnabledDiagnosticsTrace(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryEmitTTDLog(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
 
 #ifdef IR_VIEWER
@@ -111,7 +117,7 @@ namespace Js
         static GlobalObject* FromVar(Var aValue);
 
         typedef ScriptFunction* (*EvalHelperType)(ScriptContext* scriptContext, const char16 *source, int sourceLength, ModuleID moduleID, uint32 grfscr, LPCOLESTR pszTitle, BOOL registerDocument, BOOL isIndirect, BOOL strictMode);
-        EvalHelperType EvalHelper;
+        FieldNoBarrier(EvalHelperType) EvalHelper;
 
         static Var EntryEvalHelper(ScriptContext* scriptContext, RecyclableObject* function, CallInfo callInfo, Arguments& args);
         static Var VEval(JavascriptLibrary* library, FrameDisplay* environment, ModuleID moduleID, bool isStrictMode, bool isIndirect,
@@ -129,6 +135,7 @@ namespace Js
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL HasItem(uint32 index) override;
         virtual BOOL HasOwnItem(uint32 index) override sealed;
@@ -160,11 +167,11 @@ namespace Js
         static BOOL MatchPatternHelper(JavascriptString *propertyName, JavascriptString *pattern, ScriptContext *scriptContext);
 
     private:
-        RecyclableObject* directHostObject;
-        RecyclableObject* secureDirectHostObject;
+        Field(RecyclableObject*) directHostObject;
+        Field(RecyclableObject*) secureDirectHostObject;
 
         typedef JsUtil::BaseHashSet<PropertyId, Recycler, PowerOf2SizePolicy> ReservedPropertiesHashSet;
-        ReservedPropertiesHashSet * reservedProperties;
+        Field(ReservedPropertiesHashSet *) reservedProperties;
 
 #if ENABLE_TTD
     public:

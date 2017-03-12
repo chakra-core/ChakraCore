@@ -515,9 +515,9 @@ LblDone:
 
 #if INT32VAR
         Var result = aValue;
-        (*(int *)&result)++;
+        (*(unsigned int *)&result)++;  // unsigned to avoid signed int overflow
 #else
-        int n = reinterpret_cast<int>(aValue);
+        unsigned int n = reinterpret_cast<unsigned int>(aValue);
         n += 2;
         Var result = reinterpret_cast<Var>(n);
 #endif
@@ -558,9 +558,9 @@ LblDone:
 
 #if INT32VAR
         Var result = aValue;
-        (*(int *)&result)--;
+        (*(unsigned int *)&result)--;  // unsigned to avoid signed int overflow
 #else
-        int n = reinterpret_cast<int>(aValue);
+        unsigned int n = reinterpret_cast<unsigned int>(aValue);
         n -= 2;
         Var result = reinterpret_cast<Var>(n);
 #endif

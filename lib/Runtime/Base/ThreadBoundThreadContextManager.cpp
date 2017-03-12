@@ -11,7 +11,6 @@ ThreadBoundThreadContextManager::EntryList ThreadBoundThreadContextManager::entr
 JsUtil::BackgroundJobProcessor * ThreadBoundThreadContextManager::s_sharedJobProcessor = NULL;
 #endif
 CriticalSection ThreadBoundThreadContextManager::s_sharedJobProcessorCreationLock;
-uint ThreadBoundThreadContextManager::s_maxNumberActiveThreadContexts = 0;
 
 ThreadContext * ThreadBoundThreadContextManager::EnsureContextForCurrentThread()
 {
@@ -45,8 +44,6 @@ ThreadContext * ThreadBoundThreadContextManager::EnsureContextForCurrentThread()
 
     Assert(threadContext != NULL);
 
-    s_maxNumberActiveThreadContexts = max(s_maxNumberActiveThreadContexts, GetActiveThreadContextCount());
-
     return threadContext;
 }
 
@@ -64,7 +61,7 @@ void ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread()
     ThreadContext * threadContext = static_cast<ThreadContext *>(entry->GetThreadContext());
     entries.Remove(entry);
 
-    if (threadContext != NULL && threadContext->GetIsThreadBound())
+    if (threadContext != NULL && threadContext->IsThreadBound())
     {
         ShutdownThreadContext(threadContext);
     }
@@ -77,7 +74,7 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
 #if ENABLE_BACKGROUND_JOB_PROCESSOR
     JsUtil::BackgroundJobProcessor * jobProcessor = NULL;
 #endif
-    
+
     {
         AutoCriticalSection lock(ThreadContext::GetCriticalSection());
 
@@ -106,7 +103,7 @@ void ThreadBoundThreadContextManager::DestroyAllContexts()
 
             if (threadContext != NULL)
             {
-                if (threadContext->GetIsThreadBound())
+                if (threadContext->IsThreadBound())
                 {
                     ShutdownThreadContext(threadContext);
                     ThreadContextTLSEntry::ClearThreadContext(currentEntry, false);
@@ -242,14 +239,4 @@ void ThreadContextManagerBase::ShutdownThreadContext(ThreadContext* threadContex
     threadContext->ShutdownThreads();
 
     HeapDelete(threadContext);
-}
-
-uint ThreadBoundThreadContextManager::GetActiveThreadContextCount()
-{
-    return entries.Count();
-}
-
-void ThreadBoundThreadContextManager::ResetMaxNumberActiveThreadContexts()
-{
-    s_maxNumberActiveThreadContexts = GetActiveThreadContextCount();
 }

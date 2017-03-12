@@ -1,3 +1,7 @@
+# xplat-todo: Cleanup this file!
+# we have `feature detection` for direct compilation target and manual entries for cross-compilation below
+if (NOT CC_TARGET_OS_ANDROID)
+
 include(CheckCXXSourceCompiles)
 include(CheckCXXSourceRuns)
 include(CheckCXXSymbolExists)
@@ -28,7 +32,6 @@ check_include_files(crt_externs.h HAVE_CRT_EXTERNS_H)
 check_include_files(sys/time.h HAVE_SYS_TIME_H)
 check_include_files(pthread_np.h HAVE_PTHREAD_NP_H)
 check_include_files(sys/lwp.h HAVE_SYS_LWP_H)
-check_include_files(libunwind.h HAVE_LIBUNWIND_H)
 check_include_files(runetype.h HAVE_RUNETYPE_H)
 check_include_files(unicode/uchar.h HAVE_LIBICU_UCHAR_H)
 
@@ -855,24 +858,7 @@ set(CMAKE_REQUIRED_DEFINITIONS)
 set(SYNCHMGR_SUSPENSION_SAFE_CONDITION_SIGNALING 1)
 set(ERROR_FUNC_FOR_GLOB_HAS_FIXED_PARAMS 1)
 
-check_cxx_source_compiles("
-#include <libunwind.h>
-#include <ucontext.h>
-
-int main(int argc, char **argv)
-{
-        unw_context_t libUnwindContext;
-        ucontext_t uContext;
-
-        libUnwindContext = uContext;
-        return 0;
-}" UNWIND_CONTEXT_IS_UCONTEXT_T)
-
 if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  if(NOT HAVE_LIBICU_UCHAR_H)
-    unset(HAVE_LIBICU_UCHAR_H CACHE)
-    message(FATAL_ERROR "Cannot find ICU. Try installing libicu-dev or the appropriate packages for your platform")
-  endif()
   set(HAVE_COREFOUNDATION 1)
   set(HAVE__NSGETENVIRON 1)
   set(DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX 1)
@@ -886,14 +872,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
   set(ZH_TW_LOCALE_NAME zh_TG.BIG5)
   set(HAS_FTRUNCATE_LENGTH_ISSUE 1)
 elseif(CMAKE_SYSTEM_NAME STREQUAL FreeBSD)
-  if(NOT HAVE_LIBUNWIND_H)
-    unset(HAVE_LIBUNWIND_H CACHE)
-    message(FATAL_ERROR "Cannot find libunwind. Try installing libunwind8 and libunwind8-dev (or the appropriate packages for your platform)")
-  endif()
-  if(NOT HAVE_LIBICU_UCHAR_H)
-    unset(HAVE_LIBICU_UCHAR_H CACHE)
-    message(FATAL_ERROR "Cannot find ICU. Try installing libicu-dev or the appropriate packages for your platform")
-  endif()
   set(DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX 0)
   set(PAL_PTRACE "ptrace((cmd), (pid), (caddr_t)(addr), (data))")
   set(PAL_PT_ATTACH PT_ATTACH)
@@ -911,14 +889,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL FreeBSD)
     message(FATAL_ERROR "Cannot find libc on this system.")
   endif()
 else() # Anything else is Linux
-  if(NOT HAVE_LIBUNWIND_H)
-    unset(HAVE_LIBUNWIND_H CACHE)
-    message(FATAL_ERROR "Cannot find libunwind. Try installing libunwind8 and libunwind8-dev (or the appropriate packages for your platform)")
-  endif()
-  if(NOT HAVE_LIBICU_UCHAR_H)
-    unset(HAVE_LIBICU_UCHAR_H CACHE)
-    message(FATAL_ERROR "Cannot find ICU. Try installing libicu-dev or the appropriate packages for your platform")
-  endif()
   set(DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX 0)
   set(PAL_PTRACE "ptrace((cmd), (pid), (void*)(addr), (data))")
   set(PAL_PT_ATTACH PTRACE_ATTACH)
@@ -931,4 +901,133 @@ else() # Anything else is Linux
   set(HAS_FTRUNCATE_LENGTH_ISSUE 0)
 endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
+if(NOT NO_ICU_PATH_GIVEN)
+  if(NOT HAVE_LIBICU_UCHAR_H)
+    unset(HAVE_LIBICU_UCHAR_H CACHE)
+    message(FATAL_ERROR "Cannot find ICU. Try installing libicu-dev or the appropriate packages for your platform. You may also disable icu/unicode with '--no-icu' argument")
+  endif()
+endif()
+else() # ANDROID
+  set(HAVE_IEEEFP_H 0)
+  set(HAVE_ALLOCA_H 1)
+  set(HAVE_SYS_VMPARAM_H 0)
+  set(HAVE_PROCFS_H 0)
+  set(HAVE_CRT_EXTERNS_H 0)
+  set(HAVE_SYS_TIME_H 1)
+  set(HAVE_PTHREAD_NP_H 0)
+  set(HAVE_SYS_LWP_H 0)
+  set(HAVE_RUNETYPE_H 0)
+  set(HAVE_KQUEUE 0)
+  set(HAVE_GETPWUID_R 1)
+  set(HAVE_PTHREAD_SUSPEND 1)
+  set(HAVE_PTHREAD_SUSPEND_NP 1)
+  set(HAVE_PTHREAD_CONTINUE 1)
+  # -DHAVE_PTHREAD_RESUME_NP 1
+  # -DHAVE_PTHREAD_CONTINUE_NP 1
+  # -DHAVE_PTHREAD_ATTR_GET_NP 1
+  set(HAVE_PTHREAD_GETATTR_NP 1)
+  set(HAVE_PTHREAD_SIGQUEUE 1)
+  set(HAVE_SIGRETURN 1)
+  set(HAVE__THREAD_SYS_SIGRETURN 1)
+  set(HAVE_COPYSIGN 1)
+  set(HAVE_FSYNC 1)
+  set(HAVE_FUTIMES 0)
+  set(HAVE_UTIMES 1)
+  set(HAVE_SYSCTL 0)
+  set(HAVE_SYSCONF 1)
+  set(HAVE_LOCALTIME_R 1)
+  set(HAVE_GMTIME_R 1)
+  set(HAVE_TIMEGM 1)
+  set(HAVE_POLL 1)
+  set(HAVE_STATVFS 1)
+  set(HAVE_THREAD_SELF 0)
+  set(HAVE__LWP_SELF 0)
+  set(HAVE_VM_ALLOCATE 0)
+  set(HAVE_VM_READ 0)
+  set(HAS_SYSV_SEMAPHORES 0)
+  set(HAS_PTHREAD_MUTEXES 1)
+  # -DHAVE_TTRACE
+  set(HAVE_STAT_TIMESPEC 0)
+  set(HAVE_STAT_NSEC 0)
+  set(HAVE_TM_GMTOFF 1)
+  # -DHAVE_PT_REGS 1)
+  # -DHAVE_GREGSET_T
+  set(HAVE_SIGINFO_T 1)
+  set(HAVE_UCONTEXT_T 1)
+  set(HAVE_PTHREAD_RWLOCK_T 1)
+  set(HAVE_PRWATCH_T 0)
+  set(HAVE_YIELD_SYSCALL 0)
+  set(HAVE_INFTIM 0)
+  set(HAVE_CHAR_BIT 1)
+  # -DUSER_H_DEFINES_DEBUG 1
+  set(HAVE__SC_PHYS_PAGES 1)
+  set(HAVE__SC_AVPHYS_PAGES 1)
+  # -DREALPATH_SUPPORTS_NONEXISTENT_FILES
+  # -DSSCANF_CANNOT_HANDLE_MISSING_EXPONENT
+  # -DSSCANF_SUPPORT_ll
+  # -DHAVE_LARGE_SNPRINTF_SUPPORT 1)
+  # -DHAVE_BROKEN_FIFO_SELECT 1)
+  # -DHAVE_BROKEN_FIFO_KEVENT 1)
+  # -DHAS_FTRUNCATE_LENGTH_ISSUE
+  # -DHAVE_SCHED_GET_PRIORITY 1)
+  # -DHAVE_SCHED_GETCPU 1)
+  set(HAVE_WORKING_GETTIMEOFDAY 1)
+  set(HAVE_WORKING_CLOCK_GETTIME 1)
+  set(HAVE_CLOCK_MONOTONIC 1)
+  set(HAVE_CLOCK_MONOTONIC_COARSE 1)
+  set(HAVE_MACH_ABSOLUTE_TIME 0)
+  set(HAVE_CLOCK_THREAD_CPUTIME 1)
+  # -DSTATVFS64_PROTOTYPE_BROKEN
+  # -DHAVE_MMAP_DEV_ZERO
+  # -DMMAP_IGNORES_HINT
+  # -DMMAP_ANON_IGNORES_PROTECTION
+  set(MMAP_DOESNOT_ALLOW_REMAP 1)
+  # -DONE_SHARED_MAPPING_PER_FILEREGION_PER_PROCESS
+  # -DPTHREAD_CREATE_MODIFIES_ERRNO 1)
+  # -DSEM_INIT_MODIFIES_ERRNO 1)
+  # -DHAVE_PROCFS_CTL
+  set(HAVE_COMPATIBLE_ACOS 1)
+  set(HAVE_COMPATIBLE_ASIN 1)
+  set(HAVE_COMPATIBLE_ATAN2 1)
+  set(HAVE_COMPATIBLE_EXP 1)
+  set(HAVE_COMPATIBLE_LOG 1)
+  set(HAVE_COMPATIBLE_LOG10 1)
+  set(UNGETC_NOT_RETURN_EOF 1)
+  set(HAS_POSIX_SEMAPHORES 1)
+  # -DGETPWUID_R_SETS_ERRNO
+  # -DFILE_OPS_CHECK_FERROR_OF_PREVIOUS_CALL
+  # -DPAL_THREAD_PRIORITY_MIN 0
+  # -DPAL_THREAD_PRIORITY_MAX 0
+  # -DDEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX
+  # -DSYNCHMGR_SUSPENSION_SAFE_CONDITION_SIGNALING
+  # -DERROR_FUNC_FOR_GLOB_HAS_FIXED_PARAMS
+  # -DHAS_FTRUNCATE_LENGTH_ISSUE
+  # -DCHECK_TRACE_SPECIFIERS 0)
+  # -DPROCFS_MEM_NAME=""
+  # -DHAVE_GETHRTIME 1)
+  set(HAVE_LOWERCASE_ISO_NAME 1)
+  set(HAVE_READ_REAL_TIME 1)
+  set(HAVE_UNDERSCORE_ISO_NAME 0)
+  set(MKSTEMP64_IS_USED_INSTEAD_OF_MKSTEMP 0)
+  set(NEED_DLCOMPAT 0)
+  # set(OPEN64_IS_USED_INSTEAD_OF_OPEN 0)
+  set(PAL_IGNORE_NORMAL_THREAD_PRIORITY 0)
+  set(SELF_SUSPEND_FAILS_WITH_NATIVE_SUSPENSION 0)
+  set(SET_SCHEDPARAM_NEEDS_PRIVS 0)
+  set(SIGWAIT_FAILS_WHEN_PASSED_FULL_SIGSET 0)
+  set(SYNCHMGR_PIPE_BASED_THREAD_BLOCKING 0)
+  set(WRITE_0_BYTES_HANGS_TTY 0)
+  set(HAVE_FTRUNCATE_LARGE_LENGTH_SUPPORT 1)
+  set(HAVE_MACH_EXCEPTIONS 0)
+  set(DEADLOCK_WHEN_THREAD_IS_SUSPENDED_WHILE_BLOCKED_ON_MUTEX 0)
+  set(PAL_PTRACE "ptrace((cmd), (pid), (void*)(addr), (data))")
+  set(PAL_PT_ATTACH PTRACE_ATTACH)
+  set(PAL_PT_DETACH PTRACE_DETACH)
+  set(PAL_PT_READ_D PTRACE_PEEKDATA)
+  set(PAL_PT_WRITE_D PTRACE_POKEDATA)
+  set(JA_JP_LOCALE_NAME ja_JP_LOCALE_NOT_FOUND)
+  set(KO_KR_LOCALE_NAME ko_KR_LOCALE_NOT_FOUND)
+  set(ZH_TW_LOCALE_NAME zh_TW_LOCALE_NOT_FOUND)
+  set(HAS_FTRUNCATE_LENGTH_ISSUE 0)
+endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)

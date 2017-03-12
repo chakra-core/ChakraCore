@@ -31,12 +31,12 @@ namespace Js
     }
 
     template<size_t size>
-    SimpleTypeHandler<size>::SimpleTypeHandler(const PropertyRecord* id, PropertyAttributes attributes, PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
+    SimpleTypeHandler<size>::SimpleTypeHandler(NO_WRITE_BARRIER_TAG_TYPE(const PropertyRecord* id), PropertyAttributes attributes, PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
         DynamicTypeHandler(sizeof(descriptors) / sizeof(SimplePropertyDescriptor),
         inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | IsLockedFlag | MayBecomeSharedFlag | IsSharedFlag), propertyCount(1)
     {
         Assert((attributes & PropertyDeleted) == 0);
-        descriptors[0].Id = id;
+        NoWriteBarrierSet(descriptors[0].Id, id); // Used to init from global static BuiltInPropertyId
         descriptors[0].Attributes = attributes;
 
         Assert((propertyTypes & (PropertyTypesAll & ~PropertyTypesWritableDataOnly)) == 0);
@@ -45,15 +45,15 @@ namespace Js
     }
 
     template<size_t size>
-
-    SimpleTypeHandler<size>::SimpleTypeHandler(SimplePropertyDescriptor const (&SharedFunctionPropertyDescriptors)[size], PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
+    SimpleTypeHandler<size>::SimpleTypeHandler(NO_WRITE_BARRIER_TAG_TYPE(SimplePropertyDescriptor const (&SharedFunctionPropertyDescriptors)[size]), PropertyTypes propertyTypes, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots) :
          DynamicTypeHandler(sizeof(descriptors) / sizeof(SimplePropertyDescriptor),
          inlineSlotCapacity, offsetOfInlineSlots, DefaultFlags | IsLockedFlag | MayBecomeSharedFlag | IsSharedFlag), propertyCount(size)
     {
         for (size_t i = 0; i < size; i++)
         {
             Assert((SharedFunctionPropertyDescriptors[i].Attributes & PropertyDeleted) == 0);
-            descriptors[i].Id = SharedFunctionPropertyDescriptors[i].Id;
+             // Used to init from global static BuiltInPropertyId
+            NoWriteBarrierSet(descriptors[i].Id, SharedFunctionPropertyDescriptors[i].Id);
             descriptors[i].Attributes = SharedFunctionPropertyDescriptors[i].Attributes;
         }
         Assert((propertyTypes & (PropertyTypesAll & ~PropertyTypesWritableDataOnly)) == 0);
@@ -110,7 +110,7 @@ namespace Js
             Assert(value != nullptr || IsInternalPropertyId(descriptors[i].Id->GetPropertyId()));
             bool markAsFixed = allowFixedFields && !IsInternalPropertyId(descriptors[i].Id->GetPropertyId()) &&
                 (JavascriptFunction::Is(value) ? ShouldFixMethodProperties() : false);
-            newTypeHandler->Add(descriptors[i].Id, descriptors[i].Attributes, true, markAsFixed, false, scriptContext);
+            newTypeHandler->Add(PointerValue(descriptors[i].Id), descriptors[i].Attributes, true, markAsFixed, false, scriptContext);
         }
 
         newTypeHandler->SetFlags(IsPrototypeFlag | HasKnownSlot0Flag, this->GetFlags());
@@ -196,7 +196,7 @@ namespace Js
 
     template<size_t size>
     BOOL SimpleTypeHandler<size>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -205,12 +205,12 @@ namespace Js
         for( ; index < propertyCount; ++index )
         {
             PropertyAttributes attribs = descriptors[index].Attributes;
-            if( !(attribs & PropertyDeleted) && (!requireEnumerable || (attribs & PropertyEnumerable)))
+            if( !(attribs & PropertyDeleted) && (!!(flags & EnumeratorFlags::EnumNonEnumerable) || (attribs & PropertyEnumerable)))
             {
                 const PropertyRecord* propertyRecord = descriptors[index].Id;
 
                 // Skip this property if it is a symbol and we are not including symbol properties
-                if (!enumSymbols && propertyRecord->IsSymbol())
+                if (!(flags & EnumeratorFlags::EnumSymbols) && propertyRecord->IsSymbol())
                 {
                     continue;
                 }
@@ -221,7 +221,7 @@ namespace Js
                 }
 
                 *propertyId = propertyRecord->GetPropertyId();
-                PropertyString* propertyString = type->GetScriptContext()->GetPropertyString(*propertyId);
+                PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
                 *propertyStringName = propertyString;
                 if (attribs & PropertyWritable)
                 {
@@ -554,7 +554,7 @@ namespace Js
             }
             if (!(descriptors[index].Attributes & PropertyConfigurable))
             {
-                JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
+                JavascriptError::ThrowCantDelete(propertyOperationFlags, scriptContext, scriptContext->GetPropertyName(propertyId)->GetBuffer());
 
                 return false;
             }
@@ -1114,17 +1114,18 @@ namespace Js
     }
 
     template<size_t size>
-    Js::PropertyIndex SimpleTypeHandler<size>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    Js::BigPropertyIndex SimpleTypeHandler<size>::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
     {
         int index;
         if(this->GetDescriptor(pRecord->GetPropertyId(), &index))
         {
-            AssertMsg(!(this->descriptors[index].Attributes & PropertyDeleted), "How is this deleted but we enumerated it anyway???");
+            TTDAssert(!(this->descriptors[index].Attributes & PropertyDeleted), "How is this deleted but we enumerated it anyway???");
 
-            return (PropertyIndex)index;
+            return (Js::BigPropertyIndex)index;
         }
 
-        return Constants::NoSlot;
+        TTDAssert(false, "We found this during enum so what is going on here?");
+        return Js::Constants::NoBigSlot;
     }
 
 #endif

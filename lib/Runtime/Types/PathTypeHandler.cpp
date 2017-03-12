@@ -47,42 +47,67 @@ namespace Js
     }
 
     BOOL PathTypeHandlerBase::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName, PropertyId* propertyId,
-        PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols)
+        PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
     {
         Assert(propertyStringName);
         Assert(propertyId);
         Assert(type);
 
-        for (; index < GetPathLength(); ++index)
+        if (type == typeToEnumerate)
         {
-            const PropertyRecord* propertyRecord = typePath->GetPropertyId(index);
-
-            // Skip this property if it is a symbol and we are not including symbol properties
-            if (!enumSymbols && propertyRecord->IsSymbol())
+            for (; index < GetPathLength(); ++index)
             {
-                continue;
+                const PropertyRecord* propertyRecord = typePath->GetPropertyId(index);
+
+                // Skip this property if it is a symbol and we are not including symbol properties
+                if (!(flags & EnumeratorFlags::EnumSymbols) && propertyRecord->IsSymbol())
+                {
+                    continue;
+                }
+
+                if (attributes)
+                {
+                    *attributes = PropertyEnumerable;
+                }
+
+                *propertyId = propertyRecord->GetPropertyId();
+                PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
+                *propertyStringName = propertyString;
+
+                uint16 inlineOrAuxSlotIndex;
+                bool isInlineSlot;
+                PropertyIndexToInlineOrAuxSlotIndex(index, &inlineOrAuxSlotIndex, &isInlineSlot);
+
+                propertyString->UpdateCache(type, inlineOrAuxSlotIndex, isInlineSlot,
+                    !FixPropsOnPathTypes() || (this->GetPathLength() < this->typePath->GetMaxInitializedLength() && !this->typePath->GetIsFixedFieldAt(index, this->GetPathLength())));
+
+                return TRUE;
             }
 
-            if (attributes)
-            {
-                *attributes = PropertyEnumerable;
-            }
-
-            *propertyId = propertyRecord->GetPropertyId();
-            PropertyString* propertyString = type->GetScriptContext()->GetPropertyString(*propertyId);
-            *propertyStringName = propertyString;
-
-            uint16 inlineOrAuxSlotIndex;
-            bool isInlineSlot;
-            PropertyIndexToInlineOrAuxSlotIndex(index, &inlineOrAuxSlotIndex, &isInlineSlot);
-
-            propertyString->UpdateCache(type, inlineOrAuxSlotIndex, isInlineSlot,
-                !FixPropsOnPathTypes() || (this->GetPathLength() < this->typePath->GetMaxInitializedLength() && !this->typePath->GetIsFixedFieldAt(index, this->GetPathLength())));
-
-            return TRUE;
+            return FALSE;
         }
 
-        return FALSE;
+        // Need to enumerate a different type than the current one. This is because type snapshot enumerate is enabled and the
+        // object's type changed since enumeration began, so need to enumerate properties of the initial type.
+        DynamicTypeHandler *const typeHandlerToEnumerate = typeToEnumerate->GetTypeHandler();
+
+        if (!typeHandlerToEnumerate->IsPathTypeHandler())
+        {
+            AssertMsg(false, "Can only enumerate PathTypeHandler if types don't match.");
+            Js::Throw::InternalError();
+        }
+
+        PathTypeHandlerBase* pathTypeToEnumerate = (PathTypeHandlerBase*)typeHandlerToEnumerate;
+
+        BOOL found = pathTypeToEnumerate->FindNextProperty(scriptContext, index, propertyStringName, propertyId, attributes, typeToEnumerate, typeToEnumerate, flags);
+
+        // We got a property from previous type, but this property may have been deleted
+        if (found == TRUE && this->GetPropertyIndex(*propertyId) == Js::Constants::NoSlot)
+        {
+            return FALSE;
+        }
+
+        return found;
     }
 
     PropertyIndex PathTypeHandlerBase::GetPropertyIndex(const PropertyRecord* propertyRecord)
@@ -299,11 +324,109 @@ namespace Js
         return PathTypeHandlerBase::AddPropertyInternal(instance, propertyId, value, info, flags, possibleSideEffects);
     }
 
+    void PathTypeHandlerBase::MoveAuxSlotsToObjectHeader(DynamicObject *const object)
+    {
+        Assert(object);
+        AssertMsg(!this->IsObjectHeaderInlinedTypeHandler(), "Already ObjectHeaderInlined?");
+        AssertMsg(!object->HasObjectArray(), "Can't move auxSlots to inline when we have ObjectArray");
+
+        // When transition from ObjectHeaderInlined to auxSlot happend 2 properties where moved from inlineSlot to auxSlot
+        // as we have to have space for auxSlot and objectArray (see DynamicTypeHandler::AdjustSlots). And then the new
+        // property was added at 3rd index in auxSlot
+        AssertMsg(this->GetUnusedBytesValue() - this->GetInlineSlotCapacity() == 3, "Should have only 3 values in auxSlot");
+
+        // Get the auxSlot[0] and auxSlot[1] value as we will over write it
+        Var auxSlotZero = object->GetAuxSlot(0);
+        Var auxSlotOne = object->GetAuxSlot(1);
+
+#ifdef EXPLICIT_FREE_SLOTS
+        Var auxSlots = object->auxSlots;
+        const int auxSlotsCapacity = this->GetSlotCapacity() - this->GetInlineSlotCapacity();
+#endif
+        // Move all current inline slots up to object header inline offset
+        Var *const oldInlineSlots = reinterpret_cast<Var *>(reinterpret_cast<uintptr_t>(object) + this->GetOffsetOfInlineSlots());
+        Field(Var) *const newInlineSlots = reinterpret_cast<Field(Var) *>(reinterpret_cast<uintptr_t>(object) + this->GetOffsetOfObjectHeaderInlineSlots());
+
+        PHASE_PRINT_TRACE1(ObjectHeaderInliningPhase, _u("ObjectHeaderInlining: Re-optimizing the object. Moving auxSlots properties to ObjectHeader.\n"));
+
+        PropertyIndex propertyIndex = 0;
+        while (propertyIndex < this->GetInlineSlotCapacity())
+        {
+            newInlineSlots[propertyIndex] = oldInlineSlots[propertyIndex];
+            propertyIndex++;
+        }
+
+        // auxSlot should only have 2 entry, move that to inlineSlot
+        newInlineSlots[propertyIndex++] = auxSlotZero;
+        newInlineSlots[propertyIndex++] = auxSlotOne;
+
+#ifdef EXPLICIT_FREE_SLOTS
+        object->GetRecycler()->ExplicitFreeNonLeaf(auxSlots, auxSlotsCapacity * sizeof(Var));
+#endif
+
+        Assert(this->GetPredecessorType()->GetTypeHandler()->IsPathTypeHandler());
+        Assert(propertyIndex == ((PathTypeHandlerBase*)this->GetPredecessorType()->GetTypeHandler())->GetInlineSlotCapacity());
+    }
+
+    BOOL PathTypeHandlerBase::DeleteLastProperty(DynamicObject *const object)
+    {
+        DynamicType* predecessorType = this->GetPredecessorType();
+        Assert(predecessorType != nullptr);
+
+        // -----------------------------------------------------------------------------------------
+        //         Current Type     |      Predecessor Type      |       Action
+        // -----------------------------------------------------------------------------------------
+        //    ObjectHeaderInlined   |    ObjectHeaderInlined     | No movement needed
+        // -----------------------------------------------------------------------------------------
+        //    ObjectHeaderInlined   |  Not ObjectHeaderInlined   | Not possible (Should be a BUG)
+        // -----------------------------------------------------------------------------------------
+        //  Not ObjectHeaderInlined |  Not ObjectHeaderInlined   | No movement needed
+        // -----------------------------------------------------------------------------------------
+        //  Not ObjectHeaderInlined |    ObjectHeaderInlined     | Move from auxSlots to inline slots (ReOptimize)
+        // -----------------------------------------------------------------------------------------
+
+        bool isCurrentTypeOHI = this->IsObjectHeaderInlinedTypeHandlerUnchecked();
+
+        Assert(predecessorType->GetTypeHandler()->IsPathTypeHandler());
+        PathTypeHandlerBase* predecessorTypeHandler = (PathTypeHandlerBase*)predecessorType->GetTypeHandler();
+
+        Assert(predecessorTypeHandler->GetUnusedBytesValue() == (this->GetUnusedBytesValue() - 1));
+
+        bool isPredecessorTypeOHI = predecessorTypeHandler->IsObjectHeaderInlinedTypeHandlerUnchecked();
+
+        AssertMsg(!isCurrentTypeOHI || isPredecessorTypeOHI, "Current type is ObjectHeaderInlined but previous type is not ObjectHeaderInlined?");
+
+        AssertMsg((isCurrentTypeOHI ^ isPredecessorTypeOHI) ||
+            (this->GetInlineSlotCapacity() == predecessorTypeHandler->GetInlineSlotCapacity()),
+            "When both types are ObjectHeaderInlined (or not ObjectHeaderInlined), InlineSlotCapacity of types should match");
+
+        if (!isCurrentTypeOHI && isPredecessorTypeOHI)
+        {
+            if (object->HasObjectArray())
+            {
+                // We can't move auxSlots
+                return FALSE;
+            }
+
+            Assert(predecessorTypeHandler->GetInlineSlotCapacity() == (this->GetUnusedBytesValue() - 1));
+            this->MoveAuxSlotsToObjectHeader(object);
+        }
+
+        Assert(predecessorTypeHandler->GetSlotCapacity() <= this->GetSlotCapacity());
+
+        // Another type (this) reached the old (predecessorType) type so share it.
+        // ShareType will take care of invalidating fixed fields and removing singleton object from predecessorType
+        predecessorType->ShareType();
+
+        this->typePath->ClearSingletonInstanceIfSame(object);
+
+        object->ReplaceTypeWithPredecessorType(predecessorType);
+
+        return TRUE;
+    }
+
     BOOL PathTypeHandlerBase::DeleteProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags flags)
     {
-#ifdef PROFILE_TYPES
-        instance->GetScriptContext()->convertPathToDictionaryCount2++;
-#endif
         // Check numeric propertyId only if objectArray available
         ScriptContext* scriptContext = instance->GetScriptContext();
         uint32 indexVal;
@@ -312,7 +435,31 @@ namespace Js
             return PathTypeHandlerBase::DeleteItem(instance, indexVal, flags);
         }
 
-        return  ConvertToSimpleDictionaryType(instance, GetPathLength())->DeleteProperty(instance, propertyId, flags);
+        PropertyIndex index = PathTypeHandlerBase::GetPropertyIndex(propertyId);
+
+        // If property is not found exit early
+        if (index == Constants::NoSlot)
+        {
+            return TRUE;
+        }
+
+        uint16 pathLength = GetPathLength();
+
+        if ((index + 1) == pathLength &&
+            this->GetPredecessorType() != nullptr &&
+            this->DeleteLastProperty(instance))
+        {
+            return TRUE;
+        }
+
+#ifdef PROFILE_TYPES
+        instance->GetScriptContext()->convertPathToDictionaryCount2++;
+#endif
+        BOOL deleteResult = ConvertToSimpleDictionaryType(instance, pathLength)->DeleteProperty(instance, propertyId, flags);
+
+        AssertMsg(deleteResult, "PathType delete property can return false, this should be handled in DeleteLastProperty as well.");
+
+        return deleteResult;
     }
 
     BOOL PathTypeHandlerBase::IsFixedProperty(const DynamicObject* instance, PropertyId propertyId)
@@ -894,11 +1041,9 @@ namespace Js
 
     bool PathTypeHandlerBase::UsePathTypeHandlerForObjectLiteral(
         const PropertyIdArray *const propIds,
-        ScriptContext *const scriptContext,
         bool *const check__proto__Ref)
     {
         Assert(propIds);
-        Assert(scriptContext);
 
         // Always check __proto__ entry, now that object literals always honor __proto__
         const bool check__proto__ = propIds->has__proto__;
@@ -912,17 +1057,18 @@ namespace Js
 
     DynamicType* PathTypeHandlerBase::CreateTypeForNewScObject(ScriptContext* scriptContext, DynamicType* type, const Js::PropertyIdArray *propIds, bool shareType)
     {
+        Assert(scriptContext);
         uint count = propIds->count;
 
         bool check__proto__;
-        if (UsePathTypeHandlerForObjectLiteral(propIds, scriptContext, &check__proto__))
+        if (UsePathTypeHandlerForObjectLiteral(propIds, &check__proto__))
         {
 #ifdef PROFILE_OBJECT_LITERALS
             scriptContext->objectLiteralCount[count]++;
 #endif
             for (uint i = 0; i < count; i++)
             {
-                PathTypeHandlerBase *pathHandler = (PathTypeHandlerBase *)type->typeHandler;
+                PathTypeHandlerBase *pathHandler = (PathTypeHandlerBase *)PointerValue(type->typeHandler);
                 Js::PropertyId propertyId = propIds->elements[i];
 
                 PropertyIndex propertyIndex = pathHandler->GetPropertyIndex(propertyId);
@@ -1100,6 +1246,9 @@ namespace Js
             {
                 // The new type isn't shared yet.  We will make it shared when the second instance attains it.
                 nextType = instance->DuplicateType();
+                // nextType's prototype and predecessorType's prototype can only be different here
+                // only for SetPrototype scenario where predecessorType is the cachedType with newPrototype
+                nextType->SetPrototype(predecessorType->GetPrototype());
                 nextType->typeHandler = nextPath;
                 markTypeAsShared ? nextType->SetIsLockedAndShared() : nextType->SetIsLocked();
             }
@@ -1376,7 +1525,165 @@ namespace Js
 
     void PathTypeHandlerBase::SetPrototype(DynamicObject* instance, RecyclableObject* newPrototype)
     {
-        ConvertToSimpleDictionaryType(instance, GetPathLength())->SetPrototype(instance, newPrototype);
+        // No typesharing for ExternalType
+        if (instance->GetType()->IsExternal())
+        {
+            ConvertToSimpleDictionaryType(instance, GetPathLength())->SetPrototype(instance, newPrototype);
+            return;
+        }
+
+        const bool useObjectHeaderInlining = IsObjectHeaderInlined(this->GetOffsetOfInlineSlots());
+        uint16 requestedInlineSlotCapacity = this->GetInlineSlotCapacity();
+        uint16 roundedInlineSlotCapacity = (useObjectHeaderInlining ?
+                                            DynamicTypeHandler::RoundUpObjectHeaderInlinedInlineSlotCapacity(requestedInlineSlotCapacity) :
+                                            DynamicTypeHandler::RoundUpInlineSlotCapacity(requestedInlineSlotCapacity));
+        ScriptContext* scriptContext = instance->GetScriptContext();
+        DynamicType* cachedDynamicType = nullptr;
+        DynamicType* oldType = instance->GetDynamicType();
+
+        bool useCache = instance->GetScriptContext() == newPrototype->GetScriptContext();
+
+        TypeTransitionMap * oldTypeToPromotedTypeMap = nullptr;
+#if DBG
+        DynamicType * oldCachedType = nullptr;
+        char16 reason[1024];
+        swprintf_s(reason, 1024, _u("Cache not populated."));
+#endif
+        if (useCache && newPrototype->GetInternalProperty(newPrototype, Js::InternalPropertyIds::TypeOfPrototypeObjectDictionary, (Js::Var*)&oldTypeToPromotedTypeMap, nullptr, scriptContext))
+        {
+            Assert(oldTypeToPromotedTypeMap && (Js::Var)oldTypeToPromotedTypeMap != scriptContext->GetLibrary()->GetUndefined());
+            oldTypeToPromotedTypeMap = reinterpret_cast<TypeTransitionMap*>(oldTypeToPromotedTypeMap);
+
+            if (oldTypeToPromotedTypeMap->TryGetValue(oldType, &cachedDynamicType))
+            {
+#if DBG
+                oldCachedType = cachedDynamicType;
+#endif
+                DynamicTypeHandler *const cachedDynamicTypeHandler = cachedDynamicType->GetTypeHandler();
+                if (cachedDynamicTypeHandler->GetOffsetOfInlineSlots() != GetOffsetOfInlineSlots())
+                {
+                    cachedDynamicType = nullptr;
+#if DBG
+                    swprintf_s(reason, 1024, _u("OffsetOfInlineSlot mismatch. Required = %d, Cached = %d"), this->GetOffsetOfInlineSlots(), cachedDynamicTypeHandler->GetOffsetOfInlineSlots());
+#endif
+                }
+                else if (cachedDynamicTypeHandler->GetInlineSlotCapacity() != roundedInlineSlotCapacity)
+                {
+                    Assert(cachedDynamicTypeHandler->GetInlineSlotCapacity() >= roundedInlineSlotCapacity);
+                    Assert(cachedDynamicTypeHandler->GetInlineSlotCapacity() >= GetPropertyCount());
+                    cachedDynamicTypeHandler->ShrinkSlotAndInlineSlotCapacity();
+
+                    // If slot capacity doesn't match after shrinking, it could be because oldType was shrunk and
+                    // newType evolved. In that case, we should update the cache with new type
+                    if (cachedDynamicTypeHandler->GetInlineSlotCapacity() != roundedInlineSlotCapacity)
+                    {
+                        cachedDynamicType = nullptr;
+#if DBG
+                        swprintf_s(reason, 1024, _u("InlineSlotCapacity mismatch after shrinking. Required = %d, Cached = %d"), roundedInlineSlotCapacity, cachedDynamicTypeHandler->GetInlineSlotCapacity());
+#endif
+                    }
+                }
+            }
+        }
+        else
+        {
+            Assert(!oldTypeToPromotedTypeMap || (Js::Var)oldTypeToPromotedTypeMap == scriptContext->GetLibrary()->GetUndefined());
+            oldTypeToPromotedTypeMap = nullptr;
+        }
+
+        if (cachedDynamicType == nullptr)
+        {
+            SimplePathTypeHandler* newTypeHandler = SimplePathTypeHandler::New(scriptContext, scriptContext->GetLibrary()->GetRootPath(), 0, static_cast<PropertyIndex>(this->GetSlotCapacity()), this->GetInlineSlotCapacity(), this->GetOffsetOfInlineSlots(), true, true);
+
+            cachedDynamicType = instance->DuplicateType();
+            cachedDynamicType->SetPrototype(newPrototype);
+            cachedDynamicType->typeHandler = newTypeHandler;
+
+            // Make type locked, shared only if we are using cache
+            if (useCache)
+            {
+                cachedDynamicType->LockType();
+                cachedDynamicType->ShareType();
+            }
+
+            // Promote type based on existing properties to get new type which will be cached and shared
+            for (PropertyIndex i = 0; i < GetPropertyCount(); i++)
+            {
+                PathTypeHandlerBase * pathTypeHandler = (PathTypeHandlerBase*)cachedDynamicType->GetTypeHandler();
+                Js::PropertyId propertyId = GetPropertyId(scriptContext, i);
+
+                PropertyIndex propertyIndex = GetPropertyIndex(propertyId);
+                cachedDynamicType = pathTypeHandler->PromoteType<false>(cachedDynamicType, scriptContext->GetPropertyName(propertyId), true, scriptContext, instance, &propertyIndex);
+            }
+
+            if (useCache)
+            {
+                if (oldTypeToPromotedTypeMap == nullptr)
+                {
+                    oldTypeToPromotedTypeMap = RecyclerNew(instance->GetRecycler(), TypeTransitionMap, instance->GetRecycler(), 2);
+                    newPrototype->SetInternalProperty(Js::InternalPropertyIds::TypeOfPrototypeObjectDictionary, (Var)oldTypeToPromotedTypeMap, PropertyOperationFlags::PropertyOperation_Force, nullptr);
+                }
+
+                oldTypeToPromotedTypeMap->Item(oldType, cachedDynamicType);
+#if DBG
+                cachedDynamicType->SetIsCachedForChangePrototype();
+#endif
+                if (PHASE_TRACE1(TypeShareForChangePrototypePhase))
+                {
+#if DBG
+                    if (PHASE_VERBOSE_TRACE1(TypeShareForChangePrototypePhase))
+                    {
+                        Output::Print(_u("TypeSharing: Updating prototype [0x%p] object's DictionarySlot in __proto__. Adding (key = 0x%p, value = 0x%p) in map = 0x%p. Reason = %s\n"), newPrototype, oldType, cachedDynamicType, oldTypeToPromotedTypeMap, reason);
+                    }
+                    else
+                    {
+#endif
+                        Output::Print(_u("TypeSharing: Updating prototype object's DictionarySlot cache in __proto__.\n"));
+#if DBG
+                    }
+#endif
+                    Output::Flush();
+                }
+
+            }
+            else
+            {
+                if (PHASE_TRACE1(TypeShareForChangePrototypePhase) || PHASE_VERBOSE_TRACE1(TypeShareForChangePrototypePhase))
+                {
+                    Output::Print(_u("TypeSharing: No Typesharing because instance and newPrototype are from different scriptContext.\n"));
+                    Output::Flush();
+                }
+            }
+        }
+        else
+        {
+            Assert(cachedDynamicType->GetIsShared());
+            if (PHASE_TRACE1(TypeShareForChangePrototypePhase))
+            {
+#if DBG
+                if (PHASE_VERBOSE_TRACE1(TypeShareForChangePrototypePhase))
+                {
+
+                    Output::Print(_u("TypeSharing: Reusing prototype [0x%p] object's DictionarySlot (key = 0x%p, value = 0x%p) from map = 0x%p in __proto__.\n"), newPrototype, oldType, cachedDynamicType, oldTypeToPromotedTypeMap);
+                }
+                else
+                {
+#endif
+                    Output::Print(_u("TypeSharing: Reusing prototype object's DictionarySlot cache in __proto__.\n"));
+#if DBG
+                }
+#endif
+                Output::Flush();
+            }
+        }
+
+
+        // Make sure the offsetOfInlineSlots and inlineSlotCapacity matches with currentTypeHandler
+        Assert(cachedDynamicType->GetTypeHandler()->GetOffsetOfInlineSlots() == GetOffsetOfInlineSlots());
+        Assert(cachedDynamicType->GetTypeHandler()->GetSlotCapacity() == this->GetSlotCapacity());
+        Assert(DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(this, cachedDynamicType->GetTypeHandler()));
+        Assert(cachedDynamicType->GetPrototype() == newPrototype);
+        instance->ReplaceType(cachedDynamicType);
     }
 
     void PathTypeHandlerBase::SetIsPrototype(DynamicObject* instance)
@@ -1577,7 +1884,7 @@ namespace Js
 
         bool populateInlineCache = true;
 
-        PathTypeHandler* newTypeHandler = (PathTypeHandler*)instance->GetTypeHandler();
+        PathTypeHandlerBase* newTypeHandler = (PathTypeHandlerBase*)instance->GetTypeHandler();
 
         if (slotIndex >= newTypeHandler->typePath->GetMaxInitializedLength())
         {
@@ -1933,10 +2240,15 @@ namespace Js
         return plength;
     }
 
-    Js::PropertyIndex PathTypeHandlerBase::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
+    Js::BigPropertyIndex PathTypeHandlerBase::GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord)
     {
         //The regular LookupInline is fine for path types
-        return this->typePath->LookupInline(pRecord->GetPropertyId(), GetPathLength());
+        return (Js::BigPropertyIndex)this->typePath->LookupInline(pRecord->GetPropertyId(), GetPathLength());
+    }
+
+    bool PathTypeHandlerBase::IsResetableForTTD(uint32 snapMaxIndex) const
+    {
+        return snapMaxIndex == this->GetPathLength();
     }
 #endif
 

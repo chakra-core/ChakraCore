@@ -15,14 +15,6 @@
   </test>
   <test>
     <default>
-      <files>etwtest.js</files>
-      <baseline />
-      <compile-flags>-testEtwDll:NativeUnitTests.dll</compile-flags>
-      <tags>exclude_ship</tags>
-    </default>
-  </test>
-  <test>
-    <default>
       <files>evalAlias.js</files>
       <baseline />
     </default>
@@ -33,14 +25,6 @@
       <baseline>oom.baseline</baseline>
       <compile-flags>-forcefragmentaddressspace:8000000</compile-flags>
       <tags>exclude_amd64,fail</tags>
-    </default>
-  </test>
-  <test>
-    <default>
-      <files>irviewer.js</files>
-      <baseline>irviewer.baseline</baseline>
-      <compile-flags>-irviewer</compile-flags>
-      <tags>exclude_amd64,exclude_fre,exclude_arm,exclude_nonative,require_backend</tags>
     </default>
   </test>
   <test>

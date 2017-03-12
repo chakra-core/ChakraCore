@@ -26,6 +26,13 @@
   </test>
   <test>
     <default>
+      <files>ChangePrototype.js</files>
+      <compile-flags>-trace:TypeShareForChangePrototype</compile-flags>
+      <baseline>ChangePrototype.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>ReadOnly.js</files>
     </default>
   </test>

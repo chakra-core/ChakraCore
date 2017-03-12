@@ -23,5 +23,13 @@ namespace Js
             this->parent = parent;
             this->child = nullptr;
         }
+
+#if ENABLE_NATIVE_CODEGEN
+        void Fixup(NativeCodeData::DataChunk* chunkList)
+        {
+            FixupNativeDataPointer(parent, chunkList);
+            FixupNativeDataPointer(child, chunkList);
+        }
+#endif
     };
 }

@@ -33,14 +33,7 @@ Abstract:
 #include "config.h"
 #endif
 
-#if HAVE_COREFOUNDATION
-#define CF_EXCLUDE_CSTD_HEADERS
-#include <CoreFoundation/CoreFoundation.h>
-#include <wctype.h>
-#else
-#include <wctype.h>
-#endif
-
+#include "runtime_proxy.h"
 #include <errno.h>
 
 SET_DEFAULT_DEBUG_CHANNEL(CRT);
@@ -306,7 +299,7 @@ PAL_iswspace(char16_t c)
     PERF_ENTRY(iswspace);
     ENTRY("PAL_iswspace (c=%C)\n", c);
 
-    ret = iswspace(c);
+    ret = proxy_iswspace(c);
 
     LOGEXIT("PAL_iswspace returns int %d\n", ret);
     PERF_EXIT(iswspace);
@@ -583,6 +576,101 @@ PAL_wcstolExit:
     return (LONG)res;
 }
 
+/*++
+Function:
+  PAL_wcstoll
+
+Convert string to a long-long-integer value.
+
+Return Value
+
+wcstoll returns the value represented in the string nptr, except when
+the representation would cause an overflow, in which case it returns
+LONGLONG_MAX or LONGLONG_MIN. strtoll returns 0 if no conversion can be
+performed. errno is set to ERANGE if overflow or underflow occurs.
+
+Parameters
+
+nptr    Null-terminated string to convert
+endptr  Pointer to character that stops scan
+base    Number base to use
+
+Remarks
+
+The wcstoll function converts nptr to a long long. It stops reading the
+string nptr at the first character it cannot recognize as part of a
+number. This may be the terminating null character, or it may be the
+first numeric character greater than or equal to base.
+
+Notes :
+    MSDN states that only space and tab are accepted as leading whitespace, but
+    tests indicate that other whitespace characters (newline, carriage return,
+    etc) are also accepted. This matches the behavior on Unix systems.
+--*/
+
+LONGLONG
+__cdecl
+PAL_wcstoll(
+        const char16_t *nptr,
+        char16_t **endptr,
+        int base)
+{
+    char *s_nptr = 0;
+    char *s_endptr = 0;
+    long long res;
+    int size;
+    DWORD dwLastError = 0;
+
+    PERF_ENTRY(wcstoll);
+    ENTRY("wcstoll (nptr=%p (%S), endptr=%p, base=%d)\n", nptr?nptr:W16_NULLSTRING, nptr?nptr:W16_NULLSTRING,
+          endptr, base);
+
+    size = WideCharToMultiByte(CP_ACP, 0, nptr, -1, NULL, 0, NULL, NULL);
+    if (!size)
+    {
+        dwLastError = GetLastError();
+        ASSERT("WideCharToMultiByte failed.  Error is %d\n", dwLastError);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        res = 0;
+        goto PAL_wcstolExit;
+    }
+    s_nptr = (char *)PAL_malloc(size);
+    if (!s_nptr)
+    {
+        ERROR("PAL_malloc failed\n");
+        SetLastError(ERROR_NOT_ENOUGH_MEMORY);
+        res = 0;
+        goto PAL_wcstolExit;
+    }
+    size = WideCharToMultiByte(CP_ACP, 0, nptr, -1, s_nptr, size, NULL, NULL);
+    if( size==0 )
+    {
+        dwLastError = GetLastError();
+        ASSERT("WideCharToMultiByte failed.  Error is %d\n", dwLastError);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        res = 0;
+        goto PAL_wcstolExit;
+    }
+
+    res = strtoll(s_nptr, &s_endptr, base);
+
+    /* only ASCII characters will be accepted by strtol, and those always get
+       mapped to single-byte characters, so the first rejected character will
+       have the same index in the multibyte and widechar strings */
+    if( endptr )
+    {
+        size = s_endptr - s_nptr;
+        *endptr = (char16_t *)&nptr[size];
+    }
+
+PAL_wcstolExit:
+    PAL_free(s_nptr);
+    LOGEXIT("wcstoll returning long %lld\n", res);
+    PERF_EXIT(wcstoll);
+    /* This explicit cast to LONGLONG is used to silence any potential warnings
+    due to implicitly casting the native long res to LONGLONG when returning. */
+    return (LONGLONG)res;
+}
 
 /*++
 Function:
@@ -1106,6 +1194,7 @@ Function:
 See MSDN or the man page for wcslen.
 
 --*/
+__attribute__((no_instrument_function))
 size_t
 __cdecl
 PAL_wcslen(
@@ -1113,22 +1202,18 @@ PAL_wcslen(
 {
     size_t nChar = 0;
 
-    PERF_ENTRY(wcslen);
-    ENTRY("wcslen (string=%p (%S))\n", string?string:W16_NULLSTRING, string?string:W16_NULLSTRING);
+    // no logging here. PAL's internal output also uses this method
 
     if ( !string )
     {
-        LOGEXIT("wcslen returning size_t %u\n", 0);
-        PERF_EXIT(wcslen);
         return 0;
     }
+
     while (*string++)
     {
         nChar++;
     }
 
-    LOGEXIT("wcslen returning size_t %u\n", nChar);
-    PERF_EXIT(wcslen);
     return nChar;
 }
 
@@ -1805,7 +1890,7 @@ PAL_iswprint( char16_t c )
     PERF_ENTRY(iswprint);
     ENTRY("PAL_iswprint (%#X)\n", c);
 
-    ret = iswprint(c);
+    ret = proxy_iswprint(c);
 
     LOGEXIT("PAL_iswprint returns %d\n", ret);
     PERF_EXIT(iswprint);

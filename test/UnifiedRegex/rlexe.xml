@@ -129,7 +129,7 @@
     <default>
       <files>WOOB1138949.js</files>
       <baseline>WOOB1138949.baseline</baseline>
-      <tags>exclude_chk</tags>
+      <tags>exclude_chk,Slow</tags>
     </default>
   </test>
   <test>

@@ -8,8 +8,8 @@ namespace Js
 {
     struct FuncCacheEntry
     {
-        ScriptFunction *func;
-        DynamicType *type;
+        Field(ScriptFunction *) func;
+        Field(DynamicType *) type;
     };
 
     class ActivationObject : public DynamicObject
@@ -201,7 +201,7 @@ namespace Js
             return ActivationObjectEx::GetCachedScopeInfo(propIds)[3];
         }
 
-        static uint32 ExtraSlotCount() { return 4; }
+        static byte ExtraSlotCount() { return 4; }
 
         static bool Is(void* instance)
         {
@@ -209,12 +209,12 @@ namespace Js
         }
 
     private:
-        ScriptFunction *parentFunc;
-        uint cachedFuncCount;
-        uint firstFuncSlot;
-        uint lastFuncSlot;
-        bool committed;
-        FuncCacheEntry cache[1];
+        Field(ScriptFunction *) parentFunc;
+        Field(uint) cachedFuncCount;
+        Field(uint) firstFuncSlot;
+        Field(uint) lastFuncSlot;
+        Field(bool) committed;
+        Field(FuncCacheEntry) cache[1];
 
 #if ENABLE_TTD
     public:

@@ -174,10 +174,10 @@ var tests = [
             assert.areEqual([0,0,0,0,0,1,2,3,4,5], dst, 'dst.set(arr,4) == [0,0,0,0,0,1,2,3,4,5]');
             
             assert.throws(function () { arr.set(); }, TypeError, "Invalid source in typed array set", "Invalid source in typed array set");
-            assert.throws(function () { new Uint8ClampedArray(3).set(arr); }, TypeError, "Invalid offset/length when creating typed array", "Invalid offset/length when creating typed array");
-            assert.throws(function () { new Uint8ClampedArray(3).set(arr,0); }, TypeError, "Invalid offset/length when creating typed array", "Invalid offset/length when creating typed array");
-            assert.throws(function () { new Uint8ClampedArray(3).set(arr,10); }, TypeError, "Invalid offset/length when creating typed array", "Invalid offset/length when creating typed array");
-            assert.throws(function () { new Uint8ClampedArray(3).set(arr,10); }, TypeError, "Invalid offset/length when creating typed array", "Invalid offset/length when creating typed array");
+            assert.throws(function () { new Uint8ClampedArray(3).set(arr); }, RangeError, "Invalid offset/length when creating typed array", "Invalid offset/length when creating typed array");
+            assert.throws(function () { new Uint8ClampedArray(3).set(arr,0); }, RangeError, "Invalid offset/length when creating typed array", "Invalid offset/length when creating typed array");
+            assert.throws(function () { new Uint8ClampedArray(3).set(arr,10); }, RangeError, "Invalid offset/length when creating typed array", "Invalid offset/length when creating typed array");
+            assert.throws(function () { new Uint8ClampedArray(3).set(arr,10); }, RangeError, "Invalid offset/length when creating typed array", "Invalid offset/length when creating typed array");
         }
     }
 ];

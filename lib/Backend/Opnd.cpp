@@ -58,10 +58,20 @@ Opnd::IsNotNumber() const
     {
         return true;
     }
-    if (this->IsRegOpnd() && this->AsRegOpnd()->m_sym->m_isNotInt)
+    if (this->IsRegOpnd())
     {
-        // m_isNotInt actually means "is not number". It should not be set to true for definitely-float values.
-        return true;
+        const IR::RegOpnd* regOpnd = this->AsRegOpnd();
+
+        if (regOpnd->m_sym == nullptr)
+        {
+            return true;
+        }
+
+        if (regOpnd->m_sym->m_isNotInt)
+        {
+            // m_isNotInt actually means "is not number". It should not be set to true for definitely-float values.
+            return true;
+        }
     }
     return false;
 }
@@ -86,13 +96,33 @@ bool
 Opnd::IsWriteBarrierTriggerableValue()
 {
     // Determines whether if an operand is used as a source in a store instruction, whether the store needs a write barrier
-    //
-    // If it's not a tagged value, and one of the two following conditions are true, then a write barrier is needed
+
+    // If it's a tagged value, we don't need a write barrier
+    if (this->IsTaggedValue())
+    {
+        return false;
+    }
+
     // If this operand is known address, then it doesn't need a write barrier, the address is either not a GC address or is pinned
+    if (this->IsAddrOpnd() && static_cast<AddrOpndKind>(this->AsAddrOpnd()->GetKind()) == AddrOpndKindDynamicVar)
+    {
+        return false;
+    }
+
+    if (TySize[this->GetType()] != sizeof(void*))
+    {
+        return false;
+    }
+
+#if DBG
+    if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
+    {
+        return true; // No further optimization if we are in verification
+    }
+#endif
+
     // If its null/boolean/undefined, we don't need a write barrier since the javascript library will keep those guys alive
-    return this->IsNotTaggedValue() &&
-        !((this->IsAddrOpnd() && this->AsAddrOpnd()->GetKind() == AddrOpndKindDynamicVar) ||
-          (this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined()));
+    return !(this->GetValueType().IsBoolean() || this->GetValueType().IsNull() || this->GetValueType().IsUndefined());
 }
 
 /*
@@ -176,46 +206,67 @@ void Opnd::Free(Func *func)
     {
     case OpndKindIntConst:
         //NOTE: use to be Sealed do not do sub class checks like in CloneUse
-        return static_cast<IntConstOpnd*>(this)->FreeInternal(func);
+        static_cast<IntConstOpnd*>(this)->FreeInternal(func);
+        break;
+
+    case OpndKindInt64Const:
+        return static_cast<Int64ConstOpnd*>(this)->FreeInternal(func);
 
     case OpndKindSimd128Const:
-        return static_cast<Simd128ConstOpnd*>(this)->FreeInternal(func);
+        static_cast<Simd128ConstOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindFloatConst:
-        return static_cast<FloatConstOpnd*>(this)->FreeInternal(func);
+        static_cast<FloatConstOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindHelperCall:
-        return static_cast<HelperCallOpnd*>(this)->FreeInternal(func);
+        static_cast<HelperCallOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindSym:
-        return static_cast<SymOpnd*>(this)->FreeInternal(func);
+        static_cast<SymOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindReg:
         if ((*static_cast<RegOpnd*>(this)).IsArrayRegOpnd())
         {
-            return static_cast<ArrayRegOpnd*>(this)->FreeInternalSub(func);
+            static_cast<ArrayRegOpnd*>(this)->FreeInternalSub(func);
+            break;
         }
-        return static_cast<RegOpnd*>(this)->FreeInternal(func);
+        static_cast<RegOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindAddr:
-        return static_cast<AddrOpnd*>(this)->FreeInternal(func);
+        static_cast<AddrOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindIndir:
-        return static_cast<IndirOpnd*>(this)->FreeInternal(func);
+        static_cast<IndirOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindMemRef:
-        return static_cast<MemRefOpnd*>(this)->FreeInternal(func);
+        static_cast<MemRefOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindLabel:
-        return static_cast<LabelOpnd*>(this)->FreeInternal(func);
+        static_cast<LabelOpnd*>(this)->FreeInternal(func);
+        break;
 
     case OpndKindRegBV:
-        return static_cast<RegBVOpnd*>(this)->FreeInternal(func);
+        static_cast<RegBVOpnd*>(this)->FreeInternal(func);
+        break;
     default:
         Assert(UNREACHED);
         __assume(UNREACHED);
 
     };
+#if DBG
+    if (func->m_alloc->HasDelayFreeList())
+    {
+        this->isDeleted = true;
+    }
+#endif
 }
 
 /*
@@ -228,6 +279,9 @@ bool Opnd::IsEqual(Opnd *opnd)
     {
     case OpndKindIntConst:
         return static_cast<IntConstOpnd*>(this)->IsEqualInternal(opnd);
+
+    case OpndKindInt64Const:
+        return static_cast<Int64ConstOpnd*>(this)->IsEqualInternal(opnd);
 
     case OpndKindFloatConst:
         return static_cast<FloatConstOpnd*>(this)->IsEqualInternal(opnd);
@@ -279,6 +333,9 @@ Opnd * Opnd::Copy(Func *func)
     {
     case OpndKindIntConst:
         return static_cast<IntConstOpnd*>(this)->CopyInternal(func);
+
+    case OpndKindInt64Const:
+        return static_cast<Int64ConstOpnd*>(this)->CopyInternal(func);
 
     case OpndKindFloatConst:
         return static_cast<FloatConstOpnd*>(this)->CopyInternal(func);
@@ -339,25 +396,52 @@ Opnd::GetStackSym() const
     }
 }
 
-intptr_t
-Opnd::GetImmediateValue()
+Sym*
+Opnd::GetSym() const
+{
+    switch (this->GetKind())
+    {
+        case OpndKindSym:
+            return static_cast<SymOpnd const *>(this)->m_sym;
+        case OpndKindReg:
+            return static_cast<RegOpnd const *>(this)->m_sym;
+        default:
+            return nullptr;
+    }
+}
+
+int64
+Opnd::GetImmediateValue(Func* func)
 {
     switch (this->GetKind())
     {
     case OpndKindIntConst:
         return this->AsIntConstOpnd()->GetValue();
 
+    case OpndKindInt64Const:
+        return this->AsInt64ConstOpnd()->GetValue();
+
     case OpndKindAddr:
         return (intptr_t)this->AsAddrOpnd()->m_address;
 
     case OpndKindHelperCall:
-        return (intptr_t)IR::GetMethodAddress(this->AsHelperCallOpnd());
+        return (intptr_t)IR::GetMethodAddress(func->GetThreadContextInfo(), this->AsHelperCallOpnd());
 
     default:
         AssertMsg(UNREACHED, "Unexpected immediate opnd kind");
         return 0;
     }
 }
+
+#if TARGET_32 && !defined(_M_IX86)
+int32
+Opnd::GetImmediateValueAsInt32(Func * func)
+{
+    Assert(!IRType_IsInt64(this->GetType()));
+    Assert(this->GetKind() != OpndKindInt64Const);
+    return (int32)this->GetImmediateValue(func);
+}
+#endif
 
 BailoutConstantValue Opnd::GetConstValue()
 {
@@ -455,13 +539,20 @@ void Opnd::DumpValueType()
         switch(this->GetKind())
         {
         case OpndKindIntConst:
+        case OpndKindInt64Const:
         case OpndKindFloatConst:
             return;
 
         case OpndKindReg:
             {
                 StackSym *const sym = this->AsRegOpnd()->m_sym;
-                if(sym && (sym->IsInt32() || sym->IsFloat64()))
+                if(sym && (
+                    sym->IsInt32() ||
+                    sym->IsFloat32() ||
+                    sym->IsFloat64() ||
+                    sym->IsInt64() ||
+                    sym->IsUint64()
+                    ))
                 {
                     return;
                 }
@@ -476,8 +567,11 @@ void Opnd::DumpValueType()
 
                 // Tagged int might be encoded here, so check the type
                 if (addrOpnd->GetAddrOpndKind() == AddrOpndKindConstantVar
-                    || Js::TaggedInt::Is(address)
-                    || Js::JavascriptNumber::Is_NoTaggedIntCheck(address))
+                    || Js::TaggedInt::Is(address) || (
+#if !FLOATVAR
+                    !JITManager::GetJITManager()->IsOOPJITEnabled() &&
+#endif
+                    Js::JavascriptNumber::Is_NoTaggedIntCheck(address)))
                 {
                     return;
                 }
@@ -713,7 +807,7 @@ void
 PropertySymOpnd::Init(uint inlineCacheIndex, Func *func)
 {
     this->Init(inlineCacheIndex,
-        inlineCacheIndex != -1 ? func->GetRuntimeInlineCache(inlineCacheIndex) : nullptr,
+        inlineCacheIndex != -1 ? func->GetRuntimeInlineCache(inlineCacheIndex) : 0,
         inlineCacheIndex != -1 ? func->GetRuntimePolymorphicInlineCache(inlineCacheIndex) : nullptr,
         inlineCacheIndex != -1 ? func->GetObjTypeSpecFldInfo(inlineCacheIndex) : nullptr,
         inlineCacheIndex != -1 ? func->GetPolyCacheUtilToInitialize(inlineCacheIndex) : PolymorphicInlineCacheUtilizationMinValue);
@@ -727,8 +821,8 @@ PropertySymOpnd::New(PropertySym *propertySym, IRType type, Func *func)
     newOpnd->m_offset = 0;
     newOpnd->m_type = type;
     newOpnd->SetObjTypeSpecFldInfo(nullptr);
-    newOpnd->finalType = nullptr;
-    newOpnd->monoGuardType = nullptr;
+    newOpnd->finalType = JITTypeHolder(nullptr);
+    newOpnd->monoGuardType = JITTypeHolder(nullptr);
     newOpnd->guardedPropOps = nullptr;
     newOpnd->writeGuards = nullptr;
     newOpnd->objTypeSpecFlags = 0;
@@ -741,7 +835,7 @@ PropertySymOpnd::New(PropertySym *propertySym, IRType type, Func *func)
 }
 
 void
-PropertySymOpnd::Init(uint inlineCacheIndex, Js::InlineCache * runtimeInlineCache, Js::PolymorphicInlineCache * runtimePolymorphicInlineCache, Js::ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil)
+PropertySymOpnd::Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, JITTimePolymorphicInlineCache * runtimePolymorphicInlineCache, ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil)
 {
     this->m_inlineCacheIndex = inlineCacheIndex;
     this->m_runtimeInlineCache = runtimeInlineCache;
@@ -811,7 +905,7 @@ PropertySymOpnd::CopyInternalSub(Func *func)
 bool
 PropertySymOpnd::IsObjectHeaderInlined() const
 {
-    Js::Type *type = nullptr;
+    JITTypeHolder type(nullptr);
     if (this->IsMono())
     {
         type = this->GetType();
@@ -821,10 +915,9 @@ PropertySymOpnd::IsObjectHeaderInlined() const
         type = this->GetFirstEquivalentType();
     }
 
-    if (type && Js::DynamicType::Is(type->GetTypeId()))
+    if (type != nullptr && Js::DynamicType::Is(type->GetTypeId()))
     {
-        Js::DynamicType *dynamicType = static_cast<Js::DynamicType*>(type);
-        return dynamicType->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
+        return type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
     }
 
     return false;
@@ -833,46 +926,64 @@ PropertySymOpnd::IsObjectHeaderInlined() const
 bool
 PropertySymOpnd::ChangesObjectLayout() const
 {
-    Js::Type *finalType = this->GetFinalType();
-    if (finalType == nullptr || !Js::DynamicType::Is(finalType->GetTypeId()))
+    JITTypeHolder cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
+
+    JITTypeHolder finalType = this->GetFinalType();
+    if (finalType != nullptr && Js::DynamicType::Is(finalType->GetTypeId()))
+    {
+        // This is the case where final type opt may cause pro-active type transition to take place.
+
+    Assert(cachedType != nullptr && Js::DynamicType::Is(cachedType->GetTypeId()));
+
+    return cachedType->GetTypeHandler()->GetInlineSlotCapacity() != finalType->GetTypeHandler()->GetInlineSlotCapacity() ||
+        cachedType->GetTypeHandler()->GetOffsetOfInlineSlots() != finalType->GetTypeHandler()->GetOffsetOfInlineSlots();
+    }
+
+    if (!this->HasInitialType())
     {
         return false;
     }
 
-    Js::Type *cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
-    Assert(cachedType && Js::DynamicType::Is(cachedType->GetTypeId()));
+    JITTypeHolder initialType = this->GetInitialType();
+    if (initialType != nullptr && Js::DynamicType::Is(initialType->GetTypeId()))
+    {
+        // This is the case where the type transition actually occurs. (This is the only case that's detectable
+        // during the loop pre-pass, since final types are not in place yet.)
 
-    Js::DynamicTypeHandler * cachedTypeHandler = (static_cast<Js::DynamicType*>(cachedType))->GetTypeHandler();
-    Js::DynamicTypeHandler * finalTypeHandler = (static_cast<Js::DynamicType*>(finalType))->GetTypeHandler();
+        Assert(cachedType != nullptr && Js::DynamicType::Is(cachedType->GetTypeId()));
 
-    return cachedTypeHandler->GetInlineSlotCapacity() != finalTypeHandler->GetInlineSlotCapacity() ||
-        cachedTypeHandler->GetOffsetOfInlineSlots() != finalTypeHandler->GetOffsetOfInlineSlots();
+        const JITTypeHandler * cachedTypeHandler = cachedType->GetTypeHandler();
+        const JITTypeHandler * initialTypeHandler = initialType->GetTypeHandler();
+
+        return cachedTypeHandler->GetInlineSlotCapacity() != initialTypeHandler->GetInlineSlotCapacity() ||
+            cachedTypeHandler->GetOffsetOfInlineSlots() != initialTypeHandler->GetOffsetOfInlineSlots();
+    }
+
+    return false;
 }
 
 void
 PropertySymOpnd::UpdateSlotForFinalType()
 {
-    Js::Type *finalType = this->GetFinalType();
+    JITTypeHolder finalType = this->GetFinalType();
 
     Assert(this->IsMono() || this->checkedTypeSetIndex != (uint16)-1);
-    Js::Type *cachedType =
+    JITTypeHolder cachedType =
         this->IsMono() ? this->GetType() : this->GetEquivalentTypeSet()->GetType(checkedTypeSetIndex);
 
-    Assert(finalType && Js::DynamicType::Is(finalType->GetTypeId()));
-    Assert(cachedType && Js::DynamicType::Is(cachedType->GetTypeId()));
+    Assert(finalType != nullptr && Js::DynamicType::Is(finalType->GetTypeId()));
+    Assert(cachedType != nullptr && Js::DynamicType::Is(cachedType->GetTypeId()));
 
     if (finalType == cachedType)
     {
         return;
     }
 
-    Js::DynamicTypeHandler * cachedTypeHandler = (static_cast<Js::DynamicType*>(cachedType))->GetTypeHandler();
-    Js::DynamicTypeHandler * finalTypeHandler = (static_cast<Js::DynamicType*>(finalType))->GetTypeHandler();
+    // TODO: OOP JIT: should assert about runtime type handler addr 
+    Assert(cachedType->GetTypeHandler() != finalType->GetTypeHandler());
 
-    Assert(cachedTypeHandler != finalTypeHandler);
-
-    if (cachedTypeHandler->GetInlineSlotCapacity() == finalTypeHandler->GetInlineSlotCapacity() &&
-        cachedTypeHandler->GetOffsetOfInlineSlots() == finalTypeHandler->GetOffsetOfInlineSlots())
+    if (cachedType->GetTypeHandler()->GetInlineSlotCapacity() == finalType->GetTypeHandler()->GetInlineSlotCapacity() &&
+        cachedType->GetTypeHandler()->GetOffsetOfInlineSlots() == finalType->GetTypeHandler()->GetOffsetOfInlineSlots())
     {
         // Nothing can change, since the variables aren't changing.
         return;
@@ -882,25 +993,30 @@ PropertySymOpnd::UpdateSlotForFinalType()
     uint16 index = this->GetSlotIndex();
     if (this->UsesAuxSlot())
     {
-        index += cachedTypeHandler->GetInlineSlotCapacity();
+        index += cachedType->GetTypeHandler()->GetInlineSlotCapacity();
     }
     else
     {
-        index -= cachedTypeHandler->GetOffsetOfInlineSlots() / sizeof(Js::Var);
+        index -= cachedType->GetTypeHandler()->GetOffsetOfInlineSlots() / sizeof(Js::Var);
     }
 
     // Figure out the slot index and aux-ness from the property index
-    if (index >= finalTypeHandler->GetInlineSlotCapacity())
+    if (index >= finalType->GetTypeHandler()->GetInlineSlotCapacity())
     {
         this->SetUsesAuxSlot(true);
-        index -= finalTypeHandler->GetInlineSlotCapacity();
+        index -= finalType->GetTypeHandler()->GetInlineSlotCapacity();
     }
     else
     {
         this->SetUsesAuxSlot(false);
-        index += finalTypeHandler->GetOffsetOfInlineSlots() / sizeof(Js::Var);
+        index += finalType->GetTypeHandler()->GetOffsetOfInlineSlots() / sizeof(Js::Var);
     }
     this->SetSlotIndex(index);
+}
+
+bool PropertySymOpnd::HasFinalType() const
+{
+    return this->finalType != nullptr;
 }
 
 PropertySymOpnd *
@@ -1305,6 +1421,24 @@ IntConstOpnd::New(IntConstType value, IRType type, const char16 * name, Func *fu
 
 ///----------------------------------------------------------------------------
 ///
+/// IntConstOpnd::CreateIntConstOpndFromType
+///
+///     Create an IntConstOpnd or Int64ConstOpnd depending on the IRType.
+///
+///----------------------------------------------------------------------------
+
+IR::Opnd* IntConstOpnd::NewFromType(int64 value, IRType type, Func* func)
+{
+    if (IRType_IsInt64(type))
+    {
+        return Int64ConstOpnd::New(value, type, func);
+    }
+    Assert(value < (int64)UINT_MAX);
+    return IntConstOpnd::New((IntConstType)value, type, func);
+}
+
+///----------------------------------------------------------------------------
+///
 /// IntConstOpnd::Copy
 ///
 ///     Returns a copy of this opnd.
@@ -1432,6 +1566,60 @@ IntConstOpnd::AsUint32()
 
 ///----------------------------------------------------------------------------
 ///
+/// Int64ConstOpnd Methods
+///
+///----------------------------------------------------------------------------
+IR::Int64ConstOpnd* Int64ConstOpnd::New(int64 value, IRType type, Func *func)
+{
+    AssertMsg(func->GetJITFunctionBody()->IsWasmFunction(), "Only WebAssembly functions should have int64 const operands. Use IntConstOpnd for size_t type");
+    Int64ConstOpnd * intConstOpnd;
+
+    Assert(TySize[type] == sizeof(int64));
+
+    intConstOpnd = JitAnew(func->m_alloc, IR::Int64ConstOpnd);
+
+    intConstOpnd->m_type = type;
+    intConstOpnd->m_kind = OpndKindInt64Const;
+    intConstOpnd->m_value = value;
+
+    return intConstOpnd;
+}
+
+IR::Int64ConstOpnd* Int64ConstOpnd::CopyInternal(Func *func)
+{
+    Assert(m_kind == OpndKindInt64Const);
+    Int64ConstOpnd * newOpnd;
+    newOpnd = Int64ConstOpnd::New(m_value, m_type, func);
+    newOpnd->m_valueType = m_valueType;
+
+    return newOpnd;
+}
+
+bool Int64ConstOpnd::IsEqualInternal(Opnd *opnd)
+{
+    Assert(m_kind == OpndKindInt64Const);
+    if (!opnd->IsInt64ConstOpnd() || this->GetType() != opnd->GetType())
+    {
+        return false;
+    }
+
+    return m_value == opnd->AsInt64ConstOpnd()->m_value;
+}
+
+void Int64ConstOpnd::FreeInternal(Func * func)
+{
+    Assert(m_kind == OpndKindInt64Const);
+    JitAdelete(func->m_alloc, this);
+}
+
+int64 Int64ConstOpnd::GetValue()
+{
+    Assert(m_type == TyInt64);
+    return m_value;
+}
+
+///----------------------------------------------------------------------------
+///
 /// RegBVOpnd::New
 ///
 ///     Creates a new IntConstOpnd.
@@ -1527,14 +1715,16 @@ FloatConstOpnd::New(FloatConstType value, IRType type, Func *func)
 }
 
 FloatConstOpnd *
-FloatConstOpnd::New(Js::Var floatVar, IRType type, Func *func)
+FloatConstOpnd::New(Js::Var floatVar, IRType type, Func *func, Js::Var varLocal /*= nullptr*/)
 {
-    Assert(Js::JavascriptNumber::Is(floatVar));
+    Assert((varLocal && Js::JavascriptNumber::Is(varLocal)) || Js::JavascriptNumber::Is(floatVar));
 
-    FloatConstOpnd * floatConstOpnd = FloatConstOpnd::New(Js::JavascriptNumber::GetValue(floatVar), type, func);
+    FloatConstType value = Js::JavascriptNumber::GetValue(varLocal ? varLocal : floatVar);
+    FloatConstOpnd * floatConstOpnd = FloatConstOpnd::New(value, type, func);
 
 #if !FLOATVAR
     floatConstOpnd->m_number = floatVar;
+    floatConstOpnd->m_numberCopy = (Js::JavascriptNumber*)varLocal;
 #endif
 
     return floatConstOpnd;
@@ -1546,7 +1736,7 @@ FloatConstOpnd::GetAddrOpnd(Func *func, bool dontEncode)
 #if !FLOATVAR
     if (this->m_number)
     {
-        return AddrOpnd::New(this->m_number, (Js::TaggedNumber::Is(this->m_number) ? AddrOpndKindConstantVar : AddrOpndKindDynamicVar), func, dontEncode);
+        return AddrOpnd::New(this->m_number, (Js::TaggedNumber::Is(this->m_number) ? AddrOpndKindConstantVar : AddrOpndKindDynamicVar), func, dontEncode, this->m_numberCopy);
     }
 #endif
 
@@ -1787,19 +1977,66 @@ DiagHelperCallOpnd::IsEqualInternalSub(Opnd *opnd)
 ///     Creates a new AddrOpnd.
 ///
 ///----------------------------------------------------------------------------
+AddrOpnd *
+AddrOpnd::New(intptr_t address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode /* = false */, Js::Var varLocal /* = nullptr*/)
+{
+    AddrOpnd * addrOpnd;
+
+    addrOpnd = JitAnew(func->m_alloc, IR::AddrOpnd);
+
+    // TODO (michhol): OOP JIT, use intptr_t instead of Js::Var by default so people don't try to dereference
+    addrOpnd->m_address = (Js::Var)address;
+    addrOpnd->m_localAddress = func->IsOOPJIT() ? varLocal : (Js::Var)address;
+    addrOpnd->addrOpndKind = addrOpndKind;
+    addrOpnd->m_type = addrOpnd->IsVar() ? TyVar : TyMachPtr;
+    addrOpnd->m_dontEncode = dontEncode;
+    addrOpnd->m_isFunction = false;
+
+    if (address && addrOpnd->IsVar())
+    {
+        if (Js::TaggedInt::Is(address))
+        {
+            addrOpnd->m_valueType = ValueType::GetTaggedInt();
+            addrOpnd->SetValueTypeFixed();
+        }
+        else if (
+#if !FLOATVAR
+            !func->IsOOPJIT() && CONFIG_FLAG(OOPJITMissingOpts) &&
+#endif
+            Js::JavascriptNumber::Is_NoTaggedIntCheck(addrOpnd->m_address))
+        {
+            addrOpnd->m_valueType =
+                Js::JavascriptNumber::IsInt32_NoChecks(addrOpnd->m_address)
+                ? ValueType::GetInt(false)
+                : ValueType::Float;
+            addrOpnd->SetValueTypeFixed();
+        }
+    }
+
+#if DBG_DUMP || defined(ENABLE_IR_VIEWER)
+    addrOpnd->decodedValue = 0;
+    addrOpnd->wasVar = addrOpnd->IsVar();
+#endif
+
+    addrOpnd->m_kind = OpndKindAddr;
+
+    return addrOpnd;
+}
 
 AddrOpnd *
-AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode /* = false */)
+AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontEncode /* = false */, Js::Var varLocal /* = nullptr*/)
 {
     AddrOpnd * addrOpnd;
 
     addrOpnd = JitAnew(func->m_alloc, IR::AddrOpnd);
 
     addrOpnd->m_address = address;
+    addrOpnd->m_localAddress = func->IsOOPJIT() ? varLocal : address;
     addrOpnd->addrOpndKind = addrOpndKind;
     addrOpnd->m_type = addrOpnd->IsVar()? TyVar : TyMachPtr;
     addrOpnd->m_dontEncode = dontEncode;
     addrOpnd->m_isFunction = false;
+    addrOpnd->m_metadata = nullptr;
 
     if(address && addrOpnd->IsVar())
     {
@@ -1808,13 +2045,21 @@ AddrOpnd::New(Js::Var address, AddrOpndKind addrOpndKind, Func *func, bool dontE
             addrOpnd->m_valueType = ValueType::GetTaggedInt();
             addrOpnd->SetValueTypeFixed();
         }
-        else if(Js::JavascriptNumber::Is_NoTaggedIntCheck(address))
+        else
         {
-            addrOpnd->m_valueType =
-                Js::JavascriptNumber::IsInt32_NoChecks(address)
+            Js::Var var = varLocal ? varLocal : address;
+            if (
+#if !FLOATVAR
+                varLocal || (!func->IsOOPJIT() && CONFIG_FLAG(OOPJITMissingOpts)) &&
+#endif
+                Js::JavascriptNumber::Is_NoTaggedIntCheck(var))
+            {
+                addrOpnd->m_valueType =
+                    Js::JavascriptNumber::IsInt32_NoChecks(var)
                     ? ValueType::GetInt(false)
                     : ValueType::Float;
-            addrOpnd->SetValueTypeFixed();
+                addrOpnd->SetValueTypeFixed();
+            }
         }
     }
 
@@ -1837,8 +2082,7 @@ AddrOpnd::NewFromNumber(int32 value, Func *func, bool dontEncode /* = false */)
     }
     else
     {
-        Js::Var number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
-        return New(number, AddrOpndKindDynamicVar, func, dontEncode);
+        return NewFromNumberVar(value, func, dontEncode);
     }
 }
 
@@ -1851,8 +2095,7 @@ AddrOpnd::NewFromNumber(int64 value, Func *func, bool dontEncode /* = false */)
     }
     else
     {
-        Js::Var number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
-        return New(number, AddrOpndKindDynamicVar, func, dontEncode);
+        return NewFromNumberVar((double)value, func, dontEncode);
     }
 }
 
@@ -1866,7 +2109,7 @@ AddrOpnd::NewFromNumber(double value, Func *func, bool dontEncode /* = false */)
 
     if (Js::JavascriptNumber::IsNegZero(value))
     {
-        return New(func->GetScriptContext()->GetLibrary()->GetNegativeZero(), AddrOpndKindDynamicVar, func, dontEncode);
+        return New(func->GetScriptContextInfo()->GetNegativeZeroAddr(), AddrOpndKindDynamicVar, func, dontEncode);
     }
     if (value == +0.0)
     {
@@ -1889,14 +2132,28 @@ AddrOpnd::NewFromNumber(double value, Func *func, bool dontEncode /* = false */)
         return New(Js::TaggedInt::ToVarUnchecked(nValue), AddrOpndKindConstantVar, func, dontEncode);
     }
 
-    Js::Var number = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)value, func->GetScriptContext());
-    return New(number, AddrOpndKindDynamicVar, func, dontEncode);
+    return NewFromNumberVar(value, func, dontEncode);
 }
+
+AddrOpnd *
+AddrOpnd::NewFromNumberVar(double value, Func *func, bool dontEncode /* = false */)
+{
+    Js::Var var = func->AllocateNumber((double)value);
+    AddrOpnd* addrOpnd = New((intptr_t)var, AddrOpndKindDynamicVar, func, dontEncode);
+    addrOpnd->m_valueType =
+        Js::JavascriptNumber::IsInt32(value)
+        ? ValueType::GetInt(false)
+        : ValueType::Float;
+    addrOpnd->SetValueTypeFixed();
+
+    return addrOpnd;
+}
+
 
 AddrOpnd *
 AddrOpnd::NewNull(Func *func)
 {
-    return AddrOpnd::New((Js::Var)0, AddrOpndKindConstant, func, true);
+    return AddrOpnd::New((Js::Var)0, AddrOpndKindConstantAddress, func, true);
 }
 
 ///----------------------------------------------------------------------------
@@ -1918,6 +2175,7 @@ AddrOpnd::CopyInternal(Func *func)
     newOpnd->m_address = m_address;
     newOpnd->m_valueType = m_valueType;
     newOpnd->m_isFunction = m_isFunction;
+    newOpnd->m_metadata = m_metadata;
     newOpnd->SetType(m_type);
     if (IsValueTypeFixed())
     {
@@ -2352,6 +2610,7 @@ IndirOpnd::GetOriginalAddress() const
 void
 IndirOpnd::SetAddrKind(IR::AddrOpndKind kind, void * originalAddress)
 {
+    Assert(originalAddress != nullptr);
     this->m_addrKind = kind;
     this->m_originalAddress = originalAddress;
 }
@@ -2365,10 +2624,26 @@ IndirOpnd::SetAddrKind(IR::AddrOpndKind kind, void * originalAddress)
 ///----------------------------------------------------------------------------
 
 MemRefOpnd *
-MemRefOpnd::New(void * pMemLoc, IRType type, Func *func, AddrOpndKind addrOpndKind)
+MemRefOpnd::New(intptr_t pMemLoc, IRType type, Func *func, AddrOpndKind addrOpndKind)
 {
     MemRefOpnd * memRefOpnd = JitAnew(func->m_alloc, IR::MemRefOpnd);
     memRefOpnd->m_memLoc = pMemLoc;
+    memRefOpnd->m_type = type;
+
+    memRefOpnd->m_kind = OpndKindMemRef;
+#if DBG_DUMP
+    memRefOpnd->m_addrKind = addrOpndKind;
+#endif
+
+    return memRefOpnd;
+}
+
+// TODO: michhol OOP JIT, remove this signature
+MemRefOpnd *
+MemRefOpnd::New(void * pMemLoc, IRType type, Func *func, AddrOpndKind addrOpndKind)
+{
+    MemRefOpnd * memRefOpnd = JitAnew(func->m_alloc, IR::MemRefOpnd);
+    memRefOpnd->m_memLoc = (intptr_t)pMemLoc;
     memRefOpnd->m_type = type;
 
     memRefOpnd->m_kind = OpndKindMemRef;
@@ -2680,7 +2955,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
             if (propertySymOpnd->HasFinalType())
             {
                 Output::Print(_u(",final:"));
-                this->DumpAddress(propertySymOpnd->GetFinalType(), /* printToConsole */ true, /* skipMaskedAddress */ false);
+                this->DumpAddress((void*)propertySymOpnd->GetFinalType()->GetAddr(), /* printToConsole */ true, /* skipMaskedAddress */ false);
             }
             if (propertySymOpnd->GetGuardedPropOps() != nullptr)
             {
@@ -2695,8 +2970,13 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                         {
                             Output::Print(_u(","));
                         }
-                        const Js::ObjTypeSpecFldInfo* propertyOpInfo = func->GetTopFunc()->GetGlobalObjTypeSpecFldInfo(propertyOpId);
-                        Output::Print(_u("%s(%u)"), func->GetScriptContext()->GetPropertyNameLocked(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
+                        const ObjTypeSpecFldInfo* propertyOpInfo = func->GetTopFunc()->GetGlobalObjTypeSpecFldInfo(propertyOpId);
+                        if (!JITManager::GetJITManager()->IsOOPJITEnabled())
+                        {
+                            Output::Print(_u("%s"), func->GetInProcThreadContext()->GetPropertyRecord(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);
+                        }
+                        Output::Print(_u("(%u)"), propertyOpId);
+                        
                         if (propertyOpInfo->IsLoadedFromProto())
                         {
                             Output::Print(_u("~"));
@@ -2827,6 +3107,13 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
         }
         break;
 
+    case OpndKindInt64Const:
+    {
+        Int64ConstOpnd * intConstOpnd = this->AsInt64ConstOpnd();
+        int64 intValue = intConstOpnd->GetValue();
+        Output::Print(_u("%lld (0x%llX)"), intValue, intValue);
+        break;
+    }
     case OpndKindIntConst:
     {
         IntConstOpnd * intConstOpnd = this->AsIntConstOpnd();
@@ -3002,7 +3289,8 @@ Opnd::DumpOpndKindMemRef(bool AsmDumpMode, Func *func)
     Output::Print(_u("["));
     const size_t BUFFER_LEN = 128;
     char16 buffer[BUFFER_LEN];
-    GetAddrDescription(buffer, BUFFER_LEN, memRefOpnd->GetMemLoc(), memRefOpnd->GetAddrKind(), AsmDumpMode, true, func);
+    // TODO: michhol, make this intptr_t
+    GetAddrDescription(buffer, BUFFER_LEN, (void*)memRefOpnd->GetMemLoc(), memRefOpnd->GetAddrKind(), AsmDumpMode, true, func);
     Output::Print(_u("%s"), buffer);
     Output::Print(_u("]"));
 }
@@ -3029,7 +3317,7 @@ Opnd::DumpOpndKindMemRef(bool AsmDumpMode, Func *func)
 void
 Opnd::WriteToBuffer(_Outptr_result_buffer_(*count) char16 **buffer, size_t *count, const char16 *fmt, ...)
 {
-    va_list argptr = nullptr;
+    va_list argptr;
     va_start(argptr, fmt);
 
     int len = _vsnwprintf_s(*buffer, *count, _TRUNCATE, fmt, argptr);
@@ -3049,7 +3337,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
     {
         switch (addressKind)
         {
-        case IR::AddrOpndKindConstant:
+        case IR::AddrOpndKindConstantAddress:
         {
 #ifdef _M_X64_OR_ARM64
             char16 const * format = _u("0x%012I64X");
@@ -3058,7 +3346,7 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
 #endif
             WriteToBuffer(&buffer, &n, format, address);
         }
-            break;
+        break;
         case IR::AddrOpndKindDynamicVar:
             if (Js::TaggedInt::Is(address))
             {
@@ -3069,43 +3357,54 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
 #endif
                 WriteToBuffer(&buffer, &n, format, address, Js::TaggedInt::ToInt32(address));
             }
+#if FLOATVAR
             else if (Js::JavascriptNumber::Is_NoTaggedIntCheck(address))
+#else
+            else if (!func->IsOOPJIT() && Js::JavascriptNumber::Is_NoTaggedIntCheck(address))
+#endif
             {
                 WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));
             }
             else
             {
                 DumpAddress(address, printToConsole, skipMaskedAddress);
-
-                switch (Js::RecyclableObject::FromVar(address)->GetTypeId())
+                // TODO: michhol OOP JIT, fix dumping these
+                if (func->IsOOPJIT())
                 {
-                case Js::TypeIds_Boolean:
-                    WriteToBuffer(&buffer, &n, Js::JavascriptBoolean::FromVar(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
-                    break;
-                case Js::TypeIds_String:
-                    WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::JavascriptString::FromVar(address)->GetSz());
-                    break;
-                case Js::TypeIds_Number:
-                    WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));
-                    break;
-                case Js::TypeIds_Undefined:
-                    WriteToBuffer(&buffer, &n, _u(" (undefined)"));
-                    break;
-                case Js::TypeIds_Null:
-                    WriteToBuffer(&buffer, &n, _u(" (null)"));
-                    break;
-                case Js::TypeIds_GlobalObject:
-                    WriteToBuffer(&buffer, &n, _u(" (GlobalObject)"));
-                    break;
-                case Js::TypeIds_UndeclBlockVar:
-                    WriteToBuffer(&buffer, &n, _u(" (UndeclBlockVar)"));
-                    break;
-                case Js::TypeIds_Function:
-                    DumpFunctionInfo(&buffer, &n, ((Js::JavascriptFunction *)address)->GetFunctionInfo(), printToConsole, _u("FunctionObject"));
-                    break;
-                default:
-                    WriteToBuffer(&buffer, &n, _u(" (DynamicObject)"));
-                    break;
+                    WriteToBuffer(&buffer, &n, _u(" (unknown)"));
+                }
+                else
+                {
+                    switch (Js::RecyclableObject::FromVar(address)->GetTypeId())
+                    {
+                    case Js::TypeIds_Boolean:
+                        WriteToBuffer(&buffer, &n, Js::JavascriptBoolean::FromVar(address)->GetValue() ? _u(" (true)") : _u(" (false)"));
+                        break;
+                    case Js::TypeIds_String:
+                        WriteToBuffer(&buffer, &n, _u(" (\"%s\")"), Js::JavascriptString::FromVar(address)->GetSz());
+                        break;
+                    case Js::TypeIds_Number:
+                        WriteToBuffer(&buffer, &n, _u(" (value: %f)"), Js::JavascriptNumber::GetValue(address));
+                        break;
+                    case Js::TypeIds_Undefined:
+                        WriteToBuffer(&buffer, &n, _u(" (undefined)"));
+                        break;
+                    case Js::TypeIds_Null:
+                        WriteToBuffer(&buffer, &n, _u(" (null)"));
+                        break;
+                    case Js::TypeIds_GlobalObject:
+                        WriteToBuffer(&buffer, &n, _u(" (GlobalObject)"));
+                        break;
+                    case Js::TypeIds_UndeclBlockVar:
+                        WriteToBuffer(&buffer, &n, _u(" (UndeclBlockVar)"));
+                        break;
+                    case Js::TypeIds_Function:
+                        DumpFunctionInfo(&buffer, &n, ((Js::JavascriptFunction *)address)->GetFunctionInfo(), printToConsole, _u("FunctionObject"));
+                        break;
+                    default:
+                        WriteToBuffer(&buffer, &n, _u(" (DynamicObject)"));
+                        break;
+                    }
                 }
             }
             break;
@@ -3132,13 +3431,13 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             break;
         }
         case IR::AddrOpndKindDynamicScriptContext:
-            Assert(func == nullptr || address == func->GetScriptContext());
+            Assert(func == nullptr || (intptr_t)address == func->GetScriptContextInfo()->GetAddr());
             // The script context pointer is unstable allocated from the CRT
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, _u(" (ScriptContext)"));
             break;
         case IR::AddrOpndKindDynamicCharStringCache:
-            Assert(func == nullptr || address == &func->GetScriptContext()->GetLibrary()->GetCharStringCache());
+            Assert(func == nullptr || (intptr_t)address == func->GetScriptContextInfo()->GetCharStringCacheAddr());
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, _u(" (CharStringCache)"));
             break;
@@ -3203,19 +3502,54 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             WriteToBuffer(&buffer, &n, _u(" (&RecyclerAllocatorEndAddress)"));
             break;
 
+        case AddrOpndKindDynamicAuxBufferRef:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (AuxBufferRef)"));
+            break;
+
         case AddrOpndKindDynamicRecyclerAllocatorFreeListRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, _u(" (&RecyclerAllocatorFreeList)"));
             break;
 
+        case IR::AddrOpndKindDynamicFunctionInfo:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            if (func->IsOOPJIT())
+            {
+                // TODO: OOP JIT, dump more info
+                WriteToBuffer(&buffer, &n, _u(" (FunctionInfo)"));
+            }
+            else
+            {
+                DumpFunctionInfo(&buffer, &n, (Js::FunctionInfo *)address, printToConsole);
+            }
+            break;
+
         case IR::AddrOpndKindDynamicFunctionBody:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            DumpFunctionInfo(&buffer, &n, (Js::FunctionInfo *)address, printToConsole);
+            if (func->IsOOPJIT())
+            {
+                // TODO: OOP JIT, dump more info
+                WriteToBuffer(&buffer, &n, _u(" (FunctionBody)"));
+            }
+            else
+            {
+                DumpFunctionInfo(&buffer, &n, ((Js::FunctionBody *)address)->GetFunctionInfo(), printToConsole);
+            }
             break;
 
         case IR::AddrOpndKindDynamicFunctionBodyWeakRef:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet(), printToConsole, _u("FunctionBodyWeakRef"));
+
+            if (func->IsOOPJIT())
+            {
+                // TODO: OOP JIT, dump more info
+                WriteToBuffer(&buffer, &n, _u(" (FunctionBodyWeakRef)"));
+            }
+            else
+            {
+                DumpFunctionInfo(&buffer, &n, ((RecyclerWeakReference<Js::FunctionBody> *)address)->FastGet()->GetFunctionInfo(), printToConsole, _u("FunctionBodyWeakRef"));
+            }
             break;
 
         case IR::AddrOpndKindDynamicFunctionEnvironmentRef:
@@ -3244,13 +3578,14 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             DumpAddress(address, printToConsole, skipMaskedAddress);
             {
                 Js::RecyclableObject * dynamicObject = (Js::RecyclableObject *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType());
-                if (Js::JavascriptFunction::Is(dynamicObject))
+                if (!func->IsOOPJIT() && Js::JavascriptFunction::Is(dynamicObject))
                 {
                     DumpFunctionInfo(&buffer, &n, Js::JavascriptFunction::FromVar((void *)((intptr_t)address - Js::RecyclableObject::GetOffsetOfType()))->GetFunctionInfo(),
                         printToConsole, _u("FunctionObjectTypeRef"));
                 }
                 else
                 {
+                    // TODO: OOP JIT, dump more info
                     WriteToBuffer(&buffer, &n, _u(" (ObjectTypeRef)"));
                 }
             }
@@ -3258,6 +3593,8 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
 
         case IR::AddrOpndKindDynamicType:
             DumpAddress(address, printToConsole, skipMaskedAddress);
+            // TODO: OOP JIT, dump more info
+            if(!func->IsOOPJIT())
             {
                 Js::TypeId typeId = ((Js::Type*)address)->GetTypeId();
                 switch (typeId)
@@ -3308,58 +3645,82 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             DumpAddress(address, printToConsole, skipMaskedAddress);
             WriteToBuffer(&buffer, &n, _u(" (&(double)%f)"), *(double *)address);
             break;
+        case AddrOpndKindForInCache:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (ForInCache)"));
+            break;
+        case AddrOpndKindForInCacheType:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (&ForInCache->type)"));
+            break;
+        case AddrOpndKindForInCacheData:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (&ForInCache->data)"));
+            break;
+        case AddrOpndKindDynamicNativeCodeDataRef:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            WriteToBuffer(&buffer, &n, _u(" (&NativeCodeData)"));
+            break;
         default:
             DumpAddress(address, printToConsole, skipMaskedAddress);
-            if (address == &Js::NullFrameDisplay)
+            if ((intptr_t)address == func->GetThreadContextInfo()->GetNullFrameDisplayAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (NullFrameDisplay)"));
             }
-            else if (address == &Js::StrictNullFrameDisplay)
+            else if ((intptr_t)address == func->GetThreadContextInfo()->GetStrictNullFrameDisplayAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (StrictNullFrameDisplay)"));
             }
-            else if (address == func->GetScriptContext()->GetNumberAllocator())
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetNumberAllocatorAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (NumberAllocator)"));
             }
-            else if (address == func->GetScriptContext()->GetRecycler())
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetRecyclerAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (Recycler)"));
             }
-            else if (func->m_workItem->Type() == JsFunctionType && address == func->GetCallsCountAddress())
+            else if (func->GetWorkItem()->Type() == JsFunctionType && (intptr_t)address == func->GetWorkItem()->GetCallsCountAddress())
             {
                 WriteToBuffer(&buffer, &n, _u(" (&CallCount)"));
             }
-            else if (address == func->GetScriptContext()->GetThreadContext()->GetAddressOfImplicitCallFlags())
+            else if ((intptr_t)address == func->GetThreadContextInfo()->GetImplicitCallFlagsAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (&ImplicitCallFlags)"));
             }
-            else if (address == func->GetScriptContext()->GetThreadContext()->GetAddressOfDisableImplicitFlags())
+            else if ((intptr_t)address == func->GetThreadContextInfo()->GetDisableImplicitFlagsAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (&DisableImplicitCallFlags)"));
             }
-            else if (address == func->GetScriptContext()->GetThreadContext()->GetAddressOfStackLimitForCurrentThread())
+            else if ((intptr_t)address == func->GetThreadContextInfo()->GetThreadStackLimitAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (&StackLimit)"));
             }
             else if (func->CanAllocInPreReservedHeapPageSegment() &&
-                func->GetScriptContext()->GetThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address))
+#if ENABLE_OOP_NATIVE_CODEGEN
+                (func->IsOOPJIT()
+                    ? func->GetOOPThreadContext()->GetPreReservedSectionAllocator()->IsPreReservedEndAddress(address)
+                    : func->GetInProcThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address)
+                )
+#else
+                func->GetInProcThreadContext()->GetPreReservedVirtualAllocator()->IsPreReservedEndAddress(address)
+#endif
+                )
             {
                 WriteToBuffer(&buffer, &n, _u(" (PreReservedCodeSegmentEnd)"));
             }
-            else if (address == func->GetScriptContext()->optimizationOverrides.GetAddressOfSideEffects())
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetSideEffectsAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (&OptimizationOverrides_SideEffects)"));
             }
-            else if (address == func->GetScriptContext()->optimizationOverrides.GetAddressOfArraySetElementFastPathVtable())
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetArraySetElementFastPathVtableAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (&OptimizationOverrides_ArraySetElementFastPathVtable)"));
             }
-            else if (address == func->GetScriptContext()->optimizationOverrides.GetAddressOfIntArraySetElementFastPathVtable())
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetIntArraySetElementFastPathVtableAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (&OptimizationOverrides_IntArraySetElementFastPathVtable)"));
             }
-            else if (address == func->GetScriptContext()->optimizationOverrides.GetAddressOfFloatArraySetElementFastPathVtable())
+            else if ((intptr_t)address == func->GetScriptContextInfo()->GetFloatArraySetElementFastPathVtableAddr())
             {
                 WriteToBuffer(&buffer, &n, _u(" (&OptimizationOverrides_FloatArraySetElementFastPathVtable)"));
             }

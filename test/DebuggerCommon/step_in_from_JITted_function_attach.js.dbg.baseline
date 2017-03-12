@@ -1,0 +1,46 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 29,
+        "column": 4,
+        "sourceText": "var a = \"bar\"",
+        "function": "bar"
+      },
+      {
+        "line": 15,
+        "column": 4,
+        "sourceText": "bar()",
+        "function": "foo"
+      },
+      {
+        "line": 42,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 29,
+        "column": 4,
+        "sourceText": "var a = \"bar\"",
+        "function": "bar"
+      },
+      {
+        "line": 15,
+        "column": 4,
+        "sourceText": "bar()",
+        "function": "foo"
+      },
+      {
+        "line": 42,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  }
+]

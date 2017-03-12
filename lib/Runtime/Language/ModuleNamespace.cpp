@@ -13,10 +13,10 @@
 
 namespace Js
 {
-    Js::FunctionInfo ModuleNamespace::EntryInfo::SymbolIterator(ModuleNamespace::EntrySymbolIterator);
+    Js::FunctionInfo ModuleNamespace::EntryInfo::SymbolIterator(FORCE_NO_WRITE_BARRIER_TAG(ModuleNamespace::EntrySymbolIterator));
 
     ModuleNamespace::ModuleNamespace(ModuleRecordBase* moduleRecord, DynamicType* type) :
-        moduleRecord(moduleRecord), DynamicObject(type), unambiguousNonLocalExports(nullptr), 
+        moduleRecord(moduleRecord), DynamicObject(type), unambiguousNonLocalExports(nullptr),
         sortedExportedNames(nullptr), nsSlots(nullptr)
     {
 
@@ -45,7 +45,8 @@ namespace Js
     {
         ScriptContext* scriptContext = moduleRecord->GetRealm()->GetScriptContext();
         Recycler* recycler = scriptContext->GetRecycler();
-        SourceTextModuleRecord* sourceTextModuleRecord = static_cast<SourceTextModuleRecord*>(moduleRecord);
+        SourceTextModuleRecord* sourceTextModuleRecord = static_cast<SourceTextModuleRecord*>(
+            static_cast<ModuleRecordBase*>(moduleRecord));
         JavascriptLibrary* library = GetLibrary();
 
         if (scriptContext->GetConfig()->IsES6ToStringTagEnabled())
@@ -56,7 +57,7 @@ namespace Js
 
         DynamicType* type = library->CreateFunctionWithLengthType(&EntryInfo::SymbolIterator);
         RuntimeFunction* iteratorFunction = RecyclerNewEnumClass(scriptContext->GetRecycler(),
-            library->EnumFunctionClass, RuntimeFunction,
+            JavascriptLibrary::EnumFunctionClass, RuntimeFunction,
             type, &EntryInfo::SymbolIterator);
         DynamicObject::SetPropertyWithAttributes(PropertyIds::_symbolIterator, iteratorFunction, PropertyBuiltInMethodDefaults, nullptr);
 
@@ -76,8 +77,7 @@ namespace Js
                 AssertMsg(exportNameId != Js::Constants::NoProperty, "should have been initialized already");
                 // ignore local exports that are actually indirect exports.
                 if (sourceTextModuleRecord->GetImportEntryList() == nullptr ||
-                    (sourceTextModuleRecord->ResolveImport(localNameId, &importRecord)
-                    && importRecord == nullptr))
+                    !sourceTextModuleRecord->ResolveImport(localNameId, &importRecord))
                 {
                     BigPropertyIndex index = sourceTextModuleRecord->GetLocalExportSlotIndexByExportName(exportNameId);
                     Assert((uint)index < sourceTextModuleRecord->GetLocalExportCount());
@@ -89,7 +89,7 @@ namespace Js
         // update the local slot to use the storage for local exports.
         SetNSSlotsForModuleNS(sourceTextModuleRecord->GetLocalExportSlots());
 
-        // For items that are not in the local export list, we need to resolve them to get it 
+        // For items that are not in the local export list, we need to resolve them to get it
         ExportedNames* exportedNames = sourceTextModuleRecord->GetExportedNames(nullptr);
         ModuleNameRecord* moduleNameRecord = nullptr;
 #if DBG
@@ -178,7 +178,7 @@ namespace Js
         }
         if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
         {
-            Assert((uint)propertyDescriptor.propertyIndex < ((SourceTextModuleRecord*)moduleRecord)->GetLocalExportCount());
+            Assert((uint)propertyDescriptor.propertyIndex < ((SourceTextModuleRecord*)static_cast<ModuleRecordBase*>(moduleRecord))->GetLocalExportCount());
             PropertyValueInfo::SetNoCache(info, this); // Disable inlinecache for localexport slot for now.
             //if ((PropertyIndex)propertyDescriptor.propertyIndex == propertyDescriptor.propertyIndex)
             //{
@@ -216,15 +216,14 @@ namespace Js
         return GetProperty(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL ModuleNamespace::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* scriptContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL ModuleNamespace::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
-        ModuleNamespaceEnumerator* moduleEnumerator = ModuleNamespaceEnumerator::New(this, scriptContext, !!enumNonEnumerable, enumSymbols);
+        ModuleNamespaceEnumerator* moduleEnumerator = ModuleNamespaceEnumerator::New(this, flags, requestContext, forInCache);
         if (moduleEnumerator == nullptr)
         {
             return FALSE;
         }
-        *enumerator = moduleEnumerator;
-        return TRUE;
+        return enumerator->Initialize(moduleEnumerator, nullptr, nullptr, flags, requestContext, nullptr);
     }
 
     BOOL ModuleNamespace::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
@@ -232,8 +231,24 @@ namespace Js
         //Assert: IsPropertyKey(P) is true.
         //Let exports be O.[[Exports]].
         //If P is an element of exports, return false.
-        //Return true.        
+        //Return true.
         return !HasProperty(propertyId);
+    }
+
+    BOOL ModuleNamespace::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        //Assert: IsPropertyKey(P) is true.
+        //Let exports be O.[[Exports]].
+        //If P is an element of exports, return false.
+        //Return true.
+        PropertyRecord const *propertyRecord = nullptr;
+        if (JavascriptOperators::ShouldTryDeleteProperty(this, propertyNameString, &propertyRecord))
+        {
+            Assert(propertyRecord);
+            return DeleteProperty(propertyRecord->GetPropertyId(), flags);
+        }
+
+        return TRUE;
     }
 
     BOOL ModuleNamespace::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
@@ -250,7 +265,7 @@ namespace Js
 
     Var ModuleNamespace::GetNSSlot(BigPropertyIndex propertyIndex)
     {
-        Assert((uint)propertyIndex < (static_cast<SourceTextModuleRecord*>(moduleRecord))->GetLocalExportCount());
+        Assert((uint)propertyIndex < static_cast<SourceTextModuleRecord*>(static_cast<ModuleRecordBase*>(moduleRecord))->GetLocalExportCount());
         return this->nsSlots[propertyIndex];
     }
 
@@ -265,7 +280,7 @@ namespace Js
         return Constants::NoProperty;
     }
 
-    BOOL ModuleNamespace::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes) const
+    BOOL ModuleNamespace::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, ScriptContext * requestContext) const
     {
         if (index < propertyMap->Count())
         {
@@ -275,7 +290,7 @@ namespace Js
             *propertyId = propertyRecord->GetPropertyId();
             if (propertyString != nullptr)
             {
-                *propertyString = GetScriptContext()->GetPropertyString(*propertyId);
+                *propertyString = requestContext->GetPropertyString(*propertyId);
             }
             if (attributes != nullptr)
             {

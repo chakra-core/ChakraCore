@@ -6,14 +6,15 @@
 
 namespace Js
 {
-    struct StatementReader
+    template <typename TStatementMapList>
+    class StatementReader
     {
     private:
         const byte* m_startLocation;
         SmallSpanSequence* m_statementMap;
         SmallSpanSequenceIter m_statementMapIter;
 
-        FunctionBody::StatementMapList* m_fullstatementMap;
+        TStatementMapList * m_fullstatementMap;
         const byte* m_nextStatementBoundary;
         int m_statementIndex;
         bool m_startOfStatement;
@@ -21,6 +22,12 @@ namespace Js
     public:
         void Create(FunctionBody* functionRead, uint startOffset = 0);
         void Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode);
+
+        void Create(
+            _In_ const byte * byteCodeStart,
+            uint startOffset,
+            Js::SmallSpanSequence * statementMap,
+            TStatementMapList* fullstatementMap);
 
         inline bool AtStatementBoundary(ByteCodeReader * reader) { return m_nextStatementBoundary == reader->GetIP(); }
         inline uint32 MoveNextStatementBoundary();

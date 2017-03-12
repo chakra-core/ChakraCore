@@ -11,15 +11,6 @@ namespace Js
         return op <= OpCode::ExtendedLargeLayoutPrefix && op != OpCode::EndOfBlock;
     }
 
-    bool OpCodeUtil::IsSmallEncodedOpcode(OpCode op)
-    {
-        return op <= Js::OpCode::MaxByteSizedOpcodes;
-    }
-    uint OpCodeUtil::EncodedSize(OpCode op, LayoutSize layoutSize)
-    {
-        return (layoutSize == SmallLayout && IsSmallEncodedOpcode(op)) ? sizeof(BYTE) : sizeof(OpCode);
-    }
-
     void OpCodeUtil::ConvertOpToNonProfiled(OpCode& op)
     {
         if (IsProfiledCallOp(op) || IsProfiledCallOpWithICIndex(op))
@@ -80,6 +71,11 @@ namespace Js
     bool OpCodeUtil::IsProfiledCallOpWithICIndex(OpCode op)
     {
         return op >= Js::OpCode::ProfiledCallIWithICIndex && op <= Js::OpCode::ProfiledCallIExtendedFlagsWithICIndex;
+    }
+
+    bool OpCodeUtil::IsProfiledConstructorCall(OpCode op)
+    {
+        return ((op >= Js::OpCode::NewScObject && op <= Js::OpCode::ProfiledNewScObjArraySpread) || op == Js::OpCode::ProfiledNewScObjectSpread) && (OpCodeAttr::IsProfiledOp(op) || OpCodeAttr::IsProfiledOpWithICIndex(op));
     }
 
     bool OpCodeUtil::IsProfiledReturnTypeCallOp(OpCode op)

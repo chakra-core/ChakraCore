@@ -1,0 +1,22 @@
+[
+  {
+    "evaluate": {
+      "let a = 1": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "string <large string>"
+    }
+  },
+  {
+    "evaluate": {
+      "a": "number 100"
+    }
+  },
+  {
+    "evaluate": {
+      "let a = 1": "undefined undefined"
+    }
+  }
+]

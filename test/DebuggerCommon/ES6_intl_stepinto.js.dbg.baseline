@@ -1,0 +1,13 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "functionCallsReturn": {
+      "[get compare returned]": "function <large string>",
+      "[Intl.Collator.prototype.compare returned]": "number -1"
+    },
+    "locals": {
+      "intl": "Object {...}"
+    }
+  }
+]

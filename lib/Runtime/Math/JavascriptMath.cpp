@@ -933,8 +933,8 @@ StringCommon:
                     return scriptContext->GetLibrary()->GetNegativeInfinite();
                 }
 
-                if (((Js::SparseArraySegmentBase*)argsArray->GetHead())->next != nullptr || !argsArray->HasNoMissingValues() ||
-                    ((Js::SparseArraySegmentBase*)argsArray->GetHead())->length != len)
+                if (argsArray->GetHead()->next != nullptr || !argsArray->HasNoMissingValues() ||
+                    argsArray->GetHead()->length != len)
                 {
                     return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
                 }
@@ -991,8 +991,8 @@ StringCommon:
                     return scriptContext->GetLibrary()->GetPositiveInfinite();
                 }
 
-                if (((Js::SparseArraySegmentBase*)argsArray->GetHead())->next != nullptr || !argsArray->HasNoMissingValues() ||
-                    ((Js::SparseArraySegmentBase*)argsArray->GetHead())->length != len)
+                if (argsArray->GetHead()->next != nullptr || !argsArray->HasNoMissingValues() ||
+                    argsArray->GetHead()->length != len)
                 {
                     return JavascriptFunction::CalloutHelper<false>(function, thisArg, /* overridingNewTarget = */nullptr, arrayArg, scriptContext);
                 }
@@ -1096,14 +1096,17 @@ StringCommon:
                 scriptContext->GetLibrary()->SetIsPRNGSeeded(true);
 
 #if ENABLE_TTD
-                if(scriptContext->ShouldPerformDebugAction())
+                if(scriptContext->ShouldPerformReplayAction())
                 {
                     scriptContext->GetThreadContext()->TTDLog->ReplayExternalEntropyRandomEvent(&seed0, &seed1);
                 }
-
-                if(scriptContext->ShouldPerformRecordAction())
+                else if(scriptContext->ShouldPerformRecordAction())
                 {
                     scriptContext->GetThreadContext()->TTDLog->RecordExternalEntropyRandomEvent(seed0, seed1);
+                }
+                else
+                {
+                    ;
                 }
 #endif
             }

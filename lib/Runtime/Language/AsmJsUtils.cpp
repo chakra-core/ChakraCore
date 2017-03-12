@@ -22,7 +22,7 @@
 
 #include "RuntimeLanguagePch.h"
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Js
 {
 
@@ -169,9 +169,277 @@ namespace Js
             return JavascriptBoolean::ToVar(FALSE, scriptContext);
         }
         FrameDisplay* frame = ((ScriptFunction*)function)->GetEnvironment();
-        Var* moduleArrayBuffer = (Var*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
+        Field(Var)* moduleArrayBuffer = (Field(Var)*)frame->GetItem(0) + AsmJsModuleMemory::MemoryTableBeginOffset;
         *moduleArrayBuffer = newArrayBuffer;
         return JavascriptBoolean::ToVar(TRUE, scriptContext);
+    }
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    int64 ConvertStringToInt64(Var string, ScriptContext* scriptContext)
+    {
+        JavascriptString* str = JavascriptString::FromVar(string);
+        charcount_t length = str->GetLength();
+        const char16* buf = str->GetString();
+        int radix = 10;
+        if (length >= 2 && buf[0] == '0' && buf[1] == 'x')
+        {
+            radix = 16;
+        }
+        return (int64)_wcstoui64(buf, nullptr, radix);
+    }
+
+    Var CreateI64ReturnObject(int64 val, ScriptContext* scriptContext)
+    {
+        Js::Var i64Object = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
+        Var low = JavascriptNumber::ToVar((uint)val, scriptContext);
+        Var high = JavascriptNumber::ToVar(val >> 32, scriptContext);
+
+        PropertyRecord const * lowPropRecord = nullptr;
+        PropertyRecord const * highPropRecord = nullptr;
+        scriptContext->GetOrAddPropertyRecord(_u("low"), (int)wcslen(_u("low")), &lowPropRecord);
+        scriptContext->GetOrAddPropertyRecord(_u("high"), (int)wcslen(_u("high")), &highPropRecord);
+        JavascriptOperators::OP_SetProperty(i64Object, lowPropRecord->GetPropertyId(), low, scriptContext);
+        JavascriptOperators::OP_SetProperty(i64Object, highPropRecord->GetPropertyId(), high, scriptContext);
+        return i64Object;
+    }
+#endif
+
+    void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo)
+    {
+        void * address = reinterpret_cast<void*>(func->GetEntryPointInfo()->jsMethod);
+        Assert(address);
+        AsmJsFunctionInfo* info = func->GetFunctionBody()->GetAsmJsFunctionInfo();
+        ScriptContext* scriptContext = func->GetScriptContext();
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+        bool allowTestInputs = CONFIG_FLAG(WasmI64);
+#endif
+
+        AsmJsModuleInfo::EnsureHeapAttached(func);
+
+        uint actualArgCount = callInfo.Count - 1; // -1 for ScriptFunction
+        argDst = argDst + MachPtr; // add one first so as to skip the ScriptFunction argument
+        for (ArgSlot i = 0; i < info->GetArgCount(); i++)
+        {
+
+            if (info->GetArgType(i).isInt())
+            {
+                int32 intVal;
+                if (i < actualArgCount)
+                {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                    if (allowTestInputs && JavascriptString::Is(*origArgs))
+                    {
+                        intVal = (int32)ConvertStringToInt64(*origArgs, scriptContext);
+                    }
+                    else
+#endif
+                        intVal = JavascriptMath::ToInt32(*origArgs, scriptContext);
+                }
+                else
+                {
+                    intVal = 0;
+                }
+
+#if TARGET_64
+                *(int64*)(argDst) = 0;
+#endif
+                *(int32*)argDst = intVal;
+                argDst = argDst + MachPtr;
+            }
+            else if (info->GetArgType(i).isInt64())
+            {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                if (!allowTestInputs)
+#endif
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, WASMERR_InvalidTypeConversion);
+                }
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                int64 val;
+                if (i < actualArgCount)
+                {
+                    if (JavascriptString::Is(*origArgs))
+                    {
+                        val = ConvertStringToInt64(*origArgs, scriptContext);
+                    }
+                    else if (JavascriptObject::Is(*origArgs))
+                    {
+                        RecyclableObject* object = RecyclableObject::FromVar(*origArgs);
+                        PropertyRecord const * lowPropRecord = nullptr;
+                        PropertyRecord const * highPropRecord = nullptr;
+                        scriptContext->GetOrAddPropertyRecord(_u("low"), (int)wcslen(_u("low")), &lowPropRecord);
+                        scriptContext->GetOrAddPropertyRecord(_u("high"), (int)wcslen(_u("high")), &highPropRecord);
+                        Var low = JavascriptOperators::OP_GetProperty(object, lowPropRecord->GetPropertyId(), scriptContext);
+                        Var high = JavascriptOperators::OP_GetProperty(object, highPropRecord->GetPropertyId(), scriptContext);
+
+                        uint64 lowVal = JavascriptMath::ToInt32(low, scriptContext);
+                        uint64 highVal = JavascriptMath::ToInt32(high, scriptContext);
+                        val = (highVal << 32) | (lowVal & 0xFFFFFFFF);
+                    }
+                    else
+                    {
+                        int32 intVal = JavascriptMath::ToInt32(*origArgs, scriptContext);
+                        val = (int64)intVal;
+                    }
+                }
+                else
+                {
+                    val = 0;
+                }
+
+                *(int64*)(argDst) = val;
+                argDst += sizeof(int64);
+#endif
+            }
+            else if (info->GetArgType(i).isFloat())
+            {
+                float floatVal;
+                if (i < actualArgCount)
+                {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                    if (allowTestInputs && JavascriptString::Is(*origArgs))
+                    {
+                        int32 val = (int32)ConvertStringToInt64(*origArgs, scriptContext);
+                        floatVal = *(float*)&val;
+                    }
+                    else
+#endif
+                        floatVal = (float)(JavascriptConversion::ToNumber(*origArgs, scriptContext));
+                }
+                else
+                {
+                    floatVal = (float)(JavascriptNumber::NaN);
+                }
+#if TARGET_64
+                *(int64*)(argDst) = 0;
+#endif
+                *(float*)argDst = floatVal;
+                argDst = argDst + MachPtr;
+            }
+            else if (info->GetArgType(i).isDouble())
+            {
+                double doubleVal;
+                if (i < actualArgCount)
+                {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                    if (allowTestInputs && JavascriptString::Is(*origArgs))
+                    {
+                        int64 val = ConvertStringToInt64(*origArgs, scriptContext);
+                        doubleVal = *(double*)&val;
+                    }
+                    else
+#endif
+                        doubleVal = JavascriptConversion::ToNumber(*origArgs, scriptContext);
+                }
+                else
+                {
+                    doubleVal = JavascriptNumber::NaN;
+                }
+
+                *(double*)argDst = doubleVal;
+                argDst = argDst + sizeof(double);
+            }
+            else if (info->GetArgType(i).isSIMD())
+            {
+                AsmJsVarType argType = info->GetArgType(i);
+                AsmJsSIMDValue simdVal = {0, 0, 0, 0};
+                // SIMD values are copied unaligned.
+                // SIMD values cannot be implicitly coerced from/to other types. If the SIMD parameter is missing (i.e. Undefined), we throw type error since there is not equivalent SIMD value to coerce to.
+                switch (argType.which())
+                {
+                case AsmJsType::Int32x4:
+                    if (!JavascriptSIMDInt32x4::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("Int32x4"));
+                    }
+                    simdVal = ((JavascriptSIMDInt32x4*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Bool32x4:
+                    if (!JavascriptSIMDBool32x4::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool32x4TypeMismatch, _u("Bool32x4"));
+                    }
+                    simdVal = ((JavascriptSIMDBool32x4*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Bool16x8:
+                    if (!JavascriptSIMDBool16x8::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, _u("Bool16x8"));
+                    }
+                    simdVal = ((JavascriptSIMDBool16x8*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Bool8x16:
+                    if (!JavascriptSIMDBool8x16::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, _u("Bool8x16"));
+                    }
+                    simdVal = ((JavascriptSIMDBool8x16*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Float32x4:
+                    if (!JavascriptSIMDFloat32x4::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("Float32x4"));
+                    }
+                    simdVal = ((JavascriptSIMDFloat32x4*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Float64x2:
+                    if (!JavascriptSIMDFloat64x2::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("Float64x2"));
+                    }
+                    simdVal = ((JavascriptSIMDFloat64x2*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Int16x8:
+                    if (!JavascriptSIMDInt16x8::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, _u("Int16x8"));
+                    }
+                    simdVal = ((JavascriptSIMDInt16x8*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Int8x16:
+                    if (!JavascriptSIMDInt8x16::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, _u("Int8x16"));
+                    }
+                    simdVal = ((JavascriptSIMDInt8x16*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Uint32x4:
+                    if (!JavascriptSIMDUint32x4::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, _u("Uint32x4"));
+                    }
+                    simdVal = ((JavascriptSIMDUint32x4*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Uint16x8:
+                    if (!JavascriptSIMDUint16x8::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, _u("Uint16x8"));
+                    }
+                    simdVal = ((JavascriptSIMDUint16x8*)(*origArgs))->GetValue();
+                    break;
+                case AsmJsType::Uint8x16:
+                    if (!JavascriptSIMDUint8x16::Is(*origArgs))
+                    {
+                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint8x16TypeMismatch, _u("Uint8x16"));
+                    }
+                    simdVal = ((JavascriptSIMDUint8x16*)(*origArgs))->GetValue();
+                    break;
+                default:
+                    Assert(UNREACHED);
+                }
+                *(AsmJsSIMDValue*)argDst = simdVal;
+                argDst = argDst + sizeof(AsmJsSIMDValue);
+            }
+            else
+            {
+                Assert(UNREACHED);
+            }
+            ++origArgs;
+        }
+        // for convenience, lets take the opportunity to return the asm.js entrypoint address
+        return address;
     }
 
 #if _M_X64
@@ -204,267 +472,124 @@ namespace Js
         {
             argSize = 32; // convention is to always allocate spill space for rcx,rdx,r8,r9
         }
+
         PROBE_STACK_CALL(func->GetScriptContext(), func, argSize);
         return argSize;
     }
 
-    void * UnboxAsmJsArguments(ScriptFunction* func, Var * origArgs, char * argDst, CallInfo callInfo)
-    {
-        void * address = reinterpret_cast<void*>(func->GetEntryPointInfo()->jsMethod);
-        Assert(address);
-        AsmJsFunctionInfo* info = func->GetFunctionBody()->GetAsmJsFunctionInfo();
-        ScriptContext* scriptContext = func->GetScriptContext();
-
-        AsmJsModuleInfo::EnsureHeapAttached(func);
-
-        uint actualArgCount = callInfo.Count - 1; // -1 for ScriptFunction
-        argDst = argDst + MachPtr; // add one first so as to skip the ScriptFunction argument
-        for (ArgSlot i = 0; i < info->GetArgCount(); i++)
-        {
-
-            if (info->GetArgType(i).isInt())
-            {
-                int32 intVal;
-                if (i < actualArgCount)
-                {
-                    intVal = JavascriptMath::ToInt32(*origArgs, scriptContext);
-                }
-                else
-                {
-                    intVal = 0;
-                }
-
-                *(int64*)(argDst) = 0;
-                *(int32*)argDst = intVal;
-
-                argDst = argDst + MachPtr;
-            }
-            else if (info->GetArgType(i).isFloat())
-            {
-                float floatVal;
-                if (i < actualArgCount)
-                {
-                    floatVal = (float)(JavascriptConversion::ToNumber(*origArgs, scriptContext));
-                }
-                else
-                {
-                    floatVal = (float)(JavascriptNumber::NaN);
-                }
-                *(int64*)(argDst) = 0;
-                *(float*)argDst = floatVal;
-                argDst = argDst + MachPtr;
-            }
-            else if (info->GetArgType(i).isDouble())
-            {
-                double doubleVal;
-                if (i < actualArgCount)
-                {
-                    doubleVal = JavascriptConversion::ToNumber(*origArgs, scriptContext);
-                }
-                else
-                {
-                    doubleVal = JavascriptNumber::NaN;
-                }
-                *(int64*)(argDst) = 0;
-                *(double*)argDst = doubleVal;
-                argDst = argDst + MachPtr;
-            }
-            else if (info->GetArgType(i).isSIMD())
-            {
-                AsmJsVarType argType = info->GetArgType(i);
-                AsmJsSIMDValue simdVal = { 0, 0, 0, 0 };
-                // SIMD values are copied unaligned.
-                // SIMD values cannot be implicitly coerced from/to other types. If the SIMD parameter is missing (i.e. Undefined), we throw type error since there is not equivalent SIMD value to coerce to.
-                switch (argType.which())
-                {
-                case AsmJsType::Int32x4:
-                    if (!JavascriptSIMDInt32x4::Is(*origArgs))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("Int32x4"));
-                    }
-                    simdVal = ((JavascriptSIMDInt32x4*)(*origArgs))->GetValue();
-                    break;
-                case AsmJsType::Bool32x4:
-                    if (!JavascriptSIMDBool32x4::Is(*origArgs))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool32x4TypeMismatch, L"Bool32x4");
-                    }
-                    simdVal = ((JavascriptSIMDBool32x4*)(*origArgs))->GetValue();
-                    break;
-                case AsmJsType::Bool16x8:
-                    if (!JavascriptSIMDBool16x8::Is(*origArgs))
-                        {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"Bool16x8");
-                    }
-                    simdVal = ((JavascriptSIMDBool16x8*)(*origArgs))->GetValue();
-                    break;
-                case AsmJsType::Bool8x16:
-                    if (!JavascriptSIMDBool8x16::Is(*origArgs))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, L"Bool8x16");
-                    }
-                    simdVal = ((JavascriptSIMDBool8x16*)(*origArgs))->GetValue();
-                    break;
-                case AsmJsType::Float32x4:
-                    if (!JavascriptSIMDFloat32x4::Is(*origArgs))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("Float32x4"));
-                    }
-                    simdVal = ((JavascriptSIMDFloat32x4*)(*origArgs))->GetValue();
-                    break;
-                case AsmJsType::Float64x2:
-                    if (!JavascriptSIMDFloat64x2::Is(*origArgs))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("Float64x2"));
-                    }
-                    simdVal = ((JavascriptSIMDFloat64x2*)(*origArgs))->GetValue();
-                    break;
-                case AsmJsType::Int16x8:
-                    if (!JavascriptSIMDInt16x8::Is(*origArgs))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, L"Int16x8");
-                    }
-                    simdVal = ((JavascriptSIMDInt16x8*)(*origArgs))->GetValue();
-                    break;
-                case AsmJsType::Int8x16:
-                    if (!JavascriptSIMDInt8x16::Is(*origArgs))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"Int8x16");
-                    }
-                    simdVal = ((JavascriptSIMDInt8x16*)(*origArgs))->GetValue();
-                    break;
-                case AsmJsType::Uint32x4:
-                    if (!JavascriptSIMDUint32x4::Is(*origArgs))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, L"Uint32x4");
-                    }
-                    simdVal = ((JavascriptSIMDUint32x4*)(*origArgs))->GetValue();
-                    break;
-                case AsmJsType::Uint16x8:
-                    if (!JavascriptSIMDUint16x8::Is(*origArgs))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, L"Uint16x8");
-                    }
-                    simdVal = ((JavascriptSIMDUint16x8*)(*origArgs))->GetValue();
-                    break;
-                case AsmJsType::Uint8x16:
-                    if (!JavascriptSIMDUint8x16::Is(*origArgs))
-                    {
-                        JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint8x16TypeMismatch, L"Uint8x16");
-                    }
-                    simdVal = ((JavascriptSIMDUint8x16*)(*origArgs))->GetValue();
-                    break;
-                default:
-                    Assert(UNREACHED);
-                }
-                *(AsmJsSIMDValue*)argDst = simdVal;
-                argDst = argDst + sizeof(AsmJsSIMDValue);
-            }
-            ++origArgs;
-        }
-        // for convenience, lets take the opportunity to return the asm.js entrypoint address
-        return address;
-    }
-
-
-    Var BoxAsmJsReturnValue(ScriptFunction* func, int intRetVal, double doubleRetVal, float floatRetVal, __m128 simdRetVal)
+    Var BoxAsmJsReturnValue(ScriptFunction* func, int64 intRetVal, double doubleRetVal, float floatRetVal, __m128 simdRetVal)
     {
         // ExternalEntryPoint doesn't know the return value, so it will send garbage for everything except actual return type
         Var returnValue = nullptr;
         // make call and convert primitive type back to Var
         AsmJsFunctionInfo* info = func->GetFunctionBody()->GetAsmJsFunctionInfo();
+        ScriptContext* scriptContext = func->GetScriptContext();
         switch (info->GetReturnType().which())
         {
         case AsmJsRetType::Void:
-            returnValue = JavascriptOperators::OP_LdUndef(func->GetScriptContext());
+            returnValue = JavascriptOperators::OP_LdUndef(scriptContext);
             break;
-        case AsmJsRetType::Signed:{
-            returnValue = JavascriptNumber::ToVar(intRetVal, func->GetScriptContext());
-            break;
-        }
-        case AsmJsRetType::Double:{
-            returnValue = JavascriptNumber::NewWithCheck(doubleRetVal, func->GetScriptContext());
+        case AsmJsRetType::Signed:
+        {
+            returnValue = JavascriptNumber::ToVar((int)intRetVal, scriptContext);
             break;
         }
-        case AsmJsRetType::Float:{
-            returnValue = JavascriptNumber::NewWithCheck(floatRetVal, func->GetScriptContext());
+        case AsmJsRetType::Int64:
+        {
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (CONFIG_FLAG(WasmI64))
+            {
+                returnValue = CreateI64ReturnObject(intRetVal, scriptContext);
+                break;
+            }
+#endif
+            JavascriptError::ThrowTypeError(scriptContext, WASMERR_InvalidTypeConversion);
+        }
+        case AsmJsRetType::Double:
+        {
+            returnValue = JavascriptNumber::NewWithCheck(doubleRetVal, scriptContext);
+            break;
+        }
+        case AsmJsRetType::Float:
+        {
+            returnValue = JavascriptNumber::NewWithCheck(floatRetVal, scriptContext);
             break;
         }
         case AsmJsRetType::Float32x4:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDFloat32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDFloat32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Int32x4:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDInt32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDInt32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Bool32x4:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDBool32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDBool32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Bool16x8:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDBool16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDBool16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Bool8x16:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDBool8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDBool8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Float64x2:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDFloat64x2::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDFloat64x2::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Int16x8:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDInt16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDInt16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Int8x16:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDInt8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDInt8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Uint32x4:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDUint32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDUint32x4::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Uint16x8:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDUint16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDUint16x8::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         case AsmJsRetType::Uint8x16:
         {
             X86SIMDValue simdVal;
             simdVal.m128_value = simdRetVal;
-            returnValue = JavascriptSIMDUint8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), func->GetScriptContext());
+            returnValue = JavascriptSIMDUint8x16::New(&X86SIMDValue::ToSIMDValue(simdVal), scriptContext);
             break;
         }
         default:
@@ -481,12 +606,11 @@ namespace Js
         ScriptFunction* func = (ScriptFunction*)entryObject;
         FunctionBody* body = func->GetFunctionBody();
         AsmJsFunctionInfo* info = body->GetAsmJsFunctionInfo();
-        ScriptContext* scriptContext = func->GetScriptContext();
-        const uint argInCount = callInfo.Count - 1;
         int argSize = info->GetArgByteSize();
         char* dst;
         Var returnValue = 0;
 
+        // TODO (michhol): wasm, heap should not ever be detached
         AsmJsModuleInfo::EnsureHeapAttached(func);
 
         argSize = ::Math::Align<int32>(argSize, 8);
@@ -498,149 +622,8 @@ namespace Js
             mov dst, esp
         };
 
-        // Unbox Var to primitive type
-        {
-            int32 intVal; double doubleVal; float floatVal;
-            for (ArgSlot i = 0; i < info->GetArgCount(); i++)
-            {
-                if (info->GetArgType(i).isInt())
-                {
-                    if (i < argInCount)
-                    {
-                        intVal = JavascriptMath::ToInt32(args.Values[i + 1], scriptContext);
-                    }
-                    else
-                    {
-                        intVal = 0;
-                    }
-                    *(int32*)dst = intVal;
-                    dst += sizeof(int32);
-                }
-                else if (info->GetArgType(i).isFloat())
-                {
-                    if (i < argInCount)
-                    {
-                        floatVal = (float)(JavascriptConversion::ToNumber(args.Values[i + 1], scriptContext));
-                    }
-                    else
-                    {
-                        floatVal = (float)(JavascriptNumber::NaN);
-                    }
-                    *(float*)dst = floatVal;
-                    dst += sizeof(float);
-                }
-                else if (info->GetArgType(i).isDouble())
-                {
-                    if (i < argInCount)
-                    {
-                        doubleVal = JavascriptConversion::ToNumber(args.Values[i + 1], scriptContext);
-                    }
-                    else
-                    {
-                        doubleVal = JavascriptNumber::NaN;
-                    }
-                    *(double*)dst = doubleVal;
-                    dst += sizeof(double);
-                }
-                else if (info->GetArgType(i).isSIMD())
-                {
-                    AsmJsVarType argType = info->GetArgType(i);
-                    AsmJsSIMDValue simdVal;
-                    // SIMD values are copied unaligned.
-                    // SIMD values cannot be implicitly coerced from/to other types. If the SIMD parameter is missing (i.e. Undefined), we throw type error since there is not equivalent SIMD value to coerce to.
-                    switch (argType.which())
-                    {
-                    case AsmJsType::Int32x4:
-                        if (i >= argInCount || !JavascriptSIMDInt32x4::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt32x4TypeMismatch, _u("Int32x4"));
-                        }
-                        simdVal = ((JavascriptSIMDInt32x4*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    case AsmJsType::Bool32x4:
-                        if (i >= argInCount || !JavascriptSIMDBool32x4::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool32x4TypeMismatch, L"Bool32x4");
-                        }
-                        simdVal = ((JavascriptSIMDBool32x4*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    case AsmJsType::Bool16x8:
-                        if (i >= argInCount || !JavascriptSIMDBool16x8::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool16x8TypeMismatch, L"Bool16x8");
-                        }
-                        simdVal = ((JavascriptSIMDBool16x8*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    case AsmJsType::Bool8x16:
-                        if (i >= argInCount || !JavascriptSIMDBool8x16::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdBool8x16TypeMismatch, L"Bool8x16");
-                        }
-                        simdVal = ((JavascriptSIMDBool8x16*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    case AsmJsType::Float32x4:
-                        if (i >= argInCount || !JavascriptSIMDFloat32x4::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat32x4TypeMismatch, _u("Float32x4"));
-                        }
-                        simdVal = ((JavascriptSIMDFloat32x4*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    case AsmJsType::Float64x2:
-                        if (i >= argInCount || !JavascriptSIMDFloat64x2::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdFloat64x2TypeMismatch, _u("Float64x2"));
-                        }
-                        simdVal = ((JavascriptSIMDFloat64x2*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    case AsmJsType::Int16x8:
-                        if (i >= argInCount || !JavascriptSIMDInt16x8::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt16x8TypeMismatch, L"Int16x8");
-                        }
-                        simdVal = ((JavascriptSIMDInt16x8*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    case AsmJsType::Int8x16:
-                        if (i >= argInCount || !JavascriptSIMDInt8x16::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdInt8x16TypeMismatch, L"Int8x16");
-                        }
-                        simdVal = ((JavascriptSIMDInt8x16*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    case AsmJsType::Uint32x4:
-                        if (i >= argInCount || !JavascriptSIMDUint32x4::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint32x4TypeMismatch, L"Uint32x4");
-                        }
-                        simdVal = ((JavascriptSIMDUint32x4*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    case AsmJsType::Uint16x8:
-                        if (i >= argInCount || !JavascriptSIMDUint16x8::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint16x8TypeMismatch, L"Uint16x8");
-                        }
-                        simdVal = ((JavascriptSIMDUint16x8*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    case AsmJsType::Uint8x16:
-                        if (i >= argInCount || !JavascriptSIMDUint8x16::Is(args.Values[i + 1]))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_SimdUint8x16TypeMismatch, L"Uint8x16");
-                        }
-                        simdVal = ((JavascriptSIMDUint8x16*)(args.Values[i + 1]))->GetValue();
-                        break;
-                    default:
-                        Assert(UNREACHED);
-                    }
-                    *(AsmJsSIMDValue*)dst = simdVal;
-                    dst += sizeof(AsmJsSIMDValue);
-                }
-                else
-                {
-                    AssertMsg(UNREACHED, "Invalid function arg type.");
-                }
-            }
-        }
+        const void * asmJSEntryPoint = UnboxAsmJsArguments(func, args.Values + 1, dst - MachPtr, callInfo);
 
-        const void * asmJSEntryPoint = reinterpret_cast<void*>(func->GetEntryPointInfo()->jsMethod);
         // make call and convert primitive type back to Var
         switch (info->GetReturnType().which())
         {
@@ -670,6 +653,29 @@ namespace Js
             }
             returnValue = JavascriptNumber::ToVar(ival, func->GetScriptContext());
             break;
+        }
+        case AsmJsRetType::Int64:
+        {
+            int32 iLow = 0, iHigh = 0;
+            __asm
+            {
+                mov  ecx, asmJSEntryPoint
+#ifdef _CONTROL_FLOW_GUARD
+                call[__guard_check_icall_fptr]
+#endif
+                push func
+                call ecx
+                mov iLow, eax;
+                mov iHigh, edx;
+            }
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+            if (CONFIG_FLAG(WasmI64))
+            {
+                returnValue = CreateI64ReturnObject((int64)iLow | ((int64)iHigh << 32), func->GetScriptContext());
+                break;
+            }
+#endif
+            JavascriptError::ThrowTypeError(func->GetScriptContext(), WASMERR_InvalidTypeConversion);
         }
         case AsmJsRetType::Double:{
             double dval = 0;

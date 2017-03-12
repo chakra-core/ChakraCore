@@ -5,6 +5,11 @@
 #include "Backend.h"
 #include "PrologEncoderMD.h"
 
+#ifdef _WIN32
+// ----------------------------------------------------------------------------
+//  _WIN32 x64 unwind uses PDATA
+// ----------------------------------------------------------------------------
+
 void PrologEncoder::RecordNonVolRegSave()
 {
     requiredUnwindCodeNodeCount++;
@@ -27,24 +32,13 @@ DWORD PrologEncoder::SizeOfPData()
     return sizeof(PData) + (sizeof(UNWIND_CODE) * requiredUnwindCodeNodeCount);
 }
 
-void PrologEncoder::SetPDataPtr(void *pdata)
-{
-    this->pdata = static_cast<PData *>(pdata);
-}
-
 void PrologEncoder::EncodeSmallProlog(uint8 prologSize, size_t allocaSize)
 {
-    Assert(!pdata);
     Assert(allocaSize <= 128);
     Assert(requiredUnwindCodeNodeCount == 0);
 
     // Increment requiredUnwindCodeNodeCount to ensure we do the Alloc for the correct size
     currentUnwindCodeNodeIndex = ++requiredUnwindCodeNodeCount;
-
-    if (!pdata)
-    {
-        pdata = (PData *)alloc->Alloc(SizeOfPData());
-    }
 
     currentInstrOffset = prologSize;
 
@@ -61,15 +55,6 @@ void PrologEncoder::EncodeInstr(IR::Instr *instr, unsigned __int8 size)
 {
     Assert(instr);
     Assert(size);
-
-    // We've started encoding instructions. This is a good time to initialize
-    // pdata as we now have the final size.
-    if (!pdata)
-    {
-        pdata = (PData *)alloc->Alloc(SizeOfPData());
-    }
-
-    Assert(pdata);
 
     UnwindCode       *unwindCode       = nullptr;
     unsigned __int8   unwindCodeOp     = PrologEncoderMD::GetOp(instr);
@@ -167,33 +152,32 @@ BYTE *PrologEncoder::Finalize(BYTE *functionStart,
                               DWORD codeSize,
                               BYTE *pdataBuffer)
 {
-    Assert(pdata);
     Assert(pdataBuffer > functionStart);
     Assert((size_t)pdataBuffer % sizeof(DWORD) == 0);
 
-    pdata->runtimeFunction.BeginAddress = 0;
-    pdata->runtimeFunction.EndAddress   = codeSize;
-    pdata->runtimeFunction.UnwindData   = (DWORD)((pdataBuffer + sizeof(RUNTIME_FUNCTION)) - functionStart);
+    pdata.runtimeFunction.BeginAddress = 0;
+    pdata.runtimeFunction.EndAddress   = codeSize;
+    pdata.runtimeFunction.UnwindData   = (DWORD)((pdataBuffer + sizeof(RUNTIME_FUNCTION)) - functionStart);
 
-    FinalizeUnwindInfo();
+    FinalizeUnwindInfo(functionStart, codeSize);
 
-    return (BYTE *)&pdata->runtimeFunction;
+    return (BYTE *)&pdata.runtimeFunction;
 }
 
-void PrologEncoder::FinalizeUnwindInfo()
+void PrologEncoder::FinalizeUnwindInfo(BYTE *functionStart, DWORD codeSize)
 {
-    pdata->unwindInfo.Version           = 1;
-    pdata->unwindInfo.Flags             = 0;
-    pdata->unwindInfo.SizeOfProlog      = currentInstrOffset;
-    pdata->unwindInfo.CountOfCodes      = requiredUnwindCodeNodeCount;
+    pdata.unwindInfo.Version           = 1;
+    pdata.unwindInfo.Flags             = 0;
+    pdata.unwindInfo.SizeOfProlog      = currentInstrOffset;
+    pdata.unwindInfo.CountOfCodes      = requiredUnwindCodeNodeCount;
 
     // We don't use the frame pointer in the standard way, and since we don't do dynamic stack allocation, we don't change the
     // stack pointer except during calls. From the perspective of the unwind info, it needs to restore information relative to
     // the stack pointer, so don't register the frame pointer.
-    pdata->unwindInfo.FrameRegister     = 0;
-    pdata->unwindInfo.FrameOffset       = 0;
+    pdata.unwindInfo.FrameRegister     = 0;
+    pdata.unwindInfo.FrameOffset       = 0;
 
-    AssertMsg(requiredUnwindCodeNodeCount <= 34, "We allocate 72 bytes for xdata - 34 (UnwindCodes) * 2 + 4 (UnwindInfo)");
+    AssertMsg(requiredUnwindCodeNodeCount <= MaxRequiredUnwindCodeNodeCount, "We allocate 72 bytes for xdata - 34 (UnwindCodes) * 2 + 4 (UnwindInfo)");
 }
 
 PrologEncoder::UnwindCode *PrologEncoder::GetUnwindCode(unsigned __int8 nodeCount)
@@ -201,7 +185,7 @@ PrologEncoder::UnwindCode *PrologEncoder::GetUnwindCode(unsigned __int8 nodeCoun
     Assert(nodeCount && ((currentUnwindCodeNodeIndex - nodeCount) >= 0));
     currentUnwindCodeNodeIndex -= nodeCount;
 
-    return static_cast<UnwindCode *>(&pdata->unwindInfo.unwindCodes[currentUnwindCodeNodeIndex]);
+    return static_cast<UnwindCode *>(&pdata.unwindInfo.unwindCodes[currentUnwindCodeNodeIndex]);
 }
 
 DWORD PrologEncoder::SizeOfUnwindInfo()
@@ -211,5 +195,115 @@ DWORD PrologEncoder::SizeOfUnwindInfo()
 
 BYTE *PrologEncoder::GetUnwindInfo()
 {
-    return (BYTE *)&pdata->unwindInfo;
+    return (BYTE *)&pdata.unwindInfo;
 }
+
+#else  // !_WIN32
+// ----------------------------------------------------------------------------
+//  !_WIN32 x64 unwind uses .eh_frame
+// ----------------------------------------------------------------------------
+
+void PrologEncoder::EncodeSmallProlog(uint8 prologSize, size_t size)
+{
+    auto fde = ehFrame.GetFDE();
+
+    // prolog: push rbp
+    fde->cfi_advance_loc(1);                    // DW_CFA_advance_loc: 1
+    fde->cfi_def_cfa_offset(MachPtr * 2);       // DW_CFA_def_cfa_offset: 16
+    fde->cfi_offset(GetDwarfRegNum(LowererMDArch::GetRegFramePointer()), 2); // DW_CFA_offset: r6 (rbp) at cfa-16
+
+    ehFrame.End();
+}
+
+DWORD PrologEncoder::SizeOfPData()
+{
+    return ehFrame.Count();
+}
+
+BYTE* PrologEncoder::Finalize(BYTE *functionStart, DWORD codeSize, BYTE *pdataBuffer)
+{
+    auto fde = ehFrame.GetFDE();
+    fde->UpdateAddressRange(functionStart, codeSize);
+    return ehFrame.Buffer();
+}
+
+void PrologEncoder::Begin(size_t prologStartOffset)
+{
+    Assert(currentInstrOffset == 0);
+
+    currentInstrOffset = prologStartOffset;
+}
+
+void PrologEncoder::End()
+{
+    ehFrame.End();
+}
+
+void PrologEncoder::FinalizeUnwindInfo(BYTE *functionStart, DWORD codeSize)
+{
+    auto fde = ehFrame.GetFDE();
+    fde->UpdateAddressRange(functionStart, codeSize);
+}
+
+void PrologEncoder::EncodeInstr(IR::Instr *instr, unsigned __int8 size)
+{
+    auto fde = ehFrame.GetFDE();
+
+    uint8 unwindCodeOp = PrologEncoderMD::GetOp(instr);
+
+    Assert((currentInstrOffset + size) > currentInstrOffset);
+    currentInstrOffset += size;
+
+    switch (unwindCodeOp)
+    {
+    case UWOP_PUSH_NONVOL:
+    {
+        const uword advance = currentInstrOffset - cfiInstrOffset;
+        cfiInstrOffset = currentInstrOffset;
+        cfaWordOffset++;
+
+        fde->cfi_advance(advance);                              // DW_CFA_advance_loc: ?
+        fde->cfi_def_cfa_offset(cfaWordOffset * MachPtr);       // DW_CFA_def_cfa_offset: ??
+
+        const ubyte reg = PrologEncoderMD::GetNonVolRegToSave(instr) + 1;
+        fde->cfi_offset(GetDwarfRegNum(reg), cfaWordOffset);    // DW_CFA_offset: r? at cfa-??
+        break;
+    }
+
+    case UWOP_SAVE_XMM128:
+    {
+        // TODO
+        break;
+    }
+
+    case UWOP_ALLOC_SMALL:
+    case UWOP_ALLOC_LARGE:
+    {
+        size_t allocaSize = PrologEncoderMD::GetAllocaSize(instr);
+        Assert(allocaSize % MachPtr == 0);
+
+        size_t slots = allocaSize / MachPtr;
+        Assert(cfaWordOffset + slots > cfaWordOffset);
+
+        const uword advance = currentInstrOffset - cfiInstrOffset;
+        cfiInstrOffset = currentInstrOffset;
+        cfaWordOffset += slots;
+
+        fde->cfi_advance(advance);                          // DW_CFA_advance_loc: ?
+        fde->cfi_def_cfa_offset(cfaWordOffset * MachPtr);   // DW_CFA_def_cfa_offset: ??
+        break;
+    }
+
+    case UWOP_IGNORE:
+    {
+        return;
+    }
+
+    default:
+    {
+        AssertMsg(false, "PrologEncoderMD returned unsupported UnwindCodeOp.");
+    }
+    }
+}
+
+#endif  // !_WIN32

@@ -16,7 +16,11 @@
         #define __forceinline _ALWAYSINLINE
     #endif
     #if __has_attribute(noinline)
-        #define _NOINLINE __attribute__((noinline))
+        #ifdef CLANG_HAS_DISABLE_TAIL_CALLS
+            #define _NOINLINE __attribute__((noinline, disable_tail_calls))
+        #else
+            #define _NOINLINE __attribute__((noinline))
+        #endif
     #else // No noinline support
         #pragma message __MAKE_WARNING__("noinline")
         #define _NOINLINE
@@ -47,6 +51,10 @@
 #define CLANG_WNO_END
 #endif
 
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable: 4995) /* 'function': name was marked as #pragma deprecated */
@@ -61,8 +69,6 @@
 #undef GetClassName
 #undef Yield /* winbase.h defines this but we want to use it for Js::OpCode::Yield; it is Win16 legacy, no harm undef'ing it */
 #pragma warning(pop)
-
-typedef wchar_t char16;
 
 // xplat-todo: get a better name for this macro
 #define _u(s) L##s
@@ -83,10 +89,13 @@ __forceinline void  __int2c()
 #define STRSAFE_INLINE   1
 
 #ifdef PAL_STDCPP_COMPAT
+#include <wchar.h>
 #include <math.h>
 #include <time.h>
+#if defined(_AMD64_) || defined(__i686__)
 #include <smmintrin.h>
 #include <xmmintrin.h>
+#endif // defined(_AMD64_) || defined(__i686__)
 #endif
 
 #include "inc/pal.h"
@@ -94,8 +103,9 @@ __forceinline void  __int2c()
 #include "inc/rt/no_sal2.h"
 #include "inc/rt/oaidl.h"
 
-typedef char16_t char16;
 #define _u(s) u##s
+
+typedef GUID UUID;
 #define INIT_PRIORITY(x) __attribute__((init_priority(x)))
 
 #ifdef PAL_STDCPP_COMPAT
@@ -104,6 +114,7 @@ typedef char16_t char16;
 #define FILE PAL_FILE
 #endif
 
+#if defined(_AMD64_) || defined(__i686__)
 // xplat-todo: verify below is correct
 #include <cpuid.h>
 inline int get_cpuid(int cpuInfo[4], int function_id)
@@ -115,6 +126,14 @@ inline int get_cpuid(int cpuInfo[4], int function_id)
             reinterpret_cast<unsigned int*>(&cpuInfo[2]),
             reinterpret_cast<unsigned int*>(&cpuInfo[3]));
 }
+#elif defined(_ARM_)
+inline int get_cpuid(int cpuInfo[4], int function_id)
+{
+    int empty[4] = {0};
+    memcpy(cpuInfo, empty, sizeof(int) * 4);
+    // xplat-todo: implement me!!
+}
+#endif
 
 inline void DebugBreak()
 {
@@ -134,12 +153,11 @@ inline void DebugBreak()
 
 // These are not available in pal
 #define fwprintf_s      fwprintf
-// sprintf_s overloaded in safecrt.h. Not sure why palrt.h redefines sprintf_s.
-#undef sprintf_s
-// #define sprintf_s PAL_sprintf_s
 
 // PAL LoadLibraryExW not supported
 #define LOAD_LIBRARY_SEARCH_SYSTEM32     0
+// winnt.h
+#define FAST_FAIL_INVALID_ARG            5
 // winerror.h
 #define FACILITY_JSCRIPT                 2306
 #define JSCRIPT_E_CANTEXECUTE            _HRESULT_TYPEDEF_(0x89020001L)
@@ -183,6 +201,7 @@ inline void DebugBreak()
 // activscp.h
 #define SCRIPT_E_RECORDED                _HRESULT_TYPEDEF_(0x86664004L)
 
+#define GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS        (0x00000004)
 
 typedef
 enum tagBREAKPOINT_STATE
@@ -391,21 +410,6 @@ inline __int64 _abs64(__int64 n)
     return n < 0 ? -n : n;
 }
 
-// xplat-todo: implement these for JIT and Concurrent/Partial GC
-uintptr_t _beginthreadex(
-   void *security,
-   unsigned stack_size,
-   unsigned ( __stdcall *start_address )( void * ),
-   void *arglist,
-   unsigned initflag,
-   unsigned *thrdaddr);
-
-BOOL WINAPI GetModuleHandleEx(
-  _In_     DWORD   dwFlags,
-  _In_opt_ LPCTSTR lpModuleName,
-  _Out_    HMODULE *phModule
-);
-
 int GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit);
 bool IsAddressOnStack(ULONG_PTR address);
 
@@ -419,6 +423,30 @@ inline char16* wmemset(char16* wcs, char16 wc, size_t n)
     }
     return wcs;
 }
+
+inline errno_t wmemcpy_s(char16* dest, size_t destSize, const char16* src, size_t count)
+{
+    return memcpy_s(dest, sizeof(char16) * destSize, src, sizeof(char16) * count);
+}
+
+inline int _wunlink(const char16* filename)
+{
+    // WARN: does not set errno when fail
+    return DeleteFile(filename) ? 0 : -1;
+}
+
+template <size_t size>
+inline errno_t _wcserror_s(char16 (&buffer)[size], int errnum)
+{
+    const char* str = strerror(errnum);
+    // WARN: does not return detail errno when fail
+    return MultiByteToWideChar(CP_ACP, 0, str, -1, buffer, size) ? 0 : -1;
+}
+
+#define midl_user_allocate(size) \
+    HeapAlloc(GetProcessHeap(), 0, (size))
+#define midl_user_free(ptr) \
+    if (ptr != NULL) { HeapFree(GetProcessHeap(), NULL, ptr); }
 
 DWORD __cdecl CharLowerBuffW(const char16* lpsz, DWORD  cchLength);
 DWORD __cdecl CharUpperBuffW(const char16* lpsz, DWORD  cchLength);
@@ -580,29 +608,43 @@ __inline
 HRESULT ULongMult(ULONG ulMultiplicand, ULONG ulMultiplier, ULONG* pulResult);
 #endif
 
+/* **** WARNING : finallyFunc is not allowed to raise exception *****
+ * **** DO NOT ADD stack probe or memory allocations within the finallyFunc ****
+ */
 template <class TryFunc, class FinallyFunc>
 void TryFinally(const TryFunc& tryFunc, const FinallyFunc& finallyFunc)
 {
-    bool hasException = true;
-    try
+    class FinallyObject
     {
-        tryFunc();
-        hasException = false;
-    }
-    catch(...)
-    {
-        finallyFunc(hasException);
-        throw;
-    }
+    public:
+        FinallyObject(const FinallyFunc& finallyFunc) : finallyFunc(finallyFunc), abnormalTermination(true) {}
+        ~FinallyObject() { finallyFunc(abnormalTermination); }
 
-    finallyFunc(hasException);
+        void SetHasNoAbnormalTermination() { abnormalTermination = false; }
+    private:
+        const FinallyFunc& finallyFunc;
+        bool abnormalTermination;
+    } finallyObject(finallyFunc);
+
+    tryFunc();
+    finallyObject.SetHasNoAbnormalTermination();
 }
+
+#ifdef DISABLE_SEH
+#define __TRY_FINALLY_BEGIN TryFinally([&]()
+#define __FINALLY           , [&](bool /* hasException */)
+#define __TRY_FINALLY_END   );
+#else
+#define __TRY_FINALLY_BEGIN __try
+#define __FINALLY   __finally
+#define __TRY_FINALLY_END
+#endif
 
 namespace PlatformAgnostic
 {
     __forceinline unsigned char _BitTestAndSet(LONG *_BitBase, int _BitPos)
     {
-#if defined(__clang__)
+#if defined(__clang__) && !defined(_ARM_)
         // Clang doesn't expand _bittestandset intrinic to bts, and it's implemention also doesn't work for _BitPos >= 32
         unsigned char retval = 0;
         asm(
@@ -618,9 +660,9 @@ namespace PlatformAgnostic
 #endif
     }
 
-    __forceinline unsigned char _BitTest(const LONG *_BitBase, int _BitPos)
+    __forceinline unsigned char _BitTest(LONG *_BitBase, int _BitPos)
     {
-#if defined(__clang__)
+#if defined(__clang__) && !defined(_ARM_)
         // Clang doesn't expand _bittest intrinic to bt, and it's implemention also doesn't work for _BitPos >= 32
         unsigned char retval;
         asm(
@@ -638,7 +680,7 @@ namespace PlatformAgnostic
 
     __forceinline unsigned char _InterlockedBitTestAndSet(volatile LONG *_BitBase, int _BitPos)
     {
-#if defined(__clang__)
+#if defined(__clang__) && !defined(_ARM_)
         // Clang doesn't expand _interlockedbittestandset intrinic to lock bts, and it's implemention also doesn't work for _BitPos >= 32
         unsigned char retval;
         asm(
@@ -653,8 +695,32 @@ namespace PlatformAgnostic
         return _interlockedbittestandset(_BitBase, _BitPos);
 #endif
     }
+
+    __forceinline unsigned char _InterlockedBitTestAndReset(volatile LONG *_BitBase, int _BitPos)
+    {
+#if defined(__clang__) && !defined(_ARM_)
+        // Clang doesn't expand _interlockedbittestandset intrinic to lock btr, and it's implemention also doesn't work for _BitPos >= 32
+        unsigned char retval;
+        asm(
+            "lock btr %[_BitPos], %[_BitBase]\n\t"
+            "setc %b[retval]\n\t"
+            : [_BitBase] "+m" (*_BitBase), [retval] "+rm" (retval)
+            : [_BitPos] "ri" (_BitPos)
+            : "cc" // clobber condition code
+        );
+        return retval;
+#elif !defined(__ANDROID__)
+        return _interlockedbittestandreset(_BitBase, (long)_BitPos);
+#else
+        // xplat-todo: Implement _interlockedbittestandreset for Android
+        abort();
+#endif
+    }
 };
 
 #include "PlatformAgnostic/DateTime.h"
 #include "PlatformAgnostic/Numbers.h"
 #include "PlatformAgnostic/SystemInfo.h"
+#include "PlatformAgnostic/Thread.h"
+#include "PlatformAgnostic/AssemblyCommon.h"
+#include "PlatformAgnostic/Debugger.h"

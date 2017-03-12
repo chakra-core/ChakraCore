@@ -192,7 +192,7 @@ BackwardPass::DoTrackCompoundedIntOverflow() const
     return
         !PHASE_OFF(Js::TrackCompoundedIntOverflowPhase, func) &&
         DoTrackIntOverflow() &&
-        !func->GetProfileInfo()->IsTrackCompoundedIntOverflowDisabled();
+        (!func->HasProfileInfo() || !func->GetReadOnlyProfileInfo()->IsTrackCompoundedIntOverflowDisabled());
 }
 
 bool
@@ -261,12 +261,12 @@ BackwardPass::CleanupBackwardPassInfoInFlowGraph()
 void
 BackwardPass::InsertArgInsForFormals()
 {
-    if (func->IsStackArgsEnabled() && !func->GetJnFunction()->GetHasImplicitArgIns())
+    if (func->IsStackArgsEnabled() && !func->GetJITFunctionBody()->HasImplicitArgIns())
     {
         IR::Instr * insertAfterInstr = func->m_headInstr->m_next;
         AssertMsg(insertAfterInstr->IsLabelInstr(), "First Instr of the first block should always have a label");
 
-        Js::ArgSlot paramsCount = insertAfterInstr->m_func->GetJnFunction()->GetInParamsCount() - 1;
+        Js::ArgSlot paramsCount = insertAfterInstr->m_func->GetJITFunctionBody()->GetInParamsCount() - 1;
         IR::Instr *     argInInstr = nullptr;
         for (Js::ArgSlot argumentIndex = 1; argumentIndex <= paramsCount; argumentIndex++)
         {
@@ -289,8 +289,25 @@ BackwardPass::InsertArgInsForFormals()
 
         if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase) && paramsCount > 0)
         {
-            Output::Print(_u("StackArgFormals : %s (%d) :Inserting ArgIn_A for LdSlot (formals) in the start of Deadstore pass. \n"), func->GetJnFunction()->GetDisplayName(), func->GetJnFunction()->GetFunctionNumber());
+            Output::Print(_u("StackArgFormals : %s (%d) :Inserting ArgIn_A for LdSlot (formals) in the start of Deadstore pass. \n"), func->GetJITFunctionBody()->GetDisplayName(), func->GetFunctionNumber());
             Output::Flush();
+        }
+    }
+}
+
+void
+BackwardPass::MarkScopeObjSymUseForStackArgOpt()
+{
+    IR::Instr * instr = this->currentInstr;
+    if (tag == Js::DeadStorePhase)
+    {
+        if (instr->DoStackArgsOpt(this->func) && instr->m_func->GetScopeObjSym() != nullptr && this->DoByteCodeUpwardExposedUsed())
+        {
+            if (this->currentBlock->byteCodeUpwardExposedUsed == nullptr)
+            {
+                this->currentBlock->byteCodeUpwardExposedUsed = JitAnew(this->tempAlloc, BVSparse<JitArenaAllocator>, this->tempAlloc);
+            }
+            this->currentBlock->byteCodeUpwardExposedUsed->Set(instr->m_func->GetScopeObjSym()->m_id);
         }
     }
 }
@@ -460,7 +477,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
     BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = nullptr;
     BVSparse<JitArenaAllocator> * couldRemoveNegZeroBailoutForDef = nullptr;
 #if DBG
-    uint byteCodeLocalsCount = func->GetJnFunction()->GetLocalsCount();
+    uint byteCodeLocalsCount = func->GetJITFunctionBody()->GetLocalsCount();
     StackSym ** byteCodeRestoreSyms = nullptr;
 #endif
 
@@ -704,7 +721,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 
             PHASE_PRINT_TRACE(Js::ObjTypeSpecStorePhase, this->func,
                               _u("ObjTypeSpecStore: func %s, edge %d => %d: "),
-                              this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                              this->func->GetDebugNumberSet(debugStringBuffer),
                               block->GetBlockNum(), blockSucc->GetBlockNum());
 
             auto fixupFrom = [block, blockSucc, this](Bucket<AddPropertyCacheBucket> &bucket)
@@ -804,11 +821,12 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
                 if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
                 {
                     char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Js::FunctionBody* topFunctionBody = this->func->GetTopFunc()->GetJnFunction();
-                    Js::FunctionBody* functionBody = this->func->GetJnFunction();
                     Output::Print(_u("ObjTypeSpec: top function %s (%s), function %s (%s), write guard symbols on edge %d => %d: "),
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(),
-                        functionBody->GetDebugNumberSet(debugStringBuffer2), block->GetBlockNum(), blockSucc->GetBlockNum());
+                        this->func->GetTopFunc()->GetJITFunctionBody()->GetDisplayName(),
+                        this->func->GetTopFunc()->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetJITFunctionBody()->GetDisplayName(),
+                        this->func->GetDebugNumberSet(debugStringBuffer2), block->GetBlockNum(),
+                        blockSucc->GetBlockNum());
                 }
 #endif
                 if (blockSucc->stackSymToWriteGuardsMap != nullptr)
@@ -851,11 +869,12 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
 #if DBG_DUMP
                 if (PHASE_VERBOSE_TRACE(Js::TraceObjTypeSpecTypeGuardsPhase, this->func))
                 {
-                    Js::FunctionBody* topFunctionBody = this->func->GetTopFunc()->GetJnFunction();
-                    Js::FunctionBody* functionBody = this->func->GetJnFunction();
                     char16 debugStringBuffer2[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
                     Output::Print(_u("ObjTypeSpec: top function %s (%s), function %s (%s), guarded property operations on edge %d => %d: \n"),
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer), functionBody->GetDisplayName(), functionBody->GetDebugNumberSet(debugStringBuffer2),
+                        this->func->GetTopFunc()->GetJITFunctionBody()->GetDisplayName(),
+                        this->func->GetTopFunc()->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetJITFunctionBody()->GetDisplayName(),
+                        this->func->GetDebugNumberSet(debugStringBuffer2),
                         block->GetBlockNum(), blockSucc->GetBlockNum());
                 }
 #endif
@@ -960,7 +979,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::ObjTypeSpecStorePhase, this->func))
         {
             Output::Print(_u("ObjTypeSpecStore: func %s, block %d: "),
-                          this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                          this->func->GetDebugNumberSet(debugStringBuffer),
                           block->GetBlockNum());
             if (stackSymToFinalType)
             {
@@ -975,7 +994,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::TraceObjTypeSpecTypeGuardsPhase, this->func))
         {
             Output::Print(_u("ObjTypeSpec: func %s, block %d, guarded properties:\n"),
-                this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
+                this->func->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
             if (stackSymToGuardedProperties)
             {
                 stackSymToGuardedProperties->Dump();
@@ -990,7 +1009,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
         if (PHASE_TRACE(Js::TraceObjTypeSpecWriteGuardsPhase, this->func))
         {
             Output::Print(_u("ObjTypeSpec: func %s, block %d, write guards: "),
-                this->func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
+                this->func->GetDebugNumberSet(debugStringBuffer), block->GetBlockNum());
             if (stackSymToWriteGuardsMap)
             {
                 Output::Print(_u("\n"));
@@ -1181,7 +1200,7 @@ BackwardPass::MergeGuardedProperties(ObjTypeGuardBucket bucket1, ObjTypeGuardBuc
 
     ObjTypeGuardBucket bucket;
     bucket.SetGuardedPropertyOps(mergedPropertyOps);
-    Js::Type *monoGuardType = bucket1.GetMonoGuardType();
+    JITTypeHolder monoGuardType = bucket1.GetMonoGuardType();
     if (monoGuardType != nullptr)
     {
         Assert(!bucket2.NeedsMonoCheck() || monoGuardType == bucket2.GetMonoGuardType());
@@ -1319,7 +1338,7 @@ BackwardPass::DeleteBlockData(BasicBlock * block)
         JitAdelete(this->tempAlloc, block->byteCodeUpwardExposedUsed);
         block->byteCodeUpwardExposedUsed = nullptr;
 #if DBG
-        JitAdeleteArray(this->tempAlloc, func->GetJnFunction()->GetLocalsCount(), block->byteCodeRestoreSyms);
+        JitAdeleteArray(this->tempAlloc, func->GetJITFunctionBody()->GetLocalsCount(), block->byteCodeRestoreSyms);
         block->byteCodeRestoreSyms = nullptr;
 #endif
     }
@@ -1648,7 +1667,7 @@ void
 BackwardPass::ProcessBailOutCopyProps(BailOutInfo * bailOutInfo, BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed, BVSparse<JitArenaAllocator>* bailoutReferencedArgSymsBv)
 {
     Assert(this->tag != Js::BackwardPhase);
-    Assert(!this->func->GetJnFunction()->GetIsAsmjsMode());
+    Assert(!this->func->GetJITFunctionBody()->IsAsmJsMode());
 
     // Remove copy prop that we were already going to restore
     SListBase<CopyPropSyms> * usedCopyPropSyms = &bailOutInfo->usedCapturedValues.copyPropSyms;
@@ -1840,7 +1859,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
             //
             // Handle the source side.
             IR::ByteCodeUsesInstr *byteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-            BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->byteCodeUpwardExposedUsed;
+            const BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->GetByteCodeUpwardExposedUsed();
             if (byteCodeUpwardExposedUsed != nullptr)
             {
                 this->currentBlock->upwardExposedUses->Or(byteCodeUpwardExposedUsed);
@@ -1907,23 +1926,11 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
             }
 
             IR::ByteCodeUsesInstr *byteCodeUsesInstr = instr->AsByteCodeUsesInstr();
-            BVSparse<JitArenaAllocator> * byteCodeUpwardExposedUsed = byteCodeUsesInstr->byteCodeUpwardExposedUsed;
-            if (byteCodeUpwardExposedUsed != nullptr)
+            if (byteCodeUsesInstr->GetByteCodeUpwardExposedUsed() != nullptr)
             {
-                //Stack Args for Formals optimization.
-                //We will restore the scope object in the bail out path, when we restore Heap arguments object.
-                //So we don't to mark the sym for scope object separately for restoration.
-                //When StackArgs for formal opt is ON , Scope object sym is used by formals access only, which will be replaced by ArgIns and Ld_A 
-                //So it is ok to clear the bit here.
-                //Clearing the bit in byteCodeUpwardExposedUsed here.
-                if (instr->m_func->IsStackArgsEnabled() && instr->m_func->GetScopeObjSym())
-                {
-                    byteCodeUpwardExposedUsed->Clear(instr->m_func->GetScopeObjSym()->m_id);
-                }
-
-                this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUpwardExposedUsed);
+                this->currentBlock->byteCodeUpwardExposedUsed->Or(byteCodeUsesInstr->GetByteCodeUpwardExposedUsed());
 #if DBG
-                FOREACH_BITSET_IN_SPARSEBV(symId, byteCodeUpwardExposedUsed)
+                FOREACH_BITSET_IN_SPARSEBV(symId, byteCodeUsesInstr->GetByteCodeUpwardExposedUsed())
                 {
                     StackSym * stackSym = this->func->m_symTable->FindStackSym(symId);
                     Assert(!stackSym->IsTypeSpec());
@@ -2104,6 +2111,13 @@ BackwardPass::DeadStoreTypeCheckBailOut(IR::Instr * instr)
             preOpBailOutInstrToProcess = nullptr;
         }
         instr->UnlinkBailOutInfo();
+        return;
+    }
+
+    // If bailOutKind is equivTypeCheck then leave alone the bailout
+    if (bailOutKind == IR::BailOutFailedEquivalentTypeCheck ||
+        bailOutKind == IR::BailOutFailedEquivalentFixedFieldTypeCheck)
+    {
         return;
     }
 
@@ -2499,12 +2513,18 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         {
             Output::Print(_u(">>>>>>>>>>>>>>>>>>>>>> %s: Instr Start\n"), tag == Js::BackwardPhase? _u("BACKWARD") : _u("DEADSTORE"));
             instr->Dump();
-            Output::SkipToColumn(10);
-            Output::Print(_u("   Exposed Use: "));
-            block->upwardExposedUses->Dump();
-            Output::SkipToColumn(10);
-            Output::Print(_u("Exposed Fields: "));
-            block->upwardExposedFields->Dump();
+            if (block->upwardExposedUses)
+            {
+                Output::SkipToColumn(10);
+                Output::Print(_u("   Exposed Use: "));
+                block->upwardExposedUses->Dump();
+            }
+            if (block->upwardExposedFields)
+            {
+                Output::SkipToColumn(10);
+                Output::Print(_u("Exposed Fields: "));
+                block->upwardExposedFields->Dump();
+            }
             if (block->byteCodeUpwardExposedUsed)
             {
                 Output::SkipToColumn(10);
@@ -2525,6 +2545,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             continue;
         }
 
+        MarkScopeObjSymUseForStackArgOpt();
         ProcessBailOnStackArgsOutOfActualsRange();
         
         if (ProcessNoImplicitCallUses(instr) || this->ProcessBailOutInfo(instr))
@@ -2539,7 +2560,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             continue;
         }
 
-        if (CanDeadStoreInstrForScopeObjRemoval() && DeadStoreOrChangeInstrForScopeObjRemoval())
+        if (CanDeadStoreInstrForScopeObjRemoval() && DeadStoreOrChangeInstrForScopeObjRemoval(&instrPrev))
         {
             continue;
         }
@@ -2621,7 +2642,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             {
                 case Js::OpCode::LdSlot:
                 {
-                    DeadStoreOrChangeInstrForScopeObjRemoval();
+                    DeadStoreOrChangeInstrForScopeObjRemoval(&instrPrev);
                     break;
                 }
                 case Js::OpCode::InlineArrayPush:
@@ -2756,6 +2777,11 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                     }
                     break;
                 }
+                case Js::OpCode::Throw:
+                case Js::OpCode::EHThrow:
+                case Js::OpCode::InlineThrow:
+                    this->func->SetHasThrow();
+                    break;
             }
         }
 
@@ -2814,12 +2840,18 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         {
             Output::Print(_u("-------------------\n"));
             instr->Dump();
-            Output::SkipToColumn(10);
-            Output::Print(_u("   Exposed Use: "));
-            block->upwardExposedUses->Dump();
-            Output::SkipToColumn(10);
-            Output::Print(_u("Exposed Fields: "));
-            block->upwardExposedFields->Dump();
+            if (block->upwardExposedUses)
+            {
+                Output::SkipToColumn(10);
+                Output::Print(_u("   Exposed Use: "));
+                block->upwardExposedUses->Dump();
+            }
+            if (block->upwardExposedFields)
+            {
+                Output::SkipToColumn(10);
+                Output::Print(_u("Exposed Fields: "));
+                block->upwardExposedFields->Dump();
+            }
             if (block->byteCodeUpwardExposedUsed)
             {
                 Output::SkipToColumn(10);
@@ -2863,19 +2895,17 @@ BackwardPass::CanDeadStoreInstrForScopeObjRemoval(Sym *sym) const
     if (tag == Js::DeadStorePhase && this->currentInstr->m_func->IsStackArgsEnabled())
     {
         Func * currFunc = this->currentInstr->m_func;
+        bool doScopeObjCreation = currFunc->GetJITFunctionBody()->GetDoScopeObjectCreation();
         switch (this->currentInstr->m_opcode)
         {
-            case Js::OpCode::LdHeapArguments:
-            case Js::OpCode::LdHeapArgsCached:
-            case Js::OpCode::LdLetHeapArguments:
-            case Js::OpCode::LdLetHeapArgsCached:
+            case Js::OpCode::InitCachedScope:
             {
-                if (this->currentInstr->GetSrc1()->IsScopeObjOpnd(currFunc))
+                if(!doScopeObjCreation && this->currentInstr->GetDst()->IsScopeObjOpnd(currFunc))
                 {
                     /*
-                    *   We don't really dead store these instructions. We just want the source sym of these instructions (which is the scope object)
+                    *   We don't really dead store this instruction. We just want the source sym of this instruction
                     *   to NOT be tracked as USED by this instruction.
-                    *   In case of LdXXHeapArgsXXX opcodes, they will effectively be lowered to dest = MOV NULL, in the lowerer phase.
+                    *   This instr will effectively be lowered to dest = MOV NULLObject, in the lowerer phase.
                     */
                     return true;
                 }
@@ -2890,13 +2920,23 @@ BackwardPass::CanDeadStoreInstrForScopeObjRemoval(Sym *sym) const
                 break;
             }
             case Js::OpCode::CommitScope:
+            case Js::OpCode::GetCachedFunc:
             {
-                return this->currentInstr->GetSrc1()->IsScopeObjOpnd(currFunc);
+                return !doScopeObjCreation && this->currentInstr->GetSrc1()->IsScopeObjOpnd(currFunc);
             }
             case Js::OpCode::BrFncCachedScopeEq:
             case Js::OpCode::BrFncCachedScopeNeq:
             {
-                return this->currentInstr->GetSrc2()->IsScopeObjOpnd(currFunc);
+                return !doScopeObjCreation && this->currentInstr->GetSrc2()->IsScopeObjOpnd(currFunc);
+            }
+            case Js::OpCode::CallHelper:
+            {
+                if (!doScopeObjCreation && this->currentInstr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper == IR::JnHelperMethod::HelperOP_InitCachedFuncs)
+                {
+                    IR::RegOpnd * scopeObjOpnd = this->currentInstr->GetSrc2()->GetStackSym()->GetInstrDef()->GetSrc1()->AsRegOpnd();
+                    return scopeObjOpnd->IsScopeObjOpnd(currFunc);
+                }
+                break;
             }
         }
     }
@@ -2907,7 +2947,7 @@ BackwardPass::CanDeadStoreInstrForScopeObjRemoval(Sym *sym) const
 * This is for Eliminating Scope Object Creation during Heap arguments optimization.
 */
 bool
-BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
+BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval(IR::Instr ** pInstrPrev)
 {
     IR::Instr * instr = this->currentInstr;
     Func * currFunc = instr->m_func;
@@ -2930,7 +2970,7 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
                     Assert(sym);
                     if (IsFormalParamSym(currFunc, sym))
                     {
-                        AssertMsg(!currFunc->GetJnFunction()->GetHasImplicitArgIns(), "We don't have mappings between named formals and arguments object here");
+                        AssertMsg(!currFunc->GetJITFunctionBody()->HasImplicitArgIns(), "We don't have mappings between named formals and arguments object here");
 
                         instr->m_opcode = Js::OpCode::Ld_A;
                         PropertySym * propSym = sym->AsPropertySym();
@@ -2944,7 +2984,7 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
 
                         if (PHASE_VERBOSE_TRACE1(Js::StackArgFormalsOptPhase))
                         {
-                            Output::Print(_u("StackArgFormals : %s (%d) :Replacing LdSlot with Ld_A in Deadstore pass. \n"), instr->m_func->GetJnFunction()->GetDisplayName(), instr->m_func->GetJnFunction()->GetFunctionNumber());
+                            Output::Print(_u("StackArgFormals : %s (%d) :Replacing LdSlot with Ld_A in Deadstore pass. \n"), instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetFunctionNumber());
                             Output::Flush();
                         }
                     }
@@ -2970,6 +3010,54 @@ BackwardPass::DeadStoreOrChangeInstrForScopeObjRemoval()
                 }
                 break;
             }
+            case Js::OpCode::CallHelper:
+            {
+                //Remove the CALL and all its Argout instrs.
+                if (instr->GetSrc1()->AsHelperCallOpnd()->m_fnHelper == IR::JnHelperMethod::HelperOP_InitCachedFuncs)
+                {
+                    IR::RegOpnd * scopeObjOpnd = instr->GetSrc2()->GetStackSym()->GetInstrDef()->GetSrc1()->AsRegOpnd();
+                    if (scopeObjOpnd->IsScopeObjOpnd(currFunc))
+                    {
+                        IR::Instr * instrDef = instr;
+                        IR::Instr * nextInstr = instr->m_next;
+
+                        while (instrDef != nullptr)
+                        {
+                            IR::Instr * instrToDelete = instrDef;
+                            if (instrDef->GetSrc2() != nullptr)
+                            {
+                                instrDef = instrDef->GetSrc2()->GetStackSym()->GetInstrDef();
+                                Assert(instrDef->m_opcode == Js::OpCode::ArgOut_A);
+                            }
+                            else
+                            {
+                                instrDef = nullptr;
+                            }
+                            instrToDelete->Remove();
+                        }
+                        Assert(nextInstr != nullptr);
+                        *pInstrPrev = nextInstr->m_prev;
+                        return true;
+                    }
+                }
+                break;
+            }
+            case Js::OpCode::GetCachedFunc:
+            {
+                // <dst> = GetCachedFunc <scopeObject>, <functionNum>
+                // is converted to 
+                // <dst> = NewScFunc <functionNum>, <env: FrameDisplay>
+
+                if (instr->GetSrc1()->IsScopeObjOpnd(currFunc))
+                {
+                    instr->m_opcode = Js::OpCode::NewScFunc;
+                    IR::Opnd * intConstOpnd = instr->UnlinkSrc2();
+
+                    instr->ReplaceSrc1(intConstOpnd);
+                    instr->SetSrc2(IR::RegOpnd::New(currFunc->GetLocalFrameDisplaySym(), IRType::TyVar, currFunc));
+                }
+                break;
+            }
         }
     }
     return false;
@@ -2979,7 +3067,7 @@ IR::Instr *
 BackwardPass::TryChangeInstrForStackArgOpt()
 {
     IR::Instr * instr = this->currentInstr;
-    if (instr->DoStackArgsOpt(this->func))
+    if (tag == Js::DeadStorePhase && instr->DoStackArgsOpt(this->func))
     {
         switch (instr->m_opcode)
         {
@@ -3009,6 +3097,22 @@ BackwardPass::TryChangeInstrForStackArgOpt()
             }
         }
     }
+
+    /*
+    *   Scope Object Sym is kept alive in all code paths.
+    *   -This is to facilitate Bailout to record the live Scope object Sym, whenever required.
+    *   -Reason for doing is this because - Scope object has to be implicitly live whenever Heap Arguments object is live.
+    *   -When we restore HeapArguments object in the bail out path, it expects the scope object also to be restored - if one was created.
+    *   -We do not know detailed information about Heap arguments obj syms(aliasing etc.) until we complete Forward Pass. 
+    *   -And we want to avoid dead sym clean up (in this case, scope object though not explicitly live, it is live implicitly) during Block merging in the forward pass. 
+    *   -Hence this is the optimal spot to do this.
+    */
+
+    if (tag == Js::BackwardPhase && instr->m_func->GetScopeObjSym() != nullptr)
+    {
+        this->currentBlock->upwardExposedUses->Set(instr->m_func->GetScopeObjSym()->m_id);
+    }
+
     return nullptr;
 }
 
@@ -3023,7 +3127,7 @@ BackwardPass::TraceDeadStoreOfInstrsForScopeObjectRemoval()
         {
             if (PHASE_TRACE1(Js::StackArgFormalsOptPhase))
             {
-                Output::Print(_u("StackArgFormals : %s (%d) :Removing Scope object creation in Deadstore pass. \n"), instr->m_func->GetJnFunction()->GetDisplayName(), instr->m_func->GetJnFunction()->GetFunctionNumber());
+                Output::Print(_u("StackArgFormals : %s (%d) :Removing Scope object creation in Deadstore pass. \n"), instr->m_func->GetJITFunctionBody()->GetDisplayName(), instr->m_func->GetFunctionNumber());
                 Output::Flush();
             }
         }
@@ -3042,7 +3146,7 @@ BackwardPass::IsFormalParamSym(Func * func, Sym * sym) const
         PropertySym * propSym = sym->AsPropertySym();
         IntConstType    value = propSym->m_propertyId;
         return func->IsFormalsArraySym(propSym->m_stackSym->m_id) &&
-            (value >= 0 && value < func->GetJnFunction()->GetInParamsCount() - 1);
+            (value >= 0 && value < func->GetJITFunctionBody()->GetInParamsCount() - 1);
     }
     else
     {
@@ -3285,13 +3389,13 @@ BackwardPass::ProcessNoImplicitCallDef(IR::Instr *const instr)
     else if(
         !(
             // LdFld or similar
-            dst->IsRegOpnd() && src->IsSymOpnd() && src->AsSymOpnd()->m_sym->IsPropertySym() ||
+            (dst->IsRegOpnd() && src->IsSymOpnd() && src->AsSymOpnd()->m_sym->IsPropertySym()) ||
 
             // StFld or similar. Don't transfer a field opnd from StFld into the reg opnd src unless the field's value type is
             // definitely array or object with array, because only those value types require implicit calls to be disabled as
             // long as they are live. Other definite value types only require implicit calls to be disabled as long as a live
             // field holds the value, which is up to the StFld when going backwards.
-            src->IsRegOpnd() && dst->GetValueType().IsArrayOrObjectWithArray()
+            (src->IsRegOpnd() && dst->GetValueType().IsArrayOrObjectWithArray())
         ) ||
         !GlobOpt::TransferSrcValue(instr))
     {
@@ -3647,7 +3751,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
 
             Assert(instr->GetDst()->AsRegOpnd()->GetStackSym()->HasObjectTypeSym());
 
-            Js::JitTimeConstructorCache* ctorCache = instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
+            JITTimeConstructorCache* ctorCache = instr->m_func->GetConstructorCache(static_cast<Js::ProfileId>(instr->AsProfiledInstr()->u.profileId));
 
             if (block->stackSymToFinalType != nullptr)
             {
@@ -3658,7 +3762,7 @@ BackwardPass::ProcessNewScObject(IR::Instr* instr)
                     pBucket->GetInitialType() != nullptr &&
                     pBucket->GetFinalType() != pBucket->GetInitialType())
                 {
-                    Assert(pBucket->GetInitialType() == ctorCache->type);
+                    Assert(pBucket->GetInitialType() == ctorCache->GetType());
                     if (!this->IsPrePass())
                     {
                         this->InsertTypeTransition(instr->m_next, objSym, pBucket);
@@ -3946,8 +4050,8 @@ BackwardPass::UpdateArrayBailOutKind(IR::Instr *const instr)
     Assert(instr);
     Assert(instr->HasBailOutInfo());
 
-    if (instr->m_opcode != Js::OpCode::StElemI_A && instr->m_opcode != Js::OpCode::StElemI_A_Strict &&
-        instr->m_opcode != Js::OpCode::Memcopy && instr->m_opcode != Js::OpCode::Memset ||
+    if ((instr->m_opcode != Js::OpCode::StElemI_A && instr->m_opcode != Js::OpCode::StElemI_A_Strict &&
+        instr->m_opcode != Js::OpCode::Memcopy && instr->m_opcode != Js::OpCode::Memset) ||
         !instr->GetDst()->IsIndirOpnd())
     {
         return;
@@ -4300,7 +4404,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
 #if DBG
         FOREACH_BITSET_IN_SPARSEBV(propOpId, guardedPropertyOps)
         {
-            Js::ObjTypeSpecFldInfo* existingFldInfo = this->func->GetGlobalObjTypeSpecFldInfo(propOpId);
+            ObjTypeSpecFldInfo* existingFldInfo = this->func->GetGlobalObjTypeSpecFldInfo(propOpId);
             Assert(existingFldInfo != nullptr);
 
             if (existingFldInfo->GetPropertyId() != opnd->GetPropertyId())
@@ -4318,19 +4422,17 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
             //Assert(!existingFldInfo->IsPoly() || !opnd->IsPoly() || GlobOpt::AreTypeSetsIdentical(existingFldInfo->GetEquivalentTypeSet(), opnd->GetEquivalentTypeSet()));
             //Assert(existingFldInfo->GetSlotIndex() == opnd->GetSlotIndex());
 
-            if (PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->func))
+            if (PHASE_TRACE(Js::EquivObjTypeSpecPhase, this->func) && !JITManager::GetJITManager()->IsJITServer())
             {
                 if (existingFldInfo->IsPoly() && opnd->IsPoly() &&
                     (!GlobOpt::AreTypeSetsIdentical(existingFldInfo->GetEquivalentTypeSet(), opnd->GetEquivalentTypeSet()) ||
                     (existingFldInfo->GetSlotIndex() != opnd->GetSlotIndex())))
                 {
                     char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-                    Js::FunctionBody* topFunctionBody = this->func->GetJnFunction();
-                    Js::ScriptContext* scriptContext = topFunctionBody->GetScriptContext();
 
                     Output::Print(_u("EquivObjTypeSpec: top function %s (%s): duplicate property clash on %s(#%d) on operation %u \n"),
-                        topFunctionBody->GetDisplayName(), topFunctionBody->GetDebugNumberSet(debugStringBuffer),
-                        scriptContext->GetPropertyNameLocked(opnd->GetPropertyId())->GetBuffer(), opnd->GetPropertyId(), opnd->GetObjTypeSpecFldId());
+                        this->func->GetJITFunctionBody()->GetDisplayName(), this->func->GetDebugNumberSet(debugStringBuffer),
+                        this->func->GetInProcThreadContext()->GetPropertyRecord(opnd->GetPropertyId())->GetBuffer(), opnd->GetPropertyId(), opnd->GetObjTypeSpecFldId());
                     Output::Flush();
                 }
             }
@@ -4342,7 +4444,7 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
         if (opnd->NeedsMonoCheck())
         {
             Assert(opnd->IsMono());
-            Js::Type *monoGuardType = opnd->IsInitialTypeChecked() ? opnd->GetInitialType() : opnd->GetType();
+            JITTypeHolder monoGuardType = opnd->IsInitialTypeChecked() ? opnd->GetInitialType() : opnd->GetType();
             bucket->SetMonoGuardType(monoGuardType);
         }
 
@@ -4493,8 +4595,8 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     Assert(this->tag == Js::DeadStorePhase);
     Assert(opnd->IsMono() || opnd->HasEquivalentTypeSet());
 
-    Js::Type *typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
-    Js::Type *typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : nullptr;
+    JITTypeHolder typeWithProperty = opnd->IsMono() ? opnd->GetType() : opnd->GetFirstEquivalentType();
+    JITTypeHolder typeWithoutProperty = opnd->HasInitialType() ? opnd->GetInitialType() : JITTypeHolder(nullptr);
 
     if (typeWithoutProperty == nullptr ||
         typeWithProperty == typeWithoutProperty ||
@@ -4505,7 +4607,7 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
             PropertySym *propertySym = opnd->m_sym->AsPropertySym();
             AddPropertyCacheBucket *pBucket =
                 block->stackSymToFinalType->Get(propertySym->m_stackSym->m_id);
-            if (pBucket && pBucket->GetFinalType() && pBucket->GetInitialType() != pBucket->GetFinalType())
+            if (pBucket && pBucket->GetFinalType() != nullptr && pBucket->GetInitialType() != pBucket->GetFinalType())
             {
                 opnd->SetFinalType(pBucket->GetFinalType());
             }
@@ -4516,10 +4618,11 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
 
 #if DBG
     Assert(typeWithProperty != nullptr);
-    Js::DynamicTypeHandler * typeWithoutPropertyTypeHandler = static_cast<Js::DynamicType *>(typeWithoutProperty)->GetTypeHandler();
-    Js::DynamicTypeHandler * typeWithPropertyTypeHandler = static_cast<Js::DynamicType *>(typeWithProperty)->GetTypeHandler();
-    Assert(typeWithoutPropertyTypeHandler->GetPropertyCount() + 1 == typeWithPropertyTypeHandler->GetPropertyCount());
-    AssertMsg(Js::DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(typeWithoutPropertyTypeHandler, typeWithPropertyTypeHandler),
+    const JITTypeHandler * typeWithoutPropertyTypeHandler = typeWithoutProperty->GetTypeHandler();
+    const JITTypeHandler * typeWithPropertyTypeHandler = typeWithProperty->GetTypeHandler();
+    // TODO: OOP JIT, reenable assert
+    //Assert(typeWithoutPropertyTypeHandler->GetPropertyCount() + 1 == typeWithPropertyTypeHandler->GetPropertyCount());
+    AssertMsg(JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(typeWithoutPropertyTypeHandler, typeWithPropertyTypeHandler),
         "TypeHandlers are not compatible for transition?");
     Assert(typeWithoutPropertyTypeHandler->GetSlotCapacity() <= typeWithPropertyTypeHandler->GetSlotCapacity());
 #endif
@@ -4536,9 +4639,9 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
     AddPropertyCacheBucket *pBucket =
         block->stackSymToFinalType->FindOrInsertNew(propertySym->m_stackSym->m_id);
 
-    Js::Type* finalType = nullptr;
+    JITTypeHolder finalType(nullptr);
 #if DBG
-    Js::Type * deadStoreUnavailableFinalType = nullptr;
+    JITTypeHolder deadStoreUnavailableFinalType(nullptr);
 #endif
     if (pBucket->GetInitialType() == nullptr || opnd->GetType() != pBucket->GetInitialType())
     {
@@ -4587,15 +4690,17 @@ BackwardPass::TrackAddPropertyTypes(IR::PropertySymOpnd *opnd, BasicBlock *block
         if (!opnd->IsTypeDead())
         {
             // This is the type that would have been propagated if we didn't kill it because the type isn't available
-            Js::Type * checkFinalType = deadStoreUnavailableFinalType ? deadStoreUnavailableFinalType : finalType;
+            JITTypeHolder checkFinalType = deadStoreUnavailableFinalType != nullptr ? deadStoreUnavailableFinalType : finalType;
             if (opnd->HasFinalType() && opnd->GetFinalType() != checkFinalType)
             {
                 // Final type discovery must be progressively better (unless we kill it in the deadstore pass
                 // when the type is not available during the forward pass)
-                Js::DynamicTypeHandler * oldFinalTypeHandler = static_cast<Js::DynamicType *>(opnd->GetFinalType())->GetTypeHandler();
-                Js::DynamicTypeHandler * checkFinalTypeHandler = static_cast<Js::DynamicType *>(checkFinalType)->GetTypeHandler();
-                Assert(oldFinalTypeHandler->GetPropertyCount() < checkFinalTypeHandler->GetPropertyCount());
-                AssertMsg(Js::DynamicObject::IsTypeHandlerCompatibleForObjectHeaderInlining(oldFinalTypeHandler, checkFinalTypeHandler),
+                const JITTypeHandler * oldFinalTypeHandler = opnd->GetFinalType()->GetTypeHandler();
+                const JITTypeHandler * checkFinalTypeHandler = checkFinalType->GetTypeHandler();
+
+                // TODO: OOP JIT, enable assert
+                //Assert(oldFinalTypeHandler->GetPropertyCount() < checkFinalTypeHandler->GetPropertyCount());
+                AssertMsg(JITTypeHandler::IsTypeHandlerCompatibleForObjectHeaderInlining(oldFinalTypeHandler, checkFinalTypeHandler),
                     "TypeHandlers should be compatible for transition.");
                 Assert(oldFinalTypeHandler->GetSlotCapacity() <= checkFinalTypeHandler->GetSlotCapacity());
             }
@@ -4666,9 +4771,12 @@ BackwardPass::InsertTypeTransition(IR::Instr *instrInsertBefore, StackSym *objSy
     baseOpnd->SetIsJITOptimizedReg(true);
 
     IR::AddrOpnd *initialTypeOpnd =
-        IR::AddrOpnd::New(data->GetInitialType(), IR::AddrOpndKindDynamicType, this->func);
+        IR::AddrOpnd::New(data->GetInitialType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
+    initialTypeOpnd->m_metadata = data->GetInitialType().t;
+
     IR::AddrOpnd *finalTypeOpnd =
-        IR::AddrOpnd::New(data->GetFinalType(), IR::AddrOpndKindDynamicType, this->func);
+        IR::AddrOpnd::New(data->GetFinalType()->GetAddr(), IR::AddrOpndKindDynamicType, this->func);
+    finalTypeOpnd->m_metadata = data->GetFinalType().t;
 
     IR::Instr *adjustTypeInstr =
         IR::Instr::New(Js::OpCode::AdjustObjType, finalTypeOpnd, baseOpnd, initialTypeOpnd, this->func);
@@ -4714,8 +4822,8 @@ BackwardPass::InsertTypeTransitionAtBlock(BasicBlock *block, int symId, AddPrope
                 {
                     // This symbol already has a type transition at this point.
                     // It *must* be doing the same transition we're already trying to do.
-                    Assert(instr->GetDst()->AsAddrOpnd()->m_address == data->GetFinalType() &&
-                           instr->GetSrc2()->AsAddrOpnd()->m_address == data->GetInitialType());
+                    Assert((intptr_t)instr->GetDst()->AsAddrOpnd()->m_address == data->GetFinalType()->GetAddr() &&
+                           (intptr_t)instr->GetSrc2()->AsAddrOpnd()->m_address == data->GetInitialType()->GetAddr());
                     // Nothing to do.
                     return;
                 }
@@ -4832,13 +4940,13 @@ BackwardPass::ForEachAddPropertyCacheBucket(Fn fn)
 bool
 BackwardPass::TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data) const
 {
-    Js::Type *type = data->GetInitialType();
+    JITTypeHolder type = data->GetInitialType();
     if (type == nullptr || !Js::DynamicType::Is(type->GetTypeId()))
     {
         return false;
     }
-    Js::DynamicType *dynamicType = static_cast<Js::DynamicType*>(type);
-    if (!dynamicType->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
+
+    if (!type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler())
     {
         return false;
     }
@@ -4848,8 +4956,7 @@ BackwardPass::TransitionUndoesObjectHeaderInlining(AddPropertyCacheBucket *data)
     {
         return false;
     }
-    dynamicType = static_cast<Js::DynamicType*>(type);
-    return !dynamicType->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
+    return !type->GetTypeHandler()->IsObjectHeaderInlinedTypeHandler();
 }
 
 void
@@ -5482,7 +5589,7 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
 
                 if (instr->ignoreNegativeZero ||
                     (instr->GetSrc1()->IsIntConstOpnd() && instr->GetSrc1()->AsIntConstOpnd()->GetValue() != 0) ||
-                    instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0)
+                    (instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0))
                 {
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
@@ -5538,7 +5645,7 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
 
                 if (instr->ignoreNegativeZero ||
                     (instr->GetSrc1()->IsIntConstOpnd() && instr->GetSrc1()->AsIntConstOpnd()->GetValue() != 0) ||
-                    instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0)
+                    (instr->GetSrc2()->IsIntConstOpnd() && instr->GetSrc2()->AsIntConstOpnd()->GetValue() != 0))
                 {
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc1());
                     SetNegativeZeroDoesNotMatterIfLastUse(instr->GetSrc2());
@@ -5861,7 +5968,7 @@ BackwardPass::TrackIntUsage(IR::Instr *const instr)
                 !!candidateSymsRequiredToBeLossyInt->Test(srcSymId);
             const bool srcNeedsToBeLossless =
                 !currentBlock->intOverflowDoesNotMatterRange->SymsRequiredToBeLossyInt()->Test(dstSym->m_id) ||
-                srcIncluded && !srcIncludedAsLossy;
+                (srcIncluded && !srcIncludedAsLossy);
             if(srcIncluded)
             {
                 if(srcIncludedAsLossy && srcNeedsToBeLossless)
@@ -6149,13 +6256,13 @@ BackwardPass::EndIntOverflowDoesNotMatterRange()
         currentBlock->intOverflowDoesNotMatterRange->SetFirstInstr(boundaryInstr);
 
 #if DBG_DUMP
-        if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func->GetJnFunction()))
+        if(PHASE_TRACE(Js::TrackCompoundedIntOverflowPhase, func))
         {
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(
                 _u("TrackCompoundedIntOverflow - Top function: %s (%s), Phase: %s, Block: %u\n"),
-                func->GetJnFunction()->GetDisplayName(),
-                func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer),
+                func->GetJITFunctionBody()->GetDisplayName(),
+                func->GetDebugNumberSet(debugStringBuffer),
                 Js::PhaseNames[Js::BackwardPhase],
                 currentBlock->GetBlockNum());
             Output::Print(_u("    Input syms to be int-specialized (lossless): "));
@@ -6333,7 +6440,7 @@ BackwardPass::TrackFloatSymEquivalence(IR::Instr *const instr)
     // throughout the function and checking just the sym's non-number bailout bit is insufficient.
     FloatSymEquivalenceClass *dstEquivalenceClass;
     if(dst->m_requiresBailOnNotNumber ||
-        floatSymEquivalenceMap->TryGetValue(dst->m_id, &dstEquivalenceClass) && dstEquivalenceClass->RequiresBailOnNotNumber())
+        (floatSymEquivalenceMap->TryGetValue(dst->m_id, &dstEquivalenceClass) && dstEquivalenceClass->RequiresBailOnNotNumber()))
     {
         instr->SetBailOutKind(IR::BailOutNumberOnly);
     }
@@ -6392,7 +6499,7 @@ BackwardPass::ProcessDef(IR::Opnd * opnd)
             {
                 BOOLEAN isPropertySymUsed = !block->slotDeadStoreCandidates->TestAndSet(propertySym->m_id);
                 // we should not do any dead slots in asmjs loop body
-                Assert(!(this->func->GetJnFunction()->GetIsAsmJsFunction() && this->func->IsLoopBody() && !isPropertySymUsed));
+                Assert(!(this->func->GetJITFunctionBody()->IsAsmJsMode() && this->func->IsLoopBody() && !isPropertySymUsed));
                 Assert(isPropertySymUsed || !block->upwardExposedUses->Test(propertySym->m_id));
 
                 isUsed = isPropertySymUsed || block->upwardExposedUses->Test(propertySym->m_stackSym->m_id);
@@ -6581,13 +6688,8 @@ BackwardPass::DeadStoreInstr(IR::Instr *instr)
 #endif
         PropertySym *unusedPropertySym = nullptr;
         
-        // Do not track the Scope Obj - we will be restoring it in the bailout path while restoring Heap arguments object.
-        // See InterpreterStackFrame::TrySetFrameObjectInHeapArgObj
-        if (!(instr->m_func->IsStackArgsEnabled() && instr->m_opcode == Js::OpCode::LdSlotArr &&
-            instr->GetSrc1() && instr->GetSrc1()->IsScopeObjOpnd(instr->m_func)))
-        {
-            GlobOpt::TrackByteCodeSymUsed(instr, this->currentBlock->byteCodeUpwardExposedUsed, &unusedPropertySym);
-        }
+        GlobOpt::TrackByteCodeSymUsed(instr, this->currentBlock->byteCodeUpwardExposedUsed, &unusedPropertySym);
+        
 #if DBG
         BVSparse<JitArenaAllocator> tempBv2(this->tempAlloc);
         tempBv2.Copy(this->currentBlock->byteCodeUpwardExposedUsed);
@@ -6629,7 +6731,7 @@ BackwardPass::DeadStoreInstr(IR::Instr *instr)
     if (instr->m_opcode == Js::OpCode::ArgIn_A)
     {
         //Ignore tracking ArgIn for "this", as argInsCount only tracks other params - unless it is a asmjs function(which doesn't have a "this").
-        if (instr->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum() != 1 || func->GetJnFunction()->GetIsAsmjsMode())
+        if (instr->GetSrc1()->AsSymOpnd()->m_sym->AsStackSym()->GetParamSlotNum() != 1 || func->GetJITFunctionBody()->IsAsmJsMode())
         {
             Assert(this->func->argInsCount > 0);
             this->func->argInsCount--;
@@ -6791,7 +6893,8 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
         if (!opnd->GetIsJITOptimizedReg() && sym && sym->HasByteCodeRegSlot())
         {
             // Replace instrs with bytecodeUses
-            IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(argInstr, sym->m_id);
+            IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(argInstr);
+            bytecodeUse->Set(opnd);
             argInstr->InsertBefore(bytecodeUse);
         }
         startCallInstr = argInstr->GetSrc2()->GetStackSym()->m_instrDef;
@@ -6818,8 +6921,8 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!inlineeStart->m_func->m_hasInlineArgsOpt)
     {
         PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, _u("%s[%d]: Skipping inline args optimization: %s[%d] HasCalls: %s 'arguments' access: %s Can do inlinee args opt: %s\n"),
-                func->GetJnFunction()->GetExternalDisplayName(), func->GetJnFunction()->GetFunctionNumber(),
-                inlineeStart->m_func->GetJnFunction()->GetExternalDisplayName(), inlineeStart->m_func->GetJnFunction()->GetFunctionNumber(),
+                func->GetJITFunctionBody()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber(),
+                inlineeStart->m_func->GetJITFunctionBody()->GetDisplayName(), inlineeStart->m_func->GetJITFunctionBody()->GetFunctionNumber(),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasCalls()),
                 IsTrueOrFalse(inlineeStart->m_func->GetHasUnoptimizedArgumentsAcccess()),
                 IsTrueOrFalse(inlineeStart->m_func->m_canDoInlineArgsOpt));
@@ -6829,7 +6932,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!inlineeStart->m_func->frameInfo->isRecorded)
     {
         PHASE_PRINT_TESTTRACE(Js::InlineArgsOptPhase, func, _u("%s[%d]: InlineeEnd not found - usually due to a throw or a BailOnNoProfile (stressed, most likely)\n"),
-            func->GetJnFunction()->GetExternalDisplayName(), func->GetJnFunction()->GetFunctionNumber());
+            func->GetJITFunctionBody()->GetDisplayName(), func->GetJITFunctionBody()->GetFunctionNumber());
         inlineeStart->m_func->DisableCanDoInlineArgOpt();
         return false;
     }
@@ -6839,7 +6942,7 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     inlineeStart->IterateMetaArgs([&](IR::Instr* metaArg)
     {
         if (i == Js::Constants::InlineeMetaArgIndex_ArgumentsObject &&
-            inlineeStart->m_func->GetJnFunction()->GetUsesArgumentsObject())
+            inlineeStart->m_func->GetJITFunctionBody()->UsesArgumentsObject())
         {
             Assert(!inlineeStart->m_func->GetHasUnoptimizedArgumentsAcccess());
             // Do not remove arguments object meta arg if there is a reference to arguments object
@@ -6858,7 +6961,8 @@ BackwardPass::ProcessInlineeStart(IR::Instr* inlineeStart)
     if (!src1->GetIsJITOptimizedReg() && sym && sym->HasByteCodeRegSlot())
     {
         // Replace instrs with bytecodeUses
-        IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(inlineeStart, sym->m_id);
+        IR::ByteCodeUsesInstr *bytecodeUse = IR::ByteCodeUsesInstr::New(inlineeStart);
+        bytecodeUse->Set(src1);
         inlineeStart->InsertBefore(bytecodeUse);
     }
 
@@ -6952,26 +7056,39 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
         curInstr = curInstr->m_prev;
     }
 
-    // Didn't get to the top of the block, delete this BailOnNoProfile...
+    // Didn't get to the top of the block, delete this BailOnNoProfile.
     if (!curInstr->IsLabelInstr())
     {
         block->RemoveInstr(instr);
         return true;
     }
 
+    // Save the head instruction for later use.
+    IR::LabelInstr *blockHeadInstr = curInstr->AsLabelInstr();
+
     // We can't bail in the middle of a "tmp = CmEq s1, s2; BrTrue tmp" turned into a "BrEq s1, s2",
     // because the bailout wouldn't be able to restore tmp.
     IR::Instr *curNext = curInstr->GetNextRealInstrOrLabel();
+    IR::Instr *instrNope = nullptr;
     if (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
     {
         block->RemoveInstr(instr);
         return true;
+        /*while (curNext->m_opcode == Js::OpCode::Ld_A && curNext->GetDst()->IsRegOpnd() && curNext->GetDst()->AsRegOpnd()->m_fgPeepTmp)
+        {
+            // Instead of just giving up, we can be a little trickier. We can instead treat the tmp declaration(s) as a
+            // part of the block prefix, and put the bailonnoprofile immediately after them. This has the added benefit
+            // that we can still merge up blocks beginning with bailonnoprofile, even if they would otherwise not allow
+            // us to, due to the fact that these tmp declarations would be pre-empted by the higher-level bailout.
+            instrNope = curNext;
+            curNext = curNext->GetNextRealInstrOrLabel();
+        }*/
     }
 
     curInstr = instr->m_prev;
 
-    // Move to top of block.
-    while(!curInstr->StartsBasicBlock())
+    // Move to top of block (but just below any fgpeeptemp lds).
+    while(!curInstr->StartsBasicBlock() && curInstr != instrNope)
     {
         // Delete redundant BailOnNoProfile
         if (curInstr->m_opcode == Js::OpCode::BailOnNoProfile)
@@ -6991,7 +7108,6 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
     instr->Unlink();
 
     // Now try to move this up the flowgraph to the predecessor blocks
-    bool curBlockNeedsBail = false;
     FOREACH_PREDECESSOR_BLOCK(pred, block)
     {
         bool hoistBailToPred = true;
@@ -7010,7 +7126,7 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
             {
                 continue;
             }
-            if (predSucc->GetFirstInstr()->m_next->m_opcode != Js::OpCode::BailOnNoProfile)
+            if (!predSucc->beginsBailOnNoProfile)
             {
                 hoistBailToPred = false;
                 break;
@@ -7029,15 +7145,11 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
                     // We already have one, we don't need a second.
                     instrCopy->Free();
                 }
-                else if (predInstr->AsBranchInstr()->m_isSwitchBr)
+                else if (!predInstr->AsBranchInstr()->m_isSwitchBr)
                 {
                     // Don't put a bailout in the middle of a switch dispatch sequence.
                     // The bytecode offsets are not in order, and it would lead to incorrect
                     // bailout info.
-                    curBlockNeedsBail = true;
-                }
-                else
-                {
                     instrCopy->m_func = predInstr->m_func;
                     predInstr->InsertBefore(instrCopy);
                 }
@@ -7057,18 +7169,18 @@ BackwardPass::ProcessBailOnNoProfile(IR::Instr *instr, BasicBlock *block)
                 }
             }
         }
-        else
-        {
-            curBlockNeedsBail = true;
-        }
     } NEXT_PREDECESSOR_BLOCK;
 
-    if (curBlockNeedsBail)
+    // If we have a BailOnNoProfile in the first block, there must have been at least one path out of this block that always throws.
+    // Don't bother keeping the bailout in the first block as there are some issues in restoring the ArgIn bytecode registers on bailout
+    // and throw case should be rare enough that it won't matter for perf.
+    if (block->GetBlockNum() != 0)
     {
-        curInstr->AsLabelInstr()->isOpHelper = true;
+        blockHeadInstr->isOpHelper = true;
 #if DBG
-        curInstr->AsLabelInstr()->m_noHelperAssert = true;
+        blockHeadInstr->m_noHelperAssert = true;
 #endif
+        block->beginsBailOnNoProfile = true;
 
         instr->m_func = curInstr->m_func;
         curInstr->InsertAfter(instr);
@@ -7162,8 +7274,8 @@ BackwardPass::ReverseCopyProp(IR::Instr *instr)
         if (instrPrev->m_opcode == Js::OpCode::ByteCodeUses)
         {
             byteCodeUseInstr = instrPrev->AsByteCodeUsesInstr();
-
-            if (byteCodeUseInstr->byteCodeUpwardExposedUsed && byteCodeUseInstr->byteCodeUpwardExposedUsed->Test(varSym->m_id) && byteCodeUseInstr->byteCodeUpwardExposedUsed->Count() == 1)
+            const BVSparse<JitArenaAllocator>* byteCodeUpwardExposedUsed = byteCodeUseInstr->GetByteCodeUpwardExposedUsed();
+            if (byteCodeUpwardExposedUsed && byteCodeUpwardExposedUsed->Test(varSym->m_id) && byteCodeUpwardExposedUsed->Count() == 1)
             {
                 instrPrev = byteCodeUseInstr->GetPrevRealInstrOrLabel();
 
@@ -7704,6 +7816,6 @@ BackwardPass::IsTraceEnabled() const
 {
     return
         Js::Configuration::Global.flags.Trace.IsEnabled(tag, this->func->GetSourceContextId(), this->func->GetLocalFunctionId()) &&
-        (PHASE_TRACE(Js::SimpleJitPhase, func->GetJnFunction()) || !func->IsSimpleJit());
+        (PHASE_TRACE(Js::SimpleJitPhase, func) || !func->IsSimpleJit());
 }
 #endif

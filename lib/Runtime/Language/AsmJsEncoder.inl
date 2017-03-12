@@ -69,7 +69,7 @@ typedef double( *UnaryDoubleFunc )( double );
     { \
         PROCESS_ENCODE_READ_LAYOUT_ASMJS(name, Double2, suffix); \
         int offsets[2] = {CalculateOffset<double>(playout->D0),CalculateOffset<double>(playout->D1)};\
-        AsmJsJitTemplate::Call_Db::ApplyTemplate( this, mPc, 2, offsets, ((UnaryDoubleFunc)(func)),addEsp );\
+        AsmJsJitTemplate::Call_Db::ApplyTemplate( this, mPc, 2, offsets, ((void*)(UnaryDoubleFunc)(func)),addEsp );\
         break; \
     }
 #define PROCESS_ENCODE_CALLDOUBLE2(name,func,layout) PROCESS_ENCODE_CALLDOUBLE2_COMMON(name,func,layout,)
@@ -80,7 +80,7 @@ typedef double( *BinaryDoubleFunc )( double, double );
     { \
         PROCESS_ENCODE_READ_LAYOUT_ASMJS(name, Double3, suffix); \
         int offsets[3] = {CalculateOffset<double>(playout->D0),CalculateOffset<double>(playout->D1),CalculateOffset<double>(playout->D2)};\
-        AsmJsJitTemplate::Call_Db::ApplyTemplate( this, mPc, 3, offsets, ((BinaryDoubleFunc)(func)),addEsp );\
+        AsmJsJitTemplate::Call_Db::ApplyTemplate( this, mPc, 3, offsets, ((void*)(BinaryDoubleFunc)(func)),addEsp );\
         break; \
     }
 #define PROCESS_ENCODE_CALLDOUBLE3(name,func,addEsp) PROCESS_ENCODE_CALLDOUBLE3_COMMON(name,func,addEsp,)
@@ -119,7 +119,7 @@ typedef float(*UnaryFloatFunc)(float);
 { \
     PROCESS_ENCODE_READ_LAYOUT_ASMJS(name, Float2, suffix); \
     int offsets[2] = { CalculateOffset<float>(playout->F0), CalculateOffset<float>(playout->F1) }; \
-    AsmJsJitTemplate::Call_Flt::ApplyTemplate(this, mPc, 2, offsets, ((UnaryFloatFunc)(func)), addEsp); \
+    AsmJsJitTemplate::Call_Flt::ApplyTemplate(this, mPc, 2, offsets, ((void*)(UnaryFloatFunc)(func)), addEsp); \
     break; \
 }
 #define PROCESS_ENCODE_CALLFLOAT2(name,func,layout) PROCESS_ENCODE_CALLFLOAT2_COMMON(name,func,layout,)
@@ -229,6 +229,23 @@ namespace Js
             AsmJsJitTemplate::BrEq::ApplyTemplate(this, mPc, CalculateOffset<int>(playout->I1), CalculateOffset<int>(playout->I2), &relocAddr, isBackEdge);
             Assert( relocAddr );
             AddReloc( labelOffset, relocAddr );
+        }
+    }
+
+    template <class T>
+    void AsmJsEncoder::OP_BrEqConst(const unaligned T* playout)
+    {
+        if (playout->RelativeJumpOffset)
+        {
+            const int labelOffset = mReader.GetCurrentOffset() + playout->RelativeJumpOffset;
+            Assert(playout->RelativeJumpOffset > 0 || mRelocLabelMap->ContainsKey(labelOffset));
+            bool isBackEdge = false;
+            if (playout->RelativeJumpOffset < 0)
+                isBackEdge = true;
+            BYTE* relocAddr = nullptr;
+            AsmJsJitTemplate::BrEq::ApplyTemplate(this, mPc, CalculateOffset<int>(playout->I1), playout->C1, &relocAddr, isBackEdge, true);
+            Assert(relocAddr);
+            AddReloc(labelOffset, relocAddr);
         }
     }
 

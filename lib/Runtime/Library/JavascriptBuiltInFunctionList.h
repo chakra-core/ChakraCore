@@ -8,10 +8,7 @@
 #endif
 
 BUILTIN(JavascriptExceptionOperators, StackTraceAccessor, StackTraceAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorAccessor, ThrowTypeErrorAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorCallerAccessor, ThrowTypeErrorCallerAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorCalleeAccessor, ThrowTypeErrorCalleeAccessor, FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorArgumentsAccessor, ThrowTypeErrorArgumentsAccessor, FunctionInfo::DoNotProfile)
+BUILTIN(JavascriptExceptionOperators, ThrowTypeErrorRestrictedPropertyAccessor, ThrowTypeErrorRestrictedPropertyAccessor, FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptOperators, DefaultAccessor, DefaultAccessor, FunctionInfo::DoNotProfile)
 BUILTIN(GlobalObject, Eval, EntryEval, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, ParseInt, EntryParseInt, FunctionInfo::ErrorOnNew)
@@ -26,8 +23,11 @@ BUILTIN(GlobalObject, Escape, EntryEscape, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, UnEscape, EntryUnEscape, FunctionInfo::ErrorOnNew)
 BUILTIN(GlobalObject, CollectGarbage, EntryCollectGarbage, FunctionInfo::ErrorOnNew)
 
-#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_TTD
 BUILTIN(GlobalObject, TelemetryLog, EntryTelemetryLog, FunctionInfo::ErrorOnNew)
+
+BUILTIN(GlobalObject, EnabledDiagnosticsTrace, EntryEnabledDiagnosticsTrace, FunctionInfo::ErrorOnNew)
+BUILTIN(GlobalObject, EmitTTDLog, EntryEmitTTDLog, FunctionInfo::ErrorOnNew)
 #endif
 
 #ifdef IR_VIEWER
@@ -132,6 +132,9 @@ BUILTIN(JavascriptError, NewReferenceErrorInstance, NewReferenceErrorInstance, F
 BUILTIN(JavascriptError, NewSyntaxErrorInstance, NewSyntaxErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewTypeErrorInstance, NewTypeErrorInstance, FunctionInfo::None)
 BUILTIN(JavascriptError, NewURIErrorInstance, NewURIErrorInstance, FunctionInfo::None)
+BUILTIN(JavascriptError, NewWebAssemblyCompileErrorInstance, NewWebAssemblyCompileErrorInstance, FunctionInfo::None)
+BUILTIN(JavascriptError, NewWebAssemblyRuntimeErrorInstance, NewWebAssemblyRuntimeErrorInstance, FunctionInfo::None)
+BUILTIN(JavascriptError, NewWebAssemblyLinkErrorInstance, NewWebAssemblyLinkErrorInstance, FunctionInfo::None)
 #ifdef ENABLE_PROJECTION
 BUILTIN(JavascriptError, NewWinRTErrorInstance, NewWinRTErrorInstance, FunctionInfo::None)
 #endif
@@ -301,6 +304,26 @@ BUILTIN(Math, Sign, Sign, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Cbrt, Cbrt, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Imul, Imul, FunctionInfo::ErrorOnNew)
 BUILTIN(Math, Clz32, Clz32, FunctionInfo::ErrorOnNew)
+
+// Wasm entry points
+#ifdef ENABLE_WASM
+BUILTIN(WebAssembly, Compile, EntryCompile, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, Validate, EntryValidate, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssembly, Instantiate, EntryInstantiate, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyModule, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyModule, Exports, EntryExports, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyModule, Imports, EntryImports, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyModule, CustomSections, EntryCustomSections, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyInstance, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyMemory, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyMemory, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyMemory, GetterBuffer, EntryGetterBuffer, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(WebAssemblyTable, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(WebAssemblyTable, GetterLength, EntryGetterLength, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(WebAssemblyTable, Grow, EntryGrow, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyTable, Get, EntryGet, FunctionInfo::ErrorOnNew)
+BUILTIN(WebAssemblyTable, Set, EntrySet, FunctionInfo::ErrorOnNew)
+#endif
 
 // SIMDFloat32x4Lib entry points
 #ifdef ENABLE_SIMDJS
@@ -948,7 +971,6 @@ BUILTIN(JavascriptPromise, AllResolveElementFunction, EntryAllResolveElementFunc
 BUILTIN(JavascriptPromise, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptReflect, DefineProperty, EntryDefineProperty, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, DeleteProperty, EntryDeleteProperty, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptReflect, Enumerate, EntryEnumerate, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, Get, EntryGet, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, GetOwnPropertyDescriptor, EntryGetOwnPropertyDescriptor, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, GetPrototypeOf, EntryGetPrototypeOf, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
@@ -958,12 +980,28 @@ BUILTIN(JavascriptReflect, OwnKeys, EntryOwnKeys, FunctionInfo::ErrorOnNew | Fun
 BUILTIN(JavascriptReflect, PreventExtensions, EntryPreventExtensions, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, Set, EntrySet, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, SetPrototypeOf, EntrySetPrototypeOf, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
-BUILTIN(JavascriptEnumeratorIterator, Next, EntryNext, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, Apply, EntryApply, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptReflect, Construct, EntryConstruct, FunctionInfo::ErrorOnNew | FunctionInfo::DoNotProfile)
 BUILTIN(JavascriptGeneratorFunction, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
 BUILTIN(JavascriptGenerator, Next, EntryNext, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptGenerator, Return, EntryReturn, FunctionInfo::ErrorOnNew)
 BUILTIN(JavascriptGenerator, Throw, EntryThrow, FunctionInfo::ErrorOnNew)
+BUILTIN(SharedArrayBuffer, NewInstance, NewInstance, FunctionInfo::SkipDefaultNewObject)
+BUILTIN(SharedArrayBuffer, Slice, EntrySlice, FunctionInfo::ErrorOnNew)
+BUILTIN(SharedArrayBuffer, GetterByteLength, EntryGetterByteLength, FunctionInfo::ErrorOnNew | FunctionInfo::HasNoSideEffect)
+BUILTIN(SharedArrayBuffer, GetterSymbolSpecies, EntryGetterSymbolSpecies, FunctionInfo::ErrorOnNew)
+
+BUILTIN(AtomicsObject, Add, EntryAdd, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, And, EntryAnd, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, CompareExchange, EntryCompareExchange, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Exchange, EntryExchange, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, IsLockFree, EntryIsLockFree, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Load, EntryLoad, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Or, EntryOr, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Store, EntryStore, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Sub, EntrySub, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Wait, EntryWait, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Wake, EntryWake, FunctionInfo::ErrorOnNew)
+BUILTIN(AtomicsObject, Xor, EntryXor, FunctionInfo::ErrorOnNew)
 
 #undef BUILTIN_TEMPLATE

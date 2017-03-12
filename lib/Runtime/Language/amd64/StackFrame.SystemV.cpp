@@ -29,7 +29,7 @@ Amd64StackFrame::InitializeByFrameId(void * frame, ScriptContext* scriptContext)
 
     this->stackCheckCodeHeight =
         scriptContext->GetThreadContext()->DoInterruptProbe() ? stackCheckCodeHeightWithInterruptProbe
-        : scriptContext->GetThreadContext()->GetIsThreadBound() ? stackCheckCodeHeightThreadBound
+        : scriptContext->GetThreadContext()->IsThreadBound() ? stackCheckCodeHeightThreadBound
         : stackCheckCodeHeightNotThreadBound;
 
     return Next();
@@ -47,7 +47,7 @@ Amd64StackFrame::InitializeByReturnAddress(void * returnAddress, ScriptContext* 
 
     this->stackCheckCodeHeight =
         scriptContext->GetThreadContext()->DoInterruptProbe() ? stackCheckCodeHeightWithInterruptProbe
-        : scriptContext->GetThreadContext()->GetIsThreadBound() ? stackCheckCodeHeightThreadBound
+        : scriptContext->GetThreadContext()->IsThreadBound() ? stackCheckCodeHeightThreadBound
         : stackCheckCodeHeightNotThreadBound;
 
     while (Next())

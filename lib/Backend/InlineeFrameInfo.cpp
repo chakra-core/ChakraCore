@@ -23,13 +23,16 @@
 #define BAILOUT_FLUSH(functionBody)
 #endif
 
+
+unsigned int NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset = (unsigned int)(-1);
+
 void BailoutConstantValue::InitVarConstValue(Js::Var value)
 {
     this->type = TyVar;
     this->u.varConst.value = value;
 }
 
-Js::Var BailoutConstantValue::ToVar(Func* func, Js::ScriptContext* scriptContext) const
+Js::Var BailoutConstantValue::ToVar(Func* func) const
 {
     Assert(this->type == TyVar || this->type == TyFloat64 || IRType_IsSignedInt(this->type));
     Js::Var varValue;
@@ -39,7 +42,7 @@ Js::Var BailoutConstantValue::ToVar(Func* func, Js::ScriptContext* scriptContext
     }
     else if (this->type == TyFloat64)
     {
-        varValue = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)this->u.floatConst.value, scriptContext);
+        varValue = func->AllocateNumber((double)this->u.floatConst.value);
     }
     else if (IRType_IsSignedInt(this->type) && TySize[this->type] <= 4 && !Js::TaggedInt::IsOverflow((int32)this->u.intConst.value))
     {
@@ -47,7 +50,7 @@ Js::Var BailoutConstantValue::ToVar(Func* func, Js::ScriptContext* scriptContext
     }
     else
     {
-        varValue = Js::JavascriptNumber::NewCodeGenInstance(func->GetNumberAllocator(), (double)this->u.intConst.value, scriptContext);
+        varValue = func->AllocateNumber((double)this->u.intConst.value);
     }
     return varValue;
 
@@ -74,7 +77,7 @@ bool BailoutConstantValue::IsEqual(const BailoutConstantValue & bailoutConstValu
 }
 
 
-void InlineeFrameInfo::AllocateRecord(Func* func, Js::FunctionBody* functionBody)
+void InlineeFrameInfo::AllocateRecord(Func* func, intptr_t functionBodyAddr)
 {
     uint constantCount = 0;
 
@@ -97,7 +100,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, Js::FunctionBody* functionBody
     // update the record
     if (!this->record)
     {
-        this->record = InlineeFrameRecord::New(func->GetNativeCodeDataAllocator(), (uint)arguments->Count(), constantCount, functionBody, this);
+        this->record = InlineeFrameRecord::New(func->GetNativeCodeDataAllocator(), (uint)arguments->Count(), constantCount, functionBodyAddr, this);
     }
 
     uint i = 0;
@@ -128,7 +131,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, Js::FunctionBody* functionBody
         {
             // Constants
             Assert(constantIndex < constantCount);
-            this->record->constants[constantIndex] = value.constValue.ToVar(func, func->GetJnFunction()->GetScriptContext());
+            this->record->constants[constantIndex] = value.constValue.ToVar(func);
             this->record->argOffsets[i] = constantIndex;
             constantIndex++;
         }
@@ -150,7 +153,7 @@ void InlineeFrameInfo::AllocateRecord(Func* func, Js::FunctionBody* functionBody
     else
     {
         Assert(constantIndex < constantCount);
-        this->record->constants[constantIndex] = function.constValue.ToVar(func, func->GetJnFunction()->GetScriptContext());
+        this->record->constants[constantIndex] = function.constValue.ToVar(func);
         this->record->functionOffset = constantIndex;
     }
 }

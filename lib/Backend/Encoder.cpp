@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "Backend.h"
+#include "CRC.h"
 
 ///----------------------------------------------------------------------------
 ///
@@ -15,8 +16,30 @@
 void
 Encoder::Encode()
 {
-    NoRecoverMemoryArenaAllocator localAlloc(_u("BE-Encoder"), m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
-    m_tempAlloc = &localAlloc;
+    NoRecoverMemoryArenaAllocator localArena(_u("BE-Encoder"), m_func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
+    m_tempAlloc = &localArena;
+
+#if ENABLE_OOP_NATIVE_CODEGEN
+    class AutoLocalAlloc {
+    public:
+        AutoLocalAlloc(Func * func) : localXdataAddr(nullptr), localAddress(nullptr), segment(nullptr), func(func) { }
+        ~AutoLocalAlloc()
+        {
+            if (localAddress)
+            {
+                this->func->GetOOPThreadContext()->GetCodePageAllocators()->FreeLocal(this->localAddress, this->segment);
+            }
+            if (localXdataAddr)
+            {
+                this->func->GetOOPThreadContext()->GetCodePageAllocators()->FreeLocal(this->localXdataAddr, this->segment);
+            }
+        }
+        Func * func;
+        char * localXdataAddr;
+        char * localAddress;
+        void * segment;
+    } localAlloc(m_func);
+#endif
 
     uint32 instrCount = m_func->GetInstrCount();
     size_t totalJmpTableSizeInBytes = 0;
@@ -32,7 +55,7 @@ Encoder::Encode()
     m_offsetBuffer = AnewArray(m_tempAlloc, uint, instrCount);
 #endif
 
-    m_pragmaInstrToRecordMap    = Anew(m_tempAlloc, PragmaInstrList, m_tempAlloc);
+    m_pragmaInstrToRecordMap = Anew(m_tempAlloc, PragmaInstrList, m_tempAlloc);
     if (DoTrackAllStatementBoundary())
     {
         // Create a new list, if we are tracking all statement boundaries.
@@ -47,22 +70,13 @@ Encoder::Encode()
 
 #if defined(_M_IX86) || defined(_M_X64)
     // for BR shortening
-    m_inlineeFrameRecords       = Anew(m_tempAlloc, InlineeFrameRecords, m_tempAlloc);
+    m_inlineeFrameRecords = Anew(m_tempAlloc, InlineeFrameRecords, m_tempAlloc);
 #endif
 
     m_pc = m_encodeBuffer;
     m_inlineeFrameMap = Anew(m_tempAlloc, InlineeFrameMap, m_tempAlloc);
     m_bailoutRecordMap = Anew(m_tempAlloc, BailoutRecordMap, m_tempAlloc);
 
-    CodeGenWorkItem* workItem = m_func->m_workItem;
-    uint loopNum = Js::LoopHeader::NoLoop;
-
-    if (workItem->Type() == JsLoopBodyWorkItemType)
-    {
-        loopNum = ((JsLoopBodyCodeGen*)workItem)->GetLoopNumber();
-    }
-
-    Js::SmallSpanSequenceIter iter;
     IR::PragmaInstr* pragmaInstr = nullptr;
     uint32 pragmaOffsetInBuffer = 0;
 
@@ -70,6 +84,17 @@ Encoder::Encode()
     bool inProlog = false;
 #endif
     bool isCallInstr = false;
+
+    // CRC Check to ensure the integrity of the encoded bytes.
+    uint initialCRCSeed = 0;
+    errno_t err = rand_s(&initialCRCSeed);
+
+    if (err != 0)
+    {
+        Fatal();
+    }
+
+    uint bufferCRC = initialCRCSeed;
 
     FOREACH_INSTR_IN_FUNC(instr, m_func)
     {
@@ -86,14 +111,16 @@ Encoder::Encode()
 #endif
             if (instr->IsPragmaInstr())
             {
-                switch(instr->m_opcode)
+                switch (instr->m_opcode)
                 {
 #ifdef _M_X64
                 case Js::OpCode::PrologStart:
+                    m_func->m_prologEncoder.Begin(m_pc - m_encodeBuffer);
                     inProlog = true;
                     continue;
 
                 case Js::OpCode::PrologEnd:
+                    m_func->m_prologEncoder.End();
                     inProlog = false;
                     continue;
 #endif
@@ -138,9 +165,10 @@ Encoder::Encode()
                     multiBranchInstr->MapMultiBrTargetByAddress([=](void ** offset) -> void
                     {
 #if defined(_M_ARM32_OR_ARM64)
-                        encoderMD->AddLabelReloc((byte*) offset);
+                        encoderMD->AddLabelReloc((byte*)offset);
 #else
-                        encoderMD->AppendRelocEntry(RelocTypeLabelUse, (void*) (offset));
+                        encoderMD->AppendRelocEntry(RelocTypeLabelUse, (void*)(offset), *(IR::LabelInstr**)(offset));
+                        *((size_t*)offset) = 0;
 #endif
                     });
                 }
@@ -191,6 +219,9 @@ Encoder::Encode()
             }
 
             count = m_encoderMD.Encode(instr, m_pc, m_encodeBuffer);
+#if defined(_M_IX86) || defined(_M_X64)
+            bufferCRC = CalculateCRC(bufferCRC, count, m_pc);
+#endif
 
 #if DBG_DUMP
             if (PHASE_TRACE(Js::EncoderPhase, this->m_func))
@@ -214,7 +245,7 @@ Encoder::Encode()
 #if defined(_M_IX86) || defined(_M_X64)
             // for BR shortening.
             if (instr->isInlineeEntryInstr)
-                m_encoderMD.AppendRelocEntry(RelocType::RelocTypeInlineeEntryOffset, (void*) (m_pc - MachPtr));
+                m_encoderMD.AppendRelocEntry(RelocType::RelocTypeInlineeEntryOffset, (void*)(m_pc - MachPtr));
 #endif
             if (isCallInstr)
             {
@@ -234,12 +265,18 @@ Encoder::Encode()
 
     ptrdiff_t codeSize = m_pc - m_encodeBuffer + totalJmpTableSizeInBytes;
 
-#if defined(_M_IX86) || defined(_M_X64)
     BOOL isSuccessBrShortAndLoopAlign = false;
+
+#if defined(_M_IX86) || defined(_M_X64)
     // Shorten branches. ON by default
     if (!PHASE_OFF(Js::BrShortenPhase, m_func))
     {
-        isSuccessBrShortAndLoopAlign = ShortenBranchesAndLabelAlign(&m_encodeBuffer, &codeSize);
+        uint brShortenedbufferCRC = initialCRCSeed;
+        isSuccessBrShortAndLoopAlign = ShortenBranchesAndLabelAlign(&m_encodeBuffer, &codeSize, &brShortenedbufferCRC, bufferCRC, totalJmpTableSizeInBytes);
+        if (isSuccessBrShortAndLoopAlign)
+        {
+            bufferCRC = brShortenedbufferCRC;
+        }
     }
 #endif
 #if DBG_DUMP | defined(VTUNE_PROFILING)
@@ -253,10 +290,32 @@ Encoder::Encode()
         }
     }
 #endif
-    for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i ++)
+
+    if (m_pragmaInstrToRecordMap->Count() > 0)
     {
-        IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
-        inst->RecordThrowMap(iter, inst->m_offsetInBuffer);
+        if (m_func->IsOOPJIT())
+        {
+            int allocSize = m_pragmaInstrToRecordMap->Count();
+            Js::ThrowMapEntry * throwMap = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), Js::ThrowMapEntry, allocSize);
+            for (int i = 0; i < allocSize; i++)
+            {
+                IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
+                throwMap[i].nativeBufferOffset = inst->m_offsetInBuffer;
+                throwMap[i].statementIndex = inst->m_statementIndex;
+            }
+            m_func->GetJITOutput()->RecordThrowMap(throwMap, m_pragmaInstrToRecordMap->Count());
+        }
+        else
+        {
+            auto entryPointInfo = m_func->GetInProcJITEntryPointInfo();
+            auto functionBody = entryPointInfo->GetFunctionBody();
+            Js::SmallSpanSequenceIter iter;
+            for (int32 i = 0; i < m_pragmaInstrToRecordMap->Count(); i++)
+            {
+                IR::PragmaInstr *inst = m_pragmaInstrToRecordMap->Item(i);
+                functionBody->RecordNativeThrowMap(iter, inst->m_offsetInBuffer, inst->m_statementIndex, entryPointInfo, Js::LoopHeader::NoLoop);
+            }
+        }
     }
 
     BEGIN_CODEGEN_PHASE(m_func, Js::EmitterPhase);
@@ -283,7 +342,36 @@ Encoder::Encode()
 
     TryCopyAndAddRelocRecordsForSwitchJumpTableEntries(m_encodeBuffer, codeSize, jumpTableListForSwitchStatement, totalJmpTableSizeInBytes);
 
-    workItem->RecordNativeCodeSize(m_func, (DWORD)codeSize, pdataCount, xdataSize);
+    CustomHeap::Allocation * allocation = nullptr;
+    bool inPrereservedRegion = false;
+    char * localAddress = nullptr;
+#if ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsJITServer())
+    {
+        EmitBufferAllocation<SectionAllocWrapper, PreReservedSectionAllocWrapper> * alloc = m_func->GetJITOutput()->RecordOOPNativeCodeSize(m_func, (DWORD)codeSize, pdataCount, xdataSize);
+        allocation = alloc->allocation;
+        inPrereservedRegion = alloc->inPrereservedRegion;
+        localAlloc.segment = (alloc->bytesCommitted > CustomHeap::Page::MaxAllocationSize) ? allocation->largeObjectAllocation.segment : allocation->page->segment;
+        localAddress = m_func->GetOOPThreadContext()->GetCodePageAllocators()->AllocLocal(allocation->address, alloc->bytesCommitted, localAlloc.segment);
+        localAlloc.localAddress = localAddress;
+        if (localAddress == nullptr)
+        {
+            Js::Throw::OutOfMemory();
+        }
+    }
+    else
+#endif
+    {
+        EmitBufferAllocation<VirtualAllocWrapper, PreReservedVirtualAllocWrapper> * alloc = m_func->GetJITOutput()->RecordInProcNativeCodeSize(m_func, (DWORD)codeSize, pdataCount, xdataSize);
+        allocation = alloc->allocation;
+        inPrereservedRegion = alloc->inPrereservedRegion;
+        localAddress = allocation->address;
+    }
+
+    if (!inPrereservedRegion)
+    {
+        m_func->GetThreadContextInfo()->ResetIsAllJITCodeInPreReservedRegion();
+    }
 
     this->m_bailoutRecordMap->MapAddress([=](int index, LazyBailOutRecord* record)
     {
@@ -291,60 +379,144 @@ Encoder::Encode()
     });
 
     // Relocs
-    m_encoderMD.ApplyRelocs((size_t) workItem->GetCodeAddress());
+    m_encoderMD.ApplyRelocs((size_t)allocation->address, codeSize, &bufferCRC, isSuccessBrShortAndLoopAlign);
 
-    workItem->RecordNativeCode(m_func, m_encodeBuffer);
+    m_func->GetJITOutput()->RecordNativeCode(m_encodeBuffer, (BYTE *)localAddress);
 
-    m_func->GetScriptContext()->GetThreadContext()->SetValidCallTargetForCFG((PVOID) workItem->GetCodeAddress());
-
-#ifdef _M_X64
-    m_func->m_prologEncoder.FinalizeUnwindInfo();
-    workItem->RecordUnwindInfo(0, m_func->m_prologEncoder.GetUnwindInfo(), m_func->m_prologEncoder.SizeOfUnwindInfo());
-#elif _M_ARM
-    m_func->m_unwindInfo.EmitUnwindInfo(workItem);
-    workItem->SetCodeAddress(workItem->GetCodeAddress() | 0x1); // Set thumb mode
+#if defined(_M_IX86) || defined(_M_X64)
+    if (!JITManager::GetJITManager()->IsJITServer())
+    {
+        ValidateCRCOnFinalBuffer((BYTE *)allocation->address, codeSize, totalJmpTableSizeInBytes, m_encodeBuffer, initialCRCSeed, bufferCRC, isSuccessBrShortAndLoopAlign);
+    }
 #endif
 
-    Js::EntryPointInfo* entryPointInfo = this->m_func->m_workItem->GetEntryPoint();
+#ifdef _M_X64
+    m_func->m_prologEncoder.FinalizeUnwindInfo(
+        (BYTE*)m_func->GetJITOutput()->GetCodeAddress(), (DWORD)codeSize);
+
+    char * localXdataAddr = nullptr;
+#if ENABLE_OOP_NATIVE_CODEGEN
+    if (JITManager::GetJITManager()->IsJITServer())
+    {
+        localXdataAddr = m_func->GetOOPThreadContext()->GetCodePageAllocators()->AllocLocal((char*)allocation->xdata.address, XDATA_SIZE, localAlloc.segment);
+        localAlloc.localXdataAddr = localXdataAddr;
+        if (localXdataAddr == nullptr)
+        {
+            Js::Throw::OutOfMemory();
+        }
+    }
+    else
+#endif
+    {
+        localXdataAddr = (char*)allocation->xdata.address;
+    }
+    m_func->GetJITOutput()->RecordUnwindInfo(
+        m_func->m_prologEncoder.GetUnwindInfo(),
+        m_func->m_prologEncoder.SizeOfUnwindInfo(),
+        allocation->xdata.address,
+        (BYTE*)localXdataAddr);
+#elif _M_ARM
+    m_func->m_unwindInfo.EmitUnwindInfo(m_func->GetJITOutput(), allocation);
+    if (m_func->IsOOPJIT())
+    {
+        size_t allocSize = XDataAllocator::GetAllocSize(allocation->xdata.pdataCount, allocation->xdata.xdataSize);
+        BYTE * xprocXdata = NativeCodeDataNewArrayNoFixup(m_func->GetNativeCodeDataAllocator(), BYTE, allocSize);
+        memcpy_s(xprocXdata, allocSize, allocation->xdata.address, allocSize);
+        m_func->GetJITOutput()->RecordXData(xprocXdata);
+    }
+    else
+    {
+        XDataAllocator::Register(&allocation->xdata, m_func->GetJITOutput()->GetCodeAddress(), m_func->GetJITOutput()->GetCodeSize());
+        m_func->GetInProcJITEntryPointInfo()->SetXDataInfo(&allocation->xdata);
+    }
+
+    m_func->GetJITOutput()->SetCodeAddress(m_func->GetJITOutput()->GetCodeAddress() | 0x1); // Set thumb mode
+#endif
+
+    if (CONFIG_FLAG(OOPCFGRegistration))
+    {
+        m_func->GetThreadContextInfo()->SetValidCallTargetForCFG((PVOID)m_func->GetJITOutput()->GetCodeAddress());
+    }
+
     const bool isSimpleJit = m_func->IsSimpleJit();
-    Assert(
-        isSimpleJit ||
-        entryPointInfo->GetJitTransferData() != nullptr && !entryPointInfo->GetJitTransferData()->GetIsReady());
 
     if (this->m_inlineeFrameMap->Count() > 0 &&
         !(this->m_inlineeFrameMap->Count() == 1 && this->m_inlineeFrameMap->Item(0).record == nullptr))
     {
-        entryPointInfo->RecordInlineeFrameMap(m_inlineeFrameMap);
+        if (!m_func->IsOOPJIT()) // in-proc JIT
+        {
+            m_func->GetInProcJITEntryPointInfo()->RecordInlineeFrameMap(m_inlineeFrameMap);
+        }
+        else // OOP JIT
+        {
+            NativeOffsetInlineeFrameRecordOffset* pairs = NativeCodeDataNewArrayZNoFixup(m_func->GetNativeCodeDataAllocator(), NativeOffsetInlineeFrameRecordOffset, this->m_inlineeFrameMap->Count());
+
+            this->m_inlineeFrameMap->Map([&pairs](int i, NativeOffsetInlineeFramePair& p)
+            {
+                pairs[i].offset = p.offset;
+                if (p.record)
+                {
+                    pairs[i].recordOffset = NativeCodeData::GetDataChunk(p.record)->offset;
+                }
+                else
+                {
+                    pairs[i].recordOffset = NativeOffsetInlineeFrameRecordOffset::InvalidRecordOffset;
+                }
+            });
+
+            m_func->GetJITOutput()->RecordInlineeFrameOffsetsInfo(NativeCodeData::GetDataChunk(pairs)->offset, this->m_inlineeFrameMap->Count());
+        }
     }
 
     if (this->m_bailoutRecordMap->Count() > 0)
     {
-        entryPointInfo->RecordBailOutMap(m_bailoutRecordMap);
+        m_func->GetInProcJITEntryPointInfo()->RecordBailOutMap(m_bailoutRecordMap);
     }
 
     if (this->m_func->pinnedTypeRefs != nullptr)
     {
         Assert(!isSimpleJit);
+        int pinnedTypeRefCount = this->m_func->pinnedTypeRefs->Count();
+        PinnedTypeRefsIDL* pinnedTypeRefs = nullptr;
 
-        Func::TypeRefSet* pinnedTypeRefs = this->m_func->pinnedTypeRefs;
-        int pinnedTypeRefCount = pinnedTypeRefs->Count();
-        void** compactPinnedTypeRefs = HeapNewArrayZ(void*, pinnedTypeRefCount);
+        if (this->m_func->IsOOPJIT())
+        {
+            pinnedTypeRefs = (PinnedTypeRefsIDL*)midl_user_allocate(offsetof(PinnedTypeRefsIDL, typeRefs) + sizeof(void*)*pinnedTypeRefCount);
+            if (!pinnedTypeRefs)
+            {
+                Js::Throw::OutOfMemory();
+            }
+            __analysis_assume(pinnedTypeRefs);
+
+            pinnedTypeRefs->count = pinnedTypeRefCount;
+            pinnedTypeRefs->isOOPJIT = true;
+            this->m_func->GetJITOutput()->GetOutputData()->pinnedTypeRefs = pinnedTypeRefs;
+        }
+        else
+        {
+            pinnedTypeRefs = HeapNewStructPlus(offsetof(PinnedTypeRefsIDL, typeRefs) + sizeof(void*)*pinnedTypeRefCount - sizeof(PinnedTypeRefsIDL), PinnedTypeRefsIDL);
+            pinnedTypeRefs->count = pinnedTypeRefCount;
+            pinnedTypeRefs->isOOPJIT = false;
+        }
 
         int index = 0;
-        pinnedTypeRefs->Map([compactPinnedTypeRefs, &index](void* typeRef) -> void
+        this->m_func->pinnedTypeRefs->Map([&pinnedTypeRefs, &index](void* typeRef) -> void
         {
-            compactPinnedTypeRefs[index++] = typeRef;
+            pinnedTypeRefs->typeRefs[index++] = ((JITType*)typeRef)->GetAddr();
         });
 
         if (PHASE_TRACE(Js::TracePinnedTypesPhase, this->m_func))
         {
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
             Output::Print(_u("PinnedTypes: function %s(%s) pinned %d types.\n"),
-                this->m_func->GetJnFunction()->GetDisplayName(), this->m_func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), pinnedTypeRefCount);
+                this->m_func->GetJITFunctionBody()->GetDisplayName(), this->m_func->GetDebugNumberSet(debugStringBuffer), pinnedTypeRefCount);
             Output::Flush();
         }
 
-        entryPointInfo->GetJitTransferData()->SetRuntimeTypeRefs(compactPinnedTypeRefs, pinnedTypeRefCount);
+        if (!this->m_func->IsOOPJIT())
+        {
+            m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetRuntimeTypeRefs(pinnedTypeRefs);
+        }
     }
 
     // Save all equivalent type guards in a fixed size array on the JIT transfer data
@@ -352,14 +524,50 @@ Encoder::Encode()
     {
         AssertMsg(!PHASE_OFF(Js::EquivObjTypeSpecPhase, this->m_func), "Why do we have equivalent type guards if we don't do equivalent object type spec?");
 
-        int count = this->m_func->equivalentTypeGuards->Count();
-        Js::JitEquivalentTypeGuard** guards = HeapNewArrayZ(Js::JitEquivalentTypeGuard*, count);
-        Js::JitEquivalentTypeGuard** dstGuard = guards;
-        this->m_func->equivalentTypeGuards->Map([&dstGuard](Js::JitEquivalentTypeGuard* srcGuard) -> void
+        int equivalentTypeGuardsCount = this->m_func->equivalentTypeGuards->Count();
+
+        if (this->m_func->IsOOPJIT())
         {
-            *dstGuard++ = srcGuard;
-        });
-        entryPointInfo->GetJitTransferData()->SetEquivalentTypeGuards(guards, count);
+            auto& equivalentTypeGuardOffsets = this->m_func->GetJITOutput()->GetOutputData()->equivalentTypeGuardOffsets;
+            size_t allocSize = offsetof(EquivalentTypeGuardOffsets, guards) + equivalentTypeGuardsCount * sizeof(EquivalentTypeGuardIDL);
+            equivalentTypeGuardOffsets = (EquivalentTypeGuardOffsets*)midl_user_allocate(allocSize);
+            if (equivalentTypeGuardOffsets == nullptr)
+            {
+                Js::Throw::OutOfMemory();
+            }
+
+            equivalentTypeGuardOffsets->count = equivalentTypeGuardsCount;
+
+            int i = 0;
+            this->m_func->equivalentTypeGuards->Map([&equivalentTypeGuardOffsets, &i](Js::JitEquivalentTypeGuard* srcGuard) -> void
+            {
+                equivalentTypeGuardOffsets->guards[i].offset = NativeCodeData::GetDataTotalOffset(srcGuard);
+
+                auto cache = srcGuard->GetCache();
+                equivalentTypeGuardOffsets->guards[i].cache.guardOffset = NativeCodeData::GetDataTotalOffset(cache->guard);
+                equivalentTypeGuardOffsets->guards[i].cache.hasFixedValue = cache->hasFixedValue;
+                equivalentTypeGuardOffsets->guards[i].cache.isLoadedFromProto = cache->isLoadedFromProto;
+                equivalentTypeGuardOffsets->guards[i].cache.nextEvictionVictim = cache->nextEvictionVictim;
+                equivalentTypeGuardOffsets->guards[i].cache.record.propertyCount = cache->record.propertyCount;
+                equivalentTypeGuardOffsets->guards[i].cache.record.propertyOffset = NativeCodeData::GetDataTotalOffset(cache->record.properties);
+                for (int j = 0; j < EQUIVALENT_TYPE_CACHE_SIZE; j++)
+                {
+                    equivalentTypeGuardOffsets->guards[i].cache.types[j] = (intptr_t)PointerValue(cache->types[j]);
+                }
+                i++;
+            });
+            Assert(equivalentTypeGuardsCount == i);
+        }
+        else
+        {
+            Js::JitEquivalentTypeGuard** guards = HeapNewArrayZ(Js::JitEquivalentTypeGuard*, equivalentTypeGuardsCount);
+            Js::JitEquivalentTypeGuard** dstGuard = guards;
+            this->m_func->equivalentTypeGuards->Map([&dstGuard](Js::JitEquivalentTypeGuard* srcGuard) -> void
+            {
+                *dstGuard++ = srcGuard;
+            });
+            m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetEquivalentTypeGuards(guards, equivalentTypeGuardsCount);
+        }
     }
 
     if (this->m_func->lazyBailoutProperties.Count() > 0)
@@ -371,7 +579,7 @@ Encoder::Encode()
         {
             *dstProperties++ = propertyId;
         });
-        entryPointInfo->GetJitTransferData()->SetLazyBailoutProperties(lazyBailoutProperties, count);
+        m_func->GetInProcJITEntryPointInfo()->GetJitTransferData()->SetLazyBailoutProperties(lazyBailoutProperties, count);
     }
 
     // Save all property guards on the JIT transfer data in a map keyed by property ID. We will use this map when installing the entry
@@ -379,12 +587,8 @@ Encoder::Encode()
     if (this->m_func->propertyGuardsByPropertyId != nullptr)
     {
         Assert(!isSimpleJit);
-
         AssertMsg(!(PHASE_OFF(Js::ObjTypeSpecPhase, this->m_func) && PHASE_OFF(Js::FixedMethodsPhase, this->m_func)),
             "Why do we have type guards if we don't do object type spec or fixed methods?");
-
-        int propertyCount = this->m_func->propertyGuardsByPropertyId->Count();
-        Assert(propertyCount > 0);
 
 #if DBG
         int totalGuardCount = (this->m_func->singleTypeGuards != nullptr ? this->m_func->singleTypeGuards->Count() : 0)
@@ -393,44 +597,81 @@ Encoder::Encode()
         Assert(totalGuardCount == this->m_func->indexedPropertyGuardCount);
 #endif
 
-        int guardSlotCount = 0;
-        this->m_func->propertyGuardsByPropertyId->Map([&guardSlotCount](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* set) -> void
+
+        if (!this->m_func->IsOOPJIT())
         {
-            guardSlotCount += set->Count();
-        });
+            int propertyCount = this->m_func->propertyGuardsByPropertyId->Count();
+            Assert(propertyCount > 0);
 
-        size_t typeGuardTransferSize =                              // Reserve enough room for:
-            propertyCount * sizeof(Js::TypeGuardTransferEntry) +    //   each propertyId,
-            propertyCount * sizeof(Js::JitIndexedPropertyGuard*) +  //   terminating nullptr guard for each propertyId,
-            guardSlotCount * sizeof(Js::JitIndexedPropertyGuard*);  //   a pointer for each guard we counted above.
-
-        // The extra room for sizeof(Js::TypePropertyGuardEntry) allocated by HeapNewPlus will be used for the terminating invalid propertyId.
-        // Review (jedmiad): Skip zeroing?  This is heap allocated so there shouldn't be any false recycler references.
-        Js::TypeGuardTransferEntry* typeGuardTransferRecord = HeapNewPlusZ(typeGuardTransferSize, Js::TypeGuardTransferEntry);
-
-        Func* func = this->m_func;
-
-        Js::TypeGuardTransferEntry* dstEntry = typeGuardTransferRecord;
-        this->m_func->propertyGuardsByPropertyId->Map([func, &dstEntry](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* srcSet) -> void
-        {
-            dstEntry->propertyId = propertyId;
-
-            int guardIndex = 0;
-
-            srcSet->Map([dstEntry, &guardIndex](Js::JitIndexedPropertyGuard* guard) -> void
+            int guardSlotCount = 0;
+            this->m_func->propertyGuardsByPropertyId->Map([&guardSlotCount](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* set) -> void
             {
-                dstEntry->guards[guardIndex++] = guard;
+                guardSlotCount += set->Count();
             });
 
-            dstEntry->guards[guardIndex++] = nullptr;
-            dstEntry = reinterpret_cast<Js::TypeGuardTransferEntry*>(&dstEntry->guards[guardIndex]);
-        });
-        dstEntry->propertyId = Js::Constants::NoProperty;
-        dstEntry++;
+            size_t typeGuardTransferSize =                              // Reserve enough room for:
+                propertyCount * sizeof(Js::TypeGuardTransferEntry) +    //   each propertyId,
+                propertyCount * sizeof(Js::JitIndexedPropertyGuard*) +  //   terminating nullptr guard for each propertyId,
+                guardSlotCount * sizeof(Js::JitIndexedPropertyGuard*);  //   a pointer for each guard we counted above.
 
-        Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(typeGuardTransferRecord) + typeGuardTransferSize + sizeof(Js::TypeGuardTransferEntry));
+            // The extra room for sizeof(Js::TypePropertyGuardEntry) allocated by HeapNewPlus will be used for the terminating invalid propertyId.
+            // Review (jedmiad): Skip zeroing?  This is heap allocated so there shouldn't be any false recycler references.
+            Js::TypeGuardTransferEntry* typeGuardTransferRecord = HeapNewPlusZ(typeGuardTransferSize, Js::TypeGuardTransferEntry);
 
-        entryPointInfo->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
+            Func* func = this->m_func;
+
+            Js::TypeGuardTransferEntry* dstEntry = typeGuardTransferRecord;
+            this->m_func->propertyGuardsByPropertyId->Map([func, &dstEntry](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* srcSet) -> void
+            {
+                dstEntry->propertyId = propertyId;
+
+                int guardIndex = 0;
+
+                srcSet->Map([dstEntry, &guardIndex](Js::JitIndexedPropertyGuard* guard) -> void
+                {
+                    dstEntry->guards[guardIndex++] = guard;
+                });
+
+                dstEntry->guards[guardIndex++] = nullptr;
+                dstEntry = reinterpret_cast<Js::TypeGuardTransferEntry*>(&dstEntry->guards[guardIndex]);
+            });
+            dstEntry->propertyId = Js::Constants::NoProperty;
+            dstEntry++;
+
+            Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(typeGuardTransferRecord) + typeGuardTransferSize + sizeof(Js::TypeGuardTransferEntry));
+
+            m_func->GetInProcJITEntryPointInfo()->RecordTypeGuards(this->m_func->indexedPropertyGuardCount, typeGuardTransferRecord, typeGuardTransferSize);
+        }
+        else
+        {
+            Func* func = this->m_func;
+            this->m_func->GetJITOutput()->GetOutputData()->propertyGuardCount = this->m_func->indexedPropertyGuardCount;
+            auto entry = &this->m_func->GetJITOutput()->GetOutputData()->typeGuardEntries;
+
+            this->m_func->propertyGuardsByPropertyId->Map([func, &entry](Js::PropertyId propertyId, Func::IndexedPropertyGuardSet* srcSet) -> void
+            {
+                auto count = srcSet->Count();
+                (*entry) = (TypeGuardTransferEntryIDL*)midl_user_allocate(offsetof(TypeGuardTransferEntryIDL, guardOffsets) + count*sizeof(int));
+                if (!*entry)
+                {
+                    Js::Throw::OutOfMemory();
+                }
+                __analysis_assume(*entry);
+                (*entry)->propId = propertyId;
+                (*entry)->guardsCount = count;
+                (*entry)->next = nullptr;
+
+                auto& guardOffsets = (*entry)->guardOffsets;
+                int guardIndex = 0;
+                srcSet->Map([&guardOffsets, &guardIndex](Js::JitIndexedPropertyGuard* guard) -> void
+                {
+                    guardOffsets[guardIndex++] = NativeCodeData::GetDataTotalOffset(guard);
+                });
+                Assert(guardIndex == count);
+                entry = &(*entry)->next;
+            });
+
+        }
     }
 
     // Save all constructor caches on the JIT transfer data in a map keyed by property ID. We will use this map when installing the entry
@@ -445,57 +686,85 @@ Encoder::Encode()
         int propertyCount = this->m_func->ctorCachesByPropertyId->Count();
         Assert(propertyCount > 0);
 
-#if DBG
-        int cacheCount = entryPointInfo->GetConstructorCacheCount();
-        Assert(cacheCount > 0);
-#endif
-
         int cacheSlotCount = 0;
         this->m_func->ctorCachesByPropertyId->Map([&cacheSlotCount](Js::PropertyId propertyId, Func::CtorCacheSet* cacheSet) -> void
         {
             cacheSlotCount += cacheSet->Count();
         });
 
-        size_t ctorCachesTransferSize =                                // Reserve enough room for:
-            propertyCount * sizeof(Js::CtorCacheGuardTransferEntry) +  //   each propertyId,
-            propertyCount * sizeof(Js::ConstructorCache*) +            //   terminating null cache for each propertyId,
-            cacheSlotCount * sizeof(Js::JitIndexedPropertyGuard*);     //   a pointer for each cache we counted above.
-
-        // The extra room for sizeof(Js::CtorCacheGuardTransferEntry) allocated by HeapNewPlus will be used for the terminating invalid propertyId.
-        // Review (jedmiad): Skip zeroing?  This is heap allocated so there shouldn't be any false recycler references.
-        Js::CtorCacheGuardTransferEntry* ctorCachesTransferRecord = HeapNewPlusZ(ctorCachesTransferSize, Js::CtorCacheGuardTransferEntry);
-
-        Func* func = this->m_func;
-
-        Js::CtorCacheGuardTransferEntry* dstEntry = ctorCachesTransferRecord;
-        this->m_func->ctorCachesByPropertyId->Map([func, &dstEntry](Js::PropertyId propertyId, Func::CtorCacheSet* srcCacheSet) -> void
+        if (m_func->IsOOPJIT())
         {
-            dstEntry->propertyId = propertyId;
-
-            int cacheIndex = 0;
-
-            srcCacheSet->Map([dstEntry, &cacheIndex](Js::ConstructorCache* cache) -> void
+            Func* func = this->m_func;
+            m_func->GetJITOutput()->GetOutputData()->ctorCachesCount = propertyCount;
+            m_func->GetJITOutput()->GetOutputData()->ctorCacheEntries = (CtorCacheTransferEntryIDL**)midl_user_allocate(propertyCount * sizeof(CtorCacheTransferEntryIDL*));
+            CtorCacheTransferEntryIDL** entries = m_func->GetJITOutput()->GetOutputData()->ctorCacheEntries;
+            if (!entries)
             {
-                dstEntry->caches[cacheIndex++] = cache;
+                Js::Throw::OutOfMemory();
+            }
+            __analysis_assume(entries);
+
+            uint propIndex = 0;
+            m_func->ctorCachesByPropertyId->Map([func, entries, &propIndex](Js::PropertyId propertyId, Func::CtorCacheSet* srcCacheSet) -> void
+            {
+                entries[propIndex] = (CtorCacheTransferEntryIDL*)midl_user_allocate(srcCacheSet->Count() * sizeof(intptr_t) + sizeof(CtorCacheTransferEntryIDL));
+                if (!entries[propIndex])
+                {
+                    Js::Throw::OutOfMemory();
+                }
+                __analysis_assume(entries[propIndex]);
+                entries[propIndex]->propId = propertyId;
+
+                int cacheIndex = 0;
+
+                srcCacheSet->Map([entries, propIndex, &cacheIndex](intptr_t cache) -> void
+                {
+                    entries[propIndex]->caches[cacheIndex++] = cache;
+                });
+
+                entries[propIndex]->cacheCount = cacheIndex;
+                propIndex++;
             });
+        }
+        else
+        {
+            Assert(m_func->GetInProcJITEntryPointInfo()->GetConstructorCacheCount() > 0);
 
-            dstEntry->caches[cacheIndex++] = nullptr;
-            dstEntry = reinterpret_cast<Js::CtorCacheGuardTransferEntry*>(&dstEntry->caches[cacheIndex]);
-        });
-        dstEntry->propertyId = Js::Constants::NoProperty;
-        dstEntry++;
+            size_t ctorCachesTransferSize =                                // Reserve enough room for:
+                propertyCount * sizeof(Js::CtorCacheGuardTransferEntry) +  //   each propertyId,
+                propertyCount * sizeof(Js::ConstructorCache*) +            //   terminating null cache for each propertyId,
+                cacheSlotCount * sizeof(Js::JitIndexedPropertyGuard*);     //   a pointer for each cache we counted above.
 
-        Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(ctorCachesTransferRecord) + ctorCachesTransferSize + sizeof(Js::CtorCacheGuardTransferEntry));
+            // The extra room for sizeof(Js::CtorCacheGuardTransferEntry) allocated by HeapNewPlus will be used for the terminating invalid propertyId.
+            // Review (jedmiad): Skip zeroing?  This is heap allocated so there shouldn't be any false recycler references.
+            Js::CtorCacheGuardTransferEntry* ctorCachesTransferRecord = HeapNewPlusZ(ctorCachesTransferSize, Js::CtorCacheGuardTransferEntry);
 
-        entryPointInfo->RecordCtorCacheGuards(ctorCachesTransferRecord, ctorCachesTransferSize);
+            Func* func = this->m_func;
+
+            Js::CtorCacheGuardTransferEntry* dstEntry = ctorCachesTransferRecord;
+            this->m_func->ctorCachesByPropertyId->Map([func, &dstEntry](Js::PropertyId propertyId, Func::CtorCacheSet* srcCacheSet) -> void
+            {
+                dstEntry->propertyId = propertyId;
+
+                int cacheIndex = 0;
+
+                srcCacheSet->Map([dstEntry, &cacheIndex](intptr_t cache) -> void
+                {
+                    dstEntry->caches[cacheIndex++] = cache;
+                });
+
+                dstEntry->caches[cacheIndex++] = 0;
+                dstEntry = reinterpret_cast<Js::CtorCacheGuardTransferEntry*>(&dstEntry->caches[cacheIndex]);
+            });
+            dstEntry->propertyId = Js::Constants::NoProperty;
+            dstEntry++;
+
+            Assert(reinterpret_cast<char*>(dstEntry) <= reinterpret_cast<char*>(ctorCachesTransferRecord) + ctorCachesTransferSize + sizeof(Js::CtorCacheGuardTransferEntry));
+
+            m_func->GetInProcJITEntryPointInfo()->RecordCtorCacheGuards(ctorCachesTransferRecord, ctorCachesTransferSize);
+        }
     }
-
-    if(!isSimpleJit)
-    {
-        entryPointInfo->GetJitTransferData()->SetIsReady();
-    }
-
-    workItem->FinalizeNativeCode(m_func);
+    m_func->GetJITOutput()->FinalizeNativeCode();
 
     END_CODEGEN_PHASE(m_func, Js::EmitterPhase);
 
@@ -515,9 +784,9 @@ Encoder::Encode()
             __analysis_assume(m_instrNumber < instrCount);
             instr->DumpGlobOptInstrString();
 #ifdef _WIN64
-            Output::Print(_u("%12IX  "), m_offsetBuffer[m_instrNumber++] + (BYTE *)workItem->GetCodeAddress());
+            Output::Print(_u("%12IX  "), m_offsetBuffer[m_instrNumber++] + (BYTE *)m_func->GetJITOutput()->GetCodeAddress());
 #else
-            Output::Print(_u("%8IX  "), m_offsetBuffer[m_instrNumber++] + (BYTE *)workItem->GetCodeAddress());
+            Output::Print(_u("%8IX  "), m_offsetBuffer[m_instrNumber++] + (BYTE *)m_func->GetJITOutput()->GetCodeAddress());
 #endif
             instr->Dump();
         } NEXT_INSTR_IN_FUNC;
@@ -526,11 +795,11 @@ Encoder::Encode()
         Js::Configuration::Global.flags.DumpIRAddresses = dumpIRAddressesValue;
     }
 
-    if (PHASE_DUMP(Js::EncoderPhase, m_func) && Js::Configuration::Global.flags.Verbose)
+    if (PHASE_DUMP(Js::EncoderPhase, m_func) && Js::Configuration::Global.flags.Verbose && !m_func->IsOOPJIT())
     {
-        workItem->DumpNativeOffsetMaps();
-        workItem->DumpNativeThrowSpanSequence();
-        this->DumpInlineeFrameMap(workItem->GetCodeAddress());
+        m_func->GetInProcJITEntryPointInfo()->DumpNativeOffsetMaps();
+        m_func->GetInProcJITEntryPointInfo()->DumpNativeThrowSpanSequence();
+        this->DumpInlineeFrameMap(m_func->GetJITOutput()->GetCodeAddress());
         Output::Flush();
     }
 #endif
@@ -575,7 +844,8 @@ void Encoder::TryCopyAndAddRelocRecordsForSwitchJumpTableEntries(BYTE *codeStart
 #if defined(_M_ARM32_OR_ARM64)
             encoderMD->AddLabelReloc((byte*) addressOfJmpTableEntry);
 #else
-            encoderMD->AppendRelocEntry(RelocTypeLabelUse, addressOfJmpTableEntry);
+            encoderMD->AppendRelocEntry(RelocTypeLabelUse, addressOfJmpTableEntry, *(IR::LabelInstr**)addressOfJmpTableEntry);
+            *((size_t*)addressOfJmpTableEntry) = 0;
 #endif
         }
 
@@ -620,6 +890,157 @@ void Encoder::RecordInlineeFrame(Func* inlinee, uint32 currentOffset)
 }
 
 #if defined(_M_IX86) || defined(_M_X64)
+/*
+*   ValidateCRCOnFinalBuffer
+*       - Validates the CRC that is last computed (could be either the one after BranchShortening or after encoding itself)
+*       - We calculate the CRC for jump table and dictionary after computing the code section.
+*       - Also, all reloc data are computed towards the end - after computing the code section - because we don't have to deal with the changes relocs while operating on the code section.
+*       - The version of CRC that we are validating with, doesn't have Relocs applied but the final buffer does - So we have to make adjustments while calculating the final buffer's CRC.
+*/
+void Encoder::ValidateCRCOnFinalBuffer(_In_reads_bytes_(finalCodeSize) BYTE * finalCodeBufferStart, size_t finalCodeSize, size_t jumpTableSize, _In_reads_bytes_(finalCodeSize) BYTE * oldCodeBufferStart, uint initialCrcSeed, uint bufferCrcToValidate, BOOL isSuccessBrShortAndLoopAlign)
+{
+    RelocList * relocList = m_encoderMD.GetRelocList();
+
+    BYTE * currentStartAddress = finalCodeBufferStart;
+    BYTE * currentEndAddress = nullptr;
+    size_t crcSizeToCompute = 0;
+
+    size_t finalCodeSizeWithoutJumpTable = finalCodeSize - jumpTableSize;
+
+    uint finalBufferCRC = initialCrcSeed;
+
+    BYTE * oldPtr = nullptr;
+
+    if (relocList != nullptr)
+    {
+        for (int index = 0; index < relocList->Count(); index++)
+        {
+            EncodeRelocAndLabels * relocTuple = &relocList->Item(index);
+
+            //We will deal with the jump table and dictionary entries along with other reloc records in ApplyRelocs()
+            if ((BYTE*)m_encoderMD.GetRelocBufferAddress(relocTuple) >= oldCodeBufferStart && (BYTE*)m_encoderMD.GetRelocBufferAddress(relocTuple) < (oldCodeBufferStart + finalCodeSizeWithoutJumpTable))
+            {
+                BYTE* finalBufferRelocTuplePtr = (BYTE*)m_encoderMD.GetRelocBufferAddress(relocTuple) - oldCodeBufferStart + finalCodeBufferStart;
+                Assert(finalBufferRelocTuplePtr >= finalCodeBufferStart && finalBufferRelocTuplePtr < (finalCodeBufferStart + finalCodeSizeWithoutJumpTable));
+                uint relocDataSize = m_encoderMD.GetRelocDataSize(relocTuple);
+                if (relocDataSize != 0)
+                {
+                    AssertMsg(oldPtr == nullptr || oldPtr < finalBufferRelocTuplePtr, "Assumption here is that the reloc list is strictly increasing in terms of bufferAddress");
+                    oldPtr = finalBufferRelocTuplePtr;
+
+                    currentEndAddress = finalBufferRelocTuplePtr;
+                    crcSizeToCompute = currentEndAddress - currentStartAddress;
+
+                    Assert(currentEndAddress >= currentStartAddress);
+
+                    finalBufferCRC = CalculateCRC(finalBufferCRC, crcSizeToCompute, currentStartAddress);
+                    for (uint i = 0; i < relocDataSize; i++)
+                    {
+                        finalBufferCRC = CalculateCRC(finalBufferCRC, 0);
+                    }
+                    currentStartAddress = currentEndAddress + relocDataSize;
+                }
+            }
+        }
+    }
+
+    currentEndAddress = finalCodeBufferStart + finalCodeSizeWithoutJumpTable;
+    crcSizeToCompute = currentEndAddress - currentStartAddress;
+
+    Assert(currentEndAddress >= currentStartAddress);
+
+    finalBufferCRC = CalculateCRC(finalBufferCRC, crcSizeToCompute, currentStartAddress);
+
+    //Include all offsets from the reloc records to the CRC.
+    m_encoderMD.ApplyRelocs((size_t)finalCodeBufferStart, finalCodeSize, &finalBufferCRC, isSuccessBrShortAndLoopAlign, true);
+
+    if (finalBufferCRC != bufferCrcToValidate)
+    {
+        Assert(false);
+        Fatal();
+    }
+}
+#endif
+
+/*
+*   EnsureRelocEntryIntegrity
+*       - We compute the target address as the processor would compute it and check if the target is within the final buffer's bounds.
+*       - For relative addressing, Target = current m_pc + offset
+*       - For absolute addressing, Target = direct address
+*/
+void Encoder::EnsureRelocEntryIntegrity(size_t newBufferStartAddress, size_t codeSize, size_t oldBufferAddress, size_t relocAddress, uint offsetBytes, ptrdiff_t opndData, bool isRelativeAddr)
+{
+    size_t targetBrAddress = 0;
+    size_t newBufferEndAddress = newBufferStartAddress + codeSize;
+
+    //Handle Dictionary addresses here - The target address will be in the dictionary.
+    if (relocAddress < oldBufferAddress || relocAddress >= (oldBufferAddress + codeSize))
+    {
+        targetBrAddress = (size_t)(*(size_t*)relocAddress);
+    }
+    else
+    {
+        size_t newBufferRelocAddr = relocAddress - oldBufferAddress + newBufferStartAddress;
+
+        if (isRelativeAddr)
+        {
+            targetBrAddress = (size_t)newBufferRelocAddr + offsetBytes + opndData;
+        }
+        else  // Absolute Address
+        {
+            targetBrAddress = (size_t)opndData;
+        }
+    }
+
+    if (targetBrAddress < newBufferStartAddress || targetBrAddress >= newBufferEndAddress)
+    {
+        Assert(false);
+        Fatal();
+    }
+}
+
+uint Encoder::CalculateCRC(uint bufferCRC, size_t data)
+{
+#if defined(_WIN32) || defined(__SSE4_2__)
+#if defined(_M_IX86)
+    if (AutoSystemInfo::Data.SSE4_2Available())
+    {
+        return _mm_crc32_u32(bufferCRC, data);
+    }
+#elif defined(_M_X64)
+    if (AutoSystemInfo::Data.SSE4_2Available())
+    {
+        //CRC32 always returns a 32-bit result
+        return (uint)_mm_crc32_u64(bufferCRC, data);
+    }
+#endif
+#endif
+    return CalculateCRC32(bufferCRC, data);
+}
+
+uint Encoder::CalculateCRC(uint bufferCRC, size_t count, _In_reads_bytes_(count) void * buffer)
+{
+    for (uint index = 0; index < count; index++)
+    {
+        bufferCRC = CalculateCRC(bufferCRC, *((BYTE*)buffer + index));
+    }
+    return bufferCRC;
+}
+
+void Encoder::ValidateCRC(uint bufferCRC, uint initialCRCSeed, _In_reads_bytes_(count) void* buffer, size_t count)
+{
+    uint validationCRC = initialCRCSeed;
+
+    validationCRC = CalculateCRC(validationCRC, count, buffer);
+
+    if (validationCRC != bufferCRC)
+    {
+        //TODO: This throws internal error. Is this error type, Fine?
+        Fatal();
+    }
+}
+
+#if defined(_M_IX86) || defined(_M_X64)
 ///----------------------------------------------------------------------------
 ///
 /// EncoderMD::ShortenBranchesAndLabelAlign
@@ -628,7 +1049,7 @@ void Encoder::RecordInlineeFrame(Func* inlinee, uint32 currentOffset)
 /// Also align LoopTop Label and TryCatchLabel
 ///----------------------------------------------------------------------------
 BOOL
-Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
+Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize, uint * pShortenedBufferCRC, uint bufferCrcToValidate, size_t jumpTableSize)
 {
 #ifdef  ENABLE_DEBUG_CONFIG_OPTIONS
     static uint32 globalTotalBytesSaved = 0, globalTotalBytesWithoutShortening = 0;
@@ -785,7 +1206,7 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
     if (PHASE_TRACE(Js::BrShortenPhase, this->m_func))
     {
         OUTPUT_VERBOSE_TRACE(Js::BrShortenPhase, _u("func: %s, bytes saved: %d, bytes saved %%:%.2f, total bytes saved: %d, total bytes saved%%: %.2f, BR shortened: %d\n"),
-            this->m_func->GetJnFunction()->GetDisplayName(), (*codeSize - newCodeSize), ((float)*codeSize - newCodeSize) / *codeSize * 100,
+            this->m_func->GetJITFunctionBody()->GetDisplayName(), (*codeSize - newCodeSize), ((float)*codeSize - newCodeSize) / *codeSize * 100,
             globalTotalBytesSaved, ((float)globalTotalBytesSaved) / globalTotalBytesWithoutShortening * 100 , brShortenedCount);
         Output::Flush();
     }
@@ -795,6 +1216,8 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
     // Next, we re-write the code to shorten the BRs and adjust relocList offsets to point to new buffer.
     // We also write NOPs for aligned loops.
     BYTE* tmpBuffer = AnewArray(m_tempAlloc, BYTE, newCodeSize);
+
+    uint srcBufferCrc = *pShortenedBufferCRC;   //This has the intial Random CRC seed to start with.
 
     // start copying to new buffer
     // this can possibly be done during fixing, but there is no evidence it is an overhead to justify the complexity.
@@ -853,6 +1276,10 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
             AnalysisAssert(dst_size >= src_size);
 
             memcpy_s(dst_p, dst_size, from, src_size);
+
+            srcBufferCrc = CalculateCRC(srcBufferCrc, (BYTE*)reloc.m_origPtr - from + 4, from);
+            *pShortenedBufferCRC = CalculateCRC(*pShortenedBufferCRC, src_size, dst_p);
+
             dst_p += src_size;
             dst_size -= src_size;
 
@@ -860,9 +1287,28 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
             // write new opcode
             AnalysisAssert(dst_p < tmpBuffer + newCodeSize);
             *dst_p = (*opcodeByte == 0xe9) ? (BYTE)0xeb : (BYTE)(*opcodeByte - 0x10);
+            *(dst_p + 1) = 0;   // imm8
+
+            *pShortenedBufferCRC = CalculateCRC(*pShortenedBufferCRC, 2, dst_p);
             dst_p += 2; // 1 byte for opcode + 1 byte for imm8
             dst_size -= 2;
             from = (BYTE*)reloc.m_origPtr + 4;
+        }
+        else if (reloc.m_type == RelocTypeInlineeEntryOffset)
+        {
+            to = (BYTE*)reloc.m_origPtr - 1;
+            CopyPartialBufferAndCalculateCRC(&dst_p, dst_size, from, to, pShortenedBufferCRC);
+
+            *(size_t*)dst_p = reloc.GetInlineOffset();
+
+            *pShortenedBufferCRC = CalculateCRC(*pShortenedBufferCRC, sizeof(size_t), dst_p);
+
+            dst_p += sizeof(size_t);
+            dst_size -= sizeof(size_t);
+
+            srcBufferCrc = CalculateCRC(srcBufferCrc, (BYTE*)reloc.m_origPtr + sizeof(size_t) - from , from);
+
+            from = (BYTE*)reloc.m_origPtr + sizeof(size_t);
         }
         // insert NOPs for aligned labels
         else if ((!PHASE_OFF(Js::LoopAlignPhase, m_func) && reloc.isAlignedLabel()) && reloc.getLabelNopCount() > 0)
@@ -874,7 +1320,9 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
             AssertMsg((((uint32)(label->GetPC() - buffStart)) & 0xf) == 0, "Misaligned Label");
 
             to = reloc.getLabelOrigPC() - 1;
-            CopyPartialBuffer(&dst_p, dst_size, from, to);
+
+            CopyPartialBufferAndCalculateCRC(&dst_p, dst_size, from, to, pShortenedBufferCRC);
+            srcBufferCrc = CalculateCRC(srcBufferCrc, to - from + 1, from);
 
 #ifdef  ENABLE_DEBUG_CONFIG_OPTIONS
             if (PHASE_TRACE(Js::LoopAlignPhase, this->m_func))
@@ -882,20 +1330,31 @@ Encoder::ShortenBranchesAndLabelAlign(BYTE **codeStart, ptrdiff_t *codeSize)
                 globalTotalBytesInserted += nop_count;
 
                 OUTPUT_VERBOSE_TRACE(Js::LoopAlignPhase, _u("func: %s, bytes inserted: %d, bytes inserted %%:%.4f, total bytes inserted:%d, total bytes inserted %%:%.4f\n"),
-                    this->m_func->GetJnFunction()->GetDisplayName(), nop_count, (float)nop_count / newCodeSize * 100, globalTotalBytesInserted, (float)globalTotalBytesInserted / (globalTotalBytesWithoutShortening - globalTotalBytesSaved) * 100);
+                    this->m_func->GetJITFunctionBody()->GetDisplayName(), nop_count, (float)nop_count / newCodeSize * 100, globalTotalBytesInserted, (float)globalTotalBytesInserted / (globalTotalBytesWithoutShortening - globalTotalBytesSaved) * 100);
                 Output::Flush();
             }
 #endif
+            BYTE * tmpDst_p = dst_p;
             InsertNopsForLabelAlignment(nop_count, &dst_p);
+            *pShortenedBufferCRC = CalculateCRC(*pShortenedBufferCRC, nop_count, tmpDst_p);
 
             dst_size -= nop_count;
             from = to + 1;
         }
     }
     // copy last chunk
-    CopyPartialBuffer(&dst_p, dst_size, from, buffStart + *codeSize - 1);
+    //Exclude jumpTable content from CRC calculation.
+    //Though jumpTable is not part of the encoded bytes, codeSize has jumpTableSize included in it.
+    CopyPartialBufferAndCalculateCRC(&dst_p, dst_size, from, buffStart + *codeSize - 1, pShortenedBufferCRC, jumpTableSize);
+    srcBufferCrc = CalculateCRC(srcBufferCrc, buffStart + *codeSize - from - jumpTableSize, from);
 
     m_encoderMD.UpdateRelocListWithNewBuffer(relocList, tmpBuffer, buffStart, buffEnd);
+
+    if (srcBufferCrc != bufferCrcToValidate)
+    {
+        Assert(false);
+        Fatal();
+    }
 
     // switch buffers
     *codeStart = tmpBuffer;
@@ -909,13 +1368,19 @@ BYTE Encoder::FindNopCountFor16byteAlignment(size_t address)
     return (16 - (BYTE) (address & 0xf)) % 16;
 }
 
-void Encoder::CopyPartialBuffer(BYTE ** ptrDstBuffer, size_t &dstSize, BYTE * srcStart, BYTE * srcEnd)
+void Encoder::CopyPartialBufferAndCalculateCRC(BYTE ** ptrDstBuffer, size_t &dstSize, BYTE * srcStart, BYTE * srcEnd, uint* pBufferCRC, size_t jumpTableSize)
 {
     BYTE * destBuffer = *ptrDstBuffer;
 
     size_t srcSize = srcEnd - srcStart + 1;
     Assert(dstSize >= srcSize);
     memcpy_s(destBuffer, dstSize, srcStart, srcSize);
+
+    Assert(srcSize >= jumpTableSize);
+
+    //Exclude the jump table content (which is at the end of the buffer) for calculating CRC - at this point.
+    *pBufferCRC = CalculateCRC(*pBufferCRC, srcSize - jumpTableSize, destBuffer);
+
     *ptrDstBuffer += srcSize;
     dstSize -= srcSize;
 }

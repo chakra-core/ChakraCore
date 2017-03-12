@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12.2)
+cmake_minimum_required(VERSION 3.2)
 
 include_directories(SYSTEM /usr/local/include)
 
@@ -11,50 +11,36 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 cmake_policy(SET CMP0042 NEW)
 
 # Include directories
-
 include_directories(include)
 
 # Compile options
-
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL x86_64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL amd64 OR CMAKE_SYSTEM_PROCESSOR STREQUAL AMD64)
-  set(PAL_CMAKE_PLATFORM_ARCH_AMD64 1)
-  add_definitions(-D_AMD64_)
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL armv7l)
-  set(PAL_CMAKE_PLATFORM_ARCH_ARM 1)
-  add_definitions(-D_ARM_)
+if(CC_TARGETS_AMD64)
+    add_definitions(-D_AMD64_)
+elseif(CC_TARGETS_X86)
+    add_definitions(-D__i686__)
+elseif(CC_TARGETS_ARM)
+    add_definitions(-D_ARM_)
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL aarch64)
-  set(PAL_CMAKE_PLATFORM_ARCH_ARM64 1)
-  add_definitions(-D_ARM64_)
+    set(PAL_CMAKE_PLATFORM_ARCH_ARM64 1)
+    add_definitions(-D_ARM64_)
 else()
-  message(FATAL_ERROR "Only ARM and AMD64 is supported")
+    clr_unknown_arch()
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
+if(CC_TARGET_OS_ANDROID OR CC_TARGET_OS_LINUX)
   add_definitions(-D__LINUX__=1)
-endif(CMAKE_SYSTEM_NAME STREQUAL Linux)
-
-if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  set(PLATFORM_SOURCES
-    arch/i386/activationhandlerwrapper.S
-    arch/i386/context.S
-    arch/i386/dispatchexceptionwrapper.S
-    exception/machexception.cpp
-    exception/machmessage.cpp
-  )
-endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+endif()
 
 add_definitions(-DPLATFORM_UNIX=1)
 add_definitions(-DLP64COMPATIBLE=1)
 add_definitions(-DFEATURE_PAL=1)
-# add_definitions(-DCORECLR=1)
 add_definitions(-DPIC=1)
 add_definitions(-D_FILE_OFFSET_BITS=64)
-if(PAL_CMAKE_PLATFORM_ARCH_AMD64)
+if(CC_TARGETS_AMD64)
   add_definitions(-DBIT64=1)
   add_definitions(-D_WIN64=1)
-elseif(PAL_CMAKE_PLATFORM_ARCH_ARM)
+elseif(CC_TARGETS_ARM OR CC_TARGETS_X86)
   add_definitions(-DBIT32=1)
-  add_definitions(-D_WIN32=1)
 elseif(PAL_CMAKE_PLATFORM_ARCH_ARM64)
   add_definitions(-DBIT64=1)
   add_definitions(-D_WIN64=1)
@@ -66,11 +52,32 @@ endif()
 add_compile_options(-fno-builtin)
 add_compile_options(-fPIC)
 
-if(PAL_CMAKE_PLATFORM_ARCH_AMD64)
+if(CC_TARGET_OS_OSX)
+  set(PLATFORM_SOURCES
+    exception/machexception.cpp
+    exception/machmessage.cpp
+  )
+endif()
+
+if(CC_TARGETS_AMD64 OR CC_TARGETS_X86)
+  if(CC_TARGET_OS_OSX)
+    set(PLATFORM_SOURCES ${PLATFORM_SOURCES}
+      arch/i386/activationhandlerwrapper.S
+      arch/i386/dispatchexceptionwrapper.S
+    )
+  endif()
   set(ARCH_SOURCES
     arch/i386/context2.S
     arch/i386/debugbreak.S
     arch/i386/processor.cpp
+    arch/i386/asmhelpers.S
+    )
+elseif(CC_TARGETS_ARM)
+  set(ARCH_SOURCES
+    arch/arm/context2.S
+    arch/arm/debugbreak.S
+    arch/arm/processor.cpp
+    arch/arm/asmhelpers.S
     )
 endif()
 
@@ -92,10 +99,10 @@ set(SOURCES
   cruntime/thread.cpp
   cruntime/wchar.cpp
   cruntime/wchartls.cpp
+  cruntime/runtime_proxy.cpp
   safecrt/makepath_s.c
-  safecrt/mbusafecrt.c  
+  safecrt/mbusafecrt.c
   safecrt/safecrt_input_s.c
-#  safecrt/safecrt_output_l.c
   safecrt/safecrt_output_s.c
   safecrt/safecrt_winput_s.c
   safecrt/safecrt_woutput_s.c
@@ -107,7 +114,9 @@ set(SOURCES
   safecrt/strcpy_s.c
   safecrt/strncat_s.c
   safecrt/strncpy_s.c
+  safecrt/swprintf.c
   safecrt/vsprintf.c
+  safecrt/vswprint.c
   safecrt/wcscpy_s.c
   safecrt/wcsncpy_s.c
   safecrt/xtoa_s.c
@@ -147,6 +156,7 @@ set(SOURCES
   objmgr/shmobject.cpp
   objmgr/shmobjectmanager.cpp
   shmemory/shmemory.cpp
+  synchobj/event.cpp
   synchobj/mutex.cpp
   synchmgr/synchcontrollers.cpp
   synchmgr/synchmanager.cpp
@@ -156,41 +166,36 @@ set(SOURCES
   thread/process.cpp
   thread/pal_thread.cpp
   thread/threadsusp.cpp
-  thread/tls.cpp
 )
 
 add_library(Chakra.Pal
-  STATIC
+  OBJECT
   ${SOURCES}
   ${PLATFORM_SOURCES}
   ${ARCH_SOURCES}
 )
 
-if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
-  target_link_libraries(Chakra.Pal
-    pthread
-    dl
-    "-framework CoreFoundation"
-    "-framework Security"
+if (NOT STATIC_LIBRARY)
+  add_library(Chakra.Pal.Singular
+    STATIC
+    ${SOURCES}
+    ${PLATFORM_SOURCES}
+    ${ARCH_SOURCES}
   )
-endif(CMAKE_SYSTEM_NAME STREQUAL Darwin)
 
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-  if(PAL_CMAKE_PLATFORM_ARCH_AMD64)
-    target_link_libraries(Chakra.Pal
-      unwind-x86_64
-    )
+  if(CC_TARGET_OS_OSX)
+    target_link_libraries(Chakra.Pal.Singular
+      "-framework CoreFoundation"
+      "-framework Security"
+      )
   endif()
-    
-  target_link_libraries(Chakra.Pal
-    gcc_s
-    pthread
-    rt
-    dl
-    unwind
-    unwind-generic
-  )
-endif(CMAKE_SYSTEM_NAME STREQUAL Linux)
 
-# Install the static PAL library for VS
-install (TARGETS Chakra.Pal DESTINATION lib)
+  if (NOT CC_TARGET_OS_ANDROID)
+    set(PTHREAD pthread)
+  endif()
+
+  target_link_libraries(Chakra.Pal.Singular
+    ${PTHREAD}
+    dl
+    )
+endif()

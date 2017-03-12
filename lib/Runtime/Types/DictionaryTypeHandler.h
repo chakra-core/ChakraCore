@@ -28,10 +28,10 @@ namespace Js
         typedef PropertyDescriptorMap PropertyDescriptorMapType; // alias used by diagnostics
 
     private:
-        PropertyDescriptorMap* propertyMap;
-        T nextPropertyIndex;
+        Field(PropertyDescriptorMap*) propertyMap;
+        Field(T) nextPropertyIndex;
 
-        RecyclerWeakReference<DynamicObject>* singletonInstance;
+        Field(RecyclerWeakReference<DynamicObject>*) singletonInstance;
 
         typedef PropertyIndexRanges<T> PropertyIndexRangesType;
         static const T MaxPropertyIndexSize = PropertyIndexRangesType::MaxValue;
@@ -73,9 +73,9 @@ namespace Js
         virtual PropertyId GetPropertyId(ScriptContext* scriptContext, BigPropertyIndex index) override;
 
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false) override;
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags) override;
         virtual BOOL FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, bool requireEnumerable, bool enumSymbols = false) override;
+            PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags) override;
 
         virtual PropertyIndex GetPropertyIndex(PropertyRecord const* propertyRecord) override;
         virtual bool GetPropertyEquivalenceInfo(PropertyRecord const* propertyRecord, PropertyEquivalenceInfo& info) override;
@@ -92,6 +92,7 @@ namespace Js
         virtual DescriptorFlags GetSetter(DynamicObject* instance, PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(DynamicObject* instance, JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL DeleteProperty(DynamicObject* instance, PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(DynamicObject* instance, JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
 
         virtual PropertyIndex GetRootPropertyIndex(PropertyRecord const* propertyRecord) override;
 
@@ -198,7 +199,8 @@ namespace Js
     private:
         void CopySingletonInstance(DynamicObject* instance, DynamicTypeHandler* typeHandler);
 
-        void InvalidateFixedField(DynamicObject* instance, PropertyId propertyId, DictionaryPropertyDescriptor<T>* descriptor);
+        template <typename TPropertyKey>
+        void InvalidateFixedField(DynamicObject* instance, TPropertyKey propertyKey, DictionaryPropertyDescriptor<T>* descriptor);
 
     private:
         void SetNumDeletedProperties(const byte n) {}
@@ -249,7 +251,7 @@ namespace Js
 
         virtual uint32 ExtractSlotInfo_TTD(TTD::NSSnapType::SnapHandlerPropertyEntry* entryInfo, ThreadContext* threadContext, TTD::SlabAllocator& alloc) const override;
 
-        virtual Js::PropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord) override;
+        virtual Js::BigPropertyIndex GetPropertyIndex_EnumerateTTD(const Js::PropertyRecord* pRecord) override;
 #endif
     };
 

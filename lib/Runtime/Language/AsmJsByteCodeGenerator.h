@@ -4,26 +4,22 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#ifndef TEMP_DISABLE_ASMJS
+#ifdef ASMJS_PLAT
 namespace Js
 {
+    enum EBinaryMathOpCodes: int;
+    enum EBinaryComparatorOpCodes: int;
+
     // Information about the expression that has been emitted
-    struct EmitExpressionInfo
+    struct EmitExpressionInfo : WAsmJs::EmitInfoBase
     {
         EmitExpressionInfo( RegSlot location_, const AsmJsType& type_ ) :
-            location( location_ ), type( type_ )
+            WAsmJs::EmitInfoBase( location_ ), type( type_ )
         {
         }
-        EmitExpressionInfo( const AsmJsType& type_ ) :
-            location( Constants::NoRegister ), type( type_ )
-        {
-        }
-        EmitExpressionInfo():
-            location( Constants::NoRegister ), type( AsmJsType::Void )
-        {
-        }
+        EmitExpressionInfo( const AsmJsType& type_ ) : type( type_ ) {}
+        EmitExpressionInfo(): type( AsmJsType::Void ) {}
 
-        RegSlot location;
         AsmJsType type;
     };
 
@@ -94,11 +90,11 @@ namespace Js
         EmitExpressionInfo EmitUnaryNeg( ParseNode * pnode );
         EmitExpressionInfo EmitUnaryNot( ParseNode * pnode );
         EmitExpressionInfo EmitUnaryLogNot( ParseNode * pnode );
-        EmitExpressionInfo EmitBinaryMultiType( ParseNode * pnode, enum EBinaryMathOpCodes op );
+        EmitExpressionInfo EmitBinaryMultiType( ParseNode * pnode, EBinaryMathOpCodes op );
         EmitExpressionInfo EmitBinaryInt( ParseNode * pnode, OpCodeAsmJs op );
         EmitExpressionInfo EmitQMark( ParseNode * pnode );
         EmitExpressionInfo EmitSwitch( ParseNode * pnode );
-        EmitExpressionInfo EmitBinaryComparator( ParseNode * pnode, enum EBinaryComparatorOpCodes op);
+        EmitExpressionInfo EmitBinaryComparator( ParseNode * pnode, EBinaryComparatorOpCodes op);
         EmitExpressionInfo EmitLoop( ParseNode *loopNode, ParseNode *cond, ParseNode *body, ParseNode *incr, BOOL doWhile = false );
         EmitExpressionInfo EmitIf( ParseNode * pnode );
         EmitExpressionInfo EmitBooleanExpression( ParseNode* pnodeCond, Js::ByteCodeLabel trueLabel, Js::ByteCodeLabel falseLabel );
@@ -110,6 +106,7 @@ namespace Js
         EmitExpressionInfo EmitSimdLoadStoreBuiltin(ParseNode* pnode, AsmJsSIMDFunction* simdFunction, AsmJsRetType expectedType);
 
         void FinalizeRegisters( FunctionBody* byteCodeFunction );
+        template<typename T> byte* SetConstsToTable(byte* byteTable, T zeroValue);
         void LoadAllConstants();
         void StartStatement(ParseNode* pnode);
         void EndStatement(ParseNode* pnode);

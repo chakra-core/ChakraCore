@@ -50,6 +50,7 @@ namespace Js
         virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = nullptr) override { Assert(false); return FALSE; }
         virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override { return false; }
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsFixedProperty(PropertyId propertyId) override { return false; }
         virtual BOOL HasItem(uint32 index) override { return false; }
         virtual BOOL HasOwnItem(uint32 index) override { return false; }
@@ -58,7 +59,7 @@ namespace Js
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override { *setterValue = nullptr; return DescriptorFlags::None; }
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override { return false; }
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override { return true; }
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* scriptContext, bool preferSnapshotSemantics = true, bool enumSymbols = false);
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr);
         virtual BOOL SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags = PropertyOperation_None) override { return false; }
         virtual BOOL GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext) override { return false; }
         virtual BOOL IsWritable(PropertyId propertyId) override { return true; }
@@ -83,18 +84,18 @@ namespace Js
         virtual void SetPrototype(RecyclableObject* newPrototype) override { Assert(false); return; }
 
     private:
-        ModuleRecordBase* moduleRecord;
-        UnambiguousExportMap* unambiguousNonLocalExports;
-        SimplePropertyDescriptorMap* propertyMap;   // local exports.
-        ListForListIterator* sortedExportedNames;   // sorted exported names for both local and indirect exports; excludes symbols.
-        Var* nsSlots;
+        Field(ModuleRecordBase*) moduleRecord;
+        Field(UnambiguousExportMap*) unambiguousNonLocalExports;
+        Field(SimplePropertyDescriptorMap*) propertyMap;   // local exports.
+        Field(ListForListIterator*) sortedExportedNames;   // sorted exported names for both local and indirect exports; excludes symbols.
+        Field(Field(Var)*) nsSlots;
 
-        void SetNSSlotsForModuleNS(Var* nsSlot) { this->nsSlots = nsSlot; }
+        void SetNSSlotsForModuleNS(Field(Var)* nsSlot) { this->nsSlots = nsSlot; }
         Var GetNSSlot(BigPropertyIndex propertyIndex);
         void AddUnambiguousNonLocalExport(PropertyId exportId, ModuleNameRecord* nonLocalExportNameRecord);
         UnambiguousExportMap* GetUnambiguousNonLocalExports() const { return unambiguousNonLocalExports; }
 
         // Methods used by NamespaceEnumerator;
-        BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes) const;
+        BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes, ScriptContext * requestContext) const;
     };
 }

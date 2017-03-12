@@ -8,15 +8,24 @@
 namespace Js
 {
 #if FLOATVAR
-    inline JavascriptNumber::JavascriptNumber(double value, StaticType*)
+    inline JavascriptNumber::JavascriptNumber(double value, StaticType*
+#if DBG
+        , bool oopJIT /*= false*/
+#endif
+    )
     {
         AssertMsg(!IsNan(value) || ToSpecial(value) == k_Nan || ToSpecial(value) == 0x7FF8000000000000ull, "We should only produce a NaN with this value");
         SetSpecial(ToSpecial(value) ^ FloatTag_Value);
     }
 #else
-    inline JavascriptNumber::JavascriptNumber(double value, StaticType * type) : RecyclableObject(type), m_value(value)
+    inline JavascriptNumber::JavascriptNumber(double value, StaticType * type
+#if DBG
+        , bool oopJIT /*= false*/
+#endif
+    ) : RecyclableObject(type), m_value(value)
     {
-        Assert(type->GetTypeId() == TypeIds_Number);
+        // for oopjit type will be pointing to address of StaticType on other proc, so don't dereference it
+        Assert(oopJIT || type->GetTypeId() == TypeIds_Number);
     }
 #endif
 
@@ -31,6 +40,20 @@ namespace Js
             return JavascriptNumber::NewInlined((double) nValue, scriptContext);
         }
     }
+
+#if defined(__clang__) && defined(_M_IX86)
+    __forceinline Var JavascriptNumber::ToVar(intptr_t nValue, ScriptContext* scriptContext)
+    {
+        if (!TaggedInt::IsOverflow(nValue))
+        {
+            return TaggedInt::ToVarUnchecked(nValue);
+        }
+        else
+        {
+            return JavascriptNumber::NewInlined((double) nValue, scriptContext);
+        }
+    }
+#endif
 
     inline Var JavascriptNumber::ToVar(uint32 nValue, ScriptContext* scriptContext)
     {
@@ -116,7 +139,7 @@ namespace Js
     }
 
 #if ENABLE_NATIVE_CODEGEN
-    inline Var JavascriptNumber::NewCodeGenInstance(CodeGenNumberAllocator *alloc, double value, ScriptContext* scriptContext)
+    inline Var JavascriptNumber::NewCodeGenInstance(double value, ScriptContext* scriptContext)
     {
         return ToVar(value);
     }

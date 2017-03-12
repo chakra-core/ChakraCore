@@ -47,14 +47,4 @@ namespace Js
     {
         return this->IsFrozen();
     }
-
-    BOOL ArrayObject::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics /*= true*/, bool enumSymbols /*= false*/)
-    {
-        return __super::GetEnumerator(enumNonEnumerable, enumerator, requestContext, preferSnapshotSemantics, enumSymbols);
-    }
-
-    BOOL ArrayObject::GetEnumerator(Var originalInstance, BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics /*= true*/, bool enumSymbols /*= false*/)
-    {
-        return GetEnumerator(enumNonEnumerable, enumerator, requestContext, preferSnapshotSemantics, enumSymbols);
-    }
 } // namespace Js

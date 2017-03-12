@@ -4,12 +4,11 @@ add_library (Chakra.Runtime.Types OBJECT
     DeferredTypeHandler.cpp
     DictionaryTypeHandler.cpp
     DynamicObject.cpp
-    DynamicObjectEnumerator.cpp
-    DynamicObjectSnapshotEnumerator.cpp
-    DynamicObjectSnapshotEnumeratorWPCache.cpp
+    DynamicObjectPropertyEnumerator.cpp
     DynamicType.cpp
     ES5ArrayTypeHandler.cpp
     JavascriptEnumerator.cpp
+    JavascriptStaticEnumerator.cpp
     MissingPropertyTypeHandler.cpp
     NullTypeHandler.cpp
     PathTypeHandler.cpp

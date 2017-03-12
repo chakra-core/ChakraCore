@@ -1,5 +1,5 @@
 //-------------------------------------------------------------------------------------------------------
-// Copyright (C) Microsoft. All rights reserved.
+// Copyright (C) Microsoft Corporation and contributors. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #pragma once
@@ -16,13 +16,14 @@ namespace Js
         template<typename T> static T Rem( T aLeft, T aRight );
         template<typename T> static T Min( T aLeft, T aRight );
         template<typename T> static T Max( T aLeft, T aRight );
+        template<typename T> static T Abs( T aLeft );
 
-        static int And( int aLeft, int aRight );
-        static int Or( int aLeft, int aRight );
-        static int Xor( int aLeft, int aRight );
-        static int Shl( int aLeft, int aRight );
-        static int Shr( int aLeft, int aRight );
-        static int ShrU( int aLeft, int aRight );
+        template<typename T = int> static T And( T aLeft, T aRight );
+        template<typename T = int> static T Or( T aLeft, T aRight );
+        template<typename T = int> static T Xor( T aLeft, T aRight );
+        template<typename T = int> static T Shl( T aLeft, T aRight );
+        template<typename T = int> static T Shr( T aLeft, T aRight );
+        template<typename T = int> static T ShrU( T aLeft, T aRight );
         template<typename T> static T Neg( T aLeft);
         static int Not( int aLeft);
         static int LogNot( int aLeft);
@@ -36,7 +37,6 @@ namespace Js
         template<typename T> static int CmpEq( T aLeft, T aRight );
         template<typename T> static int CmpNe( T aLeft, T aRight );
     };
-
-
-
 }
+
+#include "AsmJsMath.inl"

@@ -1,0 +1,22 @@
+IncrVal:: 100  args.length : 0
+global object 1 101 0
+IncrVal:: 101  args.length : 2
+global object 1 102 2
+IncrVal:: 102  args.length : 0
+global object 2 103 0
+IncrVal:: 103  args.length : 2
+global object 2 104 2
+IncrVal:: 104  args.length : 1
+global object 3 105 1
+IncrVal:: 105  args.length : 3
+global object 3 106 3
+IncrVal:: 106  args.length : 2
+global object null 107 2
+local length 0
+IncrVal:: 200  args.length : 1
+Local object2 201 1
+Add Test 50
+f Test 11
+Proto Test true
+
+Reached end of Execution -- Exiting.

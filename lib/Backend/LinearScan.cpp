@@ -285,7 +285,7 @@ LinearScan::RegAlloc()
 
 #if _M_IX86
 # if ENABLE_DEBUG_CONFIG_OPTIONS
-    if (Js::Configuration::Global.flags.Instrument.IsEnabled(Js::LinearScanPhase, this->func->GetJnFunction()->GetSourceContextId(),this->func->GetJnFunction()->GetLocalFunctionId()))
+    if (Js::Configuration::Global.flags.Instrument.IsEnabled(Js::LinearScanPhase, this->func->GetSourceContextId(),this->func->GetLocalFunctionId()))
     {
         this->DynamicStatsInstrument();
     }
@@ -968,9 +968,7 @@ LinearScan::SetDstReg(IR::Instr *instr)
 // Get the stack offset of the non temp locals from the stack.
 int32 LinearScan::GetStackOffset(Js::RegSlot regSlotId)
 {
-    Assert(this->func->GetJnFunction());
-
-    int32 stackSlotId = regSlotId - this->func->GetJnFunction()->GetFirstNonTempLocalIndex();
+    int32 stackSlotId = regSlotId - this->func->GetJITFunctionBody()->GetFirstNonTempLocalIndex();
     Assert(stackSlotId >= 0);
     return this->func->GetLocalVarSlotOffset(stackSlotId);
 }
@@ -1215,7 +1213,7 @@ struct FuncBailOutData
 void
 FuncBailOutData::Initialize(Func * func, JitArenaAllocator * tempAllocator)
 {
-    Js::RegSlot localsCount = func->GetJnFunction()->GetLocalsCount();
+    Js::RegSlot localsCount = func->GetJITFunctionBody()->GetLocalsCount();
     this->func = func;
     this->localOffsets = AnewArrayZ(tempAllocator, int, localsCount);
     this->losslessInt32Syms = BVFixed::New(localsCount, tempAllocator);
@@ -1236,7 +1234,7 @@ FuncBailOutData::Initialize(Func * func, JitArenaAllocator * tempAllocator)
 void
 FuncBailOutData::FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOutRecordDataTable *globalBailOutRecordDataTable, uint **lastUpdatedRowIndices)
 {
-    Js::RegSlot localsCount = func->GetJnFunction()->GetLocalsCount();
+    Js::RegSlot localsCount = func->GetJITFunctionBody()->GetLocalsCount();
 
     Assert(globalBailOutRecordDataTable != nullptr);
     Assert(lastUpdatedRowIndices != nullptr);
@@ -1280,7 +1278,7 @@ FuncBailOutData::FinalizeLocalOffsets(JitArenaAllocator *allocator, GlobalBailOu
 void
 FuncBailOutData::Clear(JitArenaAllocator * tempAllocator)
 {
-    Js::RegSlot localsCount = func->GetJnFunction()->GetLocalsCount();
+    Js::RegSlot localsCount = func->GetJITFunctionBody()->GetLocalsCount();
     JitAdeleteArray(tempAllocator, localsCount, localOffsets);
     losslessInt32Syms->Delete(tempAllocator);
     float64Syms->Delete(tempAllocator);
@@ -1317,9 +1315,20 @@ LinearScan::EnsureGlobalBailOutRecordTable(Func *func)
         globalBailOutRecordDataTable->isInlinedConstructor = func->IsInlinedConstructor();
         globalBailOutRecordDataTable->isLoopBody = topFunc->IsLoopBody();
         globalBailOutRecordDataTable->returnValueRegSlot = func->returnValueRegSlot;
+        globalBailOutRecordDataTable->isScopeObjRestored = false;
         globalBailOutRecordDataTable->firstActualStackOffset = -1;
-        globalBailOutRecordDataTable->registerSaveSpace = func->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace();
+        globalBailOutRecordDataTable->registerSaveSpace = (Js::Var*)func->GetThreadContextInfo()->GetBailOutRegisterSaveSpaceAddr();
         globalBailOutRecordDataTable->globalBailOutRecordDataRows = nullptr;
+        if (func->GetJITFunctionBody()->GetForInLoopDepth() != 0)
+        {
+#ifdef MD_GROW_LOCALS_AREA_UP
+            Assert(func->GetForInEnumeratorArrayOffset() >= 0);
+            globalBailOutRecordDataTable->forInEnumeratorArrayRestoreOffset = func->GetForInEnumeratorArrayOffset();
+#else
+            // Stack offset are negative, includes the PUSH EBP and return address
+            globalBailOutRecordDataTable->forInEnumeratorArrayRestoreOffset = func->GetForInEnumeratorArrayOffset() - (2 * MachPtr);
+#endif
+        }
 
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
         if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
@@ -1413,7 +1422,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         uint index = stackSymFunc->inlineDepth;
 
         Assert(i != Js::Constants::NoRegister);
-        Assert(i < stackSymFunc->GetJnFunction()->GetLocalsCount());
+        Assert(i < stackSymFunc->GetJITFunctionBody()->GetLocalsCount());
 
         Assert(index < funcCount);
         __analysis_assume(index < funcCount);
@@ -1422,7 +1431,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         Assert(!byteCodeUpwardExposedUsed->Test(stackSym->m_id));
 
         BailoutConstantValue constValue = value.Value();
-        Js::Var varValue = constValue.ToVar(this->func, stackSymFunc->GetScriptContext());
+        Js::Var varValue = constValue.ToVar(this->func);
 
         state.constantList.Prepend(varValue);
         AssertMsg(funcBailOutData[index].localOffsets[i] == 0, "Can't have two active lifetime for the same byte code register");
@@ -1455,7 +1464,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         uint index = stackSymFunc->inlineDepth;
 
         Assert(i != Js::Constants::NoRegister);
-        Assert(i < stackSymFunc->GetJnFunction()->GetLocalsCount());
+        Assert(i < stackSymFunc->GetJITFunctionBody()->GetLocalsCount());
 
         Assert(index < funcCount);
         __analysis_assume(index < funcCount);
@@ -1529,7 +1538,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         uint index = stackSymFunc->inlineDepth;
 
         Assert(i != Js::Constants::NoRegister);
-        Assert(i < stackSymFunc->GetJnFunction()->GetLocalsCount());
+        Assert(i < stackSymFunc->GetJITFunctionBody()->GetLocalsCount());
 
         Assert(index < funcCount);
          __analysis_assume(index < funcCount);
@@ -1601,7 +1610,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             uint index = stackSymFunc->inlineDepth;
 
             Assert(i != Js::Constants::NoRegister);
-            Assert(i < stackSymFunc->GetJnFunction()->GetLocalsCount());
+            Assert(i < stackSymFunc->GetJITFunctionBody()->GetLocalsCount());
 
             Assert(index < funcCount);
             __analysis_assume(index < funcCount);
@@ -1618,19 +1627,13 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 
     if (this->func->IsJitInDebugMode())
     {
-        Js::FunctionBody* functionBody = this->func->GetJnFunction();
-        Assert(functionBody);
-
         // Need to allow filling the formal args slots.
 
-        Js::PropertyIdOnRegSlotsContainer *propertyIdContainer = functionBody->GetPropertyIdOnRegSlotsContainerWithLock();
-        bool hasFormalArgs = propertyIdContainer != nullptr && propertyIdContainer->propertyIdsForFormalArgs != nullptr;
-
-        if (hasFormalArgs)
+        if (func->GetJITFunctionBody()->HasPropIdToFormalsMap())
         {
-            Assert(functionBody->GetInParamsCount() > 0);
-            uint32 endIndex = min(functionBody->GetFirstNonTempLocalIndex() + functionBody->GetInParamsCount() - 1, functionBody->GetEndNonTempLocalIndex());
-            for (uint32 index = functionBody->GetFirstNonTempLocalIndex(); index < endIndex; index++)
+            Assert(func->GetJITFunctionBody()->GetInParamsCount() > 0);
+            uint32 endIndex = min(func->GetJITFunctionBody()->GetFirstNonTempLocalIndex() + func->GetJITFunctionBody()->GetInParamsCount() - 1, func->GetJITFunctionBody()->GetEndNonTempLocalIndex());
+            for (uint32 index = func->GetJITFunctionBody()->GetFirstNonTempLocalIndex(); index < endIndex; index++)
             {
                 StackSym * stackSym = this->func->m_symTable->FindStackSym(index);
                 if (stackSym != nullptr)
@@ -1638,9 +1641,9 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                     Func * stackSymFunc = stackSym->GetByteCodeFunc();
 
                     Js::RegSlot regSlotId = stackSym->GetByteCodeRegSlot();
-                    if (functionBody->IsNonTempLocalVar(regSlotId))
+                    if (func->IsNonTempLocalVar(regSlotId))
                     {
-                        if (!propertyIdContainer->IsRegSlotFormal(regSlotId - functionBody->GetFirstNonTempLocalIndex()))
+                        if (!func->GetJITFunctionBody()->IsRegSlotFormal(regSlotId - func->GetJITFunctionBody()->GetFirstNonTempLocalIndex()))
                         {
                             continue;
                         }
@@ -1678,25 +1681,26 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     {
         Assert(startCallCount != 0);
         uint argOutSlot = 0;
-        uint * startCallOutParamCounts = NativeCodeDataNewArray(allocator, uint, startCallCount);
+        uint * startCallOutParamCounts = (uint*)NativeCodeDataNewArrayNoFixup(allocator, UIntType<DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts>, startCallCount);
 #ifdef _M_IX86
-        uint * startCallArgRestoreAdjustCounts = NativeCodeDataNewArray(allocator, uint, startCallCount);
+        uint * startCallArgRestoreAdjustCounts = (uint*)NativeCodeDataNewArrayNoFixup(allocator, UIntType<DataDesc_ArgOutOffsetInfo_StartCallOutParamCounts>, startCallCount);
 #endif
-        BVFixed * argOutFloat64Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutLosslessInt32Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        NativeCodeData::AllocatorNoFixup<BVFixed>* allocatorT = (NativeCodeData::AllocatorNoFixup<BVFixed>*)allocator;
+        BVFixed * argOutFloat64Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutLosslessInt32Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
         // SIMD_JS
-        BVFixed * argOutSimd128F4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128I4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128I8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128I16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128U4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128U8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128U16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128B4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128B8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
-        BVFixed * argOutSimd128B16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocator);
+        BVFixed * argOutSimd128F4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128I4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128I8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128I16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128U4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128U8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128U16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128B4Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128B8Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
+        BVFixed * argOutSimd128B16Syms = BVFixed::New(bailOutInfo->totalOutParamCount, allocatorT);
 
-        int* outParamOffsets = bailOutInfo->outParamOffsets = NativeCodeDataNewArrayZ(allocator, int, bailOutInfo->totalOutParamCount);
+        int* outParamOffsets = bailOutInfo->outParamOffsets = (int*)NativeCodeDataNewArrayZNoFixup(allocator, IntType<DataDesc_BailoutInfo_CotalOutParamCount>, bailOutInfo->totalOutParamCount);
 #ifdef _M_IX86
         int currentStackOffset = 0;
         bailOutInfo->outParamFrameAdjustArgSlot = JitAnew(this->func->m_alloc, BVSparse<JitArenaAllocator>, this->func->m_alloc);
@@ -1771,6 +1775,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
             if (currentBailOutRecord->argOutOffsetInfo->outParamOffsets == nullptr)
             {
                 Assert(currentBailOutRecord->argOutOffsetInfo->startCallOutParamCounts == nullptr);
+                currentBailOutRecord->argOutOffsetInfo->startCallIndex = i;
                 currentBailOutRecord->argOutOffsetInfo->startCallOutParamCounts = &startCallOutParamCounts[i];
 #ifdef _M_IX86
                 currentBailOutRecord->startCallArgRestoreAdjustCounts = &startCallArgRestoreAdjustCounts[i];
@@ -1796,8 +1801,8 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
 #if DBG_DUMP
             if (PHASE_DUMP(Js::BailOutPhase, this->func))
             {
-                Output::Print(_u("Bailout function: %s [#%d] \n"), currentStartCallFunc->GetJnFunction()->GetDisplayName(),
-                    currentStartCallFunc->GetJnFunction()->GetFunctionNumber());
+                Output::Print(_u("Bailout function: %s [#%d] \n"), currentStartCallFunc->GetJITFunctionBody()->GetDisplayName(),
+                    currentStartCallFunc->GetJITFunctionBody()->GetFunctionNumber());
             }
 #endif
             for (uint j = 0; j < outParamCount; j++, argOutSlot++)
@@ -1818,7 +1823,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
                     {
                         if (constantValue.Key()->m_id == sym->m_id)
                         {
-                            Js::Var varValue = constantValue.Value().ToVar(func, currentStartCallFunc->GetScriptContext());
+                            Js::Var varValue = constantValue.Value().ToVar(func);
                             state.constantList.Prepend(varValue);
                             outParamOffsets[outParamOffsetIndex] = state.constantList.Count() + GetBailOutRegisterSaveSlotCount() + GetBailOutReserveSlotCount();
 
@@ -2097,7 +2102,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
     linearScanMD.GenerateBailOut(instr, state.registerSaveSyms, _countof(state.registerSaveSyms));
 
     // generate the constant table
-    Js::Var * constants = NativeCodeDataNewArray(allocator, Js::Var, state.constantList.Count());
+    Js::Var * constants = NativeCodeDataNewArrayNoFixup(allocator, Js::Var, state.constantList.Count());
     uint constantCount = state.constantList.Count();
     while (!state.constantList.Empty())
     {
@@ -2123,7 +2128,7 @@ LinearScan::FillBailOutRecord(IR::Instr * instr)
         if(PHASE_DUMP(Js::BailOutPhase, this->func))
         {
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-            Output::Print(_u("Bailout function: %s [%s]\n"), funcBailOutData[i].func->GetJnFunction()->GetDisplayName(), funcBailOutData[i].func->GetJnFunction()->GetDebugNumberSet(debugStringBuffer), i);
+            Output::Print(_u("Bailout function: %s [%s]\n"), funcBailOutData[i].func->GetJITFunctionBody()->GetDisplayName(), funcBailOutData[i].func->GetDebugNumberSet(debugStringBuffer), i);
             funcBailOutData[i].bailOutRecord->Dump();
         }
 #endif
@@ -2155,7 +2160,7 @@ LinearScan::ForEachStackLiteralBailOutInfo(IR::Instr * instr, BailOutInfo * bail
         uint index = stackSymFunc->inlineDepth;
 
         Assert(regSlot != Js::Constants::NoRegister);
-        Assert(regSlot < stackSymFunc->GetJnFunction()->GetLocalsCount());
+        Assert(regSlot < stackSymFunc->GetJITFunctionBody()->GetLocalsCount());
         Assert(index < funcCount);
         Assert(funcBailOutData[index].func == stackSymFunc);
         Assert(funcBailOutData[index].localOffsets[regSlot] != 0);
@@ -2183,7 +2188,7 @@ LinearScan::FillStackLiteralBailOutRecord(IR::Instr * instr, BailOutInfo * bailO
             if (stackLiteralBailOutRecordCount)
             {
                 funcBailOutData[i].bailOutRecord->stackLiteralBailOutRecord =
-                    NativeCodeDataNewArray(allocator, BailOutRecord::StackLiteralBailOutRecord, stackLiteralBailOutRecordCount);
+                    NativeCodeDataNewArrayNoFixup(allocator, BailOutRecord::StackLiteralBailOutRecord, stackLiteralBailOutRecordCount);
                 // reset the count so we can track how much we have filled below
                 funcBailOutData[i].bailOutRecord->stackLiteralBailOutRecordCount = 0;
             }
@@ -3247,7 +3252,7 @@ LinearScan::InsertStores(Lifetime *lifetime, RegNum reg, IR::Instr *insertionIns
     if (sym->m_isSingleDef)
     {
         IR::Instr * defInstr = sym->m_instrDef;
-        if (!sym->IsConst() && defInstr->GetDst()->AsRegOpnd()->GetReg() == RegNOREG
+        if ((!sym->IsConst() && defInstr->GetDst()->AsRegOpnd()->GetReg() == RegNOREG)
             || this->secondChanceRegs.Test(reg))
         {
             // This can happen if we were trying to allocate this lifetime,
@@ -3391,6 +3396,7 @@ LinearScan::InsertLoad(IR::Instr *instr, StackSym *sym, RegNum reg)
             sym = StackSym::New(TyVar, this->func);
             sym->m_isConst = true;
             sym->m_isIntConst = oldSym->m_isIntConst;
+            sym->m_isInt64Const = oldSym->m_isInt64Const;
             sym->m_isTaggableIntConst = sym->m_isTaggableIntConst;
         }
     }
@@ -3616,7 +3622,7 @@ void LinearScan::TrackInlineeArgLifetimes(IR::Instr* instr)
     {
         if (instr->m_func->m_hasInlineArgsOpt)
         {
-            instr->m_func->frameInfo->AllocateRecord(this->func, instr->m_func->GetJnFunction());
+            instr->m_func->frameInfo->AllocateRecord(this->func, instr->m_func->GetJITFunctionBody()->GetAddr());
 
             if(this->currentBlock->inlineeStack.Count() == 0)
             {
@@ -4020,7 +4026,7 @@ LinearScan::InsertSecondChanceCompensation(Lifetime ** branchRegContent, Lifetim
                                            IR::BranchInstr *branchInstr, IR::LabelInstr *labelInstr)
 {
     IR::Instr *prevInstr = branchInstr->GetPrevRealInstrOrLabel();
-    bool needsAirlock = branchInstr->IsConditional() || (prevInstr->IsBranchInstr() && prevInstr->AsBranchInstr()->IsConditional() || branchInstr->IsMultiBranch());
+    bool needsAirlock = branchInstr->IsConditional() || (prevInstr->IsBranchInstr() && prevInstr->AsBranchInstr()->IsConditional()) || branchInstr->IsMultiBranch();
     bool hasAirlock = false;
     IR::Instr *insertionInstr = branchInstr;
     IR::Instr *insertionStartInstr = branchInstr->m_prev;
@@ -4866,7 +4872,7 @@ void LinearScan::PrintStats() const
 
     Assert(loopNest == 0);
 
-    this->func->GetJnFunction()->DumpFullFunctionName();
+    this->func->DumpFullFunctionName();
     Output::SkipToColumn(45);
 
     Output::Print(_u("Instrs:%5d, Lds:%4d, Strs:%4d, WLds: %4d, WStrs: %4d, WRefs: %4d\n"),
@@ -4912,7 +4918,7 @@ void LinearScan::DynamicStatsInstrument()
 {    
     {
         IR::Instr *firstInstr = this->func->m_headInstr;
-        IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(&(this->func->GetJnFunction()->callCountStats), TyUint32, this->func);
+    IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(this->func->GetJITFunctionBody()->GetCallCountStatsAddr(), TyUint32, this->func);
         firstInstr->InsertAfter(IR::Instr::New(Js::OpCode::INC, memRefOpnd, memRefOpnd, this->func));
     }
 
@@ -4932,7 +4938,7 @@ void LinearScan::DynamicStatsInstrument()
         if (dst && dst->IsSymOpnd() && dst->AsSymOpnd()->m_sym->IsStackSym() && dst->AsSymOpnd()->m_sym->AsStackSym()->IsAllocated())
         {
             IR::Instr *insertionInstr = this->GetIncInsertionPoint(instr);
-            IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(&(this->func->GetJnFunction()->regAllocStoreCount), TyUint32, this->func);
+            IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(this->func->GetJITFunctionBody()->GetRegAllocStoreCountAddr(), TyUint32, this->func);
             insertionInstr->InsertBefore(IR::Instr::New(Js::OpCode::INC, memRefOpnd, memRefOpnd, this->func));
         }
         IR::Opnd *src1 = instr->GetSrc1();
@@ -4941,14 +4947,14 @@ void LinearScan::DynamicStatsInstrument()
             if (src1->IsSymOpnd() && src1->AsSymOpnd()->m_sym->IsStackSym() && src1->AsSymOpnd()->m_sym->AsStackSym()->IsAllocated())
             {
                 IR::Instr *insertionInstr = this->GetIncInsertionPoint(instr);
-                IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(&(this->func->GetJnFunction()->regAllocLoadCount), TyUint32, this->func);
+                IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(this->func->GetJITFunctionBody()->GetRegAllocStoreCountAddr(), TyUint32, this->func);
                 insertionInstr->InsertBefore(IR::Instr::New(Js::OpCode::INC, memRefOpnd, memRefOpnd, this->func));
             }
             IR::Opnd *src2 = instr->GetSrc2();
             if (src2 && src2->IsSymOpnd() && src2->AsSymOpnd()->m_sym->IsStackSym() && src2->AsSymOpnd()->m_sym->AsStackSym()->IsAllocated())
             {
                 IR::Instr *insertionInstr = this->GetIncInsertionPoint(instr);
-                IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(&(this->func->GetJnFunction()->regAllocLoadCount), TyUint32, this->func);
+                IR::MemRefOpnd *memRefOpnd = IR::MemRefOpnd::New(this->func->GetJITFunctionBody()->GetRegAllocStoreCountAddr(), TyUint32, this->func);
                 insertionInstr->InsertBefore(IR::Instr::New(Js::OpCode::INC, memRefOpnd, memRefOpnd, this->func));
             }
         }
@@ -4963,6 +4969,20 @@ IR::Instr* LinearScan::InsertMove(IR::Opnd *dst, IR::Opnd *src, IR::Instr *const
     IR::Instr *instrPrev = insertBeforeInstr->m_prev;
 
     IR::Instr *instrRet = Lowerer::InsertMove(dst, src, insertBeforeInstr);
+
+    for (IR::Instr *instr = instrPrev->m_next; instr != insertBeforeInstr; instr = instr->m_next)
+    {
+        instr->CopyNumber(insertBeforeInstr);
+    }
+
+    return instrRet;
+}
+
+IR::Instr* LinearScan::InsertLea(IR::RegOpnd *dst, IR::Opnd *src, IR::Instr *const insertBeforeInstr)
+{
+    IR::Instr *instrPrev = insertBeforeInstr->m_prev;
+
+    IR::Instr *instrRet = Lowerer::InsertLea(dst, src, insertBeforeInstr, true);
 
     for (IR::Instr *instr = instrPrev->m_next; instr != insertBeforeInstr; instr = instr->m_next)
     {

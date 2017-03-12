@@ -1,0 +1,77 @@
+[
+  {
+    "evaluate": {
+      "c.length": "number 2"
+    }
+  },
+  {
+    "evaluate": {
+      "c": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function function Function() { [native code] }",
+          "length": "number 0",
+          "name": "string ",
+          "apply": "function function apply() { [native code] }",
+          "bind": "function function bind() { [native code] }",
+          "call": "function function call() { [native code] }",
+          "toString": "function function toString() { [native code] }",
+          "Symbol.hasInstance": "function function [Symbol.hasInstance]() { [native code] }",
+          "caller": "Error 'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context",
+          "arguments": "Error 'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context"
+        },
+        "prototype": {
+          "#__proto__": "Object {...}",
+          "constructor": "function function(a,b){\r\n    this.length = 100;\r\n}",
+          "length": "number 200"
+        },
+        "name": "string c",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 2"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "d": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function function(a,b){\r\n    this.length = 100;\r\n}",
+          "length": "number 200"
+        },
+        "length": "number 100"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "a": {
+        "#__proto__": {
+          "#__proto__": "Array []",
+          "length": "number 2",
+          "[0]": "string 1",
+          "[1]": "string 2"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "b": {
+        "#__proto__": {
+          "#__proto__": "function function() {\n    [native code]\n}",
+          "prototype": "Object {...}",
+          "name": "string anonymous",
+          "caller": "object null",
+          "arguments": "object null",
+          "length": "number 0"
+        },
+        "length": "number 4",
+        "[1]": "string 1",
+        "[2]": "string 2",
+        "[3]": "string 3"
+      }
+    }
+  }
+]

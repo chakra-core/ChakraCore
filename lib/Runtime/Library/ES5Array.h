@@ -11,8 +11,11 @@ namespace Js
     protected:
         ES5ArrayType(DynamicType * type);
     };
-    AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(ES5ArrayType, &RecyclableObject::DumpObjectFunction);
+}
+AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::ES5ArrayType, &Js::RecyclableObject::DumpObjectFunction);
 
+namespace Js
+{
     //
     // ES5Array supports attribute/getter/setter for index property names.
     //
@@ -80,17 +83,16 @@ namespace Js
         virtual BOOL Seal() override;
         virtual BOOL Freeze() override;
 
-        virtual BOOL GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr) override;
 
         // objectArray support
         virtual BOOL SetItemWithAttributes(uint32 index, Var value, PropertyAttributes attributes) override;
         virtual BOOL SetItemAttributes(uint32 index, PropertyAttributes attributes) override;
         virtual BOOL SetItemAccessors(uint32 index, Var getter, Var setter) override;
         virtual BOOL IsObjectArrayFrozen() override;
-        virtual BOOL GetEnumerator(Var originalInstance, BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics = true, bool enumSymbols = false) override;
+        virtual JavascriptEnumerator * GetIndexEnumerator(EnumeratorFlags flags, ScriptContext* requestContext) override;
 
-        // Get non-index enumerator for SCA
-        virtual BOOL GetNonIndexEnumerator(Var* enumerator, ScriptContext* requestContext) override;
+        // for SCA
         virtual BOOL IsItemEnumerable(uint32 index) override;
 
 #if ENABLE_TTD
@@ -101,5 +103,5 @@ namespace Js
         virtual void ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc) override;
 #endif
     };
-    AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(ES5Array, &RecyclableObject::DumpObjectFunction);
 }
+AUTO_REGISTER_RECYCLER_OBJECT_DUMPER(Js::ES5Array, &Js::RecyclableObject::DumpObjectFunction);

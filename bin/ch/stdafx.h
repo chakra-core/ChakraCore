@@ -44,10 +44,6 @@
 #undef _DEBUG
 #endif
 
-#ifdef _WIN32
-#include <atlbase.h>
-#endif // _WIN32
-
 #ifdef _DEBUG_WAS_DEFINED
 #define _DEBUG
 #undef _DEBUG_WAS_DEFINED
@@ -147,32 +143,121 @@ do { \
 #include "WScriptJsrt.h"
 #include "Debugger.h"
 
-template<class T, bool JSRTHeap>
-class AutoStringPtr
-{
-    T* data;
-public:
-    AutoStringPtr():data(nullptr) { }
-    ~AutoStringPtr()
-    {
-        if (data == nullptr)
-        {
-            return;
-        }
+#ifdef _WIN32
+#include <strsafe.h>
+#include "JITProcessManager.h"
+#endif
 
-        if (JSRTHeap)
+class AutoString
+{
+    size_t length;
+    char* data;
+    LPWSTR data_wide;
+    JsErrorCode errorCode;
+    bool dontFree;
+public:
+    AutoString():length(0), data(nullptr),
+        data_wide(nullptr), errorCode(JsNoError), dontFree(false)
+    { }
+
+    AutoString(JsValueRef value):length(0), data(nullptr),
+        data_wide(nullptr), errorCode(JsNoError), dontFree(false)
+    {
+        Initialize(value);
+    }
+
+    JsErrorCode Initialize(JsValueRef value)
+    {
+        JsValueRef strValue;
+        JsValueType type;
+        ChakraRTInterface::JsGetValueType(value, &type);
+        if (type != JsString)
         {
-            ChakraRTInterface::JsStringFree((char*)data);
+            errorCode = ChakraRTInterface::JsConvertValueToString(value, &strValue);
         }
         else
         {
+            strValue = value;
+        }
+        if (errorCode == JsNoError)
+        {
+            size_t len = 0;
+            errorCode = ChakraRTInterface::JsCopyString(strValue, nullptr, 0, &len);
+            if (errorCode == JsNoError)
+            {
+                data = (char*) malloc((len + 1) * sizeof(char));
+                ChakraRTInterface::JsCopyString(strValue, data, len + 1, &length);
+                AssertMsg(len == length, "If you see this message.. There is something seriously wrong. Good Luck!");
+                *(data + len) = char(0);
+            }
+        }
+        return errorCode;
+    }
+
+    void MakePersistent()
+    {
+        dontFree = true;
+    }
+
+    LPCSTR GetString()
+    {
+        return data;
+    }
+
+    LPWSTR GetWideString()
+    {
+        if(data_wide || !data)
+        {
+            return data_wide;
+        }
+        NarrowStringToWideDynamic(data, &data_wide);
+        return data_wide;
+    }
+
+    bool HasError()
+    {
+        return errorCode != JsNoError;
+    }
+
+    JsErrorCode GetError()
+    {
+        return errorCode;
+    }
+
+    size_t GetLength()
+    {
+        return length;
+    }
+
+    ~AutoString()
+    {
+        // we need persistent source string
+        // for externalArrayBuffer source
+        // externalArrayBuffer finalize should
+        // free this memory
+        if (!dontFree && data != nullptr)
+        {
             free(data);
+            data = nullptr;
+        }
+
+        // Free this anyway.
+        if (data_wide != nullptr)
+        {
+            free(data_wide);
+            data_wide = nullptr;
         }
     }
 
-    T* operator*() { return data; }
-    T** operator&()  { return &data; }
+    char* operator*() { return data; }
+    char** operator&()  { return &data; }
 };
 
-typedef AutoStringPtr<char, true> AutoString;
-typedef AutoStringPtr<wchar_t, false> AutoWideString;
+inline JsErrorCode CreatePropertyIdFromString(const char* str, JsPropertyIdRef *Id)
+{
+    return ChakraRTInterface::JsCreatePropertyId(str, strlen(str), Id);
+}
+
+void GetBinaryLocation(char *path, const unsigned size);
+void GetBinaryPathWithFileNameA(char *path, const size_t buffer_size, const char* filename);
+extern "C" HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks);

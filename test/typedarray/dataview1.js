@@ -96,8 +96,63 @@ function test5() {
         "DataView constructor argument byteLength is invalid");
 }
 
+function TestDataViewConstructorWithOffset()
+{
+    var arrayBuffer = new ArrayBuffer(16);
+    print(arrayBuffer.byteLength);
+    //Constructor with offset specified.
+    var dataView2 = new DataView(arrayBuffer, 4);
+    print(dataView2.byteLength);
+}
+
+function TestDataViewConstructorWithOffsetAndLength()
+{
+    var arrayBuffer = new ArrayBuffer(16);
+    print(arrayBuffer.byteLength);
+    // Constructor with offset and length specified.
+    var dataView3 = new DataView(arrayBuffer, 8, 2);
+    print(dataView3.byteLength);
+}
+
+function TestDataViewConstructorCalledWithoutNew()
+{
+    var arrayBuffer = new ArrayBuffer(16);
+    var dataView4 = DataView(arrayBuffer, 8, 2);
+}
+
+function TestDataViewConstructorCalledWithoutArguments()
+{
+    var dataView5 = new DataView();
+}
+
+function TestDataViewCostructorCalledWithJavascriptArray()
+{
+    var normalArray = [1, 2, 3, 4, 5];
+    var dataView6 = new DataView(normalArray);
+}
+
+function TestDataViewCostructorOffsetBeyondArrayBufferByteLength()
+{
+    var arrayBuffer = new ArrayBuffer(16);
+    var dataView7 = new DataView(arrayBuffer, 17);
+}
+
+function TestDataViewCostructorOffsetPlusLengthBeyondArrayBufferByteLength()
+{
+    var arrayBuffer = new ArrayBuffer(16);
+    var dataView7 = new DataView(arrayBuffer, 14, 16);
+}
+
 test1();
 test2();
 test3();
 test4();
 test5();
+
+TestDataViewConstructorWithOffset();
+TestDataViewConstructorWithOffsetAndLength();
+assert.throws(TestDataViewConstructorCalledWithoutNew, TypeError, "", "DataView: cannot be called without the new keyword");
+assert.throws(TestDataViewConstructorCalledWithoutArguments, TypeError, "", "Required argument buffer in DataView method is not specified");
+assert.throws(TestDataViewCostructorCalledWithJavascriptArray, TypeError, "", "Required argument buffer in DataView method is not specified");
+assert.throws(TestDataViewCostructorOffsetBeyondArrayBufferByteLength, RangeError, "", "DataView constructor argument byteOffset is invalid");
+assert.throws(TestDataViewCostructorOffsetPlusLengthBeyondArrayBufferByteLength, RangeError, "", "DataView constructor argument byteLength is invalid");

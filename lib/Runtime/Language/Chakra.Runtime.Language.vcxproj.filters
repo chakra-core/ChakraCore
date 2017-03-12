@@ -15,13 +15,11 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)DynamicProfileMutator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)DynamicProfileStorage.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ExecutionMode.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)FunctionCodeGenJitTimeData.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)FunctionCodeGenRuntimeData.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)InlineCache.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptExceptionOperators.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptMathOperators.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ProfilingHelpers.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)ReadOnlyDynamicProfileInfo.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)SourceDynamicProfileManager.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)StackTraceArguments.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ValueType.cpp" />
@@ -60,23 +58,25 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)TaggedInt.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeLanguagePch.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptNativeOperators.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt16x8Operation.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdInt16x8OperationX86X64.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint32x4Operation.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint32x4OperationX86X64.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint16x8Operation.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint16x8OperationX86X64.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint8x16Operation.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdUint8x16OperationX86X64.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool32x4Operation.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool32x4OperationX86X64.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool16x8Operation.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool16x8OperationX86X64.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16Operation.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)SimdBool8x16OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDInt16x8OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUInt32x4Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUInt32x4OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint16x8Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint16x8OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint8x16Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDUint8x16OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool32x4Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool32x4OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool16x8Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool16x8OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16Operation.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16OperationX86X64.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WAsmjsUtils.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespaceEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblySource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsmJs.h" />
@@ -96,14 +96,12 @@
     <ClInclude Include="EvalMapRecord.h" />
     <ClInclude Include="ExecutionMode.h" />
     <ClInclude Include="ExecutionModes.h" />
-    <ClInclude Include="FunctionCodeGenJitTimeData.h" />
     <ClInclude Include="FunctionCodeGenRuntimeData.h" />
     <ClInclude Include="InlineCache.h" />
     <ClInclude Include="InlineCachePointerArray.h" />
     <ClInclude Include="JavascriptExceptionOperators.h" />
     <ClInclude Include="JavascriptMathOperators.h" />
     <ClInclude Include="ProfilingHelpers.h" />
-    <ClInclude Include="ReadOnlyDynamicProfileInfo.h" />
     <ClInclude Include="SourceDynamicProfileManager.h" />
     <ClInclude Include="StackTraceArguments.h" />
     <ClInclude Include="ValueType.h" />
@@ -147,8 +145,10 @@
     <ClInclude Include="SimdBool32x4Operation.h" />
     <ClInclude Include="SimdBool16x8Operation.h" />
     <ClInclude Include="SimdBool8x16Operation.h" />
+    <ClInclude Include="WAsmjsUtils.h" />
     <ClInclude Include="ModuleNamespace.h" />
     <ClInclude Include="ModuleNamespaceEnumerator.h" />
+    <ClInclude Include="WebAssemblySource.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\amd64_Thunks.asm">
@@ -177,6 +177,12 @@
       <Filter>i386</Filter>
     </None>
     <None Include="TaggedInt.inl" />
+    <None Include="amd64\JavascriptOperatorsA.S">
+      <Filter>amd64</Filter>
+    </None>
+    <None Include="amd64\amd64_Thunks.S">
+      <Filter>amd64</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="amd64">

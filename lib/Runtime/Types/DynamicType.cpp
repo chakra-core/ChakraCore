@@ -11,6 +11,9 @@ namespace Js
 
     DynamicType::DynamicType(DynamicType * type, DynamicTypeHandler *typeHandler, bool isLocked, bool isShared)
         : Type(type), typeHandler(typeHandler), isLocked(isLocked), isShared(isShared)
+#if DBG
+        , isCachedForChangePrototype(false)
+#endif
     {
         Assert(!this->isLocked || this->typeHandler->GetIsLocked());
         Assert(!this->isShared || this->typeHandler->GetIsShared());
@@ -19,6 +22,9 @@ namespace Js
 
     DynamicType::DynamicType(ScriptContext* scriptContext, TypeId typeId, RecyclableObject* prototype, JavascriptMethod entryPoint, DynamicTypeHandler * typeHandler, bool isLocked, bool isShared)
         : Type(scriptContext, typeId, prototype, entryPoint) , typeHandler(typeHandler), isLocked(isLocked), isShared(isShared), hasNoEnumerableProperties(false)
+#if DBG
+        , isCachedForChangePrototype(false)
+#endif
     {
         Assert(typeHandler != nullptr);
         Assert(!this->isLocked || this->typeHandler->GetIsLocked());
@@ -50,21 +56,22 @@ namespace Js
         PropertyIndex propertyIndex = (PropertyIndex)-1;
         JavascriptString* propertyString = nullptr;
         PropertyId propertyId = Constants::NoProperty;
-        Assert(!this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), propertyIndex, &propertyString, &propertyId, nullptr, this, this, true));
+        Assert(!this->GetTypeHandler()->FindNextProperty(this->GetScriptContext(), propertyIndex, &propertyString, &propertyId, nullptr, this, this, EnumeratorFlags::None));
 #endif
 
         this->hasNoEnumerableProperties = true;
         return true;
     }
 
-    void DynamicType::PrepareForTypeSnapshotEnumeration()
+    bool DynamicType::PrepareForTypeSnapshotEnumeration()
     {
-        if(!GetIsLocked() && CONFIG_FLAG(TypeSnapshotEnumeration))
+        if (CONFIG_FLAG(TypeSnapshotEnumeration))
         {
             // Lock the type and handler, enabling us to enumerate properties of the type snapshotted
             // at the beginning of enumeration, despite property changes made by script during enumeration.
-            LockType(); // Note: this only works for type handlers that support locking.
+            return LockType(); // Note: this only works for type handlers that support locking.
         }
+        return false;
     }
 
     void DynamicObject::InitSlots(DynamicObject* instance)
@@ -79,7 +86,7 @@ namespace Js
         int inlineSlotCapacity = GetTypeHandler()->GetInlineSlotCapacity();
         if (slotCapacity > inlineSlotCapacity)
         {
-            instance->auxSlots = RecyclerNewArrayZ(recycler, Var, slotCapacity - inlineSlotCapacity);
+            instance->auxSlots = RecyclerNewArrayZ(recycler, Field(Var), slotCapacity - inlineSlotCapacity);
         }
     }
 
@@ -195,6 +202,11 @@ namespace Js
     {
         Assert(!Js::IsInternalPropertyId(propertyId));
         return GetTypeHandler()->DeleteProperty(this, propertyId, flags);
+    }
+
+    BOOL DynamicObject::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        return GetTypeHandler()->DeleteProperty(this, propertyNameString, flags);
     }
 
     BOOL DynamicObject::IsFixedProperty(PropertyId propertyId)
@@ -320,95 +332,23 @@ namespace Js
         return false;
     }
 
-    BOOL DynamicObject::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL DynamicObject::GetEnumeratorWithPrefix(JavascriptEnumerator * prefixEnumerator, JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache)
     {
-        if (!this->GetTypeHandler()->EnsureObjectReady(this))
+        Js::ArrayObject * arrayObject = nullptr;
+        if (this->HasObjectArray())
         {
-            *enumerator = nullptr;
-            return FALSE;
+            arrayObject = this->GetObjectArrayOrFlagsAsArray();
+            Assert(arrayObject->GetPropertyCount() == 0);
         }
+        return enumerator->Initialize(prefixEnumerator, arrayObject, this, flags, requestContext, forInCache);
+    }
 
-        // Create the appropriate enumerator object.
-        if (preferSnapshotSemantics)
-        {
-            if (this->GetTypeHandler()->GetPropertyCount() == 0 && !this->HasObjectArray())
-            {
-                *enumerator = requestContext->GetLibrary()->GetNullEnumerator();
-            }
-            else
-            {
-                GetDynamicType()->PrepareForTypeSnapshotEnumeration();
-                if (this->GetDynamicType()->GetIsLocked())
-                {
-                    if (enumSymbols)
-                    {
-                        if (enumNonEnumerable)
-                        {
-                            *enumerator = DynamicObjectSnapshotEnumeratorWPCache</*enumNonEnumerable*/true, /*enumSymbols*/true>::New(requestContext, this);
-                        }
-                        else
-                        {
-                            *enumerator = DynamicObjectSnapshotEnumeratorWPCache</*enumNonEnumerable*/false, /*enumSymbols*/true>::New(requestContext, this);
-                        }
-                    }
-                    else if (enumNonEnumerable)
-                    {
-                        *enumerator = DynamicObjectSnapshotEnumeratorWPCache</*enumNonEnumerable*/true, /*enumSymbols*/false>::New(requestContext, this);
-                    }
-                    else
-                    {
-                        *enumerator = DynamicObjectSnapshotEnumeratorWPCache</*enumNonEnumerable*/false, /*enumSymbols*/false>::New(requestContext, this);
-                    }
-                }
-                else
-                {
-                    if (enumSymbols)
-                    {
-                        if (enumNonEnumerable)
-                        {
-                            *enumerator = DynamicObjectSnapshotEnumerator</*enumNonEnumerable*/true, /*enumSymbols*/true>::New(requestContext, this);
-                        }
-                        else
-                        {
-                            *enumerator = DynamicObjectSnapshotEnumerator</*enumNonEnumerable*/false, /*enumSymbols*/true>::New(requestContext, this);
-                        }
-                    }
-                    else if (enumNonEnumerable)
-                    {
-                        *enumerator = DynamicObjectSnapshotEnumerator</*enumNonEnumerable*/true, /*enumSymbols*/false>::New(requestContext, this);
-                    }
-                    else
-                    {
-                        *enumerator = DynamicObjectSnapshotEnumerator</*enumNonEnumerable*/false, /*enumSymbols*/false>::New(requestContext, this);
-                    }
-                }
-            }
-        }
-        else if (enumSymbols)
-        {
-            if (enumNonEnumerable)
-            {
-                *enumerator = DynamicObjectEnumerator</*enumNonEnumerable*/true, /*enumSymbols*/true, /*snapShotSemantics*/false>::New(requestContext, this);
-            }
-            else
-            {
-                *enumerator = DynamicObjectEnumerator</*enumNonEnumerable*/false, /*enumSymbols*/true, /*snapShotSemantics*/false>::New(requestContext, this);
-            }
-        }
-        else if (enumNonEnumerable)
-        {
-            *enumerator = DynamicObjectEnumerator</*enumNonEnumerable*/true, /*enumSymbols*/false, /*snapShotSemantics*/false>::New(requestContext, this);
-        }
-        else
-        {
-            *enumerator = DynamicObjectEnumerator</*enumNonEnumerable*/false, /*enumSymbols*/false, /*snapShotSemantics*/false>::New(requestContext, this);
-        }
-
-        return true;
+    BOOL DynamicObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext * requestContext, ForInCache * forInCache)
+    {
+        return GetEnumeratorWithPrefix(nullptr, enumerator, flags, requestContext, forInCache);
     }
 
     BOOL DynamicObject::SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)
-
     {
         return GetTypeHandler()->SetAccessors(this, propertyId, getter, setter, flags);
     }

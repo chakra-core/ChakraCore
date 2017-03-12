@@ -273,6 +273,7 @@ const char * const TestInfoKindName[] =
    "env",
    "command",
    "timeout",
+   "sourcepath",
    NULL
 };
 
@@ -300,15 +301,19 @@ Tags* DirectoryTagsList = NULL;
 Tags* DirectoryTagsLast = NULL;
 
 char SavedConsoleTitle[BUFFER_SIZE];
-char *REGRESS = NULL, *MASTER_DIR, *DIFF_DIR, *TARGET_MACHINE, *RL_MACHINE, *TARGET_OS_NAME = NULL;
-char *REGR_CL, *REGR_DIFF, *REGR_ASM, *REGR_SHOWD;
-char *EXTRA_CC_FLAGS, *EXEC_TESTS_FLAGS, *TARGET_VM;
-char *LINKER, *LINKFLAGS;
+const char *DIFF_DIR;
+char *REGRESS = NULL, *MASTER_DIR, *TARGET_MACHINE, *RL_MACHINE, *TARGET_OS_NAME = NULL;
+const char *REGR_CL, *REGR_DIFF;
+char *REGR_ASM, *REGR_SHOWD;
+const char *TARGET_VM;
+char *EXTRA_CC_FLAGS, *EXEC_TESTS_FLAGS;
+const char *LINKER, *LINKFLAGS;
 char *CL, *_CL_;
-char *JCBinary = "jshost.exe";
+const char *JCBinary = "jshost.exe";
 
 BOOL FStatus = TRUE;
-char *StatusPrefix, *StatusFormat;
+char *StatusPrefix;
+const char *StatusFormat;
 
 BOOL FVerbose;
 BOOL FQuiet;
@@ -368,10 +373,10 @@ char *ResumeDir, *MatchDir;
 
 TIME_OPTION Timing = TIME_DIR | TIME_TEST; // Default to report times at test and directory level
 
-static char *ProgramName;
-static char *LogName;
-static char *FullLogName;
-static char *ResultsLogName;
+static const char *ProgramName;
+static const char *LogName;
+static const char *FullLogName;
+static const char *ResultsLogName;
 
 // NOTE: this might be unused now
 static char TempPath[MAX_PATH] = ""; // Path for temporary files
@@ -499,7 +504,7 @@ NT_handling_function(unsigned long /* dummy -- unused */)
 
 void
 assert(
-   char *file,
+   const char *file,
    int line
 )
 {
@@ -656,7 +661,7 @@ __inline void FlushOutput(
 
 BOOL
 DeleteFileIfFoundInternal(
-   char* filename
+   const char* filename
 )
 {
    BOOL ok;
@@ -682,7 +687,7 @@ DeleteFileIfFoundInternal(
 
 BOOL
 DeleteFileIfFound(
-   char* filename
+   const char* filename
 )
 {
    BOOL ok;
@@ -756,7 +761,7 @@ DeleteFileRetryMsg(
 void
 DeleteMultipleFiles(
    CDirectory* pDir,
-   char* pattern
+   const char* pattern
 )
 {
    WIN32_FIND_DATA findData;
@@ -808,8 +813,8 @@ const char* GetFilenameExt(const char *path)
 
 char *
 mytmpnam(
-   char *directory,
-   char *prefix,
+   const char *directory,
+   const char *prefix,
    char *filename
 )
 {
@@ -951,7 +956,7 @@ DoCompare(
 
 char *
 FormatString(
-   char *format
+   const char *format
 )
 {
    static char buf[BUFFER_SIZE + 32]; // extra in case a sprintf_s goes over
@@ -1452,14 +1457,15 @@ HasInfo
    return FALSE;
 }
 
-StringList *
+template<typename ListType,typename String>
+ListNode<ListType> *
 AddToStringList
 (
-   StringList * list,
-   char* string
+   ListNode<ListType> * list,
+   String string
 )
 {
-   StringList * p = new StringList;
+   ListNode<ListType> * p = new ListNode<ListType>;
 
    p->string = string; // NOTE: we store the pointer; we don't copy the string
    p->next = NULL;
@@ -1469,7 +1475,7 @@ AddToStringList
       return p;
    }
 
-   StringList * last = list;
+   ListNode<ListType> * last = list;
 
    while (last->next != NULL)
    {
@@ -1481,15 +1487,16 @@ AddToStringList
    return list;
 }
 
+template<typename T>
 void
 FreeStringList
 (
-   StringList * list
+   ListNode<T> * list
 )
 {
    while (list)
    {
-      StringList * pFree = list;
+      ListNode<T> * pFree = list;
       list = list->next;
 
       delete pFree;
@@ -1512,16 +1519,16 @@ FreeVariants
 }
 
 StringList *
-ParseStringList(char* p, char* delim)
+ParseStringList(const char* cp, const char* delim)
 {
    StringList * list = NULL;
 
-   if (p == NULL)
+   if (cp == NULL)
    {
       return list;
    }
 
-   p = _strdup(p); // don't trash passed-in memory
+   char *p = _strdup(cp); // don't trash passed-in memory
 
    p = mystrtok(p, delim, delim);
 
@@ -1928,11 +1935,13 @@ GetEnvironment(
    else {
       if (EXEC_TESTS_FLAGS == NULL) {
          if ((EXEC_TESTS_FLAGS = getenv_unsafe("EXEC_TESTS_FLAGS")) == NULL)
-            EXEC_TESTS_FLAGS = DEFAULT_EXEC_TESTS_FLAGS;
+         {
+            EXEC_TESTS_FLAGS = _strdup(DEFAULT_EXEC_TESTS_FLAGS);
+         } else {
+             // We edit EXEC_TESTS_FLAGS, so create a copy.
 
-         // We edit EXEC_TESTS_FLAGS, so create a copy.
-
-         EXEC_TESTS_FLAGS = _strdup(EXEC_TESTS_FLAGS);
+             EXEC_TESTS_FLAGS = _strdup(EXEC_TESTS_FLAGS);
+         }
       }
 
       if ((TARGET_VM = getenv_unsafe("TARGET_VM")) == NULL) {
@@ -2205,12 +2214,11 @@ PrintTestInfo
    TestInfo *pTestInfo
 )
 {
-   StringList * GetNameDataPairs(Xml::Node * node);
+   ConstStringList * GetNameDataPairs(Xml::Node * node);
 
    for(int i=0;i < _TIK_COUNT; i++) {
-      StringList* pStringList = NULL;
       if ((i == TIK_ENV) && pTestInfo->data[TIK_ENV]) {
-         pStringList = GetNameDataPairs((Xml::Node*)pTestInfo->data[TIK_ENV]);
+         auto pStringList = GetNameDataPairs((Xml::Node*)pTestInfo->data[TIK_ENV]);
          if (pStringList) {
             for(; pStringList != NULL; pStringList = pStringList->next->next) {
                ASSERT(pStringList->next);
@@ -2291,13 +2299,13 @@ PadSpecialChars
 }
 
 // given an xml node, returns the name-data StringList pairs for all children
-StringList * GetNameDataPairs
+ConstStringList * GetNameDataPairs
 (
    Xml::Node * node
 )
 {
   ASSERT(node->ChildList != NULL);
-  StringList *pStringList = NULL;
+  ConstStringList *pStringList = NULL;
    for (Xml::Node *ChildNode = node->ChildList; ChildNode != NULL; ChildNode = ChildNode->Next) {
       pStringList = AddToStringList(pStringList, ChildNode->Name);
       pStringList = AddToStringList(pStringList, ChildNode->Data);
@@ -2369,6 +2377,7 @@ WriteEnvLst
              NULL,
              NULL,
              NULL,
+             NULL,
              NULL
          };
 
@@ -2389,9 +2398,8 @@ WriteEnvLst
          strcat_s(comments, " "); strcat_s(comments, variants->optFlags);
 
          // print the env settings
-         StringList* pStringList = NULL;
          if (variants->testInfo.data[TIK_ENV]) {
-            pStringList = GetNameDataPairs((Xml::Node*)variants->testInfo.data[TIK_ENV]);
+            auto pStringList = GetNameDataPairs((Xml::Node*)variants->testInfo.data[TIK_ENV]);
             if (pStringList) {
                // assuming even number of elements
                for(; pStringList != NULL; pStringList = pStringList->next->next) {
@@ -2428,7 +2436,7 @@ WriteEnvLst
 
 BOOL
 IsRelativePath(
-   char *path
+   const char *path
 )
 {
    char drive[MAX_PATH], dir[MAX_PATH];
@@ -2443,6 +2451,28 @@ IsRelativePath(
    return FALSE;
 }
 
+char*
+MakeFullPath(const char* absFilePath, const char* relPath)
+{
+    char drive[MAX_PATH], dir[MAX_PATH];
+    _splitpath_s(absFilePath, drive, ARRAYLEN(drive), dir, ARRAYLEN(dir), NULL, 0, NULL, 0);
+
+    char makepath[MAX_PATH + 1];
+    makepath[MAX_PATH] = '\0';
+    _makepath_s(makepath, drive, dir, relPath, NULL);
+
+    char fullpath[MAX_PATH + 1];
+    fullpath[MAX_PATH] = '\0';
+    if (_fullpath(fullpath, makepath, MAX_PATH) == NULL)
+    {
+        return NULL;
+    }
+
+    char* fullPathBuf = (char*)malloc(sizeof(fullpath));
+    sprintf_s(fullPathBuf, sizeof(fullpath), "%s", fullpath);
+
+    return fullPathBuf;
+}
 
 BOOL
 VerifyOrCreateDir(
@@ -2974,7 +3004,7 @@ ShouldIncludeTest(
 
 void
 ParseEnvVar(
-   char *envVar
+   const char *envVar
 )
 {
    char * s;
@@ -3179,7 +3209,7 @@ ParseCommandLine(
       {
          int numTestOptions = 0;
 
-         char * env = EXEC_TESTS_FLAGS;
+         const char * env = EXEC_TESTS_FLAGS;
          while (env) {
             env = strchr(env, ';');
             if (env)
@@ -3308,7 +3338,7 @@ ParseCommandLine(
 Test *
 FindTest(
    TestList * pTestList,
-   char * testName,
+   const char * testName,
    BOOL fUserSpecified,
    TestInfo * testInfo
 
@@ -3368,7 +3398,7 @@ FindTest(
 }
 
 BOOL
-IsTimeoutStringValid(char *strTimeout) {
+IsTimeoutStringValid(const char *strTimeout) {
    char *end;
    _set_errno(0);
 
@@ -3427,7 +3457,14 @@ GetTestInfoFromNode
 
             if (childNode->Data != NULL && childNode->Data[0] != '\0')
             {
-               testInfo->data[i] = childNode->Data;
+                char * data = childNode->Data;
+                if (i == TIK_SOURCE_PATH && IsRelativePath(childNode->Data))
+                {
+                    // Make sure sourcepath is not relative, if relative make it full path
+                    data = MakeFullPath(fileName, data);
+                    ASSERT(data != NULL);
+                }
+                testInfo->data[i] = data;
             }
             else
             {
@@ -3444,6 +3481,8 @@ GetTestInfoFromNode
                   return FALSE;
                }
             }
+
+            
          }
       }
    }
@@ -3509,7 +3548,7 @@ AddExeVariants
       ppLastVariant = &(*ppLastVariant)->next;
    }
 
-   char ** optFlagsArray;
+   const char ** optFlagsArray;
 
    // Decide which list to use depending on the tag.
    optFlagsArray = IsPogoTest(pTest)
@@ -3579,7 +3618,7 @@ BOOL
 ParseFiles
 (
    TestList * pTestList,
-   char * testName,
+   const char * testName,
    RLMODE cfg,
    TestInfo * defaultInfo,
    ConditionNodeList * cnl
@@ -3721,8 +3760,8 @@ ParseFiles
 // parameters.
 int
 mystrcmp(
-   char *a,
-   char *b
+   const char *a,
+   const char *b
 )
 {
    if (a == b)
@@ -3742,8 +3781,8 @@ mystrcmp(
 char *
 mystrtok(
    char *s,
-   char *delim,
-   char *term
+   const char *delim,
+   const char *term
 )
 {
    static char *str = NULL;
@@ -3911,6 +3950,9 @@ ProcessConfig
    Xml::Node * conditionNode;
    Xml::Node * testNode;
    Xml::Node * applyNode;
+
+   ConditionNodeList * conditionNodeList = NULL;
+   ConditionNodeList * conditionNodeLast = NULL;
 
    // Parser doesn't return the XML declaration node, so topNode is the RL root node.
 
@@ -4128,8 +4170,8 @@ ProcessConfig
 
       // Walk the condition nodes looking for applicability.
 
-      ConditionNodeList * conditionNodeList = NULL;
-      ConditionNodeList * conditionNodeLast = NULL;
+      conditionNodeList = NULL;
+      conditionNodeLast = NULL;
       conditionNode = NULL;
 
       for (applyNode = testNode->ChildList->Next;
@@ -4460,7 +4502,7 @@ PerformSingleRegression(
 {
     char testNameBuf[BUFFER_SIZE];
     char tempBuf[BUFFER_SIZE];
-    char* ccFlags;
+    const char* ccFlags;
     time_t start_test, elapsed_test;
     RLFE_STATUS rlfeStatus;
 
@@ -4580,7 +4622,7 @@ RegressDirectory(
    TestList * pTestList;
    Test * pTest;
    char* path;
-   char* dir;
+   const char* dir;
 
 #ifndef NODEBUG
    if (FDebug)

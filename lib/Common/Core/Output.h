@@ -89,6 +89,7 @@ public:
             retValue = Output::Print(_u("%s:"), Js::PhaseNames[static_cast<int>(phase)]);
             retValue += Output::VPrint(form, argptr);
             retValue += Output::Print(_u("%s"), callback());
+            va_end(argptr);
         }
 
         return retValue;
@@ -131,7 +132,7 @@ private:
     static size_t VTrace(const char16* shortPrefixFormat, const char16* prefix, const char16 *form, va_list argptr);
 #endif // ENABLE_TRACE
 
-#define THREAD_ST __declspec(thread)
+#define THREAD_ST THREAD_LOCAL
 
     THREAD_ST static bool s_capture;
     THREAD_ST static FILE * s_file;

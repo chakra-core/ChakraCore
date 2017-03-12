@@ -1263,7 +1263,7 @@ template double Js::NumberUtilities::StrToDbl<utf8char_t>(const utf8char_t * psz
 Uses big integer arithmetic to get the sequence of digits.
 ***************************************************************************/
 _Success_(return)
-static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int *pwExp10, byte **ppbLim)
+static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int *pwExp10, byte **ppbLim, int normalizeHBound = 1)
 {
     byte bT;
     BOOL fPow2;
@@ -1516,7 +1516,9 @@ static BOOL FDblToRgbPrecise(double dbl, __out_ecount(kcbMaxRgb) byte *prgb, int
             if (bT != 9)
             {
                 Assert(ib < kcbMaxRgb);
-                prgb[ib++] = bT + 1;
+                // Do not always push to higherBound
+                // See Js::NumberUtilities::FDblToStr for the exception
+                prgb[ib++] = bT + (byte)normalizeHBound;
                 break;
             }
 LRoundUp9:
@@ -1562,7 +1564,8 @@ LFail:
 Get mantissa bytes (BCD).
 ***************************************************************************/
 _Success_(return)
-static BOOL FDblToRgbFast(double dbl, _Out_writes_to_(kcbMaxRgb, (*ppbLim - prgb)) byte *prgb, int *pwExp10, byte **ppbLim)
+static BOOL FDblToRgbFast(double dbl, _Out_writes_to_(kcbMaxRgb, (*ppbLim - prgb)) byte *prgb,
+                          int *pwExp10, byte **ppbLim, const int nDigits = -1)
 {
     int ib;
     int iT;
@@ -1808,10 +1811,27 @@ static BOOL FDblToRgbFast(double dbl, _Out_writes_to_(kcbMaxRgb, (*ppbLim - prgb
         // the difference.
         prgb[ib++] = (bHL + bLH + 1) / 2;
     }
+
     else if (0 != luHL || !numHL.FZero() || 0 == (Js::NumberUtilities::LuLoDbl(dbl) & 1))
     {
         Assert(ib < kcbMaxRgb);
         if(!(ib < kcbMaxRgb))
+            goto LFail;
+
+        // We don't know whether BHL or BLH is the correct number
+        // When nDigits is set(>=0), that means the consumer is not
+        // interested with the entire value.
+        // That means, we may not just roundup to the higher bound.
+        // Doing so would break IEEE754
+        // Imagine LowerBound is 4999... while the UpperBoud is 50001..
+        // We need to know where actually the number is instead of picking
+        // either Lower or UpperBoud
+        // In this case, we should skip and fail
+        // and let FDblToRgbPrecise do the math.
+        // Perf Check:
+        // Exception for a number that has smaller amount of fractional part
+        // than the number of digits are being asked.
+        if (nDigits > 0 && (ib - wExp10 >= nDigits))
             goto LFail;
 
         // We can just use bHL because this guarantees that we're bigger than
@@ -2048,25 +2068,23 @@ static int FormatDigitsFixed(byte *pbSrc, byte *pbLim, int wExp10, int nFraction
     return n;
 }
 
-__success(return <= cchDst)
+_Success_(return <= cchDst)
+// The return value is not the number of elements set in pchDst in the 'failure' case.
+// We need to suppress 6101 as it expects us to return 0 in that case.
+#pragma prefast(suppress:6101)
 static int FormatDigitsExponential(
-                            byte *  pbSrc,
-                            byte *  pbLim,
-                            int     wExp10,
-                            int     nFractionDigits,
-                            __out_ecount_part(cchDst,return) char16 * pchDst,
-                            int     cchDst
-                            )
+    _In_reads_bytes_(pbLim - pbSrc) byte *   pbSrc,
+    _In_                            byte *   pbLim,
+    _In_range_(0, 1000)             int      wExp10,
+                                    int      nFractionDigits,
+    _Out_writes_to_(cchDst, return) char16 * pchDst,
+                                    int      cchDst)
 {
     AnalysisAssert(pbLim > pbSrc);
     Assert(pbLim - pbSrc <= kcbMaxRgb);
     AssertArrMem(pbSrc, pbLim - pbSrc);
     AssertArrMem(pchDst, cchDst);
-    AnalysisAssert(wExp10 < 1000);
-
-    __analysis_assume(pbLim > pbSrc);
-    __analysis_assume(pbLim - pbSrc <= kcbMaxRgb);
-    __analysis_assume(wExp10 < 1000);
+    Assert(wExp10 < 1000);
 
     int n = 1; // first digit
 
@@ -2138,7 +2156,6 @@ static int FormatDigitsExponential(
     *pchDst++ = 'e';
     if (--wExp10 < 0)
     {
-#pragma prefast(suppress:26014, "We have calculate the check the buffer size above already")
         *pchDst++ = '-';
         wExp10 = -wExp10;
     }
@@ -2241,6 +2258,7 @@ static int RoundTo(byte *pbSrc, byte *pbLim, int nDigits, __out_bcount(nDigits+1
 * Returns the number of chars. in the result. If 'nDstBufSize'
 * is less than this number, no data is written to the buffer 'pchDst'.
 */
+
 int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType ft, int nDigits, __out_ecount(cchDst) char16 *pchDst, int cchDst)
 {
     int n = 0; // the no. of chars in the result.
@@ -2286,7 +2304,7 @@ int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType f
         if (Js::NumberUtilities::LuHiDbl(dbl) & 0x80000000)
         {
             n++;
-            if( cchDst >= n)
+            if(cchDst >= n)
             {
                 *pchDst++ = '-';
                 cchDst--;
@@ -2294,13 +2312,13 @@ int Js::NumberUtilities::FDblToStr(double dbl, Js::NumberUtilities::FormatType f
             Js::NumberUtilities::LuHiDbl(dbl) &= 0x7FFFFFFF;
         }
 
-        if (!FDblToRgbFast(dbl, rgb, &wExp10, &pbLim) &&
-            !FDblToRgbPrecise(dbl, rgb, &wExp10, &pbLim))
+        // in case we restrict the number of digits, do not push for a higher bound
+        if (!FDblToRgbFast(dbl, rgb, &wExp10, &pbLim, nDigits) &&
+            !FDblToRgbPrecise(dbl, rgb, &wExp10, &pbLim, nDigits != -1 ? 0 : 1))
         {
             AssertMsg(FALSE, "Failure in FDblToRgbPrecise");
             return FALSE;
         }
-
     }
 
     // We have to round up and truncate the BCD representation of the mantissa

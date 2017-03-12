@@ -9,10 +9,11 @@ namespace Js
     template<class T>
     class InlineCachePointerArray
     {
+    public:
+        typename FieldWithBarrier(Field(T*)*) inlineCaches;
     private:
-        WriteBarrierPtr<T*> inlineCaches;
 #if DBG
-        uint inlineCacheCount;
+        Field(uint) inlineCacheCount;
 #endif
 
     public:
@@ -23,6 +24,8 @@ namespace Js
 
     public:
         T *GetInlineCache(FunctionBody *const functionBody, const uint index) const;
+        T *GetInlineCache(const uint index) const;
+        bool HasInlineCaches() const;
         void SetInlineCache(
             Recycler *const recycler,
             FunctionBody *const functionBody,

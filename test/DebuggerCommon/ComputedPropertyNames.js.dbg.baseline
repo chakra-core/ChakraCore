@@ -1,0 +1,220 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 30,
+        "column": 0,
+        "sourceText": "var o = {\r\n    [f()]: 1,\r\n    [f() + g()]: 2\r\n}",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 4,
+        "sourceText": "return \"f\"",
+        "function": "f"
+      },
+      {
+        "line": 31,
+        "column": 5,
+        "sourceText": "f()]: 1",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 32,
+        "column": 5,
+        "sourceText": "f() + g()]: 2",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 4,
+        "sourceText": "return \"f\"",
+        "function": "f"
+      },
+      {
+        "line": 32,
+        "column": 5,
+        "sourceText": "f() + g()]: 2",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 32,
+        "column": 5,
+        "sourceText": "f() + g()]: 2",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 10,
+        "column": 4,
+        "sourceText": "return \"g\"",
+        "function": "g"
+      },
+      {
+        "line": 32,
+        "column": 5,
+        "sourceText": "f() + g()]: 2",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 32,
+        "column": 5,
+        "sourceText": "f() + g()]: 2",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 50,
+        "column": 4,
+        "sourceText": "var o = {\r\n        [f()]: 1,\r\n        [f() + g()]: 2\r\n    }",
+        "function": "test"
+      },
+      {
+        "line": 56,
+        "column": 0,
+        "sourceText": "test()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 4,
+        "sourceText": "return \"f\"",
+        "function": "f"
+      },
+      {
+        "line": 51,
+        "column": 9,
+        "sourceText": "f()]: 1",
+        "function": "test"
+      },
+      {
+        "line": 56,
+        "column": 0,
+        "sourceText": "test()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 52,
+        "column": 9,
+        "sourceText": "f() + g()]: 2",
+        "function": "test"
+      },
+      {
+        "line": 56,
+        "column": 0,
+        "sourceText": "test()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 6,
+        "column": 4,
+        "sourceText": "return \"f\"",
+        "function": "f"
+      },
+      {
+        "line": 52,
+        "column": 9,
+        "sourceText": "f() + g()]: 2",
+        "function": "test"
+      },
+      {
+        "line": 56,
+        "column": 0,
+        "sourceText": "test()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 52,
+        "column": 9,
+        "sourceText": "f() + g()]: 2",
+        "function": "test"
+      },
+      {
+        "line": 56,
+        "column": 0,
+        "sourceText": "test()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 10,
+        "column": 4,
+        "sourceText": "return \"g\"",
+        "function": "g"
+      },
+      {
+        "line": 52,
+        "column": 9,
+        "sourceText": "f() + g()]: 2",
+        "function": "test"
+      },
+      {
+        "line": 56,
+        "column": 0,
+        "sourceText": "test()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 52,
+        "column": 9,
+        "sourceText": "f() + g()]: 2",
+        "function": "test"
+      },
+      {
+        "line": 56,
+        "column": 0,
+        "sourceText": "test()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 10,
+        "column": 12,
+        "sourceText": "abc.def = 10",
+        "function": "foo"
+      },
+      {
+        "line": 13,
+        "column": 8,
+        "sourceText": "foo()",
+        "function": "bar"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}"
+  }
+]

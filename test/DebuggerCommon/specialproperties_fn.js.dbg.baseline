@@ -1,0 +1,48 @@
+[
+  {
+    "evaluate": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 3",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function function values() { [native code] }",
+        "[0]": "string 1",
+        "[1]": "string 2",
+        "[2]": "string 3"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "arguments.callee": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "prototype": "Object {...}",
+        "name": "string test",
+        "caller": "function function bar(){\t\r\n\ttest(1, 2, 3);\r\n}",
+        "arguments": "Object {...}",
+        "length": "number 3"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "arguments.callee.caller": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "prototype": "Object {...}",
+        "name": "string bar",
+        "caller": "object null",
+        "arguments": "Object {...}",
+        "length": "number 0"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "arrow": {
+        "#__proto__": "function function() {\n    [native code]\n}",
+        "name": "string arrow",
+        "length": "number 0"
+      }
+    }
+  }
+]

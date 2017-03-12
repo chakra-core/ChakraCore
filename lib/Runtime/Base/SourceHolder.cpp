@@ -7,7 +7,7 @@
 namespace Js
 {
     LPCUTF8 const ISourceHolder::emptyString = (LPCUTF8)"\0";
-    SimpleSourceHolder const ISourceHolder::emptySourceHolder(emptyString, 0, true);
+    SimpleSourceHolder const ISourceHolder::emptySourceHolder(NO_WRITE_BARRIER_TAG(emptyString), 0, true);
 
     ISourceHolder* SimpleSourceHolder::Clone(ScriptContext* scriptContext)
     {

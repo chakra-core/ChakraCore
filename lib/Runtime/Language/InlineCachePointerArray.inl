@@ -26,7 +26,7 @@ namespace Js
             return;
         }
 
-        inlineCaches = RecyclerNewArrayZ(recycler, T *, functionBody->GetInlineCacheCount());
+        inlineCaches = RecyclerNewArrayZ(recycler, Field(T*), functionBody->GetInlineCacheCount());
 #if DBG
         inlineCacheCount = functionBody->GetInlineCacheCount();
 #endif
@@ -39,6 +39,19 @@ namespace Js
         Assert(!inlineCaches || functionBody->GetInlineCacheCount() == inlineCacheCount);
         Assert(index < functionBody->GetInlineCacheCount());
         return inlineCaches ? inlineCaches[index] : nullptr;
+    }
+
+    template<class T>
+    T *InlineCachePointerArray<T>::GetInlineCache(const uint index) const
+    {
+        Assert(index < inlineCacheCount);
+        return inlineCaches[index];
+    }
+
+    template<class T>
+    bool InlineCachePointerArray<T>::HasInlineCaches() const
+    {
+        return inlineCaches != nullptr;
     }
 
     template<class T>

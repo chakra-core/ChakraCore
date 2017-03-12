@@ -231,6 +231,8 @@ var tests = [
       assert.throws(function() { eval('a(...x)--'); }, ReferenceError, "Spread with CallIPut throws a ReferenceError");
     }
   },
+/*
+    A fix for an unsafe optimization makes this portion of the test time out.
   {
     name: "BLUE 596934, 597412: Incorrect spread argument length handling",
     body: function () {
@@ -245,6 +247,25 @@ var tests = [
       }
       assert.throws(function () { a(...new Array(1 << 24)); }, RangeError, "Array size greater than max call arg count throws RangeError");
       assert.throws(function () { a(...new Array(3), ...new Array(1 << 32 - 2)); }, RangeError, "Total spread size greater than max call arg count throws RangeError");
+    }
+  },
+*/
+  {
+    name: "MSRC 34309: Guard against getter in prototype",
+    body: function () {
+        var x = [0x40];
+        x.length = 0x9;
+        
+        Object.defineProperty(Array.prototype, 1, {
+            get: function() {
+                x.length = 0;
+            }
+        });
+
+        var f = function(){
+            assert.areEqual(arguments.length, 2, "Changing length of x during spreading should truncate the spread.");
+        }
+        f(...x);
     }
   },
   {

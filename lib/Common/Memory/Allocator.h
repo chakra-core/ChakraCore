@@ -27,6 +27,10 @@ enum PageHeapMode
 
 namespace Memory
 {
+
+    template<typename> class WriteBarrierPtr;
+    template<typename> class NoWriteBarrierPtr;
+
 #ifdef TRACK_ALLOC
 struct TrackAllocData
 {
@@ -184,6 +188,7 @@ template <typename TAllocator, bool isLeaf>
 class ListTypeAllocatorFunc
 {
 public:
+    typedef TAllocator EffectiveAllocatorType;  // used by write barrier type traits
     typedef char * (TAllocator::*AllocFuncType)(size_t);
     typedef void(TAllocator::*FreeFuncType)(void*, size_t);
 
@@ -223,6 +228,24 @@ struct ForceLeafAllocator
 
 template <typename TAllocator, typename T>
 void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj)
+{
+    obj->~T();
+
+    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
+    (allocator->*freeFunc)(obj, sizeof(T));
+}
+
+template <typename TAllocator, typename T>
+void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, WriteBarrierPtr<T> obj)
+{
+    obj->~T();
+
+    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
+    (allocator->*freeFunc)(obj, sizeof(T));
+}
+
+template <typename TAllocator, typename T>
+void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, NoWriteBarrierPtr<T> obj)
 {
     obj->~T();
 
@@ -328,7 +351,6 @@ public:
     void (*recoverMemoryFunc)();
 };
 
-
 template <typename T>
 void AssertValue(void * mem, T value, uint byteCount)
 {
@@ -342,12 +364,20 @@ void AssertValue(void * mem, T value, uint byteCount)
 }
 }
 
+#ifndef _WIN32
+#define NO_EXPORT(x) \
+    __attribute__((visibility("hidden"))) \
+    x
+#else
+#define NO_EXPORT(x) x
+#endif
+
 // For the debugger extension, we don't need the placement news
 #ifndef __PLACEMENT_NEW_INLINE
 #define __PLACEMENT_NEW_INLINE
 
 _Ret_notnull_
-inline void * __cdecl
+NO_EXPORT(inline void *) __cdecl
 operator new(
 DECLSPEC_GUARD_OVERFLOW size_t byteSize,
 _In_ void * previousAllocation) throw()
@@ -356,7 +386,7 @@ _In_ void * previousAllocation) throw()
 }
 
 
-inline  void __cdecl
+NO_EXPORT(inline void) __cdecl
 operator delete(
 void * allocationToFree,                // Allocation to free
 void * previousAllocation               // Previously allocated memory
@@ -371,7 +401,8 @@ void * previousAllocation               // Previously allocated memory
 // throwing operator new overrides
 //----------------------------------------
 template <typename TAllocator>
-_Ret_notnull_ void * __cdecl
+_Ret_notnull_
+NO_EXPORT(void *) __cdecl
 operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t))
 {
     AssertCanHandleOutOfMemory();
@@ -382,7 +413,8 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char *
 }
 
 template <typename TAllocator>
-_Ret_notnull_ inline void * __cdecl
+_Ret_notnull_
+NO_EXPORT(inline void *) __cdecl
 operator new[](DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t))
 {
     AssertCanHandleOutOfMemory();
@@ -393,7 +425,8 @@ operator new[](DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char
 }
 
 template <typename TAllocator>
-_Ret_notnull_ inline void * __cdecl
+_Ret_notnull_
+NO_EXPORT(inline void *) __cdecl
 operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char * (TAllocator::*AllocFunc)(size_t), DECLSPEC_GUARD_OVERFLOW size_t plusSize)
 {
     AssertCanHandleOutOfMemory();
@@ -410,7 +443,8 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, char *
 // nothrow operator new overrides
 //----------------------------------------
 template <typename TAllocator>
-_Ret_maybenull_ inline void * __cdecl
+_Ret_maybenull_
+NO_EXPORT(inline void *) __cdecl
 operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t))
 {
     Assert(nothrow);
@@ -419,9 +453,9 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool n
     return buffer;
 }
 
-
 template <typename TAllocator>
-_Ret_maybenull_ inline void * __cdecl
+_Ret_maybenull_
+NO_EXPORT(inline void *) __cdecl
 operator new[](DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t))
 {
     Assert(nothrow);
@@ -430,9 +464,9 @@ operator new[](DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool
     return buffer;
 }
 
-
 template <typename TAllocator>
-_Ret_maybenull_ inline void * __cdecl
+_Ret_maybenull_
+NO_EXPORT(inline void *) __cdecl
 operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t), DECLSPEC_GUARD_OVERFLOW size_t plusSize)
 {
     Assert(nothrow);
@@ -444,9 +478,9 @@ operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool n
     return buffer;
 }
 
-
 template <typename TAllocator>
-_Ret_maybenull_ inline void * __cdecl
+_Ret_maybenull_
+NO_EXPORT(inline void *) __cdecl
 operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize, TAllocator * alloc, bool nothrow, char * (TAllocator::*AllocFunc)(size_t), DECLSPEC_GUARD_OVERFLOW size_t plusSize, bool prefix)
 {
     Assert(nothrow);

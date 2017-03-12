@@ -10,5 +10,9 @@
     <!-- Unless indicated otherwise, statically link the C++ Runtime into ChakraCore.dll -->
     <RuntimeLib Condition="'$(RuntimeLib)'==''">static_library</RuntimeLib>
 
-  </PropertyGroup>    
+    <NtTargetVersion>$(NtTargetVersion_Win7)</NtTargetVersion>
+    <!-- On ARM we depend an API that was added in Win8 timeframe, specifically GetCurrentThreadLimits.
+         Note that for ARM we don't need to support running on Win7, so it's fine to require Win8 as minimum. -->
+    <NtTargetVersion Condition="'$(Platform)'=='ARM' or '$(Platform)'=='Arm64'">$(NtTargetVersion_Win8)</NtTargetVersion>
+  </PropertyGroup>
 </Project>

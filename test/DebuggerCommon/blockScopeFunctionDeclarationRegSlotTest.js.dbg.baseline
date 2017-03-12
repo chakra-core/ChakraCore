@@ -1,0 +1,26 @@
+[
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "f1": "function <large string>",
+      "a": "number 1"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "f1": "function <large string>",
+      "a": "number 1"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "f1": "function <large string>",
+      "a": "number 1"
+    }
+  }
+]

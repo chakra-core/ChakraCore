@@ -1,6 +1,6 @@
 //
 // Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information. 
+// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 //
 
 /*++
@@ -121,20 +121,20 @@ Using Debug channels at Run Time
     "stdout" or "stderr". If PAL_API_TRACING is not set, output will go to
     stderr.
 
-    ASSERT() messages cannot be controlled with PAL_DBG_CHANNELS; they can be 
-    globally disabled (in debug builds) by setting the environment variable 
-    PAL_DISABLE_ASSERTS to 1. In release builds, they will always be disabled                    
+    ASSERT() messages cannot be controlled with PAL_DBG_CHANNELS; they can be
+    globally disabled (in debug builds) by setting the environment variable
+    PAL_DISABLE_ASSERTS to 1. In release builds, they will always be disabled
 
-    The environment variable "PAL_API_LEVELS" determines how many levels of 
-    nesting will be allowed in ENTRY calls; if not set, the default is 1; a 
+    The environment variable "PAL_API_LEVELS" determines how many levels of
+    nesting will be allowed in ENTRY calls; if not set, the default is 1; a
     value of 0 will allow infinite nesting, but will not indent the output
 
-    It is possible to disable/enable all channels during the execution of a 
-    process; this involves using a debugger to modify a variable within the 
-    address space of the running process. the variable is named 
-    'dbg_master_switch'; if set to zero, all debug chanels will be closed; if 
+    It is possible to disable/enable all channels during the execution of a
+    process; this involves using a debugger to modify a variable within the
+    address space of the running process. the variable is named
+    'dbg_master_switch'; if set to zero, all debug chanels will be closed; if
     set to nonzero, channels will be open or closed based on PAL_DBG_CHANNELS
-    
+
     Notes :
     If _ENABLE_DEBUG_MESSAGES_ was not defined at build-time, no debug messages
     will be generated.
@@ -145,7 +145,7 @@ Using Debug channels at Run Time
     Normally, if the file specified by PAL_API_TRACING exists, its content will
     be overwritten when a PAL process starts using it. If --enable-appendtraces
     is used, debug output will be appended at the end of the file instead.
-  
+
 
 
  */
@@ -158,7 +158,6 @@ Using Debug channels at Run Time
 #include "pal/perftrace.h"
 #include "pal/debug.h"
 #include "pal/thread.hpp"
-#include "pal/tls.hpp"
 
 #ifdef __cplusplus
 extern "C"
@@ -213,43 +212,41 @@ typedef enum
 
 /* extern variables */
 
-// Change W16_NULLSTRING to external variable to avoid multiple warnings showing up in prefast 
-extern LPCWSTR W16_NULLSTRING; 
+// Change W16_NULLSTRING to external variable to avoid multiple warnings showing up in prefast
+extern LPCWSTR W16_NULLSTRING;
 
 extern DWORD dbg_channel_flags[DCI_LAST];
 extern BOOL g_Dbg_asserts_enabled;
-
-/* we must use stdio functions directly rather that rely on PAL functions for
-  output, because those functions do tracing and we need to avoid recursion */
-extern FILE *output_file;
 
 /* master switch for debug channel enablement, to be modified by debugger */
 extern Volatile<BOOL> dbg_master_switch ;
 
 
 /* conditionnal compilation for other debug messages */
-#if !_ENABLE_DEBUG_MESSAGES_
+#ifndef ENABLE_CC_XPLAT_TRACE
 
 /* compile out these trace levels; see the definition of NOTRACE */
+#if !defined(DEBUG)
 #define TRACE     NOTRACE
-#define TRACE_(x) NOTRACE
-#define WARN      NOTRACE
-#define WARN_(x)  NOTRACE
-#define ENTRY_EXTERNAL NOTRACE
-#define ENTRY     NOTRACE
-#define ENTRY_(x) NOTRACE
-#define LOGEXIT   NOTRACE
-#define LOGEXIT_(x) NOTRACE
-#define DBGOUT     NOTRACE
-#define DBGOUT_(x) NOTRACE
-#define ERROR     NOTRACE
-#define ERROR_(x) NOTRACE
-#define DBG_PRINTF(level, channel, bHeader) NOTRACE
-
-#define CHECK_STACK_ALIGN
+#else
+#define TRACE     {if (!PAL_InitializeChakraCoreCalled) abort();}
+#endif
+#define TRACE_(x) TRACE
+#define WARN      TRACE
+#define WARN_(x)  TRACE
+#define ENTRY_EXTERNAL TRACE
+#define ENTRY     TRACE
+#define ENTRY_(x) TRACE
+#define LOGEXIT   TRACE
+#define LOGEXIT_(x) TRACE
+#define DBGOUT     TRACE
+#define DBGOUT_(x) TRACE
+#define ERROR     TRACE
+#define ERROR_(x) TRACE
+#define DBG_PRINTF(level, channel, bHeader) TRACE
 
 #define SET_DEFAULT_DEBUG_CHANNEL(x)
-#define DBG_ENABLED(level, channel)
+#define DBG_ENABLED(level, channel) (false)
 
 #else /* _ENABLE_DEBUG_MESSAGES_ */
 
@@ -259,9 +256,8 @@ extern Volatile<BOOL> dbg_master_switch ;
     static const DBG_CHANNEL_ID defdbgchan = DCI_##x
 
 /* Is debug output enabled for the given level and channel? */
-#define DBG_ENABLED(level, channel) (output_file &&                     \
-                                     dbg_master_switch &&               \
-                                     (dbg_channel_flags[channel] & (1 << (level))))
+#define DBG_ENABLED(level, channel) (true)
+
 #define TRACE \
     DBG_PRINTF(DLI_TRACE,defdbgchan,TRUE)
 
@@ -274,23 +270,13 @@ extern Volatile<BOOL> dbg_master_switch ;
 #define WARN_(x) \
     DBG_PRINTF(DLI_WARN,DCI_##x,TRUE)
 
-#if _DEBUG && defined(__APPLE__)
-bool DBG_ShouldCheckStackAlignment();
-#define CHECK_STACK_ALIGN   if (DBG_ShouldCheckStackAlignment()) DBG_CheckStackAlignment()
-#else
-#define CHECK_STACK_ALIGN
-#endif
-
 #define ENTRY_EXTERNAL \
-    CHECK_STACK_ALIGN; \
     DBG_PRINTF(DLI_ENTRY, defdbgchan,TRUE)
 
 #define ENTRY \
-    CHECK_STACK_ALIGN; \
     DBG_PRINTF(DLI_ENTRY, defdbgchan,TRUE)
 
 #define ENTRY_(x) \
-    CHECK_STACK_ALIGN; \
     DBG_PRINTF(DLI_ENTRY, DCI_##x,TRUE)
 
 #define LOGEXIT \
@@ -298,7 +284,7 @@ bool DBG_ShouldCheckStackAlignment();
 
 #define LOGEXIT_(x) \
     DBG_PRINTF(DLI_EXIT, DCI_##x,TRUE)
-    
+
 #define DBGOUT \
     DBG_PRINTF(DLI_TRACE,defdbgchan,FALSE)
 
@@ -316,24 +302,15 @@ bool DBG_ShouldCheckStackAlignment();
 #define DBG_PRINTF(level, channel, bHeader) \
 {\
     if( DBG_ENABLED(level, channel) ) {         \
-        DBG_CHANNEL_ID __chanid=channel;\
-        DBG_LEVEL_ID __levid=level;\
-        BOOL __bHeader = bHeader;\
         DBG_PRINTF2
 
-#ifdef __GNUC__
-#define DBG_PRINTF2(args...)\
-        DBG_printf_gcc(__chanid,__levid,__bHeader,__FUNCTION__,__FILE__,\
-                       __LINE__,args);\
-    }\
-}
-#else /* __GNUC__ */
 #define DBG_PRINTF2(...)\
-      DBG_printf_c99(__chanid,__levid,__bHeader,__FILE__,__LINE__,__VA_ARGS__);\
+        if (!PAL_InitializeChakraCoreCalled) abort(); \
+        PRINT_ERROR("] %s %s:%d",__FUNCTION__,__FILE__,\
+                       __LINE__);\
+        PRINT_ERROR(__VA_ARGS__);\
     }\
 }
-#endif /* __GNUC__ */
-
 #endif /* _ENABLE_DEBUG_MESSAGES_ */
 
 /* Use GNU C-specific features if available : __FUNCTION__ pseudo-macro,
@@ -357,27 +334,21 @@ bool DBG_ShouldCheckStackAlignment();
 #if !defined(_DEBUG)
 
 #define ASSERT(args...)
-#define _ASSERT(expr) 
-#define _ASSERTE(expr) 
-#define _ASSERT_MSG(args...) 
+#define _ASSERT(expr)
+#define _ASSERTE(expr)
+#define _ASSERT_MSG(args...)
 
-#else /* defined(_DEBUG) */ 
+#else /* defined(_DEBUG) */
 
-#define ASSERT(args...)                                                 \
-{                                                                       \
-    __ASSERT_ENTER();                                                   \
-    if (output_file && dbg_master_switch)                               \
-    {                                                                   \
-        DBG_printf_gcc(defdbgchan,DLI_ASSERT,TRUE,__FUNCTION__,__FILE__,__LINE__,args); \
-    }                                                                   \
-    if (g_Dbg_asserts_enabled)                                          \
-    {                                                                   \
-        DebugBreak();                                                   \
-    }                                                                   \
+#define ASSERT(...) \
+{ \
+    PRINT_ERROR("] %s %s:%d",__FUNCTION__,__FILE__,\
+                   __LINE__);\
+    PRINT_ERROR(__VA_ARGS__);\
 }
 
-#define _ASSERT(expr) do { if (!(expr)) { ASSERT(""); } } while(0)
 #define _ASSERTE(expr) do { if (!(expr)) { ASSERT("Expression: " #expr "\n"); } } while(0)
+#define _ASSERT _ASSERTE
 #define _ASSERT_MSG(expr, args...) \
     do { \
         if (!(expr)) \
@@ -400,26 +371,19 @@ bool DBG_ShouldCheckStackAlignment();
 #if !defined(_DEBUG)
 
 #define ASSERT(...)
-#define _ASSERT(expr) 
-#define _ASSERTE(expr) 
-#define _ASSERT_MSG(...) 
+#define _ASSERT(expr)
+#define _ASSERTE(expr)
+#define _ASSERT_MSG(...)
 
 #else /* defined(_DEBUG) */
 
-#define ASSERT(...)                                                     \
-{                                                                       \
-    __ASSERT_ENTER();                                                   \
-    if (output_file && dbg_master_switch)                               \
-    {                                                                   \
-        DBG_printf_c99(defdbgchan,DLI_ASSERT,TRUE,__FILE__,__LINE__,__VA_ARGS__); \
-    }                                                                   \
-    if(g_Dbg_asserts_enabled)                                           \
-    {                                                                   \
-        PAL_Leave();                                                    \
-        DebugBreak();                                                   \
-    }                                                                   \
+#define ASSERT(...) \
+{ \
+    PRINT_ERROR("] %s %s:%d",__FUNCTION__,__FILE__,\
+                   __LINE__);\
+    PRINT_ERROR(__VA_ARGS__);\
 }
-    
+
 #define _ASSERT(expr) do { if (!(expr)) { ASSERT(""); } } while(0)
 #define _ASSERTE(expr) do { if (!(expr)) { ASSERT("Expression: " #expr "\n"); } } while(0)
 #define _ASSERT_MSG(expr, ...) \
@@ -433,9 +397,9 @@ bool DBG_ShouldCheckStackAlignment();
 #endif /* !_DEBUG */
 
 #else /* __STDC_VERSION__ */
-/* Not GNU C, not C99 :  
-   possible work around for the lack of variable-argument macros: 
-   by using 2 function calls; must wrap the whole thing in a critical 
+/* Not GNU C, not C99 :
+   possible work around for the lack of variable-argument macros:
+   by using 2 function calls; must wrap the whole thing in a critical
    section to avoid interleaved output from multiple threads */
 
 #error The compiler is missing support for variable-argument macros.
@@ -518,7 +482,7 @@ Notes :
 
 --*/
 #if __GNUC__ && CHECK_TRACE_SPECIFIERS
-/* if requested, use an __attribute__ feature to ask gcc to check that format 
+/* if requested, use an __attribute__ feature to ask gcc to check that format
    specifiers match their parameters */
 int DBG_printf_gcc(DBG_CHANNEL_ID channel, DBG_LEVEL_ID level, BOOL bHeader,
                    LPCSTR function, LPCSTR file, INT line, LPCSTR format, ...)
@@ -582,46 +546,19 @@ Function :
 
     retrieve current ENTRY nesting level and [optionnally] modify it
 
-Parameters :                                  
+Parameters :
     int new_level : value to which the nesting level must be set, or -1
 
 Return value :
     nesting level at the time the function was called
-    
+
 Notes:
 if new_level is -1, the nesting level will not be modified
 --*/
 int DBG_change_entrylevel(int new_level);
-
-#ifdef __APPLE__
-/*++
-Function :
-    PAL_DisplayDialog
-
-    Display a simple modal dialog with an alert icon and a single OK button. Caller supplies the title of the
-    dialog and the main text. The dialog is displayed only if the COMPlus_EnableAssertDialog environment
-    variable is set to the value "1".
-
---*/
-void PAL_DisplayDialog(const char *szTitle, const char *szText);
-
-/*++
-Function :
-    PAL_DisplayDialogFormatted
-
-    As above but takes a printf-style format string and insertion values to form the main text.
-
---*/
-void PAL_DisplayDialogFormatted(const char *szTitle, const char *szTextFormat, ...);
-#else // __APPLE__
-#define PAL_DisplayDialog(_szTitle, _szText)
-#define PAL_DisplayDialogFormatted(_szTitle, _szTextFormat, args...)
-#endif // __APPLE__
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
 
 #endif /* _PAL_DBGMSG_H_ */
-
-

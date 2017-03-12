@@ -70,8 +70,8 @@ const IntConstantBounds &InductionVariable::ChangeBounds() const
 bool InductionVariable::IsChangeUnidirectional() const
 {
     return
-        ChangeBounds().LowerBound() >= 0 && ChangeBounds().UpperBound() != 0 ||
-        ChangeBounds().UpperBound() <= 0 && ChangeBounds().LowerBound() != 0;
+        (ChangeBounds().LowerBound() >= 0 && ChangeBounds().UpperBound() != 0) ||
+        (ChangeBounds().UpperBound() <= 0 && ChangeBounds().LowerBound() != 0);
 }
 
 bool InductionVariable::Add(const int n)

@@ -9,7 +9,7 @@ namespace Js
     class JavascriptNumberObject : public DynamicObject
     {
     private:
-        Var value;
+        Field(Var) value;
 
         DEFINE_VTABLE_CTOR(JavascriptNumberObject, DynamicObject);
         DEFINE_MARSHAL_OBJECT_TO_SCRIPT_CONTEXT(JavascriptNumberObject);

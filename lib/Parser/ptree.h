@@ -246,8 +246,12 @@ struct PnFnc
 #endif
     RestorePoint *pRestorePoint;
     DeferredFunctionStub *deferredStub;
+    bool canBeDeferred;
+    bool fibPreventsDeferral;
 
     static const int32 MaxStackClosureAST = 800000;
+
+    static bool CanBeRedeferred(unsigned int flags) { return !(flags & (kFunctionIsGenerator | kFunctionIsAsync)); }
 
 private:
     void SetFlags(uint flags, bool set)
@@ -267,6 +271,11 @@ private:
         return (fncFlags & flags) == flags;
     }
 
+    bool HasAnyFlags(uint flags) const
+    {
+        return (fncFlags & flags) != 0;
+    }
+
     bool HasNoFlags(uint flags) const
     {
         return (fncFlags & flags) == 0;
@@ -276,6 +285,8 @@ public:
     void ClearFlags()
     {
         fncFlags = kFunctionNone;
+        canBeDeferred = false;
+        fibPreventsDeferral = false;
     }
 
     void SetAsmjsMode(bool set = true) { SetFlags(kFunctionAsmjsMode, set); }
@@ -311,6 +322,8 @@ public:
     void SetUsesArguments(bool set = true) { SetFlags(kFunctionUsesArguments, set); }
     void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
     void SetNestedFuncEscapes(bool set = true) { nestedFuncEscapes = set; }
+    void SetCanBeDeferred(bool set = true) { canBeDeferred = set; }
+    void SetFIBPreventsDeferral(bool set = true) { fibPreventsDeferral = set; }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
@@ -338,6 +351,7 @@ public:
     bool IsDeclaration() const { return HasFlags(kFunctionDeclaration); }
     bool IsGeneratedDefault() const { return HasFlags(kFunctionIsGeneratedDefault); }
     bool IsGenerator() const { return HasFlags(kFunctionIsGenerator); }
+    bool IsCoroutine() const { return HasAnyFlags(kFunctionIsGenerator | kFunctionIsAsync); }
     bool IsLambda() const { return HasFlags(kFunctionIsLambda); }
     bool IsMethod() const { return HasFlags(kFunctionIsMethod); }
     bool IsNested() const { return HasFlags(kFunctionNested); }
@@ -347,6 +361,8 @@ public:
     bool UsesArguments() const { return HasFlags(kFunctionUsesArguments); }
     bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
     bool NestedFuncEscapes() const { return nestedFuncEscapes; }
+    bool CanBeDeferred() const { return canBeDeferred; }
+    bool FIBPreventsDeferral() const { return fibPreventsDeferral; }
 
     size_t LengthInBytes()
     {

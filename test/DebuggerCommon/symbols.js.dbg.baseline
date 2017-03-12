@@ -1,0 +1,224 @@
+[
+  {
+    "evaluate": {
+      "o": {
+        "Symbol.iterator": "string [@@iterator]",
+        "string": "string [\"string\"]",
+        "my symbol": "symbol Symbol(my value)",
+        "my symbol object": {
+          "#__proto__": {
+            "#__proto__": {
+              "constructor": {
+                "#__proto__": "function <large string>",
+                "length": "number 1",
+                "prototype": "Object {...}",
+                "name": "string Object",
+                "defineProperty": "function <large string>",
+                "getOwnPropertyDescriptor": "function <large string>",
+                "getOwnPropertyDescriptors": "function <large string>",
+                "defineProperties": "function <large string>",
+                "create": "function <large string>",
+                "seal": "function <large string>",
+                "freeze": "function <large string>",
+                "preventExtensions": "function <large string>",
+                "isSealed": "function <large string>",
+                "isFrozen": "function <large string>",
+                "isExtensible": "function <large string>",
+                "getPrototypeOf": "function <large string>",
+                "keys": "function <large string>",
+                "getOwnPropertyNames": "function <large string>",
+                "setPrototypeOf": "function <large string>",
+                "getOwnPropertySymbols": "function <large string>",
+                "is": "function <large string>",
+                "assign": "function <large string>",
+                "values": "function <large string>",
+                "entries": "function <large string>",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "hasOwnProperty": {
+                "#__proto__": "function <large string>",
+                "length": "number 1",
+                "name": "string hasOwnProperty",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "propertyIsEnumerable": {
+                "#__proto__": "function <large string>",
+                "length": "number 1",
+                "name": "string <large string>",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "isPrototypeOf": {
+                "#__proto__": "function <large string>",
+                "length": "number 1",
+                "name": "string isPrototypeOf",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "toLocaleString": {
+                "#__proto__": "function <large string>",
+                "length": "number 0",
+                "name": "string toLocaleString",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "toString": {
+                "#__proto__": "function <large string>",
+                "length": "number 0",
+                "name": "string toString",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "valueOf": {
+                "#__proto__": "function <large string>",
+                "length": "number 0",
+                "name": "string valueOf",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "#__proto__": "object null",
+              "__defineGetter__": {
+                "#__proto__": "function <large string>",
+                "length": "number 2",
+                "name": "string __defineGetter__",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "__defineSetter__": {
+                "#__proto__": "function <large string>",
+                "length": "number 2",
+                "name": "string __defineSetter__",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "__lookupGetter__": {
+                "#__proto__": "function <large string>",
+                "length": "number 1",
+                "name": "string __lookupGetter__",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "__lookupSetter__": {
+                "#__proto__": "function <large string>",
+                "length": "number 1",
+                "name": "string __lookupSetter__",
+                "caller": "object null",
+                "arguments": "object null"
+              }
+            },
+            "constructor": {
+              "#__proto__": {
+                "#__proto__": "Object {...}",
+                "constructor": "function <large string>",
+                "length": "number 0",
+                "name": "string ",
+                "apply": "function <large string>",
+                "bind": "function <large string>",
+                "call": "function <large string>",
+                "toString": "function <large string>",
+                "Symbol.hasInstance": "function <large string>",
+                "caller": "Error <large string>",
+                "arguments": "Error <large string>"
+              },
+              "length": "number 0",
+              "prototype": {
+                "#__proto__": "Object {...}",
+                "constructor": "function <large string>",
+                "Symbol.toStringTag": "string Symbol",
+                "valueOf": "function <large string>",
+                "toString": "function <large string>",
+                "Symbol.toPrimitive": "function <large string>"
+              },
+              "name": "string Symbol",
+              "hasInstance": "symbol <large string>",
+              "isConcatSpreadable": "symbol <large string>",
+              "iterator": "symbol <large string>",
+              "species": "symbol <large string>",
+              "toPrimitive": "symbol <large string>",
+              "toStringTag": "symbol <large string>",
+              "unscopables": "symbol <large string>",
+              "for": {
+                "#__proto__": "function <large string>",
+                "length": "number 1",
+                "name": "string for",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "keyFor": {
+                "#__proto__": "function <large string>",
+                "length": "number 1",
+                "name": "string keyFor",
+                "caller": "object null",
+                "arguments": "object null"
+              },
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "Symbol.toStringTag": "string Symbol",
+            "valueOf": {
+              "#__proto__": {
+                "#__proto__": "Object {...}",
+                "constructor": "function <large string>",
+                "length": "number 0",
+                "name": "string ",
+                "apply": "function <large string>",
+                "bind": "function <large string>",
+                "call": "function <large string>",
+                "toString": "function <large string>",
+                "Symbol.hasInstance": "function <large string>",
+                "caller": "Error <large string>",
+                "arguments": "Error <large string>"
+              },
+              "length": "number 0",
+              "name": "string valueOf",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "toString": {
+              "#__proto__": {
+                "#__proto__": "Object {...}",
+                "constructor": "function <large string>",
+                "length": "number 0",
+                "name": "string ",
+                "apply": "function <large string>",
+                "bind": "function <large string>",
+                "call": "function <large string>",
+                "toString": "function <large string>",
+                "Symbol.hasInstance": "function <large string>",
+                "caller": "Error <large string>",
+                "arguments": "Error <large string>"
+              },
+              "length": "number 0",
+              "name": "string toString",
+              "caller": "object null",
+              "arguments": "object null"
+            },
+            "Symbol.toPrimitive": {
+              "#__proto__": {
+                "#__proto__": "Object {...}",
+                "constructor": "function <large string>",
+                "length": "number 0",
+                "name": "string ",
+                "apply": "function <large string>",
+                "bind": "function <large string>",
+                "call": "function <large string>",
+                "toString": "function <large string>",
+                "Symbol.hasInstance": "function <large string>",
+                "caller": "Error <large string>",
+                "arguments": "Error <large string>"
+              },
+              "length": "number 1",
+              "name": "string <large string>",
+              "caller": "object null",
+              "arguments": "object null"
+            }
+          }
+        },
+        "short symbol name": "symbol Symbol(s)",
+        "symbol with no name": "symbol Symbol()"
+      }
+    }
+  }
+]

@@ -13,8 +13,8 @@ class Func;
 class AddPropertyCacheBucket
 {
 private:
-    Js::Type* initialType;
-    Js::Type* finalType;
+    JITTypeHolder initialType;
+    JITTypeHolder finalType;
 public:
     AddPropertyCacheBucket() : initialType(nullptr), finalType(nullptr)
 #if DBG
@@ -52,18 +52,18 @@ public:
 #endif
     }
 
-    Js::Type *GetInitialType() const { return this->initialType; }
-    Js::Type *GetFinalType() const { return this->finalType; }
-    void SetInitialType(Js::Type *type) { this->initialType = type; }
-    void SetFinalType(Js::Type *type)  { this->finalType = type; }
+    JITTypeHolder GetInitialType() const { return this->initialType; }
+    JITTypeHolder GetFinalType() const { return this->finalType; }
+    void SetInitialType(JITTypeHolder type) { this->initialType = type; }
+    void SetFinalType(JITTypeHolder type)  { this->finalType = type; }
 
 #if DBG_DUMP
     void Dump() const;
 #endif
 
 #ifdef DBG
-    Js::Type * deadStoreUnavailableInitialType;
-    Js::Type * deadStoreUnavailableFinalType;
+    JITTypeHolder deadStoreUnavailableInitialType;
+    JITTypeHolder deadStoreUnavailableFinalType;
 #endif
 };
 
@@ -71,7 +71,7 @@ class ObjTypeGuardBucket
 {
 private:
     BVSparse<JitArenaAllocator>* guardedPropertyOps;
-    Js::Type *                   monoGuardType;
+    JITTypeHolder                    monoGuardType;
 
 public:
     ObjTypeGuardBucket() : guardedPropertyOps(nullptr), monoGuardType(nullptr) {}
@@ -92,8 +92,8 @@ public:
     void AddToGuardedPropertyOps(uint propertyOpId) { Assert(this->guardedPropertyOps != nullptr); this->guardedPropertyOps->Set(propertyOpId); }
 
     bool NeedsMonoCheck() const { return this->monoGuardType != nullptr; }
-    void SetMonoGuardType(Js::Type *type) { this->monoGuardType = type; }
-    Js::Type * GetMonoGuardType() const { return this->monoGuardType; }
+    void SetMonoGuardType(JITTypeHolder type) { this->monoGuardType = type; }
+    JITTypeHolder GetMonoGuardType() const { return this->monoGuardType; }
 
 #if DBG_DUMP
     void Dump() const;
@@ -158,14 +158,18 @@ public:
     BasicBlock * InsertAirlockBlock(FlowEdge * edge);
     void         InsertCompBlockToLoopList(Loop *loop, BasicBlock* compBlock, BasicBlock* targetBlock, bool postTarget);
     void         RemoveUnreachableBlocks();
-    bool         RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt = nullptr);
+    bool         RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt = nullptr, IR::Instr ** pUpwardedInstr = nullptr);
     IR::Instr *  RemoveInstr(IR::Instr *instr, GlobOpt * globOpt);
-    void         RemoveBlock(BasicBlock *block, GlobOpt * globOpt = nullptr, bool tailDuping = false);
+    void         RemoveBlock(BasicBlock *block, GlobOpt * globOpt = nullptr, bool tailDuping = false, IR::Instr ** upwardedInstr = nullptr);
     BasicBlock * SetBlockTargetAndLoopFlag(IR::LabelInstr * labelInstr);
     Func*        GetFunc() { return func;};
     static void  SafeRemoveInstr(IR::Instr *instr);
     void         SortLoopLists();
     FlowEdge *   FindEdge(BasicBlock *predBlock, BasicBlock *succBlock);
+    void         UpwardInlineeEndBeforeRemoving(BasicBlock * block,
+                                                IR::Instr * inlineeEnd,
+                                                BVSparse<JitArenaAllocator> * visitedBlocks,
+                                                IR::Instr ** pUpwardedInstr);
 
 #if DBG_DUMP
     void         Dump();
@@ -199,7 +203,7 @@ private:
 #endif
 
 private:
-    void        InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeEndInstr, IR::Instr *instrBytecode, Func* origBrFunc, uint32 origByteCodeOffset, uint32 origBranchSrcSymId);
+    void        InsertInlineeOnFLowEdge(IR::BranchInstr *instrBr, IR::Instr *inlineeEndInstr, IR::Instr *instrBytecode, Func* origBrFunc, uint32 origByteCodeOffset, bool origBranchSrcOpndIsJITOpt, uint32 origBranchSrcSymId);
 
 private:
     Func *                 func;
@@ -347,6 +351,7 @@ public:
     uint8                hasCall:1;
     uint8                isVisited:1;
     uint8                isAirLockCompensationBlock:1;
+    uint8                beginsBailOnNoProfile:1;
 
 #ifdef DBG
     uint8                isBreakBlock:1;
@@ -421,6 +426,7 @@ private:
         couldRemoveNegZeroBailoutForDef(nullptr),
         byteCodeUpwardExposedUsed(nullptr),
         isAirLockCompensationBlock(false),
+        beginsBailOnNoProfile(false),
 #if DBG
         byteCodeRestoreSyms(nullptr),
         isBreakBlock(false),

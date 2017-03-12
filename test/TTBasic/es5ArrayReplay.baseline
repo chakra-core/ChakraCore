@@ -4,5 +4,11 @@ x[1]: 4
 x[11]: 3
 x[1]: 7
 x[11]: 6
+Object.getOwnPropertyDescriptor(simpleArrayEmptyLength.length): {"value":0,"writable":true,"enumerable":false,"configurable":false}
+aFixedInfo: [0,1,2,3,4,5]
+aFixedInfo: [0,-1,2,3,4,5]
+Object.getOwnPropertyDescriptor(aFrozen.length): {"value":6,"writable":false,"enumerable":false,"configurable":false}
+isFrozen: false
+isFrozen: true
 
 Reached end of Execution -- Exiting.

@@ -472,6 +472,10 @@ EncoderMD::EmitImmed(IR::Opnd * opnd, int opSize, int sbit, bool allow64Immediat
 
     switch (opnd->GetKind())
     {
+    case IR::OpndKindInt64Const:
+        value = (size_t)opnd->AsInt64ConstOpnd()->GetValue();
+        goto intConst;
+
     case IR::OpndKindAddr:
         value = (size_t)opnd->AsAddrOpnd()->m_address;
         goto intConst;
@@ -494,7 +498,7 @@ intConst:
 
     case IR::OpndKindHelperCall:
         AssertMsg(this->GetOpndSize(opnd) == 8, "HelperCall opnd must be 64 bit");
-        value = (size_t)IR::GetMethodAddress(opnd->AsHelperCallOpnd());
+        value = (size_t)IR::GetMethodAddress(m_func->GetThreadContextInfo(), opnd->AsHelperCallOpnd());
         break;
 
     case IR::OpndKindIndir:
@@ -506,8 +510,8 @@ intConst:
         break;
 
     case IR::OpndKindLabel:
-        value = (size_t)opnd->AsLabelOpnd()->GetLabel();
-        AppendRelocEntry(RelocTypeLabelUse, (void*) m_pc, nullptr);
+        value = 0;
+        AppendRelocEntry(RelocTypeLabelUse, (void*) m_pc, opnd->AsLabelOpnd()->GetLabel());
         break;
 
     default:
@@ -609,7 +613,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
     if (opr1)
     {
-        instrSize = this->GetOpndSize(opr1);
+        instrSize = this->GetOpndSize(opdope & DREXSRC ? opr2 : opr1);
 
 #if DBG
         switch (instr->m_opcode)
@@ -816,7 +820,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             if (opr2->IsImmediateOpnd())
             {
                 Assert(EncoderMD::IsMOVEncoding(instr));
-                if (instrSize == 8 && !instr->isInlineeEntryInstr && Math::FitsInDWord(opr2->GetImmediateValue()))
+                if (instrSize == 8 && !instr->isInlineeEntryInstr && Math::FitsInDWord(opr2->GetImmediateValue(instr->m_func)))
                 {
                     // Better off using the C7 encoding as it will sign extend
                     continue;
@@ -855,7 +859,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             }
             else if (opr1->IsRegOpnd())
             {
-                rexByte    |= this->GetRexByte(this->REXR, opr1);
+                rexByte |= this->GetRexByte(this->REXR, opr1);
                 rexByte    |= this->EmitModRM(instr, opr2, this->GetRegEncode(opr1->AsRegOpnd()));
                 if ((*form) & DBIT)
                 {
@@ -1018,11 +1022,11 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
 
             case Js::OpCode::IMUL2:
                 AssertMsg(opr1->IsRegOpnd() && instrSize != 1, "Illegal IMUL2");
-                Assert(instrSize < 8);
                 if (!opr2->IsImmediateOpnd())
                 {
                     continue;
                 }
+                Assert(instrSize < 8);
 
                 // turn an 'imul2 reg, immed' into an 'imul3 reg, reg, immed'.
 
@@ -1275,7 +1279,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             bool writeImm = true;
             if (src2 &&src2->IsIntConstOpnd())
             {
-                valueImm = (uint)src2->AsIntConstOpnd()->GetImmediateValue();
+                valueImm = (uint)src2->AsIntConstOpnd()->GetImmediateValue(instr->m_func);
             }
             else
             {
@@ -1325,7 +1329,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             Js::ArrayAccessDecoder::InstructionData instrData;
             BYTE *tempPc = instrStart;
 
-            instrData = Js::ArrayAccessDecoder::CheckValidInstr(tempPc, &exceptionInfo, instr->m_func->m_workItem->GetFunctionBody());
+            instrData = Js::ArrayAccessDecoder::CheckValidInstr(tempPc, &exceptionInfo);
 
             // Make sure we can decode the instr
             Assert(!instrData.isInvalidInstr);
@@ -1473,7 +1477,7 @@ EncoderMD::FixRelocListEntry(uint32 index, int totalBytesSaved, BYTE *buffStart,
                 uint32 count = field & 0xf;
 
                 AssertMsg(offset < (size_t)(buffEnd - buffStart), "Inlinee entry offset out of range");
-                *((size_t*) relocRecord.m_origPtr) = ((offset - totalBytesSaved) << 4) | count;
+                relocRecord.SetInlineOffset(((offset - totalBytesSaved) << 4) | count);
             }
             // adjust the ptr to the buffer itself
             relocRecord.m_ptr = (BYTE*) relocRecord.m_ptr - totalBytesSaved;
@@ -1531,7 +1535,7 @@ EncoderMD::FixMaps(uint32 brOffset, uint32 bytesSaved, uint32 *inlineeFrameRecor
 ///----------------------------------------------------------------------------
 
 void
-EncoderMD::ApplyRelocs(size_t codeBufferAddress_)
+EncoderMD::ApplyRelocs(size_t codeBufferAddress_, size_t codeSize, uint * bufferCRC, BOOL isBrShorteningSucceeded, bool isFinalBufferValidation)
 {
     if (m_relocList == nullptr)
     {
@@ -1565,22 +1569,52 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress_)
                     // short branch
                     pcrel = (uint32)(labelInstr->GetPC() - ((BYTE*)reloc->m_ptr + 1));
                     AssertMsg((int32)pcrel >= -128 && (int32)pcrel <= 127, "Offset doesn't fit in imm8.");
-                    *(BYTE*)relocAddress = (BYTE)pcrel;
+                    if (!isFinalBufferValidation)
+                    {
+                        Assert(*(BYTE*)relocAddress == 0);
+                        *(BYTE*)relocAddress = (BYTE)pcrel;
+                    }
+                    else
+                    {
+                        Encoder::EnsureRelocEntryIntegrity(codeBufferAddress_, codeSize, (size_t)m_encoder->m_encodeBuffer, (size_t)relocAddress, sizeof(BYTE), (ptrdiff_t)labelInstr->GetPC() - ((ptrdiff_t)reloc->m_ptr + 1));
+                    }
                 }
                 else
                 {
                     pcrel = (uint32)(labelInstr->GetPC() - ((BYTE*)reloc->m_ptr + 4));
-                    *(uint32 *)relocAddress = pcrel;
+                    if (!isFinalBufferValidation)
+                    {
+                        Assert(*(uint32*)relocAddress == 0);
+                        *(uint32 *)relocAddress = pcrel;
+                    }
+                    else
+                    {
+                        Encoder::EnsureRelocEntryIntegrity(codeBufferAddress_, codeSize, (size_t)m_encoder->m_encodeBuffer, (size_t)relocAddress, sizeof(uint32), (ptrdiff_t)labelInstr->GetPC() - ((ptrdiff_t)reloc->m_ptr + 4));
+                    }
                 }
-                break;
 
+                *bufferCRC = Encoder::CalculateCRC(*bufferCRC, pcrel);
+
+                break;
             }
 
         case RelocTypeLabelUse:
             {
-                IR::LabelInstr *labelInstr = *(IR::LabelInstr**)relocAddress;
+                IR::LabelInstr *labelInstr = reloc->getBrTargetLabel();
                 AssertMsg(labelInstr->GetPC() != nullptr, "Branch to unemitted label?");
-                *(size_t *)relocAddress = (size_t)(labelInstr->GetPC() - m_encoder->m_encodeBuffer + codeBufferAddress_);
+
+                size_t offset = (size_t)(labelInstr->GetPC() - m_encoder->m_encodeBuffer);
+                size_t targetAddress = (size_t)(offset + codeBufferAddress_);
+                if (!isFinalBufferValidation)
+                {
+                    Assert(*(size_t *)relocAddress == 0);
+                    *(size_t *)relocAddress = targetAddress;
+                }
+                else
+                {
+                    Encoder::EnsureRelocEntryIntegrity(codeBufferAddress_, codeSize, (size_t)m_encoder->m_encodeBuffer, (size_t)relocAddress, sizeof(size_t), targetAddress, false);
+                }
+                *bufferCRC = Encoder::CalculateCRC(*bufferCRC, offset);
                 break;
             }
         case RelocTypeLabel:
@@ -1591,6 +1625,39 @@ EncoderMD::ApplyRelocs(size_t codeBufferAddress_)
             AssertMsg(UNREACHED, "Unknown reloc type");
         }
     }
+}
+
+uint 
+EncoderMD::GetRelocDataSize(EncodeRelocAndLabels *reloc)
+{
+    switch (reloc->m_type)
+    {
+        case RelocTypeBranch:
+        {
+            if (reloc->isShortBr())
+            {
+                return sizeof(BYTE);
+            }
+            else
+            {
+                return sizeof(uint);
+            }
+        }
+        case RelocTypeLabelUse:
+        {
+            return sizeof(size_t);
+        }
+        default:
+        {
+            return 0;
+        }
+    }
+}
+
+BYTE * 
+EncoderMD::GetRelocBufferAddress(EncodeRelocAndLabels * reloc)
+{
+    return (BYTE*)reloc->m_ptr;
 }
 
 #ifdef DBG
@@ -1657,24 +1724,24 @@ void
 EncoderMD::EncodeInlineeCallInfo(IR::Instr *instr, uint32 codeOffset)
 {
     Assert(instr->GetSrc1() &&
-        instr->GetSrc1()->IsAddrOpnd() &&
-        (instr->GetSrc1()->AsAddrOpnd()->m_address == (Js::Var)((size_t)instr->GetSrc1()->AsAddrOpnd()->m_address & 0xF)));
-    Js::Var inlineeCallInfo = 0;
+        instr->GetSrc1()->IsIntConstOpnd() &&
+        (instr->GetSrc1()->AsIntConstOpnd()->GetValue() == (instr->GetSrc1()->AsIntConstOpnd()->GetValue() & 0xF)));
+    intptr_t inlineeCallInfo = 0;
     // 60 (AMD64) bits on the InlineeCallInfo to store the
     // offset of the start of the inlinee. We shouldn't have gotten here with more arguments
     // than can fit in as many bits.
     const bool encodeResult = Js::InlineeCallInfo::Encode(inlineeCallInfo,
-        ::Math::PointerCastToIntegral<uint32>(instr->GetSrc1()->AsAddrOpnd()->m_address), codeOffset);
+        instr->GetSrc1()->AsIntConstOpnd()->GetValue(), codeOffset);
     Assert(encodeResult);
 
-    instr->GetSrc1()->AsAddrOpnd()->m_address = inlineeCallInfo;
+    instr->GetSrc1()->AsIntConstOpnd()->SetValue(inlineeCallInfo);
 }
 
 bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
 {
     Assert(regOpnd->m_sym->IsConst());
 
-    if (regOpnd->m_sym->IsFloatConst())
+    if (regOpnd->m_sym->IsFloatConst() || regOpnd->m_sym->IsInt64Const())
     {
         return false;
     }
@@ -1759,8 +1826,8 @@ bool EncoderMD::TryConstFold(IR::Instr *instr, IR::RegOpnd *regOpnd)
 
             // offset = indir.offset + (index << scale)
             int32 offset = regOpnd->m_sym->GetIntConstValue();
-            if (indir->GetScale() != 0 && Int32Math::Shl(offset, indir->GetScale(), &offset) ||
-                indir->GetOffset() != 0 && Int32Math::Add(indir->GetOffset(), offset, &offset))
+            if ((indir->GetScale() != 0 && Int32Math::Shl(offset, indir->GetScale(), &offset)) ||
+                (indir->GetOffset() != 0 && Int32Math::Add(indir->GetOffset(), offset, &offset)))
             {
                 foldedAllUses = false;
                 continue;
@@ -1890,6 +1957,14 @@ bool EncoderMD::UsesConditionCode(IR::Instr *instr)
 bool EncoderMD::IsOPEQ(IR::Instr *instr)
 {
     return instr->IsLowered() && (EncoderMD::GetOpdope(instr) & DOPEQ);
+}
+
+bool EncoderMD::IsSHIFT(IR::Instr *instr)
+{
+    return (instr->IsLowered() && EncoderMD::GetInstrForm(instr) == FORM_SHIFT) ||
+        instr->m_opcode == Js::OpCode::PSLLDQ || instr->m_opcode == Js::OpCode::PSRLDQ ||
+        instr->m_opcode == Js::OpCode::PSLLW || instr->m_opcode == Js::OpCode::PSRLW ||
+        instr->m_opcode == Js::OpCode::PSLLD;
 }
 
 bool EncoderMD::IsMOVEncoding(IR::Instr *instr)

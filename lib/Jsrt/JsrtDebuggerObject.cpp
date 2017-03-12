@@ -52,7 +52,10 @@ Js::DynamicObject * JsrtDebuggerObjectBase::GetChildren(WeakArenaReference<Js::I
         {
             childrensCount = walker->GetChildrenCount();
         }
-        catch (Js::JavascriptExceptionObject*) {}
+        catch (const Js::JavascriptException& err)
+        {
+            err.GetAndClear();  // discard exception object
+        }
 
         if (fromCount < childrensCount)
         {
@@ -64,8 +67,9 @@ Js::DynamicObject * JsrtDebuggerObjectBase::GetChildren(WeakArenaReference<Js::I
                 {
                     walker->Get(i, &resolvedObject);
                 }
-                catch (Js::JavascriptExceptionObject* exception)
+                catch (const Js::JavascriptException& err)
                 {
+                    Js::JavascriptExceptionObject* exception = err.GetAndClear();
                     Js::Var error = exception->GetThrownObject(scriptContext);
                     resolvedObject.obj = error;
                     resolvedObject.address = nullptr;
@@ -219,21 +223,15 @@ bool JsrtDebuggerObjectsManager::TryGetDataFromDataToDebuggerObjectsDictionary(v
 JsrtDebuggerStackFrame::JsrtDebuggerStackFrame(JsrtDebuggerObjectsManager * debuggerObjectsManager, Js::DiagStackFrame * stackFrame, uint frameIndex) :
     debuggerObjectsManager(debuggerObjectsManager),
     frameIndex(frameIndex),
-    stackFrame(stackFrame),
-    pObjectModelWalker(nullptr)
+    stackFrame(stackFrame)
 {
     Assert(this->stackFrame != nullptr);
 }
 
 JsrtDebuggerStackFrame::~JsrtDebuggerStackFrame()
 {
+    this->debuggerObjectsManager = nullptr;
     this->stackFrame = nullptr;
-
-    if (this->pObjectModelWalker != nullptr)
-    {
-        HeapDelete(this->pObjectModelWalker);
-        this->pObjectModelWalker = nullptr;
-    }
 }
 
 Js::DynamicObject * JsrtDebuggerStackFrame::GetJSONObject(Js::ScriptContext* scriptContext)
@@ -295,18 +293,13 @@ Js::DynamicObject * JsrtDebuggerStackFrame::GetLocalsObject(Js::ScriptContext* s
 
     Js::DynamicObject* globalsObject = nullptr;
 
-    if (this->pObjectModelWalker != nullptr)
-    {
-        HeapDelete(this->pObjectModelWalker);
-    }
-
     ReferencedArenaAdapter* pRefArena = scriptContext->GetThreadContext()->GetDebugManager()->GetDiagnosticArena();
     Js::IDiagObjectModelDisplay* pLocalsDisplay = Anew(pRefArena->Arena(), Js::LocalsDisplay, this->stackFrame);
-    this->pObjectModelWalker = pLocalsDisplay->CreateWalker();
+    WeakArenaReference<Js::IDiagObjectModelWalkerBase>* objectModelWalker = pLocalsDisplay->CreateWalker();
 
-    if (this->pObjectModelWalker != nullptr)
+    if (objectModelWalker != nullptr)
     {
-        Js::LocalsWalker* localsWalker = (Js::LocalsWalker*)this->pObjectModelWalker->GetStrongReference();
+        Js::LocalsWalker* localsWalker = (Js::LocalsWalker*)objectModelWalker->GetStrongReference();
 
         if (localsWalker != nullptr)
         {
@@ -433,7 +426,8 @@ Js::DynamicObject * JsrtDebuggerStackFrame::GetLocalsObject(Js::ScriptContext* s
                 }
             }
 
-            this->pObjectModelWalker->ReleaseStrongReference();
+            objectModelWalker->ReleaseStrongReference();
+            HeapDelete(objectModelWalker);
         }
 
         Adelete(pRefArena->Arena(), pLocalsDisplay);
@@ -494,7 +488,7 @@ bool JsrtDebuggerStackFrame::Evaluate(Js::ScriptContext* scriptContext, const ch
 
         if (resolvedObject.obj != nullptr)
         {
-            resolvedObject.scriptContext = scriptContext;
+            resolvedObject.scriptContext = frameScriptContext;
 
             charcount_t len = Js::JavascriptString::GetBufferLength(source);
             resolvedObject.name = AnewNoThrowArray(this->debuggerObjectsManager->GetDebugObjectArena(), WCHAR, len + 1);
@@ -787,10 +781,8 @@ JsrtDebugStackFrames::~JsrtDebugStackFrames()
 {
     if (this->framesDictionary != nullptr)
     {
-        this->framesDictionary->Map([this](uint handle, JsrtDebuggerStackFrame* debuggerStackFrame) {
-            Adelete(this->jsrtDebugManager->GetDebugObjectArena(), debuggerStackFrame);
-        });
-        this->framesDictionary->Clear();
+        this->ClearFrameDictionary();
+        Adelete(this->jsrtDebugManager->GetDebugObjectArena(), this->framesDictionary);
         this->framesDictionary = nullptr;
     }
 }
@@ -826,7 +818,7 @@ Js::JavascriptArray * JsrtDebugStackFrames::StackFrames(Js::ScriptContext * scri
         }
         else
         {
-            this->framesDictionary->Clear();
+            this->ClearFrameDictionary();
         }
 
         typedef JsUtil::List<Js::DiagStackFrame*, ArenaAllocator> DiagStackFrameList;
@@ -863,6 +855,7 @@ Js::JavascriptArray * JsrtDebugStackFrames::StackFrames(Js::ScriptContext * scri
 
         stackList->Map([&](int index, Js::DiagStackFrame* stackFrame)
         {
+            AssertMsg(index != 0 || stackFrame->IsTopFrame(), "Index 0 frame is not marked as top frame");
             Js::DynamicObject* stackTraceObject = this->GetStackFrame(stackFrame, index);
             Js::Var marshaledObj = Js::CrossSite::MarshalVar(scriptContext, stackTraceObject);
             stackTraceArray->DirectSetItemAt(index, marshaledObj);
@@ -898,4 +891,15 @@ Js::DynamicObject * JsrtDebugStackFrames::GetStackFrame(Js::DiagStackFrame * sta
     this->framesDictionary->Add(frameIndex, debuggerStackFrame);
 
     return debuggerStackFrame->GetJSONObject(stackFrame->GetScriptContext());
+}
+
+void JsrtDebugStackFrames::ClearFrameDictionary()
+{
+    if (this->framesDictionary != nullptr)
+    {
+        this->framesDictionary->Map([this](uint handle, JsrtDebuggerStackFrame* debuggerStackFrame) {
+            Adelete(this->jsrtDebugManager->GetDebugObjectArena(), debuggerStackFrame);
+        });
+        this->framesDictionary->Clear();
+    }
 }

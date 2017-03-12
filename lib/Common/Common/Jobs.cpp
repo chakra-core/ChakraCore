@@ -10,7 +10,7 @@
 #include "Core/EtwTraceCore.h"
 
 #include "Exceptions/ExceptionBase.h"
-#include "Exceptions/InScriptExceptionBase.h"
+#include "Exceptions/JavascriptException.h"
 #include "Exceptions/OperationAbortedException.h"
 #include "Exceptions/OutOfMemoryException.h"
 #include "Exceptions/StackOverflowException.h"
@@ -26,6 +26,7 @@
 #include "Common/Jobs.h"
 #include "Common/Jobs.inl"
 #include "Core/CommonMinMax.h"
+#include "Memory/RecyclerWriteBarrierManager.h"
 
 namespace JsUtil
 {
@@ -423,8 +424,10 @@ namespace JsUtil
         {
             return job->Manager()->Process(job, 0);
         }
-        catch (Js::InScriptExceptionBase *)
+        catch (const Js::JavascriptException& err)
         {
+            err.GetAndClear(); // discard exception object
+
             // Treat OOM or stack overflow to be a non-terminal failure. The foreground job processor processes jobs when the
             // jobs are prioritized, on the calling thread. The script would be active (at the time of this writing), so a
             // JavascriptExceptionObject would be thrown for OOM or stack overflow.
@@ -531,7 +534,7 @@ namespace JsUtil
 
             this->parallelThreadData[i]->processor = this;
             // Make sure to create the thread suspended so the thread handle can be assigned before the thread starts running
-            this->parallelThreadData[i]->threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(0, 0, &StaticThreadProc, this->parallelThreadData[i], CREATE_SUSPENDED, 0));
+            this->parallelThreadData[i]->threadHandle = reinterpret_cast<HANDLE>(PlatformAgnostic::Thread::Create(0, &StaticThreadProc, this->parallelThreadData[i], PlatformAgnostic::Thread::ThreadInitCreateSuspended));
             if (!this->parallelThreadData[i]->threadHandle)
             {
                 HeapDelete(parallelThreadData[i]);
@@ -833,7 +836,7 @@ namespace JsUtil
     {
         Assert(manager);
 
-        ParallelThreadData *threadDataProcessingCurrentJob = nullptr;        
+        ParallelThreadData *threadDataProcessingCurrentJob = nullptr;
         {
             AutoCriticalSection lock(&criticalSection);
             // Managers must remove themselves. Hence, Close does not remove managers. So, not asserting on !IsClosed().
@@ -1016,7 +1019,7 @@ namespace JsUtil
 
     void BackgroundJobProcessor::Run(ParallelThreadData* threadData)
     {
-        JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_START(this, 0));
+        EDGE_ETW_INTERNAL(EventWriteJSCRIPT_NATIVECODEGEN_START(this, 0));
 
         ArenaAllocator threadArena(_u("ThreadArena"), threadData->GetPageAllocator(), Js::Throw::OutOfMemory);
         threadData->threadArena = &threadArena;
@@ -1050,7 +1053,7 @@ namespace JsUtil
                     Assert(!threadData->isWaitingForJobs);
                     threadData->isWaitingForJobs = true;
                     criticalSection.Leave();
-                    JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_STOP(this, 0));
+                    EDGE_ETW_INTERNAL(EventWriteJSCRIPT_NATIVECODEGEN_STOP(this, 0));
 
                     if (threadService->HasCallback())
                     {
@@ -1061,7 +1064,7 @@ namespace JsUtil
 
                     WaitForJobReadyOrShutdown(threadData);
 
-                    JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_START(this, 0));
+                    EDGE_ETW_INTERNAL(EventWriteJSCRIPT_NATIVECODEGEN_START(this, 0));
                     criticalSection.Enter();
                     threadData->isWaitingForJobs = false;
                     continue;
@@ -1100,7 +1103,7 @@ namespace JsUtil
             }
             criticalSection.Leave();
 
-            JS_ETW(EventWriteJSCRIPT_NATIVECODEGEN_STOP(this, 0));
+            EDGE_ETW_INTERNAL(EventWriteJSCRIPT_NATIVECODEGEN_STOP(this, 0));
         }
     }
 
@@ -1222,6 +1225,13 @@ namespace JsUtil
     unsigned int WINAPI BackgroundJobProcessor::StaticThreadProc(void *lpParam)
     {
         Assert(lpParam);
+
+#ifdef _M_X64_OR_ARM64
+#ifdef RECYCLER_WRITE_BARRIER
+        Memory::RecyclerWriteBarrierManager::OnThreadInit();
+#endif
+#endif
+
 #if !defined(_UCRT)
         HMODULE dllHandle = NULL;
         if (!GetModuleHandleEx(0, AutoSystemInfo::GetJscriptDllFileName(), &dllHandle))
@@ -1269,7 +1279,7 @@ namespace JsUtil
         }
     }
 
-// xplat-todo: this entire function probably needs to be ifdefed out
+#ifndef DISABLE_SEH
     int BackgroundJobProcessor::ExceptFilter(LPEXCEPTION_POINTERS pEP)
     {
 #if DBG && defined(_WIN32)
@@ -1297,6 +1307,7 @@ namespace JsUtil
         Output::Flush();
         return EXCEPTION_CONTINUE_SEARCH;
     }
+#endif
 
     void BackgroundJobProcessor::ThreadServiceCallback(void * callbackData)
     {

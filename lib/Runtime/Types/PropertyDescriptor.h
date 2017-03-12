@@ -10,24 +10,41 @@ namespace Js
     {
     public:
         PropertyDescriptor();
+        PropertyDescriptor(const PropertyDescriptor& other)
+            :Value(other.Value),
+            Getter(other.Getter),
+            Setter(other.Setter),
+            originalVar(other.originalVar),
+            writableSpecified(other.writableSpecified),
+            enumerableSpecified(other.enumerableSpecified),
+            configurableSpecified(other.configurableSpecified),
+            valueSpecified(other.valueSpecified),
+            getterSpecified(other.getterSpecified),
+            setterSpecified(other.setterSpecified),
+            Writable(other.Writable),
+            Enumerable(other.Enumerable),
+            Configurable(other.Configurable),
+            fromProxy(other.fromProxy)
+        {
+        }
 
     private:
-        Var Value;
-        Var Getter;
-        Var Setter;
-        Var originalVar;
+        Field(Var)  Value;
+        Field(Var)  Getter;
+        Field(Var)  Setter;
+        Field(Var)  originalVar;
 
-        bool writableSpecified;
-        bool enumerableSpecified;
-        bool configurableSpecified;
-        bool valueSpecified;
-        bool getterSpecified;
-        bool setterSpecified;
+        Field(bool) writableSpecified;
+        Field(bool) enumerableSpecified;
+        Field(bool) configurableSpecified;
+        Field(bool) valueSpecified;
+        Field(bool) getterSpecified;
+        Field(bool) setterSpecified;
 
-        bool Writable;
-        bool Enumerable;
-        bool Configurable;
-        bool fromProxy;
+        Field(bool) Writable;
+        Field(bool) Enumerable;
+        Field(bool) Configurable;
+        Field(bool) fromProxy;
 
     public:
         bool IsDataDescriptor() const { return writableSpecified | valueSpecified;}

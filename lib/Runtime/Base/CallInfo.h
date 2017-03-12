@@ -32,7 +32,7 @@ namespace Js
         explicit CallInfo(ushort count)
             : Flags(CallFlags_None)
             , Count(count)
-#ifdef _WIN64
+#ifdef TARGET_64
             , unused(0)
 #endif
         {
@@ -41,7 +41,7 @@ namespace Js
         CallInfo(CallFlags flags, ushort count)
             : Flags(flags)
             , Count(count)
-#ifdef _WIN64
+#ifdef TARGET_64
             , unused(0)
 #endif
         {
@@ -56,10 +56,10 @@ namespace Js
         //  - scriptdirect.idl
         //  - LowererMDArch::LoadInputParamCount
         //
-        unsigned  Count : 24;
-        CallFlags Flags : 8;
-#ifdef _WIN64
-        unsigned unused : 32;
+        Field(unsigned)  Count : 24;
+        Field(CallFlags) Flags : 8;
+#ifdef TARGET_64
+        Field(unsigned) unused : 32;
 #endif
 
 #if DBG
@@ -72,6 +72,16 @@ namespace Js
         static const ushort ksizeofCount;
         static const ushort ksizeofCallFlags;
         static const uint kMaxCountArgs;
+
+        static bool isDirectEvalCall(CallFlags flags)
+        {
+            // This was recognized as an eval call at compile time. The last one or two args are internal to us.
+            // Argcount will be one of the following when called from global code
+            //  - eval("...")     : argcount 3 : this, evalString, frameDisplay
+            //  - eval.call("..."): argcount 2 : this(which is string) , frameDisplay
+
+            return (flags & (CallFlags_ExtraArg | CallFlags_NewTarget)) == CallFlags_ExtraArg;  // ExtraArg == 1 && NewTarget == 0
+        }
     };
 
     struct InlineeCallInfo
@@ -81,7 +91,7 @@ namespace Js
         size_t InlineeStartOffset: sizeof(void*) * CHAR_BIT - 4;
         static size_t const MaxInlineeArgoutCount = 0xF;
 
-        static bool Encode(Js::Var &callInfo, size_t count, size_t offset)
+        static bool Encode(intptr_t &callInfo, size_t count, size_t offset)
         {
             const size_t offsetMask = (~(size_t)0) >> 4;
             const size_t countMask  = 0x0000000F;
@@ -95,7 +105,7 @@ namespace Js
                 return false;
             }
 
-            callInfo = (Js::Var)((offset << 4) | count);
+            callInfo = (offset << 4) | count;
 
             return true;
         }

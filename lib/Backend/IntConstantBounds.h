@@ -65,7 +65,7 @@ public:
     IntConstantBounds And_0x1f() const
     {
         const int32 mask = 0x1f;
-        if(static_cast<UIntConstType>(upperBound - lowerBound) >= static_cast<UIntConstType>(mask) ||
+        if(static_cast<UIntConstType>(upperBound) - static_cast<UIntConstType>(lowerBound) >= static_cast<UIntConstType>(mask) ||
             (lowerBound & mask) > (upperBound & mask))
         {
             // The range contains all items in the set {0-mask}, or the range crosses a boundary of {0-mask}. Since we cannot

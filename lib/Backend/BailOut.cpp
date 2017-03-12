@@ -197,7 +197,7 @@ BailOutInfo::FinalizeBailOutRecord(Func * func)
         Assert(currentBailOutFunc->firstActualStackOffset != -1);
 
         // Find the top of the locals on the stack from EBP
-        currentBailOutRecord->globalBailOutRecordTable-> firstActualStackOffset = currentBailOutFunc->firstActualStackOffset - inlinedArgSlotAdjust;
+        currentBailOutRecord->globalBailOutRecordTable->firstActualStackOffset = currentBailOutFunc->firstActualStackOffset - inlinedArgSlotAdjust;
 
         currentBailOutRecord = currentBailOutRecord->parent;
         currentBailOutFunc = currentBailOutFunc->GetParentFunc();
@@ -237,13 +237,12 @@ BailOutInfo::FinalizeBailOutRecord(Func * func)
     }
 
     currentBailOutRecord = bailOutRecord;
+    int32 inlineeArgStackSize = func->GetInlineeArgumentStackSize();
     do
     {
         // Note: do this only once
         currentBailOutRecord->globalBailOutRecordTable->VisitGlobalBailOutRecordTableRowsAtFirstBailOut(
           currentBailOutRecord->m_bailOutRecordId, [=](GlobalBailOutRecordDataRow *row) {
-            int32 inlineeArgStackSize = func->GetInlineeArgumentStackSize();
-            int localsSize = func->m_localStackHeight + func->m_ArgumentsOffset;
             int offset = -(row->offset + StackSymBias);
             if (offset < 0)
             {
@@ -252,10 +251,19 @@ BailOutInfo::FinalizeBailOutRecord(Func * func)
             }
             // The locals size contains the inlined-arg-area size, so remove the inlined-arg-area size from the
             // adjustment for normal locals whose offsets are relative to the start of the locals area.
-            offset -= (localsSize - inlineeArgStackSize);
+            offset -= (inlinedArgSlotAdjust - inlineeArgStackSize);
             Assert(offset < 0);
             row->offset = offset;
         });
+
+        // Only adjust once
+        int forInEnumeratorArrayRestoreOffset = currentBailOutRecord->globalBailOutRecordTable->forInEnumeratorArrayRestoreOffset;
+        if (forInEnumeratorArrayRestoreOffset >= 0)
+        {
+            forInEnumeratorArrayRestoreOffset -= (inlinedArgSlotAdjust - inlineeArgStackSize);
+            Assert(forInEnumeratorArrayRestoreOffset < 0);
+            currentBailOutRecord->globalBailOutRecordTable->forInEnumeratorArrayRestoreOffset = forInEnumeratorArrayRestoreOffset;
+        }
         currentBailOutRecord = currentBailOutRecord->parent;
     }
     while (currentBailOutRecord != nullptr);
@@ -308,12 +316,6 @@ BailOutRecord::BailOutRecord(uint32 bailOutOffset, uint bailOutCacheIndex, IR::B
 }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
-#define REJIT_TESTTRACE(...) \
-    if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::ReJITPhase)) \
-    { \
-        Output::Print(__VA_ARGS__); \
-        Output::Flush(); \
-    }
 #define REJIT_KIND_TESTTRACE(bailOutKind, ...) \
     if (Js::Configuration::Global.flags.TestTrace.IsEnabled(Js::ReJITPhase)) \
     { \
@@ -323,10 +325,9 @@ BailOutRecord::BailOutRecord(uint32 bailOutOffset, uint bailOutCacheIndex, IR::B
             Output::Flush(); \
         } \
     }
-char16 * const trueString = _u("true");
-char16 * const falseString = _u("false");
+const char16 * const trueString = _u("true");
+const char16 * const falseString = _u("false");
 #else
-#define REJIT_TESTTRACE(...)
 #define REJIT_KIND_TESTTRACE(...)
 #endif
 
@@ -580,7 +581,7 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
                         // The value is in register
                         // Index is one based, so subtract one
                         Assert((uint)offset <= GetBailOutRegisterSaveSlotCount());
-                        Js::Var * registerSaveSpace = registerSaves ? registerSaves : scriptContext->GetThreadContext()->GetBailOutRegisterSaveSpace();
+                        Js::Var * registerSaveSpace = registerSaves ? registerSaves : (Js::Var *)scriptContext->GetThreadContext()->GetBailOutRegisterSaveSpace();
                         Assert(RegTypes[LinearScanMD::GetRegisterFromSaveIndex(offset)] != TyFloat64);
                         value = registerSaveSpace[offset - 1];
                     }
@@ -671,7 +672,7 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
 
 #if DBG
     // Clear the register save area for the next bailout
-    memset(scriptContext->GetThreadContext()->GetBailOutRegisterSaveSpace(), 0, GetBailOutRegisterSaveSlotCount() * sizeof(Js::Var));
+    memset((void*)scriptContext->GetThreadContext()->GetBailOutRegisterSaveSpace(), 0, GetBailOutRegisterSaveSlotCount() * sizeof(Js::Var));
 #endif
 }
 
@@ -719,8 +720,8 @@ BailOutRecord::AdjustOffsetsForDiagMode(Js::JavascriptCallStackLayout * layout, 
 }
 
 void
-BailOutRecord::IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, bool * pIsFloat64, bool * pIsInt32, 
-    bool * pIsSimd128F4, bool * pIsSimd128I4, bool * pIsSimd128I8, bool * pIsSimd128I16, bool * pIsSimd128U4, 
+BailOutRecord::IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, bool * pIsFloat64, bool * pIsInt32,
+    bool * pIsSimd128F4, bool * pIsSimd128I4, bool * pIsSimd128I8, bool * pIsSimd128I16, bool * pIsSimd128U4,
     bool * pIsSimd128U8, bool * pIsSimd128U16, bool * pIsSimd128B4, bool * pIsSimd128B8, bool * pIsSimd128B16) const
 {
     bool isFloat64 = this->argOutOffsetInfo->argOutFloat64Syms->Test(argOutSlotStart + offsetIndex) != 0;
@@ -737,7 +738,7 @@ BailOutRecord::IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, b
     bool isSimd128B8    = this->argOutOffsetInfo->argOutSimd128B8Syms->Test(argOutSlotStart + offsetIndex) != 0;
     bool isSimd128B16   = this->argOutOffsetInfo->argOutSimd128B16Syms->Test(argOutSlotStart + offsetIndex) != 0;
 
-    Assert(!isFloat64 || !isInt32 || 
+    Assert(!isFloat64 || !isInt32 ||
         !isSimd128F4 || !isSimd128I4 || !isSimd128I8 || !isSimd128I16 || !
         !isSimd128U4 || !isSimd128U8 || !isSimd128U16);
 
@@ -758,8 +759,8 @@ BailOutRecord::IsOffsetNativeIntOrFloat(uint offsetIndex, int argOutSlotStart, b
 void
 BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStackLayout * layout, Js::Var * values, Js::ScriptContext * scriptContext,
     bool fromLoopBody, Js::Var * registerSaves, Js::InterpreterStackFrame * newInstance, Js::Var* pArgumentsObject, void * argoutRestoreAddress,
-    uint regSlot, int offset, bool isLocal, bool isFloat64, bool isInt32, 
-    bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, 
+    uint regSlot, int offset, bool isLocal, bool isFloat64, bool isInt32,
+    bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16,
     bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, bool isSimd128B4, bool isSimd128B8, bool isSimd128B16) const
 {
     bool boxStackInstance = true;
@@ -793,7 +794,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
             }
             else if (
                     isSimd128F4 || isSimd128I4 || isSimd128I8 || isSimd128I16 ||
-                    isSimd128U4 || isSimd128U8 || isSimd128U16 || isSimd128B4 || 
+                    isSimd128U4 || isSimd128U8 || isSimd128U16 || isSimd128B4 ||
                     isSimd128B8 || isSimd128B16
                     )
             {
@@ -818,8 +819,8 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
             // and we bailout during bar args evaluation, we recover from args from argoutRestoreAddress, not from caller function frame.
             // This is because try-catch is implemented as a C wrapper, so args will be a different offset from rbp in that case.
             Assert(
-                   !isFloat64 && !isInt32 && 
-                   !isSimd128F4 && !isSimd128I4 && !isSimd128I8 && !isSimd128I16 && !isSimd128U4 && 
+                   !isFloat64 && !isInt32 &&
+                   !isSimd128F4 && !isSimd128I4 && !isSimd128I8 && !isSimd128I16 && !isSimd128U4 &&
                    !isSimd128U8 && !isSimd128U16 && !isSimd128B4 && !isSimd128B8 && !isSimd128B16
                   );
 
@@ -839,7 +840,7 @@ BailOutRecord::RestoreValue(IR::BailOutKind bailOutKind, Js::JavascriptCallStack
         {
             // Register save space (offset is the register number and index into the register save space)
             // Index is one based, so subtract one
-            Js::Var * registerSaveSpace = registerSaves ? registerSaves : scriptContext->GetThreadContext()->GetBailOutRegisterSaveSpace();
+            Js::Var * registerSaveSpace = registerSaves ? registerSaves : (Js::Var *)scriptContext->GetThreadContext()->GetBailOutRegisterSaveSpace();
 
             if (isFloat64)
             {
@@ -1005,8 +1006,8 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
         globalBailOutRecordTable->IterateGlobalBailOutRecordTableRows(m_bailOutRecordId, [=](GlobalBailOutRecordDataRow *row) {
             Assert(row->offset != 0);
             RestoreValue(bailOutKind, layout, values, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject,
-                argoutRestoreAddress, row->regSlot, row->offset, true, row->isFloat, row->isInt, row->isSimd128F4, 
-                row->isSimd128I4, row->isSimd128I8, row->isSimd128I16, row->isSimd128U4, row->isSimd128U8, row->isSimd128U16, 
+                argoutRestoreAddress, row->regSlot, row->offset, true, row->isFloat, row->isInt, row->isSimd128F4,
+                row->isSimd128I4, row->isSimd128I8, row->isSimd128I16, row->isSimd128U4, row->isSimd128U8, row->isSimd128U16,
                 row->isSimd128B4, row->isSimd128B8, row->isSimd128B16);
         });
     }
@@ -1031,12 +1032,12 @@ BailOutRecord::RestoreValues(IR::BailOutKind bailOutKind, Js::JavascriptCallStac
             bool isSimd128B16;
 
             offset = offsets[i];
-            this->IsOffsetNativeIntOrFloat(i, argOutSlotStart, &isFloat64, &isInt32, 
-                                           &isSimd128F4, &isSimd128I4, &isSimd128I8, &isSimd128I16, 
+            this->IsOffsetNativeIntOrFloat(i, argOutSlotStart, &isFloat64, &isInt32,
+                                           &isSimd128F4, &isSimd128I4, &isSimd128I8, &isSimd128I16,
                                            &isSimd128U4, &isSimd128U8, &isSimd128U16, &isSimd128B4, &isSimd128B8, &isSimd128B16);
 
             RestoreValue(bailOutKind, layout, values, scriptContext, fromLoopBody, registerSaves, newInstance, pArgumentsObject,
-                         argoutRestoreAddress, i, offset, false, isFloat64, isInt32, isSimd128F4, isSimd128I4, isSimd128I8, 
+                         argoutRestoreAddress, i, offset, false, isFloat64, isInt32, isSimd128F4, isSimd128I4, isSimd128I8,
                          isSimd128I16, isSimd128U4, isSimd128U8, isSimd128U16, isSimd128B4, isSimd128B8, isSimd128B16);
         }
     }
@@ -1132,11 +1133,11 @@ uint32 bailOutOffset, void * returnAddress, IR::BailOutKind bailOutKind, Js::Imp
     // Need to capture the int registers on stack as threadContext->bailOutRegisterSaveSpace is allocated from ThreadAlloc and is not scanned by recycler.
     // We don't want to save float (xmm) registers as they can be huge and they cannot contain a var.
     Js::Var registerSaves[INT_REG_COUNT];
-    js_memcpy_s(registerSaves, sizeof(registerSaves), layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
+    js_memcpy_s(registerSaves, sizeof(registerSaves), (Js::Var *)layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
         sizeof(registerSaves));
 
     Js::Var result = BailOutCommonNoCodeGen(layout, bailOutRecord, bailOutOffset, returnAddress, bailOutKind, branchValue, nullptr, bailOutReturnValue, argoutRestoreAddress);
-    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind, savedImplicitCallFlags, returnAddress);
+    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), nullptr, bailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
     return result;
 }
 
@@ -1149,7 +1150,7 @@ BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, Bail
     // Need to capture the register save, one of the bailout might get into jitted code again and bailout again
     // overwriting the current register saves
     Js::Var registerSaves[BailOutRegisterSaveSlotCount];
-    js_memcpy_s(registerSaves, sizeof(registerSaves), layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
+    js_memcpy_s(registerSaves, sizeof(registerSaves), (Js::Var *)layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
         sizeof(registerSaves));
     BailOutRecord const * currentBailOutRecord = bailOutRecord;
     BailOutReturnValue bailOutReturnValue;
@@ -1157,7 +1158,7 @@ BailOutRecord::BailOutInlinedCommon(Js::JavascriptCallStackLayout * layout, Bail
     BailOutInlinedHelper(layout, currentBailOutRecord, bailOutOffset, returnAddress, bailOutKind, registerSaves, &bailOutReturnValue, &innerMostInlinee, false, branchValue);
     Js::Var result = BailOutCommonNoCodeGen(layout, currentBailOutRecord, currentBailOutRecord->bailOutOffset, returnAddress, bailOutKind, branchValue,
         registerSaves, &bailOutReturnValue);
-    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, savedImplicitCallFlags, returnAddress);
+    ScheduleFunctionCodeGen(Js::ScriptFunction::FromVar(layout->functionObject), innerMostInlinee, currentBailOutRecord, bailOutKind, bailOutOffset, savedImplicitCallFlags, returnAddress);
     return result;
 }
 
@@ -1176,7 +1177,7 @@ BailOutRecord::BailOutFromLoopBodyInlinedCommon(Js::JavascriptCallStackLayout * 
 {
     Assert(bailOutRecord->parent != nullptr);
     Js::Var registerSaves[BailOutRegisterSaveSlotCount];
-    js_memcpy_s(registerSaves, sizeof(registerSaves), layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
+    js_memcpy_s(registerSaves, sizeof(registerSaves), (Js::Var *)layout->functionObject->GetScriptContext()->GetThreadContext()->GetBailOutRegisterSaveSpace(),
         sizeof(registerSaves));
     BailOutRecord const * currentBailOutRecord = bailOutRecord;
     BailOutReturnValue bailOutReturnValue;
@@ -1437,7 +1438,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
     Js::InterpreterStackFrame* newInstance = nullptr;
     Js::Var* allocation = nullptr;
 
-    if (executeFunction->IsGenerator())
+    if (executeFunction->IsCoroutine())
     {
         // If the FunctionBody is a generator then this call is being made by one of the three
         // generator resuming methods: next(), throw(), or return().  They all pass the generator
@@ -1467,7 +1468,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
             // It will live with the JavascriptGenerator object.
             //
             Js::Arguments generatorArgs = generator->GetArguments();
-            Js::InterpreterStackFrame::Setup setup(function, generatorArgs, isInlinee);
+            Js::InterpreterStackFrame::Setup setup(function, generatorArgs, true, isInlinee);
             size_t varAllocCount = setup.GetAllocationVarCount();
             size_t varSizeInBytes = varAllocCount * sizeof(Js::Var);
             DWORD_PTR stackAddr = reinterpret_cast<DWORD_PTR>(&generator); // as mentioned above, use any stack address from this frame to ensure correct debugging functionality
@@ -1478,7 +1479,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
             // Initialize the interpreter stack frame (constants) but not the param, the bailout record will restore the value
 #if DBG
             // Allocate invalidVar on GC instead of stack since this InterpreterStackFrame will out live the current real frame
-            Js::RecyclableObject* invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Js::Var);
+            Js::Var invalidVar = (Js::RecyclableObject*)RecyclerNewPlusLeaf(functionScriptContext->GetRecycler(), sizeof(Js::RecyclableObject), Js::Var);
             memset(invalidVar, 0xFE, sizeof(Js::RecyclableObject));
             newInstance = setup.InitializeAllocation(allocation, false, false, loopHeaderArray, stackAddr, invalidVar);
 #else
@@ -1487,12 +1488,12 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 
             newInstance->m_reader.Create(executeFunction);
 
-            generator->SetFrame(newInstance);
+            generator->SetFrame(newInstance, varSizeInBytes);
         }
     }
     else
     {
-        Js::InterpreterStackFrame::Setup setup(function, args, isInlinee);
+        Js::InterpreterStackFrame::Setup setup(function, args, true, isInlinee);
         size_t varAllocCount = setup.GetAllocationVarCount();
         size_t varSizeInBytes = varAllocCount * sizeof(Js::Var);
 
@@ -1528,7 +1529,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 
         // Initialize the interpreter stack frame (constants) but not the param, the bailout record will restore the value
 #if DBG
-        Js::RecyclableObject * invalidStackVar = (Js::RecyclableObject*)_alloca(sizeof(Js::RecyclableObject));
+        Js::Var invalidStackVar = (Js::RecyclableObject*)_alloca(sizeof(Js::RecyclableObject));
         memset(invalidStackVar, 0xFE, sizeof(Js::RecyclableObject));
         newInstance = setup.InitializeAllocation(allocation, false, false, loopHeaderArray, frameStackAddr, invalidStackVar);
 #else
@@ -1537,6 +1538,13 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 
         newInstance->m_reader.Create(executeFunction);
     }
+
+    int forInEnumeratorArrayRestoreOffset = bailOutRecord->globalBailOutRecordTable->forInEnumeratorArrayRestoreOffset;
+    if (forInEnumeratorArrayRestoreOffset != -1)
+    {
+        newInstance->forInObjectEnumerators = layout->GetForInObjectEnumeratorArrayAtOffset(forInEnumeratorArrayRestoreOffset);
+    }
+
     newInstance->ehBailoutData = bailOutRecord->ehBailoutData;
     newInstance->OrFlags(Js::InterpreterStackFrameFlags_FromBailOut);
 
@@ -1619,6 +1627,7 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
         Js::Var closure = newInstance->GetNonVarReg(localClosureReg);
         if (closure)
         {
+            bailOutRecord->globalBailOutRecordTable->isScopeObjRestored = true;
             newInstance->SetLocalClosure(closure);
             newInstance->SetNonVarReg(localClosureReg, nullptr);
         }
@@ -1633,12 +1642,16 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
             newInstance->SetNonVarReg(paramClosureReg, nullptr);
         }
     }
-    
+
     if (bailOutRecord->globalBailOutRecordTable->hasStackArgOpt)
     {
-        newInstance->TrySetFrameObjectInHeapArgObj(functionScriptContext, bailOutRecord->globalBailOutRecordTable->hasNonSimpleParams);
+        newInstance->TrySetFrameObjectInHeapArgObj(functionScriptContext, bailOutRecord->globalBailOutRecordTable->hasNonSimpleParams,
+            bailOutRecord->globalBailOutRecordTable->isScopeObjRestored);
     }
-    
+
+    //Reset the value for tracking the restoration during next bail out.
+    bailOutRecord->globalBailOutRecordTable->isScopeObjRestored = false;
+
     uint32 innerScopeCount = executeFunction->GetInnerScopeCount();
     for (uint32 i = 0; i < innerScopeCount; i++)
     {
@@ -1725,8 +1738,10 @@ BailOutRecord::BailOutHelper(Js::JavascriptCallStackLayout * layout, Js::ScriptF
 // code we avoid a rejit by checking if the offending optimization has been disabled in the default code and if so
 // we "rethunk" the bailing out function rather that incurring a rejit.
 
+// actualBailOutOffset - bail out offset in the function, inlinee or otherwise, that had the bailout.
+
 void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::ScriptFunction * innerMostInlinee,
-    BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind, Js::ImplicitCallFlags savedImplicitCallFlags, void * returnAddress)
+    BailOutRecord const * bailOutRecord, IR::BailOutKind bailOutKind, uint32 actualBailOutOffset, Js::ImplicitCallFlags savedImplicitCallFlags, void * returnAddress)
 {
     if (bailOutKind == IR::BailOnSimpleJitToFullJitLoopBody ||
         bailOutKind == IR::BailOutForGeneratorYield ||
@@ -1748,7 +1763,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
     bailOutRecordNotConst->bailOutCount++;
 
     Js::FunctionEntryPointInfo *entryPointInfo = function->GetFunctionEntryPointInfo();
-    uint8 callsCount = entryPointInfo->callsCount;
+    uint8 callsCount = entryPointInfo->callsCount > 255 ? 255 : static_cast<uint8>(entryPointInfo->callsCount);
     RejitReason rejitReason = RejitReason::None;
     bool reThunk = false;
 
@@ -1884,7 +1899,7 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
 
             case IR::BailOutOnNotNativeArray:
 
-                // REVIEW: We have an issue with array profile info.  The info on the type of array we have won't 
+                // REVIEW: We have an issue with array profile info.  The info on the type of array we have won't
                 //         get fixed by rejitting.  For now, just give up after 50 rejits.
                 if (profileInfo->GetRejitCount() >= 50)
                 {
@@ -2076,7 +2091,15 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
                 break;
 
             case IR::BailOutOnTaggedValue:
-                rejitReason = RejitReason::FailedTagCheck;
+                if (profileInfo->IsTagCheckDisabled())
+                {
+                    reThunk = true;
+                }
+                else
+                {
+                    profileInfo->DisableTagCheck();
+                    rejitReason = RejitReason::FailedTagCheck;
+                }
                 break;
 
             case IR::BailOutFailedTypeCheck:
@@ -2183,18 +2206,21 @@ void BailOutRecord::ScheduleFunctionCodeGen(Js::ScriptFunction * function, Js::S
         rejitReason = RejitReason::Forced;
     }
 
-    // REVIEW: Temporary fix for RS1.  Disable Rejiting if it looks like it is not fixing the problem.
-    //         For RS2, turn this into an assert and let's fix all these issues.
     if (!reThunk && rejitReason != RejitReason::None)
     {
-        if (executeFunction->GetDynamicProfileInfo()->GetRejitCount() >= 100)
+        Js::DynamicProfileInfo * profileInfo = executeFunction->GetAnyDynamicProfileInfo();
+        // REVIEW: Temporary fix for RS1.  Disable Rejiting if it looks like it is not fixing the problem.
+        //         For RS2, turn the rejitCount check into an assert and let's fix all these issues.
+        if (profileInfo->GetRejitCount() >= 100 ||
+            (profileInfo->GetBailOutOffsetForLastRejit() == actualBailOutOffset && function->IsNewEntryPointAvailable()))
         {
             reThunk = true;
             rejitReason = RejitReason::None;
         }
         else
         {
-            executeFunction->GetDynamicProfileInfo()->IncRejitCount();
+            profileInfo->IncRejitCount();
+            profileInfo->SetBailOutOffsetForLastRejit(actualBailOutOffset);
         }
     }
 
@@ -2297,17 +2323,13 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
 
     entryPointInfo->totalJittedLoopIterations += entryPointInfo->jittedLoopIterationsSinceLastBailout;
     entryPointInfo->jittedLoopIterationsSinceLastBailout = 0;
-    if (entryPointInfo->totalJittedLoopIterations > UINT8_MAX)
-    {
-        entryPointInfo->totalJittedLoopIterations = UINT8_MAX;
-    }
-    uint8 totalJittedLoopIterations = (uint8)entryPointInfo->totalJittedLoopIterations;
+    uint8 totalJittedLoopIterations = entryPointInfo->totalJittedLoopIterations > 255 ? 255 : static_cast<uint8>(entryPointInfo->totalJittedLoopIterations);
     totalJittedLoopIterations = totalJittedLoopIterations <= Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout() ? 0 : totalJittedLoopIterations - Js::LoopEntryPointInfo::GetDecrLoopCountPerBailout();
 
     CheckPreemptiveRejit(executeFunction, bailOutKind, bailOutRecordNotConst, totalJittedLoopIterations, interpreterFrame->GetCurrentLoopNum());
-    
+
     entryPointInfo->totalJittedLoopIterations = totalJittedLoopIterations;
-    
+
     if ((executeFunction->HasDynamicProfileInfo() && totalJittedLoopIterations == 0) ||
         PHASE_FORCE(Js::ReJITPhase, executeFunction))
     {
@@ -2369,7 +2391,7 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                 executeFunction->SetDontRethunkAfterBailout();
                 rejitReason = RejitReason::DisableSwitchOptExpectingString;
                 break;
-            
+
             case IR::BailOnStackArgsOutOfActualsRange:
                 AssertMsg(false, "How did we reach here ? Stack args opt is currently disabled in loop body gen.");
                 break;
@@ -2516,6 +2538,8 @@ void BailOutRecord::ScheduleLoopBodyCodeGen(Js::ScriptFunction * function, Js::S
                 break;
 
             case IR::BailOutOnTaggedValue:
+                profileInfo->DisableTagCheck();
+                executeFunction->SetDontRethunkAfterBailout();
                 rejitReason = RejitReason::FailedTagCheck;
                 break;
 
@@ -2793,7 +2817,7 @@ void LazyBailOutRecord::Dump(Js::FunctionBody* functionBody)
 
 void GlobalBailOutRecordDataTable::Finalize(NativeCodeData::Allocator *allocator, JitArenaAllocator *tempAlloc)
 {
-    GlobalBailOutRecordDataRow *newRows = NativeCodeDataNewArrayZ(allocator, GlobalBailOutRecordDataRow, length);
+    GlobalBailOutRecordDataRow *newRows = NativeCodeDataNewArrayZNoFixup(allocator, GlobalBailOutRecordDataRow, length);
     memcpy(newRows, globalBailOutRecordDataRows, sizeof(GlobalBailOutRecordDataRow) * length);
     JitAdeleteArray(tempAlloc, length, globalBailOutRecordDataRows);
     globalBailOutRecordDataRows = newRows;
@@ -2813,8 +2837,8 @@ void GlobalBailOutRecordDataTable::Finalize(NativeCodeData::Allocator *allocator
 #endif
 }
 
-void  GlobalBailOutRecordDataTable::AddOrUpdateRow(JitArenaAllocator *allocator, uint32 bailOutRecordId, uint32 regSlot, bool isFloat, bool isInt, 
-                                                   bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, bool isSimd128U4, bool isSimd128U8, bool isSimd128U16, 
+void  GlobalBailOutRecordDataTable::AddOrUpdateRow(JitArenaAllocator *allocator, uint32 bailOutRecordId, uint32 regSlot, bool isFloat, bool isInt,
+                                                   bool isSimd128F4, bool isSimd128I4, bool isSimd128I8, bool isSimd128I16, bool isSimd128U4, bool isSimd128U8, bool isSimd128U16,
                                                    bool isSimd128B4, bool isSimd128B8, bool isSimd128B16, int32 offset, uint *lastUpdatedRowIndex)
 {
     Assert(offset != 0);

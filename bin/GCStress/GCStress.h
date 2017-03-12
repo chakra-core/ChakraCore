@@ -18,19 +18,19 @@ class RecyclerTestObject;
 class Location
 {
 private:
-    enum class Type 
+    enum class Type
     {
         Scanned,        // For regular locations in scanned objects (or stack locations)
         Rooted,         // This is a non-heap location that's explicitly rooted.
         Barrier,        // Write barrier location
         Tagged,         // Tagged location (used in tracked objects)
-        ImplicitRoot,   // Uses ImplicitRootBit to hold reference 
+        ImplicitRoot,   // Uses ImplicitRootBit to hold reference
     };
 
     class ImplicitRootHolder
     {
     private:
-        RecyclerTestObject * reference;
+        Field(RecyclerTestObject *) reference;
 
     public:
         ImplicitRootHolder(RecyclerTestObject * reference)
@@ -45,7 +45,7 @@ private:
             return this->reference;
         }
     };
-    
+
     Location(RecyclerTestObject ** location, Type type) :
         location(location), type(type)
     {
@@ -57,7 +57,7 @@ public:
     {
         return Location(location, Type::Scanned);
     }
-    
+
     static Location Rooted(RecyclerTestObject ** location)
     {
         return Location(location, Type::Rooted);
@@ -71,14 +71,14 @@ public:
     static Location Tagged(RecyclerTestObject ** location)
     {
         return Location(location, Type::Tagged);
-    }    
+    }
 
     static Location ImplicitRoot(RecyclerTestObject ** location)
     {
         return Location(location, Type::ImplicitRoot);
-    }    
-    
-    RecyclerTestObject * Get() 
+    }
+
+    RecyclerTestObject * Get()
     {
         switch (type)
         {
@@ -101,7 +101,7 @@ public:
                 {
                     return nullptr;
                 }
-                
+
                 return holder->GetReference();
         }
 
@@ -110,7 +110,7 @@ public:
         return nullptr;
     }
 
-    void Set(RecyclerTestObject * value) 
+    void Set(RecyclerTestObject * value)
     {
         switch (type)
         {
@@ -171,7 +171,7 @@ public:
 
         // Shouldn't get here
         VerifyCondition(false);
-    }    
+    }
 
     static RecyclerTestObject * Tag(RecyclerTestObject * untagged)
     {
@@ -211,7 +211,7 @@ private:
             recyclerInstance->RootRelease(*location);
         }
     }
-    
+
     void Root()
     {
         if (*location != nullptr)
@@ -219,7 +219,7 @@ private:
             recyclerInstance->RootAddRef(*location);
         }
     }
-    
+
 private:
     RecyclerTestObject ** location;
     Type type;

@@ -30,6 +30,7 @@ namespace TTD
         const Js::PropertyRecord* InflatePropertyRecord_CreateNew(const SnapPropertyRecord* pRecord, ThreadContext* threadContext);
 
         //serialize the record data
+        void EmitPropertyRecordAsSnapPropertyRecord(const Js::PropertyRecord* pRecord, FileWriter* writer, NSTokens::Separator separator);
         void EmitSnapPropertyRecord(const SnapPropertyRecord* sRecord, FileWriter* writer, NSTokens::Separator separator);
 
         //de-serialize the data
@@ -52,6 +53,7 @@ namespace TTD
         enum class SnapEntryDataKindTag : uint8
         {
             Clear = 0x0,
+            Uninitialized,
             Data,   //the value in the location is a data entry
             Getter, //the value in the location is a getter function entry
             Setter  //the value in the location is a setter function entry

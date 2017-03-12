@@ -175,6 +175,9 @@ LargeHeapBlock::LargeHeapBlock(__in char * address, size_t pageCount, Segment * 
 #if defined(RECYCLER_PAGE_HEAP) && defined(STACK_BACK_TRACE)
     , pageHeapAllocStack(nullptr), pageHeapFreeStack(nullptr)
 #endif
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+    ,wbVerifyBits(&HeapAllocator::Instance)
+#endif
 {
     Assert(address != nullptr);
     Assert(pageCount != 0);
@@ -378,6 +381,44 @@ LargeHeapBlock::IsFreeObject(void * objectAddress)
     return ((char *)header >= this->address && header->objectIndex < this->allocCount && this->GetHeader(header->objectIndex) == nullptr);
 }
 #endif
+
+bool
+LargeHeapBlock::TryGetAttributes(void* objectAddress, unsigned char * pAttr)
+{
+    return this->TryGetAttributes(GetHeader(objectAddress), pAttr);
+}
+
+bool
+LargeHeapBlock::TryGetAttributes(LargeObjectHeader * header, unsigned char * pAttr)
+{
+    if ((char *)header < this->address)
+    {
+        return false;
+    }
+
+    uint index = header->objectIndex;
+
+    if (index >= this->allocCount)
+    {
+        // Not allocated yet.
+        return false;
+    }
+
+    if (this->HeaderList()[index] != header)
+    {
+        // header doesn't match, not a real object
+        return false;
+    }
+
+    if (this->InPageHeapMode())
+    {
+        this->VerifyPageHeapPattern();
+    }
+
+    *pAttr = header->GetAttributes(this->heapInfo->recycler->Cookie);
+    return true;
+}
+
 size_t
 LargeHeapBlock::GetPagesNeeded(size_t size, bool multiplyRequest)
 {
@@ -484,6 +525,9 @@ LargeHeapBlock::AllocFreeListEntry(size_t size, ObjectInfoBits attributes, Large
 
     header->objectIndex = headerIndex;
     header->objectSize = originalSize;
+#ifdef RECYCLER_WRITE_BARRIER
+    header->hasWriteBarrier = (attributes & WithBarrierBit) == WithBarrierBit;
+#endif
     header->SetAttributes(this->heapInfo->recycler->Cookie, (attributes & StoredObjectInfoBitMask));
     header->markOnOOMRescan = false;
     header->SetNext(this->heapInfo->recycler->Cookie, nullptr);
@@ -540,6 +584,9 @@ LargeHeapBlock::Alloc(size_t size, ObjectInfoBits attributes)
 
     header->objectIndex = allocCount;
     header->objectSize = size;
+#ifdef RECYCLER_WRITE_BARRIER
+    header->hasWriteBarrier = (attributes&WithBarrierBit) == WithBarrierBit;
+#endif
     header->SetAttributes(recycler->Cookie, (attributes & StoredObjectInfoBitMask));
     HeaderList()[allocCount++] = header;
     finalizeCount += ((attributes & FinalizeBit) != 0);
@@ -556,39 +603,21 @@ LargeHeapBlock::Alloc(size_t size, ObjectInfoBits attributes)
     return allocObject;
 }
 
+template <bool doSpecialMark>
 _NOINLINE
 void
 LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
 {
     LargeObjectHeader * header = GetHeader(objectAddress);
 
-    if ((char *)header < this->address)
+    unsigned char attributes = ObjectInfoBits::NoBit;
+    if (!this->TryGetAttributes(header, &attributes))
     {
         return;
-    }
-
-    uint index = header->objectIndex;
-
-    if (index >= this->allocCount)
-    {
-        // Not allocated yet.
-        return;
-    }
-
-    if (this->HeaderList()[index] != header)
-    {
-        // header doesn't match, not a real object
-        return;
-    }
-
-    if (this->InPageHeapMode())
-    {
-        this->VerifyPageHeapPattern();
     }
 
     DUMP_OBJECT_REFERENCE(markContext->GetRecycler(), objectAddress);
 
-    unsigned char attributes = header->GetAttributes(this->heapInfo->recycler->Cookie);
     size_t objectSize = header->objectSize;
     if (this->InPageHeapMode())
     {
@@ -602,7 +631,7 @@ LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
         }
     }
 
-    if (!UpdateAttributesOfMarkedObjects(markContext, objectAddress, objectSize, attributes,
+    if (!UpdateAttributesOfMarkedObjects<doSpecialMark>(markContext, objectAddress, objectSize, attributes,
         [&](unsigned char attributes) { header->SetAttributes(this->heapInfo->recycler->Cookie, attributes); }))
     {
         // Couldn't mark children- bail out and come back later
@@ -617,6 +646,9 @@ LargeHeapBlock::Mark(void* objectAddress, MarkContext * markContext)
         }
     }
 }
+
+template void LargeHeapBlock::Mark<true>(void* objectAddress, MarkContext * markContext);
+template void LargeHeapBlock::Mark<false>(void* objectAddress, MarkContext * markContext);
 
 bool
 LargeHeapBlock::TestObjectMarkedBit(void* objectAddress)
@@ -817,21 +849,29 @@ LargeHeapBlock::VerifyMark()
         {
             void* target = *(void **)objectAddress;
 
-            recycler->VerifyMark(target);
+            if (recycler->VerifyMark(objectAddress, target))
+            {
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+                if (CONFIG_FLAG(ForceSoftwareWriteBarrier) && CONFIG_FLAG(VerifyBarrierBit))
+                {
+                    this->WBVerifyBitIsSet(objectAddress);
+                }
+#endif
+            }
 
             objectAddress += sizeof(void *);
         }
     }
 }
 
-void
-LargeHeapBlock::VerifyMark(void * objectAddress)
+bool
+LargeHeapBlock::VerifyMark(void * objectAddress, void* target)
 {
-    LargeObjectHeader * header = GetHeader(objectAddress);
+    LargeObjectHeader * header = GetHeader(target);
 
     if ((char *)header < this->address)
     {
-        return;
+        return false;
     }
 
     uint index = header->objectIndex;
@@ -839,25 +879,29 @@ LargeHeapBlock::VerifyMark(void * objectAddress)
     if (index >= this->allocCount)
     {
         // object not allocated
-        return;
+        return false;
     }
 
     if (this->HeaderList()[index] != header)
     {
         // header doesn't match, not a real object
-        return;
+        return false;
     }
 
-    bool isMarked = this->heapInfo->recycler->heapBlockMap.IsMarked(objectAddress);
+    bool isMarked = this->heapInfo->recycler->heapBlockMap.IsMarked(target);
 
 #if DBG
-    Assert(isMarked);
+    if (!isMarked)
+    {
+        PrintVerifyMarkFailure(this->GetRecycler(), (char*)objectAddress, (char*)target);
+    }
 #else
     if (!isMarked)
     {
         DebugBreak();
     }
 #endif
+    return isMarked;
 }
 
 #endif
@@ -910,7 +954,6 @@ LargeHeapBlock::ScanInitialImplicitRoots(Recycler * recycler)
         }
     }
 }
-
 
 void
 LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)
@@ -970,8 +1013,44 @@ LargeHeapBlock::ScanNewImplicitRoots(Recycler * recycler)
 }
 
 #if ENABLE_CONCURRENT_GC
+bool LargeHeapBlock::IsPageDirty(char* page, RescanFlags flags, bool isWriteBarrier)
+{
+#ifdef RECYCLER_WRITE_BARRIER
+    // TODO: SWB, use special page allocator for large block with write barrier?
+    if (CONFIG_FLAG(WriteBarrierTest))
+    {
+        Assert(isWriteBarrier);
+    }
+    if (isWriteBarrier)
+    {
+        return (RecyclerWriteBarrierManager::GetWriteBarrier(page) & DIRTYBIT) == DIRTYBIT;
+    }
+#endif
+
+#ifdef RECYCLER_WRITE_WATCH
+    if (!CONFIG_FLAG(ForceSoftwareWriteBarrier))
+    {
+        ULONG_PTR count = 1;
+        DWORD pageSize = AutoSystemInfo::PageSize;
+        DWORD const writeWatchFlags = (flags & RescanFlags_ResetWriteWatch ? WRITE_WATCH_FLAG_RESET : 0);
+        void * written = nullptr;
+        UINT ret = GetWriteWatch(writeWatchFlags, page, AutoSystemInfo::PageSize, &written, &count, &pageSize);
+        bool isDirty = (ret != 0) || (count == 1);
+        return isDirty;
+    }
+    else
+    {
+        Js::Throw::FatalInternalError();
+    }
+#else
+    Js::Throw::FatalInternalError();
+#endif
+}
+#endif
+
+#if ENABLE_CONCURRENT_GC
 bool
-LargeHeapBlock::RescanOnePage(Recycler * recycler, DWORD const writeWatchFlags)
+LargeHeapBlock::RescanOnePage(Recycler * recycler, RescanFlags flags)
 #else
 bool
 LargeHeapBlock::RescanOnePage(Recycler * recycler)
@@ -994,10 +1073,17 @@ LargeHeapBlock::RescanOnePage(Recycler * recycler)
         }
 
         // Check the write watch bit to see if we need to rescan
-        ULONG_PTR count = 1;
-        DWORD pageSize = AutoSystemInfo::PageSize;
-        void * written;
-        if (GetWriteWatch(writeWatchFlags, this->GetBeginAddress(), AutoSystemInfo::PageSize, &written, &count, &pageSize) == 0 && (count != 1))
+        // REVIEW: large object size if bigger than one page, to use header index 0 here should be OK
+        LargeObjectHeader* header = this->GetHeader(0u);
+        if ((header->GetAttributes(this->heapInfo->recycler->Cookie) & LeafBit) == LeafBit)
+        {
+            return false;
+        }
+        bool hasWriteBarrier = false;
+#ifdef RECYCLER_WRITE_BARRIER
+        hasWriteBarrier = header->hasWriteBarrier;
+#endif
+        if (!IsPageDirty(this->GetBeginAddress(), flags, hasWriteBarrier))
         {
             return false;
         }
@@ -1075,19 +1161,11 @@ LargeHeapBlock::Rescan(Recycler * recycler, bool isPartialSwept, RescanFlags fla
 
 #if ENABLE_CONCURRENT_GC
     Assert(recycler->collectionState != CollectionStateConcurrentFinishMark || (flags & RescanFlags_ResetWriteWatch));
-
-    DWORD const writeWatchFlags = (flags & RescanFlags_ResetWriteWatch? WRITE_WATCH_FLAG_RESET : 0);
-#endif
     if (this->GetPageCount() == 1)
     {
-#if ENABLE_CONCURRENT_GC
-        return RescanOnePage(recycler, writeWatchFlags);
-#else
-        return RescanOnePage(recycler);
-#endif
+        return RescanOnePage(recycler, flags);
     }
 
-#if ENABLE_CONCURRENT_GC
     // Need to rescan for finish mark even if it is done on the background thread
     if (recycler->collectionState != CollectionStateConcurrentFinishMark && recycler->IsConcurrentMarkState())
     {
@@ -1095,18 +1173,15 @@ LargeHeapBlock::Rescan(Recycler * recycler, bool isPartialSwept, RescanFlags fla
         // we don't track which page we have queued up
         return 0;
     }
-#endif
-
-#if ENABLE_CONCURRENT_GC
-    return RescanMultiPage(recycler, writeWatchFlags);
+    return RescanMultiPage(recycler, flags);
 #else
-    return RescanMultiPage(recycler);
+    return this->GetPageCount() == 1 ? RescanOnePage(recycler) : RescanMultiPage(recycler);
 #endif
 }
 
 #if ENABLE_CONCURRENT_GC
 size_t
-LargeHeapBlock::RescanMultiPage(Recycler * recycler, DWORD const writeWatchFlags)
+LargeHeapBlock::RescanMultiPage(Recycler * recycler, RescanFlags flags)
 #else
 size_t
 LargeHeapBlock::RescanMultiPage(Recycler * recycler)
@@ -1121,7 +1196,6 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
     size_t rescanCount = 0;
     uint objectIndex = 0;
 #if ENABLE_CONCURRENT_GC
-    DWORD pageSize = AutoSystemInfo::PageSize;
     char * lastPageCheckedForWriteWatch = nullptr;
     bool isLastPageCheckedForWriteWatchDirty = false;
 #endif
@@ -1233,14 +1307,13 @@ LargeHeapBlock::RescanMultiPage(Recycler * recycler)
                 */
                 if (lastPageCheckedForWriteWatch != pageStart)
                 {
-                    void * written = nullptr;
-                    ULONG_PTR count = 1;
-
                     lastPageCheckedForWriteWatch = pageStart;
-
                     isLastPageCheckedForWriteWatchDirty = true;
-
-                    if (GetWriteWatch(writeWatchFlags, pageStart, AutoSystemInfo::PageSize, &written, &count, &pageSize) == 0 && (count != 1))
+                    bool hasWriteBarrier = false;
+#ifdef RECYCLER_WRITE_BARRIER
+                    hasWriteBarrier = header->hasWriteBarrier;
+#endif
+                    if (!IsPageDirty(pageStart, flags, hasWriteBarrier))
                     {
                         // Fall through to the case below where we'll update objectAddress and continue
                         isLastPageCheckedForWriteWatchDirty = false;
@@ -1498,7 +1571,7 @@ LargeHeapBlock::SweepObject<SweepMode_InThread>(Recycler * recycler, LargeObject
 
         bool objectTrimmed = false;
 
-        if (this->bucket == nullptr)
+        if (!this->bucket->SupportFreeList())
         {
             objectTrimmed = TrimObject(recycler, header, sizeOfObject);
         }
@@ -1664,7 +1737,7 @@ LargeHeapBlock::SweepObjects(Recycler * recycler)
 
         SweepObject<mode>(recycler, header);
 
-        if (this->bucket != nullptr
+        if (this->bucket->SupportFreeList()
 #ifdef RECYCLER_STATS
             && !isForceSweeping
 #endif
@@ -1721,7 +1794,7 @@ LargeHeapBlock::DisposeObjects(Recycler * recycler)
 
         bool objectTrimmed = false;
 
-        if (this->bucket == nullptr)
+        if (this->bucket->SupportFreeList())
         {
             objectTrimmed = TrimObject(recycler, header, header->objectSize, true /* need suspend */);
         }
@@ -2027,5 +2100,62 @@ LargeHeapBlock::CapturePageHeapFreeStack()
         }
     }
 #endif
+}
+#endif
+
+#if DBG && GLOBAL_ENABLE_WRITE_BARRIER
+CriticalSection LargeHeapBlock::wbVerifyBitsLock;
+void LargeHeapBlock::WBSetBit(char* addr)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    try
+    {
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_DisableCheck));
+        AutoCriticalSection autoCs(&wbVerifyBitsLock);
+        wbVerifyBits.Set(index);
+    }
+    catch (Js::OutOfMemoryException&)
+    {
+    }
+}
+void LargeHeapBlock::WBSetBitRange(char* addr, uint count)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    try
+    {
+        AUTO_NESTED_HANDLED_EXCEPTION_TYPE(static_cast<ExceptionType>(ExceptionType_DisableCheck));
+        AutoCriticalSection autoCs(&wbVerifyBitsLock);
+        for (uint i = 0; i < count; i++)
+        {
+            wbVerifyBits.Set(index + i);
+        }
+    }
+    catch (Js::OutOfMemoryException&)
+    {
+    }
+}
+void LargeHeapBlock::WBClearBit(char* addr)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    AutoCriticalSection autoCs(&wbVerifyBitsLock);
+    wbVerifyBits.Clear(index);
+}
+void LargeHeapBlock::WBVerifyBitIsSet(char* addr)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    if (!wbVerifyBits.Test(index))
+    {
+        PrintVerifyMarkFailure(this->GetRecycler(), addr, *(char**)addr);
+    }
+}
+void LargeHeapBlock::WBClearObject(char* addr)
+{
+    uint index = (uint)(addr - this->address) / sizeof(void*);
+    size_t objectSize = this->GetHeader(addr)->objectSize;
+    AutoCriticalSection autoCs(&wbVerifyBitsLock);
+    for (uint i = 0; i < (uint)objectSize / sizeof(void*); i++)
+    {
+        wbVerifyBits.Clear(index + i);
+    }
 }
 #endif

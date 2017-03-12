@@ -961,6 +961,38 @@ var tests = [
             assert.areEqual('Symbol()', Symbol(undefined).toString(), 'Symbol(undefined).toString() === "Symbol()"');
             assert.areEqual('Symbol()', Symbol("").toString(), 'Symbol("").toString() === "Symbol()"');
         }
+    },
+    {
+        name: 'Calling symbol property on object that does not exist should give appropriate error',
+        body: function () {
+            // https://github.com/microsoft/ChakraCore/issues/1409
+            var o = Object.create(null);
+            assert.throws(function () { o[Symbol()](); }, TypeError, "Calling non-existent symbol property with no description fails", "Object doesn't support property or method 'Symbol()'");
+            assert.throws(function () { o[Symbol('foo')](); }, TypeError, "Calling non-existent symbol property with description fails", "Object doesn't support property or method 'Symbol(foo)'");
+            assert.throws(function () { o[Symbol.iterator](); }, TypeError, "Calling non-existent built-in symbol property with description fails", "Object doesn't support property or method 'Symbol(Symbol.iterator)'");
+        }
+    },
+    {
+        name: "Symbol equality logic",
+        body() {
+            assert.isTrue(Symbol.toPrimitive != 1);
+            assert.isTrue(Symbol.toPrimitive != NaN);
+            
+            var valueOfCalled = false;
+            var a = Symbol('f');
+            var b = {
+                valueOf : function() {
+                    valueOfCalled = true;
+                    return a;
+                }
+            };
+            assert.isTrue(a == b);
+            assert.isTrue(valueOfCalled);
+            valueOfCalled = false;
+            assert.isTrue(b == a);
+            assert.isTrue(valueOfCalled);
+            assert.isTrue(a == Object(a));
+        }
     }
 ];
 

@@ -7,7 +7,7 @@
 #ifdef EXCEPTION_CHECK
 #include "ExceptionCheck.h"
 
-__declspec(thread) ExceptionCheck::Data ExceptionCheck::data;
+THREAD_LOCAL ExceptionCheck::Data ExceptionCheck::data;
 
 BOOL ExceptionCheck::IsEmpty()
 {

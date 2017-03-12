@@ -57,12 +57,15 @@ protected:
 #endif
 };
 
-#define DeclareFinalizableHeapBucket(type) \
-    template <class TBlockAttributes> class Small##type##HeapBucketT : public SmallFinalizableHeapBucketBaseT<Small##type##HeapBlockT<TBlockAttributes> >{};
-
-DeclareFinalizableHeapBucket(Finalizable);
+template <class TBlockAttributes> 
+class SmallFinalizableHeapBucketT : public SmallFinalizableHeapBucketBaseT<SmallFinalizableHeapBlockT<TBlockAttributes> >
+{
+};
 #ifdef RECYCLER_WRITE_BARRIER
-DeclareFinalizableHeapBucket(FinalizableWithBarrier);
+template <class TBlockAttributes> 
+class SmallFinalizableWithBarrierHeapBucketT : public SmallFinalizableHeapBucketBaseT<SmallFinalizableWithBarrierHeapBlockT<TBlockAttributes> >
+{
+};
 #endif
 
 typedef SmallFinalizableHeapBucketT<MediumAllocationBlockAttributes> MediumFinalizableHeapBucket;
@@ -109,6 +112,14 @@ public:
 };
 
 template <>
+class SmallHeapBlockType<(ObjectInfoBits)(WithBarrierBit|LeafBit), SmallAllocationBlockAttributes>
+{
+public:
+    typedef SmallLeafHeapBlock BlockType;
+    typedef SmallLeafHeapBucketT<SmallAllocationBlockAttributes> BucketType;
+};
+
+template <>
 class SmallHeapBlockType<FinalizableWithBarrierBit, SmallAllocationBlockAttributes>
 {
 public:
@@ -149,6 +160,14 @@ class SmallHeapBlockType<WithBarrierBit, MediumAllocationBlockAttributes>
 public:
     typedef MediumNormalWithBarrierHeapBlock BlockType;
     typedef MediumNormalWithBarrierHeapBucket BucketType;
+};
+
+template <>
+class SmallHeapBlockType<(ObjectInfoBits)(WithBarrierBit | LeafBit), MediumAllocationBlockAttributes>
+{
+public:
+    typedef MediumLeafHeapBlock BlockType;
+    typedef SmallLeafHeapBucketT<MediumAllocationBlockAttributes> BucketType;
 };
 
 template <>
@@ -198,6 +217,18 @@ class HeapBucketGroup
         }
     };
 
+    template <>
+    class BucketGetter<(ObjectInfoBits)(FinalizeBit | LeafBit)>
+    {
+    public:
+        typedef typename SmallHeapBlockType<(ObjectInfoBits)(FinalizeBit | LeafBit), TBlockAttributes>::BucketType BucketType;
+        static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
+        {
+            // TODO: SWB implemente finalizable leaf bucket
+            return heapBucketGroup->finalizableHeapBucket;
+        }
+    };
+
 #ifdef RECYCLER_WRITE_BARRIER
     template <>
     class BucketGetter<WithBarrierBit>
@@ -207,6 +238,19 @@ class HeapBucketGroup
         static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
         {
             return heapBucketGroup->smallNormalWithBarrierHeapBucket;
+        }
+    };
+
+    template <>
+    class BucketGetter<(ObjectInfoBits)(WithBarrierBit | LeafBit)>
+    {
+    public:
+        typedef typename SmallHeapBlockType<(ObjectInfoBits)(WithBarrierBit | LeafBit), TBlockAttributes>::BucketType BucketType;
+        static BucketType& GetBucket(HeapBucketGroup<TBlockAttributes> * heapBucketGroup)
+        {
+            // WithBarrierBit | LeafBit combination should not exist, this is only for compilation purpose
+            Assert(false);
+            return heapBucketGroup->leafHeapBucket;
         }
     };
 
@@ -253,6 +297,7 @@ public:
     void TransferDisposedObjects();
     void EnumerateObjects(ObjectInfoBits infoBits, void (*CallBackFunction)(void * address, size_t size));
     void FinalizeAllObjects();
+    static unsigned int GetHeapBucketOffset() { return offsetof(HeapBucketGroup<TBlockAttributes>, heapBucket); }
 
 #if DBG || defined(RECYCLER_SLOW_CHECK_ENABLED)
     size_t GetNonEmptyHeapBlockCount(bool checkCount) const;

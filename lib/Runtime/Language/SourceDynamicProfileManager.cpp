@@ -45,12 +45,6 @@ namespace Js
         return nullptr;
     }
 
-    void
-    SourceDynamicProfileManager::Reset(uint numberOfFunctions)
-    {
-        dynamicProfileInfoMap.Clear();
-    }
-
     void SourceDynamicProfileManager::UpdateDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo)
     {
         Assert(dynamicProfileInfo != nullptr);
@@ -330,12 +324,24 @@ namespace Js
     }
 
 #ifdef DYNAMIC_PROFILE_STORAGE
+    void SourceDynamicProfileManager::ClearSavingData()
+    {
+        dynamicProfileInfoMapSaving.Reset();
+    }
+
+    void SourceDynamicProfileManager::CopySavingData()
+    {
+        dynamicProfileInfoMap.Map([&](LocalFunctionId functionId, DynamicProfileInfo *info)
+        {
+            dynamicProfileInfoMapSaving.Item(functionId, info);
+        });
+    }
 
     void
     SourceDynamicProfileManager::SaveDynamicProfileInfo(LocalFunctionId functionId, DynamicProfileInfo * dynamicProfileInfo)
     {
         Assert(dynamicProfileInfo->GetFunctionBody()->HasExecutionDynamicProfileInfo());
-        dynamicProfileInfoMap.Item(functionId, dynamicProfileInfo);
+        dynamicProfileInfoMapSaving.Item(functionId, dynamicProfileInfo);
     }
 
     template <typename T>
@@ -397,7 +403,7 @@ namespace Js
         // to be so from the profile - this helps with ensure inlined functions are marked as executed.
         if(!this->startupFunctions)
         {
-            this->startupFunctions = const_cast<BVFixed*>(this->cachedStartupFunctions);
+            this->startupFunctions = const_cast<BVFixed*>(static_cast<const BVFixed*>(this->cachedStartupFunctions));
         }
         else if(cachedStartupFunctions && this->cachedStartupFunctions->Length() == this->startupFunctions->Length())
         {
@@ -415,16 +421,16 @@ namespace Js
 #endif
 
             size_t bvSize = BVFixed::GetAllocSize(this->startupFunctions->Length()) ;
-            if (!writer->WriteArray((char *)this->startupFunctions, bvSize)
-                || !writer->Write(this->dynamicProfileInfoMap.Count()))
+            if (!writer->WriteArray((char *)static_cast<BVFixed*>(this->startupFunctions), bvSize)
+                || !writer->Write(this->dynamicProfileInfoMapSaving.Count()))
             {
                 return false;
             }
         }
 
-        for (int i = 0; i < this->dynamicProfileInfoMap.Count(); i++)
+        for (int i = 0; i < this->dynamicProfileInfoMapSaving.Count(); i++)
         {
-            DynamicProfileInfo * dynamicProfileInfo = this->dynamicProfileInfoMap.GetValueAt(i);
+            DynamicProfileInfo * dynamicProfileInfo = this->dynamicProfileInfoMapSaving.GetValueAt(i);
             if (dynamicProfileInfo == nullptr || !dynamicProfileInfo->HasFunctionBody())
             {
                 continue;

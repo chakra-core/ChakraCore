@@ -19,6 +19,11 @@ enum UnwindOp : unsigned __int8 {
     UWOP_SAVE_XMM128 =  8
 };
 
+#ifdef _WIN32
+// ----------------------------------------------------------------------------
+//  _WIN32 x64 unwind uses PDATA
+// ----------------------------------------------------------------------------
+
 class PrologEncoder
 {
 private:
@@ -114,17 +119,23 @@ private:
     };
 #pragma pack(pop)
 
-    PData            *pdata;
-    ArenaAllocator   *alloc;
+    static const unsigned __int8   MaxRequiredUnwindCodeNodeCount = 34;
+    static const size_t MaxPDataSize = sizeof(PData) + (sizeof(UNWIND_CODE) * MaxRequiredUnwindCodeNodeCount);
+
+    union
+    {
+        PData         pdata;
+        BYTE          pdataBuffer[MaxPDataSize];
+    };
     unsigned __int8   currentUnwindCodeNodeIndex;
     unsigned __int8   requiredUnwindCodeNodeCount;
     unsigned __int8   currentInstrOffset;
 
+
+
 public:
-    PrologEncoder(ArenaAllocator *alloc)
-        : alloc(alloc),
-          pdata(nullptr),
-          requiredUnwindCodeNodeCount(0),
+    PrologEncoder()
+        : requiredUnwindCodeNodeCount(0),
           currentUnwindCodeNodeIndex(0),
           currentInstrOffset(0)
     {
@@ -140,18 +151,63 @@ public:
     // Pre-Win8 PDATA registration.
     //
     DWORD SizeOfPData();
-    void SetPDataPtr(void *pdata);
     BYTE *Finalize(BYTE *functionStart,
                         DWORD codeSize,
                         BYTE *pdataBuffer);
     //
     // Win8 PDATA registration.
     //
+    void Begin(size_t prologStartOffset) {}  // No op on _WIN32
+    void End() {}  // No op on _WIN32
     DWORD SizeOfUnwindInfo();
     BYTE *GetUnwindInfo();
-    void FinalizeUnwindInfo();
-
+    void FinalizeUnwindInfo(BYTE *functionStart, DWORD codeSize);
 private:
     UnwindCode *GetUnwindCode(unsigned __int8 nodeCount);
 
 };
+
+#else  // !_WIN32
+// ----------------------------------------------------------------------------
+//  !_WIN32 x64 unwind uses .eh_frame
+// ----------------------------------------------------------------------------
+#include "EhFrame.h"
+
+class PrologEncoder
+{
+public:
+    static const int SMALL_EHFRAME_SIZE = 0x40;
+    static const int JIT_EHFRAME_SIZE = 0x80;
+
+private:
+    EhFrame ehFrame;
+    BYTE buffer[JIT_EHFRAME_SIZE];
+
+    size_t cfiInstrOffset;      // last cfi emit instr offset
+    size_t currentInstrOffset;  // current instr offset
+                                // currentInstrOffset - cfiInstrOffset == advance
+    unsigned cfaWordOffset;
+
+public:
+    PrologEncoder()
+        :ehFrame(buffer, JIT_EHFRAME_SIZE),
+          cfiInstrOffset(0), currentInstrOffset(0), cfaWordOffset(1)
+    {}
+
+    void RecordNonVolRegSave() {}
+    void RecordXmmRegSave() {}
+    void RecordAlloca(size_t size) {}
+    void EncodeInstr(IR::Instr *instr, uint8 size);
+
+    void EncodeSmallProlog(uint8 prologSize, size_t size);
+    DWORD SizeOfPData();
+    BYTE *Finalize(BYTE *functionStart, DWORD codeSize, BYTE *pdataBuffer);
+
+    void Begin(size_t prologStartOffset);
+    void End();
+    DWORD SizeOfUnwindInfo() { return SizeOfPData(); }
+    BYTE *GetUnwindInfo() { return ehFrame.Buffer(); }
+    void FinalizeUnwindInfo(BYTE *functionStart, DWORD codeSize);
+};
+
+#endif  // !_WIN32

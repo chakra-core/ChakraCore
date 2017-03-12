@@ -1,0 +1,28 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "return await af1(10)",
+        "function": "af2"
+      },
+      {
+        "line": 25,
+        "column": 0,
+        "sourceText": "p = af2()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "callStack": [
+      {
+        "line": 25,
+        "column": 0,
+        "sourceText": "p = af2()",
+        "function": "Global code"
+      }
+    ]
+  }
+]

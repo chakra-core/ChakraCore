@@ -198,32 +198,32 @@ namespace Js
     {
     }
 
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RaiseAssert(IntlEngineInterfaceExtensionObject::EntryIntl_RaiseAssert);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_IsWellFormedLanguageTag(IntlEngineInterfaceExtensionObject::EntryIntl_IsWellFormedLanguageTag);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_NormalizeLanguageTag(IntlEngineInterfaceExtensionObject::EntryIntl_NormalizeLanguageTag);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleLookup(IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleLookup);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleBestFit(IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleBestFit);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultLocale(IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultLocale);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetExtensions(IntlEngineInterfaceExtensionObject::EntryIntl_GetExtensions);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CompareString(IntlEngineInterfaceExtensionObject::EntryIntl_CompareString);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CurrencyDigits(IntlEngineInterfaceExtensionObject::EntryIntl_CurrencyDigits);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatNumber(IntlEngineInterfaceExtensionObject::EntryIntl_FormatNumber);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RaiseAssert(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_RaiseAssert));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_IsWellFormedLanguageTag(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_IsWellFormedLanguageTag));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_NormalizeLanguageTag(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_NormalizeLanguageTag));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleLookup(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleLookup));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ResolveLocaleBestFit(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_ResolveLocaleBestFit));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultLocale(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultLocale));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetExtensions(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_GetExtensions));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CompareString(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CompareString));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CurrencyDigits(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CurrencyDigits));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatNumber(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_FormatNumber));
 
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CacheNumberFormat(IntlEngineInterfaceExtensionObject::EntryIntl_CacheNumberFormat);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CreateDateTimeFormat(IntlEngineInterfaceExtensionObject::EntryIntl_CreateDateTimeFormat);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CacheNumberFormat(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CacheNumberFormat));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_CreateDateTimeFormat(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_CreateDateTimeFormat));
 
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatDateTime(IntlEngineInterfaceExtensionObject::EntryIntl_FormatDateTime);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ValidateAndCanonicalizeTimeZone(IntlEngineInterfaceExtensionObject::EntryIntl_ValidateAndCanonicalizeTimeZone);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultTimeZone(IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultTimeZone);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_FormatDateTime(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_FormatDateTime));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_ValidateAndCanonicalizeTimeZone(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_ValidateAndCanonicalizeTimeZone));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetDefaultTimeZone(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_GetDefaultTimeZone));
 
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RegisterBuiltInFunction(IntlEngineInterfaceExtensionObject::EntryIntl_RegisterBuiltInFunction);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetHiddenObject(IntlEngineInterfaceExtensionObject::EntryIntl_GetHiddenObject);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_SetHiddenObject(IntlEngineInterfaceExtensionObject::EntryIntl_SetHiddenObject);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_RegisterBuiltInFunction(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_RegisterBuiltInFunction));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_GetHiddenObject(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_GetHiddenObject));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_SetHiddenObject(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_SetHiddenObject));
 
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_GetArrayLength(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_GetArrayLength);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_SetPrototype(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_SetPrototype);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_RegexMatch(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_RegexMatch);
-    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_CallInstanceFunction(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_CallInstanceFunction);
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_GetArrayLength(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_GetArrayLength));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_SetPrototype(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_SetPrototype));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_RegexMatch(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_RegexMatch));
+    NoProfileFunctionInfo IntlEngineInterfaceExtensionObject::EntryInfo::Intl_BuiltIn_CallInstanceFunction(FORCE_NO_WRITE_BARRIER_TAG(IntlEngineInterfaceExtensionObject::EntryIntl_BuiltIn_CallInstanceFunction));
 
     WindowsGlobalizationAdapter* IntlEngineInterfaceExtensionObject::GetWindowsGlobalizationAdapter(_In_ ScriptContext * scriptContext)
     {
@@ -297,35 +297,46 @@ namespace Js
 
     void IntlEngineInterfaceExtensionObject::deletePrototypePropertyHelper(ScriptContext* scriptContext, DynamicObject* intlObject, Js::PropertyId objectPropertyId, Js::PropertyId getterFunctionId)
     {
-        DynamicObject *prototypeVal = nullptr;
+        DynamicObject *prototypeObject = nullptr;
         DynamicObject *functionObj = nullptr;
-        Var propertyValue;
-        Var getter;
-        Var setter;
+        Var propertyValue = nullptr;
+        Var prototypeValue = nullptr;
+        Var resolvedOptionsValue = nullptr;
+        Var getter = nullptr;
+        Var setter = nullptr;
 
-        if (!Js::JavascriptOperators::GetProperty(intlObject, objectPropertyId, &propertyValue, scriptContext))
+        if (!JavascriptOperators::GetProperty(intlObject, objectPropertyId, &propertyValue, scriptContext) ||
+            !JavascriptOperators::IsObject(propertyValue))
         {
-            AssertMsg(false, "Error.");
             return;
         }
 
-        if (!Js::JavascriptOperators::GetProperty(DynamicObject::FromVar(propertyValue), Js::PropertyIds::prototype, &propertyValue, scriptContext))
+        if (!JavascriptOperators::GetProperty(DynamicObject::FromVar(propertyValue), Js::PropertyIds::prototype, &prototypeValue, scriptContext) ||
+            !JavascriptOperators::IsObject(prototypeValue))
         {
-            AssertMsg(false, "Can't be null, otherwise Intl library wasn't initialized correctly");
             return;
         }
 
-        if (!Js::JavascriptOperators::GetProperty(prototypeVal = DynamicObject::FromVar(propertyValue), Js::PropertyIds::resolvedOptions, &propertyValue, scriptContext))
+        prototypeObject = DynamicObject::FromVar(prototypeValue);
+
+        if (!JavascriptOperators::GetProperty(prototypeObject, Js::PropertyIds::resolvedOptions, &resolvedOptionsValue, scriptContext) ||
+            !JavascriptOperators::IsObject(resolvedOptionsValue))
         {
-            AssertMsg(false, "If these operations result in false, Intl tests will detect them");
             return;
         }
 
-        (functionObj = DynamicObject::FromVar(propertyValue))->SetConfigurable(Js::PropertyIds::prototype, true);
+        functionObj = DynamicObject::FromVar(resolvedOptionsValue);
+        functionObj->SetConfigurable(Js::PropertyIds::prototype, true);
         functionObj->DeleteProperty(Js::PropertyIds::prototype, Js::PropertyOperationFlags::PropertyOperation_None);
 
-        JavascriptOperators::GetOwnAccessors(prototypeVal, getterFunctionId, &getter, &setter, scriptContext);
-        (functionObj = DynamicObject::FromVar(getter))->SetConfigurable(Js::PropertyIds::prototype, true);
+        if (!JavascriptOperators::GetOwnAccessors(prototypeObject, getterFunctionId, &getter, &setter, scriptContext) ||
+            !JavascriptOperators::IsObject(getter))
+        {
+            return;
+        }
+
+        functionObj = DynamicObject::FromVar(getter);
+        functionObj->SetConfigurable(Js::PropertyIds::prototype, true);
         functionObj->DeleteProperty(Js::PropertyIds::prototype, Js::PropertyOperationFlags::PropertyOperation_None);
     }
 
@@ -384,7 +395,7 @@ namespace Js
             HRESULT hr;
 
             DelayLoadWindowsGlobalization *library = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
-            
+
             JavascriptString* initType = nullptr;
 
             //Ensure we have initialized all appropriate COM objects for the adapter (we will be using them now)
@@ -414,7 +425,7 @@ namespace Js
                     break;
             }
 
-            Js::ScriptFunction *function = scriptContext->GetLibrary()->CreateScriptFunction(intlByteCode->GetNestedFunc(0)->EnsureDeserialized());
+            Js::ScriptFunction *function = scriptContext->GetLibrary()->CreateScriptFunction(intlByteCode->GetNestedFunctionForExecution(0));
 
             // If we are profiling, we need to register the script to the profiler callback, so the script compiled event will be sent.
             if (scriptContext->IsProfiling())
@@ -441,9 +452,9 @@ namespace Js
                 deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::DateTimeFormat, Js::PropertyIds::format);
             }
         }
-        catch (JavascriptExceptionObject* exceptionObject)
+        catch (const JavascriptException& err)
         {
-            pExceptionObject = exceptionObject;
+            pExceptionObject = err.GetAndClear();
         }
 
         if (pExceptionObject)
@@ -477,8 +488,8 @@ namespace Js
                     globAdapter->ResetNumberFormatFactoryObjects();
                     break;
                 }
-                pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
-                throw pExceptionObject;
+
+                JavascriptExceptionOperators::DoThrowCheckClone(pExceptionObject, scriptContext);
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_IntlNotAvailable);
         }
@@ -589,7 +600,7 @@ namespace Js
             return scriptContext->GetLibrary()->GetUndefined();
         }
         AutoHSTRING locale;
-        if (FAILED(hr = formatter->get_ResolvedLanguage(&locale)))
+        if (FAILED(hr = wga->GetResolvedLanguage(formatter, &locale)))
         {
             HandleOOMSOEHR(hr);
             return scriptContext->GetLibrary()->GetUndefined();
@@ -654,7 +665,7 @@ namespace Js
         for (uint32 i = 0; i < length; i++)
         {
             AutoHSTRING str;
-            if (!FAILED(hr = subtags->GetAt(i, &str)))
+            if (!FAILED(hr = wga->GetItemAt(subtags, i, &str)))
             {
                 toReturn->SetItem(i, JavascriptString::NewCopySz(wgl->WindowsGetStringRawBuffer(*str, NULL), scriptContext), Js::PropertyOperationFlags::PropertyOperation_None);
             }
@@ -759,10 +770,10 @@ namespace Js
         AutoHSTRING hNumeralSystem;
         AutoHSTRING hResolvedLanguage;
         uint32 length;
-        IfFailThrowHr(numberFormatterOptions->get_NumeralSystem(&hNumeralSystem));
+        IfFailThrowHr(wga->GetNumeralSystem(numberFormatterOptions, &hNumeralSystem));
         SetHSTRINGPropertyBuiltInOn(options, __numberingSystem, *hNumeralSystem);
 
-        IfFailThrowHr(numberFormatterOptions->get_ResolvedLanguage(&hResolvedLanguage));
+        IfFailThrowHr(wga->GetResolvedLanguage(numberFormatterOptions, &hResolvedLanguage));
         SetHSTRINGPropertyBuiltInOn(options, __locale, *hResolvedLanguage);
 
         AutoCOMPtr<NumberFormatting::INumberRounderOption> rounderOptions(nullptr);
@@ -845,7 +856,7 @@ namespace Js
             AutoCOMPtr<DateTimeFormatting::IDateTimeFormatter> dummyFormatter;
             IfFailThrowHr(wga->CreateDateTimeFormatter(scriptContext, templateString, &locale, 1, nullptr, nullptr, &dummyFormatter));
 
-            IfFailThrowHr(dummyFormatter->get_Calendar(&hDummyCalendar));
+            IfFailThrowHr(wga->GetCalendar(dummyFormatter, &hDummyCalendar));
         }
 
         //Now create the real formatter.
@@ -858,17 +869,17 @@ namespace Js
         AutoHSTRING hLocale;
         AutoHSTRING hNumberingSystem;
         //In case the upper code path wasn't hit; extract the calendar string again so it can be set.
-        IfFailThrowHr(cachedFormatter->get_Calendar(&hCalendar));
+        IfFailThrowHr(wga->GetCalendar(cachedFormatter, &hCalendar));
         SetHSTRINGPropertyBuiltInOn(obj, __windowsCalendar, *hCalendar);
 
-        IfFailThrowHr(cachedFormatter->get_Clock(&hClock));
+        IfFailThrowHr(wga->GetClock(cachedFormatter, &hClock));
         SetHSTRINGPropertyBuiltInOn(obj, __windowsClock, *hClock);
 
-        IfFailThrowHr(cachedFormatter->get_ResolvedLanguage(&hLocale));
+        IfFailThrowHr(wga->GetResolvedLanguage(cachedFormatter, &hLocale));
         SetHSTRINGPropertyBuiltInOn(obj, __locale, *hLocale);
 
         //Get the numbering system
-        IfFailThrowHr(cachedFormatter->get_NumeralSystem(&hNumberingSystem));
+        IfFailThrowHr(wga->GetNumeralSystem(cachedFormatter, &hNumberingSystem));
         SetHSTRINGPropertyBuiltInOn(obj, __numberingSystem, *hNumberingSystem);
 
         //Extract the pattern strings
@@ -882,7 +893,7 @@ namespace Js
         for (uint32 i = 0; i < length; i++)
         {
             AutoHSTRING item;
-            IfFailThrowHr(dateResult->GetAt(i, &item));
+            IfFailThrowHr(wga->GetItemAt(dateResult, i, &item));
             patternStrings->SetItem(i, Js::JavascriptString::NewCopySz(wgl->WindowsGetStringRawBuffer(*item, NULL), scriptContext), PropertyOperation_None);
         }
         SetPropertyBuiltInOn(obj, __patternStrings, patternStrings);
@@ -1274,7 +1285,14 @@ namespace Js
         WindowsGlobalizationAdapter* wga = GetWindowsGlobalizationAdapter(scriptContext);
         DelayLoadWindowsGlobalization* wsl = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
         AutoHSTRING str;
-        wga->GetDefaultTimeZoneId(scriptContext, &str);
+
+        HRESULT hr;
+        if (FAILED(hr = wga->GetDefaultTimeZoneId(scriptContext, &str)))
+        {
+            HandleOOMSOEHR(hr);
+            //If we can't get default timeZone, return undefined.
+            return scriptContext->GetLibrary()->GetUndefined();
+        }
 
         PCWSTR strBuf = wsl->WindowsGetStringRawBuffer(*str, NULL);
         return Js::JavascriptString::NewCopySz(strBuf, scriptContext);

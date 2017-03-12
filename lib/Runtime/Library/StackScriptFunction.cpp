@@ -76,8 +76,9 @@ namespace Js
         Assert(ThreadContext::IsOnStack(stackScriptFunction));
         Assert(stackScriptFunction->boxedScriptFunction == nullptr);
 
-        FunctionBody * functionParent = stackScriptFunction->GetFunctionBody()->GetStackNestedFuncParentStrongRef();
-        Assert(functionParent != nullptr);
+        FunctionInfo * functionInfoParent = stackScriptFunction->GetFunctionBody()->GetStackNestedFuncParentStrongRef();
+        Assert(functionInfoParent != nullptr);
+        FunctionBody * functionParent = functionInfoParent->GetFunctionBody();
 
         ScriptContext * scriptContext = stackScriptFunction->GetScriptContext();
         ScriptFunction * boxedFunction;
@@ -124,14 +125,15 @@ namespace Js
 
             for (uint i = 0; i < current->GetNestedCount(); i++)
             {
-                FunctionProxy * nested = current->GetNestedFunc(i);
-                functionObjectToBox.Add(nested->GetFunctionProxy());
+                FunctionProxy * nested = current->GetNestedFunctionProxy(i);
+                functionObjectToBox.Add(nested);
                 if (nested->IsFunctionBody())
                 {
                     nested->GetFunctionBody()->ClearStackNestedFuncParent();
                 }
             }
-            current = current->GetAndClearStackNestedFuncParent();
+            FunctionInfo * functionInfo = current->GetAndClearStackNestedFuncParent();
+            current = functionInfo ? functionInfo->GetFunctionBody() : nullptr;
         }
         while (current && current->DoStackNestedFunc());
     }
@@ -143,7 +145,7 @@ namespace Js
 
     bool StackScriptFunction::BoxState::NeedBoxScriptFunction(ScriptFunction * scriptFunction)
     {
-        return functionObjectToBox.Contains(scriptFunction->GetFunctionProxy()->GetFunctionProxy());
+        return functionObjectToBox.Contains(scriptFunction->GetFunctionProxy());
     }
 
     void StackScriptFunction::BoxState::Box()
@@ -284,7 +286,7 @@ namespace Js
 
                         if (callerFunctionBody->DoStackFrameDisplay())
                         {
-                            Js::FrameDisplay *stackFrameDisplay = 
+                            Js::FrameDisplay *stackFrameDisplay =
                                 this->GetFrameDisplayFromNativeFrame(walker, callerFunctionBody);
                             // Local frame display may be null if bailout didn't restore it, which means we don't need it.
                             if (stackFrameDisplay)
@@ -347,8 +349,8 @@ namespace Js
                         ScopeSlots slots(slotArray);
                         if (slots.IsFunctionScopeSlotArray())
                         {
-                            FunctionBody *functionBody = slots.GetFunctionBody();
-                            if (this->NeedBoxFrame(functionBody))
+                            FunctionProxy *functionProxy = slots.GetFunctionInfo()->GetFunctionProxy();
+                            if (functionProxy->IsFunctionBody() && this->NeedBoxFrame(functionProxy->GetFunctionBody()))
                             {
                                 break;
                             }
@@ -653,25 +655,25 @@ namespace Js
     {
         Assert(slotArray != nullptr);
         Assert(count != 0);
-        Var * boxedSlotArray;
+        Field(Var) * boxedSlotArray;
         if (boxedValues.TryGetValue(slotArray, (void **)&boxedSlotArray))
         {
-            return boxedSlotArray;
+            return (Var*)boxedSlotArray;
         }
 
         if (!ThreadContext::IsOnStack(slotArray))
         {
-            boxedSlotArray = slotArray;
+            boxedSlotArray = (Field(Var)*)slotArray;
         }
         else
         {
             // Create new scope slots when we allocate them on the stack
-            boxedSlotArray = RecyclerNewArray(scriptContext->GetRecycler(), Var, count + ScopeSlots::FirstSlotIndex);
+            boxedSlotArray = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), count + ScopeSlots::FirstSlotIndex);
         }
         boxedValues.Add(slotArray, boxedSlotArray);
 
         ScopeSlots scopeSlots(slotArray);
-        ScopeSlots boxedScopeSlots(boxedSlotArray);
+        ScopeSlots boxedScopeSlots((Js::Var*)boxedSlotArray);
 
         boxedScopeSlots.SetCount(count);
         boxedScopeSlots.SetScopeMetadata(scopeSlots.GetScopeMetadataRaw());
@@ -687,7 +689,7 @@ namespace Js
             }
             boxedScopeSlots.Set(i, slotValue);
         }
-        return boxedSlotArray;
+        return (Var*)boxedSlotArray;
     }
 
     ScriptFunction * StackScriptFunction::BoxState::BoxStackFunction(ScriptFunction * scriptFunction)
@@ -727,15 +729,15 @@ namespace Js
             Output::Flush();
         }
 
-        // Make sure we use the latest function proxy (if it is parsed or deserialized)
-        FunctionProxy * functionBody = stackFunction->GetFunctionProxy()->GetFunctionProxy();
-        boxedFunction = ScriptFunction::OP_NewScFunc(boxedFrameDisplay, &functionBody);
+        FunctionInfo * functionInfo = stackFunction->GetFunctionInfo();
+        boxedFunction = ScriptFunction::OP_NewScFunc(boxedFrameDisplay,
+            reinterpret_cast<FunctionInfoPtrPtr>(&functionInfo));
         stackFunction->boxedScriptFunction = boxedFunction;
         stackFunction->SetEnvironment(boxedFrameDisplay);
         return boxedFunction;
     }
 
-    ScriptFunction * StackScriptFunction::OP_NewStackScFunc(FrameDisplay *environment, FunctionProxy** proxyRef, ScriptFunction * stackFunction)
+    ScriptFunction * StackScriptFunction::OP_NewStackScFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef, ScriptFunction * stackFunction)
     {
         if (stackFunction)
         {
@@ -743,7 +745,7 @@ namespace Js
             char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
 #endif
 
-            FunctionProxy* functionProxy = (*proxyRef);
+            FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
             AssertMsg(functionProxy != nullptr, "BYTE-CODE VERIFY: Must specify a valid function to create");
             Assert(stackFunction->GetFunctionInfo()->GetFunctionProxy() == functionProxy);
             Assert(!functionProxy->IsFunctionBody() || functionProxy->GetFunctionBody()->GetStackNestedFuncParentStrongRef() != nullptr);
@@ -757,7 +759,7 @@ namespace Js
                         functionProxy->GetDebugNumberSet(debugStringBuffer), stackFunction);
             return stackFunction;
         }
-        return ScriptFunction::OP_NewScFunc(environment, proxyRef);
+        return ScriptFunction::OP_NewScFunc(environment, infoRef);
     }
 
 #if ENABLE_TTD

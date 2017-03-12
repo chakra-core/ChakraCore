@@ -1,4 +1,4 @@
-﻿//-------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------------
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
@@ -15,6 +15,7 @@ namespace Js
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
     // Redeclare static constants
     const UINT64 NumberConstantsBase::k_Nan;
+    const UINT32 NumberConstantsBase::k_Nan32;
     const INT64 NumberUtilitiesBase::Pos_InvalidInt64;
     const INT64 NumberUtilitiesBase::Neg_InvalidInt64;
     const uint64 NumberConstants::k_PosInf;
@@ -29,12 +30,29 @@ namespace Js
     const uint64 NumberConstants::k_OnePointZero;
     const uint64 NumberConstants::k_TwoToFraction;
     const uint64 NumberConstants::k_NegTwoToFraction;
+    const uint64 NumberConstants::k_TwoTo63;
+    const uint64 NumberConstants::k_NegTwoTo63;
+    const uint64 NumberConstants::k_TwoTo64;
+    const uint64 NumberConstants::k_TwoTo31;
+    const uint64 NumberConstants::k_NegTwoTo31;
+    const uint64 NumberConstants::k_TwoTo32;
+    const uint64 NumberConstants::k_MinIntMinusOne;
+    const uint64 NumberConstants::k_UintMaxPlusOne;
+    const uint64 NumberConstants::k_IntMaxPlusOne;
+
     const uint32 NumberConstants::k_Float32Zero;
     const uint32 NumberConstants::k_Float32PointFive;
     const uint32 NumberConstants::k_Float32NegPointFive;
     const uint32 NumberConstants::k_Float32NegZero;
     const uint32 NumberConstants::k_Float32TwoToFraction;
     const uint32 NumberConstants::k_Float32NegTwoToFraction;
+    const uint32 NumberConstants::k_Float32TwoTo63;
+    const uint32 NumberConstants::k_Float32NegTwoTo63;
+    const uint32 NumberConstants::k_Float32TwoTo64;
+    const uint32 NumberConstants::k_Float32NegOne;
+    const uint32 NumberConstants::k_Float32TwoTo31;
+    const uint32 NumberConstants::k_Float32NegTwoTo31;
+    const uint32 NumberConstants::k_Float32TwoTo32;
 #endif
 
     const double NumberConstants::MAX_VALUE = *(double*)(&NumberConstants::k_PosMax);
@@ -44,6 +62,8 @@ namespace Js
     const double NumberConstants::POSITIVE_INFINITY= *(double*)(&NumberConstants::k_PosInf );
     const double NumberConstants::NEG_ZERO= *(double*)(&NumberConstants::k_NegZero );
     const double NumberConstants::ONE_POINT_ZERO = *(double*)(&NumberConstants::k_OnePointZero);
+    const double NumberConstants::DOUBLE_INT_MIN = (double)(INT_MIN);
+    const double NumberConstants::DOUBLE_TWO_TO_31 = (double) 0x80000000;
 
     // These are used in 128-bit operations in the JIT and inline asm
     __declspec(align(16)) const BYTE NumberConstants::AbsDoubleCst[] =
@@ -56,9 +76,21 @@ namespace Js
       0xFF, 0xFF, 0xFF, 0x7F,
       0xFF, 0xFF, 0xFF, 0x7F };
 
+    __declspec(align(16)) const BYTE NumberConstants::SgnFloatBitCst[] =
+    { 0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x80 };
+
+    __declspec(align(16)) const BYTE NumberConstants::SgnDoubleBitCst[] =
+    { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80,
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80 };
+
     __declspec(align(16)) double const NumberConstants::UIntConvertConst[2] = { 0, 4294967296.000000 };
     __declspec(align(16)) float const NumberConstants::MaskNegFloat[] = { -0.0f, -0.0f, -0.0f, -0.0f };
     __declspec(align(16)) double const NumberConstants::MaskNegDouble[] = { -0.0, -0.0 };
+    __declspec(align(16)) uint64 const NumberConstants::UInt64ConvertConst[2] = { 0, 0x43f0000000000000 };
+
 
     bool NumberUtilities::IsDigit(int ch)
     {
@@ -336,7 +368,6 @@ namespace Js
         return value;
     }
 
-
     int32 NumberUtilities::LwFromDblNearest(double dbl)
     {
         if (Js::NumberUtilities::IsNan(dbl))
@@ -368,7 +399,6 @@ namespace Js
         dblT = (double)*plw;
         return Js::NumberUtilities::LuHiDbl(dblT) == Js::NumberUtilities::LuHiDbl(dbl) && Js::NumberUtilities::LuLoDbl(dblT) == Js::NumberUtilities::LuLoDbl(dbl);
     }
-
 
     template<typename EncodedChar>
     double NumberUtilities::DblFromHex(const EncodedChar *psz, const EncodedChar **ppchLim)

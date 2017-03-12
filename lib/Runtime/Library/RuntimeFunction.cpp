@@ -59,6 +59,11 @@ namespace Js
 #if ENABLE_TTD
     void RuntimeFunction::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
+        if(this->functionNameId != nullptr)
+        {
+            extractor->MarkVisitVar(this->functionNameId);
+        }
+
         Var revokableProxy = nullptr;
         RuntimeFunction* function = const_cast<RuntimeFunction*>(this);
         if(function->GetInternalProperty(function, Js::InternalPropertyIds::RevocableProxy, &revokableProxy, nullptr, this->GetScriptContext()))
@@ -100,7 +105,7 @@ namespace Js
             }
             else
             {
-                AssertMsg(TTD::JsSupport::IsVarComplexKind(revokableProxy), "Huh, it looks like we need to check before adding this as a dep on.");
+                TTDAssert(TTD::JsSupport::IsVarComplexKind(revokableProxy), "Huh, it looks like we need to check before adding this as a dep on.");
 
                 uint32 depOnCount = 1;
                 TTD_PTR_ID* depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(1);

@@ -73,7 +73,7 @@ void LegalizeMD::LegalizeDst(IR::Instr * instr, bool fPostRegAlloc)
         // MemRefOpnd is a deference of the memory location.
         // So extract the location, load it to register, replace the MemRefOpnd with an IndirOpnd taking the
         // register as base, and fall through to legalize the IndirOpnd.
-        void *memLoc = opnd->AsMemRefOpnd()->GetMemLoc();
+        intptr_t memLoc = opnd->AsMemRefOpnd()->GetMemLoc();
         IR::RegOpnd *newReg = IR::RegOpnd::New(TyMachPtr, instr->m_func);
         if (fPostRegAlloc)
         {
@@ -138,7 +138,6 @@ IR::Instr * LegalizeMD::LegalizeStore(IR::Instr *instr, LegalForms forms, bool f
 
 void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, bool fPostRegAlloc)
 {
-    IntConstType immed;
     LegalForms forms = LegalSrcForms(instr, opndNum);
     if (opnd == NULL)
     {
@@ -167,8 +166,7 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
     case IR::OpndKindAddr:
     case IR::OpndKindHelperCall:
     case IR::OpndKindIntConst:
-        immed = opnd->GetImmediateValue();
-        LegalizeImmed(instr, opnd, opndNum, immed, forms, fPostRegAlloc);
+        LegalizeImmed(instr, opnd, opndNum, opnd->GetImmediateValueAsInt32(instr->m_func), forms, fPostRegAlloc);
         break;
 
     case IR::OpndKindLabel:
@@ -180,7 +178,7 @@ void LegalizeMD::LegalizeSrc(IR::Instr * instr, IR::Opnd * opnd, uint opndNum, b
         // MemRefOpnd is a deference of the memory location.
         // So extract the location, load it to register, replace the MemRefOpnd with an IndirOpnd taking the
         // register as base, and fall through to legalize the IndirOpnd.
-        void *memLoc = opnd->AsMemRefOpnd()->GetMemLoc();
+        intptr_t memLoc = opnd->AsMemRefOpnd()->GetMemLoc();
         IR::RegOpnd *newReg = IR::RegOpnd::New(TyMachPtr, instr->m_func);
         if (fPostRegAlloc)
         {

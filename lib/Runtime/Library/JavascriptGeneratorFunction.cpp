@@ -6,7 +6,12 @@
 
 namespace Js
 {
-    FunctionInfo JavascriptGeneratorFunction::functionInfo(&JavascriptGeneratorFunction::EntryGeneratorFunctionImplementation, (FunctionInfo::Attributes)(FunctionInfo::DoNotProfile | FunctionInfo::ErrorOnNew));
+    FunctionInfo JavascriptGeneratorFunction::functionInfo(
+        FORCE_NO_WRITE_BARRIER_TAG(JavascriptGeneratorFunction::EntryGeneratorFunctionImplementation),
+        (FunctionInfo::Attributes)(FunctionInfo::DoNotProfile | FunctionInfo::ErrorOnNew));
+    FunctionInfo JavascriptAsyncFunction::functionInfo(
+        FORCE_NO_WRITE_BARRIER_TAG(JavascriptGeneratorFunction::EntryAsyncFunctionImplementation),
+        (FunctionInfo::Attributes)(FunctionInfo::DoNotProfile | FunctionInfo::ErrorOnNew));
 
     JavascriptGeneratorFunction::JavascriptGeneratorFunction(DynamicType* type)
         : ScriptFunctionBase(type, &functionInfo),
@@ -21,6 +26,24 @@ namespace Js
         scriptFunction(scriptFunction)
     {
         DebugOnly(VerifyEntryPoint());
+    }
+
+    JavascriptGeneratorFunction::JavascriptGeneratorFunction(DynamicType* type, FunctionInfo* functionInfo, GeneratorVirtualScriptFunction* scriptFunction)
+        : ScriptFunctionBase(type, functionInfo),
+        scriptFunction(scriptFunction)
+    {
+        DebugOnly(VerifyEntryPoint());
+    }
+
+    JavascriptAsyncFunction::JavascriptAsyncFunction(DynamicType* type, GeneratorVirtualScriptFunction* scriptFunction)
+        : JavascriptGeneratorFunction(type, &functionInfo, scriptFunction)
+    {
+        DebugOnly(VerifyEntryPoint());
+    }
+
+    JavascriptAsyncFunction* JavascriptAsyncFunction::New(ScriptContext* scriptContext, GeneratorVirtualScriptFunction* scriptFunction)
+    {
+        return scriptContext->GetLibrary()->CreateAsyncFunction(functionInfo.GetOriginalEntryPoint(), scriptFunction);
     }
 
     bool JavascriptGeneratorFunction::Is(Var var)
@@ -38,14 +61,34 @@ namespace Js
 
     JavascriptGeneratorFunction* JavascriptGeneratorFunction::FromVar(Var var)
     {
-        Assert(JavascriptGeneratorFunction::Is(var));
+        Assert(JavascriptGeneratorFunction::Is(var) || JavascriptAsyncFunction::Is(var));
 
         return static_cast<JavascriptGeneratorFunction*>(var);
     }
 
-    JavascriptGeneratorFunction* JavascriptGeneratorFunction::OP_NewScGenFunc(FrameDisplay *environment, FunctionProxy** proxyRef)
+    bool JavascriptAsyncFunction::Is(Var var)
     {
-        FunctionProxy* functionProxy = *proxyRef;
+        if (JavascriptFunction::Is(var))
+        {
+            JavascriptFunction* obj = JavascriptFunction::FromVar(var);
+
+            return VirtualTableInfo<JavascriptAsyncFunction>::HasVirtualTable(obj)
+                || VirtualTableInfo<CrossSiteObject<JavascriptAsyncFunction>>::HasVirtualTable(obj);
+        }
+
+        return false;
+    }
+
+    JavascriptAsyncFunction* JavascriptAsyncFunction::FromVar(Var var)
+    {
+        Assert(JavascriptAsyncFunction::Is(var));
+
+        return static_cast<JavascriptAsyncFunction*>(var);
+    }
+
+    JavascriptGeneratorFunction* JavascriptGeneratorFunction::OP_NewScGenFunc(FrameDisplay *environment, FunctionInfoPtrPtr infoRef)
+    {
+        FunctionProxy* functionProxy = (*infoRef)->GetFunctionProxy();
         ScriptContext* scriptContext = functionProxy->GetScriptContext();
 
         bool hasSuperReference = functionProxy->HasSuperReference();
@@ -56,7 +99,11 @@ namespace Js
 
         JS_ETW(EventWriteJSCRIPT_RECYCLER_ALLOCATE_FUNCTION(scriptFunction, EtwTrace::GetFunctionId(functionProxy)));
 
-        JavascriptGeneratorFunction* genFunc = scriptContext->GetLibrary()->CreateGeneratorFunction(functionInfo.GetOriginalEntryPoint(), scriptFunction);
+        JavascriptGeneratorFunction* genFunc =
+            functionProxy->IsAsync()
+            ? JavascriptAsyncFunction::New(scriptContext, scriptFunction)
+            : scriptContext->GetLibrary()->CreateGeneratorFunction(functionInfo.GetOriginalEntryPoint(), scriptFunction);
+
         scriptFunction->SetRealGeneratorFunction(genFunc);
 
         return genFunc;
@@ -72,9 +119,9 @@ namespace Js
 
         // InterpreterStackFrame takes a pointer to the args, so copy them to the recycler heap
         // and use that buffer for this InterpreterStackFrame.
-        Var* argsHeapCopy = RecyclerNewArray(scriptContext->GetRecycler(), Var, stackArgs.Info.Count);
-        js_memcpy_s(argsHeapCopy, sizeof(Var) * stackArgs.Info.Count, stackArgs.Values, sizeof(Var) * stackArgs.Info.Count);
-        Arguments heapArgs(callInfo, argsHeapCopy);
+        Field(Var)* argsHeapCopy = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), stackArgs.Info.Count);
+        CopyArray(argsHeapCopy, stackArgs.Info.Count, stackArgs.Values, stackArgs.Info.Count);
+        Arguments heapArgs(callInfo, (Var*)argsHeapCopy);
 
         DynamicObject* prototype = scriptContext->GetLibrary()->CreateGeneratorConstructorPrototypeObject();
         JavascriptGenerator* generator = scriptContext->GetLibrary()->CreateGenerator(heapArgs, generatorFunction->scriptFunction, prototype);
@@ -84,6 +131,50 @@ namespace Js
         Assert(!(callInfo.Flags & CallFlags_New));
 
         return generator;
+    }
+
+    Var JavascriptGeneratorFunction::EntryAsyncFunctionImplementation(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+        ARGUMENTS(stackArgs, callInfo);
+
+        ScriptContext* scriptContext = function->GetScriptContext();
+        JavascriptLibrary* library = scriptContext->GetLibrary();
+        RecyclableObject* prototype = scriptContext->GetLibrary()->GetNull();
+
+        // InterpreterStackFrame takes a pointer to the args, so copy them to the recycler heap
+        // and use that buffer for this InterpreterStackFrame.
+        Field(Var)* argsHeapCopy = RecyclerNewArray(scriptContext->GetRecycler(), Field(Var), stackArgs.Info.Count);
+        CopyArray(argsHeapCopy, stackArgs.Info.Count, stackArgs.Values, stackArgs.Info.Count);
+        Arguments heapArgs(callInfo, (Var*)argsHeapCopy);
+
+        JavascriptExceptionObject* e = nullptr;
+        JavascriptPromiseResolveOrRejectFunction* resolve;
+        JavascriptPromiseResolveOrRejectFunction* reject;
+        JavascriptPromiseAsyncSpawnExecutorFunction* executor =
+            library->CreatePromiseAsyncSpawnExecutorFunction(
+                JavascriptPromise::EntryJavascriptPromiseAsyncSpawnExecutorFunction,
+                scriptContext->GetLibrary()->CreateGenerator(heapArgs, JavascriptAsyncFunction::FromVar(function)->GetGeneratorVirtualScriptFunction(), prototype),
+                stackArgs[0]);
+
+        JavascriptPromise* promise = library->CreatePromise();
+        JavascriptPromise::InitializePromise(promise, &resolve, &reject, scriptContext);
+
+        try
+        {
+            CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
+        }
+        catch (const JavascriptException& err)
+        {
+            e = err.GetAndClear();
+        }
+
+        if (e != nullptr)
+        {
+            JavascriptPromise::TryRejectWithExceptionObject(e, reject, scriptContext);
+        }
+
+        return promise;
     }
 
     Var JavascriptGeneratorFunction::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -341,6 +432,23 @@ namespace Js
         return JavascriptFunction::DeleteProperty(propertyId, flags);
     }
 
+    BOOL JavascriptGeneratorFunction::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            return false;
+        }
+
+        if (BuiltInPropertyRecords::caller.Equals(propertyName) || BuiltInPropertyRecords::arguments.Equals(propertyName))
+        {
+            // JavascriptFunction has special case for caller and arguments; call DynamicObject:: virtual directly to skip that.
+            return DynamicObject::DeleteProperty(propertyNameString, flags);
+        }
+
+        return JavascriptFunction::DeleteProperty(propertyNameString, flags);
+    }
+
     BOOL JavascriptGeneratorFunction::IsWritable(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
@@ -382,7 +490,18 @@ namespace Js
 
     void JavascriptGeneratorFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(false, "Invalid -- JavascriptGeneratorFunction");
+        TTDAssert(false, "Invalid -- JavascriptGeneratorFunction");
+    }
+
+    TTD::NSSnapObjects::SnapObjectType JavascriptAsyncFunction::GetSnapTag_TTD() const
+    {
+        //we override this with invalid to make sure it isn't unexpectedly handled by the parent class
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptAsyncFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTDAssert(false, "Invalid -- JavascriptGeneratorFunction");
     }
 
     TTD::NSSnapObjects::SnapObjectType GeneratorVirtualScriptFunction::GetSnapTag_TTD() const
@@ -393,7 +512,7 @@ namespace Js
 
     void GeneratorVirtualScriptFunction::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(false, "Invalid -- GeneratorVirtualScriptFunction");
+        TTDAssert(false, "Invalid -- GeneratorVirtualScriptFunction");
     }
 #endif
 }

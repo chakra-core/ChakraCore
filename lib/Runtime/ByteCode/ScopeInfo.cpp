@@ -15,7 +15,7 @@ namespace Js
         bool needScopeSlot = !sym->GetIsArguments() && sym->GetHasNonLocalReference()
             && (!mapSymbolData->func->IsInnerArgumentsSymbol(sym) || mapSymbolData->func->GetHasArguments());
         Js::PropertyId scopeSlot = Constants::NoSlot;
-        
+
         if (sym->GetIsModuleExportStorage())
         {
             // Export symbols aren't in slots but we need to persist the fact that they are export storage
@@ -48,7 +48,7 @@ namespace Js
     ScopeInfo* ScopeInfo::FromParent(FunctionBody* parent)
     {
         return RecyclerNew(parent->GetScriptContext()->GetRecycler(), // Alloc with ParseableFunctionInfo
-            ScopeInfo, parent, 0);
+            ScopeInfo, parent->GetFunctionInfo(), 0);
     }
 
     inline void AddSlotCount(int& count, int addCount)
@@ -62,18 +62,19 @@ namespace Js
     //
     // Create scope info for an outer scope.
     //
-    ScopeInfo* ScopeInfo::FromScope(ByteCodeGenerator* byteCodeGenerator, FunctionBody* parent, Scope* scope, ScriptContext *scriptContext)
+    ScopeInfo* ScopeInfo::FromScope(ByteCodeGenerator* byteCodeGenerator, ParseableFunctionInfo* parent, Scope* scope, ScriptContext *scriptContext)
     {
         int count = scope->Count();
 
         // Add argsPlaceHolder which includes same name args and destructuring patterns on parameters
         AddSlotCount(count, scope->GetFunc()->argsPlaceHolderSlotCount);
         AddSlotCount(count, scope->GetFunc()->thisScopeSlot != Js::Constants::NoRegister ? 1 : 0);
+        AddSlotCount(count, scope->GetFunc()->superScopeSlot != Js::Constants::NoRegister ? 1 : 0);
         AddSlotCount(count, scope->GetFunc()->newTargetScopeSlot != Js::Constants::NoRegister ? 1 : 0);
 
         ScopeInfo* scopeInfo = RecyclerNewPlusZ(scriptContext->GetRecycler(),
             count * sizeof(SymbolInfo),
-            ScopeInfo, parent, count);
+            ScopeInfo, parent ? parent->GetFunctionInfo() : nullptr, count);
         scopeInfo->isDynamic = scope->GetIsDynamic();
         scopeInfo->isObject = scope->GetIsObject();
         scopeInfo->mustInstantiate = scope->GetMustInstantiate();
@@ -83,7 +84,8 @@ namespace Js
         scopeInfo->hasLocalInClosure = scope->GetHasOwnLocalInClosure();
 
         TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s #symbols: %d %s\n"),
-            scope->GetFunc()->name, parent->GetDisplayName(), count, scopeInfo->isObject ? _u("isObject") : _u(""));
+            scope->GetFunc()->name, parent ? parent->GetDisplayName() : _u(""), count,
+            scopeInfo->isObject ? _u("isObject") : _u(""));
 
         MapSymbolData mapSymbolData = { byteCodeGenerator, scope->GetFunc(), 0 };
         scope->ForEachSymbol([&mapSymbolData, scopeInfo, scope](Symbol * sym)
@@ -120,7 +122,7 @@ namespace Js
     //
     void ScopeInfo::SaveParentScopeInfo(FuncInfo* parentFunc, FuncInfo* func)
     {
-        Assert(func->IsDeferred());
+        Assert(func->IsDeferred() || func->byteCodeFunction->CanBeDeferred());
 
         // Parent must be parsed
         FunctionBody* parent = parentFunc->byteCodeFunction->GetFunctionBody();
@@ -129,7 +131,9 @@ namespace Js
         TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s\n\n"),
             funcBody->GetDisplayName(), parent->GetDisplayName());
 
-        funcBody->SetScopeInfo(FromParent(parent));
+        ScopeInfo *info = FromParent(parent);
+        info->parentOnly = true;
+        funcBody->SetScopeInfo(info);
     }
 
     //
@@ -140,14 +144,14 @@ namespace Js
         ParseableFunctionInfo* funcBody = func->byteCodeFunction;
 
         Assert((!func->IsGlobalFunction() || byteCodeGenerator->GetFlags() & fscrEvalCode) &&
-            (func->HasDeferredChild() || (funcBody->IsReparsed())));
+            (func->HasDeferredChild() || func->HasRedeferrableChild() || funcBody->IsReparsed()));
 
         // If we are reparsing a deferred function, we already have correct "parent" info in
         // funcBody->scopeInfo. parentFunc is the knopProg shell and should not be used in this
         // case. We should use existing parent if available.
-        FunctionBody * parent = funcBody->GetScopeInfo() ?
+        ParseableFunctionInfo * parent = funcBody->GetScopeInfo() ?
             funcBody->GetScopeInfo()->GetParent() :
-            parentFunc ? parentFunc->byteCodeFunction->GetFunctionBody() : nullptr;
+            parentFunc ? parentFunc->byteCodeFunction : nullptr;
 
         ScopeInfo* funcExprScopeInfo = nullptr;
         Scope* funcExprScope = func->GetFuncExprScope();
@@ -180,13 +184,32 @@ namespace Js
         // We will have to implement encoding block scope info to enable, which will also
         // enable defer parsing function that are in block scopes.
 
+        if (funcInfo->byteCodeFunction &&
+            funcInfo->byteCodeFunction->GetScopeInfo() != nullptr &&
+            !funcInfo->byteCodeFunction->GetScopeInfo()->IsParentInfoOnly())
+        {
+            // No need to regenerate scope info if we re-compile an enclosing function
+            return;
+        }
+
         Scope* currentScope = byteCodeGenerator->GetCurrentScope();
         Assert(currentScope == funcInfo->GetBodyScope());
-        if (funcInfo->IsDeferred())
+        if (funcInfo->HasDeferredChild() ||
+            funcInfo->HasRedeferrableChild() ||
+            (!funcInfo->IsGlobalFunction() &&
+                funcInfo->byteCodeFunction &&
+                funcInfo->byteCodeFunction->IsReparsed() &&
+                funcInfo->byteCodeFunction->GetFunctionBody()->HasAllNonLocalReferenced()))
+        {
+            // When we reparse due to attach, we would need to capture all of them, since they were captured before going to debug mode.
+
+            Js::ScopeInfo::SaveScopeInfo(byteCodeGenerator, parentFunc, funcInfo);
+        }
+        else if (funcInfo->IsDeferred() || funcInfo->IsRedeferrable())
         {
             // Don't need to remember the parent function if we have a global function
             if (!parentFunc->IsGlobalFunction() ||
-                ((byteCodeGenerator->GetFlags() & fscrEvalCode) && parentFunc->HasDeferredChild()))
+                ((byteCodeGenerator->GetFlags() & fscrEvalCode) && (parentFunc->HasDeferredChild() || parentFunc->HasRedeferrableChild())))
             {
                 // TODO: currently we only support defer nested function that is in function scope (no block scope, no with scope, etc.)
 #if DBG
@@ -200,7 +223,7 @@ namespace Js
                     {
                         Assert(currentScope->GetEnclosingScope() == funcInfo->GetFuncExprScope() &&
                             currentScope->GetEnclosingScope()->GetEnclosingScope() ==
-                            (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ? 
+                            (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ?
                              parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
                     }
                 }
@@ -215,25 +238,17 @@ namespace Js
                     {
                         Assert(!funcInfo->GetParamScope()->GetCanMergeWithBodyScope());
                     }
+#if 0
                     else
-                    { 
+                    {
                         Assert(currentScope->GetEnclosingScope() ==
                             (parentFunc->IsGlobalFunction() && parentFunc->GetGlobalEvalBlockScope() && parentFunc->GetGlobalEvalBlockScope()->GetMustInstantiate() ? parentFunc->GetGlobalEvalBlockScope() : parentFunc->GetBodyScope()));
                     }
+#endif
                 }
 #endif
                 Js::ScopeInfo::SaveParentScopeInfo(parentFunc, funcInfo);
             }
-        }
-        else if (funcInfo->HasDeferredChild() ||
-            (!funcInfo->IsGlobalFunction() &&
-                funcInfo->byteCodeFunction &&
-                funcInfo->byteCodeFunction->IsReparsed() &&
-                funcInfo->byteCodeFunction->GetFunctionBody()->HasAllNonLocalReferenced()))
-        {
-            // When we reparse due to attach, we would need to capture all of them, since they were captured before going to debug mode.
-
-            Js::ScopeInfo::SaveScopeInfo(byteCodeGenerator, parentFunc, funcInfo);
         }
     }
 
@@ -270,6 +285,12 @@ namespace Js
             Assert(!this->isCached || scope == funcInfo->GetBodyScope());
             funcInfo->SetHasCachedScope(this->isCached);
             byteCodeGenerator->PushScope(scope);
+
+            // this->scope was created/saved during parsing and used by
+            // ByteCodeGenerator::RestoreScopeInfo. We no longer need it by now.
+            // Clear it to avoid GC false positive (arena memory later used by GC).
+            Assert(this->scope == scope);
+            this->scope = nullptr;
 
             // The scope is already populated, so we're done.
             return;

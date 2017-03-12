@@ -20,12 +20,14 @@
 typedef WCHAR char16;
 #define _u(s) L##s
 #else
-typedef char16_t char16;
 #define _u(s) u##s
 #endif
 
 typedef char16 wchar;
 
+#ifndef Unused
+#define Unused(var) var
+#endif
 
 #ifndef _WIN32
 // Templates are defined here in order to avoid a dependency on C++
@@ -161,8 +163,8 @@ namespace utf8
     // special cases ASCII to avoid a call the most common characters.
     LPUTF8 EncodeFull(char16 ch, __out_ecount(3) LPUTF8 ptr);
 
-    // Encode a surrogate pair into a utf8 sequence 
-    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(3) LPUTF8 ptr);
+    // Encode a surrogate pair into a utf8 sequence
+    LPUTF8 EncodeSurrogatePair(char16 surrogateHigh, char16 surrogateLow, __out_ecount(4) LPUTF8 ptr);
 
     // Encode ch into a UTF8 sequence ignoring surrogate pairs (which are encoded as two
     // separate code points).
@@ -177,7 +179,7 @@ namespace utf8
     }
 
     // Encode ch into a UTF8 sequence while being aware of surrogate pairs.
-    inline LPUTF8 EncodeTrueUtf8(char16 ch, const char16** source, charcount_t* cch, __out_ecount(3) LPUTF8 ptr)
+    inline LPUTF8 EncodeTrueUtf8(char16 ch, const char16** source, charcount_t* cch, __out_ecount((*cch + 1) * 3) LPUTF8 ptr)
     {
         if (ch < 0x80)
         {
@@ -187,7 +189,7 @@ namespace utf8
         else if (ch < 0xD800 || (ch >= 0xE000 && ch <= 0xFFFF))
         {
             return EncodeFull(ch, ptr);
-        } 
+        }
 
         // We're now decoding a surrogate pair. If the input is malformed (eg. low surrogate is absent)
         // we'll instead encode the unicode replacement character as utf8
@@ -196,16 +198,21 @@ namespace utf8
             char16 surrogateHigh = ch;
             char16 surrogateLow = **source;
 
-            // Validate that the surrogate code units are within the appropriate 
+            // Validate that the surrogate code units are within the appropriate
             // ranges for high and low surrogates
             if ((surrogateHigh >= 0xD800 && surrogateHigh <= 0xDBFF) &&
                 (surrogateLow >= 0xDC00 && surrogateLow <= 0xDFFF))
             {
+                LPUTF8 retptr = EncodeSurrogatePair(surrogateHigh, surrogateLow, ptr);
+
+                // SAL analysis gets confused if we call EncodeSurrogatePair after
+                // modifying cch
+
                 // Consume the low surrogate
                 *source = *source + 1;
                 *cch = *cch - 1;
 
-                return EncodeSurrogatePair(surrogateHigh, surrogateLow, ptr);
+                return retptr;
             }
         }
 
@@ -265,26 +272,14 @@ namespace utf8
         return PrevCharFull(ptr, start);
     }
 
-    // Decode a UTF-8 sequence of cch UTF-16 characters into buffer. ptr could advance up to 3 times
-    // longer than cch so DecodeInto should only be used when it is already known that
-    // ptr refers to at least cch number of UTF-8 sequences.
-    void DecodeInto(__out_ecount_full(cch) char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options = doDefault);
-
-    // Provided for dual-mode templates
-    inline void DecodeInto(__out_ecount_full(cch) char16 *buffer, const char16 *ptr, size_t cch, DecodeOptions /* options */ = doDefault)
-    {
-        memcpy_s(buffer, cch * sizeof(char16), ptr, cch * sizeof(char16));
-    }
-
-    // Like DecodeInto but ensures buffer ends with a NULL at buffer[cch].
-    void DecodeIntoAndNullTerminate(__out_ecount(cch+1) __nullterminated char16 *buffer, LPCUTF8 ptr, size_t cch, DecodeOptions options = doDefault);
-
     // Decode cb bytes from ptr to into buffer returning the number of characters converted and written to buffer
     _Ret_range_(0, pbEnd - _Old_(pbUtf8))
     size_t DecodeUnitsInto(_Out_writes_(pbEnd - pbUtf8) char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault);
 
     // Decode cb bytes from ptr to into buffer returning the number of characters converted and written to buffer (excluding the null terminator)
     size_t DecodeUnitsIntoAndNullTerminate(__out_ecount(pbEnd - pbUtf8 + 1) __nullterminated char16 *buffer, LPCUTF8& pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault);
+
+    size_t DecodeUnitsIntoAndNullTerminateNoAdvance(__out_ecount(pbEnd - pbUtf8 + 1) __nullterminated char16 *buffer, LPCUTF8 pbUtf8, LPCUTF8 pbEnd, DecodeOptions options = doDefault);
 
     // Encode a UTF-8 sequence into a UTF-8 sequence (which is just a memcpy). This is included for convenience in templates
     // when the character encoding is a template parameter.
@@ -311,7 +306,7 @@ namespace utf8
     size_t EncodeTrueUtf8IntoAndNullTerminate(__out_ecount(cch * 3 + 1) utf8char_t *buffer, __in_ecount(cch) const char16 *source, charcount_t cch);
 
     // Returns true if the pch refers to a UTF-16LE encoding of the given UTF-8 encoding bch.
-    bool CharsAreEqual(__in_ecount(cch) LPCOLESTR pch, LPCUTF8 bch, size_t cch, DecodeOptions options = doDefault);
+    bool CharsAreEqual(LPCOLESTR pch, LPCUTF8 bch, LPCUTF8 end, DecodeOptions options = doDefault);
 
     // Convert the character index into a byte index.
     size_t CharacterIndexToByteIndex(__in_ecount(cbLength) LPCUTF8 pch, size_t cbLength, const charcount_t cchIndex, size_t cbStartIndex, charcount_t cchStartIndex, DecodeOptions options = doDefault);

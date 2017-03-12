@@ -6,36 +6,26 @@
 
 namespace Js
 {
-    void StatementReader::Create(FunctionBody * functionRead, uint startOffset /* = 0 */)
+    template <typename TStatementMapList>
+    void StatementReader<TStatementMapList>::Create(FunctionBody * functionRead, uint startOffset /* = 0 */)
     {
         Assert(functionRead);
         StatementReader::Create(functionRead, startOffset, false);
     }
 
-    void StatementReader::Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode)
+    template <typename TStatementMapList>
+    void StatementReader<TStatementMapList>::Create(
+        _In_ const byte * byteCodeStart,
+        uint startOffset,
+        Js::SmallSpanSequence * statementMap,
+        TStatementMapList* fullstatementMap)
     {
-        AssertMsg(functionRead != nullptr, "Must provide valid function to execute");
-
-        ByteBlock * pblkByteCode = useOriginalByteCode ?
-            functionRead->GetOriginalByteCode() :
-            functionRead->GetByteCode();
-
-        AssertMsg(pblkByteCode != nullptr, "Must have valid byte-code to read");
-
-        m_startLocation = pblkByteCode->GetBuffer();
+        m_startLocation = byteCodeStart;
 
         const byte * currentLocation = m_startLocation + startOffset;
-        const bool isInDebugMode = functionRead->IsInDebugMode();
 
-        m_statementMap = functionRead->GetStatementMapSpanSequence();
-        if (m_statementMap == nullptr && isInDebugMode)
-        {
-            m_fullstatementMap = functionRead->GetStatementMaps();
-        }
-        else
-        {
-            m_fullstatementMap = nullptr;
-        }
+        m_statementMap = statementMap;
+        m_fullstatementMap = fullstatementMap;
 
         if (m_statementMap && m_statementMap->Count())
         {
@@ -85,8 +75,34 @@ namespace Js
             m_nextStatementBoundary = currentLocation - 1;
         }
     }
+    template <>
+    void StatementReader<FunctionBody::ArenaStatementMapList>::Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode)
+    {
+        Assert(UNREACHED);
+    }
 
-    inline uint32 StatementReader::MoveNextStatementBoundary()
+    template <>
+    void StatementReader<FunctionBody::StatementMapList>::Create(FunctionBody* functionRead, uint startOffset, bool useOriginalByteCode)
+    {
+        AssertMsg(functionRead != nullptr, "Must provide valid function to execute");
+
+        ByteBlock * pblkByteCode = useOriginalByteCode ?
+            functionRead->GetOriginalByteCode() :
+            functionRead->GetByteCode();
+
+        AssertMsg(pblkByteCode != nullptr, "Must have valid byte-code to read");
+
+        SmallSpanSequence* statementMap = functionRead->GetStatementMapSpanSequence();
+        FunctionBody::StatementMapList* fullMap = nullptr;
+        if (statementMap == nullptr && functionRead->IsInDebugMode())
+        {
+            fullMap = functionRead->GetStatementMaps();
+        }
+        Create(pblkByteCode->GetBuffer(), startOffset, statementMap, fullMap);
+    }
+
+    template <typename TStatementMapList>
+    uint32 StatementReader<TStatementMapList>::MoveNextStatementBoundary()
     {
         StatementData data;
         uint32 retStatement = Js::Constants::NoStatementIndex;
@@ -156,4 +172,9 @@ namespace Js
 
         return retStatement;
     }
+
+    // explicit instantiations
+    template class StatementReader<FunctionBody::ArenaStatementMapList>;
+    template class StatementReader<FunctionBody::StatementMapList>;
 } // namespace Js
+

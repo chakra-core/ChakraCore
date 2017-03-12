@@ -86,12 +86,14 @@ public:
 
 class StackSym: public Sym
 {
+private:
+    static StackSym * New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func);
 public:
     static StackSym * NewArgSlotSym(Js::ArgSlot argSlotNum, Func * func, IRType = TyVar);
     static StackSym * NewArgSlotRegSym(Js::ArgSlot argSlotNum, Func * func, IRType = TyVar);
     static StackSym * NewParamSlotSym(Js::ArgSlot argSlotNum, Func * func);
     static StackSym * NewParamSlotSym(Js::ArgSlot argSlotNum, Func * func, IRType type);
-    static StackSym * New(SymID id, IRType type, Js::RegSlot byteCodeRegSlot, Func *func);
+    static StackSym *NewImplicitParamSym(Js::ArgSlot paramSlotNum, Func * func);
     static StackSym * New(IRType type, Func *func);
     static StackSym * New(Func *func);
     static StackSym * FindOrCreate(SymID id, Js::RegSlot byteCodeRegSlot, Func *func, IRType type = TyVar);
@@ -99,10 +101,11 @@ public:
     IRType          GetType() const { return this->m_type; }
     bool            IsArgSlotSym() const;
     bool            IsParamSlotSym() const;
+    bool            IsImplicitParamSym() const { return this->m_isImplicitParamSym; }
     bool            IsAllocated() const;
     int32           GetIntConstValue() const;
     Js::Var         GetFloatConstValueAsVar_PostGlobOpt() const;
-    void *          GetConstAddress() const;
+    void *          GetConstAddress(bool useLocal = false) const;
     StackSym *      CloneDef(Func *func);
     StackSym *      CloneUse(Func *func);
     void            CopySymAttrs(StackSym *symSrc);
@@ -110,6 +113,7 @@ public:
     bool            IsSingleDef() const { return this->m_isSingleDef && this->m_instrDef; }
     bool            IsConst() const;
     bool            IsIntConst() const;
+    bool            IsInt64Const() const;
     bool            IsTaggableIntConst() const;
     bool            IsFloatConst() const;
 // SIMD_JS
@@ -117,6 +121,7 @@ public:
 
     void            SetIsConst();
     void            SetIsIntConst(IntConstType value);
+    void            SetIsInt64Const();
     void            SetIsFloatConst();
 // SIMD_JS
     void            SetIsSimd128Const();
@@ -147,9 +152,12 @@ public:
 
     StackSym *      GetFloat64EquivSym(Func *func);
     bool            IsFloat64() const { return this->GetType() == TyFloat64; }
+    bool            IsFloat32() const { return this->GetType() == TyFloat32; }
     StackSym *      GetInt32EquivSym(Func *func);
     bool            IsInt32() const { return this->GetType() == TyInt32; }
     bool            IsUInt32() const { return this->GetType() == TyUint32; }
+    bool            IsInt64() const { return this->GetType() == TyInt64; }
+    bool            IsUint64() const { return this->GetType() == TyUint64; }
 
     StackSym *      GetVarEquivSym(Func *func);
     bool            IsVar() const { return this->GetType() == TyVar; }
@@ -162,11 +170,11 @@ public:
     bool            IsTempReg(Func *const func) const;
     bool            IsFromByteCodeConstantTable() const { return m_isFromByteCodeConstantTable; }
     void            SetIsFromByteCodeConstantTable() { this->m_isFromByteCodeConstantTable = true; }
-    Js::ArgSlot     GetArgSlotNum() const { Assert(HasArgSlotNum()); return m_argSlotNum; }
-    bool            HasArgSlotNum() const { return m_argSlotNum != 0; }
+    Js::ArgSlot     GetArgSlotNum() const { Assert(HasArgSlotNum()); return m_slotNum; }
+    bool            HasArgSlotNum() const { return !!(m_isArgSlotSym | m_isArgSlotRegSym); }
     void            IncrementArgSlotNum();
     void            DecrementArgSlotNum();
-    Js::ArgSlot     GetParamSlotNum() const { Assert(IsParamSlotSym()); return m_paramSlotNum; }
+    Js::ArgSlot     GetParamSlotNum() const { Assert(IsParamSlotSym()); return m_slotNum; }
 
     IR::Instr *     GetInstrDef() const { return this->IsSingleDef() ? this->m_instrDef : nullptr; }
 
@@ -186,8 +194,7 @@ private:
     void            VerifyConstFlags() const;
 #endif
 private:
-    Js::ArgSlot     m_argSlotNum;
-    Js::ArgSlot     m_paramSlotNum;
+    Js::ArgSlot     m_slotNum;
 public:
     uint8           m_isSingleDef:1;            // the symbol only has a single definition in the IR
     uint8           m_isNotInt:1;
@@ -196,6 +203,7 @@ public:
     uint8           m_isIntConst : 1;           // a constant and it's value is an Int32
     uint8           m_isTaggableIntConst : 1;   // a constant and it's value is taggable (Int31 in 32-bit, Int32 in x64)
     uint8           m_isEncodedConstant : 1;    // the constant has
+    uint8           m_isInt64Const: 1;
     uint8           m_isFltConst: 1;
     uint8           m_isSimd128Const : 1;
     uint8           m_isStrConst:1;
@@ -209,6 +217,9 @@ public:
     uint8           m_isFromByteCodeConstantTable:1;
     uint8           m_mayNotBeTempLastUse:1;
     uint8           m_isArgSlotSym: 1;        // When set this implies an argument stack slot with no lifetime for register allocation
+    uint8           m_isArgSlotRegSym : 1;
+    uint8           m_isParamSym : 1;
+    uint8           m_isImplicitParamSym : 1;
     uint8           m_isBailOutReferenced: 1;        // argument sym referenced by bailout
     uint8           m_isArgCaptured: 1;       // True if there is a ByteCodeArgOutCapture for this symbol
     uint8           m_nonEscapingArgObjAlias : 1;
@@ -309,9 +320,6 @@ public:
     Func *          m_func;
     Func *          m_loadInlineCacheFunc;
     uint            m_loadInlineCacheIndex;
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    const char16* GetName() const;
-#endif
 private:
     uint32          m_propertyIdIndex;
     uint            m_inlineCacheIndex;

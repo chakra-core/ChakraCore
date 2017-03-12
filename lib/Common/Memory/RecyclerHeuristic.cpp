@@ -32,6 +32,8 @@ RecyclerHeuristic::RecyclerHeuristic()
     DWORDLONG physicalMemoryBytes = mem.ullTotalPhys;
     uint baseFactor;
 
+    // xplat-todo: Android sysconf is rather unreliable,
+    // ullTotalPhys may not be the best source for a decision below
     if (isSuccess && AutoSystemInfo::IsLowMemoryDevice() && physicalMemoryBytes <= 512 MEGABYTES)
     {
         // Low-end Apollo (512MB RAM) scenario.

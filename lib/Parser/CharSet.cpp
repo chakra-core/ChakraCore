@@ -3,6 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 #include "ParserPch.h"
+#include "Common/MathUtil.h"
 
 namespace UnifiedRegex
 {
@@ -10,25 +11,12 @@ namespace UnifiedRegex
     // CharBitVec
     // ----------------------------------------------------------------------
 
-    inline uint32 popcnt(uint32 x)
-    {
-        // sum set bits in every bit pair
-        x -= (x >> 1) & 0x55555555u;
-        // sum pairs into quads
-        x = (x & 0x33333333u) + ((x >> 2) & 0x33333333u);
-        // sum quads into octets
-        x = (x + (x >> 4)) & 0x0f0f0f0fu;
-        // sum octets into topmost octet
-        x *= 0x01010101u;
-        return x >> 24;
-    }
-
     uint CharBitvec::Count() const
     {
         uint n = 0;
         for (int w = 0; w < vecSize; w++)
         {
-            n += popcnt(vec[w]);
+            n += Math::PopCnt32(vec[w]);
         }
         return n;
     }
@@ -208,7 +196,7 @@ namespace UnifiedRegex
     // CharSetNode
     // ----------------------------------------------------------------------
 
-    inline CharSetNode* CharSetNode::For(ArenaAllocator* allocator, int level)
+    CharSetNode* CharSetNode::For(ArenaAllocator* allocator, int level)
     {
         if (level == 0)
             return Anew(allocator, CharSetLeaf);
@@ -1874,7 +1862,7 @@ namespace UnifiedRegex
     // defined constant and complains. So skip the declaration if we're compiling
     // with VS2013 or below.
 #if !defined(_MSC_VER) || _MSC_VER >= 1900
-	const int  CharSetNode::directBits;
+    const int  CharSetNode::directBits;
     const uint CharSetNode::directSize;
     const uint CharSetNode::innerMask;
     const int  CharSetNode::bitsPerLeafLevel;

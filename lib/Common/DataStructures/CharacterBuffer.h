@@ -15,6 +15,7 @@ namespace JsUtil
     public:
         CharacterBuffer() : string(nullptr), len((charcount_t)-1) {}
         CharacterBuffer(T const * string, charcount_t len) : string(string), len(len) {}
+        CharacterBuffer(const CharacterBuffer& other) : string(other.string), len(other.len) {}
 
         bool operator==(CharacterBuffer const& other) const
         {
@@ -76,8 +77,8 @@ namespace JsUtil
         T const * GetBuffer() const { return string; }
         charcount_t GetLength() const { return len; }
     private:
-        T const * string;
-        charcount_t len;
+        Field(T const *) string;
+        Field(charcount_t) len;
     };
 
     template<>

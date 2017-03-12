@@ -24,8 +24,7 @@ namespace Js
         uint32 byteLength = 0;
         uint32 mappedLength;
         int32 offset = 0;
-        double numberOffset = 0;
-        ArrayBuffer* arrayBuffer = nullptr;
+        ArrayBufferBase* arrayBuffer = nullptr;
         DataView* dataView;
 
         //1.    If NewTarget is undefined, throw a TypeError exception.
@@ -43,11 +42,13 @@ namespace Js
         RecyclableObject* jsArraySource = NULL;
         if (JavascriptOperators::IsObject(args[1]) && JavascriptConversion::ToObject(args[1], scriptContext, &jsArraySource))
         {
-            HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &arrayBuffer);
+            ArrayBuffer *ab = nullptr;
+            HRESULT hr = scriptContext->GetHostScriptContext()->ArrayBufferFromExternalObject(jsArraySource, &ab);
             switch (hr)
             {
             case S_OK:
             case S_FALSE:
+                arrayBuffer = ab;
                 // Both of these cases will be handled by the arrayBuffer null check.
                 break;
 
@@ -62,9 +63,9 @@ namespace Js
         //3.    If buffer does not have an [[ArrayBufferData]] internal slot, throw a TypeError exception.
         if (arrayBuffer == nullptr)
         {
-            if (ArrayBuffer::Is(args[1]))
+            if (ArrayBufferBase::Is(args[1]))
             {
-                arrayBuffer = ArrayBuffer::FromVar(args[1]);
+                arrayBuffer = ArrayBufferBase::FromVar(args[1]);
             }
             else
             {
@@ -72,33 +73,21 @@ namespace Js
             }
         }
 
-        //4.    Let numberOffset be ToNumber(byteOffset).
-        //5.    Let offset be ToInteger(numberOffset).
-        //6.    ReturnIfAbrupt(offset).
-        //7.    If numberOffset <> offset or offset < 0, throw a RangeError exception.
+        //4.    Let offset be ToIndex(byteOffset).
         if (args.Info.Count > 2)
         {
             Var secondArgument = args[2];
-            numberOffset = JavascriptConversion::ToNumber(secondArgument, scriptContext);
-            offset = JavascriptConversion::ToInt32(numberOffset);
-
-            if (offset < 0 ||
-                numberOffset != offset)
-            {
-                JavascriptError::ThrowRangeError(
-                    scriptContext, JSERR_DataView_InvalidArgument, _u("byteOffset"));
-            }
+            offset = ArrayBuffer::ToIndex(secondArgument, JSERR_ArrayLengthConstructIncorrect, scriptContext, ArrayBuffer::MaxArrayBufferLength, false);
         }
 
-        //8.    If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
+        //5.    If IsDetachedBuffer(buffer) is true, throw a TypeError exception.
         if (arrayBuffer->IsDetached())
         {
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NeedDataView);
         }
 
-        //9.    Let bufferByteLength be the value of buffer's[[ArrayBufferByteLength]] internal slot.
-        //10.   If offset > bufferByteLength, throw a RangeError exception.
-
+        //6.    Let bufferByteLength be the value of buffer's[[ArrayBufferByteLength]] internal slot.
+        //7.   If offset > bufferByteLength, throw a RangeError exception.
         byteLength = arrayBuffer->GetByteLength();
         if ((uint32)offset > byteLength)
         {
@@ -106,16 +95,15 @@ namespace Js
                 scriptContext, JSERR_DataView_InvalidArgument, _u("byteOffset"));
         }
 
-        //11.   If byteLength is undefined, then
+        //8.   If byteLength is either not present or is undefined, then
         //      a.  Let viewByteLength be bufferByteLength - offset.
-        //12.   Else,
-        //      a.  Let viewByteLength be ToLength(byteLength).
-        //      b.  ReturnIfAbrupt(viewLength).
-        //      c.  If offset + viewByteLength > bufferByteLength, throw a RangeError exception.
+        //9.   Else,
+        //      a.  Let viewByteLength be ToIndex(byteLength).
+        //      b.  If offset + viewByteLength > bufferByteLength, throw a RangeError exception.
         if (args.Info.Count > 3 && !JavascriptOperators::IsUndefinedObject(args[3]))
             {
                 Var thirdArgument = args[3];
-                mappedLength = (uint32)JavascriptConversion::ToLength(thirdArgument, scriptContext);
+                mappedLength = ArrayBuffer::ToIndex(thirdArgument, JSERR_ArrayLengthConstructIncorrect, scriptContext, ArrayBuffer::MaxArrayBufferLength, false);
                 uint32 viewRange = mappedLength + offset;
 
                 if (viewRange > byteLength || viewRange < mappedLength) // overflow indicates out-of-range
@@ -129,20 +117,19 @@ namespace Js
             mappedLength = byteLength - offset;
         }
 
-        //13.   Let O be OrdinaryCreateFromConstructor(NewTarget, "%DataViewPrototype%", [[DataView]], [[ViewedArrayBuffer]], [[ByteLength]], [[ByteOffset]]).
-        //14.   ReturnIfAbrupt(O).
-        //15.   Set O's[[DataView]] internal slot to true.
-        //16.   Set O's[[ViewedArrayBuffer]] internal slot to buffer.
-        //17.   Set O's[[ByteLength]] internal slot to viewByteLength.
-        //18.   Set O's[[ByteOffset]] internal slot to offset.
-        //19.   Return O.
+        //10.   Let O be OrdinaryCreateFromConstructor(NewTarget, "%DataViewPrototype%", [[DataView]], [[ViewedArrayBuffer]], [[ByteLength]], [[ByteOffset]]).
+        //11.   Set O's[[DataView]] internal slot to true.
+        //12.   Set O's[[ViewedArrayBuffer]] internal slot to buffer.
+        //13.   Set O's[[ByteLength]] internal slot to viewByteLength.
+        //14.   Set O's[[ByteOffset]] internal slot to offset.
+        //15.   Return O.
         dataView = scriptContext->GetLibrary()->CreateDataView(arrayBuffer, offset, mappedLength);
         return isCtorSuperCall ?
             JavascriptOperators::OrdinaryCreateFromConstructor(RecyclableObject::FromVar(newTarget), dataView, nullptr, scriptContext) :
             dataView;
     }
 
-    DataView::DataView(ArrayBuffer* arrayBuffer, uint32 byteoffset, uint32 mappedLength, DynamicType* type)
+    DataView::DataView(ArrayBufferBase* arrayBuffer, uint32 byteoffset, uint32 mappedLength, DynamicType* type)
         : ArrayBufferParent(type, mappedLength, arrayBuffer),
           byteOffset(byteoffset)
     {
@@ -605,7 +592,7 @@ namespace Js
         }
 
         DataView* dataView = DataView::FromVar(args[0]);
-        ArrayBuffer* arrayBuffer = dataView->GetArrayBuffer();
+        ArrayBufferBase* arrayBuffer = dataView->GetArrayBuffer();
 
         if (arrayBuffer == nullptr)
         {
@@ -630,7 +617,7 @@ namespace Js
         }
 
         DataView* dataView = DataView::FromVar(args[0]);
-        ArrayBuffer* arrayBuffer = dataView->GetArrayBuffer();
+        ArrayBufferBase* arrayBuffer = dataView->GetArrayBuffer();
 
         if (arrayBuffer == nullptr)
         {
@@ -659,7 +646,7 @@ namespace Js
         }
 
         DataView* dataView = DataView::FromVar(args[0]);
-        ArrayBuffer* arrayBuffer = dataView->GetArrayBuffer();
+        ArrayBufferBase* arrayBuffer = dataView->GetArrayBuffer();
 
         if (arrayBuffer == nullptr)
         {
@@ -682,25 +669,25 @@ namespace Js
 #ifdef _M_ARM
     // Provide template specialization (only) for memory access at unaligned float/double address which causes data alignment exception otherwise.
     template<>
-    Var DataView::GetValueWithCheck<float>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    Var DataView::GetValueWithCheck<float>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian)
     {
         return this->GetValueWithCheck<float, float UNALIGNED*>(byteOffset, isLittleEndian, funcName);
     }
 
     template<>
-    Var DataView::GetValueWithCheck<double>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    Var DataView::GetValueWithCheck<double>(uint32 byteOffset, const char16 *funcName, BOOL isLittleEndian)
     {
         return this->GetValueWithCheck<double, double UNALIGNED*>(byteOffset, isLittleEndian, funcName);
     }
 
     template<>
-    void DataView::SetValue<float>(uint32 byteOffset, float value, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    void DataView::SetValue<float>(uint32 byteOffset, float value, const char16 *funcName, BOOL isLittleEndian)
     {
         this->SetValue<float, float UNALIGNED*>(byteOffset, value, isLittleEndian, funcName);
     }
 
     template<>
-    void DataView::SetValue<double>(uint32 byteOffset, double value, const char16 *funcName, BOOL isLittleEndian = FALSE)
+    void DataView::SetValue<double>(uint32 byteOffset, double value, const char16 *funcName, BOOL isLittleEndian)
     {
         this->SetValue<double, double UNALIGNED*>(byteOffset, value, isLittleEndian, funcName);
     }

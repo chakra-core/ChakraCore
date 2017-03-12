@@ -1,0 +1,16 @@
+[
+  {
+    "evaluate": {
+      "r": {
+        "#__proto__": "RegExp ",
+        "lastIndex": "number 0",
+        "global": "boolean false",
+        "multiline": "boolean false",
+        "ignoreCase": "boolean false",
+        "source": "string .",
+        "options": "string ",
+        "sticky": "boolean false"
+      }
+    }
+  }
+]

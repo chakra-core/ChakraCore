@@ -1,0 +1,142 @@
+[
+  {
+    "evaluate": {
+      "p1": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "Symbol.toStringTag": "string Promise",
+          "catch": "function <large string>",
+          "then": "function <large string>"
+        },
+        "someOtherProp": "string before",
+        "[Promise]": {
+          "[status]": "string resolved",
+          "[value]": "string undefined"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "p1": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "Symbol.toStringTag": "string Promise",
+          "catch": "function <large string>",
+          "then": "function <large string>"
+        },
+        "someOtherProp": "string in fullfil",
+        "[Promise]": {
+          "[status]": "string resolved",
+          "[value]": "string p1 resolved"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "p1": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "Symbol.toStringTag": "string Promise",
+          "catch": "function <large string>",
+          "then": "function <large string>"
+        },
+        "someOtherProp": "string in then",
+        "[Promise]": {
+          "[status]": "string resolved",
+          "[value]": "string p1 resolved"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "p2": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "Symbol.toStringTag": "string Promise",
+          "catch": "function <large string>",
+          "then": "function <large string>"
+        },
+        "[Promise]": {
+          "[status]": "string resolved",
+          "[value]": "object null"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "p3": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "Symbol.toStringTag": "string Promise",
+          "catch": "function <large string>",
+          "then": "function <large string>"
+        },
+        "[Promise]": {
+          "[status]": "string rejected",
+          "[value]": "Array [p3,rejected]"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "p1": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "Symbol.toStringTag": "string Promise",
+          "catch": "function <large string>",
+          "then": "function <large string>"
+        },
+        "someOtherProp": "string in then",
+        "[Promise]": {
+          "[status]": "string resolved",
+          "[value]": "string p1 resolved"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "p2": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "Symbol.toStringTag": "string Promise",
+          "catch": "function <large string>",
+          "then": "function <large string>"
+        },
+        "[Promise]": {
+          "[status]": "string resolved",
+          "[value]": "object null"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "p3": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "Symbol.toStringTag": "string Promise",
+          "catch": "function <large string>",
+          "then": "function <large string>"
+        },
+        "[Promise]": {
+          "[status]": "string rejected",
+          "[value]": "Array [p3,rejected]"
+        }
+      }
+    }
+  }
+]

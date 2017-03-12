@@ -1,0 +1,30 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 15,
+        "column": 8,
+        "sourceText": "arguments",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 14,
+        "column": 4,
+        "sourceText": "map.forEach(function () {\r\n        arguments; /**loc(bp1):\r\n\t\t\tstack();\r\n\t\t\tlocals();\r\n            **/\r\n        WScript.Echo(arguments.callee.caller);\r\n    })",
+        "function": "foo"
+      },
+      {
+        "line": 26,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "arguments": "Object {...}"
+    }
+  }
+]

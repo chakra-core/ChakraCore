@@ -8,7 +8,7 @@
 namespace Js
 {
     FunctionCodeGenRuntimeData::FunctionCodeGenRuntimeData(FunctionBody *const functionBody)
-        : functionBody(functionBody), inlinees(nullptr), next(0)
+        : functionBody(functionBody), inlinees(nullptr), next(nullptr)
     {
     }
 
@@ -25,6 +25,18 @@ namespace Js
     InlineCachePointerArray<InlineCache> *FunctionCodeGenRuntimeData::ClonedInlineCaches()
     {
         return &clonedInlineCaches;
+    }
+
+    const FunctionCodeGenRuntimeData * FunctionCodeGenRuntimeData::GetForTarget(FunctionBody *targetFuncBody) const
+    {
+        const FunctionCodeGenRuntimeData * target = this;
+        while (target && target->GetFunctionBody() != targetFuncBody)
+        {
+            target = target->next;
+        }
+        // we should always find the info
+        Assert(target);
+        return target;
     }
 
     const FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::GetInlinee(const ProfileId profiledCallSiteId) const
@@ -60,7 +72,7 @@ namespace Js
         Assert(inlinee == functionBody);
         if (!inlinees)
         {
-            inlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, functionBody->GetProfiledCallSiteCount());
+            inlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenRuntimeData*), functionBody->GetProfiledCallSiteCount());
         }
         inlinees[profiledCallSiteId] = this;
     }
@@ -76,7 +88,7 @@ namespace Js
 
         if (!inlinees)
         {
-            inlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, functionBody->GetProfiledCallSiteCount());
+            inlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenRuntimeData *), functionBody->GetProfiledCallSiteCount());
         }
         const auto inlineeData = inlinees[profiledCallSiteId];
 
@@ -112,7 +124,8 @@ namespace Js
     const FunctionCodeGenRuntimeData *FunctionCodeGenRuntimeData::GetRuntimeDataFromFunctionInfo(FunctionInfo *polyFunctionInfo) const
     {
         const FunctionCodeGenRuntimeData *next = this;
-        while (next && next->functionBody != polyFunctionInfo)
+        FunctionProxy *polyFunctionProxy = polyFunctionInfo->GetFunctionProxy();
+        while (next && next->functionBody != polyFunctionProxy)
         {
             next = next->next;
         }
@@ -130,7 +143,7 @@ namespace Js
 
         if (!ldFldInlinees)
         {
-            ldFldInlinees = RecyclerNewArrayZ(recycler, FunctionCodeGenRuntimeData *, functionBody->GetInlineCacheCount());
+            ldFldInlinees = RecyclerNewArrayZ(recycler, Field(FunctionCodeGenRuntimeData *), functionBody->GetInlineCacheCount());
         }
         const auto inlineeData = ldFldInlinees[inlineCacheIndex];
         if (!inlineeData)

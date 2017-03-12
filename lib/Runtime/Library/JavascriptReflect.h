@@ -35,7 +35,6 @@ namespace Js
 
         static Var EntryDefineProperty(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryDeleteProperty(RecyclableObject* function, CallInfo callInfo, ...);
-        static Var EntryEnumerate(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGet(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetOwnPropertyDescriptor(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetPrototypeOf(RecyclableObject* function, CallInfo callInfo, ...);

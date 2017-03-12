@@ -153,8 +153,8 @@ RT_ERROR_MSG(JSERR_CyclicProtoValue, 5040, "", "Cyclic __proto__ value", kjstErr
 
 RT_ERROR_MSG(JSERR_CantDeleteExpr, 5041, "Calling delete on '%s' is not allowed in strict mode", "Object member not configurable", kjstTypeError, 0) // string 4
 RT_ERROR_MSG(JSERR_RefErrorUndefVariable, 5042, "", "Variable undefined in strict mode",  kjstReferenceError, 0) // string 10
-RT_ERROR_MSG(JSERR_AccessCallerRestricted, 5043, "", "Accessing the 'caller' property is restricted in this context", kjstTypeError, 0)
-RT_ERROR_MSG(JSERR_AccessCallee, 5044, "", "Accessing the 'callee' property of an arguments object is not allowed in strict mode", kjstTypeError, 0) // string 2
+RT_ERROR_MSG(JSERR_AccessRestrictedProperty, 5043, "", "'arguments', 'callee' and 'caller' are restricted function properties and cannot be accessed in this context", kjstTypeError, 0)
+// 5044 - Removed
 RT_ERROR_MSG(JSERR_CantAssignToReadOnly, 5045, "", "Assignment to read-only properties is not allowed in strict mode", kjstTypeError, 0) // string 5
 RT_ERROR_MSG(JSERR_NonExtensibleObject, 5046, "", "Cannot create property for a non-extensible object", kjstTypeError, 0) // string 6
 
@@ -213,9 +213,7 @@ RT_ERROR_MSG(JSERR_InvalidPropertySignature, 5092, "The property '%s' has an inv
 
 RT_ERROR_MSG(JSERR_InvalidRTCPropertyValueIn, 5093, "The runtimeclass %s that has Windows.Foundation.IPropertyValue as default interface is not supported as an input parameter type", "invalid input parameter type", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_RTCInvalidRTCPropertyValueOut, 5094, "The object with interface Windows.Foundation.IPropertyValue that has runtimeclass name %s is not supported as an output parameter", "invalid output parameter", kjstTypeError, 0)
-
-RT_ERROR_MSG(JSERR_AccessArgumentsRestricted, 5095, "", "Accessing the 'arguments' property is restricted in this context", kjstTypeError, 0)
-
+// 5095 - Removed
 RT_ERROR_MSG(JSERR_This_NeedInspectableObject, 5096, "%s: 'this' is not an Inspectable Object", "Inspectable Object expected", kjstTypeError, JSERR_NeedObject) // {Locked="\'this\'"}
 
 RT_ERROR_MSG(JSERR_FunctionArgument_NeedWinRTChar, 5097, "%s: could not convert argument to type 'char'", "Could not convert argument to type 'char'", kjstTypeError, 0)
@@ -269,12 +267,11 @@ RT_ERROR_MSG(JSERR_This_NeedStringIterator, 5135, "%s: 'this' is not a String It
 RT_ERROR_MSG(JSERR_InvalidSpreadArgument, 5140, "%s: argument cannot be spread; expected Array or Object with a 'length' property", "Argument cannot be spread; expected Array or Object with a 'length' property", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_InvalidSpreadLength, 5141, "%s: argument cannot be spread; the 'length' property must be a number or convert to a number", "Argument cannot be spread; the 'length' property must be a number or convert to a number", kjstTypeError, 0)
 
-RT_ERROR_MSG(JSERR_BadSuperReference, 5145, "", "'super' can only be accessed from a subclass method", kjstReferenceError, 0)
+RT_ERROR_MSG(JSERR_BadSuperReference, 5145, "", "Missing or invalid 'super' binding", kjstReferenceError, 0)
 RT_ERROR_MSG(JSERR_DeletePropertyWithSuper, 5146, "Unable to delete property '%s' which has a super reference", "Unable to delete property with a super reference", kjstReferenceError, 0)
 
 RT_ERROR_MSG(JSERR_DetachedTypedArray, 5147, "%s: The ArrayBuffer is detached.", "The ArrayBuffer is detached.", kjstTypeError, 0)
 RT_ERROR_MSG(JSERR_AsmJsCompileError, 5148, "%s: Compiling asm.js failed.", "Compiling asm.js failed.", kjstError, 0)
-
 RT_ERROR_MSG(JSERR_ImmutablePrototypeSlot, 5149, "%s: Can't set the prototype of this object.", "Can't set the prototype of this object.", kjstTypeError, 0)
 
 /* Error messages for misbehaved Async Operations for use in Promise.js */
@@ -359,3 +356,34 @@ RT_ERROR_MSG(JSERR_InvalidHint, 5658, "%s: invalid hint", "invalid hint", kjstTy
 
 RT_ERROR_MSG(JSERR_This_NeedNamespace, 5659, "%s: 'this' is not a Module Namespace object", "Module Namespace object expected", kjstTypeError, JSERR_This_NeedNamespace) // {Locked="\'this\'"}
 RT_ERROR_MSG(JSERR_This_NeedListIterator, 5660, "%s: 'this' is not a List Iterator object", "List Iterator expected", kjstTypeError, 0) 
+RT_ERROR_MSG(JSERR_NeedSharedArrayBufferObject, 5661, "%s is not a SharedArrayBuffer", "SharedArrayBuffer object expected", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_NeedTypedArrayObject, 5662, "", "Atomics function called with invalid typed array object", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_InvalidTypedArrayIndex, 5663, "", "Access index is out of range", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_InvalidOperationOnTypedArray, 5664, "", "The operation is not supported on this typed array type", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_CannotSuspendBuffer, 5665, "", "Current agent cannot be suspended", kjstRangeError, 0)
+RT_ERROR_MSG(JSERR_CantDeleteNonConfigProp, 5666, "Cannot delete non-configurable property '%s'", "Cannot delete non-configurable property", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_CantRedefineProp, 5667, "Cannot redefine property '%s'", "Cannot redefine property", kjstTypeError, 0)
+RT_ERROR_MSG(JSERR_FunctionArgument_NeedArrayLike, 5668, "%s: argument is not an array or array-like object", "Array or array-like object expected", kjstTypeError, 0)
+
+// WebAssembly Errors
+RT_ERROR_MSG(WASMERR_WasmCompileError, 7000, "%s", "Compilation failed.", kjstWebAssemblyCompileError, 0)
+RT_ERROR_MSG(WASMERR_Unreachable, 7001, "", "Unreachable Code", kjstWebAssemblyRuntimeError, 0)
+RT_ERROR_MSG(WASMERR_NeedBufferSource, 7002, "%s is not a BufferSource", "BufferSource expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedModule, 7003, "%s is not a WebAssembly.Module", "WebAssembly.Module expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_DataSegOutOfRange, 7004, "", "Data segment is out of range", kjstWebAssemblyLinkError, 0)
+RT_ERROR_MSG(WASMERR_MutableGlobal, 7005, "", "Cannot export mutable global", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_InvalidImport, 7006, "", "Import is invalid", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_InvalidGlobalRef, 7007, "", "Global initialization does not support forward reference", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedMemoryObject, 7008, "%s is not a WebAssembly.Memory", "WebAssembly.Memory object expected", kjstWebAssemblyLinkError, 0)
+RT_ERROR_MSG(WASMERR_InvalidTypeConversion, 7009, "Invalid WebAssembly type conversion %s to %s", "Invalid WebAssembly type conversion", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_DivideByZero, 7010, "", "Division by zero", kjstWebAssemblyRuntimeError, 0)
+RT_ERROR_MSG(WASMERR_ExpectedAnyFunc, 7011, "%s is not AnyFunc", "AnyFunc expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_NeedTableObject, 7012, "%s is not a WebAssembly.Table", "WebAssembly.Table object expected", kjstWebAssemblyLinkError, 0)
+RT_ERROR_MSG(WASMERR_NeedWebAssemblyFunc, 7013, "%s is not a WebAssembly exported function", "WebAssembly exported function expected", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_SignatureMismatch, 7014, "%s called with invalid signature", "Function called with invalid signature", kjstWebAssemblyRuntimeError, 0)
+RT_ERROR_MSG(WASMERR_ElementSegOutOfRange, 7015, "", "Element segment is out of range", kjstWebAssemblyLinkError, 0)
+RT_ERROR_MSG(WASMERR_TableIndexOutOfRange, 7016, "", "Table index is out of range", kjstWebAssemblyRuntimeError, 0)
+RT_ERROR_MSG(WASMERR_ArrayIndexOutOfRange, 7017, "", "Memory index is out of range", kjstWebAssemblyRuntimeError, 0)
+RT_ERROR_MSG(WASMERR_InvalidInstantiateArgument, 7018, "", "Invalid arguments to instantiate", kjstTypeError, 0)
+RT_ERROR_MSG(WASMERR_WasmLinkError, 7019, "%s", "Linking failed.", kjstWebAssemblyLinkError, 0)
+RT_ERROR_MSG(JSERR_OutOfBoundString, 7020, "", "String length is out of bound", kjstRangeError, 0)

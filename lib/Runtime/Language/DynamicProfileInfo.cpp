@@ -111,7 +111,7 @@ namespace Js
         {
             if (batch[i].size > 0)
             {
-                BYTE** field = (BYTE**)(((BYTE*)info + batch[i].offset));
+                Field(BYTE*)* field = (Field(BYTE*)*)(((BYTE*)info + batch[i].offset));
                 *field = current;
                 current += batch[i].size;
             }
@@ -189,11 +189,22 @@ namespace Js
         }
 
         this->rejitCount = 0;
+        this->bailOutOffsetForLastRejit = Js::Constants::NoByteCodeOffset;
 #if DBG
         for (ProfileId i = 0; i < functionBody->GetProfiledArrayCallSiteCount(); ++i)
         {
             arrayCallSiteInfo[i].functionNumber = functionBody->GetFunctionNumber();
             arrayCallSiteInfo[i].callSiteNumber = i;
+        }
+#endif
+
+#if TTD_NATIVE_PROFILE_ARRAY_WORK_AROUND
+        if(functionBody->GetScriptContext()->GetThreadContext()->IsRuntimeInTTDMode())
+        {
+            for(ProfileId i = 0; i < functionBody->GetProfiledArrayCallSiteCount(); ++i)
+            {
+                arrayCallSiteInfo[i].SetIsNotNativeArray();
+            }
         }
 #endif
     }
@@ -222,7 +233,7 @@ namespace Js
                 Js::Configuration::Global.flags.ForceDynamicProfile ||
 #endif
                 !scriptContext->GetConfig()->IsNoNative() ||
-                functionBody->IsInDebugMode()
+                (functionBody && functionBody->IsInDebugMode())
 #ifdef DYNAMIC_PROFILE_STORAGE
                 || DynamicProfileStorage::DoCollectInfo()
 #endif
@@ -338,14 +349,14 @@ namespace Js
         }
         else
         {
-            Assert(directEntryPoint == ProfileEntryThunk || functionBody->GetScriptContext()->IsNativeAddress(directEntryPoint));
+            Assert(directEntryPoint == ProfileEntryThunk || functionBody->GetScriptContext()->IsNativeAddress((void*)directEntryPoint));
             Assert(functionBody->HasExecutionDynamicProfileInfo());
         }
 
         return function->UpdateThunkEntryPoint(static_cast<FunctionEntryPointInfo*>(entryPoint), directEntryPoint);
     }
 
-    bool DynamicProfileInfo::hasLdFldCallSiteInfo()
+    bool DynamicProfileInfo::HasLdFldCallSiteInfo() const
     {
         return bits.hasLdFldCallSite;
     }
@@ -413,7 +424,7 @@ namespace Js
         }
 
         // Mark the callsite bit where caller and callee is same function
-        if (functionBody == calleeFunctionInfo && callSiteId < 32)
+        if (calleeFunctionInfo && functionBody == calleeFunctionInfo->GetFunctionProxy() && callSiteId < 32)
         {
             this->m_recursiveInlineInfo = this->m_recursiveInlineInfo | (1 << callSiteId);
         }
@@ -649,6 +660,7 @@ namespace Js
         ResetPolymorphicCallSiteInfo(callSiteId, CallSiteCrossContext);
     }
 
+    /* static */
     bool DynamicProfileInfo::HasCallSiteInfo(FunctionBody* functionBody)
     {
         SourceContextInfo *sourceContextInfo = functionBody->GetSourceContextInfo();
@@ -769,7 +781,8 @@ namespace Js
 
             if (sourceId == CurrentSourceId) // caller and callee in same file
             {
-                return functionBody->GetUtf8SourceInfo()->FindFunction(functionId);
+                FunctionProxy *inlineeProxy = functionBody->GetUtf8SourceInfo()->FindFunction(functionId);
+                return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
             }
 
             if (sourceId != NoSourceId && sourceId != InvalidSourceId)
@@ -783,7 +796,8 @@ namespace Js
                         Utf8SourceInfo *srcInfo = sourceList->Item(i)->Get();
                         if (srcInfo && srcInfo->GetHostSourceContext() == sourceId)
                         {
-                            return  srcInfo->FindFunction(functionId);
+                            FunctionProxy *inlineeProxy = srcInfo->FindFunction(functionId);
+                            return inlineeProxy ? inlineeProxy->GetFunctionInfo() : nullptr;
                         }
                     }
                 }
@@ -840,7 +854,7 @@ namespace Js
         return &arrayCallSiteInfo[index];
     }
 
-    inline void DynamicProfileInfo::RecordFieldAccess(FunctionBody* functionBody, uint fieldAccessId, Var object, FldInfoFlags flags)
+    void DynamicProfileInfo::RecordFieldAccess(FunctionBody* functionBody, uint fieldAccessId, Var object, FldInfoFlags flags)
     {
         Assert(fieldAccessId < functionBody->GetProfiledFldCount());
         FldInfoFlags oldFlags = fldInfo[fieldAccessId].flags;
@@ -880,7 +894,7 @@ namespace Js
         }
     }
 
-    inline void DynamicProfileInfo::RecordDivideResultType(FunctionBody* body, ProfileId divideId, Var object)
+    void DynamicProfileInfo::RecordDivideResultType(FunctionBody* body, ProfileId divideId, Var object)
     {
         Assert(divideId < body->GetProfiledDivOrRemCount());
         divideTypeInfo[divideId] = divideTypeInfo[divideId].Merge(object);
@@ -888,10 +902,11 @@ namespace Js
 
     // We are overloading the value types to store whether it is a mod by power of 2.
     // TaggedInt:
-    inline void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body, ProfileId profileId, bool isModByPowerOf2)
+    void DynamicProfileInfo::RecordModulusOpType(FunctionBody* body,
+                                 ProfileId profileId, bool isModByPowerOf2)
     {
         Assert(profileId < body->GetProfiledDivOrRemCount());
-        // allow one op of the modulus to be optimized - anyway
+        /* allow one op of the modulus to be optimized - anyway */
         if (divideTypeInfo[profileId].IsUninitialized())
         {
             divideTypeInfo[profileId] = ValueType::GetInt(true);
@@ -900,11 +915,13 @@ namespace Js
         {
             if (isModByPowerOf2)
             {
-                divideTypeInfo[profileId] = divideTypeInfo[profileId].Merge(ValueType::GetInt(true));
+                divideTypeInfo[profileId] = divideTypeInfo[profileId]
+                                           .Merge(ValueType::GetInt(true));
             }
             else
             {
-                divideTypeInfo[profileId] = divideTypeInfo[profileId].Merge(ValueType::Float);
+                divideTypeInfo[profileId] = divideTypeInfo[profileId]
+                                           .Merge(ValueType::Float);
             }
         }
     }
@@ -921,7 +938,7 @@ namespace Js
         return divideTypeInfo[divideId];
     }
 
-    inline void DynamicProfileInfo::RecordSwitchType(FunctionBody* body, ProfileId switchId, Var object)
+    void DynamicProfileInfo::RecordSwitchType(FunctionBody* body, ProfileId switchId, Var object)
     {
         Assert(switchId < body->GetProfiledSwitchCount());
         switchTypeInfo[switchId] = switchTypeInfo[switchId].Merge(object);
@@ -942,12 +959,12 @@ namespace Js
             _u("New profile cache state: %d\n"), this->polymorphicCacheState);
     }
 
-    inline void DynamicProfileInfo::RecordPolymorphicFieldAccess(FunctionBody* functionBody, uint fieldAccessId)
+    void DynamicProfileInfo::RecordPolymorphicFieldAccess(FunctionBody* functionBody, uint fieldAccessId)
     {
         this->RecordFieldAccess(functionBody, fieldAccessId, nullptr, FldInfo_Polymorphic);
     }
 
-    inline void DynamicProfileInfo::RecordSlotLoad(FunctionBody* functionBody, ProfileId slotLoadId, Var object)
+    void DynamicProfileInfo::RecordSlotLoad(FunctionBody* functionBody, ProfileId slotLoadId, Var object)
     {
         Assert(slotLoadId < functionBody->GetProfiledSlotCount());
         slotInfo[slotLoadId] = slotInfo[slotLoadId].Merge(object);
@@ -958,7 +975,7 @@ namespace Js
         return static_cast<FldInfoFlags>(oldFlags | newFlags);
     }
 
-    inline void DynamicProfileInfo::RecordParameterInfo(FunctionBody *functionBody, ArgSlot index, Var object)
+    void DynamicProfileInfo::RecordParameterInfo(FunctionBody *functionBody, ArgSlot index, Var object)
     {
         Assert(this->parameterInfo != nullptr);
         Assert(index < functionBody->GetProfiledInParamsCount());
@@ -972,13 +989,13 @@ namespace Js
         return parameterInfo[index];
     }
 
-    inline void DynamicProfileInfo::RecordReturnTypeOnCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, Var object)
+    void DynamicProfileInfo::RecordReturnTypeOnCallSiteInfo(FunctionBody* functionBody, ProfileId callSiteId, Var object)
     {
         Assert(callSiteId < functionBody->GetProfiledCallSiteCount());
         this->callSiteInfo[callSiteId].returnType = this->callSiteInfo[callSiteId].returnType.Merge(object);
     }
 
-    inline void DynamicProfileInfo::RecordReturnType(FunctionBody* functionBody, ProfileId callSiteId, Var object)
+    void DynamicProfileInfo::RecordReturnType(FunctionBody* functionBody, ProfileId callSiteId, Var object)
     {
         Assert(callSiteId < functionBody->GetProfiledReturnTypeCount());
         this->returnTypeInfo[callSiteId] = this->returnTypeInfo[callSiteId].Merge(object);
@@ -997,7 +1014,7 @@ namespace Js
         return this->returnTypeInfo[callSiteId];
     }
 
-    inline void DynamicProfileInfo::RecordThisInfo(Var object, ThisType thisType)
+    void DynamicProfileInfo::RecordThisInfo(Var object, ThisType thisType)
     {
         this->thisInfo.valueType = this->thisInfo.valueType.Merge(object);
         this->thisInfo.thisType = max(this->thisInfo.thisType, thisType);
@@ -1311,7 +1328,7 @@ namespace Js
 
     bool DynamicProfileInfo::IsProfiledCallOp(OpCode op)
     {
-        return Js::OpCodeUtil::IsProfiledCallOp(op) || Js::OpCodeUtil::IsProfiledCallOpWithICIndex(op);
+        return Js::OpCodeUtil::IsProfiledCallOp(op) || Js::OpCodeUtil::IsProfiledCallOpWithICIndex(op) || Js::OpCodeUtil::IsProfiledConstructorCall(op);
     }
 
     bool DynamicProfileInfo::IsProfiledReturnTypeOp(OpCode op)
@@ -1479,7 +1496,7 @@ namespace Js
             {
                 DumpProfiledValuesGroupedByValue(
                     _u("Element load"),
-                    this->ldElemInfo,
+                    static_cast<LdElemInfo*>(this->ldElemInfo),
                     this->functionBody->GetProfiledLdElemCount(),
                     [](const LdElemInfo *const ldElemInfo, const uint i) -> ValueType
                 {
@@ -1488,7 +1505,7 @@ namespace Js
                     dynamicProfileInfoAllocator);
                 DumpProfiledValuesGroupedByValue(
                     _u("Fld"),
-                    this->fldInfo,
+                    static_cast<FldInfo *>(this->fldInfo),
                     functionBody->GetProfiledFldCount(),
                     [](const FldInfo *const fldInfos, const uint i) -> ValueType
                 {
@@ -1557,9 +1574,10 @@ namespace Js
                 _u(" disableNoProfileBailouts: %s")
                 _u(" disableSwitchOpt : %s")
                 _u(" disableEquivalentObjTypeSpec : %s\n")
-                _u(" disableObjTypeSpec_jitLoopBody : %s\n"),
-                _u(" disablePowIntTypeSpec : %s\n"),
-                _u(" disableStackArgOpt : %s\n"),
+                _u(" disableObjTypeSpec_jitLoopBody : %s\n")
+                _u(" disablePowIntTypeSpec : %s\n")
+                _u(" disableStackArgOpt : %s\n")
+                _u(" disableTagCheck : %s\n"),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec),
                 IsTrueOrFalse(this->bits.disableAggressiveIntTypeSpec_jitLoopBody),
                 IsTrueOrFalse(this->bits.disableAggressiveMulIntTypeSpec),
@@ -1594,16 +1612,18 @@ namespace Js
                 IsTrueOrFalse(this->bits.disableEquivalentObjTypeSpec),
                 IsTrueOrFalse(this->bits.disableObjTypeSpec_jitLoopBody),
                 IsTrueOrFalse(this->bits.disablePowIntIntTypeSpec),
-                IsTrueOrFalse(this->bits.disableStackArgOpt));
+                IsTrueOrFalse(this->bits.disableStackArgOpt),
+                IsTrueOrFalse(this->bits.disableTagCheck));
         }
     }
 
-    void DynamicProfileInfo::DumpList(SListBase<DynamicProfileInfo *> * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator)
+    void DynamicProfileInfo::DumpList(
+        DynamicProfileInfoList * profileInfoList, ArenaAllocator * dynamicProfileInfoAllocator)
     {
         AUTO_NESTED_HANDLED_EXCEPTION_TYPE(ExceptionType_DisableCheck);
         if (Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase))
         {
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 if (Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase, info->GetFunctionBody()->GetSourceContextId(), info->GetFunctionBody()->GetLocalFunctionId()))
                 {
@@ -1615,7 +1635,7 @@ namespace Js
 
         if (Configuration::Global.flags.Dump.IsEnabled(JITLoopBodyPhase) && !Configuration::Global.flags.Dump.IsEnabled(DynamicProfilePhase))
         {
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 if (info->functionBody->GetLoopCount() > 0)
                 {
@@ -1636,7 +1656,7 @@ namespace Js
             uint elementAccessSaved = 0;
             uint fldAccessSaved = 0;
 
-            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+            FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
             {
                 bool hasHotLoop = false;
                 if (info->functionBody->DoJITLoopBody())
@@ -1901,6 +1921,9 @@ namespace Js
 
             if (callSiteInfoCount != 0)
             {
+                // CallSiteInfo contains pointer "polymorphicCallSiteInfo", but
+                // we explicitly save that pointer in FunctionBody. Safe to
+                // allocate CallSiteInfo[] as Leaf here.
                 callSiteInfo = RecyclerNewArrayLeaf(recycler, CallSiteInfo, callSiteInfoCount);
                 if (!reader->ReadArray(callSiteInfo, callSiteInfoCount))
                 {
@@ -2039,8 +2062,8 @@ namespace Js
 
         // That means that the data will never go away, probably not a good policy if this is cached for web page in WININET.
 
-        SListBase<DynamicProfileInfo *> * profileInfoList = scriptContext->GetProfileInfoList();
-        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, profileInfoList)
+        DynamicProfileInfoList * profileInfoList = scriptContext->GetProfileInfoList();
+        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, profileInfoList)
         {
             FunctionBody * functionBody = info->GetFunctionBody();
             SourceDynamicProfileManager * sourceDynamicProfileManager = functionBody->GetSourceContextInfo()->sourceDynamicProfileManager;
@@ -2054,13 +2077,13 @@ namespace Js
     CriticalSection DynamicProfileInfo::s_csOutput;
 
     template <typename T>
-    void DynamicProfileInfo::WriteData(T data, FILE * file)
+    void DynamicProfileInfo::WriteData(const T& data, FILE * file)
     {
         fwrite(&data, sizeof(T), 1, file);
     }
 
     template <>
-    void DynamicProfileInfo::WriteData<char16 const *>(char16 const * sz, FILE * file)
+    void DynamicProfileInfo::WriteData<char16 const *>(char16 const * const& sz, FILE * file)
     {
         if (sz)
         {
@@ -2088,8 +2111,14 @@ namespace Js
         }
     }
 
+    template <typename T>
+    void DynamicProfileInfo::WriteArray(uint count, WriteBarrierPtr<T> arr, FILE * file)
+    {
+        WriteArray(count, static_cast<T*>(arr), file);
+    }
+
     template <>
-    void DynamicProfileInfo::WriteData<FunctionBody *>(FunctionBody * functionBody, FILE * file)
+    void DynamicProfileInfo::WriteData<FunctionBody *>(FunctionBody * const& functionBody, FILE * file)
     {
         WriteData(functionBody->GetSourceContextInfo()->sourceContextId, file);
         WriteData(functionBody->GetLocalFunctionId(), file);
@@ -2124,7 +2153,7 @@ namespace Js
             });
         }
 
-        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo *, info, scriptContext->GetProfileInfoList())
+        FOREACH_SLISTBASE_ENTRY(DynamicProfileInfo * const, info, scriptContext->GetProfileInfoList())
         {
             WriteData((byte)1, file);
             WriteData(info->functionBody, file);

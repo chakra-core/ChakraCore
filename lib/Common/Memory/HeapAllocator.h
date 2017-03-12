@@ -68,7 +68,9 @@ struct HeapAllocRecord
     TrackAllocData    allocData;
     HeapAllocatorData* data;
 #if defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT)
+#ifdef STACK_BACK_TRACE
     StackBackTrace * stacktrace;
+#endif
 #endif
 };
 struct HeapAllocatorData
@@ -155,7 +157,7 @@ public:
 
     static bool CheckLeaks();
 
-    __declspec(thread) static TrackAllocData nextAllocData;
+    THREAD_LOCAL static TrackAllocData nextAllocData;
     HeapAllocatorData data;
     static CriticalSection cs;
 #endif // HEAP_TRACK_ALLOC
@@ -182,9 +184,21 @@ class NoThrowHeapAllocator
 {
 public:
     static const bool FakeZeroLengthArray = false;
+
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t byteSize);
     char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t byteSize);
     void Free(void * buffer, size_t byteSize);
+
+    char * NoThrowAlloc(DECLSPEC_GUARD_OVERFLOW size_t byteSize)
+    {
+        return Alloc(byteSize);
+    }
+
+    char * NoThrowAllocZero(DECLSPEC_GUARD_OVERFLOW size_t byteSize)
+    {
+        return AllocZero(byteSize);
+    }
+
     static NoThrowHeapAllocator Instance;
 
 #ifdef TRACK_ALLOC

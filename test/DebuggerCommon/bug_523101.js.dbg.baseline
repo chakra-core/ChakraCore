@@ -1,0 +1,64 @@
+[
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 8,
+        "sourceText": "x = 1",
+        "function": "bar2"
+      },
+      {
+        "line": 18,
+        "column": 12,
+        "sourceText": "y = bar2({ a: 1 })",
+        "function": "test0"
+      },
+      {
+        "line": 24,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "function <large string>",
+      "a": "function function a() { }",
+      "bar2": "function <large string>"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 7,
+        "column": 8,
+        "sourceText": "x = 1",
+        "function": "bar2"
+      },
+      {
+        "line": 18,
+        "column": 12,
+        "sourceText": "y = bar2({ a: 1 })",
+        "function": "test0"
+      },
+      {
+        "line": 25,
+        "column": 0,
+        "sourceText": "test0()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "b": "function <large string>",
+      "a": "function function a() { }",
+      "bar2": "function <large string>"
+    }
+  }
+]

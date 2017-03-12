@@ -1,0 +1,42 @@
+[
+  {
+    "evaluate": {
+      "let x = 1;": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "let y = 1;let z = 1;": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "WScript.Echo(x == 2);WScript.Echo(y === 2);": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "WScript.Echo(x == 1);": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "WScript.Echo(y == 1);": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "WScript.Echo(z == 1);": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "var myClosure=function(){x1+=1;return x1;};WScript.Echo(myClosure() == 2);WScript.Echo(myClosure() == 3);": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "WScript.Echo(myClosure() == 4);": "undefined undefined"
+    }
+  }
+]

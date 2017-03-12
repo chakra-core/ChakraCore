@@ -9,7 +9,7 @@
 namespace Js
 {
     IndexPropertyDescriptorMap::IndexPropertyDescriptorMap(Recycler* recycler)
-        : recycler(recycler), indexList(NULL), lastIndexAt(-1)
+        : recycler(recycler), indexList(nullptr), lastIndexAt(-1)
     {
         indexPropertyMap = RecyclerNew(recycler, InnerMap, recycler);
     }
@@ -21,7 +21,7 @@ namespace Js
             Js::Throw::OutOfMemory(); // Would possibly overflow our dictionary
         }
 
-        indexList = NULL; // Discard indexList on change
+        indexList = nullptr; // Discard indexList on change
         indexPropertyMap->Add(key, value);
     }
 
@@ -174,8 +174,8 @@ namespace Js
 
             if (descriptor->Attributes & PropertyConfigurable)
             {
-                descriptor->Getter = NULL;
-                descriptor->Setter = NULL;
+                descriptor->Getter = nullptr;
+                descriptor->Setter = nullptr;
                 descriptor->Attributes = PropertyDeleted | PropertyWritable | PropertyConfigurable;
             }
             else
@@ -371,7 +371,7 @@ namespace Js
         // Reject if we need to grow non-writable length
         if (!CanSetItemAt(arr, index))
         {
-            return false;
+            return CantExtend(flags, scriptContext);
         }
 
         IndexPropertyDescriptor* descriptor;
@@ -640,14 +640,14 @@ namespace Js
             }
             else if (!(descriptor->Attributes & PropertyConfigurable))
             {
-                JavascriptError::ThrowCantDeleteIfStrictMode(propertyOperationFlags, instance->GetScriptContext(), TaggedInt::ToString(index, instance->GetScriptContext())->GetString());
+                JavascriptError::ThrowCantDelete(propertyOperationFlags, instance->GetScriptContext(), TaggedInt::ToString(index, instance->GetScriptContext())->GetString());
 
                 return false;
             }
 
             arr->DirectDeleteItemAt<Var>(index);
-            descriptor->Getter = NULL;
-            descriptor->Setter = NULL;
+            descriptor->Getter = nullptr;
+            descriptor->Setter = nullptr;
             descriptor->Attributes = PropertyDeleted | PropertyWritable | PropertyConfigurable;
             return true;
         }
@@ -950,7 +950,7 @@ namespace Js
     }
 
     template <class T>
-    void ES5ArrayTypeHandlerBase<T>::SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags)
+    uint32 ES5ArrayTypeHandlerBase<T>::SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags)
     {
         Assert(IsLengthWritable()); // Should have already checked
 
@@ -966,6 +966,7 @@ namespace Js
         // Strict mode TODO: In strict mode we may need to throw if we cannot delete to
         // requested newLen (ES5 15.4.5.1 3.l.III.4).
         //
+        return newLen;
     }
 
     template <class T>

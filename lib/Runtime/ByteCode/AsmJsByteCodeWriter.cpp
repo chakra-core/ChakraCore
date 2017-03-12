@@ -5,50 +5,19 @@
 
 #include "RuntimeByteCodePch.h"
 
-#ifndef TEMP_DISABLE_ASMJS
-#include "ByteCode/AsmJsByteCodeWriter.h"
+#ifdef ASMJS_PLAT
 
 namespace Js
 {
-    template <>
-    inline uint ByteCodeWriter::Data::EncodeT<SmallLayout>(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
-    {
-        Assert(op < Js::OpCodeAsmJs::ByteCodeLast);
-
-        uint offset;
-        if (op <= Js::OpCode::MaxByteSizedOpcodes)
-        {
-            byte byteop = (byte)op;
-            offset = Write(&byteop, sizeof(byte));
-        }
-        else
-        {
-            byte byteop = (byte)Js::OpCodeAsmJs::ExtendedOpcodePrefix;
-            offset = Write(&byteop, sizeof(byte));
-            byteop = (byte)op;
-            Write(&byteop, sizeof(byte));
-        }
-
-        if (!isPatching)
-        {
-            writer->IncreaseByteCodeCount();
-        }
-        return offset;
-    }
-
     template <LayoutSize layoutSize>
     inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
     {
-        Assert(op < Js::OpCodeAsmJs::ByteCodeLast);
+        Assert(OpCodeUtilAsmJs::IsValidByteCodeOpcode(op));
 
-        CompileAssert(layoutSize != SmallLayout);
-        const byte exop = (byte)((op <= Js::OpCodeAsmJs::MaxByteSizedOpcodes) ?
-            (layoutSize == LargeLayout ? Js::OpCodeAsmJs::LargeLayoutPrefix : Js::OpCodeAsmJs::MediumLayoutPrefix) :
-            (layoutSize == LargeLayout ? Js::OpCodeAsmJs::ExtendedLargeLayoutPrefix : Js::OpCodeAsmJs::ExtendedMediumLayoutPrefix));
-
-        uint offset = Write(&exop, sizeof(byte));
-        byte byteop = (byte)op;
-        Write(&byteop, sizeof(byte));
+        Assert(layoutSize == SmallLayout || OpCodeAttrAsmJs::HasMultiSizeLayout(op));
+        // Capture offset before encoding the opcode
+        uint offset = GetCurrentOffset();
+        EncodeOpCode<layoutSize>((ushort)op, writer);
 
         if (!isPatching)
         {
@@ -174,6 +143,7 @@ namespace Js
         }
         return false;
     }
+
     template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteAsmReg9(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8)
     {
@@ -258,21 +228,58 @@ namespace Js
     }
 
     template <typename SizePolicy>
-    bool AsmJsByteCodeWriter::TryWriteAsmReg2IntConst1(OpCodeAsmJs op, RegSlot R0, RegSlot R1, int C2)
+    bool AsmJsByteCodeWriter::TryWriteInt1Const1(OpCodeAsmJs op, RegSlot R0, int C1)
     {
-        OpLayoutT_AsmReg2IntConst1<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.R1, R1) && SizePolicy::Assign(layout.C2, C2))
+        OpLayoutT_Int1Const1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.I0, R0) && SizePolicy::Assign(layout.C1, C1))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
             return true;
         }
         return false;
     }
+
     template <typename SizePolicy>
-    bool AsmJsByteCodeWriter::TryWriteInt1Const1(OpCodeAsmJs op, RegSlot R0, int C1)
+    bool AsmJsByteCodeWriter::TryWriteReg1IntConst1(OpCodeAsmJs op, RegSlot R0, int C1)
     {
-        OpLayoutT_Int1Const1<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.I0, R0) && SizePolicy::Assign(layout.C1, C1))
+        OpLayoutT_Reg1IntConst1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.R0, R0) && SizePolicy::Assign(layout.C1, C1))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteLong1Const1(OpCodeAsmJs op, RegSlot R0, int64 C1)
+    {
+        OpLayoutT_Long1Const1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.L0, R0) && SizePolicy::Assign(layout.C1, C1))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteFloat1Const1(OpCodeAsmJs op, RegSlot R0, float C1)
+    {
+        OpLayoutT_Float1Const1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.F0, R0) && SizePolicy::Assign(layout.C1, C1))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteDouble1Const1(OpCodeAsmJs op, RegSlot R0, double C1)
+    {
+        OpLayoutT_Double1Const1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.D0, R0) && SizePolicy::Assign(layout.C1, C1))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
             return true;
@@ -311,6 +318,21 @@ namespace Js
     }
 
     template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteAsmBrReg1Const1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1)
+    {
+        OpLayoutT_BrInt1Const1<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.I1, R1) && SizePolicy::Assign(layout.C1, C1))
+        {
+            size_t const offsetOfRelativeJumpOffsetFromEnd = sizeof(OpLayoutT_BrInt1Const1<SizePolicy>) - offsetof(OpLayoutT_BrInt1Const1<SizePolicy>, RelativeJumpOffset);
+            layout.RelativeJumpOffset = offsetOfRelativeJumpOffsetFromEnd;
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            AddJumpOffset(op, labelID, offsetOfRelativeJumpOffsetFromEnd);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteAsmCall(OpCodeAsmJs op, RegSlot returnValueRegister, RegSlot functionRegister, ArgSlot givenArgCount, AsmJsRetType retType)
     {
         OpLayoutT_AsmCall<SizePolicy> layout;
@@ -337,10 +359,24 @@ namespace Js
     }
 
     template <typename SizePolicy>
+    bool AsmJsByteCodeWriter::TryWriteWasmMemAccess(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint32 offset, ArrayBufferView::ViewType viewType)
+    {
+        OpLayoutT_WasmMemAccess<SizePolicy> layout;
+        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<ArrayBufferView::ViewType>(layout.ViewType, viewType)
+            && SizePolicy::Assign(layout.SlotIndex, slotIndex)
+            && SizePolicy::Assign(layout.Offset, offset))
+        {
+            m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
+            return true;
+        }
+        return false;
+    }
+
+    template <typename SizePolicy>
     bool AsmJsByteCodeWriter::TryWriteAsmTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType)
     {
         OpLayoutT_AsmTypedArr<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<int8>(layout.ViewType, (int8)viewType)
+        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<ArrayBufferView::ViewType>(layout.ViewType, viewType)
             && SizePolicy::Assign(layout.SlotIndex, slotIndex))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
@@ -353,7 +389,7 @@ namespace Js
     bool AsmJsByteCodeWriter::TryWriteAsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType)
     {
         OpLayoutT_AsmSimdTypedArr<SizePolicy> layout;
-        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<int8>(layout.ViewType, (int8)viewType)
+        if (SizePolicy::Assign(layout.Value, value) && SizePolicy::template Assign<ArrayBufferView::ViewType>(layout.ViewType, viewType)
             && SizePolicy::Assign(layout.SlotIndex, slotIndex) && SizePolicy::template Assign<int8>(layout.DataWidth, dataWidth))
         {
             m_byteCodeData.EncodeT<SizePolicy::LayoutEnum>(op, &layout, sizeof(layout), this);
@@ -375,6 +411,26 @@ namespace Js
     void AsmJsByteCodeWriter::AsmInt1Const1(OpCodeAsmJs op, RegSlot R0, int C1)
     {
         MULTISIZE_LAYOUT_WRITE(Int1Const1, op, R0, C1);
+    }
+
+    void AsmJsByteCodeWriter::AsmReg1IntConst1(OpCodeAsmJs op, RegSlot R0, int C1)
+    {
+        MULTISIZE_LAYOUT_WRITE(Reg1IntConst1, op, R0, C1);
+    }
+
+    void AsmJsByteCodeWriter::AsmLong1Const1(OpCodeAsmJs op, RegSlot R0, int64 C1)
+    {
+        MULTISIZE_LAYOUT_WRITE(Long1Const1, op, R0, C1);
+    }
+
+    void AsmJsByteCodeWriter::AsmFloat1Const1(OpCodeAsmJs op, RegSlot R0, float C1)
+    {
+        MULTISIZE_LAYOUT_WRITE(Float1Const1, op, R0, C1);
+    }
+
+    void AsmJsByteCodeWriter::AsmDouble1Const1(OpCodeAsmJs op, RegSlot R0, double C1)
+    {
+        MULTISIZE_LAYOUT_WRITE(Double1Const1, op, R0, C1);
     }
 
     void AsmJsByteCodeWriter::AsmReg1(OpCodeAsmJs op, RegSlot R0)
@@ -411,17 +467,16 @@ namespace Js
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg7, op, R0, R1, R2, R3, R4, R5, R6);
     }
-    
+
     void AsmJsByteCodeWriter::AsmReg9(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8)
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg9, op, R0, R1, R2, R3, R4, R5, R6, R7, R8);
     }
-
     void AsmJsByteCodeWriter::AsmReg10(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8, RegSlot R9)
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg10, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
     }
-    
+
     void AsmJsByteCodeWriter::AsmReg11(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8, RegSlot R9, RegSlot R10)
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg11, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
@@ -432,7 +487,7 @@ namespace Js
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg17, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16);
     }
-    
+
     void AsmJsByteCodeWriter::AsmReg18(OpCodeAsmJs op, RegSlot R0, RegSlot R1, RegSlot R2, RegSlot R3, RegSlot R4, RegSlot R5, RegSlot R6, RegSlot R7, RegSlot R8,
         RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17)
     {
@@ -443,10 +498,6 @@ namespace Js
         RegSlot R9, RegSlot R10, RegSlot R11, RegSlot R12, RegSlot R13, RegSlot R14, RegSlot R15, RegSlot R16, RegSlot R17, RegSlot R18)
     {
         MULTISIZE_LAYOUT_WRITE(AsmReg19, op, R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18);
-    }
-    void AsmJsByteCodeWriter::AsmReg2IntConst1(OpCodeAsmJs op, RegSlot R0, RegSlot R1, int C2)
-    {
-        MULTISIZE_LAYOUT_WRITE(AsmReg2IntConst1, op, R0, R1, C2);
     }
 
     void AsmJsByteCodeWriter::AsmBr(ByteCodeLabel labelID, OpCodeAsmJs op)
@@ -478,6 +529,14 @@ namespace Js
         MULTISIZE_LAYOUT_WRITE(AsmBrReg2, op, labelID, R1, R2);
     }
 
+    void AsmJsByteCodeWriter::AsmBrReg1Const1(OpCodeAsmJs op, ByteCodeLabel labelID, RegSlot R1, int C1)
+    {
+        CheckOpen();
+        CheckLabel(labelID);
+
+        MULTISIZE_LAYOUT_WRITE(AsmBrReg1Const1, op, labelID, R1, C1);
+    }
+
     void AsmJsByteCodeWriter::AsmStartCall(OpCodeAsmJs op, ArgSlot ArgCount, bool isPatching)
     {
         CheckOpen();
@@ -495,6 +554,11 @@ namespace Js
     void AsmJsByteCodeWriter::AsmTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, ArrayBufferView::ViewType viewType)
     {
         MULTISIZE_LAYOUT_WRITE(AsmTypedArr, op, value, slotIndex, viewType);
+    }
+
+    void AsmJsByteCodeWriter::WasmMemAccess(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint32 offset, ArrayBufferView::ViewType viewType)
+    {
+        MULTISIZE_LAYOUT_WRITE(WasmMemAccess, op, value, slotIndex, offset, viewType);
     }
 
     void AsmJsByteCodeWriter::AsmSimdTypedArr(OpCodeAsmJs op, RegSlot value, uint32 slotIndex, uint8 dataWidth, ArrayBufferView::ViewType viewType)

@@ -14,9 +14,7 @@ namespace utf8
     /// The returned string is null terminated.
     ///
     template <class Allocator>
-    HRESULT WideStringToNarrow(
-        LPCWSTR sourceString, size_t sourceCount,
-        LPSTR* destStringPtr, size_t* destCount)
+    HRESULT WideStringToNarrow(_In_ LPCWSTR sourceString, size_t sourceCount, _Out_ LPSTR* destStringPtr, _Out_ size_t* destCount)
     {
         size_t cchSourceString = sourceCount;
 
@@ -54,9 +52,7 @@ namespace utf8
     /// The returned string is null terminated.
     ///
     template <class Allocator>
-    HRESULT NarrowStringToWide(
-        LPCSTR sourceString, size_t sourceCount,
-        LPWSTR* destStringPtr, size_t* destCount)
+    HRESULT NarrowStringToWide(_In_ LPCSTR sourceString, size_t sourceCount, _Out_ LPWSTR* destStringPtr, _Out_ size_t* destCount)
     {
         size_t cbSourceString = sourceCount;
         charcount_t cchDestString = utf8::ByteIndexIntoCharacterIndex((LPCUTF8) sourceString, cbSourceString);
@@ -75,10 +71,9 @@ namespace utf8
         }
 
         // Some node tests depend on the utf8 decoder not swallowing invalid unicode characters
-        // instead of replacing them with the "replacement" chracter. Pass a flag to our 
+        // instead of replacing them with the "replacement" chracter. Pass a flag to our
         // decoder to require such behavior
-        utf8::DecodeIntoAndNullTerminate(destString, (LPCUTF8) sourceString, cchDestString,
-            DecodeOptions::doAllowInvalidWCHARs);
+        utf8::DecodeUnitsIntoAndNullTerminateNoAdvance(destString, (LPCUTF8) sourceString, (LPCUTF8) sourceString + cbSourceString, DecodeOptions::doAllowInvalidWCHARs);
         Assert(destString[cchDestString] == 0);
         static_assert(sizeof(utf8char_t) == sizeof(char), "Needs to be valid for cast");
         *destStringPtr = destString;
@@ -93,21 +88,21 @@ namespace utf8
         static void free(void* ptr, size_t count) { ::free(ptr); }
     };
 
-    inline HRESULT WideStringToNarrowDynamic(LPCWSTR sourceString, LPSTR* destStringPtr)
+    inline HRESULT WideStringToNarrowDynamic(_In_ LPCWSTR sourceString, _Out_ LPSTR* destStringPtr)
     {
         size_t unused;
         return WideStringToNarrow<malloc_allocator>(
             sourceString, wcslen(sourceString), destStringPtr, &unused);
     }
 
-    inline HRESULT NarrowStringToWideDynamic(LPCSTR sourceString, LPWSTR* destStringPtr)
+    inline HRESULT NarrowStringToWideDynamic(_In_ LPCSTR sourceString, _Out_ LPWSTR* destStringPtr)
     {
         size_t unused;
         return NarrowStringToWide<malloc_allocator>(
             sourceString, strlen(sourceString), destStringPtr, &unused);
     }
 
-    inline HRESULT NarrowStringToWideDynamicGetLength(LPCSTR sourceString, LPWSTR* destStringPtr, size_t* destLength)
+    inline HRESULT NarrowStringToWideDynamicGetLength(_In_ LPCSTR sourceString, _Out_ LPWSTR* destStringPtr, _Out_ size_t* destLength)
     {
         return NarrowStringToWide<malloc_allocator>(
             sourceString, strlen(sourceString), destStringPtr, destLength);
@@ -172,7 +167,17 @@ namespace utf8
         size_t dstCount;
 
     public:
+        NarrowWideConverter() : dst()
+        {
+            // do nothing
+        }
+
         NarrowWideConverter(const SrcType& src, size_t srcCount = -1): dst()
+        {
+            Initialize(src, srcCount);
+        }
+
+        void Initialize(const SrcType& src, size_t srcCount = -1)
         {
             if (srcCount == -1)
             {

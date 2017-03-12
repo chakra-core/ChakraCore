@@ -242,7 +242,7 @@ InstructionType EncoderMD::CanonicalizeMov(IR::Instr * instr)
         return InstructionType::Thumb;
     }
 
-    IntConstType immed = srcOpnd->GetImmediateValue();
+    int32 immed = srcOpnd->GetImmediateValueAsInt32(instr->m_func);
     if (IS_LOWREG(dstOpnd->GetReg()) &&
         IS_CONST_UINT8(immed))
     {
@@ -369,7 +369,7 @@ bool EncoderMD::IsWideMemInstr(IR::Opnd *memOpnd, IR::RegOpnd *regOpnd)
 InstructionType EncoderMD::CanonicalizeAdd(IR::Instr * instr)
 {
     IR::Opnd *src2 = instr->GetSrc2();
-    IntConstType immed = 0;
+    int32 immed = 0;
 
     // Check cases that apply to ADD but not SUB.
     if (src2->IsRegOpnd())
@@ -383,7 +383,7 @@ InstructionType EncoderMD::CanonicalizeAdd(IR::Instr * instr)
     }
     else
     {
-        immed = src2->GetImmediateValue();
+        immed = src2->GetImmediateValueAsInt32(instr->m_func);
 
         // Check for rm = ADD SP, uint8:00
         if (IS_LOWREG(instr->GetDst()->AsRegOpnd()->GetReg()))
@@ -424,10 +424,11 @@ InstructionType EncoderMD::CanonicalizeSub(IR::Instr * instr)
 
         // The instr is definitely wide. Let the opcode indicate that if we're using the uint12 form.
         // Note that the uint12 form can't set the status bits.
-        if (!src2->IsRegOpnd() && !this->CanEncodeModConst12(src2->GetImmediateValue()))
+        Assert(!IRType_IsInt64(src2->GetType()));
+        if (!src2->IsRegOpnd() && !this->CanEncodeModConst12(src2->GetImmediateValueAsInt32(instr->m_func)))
         {
             Assert(instr->m_opcode != Js::OpCode::SUBS);
-            Assert(IS_CONST_UINT12(src2->GetImmediateValue()));
+            Assert(IS_CONST_UINT12(src2->GetImmediateValueAsInt32(instr->m_func)));
             instr->m_opcode = Js::OpCode::SUBW;
         }
 
@@ -442,7 +443,7 @@ bool EncoderMD::IsWideAddSub(IR::Instr * instr)
     IR::RegOpnd *dst = instr->GetDst()->AsRegOpnd();
     IR::RegOpnd *src1 = instr->GetSrc1()->AsRegOpnd();
     IR::Opnd *src2 = instr->GetSrc2();
-    IntConstType immed;
+    int32 immed;
 
     if (dst->GetReg() == RegSP)
     {
@@ -455,7 +456,7 @@ bool EncoderMD::IsWideAddSub(IR::Instr * instr)
         {
             return true;
         }
-        immed = src2->GetImmediateValue();
+        immed = src2->GetImmediateValueAsInt32(instr->m_func);
         return ((immed & 3) != 0) || !IS_CONST_UINT7(immed >> 2);
     }
     else
@@ -473,7 +474,7 @@ bool EncoderMD::IsWideAddSub(IR::Instr * instr)
         }
         else
         {
-            immed = src2->GetImmediateValue();
+            immed = src2->GetImmediateValueAsInt32(instr->m_func);
             return dst->IsSameReg(src1) ? !IS_CONST_UINT8(immed) : !IS_CONST_UINT3(immed);
         }
     }
@@ -535,7 +536,7 @@ InstructionType EncoderMD::CmpEncodeType(IR::Instr * instr)
     }
 
     if (IS_LOWREG(instr->GetSrc1()->AsRegOpnd()->GetReg()) &&
-        IS_CONST_UINT8(src2->GetImmediateValue()))
+        IS_CONST_UINT8(src2->GetImmediateValueAsInt32(instr->m_func)))
     {
         return InstructionType::Thumb;
     }
@@ -638,7 +639,7 @@ InstructionType EncoderMD::ShiftEncodeType(IR::Instr * instr)
     }
     else
     {
-        Assert(IS_CONST_UINT5(src2->GetImmediateValue()));
+        Assert(IS_CONST_UINT5(src2->GetImmediateValueAsInt32(instr->m_func)));
         return IS_LOWREG(src1->GetReg()) ? InstructionType::Thumb : InstructionType::Thumb2;
     }
 }
@@ -1050,7 +1051,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, IFORM iform, BYTE *pc, int32 size,
 
                 case STEP_CONSTANT:
                     Assert(opn->IsImmediateOpnd());
-                    constant = opn->GetImmediateValue();
+                    constant = opn->GetImmediateValueAsInt32(instr->m_func);
                     constantValid = true;
                     continue;
 
@@ -1527,7 +1528,7 @@ EncoderMD::GenerateEncoding(IR::Instr* instr, IFORM iform, BYTE *pc, int32 size,
                     else
                     {
                         Assert(opn->IsImmediateOpnd());
-                        offset = opn->GetImmediateValue();
+                        offset = opn->GetImmediateValueAsInt32(instr->m_func);
                     }
                     encode = this->EncodeT2Offset(encode, instr, offset, bitOffset);
                     continue;
@@ -1918,7 +1919,7 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
         {
             if (instr->isInlineeEntryInstr)
             {
-                Js::Var inlineeCallInfo = 0;
+                intptr_t inlineeCallInfo = 0;
                 const bool encodeResult = Js::InlineeCallInfo::Encode(inlineeCallInfo, instr->AsLabelInstr()->GetOffset(), m_pc - m_encoder->m_encodeBuffer);
                 Assert(encodeResult);
                 //We are re-using offset to save the inlineeCallInfo which will be patched in ApplyRelocs
@@ -2263,7 +2264,7 @@ EncoderMD::BaseAndOffsetFromSym(IR::SymOpnd *symOpnd, RegNum *pBaseReg, int32 *p
 /// before we copy the contents of the temporary buffer to the target buffer.
 ///----------------------------------------------------------------------------
 void
-EncoderMD::ApplyRelocs(uint32 codeBufferAddress)
+EncoderMD::ApplyRelocs(uint32 codeBufferAddress, size_t codeSize, uint* bufferCRC, BOOL isBrShorteningSucceeded, bool isFinalBufferValidation)
 {
     for (EncodeReloc *reloc = m_relocList; reloc; reloc = reloc->m_next)
     {

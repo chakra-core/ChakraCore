@@ -1,0 +1,542 @@
+[
+  {
+    "evaluate": {
+      "map": {
+        "#__proto__": {
+          "#__proto__": {
+            "constructor": "function <large string>",
+            "hasOwnProperty": "function <large string>",
+            "propertyIsEnumerable": "function <large string>",
+            "isPrototypeOf": "function <large string>",
+            "toLocaleString": "function <large string>",
+            "toString": "function <large string>",
+            "valueOf": "function <large string>",
+            "#__proto__": "object null",
+            "__defineGetter__": "function <large string>",
+            "__defineSetter__": "function <large string>",
+            "__lookupGetter__": "function <large string>",
+            "__lookupSetter__": "function <large string>"
+          },
+          "constructor": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "prototype": "Object {...}",
+            "[Symbol.species]": "function <large string>",
+            "name": "string Map",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "clear": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string clear",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "delete": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string delete",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "forEach": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string forEach",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "get": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string get",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "has": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string has",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "set": {
+            "#__proto__": "function <large string>",
+            "length": "number 2",
+            "name": "string set",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "size": "number 1",
+          "entries": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string entries",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "keys": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string keys",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "values": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string values",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "Symbol.iterator": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string entries",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "Symbol.toStringTag": "string Map"
+        },
+        "[Map]": {
+          "0": {
+            "key": "undefined undefined",
+            "value": "undefined undefined"
+          }
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "map.set()": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "clear": "function <large string>",
+          "delete": "function <large string>",
+          "forEach": "function <large string>",
+          "get": "function <large string>",
+          "has": "function <large string>",
+          "set": "function <large string>",
+          "size": "number 1",
+          "entries": "function <large string>",
+          "keys": "function <large string>",
+          "values": "function <large string>",
+          "Symbol.iterator": "function <large string>",
+          "Symbol.toStringTag": "string Map"
+        },
+        "[Map]": {
+          "0": "Object <large string>"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "map.size==2": "boolean false"
+    }
+  },
+  {
+    "evaluate": {
+      "map.clear()": "undefined undefined"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 14,
+        "column": 8,
+        "sourceText": "var x = 1",
+        "function": "bar"
+      },
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "bar(map)",
+        "function": "foo"
+      },
+      {
+        "line": 31,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "map": {
+        "#__proto__": {
+          "#__proto__": {
+            "constructor": "function <large string>",
+            "hasOwnProperty": "function <large string>",
+            "propertyIsEnumerable": "function <large string>",
+            "isPrototypeOf": "function <large string>",
+            "toLocaleString": "function <large string>",
+            "toString": "function <large string>",
+            "valueOf": "function <large string>",
+            "#__proto__": "object null",
+            "__defineGetter__": "function <large string>",
+            "__defineSetter__": "function <large string>",
+            "__lookupGetter__": "function <large string>",
+            "__lookupSetter__": "function <large string>"
+          },
+          "constructor": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "prototype": "Object {...}",
+            "[Symbol.species]": "function <large string>",
+            "name": "string Map",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "clear": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string clear",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "delete": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string delete",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "forEach": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string forEach",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "get": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string get",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "has": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string has",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "set": {
+            "#__proto__": "function <large string>",
+            "length": "number 2",
+            "name": "string set",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "size": "number 0",
+          "entries": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string entries",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "keys": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string keys",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "values": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string values",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "Symbol.iterator": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string entries",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "Symbol.toStringTag": "string Map"
+        },
+        "[Map]": "string size = 0"
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "map": {
+        "#__proto__": {
+          "#__proto__": {
+            "constructor": "function <large string>",
+            "hasOwnProperty": "function <large string>",
+            "propertyIsEnumerable": "function <large string>",
+            "isPrototypeOf": "function <large string>",
+            "toLocaleString": "function <large string>",
+            "toString": "function <large string>",
+            "valueOf": "function <large string>",
+            "#__proto__": "object null",
+            "__defineGetter__": "function <large string>",
+            "__defineSetter__": "function <large string>",
+            "__lookupGetter__": "function <large string>",
+            "__lookupSetter__": "function <large string>"
+          },
+          "constructor": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "prototype": "Object {...}",
+            "[Symbol.species]": "function <large string>",
+            "name": "string Map",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "clear": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string clear",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "delete": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string delete",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "forEach": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string forEach",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "get": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string get",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "has": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string has",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "set": {
+            "#__proto__": "function <large string>",
+            "length": "number 2",
+            "name": "string set",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "size": "number 1",
+          "entries": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string entries",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "keys": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string keys",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "values": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string values",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "Symbol.iterator": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string entries",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "Symbol.toStringTag": "string Map"
+        },
+        "[Map]": {
+          "0": {
+            "key": "undefined undefined",
+            "value": "undefined undefined"
+          }
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "map.set()": {
+        "#__proto__": {
+          "#__proto__": "Object {...}",
+          "constructor": "function <large string>",
+          "clear": "function <large string>",
+          "delete": "function <large string>",
+          "forEach": "function <large string>",
+          "get": "function <large string>",
+          "has": "function <large string>",
+          "set": "function <large string>",
+          "size": "number 1",
+          "entries": "function <large string>",
+          "keys": "function <large string>",
+          "values": "function <large string>",
+          "Symbol.iterator": "function <large string>",
+          "Symbol.toStringTag": "string Map"
+        },
+        "[Map]": {
+          "0": "Object <large string>"
+        }
+      }
+    }
+  },
+  {
+    "evaluate": {
+      "map.size==2": "boolean false"
+    }
+  },
+  {
+    "evaluate": {
+      "map.clear()": "undefined undefined"
+    }
+  },
+  {
+    "callStack": [
+      {
+        "line": 14,
+        "column": 8,
+        "sourceText": "var x = 1",
+        "function": "bar"
+      },
+      {
+        "line": 12,
+        "column": 4,
+        "sourceText": "bar(map)",
+        "function": "foo"
+      },
+      {
+        "line": 31,
+        "column": 4,
+        "sourceText": "foo()",
+        "function": "Run"
+      }
+    ]
+  },
+  {
+    "evaluate": {
+      "map": {
+        "#__proto__": {
+          "#__proto__": {
+            "constructor": "function <large string>",
+            "hasOwnProperty": "function <large string>",
+            "propertyIsEnumerable": "function <large string>",
+            "isPrototypeOf": "function <large string>",
+            "toLocaleString": "function <large string>",
+            "toString": "function <large string>",
+            "valueOf": "function <large string>",
+            "#__proto__": "object null",
+            "__defineGetter__": "function <large string>",
+            "__defineSetter__": "function <large string>",
+            "__lookupGetter__": "function <large string>",
+            "__lookupSetter__": "function <large string>"
+          },
+          "constructor": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "prototype": "Object {...}",
+            "[Symbol.species]": "function <large string>",
+            "name": "string Map",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "clear": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string clear",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "delete": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string delete",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "forEach": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string forEach",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "get": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string get",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "has": {
+            "#__proto__": "function <large string>",
+            "length": "number 1",
+            "name": "string has",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "set": {
+            "#__proto__": "function <large string>",
+            "length": "number 2",
+            "name": "string set",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "size": "number 0",
+          "entries": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string entries",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "keys": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string keys",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "values": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string values",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "Symbol.iterator": {
+            "#__proto__": "function <large string>",
+            "length": "number 0",
+            "name": "string entries",
+            "caller": "object null",
+            "arguments": "object null"
+          },
+          "Symbol.toStringTag": "string Map"
+        },
+        "[Map]": "string size = 0"
+      }
+    }
+  }
+]

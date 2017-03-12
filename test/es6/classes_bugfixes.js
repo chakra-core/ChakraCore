@@ -7,6 +7,18 @@ WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 var tests = [
   {
+    name: "GitHub ChakraCore #1465 - call syntax is allowed after class expression",
+    body: function () {
+      var s1 = class { }.toString();
+      var s2 = class x { }.toString();
+      var s3 = class x { }.toString(1, 2, 3); // arguments should not affect valid parse
+
+      assert.areEqual("class { }", s1, "Calling toString after a class expression with no name parses and behaves correctly");
+      assert.areEqual("class x { }", s2, "Calling toString after a class expression with a name parses and behaves correctly");
+      assert.areEqual("class x { }", s3, "Calling toString with arguments after a class expression with a name parses and behaves correctly");
+    }
+  },
+  {
     name: "BLUE 540289: AV on deferred parse of first class method",
     body: function () {
       assert.throws(function() { eval("function f() { var o = { \"a\": class { \"b\""); }, SyntaxError);
@@ -312,6 +324,30 @@ var tests = [
         new class0(-1);
         new class0([2,3], NaN);
         new class0("cat", 100, {});
+    }
+  },
+  {
+    name: "Issue1586: Out of stack for super.<method>.apply and super.<method>.call",
+    body: function () {
+        class A {
+            m() { return 'A'; }
+            m1() { return 'A1'; }
+            static n() { return 'B'; }
+            static n1() { return 'B1'; }
+        }
+
+        class B extends A {
+            m() { return super.m.apply(this); }
+            m1() { return super.m1.call(this); }
+            static n() { return super.n.apply(this); }
+            static n1() { return super.n1.apply(this); }
+        }
+
+        var b = new B();
+        assert.areEqual('A', b.m(), "method.apply()");
+        assert.areEqual('A1', b.m1(), "method.call()");
+        assert.areEqual('B', B.n(), "static method.apply()");
+        assert.areEqual('B1', B.n1(), "static method.call()");
     }
   },
 ];

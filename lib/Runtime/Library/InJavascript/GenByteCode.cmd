@@ -7,6 +7,7 @@
 setlocal
 set _HASERROR=0
 set _binary=ch.exe
+set _BuildDir=%~dp0..\..\..\..\Build
 
 if "%_FILE%" == "" (
     set "_FILE=%~dp0*.js"
@@ -44,10 +45,11 @@ if not [%1]==[] (
 
 :: This script will expect %_binary% to be built for x86_debug and x64_debug
 
-if "%_BinLocation%"=="" (
-    set _BinLocation=%~dp0..\..\..\..\Build\VcBuild%_suffix%\bin
-) else if "%OutBaseDir%" NEQ "" (
+if "%OutBaseDir%" NEQ "" (
     set _BinLocation=%OutBaseDir%\Chakra.Core%_suffix%\bin
+)
+if "%_BinLocation%"=="" (
+    set _BinLocation=%_BuildDir%\VcBuild%_suffix%\bin
 )
 
 if not exist %_BinLocation%\x86_debug\%_binary% (

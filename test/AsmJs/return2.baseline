@@ -1,0 +1,7 @@
+
+return2.js(10, 3)
+	Asm.js Compilation Error function : AsmModule::changeType
+	Different return type found for function empty
+
+Asm.js compilation failed.
+undefined
