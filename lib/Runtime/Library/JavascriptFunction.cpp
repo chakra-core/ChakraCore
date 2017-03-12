@@ -237,7 +237,14 @@ namespace Js
             Assert(functionInfo);
             functionInfo->SetGrfscr(functionInfo->GetGrfscr() | fscrGlobalCode);
 
+#if ENABLE_TTD
+            if(!scriptContext->IsTTDRecordOrReplayModeEnabled())
+            {
+                scriptContext->AddToNewFunctionMap(key, functionInfo->GetFunctionInfo());
+            }
+#else
             scriptContext->AddToNewFunctionMap(key, functionInfo->GetFunctionInfo());
+#endif
         }
         else if (pfuncInfoCache->IsCoroutine())
         {
@@ -713,8 +720,7 @@ namespace Js
         if (IsInAssert != 0)
         {
             // Just don't execute anything if we are in an assert
-            // throw the exception directly to avoid additional assert in Js::Throw::InternalError
-            AssertOrFailFast(false);
+            Js::Throw::FatalInternalError();
         }
 #endif
 

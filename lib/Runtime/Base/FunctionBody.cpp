@@ -1435,6 +1435,12 @@ namespace Js
 
         other->SetFunctionObjectTypeList(this->GetFunctionObjectTypeList());
 
+        PropertyId * propertyIds = this->GetPropertyIdsForScopeSlotArray();
+        if (propertyIds != nullptr)
+        {
+            other->SetPropertyIdsForScopeSlotArray(propertyIds, this->scopeSlotArraySize, this->paramScopeSlotArraySize);
+        }
+
         CopyDeferParseField(m_sourceIndex);
         CopyDeferParseField(m_cchStartOffset);
         CopyDeferParseField(m_cchLength);
@@ -6257,6 +6263,13 @@ namespace Js
         this->SetConstTable(nullptr);
         this->byteCodeBlock = nullptr;
 
+        // Also, remove the function body from the source info to prevent any further processing 
+        // of the function such as attempts to set breakpoints.
+        if (GetIsFuncRegistered())
+        {
+            this->GetUtf8SourceInfo()->RemoveFunctionBody(this);
+        }
+
         // There is other state that is set by the byte code generator but the state should be the same each time byte code
         // generation is done for the function, so it doesn't need to be reverted
     }
@@ -6265,8 +6278,12 @@ namespace Js
     {
         // This function body is about to be visited by the byte code generator after defer-parsing it. Since the previous visit
         // pass may have failed, we need to restore state that is tracked on the function body by the visit pass.
-
-        ResetLiteralRegexes();
+        // Note: do not reset literal regexes if the function has already been compiled (e.g., is a parsed function enclosed by a
+        // redeferred function) as we will not use the count of literals anyway, and the counters may be accessed by the background thread.
+        if (this->byteCodeBlock == nullptr)
+        {
+            ResetLiteralRegexes();
+        }
     }
 
 #if ENABLE_NATIVE_CODEGEN

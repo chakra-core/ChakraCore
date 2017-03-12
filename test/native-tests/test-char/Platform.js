@@ -24,7 +24,7 @@ LDIR=$(LIBRARY_PATH)/libChakraCoreStatic.a \n\
 \n\
 ifeq (darwin, ${PLATFORM})\n\
 \tICU4C_LIBRARY_PATH ?= /usr/local/opt/icu4c\n\
-\tCFLAGS=-lstdc++ -std=c++11 -I$(IDIR)\n\
+\tCFLAGS=-lstdc++ -I$(IDIR)\n\
 \tFORCE_STARTS=-Wl,-force_load,\n\
 \tFORCE_ENDS=\n\
 \tLIBS=-framework CoreFoundation -framework Security -lm -ldl -Wno-c++11-compat-deprecated-writable-strings \
@@ -33,7 +33,7 @@ ifeq (darwin, ${PLATFORM})\n\
     $(ICU4C_LIBRARY_PATH)/lib/libicuuc.a \
     $(ICU4C_LIBRARY_PATH)/lib/libicui18n.a\n\
 else\n\
-\tCFLAGS=-lstdc++ -std=c++0x -I$(IDIR)\n\
+\tCFLAGS=-lstdc++ -I$(IDIR)\n\
 \tFORCE_STARTS=-Wl,--whole-archive\n\
 \tFORCE_ENDS=-Wl,--no-whole-archive\n\
 \tLIBS=-pthread -lm -ldl -licuuc -lunwind-x86_64 -Wno-c++11-compat-deprecated-writable-strings \
@@ -41,7 +41,7 @@ else\n\
 endif\n\
 \n\
 testmake:\n\
-\t$(CC) sample.cpp $(CFLAGS) $(FORCE_STARTS) $(LDIR) $(FORCE_ENDS) $(LIBS)\n\
+\t$(CC) sample.cpp dummy-1.c dummy-2.c $(CFLAGS) $(FORCE_STARTS) $(LDIR) $(FORCE_ENDS) $(LIBS)\n\
 \n\
 .PHONY: clean\n\
 \n\

@@ -29,5 +29,7 @@ function testFunction()
     telemetryLog(`evalCode2: ${evalCode2()}`, true); //function () { return evalCode2 + ' ' + captured; } bob in setCode2"
     
     telemetryLog(`evalCode3: ${evalCode3()}`, true); //function () { return evalCode3 + ' ' + captured; } ok"
+
+    emitTTDLog(ttdLogURI);
 }
 

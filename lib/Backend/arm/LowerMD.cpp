@@ -2243,28 +2243,6 @@ LowererMD::LoadHeapArgsCached(IR::Instr * instrArgs)
     return instrPrev;
 }
 
-IR::Instr *
-LowererMD::LoadFuncExpression(IR::Instr * instrFuncExpr)
-{
-    ASSERT_INLINEE_FUNC(instrFuncExpr);
-    Func *func = instrFuncExpr->m_func;
-
-    IR::Opnd *paramOpnd = nullptr;
-    if (func->IsInlinee())
-    {
-        paramOpnd = func->GetInlineeFunctionObjectSlotOpnd();
-    }
-    else
-    {
-        //function object is first argument and mark it as IsParamSlotSym.
-        StackSym * paramSym = GetImplicitParamSlotSym(0);
-        paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, this->m_func);
-    }
-    instrFuncExpr->SetSrc1(paramOpnd);
-    this->ChangeToAssign(instrFuncExpr);
-    return instrFuncExpr;
-}
-
 ///----------------------------------------------------------------------------
 ///
 /// LowererMD::ChangeToHelperCall
@@ -9296,3 +9274,14 @@ LowererMD::LowerTypeof(IR::Instr* typeOfInstr)
     typeOfInstr->InsertAfter(doneLabel);
     m_lowerer->LowerUnaryHelperMem(typeOfInstr, IR::HelperOp_Typeof);
 }
+
+#if DBG
+//
+// Helps in debugging of fast paths.
+//
+void LowererMD::GenerateDebugBreak( IR::Instr * insertInstr )
+{
+    IR::Instr *int3 = IR::Instr::New(Js::OpCode::DEBUGBREAK, insertInstr->m_func);
+    insertInstr->InsertBefore(int3);
+}
+#endif

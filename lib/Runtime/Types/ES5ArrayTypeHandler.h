@@ -36,7 +36,7 @@ namespace Js
         typedef JsUtil::BaseDictionary<uint32, IndexPropertyDescriptor, ForceNonLeafAllocator<Recycler>::AllocatorType, PowerOf2SizePolicy>
             InnerMap;
 
-        Field(Recycler*) recycler;
+        FieldNoBarrier(Recycler*) recycler;
         Field(InnerMap*) indexPropertyMap; // The internal real index property map
         Field(uint32*) indexList;          // The index list that's created on demand
         Field(int) lastIndexAt;            // Last used index list entry
@@ -187,7 +187,7 @@ namespace Js
         virtual BOOL SetAttributes(DynamicObject* instance, PropertyId propertyId, PropertyAttributes attributes) override;
 
         virtual bool IsLengthWritable() const override;
-        virtual void SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags) override;
+        virtual uint32 SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags) override;
         virtual BOOL IsObjectArrayFrozen(ES5Array* arr) override;
         virtual BOOL IsItemEnumerable(ES5Array* arr, uint32 index) override;
         virtual BOOL IsValidDescriptorToken(void * descriptorValidationToken) const override;

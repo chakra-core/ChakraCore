@@ -975,10 +975,10 @@ public:
     }
 
     //Initialize the context for time-travel
-    void InitTimeTravel(ThreadContext* threadContext, void* runtimeHandle, size_t uriByteLength, const byte* ttdUri, uint32 snapInterval, uint32 snapHistoryLength);
+    void InitTimeTravel(ThreadContext* threadContext, void* runtimeHandle, uint32 snapInterval, uint32 snapHistoryLength);
 
-    void InitHostFunctionsAndTTData(bool record, bool replay, bool debug, TTD::TTDInitializeForWriteLogStreamCallback writeInitializefp,
-        TTD::TTDOpenResourceStreamCallback getResourceStreamfp, TTD::TTDReadBytesFromStreamCallback readBytesFromStreamfp,
+    void InitHostFunctionsAndTTData(bool record, bool replay, bool debug, size_t optTTUriLength, const char* optTTUri,
+        TTD::TTDOpenResourceStreamCallback openResourceStreamfp, TTD::TTDReadBytesFromStreamCallback readBytesFromStreamfp,
         TTD::TTDWriteBytesToStreamCallback writeBytesToStreamfp, TTD::TTDFlushAndCloseStreamCallback flushAndCloseStreamfp,
         TTD::TTDCreateExternalObjectCallback createExternalObjectfp,
         TTD::TTDCreateJsRTContextCallback createJsRTContextCallbackfp, TTD::TTDReleaseJsRTContextCallback releaseJsRTContextCallbackfp, TTD::TTDSetActiveJsRTContext fpSetActiveJsRTContext);
@@ -1413,6 +1413,10 @@ public:
     void EnsureSymbolRegistrationMap();
     const Js::PropertyRecord* GetSymbolFromRegistrationMap(const char16* stringKey);
     const Js::PropertyRecord* AddSymbolToRegistrationMap(const char16* stringKey, charcount_t stringLength);
+
+#if ENABLE_TTD
+    JsUtil::BaseDictionary<const char16*, const Js::PropertyRecord*, Recycler, PowerOf2SizePolicy>* GetSymbolRegistrationMap_TTD();
+#endif
 
     inline void ClearPendingSOError()
     {

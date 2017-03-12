@@ -1642,7 +1642,7 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
             // (with/eval), and if the function is not declared in a loop. (Loops are problematic, because as the loop
             // iterates different instances can be captured. If we always capture the var-scoped binding, then we
             // always get the latest instance, when we should get the instance belonging to the iteration that captured it.)
-            if (sym->GetHasNonLocalReference() && !this->scriptContext->IsScriptContextInSourceRundownOrDebugMode())
+            if (sym->GetHasNonLocalReference())
             {
                 if (!scope)
                 {
@@ -1687,7 +1687,9 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
             sym->SetHasRealBlockVarRef();
         }
 
-        if (nonLocalRef)
+        // This may not be a non-local reference, but the symbol may still be accessed non-locally. ('with', e.g.)
+        // In that case, make sure we still process the symbol and its scope for closure capture.
+        if (nonLocalRef || sym->GetHasNonLocalReference())
         {
             // Symbol referenced through a closure. Mark it as such and give it a property ID.
             this->ProcessCapturedSym(sym);
@@ -2117,7 +2119,7 @@ void ByteCodeGenerator::Begin(
         this->propertyRecords = nullptr;
     }
 
-    Js::FunctionBody *fakeGlobalFunc = scriptContext->GetFakeGlobalFuncForUndefer();
+    Js::FunctionBody *fakeGlobalFunc = scriptContext->GetLibrary()->GetFakeGlobalFuncForUndefer();
     if (fakeGlobalFunc)
     {
         fakeGlobalFunc->ClearBoundPropertyRecords();
@@ -5507,11 +5509,11 @@ bool ByteCodeGenerator::NeedScopeObjectForArguments(FuncInfo *funcInfo, ParseNod
 
 Js::FunctionBody *ByteCodeGenerator::EnsureFakeGlobalFuncForUndefer(ParseNode *pnode)
 {
-    Js::FunctionBody *func = scriptContext->GetFakeGlobalFuncForUndefer();
+    Js::FunctionBody *func = scriptContext->GetLibrary()->GetFakeGlobalFuncForUndefer();
     if (!func)
     {
         func = this->MakeGlobalFunctionBody(pnode);
-        scriptContext->SetFakeGlobalFuncForUndefer(func);
+        scriptContext->GetLibrary()->SetFakeGlobalFuncForUndefer(func);
     }
     else
     {

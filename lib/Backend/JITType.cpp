@@ -20,6 +20,7 @@ void
 JITType::BuildFromJsType(__in Js::Type * jsType, __out JITType * jitType)
 {
     TypeIDL * data = jitType->GetData();
+    data->exists = true;
     data->addr = jsType;
     data->typeId = jsType->GetTypeId();
     data->libAddr = jsType->GetLibrary();

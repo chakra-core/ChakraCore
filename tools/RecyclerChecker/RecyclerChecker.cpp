@@ -89,8 +89,8 @@ bool MainVisitor::VisitCXXRecordDecl(CXXRecordDecl* recordDecl)
 }
 
 template <class PushFieldType>
-void MainVisitor::ProcessUnbarriedFields(CXXRecordDecl* recordDecl,
-                                         const PushFieldType& pushFieldType)
+void MainVisitor::ProcessUnbarrieredFields(
+    CXXRecordDecl* recordDecl, const PushFieldType& pushFieldType)
 {
     std::string typeName = recordDecl->getQualifiedNameAsString();
     if (typeName == "Memory::WriteBarrierPtr")
@@ -101,7 +101,9 @@ void MainVisitor::ProcessUnbarriedFields(CXXRecordDecl* recordDecl,
     const auto& sourceMgr = _compilerInstance.getSourceManager();
     DiagnosticsEngine& diagEngine = _context.getDiagnostics();
     const unsigned diagID = diagEngine.getCustomDiagID(
-        DiagnosticsEngine::Error, "Unbarried field");
+        DiagnosticsEngine::Error,
+        "Unbarriered field, see "
+        "https://github.com/microsoft/ChakraCore/wiki/Software-Write-Barrier#coding-rules");
 
     for (auto field : recordDecl->fields())
     {
@@ -419,7 +421,7 @@ void MainVisitor::Inspect()
         if (r)
         {
             auto typeName = r->getQualifiedNameAsString();
-            ProcessUnbarriedFields(r, pushBarrierType);
+            ProcessUnbarrieredFields(r, pushBarrierType);
 
             // queue the type's base classes
             for (const auto& base: r->bases())

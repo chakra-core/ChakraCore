@@ -541,8 +541,15 @@ GlobOpt::ForwardPass()
 void
 GlobOpt::OptBlock(BasicBlock *block)
 {
-    if (this->func->m_fg->RemoveUnreachableBlock(block, this))
+    IR::Instr * upwardedInstr = nullptr;
+    if (this->func->m_fg->RemoveUnreachableBlock(block, this, &upwardedInstr))
     {
+        if (upwardedInstr &&
+            upwardedInstr->m_opcode == Js::OpCode::InlineeEnd &&
+            upwardedInstr->m_func->m_hasInlineArgsOpt)
+        {
+            RecordInlineeFrameInfo(upwardedInstr);
+        }
         GOPT_TRACE(_u("Removing unreachable block #%d\n"), block->GetBlockNum());
         return;
     }
@@ -4182,7 +4189,7 @@ GlobOpt::OptArguments(IR::Instr *instr)
                 {
                     Assert(builtinOpnd->AsAddrOpnd()->m_isFunction);
 
-                    Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((JITTimeFixedField*)builtinOpnd->AsAddrOpnd()->m_metadata)->GetFuncInfoAddr(), func->GetThreadContextInfo());
+                    Js::BuiltinFunction builtinFunction = Js::JavascriptLibrary::GetBuiltInForFuncInfo(((FixedFieldInfo*)builtinOpnd->AsAddrOpnd()->m_metadata)->GetFuncInfoAddr(), func->GetThreadContextInfo());
                     if (builtinFunction == Js::BuiltinFunction::JavascriptFunction_Apply)
                     {
                         ClearArgumentsSym(src1->AsRegOpnd());
@@ -5730,10 +5737,10 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
         val = this->GetIntConstantValue(opnd->AsIntConstOpnd()->AsInt32(), instr);
         opnd->SetValueType(val->GetValueInfo()->Type());
         return val;
-
     case IR::OpndKindInt64Const:
-        return nullptr;
-
+        val = this->GetIntConstantValue(opnd->AsInt64ConstOpnd()->GetValue(), instr);
+        opnd->SetValueType(val->GetValueInfo()->Type());
+        return val;
     case IR::OpndKindFloatConst:
     {
         const FloatConstType floatValue = opnd->AsFloatConstOpnd()->m_value;
@@ -6463,12 +6470,16 @@ GlobOpt::CopyProp(IR::Opnd *opnd, IR::Instr *instr, Value *val, IR::IndirOpnd *p
                 }
 
                 const auto indir = src->AsIndirOpnd();
+                if ((int64)indir->GetOffset() + intConstantValue > INT32_MAX)
+                {
+                    continue;
+                }
                 if(opnd == indir->GetIndexOpnd())
                 {
                     Assert(indir->GetScale() == 0);
                     GOPT_TRACE_OPND(opnd, _u("Constant prop indir index into offset (value: %d)\n"), intConstantValue);
                     this->CaptureByteCodeSymUses(instr);
-                    indir->SetOffset(intConstantValue);
+                    indir->SetOffset(indir->GetOffset() + intConstantValue);
                     indir->SetIndexOpnd(nullptr);
                 }
             }
@@ -6919,6 +6930,23 @@ GlobOpt::GetIntConstantValue(const int32 intConst, IR::Instr * instr, IR::Opnd *
     }
 
     return this->InsertNewValue(value, opnd);
+}
+
+Value *
+GlobOpt::GetIntConstantValue(const int64 intConst, IR::Instr * instr, IR::Opnd *const opnd)
+{
+    Assert(instr->m_func->GetJITFunctionBody()->IsWasmFunction());
+    Value *value = NewInt64ConstantValue(intConst);
+    return this->InsertNewValue(value, opnd);
+}
+
+Value *
+GlobOpt::NewInt64ConstantValue(const int64 intConst)
+{
+    //TODO: to implement int64 VN caching we need liveness info
+    //We need caching for CSE
+    Value * value = NewValue(Int64ConstantValueInfo::New(this->alloc, intConst));
+    return value;
 }
 
 Value *
@@ -8958,16 +8986,33 @@ GlobOpt::TypeSpecialization(
         // Binary
         if (!this->IsLoopPrePass())
         {
-            // OptConstFoldBinary doesn't do type spec, so only deal with things we are sure are int (IntConstant and IntRange)
-            // and not just likely ints  TypeSpecializeBinary will deal with type specializing them and fold them again
-            IntConstantBounds src1IntConstantBounds, src2IntConstantBounds;
-            if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantBounds(&src1IntConstantBounds))
+            if (GetIsAsmJSFunc())
             {
-                if (src2Val && src2Val->GetValueInfo()->TryGetIntConstantBounds(&src2IntConstantBounds))
+                if (CONFIG_FLAG(WasmFold))
                 {
-                    if (this->OptConstFoldBinary(&instr, src1IntConstantBounds, src2IntConstantBounds, pDstVal))
+                    bool success = instr->GetSrc1()->IsInt64() ?
+                        this->OptConstFoldBinaryWasm<int64>(&instr, src1Val, src2Val, pDstVal) :
+                        this->OptConstFoldBinaryWasm<int>(&instr, src1Val, src2Val, pDstVal);
+
+                    if (success)
                     {
                         return instr;
+                    }
+                }
+            }
+            else
+            {
+                // OptConstFoldBinary doesn't do type spec, so only deal with things we are sure are int (IntConstant and IntRange)
+                // and not just likely ints  TypeSpecializeBinary will deal with type specializing them and fold them again
+                IntConstantBounds src1IntConstantBounds, src2IntConstantBounds;
+                if (src1Val && src1Val->GetValueInfo()->TryGetIntConstantBounds(&src1IntConstantBounds))
+                {
+                    if (src2Val && src2Val->GetValueInfo()->TryGetIntConstantBounds(&src2IntConstantBounds))
+                    {
+                        if (this->OptConstFoldBinary(&instr, src1IntConstantBounds, src2IntConstantBounds, pDstVal))
+                        {
+                            return instr;
+                        }
                     }
                 }
             }
@@ -9292,6 +9337,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
         return false;
     }
 
+    int64 left64, right64;
     Js::Var src1Var = this->GetConstantVar(instr->GetSrc1(), src1Val);
 
     Js::Var src2Var = nullptr;
@@ -9315,6 +9361,29 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
     int32 constVal;
     switch (instr->m_opcode)
     {
+#define BRANCH(OPCODE,CMP,TYPE,UNSIGNEDNESS) \
+    case Js::OpCode::##OPCODE: \
+        if (src1Val->GetValueInfo()->TryGetInt64ConstantValue(&left64, UNSIGNEDNESS) && \
+            src2Val->GetValueInfo()->TryGetInt64ConstantValue(&right64, UNSIGNEDNESS)) \
+        { \
+            result = (TYPE)left64 CMP (TYPE)right64; \
+        } \
+        else \
+        { \
+            return false; \
+        } \
+        break;
+
+    BRANCH(BrEq_I4, == , int64, false)
+    BRANCH(BrGe_I4, >= , int64, false)
+    BRANCH(BrGt_I4, >, int64, false)
+    BRANCH(BrLt_I4, <, int64, false)
+    BRANCH(BrLe_I4, <= , int64, false)
+    BRANCH(BrNeq_I4, != , int64, false)
+    BRANCH(BrUnGe_I4, >= , uint64, true)
+    BRANCH(BrUnGt_I4, >, uint64, true)
+    BRANCH(BrUnLt_I4, <, uint64, true)
+    BRANCH(BrUnLe_I4, <= , uint64, true)
     case Js::OpCode::BrEq_A:
     case Js::OpCode::BrNotNeq_A:
         if (!src1Var || !src2Var)
@@ -9487,6 +9556,7 @@ GlobOpt::OptConstFoldBranch(IR::Instr *instr, Value *src1Val, Value*src2Val, Val
 
     default:
         return false;
+#undef BRANCH
     }
 
     this->OptConstFoldBr(!!result, instr);
@@ -14748,7 +14818,7 @@ GlobOpt::ToTypeSpecUse(IR::Instr *instr, IR::Opnd *opnd, BasicBlock *block, Valu
                     ))
                 {
                     Assert(!this->IsLoopPrePass());
-                    this->OptHoistInvariant(newInstr, block, block->loop, val, val, false);
+                    this->OptHoistInvariant(newInstr, block, block->loop, val, val, nullptr, false);
                 }
             }
 
@@ -15094,6 +15164,90 @@ GlobOpt::MakeLive(StackSym *const sym, GlobOptBlockData *const blockData, const 
     }
 
     blockData->liveVarSyms->Set(sym->m_id);
+}
+
+static void SetIsConstFlag(StackSym* dstSym, int64 value)
+{
+    Assert(dstSym);
+    dstSym->SetIsInt64Const();
+}
+
+static void SetIsConstFlag(StackSym* dstSym, int value)
+{
+    Assert(dstSym);
+    dstSym->SetIsIntConst(value);
+}
+
+static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int64 value) 
+{
+    return (IR::Opnd*)IR::Int64ConstOpnd::New(value, instr->GetDst()->GetType(), instr->m_func);
+}
+
+static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int value)
+{
+    return (IR::Opnd*)IR::IntConstOpnd::New(value, instr->GetDst()->GetType(), instr->m_func);
+}
+
+template <typename T>
+IR::Opnd* GlobOpt::ReplaceWConst(IR::Instr **pInstr, T value, Value **pDstVal)
+{
+    IR::Instr * &instr = *pInstr;
+    IR::Opnd * constOpnd = CreateIntConstOpnd(instr, value);
+
+    instr->ReplaceSrc1(constOpnd);
+    instr->FreeSrc2();
+
+    this->OptSrc(constOpnd, &instr);
+
+    IR::Opnd *dst = instr->GetDst();
+    StackSym *dstSym = dst->AsRegOpnd()->m_sym;
+    if (dstSym->IsSingleDef())
+    {
+        SetIsConstFlag(dstSym, value);
+    }
+
+    GOPT_TRACE_INSTR(instr, _u("Constant folding to %d: \n"), value);
+    *pDstVal = GetIntConstantValue(value, instr, dst);
+    return dst;
+}
+
+template <typename T>
+bool GlobOpt::OptConstFoldBinaryWasm(
+    IR::Instr** pInstr,
+    const Value* src1,
+    const Value* src2,
+    Value **pDstVal)
+{
+    IR::Instr* &instr = *pInstr;
+
+    if (!DoConstFold())
+    {
+        return false;
+    }
+
+    T src1IntConstantValue, src2IntConstantValue;
+    if (!src1 || !src1->GetValueInfo()->TryGetIntConstantValue(&src1IntConstantValue, false) || //a bit sketchy: false for int32 means likelyInt = false 
+        !src2 || !src2->GetValueInfo()->TryGetIntConstantValue(&src2IntConstantValue, false)    //and unsigned = false for int64
+        )
+    {
+        return false;
+    }
+
+    int64 tmpValueOut;
+    if (!instr->BinaryCalculatorT<T>(src1IntConstantValue, src2IntConstantValue, &tmpValueOut))
+    {
+        return false;
+    }
+
+    this->CaptureByteCodeSymUses(instr);
+
+    IR::Opnd *dst = (instr->GetDst()->IsInt64()) ? //dst can be int32 for int64 comparison operators
+        ReplaceWConst(pInstr, tmpValueOut, pDstVal) :
+        ReplaceWConst(pInstr, (int)tmpValueOut, pDstVal);
+
+    instr->m_opcode = Js::OpCode::Ld_I4;
+    this->ToInt32Dst(instr, dst->AsRegOpnd(), this->currentBlock);
+    return true;
 }
 
 bool
@@ -19051,17 +19205,104 @@ GlobOpt::OptDstIsInvariant(IR::RegOpnd *dst)
 }
 
 void
+GlobOpt::OptHoistUpdateValueType(
+    Loop* loop,
+    IR::Instr* instr,
+    IR::Opnd* srcOpnd,
+    Value* opndVal)
+{
+    if (opndVal == nullptr || instr->m_opcode == Js::OpCode::FromVar)
+    {
+        return;
+    }
+
+    Sym* opndSym = srcOpnd->GetSym();;
+
+    if (opndSym)
+    {
+        BasicBlock* landingPad = loop->landingPad;
+        Value* opndValueInLandingPad = FindValue(landingPad->globOptData.symToValueMap, opndSym);
+        Assert(opndVal->GetValueNumber() == opndValueInLandingPad->GetValueNumber());
+
+        ValueType opndValueTypeInLandingPad = opndValueInLandingPad->GetValueInfo()->Type();
+
+        if (srcOpnd->GetValueType() != opndValueTypeInLandingPad)
+        {
+            if (instr->m_opcode == Js::OpCode::SetConcatStrMultiItemBE)
+            {
+                Assert(!opndValueTypeInLandingPad.IsString());
+                Assert(instr->GetDst());
+
+                IR::RegOpnd* strOpnd = IR::RegOpnd::New(TyVar, instr->m_func);
+                strOpnd->SetValueType(ValueType::String);
+                strOpnd->SetValueTypeFixed();
+                IR::Instr* convPrimStrInstr =
+                    IR::Instr::New(Js::OpCode::Conv_PrimStr, strOpnd, srcOpnd->Use(instr->m_func), instr->m_func);
+                instr->ReplaceSrc(srcOpnd, strOpnd);
+
+                if (loop->bailOutInfo->bailOutInstr)
+                {
+                    loop->bailOutInfo->bailOutInstr->InsertBefore(convPrimStrInstr);
+                }
+                else
+                {
+                    landingPad->InsertAfter(convPrimStrInstr);
+                }
+            }
+
+            srcOpnd->SetValueType(opndValueTypeInLandingPad);
+        }
+
+
+        if (opndSym->IsPropertySym())
+        {
+            // Also fix valueInfo on objPtr
+            StackSym* opndObjPtrSym = opndSym->AsPropertySym()->m_stackSym;
+            Value* opndObjPtrSymValInLandingPad = FindValue(landingPad->globOptData.symToValueMap, opndObjPtrSym);
+            ValueInfo* opndObjPtrSymValueInfoInLandingPad = opndObjPtrSymValInLandingPad->GetValueInfo();
+
+            srcOpnd->AsSymOpnd()->SetPropertyOwnerValueType(opndObjPtrSymValueInfoInLandingPad->Type());
+        }
+    }
+}
+
+void
 GlobOpt::OptHoistInvariant(
     IR::Instr *instr,
     BasicBlock *block,
     Loop *loop,
     Value *dstVal,
     Value *const src1Val,
+    Value *const src2Val,
     bool isNotTypeSpecConv,
     bool lossy,
     IR::BailOutKind bailoutKind)
 {
     BasicBlock *landingPad = loop->landingPad;
+
+    IR::Opnd* src1 = instr->GetSrc1();
+    if (src1)
+    {
+        // We are hoisting this instruction possibly past other uses, which might invalidate the last use info. Clear it.
+        OptHoistUpdateValueType(loop, instr, src1, src1Val);
+
+        if (src1->IsRegOpnd())
+        {
+            src1->AsRegOpnd()->m_isTempLastUse = false;
+        }
+
+        IR::Opnd* src2 = instr->GetSrc2();
+        if (src2)
+        {
+            OptHoistUpdateValueType(loop, instr, src2, src2Val);
+
+            if (src2->IsRegOpnd())
+            {
+                src2->AsRegOpnd()->m_isTempLastUse = false;
+            }
+        }
+    }
+
     IR::RegOpnd *dst = instr->GetDst() ? instr->GetDst()->AsRegOpnd() : nullptr;
     if(dst)
     {
@@ -19300,26 +19541,6 @@ GlobOpt::OptHoistInvariant(
             // if the old bailout is deleted, reset capturedvalues cached in block
             block->globOptData.capturedValues = nullptr;
             block->globOptData.capturedValuesCandidate = nullptr;
-        }
-    }
-
-    if (instr->GetSrc1())
-    {
-        // We are hoisting this instruction possibly past other uses, which might invalidate the last use info. Clear it.
-        IR::Opnd *src1 = instr->GetSrc1();
-
-        if (src1->IsRegOpnd())
-        {
-            src1->AsRegOpnd()->m_isTempLastUse = false;
-        }
-        if (instr->GetSrc2())
-        {
-            IR::Opnd *src2 = instr->GetSrc2();
-
-            if (src2->IsRegOpnd())
-            {
-                src2->AsRegOpnd()->m_isTempLastUse = false;
-            }
         }
     }
 
@@ -19618,7 +19839,7 @@ GlobOpt::TryHoistInvariant(
             Assert(tempByteCodeUse->Count() == 0 && propertySymUse == NULL);
         }
 #endif
-        OptHoistInvariant(instr, block, loop, dstVal, src1Val, isNotTypeSpecConv, lossy, bailoutKind);
+        OptHoistInvariant(instr, block, loop, dstVal, src1Val, src2Val, isNotTypeSpecConv, lossy, bailoutKind);
         return true;
     }
 
@@ -20382,11 +20603,23 @@ ValueInfo::IsIntConstant() const
     return IsInt() && structureKind == ValueStructureKind::IntConstant;
 }
 
+bool
+ValueInfo::IsInt64Constant() const
+{
+    return IsInt() && structureKind == ValueStructureKind::Int64Constant;
+}
+
 const IntConstantValueInfo *
 ValueInfo::AsIntConstant() const
 {
     Assert(IsIntConstant());
     return static_cast<const IntConstantValueInfo *>(this);
+}
+const Int64ConstantValueInfo *
+ValueInfo::AsInt64Constant() const
+{
+    Assert(IsInt64Constant());
+    return static_cast<const Int64ConstantValueInfo *>(this);
 }
 
 bool

@@ -3,19 +3,17 @@
 (26) memory.wast:46: assert_invalid module memory.22.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
 (27) memory.wast:50: assert_invalid module memory.23.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
 (28) memory.wast:54: assert_invalid module memory.24.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(35) memory.wast:89: assert_unlinkable module memory.31.wasm failed. Should have had an error
-(36) memory.wast:93: assert_unlinkable module memory.32.wasm failed. Should have had an error
-(44) memory.wast:120: assert_invalid module memory.40.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(45) memory.wast:124: assert_invalid module memory.41.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(46) memory.wast:128: assert_invalid module memory.42.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(47) memory.wast:132: assert_invalid module memory.43.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(48) memory.wast:136: assert_invalid module memory.44.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(49) memory.wast:140: assert_invalid module memory.45.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(54) memory.wast:151: assert_invalid module memory.50.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(55) memory.wast:155: assert_invalid module memory.51.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(56) memory.wast:159: assert_invalid module memory.52.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(57) memory.wast:163: assert_invalid module memory.53.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(58) memory.wast:167: assert_invalid module memory.54.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(59) memory.wast:171: assert_invalid module memory.55.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(62) memory.wast:183: assert_invalid module memory.58.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-67/87 tests passed.
+(47) memory.wast:135: assert_invalid module memory.43.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(48) memory.wast:139: assert_invalid module memory.44.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(49) memory.wast:143: assert_invalid module memory.45.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(50) memory.wast:147: assert_invalid module memory.46.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(51) memory.wast:151: assert_invalid module memory.47.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(52) memory.wast:155: assert_invalid module memory.48.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(57) memory.wast:166: assert_invalid module memory.53.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(58) memory.wast:170: assert_invalid module memory.54.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(59) memory.wast:174: assert_invalid module memory.55.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(60) memory.wast:178: assert_invalid module memory.56.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(61) memory.wast:182: assert_invalid module memory.57.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(62) memory.wast:186: assert_invalid module memory.58.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(65) memory.wast:198: assert_invalid module memory.61.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+72/90 tests passed.

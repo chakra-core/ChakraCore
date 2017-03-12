@@ -26,4 +26,6 @@ function testFunction()
 {
     telemetryLog(`a: ${x.a()}`, true); //42
     telemetryLog(`arg: ${x.arg()}`, true); //17
+
+    emitTTDLog(ttdLogURI);
 }

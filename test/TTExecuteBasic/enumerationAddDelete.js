@@ -59,4 +59,6 @@ WScript.SetTimeout(testFunction, 50);
 function testFunction()
 {
     testdelete(2);
+
+    emitTTDLog(ttdLogURI);
 }

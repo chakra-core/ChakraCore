@@ -26,6 +26,7 @@ namespace Js
         FlagBoolean,
         FlagNumberSet,
         FlagNumberPairSet,
+        FlagNumberTrioSet,
         FlagNumberRange
     };
 
@@ -196,6 +197,31 @@ namespace Js
         bool Empty() const { return set.Count() == 0; }
     private:
         JsUtil::BaseHashSet<NumberPair, NoCheckHeapAllocator, PrimeSizePolicy> set;
+    };
+
+    class NumberTrio
+    {
+    public:
+        NumberTrio(uint32 x, uint32 y, uint32 z) : x(x), y(y), z(z) {}
+        NumberTrio() : x((uint32)-1), y((uint32)-1) {}
+
+        operator hash_t() const { return (x << 20) + (y << 10) + z; }
+        bool operator ==(const NumberTrio &other) const { return x == other.x && y == other.y && z == other.z; }
+    private:
+        uint32 x;
+        uint32 y;
+        uint32 z;
+    };
+
+    class NumberTrioSet
+    {
+    public:
+        NumberTrioSet();
+        void Add(uint32 x, uint32 y, uint32 z);
+        bool Contains(uint32 x, uint32 y, uint32 z);
+        bool Empty() const { return set.Count() == 0; }
+    private:
+        JsUtil::BaseHashSet<NumberTrio, NoCheckHeapAllocator, PrimeSizePolicy> set;
     };
 
     struct SourceFunctionNode
@@ -431,6 +457,7 @@ namespace Js
                 Number*         GetAsNumber(Flag flag) const;
                 NumberSet*      GetAsNumberSet(Flag flag) const;
                 NumberPairSet * GetAsNumberPairSet(Flag flag) const;
+                NumberTrioSet * GetAsNumberTrioSet(Flag flag) const;
                 NumberRange *   GetAsNumberRange(Flag flag) const;
 
                 void            SetAsBoolean(Flag flag, Boolean value);
@@ -606,6 +633,8 @@ namespace Js
     ((PHASE_TRACE_RAW((phase), (sourceId), (functionId))) && Js::Configuration::Global.flags.Verbose)
 
 #define PHASE_DUMP(phase, func)     Js::Configuration::Global.flags.Dump.IsEnabled((phase), (func)->GetSourceContextId(),(func)->GetLocalFunctionId())
+
+#define PHASE_DEBUGBREAK_ON_PHASE_BEGIN(phase, func) Js::Configuration::Global.flags.DebugBreakOnPhaseBegin.IsEnabled((phase), (func)->GetSourceContextId(), (func)->GetLocalFunctionId())
 
 #define PHASE_STATS1(phase)         Js::Configuration::Global.flags.Stats.IsEnabled((phase))
 #define CUSTOM_PHASE_STATS1(flags, phase) flags.Stats.IsEnabled((phase))

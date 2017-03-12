@@ -533,7 +533,7 @@
     <default>
       <files>cseBug.js</files>
       <baseline>cseBug.baseline</baseline>
-      <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
+      <compile-flags>-testtrace:asmjs -forcedeferparse -simdjs</compile-flags>
     </default>
   </test>
   <test>
@@ -817,6 +817,12 @@
   <test>
     <default>
       <files>bugGH2270.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>constFoldTests.js</files>
+      <compile-flags>-asmjs -maic:0</compile-flags>
     </default>
   </test>
 </regress-exe>

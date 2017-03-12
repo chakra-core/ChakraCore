@@ -1,8 +1,10 @@
-if(NOT CC_TARGET_OS_ANDROID)
-    add_subdirectory (GCStress)
-endif()
+if(NOT CC_LIBS_ONLY_BUILD)
+    if(NOT CC_TARGET_OS_ANDROID)
+        add_subdirectory (GCStress)
+    endif()
 
-add_subdirectory (ch)
+    add_subdirectory (ch)
+endif()
 
 if (NOT STATIC_LIBRARY)
     add_subdirectory (ChakraCore)

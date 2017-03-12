@@ -396,6 +396,20 @@ Opnd::GetStackSym() const
     }
 }
 
+Sym*
+Opnd::GetSym() const
+{
+    switch (this->GetKind())
+    {
+        case OpndKindSym:
+            return static_cast<SymOpnd const *>(this)->m_sym;
+        case OpndKindReg:
+            return static_cast<RegOpnd const *>(this)->m_sym;
+        default:
+            return nullptr;
+    }
+}
+
 int64
 Opnd::GetImmediateValue(Func* func)
 {
@@ -821,7 +835,7 @@ PropertySymOpnd::New(PropertySym *propertySym, IRType type, Func *func)
 }
 
 void
-PropertySymOpnd::Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, JITTimePolymorphicInlineCache * runtimePolymorphicInlineCache, JITObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil)
+PropertySymOpnd::Init(uint inlineCacheIndex, intptr_t runtimeInlineCache, JITTimePolymorphicInlineCache * runtimePolymorphicInlineCache, ObjTypeSpecFldInfo* objTypeSpecFldInfo, byte polyCacheUtil)
 {
     this->m_inlineCacheIndex = inlineCacheIndex;
     this->m_runtimeInlineCache = runtimeInlineCache;
@@ -2956,7 +2970,7 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
                         {
                             Output::Print(_u(","));
                         }
-                        const JITObjTypeSpecFldInfo* propertyOpInfo = func->GetTopFunc()->GetGlobalObjTypeSpecFldInfo(propertyOpId);
+                        const ObjTypeSpecFldInfo* propertyOpInfo = func->GetTopFunc()->GetGlobalObjTypeSpecFldInfo(propertyOpId);
                         if (!JITManager::GetJITManager()->IsOOPJITEnabled())
                         {
                             Output::Print(_u("%s"), func->GetInProcThreadContext()->GetPropertyRecord(propertyOpInfo->GetPropertyId())->GetBuffer(), propertyOpId);

@@ -15,7 +15,6 @@
     <ClCompile Include="$(MsBuildThisFileDirectory)DynamicProfileMutator.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)DynamicProfileStorage.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)ExecutionMode.cpp" />
-    <ClCompile Include="$(MsBuildThisFileDirectory)FunctionCodeGenJitTimeData.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)FunctionCodeGenRuntimeData.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)InlineCache.cpp" />
     <ClCompile Include="$(MsBuildThisFileDirectory)JavascriptExceptionOperators.cpp" />
@@ -74,10 +73,10 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16Operation.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SIMDBool8x16OperationX86X64.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WAsmjsUtils.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)ObjTypeSpecFldInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespace.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)SourceTextModuleRecord.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ModuleNamespaceEnumerator.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblySource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsmJs.h" />
@@ -97,7 +96,6 @@
     <ClInclude Include="EvalMapRecord.h" />
     <ClInclude Include="ExecutionMode.h" />
     <ClInclude Include="ExecutionModes.h" />
-    <ClInclude Include="FunctionCodeGenJitTimeData.h" />
     <ClInclude Include="FunctionCodeGenRuntimeData.h" />
     <ClInclude Include="InlineCache.h" />
     <ClInclude Include="InlineCachePointerArray.h" />
@@ -148,9 +146,9 @@
     <ClInclude Include="SimdBool16x8Operation.h" />
     <ClInclude Include="SimdBool8x16Operation.h" />
     <ClInclude Include="WAsmjsUtils.h" />
-    <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="ModuleNamespace.h" />
     <ClInclude Include="ModuleNamespaceEnumerator.h" />
+    <ClInclude Include="WebAssemblySource.h" />
   </ItemGroup>
   <ItemGroup>
     <MASM Include="$(MSBuildThisFileDirectory)amd64\amd64_Thunks.asm">

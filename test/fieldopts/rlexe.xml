@@ -379,7 +379,6 @@
   <test>
     <default>
       <files>fieldhoist_number.js</files>
-      <baseline>fieldhoist_number.baseline</baseline>
     </default>
   </test>
   <test>

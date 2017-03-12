@@ -1,5 +1,6 @@
 {"source_filename": "unwind.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "unwind.0.wasm"}, 
   {"type": "assert_trap", "line": 149, "action": {"type": "invoke", "field": "func-unwind-by-unreachable", "args": []}, "text": "unreachable"}, 
   {"type": "assert_return", "line": 150, "action": {"type": "invoke", "field": "func-unwind-by-br", "args": []}, "expected": []}, 
@@ -38,5 +39,4 @@
   {"type": "assert_trap", "line": 190, "action": {"type": "invoke", "field": "loop-value-after-unreachable", "args": []}, "text": "unreachable"}, 
   {"type": "assert_return", "line": 191, "action": {"type": "invoke", "field": "loop-value-after-br", "args": []}, "expected": [{"type": "i32", "value": "9"}]}, 
   {"type": "assert_return", "line": 192, "action": {"type": "invoke", "field": "loop-value-after-br_table", "args": []}, "expected": [{"type": "i32", "value": "9"}]}, 
-  {"type": "assert_return", "line": 193, "action": {"type": "invoke", "field": "loop-value-after-return", "args": []}, "expected": [{"type": "i32", "value": "9"}]}
-]}
+  {"type": "assert_return", "line": 193, "action": {"type": "invoke", "field": "loop-value-after-return", "args": []}, "expected": [{"type": "i32", "value": "9"}]}]}

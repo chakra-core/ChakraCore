@@ -20,4 +20,6 @@ function testFunction()
     {
         telemetryLog(`${o} is enumerable ${myobj.propertyIsEnumerable(o)}`, true);
     }
+
+    emitTTDLog(ttdLogURI);
 }

@@ -4,6 +4,8 @@ project (CHAKRACORE)
 # Keep CMake from caching static/shared library
 # option. Otherwise, CMake fails to update cached
 # references
+
+# todo: create a sub cmake file to take care of _SH uncaching...
 if(SHARED_LIBRARY_SH)
     unset(SHARED_LIBRARY_SH CACHE)
     unset(STATIC_LIBRARY_SH CACHE)
@@ -16,6 +18,11 @@ if(STATIC_LIBRARY_SH)
     unset(STATIC_LIBRARY_SH CACHE)
     unset(SHARED_LIBRARY CACHE)
     set(STATIC_LIBRARY 1)
+endif()
+
+if(LIBS_ONLY_BUILD_SH)
+    unset(LIBS_ONLY_BUILD_SH CACHE)
+    set(CC_LIBS_ONLY_BUILD 1)
 endif()
 
 if(CC_USES_SYSTEM_ARCH_SH)
@@ -115,25 +122,18 @@ if(ICU_INCLUDE_PATH)
     set(ICU_CC_PATH "${ICU_INCLUDE_PATH}/../lib/")
     find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
     find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
     if(ICUUC)
-      message("found libraries on ${ICU_CC_PATH}")
+      message("-- found ICU libs: ${ICU_CC_PATH}")
+      find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
+      if (NOT ICUDATA)
+          set(ICUDATA "")
+      endif()
       set(ICULIB
         ${ICUUC}
         ${ICU18}
         ${ICUDATA}
         )
     endif()
-elseif(CC_EMBED_ICU)
-    set(ICU_CC_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../deps/icu/source/output/lib/")
-    find_library(ICUUC icuuc PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    find_library(ICU18 icui18n PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    find_library(ICUDATA icudata PATHS ${ICU_CC_PATH} NO_DEFAULT_PATH)
-    set(ICULIB
-      ${ICUUC}
-      ${ICU18}
-      ${ICUDATA}
-      )
 endif()
 
 set(CLR_CMAKE_PLATFORM_XPLAT 1)
@@ -186,16 +186,8 @@ elseif(CC_TARGET_OS_OSX)
     )
 
     if(NOT ICULIB)
-      if(NOT NO_ICU_PATH_GIVEN)
-        add_definitions(-DHAS_REAL_ICU=1)
-        if(NOT CC_EMBED_ICU)
-          set(ICULIB "icucore")
-          add_definitions(
-            -DU_DISABLE_RENAMING=1 #in case we link against to an older binary of icu
-            )
-        endif()
-        message("using ICU from system default: ${ICULIB}")
-      endif()
+      set(NO_ICU_PATH_GIVEN 1)
+      message("-- Couldn't find ICU. Falling back to --no-icu build")
     endif()
 
     if(NOT CC_XCODE_PROJECT)
@@ -209,7 +201,7 @@ elseif(CC_TARGET_OS_OSX)
           -mmacosx-version-min=10.9 -std=gnu++11")
       else()
         set(OSX_DEPLOYMENT_TARGET "$ENV{MACOSX_DEPLOYMENT_TARGET}")
-        message(WARNING "!! macOS Deployment Target was set to $ENV{MACOSX_DEPLOYMENT_TARGET}. Using it as is.")
+        message(WARNING "-- !! macOS Deployment Target was set to $ENV{MACOSX_DEPLOYMENT_TARGET}. Using it as is.")
       endif()
     endif()
 else()
@@ -320,15 +312,14 @@ endif(CLR_CMAKE_PLATFORM_XPLAT)
 
 if (ENABLE_FULL_LTO_SH OR ENABLE_THIN_LTO_SH)
     if (CC_TARGET_OS_LINUX)
-        set(CC_LTO_ENABLED
-            -fuse-ld=gold
-            -Xlinker -plugin=${CHAKRACORE_BINARY_DIR}/../../cc-toolchain/build/lib/LLVMgold.so
-            )
+        set(CC_LTO_ENABLED -use-gold-plugin)
+        set(CC_LTO_ENABLED_C -c)
     endif()
 
     if (ENABLE_FULL_LTO_SH)
         unset(DENABLE_FULL_LTO_SH CACHE)
-        add_compile_options(-flto)
+        add_compile_options(-flto ${CC_LTO_ENABLED_C})
+
         if (CC_LTO_ENABLED)
             set(CC_LTO_ENABLED "${CC_LTO_ENABLED} -flto")
         endif()

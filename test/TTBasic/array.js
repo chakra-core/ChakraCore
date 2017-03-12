@@ -65,4 +65,6 @@ function testFunction()
     telemetryLog(`a[o1]: ${a[o1]}`, true); //50
     telemetryLog(`a["[object Object]"]: ${a["[object Object]"]}`, true); //50
     telemetryLog(`a["[object" + " Object]"]: ${a["[object" + " Object]"]}`, true); //50
+
+    emitTTDLog(ttdLogURI);
 }

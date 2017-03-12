@@ -39,7 +39,6 @@ JsrtContextCore::JsrtContextCore(JsrtRuntime * runtime) :
 {
     EnsureScriptContext();
     Link();
-    PinCurrentJsrtContext();
 }
 
 /* static */
@@ -50,20 +49,15 @@ JsrtContextCore *JsrtContextCore::New(JsrtRuntime * runtime)
 
 void JsrtContextCore::Dispose(bool isShutdown)
 {
-    if (nullptr != this->GetJavascriptLibrary())
+    if (this->GetJavascriptLibrary())
     {
-        Js::ScriptContext* scriptContxt = this->GetJavascriptLibrary()->GetScriptContext();
-        if (this->GetRuntime()->GetJsrtDebugManager() != nullptr)
-        {
-            this->GetRuntime()->GetJsrtDebugManager()->ClearDebugDocument(scriptContxt);
-        }
-        scriptContxt->EnsureClearDebugDocument();
-        scriptContxt->GetDebugContext()->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
-        scriptContxt->GetDebugContext()->GetProbeContainer()->UninstallDebuggerScriptOptionCallback();
-        scriptContxt->MarkForClose();
-        this->SetJavascriptLibrary(nullptr);
         Unlink();
+        this->SetJavascriptLibrary(nullptr);
     }
+}
+
+void JsrtContextCore::Finalize(bool isShutdown)
+{
 }
 
 Js::ScriptContext* JsrtContextCore::EnsureScriptContext()

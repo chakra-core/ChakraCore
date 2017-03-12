@@ -1,5 +1,6 @@
 {"source_filename": "names.wast",
  "commands": [
+
   {"type": "module", "line": 4, "filename": "names.0.wasm"}, 
   {"type": "assert_return", "line": 8, "action": {"type": "invoke", "field": "foo", "args": []}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "module", "line": 12, "filename": "names.1.wasm"}, 
@@ -18,5 +19,4 @@
   {"type": "assert_return", "line": 61, "action": {"type": "invoke", "field": "Infinity", "args": []}, "expected": [{"type": "f32", "value": "1090551808"}]}, 
   {"type": "assert_return", "line": 62, "action": {"type": "invoke", "field": "if", "args": []}, "expected": [{"type": "f32", "value": "1090568192"}]}, 
   {"type": "module", "line": 64, "filename": "names.3.wasm"}, 
-  {"type": "action", "line": 76, "action": {"type": "invoke", "field": "print32", "args": [{"type": "i32", "value": "42"}, {"type": "i32", "value": "123"}]}}
-]}
+  {"type": "action", "line": 76, "action": {"type": "invoke", "field": "print32", "args": [{"type": "i32", "value": "42"}, {"type": "i32", "value": "123"}]}}]}

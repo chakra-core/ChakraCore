@@ -45,23 +45,22 @@ else()
   endif()
 
   target_link_libraries(ChakraCoreStatic
-    ${CC_LTO_ENABLED}
     ${PTHREAD}
     "dl"
     )
 endif()
 
 target_include_directories (
-  ChakraCoreStatic PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CHAKRACORE_SOURCE_DIR}/lib/Backend
-  ${CHAKRACORE_SOURCE_DIR}/lib/Common
-  ${CHAKRACORE_SOURCE_DIR}/lib/Runtime
-  ${CHAKRACORE_SOURCE_DIR}/lib/Runtime/ByteCode
-  ${CHAKRACORE_SOURCE_DIR}/lib/Parser
-  ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
-  ${wasm_includes}
-  )
+    ChakraCoreStatic PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CHAKRACORE_SOURCE_DIR}/lib/Backend
+    ${CHAKRACORE_SOURCE_DIR}/lib/Common
+    ${CHAKRACORE_SOURCE_DIR}/lib/Runtime
+    ${CHAKRACORE_SOURCE_DIR}/lib/Runtime/ByteCode
+    ${CHAKRACORE_SOURCE_DIR}/lib/Parser
+    ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
+    ${wasm_includes}
+    )
 
 if(BuildJIT)
     add_subdirectory (Backend)

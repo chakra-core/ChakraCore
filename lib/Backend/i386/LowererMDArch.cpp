@@ -473,53 +473,6 @@ LowererMDArch::LoadHeapArgsCached(IR::Instr *instrArgs)
     return instrPrev;
 }
 
-///----------------------------------------------------------------------------
-///
-/// LowererMDArch::LoadFuncExpression
-///
-///     Load the function expression to src1 from [ebp + 8]
-///
-///----------------------------------------------------------------------------
-
-IR::Instr *
-LowererMDArch::LoadFuncExpression(IR::Instr *instrFuncExpr)
-{
-    ASSERT_INLINEE_FUNC(instrFuncExpr);
-    Func *func = instrFuncExpr->m_func;
-
-    IR::Opnd *paramOpnd = nullptr;
-    if (func->IsInlinee())
-    {
-        paramOpnd = func->GetInlineeFunctionObjectSlotOpnd();
-    }
-    else
-    {
-        //
-        // dst = current function ([ebp + 8])
-        //
-        StackSym *paramSym = StackSym::New(TyMachReg, func);
-        this->m_func->SetArgOffset(paramSym, 2 * MachPtr);
-        paramOpnd = IR::SymOpnd::New(paramSym, TyMachReg, func);
-    }
-
-    if (instrFuncExpr->m_func->GetJITFunctionBody()->IsCoroutine())
-    {
-        // the function object for generator calls is a GeneratorVirtualScriptFunction object
-        // and we need to return the real JavascriptGeneratorFunction object so grab it before
-        // assigning to the dst
-        IR::RegOpnd *tmpOpnd = IR::RegOpnd::New(TyMachReg, func);
-        LowererMD::CreateAssign(tmpOpnd, paramOpnd, instrFuncExpr);
-
-        paramOpnd = IR::IndirOpnd::New(tmpOpnd, Js::GeneratorVirtualScriptFunction::GetRealFunctionOffset(), TyMachPtr, func);
-    }
-
-    // mov dst, param
-    instrFuncExpr->SetSrc1(paramOpnd);
-    LowererMD::ChangeToAssign(instrFuncExpr);
-
-    return instrFuncExpr;
-}
-
 //
 // Load the parameter in the first argument slot
 //
@@ -962,37 +915,34 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
 IR::Instr *
 LowererMDArch::LowerWasmMemOp(IR::Instr * instr, IR::Opnd *addrOpnd)
 {
+    IR::IndirOpnd * indirOpnd = addrOpnd->AsIndirOpnd();
+    IR::RegOpnd * indexOpnd = indirOpnd->GetIndexOpnd();
+    uint32 offset = indirOpnd->GetOffset();
+    IR::Opnd *arrayLenOpnd = instr->GetSrc2();
+    int64 constOffset = (int64)addrOpnd->GetSize() + (int64)offset;
+
+    CompileAssert(Js::ArrayBuffer::MaxArrayBufferLength <= UINT32_MAX);
+    IR::IntConstOpnd * constOffsetOpnd = IR::IntConstOpnd::New((uint32)constOffset, TyUint32, m_func);
+
     IR::LabelInstr * helperLabel = Lowerer::InsertLabel(true, instr);
     IR::LabelInstr * loadLabel = Lowerer::InsertLabel(false, instr);
     IR::LabelInstr * doneLabel = Lowerer::InsertLabel(false, instr);
 
-    // Find array buffer length
-    IR::RegOpnd * indexOpnd = addrOpnd->AsIndirOpnd()->GetIndexOpnd();
-    Int64RegPair indexPair = lowererMD->m_lowerer->FindOrCreateInt64Pair(indexOpnd);
-    IR::Opnd *arrayLenOpnd = instr->GetSrc2();
-
-    // Compare index + memop access length and array buffer length, and generate RuntimeError if greater
-    IR::Opnd *cmpOpnd = indexPair.low;
-    // check high bits are zero
-    lowererMD->m_lowerer->InsertCompareBranch(indexPair.high, IR::IntConstOpnd::New(0, TyInt32, m_func), Js::OpCode::BrNeq_A, true, helperLabel, helperLabel);
-    // check low bits is within heapsize
-    lowererMD->m_lowerer->InsertCompareBranch(indexPair.low, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
-
-    if (addrOpnd->GetSize() > 1)
+    IR::Opnd *cmpOpnd;
+    if (indexOpnd != nullptr)
     {
-        cmpOpnd = IR::RegOpnd::New(TyInt32, m_func);
-        // check low bits + size does not overflow
-        Lowerer::InsertAdd(true, cmpOpnd, indexPair.low, IR::IntConstOpnd::New(addrOpnd->GetSize() - 1, TyInt32, m_func), helperLabel);
-        Lowerer::InsertBranch(Js::OpCode::JO, helperLabel, helperLabel);
-        // check low bits + size is within heapsize
-        lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGe_A, true, helperLabel, helperLabel);
+        // Compare index + memop access length and array buffer length, and generate RuntimeError if greater
+        cmpOpnd = IR::RegOpnd::New(TyUint32, m_func);
+        Lowerer::InsertAdd(true, cmpOpnd, indexOpnd, constOffsetOpnd, helperLabel);
+        Lowerer::InsertBranch(Js::OpCode::JB, helperLabel, helperLabel);
     }
-
+    else
+    {
+        cmpOpnd = constOffsetOpnd;
+    }
+    lowererMD->m_lowerer->InsertCompareBranch(cmpOpnd, arrayLenOpnd, Js::OpCode::BrGt_A, true, helperLabel, helperLabel);
     lowererMD->m_lowerer->GenerateRuntimeError(loadLabel, WASMERR_ArrayIndexOutOfRange, IR::HelperOp_WebAssemblyRuntimeError);
     Lowerer::InsertBranch(Js::OpCode::Br, loadLabel, helperLabel);
-
-    Assert(indexPair.low->IsRegOpnd());
-    addrOpnd->AsIndirOpnd()->SetIndexOpnd(indexPair.low->AsRegOpnd());
 
     return doneLabel;
 }

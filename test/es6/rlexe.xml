@@ -126,12 +126,14 @@
       <baseline>proto_basic.baseline</baseline>
     </default>
   </test>
+  <!-- TODO Fix and re-enable this test. (https://github.com/Microsoft/ChakraCore/issues/2667)
   <test>
     <default>
       <files>proto_disable.js</files>
       <baseline>proto_disable.baseline</baseline>
     </default>
   </test>
+  -->
   <test>
     <default>
       <files>proto_initializer.js</files>
@@ -587,6 +589,16 @@
   <test>
     <default>
       <files>CrossContextSpreadfunctionCall.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>CrossContextPromiseFile1.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>CrossContextPromise.js</files>
     </default>
   </test>
   <test>
@@ -1354,6 +1366,12 @@
         <files>module-namespace.js</files>
         <compile-flags>-ES6Module -Es6ToStringTag</compile-flags>
         <baseline>module-namespace.baseline</baseline>
+    </default>
+</test>
+<test>
+    <default>
+        <files>test_bug_2645.js</files>
+        <compile-flags>-ES6Module</compile-flags>
     </default>
 </test>
 <test>

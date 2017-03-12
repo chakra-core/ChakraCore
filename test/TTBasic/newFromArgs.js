@@ -22,4 +22,6 @@ function testFunction()
 {
     telemetryLog(`${a1}`, true);
     telemetryLog(`${a2}`, true);  // undefined in array parameter should still be set (legacy behavior is missing value)
+
+    emitTTDLog(ttdLogURI);
 }

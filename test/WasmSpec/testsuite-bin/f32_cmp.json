@@ -1,5 +1,6 @@
 {"source_filename": "f32_cmp.wast",
  "commands": [
+
   {"type": "module", "line": 4, "filename": "f32_cmp.0.wasm"}, 
   {"type": "assert_return", "line": 13, "action": {"type": "invoke", "field": "eq", "args": [{"type": "f32", "value": "2147483648"}, {"type": "f32", "value": "2147483648"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
   {"type": "assert_return", "line": 14, "action": {"type": "invoke", "field": "eq", "args": [{"type": "f32", "value": "2147483648"}, {"type": "f32", "value": "0"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
@@ -1944,5 +1945,4 @@
   {"type": "assert_return", "line": 1953, "action": {"type": "invoke", "field": "ge", "args": [{"type": "f32", "value": "4290772992"}, {"type": "f32", "value": "4290772992"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "assert_return", "line": 1954, "action": {"type": "invoke", "field": "ge", "args": [{"type": "f32", "value": "4290772992"}, {"type": "f32", "value": "2143289344"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
   {"type": "assert_return", "line": 1955, "action": {"type": "invoke", "field": "ge", "args": [{"type": "f32", "value": "2143289344"}, {"type": "f32", "value": "4290772992"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
-  {"type": "assert_return", "line": 1956, "action": {"type": "invoke", "field": "ge", "args": [{"type": "f32", "value": "2143289344"}, {"type": "f32", "value": "2143289344"}]}, "expected": [{"type": "i32", "value": "0"}]}
-]}
+  {"type": "assert_return", "line": 1956, "action": {"type": "invoke", "field": "ge", "args": [{"type": "f32", "value": "2143289344"}, {"type": "f32", "value": "2143289344"}]}, "expected": [{"type": "i32", "value": "0"}]}]}

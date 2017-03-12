@@ -8,6 +8,7 @@
 #ifdef ENABLE_WASM
 
 #include "../WasmReader/WasmReaderPch.h"
+#include "Language/WebAssemblySource.h"
 
 namespace Js
 {
@@ -82,11 +83,9 @@ WebAssemblyModule::NewInstance(RecyclableObject* function, CallInfo callInfo, ..
     {
         JavascriptError::ThrowTypeError(scriptContext, WASMERR_NeedBufferSource);
     }
-    BYTE* buffer;
-    uint byteLength;
-    WebAssembly::ReadBufferSource(args[1], scriptContext, &buffer, &byteLength);
-
-    return CreateModule(scriptContext, buffer, byteLength);
+    
+    WebAssemblySource src(args[1], true, scriptContext);
+    return CreateModule(scriptContext, &src);
 }
 
 Var
@@ -206,9 +205,9 @@ Var WebAssemblyModule::EntryCustomSections(RecyclableObject* function, CallInfo 
 WebAssemblyModule *
 WebAssemblyModule::CreateModule(
     ScriptContext* scriptContext,
-    const byte* buffer,
-    const uint lengthBytes)
+    WebAssemblySource* src)
 {
+    Assert(src);
     AutoProfilingPhase wasmPhase(scriptContext, Js::WasmBytecodePhase);
     Unused(wasmPhase);
 
@@ -217,33 +216,7 @@ WebAssemblyModule::CreateModule(
     Js::FunctionBody * currentBody = nullptr;
     try
     {
-        Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        SourceContextInfo * sourceContextInfo = scriptContext->CreateSourceContextInfo(scriptContext->GetNextSourceContextId(), nullptr, 0, nullptr);
-        SRCINFO si = {
-            /* sourceContextInfo   */ sourceContextInfo,
-            /* dlnHost             */ 0,
-            /* ulColumnHost        */ 0,
-            /* lnMinHost           */ 0,
-            /* ichMinHost          */ 0,
-            /* ichLimHost          */ 0,
-            /* ulCharOffset        */ 0,
-            /* mod                 */ 0,
-            /* grfsi               */ 0
-        };
-
-        // copy buffer so external changes to it don't cause issues when defer parsing
-        byte* newBuffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), byte, lengthBytes);
-        js_memcpy_s(newBuffer, lengthBytes, buffer, lengthBytes);
-
-        // Note: We don't have real "source info" for Wasm. Following are just placeholders.
-        // Hack: Wasm handles debugging differently. Fake this as "LibraryCode" so that
-        // normal script debugging code ignores this source info and its functions.
-        const int32 cchLength = static_cast<int32>(lengthBytes / sizeof(char16));
-        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::NewWithNoCopy(
-            scriptContext, (LPCUTF8)newBuffer, cchLength, lengthBytes, &si, /*isLibraryCode*/true);
-        scriptContext->SaveSourceNoCopy(utf8SourceInfo, cchLength, /*isCesu8*/false);
-
-        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, newBuffer, lengthBytes);
+        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, src);
 
         webAssemblyModule = bytecodeGen.GenerateModule();
 
@@ -289,30 +262,15 @@ WebAssemblyModule::CreateModule(
 bool
 WebAssemblyModule::ValidateModule(
     ScriptContext* scriptContext,
-    const byte* buffer,
-    const uint lengthBytes)
+    WebAssemblySource* src)
 {
+    Assert(src);
     AutoProfilingPhase wasmPhase(scriptContext, Js::WasmBytecodePhase);
     Unused(wasmPhase);
 
     try
     {
-        Js::AutoDynamicCodeReference dynamicFunctionReference(scriptContext);
-        SRCINFO const * srcInfo = scriptContext->cache->noContextGlobalSourceInfo;
-
-        // review: unsure if we need copy here, but seems safer to do it
-        byte* newBuffer = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), byte, lengthBytes);
-        js_memcpy_s(newBuffer, lengthBytes, buffer, lengthBytes);
-
-        // Note: We don't have real "source info" for Wasm. Following are just placeholders.
-        // Hack: Wasm handles debugging differently. Fake this as "LibraryCode" so that
-        // normal script debugging code ignores this source info and its functions.
-        const int32 cchLength = static_cast<int32>(lengthBytes / sizeof(char16));
-        Js::Utf8SourceInfo* utf8SourceInfo = Utf8SourceInfo::NewWithNoCopy(
-            scriptContext, (LPCUTF8)newBuffer, cchLength, lengthBytes, srcInfo, /*isLibraryCode*/true);
-        scriptContext->SaveSourceNoCopy(utf8SourceInfo, cchLength, /*isCesu8*/false);
-
-        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, utf8SourceInfo, (byte*)newBuffer, lengthBytes);
+        Wasm::WasmModuleGenerator bytecodeGen(scriptContext, src);
 
         WebAssemblyModule * webAssemblyModule = bytecodeGen.GenerateModule();
 

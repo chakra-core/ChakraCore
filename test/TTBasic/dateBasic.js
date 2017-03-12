@@ -38,4 +38,6 @@ function testFunction()
         telemetryLog(`Infinity Date toISOString : ${e.name}  : ${e.message}`, true);
     }
     telemetryLog(`Infinity Date toJSON : ${dinfty.toJSON()}`, true);
+
+    emitTTDLog(ttdLogURI);
 }

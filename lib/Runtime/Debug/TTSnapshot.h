@@ -29,6 +29,9 @@ namespace TTD
         //List containing the "context" information for the objects in this snapshot
         UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL> m_ctxList;
 
+        //List containing all the propertyids for the symbols that are in the thread context symbolRegistrationMap
+        UnorderedArrayList<Js::PropertyId, TTD_ARRAY_LIST_SIZE_XSMALL> m_tcSymbolRegistrationMapContents;
+
         //The active script context
         TTD_LOG_PTR_ID m_activeScriptContext;
 
@@ -149,6 +152,9 @@ namespace TTD
         UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& GetContextList();
         const UnorderedArrayList<NSSnapValues::SnapContext, TTD_ARRAY_LIST_SIZE_XSMALL>& GetContextList() const;
 
+        //Get the thread context symbol map info list for this snapshot
+        UnorderedArrayList<Js::PropertyId, TTD_ARRAY_LIST_SIZE_XSMALL>& GetTCSymbolMapInfoList();
+
         TTD_LOG_PTR_ID GetActiveScriptContext() const;
         void SetActiveScriptContext(TTD_LOG_PTR_ID activeCtx);
 
@@ -179,6 +185,9 @@ namespace TTD
 
         //Get the slab allocator for this snapshot context
         SlabAllocator& GetSnapshotSlabAllocator();
+
+        //Make sure that all well known objects can be re-used -- if not we will need to recreate all script contexts from scratch
+        bool AllWellKnownObjectsReusable(InflateMap* inflator) const;
 
         //Inflate the snapshot
         void Inflate(InflateMap* inflator, ThreadContextTTD* tCtx) const;

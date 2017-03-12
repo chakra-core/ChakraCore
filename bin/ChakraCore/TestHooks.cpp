@@ -114,6 +114,7 @@ void __stdcall NotifyUnhandledException(PEXCEPTION_POINTERS exceptionInfo)
 #define FLAG_Phases(name)
 #define FLAG_NumberSet(name)
 #define FLAG_NumberPairSet(name)
+#define FLAG_NumberTrioSet(name)
 #define FLAG_NumberRange(name)
 #include "ConfigFlagsList.h"
 #undef FLAG
@@ -123,15 +124,18 @@ void __stdcall NotifyUnhandledException(PEXCEPTION_POINTERS exceptionInfo)
 #undef FLAG_Phases
 #undef FLAG_NumberSet
 #undef FLAG_NumberPairSet
+#undef FLAG_NumberTrioSet
 #undef FLAG_NumberRange
 
-HRESULT OnChakraCoreLoaded()
+HRESULT OnChakraCoreLoaded(OnChakraCoreLoadedPtr pfChakraCoreLoaded)
 {
-    typedef HRESULT(__stdcall *OnChakraCoreLoadedPtr)(TestHooks &testHooks);
-    OnChakraCoreLoadedPtr pfChakraCoreLoaded = (OnChakraCoreLoadedPtr)GetProcAddress(GetModuleHandle(NULL), "OnChakraCoreLoadedEntry");
     if (pfChakraCoreLoaded == nullptr)
     {
-        return S_OK;
+        pfChakraCoreLoaded = (OnChakraCoreLoadedPtr)GetProcAddress(GetModuleHandle(NULL), "OnChakraCoreLoadedEntry");
+        if (pfChakraCoreLoaded == nullptr)
+        {
+            return S_OK;
+        }
     }
 
     TestHooks testHooks =
@@ -152,6 +156,7 @@ HRESULT OnChakraCoreLoaded()
 #define FLAG_Phases(name)
 #define FLAG_NumberSet(name)
 #define FLAG_NumberPairSet(name)
+#define FLAG_NumberTrioSet(name)
 #define FLAG_NumberRange(name)
 #include "ConfigFlagsList.h"
 #undef FLAG
@@ -161,13 +166,13 @@ HRESULT OnChakraCoreLoaded()
 #undef FLAG_Phases
 #undef FLAG_NumberSet
 #undef FLAG_NumberPairSet
+#undef FLAG_NumberTrioSet
 #undef FLAG_NumberRange
 #if ENABLE_NATIVE_CODEGEN && _WIN32
         ConnectJITServer,
 #endif
         NotifyUnhandledException
     };
-
     return pfChakraCoreLoaded(testHooks);
 }
 

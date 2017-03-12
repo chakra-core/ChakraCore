@@ -68,7 +68,6 @@ public:
             IR::Instr *         LoadStackArgPtr(IR::Instr * instr);
             IR::Instr *         LoadHeapArguments(IR::Instr * instr);
             IR::Instr *         LoadHeapArgsCached(IR::Instr * instr);
-            IR::Instr *         LoadFuncExpression(IR::Instr * instr);
             IR::Instr *         LowerEntryInstr(IR::EntryInstr * entryInstr);
             IR::Instr *         LowerExitInstr(IR::ExitInstr * exitInstr);
             IR::Instr *         LowerEntryInstrAsmJs(IR::EntryInstr * entryInstr);

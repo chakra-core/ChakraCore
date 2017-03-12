@@ -485,7 +485,7 @@ namespace Js
 
         // ES5Array type handler specific methods. Only implemented by ES5ArrayTypeHandlers.
         virtual bool IsLengthWritable() const { Assert(false); return false; }
-        virtual void SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags) { Assert(false); }
+        virtual uint32 SetLength(ES5Array* arr, uint32 newLen, PropertyOperationFlags propertyOperationFlags) { Assert(false); return 0; }
         virtual BOOL IsObjectArrayFrozen(ES5Array* arr) { Assert(false); return FALSE; }
         virtual BOOL IsItemEnumerable(ES5Array* arr, uint32 index) { Assert(false); return FALSE; }
         virtual BOOL IsValidDescriptorToken(void * descriptorValidationToken) const { Assert(false); return FALSE; }
@@ -624,16 +624,8 @@ namespace Js
          //Set the extensible flag info in the handler
          void SetExtensible_TTD();
 
-         //Return true if we should restore the given property id (we want to skip most internal property ids)
-         static bool ShouldRestorePropertyId_TTD(Js::PropertyId pid)
-         {
-             if((pid == Js::Constants::NoProperty) | Js::IsInternalPropertyId(pid))
-             {
-                 return false;
-             }
-
-             return true;
-         }
+         //Return true if this type handler is reseattable/false if we don't want to try
+         virtual bool IsResetableForTTD(uint32 snapMaxIndex) const;
 #endif
     };
 }

@@ -7,5 +7,5 @@ for,sample,some,strings,testing - Output different in cscript due to NaN
 1,2,3
 10
 1,1.2,4,4.8,12
-TypeError: Array.prototype.sort: argument is not a JavaScript object
+TypeError: Array.prototype.sort: argument is not a Function object
 1,2,3

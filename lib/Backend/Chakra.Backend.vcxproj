@@ -204,7 +204,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsJITInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITRuntimeInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITTimeInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITObjTypeSpecFldInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ObjTypeSpecFldInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeConstructorCache.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCache.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimePolymorphicInlineCacheInfo.cpp" />
@@ -212,7 +212,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTypeHandler.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ServerScriptContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)ServerThreadContext.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFixedField.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FixedFieldInfo.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)FunctionCodeGenJitTimeData.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AgenPeeps.h" />
@@ -250,6 +251,7 @@
       <ExcludedFromBuild Condition="'$(Platform)'!='ARM64'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="AsmJsJITInfo.h" />
+    <ClInclude Include="FunctionCodeGenJitTimeData.h" />
     <ClInclude Include="FunctionJITRuntimeInfo.h" />
     <ClInclude Include="FunctionJITTimeInfo.h" />
     <ClInclude Include="IRBaseTypeList.h" />
@@ -384,11 +386,11 @@
     <ClInclude Include="IRViewer.h" />
     <ClInclude Include="IRType.h" />
     <ClInclude Include="IRTypeList.h" />
-    <ClInclude Include="JITObjTypeSpecFldInfo.h" />
+    <ClInclude Include="ObjTypeSpecFldInfo.h" />
     <ClInclude Include="JITOutput.h" />
     <ClInclude Include="JITRecyclableObject.h" />
     <ClInclude Include="JITTimeConstructorCache.h" />
-    <ClInclude Include="JITTimeFixedField.h" />
+    <ClInclude Include="FixedFieldInfo.h" />
     <ClInclude Include="JITTimeFunctionBody.h" />
     <ClInclude Include="JITTimePolymorphicInlineCache.h" />
     <ClInclude Include="JITTimePolymorphicInlineCacheInfo.h" />

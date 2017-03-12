@@ -815,6 +815,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::AddPageSegment(DListBa
     return segment;
 }
 
+#if ENABLE_BACKGROUND_PAGE_FREEING
 template<typename TVirtualAlloc, typename TSegment, typename TPageSegment>
 char *
 PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::TryAllocFromZeroPagesList(
@@ -900,6 +901,7 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::TryAllocFromZeroPagesL
 
     return pages;
 }
+#endif
 
 template<typename TVirtualAlloc, typename TSegment, typename TPageSegment>
 char *
@@ -2493,7 +2495,7 @@ HeapPageAllocator<T>::ReleaseDecommittedSegment(__in SegmentBase<T>* segment)
 // decommit the page but don't release it
 template<typename T>
 void
-HeapPageAllocator<T>::DecommitPages(__in char* address, size_t pageCount = 1)
+HeapPageAllocator<T>::DecommitPages(__in char* address, size_t pageCount /* = 1 */)
 {
     Assert(pageCount <= MAXUINT32);
 #pragma prefast(suppress:__WARNING_WIN32UNRELEASEDVADS, "The remainder of the clean-up is done later.");

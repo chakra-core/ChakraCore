@@ -24,17 +24,18 @@ namespace Js
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedTypedArrayObject);
         }
 
+        TypeId typeId = JavascriptOperators::GetTypeId(typedArray);
         if (onlyInt32)
         {
-            if (!Int32Array::Is(typedArray))
+            if (typeId != TypeIds_Int32Array)
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidOperationOnTypedArray);
             }
         }
         else
         {
-            if (!(Int8Array::Is(typedArray) || Uint8Array::Is(typedArray) || Int16Array::Is(typedArray) ||
-                Uint16Array::Is(typedArray) || Int32Array::Is(typedArray) || Uint32Array::Is(typedArray)))
+            if (!(typeId == TypeIds_Int8Array || typeId == TypeIds_Uint8Array || typeId == TypeIds_Int16Array ||
+                typeId == TypeIds_Uint16Array || typeId == TypeIds_Int32Array || typeId == TypeIds_Uint32Array))
             {
                 JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidOperationOnTypedArray);
             }

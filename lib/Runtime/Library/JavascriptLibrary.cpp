@@ -1054,6 +1054,7 @@ namespace Js
             scriptContext->ResetWeakReferenceDictionaryList();
             scriptContext->SetIsFinalized();
             scriptContext->GetThreadContext()->UnregisterScriptContext(scriptContext);
+            scriptContext->MarkForClose();
         }
     }
 
@@ -1061,20 +1062,19 @@ namespace Js
     {
         if (scriptContext)
         {
-            if (isShutdown)
-            {
-                // during shut down the global object might not be closed yet.
-                // Clear the global object from the script context so it doesn't
-                // get unpinned (which may fail because the recycler is shutting down)
-                scriptContext->Close(true);
-                scriptContext->ClearGlobalObject();
-            }
-            else
-            {
-                Assert(scriptContext->IsClosed());
-            }
             HeapDelete(scriptContext);
             scriptContext = nullptr;
+        }
+    }
+    void JavascriptLibrary::Finalize(bool isShutdown)
+    {
+        __super::Finalize(isShutdown);
+
+        this->SetFakeGlobalFuncForUndefer(nullptr);
+
+        if (this->referencedPropertyRecords != nullptr)
+        {
+            RECYCLER_PERF_COUNTER_SUB(PropertyRecordBindReference, this->referencedPropertyRecords->Count());
         }
     }
 
@@ -1242,7 +1242,13 @@ namespace Js
 #if ENABLE_TTD
         if(scriptContext->GetThreadContext()->IsRuntimeInTTDMode())
         {
+            //
+            //TODO: when we formalize our telemetry library in JS land we will want to move these to a seperate Debug or Telemetry object instead of cluttering the global object
+            //
             AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("telemetryLog"), &GlobalObject::EntryInfo::TelemetryLog, 3);
+
+            AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("enabledDiagnosticsTrace"), &GlobalObject::EntryInfo::EnabledDiagnosticsTrace, 1);
+            AddFunctionToLibraryObjectWithPropertyName(globalObject, _u("emitTTDLog"), &GlobalObject::EntryInfo::EmitTTDLog, 2);
         }
 #endif
 
@@ -4937,7 +4943,7 @@ namespace Js
         this->nativeHostPromiseContinuationFunctionState = state;
     }
 
-    void JavascriptLibrary::PinJsrtContextObject(FinalizableObject* jsrtContext)
+    void JavascriptLibrary::SetJsrtContext(FinalizableObject* jsrtContext)
     {
         // With JsrtContext supporting cross context, ensure that it doesn't get GCed
         // prematurely. So pin the instance to javascriptLibrary so it will stay alive
@@ -4946,7 +4952,7 @@ namespace Js
         this->jsrtContextObject = jsrtContext;
     }
 
-    FinalizableObject* JavascriptLibrary::GetPinnedJsrtContextObject()
+    FinalizableObject* JavascriptLibrary::GetJsrtContext()
     {
         return this->jsrtContextObject;
     }
@@ -5307,7 +5313,7 @@ namespace Js
         map->Set(Js::DynamicObject::FromVar(key), value);
     }
 
-    Js::RecyclableObject* JavascriptLibrary::CreateExternalFunction_TTD(Js::JavascriptString* fname)
+    Js::RecyclableObject* JavascriptLibrary::CreateExternalFunction_TTD(Js::Var fname)
     {
         return this->CreateStdCallExternalFunction(&JavascriptExternalFunction::TTDReplayDummyExternalMethod, fname, nullptr);
     }
@@ -5405,6 +5411,22 @@ namespace Js
     Js::RecyclableObject* JavascriptLibrary::CreatePromiseReactionTaskFunction_TTD(JavascriptPromiseReaction* reaction, Var argument)
     {
         return this->CreatePromiseReactionTaskFunction(JavascriptPromise::EntryReactionTaskFunction, reaction, argument);
+    }
+
+    JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* JavascriptLibrary::CreateRemainingElementsWrapper_TTD(Js::ScriptContext* ctx, uint32 value)
+    {
+        JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* remainingElementsWrapper = RecyclerNewStructZ(ctx->GetRecycler(), JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper);
+        remainingElementsWrapper->remainingElements = value;
+
+        return remainingElementsWrapper;
+    }
+
+    Js::RecyclableObject* JavascriptLibrary::CreatePromiseAllResolveElementFunction_TTD(Js::JavascriptPromiseCapability* capabilities, uint32 index, Js::JavascriptPromiseAllResolveElementFunctionRemainingElementsWrapper* wrapper, Js::RecyclableObject* values, bool alreadyCalled)
+    {
+        Js::JavascriptPromiseAllResolveElementFunction* res = this->CreatePromiseAllResolveElementFunction(JavascriptPromise::EntryAllResolveElementFunction, index, Js::JavascriptArray::FromVar(values), capabilities, wrapper);
+        res->SetAlreadyCalled(alreadyCalled);
+
+        return res;
     }
 #endif
 
@@ -7062,7 +7084,6 @@ namespace Js
     {
         bindRefChunkCurrent = nullptr;
         bindRefChunkEnd = nullptr;
-        scriptContextCache = nullptr;
     }
 
     void JavascriptLibrary::BeginDynamicFunctionReferences()

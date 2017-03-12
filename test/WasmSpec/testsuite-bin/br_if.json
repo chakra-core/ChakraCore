@@ -1,5 +1,6 @@
 {"source_filename": "br_if.wast",
  "commands": [
+
   {"type": "module", "line": 3, "filename": "br_if.0.wasm"}, 
   {"type": "assert_return", "line": 132, "action": {"type": "invoke", "field": "as-block-first", "args": [{"type": "i32", "value": "0"}]}, "expected": [{"type": "i32", "value": "2"}]}, 
   {"type": "assert_return", "line": 133, "action": {"type": "invoke", "field": "as-block-first", "args": [{"type": "i32", "value": "1"}]}, "expected": [{"type": "i32", "value": "3"}]}, 
@@ -55,7 +56,7 @@
   {"type": "assert_invalid", "line": 261, "filename": "br_if.18.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 267, "filename": "br_if.19.wasm", "text": "type mismatch"}, 
   {"type": "assert_invalid", "line": 273, "filename": "br_if.20.wasm", "text": "type mismatch"}, 
-  {"type": "assert_invalid", "line": 280, "filename": "br_if.21.wasm", "text": "unknown label"}, 
-  {"type": "assert_invalid", "line": 284, "filename": "br_if.22.wasm", "text": "unknown label"}, 
-  {"type": "assert_invalid", "line": 288, "filename": "br_if.23.wasm", "text": "unknown label"}
-]}
+  {"type": "assert_invalid", "line": 279, "filename": "br_if.21.wasm", "text": "type mismatch"}, 
+  {"type": "assert_invalid", "line": 286, "filename": "br_if.22.wasm", "text": "unknown label"}, 
+  {"type": "assert_invalid", "line": 290, "filename": "br_if.23.wasm", "text": "unknown label"}, 
+  {"type": "assert_invalid", "line": 294, "filename": "br_if.24.wasm", "text": "unknown label"}]}

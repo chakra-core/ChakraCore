@@ -2245,6 +2245,11 @@ namespace Js
         //The regular LookupInline is fine for path types
         return (Js::BigPropertyIndex)this->typePath->LookupInline(pRecord->GetPropertyId(), GetPathLength());
     }
+
+    bool PathTypeHandlerBase::IsResetableForTTD(uint32 snapMaxIndex) const
+    {
+        return snapMaxIndex == this->GetPathLength();
+    }
 #endif
 
     SimplePathTypeHandler * SimplePathTypeHandler::New(ScriptContext * scriptContext, TypePath* typePath, uint16 pathLength, uint16 inlineSlotCapacity, uint16 offsetOfInlineSlots, bool isLocked, bool isShared, DynamicType* predecessorType)

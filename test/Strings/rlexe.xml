@@ -117,6 +117,12 @@
   </test>
   <test>
     <default>
+      <files>replace-xsite.js</files>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>trim.js</files>
       <baseline>trim.baseline</baseline>
     </default>

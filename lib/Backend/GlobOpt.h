@@ -8,6 +8,7 @@ enum class ValueStructureKind
 {
     Generic,
     IntConstant,
+    Int64Constant,
     IntRange,
     IntBounded,
     FloatConstant,
@@ -17,6 +18,7 @@ enum class ValueStructureKind
 };
 
 class IntConstantValueInfo;
+class Int64ConstantValueInfo;
 class IntRangeValueInfo;
 class IntBoundedValueInfo;
 class FloatConstantValueInfo;
@@ -188,7 +190,9 @@ public:
 
 private:
     bool                            IsIntConstant() const;
+    bool                            IsInt64Constant() const;
     const IntConstantValueInfo *    AsIntConstant() const;
+    const Int64ConstantValueInfo *  AsInt64Constant() const;
     bool                            IsIntRange() const;
     const IntRangeValueInfo *       AsIntRange() const;
 
@@ -216,6 +220,8 @@ public:
 public:
     bool HasIntConstantValue(const bool includeLikelyInt = false) const;
     bool TryGetIntConstantValue(int32 *const intValueRef, const bool includeLikelyInt = false) const;
+    bool TryGetIntConstantValue(int64 *const intValueRef, const bool isUnsigned) const;
+    bool TryGetInt64ConstantValue(int64 *const intValueRef, const bool isUnsigned) const;
     bool TryGetIntConstantLowerBound(int32 *const intConstantBoundRef, const bool includeLikelyInt = false) const;
     bool TryGetIntConstantUpperBound(int32 *const intConstantBoundRef, const bool includeLikelyInt = false) const;
     bool TryGetIntConstantBounds(IntConstantBounds *const intConstantBoundsRef, const bool includeLikelyInt = false) const;
@@ -316,37 +322,49 @@ public:
 
 template<> ValueNumber JsUtil::ValueToKey<ValueNumber, Value *>::ToKey(Value *const &value);
 
-class IntConstantValueInfo : public ValueInfo
+
+template <typename T, typename U, ValueStructureKind kind>
+class _IntConstantValueInfo : public ValueInfo
 {
 private:
-    const int32 intValue;
+    const T intValue;
+public:
+    static U *New(JitArenaAllocator *const allocator, const T intValue)
+    {
+        return JitAnew(allocator, U, intValue);
+    }
 
-protected:
-    IntConstantValueInfo(const int32 intValue)
-        : ValueInfo(GetInt(IsTaggable(intValue)), ValueStructureKind::IntConstant),
+    U *Copy(JitArenaAllocator *const allocator) const
+    {
+        return JitAnew(allocator, U, *((U*)this));
+    }
+
+    _IntConstantValueInfo(const T intValue)
+        : ValueInfo(GetInt(IsTaggable(intValue)), kind),
         intValue(intValue)
+    {}
+
+    static bool IsTaggable(const T i)
     {
+        return U::IsTaggable(i);
     }
 
-public:
-    static IntConstantValueInfo *New(JitArenaAllocator *const allocator, const int32 intValue)
-    {
-        return JitAnew(allocator, IntConstantValueInfo, intValue);
-    }
-
-    IntConstantValueInfo *Copy(JitArenaAllocator *const allocator) const
-    {
-        return JitAnew(allocator, IntConstantValueInfo, *this);
-    }
-
-public:
-    int32 IntValue() const
+    T IntValue() const
     {
         return intValue;
     }
+};
 
+class IntConstantValueInfo : public _IntConstantValueInfo<int, IntConstantValueInfo, ValueStructureKind::IntConstant>
+{
+public:
+    static IntConstantValueInfo *New(JitArenaAllocator *const allocator, const int intValue)
+    {
+        return _IntConstantValueInfo::New(allocator, intValue);
+    }
 private:
-    static bool IsTaggable(const int32 i)
+    IntConstantValueInfo(int value) : _IntConstantValueInfo(value) {};
+    static bool IsTaggable(const int i)
     {
 #if INT32VAR
         // All 32-bit ints are taggable on 64-bit architectures
@@ -355,6 +373,22 @@ private:
         return i >= Js::Constants::Int31MinValue && i <= Js::Constants::Int31MaxValue;
 #endif
     }
+
+    friend _IntConstantValueInfo;
+};
+
+class Int64ConstantValueInfo : public _IntConstantValueInfo<int64, Int64ConstantValueInfo, ValueStructureKind::Int64Constant>
+{
+public:
+    static Int64ConstantValueInfo *New(JitArenaAllocator *const allocator, const int64 intValue)
+    {
+        return _IntConstantValueInfo::New(allocator, intValue);
+    }
+private:
+    static bool IsTaggable(const int64 i) { return false; }
+    Int64ConstantValueInfo(int64 value) : _IntConstantValueInfo(value) {};
+
+    friend _IntConstantValueInfo;
 };
 
 class IntRangeValueInfo : public ValueInfo, public IntConstantBounds
@@ -480,7 +514,7 @@ public:
 
 struct ObjectTypePropertyEntry
 {
-    JITObjTypeSpecFldInfo* fldInfo;
+    ObjTypeSpecFldInfo* fldInfo;
     uint blockNumber;
 };
 
@@ -725,6 +759,24 @@ public:
     {
         SetBitAttribute(IgnoredIntOverflowIndex, ignoredIntOverflow);
         SetBitAttribute(IgnoredNegativeZeroIndex, ignoredNegativeZero);
+    }
+};
+
+class ConvAttributes : public ExprAttributes
+{
+private:
+    static const uint DstUnsignedIndex = 0;
+    static const uint SrcUnsignedIndex = 1;
+
+public:
+    ConvAttributes(const ExprAttributes &exprAttributes) : ExprAttributes(exprAttributes)
+    {
+    }
+
+    ConvAttributes(const bool isDstUnsigned, const bool isSrcUnsigned)
+    {
+        SetBitAttribute(DstUnsignedIndex, isDstUnsigned);
+        SetBitAttribute(SrcUnsignedIndex, isSrcUnsigned);
     }
 };
 
@@ -1381,7 +1433,9 @@ private:
     Value *                 NewGenericValue(const ValueType valueType, IR::Opnd *const opnd);
     Value *                 NewGenericValue(const ValueType valueType, Sym *const sym);
     Value *                 GetIntConstantValue(const int32 intConst, IR::Instr * instr, IR::Opnd *const opnd = nullptr);
+    Value *                 GetIntConstantValue(const int64 intConst, IR::Instr * instr, IR::Opnd *const opnd = nullptr);
     Value *                 NewIntConstantValue(const int32 intConst, IR::Instr * instr, bool isTaggable);
+    Value *                 NewInt64ConstantValue(const int64 intConst);
     ValueInfo *             NewIntRangeValueInfo(const int32 min, const int32 max, const bool wasNegativeZeroPreventedByBailout);
     ValueInfo *             NewIntRangeValueInfo(const ValueInfo *const originalValueInfo, const int32 min, const int32 max) const;
     Value *                 NewIntRangeValue(const int32 min, const int32 max, const bool wasNegativeZeroPreventedByBailout, IR::Opnd *const opnd = nullptr);
@@ -1423,6 +1477,10 @@ private:
     int                     GetBoundCheckOffsetForSimd(ValueType arrValueType, const IR::Instr *instr, const int oldOffset = -1);
 
     IR::Instr *             OptNewScObject(IR::Instr** instrPtr, Value* srcVal);
+    template <typename T>
+    bool                    OptConstFoldBinaryWasm(IR::Instr * *pInstr, const Value* src1, const Value* src2, Value **pDstVal);
+    template <typename T>
+    IR::Opnd*               ReplaceWConst(IR::Instr **pInstr, T value, Value **pDstVal);
     bool                    OptConstFoldBinary(IR::Instr * *pInstr, const IntConstantBounds &src1IntConstantBounds, const IntConstantBounds &src2IntConstantBounds, Value **pDstVal);
     bool                    OptConstFoldUnary(IR::Instr * *pInstr, const int32 intConstantValue, const bool isUsingOriginalSrc1Value, Value **pDstVal);
     bool                    OptConstPeep(IR::Instr *instr, IR::Opnd *constSrc, Value **pDstVal, ValueInfo *vInfo);
@@ -1601,10 +1659,12 @@ private:
     bool                    OptIsInvariant(Sym *sym, BasicBlock *block, Loop *loop, Value *srcVal, bool isNotTypeSpecConv, bool allowNonPrimitives, Value **loopHeadValRef = nullptr);
     bool                    OptDstIsInvariant(IR::RegOpnd *dst);
     bool                    OptIsInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv, const bool forceInvariantHoisting = false);
-    void                    OptHoistInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *dstVal, Value *const src1Val, bool isNotTypeSpecConv, bool lossy = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
+    void                    OptHoistInvariant(IR::Instr *instr, BasicBlock *block, Loop *loop, Value *dstVal, Value *const src1Val, Value *const src2Value,
+                                                bool isNotTypeSpecConv, bool lossy = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     bool                    TryHoistInvariant(IR::Instr *instr, BasicBlock *block, Value *dstVal, Value *src1Val, Value *src2Val, bool isNotTypeSpecConv,
                                                 const bool lossy = false, const bool forceInvariantHoisting = false, IR::BailOutKind bailoutKind = IR::BailOutInvalid);
     void                    HoistInvariantValueInfo(ValueInfo *const invariantValueInfoToHoist, Value *const valueToUpdate, BasicBlock *const targetBlock);
+    void                    OptHoistUpdateValueType(Loop* loop, IR::Instr* instr, IR::Opnd* srcOpnd, Value *const srcVal);
 public:
     static bool             IsTypeSpecPhaseOff(Func* func);
     static bool             DoAggressiveIntTypeSpec(Func* func);

@@ -19,4 +19,6 @@ function testFunction()
         
     telemetryLog(`msgFunction() -- 1: ${msgFunction()}`, true); //Hello World #1
     telemetryLog(`msgFunction() -- 2: ${msgFunction()}`, true); //Hello World #2
+
+    emitTTDLog(ttdLogURI);
 }

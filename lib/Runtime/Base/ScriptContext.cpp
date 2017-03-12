@@ -129,7 +129,6 @@ namespace Js
         hasProtoOrStoreFieldInlineCache(false),
         hasIsInstInlineCache(false),
         registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(nullptr),
-        cache(nullptr),
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
         m_remoteScriptContextAddr(nullptr),
@@ -552,21 +551,20 @@ namespace Js
 
     uint ScriptContext::GetNextSourceContextId()
     {
-        Assert(this->cache);
 
-        Assert(this->cache->sourceContextInfoMap ||
-            this->cache->dynamicSourceContextInfoMap);
+        Assert(this->Cache()->sourceContextInfoMap ||
+            this->Cache()->dynamicSourceContextInfoMap);
 
         uint nextSourceContextId = 0;
 
-        if (this->cache->sourceContextInfoMap)
+        if (this->Cache()->sourceContextInfoMap)
         {
-            nextSourceContextId = this->cache->sourceContextInfoMap->Count();
+            nextSourceContextId = this->Cache()->sourceContextInfoMap->Count();
         }
 
-        if (this->cache->dynamicSourceContextInfoMap)
+        if (this->Cache()->dynamicSourceContextInfoMap)
         {
-            nextSourceContextId += this->cache->dynamicSourceContextInfoMap->Count();
+            nextSourceContextId += this->Cache()->dynamicSourceContextInfoMap->Count();
         }
 
         return nextSourceContextId + 1;
@@ -575,8 +573,6 @@ namespace Js
     // Do most of the Close() work except the final release which could delete the scriptContext.
     void ScriptContext::InternalClose()
     {
-        this->PrintStats();
-
         isScriptContextActuallyClosed = true;
 
         PERF_COUNTER_DEC(Basic, ScriptContextActive);
@@ -604,19 +600,6 @@ namespace Js
         }
 #endif
 
-#if ENABLE_PROFILE_INFO
-        HRESULT hr = S_OK;
-        BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
-        {
-            DynamicProfileInfo::Save(this);
-        }
-        END_TRANSLATE_OOM_TO_HRESULT(hr);
-
-#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
-        this->ClearDynamicProfileList();
-#endif
-#endif
-
 #if ENABLE_NATIVE_CODEGEN
         if (nativeCodeGen != nullptr)
         {
@@ -624,12 +607,6 @@ namespace Js
             CloseNativeCodeGenerator(this->nativeCodeGen);
         }
 #endif
-
-        if (this->fakeGlobalFuncForUndefer)
-        {
-            this->fakeGlobalFuncForUndefer->Cleanup(true);
-            this->fakeGlobalFuncForUndefer.Unroot(this->GetRecycler());
-        }
 
         if (this->sourceList)
         {
@@ -657,8 +634,6 @@ namespace Js
             }
         }
 
-        JS_ETW(EtwTrace::LogSourceUnloadEvents(this));
-
         this->GetThreadContext()->SubSourceSize(this->GetSourceSize());
 
 #if DYNAMIC_INTERPRETER_THUNK
@@ -680,14 +655,15 @@ namespace Js
         DeRegisterProfileProbe(S_OK, nullptr);
 #endif
 
-        if (this->diagnosticArena != nullptr)
-        {
-            HeapDelete(this->diagnosticArena);
-            this->diagnosticArena = nullptr;
-        }
-
+        this->EnsureClearDebugDocument();
         if (this->debugContext != nullptr)
         {
+            if(this->debugContext->GetProbeContainer())
+            {
+                this->debugContext->GetProbeContainer()->UninstallInlineBreakpointProbe(NULL);
+                this->debugContext->GetProbeContainer()->UninstallDebuggerScriptOptionCallback();
+            }
+
             // Guard the closing and deleting of DebugContext as in meantime PDM might
             // call OnBreakFlagChange
             AutoCriticalSection autoDebugContextCloseCS(&debugContextCloseCS);
@@ -695,6 +671,12 @@ namespace Js
             this->debugContext = nullptr;
             tempDebugContext->Close();
             HeapDelete(tempDebugContext);
+        }
+
+        if (this->diagnosticArena != nullptr)
+        {
+            HeapDelete(this->diagnosticArena);
+            this->diagnosticArena = nullptr;
         }
 
         // Need to print this out before the native code gen is deleted
@@ -743,7 +725,6 @@ namespace Js
             ReleaseGuestArena();
             guestArena = nullptr;
         }
-        cache = nullptr;
 
         builtInLibraryFunctions = nullptr;
 
@@ -751,14 +732,6 @@ namespace Js
 
         isWeakReferenceDictionaryListCleared = true;
         this->weakReferenceDictionaryList.Clear(this->GeneralAllocator());
-
-        // This can be null if the script context initialization threw
-        // and InternalClose gets called in the destructor code path
-        if (javascriptLibrary != nullptr)
-        {
-            javascriptLibrary->CleanupForClose();
-            javascriptLibrary->Uninitialize();
-        }
 
         if (registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext != nullptr)
         {
@@ -768,7 +741,16 @@ namespace Js
             Assert(registeredPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext == nullptr);
             threadContext->UnregisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertiesScriptContext(registeredScriptContext);
         }
+
         threadContext->ReleaseDebugManager();
+
+        // This can be null if the script context initialization threw
+        // and InternalClose gets called in the destructor code path
+        if (javascriptLibrary != nullptr)
+        {
+            javascriptLibrary->CleanupForClose();
+            javascriptLibrary->Uninitialize();
+        }
     }
 
     bool ScriptContext::Close(bool inDestructor)
@@ -794,6 +776,7 @@ namespace Js
             {
                 GetRecycler()->RootRelease(globalObject);
             }
+            globalObject = nullptr;
         }
 
         // A script context closing is a signal to the thread context that it
@@ -1133,10 +1116,9 @@ namespace Js
     RegexPatternMruMap* ScriptContext::GetDynamicRegexMap() const
     {
         Assert(!isScriptContextActuallyClosed);
-        Assert(cache);
-        Assert(cache->dynamicRegexMap);
+        Assert(Cache()->dynamicRegexMap);
 
-        return cache->dynamicRegexMap;
+        return Cache()->dynamicRegexMap;
     }
 
     void ScriptContext::SetTrigramAlphabet(UnifiedRegex::TrigramAlphabet * trigramAlphabet)
@@ -1209,10 +1191,17 @@ namespace Js
 
     void ScriptContext::InitializeCache()
     {
-        this->cache = RecyclerNewFinalized(recycler, Cache);
-        this->javascriptLibrary->scriptContextCache = this->cache;
 
-        this->cache->dynamicRegexMap =
+#if ENABLE_PROFILE_INFO
+#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
+        if (DynamicProfileInfo::NeedProfileInfoList())
+        {
+            this->Cache()->profileInfoList = RecyclerNew(this->GetRecycler(), DynamicProfileInfoList);
+        }
+#endif
+#endif
+
+        this->Cache()->dynamicRegexMap =
             RegexPatternMruMap::New(
                 recycler,
                 REGEX_CONFIG_FLAG(DynamicRegexMruListSize) <= 0 ? 16 : REGEX_CONFIG_FLAG(DynamicRegexMruListSize));
@@ -1221,25 +1210,17 @@ namespace Js
         sourceContextInfo->dwHostSourceContext = Js::Constants::NoHostSourceContext;
         sourceContextInfo->isHostDynamicDocument = false;
         sourceContextInfo->sourceContextId = Js::Constants::NoSourceContext;
-        this->cache->noContextSourceContextInfo = sourceContextInfo;
+        this->Cache()->noContextSourceContextInfo = sourceContextInfo;
 
         SRCINFO* srcInfo = RecyclerNewStructZ(this->GetRecycler(), SRCINFO);
-        srcInfo->sourceContextInfo = this->cache->noContextSourceContextInfo;
+        srcInfo->sourceContextInfo = this->Cache()->noContextSourceContextInfo;
         srcInfo->moduleID = kmodGlobal;
-        this->cache->noContextGlobalSourceInfo = srcInfo;
+        this->Cache()->noContextGlobalSourceInfo = srcInfo;
     }
 
     void ScriptContext::InitializePreGlobal()
     {
         this->guestArena = this->GetRecycler()->CreateGuestArena(_u("Guest"), Throw::OutOfMemory);
-#if ENABLE_PROFILE_INFO
-#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
-        if (DynamicProfileInfo::NeedProfileInfoList())
-        {
-            this->profileInfoList.Root(RecyclerNew(this->GetRecycler(), DynamicProfileInfoList), recycler);
-        }
-#endif
-#endif
 
 #if ENABLE_BACKGROUND_PARSING
         if (PHASE_ON1(Js::ParallelParsePhase))
@@ -1334,6 +1315,11 @@ namespace Js
 #endif
     void ScriptContext::MarkForClose()
     {
+        if (IsClosed()) 
+        {
+            return;
+        }
+
         SaveStartupProfileAndRelease(true);
         SetIsClosed();
 
@@ -1359,12 +1345,54 @@ namespace Js
         if (!this->isClosed)
         {
             this->isClosed = true;
+
+            if (this->javascriptLibrary)
+            {
+                JS_ETW(EtwTrace::LogSourceUnloadEvents(this));
+
+#if ENABLE_PROFILE_INFO
+#if DBG_DUMP
+                DynamicProfileInfo::DumpScriptContext(this);
+#endif
+#ifdef RUNTIME_DATA_COLLECTION
+                DynamicProfileInfo::DumpScriptContextToFile(this);
+#endif
+#endif
+
+#if ENABLE_PROFILE_INFO
+#ifdef DYNAMIC_PROFILE_STORAGE
+                HRESULT hr = S_OK;
+                BEGIN_TRANSLATE_OOM_TO_HRESULT_NESTED
+                {
+                    DynamicProfileInfo::Save(this);
+                }
+                END_TRANSLATE_OOM_TO_HRESULT(hr);
+
+                if (this->Cache()->sourceContextInfoMap)
+                {
+                    this->Cache()->sourceContextInfoMap->Map([&](DWORD_PTR dwHostSourceContext, SourceContextInfo * sourceContextInfo)
+                    {
+                        if (sourceContextInfo->sourceDynamicProfileManager)
+                        {
+                            sourceContextInfo->sourceDynamicProfileManager->ClearSavingData();
+                        }
+                    });
+                }
+#endif
+
+#if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
+                this->ClearDynamicProfileList();
+#endif
+#endif
+            }
+
 #if ENABLE_NATIVE_CODEGEN
             if (m_remoteScriptContextAddr)
             {
                 JITManager::GetJITManager()->CloseScriptContext(m_remoteScriptContextAddr);
             }
 #endif
+            this->PrintStats();
         }
     }
 
@@ -1739,7 +1767,7 @@ namespace Js
     {
         if (pSrcInfo == nullptr)
         {
-            pSrcInfo = this->cache->noContextGlobalSourceInfo;
+            pSrcInfo = this->Cache()->noContextGlobalSourceInfo;
         }
 
         LPUTF8 utf8Script = nullptr;
@@ -2215,7 +2243,7 @@ namespace Js
 
     bool ScriptContext::IsInEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction **ppFuncScript)
     {
-        EvalCacheDictionary *dict = isIndirect ? this->cache->indirectEvalCacheDictionary : this->cache->evalCacheDictionary;
+        EvalCacheDictionary *dict = isIndirect ? this->Cache()->indirectEvalCacheDictionary : this->Cache()->evalCacheDictionary;
         if (dict == nullptr)
         {
             return false;
@@ -2253,18 +2281,18 @@ namespace Js
 
     void ScriptContext::AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript)
     {
-        EvalCacheDictionary *dict = isIndirect ? this->cache->indirectEvalCacheDictionary : this->cache->evalCacheDictionary;
+        EvalCacheDictionary *dict = isIndirect ? this->Cache()->indirectEvalCacheDictionary : this->Cache()->evalCacheDictionary;
         if (dict == nullptr)
         {
             EvalCacheTopLevelDictionary* evalTopDictionary = RecyclerNew(this->recycler, EvalCacheTopLevelDictionary, this->recycler);
             dict = RecyclerNew(this->recycler, EvalCacheDictionary, evalTopDictionary, recycler);
             if (isIndirect)
             {
-                this->cache->indirectEvalCacheDictionary = dict;
+                this->Cache()->indirectEvalCacheDictionary = dict;
             }
             else
             {
-                this->cache->evalCacheDictionary = dict;
+                this->Cache()->evalCacheDictionary = dict;
             }
         }
 
@@ -2273,19 +2301,19 @@ namespace Js
 
     bool ScriptContext::IsInNewFunctionMap(EvalMapString const& key, FunctionInfo **ppFuncInfo)
     {
-        if (this->cache->newFunctionCache == nullptr)
+        if (this->Cache()->newFunctionCache == nullptr)
         {
             return false;
         }
 
         // If eval map cleanup is false, to preserve existing behavior, add it to the eval map MRU list
-        bool success = this->cache->newFunctionCache->TryGetValue(key, ppFuncInfo);
+        bool success = this->Cache()->newFunctionCache->TryGetValue(key, ppFuncInfo);
         if (success)
         {
-            this->cache->newFunctionCache->NotifyAdd(key);
+            this->Cache()->newFunctionCache->NotifyAdd(key);
 #ifdef VERBOSE_EVAL_MAP
 #if DBG
-            this->cache->newFunctionCache->DumpKeepAlives();
+            this->Cache()->newFunctionCache->DumpKeepAlives();
 #endif
 #endif
         }
@@ -2295,34 +2323,34 @@ namespace Js
 
     void ScriptContext::AddToNewFunctionMap(EvalMapString const& key, FunctionInfo *pFuncInfo)
     {
-        if (this->cache->newFunctionCache == nullptr)
+        if (this->Cache()->newFunctionCache == nullptr)
         {
-            this->cache->newFunctionCache = RecyclerNew(this->recycler, NewFunctionCache, this->recycler);
+            this->Cache()->newFunctionCache = RecyclerNew(this->recycler, NewFunctionCache, this->recycler);
         }
-        this->cache->newFunctionCache->Add(key, pFuncInfo);
+        this->Cache()->newFunctionCache->Add(key, pFuncInfo);
     }
 
 
     void ScriptContext::EnsureSourceContextInfoMap()
     {
-        if (this->cache->sourceContextInfoMap == nullptr)
+        if (this->Cache()->sourceContextInfoMap == nullptr)
         {
-            this->cache->sourceContextInfoMap = RecyclerNew(this->GetRecycler(), SourceContextInfoMap, this->GetRecycler());
+            this->Cache()->sourceContextInfoMap = RecyclerNew(this->GetRecycler(), SourceContextInfoMap, this->GetRecycler());
         }
     }
 
     void ScriptContext::EnsureDynamicSourceContextInfoMap()
     {
-        if (this->cache->dynamicSourceContextInfoMap == nullptr)
+        if (this->Cache()->dynamicSourceContextInfoMap == nullptr)
         {
-            this->cache->dynamicSourceContextInfoMap = RecyclerNew(this->GetRecycler(), DynamicSourceContextInfoMap, this->GetRecycler());
+            this->Cache()->dynamicSourceContextInfoMap = RecyclerNew(this->GetRecycler(), DynamicSourceContextInfoMap, this->GetRecycler());
         }
     }
 
     SourceContextInfo* ScriptContext::GetSourceContextInfo(uint hash)
     {
         SourceContextInfo * sourceContextInfo;
-        if (this->cache->dynamicSourceContextInfoMap && this->cache->dynamicSourceContextInfoMap->TryGetValue(hash, &sourceContextInfo))
+        if (this->Cache()->dynamicSourceContextInfoMap && this->Cache()->dynamicSourceContextInfoMap->TryGetValue(hash, &sourceContextInfo))
         {
             return sourceContextInfo;
         }
@@ -2334,13 +2362,13 @@ namespace Js
         EnsureDynamicSourceContextInfoMap();
         if (this->GetSourceContextInfo(hash) != nullptr)
         {
-            return this->cache->noContextSourceContextInfo;
+            return this->Cache()->noContextSourceContextInfo;
         }
 
-        if (this->cache->dynamicSourceContextInfoMap->Count() > INMEMORY_CACHE_MAX_PROFILE_MANAGER)
+        if (this->Cache()->dynamicSourceContextInfoMap->Count() > INMEMORY_CACHE_MAX_PROFILE_MANAGER)
         {
             OUTPUT_TRACE(Js::DynamicProfilePhase, _u("Max of dynamic script profile info reached.\n"));
-            return this->cache->noContextSourceContextInfo;
+            return this->Cache()->noContextSourceContextInfo;
         }
 
         // This is capped so we can continue allocating in the arena
@@ -2356,7 +2384,7 @@ namespace Js
         // For the host provided dynamic code (if hostSourceContext is not NoHostSourceContext), do not add to dynamicSourceContextInfoMap
         if (hostSourceContext == Js::Constants::NoHostSourceContext)
         {
-            this->cache->dynamicSourceContextInfoMap->Add(hash, sourceContextInfo);
+            this->Cache()->dynamicSourceContextInfoMap->Add(hash, sourceContextInfo);
         }
         return sourceContextInfo;
     }
@@ -2397,7 +2425,7 @@ namespace Js
             Assert(sourceContextInfo->sourceDynamicProfileManager != NULL);
         }
 
-        this->cache->sourceContextInfoMap->Add(sourceContext, sourceContextInfo);
+        this->Cache()->sourceContextInfoMap->Add(sourceContext, sourceContextInfo);
 #endif
         return sourceContextInfo;
     }
@@ -2416,13 +2444,13 @@ namespace Js
     {
         if (sourceContext == Js::Constants::NoHostSourceContext)
         {
-            return this->cache->noContextSourceContextInfo;
+            return this->Cache()->noContextSourceContextInfo;
         }
 
         // We only init sourceContextInfoMap, don't need to lock.
         EnsureSourceContextInfoMap();
         SourceContextInfo * sourceContextInfo;
-        if (this->cache->sourceContextInfoMap->TryGetValue(sourceContext, &sourceContextInfo))
+        if (this->Cache()->sourceContextInfoMap->TryGetValue(sourceContext, &sourceContextInfo))
         {
 #if ENABLE_PROFILE_INFO
             if (profileDataCache &&
@@ -2450,19 +2478,19 @@ namespace Js
                 uint newCount = moduleID + 4;  // Preallocate 4 more slots, moduleID don't usually grow much
 
                 Field(SRCINFO const *)* newModuleSrcInfo = RecyclerNewArrayZ(this->GetRecycler(), Field(SRCINFO const*), newCount);
-                CopyArray(newModuleSrcInfo, newCount, cache->moduleSrcInfo, moduleSrcInfoCount);
-                cache->moduleSrcInfo = newModuleSrcInfo;
+                CopyArray(newModuleSrcInfo, newCount, Cache()->moduleSrcInfo, moduleSrcInfoCount);
+                Cache()->moduleSrcInfo = newModuleSrcInfo;
                 moduleSrcInfoCount = newCount;
-                cache->moduleSrcInfo[0] = this->cache->noContextGlobalSourceInfo;
+                Cache()->moduleSrcInfo[0] = this->Cache()->noContextGlobalSourceInfo;
             }
 
-            SRCINFO const * si = cache->moduleSrcInfo[moduleID];
+            SRCINFO const * si = Cache()->moduleSrcInfo[moduleID];
             if (si == nullptr)
             {
                 SRCINFO * newSrcInfo = RecyclerNewStructZ(this->GetRecycler(), SRCINFO);
-                newSrcInfo->sourceContextInfo = this->cache->noContextSourceContextInfo;
+                newSrcInfo->sourceContextInfo = this->Cache()->noContextSourceContextInfo;
                 newSrcInfo->moduleID = moduleID;
-                cache->moduleSrcInfo[moduleID] = newSrcInfo;
+                Cache()->moduleSrcInfo[moduleID] = newSrcInfo;
                 si = newSrcInfo;
             }
             return si;
@@ -3177,9 +3205,9 @@ namespace Js
 #if ENABLE_PROFILE_INFO
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
         // Reset the dynamic profile list
-        if (this->profileInfoList)
+        if (this->Cache()->profileInfoList)
         {
-            this->profileInfoList->Reset();
+            this->Cache()->profileInfoList->Reset();
         }
 #endif
 #endif
@@ -4357,7 +4385,6 @@ namespace Js
             return;
         }
         Assert(this->guestArena);
-        Assert(this->cache);
 
         if (EnableEvalMapCleanup())
         {
@@ -4365,17 +4392,17 @@ namespace Js
             // Also, don't clean the eval map if the debugger is attached
             if (!this->IsScriptContextInDebugMode())
             {
-                if (this->cache->evalCacheDictionary != nullptr)
+                if (this->Cache()->evalCacheDictionary != nullptr)
                 {
-                    this->CleanDynamicFunctionCache<Js::EvalCacheTopLevelDictionary>(this->cache->evalCacheDictionary->GetDictionary());
+                    this->CleanDynamicFunctionCache<Js::EvalCacheTopLevelDictionary>(this->Cache()->evalCacheDictionary->GetDictionary());
                 }
-                if (this->cache->indirectEvalCacheDictionary != nullptr)
+                if (this->Cache()->indirectEvalCacheDictionary != nullptr)
                 {
-                    this->CleanDynamicFunctionCache<Js::EvalCacheTopLevelDictionary>(this->cache->indirectEvalCacheDictionary->GetDictionary());
+                    this->CleanDynamicFunctionCache<Js::EvalCacheTopLevelDictionary>(this->Cache()->indirectEvalCacheDictionary->GetDictionary());
                 }
-                if (this->cache->newFunctionCache != nullptr)
+                if (this->Cache()->newFunctionCache != nullptr)
                 {
-                    this->CleanDynamicFunctionCache<Js::NewFunctionCache>(this->cache->newFunctionCache);
+                    this->CleanDynamicFunctionCache<Js::NewFunctionCache>(this->Cache()->newFunctionCache);
                 }
                 if (this->hostScriptContext != nullptr)
                 {
@@ -4482,7 +4509,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     {
         if (value == lastNumberToStringRadix10)
         {
-            return cache->lastNumberToStringRadix10String;
+            return Cache()->lastNumberToStringRadix10String;
         }
         return nullptr;
     }
@@ -4491,16 +4518,16 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         ScriptContext::SetLastNumberToStringRadix10(double value, JavascriptString * str)
     {
             lastNumberToStringRadix10 = value;
-            cache->lastNumberToStringRadix10String = str;
+            Cache()->lastNumberToStringRadix10String = str;
     }
 
     bool ScriptContext::GetLastUtcTimeFromStr(JavascriptString * str, double& dbl)
     {
         Assert(str != nullptr);
-        if (str != cache->lastUtcTimeFromStrString)
+        if (str != Cache()->lastUtcTimeFromStrString)
         {
-            if (cache->lastUtcTimeFromStrString == nullptr
-                || !JavascriptString::Equals(str, cache->lastUtcTimeFromStrString))
+            if (Cache()->lastUtcTimeFromStrString == nullptr
+                || !JavascriptString::Equals(str, Cache()->lastUtcTimeFromStrString))
             {
                 return false;
             }
@@ -4513,7 +4540,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     ScriptContext::SetLastUtcTimeFromStr(JavascriptString * str, double value)
     {
             lastUtcTimeFromStr = value;
-            cache->lastUtcTimeFromStrString = str;
+            Cache()->lastUtcTimeFromStrString = str;
     }
 
 #if ENABLE_NATIVE_CODEGEN
@@ -4588,7 +4615,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
                 Assert(this->recycler);
 
                 builtInLibraryFunctions = RecyclerNew(this->recycler, BuiltInLibraryFunctionMap, this->recycler);
-                cache->builtInLibraryFunctions = builtInLibraryFunctions;
+                Cache()->builtInLibraryFunctions = builtInLibraryFunctions;
             }
 
             builtInLibraryFunctions->Item(entryPoint, function);
@@ -4947,9 +4974,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
             }
             Assert(functionBody->GetInterpretedCount() == 0);
 #if DBG_DUMP || defined(DYNAMIC_PROFILE_STORAGE) || defined(RUNTIME_DATA_COLLECTION)
-            if (profileInfoList)
+
+            if (this->Cache()->profileInfoList)
             {
-                profileInfoList->Prepend(this->GetRecycler(), newDynamicProfileInfo);
+                this->Cache()->profileInfoList->Prepend(this->GetRecycler(), newDynamicProfileInfo);
             }
 #endif
             if (!startupComplete)
@@ -4982,10 +5010,10 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         {
             return;
         }
-        if (!startupComplete && this->cache->sourceContextInfoMap)
+        if (!startupComplete && this->Cache()->sourceContextInfoMap)
         {
 #if ENABLE_PROFILE_INFO
-            this->cache->sourceContextInfoMap->Map([&](DWORD_PTR dwHostSourceContext, SourceContextInfo* info)
+            this->Cache()->sourceContextInfoMap->Map([&](DWORD_PTR dwHostSourceContext, SourceContextInfo* info)
             {
                 Assert(info->sourceDynamicProfileManager);
                 uint bytesWritten = info->sourceDynamicProfileManager->SaveToProfileCacheAndRelease(info);
@@ -4998,16 +5026,6 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #endif
         }
         startupComplete = true;
-    }
-
-    void ScriptContextBase::ClearGlobalObject()
-    {
-#if ENABLE_NATIVE_CODEGEN
-        ScriptContext* scriptContext = static_cast<ScriptContext*>(this);
-        Assert(scriptContext->IsClosedNativeCodeGenerator());
-#endif
-        globalObject = nullptr;
-        javascriptLibrary = nullptr;
     }
 
     void ScriptContext::SetFastDOMenabled()
@@ -5090,14 +5108,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 
     void ScriptContext::PrintStats()
     {
-#if ENABLE_PROFILE_INFO
-#if DBG_DUMP
-        DynamicProfileInfo::DumpScriptContext(this);
-#endif
-#ifdef RUNTIME_DATA_COLLECTION
-        DynamicProfileInfo::DumpScriptContextToFile(this);
-#endif
-#endif
+
 #ifdef PROFILE_TYPES
         if (Configuration::Global.flags.ProfileTypes)
         {

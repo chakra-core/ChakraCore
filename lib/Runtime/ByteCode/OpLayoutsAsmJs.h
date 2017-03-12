@@ -87,7 +87,16 @@ namespace Js
         // force encode 4 bytes because it can be a value
         uint32                               SlotIndex;
         typename SizePolicy::RegSlotType     Value;
-        int8                                 ViewType;
+        Js::ArrayBufferView::ViewType        ViewType;
+    };
+
+    template <typename SizePolicy>
+    struct OpLayoutT_WasmMemAccess
+    {
+        uint32                               Offset;
+        typename SizePolicy::RegSlotType     SlotIndex;
+        typename SizePolicy::RegSlotType     Value;
+        Js::ArrayBufferView::ViewType        ViewType;
     };
 
     template <typename SizePolicy>
@@ -509,7 +518,7 @@ namespace Js
         // force encode 4 bytes because it can be a value
         uint32                               SlotIndex;
         typename SizePolicy::RegSlotType     Value;
-        int8                                 ViewType;
+        ArrayBufferView::ViewType            ViewType;
         int8                                 DataWidth; // # of bytes to load/store
     };
 

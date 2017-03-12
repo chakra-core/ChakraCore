@@ -53,6 +53,9 @@ namespace Js
 
 #if ENABLE_TTD
             static FunctionInfo TelemetryLog;
+
+            static FunctionInfo EnabledDiagnosticsTrace;
+            static FunctionInfo EmitTTDLog;
 #endif
 
 #ifdef IR_VIEWER
@@ -79,6 +82,9 @@ namespace Js
 
 #if ENABLE_TTD
         static Var EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...);
+
+        static Var EntryEnabledDiagnosticsTrace(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryEmitTTDLog(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
 
 #ifdef IR_VIEWER

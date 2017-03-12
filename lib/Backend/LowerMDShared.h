@@ -97,7 +97,6 @@ public:
             IR::Instr *     LoadArgumentCount(IR::Instr * instr);
             IR::Instr *     LoadHeapArguments(IR::Instr * instr);
             IR::Instr *     LoadHeapArgsCached(IR::Instr * instr);
-            IR::Instr *     LoadFuncExpression(IR::Instr * instr);
             IR::Instr *     LowerRet(IR::Instr * instr);
             IR::Instr *     LowerUncondBranch(IR::Instr * instr);
             IR::Instr *     LowerMultiBranch(IR::Instr * instr);

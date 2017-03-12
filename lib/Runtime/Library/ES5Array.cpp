@@ -221,7 +221,11 @@ namespace Js
             }
 
             uint32 newLen = ToLengthValue(value, scriptContext);
-            GetTypeHandler()->SetLength(this, newLen, propertyOperationFlags);
+            uint32 assignedLen = GetTypeHandler()->SetLength(this, newLen, propertyOperationFlags);
+            if (newLen != assignedLen)
+            {
+                scriptContext->GetThreadContext()->AddImplicitCallFlags(ImplicitCall_NoOpSet);
+            }
             *result = true;
             return true;
         }

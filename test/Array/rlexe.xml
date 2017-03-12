@@ -9,7 +9,6 @@
   <test>
     <default>
       <files>array_qsortr.js</files>
-      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>

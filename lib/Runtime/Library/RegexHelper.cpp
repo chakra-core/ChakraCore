@@ -1389,10 +1389,9 @@ namespace Js
         return concatenated.ToString();
     }
 
-    Var RegexHelper::StringReplace(JavascriptString* match, JavascriptString* input, JavascriptFunction* replacefn)
+    Var RegexHelper::StringReplace(ScriptContext* scriptContext, JavascriptString* match, JavascriptString* input, JavascriptFunction* replacefn)
     {
         CharCount indexMatched = JavascriptString::strstr(input, match, true);
-        ScriptContext* scriptContext = replacefn->GetScriptContext();
         Assert(match->GetScriptContext() == scriptContext);
         Assert(input->GetScriptContext() == scriptContext);
 
@@ -1412,6 +1411,7 @@ namespace Js
                                     postfixStr, postfixLength);
             return bufferString.ToString();
         }
+
         return input;
     }
 

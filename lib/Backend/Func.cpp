@@ -243,12 +243,12 @@ Func::Func(JitArenaAllocator *alloc, JITTimeWorkItem * workItem,
 
     if (this->IsTopFunc())
     {
-        m_globalObjTypeSpecFldInfoArray = JitAnewArrayZ(this->m_alloc, JITObjTypeSpecFldInfo*, GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
+        m_globalObjTypeSpecFldInfoArray = JitAnewArrayZ(this->m_alloc, ObjTypeSpecFldInfo*, GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
     }
 
     for (uint i = 0; i < GetJITFunctionBody()->GetInlineCacheCount(); ++i)
     {
-        JITObjTypeSpecFldInfo * info = GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(i);
+        ObjTypeSpecFldInfo * info = GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(i);
         if (info != nullptr)
         {
             Assert(info->GetObjTypeSpecFldId() < GetTopFunc()->GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());
@@ -569,20 +569,23 @@ Func::TryCodegen()
                     next1->fixupFunc(next1->data, chunk);
                 }
 #if DBG
-                // Scan memory to see if there's missing pointer needs to be fixed up
-                // This can hit false positive if some data field happens to have value 
-                // falls into the NativeCodeData memory range.
-                NativeCodeData::DataChunk *next2 = chunk;
-                while (next2)
+                if (CONFIG_FLAG(OOPJITFixupValidate))
                 {
-                    for (unsigned int i = 0; i < next1->len / sizeof(void*); i++)
+                    // Scan memory to see if there's missing pointer needs to be fixed up
+                    // This can hit false positive if some data field happens to have value 
+                    // falls into the NativeCodeData memory range.
+                    NativeCodeData::DataChunk *next2 = chunk;
+                    while (next2)
                     {
-                        if (((void**)next1->data)[i] == (void*)next2->data)
+                        for (unsigned int i = 0; i < next1->len / sizeof(void*); i++)
                         {
-                            NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                            if (((void**)next1->data)[i] == (void*)next2->data)
+                            {
+                                NativeCodeData::VerifyExistFixupEntry((void*)next2->data, &((void**)next1->data)[i], next1->data);
+                            }
                         }
+                        next2 = next2->next;
                     }
-                    next2 = next2->next;
                 }
 #endif
                 next1 = next1->next;
@@ -1076,6 +1079,11 @@ Func::BeginPhase(Js::Phase tag)
 {
 #ifdef DBG
     this->GetTopFunc()->currentPhases.Push(tag);
+
+    if (PHASE_DEBUGBREAK_ON_PHASE_BEGIN(tag, this))
+    {
+        __debugbreak();
+    }
 #endif
 
 #ifdef PROFILE_EXEC
@@ -1332,7 +1340,7 @@ Func::GetPolyCacheUtil(const uint index) const
     return this->m_polymorphicInlineCacheInfo->GetUtil(index);
 }
 
-JITObjTypeSpecFldInfo*
+ObjTypeSpecFldInfo*
 Func::GetObjTypeSpecFldInfo(const uint index) const
 {
     if (GetJITFunctionBody()->GetInlineCacheCount() == 0)
@@ -1344,7 +1352,7 @@ Func::GetObjTypeSpecFldInfo(const uint index) const
     return GetWorkItem()->GetJITTimeInfo()->GetObjTypeSpecFldInfo(index);
 }
 
-JITObjTypeSpecFldInfo*
+ObjTypeSpecFldInfo*
 Func::GetGlobalObjTypeSpecFldInfo(uint propertyInfoId) const
 {
     Assert(propertyInfoId < GetTopFunc()->GetWorkItem()->GetJITTimeInfo()->GetGlobalObjTypeSpecFldInfoCount());

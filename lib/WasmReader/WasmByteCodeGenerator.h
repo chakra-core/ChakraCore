@@ -4,6 +4,11 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
+namespace Js
+{
+    class WebAssemblySource;
+}
+
 namespace Wasm
 {
     struct EmitInfo : WAsmJs::EmitInfoBase
@@ -81,7 +86,7 @@ namespace Wasm
     class WasmModuleGenerator
     {
     public:
-        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* sourceInfo, const byte* binaryBuffer, uint binaryBufferLength);
+        WasmModuleGenerator(Js::ScriptContext* scriptContext, Js::WebAssemblySource* src);
         Js::WebAssemblyModule* GenerateModule();
         void GenerateFunctionHeader(uint32 index);
     private:

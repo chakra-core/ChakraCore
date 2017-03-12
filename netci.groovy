@@ -114,17 +114,20 @@ def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, co
     def numConcurrentCommand = (platform == "osx" ? "sysctl -n hw.logicalcpu" : "nproc")
 
     config = (configTag == null) ? config : "${configTag}_${config}"
-    config = staticBuild ? "${config}_static" : config
+    config = staticBuild ? "static_${config}" : "shared_${config}"
+    config = customOption ? customOption.replaceAll(/[-]+/, "_") + "_" + config : config
 
     // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
-    def jobName = Utilities.getFullJobName(project, config, isPR) + customOption.replaceAll(/[-]+/, "_")
+    def jobName = Utilities.getFullJobName(project, config, isPR)
 
     def infoScript = "bash jenkins/get_system_info.sh --${platform}"
     def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
     def staticFlag = staticBuild ? "--static" : ""
+    def swbCheckFlag = (platform == "linux" && buildType == "debug" && !staticBuild) ? "--wb-check" : "";
     def icuFlag = (platform == "osx" ? "--icu=/usr/local/opt/icu4c/include" : "")
     def compilerPaths = (platform == "osx") ? "" : "--cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
-    def buildScript = "bash ./build.sh ${staticFlag} -j=`${numConcurrentCommand}` ${buildFlag} ${compilerPaths} ${icuFlag} ${customOption}"
+    def buildScript = "bash ./build.sh ${staticFlag} -j=`${numConcurrentCommand}` ${buildFlag} " +
+                      "${swbCheckFlag} ${compilerPaths} ${icuFlag} ${customOption}"
     def testScript = "bash test/runtests.sh \"${testVariant}\""
 
     def newJob = job(jobName) {

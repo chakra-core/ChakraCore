@@ -810,8 +810,6 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
     uint targetOffset = 0;
     char* objectStartAddress = nullptr;
     char* targetStartAddress = nullptr;
-    byte barrier = RecyclerWriteBarrierManager::GetWriteBarrier(objectAddress);
-    Unused(barrier);
 
     if (targetBlock->IsLargeHeapBlock())
     {
@@ -919,13 +917,23 @@ void HeapBlock::PrintVerifyMarkFailure(Recycler* recycler, char* objectAddress, 
                     return;
                 }
 
-                if ((offset == 0x20 // scope field in scopeInfo
-                    || (offset >= 0x30 && (offset &0xf)==0) // symbol array at the end of scopeInfo, can point to arena allocated propertyRecord
-                    )
+                if (offset >= 0x30 && (offset & 0xf) == 0 // symbol array at the end of scopeInfo, can point to arena allocated propertyRecord
                     && strstr(typeName, "Js::ScopeInfo") != nullptr)
                 {
-                    // Js::ScopeInfo scope field is arena allocated and can be reused in recycler
-                    // TODO: (leish)(swb) find a good location to clear/tag this field
+                    dumpFalsePositive();
+                    return;
+                }
+
+                // Js::Type::entryPoint may contain outdated data uncleared, and reused by recycler
+                // Most often occurs with script function Type
+                if (offset ==
+#if TARGET_64
+                    0x18
+#else
+                    0x10
+#endif
+                    && strstr(typeName, "Js::ScriptFunctionType"))
+                {
                     dumpFalsePositive();
                     return;
                 }
