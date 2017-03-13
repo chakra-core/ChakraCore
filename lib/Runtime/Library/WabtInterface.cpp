@@ -118,6 +118,7 @@ Js::Var Js::WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, Cal
         }
     };
     AutoCleanLexer autoCleanLexer = { lexer };
+    Unused(autoCleanLexer);
 
     auto errorCallback = [](const wabt::Location*,
                             const char* error,
@@ -146,6 +147,7 @@ Js::Var Js::WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, Cal
         }
     };
     AutoCleanScript autoCleanScript = { &script };
+    Unused(autoCleanScript);
 
     //wabt::WriteBinarySpecOptions s_write_binary_spec_options;
 
