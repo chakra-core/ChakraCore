@@ -173,6 +173,7 @@ namespace Wasm
         void ExitEvalStackScope();
         void SetUnreachableState(bool isUnreachable);
         bool IsUnreachable() const { return this->isUnreachable; }
+        void SetUsesMemory(uint memoryIndex);
 
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
         WasmReaderBase* GetReader() const;
