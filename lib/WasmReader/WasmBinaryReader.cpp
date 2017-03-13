@@ -577,7 +577,9 @@ WasmBinaryReader::MemNode()
 {
     uint len = 0;
 
-    LEB128(len); // flags (unused)
+    // flags
+    const uint32 flags = LEB128(len);
+    m_currentNode.mem.alignment = (uint8)flags;
     m_funcState.count += len;
 
     m_currentNode.mem.offset = LEB128(len);

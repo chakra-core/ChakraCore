@@ -1135,8 +1135,16 @@ EmitInfo
 WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore)
 {
     WasmTypes::WasmType type = signature[0];
-    const uint offset = GetReader()->m_currentNode.mem.offset;
     SetUsesMemory(0);
+
+    const uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
+    const uint alignment = GetReader()->m_currentNode.mem.alignment;
+    const uint offset = GetReader()->m_currentNode.mem.offset;
+
+    if ((mask << 1) & (1 << alignment))
+    {
+        throw WasmCompilationException(_u("alignment must not be larger than natural"));
+    }
 
     EmitInfo rhsInfo;
     if (isStore)
