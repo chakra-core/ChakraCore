@@ -16,7 +16,7 @@
   <ItemGroup>
     <CustomBuild Include="$(MSBuildThisFileDirectory)Microsoft-Scripting-Chakra-Instrumentation.man">
       <FileType>Document</FileType>
-      <Command>mc.exe /h $(IntDir) /W "$(EventManifestXmlPath)\winmeta.xml" /w "$(EventManifestXmlPath)\eventman.xsd" /r $(IntDir) /z %(Filename)Events -um /v %(FullPath)</Command>
+      <Command>mc.exe /h "$(IntDir)." /W "$(EventManifestXmlPath)\winmeta.xml" /w "$(EventManifestXmlPath)\eventman.xsd" /r "$(IntDir)." /z %(Filename)Events -um /v "%(FullPath)"</Command>
       <Outputs>$(IntDir)\%(Filename)Events.h;$(IntDir)\%(Filename)Events.rc;$(IntDir)\%(Filename)Events_MSG00001.bin;$(IntDir)\%(Filename)EventsTEMP.bin</Outputs>
     </CustomBuild>
   </ItemGroup>
