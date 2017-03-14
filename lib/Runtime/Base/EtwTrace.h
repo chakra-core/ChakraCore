@@ -79,11 +79,12 @@ enum MethodType : uint16
     Assert(entryPoint->IsNativeCode());                                                             \
     char16 functionNameArray[NameBufferLength];                                                     \
     const char16 *functionName;                                                                     \
+    size_t requiredCharCapacity = 0;                                                                \
     bool deleteFunctionName = false;                                                                \
     const ExecutionMode jitMode = entryPoint->GetJitMode();                                         \
     if(jitMode == ExecutionMode::SimpleJit)                                                         \
     {                                                                                               \
-        const size_t requiredCharCapacity =                                                         \
+        requiredCharCapacity =                                                                      \
             GetSimpleJitFunctionName(Body, functionNameArray, _countof(functionNameArray));         \
         if(requiredCharCapacity == 0)                                                               \
         {                                                                                           \
@@ -92,7 +93,7 @@ enum MethodType : uint16
         else                                                                                        \
         {                                                                                           \
             Assert(requiredCharCapacity > NameBufferLength);                                        \
-            char16 *const allocatedFunctionName = new char16[requiredCharCapacity];                 \
+            char16 *const allocatedFunctionName = HeapNewNoThrowArray(char16, requiredCharCapacity);\
             if(allocatedFunctionName)                                                               \
             {                                                                                       \
                 const size_t newRequiredCharCapacity =                                              \
@@ -136,7 +137,7 @@ enum MethodType : uint16
         functionName);                                                                              \
     if(deleteFunctionName)                                                                          \
     {                                                                                               \
-        delete[] functionName;                                                                      \
+        HeapDeleteArray(requiredCharCapacity, functionName);                                        \
     }
 
 #define LogMethodInterpretedThunkEvent(Function, Body)                        \
@@ -172,7 +173,7 @@ enum MethodType : uint16
     size_t bufferSize = GetLoopBodyName(Body, loopHeader, loopBodyName, NameBufferLength);                 \
     if(bufferSize > NameBufferLength) /* insufficient buffer space*/                                       \
     {                                                                                                      \
-        loopBodyName = new WCHAR[bufferSize];                                                              \
+        loopBodyName = HeapNewNoThrowArray(WCHAR, bufferSize);                                             \
         if(loopBodyName)                                                                                   \
         {                                                                                                  \
             GetLoopBodyName(Body, loopHeader, loopBodyName, bufferSize);                                   \
@@ -206,7 +207,7 @@ enum MethodType : uint16
         loopBodyName);                                                                                     \
     if(loopBodyNameArray != loopBodyName)                                                                  \
     {                                                                                                      \
-        delete[] loopBodyName;                                                                             \
+        HeapDeleteArray(bufferSize, loopBodyName);                                                         \
     }
 
 
@@ -218,7 +219,7 @@ enum MethodType : uint16
     size_t bufferSize = Body->GetLoopBodyName(loopNumber, loopBodyName, NameBufferLength);                 \
     if(bufferSize > NameBufferLength) /* insufficient buffer space*/                                       \
     {                                                                                                      \
-        loopBodyName = new WCHAR[bufferSize];                                                              \
+        loopBodyName = HeapNewNoThrowArray(WCHAR, bufferSize);                                             \
         if(loopBodyName)                                                                                   \
         {                                                                                                  \
             GetLoopBodyName(Body, loopHeader, loopBodyName, bufferSize);                                   \
@@ -252,7 +253,7 @@ enum MethodType : uint16
         loopBodyName);                                                                                     \
     if(loopBodyNameArray != loopBodyName)                                                                  \
     {                                                                                                      \
-        delete[] loopBodyName;                                                                             \
+        HeapDeleteArray(bufferSize, loopBodyName);                                                         \
     }
 
 //

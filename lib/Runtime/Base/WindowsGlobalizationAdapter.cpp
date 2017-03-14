@@ -151,7 +151,7 @@ namespace Js
     public:
         HRESULT RuntimeClassInitialize(HSTRING *string, uint32 length)
         {
-            this->items = new HSTRING[length];
+            this->items = HeapNewNoThrowArray(HSTRING, length);
 
             if (this->items == nullptr)
             {
@@ -171,7 +171,7 @@ namespace Js
         {
             if(this->items != nullptr)
             {
-                delete [] items;
+                HeapDeleteArray(this->length, items);
             }
         }
 
@@ -666,7 +666,7 @@ if (this->object) \
         HRESULT hr = formatter->get_NumeralSystem(hNumeralSystem);
         return VerifyResult(hNumeralSystem, hr);
     }
-    
+
     HRESULT WindowsGlobalizationAdapter::GetCalendar(_In_ DateTimeFormatting::IDateTimeFormatter* formatter, HSTRING * hCalendar)
     {
         HRESULT hr = formatter->get_Calendar(hCalendar);

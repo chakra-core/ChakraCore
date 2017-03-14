@@ -15,7 +15,7 @@ DictionaryStats* DictionaryStats::Create(const char* name, uint bucketCount)
         Js::Configuration::Global.flags.ProfileDictionary < 0)
         return NULL;
 
-    return ::new DictionaryStats(name, bucketCount);
+    return NoCheckHeapNew(DictionaryStats, name, bucketCount);
 }
 
 DictionaryStats* DictionaryStats::Clone()
@@ -238,10 +238,10 @@ void DictionaryStats::ClearStats()
         {
             DictionaryStats *pCurrent = pNext;
             pNext = pNext->pNext;
-            delete pCurrent;
+            NoCheckHeapDelete(pCurrent);
         }
         current = current->pNext;
-        delete type;
+        NoCheckHeapDelete(type);
     }
     dictionaryTypes = NULL;
 }

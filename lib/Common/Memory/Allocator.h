@@ -146,18 +146,29 @@ inline T* PostAllocationCallback(const type_info& objType, T *obj)
 
 #define AllocatorNewNoThrowNoRecoveryArrayZ(AllocatorType, alloc, T, count) AllocatorNewNoThrowNoRecoveryArrayBase(AllocatorType, alloc, AllocZero, T, count)
 
-#define AllocatorDelete(AllocatorType, alloc, obj) DeleteObject<AllocatorType>(alloc, obj)
-#define AllocatorDeleteInline(AllocatorType, alloc, obj) DeleteObjectInline<AllocatorType>(alloc, obj)
-#define AllocatorDeleteLeaf(TAllocator, alloc, obj) DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj)
-#define AllocatorDeletePlus(AllocatorType, alloc, size,  obj)  DeleteObject<AllocatorType>(alloc, obj, size);
-#define AllocatorDeletePlusLeaf(TAllocator, alloc, size,  obj)  DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj, size);
-#define AllocatorDeletePlusPrefix(AllocatorType, alloc, size,  obj)  DeleteObject<AllocatorType>(alloc, obj, size, true);
-#define AllocatorDeletePlusPrefixLeaf(TAllocator, alloc, size,  obj)  DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj, size, true);
-#define AllocatorDeleteArray(AllocatorType, alloc, count, obj) DeleteArray<AllocatorType>(alloc, count, obj)
-#define AllocatorDeleteArrayLeaf(TAllocator, alloc, count, obj) DeleteArray<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, count, obj)
+// A few versions below supplies optional flags through ..., used by HeapDelete.
+#define AllocatorDelete(AllocatorType, alloc, obj, ...) \
+        DeleteObject<AllocatorType, ##__VA_ARGS__>(alloc, obj)
+#define AllocatorDeleteInline(AllocatorType, alloc, obj) \
+        DeleteObjectInline<AllocatorType>(alloc, obj)
+#define AllocatorDeleteLeaf(TAllocator, alloc, obj) \
+        DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj)
+#define AllocatorDeletePlus(AllocatorType, alloc, size,  obj, ...) \
+        DeleteObject<AllocatorType, ##__VA_ARGS__>(alloc, obj, size);
+#define AllocatorDeletePlusLeaf(TAllocator, alloc, size,  obj) \
+        DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj, size);
+#define AllocatorDeletePlusPrefix(AllocatorType, alloc, size, obj, ...) \
+        DeleteObject<AllocatorType, ##__VA_ARGS__>(alloc, obj, size, true);
+#define AllocatorDeletePlusPrefixLeaf(TAllocator, alloc, size,  obj) \
+        DeleteObject<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, obj, size, true);
+#define AllocatorDeleteArray(AllocatorType, alloc, count, obj) \
+        DeleteArray<AllocatorType>(alloc, count, obj)
+#define AllocatorDeleteArrayLeaf(TAllocator, alloc, count, obj) \
+        DeleteArray<ForceLeafAllocator<TAllocator>::AllocatorType>(alloc, count, obj)
 
 // Free routine where we don't care about following C++ semantics (e.g. calling the destructor)
-#define AllocatorFree(alloc, freeFunc, obj, size) (alloc->*freeFunc)(obj, size)
+#define AllocatorFree(alloc, freeFunc, obj, size) \
+        (alloc->*freeFunc)((void*)obj, size)
 
 // default type allocator implementation
 template <typename TAllocator, typename T>
@@ -226,31 +237,43 @@ struct ForceLeafAllocator
     typedef TAllocator AllocatorType;
 };
 
-template <typename TAllocator, typename T>
+// Optional AllocatorDelete flags
+enum class AllocatorDeleteFlags
+{
+    None,
+    UnknownSize,  // used to bypass size check
+};
+template <typename T, AllocatorDeleteFlags deleteFlags>
+struct _AllocatorDelete
+{
+    static size_t Size() { return sizeof(T); }
+    static size_t Size(size_t plusSize) { return sizeof(T) + plusSize; }
+};
+template <typename T>
+struct _AllocatorDelete<T, AllocatorDeleteFlags::UnknownSize>
+{
+    static size_t Size() { return (size_t)-1; }
+    static size_t Size(size_t plusSize) { return (size_t)-1; }
+};
+
+template <typename TAllocator,
+          AllocatorDeleteFlags deleteFlags = AllocatorDeleteFlags::None,
+          typename T>
 void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj)
 {
     obj->~T();
 
     auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
-    (allocator->*freeFunc)(obj, sizeof(T));
+    (allocator->*freeFunc)(
+        (void*)obj, _AllocatorDelete<T, deleteFlags>::Size());
 }
 
-template <typename TAllocator, typename T>
+template <typename TAllocator,
+          AllocatorDeleteFlags deleteFlags = AllocatorDeleteFlags::None,
+          typename T>
 void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, WriteBarrierPtr<T> obj)
 {
-    obj->~T();
-
-    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
-    (allocator->*freeFunc)(obj, sizeof(T));
-}
-
-template <typename TAllocator, typename T>
-void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, NoWriteBarrierPtr<T> obj)
-{
-    obj->~T();
-
-    auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
-    (allocator->*freeFunc)(obj, sizeof(T));
+    DeleteObject<TAllocator, deleteFlags>(allocator, PointerValue(obj));
 }
 
 template <typename TAllocator, typename T>
@@ -260,7 +283,9 @@ void DeleteObjectInline(TAllocator * allocator, T * obj)
     allocator->FreeInline(obj, sizeof(T));
 }
 
-template <typename TAllocator, typename T>
+template <typename TAllocator,
+          AllocatorDeleteFlags deleteFlags = AllocatorDeleteFlags::None,
+          typename T>
 void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj, size_t plusSize)
 {
     obj->~T();
@@ -270,10 +295,13 @@ void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocat
     Assert(sizeof(T) + plusSize >= sizeof(T));
 
     auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
-    (allocator->*freeFunc)(obj, sizeof(T) + plusSize);
+    (allocator->*freeFunc)(
+        (void*)obj, _AllocatorDelete<T, deleteFlags>::Size(plusSize));
 }
 
-template <typename TAllocator, typename T>
+template <typename TAllocator,
+          AllocatorDeleteFlags deleteFlags = AllocatorDeleteFlags::None,
+          typename T>
 void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, T * obj, size_t plusSize, bool prefix)
 {
     Assert(prefix);
@@ -287,7 +315,8 @@ void DeleteObject(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocat
     Assert(plusSize == Math::Align<size_t>(plusSize, sizeof(size_t)));
 
     auto freeFunc = AllocatorInfo<TAllocator, T>::InstAllocatorFunc::GetFreeFunc(); // Use InstAllocatorFunc
-    (allocator->*freeFunc)(((char *)obj) - plusSize, sizeof(T) + plusSize);
+    (allocator->*freeFunc)(((char *)obj) - plusSize,
+        _AllocatorDelete<T, deleteFlags>::Size(plusSize));
 }
 
 #define ZERO_LENGTH_ARRAY (void *)sizeof(void *)
@@ -311,18 +340,54 @@ inline T * AllocateArray(TAllocator * allocator, char * (TAllocator::*AllocFunc)
     return new (allocator, AllocFunc) T[count];
 }
 
+// Skip item destructor loop on some trivial types. The loop is likely to be
+// optimized away in release build. Skipping it improves debug build.
+//
+struct _true_value { static const bool value = true; };
+struct _false_value { static const bool value = false; };
+template <typename T> struct _has_trivial_destructor : _false_value {};
+template <typename T> struct _has_trivial_destructor<T*> : _true_value {};
+template <> struct _has_trivial_destructor<char> : _true_value {};
+template <> struct _has_trivial_destructor<const char> : _true_value {};
+template <> struct _has_trivial_destructor<unsigned char> : _true_value {};
+template <> struct _has_trivial_destructor<char16> : _true_value {};
+template <> struct _has_trivial_destructor<const char16> : _true_value {};
+template <> struct _has_trivial_destructor<int> : _true_value {};
+
+template <bool trivial_destructor>
+struct _DestructArray
+{
+    template <typename T>
+    static void Destruct(size_t count, T* obj)
+    {
+        for (size_t i = 0; i < count; i++)
+        {
+            obj[i].~T();
+        }
+    }
+};
+template <>
+struct _DestructArray</*trivial_destructor*/true>
+{
+    template <typename T>
+    static void Destruct(size_t count, T* obj) {}
+};
+
+template <typename T>
+void DestructArray(size_t count, T* obj)
+{
+    _DestructArray<_has_trivial_destructor<T>::value>::Destruct(count, obj);
+}
+
 template <typename TAllocator, typename T>
 void DeleteArray(typename AllocatorInfo<TAllocator, T>::AllocatorType * allocator, size_t count, T * obj)
 {
-    if(count == 0)
+    if (count == 0)
     {
         return;
     }
 
-    for (size_t i = 0; i < count; i++)
-    {
-        obj[i].~T();
-    }
+    DestructArray(count, obj);
 
     // DeleteArray can only be called when an array is allocated successfully.
     // So the add should never overflow

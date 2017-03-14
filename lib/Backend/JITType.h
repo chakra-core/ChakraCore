@@ -39,7 +39,7 @@ public:
     JITTypeHolderBase(JITType * t);
 
     template <class S>
-    JITTypeHolderBase(JITTypeHolderBase<S> other) : t(PointerValue(other.t)) {}
+    JITTypeHolderBase(const JITTypeHolderBase<S>& other) : t(PointerValue(other.t)) {}
 
     template <class S>
     void operator =(const JITTypeHolderBase<S> &other) { t = other.t; }

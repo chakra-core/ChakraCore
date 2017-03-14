@@ -802,16 +802,21 @@ class RefCounted
     volatile LONG refCount;
 
 protected:
-    virtual ~RefCounted()
-    {
-    }
-
-public:
     RefCounted()
         : refCount(1)
     {
     }
 
+    virtual ~RefCounted()
+    {
+    }
+
+    void operator delete(void* p, size_t size)
+    {
+        HeapFree(p, size);
+    }
+
+public:
     uint32 AddRef(void)
     {
         return (uint32)InterlockedIncrement(&refCount);
@@ -823,7 +828,7 @@ public:
 
         if (0 == refs)
         {
-            delete this;
+            delete this;  // invokes overrided operator delete
         }
 
         return refs;
@@ -882,7 +887,6 @@ class ReferencedArenaAdapter : public RefCounted
     bool deleteFlag;
 
 public:
-
     ~ReferencedArenaAdapter()
     {
         if (this->arena)

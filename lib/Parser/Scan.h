@@ -370,7 +370,7 @@ public:
     }
     void Release(void)
     {
-        delete this;
+        delete this;  // invokes overrided operator delete
     }
 
     tokens Scan();
@@ -713,6 +713,11 @@ private:
 
     Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, ErrHandler *perr, Js::ScriptContext *scriptContext);
     ~Scanner(void);
+
+    void operator delete(void* p, size_t size)
+    {
+        HeapFree(p, size);
+    }
 
     template <bool forcePid>
     void SeekAndScan(const RestorePoint& restorePoint);

@@ -953,13 +953,13 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
             pNumberAllocator,
 #endif
             codeGenProfiler, !foreground);
-        
+
         if (!this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator()->IsInRange((void*)jitWriteData.codeAddress))
         {
             this->scriptContext->GetJitFuncRangeCache()->AddFuncRange((void*)jitWriteData.codeAddress, jitWriteData.codeSize);
         }
     }
-    
+
     if (JITManager::GetJITManager()->IsOOPJITEnabled() && PHASE_VERBOSE_TRACE(Js::BackEndPhase, workItem->GetFunctionBody()))
     {
         LARGE_INTEGER freq;
@@ -1198,7 +1198,7 @@ void NativeCodeGenerator::LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTE
             size_t sizeInChars = workItem->GetDisplayName(displayName, 256);
             if (sizeInChars > 256)
             {
-                displayName = new WCHAR[sizeInChars];
+                displayName = HeapNewArray(WCHAR, sizeInChars);
                 workItem->GetDisplayName(displayName, 256);
             }
             JS_ETW(EventWriteJSCRIPT_FUNCTION_JIT_START(
@@ -1213,7 +1213,7 @@ void NativeCodeGenerator::LogCodeGenStart(CodeGenWorkItem * workItem, LARGE_INTE
 
             if (displayName != displayNameBuffer)
             {
-                delete[] displayName;
+                HeapDeleteArray(sizeInChars, displayName);
             }
         }
     }
@@ -1315,7 +1315,7 @@ void NativeCodeGenerator::LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEG
             size_t sizeInChars = workItem->GetDisplayName(displayName, 256);
             if (sizeInChars > 256)
             {
-                displayName = new WCHAR[sizeInChars];
+                displayName = HeapNewArray(WCHAR, sizeInChars);
                 workItem->GetDisplayName(displayName, 256);
             }
             void* entryPoint;
@@ -1331,7 +1331,7 @@ void NativeCodeGenerator::LogCodeGenDone(CodeGenWorkItem * workItem, LARGE_INTEG
 
             if (displayName != displayNameBuffer)
             {
-                delete[] displayName;
+                HeapDeleteArray(sizeInChars, displayName);
             }
         }
     }
@@ -3194,7 +3194,7 @@ NativeCodeGenerator::QueueFreeNativeCodeGenAllocation(void* address)
         //DeRegister Entry Point for CFG
         ThreadContext::GetContextForCurrentThread()->SetValidCallTargetForCFG(address, false);
     }
-    
+
     if ((!JITManager::GetJITManager()->IsOOPJITEnabled() && !this->scriptContext->GetThreadContext()->GetPreReservedVirtualAllocator()->IsInRange((void*)address)) ||
         (JITManager::GetJITManager()->IsOOPJITEnabled() && !PreReservedVirtualAllocWrapper::IsInRange((void*)this->scriptContext->GetThreadContext()->GetPreReservedRegionAddr(), (void*)address)))
     {
