@@ -50,16 +50,16 @@ void regex::ImmutableStringBuilder<chunkSize>::AppendWithCopy(_In_z_ LPCWSTR str
     AssertMsg(str != nullptr, "str != nullptr");
     size_t strLength = wcslen(str) + 1; // include null-terminated
 
-    WCHAR* buffer = new WCHAR[strLength];
+    WCHAR* buffer = HeapNewNoThrowArray(WCHAR, strLength);
     IfNullThrowOutOfMemory(buffer);
     wcsncpy_s(buffer, strLength, str, strLength);
 
     // append in front of the tracked allocated strings
-    AllocatedStringChunk* newAllocatedString = new AllocatedStringChunk();
+    AllocatedStringChunk* newAllocatedString = HeapNewNoThrow(AllocatedStringChunk);
     if (newAllocatedString == nullptr)
     {
         // cleanup
-        delete[] buffer;
+        HeapDeleteArray(strLength, buffer);
         Js::Throw::OutOfMemory();
     }
 
