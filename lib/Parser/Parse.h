@@ -204,7 +204,6 @@ private:
 protected:
     Js::ScriptContext* m_scriptContext;
     HashTbl *   m_phtbl;
-    ErrHandler  m_err;
 
     static const uint HASH_TABLE_SIZE = 256;
 
@@ -305,12 +304,14 @@ public:
     void PrepareScanner(bool fromExternal);
     void PrepareForBackgroundParse();
     void AddFastScannedRegExpNode(ParseNodePtr const pnode);
+#if ENABLE_BACKGROUND_PARSING
     void AddBackgroundRegExpNode(ParseNodePtr const pnode);
     void AddBackgroundParseItem(BackgroundParseItem *const item);
     void FinishBackgroundRegExpNodes();
     void FinishBackgroundPidRefs(BackgroundParseItem *const item, bool isOtherParser);
     void WaitForBackgroundJobs(BackgroundParser *bgp, CompileScriptException *pse);
     HRESULT ParseFunctionInBackground(ParseNodePtr pnodeFunc, ParseContext *parseContext, bool topLevelDeferred, CompileScriptException *pse);
+#endif
 
     void CheckPidIsValid(IdentPtr pid, bool autoArgumentsObject = false);
     void AddVarDeclToBlock(ParseNode *pnode);

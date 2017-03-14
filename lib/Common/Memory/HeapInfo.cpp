@@ -1037,6 +1037,8 @@ HeapInfo::Rescan(RescanFlags flags)
     return scannedPageCount;
 }
 
+#ifdef DUMP_FRAGMENTATION_STATS
+
 template <ObjectInfoBits TBucketType, class TBlockAttributes>
 void DumpBucket(uint bucketIndex, typename SmallHeapBlockType<TBucketType, TBlockAttributes>::BucketType& bucket)
 {
@@ -1048,7 +1050,6 @@ void DumpBucket(uint bucketIndex, typename SmallHeapBlockType<TBucketType, TBloc
     Output::Print(_u("%d,%d,%d,%d,%d,%d,%d\n"), stats.totalBlockCount, stats.finalizeBlockCount, stats.emptyBlockCount, stats.objectCount, stats.finalizeCount, stats.objectByteCount, stats.totalByteCount);
 }
 
-#ifdef DUMP_FRAGMENTATION_STATS
 void
 HeapInfo::DumpFragmentationStats()
 {

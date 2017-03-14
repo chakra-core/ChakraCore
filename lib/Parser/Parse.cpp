@@ -173,8 +173,7 @@ void Parser::OutOfMemory()
 
 void Parser::Error(HRESULT hr)
 {
-    Assert(FAILED(hr));
-    m_err.Throw(hr);
+    throw ParseExceptionObject(hr);
 }
 
 void Parser::Error(HRESULT hr, ParseNodePtr pnode)
@@ -248,7 +247,6 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
     HRESULT hr;
     SmartFPUControl smartFpuControl;
 
-    DebugOnly( m_err.fInited = TRUE; )
     BOOL fDeferSave = m_deferringAST;
     try
     {
@@ -322,10 +320,13 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
     catch(ParseExceptionObject& e)
     {
         m_deferringAST = fDeferSave;
-        m_err.m_hr = e.GetError();
-        hr = pse->ProcessError( m_pscan,  m_err.m_hr, /* pnodeBase */ NULL);
+        hr = e.GetError();
     }
 
+    if (nullptr != pse && FAILED(hr))
+    {
+        hr = pse->ProcessError(m_pscan, hr, /* pnodeBase */ NULL);
+    }
     return hr;
 }
 
@@ -360,8 +361,6 @@ HRESULT Parser::ParseSourceInternal(
     ParseNodePtr pnodeBase = NULL;
     HRESULT hr;
     SmartFPUControl smartFpuControl;
-
-    DebugOnly( m_err.fInited = TRUE; )
 
     try
     {
@@ -406,8 +405,12 @@ HRESULT Parser::ParseSourceInternal(
     }
     catch(ParseExceptionObject& e)
     {
-        m_err.m_hr = e.GetError();
-        hr = pse->ProcessError( m_pscan, m_err.m_hr, pnodeBase);
+        hr = e.GetError();
+    }
+
+    if (FAILED(hr))
+    {
+        hr = pse->ProcessError(m_pscan, hr, pnodeBase);
     }
 
     if (this->m_hasParallelJob)
@@ -11276,12 +11279,12 @@ void Parser::PrepareScanner(bool fromExternal)
     // heap allocation for the colorizer interface.
 
     // create the hash table and init PID members
-    if (nullptr == (m_phtbl = HashTbl::Create(HASH_TABLE_SIZE, &m_err)))
+    if (nullptr == (m_phtbl = HashTbl::Create(HASH_TABLE_SIZE)))
         Error(ERRnoMemory);
     InitPids();
 
     // create the scanner
-    if (nullptr == (m_pscan = Scanner_t::Create(this, m_phtbl, &m_token, &m_err, m_scriptContext)))
+    if (nullptr == (m_pscan = Scanner_t::Create(this, m_phtbl, &m_token, m_scriptContext)))
         Error(ERRnoMemory);
 
     if (fromExternal)
@@ -11328,7 +11331,6 @@ void Parser::AddBackgroundRegExpNode(ParseNodePtr const pnode)
 
     currBackgroundParseItem->AddRegExpNode(pnode, &m_nodeAllocator);
 }
-#endif
 
 HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *parseContext, bool topLevelDeferred, CompileScriptException *pse)
 {
@@ -11339,7 +11341,6 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
     uint nextFunctionId = pnodeFnc->sxFnc.functionId + 1;
 
     this->RestoreContext(parseContext);
-    DebugOnly( m_err.fInited = TRUE; )
     m_nextFunctionId = &nextFunctionId;
     m_deferringAST = topLevelDeferred;
     m_inDeferredNestedFunc = false;
@@ -11413,8 +11414,12 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
     }
     catch(ParseExceptionObject& e)
     {
-        m_err.m_hr = e.GetError();
-        hr = pse->ProcessError( m_pscan, m_err.m_hr, nullptr);
+        hr = e.GetError();
+    }
+
+    if (FAILED(hr))
+    {
+        hr = pse->ProcessError(m_pscan, hr, nullptr);
     }
 
     if (IsStrictMode())
@@ -11433,6 +11438,8 @@ HRESULT Parser::ParseFunctionInBackground(ParseNodePtr pnodeFnc, ParseContext *p
 
     return hr;
 }
+
+#endif
 
 HRESULT Parser::ParseSourceWithOffset(__out ParseNodePtr* parseTree, LPCUTF8 pSrc, size_t offset, size_t cbLength, charcount_t cchOffset,
         bool isCesu8, ULONG grfscr, CompileScriptException *pse, Js::LocalFunctionId * nextFunctionId, ULONG lineNumber, SourceContextInfo * sourceContextInfo,

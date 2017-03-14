@@ -26,11 +26,11 @@ const HashTbl::ReservedWordInfo HashTbl::s_reservedWordInfo[tkID] =
 #include "keywords.h"
 };
 
-HashTbl * HashTbl::Create(uint cidHash, ErrHandler * perr)
+HashTbl * HashTbl::Create(uint cidHash)
 {
     HashTbl * phtbl;
 
-    if (nullptr == (phtbl = HeapNewNoThrow(HashTbl,perr)))
+    if (nullptr == (phtbl = HeapNewNoThrow(HashTbl)))
         return nullptr;
     if (!phtbl->Init(cidHash))
     {
@@ -301,12 +301,12 @@ IdentPtr HashTbl::PidHashNameLenWithHash(_In_reads_(cch) CharType const * prgch,
         FAILED(ULongToLong(Len, &cb)))
     {
         cb = 0;
-        m_perr->Throw(ERRnoMemory);
+        OutOfMemory();
     }
 
 
     if (nullptr == (pid = (IdentPtr)m_noReleaseAllocator.Alloc(cb)))
-        m_perr->Throw(ERRnoMemory);
+        OutOfMemory();
 
     /* Insert the identifier into the hash list */
     *ppid = pid;
@@ -466,3 +466,8 @@ LDefault:
 }
 
 #pragma warning(pop)
+
+__declspec(noreturn) void HashTbl::OutOfMemory()
+{
+    throw ParseExceptionObject(ERRnoMemory);
+}
