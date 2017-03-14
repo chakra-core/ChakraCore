@@ -17,7 +17,8 @@ namespace Wasm
             I64 = 2,
             F32 = 3,
             F64 = 4,
-            Limit
+            Limit,
+            Any
         };
         bool IsLocalType(WasmTypes::WasmType type);
         uint32 GetTypeByteSize(WasmType type);
