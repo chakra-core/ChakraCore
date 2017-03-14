@@ -73,3 +73,7 @@ add_subdirectory (Jsrt)
 if (CC_TARGETS_AMD64)
     add_subdirectory (WasmReader)
 endif()
+
+if(NOT CC_XCODE_PROJECT)
+    add_dependencies(ChakraCoreStatic ChakraCoreHeaders)
+endif(NOT CC_XCODE_PROJECT)
