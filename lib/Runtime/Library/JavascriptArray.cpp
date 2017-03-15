@@ -779,25 +779,7 @@ namespace Js
         return IsMissingHeadSegmentItemImpl<double>(index);
     }
 
-    template<typename T>
-    void JavascriptArray::InternalFillFromPrototype(JavascriptArray *dstArray, const T& dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count)
-    {
-        RecyclableObject* prototype = srcArray->GetPrototype();
-        while (start + count != end && JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
-        {
-            ForEachOwnMissingArrayIndexOfObject(srcArray, dstArray, prototype, start, end, dstIndex, [&](uint32 index, Var value) {
-                T n = dstIndex + (index - start);
-                dstArray->DirectSetItemAt(n, value);
-
-                count++;
-            });
-
-            prototype = prototype->GetPrototype();
-        }
-    }
-
-    template<>
-    void JavascriptArray::InternalFillFromPrototype<uint32>(JavascriptArray *dstArray, const uint32& dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count)
+    void JavascriptArray::InternalFillFromPrototype(JavascriptArray *dstArray, uint32 dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count)
     {
         RecyclableObject* prototype = srcArray->GetPrototype();
         while (start + count != end && JavascriptOperators::GetTypeId(prototype) != TypeIds_Null)
@@ -3026,19 +3008,19 @@ namespace Js
                 if (JavascriptNativeIntArray::Is(aItem))
                 {
                     JavascriptNativeIntArray *pItemArray = JavascriptNativeIntArray::FromVar(aItem);
-                    CopyNativeIntArrayElementsToVar(pDestArray, idxDest, pItemArray);
+                    CopyNativeIntArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pItemArray);
                     idxDest = idxDest + pItemArray->length;
                 }
                 else if (JavascriptNativeFloatArray::Is(aItem))
                 {
                     JavascriptNativeFloatArray *pItemArray = JavascriptNativeFloatArray::FromVar(aItem);
-                    CopyNativeFloatArrayElementsToVar(pDestArray, idxDest, pItemArray);
+                    CopyNativeFloatArrayElementsToVar(pDestArray, BigIndex(idxDest).GetSmallIndex(), pItemArray);
                     idxDest = idxDest + pItemArray->length;
                 }
                 else
                 {
                     JavascriptArray* pItemArray = JavascriptArray::FromVar(aItem);
-                    CopyArrayElements(pDestArray, idxDest, pItemArray);
+                    CopyArrayElements(pDestArray, BigIndex(idxDest).GetSmallIndex(), pItemArray);
                     idxDest = idxDest + pItemArray->length;
                 }
             }
@@ -3091,7 +3073,7 @@ namespace Js
 
                             if (pDestArray)
                             {
-                                pDestArray->DirectSetItemAt(idxDest, subItem);
+                                pDestArray->GenericDirectSetItemAt(idxDest, subItem);
                             }
                             else
                             {
@@ -3110,7 +3092,7 @@ namespace Js
                             subItem = JavascriptOperators::GetProperty(itemObject, propertyRecord->GetPropertyId(), scriptContext);
                             if (pDestArray)
                             {
-                                pDestArray->DirectSetItemAt(idxDest, subItem);
+                                pDestArray->GenericDirectSetItemAt(idxDest, subItem);
                             }
                             else
                             {
@@ -3560,7 +3542,7 @@ namespace Js
             }
             if (pDestArray)
             {
-                pDestArray->DirectSetItemAt(idxDest, pObj);
+                pDestArray->GenericDirectSetItemAt(idxDest, pObj);
             }
             else
             {
@@ -3571,7 +3553,7 @@ namespace Js
         {
             if (pDestArray)
             {
-                pDestArray->DirectSetItemAt(idxDest, aItem);
+                pDestArray->GenericDirectSetItemAt(idxDest, aItem);
             }
             else
             {
@@ -6851,7 +6833,7 @@ Case0:
                     // Copy overflowing insertArgs to properties
                     for (uint32 i = maxInsertLen; i < insertLen; i++)
                     {
-                        pArr->DirectSetItemAt(dstIndex, insertArgs[i]);
+                        pArr->GenericDirectSetItemAt(dstIndex, insertArgs[i]);
                         ++dstIndex;
                     }
 
@@ -9100,7 +9082,7 @@ Case0:
             {
                 if (pArr)
                 {
-                    pArr->DirectSetItemAt(dstIndex, fillValue);
+                    pArr->GenericDirectSetItemAt(dstIndex, fillValue);
                     ++dstIndex;
                 }
                 else
@@ -9117,7 +9099,7 @@ Case0:
             {
                 if (pArr)
                 {
-                    pArr->DirectSetItemAt(dstIndex, fillValue);
+                    pArr->GenericDirectSetItemAt(dstIndex, fillValue);
                     ++dstIndex;
                 }
                 else
@@ -9599,7 +9581,7 @@ Case0:
                 {
                     if (newArr)
                     {
-                        newArr->DirectSetItemAt(i, element);
+                        newArr->GenericDirectSetItemAt(i, element);
                     }
                     else
                     {
@@ -10471,8 +10453,8 @@ Case0:
     }
 #endif
 
-    template <typename T, typename Fn>
-    void JavascriptArray::ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArray, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, T destIndex, Fn fn)
+    template <typename Fn>
+    void JavascriptArray::ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArray, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, uint32 destIndex, Fn fn)
     {
         Assert(DynamicObject::IsAnyArray(obj) || JavascriptOperators::IsObject(obj));
 
@@ -10501,7 +10483,7 @@ Case0:
                     uint32 index = e.GetIndex();
                     if (!baseArray->DirectGetVarItemAt(index, &oldValue, baseArray->GetScriptContext()))
                     {
-                        T n = destIndex + (index - startIndex);
+                        uint32 n = destIndex + (index - startIndex);
                         if (destArray == nullptr || !destArray->DirectGetItemAt(n, &oldValue))
                         {
                             fn(index, e.GetItem<Var>());
@@ -10526,7 +10508,7 @@ Case0:
 
                     if (!baseArray->DirectGetVarItemAt(index, &oldValue, baseArray->GetScriptContext()))
                     {
-                        T n = destIndex + (index - startIndex);
+                        uint32 n = destIndex + (index - startIndex);
                         if (destArray == nullptr || !destArray->DirectGetItemAt(n, &oldValue))
                         {
                             Var value = nullptr;
@@ -11003,8 +10985,7 @@ Case0:
     //
     // Copy a srcArray elements (including elements from prototypes) to a dstArray starting from an index.
     //
-    template<typename T>
-    void JavascriptArray::InternalCopyArrayElements(JavascriptArray* dstArray, const T& dstIndex, JavascriptArray* srcArray, uint32 start, uint32 end)
+    void JavascriptArray::InternalCopyArrayElements(JavascriptArray* dstArray, const uint32 dstIndex, JavascriptArray* srcArray, uint32 start, uint32 end)
     {
         Assert(start < end && end <= srcArray->length);
 
@@ -11014,7 +10995,7 @@ Case0:
         ArrayElementEnumerator e(srcArray, start, end);
         while(e.MoveNext<Var>())
         {
-            T n = dstIndex + (e.GetIndex() - start);
+            uint32 n = dstIndex + (e.GetIndex() - start);
             dstArray->DirectSetItemAt(n, e.GetItem<Var>());
             count++;
         }
@@ -11023,28 +11004,6 @@ Case0:
         if (start + count != end)
         {
             InternalFillFromPrototype(dstArray, dstIndex, srcArray, start, end, count);
-        }
-    }
-
-    //
-    // Copy a srcArray elements (including elements from prototypes) to a dstArray starting from an index. If the index grows larger than
-    // "array index", it will automatically turn to SetProperty using the index as property name.
-    //
-    void JavascriptArray::CopyArrayElements(JavascriptArray* dstArray, const BigIndex& dstIndex, JavascriptArray* srcArray, uint32 start, uint32 end)
-    {
-        end = min(end, srcArray->length);
-        if (start < end)
-        {
-            uint32 len = end - start;
-            if (dstIndex.IsSmallIndex() && (len < MaxArrayLength - dstIndex.GetSmallIndex()))
-            {
-                // Won't overflow, use faster small_index version
-                InternalCopyArrayElements(dstArray, dstIndex.GetSmallIndex(), srcArray, start, end);
-            }
-            else
-            {
-                InternalCopyArrayElements(dstArray, dstIndex, srcArray, start, end);
-            }
         }
     }
 
@@ -11081,24 +11040,6 @@ Case0:
         else
         {
             CopyArrayElements(dstArray, dstIndex, srcArray, start, end);
-        }
-    }
-
-    void JavascriptArray::CopyNativeIntArrayElementsToVar(JavascriptArray* dstArray, const BigIndex& dstIndex, JavascriptNativeIntArray* srcArray, uint32 start, uint32 end)
-    {
-        end = min(end, srcArray->length);
-        if (start < end)
-        {
-            uint32 len = end - start;
-            if (dstIndex.IsSmallIndex() && (len < MaxArrayLength - dstIndex.GetSmallIndex()))
-            {
-                // Won't overflow, use faster small_index version
-                InternalCopyNativeIntArrayElements(dstArray, dstIndex.GetSmallIndex(), srcArray, start, end);
-            }
-            else
-            {
-                InternalCopyNativeIntArrayElements(dstArray, dstIndex, srcArray, start, end);
-            }
         }
     }
 
@@ -11179,24 +11120,6 @@ Case0:
         }
 
         return false;
-    }
-
-    void JavascriptArray::CopyNativeFloatArrayElementsToVar(JavascriptArray* dstArray, const BigIndex& dstIndex, JavascriptNativeFloatArray* srcArray, uint32 start, uint32 end)
-    {
-        end = min(end, srcArray->length);
-        if (start < end)
-        {
-            uint32 len = end - start;
-            if (dstIndex.IsSmallIndex() && (len < MaxArrayLength - dstIndex.GetSmallIndex()))
-            {
-                // Won't overflow, use faster small_index version
-                InternalCopyNativeFloatArrayElements(dstArray, dstIndex.GetSmallIndex(), srcArray, start, end);
-            }
-            else
-            {
-                InternalCopyNativeFloatArrayElements(dstArray, dstIndex, srcArray, start, end);
-            }
-        }
     }
 
     //
@@ -11284,8 +11207,7 @@ Case0:
         return JavascriptOperators::GetItem(this, this->GetPrototype(), index, outVal, requestContext);
     }
 
-    template<typename T>
-    void JavascriptArray::InternalCopyNativeIntArrayElements(JavascriptArray* dstArray, const T& dstIndex, JavascriptNativeIntArray* srcArray, uint32 start, uint32 end)
+    void JavascriptArray::InternalCopyNativeIntArrayElements(JavascriptArray* dstArray, uint32 dstIndex, JavascriptNativeIntArray* srcArray, uint32 start, uint32 end)
     {
         Assert(start < end && end <= srcArray->length);
 
@@ -11296,7 +11218,7 @@ Case0:
         ArrayElementEnumerator e(srcArray, start, end);
         while(e.MoveNext<int32>())
         {
-            T n = dstIndex + (e.GetIndex() - start);
+            uint32 n = dstIndex + (e.GetIndex() - start);
             dstArray->DirectSetItemAt(n, JavascriptNumber::ToVar(e.GetItem<int32>(), scriptContext));
             count++;
         }
@@ -11308,8 +11230,7 @@ Case0:
         }
     }
 
-    template<typename T>
-    void JavascriptArray::InternalCopyNativeFloatArrayElements(JavascriptArray* dstArray, const T& dstIndex, JavascriptNativeFloatArray* srcArray, uint32 start, uint32 end)
+    void JavascriptArray::InternalCopyNativeFloatArrayElements(JavascriptArray* dstArray, uint32 dstIndex, JavascriptNativeFloatArray* srcArray, uint32 start, uint32 end)
     {
         Assert(start < end && end <= srcArray->length);
 
@@ -11320,7 +11241,7 @@ Case0:
         ArrayElementEnumerator e(srcArray, start, end);
         while(e.MoveNext<double>())
         {
-            T n = dstIndex + (e.GetIndex() - start);
+            uint32 n = dstIndex + (e.GetIndex() - start);
             dstArray->DirectSetItemAt(n, JavascriptNumber::ToVarWithCheck(e.GetItem<double>(), scriptContext));
             count++;
         }
