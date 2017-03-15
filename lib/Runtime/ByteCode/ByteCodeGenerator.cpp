@@ -2488,6 +2488,12 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
             }
         }
     }
+	else if (pnode->sxFnc.IsLambda() && pnode->sxFnc.CallsEval()) {
+		FuncInfo* nonLambdaParent = byteCodeGenerator->FindEnclosingNonLambda();
+		if (!nonLambdaParent->IsGlobalFunction()) {
+			nonLambdaParent->GetParsedFunctionBody()->SetUsesArgumentsObject(true);
+		}
+	}
 
     Js::FunctionBody* parentFunctionBody = parentFunc->GetParsedFunctionBody();
     if (funcInfo->GetHasArguments() ||
