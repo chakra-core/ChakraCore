@@ -1445,7 +1445,7 @@ WasmBytecodeGenerator::GetRegisterSpace(WasmTypes::WasmType type)
 }
 
 EmitInfo
-WasmBytecodeGenerator::PopEvalStack(WasmTypes::WasmType expectedType, char16* mismatchMessage)
+WasmBytecodeGenerator::PopEvalStack(WasmTypes::WasmType expectedType, const char16* mismatchMessage)
 {
     // The scope marker should at least be there
     Assert(!m_evalStack.Empty());
