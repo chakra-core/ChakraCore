@@ -7,6 +7,7 @@
 namespace Js
 {
     class WebAssemblySource;
+    struct IWasmByteCodeWriter;
 }
 
 namespace Wasm
@@ -188,7 +189,9 @@ namespace Wasm
 
         uint m_maxArgOutDepth;
 
-        Js::AsmJsByteCodeWriter m_writer;
+        Js::IWasmByteCodeWriter* m_writer;
+        Js::IWasmByteCodeWriter* m_emptyWriter;
+        Js::IWasmByteCodeWriter* m_originalWriter;
         Js::ScriptContext* m_scriptContext;
 
         WAsmJs::TypedRegisterAllocator mTypedRegisterAllocator;

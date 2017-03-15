@@ -50,6 +50,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WasmCustomReader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EmptyWasmByteCodeWriter.h" />
     <ClInclude Include="WasmGlobal.h" />
     <ClInclude Include="WasmCustomReader.h" />
     <ClInclude Include="WasmBytecodeGenerator.h" />
