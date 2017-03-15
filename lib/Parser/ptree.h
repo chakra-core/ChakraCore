@@ -247,7 +247,6 @@ struct PnFnc
     RestorePoint *pRestorePoint;
     DeferredFunctionStub *deferredStub;
     bool canBeDeferred;
-    bool fibPreventsDeferral;
 
     static const int32 MaxStackClosureAST = 800000;
 
@@ -286,7 +285,6 @@ public:
     {
         fncFlags = kFunctionNone;
         canBeDeferred = false;
-        fibPreventsDeferral = false;
     }
 
     void SetAsmjsMode(bool set = true) { SetFlags(kFunctionAsmjsMode, set); }
@@ -323,7 +321,6 @@ public:
     void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
     void SetNestedFuncEscapes(bool set = true) { nestedFuncEscapes = set; }
     void SetCanBeDeferred(bool set = true) { canBeDeferred = set; }
-    void SetFIBPreventsDeferral(bool set = true) { fibPreventsDeferral = set; }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
@@ -362,7 +359,6 @@ public:
     bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
     bool NestedFuncEscapes() const { return nestedFuncEscapes; }
     bool CanBeDeferred() const { return canBeDeferred; }
-    bool FIBPreventsDeferral() const { return fibPreventsDeferral; }
 
     size_t LengthInBytes()
     {

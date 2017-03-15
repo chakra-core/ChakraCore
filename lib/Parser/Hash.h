@@ -144,6 +144,16 @@ public:
         return m_pidRefStack;
     }
 
+    PidRefStack *GetTopRef(uint maxBlockId) const
+    {
+        PidRefStack *ref;
+        for (ref = m_pidRefStack; ref && (uint)ref->id > maxBlockId; ref = ref->prev)
+        {
+            ; // nothing
+        }
+        return ref;
+    }
+
     void SetTopRef(PidRefStack *ref)
     {
         m_pidRefStack = ref;

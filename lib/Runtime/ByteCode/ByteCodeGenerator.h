@@ -207,7 +207,9 @@ public:
         return protoReg;
     }
 
-    void RestoreScopeInfo(Js::ParseableFunctionInfo* funcInfo);
+    void RestoreScopeInfo(Js::ScopeInfo *scopeInfo, FuncInfo * func);
+    void RestoreOneScope(Js::ScopeInfo * scopeInfo, FuncInfo * func);
+
     FuncInfo *StartBindGlobalStatements(ParseNode *pnode);
     void AssignPropertyId(Symbol *sym, Js::ParseableFunctionInfo* functionInfo);
     void AssignPropertyId(IdentPtr pid);

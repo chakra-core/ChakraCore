@@ -105,7 +105,10 @@ FuncInfo::FuncInfo(
     maxForInLoopLevel(0)
 {
     this->byteCodeFunction = byteCodeFunction;
-    bodyScope->SetFunc(this);
+    if (bodyScope != nullptr)
+    {
+        bodyScope->SetFunc(this);
+    }
     if (paramScope != nullptr)
     {
         paramScope->SetFunc(this);

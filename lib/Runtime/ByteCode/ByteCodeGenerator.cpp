@@ -968,84 +968,101 @@ Js::RegSlot ByteCodeGenerator::EnregisterStringTemplateCallsiteConstant(ParseNod
 //
 // Restore all outer func scope info when reparsing a deferred func.
 //
-void ByteCodeGenerator::RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody)
+void ByteCodeGenerator::RestoreScopeInfo(Js::ScopeInfo *scopeInfo, FuncInfo * func)
 {
-    if (functionBody && functionBody->GetScopeInfo())
+    if (scopeInfo)
     {
         PROBE_STACK(scriptContext, Js::Constants::MinStackByteCodeVisitor);
 
-        Js::ScopeInfo* scopeInfo = functionBody->GetScopeInfo();
-        RestoreScopeInfo(scopeInfo->GetParent()); // Recursively restore outer func scope info
+        Js::ParseableFunctionInfo * pfi = scopeInfo->GetFunctionInfo()->GetParseableFunctionInfo();
+        bool newFunc = (func == nullptr || func->byteCodeFunction != pfi);
 
-        Js::ScopeInfo* paramScopeInfo = scopeInfo->GetParamScopeInfo();
-        Scope* paramScope = nullptr;
-        if (paramScopeInfo != nullptr)
+        if (newFunc)
         {
-            paramScope = paramScopeInfo->GetScope();
-            Assert(paramScope);
-            if (!paramScopeInfo->GetCanMergeWithBodyScope())
+            func = Anew(alloc, FuncInfo, pfi->GetDisplayName(), alloc, nullptr, nullptr, nullptr, pfi);
+            newFunc = true;
+        }
+
+        // Recursively restore enclosing scope info so outermost scopes/funcs are pushed first.
+        this->RestoreScopeInfo(scopeInfo->GetParentScopeInfo(), func);
+        this->RestoreOneScope(scopeInfo, func);
+
+        if (newFunc)
+        {
+            PushFuncInfo(_u("RestoreScopeInfo"), func);
+            if (!pfi->DoStackNestedFunc())
             {
-                paramScope->SetCannotMergeWithBodyScope();
+                func->hasEscapedUseNestedFunc = true;
             }
-            // We need the funcInfo before continuing the restoration of the param scope, so wait for the funcInfo to be created.
         }
-
-        Scope* bodyScope = scopeInfo->GetScope();
-
-        Assert(bodyScope);
-        bodyScope->SetHasOwnLocalInClosure(scopeInfo->GetHasOwnLocalInClosure());
-
-        FuncInfo* func = Anew(alloc, FuncInfo, functionBody->GetDisplayName(), alloc, paramScope, bodyScope, nullptr, functionBody);
-
-        if (bodyScope->GetScopeType() == ScopeType_GlobalEvalBlock)
-        {
-            func->bodyScope = this->currentScope;
-        }
-        PushFuncInfo(_u("RestoreScopeInfo"), func);
-
-        if (!functionBody->DoStackNestedFunc())
-        {
-            func->hasEscapedUseNestedFunc = true;
-        }
-
-        Js::ScopeInfo* funcExprScopeInfo = scopeInfo->GetFuncExprScopeInfo();
-        if (funcExprScopeInfo)
-        {
-            Scope* funcExprScope = funcExprScopeInfo->GetScope();
-            Assert(funcExprScope);
-            funcExprScope->SetFunc(func);
-            func->SetFuncExprScope(funcExprScope);
-            funcExprScopeInfo->GetScopeInfo(nullptr, this, func, funcExprScope);
-        }
-
-        // Restore the param scope after the function expression scope
-        if (paramScope != nullptr)
-        {
-            paramScope->SetFunc(func);
-            paramScopeInfo->GetScopeInfo(nullptr, this, func, paramScope);
-        }
-        scopeInfo->GetScopeInfo(nullptr, this, func, bodyScope);
     }
     else
     {
         Assert(this->TopFuncInfo() == nullptr);
         // funcBody is glo
+        Assert(currentScope == nullptr);
         currentScope = Anew(alloc, Scope, alloc, ScopeType_Global);
         globalScope = currentScope;
 
-        FuncInfo *func = Anew(alloc, FuncInfo, Js::Constants::GlobalFunction,
-            alloc, nullptr, currentScope, nullptr, functionBody);
-        PushFuncInfo(_u("RestoreScopeInfo"), func);
+        if (func == nullptr || !func->byteCodeFunction->GetIsGlobalFunc())
+        {
+            func = Anew(alloc, FuncInfo, Js::Constants::GlobalFunction,
+                alloc, nullptr, nullptr/*currentScope*/, nullptr, nullptr/*functionBody*/);
+            PushFuncInfo(_u("RestoreScopeInfo"), func);
+        }
+        func->SetBodyScope(currentScope);
     }
+}
+
+void ByteCodeGenerator::RestoreOneScope(Js::ScopeInfo * scopeInfo, FuncInfo * func)
+{
+    TRACE_BYTECODE(_u("\nRestore ScopeInfo: %s #symbols: %d %s\n"),
+        func->name, scopeInfo->GetSymbolCount(), scopeInfo->IsObject() ? _u("isObject") : _u(""));
+
+    Scope * scope = scopeInfo->GetScope();
+
+    scope->SetFunc(func);
+
+    switch (scope->GetScopeType())
+    {
+        case ScopeType_Parameter:
+            if (!scopeInfo->GetCanMergeWithBodyScope())
+            {
+                scope->SetCannotMergeWithBodyScope();
+            }
+            Assert(func->GetParamScope() == nullptr);
+            func->SetParamScope(scope);
+            break;
+
+        case ScopeType_FuncExpr:
+            Assert(func->GetFuncExprScope() == nullptr);
+            func->SetFuncExprScope(scope);
+            break;
+
+        case ScopeType_FunctionBody:
+        case ScopeType_GlobalEvalBlock:
+            Assert(func->GetBodyScope() == nullptr || (func->GetBodyScope()->GetScopeType() == ScopeType_Global && scope->GetScopeType() == ScopeType_GlobalEvalBlock));
+            func->SetBodyScope(scope);
+            func->SetHasCachedScope(scopeInfo->IsCached());
+            break;
+    }
+    
+    Assert(!scopeInfo->IsCached() || scope == func->GetBodyScope());
+
+    // scopeInfo->scope was created/saved during parsing.
+    // We no longer need it by now.
+    // Clear it to avoid GC false positive (arena memory later used by GC).
+    scopeInfo->SetScope(nullptr);
+    this->PushScope(scope);
 }
 
 FuncInfo * ByteCodeGenerator::StartBindGlobalStatements(ParseNode *pnode)
 {
-    if (parentScopeInfo && parentScopeInfo->GetParent() && (!parentScopeInfo->GetParent()->GetIsGlobalFunc() || parentScopeInfo->GetParent()->IsEval()))
+    if (parentScopeInfo)
     {
         Assert(CONFIG_FLAG(DeferNested));
         trackEnvDepth = true;
-        RestoreScopeInfo(parentScopeInfo->GetParent());
+        RestoreScopeInfo(parentScopeInfo, nullptr);
         trackEnvDepth = false;
         // "currentScope" is the parentFunc scope. This ensures the deferred func declaration
         // symbol will bind to the func declaration symbol already available in parentFunc scope.
@@ -1211,7 +1228,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
         if (parsedFunctionBody->GetScopeInfo())
         {
             // Propagate flags from the (real) parent function.
-            Js::ParseableFunctionInfo *parent = parsedFunctionBody->GetScopeInfo()->GetParent();
+            Js::ParseableFunctionInfo *parent = parsedFunctionBody->GetScopeInfo()->GetParseableFunctionInfo();
             if (parent)
             {
                 if (parent->GetHasOrParentHasArguments())
@@ -1632,7 +1649,8 @@ Symbol * ByteCodeGenerator::FindSymbol(Symbol **symRef, IdentPtr pid, bool forRe
 
         bool didTransferToFncVarSym = false;
 
-        if (!PHASE_OFF(Js::OptimizeBlockScopePhase, top->byteCodeFunction) &&
+        #pragma prefast(suppress:6237, "The right hand side condition does not have any side effects.")
+        if (PHASE_ON(Js::OptimizeBlockScopePhase, top->byteCodeFunction) &&
             sym->GetIsBlockVar() &&
             !sym->GetScope()->IsBlockInLoop() &&
             sym->GetSymbolType() == STFunction)
@@ -1755,7 +1773,7 @@ Symbol * ByteCodeGenerator::AddSymbolToScope(Scope *scope, const char16 *key, in
         // on such compiles, so we essentially have to migrate the symbol to the new scope.
         // We check fscrEvalCode, not fscrEval, because the same thing can happen in indirect eval,
         // when fscrEval is not set.
-        Assert(scope->GetScopeType() == ScopeType_Global);
+        Assert(scope->GetScopeType() == ScopeType_Global || scope->GetScopeType() == ScopeType_GlobalEvalBlock);
         scope->AddNewSymbol(sym);
     }
 
@@ -1995,7 +2013,7 @@ void ByteCodeGenerator::Generate(__in ParseNode *pnode, uint32 grfscr, __in Byte
 
 void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
 {
-    if (!this->parentScopeInfo || (this->parentScopeInfo->GetParent() && this->parentScopeInfo->GetParent()->GetIsGlobalFunc()))
+    if (!this->parentScopeInfo)
     {
         return;
     }
@@ -2023,7 +2041,7 @@ void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
     else
     {
         // We have to wait until it is parsed before we populate the stack nested func parent.
-        FuncInfo * parentFunc = top->GetBodyScope()->GetEnclosingFunc();
+        FuncInfo * parentFunc = top->GetParamScope() ? top->GetParamScope()->GetEnclosingFunc() : top->GetBodyScope()->GetEnclosingFunc();
         if (!parentFunc->IsGlobalFunction())
         {
             Assert(parentFunc->byteCodeFunction != rootFuncBody);
@@ -2040,6 +2058,11 @@ void ByteCodeGenerator::CheckDeferParseHasMaybeEscapedNestedFunc()
         FuncInfo * funcInfo = i.Data();
         Assert(funcInfo->IsRestored());
         Js::ParseableFunctionInfo * parseableFunctionInfo = funcInfo->byteCodeFunction;
+        if (parseableFunctionInfo == nullptr)
+        {
+            Assert(funcInfo->GetBodyScope() && funcInfo->GetBodyScope()->GetScopeType() == ScopeType_Global);
+            return;
+        }
         bool didStackNestedFunc = parseableFunctionInfo->DoStackNestedFunc();
         if (!didStackNestedFunc)
         {
@@ -3247,6 +3270,7 @@ void AddFunctionsToScope(ParseNodePtr scope, ByteCodeGenerator * byteCodeGenerat
                 sym->GetScope() != sym->GetScope()->GetFunc()->GetParamScope())
             {
                 sym->SetIsBlockVar(true);
+                sym->SetHasRealBlockVarRef(true);
             }
         }
     });
@@ -3629,13 +3653,19 @@ void PostVisitBlock(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
         return;
     }
 
+    Scope *scope = pnode->sxBlock.scope;
+
     if (pnode->sxBlock.GetCallsEval() || pnode->sxBlock.GetChildCallsEval() || (byteCodeGenerator->GetFlags() & (fscrEval | fscrImplicitThis | fscrImplicitParents)))
     {
-        Scope *scope = pnode->sxBlock.scope;
         bool scopeIsEmpty = scope->IsEmpty();
         scope->SetIsObject();
         scope->SetCapturesAll(true);
         scope->SetMustInstantiate(!scopeIsEmpty);
+    }
+
+    if (scope->GetHasOwnLocalInClosure())
+    {
+        byteCodeGenerator->ProcessScopeWithCapturedSym(scope);
     }
 
     byteCodeGenerator->PopScope();
@@ -3686,6 +3716,11 @@ void PreVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 
 void PostVisitCatch(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 {
+    Scope *scope = pnode->sxCatch.scope;
+    if (scope->GetHasOwnLocalInClosure())
+    {
+        byteCodeGenerator->ProcessScopeWithCapturedSym(scope);
+    }
     byteCodeGenerator->EndBindCatch();
 }
 

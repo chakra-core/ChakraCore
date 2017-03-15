@@ -22,6 +22,7 @@ class Scope
 {
 private:
     Scope *enclosingScope;
+    Js::ScopeInfo *scopeInfo;
     Js::RegSlot location;
     FuncInfo *func;
     Symbol *m_symList;
@@ -48,6 +49,7 @@ public:
         alloc(alloc),
         func(nullptr),
         enclosingScope(nullptr),
+        scopeInfo(nullptr),
         isDynamic(false),
         isObject(false),
         canMerge(true),
@@ -175,6 +177,16 @@ public:
     Scope *GetEnclosingScope() const
     {
         return enclosingScope;
+    }
+
+    void SetScopeInfo(Js::ScopeInfo * scopeInfo)
+    {
+        this->scopeInfo = scopeInfo;
+    }
+
+    Js::ScopeInfo * GetScopeInfo() const
+    {
+        return this->scopeInfo;
     }
 
     ScopeType GetScopeType() const
