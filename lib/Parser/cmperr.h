@@ -17,28 +17,8 @@ enum
 class ParseExceptionObject
 {
 public:
-    ParseExceptionObject(HRESULT hr) : m_hr(hr) {}
+    ParseExceptionObject(HRESULT hr);
     HRESULT GetError() { return m_hr; }
 private:
     HRESULT m_hr;
 };
-
-typedef void (*ErrorCallback)(void *data, HRESULT hr);
-
-class ErrHandler
-{
-public:
-    HRESULT m_hr;
-
-    void *m_data;
-    ErrorCallback m_callback;
-
-    __declspec(noreturn) void Throw(HRESULT hr);
-
-#if DEBUG
-    BOOL fInited;
-    ErrHandler()
-    { fInited = FALSE; }
-#endif //DEBUG
-};
-

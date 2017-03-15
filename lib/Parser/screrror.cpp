@@ -245,9 +245,6 @@ void CompileScriptException::Free()
 
 HRESULT  CompileScriptException::ProcessError(IScanner * pScan, HRESULT hr, ParseNode * pnodeBase)
 {
-    if (nullptr == this)
-        return hr;
-
     // fill in the ScriptException structure
     Clear();
     ei.scode = GetScode(MapHr(hr));

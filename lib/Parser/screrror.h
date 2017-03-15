@@ -7,7 +7,6 @@
 /***************************************************************************
 Exception blocks
 ***************************************************************************/
-class ErrHandler;
 struct ParseNode;
 class COleScript;
 interface IScanner;

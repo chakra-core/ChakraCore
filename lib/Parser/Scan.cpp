@@ -124,16 +124,14 @@ IdentPtr Token::CreateIdentifier(HashTbl * hashTbl)
 }
 
 template <typename EncodingPolicy>
-Scanner<EncodingPolicy>::Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, ErrHandler *perr, Js::ScriptContext* scriptContext)
+Scanner<EncodingPolicy>::Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, Js::ScriptContext* scriptContext)
 {
     AssertMem(phtbl);
     AssertMem(ptoken);
-    AssertMem(perr);
     m_parser = parser;
     m_phtbl = phtbl;
     m_ptoken = ptoken;
     m_cMinLineMultiUnits = 0;
-    m_perr = perr;
     m_fHadEol = FALSE;
 
     m_doubleQuoteOnLastTkStrCon = FALSE;

@@ -324,7 +324,7 @@ public:
 class HashTbl
 {
 public:
-    static HashTbl * Create(uint cidHash, ErrHandler * perr);
+    static HashTbl * Create(uint cidHash);
 
     void Release(void)
     {
@@ -394,14 +394,12 @@ private:
     Ident ** m_prgpidName;        // hash table for names
 
     uint32 m_luMask;                // hash mask
-    uint32 m_luCount;              // count of the number of entires in the hash table
-    ErrHandler * m_perr;        // error handler to use
+    uint32 m_luCount;              // count of the number of entires in the hash table    
     IdentPtr m_rpid[tkLimKwd];
 
-    HashTbl(ErrHandler * perr)
+    HashTbl()
     {
         m_prgpidName = nullptr;
-        m_perr = perr;
         memset(&m_rpid, 0, sizeof(m_rpid));
     }
     ~HashTbl(void) {}
@@ -481,6 +479,7 @@ private:
     static const KWD * KwdOfTok(tokens tk)
     { return (unsigned int)tk < tkLimKwd ? g_mptkkwd + tk : nullptr; }
 
+    static __declspec(noreturn) void OutOfMemory();
 #if PROFILE_DICTIONARY
     DictionaryStats *stats;
 #endif

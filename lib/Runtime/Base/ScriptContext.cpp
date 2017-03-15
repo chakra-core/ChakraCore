@@ -1918,6 +1918,7 @@ namespace Js
     {
         Assert(!this->threadContext->IsScriptActive());
         Assert(pse != nullptr);
+        HRESULT hr = NOERROR;
         try
         {
             AUTO_NESTED_HANDLED_EXCEPTION_TYPE((ExceptionType)(ExceptionType_OutOfMemory | ExceptionType_StackOverflow));
@@ -1958,14 +1959,14 @@ namespace Js
         }
         catch (Js::OutOfMemoryException)
         {
-            pse->ProcessError(nullptr, E_OUTOFMEMORY, nullptr);
-            return nullptr;
+            hr = E_OUTOFMEMORY;
         }
         catch (Js::StackOverflowException)
         {
-            pse->ProcessError(nullptr, VBSERR_OutOfStack, nullptr);
-            return nullptr;
+            hr = VBSERR_OutOfStack;
         }
+        pse->ProcessError(nullptr, hr, nullptr);
+        return nullptr;
     }
 
     JavascriptFunction* ScriptContext::GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName)

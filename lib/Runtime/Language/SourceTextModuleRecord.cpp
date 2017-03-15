@@ -121,23 +121,25 @@ namespace Js
                     sourceLength, srcInfo, &se, &pResultSourceInfo, _u("module"),
                     loadScriptFlag, &sourceIndex, nullptr);
                 this->pSourceInfo = pResultSourceInfo;
-
-                if (parseTree == nullptr)
-                {
-                    hr = E_FAIL;
-                }
             }
             catch (Js::OutOfMemoryException)
             {
                 hr = E_OUTOFMEMORY;
-                se.ProcessError(nullptr, E_OUTOFMEMORY, nullptr);
             }
             catch (Js::StackOverflowException)
             {
                 hr = VBSERR_OutOfStack;
-                se.ProcessError(nullptr, VBSERR_OutOfStack, nullptr);
             }
-            if (SUCCEEDED(hr))
+
+            if (FAILED(hr))
+            {
+                se.ProcessError(nullptr, hr, nullptr);
+            }
+            else if (parseTree == nullptr)
+            {
+                hr = E_FAIL;
+            }
+            else
             {
                 hr = PostParseProcess();
                 if (hr == S_OK && this->errorObject != nullptr && this->hadNotifyHostReady)

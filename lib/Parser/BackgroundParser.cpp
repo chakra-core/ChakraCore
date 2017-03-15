@@ -8,6 +8,7 @@
     "Cannot use this member of BackgroundParser from thread other than the creating context's current thread")
 
 #if ENABLE_NATIVE_CODEGEN
+#if ENABLE_BACKGROUND_PARSING
 BackgroundParser::BackgroundParser(Js::ScriptContext *scriptContext)
     :   JsUtil::WaitableJobManager(scriptContext->GetThreadContext()->GetJobProcessor()),
         scriptContext(scriptContext),
@@ -291,4 +292,5 @@ void BackgroundParseItem::AddRegExpNode(ParseNode *const pnode, ArenaAllocator *
 
     regExpNodes->Append(pnode);
 }
+#endif
 #endif

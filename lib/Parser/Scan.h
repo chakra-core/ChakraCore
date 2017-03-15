@@ -364,9 +364,9 @@ class Scanner : public IScanner, public EncodingPolicy
     typedef typename EncodingPolicy::EncodedCharPtr EncodedCharPtr;
 
 public:
-    static Scanner * Create(Parser* parser, HashTbl *phtbl, Token *ptoken, ErrHandler *perr, Js::ScriptContext *scriptContext)
+    static Scanner * Create(Parser* parser, HashTbl *phtbl, Token *ptoken, Js::ScriptContext *scriptContext)
     {
-        return HeapNewNoThrow(Scanner, parser, phtbl, ptoken, perr, scriptContext);
+        return HeapNewNoThrow(Scanner, parser, phtbl, ptoken, scriptContext);
     }
     void Release(void)
     {
@@ -677,7 +677,6 @@ private:
     EncodedCharPtr m_pchPrevLine;      // beginning of previous line
     size_t m_cMinTokMultiUnits;        // number of multi-unit characters previous to m_pchMinTok
     size_t m_cMinLineMultiUnits;       // number of multi-unit characters previous to m_pchMinLine
-    ErrHandler *m_perr;                // error handler to use
     uint16 m_fStringTemplateDepth;     // we should treat } as string template middle starting character (depth instead of flag)
     BOOL m_fHadEol;
     BOOL m_fIsModuleCode : 1;
@@ -711,7 +710,7 @@ private:
     tokens m_tkPrevious;
     size_t m_iecpLimTokPrevious;
 
-    Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, ErrHandler *perr, Js::ScriptContext *scriptContext);
+    Scanner(Parser* parser, HashTbl *phtbl, Token *ptoken, Js::ScriptContext *scriptContext);
     ~Scanner(void);
 
     template <bool forcePid>
@@ -729,11 +728,9 @@ private:
 
     __declspec(noreturn) void Error(HRESULT hr)
     {
-        Assert(FAILED(hr));
         m_pchMinTok = m_currentCharacter;
         m_cMinTokMultiUnits = this->m_cMultiUnits;
-        AssertMem(m_perr);
-        m_perr->Throw(hr);
+        throw ParseExceptionObject(hr);
     }
 
     const EncodedCharPtr PchBase(void)
