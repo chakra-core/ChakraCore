@@ -2834,8 +2834,27 @@ int CorUnix::CThreadMachExceptionHandlers::GetIndexOfHandler(exception_mask_t bm
 
 #endif // HAVE_MACH_EXCEPTIONS
 
+#ifndef __APPLE__
+#define THREAD_LOCAL thread_local
+#else
+#define THREAD_LOCAL _Thread_local
+#endif
+
+#ifndef __IOS__
+static THREAD_LOCAL ULONG_PTR s_cachedHighLimit = 0;
+static THREAD_LOCAL ULONG_PTR s_cachedLowLimit = 0;
+#endif
+
 void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
 {
+#ifndef __IOS__
+    if (s_cachedLowLimit)
+    {
+        *lowLimit = s_cachedLowLimit;
+        *highLimit = s_cachedHighLimit;
+        return;
+    }
+#endif
     pthread_t currentThreadHandle = pthread_self();
 
 #ifdef __APPLE__
@@ -2866,14 +2885,12 @@ void GetCurrentThreadStackLimits(ULONG_PTR* lowLimit, ULONG_PTR* highLimit)
     *lowLimit = (ULONG_PTR) stackend;
     *highLimit = (ULONG_PTR) stackbase;
 #endif
-}
 
-#ifndef __APPLE__
-#define THREAD_LOCAL thread_local
-#else
-#define THREAD_LOCAL _Thread_local
+#ifndef __IOS__
+    s_cachedLowLimit = *lowLimit;
+    s_cachedHighLimit = *highLimit;
 #endif
-static THREAD_LOCAL ULONG_PTR s_cachedThreadStackHighLimit = 0;
+}
 
 bool IsAddressOnStack(ULONG_PTR address)
 {
@@ -2882,17 +2899,12 @@ bool IsAddressOnStack(ULONG_PTR address)
     // bounds to speed up checking if a given address is on the stack
     // The semantics of IsAddressOnStack is that we care if a given address is
     // in the range of the current stack pointer
-    if (s_cachedThreadStackHighLimit == 0)
-    {
-        ULONG_PTR lowLimit, highLimit;
-        GetCurrentThreadStackLimits(&lowLimit, &highLimit);
-
-        s_cachedThreadStackHighLimit = highLimit;
-    }
+    ULONG_PTR lowLimit, highLimit;
+    GetCurrentThreadStackLimits(&lowLimit, &highLimit);
 
     ULONG_PTR currentStackPtr = GetCurrentSP();
 
-    if (currentStackPtr <= address && address < s_cachedThreadStackHighLimit)
+    if (currentStackPtr <= address && address < highLimit)
     {
         return true;
     }
