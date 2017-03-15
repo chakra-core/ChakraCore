@@ -598,8 +598,8 @@ namespace Js
         static int __cdecl CompareElements(void* context, const void* elem1, const void* elem2);
         void SortElements(Element* elements, uint32 left, uint32 right);
 
-        template <typename T, typename Fn>
-        static void ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArr, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, T destIndex, Fn fn);
+        template <typename Fn>
+        static void ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArr, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, uint32 destIndex, Fn fn);
 
         // NativeArrays may change it's content type, but not others
         template <typename T> static bool MayChangeType() { return false; }
@@ -785,32 +785,25 @@ namespace Js
             BOOL DeleteItem(RecyclableObject* obj, PropertyOperationFlags flags = PropertyOperation_None) const;
         };
 
-        BOOL DirectGetItemAt(const BigIndex& index, Var* outVal) { return index.GetItem(this, outVal); }
-        void DirectSetItemAt(const BigIndex& index, Var newValue) { index.SetItem(this, newValue); }
+        void GenericDirectSetItemAt(const BigIndex& index, Var newValue) { index.SetItem(this, newValue); }
+        void GenericDirectSetItemAt(const uint32 index, Var newValue) { this->DirectSetItemAt(index, newValue); }
         void DirectSetItemIfNotExist(const BigIndex& index, Var newValue) { index.SetItemIfNotExist(this, newValue); }
         void DirectAppendItem(Var newValue) { BigIndex(this->GetLength()).SetItem(this, newValue); }
         void TruncateToProperties(const BigIndex& index, uint32 start);
 
-        template<typename T>
-        static void InternalCopyArrayElements(JavascriptArray* dstArray, const T& dstIndex, JavascriptArray* srcArray, uint32 start, uint32 end);
-        template<typename T>
-        static void InternalCopyNativeFloatArrayElements(JavascriptArray* dstArray, const T& dstIndex, JavascriptNativeFloatArray* srcArray, uint32 start, uint32 end);
-        template<typename T>
-        static void InternalCopyNativeIntArrayElements(JavascriptArray* dstArray, const T& dstIndex, JavascriptNativeIntArray* srcArray, uint32 start, uint32 end);
-        template<typename T>
-        static void InternalFillFromPrototype(JavascriptArray *dstArray, const T& dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count);
+        static void InternalCopyArrayElements(JavascriptArray* dstArray, uint32 dstIndex, JavascriptArray* srcArray, uint32 start, uint32 end);
+        static void InternalCopyNativeFloatArrayElements(JavascriptArray* dstArray, const uint32 dstIndex, JavascriptNativeFloatArray* srcArray, uint32 start, uint32 end);
+        static void InternalCopyNativeIntArrayElements(JavascriptArray* dstArray, uint32 dstIndex, JavascriptNativeIntArray* srcArray, uint32 start, uint32 end);
+        static void InternalFillFromPrototype(JavascriptArray *dstArray, const uint32 dstIndex, JavascriptArray *srcArray, uint32 start, uint32 end, uint32 count);
 
         static void CopyArrayElements(JavascriptArray* dstArray, uint32 dstIndex, JavascriptArray* srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
-        static void CopyArrayElements(JavascriptArray* dstArray, const BigIndex& dstIndex, JavascriptArray* srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         template <typename T>
         static void CopyAnyArrayElementsToVar(JavascriptArray* dstArray, T dstIndex, JavascriptArray* srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         static bool CopyNativeIntArrayElements(JavascriptNativeIntArray* dstArray, uint32 dstIndex, JavascriptNativeIntArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         static bool CopyNativeIntArrayElementsToFloat(JavascriptNativeFloatArray* dstArray, uint32 dstIndex, JavascriptNativeIntArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         static void CopyNativeIntArrayElementsToVar(JavascriptArray* dstArray, uint32 dstIndex, JavascriptNativeIntArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
-        static void CopyNativeIntArrayElementsToVar(JavascriptArray* dstArray, const BigIndex& dstIndex, JavascriptNativeIntArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         static bool CopyNativeFloatArrayElements(JavascriptNativeFloatArray* dstArray, uint32 dstIndex, JavascriptNativeFloatArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
         static void CopyNativeFloatArrayElementsToVar(JavascriptArray* dstArray, uint32 dstIndex, JavascriptNativeFloatArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
-        static void CopyNativeFloatArrayElementsToVar(JavascriptArray* dstArray, const BigIndex& dstIndex, JavascriptNativeFloatArray *srcArray, uint32 start = 0, uint32 end = MaxArrayLength);
 
         static bool BoxConcatItem(Var aItem, uint idxArg, ScriptContext *scriptContext);
 
