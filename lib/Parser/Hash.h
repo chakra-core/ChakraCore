@@ -328,7 +328,7 @@ public:
 
     void Release(void)
     {
-        delete this;
+        delete this;  // invokes overrided operator delete
     }
 
 
@@ -388,8 +388,8 @@ public:
     NoReleaseAllocator* GetAllocator() {return &m_noReleaseAllocator;}
 
     bool Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch);
-private:
 
+private:
     NoReleaseAllocator m_noReleaseAllocator;            // to allocate identifiers
     Ident ** m_prgpidName;        // hash table for names
 
@@ -403,6 +403,11 @@ private:
         memset(&m_rpid, 0, sizeof(m_rpid));
     }
     ~HashTbl(void) {}
+
+    void operator delete(void* p, size_t size)
+    {
+        HeapFree(p, size);
+    }
 
     // Called to grow the number of buckets in the table to reduce the table density.
     void Grow();

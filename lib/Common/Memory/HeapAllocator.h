@@ -12,11 +12,13 @@
 #define HeapNewStructPlusZ(size, T, ...) AllocatorNewStructPlusZ(HeapAllocator, &HeapAllocator::Instance, size, T)
 #define HeapNewArray(T, count, ...) AllocatorNewArray(HeapAllocator, &HeapAllocator::Instance, T, count)
 #define HeapNewArrayZ(T, count, ...) AllocatorNewArrayZ(HeapAllocator, &HeapAllocator::Instance, T, count)
-#define HeapDelete(obj) AllocatorDelete(HeapAllocator, &HeapAllocator::Instance, obj)
-#define HeapDeletePlus(size, obj) AllocatorDeletePlus(HeapAllocator, &HeapAllocator::Instance, size, obj)
-#define HeapDeletePlusPrefix(size, obj) AllocatorDeletePlusPrefix(HeapAllocator, &HeapAllocator::Instance, size, obj)
+#define HeapDelete(obj, ...) \
+        AllocatorDelete(HeapAllocator, &HeapAllocator::Instance, obj, ##__VA_ARGS__)
+#define HeapDeletePlus(size, obj, ...) \
+        AllocatorDeletePlus(HeapAllocator, &HeapAllocator::Instance, size, obj, ##__VA_ARGS__)
+#define HeapDeletePlusPrefix(size, obj, ...) \
+        AllocatorDeletePlusPrefix(HeapAllocator, &HeapAllocator::Instance, size, obj, ##__VA_ARGS__)
 #define HeapDeleteArray(count, obj) AllocatorDeleteArray(HeapAllocator, &HeapAllocator::Instance, count, obj)
-
 
 #define HeapNewNoThrow(T, ...) AllocatorNewNoThrow(HeapAllocator, &HeapAllocator::Instance, T, __VA_ARGS__)
 #define HeapNewNoThrowZ(T, ...) AllocatorNewNoThrowZ(HeapAllocator, &HeapAllocator::Instance, T, __VA_ARGS__)
@@ -349,7 +351,7 @@ typedef NoThrowHeapAllocator NoThrowNoMemProtectHeapAllocator;
 //----------------------------------------
 // Default operator new/delete overrides
 //----------------------------------------
-#if !defined(USED_IN_STATIC_LIB)
+#if defined(NTBUILD) && !defined(USED_IN_STATIC_LIB)
 _Ret_maybenull_ void * __cdecl operator new(DECLSPEC_GUARD_OVERFLOW size_t byteSize);
 _Ret_maybenull_ void * __cdecl operator new[](DECLSPEC_GUARD_OVERFLOW size_t byteSize);
 #endif
@@ -444,4 +446,10 @@ inline void __cdecl
 operator delete(void * obj, NoCheckHeapAllocator * alloc, char * (NoCheckHeapAllocator::*AllocFunc)(size_t), size_t plusSize)
 {
     alloc->Free(obj, (size_t)-1);
+}
+
+// Free routine where we don't care about following C++ semantics (e.g. calling the destructor)
+inline void HeapFree(void* obj, size_t size)
+{
+    AllocatorFree(&HeapAllocator::Instance, &HeapAllocator::Free, obj, size);
 }

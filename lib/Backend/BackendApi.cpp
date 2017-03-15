@@ -197,5 +197,8 @@ SetProfilerFromNativeCodeGen(NativeCodeGenerator * toNativeCodeGen, NativeCodeGe
 
 void DeleteNativeCodeData(NativeCodeData * data)
 {
-    delete data;
+    if (data)
+    {
+        HeapDelete(data);
+    }
 }

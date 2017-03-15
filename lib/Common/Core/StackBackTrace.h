@@ -141,8 +141,8 @@ template <class T, LONG count, bool useStatic>
 struct _TraceRingBuffer
 {
     T* buf;
-    _TraceRingBuffer() { buf = new T[count]; }
-    ~_TraceRingBuffer() { delete[] buf; }
+    _TraceRingBuffer() { buf = HeapNewArray(T, count); }
+    ~_TraceRingBuffer() { HeapDeleteArray(count, buf); }
 };
 template <class T, LONG count>
 struct _TraceRingBuffer<T, count, true>
