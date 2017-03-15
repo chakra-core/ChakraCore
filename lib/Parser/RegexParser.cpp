@@ -3088,6 +3088,5 @@ namespace UnifiedRegex
 
     // Instantiate the Parser
     INSTANTIATE_REGEX_PARSER(NullTerminatedUnicodeEncodingPolicy);
-    INSTANTIATE_REGEX_PARSER(NullTerminatedUTF8EncodingPolicy);
     INSTANTIATE_REGEX_PARSER(NotNullTerminatedUTF8EncodingPolicy);
 }
