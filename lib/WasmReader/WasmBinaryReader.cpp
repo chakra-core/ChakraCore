@@ -263,7 +263,12 @@ WasmBinaryReader::ReadSectionHeader()
 void
 WasmBinaryReader::PrintOps()
 {
-    WasmOp * ops = HeapNewArray(WasmOp, m_ops->Count());
+    int count = m_ops->Count();
+    if (count == 0)
+    {
+        return;
+    }
+    WasmOp * ops = HeapNewArray(WasmOp, count);
 
     auto iter = m_ops->GetIterator();
     int i = 0;
@@ -273,7 +278,7 @@ WasmBinaryReader::PrintOps()
         iter.MoveNext();
         ++i;
     }
-    for (i = 0; i < m_ops->Count(); ++i)
+    for (i = 0; i < count; ++i)
     {
         int j = i;
         while (j > 0 && ops[j-1] > ops[j])
@@ -285,7 +290,7 @@ WasmBinaryReader::PrintOps()
             --j;
         }
     }
-    for (i = 0; i < m_ops->Count(); ++i)
+    for (i = 0; i < count; ++i)
     {
         switch (ops[i])
         {
@@ -296,7 +301,7 @@ WasmBinaryReader::PrintOps()
 #include "WasmBinaryOpCodes.h"
         }
     }
-    HeapDeleteArray(m_ops->Count(), ops);
+    HeapDeleteArray(count, ops);
 }
 
 #endif
