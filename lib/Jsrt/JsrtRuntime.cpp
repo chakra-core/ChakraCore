@@ -53,16 +53,20 @@ void JsrtRuntime::Uninitialize()
     while (currentThreadContext)
     {
         Assert(!currentThreadContext->IsScriptActive());
-#ifdef CHAKRA_STATIC_LIBRARY
-        if (currentThreadContext->IsInScript()) break;
-#endif
         JsrtRuntime* currentRuntime = static_cast<JsrtRuntime*>(currentThreadContext->GetJSRTRuntime());
         tmpThreadContext = currentThreadContext;
         currentThreadContext = currentThreadContext->Next();
 
+#ifdef CHAKRA_STATIC_LIBRARY
+        // xplat-todo: Cleanup staticlib shutdown. This only shuts down threads.
+        // Other closing contexts / finalizers having trouble with current
+        // runtime/context.
+        RentalThreadContextManager::DestroyThreadContext(tmpThreadContext);
+#else
         currentRuntime->CloseContexts();
         RentalThreadContextManager::DestroyThreadContext(tmpThreadContext);
         HeapDelete(currentRuntime);
+#endif
     }
 }
 
