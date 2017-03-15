@@ -5,10 +5,11 @@
 
 #include "RuntimeByteCodePch.h"
 
-#ifdef ASMJS_PLAT
+#if defined(ASMJS_PLAT) || defined(ENABLE_WASM)
 
 namespace Js
 {
+#ifndef WASM_BYTECODE_WRITER
     template <LayoutSize layoutSize>
     inline uint ByteCodeWriter::Data::EncodeT(OpCodeAsmJs op, ByteCodeWriter* writer, bool isPatching)
     {
@@ -35,6 +36,7 @@ namespace Js
         Write(rawData, byteSize);
         return offset;
     }
+#endif
 
     void AsmJsByteCodeWriter::InitData(ArenaAllocator* alloc, int32 initCodeBufferSize)
     {
