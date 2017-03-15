@@ -217,7 +217,7 @@ private:
 class ObjTypeSpecFldInfoArray
 {
 private:
-    Field(ObjTypeSpecFldInfo*)* infoArray;
+    Field(Field(ObjTypeSpecFldInfo*)*) infoArray;
 #if DBG
     Field(uint) infoCount;
 #endif
