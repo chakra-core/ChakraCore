@@ -9,9 +9,13 @@
 #include "Language/WebAssemblySource.h"
 
 #if DBG_DUMP
-#define DebugPrintOp(op) if (PHASE_TRACE(Js::WasmReaderPhase, GetFunctionBody())) { PrintOpName(op); }
+uint opId = 0;
+uint lastOpId = 1;
+#define DebugPrintOp(op) if (PHASE_TRACE(Js::WasmReaderPhase, GetFunctionBody())) { PrintOpBegin(op); }
+#define DebugPrintOpEnd() if (PHASE_TRACE(Js::WasmReaderPhase, GetFunctionBody())) { PrintOpEnd(); }
 #else
 #define DebugPrintOp(op)
+#define DebugPrintOpEnd()
 #endif
 
 namespace Wasm
@@ -21,15 +25,67 @@ namespace Wasm
 
 #if DBG_DUMP
 void
-WasmBytecodeGenerator::PrintOpName(WasmOp op) const
+PrintTypeStack(const JsUtil::Stack<EmitInfo>& stack)
 {
+    Output::Print(_u("["));
+    int i = 0;
+    while (stack.Peek(i).type != WasmTypes::Limit)
+    {
+        ++i;
+    }
+    --i;
+    bool isFirst = true;
+    while (i >= 0)
+    {
+        EmitInfo info = stack.Peek(i--);
+        if (!isFirst)
+        {
+            Output::Print(_u(", "));
+        }
+        isFirst = false;
+        switch (info.type)
+        {
+        case WasmTypes::I32: Output::Print(_u("i32")); break;
+        case WasmTypes::I64: Output::Print(_u("i64")); break;
+        case WasmTypes::F32: Output::Print(_u("f32")); break;
+        case WasmTypes::F64: Output::Print(_u("f64")); break;
+        default: Output::Print(_u("any")); break;
+        }
+    }
+    Output::Print(_u("]"));
+}
+
+void
+WasmBytecodeGenerator::PrintOpBegin(WasmOp op) const
+{
+    if (lastOpId == opId) Output::Print(_u("\r\n"));
+    lastOpId = ++opId;
+    const int depth = m_blockInfos.Count() - 1;
+    if (depth > 0)
+    {
+        Output::SkipToColumn(depth);
+    }
     switch (op)
     {
 #define WASM_OPCODE(opname, opcode, sig, nyi) \
 case wb##opname: \
-    Output::Print(_u("%s\r\n"), _u(#opname)); \
+    Output::Print(_u(#opname)); \
     break;
 #include "WasmBinaryOpCodes.h"
+    }
+    Output::SkipToColumn(20);
+    PrintTypeStack(m_evalStack);
+}
+
+void
+WasmBytecodeGenerator::PrintOpEnd() const
+{
+    if (lastOpId == opId)
+    {
+        ++opId;
+        Output::Print(_u(" -> "));
+        PrintTypeStack(m_evalStack);
+        Output::Print(_u("\r\n"));
     }
 }
 #endif
@@ -137,7 +193,6 @@ WasmModuleGenerator::GetReader() const
 void
 WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 {
-    TRACE_WASM_DECODER(_u("GenerateFunction Header %u \n"), index);
     WasmFunctionInfo* wasmInfo = m_module->GetWasmFunctionInfo(index);
     if (!wasmInfo)
     {
@@ -336,6 +391,7 @@ WasmBytecodeGenerator::GenerateFunction()
         {
             EmitReturnExpr(&lastInfo);
         }
+        DebugPrintOpEnd();
         ExitEvalStackScope();
         m_writer.MarkAsmJsLabel(exitLabel);
         m_writer.EmptyAsm(Js::OpCodeAsmJs::Ret);
@@ -559,6 +615,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     {
         PushEvalStack(info);
     }
+    DebugPrintOpEnd();
 }
 
 

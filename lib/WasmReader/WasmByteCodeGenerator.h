@@ -136,7 +136,8 @@ namespace Wasm
         void EmitReturnExpr(EmitInfo* explicitRetInfo = nullptr);
         EmitInfo EmitSelect();
 #if DBG_DUMP
-        void PrintOpName(WasmOp op) const;
+        void PrintOpBegin(WasmOp op) const;
+        void PrintOpEnd() const;
 #endif
         void EmitBr();
         EmitInfo EmitBrIf();
