@@ -410,35 +410,6 @@ bool HashTbl::Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch)
 
 #include "HashFunc.cpp"
 
-
-
-
-#pragma warning(push)
-#pragma warning(disable:4740)  // flow in or out of inline asm code suppresses global optimization
-// Decide if token is keyword by string matching -
-// This method is used during colorizing when scanner isn't interested in storing the actual id and does not care about conversion of escape sequences
-tokens HashTbl::TkFromNameLenColor(_In_reads_(cch) LPCOLESTR prgch, uint32 cch)
-{
-    uint32 luHash = CaseSensitiveComputeHash(prgch, prgch + cch);
-
-    // look for a keyword
-#include "kwds_sw.h"
-
-    #define KEYWORD(tk,f,prec2,nop2,prec1,nop1,name) \
-        LEqual_##name: \
-            if (cch == g_ssym_##name.cch && \
-                    0 == memcmp(g_ssym_##name.sz, prgch, cch * sizeof(OLECHAR))) \
-            { \
-                return tk; \
-            } \
-            goto LDefault;
-#include "keywords.h"
-
-LDefault:
-    return tkID;
-}
-#pragma warning(pop)
-
 #pragma warning(push)
 #pragma warning(disable:4740)  // flow in or out of inline asm code suppresses global optimization
 

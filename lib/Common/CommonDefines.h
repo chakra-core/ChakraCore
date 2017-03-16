@@ -212,8 +212,8 @@
 #endif
 #endif
 
-// Don't enable background parser in release build.
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+// Only enable background parser in debug build.
+#ifdef DBG
 #define ENABLE_BACKGROUND_PARSING 1
 #endif
 

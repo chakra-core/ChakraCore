@@ -304,7 +304,6 @@ public:
     bool IsFromExternalSource() { return (m_decodeOptions & utf8::doAllowThreeByteSurrogates) == 0; }
 };
 
-typedef UTF8EncodingPolicyBase<true> NullTerminatedUTF8EncodingPolicy;
 typedef UTF8EncodingPolicyBase<false> NotNullTerminatedUTF8EncodingPolicy;
 
 interface IScanner
@@ -381,11 +380,8 @@ public:
 
     enum ScanState
     {
-        ScanStateNormal = 0,
-        ScanStateMultiLineComment = 1,
-        ScanStateMultiLineSingleQuoteString = 2,
-        ScanStateMultiLineDoubleQuoteString = 3,
-        ScanStateStringTemplateMiddleOrEnd = 4,
+        ScanStateNormal = 0,       
+        ScanStateStringTemplateMiddleOrEnd = 1,
     };
 
     ScanState GetScanState() { return m_scanState; }
@@ -682,7 +678,6 @@ private:
     BOOL m_fIsModuleCode : 1;
     BOOL m_doubleQuoteOnLastTkStrCon :1;
     bool m_OctOrLeadingZeroOnLastTKNumber :1;
-    BOOL m_fSyntaxColor : 1;            // whether we're just syntax coloring
     bool m_EscapeOnLastTkStrCon:1;
     BOOL m_fNextStringTemplateIsTagged:1;   // the next string template scanned has a tag (must create raw strings)
     BYTE m_DeferredParseFlags:2;            // suppressStrPid and suppressIdPid
@@ -821,5 +816,3 @@ private:
     }
 
 };
-
-typedef Scanner<NullTerminatedUTF8EncodingPolicy> UTF8Scanner;

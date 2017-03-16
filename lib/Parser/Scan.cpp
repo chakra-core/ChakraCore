@@ -35,60 +35,6 @@ int CountNewlines(LPCOLESTR psz, int cch)
     return cln;
 }
 
-template< typename CharT >
-struct AorW
-{
-};
-
-// Specialization for UTF8Char
-template<>
-struct AorW< UTF8Char >
-{
-    // Expressing the args as "arrays of size N" ensures that the both args
-    // are the same length. If not, we get a compile time error.
-    template< size_t N >
-    static const UTF8Char* Choose( const char (&a)[N], const char16 (&w)[N] )
-    {
-        // The reinterpret_cast is necessary to go from signed to unsigned char
-        return reinterpret_cast< const UTF8Char* >(a);
-    }
-
-    template< size_t N >
-    static const bool Test(const char (&a)[N], const char16 (&w)[N], LPCUTF8 value)
-    {
-        return 0 == memcmp(a, value, (N - 1) * sizeof(utf8char_t));
-    }
-
-    template< size_t N >
-    static const bool Test(const char (&a)[N], const char16 (&w)[N], LPCUTF8 start, LPCUTF8 end)
-    {
-        return (end - start == N - 1) && (0 == memcmp(a, start, (N - 1) * sizeof(utf8char_t)));
-    }
-};
-
-// Specialization for OLECHAR
-template<>
-struct AorW< OLECHAR >
-{
-    template< size_t N >
-    static const char16* Choose( const char (&a)[N], const char16 (&w)[N] )
-    {
-        return w;
-    }
-
-    template < size_t N >
-    static bool Test(const char (&a)[N], const char16 (&w)[N], const char16 *value)
-    {
-        return 0 == memcmp(w, value, (N - 1) * sizeof(char16));
-    }
-
-    template < size_t N >
-    static bool Test(const char (&a)[N], const char16 (&w)[N], const char16 *start, const char16 *end)
-    {
-        return (end - start == N - 1) && (0 == memcmp(w, start, (N - 1) * sizeof(char16)));
-    }
-};
-
 BOOL Token::IsKeyword() const
 {
     // keywords (but not future reserved words)
@@ -202,7 +148,6 @@ void Scanner<EncodingPolicy>::SetText(EncodedCharPtr pszSrc, size_t offset, size
     m_ptoken->tk = tkNone;
     m_fIsModuleCode = (grfscr & fscrIsModuleCode) != 0;
     m_fHadEol = FALSE;
-    m_fSyntaxColor = (grfscr & fscrSyntaxColor) != 0;
     m_DeferredParseFlags = ScanFlagNone;
 }
 
@@ -536,15 +481,6 @@ tokens Scanner<EncodingPolicy>::ScanIdentifierContinue(bool identifyKwds, bool f
         int32 cch = UnescapeToTempBuf(pchMin, p);
         tokens tk = m_phtbl->TkFromNameLen(m_tempChBuf.m_prgch, cch, IsStrictMode());
         return (!m_fYieldIsKeyword && tk == tkYIELD) || (!m_fAwaitIsKeyword && tk == tkAWAIT) ? tkID : tk;
-    }
-    else if (m_fSyntaxColor)
-    {
-        m_ptoken->SetIdentifier(NULL);
-        // We always need to check TkFromNameLenColor because
-        // the main Scan switch doesn't detect all non-keyword that needs coloring
-        // (e.g. int)
-        int32 cch = UnescapeToTempBuf(pchMin, p);
-        return m_phtbl->TkFromNameLenColor(m_tempChBuf.m_prgch, cch);
     }
 
     // UTF16 Scanner are only for syntax coloring, so it shouldn't come here.
@@ -995,9 +931,6 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
 #ifdef PROFILE_EXEC
         m_scriptContext->ProfileEnd(Js::RegexCompilePhase);
 #endif
-        if (m_fSyntaxColor)
-            return ScanError(m_currentCharacter + e.encodedPos, tkRegExp);
-
         m_currentCharacter += e.encodedPos;
         Error(e.error);
     }
@@ -1030,7 +963,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstantNoAST(ArenaAllocator* alloc)
         PROBE_STACK(m_scriptContext, Js::Constants::MinStackRegex);
     }
 
-    ThreadContext *threadContext = m_fSyntaxColor ? ThreadContext::GetContextForCurrentThread() : m_scriptContext->GetThreadContext();
+    ThreadContext *threadContext = m_scriptContext->GetThreadContext();
     UnifiedRegex::StandardChars<EncodedChar>* standardEncodedChars = threadContext->GetStandardChars((EncodedChar*)0);
     UnifiedRegex::StandardChars<char16>* standardChars = threadContext->GetStandardChars((char16*)0);
     charcount_t totalLen = 0, bodyChars = 0, totalChars = 0, bodyLen = 0;
@@ -1050,9 +983,6 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstantNoAST(ArenaAllocator* alloc)
     }
     catch (UnifiedRegex::ParseError e)
     {
-        if (m_fSyntaxColor)
-            return ScanError(m_currentCharacter + e.encodedPos, tkRegExp);
-
         m_currentCharacter += e.encodedPos;
         Error(e.error);
         // never reached
@@ -1197,11 +1127,6 @@ LEcmaLineBreak:
             }
 
             m_currentCharacter = p - 1;
-            if (m_fSyntaxColor)
-            {
-                *pp = p - 1;
-                return ScanError(p - 1, tkStrCon);
-            }
             Error(ERRnoStrEnd);
 
         case '"':
@@ -1239,11 +1164,6 @@ LEcmaLineBreak:
             if (p >= last)
             {
                 m_currentCharacter = p - 1;
-                if (m_fSyntaxColor)
-                {
-                    *pp = p - 1;
-                    return ScanError(p - 1, tkStrCon);
-                }
                 Error(ERRnoStrEnd);
             }
             break;
@@ -1499,13 +1419,6 @@ LEcmaEscapeLineBreak:
                 m_currentCharacter = p;
                 ScanNewLine(ch);
                 p = m_currentCharacter;
-                if (m_fSyntaxColor && *p == 0)
-                {
-                    // Special case for multi-line strings during colorization.
-                    m_scanState = delim == '"' ?  ScanStateMultiLineDoubleQuoteString : ScanStateMultiLineSingleQuoteString;
-                    *pp = p;
-                    return tkStrCon;
-                }
                 continue;
 
             case 0:
@@ -1515,11 +1428,6 @@ LEcmaEscapeLineBreak:
 
 ReturnScanError:
                     m_currentCharacter = p - 1;
-                    if (m_fSyntaxColor)
-                    {
-                        *pp = p - 1;
-                        return ScanError(p - 1, tkStrCon);
-                    }
                     Error(errorType);
                 }
                 else if (stringTemplateMode)
@@ -1552,7 +1460,7 @@ ReturnScanError:
 LBreak:
     bool createPid = true;
 
-    if (m_fSyntaxColor || (m_DeferredParseFlags & ScanFlagSuppressStrPid) != 0)
+    if ((m_DeferredParseFlags & ScanFlagSuppressStrPid) != 0)
     {
         createPid = false;
 
@@ -1605,11 +1513,6 @@ tokens Scanner<EncodingPolicy>::SkipComment(EncodedCharPtr *pp, /* out */ bool* 
             if (*p == '/')
             {
                 *pp = p + 1;
-                if (m_fSyntaxColor)
-                {
-                    m_scanState = ScanStateNormal;
-                    return tkComment;
-                }
                 return tkNone;
             }
             break;
@@ -1634,11 +1537,6 @@ LLineBreak:
             {
                 m_currentCharacter = p - 1;
                 *pp = p - 1;
-                if (m_fSyntaxColor)
-                {
-                    m_scanState = ScanStateMultiLineComment;
-                    return tkComment;
-                }
                 Error(ERRnoCmtEnd);
             }
             break;
@@ -1764,26 +1662,6 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
 
     if (m_scanState && *p != 0)
     {
-        if (m_fSyntaxColor)
-        {
-            firstChar = 0;
-            secondChar = 0;
-            m_pchMinTok = p;
-            m_cMinTokMultiUnits = this->m_cMultiUnits;
-            switch (m_scanState)
-            {
-            case ScanStateMultiLineComment:
-                goto LMultiLineComment;
-            case ScanStateMultiLineSingleQuoteString:
-                ch = '\'';
-                m_scanState = ScanStateNormal;
-                goto LScanStringConstant;
-            case ScanStateMultiLineDoubleQuoteString:
-                ch = '"';
-                m_scanState = ScanStateNormal;
-                goto LScanStringConstant;
-            }
-        }
         if (m_scanState == ScanStateStringTemplateMiddleOrEnd)
         {
             AssertMsg(m_fStringTemplateDepth > 0,
@@ -1852,11 +1730,6 @@ LLoop:
             // All other types (except errors) are handled by the outer switch.
             }
             Assert(chType == _C_LET || chType == _C_ERR || chType == _C_UNK || chType == _C_BKQ || chType == _C_SHP || chType == _C_AT || chType == _C_DIG);
-            if (m_fSyntaxColor)
-            {
-                // No need to decrement the current position pointer as scanner will continue with scan next character onwards
-                return ScanError(p, tkID);
-            }
             m_currentCharacter = p - 1;
             Error(ERRillegalChar);
             continue;
@@ -1869,11 +1742,6 @@ LEof:
 
             if (p + 1 < last)
             {
-                if (m_fSyntaxColor)
-                {
-                    return ScanError(p + 1, tkID);
-                }
-
                 // A \0 prior to the end of the text is an invalid character.
                 Error(ERRillegalChar);
             }
@@ -1916,11 +1784,6 @@ LEof:
                 if (p == pchT)
                 {
                     Assert(this->PeekFirst(p, last) != '.');
-                    if (m_fSyntaxColor)
-                    {
-                        return ScanError(m_currentCharacter + 1, tkFltCon);
-                    }
-
                     Error(ERRbadNumber);
                 }
                 Assert(!Js::NumberUtilities::IsNan(dbl));
@@ -2029,9 +1892,6 @@ LIdentifier:
             if (tkScanError == token)
             {
                 m_currentCharacter = p;
-                if (m_fSyntaxColor)
-                    return ScanError(p, tkID);
-
                 Error(ERRillegalChar);
             }
             p = pchT;
@@ -2178,11 +2038,6 @@ LEcmaCommentLineBreak:
                     case kchRET:
                         p--;
 LCommentLineBreak:
-                        if (m_fSyntaxColor)
-                        {
-                            token = tkComment;
-                            goto LDone;
-                        }
                         // Subtract the comment length from the total char count for the purpose
                         // of deciding whether to defer AST and byte code generation.
                         m_parser->ReduceDeferredScriptLength((ULONG)(p - m_pchMinTok));
@@ -2227,8 +2082,6 @@ LCommentLineBreak:
                     secondChar = '\0';
                 }
 
-
-LMultiLineComment:
                 pchT = p;
                 commentStartLine = m_line;
                 bool containTypeDef;
@@ -2364,7 +2217,6 @@ LMultiLineComment:
         case '\'':
         case '"':
             Assert(chType == _C_QUO || chType == _C_APO);
-LScanStringConstant:
             pchT = p;
             token = this->ScanStringConstant((OLECHAR)ch, &pchT);
             p = pchT;
@@ -2384,7 +2236,7 @@ IdentPtr Scanner<EncodingPolicy>::GetSecondaryBufferAsPid()
 {
     bool createPid = true;
 
-    if (m_fSyntaxColor || (m_DeferredParseFlags & ScanFlagSuppressStrPid) != 0)
+    if ((m_DeferredParseFlags & ScanFlagSuppressStrPid) != 0)
     {
         createPid = false;
     }
@@ -2531,6 +2383,4 @@ HRESULT Scanner<EncodingPolicy>::SysAllocErrorLine(int32 ichMinLine, __out BSTR*
     return S_OK;
 }
 
-template class Scanner<NullTerminatedUnicodeEncodingPolicy>;
-template class Scanner<NullTerminatedUTF8EncodingPolicy>;
 template class Scanner<NotNullTerminatedUTF8EncodingPolicy>;

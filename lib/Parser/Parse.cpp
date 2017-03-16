@@ -10884,9 +10884,6 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 
     m_nextBlockId = 0;
 
-    // Scanner should run in Running mode and not syntax coloring mode
-    grfscr &= ~fscrSyntaxColor;
-
     if (this->m_scriptContext->IsScriptContextInDebugMode()
 #ifdef ENABLE_PREJIT
          || Js::Configuration::Global.flags.Prejit
