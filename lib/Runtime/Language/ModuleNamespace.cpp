@@ -144,23 +144,23 @@ namespace Js
         unambiguousNonLocalExports->AddNew(propertyId, *nonLocalExportNameRecord);
     }
 
-    BOOL ModuleNamespace::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags ModuleNamespace::HasPropertyQuery(PropertyId propertyId)
     {
         SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
         const Js::PropertyRecord* propertyRecord = GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId);
         if (propertyRecord->IsSymbol())
         {
-            return this->DynamicObject::HasProperty(propertyId);
+            return this->DynamicObject::HasPropertyQuery(propertyId);
         }
         if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
         {
-            return TRUE;
+            return Property_Found;
         }
         if (unambiguousNonLocalExports != nullptr)
         {
-            return unambiguousNonLocalExports->ContainsKey(propertyId);
+            return JavascriptConversion::BooleanToPropertyQueryFlags(unambiguousNonLocalExports->ContainsKey(propertyId));
         }
-        return FALSE;
+        return Property_NotFound;
     }
 
     BOOL ModuleNamespace::HasOwnProperty(PropertyId propertyId)
@@ -168,13 +168,13 @@ namespace Js
         return HasProperty(propertyId);
     }
 
-    BOOL ModuleNamespace::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags ModuleNamespace::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         SimpleDictionaryPropertyDescriptor<BigPropertyIndex> propertyDescriptor;
         const Js::PropertyRecord* propertyRecord = requestContext->GetThreadContext()->GetPropertyName(propertyId);
         if (propertyRecord->IsSymbol())
         {
-            return this->DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext);
+            return this->DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
         }
         if (propertyMap != nullptr && propertyMap->TryGetValue(propertyRecord, &propertyDescriptor))
         {
@@ -185,7 +185,7 @@ namespace Js
             //    PropertyValueInfo::Set(info, this, (PropertyIndex)propertyDescriptor.propertyIndex, propertyDescriptor.Attributes);
             //}
             *value = this->GetNSSlot(propertyDescriptor.propertyIndex);
-            return TRUE;
+            return Property_Found;
         }
         if (unambiguousNonLocalExports != nullptr)
         {
@@ -193,17 +193,17 @@ namespace Js
             // TODO: maybe we can cache the slot address & offset, instead of looking up everytime? We do need to look up the reference everytime.
             if (unambiguousNonLocalExports->TryGetValue(propertyId, &moduleNameRecord))
             {
-                return moduleNameRecord.module->GetNamespace()->GetProperty(originalInstance, moduleNameRecord.bindingName, value, info, requestContext);
+                return JavascriptConversion::BooleanToPropertyQueryFlags(moduleNameRecord.module->GetNamespace()->GetProperty(originalInstance, moduleNameRecord.bindingName, value, info, requestContext));
             }
         }
-        return FALSE;
+        return Property_NotFound;
     }
 
-    BOOL ModuleNamespace::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags ModuleNamespace::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         const PropertyRecord* propertyRecord = nullptr;
         GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
-        return GetProperty(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetProperty(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext));
     }
 
     BOOL ModuleNamespace::GetInternalProperty(Var instance, PropertyId internalPropertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -211,9 +211,9 @@ namespace Js
         return FALSE;
     }
 
-    BOOL ModuleNamespace::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags ModuleNamespace::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetProperty(originalInstance, propertyId, value, info, requestContext));
     }
 
     BOOL ModuleNamespace::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)

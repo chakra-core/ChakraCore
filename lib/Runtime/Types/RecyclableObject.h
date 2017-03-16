@@ -191,6 +191,13 @@ namespace Js {
         PropertyOperation_ThrowOnDeleteIfNotConfig      = 0x400,
     };
 
+    enum PropertyQueryFlags : int
+    {
+        Property_NotFound                               = 0,
+        Property_Found                                  = 1,
+        Property_NotFound_NoProto                       = 2
+    };
+
     class RecyclableObject : public FinalizableObject
     {
         friend class JavascriptOperators;
@@ -242,22 +249,30 @@ namespace Js {
         // which will emit an error.
         static Var DefaultEntryPoint(RecyclableObject* function, CallInfo callInfo, ...);
 
+        BOOL HasItem(uint32 index);
+        BOOL HasProperty(PropertyId propertyId);
+        BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
+        BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
+        BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
+        BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext);
+        BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext);
+
         virtual PropertyId GetPropertyId(PropertyIndex index) { return Constants::NoProperty; }
         virtual PropertyId GetPropertyId(BigPropertyIndex index) { return Constants::NoProperty; }
         virtual PropertyIndex GetPropertyIndex(PropertyId propertyId) { return Constants::NoSlot; }
         virtual int GetPropertyCount() { return 0; }
-        virtual BOOL HasProperty(PropertyId propertyId);
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId);
         virtual BOOL HasOwnProperty( PropertyId propertyId);
         virtual BOOL HasOwnPropertyNoHostObject( PropertyId propertyId);
         virtual BOOL HasOwnPropertyCheckNoRedecl( PropertyId propertyId) { Assert(FALSE); return FALSE; }
         virtual BOOL UseDynamicObjectForNoHostObjectAccess() { return FALSE; }
         virtual DescriptorFlags GetSetter(PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) { return None; }
         virtual DescriptorFlags GetSetter(JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) { return None; }
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
         virtual BOOL GetInternalProperty(Var instance, PropertyId internalPropertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
         virtual BOOL GetAccessors(PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext);
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
         virtual BOOL SetInternalProperty(PropertyId internalPropertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info);
@@ -270,10 +285,10 @@ namespace Js {
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags);
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags);
         virtual BOOL IsFixedProperty(PropertyId propertyId);
-        virtual BOOL HasItem(uint32 index);
+        virtual PropertyQueryFlags HasItemQuery(uint32 index);
         virtual BOOL HasOwnItem(uint32 index);
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext);
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext);
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext);
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext);
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) { return None; }
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags);
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags);

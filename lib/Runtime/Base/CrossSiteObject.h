@@ -13,10 +13,10 @@ namespace Js
         DEFINE_VTABLE_CTOR(CrossSiteObject<T>, T);
 
     public:
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetAccessors(PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext) override;
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = NULL) override;
@@ -24,8 +24,8 @@ namespace Js
         virtual BOOL InitPropertyScoped(PropertyId propertyId, Var value) override;
         virtual BOOL InitFuncScoped(PropertyId propertyId, Var value) override;
 
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override;
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual Var GetHostDispatchVar() override;
@@ -52,11 +52,11 @@ namespace Js
     };
 
     template <typename T>
-    BOOL CrossSiteObject<T>::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags CrossSiteObject<T>::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         originalInstance = CrossSite::MarshalVar(this->GetScriptContext(), originalInstance);
-        BOOL result = __super::GetProperty(originalInstance, propertyId, value, info, requestContext);
-        if (result)
+        PropertyQueryFlags result = __super::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(result))
         {
             *value = CrossSite::MarshalVar(requestContext, *value);
         }
@@ -64,10 +64,10 @@ namespace Js
     }
 
     template <typename T>
-    BOOL CrossSiteObject<T>::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags CrossSiteObject<T>::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        BOOL result = __super::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
-        if (result)
+        PropertyQueryFlags result = __super::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(result))
         {
             *value = CrossSite::MarshalVar(requestContext, *value);
         }
@@ -93,11 +93,11 @@ namespace Js
     }
 
     template <typename T>
-    BOOL CrossSiteObject<T>::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags CrossSiteObject<T>::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         originalInstance = CrossSite::MarshalVar(this->GetScriptContext(), originalInstance);
-        BOOL result = __super::GetPropertyReference(originalInstance, propertyId, value, info, requestContext);
-        if (result)
+        PropertyQueryFlags result = __super::GetPropertyReferenceQuery(originalInstance, propertyId, value, info, requestContext);
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(result))
         {
             *value = CrossSite::MarshalVar(requestContext, *value);
         }
@@ -147,11 +147,11 @@ namespace Js
     }
 
     template <typename T>
-    BOOL CrossSiteObject<T>::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags CrossSiteObject<T>::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
         originalInstance = CrossSite::MarshalVar(this->GetScriptContext(), originalInstance);
-        BOOL result = __super::GetItem(originalInstance, index, value, requestContext);
-        if (result)
+        PropertyQueryFlags result = __super::GetItemQuery(originalInstance, index, value, requestContext);
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(result))
         {
             *value = CrossSite::MarshalVar(requestContext, *value);
         }
@@ -159,11 +159,11 @@ namespace Js
     }
 
     template <typename T>
-    BOOL CrossSiteObject<T>::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags CrossSiteObject<T>::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
         originalInstance = CrossSite::MarshalVar(this->GetScriptContext(), originalInstance);
-        BOOL result = __super::GetItemReference(originalInstance, index, value, requestContext);
-        if (result)
+        PropertyQueryFlags result = __super::GetItemReferenceQuery(originalInstance, index, value, requestContext);
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(result))
         {
             *value = CrossSite::MarshalVar(requestContext, *value);
         }

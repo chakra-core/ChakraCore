@@ -322,7 +322,7 @@ namespace Js
         void CheckForceES5Array();
 #endif
 
-        virtual BOOL HasProperty(PropertyId propertyId) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsEnumerable(PropertyId propertyId) override;
@@ -332,16 +332,16 @@ namespace Js
         virtual BOOL SetConfigurable(PropertyId propertyId, BOOL value) override;
         virtual BOOL SetAttributes(PropertyId propertyId, PropertyAttributes attributes) override;
 
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext);
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override;
 
-        virtual BOOL HasItem(uint32 index) override;
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override;
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override;
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override;
 
@@ -983,9 +983,9 @@ namespace Js
         static uint allocationBuckets[AllocationBucketsCount][AllocationBucketsInfoSize];
         static const int32 MissingItem;
 
-        virtual BOOL HasItem(uint32 index) override;
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override;
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual BOOL DirectGetVarItemAt(uint index, Var* outval, ScriptContext *scriptContext);
         virtual BOOL DirectGetItemAtFull(uint index, Var* outVal);
         virtual Var DirectGetItem(uint32 index);
@@ -1134,9 +1134,9 @@ namespace Js
         static uint allocationBuckets[AllocationBucketsCount][AllocationBucketsInfoSize];
         static const double MissingItem;
 
-        virtual BOOL HasItem(uint32 index) override;
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override;
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override;
         virtual BOOL DirectGetVarItemAt(uint index, Var* outval, ScriptContext *scriptContext);
         virtual BOOL DirectGetItemAtFull(uint index, Var* outVal);
         virtual Var DirectGetItem(uint32 index);

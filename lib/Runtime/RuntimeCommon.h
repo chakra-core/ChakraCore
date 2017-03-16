@@ -111,6 +111,7 @@ namespace Js
         Writable = 0x4,  // Data descriptor is writable
         Const = 0x8,     // Data is const, meaning we throw on attempt to write to it
         Proxy = 0x10,    // data returned from proxy.
+        None_NoProto = 0x20, // No data/accessor descriptor and stop traversing prototype chain
         WritableData = Data | Writable // Data descriptor is writable
     };
 

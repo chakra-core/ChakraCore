@@ -19,17 +19,17 @@ namespace Js
             static bool Is(Var aValue);
             static WithScopeObject* FromVar(Var value);
             RecyclableObject *GetWrappedObject() { return wrappedObject; }
-            virtual BOOL HasProperty(PropertyId propertyId) override;
+            virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
             virtual BOOL HasOwnProperty(PropertyId propertyId) override;
             virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
-            virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+            virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
             virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
-            virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+            virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
             virtual DescriptorFlags GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
 
             // A WithScopeObject should never call the Functions defined below this comment
             virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override { AssertAndFailFast(); return FALSE; };
-            virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override { AssertAndFailFast(); return FALSE; };
+            virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override { AssertAndFailFast(); return Property_NotFound; };
             virtual DescriptorFlags GetSetter(JavascriptString* propertyNameString, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override { AssertAndFailFast(); return None; };
             virtual int GetPropertyCount() override { AssertAndFailFast(); return 0; };
             virtual PropertyId GetPropertyId(PropertyIndex index) override { AssertAndFailFast();  return Constants::NoProperty; };
@@ -38,10 +38,10 @@ namespace Js
             virtual BOOL InitProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags = PropertyOperation_None, PropertyValueInfo* info = NULL) override { AssertAndFailFast(); return FALSE; };
             virtual BOOL SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags = PropertyOperation_None, SideEffects possibleSideEffects = SideEffects_Any) override { AssertAndFailFast(); return FALSE; };
             virtual BOOL IsFixedProperty(PropertyId propertyId) override { AssertAndFailFast(); return FALSE; };
-            virtual BOOL HasItem(uint32 index) override { AssertAndFailFast(); return FALSE; };
+            virtual PropertyQueryFlags HasItemQuery(uint32 index) override { AssertAndFailFast(); return Property_NotFound; };
             virtual BOOL HasOwnItem(uint32 index) override { AssertAndFailFast(); return FALSE; };
-            virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { AssertAndFailFast(); return FALSE; };
-            virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { AssertAndFailFast(); return FALSE; };
+            virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { AssertAndFailFast(); return Property_NotFound; };
+            virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { AssertAndFailFast(); return Property_NotFound; };
             virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override { AssertAndFailFast(); return None; };
             virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override { AssertAndFailFast(); return FALSE; };
             virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override { AssertAndFailFast(); return FALSE; };

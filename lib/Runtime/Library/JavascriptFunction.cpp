@@ -2408,7 +2408,7 @@ LABEL1:
             );
     }
 
-    BOOL JavascriptFunction::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags JavascriptFunction::HasPropertyQuery(PropertyId propertyId)
     {
         switch (propertyId)
         {
@@ -2416,17 +2416,17 @@ LABEL1:
         case PropertyIds::arguments:
             if (this->HasRestrictedProperties())
             {
-                return true;
+                return Property_Found;
             }
             break;
         case PropertyIds::length:
             if (this->IsScriptFunction())
             {
-                return true;
+                return Property_Found;
             }
             break;
         }
-        return DynamicObject::HasProperty(propertyId);
+        return DynamicObject::HasPropertyQuery(propertyId);
     }
 
     BOOL JavascriptFunction::GetAccessors(PropertyId propertyId, Var *getter, Var *setter, ScriptContext * requestContext)
@@ -2618,9 +2618,9 @@ LABEL1:
         return specialPropertyIds;
     }
 
-    BOOL JavascriptFunction::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptFunction::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return JavascriptFunction::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
     JavascriptFunction* JavascriptFunction::FindCaller(BOOL* foundThis, JavascriptFunction* nullValue, ScriptContext* requestContext)
@@ -2805,9 +2805,9 @@ LABEL1:
         return true;
     }
 
-    BOOL JavascriptFunction::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptFunction::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        BOOL result = DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        BOOL result = JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)) ? TRUE : FALSE;
 
         if (result)
         {
@@ -2821,16 +2821,16 @@ LABEL1:
             GetPropertyBuiltIns(originalInstance, propertyId, value, requestContext, &result);
         }
 
-        return result;
+        return JavascriptConversion::BooleanToPropertyQueryFlags(result);
     }
 
-    BOOL JavascriptFunction::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptFunction::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         PropertyRecord const* propertyRecord;
         this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
 
-        result = DynamicObject::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
+        result = JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext)) ? TRUE : FALSE;
         if (result)
         {
             if (propertyRecord != nullptr && propertyRecord->GetPropertyId() == PropertyIds::prototype)
@@ -2838,7 +2838,7 @@ LABEL1:
                 PropertyValueInfo::DisableStoreFieldCache(info);
             }
 
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
         if (propertyRecord != nullptr)
@@ -2846,7 +2846,7 @@ LABEL1:
             GetPropertyBuiltIns(originalInstance, propertyRecord->GetPropertyId(), value, requestContext, &result);
         }
 
-        return result;
+        return JavascriptConversion::BooleanToPropertyQueryFlags(result);
     }
 
     bool JavascriptFunction::GetPropertyBuiltIns(Var originalInstance, PropertyId propertyId, Var* value, ScriptContext* requestContext, BOOL* result)

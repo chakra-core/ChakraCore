@@ -1460,10 +1460,12 @@ CommonNumber:
     {
         while (JavascriptOperators::GetTypeId(instance) != TypeIds_Null)
         {
-            if (instance->HasProperty(propertyId))
+            PropertyQueryFlags result = instance->HasPropertyQuery(propertyId);
+            if (result != Property_NotFound)
             {
-                return true;
+                return JavascriptConversion::PropertyQueryFlagsToBoolean(result); // return false if instance is typed array and HasPropertyQuery() returns Property_Found_Undefined
             }
+
             instance = JavascriptOperators::GetPrototypeNoTrap(instance);
         }
         return false;
@@ -1563,7 +1565,7 @@ CommonNumber:
             if (!dynamicObject->DynamicObject::GetAccessors(propertyId, &getter, &setter, requestContext))
             {
                 Var value;
-                if (!dynamicObject->DynamicObject::GetProperty(instance, propertyId, &value, NULL, requestContext) ||
+                if (!JavascriptConversion::PropertyQueryFlagsToBoolean(dynamicObject->DynamicObject::GetPropertyQuery(instance, propertyId, &value, NULL, requestContext)) ||
                     (requestContext->IsUndeclBlockVar(value) && (ActivationObject::Is(instance) || RootObjectBase::Is(instance))))
                 {
                     return FALSE;
@@ -1601,7 +1603,7 @@ CommonNumber:
         {
             if (! dynamicObject->DynamicObject::GetAccessors(propertyId, &getter, &setter, requestContext))
             {
-                result = dynamicObject->DynamicObject::GetProperty(instance, propertyId, &returnVar, NULL, requestContext);
+                result = JavascriptConversion::PropertyQueryFlagsToBoolean((dynamicObject->DynamicObject::GetPropertyQuery(instance, propertyId, &returnVar, NULL, requestContext)));
             }
         }
         else
@@ -1673,9 +1675,10 @@ CommonNumber:
             }
             else
             {
-                if (object->GetProperty(instance, propertyId, value, info, requestContext))
+                PropertyQueryFlags result = object->GetPropertyQuery(instance, propertyId, value, info, requestContext);
+                if (result != Property_NotFound)
                 {
-                    foundProperty = true;
+                    foundProperty = JavascriptConversion::PropertyQueryFlagsToBoolean(result);
                     break;
                 }
             }
@@ -1774,7 +1777,8 @@ CommonNumber:
         RecyclableObject* object = propertyObject;
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
-            if (object->GetProperty(instance, propertyKey, value, &info, requestContext))
+            PropertyQueryFlags result = object->GetPropertyQuery(instance, propertyKey, value, &info, requestContext);
+            if (result != Property_NotFound)
             {
                 if (propertyString != NULL)
                 {
@@ -1791,7 +1795,7 @@ CommonNumber:
                         propertyString->UpdateCache(info.GetInstance()->GetType(), inlineOrAuxSlotIndex, isInlineSlot, info.IsStoreFieldCacheEnabled());
                     }
                 }
-                return TRUE;
+                return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }
             if (object->SkipsPrototype())
             {
@@ -1986,9 +1990,10 @@ CommonNumber:
             }
             else
             {
-                if (object->GetPropertyReference(instance, propertyId, value, info, requestContext))
+                PropertyQueryFlags result = object->GetPropertyReferenceQuery(instance, propertyId, value, info, requestContext);
+                if (result != Property_NotFound)
                 {
-                    foundProperty = true;
+                    foundProperty = JavascriptConversion::PropertyQueryFlagsToBoolean(result);
                     break;
                 }
             }
@@ -3057,9 +3062,10 @@ CommonNumber:
 #endif
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
-            if (object->HasItem(index))
+            PropertyQueryFlags result;
+            if ((result = object->HasItemQuery(index)) != Property_NotFound)
             {
-                return true;
+                return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }
             // CONSIDER: Numeric property values shouldn't be on the prototype for now but if this changes
             // we should add SkipsPrototype support here as well
@@ -3078,9 +3084,10 @@ CommonNumber:
         RecyclableObject* object = propertyObject;
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
-            if (object->GetItem(instance, index, value, requestContext))
+            PropertyQueryFlags result;
+            if ((result = object->GetItemQuery(instance, index, value, requestContext)) != Property_NotFound)
             {
-                return true;
+                return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }
             if (object->SkipsPrototype())
             {
@@ -3097,9 +3104,10 @@ CommonNumber:
         RecyclableObject* object = propertyObject;
         while (JavascriptOperators::GetTypeId(object) != TypeIds_Null)
         {
-            if (object->GetItemReference(instance, index, value, requestContext))
+            PropertyQueryFlags result;
+            if ((result = object->GetItemReferenceQuery(instance, index, value, requestContext)) != Property_NotFound)
             {
-                return true;
+                return JavascriptConversion::PropertyQueryFlagsToBoolean(result);
             }
             if (object->SkipsPrototype())
             {
@@ -3467,7 +3475,7 @@ CommonNumber:
                 charcount_t indexInt = TaggedInt::ToUInt32(index);
                 JavascriptString* string = JavascriptString::FromVar(instance);
                 Var result;
-                if (string->JavascriptString::GetItem(instance, indexInt, &result, scriptContext))
+                if (JavascriptConversion::PropertyQueryFlagsToBoolean(string->JavascriptString::GetItemQuery(instance, indexInt, &result, scriptContext)))
                 {
                     return result;
                 }
@@ -8539,7 +8547,11 @@ CommonNumber:
                         PropertyDescriptor filledDescriptor = FillMissingPropertyDescriptorFields<false>(descriptor, scriptContext);
 
                         BOOL tempResult = obj->SetPropertyWithAttributes(propId, filledDescriptor.GetValue(), filledDescriptor.GetAttributes(), nullptr);
-                        Assert(tempResult || obj->IsExternal());
+                        if (!obj->IsExternal() && !tempResult)
+                        {
+                            Assert(TypedArrayBase::Is(obj)); // typed array returns false when canonical numeric index is not integer or out of range
+                            return FALSE;
+                        }
                     }
                     else
                     {

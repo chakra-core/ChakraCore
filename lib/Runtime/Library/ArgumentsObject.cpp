@@ -397,7 +397,7 @@ namespace Js
 
     }
 
-    BOOL HeapArgumentsObject::HasProperty(PropertyId id)
+    PropertyQueryFlags HeapArgumentsObject::HasPropertyQuery(PropertyId id)
     {
         ScriptContext *scriptContext = GetScriptContext();
 
@@ -405,13 +405,13 @@ namespace Js
         uint32 index;
         if (scriptContext->IsNumericPropertyId(id, &index) && index < this->HeapArgumentsObject::GetNumberOfArguments())
         {
-            return HeapArgumentsObject::HasItem(index);
+            return HeapArgumentsObject::HasItemQuery(index);
         }
 
-        return DynamicObject::HasProperty(id);
+        return DynamicObject::HasPropertyQuery(id);
     }
 
-    BOOL HeapArgumentsObject::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags HeapArgumentsObject::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         ScriptContext *scriptContext = GetScriptContext();
 
@@ -421,39 +421,39 @@ namespace Js
         {
             if (this->GetItemAt(index, value, requestContext))
             {
-                return true;
+                return Property_Found;
             }
         }
 
-        if (DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)))
         {
             // Property has been pre-set and not deleted. Use it.
-            return true;
+            return Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return false;
+        return Property_NotFound;
     }
 
-    BOOL HeapArgumentsObject::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags HeapArgumentsObject::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
 
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord*");
 
-        if (DynamicObject::GetProperty(originalInstance, propertyNameString, value, info, requestContext))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext)))
         {
             // Property has been pre-set and not deleted. Use it.
-            return true;
+            return Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return false;
+        return Property_NotFound;
     }
 
-    BOOL HeapArgumentsObject::GetPropertyReference(Var originalInstance, PropertyId id, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags HeapArgumentsObject::GetPropertyReferenceQuery(Var originalInstance, PropertyId id, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return HeapArgumentsObject::GetProperty(originalInstance, id, value, info, requestContext);
+        return HeapArgumentsObject::GetPropertyQuery(originalInstance, id, value, info, requestContext);
     }
 
     BOOL HeapArgumentsObject::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
@@ -487,27 +487,27 @@ namespace Js
         return DynamicObject::SetProperty(propertyNameString, value, flags, info);
     }
 
-    BOOL HeapArgumentsObject::HasItem(uint32 index)
+    PropertyQueryFlags HeapArgumentsObject::HasItemQuery(uint32 index)
     {
         if (this->HasItemAt(index))
         {
-            return true;
+            return Property_Found;
         }
-        return DynamicObject::HasItem(index);
+        return DynamicObject::HasItemQuery(index);
     }
 
-    BOOL HeapArgumentsObject::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags HeapArgumentsObject::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
         if (this->GetItemAt(index, value, requestContext))
         {
-            return true;
+            return Property_Found;
         }
-        return DynamicObject::GetItem(originalInstance, index, value, requestContext);
+        return DynamicObject::GetItemQuery(originalInstance, index, value, requestContext);
     }
 
-    BOOL HeapArgumentsObject::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags HeapArgumentsObject::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
-        return HeapArgumentsObject::GetItem(originalInstance, index, value, requestContext);
+        return HeapArgumentsObject::GetItemQuery(originalInstance, index, value, requestContext);
     }
 
     BOOL HeapArgumentsObject::SetItem(uint32 index, Var value, PropertyOperationFlags flags)
@@ -698,7 +698,7 @@ namespace Js
     BOOL ES5HeapArgumentsObject::GetItemAt(uint32 index, Var* value, ScriptContext* requestContext)
     {
         return this->IsFormalDisconnectedFromNamedArgument(index) ?
-            this->DynamicObject::GetItem(this, index, value, requestContext) :
+            JavascriptConversion::PropertyQueryFlagsToBoolean(this->DynamicObject::GetItemQuery(this, index, value, requestContext)) :
             __super::GetItemAt(index, value, requestContext);
     }
 

@@ -140,28 +140,28 @@ namespace Js
     // End Entry Points
 
     //Shared utility methods.
-    BOOL JavascriptSIMDType::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptSIMDType::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return GetPropertyBuiltIns(propertyId, value, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetPropertyBuiltIns(propertyId, value, requestContext));
     }
 
-    BOOL JavascriptSIMDType::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptSIMDType::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyRecord const* propertyRecord;
         this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
         {
-            return true;
+            return Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return false;
+        return Property_NotFound;
     }
 
-    BOOL JavascriptSIMDType::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptSIMDType::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
     bool JavascriptSIMDType::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)

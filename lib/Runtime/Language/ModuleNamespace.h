@@ -36,12 +36,12 @@ namespace Js
         static ModuleNamespace* FromVar(Var obj) { Assert(JavascriptOperators::GetTypeId(obj) == TypeIds_ModuleNamespace); return static_cast<ModuleNamespace*>(obj); }
 
         virtual PropertyId GetPropertyId(BigPropertyIndex index) override;
-        virtual BOOL HasProperty(PropertyId propertyId) override;
+        virtual PropertyQueryFlags HasPropertyQuery(PropertyId propertyId) override;
         virtual BOOL HasOwnProperty(PropertyId propertyId) override;
-        virtual BOOL GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL GetInternalProperty(Var instance, PropertyId internalPropertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
-        virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override { return FALSE; }
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override { return FALSE; }
         virtual BOOL SetInternalProperty(PropertyId internalPropertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override { return FALSE; }
@@ -52,10 +52,10 @@ namespace Js
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL IsFixedProperty(PropertyId propertyId) override { return false; }
-        virtual BOOL HasItem(uint32 index) override { return false; }
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override { return Property_NotFound; }
         virtual BOOL HasOwnItem(uint32 index) override { return false; }
-        virtual BOOL GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return false; }
-        virtual BOOL GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return false; }
+        virtual PropertyQueryFlags GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return Property_NotFound; }
+        virtual PropertyQueryFlags GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext) override { return Property_NotFound; }
         virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override { *setterValue = nullptr; return DescriptorFlags::None; }
         virtual BOOL SetItem(uint32 index, Var value, PropertyOperationFlags flags) override { return false; }
         virtual BOOL DeleteItem(uint32 index, PropertyOperationFlags flags) override { return true; }

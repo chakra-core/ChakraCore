@@ -222,11 +222,11 @@ namespace Js
         return &propIds->elements[propIds->count];
     }
 
-    BOOL ActivationObjectEx::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var *value, PropertyValueInfo *info, ScriptContext *requestContext)
+    PropertyQueryFlags ActivationObjectEx::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var *value, PropertyValueInfo *info, ScriptContext *requestContext)
     {
         // No need to invalidate the cached scope even if the property is a cached function object.
         // The caller won't be using the object itself.
-        return __super::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return __super::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
     void ActivationObjectEx::GetPropertyCore(PropertyValueInfo *info, ScriptContext *requestContext)
@@ -257,24 +257,24 @@ namespace Js
         }
     }
 
-    BOOL ActivationObjectEx::GetProperty(Var originalInstance, PropertyId propertyId, Var *value, PropertyValueInfo *info, ScriptContext *requestContext)
+    PropertyQueryFlags ActivationObjectEx::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var *value, PropertyValueInfo *info, ScriptContext *requestContext)
     {
-        if (__super::GetProperty(originalInstance, propertyId, value, info, requestContext))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(__super::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext)))
         {
             GetPropertyCore(info, requestContext);
-            return TRUE;
+            return Property_Found;
         }
-        return FALSE;
+        return Property_NotFound;
     }
 
-    BOOL ActivationObjectEx::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var *value, PropertyValueInfo *info, ScriptContext *requestContext)
+    PropertyQueryFlags ActivationObjectEx::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var *value, PropertyValueInfo *info, ScriptContext *requestContext)
     {
-        if (__super::GetProperty(originalInstance, propertyNameString, value, info, requestContext))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(__super::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext)))
         {
             GetPropertyCore(info, requestContext);
-            return TRUE;
+            return Property_Found;
         }
-        return FALSE;
+        return Property_NotFound;
     }
 
     void ActivationObjectEx::InvalidateCachedScope()
