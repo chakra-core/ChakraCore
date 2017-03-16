@@ -7,7 +7,7 @@
 #define UpdateMinimum(dst, src) if (dst > src) { dst = src; }
 
 #if ENABLE_OOP_NATIVE_CODEGEN
-THREAD_LOCAL DWORD MemoryOperationLastError::MemOpLastError = 0;
+THREAD_LOCAL HRESULT MemoryOperationLastError::MemOpLastError = 0;
 #endif
 
 //=============================================================================================================
@@ -977,29 +977,18 @@ PageAllocatorBase<TVirtualAlloc, TSegment, TPageSegment>::FillAllocPages(__in vo
 
 #if DBG
 #ifdef RECYCLER_ZERO_MEM_CHECK
-    const bool isLocalProc = this->processHandle == GetCurrentProcess();
-    byte * readBuffer;
-    if (isLocalProc)
+    byte * localAddr = (byte *)this->GetVirtualAllocator()->AllocLocal(address, bufferSize);
+    if (!localAddr)
     {
-        readBuffer = (byte*)address;
-    }
-    else
-    {
-        readBuffer = HeapNewArray(byte, bufferSize);
-        if (!ReadProcessMemory(this->processHandle, address, readBuffer, bufferSize, NULL))
-        {
-            MemoryOperationLastError::RecordLastErrorAndThrow();
-        }
+        MemoryOperationLastError::RecordError(E_OUTOFMEMORY);
+        return;
     }
     for (size_t i = 0; i < bufferSize; i++)
     {
         // new pages are filled with zeros, old pages are filled with DbgMemFill
-        Assert(readBuffer[i] == 0 || readBuffer[i] == DbgMemFill);
+        Assert(localAddr[i] == 0 || localAddr[i] == DbgMemFill);
     }
-    if (!isLocalProc)
-    {
-        HeapDeleteArray(bufferSize, readBuffer);
-    }
+    this->GetVirtualAllocator()->FreeLocal(localAddr);
 #endif
 #endif
 
@@ -1640,7 +1629,7 @@ PageAllocatorBase<SectionAllocWrapper>::MemSetLocal(_In_ void *dst, int val, siz
     LPVOID localAddr = this->GetVirtualAllocator()->AllocLocal(dst, sizeInBytes);
     if (localAddr == nullptr)
     {
-        MemoryOperationLastError::CheckProcessAndThrowFatalError(this->processHandle);
+        MemoryOperationLastError::RecordError(JSERR_FatalMemoryExhaustion);
     }
     else
     {
@@ -1656,7 +1645,7 @@ PageAllocatorBase<PreReservedSectionAllocWrapper>::MemSetLocal(_In_ void *dst, i
     LPVOID localAddr = this->GetVirtualAllocator()->AllocLocal(dst, sizeInBytes);
     if (localAddr == nullptr)
     {
-        MemoryOperationLastError::CheckProcessAndThrowFatalError(this->processHandle);
+        MemoryOperationLastError::RecordError(JSERR_FatalMemoryExhaustion);
     }
     else
     {

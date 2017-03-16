@@ -262,12 +262,12 @@ Allocation* Heap<TAlloc, TPreReservedAlloc>::Alloc(size_t bytes, ushort pdataCou
         size_t resultBytes = VirtualQueryEx(this->processHandle, page->address, &memBasicInfo, sizeof(memBasicInfo));
         if (resultBytes == 0)
         {
-            if (this->processHandle != GetCurrentProcess())
-            {
-                MemoryOperationLastError::RecordLastErrorAndThrow();
-            }
+            MemoryOperationLastError::RecordLastError();
         }
-        Assert(memBasicInfo.Protect == PAGE_EXECUTE);
+        else
+        {
+            Assert(memBasicInfo.Protect == PAGE_EXECUTE);
+        }
 #endif
 
         Allocation* allocation = nullptr;
@@ -439,12 +439,12 @@ Allocation* Heap<TAlloc, TPreReservedAlloc>::AllocLargeObject(size_t bytes, usho
     size_t resultBytes = VirtualQueryEx(this->processHandle, address, &memBasicInfo, sizeof(memBasicInfo));
     if (resultBytes == 0)
     {
-        if (this->processHandle != GetCurrentProcess())
-        {
-            MemoryOperationLastError::RecordLastErrorAndThrow();
-        }
+        MemoryOperationLastError::RecordLastError();
     }
-    Assert(memBasicInfo.Protect == PAGE_EXECUTE);
+    else
+    {
+        Assert(memBasicInfo.Protect == PAGE_EXECUTE);
+    }
 #endif
 
     Allocation* allocation = this->largeObjectAllocations.PrependNode(this->auxiliaryAllocator);
@@ -826,7 +826,7 @@ bool Heap<TAlloc, TPreReservedAlloc>::FreeAllocation(Allocation* object)
             char* localAddr = this->codePageAllocators->AllocLocal(object->address, object->size, page->segment);
             if (!localAddr)
             {
-                MemoryOperationLastError::CheckProcessAndThrowFatalError(this->processHandle);
+                MemoryOperationLastError::RecordError(JSERR_FatalMemoryExhaustion);
                 return false;
             }
             FillDebugBreak((BYTE*)localAddr, object->size);
@@ -903,7 +903,8 @@ void Heap<TAlloc, TPreReservedAlloc>::FreeAllocationHelper(Allocation* object, B
     }
     else
     {
-        MemoryOperationLastError::CheckProcessAndThrowFatalError(this->processHandle);
+        MemoryOperationLastError::RecordError(JSERR_FatalMemoryExhaustion);
+        return;
     }
     VerboseHeapTrace(_u("Setting %d bits starting at bit %d, Free bit vector in page was "), length, index);
 #if VERBOSE_HEAP

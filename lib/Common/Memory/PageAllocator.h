@@ -393,65 +393,40 @@ public:
     static void RecordLastError()
     {
 #if ENABLE_OOP_NATIVE_CODEGEN
-        if (MemOpLastError == 0)
+        if (MemOpLastError == S_OK)
         {
             MemOpLastError = GetLastError();
         }
 #endif
     }
-    static void RecordLastErrorAndThrow()
+
+    static void RecordError(HRESULT error)
     {
 #if ENABLE_OOP_NATIVE_CODEGEN
-        if (MemOpLastError == 0)
+        if (MemOpLastError == S_OK)
         {
-            MemOpLastError = GetLastError();
-            AssertOrFailFast(false);
+            MemOpLastError = HRESULT_FROM_WIN32(error);
         }
 #endif
     }
-    static void CheckProcessAndThrowFatalError(HANDLE hProcess)
-    {
-        DWORD lastError = GetLastError();
-#if ENABLE_OOP_NATIVE_CODEGEN
-        if (MemOpLastError == 0)
-        {
-            MemOpLastError = lastError;
-        }
-#endif
-        if (lastError != 0)
-        {
-            DWORD exitCode = STILL_ACTIVE;
-            if (!GetExitCodeProcess(hProcess, &exitCode) || exitCode == STILL_ACTIVE)
-            {
-                // REVIEW: In OOP JIT, target process is still alive but the memory operation failed
-                // we should fail fast(terminate) the runtime process, fail fast here in server process
-                // is to capture bug might exist in CustomHeap implementation.
-                // if target process is already gone, we don't care the failure here
 
-                // REVIEW: the VM operation might fail if target process is in middle of terminating
-                // will GetExitCodeProcess return STILL_ACTIVE for such case?
-                Js::Throw::FatalInternalErrorEx(lastError);
-            }
-        }
-
-    }
     static void ClearLastError()
     {
 #if ENABLE_OOP_NATIVE_CODEGEN
-        MemOpLastError = 0;
+        MemOpLastError = S_OK;
 #endif
     }
-    static DWORD GetLastError()
+    static HRESULT GetLastError()
     {
 #if ENABLE_OOP_NATIVE_CODEGEN
         return MemOpLastError;
 #else
-        return 0;
+        return S_OK;
 #endif
     }
 #if ENABLE_OOP_NATIVE_CODEGEN
 private:
-    THREAD_LOCAL static DWORD MemOpLastError;
+    THREAD_LOCAL static HRESULT MemOpLastError;
 #endif
 };
 

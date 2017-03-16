@@ -913,15 +913,7 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
         AssertOrFailFastMsg(false, "Unknown exception caught in JIT server call.");
     }
 
-    if (hr == E_OUTOFMEMORY)
-    {
-        if (HRESULT_FROM_WIN32(MemoryOperationLastError::GetLastError()) != S_OK)
-        {
-            hr = HRESULT_FROM_WIN32(MemoryOperationLastError::GetLastError());
-        }
-    }
-
-    return hr;
+    return MemoryOperationLastError::GetLastError();
 }
 
 template<typename Fn>
