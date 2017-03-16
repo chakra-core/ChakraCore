@@ -12,9 +12,12 @@ namespace Js {
         static Var OrdinaryToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * scriptContext);
         static Var MethodCallToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * scriptContext);
         static Var ToPrimitive(Var aValue, JavascriptHint hint, ScriptContext * scriptContext);
-        static BOOL CanonicalNumericIndexString(Var aValue, double *indexValue, ScriptContext * scriptContext);
+        static BOOL CanonicalNumericIndexString(JavascriptString *aValue, double *indexValue, ScriptContext * scriptContext);
 
         static void ToPropertyKey(Var argument, ScriptContext* scriptContext, const PropertyRecord** propertyRecord);
+
+        static PropertyQueryFlags BooleanToPropertyQueryFlags(BOOL val) { return val ? Property_Found : Property_NotFound; }
+        static BOOL PropertyQueryFlagsToBoolean(PropertyQueryFlags val) { return val == Property_Found; }
 
         static JavascriptString* ToString(Var aValue, ScriptContext* scriptContext);
         static JavascriptString* ToLocaleString(Var aValue, ScriptContext* scriptContext);

@@ -3725,11 +3725,11 @@ case_2:
         return concatString;
     }
 
-    BOOL JavascriptString::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags JavascriptString::HasPropertyQuery(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
         {
-            return true;
+            return Property_Found;
         }
         ScriptContext* scriptContext = GetScriptContext();
         charcount_t index;
@@ -3737,10 +3737,10 @@ case_2:
         {
             if (index < this->GetLength())
             {
-                return true;
+                return Property_Found;
             }
         }
-        return false;
+        return Property_NotFound;
     }
 
     BOOL JavascriptString::IsEnumerable(PropertyId propertyId)
@@ -3757,22 +3757,22 @@ case_2:
         return false;
     }
 
-    BOOL JavascriptString::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptString::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return GetPropertyBuiltIns(propertyId, value, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetPropertyBuiltIns(propertyId, value, requestContext));
     }
-    BOOL JavascriptString::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptString::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyRecord const* propertyRecord;
         this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, requestContext))
         {
-            return true;
+            return Property_Found;
         }
 
         *value = requestContext->GetMissingPropertyResult();
-        return false;
+        return Property_NotFound;
     }
     bool JavascriptString::GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext)
     {
@@ -3785,9 +3785,9 @@ case_2:
         *value = requestContext->GetMissingPropertyResult();
         return false;
     }
-    BOOL JavascriptString::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptString::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return JavascriptString::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptString::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
     BOOL JavascriptString::SetItem(uint32 index, Var value, PropertyOperationFlags propertyOperationFlags)
@@ -3814,22 +3814,22 @@ case_2:
         return __super::DeleteItem(index, propertyOperationFlags);
     }
 
-    BOOL JavascriptString::HasItem(uint32 index)
+    PropertyQueryFlags JavascriptString::HasItemQuery(uint32 index)
     {
-        return this->HasItemAt(index);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(this->HasItemAt(index));
     }
 
-    BOOL JavascriptString::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptString::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
         // String should always be marshalled to the current context
         Assert(requestContext == this->GetScriptContext());
-        return this->GetItemAt(index, value);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(this->GetItemAt(index, value));
     }
 
-    BOOL JavascriptString::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptString::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
         // String should always be marshalled to the current context
-        return this->GetItemAt(index, value);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(this->GetItemAt(index, value));
     }
 
     BOOL JavascriptString::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)

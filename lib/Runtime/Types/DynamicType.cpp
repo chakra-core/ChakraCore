@@ -116,12 +116,12 @@ namespace Js
         return GetTypeHandler()->GetPropertyIndex(this->GetScriptContext()->GetPropertyName(propertyId));
     }
 
-    BOOL DynamicObject::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags DynamicObject::HasPropertyQuery(PropertyId propertyId)
     {
         // HasProperty can be invoked with propertyId = NoProperty in some cases, namely cross-thread and DOM
         // This is done to force creation of a type handler in case the type handler is deferred
         Assert(!Js::IsInternalPropertyId(propertyId) || propertyId == Js::Constants::NoProperty);
-        return GetTypeHandler()->HasProperty(this, propertyId);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetTypeHandler()->HasProperty(this, propertyId));
     }
 
     // HasOwnProperty and HasProperty is the same for most objects except globalobject (moduleroot as well in legacy)
@@ -132,18 +132,18 @@ namespace Js
         return HasProperty(propertyId);
     }
 
-    BOOL DynamicObject::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags DynamicObject::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         Assert(!Js::IsInternalPropertyId(propertyId));
-        return GetTypeHandler()->GetProperty(this, originalInstance, propertyId, value, info, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetTypeHandler()->GetProperty(this, originalInstance, propertyId, value, info, requestContext));
     }
 
-    BOOL DynamicObject::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags DynamicObject::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord* before calling GetProperty");
 
-        return GetTypeHandler()->GetProperty(this, originalInstance, propertyNameString, value, info, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetTypeHandler()->GetProperty(this, originalInstance, propertyNameString, value, info, requestContext));
     }
 
     BOOL DynamicObject::GetInternalProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -152,10 +152,10 @@ namespace Js
         return GetTypeHandler()->GetProperty(this, originalInstance, propertyId, value, nullptr, requestContext);
     }
 
-    BOOL DynamicObject::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags DynamicObject::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         Assert(!Js::IsInternalPropertyId(propertyId));
-        return GetTypeHandler()->GetProperty(this, originalInstance, propertyId, value, info, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetTypeHandler()->GetProperty(this, originalInstance, propertyId, value, info, requestContext));
     }
 
     BOOL DynamicObject::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
@@ -215,9 +215,9 @@ namespace Js
         return GetTypeHandler()->IsFixedProperty(this, propertyId);
     }
 
-    BOOL DynamicObject::HasItem(uint32 index)
+    PropertyQueryFlags DynamicObject::HasItemQuery(uint32 index)
     {
-        return GetTypeHandler()->HasItem(this, index);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetTypeHandler()->HasItem(this, index));
     }
 
     BOOL DynamicObject::HasOwnItem(uint32 index)
@@ -225,14 +225,14 @@ namespace Js
         return HasItem(index);
     }
 
-    BOOL DynamicObject::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags DynamicObject::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
-        return GetTypeHandler()->GetItem(this, originalInstance, index, value, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetTypeHandler()->GetItem(this, originalInstance, index, value, requestContext));
     }
 
-    BOOL DynamicObject::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags DynamicObject::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
-        return GetTypeHandler()->GetItem(this, originalInstance, index, value, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(GetTypeHandler()->GetItem(this, originalInstance, index, value, requestContext));
     }
 
     DescriptorFlags DynamicObject::GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext)

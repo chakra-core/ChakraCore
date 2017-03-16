@@ -99,19 +99,23 @@ namespace Js
         static Var EntryGetterSymbolToStringTag(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryGetterSymbolSpecies(RecyclableObject* function, CallInfo callInfo, ...);
 
-        virtual BOOL HasProperty(Js::PropertyId propertyId) override;
-        virtual BOOL GetProperty(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
-        virtual BOOL GetProperty(Js::Var originalInstance, Js::JavascriptString* propertyNameString, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
-        virtual BOOL GetPropertyReference(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
-        virtual BOOL HasItem(uint32 index) override;
+        virtual DescriptorFlags GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual DescriptorFlags GetSetter(JavascriptString* propertyNameString, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
+        virtual DescriptorFlags GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags HasPropertyQuery(Js::PropertyId propertyId) override;
+        virtual BOOL HasOwnProperty(Js::PropertyId propertyId) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyQuery(Js::Var originalInstance, Js::JavascriptString* propertyNameString, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags GetPropertyReferenceQuery(Js::Var originalInstance, Js::PropertyId propertyId, Js::Var* value, Js::PropertyValueInfo* info, Js::ScriptContext* requestContext) override;
+        virtual PropertyQueryFlags HasItemQuery(uint32 index) override;
         virtual BOOL DeleteItem(uint32 index, Js::PropertyOperationFlags flags) override { return false; }
-        virtual BOOL GetItem(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemQuery(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * requestContext) override;
         virtual BOOL SetItem(uint32 index, Js::Var value, Js::PropertyOperationFlags flags = PropertyOperation_None) override;
         virtual BOOL SetProperty(Js::PropertyId propertyId, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info) override;
         virtual BOOL SetProperty(Js::JavascriptString* propertyNameString, Js::Var value, Js::PropertyOperationFlags flags, Js::PropertyValueInfo* info) override;
         virtual BOOL DeleteProperty(Js::PropertyId propertyId, Js::PropertyOperationFlags flags) override;
         virtual BOOL DeleteProperty(JavascriptString *propertyNameString, Js::PropertyOperationFlags flags) override;
-        virtual BOOL GetItemReference(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * requestContext) override;
+        virtual PropertyQueryFlags GetItemReferenceQuery(Js::Var originalInstance, uint32 index, Js::Var* value, Js::ScriptContext * requestContext) override;
         virtual BOOL GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache = nullptr) override;
         virtual JavascriptEnumerator * GetIndexEnumerator(EnumeratorFlags flags, ScriptContext * requestContext) override;
 
@@ -188,6 +192,8 @@ namespace Js
         static Var CreateNewInstanceFromIterator(RecyclableObject *iterator, ScriptContext *scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray);
         static Var CreateNewInstance(Arguments& args, ScriptContext* scriptContext, uint32 elementSize, PFNCreateTypedArray pfnCreateTypedArray );
         static bool ArrayIteratorPrototypeHasUserDefinedNext(ScriptContext *scriptContext);
+        static BOOL CanonicalNumericIndexString(PropertyId propertyId, ScriptContext *scriptContext);
+        static BOOL CanonicalNumericIndexString(JavascriptString *propertyString, ScriptContext *scriptContext);
 
         typedef int(__cdecl* CompareElementsFunction)(void*, const void*, const void*);
         virtual CompareElementsFunction GetCompareElementsFunction() = 0;

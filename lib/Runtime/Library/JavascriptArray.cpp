@@ -11188,7 +11188,7 @@ Case0:
     BOOL JavascriptNativeIntArray::DirectGetItemAtFull(uint32 index, Var* outVal)
     {
         ScriptContext* requestContext = type->GetScriptContext();
-        if (JavascriptNativeIntArray::GetItem(this, index, outVal, requestContext))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(JavascriptNativeIntArray::GetItemQuery(this, index, outVal, requestContext)))
         {
             return TRUE;
         }
@@ -11199,7 +11199,7 @@ Case0:
     BOOL JavascriptNativeFloatArray::DirectGetItemAtFull(uint32 index, Var* outVal)
     {
         ScriptContext* requestContext = type->GetScriptContext();
-        if (JavascriptNativeFloatArray::GetItem(this, index, outVal, requestContext))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(JavascriptNativeFloatArray::GetItemQuery(this, index, outVal, requestContext)))
         {
             return TRUE;
         }
@@ -11940,21 +11940,21 @@ Case0:
         return DynamicObject::DeleteProperty(propertyNameString, flags);
     }
 
-    BOOL JavascriptArray::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags JavascriptArray::HasPropertyQuery(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
         {
-            return true;
+            return Property_Found;
         }
 
         ScriptContext* scriptContext = GetScriptContext();
         uint32 index;
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
-            return this->HasItem(index);
+            return JavascriptConversion::BooleanToPropertyQueryFlags(this->HasItem(index));
         }
 
-        return DynamicObject::HasProperty(propertyId);
+        return DynamicObject::HasPropertyQuery(propertyId);
     }
 
     BOOL JavascriptArray::IsEnumerable(PropertyId propertyId)
@@ -12187,29 +12187,29 @@ Case0:
         return specialPropertyIds;
     }
 
-    BOOL JavascriptArray::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptArray::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return JavascriptArray::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptArray::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL JavascriptArray::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptArray::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         if (GetPropertyBuiltIns(propertyId, value))
         {
-            return true;
+            return Property_Found;
         }
 
         ScriptContext* scriptContext = GetScriptContext();
         uint32 index;
         if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
-            return this->GetItem(this, index, value, scriptContext);
+            return JavascriptConversion::BooleanToPropertyQueryFlags(this->GetItem(this, index, value, scriptContext));
         }
 
-        return DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL JavascriptArray::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptArray::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord*");
@@ -12219,10 +12219,10 @@ Case0:
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value))
         {
-            return true;
+            return Property_Found;
         }
 
-        return DynamicObject::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
+        return DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
     }
 
     BOOL JavascriptArray::GetPropertyBuiltIns(PropertyId propertyId, Var* value)
@@ -12239,20 +12239,20 @@ Case0:
         return false;
     }
 
-    BOOL JavascriptArray::HasItem(uint32 index)
+    PropertyQueryFlags JavascriptArray::HasItemQuery(uint32 index)
     {
         Var value;
-        return this->DirectGetItemAt<Var>(index, &value);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(this->DirectGetItemAt<Var>(index, &value));
     }
 
-    BOOL JavascriptArray::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptArray::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
-        return this->DirectGetItemAt<Var>(index, value);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(this->DirectGetItemAt<Var>(index, value));
     }
 
-    BOOL JavascriptArray::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptArray::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
-        return this->DirectGetItemAt<Var>(index, value);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(this->DirectGetItemAt<Var>(index, value));
     }
 
     BOOL JavascriptArray::DirectGetVarItemAt(uint32 index, Var *value, ScriptContext *requestContext)
@@ -12260,27 +12260,27 @@ Case0:
         return this->DirectGetItemAt<Var>(index, value);
     }
 
-    BOOL JavascriptNativeIntArray::HasItem(uint32 index)
+    PropertyQueryFlags JavascriptNativeIntArray::HasItemQuery(uint32 index)
     {
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
 #endif
         int32 value;
-        return this->DirectGetItemAt<int32>(index, &value);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(this->DirectGetItemAt<int32>(index, &value));
     }
 
-    BOOL JavascriptNativeFloatArray::HasItem(uint32 index)
+    PropertyQueryFlags JavascriptNativeFloatArray::HasItemQuery(uint32 index)
     {
         double dvalue;
-        return this->DirectGetItemAt<double>(index, &dvalue);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(this->DirectGetItemAt<double>(index, &dvalue));
     }
 
-    BOOL JavascriptNativeIntArray::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptNativeIntArray::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
 #if ENABLE_COPYONACCESS_ARRAY
         JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
 #endif
-        return JavascriptNativeIntArray::DirectGetVarItemAt(index, value, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptNativeIntArray::DirectGetVarItemAt(index, value, requestContext));
     }
 
     BOOL JavascriptNativeIntArray::DirectGetVarItemAt(uint32 index, Var *value, ScriptContext *requestContext)
@@ -12294,14 +12294,14 @@ Case0:
         return TRUE;
     }
 
-    BOOL JavascriptNativeIntArray::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptNativeIntArray::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
-        return JavascriptNativeIntArray::GetItem(originalInstance, index, value, requestContext);
+        return JavascriptNativeIntArray::GetItemQuery(originalInstance, index, value, requestContext);
     }
 
-    BOOL JavascriptNativeFloatArray::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptNativeFloatArray::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
-        return JavascriptNativeFloatArray::DirectGetVarItemAt(index, value, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptNativeFloatArray::DirectGetVarItemAt(index, value, requestContext));
     }
 
     BOOL JavascriptNativeFloatArray::DirectGetVarItemAt(uint32 index, Var *value, ScriptContext *requestContext)
@@ -12327,9 +12327,9 @@ Case0:
         return TRUE;
     }
 
-    BOOL JavascriptNativeFloatArray::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptNativeFloatArray::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
-        return JavascriptNativeFloatArray::GetItem(originalInstance, index, value, requestContext);
+        return JavascriptNativeFloatArray::GetItemQuery(originalInstance, index, value, requestContext);
     }
 
     BOOL JavascriptArray::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)

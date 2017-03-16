@@ -141,7 +141,7 @@ namespace Js
         PropertyIds::index,
     };
 
-    BOOL JavascriptRegExpConstructor::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags JavascriptRegExpConstructor::HasPropertyQuery(PropertyId propertyId)
     {
         switch (propertyId)
         {
@@ -165,29 +165,29 @@ namespace Js
         case PropertyIds::$7:
         case PropertyIds::$8:
         case PropertyIds::$9:
-            return true;
+            return Property_Found;
         default:
-            return JavascriptFunction::HasProperty(propertyId);
+            return JavascriptFunction::HasPropertyQuery(propertyId);
         }
     }
 
-    BOOL JavascriptRegExpConstructor::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptRegExpConstructor::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return JavascriptRegExpConstructor::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptRegExpConstructor::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL JavascriptRegExpConstructor::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptRegExpConstructor::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         if (GetPropertyBuiltIns(propertyId, value, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
-        return JavascriptFunction::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL JavascriptRegExpConstructor::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptRegExpConstructor::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         PropertyRecord const* propertyRecord;
@@ -195,10 +195,10 @@ namespace Js
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
-        return JavascriptFunction::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
+        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
     }
 
     bool JavascriptRegExpConstructor::GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result)

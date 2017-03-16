@@ -467,7 +467,7 @@ namespace Js
         return hasProperty;
     }
 
-    BOOL JavascriptProxy::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags JavascriptProxy::HasPropertyQuery(PropertyId propertyId)
     {
         auto fn = [&](RecyclableObject* object)->BOOL {
             return JavascriptOperators::HasProperty(object, propertyId);
@@ -475,7 +475,7 @@ namespace Js
         auto getPropertyId = [&]() ->PropertyId {
             return propertyId;
         };
-        return HasPropertyTrap(fn, getPropertyId);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(HasPropertyTrap(fn, getPropertyId));
     }
 
     BOOL JavascriptProxy::HasOwnProperty(PropertyId propertyId)
@@ -527,7 +527,7 @@ namespace Js
         return DescriptorFlags::Proxy;
     }
 
-    BOOL JavascriptProxy::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptProxy::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         // We can't cache the property at this time. both target and handler can be changed outside of the proxy, so the inline cache needs to be
         // invalidate when target, handler, or handler prototype has changed. We don't have a way to achieve this yet.
@@ -547,10 +547,10 @@ namespace Js
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
-        return foundProperty;
+        return JavascriptConversion::BooleanToPropertyQueryFlags(foundProperty);
     }
 
-    BOOL JavascriptProxy::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptProxy::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         // We can't cache the property at this time. both target and handler can be changed outside of the proxy, so the inline cache needs to be
         // invalidate when target, handler, or handler prototype has changed. We don't have a way to achieve this yet.
@@ -574,7 +574,7 @@ namespace Js
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
-        return foundProperty;
+        return JavascriptConversion::BooleanToPropertyQueryFlags(foundProperty);
     }
 
     BOOL JavascriptProxy::GetInternalProperty(Var instance, PropertyId internalPropertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -605,7 +605,7 @@ namespace Js
         return foundProperty;
     }
 
-    BOOL JavascriptProxy::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptProxy::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         // We can't cache the property at this time. both target and handler can be changed outside of the proxy, so the inline cache needs to be
         // invalidate when target, handler, or handler prototype has changed. We don't have a way to achieve this yet.
@@ -625,7 +625,7 @@ namespace Js
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
-        return foundProperty;
+        return JavascriptConversion::BooleanToPropertyQueryFlags(foundProperty);
     }
 
     BOOL JavascriptProxy::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
@@ -842,7 +842,7 @@ namespace Js
         return false;
     }
 
-    BOOL JavascriptProxy::HasItem(uint32 index)
+    PropertyQueryFlags JavascriptProxy::HasItemQuery(uint32 index)
     {
         const PropertyRecord* propertyRecord;
         auto fn = [&](RecyclableObject* object)-> BOOL {
@@ -852,7 +852,7 @@ namespace Js
             PropertyIdFromInt(index, &propertyRecord);
             return propertyRecord->GetPropertyId();
         };
-        return HasPropertyTrap(fn, getPropertyId);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(HasPropertyTrap(fn, getPropertyId));
     }
 
     BOOL JavascriptProxy::HasOwnItem(uint32 index)
@@ -868,7 +868,7 @@ namespace Js
         return HasPropertyTrap(fn, getPropertyId);
     }
 
-    BOOL JavascriptProxy::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags JavascriptProxy::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
         const PropertyRecord* propertyRecord;
         auto fn = [&](RecyclableObject* object)-> BOOL {
@@ -888,14 +888,14 @@ namespace Js
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
-        return foundProperty;
+        return JavascriptConversion::BooleanToPropertyQueryFlags(foundProperty);
     }
 
-    BOOL JavascriptProxy::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags JavascriptProxy::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
         const PropertyRecord* propertyRecord;
         auto fn = [&](RecyclableObject* object)-> BOOL {
-            return JavascriptOperators::GetItemReference(originalInstance, object, index, value, requestContext);
+            return JavascriptOperators::GetItem(originalInstance, object, index, value, requestContext);
         };
         auto getPropertyId = [&]() ->PropertyId {
             PropertyIdFromInt(index, &propertyRecord);
@@ -911,7 +911,7 @@ namespace Js
         {
             *value = GetValueFromDescriptor(RecyclableObject::FromVar(originalInstance), result, requestContext);
         }
-        return foundProperty;
+        return JavascriptConversion::BooleanToPropertyQueryFlags(foundProperty);
     }
 
     DescriptorFlags JavascriptProxy::GetItemSetter(uint32 index, Var* setterValueOrProxy, ScriptContext* requestContext)

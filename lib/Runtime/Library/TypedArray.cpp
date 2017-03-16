@@ -606,15 +606,39 @@ namespace Js
             object;
     };
 
-    BOOL TypedArrayBase::HasProperty(PropertyId propertyId)
+    BOOL TypedArrayBase::HasOwnProperty(PropertyId propertyId)
+    {
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(HasPropertyQuery(propertyId));
+    }
+
+    inline BOOL TypedArrayBase::CanonicalNumericIndexString(PropertyId propertyId, ScriptContext *scriptContext)
+    {
+        PropertyString *propertyString = scriptContext->GetPropertyString(propertyId);
+        return CanonicalNumericIndexString(propertyString, scriptContext);
+    }
+
+    inline BOOL TypedArrayBase::CanonicalNumericIndexString(JavascriptString *propertyString, ScriptContext *scriptContext)
+    {
+        double result;
+        return JavascriptConversion::CanonicalNumericIndexString(propertyString, &result, scriptContext);
+    }
+
+    PropertyQueryFlags TypedArrayBase::HasPropertyQuery(PropertyId propertyId)
     {
         uint32 index = 0;
-        if (GetScriptContext()->IsNumericPropertyId(propertyId, &index) && (index < this->GetLength()))
+        ScriptContext *scriptContext = GetScriptContext();
+        if (scriptContext->IsNumericPropertyId(propertyId, &index))
         {
             // All the slots within the length of the array are valid.
-            return true;
+            return index < this->GetLength() ? Property_Found : Property_NotFound_NoProto;
         }
-        return DynamicObject::HasProperty(propertyId);
+
+        if (!scriptContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
+        {
+            return Property_NotFound_NoProto;
+        }
+
+        return DynamicObject::HasPropertyQuery(propertyId);
     }
 
     BOOL TypedArrayBase::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
@@ -640,12 +664,12 @@ namespace Js
         return TRUE;
     }
 
-    BOOL TypedArrayBase::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags TypedArrayBase::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return TypedArrayBase::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return TypedArrayBase::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL TypedArrayBase::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags TypedArrayBase::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         uint32 index = 0;
         if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
@@ -653,23 +677,35 @@ namespace Js
             *value = this->DirectGetItem(index);
             if (JavascriptOperators::GetTypeId(*value) == Js::TypeIds_Undefined)
             {
-                return false;
+                return Property_NotFound;
             }
-            return true;
+            return Property_Found;
         }
 
-        return DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        if (!requestContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, requestContext))
+        {
+            *value = requestContext->GetLibrary()->GetUndefined();
+            return Property_NotFound_NoProto;
+        }
+
+        return DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL TypedArrayBase::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags TypedArrayBase::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord*");
 
-        return DynamicObject::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
+        if (CanonicalNumericIndexString(propertyNameString, requestContext))
+        {
+            *value = requestContext->GetLibrary()->GetUndefined();
+            return Property_NotFound_NoProto;
+        }
+
+        return DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
     }
 
-    BOOL TypedArrayBase::HasItem(uint32 index)
+    PropertyQueryFlags TypedArrayBase::HasItemQuery(uint32 index)
     {
         if (this->IsDetachedBuffer())
         {
@@ -678,31 +714,38 @@ namespace Js
 
         if (index < GetLength())
         {
-            return true;
+            return Property_Found;
         }
-        return false;
+
+        return Property_NotFound_NoProto;
     }
 
-    BOOL TypedArrayBase::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags TypedArrayBase::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
         *value = DirectGetItem(index);
-        return true;
+        return index < GetLength() ? Property_Found : Property_NotFound_NoProto;
     }
 
-    BOOL TypedArrayBase::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
+    PropertyQueryFlags TypedArrayBase::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext* requestContext)
     {
         *value = DirectGetItem(index);
-        return true;
+        return index < GetLength() ? Property_Found : Property_NotFound_NoProto;
     }
 
     BOOL TypedArrayBase::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
     {
         uint32 index;
+        ScriptContext *scriptContext = GetScriptContext();
 
         if (GetScriptContext()->IsNumericPropertyId(propertyId, &index))
         {
             this->DirectSetItem(index, value);
             return true;
+        }
+
+        if (!scriptContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
+        {
+            return FALSE;
         }
         else
         {
@@ -715,8 +758,46 @@ namespace Js
         AssertMsg(!PropertyRecord::IsPropertyNameNumeric(propertyNameString->GetString(), propertyNameString->GetLength()),
             "Numeric property names should have been converted to uint or PropertyRecord*");
 
+        ScriptContext *requestContext = GetScriptContext();
+        if (CanonicalNumericIndexString(propertyNameString, requestContext))
+        {
+            return FALSE; // Integer-index exotic object should not set property that is canonical numeric index string but came to this overload
+        }
 
         return DynamicObject::SetProperty(propertyNameString, value, flags, info);
+    }
+
+    DescriptorFlags TypedArrayBase::GetSetter(PropertyId propertyId, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
+    {
+        if (!requestContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, requestContext))
+        {
+            return None_NoProto;
+        }
+
+        return __super::GetSetter(propertyId, setterValue, info, requestContext);
+    }
+
+    DescriptorFlags TypedArrayBase::GetSetter(JavascriptString* propertyNameString, Var *setterValue, PropertyValueInfo* info, ScriptContext* requestContext)
+    {
+        if (CanonicalNumericIndexString(propertyNameString, requestContext))
+        {
+            return None_NoProto;
+        }
+
+        return __super::GetSetter(propertyNameString, setterValue, info, requestContext);
+    }
+
+    DescriptorFlags TypedArrayBase::GetItemSetter(uint32 index, Var* setterValue, ScriptContext* requestContext)
+    {
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(this);
+#endif
+        if (index >= this->GetLength())
+        {
+            return None_NoProto;
+        }
+
+        return __super::GetItemSetter(index, setterValue, requestContext);
     }
 
     BOOL TypedArrayBase::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
@@ -731,6 +812,11 @@ namespace Js
 
     BOOL TypedArrayBase::SetItem(uint32 index, Var value, PropertyOperationFlags flags)
     {
+        if (flags == PropertyOperation_None && index >= GetLength())
+        {
+            return false;
+        }
+
         DirectSetItem(index, value);
         return true;
     }
@@ -867,6 +953,11 @@ namespace Js
         {
             VerifySetItemAttributes(propertyId, attributes);
             return SetItem(index, value);
+        }
+
+        if (!scriptContext->GetPropertyName(propertyId)->IsSymbol() && CanonicalNumericIndexString(propertyId, scriptContext))
+        {
+            return FALSE;
         }
 
         return __super::SetPropertyWithAttributes(propertyId, value, attributes, info, flags, possibleSideEffects);
@@ -2397,7 +2488,7 @@ namespace Js
             double dIndexValue = 0;
             if (JavascriptString::Is(index))
             {
-                if (JavascriptConversion::CanonicalNumericIndexString(index, &dIndexValue, GetScriptContext()))
+                if (JavascriptConversion::CanonicalNumericIndexString(JavascriptString::FromVar(index), &dIndexValue, GetScriptContext()))
                 {
                     if (JavascriptNumber::IsNegZero(dIndexValue))
                     {

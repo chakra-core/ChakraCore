@@ -307,9 +307,9 @@ namespace Js
             /* TODO-ERROR: args.Info.Count > 0? args[0] : nullptr); */);
     }
 
-    BOOL RecyclableObject::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags RecyclableObject::HasPropertyQuery(PropertyId propertyId)
     {
-        return false;
+        return Property_NotFound;
     }
 
     BOOL RecyclableObject::HasOwnProperty(PropertyId propertyId)
@@ -322,14 +322,14 @@ namespace Js
         return HasOwnProperty(propertyId);
     }
 
-    BOOL RecyclableObject::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags RecyclableObject::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return false;
+        return Property_NotFound;
     }
 
-    BOOL RecyclableObject::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags RecyclableObject::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return false;
+        return Property_NotFound;
     }
 
     BOOL RecyclableObject::GetInternalProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -337,9 +337,9 @@ namespace Js
         return false;
     }
 
-    BOOL RecyclableObject::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags RecyclableObject::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return false;
+        return Property_NotFound;
     }
 
     BOOL RecyclableObject::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
@@ -397,9 +397,9 @@ namespace Js
         return false;
     }
 
-    BOOL RecyclableObject::HasItem(uint32 index)
+    PropertyQueryFlags RecyclableObject::HasItemQuery(uint32 index)
     {
-        return false;
+        return Property_NotFound;
     }
 
     BOOL RecyclableObject::HasOwnItem(uint32 index)
@@ -407,14 +407,14 @@ namespace Js
         return false;
     }
 
-    BOOL RecyclableObject::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags RecyclableObject::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
-        return false;
+        return Property_NotFound;
     }
 
-    BOOL RecyclableObject::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags RecyclableObject::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
-        return false;
+        return Property_NotFound;
     }
 
     BOOL RecyclableObject::SetItem(uint32 index, Var value, PropertyOperationFlags flags)

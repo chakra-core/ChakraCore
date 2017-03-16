@@ -23,6 +23,13 @@
   </test>
   <test>
     <default>
+      <files>IntegerIndexedExoticObject.js</files>
+      <tags>typedarray</tags>
+      <compile-flags>-args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>BadNaN.js</files>
       <tags>typedarray</tags>
     </default>

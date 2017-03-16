@@ -1084,17 +1084,17 @@ namespace Js
         PropertyIds::sticky
     };
 
-    BOOL JavascriptRegExp::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags JavascriptRegExp::HasPropertyQuery(PropertyId propertyId)
     {
         const ScriptConfiguration* scriptConfig = this->GetScriptContext()->GetConfig();
 
 #define HAS_PROPERTY(ownProperty) \
-        return (ownProperty ? true : DynamicObject::HasProperty(propertyId));
+        return (ownProperty ? Property_Found : DynamicObject::HasPropertyQuery(propertyId));
 
         switch (propertyId)
         {
         case PropertyIds::lastIndex:
-            return true;
+            return Property_Found;
         case PropertyIds::global:
         case PropertyIds::multiline:
         case PropertyIds::ignoreCase:
@@ -1106,29 +1106,29 @@ namespace Js
         case PropertyIds::sticky:
             HAS_PROPERTY(scriptConfig->IsES6RegExStickyEnabled() && !scriptConfig->IsES6RegExPrototypePropertiesEnabled())
         default:
-            return DynamicObject::HasProperty(propertyId);
+            return DynamicObject::HasPropertyQuery(propertyId);
         }
 
 #undef HAS_PROPERTY
     }
 
-    BOOL JavascriptRegExp::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptRegExp::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return JavascriptRegExp::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptRegExp::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL JavascriptRegExp::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptRegExp::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         if (GetPropertyBuiltIns(propertyId, value, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
-        return DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return DynamicObject::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL JavascriptRegExp::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags JavascriptRegExp::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         PropertyRecord const* propertyRecord;
@@ -1136,10 +1136,10 @@ namespace Js
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
-        return DynamicObject::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
+        return DynamicObject::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
     }
 
     bool JavascriptRegExp::GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result)

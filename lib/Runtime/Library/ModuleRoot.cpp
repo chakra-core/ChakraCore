@@ -17,17 +17,17 @@ namespace Js
         __super::SetHostObject(hostObject);
     }
 
-    BOOL ModuleRoot::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags ModuleRoot::HasPropertyQuery(PropertyId propertyId)
     {
-        if (DynamicObject::HasProperty(propertyId))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId)))
         {
-            return TRUE;
+            return Property_Found;
         }
         else if (this->hostObject && JavascriptOperators::HasProperty(this->hostObject, propertyId))
         {
-            return TRUE;
+            return Property_Found;
         }
-        return this->GetLibrary()->GetGlobalObject()->GlobalObject::HasProperty(propertyId);
+        return this->GetLibrary()->GetGlobalObject()->GlobalObject::HasPropertyQuery(propertyId);
     }
 
     BOOL ModuleRoot::EnsureProperty(PropertyId propertyId)
@@ -56,10 +56,10 @@ namespace Js
 
     BOOL ModuleRoot::HasOwnProperty(PropertyId propertyId)
     {
-        return DynamicObject::HasProperty(propertyId);
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasPropertyQuery(propertyId));
     }
 
-    BOOL ModuleRoot::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags ModuleRoot::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyIndex index = GetPropertyIndex(propertyId);
         if (index != Constants::NoSlot)
@@ -73,11 +73,11 @@ namespace Js
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
             }
-            return TRUE;
+            return Property_Found;
         }
         if (this->hostObject && JavascriptOperators::GetProperty(this->hostObject, propertyId, value, requestContext))
         {
-            return TRUE;
+            return Property_Found;
         }
 
         //
@@ -86,7 +86,7 @@ namespace Js
         //
 
         GlobalObject* globalObj = this->GetLibrary()->GetGlobalObject();
-        return globalObj->GlobalObject::GetProperty(originalInstance, propertyId, value, NULL, requestContext);
+        return JavascriptConversion::BooleanToPropertyQueryFlags(globalObj->GlobalObject::GetPropertyQuery(originalInstance, propertyId, value, NULL, requestContext));
     }
 
     BOOL ModuleRoot::GetRootProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
@@ -119,11 +119,11 @@ namespace Js
         return globalObj->GlobalObject::GetRootProperty(originalInstance, propertyId, value, NULL, requestContext);
     }
 
-    BOOL ModuleRoot::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags ModuleRoot::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         PropertyRecord const * propertyRecord;
         this->GetScriptContext()->GetOrAddPropertyRecord(propertyNameString->GetString(), propertyNameString->GetLength(), &propertyRecord);
-        return ModuleRoot::GetProperty(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext);
+        return ModuleRoot::GetPropertyQuery(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext);
     }
 
     BOOL ModuleRoot::GetAccessors(PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext)
@@ -142,7 +142,7 @@ namespace Js
         return globalObj->GlobalObject::GetAccessors(propertyId, getter, setter, requestContext);
     }
 
-    BOOL ModuleRoot::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info,
+    PropertyQueryFlags ModuleRoot::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info,
         ScriptContext* requestContext)
     {
         PropertyIndex index = GetPropertyIndex(propertyId);
@@ -157,11 +157,11 @@ namespace Js
                     PropertyValueInfo::DisableStoreFieldCache(info);
                 }
             }
-            return TRUE;
+            return Property_Found;
         }
         if (this->hostObject && JavascriptOperators::GetPropertyReference(this->hostObject, propertyId, value, requestContext))
         {
-            return TRUE;
+            return Property_NotFound;
         }
 
         //
@@ -170,7 +170,7 @@ namespace Js
         //
 
         GlobalObject* globalObj = this->GetLibrary()->GetGlobalObject();
-        return globalObj->GlobalObject::GetPropertyReference(originalInstance, propertyId, value, NULL, requestContext);
+        return globalObj->GlobalObject::GetPropertyReferenceQuery(originalInstance, propertyId, value, NULL, requestContext);
     }
 
     BOOL ModuleRoot::GetRootPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info,
@@ -406,29 +406,29 @@ namespace Js
         return this->GetLibrary()->GetGlobalObject()->GlobalObject::DeleteRootProperty(propertyId, flags);
     }
 
-    BOOL ModuleRoot::HasItem(uint32 index)
+    PropertyQueryFlags ModuleRoot::HasItemQuery(uint32 index)
     {
-        return DynamicObject::HasItem(index)
-            || (this->hostObject && JavascriptOperators::HasItem(this->hostObject, index));
+        return JavascriptConversion::BooleanToPropertyQueryFlags(JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasItemQuery(index))
+            || (this->hostObject && JavascriptOperators::HasItem(this->hostObject, index)));
     }
 
     BOOL ModuleRoot::HasOwnItem(uint32 index)
     {
-        return DynamicObject::HasItem(index);
+        return JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::HasItemQuery(index));
     }
 
-    BOOL ModuleRoot::GetItemReference(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags ModuleRoot::GetItemReferenceQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
-        if (DynamicObject::GetItemReference(originalInstance, index, value, requestContext))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemReferenceQuery(originalInstance, index, value, requestContext)))
         {
-            return TRUE;
+            return Property_Found;
         }
-        if (this->hostObject && this->hostObject->GetItemReference(originalInstance, index, value, requestContext))
+        if (this->hostObject && JavascriptConversion::PropertyQueryFlagsToBoolean(this->hostObject->GetItemReferenceQuery(originalInstance, index, value, requestContext)))
         {
-            return TRUE;
+            return Property_Found;
         }
         *value = requestContext->GetMissingItemResult();
-        return FALSE;
+        return Property_NotFound;
     }
 
     BOOL ModuleRoot::SetItem(uint32 index, Var value, PropertyOperationFlags flags)
@@ -445,18 +445,18 @@ namespace Js
         return FALSE;
     }
 
-    BOOL ModuleRoot::GetItem(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
+    PropertyQueryFlags ModuleRoot::GetItemQuery(Var originalInstance, uint32 index, Var* value, ScriptContext * requestContext)
     {
-        if (DynamicObject::GetItem(originalInstance, index, value, requestContext))
+        if (JavascriptConversion::PropertyQueryFlagsToBoolean(DynamicObject::GetItemQuery(originalInstance, index, value, requestContext)))
         {
-            return TRUE;
+            return Property_Found;
         }
         if (this->hostObject && this->hostObject->GetItem(originalInstance, index, value, requestContext))
         {
-            return TRUE;
+            return Property_Found;
         }
         *value = requestContext->GetMissingItemResult();
-        return FALSE;
+        return Property_NotFound;
     }
 
     BOOL ModuleRoot::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)

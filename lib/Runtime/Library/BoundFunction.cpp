@@ -303,28 +303,28 @@ namespace Js
         return false;
     }
 
-    BOOL BoundFunction::HasProperty(PropertyId propertyId)
+    PropertyQueryFlags BoundFunction::HasPropertyQuery(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
         {
-            return true;
+            return Property_Found;
         }
 
-        return JavascriptFunction::HasProperty(propertyId);
+        return JavascriptFunction::HasPropertyQuery(propertyId);
     }
 
-    BOOL BoundFunction::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags BoundFunction::GetPropertyQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         if (GetPropertyBuiltIns(originalInstance, propertyId, value, info, requestContext, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
-        return JavascriptFunction::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
-    BOOL BoundFunction::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags BoundFunction::GetPropertyQuery(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
         BOOL result;
         PropertyRecord const* propertyRecord;
@@ -332,10 +332,10 @@ namespace Js
 
         if (propertyRecord != nullptr && GetPropertyBuiltIns(originalInstance, propertyRecord->GetPropertyId(), value, info, requestContext, &result))
         {
-            return result;
+            return JavascriptConversion::BooleanToPropertyQueryFlags(result);
         }
 
-        return JavascriptFunction::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
+        return JavascriptFunction::GetPropertyQuery(originalInstance, propertyNameString, value, info, requestContext);
     }
 
     bool BoundFunction::GetPropertyBuiltIns(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext, BOOL* result)
@@ -362,9 +362,9 @@ namespace Js
         return false;
     }
 
-    BOOL BoundFunction::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
+    PropertyQueryFlags BoundFunction::GetPropertyReferenceQuery(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
     {
-        return BoundFunction::GetProperty(originalInstance, propertyId, value, info, requestContext);
+        return BoundFunction::GetPropertyQuery(originalInstance, propertyId, value, info, requestContext);
     }
 
     BOOL BoundFunction::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
