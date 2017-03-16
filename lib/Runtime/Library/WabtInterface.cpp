@@ -18,15 +18,6 @@
 #include "Codex/Utf8Helper.h"
 using namespace wabt;
 
-ArenaAllocator* tempArenaPtr;
-struct utf8Allocator
-{
-    static byte* allocate(size_t size)
-    {
-        return AnewArray(tempArenaPtr, byte, size);
-    }
-};
-
 struct MemoryWriterContext
 {
     MemoryWriter* writer;
@@ -105,8 +96,8 @@ Js::Var Js::WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, Cal
     size_t origSize = string->GetLength();
     size_t wastSize;
     char* wastBuffer = nullptr;
-    tempArenaPtr = &arena;
-    utf8::WideStringToNarrow<utf8Allocator>(str, origSize, &wastBuffer, &wastSize);
+    auto allocator = [&arena](size_t size) {return (utf8char_t*)AnewArray(&arena, byte, size);};
+    utf8::WideStringToNarrow(allocator, str, origSize, &wastBuffer, &wastSize);
 
     AstLexer* lexer = new_ast_buffer_lexer("", wastBuffer, wastSize);
     struct AutoCleanLexer
