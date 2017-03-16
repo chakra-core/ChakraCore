@@ -919,6 +919,8 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
         {
             this->scriptContext->GetJitFuncRangeCache()->AddFuncRange((void*)jitWriteData.codeAddress, jitWriteData.codeSize);
         }
+        Assert(jitWriteData.codeAddress);
+        Assert(jitWriteData.codeSize);
     }
     else
     {

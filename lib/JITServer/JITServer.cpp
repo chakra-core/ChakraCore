@@ -802,6 +802,8 @@ ServerRemoteCodeGen(
             jitData->startTime = out_time.QuadPart;
         }
 
+        Assert(jitData->codeAddress);
+        Assert(jitData->codeSize);
         return S_OK;
     });
 }
@@ -913,7 +915,11 @@ HRESULT ServerCallWrapper(ServerThreadContext* threadContextInfo, Fn fn)
         AssertOrFailFastMsg(false, "Unknown exception caught in JIT server call.");
     }
 
-    return MemoryOperationLastError::GetLastError();
+    if (hr == S_OK)
+    {
+        return MemoryOperationLastError::GetLastError();
+    }
+    return hr;
 }
 
 template<typename Fn>
