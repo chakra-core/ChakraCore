@@ -1116,6 +1116,14 @@ tokens Scanner<EncodingPolicy>::ScanTypeAnnotationType(EncodedCharPtr *pp)
             break;
         }
         Error(ERRsyntax);
+    case 's':
+        if (p[0] == 't' && p[1] == 'r' && p[2] == '}')
+        {
+            p += 3;
+            token = tkTypeString;
+            break;
+        }
+        Error(ERRsyntax);
     default:
         Error(ERRsyntax);
     }
