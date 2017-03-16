@@ -30,6 +30,8 @@ param (
     [string]$srcsrvcmdpath,
 
     [string]$bvtcmdpath = "",
+    [string]$testparams = "",
+
     [string]$repo = "core",
     [string]$logFile = "",
 
@@ -71,8 +73,8 @@ if ($arch -eq "*") {
 
     $buildName = ConstructBuildName -arch $arch -flavor $flavor -subtype $subtype
 
-    if (($logFile -eq "") -and (Test-Path Env:\TF_BUILD_BINARIESDIRECTORY)) {
-        $logFile = "${Env:TF_BUILD_BINARIESDIRECTORY}\logs\post_build.${buildName}.log"
+    if (($logFile -eq "") -and (Test-Path $buildRoot)) {
+        $logFile = "${buildRoot}\logs\post_build.${buildName}.log"
         if (Test-Path -Path $logFile) {
             Remove-Item $logFile -Force
         }
@@ -114,7 +116,9 @@ if ($arch -eq "*") {
 
         # run tests
         if (-not $skipTests) {
-            ExecuteCommand("$bvtcmdpath -$arch$flavor")
+            # marshall environment var for cmd script
+            $Env:TF_BUILD_BINARIESDIRECTORY = $buildRoot
+            ExecuteCommand("$bvtcmdpath -$arch$flavor $testparams")
         }
     }
 
