@@ -25,6 +25,7 @@ git diff --name-only `git merge-base origin/master HEAD` HEAD |
     grep -v -E '\.baseline$' |
     grep -v -E '\.wasm$' |
     grep -v -E '\.wast$' |
+    grep -v -E '^lib/wabt' |
     grep -v -E 'bin/External/.*$' |
     xargs -I % sh -c 'echo --- IN FILE % ---; git blame HEAD -- % | grep -P "(\t|--- IN FILE)"' > check_tabs.sh.err
 

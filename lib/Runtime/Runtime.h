@@ -454,6 +454,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Language/JavascriptOperators.h"
 
 #include "Library/WasmLibrary.h"
+#include "Library/WabtInterface.h"
 // xplat-todo: We should get rid of this altogether and move the functionality it
 // encapsulates to the Platform Agnostic Interface
 #ifdef _WIN32

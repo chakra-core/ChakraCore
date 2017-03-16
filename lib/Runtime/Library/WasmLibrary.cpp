@@ -65,8 +65,7 @@ namespace Js
         }
     }
 
-    __declspec(naked)
-        Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
+    __declspec(naked) Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
         // Register functions
         __asm

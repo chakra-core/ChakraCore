@@ -238,11 +238,19 @@ https://github.com/WebAssembly/spec
 The files in test/WasmSpec/testsuite are licensed as specified in test/WasmSpec/testsuite/LICENSE
 unless otherwise stated in the file
 
+---------------------------------------------------------------------------
+Wabt
+
+URL of the license https://github.com/WebAssembly/wabt/blob/master/LICENSE
+
+The files in lib/wabt are licensed as specified in lib/wabt/LICENSE
+unless otherwise stated in the file
+
 ---------------------------------------------
 
 CRC.h
 
-COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or code or tables 
-extracted from it, as desired without restriction. 
+COPYRIGHT (C) 1986 Gary S. Brown.  You may use this program, or code or tables
+extracted from it, as desired without restriction.
 
 

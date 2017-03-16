@@ -1,0 +1,8 @@
+.gclient_entries
+/out
+/third_party/gecko-dev*
+/third_party/v8/depot_tools
+/fuzz-out
+/emscripten
+*.pyc
+/built

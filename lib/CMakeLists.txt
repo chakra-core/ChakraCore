@@ -7,6 +7,8 @@ endif()
 if(CC_TARGETS_AMD64)
     set(wasm_objects $<TARGET_OBJECTS:Chakra.WasmReader>)
     set(wasm_includes ${CHAKRACORE_SOURCE_DIR}/lib/WasmReader)
+    set(wabt_objects $<TARGET_OBJECTS:libwabt>)
+    set(wabt_includes ${CHAKRACORE_SOURCE_DIR}/lib/wabt)
 endif()
 
 add_library (ChakraCoreStatic STATIC
@@ -32,6 +34,7 @@ add_library (ChakraCoreStatic STATIC
   $<TARGET_OBJECTS:Chakra.Runtime.PlatformAgnostic>
   $<TARGET_OBJECTS:Chakra.Parser>
   ${wasm_objects}
+  ${wabt_objects}
 )
 
 if(CC_TARGET_OS_OSX)
@@ -51,16 +54,17 @@ else()
 endif()
 
 target_include_directories (
-    ChakraCoreStatic PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CHAKRACORE_SOURCE_DIR}/lib/Backend
-    ${CHAKRACORE_SOURCE_DIR}/lib/Common
-    ${CHAKRACORE_SOURCE_DIR}/lib/Runtime
-    ${CHAKRACORE_SOURCE_DIR}/lib/Runtime/ByteCode
-    ${CHAKRACORE_SOURCE_DIR}/lib/Parser
-    ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
-    ${wasm_includes}
-    )
+  ChakraCoreStatic PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CHAKRACORE_SOURCE_DIR}/lib/Backend
+  ${CHAKRACORE_SOURCE_DIR}/lib/Common
+  ${CHAKRACORE_SOURCE_DIR}/lib/Runtime
+  ${CHAKRACORE_SOURCE_DIR}/lib/Runtime/ByteCode
+  ${CHAKRACORE_SOURCE_DIR}/lib/Parser
+  ${CHAKRACORE_SOURCE_DIR}/lib/Jsrt
+  ${wasm_includes}
+  ${wabt_includes}
+  )
 
 if(BuildJIT)
     add_subdirectory (Backend)
@@ -72,4 +76,8 @@ add_subdirectory (Runtime)
 add_subdirectory (Jsrt)
 if (CC_TARGETS_AMD64)
     add_subdirectory (WasmReader)
+    set(BUILD_TESTS OFF)
+    set(RUN_BISON OFF)
+    set(RUN_RE2C OFF)
+    add_subdirectory (wabt)
 endif()
