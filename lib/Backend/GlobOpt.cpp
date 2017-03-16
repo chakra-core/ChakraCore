@@ -5816,8 +5816,11 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                             case Js::TypeHint::Bool:
                                 parameterType = ValueType::Boolean;
                                 break;
+                            case Js::TypeHint::String:
+                                parameterType = ValueType::String;
+                                break;
                             case Js::TypeHint::Object:
-                                parameterType = ValueType::UninitializedObject;
+                                parameterType = ValueType::GetObject(ObjectType::Object);
                                 break;
                             case Js::TypeHint::FloatArray:
                                 parameterType = ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(Js::TypeId::TypeIds_NativeFloatArray);
@@ -10835,7 +10838,10 @@ GlobOpt::TypeSpecializeIntUnary(
     IR::Opnd *src1 = instr->GetSrc1();
     this->ToInt32(instr, src1, this->currentBlock, src1ValueToSpecialize, nullptr, lossy);
 
-    if(bailOutKind != IR::BailOutInvalid && !this->IsLoopPrePass())
+    bool ignoreOverflowBailout = CONFIG_FLAG(RemoveIntOverflow) && instr->GetSrc1()->GetType() == TyInt32 && bailOutKind == IR::BailOutOnOverflow;
+    bool ignoreNegativeZeroBailouit = CONFIG_FLAG(RemoveNegativeZero) && instr->GetSrc1()->GetType() == TyInt32 && bailOutKind == IR::BailOutOnNegativeZero;
+
+    if(bailOutKind != IR::BailOutInvalid && !this->IsLoopPrePass() && !(ignoreOverflowBailout || ignoreNegativeZeroBailouit))
     {
         GenerateBailAtOperation(&instr, bailOutKind);
     }
@@ -12371,7 +12377,10 @@ LOutsideSwitch:
         this->ToInt32(instr, src2, this->currentBlock, src2ValueToSpecialize, nullptr, src2Lossy);
     }
 
-    if(bailOutKind != IR::BailOutInvalid && !this->IsLoopPrePass())
+
+    bool ignoreOverflowBailout = CONFIG_FLAG(RemoveIntOverflow) && instr->GetSrc1()->GetType() == TyInt32 && instr->GetSrc2()->GetType() == TyInt32 && bailOutKind == IR::BailOutOnOverflow;
+    bool ignoreNegativeZeroBailouit = CONFIG_FLAG(RemoveNegativeZero) && instr->GetSrc1()->GetType() == TyInt32 && instr->GetSrc2()->GetType() == TyInt32 && bailOutKind == IR::BailOutOnNegativeZero;
+    if(bailOutKind != IR::BailOutInvalid && !this->IsLoopPrePass() && !(ignoreOverflowBailout || ignoreNegativeZeroBailouit))
     {
         GenerateBailAtOperation(&instr, bailOutKind);
     }

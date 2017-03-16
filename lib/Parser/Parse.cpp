@@ -6448,6 +6448,9 @@ void Parser::AddTypeAnnotationToParseNode(ParseNodePtr pnode)
         case tkTypeObject:
             pnode->typeHint = Js::TypeHint::Object;
             break;
+        case tkTypeString:
+            pnode->typeHint = Js::TypeHint::String;
+            break;
         case tkTypeFloatArray:
             pnode->typeHint = Js::TypeHint::FloatArray;
             break;
