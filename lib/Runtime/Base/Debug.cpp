@@ -32,16 +32,16 @@ WCHAR* DumpCallStackFull(uint frameCount, bool print)
             Js::JavascriptFunction *jsFunc = walker.GetCurrentFunction();
 
             Js::FunctionBody * jsBody = jsFunc->GetFunctionBody();
-            Js::CallInfo const * callInfo = walker.GetCallInfo();
+            const Js::CallInfo callInfo = walker.GetCallInfo();
             const WCHAR* sourceFileName = _u("NULL");
             ULONG line = 0; LONG column = 0;
             walker.GetSourcePosition(&sourceFileName, &line, &column);
 
             StringCchPrintf(buffer, _countof(buffer), _u("%s [%s] (0x%p, Args=%u"), jsBody->GetDisplayName(), jsBody->GetDebugNumberSet(debugStringBuffer), jsFunc,
-                callInfo->Count);
+                callInfo.Count);
             sb.AppendSz(buffer);
 
-            for (uint i = 0; i < callInfo->Count; i++)
+            for (uint i = 0; i < callInfo.Count; i++)
             {
                 StringCchPrintf(buffer, _countof(buffer), _u(", 0x%p"), walker.GetJavascriptArgs()[i]);
                 sb.AppendSz(buffer);

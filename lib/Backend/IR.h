@@ -484,6 +484,7 @@ public:
     bool            dstIsAlwaysConvertedToInt32 : 1;
     bool            dstIsAlwaysConvertedToNumber : 1;
     bool            isCallInstrProtectedByNoProfileBailout : 1;
+    bool            isNonFastPathFrameDisplay : 1;
 protected:
     bool            isCloned:1;
     bool            hasBailOutInfo:1;
