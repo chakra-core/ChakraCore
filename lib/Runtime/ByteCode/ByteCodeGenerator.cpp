@@ -2805,6 +2805,35 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                     byteCodeGenerator->AssignParamSlotsRegister();
                 }
 
+                if (top->ChildHasWith() || pnode->sxFnc.HasWithStmt())
+                {
+                    // Parent scopes may contain symbols called inside the with.
+                    // Current implementation needs the symScope isObject.
+
+                    if (top->GetBodyScope()->GetHasOwnLocalInClosure() ||
+                        (top->GetParamScope()->GetHasOwnLocalInClosure() &&
+                         top->GetParamScope()->GetCanMergeWithBodyScope()))
+                    {
+                        top->GetBodyScope()->SetIsObject();
+                        if (top->byteCodeFunction->IsFunctionBody())
+                        {
+                            // Record this for future use in the no-refresh debugging.
+                            top->byteCodeFunction->GetFunctionBody()->SetHasSetIsObject(true);
+                        }
+                    }
+
+                    if (top->GetParamScope()->GetHasOwnLocalInClosure() &&
+                        !top->GetParamScope()->GetCanMergeWithBodyScope())
+                    {
+                        top->GetParamScope()->SetIsObject();
+                        if (top->byteCodeFunction->IsFunctionBody())
+                        {
+                            // Record this for future use in the no-refresh debugging.
+                            top->byteCodeFunction->GetFunctionBody()->SetHasSetIsObject(true);
+                        }
+                    }
+                }
+
                 if (byteCodeGenerator->NeedObjectAsFunctionScope(top, top->root)
                     || top->bodyScope->GetIsObject()
                     || top->paramScope->GetIsObject())
@@ -2981,27 +3010,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
         if (top->ChildHasWith() || pnode->sxFnc.HasWithStmt())
         {
-            // Parent scopes may contain symbols called inside the with.
-            // Current implementation needs the symScope isObject.
-
             parentFunc->SetChildHasWith();
-
-            if (parentFunc->GetBodyScope()->GetHasOwnLocalInClosure() ||
-                (parentFunc->GetParamScope()->GetHasOwnLocalInClosure() &&
-                 parentFunc->GetParamScope()->GetCanMergeWithBodyScope()))
-            {
-                parentFunc->GetBodyScope()->SetIsObject();
-                // Record this for future use in the no-refresh debugging.
-                parentFunctionBody->SetHasSetIsObject(true);
-            }
-
-            if (parentFunc->GetParamScope()->GetHasOwnLocalInClosure() &&
-                !parentFunc->GetParamScope()->GetCanMergeWithBodyScope())
-            {
-                parentFunc->GetParamScope()->SetIsObject();
-                // Record this for future use in the no-refresh debugging.
-                parentFunctionBody->SetHasSetIsObject(true);
-            }
         }
 
         // Propagate HasMaybeEscapedNestedFunc

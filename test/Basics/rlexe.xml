@@ -270,6 +270,14 @@
   </test>
   <test>
     <default>
+      <files>With.js</files>
+      <baseline>With.baseline</baseline>
+      <compile-flags>-force:deferparse</compile-flags>
+      <tags>fail_mutators</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>withBug940841.js</files>
       <compile-flags>-MaxinterpretCount:1 -MaxSimpleJITRunCount:1</compile-flags>
     </default>

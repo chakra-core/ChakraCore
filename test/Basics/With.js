@@ -151,3 +151,16 @@ level1Func();
 with ({}) {
     var arrwithfunc = [(function handlerFactory() { return; })];
 }
+
+(function() {
+    function outer() {
+        function inner(){ WScript.Echo('in inner') }
+        with({}) 
+        {
+            {
+                (function(){ inner(); })();
+            }
+        }
+    }
+    outer();
+})();
