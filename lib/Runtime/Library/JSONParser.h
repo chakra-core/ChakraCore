@@ -54,7 +54,7 @@ namespace JSON
         {
         };
 
-        Js::Var Parse(LPCWSTR str, int length);
+        Js::Var Parse(LPCWSTR str, uint length);
         Js::Var Parse(Js::JavascriptString* input);
         Js::Var Walk(Js::JavascriptString* name, Js::PropertyId id, Js::Var holder, uint32 index = Js::JavascriptArray::InvalidIndex);
         void Finalizer();
@@ -87,6 +87,6 @@ namespace JSON
         ArenaAllocator* arenaAllocator;
         typedef JsUtil::BaseDictionary<const Js::PropertyRecord *, JsonTypeCache*, ArenaAllocator, PowerOf2SizePolicy, Js::PropertyRecordStringHashComparer>  JsonTypeCacheList;
         JsonTypeCacheList* typeCacheList;
-        static const int MIN_CACHE_LENGTH = 50; // Use Json type cache only if the JSON string is larger than this constant.
+        static const uint MIN_CACHE_LENGTH = 50; // Use Json type cache only if the JSON string is larger than this constant.
     };
 } // namespace JSON
