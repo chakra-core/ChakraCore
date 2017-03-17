@@ -111,20 +111,24 @@ void MainVisitor::ProcessUnbarrieredFields(
         string fieldTypeName = qualType.getAsString();
         string fieldName = field->getNameAsString();
 
+        if (StartsWith(fieldTypeName, "WriteBarrierPtr<") || // WriteBarrierPtr fields
+            Contains(fieldTypeName, "_no_write_barrier_policy, ")) // FieldNoBarrier
+        {
+            continue; // skip
+        }
+
         // If an annotated field type is struct/class/union (RecordType), the
         // field type in turn should likely be annoatated.
-        if (StartsWith(fieldTypeName, "typename WriteBarrierFieldTypeTraits") ||
-            StartsWith(fieldTypeName, "WriteBarrierFieldTypeTraits") ||
-            StartsWith(fieldTypeName, "const typename WriteBarrierFieldTypeTraits") ||
-            StartsWith(fieldTypeName, "const WriteBarrierFieldTypeTraits") ||
-            fieldName.length() == 0) // anonymous union/struct
+        if (fieldTypeName.back() != '*'  // not "... *"
+            &&
+            (
+                StartsWith(fieldTypeName, "typename WriteBarrierFieldTypeTraits") ||
+                StartsWith(fieldTypeName, "WriteBarrierFieldTypeTraits") ||
+                StartsWith(fieldTypeName, "const typename WriteBarrierFieldTypeTraits") ||
+                StartsWith(fieldTypeName, "const WriteBarrierFieldTypeTraits") ||
+                fieldName.length() == 0  // anonymous union/struct
+            ))
         {
-            // Do not track down FieldNoBarrier types
-            if (Contains(fieldTypeName, "_no_write_barrier_policy, "))
-            {
-                continue;
-            }
-
             auto originalType = qualType->getUnqualifiedDesugaredType();
             if (auto arrayType = dyn_cast<ArrayType>(originalType))
             {
@@ -141,10 +145,6 @@ void MainVisitor::ProcessUnbarrieredFields(
                         << " (" << typeName << "::" << fieldName << ")\n";
                 }
             }
-        }
-        else if (StartsWith(fieldTypeName, "WriteBarrierPtr<"))
-        {
-            // do nothing, explicit WriteBarrierPtr use
         }
         else
         {
