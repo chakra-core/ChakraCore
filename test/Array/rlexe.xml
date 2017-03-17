@@ -733,4 +733,9 @@
       <files>bug_9575461.js</files>
     </default>
   </test>
+  <test>
+     <default>
+        <files>array_conv_src.js</files>
+     </default>
+  </test>
 </regress-exe>

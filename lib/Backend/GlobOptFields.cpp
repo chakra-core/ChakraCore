@@ -3194,8 +3194,6 @@ GlobOpt::UpdateObjPtrValueType(IR::Opnd * opnd, IR::Instr * instr)
             }
             break;
         case Js::TypeIds_Array:
-        case Js::TypeIds_NativeFloatArray:
-        case Js::TypeIds_NativeIntArray:
             // Because array can change type id, we can only make it definite if we are doing array check hoist
             // so that implicit call will be installed between the array checks.
             if (!DoArrayCheckHoist() ||

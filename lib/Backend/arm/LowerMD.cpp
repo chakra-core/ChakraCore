@@ -7320,7 +7320,7 @@ LowererMD::EmitLoadVarNoCheck(IR::RegOpnd * dst, IR::RegOpnd * src, IR::Instr *i
 }
 
 bool
-LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
+LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed, bool bailOutOnHelper, IR::LabelInstr * labelBailOut)
 {
     // isInt:
     //   dst = ASR r1, AtomTag
@@ -7364,8 +7364,29 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
             (src1ValueType.IsLikelyFloat() || src1ValueType.IsLikelyUntaggedInt()) &&
             !(instrLoad->HasBailOutInfo() && (instrLoad->GetBailOutKind() == IR::BailOutIntOnly || instrLoad->GetBailOutKind() == IR::BailOutExpectingInteger));
 
-        if (!isNotInt)
+        if (isNotInt)
         {
+            // Known to be non-integer. If we are required to bail out on helper call, just re-jit.
+            if (!doFloatToIntFastPath && bailOutOnHelper)
+            {
+                if(!GlobOpt::DoAggressiveIntTypeSpec(this->m_func))
+                {
+                    // Aggressive int type specialization is already off for some reason. Prevent trying to rejit again
+                    // because it won't help and the same thing will happen again. Just abort jitting this function.
+                    if(PHASE_TRACE(Js::BailOutPhase, this->m_func))
+                    {
+                        Output::Print(_u("    Aborting JIT because AggressiveIntTypeSpec is already off\n"));
+                        Output::Flush();
+                    }
+                    throw Js::OperationAbortedException();
+                }
+
+                throw Js::RejitException(RejitReason::AggressiveIntTypeSpecDisabled);
+            }
+        }
+        else
+        {
+            // Could be an integer in this case.
             if (!isInt)
             {
                 if(doFloatToIntFastPath)
@@ -7422,7 +7443,13 @@ LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
             return true;
         }
 
-        if (conversionFromObjectAllowed)
+        if (bailOutOnHelper)
+        {
+            Assert(labelBailOut);
+            this->m_lowerer->InsertBranch(Js::OpCode::Br, labelBailOut, instrLoad);
+            instrLoad->Remove();
+        }
+        else if (conversionFromObjectAllowed)
         {
             this->m_lowerer->LowerUnaryHelperMem(instrLoad, IR::HelperConv_ToInt32);
         }

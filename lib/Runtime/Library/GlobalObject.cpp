@@ -952,17 +952,16 @@ namespace Js
             {
                 JavascriptError::ThrowStackOverflowError(scriptContext);
             }
+            else if (hrCodeGen == JSERR_AsmJsCompileError)
+            {
+                // if asm.js compilation succeeded, retry with asm.js disabled
+                grfscr |= fscrNoAsmJs;
+                return DefaultEvalHelper(scriptContext, source, sourceLength, moduleID, grfscr, pszTitle, registerDocument, isIndirect, strictMode);
+            }
             JavascriptError::MapAndThrowError(scriptContext, hrCodeGen);
         }
         else
         {
-            if (se.ei.scode == JSERR_AsmJsCompileError)
-            {
-                // if asm.js compilation succeeded, retry with asm.js disabled
-                grfscr |= fscrNoAsmJs;
-                se.Clear();
-                return DefaultEvalHelper(scriptContext, source, sourceLength, moduleID, grfscr, pszTitle, registerDocument, isIndirect, strictMode);
-            }
 
             Assert(funcBody != nullptr);
             funcBody->SetDisplayName(pszTitle);

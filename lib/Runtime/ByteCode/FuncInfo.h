@@ -83,6 +83,8 @@ private:
     uint        nextForInLoopLevel;
     uint        maxForInLoopLevel;
 public:
+    static const Js::RegSlot InitialConstRegsCount = 2; // constRegsCount is set to 2 because R0 is the return register, and R1 is the root object
+
     ArenaAllocator *alloc;
     // set in Bind/Assign pass
     Js::RegSlot varRegsCount; // number of registers used for non-constants
@@ -192,7 +194,6 @@ public:
     Symbol *innerArgumentsSymbol;
     JsUtil::List<Js::RegSlot, ArenaAllocator> nonUserNonTempRegistersToInitialize;
 
-    // constRegsCount is set to 2 because R0 is the return register, and R1 is the root object.
     FuncInfo(
         const char16 *name,
         ArenaAllocator *alloc,

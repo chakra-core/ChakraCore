@@ -2535,6 +2535,8 @@ BackwardPass::ProcessBlock(BasicBlock * block)
         }
 #endif
 
+        AssertOrFailFastMsg(!instr->IsLowered(), "Lowered instruction detected in pre-lower context!");
+
         this->currentInstr = instr;
         this->currentRegion = this->currentBlock->GetFirstInstr()->AsLabelInstr()->GetRegion();
         

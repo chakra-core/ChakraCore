@@ -67,9 +67,9 @@ namespace Js
 
         AssertMsg(JavascriptOperators::GetTypeId(funcCaller) == TypeIds_Function, "non function caller");
 
-        CallInfo const *callInfo = walker->GetCallInfo();
-        uint32 paramCount = callInfo->Count;
-        CallFlags flags = callInfo->Flags;
+        const CallInfo callInfo = walker->GetCallInfo();
+        uint32 paramCount = callInfo.Count;
+        CallFlags flags = callInfo.Flags;
 
         if (paramCount == 0 || (flags & CallFlags_Eval))
         {

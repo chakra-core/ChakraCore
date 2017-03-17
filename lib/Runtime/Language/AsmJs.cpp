@@ -919,7 +919,11 @@ varDeclEnd:
     {
         ParseNode* endStmt = m.GetCurrentParserNode();
 
-        Assert( endStmt->nop == knopList );
+        if (endStmt->nop != knopList)
+        {
+            return m.Fail(endStmt, _u("Module must have a return"));
+        }
+
         ParseNode* node = ParserWrapper::GetBinaryLeft( endStmt );
         ParseNode* endNode = ParserWrapper::GetBinaryRight( endStmt );
 
@@ -961,6 +965,10 @@ varDeclEnd:
         }
 
         ParseNode* objectElement = ParserWrapper::GetUnaryNode(objNode);
+        if (!objectElement)
+        {
+            return m.Fail(node, _u("Return object must not be empty"));
+        }
         while( objectElement )
         {
             ParseNode* member = nullptr;

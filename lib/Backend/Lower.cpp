@@ -12956,13 +12956,13 @@ void Lowerer::LowerBoundCheck(IR::Instr *const instr)
         //     jo   $bailOut
         // $bailOut: (insertBeforeInstr)
         Assert(!offsetOpnd || offsetOpnd->GetValue() == offset);
-        IR::RegOpnd *const addResultOpnd = IR::RegOpnd::New(TyMachReg, func);
+        IR::RegOpnd *const addResultOpnd = IR::RegOpnd::New(TyInt32, func);
         autoReuseAddResultOpnd.Initialize(addResultOpnd, func);
         InsertAdd(
             true,
             addResultOpnd,
             rightOpnd,
-            offsetOpnd ? offsetOpnd->UseWithNewType(TyMachReg, func) : IR::IntConstOpnd::New(offset, TyMachReg, func, true),
+            offsetOpnd ? offsetOpnd->UseWithNewType(TyInt32, func) : IR::IntConstOpnd::New(offset, TyInt32, func, true),
             insertBeforeInstr);
         InsertBranch(LowererMD::MDOverflowBranchOpcode, bailOutLabel, insertBeforeInstr);
 
@@ -17186,7 +17186,8 @@ Lowerer::GenerateFastStElemI(IR::Instr *& stElem, bool *instrIsInHelperBlockRef)
 
                     // Convert reg to int32
                     // Note: ToUint32 is implemented as (uint32)ToInt32()
-                    m_lowererMD.EmitLoadInt32(instr, true /*conversionFromObjectAllowed*/);
+                    bool bailOutOnHelperCall = (stElem->HasBailOutInfo() && (stElem->GetBailOutKind() & IR::BailOutOnArrayAccessHelperCall));
+                    m_lowererMD.EmitLoadInt32(instr, true /*conversionFromObjectAllowed*/, bailOutOnHelperCall, labelHelper);
 
                     // MOV indirOpnd, reg
                     InsertMove(indirOpnd, reg, stElem);
@@ -23594,7 +23595,7 @@ void Lowerer::LowerLdFrameDisplay(IR::Instr *instr, bool doStackFrameDisplay)
     // If the dst opnd is a byte code temp, that indicates we're prepending a block scope or some such and
     // shouldn't attempt to do this.
     if (envDepth == (uint16)-1 ||
-        (!doStackFrameDisplay && instr->GetDst()->AsRegOpnd()->m_sym->IsTempReg(instr->m_func)) ||
+        (!doStackFrameDisplay && (instr->isNonFastPathFrameDisplay || instr->GetDst()->AsRegOpnd()->m_sym->IsTempReg(instr->m_func))) ||
         PHASE_OFF(Js::FrameDisplayFastPathPhase, func))
     {
         if (isStrict)

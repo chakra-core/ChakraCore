@@ -297,6 +297,12 @@ namespace Js
         if (args.Info.Count >= 3)
         {
             newBufferLength = ToIndex(args[2], JSERR_ArrayLengthConstructIncorrect, scriptContext, MaxArrayBufferLength);
+
+            // ToIndex above can call user script (valueOf) which can detach the buffer
+            if (arrayBuffer->IsDetached())
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("ArrayBuffer.transfer"));
+            }
         }
 
         return arrayBuffer->TransferInternal(newBufferLength);

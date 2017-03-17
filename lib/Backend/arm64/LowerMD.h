@@ -142,7 +142,7 @@ public:
        static void            EmitInt4Instr(IR::Instr *instr) { __debugbreak(); }
        static void            EmitPtrInstr(IR::Instr *instr) { __debugbreak(); }
               void            EmitLoadVar(IR::Instr *instr, bool isFromUint32 = false, bool isHelper = false) { __debugbreak(); }
-              bool            EmitLoadInt32(IR::Instr *instr, bool conversionFromObjectAllowed) { __debugbreak(); return 0; }
+              bool            EmitLoadInt32(IR::Instr *instr, bool conversionFromObjectAllowed, bool bailOutOnHelper = false, IR::LabelInstr * labelBailOut = nullptr) { __debugbreak(); return 0; }
               IR::Instr *     LowerInt64Assign(IR::Instr * instr) { __debugbreak(); return nullptr; }
 
        static void            LowerInt4NegWithBailOut(IR::Instr *const instr, const IR::BailOutKind bailOutKind, IR::LabelInstr *const bailOutLabel, IR::LabelInstr *const skipBailOutLabel) { __debugbreak(); }

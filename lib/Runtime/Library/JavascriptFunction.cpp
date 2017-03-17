@@ -1110,6 +1110,7 @@ namespace Js
             PROBE_STACK(scriptContext, outArgs.Info.Count * sizeof(Var) + Js::Constants::MinStackDefault); // args + function call
             outArgsSize = outArgs.Info.Count * sizeof(Var);
             outArgs.Values = (Var*)_alloca(outArgsSize);
+            ZeroMemory(outArgs.Values, outArgsSize);
         }
         else
         {
@@ -2786,9 +2787,9 @@ LABEL1:
                 Var args = nullptr;
                 //Create a copy of the arguments and return it.
 
-                CallInfo const *callInfo = walker.GetCallInfo();
+                const CallInfo callInfo = walker.GetCallInfo();
                 args = JavascriptOperators::LoadHeapArguments(
-                    this, callInfo->Count - 1,
+                    this, callInfo.Count - 1,
                     walker.GetJavascriptArgs(),
                     scriptContext->GetLibrary()->GetNull(),
                     scriptContext->GetLibrary()->GetNull(),

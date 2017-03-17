@@ -144,7 +144,7 @@ IRBuilderAsmJs::Build()
     {
         Assert(newOpcode != Js::OpCodeAsmJs::EndOfBlock);
 
-        AssertMsg(Js::OpCodeUtilAsmJs::IsValidByteCodeOpcode(newOpcode), "Error getting opcode from m_jnReader.Op()");
+        AssertOrFailFastMsg(Js::OpCodeUtilAsmJs::IsValidByteCodeOpcode(newOpcode), "Error getting opcode from m_jnReader.Op()");
 
         uint layoutAndSize = layoutSize * Js::OpLayoutTypeAsmJs::Count + Js::OpCodeUtilAsmJs::GetOpCodeLayout(newOpcode);
         switch (layoutAndSize)

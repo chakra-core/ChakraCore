@@ -488,6 +488,7 @@ public:
     bool            dstIsAlwaysConvertedToNumber : 1;
     bool            isCallInstrProtectedByNoProfileBailout : 1;
     bool            hasSideEffects : 1; // The instruction cannot be dead stored
+    bool            isNonFastPathFrameDisplay : 1;
 protected:
     bool            isCloned:1;
     bool            hasBailOutInfo:1;

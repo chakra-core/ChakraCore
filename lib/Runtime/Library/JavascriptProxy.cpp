@@ -1821,8 +1821,15 @@ namespace Js
                 return  JavascriptOperators::SetItem(receiver, targetObj, indexVal, newValue, scriptContext, PropertyOperationFlags::PropertyOperation_None, skipPrototypeCheck);
             }
             case SetPropertyTrapKind::SetPropertyWPCacheKind:
+            {
+                Var name = GetName(requestContext, propertyId);
+                if (!JavascriptString::Is(name) || !VirtualTableInfo<Js::PropertyString>::HasVirtualTable(JavascriptString::FromVar(name)))
+                {
+                    name = nullptr;
+                }
                 return JavascriptOperators::SetPropertyWPCache(receiver, targetObj, propertyId, newValue, requestContext,
-                    static_cast<PropertyString*>(GetName(requestContext, propertyId)), PropertyOperationFlags::PropertyOperation_None);
+                    static_cast<Js::PropertyString*>(name), PropertyOperationFlags::PropertyOperation_None);
+            }
             default:
                 Assert(FALSE);
             }
