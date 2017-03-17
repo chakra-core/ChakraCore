@@ -118,5 +118,8 @@ make -j4 install
 
 if [ $? == 0 ]; then
     echo -e "Done!\n./build.sh args are given below;\n\n"
+    # Create a local bfd-plugins and copy LLVMgold.so into there.
+    mkdir -p "${ROOT}/build/lib/bfd-plugins/"
+    cp "${ROOT}/build/lib/LLVMgold.so" "${ROOT}/build/lib/bfd-plugins/"
     echo "--cxx=${ROOT}/build/bin/clang++ --cc=${ROOT}/build/bin/clang"
 fi
