@@ -2768,16 +2768,18 @@ namespace Js
 
                 AsmJsScriptFunction* scriptFuncObj = (AsmJsScriptFunction*)ScriptFunction::OP_NewScFunc(pDisplay, functionInfo);
                 localModuleFunctions[modFunc.location] = scriptFuncObj;
+
+                if (scriptFuncObj->GetDynamicType()->GetEntryPoint() == DefaultDeferredDeserializeThunk)
+                {
+                    JavascriptFunction::DeferredDeserialize(scriptFuncObj);
+                }
+
                 if (i == 0 && info->GetUsesChangeHeap())
                 {
                     scriptFuncObj->GetDynamicType()->SetEntryPoint(AsmJsChangeHeapBuffer);
                 }
                 else
                 {
-                    if (scriptFuncObj->GetDynamicType()->GetEntryPoint() == DefaultDeferredDeserializeThunk)
-                    {
-                        JavascriptFunction::DeferredDeserialize(scriptFuncObj);
-                    }
                     scriptFuncObj->GetDynamicType()->SetEntryPoint(AsmJsExternalEntryPoint);
                     scriptFuncObj->GetFunctionBody()->GetAsmJsFunctionInfo()->SetModuleFunctionBody(asmJsModuleFunctionBody);
                 }
@@ -6342,6 +6344,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
                 PROBE_STACK(scriptContext, outArgs.Info.Count * sizeof(Var) + Js::Constants::MinStackDefault); // args + function call
                 outArgsSize = outArgs.Info.Count * sizeof(Var);
                 outArgs.Values = (Var*)_alloca(outArgsSize);
+                ZeroMemory(outArgs.Values, outArgsSize);
             }
             else
             {

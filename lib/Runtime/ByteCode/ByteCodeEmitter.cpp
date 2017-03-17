@@ -3320,6 +3320,7 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
         {
             // Emit bytecode to copy the initial values from param names to their corresponding body bindings.
             // We have to do this after the rest param is marked as false for need declaration.
+            Symbol* funcSym = funcInfo->root->sxFnc.GetFuncSymbol();
             paramScope->ForEachSymbol([&](Symbol* param) {
                 Symbol* varSym = funcInfo->GetBodyScope()->FindLocalSymbol(param->GetName());
                 Assert(varSym || pnode->sxFnc.pnodeName->sxVar.sym == param);
@@ -3328,7 +3329,9 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
                 {
                     // Do not copy the arguments to the body if it is not used
                 }
-                else if (varSym && varSym->GetSymbolType() == STVariable && (varSym->IsInSlot(funcInfo) || varSym->GetLocation() != Js::Constants::NoRegister))
+                else if ((funcSym == nullptr || funcSym != param)    // Do not copy the symbol over to body as the function expression symbol
+                                                                     // is expected to stay inside the function expression scope
+                    && (varSym && varSym->GetSymbolType() == STVariable && (varSym->IsInSlot(funcInfo) || varSym->GetLocation() != Js::Constants::NoRegister)))
                 {
                     // Simulating EmitPropLoad here. We can't directly call the method as we have to use the param scope specifically.
                     // Walking the scope chain is not possible at this time.
@@ -3634,9 +3637,9 @@ void ByteCodeGenerator::EmitScopeList(ParseNode *pnode, ParseNode *breakOnBodySc
                 {
                     exit(JSERR_AsmJsCompileError);
                 }
-                else if (!(flags & fscrDeferFncParse))
+                else
                 {
-                    // If deferral is not allowed, throw and reparse everything with asm.js disabled.
+                    // if asm.js parse error happened, reparse with asm.js disabled.
                     throw Js::AsmJsParseException();
                 }
             }

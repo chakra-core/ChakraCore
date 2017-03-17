@@ -103,6 +103,16 @@ var tests = [
         }
     },
     {
+        name: "Type confusion in JavascriptProxy::SetPropertyTrap when using a Symbol",
+        body: function () {
+            try{ Reflect.set((new Proxy({}, {has: function(){ return true; }})), 'abc', 0x44444444, new Uint32Array); } catch(e){}
+            try{ Reflect.set((new Proxy({}, {has: function(){ return true; }})), 'abc', 0x44444444, new Uint32Array); } catch(e){}
+
+            var obj1 = Object.create(new Proxy({}, {}));
+            obj1[Symbol.species] = 0;
+        }
+    },
+    {
         name: "Assertion validation : revoking the proxy in getPrototypeOf trap",
         body() {
             var trapCalled = false;

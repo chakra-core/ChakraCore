@@ -819,4 +819,11 @@
       <files>bugGH2270.js</files>
     </default>
   </test>
+  <test>
+    <default>
+      <files>nested.js</files>
+      <baseline>nested.baseline</baseline>
+      <compile-flags>-forcedeferparse -testtrace:asmjs -simdjs</compile-flags>
+    </default>
+  </test>
 </regress-exe>

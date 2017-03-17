@@ -7999,9 +7999,9 @@ LowererMD::EmitLoadVar(IR::Instr *instrLoad, bool isFromUint32, bool isHelper)
 }
 
 bool
-LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed)
+LowererMD::EmitLoadInt32(IR::Instr *instrLoad, bool conversionFromObjectAllowed, bool bailOutOnHelper, IR::LabelInstr * labelBailOut)
 {
-    return lowererMDArch.EmitLoadInt32(instrLoad, conversionFromObjectAllowed);
+    return lowererMDArch.EmitLoadInt32(instrLoad, conversionFromObjectAllowed, bailOutOnHelper, labelBailOut);
 }
 
 void

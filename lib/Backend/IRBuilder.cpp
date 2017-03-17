@@ -704,7 +704,7 @@ IRBuilder::Build()
             }
         }
 #endif
-        AssertMsg(Js::OpCodeUtil::IsValidByteCodeOpcode(newOpcode), "Error getting opcode from m_jnReader.Op()");
+        AssertOrFailFastMsg(Js::OpCodeUtil::IsValidByteCodeOpcode(newOpcode), "Error getting opcode from m_jnReader.Op()");
 
         uint layoutAndSize = layoutSize * Js::OpLayoutType::Count + Js::OpCodeUtil::GetOpCodeLayout(newOpcode);
         switch(layoutAndSize)
@@ -6824,22 +6824,16 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
                     Js::Constants::NoByteCodeOffset);
             }
 
-            IR::RegOpnd* tempRegOpnd = IR::RegOpnd::New(StackSym::New(this->m_func), TyVar, this->m_func);
+            IR::Instr* lfd = IR::Instr::New(
+                Js::OpCode::LdFrameDisplay,
+                this->BuildDstOpnd(this->m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg()),
+                this->BuildDstOpnd(this->m_func->GetJITFunctionBody()->GetLocalClosureReg()),
+                this->BuildDstOpnd(this->m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg()),
+                this->m_func);
             this->AddInstr(
-                IR::Instr::New(
-                    Js::OpCode::LdFrameDisplay,
-                    tempRegOpnd,
-                    this->BuildSrcOpnd(this->m_func->GetJITFunctionBody()->GetLocalClosureReg()),
-                    this->BuildSrcOpnd(this->m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg()),
-                    this->m_func),
+                lfd,
                 Js::Constants::NoByteCodeOffset);
-            this->AddInstr(
-                IR::Instr::New(
-                    Js::OpCode::MOV,
-                    this->BuildDstOpnd(this->m_func->GetJITFunctionBody()->GetLocalFrameDisplayReg()),
-                    tempRegOpnd,
-                    this->m_func),
-                Js::Constants::NoByteCodeOffset);
+            lfd->isNonFastPathFrameDisplay = true;
         }
         break;
 

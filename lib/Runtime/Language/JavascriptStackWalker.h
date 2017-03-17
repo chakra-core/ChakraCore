@@ -212,8 +212,8 @@ namespace Js
 
         JavascriptFunction *GetCurrentFunction(bool includeInlinedFrames = true) const;
         void SetCurrentFunction(JavascriptFunction *  function);
-        CallInfo const *GetCallInfo(bool includeInlinedFrames = true) const;
-        CallInfo const *GetCallInfoFromPhysicalFrame() const;
+        CallInfo GetCallInfo(bool includeInlinedFrames = true) const;
+        CallInfo GetCallInfoFromPhysicalFrame() const;
         bool GetThis(Var *pThis, int moduleId) const;
         Js::Var * GetJavascriptArgs() const;
         void **GetCurrentArgv() const;

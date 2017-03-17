@@ -477,6 +477,11 @@ namespace Js
 
     bool JavascriptArray::IsMissingItem(uint32 index)
     {
+        if (this->length <= index)
+        {
+            return false;
+        }
+
         bool isIntArray = false, isFloatArray = false;
         this->GetArrayTypeAndConvert(&isIntArray, &isFloatArray);
 
@@ -3163,11 +3168,14 @@ namespace Js
 
             if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
-                if (JavascriptOperators::IsConcatSpreadable(aItem))
+                spreadableCheckedAndTrue = JavascriptOperators::IsConcatSpreadable(aItem);
+                if (!JavascriptNativeIntArray::Is(pDestArray))
                 {
-                    spreadableCheckedAndTrue = true;
+                    ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue);
+                    return pDestArray;
                 }
-                else
+
+                if(!spreadableCheckedAndTrue)
                 {
                     pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
                     idxDest = idxDest + 1;
@@ -3236,11 +3244,14 @@ namespace Js
 
             if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
-                if (JavascriptOperators::IsConcatSpreadable(aItem))
+                spreadableCheckedAndTrue = JavascriptOperators::IsConcatSpreadable(aItem);
+                if (!JavascriptNativeFloatArray::Is(pDestArray))
                 {
-                    spreadableCheckedAndTrue = true;
+                    ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue);
+                    return pDestArray;
                 }
-                else
+
+                if(!spreadableCheckedAndTrue)
                 {
                     pDestArray->SetItem(idxDest, aItem, PropertyOperation_ThrowIfNotExtensible);
 
@@ -5320,6 +5331,11 @@ Case0:
                 pArr->SetHasNoMissingValues(false);
             }
 
+            // Above FillFromPrototypes call can change the length of the array. Our segment calculation below will
+            // not work with the stale length. Update the length.
+            // Note : since we are reversing the whole segment below - the functionality is not spec compliant already.
+            length = pArr->length;
+
             SparseArraySegmentBase* seg = pArr->head;
             SparseArraySegmentBase *prevSeg = nullptr;
             SparseArraySegmentBase *nextSeg = nullptr;
@@ -5801,7 +5817,7 @@ Case0:
         // Prototype lookup for missing elements
         if (!pArr->HasNoMissingValues())
         {
-            for (uint32 i = 0; i < newLen; i++)
+            for (uint32 i = 0; i < newLen && (i + start) < pArr->length; i++)
             {
                 // array type might be changed in the below call to DirectGetItemAtFull
                 // need recheck array type before checking array item [i + start]
@@ -10150,6 +10166,9 @@ Case0:
 
                 if (JavascriptArray::Is(newObj))
                 {
+#if ENABLE_COPYONACCESS_ARRAY
+                    JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
                     newArr = JavascriptArray::FromVar(newObj);
                 }
             }
@@ -10200,6 +10219,9 @@ Case0:
 
                 if (JavascriptArray::Is(newObj))
                 {
+#if ENABLE_COPYONACCESS_ARRAY
+                    JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
                     newArr = JavascriptArray::FromVar(newObj);
                 }
             }
@@ -10310,6 +10332,9 @@ Case0:
             // If the new object we created is an array, remember that as it will save us time setting properties in the object below
             if (JavascriptArray::Is(newObj))
             {
+#if ENABLE_COPYONACCESS_ARRAY
+                JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(newObj);
+#endif
                 newArr = JavascriptArray::FromVar(newObj);
             }
             else if (TypedArrayBase::Is(newObj))

@@ -1053,7 +1053,6 @@ namespace Js
             // during PostCollectCallBack before Dispose deleting the script context.
             scriptContext->ResetWeakReferenceDictionaryList();
             scriptContext->SetIsFinalized();
-            scriptContext->GetThreadContext()->UnregisterScriptContext(scriptContext);
             scriptContext->MarkForClose();
         }
     }

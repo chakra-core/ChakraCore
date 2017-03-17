@@ -3324,6 +3324,8 @@ namespace Js
         byteCodeGen->Writer()->EndStatement(functionNode);
         byteCodeGen->Writer()->End();
 
+        functionBody->CheckAndSetConstantCount(FuncInfo::InitialConstRegsCount);
+
         autoCleanup.Done();
     }
 

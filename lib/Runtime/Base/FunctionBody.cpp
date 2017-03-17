@@ -2146,6 +2146,7 @@ namespace Js
             return GetFunctionBody();
         }
 
+        bool asmjsParseFailed = false;
         BOOL fParsed = FALSE;
         FunctionBody* returnFunctionBody = nullptr;
         ENTER_PINNED_SCOPE(Js::PropertyRecordList, propertyRecordList);
@@ -2155,227 +2156,232 @@ namespace Js
         bool isDebugOrAsmJsReparse = false;
         FunctionBody* funcBody = nullptr;
 
-        AutoRestoreFunctionInfo autoRestoreFunctionInfo(this, DefaultEntryThunk);
-
-        // If m_hasBeenParsed = true, one of the following things happened:
-        // - We had multiple function objects which were all defer-parsed, but with the same function body and one of them
-        //   got the body to be parsed before another was called
-        // - We are in debug mode and had our thunks switched to DeferParseThunk
-        // - This is an already parsed asm.js module, which has been invalidated at link time and must be reparsed as a non-asm.js function
-        if (!this->m_hasBeenParsed)
         {
+            AutoRestoreFunctionInfo autoRestoreFunctionInfo(this, DefaultEntryThunk);
+            
+
+            // If m_hasBeenParsed = true, one of the following things happened things happened:
+            // - We had multiple function objects which were all defer-parsed, but with the same function body and one of them
+            //   got the body to be parsed before another was called
+            // - We are in debug mode and had our thunks switched to DeferParseThunk
+            // - This is an already parsed asm.js module, which has been invalidated at link time and must be reparsed as a non-asm.js function
+            if (!this->m_hasBeenParsed)
+            {
             this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
             funcBody = FunctionBody::NewFromParseableFunctionInfo(this, propertyRecordList);
-            autoRestoreFunctionInfo.funcBody = funcBody;
+                autoRestoreFunctionInfo.funcBody = funcBody;
 
-            PERF_COUNTER_DEC(Code, DeferredFunction);
+                PERF_COUNTER_DEC(Code, DeferredFunction);
 
-            if (!this->GetSourceContextInfo()->IsDynamic())
-            {
-                PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d; Is Top Level: %s; Source Url: %s\n"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"), this->GetSourceContextInfo()->url);
+                if (!this->GetSourceContextInfo()->IsDynamic())
+                {
+                    PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d; Is Top Level: %s; Source Url: %s\n"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(), this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"), this->GetSourceContextInfo()->url);
+                }
+                else
+                {
+                    PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(),  this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"));
+                }
+
+                if (!this->GetIsTopLevel() &&
+                    !this->GetSourceContextInfo()->IsDynamic() &&
+                    this->m_scriptContext->DoUndeferGlobalFunctions())
+                {
+                    this->GetUtf8SourceInfo()->UndeferGlobalFunctions([this](const Utf8SourceInfo::DeferredFunctionsDictionary::EntryType& func)
+                    {
+                        Js::ParseableFunctionInfo *nextFunc = func.Value();
+                        JavascriptExceptionObject* pExceptionObject = nullptr;
+
+                        if (nextFunc != nullptr && this != nextFunc)
+                        {
+                            try
+                            {
+                                nextFunc->Parse();
+                            }
+                            catch (OutOfMemoryException) {}
+                            catch (StackOverflowException) {}
+                            catch (const Js::JavascriptException& err)
+                            {
+                                pExceptionObject = err.GetAndClear();
+                            }
+
+                            // Do not do anything with an OOM or SOE, returning true is fine, it will then be undeferred (or attempted to again when called)
+                            if (pExceptionObject)
+                            {
+                                if (pExceptionObject != ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() &&
+                                    pExceptionObject != ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
+                                {
+                                    JavascriptExceptionOperators::DoThrow(pExceptionObject, /*scriptContext*/nullptr);
+                                }
+                            }
+                        }
+
+                        return true;
+                    });
+                }
             }
             else
             {
-                PHASE_PRINT_TESTTRACE1(Js::DeferParsePhase, _u("TestTrace: Deferred function parsed - ID: %d; Display Name: %s; Length: %d; Nested Function Count: %d; Utf8SourceInfo: %d; Source Length: %d\n; Is Top Level: %s;"), m_functionNumber, this->GetDisplayName(), this->m_cchLength, this->GetNestedCount(),  this->m_utf8SourceInfo->GetSourceInfoId(), this->m_utf8SourceInfo->GetCchLength(), this->GetIsTopLevel() ? _u("True") : _u("False"));
-            }
+                bool isDebugReparse = m_scriptContext->IsScriptContextInSourceRundownOrDebugMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
+                bool isAsmJsReparse = m_isAsmjsMode && !isDebugReparse;
 
-            if (!this->GetIsTopLevel() &&
-                !this->GetSourceContextInfo()->IsDynamic() &&
-                this->m_scriptContext->DoUndeferGlobalFunctions())
-            {
-                this->GetUtf8SourceInfo()->UndeferGlobalFunctions([this](const Utf8SourceInfo::DeferredFunctionsDictionary::EntryType& func)
-                {
-                    Js::ParseableFunctionInfo *nextFunc = func.Value();
-                    JavascriptExceptionObject* pExceptionObject = nullptr;
+                isDebugOrAsmJsReparse = isAsmJsReparse || isDebugReparse;
 
-                    if (nextFunc != nullptr && this != nextFunc)
-                    {
-                        try
-                        {
-                            nextFunc->Parse();
-                        }
-                        catch (OutOfMemoryException) {}
-                        catch (StackOverflowException) {}
-                        catch (const Js::JavascriptException& err)
-                        {
-                            pExceptionObject = err.GetAndClear();
-                        }
-
-                        // Do not do anything with an OOM or SOE, returning true is fine, it will then be undeferred (or attempted to again when called)
-                        if(pExceptionObject)
-                        {
-                            if(pExceptionObject != ThreadContext::GetContextForCurrentThread()->GetPendingOOMErrorObject() &&
-                                pExceptionObject != ThreadContext::GetContextForCurrentThread()->GetPendingSOErrorObject())
-                            {
-                                JavascriptExceptionOperators::DoThrow(pExceptionObject, /*scriptContext*/nullptr);
-                            }
-                        }
-                    }
-
-                    return true;
-                });
-            }
-        }
-        else
-        {
-            bool isDebugReparse = m_scriptContext->IsScriptContextInSourceRundownOrDebugMode() && !this->GetUtf8SourceInfo()->GetIsLibraryCode();
-            bool isAsmJsReparse = m_isAsmjsMode && !isDebugReparse;
-
-            isDebugOrAsmJsReparse = isAsmJsReparse || isDebugReparse;
-
-            funcBody = this->GetFunctionBody();
-
-            if (isDebugOrAsmJsReparse)
-            {
-    #if ENABLE_DEBUG_CONFIG_OPTIONS
-                char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
-    #endif
-    #if DBG
-                Assert(
-                    funcBody->IsReparsed()
-                    || m_scriptContext->IsScriptContextInSourceRundownOrDebugMode()
-                    || m_isAsmjsMode);
-    #endif
-                OUTPUT_TRACE(Js::DebuggerPhase, _u("Full nested reparse of function: %s (%s)\n"), funcBody->GetDisplayName(), funcBody->GetDebugNumberSet(debugStringBuffer));
-
-                if (funcBody->GetByteCode())
-                {
-                    // The current function needs to be cleaned up before getting generated in the debug mode.
-                    funcBody->CleanupToReparse();
-                }
-
-            }
-        }
-
-        // Note that we may be trying to re-gen an already-completed function. (This can happen, for instance,
-        // in the case of named function expressions inside "with" statements in compat mode.)
-        // In such a case, there's no work to do.
-        if (funcBody->GetByteCode() == nullptr)
-        {
-#if ENABLE_PROFILE_INFO
-            Assert(!funcBody->HasExecutionDynamicProfileInfo());
-#endif
-            // In debug or asm.js mode, the scriptlet will be asked to recompile again.
-            AssertMsg(isDebugOrAsmJsReparse || funcBody->GetGrfscr() & fscrGlobalCode || CONFIG_FLAG(DeferNested), "Deferred parsing of non-global procedure?");
-
-            HRESULT hr = NO_ERROR;
-            HRESULT hrParser = NO_ERROR;
-            HRESULT hrParseCodeGen = NO_ERROR;
-
-            BEGIN_LEAVE_SCRIPT_INTERNAL(m_scriptContext)
-            {
-                bool isCesu8 = m_scriptContext->GetSource(funcBody->GetSourceIndex())->IsCesu8();
-
-                size_t offset = this->StartOffset();
-                charcount_t charOffset = this->StartInDocument();
-                size_t length = this->LengthInBytes();
-
-                LPCUTF8 pszStart = this->GetStartOfDocument();
-
-                uint32 grfscr = funcBody->GetGrfscr() | fscrDeferredFnc;
-
-                // For the global function we want to re-use the glo functionbody which is already created in the non-debug mode
-                if (!funcBody->GetIsGlobalFunc())
-                {
-                    grfscr &= ~fscrGlobalCode;
-                }
-
-                if (!funcBody->GetIsDeclaration() && !funcBody->GetIsGlobalFunc()) // No refresh may reparse global function (e.g. eval code)
-                {
-                    // Notify the parser that the top-level function was defined in an expression,
-                    // (not a function declaration statement).
-                    grfscr |= fscrDeferredFncExpression;
-                }
-                if (!CONFIG_FLAG(DeferNested) || isDebugOrAsmJsReparse)
-                {
-                    grfscr &= ~fscrDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
-                }
+                funcBody = this->GetFunctionBody();
 
                 if (isDebugOrAsmJsReparse)
                 {
-                    grfscr |= fscrNoAsmJs; // Disable asm.js when debugging or if linking failed
-                }
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+                    char16 debugStringBuffer[MAX_FUNCTION_BODY_DEBUG_STRING_SIZE];
+#endif
+#if DBG
+                    Assert(
+                        funcBody->IsReparsed()
+                        || m_scriptContext->IsScriptContextInSourceRundownOrDebugMode()
+                        || m_isAsmjsMode);
+#endif
+                    OUTPUT_TRACE(Js::DebuggerPhase, _u("Full nested reparse of function: %s (%s)\n"), funcBody->GetDisplayName(), funcBody->GetDebugNumberSet(debugStringBuffer));
 
-                BEGIN_TRANSLATE_EXCEPTION_TO_HRESULT
-                {
-                    CompileScriptException se;
-                    Parser ps(m_scriptContext, funcBody->GetIsStrictMode() ? TRUE : FALSE);
-                    ParseNodePtr parseTree;
-
-                    uint nextFunctionId = funcBody->GetLocalFunctionId();
-                    hrParser = ps.ParseSourceWithOffset(&parseTree, pszStart, offset, length, charOffset, isCesu8, grfscr, &se,
-                        &nextFunctionId, funcBody->GetRelativeLineNumber(), funcBody->GetSourceContextInfo(),
-                        funcBody);
-//                    Assert(FAILED(hrParser) || nextFunctionId == funcBody->deferredParseNextFunctionId || isDebugOrAsmJsReparse || isByteCodeDeserialization);
-
-                    if (FAILED(hrParser))
+                    if (funcBody->GetByteCode())
                     {
-                        hrParseCodeGen = MapDeferredReparseError(hrParser, se); // Map certain errors like OOM/SOE
-                        AssertMsg(FAILED(hrParseCodeGen) && SUCCEEDED(hrParser), "Syntax errors should never be detected on deferred re-parse");
+                        // The current function needs to be cleaned up before getting generated in the debug mode.
+                        funcBody->CleanupToReparse();
                     }
-                    else
+
+                }
+            }
+
+            // Note that we may be trying to re-gen an already-completed function. (This can happen, for instance,
+            // in the case of named function expressions inside "with" statements in compat mode.)
+            // In such a case, there's no work to do.
+            if (funcBody->GetByteCode() == nullptr)
+            {
+#if ENABLE_PROFILE_INFO
+                Assert(!funcBody->HasExecutionDynamicProfileInfo());
+#endif
+                // In debug or asm.js mode, the scriptlet will be asked to recompile again.
+                AssertMsg(isDebugOrAsmJsReparse || funcBody->GetGrfscr() & fscrGlobalCode || CONFIG_FLAG(DeferNested), "Deferred parsing of non-global procedure?");
+
+                HRESULT hr = NO_ERROR;
+                HRESULT hrParser = NO_ERROR;
+                HRESULT hrParseCodeGen = NO_ERROR;
+
+                BEGIN_LEAVE_SCRIPT_INTERNAL(m_scriptContext)
+                {
+                    bool isCesu8 = m_scriptContext->GetSource(funcBody->GetSourceIndex())->IsCesu8();
+
+                    size_t offset = this->StartOffset();
+                    charcount_t charOffset = this->StartInDocument();
+                    size_t length = this->LengthInBytes();
+
+                    LPCUTF8 pszStart = this->GetStartOfDocument();
+
+                    uint32 grfscr = funcBody->GetGrfscr() | fscrDeferredFnc;
+
+                    // For the global function we want to re-use the glo functionbody which is already created in the non-debug mode
+                    if (!funcBody->GetIsGlobalFunc())
                     {
-                        TRACE_BYTECODE(_u("\nDeferred parse %s\n"), funcBody->GetDisplayName());
-                        Js::AutoDynamicCodeReference dynamicFunctionReference(m_scriptContext);
+                        grfscr &= ~fscrGlobalCode;
+                    }
 
-                        bool forceNoNative = isDebugOrAsmJsReparse ? this->GetScriptContext()->IsInterpreted() : false;
+                    if (!funcBody->GetIsDeclaration() && !funcBody->GetIsGlobalFunc()) // No refresh may reparse global function (e.g. eval code)
+                    {
+                        // Notify the parser that the top-level function was defined in an expression,
+                        // (not a function declaration statement).
+                        grfscr |= fscrDeferredFncExpression;
+                    }
+                    if (!CONFIG_FLAG(DeferNested) || isDebugOrAsmJsReparse)
+                    {
+                        grfscr &= ~fscrDeferFncParse; // Disable deferred parsing if not DeferNested, or doing a debug/asm.js re-parse
+                    }
 
-                        ParseableFunctionInfo* rootFunc = funcBody->GetParseableFunctionInfo();
-                        hrParseCodeGen = GenerateByteCode(parseTree, grfscr, m_scriptContext,
-                            &rootFunc, funcBody->GetSourceIndex(),
-                            forceNoNative, &ps, &se, funcBody->GetScopeInfo(), functionRef);
-                        funcBody->SetParseableFunctionInfo(rootFunc);
+                    if (isDebugOrAsmJsReparse)
+                    {
+                        grfscr |= fscrNoAsmJs; // Disable asm.js when debugging or if linking failed
+                    }
 
-                        if (se.ei.scode == JSERR_AsmJsCompileError)
+                    BEGIN_TRANSLATE_EXCEPTION_TO_HRESULT
+                    {
+                        CompileScriptException se;
+                        Parser ps(m_scriptContext, funcBody->GetIsStrictMode() ? TRUE : FALSE);
+                        ParseNodePtr parseTree;
+
+                        uint nextFunctionId = funcBody->GetLocalFunctionId();
+                        hrParser = ps.ParseSourceWithOffset(&parseTree, pszStart, offset, length, charOffset, isCesu8, grfscr, &se,
+                            &nextFunctionId, funcBody->GetRelativeLineNumber(), funcBody->GetSourceContextInfo(),
+                            funcBody);
+                        // Assert(FAILED(hrParser) || nextFunctionId == funcBody->deferredParseNextFunctionId || isDebugOrAsmJsReparse || isByteCodeDeserialization);
+
+                        if (FAILED(hrParser))
                         {
-                            // if asm.js compilation failed, reparse without asm.js
-                            m_grfscr |= fscrNoAsmJs;
-                            se.Clear();
-                            return Parse(functionRef, isByteCodeDeserialization);
-                        }
-
-                        if (SUCCEEDED(hrParseCodeGen))
-                        {
-                            fParsed = TRUE;
+                            hrParseCodeGen = MapDeferredReparseError(hrParser, se); // Map certain errors like OOM/SOE
+                            AssertMsg(FAILED(hrParseCodeGen) && SUCCEEDED(hrParser), "Syntax errors should never be detected on deferred re-parse");
                         }
                         else
                         {
-                            Assert(hrParseCodeGen == SCRIPT_E_RECORDED);
-                            hrParseCodeGen = se.ei.scode;
+                            TRACE_BYTECODE(_u("\nDeferred parse %s\n"), funcBody->GetDisplayName());
+                            Js::AutoDynamicCodeReference dynamicFunctionReference(m_scriptContext);
+
+                            bool forceNoNative = isDebugOrAsmJsReparse ? this->GetScriptContext()->IsInterpreted() : false;
+
+                            ParseableFunctionInfo* rootFunc = funcBody->GetParseableFunctionInfo();
+                            hrParseCodeGen = GenerateByteCode(parseTree, grfscr, m_scriptContext,
+                                &rootFunc, funcBody->GetSourceIndex(),
+                                forceNoNative, &ps, &se, funcBody->GetScopeInfo(), functionRef);
+                            funcBody->SetParseableFunctionInfo(rootFunc);
+
+                            if (SUCCEEDED(hrParseCodeGen))
+                            {
+                                fParsed = TRUE;
+                            }
+                            else
+                            {
+                                Assert(hrParseCodeGen == SCRIPT_E_RECORDED);
+                                hrParseCodeGen = se.ei.scode;
+                            }
                         }
                     }
+                    END_TRANSLATE_EXCEPTION_TO_HRESULT(hr);
                 }
-                END_TRANSLATE_EXCEPTION_TO_HRESULT(hr);
-            }
-            END_LEAVE_SCRIPT_INTERNAL(m_scriptContext);
+                END_LEAVE_SCRIPT_INTERNAL(m_scriptContext);
 
-            THROW_KNOWN_HRESULT_EXCEPTIONS(hr, m_scriptContext);
+                THROW_KNOWN_HRESULT_EXCEPTIONS(hr, m_scriptContext);
 
-            Assert(hr == NO_ERROR);
+                Assert(hr == NO_ERROR);
 
-            if (!SUCCEEDED(hrParser))
-            {
-                JavascriptError::ThrowError(m_scriptContext, VBSERR_InternalError);
-            }
-            else if (!SUCCEEDED(hrParseCodeGen))
-            {
-                /*
-                    * VBSERR_OutOfStack is of type kjstError but we throw a (more specific) StackOverflowError when a hard stack
-                    * overflow occurs. To keep the behavior consistent I'm special casing it here.
-                    */
-                if (hrParseCodeGen == VBSERR_OutOfStack)
+                if (!SUCCEEDED(hrParser))
                 {
-                    JavascriptError::ThrowStackOverflowError(m_scriptContext);
+                    JavascriptError::ThrowError(m_scriptContext, VBSERR_InternalError);
                 }
-                JavascriptError::MapAndThrowError(m_scriptContext, hrParseCodeGen);
+                else if (!SUCCEEDED(hrParseCodeGen))
+                {
+                    /*
+                     * VBSERR_OutOfStack is of type kjstError but we throw a (more specific) StackOverflowError when a hard stack
+                     * overflow occurs. To keep the behavior consistent I'm special casing it here.
+                     */
+                    if (hrParseCodeGen == VBSERR_OutOfStack)
+                    {
+                        JavascriptError::ThrowStackOverflowError(m_scriptContext);
+                    }
+                    else if (hrParseCodeGen == JSERR_AsmJsCompileError)
+                    {
+                        asmjsParseFailed = true;
+                    }
+                    else
+                    {
+                        JavascriptError::MapAndThrowError(m_scriptContext, hrParseCodeGen);
+                    }
+                }
+            }
+            else
+            {
+                fParsed = FALSE;
+            }
+
+            if (!asmjsParseFailed)
+            {
+                autoRestoreFunctionInfo.Clear();
             }
         }
-        else
-        {
-            fParsed = FALSE;
-        }
-
-        autoRestoreFunctionInfo.Clear();
 
         if (fParsed == TRUE)
         {
@@ -2385,12 +2391,19 @@ namespace Js
             this->m_hasBeenParsed = true;
             returnFunctionBody = funcBody;
         }
-        else
+        else if(!asmjsParseFailed)
         {
             returnFunctionBody = this->GetFunctionBody();
         }
 
         LEAVE_PINNED_SCOPE();
+
+        if (asmjsParseFailed)
+        {
+            // disable asm.js and reparse on failure
+            m_grfscr |= fscrNoAsmJs;
+            return Parse(functionRef, isByteCodeDeserialization);
+        }
 
         return returnFunctionBody;
     }

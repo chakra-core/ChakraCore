@@ -154,7 +154,7 @@ namespace Js
         Assert(IsJavascriptFrame());
         AssertMsg(this->GetCurrentFunction()->IsScriptFunction(), "GetPermanentArguments should not be called for non-script function as there is no slot allocated for it.");
 
-        const uint32 paramCount = GetCallInfo()->Count;
+        const uint32 paramCount = GetCallInfo().Count;
         if (paramCount == 0)
         {
             // glob function doesn't allocate ArgumentsObject slot on stack
@@ -206,8 +206,8 @@ namespace Js
         else
 #endif
         {
-            CallInfo const *callInfo = this->GetCallInfo();
-            if (callInfo->Count == 0)
+            const CallInfo callInfo = this->GetCallInfo();
+            if (callInfo.Count == 0)
             {
                 *pVarThis = JavascriptOperators::OP_GetThis(scriptContext->GetLibrary()->GetUndefined(), moduleId, scriptContext);
                 return false;
@@ -218,14 +218,14 @@ namespace Js
         }
     }
 
-    BOOL IsEval(const CallInfo* callInfo)
+    BOOL IsEval(CallInfo callInfo)
     {
-        return (callInfo->Flags & CallFlags_Eval) != 0;
+        return (callInfo.Flags & CallFlags_Eval) != 0;
     }
 
     BOOL JavascriptStackWalker::IsCallerGlobalFunction() const
     {
-        CallInfo const* callInfo = this->GetCallInfo();
+        const CallInfo callInfo = this->GetCallInfo();
 
         JavascriptFunction* function = this->GetCurrentFunction();
         if (IsLibraryStackFrameEnabled(this->scriptContext) && !function->IsScriptFunction())
@@ -241,14 +241,14 @@ namespace Js
         else
         {
             AssertMsg(FALSE, "Here we should only have script functions which were already parsed/deserialized.");
-            return callInfo->Count == 0 || IsEval(callInfo);
+            return callInfo.Count == 0 || IsEval(callInfo);
         }
     }
 
     BOOL JavascriptStackWalker::IsEvalCaller() const
     {
-        CallInfo const* callInfo = this->GetCallInfo();
-        return (callInfo->Flags & CallFlags_Eval) != 0;
+        const CallInfo callInfo = this->GetCallInfo();
+        return (callInfo.Flags & CallFlags_Eval) != 0;
     }
 
     Var JavascriptStackWalker::GetCurrentNativeArgumentsObject() const
@@ -831,7 +831,7 @@ namespace Js
             if (this->IsJavascriptFrame() && this->GetCurrentFunction() == funcTarget)
             {
                 // Skip internal names
-                Assert( !(this->GetCallInfo()->Flags & CallFlags_InternalFrame) );
+                Assert( !(this->GetCallInfo().Flags & CallFlags_InternalFrame) );
                 return true;
             }
         }
@@ -1008,32 +1008,41 @@ namespace Js
         return GetCurrentFunction(false);
     }
 
-    CallInfo const * JavascriptStackWalker::GetCallInfo(bool includeInlinedFrames /* = true */) const
+    CallInfo JavascriptStackWalker::GetCallInfo(bool includeInlinedFrames /* = true */) const
     {
         Assert(this->IsJavascriptFrame());
+        CallInfo callInfo;
         if (includeInlinedFrames && inlinedFramesBeingWalked)
         {
             // Since we don't support inlining constructors yet, its questionable if we should handle the
             // hidden frame display here?
-            return (CallInfo const *)&inlinedFrameCallInfo;
+            callInfo = inlinedFrameCallInfo;
         }
         else if (this->GetCurrentFunction()->GetFunctionInfo()->IsCoroutine())
         {
             JavascriptGenerator* gen = JavascriptGenerator::FromVar(this->GetCurrentArgv()[JavascriptFunctionArgIndex_This]);
-            return &gen->GetArguments().Info;
+            callInfo = gen->GetArguments().Info;
         }
         else if (this->isNativeLibraryFrame)
         {
             // Return saved callInfo. Do not read from stack as compiler may stackpack/optimize args.
-            return &this->prevNativeLibraryEntry->callInfo;
+            callInfo = this->prevNativeLibraryEntry->callInfo;
         }
         else
         {
-            return (CallInfo const *)&this->GetCurrentArgv()[JavascriptFunctionArgIndex_CallInfo];
+            callInfo = *(CallInfo const *)&this->GetCurrentArgv()[JavascriptFunctionArgIndex_CallInfo];
         }
+
+        if (callInfo.Flags & Js::CallFlags_ExtraArg)
+        {
+            callInfo.Flags = (CallFlags)(callInfo.Flags & ~Js::CallFlags_ExtraArg);
+            callInfo.Count--;
+        }
+
+        return callInfo;
     }
 
-    CallInfo const *JavascriptStackWalker::GetCallInfoFromPhysicalFrame() const
+    CallInfo JavascriptStackWalker::GetCallInfoFromPhysicalFrame() const
     {
         return GetCallInfo(false);
     }
@@ -1076,7 +1085,7 @@ namespace Js
 
     bool JavascriptStackWalker::IsCurrentPhysicalFrameForLoopBody() const
     {
-        return !!(this->GetCallInfoFromPhysicalFrame()->Flags & CallFlags_InternalFrame);
+        return !!(this->GetCallInfoFromPhysicalFrame().Flags & CallFlags_InternalFrame);
     }
 
     bool JavascriptStackWalker::IsWalkable(ScriptContext *scriptContext)

@@ -1091,9 +1091,14 @@ namespace Js
         {
             if( DefineIdentifier( name, func ) )
             {
-                func->SetFunctionIndex( pnodeFnc->sxFnc.nestedIndex );
-                // Add extra check to make sure all the slots between 0 - Count are filled with func;
-                mFunctionArray.SetItem( func->GetFunctionIndex(), func );
+                uint index = (uint)mFunctionArray.Count();
+                if (pnodeFnc->sxFnc.nestedIndex != index)
+                {
+                    return nullptr;
+                }
+                func->SetFunctionIndex( (RegSlot)index );
+                mFunctionArray.Add( func );
+                Assert(index + 1 == (uint)mFunctionArray.Count());
                 return func;
             }
             // Error adding function

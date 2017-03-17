@@ -293,7 +293,7 @@ namespace Js
         CleanupDocumentContext = nullptr;
 #endif
 
-        // Do this after all operations that may cause potential exceptions
+        // Do this after all operations that may cause potential exceptions. Note: InitialAllocations may still throw!
         threadContext->RegisterScriptContext(this);
         numberAllocator.Initialize(this->GetRecycler());
 
@@ -467,6 +467,10 @@ namespace Js
                 }
             }
         }
+
+        // Normally the JavascriptLibraryBase will unregister the scriptContext from the threadContext.
+        // In cases where we don't finish initialization e.g. OOM, manually unregister the scriptContext.
+        threadContext->UnregisterScriptContext(this);
 
 #if ENABLE_BACKGROUND_PARSING
         if (this->backgroundParser != nullptr)
