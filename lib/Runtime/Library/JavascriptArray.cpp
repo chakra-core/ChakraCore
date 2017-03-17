@@ -3150,7 +3150,7 @@ namespace Js
 
             if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
-                spreadableCheckedAndTrue = JavascriptOperators::IsConcatSpreadable(aItem);
+                spreadableCheckedAndTrue = JavascriptOperators::IsConcatSpreadable(aItem) != FALSE;
                 if (!JavascriptNativeIntArray::Is(pDestArray))
                 {
                     ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue);
@@ -3226,7 +3226,7 @@ namespace Js
 
             if (scriptContext->GetConfig()->IsES6IsConcatSpreadableEnabled())
             {
-                spreadableCheckedAndTrue = JavascriptOperators::IsConcatSpreadable(aItem);
+                spreadableCheckedAndTrue = JavascriptOperators::IsConcatSpreadable(aItem) != FALSE;
                 if (!JavascriptNativeFloatArray::Is(pDestArray))
                 {
                     ConcatArgs<uint>(pDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest, spreadableCheckedAndTrue);
