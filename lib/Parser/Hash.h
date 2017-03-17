@@ -322,6 +322,12 @@ public:
 
     void SetIsModuleExport() { m_grfid |= fidModuleExport; }
     BOOL GetIsModuleExport() const { return m_grfid & fidModuleExport; }
+
+    static tokens TkFromNameLen(uint32 luHash, _In_reads_(cch) LPCOLESTR prgch, uint32 cch, bool isStrictMode, ushort * pgrfid, ushort * ptk);
+
+#if DBG
+    static tokens TkFromNameLen(_In_reads_(cch) LPCOLESTR prgch, uint32 cch, bool isStrictMode);
+#endif
 };
 
 
@@ -389,7 +395,6 @@ public:
 #endif
         );
 
-    tokens TkFromNameLen(_In_reads_(cch) LPCOLESTR prgch, uint32 cch, bool isStrictMode);
     NoReleaseAllocator* GetAllocator() {return &m_noReleaseAllocator;}
 
     bool Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch);
