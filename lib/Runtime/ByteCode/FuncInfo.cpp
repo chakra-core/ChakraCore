@@ -63,7 +63,6 @@ FuncInfo::FuncInfo(
     escapes(false),
     hasDeferredChild(false),
     hasRedeferrableChild(false),
-    childHasWith(false),
     hasLoop(false),
     hasEscapedUseNestedFunc(false),
     needEnvRegister(false),

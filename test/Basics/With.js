@@ -164,3 +164,15 @@ with ({}) {
     }
     outer();
 })();
+
+(function() {
+    {
+        function inner() { WScript.Echo('in inner'); }
+        function outer() {
+            with({}) {
+                inner();
+            }
+        }
+    }
+    outer();
+})();

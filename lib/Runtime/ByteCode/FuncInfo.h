@@ -137,7 +137,6 @@ public:
     uint escapes : 1;
     uint hasDeferredChild : 1; // switch for DeferNested to persist outer scopes
     uint hasRedeferrableChild : 1;
-    uint childHasWith : 1; // deferNested needs to know if child has with
     uint hasLoop : 1;
     uint hasEscapedUseNestedFunc : 1;
     uint needEnvRegister : 1;
@@ -464,14 +463,6 @@ public:
         Assert(!IsDeferred() || this->byteCodeFunction->GetFunctionBody()->GetByteCode() != nullptr);
 
         return this->byteCodeFunction->GetFunctionBody();
-    }
-
-    bool ChildHasWith() const {
-        return childHasWith;
-    }
-
-    void SetChildHasWith() {
-        childHasWith = true;
     }
 
     bool HasCapturedThis() const {

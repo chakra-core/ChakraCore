@@ -2805,32 +2805,31 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                     byteCodeGenerator->AssignParamSlotsRegister();
                 }
 
-                if (top->ChildHasWith() || pnode->sxFnc.HasWithStmt())
+                if (top->GetBodyScope()->ContainsWith() && 
+                    (top->GetBodyScope()->GetHasOwnLocalInClosure() ||
+                     (top->GetParamScope()->GetHasOwnLocalInClosure() &&
+                      top->GetParamScope()->GetCanMergeWithBodyScope())))
                 {
                     // Parent scopes may contain symbols called inside the with.
                     // Current implementation needs the symScope isObject.
 
-                    if (top->GetBodyScope()->GetHasOwnLocalInClosure() ||
-                        (top->GetParamScope()->GetHasOwnLocalInClosure() &&
-                         top->GetParamScope()->GetCanMergeWithBodyScope()))
+                    top->GetBodyScope()->SetIsObject();
+                    if (top->byteCodeFunction->IsFunctionBody())
                     {
-                        top->GetBodyScope()->SetIsObject();
-                        if (top->byteCodeFunction->IsFunctionBody())
-                        {
-                            // Record this for future use in the no-refresh debugging.
-                            top->byteCodeFunction->GetFunctionBody()->SetHasSetIsObject(true);
-                        }
+                        // Record this for future use in the no-refresh debugging.
+                        top->byteCodeFunction->GetFunctionBody()->SetHasSetIsObject(true);
                     }
+                }
 
-                    if (top->GetParamScope()->GetHasOwnLocalInClosure() &&
-                        !top->GetParamScope()->GetCanMergeWithBodyScope())
+                if (top->GetParamScope()->ContainsWith() &&
+                    (top->GetParamScope()->GetHasOwnLocalInClosure() &&
+                     !top->GetParamScope()->GetCanMergeWithBodyScope()))
+                {
+                    top->GetParamScope()->SetIsObject();
+                    if (top->byteCodeFunction->IsFunctionBody())
                     {
-                        top->GetParamScope()->SetIsObject();
-                        if (top->byteCodeFunction->IsFunctionBody())
-                        {
-                            // Record this for future use in the no-refresh debugging.
-                            top->byteCodeFunction->GetFunctionBody()->SetHasSetIsObject(true);
-                        }
+                        // Record this for future use in the no-refresh debugging.
+                        top->byteCodeFunction->GetFunctionBody()->SetHasSetIsObject(true);
                     }
                 }
 
@@ -3006,11 +3005,6 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         if (hasAnyRedeferrableChild)
         {
             parentFunc->SetHasRedeferrableChild();
-        }
-
-        if (top->ChildHasWith() || pnode->sxFnc.HasWithStmt())
-        {
-            parentFunc->SetChildHasWith();
         }
 
         // Propagate HasMaybeEscapedNestedFunc
@@ -3202,6 +3196,11 @@ void ByteCodeGenerator::ProcessScopeWithCapturedSym(Scope *scope)
             func->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("InstantiateScopeWithCrossScopeAssignment")));
         }
         scope->SetMustInstantiate(true);
+    }
+
+    if (scope->ContainsWith() && scope->GetScopeType() != ScopeType_Global)
+    {
+        scope->SetIsObject();
     }
 }
 
