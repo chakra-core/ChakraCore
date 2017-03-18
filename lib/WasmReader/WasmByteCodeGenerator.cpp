@@ -571,7 +571,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         return;
     case wbCurrentMemory:
     {
-        GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
+        SetUsesMemory(0);
         Js::RegSlot tempReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
         info = EmitInfo(tempReg, WasmTypes::I32);
         m_writer.AsmReg1(Js::OpCodeAsmJs::CurrentMemory_Int, tempReg);
@@ -1117,7 +1117,7 @@ WasmBytecodeGenerator::EmitBrTable()
 EmitInfo
 WasmBytecodeGenerator::EmitGrowMemory()
 {
-    GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
+    SetUsesMemory(0);
 
     EmitInfo info = PopEvalStack();
     if (info.type != WasmTypes::I32)
@@ -1192,8 +1192,16 @@ EmitInfo
 WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore)
 {
     WasmTypes::WasmType type = signature[0];
+    SetUsesMemory(0);
+
+    const uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
+    const uint alignment = GetReader()->m_currentNode.mem.alignment;
     const uint offset = GetReader()->m_currentNode.mem.offset;
-    GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
+
+    if ((mask << 1) & (1 << alignment))
+    {
+        throw WasmCompilationException(_u("alignment must not be larger than natural"));
+    }
 
     EmitInfo rhsInfo;
     if (isStore)
@@ -1565,6 +1573,18 @@ void WasmBytecodeGenerator::SetUnreachableState(bool isUnreachable)
     }
 
     this->isUnreachable = isUnreachable;
+}
+
+void
+WasmBytecodeGenerator::SetUsesMemory(uint memoryIndex)
+{
+    // Only support one memory at this time
+    Assert(memoryIndex == 0);
+    if (!m_module->HasMemory() && !m_module->HasMemoryImport())
+    {
+        throw WasmCompilationException(_u("unknown memory"));
+    }
+    GetFunctionBody()->GetAsmJsFunctionInfo()->SetUsesHeapBuffer(true);
 }
 
 Wasm::WasmReaderBase*

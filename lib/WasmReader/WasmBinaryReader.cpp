@@ -582,7 +582,9 @@ WasmBinaryReader::MemNode()
 {
     uint len = 0;
 
-    LEB128(len); // flags (unused)
+    // flags
+    const uint32 flags = LEB128(len);
+    m_currentNode.mem.alignment = (uint8)flags;
     m_funcState.count += len;
 
     m_currentNode.mem.offset = LEB128(len);
@@ -659,10 +661,18 @@ WasmBinaryReader::ReadMemorySection(bool isImportSection)
     {
         uint32 flags = LEB128(length);
         uint32 minPage = LEB128(length);
+        if (minPage > 65536)
+        {
+            throw Wasm::WasmCompilationException(_u("Memory size must be at most 65536 pages (4GiB)"));
+        }
         uint32 maxPage = UINT32_MAX;
         if (flags & 0x1)
         {
             maxPage = LEB128(length);
+            if (maxPage > 65536)
+            {
+                throw Wasm::WasmCompilationException(_u("Memory size must be at most 65536 pages (4GiB)"));
+            }
         }
         m_module->InitializeMemory(minPage, maxPage);
     }

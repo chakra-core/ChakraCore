@@ -93,8 +93,6 @@ public:
     void AddGlobalImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
     void AddMemoryImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
     void AddTableImport(const char16* modName, uint32 modNameLen, const char16* importName, uint32 importNameLen);
-    Wasm::WasmImport * GetMemoryImport() const { return m_memImport; }
-    Wasm::WasmImport * GetTableImport() const { return m_tableImport; }
     uint32 GetImportedFunctionCount() const { return m_importedFunctionCount; }
 
     uint GetOffsetFromInit(const Wasm::WasmNode& initExpr, const class WebAssemblyEnvironment* env) const;
