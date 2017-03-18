@@ -17967,24 +17967,28 @@ Lowerer::GenerateFastInlineHasOwnProperty(IR::Instr * instr)
     IR::RegOpnd * thisObj = argsOpnd[0]->AsRegOpnd();
     IR::Opnd * forInEnumeratorOpnd = argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->GetSrc1();
 
-    // go to helper if we can't use JIT fastpath
-    IR::Opnd * canUseJitFastPathOpnd = GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfCanUseJitFastPath(), TyInt8);
-    InsertCompareBranch(canUseJitFastPathOpnd, IR::IntConstOpnd::New(0, TyInt8, this->m_func), Js::OpCode::BrEq_A, labelHelper, insertInstr);
-
     if (!thisObj->IsNotTaggedValue())
     {
         m_lowererMD.GenerateObjectTest(thisObj, insertInstr, labelHelper);
     }
 
     // go to helper if initial type is not same as the object we are querying
-    IR::RegOpnd * cachedDataTypeOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    IR::RegOpnd * cachedDataTypeOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
     InsertMove(cachedDataTypeOpnd, GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorInitialType(), TyMachPtr), insertInstr);
-    InsertCompareBranch(cachedDataTypeOpnd, IR::IndirOpnd::New(thisObj, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, this->m_func), Js::OpCode::BrNeq_A, labelHelper, insertInstr);
+    InsertCompareBranch(IR::IndirOpnd::New(thisObj, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, m_func), cachedDataTypeOpnd, Js::OpCode::BrNeq_A, labelHelper, insertInstr);
+
+    // go to helper if type isn't locked, as it might have changed
+    IR::RegOpnd * typeHandlerOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(typeHandlerOpnd, IR::IndirOpnd::New(cachedDataTypeOpnd, Js::DynamicType::GetOffsetOfTypeHandler(), TyMachPtr, m_func), insertInstr);
+    InsertTestBranch(
+        IR::IndirOpnd::New(typeHandlerOpnd, Js::DynamicTypeHandler::GetOffsetOfFlags(), TyInt8, m_func),
+        IR::IntConstOpnd::New(Js::DynamicTypeHandler::IsLockedFlag, TyInt8, m_func),
+        Js::OpCode::BrEq_A, labelHelper, insertInstr);
 
     // if we haven't yet gone to helper, then we can check if we are enumerating the prototype to know if property is an own property
     IR::LabelInstr *falseLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
     IR::Opnd * enumeratingPrototype = GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratingPrototype(), TyInt8);
-    InsertCompareBranch(enumeratingPrototype, IR::IntConstOpnd::New(0, TyInt8, this->m_func), Js::OpCode::BrNeq_A, falseLabel, insertInstr);
+    InsertCompareBranch(enumeratingPrototype, IR::IntConstOpnd::New(0, TyInt8, m_func), Js::OpCode::BrNeq_A, falseLabel, insertInstr);
 
     // assume true is the main path
     InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), insertInstr);
