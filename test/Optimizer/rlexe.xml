@@ -1353,6 +1353,13 @@
   </test>
   <test>
     <default>
+      <files>hasown.js</files>
+      <baseline>hasown.baseline</baseline>
+      <compile-flags>-mic:2 -off:simplejit -bgjit-</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>memop-upperbound.js</files>
       <baseline>memop-upperbound.baseline</baseline>
       <compile-flags>-lic:1 -off:nativearray</compile-flags>

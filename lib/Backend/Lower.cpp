@@ -17960,6 +17960,24 @@ Lowerer::GenerateFastInlineHasOwnProperty(IR::Instr * instr)
     {
         return;
     }
+    // generates fastpath:
+    //    MOV cachedDataTypeOpnd, [forInEnumeratorOpnd + OffsetOfEnumeratorInitialType]
+    //    CMP [thisObj + OffsetOfType], cachedDataTypeOpnd
+    //    JNE $labelHelper
+    //    MOV typeHandlerOpnd, [cachedDataTypeOpnd + OffsetOfTypeHandler]
+    //    TEST [typeHandlerOpnd + OffsetOfFlags], IsLockedFlag
+    //    JEQ $labelHelper
+    //    CMP [forInEnumeratorOpnd + OffsetOfEnumeratingPrototype], 0
+    //    JNE $falseLabel
+    //    MOV dst, True
+    //    JMP $doneLabel
+    //    $falseLabel: [helper]
+    //    MOV dst, False
+    //    JMP $doneLabel
+    // $labelHelper: [helper]
+    //    CallDirect code
+    //    ...
+    // $doneLabel:
 
     IR::LabelInstr *doneLabel = InsertLabel(false, instr->m_next);
     IR::LabelInstr *labelHelper = InsertLabel(true, instr);
