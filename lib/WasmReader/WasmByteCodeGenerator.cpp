@@ -1217,34 +1217,45 @@ EmitInfo
 WasmBytecodeGenerator::EmitSelect()
 {
     EmitInfo conditionInfo = PopEvalStack(WasmTypes::I32, _u("select condition must have i32 type"));
+    EmitInfo falseInfo = PopEvalStack();
+    EmitInfo trueInfo = PopEvalStack(falseInfo.type, _u("select operands must both have same type"));
+    ReleaseLocation(&conditionInfo);
+    ReleaseLocation(&falseInfo);
+    ReleaseLocation(&trueInfo);
+
+    if (IsUnreachable())
+    {
+        if (trueInfo.type == WasmTypes::Any)
+        {
+            // Report the type of falseInfo for type checking
+            return EmitInfo(falseInfo.type);
+        }
+        // Otherwise report the type of trueInfo for type checking
+        return EmitInfo(trueInfo.type);
+    }
+    WasmTypes::WasmType selectType = trueInfo.type;
+    EmitInfo resultInfo = EmitInfo(GetRegisterSpace(selectType)->AcquireTmpRegister(), selectType);
 
     Js::ByteCodeLabel falseLabel = m_writer->DefineLabel();
     Js::ByteCodeLabel doneLabel = m_writer->DefineLabel();
+    Js::OpCodeAsmJs loadOp = GetLoadOp(resultInfo.type);
 
+
+    // var result;
+    // if (!condition) goto:condFalse
+    // result = trueRes;
+    // goto:done;
+    //:condFalse
+    // result = falseRes;
+    //:done
     m_writer->AsmBrReg1(Js::OpCodeAsmJs::BrFalse_Int, falseLabel, conditionInfo.location);
-    ReleaseLocation(&conditionInfo);
-
-    EmitInfo falseInfo = PopEvalStack();
-    EmitInfo trueInfo = PopEvalStack(falseInfo.type, _u("select operands must both have same type"));
-
-    // Refresh the lifetime of the true location
-    m_writer->AsmReg2(GetLoadOp(trueInfo.type), trueInfo.location, trueInfo.location);
-
+    m_writer->AsmReg2(loadOp, resultInfo.location, trueInfo.location);
     m_writer->AsmBr(doneLabel);
     m_writer->MarkAsmJsLabel(falseLabel);
-
-    Js::OpCodeAsmJs op = GetLoadOp(trueInfo.type);
-
-    m_writer->AsmReg2(op, trueInfo.location, falseInfo.location);
-    ReleaseLocation(&falseInfo);
-
+    m_writer->AsmReg2(loadOp, resultInfo.location, falseInfo.location);
     m_writer->MarkAsmJsLabel(doneLabel);
-    
-    if (trueInfo.type == WasmTypes::Any && falseInfo.type != WasmTypes::Any)
-    {
-        trueInfo = EmitConst(falseInfo.type, GetZeroCnst());
-    }
-    return trueInfo;
+
+    return resultInfo;
 }
 
 void
