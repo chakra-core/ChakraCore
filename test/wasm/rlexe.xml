@@ -71,13 +71,6 @@
 </test>
 <test>
   <default>
-    <files>unreachable.js</files>
-    <tags>exclude_xplat</tags>
-    <compile-flags>-wasm</compile-flags>
-  </default>
-</test>
-<test>
-  <default>
     <files>global.js</files>
     <baseline>baselines/global.baseline</baseline>
     <tags>exclude_xplat</tags>

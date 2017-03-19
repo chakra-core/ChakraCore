@@ -741,8 +741,7 @@ WasmBytecodeGenerator::EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst)
 WasmConstLitNode
 WasmBytecodeGenerator::GetZeroCnst()
 {
-    WasmConstLitNode cnst;
-    memset(&cnst, 0, sizeof(WasmConstLitNode));
+    WasmConstLitNode cnst = {0};
     return cnst;
 }
 
@@ -901,13 +900,20 @@ WasmBytecodeGenerator::EmitCall()
         case WasmTypes::F64:
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Db : Js::OpCodeAsmJs::I_ArgOut_Db;
             break;
-        case WasmTypes::Any:
         case WasmTypes::I32:
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Int : Js::OpCodeAsmJs::I_ArgOut_Int;
             break;
         case WasmTypes::I64:
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Long : Js::OpCodeAsmJs::I_ArgOut_Long;
             break;
+        case WasmTypes::Any:
+            // In unreachable mode allow any type as argument since we won't actually emit the call
+            Assert(IsUnreachable());
+            if (IsUnreachable())
+            {
+                argOp = Js::OpCodeAsmJs::ArgOut_Int;
+                break;
+            }
         default:
             throw WasmCompilationException(_u("Unknown argument type %u"), info.type);
         }
@@ -1193,17 +1199,14 @@ WasmBytecodeGenerator::EmitReturnExpr(EmitInfo* explicitRetInfo)
     else
     {
         EmitInfo retExprInfo = explicitRetInfo ? *explicitRetInfo : PopEvalStack();
-        if (retExprInfo.type != WasmTypes::Any)
+        if (retExprInfo.type != WasmTypes::Any && m_funcInfo->GetResultType() != retExprInfo.type)
         {
-            if (m_funcInfo->GetResultType() != retExprInfo.type)
-            {
-                throw WasmCompilationException(_u("Result type must match return type"));
-            }
-
-            Js::OpCodeAsmJs retOp = GetReturnOp(retExprInfo.type);
-            m_writer->Conv(retOp, 0, retExprInfo.location);
-            ReleaseLocation(&retExprInfo);
+            throw WasmCompilationException(_u("Result type must match return type"));
         }
+
+        Js::OpCodeAsmJs retOp = GetReturnOp(retExprInfo.type);
+        m_writer->Conv(retOp, 0, retExprInfo.location);
+        ReleaseLocation(&retExprInfo);
     }
     m_writer->AsmBr(m_funcInfo->GetExitLabel());
 
@@ -1282,7 +1285,6 @@ WasmBytecodeGenerator::EmitBrIf()
     return info;
 }
 
-/* static */
 Js::OpCodeAsmJs
 WasmBytecodeGenerator::GetLoadOp(WasmTypes::WasmType wasmType)
 {
@@ -1292,11 +1294,17 @@ WasmBytecodeGenerator::GetLoadOp(WasmTypes::WasmType wasmType)
         return Js::OpCodeAsmJs::Ld_Flt;
     case WasmTypes::F64:
         return Js::OpCodeAsmJs::Ld_Db;
-    case WasmTypes::Any:
     case WasmTypes::I32:
         return Js::OpCodeAsmJs::Ld_Int;
     case WasmTypes::I64:
         return Js::OpCodeAsmJs::Ld_Long;
+    case WasmTypes::Any:
+        // In unreachable mode load the any type like an int since we won't actually emit the load
+        Assert(IsUnreachable());
+        if (IsUnreachable())
+        {
+            return Js::OpCodeAsmJs::Ld_Int;
+        }
     default:
         throw WasmCompilationException(_u("Unknown load operator %u"), wasmType);
     }
@@ -1320,6 +1328,13 @@ WasmBytecodeGenerator::GetReturnOp(WasmTypes::WasmType type)
     case WasmTypes::I64:
         retOp = Js::OpCodeAsmJs::Return_Long;
         break;
+    case WasmTypes::Any:
+        // In unreachable mode load the any type like an int since we won't actually emit the load
+        Assert(IsUnreachable());
+        if (IsUnreachable())
+        {
+            return Js::OpCodeAsmJs::Return_Int;
+        }
     default:
         throw WasmCompilationException(_u("Unknown return type %u"), type);
     }

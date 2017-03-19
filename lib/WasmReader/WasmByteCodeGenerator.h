@@ -162,8 +162,8 @@ namespace Wasm
         BlockInfo GetBlockInfo(uint relativeDepth) const;
         Js::ByteCodeLabel GetLabel(uint relativeDepth);
 
-        static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
-        static Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
+        Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
+        Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
         WasmRegisterSpace* GetRegisterSpace(WasmTypes::WasmType type);
 
         EmitInfo PopEvalStack(WasmTypes::WasmType expectedType = WasmTypes::Any, const char16* mismatchMessage = nullptr);
