@@ -4476,7 +4476,12 @@ BackwardPass::TrackObjTypeSpecProperties(IR::PropertySymOpnd *opnd, BasicBlock *
                         // Some instr protected by this one requires a monomorphic type check. (E.g., final type opt,
                         // fixed field not loaded from prototype.) Note the IsTypeAvailable test above: only do this at
                         // the initial type check that protects this path.
-                        opnd->SetMonoGuardType(bucket->GetMonoGuardType());
+                        JITTypeHolder monoGuardType = bucket->GetMonoGuardType();
+                        opnd->SetMonoGuardType(monoGuardType);
+                        if (monoGuardType != opnd->GetType())
+                        {
+                            opnd->SetTypeMismatch(true);
+                        }
                         this->currentInstr->ChangeEquivalentToMonoTypeCheckBailOut();
                     }
                     bucket->SetMonoGuardType(nullptr);
