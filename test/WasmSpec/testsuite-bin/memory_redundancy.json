@@ -1,9 +1,0 @@
-{"source_filename": "memory_redundancy.wast",
- "commands": [
-
-  {"type": "module", "line": 5, "filename": "memory_redundancy.0.wasm"}, 
-  {"type": "assert_return", "line": 39, "action": {"type": "invoke", "field": "test_store_to_load", "args": []}, "expected": [{"type": "i32", "value": "128"}]}, 
-  {"type": "action", "line": 40, "action": {"type": "invoke", "field": "zero_everything", "args": []}}, 
-  {"type": "assert_return", "line": 41, "action": {"type": "invoke", "field": "test_redundant_load", "args": []}, "expected": [{"type": "i32", "value": "128"}]}, 
-  {"type": "action", "line": 42, "action": {"type": "invoke", "field": "zero_everything", "args": []}}, 
-  {"type": "assert_return", "line": 43, "action": {"type": "invoke", "field": "test_dead_store", "args": []}, "expected": [{"type": "f32", "value": "35"}]}]}

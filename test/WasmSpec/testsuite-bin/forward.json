@@ -1,8 +1,0 @@
-{"source_filename": "forward.wast",
- "commands": [
-
-  {"type": "module", "line": 1, "filename": "forward.0.wasm"}, 
-  {"type": "assert_return", "line": 17, "action": {"type": "invoke", "field": "even", "args": [{"type": "i32", "value": "13"}]}, "expected": [{"type": "i32", "value": "0"}]}, 
-  {"type": "assert_return", "line": 18, "action": {"type": "invoke", "field": "even", "args": [{"type": "i32", "value": "20"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
-  {"type": "assert_return", "line": 19, "action": {"type": "invoke", "field": "odd", "args": [{"type": "i32", "value": "13"}]}, "expected": [{"type": "i32", "value": "1"}]}, 
-  {"type": "assert_return", "line": 20, "action": {"type": "invoke", "field": "odd", "args": [{"type": "i32", "value": "20"}]}, "expected": [{"type": "i32", "value": "0"}]}]}
