@@ -75,8 +75,7 @@ namespace Js
 
         uint32 Set(CountT typeEnum, uint32 val, T* host)
         {
-            Assert(bgThreadCallStarted == false || isCleaningUp == true
-                || host->GetScriptContext()->GetThreadContext()->GetEtwRundownCriticalSection()->IsLockedByAnyThread());
+            Assert(bgThreadCallStarted == false || isCleaningUp == true);
 
             uint8 type = static_cast<uint8>(typeEnum);
             if (fieldSize == 1)

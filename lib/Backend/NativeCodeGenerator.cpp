@@ -806,7 +806,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     if(foreground)
     {
         // Func::Codegen has a lot of things on the stack, so probe the stack here instead
-        PROBE_STACK(scriptContext, Js::Constants::MinStackJITCompile);
+        PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackJITCompile);
     }
 
 #if ENABLE_DEBUG_CONFIG_OPTIONS
@@ -2204,7 +2204,7 @@ NativeCodeGenerator::GatherCodeGenData(
     if(IsInlinee)
     {
         // This function is recursive
-        PROBE_STACK(scriptContext, Js::Constants::MinStackDefault);
+        PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackDefault);
     }
     else
     {
@@ -3442,7 +3442,7 @@ if (Js::Configuration::Global.flags.IsEnabled(Js::ProfileFlag))
 
 bool NativeCodeGenerator::TryAggressiveInlining(Js::FunctionBody *const topFunctionBody, Js::FunctionBody *const inlineeFunctionBody, InliningDecider &inliningDecider, uint& inlineeCount, uint recursiveInlineDepth)
 {
-    PROBE_STACK(scriptContext, Js::Constants::MinStackDefault);
+    PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackDefault);
 
     if (!inlineeFunctionBody->GetProfiledCallSiteCount())
     {
