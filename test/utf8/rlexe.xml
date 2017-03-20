@@ -29,4 +29,10 @@
       <compile-flags>-forceserialized -oopjit-</compile-flags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>utf8_console_log.js</files>
+      <baseline>utf8_console_log.baseline</baseline>
+    </default>
+  </test>
 </regress-exe>
