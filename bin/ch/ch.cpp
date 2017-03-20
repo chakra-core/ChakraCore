@@ -7,6 +7,7 @@
 #ifdef _WIN32
 #include <winver.h>
 #include <process.h>
+#include <fcntl.h>
 #endif
 
 unsigned int MessageBase::s_messageCount = 0;
@@ -909,6 +910,17 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 #endif
 
 #ifdef _WIN32
+    // Set the output mode of stdout so we can display non-ASCII characters on the console and redirect to file as UTF-8
+    {
+        int result = _setmode(_fileno(stdout), _O_U8TEXT); // set stdout to UTF-8 mode
+        if (result == -1)
+        {
+            // Failed to set mode. Undefined behavior may result, so exit now.
+            wprintf(_u("Failed to set output stream mode. Exiting...\n"));
+            return EXIT_FAILURE;
+        }
+    }
+
     bool runJITServer = HandleJITServerFlag(argc, argv);
 #endif
     int retval = -1;
