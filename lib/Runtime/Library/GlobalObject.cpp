@@ -882,7 +882,7 @@ namespace Js
             // So we need to pin it here (TODO: Change GenerateByteCode to take in the sourceInfo itself)
             ENTER_PINNED_SCOPE(Utf8SourceInfo, sourceInfo);
             sourceInfo = Utf8SourceInfo::New(scriptContext, utf8Source, cchSource,
-              cbSource, pSrcInfo, ((grfscr & fscrIsLibraryCode) != 0), nullptr);
+              cbSource, pSrcInfo, ((grfscr & fscrIsLibraryCode) != 0));
 
             Parser parser(scriptContext, strictMode);
             bool forceNoNative = false;
