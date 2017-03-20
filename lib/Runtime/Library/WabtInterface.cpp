@@ -77,7 +77,15 @@ void lexer_error_callback(const wabt::Location* loc,
     Context* ctx = (Context*)user_data;
     char16* errorMsg = NarrowStringToWide(ctx, error);
     char16* sourceText = NarrowStringToWide(ctx, source_line, &source_line_length);
-    JavascriptError::ThrowSyntaxErrorVar(ctx->scriptContext, (int)WABTERR_WastParsingError, sourceText, loc->line, errorMsg);
+    char16 buf[1024];
+    _snwprintf_s(buf, _countof(buf), _TRUNCATE, _u("%*s^%*s^"), loc->first_column - 1, _u(""), loc->last_column - loc->first_column - 1, _u(""));
+
+    JavascriptError::ThrowSyntaxErrorVar(ctx->scriptContext, (int)WABTERR_WastParsingError, 
+                                         loc->line,
+                                         loc->first_column,
+                                         sourceText,
+                                         buf,
+                                         errorMsg);
 };
 
 void ensure_output_buffer_capacity(OutputBuffer* buf, size_t ensure_capacity, MemoryWriterContext* context)
