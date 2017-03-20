@@ -296,9 +296,21 @@ ENTRY(customSections)
 ENTRY(initial)
 ENTRY(maximum)
 ENTRY(element)
+ENTRY(low)
+ENTRY(high)
 // wabt
 ENTRY(wabt)
 ENTRY(convertWast2Wasm)
+ENTRY(spec)
+ENTRY(commands)
+ENTRY(type)
+ENTRY(line)
+ENTRY(action)
+ENTRY(field)
+ENTRY(args)
+ENTRY(as)
+ENTRY(text)
+ENTRY(expected)
 // End Wasm
 
 // SIMD_JS
