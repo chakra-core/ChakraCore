@@ -1,7 +1,0 @@
-{"source_filename": "break-drop.wast",
- "commands": [
-
-  {"type": "module", "line": 1, "filename": "break-drop.0.wasm"}, 
-  {"type": "assert_return", "line": 7, "action": {"type": "invoke", "field": "br", "args": []}, "expected": []}, 
-  {"type": "assert_return", "line": 8, "action": {"type": "invoke", "field": "br_if", "args": []}, "expected": []}, 
-  {"type": "assert_return", "line": 9, "action": {"type": "invoke", "field": "br_table", "args": []}, "expected": []}]}

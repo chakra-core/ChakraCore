@@ -18,31 +18,11 @@ const argv = require("yargs")
   .help()
   .alias("help", "h")
   .options({
-    bin: {
-      string: true,
-      alias: "b",
-      description: "Path to wast2wasm exe",
-      default: (() => {
-        try {
-          return which.sync("wast2wasm");
-        } catch (e) {
-          return undefined;
-        }
-      })(),
-      demand: true,
-    },
     suite: {
       string: true,
       alias: "s",
       description: "Path to the test suite",
       default: path.join(rlRoot, "testsuite"),
-      demand: true,
-    },
-    output: {
-      string: true,
-      alias: "o",
-      description: "Output path of the converted suite",
-      default: path.join(rlRoot, "testsuite-bin"),
       demand: true,
     },
     excludes: {
@@ -87,32 +67,10 @@ const argv = require("yargs")
   .argv;
 
 // Make sure all arguments are valid
-argv.output = path.resolve(argv.output);
-if(typeof argv.bin == 'undefined') {
-  throw new Error("Unable to automatically find wast2wasm; please specify it with --bin");
-}
-fs.statSync(argv.bin).isFile();
 fs.statSync(argv.suite).isDirectory();
 
 function changeExtension(filename, from, to) {
   return `${path.basename(filename, from)}${to}`;
-}
-
-function convertTest(filename) {
-  const testDir = path.dirname(filename);
-  const outputPath = path.join(argv.output, changeExtension(filename, ".wast", ".json"));
-  const args = [
-    path.basename(filename),
-    "--spec",
-    "--no-check",
-    "-o", outputPath
-  ];
-  console.log(`${testDir}: ${argv.bin} ${args.join(" ")}`);
-  return new Promise((resolve, reject) => {
-    execFile(argv.bin, args, {
-      cwd: testDir
-    }, err => err ? reject(err) : resolve());
-  });
 }
 
 function hostFlags(specFile, {useFullpath} = {}) {
@@ -122,7 +80,7 @@ function hostFlags(specFile, {useFullpath} = {}) {
 }
 
 function getBaselinePath(specFile) {
-  return `${slash(path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, ".json"))))}.baseline`;
+  return `${slash(path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, ".wast"))))}.baseline`;
 }
 
 function removePossiblyEmptyFolder(folder) {
@@ -142,7 +100,6 @@ function main() {
   const chakraTests = require("./generateTests");
 
   return Promise.all([
-    removePossiblyEmptyFolder(argv.output),
     removePossiblyEmptyFolder(chakraTestsDestination),
   ]).then(() => {
     fs.ensureDirSync(chakraTestsDestination);
@@ -166,8 +123,7 @@ function main() {
         });
       }))));
   }).then(() => new Promise((resolve, reject) => {
-    fs.ensureDirSync(argv.output);
-    const conversions = [];
+    const specFiles = [];
     fs.walk(argv.suite)
       .on("data", item => {
         if (
@@ -175,43 +131,15 @@ function main() {
           item.path.indexOf(".fail") === -1 &&
           !argv.excludes.includes(path.basename(item.path, ".wast"))
         ) {
-          conversions.push(convertTest(item.path));
+          specFiles.push(item.path);
         }
       })
       .on("end", () => {
-        Promise.all(conversions).then(resolve, reject);
+        resolve(specFiles);
       });
-  })).then(() => new Promise((resolve, reject) =>
-    fs.readdir(argv.output, (err, files) => {
-      if (err) {
-        return reject(err);
-      }
-      resolve(files
-        .filter(file => path.extname(file) === ".json")
-        .map(file => path.join(argv.output, file))
-      );
-    })
-  ))/*.then(specFiles => {
-    const cleanFullPaths = specFiles.map(specFile => new Promise((resolve, reject) => {
-      const specDescription = require(specFile);
-      specDescription.source_filename = slash(path.basename(specDescription.source_filename));
-      fs.writeFile(
-        specFile,
-        jsBeautify(
-          JSON.stringify(specDescription),
-          {indent_size: 2, end_with_newline: true, wrap_line_length: 200}
-        ), err => {
-          if (err) {
-            return reject(err);
-          }
-          resolve();
-        }
-      );
-    }));
-    return Promise.all(cleanFullPaths).then(() => Promise.resolve(specFiles));
-  })*/.then(specFiles => {
+  })).then(specFiles => {
     const runs = specFiles.map(specFile => {
-      const isXplatExcluded = argv.xplatExcludes.indexOf(path.basename(specFile, ".json")) !== -1;
+      const isXplatExcluded = argv.xplatExcludes.indexOf(path.basename(specFile, ".wast")) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const tests = [{
