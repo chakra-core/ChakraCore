@@ -5,7 +5,7 @@
 
 #include "RuntimeByteCodePch.h"
 
-#ifdef ASMJS_PLAT
+#if defined(ASMJS_PLAT) || defined(ENABLE_WASM)
 
 namespace Js
 {

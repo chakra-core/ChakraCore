@@ -18,6 +18,9 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)StatementReader.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)Symbol.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)RuntimeByteCodePch.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)ByteCodeSerializer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)BackendOpCodeAttr.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmByteCodeWriter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsmJSByteCodeDumper.h" />
@@ -48,8 +51,11 @@
     <ClInclude Include="OpLayouts.h" />
     <ClInclude Include="Symbol.h" />
     <ClInclude Include="RuntimeByteCodePch.h" />
-    <ClInclude Include="AuxArray.h" />
-    <ClInclude Include="PropertyIdArray.h" />
-    <ClInclude Include="VarArrayVarCount.h" />
+    <ClInclude Include="BackendOpCodeAttr.h" />
+    <ClInclude Include="ByteCodeSerializeFlags.h" />
+    <ClInclude Include="ByteCodeSerializer.h" />
+    <ClInclude Include="ByteCodeCacheReleaseFileVersion.h" />
+    <ClInclude Include="WasmByteCodeWriter.h" />
+    <ClInclude Include="IWasmByteCodeWriter.h" />
   </ItemGroup>
 </Project>

@@ -48,9 +48,6 @@ namespace Wasm
     class WasmFunctionInfo;
 }
 
-#include "ByteCode/ByteCodeWriter.h"
-#include "ByteCode/AsmJsByteCodeWriter.h"
-
 #include "WasmParseTree.h"
 
 namespace Wasm
@@ -73,7 +70,6 @@ namespace Wasm
 #include "WasmGlobal.h"
 
 // TODO (michhol): cleanup includes
-#include "ByteCode/AsmJsByteCodeWriter.h"
 #include "ByteCode/ByteCodeDumper.h"
 #include "ByteCode/AsmJsByteCodeDumper.h"
 #include "Language/AsmJsTypes.h"

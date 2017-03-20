@@ -57,6 +57,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)BackendOpCodeAttr.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WasmByteCodeWriter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AsmJsByteCodeDumper.h" />
@@ -74,6 +75,7 @@
     <ClInclude Include="ExtendedOpCodeList.h" />
     <ClInclude Include="ExtendedOpCodeListAsmJs.h" />
     <ClInclude Include="FuncInfo.h" />
+    <ClInclude Include="IWasmByteCodeWriter.h" />
     <ClInclude Include="LayoutTypes.h" />
     <ClInclude Include="LayoutTypesAsmJs.h" />
     <ClInclude Include="OpCodeList.h" />
@@ -91,6 +93,7 @@
     <ClInclude Include="ScopeInfo.h" />
     <ClInclude Include="StatementReader.h" />
     <ClInclude Include="Symbol.h" />
+    <ClInclude Include="WasmByteCodeWriter.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">

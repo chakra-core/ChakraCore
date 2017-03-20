@@ -7,6 +7,7 @@
 namespace Js
 {
     class WebAssemblySource;
+    struct IWasmByteCodeWriter;
 }
 
 namespace Wasm
@@ -146,9 +147,9 @@ namespace Wasm
         EmitInfo EmitBinExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
         EmitInfo EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature);
 
-        template<WasmTypes::WasmType type>
-        EmitInfo EmitConst();
+        EmitInfo EmitConst(WasmTypes::WasmType type, WasmConstLitNode cnst);
         void EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst);
+        WasmConstLitNode GetZeroCnst();
 
         void EnregisterLocals();
         void ReleaseLocation(EmitInfo* info);
@@ -161,12 +162,11 @@ namespace Wasm
         BlockInfo GetBlockInfo(uint relativeDepth) const;
         Js::ByteCodeLabel GetLabel(uint relativeDepth);
 
-        static bool IsBlockOpCode(WasmOp op);
-        static Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
-        static Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
+        Js::OpCodeAsmJs GetLoadOp(WasmTypes::WasmType type);
+        Js::OpCodeAsmJs GetReturnOp(WasmTypes::WasmType type);
         WasmRegisterSpace* GetRegisterSpace(WasmTypes::WasmType type);
 
-        EmitInfo PopEvalStack();
+        EmitInfo PopEvalStack(WasmTypes::WasmType expectedType = WasmTypes::Any, const char16* mismatchMessage = nullptr);
         void PushEvalStack(EmitInfo);
         EmitInfo EnsureYield(BlockInfo);
         void EnterEvalStackScope();
@@ -189,7 +189,9 @@ namespace Wasm
 
         uint m_maxArgOutDepth;
 
-        Js::AsmJsByteCodeWriter m_writer;
+        Js::IWasmByteCodeWriter* m_writer;
+        Js::IWasmByteCodeWriter* m_emptyWriter;
+        Js::IWasmByteCodeWriter* m_originalWriter;
         Js::ScriptContext* m_scriptContext;
 
         WAsmJs::TypedRegisterAllocator mTypedRegisterAllocator;
