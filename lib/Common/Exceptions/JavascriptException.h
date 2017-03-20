@@ -4,8 +4,18 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-namespace Js {
+class ThreadContext;
+
+namespace Js
+{
     class JavascriptExceptionObject;
+
+    // Implemented by runtime to temporarily save (keep alive during throw) / clear
+    // an exception object.
+    void SaveTempUncaughtException(
+        ThreadContext* threadContext, Js::JavascriptExceptionObject* exception);
+    void ClearTempUncaughtException(
+        ThreadContext* threadContext, Js::JavascriptExceptionObject* exception);
 
     //
     // JavascriptException wraps a runtime JavascriptExceptionObject. To ensure
@@ -18,26 +28,43 @@ namespace Js {
     class JavascriptException : public ExceptionBase
     {
     private:
-        Field(JavascriptExceptionObject*)* const addressOfException;
+        ThreadContext* const threadContext;
+        mutable Js::JavascriptExceptionObject* exception;
 
     public:
-        // Caller should have stored the JavascriptExceptionObject reference in
-        // thread context data. addressOfException should be the thread context data
-        // address.
-        JavascriptException(Field(JavascriptExceptionObject*)* addressOfException)
-            : addressOfException(addressOfException)
+        JavascriptException(ThreadContext* threadContext,
+                            Js::JavascriptExceptionObject* exception = nullptr)
+            : threadContext(threadContext), exception(exception)
         {
-            Assert(addressOfException && *addressOfException);
+            SaveTempUncaughtException(threadContext, exception);
+        }
+
+        JavascriptException(const JavascriptException& other)
+            : threadContext(other.threadContext), exception(other.exception)
+        {
+            other.exception = nullptr;  // transfer
+        }
+
+        ~JavascriptException()
+        {
+            if (exception)
+            {
+                GetAndClear();
+            }
         }
 
         JavascriptExceptionObject* GetAndClear() const
         {
-            Assert(*addressOfException);
-
-            JavascriptExceptionObject* exceptionObject = *addressOfException;
-            *addressOfException = nullptr;
-            return exceptionObject;
+            JavascriptExceptionObject* tmp = exception;
+            if (exception)
+            {
+                ClearTempUncaughtException(threadContext, exception);
+                exception = nullptr;
+            }
+            return tmp;
         }
+
+        PREVENT_ASSIGN(JavascriptException);
     };
 
 } // namespace Js
