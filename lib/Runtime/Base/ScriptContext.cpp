@@ -1814,7 +1814,7 @@ namespace Js
             // Free unused bytes
             Assert(cbNeeded + 1 <= cbUtf8Buffer);
             *ppSourceInfo = Utf8SourceInfo::New(this, utf8Script, (int)length,
-                cbNeeded, pSrcInfo, isLibraryCode, scriptSource);
+                cbNeeded, pSrcInfo, isLibraryCode);
         }
         else
         {
@@ -1834,7 +1834,7 @@ namespace Js
                     // the 'length' here is not correct - we will get the length from the parser - however parser hasn't done yet.
                     // Once the parser is done we will update the utf8sourceinfo's lenght correctly with parser's
                     *ppSourceInfo = Utf8SourceInfo::New(this, script,
-                        (int)length, cb, pSrcInfo, isLibraryCode, scriptSource);
+                        (int)length, cb, pSrcInfo, isLibraryCode);
                 }
             }
         }

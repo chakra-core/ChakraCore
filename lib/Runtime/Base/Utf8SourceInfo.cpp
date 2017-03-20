@@ -218,12 +218,12 @@ namespace Js
 
     Utf8SourceInfo*
     Utf8SourceInfo::New(ScriptContext* scriptContext, LPCUTF8 utf8String, int32 length,
-        size_t numBytes, SRCINFO const* srcInfo, bool isLibraryCode, Js::Var scriptSource)
+        size_t numBytes, SRCINFO const* srcInfo, bool isLibraryCode)
     {
         utf8char_t * newUtf8String = RecyclerNewArrayLeaf(scriptContext->GetRecycler(), utf8char_t, numBytes + 1);
         js_memcpy_s(newUtf8String, numBytes + 1, utf8String, numBytes + 1);
         return NewWithNoCopy(scriptContext, newUtf8String, length, numBytes,
-            srcInfo, isLibraryCode, scriptSource);
+            srcInfo, isLibraryCode);
     }
 
     Utf8SourceInfo*
