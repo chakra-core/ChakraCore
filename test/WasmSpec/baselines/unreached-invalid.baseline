@@ -1,3 +1,3 @@
-(80) unreached-invalid.wast:477: assert_invalid module unreached-invalid.79.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
-(81) unreached-invalid.wast:489: assert_invalid module unreached-invalid.80.wasm failed. Had a linking error, expected a compile error: TypeError: Object expected
+(80) testsuite/core/unreached-invalid.wast:477: assert_invalid module failed. Had a linking error, expected a compile error: TypeError: Object expected
+(81) testsuite/core/unreached-invalid.wast:489: assert_invalid module failed. Had a linking error, expected a compile error: TypeError: Object expected
 99/101 tests passed.
