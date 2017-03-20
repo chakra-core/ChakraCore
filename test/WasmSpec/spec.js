@@ -77,12 +77,12 @@ function getActionStr(action) {
 function getCommandStr(command) {
   const base = `(${iTest}) ${file}:${command.line}`;
   switch (command.type) {
-    case "module": return `${base}: generate module ${command.filename}${command.name ? ` as ${command.name}` : ""}`;
+    case "module": return `${base}: generate module ${command.name ? ` as ${command.name}` : ""}`;
     case "register": return `${base}: register module ${command.name || "$$"} as ${command.as}`;
     case "assert_malformed":
     case "assert_unlinkable":
     case "assert_uninstantiable":
-    case "assert_invalid": return `${base}: ${command.type} module ${command.filename}`;
+    case "assert_invalid": return `${base}: ${command.type} module`;
     case "assert_return": return `${base}: assert_return(${getActionStr(command.action)} == ${getArgsStr(command.expected)})`;
     case "action":
     case "assert_trap":
