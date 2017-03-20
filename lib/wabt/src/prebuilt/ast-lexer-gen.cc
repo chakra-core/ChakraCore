@@ -151,7 +151,7 @@ static Result fill(Location* loc,
     size_t bytes_left = lexer->source.buffer.size - offset;
     if (read_size > bytes_left)
       read_size = bytes_left;
-    memcpy(lexer->buffer,
+    memcpy(lexer->limit,
            static_cast<const char*>(lexer->source.buffer.data) + offset,
            read_size);
     lexer->source.buffer.read_offset += read_size;
