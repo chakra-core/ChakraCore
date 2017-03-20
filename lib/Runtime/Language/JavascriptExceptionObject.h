@@ -4,7 +4,8 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-namespace Js {
+namespace Js
+{
     const DWORD  ExceptionParameters = 1;
     const int    ExceptionObjectIndex = 0;
 
@@ -18,7 +19,8 @@ namespace Js {
         JavascriptExceptionObject(Var object, ScriptContext * scriptContext, JavascriptExceptionContext* exceptionContextIn, bool isPendingExceptionObject = false) :
             thrownObject(object), isPendingExceptionObject(isPendingExceptionObject),
             scriptContext(scriptContext), tag(true), isDebuggerSkip(false), byteCodeOffsetAfterDebuggerSkip(Constants::InvalidByteCodeOffset), hasDebuggerLogged(false),
-            isFirstChance(false), isExceptionCaughtInNonUserCode(false), ignoreAdvanceToNextStatement(false), hostWrapperCreateFunc(nullptr), isGeneratorReturnException(false)
+            isFirstChance(false), isExceptionCaughtInNonUserCode(false), ignoreAdvanceToNextStatement(false), hostWrapperCreateFunc(nullptr), isGeneratorReturnException(false),
+            next(nullptr)
         {
             if (exceptionContextIn)
             {
@@ -161,6 +163,11 @@ namespace Js {
         }
 
     private:
+        friend class ::ThreadContext;
+        static void Insert(Field(JavascriptExceptionObject*)* head, JavascriptExceptionObject* item);
+        static void Remove(Field(JavascriptExceptionObject*)* head, JavascriptExceptionObject* item);
+
+    private:
         Field(Var)      thrownObject;
         Field(ScriptContext *) scriptContext;
 
@@ -184,6 +191,10 @@ namespace Js {
         static const int StackToSkip = 2;
         static const int StackTraceDepth = 30;
 #endif
+
+        Field(JavascriptExceptionObject*) next;  // to temporarily store list of throwing exceptions
+
+        PREVENT_COPY(JavascriptExceptionObject)
     };
 
     class GeneratorReturnExceptionObject : public JavascriptExceptionObject

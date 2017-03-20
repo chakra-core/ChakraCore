@@ -1361,15 +1361,16 @@ public:
     Js::JavascriptExceptionObject* GetUnhandledExceptionObject() const  { return recyclableData->unhandledExceptionObject; };
 
     // To temporarily keep throwing exception object alive (thrown but not yet caught)
-    Field(Js::JavascriptExceptionObject*)* SaveTempUncaughtException(Js::JavascriptExceptionObject* exceptionObject)
+    void SaveTempUncaughtException(Js::JavascriptExceptionObject* exceptionObject)
     {
-        // Previous save should have been caught and cleared
-        Assert(recyclableData->tempUncaughtException == nullptr);
-
-        recyclableData->tempUncaughtException = exceptionObject;
-        return &recyclableData->tempUncaughtException;
+        Js::JavascriptExceptionObject::Insert(&recyclableData->tempUncaughtException, exceptionObject);
+    }
+    void ClearTempUncaughtException(Js::JavascriptExceptionObject* exceptionObject)
+    {
+        Js::JavascriptExceptionObject::Remove(&recyclableData->tempUncaughtException, exceptionObject);
     }
 
+public:
     bool HasCatchHandler() const { return hasCatchHandler; }
     void SetHasCatchHandler(bool hasCatchHandler) { this->hasCatchHandler = hasCatchHandler; }
 

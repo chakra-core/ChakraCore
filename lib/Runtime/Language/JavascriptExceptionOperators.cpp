@@ -869,11 +869,8 @@ namespace Js
     {
         ThreadContext* threadContext = scriptContext? scriptContext->GetThreadContext() : ThreadContext::GetContextForCurrentThread();
 
-        // Temporarily keep throwing exception object alive (thrown but not yet caught)
-        Field(JavascriptExceptionObject*)* addr = threadContext->SaveTempUncaughtException(exceptionObject);
-
         // Throw a wrapper JavascriptException. catch handler must GetAndClear() the exception object.
-        throw JavascriptException(addr);
+        throw JavascriptException(threadContext, exceptionObject);
     }
 
     void JavascriptExceptionOperators::DoThrowCheckClone(JavascriptExceptionObject* exceptionObject, ScriptContext* scriptContext)
