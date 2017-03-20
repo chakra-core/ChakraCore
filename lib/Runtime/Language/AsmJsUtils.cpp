@@ -194,12 +194,8 @@ namespace Js
         Var low = JavascriptNumber::ToVar((uint)val, scriptContext);
         Var high = JavascriptNumber::ToVar(val >> 32, scriptContext);
 
-        PropertyRecord const * lowPropRecord = nullptr;
-        PropertyRecord const * highPropRecord = nullptr;
-        scriptContext->GetOrAddPropertyRecord(_u("low"), (int)wcslen(_u("low")), &lowPropRecord);
-        scriptContext->GetOrAddPropertyRecord(_u("high"), (int)wcslen(_u("high")), &highPropRecord);
-        JavascriptOperators::OP_SetProperty(i64Object, lowPropRecord->GetPropertyId(), low, scriptContext);
-        JavascriptOperators::OP_SetProperty(i64Object, highPropRecord->GetPropertyId(), high, scriptContext);
+        JavascriptOperators::OP_SetProperty(i64Object, PropertyIds::low, low, scriptContext);
+        JavascriptOperators::OP_SetProperty(i64Object, PropertyIds::high, high, scriptContext);
         return i64Object;
     }
 #endif
