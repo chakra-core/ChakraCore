@@ -194,6 +194,14 @@ __inline unsigned __int64 __popcnt64(unsigned __int64 value) {
 #endif
 #define wabt_popcount_u64 __popcnt64
 
+#if _MSC_VER <= 1800
+// Reimplement buggy strtof and strtod
+namespace wabt {
+    float strtof(const char *nptr, char **endptr);
+    double strtod(const char *nptr, char **endptr);
+};
+#endif
+
 #else
 
 #error unknown compiler

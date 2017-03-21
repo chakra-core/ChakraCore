@@ -388,3 +388,7 @@ RT_ERROR_MSG(WASMERR_ArrayIndexOutOfRange, 7017, "", "Memory index is out of ran
 RT_ERROR_MSG(WASMERR_InvalidInstantiateArgument, 7018, "", "Invalid arguments to instantiate", kjstTypeError, 0)
 RT_ERROR_MSG(WASMERR_WasmLinkError, 7019, "%s", "Linking failed.", kjstWebAssemblyLinkError, 0)
 RT_ERROR_MSG(JSERR_OutOfBoundString, 7020, "", "String length is out of bound", kjstRangeError, 0)
+
+// Wabt Errors
+RT_ERROR_MSG(WABTERR_WabtError, 7200, "%s", "Wabt Error.", kjstTypeError, 0)
+RT_ERROR_MSG(WABTERR_WastParsingError, 7201, "Wast Parsing error:%d:%d:\n%s\n%s\n%s", "Wast Parsing error.", kjstSyntaxError, 0)

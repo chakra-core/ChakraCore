@@ -1,7 +1,0 @@
-{"source_filename": "stack.wast",
- "commands": [
-
-  {"type": "module", "line": 1, "filename": "stack.0.wasm"}, 
-  {"type": "assert_return", "line": 130, "action": {"type": "invoke", "field": "fac-expr", "args": [{"type": "i64", "value": "25"}]}, "expected": [{"type": "i64", "value": "7034535277573963776"}]}, 
-  {"type": "assert_return", "line": 131, "action": {"type": "invoke", "field": "fac-stack", "args": [{"type": "i64", "value": "25"}]}, "expected": [{"type": "i64", "value": "7034535277573963776"}]}, 
-  {"type": "assert_return", "line": 132, "action": {"type": "invoke", "field": "fac-mixed", "args": [{"type": "i64", "value": "25"}]}, "expected": [{"type": "i64", "value": "7034535277573963776"}]}]}

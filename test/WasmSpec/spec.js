@@ -36,7 +36,7 @@ let passed = 0;
 let failed = 0;
 
 // Parse arguments
-const iVerbose = cliArgs.indexOf("-v");
+const iVerbose = cliArgs.indexOf("-verbose");
 const verbose = iVerbose !== -1;
 if (verbose) {
   cliArgs.splice(iVerbose, 1);
@@ -77,12 +77,12 @@ function getActionStr(action) {
 function getCommandStr(command) {
   const base = `(${iTest}) ${file}:${command.line}`;
   switch (command.type) {
-    case "module": return `${base}: generate module ${command.filename}${command.name ? ` as ${command.name}` : ""}`;
+    case "module": return `${base}: generate module ${command.name ? ` as ${command.name}` : ""}`;
     case "register": return `${base}: register module ${command.name || "$$"} as ${command.as}`;
     case "assert_malformed":
     case "assert_unlinkable":
     case "assert_uninstantiable":
-    case "assert_invalid": return `${base}: ${command.type} module ${command.filename}`;
+    case "assert_invalid": return `${base}: ${command.type} module`;
     case "assert_return": return `${base}: assert_return(${getActionStr(command.action)} == ${getArgsStr(command.expected)})`;
     case "action":
     case "assert_trap":
@@ -96,9 +96,9 @@ function getCommandStr(command) {
 function run(inPath, iStart, iEnd) {
   const lastSlash = Math.max(inPath.lastIndexOf("/"), inPath.lastIndexOf("\\"));
   const inDir = lastSlash === -1 ? "." : inPath.slice(0, lastSlash);
+  file = inPath;
   const data = read(inPath);
-  const jsonData = JSON.parse(data);
-  file = jsonData.source_filename;
+  const {commands} = WebAssembly.wabt.convertWast2Wasm(data, {spec: true});
 
   const registry = Object.assign({spectest: {
     print,
@@ -110,7 +110,7 @@ function run(inPath, iStart, iEnd) {
   const moduleRegistry = {};
   moduleRegistry.currentModule = null;
 
-  for (const command of jsonData.commands) {
+  for (const command of commands) {
     ++iTest;
     if (iTest < iStart) {
       // always run module/register commands that happens before iStart
@@ -182,19 +182,21 @@ function run(inPath, iStart, iEnd) {
   end();
 }
 
-function createModule(baseDir, filename, registry, output) {
-  const moduleFile = readbuffer(baseDir + "/" + filename);
-  const u8a = new Uint8Array(moduleFile);
-  output.module = new WebAssembly.Module(u8a);
+function createModule(baseDir, buffer, registry, output) {
+  if (verbose) {
+    const u8a = new Uint8Array(buffer);
+    console.log(u8a);
+  }
+  output.module = new WebAssembly.Module(buffer);
   // We'll know if an error occurs at instanciation because output.module will be set
   output.instance = new WebAssembly.Instance(output.module, registry);
 }
 
 function moduleCommand(baseDir, command, registry, moduleRegistry) {
-  const {filename, name} = command;
+  const {buffer, name} = command;
   try {
     const output = {};
-    createModule(baseDir, filename, registry, output);
+    createModule(baseDir, buffer, registry, output);
     if (name) {
       moduleRegistry[name] = output.instance;
     }
@@ -208,12 +210,12 @@ function moduleCommand(baseDir, command, registry, moduleRegistry) {
 }
 
 function assertMalformed(baseDir, command) {
-  const {filename, text} = command;
+  const {buffer, text} = command;
   // Test hook to prevent deferred parsing
   WScript.Flag("-off:wasmdeferred");
   const output = {};
   try {
-    createModule(baseDir, filename, null, output);
+    createModule(baseDir, buffer, null, output);
     ++failed;
     print(`${getCommandStr(command)} failed. Should have had an error`);
   } catch (e) {
@@ -237,12 +239,12 @@ function assertMalformed(baseDir, command) {
 }
 
 function assertUnlinkable(baseDir, command, registry) {
-  const {filename, text} = command;
+  const {buffer, text} = command;
   // Test hook to prevent deferred parsing
   WScript.Flag("-off:wasmdeferred");
   const output = {};
   try {
-    createModule(baseDir, filename, registry, output);
+    createModule(baseDir, buffer, registry, output);
     ++failed;
     print(`${getCommandStr(command)} failed. Should have had an error`);
   } catch (e) {
@@ -263,12 +265,12 @@ function assertUnlinkable(baseDir, command, registry) {
 }
 
 function assertUninstantiable(baseDir, command, registry) {
-  const {filename, text} = command;
+  const {buffer, text} = command;
   // Test hook to prevent deferred parsing
   WScript.Flag("-off:wasmdeferred");
   const output = {};
   try {
-    createModule(baseDir, filename, registry, output);
+    createModule(baseDir, buffer, registry, output);
     ++failed;
     print(`${getCommandStr(command)} failed. Should have had an error`);
   } catch (e) {
