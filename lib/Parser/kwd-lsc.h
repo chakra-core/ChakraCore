@@ -188,6 +188,7 @@ TOK_DCL(tkTypeString    , No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeFloat     , No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeBool      , No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeFloatArray, No, knopNone   , No, knopNone   )
+TOK_DCL(tkTypeIntArray  , No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeObject    , No, knopNone   , No, knopNone   )
 
 

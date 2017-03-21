@@ -50,6 +50,7 @@ public:
     static ValueType GetInt(const bool isLikelyTagged);
     static ValueType GetNumberAndLikelyInt(const bool isLikelyTagged);
     static ValueType GetObject(const ObjectType objectType);
+    static ValueType GetValueTypeForAnnotation(const Js::TypeHint annotation);
 
     // SIMD_JS
     static ValueType GetSimd128(const ObjectType objectType);
