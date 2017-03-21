@@ -180,14 +180,14 @@ void write_string(Context* ctx, Js::Var obj, PropertyId id, wabt::StringSlice sr
 
 void write_location(Context* ctx, Js::Var obj, const Location* loc)
 {
-    write_number(ctx, obj, PropertyIds::line, loc->line);
+    write_number<int32>(ctx, obj, PropertyIds::line, loc->line);
 }
 
 void write_var(Context* ctx, Js::Var obj, PropertyId id, const wabt::Var* var)
 {
     if (var->type == wabt::VarType::Index)
     {
-        write_number(ctx, obj, id, var->index);
+        write_number<int64>(ctx, obj, id, var->index);
     }
     else
     {
