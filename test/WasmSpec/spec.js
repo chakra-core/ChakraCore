@@ -36,7 +36,7 @@ let passed = 0;
 let failed = 0;
 
 // Parse arguments
-const iVerbose = cliArgs.indexOf("-v");
+const iVerbose = cliArgs.indexOf("-verbose");
 const verbose = iVerbose !== -1;
 if (verbose) {
   cliArgs.splice(iVerbose, 1);
@@ -183,6 +183,10 @@ function run(inPath, iStart, iEnd) {
 }
 
 function createModule(baseDir, buffer, registry, output) {
+  if (verbose) {
+    const u8a = new Uint8Array(buffer);
+    console.log(u8a);
+  }
   output.module = new WebAssembly.Module(buffer);
   // We'll know if an error occurs at instanciation because output.module will be set
   output.instance = new WebAssembly.Instance(output.module, registry);

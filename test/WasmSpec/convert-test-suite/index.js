@@ -31,6 +31,13 @@ const argv = require("yargs")
       description: "Spec tests to exclude from the conversion (use for known failures)",
       default: []
     },
+    "legacy-excludes": {
+      array: true,
+      description: "Spec tests to exclude when running on legacy (use for known failures)",
+      default: [
+        "float_literals" // Problem with float parsing precision in MSVC++ 12.0
+      ]
+    },
     "xplat-excludes": {
       array: true,
       description: "Spec tests to exclude when running on xplat (use for known failures)",
@@ -140,6 +147,7 @@ function main() {
   })).then(specFiles => {
     const runs = specFiles.map(specFile => {
       const isXplatExcluded = argv.xplatExcludes.indexOf(path.basename(specFile, ".wast")) !== -1;
+      const isLegacyExcluded = argv.legacyExcludes.indexOf(path.basename(specFile, ".wast")) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const tests = [{
@@ -153,6 +161,9 @@ function main() {
       }]
       if (isXplatExcluded) {
         for (const test of tests) test.tags.push("exclude_xplat");
+      }
+      if (isLegacyExcluded) {
+        for (const test of tests) test.tags.push("exclude_win7");
       }
       return tests;
     });

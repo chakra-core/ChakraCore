@@ -413,6 +413,7 @@ Js::Var write_commands(Context* ctx, Script* script) {
         switch (command->type) {
         case CommandType::Module: {
             wabt::Module* module = &command->module;
+            write_location(ctx, cmdObj, &module->loc);
             if (module->name.start) {
                 Js::Var name = ToJavascriptString(ctx, module->name);
                 JavascriptOperators::OP_SetProperty(cmdObj, PropertyIds::name, name, scriptContext);
