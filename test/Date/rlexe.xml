@@ -108,4 +108,13 @@
       </override>
     </condition>
   </test>
+  <test>
+    <default>
+      <files>marshalbug.js</files>
+      <!-- only to catch debug build assertions -->
+      <compile-flags>-nonative -intl-</compile-flags>
+      <baseline/>
+      <tags>exclude_fre,exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>
