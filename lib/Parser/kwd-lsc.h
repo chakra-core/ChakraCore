@@ -184,9 +184,11 @@ TOK_DCL(tkStrTmplEnd    , No, knopNone   , No, knopNone   ) // }...`         Sin
 
 TOK_DCL(tkTypeAnnBegin  , No, knopNone   , No, knopNone   ) // /** @type { Marks the beginning of a type annotation
 TOK_DCL(tkTypeInt       , No, knopNone   , No, knopNone   )
+TOK_DCL(tkTypeString    , No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeFloat     , No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeBool      , No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeFloatArray, No, knopNone   , No, knopNone   )
+TOK_DCL(tkTypeIntArray  , No, knopNone   , No, knopNone   )
 TOK_DCL(tkTypeObject    , No, knopNone   , No, knopNone   )
 
 

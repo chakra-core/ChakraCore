@@ -73,6 +73,28 @@ ValueType ValueType::GetObject(const ObjectType objectType)
     return Verify(valueType);
 }
 
+ValueType ValueType::GetValueTypeForAnnotation(Js::TypeHint annotation) {
+    switch (annotation)
+    {
+    case Js::TypeHint::Int:
+        return ValueType::Int.SetCanBeTaggedValue(true);
+    case Js::TypeHint::Float:
+        return ValueType::Float.SetCanBeTaggedValue(true);
+    case Js::TypeHint::Bool:
+        return ValueType::Boolean;
+    case Js::TypeHint::String:
+        return ValueType::String;
+    case Js::TypeHint::Object:
+        return ValueType::GetObject(ObjectType::Object);
+    case Js::TypeHint::FloatArray:
+        return ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(Js::TypeId::TypeIds_NativeFloatArray);
+    case Js::TypeHint::IntArray:
+        return ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(Js::TypeId::TypeIds_NativeIntArray);
+    default:
+        return ValueType::Undefined;
+    }
+}
+
 ValueType ValueType::GetSimd128(const ObjectType objectType)
 {
     Assert(objectType >= ObjectType::Simd128Float32x4 && objectType <= ObjectType::Simd128Float64x2);

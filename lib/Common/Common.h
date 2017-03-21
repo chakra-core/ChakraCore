@@ -43,9 +43,8 @@ namespace Js
         Int = 3,
         Float = 4,
         Bool = 5,
-        Array = 6,
-        Function = 7,
-        FloatArray = 8
+        FloatArray = 6,
+        IntArray = 7
     };
 }
 

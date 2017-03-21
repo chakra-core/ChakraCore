@@ -1151,6 +1151,22 @@ tokens Scanner<EncodingPolicy>::ScanTypeAnnotationType(EncodedCharPtr *pp)
     tokens token;
     switch (ch = this->ReadFirst(p, last))
     {
+    case 'a':
+        if (p[0] == 'r' && p[1] == 'r' && p[2] == 'a' && p[3] == 'y' && p[4] == '<') 
+        {
+            if (p[5] == 'f' && p[6] == 'l' && p[7] == 'o' && p[8] == 'a' && p[9] == 't' && p[10] == '>' && p[11] == '}')
+            {
+                p += 12;
+                token = tkTypeFloatArray;
+                break;
+            } else if (p[5] == 'i' && p[6] == 'n' && p[7] == 't' && p[8] == '>' && p[9] == '}')
+            {
+                p += 10;
+                token = tkTypeIntArray;
+                break;
+            }
+        }
+        Error(ERRsyntax);
     case 'i':
         if (p[0] == 'n' && p[1] == 't' && p[2] == '}')
         {
@@ -1185,6 +1201,14 @@ tokens Scanner<EncodingPolicy>::ScanTypeAnnotationType(EncodedCharPtr *pp)
         {
             p += 3;
             token = tkTypeObject;
+            break;
+        }
+        Error(ERRsyntax);
+    case 's':
+        if (p[0] == 't' && p[1] == 'r' && p[2] == '}')
+        {
+            p += 3;
+            token = tkTypeString;
             break;
         }
         Error(ERRsyntax);
