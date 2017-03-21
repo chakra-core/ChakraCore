@@ -3,23 +3,12 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-if (this.WScript && this.WScript.LoadScriptFile) {
-    this.WScript.LoadScriptFile("../UnitTestFramework/TrimStackTracePath.js");
-}
-
-function foo(a)
-{
-    try{
-        baz();
-    }catch(ex){
-        WScript.Echo(TrimStackTracePath(ex.stack));
-    }
-    try{
-        baz();
-    }catch(ex){
-        WScript.Echo(TrimStackTracePath(ex.stack));
+try {
+    // Ensure that character classifier does not incorrectly classify \u2e2f as a letter.
+    eval("ⸯ");
+} catch (e) {
+    if (e instanceof SyntaxError)
+    {
+        WScript.Echo("PASS");
     }
 }
-foo(1);
-foo(1);
-foo(1.1);

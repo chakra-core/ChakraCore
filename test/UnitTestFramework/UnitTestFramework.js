@@ -253,7 +253,7 @@ var assert = function assert() {
         areEqual: function areEqual(expected, actual, message) {
             /// <summary>
             /// IMPORTANT: NaN compares equal.<br/>
-            /// IMPORTANT: for objects, assert.AreEqual checks the fields.<br/>
+            /// IMPORTANT: for objects, assert.areEqual checks the fields.<br/>
             /// So, for 'var obj1={}, obj2={}' areEqual would be success, although in Javascript obj1 != obj2.<br/><br/>
             /// Performs deep comparison of arguments.<br/>
             /// This works for objects and simple types.<br/><br/>

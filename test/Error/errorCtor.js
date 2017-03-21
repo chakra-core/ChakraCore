@@ -10,7 +10,7 @@ function TrimStackTracePath(obj)
 }
 if (this.WScript && typeof this.WScript.LoadScriptFile === "function")
 {
-    this.WScript.LoadScriptFile("TrimStackTracePath.js");
+    this.WScript.LoadScriptFile("../UnitTestFramework/TrimStackTracePath.js");
 }
 
 function PadString(i)

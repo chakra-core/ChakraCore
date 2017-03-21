@@ -63,10 +63,10 @@ Test case 30
 Passed
 Test case 31
 Error
-	at func2 (randombug.js:287:9)
-	at testlinenumber (randombug.js:293:6)
-	at test31 (randombug.js:297:5)
-	at Global code (randombug.js:283:2)
+	at func2 (randombug.js:285:9)
+	at testlinenumber (randombug.js:291:6)
+	at test31 (randombug.js:295:5)
+	at Global code (randombug.js:281:2)
 Passed
 Test case 32
 arrObj0.length setter
@@ -93,9 +93,9 @@ passed
 Test case 40
 ReferenceError: 'undefinedFunction' is undefined
 	at eval code (eval code:1:22)
-	at testRuntimeError (randombug.js:458:9)
-	at test31 (randombug.js:462:5)
-	at Global code (randombug.js:454:2)
+	at testRuntimeError (randombug.js:456:9)
+	at test31 (randombug.js:460:5)
+	at Global code (randombug.js:452:2)
 Passed
 Test case 41
 Passed
