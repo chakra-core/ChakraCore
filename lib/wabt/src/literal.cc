@@ -283,37 +283,37 @@ static void parse_float_hex(const char* s,
   if (!seen_dot)
     significand_exponent += significand_shift;
 
-  assert(s < end && *s == 'p');
-  s++;
-
   if (significand == 0) {
     /* 0 or -0 */
     *out_bits = make_float(is_neg, F32_MIN_EXP, 0);
     return;
   }
 
-  assert(s < end);
   int exponent = 0;
   bool exponent_is_neg = false;
-  /* exponent is always positive, but significand_exponent is signed.
-   significand_exponent_add is negated if exponent will be negative, so it  can
-   be easily summed to see if the exponent is too large (see below) */
-  int significand_exponent_add = 0;
-  if (*s == '-') {
-    exponent_is_neg = true;
-    significand_exponent_add = -significand_exponent;
+  if (s < end) {
+    assert(*s == 'p');
     s++;
-  } else if (*s == '+') {
-    s++;
-    significand_exponent_add = significand_exponent;
-  }
+    /* exponent is always positive, but significand_exponent is signed.
+     significand_exponent_add is negated if exponent will be negative, so it  can
+     be easily summed to see if the exponent is too large (see below) */
+    int significand_exponent_add = 0;
+    if (*s == '-') {
+      exponent_is_neg = true;
+      significand_exponent_add = -significand_exponent;
+      s++;
+    } else if (*s == '+') {
+      s++;
+      significand_exponent_add = significand_exponent;
+    }
 
-  for (; s < end; ++s) {
-    uint32_t digit = (*s - '0');
-    assert(digit <= 9);
-    exponent = exponent * 10 + digit;
-    if (exponent + significand_exponent_add >= F32_MAX_EXP)
-      break;
+    for (; s < end; ++s) {
+      uint32_t digit = (*s - '0');
+      assert(digit <= 9);
+      exponent = exponent * 10 + digit;
+      if (exponent + significand_exponent_add >= F32_MAX_EXP)
+        break;
+    }
   }
 
   if (exponent_is_neg)
@@ -615,37 +615,38 @@ static void parse_double_hex(const char* s,
   if (!seen_dot)
     significand_exponent += significand_shift;
 
-  assert(s < end && *s == 'p');
-  s++;
-
   if (significand == 0) {
     /* 0 or -0 */
     *out_bits = make_double(is_neg, F64_MIN_EXP, 0);
     return;
   }
 
-  assert(s < end);
   int exponent = 0;
   bool exponent_is_neg = false;
-  /* exponent is always positive, but significand_exponent is signed.
-   significand_exponent_add is negated if exponent will be negative, so it  can
-   be easily summed to see if the exponent is too large (see below) */
-  int significand_exponent_add = 0;
-  if (*s == '-') {
-    exponent_is_neg = true;
-    significand_exponent_add = -significand_exponent;
+  if (s < end) {
+    assert(*s == 'p');
     s++;
-  } else if (*s == '+') {
-    s++;
-    significand_exponent_add = significand_exponent;
-  }
 
-  for (; s < end; ++s) {
-    uint32_t digit = (*s - '0');
-    assert(digit <= 9);
-    exponent = exponent * 10 + digit;
-    if (exponent + significand_exponent_add >= F64_MAX_EXP)
-      break;
+    /* exponent is always positive, but significand_exponent is signed.
+     significand_exponent_add is negated if exponent will be negative, so it  can
+     be easily summed to see if the exponent is too large (see below) */
+    int significand_exponent_add = 0;
+    if (*s == '-') {
+      exponent_is_neg = true;
+      significand_exponent_add = -significand_exponent;
+      s++;
+    } else if (*s == '+') {
+      s++;
+      significand_exponent_add = significand_exponent;
+    }
+
+    for (; s < end; ++s) {
+      uint32_t digit = (*s - '0');
+      assert(digit <= 9);
+      exponent = exponent * 10 + digit;
+      if (exponent + significand_exponent_add >= F64_MAX_EXP)
+        break;
+    }
   }
 
   if (exponent_is_neg)
@@ -842,4 +843,37 @@ void write_double_hex(char* out, size_t size, uint64_t bits) {
   out[len] = '\0';
 }
 
+#if COMPILER_IS_MSVC
+#if _MSC_VER <= 1800
+float strtof(const char *nptr, char **endptr) {
+  const char* end = nptr + strlen(nptr);
+  // review:: should we check for leading whitespaces ?
+  if (string_starts_with(nptr, end, "0x")) {
+    uint32_t out_bits = 0;
+    parse_float_hex(nptr, end, &out_bits);
+    float value;
+    memcpy((void*)&value, &out_bits, sizeof(value));
+
+    *endptr = (char*)end;
+    return value;
+  }
+  return ::strtof(nptr, endptr);
+}
+double strtod(const char *nptr, char **endptr) {
+  const char* end = nptr + strlen(nptr);
+  // review:: should we check for leading whitespaces ?
+  if (string_starts_with(nptr, end, "0x")) {
+    uint64_t out_bits = 0;
+    parse_double_hex(nptr, end, &out_bits);
+    double value;
+    memcpy((void*)&value, &out_bits, sizeof(value));
+
+    *endptr = (char*)end;
+    return value;
+  }
+  return ::strtod(nptr, endptr);
+}
+#endif
+#endif
 }  // namespace wabt
+
