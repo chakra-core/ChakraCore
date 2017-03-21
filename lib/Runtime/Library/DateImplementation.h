@@ -30,7 +30,7 @@ namespace Js {
         static double DoubleToTvUtc(double tv);
     private:
         DateImplementation(VirtualTableInfoCtorEnum) { m_modified = false; }
-        DateImplementation(double value, ScriptContext* scriptContext);
+        DateImplementation(double value);
 
         BEGIN_ENUM_BYTE(DateStringFormat)
             Default,
@@ -103,12 +103,14 @@ namespace Js {
         void ClearModified() { m_modified = false; }
 
     private:
-        JavascriptString* GetString(DateStringFormat dsf, DateTimeFlag noDateTime = DateTimeFlag::None);
+        JavascriptString* GetString(DateStringFormat dsf, ScriptContext* requestContext,
+            DateTimeFlag noDateTime = DateTimeFlag::None);
 
-        JavascriptString* GetISOString();
-        void GetDateComponent(CompoundString *bs, DateData componentType, int adjust);
+        JavascriptString* GetISOString(ScriptContext* requestContext);
+        void GetDateComponent(CompoundString *bs, DateData componentType, int adjust,
+            ScriptContext* requestContext);
 
-        void SetTvLcl(double tv);
+        void SetTvLcl(double tv, ScriptContext* requestContext);
 
         double GetDateData(DateData dd, bool fUtc, ScriptContext* scriptContext);
         double SetDateData(Arguments args, DateData dd, bool fUtc, ScriptContext* scriptContext);
@@ -175,11 +177,6 @@ namespace Js {
             }
         }
 
-        inline void EnsureTvLcl(void)
-        {
-            EnsureTvLcl(m_scriptContext);
-        }
-
         ///------------------------------------------------------------------------------
         /// Make sure m_ymdLcl is valid. (Shared with hybrid debugging, which may use a fake scriptContext.)
         ///------------------------------------------------------------------------------
@@ -193,11 +190,6 @@ namespace Js {
             EnsureTvLcl(scriptContext);
             GetYmdFromTv(m_tvLcl, &m_ymdLcl);
             m_grfval |= DateValueType::YearMonthDayLocal;
-        }
-
-        inline void EnsureYmdLcl(void)
-        {
-            EnsureYmdLcl(m_scriptContext);
         }
 
         ///------------------------------------------------------------------------------
@@ -214,61 +206,61 @@ namespace Js {
         }
 
 
-        inline Var GetFullYear()
+        inline Var GetFullYear(ScriptContext* requestContext)
         {
-            EnsureYmdLcl();
-            return JavascriptNumber::ToVar(m_ymdLcl.year, m_scriptContext);
+            EnsureYmdLcl(requestContext);
+            return JavascriptNumber::ToVar(m_ymdLcl.year, requestContext);
         }
 
-        inline Var GetYear()
+        inline Var GetYear(ScriptContext* requestContext)
         {
-            EnsureYmdLcl();
+            EnsureYmdLcl(requestContext);
             // WOOB bug 1099381: ES5 spec B.2.4: getYear() must return YearFromTime() - 1900.
             // Note that negative value is OK for the spec.
             int value = m_ymdLcl.year - 1900;
-            return JavascriptNumber::ToVar(value, m_scriptContext);
+            return JavascriptNumber::ToVar(value, requestContext);
         }
 
-        inline Var GetMonth()
+        inline Var GetMonth(ScriptContext* requestContext)
         {
-            EnsureYmdLcl();
-            return JavascriptNumber::ToVar(m_ymdLcl.mon, m_scriptContext);
+            EnsureYmdLcl(requestContext);
+            return JavascriptNumber::ToVar(m_ymdLcl.mon, requestContext);
         }
 
-        inline Var GetDate()
+        inline Var GetDate(ScriptContext* requestContext)
         {
-            EnsureYmdLcl();
-            return JavascriptNumber::ToVar(m_ymdLcl.mday + 1, m_scriptContext);
+            EnsureYmdLcl(requestContext);
+            return JavascriptNumber::ToVar(m_ymdLcl.mday + 1, requestContext);
         }
 
-        inline Var GetDay()
+        inline Var GetDay(ScriptContext* requestContext)
         {
-            EnsureYmdLcl();
-            return JavascriptNumber::ToVar(m_ymdLcl.wday, m_scriptContext);
+            EnsureYmdLcl(requestContext);
+            return JavascriptNumber::ToVar(m_ymdLcl.wday, requestContext);
         }
 
-        inline Var GetHours()
+        inline Var GetHours(ScriptContext* requestContext)
         {
-            EnsureYmdLcl();
-            return JavascriptNumber::ToVar((m_ymdLcl.time / 3600000)%24, m_scriptContext);
+            EnsureYmdLcl(requestContext);
+            return JavascriptNumber::ToVar((m_ymdLcl.time / 3600000)%24, requestContext);
         }
 
-        inline Var GetMinutes()
+        inline Var GetMinutes(ScriptContext* requestContext)
         {
-            EnsureYmdLcl();
-            return JavascriptNumber::ToVar((m_ymdLcl.time / 60000) % 60, m_scriptContext);
+            EnsureYmdLcl(requestContext);
+            return JavascriptNumber::ToVar((m_ymdLcl.time / 60000) % 60, requestContext);
         }
 
-        inline Var GetSeconds()
+        inline Var GetSeconds(ScriptContext* requestContext)
         {
-            EnsureYmdLcl();
-            return JavascriptNumber::ToVar((m_ymdLcl.time / 1000) % 60, m_scriptContext);
+            EnsureYmdLcl(requestContext);
+            return JavascriptNumber::ToVar((m_ymdLcl.time / 1000) % 60, requestContext);
         }
 
-        inline Var GetDateMilliSeconds()
+        inline Var GetDateMilliSeconds(ScriptContext* requestContext)
         {
-            EnsureYmdLcl();
-            return JavascriptNumber::ToVar(m_ymdLcl.time % 1000, m_scriptContext);
+            EnsureYmdLcl(requestContext);
+            return JavascriptNumber::ToVar(m_ymdLcl.time % 1000, requestContext);
         }
 
         template <class StringBuilder, class ScriptContext, class NewStringBuilderFunc>
@@ -287,7 +279,6 @@ namespace Js {
         FieldNoBarrier(DateTime::YMD)   m_ymdLcl;
         Field(TZD)                      m_tzd;
         Field(uint32)                   m_grfval; // Which fields are valid. m_tvUtc is always valid.
-        FieldNoBarrier(ScriptContext *) m_scriptContext;
         Field(bool)                     m_modified : 1; // Whether SetDateData was called on this class
 
         friend JavascriptDate;

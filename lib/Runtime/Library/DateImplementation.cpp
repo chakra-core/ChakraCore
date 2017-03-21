@@ -119,7 +119,7 @@ namespace Js {
     ///----------------------------------------------------------------------------
     ///----------------------------------------------------------------------------
 
-    DateImplementation::DateImplementation(double value, ScriptContext* scriptContext)
+    DateImplementation::DateImplementation(double value)
     {
         // Assume DateImplementation is allocated in the recycler and is zero initialized
         // Do not stack allocate of this struct, as it doesn't initialize all fields.
@@ -129,7 +129,6 @@ namespace Js {
         Assert(!ThreadContext::IsOnStack(this));
         AssertValue<byte>(this, 0, sizeof(DateImplementation));
 
-        m_scriptContext = scriptContext;
         m_modified = false;
 
         SetTvUtc(value);
@@ -155,82 +154,83 @@ namespace Js {
     }
 
     JavascriptString*
-    DateImplementation::GetString(DateStringFormat dsf, DateTimeFlag noDateTime)
+    DateImplementation::GetString(DateStringFormat dsf,
+        ScriptContext* requestContext, DateTimeFlag noDateTime)
     {
         if (JavascriptNumber::IsNan(m_tvUtc))
         {
-            return m_scriptContext->GetLibrary()->GetInvalidDateString();
+            return requestContext->GetLibrary()->GetInvalidDateString();
         }
 
         switch (dsf)
          {
             default:
-                EnsureYmdLcl();
-                return GetDateDefaultString(&m_ymdLcl, &m_tzd, noDateTime, m_scriptContext);
+                EnsureYmdLcl(requestContext);
+                return GetDateDefaultString(&m_ymdLcl, &m_tzd, noDateTime, requestContext);
 
 #ifdef ENABLE_GLOBALIZATION
             case DateStringFormat::Locale:
-                EnsureYmdLcl();
+                EnsureYmdLcl(requestContext);
 
                 if( m_ymdLcl.year > 1600 && m_ymdLcl.year < 10000 )
                 {
                     // The year falls in the range which can be handled by both the Win32
                     // function GetDateFormat and the COM+ date type
                     // - the latter is for forward compatibility with JS 7.
-                    JavascriptString *bs = GetDateLocaleString(&m_ymdLcl, &m_tzd, noDateTime, m_scriptContext);
+                    JavascriptString *bs = GetDateLocaleString(&m_ymdLcl, &m_tzd, noDateTime, requestContext);
                     if (bs != nullptr)
                     {
                         return bs;
                     }
                     else
                     {
-                        return GetDateDefaultString(&m_ymdLcl, &m_tzd, noDateTime, m_scriptContext);
+                        return GetDateDefaultString(&m_ymdLcl, &m_tzd, noDateTime, requestContext);
                     }
                 }
                 else
                 {
-                    return GetDateDefaultString(&m_ymdLcl, &m_tzd, noDateTime, m_scriptContext);
+                    return GetDateDefaultString(&m_ymdLcl, &m_tzd, noDateTime, requestContext);
                 }
 #endif
 
             case DateStringFormat::GMT:
                 EnsureYmdUtc();
-                return GetDateGmtString(&m_ymdUtc, m_scriptContext);
+                return GetDateGmtString(&m_ymdUtc, requestContext);
         }
     }
 
     JavascriptString*
-    DateImplementation::GetISOString()
+    DateImplementation::GetISOString(ScriptContext* requestContext)
     {
         // ES5 15.9.5.43: throw RangeError if time value is not a finite number
         if (!Js::NumberUtilities::IsFinite(m_tvUtc))
         {
-            JavascriptError::ThrowRangeError(m_scriptContext, JSERR_NeedNumber);
+            JavascriptError::ThrowRangeError(requestContext, JSERR_NeedNumber);
         }
 
-        CompoundString *const bs = CompoundString::NewWithCharCapacity(30, m_scriptContext->GetLibrary());
+        CompoundString *const bs = CompoundString::NewWithCharCapacity(30, requestContext->GetLibrary());
 
-        GetDateComponent(bs, DateData::FullYear, 0);
+        GetDateComponent(bs, DateData::FullYear, 0, requestContext);
         bs->AppendChars(_u('-'));
         // month
-        GetDateComponent(bs, DateData::Month, 1/*adjustment*/);
+        GetDateComponent(bs, DateData::Month, 1/*adjustment*/, requestContext);
         bs->AppendChars(_u('-'));
         // date
-        GetDateComponent(bs, DateData::Date, 0);
+        GetDateComponent(bs, DateData::Date, 0, requestContext);
         bs->AppendChars(_u('T'));
         // hours
-        GetDateComponent(bs, DateData::Hours, 0);
+        GetDateComponent(bs, DateData::Hours, 0, requestContext);
         bs->AppendChars(_u(':'));
         // minutes
-        GetDateComponent(bs, DateData::Minutes, 0);
+        GetDateComponent(bs, DateData::Minutes, 0, requestContext);
         bs->AppendChars(_u(':'));
         // seconds
-        GetDateComponent(bs, DateData::Seconds, 0);
+        GetDateComponent(bs, DateData::Seconds, 0, requestContext);
 
         // ES5 fill in milliseconds but v5.8 does not
         bs->AppendChars(_u('.'));
         // milliseconds
-        GetDateComponent(bs, DateData::Milliseconds, 0);
+        GetDateComponent(bs, DateData::Milliseconds, 0, requestContext);
 
         bs->AppendChars(_u('Z'));
 
@@ -238,9 +238,10 @@ namespace Js {
     }
 
     void
-    DateImplementation::GetDateComponent(CompoundString *bs, DateData componentType, int adjust)
+    DateImplementation::GetDateComponent(CompoundString *bs, DateData componentType, int adjust,
+        ScriptContext* requestContext)
     {
-        double value = this->GetDateData(componentType, true /* fUTC */, m_scriptContext);
+        double value = this->GetDateData(componentType, true /* fUTC */, requestContext);
         if(Js::NumberUtilities::IsFinite(value))
         {
             const int ival = (int)value + adjust;
@@ -339,10 +340,10 @@ namespace Js {
     ///----------------------------------------------------------------------------
 
     void
-    DateImplementation::SetTvLcl(double tv)
+    DateImplementation::SetTvLcl(double tv, ScriptContext* requestContext)
     {
         m_grfval = 0;
-        m_tvUtc  = GetTvUtc(tv, m_scriptContext);
+        m_tvUtc  = GetTvUtc(tv, requestContext);
     }
 
     JavascriptString*
@@ -580,7 +581,7 @@ Error:
         }
         else
         {
-            EnsureYmdLcl();
+            EnsureYmdLcl(scriptContext);
             pymd = &m_ymdLcl;
         }
 
@@ -1709,7 +1710,7 @@ LError:
             }
             else
             {
-                EnsureYmdLcl();
+                EnsureYmdLcl(scriptContext);
                 pymd = &m_ymdLcl;
                 tv = m_tvLcl;
             }
@@ -1782,7 +1783,7 @@ LError:
         }
         else
         {
-            SetTvLcl(tv);
+            SetTvLcl(tv, scriptContext);
         }
 
         m_modified = true;

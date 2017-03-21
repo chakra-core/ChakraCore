@@ -415,8 +415,7 @@ CommonNumber:
                         // if IsES6ToPrimitiveEnabled flag is off we also fall back to OrdinaryToPrimitive
                         return MethodCallToPrimitive(aValue, hint, requestContext);
                     }
-                    //NOTE: Consider passing requestContext to JavascriptDate::ToString
-                    return CrossSite::MarshalVar(requestContext, JavascriptDate::ToString(dateObject));
+                    return JavascriptDate::ToString(dateObject, requestContext);
                 }
             }
 
