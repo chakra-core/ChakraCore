@@ -3982,7 +3982,7 @@ LowererMDArch::FinalLower()
         switch (instr->m_opcode)
         {
         case Js::OpCode::Leave:
-            Assert(this->m_func->DoOptimizeTryCatch() && !this->m_func->IsLoopBodyInTry());
+            Assert(this->m_func->DoOptimizeTry() && !this->m_func->IsLoopBodyInTry());
             this->lowererMD->LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), true /*fromFinalLower*/);
             break;
 

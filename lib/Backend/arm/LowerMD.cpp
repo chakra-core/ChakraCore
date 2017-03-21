@@ -1524,7 +1524,7 @@ LowererMD::LowerExitInstr(IR::ExitInstr * exitInstr)
     int32 stackAdjust;
     if (hasTry)
     {
-        if (this->m_func->DoOptimizeTryCatch())
+        if (this->m_func->DoOptimizeTry())
         {
             this->EnsureEpilogLabel();
         }
@@ -1725,7 +1725,7 @@ LowererMD::LowerTry(IR::Instr * tryInstr, IR::JnHelperMethod helperMethod)
     // Arg 7: ScriptContext
     this->m_lowerer->LoadScriptContext(tryAddr);
 
-    if (tryInstr->m_opcode == Js::OpCode::TryCatch)
+    if (tryInstr->m_opcode == Js::OpCode::TryCatch || this->m_func->DoOptimizeTry())
     {
         // Arg 6 : hasBailedOutOffset
         IR::Opnd * hasBailedOutOffset = IR::IntConstOpnd::New(this->m_func->m_hasBailedOutSym->m_offset, TyInt32, this->m_func);
@@ -8688,7 +8688,7 @@ LowererMD::FinalLower()
             switch (instr->m_opcode)
             {
             case Js::OpCode::Leave:
-                Assert(this->m_func->DoOptimizeTryCatch() && !this->m_func->IsLoopBodyInTry());
+                Assert(this->m_func->DoOptimizeTry() && !this->m_func->IsLoopBodyInTry());
                 instrPrev = this->LowerLeave(instr, instr->AsBranchInstr()->GetTarget(), true /*fromFinalLower*/);
                 break;
             }

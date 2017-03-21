@@ -918,9 +918,10 @@ private:
     IR::Instr *             OptPeep(IR::Instr *instr, Value *src1Val, Value *src2Val);
     void                    OptimizeIndirUses(IR::IndirOpnd *indir, IR::Instr * *pInstr, Value **indirIndexValRef);
     void                    RemoveCodeAfterNoFallthroughInstr(IR::Instr *instr);
-    void                    ProcessTryCatch(IR::Instr* instr);
+    void                    ProcessTryHandler(IR::Instr* instr);
     void                    InsertToVarAtDefInTryRegion(IR::Instr * instr, IR::Opnd * dstOpnd);
     void                    RemoveFlowEdgeToCatchBlock(IR::Instr * instr);
+    void                    RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr);
 
     void                    CSEAddInstr(BasicBlock *block, IR::Instr *instr, Value *dstVal, Value *src1Val, Value *src2Val, Value *dstIndirIndexVal, Value *src1IndirIndexVal);
     void                    OptimizeChecks(IR::Instr * const instr);

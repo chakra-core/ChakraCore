@@ -196,7 +196,8 @@ public:
     {
         return
             !PHASE_OFF(Js::GlobOptPhase, this) && !IsSimpleJit() &&
-            (!GetTopFunc()->HasTry() || GetTopFunc()->CanOptimizeTryCatch());
+            (!GetTopFunc()->HasTry() || GetTopFunc()->CanOptimizeTryCatch()) &&
+            (!GetTopFunc()->HasFinally() || GetTopFunc()->CanOptimizeTryFinally());
     }
 
     bool DoInline() const
@@ -204,15 +205,20 @@ public:
         return DoGlobOpt() && !GetTopFunc()->HasTry();
     }
 
-    bool DoOptimizeTryCatch() const
+    bool DoOptimizeTry() const
     {
         Assert(IsTopFunc());
         return DoGlobOpt();
     }
 
+    bool CanOptimizeTryFinally() const
+    {
+        return !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryFinallyPhase, this);
+    }
+
     bool CanOptimizeTryCatch() const
     {
-        return !this->HasFinally() && !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this);
+        return !this->m_workItem->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, this);
     }
 
     bool DoSimpleJitDynamicProfile() const;
@@ -834,7 +840,7 @@ public:
     bool                HasArrayInfo()
     {
         const auto top = this->GetTopFunc();
-        return this->HasProfileInfo() && this->GetWeakFuncRef() && !(top->HasTry() && !top->DoOptimizeTryCatch()) &&
+        return this->HasProfileInfo() && this->GetWeakFuncRef() && !(top->HasTry() && !top->DoOptimizeTry()) &&
             top->DoGlobOpt() && !PHASE_OFF(Js::LoopFastPathPhase, top);
     }
 

@@ -46,6 +46,7 @@ BAIL_OUT_KIND(LazyBailOut,                          0)
 BAIL_OUT_KIND(BailOutOnFailedHoistedLoopCountBasedBoundCheck, 0)
 BAIL_OUT_KIND(BailOutForGeneratorYield,             0)
 BAIL_OUT_KIND(BailOutOnException,                   0)
+BAIL_OUT_KIND(BailOutOnEarlyExit,                   0)
 
 // SIMD_JS
 BAIL_OUT_KIND(BailOutSimd128F4Only,                 0)

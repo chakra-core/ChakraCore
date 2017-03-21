@@ -48,7 +48,7 @@ bool
 BackwardPass::DoByteCodeUpwardExposedUsed() const
 {
     return (this->tag == Js::DeadStorePhase && this->func->hasBailout) ||
-        (this->func->HasTry() && this->func->DoOptimizeTryCatch() && this->tag == Js::BackwardPhase);
+        (this->func->HasTry() && this->func->DoOptimizeTry() && this->tag == Js::BackwardPhase);
 }
 
 bool
@@ -114,7 +114,7 @@ BackwardPass::DoDeadStore(Func* func)
 {
     return
         !PHASE_OFF(Js::DeadStorePhase, func) &&
-        (!func->HasTry() || func->DoOptimizeTryCatch());
+        (!func->HasTry() || func->DoOptimizeTry());
 }
 
 bool
@@ -1111,7 +1111,7 @@ BackwardPass::MergeSuccBlocksInfo(BasicBlock * block)
             Assert(block->typesNeedingKnownObjectLayout == nullptr);
             Assert(block->fieldHoistCandidates == nullptr);
             // byteCodeUpwardExposedUsed is required to populate the writeThroughSymbolsSet for the try region in the backwards pass
-            Assert(block->byteCodeUpwardExposedUsed == nullptr || (this->tag == Js::BackwardPhase && this->func->HasTry() && this->func->DoOptimizeTryCatch()));
+            Assert(block->byteCodeUpwardExposedUsed == nullptr || (this->tag == Js::BackwardPhase && this->func->HasTry() && this->func->DoOptimizeTry()));
             Assert(block->byteCodeRestoreSyms == nullptr);
             Assert(block->stackSymToFinalType == nullptr);
             Assert(block->stackSymToGuardedProperties == nullptr);
@@ -1847,7 +1847,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr)
     {
         // We don't need to fill in the bailout instruction in backward pass
         Assert(this->func->hasBailout || !instr->HasBailOutInfo());
-        Assert(!instr->HasBailOutInfo() || instr->GetBailOutInfo()->byteCodeUpwardExposedUsed == nullptr || (this->func->HasTry() && this->func->DoOptimizeTryCatch()));
+        Assert(!instr->HasBailOutInfo() || instr->GetBailOutInfo()->byteCodeUpwardExposedUsed == nullptr || (this->func->HasTry() && this->func->DoOptimizeTry()));
 
         if (instr->IsByteCodeUsesInstr())
         {
@@ -2298,7 +2298,7 @@ BackwardPass::ProcessBailOutInfo(IR::Instr * instr, BailOutInfo * bailOutInfo)
     // The byteCodeUpwardExposedUsed should only be assigned once. The only case which would break this
     // assumption is when we are optimizing a function having try-catch. In that case, we need the
     // byteCodeUpwardExposedUsed analysis in the initial backward pass too.
-    Assert(bailOutInfo->byteCodeUpwardExposedUsed == nullptr || (this->func->HasTry() && this->func->DoOptimizeTryCatch()));
+    Assert(bailOutInfo->byteCodeUpwardExposedUsed == nullptr || (this->func->HasTry() && this->func->DoOptimizeTry()));
 
     // Make a copy of the byteCodeUpwardExposedUsed so we can remove the constants
     if (!this->IsPrePass())
@@ -2765,7 +2765,7 @@ BackwardPass::ProcessBlock(BasicBlock * block)
                 }
                 case Js::OpCode::Catch:
                 {
-                    if (this->func->DoOptimizeTryCatch() && !this->IsPrePass())
+                    if (this->func->DoOptimizeTry() && !this->IsPrePass())
                     {
                         // Execute the "Catch" in the JIT'ed code, and bailout to the next instruction. This way, the bailout will restore the exception object automatically.
                         IR::BailOutInstr* bailOnException = IR::BailOutInstr::New(Js::OpCode::BailOnException, IR::BailOutOnException, instr->m_next, instr->m_func);
@@ -2792,15 +2792,15 @@ BackwardPass::ProcessBlock(BasicBlock * block)
             this->ProcessInlineeEnd(instr);
         }
 
-        if (instr->IsLabelInstr() && instr->m_next->m_opcode == Js::OpCode::Catch)
+        if ((instr->IsLabelInstr() && instr->m_next->m_opcode == Js::OpCode::Catch) || (instr->IsLabelInstr() && instr->m_next->m_opcode == Js::OpCode::Finally))
         {
             if (!this->currentRegion)
             {
-                Assert(!this->func->DoOptimizeTryCatch() && !(this->func->IsSimpleJit() && this->func->hasBailout));
+                Assert(!this->func->DoOptimizeTry() && !(this->func->IsSimpleJit() && this->func->hasBailout));
             }
             else
             {
-                Assert(this->currentRegion->GetType() == RegionTypeCatch);
+                Assert(this->currentRegion->GetType() == RegionTypeCatch || this->currentRegion->GetType() == RegionTypeFinally);
                 Region * matchingTryRegion = this->currentRegion->GetMatchingTryRegion();
                 Assert(matchingTryRegion);
 
@@ -2827,10 +2827,11 @@ BackwardPass::ProcessBlock(BasicBlock * block)
 #if DBG
         if (instr->m_opcode == Js::OpCode::TryCatch)
         {
-            if (!this->IsPrePass() && (this->func->DoOptimizeTryCatch() || (this->func->IsSimpleJit() && this->func->hasBailout)))
+            if (!this->IsPrePass() && (this->func->DoOptimizeTry() || (this->func->IsSimpleJit() && this->func->hasBailout)))
             {
                 Assert(instr->m_next->IsLabelInstr() && (instr->m_next->AsLabelInstr()->GetRegion() != nullptr));
                 Region * tryRegion = instr->m_next->AsLabelInstr()->GetRegion();
+                Assert(tryRegion && tryRegion->GetType() == RegionType::RegionTypeTry && tryRegion->GetMatchingCatchRegion() != nullptr);
                 Assert(tryRegion->writeThroughSymbolsSet);
             }
         }
@@ -7496,16 +7497,16 @@ BackwardPass::FoldCmBool(IR::Instr *instr)
 }
 
 void
-BackwardPass::SetWriteThroughSymbolsSetForRegion(BasicBlock * catchBlock, Region * tryRegion)
+BackwardPass::SetWriteThroughSymbolsSetForRegion(BasicBlock * catchOrFinallyBlock, Region * tryRegion)
 {
     tryRegion->writeThroughSymbolsSet = JitAnew(this->func->m_alloc, BVSparse<JitArenaAllocator>, this->func->m_alloc);
 
     if (this->DoByteCodeUpwardExposedUsed())
     {
-        Assert(catchBlock->byteCodeUpwardExposedUsed);
-        if (!catchBlock->byteCodeUpwardExposedUsed->IsEmpty())
+        Assert(catchOrFinallyBlock->byteCodeUpwardExposedUsed);
+        if (!catchOrFinallyBlock->byteCodeUpwardExposedUsed->IsEmpty())
         {
-            FOREACH_BITSET_IN_SPARSEBV(id, catchBlock->byteCodeUpwardExposedUsed)
+            FOREACH_BITSET_IN_SPARSEBV(id, catchOrFinallyBlock->byteCodeUpwardExposedUsed)
             {
                 tryRegion->writeThroughSymbolsSet->Set(id);
             }
@@ -7550,7 +7551,7 @@ BackwardPass::SetWriteThroughSymbolsSetForRegion(BasicBlock * catchBlock, Region
 bool
 BackwardPass::CheckWriteThroughSymInRegion(Region* region, StackSym* sym)
 {
-    if (region->GetType() == RegionTypeRoot || region->GetType() == RegionTypeFinally)
+    if (region->GetType() == RegionTypeRoot)
     {
         return false;
     }

@@ -2561,12 +2561,23 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             instrPrev = m_lowererMD.LowerCatch(instr);
             break;
 
+        case Js::OpCode::Finally:
+            instr->Remove();
+            break;
+
         case Js::OpCode::LeaveNull:
-            instrPrev = m_lowererMD.LowerLeaveNull(instr);
+            if (this->m_func->IsSimpleJit() || !this->m_func->DoOptimizeTry())
+            {
+                instrPrev = m_lowererMD.LowerLeaveNull(instr);
+            }
+            else
+            {
+                instr->Remove();
+            }
             break;
 
         case Js::OpCode::Leave:
-            if (this->m_func->HasTry() && this->m_func->DoOptimizeTryCatch())
+            if (this->m_func->HasTry() && this->m_func->DoOptimizeTry())
             {
                 // Required in Register Allocator to mark region boundaries
                 break;
@@ -2576,6 +2587,10 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
 
         case Js::OpCode::BailOnException:
             instrPrev = this->LowerBailOnException(instr);
+            break;
+
+        case Js::OpCode::BailOnEarlyExit:
+            instrPrev = this->LowerBailOnEarlyExit(instr);
             break;
 
         case Js::OpCode::RuntimeTypeError:
@@ -12078,7 +12093,17 @@ Lowerer::LowerBailOnException(IR::Instr * instr)
 {
     Assert(instr->HasBailOutInfo());
     IR::Instr * instrPrev = instr->m_prev;
-    Assert(instrPrev->m_opcode == Js::OpCode::Catch);
+
+    this->GenerateBailOut(instr, nullptr, nullptr);
+
+    return instrPrev;
+}
+
+IR::Instr*
+Lowerer::LowerBailOnEarlyExit(IR::Instr * instr)
+{
+    Assert(instr->HasBailOutInfo());
+    IR::Instr * instrPrev = instr->m_prev;
 
     this->GenerateBailOut(instr, nullptr, nullptr);
 
@@ -19972,8 +19997,21 @@ Lowerer::EHBailoutPatchUp()
         if (this->currentRegion)
         {
             RegionType currentRegionType = this->currentRegion->GetType();
-            if (currentRegionType == RegionTypeTry || currentRegionType == RegionTypeCatch)
+            if (currentRegionType == RegionTypeTry || currentRegionType == RegionTypeCatch || currentRegionType == RegionTypeFinally)
             {
+                if (this->currentRegion->IsNonExceptingFinally())
+                {
+                    Region * parent = this->currentRegion->GetParent();
+
+                    while (parent->IsNonExceptingFinally())
+                    {
+                        parent = parent->GetParent();
+                    }
+                    if (parent->GetType() == RegionTypeRoot)
+                    {
+                        continue;
+                    }
+                }
                 this->InsertReturnThunkForRegion(this->currentRegion, restoreReturnValueFromBailoutLabel);
                 if (instr->HasBailOutInfo())
                 {
@@ -23578,7 +23616,7 @@ Lowerer::ValidOpcodeAfterLower(IR::Instr* instr, Func * func)
 
     case Js::OpCode::Leave:
         Assert(!func->IsLoopBodyInTry());
-        Assert(func->HasTry() && func->DoOptimizeTryCatch());
+        Assert(func->HasTry() && func->DoOptimizeTry());
         return func && !func->isPostFinalLower; //Lowered in FinalLower phase
     };
 
@@ -24580,7 +24618,8 @@ Lowerer::LowerTry(IR::Instr* instr, bool tryCatch)
     instr->InsertBefore(setInstr);
     LowererMD::Legalize(setInstr);
 
-    return m_lowererMD.LowerTry(instr, tryCatch ? IR::HelperOp_TryCatch : IR::HelperOp_TryFinally);
+    return m_lowererMD.LowerTry(instr, tryCatch ? IR::HelperOp_TryCatch : ((this->m_func->IsSimpleJit() && !this->m_func->hasBailout) || !this->m_func->DoOptimizeTry()) ?
+        IR::HelperOp_TryFinallySimpleJit : IR::HelperOp_TryFinally);
 }
 
 void
@@ -24607,7 +24646,7 @@ void
 Lowerer::InsertReturnThunkForRegion(Region* region, IR::LabelInstr* restoreLabel)
 {
     Assert(this->m_func->isPostLayout);
-    Assert(region->GetType() == RegionTypeTry || region->GetType() == RegionTypeCatch);
+    Assert(region->GetType() == RegionTypeTry || region->GetType() == RegionTypeCatch || region->GetType() == RegionTypeFinally);
 
     if (!region->returnThunkEmitted)
     {
@@ -24625,7 +24664,37 @@ Lowerer::InsertReturnThunkForRegion(Region* region, IR::LabelInstr* restoreLabel
         }
 
         IR::LabelOpnd * continuationAddr;
-        if (region->GetParent()->GetType() != RegionTypeRoot)
+        // We insert return thunk to the region's parent return thunk label
+        // For non exception finallys, we do not need a return thunk
+        // Because, we are not calling none xception finallys from within amd64_callWithFakeFrame
+        // But a non exception finally maybe within other eh regions that need a return thunk
+        if (region->IsNonExceptingFinally())
+        {
+            Assert(region->GetParent()->GetType() != RegionTypeRoot);
+            Region *ancestor = region->GetFirstAncestorOfNonExceptingFinallyParent();
+            Assert(ancestor && !ancestor->IsNonExceptingFinally());
+            if (ancestor->GetType() != RegionTypeRoot)
+            {
+                continuationAddr = IR::LabelOpnd::New(ancestor->GetBailoutReturnThunkLabel(), this->m_func);
+            }
+            else
+            {
+                continuationAddr = IR::LabelOpnd::New(restoreLabel, this->m_func);
+            }
+        }
+        else if (region->GetParent()->IsNonExceptingFinally())
+        {
+            Region *ancestor = region->GetFirstAncestorOfNonExceptingFinally();
+            if (ancestor && ancestor->GetType() != RegionTypeRoot)
+            {
+                continuationAddr = IR::LabelOpnd::New(ancestor->GetBailoutReturnThunkLabel(), this->m_func);
+            }
+            else
+            {
+                continuationAddr = IR::LabelOpnd::New(restoreLabel, this->m_func);
+            }
+        }
+        else if (region->GetParent()->GetType() != RegionTypeRoot)
         {
             continuationAddr = IR::LabelOpnd::New(region->GetParent()->GetBailoutReturnThunkLabel(), this->m_func);
         }

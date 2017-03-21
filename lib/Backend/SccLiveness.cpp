@@ -309,7 +309,7 @@ SCCLiveness::Build()
 
         // Check for lifetimes that have been extended such that they now span multiple regions.
         this->curRegion->SetEnd(this->func->m_exitInstr);
-        if (this->func->HasTry() && !this->func->DoOptimizeTryCatch())
+        if (this->func->HasTry() && !this->func->DoOptimizeTry())
         {
             FOREACH_SLIST_ENTRY(Lifetime *, lifetime, &this->lifetimeList)
             {
@@ -527,7 +527,7 @@ SCCLiveness::ProcessStackSymUse(StackSym * stackSym, IR::Instr * instr, int usag
     }
     else
     {
-        if (lifetime->region != this->curRegion && !this->func->DoOptimizeTryCatch())
+        if (lifetime->region != this->curRegion && !this->func->DoOptimizeTry())
         {
             lifetime->dontAllocate = true;
         }
@@ -628,7 +628,7 @@ SCCLiveness::ProcessRegDef(IR::RegOpnd *regDef, IR::Instr *instr)
 
         ExtendLifetime(lifetime, instr);
 
-        if (lifetime->region != this->curRegion && !this->func->DoOptimizeTryCatch())
+        if (lifetime->region != this->curRegion && !this->func->DoOptimizeTry())
         {
             lifetime->dontAllocate = true;
         }

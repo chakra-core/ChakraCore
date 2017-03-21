@@ -870,7 +870,7 @@ GlobOpt::TryTailDup(IR::BranchInstr *tailBranch)
     // If we've duplicated everywhere, tail block is dead and should be removed.
     if (dupCount == origPredCount)
     {
-        AssertMsg(mergeLabel->IsUnreferenced(), "Should not remove block with referenced label.");
+        AssertMsg(mergeLabel->labelRefs.Empty(), "Should not remove block with referenced label.");
         func->m_fg->RemoveBlock(labelBlock, nullptr, true);
     }
 
@@ -2423,7 +2423,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     IR::Instr *instrPrev = instr->m_prev;
     IR::Instr *instrNext = instr->m_next;
 
-    if (instr->IsLabelInstr() && this->func->HasTry() && this->func->DoOptimizeTryCatch())
+    if (instr->IsLabelInstr() && this->func->HasTry() && this->func->DoOptimizeTry())
     {
         this->currentRegion = instr->AsLabelInstr()->GetRegion();
         Assert(this->currentRegion);
@@ -2536,27 +2536,45 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
         src1Val = src2Val;
         src2Val = nullptr;
     }
-    else if (instr->m_opcode == Js::OpCode::TryCatch && this->func->DoOptimizeTryCatch())
+    else if ((instr->m_opcode == Js::OpCode::TryCatch && this->func->DoOptimizeTry()) || (instr->m_opcode == Js::OpCode::TryFinally && this->func->DoOptimizeTry()))
     {
-        ProcessTryCatch(instr);
+        ProcessTryHandler(instr);
     }
     else if (instr->m_opcode == Js::OpCode::BrOnException)
     {
-        // BrOnException was added to model flow from try region to the catch region to assist
-        // the backward pass in propagating bytecode upward exposed info from the catch block
-        // to the try, and to handle break blocks. Removing it here as it has served its purpose
-        // and keeping it around might also have unintended effects while merging block data for
-        // the catch block's predecessors.
-        // Note that the Deadstore pass will still be able to propagate bytecode upward exposed info
-        // because it doesn't skip dead blocks for that.
-        this->RemoveFlowEdgeToCatchBlock(instr);
-        *isInstrRemoved = true;
-        this->currentBlock->RemoveInstr(instr);
-        return instrNext;
+        if (instr->AsBranchInstr()->GetTarget()->GetRegion()->GetType() != RegionType::RegionTypeFinally)
+        {
+            // BrOnException was added to model flow from try region to the catch region to assist
+            // the backward pass in propagating bytecode upward exposed info from the catch block
+            // to the try, and to handle break blocks. Removing it here as it has served its purpose
+            // and keeping it around might also have unintended effects while merging block data for
+            // the catch block's predecessors.
+            // Note that the Deadstore pass will still be able to propagate bytecode upward exposed info
+            // because it doesn't skip dead blocks for that.
+            this->RemoveFlowEdgeToCatchBlock(instr);
+            *isInstrRemoved = true;
+            this->currentBlock->RemoveInstr(instr);
+            return instrNext;
+        }
+        else
+        {
+            // We add BrOnException from a finally region to early exit
+            this->RemoveFlowEdgeToFinallyOnExceptionBlock(instr);
+            *isInstrRemoved = true;
+            this->currentBlock->RemoveInstr(instr);
+            return instrNext;
+        }
     }
     else if (instr->m_opcode == Js::OpCode::BrOnNoException)
     {
-        this->RemoveFlowEdgeToCatchBlock(instr);
+        if (instr->AsBranchInstr()->GetTarget()->GetRegion()->GetType() == RegionType::RegionTypeCatch)
+        {
+            this->RemoveFlowEdgeToCatchBlock(instr);
+        }
+        else
+        {
+            this->RemoveFlowEdgeToFinallyOnExceptionBlock(instr);
+        }
     }
 
     bool isAlreadyTypeSpecialized = false;
@@ -2647,7 +2665,7 @@ GlobOpt::OptInstr(IR::Instr *&instr, bool* isInstrRemoved)
     instrNext = instr->m_next;
     if (dst)
     {
-        if (this->func->HasTry() && this->func->DoOptimizeTryCatch())
+        if (this->func->HasTry() && this->func->DoOptimizeTry())
         {
             this->InsertToVarAtDefInTryRegion(instr, dst);
         }
@@ -17387,11 +17405,25 @@ GlobOpt::PreOptPeep(IR::Instr *instr)
             }
             case Js::OpCode::BailOnException:
             {
-                Assert(this->func->HasTry() && this->func->DoOptimizeTryCatch() &&
-                    instr->m_prev->m_opcode == Js::OpCode::Catch &&
-                    instr->m_prev->m_prev->IsLabelInstr() &&
-                    instr->m_prev->m_prev->AsLabelInstr()->GetRegion()->GetType() == RegionType::RegionTypeCatch); // Should also handle RegionTypeFinally
-
+                Assert(
+                    (
+                        this->func->HasTry() && this->func->DoOptimizeTry() &&
+                        instr->m_prev->m_opcode == Js::OpCode::Catch &&
+                        instr->m_prev->m_prev->IsLabelInstr() &&
+                        instr->m_prev->m_prev->AsLabelInstr()->GetRegion()->GetType() == RegionType::RegionTypeCatch
+                    )
+                    ||
+                    (
+                        this->func->HasFinally() && this->func->DoOptimizeTry() &&
+                        instr->m_prev->AsLabelInstr() &&
+                        instr->m_prev->AsLabelInstr()->GetRegion()->GetType() == RegionType::RegionTypeFinally
+                    )
+                );
+                break;
+            }
+            case Js::OpCode::BailOnEarlyExit:
+            {
+                Assert(this->func->HasFinally() && this->func->DoOptimizeTry());
                 break;
             }
             default:
@@ -17445,7 +17477,7 @@ GlobOpt::RemoveCodeAfterNoFallthroughInstr(IR::Instr *instr)
 }
 
 void
-GlobOpt::ProcessTryCatch(IR::Instr* instr)
+GlobOpt::ProcessTryHandler(IR::Instr* instr)
 {
     Assert(instr->m_next->IsLabelInstr() && instr->m_next->AsLabelInstr()->GetRegion()->GetType() == RegionType::RegionTypeTry);
 
@@ -17487,8 +17519,9 @@ GlobOpt::RemoveFlowEdgeToCatchBlock(IR::Instr * instr)
         catchBlock = instr->AsBranchInstr()->GetTarget()->GetBasicBlock();
         predBlock = this->currentBlock;
     }
-    else if (instr->m_opcode == Js::OpCode::BrOnNoException)
+    else
     {
+        Assert(instr->m_opcode == Js::OpCode::BrOnNoException);
         IR::Instr * nextInstr = instr->GetNextRealInstrOrLabel();
         Assert(nextInstr->IsLabelInstr());
         IR::LabelInstr * nextLabel = nextInstr->AsLabelInstr();
@@ -17518,6 +17551,59 @@ GlobOpt::RemoveFlowEdgeToCatchBlock(IR::Instr * instr)
         if (predBlock == this->currentBlock)
         {
             predBlock->DecrementDataUseCount();
+        }
+    }
+}
+
+void
+GlobOpt::RemoveFlowEdgeToFinallyOnExceptionBlock(IR::Instr * instr)
+{
+    Assert(instr->IsBranchInstr());
+
+    BasicBlock * finallyBlock = nullptr;
+    BasicBlock * predBlock = nullptr;
+    if (instr->m_opcode == Js::OpCode::BrOnException)
+    {
+        finallyBlock = instr->AsBranchInstr()->GetTarget()->GetBasicBlock();
+        predBlock = this->currentBlock;
+        Assert(finallyBlock && predBlock);
+    }
+    else
+    {
+        Assert(instr->m_opcode == Js::OpCode::BrOnNoException);
+        IR::Instr * nextInstr = instr->GetNextRealInstrOrLabel();
+        Assert(nextInstr->IsLabelInstr());
+        IR::LabelInstr * nextLabel = nextInstr->AsLabelInstr();
+
+        if (nextLabel->GetRegion() && nextLabel->GetRegion()->GetType() == RegionTypeFinally)
+        {
+            finallyBlock = nextLabel->GetBasicBlock();
+            predBlock = this->currentBlock;
+        }
+        else
+        {
+            if (!(nextLabel->m_next->IsBranchInstr() && nextLabel->m_next->AsBranchInstr()->IsUnconditional()))
+            {
+                // Already processed in loop prepass
+                return;
+            }
+            BasicBlock * nextBlock = nextLabel->GetBasicBlock();
+            IR::BranchInstr * branchTofinallyBlockOrEarlyExit = nextLabel->m_next->AsBranchInstr();
+            IR::LabelInstr * finallyBlockLabelOrEarlyExitLabel = branchTofinallyBlockOrEarlyExit->GetTarget();
+            finallyBlock = finallyBlockLabelOrEarlyExitLabel->GetBasicBlock();
+            predBlock = nextBlock;
+        }
+    }
+
+    if (finallyBlock && predBlock)
+    {
+        if (this->func->m_fg->FindEdge(predBlock, finallyBlock))
+        {
+            predBlock->RemoveDeadSucc(finallyBlock, this->func->m_fg);
+            if (predBlock == this->currentBlock)
+            {
+                predBlock->DecrementDataUseCount();
+            }
         }
     }
 }

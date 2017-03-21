@@ -390,10 +390,10 @@ IRBuilder::Build()
     this->branchRelocList = JitAnew(m_tempAlloc, SList<BranchReloc *>, m_tempAlloc);
     Func * topFunc = this->m_func->GetTopFunc();
     if (topFunc->HasTry() &&
-        ((!topFunc->HasFinally() && !topFunc->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, topFunc)) ||
+        ((!topFunc->IsLoopBody() && !PHASE_OFF(Js::OptimizeTryCatchPhase, topFunc)) ||
         (topFunc->IsSimpleJit() && topFunc->GetJITFunctionBody()->DoJITLoopBody()))) // should be relaxed as more bailouts are added in Simple Jit
     {
-        this->catchOffsetStack = JitAnew(m_tempAlloc, SList<uint>, m_tempAlloc);
+        this->handlerOffsetStack = JitAnew(m_tempAlloc, SList<handlerStackElementType>, m_tempAlloc);
     }
 
     this->firstTemp = m_func->GetJITFunctionBody()->GetFirstTmpReg();
@@ -876,7 +876,7 @@ IRBuilder::Build()
 
     InsertLabels();
 
-    Assert(!this->catchOffsetStack || this->catchOffsetStack->Empty());
+    Assert(!this->handlerOffsetStack || this->handlerOffsetStack->Empty());
 
     // Insert bailout for ignore exception for labels, after all labels were finalized.
     ignoreExBranchInstrToOffsetMap.Map([this](IR::Instr* instr, int byteCodeOffset) {
@@ -1677,8 +1677,8 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
     case Js::OpCode::Throw:
         {
             srcOpnd = this->BuildSrcOpnd(srcRegOpnd);
-
-            if (this->catchOffsetStack && !this->catchOffsetStack->Empty())
+            if ((this->handlerOffsetStack && !this->handlerOffsetStack->Empty()) ||
+                finallyBlockLevel > 0)
             {
                 newOpcode = Js::OpCode::EHThrow;
             }
@@ -1791,9 +1791,10 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         return;
 
     case Js::OpCode::Catch:
-        if (this->catchOffsetStack)
+        if (this->handlerOffsetStack)
         {
-            this->catchOffsetStack->Pop();
+            Assert(this->handlerOffsetStack->Top().Second() == true);
+            this->handlerOffsetStack->Pop();
         }
         dstIsCatchObject = true;
         break;
@@ -2076,7 +2077,7 @@ IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
             ValueType arrayType(ldElemInfo->GetArrayType());
             if(arrayType.IsLikelyNativeArray() &&
                 (
-                    (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
+                    (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
                     m_func->IsJitInDebugMode()
                 ))
             {
@@ -2090,7 +2091,7 @@ IRBuilder::BuildProfiledReg2(Js::OpCode newOpcode, uint32 offset, Js::RegSlot ds
             }
             src1Opnd->SetValueType(arrayType);
 
-            if (m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch())
+            if (m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry())
             {
                 isProfiled = false;
             }
@@ -5369,7 +5370,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
     {
         if(arrayType.IsLikelyNativeArray() &&
             (
-                (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
+                (!(m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry()) && m_func->GetWeakFuncRef() && !m_func->HasArrayInfo()) ||
                 m_func->IsJitInDebugMode()
             ))
         {
@@ -5392,7 +5393,7 @@ IRBuilder::BuildElementI(Js::OpCode newOpcode, uint32 offset, Js::RegSlot baseRe
         }
         indirOpnd->GetBaseOpnd()->SetValueType(arrayType);
 
-        if (m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTryCatch())
+        if (m_func->GetTopFunc()->HasTry() && !m_func->GetTopFunc()->DoOptimizeTry())
         {
             isProfiledLoad = false;
             isProfiledStore = false;
@@ -6764,7 +6765,7 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
         IR::BranchInstr * branchInstr;
         IR::LabelInstr * labelInstr;
 
-        if (this->catchOffsetStack && !this->catchOffsetStack->Empty())
+        if (this->handlerOffsetStack && !this->handlerOffsetStack->Empty() && this->handlerOffsetStack->Top().Second())
         {
             // If the try region has a break block, we don't want the Flowgraph to move all of that code out of the loop
             // because an exception will bring the control back into the loop. The branch out of the loop (which is the
@@ -6773,16 +6774,30 @@ IRBuilder::BuildEmpty(Js::OpCode newOpcode, uint32 offset)
             // "BrOnException $catch" is inserted before Leave's in the try region to instrument flow from the try region
             // to the catch region (which is in the loop).
             IR::BranchInstr * brOnException = IR::BranchInstr::New(Js::OpCode::BrOnException, nullptr, this->m_func);
-            this->AddBranchInstr(brOnException, offset, this->catchOffsetStack->Top());
+            this->AddBranchInstr(brOnException, offset, this->handlerOffsetStack->Top().First());
         }
 
         labelInstr = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
         branchInstr = IR::BranchInstr::New(newOpcode, labelInstr, this->m_func);
         this->AddInstr(branchInstr, offset);
         this->AddInstr(labelInstr, Js::Constants::NoByteCodeOffset);
-
         break;
     }
+
+    case Js::OpCode::LeaveNull:
+        finallyBlockLevel--;
+        this->AddInstr(instr, offset);
+        break;
+
+    case Js::OpCode::Finally:
+        if (this->handlerOffsetStack)
+        {
+            Assert(this->handlerOffsetStack->Top().Second() == false);
+            this->handlerOffsetStack->Pop();
+        }
+        finallyBlockLevel++;
+        this->AddInstr(IR::Instr::New(Js::OpCode::Finally, this->m_func), offset);
+        break;
 
     case Js::OpCode::Break:
         if (m_func->IsJitInDebugMode())
@@ -7058,9 +7073,13 @@ IRBuilder::BuildBr(Js::OpCode newOpcode, uint32 offset)
     }
 #endif
 
-    if ((newOpcode == Js::OpCode::TryCatch) && this->catchOffsetStack)
+    if ((newOpcode == Js::OpCode::TryCatch) && this->handlerOffsetStack)
     {
-        this->catchOffsetStack->Push(targetOffset);
+        this->handlerOffsetStack->Push(Pair<uint, bool>(targetOffset, true));
+    }
+    else if ((newOpcode == Js::OpCode::TryFinally) && this->handlerOffsetStack)
+    {
+        this->handlerOffsetStack->Push(Pair<uint, bool>(targetOffset, false));
     }
     branchInstr = IR::BranchInstr::New(newOpcode, nullptr, m_func);
     this->AddBranchInstr(branchInstr, offset, targetOffset);
