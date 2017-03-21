@@ -2477,6 +2477,7 @@ Instr::HoistIndirOffset(IR::IndirOpnd *indirOpnd, RegNum regNum)
     int32 offset = indirOpnd->GetOffset();
     if (indirOpnd->GetIndexOpnd())
     {
+        Assert(indirOpnd->GetBaseOpnd());
         return HoistIndirOffsetAsAdd(indirOpnd, indirOpnd->GetBaseOpnd(), offset, regNum);
     }
     IntConstOpnd *offsetOpnd = IntConstOpnd::New(offset, TyInt32, this->m_func);
@@ -2858,10 +2859,11 @@ Instr::FindRegUse(StackSym *sym)
         }
         else if (src1->IsIndirOpnd())
         {
-            IR::IndirOpnd *indirOpnd = src1->AsIndirOpnd();
-            if (indirOpnd->GetBaseOpnd()->m_sym == sym)
+            IndirOpnd * indirOpnd = src1->AsIndirOpnd();
+            RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
+            if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
             {
-                return indirOpnd->GetBaseOpnd();
+                return baseOpnd;
             }
             else if (indirOpnd->GetIndexOpnd() && indirOpnd->GetIndexOpnd()->m_sym == sym)
             {
@@ -2885,9 +2887,10 @@ Instr::FindRegUse(StackSym *sym)
             else if (src2->IsIndirOpnd())
             {
                 IR::IndirOpnd *indirOpnd = src2->AsIndirOpnd();
-                if (indirOpnd->GetBaseOpnd()->m_sym == sym)
+                RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
+                if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
                 {
-                    return indirOpnd->GetBaseOpnd();
+                    return baseOpnd;
                 }
                 else if (indirOpnd->GetIndexOpnd() && indirOpnd->GetIndexOpnd()->m_sym == sym)
                 {
@@ -2903,9 +2906,10 @@ Instr::FindRegUse(StackSym *sym)
     if (dst != nullptr && dst->IsIndirOpnd())
     {
         IR::IndirOpnd *indirOpnd = dst->AsIndirOpnd();
-        if (indirOpnd->GetBaseOpnd()->m_sym == sym)
+        RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
+        if (baseOpnd != nullptr && baseOpnd->m_sym == sym)
         {
-            return indirOpnd->GetBaseOpnd();
+            return baseOpnd;
         }
         else if (indirOpnd->GetIndexOpnd() && indirOpnd->GetIndexOpnd()->m_sym == sym)
         {

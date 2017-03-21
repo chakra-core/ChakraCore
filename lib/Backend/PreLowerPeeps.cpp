@@ -13,6 +13,13 @@ IR::Instr *Lowerer::PreLowerPeepInstr(IR::Instr *instr, IR::Instr **pInstrPrev)
 
     switch (instr->m_opcode)
     {
+#if defined(_M_IX86) || defined(_M_X64)
+        // this sort of addressing mode magic only applies to x86 platforms
+    case Js::OpCode::Add_I4:
+        instr = this->PeepShiftAdd(instr);
+        *pInstrPrev = instr->m_prev;
+        break;
+#endif
     case Js::OpCode::Shl_I4:
         instr = this->PeepShl(instr);
         *pInstrPrev = instr->m_prev;
@@ -26,6 +33,161 @@ IR::Instr *Lowerer::PreLowerPeepInstr(IR::Instr *instr, IR::Instr **pInstrPrev)
     }
 
     return instr;
+}
+
+IR::Instr *
+Lowerer::TryShiftAdd(IR::Instr *instrAdd, IR::Opnd * opndFold, IR::Opnd * opndAdd)
+{
+    Assert(instrAdd->m_opcode == Js::OpCode::Add_I4);
+    if (!opndFold->GetIsDead())
+    {
+        return instrAdd;
+    }
+
+    if (!(opndAdd->IsRegOpnd() || (opndAdd->IsInt32() && opndAdd->IsIntConstOpnd())))
+    {
+        return instrAdd;
+    }
+
+    if (!opndFold->IsRegOpnd() || !opndFold->AsRegOpnd()->m_sym->IsSingleDef())
+    {
+        return instrAdd;
+    }
+
+    IR::Instr * instrDef = opndFold->AsRegOpnd()->m_sym->GetInstrDef();
+
+    if ((instrDef->m_opcode != Js::OpCode::Shl_I4 && instrDef->m_opcode != Js::OpCode::Mul_I4) || !instrDef->GetSrc1()->IsRegOpnd()  || !instrDef->GetSrc2()->IsIntConstOpnd())
+    {
+        return instrAdd;
+    }
+
+    if (instrDef->HasBailOutInfo())
+    {
+        return instrAdd;
+    }
+
+    byte scale = 0;
+    IntConstType constVal = instrDef->GetSrc2()->AsIntConstOpnd()->GetValue();
+    if (instrDef->m_opcode == Js::OpCode::Shl_I4)
+    {
+        if (constVal < 0 || constVal > 3)
+        {
+            return instrAdd;
+        }
+        scale = (byte)constVal;
+    }
+    else
+    {
+        Assert(instrDef->m_opcode == Js::OpCode::Mul_I4);
+        switch (constVal)
+        {
+        case 1:
+            scale = 0;
+            break;
+        case 2:
+            scale = 1;
+            break;
+        case 4:
+            scale = 2;
+            break;
+        case 8:
+            scale = 3;
+            break;
+        default:
+            return instrAdd;
+        }
+    }
+
+    StackSym * defSrc1Sym = instrDef->GetSrc1()->AsRegOpnd()->m_sym;
+    StackSym * foldSym = opndFold->AsRegOpnd()->m_sym;
+    FOREACH_INSTR_IN_RANGE(instrIter, instrDef->m_next, instrAdd->m_prev)
+    {
+        // if any branch between def-use, don't do peeps on it because branch target might depend on the def
+        if (instrIter->IsBranchInstr())
+        {
+            return instrAdd;
+        }
+        if (instrIter->HasBailOutInfo())
+        {
+            return instrAdd;
+        }
+        if (instrIter->FindRegDef(defSrc1Sym))
+        {
+            return instrAdd;
+        }
+        if (instrIter->FindRegUse(foldSym))
+        {
+            return instrAdd;
+        }
+    } NEXT_INSTR_IN_RANGE;
+
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::PreLowererPeepsPhase, instrAdd->m_func))
+    {
+        Output::Print(_u("PeepShiftAdd : %s (%d) : folding:\n"), instrAdd->m_func->GetJITFunctionBody()->GetDisplayName(), instrAdd->m_func->GetFunctionNumber());
+        instrDef->Dump();
+        instrAdd->Dump();
+    }
+#endif
+
+    IR::IndirOpnd * leaOpnd = nullptr;
+    if (opndAdd->IsRegOpnd())
+    {
+        leaOpnd = IR::IndirOpnd::New(opndAdd->AsRegOpnd(), instrDef->UnlinkSrc1()->AsRegOpnd(), scale, opndFold->GetType(), instrAdd->m_func);
+    }
+    else
+    {
+        Assert(opndAdd->IsInt32() && opndAdd->IsIntConstOpnd());
+        leaOpnd = IR::IndirOpnd::New(instrDef->UnlinkSrc1()->AsRegOpnd(), opndAdd->AsIntConstOpnd()->AsInt32(), scale, opndFold->GetType(), instrAdd->m_func);
+    }
+
+    IR::Instr * leaInstr = InsertLea(instrAdd->UnlinkDst()->AsRegOpnd(), leaOpnd, instrAdd);
+
+#if DBG_DUMP
+    if (PHASE_TRACE(Js::PreLowererPeepsPhase, instrAdd->m_func))
+    {
+        Output::Print(_u("into:\n"), instrAdd->m_func->GetJITFunctionBody()->GetDisplayName(), instrAdd->m_func->GetFunctionNumber());
+        leaInstr->Dump();
+    }
+#endif
+
+    instrAdd->Remove();
+    instrDef->Remove();
+
+    return leaInstr;
+}
+
+IR::Instr *
+Lowerer::PeepShiftAdd(IR::Instr *instrAdd)
+{
+    Assert(instrAdd->m_opcode == Js::OpCode::Add_I4);
+
+    // Peep:
+    //    t1 = SHL X, 0|1|2|3    / t1 = MUL X, 1|2|4|8
+    //    t2 = ADD t1, Y
+    //
+    // Into:
+    //    t2 = LEA [X * scale + Y]
+
+    if (instrAdd->HasBailOutInfo())
+    {
+        return instrAdd;
+    }
+
+    if (!instrAdd->GetDst()->IsRegOpnd())
+    {
+        return instrAdd;
+    }
+
+    IR::Opnd * src2 = instrAdd->GetSrc2();
+    IR::Opnd * src1 = instrAdd->GetSrc1();
+    IR::Instr * resultInstr = TryShiftAdd(instrAdd, src1, src2);
+    if (resultInstr->m_opcode == Js::OpCode::Add_I4)
+    {
+        resultInstr = TryShiftAdd(instrAdd, src2, src1);
+    }
+    return resultInstr;
+
 }
 
 IR::Instr *Lowerer::PeepShl(IR::Instr *instrShl)

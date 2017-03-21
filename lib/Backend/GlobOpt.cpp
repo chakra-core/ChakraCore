@@ -18674,10 +18674,7 @@ swap_srcs:
         if (!instr->GetSrc2()->IsImmediateOpnd())
         {
             instr->m_opcode = opcode;
-            src1 = instr->UnlinkSrc1();
-            src2 = instr->UnlinkSrc2();
-            instr->SetSrc1(src2);
-            instr->SetSrc2(src1);
+            instr->SwapOpnds();
 
             Value *tempVal = *pSrc1Val;
             *pSrc1Val = *pSrc2Val;

@@ -2245,9 +2245,7 @@ IndirOpnd::New(RegOpnd *baseOpnd, RegOpnd *indexOpnd, IRType type, Func *func)
     IndirOpnd * indirOpnd;
 
     AssertMsg(baseOpnd, "An IndirOpnd needs a valid baseOpnd.");
-    Assert(baseOpnd->GetSize() == TySize[TyMachReg]);
-
-    indirOpnd = JitAnew(func->m_alloc, IR::IndirOpnd);
+    indirOpnd = JitAnew(func->m_alloc, IndirOpnd);
 
     indirOpnd->m_func = func;
     indirOpnd->SetBaseOpnd(baseOpnd);
@@ -2288,11 +2286,40 @@ IndirOpnd::New(RegOpnd *baseOpnd, RegOpnd *indexOpnd, byte scale, IRType type, F
 ///----------------------------------------------------------------------------
 
 IndirOpnd *
+IndirOpnd::New(RegOpnd *indexOpnd, int32 offset, byte scale, IRType type, Func *func)
+{
+    IndirOpnd * indirOpnd;
+
+    indirOpnd = JitAnew(func->m_alloc, IndirOpnd);
+
+    indirOpnd->m_func = func;
+    indirOpnd->SetBaseOpnd(nullptr);
+    indirOpnd->SetOffset(offset, true);
+    indirOpnd->SetIndexOpnd(indexOpnd);
+    indirOpnd->m_type = type;
+    indirOpnd->SetIsJITOptimizedReg(false);
+
+    indirOpnd->m_kind = OpndKindIndir;
+
+    indirOpnd->m_scale = scale;
+
+    return indirOpnd;
+}
+
+///----------------------------------------------------------------------------
+///
+/// IndirOpnd::New
+///
+///     Creates a new IndirOpnd.
+///
+///----------------------------------------------------------------------------
+
+IndirOpnd *
 IndirOpnd::New(RegOpnd *baseOpnd, int32 offset, IRType type, Func *func, bool dontEncode /* = false */)
 {
     IndirOpnd * indirOpnd;
 
-    indirOpnd = JitAnew(func->m_alloc, IR::IndirOpnd);
+    indirOpnd = JitAnew(func->m_alloc, IndirOpnd);
 
     indirOpnd->m_func = func;
     indirOpnd->SetBaseOpnd(baseOpnd);
@@ -2458,7 +2485,8 @@ IndirOpnd::IsEqualInternal(Opnd *opnd)
     }
     IndirOpnd *indirOpnd = opnd->AsIndirOpnd();
 
-    return m_offset == indirOpnd->m_offset && m_baseOpnd->IsEqual(indirOpnd->m_baseOpnd)
+    return m_offset == indirOpnd->m_offset
+        && ((m_baseOpnd == nullptr && indirOpnd->m_baseOpnd == nullptr) || (m_baseOpnd && indirOpnd->m_baseOpnd && m_baseOpnd->IsEqual(indirOpnd->m_baseOpnd)))
         && ((m_indexOpnd == nullptr && indirOpnd->m_indexOpnd == nullptr) || (m_indexOpnd && indirOpnd->m_indexOpnd && m_indexOpnd->IsEqual(indirOpnd->m_indexOpnd)));
 }
 
@@ -3177,21 +3205,31 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
 
     case OpndKindIndir:
     {
-        IndirOpnd *indirOpnd = this->AsIndirOpnd();
+        IndirOpnd * indirOpnd = this->AsIndirOpnd();
+        RegOpnd * baseOpnd = indirOpnd->GetBaseOpnd();
+        RegOpnd * indexOpnd = indirOpnd->GetIndexOpnd();
+        const int32 offset = indirOpnd->GetOffset();
 
         Output::Print(_u("["));
-        indirOpnd->GetBaseOpnd()->Dump(flags, func);
+        if (baseOpnd != nullptr)
+        {
+            baseOpnd->Dump(flags, func);
+        }
+        else
+        {
+            Output::Print(_u("<null>"));
+        }
 
-        if (indirOpnd->GetIndexOpnd())
+        if (indexOpnd != nullptr)
         {
             Output::Print(_u("+"));
-            indirOpnd->GetIndexOpnd()->Dump(flags, func);
+            indexOpnd->Dump(flags, func);
             if (indirOpnd->GetScale() > 0)
             {
                 Output::Print(_u("*%d"), 1 << indirOpnd->GetScale());
             }
         }
-        if (indirOpnd->GetOffset())
+        if (offset != 0)
         {
             if (!Js::Configuration::Global.flags.DumpIRAddresses && indirOpnd->HasAddrKind())
             {
@@ -3199,14 +3237,14 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
             }
             else
             {
-                const auto sign = indirOpnd->GetOffset() >= 0 ? _u("+") : _u("");
+                const auto sign = offset >= 0 ? _u("+") : _u("");
                 if (AsmDumpMode)
                 {
-                    Output::Print(_u("%sXXXX%04d"), sign, indirOpnd->GetOffset() & 0xffff);
+                    Output::Print(_u("%sXXXX%04d"), sign, offset & 0xffff);
                 }
                 else
                 {
-                    Output::Print(_u("%s%d"), sign, indirOpnd->GetOffset());
+                    Output::Print(_u("%s%d"), sign, offset);
                 }
             }
         }

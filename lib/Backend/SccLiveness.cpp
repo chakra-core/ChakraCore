@@ -368,11 +368,12 @@ SCCLiveness::ProcessSrc(IR::Opnd *src, IR::Instr *instr)
     {
         IR::IndirOpnd *indirOpnd = src->AsIndirOpnd();
 
-        AssertMsg(indirOpnd->GetBaseOpnd(), "Indir should have a base...");
-
         if (!this->FoldIndir(instr, indirOpnd))
         {
-            this->ProcessRegUse(indirOpnd->GetBaseOpnd(), instr);
+            if (indirOpnd->GetBaseOpnd())
+            {
+                this->ProcessRegUse(indirOpnd->GetBaseOpnd(), instr);
+            }
 
             if (indirOpnd->GetIndexOpnd())
             {
@@ -425,12 +426,12 @@ SCCLiveness::ProcessDst(IR::Opnd *dst, IR::Instr *instr)
 
         IR::IndirOpnd *indirOpnd = dst->AsIndirOpnd();
 
-        AssertMsg(indirOpnd->GetBaseOpnd(), "Indir should have a base...");
-
         if (!this->FoldIndir(instr, indirOpnd))
         {
-            this->ProcessRegUse(indirOpnd->GetBaseOpnd(), instr);
-
+            if (indirOpnd->GetBaseOpnd())
+            {
+                this->ProcessRegUse(indirOpnd->GetBaseOpnd(), instr);
+            }
             if (indirOpnd->GetIndexOpnd())
             {
                 this->ProcessRegUse(indirOpnd->GetIndexOpnd(), instr);
@@ -785,7 +786,7 @@ SCCLiveness::FoldIndir(IR::Instr *instr, IR::Opnd *opnd)
     }
 
     IR::RegOpnd *base = indir->GetBaseOpnd();
-    if (!base->m_sym || !base->m_sym->IsConst() || base->m_sym->IsIntConst() || base->m_sym->IsFloatConst())
+    if (!base || !base->m_sym || !base->m_sym->IsConst() || base->m_sym->IsIntConst() || base->m_sym->IsFloatConst())
     {
         return false;
     }

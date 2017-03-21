@@ -1438,6 +1438,7 @@ class IndirOpnd: public Opnd
 public:
     static IndirOpnd *      New(RegOpnd * baseOpnd, RegOpnd * indexOpnd, IRType type, Func *func);
     static IndirOpnd *      New(RegOpnd * baseOpnd, RegOpnd * indexOpnd, byte scale, IRType type, Func *func);
+    static IndirOpnd *      New(RegOpnd * indexOpnd, int32 offset, byte scale, IRType type, Func *func);
     static IndirOpnd *      New(RegOpnd * baseOpnd, int32 offset, IRType type, Func *func, bool dontEncode = false);
 #if DBG_DUMP || defined(ENABLE_IR_VIEWER)
     static IndirOpnd *      New(RegOpnd * baseOpnd, int32 offset, IRType type, const char16 *desc, Func *func, bool dontEncode = false);
