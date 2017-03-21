@@ -885,6 +885,8 @@ private:
         void InitializePostGlobal();
         void InitializeCache();
 
+        bool isDebugContextInitialized;
+
         // Source Info
         void EnsureSourceContextInfoMap();
         void EnsureDynamicSourceContextInfoMap();
@@ -970,6 +972,7 @@ private:
         bool IsInitialized() { return this->isInitialized; }
 #endif
 
+        bool IsDebugContextInitialized() const { return this->isDebugContextInitialized; }
         DebugContext* GetDebugContext() const { return this->debugContext; }
         CriticalSection* GetDebugContextCloseCS() { return &debugContextCloseCS; }
 

@@ -451,7 +451,7 @@ CHAKRA_API JsDiagSetStepType(
             return JsErrorInvalidArgument;
 #endif
         }
-        else if(stepType == JsDiagStepTypeStepReverseContinue)
+        else if (stepType == JsDiagStepTypeReverseContinue)
         {
 #if ENABLE_TTD
             ThreadContext* threadContext = runtime->GetThreadContext();
@@ -472,6 +472,10 @@ CHAKRA_API JsDiagSetStepType(
 #else
             return JsErrorInvalidArgument;
 #endif
+        }
+        else if (stepType == JsDiagStepTypeContinue)
+        {
+            jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
         }
 
         return JsNoError;
@@ -659,7 +663,7 @@ CHAKRA_API JsDiagGetObjectFromHandle(
             return JsErrorDiagInvalidHandle;
         }
 
-        Js::DynamicObject* object = debuggerObject->GetJSONObject(scriptContext);
+        Js::DynamicObject* object = debuggerObject->GetJSONObject(scriptContext, /* forceSetValueProp */ false);
 
         if (object != nullptr)
         {
@@ -675,6 +679,7 @@ CHAKRA_API JsDiagEvaluate(
     _In_ JsValueRef expressionVal,
     _In_ unsigned int stackFrameIndex,
     _In_ JsParseScriptAttributes parseAttributes,
+    _In_ bool forceSetValueProp,
     _Out_ JsValueRef *evalResult)
 {
     return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
@@ -742,7 +747,7 @@ CHAKRA_API JsDiagEvaluate(
         }
 
         Js::DynamicObject* result = nullptr;
-        bool success = debuggerStackFrame->Evaluate(scriptContext, expression, static_cast<int>(len), false, &result);
+        bool success = debuggerStackFrame->Evaluate(scriptContext, expression, static_cast<int>(len), false, forceSetValueProp, &result);
 
         if (result != nullptr)
         {

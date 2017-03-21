@@ -106,7 +106,11 @@ typedef unsigned __int32 uint32_t;
         /// <summary>
         ///     Perform a reverse continue operation (only applicable in TTD mode).
         /// </summary>
-        JsDiagStepTypeStepReverseContinue = 4
+        JsDiagStepTypeReverseContinue = 4,
+        /// <summary>
+        ///     Perform a forward continue operation. Clears any existing step value.
+        /// </summary>
+        JsDiagStepTypeContinue = 5
     } JsDiagStepType;
 
     /// <summary>
@@ -563,6 +567,7 @@ typedef unsigned __int32 uint32_t;
     ///     - `JsParseScriptAttributeArrayBufferIsUtf16Encoded` when `expression` is Utf16 Encoded ArrayBuffer
     ///     - `JsParseScriptAttributeLibraryCode` has no use for this function and has similar effect with `JsParseScriptAttributeNone`
     /// </param>
+    /// <param name="forceSetValueProp">Forces the result to contain the raw value of the expression result.</param>
     /// <param name="evalResult">Result of evaluation.</param>
     /// <remarks>
     ///     <para>
@@ -600,6 +605,7 @@ typedef unsigned __int32 uint32_t;
             _In_ JsValueRef expression,
             _In_ unsigned int stackFrameIndex,
             _In_ JsParseScriptAttributes parseAttributes,
+            _In_ bool forceSetValueProp,
             _Out_ JsValueRef *evalResult);
 
     /////////////////////

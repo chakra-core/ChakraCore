@@ -288,7 +288,7 @@ void JsrtDebugManager::ReportExceptionBreak(Js::InterpreterHaltState* haltState)
             resolvedObject.obj = resolvedObject.scriptContext->GetLibrary()->GetUndefined();
         }
 
-        JsrtDebuggerObjectBase::CreateDebuggerObject<JsrtDebuggerObjectProperty>(this->GetDebuggerObjectsManager(), resolvedObject, scriptContext, [&](Js::Var marshaledObj)
+        JsrtDebuggerObjectBase::CreateDebuggerObject<JsrtDebuggerObjectProperty>(this->GetDebuggerObjectsManager(), resolvedObject, scriptContext, /* forceSetValueProp */ false, [&](Js::Var marshaledObj)
         {
             JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::exception, marshaledObj, scriptContext);
         });
@@ -313,10 +313,18 @@ void JsrtDebugManager::SetResumeType(BREAKRESUMEACTION resumeAction)
 
 bool JsrtDebugManager::EnableAsyncBreak(Js::ScriptContext* scriptContext)
 {
-    // This can be called when we are already at break
-    if (!scriptContext->GetDebugContext()->GetProbeContainer()->IsAsyncActivate())
+    if (!scriptContext->IsDebugContextInitialized())
     {
-        scriptContext->GetDebugContext()->GetProbeContainer()->AsyncActivate(this);
+        // Although the script context exists, it hasn't been fully initialized yet.
+        return false;
+    }
+
+    Js::ProbeContainer* probeContainer = scriptContext->GetDebugContext()->GetProbeContainer();
+
+    // This can be called when we are already at break
+    if (!probeContainer->IsAsyncActivate())
+    {
+        probeContainer->AsyncActivate(this);
         if (Js::Configuration::Global.EnableJitInDebugMode())
         {
             scriptContext->GetThreadContext()->GetDebugManager()->GetDebuggingFlags()->SetForceInterpreter(true);

@@ -134,7 +134,8 @@ namespace Js
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
         m_remoteScriptContextAddr(nullptr),
-        isWeakReferenceDictionaryListCleared(false)
+        isWeakReferenceDictionaryListCleared(false),
+        isDebugContextInitialized(false)
 #if ENABLE_PROFILE_INFO
         , referencesSharedDynamicSourceContextInfo(false)
 #endif
@@ -1270,6 +1271,13 @@ namespace Js
         this->GetDebugContext()->Initialize();
 
         this->GetDebugContext()->GetProbeContainer()->Initialize(this);
+
+        isDebugContextInitialized = true;
+
+#if defined(_M_ARM32_OR_ARM64)
+        // We need to ensure that the above write to the isDebugContextInitialized is visible to the debugger thread.
+        MemoryBarrier();
+#endif
 
         AssertMsg(this->CurrentThunk == DefaultEntryThunk, "Creating non default thunk while initializing");
         AssertMsg(this->DeferredParsingThunk == DefaultDeferredParsingThunk, "Creating non default thunk while initializing");
