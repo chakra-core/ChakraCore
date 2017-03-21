@@ -708,6 +708,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_TypeAnnotations (false)
 #define DEFAULT_CONFIG_ParamTypeAnnotations (false)
 #define DEFAULT_CONFIG_RemoveIntOverflow (false)
+#define DEFAULT_CONFIG_RemoveNegativeZero (false)
 
 #define DEFAULT_CONFIG_MinMemOpCount (16U)
 
@@ -1369,7 +1370,8 @@ FLAGNR(Boolean, TrackDispatch         , "Save stack traces of where JavascriptDi
 //TypeAnnotation Flags:
 FLAGNR(Boolean, TypeAnnotations       , "Enables the usage of type annotations in comments (default: false)", DEFAULT_CONFIG_TypeAnnotations)
 FLAGNR(Boolean, ParamTypeAnnotations  , "Enables the usage of type annotations in function parameters(default: false)", DEFAULT_CONFIG_ParamTypeAnnotations)
-FLAGNR(Boolean, RemoveIntOverflow     , "Removes int overflow checks for operations with annotated operands (default: false)", DEFAULT_CONFIG_RemoveIntOverflow)
+FLAGNR(Boolean, RemoveIntOverflow     , "Removes int overflow checks for operations with int operands (default: false)", DEFAULT_CONFIG_RemoveIntOverflow)
+FLAGNR(Boolean, RemoveNegativeZero    , "Removes negative zero checks for operations with int operands (default: false)", DEFAULT_CONFIG_RemoveNegativeZero)
 
 FLAGNR(Boolean, Verbose               , "Dump details", DEFAULT_CONFIG_Verbose)
 FLAGNR(Boolean, UseFullName           , "Enable fully qualified name", DEFAULT_CONFIG_UseFullName)

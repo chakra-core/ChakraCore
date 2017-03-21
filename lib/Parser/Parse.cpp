@@ -6454,6 +6454,9 @@ void Parser::AddTypeAnnotationToParseNode(ParseNodePtr pnode)
         case tkTypeFloatArray:
             pnode->typeHint = Js::TypeHint::FloatArray;
             break;
+        case tkTypeIntArray:
+            pnode->typeHint = Js::TypeHint::IntArray;
+            break;
         }
     }
     m_pscan->Scan(); //Leave the scanner pointing to the next token

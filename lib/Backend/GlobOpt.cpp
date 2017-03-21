@@ -5805,28 +5805,10 @@ GlobOpt::OptSrc(IR::Opnd *opnd, IR::Instr * *pInstr, Value **indirIndexValRef, I
                     if (CONFIG_FLAG(ParamTypeAnnotations) && instr->m_func->GetJITFunctionBody()->GetParameterTypeInfo() != nullptr)
                     {
                         Js::TypeHint typeHint = (Js::TypeHint) instr->m_func->GetJITFunctionBody()->GetParameterTypeInfo()->content[paramSlotNum];
-                        switch (typeHint)
-                        {
-                            case Js::TypeHint::Int:
-                                parameterType = ValueType::Int.SetCanBeTaggedValue(true);
-                                break;
-                            case Js::TypeHint::Float:
-                                parameterType = ValueType::Float.SetCanBeTaggedValue(true);
-                                break;
-                            case Js::TypeHint::Bool:
-                                parameterType = ValueType::Boolean;
-                                break;
-                            case Js::TypeHint::String:
-                                parameterType = ValueType::String;
-                                break;
-                            case Js::TypeHint::Object:
-                                parameterType = ValueType::GetObject(ObjectType::Object);
-                                break;
-                            case Js::TypeHint::FloatArray:
-                                parameterType = ValueType::GetObject(ObjectType::Array).SetHasNoMissingValues(true).SetArrayTypeId(Js::TypeId::TypeIds_NativeFloatArray);
-                            default:
-                                parameterType = instr->m_func->GetReadOnlyProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotNum));
-                        }
+                        ValueType annotationType = ValueType::GetValueTypeForAnnotation(typeHint);
+                        parameterType = annotationType != ValueType::Undefined ?
+                            annotationType :
+                            instr->m_func->GetReadOnlyProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotNum));
                     } else
                     {
                         parameterType = instr->m_func->GetReadOnlyProfileInfo()->GetParameterInfo(static_cast<Js::ArgSlot>(paramSlotNum));
