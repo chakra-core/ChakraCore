@@ -36,10 +36,11 @@ namespace Js
         resolvedExportMap(nullptr),
         wasParsed(false),
         wasDeclarationInitialized(false),
+        readyAsChildModule(false),
         isRootModule(false),
         hadNotifyHostReady(false),
         localExportSlots(nullptr),
-        numUnInitializedChildrenModule(0),
+        numPendingChildrenModule(0),
         moduleId(InvalidModuleIndex),
         localSlotCount(InvalidSlotCount),
         localExportCount(0)
@@ -215,9 +216,10 @@ namespace Js
     {
         HRESULT hr = NO_ERROR;
 
-        if (numUnInitializedChildrenModule == 0)
+        if (numPendingChildrenModule == 0)
         {
             NotifyParentsAsNeeded();
+            SetReadyAsChildModule();
 
             if (!WasDeclarationInitialized() && isRootModule)
             {
@@ -256,11 +258,11 @@ namespace Js
         }
         else
         {
-            if (numUnInitializedChildrenModule == 0)
+            if (numPendingChildrenModule == 0)
             {
                 return NOERROR; // this is only in case of recursive module reference. Let the higher stack frame handle this module.
             }
-            numUnInitializedChildrenModule--;
+            numPendingChildrenModule--;
 
             hr = PrepareForModuleDeclarationInitialization();
         }
@@ -571,19 +573,19 @@ namespace Js
         {
             parentRecord->childrenModuleSet->AddNew(moduleName, this);
 
-            if (this->parentModuleList == nullptr)
+            if (!this->ReadyAsChildModule())
             {
-                Recycler* recycler = GetScriptContext()->GetRecycler();
-                this->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
-            }
-            bool contains = this->parentModuleList->Contains(parentRecord);
-            Assert(!contains);
-            if (!contains)
-            {
-                this->parentModuleList->Add(parentRecord);
-                if (!this->WasDeclarationInitialized())
+                if (this->parentModuleList == nullptr)
                 {
-                    parentRecord->numUnInitializedChildrenModule++;
+                    Recycler* recycler = GetScriptContext()->GetRecycler();
+                    this->parentModuleList = RecyclerNew(recycler, ModuleRecordList, recycler);
+                }
+                bool contains = this->parentModuleList->Contains(parentRecord);
+                Assert(!contains);
+                if (!contains)
+                {
+                    this->parentModuleList->Add(parentRecord);
+                    parentRecord->numPendingChildrenModule++;
                 }
             }
         }

@@ -54,6 +54,8 @@ namespace Js
         void SetWasParsed() { wasParsed = true; }
         bool WasDeclarationInitialized() const { return wasDeclarationInitialized; }
         void SetWasDeclarationInitialized() { wasDeclarationInitialized = true; }
+        bool ReadyAsChildModule() const { return readyAsChildModule; }
+        void SetReadyAsChildModule() { readyAsChildModule = true; }
         void SetIsRootModule() { isRootModule = true; }
 
         void SetImportRecordList(ModuleImportOrExportEntryList* importList) { importRecordList = importList; }
@@ -107,6 +109,7 @@ namespace Js
         // This is the parsed tree resulted from compilation. 
         Field(bool) wasParsed;
         Field(bool) wasDeclarationInitialized;
+        Field(bool) readyAsChildModule;
         Field(bool) isRootModule;
         Field(bool) hadNotifyHostReady;
         Field(ParseNodePtr) parseTree;
@@ -124,7 +127,7 @@ namespace Js
         Field(LocalExportMap*) localExportMapByExportName;  // from propertyId to index map: for bytecode gen.
         Field(LocalExportMap*) localExportMapByLocalName;  // from propertyId to index map: for bytecode gen.
         Field(LocalExportIndexList*) localExportIndexList; // from index to propertyId: for typehandler.
-        Field(uint) numUnInitializedChildrenModule;
+        Field(uint) numPendingChildrenModule;
         Field(ExportedNames*) exportedNames;
         Field(ResolvedExportMap*) resolvedExportMap;
 
