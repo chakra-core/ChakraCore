@@ -786,21 +786,6 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         blockInfo = GetCurrentFunctionBlockInfo();
     }
 
-    // If we are creating an 'arguments' Sym at function block scope, create it in
-    // the parameter scope instead. That way, if we need to reuse the Sym for the
-    // actual arguments object at the end of the function, we don't need to move it
-    // into the parameter scope.
-    if (pid == wellKnownPropertyPids.arguments
-        && pnode->nop == knopVarDecl
-        && blockInfo->pnodeBlock->sxBlock.blockType == PnodeBlockType::Function
-        && blockInfo->pBlockInfoOuter != nullptr
-        && blockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.blockType == PnodeBlockType::Parameter
-        && blockInfo->pnodeBlock->sxBlock.scope->GetScopeType() != ScopeType_FuncExpr
-        && blockInfo->pBlockInfoOuter->pnodeBlock->sxBlock.scope->GetCanMergeWithBodyScope())
-    {
-        blockInfo = blockInfo->pBlockInfoOuter;
-    }
-
     refForDecl = this->FindOrAddPidRef(pid, blockInfo->pnodeBlock->sxBlock.blockId, GetCurrentFunctionNode()->sxFnc.functionId);
 
     if (refForDecl == nullptr)
@@ -836,8 +821,9 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
         {
         case knopLetDecl:
         case knopConstDecl:
-            if (!sym->GetDecl()->sxVar.isBlockScopeFncDeclVar)
+            if (!sym->GetDecl()->sxVar.isBlockScopeFncDeclVar && !sym->GetIsArguments())
             {
+                // If the built-in arguments is shadowed then don't throw
                 Assert(errorOnRedecl);
                 // Redeclaration error.
                 Error(ERRRedeclaration);
@@ -850,9 +836,9 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             }
             break;
         case knopVarDecl:
-            if (m_currentScope->GetScopeType() == ScopeType_Parameter)
+            if (m_currentScope->GetScopeType() == ScopeType_Parameter && !sym->GetIsArguments())
             {
-                // If this is a parameter list, mark the scope to indicate that it has duplicate definition.
+                // If this is a parameter list, mark the scope to indicate that it has duplicate definition unless it is shadowing the default arguments symbol.
                 // If later this turns out to be a non-simple param list (like function f(a, a, c = 1) {}) then it is a SyntaxError to have duplicate formals.
                 m_currentScope->SetHasDuplicateFormals();
             }
@@ -876,7 +862,7 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
                 break;
             case knopVarDecl:
                 // Legal redeclaration. Who wins?
-                if (errorOnRedecl || sym->GetDecl()->sxVar.isBlockScopeFncDeclVar)
+                if (errorOnRedecl || sym->GetDecl()->sxVar.isBlockScopeFncDeclVar || sym->GetIsArguments())
                 {
                     if (symbolType == STFormal ||
                         (symbolType == STFunction && sym->GetSymbolType() != STFormal) ||
@@ -938,7 +924,8 @@ Symbol* Parser::AddDeclForPid(ParseNodePtr pnode, IdentPtr pid, SymbolType symbo
             AnalysisAssert(pnodeFnc);
             if (pnodeFnc->sxFnc.pnodeName &&
                 pnodeFnc->sxFnc.pnodeName->nop == knopVarDecl &&
-                pnodeFnc->sxFnc.pnodeName->sxVar.pid == pid)
+                pnodeFnc->sxFnc.pnodeName->sxVar.pid == pid &&
+                (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() || scope->GetScopeType() == ScopeType_Parameter))
             {
                 // Named function expression has its name hidden by a local declaration.
                 // This is important to know if we don't know whether nested deferred functions refer to it,
@@ -4641,6 +4628,7 @@ ParseNodePtr Parser::ParseFncDecl(ushort flags, LPCOLESTR pNameHint, const bool 
     pnodeFnc->sxFnc.nestedCount         = 0;
     pnodeFnc->sxFnc.cbMin = m_pscan->IecpMinTok();
     pnodeFnc->sxFnc.functionId = (*m_nextFunctionId)++;
+    pnodeFnc->sxFnc.isBodyAndParamScopeMerged = true;
 
     // Push new parser state with this new function node
 
@@ -5091,6 +5079,22 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         AnalysisAssert(pnodeBlock != nullptr);
         pnodeFnc->sxFnc.pnodeScopes = pnodeBlock;
         m_ppnodeVar = &pnodeFnc->sxFnc.pnodeParams;
+        pnodeFnc->sxFnc.pnodeVars = nullptr;
+        ParseNodePtr* varNodesList = &pnodeFnc->sxFnc.pnodeVars;
+        ParseNodePtr argNode = nullptr;
+
+        if (!fModule && !fLambda)
+        {
+            ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
+            m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+
+            // Create the built-in arguments symbol
+            argNode = this->AddArgumentsNodeToVars(pnodeFnc);
+
+            // Save the updated var list
+            varNodesList = m_ppnodeVar;
+            m_ppnodeVar = ppnodeVarSave;
+        }
 
         ParseNodePtr *ppnodeScopeSave = nullptr;
         ParseNodePtr *ppnodeExprScopeSave = nullptr;
@@ -5175,55 +5179,38 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
         {
             if (CONFIG_FLAG(ForceSplitScope))
             {
-                paramScope->SetCannotMergeWithBodyScope();
+                pnodeFnc->sxFnc.ResetBodyAndParamScopeMerged();
             }
-            else if (pnodeFnc->sxFnc.HasNonSimpleParameterList())
+            else if (pnodeFnc->sxFnc.HasNonSimpleParameterList() && pnodeFnc->sxFnc.IsBodyAndParamScopeMerged())
             {
-                if (paramScope->GetCanMergeWithBodyScope())
-                {
-                    paramScope->ForEachSymbolUntil([this, paramScope, pnodeFnc](Symbol* sym) {
-                        if (sym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
-                        {
-                            // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
-                            paramScope->SetCannotMergeWithBodyScope();
-                            return true;
-                        }
-                        return false;
-                    });
-
-                    if (wellKnownPropertyPids.arguments->GetTopRef() && wellKnownPropertyPids.arguments->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
+                paramScope->ForEachSymbolUntil([this, paramScope, pnodeFnc](Symbol* sym) {
+                    if (sym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
                     {
-                        Assert(pnodeFnc->sxFnc.UsesArguments());
-                        // Arguments symbol is captured in the param scope
-                        paramScope->SetCannotMergeWithBodyScope();
+                        // One of the symbol has non local reference. Mark the param scope as we can't merge it with body scope.
+                        pnodeFnc->sxFnc.ResetBodyAndParamScopeMerged();
+                        return true;
                     }
-                }
-                if (paramScope->GetCanMergeWithBodyScope() && !fDeclaration && pnodeFnc->sxFnc.pnodeName != nullptr)
-                {
-                    Symbol* funcSym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
-                    if (funcSym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
-                    {
-                        // This is a function expression with name captured in the param scope. In non-eval, non-split cases the function
-                        // name symbol is added to the body scope to make it accessible in the body. But if there is a function or var
-                        // declaration with the same name in the body then adding to the body will fail. So in this case we have to add
-                        // the name symbol to the param scope by splitting it.
-                        paramScope->SetCannotMergeWithBodyScope();
-                    }
-                }
-
+                    return false;
+                });
             }
-        }
-
-        if (!fLambda && paramScope != nullptr && !paramScope->GetCanMergeWithBodyScope()
-            && (pnodeFnc->sxFnc.UsesArguments() || pnodeFnc->grfpn & fpnArguments_overriddenByDecl))
-        {
-            Error(ERRNonSimpleParamListArgumentsUse);
+            if (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() && !fDeclaration && pnodeFnc->sxFnc.pnodeName != nullptr)
+            {
+                Symbol* funcSym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
+                if (funcSym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
+                {
+                    // This is a function expression with name captured in the param scope. In non-eval, non-split cases the function
+                    // name symbol is added to the body scope to make it accessible in the body. But if there is a function or var
+                    // declaration with the same name in the body then adding to the body will fail. So in this case we have to add
+                    // the name symbol to the param scope by splitting it.
+                    pnodeFnc->sxFnc.ResetBodyAndParamScopeMerged();
+                }
+            }
         }
 
         // If the param scope is merged with the body scope we want to use the param scope symbols in the body scope.
         // So add a pid ref for the body using the param scope symbol. Note that in this case the same symbol will occur twice
         // in the same pid ref stack.
-        if (paramScope != nullptr && paramScope->GetCanMergeWithBodyScope())
+        if (paramScope != nullptr && pnodeFnc->sxFnc.IsBodyAndParamScopeMerged())
         {
             paramScope->ForEachSymbol([this](Symbol* paramSym)
             {
@@ -5271,46 +5258,11 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
             Assert(*m_ppnodeVar == nullptr);
 
             // Start the var list.
-            pnodeFnc->sxFnc.pnodeVars = nullptr;
-            m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+            m_ppnodeVar = varNodesList;
 
-            if (paramScope != nullptr && !paramScope->GetCanMergeWithBodyScope())
+            if (!pnodeFnc->sxFnc.IsBodyAndParamScopeMerged())
             {
                 OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("The param and body scope of the function %s cannot be merged\n"), pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : _u("Anonymous function"));
-                // Add a new symbol reference for each formal in the param scope to the body scope.
-                // While inserting symbols into the symbol list we always insert at the front, so while traversing the list we will be visiting the last added
-                // formals first. Normal insertion of those into the body will reverse the order of symbols, which will eventually result in different order
-                // for scope slots allocation for the corresponding symbol in both param and body scope. Inserting them in the opposite order will help us
-                // have the same sequence for scope slots allocation in both scopes. This makes it easy to read the bytecode and may help in some optimization
-                // later.
-                paramScope->ForEachSymbol([this, pnodeFnc](Symbol* param) {
-                    OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("Creating a duplicate symbol for the parameter %s in the body scope\n"), param->GetPid()->Psz());
-
-                    ParseNodePtr paramNode = nullptr;
-                    if (this->m_ppnodeVar != &pnodeFnc->sxFnc.pnodeVars)
-                    {
-                        ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
-                        m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
-                        paramNode = this->CreateVarDeclNode(param->GetPid(), STVariable, false, nullptr, false);
-                        m_ppnodeVar = ppnodeVarSave;
-                    }
-                    else
-                    {
-                        paramNode = this->CreateVarDeclNode(param->GetPid(), STVariable, false, nullptr, false);
-                    }
-
-                    Assert(paramNode && paramNode->sxVar.sym->GetScope()->GetScopeType() == ScopeType_FunctionBody);
-                    paramNode->sxVar.sym->SetHasInit(true);
-                });
-
-                if (!fLambda)
-                {
-                    // In split scope case ideally the arguments object should be in the param scope.
-                    // Right now referring to arguments in the param scope is a SyntaxError, so we have to
-                    // add a duplicate symbol in the body scope and copy over the value in BeginBodySope.
-                    ParseNodePtr argumentsNode = this->CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, nullptr, false);
-                    Assert(argumentsNode && argumentsNode->sxVar.sym->GetScope()->GetScopeType() == ScopeType_FunctionBody);
-                }
             }
 
             // Keep nested function declarations and expressions in the same list at function scope.
@@ -5378,7 +5330,7 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
 
         if (!fModule && (m_token.tk == tkLCurly || !fLambda))
         {
-            this->AddArgumentsNodeToVars(pnodeFnc);
+            UpdateArgumentsNode(pnodeFnc, argNode);
         }
 
         // Restore the lists of scopes that contain function expressions.
@@ -5958,6 +5910,7 @@ ParseNodePtr Parser::CreateDummyFuncNode(bool fDeclaration)
     pnodeFnc->sxFnc.SetNested(m_currentNodeFunc != nullptr); // If there is a current function, then we're a nested function.
     pnodeFnc->sxFnc.SetStrictMode(IsStrictMode()); // Inherit current strict mode -- may be overridden by the function itself if it contains a strict mode directive.
     pnodeFnc->sxFnc.firstDefaultArg = 0;
+    pnodeFnc->sxFnc.isBodyAndParamScopeMerged = true;
 
     m_pCurrentAstSize = &pnodeFnc->sxFnc.astSize;
     m_currentNodeFunc = pnodeFnc;
@@ -6301,7 +6254,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                         lexNode->sxVar.sym->SetSymbolType(STFormal);
                         if (m_currentNodeFunc != nullptr && lexNode->sxVar.pid == wellKnownPropertyPids.arguments)
                         {
-                            m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
+                            m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_overriddenInParam;
                         }
                     }
 
@@ -6368,7 +6321,7 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
                 if (buildAST && pid == wellKnownPropertyPids.arguments)
                 {
                     // This formal parameter overrides the built-in 'arguments' object
-                    m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_overriddenByDecl;
+                    m_currentNodeFunc->grfpn |= PNodeFlags::fpnArguments_overriddenInParam;
                 }
 
                 if (fStrictFormals)
@@ -6478,15 +6431,8 @@ void Parser::ParseFncFormals(ParseNodePtr pnodeFnc, ParseNodePtr pnodeParentFnc,
 
         if (this->GetCurrentFunctionNode()->sxFnc.CallsEval() || this->GetCurrentFunctionNode()->sxFnc.ChildCallsEval())
         {
-            if (!m_scriptContext->GetConfig()->IsES6DefaultArgsSplitScopeEnabled())
-            {
-                Error(ERREvalNotSupportedInParamScope);
-            }
-            else
-            {
-                Assert(pnodeFnc->sxFnc.HasNonSimpleParameterList());
-                pnodeFnc->sxFnc.pnodeScopes->sxBlock.scope->SetCannotMergeWithBodyScope();
-            }
+            Assert(pnodeFnc->sxFnc.HasNonSimpleParameterList());
+            pnodeFnc->sxFnc.ResetBodyAndParamScopeMerged();
         }
     }
     Assert(m_token.tk == tkRParen);
@@ -6554,6 +6500,8 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     // deferred class expression the way we track function expression, since we lose the part of the source
     // that tells us which we have.
     pnodeFnc->sxFnc.canBeDeferred       = false;
+
+    pnodeFnc->sxFnc.isBodyAndParamScopeMerged = true;
 
 #ifdef DBG
     pnodeFnc->sxFnc.deferredParseNextFunctionId = *(this->m_nextFunctionId);
@@ -6969,48 +6917,41 @@ void Parser::FinishFncDecl(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, ParseNode
 #endif
 }
 
-void Parser::AddArgumentsNodeToVars(ParseNodePtr pnodeFnc)
+ParseNodePtr Parser::AddArgumentsNodeToVars(ParseNodePtr pnodeFnc)
 {
-    if((pnodeFnc->grfpn & PNodeFlags::fpnArguments_overriddenByDecl) || pnodeFnc->sxFnc.IsLambda())
+    Assert(!GetCurrentFunctionNode()->sxFnc.IsLambda());
+
+    ParseNodePtr argNode = nullptr;
+    argNode = CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, pnodeFnc);
+    Assert(argNode);
+    argNode->grfpn |= PNodeFlags::fpnArguments; // Flag this as the built-in arguments node
+
+    return argNode;
+}
+
+void Parser::UpdateArgumentsNode(ParseNodePtr pnodeFnc, ParseNodePtr argNode)
+{
+    if ((pnodeFnc->grfpn & PNodeFlags::fpnArguments_overriddenInParam) || pnodeFnc->sxFnc.IsLambda())
     {
-        // In any of the following cases, there is no way to reference the built-in 'arguments' variable (in the order of checks
-        // above):
-        //     - A function parameter is named 'arguments'
-        //     - There is a nested function declaration (or named function expression in compat modes) named 'arguments'
-        //     - In compat modes, the function is named arguments, does not have a var declaration named 'arguments', and does
-        //       not call 'eval'
+        // There is a parameter named arguments. So we don't have to create the built-in arguments.
+        pnodeFnc->sxFnc.SetHasReferenceableBuiltInArguments(false);
+    }
+    else if ((pnodeFnc->grfpn & PNodeFlags::fpnArguments_overriddenByDecl) && pnodeFnc->sxFnc.IsBodyAndParamScopeMerged())
+    {
+        // In non-split scope case there is a var or function definition named arguments in the body
         pnodeFnc->sxFnc.SetHasReferenceableBuiltInArguments(false);
     }
     else
     {
-        ParseNodePtr argNode = nullptr;
-        if(m_ppnodeVar == &pnodeFnc->sxFnc.pnodeVars)
-        {
-            // There were no var declarations in the function
-            argNode = CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, pnodeFnc);
-        }
-        else
-        {
-            // There were var declarations in the function, so insert an 'arguments' local at the beginning of the var list.
-            // This is done because the built-in 'arguments' variable overrides an 'arguments' var declaration until the
-            // 'arguments' variable is assigned. By putting our built-in var declaration at the beginning, an 'arguments'
-            // identifier will resolve to this symbol, which has the fpnArguments flag set, and will be the built-in arguments
-            // object until it is replaced with something else.
-            ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
-            m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
-            argNode = CreateVarDeclNode(wellKnownPropertyPids.arguments, STVariable, true, pnodeFnc);
-            m_ppnodeVar = ppnodeVarSave;
-        }
-
-        Assert(argNode);
-        argNode->grfpn |= PNodeFlags::fpnArguments;
-
-        // When a function definition with the name arguments occurs in the body the declaration of the arguments symbol will
-        // be set to that function declaration. We should change it to arguments declaration from the param scope as it may be
-        // used in the param scope and we have to load the arguments.
-        argNode->sxVar.sym->SetDecl(argNode);
-
         pnodeFnc->sxFnc.SetHasReferenceableBuiltInArguments(true);
+        Assert(argNode);
+    }
+
+    if (argNode != nullptr && !argNode->sxVar.sym->GetIsArguments())
+    {
+        // A duplicate definition has updated the declaration node. Need to reset it back.
+        argNode->grfpn |= PNodeFlags::fpnArguments;
+        argNode->sxVar.sym->SetDecl(argNode);
     }
 }
 
@@ -7711,29 +7652,6 @@ ParseNodePtr Parser::ParseStringTemplateDecl(ParseNodePtr pnodeTagFnc)
     m_pscan->Scan();
 
     return pnodeStringTemplate;
-}
-
-ParseNodePtr Parser::CreateAsyncSpawnGenerator()
-{
-    ParseNodePtr pnodeFncGenerator = nullptr;
-
-    pnodeFncGenerator = CreateDummyFuncNode(false);
-    pnodeFncGenerator->sxFnc.functionId = (*m_nextFunctionId)++;
-
-    pnodeFncGenerator->sxFnc.cbMin = m_pscan->IecpMinTok();
-    pnodeFncGenerator->sxFnc.cbLim = m_pscan->IecpLimTok();
-    pnodeFncGenerator->sxFnc.lineNumber = m_pscan->LineCur();
-    pnodeFncGenerator->sxFnc.columnNumber = CalculateFunctionColumnNumber();
-    pnodeFncGenerator->sxFnc.SetNested(m_currentNodeFunc != nullptr);
-    pnodeFncGenerator->sxFnc.SetStrictMode(IsStrictMode());
-
-    pnodeFncGenerator->sxFnc.SetIsGenerator();
-    pnodeFncGenerator->sxFnc.SetIsLambda();
-    pnodeFncGenerator->sxFnc.scope = nullptr;
-
-    AppendFunctionToScopeList(false, pnodeFncGenerator);
-
-    return pnodeFncGenerator;
 }
 
 LPCOLESTR Parser::FormatPropertyString(LPCOLESTR propertyString, ParseNodePtr pNode, uint32 *fullNameHintLength, uint32 *pShortNameOffset)
@@ -10693,6 +10611,19 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
             m_ppnodeScope = &pnodeBlock->sxBlock.pnodeScopes;
             pnodeBlock->sxBlock.pnodeStmt = pnodeFnc;
 
+            ParseNodePtr* varNodesList = &pnodeFnc->sxFnc.pnodeVars;
+            ParseNodePtr argNode = nullptr;
+            if (!pnodeFnc->sxFnc.IsModule() && !pnodeFnc->sxFnc.IsLambda() && !(pnodeFnc->grfpn & PNodeFlags::fpnArguments_overriddenInParam))
+            {
+                ParseNodePtr *const ppnodeVarSave = m_ppnodeVar;
+                m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+
+                argNode = this->AddArgumentsNodeToVars(pnodeFnc);
+
+                varNodesList = m_ppnodeVar;
+                m_ppnodeVar = ppnodeVarSave;
+            }
+
             // Add the args to the scope, since we won't re-parse those.
             Scope *scope = pnodeBlock->sxBlock.scope;
             auto addArgsToScope = [&](ParseNodePtr pnodeArg) {
@@ -10741,30 +10672,16 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
             Assert(*m_ppnodeVar == nullptr);
 
             // Start the var list.
-            pnodeFnc->sxFnc.pnodeVars = nullptr;
-            m_ppnodeVar = &pnodeFnc->sxFnc.pnodeVars;
+            m_ppnodeVar = varNodesList;
 
-            if (scope != nullptr && !pnodeFnc->sxFnc.IsAsync())
+            if (scope != nullptr)
             {
-                if (scope->GetCanMergeWithBodyScope())
+                Assert(pnodeFnc->sxFnc.IsBodyAndParamScopeMerged());
+                scope->ForEachSymbol([this](Symbol* paramSym)
                 {
-                    scope->ForEachSymbol([this](Symbol* paramSym)
-                    {
-                        PidRefStack* ref = PushPidRef(paramSym->GetPid());
-                        ref->SetSym(paramSym);
-                    });
-                }
-                else
-                {
-                    OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("The param and body scope of the function %s cannot be merged\n"), pnodeFnc->sxFnc.pnodeName ? pnodeFnc->sxFnc.pnodeName->sxVar.pid->Psz() : _u("Anonymous function"));
-                    // Add a new symbol reference for each formal in the param scope to the body scope.
-                    scope->ForEachSymbol([this](Symbol* param) {
-                        OUTPUT_TRACE_DEBUGONLY(Js::ParsePhase, _u("Creating a duplicate symbol for the parameter %s in the body scope\n"), param->GetPid()->Psz());
-                        ParseNodePtr paramNode = this->CreateVarDeclNode(param->GetPid(), STVariable, false, nullptr, false);
-                        Assert(paramNode && paramNode->sxVar.sym->GetScope()->GetScopeType() == ScopeType_FunctionBody);
-                        paramNode->sxVar.sym->SetHasInit(true);
-                    });
-                }
+                    PidRefStack* ref = PushPidRef(paramSym->GetPid());
+                    ref->SetSym(paramSym);
+                });
             }
 
             Assert(m_currentNodeNonLambdaFunc == nullptr);
@@ -10783,7 +10700,10 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
 
             this->FinishParseBlock(pnodeInnerBlock);
 
-            this->AddArgumentsNodeToVars(pnodeFnc);
+            if (!pnodeFnc->sxFnc.IsModule() && (m_token.tk == tkLCurly || !pnodeFnc->sxFnc.IsLambda()))
+            {
+                UpdateArgumentsNode(pnodeFnc, argNode);
+            }
 
             this->FinishParseBlock(pnodeBlock);
             if (pnodeFncExprBlock)
@@ -11002,6 +10922,7 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
     pnodeProg->sxFnc.cbMin = m_pscan->IecpMinTok();
     pnodeProg->sxFnc.lineNumber = lineNumber;
     pnodeProg->sxFnc.columnNumber = 0;
+    pnodeProg->sxFnc.isBodyAndParamScopeMerged = true;
 
     if (!isDeferred || (isDeferred && grfscr & fscrGlobalCode))
     {

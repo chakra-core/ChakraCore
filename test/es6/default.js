@@ -62,6 +62,8 @@ var tests = [
 
       assert.throws(function () { eval("x = 3 => x"); },                                    SyntaxError, "Lambda formals without parentheses cannot have default expressions", "Expected \'(\'");
       assert.throws(function () { eval("var a = 0, b = 0; (x = ++a,++b) => x"); },          SyntaxError, "Default expressions cannot have comma separated expressions",        "Expected identifier");
+
+      assert.doesNotThrow(function f(a = 1, b = class c { f() { return 2; }}) { }, "Class methods that do not refer to a formal are allowed in the param scope");
     }
   },
   {
@@ -275,23 +277,6 @@ var tests = [
     }
   },
   {
-    name: "Split parameter scope",
-    body: function () {
-        assert.doesNotThrow(function f(a = 1, b = class c { f() { return 2; }}) { }, "Class methods that do not refer to a formal are allowed in the param scope");
-
-        assert.throws(function () { eval("function f(a = eval('1')) { }") }, SyntaxError, "Eval is not allowed in the parameter scope", "'eval' is not allowed in the default initializer");
-        assert.throws(function () { eval("function f(a, b = function () { eval('1'); }) { }") }, SyntaxError, "Evals in child functions are not allowed in the parameter scope", "'eval' is not allowed in the default initializer");
-        assert.throws(function () { eval("function f(a, b = function () { function f() { eval('1'); } }) { }") }, SyntaxError, "Evals in nested child functions are not allowed in the parameter scope", "'eval' is not allowed in the default initializer");
-        assert.throws(function () { eval("function f(a, b = eval('a')) { }") }, SyntaxError, "Eval is not allowed in the parameter scope", "'eval' is not allowed in the default initializer");
-        assert.throws(function () { eval("async function f(a = eval('b')) { }"); }, SyntaxError, "Eval is not allowed in the param scope of async functions", "'eval' is not allowed in the default initializer");
-        assert.throws(function () { eval("function f(a = async function(y) { eval('b'); }) { }"); }, SyntaxError, "Eval is not allowed in the param scope of nested async functions", "'eval' is not allowed in the default initializer");
-        
-        assert.doesNotThrow(function (a = eval) { }, "An assignment of eval does not cause syntax error");
-        assert.doesNotThrow(function (a = eval()) { }, "If no arguments are passed to eval then it won't cause syntax error");
-        assert.doesNotThrow(function () { eval("function f( x = function y() { function z() { x; }; }) { }"); }, "Split scope functions inside eval shouldn't throw");
-    }
-  },
-  {
     name: "Unmapped arguments - Non simple parameter list",
     body: function () {
         function f1 (x = 10, y = 20, z) {
@@ -373,6 +358,11 @@ var tests = [
             }());
         };
         f5.call(1, 2);
+
+        function f6() {
+            return ((a, b = (c = arguments) => c) => b)(2);
+        };
+        assert.areEqual(1, f6(1)()[0], "Nested lambda should capture the arguments from the outer function");
     }
   },
   {

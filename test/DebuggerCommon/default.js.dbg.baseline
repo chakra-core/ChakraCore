@@ -106,7 +106,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -129,32 +129,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -263,7 +587,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -286,32 +610,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -333,9 +981,9 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "a": "undefined undefined",
       "b": "undefined undefined",
-      "c": "undefined undefined",
-      "a": "undefined undefined"
+      "c": "undefined undefined"
     }
   },
   {
@@ -433,7 +1081,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -456,32 +1104,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -490,9 +1462,9 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "a": "number 1",
       "b": "undefined undefined",
-      "c": "undefined undefined",
-      "a": "number 1"
+      "c": "undefined undefined"
     }
   },
   {
@@ -590,7 +1562,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -613,32 +1585,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -658,11 +1954,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "undefined undefined",
       "b": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined"
   },
@@ -761,7 +2057,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -784,43 +2080,367 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "number 1",
       "b": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined"
   },
@@ -919,7 +2539,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -942,32 +2562,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -1089,7 +3033,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -1112,32 +3056,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -1246,7 +3514,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -1269,32 +3537,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -1406,7 +3998,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -1429,32 +4021,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -1566,7 +4482,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -1589,32 +4505,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -1624,11 +4864,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "number 1",
       "b": "function <large string>",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined"
   },
@@ -1727,7 +4967,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -1750,32 +4990,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -1899,7 +5463,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -1922,32 +5486,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -2056,7 +5944,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -2079,32 +5967,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -2214,7 +6426,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -2237,35 +6449,566 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
+  },
+  {
+    "log": "Stepping on default params - Breakpoint at the function defined in param scope when called from param scope"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "number 1",
+      "m": "number 3"
+    }
+  },
+  {
+    "log": "Stepping on default params - Breakpoint at the function defined in param scope when called from body scope"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "m": "number 3",
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "log": "Stepping on default params - Breakpoint at the function defined in param scope to print the default frame"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "scopes0": "undefined undefined"
+  },
+  {
+    "log": "Stepping on default params - Split scope function with zero reg slots in param"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "function <large string>",
+      "m": "undefined undefined",
+      "n": "undefined undefined",
+      "o": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "function <large string>",
+      "m": "number 3",
+      "n": "undefined undefined",
+      "o": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "function <large string>",
+      "m": "number 3",
+      "n": "number 1",
+      "o": "undefined undefined"
+    }
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "function <large string>",
+      "m": "number 3",
+      "n": "number 1",
+      "o": "number 2"
+    }
+  },
+  {
+    "log": "Stepping on default params - Split scope function with zero reg slots in param and eval in both scopes"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "m": "undefined undefined",
+      "n": "undefined undefined",
+      "o": "undefined undefined",
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "function <large string>",
+      "arguments": "Object {...}"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "m": "number 3",
+      "n": "undefined undefined",
+      "o": "undefined undefined",
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "function <large string>",
+      "arguments": "Object {...}"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined",
+    "scopes2": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "scopes0": "undefined undefined",
+    "scopes1": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "m": "number 3",
+      "n": "number 1",
+      "o": "number 2",
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "function <large string>",
+      "arguments": "Object {...}"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "log": "Stepping on default params - Split scope function with zero reg slots in param and print the body scope"
+  },
+  {
+    "callStack": [
+      {
+        "line": 165,
+        "column": 8,
+        "sourceText": "return eval(\"b.length + a\")",
+        "function": "c"
+      },
+      {
+        "line": 163,
+        "column": 8,
+        "sourceText": "return a + c()",
+        "function": "b"
+      },
+      {
+        "line": 0,
+        "column": 0,
+        "sourceText": "b()",
+        "function": "eval code"
+      },
+      {
+        "line": 167,
+        "column": 8,
+        "sourceText": "var m = eval(\"b()\")",
+        "function": "f1"
+      },
+      {
+        "line": 169,
+        "column": 4,
+        "sourceText": "f1(10)",
+        "function": "Anonymous function"
+      },
+      {
+        "line": 161,
+        "column": 1,
+        "sourceText": "function() {\r\n    function f1(a = 1, b = function () { \r\n        return a + c();\r\n    }, c = () => {\r\n        return eval(\"b.length + a\"); /**bp:stack();setFrame(3);locals()**/\r\n    }) {\r\n        var m = eval(\"b()\");\r\n    }\r\n    f1(10);\r\n})()",
+        "function": "Global code"
+      }
+    ]
+  },
+  {
+    "this": "Object {...}",
+    "locals": {
+      "m": "undefined undefined",
+      "a": "number 10",
+      "b": "function <large string>",
+      "c": "function <large string>",
+      "arguments": "Object {...}"
+    },
+    "scopes0": "undefined undefined"
   },
   {
     "log": "Stepping on default params - split scope due to function at formals and few var captured in inner function"
@@ -2374,7 +7117,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -2397,32 +7140,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -2431,12 +7498,11 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
-      "b": "function <large string>",
-      "c": "undefined undefined",
+      "m": "undefined undefined",
       "a": "number 1",
-      "m": "undefined undefined"
-    },
-    "scopes0": "undefined undefined"
+      "b": "function <large string>",
+      "c": "undefined undefined"
+    }
   },
   {
     "breakpoints": [
@@ -2533,7 +7599,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -2556,32 +7622,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -2591,11 +7981,11 @@
   },
   {
     "this": "Object {...}",
-    "arguments": "Object {...}",
     "locals": {
       "a": "undefined undefined",
       "b": "undefined undefined",
-      "c": "undefined undefined"
+      "c": "undefined undefined",
+      "arguments": "Object {...}"
     },
     "scopes0": "undefined undefined"
   },
@@ -2694,7 +8084,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -2717,32 +8107,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -2750,14 +8464,13 @@
   {
     "this": "Object {...}",
     "locals": {
+      "m": "undefined undefined",
       "a": "number 1",
       "b": "function <large string>",
       "c": "undefined undefined",
-      "arguments": "Object {...}",
-      "m": "undefined undefined"
+      "arguments": "Object {...}"
     },
-    "scopes0": "undefined undefined",
-    "scopes1": "undefined undefined"
+    "scopes0": "undefined undefined"
   },
   {
     "breakpoints": [
@@ -2854,7 +8567,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -2877,32 +8590,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -3015,7 +9052,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -3038,32 +9075,356 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
@@ -3072,13 +9433,12 @@
     "this": "Object {...}",
     "arguments": "Object {...}",
     "locals": {
+      "m": "undefined undefined",
       "a": "number 1",
       "b": "function <large string>",
-      "c": "undefined undefined",
-      "m": "undefined undefined"
+      "c": "undefined undefined"
     },
-    "scopes0": "undefined undefined",
-    "scopes1": "undefined undefined"
+    "scopes0": "undefined undefined"
   },
   {
     "breakpoints": [
@@ -3175,7 +9535,7 @@
       {
         "breakpointId": 16,
         "line": 82,
-        "column": 4,
+        "column": 8,
         "scriptId": 2
       },
       {
@@ -3198,34 +9558,1143 @@
       },
       {
         "breakpointId": 20,
-        "line": 106,
-        "column": 4,
+        "line": 100,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 21,
-        "line": 109,
-        "column": 0,
+        "line": 103,
+        "column": 8,
         "scriptId": 2
       },
       {
         "breakpointId": 22,
-        "line": 117,
-        "column": 4,
-        "scriptId": 2
-      },
-      {
-        "breakpointId": 23,
-        "line": 120,
+        "line": 108,
         "column": 0,
         "scriptId": 2
       },
       {
+        "breakpointId": 23,
+        "line": 111,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
         "breakpointId": 24,
-        "line": 128,
+        "line": 119,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 25,
+        "line": 122,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 26,
+        "line": 130,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 27,
+        "line": 133,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 28,
+        "line": 135,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 29,
+        "line": 137,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 30,
+        "line": 140,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 31,
+        "line": 145,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 32,
+        "line": 148,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 33,
+        "line": 150,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 34,
+        "line": 152,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 35,
+        "line": 155,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 36,
+        "line": 160,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 37,
+        "line": 165,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 38,
+        "line": 172,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 39,
+        "line": 181,
         "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 40,
+        "line": 184,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 41,
+        "line": 192,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 42,
+        "line": 195,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 43,
+        "line": 203,
+        "column": 4,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 44,
+        "line": 206,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 45,
+        "line": 209,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 46,
+        "line": 212,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 47,
+        "line": 217,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 48,
+        "line": 220,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 49,
+        "line": 221,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 50,
+        "line": 226,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 51,
+        "line": 229,
+        "column": 36,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 52,
+        "line": 230,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 53,
+        "line": 235,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 54,
+        "line": 238,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 55,
+        "line": 239,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 56,
+        "line": 244,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 57,
+        "line": 247,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 58,
+        "line": 248,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 59,
+        "line": 253,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 60,
+        "line": 256,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 61,
+        "line": 261,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 62,
+        "line": 266,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 63,
+        "line": 269,
+        "column": 20,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 64,
+        "line": 274,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 65,
+        "line": 279,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 66,
+        "line": 282,
+        "column": 32,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 67,
+        "line": 287,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 68,
+        "line": 292,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 69,
+        "line": 295,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 70,
+        "line": 296,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 71,
+        "line": 298,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 72,
+        "line": 303,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 73,
+        "line": 306,
+        "column": 28,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 74,
+        "line": 307,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 75,
+        "line": 311,
+        "column": 8,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 76,
+        "line": 316,
+        "column": 0,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 77,
+        "line": 318,
+        "column": 16,
+        "scriptId": 2
+      },
+      {
+        "breakpointId": 78,
+        "line": 323,
+        "column": 8,
         "scriptId": 2
       }
     ]
+  },
+  {
+    "log": "Default params - Split scope with eval in param"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "undefined undefined"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "m": "undefined undefined",
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "number 1"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "this": "Object {...}",
+    "arguments": "Object {...}",
+    "locals": {
+      "m": "number 1",
+      "a": "number 1",
+      "b": "function <large string>",
+      "c": "number 1"
+    },
+    "scopes0": "undefined undefined"
+  },
+  {
+    "log": "Default params - Arguments usage in the param scope"
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "string 1"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "c": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "log": "Default params - Arguments usage in the param scope of a split scoped function"
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "c": "undefined undefined",
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "c": {
+        "#__proto__": "function <large string>",
+        "name": "string c",
+        "length": "number 0"
+      },
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "d": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "log": "Default params - Arguments usage in the body"
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "string 1"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": "number 11",
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "c": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "log": "Default params - Arguments usage in the body of a split scoped function"
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": "undefined undefined",
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "function <large string>",
+        "name": "string b",
+        "length": "number 0"
+      },
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "c": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "log": "Default params - Arguments usage in the body when one of the formal is in slot"
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "string 1"
+    },
+    "locals": {
+      "c": "undefined undefined",
+      "a": "number 1",
+      "b": "number 11"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "locals": {
+      "c": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "a": "number 1",
+      "b": "number 11",
+      "arguments": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string arguments",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "d": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "log": "Default params - Arguments symbol is overwritten"
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "string 1"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "arguments": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string arguments",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "c": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "log": "Default params - Arguments symbol is overwritten in a split scoped function"
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "c": "undefined undefined",
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      }
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      },
+      "c": {
+        "#__proto__": "function <large string>",
+        "name": "string c",
+        "length": "number 0"
+      },
+      "arguments": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string arguments",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "d": {
+        "#__proto__": "Object {...}",
+        "length": "number 1",
+        "callee": "function <large string>",
+        "Symbol.iterator": "function <large string>",
+        "[0]": "string 1"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "evaluate": {
+      "arguments": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string arguments",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    }
+  },
+  {
+    "log": "Default params - One of the formal is duplicated in the body"
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "number 1"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "function <large string>",
+        "name": "string b",
+        "length": "number 0"
+      },
+      "c": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "number 1"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "function <large string>",
+        "name": "string b",
+        "length": "number 0"
+      },
+      "d": "undefined undefined",
+      "c": "number 11"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "number 1"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "function <large string>",
+        "name": "string b",
+        "length": "number 0"
+      },
+      "d": "number 1",
+      "c": {
+        "#__proto__": "function <large string>",
+        "name": "string c",
+        "length": "number 0"
+      }
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "log": "Default params - One of the formal is duplicated in the body by a function definition"
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "number 1"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "function <large string>",
+        "name": "string b",
+        "length": "number 0"
+      },
+      "c": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "number 1"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "function <large string>",
+        "name": "string b",
+        "length": "number 0"
+      },
+      "c": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string c",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "d": "undefined undefined"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "this": {
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    },
+    "arguments": {
+      "#__proto__": "Object {...}",
+      "length": "number 1",
+      "callee": "function <large string>",
+      "Symbol.iterator": "function <large string>",
+      "[0]": "number 1"
+    },
+    "locals": {
+      "a": "number 1",
+      "b": {
+        "#__proto__": "function <large string>",
+        "name": "string b",
+        "length": "number 0"
+      },
+      "c": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string c",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      },
+      "d": "number 1"
+    },
+    "globals": {
+      "WScript": "Object {...}",
+      "print": "function print",
+      "read": "function read",
+      "readbuffer": "function readbuffer",
+      "console": "Object {...}",
+      "glob": "Object {...}"
+    }
+  },
+  {
+    "log": "Default params - Evaluate one of the formal which is in regslot is duplicated in the body"
+  },
+  {
+    "evaluate": {
+      "c": "undefined undefined"
+    }
+  },
+  {
+    "evaluate": {
+      "c": {
+        "#__proto__": "function <large string>",
+        "prototype": "Object {...}",
+        "name": "string c",
+        "caller": "object null",
+        "arguments": "object null",
+        "length": "number 0"
+      }
+    }
   }
 ]

@@ -855,9 +855,13 @@ namespace Js
         switch (op)
         {
             case OpCode::StLocalSlot:
+            case OpCode::StParamSlot:
             case OpCode::StLocalObjSlot:
+            case OpCode::StParamObjSlot:
             case OpCode::StLocalSlotChkUndecl:
+            case OpCode::StParamSlotChkUndecl:
             case OpCode::StLocalObjSlotChkUndecl:
+            case OpCode::StParamObjSlotChkUndecl:
                 Output::Print(_u(" [%d] = R%d "),data->SlotIndex, data->Value);
                 break;
             case OpCode::LdLocalSlot:
