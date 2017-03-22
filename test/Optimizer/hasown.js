@@ -185,3 +185,58 @@ print(hasOwnModifyOther(new Obj1(), new Obj1()));
 print(hasOwnModifyOther(new Obj2(), new Obj2()));
 print(hasOwnModifyOther(new Obj1(), new Obj2()));
 print(hasOwnModifyOther(new Obj2(), new Obj1()));
+
+Obj2.prototype["1"] = {enumerable: true};
+function hasOwnNumeric(obj)
+{
+    let result = "";
+    for(let prop in obj)
+    {
+        if(obj.hasOwnProperty(prop))
+        {
+            result += `own: ${prop}, ` ;
+            obj["1"] = {enumerable: true};
+        }
+        else
+        {
+            result += `not: ${prop}, ` ;
+        }
+    }
+    return result;
+}
+print("hasOwnNumeric:");
+print(hasOwnNumeric(new Obj1()));
+print(hasOwnNumeric(new Obj2()));
+print(hasOwnNumeric(new Obj1()));
+print(hasOwnNumeric(new Obj2()));
+
+print("hasOwnUnchangedWithNumeric:");
+print(hasOwnUnchanged(new Obj1()));
+print(hasOwnUnchanged(new Obj2()));
+
+function hasOwnNumeric2(obj)
+{
+    let result = "";
+    for(let prop in obj)
+    {
+        if(obj.hasOwnProperty(prop))
+        {
+            result += `own: ${prop}, ` ;
+            delete Obj2.prototype["1"];
+        }
+        else
+        {
+            result += `not: ${prop}, ` ;
+        }
+    }
+    return result;
+}
+
+print("hasOwnNumeric2:");
+print(hasOwnNumeric2(new Obj1()));
+Obj2.prototype["1"] = {enumerable: true};
+print(hasOwnNumeric2(new Obj2()));
+Obj2.prototype["1"] = {enumerable: true};
+print(hasOwnNumeric2(new Obj1()));
+Obj2.prototype["1"] = {enumerable: true};
+print(hasOwnNumeric2(new Obj2()));
