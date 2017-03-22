@@ -11144,6 +11144,29 @@ ParseNodePtr Parser::Parse(LPCUTF8 pszSrc, size_t offset, size_t length, charcou
 #endif
         }
 
+        // Do any remaining bindings of globals referenced in non-deferred functions.
+        if (pnodeGlobalEvalBlock)
+        {
+            FinishParseBlock(pnodeGlobalEvalBlock);
+        }
+
+        FinishParseBlock(pnodeGlobalBlock);
+
+        // Clear out references to undeclared identifiers.
+        m_phtbl->ClearPidRefStacks();
+
+        // Restore global scope and blockinfo stacks preparatory to reparsing deferred functions.
+        PushScope(pnodeGlobalBlock->sxBlock.scope);
+        BlockInfoStack *newBlockInfo = PushBlockInfo(pnodeGlobalBlock);
+        PushStmt<true>(&newBlockInfo->pstmt, pnodeGlobalBlock, knopBlock, nullptr, nullptr);
+
+        if (pnodeGlobalEvalBlock)
+        {
+            PushScope(pnodeGlobalEvalBlock->sxBlock.scope);
+            newBlockInfo = PushBlockInfo(pnodeGlobalEvalBlock);
+            PushStmt<true>(&newBlockInfo->pstmt, pnodeGlobalEvalBlock, knopBlock, nullptr, nullptr);
+        }
+
         // Finally, see if there are any function bodies we now want to generate because we
         // decided to stop deferring.
         FinishDeferredFunction(pnodeProg->sxFnc.pnodeScopes);

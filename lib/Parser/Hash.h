@@ -387,6 +387,7 @@ public:
     NoReleaseAllocator* GetAllocator() {return &m_noReleaseAllocator;}
 
     bool Contains(_In_reads_(cch) LPCOLESTR prgch, int32 cch);
+    void ClearPidRefStacks();
 
 private:
     NoReleaseAllocator m_noReleaseAllocator;            // to allocate identifiers
