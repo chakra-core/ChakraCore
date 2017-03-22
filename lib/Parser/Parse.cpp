@@ -9885,6 +9885,10 @@ LEndSwitch:
         {
             GetCurrentFunctionNode()->sxFnc.SetHasWithStmt(); // Used by DeferNested
         }
+        for (Scope *scope = this->m_currentScope; scope; scope = scope->GetEnclosingScope())
+        {
+            scope->SetContainsWith();
+        }
 
         ichMin = m_pscan->IchMinTok();
         ChkNxtTok(tkLParen, ERRnoLparen);
