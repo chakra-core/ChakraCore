@@ -379,7 +379,6 @@ namespace Js
         Field(JavascriptString*) commaSpaceDisplayString;
         Field(JavascriptString*) trueDisplayString;
         Field(JavascriptString*) falseDisplayString;
-        Field(JavascriptString*) lengthDisplayString;
         Field(JavascriptString*) invalidDateString;
         Field(JavascriptString*) objectTypeDisplayString;
         Field(JavascriptString*) functionTypeDisplayString;
@@ -651,7 +650,6 @@ namespace Js
         JavascriptString* GetCommaSpaceDisplayString() { return commaSpaceDisplayString; }
         JavascriptString* GetTrueDisplayString() { return trueDisplayString; }
         JavascriptString* GetFalseDisplayString() { return falseDisplayString; }
-        JavascriptString* GetLengthDisplayString() { return lengthDisplayString; }
         JavascriptString* GetObjectDisplayString() { return objectDisplayString; }
         JavascriptString* GetStringTypeDisplayString() { return stringTypeDisplayString; }
         JavascriptString* GetErrorDisplayString() const { return errorDisplayString; }

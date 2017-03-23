@@ -1101,30 +1101,30 @@ namespace Js
         nullString = CreateEmptyString(); // Must be distinct from emptyString (for the DOM)
         quotesString = CreateStringFromCppLiteral(_u("\"\""));
         whackString = CreateStringFromCppLiteral(_u("/"));
-        undefinedDisplayString = CreateStringFromCppLiteral(_u("undefined"));
-        nanDisplayString = CreateStringFromCppLiteral(_u("NaN"));
-        nullDisplayString = CreateStringFromCppLiteral(_u("null"));
-        unknownDisplayString = CreateStringFromCppLiteral(_u("unknown"));
         commaDisplayString = CreateStringFromCppLiteral(_u(","));
         commaSpaceDisplayString = CreateStringFromCppLiteral(_u(", "));
-        trueDisplayString = CreateStringFromCppLiteral(_u("true"));
-        falseDisplayString = CreateStringFromCppLiteral(_u("false"));
-        lengthDisplayString = CreateStringFromCppLiteral(_u("length"));
         objectDisplayString = CreateStringFromCppLiteral(_u("[object Object]"));
         errorDisplayString = CreateStringFromCppLiteral(_u("[object Error]"));
-        stringTypeDisplayString = CreateStringFromCppLiteral(_u("string"));
         functionPrefixString = CreateStringFromCppLiteral(_u("function "));
         generatorFunctionPrefixString = CreateStringFromCppLiteral(_u("function* "));
         asyncFunctionPrefixString = CreateStringFromCppLiteral(_u("async function "));
         functionDisplayString = CreateStringFromCppLiteral(JS_DISPLAY_STRING_FUNCTION_ANONYMOUS);
         xDomainFunctionDisplayString = CreateStringFromCppLiteral(_u("function anonymous() {\n    [x-domain code]\n}"));
         invalidDateString = CreateStringFromCppLiteral(_u("Invalid Date"));
-        objectTypeDisplayString = CreateStringFromCppLiteral(_u("object"));
-        functionTypeDisplayString = CreateStringFromCppLiteral(_u("function"));
-        booleanTypeDisplayString = CreateStringFromCppLiteral(_u("boolean"));
-        numberTypeDisplayString = CreateStringFromCppLiteral(_u("number"));
-        moduleTypeDisplayString = CreateStringFromCppLiteral(_u("Module"));
-        variantDateTypeDisplayString = CreateStringFromCppLiteral(_u("date"));
+        undefinedDisplayString = scriptContext->GetPropertyString(PropertyIds::undefined);
+        nanDisplayString = scriptContext->GetPropertyString(PropertyIds::NaN);
+        nullDisplayString = scriptContext->GetPropertyString(PropertyIds::null);
+        unknownDisplayString = scriptContext->GetPropertyString(PropertyIds::unknown);
+        trueDisplayString = scriptContext->GetPropertyString(PropertyIds::true_);
+        falseDisplayString = scriptContext->GetPropertyString(PropertyIds::false_);
+        stringTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::string);
+        objectTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::object);
+        functionTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::function);
+        booleanTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::boolean_);
+        numberTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::number);
+        moduleTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::Module);
+        variantDateTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::date);
+        symbolTypeDisplayString = scriptContext->GetPropertyString(PropertyIds::symbol);
         promiseResolveFunction = nullptr;
         generatorNextFunction = nullptr;
         generatorThrowFunction = nullptr;
@@ -1148,7 +1148,6 @@ namespace Js
         }
 #endif
 
-        symbolTypeDisplayString = CreateStringFromCppLiteral(_u("symbol"));
 
         symbolHasInstance = CreateSymbol(BuiltInPropertyRecords::_symbolHasInstance);
         symbolIsConcatSpreadable = CreateSymbol(BuiltInPropertyRecords::_symbolIsConcatSpreadable);
