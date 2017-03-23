@@ -111,6 +111,9 @@ void JsrtCallbackState::ObjectBeforeCallectCallbackWrapper(JsObjectBeforeCollect
     atexit([]() {
         ThreadBoundThreadContextManager::DestroyContextAndEntryForCurrentThread();
 
+#ifdef DYNAMIC_PROFILE_STORAGE
+        DynamicProfileStorage::Uninitialize();
+#endif
         JsrtRuntime::Uninitialize();
 
         // thread-bound entrypoint should be able to get cleanup correctly, however tlsentry
