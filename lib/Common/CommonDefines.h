@@ -600,6 +600,14 @@
 // #define RECYCLER_MARK_TRACK
 // #define INTERNAL_MEM_PROTECT_HEAP_ALLOC
 
+#define NO_SANITIZE_ADDRESS
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#undef NO_SANITIZE_ADDRESS
+#define NO_SANITIZE_ADDRESS __attribute__((no_sanitize("address")))
+#endif
+#endif
+
 //----------------------------------------------------------------------------------------------------
 // Disabled features
 //----------------------------------------------------------------------------------------------------

@@ -1672,6 +1672,8 @@ Recycler::ExpectStackSkip() const
 
 #pragma warning(push)
 #pragma warning(disable:4731) // 'pointer' : frame pointer register 'register' modified by inline assembly code
+// disable address sanitizer, since it doesn't handle custom stack walks well
+NO_SANITIZE_ADDRESS
 size_t
 Recycler::ScanStack()
 {
