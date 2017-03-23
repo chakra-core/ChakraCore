@@ -1046,8 +1046,8 @@ static INT Internal_AddPaddingVfwprintf(CPalThread *pthrCurrent, PAL_FILE *strea
         {
             ERROR("fwrite() failed with errno == %d\n", errno);
         }
-        InternalFree(OutOriginal);
     }
+    InternalFree(OutOriginal);
 
     return Written;
 }
