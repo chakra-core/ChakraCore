@@ -825,6 +825,7 @@ int main(int argc, char** c_argv)
 // xplat-todo: PAL free CH ?
     PAL_InitializeChakraCore();
 #endif
+    int origargc = argc; // store for clean-up later
     argv = new char16*[argc];
     for (int i = 0; i < argc; i++)
     {
@@ -839,22 +840,29 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 #ifdef _WIN32
     bool runJITServer = HandleJITServerFlag(argc, argv);
 #endif
+    int retval = -1;
+    HRESULT exitCode = E_FAIL;
+    int cpos = 1;
+    HINSTANCE chakraLibrary = nullptr;
+    bool success = false;
+    ChakraRTInterface::ArgInfo argInfo;
 
     if (argc < 2)
     {
         PrintUsage();
         PAL_Shutdown();
-        return EXIT_FAILURE;
+        retval = EXIT_FAILURE;
+        goto return_cleanup;
     }
 
 #ifdef _WIN32
     if (runJITServer)
     {
-        return RunJITServer(argc, argv);
+        retval = RunJITServer(argc, argv);
+        goto return_cleanup;
     }
 #endif
 
-    int cpos = 1;
     for(int i = 1; i < argc; ++i)
     {
         const wchar *arg = argv[i];
@@ -884,7 +892,8 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         {
             PrintVersion();
             PAL_Shutdown();
-            return EXIT_SUCCESS;
+            retval = EXIT_SUCCESS;
+            goto return_cleanup;
         }
         else if (
 #if !defined(ENABLE_DEBUG_CONFIG_OPTIONS) // release builds can display some kind of help message
@@ -896,7 +905,8 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         {
             PrintUsage();
             PAL_Shutdown();
-            return EXIT_SUCCESS;
+            retval = EXIT_SUCCESS;
+            goto return_cleanup;
         }
         else if(wcsstr(argv[i], _u("-TTRecord=")) == argv[i])
         {
@@ -927,7 +937,9 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         }
         else
         {
+            wchar *temp = argv[cpos];
             argv[cpos] = argv[i];
+            argv[i] = temp;
             cpos++;
         }
     }
@@ -951,9 +963,8 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 
     HostConfigFlags::HandleArgsFlag(argc, argv);
 
-    ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, nullptr };
-    HINSTANCE chakraLibrary = nullptr;
-    bool success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
+    argInfo = { argc, argv, PrintUsage, nullptr };
+    success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
 
 #if defined(CHAKRA_STATIC_LIBRARY) && !defined(NDEBUG)
     // handle command line flags
@@ -965,7 +976,6 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         WideStringToNarrowDynamic(argv[1], &argInfo.filename);
     }
 
-    HRESULT exitCode = E_FAIL;
     if (success)
     {
 #ifdef _WIN32
@@ -1006,5 +1016,20 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 #endif
 
     PAL_Shutdown();
-    return (int)exitCode;
+    retval = (int)exitCode;
+
+return_cleanup:
+#ifndef _WIN32
+    if(argv != nullptr)
+    {
+        for(int i=0;i<origargc;i++)
+        {
+            free(argv[i]);
+            argv[i] = nullptr;
+        }
+    }
+    delete[] argv;
+    argv = nullptr;
+#endif
+    return retval;
 }
