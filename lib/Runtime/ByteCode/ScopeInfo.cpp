@@ -12,8 +12,7 @@ namespace Js
     void ScopeInfo::SaveSymbolInfo(Symbol* sym, MapSymbolData* mapSymbolData)
     {
         // We don't need to create slot for or save "arguments"
-        bool needScopeSlot = !sym->GetIsArguments() && sym->GetHasNonLocalReference()
-            && (!mapSymbolData->func->IsInnerArgumentsSymbol(sym) || mapSymbolData->func->GetHasArguments());
+        bool needScopeSlot = !sym->GetIsArguments() && sym->GetHasNonLocalReference();
         Js::PropertyId scopeSlot = Constants::NoSlot;
 
         if (sym->GetIsModuleExportStorage())
@@ -80,7 +79,6 @@ namespace Js
         scopeInfo->mustInstantiate = scope->GetMustInstantiate();
         scopeInfo->isCached = (scope->GetFunc()->GetBodyScope() == scope) && scope->GetFunc()->GetHasCachedScope();
         scopeInfo->isGlobalEval = scope->GetScopeType() == ScopeType_GlobalEvalBlock;
-        scopeInfo->canMergeWithBodyScope = scope->GetCanMergeWithBodyScope();
         scopeInfo->hasLocalInClosure = scope->GetHasOwnLocalInClosure();
 
         TRACE_BYTECODE(_u("\nSave ScopeInfo: %s parent: %s #symbols: %d %s\n"),
@@ -163,7 +161,7 @@ namespace Js
         Scope* bodyScope = func->IsGlobalFunction() ? func->GetGlobalEvalBlockScope() : func->GetBodyScope();
         ScopeInfo* paramScopeInfo = nullptr;
         Scope* paramScope = func->GetParamScope();
-        if (paramScope && !paramScope->GetCanMergeWithBodyScope())
+        if (!func->IsBodyAndParamScopeMerged())
         {
             paramScopeInfo = FromScope(byteCodeGenerator, parent, paramScope, funcBody->GetScriptContext());
         }
@@ -215,7 +213,7 @@ namespace Js
 #if DBG
                 if (funcInfo->GetFuncExprScope() && funcInfo->GetFuncExprScope()->GetIsObject())
                 {
-                    if (funcInfo->paramScope && !funcInfo->paramScope->GetCanMergeWithBodyScope())
+                    if (!funcInfo->IsBodyAndParamScopeMerged())
                     {
                         Assert(currentScope->GetEnclosingScope()->GetEnclosingScope() == funcInfo->GetFuncExprScope());
                     }
@@ -231,12 +229,12 @@ namespace Js
                 {
                     if (currentScope->GetEnclosingScope() == parentFunc->GetParamScope())
                     {
-                        Assert(!parentFunc->GetParamScope()->GetCanMergeWithBodyScope());
-                        Assert(funcInfo->GetParamScope()->GetCanMergeWithBodyScope());
+                        Assert(!parentFunc->IsBodyAndParamScopeMerged());
+                        Assert(funcInfo->IsBodyAndParamScopeMerged());
                     }
                     else if (currentScope->GetEnclosingScope() == funcInfo->GetParamScope())
                     {
-                        Assert(!funcInfo->GetParamScope()->GetCanMergeWithBodyScope());
+                        Assert(!funcInfo->IsBodyAndParamScopeMerged());
                     }
 #if 0
                     else
@@ -267,10 +265,7 @@ namespace Js
             scope->SetIsObject();
         }
         scope->SetMustInstantiate(this->mustInstantiate);
-        if (!this->GetCanMergeWithBodyScope())
-        {
-            scope->SetCannotMergeWithBodyScope();
-        }
+
         scope->SetHasOwnLocalInClosure(this->hasLocalInClosure);
         if (parser)
         {
