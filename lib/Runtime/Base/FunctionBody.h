@@ -4010,6 +4010,10 @@ namespace Js
         Field(PropertyId *) propertyIdsForRegSlots;
         Field(uint) length;
 
+        // This keeps the upper bound of register slots for the formals. While emitting locals in the body we skip
+        // the properties that are below this limit.
+        Field(RegSlot) formalsUpperBound;
+
         Field(PropertyIdArray *) propertyIdsForFormalArgs;
 
         PropertyIdOnRegSlotsContainer();
@@ -4032,6 +4036,7 @@ namespace Js
     const int DebuggerScopePropertyFlags_CatchObject            = 0x000000002;
     const int DebuggerScopePropertyFlags_WithObject             = 0x000000004;
     const int DebuggerScopePropertyFlags_ForInOrOfCollection    = 0x000000008;
+    const int DebuggerScopePropertyFlags_HasDuplicateInBody     = 0x000000016;
 
     // Used to store local property info for with/catch objects, lets, or consts
     // that are needed for the debugger.

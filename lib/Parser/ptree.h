@@ -35,29 +35,30 @@ enum PNodeFlags : ushort
     fpnNone                                  = 0x0000,
 
     // knopFncDecl nodes.
-    fpnArguments_overriddenByDecl            = 0x0001, // function has a parameter, let/const decl, class or nested function named 'arguments', which overrides the built-in arguments object
-    fpnArguments_varDeclaration              = 0x0002, // function has a var declaration named 'arguments', which may change the way an 'arguments' identifier is resolved
+    fpnArguments_overriddenByDecl            = 0x0001, // function has a let/const decl, class or nested function named 'arguments', which overrides the built-in arguments object in the body
+    fpnArguments_overriddenInParam           = 0x0002, // function has a parameter named arguments
+    fpnArguments_varDeclaration              = 0x0004, // function has a var declaration named 'arguments', which may change the way an 'arguments' identifier is resolved
 
     // knopVarDecl nodes.
-    fpnArguments                             = 0x0004,
-    fpnHidden                                = 0x0008,
+    fpnArguments                             = 0x0008,
+    fpnHidden                                = 0x0010,
 
     // Statement nodes.
-    fpnExplicitSemicolon                     = 0x0010, // statement terminated by an explicit semicolon
-    fpnAutomaticSemicolon                    = 0x0020, // statement terminated by an automatic semicolon
-    fpnMissingSemicolon                      = 0x0040, // statement missing terminating semicolon, and is not applicable for automatic semicolon insertion
-    fpnDclList                               = 0x0080, // statement is a declaration list
-    fpnSyntheticNode                         = 0x0100, // node is added by the parser or does it represent user code
-    fpnIndexOperator                         = 0x0200, // dot operator is an optimization of an index operator
-    fpnJumbStatement                         = 0x0400, // break or continue that was removed by error recovery
+    fpnExplicitSemicolon                     = 0x0020, // statement terminated by an explicit semicolon
+    fpnAutomaticSemicolon                    = 0x0040, // statement terminated by an automatic semicolon
+    fpnMissingSemicolon                      = 0x0080, // statement missing terminating semicolon, and is not applicable for automatic semicolon insertion
+    fpnDclList                               = 0x0100, // statement is a declaration list
+    fpnSyntheticNode                         = 0x0200, // node is added by the parser or does it represent user code
+    fpnIndexOperator                         = 0x0400, // dot operator is an optimization of an index operator
+    fpnJumbStatement                         = 0x0800, // break or continue that was removed by error recovery
 
     // Unary/Binary nodes
-    fpnCanFlattenConcatExpr                  = 0x0800, // the result of the binary operation can participate in concat N
+    fpnCanFlattenConcatExpr                  = 0x1000, // the result of the binary operation can participate in concat N
 
     // Potentially overlapping traversal flags
     // These flags are set and cleared during a single node traversal and their values can be used in other node traversals.
-    fpnMemberReference                       = 0x1000, // The node is a member reference symbol
-    fpnCapturesSyms                          = 0x2000, // The node is a statement (or contains a sub-statement)
+    fpnMemberReference                       = 0x2000, // The node is a member reference symbol
+    fpnCapturesSyms                          = 0x4000, // The node is a statement (or contains a sub-statement)
                                                        // that captures symbols.
 };
 
@@ -247,6 +248,8 @@ struct PnFnc
     RestorePoint *pRestorePoint;
     DeferredFunctionStub *deferredStub;
     bool canBeDeferred;
+    bool isBodyAndParamScopeMerged; // Indicates whether the param scope and the body scope of the function can be merged together or not.
+                                    // We cannot merge both scopes together if there is any closure capture or eval is present in the param scope.
 
     static const int32 MaxStackClosureAST = 800000;
 
@@ -321,6 +324,7 @@ public:
     void SetIsDefaultModuleExport(bool set = true) { SetFlags(kFunctionIsDefaultModuleExport, set); }
     void SetNestedFuncEscapes(bool set = true) { nestedFuncEscapes = set; }
     void SetCanBeDeferred(bool set = true) { canBeDeferred = set; }
+    void ResetBodyAndParamScopeMerged() { isBodyAndParamScopeMerged = false; }
 
     bool CallsEval() const { return HasFlags(kFunctionCallsEval); }
     bool ChildCallsEval() const { return HasFlags(kFunctionChildCallsEval); }
@@ -359,6 +363,7 @@ public:
     bool IsDefaultModuleExport() const { return HasFlags(kFunctionIsDefaultModuleExport); }
     bool NestedFuncEscapes() const { return nestedFuncEscapes; }
     bool CanBeDeferred() const { return canBeDeferred; }
+    bool IsBodyAndParamScopeMerged() { return isBodyAndParamScopeMerged; }
 
     size_t LengthInBytes()
     {

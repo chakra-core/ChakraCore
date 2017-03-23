@@ -52,7 +52,7 @@ namespace Js {
 
     private:
         ScopeInfo(FunctionInfo * function, int symbolCount)
-            : functionInfo(function), /*funcExprScopeInfo(nullptr), paramScopeInfo(nullptr),*/ symbolCount(symbolCount), parent(nullptr), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false)/*, parentOnly(false)*/
+            : functionInfo(function), /*funcExprScopeInfo(nullptr), paramScopeInfo(nullptr),*/ symbolCount(symbolCount), parent(nullptr), scope(nullptr), areNamesCached(false), hasLocalInClosure(false)/*, parentOnly(false)*/
         {
         }
 
@@ -232,11 +232,6 @@ namespace Js {
         bool IsCached() const
         {
             return isCached;
-        }
-
-        bool GetCanMergeWithBodyScope() const
-        {
-            return canMergeWithBodyScope;
         }
 
         void SetHasLocalInClosure(bool has)

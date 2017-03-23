@@ -828,6 +828,16 @@
 
 #define PROCESS_SET_ELEM_LOCALSLOTNonVar(name, func) PROCESS_SET_ELEM_LOCALSLOTNonVar_COMMON(name, func,)
 
+#define PROCESS_SET_ELEM_PARAMSLOTNonVar_COMMON(name, func, suffix) \
+    case OpCode::name: \
+    { \
+        PROCESS_READ_LAYOUT(name, ElementSlotI1, suffix); \
+        func((Var*)GetParamClosure(), playout->SlotIndex, GetRegAllowStackVarEnableOnly(playout->Value)); \
+        break; \
+    }
+
+#define PROCESS_SET_ELEM_PARAMSLOTNonVar(name, func) PROCESS_SET_ELEM_PARAMSLOTNonVar_COMMON(name, func,); \
+
 #define PROCESS_SET_ELEM_INNERSLOTNonVar_COMMON(name, func, suffix) \
     case OpCode::name: \
     { \
@@ -6828,7 +6838,9 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
         this->SetIsParamScopeDone(true);
 
-        if (executeFunction->scopeSlotArraySize > 0)
+        // Create a new local closure for the body when either body scope has scope slots allocated or
+        // eval is present which can leak declarations.
+        if (executeFunction->scopeSlotArraySize > 0 || executeFunction->HasScopeObject())
         {
             this->InitializeClosures();
         }
@@ -8333,6 +8345,16 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             Js::Throw::FatalInternalError();
         }
         return this->localClosure;
+    }
+
+    Var InterpreterStackFrame::OP_LdParamObj()
+    {
+        if (!VirtualTableInfo<ActivationObject>::HasVirtualTable(this->paramClosure) &&
+            !VirtualTableInfo<ActivationObjectEx>::HasVirtualTable(this->paramClosure))
+        {
+            Js::Throw::FatalInternalError();
+        }
+        return this->paramClosure;
     }
 
 #ifdef ASMJS_PLAT

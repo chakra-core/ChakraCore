@@ -369,6 +369,12 @@
   </test>
   <test>
     <default>
+      <files>bug10191241.js</files>
+      <compile-flags>-forceundodefer</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>InlineFunctionParameterWithInfiniteLoop.js</files>
       <compile-flags>-maxinterpretcount:1 -off:simplejit</compile-flags>
     </default>

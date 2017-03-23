@@ -778,9 +778,9 @@ private:
     void ParseTopLevelDeferredFunc(ParseNodePtr pnodeFnc, ParseNodePtr pnodeFncParent, LPCOLESTR pNameHint);
     void ParseNestedDeferredFunc(ParseNodePtr pnodeFnc, bool fLambda, bool *pNeedScanRCurly, bool *pStrictModeTurnedOn);
     void CheckStrictFormalParameters();
-    void AddArgumentsNodeToVars(ParseNodePtr pnodeFnc);
+    ParseNodePtr AddArgumentsNodeToVars(ParseNodePtr pnodeFnc);
+    void UpdateArgumentsNode(ParseNodePtr pnodeFnc, ParseNodePtr argNode);
     void UpdateOrCheckForDuplicateInFormals(IdentPtr pid, SList<IdentPtr> *formals);
-    ParseNodePtr CreateAsyncSpawnGenerator();
 
     LPCOLESTR GetFunctionName(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint);
     uint CalculateFunctionColumnNumber();

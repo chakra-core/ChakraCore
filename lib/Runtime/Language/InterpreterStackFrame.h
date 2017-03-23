@@ -595,6 +595,7 @@ namespace Js
 
         inline Var OP_Ld_A(Var aValue);
         inline Var OP_LdLocalObj();
+        inline Var OP_LdParamObj();
         void OP_ChkUndecl(Var aValue);
         void OP_ChkNewCallFlag();
 

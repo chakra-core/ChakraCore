@@ -513,12 +513,6 @@ PHASE(All)
 #define DEFAULT_CONFIG_ES6Classes              (true)
 #define DEFAULT_CONFIG_ES6DateParseFix         (true)
 #define DEFAULT_CONFIG_ES6DefaultArgs          (true)
-#ifdef COMPILE_DISABLE_ES6DefaultArgsSplitScope
-    // If ES6DefaultArgsSplitScope needs to be disabled by compile flag, COMPILE_DISABLE_ES6DefaultArgsSplitScope should be false
-    #define DEFAULT_CONFIG_ES6DefaultArgsSplitScope (false)
-#else
-    #define DEFAULT_CONFIG_ES6DefaultArgsSplitScope (false)
-#endif
 #define DEFAULT_CONFIG_ES6Destructuring        (true)
 #define DEFAULT_CONFIG_ES6ForLoopSemantics     (true)
 #define DEFAULT_CONFIG_ES6FunctionName         (true)
@@ -985,11 +979,6 @@ FLAGPR           (Boolean, ES6, ES7AsyncAwait          , "Enable ES7 'async' and
 FLAGPR           (Boolean, ES6, ES6Classes             , "Enable ES6 'class' and 'extends' keywords"                , DEFAULT_CONFIG_ES6Classes)
 FLAGPR           (Boolean, ES6, ES6DateParseFix        , "Enable ES6 Date.parse fixes"                              , DEFAULT_CONFIG_ES6DateParseFix)
 FLAGPR           (Boolean, ES6, ES6DefaultArgs         , "Enable ES6 Default Arguments"                             , DEFAULT_CONFIG_ES6DefaultArgs)
-
-#ifndef COMPILE_DISABLE_ES6DefaultArgsSplitScope
-    #define COMPILE_DISABLE_ES6DefaultArgsSplitScope 0
-#endif
-FLAGPR_REGOVR_EXP(Boolean, ES6, ES6DefaultArgsSplitScope, "Enable ES6 Default Arguments to have its own scope"      , DEFAULT_CONFIG_ES6DefaultArgsSplitScope)
 FLAGPR           (Boolean, ES6, ES6Destructuring       , "Enable ES6 Destructuring"                                 , DEFAULT_CONFIG_ES6Destructuring)
 FLAGPR           (Boolean, ES6, ES6ForLoopSemantics    , "Enable ES6 for loop per iteration bindings"               , DEFAULT_CONFIG_ES6ForLoopSemantics)
 FLAGPR           (Boolean, ES6, ES6FunctionName        , "Enable ES6 function.name"                                 , DEFAULT_CONFIG_ES6FunctionName)
