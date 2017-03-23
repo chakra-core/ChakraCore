@@ -389,7 +389,7 @@ PHASE(All)
 #endif
 #define DEFAULT_CONFIG_WasmCheckVersion     (true)
 #define DEFAULT_CONFIG_WasmFold             (true)
-#define DEFAULT_CONFIG_WASM_SIMD          (false)
+#define DEFAULT_CONFIG_WasmSimd             (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo    (true)
@@ -864,7 +864,7 @@ FLAGNR(Boolean, WasmCheckVersion      , "Check the binary version for WebAssembl
 #ifndef COMPILE_DISABLE_Wasm_Simd
 #define COMPILE_DISABLE_Wasm_Simd 0
 #endif
-FLAGNR(Boolean, WasmSimd, "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WASM_SIMD)
+FLAGNR(Boolean, WasmSimd, "Enable SIMD in WebAssembly", DEFAULT_CONFIG_WasmSimd)
 
 #ifndef COMPILE_DISABLE_Simdjs
     #define COMPILE_DISABLE_Simdjs 0

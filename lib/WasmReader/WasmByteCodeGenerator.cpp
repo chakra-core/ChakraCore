@@ -478,7 +478,7 @@ WasmBytecodeGenerator::EnregisterLocals()
             {
                 //@TODO maybe we should introduce REAL simd consts? 
                 EmitInfo arg1 = EmitLoadFloatConstIntoReg(0);
-                m_writer.AsmReg5(Js::OpCodeAsmJs::Simd128_FloatsToF4, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location);
+                m_writer->AsmReg5(Js::OpCodeAsmJs::Simd128_FloatsToF4, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location);
                 ReleaseLocation(&arg1);
                 break;
             }
@@ -486,7 +486,7 @@ WasmBytecodeGenerator::EnregisterLocals()
             case WasmTypes::B4:
             {
                 EmitInfo arg1 = EmitLoadIntConstIntoReg(0);
-                m_writer.AsmReg5(type == WasmTypes::I4 ? Js::OpCodeAsmJs::Simd128_IntsToI4 : Js::OpCodeAsmJs::Simd128_IntsToB4, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location);
+                m_writer->AsmReg5(type == WasmTypes::I4 ? Js::OpCodeAsmJs::Simd128_IntsToI4 : Js::OpCodeAsmJs::Simd128_IntsToB4, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location);
                 ReleaseLocation(&arg1);
                 break;
             }
@@ -494,7 +494,7 @@ WasmBytecodeGenerator::EnregisterLocals()
             case WasmTypes::B8:
             {
                 EmitInfo arg1 = EmitLoadIntConstIntoReg(0);
-                m_writer.AsmReg9(type == WasmTypes::I8 ? Js::OpCodeAsmJs::Simd128_IntsToI8 : Js::OpCodeAsmJs::Simd128_IntsToB8, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location);
+                m_writer->AsmReg9(type == WasmTypes::I8 ? Js::OpCodeAsmJs::Simd128_IntsToI8 : Js::OpCodeAsmJs::Simd128_IntsToB8, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location);
                 ReleaseLocation(&arg1);
                 break;
             }
@@ -502,7 +502,7 @@ WasmBytecodeGenerator::EnregisterLocals()
             case WasmTypes::B16:
             {
                 EmitInfo arg1 = EmitLoadIntConstIntoReg(0);
-                m_writer.AsmReg17(type == WasmTypes::I16 ? Js::OpCodeAsmJs::Simd128_IntsToI16 : Js::OpCodeAsmJs::Simd128_IntsToB16, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location);
+                m_writer->AsmReg17(type == WasmTypes::I16 ? Js::OpCodeAsmJs::Simd128_IntsToI16 : Js::OpCodeAsmJs::Simd128_IntsToB16, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location);
                 ReleaseLocation(&arg1);
                 break;
             }
@@ -534,13 +534,13 @@ EmitInfo WasmBytecodeGenerator::EmitSimdBuildExpr(Js::OpCodeAsmJs op, const Wasm
     switch (lanes) 
     {
         case 4:
-            m_writer.AsmReg5(op, resultReg, args[3].location, args[2].location, args[1].location, args[0].location);
+            m_writer->AsmReg5(op, resultReg, args[3].location, args[2].location, args[1].location, args[0].location);
             break;
         case 8:
-            m_writer.AsmReg9(op, resultReg, args[7].location, args[6].location, args[5].location, args[4].location, args[3].location, args[2].location, args[1].location, args[0].location);
+            m_writer->AsmReg9(op, resultReg, args[7].location, args[6].location, args[5].location, args[4].location, args[3].location, args[2].location, args[1].location, args[0].location);
             break;
         case 16:
-            m_writer.AsmReg17(op, resultReg, args[15].location, args[14].location, args[13].location, args[12].location, args[11].location, args[10].location, args[9].location, args[8].location, args[7].location, args[6].location, args[5].location, args[4].location, args[3].location, args[2].location, args[1].location, args[0].location);
+            m_writer->AsmReg17(op, resultReg, args[15].location, args[14].location, args[13].location, args[12].location, args[11].location, args[10].location, args[9].location, args[8].location, args[7].location, args[6].location, args[5].location, args[4].location, args[3].location, args[2].location, args[1].location, args[0].location);
             break;
     }
  
@@ -601,7 +601,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         info = EmitConst(WasmTypes::I64, GetReader()->m_currentNode.cnst);
         break;
     case wbF4Const:
-        info = EmitConst<WasmTypes::F4>();
+        info = EmitConst(WasmTypes::F4, GetReader()->m_currentNode.cnst);
         break;
     case wbBlock:
         info = EmitBlock();
@@ -816,7 +816,7 @@ EmitInfo WasmBytecodeGenerator::EmitLoadIntConstIntoReg(uint val)
 {
     Js::RegSlot tmpReg = GetRegisterSpace(WasmTypes::I32)->AcquireTmpRegister();
     EmitInfo dst(tmpReg, WasmTypes::I32);
-    m_writer.AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, dst.location, val);
+    m_writer->AsmInt1Const1(Js::OpCodeAsmJs::Ld_IntConst, dst.location, val);
     return dst;
 }
 
@@ -824,7 +824,7 @@ EmitInfo WasmBytecodeGenerator::EmitLoadFloatConstIntoReg(uint val)
 {
     Js::RegSlot tmpReg = GetRegisterSpace(WasmTypes::F32)->AcquireTmpRegister();
     EmitInfo dst(tmpReg, WasmTypes::F32);
-    m_writer.AsmFloat1Const1(Js::OpCodeAsmJs::Ld_FltConst, dst.location, *reinterpret_cast<float *>(&val));
+    m_writer->AsmFloat1Const1(Js::OpCodeAsmJs::Ld_FltConst, dst.location, *reinterpret_cast<float *>(&val));
     return dst;
 }
 
@@ -851,7 +851,7 @@ WasmBytecodeGenerator::EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst)
         EmitInfo arg2 = EmitLoadFloatConstIntoReg(cnst.v128[1]);
         EmitInfo arg3 = EmitLoadFloatConstIntoReg(cnst.v128[2]);
         EmitInfo arg4 = EmitLoadFloatConstIntoReg(cnst.v128[3]);
-        m_writer.AsmReg5(Js::OpCodeAsmJs::Simd128_FloatsToF4, dst.location, arg1.location, arg2.location, arg3.location, arg4.location); //@TODO check if the order should be reversed
+        m_writer->AsmReg5(Js::OpCodeAsmJs::Simd128_FloatsToF4, dst.location, arg1.location, arg2.location, arg3.location, arg4.location); //@TODO check if the order should be reversed
         ReleaseLocation(&arg4); //FILO 
         ReleaseLocation(&arg3);
         ReleaseLocation(&arg2);
@@ -1250,8 +1250,8 @@ WasmBytecodeGenerator::EmitBinExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmType
     WasmTypes::WasmType lhsType = signature[1];
     WasmTypes::WasmType rhsType = signature[2];
 
-    EmitInfo rhs = PopEvalStack(lhsType);
-    EmitInfo lhs = PopEvalStack(rhsType);
+    EmitInfo rhs = PopEvalStack(rhsType);
+    EmitInfo lhs = PopEvalStack(lhsType);
 
     ReleaseLocation(&rhs);
     ReleaseLocation(&lhs);
