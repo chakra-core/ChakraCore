@@ -11,8 +11,6 @@ FLAG ES6 = 1 - setting child flag ES6DateParseFix = 1
 FLAG ES6DateParseFix = 1
 FLAG ES6 = 1 - setting child flag ES6DefaultArgs = 1
 FLAG ES6DefaultArgs = 1
-FLAG ES6 = 1 - setting child flag ES6DefaultArgsSplitScope = 1
-FLAG ES6DefaultArgsSplitScope = 1
 FLAG ES6 = 1 - setting child flag ES6Destructuring = 1
 FLAG ES6Destructuring = 1
 FLAG ES6 = 1 - setting child flag ES6ForLoopSemantics = 1

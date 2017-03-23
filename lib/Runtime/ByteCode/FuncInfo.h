@@ -142,6 +142,7 @@ public:
     uint hasEscapedUseNestedFunc : 1;
     uint needEnvRegister : 1;
     uint hasCapturedThis : 1;
+    uint isBodyAndParamScopeMerged : 1;
 #if DBG
     // FunctionBody was reused on recompile of a redeferred enclosing function.
     uint isReused:1;
@@ -179,19 +180,14 @@ public:
     typedef JsUtil::BaseDictionary<SlotKey, Js::ProfileId, ArenaAllocator, PowerOf2SizePolicy, SlotKeyComparer> SlotProfileIdMap;
     SlotProfileIdMap slotProfileIdMap;
     Js::PropertyId thisScopeSlot;
-    Js::PropertyId innerThisScopeSlot; // Used in case of split scope
     Js::PropertyId superScopeSlot;
-    Js::PropertyId innerSuperScopeSlot; // Used in case of split scope
     Js::PropertyId superCtorScopeSlot;
-    Js::PropertyId innerSuperCtorScopeSlot; // Used in case of split scope
     Js::PropertyId newTargetScopeSlot;
-    Js::PropertyId innerNewTargetScopeSlot; // Used in case of split scope
     bool isThisLexicallyCaptured;
     bool isSuperLexicallyCaptured;
     bool isSuperCtorLexicallyCaptured;
     bool isNewTargetLexicallyCaptured;
     Symbol *argumentsSymbol;
-    Symbol *innerArgumentsSymbol;
     JsUtil::List<Js::RegSlot, ArenaAllocator> nonUserNonTempRegistersToInitialize;
 
     FuncInfo(
@@ -298,22 +294,6 @@ public:
     {
         Assert(argumentsSymbol == nullptr || argumentsSymbol == sym);
         argumentsSymbol = sym;
-    }
-
-    Symbol *GetInnerArgumentsSymbol() const
-    {
-        return innerArgumentsSymbol;
-    }
-
-    void SetInnerArgumentsSymbol(Symbol *sym)
-    {
-        Assert(innerArgumentsSymbol == nullptr || innerArgumentsSymbol == sym);
-        innerArgumentsSymbol = sym;
-    }
-
-    bool IsInnerArgumentsSymbol(Symbol* sym)
-    {
-        return innerArgumentsSymbol != nullptr && innerArgumentsSymbol == sym;
     }
 
     bool GetCallsEval() const {
@@ -465,6 +445,14 @@ public:
 
     void SetHasCapturedThis() {
         hasCapturedThis = true;
+    }
+
+    bool IsBodyAndParamScopeMerged() const {
+        return isBodyAndParamScopeMerged;
+    }
+
+    void ResetBodyAndParamScopeMerged() {
+        isBodyAndParamScopeMerged = false;
     }
 
     BOOL HasSuperReference() const;
@@ -798,7 +786,6 @@ public:
     void EnsureSuperScopeSlot();
     void EnsureSuperCtorScopeSlot();
     void EnsureNewTargetScopeSlot();
-    void UseInnerSpecialScopeSlots();
 
     void SetIsThisLexicallyCaptured()
     {

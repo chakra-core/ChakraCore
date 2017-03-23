@@ -44,7 +44,6 @@ namespace Js {
         BYTE isCached : 1;              // indicates that local vars and functions are cached across invocations
         BYTE isGlobalEval : 1;
         BYTE areNamesCached : 1;
-        BYTE canMergeWithBodyScope : 1;
         BYTE hasLocalInClosure : 1;
         BYTE parentOnly : 1;
 
@@ -55,7 +54,7 @@ namespace Js {
 
     private:
         ScopeInfo(FunctionInfo * parent, int symbolCount)
-            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false), parentOnly(false)
+            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), hasLocalInClosure(false), parentOnly(false)
         {
         }
 
@@ -233,11 +232,6 @@ namespace Js {
         bool IsGlobalEval() const
         {
             return isGlobalEval;
-        }
-
-        bool GetCanMergeWithBodyScope() const
-        {
-            return canMergeWithBodyScope;
         }
 
         void SetHasLocalInClosure(bool has)
