@@ -2332,8 +2332,7 @@ namespace Js
             _u("int64"),   //I64 = 2,
             _u("float"),   //F32 = 3,
             _u("double"),  //F64 = 4,
-#define STR(X) #X
-#define NAME(TYPE, BASE) _u( "" STR(TYPE) ),
+#define NAME(TYPE, BASE) _u(#TYPE),
 
     FOREACH_SIMD_TYPE_NO64X2(NAME)
 #undef NAME
