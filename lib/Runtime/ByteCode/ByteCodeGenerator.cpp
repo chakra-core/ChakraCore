@@ -1026,10 +1026,6 @@ void ByteCodeGenerator::RestoreOneScope(Js::ScopeInfo * scopeInfo, FuncInfo * fu
     switch (scope->GetScopeType())
     {
         case ScopeType_Parameter:
-            if (!scopeInfo->GetCanMergeWithBodyScope())
-            {
-                scope->SetCannotMergeWithBodyScope();
-            }
             Assert(func->GetParamScope() == nullptr);
             func->SetParamScope(scope);
             break;
@@ -2806,7 +2802,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 if (top->GetBodyScope()->ContainsWith() && 
                     (top->GetBodyScope()->GetHasOwnLocalInClosure() ||
                      (top->GetParamScope()->GetHasOwnLocalInClosure() &&
-                      top->GetParamScope()->GetCanMergeWithBodyScope())))
+                      top->IsBodyAndParamScopeMerged())))
                 {
                     // Parent scopes may contain symbols called inside the with.
                     // Current implementation needs the symScope isObject.
@@ -2821,7 +2817,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
 
                 if (top->GetParamScope()->ContainsWith() &&
                     (top->GetParamScope()->GetHasOwnLocalInClosure() &&
-                     !top->GetParamScope()->GetCanMergeWithBodyScope()))
+                     !top->IsBodyAndParamScopeMerged()))
                 {
                     top->GetParamScope()->SetIsObject();
                     if (top->byteCodeFunction->IsFunctionBody())
