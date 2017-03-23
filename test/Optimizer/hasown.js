@@ -5,6 +5,7 @@
 
 function Obj1()
 {
+    this[4] = 2;
     this.y = 2;
     this.w = 5;
 }
@@ -12,6 +13,7 @@ Obj1.prototype.x = 3;
 
 function Obj2()
 {
+    this[5] = 2;
     this.y = 2;
     this.x = 1;
 }
@@ -240,3 +242,30 @@ Obj2.prototype["1"] = {enumerable: true};
 print(hasOwnNumeric2(new Obj1()));
 Obj2.prototype["1"] = {enumerable: true};
 print(hasOwnNumeric2(new Obj2()));
+
+function hasOwnNumeric3(obj)
+{
+    let result = "";
+    for(let prop in obj)
+    {
+        if(obj.hasOwnProperty(prop))
+        {
+            result += `own: ${prop}, ` ;
+            obj[7] = 1;
+        }
+        else
+        {
+            result += `not: ${prop}, ` ;
+        }
+    }
+    return result;
+}
+Obj2.prototype[7] = 2;
+
+print("hasOwnNumeric3:");
+print(hasOwnNumeric3(new Obj1()));
+print(hasOwnNumeric3(new Obj2()));
+print(hasOwnNumeric3(new Obj1()));
+print(hasOwnNumeric3(new Obj1()));
+print(hasOwnNumeric3(new Obj2()));
+print(hasOwnNumeric3(new Obj2()));

@@ -21,7 +21,7 @@ namespace Js
         } *shadowData;
 
         // States
-        bool canUseJitFastPath;
+        bool canUseJitFastPath; // used by GenerateFastBrBReturn and GenerateFastInlineHasOwnProperty
         bool enumeratingPrototype;
 
         BOOL TestAndSetEnumerated(PropertyId propertyId);

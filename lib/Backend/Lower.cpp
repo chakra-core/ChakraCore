@@ -17949,25 +17949,70 @@ Lowerer::GenerateFastInlineHasOwnProperty(IR::Instr * instr)
     Assert(result);
     AnalysisAssert(argsOpnd[0] && argsOpnd[1]);
 
-    // fast path case where hasOwnProperty is being called using a property name loaded via a for-in loop
-    if (!argsOpnd[1]->GetValueType().IsString()
+    if (argsOpnd[1]->GetValueType().IsNotString()
         || argsOpnd[0]->GetValueType().IsNotObject()
         || !argsOpnd[0]->IsRegOpnd()
-        || !argsOpnd[1]->IsRegOpnd()
-        || !argsOpnd[1]->AsRegOpnd()->m_sym->m_isSingleDef
-        || (argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->m_opcode != Js::OpCode::BrOnEmpty
-            && argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->m_opcode != Js::OpCode::BrOnNotEmpty))
+        || !argsOpnd[1]->IsRegOpnd())
     {
         return;
     }
-    // generates fastpath:
-    //    MOV cachedDataTypeOpnd, [forInEnumeratorOpnd + OffsetOfEnumeratorInitialType]
-    //    CMP [thisObj + OffsetOfType], cachedDataTypeOpnd
+
+    // fast path case where hasOwnProperty is being called using a property name loaded via a for-in loop
+    bool generateForInFastpath = argsOpnd[1]->GetValueType().IsString()
+        && argsOpnd[1]->AsRegOpnd()->m_sym->m_isSingleDef
+        && (argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->m_opcode == Js::OpCode::BrOnEmpty
+            || argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->m_opcode == Js::OpCode::BrOnNotEmpty);
+
+    IR::RegOpnd * thisObj = argsOpnd[0]->AsRegOpnd();
+    IR::RegOpnd * propOpnd = argsOpnd[1]->AsRegOpnd();
+
+    IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
+    IR::LabelInstr * labelHelper = InsertLabel(true, instr);
+
+    IR::LabelInstr * cacheMissLabel = generateForInFastpath ? InsertLabel(true, labelHelper) : labelHelper;
+
+    IR::Instr * insertInstr = cacheMissLabel;
+
+    //    CMP indexOpnd, PropertyString::`vtable'
+    //    JNE $helper
+    //    MOV propertyCacheOpnd, propOpnd->propCache
+    //    TEST thisObj, AtomTag
     //    JNE $labelHelper
-    //    MOV typeHandlerOpnd, [cachedDataTypeOpnd + OffsetOfTypeHandler]
-    //    TEST [typeHandlerOpnd + OffsetOfFlags], IsLockedFlag
+    //    MOV s2, thisObj->type
+    //    CMP [propertyCacheOpnd->type], s2
+    //    JNE $cacheMissLabel
+
+    InsertCompareBranch(IR::IndirOpnd::New(propOpnd, 0, TyMachPtr, m_func), LoadVTableValueOpnd(insertInstr, VTableValue::VtablePropertyString), Js::OpCode::BrNeq_A, labelHelper, insertInstr);
+
+    IR::RegOpnd * propertyCacheOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    IR::Instr * loadPropertyCacheInstr = IR::Instr::New(Js::OpCode::MOV, propertyCacheOpnd, IR::IndirOpnd::New(propOpnd, Js::PropertyString::GetOffsetOfPropertyCache(), TyMachPtr, m_func), m_func);
+    insertInstr->InsertBefore(loadPropertyCacheInstr);
+
+    if (!thisObj->IsNotTaggedValue())
+    {
+        m_lowererMD.GenerateObjectTest(thisObj, insertInstr, labelHelper);
+    }
+
+    IR::RegOpnd * objectTypeOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(objectTypeOpnd, IR::IndirOpnd::New(thisObj, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, m_func), insertInstr);
+
+    InsertCompareBranch(IR::IndirOpnd::New(propertyCacheOpnd, (int32)offsetof(Js::PropertyCache, type), TyMachPtr, m_func), objectTypeOpnd, Js::OpCode::BrNeq_A, cacheMissLabel, insertInstr);
+
+    InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), insertInstr);
+    InsertBranch(Js::OpCode::Br, doneLabel, insertInstr);
+
+    if (!generateForInFastpath)
+    {
+        RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
+        return;
+    }
+
+    //    CMP forInEnumeratorOpnd->canUseJitFastPath, 0
     //    JEQ $labelHelper
-    //    CMP [forInEnumeratorOpnd + OffsetOfEnumeratingPrototype], 0
+    //    MOV cachedDataTypeOpnd, [forInEnumeratorOpnd + OffsetOfEnumeratorInitialType]
+    //    CMP thisObj->type, cachedDataTypeOpnd
+    //    JNE $labelHelper
+    //    CMP forInEnumeratorOpnd->enumeratingPrototype, 0
     //    JNE $falseLabel
     //    MOV dst, True
     //    JMP $doneLabel
@@ -17979,29 +18024,16 @@ Lowerer::GenerateFastInlineHasOwnProperty(IR::Instr * instr)
     //    ...
     // $doneLabel:
 
-    IR::LabelInstr *doneLabel = InsertLabel(false, instr->m_next);
-    IR::LabelInstr *labelHelper = InsertLabel(true, instr);
-    IR::Instr * insertInstr = labelHelper;
-    IR::RegOpnd * thisObj = argsOpnd[0]->AsRegOpnd();
     IR::Opnd * forInEnumeratorOpnd = argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->GetSrc1();
 
-    if (!thisObj->IsNotTaggedValue())
-    {
-        m_lowererMD.GenerateObjectTest(thisObj, insertInstr, labelHelper);
-    }
+    // go to helper if we can't use JIT fastpath
+    IR::Opnd * canUseJitFastPathOpnd = GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfCanUseJitFastPath(), TyInt8);
+    InsertCompareBranch(canUseJitFastPathOpnd, IR::IntConstOpnd::New(0, TyInt8, m_func), Js::OpCode::BrEq_A, labelHelper, insertInstr);
 
     // go to helper if initial type is not same as the object we are querying
     IR::RegOpnd * cachedDataTypeOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
     InsertMove(cachedDataTypeOpnd, GetForInEnumeratorFieldOpnd(forInEnumeratorOpnd, Js::ForInObjectEnumerator::GetOffsetOfEnumeratorInitialType(), TyMachPtr), insertInstr);
-    InsertCompareBranch(IR::IndirOpnd::New(thisObj, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, m_func), cachedDataTypeOpnd, Js::OpCode::BrNeq_A, labelHelper, insertInstr);
-
-    // go to helper if type isn't locked, as it might have changed
-    IR::RegOpnd * typeHandlerOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-    InsertMove(typeHandlerOpnd, IR::IndirOpnd::New(cachedDataTypeOpnd, Js::DynamicType::GetOffsetOfTypeHandler(), TyMachPtr, m_func), insertInstr);
-    InsertTestBranch(
-        IR::IndirOpnd::New(typeHandlerOpnd, Js::DynamicTypeHandler::GetOffsetOfFlags(), TyInt8, m_func),
-        IR::IntConstOpnd::New(Js::DynamicTypeHandler::IsLockedFlag, TyInt8, m_func),
-        Js::OpCode::BrEq_A, labelHelper, insertInstr);
+    InsertCompareBranch(cachedDataTypeOpnd, IR::IndirOpnd::New(thisObj, Js::DynamicObject::GetOffsetOfType(), TyMachPtr, m_func), Js::OpCode::BrNeq_A, labelHelper, insertInstr);
 
     // if we haven't yet gone to helper, then we can check if we are enumerating the prototype to know if property is an own property
     IR::LabelInstr *falseLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
