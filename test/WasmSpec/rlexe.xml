@@ -127,6 +127,38 @@
   <test>
     <default>
       <files>spec.js</files>
+      <baseline>baselines/call.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/call.wast -endargs</compile-flags>
+      <tags>exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/call.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/call.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/call_indirect.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/call_indirect.wast -endargs</compile-flags>
+      <tags>exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/call_indirect.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/call_indirect.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
       <baseline>baselines/comments.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/comments.wast -endargs</compile-flags>
     </default>
@@ -289,6 +321,22 @@
       <baseline>baselines/float_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_exprs.wast -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/float_literals.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/float_literals.wast -endargs</compile-flags>
+      <tags>exclude_jshost</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/float_literals.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/float_literals.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo,exclude_jshost</tags>
     </default>
   </test>
   <test>

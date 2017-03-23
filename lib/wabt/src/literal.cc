@@ -386,6 +386,11 @@ Result parse_float(LiteralType literal_type,
                    uint32_t* out_bits) {
   switch (literal_type) {
     case LiteralType::Int:
+#if COMPILER_IS_MSVC
+      if (string_starts_with(s, end, "0x")) {
+        goto parseFloatHex;
+      }
+#endif
     case LiteralType::Float: {
       errno = 0;
       char* endptr;
@@ -401,6 +406,7 @@ Result parse_float(LiteralType literal_type,
     }
 
     case LiteralType::Hexfloat:
+parseFloatHex:
       parse_float_hex(s, end, out_bits);
       return Result::Ok;
 
@@ -719,6 +725,12 @@ Result parse_double(LiteralType literal_type,
                     uint64_t* out_bits) {
   switch (literal_type) {
     case LiteralType::Int:
+#if COMPILER_IS_MSVC
+      if (string_starts_with(s, end, "0x"))
+      {
+        goto parseDoubleHex;
+      }
+#endif
     case LiteralType::Float: {
       errno = 0;
       char* endptr;
@@ -734,6 +746,7 @@ Result parse_double(LiteralType literal_type,
     }
 
     case LiteralType::Hexfloat:
+parseDoubleHex:
       parse_double_hex(s, end, out_bits);
       return Result::Ok;
 
@@ -842,38 +855,5 @@ void write_double_hex(char* out, size_t size, uint64_t bits) {
   memcpy(out, buffer, len);
   out[len] = '\0';
 }
-
-#if COMPILER_IS_MSVC
-#if _MSC_VER <= 1800
-float strtof(const char *nptr, char **endptr) {
-  const char* end = nptr + strlen(nptr);
-  // review:: should we check for leading whitespaces ?
-  if (string_starts_with(nptr, end, "0x")) {
-    uint32_t out_bits = 0;
-    parse_float_hex(nptr, end, &out_bits);
-    float value;
-    memcpy((void*)&value, &out_bits, sizeof(value));
-
-    *endptr = (char*)end;
-    return value;
-  }
-  return ::strtof(nptr, endptr);
-}
-double strtod(const char *nptr, char **endptr) {
-  const char* end = nptr + strlen(nptr);
-  // review:: should we check for leading whitespaces ?
-  if (string_starts_with(nptr, end, "0x")) {
-    uint64_t out_bits = 0;
-    parse_double_hex(nptr, end, &out_bits);
-    double value;
-    memcpy((void*)&value, &out_bits, sizeof(value));
-
-    *endptr = (char*)end;
-    return value;
-  }
-  return ::strtod(nptr, endptr);
-}
-#endif
-#endif
 }  // namespace wabt
 

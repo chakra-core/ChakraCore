@@ -4,11 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 
 const path = require("path");
-const jsBeautify = require("js-beautify");
 const fs = require("fs-extra");
 const stringArgv = require("string-argv");
-const {execFile, spawn} = require("child_process");
-const which = require("which");
+const {spawn} = require("child_process");
 const slash = require("slash");
 
 const rlRoot = path.join(__dirname, "..");
@@ -31,11 +29,11 @@ const argv = require("yargs")
       description: "Spec tests to exclude from the conversion (use for known failures)",
       default: []
     },
-    "legacy-excludes": {
+    "jshost-excludes": {
       array: true,
-      description: "Spec tests to exclude when running on legacy (use for known failures)",
+      description: "Spec tests to exclude when running on jshost (use for known failures)",
       default: [
-        "float_literals" // Problem with float parsing precision in MSVC++ 12.0
+        "float_literals" // Problem with float parsing precision in the crt version we use
       ]
     },
     "xplat-excludes": {
@@ -147,7 +145,7 @@ function main() {
   })).then(specFiles => {
     const runs = specFiles.map(specFile => {
       const isXplatExcluded = argv.xplatExcludes.indexOf(path.basename(specFile, ".wast")) !== -1;
-      const isLegacyExcluded = argv.legacyExcludes.indexOf(path.basename(specFile, ".wast")) !== -1;
+      const isJshostExcluded = argv.jshostExcludes.indexOf(path.basename(specFile, ".wast")) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const tests = [{
@@ -158,12 +156,12 @@ function main() {
         tags: ["exclude_dynapogo"],
         baseline: baseline,
         flags: [flags, "-nonative"]
-      }]
+      }];
       if (isXplatExcluded) {
         for (const test of tests) test.tags.push("exclude_xplat");
       }
-      if (isLegacyExcluded) {
-        for (const test of tests) test.tags.push("exclude_win7");
+      if (isJshostExcluded) {
+        for (const test of tests) test.tags.push("exclude_jshost");
       }
       return tests;
     });
