@@ -1016,6 +1016,22 @@ var tests = [
             assert.areEqual(1, b(), "Formal captured from the param scope should be constrained to the param scope");
         };
         f23(1);
+        function f24(a, b = () => eval("arguments[0]")) {
+            return b();
+        }
+        assert.areEqual(1, f24(1), "eval('arguments') inside split scope should work correctly");
+        assert.areEqual([1, 2], f24([1, 2]), "eval('arguments') inside split scope should work correctly");
+
+        function f25(a, b = eval('() => () => eval("arguments[0]")')) {
+            return b()();
+        }
+        assert.areEqual(1, f25(1), "nested eval('arguments') inside split scope should work correctly");
+        assert.areEqual([1, 2], f25([1, 2]), "nested eval('arguments') inside split scope should work correctly");
+
+        function f26(a, c = () => eval("arguments.length")) {
+            return c();
+        }
+        assert.areEqual(1, f26(1), "arguments.length is set correctly with eval in split scope lambda");
     }  
   },
   {

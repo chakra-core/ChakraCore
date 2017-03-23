@@ -2511,6 +2511,12 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
             }
         }
     }
+    else if (pnode->sxFnc.IsLambda() && pnode->sxFnc.CallsEval()) {
+        FuncInfo* nonLambdaParent = byteCodeGenerator->FindEnclosingNonLambda();
+        if (!nonLambdaParent->IsGlobalFunction()) {
+            nonLambdaParent->GetParsedFunctionBody()->SetUsesArgumentsObject(true);
+        }
+    }
 
     Js::FunctionBody* parentFunctionBody = parentFunc->GetParsedFunctionBody();
     if (funcInfo->GetHasArguments() ||
@@ -2641,6 +2647,15 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
             top->byteCodeFunction->SetEnclosedByGlobalFunc();
         }
 
+        // In the case of lambdas defined inside of eval in param scope, argumentsSymbol can be nullptr
+        // We still get correct behavior if it is, but we need to check if that's the case.
+        if (top->GetCallsEval() && !enclosingNonLambda->IsGlobalFunction()
+            && enclosingNonLambda->GetArgumentsSymbol() != nullptr)
+        {
+            enclosingNonLambda->SetHasArguments(true);
+            enclosingNonLambda->SetHasHeapArguments(true);
+            enclosingNonLambda->GetArgumentsSymbol()->SetHasNonLocalReference();
+        }
         if (FuncAllowsDirectSuper(enclosingNonLambda, byteCodeGenerator))
         {
             top->byteCodeFunction->GetFunctionInfo()->SetAllowDirectSuper();
@@ -3395,6 +3410,16 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                 // Push the param scope
                 byteCodeGenerator->PushScope(paramScope);
 
+                /*
+                We need this call to happen *before* visiting the param scope. If we have a split scope,
+                and this function has parameters that default to a lambda which uses the implicit "arguments" inside
+                of eval, we need this function's argumentsSymbol to be set already, so that we can mark it as
+                non-locally referenced inside of PostVisitFunction.
+
+                See Github issue #1209 for more.
+                */
+                AddVarsToScope(pnodeScope->sxFnc.pnodeVars, byteCodeGenerator);
+
                 if (pnodeScope->sxFnc.HasNonSimpleParameterList() && !paramScope->GetCanMergeWithBodyScope())
                 {
                     // Set param scope as the current child scope.
@@ -3409,7 +3434,6 @@ void VisitNestedScopes(ParseNode* pnodeScopeList, ParseNode* pnodeParent, ByteCo
                 funcInfo->SetCurrentChildScope(bodyScope);
 
                 PreVisitBlock(pnodeScope->sxFnc.pnodeBodyScope, byteCodeGenerator);
-                AddVarsToScope(pnodeScope->sxFnc.pnodeVars, byteCodeGenerator);
 
                 if (!pnodeScope->sxFnc.HasNonSimpleParameterList() || paramScope->GetCanMergeWithBodyScope())
                 {
