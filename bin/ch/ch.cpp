@@ -671,6 +671,11 @@ HRESULT ExecuteTest(const char* fileName)
         }
     }
 Error:
+    if( fileContents != nullptr)
+    {
+        free((char*)fileContents);
+        fileContents = nullptr;
+    }
     if (Debugger::debugger != nullptr)
     {
         Debugger::debugger->CompareOrWriteBaselineFile(fileName);
