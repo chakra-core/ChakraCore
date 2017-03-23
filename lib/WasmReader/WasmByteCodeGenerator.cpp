@@ -542,6 +542,8 @@ EmitInfo WasmBytecodeGenerator::EmitSimdBuildExpr(Js::OpCodeAsmJs op, const Wasm
         case 16:
             m_writer->AsmReg17(op, resultReg, args[15].location, args[14].location, args[13].location, args[12].location, args[11].location, args[10].location, args[9].location, args[8].location, args[7].location, args[6].location, args[5].location, args[4].location, args[3].location, args[2].location, args[1].location, args[0].location);
             break;
+        default:
+            Assert(UNREACHED);
     }
  
     for (uint i = 0; i < lanes; i++)
