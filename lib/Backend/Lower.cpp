@@ -17973,20 +17973,27 @@ Lowerer::GenerateFastInlineHasOwnProperty(IR::Instr * instr)
 
     IR::Instr * insertInstr = cacheMissLabel;
 
+    //    TEST indexOpnd, AtomTag
     //    CMP indexOpnd, PropertyString::`vtable'
     //    JNE $helper
     //    MOV propertyCacheOpnd, propOpnd->propCache
     //    TEST thisObj, AtomTag
     //    JNE $labelHelper
-    //    MOV s2, thisObj->type
-    //    CMP [propertyCacheOpnd->type], s2
+    //    MOV objectTypeOpnd, thisObj->type
+    //    CMP propertyCacheOpnd->type, objectTypeOpnd
     //    JNE $cacheMissLabel
+    //    MOV dst, ValueTrue
+    //    JMP $done
+
+    if (!propOpnd->IsNotTaggedValue())
+    {
+        m_lowererMD.GenerateObjectTest(propOpnd, insertInstr, labelHelper);
+    }
 
     InsertCompareBranch(IR::IndirOpnd::New(propOpnd, 0, TyMachPtr, m_func), LoadVTableValueOpnd(insertInstr, VTableValue::VtablePropertyString), Js::OpCode::BrNeq_A, labelHelper, insertInstr);
 
     IR::RegOpnd * propertyCacheOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-    IR::Instr * loadPropertyCacheInstr = IR::Instr::New(Js::OpCode::MOV, propertyCacheOpnd, IR::IndirOpnd::New(propOpnd, Js::PropertyString::GetOffsetOfPropertyCache(), TyMachPtr, m_func), m_func);
-    insertInstr->InsertBefore(loadPropertyCacheInstr);
+    InsertMove(propertyCacheOpnd, IR::IndirOpnd::New(propOpnd, Js::PropertyString::GetOffsetOfPropertyCache(), TyMachPtr, m_func), insertInstr);
 
     if (!thisObj->IsNotTaggedValue())
     {
@@ -18009,7 +18016,7 @@ Lowerer::GenerateFastInlineHasOwnProperty(IR::Instr * instr)
 
     //    CMP forInEnumeratorOpnd->canUseJitFastPath, 0
     //    JEQ $labelHelper
-    //    MOV cachedDataTypeOpnd, [forInEnumeratorOpnd + OffsetOfEnumeratorInitialType]
+    //    MOV cachedDataTypeOpnd, forInEnumeratorOpnd->enumeratorInitialType
     //    CMP thisObj->type, cachedDataTypeOpnd
     //    JNE $labelHelper
     //    CMP forInEnumeratorOpnd->enumeratingPrototype, 0
