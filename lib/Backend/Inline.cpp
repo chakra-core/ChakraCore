@@ -3330,6 +3330,10 @@ Inline::SetupInlineInstrForCallDirect(Js::BuiltinFunction builtInId, IR::Instr* 
     case Js::BuiltinFunction::JavascriptObject_HasOwnProperty:
         callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperObject_HasOwnProperty, callInstr->m_func));
         break;
+
+    case Js::BuiltinFunction::JavascriptArray_IsArray:
+        callInstr->SetSrc1(IR::HelperCallOpnd::New(IR::JnHelperMethod::HelperArray_IsArray, callInstr->m_func));
+        break;
     };
     callInstr->SetSrc2(argoutInstr->GetDst());
     return;

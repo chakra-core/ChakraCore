@@ -770,6 +770,9 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
             case IR::JnHelperMethod::HelperObject_HasOwnProperty:
                 this->GenerateFastInlineHasOwnProperty(instr);
                 break;
+            case IR::JnHelperMethod::HelperArray_IsArray:
+                this->GenerateFastInlineIsArray(instr);
+                break;
             }
             instrPrev = LowerCallDirect(instr);
             break;
@@ -17912,6 +17915,120 @@ Lowerer::GenerateFastInlineArrayPop(IR::Instr * instr)
     }
 
     GenerateHelperToArrayPopFastPath(instr, doneLabel, bailOutLabelHelper);
+}
+
+void
+Lowerer::GenerateFastInlineIsArray(IR::Instr * instr)
+{
+    Assert(instr->m_opcode == Js::OpCode::CallDirect);
+
+    IR::Opnd * dst = instr->GetDst();
+    if (!dst)
+    {
+        return;
+    }
+
+    //CallDirect src2
+    IR::Opnd * linkOpnd = instr->GetSrc2();
+    //ArgOut_A_InlineSpecialized
+    IR::Instr * tmpInstr = linkOpnd->AsSymOpnd()->m_sym->AsStackSym()->m_instrDef;
+
+    IR::Opnd * argsOpnd[2] = { 0 };
+    bool result = instr->FetchOperands(argsOpnd, 2);
+    Assert(result);
+    AnalysisAssert(argsOpnd[1]);
+
+    IR::LabelInstr *helperLabel = InsertLabel(true, instr);
+    IR::Instr * insertInstr = helperLabel;
+    IR::LabelInstr *doneLabel = InsertLabel(false, instr->m_next);
+
+    IR::RegOpnd * src;
+    ValueType valueType = argsOpnd[1]->GetValueType();
+    if (argsOpnd[1]->IsRegOpnd())
+    {
+        src = argsOpnd[1]->AsRegOpnd();
+    }
+    else
+    {
+        src = IR::RegOpnd::New(argsOpnd[1]->GetType(), m_func);
+        InsertMove(src, argsOpnd[1], instr);
+    }
+
+    IR::LabelInstr *checkNotArrayLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, valueType.IsLikelyArray());
+    IR::LabelInstr *notArrayLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, valueType.IsLikelyArray());
+
+    if (!src->IsNotTaggedValue())
+    {
+        m_lowererMD.GenerateObjectTest(src, insertInstr, notArrayLabel);
+    }
+
+    //  MOV typeOpnd, [opnd + offset(type)]
+    IR::RegOpnd *typeOpnd = IR::RegOpnd::New(TyMachReg, m_func);
+    const IR::AutoReuseOpnd autoReuseTypeOpnd(typeOpnd, m_func);
+    IR::IndirOpnd *indirOpnd = IR::IndirOpnd::New(src, Js::RecyclableObject::GetOffsetOfType(), TyMachReg, m_func);
+    InsertMove(typeOpnd, indirOpnd, insertInstr);
+
+    //  MOV typeIdOpnd, [typeOpnd + offset(typeId)]
+    IR::RegOpnd *typeIdOpnd = IR::RegOpnd::New(TyMachReg, m_func);
+    const IR::AutoReuseOpnd autoReuseTypeIdOpnd(typeIdOpnd, m_func);
+    indirOpnd = IR::IndirOpnd::New(typeOpnd, Js::Type::GetOffsetOfTypeId(), TyInt32, m_func);
+    InsertMove(typeIdOpnd, indirOpnd, insertInstr);
+
+    //  CMP typeIdOpnd, TypeIds_ArrayFirst
+    //  JLT $notArray
+    InsertCompareBranch(
+        typeIdOpnd,
+        IR::IntConstOpnd::New(Js::TypeIds_ArrayFirst, TyInt32, m_func),
+        Js::OpCode::BrLt_A,
+        checkNotArrayLabel,
+        insertInstr);
+    //  CMP typeIdOpnd, TypeIds_ArrayLastWithES5
+    //  JGT $notArray
+    InsertCompareBranch(
+        typeIdOpnd,
+        IR::IntConstOpnd::New(Js::TypeIds_ArrayLastWithES5, TyInt32, m_func),
+        Js::OpCode::BrGt_A,
+        notArrayLabel,
+        insertInstr);
+
+    // MOV dst, True
+    InsertMove(dst, LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), insertInstr);
+
+    // JMP $done
+    InsertBranch(Js::OpCode::Br, doneLabel, insertInstr);
+
+    // $checkNotArray:
+    insertInstr->InsertBefore(checkNotArrayLabel);
+
+    //  CMP typeIdOpnd, TypeIds_Proxy
+    //  JEQ $helperLabel
+    InsertCompareBranch(
+        typeIdOpnd,
+        IR::IntConstOpnd::New(Js::TypeIds_Proxy, TyInt32, m_func),
+        Js::OpCode::BrEq_A,
+        helperLabel,
+        insertInstr);
+    CompileAssert(Js::TypeIds_Proxy < Js::TypeIds_ArrayFirst);
+
+    //  CMP typeIdOpnd, TypeIds_HostDispatch
+    //  JEQ $helperLabel
+    InsertCompareBranch(
+        typeIdOpnd,
+        IR::IntConstOpnd::New(Js::TypeIds_HostDispatch, TyInt32, m_func),
+        Js::OpCode::BrEq_A,
+        helperLabel,
+        insertInstr);
+    CompileAssert(Js::TypeIds_HostDispatch < Js::TypeIds_ArrayFirst);
+
+    // $notObjectLabel:
+    insertInstr->InsertBefore(notArrayLabel);
+
+    // MOV dst, False
+    InsertMove(dst, LoadLibraryValueOpnd(instr, LibraryValue::ValueFalse), insertInstr);
+
+    InsertBranch(Js::OpCode::Br, doneLabel, insertInstr);
+
+    RelocateCallDirectToHelperPath(tmpInstr, helperLabel);
 }
 
 void
