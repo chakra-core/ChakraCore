@@ -408,7 +408,7 @@ static double CPUFreq()
     start = rdtsc();
     gettimeofday(&tstart, &tzone);
 
-    usleep(1000); // 1ms
+    usleep(2000); // 2ms
 
     end = rdtsc();
     gettimeofday(&tend, &tzone);

@@ -95,6 +95,10 @@ namespace DateTime
     class HiresTimerPlatformData
     {
     public:
+        double    cacheSysTime;
+        ULONGLONG cacheTick;
+
+        HiresTimerPlatformData():cacheSysTime(0), cacheTick(-1) { }
         void Reset() { /* dummy method for interface compatiblity */ }
     };
 

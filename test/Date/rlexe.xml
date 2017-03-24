@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <regress-exe>
   <test>
     <default>
@@ -115,6 +115,12 @@
       <compile-flags>-nonative -intl-</compile-flags>
       <baseline/>
       <tags>exclude_fre,exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>xplatInterval.js</files>
+      <tags>exclude_jenkins,Slow</tags>
     </default>
   </test>
 </regress-exe>
