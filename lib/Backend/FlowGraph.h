@@ -158,18 +158,14 @@ public:
     BasicBlock * InsertAirlockBlock(FlowEdge * edge);
     void         InsertCompBlockToLoopList(Loop *loop, BasicBlock* compBlock, BasicBlock* targetBlock, bool postTarget);
     void         RemoveUnreachableBlocks();
-    bool         RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt = nullptr, IR::Instr ** pUpwardedInstr = nullptr);
+    bool         RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt = nullptr);
     IR::Instr *  RemoveInstr(IR::Instr *instr, GlobOpt * globOpt);
-    void         RemoveBlock(BasicBlock *block, GlobOpt * globOpt = nullptr, bool tailDuping = false, IR::Instr ** upwardedInstr = nullptr);
+    void         RemoveBlock(BasicBlock *block, GlobOpt * globOpt = nullptr, bool tailDuping = false);
     BasicBlock * SetBlockTargetAndLoopFlag(IR::LabelInstr * labelInstr);
     Func*        GetFunc() { return func;};
     static void  SafeRemoveInstr(IR::Instr *instr);
     void         SortLoopLists();
     FlowEdge *   FindEdge(BasicBlock *predBlock, BasicBlock *succBlock);
-    void         UpwardInlineeEndBeforeRemoving(BasicBlock * block,
-                                                IR::Instr * inlineeEnd,
-                                                BVSparse<JitArenaAllocator> * visitedBlocks,
-                                                IR::Instr ** pUpwardedInstr);
 
 #if DBG_DUMP
     void         Dump();
