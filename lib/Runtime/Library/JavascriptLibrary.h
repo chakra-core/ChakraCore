@@ -419,7 +419,6 @@ namespace Js
 #endif
 
         Field(JavascriptFunction*) evalFunctionObject;
-        Field(JavascriptFunction*) arrayPrototypeValuesFunction;
         Field(JavascriptFunction*) parseIntFunctionObject;
         Field(JavascriptFunction*) parseFloatFunctionObject;
         Field(JavascriptFunction*) arrayPrototypeToStringFunction;
@@ -706,7 +705,6 @@ namespace Js
         JavascriptFunction* GetSetConstructor() const {return  setConstructor; }
         JavascriptFunction* GetSymbolConstructor() const {return symbolConstructor; }
         JavascriptFunction* GetEvalFunctionObject() { return evalFunctionObject; }
-        JavascriptFunction* GetArrayPrototypeValuesFunction() { return EnsureArrayPrototypeValuesFunction(); }
         JavascriptFunction* GetArrayIteratorPrototypeBuiltinNextFunction() { return arrayIteratorPrototypeBuiltinNextFunction; }
         DynamicObject* GetMathObject() const {return mathObject; }
         DynamicObject* GetJSONObject() const {return JSONObject; }
@@ -1137,6 +1135,10 @@ namespace Js
         JavascriptFunction* EnsurePromiseResolveFunction();
         JavascriptFunction* EnsureGeneratorNextFunction();
         JavascriptFunction* EnsureGeneratorThrowFunction();
+        JavascriptFunction* EnsureArrayPrototypeForEachFunction();
+        JavascriptFunction* EnsureArrayPrototypeKeysFunction();
+        JavascriptFunction* EnsureArrayPrototypeEntriesFunction();
+        JavascriptFunction* EnsureArrayPrototypeValuesFunction();
 
         void SetCrossSiteForSharedFunctionType(JavascriptFunction * function);
 
@@ -1363,9 +1365,6 @@ namespace Js
 #if ENABLE_DEBUG_CONFIG_OPTIONS
         static char16 const * const LibraryFunctionName[BuiltinFunction::Count + 1];
 #endif
-
-        JavascriptFunction* EnsureArrayPrototypeValuesFunction();
-
 
     public:
         virtual void Finalize(bool isShutdown) override;

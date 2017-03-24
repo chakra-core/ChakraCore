@@ -78,6 +78,11 @@ namespace Js
         JavascriptFunction* GetTypeErrorConstructor() const { return typeErrorConstructor; }
         JavascriptFunction* GetURIErrorConstructor() const { return uriErrorConstructor; }
 
+        JavascriptFunction* GetArrayPrototypeForEachFunction() const { return arrayPrototypeForEachFunction; }
+        JavascriptFunction* GetArrayPrototypeKeysFunction() const { return arrayPrototypeKeysFunction; }
+        JavascriptFunction* GetArrayPrototypeValuesFunction() const { return arrayPrototypeValuesFunction; }
+        JavascriptFunction* GetArrayPrototypeEntriesFunction() const { return arrayPrototypeEntriesFunction; }
+
         DynamicObject* GetMathObject() { return mathObject; }
         DynamicObject* GetJSONObject() { return JSONObject; }
 #ifdef ENABLE_INTL_OBJECT
@@ -128,6 +133,7 @@ namespace Js
         DynamicObject* GetSyntaxErrorPrototype() const { return syntaxErrorPrototype; }
         DynamicObject* GetTypeErrorPrototype() const { return typeErrorPrototype; }
         DynamicObject* GetURIErrorPrototype() const { return uriErrorPrototype; }
+        PropertyId GetPropertyIdSymbolIterator() { return PropertyIds::_symbolIterator; };
 
     protected:
         Field(GlobalObject*) globalObject;
@@ -275,6 +281,10 @@ namespace Js
         Field(JavascriptSymbol*) symbolToPrimitive;
         Field(JavascriptSymbol*) symbolToStringTag;
         Field(JavascriptSymbol*) symbolUnscopables;
+        Field(JavascriptFunction*) arrayPrototypeForEachFunction;
+        Field(JavascriptFunction*) arrayPrototypeKeysFunction;
+        Field(JavascriptFunction*) arrayPrototypeValuesFunction;
+        Field(JavascriptFunction*) arrayPrototypeEntriesFunction;
 
     public:
         Field(ScriptContext*) scriptContext;

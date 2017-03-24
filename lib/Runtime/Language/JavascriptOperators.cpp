@@ -6892,7 +6892,7 @@ CommonNumber:
         argsObj->SetNumberOfArguments(actualsCount);
 
         JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::length, JavascriptNumber::ToVar(actualsCount, scriptContext), scriptContext);
-        JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::_symbolIterator, library->GetArrayPrototypeValuesFunction(), scriptContext);
+        JavascriptOperators::SetProperty(argsObj, argsObj, PropertyIds::_symbolIterator, library->EnsureArrayPrototypeValuesFunction(), scriptContext);
         if (funcCallee->IsStrictMode())
         {
             JavascriptFunction* restrictedPropertyAccessor = library->GetThrowTypeErrorRestrictedPropertyAccessorFunction();

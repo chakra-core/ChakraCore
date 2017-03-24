@@ -436,7 +436,7 @@ namespace Js
                     // Use GetIteratorFunction instead of GetIterator to check if it is the built-in array iterator
                     RecyclableObject* iteratorFn = JavascriptOperators::GetIteratorFunction(firstArgument, scriptContext, true /* optional */);
                     if (iteratorFn != nullptr &&
-                        (iteratorFn != scriptContext->GetLibrary()->GetArrayPrototypeValuesFunction() ||
+                        (iteratorFn != scriptContext->GetLibrary()->EnsureArrayPrototypeValuesFunction() ||
                             !JavascriptArray::Is(firstArgument) || JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext)))
                     {
                         Var iterator = CALL_FUNCTION(iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
