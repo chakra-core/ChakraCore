@@ -129,8 +129,8 @@ uint32 WasmSignature::GetParamSize(uint index) const
 
 FOREACH_SIMD_TYPE(SIMD_CASE)
 #undef SIMD_CASE
-        return sizeof(WasmConstLitNode::v128);
-        CompileAssert(sizeof(WasmConstLitNode::v128) == sizeof(int) * 4); //TODO: introduce a const for 4 
+        CompileAssert(sizeof(Simd::simdvec) == 16);
+        return sizeof(Simd::simdvec);
         break;
     default:
         throw WasmCompilationException(_u("Invalid param type"));

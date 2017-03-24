@@ -332,7 +332,7 @@ WasmModuleGenerator::GenerateFunctionHeader(uint32 index)
 
 FOREACH_SIMD_TYPE(SIMD_CASE)
 #undef SIMD_CASE
-            size = sizeof(WasmConstLitNode::v128);
+            size = sizeof(Simd::simdvec);
             break;
         default:
             Assume(UNREACHED);

@@ -10,7 +10,7 @@ namespace Wasm
     const uint16 EXTENDED_OFFSET = 256;
     namespace Simd {
         const size_t VEC_WIDTH = 4;
-        typedef uint32 v128[VEC_WIDTH];
+        typedef uint32 simdvec [VEC_WIDTH]; //TODO: maybe we should pull in SIMDValue?
     }
 
     namespace WasmTypes
@@ -94,7 +94,7 @@ namespace Wasm
             double f64;
             int32 i32;
             int64 i64;
-            uint32 v128[Simd::VEC_WIDTH];
+            Simd::simdvec v128;
         };
     };
 

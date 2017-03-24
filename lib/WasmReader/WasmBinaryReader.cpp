@@ -39,8 +39,8 @@ uint32 GetTypeByteSize(WasmType type)
 #define SIMD_CASE(TYPE, BASE) case TYPE: 
 FOREACH_SIMD_TYPE(SIMD_CASE)
 #undef SIMD_CASE
-        CompileAssert(sizeof(Wasm::Simd::v128) == 16);
-        return sizeof(Wasm::Simd::v128);
+        CompileAssert(sizeof(Simd::simdvec) == 16);
+        return sizeof(Simd::simdvec);
     default:
         Js::Throw::InternalError();
     }
