@@ -1430,36 +1430,37 @@ namespace CorUnix
                 (PCRITICAL_SECTION_DEBUG_INFO)pItem;
             PPAL_CRITICAL_SECTION pCS = pDebugInfo->pOwnerCS;
 
-            printf("CS @ %p \n"
-                   "{\tDebugInfo = %p -> \n",
-                   pCS, pDebugInfo);
+            wprintf(_u("CS @ %p \n")
+                    _u("{\tDebugInfo = %p -> \n"),
+                    pCS, pDebugInfo);
 
-            printf("\t{\n\t\t[Link]\n\t\tpOwnerCS = %p\n"
-                   "\t\tAcquireCount \t= %d\n"
-                   "\t\tEnterCount \t= %d\n"
-                   "\t\tContentionCount = %d\n",
-                   pDebugInfo->pOwnerCS, pDebugInfo->lAcquireCount.Load(), 
-                   pDebugInfo->lEnterCount.Load(), pDebugInfo->lContentionCount.Load());
-            printf("\t}\n");
-              
-            printf("\tLockCount \t= %#x\n"
-                   "\tRecursionCount \t= %d\n"
-                   "\tOwningThread \t= %p\n"
-                   "\tLockSemaphore \t= %p\n"
-                   "\tSpinCount \t= %u\n"
-                   "\tfInternal \t= %d\n"
-                   "\teInitState \t= %u\n"
-                   "\tpNativeData \t= %p ->\n",
-                   pCS->LockCount.Load(), pCS->RecursionCount, (void *)pCS->OwningThread, 
-                   pCS->LockSemaphore, (unsigned)pCS->SpinCount, (int)pCS->fInternal, 
-                   pCS->cisInitState.Load(), &pCS->csndNativeData);
+            wprintf(_u("\t{\n\t\t[Link]\n\t\tpOwnerCS = %p\n")
+                    _u("\t\tAcquireCount \t= %d\n")
+                    _u("\t\tEnterCount \t= %d\n")
+                    _u("\t\tContentionCount = %d\n"),
+                    pDebugInfo->pOwnerCS, pDebugInfo->lAcquireCount.Load(), 
+                    pDebugInfo->lEnterCount.Load(), pDebugInfo->lContentionCount.Load());
+            wprintf(_u("\t}\n"));
 
-            printf("\t{\n\t\t[mutex]\n\t\t[condition]\n"
-                   "\t\tPredicate \t= %d\n"
-                   "\t}\n}\n",pCS->csndNativeData.iPredicate);
-            
-            printf("}\n");
-                   
+            wprintf(_u("\tLockCount \t= %#x\n")
+                    _u("\tRecursionCount \t= %d\n")
+                    _u("\tOwningThread \t= %p\n")
+                    _u("\tLockSemaphore \t= %p\n")
+                    _u("\tSpinCount \t= %u\n")
+                    _u("\tfInternal \t= %d\n")
+                    _u("\teInitState \t= %u\n")
+                    _u("\tpNativeData \t= %p ->\n"),
+                    pCS->LockCount.Load(), pCS->RecursionCount, (void *)pCS->OwningThread, 
+                    pCS->LockSemaphore, (unsigned)pCS->SpinCount, (int)pCS->fInternal, 
+                    pCS->cisInitState.Load(), &pCS->csndNativeData);
+
+            wprintf(_u("\t{\n\t\t[mutex]\n\t\t[condition]\n")
+                    _u("\t\tPredicate \t= %d\n")
+                    _u("\t}\n}\n"),
+                    pCS->csndNativeData.iPredicate);
+
+            wprintf(_u("}\n"));
+
             pItem = pItem->Flink;
         }
 

@@ -195,7 +195,7 @@ void LogicalStringCompareTest(const WCHAR* str1, const WCHAR* str2, int expected
 
     if (compareStringResult == 0)
     {
-        printf("ERROR: CompareStringW failed with error: %d\n", ::GetLastError());
+        wprintf(_u("ERROR: CompareStringW failed with error: %d\n"), ::GetLastError());
         return;
     }
 

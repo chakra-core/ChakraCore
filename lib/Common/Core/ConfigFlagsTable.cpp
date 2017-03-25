@@ -869,53 +869,53 @@ namespace Js
     void
     ConfigFlagsTable::PrintUsageString()
     {
-        printf("List of Phases:\n");
+        wprintf(_u("List of Phases:\n"));;
         for(int i = 0; i < PhaseCount; i++)
         {
             if (i % 4 == 0)
             {
-                printf("\n  ");
+                wprintf(_u("\n  "));;
             }
-            printf("%-40ls ", PhaseNames[i]);
+            wprintf(_u("%-40ls "), PhaseNames[i]);
         }
 
-        printf("\n\nList of flags:\n\n");
+        wprintf(_u("\n\nList of flags:\n\n"));;
         for(int i = 0; i < FlagCount; i++)
         {
-            printf("%60ls ", FlagNames[i]);
+            wprintf(_u("%60ls "), FlagNames[i]);
             switch(GetFlagType(Flag(i)))
             {
             case InvalidFlagType:
                 break;
             case FlagString:
-                printf("[:String]        ");
+                wprintf(_u("[:String]        "));;
                 break;
             case FlagPhases:
-                printf("[:Phase]         ");
+                wprintf(_u("[:Phase]         "));;
                 break;
             case FlagNumber:
-                printf("[:Number]        ");
+                wprintf(_u("[:Number]        "));;
                 break;
             case FlagBoolean:
-                printf("                 ");
+                wprintf(_u("                 "));;
                 break;
             case FlagNumberSet:
-                printf("[:NumberSet]     ");
+                wprintf(_u("[:NumberSet]     "));;
                 break;
             case FlagNumberPairSet:
-                printf("[:NumberPairSet] ");
+                wprintf(_u("[:NumberPairSet] "));;
                 break;
             case FlagNumberTrioSet:
-                printf("[:NumberTrioSet] ");
+                wprintf(_u("[:NumberTrioSet] "));;
                 break;
             case FlagNumberRange:
-                printf("[:NumberRange]   ");
+                wprintf(_u("[:NumberRange]   "));;
                 break;
             default:
                 Assert(false);
                 __assume(false);
             }
-            printf("%ls\n", FlagDescriptions[i]);
+            wprintf(_u("%ls\n"), FlagDescriptions[i]);
         }
     }
 
