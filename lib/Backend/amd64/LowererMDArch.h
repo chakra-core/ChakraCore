@@ -29,7 +29,30 @@ private:
     int                 helperCallArgsCount;
     IR::Opnd *          helperCallArgs[MaxArgumentsToHelper];
 
+#ifndef _WIN32
+    class XPlatRegArgList
+    {
+    public:
+        XPlatRegArgList() { Reset(); }
+        inline void Reset()
+        {
+            for (int i = 0; i <= XmmArgRegsCount; i++) args[i] = TyMachPtr;
+        }
 
+        inline bool IsFloat(uint16 position) { return args[position] == TyFloat64; }
+
+        void SetFloat(uint16 regPosition)
+        {
+            Assert(regPosition != 0 && regPosition <= XmmArgRegsCount);
+            args[regPosition] = TyFloat64;
+        }
+
+        static_assert(static_cast<int>(XmmArgRegsCount) >= static_cast<int>(IntArgRegsCount),
+                      "Unexpected register count");
+        IRType args [XmmArgRegsCount + 1];
+    };
+    XPlatRegArgList     xplatCallArgs;
+#endif
 public:
 
     LowererMDArch(Func* function):
