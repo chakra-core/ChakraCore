@@ -195,7 +195,7 @@ void LogicalStringCompareTest(const WCHAR* str1, const WCHAR* str2, int expected
 
     if (compareStringResult == 0)
     {
-        printf("ERROR: CompareStringW failed with error: %d\n", ::GetLastError());
+        Output::Print(_u("ERROR: CompareStringW failed with error: %d\n"), ::GetLastError());
         return;
     }
 
@@ -206,77 +206,77 @@ void LogicalStringCompareTest(const WCHAR* str1, const WCHAR* str2, int expected
 
     if (compareStringResult != expected)
     {
-        wprintf(L"WARNING: Incorrect expected value: %d, actual: %d\n", expected, compareStringResult);
+        Output::Print(_u("WARNING: Incorrect expected value: %d, actual: %d\n"), expected, compareStringResult);
     }
 
     if (passed)
     {
-        wprintf(L"[%s]\n", L"PASS");
+        Output::Print(_u("[PASS]\n"));
     }
     else
     {
-        wprintf(L"[%s] Expected: %d, Actual: %d)\n", L"FAIL", expected, res);
+        Output::Print(_u("[FAIL] Expected: %d, Actual: %d)\n"), expected, res);
     }
 }
 
 void doLogicalStringTests()
 {
-    LogicalStringCompareTest(L"a", L"a", 0);
-    LogicalStringCompareTest(L"a", L"b", -1);
-    LogicalStringCompareTest(L"b", L"a", 1);
+    LogicalStringCompareTest(_u("a"), _u("a"), 0);
+    LogicalStringCompareTest(_u("a"), _u("b"), -1);
+    LogicalStringCompareTest(_u("b"), _u("a"), 1);
 
-    LogicalStringCompareTest(L"a", L"A", 0);
-    LogicalStringCompareTest(L"a", L"B", -1);
-    LogicalStringCompareTest(L"b", L"A", 1);
+    LogicalStringCompareTest(_u("a"), _u("A"), 0);
+    LogicalStringCompareTest(_u("a"), _u("B"), -1);
+    LogicalStringCompareTest(_u("b"), _u("A"), 1);
 
-    LogicalStringCompareTest(L"1", L"2", -1);
-    LogicalStringCompareTest(L"2", L"1", 1);
+    LogicalStringCompareTest(_u("1"), _u("2"), -1);
+    LogicalStringCompareTest(_u("2"), _u("1"), 1);
 
-    LogicalStringCompareTest(L"10", L"01", 1);
-    LogicalStringCompareTest(L"01", L"10", -1);
+    LogicalStringCompareTest(_u("10"), _u("01"), 1);
+    LogicalStringCompareTest(_u("01"), _u("10"), -1);
 
-    LogicalStringCompareTest(L"01", L"1", -1);
-    LogicalStringCompareTest(L"1", L"01", 1);
+    LogicalStringCompareTest(_u("01"), _u("1"), -1);
+    LogicalStringCompareTest(_u("1"), _u("01"), 1);
 
-    LogicalStringCompareTest(L"1a", L"a1", -1);
-    LogicalStringCompareTest(L"aa1", L"a1", 1);
-    LogicalStringCompareTest(L"a1", L"a1", 0);
-    LogicalStringCompareTest(L"a1", L"b1", -1);
-    LogicalStringCompareTest(L"b1", L"a1", 1);
-    LogicalStringCompareTest(L"a1", L"a2", -1);
-    LogicalStringCompareTest(L"a10", L"a2", 1);
-    LogicalStringCompareTest(L"a2", L"a10", -1);
+    LogicalStringCompareTest(_u("1a"), _u("a1"), -1);
+    LogicalStringCompareTest(_u("aa1"), _u("a1"), 1);
+    LogicalStringCompareTest(_u("a1"), _u("a1"), 0);
+    LogicalStringCompareTest(_u("a1"), _u("b1"), -1);
+    LogicalStringCompareTest(_u("b1"), _u("a1"), 1);
+    LogicalStringCompareTest(_u("a1"), _u("a2"), -1);
+    LogicalStringCompareTest(_u("a10"), _u("a2"), 1);
+    LogicalStringCompareTest(_u("a2"), _u("a10"), -1);
 
-    LogicalStringCompareTest(L"A1", L"a1", 0);
-    LogicalStringCompareTest(L"A1", L"b1", -1);
-    LogicalStringCompareTest(L"B1", L"a1", 1);
-    LogicalStringCompareTest(L"A1", L"a2", -1);
-    LogicalStringCompareTest(L"A10", L"a2", 1);
-    LogicalStringCompareTest(L"A2", L"a10", -1);
+    LogicalStringCompareTest(_u("A1"), _u("a1"), 0);
+    LogicalStringCompareTest(_u("A1"), _u("b1"), -1);
+    LogicalStringCompareTest(_u("B1"), _u("a1"), 1);
+    LogicalStringCompareTest(_u("A1"), _u("a2"), -1);
+    LogicalStringCompareTest(_u("A10"), _u("a2"), 1);
+    LogicalStringCompareTest(_u("A2"), _u("a10"), -1);
 
-    LogicalStringCompareTest(L"123", L"456", -1);
-    LogicalStringCompareTest(L"456", L"123", 1);
-    LogicalStringCompareTest(L"abc123", L"def123", -1);
-    LogicalStringCompareTest(L"abc123", L"abc123", 0);
-    LogicalStringCompareTest(L"abc123", L"abc0123", 1);
-    LogicalStringCompareTest(L"abc123", L"abc124", -1);
-    LogicalStringCompareTest(L"abc124", L"abc123", 1);
+    LogicalStringCompareTest(_u("123"), _u("456"), -1);
+    LogicalStringCompareTest(_u("456"), _u("123"), 1);
+    LogicalStringCompareTest(_u("abc123"), _u("def123"), -1);
+    LogicalStringCompareTest(_u("abc123"), _u("abc123"), 0);
+    LogicalStringCompareTest(_u("abc123"), _u("abc0123"), 1);
+    LogicalStringCompareTest(_u("abc123"), _u("abc124"), -1);
+    LogicalStringCompareTest(_u("abc124"), _u("abc123"), 1);
 
-    LogicalStringCompareTest(L"abc123def", L"abc123def", 0);
-    LogicalStringCompareTest(L"abc123def", L"abc123eef", -1);
-    LogicalStringCompareTest(L"abc123eef", L"abc123def", 1);
+    LogicalStringCompareTest(_u("abc123def"), _u("abc123def"), 0);
+    LogicalStringCompareTest(_u("abc123def"), _u("abc123eef"), -1);
+    LogicalStringCompareTest(_u("abc123eef"), _u("abc123def"), 1);
 
-    LogicalStringCompareTest(L"abc1def", L"abc10def", -1);
-    LogicalStringCompareTest(L"abc1def1", L"abc1def12", -1);
+    LogicalStringCompareTest(_u("abc1def"), _u("abc10def"), -1);
+    LogicalStringCompareTest(_u("abc1def1"), _u("abc1def12"), -1);
 
-    LogicalStringCompareTest(L"2string", L"3string", -1);
-    LogicalStringCompareTest(L"20string", L"3string", 1);
-    LogicalStringCompareTest(L"20string", L"st2ring", -1);
-    LogicalStringCompareTest(L"st3ring", L"st2ring", 1);
+    LogicalStringCompareTest(_u("2string"), _u("3string"), -1);
+    LogicalStringCompareTest(_u("20string"), _u("3string"), 1);
+    LogicalStringCompareTest(_u("20string"), _u("st2ring"), -1);
+    LogicalStringCompareTest(_u("st3ring"), _u("st2ring"), 1);
 
-    LogicalStringCompareTest(L"2String", L"3string", -1);
-    LogicalStringCompareTest(L"20String", L"3string", 1);
-    LogicalStringCompareTest(L"20sTRing", L"st2ring", -1);
-    LogicalStringCompareTest(L"st3rING", L"st2riNG", 1);
+    LogicalStringCompareTest(_u("2String"), _u("3string"), -1);
+    LogicalStringCompareTest(_u("20String"), _u("3string"), 1);
+    LogicalStringCompareTest(_u("20sTRing"), _u("st2ring"), -1);
+    LogicalStringCompareTest(_u("st3rING"), _u("st2riNG"), 1);
 }
 #endif

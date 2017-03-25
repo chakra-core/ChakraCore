@@ -821,8 +821,8 @@ namespace TTD
 
         if(tEvent->InfoString.Length != infoStrLength)
         {
-            wprintf(_u("New Telemetry Msg: %ls\n"), infoStr);
-            wprintf(_u("Original Telemetry Msg: %ls\n"), tEvent->InfoString.Contents);
+            Output::Print(_u("New Telemetry Msg: %ls\n"), infoStr);
+            Output::Print(_u("Original Telemetry Msg: %ls\n"), tEvent->InfoString.Contents);
             TTDAssert(false, "Telemetry messages differ??");
         }
         else
@@ -831,8 +831,8 @@ namespace TTD
             {
                 if(tEvent->InfoString.Contents[i] != infoStr[i])
                 {
-                    wprintf(_u("New Telemetry Msg: %ls\n"), infoStr);
-                    wprintf(_u("Original Telemetry Msg: %ls\n"), tEvent->InfoString.Contents);
+                    Output::Print(_u("New Telemetry Msg: %ls\n"), infoStr);
+                    Output::Print(_u("Original Telemetry Msg: %ls\n"), tEvent->InfoString.Contents);
                     TTDAssert(false, "Telemetry messages differ??");
 
                     break;

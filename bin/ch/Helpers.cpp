@@ -24,7 +24,7 @@ void TTDHostBuildCurrentExeDirectory(char* path, size_t* pathLength, size_t buff
 
     if(i * 3 > bufferLength)
     {
-        printf("Don't overflow path buffer during conversion");
+        wprintf(_u("Don't overflow path buffer during conversion"));
         exit(1);
     }
     *pathLength = utf8::EncodeInto((LPUTF8)path, exePath, (charcount_t)(i + 1));
@@ -38,7 +38,7 @@ int TTDHostMKDir(const char* path, size_t pathLength)
 
     if(MAX_PATH <= pathLength) //<= to account for null terminator
     {
-        printf("Don't overflow path buffer during conversion");
+        wprintf(_u("Don't overflow path buffer during conversion"));
         exit(1);
     }
     utf8::DecodeUnitsIntoAndNullTerminate(cpath, pathbase, pathbase + pathLength);
@@ -53,7 +53,7 @@ JsTTDStreamHandle TTDHostOpen(size_t pathLength, const char* path, bool isWrite)
 
     if(MAX_PATH <= pathLength) //<= to account for null terminator
     {
-        printf("Don't overflow path buffer during conversion");
+        wprintf(_u("Don't overflow path buffer during conversion"));
         exit(1);
     }
     utf8::DecodeUnitsIntoAndNullTerminate(wpath, pathbase, pathbase + pathLength);
@@ -96,7 +96,7 @@ void TTDHostBuildCurrentExeDirectory(char* path, size_t* pathLength, size_t buff
 
     if(*pathLength > bufferLength)
     {
-        printf("Don't overflow path buffer during copy.");
+        wprintf(_u("Don't overflow path buffer during copy."));
         exit(1);
     }
 
@@ -419,8 +419,8 @@ void Helpers::CreateTTDDirectoryAsNeeded(size_t* uriLength, char* uri, const cha
 {
     if(*uriLength + strlen(asciiDir1) + wcslen(asciiDir2) + 2 > MAX_URI_LENGTH || strlen(asciiDir1) >= MAX_TTD_ASCII_PATH_EXT_LENGTH || wcslen(asciiDir2) >= MAX_TTD_ASCII_PATH_EXT_LENGTH)
     {
-        printf("We assume bounded MAX_URI_LENGTH for simplicity.\n");
-        printf("%s, %s, %ls\n", uri, asciiDir1, asciiDir2);
+        wprintf(_u("We assume bounded MAX_URI_LENGTH for simplicity.\n"));
+        wprintf(_u("%S, %S, %ls\n"), uri, asciiDir1, asciiDir2);
         exit(1);
     }
 
@@ -430,8 +430,8 @@ void Helpers::CreateTTDDirectoryAsNeeded(size_t* uriLength, char* uri, const cha
     extLength = sprintf_s(uri + *uriLength, MAX_TTD_ASCII_PATH_EXT_LENGTH, "%s%s", asciiDir1, TTD_HOST_PATH_SEP);
     if(extLength == -1 || MAX_URI_LENGTH < (*uriLength) + extLength)
     {
-        printf("Failed directory extension 1.\n");
-        printf("%s, %s, %ls\n", uri, asciiDir1, asciiDir2);
+        wprintf(_u("Failed directory extension 1.\n"));
+        wprintf(_u("%S, %S, %ls\n"), uri, asciiDir1, asciiDir2);
         exit(1);
     }
     *uriLength += extLength;
@@ -449,7 +449,7 @@ void Helpers::CreateTTDDirectoryAsNeeded(size_t* uriLength, char* uri, const cha
     {
         if(asciiDir2[i] > CHAR_MAX)
         {
-            printf("Test directory names can only include ascii chars.\n");
+            wprintf(_u("Test directory names can only include ascii chars.\n"));
             exit(1);
         }
         realAsciiDir2[i] = (char)asciiDir2[i];
@@ -458,8 +458,8 @@ void Helpers::CreateTTDDirectoryAsNeeded(size_t* uriLength, char* uri, const cha
     extLength = sprintf_s(uri + *uriLength, MAX_TTD_ASCII_PATH_EXT_LENGTH, "%s%s", realAsciiDir2, TTD_HOST_PATH_SEP);
     if(extLength == -1 || MAX_URI_LENGTH < *uriLength + extLength)
     {
-        printf("Failed directory create 2.\n");
-        printf("%s, %s, %ls\n", uri, asciiDir1, asciiDir2);
+        wprintf(_u("Failed directory create 2.\n"));
+        wprintf(_u("%S, %S, %ls\n"), uri, asciiDir1, asciiDir2);
         exit(1);
     }
     *uriLength += extLength;
@@ -485,7 +485,7 @@ JsTTDStreamHandle CALLBACK Helpers::TTCreateStreamCallback(size_t uriLength, con
 
     if(uriLength + asciiNameLength + 1 > MAX_URI_LENGTH)
     {
-        printf("We assume bounded MAX_URI_LENGTH for simplicity.");
+        wprintf(_u("We assume bounded MAX_URI_LENGTH for simplicity."));
         exit(1);
     }
 

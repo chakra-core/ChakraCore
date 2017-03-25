@@ -1518,7 +1518,7 @@ namespace Js
 
     void JavascriptExceptionOperators::AppendExternalFrameToStackTrace(CompoundString* bs, LPCWSTR functionName, LPCWSTR fileName, ULONG lineNumber, LONG characterPosition)
     {
-        // format is equivalent to printf("\n   at %s (%s:%d:%d)", functionName, filename, lineNumber, characterPosition);
+        // format is equivalent to wprintf("\n   at %s (%s:%d:%d)", functionName, filename, lineNumber, characterPosition);
 
         const CharCount maxULongStringLength = 10; // excluding null terminator
         const auto ConvertULongToString = [](const ULONG value, char16 *const buffer, const CharCount charCapacity)
@@ -1565,7 +1565,7 @@ namespace Js
 
     void JavascriptExceptionOperators::AppendLibraryFrameToStackTrace(CompoundString* bs, LPCWSTR functionName)
     {
-        // format is equivalent to printf("\n   at %s (native code)", functionName);
+        // format is equivalent to wprintf("\n   at %s (native code)", functionName);
         bs->AppendChars(_u("\n   at "));
         bs->AppendCharsSz(functionName);
         bs->AppendChars(_u(" (native code)"));

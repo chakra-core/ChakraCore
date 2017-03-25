@@ -1151,14 +1151,14 @@ namespace JsUtil
     public:
         void Dump()
         {
-            printf("Dumping Dictionary\n");
-            printf("-------------------\n");
+            Output::Print(_u("Dumping Dictionary\n"));
+            Output::Print(_u("-------------------\n"));
             for (uint i = 0; i < bucketCount; i++)
             {
-                printf("Bucket value: %d\n", buckets[i]);
+                Output::Print(_u("Bucket value: %d\n"), buckets[i]);
                 for (int j = buckets[i]; j >= 0; j = entries[j].next)
                 {
-                    printf("%d  => %d  Next: %d\n", entries[j].Key(), entries[j].Value(), entries[j].next);
+                    Output::Print(_u("%d  => %d  Next: %d\n"), entries[j].Key(), entries[j].Value(), entries[j].next);
                 }
             }
         }

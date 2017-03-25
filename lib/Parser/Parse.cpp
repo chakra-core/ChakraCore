@@ -15,7 +15,7 @@ const char* const nopNames[knopLim]= {
 #include "ptlist.h"
 };
 void printNop(int nop) {
-  printf("%s\n",nopNames[nop]);
+    Output::Print(_u("%S\n"), nopNames[nop]);
 }
 
 const uint ParseNode::mpnopgrfnop[knopLim] =
