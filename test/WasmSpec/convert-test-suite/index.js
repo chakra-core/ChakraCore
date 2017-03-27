@@ -78,14 +78,12 @@ function changeExtension(filename, from, to) {
   return `${path.basename(filename, from)}${to}`;
 }
 
-function hostFlags(specFile, {useFullpath} = {}) {
-  return `-wasm -args ${
-    useFullpath ? specFile : slash(path.relative(rlRoot, specFile))
-  } -endargs`;
+function hostFlags(specFile) {
+  return `-wasm -args ${slash(path.relative(rlRoot, specFile))} -endargs`;
 }
 
 function getBaselinePath(specFile) {
-  return `${slash(path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, ".wast"))))}.baseline`;
+  return `${slash(path.relative(rlRoot, path.join(baselineDir, path.basename(specFile, path.extname(specFile)))))}.baseline`;
 }
 
 function removePossiblyEmptyFolder(folder) {
@@ -124,12 +122,12 @@ function main() {
           if (err) {
             return reject(err);
           }
-          return resolve();
+          return resolve(testPath);
         });
       }))));
-  }).then(() => new Promise((resolve, reject) => {
-    const specFiles = [];
-    fs.walk(argv.suite)
+  }).then(chakraTests => new Promise((resolve, reject) => {
+    const specFiles = [...chakraTests];
+    fs.walk(path.join(argv.suite, "core"))
       .on("data", item => {
         if (
           path.extname(item.path) === ".wast" &&
@@ -142,17 +140,34 @@ function main() {
       .on("end", () => {
         resolve(specFiles);
       });
+  })).then(specFiles => new Promise((resolve, reject) => {
+    fs.walk(path.join(argv.suite, "js-api"))
+      .on("data", item => {
+        if (path.extname(item.path) === ".js") {
+          specFiles.push(item.path);
+        }
+      })
+      .on("end", () => {
+        resolve(specFiles);
+      });
   })).then(specFiles => {
+    const runners = {
+      ".wast": "spec.js",
+      ".js": "jsapi.js",
+    };
     const runs = specFiles.map(specFile => {
-      const isXplatExcluded = argv.xplatExcludes.indexOf(path.basename(specFile, ".wast")) !== -1;
-      const isJshostExcluded = argv.jshostExcludes.indexOf(path.basename(specFile, ".wast")) !== -1;
+      const ext = path.extname(specFile);
+      const isXplatExcluded = argv.xplatExcludes.indexOf(path.basename(specFile, ext)) !== -1;
+      const isJshostExcluded = argv.jshostExcludes.indexOf(path.basename(specFile, ext)) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const tests = [{
+        runner: runners[ext],
         tags: [],
         baseline: baseline,
         flags: [flags]
       }, {
+        runner: runners[ext],
         tags: ["exclude_dynapogo"],
         baseline: baseline,
         flags: [flags, "-nonative"]
@@ -172,7 +187,7 @@ function main() {
   runs.map(run => run.map(test => `
   <test>
     <default>
-      <files>spec.js</files>
+      <files>${test.runner}</files>
       <baseline>${test.baseline}</baseline>
       <compile-flags>${test.flags.join(" ")}</compile-flags>${test.tags.length > 0 ? `
       <tags>${test.tags.join(",")}</tags>` : ""}

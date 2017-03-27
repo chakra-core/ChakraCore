@@ -896,4 +896,19 @@
       <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/jsapi.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/jsapi.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/jsapi.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/jsapi.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
+    </default>
+  </test>
 </regress-exe>
