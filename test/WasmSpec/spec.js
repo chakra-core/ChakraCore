@@ -160,8 +160,12 @@ function run(inPath, iStart, iEnd) {
         assertReturn(moduleRegistry, command);
         break;
 
-      case "assert_return_nan":
-        assertReturn(moduleRegistry, command, true);
+      case "assert_return_canonical_nan":
+        assertReturn(moduleRegistry, command, {canonicalNan: true});
+        break;
+
+      case "assert_return_arithmetic_nan":
+        assertReturn(moduleRegistry, command, {arithmeticNan: true});
         break;
 
       case "assert_exhaustion":
@@ -291,19 +295,12 @@ function assertUninstantiable(baseDir, command, registry) {
 }
 
 function genConverters() {
-  /*
-  (module $converterBuffer
-    (func (export "convertI64") (param i64) (result i64) (get_local 0))
-    (func (export "toF32") (param i32) (result f32) (f32.reinterpret/i32 (get_local 0)))
-    (func (export "toF64") (param i64) (result f64) (f64.reinterpret/i64 (get_local 0)))
-  )
-  */
-  const converterBuffer = "\x00\x61\x73\x6d\x0d\x00\x00\x00\x01\x90\x80\x80\x80\x00\x03\x60\x01\x7e\x01\x7e\x60\x01\x7f\x01\x7d\x60\x01\x7e\x01\x7c\x03\x84\x80\x80\x80\x00\x03\x00\x01\x02\x07\x9e\x80\x80\x80\x00\x03\x0a\x63\x6f\x6e\x76\x65\x72\x74\x49\x36\x34\x00\x00\x05\x74\x6f\x46\x33\x32\x00\x01\x05\x74\x6f\x46\x36\x34\x00\x02\x0a\x9e\x80\x80\x80\x00\x03\x84\x80\x80\x80\x00\x00\x20\x00\x0b\x85\x80\x80\x80\x00\x00\x20\x00\xbe\x0b\x85\x80\x80\x80\x00\x00\x20\x00\xbf\x0b";
-  const buffer = new ArrayBuffer(converterBuffer.length);
-  const view = new Uint8Array(buffer);
-  for (let i = 0; i < converterBuffer.length; ++i) {
-    view[i] = converterBuffer.charCodeAt(i);
-  }
+  const buffer = WebAssembly.wabt.convertWast2Wasm(`
+(module
+  (func (export "convertI64") (param i64) (result i64) (get_local 0))
+  (func (export "toF32") (param i32) (result f32) (f32.reinterpret/i32 (get_local 0)))
+  (func (export "toF64") (param i64) (result f64) (f64.reinterpret/i64 (get_local 0)))
+)`);
   const module = new WebAssembly.Module(buffer);
   const instance = new WebAssembly.Instance(module);
   return instance.exports;
@@ -321,7 +318,7 @@ function mapWasmArg({type, value}) {
   throw new Error("Unknown argument type");
 }
 
-function assertReturn(moduleRegistry, command, checkNaN) {
+function assertReturn(moduleRegistry, command, {canonicalNan, arithmeticNan} = {}) {
   const {action, expected} = command;
   try {
     const res = runAction(moduleRegistry, action);
@@ -334,7 +331,7 @@ function assertReturn(moduleRegistry, command, checkNaN) {
       const expectedResult = mapWasmArg(ex1);
       if (ex1.type === "i64") {
         success = expectedResult.low === res.low && expectedResult.high === res.high;
-      } else if (checkNaN || isNaN(expectedResult)) {
+      } else if (canonicalNan || arithmeticNan) {
         success = isNaN(res);
       } else {
         success = res === expectedResult;
