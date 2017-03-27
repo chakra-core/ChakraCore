@@ -29,13 +29,6 @@ const argv = require("yargs")
       description: "Spec tests to exclude from the conversion (use for known failures)",
       default: []
     },
-    "jshost-excludes": {
-      array: true,
-      description: "Spec tests to exclude when running on jshost (use for known failures)",
-      default: [
-        "float_literals" // Problem with float parsing precision in the crt version we use
-      ]
-    },
     "xplat-excludes": {
       array: true,
       description: "Spec tests to exclude when running on xplat (use for known failures)",
@@ -47,6 +40,7 @@ const argv = require("yargs")
         "chakra_i64",
         "conversions",
         "fac",
+        "float_exprs",
         "func",
         "func_ptrs",
         "i32",
@@ -75,10 +69,6 @@ const argv = require("yargs")
 
 // Make sure all arguments are valid
 fs.statSync(argv.suite).isDirectory();
-
-function changeExtension(filename, from, to) {
-  return `${path.basename(filename, from)}${to}`;
-}
 
 function hostFlags(specFile) {
   return `-wasm -args ${slash(path.relative(rlRoot, specFile))} -endargs`;
@@ -160,7 +150,6 @@ function main() {
     const runs = specFiles.map(specFile => {
       const ext = path.extname(specFile);
       const isXplatExcluded = argv.xplatExcludes.indexOf(path.basename(specFile, ext)) !== -1;
-      const isJshostExcluded = argv.jshostExcludes.indexOf(path.basename(specFile, ext)) !== -1;
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const tests = [{
@@ -176,9 +165,6 @@ function main() {
       }];
       if (isXplatExcluded) {
         for (const test of tests) test.tags.push("exclude_xplat");
-      }
-      if (isJshostExcluded) {
-        for (const test of tests) test.tags.push("exclude_jshost", "exclude_win7");
       }
       return tests;
     });
@@ -209,7 +195,7 @@ function main() {
     fs.ensureDirSync(baselineDir);
     return Promise.all(specFiles.map(specFile => new Promise((resolve, reject) => {
       const baseline = fs.createWriteStream(getBaselinePath(specFile));
-      const args = [path.resolve(rlRoot, "spec.js"), "-nonative"].concat(stringArgv(hostFlags(specFile, {useFullpath: true})));
+      const args = [path.resolve(rlRoot, "spec.js"), "-nonative"].concat(stringArgv(hostFlags(specFile)));
       console.log(argv.rebase, args.join(" "));
       const engine = spawn(
         argv.rebase,

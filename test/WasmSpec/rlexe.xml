@@ -313,6 +313,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_exprs.wast -endargs</compile-flags>
+      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -320,7 +321,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_exprs.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -328,7 +329,6 @@
       <files>spec.js</files>
       <baseline>baselines/float_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_literals.wast -endargs</compile-flags>
-      <tags>exclude_jshost,exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -336,7 +336,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_literals.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_win7</tags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -476,6 +476,21 @@
       <baseline>baselines/i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/i64.wast -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo,exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/if.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/if.wast -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/if.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/if.wast -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
   <test>
