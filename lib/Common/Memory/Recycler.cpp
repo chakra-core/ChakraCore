@@ -3084,11 +3084,11 @@ void Recycler::DisplayMemStats()
 {
 #ifdef PERF_COUNTERS
 #if DBG_DUMP
-    wprintf(_u("Recycler Live Object Count  %u\n"), PerfCounter::RecyclerCounterSet::GetLiveObjectCounter().GetValue());
-    wprintf(_u("Recycler Live Object Size   %u\n"), PerfCounter::RecyclerCounterSet::GetLiveObjectSizeCounter().GetValue());
+    Output::Print(_u("Recycler Live Object Count  %u\n"), PerfCounter::RecyclerCounterSet::GetLiveObjectCounter().GetValue());
+    Output::Print(_u("Recycler Live Object Size   %u\n"), PerfCounter::RecyclerCounterSet::GetLiveObjectSizeCounter().GetValue());
 #endif
 
-    wprintf(_u("Recycler Used Page Size %u\n"), PerfCounter::PageAllocatorCounterSet::GetUsedSizeCounter(PageAllocatorType::PageAllocatorType_Recycler).GetValue());
+    Output::Print(_u("Recycler Used Page Size %u\n"), PerfCounter::PageAllocatorCounterSet::GetUsedSizeCounter(PageAllocatorType::PageAllocatorType_Recycler).GetValue());
 #endif
 }
 #endif

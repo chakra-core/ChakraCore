@@ -1045,17 +1045,17 @@ void Heap<TAlloc, TPreReservedAlloc>::DumpStats()
     HeapTrace(_u("Buckets: \n"));
     for (int i = 0; i < BucketId::NumBuckets; i++)
     {
-        wprintf(_u("\t%d => %u ["), (1 << (i + 7)), buckets[i].Count());
+        Output::Print(_u("\t%d => %u ["), (1 << (i + 7)), buckets[i].Count());
 
         FOREACH_DLISTBASE_ENTRY_EDITING(Page, page, &this->buckets[i], bucketIter)
         {
             BVUnit usedBitVector = page.freeBitVector;
             usedBitVector.ComplimentAll(); // Get the actual used bit vector
-            wprintf(_u(" %u "), usedBitVector.Count() * Page::Alignment); // Print out the space used in this page
+            Output::Print(_u(" %u "), usedBitVector.Count() * Page::Alignment); // Print out the space used in this page
         }
 
         NEXT_DLISTBASE_ENTRY_EDITING
-            wprintf(_u("] {{%u}}\n"), this->fullPages[i].Count());
+            Output::Print(_u("] {{%u}}\n"), this->fullPages[i].Count());
     }
 }
 #endif

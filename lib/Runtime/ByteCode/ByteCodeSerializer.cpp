@@ -4141,7 +4141,7 @@ HRESULT ByteCodeSerializer::SerializeToBuffer(ScriptContext * scriptContext, Are
 #if INSTRUMENT_BUFFER_INTS
     for (int i = 0; i < 4; i++)
     {
-        wprintf(_u("[BCGENSTATS] %d, %d\n"), i, Counts[i]);
+        Output::Print(_u("[BCGENSTATS] %d, %d\n"), i, Counts[i]);
     }
 #endif
     return hr;
