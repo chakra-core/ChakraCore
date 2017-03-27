@@ -21,14 +21,16 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <vector>
+
 #include "binary-reader.h"
 #include "literal.h"
-#include "vector.h"
 
 namespace wabt {
 
-typedef uint32_t Uint32;
-WABT_DEFINE_VECTOR(uint32, Uint32);
+namespace {
+
+typedef std::vector<uint32_t> Uint32Vector;
 
 struct Context {
   ObjdumpOptions* options;
@@ -46,11 +48,10 @@ struct Context {
   uint32_t section_starts[kBinarySectionCount];
   BinarySection reloc_section;
 
-  StringSlice import_module_name;
-  StringSlice import_field_name;
-
   uint32_t next_reloc;
 };
+
+}  // namespace
 
 static bool should_print_details(Context* ctx) {
   if (ctx->options->mode != ObjdumpMode::Details)
@@ -214,21 +215,20 @@ static void log_opcode(Context* ctx,
   // Print binary data
   printf(" %06" PRIzx ": %02x", offset - 1,
          static_cast<unsigned>(ctx->current_opcode));
-  size_t i;
-  for (i = 0; i < data_size && i < IMMEDIATE_OCTET_COUNT; i++, offset++) {
+  for (size_t i = 0; i < data_size && i < IMMEDIATE_OCTET_COUNT;
+       i++, offset++) {
     printf(" %02x", data[offset]);
   }
-  for (i = data_size + 1; i < IMMEDIATE_OCTET_COUNT; i++) {
+  for (size_t i = data_size + 1; i < IMMEDIATE_OCTET_COUNT; i++) {
     printf("   ");
   }
   printf(" | ");
 
   // Print disassemble
-  int j;
   int indent_level = ctx->indent_level;
   if (ctx->current_opcode == Opcode::Else)
     indent_level--;
-  for (j = 0; j < indent_level; j++) {
+  for (int j = 0; j < indent_level; j++) {
     printf("  ");
   }
 
@@ -247,14 +247,24 @@ static void log_opcode(Context* ctx,
   ctx->last_opcode_end = ctx->current_opcode_offset + data_size;
 
   if (ctx->options->relocs) {
-    if (ctx->next_reloc < ctx->options->code_relocations.size) {
-      Reloc* reloc = &ctx->options->code_relocations.data[ctx->next_reloc];
+    if (ctx->next_reloc < ctx->options->code_relocations.size()) {
+      Reloc* reloc = &ctx->options->code_relocations[ctx->next_reloc];
       size_t code_start =
           ctx->section_starts[static_cast<size_t>(BinarySection::Code)];
       size_t abs_offset = code_start + reloc->offset;
       if (ctx->last_opcode_end > abs_offset) {
-        printf("           %06" PRIzx ": %s\n", abs_offset,
-               get_reloc_type_name(reloc->type));
+        printf("           %06" PRIzx ": %-18s %d", abs_offset,
+               get_reloc_type_name(reloc->type), reloc->index);
+        switch (reloc->type) {
+          case RelocType::MemoryAddressLEB:
+          case RelocType::MemoryAddressSLEB:
+          case RelocType::MemoryAddressI32:
+            printf(" + %d", reloc->addend);
+            break;
+          default:
+            break;
+        }
+        printf("\n");
         ctx->next_reloc++;
       }
     }
@@ -319,6 +329,12 @@ Result on_br_table_expr(BinaryReaderContext* ctx,
   return Result::Ok;
 }
 
+static Result on_end_func(void* user_data) {
+  Context* context = static_cast<Context*>(user_data);
+  log_opcode(context, nullptr, 0, nullptr);
+  return Result::Ok;
+}
+
 static Result on_end_expr(void* user_data) {
   Context* context = static_cast<Context*>(user_data);
   context->indent_level--;
@@ -370,8 +386,7 @@ static Result on_signature(uint32_t index,
   if (!should_print_details(ctx))
     return Result::Ok;
   printf(" - [%d] (", index);
-  uint32_t i;
-  for (i = 0; i < param_count; i++) {
+  for (uint32_t i = 0; i < param_count; i++) {
     if (i != 0) {
       printf(", ");
     }
@@ -399,11 +414,10 @@ static Result begin_function_body(BinaryReaderContext* context,
   Context* ctx = static_cast<Context*>(context->user_data);
 
   if (ctx->options->mode == ObjdumpMode::Disassemble) {
-    if (index < ctx->options->function_names.size &&
-        !string_slice_is_empty(&ctx->options->function_names.data[index]))
-      printf("%06" PRIzx " <" PRIstringslice ">:\n", context->offset,
-             WABT_PRINTF_STRING_SLICE_ARG(
-                 ctx->options->function_names.data[index]));
+    if (index < ctx->options->function_names.size() &&
+        !ctx->options->function_names[index].empty())
+      printf("%06" PRIzx " <%s>:\n", context->offset,
+             ctx->options->function_names[index].c_str());
     else
       printf("%06" PRIzx " func[%d]:\n", context->offset, index);
   }
@@ -412,17 +426,9 @@ static Result begin_function_body(BinaryReaderContext* context,
   return Result::Ok;
 }
 
-static Result on_import(uint32_t index,
-                        StringSlice module_name,
-                        StringSlice field_name,
-                        void* user_data) {
-  Context* ctx = static_cast<Context*>(user_data);
-  ctx->import_module_name = module_name;
-  ctx->import_field_name = field_name;
-  return Result::Ok;
-}
-
 static Result on_import_func(uint32_t import_index,
+                             StringSlice module_name,
+                             StringSlice field_name,
                              uint32_t func_index,
                              uint32_t sig_index,
                              void* user_data) {
@@ -430,12 +436,14 @@ static Result on_import_func(uint32_t import_index,
   print_details(ctx,
                 " - func[%d] sig=%d <- " PRIstringslice "." PRIstringslice "\n",
                 func_index, sig_index,
-                WABT_PRINTF_STRING_SLICE_ARG(ctx->import_module_name),
-                WABT_PRINTF_STRING_SLICE_ARG(ctx->import_field_name));
+                WABT_PRINTF_STRING_SLICE_ARG(module_name),
+                WABT_PRINTF_STRING_SLICE_ARG(field_name));
   return Result::Ok;
 }
 
 static Result on_import_table(uint32_t import_index,
+                              StringSlice module_name,
+                              StringSlice field_name,
                               uint32_t table_index,
                               Type elem_type,
                               const Limits* elem_limits,
@@ -444,24 +452,28 @@ static Result on_import_table(uint32_t import_index,
   print_details(
       ctx, " - " PRIstringslice "." PRIstringslice
            " -> table elem_type=%s init=%" PRId64 " max=%" PRId64 "\n",
-      WABT_PRINTF_STRING_SLICE_ARG(ctx->import_module_name),
-      WABT_PRINTF_STRING_SLICE_ARG(ctx->import_field_name),
+      WABT_PRINTF_STRING_SLICE_ARG(module_name),
+      WABT_PRINTF_STRING_SLICE_ARG(field_name),
       get_type_name(elem_type), elem_limits->initial, elem_limits->max);
   return Result::Ok;
 }
 
 static Result on_import_memory(uint32_t import_index,
+                               StringSlice module_name,
+                               StringSlice field_name,
                                uint32_t memory_index,
                                const Limits* page_limits,
                                void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
   print_details(ctx, " - " PRIstringslice "." PRIstringslice " -> memory\n",
-                WABT_PRINTF_STRING_SLICE_ARG(ctx->import_module_name),
-                WABT_PRINTF_STRING_SLICE_ARG(ctx->import_field_name));
+                WABT_PRINTF_STRING_SLICE_ARG(module_name),
+                WABT_PRINTF_STRING_SLICE_ARG(field_name));
   return Result::Ok;
 }
 
 static Result on_import_global(uint32_t import_index,
+                               StringSlice module_name,
+                               StringSlice field_name,
                                uint32_t global_index,
                                Type type,
                                bool mutable_,
@@ -470,8 +482,8 @@ static Result on_import_global(uint32_t import_index,
   print_details(ctx, " - global[%d] %s mutable=%d <- " PRIstringslice
                      "." PRIstringslice "\n",
                 global_index, get_type_name(type), mutable_,
-                WABT_PRINTF_STRING_SLICE_ARG(ctx->import_module_name),
-                WABT_PRINTF_STRING_SLICE_ARG(ctx->import_field_name));
+                WABT_PRINTF_STRING_SLICE_ARG(module_name),
+                WABT_PRINTF_STRING_SLICE_ARG(field_name));
   return Result::Ok;
 }
 
@@ -589,12 +601,11 @@ static Result on_function_name(uint32_t index,
   print_details(ctx, " - func[%d] " PRIstringslice "\n", index,
                 WABT_PRINTF_STRING_SLICE_ARG(name));
   if (ctx->options->mode == ObjdumpMode::Prepass) {
-    while (ctx->options->function_names.size < index) {
-      StringSlice empty = empty_string_slice();
-      append_string_slice_value(&ctx->options->function_names, &empty);
+    while (ctx->options->function_names.size() < index) {
+      ctx->options->function_names.emplace_back();
     }
-    if (ctx->options->function_names.size == index) {
-      append_string_slice_value(&ctx->options->function_names, &name);
+    if (ctx->options->function_names.size() == index) {
+      ctx->options->function_names.push_back(string_slice_to_string(name));
     }
   }
   return Result::Ok;
@@ -622,28 +633,21 @@ Result on_reloc_count(uint32_t count,
   return Result::Ok;
 }
 
-Result on_reloc(RelocType type, uint32_t offset, void* user_data) {
+Result on_reloc(RelocType type,
+                uint32_t offset,
+                uint32_t index,
+                int32_t addend,
+                void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
   uint32_t total_offset =
       ctx->section_starts[static_cast<size_t>(ctx->reloc_section)] + offset;
-  print_details(ctx, "   - %-18s offset=%#x (%#x)\n", get_reloc_type_name(type),
-                total_offset, offset);
+  print_details(ctx, "   - %-18s idx=%#-4x addend=%#-4x offset=%#x(file=%#x)\n",
+                get_reloc_type_name(type), index, addend, offset, total_offset);
   if (ctx->options->mode == ObjdumpMode::Prepass &&
       ctx->reloc_section == BinarySection::Code) {
-    Reloc reloc;
-    reloc.offset = offset;
-    reloc.type = type;
-    append_reloc_value(&ctx->options->code_relocations, &reloc);
+    ctx->options->code_relocations.emplace_back(type, offset, index, addend);
   }
   return Result::Ok;
-}
-
-static void on_error(BinaryReaderContext* ctx, const char* message) {
-  DefaultErrorHandlerInfo info;
-  info.header = "error reading binary";
-  info.out_file = stdout;
-  info.print_header = PrintErrorHeader::Once;
-  default_binary_error_callback(ctx->offset, message, &info);
 }
 
 static Result begin_data_segment(uint32_t index,
@@ -688,7 +692,6 @@ Result read_binary_objdump(const uint8_t* data,
   } else {
     reader.begin_module = begin_module;
     reader.end_module = end_module;
-    reader.on_error = on_error;
 
     reader.begin_section = begin_section;
 
@@ -701,7 +704,6 @@ Result read_binary_objdump(const uint8_t* data,
 
     // Import section
     reader.on_import_count = on_count;
-    reader.on_import = on_import;
     reader.on_import_func = on_import_func;
     reader.on_import_table = on_import_table;
     reader.on_import_memory = on_import_memory;
@@ -766,6 +768,7 @@ Result read_binary_objdump(const uint8_t* data,
     reader.on_opcode_f64 = on_opcode_f64;
     reader.on_opcode_block_sig = on_opcode_block_sig;
     reader.on_end_expr = on_end_expr;
+    reader.on_end_func = on_end_func;
     reader.on_br_table_expr = on_br_table_expr;
   }
 
@@ -773,6 +776,7 @@ Result read_binary_objdump(const uint8_t* data,
 
   ReadBinaryOptions read_options = WABT_READ_BINARY_OPTIONS_DEFAULT;
   read_options.read_debug_names = true;
+  read_options.log_stream = options->log_stream;
   return read_binary(data, size, &reader, 1, &read_options);
 }
 

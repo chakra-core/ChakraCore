@@ -135,8 +135,7 @@ void write_memory_dump(Stream* stream,
                                          reinterpret_cast<intptr_t>(start) +
                                          offset);
     while (p < line_end) {
-      int i;
-      for (i = 0; i < DUMP_OCTETS_PER_GROUP; ++i, ++p) {
+      for (int i = 0; i < DUMP_OCTETS_PER_GROUP; ++i, ++p) {
         if (p < end) {
           writef(stream, "%02x", *p);
         } else {
@@ -150,8 +149,7 @@ void write_memory_dump(Stream* stream,
     if (print_chars == PrintChars::Yes) {
       write_char(stream, ' ');
       p = line;
-      int i;
-      for (i = 0; i < DUMP_OCTETS_PER_LINE && p < end; ++i, ++p)
+      for (int i = 0; i < DUMP_OCTETS_PER_LINE && p < end; ++i, ++p)
         write_char(stream, isprint(*p) ? *p : '.');
     }
 

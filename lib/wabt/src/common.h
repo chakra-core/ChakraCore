@@ -25,11 +25,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <string>
+#include <type_traits>
+#include <vector>
+
 #include "config.h"
 
 #define WABT_FATAL(...) fprintf(stderr, __VA_ARGS__), exit(1)
 #define WABT_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-#define WABT_ZERO_MEMORY(var) memset(static_cast<void*>(&(var)), 0, sizeof(var))
+#define WABT_ZERO_MEMORY(var)                                          \
+  WABT_STATIC_ASSERT(                                                  \
+      std::is_pod<std::remove_reference<decltype(var)>::type>::value); \
+  memset(static_cast<void*>(&(var)), 0, sizeof(var))
+
 #define WABT_USE(x) static_cast<void>(x)
 
 #define WABT_UNKNOWN_OFFSET (static_cast<uint32_t>(~0))
@@ -60,6 +68,10 @@
 
 #define WABT_ENUM_COUNT(name) \
   (static_cast<int>(name::Last) - static_cast<int>(name::First) + 1)
+
+#define WABT_DISALLOW_COPY_AND_ASSIGN(type) \
+  type(const type&) = delete;               \
+  type& operator=(const type&) = delete;
 
 namespace wabt {
 
@@ -95,7 +107,8 @@ struct Location {
   int last_column;
 };
 
-typedef void (*SourceErrorCallback)(const Location*,
+/* Returns true if the error was handled. */
+typedef bool (*SourceErrorCallback)(const Location*,
                                     const char* error,
                                     const char* source_line,
                                     size_t source_line_length,
@@ -116,7 +129,8 @@ struct SourceErrorHandler {
         nullptr                                                         \
   }
 
-typedef void (*BinaryErrorCallback)(uint32_t offset,
+/* Returns true if the error was handled. */
+typedef bool (*BinaryErrorCallback)(uint32_t offset,
                                     const char* error,
                                     void* user_data);
 
@@ -154,18 +168,31 @@ enum class Type {
   ___ = Void, /* convenient for the opcode table below */
   Any = 0,    /* Not actually specified, but useful for type-checking */
 };
+typedef std::vector<Type> TypeVector;
 
 enum class RelocType {
-  FuncIndexLeb = 0,   /* e.g. immediate of call instruction */
-  TableIndexSleb = 1, /* e.g. loading address of function */
+  FuncIndexLEB = 0,   /* e.g. immediate of call instruction */
+  TableIndexSLEB = 1, /* e.g. loading address of function */
   TableIndexI32 = 2,  /* e.g. function address in DATA */
-  GlobalIndexLeb = 3, /* e.g immediate of get_global inst */
-  Data = 4,
+  MemoryAddressLEB = 3,
+  MemoryAddressSLEB = 4,
+  MemoryAddressI32 = 5,
+  TypeIndexLEB = 6, /* e.g immediate type in call_indirect */
+  GlobalIndexLEB = 7, /* e.g immediate of get_global inst */
 
-  First = FuncIndexLeb,
-  Last = Data,
+  First = FuncIndexLEB,
+  Last = GlobalIndexLEB,
 };
 static const int kRelocTypeCount = WABT_ENUM_COUNT(RelocType);
+
+struct Reloc {
+  Reloc(RelocType, size_t offset, uint32_t index, int32_t addend = 0);
+
+  RelocType type;
+  size_t offset;
+  uint32_t index;
+  int32_t addend;
+};
 
 /* matches binary format, do not change */
 enum class ExternalKind {
@@ -446,14 +473,25 @@ bool string_slices_are_equal(const StringSlice*, const StringSlice*);
 void destroy_string_slice(StringSlice*);
 Result read_file(const char* filename, char** out_data, size_t* out_size);
 
-void default_source_error_callback(const Location*,
+inline std::string string_slice_to_string(const StringSlice& ss) {
+  return std::string(ss.start, ss.length);
+}
+
+inline StringSlice string_to_string_slice(const std::string& s) {
+  StringSlice ss;
+  ss.start = s.data();
+  ss.length = s.length();
+  return ss;
+}
+
+bool default_source_error_callback(const Location*,
                                    const char* error,
                                    const char* source_line,
                                    size_t source_line_length,
                                    size_t source_line_column_offset,
                                    void* user_data);
 
-void default_binary_error_callback(uint32_t offset,
+bool default_binary_error_callback(uint32_t offset,
                                    const char* error,
                                    void* user_data);
 

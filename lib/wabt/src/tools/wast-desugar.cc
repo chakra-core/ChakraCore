@@ -134,11 +134,11 @@ int main(int argc, char** argv) {
   if (!lexer)
     WABT_FATAL("unable to read %s\n", s_infile);
 
-  Script script;
+  Script* script;
   Result result = parse_ast(lexer, &script, &s_error_handler);
 
   if (WABT_SUCCEEDED(result)) {
-    Module* module = get_first_module(&script);
+    Module* module = get_first_module(script);
     if (!module)
       WABT_FATAL("no module in file.\n");
 
@@ -164,6 +164,6 @@ int main(int argc, char** argv) {
   }
 
   destroy_ast_lexer(lexer);
-  destroy_script(&script);
+  delete script;
   return result != Result::Ok;
 }

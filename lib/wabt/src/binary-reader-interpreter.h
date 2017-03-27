@@ -21,8 +21,8 @@
 
 namespace wabt {
 
+struct DefinedInterpreterModule;
 struct InterpreterEnvironment;
-struct InterpreterModule;
 struct ReadBinaryOptions;
 
 Result read_binary_interpreter(struct InterpreterEnvironment* env,
@@ -30,7 +30,7 @@ Result read_binary_interpreter(struct InterpreterEnvironment* env,
                                size_t size,
                                const struct ReadBinaryOptions* options,
                                BinaryErrorHandler*,
-                               struct InterpreterModule** out_module);
+                               DefinedInterpreterModule** out_module);
 
 }  // namespace wabt
 

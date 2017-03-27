@@ -106,6 +106,8 @@ add_library(libwabt OBJECT
   src/apply-names.cc
   src/generate-names.cc
   src/resolve-names.cc
+  src/hash-util.cc
+  src/string-view.cc
 
   src/binary.cc
   src/common.cc
@@ -113,6 +115,5 @@ add_library(libwabt OBJECT
   src/literal.cc
   src/option-parser.cc
   src/stream.cc
-  src/vector.cc
   src/writer.cc
 )
