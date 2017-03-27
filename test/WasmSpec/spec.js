@@ -318,10 +318,51 @@ function mapWasmArg({type, value}) {
   throw new Error("Unknown argument type");
 }
 
+const wrappers = {};
+
+function getArthimeticNanWrapper(action, expected) {
+  if (action.type === "invoke") {
+    const args = action.args.map(({type}) => type);
+    const resultType = expected[0].type;
+    const signature = resultType + args.join("");
+
+    let wasmModule = wrappers[signature];
+    if (!wasmModule) {
+      const resultSize = resultType === "f32" ? 32 : 64;
+      const matchingIntType = resultSize === 32 ? "i32" : "i64";
+      const expectedResult = resultSize === 32 ? "0x7f800000" : "0x7ff0000000000000";
+
+      const params = args.length > 0 ? `(param ${args.join(" ")})` : "";
+      const newMod = `
+(module
+  (import "test" "fn" (func $fn ${params} (result ${resultType})))
+  (func (export "compare") ${params} (result i32)
+    ${args.map((arg, i) => `(get_local ${i|0})`).join(" ")}
+    (call $fn)
+    (${matchingIntType}.reinterpret/${resultType})
+    (${matchingIntType}.and (${matchingIntType}.const ${expectedResult}))
+    (${matchingIntType}.eq (${matchingIntType}.const ${expectedResult}))
+  )
+)`;
+      if (verbose) {
+        console.log(newMod);
+      }
+      const buf = WebAssembly.wabt.convertWast2Wasm(newMod);
+      wrappers[signature] = wasmModule = new WebAssembly.Module(buf);
+    }
+
+    return (fn, ...args) => {
+      const {exports: {compare}} = new WebAssembly.Instance(wasmModule, {test: {fn}});
+      return compare(...args);
+    }
+  }
+}
+
 function assertReturn(moduleRegistry, command, {canonicalNan, arithmeticNan} = {}) {
   const {action, expected} = command;
   try {
-    const res = runAction(moduleRegistry, action);
+    const wrapper = arithmeticNan ? getArthimeticNanWrapper(action, expected) : null;
+    const res = runAction(moduleRegistry, action, wrapper);
     let success = true;
     if (expected.length === 0) {
       success = typeof res === "undefined";
@@ -331,7 +372,9 @@ function assertReturn(moduleRegistry, command, {canonicalNan, arithmeticNan} = {
       const expectedResult = mapWasmArg(ex1);
       if (ex1.type === "i64") {
         success = expectedResult.low === res.low && expectedResult.high === res.high;
-      } else if (canonicalNan || arithmeticNan) {
+      } else if (arithmeticNan) {
+        success = res === 1;
+      } else if (canonicalNan) {
         success = isNaN(res);
       } else {
         success = res === expectedResult;
@@ -413,7 +456,7 @@ function runSimpleAction(moduleRegistry, command) {
   }
 }
 
-function runAction(moduleRegistry, action) {
+function runAction(moduleRegistry, action, wrapper) {
   const m = action.module ? moduleRegistry[action.module] : moduleRegistry.currentModule;
   if (!m) {
     print("Module unavailable to run action");
@@ -423,12 +466,18 @@ function runAction(moduleRegistry, action) {
     case "invoke": {
       const {field, args} = action;
       const mappedArgs = args.map(({value}) => value);
-      const wasmFn = m.exports[field];
+      let wasmFn = m.exports[field];
+      if (wrapper) {
+        wasmFn = wrapper.bind(null, wasmFn);
+      }
       const res = wasmFn(...mappedArgs);
       return res;
     }
     case "get": {
       const {field} = action;
+      if (wrapper) {
+        return wrapper(m, field);
+      }
       return m.exports[field];
     }
     default:
