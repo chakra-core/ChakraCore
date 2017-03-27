@@ -633,9 +633,14 @@
 // xplat-todo: once all the wasm tests are passing on xplat, enable it for release builds
 #if defined(_WIN32) || (defined(__clang__) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_WASM
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+
+#ifndef EXCLUDE_WABT 
+#define EXCLUDE_WABT 0
+#endif
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && !EXCLUDE_WABT
 #define ENABLE_WABT
 #endif
+
 #endif
 #endif
 
