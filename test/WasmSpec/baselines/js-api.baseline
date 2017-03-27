@@ -1,0 +1,175 @@
+Harness Status: OK
+Found 61 tests: Pass = 29 Fail = 32
+Pass 'WebAssembly' data property on global object  
+Fail 'WebAssembly' object  assert_equals: expected "[object WebAssembly]" but got "[object Object]"
+Error
+  at Anonymous function jsapi.js:125:5
+  at testJSAPI jsapi.js:122:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.(Compile|Link|Runtime)Error' data property  
+Fail 'WebAssembly.(Compile|Runtime)Error' constructor function  assert_equals: expected "CompileError" but got "WebAssemblyCompileError"
+Error
+  at Anonymous function jsapi.js:160:5
+  at testJSAPI jsapi.js:150:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.(Compile|Runtime)Error' instance objects  
+Pass 'WebAssembly.Module' data property  
+Fail 'WebAssembly.Module' constructor function  assert_equals: expected "Module" but got "WebAssemblyModule"
+Error
+  at Anonymous function jsapi.js:193:5
+  at testJSAPI jsapi.js:189:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Module.prototype' data property  
+Fail 'WebAssembly.Module.prototype' object  assert_equals: expected "[object WebAssembly.Module]" but got "[object WebAssemblyModule]"
+Error
+  at Anonymous function jsapi.js:217:5
+  at testJSAPI jsapi.js:213:1
+  at Global code jsapi.js:17:2
+Fail 'WebAssembly.Module' instance objects  assert_equals: expected "[object WebAssembly.Module]" but got "[object WebAssemblyModule]"
+Error
+  at Anonymous function jsapi.js:227:5
+  at testJSAPI jsapi.js:221:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Module.imports' data property  
+Fail 'WebAssembly.Module.imports' method  assert_equals: expected 1 but got 2
+Error
+  at Anonymous function jsapi.js:242:5
+  at testJSAPI jsapi.js:239:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Module.exports' data property  
+Fail 'WebAssembly.Module.exports' method  assert_equals: expected 1 but got 2
+Error
+  at Anonymous function jsapi.js:277:5
+  at testJSAPI jsapi.js:274:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Module.customSections' data property  
+Fail 'WebAssembly.Module.customSections' method  'sectionName' is not a string
+TypeError: 'sectionName' is not a string
+  at Anonymous function jsapi.js:312:5
+  at testJSAPI jsapi.js:305:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Instance' data property  
+Fail 'WebAssembly.Instance' constructor function  assert_equals: expected "Instance" but got "WebAssemblyInstance"
+Error
+  at Anonymous function jsapi.js:330:5
+  at testJSAPI jsapi.js:326:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Instance.prototype' data property  
+Fail 'WebAssembly.Instance.prototype' object  assert_equals: expected "[object WebAssembly.Instance]" but got "[object WebAssemblyInstance]"
+Error
+  at Anonymous function jsapi.js:355:5
+  at testJSAPI jsapi.js:351:1
+  at Global code jsapi.js:17:2
+Fail 'WebAssembly.Instance' instance objects  assert_equals: expected "[object WebAssembly.Instance]" but got "[object WebAssemblyInstance]"
+Error
+  at Anonymous function jsapi.js:363:5
+  at testJSAPI jsapi.js:359:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Instance' 'exports' data property  
+Fail 'WebAssembly.Instance' 'exports' object  assert_equals: expected false but got true
+Error
+  at Anonymous function jsapi.js:378:5
+  at testJSAPI jsapi.js:375:1
+  at Global code jsapi.js:17:2
+Fail Exported WebAssembly functions  assert_equals: expected 0 but got -1
+Error
+  at Anonymous function jsapi.js:392:5
+  at testJSAPI jsapi.js:389:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Memory' data property  
+Fail 'WebAssembly.Memory' constructor function  assert_equals: expected "Memory" but got "WebAssemblyMemory"
+Error
+  at Anonymous function jsapi.js:411:5
+  at testJSAPI jsapi.js:407:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Memory.prototype' data property  
+Fail 'WebAssembly.Memory.prototype' object  assert_equals: expected "[object WebAssembly.Memory]" but got "[object WebAssemblyMemory]"
+Error
+  at Anonymous function jsapi.js:436:5
+  at testJSAPI jsapi.js:432:1
+  at Global code jsapi.js:17:2
+Fail 'WebAssembly.Memory' instance objects  assert_equals: expected "[object WebAssembly.Memory]" but got "[object WebAssemblyMemory]"
+Error
+  at Anonymous function jsapi.js:443:5
+  at testJSAPI jsapi.js:440:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Memory.prototype.buffer' accessor property  
+Pass 'WebAssembly.Memory.prototype.buffer' getter  
+Pass 'WebAssembly.Memory.prototype.grow' data property  
+Fail 'WebAssembly.Memory.prototype.grow' method  assert_equals: expected true but got false
+Error
+  at Anonymous function jsapi.js:483:5
+  at testJSAPI jsapi.js:471:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Table' data property  
+Fail 'WebAssembly.Table' constructor function  assert_equals: expected "Table" but got "WebAssemblyTable"
+Error
+  at Anonymous function jsapi.js:509:5
+  at testJSAPI jsapi.js:505:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Table.prototype' data property  
+Fail 'WebAssembly.Table.prototype' object  assert_equals: expected "[object WebAssembly.Table]" but got "[object WebAssemblyTable]"
+Error
+  at Anonymous function jsapi.js:538:5
+  at testJSAPI jsapi.js:534:1
+  at Global code jsapi.js:17:2
+Fail 'WebAssembly.Table' instance objects  assert_equals: expected "[object WebAssembly.Table]" but got "[object WebAssemblyTable]"
+Error
+  at Anonymous function jsapi.js:545:5
+  at testJSAPI jsapi.js:542:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Table.prototype.length' accessor data property  
+Pass 'WebAssembly.Table.prototype.length' getter  
+Pass 'WebAssembly.Table.prototype.get' data property  
+Pass 'WebAssembly.Table.prototype.get' method  
+Pass 'WebAssembly.Table.prototype.set' data property  
+Fail 'WebAssembly.Table.prototype.set' method  assert_equals: expected 2 but got 1
+Error
+  at Anonymous function jsapi.js:600:5
+  at testJSAPI jsapi.js:597:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.Table.prototype.grow' data property  
+Fail 'WebAssembly.Table.prototype.grow' method  assert_equals: expected (number) 1 but got (undefined) undefined
+Error
+  at Anonymous function jsapi.js:633:5
+  at testJSAPI jsapi.js:623:1
+  at Global code jsapi.js:17:2
+Pass 'WebAssembly.validate' method  
+Pass 'WebAssembly.compile' data property  
+Fail 'WebAssembly.compile' function  assert_equals: expected 1 but got 2
+Error
+  at Anonymous function jsapi.js:662:5
+  at testJSAPI jsapi.js:657:1
+  at Global code jsapi.js:17:2
+Fail assertCompileError 1  BufferSource expected
+TypeError: BufferSource expected
+  at Anonymous function jsapi.js:669:9
+Fail assertCompileError 2  BufferSource expected
+TypeError: BufferSource expected
+  at Anonymous function jsapi.js:669:9
+Fail assertCompileError 3  BufferSource expected
+TypeError: BufferSource expected
+  at Anonymous function jsapi.js:669:9
+Fail assertCompileError 4  BufferSource expected
+TypeError: BufferSource expected
+  at Anonymous function jsapi.js:669:9
+Fail assertCompileError 5  Out of file: Needed: 4, Left: 0
+WebAssemblyCompileError: Out of file: Needed: 4, Left: 0
+  at Anonymous function jsapi.js:669:9
+Fail assertCompileError 6  Out of file: Needed: 4, Left: 0
+WebAssemblyCompileError: Out of file: Needed: 4, Left: 0
+  at Anonymous function jsapi.js:669:9
+Fail assertCompileError 7  Out of file: Needed: 4, Left: 0
+WebAssemblyCompileError: Out of file: Needed: 4, Left: 0
+  at Anonymous function jsapi.js:669:9
+Fail assertCompileError 8  Out of file: Needed: 4, Left: 0
+WebAssemblyCompileError: Out of file: Needed: 4, Left: 0
+  at Anonymous function jsapi.js:669:9
+Pass assertCompileSuccess 1  
+Pass assertCompileSuccess 2  
+Pass 'WebAssembly.instantiate' data property  
+Fail 'WebAssembly.instantiate' function  assert_equals: expected 1 but got 2
+Error
+  at Anonymous function jsapi.js:714:5
+  at testJSAPI jsapi.js:710:1
+  at Global code jsapi.js:17:2
