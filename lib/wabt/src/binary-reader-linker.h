@@ -22,10 +22,20 @@
 
 namespace wabt {
 
+struct Stream;
+
+namespace link {
+
 struct LinkerInputBinary;
 
-Result read_binary_linker(struct LinkerInputBinary* input_info);
+struct LinkOptions {
+  struct Stream* log_stream;
+};
 
+Result read_binary_linker(struct LinkerInputBinary* input_info,
+                          struct LinkOptions* options);
+
+} // namespace link
 }  // namespace wabt
 
 #endif /* WABT_BINARY_READER_LINKER_H_ */

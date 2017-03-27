@@ -25,7 +25,7 @@ namespace wabt {
 struct Script;
 
 Result parse_ast(AstLexer* lexer,
-                 struct Script* out_script,
+                 struct Script** out_script,
                  SourceErrorHandler*);
 
 }  // namespace wabt

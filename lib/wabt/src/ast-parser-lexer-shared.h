@@ -19,6 +19,8 @@
 
 #include <stdarg.h>
 
+#include <memory>
+
 #include "ast.h"
 #include "ast-lexer.h"
 #include "common.h"
@@ -49,30 +51,30 @@ struct TextList {
 };
 
 struct OptionalExport {
-  Export export_;
+  std::unique_ptr<Export> export_;
   bool has_export;
 };
 
 struct ExportedFunc {
-  Func* func;
+  std::unique_ptr<Func> func;
   OptionalExport export_;
 };
 
 struct ExportedGlobal {
-  Global global;
+  std::unique_ptr<Global> global;
   OptionalExport export_;
 };
 
 struct ExportedTable {
-  Table table;
-  ElemSegment elem_segment;
+  std::unique_ptr<Table> table;
+  std::unique_ptr<ElemSegment> elem_segment;
   OptionalExport export_;
   bool has_elem_segment;
 };
 
 struct ExportedMemory {
-  Memory memory;
-  DataSegment data_segment;
+  std::unique_ptr<Memory> memory;
+  std::unique_ptr<DataSegment> data_segment;
   OptionalExport export_;
   bool has_data_segment;
 };
@@ -87,16 +89,24 @@ enum class FuncFieldType {
 };
 
 struct BoundType {
+  WABT_DISALLOW_COPY_AND_ASSIGN(BoundType);
+  BoundType();
+  ~BoundType();
+
   Location loc;
   StringSlice name;
   Type type;
 };
 
 struct FuncField {
+  WABT_DISALLOW_COPY_AND_ASSIGN(FuncField);
+  FuncField();
+  ~FuncField();
+
   FuncFieldType type;
   union {
     Expr* first_expr;     /* WABT_FUNC_FIELD_TYPE_EXPRS */
-    TypeVector types;     /* WABT_FUNC_FIELD_TYPE_*_TYPES */
+    TypeVector* types;    /* WABT_FUNC_FIELD_TYPE_*_TYPES */
     BoundType bound_type; /* WABT_FUNC_FIELD_TYPE_BOUND_{LOCAL, PARAM} */
   };
   struct FuncField* next;
@@ -112,44 +122,44 @@ union Token {
   /* non-terminals */
   /* some of these use pointers to keep the size of Token down; copying the
    tokens is a hotspot when parsing large files. */
-  Action action;
-  Block block;
+  Action* action;
+  Block* block;
   Command* command;
-  CommandVector commands;
+  CommandPtrVector* commands;
   Const const_;
-  ConstVector consts;
-  DataSegment data_segment;
-  ElemSegment elem_segment;
-  Export export_;
-  ExportedFunc exported_func;
-  ExportedGlobal exported_global;
-  ExportedMemory exported_memory;
-  ExportedTable exported_table;
+  ConstVector* consts;
+  DataSegment* data_segment;
+  ElemSegment* elem_segment;
+  Export* export_;
+  ExportedFunc* exported_func;
+  ExportedGlobal* exported_global;
+  ExportedMemory* exported_memory;
+  ExportedTable* exported_table;
   Expr* expr;
   ExprList expr_list;
   FuncField* func_fields;
   Func* func;
-  FuncSignature func_sig;
-  FuncType func_type;
-  Global global;
+  FuncSignature* func_sig;
+  FuncType* func_type;
+  Global* global;
   Import* import;
   Limits limits;
-  OptionalExport optional_export;
-  Memory memory;
+  OptionalExport* optional_export;
+  Memory* memory;
   Module* module;
-  RawModule raw_module;
-  Script script;
-  Table table;
+  RawModule* raw_module;
+  Script* script;
+  Table* table;
   TextList text_list;
-  TypeVector types;
+  TypeVector* types;
   uint32_t u32;
   uint64_t u64;
   Var var;
-  VarVector vars;
+  VarVector* vars;
 };
 
 struct AstParser {
-  Script script;
+  Script* script;
   SourceErrorHandler* error_handler;
   int errors;
   /* Cached pointers to reallocated parser buffers, so they don't leak. */
@@ -175,11 +185,6 @@ void ast_format_error(SourceErrorHandler*,
                       AstLexer*,
                       const char* format,
                       va_list);
-void destroy_optional_export(OptionalExport*);
-void destroy_exported_func(ExportedFunc*);
-void destroy_exported_global(ExportedFunc*);
-void destroy_exported_memory(ExportedMemory*);
-void destroy_exported_table(ExportedTable*);
 void destroy_func_fields(FuncField*);
 void destroy_text_list(TextList*);
 

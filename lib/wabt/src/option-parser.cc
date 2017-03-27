@@ -62,10 +62,7 @@ static void WABT_PRINTF_FORMAT(2, 3)
 void parse_options(OptionParser* parser, int argc, char** argv) {
   parser->argv0 = argv[0];
 
-  int i;
-  int j;
-  int k;
-  for (i = 1; i < argc; ++i) {
+  for (int i = 1; i < argc; ++i) {
     char* arg = argv[i];
     if (arg[0] == '-') {
       if (arg[1] == '-') {
@@ -73,7 +70,7 @@ void parse_options(OptionParser* parser, int argc, char** argv) {
         int best_index = -1;
         int best_length = 0;
         int best_count = 0;
-        for (j = 0; j < parser->num_options; ++j) {
+        for (int j = 0; j < parser->num_options; ++j) {
           Option* option = &parser->options[j];
           if (option->long_name) {
             int match_length =
@@ -121,9 +118,9 @@ void parse_options(OptionParser* parser, int argc, char** argv) {
         }
 
         /* allow short names to be combined, e.g. "-d -v" => "-dv" */
-        for (k = 1; arg[k]; ++k) {
+        for (int k = 1; arg[k]; ++k) {
           bool matched = false;
-          for (j = 0; j < parser->num_options; ++j) {
+          for (int j = 0; j < parser->num_options; ++j) {
             Option* option = &parser->options[j];
             if (option->short_name && arg[k] == option->short_name) {
               const char* option_argument = nullptr;
@@ -164,7 +161,6 @@ void parse_options(OptionParser* parser, int argc, char** argv) {
 }
 
 void print_help(OptionParser* parser, const char* program_name) {
-  int i;
   /* TODO(binji): do something more generic for filename here */
   printf("usage: %s [options] filename\n\n", program_name);
   printf("%s\n", parser->description);
@@ -172,7 +168,7 @@ void print_help(OptionParser* parser, const char* program_name) {
 
   const int extra_space = 8;
   int longest_name_length = 0;
-  for (i = 0; i < parser->num_options; ++i) {
+  for (int i = 0; i < parser->num_options; ++i) {
     Option* option = &parser->options[i];
     int length;
     if (option->long_name) {
@@ -193,7 +189,7 @@ void print_help(OptionParser* parser, const char* program_name) {
   size_t buffer_size = longest_name_length + 1;
   char* buffer = static_cast<char*>(alloca(buffer_size));
 
-  for (i = 0; i < parser->num_options; ++i) {
+  for (int i = 0; i < parser->num_options; ++i) {
     Option* option = &parser->options[i];
     if (!option->short_name && !option->long_name)
       continue;

@@ -146,7 +146,6 @@ int main(int argc, char** argv) {
   result = read_file(s_infile, &data, &size);
   if (WABT_SUCCEEDED(result)) {
     Module module;
-    WABT_ZERO_MEMORY(module);
     result = read_binary_ast(data, size, &s_read_binary_options,
                              &s_error_handler, &module);
     if (WABT_SUCCEEDED(result)) {
@@ -173,7 +172,6 @@ int main(int argc, char** argv) {
           close_file_writer(&file_writer);
         }
       }
-      destroy_module(&module);
     }
     delete[] data;
   }

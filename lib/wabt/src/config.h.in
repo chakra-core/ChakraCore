@@ -66,8 +66,17 @@
 #define WABT_INLINE inline
 #define WABT_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #define WABT_LIKELY(x) __builtin_expect(!!(x), 1)
+
+#if __MINGW32__
+// mingw defaults to printf format specifier being ms_printf (which doesn't
+// understand 'llu', etc.) We always want gnu_printf, and force mingw to always
+// use mingw_printf, mingw_vprintf, etc.
+#define WABT_PRINTF_FORMAT(format_arg, first_arg) \
+  __attribute__((format(gnu_printf, (format_arg), (first_arg))))
+#else
 #define WABT_PRINTF_FORMAT(format_arg, first_arg) \
   __attribute__((format(printf, (format_arg), (first_arg))))
+#endif
 
 #ifdef __cplusplus
 #if __cplusplus >= 201103L
@@ -201,8 +210,7 @@ __inline unsigned __int64 __popcnt64(unsigned __int64 value) {
 #endif
 
 
-/* Check For MINGW first, because it is also a GNU compiler */
-#if COMPILER_IS_MSVC || __MINGW32__
+#if COMPILER_IS_MSVC
 
 /* print format specifier for size_t */
 #if SIZEOF_SIZE_T == 4

@@ -52,12 +52,13 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)src\config.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\literal.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\stream.cc" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)src\vector.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\writer.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\hash-util.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\string-view.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\apply-names.h" />
-    <ClInclude Include="src\array.h" />
+    <ClInclude Include="src\hash-util.h" />
     <ClInclude Include="src\ast-lexer.h" />
     <ClInclude Include="src\ast-parser-lexer-shared.h" />
     <ClInclude Include="src\ast-parser.h" />
@@ -79,11 +80,9 @@
     <ClInclude Include="src\literal.h" />
     <ClInclude Include="src\resolve-names.h" />
     <ClInclude Include="src\stream.h" />
+    <ClInclude Include="src\string-view.h" />
     <ClInclude Include="src\type-checker.h" />
-    <ClInclude Include="src\type-vector.h" />
     <ClInclude Include="src\validator.h" />
-    <ClInclude Include="src\vector-sort.h" />
-    <ClInclude Include="src\vector.h" />
     <ClInclude Include="src\wasm-link.h" />
     <ClInclude Include="src\writer.h" />
   </ItemGroup>

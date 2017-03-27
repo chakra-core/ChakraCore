@@ -31,6 +31,9 @@
 
 namespace wabt {
 
+Reloc::Reloc(RelocType type, size_t offset, uint32_t index, int32_t addend)
+    : type(type), offset(offset), index(index), addend(addend) {}
+
 OpcodeInfo g_opcode_info[kOpcodeCount];
 
 /* TODO(binji): It's annoying to have to have an initializer function, but it
@@ -55,9 +58,15 @@ void init_opcode_info(void) {
 const char* g_kind_name[] = {"func", "table", "memory", "global"};
 WABT_STATIC_ASSERT(WABT_ARRAY_SIZE(g_kind_name) == kExternalKindCount);
 
-const char* g_reloc_type_name[] = {"R_FUNC_INDEX_LEB", "R_TABLE_INDEX_SLEB",
-                                   "R_TABLE_INDEX_I32", "R_GLOBAL_INDEX_LEB",
-                                   "R_DATA"};
+const char* g_reloc_type_name[] = {"R_FUNC_INDEX_LEB",
+                                   "R_TABLE_INDEX_SLEB",
+                                   "R_TABLE_INDEX_I32",
+                                   "R_MEMORY_ADDR_LEB",
+                                   "R_MEMORY_ADDR_SLEB",
+                                   "R_MEMORY_ADDR_I32",
+                                   "R_TYPE_INDEX_LEB",
+                                   "R_GLOBAL_INDEX_LEB",
+                                   };
 WABT_STATIC_ASSERT(WABT_ARRAY_SIZE(g_reloc_type_name) == kRelocTypeCount);
 
 bool is_naturally_aligned(Opcode opcode, uint32_t alignment) {
@@ -120,7 +129,7 @@ void destroy_string_slice(StringSlice* str) {
 Result read_file(const char* filename, char** out_data, size_t* out_size) {
   FILE* infile = fopen(filename, "rb");
   if (!infile) {
-    const char* format = "unable to read file %s";
+    const char format[] = "unable to read file %s";
     char msg[PATH_MAX + sizeof(format)];
     wabt_snprintf(msg, sizeof(msg), format, filename);
     perror(msg);
@@ -211,7 +220,7 @@ static FILE* get_default_error_handler_info_output_file(
   return info && info->out_file ? info->out_file : stderr;
 }
 
-void default_source_error_callback(const Location* loc,
+bool default_source_error_callback(const Location* loc,
                                    const char* error,
                                    const char* source_line,
                                    size_t source_line_length,
@@ -223,9 +232,10 @@ void default_source_error_callback(const Location* loc,
   print_error_header(out, info);
   print_source_error(out, loc, error, source_line, source_line_length,
                      source_line_column_offset);
+  return true;
 }
 
-void default_binary_error_callback(uint32_t offset,
+bool default_binary_error_callback(uint32_t offset,
                                    const char* error,
                                    void* user_data) {
   DefaultErrorHandlerInfo* info =
@@ -237,6 +247,7 @@ void default_binary_error_callback(uint32_t offset,
   else
     fprintf(out, "error: @0x%08x: %s\n", offset, error);
   fflush(out);
+  return true;
 }
 
 void init_stdio() {

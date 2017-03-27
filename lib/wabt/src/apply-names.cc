@@ -19,6 +19,8 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include <vector>
+
 #include "ast.h"
 
 #define CHECK_RESULT(expr)  \
@@ -31,41 +33,42 @@ namespace wabt {
 
 namespace {
 
-typedef Label* LabelPtr;
-WABT_DEFINE_VECTOR(label_ptr, LabelPtr);
-
 struct Context {
-  Module* module;
-  Func* current_func;
+  Context();
+
+  Module* module = nullptr;
+  Func* current_func = nullptr;
   ExprVisitor visitor;
   /* mapping from param index to its name, if any, for the current func */
-  StringSliceVector param_index_to_name;
-  StringSliceVector local_index_to_name;
-  LabelPtrVector labels;
+  std::vector<std::string> param_index_to_name;
+  std::vector<std::string> local_index_to_name;
+  std::vector<Label*> labels;
 };
 
+Context::Context() {
+  WABT_ZERO_MEMORY(visitor);
+}
+
 void push_label(Context* ctx, Label* label) {
-  append_label_ptr_value(&ctx->labels, &label);
+  ctx->labels.push_back(label);
 }
 
 void pop_label(Context* ctx) {
-  assert(ctx->labels.size > 0);
-  ctx->labels.size--;
+  ctx->labels.pop_back();
 }
 
 Label* find_label_by_var(Context* ctx, Var* var) {
   if (var->type == VarType::Name) {
-    int i;
-    for (i = ctx->labels.size - 1; i >= 0; --i) {
-      Label* label = ctx->labels.data[i];
+    for (int i = ctx->labels.size() - 1; i >= 0; --i) {
+      Label* label = ctx->labels[i];
       if (string_slices_are_equal(label, &var->name))
         return label;
     }
     return nullptr;
   } else {
-    if (var->index < 0 || static_cast<size_t>(var->index) >= ctx->labels.size)
+    if (var->index < 0 || static_cast<size_t>(var->index) >= ctx->labels.size())
       return nullptr;
-    return ctx->labels.data[ctx->labels.size - 1 - var->index];
+    return ctx->labels[ctx->labels.size() - 1 - var->index];
   }
 }
 
@@ -127,26 +130,26 @@ Result use_name_for_param_and_local_var(Context* ctx, Func* func, Var* var) {
     return Result::Error;
 
   uint32_t num_params = get_num_params(func);
-  StringSlice* name;
+  std::string* name;
   if (static_cast<uint32_t>(local_index) < num_params) {
     /* param */
-    assert(static_cast<size_t>(local_index) < ctx->param_index_to_name.size);
-    name = &ctx->param_index_to_name.data[local_index];
+    assert(static_cast<size_t>(local_index) < ctx->param_index_to_name.size());
+    name = &ctx->param_index_to_name[local_index];
   } else {
     /* local */
     local_index -= num_params;
-    assert(static_cast<size_t>(local_index) < ctx->local_index_to_name.size);
-    name = &ctx->local_index_to_name.data[local_index];
+    assert(static_cast<size_t>(local_index) < ctx->local_index_to_name.size());
+    name = &ctx->local_index_to_name[local_index];
   }
 
   if (var->type == VarType::Name) {
-    assert(string_slices_are_equal(name, &var->name));
+    assert(*name == string_slice_to_string(var->name));
     return Result::Ok;
   }
 
-  if (name->start) {
+  if (!name->empty()) {
     var->type = VarType::Name;
-    var->name = dup_string_slice(*name);
+    var->name = dup_string_slice(string_to_string_slice(*name));
     return var->name.start ? Result::Ok : Result::Error;
   }
   return Result::Ok;
@@ -154,7 +157,7 @@ Result use_name_for_param_and_local_var(Context* ctx, Func* func, Var* var) {
 
 Result begin_block_expr(Expr* expr, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  push_label(ctx, &expr->block.label);
+  push_label(ctx, &expr->block->label);
   return Result::Ok;
 }
 
@@ -166,7 +169,7 @@ Result end_block_expr(Expr* expr, void* user_data) {
 
 Result begin_loop_expr(Expr* expr, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  push_label(ctx, &expr->loop.label);
+  push_label(ctx, &expr->loop->label);
   return Result::Ok;
 }
 
@@ -192,12 +195,10 @@ Result on_br_if_expr(Expr* expr, void* user_data) {
 
 Result on_br_table_expr(Expr* expr, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  size_t i;
-  VarVector* targets = &expr->br_table.targets;
-  for (i = 0; i < targets->size; ++i) {
-    Var* target = &targets->data[i];
-    Label* label = find_label_by_var(ctx, target);
-    use_name_for_var(label, target);
+  VarVector& targets = *expr->br_table.targets;
+  for (Var& target : targets) {
+    Label* label = find_label_by_var(ctx, &target);
+    use_name_for_var(label, &target);
   }
 
   Label* label = find_label_by_var(ctx, &expr->br_table.default_target);
@@ -233,7 +234,7 @@ Result on_get_local_expr(Expr* expr, void* user_data) {
 
 Result begin_if_expr(Expr* expr, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  push_label(ctx, &expr->if_.true_.label);
+  push_label(ctx, &expr->if_.true_->label);
   return Result::Ok;
 }
 
@@ -269,11 +270,11 @@ Result visit_func(Context* ctx, uint32_t func_index, Func* func) {
     CHECK_RESULT(use_name_for_func_type_var(ctx->module, &func->decl.type_var));
   }
 
-  make_type_binding_reverse_mapping(&func->decl.sig.param_types,
-                                    &func->param_bindings,
+  make_type_binding_reverse_mapping(func->decl.sig.param_types,
+                                    func->param_bindings,
                                     &ctx->param_index_to_name);
 
-  make_type_binding_reverse_mapping(&func->local_types, &func->local_bindings,
+  make_type_binding_reverse_mapping(func->local_types, func->local_bindings,
                                     &ctx->local_index_to_name);
 
   CHECK_RESULT(visit_func(func, &ctx->visitor));
@@ -291,10 +292,9 @@ Result visit_export(Context* ctx, uint32_t export_index, Export* export_) {
 Result visit_elem_segment(Context* ctx,
                           uint32_t elem_segment_index,
                           ElemSegment* segment) {
-  size_t i;
   CHECK_RESULT(use_name_for_table_var(ctx->module, &segment->table_var));
-  for (i = 0; i < segment->vars.size; ++i) {
-    CHECK_RESULT(use_name_for_func_var(ctx->module, &segment->vars.data[i]));
+  for (Var& var : segment->vars) {
+    CHECK_RESULT(use_name_for_func_var(ctx->module, &var));
   }
   return Result::Ok;
 }
@@ -307,15 +307,14 @@ Result visit_data_segment(Context* ctx,
 }
 
 Result visit_module(Context* ctx, Module* module) {
-  size_t i;
-  for (i = 0; i < module->funcs.size; ++i)
-    CHECK_RESULT(visit_func(ctx, i, module->funcs.data[i]));
-  for (i = 0; i < module->exports.size; ++i)
-    CHECK_RESULT(visit_export(ctx, i, module->exports.data[i]));
-  for (i = 0; i < module->elem_segments.size; ++i)
-    CHECK_RESULT(visit_elem_segment(ctx, i, module->elem_segments.data[i]));
-  for (i = 0; i < module->data_segments.size; ++i)
-    CHECK_RESULT(visit_data_segment(ctx, i, module->data_segments.data[i]));
+  for (size_t i = 0; i < module->funcs.size(); ++i)
+    CHECK_RESULT(visit_func(ctx, i, module->funcs[i]));
+  for (size_t i = 0; i < module->exports.size(); ++i)
+    CHECK_RESULT(visit_export(ctx, i, module->exports[i]));
+  for (size_t i = 0; i < module->elem_segments.size(); ++i)
+    CHECK_RESULT(visit_elem_segment(ctx, i, module->elem_segments[i]));
+  for (size_t i = 0; i < module->data_segments.size(); ++i)
+    CHECK_RESULT(visit_data_segment(ctx, i, module->data_segments[i]));
   return Result::Ok;
 }
 
@@ -323,7 +322,6 @@ Result visit_module(Context* ctx, Module* module) {
 
 Result apply_names(Module* module) {
   Context ctx;
-  WABT_ZERO_MEMORY(ctx);
   ctx.module = module;
   ctx.visitor.user_data = &ctx;
   ctx.visitor.begin_block_expr = begin_block_expr;
@@ -343,9 +341,6 @@ Result apply_names(Module* module) {
   ctx.visitor.on_set_local_expr = on_set_local_expr;
   ctx.visitor.on_tee_local_expr = on_tee_local_expr;
   Result result = visit_module(&ctx, module);
-  destroy_string_slice_vector(&ctx.param_index_to_name);
-  destroy_string_slice_vector(&ctx.local_index_to_name);
-  destroy_label_ptr_vector(&ctx.labels);
   return result;
 }
 

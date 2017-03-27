@@ -220,26 +220,27 @@ Grammar
   154          | "(" ASSERT_UNLINKABLE raw_module quoted_text ")"
   155          | "(" ASSERT_TRAP raw_module quoted_text ")"
   156          | "(" ASSERT_RETURN action const_list ")"
-  157          | "(" ASSERT_RETURN_NAN action ")"
-  158          | "(" ASSERT_TRAP action quoted_text ")"
-  159          | "(" ASSERT_EXHAUSTION action quoted_text ")"
+  157          | "(" ASSERT_RETURN_CANONICAL_NAN action ")"
+  158          | "(" ASSERT_RETURN_ARITHMETIC_NAN action ")"
+  159          | "(" ASSERT_TRAP action quoted_text ")"
+  160          | "(" ASSERT_EXHAUSTION action quoted_text ")"
 
-  160 cmd: action
-  161    | assertion
-  162    | module
-  163    | "(" REGISTER quoted_text script_var_opt ")"
+  161 cmd: action
+  162    | assertion
+  163    | module
+  164    | "(" REGISTER quoted_text script_var_opt ")"
 
-  164 cmd_list: %empty
-  165         | cmd_list cmd
+  165 cmd_list: %empty
+  166         | cmd_list cmd
 
-  166 const: "(" CONST literal ")"
+  167 const: "(" CONST literal ")"
 
-  167 const_list: %empty
-  168           | const_list const
+  168 const_list: %empty
+  169           | const_list const
 
-  169 script: cmd_list
+  170 script: cmd_list
 
-  170 script_start: script
+  171 script_start: script
 
 
 Terminals, with rules where they appear
@@ -249,11 +250,11 @@ error (256)
 "(" (258) 10 11 13 14 15 20 70 75 76 77 78 87 88 89 91 92 94 95 96
     97 98 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114
     115 116 117 118 119 120 121 122 123 124 125 126 127 130 131 132
-    133 145 146 150 151 152 153 154 155 156 157 158 159 163 166
+    133 145 146 150 151 152 153 154 155 156 157 158 159 160 164 167
 ")" (259) 10 11 13 14 15 20 70 75 76 77 78 87 88 89 91 92 94 95 96
     97 98 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114
     115 116 117 118 119 120 121 122 123 124 125 126 127 130 131 132
-    133 145 146 150 151 152 153 154 155 156 157 158 159 163 166
+    133 145 146 150 151 152 153 154 155 156 157 158 159 160 164 167
 NAT (260) 21 22
 INT (261) 23
 FLOAT (262) 24
@@ -286,7 +287,7 @@ LOAD (288) 56
 STORE (289) 57
 OFFSET_EQ_NAT (290) 35
 ALIGN_EQ_NAT (291) 37
-CONST (292) 58 166
+CONST (292) 58 167
 UNARY (293) 59
 BINARY (294) 60
 COMPARE (295) 61
@@ -310,161 +311,162 @@ DATA (312) 104 105 107 108
 OFFSET (313) 98
 IMPORT (314) 116 122
 EXPORT (315) 127 130
-REGISTER (316) 163
+REGISTER (316) 164
 INVOKE (317) 150
 GET (318) 151
 ASSERT_MALFORMED (319) 152
 ASSERT_INVALID (320) 153
 ASSERT_UNLINKABLE (321) 154
 ASSERT_RETURN (322) 156
-ASSERT_RETURN_NAN (323) 157
-ASSERT_TRAP (324) 155 158
-ASSERT_EXHAUSTION (325) 159
-INPUT (326)
-OUTPUT (327)
-LOW (328)
+ASSERT_RETURN_CANONICAL_NAN (323) 157
+ASSERT_RETURN_ARITHMETIC_NAN (324) 158
+ASSERT_TRAP (325) 155 159
+ASSERT_EXHAUSTION (326) 160
+INPUT (327)
+OUTPUT (328)
+LOW (329)
 
 
 Nonterminals, with rules where they appear
 
-$accept (74)
+$accept (75)
     on left: 0
-non_empty_text_list (75)
+non_empty_text_list (76)
     on left: 1 2, on right: 2 4 146
-text_list (76)
+text_list (77)
     on left: 3 4, on right: 104 105 107 108
-quoted_text (77)
-    on left: 5, on right: 116 122 127 130 150 151 152 153 154 155 158
-    159 163
-value_type_list (78)
+quoted_text (78)
+    on left: 5, on right: 116 122 127 130 150 151 152 153 154 155 159
+    160 164
+value_type_list (79)
     on left: 6 7, on right: 7 13 14 15 69 74 87 88 91
-elem_type (79)
+elem_type (80)
     on left: 8, on right: 16 103
-global_type (80)
+global_type (81)
     on left: 9 10, on right: 109 110 115 121
-func_type (81)
+func_type (82)
     on left: 11, on right: 131 132
-func_sig (82)
+func_sig (83)
     on left: 12 13 14 15, on right: 11 112 118
-table_sig (83)
+table_sig (84)
     on left: 16, on right: 102 113 119
-memory_sig (84)
+memory_sig (85)
     on left: 17, on right: 106 114 120
-limits (85)
+limits (86)
     on left: 18 19, on right: 16 17
-type_use (86)
+type_use (87)
     on left: 20, on right: 94 95 111 117
-nat (87)
+nat (88)
     on left: 21, on right: 18 19 25
-literal (88)
-    on left: 22 23 24, on right: 58 166
-var (89)
+literal (89)
+    on left: 22 23 24, on right: 58 167
+var (90)
     on left: 25 26, on right: 20 28 45 46 47 49 50 51 52 53 54 55 100
     104 123 124 125 126 133
-var_list (90)
+var_list (91)
     on left: 27 28, on right: 28 47 100 101 103
-bind_var_opt (91)
+bind_var_opt (92)
     on left: 29 30, on right: 94 95 96 97 102 103 106 107 108 109 110
     111 112 113 114 115 117 118 119 120 121 145 146
-bind_var (92)
+bind_var (93)
     on left: 31, on right: 30 33 89 92 132
-labeling_opt (93)
+labeling_opt (94)
     on left: 32 33, on right: 65 66 67 68 72 73 74
-offset_opt (94)
+offset_opt (95)
     on left: 34 35, on right: 56 57
-align_opt (95)
+align_opt (96)
     on left: 36 37, on right: 56 57
-instr (96)
+instr (97)
     on left: 38 39 40, on right: 82
-plain_instr (97)
+plain_instr (98)
     on left: 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58
     59 60 61 62 63 64, on right: 38 71
-block_instr (98)
+block_instr (99)
     on left: 65 66 67 68, on right: 39
-block (99)
+block (100)
     on left: 69, on right: 65 66 67 68 72 73
-expr (100)
+expr (101)
     on left: 70, on right: 40 77 78 79 80 84 99
-expr1 (101)
+expr1 (102)
     on left: 71 72 73 74, on right: 70
-if_ (102)
+if_ (103)
     on left: 75 76 77 78 79 80, on right: 74
-instr_list (103)
+instr_list (104)
     on left: 81 82, on right: 68 69 75 76 77 78 82 85 90
-expr_list (104)
+expr_list (105)
     on left: 83 84, on right: 71 84
-const_expr (105)
+const_expr (106)
     on left: 85, on right: 98 109 110
-func_fields (106)
+func_fields (107)
     on left: 86 87 88 89, on right: 88 89 93
-func_body (107)
+func_body (108)
     on left: 90 91 92, on right: 86 87 91 92
-func_info (108)
+func_info (109)
     on left: 93, on right: 94 95 96 97
-func (109)
+func (110)
     on left: 94 95 96 97, on right: 139
-offset (110)
+offset (111)
     on left: 98 99, on right: 100 101 104 105
-elem (111)
+elem (112)
     on left: 100 101, on right: 140
-table (112)
+table (113)
     on left: 102 103, on right: 137
-data (113)
+data (114)
     on left: 104 105, on right: 141
-memory (114)
+memory (115)
     on left: 106 107 108, on right: 138
-global (115)
+global (116)
     on left: 109 110, on right: 136
-import_kind (116)
+import_kind (117)
     on left: 111 112 113 114 115, on right: 116
-import (117)
+import (118)
     on left: 116 117 118 119 120 121, on right: 143
-inline_import (118)
+inline_import (119)
     on left: 122, on right: 117 118 119 120 121
-export_kind (119)
+export_kind (120)
     on left: 123 124 125 126, on right: 127
-export (120)
+export (121)
     on left: 127, on right: 144
-inline_export_opt (121)
+inline_export_opt (122)
     on left: 128 129, on right: 102 103 106
-inline_export (122)
+inline_export (123)
     on left: 130, on right: 94 96 107 109 129
-type_def (123)
+type_def (124)
     on left: 131 132, on right: 135
-start (124)
+start (125)
     on left: 133, on right: 142
-module_fields (125)
+module_fields (126)
     on left: 134 135 136 137 138 139 140 141 142 143 144, on right:
     135 136 137 138 139 140 141 142 143 144 145
-raw_module (126)
+raw_module (127)
     on left: 145 146, on right: 147 152 153 154 155
-module (127)
-    on left: 147, on right: 162
-script_var_opt (128)
-    on left: 148 149, on right: 150 151 163
-action (129)
-    on left: 150 151, on right: 156 157 158 159 160
-assertion (130)
-    on left: 152 153 154 155 156 157 158 159, on right: 161
-cmd (131)
-    on left: 160 161 162 163, on right: 165
-cmd_list (132)
-    on left: 164 165, on right: 165 169
-const (133)
-    on left: 166, on right: 168
-const_list (134)
-    on left: 167 168, on right: 150 156 168
-script (135)
-    on left: 169, on right: 170
-script_start (136)
-    on left: 170, on right: 0
+module (128)
+    on left: 147, on right: 163
+script_var_opt (129)
+    on left: 148 149, on right: 150 151 164
+action (130)
+    on left: 150 151, on right: 156 157 158 159 160 161
+assertion (131)
+    on left: 152 153 154 155 156 157 158 159 160, on right: 162
+cmd (132)
+    on left: 161 162 163 164, on right: 166
+cmd_list (133)
+    on left: 165 166, on right: 166 170
+const (134)
+    on left: 167, on right: 169
+const_list (135)
+    on left: 168 169, on right: 150 156 169
+script (136)
+    on left: 170, on right: 171
+script_start (137)
+    on left: 171, on right: 0
 
 
 State 0
 
     0 $accept: . script_start "EOF"
 
-    $default  reduce using rule 164 (cmd_list)
+    $default  reduce using rule 165 (cmd_list)
 
     cmd_list      go to state 1
     script        go to state 2
@@ -473,12 +475,12 @@ State 0
 
 State 1
 
-  165 cmd_list: cmd_list . cmd
-  169 script: cmd_list .
+  166 cmd_list: cmd_list . cmd
+  170 script: cmd_list .
 
     "("  shift, and go to state 4
 
-    $default  reduce using rule 169 (script)
+    $default  reduce using rule 170 (script)
 
     raw_module  go to state 5
     module      go to state 6
@@ -489,9 +491,9 @@ State 1
 
 State 2
 
-  170 script_start: script .
+  171 script_start: script .
 
-    $default  reduce using rule 170 (script_start)
+    $default  reduce using rule 171 (script_start)
 
 
 State 3
@@ -512,22 +514,24 @@ State 4
   154          | "(" . ASSERT_UNLINKABLE raw_module quoted_text ")"
   155          | "(" . ASSERT_TRAP raw_module quoted_text ")"
   156          | "(" . ASSERT_RETURN action const_list ")"
-  157          | "(" . ASSERT_RETURN_NAN action ")"
-  158          | "(" . ASSERT_TRAP action quoted_text ")"
-  159          | "(" . ASSERT_EXHAUSTION action quoted_text ")"
-  163 cmd: "(" . REGISTER quoted_text script_var_opt ")"
+  157          | "(" . ASSERT_RETURN_CANONICAL_NAN action ")"
+  158          | "(" . ASSERT_RETURN_ARITHMETIC_NAN action ")"
+  159          | "(" . ASSERT_TRAP action quoted_text ")"
+  160          | "(" . ASSERT_EXHAUSTION action quoted_text ")"
+  164 cmd: "(" . REGISTER quoted_text script_var_opt ")"
 
-    MODULE             shift, and go to state 11
-    REGISTER           shift, and go to state 12
-    INVOKE             shift, and go to state 13
-    GET                shift, and go to state 14
-    ASSERT_MALFORMED   shift, and go to state 15
-    ASSERT_INVALID     shift, and go to state 16
-    ASSERT_UNLINKABLE  shift, and go to state 17
-    ASSERT_RETURN      shift, and go to state 18
-    ASSERT_RETURN_NAN  shift, and go to state 19
-    ASSERT_TRAP        shift, and go to state 20
-    ASSERT_EXHAUSTION  shift, and go to state 21
+    MODULE                        shift, and go to state 11
+    REGISTER                      shift, and go to state 12
+    INVOKE                        shift, and go to state 13
+    GET                           shift, and go to state 14
+    ASSERT_MALFORMED              shift, and go to state 15
+    ASSERT_INVALID                shift, and go to state 16
+    ASSERT_UNLINKABLE             shift, and go to state 17
+    ASSERT_RETURN                 shift, and go to state 18
+    ASSERT_RETURN_CANONICAL_NAN   shift, and go to state 19
+    ASSERT_RETURN_ARITHMETIC_NAN  shift, and go to state 20
+    ASSERT_TRAP                   shift, and go to state 21
+    ASSERT_EXHAUSTION             shift, and go to state 22
 
 
 State 5
@@ -539,30 +543,30 @@ State 5
 
 State 6
 
-  162 cmd: module .
+  163 cmd: module .
 
-    $default  reduce using rule 162 (cmd)
+    $default  reduce using rule 163 (cmd)
 
 
 State 7
 
-  160 cmd: action .
-
-    $default  reduce using rule 160 (cmd)
-
-
-State 8
-
-  161 cmd: assertion .
+  161 cmd: action .
 
     $default  reduce using rule 161 (cmd)
 
 
+State 8
+
+  162 cmd: assertion .
+
+    $default  reduce using rule 162 (cmd)
+
+
 State 9
 
-  165 cmd_list: cmd_list cmd .
+  166 cmd_list: cmd_list cmd .
 
-    $default  reduce using rule 165 (cmd_list)
+    $default  reduce using rule 166 (cmd_list)
 
 
 State 10
@@ -577,216 +581,225 @@ State 11
   145 raw_module: "(" MODULE . bind_var_opt module_fields ")"
   146           | "(" MODULE . bind_var_opt non_empty_text_list ")"
 
-    VAR  shift, and go to state 22
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 29 (bind_var_opt)
 
-    bind_var_opt  go to state 23
-    bind_var      go to state 24
+    bind_var_opt  go to state 24
+    bind_var      go to state 25
 
 
 State 12
 
-  163 cmd: "(" REGISTER . quoted_text script_var_opt ")"
+  164 cmd: "(" REGISTER . quoted_text script_var_opt ")"
 
-    TEXT  shift, and go to state 25
+    TEXT  shift, and go to state 26
 
-    quoted_text  go to state 26
+    quoted_text  go to state 27
 
 
 State 13
 
   150 action: "(" INVOKE . script_var_opt quoted_text const_list ")"
 
-    VAR  shift, and go to state 27
-
-    $default  reduce using rule 148 (script_var_opt)
-
-    script_var_opt  go to state 28
-
-
-State 14
-
-  151 action: "(" GET . script_var_opt quoted_text ")"
-
-    VAR  shift, and go to state 27
+    VAR  shift, and go to state 28
 
     $default  reduce using rule 148 (script_var_opt)
 
     script_var_opt  go to state 29
 
 
+State 14
+
+  151 action: "(" GET . script_var_opt quoted_text ")"
+
+    VAR  shift, and go to state 28
+
+    $default  reduce using rule 148 (script_var_opt)
+
+    script_var_opt  go to state 30
+
+
 State 15
 
   152 assertion: "(" ASSERT_MALFORMED . raw_module quoted_text ")"
 
-    "("  shift, and go to state 30
+    "("  shift, and go to state 31
 
-    raw_module  go to state 31
+    raw_module  go to state 32
 
 
 State 16
 
   153 assertion: "(" ASSERT_INVALID . raw_module quoted_text ")"
 
-    "("  shift, and go to state 30
+    "("  shift, and go to state 31
 
-    raw_module  go to state 32
+    raw_module  go to state 33
 
 
 State 17
 
   154 assertion: "(" ASSERT_UNLINKABLE . raw_module quoted_text ")"
 
-    "("  shift, and go to state 30
+    "("  shift, and go to state 31
 
-    raw_module  go to state 33
+    raw_module  go to state 34
 
 
 State 18
 
   156 assertion: "(" ASSERT_RETURN . action const_list ")"
 
-    "("  shift, and go to state 34
-
-    action  go to state 35
-
-
-State 19
-
-  157 assertion: "(" ASSERT_RETURN_NAN . action ")"
-
-    "("  shift, and go to state 34
+    "("  shift, and go to state 35
 
     action  go to state 36
 
 
+State 19
+
+  157 assertion: "(" ASSERT_RETURN_CANONICAL_NAN . action ")"
+
+    "("  shift, and go to state 35
+
+    action  go to state 37
+
+
 State 20
 
-  155 assertion: "(" ASSERT_TRAP . raw_module quoted_text ")"
-  158          | "(" ASSERT_TRAP . action quoted_text ")"
+  158 assertion: "(" ASSERT_RETURN_ARITHMETIC_NAN . action ")"
 
-    "("  shift, and go to state 37
+    "("  shift, and go to state 35
 
-    raw_module  go to state 38
-    action      go to state 39
+    action  go to state 38
 
 
 State 21
 
-  159 assertion: "(" ASSERT_EXHAUSTION . action quoted_text ")"
+  155 assertion: "(" ASSERT_TRAP . raw_module quoted_text ")"
+  159          | "(" ASSERT_TRAP . action quoted_text ")"
 
-    "("  shift, and go to state 34
+    "("  shift, and go to state 39
 
-    action  go to state 40
+    raw_module  go to state 40
+    action      go to state 41
 
 
 State 22
+
+  160 assertion: "(" ASSERT_EXHAUSTION . action quoted_text ")"
+
+    "("  shift, and go to state 35
+
+    action  go to state 42
+
+
+State 23
 
    31 bind_var: VAR .
 
     $default  reduce using rule 31 (bind_var)
 
 
-State 23
+State 24
 
   145 raw_module: "(" MODULE bind_var_opt . module_fields ")"
   146           | "(" MODULE bind_var_opt . non_empty_text_list ")"
 
-    TEXT  shift, and go to state 41
+    TEXT  shift, and go to state 43
 
     $default  reduce using rule 134 (module_fields)
 
-    non_empty_text_list  go to state 42
-    module_fields        go to state 43
+    non_empty_text_list  go to state 44
+    module_fields        go to state 45
 
 
-State 24
+State 25
 
    30 bind_var_opt: bind_var .
 
     $default  reduce using rule 30 (bind_var_opt)
 
 
-State 25
+State 26
 
     5 quoted_text: TEXT .
 
     $default  reduce using rule 5 (quoted_text)
 
 
-State 26
+State 27
 
-  163 cmd: "(" REGISTER quoted_text . script_var_opt ")"
+  164 cmd: "(" REGISTER quoted_text . script_var_opt ")"
 
-    VAR  shift, and go to state 27
+    VAR  shift, and go to state 28
 
     $default  reduce using rule 148 (script_var_opt)
 
-    script_var_opt  go to state 44
+    script_var_opt  go to state 46
 
 
-State 27
+State 28
 
   149 script_var_opt: VAR .
 
     $default  reduce using rule 149 (script_var_opt)
 
 
-State 28
+State 29
 
   150 action: "(" INVOKE script_var_opt . quoted_text const_list ")"
 
-    TEXT  shift, and go to state 25
-
-    quoted_text  go to state 45
-
-
-State 29
-
-  151 action: "(" GET script_var_opt . quoted_text ")"
-
-    TEXT  shift, and go to state 25
-
-    quoted_text  go to state 46
-
-
-State 30
-
-  145 raw_module: "(" . MODULE bind_var_opt module_fields ")"
-  146           | "(" . MODULE bind_var_opt non_empty_text_list ")"
-
-    MODULE  shift, and go to state 11
-
-
-State 31
-
-  152 assertion: "(" ASSERT_MALFORMED raw_module . quoted_text ")"
-
-    TEXT  shift, and go to state 25
+    TEXT  shift, and go to state 26
 
     quoted_text  go to state 47
 
 
-State 32
+State 30
 
-  153 assertion: "(" ASSERT_INVALID raw_module . quoted_text ")"
+  151 action: "(" GET script_var_opt . quoted_text ")"
 
-    TEXT  shift, and go to state 25
+    TEXT  shift, and go to state 26
 
     quoted_text  go to state 48
 
 
-State 33
+State 31
 
-  154 assertion: "(" ASSERT_UNLINKABLE raw_module . quoted_text ")"
+  145 raw_module: "(" . MODULE bind_var_opt module_fields ")"
+  146           | "(" . MODULE bind_var_opt non_empty_text_list ")"
 
-    TEXT  shift, and go to state 25
+    MODULE  shift, and go to state 11
+
+
+State 32
+
+  152 assertion: "(" ASSERT_MALFORMED raw_module . quoted_text ")"
+
+    TEXT  shift, and go to state 26
 
     quoted_text  go to state 49
 
 
+State 33
+
+  153 assertion: "(" ASSERT_INVALID raw_module . quoted_text ")"
+
+    TEXT  shift, and go to state 26
+
+    quoted_text  go to state 50
+
+
 State 34
+
+  154 assertion: "(" ASSERT_UNLINKABLE raw_module . quoted_text ")"
+
+    TEXT  shift, and go to state 26
+
+    quoted_text  go to state 51
+
+
+State 35
 
   150 action: "(" . INVOKE script_var_opt quoted_text const_list ")"
   151       | "(" . GET script_var_opt quoted_text ")"
@@ -795,23 +808,30 @@ State 34
     GET     shift, and go to state 14
 
 
-State 35
+State 36
 
   156 assertion: "(" ASSERT_RETURN action . const_list ")"
 
-    $default  reduce using rule 167 (const_list)
+    $default  reduce using rule 168 (const_list)
 
-    const_list  go to state 50
-
-
-State 36
-
-  157 assertion: "(" ASSERT_RETURN_NAN action . ")"
-
-    ")"  shift, and go to state 51
+    const_list  go to state 52
 
 
 State 37
+
+  157 assertion: "(" ASSERT_RETURN_CANONICAL_NAN action . ")"
+
+    ")"  shift, and go to state 53
+
+
+State 38
+
+  158 assertion: "(" ASSERT_RETURN_ARITHMETIC_NAN action . ")"
+
+    ")"  shift, and go to state 54
+
+
+State 39
 
   145 raw_module: "(" . MODULE bind_var_opt module_fields ")"
   146           | "(" . MODULE bind_var_opt non_empty_text_list ")"
@@ -823,50 +843,50 @@ State 37
     GET     shift, and go to state 14
 
 
-State 38
+State 40
 
   155 assertion: "(" ASSERT_TRAP raw_module . quoted_text ")"
 
-    TEXT  shift, and go to state 25
+    TEXT  shift, and go to state 26
 
-    quoted_text  go to state 52
-
-
-State 39
-
-  158 assertion: "(" ASSERT_TRAP action . quoted_text ")"
-
-    TEXT  shift, and go to state 25
-
-    quoted_text  go to state 53
-
-
-State 40
-
-  159 assertion: "(" ASSERT_EXHAUSTION action . quoted_text ")"
-
-    TEXT  shift, and go to state 25
-
-    quoted_text  go to state 54
+    quoted_text  go to state 55
 
 
 State 41
+
+  159 assertion: "(" ASSERT_TRAP action . quoted_text ")"
+
+    TEXT  shift, and go to state 26
+
+    quoted_text  go to state 56
+
+
+State 42
+
+  160 assertion: "(" ASSERT_EXHAUSTION action . quoted_text ")"
+
+    TEXT  shift, and go to state 26
+
+    quoted_text  go to state 57
+
+
+State 43
 
     1 non_empty_text_list: TEXT .
 
     $default  reduce using rule 1 (non_empty_text_list)
 
 
-State 42
+State 44
 
     2 non_empty_text_list: non_empty_text_list . TEXT
   146 raw_module: "(" MODULE bind_var_opt non_empty_text_list . ")"
 
-    ")"   shift, and go to state 55
-    TEXT  shift, and go to state 56
+    ")"   shift, and go to state 58
+    TEXT  shift, and go to state 59
 
 
-State 43
+State 45
 
   135 module_fields: module_fields . type_def
   136              | module_fields . global
@@ -880,119 +900,126 @@ State 43
   144              | module_fields . export
   145 raw_module: "(" MODULE bind_var_opt module_fields . ")"
 
-    "("  shift, and go to state 57
-    ")"  shift, and go to state 58
+    "("  shift, and go to state 60
+    ")"  shift, and go to state 61
 
-    func      go to state 59
-    elem      go to state 60
-    table     go to state 61
-    data      go to state 62
-    memory    go to state 63
-    global    go to state 64
-    import    go to state 65
-    export    go to state 66
-    type_def  go to state 67
-    start     go to state 68
-
-
-State 44
-
-  163 cmd: "(" REGISTER quoted_text script_var_opt . ")"
-
-    ")"  shift, and go to state 69
-
-
-State 45
-
-  150 action: "(" INVOKE script_var_opt quoted_text . const_list ")"
-
-    $default  reduce using rule 167 (const_list)
-
-    const_list  go to state 70
+    func      go to state 62
+    elem      go to state 63
+    table     go to state 64
+    data      go to state 65
+    memory    go to state 66
+    global    go to state 67
+    import    go to state 68
+    export    go to state 69
+    type_def  go to state 70
+    start     go to state 71
 
 
 State 46
 
-  151 action: "(" GET script_var_opt quoted_text . ")"
-
-    ")"  shift, and go to state 71
-
-
-State 47
-
-  152 assertion: "(" ASSERT_MALFORMED raw_module quoted_text . ")"
+  164 cmd: "(" REGISTER quoted_text script_var_opt . ")"
 
     ")"  shift, and go to state 72
 
 
+State 47
+
+  150 action: "(" INVOKE script_var_opt quoted_text . const_list ")"
+
+    $default  reduce using rule 168 (const_list)
+
+    const_list  go to state 73
+
+
 State 48
 
-  153 assertion: "(" ASSERT_INVALID raw_module quoted_text . ")"
-
-    ")"  shift, and go to state 73
-
-
-State 49
-
-  154 assertion: "(" ASSERT_UNLINKABLE raw_module quoted_text . ")"
+  151 action: "(" GET script_var_opt quoted_text . ")"
 
     ")"  shift, and go to state 74
 
 
+State 49
+
+  152 assertion: "(" ASSERT_MALFORMED raw_module quoted_text . ")"
+
+    ")"  shift, and go to state 75
+
+
 State 50
 
-  156 assertion: "(" ASSERT_RETURN action const_list . ")"
-  168 const_list: const_list . const
+  153 assertion: "(" ASSERT_INVALID raw_module quoted_text . ")"
 
-    "("  shift, and go to state 75
     ")"  shift, and go to state 76
-
-    const  go to state 77
 
 
 State 51
 
-  157 assertion: "(" ASSERT_RETURN_NAN action ")" .
+  154 assertion: "(" ASSERT_UNLINKABLE raw_module quoted_text . ")"
 
-    $default  reduce using rule 157 (assertion)
+    ")"  shift, and go to state 77
 
 
 State 52
 
-  155 assertion: "(" ASSERT_TRAP raw_module quoted_text . ")"
+  156 assertion: "(" ASSERT_RETURN action const_list . ")"
+  169 const_list: const_list . const
 
-    ")"  shift, and go to state 78
+    "("  shift, and go to state 78
+    ")"  shift, and go to state 79
+
+    const  go to state 80
 
 
 State 53
 
-  158 assertion: "(" ASSERT_TRAP action quoted_text . ")"
+  157 assertion: "(" ASSERT_RETURN_CANONICAL_NAN action ")" .
 
-    ")"  shift, and go to state 79
+    $default  reduce using rule 157 (assertion)
 
 
 State 54
 
-  159 assertion: "(" ASSERT_EXHAUSTION action quoted_text . ")"
+  158 assertion: "(" ASSERT_RETURN_ARITHMETIC_NAN action ")" .
 
-    ")"  shift, and go to state 80
+    $default  reduce using rule 158 (assertion)
 
 
 State 55
+
+  155 assertion: "(" ASSERT_TRAP raw_module quoted_text . ")"
+
+    ")"  shift, and go to state 81
+
+
+State 56
+
+  159 assertion: "(" ASSERT_TRAP action quoted_text . ")"
+
+    ")"  shift, and go to state 82
+
+
+State 57
+
+  160 assertion: "(" ASSERT_EXHAUSTION action quoted_text . ")"
+
+    ")"  shift, and go to state 83
+
+
+State 58
 
   146 raw_module: "(" MODULE bind_var_opt non_empty_text_list ")" .
 
     $default  reduce using rule 146 (raw_module)
 
 
-State 56
+State 59
 
     2 non_empty_text_list: non_empty_text_list TEXT .
 
     $default  reduce using rule 2 (non_empty_text_list)
 
 
-State 57
+State 60
 
    94 func: "(" . FUNC bind_var_opt inline_export type_use func_info ")"
    95     | "(" . FUNC bind_var_opt type_use func_info ")"
@@ -1020,184 +1047,184 @@ State 57
   132         | "(" . TYPE bind_var func_type ")"
   133 start: "(" . START var ")"
 
-    FUNC    shift, and go to state 81
-    START   shift, and go to state 82
-    TYPE    shift, and go to state 83
-    GLOBAL  shift, and go to state 84
-    TABLE   shift, and go to state 85
-    ELEM    shift, and go to state 86
-    MEMORY  shift, and go to state 87
-    DATA    shift, and go to state 88
-    IMPORT  shift, and go to state 89
-    EXPORT  shift, and go to state 90
+    FUNC    shift, and go to state 84
+    START   shift, and go to state 85
+    TYPE    shift, and go to state 86
+    GLOBAL  shift, and go to state 87
+    TABLE   shift, and go to state 88
+    ELEM    shift, and go to state 89
+    MEMORY  shift, and go to state 90
+    DATA    shift, and go to state 91
+    IMPORT  shift, and go to state 92
+    EXPORT  shift, and go to state 93
 
 
-State 58
+State 61
 
   145 raw_module: "(" MODULE bind_var_opt module_fields ")" .
 
     $default  reduce using rule 145 (raw_module)
 
 
-State 59
+State 62
 
   139 module_fields: module_fields func .
 
     $default  reduce using rule 139 (module_fields)
 
 
-State 60
+State 63
 
   140 module_fields: module_fields elem .
 
     $default  reduce using rule 140 (module_fields)
 
 
-State 61
+State 64
 
   137 module_fields: module_fields table .
 
     $default  reduce using rule 137 (module_fields)
 
 
-State 62
+State 65
 
   141 module_fields: module_fields data .
 
     $default  reduce using rule 141 (module_fields)
 
 
-State 63
+State 66
 
   138 module_fields: module_fields memory .
 
     $default  reduce using rule 138 (module_fields)
 
 
-State 64
+State 67
 
   136 module_fields: module_fields global .
 
     $default  reduce using rule 136 (module_fields)
 
 
-State 65
+State 68
 
   143 module_fields: module_fields import .
 
     $default  reduce using rule 143 (module_fields)
 
 
-State 66
+State 69
 
   144 module_fields: module_fields export .
 
     $default  reduce using rule 144 (module_fields)
 
 
-State 67
+State 70
 
   135 module_fields: module_fields type_def .
 
     $default  reduce using rule 135 (module_fields)
 
 
-State 68
+State 71
 
   142 module_fields: module_fields start .
 
     $default  reduce using rule 142 (module_fields)
 
 
-State 69
+State 72
 
-  163 cmd: "(" REGISTER quoted_text script_var_opt ")" .
+  164 cmd: "(" REGISTER quoted_text script_var_opt ")" .
 
-    $default  reduce using rule 163 (cmd)
+    $default  reduce using rule 164 (cmd)
 
 
-State 70
+State 73
 
   150 action: "(" INVOKE script_var_opt quoted_text const_list . ")"
-  168 const_list: const_list . const
+  169 const_list: const_list . const
 
-    "("  shift, and go to state 75
-    ")"  shift, and go to state 91
+    "("  shift, and go to state 78
+    ")"  shift, and go to state 94
 
-    const  go to state 77
+    const  go to state 80
 
 
-State 71
+State 74
 
   151 action: "(" GET script_var_opt quoted_text ")" .
 
     $default  reduce using rule 151 (action)
 
 
-State 72
+State 75
 
   152 assertion: "(" ASSERT_MALFORMED raw_module quoted_text ")" .
 
     $default  reduce using rule 152 (assertion)
 
 
-State 73
+State 76
 
   153 assertion: "(" ASSERT_INVALID raw_module quoted_text ")" .
 
     $default  reduce using rule 153 (assertion)
 
 
-State 74
+State 77
 
   154 assertion: "(" ASSERT_UNLINKABLE raw_module quoted_text ")" .
 
     $default  reduce using rule 154 (assertion)
 
 
-State 75
+State 78
 
-  166 const: "(" . CONST literal ")"
+  167 const: "(" . CONST literal ")"
 
-    CONST  shift, and go to state 92
+    CONST  shift, and go to state 95
 
 
-State 76
+State 79
 
   156 assertion: "(" ASSERT_RETURN action const_list ")" .
 
     $default  reduce using rule 156 (assertion)
 
 
-State 77
+State 80
 
-  168 const_list: const_list const .
+  169 const_list: const_list const .
 
-    $default  reduce using rule 168 (const_list)
+    $default  reduce using rule 169 (const_list)
 
 
-State 78
+State 81
 
   155 assertion: "(" ASSERT_TRAP raw_module quoted_text ")" .
 
     $default  reduce using rule 155 (assertion)
 
 
-State 79
+State 82
 
-  158 assertion: "(" ASSERT_TRAP action quoted_text ")" .
-
-    $default  reduce using rule 158 (assertion)
-
-
-State 80
-
-  159 assertion: "(" ASSERT_EXHAUSTION action quoted_text ")" .
+  159 assertion: "(" ASSERT_TRAP action quoted_text ")" .
 
     $default  reduce using rule 159 (assertion)
 
 
-State 81
+State 83
+
+  160 assertion: "(" ASSERT_EXHAUSTION action quoted_text ")" .
+
+    $default  reduce using rule 160 (assertion)
+
+
+State 84
 
    94 func: "(" FUNC . bind_var_opt inline_export type_use func_info ")"
    95     | "(" FUNC . bind_var_opt type_use func_info ")"
@@ -1206,147 +1233,147 @@ State 81
   117 import: "(" FUNC . bind_var_opt inline_import type_use ")"
   118       | "(" FUNC . bind_var_opt inline_import func_sig ")"
 
-    VAR  shift, and go to state 22
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 29 (bind_var_opt)
 
-    bind_var_opt  go to state 93
-    bind_var      go to state 24
+    bind_var_opt  go to state 96
+    bind_var      go to state 25
 
 
-State 82
+State 85
 
   133 start: "(" START . var ")"
 
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat  go to state 96
-    var  go to state 97
+    nat  go to state 99
+    var  go to state 100
 
 
-State 83
+State 86
 
   131 type_def: "(" TYPE . func_type ")"
   132         | "(" TYPE . bind_var func_type ")"
 
-    "("  shift, and go to state 98
-    VAR  shift, and go to state 22
+    "("  shift, and go to state 101
+    VAR  shift, and go to state 23
 
-    func_type  go to state 99
-    bind_var   go to state 100
+    func_type  go to state 102
+    bind_var   go to state 103
 
 
-State 84
+State 87
 
   109 global: "(" GLOBAL . bind_var_opt inline_export global_type const_expr ")"
   110       | "(" GLOBAL . bind_var_opt global_type const_expr ")"
   121 import: "(" GLOBAL . bind_var_opt inline_import global_type ")"
 
-    VAR  shift, and go to state 22
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 29 (bind_var_opt)
 
-    bind_var_opt  go to state 101
-    bind_var      go to state 24
+    bind_var_opt  go to state 104
+    bind_var      go to state 25
 
 
-State 85
+State 88
 
   102 table: "(" TABLE . bind_var_opt inline_export_opt table_sig ")"
   103      | "(" TABLE . bind_var_opt inline_export_opt elem_type "(" ELEM var_list ")" ")"
   119 import: "(" TABLE . bind_var_opt inline_import table_sig ")"
 
-    VAR  shift, and go to state 22
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 29 (bind_var_opt)
 
-    bind_var_opt  go to state 102
-    bind_var      go to state 24
+    bind_var_opt  go to state 105
+    bind_var      go to state 25
 
 
-State 86
+State 89
 
   100 elem: "(" ELEM . var offset var_list ")"
   101     | "(" ELEM . offset var_list ")"
 
-    "("  shift, and go to state 103
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    "("  shift, and go to state 106
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat     go to state 96
-    var     go to state 104
-    expr    go to state 105
-    offset  go to state 106
+    nat     go to state 99
+    var     go to state 107
+    expr    go to state 108
+    offset  go to state 109
 
 
-State 87
+State 90
 
   106 memory: "(" MEMORY . bind_var_opt inline_export_opt memory_sig ")"
   107       | "(" MEMORY . bind_var_opt inline_export "(" DATA text_list ")" ")"
   108       | "(" MEMORY . bind_var_opt "(" DATA text_list ")" ")"
   120 import: "(" MEMORY . bind_var_opt inline_import memory_sig ")"
 
-    VAR  shift, and go to state 22
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 29 (bind_var_opt)
 
-    bind_var_opt  go to state 107
-    bind_var      go to state 24
+    bind_var_opt  go to state 110
+    bind_var      go to state 25
 
 
-State 88
+State 91
 
   104 data: "(" DATA . var offset text_list ")"
   105     | "(" DATA . offset text_list ")"
 
-    "("  shift, and go to state 103
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    "("  shift, and go to state 106
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat     go to state 96
-    var     go to state 108
-    expr    go to state 105
-    offset  go to state 109
+    nat     go to state 99
+    var     go to state 111
+    expr    go to state 108
+    offset  go to state 112
 
 
-State 89
+State 92
 
   116 import: "(" IMPORT . quoted_text quoted_text import_kind ")"
 
-    TEXT  shift, and go to state 25
+    TEXT  shift, and go to state 26
 
-    quoted_text  go to state 110
+    quoted_text  go to state 113
 
 
-State 90
+State 93
 
   127 export: "(" EXPORT . quoted_text export_kind ")"
 
-    TEXT  shift, and go to state 25
+    TEXT  shift, and go to state 26
 
-    quoted_text  go to state 111
+    quoted_text  go to state 114
 
 
-State 91
+State 94
 
   150 action: "(" INVOKE script_var_opt quoted_text const_list ")" .
 
     $default  reduce using rule 150 (action)
 
 
-State 92
+State 95
 
-  166 const: "(" CONST . literal ")"
+  167 const: "(" CONST . literal ")"
 
-    NAT    shift, and go to state 112
-    INT    shift, and go to state 113
-    FLOAT  shift, and go to state 114
+    NAT    shift, and go to state 115
+    INT    shift, and go to state 116
+    FLOAT  shift, and go to state 117
 
-    literal  go to state 115
+    literal  go to state 118
 
 
-State 93
+State 96
 
    94 func: "(" FUNC bind_var_opt . inline_export type_use func_info ")"
    95     | "(" FUNC bind_var_opt . type_use func_info ")"
@@ -1355,279 +1382,279 @@ State 93
   117 import: "(" FUNC bind_var_opt . inline_import type_use ")"
   118       | "(" FUNC bind_var_opt . inline_import func_sig ")"
 
-    "("             shift, and go to state 116
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 119
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    type_use       go to state 144
-    instr          go to state 145
-    plain_instr    go to state 146
-    block_instr    go to state 147
-    expr           go to state 148
-    instr_list     go to state 149
-    func_fields    go to state 150
-    func_body      go to state 151
-    func_info      go to state 152
-    inline_import  go to state 153
-    inline_export  go to state 154
+    type_use       go to state 147
+    instr          go to state 148
+    plain_instr    go to state 149
+    block_instr    go to state 150
+    expr           go to state 151
+    instr_list     go to state 152
+    func_fields    go to state 153
+    func_body      go to state 154
+    func_info      go to state 155
+    inline_import  go to state 156
+    inline_export  go to state 157
 
 
-State 94
+State 97
 
    21 nat: NAT .
 
     $default  reduce using rule 21 (nat)
 
 
-State 95
+State 98
 
    26 var: VAR .
 
     $default  reduce using rule 26 (var)
 
 
-State 96
+State 99
 
    25 var: nat .
 
     $default  reduce using rule 25 (var)
 
 
-State 97
+State 100
 
   133 start: "(" START var . ")"
 
-    ")"  shift, and go to state 155
-
-
-State 98
-
-   11 func_type: "(" . FUNC func_sig ")"
-
-    FUNC  shift, and go to state 156
-
-
-State 99
-
-  131 type_def: "(" TYPE func_type . ")"
-
-    ")"  shift, and go to state 157
-
-
-State 100
-
-  132 type_def: "(" TYPE bind_var . func_type ")"
-
-    "("  shift, and go to state 98
-
-    func_type  go to state 158
+    ")"  shift, and go to state 158
 
 
 State 101
+
+   11 func_type: "(" . FUNC func_sig ")"
+
+    FUNC  shift, and go to state 159
+
+
+State 102
+
+  131 type_def: "(" TYPE func_type . ")"
+
+    ")"  shift, and go to state 160
+
+
+State 103
+
+  132 type_def: "(" TYPE bind_var . func_type ")"
+
+    "("  shift, and go to state 101
+
+    func_type  go to state 161
+
+
+State 104
 
   109 global: "(" GLOBAL bind_var_opt . inline_export global_type const_expr ")"
   110       | "(" GLOBAL bind_var_opt . global_type const_expr ")"
   121 import: "(" GLOBAL bind_var_opt . inline_import global_type ")"
 
-    "("         shift, and go to state 159
-    VALUE_TYPE  shift, and go to state 160
+    "("         shift, and go to state 162
+    VALUE_TYPE  shift, and go to state 163
 
-    global_type    go to state 161
-    inline_import  go to state 162
-    inline_export  go to state 163
+    global_type    go to state 164
+    inline_import  go to state 165
+    inline_export  go to state 166
 
 
-State 102
+State 105
 
   102 table: "(" TABLE bind_var_opt . inline_export_opt table_sig ")"
   103      | "(" TABLE bind_var_opt . inline_export_opt elem_type "(" ELEM var_list ")" ")"
   119 import: "(" TABLE bind_var_opt . inline_import table_sig ")"
 
-    "("  shift, and go to state 164
+    "("  shift, and go to state 167
 
     $default  reduce using rule 128 (inline_export_opt)
 
-    inline_import      go to state 165
-    inline_export_opt  go to state 166
-    inline_export      go to state 167
+    inline_import      go to state 168
+    inline_export_opt  go to state 169
+    inline_export      go to state 170
 
 
-State 103
+State 106
 
    70 expr: "(" . expr1 ")"
    98 offset: "(" . OFFSET const_expr ")"
 
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 168
-    IF              shift, and go to state 169
-    LOOP            shift, and go to state 170
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-    OFFSET          shift, and go to state 171
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 171
+    IF              shift, and go to state 172
+    LOOP            shift, and go to state 173
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+    OFFSET          shift, and go to state 174
 
-    plain_instr  go to state 172
-    expr1        go to state 173
+    plain_instr  go to state 175
+    expr1        go to state 176
 
 
-State 104
+State 107
 
   100 elem: "(" ELEM var . offset var_list ")"
 
-    "("  shift, and go to state 103
+    "("  shift, and go to state 106
 
-    expr    go to state 105
-    offset  go to state 174
+    expr    go to state 108
+    offset  go to state 177
 
 
-State 105
+State 108
 
    99 offset: expr .
 
     $default  reduce using rule 99 (offset)
 
 
-State 106
+State 109
 
   101 elem: "(" ELEM offset . var_list ")"
 
     $default  reduce using rule 27 (var_list)
 
-    var_list  go to state 175
+    var_list  go to state 178
 
 
-State 107
+State 110
 
   106 memory: "(" MEMORY bind_var_opt . inline_export_opt memory_sig ")"
   107       | "(" MEMORY bind_var_opt . inline_export "(" DATA text_list ")" ")"
   108       | "(" MEMORY bind_var_opt . "(" DATA text_list ")" ")"
   120 import: "(" MEMORY bind_var_opt . inline_import memory_sig ")"
 
-    "("  shift, and go to state 176
+    "("  shift, and go to state 179
 
     $default  reduce using rule 128 (inline_export_opt)
 
-    inline_import      go to state 177
-    inline_export_opt  go to state 178
-    inline_export      go to state 179
-
-
-State 108
-
-  104 data: "(" DATA var . offset text_list ")"
-
-    "("  shift, and go to state 103
-
-    expr    go to state 105
-    offset  go to state 180
-
-
-State 109
-
-  105 data: "(" DATA offset . text_list ")"
-
-    TEXT  shift, and go to state 41
-
-    $default  reduce using rule 3 (text_list)
-
-    non_empty_text_list  go to state 181
-    text_list            go to state 182
-
-
-State 110
-
-  116 import: "(" IMPORT quoted_text . quoted_text import_kind ")"
-
-    TEXT  shift, and go to state 25
-
-    quoted_text  go to state 183
+    inline_import      go to state 180
+    inline_export_opt  go to state 181
+    inline_export      go to state 182
 
 
 State 111
 
-  127 export: "(" EXPORT quoted_text . export_kind ")"
+  104 data: "(" DATA var . offset text_list ")"
 
-    "("  shift, and go to state 184
+    "("  shift, and go to state 106
 
-    export_kind  go to state 185
+    expr    go to state 108
+    offset  go to state 183
 
 
 State 112
+
+  105 data: "(" DATA offset . text_list ")"
+
+    TEXT  shift, and go to state 43
+
+    $default  reduce using rule 3 (text_list)
+
+    non_empty_text_list  go to state 184
+    text_list            go to state 185
+
+
+State 113
+
+  116 import: "(" IMPORT quoted_text . quoted_text import_kind ")"
+
+    TEXT  shift, and go to state 26
+
+    quoted_text  go to state 186
+
+
+State 114
+
+  127 export: "(" EXPORT quoted_text . export_kind ")"
+
+    "("  shift, and go to state 187
+
+    export_kind  go to state 188
+
+
+State 115
 
    22 literal: NAT .
 
     $default  reduce using rule 22 (literal)
 
 
-State 113
+State 116
 
    23 literal: INT .
 
     $default  reduce using rule 23 (literal)
 
 
-State 114
+State 117
 
    24 literal: FLOAT .
 
     $default  reduce using rule 24 (literal)
 
 
-State 115
+State 118
 
-  166 const: "(" CONST literal . ")"
+  167 const: "(" CONST literal . ")"
 
-    ")"  shift, and go to state 186
+    ")"  shift, and go to state 189
 
 
-State 116
+State 119
 
    20 type_use: "(" . TYPE var ")"
    70 expr: "(" . expr1 ")"
@@ -1639,916 +1666,894 @@ State 116
   122 inline_import: "(" . IMPORT quoted_text quoted_text ")"
   130 inline_export: "(" . EXPORT quoted_text ")"
 
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 168
-    IF              shift, and go to state 169
-    LOOP            shift, and go to state 170
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-    TYPE            shift, and go to state 187
-    PARAM           shift, and go to state 188
-    RESULT          shift, and go to state 189
-    LOCAL           shift, and go to state 190
-    IMPORT          shift, and go to state 191
-    EXPORT          shift, and go to state 192
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 171
+    IF              shift, and go to state 172
+    LOOP            shift, and go to state 173
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+    TYPE            shift, and go to state 190
+    PARAM           shift, and go to state 191
+    RESULT          shift, and go to state 192
+    LOCAL           shift, and go to state 193
+    IMPORT          shift, and go to state 194
+    EXPORT          shift, and go to state 195
 
-    plain_instr  go to state 172
-    expr1        go to state 173
+    plain_instr  go to state 175
+    expr1        go to state 176
 
 
-State 117
+State 120
 
    42 plain_instr: NOP .
 
     $default  reduce using rule 42 (plain_instr)
 
 
-State 118
+State 121
 
    43 plain_instr: DROP .
 
     $default  reduce using rule 43 (plain_instr)
 
 
-State 119
+State 122
 
    65 block_instr: BLOCK . labeling_opt block END labeling_opt
 
-    VAR  shift, and go to state 22
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 32 (labeling_opt)
 
-    bind_var      go to state 193
-    labeling_opt  go to state 194
-
-
-State 120
-
-   67 block_instr: IF . labeling_opt block END labeling_opt
-   68            | IF . labeling_opt block ELSE labeling_opt instr_list END labeling_opt
-
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 32 (labeling_opt)
-
-    bind_var      go to state 193
-    labeling_opt  go to state 195
-
-
-State 121
-
-   66 block_instr: LOOP . labeling_opt block END labeling_opt
-
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 32 (labeling_opt)
-
-    bind_var      go to state 193
-    labeling_opt  go to state 196
-
-
-State 122
-
-   45 plain_instr: BR . var
-
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
-
-    nat  go to state 96
-    var  go to state 197
+    bind_var      go to state 196
+    labeling_opt  go to state 197
 
 
 State 123
 
-   46 plain_instr: BR_IF . var
+   67 block_instr: IF . labeling_opt block END labeling_opt
+   68            | IF . labeling_opt block ELSE labeling_opt instr_list END labeling_opt
 
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    VAR  shift, and go to state 23
 
-    nat  go to state 96
-    var  go to state 198
+    $default  reduce using rule 32 (labeling_opt)
+
+    bind_var      go to state 196
+    labeling_opt  go to state 198
 
 
 State 124
 
-   47 plain_instr: BR_TABLE . var_list var
+   66 block_instr: LOOP . labeling_opt block END labeling_opt
 
-    $default  reduce using rule 27 (var_list)
+    VAR  shift, and go to state 23
 
-    var_list  go to state 199
+    $default  reduce using rule 32 (labeling_opt)
+
+    bind_var      go to state 196
+    labeling_opt  go to state 199
 
 
 State 125
 
-   49 plain_instr: CALL . var
+   45 plain_instr: BR . var
 
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat  go to state 96
+    nat  go to state 99
     var  go to state 200
 
 
 State 126
 
-   50 plain_instr: CALL_INDIRECT . var
+   46 plain_instr: BR_IF . var
 
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat  go to state 96
+    nat  go to state 99
     var  go to state 201
 
 
 State 127
+
+   47 plain_instr: BR_TABLE . var_list var
+
+    $default  reduce using rule 27 (var_list)
+
+    var_list  go to state 202
+
+
+State 128
+
+   49 plain_instr: CALL . var
+
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
+
+    nat  go to state 99
+    var  go to state 203
+
+
+State 129
+
+   50 plain_instr: CALL_INDIRECT . var
+
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
+
+    nat  go to state 99
+    var  go to state 204
+
+
+State 130
 
    48 plain_instr: RETURN .
 
     $default  reduce using rule 48 (plain_instr)
 
 
-State 128
+State 131
 
    51 plain_instr: GET_LOCAL . var
 
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat  go to state 96
-    var  go to state 202
-
-
-State 129
-
-   52 plain_instr: SET_LOCAL . var
-
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
-
-    nat  go to state 96
-    var  go to state 203
-
-
-State 130
-
-   53 plain_instr: TEE_LOCAL . var
-
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
-
-    nat  go to state 96
-    var  go to state 204
-
-
-State 131
-
-   54 plain_instr: GET_GLOBAL . var
-
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
-
-    nat  go to state 96
+    nat  go to state 99
     var  go to state 205
 
 
 State 132
 
-   55 plain_instr: SET_GLOBAL . var
+   52 plain_instr: SET_LOCAL . var
 
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat  go to state 96
+    nat  go to state 99
     var  go to state 206
 
 
 State 133
 
-   56 plain_instr: LOAD . offset_opt align_opt
+   53 plain_instr: TEE_LOCAL . var
 
-    OFFSET_EQ_NAT  shift, and go to state 207
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    $default  reduce using rule 34 (offset_opt)
-
-    offset_opt  go to state 208
+    nat  go to state 99
+    var  go to state 207
 
 
 State 134
 
-   57 plain_instr: STORE . offset_opt align_opt
+   54 plain_instr: GET_GLOBAL . var
 
-    OFFSET_EQ_NAT  shift, and go to state 207
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    $default  reduce using rule 34 (offset_opt)
-
-    offset_opt  go to state 209
+    nat  go to state 99
+    var  go to state 208
 
 
 State 135
 
-   58 plain_instr: CONST . literal
+   55 plain_instr: SET_GLOBAL . var
 
-    NAT    shift, and go to state 112
-    INT    shift, and go to state 113
-    FLOAT  shift, and go to state 114
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    literal  go to state 210
+    nat  go to state 99
+    var  go to state 209
 
 
 State 136
+
+   56 plain_instr: LOAD . offset_opt align_opt
+
+    OFFSET_EQ_NAT  shift, and go to state 210
+
+    $default  reduce using rule 34 (offset_opt)
+
+    offset_opt  go to state 211
+
+
+State 137
+
+   57 plain_instr: STORE . offset_opt align_opt
+
+    OFFSET_EQ_NAT  shift, and go to state 210
+
+    $default  reduce using rule 34 (offset_opt)
+
+    offset_opt  go to state 212
+
+
+State 138
+
+   58 plain_instr: CONST . literal
+
+    NAT    shift, and go to state 115
+    INT    shift, and go to state 116
+    FLOAT  shift, and go to state 117
+
+    literal  go to state 213
+
+
+State 139
 
    59 plain_instr: UNARY .
 
     $default  reduce using rule 59 (plain_instr)
 
 
-State 137
+State 140
 
    60 plain_instr: BINARY .
 
     $default  reduce using rule 60 (plain_instr)
 
 
-State 138
+State 141
 
    61 plain_instr: COMPARE .
 
     $default  reduce using rule 61 (plain_instr)
 
 
-State 139
+State 142
 
    62 plain_instr: CONVERT .
 
     $default  reduce using rule 62 (plain_instr)
 
 
-State 140
+State 143
 
    44 plain_instr: SELECT .
 
     $default  reduce using rule 44 (plain_instr)
 
 
-State 141
+State 144
 
    41 plain_instr: UNREACHABLE .
 
     $default  reduce using rule 41 (plain_instr)
 
 
-State 142
+State 145
 
    63 plain_instr: CURRENT_MEMORY .
 
     $default  reduce using rule 63 (plain_instr)
 
 
-State 143
+State 146
 
    64 plain_instr: GROW_MEMORY .
 
     $default  reduce using rule 64 (plain_instr)
 
 
-State 144
+State 147
 
    95 func: "(" FUNC bind_var_opt type_use . func_info ")"
 
-    "("             shift, and go to state 211
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 214
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 149
-    func_fields  go to state 150
-    func_body    go to state 151
-    func_info    go to state 212
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 152
+    func_fields  go to state 153
+    func_body    go to state 154
+    func_info    go to state 215
 
 
-State 145
+State 148
 
    82 instr_list: instr . instr_list
 
-    "("             shift, and go to state 213
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 216
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 214
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 217
 
 
-State 146
+State 149
 
    38 instr: plain_instr .
 
     $default  reduce using rule 38 (instr)
 
 
-State 147
+State 150
 
    39 instr: block_instr .
 
     $default  reduce using rule 39 (instr)
 
 
-State 148
+State 151
 
    40 instr: expr .
 
     $default  reduce using rule 40 (instr)
 
 
-State 149
+State 152
 
    90 func_body: instr_list .
 
     $default  reduce using rule 90 (func_body)
 
 
-State 150
+State 153
 
    93 func_info: func_fields .
 
     $default  reduce using rule 93 (func_info)
 
 
-State 151
+State 154
 
    86 func_fields: func_body .
 
     $default  reduce using rule 86 (func_fields)
 
 
-State 152
+State 155
 
    97 func: "(" FUNC bind_var_opt func_info . ")"
 
-    ")"  shift, and go to state 215
+    ")"  shift, and go to state 218
 
 
-State 153
+State 156
 
   117 import: "(" FUNC bind_var_opt inline_import . type_use ")"
   118       | "(" FUNC bind_var_opt inline_import . func_sig ")"
 
-    "("  shift, and go to state 216
+    "("  shift, and go to state 219
 
     $default  reduce using rule 12 (func_sig)
 
-    func_sig  go to state 217
-    type_use  go to state 218
+    func_sig  go to state 220
+    type_use  go to state 221
 
 
-State 154
+State 157
 
    94 func: "(" FUNC bind_var_opt inline_export . type_use func_info ")"
    96     | "(" FUNC bind_var_opt inline_export . func_info ")"
 
-    "("             shift, and go to state 219
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 222
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    type_use     go to state 220
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 149
-    func_fields  go to state 150
-    func_body    go to state 151
-    func_info    go to state 221
+    type_use     go to state 223
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 152
+    func_fields  go to state 153
+    func_body    go to state 154
+    func_info    go to state 224
 
 
-State 155
+State 158
 
   133 start: "(" START var ")" .
 
     $default  reduce using rule 133 (start)
 
 
-State 156
+State 159
 
    11 func_type: "(" FUNC . func_sig ")"
 
-    "("  shift, and go to state 222
+    "("  shift, and go to state 225
 
     $default  reduce using rule 12 (func_sig)
 
-    func_sig  go to state 223
+    func_sig  go to state 226
 
 
-State 157
+State 160
 
   131 type_def: "(" TYPE func_type ")" .
 
     $default  reduce using rule 131 (type_def)
 
 
-State 158
+State 161
 
   132 type_def: "(" TYPE bind_var func_type . ")"
 
-    ")"  shift, and go to state 224
+    ")"  shift, and go to state 227
 
 
-State 159
+State 162
 
    10 global_type: "(" . MUT VALUE_TYPE ")"
   122 inline_import: "(" . IMPORT quoted_text quoted_text ")"
   130 inline_export: "(" . EXPORT quoted_text ")"
 
-    MUT     shift, and go to state 225
-    IMPORT  shift, and go to state 191
-    EXPORT  shift, and go to state 192
+    MUT     shift, and go to state 228
+    IMPORT  shift, and go to state 194
+    EXPORT  shift, and go to state 195
 
 
-State 160
+State 163
 
     9 global_type: VALUE_TYPE .
 
     $default  reduce using rule 9 (global_type)
 
 
-State 161
+State 164
 
   110 global: "(" GLOBAL bind_var_opt global_type . const_expr ")"
 
-    "("             shift, and go to state 213
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 216
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 226
-    const_expr   go to state 227
-
-
-State 162
-
-  121 import: "(" GLOBAL bind_var_opt inline_import . global_type ")"
-
-    "("         shift, and go to state 228
-    VALUE_TYPE  shift, and go to state 160
-
-    global_type  go to state 229
-
-
-State 163
-
-  109 global: "(" GLOBAL bind_var_opt inline_export . global_type const_expr ")"
-
-    "("         shift, and go to state 228
-    VALUE_TYPE  shift, and go to state 160
-
-    global_type  go to state 230
-
-
-State 164
-
-  122 inline_import: "(" . IMPORT quoted_text quoted_text ")"
-  130 inline_export: "(" . EXPORT quoted_text ")"
-
-    IMPORT  shift, and go to state 191
-    EXPORT  shift, and go to state 192
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 229
+    const_expr   go to state 230
 
 
 State 165
 
-  119 import: "(" TABLE bind_var_opt inline_import . table_sig ")"
+  121 import: "(" GLOBAL bind_var_opt inline_import . global_type ")"
 
-    NAT  shift, and go to state 94
+    "("         shift, and go to state 231
+    VALUE_TYPE  shift, and go to state 163
 
-    table_sig  go to state 231
-    limits     go to state 232
-    nat        go to state 233
+    global_type  go to state 232
 
 
 State 166
 
-  102 table: "(" TABLE bind_var_opt inline_export_opt . table_sig ")"
-  103      | "(" TABLE bind_var_opt inline_export_opt . elem_type "(" ELEM var_list ")" ")"
+  109 global: "(" GLOBAL bind_var_opt inline_export . global_type const_expr ")"
 
-    NAT      shift, and go to state 94
-    ANYFUNC  shift, and go to state 234
+    "("         shift, and go to state 231
+    VALUE_TYPE  shift, and go to state 163
 
-    elem_type  go to state 235
-    table_sig  go to state 236
-    limits     go to state 232
-    nat        go to state 233
+    global_type  go to state 233
 
 
 State 167
+
+  122 inline_import: "(" . IMPORT quoted_text quoted_text ")"
+  130 inline_export: "(" . EXPORT quoted_text ")"
+
+    IMPORT  shift, and go to state 194
+    EXPORT  shift, and go to state 195
+
+
+State 168
+
+  119 import: "(" TABLE bind_var_opt inline_import . table_sig ")"
+
+    NAT  shift, and go to state 97
+
+    table_sig  go to state 234
+    limits     go to state 235
+    nat        go to state 236
+
+
+State 169
+
+  102 table: "(" TABLE bind_var_opt inline_export_opt . table_sig ")"
+  103      | "(" TABLE bind_var_opt inline_export_opt . elem_type "(" ELEM var_list ")" ")"
+
+    NAT      shift, and go to state 97
+    ANYFUNC  shift, and go to state 237
+
+    elem_type  go to state 238
+    table_sig  go to state 239
+    limits     go to state 235
+    nat        go to state 236
+
+
+State 170
 
   129 inline_export_opt: inline_export .
 
     $default  reduce using rule 129 (inline_export_opt)
 
 
-State 168
+State 171
 
    72 expr1: BLOCK . labeling_opt block
 
-    VAR  shift, and go to state 22
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 32 (labeling_opt)
 
-    bind_var      go to state 193
-    labeling_opt  go to state 237
-
-
-State 169
-
-   74 expr1: IF . labeling_opt value_type_list if_
-
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 32 (labeling_opt)
-
-    bind_var      go to state 193
-    labeling_opt  go to state 238
-
-
-State 170
-
-   73 expr1: LOOP . labeling_opt block
-
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 32 (labeling_opt)
-
-    bind_var      go to state 193
-    labeling_opt  go to state 239
-
-
-State 171
-
-   98 offset: "(" OFFSET . const_expr ")"
-
-    "("             shift, and go to state 213
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-
-    $default  reduce using rule 81 (instr_list)
-
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 226
-    const_expr   go to state 240
+    bind_var      go to state 196
+    labeling_opt  go to state 240
 
 
 State 172
 
-   71 expr1: plain_instr . expr_list
+   74 expr1: IF . labeling_opt value_type_list if_
 
-    "("  shift, and go to state 213
+    VAR  shift, and go to state 23
 
-    $default  reduce using rule 83 (expr_list)
+    $default  reduce using rule 32 (labeling_opt)
 
-    expr       go to state 241
-    expr_list  go to state 242
+    bind_var      go to state 196
+    labeling_opt  go to state 241
 
 
 State 173
 
-   70 expr: "(" expr1 . ")"
+   73 expr1: LOOP . labeling_opt block
 
-    ")"  shift, and go to state 243
+    VAR  shift, and go to state 23
+
+    $default  reduce using rule 32 (labeling_opt)
+
+    bind_var      go to state 196
+    labeling_opt  go to state 242
 
 
 State 174
+
+   98 offset: "(" OFFSET . const_expr ")"
+
+    "("             shift, and go to state 216
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+
+    $default  reduce using rule 81 (instr_list)
+
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 229
+    const_expr   go to state 243
+
+
+State 175
+
+   71 expr1: plain_instr . expr_list
+
+    "("  shift, and go to state 216
+
+    $default  reduce using rule 83 (expr_list)
+
+    expr       go to state 244
+    expr_list  go to state 245
+
+
+State 176
+
+   70 expr: "(" expr1 . ")"
+
+    ")"  shift, and go to state 246
+
+
+State 177
 
   100 elem: "(" ELEM var offset . var_list ")"
 
     $default  reduce using rule 27 (var_list)
 
-    var_list  go to state 244
+    var_list  go to state 247
 
 
-State 175
+State 178
 
    28 var_list: var_list . var
   101 elem: "(" ELEM offset var_list . ")"
 
-    ")"  shift, and go to state 245
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    ")"  shift, and go to state 248
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat  go to state 96
-    var  go to state 246
+    nat  go to state 99
+    var  go to state 249
 
 
-State 176
+State 179
 
   108 memory: "(" MEMORY bind_var_opt "(" . DATA text_list ")" ")"
   122 inline_import: "(" . IMPORT quoted_text quoted_text ")"
   130 inline_export: "(" . EXPORT quoted_text ")"
 
-    DATA    shift, and go to state 247
-    IMPORT  shift, and go to state 191
-    EXPORT  shift, and go to state 192
-
-
-State 177
-
-  120 import: "(" MEMORY bind_var_opt inline_import . memory_sig ")"
-
-    NAT  shift, and go to state 94
-
-    memory_sig  go to state 248
-    limits      go to state 249
-    nat         go to state 233
-
-
-State 178
-
-  106 memory: "(" MEMORY bind_var_opt inline_export_opt . memory_sig ")"
-
-    NAT  shift, and go to state 94
-
-    memory_sig  go to state 250
-    limits      go to state 249
-    nat         go to state 233
-
-
-State 179
-
-  107 memory: "(" MEMORY bind_var_opt inline_export . "(" DATA text_list ")" ")"
-  129 inline_export_opt: inline_export .
-
-    "("  shift, and go to state 251
-
-    $default  reduce using rule 129 (inline_export_opt)
+    DATA    shift, and go to state 250
+    IMPORT  shift, and go to state 194
+    EXPORT  shift, and go to state 195
 
 
 State 180
 
-  104 data: "(" DATA var offset . text_list ")"
+  120 import: "(" MEMORY bind_var_opt inline_import . memory_sig ")"
 
-    TEXT  shift, and go to state 41
+    NAT  shift, and go to state 97
 
-    $default  reduce using rule 3 (text_list)
-
-    non_empty_text_list  go to state 181
-    text_list            go to state 252
+    memory_sig  go to state 251
+    limits      go to state 252
+    nat         go to state 236
 
 
 State 181
 
-    2 non_empty_text_list: non_empty_text_list . TEXT
-    4 text_list: non_empty_text_list .
+  106 memory: "(" MEMORY bind_var_opt inline_export_opt . memory_sig ")"
 
-    TEXT  shift, and go to state 56
+    NAT  shift, and go to state 97
 
-    $default  reduce using rule 4 (text_list)
+    memory_sig  go to state 253
+    limits      go to state 252
+    nat         go to state 236
 
 
 State 182
 
-  105 data: "(" DATA offset text_list . ")"
+  107 memory: "(" MEMORY bind_var_opt inline_export . "(" DATA text_list ")" ")"
+  129 inline_export_opt: inline_export .
 
-    ")"  shift, and go to state 253
+    "("  shift, and go to state 254
+
+    $default  reduce using rule 129 (inline_export_opt)
 
 
 State 183
 
-  116 import: "(" IMPORT quoted_text quoted_text . import_kind ")"
+  104 data: "(" DATA var offset . text_list ")"
 
-    "("  shift, and go to state 254
+    TEXT  shift, and go to state 43
 
-    import_kind  go to state 255
+    $default  reduce using rule 3 (text_list)
+
+    non_empty_text_list  go to state 184
+    text_list            go to state 255
 
 
 State 184
+
+    2 non_empty_text_list: non_empty_text_list . TEXT
+    4 text_list: non_empty_text_list .
+
+    TEXT  shift, and go to state 59
+
+    $default  reduce using rule 4 (text_list)
+
+
+State 185
+
+  105 data: "(" DATA offset text_list . ")"
+
+    ")"  shift, and go to state 256
+
+
+State 186
+
+  116 import: "(" IMPORT quoted_text quoted_text . import_kind ")"
+
+    "("  shift, and go to state 257
+
+    import_kind  go to state 258
+
+
+State 187
 
   123 export_kind: "(" . FUNC var ")"
   124            | "(" . TABLE var ")"
   125            | "(" . MEMORY var ")"
   126            | "(" . GLOBAL var ")"
 
-    FUNC    shift, and go to state 256
-    GLOBAL  shift, and go to state 257
-    TABLE   shift, and go to state 258
-    MEMORY  shift, and go to state 259
-
-
-State 185
-
-  127 export: "(" EXPORT quoted_text export_kind . ")"
-
-    ")"  shift, and go to state 260
-
-
-State 186
-
-  166 const: "(" CONST literal ")" .
-
-    $default  reduce using rule 166 (const)
-
-
-State 187
-
-   20 type_use: "(" TYPE . var ")"
-
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
-
-    nat  go to state 96
-    var  go to state 261
+    FUNC    shift, and go to state 259
+    GLOBAL  shift, and go to state 260
+    TABLE   shift, and go to state 261
+    MEMORY  shift, and go to state 262
 
 
 State 188
 
-   88 func_fields: "(" PARAM . value_type_list ")" func_fields
-   89            | "(" PARAM . bind_var VALUE_TYPE ")" func_fields
+  127 export: "(" EXPORT quoted_text export_kind . ")"
 
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 6 (value_type_list)
-
-    value_type_list  go to state 262
-    bind_var         go to state 263
+    ")"  shift, and go to state 263
 
 
 State 189
 
-   87 func_fields: "(" RESULT . value_type_list ")" func_body
+  167 const: "(" CONST literal ")" .
 
-    $default  reduce using rule 6 (value_type_list)
-
-    value_type_list  go to state 264
+    $default  reduce using rule 167 (const)
 
 
 State 190
 
-   91 func_body: "(" LOCAL . value_type_list ")" func_body
-   92          | "(" LOCAL . bind_var VALUE_TYPE ")" func_body
+   20 type_use: "(" TYPE . var ")"
 
-    VAR  shift, and go to state 22
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
+
+    nat  go to state 99
+    var  go to state 264
+
+
+State 191
+
+   88 func_fields: "(" PARAM . value_type_list ")" func_fields
+   89            | "(" PARAM . bind_var VALUE_TYPE ")" func_fields
+
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 6 (value_type_list)
 
@@ -2556,174 +2561,196 @@ State 190
     bind_var         go to state 266
 
 
-State 191
-
-  122 inline_import: "(" IMPORT . quoted_text quoted_text ")"
-
-    TEXT  shift, and go to state 25
-
-    quoted_text  go to state 267
-
-
 State 192
 
-  130 inline_export: "(" EXPORT . quoted_text ")"
+   87 func_fields: "(" RESULT . value_type_list ")" func_body
 
-    TEXT  shift, and go to state 25
+    $default  reduce using rule 6 (value_type_list)
 
-    quoted_text  go to state 268
+    value_type_list  go to state 267
 
 
 State 193
+
+   91 func_body: "(" LOCAL . value_type_list ")" func_body
+   92          | "(" LOCAL . bind_var VALUE_TYPE ")" func_body
+
+    VAR  shift, and go to state 23
+
+    $default  reduce using rule 6 (value_type_list)
+
+    value_type_list  go to state 268
+    bind_var         go to state 269
+
+
+State 194
+
+  122 inline_import: "(" IMPORT . quoted_text quoted_text ")"
+
+    TEXT  shift, and go to state 26
+
+    quoted_text  go to state 270
+
+
+State 195
+
+  130 inline_export: "(" EXPORT . quoted_text ")"
+
+    TEXT  shift, and go to state 26
+
+    quoted_text  go to state 271
+
+
+State 196
 
    33 labeling_opt: bind_var .
 
     $default  reduce using rule 33 (labeling_opt)
 
 
-State 194
+State 197
 
    65 block_instr: BLOCK labeling_opt . block END labeling_opt
 
     $default  reduce using rule 6 (value_type_list)
 
-    value_type_list  go to state 269
-    block            go to state 270
+    value_type_list  go to state 272
+    block            go to state 273
 
 
-State 195
+State 198
 
    67 block_instr: IF labeling_opt . block END labeling_opt
    68            | IF labeling_opt . block ELSE labeling_opt instr_list END labeling_opt
 
     $default  reduce using rule 6 (value_type_list)
 
-    value_type_list  go to state 269
-    block            go to state 271
+    value_type_list  go to state 272
+    block            go to state 274
 
 
-State 196
+State 199
 
    66 block_instr: LOOP labeling_opt . block END labeling_opt
 
     $default  reduce using rule 6 (value_type_list)
 
-    value_type_list  go to state 269
-    block            go to state 272
+    value_type_list  go to state 272
+    block            go to state 275
 
 
-State 197
+State 200
 
    45 plain_instr: BR var .
 
     $default  reduce using rule 45 (plain_instr)
 
 
-State 198
+State 201
 
    46 plain_instr: BR_IF var .
 
     $default  reduce using rule 46 (plain_instr)
 
 
-State 199
+State 202
 
    28 var_list: var_list . var
    47 plain_instr: BR_TABLE var_list . var
 
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat  go to state 96
-    var  go to state 273
+    nat  go to state 99
+    var  go to state 276
 
 
-State 200
+State 203
 
    49 plain_instr: CALL var .
 
     $default  reduce using rule 49 (plain_instr)
 
 
-State 201
+State 204
 
    50 plain_instr: CALL_INDIRECT var .
 
     $default  reduce using rule 50 (plain_instr)
 
 
-State 202
+State 205
 
    51 plain_instr: GET_LOCAL var .
 
     $default  reduce using rule 51 (plain_instr)
 
 
-State 203
+State 206
 
    52 plain_instr: SET_LOCAL var .
 
     $default  reduce using rule 52 (plain_instr)
 
 
-State 204
+State 207
 
    53 plain_instr: TEE_LOCAL var .
 
     $default  reduce using rule 53 (plain_instr)
 
 
-State 205
+State 208
 
    54 plain_instr: GET_GLOBAL var .
 
     $default  reduce using rule 54 (plain_instr)
 
 
-State 206
+State 209
 
    55 plain_instr: SET_GLOBAL var .
 
     $default  reduce using rule 55 (plain_instr)
 
 
-State 207
+State 210
 
    35 offset_opt: OFFSET_EQ_NAT .
 
     $default  reduce using rule 35 (offset_opt)
 
 
-State 208
+State 211
 
    56 plain_instr: LOAD offset_opt . align_opt
 
-    ALIGN_EQ_NAT  shift, and go to state 274
+    ALIGN_EQ_NAT  shift, and go to state 277
 
     $default  reduce using rule 36 (align_opt)
 
-    align_opt  go to state 275
+    align_opt  go to state 278
 
 
-State 209
+State 212
 
    57 plain_instr: STORE offset_opt . align_opt
 
-    ALIGN_EQ_NAT  shift, and go to state 274
+    ALIGN_EQ_NAT  shift, and go to state 277
 
     $default  reduce using rule 36 (align_opt)
 
-    align_opt  go to state 276
+    align_opt  go to state 279
 
 
-State 210
+State 213
 
    58 plain_instr: CONST literal .
 
     $default  reduce using rule 58 (plain_instr)
 
 
-State 211
+State 214
 
    70 expr: "(" . expr1 ")"
    87 func_fields: "(" . RESULT value_type_list ")" func_body
@@ -2732,125 +2759,125 @@ State 211
    91 func_body: "(" . LOCAL value_type_list ")" func_body
    92          | "(" . LOCAL bind_var VALUE_TYPE ")" func_body
 
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 168
-    IF              shift, and go to state 169
-    LOOP            shift, and go to state 170
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-    PARAM           shift, and go to state 188
-    RESULT          shift, and go to state 189
-    LOCAL           shift, and go to state 190
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 171
+    IF              shift, and go to state 172
+    LOOP            shift, and go to state 173
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+    PARAM           shift, and go to state 191
+    RESULT          shift, and go to state 192
+    LOCAL           shift, and go to state 193
 
-    plain_instr  go to state 172
-    expr1        go to state 173
+    plain_instr  go to state 175
+    expr1        go to state 176
 
 
-State 212
+State 215
 
    95 func: "(" FUNC bind_var_opt type_use func_info . ")"
 
-    ")"  shift, and go to state 277
+    ")"  shift, and go to state 280
 
 
-State 213
+State 216
 
    70 expr: "(" . expr1 ")"
 
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 168
-    IF              shift, and go to state 169
-    LOOP            shift, and go to state 170
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 171
+    IF              shift, and go to state 172
+    LOOP            shift, and go to state 173
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
-    plain_instr  go to state 172
-    expr1        go to state 173
+    plain_instr  go to state 175
+    expr1        go to state 176
 
 
-State 214
+State 217
 
    82 instr_list: instr instr_list .
 
     $default  reduce using rule 82 (instr_list)
 
 
-State 215
+State 218
 
    97 func: "(" FUNC bind_var_opt func_info ")" .
 
     $default  reduce using rule 97 (func)
 
 
-State 216
+State 219
 
    13 func_sig: "(" . PARAM value_type_list ")"
    14         | "(" . PARAM value_type_list ")" "(" RESULT value_type_list ")"
    15         | "(" . RESULT value_type_list ")"
    20 type_use: "(" . TYPE var ")"
 
-    TYPE    shift, and go to state 187
-    PARAM   shift, and go to state 278
-    RESULT  shift, and go to state 279
+    TYPE    shift, and go to state 190
+    PARAM   shift, and go to state 281
+    RESULT  shift, and go to state 282
 
 
-State 217
+State 220
 
   118 import: "(" FUNC bind_var_opt inline_import func_sig . ")"
 
-    ")"  shift, and go to state 280
+    ")"  shift, and go to state 283
 
 
-State 218
+State 221
 
   117 import: "(" FUNC bind_var_opt inline_import type_use . ")"
 
-    ")"  shift, and go to state 281
+    ")"  shift, and go to state 284
 
 
-State 219
+State 222
 
    20 type_use: "(" . TYPE var ")"
    70 expr: "(" . expr1 ")"
@@ -2860,389 +2887,389 @@ State 219
    91 func_body: "(" . LOCAL value_type_list ")" func_body
    92          | "(" . LOCAL bind_var VALUE_TYPE ")" func_body
 
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 168
-    IF              shift, and go to state 169
-    LOOP            shift, and go to state 170
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-    TYPE            shift, and go to state 187
-    PARAM           shift, and go to state 188
-    RESULT          shift, and go to state 189
-    LOCAL           shift, and go to state 190
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 171
+    IF              shift, and go to state 172
+    LOOP            shift, and go to state 173
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+    TYPE            shift, and go to state 190
+    PARAM           shift, and go to state 191
+    RESULT          shift, and go to state 192
+    LOCAL           shift, and go to state 193
 
-    plain_instr  go to state 172
-    expr1        go to state 173
+    plain_instr  go to state 175
+    expr1        go to state 176
 
 
-State 220
+State 223
 
    94 func: "(" FUNC bind_var_opt inline_export type_use . func_info ")"
 
-    "("             shift, and go to state 211
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 214
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 149
-    func_fields  go to state 150
-    func_body    go to state 151
-    func_info    go to state 282
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 152
+    func_fields  go to state 153
+    func_body    go to state 154
+    func_info    go to state 285
 
 
-State 221
+State 224
 
    96 func: "(" FUNC bind_var_opt inline_export func_info . ")"
 
-    ")"  shift, and go to state 283
+    ")"  shift, and go to state 286
 
 
-State 222
+State 225
 
    13 func_sig: "(" . PARAM value_type_list ")"
    14         | "(" . PARAM value_type_list ")" "(" RESULT value_type_list ")"
    15         | "(" . RESULT value_type_list ")"
 
-    PARAM   shift, and go to state 278
-    RESULT  shift, and go to state 279
+    PARAM   shift, and go to state 281
+    RESULT  shift, and go to state 282
 
 
-State 223
+State 226
 
    11 func_type: "(" FUNC func_sig . ")"
 
-    ")"  shift, and go to state 284
+    ")"  shift, and go to state 287
 
 
-State 224
+State 227
 
   132 type_def: "(" TYPE bind_var func_type ")" .
 
     $default  reduce using rule 132 (type_def)
 
 
-State 225
+State 228
 
    10 global_type: "(" MUT . VALUE_TYPE ")"
 
-    VALUE_TYPE  shift, and go to state 285
+    VALUE_TYPE  shift, and go to state 288
 
 
-State 226
+State 229
 
    85 const_expr: instr_list .
 
     $default  reduce using rule 85 (const_expr)
 
 
-State 227
-
-  110 global: "(" GLOBAL bind_var_opt global_type const_expr . ")"
-
-    ")"  shift, and go to state 286
-
-
-State 228
-
-   10 global_type: "(" . MUT VALUE_TYPE ")"
-
-    MUT  shift, and go to state 225
-
-
-State 229
-
-  121 import: "(" GLOBAL bind_var_opt inline_import global_type . ")"
-
-    ")"  shift, and go to state 287
-
-
 State 230
 
-  109 global: "(" GLOBAL bind_var_opt inline_export global_type . const_expr ")"
-
-    "("             shift, and go to state 213
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-
-    $default  reduce using rule 81 (instr_list)
-
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 226
-    const_expr   go to state 288
-
-
-State 231
-
-  119 import: "(" TABLE bind_var_opt inline_import table_sig . ")"
+  110 global: "(" GLOBAL bind_var_opt global_type const_expr . ")"
 
     ")"  shift, and go to state 289
 
 
+State 231
+
+   10 global_type: "(" . MUT VALUE_TYPE ")"
+
+    MUT  shift, and go to state 228
+
+
 State 232
 
-   16 table_sig: limits . elem_type
+  121 import: "(" GLOBAL bind_var_opt inline_import global_type . ")"
 
-    ANYFUNC  shift, and go to state 234
-
-    elem_type  go to state 290
+    ")"  shift, and go to state 290
 
 
 State 233
 
-   18 limits: nat .
-   19       | nat . nat
+  109 global: "(" GLOBAL bind_var_opt inline_export global_type . const_expr ")"
 
-    NAT  shift, and go to state 94
+    "("             shift, and go to state 216
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
-    $default  reduce using rule 18 (limits)
+    $default  reduce using rule 81 (instr_list)
 
-    nat  go to state 291
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 229
+    const_expr   go to state 291
 
 
 State 234
+
+  119 import: "(" TABLE bind_var_opt inline_import table_sig . ")"
+
+    ")"  shift, and go to state 292
+
+
+State 235
+
+   16 table_sig: limits . elem_type
+
+    ANYFUNC  shift, and go to state 237
+
+    elem_type  go to state 293
+
+
+State 236
+
+   18 limits: nat .
+   19       | nat . nat
+
+    NAT  shift, and go to state 97
+
+    $default  reduce using rule 18 (limits)
+
+    nat  go to state 294
+
+
+State 237
 
     8 elem_type: ANYFUNC .
 
     $default  reduce using rule 8 (elem_type)
 
 
-State 235
+State 238
 
   103 table: "(" TABLE bind_var_opt inline_export_opt elem_type . "(" ELEM var_list ")" ")"
 
-    "("  shift, and go to state 292
+    "("  shift, and go to state 295
 
 
-State 236
+State 239
 
   102 table: "(" TABLE bind_var_opt inline_export_opt table_sig . ")"
 
-    ")"  shift, and go to state 293
+    ")"  shift, and go to state 296
 
 
-State 237
+State 240
 
    72 expr1: BLOCK labeling_opt . block
 
     $default  reduce using rule 6 (value_type_list)
 
-    value_type_list  go to state 269
-    block            go to state 294
+    value_type_list  go to state 272
+    block            go to state 297
 
 
-State 238
+State 241
 
    74 expr1: IF labeling_opt . value_type_list if_
 
     $default  reduce using rule 6 (value_type_list)
 
-    value_type_list  go to state 295
+    value_type_list  go to state 298
 
 
-State 239
+State 242
 
    73 expr1: LOOP labeling_opt . block
 
     $default  reduce using rule 6 (value_type_list)
 
-    value_type_list  go to state 269
-    block            go to state 296
+    value_type_list  go to state 272
+    block            go to state 299
 
 
-State 240
+State 243
 
    98 offset: "(" OFFSET const_expr . ")"
 
-    ")"  shift, and go to state 297
+    ")"  shift, and go to state 300
 
 
-State 241
+State 244
 
    84 expr_list: expr . expr_list
 
-    "("  shift, and go to state 213
+    "("  shift, and go to state 216
 
     $default  reduce using rule 83 (expr_list)
 
-    expr       go to state 241
-    expr_list  go to state 298
+    expr       go to state 244
+    expr_list  go to state 301
 
 
-State 242
+State 245
 
    71 expr1: plain_instr expr_list .
 
     $default  reduce using rule 71 (expr1)
 
 
-State 243
+State 246
 
    70 expr: "(" expr1 ")" .
 
     $default  reduce using rule 70 (expr)
 
 
-State 244
+State 247
 
    28 var_list: var_list . var
   100 elem: "(" ELEM var offset var_list . ")"
 
-    ")"  shift, and go to state 299
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    ")"  shift, and go to state 302
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat  go to state 96
-    var  go to state 246
+    nat  go to state 99
+    var  go to state 249
 
 
-State 245
+State 248
 
   101 elem: "(" ELEM offset var_list ")" .
 
     $default  reduce using rule 101 (elem)
 
 
-State 246
+State 249
 
    28 var_list: var_list var .
 
     $default  reduce using rule 28 (var_list)
 
 
-State 247
+State 250
 
   108 memory: "(" MEMORY bind_var_opt "(" DATA . text_list ")" ")"
 
-    TEXT  shift, and go to state 41
+    TEXT  shift, and go to state 43
 
     $default  reduce using rule 3 (text_list)
 
-    non_empty_text_list  go to state 181
-    text_list            go to state 300
+    non_empty_text_list  go to state 184
+    text_list            go to state 303
 
 
-State 248
+State 251
 
   120 import: "(" MEMORY bind_var_opt inline_import memory_sig . ")"
 
-    ")"  shift, and go to state 301
+    ")"  shift, and go to state 304
 
 
-State 249
+State 252
 
    17 memory_sig: limits .
 
     $default  reduce using rule 17 (memory_sig)
 
 
-State 250
+State 253
 
   106 memory: "(" MEMORY bind_var_opt inline_export_opt memory_sig . ")"
 
-    ")"  shift, and go to state 302
+    ")"  shift, and go to state 305
 
 
-State 251
+State 254
 
   107 memory: "(" MEMORY bind_var_opt inline_export "(" . DATA text_list ")" ")"
 
-    DATA  shift, and go to state 303
+    DATA  shift, and go to state 306
 
 
-State 252
+State 255
 
   104 data: "(" DATA var offset text_list . ")"
 
-    ")"  shift, and go to state 304
+    ")"  shift, and go to state 307
 
 
-State 253
+State 256
 
   105 data: "(" DATA offset text_list ")" .
 
     $default  reduce using rule 105 (data)
 
 
-State 254
+State 257
 
   111 import_kind: "(" . FUNC bind_var_opt type_use ")"
   112            | "(" . FUNC bind_var_opt func_sig ")"
@@ -3250,202 +3277,202 @@ State 254
   114            | "(" . MEMORY bind_var_opt memory_sig ")"
   115            | "(" . GLOBAL bind_var_opt global_type ")"
 
-    FUNC    shift, and go to state 305
-    GLOBAL  shift, and go to state 306
-    TABLE   shift, and go to state 307
-    MEMORY  shift, and go to state 308
-
-
-State 255
-
-  116 import: "(" IMPORT quoted_text quoted_text import_kind . ")"
-
-    ")"  shift, and go to state 309
-
-
-State 256
-
-  123 export_kind: "(" FUNC . var ")"
-
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
-
-    nat  go to state 96
-    var  go to state 310
-
-
-State 257
-
-  126 export_kind: "(" GLOBAL . var ")"
-
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
-
-    nat  go to state 96
-    var  go to state 311
+    FUNC    shift, and go to state 308
+    GLOBAL  shift, and go to state 309
+    TABLE   shift, and go to state 310
+    MEMORY  shift, and go to state 311
 
 
 State 258
 
-  124 export_kind: "(" TABLE . var ")"
+  116 import: "(" IMPORT quoted_text quoted_text import_kind . ")"
 
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
-
-    nat  go to state 96
-    var  go to state 312
+    ")"  shift, and go to state 312
 
 
 State 259
 
-  125 export_kind: "(" MEMORY . var ")"
+  123 export_kind: "(" FUNC . var ")"
 
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat  go to state 96
+    nat  go to state 99
     var  go to state 313
 
 
 State 260
+
+  126 export_kind: "(" GLOBAL . var ")"
+
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
+
+    nat  go to state 99
+    var  go to state 314
+
+
+State 261
+
+  124 export_kind: "(" TABLE . var ")"
+
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
+
+    nat  go to state 99
+    var  go to state 315
+
+
+State 262
+
+  125 export_kind: "(" MEMORY . var ")"
+
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
+
+    nat  go to state 99
+    var  go to state 316
+
+
+State 263
 
   127 export: "(" EXPORT quoted_text export_kind ")" .
 
     $default  reduce using rule 127 (export)
 
 
-State 261
+State 264
 
    20 type_use: "(" TYPE var . ")"
 
-    ")"  shift, and go to state 314
-
-
-State 262
-
-    7 value_type_list: value_type_list . VALUE_TYPE
-   88 func_fields: "(" PARAM value_type_list . ")" func_fields
-
-    ")"         shift, and go to state 315
-    VALUE_TYPE  shift, and go to state 316
-
-
-State 263
-
-   89 func_fields: "(" PARAM bind_var . VALUE_TYPE ")" func_fields
-
-    VALUE_TYPE  shift, and go to state 317
-
-
-State 264
-
-    7 value_type_list: value_type_list . VALUE_TYPE
-   87 func_fields: "(" RESULT value_type_list . ")" func_body
-
-    ")"         shift, and go to state 318
-    VALUE_TYPE  shift, and go to state 316
+    ")"  shift, and go to state 317
 
 
 State 265
 
     7 value_type_list: value_type_list . VALUE_TYPE
-   91 func_body: "(" LOCAL value_type_list . ")" func_body
+   88 func_fields: "(" PARAM value_type_list . ")" func_fields
 
-    ")"         shift, and go to state 319
-    VALUE_TYPE  shift, and go to state 316
+    ")"         shift, and go to state 318
+    VALUE_TYPE  shift, and go to state 319
 
 
 State 266
 
-   92 func_body: "(" LOCAL bind_var . VALUE_TYPE ")" func_body
+   89 func_fields: "(" PARAM bind_var . VALUE_TYPE ")" func_fields
 
     VALUE_TYPE  shift, and go to state 320
 
 
 State 267
 
-  122 inline_import: "(" IMPORT quoted_text . quoted_text ")"
+    7 value_type_list: value_type_list . VALUE_TYPE
+   87 func_fields: "(" RESULT value_type_list . ")" func_body
 
-    TEXT  shift, and go to state 25
-
-    quoted_text  go to state 321
+    ")"         shift, and go to state 321
+    VALUE_TYPE  shift, and go to state 319
 
 
 State 268
 
-  130 inline_export: "(" EXPORT quoted_text . ")"
+    7 value_type_list: value_type_list . VALUE_TYPE
+   91 func_body: "(" LOCAL value_type_list . ")" func_body
 
-    ")"  shift, and go to state 322
+    ")"         shift, and go to state 322
+    VALUE_TYPE  shift, and go to state 319
 
 
 State 269
 
-    7 value_type_list: value_type_list . VALUE_TYPE
-   69 block: value_type_list . instr_list
+   92 func_body: "(" LOCAL bind_var . VALUE_TYPE ")" func_body
 
-    "("             shift, and go to state 213
-    VALUE_TYPE      shift, and go to state 316
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-
-    $default  reduce using rule 81 (instr_list)
-
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 323
+    VALUE_TYPE  shift, and go to state 323
 
 
 State 270
 
-   65 block_instr: BLOCK labeling_opt block . END labeling_opt
+  122 inline_import: "(" IMPORT quoted_text . quoted_text ")"
 
-    END  shift, and go to state 324
+    TEXT  shift, and go to state 26
+
+    quoted_text  go to state 324
 
 
 State 271
 
-   67 block_instr: IF labeling_opt block . END labeling_opt
-   68            | IF labeling_opt block . ELSE labeling_opt instr_list END labeling_opt
+  130 inline_export: "(" EXPORT quoted_text . ")"
 
-    END   shift, and go to state 325
-    ELSE  shift, and go to state 326
+    ")"  shift, and go to state 325
 
 
 State 272
 
-   66 block_instr: LOOP labeling_opt block . END labeling_opt
+    7 value_type_list: value_type_list . VALUE_TYPE
+   69 block: value_type_list . instr_list
+
+    "("             shift, and go to state 216
+    VALUE_TYPE      shift, and go to state 319
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+
+    $default  reduce using rule 81 (instr_list)
+
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 326
+
+
+State 273
+
+   65 block_instr: BLOCK labeling_opt block . END labeling_opt
 
     END  shift, and go to state 327
 
 
-State 273
+State 274
+
+   67 block_instr: IF labeling_opt block . END labeling_opt
+   68            | IF labeling_opt block . ELSE labeling_opt instr_list END labeling_opt
+
+    END   shift, and go to state 328
+    ELSE  shift, and go to state 329
+
+
+State 275
+
+   66 block_instr: LOOP labeling_opt block . END labeling_opt
+
+    END  shift, and go to state 330
+
+
+State 276
 
    28 var_list: var_list var .
    47 plain_instr: BR_TABLE var_list var .
@@ -3455,1467 +3482,1467 @@ State 273
     $default  reduce using rule 47 (plain_instr)
 
 
-State 274
+State 277
 
    37 align_opt: ALIGN_EQ_NAT .
 
     $default  reduce using rule 37 (align_opt)
 
 
-State 275
+State 278
 
    56 plain_instr: LOAD offset_opt align_opt .
 
     $default  reduce using rule 56 (plain_instr)
 
 
-State 276
+State 279
 
    57 plain_instr: STORE offset_opt align_opt .
 
     $default  reduce using rule 57 (plain_instr)
 
 
-State 277
+State 280
 
    95 func: "(" FUNC bind_var_opt type_use func_info ")" .
 
     $default  reduce using rule 95 (func)
 
 
-State 278
+State 281
 
    13 func_sig: "(" PARAM . value_type_list ")"
    14         | "(" PARAM . value_type_list ")" "(" RESULT value_type_list ")"
 
     $default  reduce using rule 6 (value_type_list)
 
-    value_type_list  go to state 328
+    value_type_list  go to state 331
 
 
-State 279
+State 282
 
    15 func_sig: "(" RESULT . value_type_list ")"
 
     $default  reduce using rule 6 (value_type_list)
 
-    value_type_list  go to state 329
+    value_type_list  go to state 332
 
 
-State 280
+State 283
 
   118 import: "(" FUNC bind_var_opt inline_import func_sig ")" .
 
     $default  reduce using rule 118 (import)
 
 
-State 281
+State 284
 
   117 import: "(" FUNC bind_var_opt inline_import type_use ")" .
 
     $default  reduce using rule 117 (import)
 
 
-State 282
+State 285
 
    94 func: "(" FUNC bind_var_opt inline_export type_use func_info . ")"
 
-    ")"  shift, and go to state 330
+    ")"  shift, and go to state 333
 
 
-State 283
+State 286
 
    96 func: "(" FUNC bind_var_opt inline_export func_info ")" .
 
     $default  reduce using rule 96 (func)
 
 
-State 284
+State 287
 
    11 func_type: "(" FUNC func_sig ")" .
 
     $default  reduce using rule 11 (func_type)
 
 
-State 285
+State 288
 
    10 global_type: "(" MUT VALUE_TYPE . ")"
 
-    ")"  shift, and go to state 331
+    ")"  shift, and go to state 334
 
 
-State 286
+State 289
 
   110 global: "(" GLOBAL bind_var_opt global_type const_expr ")" .
 
     $default  reduce using rule 110 (global)
 
 
-State 287
+State 290
 
   121 import: "(" GLOBAL bind_var_opt inline_import global_type ")" .
 
     $default  reduce using rule 121 (import)
 
 
-State 288
+State 291
 
   109 global: "(" GLOBAL bind_var_opt inline_export global_type const_expr . ")"
 
-    ")"  shift, and go to state 332
+    ")"  shift, and go to state 335
 
 
-State 289
+State 292
 
   119 import: "(" TABLE bind_var_opt inline_import table_sig ")" .
 
     $default  reduce using rule 119 (import)
 
 
-State 290
+State 293
 
    16 table_sig: limits elem_type .
 
     $default  reduce using rule 16 (table_sig)
 
 
-State 291
+State 294
 
    19 limits: nat nat .
 
     $default  reduce using rule 19 (limits)
 
 
-State 292
+State 295
 
   103 table: "(" TABLE bind_var_opt inline_export_opt elem_type "(" . ELEM var_list ")" ")"
 
-    ELEM  shift, and go to state 333
+    ELEM  shift, and go to state 336
 
 
-State 293
+State 296
 
   102 table: "(" TABLE bind_var_opt inline_export_opt table_sig ")" .
 
     $default  reduce using rule 102 (table)
 
 
-State 294
+State 297
 
    72 expr1: BLOCK labeling_opt block .
 
     $default  reduce using rule 72 (expr1)
 
 
-State 295
+State 298
 
     7 value_type_list: value_type_list . VALUE_TYPE
    74 expr1: IF labeling_opt value_type_list . if_
 
-    "("         shift, and go to state 334
-    VALUE_TYPE  shift, and go to state 316
+    "("         shift, and go to state 337
+    VALUE_TYPE  shift, and go to state 319
 
-    expr  go to state 335
-    if_   go to state 336
+    expr  go to state 338
+    if_   go to state 339
 
 
-State 296
+State 299
 
    73 expr1: LOOP labeling_opt block .
 
     $default  reduce using rule 73 (expr1)
 
 
-State 297
+State 300
 
    98 offset: "(" OFFSET const_expr ")" .
 
     $default  reduce using rule 98 (offset)
 
 
-State 298
+State 301
 
    84 expr_list: expr expr_list .
 
     $default  reduce using rule 84 (expr_list)
 
 
-State 299
+State 302
 
   100 elem: "(" ELEM var offset var_list ")" .
 
     $default  reduce using rule 100 (elem)
 
 
-State 300
+State 303
 
   108 memory: "(" MEMORY bind_var_opt "(" DATA text_list . ")" ")"
 
-    ")"  shift, and go to state 337
+    ")"  shift, and go to state 340
 
 
-State 301
+State 304
 
   120 import: "(" MEMORY bind_var_opt inline_import memory_sig ")" .
 
     $default  reduce using rule 120 (import)
 
 
-State 302
+State 305
 
   106 memory: "(" MEMORY bind_var_opt inline_export_opt memory_sig ")" .
 
     $default  reduce using rule 106 (memory)
 
 
-State 303
+State 306
 
   107 memory: "(" MEMORY bind_var_opt inline_export "(" DATA . text_list ")" ")"
 
-    TEXT  shift, and go to state 41
+    TEXT  shift, and go to state 43
 
     $default  reduce using rule 3 (text_list)
 
-    non_empty_text_list  go to state 181
-    text_list            go to state 338
+    non_empty_text_list  go to state 184
+    text_list            go to state 341
 
 
-State 304
+State 307
 
   104 data: "(" DATA var offset text_list ")" .
 
     $default  reduce using rule 104 (data)
 
 
-State 305
+State 308
 
   111 import_kind: "(" FUNC . bind_var_opt type_use ")"
   112            | "(" FUNC . bind_var_opt func_sig ")"
 
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 29 (bind_var_opt)
-
-    bind_var_opt  go to state 339
-    bind_var      go to state 24
-
-
-State 306
-
-  115 import_kind: "(" GLOBAL . bind_var_opt global_type ")"
-
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 29 (bind_var_opt)
-
-    bind_var_opt  go to state 340
-    bind_var      go to state 24
-
-
-State 307
-
-  113 import_kind: "(" TABLE . bind_var_opt table_sig ")"
-
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 29 (bind_var_opt)
-
-    bind_var_opt  go to state 341
-    bind_var      go to state 24
-
-
-State 308
-
-  114 import_kind: "(" MEMORY . bind_var_opt memory_sig ")"
-
-    VAR  shift, and go to state 22
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 29 (bind_var_opt)
 
     bind_var_opt  go to state 342
-    bind_var      go to state 24
+    bind_var      go to state 25
 
 
 State 309
+
+  115 import_kind: "(" GLOBAL . bind_var_opt global_type ")"
+
+    VAR  shift, and go to state 23
+
+    $default  reduce using rule 29 (bind_var_opt)
+
+    bind_var_opt  go to state 343
+    bind_var      go to state 25
+
+
+State 310
+
+  113 import_kind: "(" TABLE . bind_var_opt table_sig ")"
+
+    VAR  shift, and go to state 23
+
+    $default  reduce using rule 29 (bind_var_opt)
+
+    bind_var_opt  go to state 344
+    bind_var      go to state 25
+
+
+State 311
+
+  114 import_kind: "(" MEMORY . bind_var_opt memory_sig ")"
+
+    VAR  shift, and go to state 23
+
+    $default  reduce using rule 29 (bind_var_opt)
+
+    bind_var_opt  go to state 345
+    bind_var      go to state 25
+
+
+State 312
 
   116 import: "(" IMPORT quoted_text quoted_text import_kind ")" .
 
     $default  reduce using rule 116 (import)
 
 
-State 310
-
-  123 export_kind: "(" FUNC var . ")"
-
-    ")"  shift, and go to state 343
-
-
-State 311
-
-  126 export_kind: "(" GLOBAL var . ")"
-
-    ")"  shift, and go to state 344
-
-
-State 312
-
-  124 export_kind: "(" TABLE var . ")"
-
-    ")"  shift, and go to state 345
-
-
 State 313
 
-  125 export_kind: "(" MEMORY var . ")"
+  123 export_kind: "(" FUNC var . ")"
 
     ")"  shift, and go to state 346
 
 
 State 314
 
+  126 export_kind: "(" GLOBAL var . ")"
+
+    ")"  shift, and go to state 347
+
+
+State 315
+
+  124 export_kind: "(" TABLE var . ")"
+
+    ")"  shift, and go to state 348
+
+
+State 316
+
+  125 export_kind: "(" MEMORY var . ")"
+
+    ")"  shift, and go to state 349
+
+
+State 317
+
    20 type_use: "(" TYPE var ")" .
 
     $default  reduce using rule 20 (type_use)
 
 
-State 315
+State 318
 
    88 func_fields: "(" PARAM value_type_list ")" . func_fields
 
-    "("             shift, and go to state 211
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 214
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 149
-    func_fields  go to state 347
-    func_body    go to state 151
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 152
+    func_fields  go to state 350
+    func_body    go to state 154
 
 
-State 316
+State 319
 
     7 value_type_list: value_type_list VALUE_TYPE .
 
     $default  reduce using rule 7 (value_type_list)
 
 
-State 317
+State 320
 
    89 func_fields: "(" PARAM bind_var VALUE_TYPE . ")" func_fields
 
-    ")"  shift, and go to state 348
-
-
-State 318
-
-   87 func_fields: "(" RESULT value_type_list ")" . func_body
-
-    "("             shift, and go to state 349
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-
-    $default  reduce using rule 81 (instr_list)
-
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 149
-    func_body    go to state 350
-
-
-State 319
-
-   91 func_body: "(" LOCAL value_type_list ")" . func_body
-
-    "("             shift, and go to state 349
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-
-    $default  reduce using rule 81 (instr_list)
-
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 149
-    func_body    go to state 351
-
-
-State 320
-
-   92 func_body: "(" LOCAL bind_var VALUE_TYPE . ")" func_body
-
-    ")"  shift, and go to state 352
+    ")"  shift, and go to state 351
 
 
 State 321
 
-  122 inline_import: "(" IMPORT quoted_text quoted_text . ")"
+   87 func_fields: "(" RESULT value_type_list ")" . func_body
 
-    ")"  shift, and go to state 353
+    "("             shift, and go to state 352
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+
+    $default  reduce using rule 81 (instr_list)
+
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 152
+    func_body    go to state 353
 
 
 State 322
+
+   91 func_body: "(" LOCAL value_type_list ")" . func_body
+
+    "("             shift, and go to state 352
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+
+    $default  reduce using rule 81 (instr_list)
+
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 152
+    func_body    go to state 354
+
+
+State 323
+
+   92 func_body: "(" LOCAL bind_var VALUE_TYPE . ")" func_body
+
+    ")"  shift, and go to state 355
+
+
+State 324
+
+  122 inline_import: "(" IMPORT quoted_text quoted_text . ")"
+
+    ")"  shift, and go to state 356
+
+
+State 325
 
   130 inline_export: "(" EXPORT quoted_text ")" .
 
     $default  reduce using rule 130 (inline_export)
 
 
-State 323
+State 326
 
    69 block: value_type_list instr_list .
 
     $default  reduce using rule 69 (block)
 
 
-State 324
+State 327
 
    65 block_instr: BLOCK labeling_opt block END . labeling_opt
 
-    VAR  shift, and go to state 22
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 32 (labeling_opt)
 
-    bind_var      go to state 193
-    labeling_opt  go to state 354
-
-
-State 325
-
-   67 block_instr: IF labeling_opt block END . labeling_opt
-
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 32 (labeling_opt)
-
-    bind_var      go to state 193
-    labeling_opt  go to state 355
-
-
-State 326
-
-   68 block_instr: IF labeling_opt block ELSE . labeling_opt instr_list END labeling_opt
-
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 32 (labeling_opt)
-
-    bind_var      go to state 193
-    labeling_opt  go to state 356
-
-
-State 327
-
-   66 block_instr: LOOP labeling_opt block END . labeling_opt
-
-    VAR  shift, and go to state 22
-
-    $default  reduce using rule 32 (labeling_opt)
-
-    bind_var      go to state 193
+    bind_var      go to state 196
     labeling_opt  go to state 357
 
 
 State 328
 
-    7 value_type_list: value_type_list . VALUE_TYPE
-   13 func_sig: "(" PARAM value_type_list . ")"
-   14         | "(" PARAM value_type_list . ")" "(" RESULT value_type_list ")"
+   67 block_instr: IF labeling_opt block END . labeling_opt
 
-    ")"         shift, and go to state 358
-    VALUE_TYPE  shift, and go to state 316
+    VAR  shift, and go to state 23
+
+    $default  reduce using rule 32 (labeling_opt)
+
+    bind_var      go to state 196
+    labeling_opt  go to state 358
 
 
 State 329
 
-    7 value_type_list: value_type_list . VALUE_TYPE
-   15 func_sig: "(" RESULT value_type_list . ")"
+   68 block_instr: IF labeling_opt block ELSE . labeling_opt instr_list END labeling_opt
 
-    ")"         shift, and go to state 359
-    VALUE_TYPE  shift, and go to state 316
+    VAR  shift, and go to state 23
+
+    $default  reduce using rule 32 (labeling_opt)
+
+    bind_var      go to state 196
+    labeling_opt  go to state 359
 
 
 State 330
+
+   66 block_instr: LOOP labeling_opt block END . labeling_opt
+
+    VAR  shift, and go to state 23
+
+    $default  reduce using rule 32 (labeling_opt)
+
+    bind_var      go to state 196
+    labeling_opt  go to state 360
+
+
+State 331
+
+    7 value_type_list: value_type_list . VALUE_TYPE
+   13 func_sig: "(" PARAM value_type_list . ")"
+   14         | "(" PARAM value_type_list . ")" "(" RESULT value_type_list ")"
+
+    ")"         shift, and go to state 361
+    VALUE_TYPE  shift, and go to state 319
+
+
+State 332
+
+    7 value_type_list: value_type_list . VALUE_TYPE
+   15 func_sig: "(" RESULT value_type_list . ")"
+
+    ")"         shift, and go to state 362
+    VALUE_TYPE  shift, and go to state 319
+
+
+State 333
 
    94 func: "(" FUNC bind_var_opt inline_export type_use func_info ")" .
 
     $default  reduce using rule 94 (func)
 
 
-State 331
+State 334
 
    10 global_type: "(" MUT VALUE_TYPE ")" .
 
     $default  reduce using rule 10 (global_type)
 
 
-State 332
+State 335
 
   109 global: "(" GLOBAL bind_var_opt inline_export global_type const_expr ")" .
 
     $default  reduce using rule 109 (global)
 
 
-State 333
+State 336
 
   103 table: "(" TABLE bind_var_opt inline_export_opt elem_type "(" ELEM . var_list ")" ")"
 
     $default  reduce using rule 27 (var_list)
 
-    var_list  go to state 360
+    var_list  go to state 363
 
 
-State 334
+State 337
 
    70 expr: "(" . expr1 ")"
    75 if_: "(" . THEN instr_list ")" "(" ELSE instr_list ")"
    76    | "(" . THEN instr_list ")"
 
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 168
-    IF              shift, and go to state 169
-    THEN            shift, and go to state 361
-    LOOP            shift, and go to state 170
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 171
+    IF              shift, and go to state 172
+    THEN            shift, and go to state 364
+    LOOP            shift, and go to state 173
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
-    plain_instr  go to state 172
-    expr1        go to state 173
+    plain_instr  go to state 175
+    expr1        go to state 176
 
 
-State 335
+State 338
 
    77 if_: expr . "(" THEN instr_list ")" "(" ELSE instr_list ")"
    78    | expr . "(" THEN instr_list ")"
    79    | expr . expr expr
    80    | expr . expr
 
-    "("  shift, and go to state 362
+    "("  shift, and go to state 365
 
-    expr  go to state 363
+    expr  go to state 366
 
 
-State 336
+State 339
 
    74 expr1: IF labeling_opt value_type_list if_ .
 
     $default  reduce using rule 74 (expr1)
 
 
-State 337
+State 340
 
   108 memory: "(" MEMORY bind_var_opt "(" DATA text_list ")" . ")"
 
-    ")"  shift, and go to state 364
-
-
-State 338
-
-  107 memory: "(" MEMORY bind_var_opt inline_export "(" DATA text_list . ")" ")"
-
-    ")"  shift, and go to state 365
-
-
-State 339
-
-  111 import_kind: "(" FUNC bind_var_opt . type_use ")"
-  112            | "(" FUNC bind_var_opt . func_sig ")"
-
-    "("  shift, and go to state 216
-
-    $default  reduce using rule 12 (func_sig)
-
-    func_sig  go to state 366
-    type_use  go to state 367
-
-
-State 340
-
-  115 import_kind: "(" GLOBAL bind_var_opt . global_type ")"
-
-    "("         shift, and go to state 228
-    VALUE_TYPE  shift, and go to state 160
-
-    global_type  go to state 368
+    ")"  shift, and go to state 367
 
 
 State 341
 
-  113 import_kind: "(" TABLE bind_var_opt . table_sig ")"
+  107 memory: "(" MEMORY bind_var_opt inline_export "(" DATA text_list . ")" ")"
 
-    NAT  shift, and go to state 94
-
-    table_sig  go to state 369
-    limits     go to state 232
-    nat        go to state 233
+    ")"  shift, and go to state 368
 
 
 State 342
 
-  114 import_kind: "(" MEMORY bind_var_opt . memory_sig ")"
+  111 import_kind: "(" FUNC bind_var_opt . type_use ")"
+  112            | "(" FUNC bind_var_opt . func_sig ")"
 
-    NAT  shift, and go to state 94
+    "("  shift, and go to state 219
 
-    memory_sig  go to state 370
-    limits      go to state 249
-    nat         go to state 233
+    $default  reduce using rule 12 (func_sig)
+
+    func_sig  go to state 369
+    type_use  go to state 370
 
 
 State 343
+
+  115 import_kind: "(" GLOBAL bind_var_opt . global_type ")"
+
+    "("         shift, and go to state 231
+    VALUE_TYPE  shift, and go to state 163
+
+    global_type  go to state 371
+
+
+State 344
+
+  113 import_kind: "(" TABLE bind_var_opt . table_sig ")"
+
+    NAT  shift, and go to state 97
+
+    table_sig  go to state 372
+    limits     go to state 235
+    nat        go to state 236
+
+
+State 345
+
+  114 import_kind: "(" MEMORY bind_var_opt . memory_sig ")"
+
+    NAT  shift, and go to state 97
+
+    memory_sig  go to state 373
+    limits      go to state 252
+    nat         go to state 236
+
+
+State 346
 
   123 export_kind: "(" FUNC var ")" .
 
     $default  reduce using rule 123 (export_kind)
 
 
-State 344
+State 347
 
   126 export_kind: "(" GLOBAL var ")" .
 
     $default  reduce using rule 126 (export_kind)
 
 
-State 345
+State 348
 
   124 export_kind: "(" TABLE var ")" .
 
     $default  reduce using rule 124 (export_kind)
 
 
-State 346
+State 349
 
   125 export_kind: "(" MEMORY var ")" .
 
     $default  reduce using rule 125 (export_kind)
 
 
-State 347
+State 350
 
    88 func_fields: "(" PARAM value_type_list ")" func_fields .
 
     $default  reduce using rule 88 (func_fields)
 
 
-State 348
+State 351
 
    89 func_fields: "(" PARAM bind_var VALUE_TYPE ")" . func_fields
 
-    "("             shift, and go to state 211
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 214
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 149
-    func_fields  go to state 371
-    func_body    go to state 151
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 152
+    func_fields  go to state 374
+    func_body    go to state 154
 
 
-State 349
+State 352
 
    70 expr: "(" . expr1 ")"
    91 func_body: "(" . LOCAL value_type_list ")" func_body
    92          | "(" . LOCAL bind_var VALUE_TYPE ")" func_body
 
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 168
-    IF              shift, and go to state 169
-    LOOP            shift, and go to state 170
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-    LOCAL           shift, and go to state 190
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 171
+    IF              shift, and go to state 172
+    LOOP            shift, and go to state 173
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+    LOCAL           shift, and go to state 193
 
-    plain_instr  go to state 172
-    expr1        go to state 173
+    plain_instr  go to state 175
+    expr1        go to state 176
 
 
-State 350
+State 353
 
    87 func_fields: "(" RESULT value_type_list ")" func_body .
 
     $default  reduce using rule 87 (func_fields)
 
 
-State 351
+State 354
 
    91 func_body: "(" LOCAL value_type_list ")" func_body .
 
     $default  reduce using rule 91 (func_body)
 
 
-State 352
+State 355
 
    92 func_body: "(" LOCAL bind_var VALUE_TYPE ")" . func_body
 
-    "("             shift, and go to state 349
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 352
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 149
-    func_body    go to state 372
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 152
+    func_body    go to state 375
 
 
-State 353
+State 356
 
   122 inline_import: "(" IMPORT quoted_text quoted_text ")" .
 
     $default  reduce using rule 122 (inline_import)
 
 
-State 354
+State 357
 
    65 block_instr: BLOCK labeling_opt block END labeling_opt .
 
     $default  reduce using rule 65 (block_instr)
 
 
-State 355
+State 358
 
    67 block_instr: IF labeling_opt block END labeling_opt .
 
     $default  reduce using rule 67 (block_instr)
 
 
-State 356
+State 359
 
    68 block_instr: IF labeling_opt block ELSE labeling_opt . instr_list END labeling_opt
 
-    "("             shift, and go to state 213
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 216
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 373
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 376
 
 
-State 357
+State 360
 
    66 block_instr: LOOP labeling_opt block END labeling_opt .
 
     $default  reduce using rule 66 (block_instr)
 
 
-State 358
+State 361
 
    13 func_sig: "(" PARAM value_type_list ")" .
    14         | "(" PARAM value_type_list ")" . "(" RESULT value_type_list ")"
 
-    "("  shift, and go to state 374
+    "("  shift, and go to state 377
 
     $default  reduce using rule 13 (func_sig)
 
 
-State 359
+State 362
 
    15 func_sig: "(" RESULT value_type_list ")" .
 
     $default  reduce using rule 15 (func_sig)
 
 
-State 360
+State 363
 
    28 var_list: var_list . var
   103 table: "(" TABLE bind_var_opt inline_export_opt elem_type "(" ELEM var_list . ")" ")"
 
-    ")"  shift, and go to state 375
-    NAT  shift, and go to state 94
-    VAR  shift, and go to state 95
+    ")"  shift, and go to state 378
+    NAT  shift, and go to state 97
+    VAR  shift, and go to state 98
 
-    nat  go to state 96
-    var  go to state 246
+    nat  go to state 99
+    var  go to state 249
 
 
-State 361
+State 364
 
    75 if_: "(" THEN . instr_list ")" "(" ELSE instr_list ")"
    76    | "(" THEN . instr_list ")"
 
-    "("             shift, and go to state 213
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 216
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 376
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 379
 
 
-State 362
+State 365
 
    70 expr: "(" . expr1 ")"
    77 if_: expr "(" . THEN instr_list ")" "(" ELSE instr_list ")"
    78    | expr "(" . THEN instr_list ")"
 
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 168
-    IF              shift, and go to state 169
-    THEN            shift, and go to state 377
-    LOOP            shift, and go to state 170
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 171
+    IF              shift, and go to state 172
+    THEN            shift, and go to state 380
+    LOOP            shift, and go to state 173
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
-    plain_instr  go to state 172
-    expr1        go to state 173
+    plain_instr  go to state 175
+    expr1        go to state 176
 
 
-State 363
+State 366
 
    79 if_: expr expr . expr
    80    | expr expr .
 
-    "("  shift, and go to state 213
+    "("  shift, and go to state 216
 
     $default  reduce using rule 80 (if_)
 
-    expr  go to state 378
+    expr  go to state 381
 
 
-State 364
+State 367
 
   108 memory: "(" MEMORY bind_var_opt "(" DATA text_list ")" ")" .
 
     $default  reduce using rule 108 (memory)
 
 
-State 365
-
-  107 memory: "(" MEMORY bind_var_opt inline_export "(" DATA text_list ")" . ")"
-
-    ")"  shift, and go to state 379
-
-
-State 366
-
-  112 import_kind: "(" FUNC bind_var_opt func_sig . ")"
-
-    ")"  shift, and go to state 380
-
-
-State 367
-
-  111 import_kind: "(" FUNC bind_var_opt type_use . ")"
-
-    ")"  shift, and go to state 381
-
-
 State 368
 
-  115 import_kind: "(" GLOBAL bind_var_opt global_type . ")"
+  107 memory: "(" MEMORY bind_var_opt inline_export "(" DATA text_list ")" . ")"
 
     ")"  shift, and go to state 382
 
 
 State 369
 
-  113 import_kind: "(" TABLE bind_var_opt table_sig . ")"
+  112 import_kind: "(" FUNC bind_var_opt func_sig . ")"
 
     ")"  shift, and go to state 383
 
 
 State 370
 
-  114 import_kind: "(" MEMORY bind_var_opt memory_sig . ")"
+  111 import_kind: "(" FUNC bind_var_opt type_use . ")"
 
     ")"  shift, and go to state 384
 
 
 State 371
 
+  115 import_kind: "(" GLOBAL bind_var_opt global_type . ")"
+
+    ")"  shift, and go to state 385
+
+
+State 372
+
+  113 import_kind: "(" TABLE bind_var_opt table_sig . ")"
+
+    ")"  shift, and go to state 386
+
+
+State 373
+
+  114 import_kind: "(" MEMORY bind_var_opt memory_sig . ")"
+
+    ")"  shift, and go to state 387
+
+
+State 374
+
    89 func_fields: "(" PARAM bind_var VALUE_TYPE ")" func_fields .
 
     $default  reduce using rule 89 (func_fields)
 
 
-State 372
+State 375
 
    92 func_body: "(" LOCAL bind_var VALUE_TYPE ")" func_body .
 
     $default  reduce using rule 92 (func_body)
 
 
-State 373
+State 376
 
    68 block_instr: IF labeling_opt block ELSE labeling_opt instr_list . END labeling_opt
 
-    END  shift, and go to state 385
-
-
-State 374
-
-   14 func_sig: "(" PARAM value_type_list ")" "(" . RESULT value_type_list ")"
-
-    RESULT  shift, and go to state 386
-
-
-State 375
-
-  103 table: "(" TABLE bind_var_opt inline_export_opt elem_type "(" ELEM var_list ")" . ")"
-
-    ")"  shift, and go to state 387
-
-
-State 376
-
-   75 if_: "(" THEN instr_list . ")" "(" ELSE instr_list ")"
-   76    | "(" THEN instr_list . ")"
-
-    ")"  shift, and go to state 388
+    END  shift, and go to state 388
 
 
 State 377
 
-   77 if_: expr "(" THEN . instr_list ")" "(" ELSE instr_list ")"
-   78    | expr "(" THEN . instr_list ")"
+   14 func_sig: "(" PARAM value_type_list ")" "(" . RESULT value_type_list ")"
 
-    "("             shift, and go to state 213
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-
-    $default  reduce using rule 81 (instr_list)
-
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 389
+    RESULT  shift, and go to state 389
 
 
 State 378
+
+  103 table: "(" TABLE bind_var_opt inline_export_opt elem_type "(" ELEM var_list ")" . ")"
+
+    ")"  shift, and go to state 390
+
+
+State 379
+
+   75 if_: "(" THEN instr_list . ")" "(" ELSE instr_list ")"
+   76    | "(" THEN instr_list . ")"
+
+    ")"  shift, and go to state 391
+
+
+State 380
+
+   77 if_: expr "(" THEN . instr_list ")" "(" ELSE instr_list ")"
+   78    | expr "(" THEN . instr_list ")"
+
+    "("             shift, and go to state 216
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+
+    $default  reduce using rule 81 (instr_list)
+
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 392
+
+
+State 381
 
    79 if_: expr expr expr .
 
     $default  reduce using rule 79 (if_)
 
 
-State 379
+State 382
 
   107 memory: "(" MEMORY bind_var_opt inline_export "(" DATA text_list ")" ")" .
 
     $default  reduce using rule 107 (memory)
 
 
-State 380
+State 383
 
   112 import_kind: "(" FUNC bind_var_opt func_sig ")" .
 
     $default  reduce using rule 112 (import_kind)
 
 
-State 381
+State 384
 
   111 import_kind: "(" FUNC bind_var_opt type_use ")" .
 
     $default  reduce using rule 111 (import_kind)
 
 
-State 382
+State 385
 
   115 import_kind: "(" GLOBAL bind_var_opt global_type ")" .
 
     $default  reduce using rule 115 (import_kind)
 
 
-State 383
+State 386
 
   113 import_kind: "(" TABLE bind_var_opt table_sig ")" .
 
     $default  reduce using rule 113 (import_kind)
 
 
-State 384
+State 387
 
   114 import_kind: "(" MEMORY bind_var_opt memory_sig ")" .
 
     $default  reduce using rule 114 (import_kind)
 
 
-State 385
+State 388
 
    68 block_instr: IF labeling_opt block ELSE labeling_opt instr_list END . labeling_opt
 
-    VAR  shift, and go to state 22
+    VAR  shift, and go to state 23
 
     $default  reduce using rule 32 (labeling_opt)
 
-    bind_var      go to state 193
-    labeling_opt  go to state 390
+    bind_var      go to state 196
+    labeling_opt  go to state 393
 
 
-State 386
+State 389
 
    14 func_sig: "(" PARAM value_type_list ")" "(" RESULT . value_type_list ")"
 
     $default  reduce using rule 6 (value_type_list)
 
-    value_type_list  go to state 391
+    value_type_list  go to state 394
 
 
-State 387
+State 390
 
   103 table: "(" TABLE bind_var_opt inline_export_opt elem_type "(" ELEM var_list ")" ")" .
 
     $default  reduce using rule 103 (table)
 
 
-State 388
+State 391
 
    75 if_: "(" THEN instr_list ")" . "(" ELSE instr_list ")"
    76    | "(" THEN instr_list ")" .
 
-    "("  shift, and go to state 392
+    "("  shift, and go to state 395
 
     $default  reduce using rule 76 (if_)
 
 
-State 389
+State 392
 
    77 if_: expr "(" THEN instr_list . ")" "(" ELSE instr_list ")"
    78    | expr "(" THEN instr_list . ")"
 
-    ")"  shift, and go to state 393
+    ")"  shift, and go to state 396
 
 
-State 390
+State 393
 
    68 block_instr: IF labeling_opt block ELSE labeling_opt instr_list END labeling_opt .
 
     $default  reduce using rule 68 (block_instr)
 
 
-State 391
+State 394
 
     7 value_type_list: value_type_list . VALUE_TYPE
    14 func_sig: "(" PARAM value_type_list ")" "(" RESULT value_type_list . ")"
 
-    ")"         shift, and go to state 394
-    VALUE_TYPE  shift, and go to state 316
+    ")"         shift, and go to state 397
+    VALUE_TYPE  shift, and go to state 319
 
 
-State 392
+State 395
 
    75 if_: "(" THEN instr_list ")" "(" . ELSE instr_list ")"
 
-    ELSE  shift, and go to state 395
+    ELSE  shift, and go to state 398
 
 
-State 393
+State 396
 
    77 if_: expr "(" THEN instr_list ")" . "(" ELSE instr_list ")"
    78    | expr "(" THEN instr_list ")" .
 
-    "("  shift, and go to state 396
+    "("  shift, and go to state 399
 
     $default  reduce using rule 78 (if_)
 
 
-State 394
+State 397
 
    14 func_sig: "(" PARAM value_type_list ")" "(" RESULT value_type_list ")" .
 
     $default  reduce using rule 14 (func_sig)
 
 
-State 395
+State 398
 
    75 if_: "(" THEN instr_list ")" "(" ELSE . instr_list ")"
 
-    "("             shift, and go to state 213
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
+    "("             shift, and go to state 216
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
 
     $default  reduce using rule 81 (instr_list)
 
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
-    instr_list   go to state 397
-
-
-State 396
-
-   77 if_: expr "(" THEN instr_list ")" "(" . ELSE instr_list ")"
-
-    ELSE  shift, and go to state 398
-
-
-State 397
-
-   75 if_: "(" THEN instr_list ")" "(" ELSE instr_list . ")"
-
-    ")"  shift, and go to state 399
-
-
-State 398
-
-   77 if_: expr "(" THEN instr_list ")" "(" ELSE . instr_list ")"
-
-    "("             shift, and go to state 213
-    NOP             shift, and go to state 117
-    DROP            shift, and go to state 118
-    BLOCK           shift, and go to state 119
-    IF              shift, and go to state 120
-    LOOP            shift, and go to state 121
-    BR              shift, and go to state 122
-    BR_IF           shift, and go to state 123
-    BR_TABLE        shift, and go to state 124
-    CALL            shift, and go to state 125
-    CALL_INDIRECT   shift, and go to state 126
-    RETURN          shift, and go to state 127
-    GET_LOCAL       shift, and go to state 128
-    SET_LOCAL       shift, and go to state 129
-    TEE_LOCAL       shift, and go to state 130
-    GET_GLOBAL      shift, and go to state 131
-    SET_GLOBAL      shift, and go to state 132
-    LOAD            shift, and go to state 133
-    STORE           shift, and go to state 134
-    CONST           shift, and go to state 135
-    UNARY           shift, and go to state 136
-    BINARY          shift, and go to state 137
-    COMPARE         shift, and go to state 138
-    CONVERT         shift, and go to state 139
-    SELECT          shift, and go to state 140
-    UNREACHABLE     shift, and go to state 141
-    CURRENT_MEMORY  shift, and go to state 142
-    GROW_MEMORY     shift, and go to state 143
-
-    $default  reduce using rule 81 (instr_list)
-
-    instr        go to state 145
-    plain_instr  go to state 146
-    block_instr  go to state 147
-    expr         go to state 148
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
     instr_list   go to state 400
 
 
 State 399
+
+   77 if_: expr "(" THEN instr_list ")" "(" . ELSE instr_list ")"
+
+    ELSE  shift, and go to state 401
+
+
+State 400
+
+   75 if_: "(" THEN instr_list ")" "(" ELSE instr_list . ")"
+
+    ")"  shift, and go to state 402
+
+
+State 401
+
+   77 if_: expr "(" THEN instr_list ")" "(" ELSE . instr_list ")"
+
+    "("             shift, and go to state 216
+    NOP             shift, and go to state 120
+    DROP            shift, and go to state 121
+    BLOCK           shift, and go to state 122
+    IF              shift, and go to state 123
+    LOOP            shift, and go to state 124
+    BR              shift, and go to state 125
+    BR_IF           shift, and go to state 126
+    BR_TABLE        shift, and go to state 127
+    CALL            shift, and go to state 128
+    CALL_INDIRECT   shift, and go to state 129
+    RETURN          shift, and go to state 130
+    GET_LOCAL       shift, and go to state 131
+    SET_LOCAL       shift, and go to state 132
+    TEE_LOCAL       shift, and go to state 133
+    GET_GLOBAL      shift, and go to state 134
+    SET_GLOBAL      shift, and go to state 135
+    LOAD            shift, and go to state 136
+    STORE           shift, and go to state 137
+    CONST           shift, and go to state 138
+    UNARY           shift, and go to state 139
+    BINARY          shift, and go to state 140
+    COMPARE         shift, and go to state 141
+    CONVERT         shift, and go to state 142
+    SELECT          shift, and go to state 143
+    UNREACHABLE     shift, and go to state 144
+    CURRENT_MEMORY  shift, and go to state 145
+    GROW_MEMORY     shift, and go to state 146
+
+    $default  reduce using rule 81 (instr_list)
+
+    instr        go to state 148
+    plain_instr  go to state 149
+    block_instr  go to state 150
+    expr         go to state 151
+    instr_list   go to state 403
+
+
+State 402
 
    75 if_: "(" THEN instr_list ")" "(" ELSE instr_list ")" .
 
     $default  reduce using rule 75 (if_)
 
 
-State 400
+State 403
 
    77 if_: expr "(" THEN instr_list ")" "(" ELSE instr_list . ")"
 
-    ")"  shift, and go to state 401
+    ")"  shift, and go to state 404
 
 
-State 401
+State 404
 
    77 if_: expr "(" THEN instr_list ")" "(" ELSE instr_list ")" .
 

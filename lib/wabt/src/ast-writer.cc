@@ -21,6 +21,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include <string>
+#include <vector>
+
 #include "ast.h"
 #include "common.h"
 #include "literal.h"
@@ -32,6 +35,8 @@
 #define FORCE_NEWLINE 1
 
 namespace wabt {
+
+namespace {
 
 static const uint8_t s_is_char_escaped[] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -54,20 +59,24 @@ enum class NextChar {
 };
 
 struct Context {
-  Stream stream;
-  Result result;
-  int indent;
-  NextChar next_char;
-  int depth;
-  StringSliceVector index_to_name;
+  Context() { WABT_ZERO_MEMORY(stream); }
 
-  int func_index;
-  int global_index;
-  int export_index;
-  int table_index;
-  int memory_index;
-  int func_type_index;
+  Stream stream;
+  Result result = Result::Ok;
+  int indent = 0;
+  NextChar next_char = NextChar::None;
+  int depth = 0;
+  std::vector<std::string> index_to_name;
+
+  int func_index = 0;
+  int global_index = 0;
+  int export_index = 0;
+  int table_index = 0;
+  int memory_index = 0;
+  int func_type_index = 0;
 };
+
+}  // namespace
 
 static void indent(Context* ctx) {
   ctx->indent += INDENT_SIZE;
@@ -179,6 +188,12 @@ static void write_close_space(Context* ctx) {
   write_close(ctx, NextChar::Space);
 }
 
+static void write_string(Context* ctx,
+                         const std::string& str,
+                         NextChar next_char) {
+  write_puts(ctx, str.c_str(), next_char);
+}
+
 static void write_string_slice(Context* ctx,
                                const StringSlice* str,
                                NextChar next_char) {
@@ -209,8 +224,7 @@ static void write_quoted_data(Context* ctx, const void* data, size_t length) {
   static const char s_hexdigits[] = "0123456789abcdef";
   write_next_char(ctx);
   write_putc(ctx, '\"');
-  size_t i;
-  for (i = 0; i < length; ++i) {
+  for (size_t i = 0; i < length; ++i) {
     uint8_t c = u8_data[i];
     if (s_is_char_escaped[c]) {
       write_putc(ctx, '\\');
@@ -257,22 +271,21 @@ static void write_type(Context* ctx, Type type, NextChar next_char) {
 }
 
 static void write_types(Context* ctx,
-                        const TypeVector* types,
+                        const TypeVector& types,
                         const char* name) {
-  if (types->size) {
-    size_t i;
+  if (types.size()) {
     if (name)
       write_open_space(ctx, name);
-    for (i = 0; i < types->size; ++i)
-      write_type(ctx, types->data[i], NextChar::Space);
+    for (Type type: types)
+      write_type(ctx, type, NextChar::Space);
     if (name)
       write_close_space(ctx);
   }
 }
 
 static void write_func_sig_space(Context* ctx, const FuncSignature* func_sig) {
-  write_types(ctx, &func_sig->param_types, "param");
-  write_types(ctx, &func_sig->result_types, "result");
+  write_types(ctx, func_sig->param_types, "param");
+  write_types(ctx, func_sig->result_types, "result");
 }
 
 static void write_expr_list(Context* ctx, const Expr* first);
@@ -284,7 +297,7 @@ static void write_begin_block(Context* ctx,
                               const char* text) {
   write_puts_space(ctx, text);
   bool has_label = write_string_slice_opt(ctx, &block->label, NextChar::Space);
-  write_types(ctx, &block->sig, nullptr);
+  write_types(ctx, block->sig, nullptr);
   if (!has_label)
     writef(ctx, " ;; label = @%d", ctx->depth);
   write_newline(ctx, FORCE_NEWLINE);
@@ -357,7 +370,7 @@ static void write_expr(Context* ctx, const Expr* expr) {
       break;
 
     case ExprType::Block:
-      write_block(ctx, &expr->block, get_opcode_name(Opcode::Block));
+      write_block(ctx, expr->block, get_opcode_name(Opcode::Block));
       break;
 
     case ExprType::Br:
@@ -372,9 +385,8 @@ static void write_expr(Context* ctx, const Expr* expr) {
 
     case ExprType::BrTable: {
       write_puts_space(ctx, get_opcode_name(Opcode::BrTable));
-      size_t i;
-      for (i = 0; i < expr->br_table.targets.size; ++i)
-        write_br_var(ctx, &expr->br_table.targets.data[i], NextChar::Space);
+      for (const Var& var : *expr->br_table.targets)
+        write_br_var(ctx, &var, NextChar::Space);
       write_br_var(ctx, &expr->br_table.default_target, NextChar::Newline);
       break;
     }
@@ -420,8 +432,8 @@ static void write_expr(Context* ctx, const Expr* expr) {
       break;
 
     case ExprType::If:
-      write_begin_block(ctx, &expr->if_.true_, get_opcode_name(Opcode::If));
-      write_expr_list(ctx, expr->if_.true_.first);
+      write_begin_block(ctx, expr->if_.true_, get_opcode_name(Opcode::If));
+      write_expr_list(ctx, expr->if_.true_->first);
       if (expr->if_.false_) {
         dedent(ctx);
         write_puts_space(ctx, get_opcode_name(Opcode::Else));
@@ -442,7 +454,7 @@ static void write_expr(Context* ctx, const Expr* expr) {
       break;
 
     case ExprType::Loop:
-      write_block(ctx, &expr->loop, get_opcode_name(Opcode::Loop));
+      write_block(ctx, expr->loop, get_opcode_name(Opcode::Loop));
       break;
 
     case ExprType::CurrentMemory:
@@ -501,8 +513,7 @@ static void write_expr(Context* ctx, const Expr* expr) {
 }
 
 static void write_expr_list(Context* ctx, const Expr* first) {
-  const Expr* expr;
-  for (expr = first; expr; expr = expr->next)
+  for (const Expr* expr = first; expr; expr = expr->next)
     write_expr(ctx, expr);
 }
 
@@ -519,8 +530,8 @@ static void write_init_expr(Context* ctx, const Expr* expr) {
 static void write_type_bindings(Context* ctx,
                                 const char* prefix,
                                 const Func* func,
-                                const TypeVector* types,
-                                const BindingHash* bindings) {
+                                const TypeVector& types,
+                                const BindingHash& bindings) {
   make_type_binding_reverse_mapping(types, bindings, &ctx->index_to_name);
 
   /* named params/locals must be specified by themselves, but nameless
@@ -529,19 +540,17 @@ static void write_type_bindings(Context* ctx,
    *   (param i32 i64 f32)
    */
   bool is_open = false;
-  size_t i;
-  for (i = 0; i < types->size; ++i) {
+  for (size_t i = 0; i < types.size(); ++i) {
     if (!is_open) {
       write_open_space(ctx, prefix);
       is_open = true;
     }
 
-    const StringSlice* name = &ctx->index_to_name.data[i];
-    bool has_name = !!name->start;
-    if (has_name)
-      write_string_slice(ctx, name, NextChar::Space);
-    write_type(ctx, types->data[i], NextChar::Space);
-    if (has_name) {
+    const std::string& name = ctx->index_to_name[i];
+    if (!name.empty())
+      write_string(ctx, name, NextChar::Space);
+    write_type(ctx, types[i], NextChar::Space);
+    if (!name.empty()) {
       write_close_space(ctx);
       is_open = false;
     }
@@ -559,13 +568,13 @@ static void write_func(Context* ctx, const Module* module, const Func* func) {
     write_var(ctx, &func->decl.type_var, NextChar::None);
     write_close_space(ctx);
   }
-  write_type_bindings(ctx, "param", func, &func->decl.sig.param_types,
-                      &func->param_bindings);
-  write_types(ctx, &func->decl.sig.result_types, "result");
+  write_type_bindings(ctx, "param", func, func->decl.sig.param_types,
+                      func->param_bindings);
+  write_types(ctx, func->decl.sig.result_types, "result");
   write_newline(ctx, NO_FORCE_NEWLINE);
-  if (func->local_types.size) {
-    write_type_bindings(ctx, "local", func, &func->local_types,
-                        &func->local_bindings);
+  if (func->local_types.size()) {
+    write_type_bindings(ctx, "local", func, func->local_types,
+                        func->local_bindings);
   }
   write_newline(ctx, NO_FORCE_NEWLINE);
   ctx->depth = 1; /* for the implicit "return" label */
@@ -610,9 +619,8 @@ static void write_table(Context* ctx, const Table* table) {
 static void write_elem_segment(Context* ctx, const ElemSegment* segment) {
   write_open_space(ctx, "elem");
   write_init_expr(ctx, segment->offset);
-  size_t i;
-  for (i = 0; i < segment->vars.size; ++i)
-    write_var(ctx, &segment->vars.data[i], NextChar::Space);
+  for (const Var& var : segment->vars)
+    write_var(ctx, &var, NextChar::Space);
   write_close_newline(ctx);
 }
 
@@ -638,28 +646,28 @@ static void write_import(Context* ctx, const Import* import) {
   switch (import->kind) {
     case ExternalKind::Func:
       write_open_space(ctx, "func");
-      write_string_slice_or_index(ctx, &import->func.name, ctx->func_index++,
+      write_string_slice_or_index(ctx, &import->func->name, ctx->func_index++,
                                   NextChar::Space);
-      if (decl_has_func_type(&import->func.decl)) {
+      if (decl_has_func_type(&import->func->decl)) {
         write_open_space(ctx, "type");
-        write_var(ctx, &import->func.decl.type_var, NextChar::None);
+        write_var(ctx, &import->func->decl.type_var, NextChar::None);
         write_close_space(ctx);
       } else {
-        write_func_sig_space(ctx, &import->func.decl.sig);
+        write_func_sig_space(ctx, &import->func->decl.sig);
       }
       write_close_space(ctx);
       break;
 
     case ExternalKind::Table:
-      write_table(ctx, &import->table);
+      write_table(ctx, import->table);
       break;
 
     case ExternalKind::Memory:
-      write_memory(ctx, &import->memory);
+      write_memory(ctx, import->memory);
       break;
 
     case ExternalKind::Global:
-      write_begin_global(ctx, &import->global);
+      write_begin_global(ctx, import->global);
       write_close_space(ctx);
       break;
   }
@@ -696,35 +704,35 @@ static void write_start_function(Context* ctx, const Var* start) {
 
 static void write_module(Context* ctx, const Module* module) {
   write_open_newline(ctx, "module");
-  const ModuleField* field;
-  for (field = module->first_field; field; field = field->next) {
+  for (const ModuleField* field = module->first_field; field;
+       field = field->next) {
     switch (field->type) {
       case ModuleFieldType::Func:
-        write_func(ctx, module, &field->func);
+        write_func(ctx, module, field->func);
         break;
       case ModuleFieldType::Global:
-        write_global(ctx, &field->global);
+        write_global(ctx, field->global);
         break;
       case ModuleFieldType::Import:
-        write_import(ctx, &field->import);
+        write_import(ctx, field->import);
         break;
       case ModuleFieldType::Export:
-        write_export(ctx, &field->export_);
+        write_export(ctx, field->export_);
         break;
       case ModuleFieldType::Table:
-        write_table(ctx, &field->table);
+        write_table(ctx, field->table);
         break;
       case ModuleFieldType::ElemSegment:
-        write_elem_segment(ctx, &field->elem_segment);
+        write_elem_segment(ctx, field->elem_segment);
         break;
       case ModuleFieldType::Memory:
-        write_memory(ctx, &field->memory);
+        write_memory(ctx, field->memory);
         break;
       case ModuleFieldType::DataSegment:
-        write_data_segment(ctx, &field->data_segment);
+        write_data_segment(ctx, field->data_segment);
         break;
       case ModuleFieldType::FuncType:
-        write_func_type(ctx, &field->func_type);
+        write_func_type(ctx, field->func_type);
         break;
       case ModuleFieldType::Start:
         write_start_function(ctx, &field->start);
@@ -738,13 +746,8 @@ static void write_module(Context* ctx, const Module* module) {
 
 Result write_ast(Writer* writer, const Module* module) {
   Context ctx;
-  WABT_ZERO_MEMORY(ctx);
-  ctx.result = Result::Ok;
   init_stream(&ctx.stream, writer, nullptr);
   write_module(&ctx, module);
-  /* the memory for the actual string slice is shared with the module, so we
-   * only need to free the vector */
-  destroy_string_slice_vector(&ctx.index_to_name);
   return ctx.result;
 }
 

@@ -73,17 +73,6 @@ void ast_format_error(SourceErrorHandler* error_handler,
   va_end(args_copy);
 }
 
-void destroy_optional_export(OptionalExport* export_) {
-  if (export_->has_export)
-    destroy_export(&export_->export_);
-}
-
-void destroy_exported_func(ExportedFunc* exported_func) {
-  destroy_optional_export(&exported_func->export_);
-  destroy_func(exported_func->func);
-  delete exported_func->func;
-}
-
 void destroy_text_list(TextList* text_list) {
   TextListNode* node = text_list->first;
   while (node) {
@@ -94,45 +83,35 @@ void destroy_text_list(TextList* text_list) {
   }
 }
 
+FuncField::FuncField()
+    : type(FuncFieldType::Exprs), first_expr(nullptr), next(nullptr) {}
+
+FuncField::~FuncField() {
+  switch (type) {
+    case FuncFieldType::Exprs:
+      destroy_expr_list(first_expr);
+      break;
+
+    case FuncFieldType::ParamTypes:
+    case FuncFieldType::LocalTypes:
+    case FuncFieldType::ResultTypes:
+      delete types;
+      break;
+
+    case FuncFieldType::BoundParam:
+    case FuncFieldType::BoundLocal:
+      destroy_string_slice(&bound_type.name);
+      break;
+  }
+}
+
 void destroy_func_fields(FuncField* func_field) {
   /* destroy the entire linked-list */
   while (func_field) {
     FuncField* next_func_field = func_field->next;
-
-    switch (func_field->type) {
-      case FuncFieldType::Exprs:
-        destroy_expr_list(func_field->first_expr);
-        break;
-
-      case FuncFieldType::ParamTypes:
-      case FuncFieldType::LocalTypes:
-      case FuncFieldType::ResultTypes:
-        destroy_type_vector(&func_field->types);
-        break;
-
-      case FuncFieldType::BoundParam:
-      case FuncFieldType::BoundLocal:
-        destroy_string_slice(&func_field->bound_type.name);
-        break;
-    }
-
     delete func_field;
     func_field = next_func_field;
   }
-}
-
-void destroy_exported_memory(ExportedMemory* memory) {
-  destroy_memory(&memory->memory);
-  destroy_optional_export(&memory->export_);
-  if (memory->has_data_segment)
-    destroy_data_segment(&memory->data_segment);
-}
-
-void destroy_exported_table(ExportedTable* table) {
-  destroy_table(&table->table);
-  destroy_optional_export(&table->export_);
-  if (table->has_elem_segment)
-    destroy_elem_segment(&table->elem_segment);
 }
 
 }  // namespace wabt

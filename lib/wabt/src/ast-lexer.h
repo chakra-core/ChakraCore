@@ -21,7 +21,6 @@
 #include <stdio.h>
 
 #include "common.h"
-#include "vector.h"
 
 namespace wabt {
 

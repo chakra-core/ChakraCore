@@ -20,6 +20,9 @@
 #include <inttypes.h>
 #include <math.h>
 
+#include <algorithm>
+#include <vector>
+
 #include "stream.h"
 
 #define INITIAL_ISTREAM_CAPACITY (64 * 1024)
@@ -54,137 +57,177 @@ static const char* get_interpreter_opcode_name(InterpreterOpcode opcode) {
   return s_interpreter_opcode_name[static_cast<int>(opcode)];
 }
 
-void init_interpreter_environment(InterpreterEnvironment* env) {
-  WABT_ZERO_MEMORY(*env);
-  init_output_buffer(&env->istream, INITIAL_ISTREAM_CAPACITY);
+InterpreterEnvironment::InterpreterEnvironment() {
+  WABT_ZERO_MEMORY(istream);
+  init_output_buffer(&istream, INITIAL_ISTREAM_CAPACITY);
 }
 
-static void destroy_interpreter_func_signature(InterpreterFuncSignature* sig) {
-  destroy_type_vector(&sig->param_types);
-  destroy_type_vector(&sig->result_types);
+InterpreterThread::InterpreterThread()
+    : env(nullptr),
+      value_stack_top(nullptr),
+      value_stack_end(nullptr),
+      call_stack_top(nullptr),
+      call_stack_end(nullptr),
+      pc(0) {}
+
+InterpreterImport::InterpreterImport() 
+  : kind(ExternalKind::Func) {
+  WABT_ZERO_MEMORY(module_name);
+  WABT_ZERO_MEMORY(field_name);
+  WABT_ZERO_MEMORY(func.sig_index);
 }
 
-static void destroy_interpreter_func(InterpreterFunc* func) {
-  if (!func->is_host)
-    destroy_type_vector(&func->defined.param_and_local_types);
+InterpreterImport::InterpreterImport(InterpreterImport&& other) {
+  *this = std::move(other);
 }
 
-static void destroy_interpreter_memory(InterpreterMemory* memory) {
-  delete [] memory->data;
-}
-
-static void destroy_interpreter_table(InterpreterTable* table) {
-  destroy_uint32_array(&table->func_indexes);
-}
-
-static void destroy_interpreter_import(InterpreterImport* import) {
-  destroy_string_slice(&import->module_name);
-  destroy_string_slice(&import->field_name);
-}
-
-static void destroy_interpreter_module(InterpreterModule* module) {
-  destroy_interpreter_export_vector(&module->exports);
-  destroy_binding_hash(&module->export_bindings);
-  destroy_string_slice(&module->name);
-  if (!module->is_host) {
-    WABT_DESTROY_ARRAY_AND_ELEMENTS(module->defined.imports,
-                                    interpreter_import);
+InterpreterImport& InterpreterImport::operator=(InterpreterImport&& other) {
+  kind = other.kind;
+  module_name = other.module_name;
+  WABT_ZERO_MEMORY(other.module_name);
+  field_name = other.field_name;
+  WABT_ZERO_MEMORY(other.field_name);
+  switch (kind) {
+    case ExternalKind::Func:
+      func.sig_index = other.func.sig_index;
+      break;
+    case ExternalKind::Table:
+      table.limits = other.table.limits;
+      break;
+    case ExternalKind::Memory:
+      memory.limits = other.memory.limits;
+      break;
+    case ExternalKind::Global:
+      global.type = other.global.type;
+      global.mutable_ = other.global.mutable_;
+      break;
   }
+  return *this;
 }
+
+
+InterpreterImport::~InterpreterImport() {
+  destroy_string_slice(&module_name);
+  destroy_string_slice(&field_name);
+}
+
+InterpreterExport::InterpreterExport(InterpreterExport&& other)
+  : name(other.name),
+    kind(other.kind),
+    index(other.index) {
+  WABT_ZERO_MEMORY(other.name);
+}
+
+InterpreterExport& InterpreterExport::operator=(InterpreterExport&& other) {
+  name = other.name;
+  kind = other.kind;
+  index = other.index;
+  WABT_ZERO_MEMORY(other.name);
+  return *this;
+}
+
+InterpreterExport::~InterpreterExport() {
+  destroy_string_slice(&name);
+}
+
+InterpreterModule::InterpreterModule(bool is_host)
+    : memory_index(WABT_INVALID_INDEX),
+      table_index(WABT_INVALID_INDEX),
+      is_host(is_host) {
+  WABT_ZERO_MEMORY(name);
+}
+
+InterpreterModule::InterpreterModule(const StringSlice& name, bool is_host)
+    : name(name),
+      memory_index(WABT_INVALID_INDEX),
+      table_index(WABT_INVALID_INDEX),
+      is_host(is_host) {}
+
+InterpreterModule::~InterpreterModule() {
+  destroy_string_slice(&name);
+}
+
+DefinedInterpreterModule::DefinedInterpreterModule(size_t istream_start)
+    : InterpreterModule(false),
+      start_func_index(WABT_INVALID_INDEX),
+      istream_start(istream_start),
+      istream_end(istream_start) {}
+
+HostInterpreterModule::HostInterpreterModule(const StringSlice& name)
+    : InterpreterModule(name, true) {}
 
 void destroy_interpreter_environment(InterpreterEnvironment* env) {
-  WABT_DESTROY_VECTOR_AND_ELEMENTS(env->modules, interpreter_module);
-  WABT_DESTROY_VECTOR_AND_ELEMENTS(env->sigs, interpreter_func_signature);
-  WABT_DESTROY_VECTOR_AND_ELEMENTS(env->funcs, interpreter_func);
-  WABT_DESTROY_VECTOR_AND_ELEMENTS(env->memories, interpreter_memory);
-  WABT_DESTROY_VECTOR_AND_ELEMENTS(env->tables, interpreter_table);
-  destroy_interpreter_global_vector(&env->globals);
   destroy_output_buffer(&env->istream);
-  destroy_binding_hash(&env->module_bindings);
-  destroy_binding_hash(&env->registered_module_bindings);
 }
 
 InterpreterEnvironmentMark mark_interpreter_environment(
     InterpreterEnvironment* env) {
   InterpreterEnvironmentMark mark;
   WABT_ZERO_MEMORY(mark);
-  mark.modules_size = env->modules.size;
-  mark.sigs_size = env->sigs.size;
-  mark.funcs_size = env->funcs.size;
-  mark.memories_size = env->memories.size;
-  mark.tables_size = env->tables.size;
-  mark.globals_size = env->globals.size;
+  mark.modules_size = env->modules.size();
+  mark.sigs_size = env->sigs.size();
+  mark.funcs_size = env->funcs.size();
+  mark.memories_size = env->memories.size();
+  mark.tables_size = env->tables.size();
+  mark.globals_size = env->globals.size();
   mark.istream_size = env->istream.size;
   return mark;
 }
 
 void reset_interpreter_environment_to_mark(InterpreterEnvironment* env,
                                            InterpreterEnvironmentMark mark) {
-  size_t i;
-
-#define DESTROY_PAST_MARK(destroy_name, names)                 \
-  do {                                                         \
-    assert(mark.names##_size <= env->names.size);              \
-    for (i = mark.names##_size; i < env->names.size; ++i)      \
-      destroy_interpreter_##destroy_name(&env->names.data[i]); \
-    env->names.size = mark.names##_size;                       \
-  } while (0)
-
   /* Destroy entries in the binding hash. */
-  for (i = mark.modules_size; i < env->modules.size; ++i) {
-    const StringSlice* name = &env->modules.data[i].name;
+  for (size_t i = mark.modules_size; i < env->modules.size(); ++i) {
+    const StringSlice* name = &env->modules[i]->name;
     if (!string_slice_is_empty(name))
-      remove_binding(&env->module_bindings, name);
+      env->module_bindings.erase(string_slice_to_string(*name));
   }
 
   /* registered_module_bindings maps from an arbitrary name to a module index,
    * so we have to iterate through the entire table to find entries to remove.
    */
-  for (i = 0; i < env->registered_module_bindings.entries.capacity; ++i) {
-    BindingHashEntry* entry = &env->registered_module_bindings.entries.data[i];
-    if (!hash_entry_is_free(entry) &&
-        entry->binding.index >= static_cast<int>(mark.modules_size)) {
-      remove_binding(&env->registered_module_bindings, &entry->binding.name);
-    }
+  auto iter = env->registered_module_bindings.begin();
+  while (iter != env->registered_module_bindings.end()) {
+    if (iter->second.index >= static_cast<int>(mark.modules_size))
+      iter = env->registered_module_bindings.erase(iter);
+    else
+      ++iter;
   }
 
-  DESTROY_PAST_MARK(module, modules);
-  DESTROY_PAST_MARK(func_signature, sigs);
-  DESTROY_PAST_MARK(func, funcs);
-  DESTROY_PAST_MARK(memory, memories);
-  DESTROY_PAST_MARK(table, tables);
-  env->globals.size = mark.globals_size;
+  env->modules.erase(env->modules.begin() + mark.modules_size,
+                     env->modules.end());
+  env->sigs.erase(env->sigs.begin() + mark.sigs_size, env->sigs.end());
+  env->funcs.erase(env->funcs.begin() + mark.funcs_size, env->funcs.end());
+  env->memories.erase(env->memories.begin() + mark.memories_size,
+                      env->memories.end());
+  env->tables.erase(env->tables.begin() + mark.tables_size, env->tables.end());
+  env->globals.erase(env->globals.begin() + mark.globals_size,
+                     env->globals.end());
   env->istream.size = mark.istream_size;
-
-#undef DESTROY_PAST_MARK
 }
 
-InterpreterModule* append_host_module(InterpreterEnvironment* env,
-                                      StringSlice name) {
-  InterpreterModule* module = append_interpreter_module(&env->modules);
-  module->name = dup_string_slice(name);
-  module->memory_index = WABT_INVALID_INDEX;
-  module->table_index = WABT_INVALID_INDEX;
-  module->is_host = true;
-
-  StringSlice dup_name = dup_string_slice(name);
-  Binding* binding =
-      insert_binding(&env->registered_module_bindings, &dup_name);
-  binding->index = env->modules.size - 1;
+HostInterpreterModule* append_host_module(InterpreterEnvironment* env,
+                                          StringSlice name) {
+  HostInterpreterModule* module =
+      new HostInterpreterModule(dup_string_slice(name));
+  env->modules.emplace_back(module);
+  env->registered_module_bindings.emplace(string_slice_to_string(name),
+                                          Binding(env->modules.size() - 1));
   return module;
 }
 
 void init_interpreter_thread(InterpreterEnvironment* env,
                              InterpreterThread* thread,
                              InterpreterThreadOptions* options) {
-  WABT_ZERO_MEMORY(*thread);
-  new_interpreter_value_array(&thread->value_stack, options->value_stack_size);
-  new_uint32_array(&thread->call_stack, options->call_stack_size);
+  thread->value_stack.resize(options->value_stack_size);
+  thread->call_stack.resize(options->call_stack_size);
   thread->env = env;
-  thread->value_stack_top = thread->value_stack.data;
-  thread->value_stack_end = thread->value_stack.data + thread->value_stack.size;
-  thread->call_stack_top = thread->call_stack.data;
-  thread->call_stack_end = thread->call_stack.data + thread->call_stack.size;
+  thread->value_stack_top = thread->value_stack.data();
+  thread->value_stack_end =
+      thread->value_stack.data() + thread->value_stack.size();
+  thread->call_stack_top = thread->call_stack.data();
+  thread->call_stack_end =
+      thread->call_stack.data() + thread->call_stack.size();
   thread->pc = options->pc;
 }
 
@@ -198,17 +241,10 @@ InterpreterResult push_thread_value(InterpreterThread* thread,
 
 InterpreterExport* get_interpreter_export_by_name(InterpreterModule* module,
                                                   const StringSlice* name) {
-  int field_index = find_binding_index_by_name(&module->export_bindings, name);
+  int field_index = module->export_bindings.find_index(*name);
   if (field_index < 0)
     return nullptr;
-  assert(static_cast<size_t>(field_index) < module->exports.size);
-  return &module->exports.data[field_index];
-}
-
-void destroy_interpreter_thread(InterpreterThread* thread) {
-  destroy_interpreter_value_array(&thread->value_stack);
-  destroy_uint32_array(&thread->call_stack);
-  destroy_interpreter_typed_value_vector(&thread->host_args);
+  return &module->exports[field_index];
 }
 
 /* 3 32222222 222...00
@@ -242,14 +278,23 @@ void destroy_interpreter_thread(InterpreterThread* thread) {
 #define F32_NEG_ONE 0xbf800000U
 #define F32_NEG_ZERO 0x80000000U
 #define F32_QUIET_NAN 0x7fc00000U
+#define F32_QUIET_NEG_NAN 0xffc00000U
 #define F32_QUIET_NAN_BIT 0x00400000U
 #define F32_SIG_BITS 23
 #define F32_SIG_MASK 0x7fffff
 #define F32_SIGN_MASK 0x80000000U
 
-bool is_nan_f32(uint32_t f32_bits) {
+static bool is_nan_f32(uint32_t f32_bits) {
   return (f32_bits > F32_INF && f32_bits < F32_NEG_ZERO) ||
          (f32_bits > F32_NEG_INF);
+}
+
+bool is_canonical_nan_f32(uint32_t f32_bits) {
+  return f32_bits == F32_QUIET_NAN || f32_bits == F32_QUIET_NEG_NAN;
+}
+
+bool is_arithmetic_nan_f32(uint32_t f32_bits) {
+  return (f32_bits & F32_QUIET_NAN) == F32_QUIET_NAN;
 }
 
 static WABT_INLINE bool is_zero_f32(uint32_t f32_bits) {
@@ -281,32 +326,22 @@ static WABT_INLINE bool is_in_range_i64_trunc_u_f32(uint32_t f32_bits) {
  * 3 21098765432 1098..9..432109...210
  * -----------------------------------
  * 0 00000000000 0000..0..000000...000 0x0000000000000000 => 0
- * 0 10000011101 1111..1..111000...000 0x41dfffffffc00000 => 2147483647
- * (INT32_MAX)
- * 0 10000011110 1111..1..111100...000 0x41efffffffe00000 => 4294967295
- * (UINT32_MAX)
- * 0 10000111101 1111..1..111111...111 0x43dfffffffffffff => 9223372036854774784
- * (~INT64_MAX)
+ * 0 10000011101 1111..1..111000...000 0x41dfffffffc00000 => 2147483647           (INT32_MAX)
+ * 0 10000011110 1111..1..111100...000 0x41efffffffe00000 => 4294967295           (UINT32_MAX)
+ * 0 10000111101 1111..1..111111...111 0x43dfffffffffffff => 9223372036854774784  (~INT64_MAX)
  * 0 10000111110 0000..0..000000...000 0x43e0000000000000 => 9223372036854775808
- * 0 10000111110 1111..1..111111...111 0x43efffffffffffff =>
- * 18446744073709549568   (~UINT64_MAX)
- * 0 10000111111 0000..0..000000...000 0x43f0000000000000 =>
- * 18446744073709551616
- * 0 10001111110 1111..1..000000...000 0x47efffffe0000000 => 3.402823e+38
- * (FLT_MAX)
+ * 0 10000111110 1111..1..111111...111 0x43efffffffffffff => 18446744073709549568 (~UINT64_MAX)
+ * 0 10000111111 0000..0..000000...000 0x43f0000000000000 => 18446744073709551616
+ * 0 10001111110 1111..1..000000...000 0x47efffffe0000000 => 3.402823e+38         (FLT_MAX)
  * 0 11111111111 0000..0..000000...000 0x7ff0000000000000 => inf
  * 0 11111111111 0000..0..000000...001 0x7ff0000000000001 => nan(0x1)
  * 0 11111111111 1111..1..111111...111 0x7fffffffffffffff => nan(0xfff...)
  * 1 00000000000 0000..0..000000...000 0x8000000000000000 => -0
- * 1 01111111110 1111..1..111111...111 0xbfefffffffffffff => -1 + ulp
- * (~UINT32_MIN, ~UINT64_MIN)
+ * 1 01111111110 1111..1..111111...111 0xbfefffffffffffff => -1 + ulp             (~UINT32_MIN, ~UINT64_MIN)
  * 1 01111111111 0000..0..000000...000 0xbff0000000000000 => -1
- * 1 10000011110 0000..0..000000...000 0xc1e0000000000000 => -2147483648
- * (INT32_MIN)
- * 1 10000111110 0000..0..000000...000 0xc3e0000000000000 =>
- * -9223372036854775808     (INT64_MIN)
- * 1 10001111110 1111..1..000000...000 0xc7efffffe0000000 => -3.402823e+38
- * (-FLT_MAX)
+ * 1 10000011110 0000..0..000000...000 0xc1e0000000000000 => -2147483648          (INT32_MIN)
+ * 1 10000111110 0000..0..000000...000 0xc3e0000000000000 => -9223372036854775808 (INT64_MIN)
+ * 1 10001111110 1111..1..000000...000 0xc7efffffe0000000 => -3.402823e+38        (-FLT_MAX)
  * 1 11111111111 0000..0..000000...000 0xfff0000000000000 => -inf
  * 1 11111111111 0000..0..000000...001 0xfff0000000000001 => -nan(0x1)
  * 1 11111111111 1111..1..111111...111 0xffffffffffffffff => -nan(0xfff...)
@@ -317,14 +352,23 @@ static WABT_INLINE bool is_in_range_i64_trunc_u_f32(uint32_t f32_bits) {
 #define F64_NEG_ONE 0xbff0000000000000ULL
 #define F64_NEG_ZERO 0x8000000000000000ULL
 #define F64_QUIET_NAN 0x7ff8000000000000ULL
+#define F64_QUIET_NEG_NAN 0xfff8000000000000ULL
 #define F64_QUIET_NAN_BIT 0x0008000000000000ULL
 #define F64_SIG_BITS 52
 #define F64_SIG_MASK 0xfffffffffffffULL
 #define F64_SIGN_MASK 0x8000000000000000ULL
 
-bool is_nan_f64(uint64_t f64_bits) {
+static bool is_nan_f64(uint64_t f64_bits) {
   return (f64_bits > F64_INF && f64_bits < F64_NEG_ZERO) ||
          (f64_bits > F64_NEG_INF);
+}
+
+bool is_canonical_nan_f64(uint64_t f64_bits) {
+  return f64_bits == F64_QUIET_NAN || f64_bits == F64_QUIET_NEG_NAN;
+}
+
+bool is_arithmetic_nan_f64(uint64_t f64_bits) {
+  return (f64_bits & F64_QUIET_NAN) == F64_QUIET_NAN;
 }
 
 static WABT_INLINE bool is_zero_f64(uint64_t f64_bits) {
@@ -512,37 +556,34 @@ DEFINE_BITCAST(bitcast_u64_to_f64, uint64_t, double)
 
 #define POP_CALL() (*--thread->call_stack_top)
 
-#define GET_MEMORY(var)                      \
-  uint32_t memory_index = read_u32(&pc);     \
-  assert(memory_index < env->memories.size); \
-  InterpreterMemory* var = &env->memories.data[memory_index]
+#define GET_MEMORY(var)                  \
+  uint32_t memory_index = read_u32(&pc); \
+  InterpreterMemory* var = &env->memories[memory_index]
 
-#define LOAD(type, mem_type)                                               \
-  do {                                                                     \
-    GET_MEMORY(memory);                                                    \
-    uint64_t offset = static_cast<uint64_t>(POP_I32()) + read_u32(&pc);    \
-    MEM_TYPE_##mem_type value;                                             \
-    TRAP_IF(offset + sizeof(value) > memory->byte_size,                    \
-            MemoryAccessOutOfBounds);                                      \
-    void* src =                                                            \
-        reinterpret_cast<void*>(reinterpret_cast<intptr_t>(memory->data) + \
-                                static_cast<uint32_t>(offset));            \
-    memcpy(&value, src, sizeof(MEM_TYPE_##mem_type));                      \
-    PUSH_##type(static_cast<MEM_TYPE_EXTEND_##type##_##mem_type>(value));  \
+#define LOAD(type, mem_type)                                              \
+  do {                                                                    \
+    GET_MEMORY(memory);                                                   \
+    uint64_t offset = static_cast<uint64_t>(POP_I32()) + read_u32(&pc);   \
+    MEM_TYPE_##mem_type value;                                            \
+    TRAP_IF(offset + sizeof(value) > memory->data.size(),                 \
+            MemoryAccessOutOfBounds);                                     \
+    void* src = static_cast<void*>(memory->data.data() +                  \
+                                   static_cast<uint32_t>(offset));        \
+    memcpy(&value, src, sizeof(MEM_TYPE_##mem_type));                     \
+    PUSH_##type(static_cast<MEM_TYPE_EXTEND_##type##_##mem_type>(value)); \
   } while (0)
 
-#define STORE(type, mem_type)                                              \
-  do {                                                                     \
-    GET_MEMORY(memory);                                                    \
-    VALUE_TYPE_##type value = POP_##type();                                \
-    uint64_t offset = static_cast<uint64_t>(POP_I32()) + read_u32(&pc);    \
-    MEM_TYPE_##mem_type src = static_cast<MEM_TYPE_##mem_type>(value);     \
-    TRAP_IF(offset + sizeof(src) > memory->byte_size,                      \
-            MemoryAccessOutOfBounds);                                      \
-    void* dst =                                                            \
-        reinterpret_cast<void*>(reinterpret_cast<intptr_t>(memory->data) + \
-                                static_cast<uint32_t>(offset));            \
-    memcpy(dst, &src, sizeof(MEM_TYPE_##mem_type));                        \
+#define STORE(type, mem_type)                                           \
+  do {                                                                  \
+    GET_MEMORY(memory);                                                 \
+    VALUE_TYPE_##type value = POP_##type();                             \
+    uint64_t offset = static_cast<uint64_t>(POP_I32()) + read_u32(&pc); \
+    MEM_TYPE_##mem_type src = static_cast<MEM_TYPE_##mem_type>(value);  \
+    TRAP_IF(offset + sizeof(src) > memory->data.size(),                 \
+            MemoryAccessOutOfBounds);                                   \
+    void* dst = static_cast<void*>(memory->data.data() +                \
+                                   static_cast<uint32_t>(offset));      \
+    memcpy(dst, &src, sizeof(MEM_TYPE_##mem_type));                     \
   } while (0)
 
 #define BINOP(rtype, type, op)            \
@@ -732,44 +773,36 @@ bool func_signatures_are_equal(InterpreterEnvironment* env,
                                uint32_t sig_index_1) {
   if (sig_index_0 == sig_index_1)
     return true;
-  InterpreterFuncSignature* sig_0 = &env->sigs.data[sig_index_0];
-  InterpreterFuncSignature* sig_1 = &env->sigs.data[sig_index_1];
-  return type_vectors_are_equal(&sig_0->param_types, &sig_1->param_types) &&
-         type_vectors_are_equal(&sig_0->result_types, &sig_1->result_types);
+  InterpreterFuncSignature* sig_0 = &env->sigs[sig_index_0];
+  InterpreterFuncSignature* sig_1 = &env->sigs[sig_index_1];
+  return sig_0->param_types == sig_1->param_types &&
+         sig_0->result_types == sig_1->result_types;
 }
 
-InterpreterResult call_host(InterpreterThread* thread, InterpreterFunc* func) {
-  assert(func->is_host);
-  assert(func->sig_index < thread->env->sigs.size);
-  InterpreterFuncSignature* sig = &thread->env->sigs.data[func->sig_index];
+InterpreterResult call_host(InterpreterThread* thread,
+                            HostInterpreterFunc* func) {
+  InterpreterFuncSignature* sig = &thread->env->sigs[func->sig_index];
 
-  uint32_t num_args = sig->param_types.size;
-  if (thread->host_args.size < num_args) {
-    resize_interpreter_typed_value_vector(&thread->host_args, num_args);
+  size_t num_params = sig->param_types.size();
+  size_t num_results = sig->result_types.size();
+  // + 1 is a workaround for using data() below; UBSAN doesn't like calling
+  // data() with an empty vector.
+  std::vector<InterpreterTypedValue> params(num_params + 1);
+  std::vector<InterpreterTypedValue> results(num_results + 1);
+
+  for (size_t i = num_params; i > 0; --i) {
+    params[i - 1].value = POP();
+    params[i - 1].type = sig->param_types[i - 1];
   }
 
-  uint32_t i;
-  for (i = num_args; i > 0; --i) {
-    InterpreterValue value = POP();
-    InterpreterTypedValue* arg = &thread->host_args.data[i - 1];
-    arg->type = sig->param_types.data[i - 1];
-    arg->value = value;
-  }
-
-  uint32_t num_results = sig->result_types.size;
-  InterpreterTypedValue* call_result_values =
-      static_cast<InterpreterTypedValue*>(
-          alloca(sizeof(InterpreterTypedValue) * num_results));
-
-  Result call_result = func->host.callback(
-      func, sig, num_args, thread->host_args.data, num_results,
-      call_result_values, func->host.user_data);
+  Result call_result =
+      func->callback(func, sig, num_params, params.data(), num_results,
+                     results.data(), func->user_data);
   TRAP_IF(call_result != Result::Ok, HostTrapped);
 
-  for (i = 0; i < num_results; ++i) {
-    TRAP_IF(call_result_values[i].type != sig->result_types.data[i],
-            HostResultTypeMismatch);
-    PUSH(call_result_values[i].value);
+  for (size_t i = 0; i < num_results; ++i) {
+    TRAP_IF(results[i].type != sig->result_types[i], HostResultTypeMismatch);
+    PUSH(results[i].value);
   }
 
   return InterpreterResult::Ok;
@@ -785,8 +818,7 @@ InterpreterResult run_interpreter(InterpreterThread* thread,
 
   const uint8_t* istream = reinterpret_cast<const uint8_t*>(env->istream.start);
   const uint8_t* pc = &istream[thread->pc];
-  uint32_t i;
-  for (i = 0; i < num_instructions; ++i) {
+  for (uint32_t i = 0; i < num_instructions; ++i) {
     InterpreterOpcode opcode = static_cast<InterpreterOpcode>(*pc++);
     switch (opcode) {
       case InterpreterOpcode::Select: {
@@ -854,15 +886,15 @@ InterpreterResult run_interpreter(InterpreterThread* thread,
 
       case InterpreterOpcode::GetGlobal: {
         uint32_t index = read_u32(&pc);
-        assert(index < env->globals.size);
-        PUSH(env->globals.data[index].typed_value.value);
+        assert(index < env->globals.size());
+        PUSH(env->globals[index].typed_value.value);
         break;
       }
 
       case InterpreterOpcode::SetGlobal: {
         uint32_t index = read_u32(&pc);
-        assert(index < env->globals.size);
-        env->globals.data[index].typed_value.value = POP();
+        assert(index < env->globals.size());
+        env->globals[index].typed_value.value = POP();
         break;
       }
 
@@ -891,31 +923,27 @@ InterpreterResult run_interpreter(InterpreterThread* thread,
 
       case InterpreterOpcode::CallIndirect: {
         uint32_t table_index = read_u32(&pc);
-        assert(table_index < env->tables.size);
-        InterpreterTable* table = &env->tables.data[table_index];
+        InterpreterTable* table = &env->tables[table_index];
         uint32_t sig_index = read_u32(&pc);
-        assert(sig_index < env->sigs.size);
         VALUE_TYPE_I32 entry_index = POP_I32();
-        TRAP_IF(entry_index >= table->func_indexes.size, UndefinedTableIndex);
-        uint32_t func_index = table->func_indexes.data[entry_index];
+        TRAP_IF(entry_index >= table->func_indexes.size(), UndefinedTableIndex);
+        uint32_t func_index = table->func_indexes[entry_index];
         TRAP_IF(func_index == WABT_INVALID_INDEX, UninitializedTableElement);
-        InterpreterFunc* func = &env->funcs.data[func_index];
+        InterpreterFunc* func = env->funcs[func_index].get();
         TRAP_UNLESS(func_signatures_are_equal(env, func->sig_index, sig_index),
                     IndirectCallSignatureMismatch);
         if (func->is_host) {
-          call_host(thread, func);
+          call_host(thread, func->as_host());
         } else {
           PUSH_CALL();
-          GOTO(func->defined.offset);
+          GOTO(func->as_defined()->offset);
         }
         break;
       }
 
       case InterpreterOpcode::CallHost: {
         uint32_t func_index = read_u32(&pc);
-        assert(func_index < env->funcs.size);
-        InterpreterFunc* func = &env->funcs.data[func_index];
-        call_host(thread, func);
+        call_host(thread, env->funcs[func_index]->as_host());
         break;
       }
 
@@ -1020,7 +1048,6 @@ InterpreterResult run_interpreter(InterpreterThread* thread,
       case InterpreterOpcode::GrowMemory: {
         GET_MEMORY(memory);
         uint32_t old_page_size = memory->page_limits.initial;
-        uint32_t old_byte_size = memory->byte_size;
         VALUE_TYPE_I32 grow_pages = POP_I32();
         uint32_t new_page_size = old_page_size + grow_pages;
         uint32_t max_page_size = memory->page_limits.has_max
@@ -1029,14 +1056,8 @@ InterpreterResult run_interpreter(InterpreterThread* thread,
         PUSH_NEG_1_AND_BREAK_IF(new_page_size > max_page_size);
         PUSH_NEG_1_AND_BREAK_IF(
             static_cast<uint64_t>(new_page_size) * WABT_PAGE_SIZE > UINT32_MAX);
-        uint32_t new_byte_size = new_page_size * WABT_PAGE_SIZE;
-        char* new_data = new char [new_byte_size];
-        memcpy(new_data, memory->data, old_byte_size);
-        memset(new_data + old_byte_size, 0, new_byte_size - old_byte_size);
-        delete [] memory->data;
-        memory->data = new_data;
+        memory->data.resize(new_page_size * WABT_PAGE_SIZE);
         memory->page_limits.initial = new_page_size;
-        memory->byte_size = new_byte_size;
         PUSH_I32(old_page_size);
         break;
       }
@@ -1690,8 +1711,9 @@ void trace_pc(InterpreterThread* thread, Stream* stream) {
   const uint8_t* istream =
       reinterpret_cast<const uint8_t*>(thread->env->istream.start);
   const uint8_t* pc = &istream[thread->pc];
-  size_t value_stack_depth = thread->value_stack_top - thread->value_stack.data;
-  size_t call_stack_depth = thread->call_stack_top - thread->call_stack.data;
+  size_t value_stack_depth =
+      thread->value_stack_top - thread->value_stack.data();
+  size_t call_stack_depth = thread->call_stack_top - thread->call_stack.data();
 
   writef(stream, "#%" PRIzd ". %4" PRIzd ": V:%-3" PRIzd "| ", call_stack_depth,
          pc - reinterpret_cast<uint8_t*>(thread->env->istream.start),
@@ -2350,8 +2372,7 @@ void disassemble(InterpreterEnvironment* env,
          * it as a list of table entries */
         if (num_bytes % WABT_TABLE_ENTRY_SIZE == 0) {
           uint32_t num_entries = num_bytes / WABT_TABLE_ENTRY_SIZE;
-          uint32_t i;
-          for (i = 0; i < num_entries; ++i) {
+          for (uint32_t i = 0; i < num_entries; ++i) {
             writef(stream, "%4" PRIzd "| ", pc - istream);
             uint32_t offset;
             uint32_t drop;
@@ -2380,8 +2401,8 @@ void disassemble_module(InterpreterEnvironment* env,
                         Stream* stream,
                         InterpreterModule* module) {
   assert(!module->is_host);
-  disassemble(env, stream, module->defined.istream_start,
-              module->defined.istream_end);
+  disassemble(env, stream, module->as_defined()->istream_start,
+              module->as_defined()->istream_end);
 }
 
 }  // namespace wabt

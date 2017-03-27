@@ -23,7 +23,6 @@
 
 #include "ast-parser.h"
 #include "ast-parser-lexer-shared.h"
-#include "vector.h"
 
 /* must be included after so some typedefs will be defined */
 #include "ast-parser-gen.hh"
@@ -228,15 +227,16 @@ int ast_lexer_lex(WABT_AST_PARSER_STYPE* lval,
       <i> text                  { TEXT; RETURN(TEXT); }
       <i> '"' => BAD_TEXT       { continue; }
       <BAD_TEXT> character      { continue; }
-      <BAD_TEXT> "\n" => i      { ERROR("newline in string"); NEWLINE; continue;
-      }
+      <BAD_TEXT> "\n" => i      { ERROR("newline in string");
+                                  NEWLINE;
+                                  continue; }
       <BAD_TEXT> "\\".          { ERROR("bad escape \"%.*s\"",
                                         static_cast<int>(yyleng), yytext);
                                   continue; }
       <BAD_TEXT> '"' => i       { TEXT; RETURN(TEXT); }
       <BAD_TEXT> EOF            { ERROR("unexpected EOF"); RETURN(EOF); }
       <BAD_TEXT> [^]            { ERROR("illegal character in string");
-      continue; }
+                                  continue; }
       <i> "i32"                 { TYPE(I32); RETURN(VALUE_TYPE); }
       <i> "i64"                 { TYPE(I64); RETURN(VALUE_TYPE); }
       <i> "f32"                 { TYPE(F32); RETURN(VALUE_TYPE); }
@@ -412,14 +412,10 @@ int ast_lexer_lex(WABT_AST_PARSER_STYPE* lval,
       <i> "f64.convert_u/i64"   { OPCODE(F64ConvertUI64); RETURN(CONVERT); }
       <i> "f64.promote/f32"     { OPCODE(F64PromoteF32); RETURN(CONVERT); }
       <i> "f32.demote/f64"      { OPCODE(F32DemoteF64); RETURN(CONVERT); }
-      <i> "f32.reinterpret/i32" { OPCODE(F32ReinterpretI32); RETURN(CONVERT);
-      }
-      <i> "i32.reinterpret/f32" { OPCODE(I32ReinterpretF32); RETURN(CONVERT);
-      }
-      <i> "f64.reinterpret/i64" { OPCODE(F64ReinterpretI64); RETURN(CONVERT);
-      }
-      <i> "i64.reinterpret/f64" { OPCODE(I64ReinterpretF64); RETURN(CONVERT);
-      }
+      <i> "f32.reinterpret/i32" { OPCODE(F32ReinterpretI32); RETURN(CONVERT); }
+      <i> "i32.reinterpret/f32" { OPCODE(I32ReinterpretF32); RETURN(CONVERT); }
+      <i> "f64.reinterpret/i64" { OPCODE(F64ReinterpretI64); RETURN(CONVERT); }
+      <i> "i64.reinterpret/f64" { OPCODE(I64ReinterpretF64); RETURN(CONVERT); }
       <i> "select"              { RETURN(SELECT); }
       <i> "unreachable"         { RETURN(UNREACHABLE); }
       <i> "current_memory"      { RETURN(CURRENT_MEMORY); }
@@ -446,7 +442,10 @@ int ast_lexer_lex(WABT_AST_PARSER_STYPE* lval,
       <i> "assert_invalid"      { RETURN(ASSERT_INVALID); }
       <i> "assert_unlinkable"   { RETURN(ASSERT_UNLINKABLE); }
       <i> "assert_return"       { RETURN(ASSERT_RETURN); }
-      <i> "assert_return_nan"   { RETURN(ASSERT_RETURN_NAN); }
+      <i> "assert_return_canonical_nan" {
+                                  RETURN(ASSERT_RETURN_CANONICAL_NAN); }
+      <i> "assert_return_arithmetic_nan" {
+                                  RETURN(ASSERT_RETURN_ARITHMETIC_NAN); }
       <i> "assert_trap"         { RETURN(ASSERT_TRAP); }
       <i> "assert_exhaustion"   { RETURN(ASSERT_EXHAUSTION); }
       <i> "input"               { RETURN(INPUT); }

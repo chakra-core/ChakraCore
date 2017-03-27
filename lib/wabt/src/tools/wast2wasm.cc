@@ -201,21 +201,21 @@ int main(int argc, char** argv) {
   if (!lexer)
     WABT_FATAL("unable to read file: %s\n", s_infile);
 
-  Script script;
+  Script* script;
   Result result = parse_ast(lexer, &script, &s_error_handler);
 
   if (WABT_SUCCEEDED(result)) {
-    result = resolve_names_script(lexer, &script, &s_error_handler);
+    result = resolve_names_script(lexer, script, &s_error_handler);
 
     if (WABT_SUCCEEDED(result) && s_validate)
-      result = validate_script(lexer, &script, &s_error_handler);
+      result = validate_script(lexer, script, &s_error_handler);
 
     if (WABT_SUCCEEDED(result)) {
       if (s_spec) {
         s_write_binary_spec_options.json_filename = s_outfile;
         s_write_binary_spec_options.write_binary_options =
             s_write_binary_options;
-        result = write_binary_spec_script(&script, s_infile,
+        result = write_binary_spec_script(script, s_infile,
                                           &s_write_binary_spec_options);
       } else {
         MemoryWriter writer;
@@ -223,7 +223,7 @@ int main(int argc, char** argv) {
         if (WABT_FAILED(init_mem_writer(&writer)))
           WABT_FATAL("unable to open memory writer for writing\n");
 
-        Module* module = get_first_module(&script);
+        Module* module = get_first_module(script);
         if (module) {
           result = write_binary_module(&writer.base, module,
                                        &s_write_binary_options);
@@ -239,6 +239,6 @@ int main(int argc, char** argv) {
   }
 
   destroy_ast_lexer(lexer);
-  destroy_script(&script);
+  delete script;
   return result != Result::Ok;
 }

@@ -19,6 +19,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <vector>
+
 #include "binary-reader.h"
 #include "binary-reader-interpreter.h"
 #include "interpreter.h"
@@ -234,19 +236,13 @@ static void print_typed_value(const InterpreterTypedValue* tv) {
   printf("%s", buffer);
 }
 
-static void print_typed_values(const InterpreterTypedValue* values,
-                               size_t num_values) {
-  size_t i;
-  for (i = 0; i < num_values; ++i) {
+static void print_typed_value_vector(
+    const std::vector<InterpreterTypedValue>& values) {
+  for (size_t i = 0; i < values.size(); ++i) {
     print_typed_value(&values[i]);
-    if (i != num_values - 1)
+    if (i != values.size() - 1)
       printf(", ");
   }
-}
-
-static void print_typed_value_vector(
-    const InterpreterTypedValueVector* values) {
-  print_typed_values(&values->data[0], values->size);
 }
 
 static void print_interpreter_result(const char* desc,
@@ -256,8 +252,8 @@ static void print_interpreter_result(const char* desc,
 
 static void print_call(StringSlice module_name,
                        StringSlice func_name,
-                       const InterpreterTypedValueVector* args,
-                       const InterpreterTypedValueVector* results,
+                       const std::vector<InterpreterTypedValue>& args,
+                       const std::vector<InterpreterTypedValue>& results,
                        InterpreterResult iresult) {
   if (module_name.length)
     printf(PRIstringslice ".", WABT_PRINTF_STRING_SLICE_ARG(module_name));
@@ -265,7 +261,7 @@ static void print_call(StringSlice module_name,
   print_typed_value_vector(args);
   printf(") =>");
   if (iresult == InterpreterResult::Ok) {
-    if (results->size > 0) {
+    if (results.size() > 0) {
       printf(" ");
       print_typed_value_vector(results);
     }
@@ -292,20 +288,20 @@ static InterpreterResult run_defined_function(InterpreterThread* thread,
   return InterpreterResult::Ok;
 }
 
-static InterpreterResult push_args(InterpreterThread* thread,
-                                   const InterpreterFuncSignature* sig,
-                                   const InterpreterTypedValueVector* args) {
-  if (sig->param_types.size != args->size)
+static InterpreterResult push_args(
+    InterpreterThread* thread,
+    const InterpreterFuncSignature* sig,
+    const std::vector<InterpreterTypedValue>& args) {
+  if (sig->param_types.size() != args.size())
     return InterpreterResult::ArgumentTypeMismatch;
 
-  size_t i;
-  for (i = 0; i < sig->param_types.size; ++i) {
-    if (sig->param_types.data[i] != args->data[i].type)
+  for (size_t i = 0; i < sig->param_types.size(); ++i) {
+    if (sig->param_types[i] != args[i].type)
       return InterpreterResult::ArgumentTypeMismatch;
 
-    InterpreterResult iresult = push_thread_value(thread, args->data[i].value);
+    InterpreterResult iresult = push_thread_value(thread, args[i].value);
     if (iresult != InterpreterResult::Ok) {
-      thread->value_stack_top = thread->value_stack.data;
+      thread->value_stack_top = thread->value_stack.data();
       return iresult;
     }
   }
@@ -314,71 +310,64 @@ static InterpreterResult push_args(InterpreterThread* thread,
 
 static void copy_results(InterpreterThread* thread,
                          const InterpreterFuncSignature* sig,
-                         InterpreterTypedValueVector* out_results) {
-  size_t expected_results = sig->result_types.size;
-  size_t value_stack_depth = thread->value_stack_top - thread->value_stack.data;
+                         std::vector<InterpreterTypedValue>* out_results) {
+  size_t expected_results = sig->result_types.size();
+  size_t value_stack_depth =
+      thread->value_stack_top - thread->value_stack.data();
   WABT_USE(value_stack_depth);
   assert(expected_results == value_stack_depth);
 
-  /* Don't clear out the vector, in case it is being reused. Just reset the
-   * size to zero. */
-  out_results->size = 0;
-  resize_interpreter_typed_value_vector(out_results, expected_results);
-  size_t i;
-  for (i = 0; i < expected_results; ++i) {
-    out_results->data[i].type = sig->result_types.data[i];
-    out_results->data[i].value = thread->value_stack.data[i];
-  }
+  out_results->clear();
+  for (size_t i = 0; i < expected_results; ++i)
+    out_results->emplace_back(sig->result_types[i], thread->value_stack[i]);
 }
 
 static InterpreterResult run_function(
     InterpreterThread* thread,
     uint32_t func_index,
-    const InterpreterTypedValueVector* args,
-    InterpreterTypedValueVector* out_results) {
-  assert(func_index < thread->env->funcs.size);
-  InterpreterFunc* func = &thread->env->funcs.data[func_index];
+    const std::vector<InterpreterTypedValue>& args,
+    std::vector<InterpreterTypedValue>* out_results) {
+  assert(func_index < thread->env->funcs.size());
+  InterpreterFunc* func = thread->env->funcs[func_index].get();
   uint32_t sig_index = func->sig_index;
-  assert(sig_index < thread->env->sigs.size);
-  InterpreterFuncSignature* sig = &thread->env->sigs.data[sig_index];
+  assert(sig_index < thread->env->sigs.size());
+  InterpreterFuncSignature* sig = &thread->env->sigs[sig_index];
 
   InterpreterResult iresult = push_args(thread, sig, args);
   if (iresult == InterpreterResult::Ok) {
     iresult = func->is_host
-                  ? call_host(thread, func)
-                  : run_defined_function(thread, func->defined.offset);
+                  ? call_host(thread, func->as_host())
+                  : run_defined_function(thread, func->as_defined()->offset);
     if (iresult == InterpreterResult::Ok)
       copy_results(thread, sig, out_results);
   }
 
   /* Always reset the value and call stacks */
-  thread->value_stack_top = thread->value_stack.data;
-  thread->call_stack_top = thread->call_stack.data;
+  thread->value_stack_top = thread->value_stack.data();
+  thread->call_stack_top = thread->call_stack.data();
   return iresult;
 }
 
 static InterpreterResult run_start_function(InterpreterThread* thread,
-                                            InterpreterModule* module) {
-  if (module->defined.start_func_index == WABT_INVALID_INDEX)
+                                            DefinedInterpreterModule* module) {
+  if (module->start_func_index == WABT_INVALID_INDEX)
     return InterpreterResult::Ok;
 
   if (s_trace)
     printf(">>> running start function:\n");
-  InterpreterTypedValueVector args;
-  InterpreterTypedValueVector results;
-  WABT_ZERO_MEMORY(args);
-  WABT_ZERO_MEMORY(results);
-
+  std::vector<InterpreterTypedValue> args;
+  std::vector<InterpreterTypedValue> results;
   InterpreterResult iresult =
-      run_function(thread, module->defined.start_func_index, &args, &results);
-  assert(results.size == 0);
+      run_function(thread, module->start_func_index, args, &results);
+  assert(results.size() == 0);
   return iresult;
 }
 
-static InterpreterResult run_export(InterpreterThread* thread,
-                                    const InterpreterExport* export_,
-                                    const InterpreterTypedValueVector* args,
-                                    InterpreterTypedValueVector* out_results) {
+static InterpreterResult run_export(
+    InterpreterThread* thread,
+    const InterpreterExport* export_,
+    const std::vector<InterpreterTypedValue>& args,
+    std::vector<InterpreterTypedValue>* out_results) {
   if (s_trace) {
     printf(">>> running export \"" PRIstringslice "\":\n",
            WABT_PRINTF_STRING_SLICE_ARG(export_->name));
@@ -392,8 +381,8 @@ static InterpreterResult run_export_by_name(
     InterpreterThread* thread,
     InterpreterModule* module,
     const StringSlice* name,
-    const InterpreterTypedValueVector* args,
-    InterpreterTypedValueVector* out_results,
+    const std::vector<InterpreterTypedValue>& args,
+    std::vector<InterpreterTypedValue>* out_results,
     RunVerbosity verbose) {
   InterpreterExport* export_ = get_interpreter_export_by_name(module, name);
   if (!export_)
@@ -407,46 +396,36 @@ static InterpreterResult get_global_export_by_name(
     InterpreterThread* thread,
     InterpreterModule* module,
     const StringSlice* name,
-    InterpreterTypedValueVector* out_results) {
+    std::vector<InterpreterTypedValue>* out_results) {
   InterpreterExport* export_ = get_interpreter_export_by_name(module, name);
   if (!export_)
     return InterpreterResult::UnknownExport;
   if (export_->kind != ExternalKind::Global)
     return InterpreterResult::ExportKindMismatch;
 
-  assert(export_->index < thread->env->globals.size);
-  InterpreterGlobal* global = &thread->env->globals.data[export_->index];
-
-  /* Don't clear out the vector, in case it is being reused. Just reset the
-   * size to zero. */
-  out_results->size = 0;
-  append_interpreter_typed_value_value(out_results, &global->typed_value);
+  InterpreterGlobal* global = &thread->env->globals[export_->index];
+  out_results->clear();
+  out_results->push_back(global->typed_value);
   return InterpreterResult::Ok;
 }
 
 static void run_all_exports(InterpreterModule* module,
                             InterpreterThread* thread,
                             RunVerbosity verbose) {
-  InterpreterTypedValueVector args;
-  InterpreterTypedValueVector results;
-  WABT_ZERO_MEMORY(args);
-  WABT_ZERO_MEMORY(results);
-  uint32_t i;
-  for (i = 0; i < module->exports.size; ++i) {
-    InterpreterExport* export_ = &module->exports.data[i];
-    InterpreterResult iresult = run_export(thread, export_, &args, &results);
+  std::vector<InterpreterTypedValue> args;
+  std::vector<InterpreterTypedValue> results;
+  for (const InterpreterExport& export_: module->exports) {
+    InterpreterResult iresult = run_export(thread, &export_, args, &results);
     if (verbose == RunVerbosity::Verbose) {
-      print_call(empty_string_slice(), export_->name, &args, &results, iresult);
+      print_call(empty_string_slice(), export_.name, args, results, iresult);
     }
   }
-  destroy_interpreter_typed_value_vector(&args);
-  destroy_interpreter_typed_value_vector(&results);
 }
 
 static Result read_module(const char* module_filename,
                           InterpreterEnvironment* env,
                           BinaryErrorHandler* error_handler,
-                          InterpreterModule** out_module) {
+                          DefinedInterpreterModule** out_module) {
   Result result;
   char* data;
   size_t size;
@@ -467,7 +446,7 @@ static Result read_module(const char* module_filename,
   return result;
 }
 
-static Result default_host_callback(const InterpreterFunc* func,
+static Result default_host_callback(const HostInterpreterFunc* func,
                                     const InterpreterFuncSignature* sig,
                                     uint32_t num_args,
                                     InterpreterTypedValue* args,
@@ -475,21 +454,16 @@ static Result default_host_callback(const InterpreterFunc* func,
                                     InterpreterTypedValue* out_results,
                                     void* user_data) {
   memset(out_results, 0, sizeof(InterpreterTypedValue) * num_results);
-  uint32_t i;
-  for (i = 0; i < num_results; ++i)
-    out_results[i].type = sig->result_types.data[i];
+  for (uint32_t i = 0; i < num_results; ++i)
+    out_results[i].type = sig->result_types[i];
 
-  InterpreterTypedValueVector vec_args;
-  vec_args.size = num_args;
-  vec_args.data = args;
-
-  InterpreterTypedValueVector vec_results;
-  vec_results.size = num_results;
-  vec_results.data = out_results;
+  std::vector<InterpreterTypedValue> vec_args(args, args + num_args);
+  std::vector<InterpreterTypedValue> vec_results(out_results,
+                                                 out_results + num_results);
 
   printf("called host ");
-  print_call(func->host.module_name, func->host.field_name, &vec_args,
-             &vec_results, InterpreterResult::Ok);
+  print_call(func->module_name, func->field_name, vec_args, vec_results,
+             InterpreterResult::Ok);
   return Result::Ok;
 }
 
@@ -510,7 +484,7 @@ static Result spectest_import_func(InterpreterImport* import,
                                    PrintErrorCallback callback,
                                    void* user_data) {
   if (string_slice_eq_cstr(&import->field_name, "print")) {
-    func->host.callback = default_host_callback;
+    func->as_host()->callback = default_host_callback;
     return Result::Ok;
   } else {
     print_error(callback, "unknown host function import " PRIimport,
@@ -543,8 +517,7 @@ static Result spectest_import_memory(InterpreterImport* import,
     memory->page_limits.has_max = true;
     memory->page_limits.initial = 1;
     memory->page_limits.max = 2;
-    memory->byte_size = memory->page_limits.initial * WABT_MAX_PAGES;
-    memory->data = new char[memory->byte_size]();
+    memory->data.resize(memory->page_limits.initial * WABT_MAX_PAGES);
     return Result::Ok;
   } else {
     print_error(callback, "unknown host memory import " PRIimport,
@@ -594,19 +567,18 @@ static Result spectest_import_global(InterpreterImport* import,
 }
 
 static void init_environment(InterpreterEnvironment* env) {
-  init_interpreter_environment(env);
-  InterpreterModule* host_module =
+  HostInterpreterModule* host_module =
       append_host_module(env, string_slice_from_cstr("spectest"));
-  host_module->host.import_delegate.import_func = spectest_import_func;
-  host_module->host.import_delegate.import_table = spectest_import_table;
-  host_module->host.import_delegate.import_memory = spectest_import_memory;
-  host_module->host.import_delegate.import_global = spectest_import_global;
+  host_module->import_delegate.import_func = spectest_import_func;
+  host_module->import_delegate.import_table = spectest_import_table;
+  host_module->import_delegate.import_memory = spectest_import_memory;
+  host_module->import_delegate.import_global = spectest_import_global;
 }
 
 static Result read_and_run_module(const char* module_filename) {
   Result result;
   InterpreterEnvironment env;
-  InterpreterModule* module = nullptr;
+  DefinedInterpreterModule* module = nullptr;
   InterpreterThread thread;
 
   init_environment(&env);
@@ -621,19 +593,30 @@ static Result read_and_run_module(const char* module_filename) {
       print_interpreter_result("error running start function", iresult);
     }
   }
-  destroy_interpreter_thread(&thread);
   destroy_interpreter_environment(&env);
   return result;
 }
 
-WABT_DEFINE_VECTOR(interpreter_thread, InterpreterThread);
-
 /* An extremely simple JSON parser that only knows how to parse the expected
  * format from wast2wabt. */
 struct Context {
+  Context()
+      : last_module(nullptr),
+        json_data(nullptr),
+        json_data_size(0),
+        json_offset(0),
+        has_prev_loc(0),
+        command_line_number(0),
+        passed(0),
+        total(0) {
+    WABT_ZERO_MEMORY(source_filename);
+    WABT_ZERO_MEMORY(loc);
+    WABT_ZERO_MEMORY(prev_loc);
+  }
+
   InterpreterEnvironment env;
   InterpreterThread thread;
-  InterpreterModule* last_module;
+  DefinedInterpreterModule* last_module;
 
   /* Parsing info */
   char* json_data;
@@ -656,10 +639,15 @@ enum class ActionType {
 };
 
 struct Action {
-  ActionType type;
+  Action() {
+    WABT_ZERO_MEMORY(module_name);
+    WABT_ZERO_MEMORY(field_name);
+  }
+
+  ActionType type = ActionType::Invoke;
   StringSlice module_name;
   StringSlice field_name;
-  InterpreterTypedValueVector args;
+  std::vector<InterpreterTypedValue> args;
 };
 
 #define CHECK_RESULT(x)     \
@@ -811,9 +799,8 @@ static Result parse_string(Context* ctx, StringSlice* out_string) {
         print_parse_error(ctx, "expected escape: \\uxxxx");
         return Result::Error;
       }
-      int i;
       uint16_t code = 0;
-      for (i = 0; i < 4; ++i) {
+      for (int i = 0; i < 4; ++i) {
         c = read_char(ctx);
         int cval;
         if (c >= '0' && c <= '9') {
@@ -894,7 +881,7 @@ static Result parse_type_object(Context* ctx, Type* out_type) {
 }
 
 static Result parse_type_vector(Context* ctx, TypeVector* out_types) {
-  WABT_ZERO_MEMORY(*out_types);
+  out_types->clear();
   EXPECT("[");
   bool first = true;
   while (!match(ctx, "]")) {
@@ -903,7 +890,7 @@ static Result parse_type_vector(Context* ctx, TypeVector* out_types) {
     Type type;
     CHECK_RESULT(parse_type_object(ctx, &type));
     first = false;
-    append_type_value(out_types, &type);
+    out_types->push_back(type);
   }
   return Result::Ok;
 }
@@ -955,9 +942,10 @@ static Result parse_const(Context* ctx, InterpreterTypedValue* out_value) {
   }
 }
 
-static Result parse_const_vector(Context* ctx,
-                                 InterpreterTypedValueVector* out_values) {
-  WABT_ZERO_MEMORY(*out_values);
+static Result parse_const_vector(
+    Context* ctx,
+    std::vector<InterpreterTypedValue>* out_values) {
+  out_values->clear();
   EXPECT("[");
   bool first = true;
   while (!match(ctx, "]")) {
@@ -965,14 +953,13 @@ static Result parse_const_vector(Context* ctx,
       EXPECT(",");
     InterpreterTypedValue value;
     CHECK_RESULT(parse_const(ctx, &value));
-    append_interpreter_typed_value_value(out_values, &value);
+    out_values->push_back(value);
     first = false;
   }
   return Result::Ok;
 }
 
 static Result parse_action(Context* ctx, Action* out_action) {
-  WABT_ZERO_MEMORY(*out_action);
   EXPECT_KEY("action");
   EXPECT("{");
   EXPECT_KEY("type");
@@ -1043,11 +1030,8 @@ static Result on_module_command(Context* ctx,
 
   if (!string_slice_is_empty(&name)) {
     ctx->last_module->name = dup_string_slice(name);
-
-    /* The binding also needs its own copy of the name. */
-    StringSlice binding_name = dup_string_slice(name);
-    Binding* binding = insert_binding(&ctx->env.module_bindings, &binding_name);
-    binding->index = ctx->env.modules.size - 1;
+    ctx->env.module_bindings.emplace(string_slice_to_string(name),
+                                     Binding(ctx->env.modules.size() - 1));
   }
   return Result::Ok;
 }
@@ -1055,29 +1039,28 @@ static Result on_module_command(Context* ctx,
 static Result run_action(Context* ctx,
                          Action* action,
                          InterpreterResult* out_iresult,
-                         InterpreterTypedValueVector* out_results,
+                         std::vector<InterpreterTypedValue>* out_results,
                          RunVerbosity verbose) {
-  WABT_ZERO_MEMORY(*out_results);
+  out_results->clear();
 
   int module_index;
   if (!string_slice_is_empty(&action->module_name)) {
-    module_index = find_binding_index_by_name(&ctx->env.module_bindings,
-                                              &action->module_name);
+    module_index = ctx->env.module_bindings.find_index(action->module_name);
   } else {
-    module_index = static_cast<int>(ctx->env.modules.size) - 1;
+    module_index = static_cast<int>(ctx->env.modules.size()) - 1;
   }
 
-  assert(module_index < static_cast<int>(ctx->env.modules.size));
-  InterpreterModule* module = &ctx->env.modules.data[module_index];
+  assert(module_index < static_cast<int>(ctx->env.modules.size()));
+  InterpreterModule* module = ctx->env.modules[module_index].get();
 
   switch (action->type) {
     case ActionType::Invoke:
       *out_iresult =
           run_export_by_name(&ctx->thread, module, &action->field_name,
-                             &action->args, out_results, verbose);
+                             action->args, out_results, verbose);
       if (verbose == RunVerbosity::Verbose) {
-        print_call(empty_string_slice(), action->field_name, &action->args,
-                   out_results, *out_iresult);
+        print_call(empty_string_slice(), action->field_name, action->args,
+                   *out_results, *out_iresult);
       }
       return Result::Ok;
 
@@ -1095,7 +1078,7 @@ static Result run_action(Context* ctx,
 }
 
 static Result on_action_command(Context* ctx, Action* action) {
-  InterpreterTypedValueVector results;
+  std::vector<InterpreterTypedValue> results;
   InterpreterResult iresult;
 
   ctx->total++;
@@ -1111,7 +1094,6 @@ static Result on_action_command(Context* ctx, Action* action) {
     }
   }
 
-  destroy_interpreter_typed_value_vector(&results);
   return result;
 }
 
@@ -1148,12 +1130,11 @@ static Result on_assert_malformed_command(Context* ctx,
   BinaryErrorHandler* error_handler =
       new_custom_error_handler(ctx, "assert_malformed");
   InterpreterEnvironment env;
-  WABT_ZERO_MEMORY(env);
   init_environment(&env);
 
   ctx->total++;
   char* path = create_module_path(ctx, filename);
-  InterpreterModule* module;
+  DefinedInterpreterModule* module;
   Result result = read_module(path, &env, error_handler, &module);
   if (WABT_FAILED(result)) {
     ctx->passed++;
@@ -1177,10 +1158,9 @@ static Result on_register_command(Context* ctx,
     /* The module names can be different than their registered names. We don't
      * keep a hash for the module names (just the registered names), so we'll
      * just iterate over all the modules to find it. */
-    size_t i;
     module_index = -1;
-    for (i = 0; i < ctx->env.modules.size; ++i) {
-      const StringSlice* module_name = &ctx->env.modules.data[i].name;
+    for (size_t i = 0; i < ctx->env.modules.size(); ++i) {
+      const StringSlice* module_name = &ctx->env.modules[i]->name;
       if (!string_slice_is_empty(module_name) &&
           string_slices_are_equal(&name, module_name)) {
         module_index = static_cast<int>(i);
@@ -1188,19 +1168,17 @@ static Result on_register_command(Context* ctx,
       }
     }
   } else {
-    module_index = static_cast<int>(ctx->env.modules.size) - 1;
+    module_index = static_cast<int>(ctx->env.modules.size()) - 1;
   }
 
   if (module_index < 0 ||
-      module_index >= static_cast<int>(ctx->env.modules.size)) {
+      module_index >= static_cast<int>(ctx->env.modules.size())) {
     print_command_error(ctx, "unknown module in register");
     return Result::Error;
   }
 
-  StringSlice dup_as = dup_string_slice(as);
-  Binding* binding =
-      insert_binding(&ctx->env.registered_module_bindings, &dup_as);
-  binding->index = module_index;
+  ctx->env.registered_module_bindings.emplace(string_slice_to_string(as),
+                                              Binding(module_index));
   return Result::Ok;
 }
 
@@ -1212,7 +1190,7 @@ static Result on_assert_unlinkable_command(Context* ctx,
 
   ctx->total++;
   char* path = create_module_path(ctx, filename);
-  InterpreterModule* module;
+  DefinedInterpreterModule* module;
   InterpreterEnvironmentMark mark = mark_interpreter_environment(&ctx->env);
   Result result = read_module(path, &ctx->env, error_handler, &module);
   reset_interpreter_environment_to_mark(&ctx->env, mark);
@@ -1236,12 +1214,11 @@ static Result on_assert_invalid_command(Context* ctx,
   BinaryErrorHandler* error_handler =
       new_custom_error_handler(ctx, "assert_invalid");
   InterpreterEnvironment env;
-  WABT_ZERO_MEMORY(env);
   init_environment(&env);
 
   ctx->total++;
   char* path = create_module_path(ctx, filename);
-  InterpreterModule* module;
+  DefinedInterpreterModule* module;
   Result result = read_module(path, &env, error_handler, &module);
   if (WABT_FAILED(result)) {
     ctx->passed++;
@@ -1262,7 +1239,7 @@ static Result on_assert_uninstantiable_command(Context* ctx,
                                                StringSlice text) {
   ctx->total++;
   char* path = create_module_path(ctx, filename);
-  InterpreterModule* module;
+  DefinedInterpreterModule* module;
   InterpreterEnvironmentMark mark = mark_interpreter_environment(&ctx->env);
   Result result = read_module(path, &ctx->env, &s_error_handler, &module);
 
@@ -1306,10 +1283,11 @@ static bool typed_values_are_equal(const InterpreterTypedValue* tv1,
   }
 }
 
-static Result on_assert_return_command(Context* ctx,
-                                       Action* action,
-                                       InterpreterTypedValueVector* expected) {
-  InterpreterTypedValueVector results;
+static Result on_assert_return_command(
+    Context* ctx,
+    Action* action,
+    const std::vector<InterpreterTypedValue>& expected) {
+  std::vector<InterpreterTypedValue> results;
   InterpreterResult iresult;
 
   ctx->total++;
@@ -1318,11 +1296,10 @@ static Result on_assert_return_command(Context* ctx,
 
   if (WABT_SUCCEEDED(result)) {
     if (iresult == InterpreterResult::Ok) {
-      if (results.size == expected->size) {
-        size_t i;
-        for (i = 0; i < results.size; ++i) {
-          const InterpreterTypedValue* expected_tv = &expected->data[i];
-          const InterpreterTypedValue* actual_tv = &results.data[i];
+      if (results.size() == expected.size()) {
+        for (size_t i = 0; i < results.size(); ++i) {
+          const InterpreterTypedValue* expected_tv = &expected[i];
+          const InterpreterTypedValue* actual_tv = &results[i];
           if (!typed_values_are_equal(expected_tv, actual_tv)) {
             char expected_str[MAX_TYPED_VALUE_CHARS];
             char actual_str[MAX_TYPED_VALUE_CHARS];
@@ -1338,7 +1315,7 @@ static Result on_assert_return_command(Context* ctx,
         print_command_error(
             ctx, "result length mismatch in assert_return: expected %" PRIzd
                  ", got %" PRIzd,
-            expected->size, results.size);
+            expected.size(), results.size());
         result = Result::Error;
       }
     } else {
@@ -1351,12 +1328,13 @@ static Result on_assert_return_command(Context* ctx,
   if (WABT_SUCCEEDED(result))
     ctx->passed++;
 
-  destroy_interpreter_typed_value_vector(&results);
   return result;
 }
 
-static Result on_assert_return_nan_command(Context* ctx, Action* action) {
-  InterpreterTypedValueVector results;
+static Result on_assert_return_nan_command(Context* ctx,
+                                           Action* action,
+                                           bool canonical) {
+  std::vector<InterpreterTypedValue> results;
   InterpreterResult iresult;
 
   ctx->total++;
@@ -1364,38 +1342,46 @@ static Result on_assert_return_nan_command(Context* ctx, Action* action) {
       run_action(ctx, action, &iresult, &results, RunVerbosity::Quiet);
   if (WABT_SUCCEEDED(result)) {
     if (iresult == InterpreterResult::Ok) {
-      if (results.size != 1) {
+      if (results.size() != 1) {
         print_command_error(ctx, "expected one result, got %" PRIzd,
-                            results.size);
+                            results.size());
         result = Result::Error;
       }
 
-      const InterpreterTypedValue* actual = &results.data[0];
-      switch (actual->type) {
-        case Type::F32:
-          if (!is_nan_f32(actual->value.f32_bits)) {
+      const InterpreterTypedValue& actual = results[0];
+      switch (actual.type) {
+        case Type::F32: {
+          typedef bool (*IsNanFunc)(uint32_t);
+          IsNanFunc is_nan_func =
+              canonical ? is_canonical_nan_f32 : is_arithmetic_nan_f32;
+          if (!is_nan_func(actual.value.f32_bits)) {
             char actual_str[MAX_TYPED_VALUE_CHARS];
-            sprint_typed_value(actual_str, sizeof(actual_str), actual);
+            sprint_typed_value(actual_str, sizeof(actual_str), &actual);
             print_command_error(ctx, "expected result to be nan, got %s",
                                 actual_str);
             result = Result::Error;
           }
           break;
+        }
 
-        case Type::F64:
-          if (!is_nan_f64(actual->value.f64_bits)) {
+        case Type::F64: {
+          typedef bool (*IsNanFunc)(uint64_t);
+          IsNanFunc is_nan_func =
+              canonical ? is_canonical_nan_f64 : is_arithmetic_nan_f64;
+          if (!is_nan_func(actual.value.f64_bits)) {
             char actual_str[MAX_TYPED_VALUE_CHARS];
-            sprint_typed_value(actual_str, sizeof(actual_str), actual);
+            sprint_typed_value(actual_str, sizeof(actual_str), &actual);
             print_command_error(ctx, "expected result to be nan, got %s",
                                 actual_str);
             result = Result::Error;
           }
           break;
+        }
 
         default:
           print_command_error(ctx,
                               "expected result type to be f32 or f64, got %s",
-                              get_type_name(actual->type));
+                              get_type_name(actual.type));
           result = Result::Error;
           break;
       }
@@ -1409,14 +1395,13 @@ static Result on_assert_return_nan_command(Context* ctx, Action* action) {
   if (WABT_SUCCEEDED(result))
     ctx->passed++;
 
-  destroy_interpreter_typed_value_vector(&results);
   return Result::Ok;
 }
 
 static Result on_assert_trap_command(Context* ctx,
                                      Action* action,
                                      StringSlice text) {
-  InterpreterTypedValueVector results;
+  std::vector<InterpreterTypedValue> results;
   InterpreterResult iresult;
 
   ctx->total++;
@@ -1432,12 +1417,11 @@ static Result on_assert_trap_command(Context* ctx,
     }
   }
 
-  destroy_interpreter_typed_value_vector(&results);
   return result;
 }
 
 static Result on_assert_exhaustion_command(Context* ctx, Action* action) {
-  InterpreterTypedValueVector results;
+  std::vector<InterpreterTypedValue> results;
   InterpreterResult iresult;
 
   ctx->total++;
@@ -1453,12 +1437,7 @@ static Result on_assert_exhaustion_command(Context* ctx, Action* action) {
     }
   }
 
-  destroy_interpreter_typed_value_vector(&results);
   return result;
-}
-
-static void destroy_action(Action* action) {
-  destroy_interpreter_typed_value_vector(&action->args);
 }
 
 static Result parse_command(Context* ctx) {
@@ -1478,14 +1457,12 @@ static Result parse_command(Context* ctx) {
     on_module_command(ctx, filename, name);
   } else if (match(ctx, "\"action\"")) {
     Action action;
-    WABT_ZERO_MEMORY(action);
 
     EXPECT(",");
     CHECK_RESULT(parse_line(ctx));
     EXPECT(",");
     CHECK_RESULT(parse_action(ctx, &action));
     on_action_command(ctx, &action);
-    destroy_action(&action);
   } else if (match(ctx, "\"register\"")) {
     StringSlice as;
     StringSlice name;
@@ -1549,9 +1526,7 @@ static Result parse_command(Context* ctx) {
     on_assert_uninstantiable_command(ctx, filename, text);
   } else if (match(ctx, "\"assert_return\"")) {
     Action action;
-    InterpreterTypedValueVector expected;
-    WABT_ZERO_MEMORY(action);
-    WABT_ZERO_MEMORY(expected);
+    std::vector<InterpreterTypedValue> expected;
 
     EXPECT(",");
     CHECK_RESULT(parse_line(ctx));
@@ -1560,13 +1535,10 @@ static Result parse_command(Context* ctx) {
     EXPECT(",");
     EXPECT_KEY("expected");
     CHECK_RESULT(parse_const_vector(ctx, &expected));
-    on_assert_return_command(ctx, &action, &expected);
-    destroy_interpreter_typed_value_vector(&expected);
-    destroy_action(&action);
-  } else if (match(ctx, "\"assert_return_nan\"")) {
+    on_assert_return_command(ctx, &action, expected);
+  } else if (match(ctx, "\"assert_return_canonical_nan\"")) {
     Action action;
     TypeVector expected;
-    WABT_ZERO_MEMORY(action);
 
     EXPECT(",");
     CHECK_RESULT(parse_line(ctx));
@@ -1576,13 +1548,23 @@ static Result parse_command(Context* ctx) {
     /* Not needed for wabt-interp, but useful for other parsers. */
     EXPECT_KEY("expected");
     CHECK_RESULT(parse_type_vector(ctx, &expected));
-    on_assert_return_nan_command(ctx, &action);
-    destroy_type_vector(&expected);
-    destroy_action(&action);
+    on_assert_return_nan_command(ctx, &action, true);
+  } else if (match(ctx, "\"assert_return_arithmetic_nan\"")) {
+    Action action;
+    TypeVector expected;
+
+    EXPECT(",");
+    CHECK_RESULT(parse_line(ctx));
+    EXPECT(",");
+    CHECK_RESULT(parse_action(ctx, &action));
+    EXPECT(",");
+    /* Not needed for wabt-interp, but useful for other parsers. */
+    EXPECT_KEY("expected");
+    CHECK_RESULT(parse_type_vector(ctx, &expected));
+    on_assert_return_nan_command(ctx, &action, false);
   } else if (match(ctx, "\"assert_trap\"")) {
     Action action;
     StringSlice text;
-    WABT_ZERO_MEMORY(action);
     WABT_ZERO_MEMORY(text);
 
     EXPECT(",");
@@ -1592,11 +1574,9 @@ static Result parse_command(Context* ctx) {
     EXPECT(",");
     PARSE_KEY_STRING_VALUE("text", &text);
     on_assert_trap_command(ctx, &action, text);
-    destroy_action(&action);
   } else if (match(ctx, "\"assert_exhaustion\"")) {
     Action action;
     StringSlice text;
-    WABT_ZERO_MEMORY(action);
     WABT_ZERO_MEMORY(text);
 
     EXPECT(",");
@@ -1604,7 +1584,6 @@ static Result parse_command(Context* ctx) {
     EXPECT(",");
     CHECK_RESULT(parse_action(ctx, &action));
     on_assert_exhaustion_command(ctx, &action);
-    destroy_action(&action);
   } else {
     print_command_error(ctx, "unknown command type");
     return Result::Error;
@@ -1631,14 +1610,12 @@ static Result parse_commands(Context* ctx) {
 }
 
 static void destroy_context(Context* ctx) {
-  destroy_interpreter_thread(&ctx->thread);
   destroy_interpreter_environment(&ctx->env);
   delete[] ctx->json_data;
 }
 
 static Result read_and_run_spec_json(const char* spec_json_filename) {
   Context ctx;
-  WABT_ZERO_MEMORY(ctx);
   ctx.loc.filename = spec_json_filename;
   ctx.loc.line = 1;
   ctx.loc.first_column = 1;
