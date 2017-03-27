@@ -149,11 +149,11 @@ function main() {
       const baseline = getBaselinePath(specFile);
       const flags = hostFlags(specFile);
       const tests = [{
-        tags: [],
+        tags: ["exclude_win7"],
         baseline: baseline,
         flags: [flags]
       }, {
-        tags: ["exclude_dynapogo"],
+        tags: ["exclude_win7", "exclude_dynapogo"],
         baseline: baseline,
         flags: [flags, "-nonative"]
       }];
@@ -161,7 +161,7 @@ function main() {
         for (const test of tests) test.tags.push("exclude_xplat");
       }
       if (isJshostExcluded) {
-        for (const test of tests) test.tags.push("exclude_jshost", "exclude_win7");
+        for (const test of tests) test.tags.push("exclude_jshost");
       }
       return tests;
     });

@@ -6,7 +6,7 @@
       <files>spec.js</files>
       <baseline>baselines/chakra_i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite/chakra/chakra_i64.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -14,7 +14,7 @@
       <files>spec.js</files>
       <baseline>baselines/chakra_i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite/chakra/chakra_i64.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -22,7 +22,7 @@
       <files>spec.js</files>
       <baseline>baselines/address.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/address.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -30,7 +30,7 @@
       <files>spec.js</files>
       <baseline>baselines/address.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/address.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -38,7 +38,7 @@
       <files>spec.js</files>
       <baseline>baselines/binary.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/binary.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -46,7 +46,7 @@
       <files>spec.js</files>
       <baseline>baselines/binary.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/binary.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -54,6 +54,7 @@
       <files>spec.js</files>
       <baseline>baselines/block.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/block.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -61,7 +62,7 @@
       <files>spec.js</files>
       <baseline>baselines/block.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/block.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -69,6 +70,7 @@
       <files>spec.js</files>
       <baseline>baselines/br.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/br.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -76,7 +78,7 @@
       <files>spec.js</files>
       <baseline>baselines/br.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/br.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -84,6 +86,7 @@
       <files>spec.js</files>
       <baseline>baselines/br_if.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/br_if.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -91,7 +94,7 @@
       <files>spec.js</files>
       <baseline>baselines/br_if.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/br_if.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -99,6 +102,7 @@
       <files>spec.js</files>
       <baseline>baselines/br_table.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/br_table.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -106,7 +110,7 @@
       <files>spec.js</files>
       <baseline>baselines/br_table.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/br_table.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -114,6 +118,7 @@
       <files>spec.js</files>
       <baseline>baselines/break-drop.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/break-drop.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -121,7 +126,7 @@
       <files>spec.js</files>
       <baseline>baselines/break-drop.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/break-drop.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -129,7 +134,7 @@
       <files>spec.js</files>
       <baseline>baselines/call.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/call.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -137,7 +142,7 @@
       <files>spec.js</files>
       <baseline>baselines/call.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/call.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -145,7 +150,7 @@
       <files>spec.js</files>
       <baseline>baselines/call_indirect.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/call_indirect.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -153,7 +158,7 @@
       <files>spec.js</files>
       <baseline>baselines/call_indirect.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/call_indirect.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -161,6 +166,7 @@
       <files>spec.js</files>
       <baseline>baselines/comments.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/comments.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -168,7 +174,7 @@
       <files>spec.js</files>
       <baseline>baselines/comments.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/comments.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -176,7 +182,7 @@
       <files>spec.js</files>
       <baseline>baselines/conversions.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/conversions.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -184,7 +190,7 @@
       <files>spec.js</files>
       <baseline>baselines/conversions.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/conversions.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -192,6 +198,7 @@
       <files>spec.js</files>
       <baseline>baselines/custom_section.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/custom_section.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -199,7 +206,7 @@
       <files>spec.js</files>
       <baseline>baselines/custom_section.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/custom_section.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -207,6 +214,7 @@
       <files>spec.js</files>
       <baseline>baselines/endianness.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/endianness.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -214,7 +222,7 @@
       <files>spec.js</files>
       <baseline>baselines/endianness.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/endianness.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -222,6 +230,7 @@
       <files>spec.js</files>
       <baseline>baselines/exports.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/exports.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -229,7 +238,7 @@
       <files>spec.js</files>
       <baseline>baselines/exports.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/exports.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -237,6 +246,7 @@
       <files>spec.js</files>
       <baseline>baselines/f32.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/f32.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -244,7 +254,7 @@
       <files>spec.js</files>
       <baseline>baselines/f32.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/f32.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -252,6 +262,7 @@
       <files>spec.js</files>
       <baseline>baselines/f32_cmp.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/f32_cmp.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -259,7 +270,7 @@
       <files>spec.js</files>
       <baseline>baselines/f32_cmp.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/f32_cmp.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -267,6 +278,7 @@
       <files>spec.js</files>
       <baseline>baselines/f64.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/f64.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -274,7 +286,7 @@
       <files>spec.js</files>
       <baseline>baselines/f64.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/f64.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -282,6 +294,7 @@
       <files>spec.js</files>
       <baseline>baselines/f64_cmp.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/f64_cmp.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -289,7 +302,7 @@
       <files>spec.js</files>
       <baseline>baselines/f64_cmp.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/f64_cmp.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -297,7 +310,7 @@
       <files>spec.js</files>
       <baseline>baselines/fac.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/fac.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -305,7 +318,7 @@
       <files>spec.js</files>
       <baseline>baselines/fac.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/fac.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -313,6 +326,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_exprs.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -320,7 +334,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_exprs.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -328,7 +342,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_literals.wast -endargs</compile-flags>
-      <tags>exclude_jshost,exclude_win7</tags>
+      <tags>exclude_win7,exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -336,7 +350,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_literals.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_jshost,exclude_win7</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_jshost</tags>
     </default>
   </test>
   <test>
@@ -344,6 +358,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_memory.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_memory.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -351,7 +366,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_memory.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_memory.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -359,6 +374,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_misc.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_misc.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -366,7 +382,7 @@
       <files>spec.js</files>
       <baseline>baselines/float_misc.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/float_misc.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -374,6 +390,7 @@
       <files>spec.js</files>
       <baseline>baselines/forward.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/forward.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -381,7 +398,7 @@
       <files>spec.js</files>
       <baseline>baselines/forward.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/forward.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -389,6 +406,7 @@
       <files>spec.js</files>
       <baseline>baselines/func.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -396,7 +414,7 @@
       <files>spec.js</files>
       <baseline>baselines/func.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -404,7 +422,7 @@
       <files>spec.js</files>
       <baseline>baselines/func_ptrs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func_ptrs.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -412,7 +430,7 @@
       <files>spec.js</files>
       <baseline>baselines/func_ptrs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func_ptrs.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -420,6 +438,7 @@
       <files>spec.js</files>
       <baseline>baselines/get_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/get_local.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -427,7 +446,7 @@
       <files>spec.js</files>
       <baseline>baselines/get_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/get_local.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -435,6 +454,7 @@
       <files>spec.js</files>
       <baseline>baselines/globals.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/globals.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -442,7 +462,7 @@
       <files>spec.js</files>
       <baseline>baselines/globals.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/globals.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -450,7 +470,7 @@
       <files>spec.js</files>
       <baseline>baselines/i32.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/i32.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -458,7 +478,7 @@
       <files>spec.js</files>
       <baseline>baselines/i32.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/i32.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -466,7 +486,7 @@
       <files>spec.js</files>
       <baseline>baselines/i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/i64.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -474,7 +494,7 @@
       <files>spec.js</files>
       <baseline>baselines/i64.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/i64.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -482,7 +502,7 @@
       <files>spec.js</files>
       <baseline>baselines/imports.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/imports.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -490,7 +510,7 @@
       <files>spec.js</files>
       <baseline>baselines/imports.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/imports.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -498,7 +518,7 @@
       <files>spec.js</files>
       <baseline>baselines/int_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/int_exprs.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -506,7 +526,7 @@
       <files>spec.js</files>
       <baseline>baselines/int_exprs.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/int_exprs.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -514,6 +534,7 @@
       <files>spec.js</files>
       <baseline>baselines/int_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/int_literals.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -521,7 +542,7 @@
       <files>spec.js</files>
       <baseline>baselines/int_literals.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/int_literals.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -529,6 +550,7 @@
       <files>spec.js</files>
       <baseline>baselines/labels.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/labels.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -536,7 +558,7 @@
       <files>spec.js</files>
       <baseline>baselines/labels.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/labels.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -544,6 +566,7 @@
       <files>spec.js</files>
       <baseline>baselines/left-to-right.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/left-to-right.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -551,7 +574,7 @@
       <files>spec.js</files>
       <baseline>baselines/left-to-right.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/left-to-right.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -559,7 +582,7 @@
       <files>spec.js</files>
       <baseline>baselines/linking.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/linking.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -567,7 +590,7 @@
       <files>spec.js</files>
       <baseline>baselines/linking.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/linking.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -575,6 +598,7 @@
       <files>spec.js</files>
       <baseline>baselines/loop.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/loop.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -582,7 +606,7 @@
       <files>spec.js</files>
       <baseline>baselines/loop.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/loop.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -590,6 +614,7 @@
       <files>spec.js</files>
       <baseline>baselines/memory.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/memory.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -597,7 +622,7 @@
       <files>spec.js</files>
       <baseline>baselines/memory.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/memory.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -605,6 +630,7 @@
       <files>spec.js</files>
       <baseline>baselines/memory_redundancy.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/memory_redundancy.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -612,7 +638,7 @@
       <files>spec.js</files>
       <baseline>baselines/memory_redundancy.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/memory_redundancy.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -620,7 +646,7 @@
       <files>spec.js</files>
       <baseline>baselines/memory_trap.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/memory_trap.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -628,7 +654,7 @@
       <files>spec.js</files>
       <baseline>baselines/memory_trap.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/memory_trap.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -636,6 +662,7 @@
       <files>spec.js</files>
       <baseline>baselines/names.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/names.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -643,7 +670,7 @@
       <files>spec.js</files>
       <baseline>baselines/names.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/names.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -651,6 +678,7 @@
       <files>spec.js</files>
       <baseline>baselines/nop.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/nop.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -658,7 +686,7 @@
       <files>spec.js</files>
       <baseline>baselines/nop.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/nop.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -666,7 +694,7 @@
       <files>spec.js</files>
       <baseline>baselines/resizing.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/resizing.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -674,7 +702,7 @@
       <files>spec.js</files>
       <baseline>baselines/resizing.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/resizing.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -682,6 +710,7 @@
       <files>spec.js</files>
       <baseline>baselines/return.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/return.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -689,7 +718,7 @@
       <files>spec.js</files>
       <baseline>baselines/return.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/return.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -697,7 +726,7 @@
       <files>spec.js</files>
       <baseline>baselines/select.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/select.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -705,7 +734,7 @@
       <files>spec.js</files>
       <baseline>baselines/select.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/select.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -713,6 +742,7 @@
       <files>spec.js</files>
       <baseline>baselines/set_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/set_local.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -720,7 +750,7 @@
       <files>spec.js</files>
       <baseline>baselines/set_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/set_local.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -728,7 +758,7 @@
       <files>spec.js</files>
       <baseline>baselines/skip-stack-guard-page.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/skip-stack-guard-page.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -736,7 +766,7 @@
       <files>spec.js</files>
       <baseline>baselines/skip-stack-guard-page.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/skip-stack-guard-page.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -744,6 +774,7 @@
       <files>spec.js</files>
       <baseline>baselines/stack.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/stack.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -751,7 +782,7 @@
       <files>spec.js</files>
       <baseline>baselines/stack.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/stack.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -759,7 +790,7 @@
       <files>spec.js</files>
       <baseline>baselines/start.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/start.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -767,7 +798,7 @@
       <files>spec.js</files>
       <baseline>baselines/start.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/start.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -775,6 +806,7 @@
       <files>spec.js</files>
       <baseline>baselines/store_retval.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/store_retval.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -782,7 +814,7 @@
       <files>spec.js</files>
       <baseline>baselines/store_retval.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/store_retval.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -790,6 +822,7 @@
       <files>spec.js</files>
       <baseline>baselines/switch.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/switch.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -797,7 +830,7 @@
       <files>spec.js</files>
       <baseline>baselines/switch.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/switch.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -805,6 +838,7 @@
       <files>spec.js</files>
       <baseline>baselines/tee_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/tee_local.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -812,7 +846,7 @@
       <files>spec.js</files>
       <baseline>baselines/tee_local.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/tee_local.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -820,7 +854,7 @@
       <files>spec.js</files>
       <baseline>baselines/traps.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/traps.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -828,7 +862,7 @@
       <files>spec.js</files>
       <baseline>baselines/traps.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/traps.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -836,6 +870,7 @@
       <files>spec.js</files>
       <baseline>baselines/typecheck.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/typecheck.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -843,7 +878,7 @@
       <files>spec.js</files>
       <baseline>baselines/typecheck.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/typecheck.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -851,7 +886,7 @@
       <files>spec.js</files>
       <baseline>baselines/unreachable.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unreachable.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -859,7 +894,7 @@
       <files>spec.js</files>
       <baseline>baselines/unreachable.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unreachable.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -867,6 +902,7 @@
       <files>spec.js</files>
       <baseline>baselines/unreached-invalid.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unreached-invalid.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
     </default>
   </test>
   <test>
@@ -874,7 +910,7 @@
       <files>spec.js</files>
       <baseline>baselines/unreached-invalid.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unreached-invalid.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
     </default>
   </test>
   <test>
@@ -882,7 +918,7 @@
       <files>spec.js</files>
       <baseline>baselines/unwind.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unwind.wast -endargs</compile-flags>
-      <tags>exclude_xplat</tags>
+      <tags>exclude_win7,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -890,7 +926,7 @@
       <files>spec.js</files>
       <baseline>baselines/unwind.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unwind.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo,exclude_xplat</tags>
+      <tags>exclude_win7,exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
 </regress-exe>
