@@ -389,6 +389,8 @@
       <files>spec.js</files>
       <baseline>baselines/func.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func.wast -endargs</compile-flags>
+      <!-- xplat-todo: implement xmm.. with wasm related asm. -->
+      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -544,6 +546,7 @@
       <files>spec.js</files>
       <baseline>baselines/left-to-right.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/left-to-right.wast -endargs</compile-flags>
+      <tags>exclude_xplat</tags>
     </default>
   </test>
   <test>
