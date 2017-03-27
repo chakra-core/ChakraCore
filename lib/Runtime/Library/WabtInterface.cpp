@@ -7,6 +7,9 @@
 #ifdef ENABLE_WABT
 #include "../WasmReader/WasmReaderPch.h"
 
+#pragma warning(push)
+// Ignore warnings from wabt
+#pragma warning(disable: 4995)
 #include "ast-lexer.h"
 #include "common.h"
 #include "ast.h"
@@ -15,6 +18,8 @@
 #include "binary-writer-spec.h"
 #include "resolve-names.h"
 #include "validator.h"
+#pragma warning(pop)
+
 #include "Codex/Utf8Helper.h"
 using namespace wabt;
 
@@ -46,7 +51,7 @@ struct AutoCleanScript
     wabt::Script* script;
     ~AutoCleanScript()
     {
-        wabt::destroy_script(script);
+        delete script;
     }
 };
 
@@ -67,7 +72,7 @@ char16* NarrowStringToWide(Context* ctx, const char* src, const size_t* srcSize 
     return dst;
 }
 
-void lexer_error_callback(const wabt::Location* loc,
+bool lexer_error_callback(const wabt::Location* loc,
                         const char* error,
                         const char* source_line,
                         size_t source_line_length,
@@ -196,16 +201,26 @@ void write_var(Context* ctx, Js::Var obj, PropertyId id, const wabt::Var* var)
     }
 }
 
-void write_command_type(Context* ctx, Command* command, Js::Var cmdObj)
+void write_command_type(Context* ctx, wabt::CommandType type, Js::Var cmdObj)
 {
     static const char16* s_command_names[] = {
-        _u("module"), _u("action"), _u("register"), _u("assert_malformed"), _u("assert_invalid"),
-        nullptr, // ASSERT_INVALID_NON_BINARY, this command will never be written
-        _u("assert_unlinkable"), _u("assert_uninstantiable"), _u("assert_return"),
-        _u("assert_return_nan"), _u("assert_trap"), _u("assert_exhaustion"),
-    };
+      _u("module"),
+      _u("action"),
+      _u("register"),
+      _u("assert_malformed"),
+      _u("assert_invalid"),
+      nullptr, /* ASSERT_INVALID_NON_BINARY, this command will never be
+                  written */
+      _u("assert_unlinkable"),
+      _u("assert_uninstantiable"),
+      _u("assert_return"),
+      _u("assert_return_canonical_nan"),
+      _u("assert_return_arithmetic_nan"),
+      _u("assert_trap"),
+      _u("assert_exhaustion"),
+  };
     CompileAssert(ARRAYSIZE(s_command_names) == (int)CommandType::Last + 1);
-    uint i = (uint)command->type;
+    uint i = (uint)type;
     if (i > (uint)CommandType::Last)
     {
         JavascriptError::ThrowTypeErrorVar(ctx->scriptContext, WABTERR_WabtError, _u("invalid command type"));
@@ -219,30 +234,30 @@ Js::Var create_const_vector(Context* ctx, const ConstVector* consts)
     Js::Var constsArr = JavascriptOperators::NewJavascriptArrayNoArg(scriptContext);
 
     size_t i;
-    for (i = 0; i < consts->size; ++i)
+    for (i = 0; i < consts->size(); ++i)
     {
         Js::Var constDescriptor = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
         JavascriptArray::Push(scriptContext, constsArr, constDescriptor);
 
         char16 buf[32];
-        const wabt::Const* const_ = &consts->data[i];
-        switch (const_->type)
+        const wabt::Const& const_ = consts->at(i);
+        switch (const_.type)
         {
         case wabt::Type::I32:
             write_string(ctx, constDescriptor, PropertyIds::type, _u("i32"));
-            _snwprintf_s(buf, _countof(buf), _TRUNCATE, _u("%u"), const_->u32);
+            _snwprintf_s(buf, _countof(buf), _TRUNCATE, _u("%u"), const_.u32);
             break;
         case wabt::Type::I64:
             write_string(ctx, constDescriptor, PropertyIds::type, _u("i64"));
-            _snwprintf_s(buf, _countof(buf), _TRUNCATE, _u("%llu"), const_->u64);
+            _snwprintf_s(buf, _countof(buf), _TRUNCATE, _u("%llu"), const_.u64);
             break;
         case wabt::Type::F32:
             write_string(ctx, constDescriptor, PropertyIds::type, _u("f32"));
-            _snwprintf_s(buf, _countof(buf), _TRUNCATE, _u("%u"), const_->f32_bits);
+            _snwprintf_s(buf, _countof(buf), _TRUNCATE, _u("%u"), const_.f32_bits);
             break;
         case wabt::Type::F64:
             write_string(ctx, constDescriptor, PropertyIds::type, _u("f64"));
-            _snwprintf_s(buf, _countof(buf), _TRUNCATE, _u("%llu"), const_->f64_bits);
+            _snwprintf_s(buf, _countof(buf), _TRUNCATE, _u("%llu"), const_.f64_bits);
             break;
         default:
             Assert(UNREACHED);
@@ -284,7 +299,7 @@ void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* 
     {
     case ActionType::Invoke:
     {
-        export_ = get_export_by_name(module, &action->invoke.name);
+        export_ = get_export_by_name(module, &action->name);
         assert(export_->kind == ExternalKind::Func);
         wabt::Func* func = get_func_by_var(module, &export_->var);
         int num_results = (int)get_num_results(func);
@@ -299,7 +314,7 @@ void write_action_result_type(Context* ctx, Js::Var obj, PropertyId id, Script* 
 
     case ActionType::Get:
     {
-        export_ = get_export_by_name(module, &action->get.name);
+        export_ = get_export_by_name(module, &action->name);
         assert(export_->kind == ExternalKind::Global);
         wabt::Global* global = get_global_by_var(module, &export_->var);
         Js::Var typeObj = create_type_object(ctx, global->type);
@@ -331,13 +346,13 @@ void write_action(Context* ctx, Js::Var obj, const Action* action)
     }
     if (action->type == ActionType::Invoke)
     {
-        write_string(ctx, actionObj, PropertyIds::field, action->invoke.name);
-        write_const_vector(ctx, actionObj, PropertyIds::args, &action->invoke.args);
+        write_string(ctx, actionObj, PropertyIds::field, action->name);
+        write_const_vector(ctx, actionObj, PropertyIds::args, &action->invoke->args);
 
     }
     else
     {
-        write_string(ctx, actionObj, PropertyIds::field, action->get.name);
+        write_string(ctx, actionObj, PropertyIds::field, action->name);
     }
 }
 
@@ -401,18 +416,18 @@ Js::Var write_commands(Context* ctx, Script* script) {
     JavascriptOperators::OP_SetProperty(resultObj, PropertyIds::commands, commandsArr, scriptContext);
     size_t i;
     int last_module_index = -1;
-    for (i = 0; i < script->commands.size; ++i) {
-        Command* command = &script->commands.data[i];
+    for (i = 0; i < script->commands.size(); ++i) {
+        const Command* command = script->commands[i].get();
 
         if (command->type == CommandType::AssertInvalidNonBinary)
             continue;
         Js::Var cmdObj = JavascriptOperators::NewJavascriptObjectNoArg(scriptContext);
         JavascriptArray::Push(scriptContext, commandsArr, cmdObj);
-        write_command_type(ctx, command, cmdObj);
+        write_command_type(ctx, command->type, cmdObj);
 
         switch (command->type) {
         case CommandType::Module: {
-            wabt::Module* module = &command->module;
+            wabt::Module* module = command->module;
             write_location(ctx, cmdObj, &module->loc);
             if (module->name.start) {
                 Js::Var name = ToJavascriptString(ctx, module->name);
@@ -424,8 +439,8 @@ Js::Var write_commands(Context* ctx, Script* script) {
         }
 
         case CommandType::Action:
-            write_location(ctx, cmdObj, &command->action.loc);
-            write_action(ctx, cmdObj, &command->action);
+            write_location(ctx, cmdObj, &command->action->loc);
+            write_action(ctx, cmdObj, command->action);
             break;
 
         case CommandType::Register:
@@ -442,47 +457,49 @@ Js::Var write_commands(Context* ctx, Script* script) {
             break;
 
         case CommandType::AssertMalformed:
-            write_invalid_module(ctx, cmdObj, &command->assert_malformed.module,
+            write_invalid_module(ctx, cmdObj, command->assert_malformed.module,
                                  command->assert_malformed.text);
             break;
 
         case CommandType::AssertInvalid:
-            write_invalid_module(ctx, cmdObj, &command->assert_invalid.module,
+            write_invalid_module(ctx, cmdObj, command->assert_invalid.module,
                                  command->assert_invalid.text);
             break;
 
         case CommandType::AssertUnlinkable:
-            write_invalid_module(ctx, cmdObj, &command->assert_unlinkable.module,
+            write_invalid_module(ctx, cmdObj, command->assert_unlinkable.module,
                                  command->assert_unlinkable.text);
             break;
 
         case CommandType::AssertUninstantiable:
-            write_invalid_module(ctx, cmdObj, &command->assert_uninstantiable.module,
+            write_invalid_module(ctx, cmdObj, command->assert_uninstantiable.module,
                                  command->assert_uninstantiable.text);
             break;
 
         case CommandType::AssertReturn:
-            write_location(ctx, cmdObj, &command->assert_return.action.loc);
-            write_action(ctx, cmdObj, &command->assert_return.action);
-            write_const_vector(ctx, cmdObj, PropertyIds::expected, &command->assert_return.expected);
+            write_location(ctx, cmdObj, &command->assert_return.action->loc);
+            write_action(ctx, cmdObj, command->assert_return.action);
+            write_const_vector(ctx, cmdObj, PropertyIds::expected, command->assert_return.expected);
             break;
 
-        case CommandType::AssertReturnNan:
-            write_location(ctx, cmdObj, &command->assert_return_nan.action.loc);
-            write_action(ctx, cmdObj, &command->assert_return_nan.action);
+        case CommandType::AssertReturnCanonicalNan:
+        case CommandType::AssertReturnArithmeticNan:
+            CompileAssert(offsetof(wabt::Command, assert_return_canonical_nan) == offsetof(wabt::Command, assert_return_arithmetic_nan));
+            write_location(ctx, cmdObj, &command->assert_return_canonical_nan.action->loc);
+            write_action(ctx, cmdObj, command->assert_return_canonical_nan.action);
             write_action_result_type(ctx, cmdObj, PropertyIds::expected, script,
-                                     &command->assert_return_nan.action);
+                                     command->assert_return_canonical_nan.action);
             break;
 
         case CommandType::AssertTrap:
-            write_location(ctx, cmdObj, &command->assert_trap.action.loc);
-            write_action(ctx, cmdObj, &command->assert_trap.action);
+            write_location(ctx, cmdObj, &command->assert_trap.action->loc);
+            write_action(ctx, cmdObj, command->assert_trap.action);
             write_string(ctx, cmdObj, PropertyIds::text, command->assert_trap.text);
             break;
 
         case CommandType::AssertExhaustion:
-            write_location(ctx, cmdObj, &command->assert_trap.action.loc);
-            write_action(ctx, cmdObj, &command->assert_trap.action);
+            write_location(ctx, cmdObj, &command->assert_trap.action->loc);
+            write_action(ctx, cmdObj, command->assert_trap.action);
             break;
 
         case CommandType::AssertInvalidNonBinary:
@@ -546,27 +563,27 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
     };
     bool s_validate = true;
 
-    wabt::Script script;
+    wabt::Script* script;
     wabt::Result result = wabt::parse_ast(lexer, &script, &s_error_handler);
-    AutoCleanScript autoCleanScript = { &script };
+    AutoCleanScript autoCleanScript = { script };
     Unused(autoCleanScript);
 
     if (WABT_SUCCEEDED(result))
     {
-        result = wabt::resolve_names_script(lexer, &script, &s_error_handler);
+        result = wabt::resolve_names_script(lexer, script, &s_error_handler);
 
         if (WABT_SUCCEEDED(result) && s_validate)
-            result = wabt::validate_script(lexer, &script, &s_error_handler);
+            result = wabt::validate_script(lexer, script, &s_error_handler);
 
         if (WABT_SUCCEEDED(result))
         {
             if (isSpecText)
             {
-                returnValue = write_commands(&context, &script);
+                returnValue = write_commands(&context, script);
             }
             else
             {
-                Module* module = get_first_module(&script);
+                Module* module = get_first_module(script);
                 returnValue = create_module(&context, module);
             }
         }
