@@ -14,5 +14,6 @@
 (assert_malformed (module "\00asm") "unexpected end")
 (assert_malformed (module "\00asm\01") "unexpected end")
 (assert_malformed (module "\00asm\01\00\00") "unexpected end")
+(assert_malformed (module "\00asm\0d\00\00\00") "unknown binary version")
 (assert_malformed (module "\00asm\0e\00\00\00") "unknown binary version")
 (assert_malformed (module "\00asm\00\00\00\01") "unknown binary version")

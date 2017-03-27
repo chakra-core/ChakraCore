@@ -153,14 +153,26 @@
   "type mismatch"
 )
 (assert_invalid
+  (module (func $type-value-empty-vs-num (result i32)
+    (block i32)
+  ))
+  "type mismatch"
+)
+(assert_invalid
   (module (func $type-value-void-vs-num (result i32)
-    (block (nop))
+    (block i32 (nop))
   ))
   "type mismatch"
 )
 (assert_invalid
   (module (func $type-value-num-vs-num (result i32)
-    (block (f32.const 0))
+    (block i32 (f32.const 0))
+  ))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $type-value-unreached-select (result i32)
+    (block i64 (select (unreachable) (unreachable) (unreachable)))
   ))
   "type mismatch"
 )
@@ -172,7 +184,7 @@
   "type mismatch"
 )
 (assert_invalid
-  (module (func $type-break-void-vs-num (result i32)
+  (module (func $type-break-empty-vs-num (result i32)
     (block i32 (br 0) (i32.const 1))
   ))
   "type mismatch"
@@ -180,25 +192,25 @@
 
 (assert_invalid
   (module (func $type-break-void-vs-num (result i32)
-    (block (br 0 (nop)) (i32.const 1))
+    (block i32 (br 0 (nop)) (i32.const 1))
   ))
   "type mismatch"
 )
 (assert_invalid
   (module (func $type-break-num-vs-num (result i32)
-    (block (br 0 (i64.const 1)) (i32.const 1))
+    (block i32 (br 0 (i64.const 1)) (i32.const 1))
   ))
   "type mismatch"
 )
 (assert_invalid
   (module (func $type-break-first-void-vs-num (result i32)
-    (block (br 0 (nop)) (br 0 (i32.const 1)))
+    (block i32 (br 0 (nop)) (br 0 (i32.const 1)))
   ))
   "type mismatch"
 )
 (assert_invalid
   (module (func $type-break-first-num-vs-num (result i32)
-    (block (br 0 (i64.const 1)) (br 0 (i32.const 1)))
+    (block i32 (br 0 (i64.const 1)) (br 0 (i32.const 1)))
   ))
   "type mismatch"
 )
@@ -211,20 +223,20 @@
 )
 (assert_invalid
   (module (func $type-break-nested-empty-vs-num (result i32)
-    (block (block (br 1)) (br 0 (i32.const 1)))
+    (block i32 (block (br 1)) (br 0 (i32.const 1)))
   ))
   "type mismatch"
 )
 
 (assert_invalid
   (module (func $type-break-nested-void-vs-num (result i32)
-    (block (block (br 1 (nop))) (br 0 (i32.const 1)))
+    (block i32 (block i32 (br 1 (nop))) (br 0 (i32.const 1)))
   ))
   "type mismatch"
 )
 (assert_invalid
   (module (func $type-break-nested-num-vs-num (result i32)
-    (block (block (br 1 (i64.const 1))) (br 0 (i32.const 1)))
+    (block i32 (block i32 (br 1 (i64.const 1))) (br 0 (i32.const 1)))
   ))
   "type mismatch"
 )
@@ -235,7 +247,6 @@
   ))
   "type mismatch"
 )
-
 (assert_invalid
   (module (func $type-break-operand-void-vs-num (result i32)
     (i64.ctz (block (br 0 (nop))))
@@ -248,4 +259,3 @@
   ))
   "type mismatch"
 )
-
