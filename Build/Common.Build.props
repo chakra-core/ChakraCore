@@ -16,7 +16,7 @@
 
       <!--Disable midl timestamps wherever possible, razzle build already have this-->
       <AdditionalOptions Condition="'$(BuildingWithBuildExe)'!='true'">%(AdditionalOptions) /no_stamp</AdditionalOptions>
-      
+
       <SuppressStartupBanner>true</SuppressStartupBanner>
 
       <!-- Other defaults -->
@@ -25,7 +25,7 @@
 
       <!-- ======== makefiledef ======== -->
       <AdditionalOptions>%(AdditionalOptions) -sal</AdditionalOptions>
-      
+
       <!-- ======== sources.inc ======== -->
       <!-- generates SAL annotations for our interface -->
       <AdditionalOptions>%(AdditionalOptions) -sal_local</AdditionalOptions>
@@ -40,10 +40,10 @@
 
       <!-- Add any preprocessor definitions passed using msbuild environment -->
       <PreprocessorDefinitions Condition="'$(AdditionalPreprocessorDefinitions)'!=''">%(PreprocessorDefinitions);$(AdditionalPreprocessorDefinitions)</PreprocessorDefinitions>
-      
+
       <!-- MIDL generate code uses this define -->
       <PreprocessorDefinitions Condition="'$(Platform)'=='ARM'">%(PreprocessorDefinitions);_ARM_</PreprocessorDefinitions>
-            
+
       <!-- /W4 -->
       <WarningLevel>Level4</WarningLevel>
       <!-- /WX -->
@@ -86,6 +86,8 @@
         %(PreprocessorDefinitions);
         BYTECODE_TESTING=1
       </PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(BuildWabt)'=='true'">%(PreprocessorDefinitions);EXCLUDE_WABT=0</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(BuildWabt)'!='true'">%(PreprocessorDefinitions);EXCLUDE_WABT=1</PreprocessorDefinitions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions Condition="'$(ChakraVersionBuildNumber)'!=''">%(PreprocessorDefinitions);CHAKRA_VERSION_BUILD_NUMBER=$(ChakraVersionBuildNumber)</PreprocessorDefinitions>

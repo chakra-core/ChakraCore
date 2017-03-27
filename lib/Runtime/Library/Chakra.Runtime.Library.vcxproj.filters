@@ -118,7 +118,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyModule.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyTable.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyEnvironment.cpp" />
-    <ClCompile Include="WabtInterface.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)WabtInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
