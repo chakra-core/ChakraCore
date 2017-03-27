@@ -1568,7 +1568,7 @@ InjectActivationInternal(CPalThread* pThread)
     }
     else
     {
-        wprintf(_u("Suspension failed with error 0x%x\n"), palError);
+        printf("Suspension failed with error 0x%x\n", palError);
     }
 
     return palError;

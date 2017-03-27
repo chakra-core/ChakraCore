@@ -45,14 +45,14 @@ using namespace CorUnix;
 
 // This macro terminates the process with some useful debug info as above, but for the general failure points
 // that have nothing to do with Mach.
-#define NONPAL_RETAIL_ASSERT(_msg, ...) do {                                        \
-        wprintf(_u("%S: %u: ") _msg _u("\n"), __FUNCTION__, __LINE__, ## __VA_ARGS__));  \
-        abort();                                                                    \
+#define NONPAL_RETAIL_ASSERT(_msg, ...) do {                                    \
+        printf("%s: %u: " _msg "\n", __FUNCTION__, __LINE__, ## __VA_ARGS__);   \
+        abort();                                                                \
     } while (false)
 
 #define NONPAL_RETAIL_ASSERTE(_expr) do {                    \
         if (!(_expr))                                        \
-            NONPAL_RETAIL_ASSERT(_u("ASSERT: %S\n"), #_expr);    \
+            NONPAL_RETAIL_ASSERT("ASSERT: %s\n", #_expr);    \
     } while (false)
 
 #ifdef _DEBUG
@@ -62,7 +62,7 @@ using namespace CorUnix;
 // Assert macro that doesn't rely on the PAL.
 #define NONPAL_ASSERTE(_expr) do {                           \
         if (!(_expr))                                        \
-            NONPAL_RETAIL_ASSERT(_u("ASSERT: %S\n"), #_expr);    \
+            NONPAL_RETAIL_ASSERT("ASSERT: %s\n", #_expr);    \
     } while (false)
 
 // Debug-only output with printf-style formatting.

@@ -1358,7 +1358,7 @@ static void *LOADLoadLibraryDirect(LPCSTR libraryNameOrPath)
     void *dl_handle = dlopen(libraryNameOrPath, RTLD_LAZY);
     if (dl_handle == nullptr)
     {
-        wprintf(_u("dlopen() failed; dlerror says '%S'\n"), dlerror());
+        printf("dlopen() failed; dlerror says '%s'\n", dlerror());
         SetLastError(ERROR_MOD_NOT_FOUND);
     }
     else

@@ -290,7 +290,7 @@ run_debug_command (const char *command)
         return 1;
     }
 
-    wprintf(_u("Spawning command: %S\n"), command);
+    printf("Spawning command: %s\n", command);
 
     pid = fork();
     if (pid == -1) {
