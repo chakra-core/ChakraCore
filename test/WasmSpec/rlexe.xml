@@ -500,6 +500,22 @@
   <test>
     <default>
       <files>spec.js</files>
+      <baseline>baselines/if.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/if.wast -endargs</compile-flags>
+      <tags>exclude_win7</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
+      <baseline>baselines/if.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/core/if.wast -endargs -nonative</compile-flags>
+      <tags>exclude_win7,exclude_dynapogo</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>spec.js</files>
       <baseline>baselines/imports.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/imports.wast -endargs</compile-flags>
       <tags>exclude_win7,exclude_xplat</tags>

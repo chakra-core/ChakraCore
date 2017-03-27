@@ -192,7 +192,7 @@ function main() {
     fs.ensureDirSync(baselineDir);
     return Promise.all(specFiles.map(specFile => new Promise((resolve, reject) => {
       const baseline = fs.createWriteStream(getBaselinePath(specFile));
-      const args = [path.resolve(rlRoot, "spec.js"), "-nonative"].concat(stringArgv(hostFlags(specFile, {useFullpath: true})));
+      const args = [path.resolve(rlRoot, "spec.js"), "-nonative"].concat(stringArgv(hostFlags(specFile)));
       console.log(argv.rebase, args.join(" "));
       const engine = spawn(
         argv.rebase,

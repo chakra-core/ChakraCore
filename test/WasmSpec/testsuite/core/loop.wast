@@ -240,15 +240,32 @@
 )
 
 (assert_invalid
+  (module (func $type-value-num-vs-void
+    (loop (i32.const 1))
+  ))
+  "type mismatch"
+)
+(assert_invalid
+  (module (func $type-value-empty-vs-num (result i32)
+    (loop i32)
+  ))
+  "type mismatch"
+)
+(assert_invalid
   (module (func $type-value-void-vs-num (result i32)
-    (loop (nop))
+    (loop i32 (nop))
   ))
   "type mismatch"
 )
 (assert_invalid
   (module (func $type-value-num-vs-num (result i32)
-    (loop (f32.const 0))
+    (loop i32 (f32.const 0))
   ))
   "type mismatch"
 )
-
+(assert_invalid
+  (module (func $type-value-unreached-select (result i32)
+    (loop i64 (select (unreachable) (unreachable) (unreachable)))
+  ))
+  "type mismatch"
+)

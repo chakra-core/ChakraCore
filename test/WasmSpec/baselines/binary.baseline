@@ -1,1 +1,2 @@
-16/16 tests passed.
+(15) testsuite/core/binary.wast:17: assert_malformed module failed. Had a linking error, expected a compile error: TypeError: Object expected
+16/17 tests passed.

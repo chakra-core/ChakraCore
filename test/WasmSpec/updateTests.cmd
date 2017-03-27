@@ -25,6 +25,6 @@ call npm install --production
 cd ..
 node convert-test-suite --rebase %*
 git add testsuite\*
-git add baseline\*
+git add baselines\*
 echo Test updated and regerated, don't forget to update baselines
 popd
