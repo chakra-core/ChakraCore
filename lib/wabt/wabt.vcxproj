@@ -23,7 +23,8 @@
     <ClCompile>
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory)\src;
-        $(MSBuildThisFileDirectory)\src\win_prebuilt;
+        $(MSBuildThisFileDirectory)\chakra;
+        $(MSBuildThisFileDirectory)\chakra\windows;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
@@ -32,6 +33,7 @@
   </ItemDefinitionGroup>
   <!-- Do not build wabt with old toolset -->
   <ItemGroup Condition="'$(BuildWabt)'=='true'">
+    <ClCompile Include="$(MSBuildThisFileDirectory)chakra\wabtapi.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\ast.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\ast-parser-lexer-shared.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\prebuilt\ast-lexer-gen.cc" />
@@ -58,6 +60,8 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)src\string-view.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="chakra\wabtapi.h" />
+    <ClInclude Include="chakra\windows\config.h" />
     <ClInclude Include="src\apply-names.h" />
     <ClInclude Include="src\hash-util.h" />
     <ClInclude Include="src\ast-lexer.h" />
@@ -76,7 +80,6 @@
     <ClInclude Include="src\binary.h" />
     <ClInclude Include="src\binding-hash.h" />
     <ClInclude Include="src\common.h" />
-    <ClInclude Include="src\win_prebuilt\config.h" />
     <ClInclude Include="src\generate-names.h" />
     <ClInclude Include="src\literal.h" />
     <ClInclude Include="src\resolve-names.h" />

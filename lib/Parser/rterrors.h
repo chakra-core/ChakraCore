@@ -391,4 +391,3 @@ RT_ERROR_MSG(JSERR_OutOfBoundString, 7020, "", "String length is out of bound", 
 
 // Wabt Errors
 RT_ERROR_MSG(WABTERR_WabtError, 7200, "%s", "Wabt Error.", kjstTypeError, 0)
-RT_ERROR_MSG(WABTERR_WastParsingError, 7201, "Wast Parsing error:%d:%d:\n%s\n%s\n%s", "Wast Parsing error.", kjstSyntaxError, 0)

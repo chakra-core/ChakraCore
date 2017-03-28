@@ -30,8 +30,7 @@
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
         $(MSBuildThisFileDirectory)..\..\WasmReader;
-        $(MSBuildThisFileDirectory)..\..\wabt\src;
-        $(MSBuildThisFileDirectory)..\..\wabt\src\win_prebuilt;
+        $(MSBuildThisFileDirectory)..\..\wabt\chakra;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\JITClient;
         $(ChakraJITIDLIntDir);
