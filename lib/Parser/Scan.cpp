@@ -1603,11 +1603,6 @@ tokens Scanner<EncodingPolicy>::ScanAnnotations(EncodedCharPtr *pp)
             if (*p == '/')
             {
                 *pp = p + 1;
-                if (m_fSyntaxColor)
-                {
-                    m_scanState = ScanStateNormal;
-                    return tkComment;
-                }
                 return tkNone;
             }
             break;
@@ -1649,11 +1644,6 @@ tokens Scanner<EncodingPolicy>::ScanAnnotations(EncodedCharPtr *pp)
             {
                 m_currentCharacter = p - 1;
                 *pp = p - 1;
-                if (m_fSyntaxColor)
-                {
-                    m_scanState = ScanStateMultiLineComment;
-                    return tkComment;
-                }
                 Error(ERRnoCmtEnd);
             }
             break;
@@ -1844,27 +1834,6 @@ tokens Scanner<EncodingPolicy>::ScanCore(bool identifyKwds)
 
     if (m_scanState && *p != 0)
     {
-        if (m_fSyntaxColor)
-        {
-            firstChar = 0;
-            secondChar = 0;
-            m_pchMinTok = p;
-            m_cMinTokMultiUnits = this->m_cMultiUnits;
-            switch (m_scanState)
-            {
-            case ScanStateMultiLineComment:
-                goto LMultiLineComment;
-            case ScanStateMultiLineSingleQuoteString:
-                ch = '\'';
-                m_scanState = ScanStateNormal;
-                goto LScanStringConstant;
-            case ScanStateMultiLineDoubleQuoteString:
-                ch = '"';
-                m_scanState = ScanStateNormal;
-                goto LScanStringConstant;
-            }
-        }
-
         switch (m_scanState)
         {
         case ScanStateStringTemplateMiddleOrEnd:
