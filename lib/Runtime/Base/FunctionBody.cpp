@@ -110,12 +110,15 @@ namespace Js
         {
             return nullptr;
         }
+
 #if DBG && ENABLE_NATIVE_CODEGEN
         // the lock for work item queue should not be locked while accessing AuxPtrs in background thread
-        auto jobProcessorCS = this->GetScriptContext()->GetThreadContext()->GetJobProcessor()->GetCriticalSection();
-        Assert(!jobProcessorCS || !jobProcessorCS->IsLocked());
+        auto jobProcessor = this->GetScriptContext()->GetThreadContext()->GetJobProcessor();
+        auto jobProcessorCS = jobProcessor->GetCriticalSection();
+        Assert(!jobProcessorCS || !jobProcessor->ProcessesInBackground() || !jobProcessorCS->IsLocked());
 #endif
-        AutoCriticalSection autoCS(&GlobalLock);
+
+        AutoCriticalSection autoCS(GetLock());
         return AuxPtrsT::GetAuxPtr(this, e);
     }
 
@@ -130,7 +133,7 @@ namespace Js
         }
 
         // when setting ptr to null we never need to promote
-        AutoCriticalSection aucoCS(&GlobalLock);
+        AutoCriticalSection aucoCS(GetLock());
         AuxPtrsT::SetAuxPtr(this, e, ptr);
     }
 
