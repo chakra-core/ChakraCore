@@ -1377,9 +1377,7 @@ dbl_align:
 #if DBG && ENABLE_NATIVE_CODEGEN
         CheckIsExecutable(function, entryPoint);
 #endif
-#ifdef _CONTROL_FLOW_GUARD
-        _guard_check_icall((uintptr_t) entryPoint); /* check function pointer integrity */
-#endif
+
         return amd64_CallFunction(function, entryPoint, args.Info, args.Info.Count, &args.Values[0]);
     }
 #elif defined(_M_ARM)
