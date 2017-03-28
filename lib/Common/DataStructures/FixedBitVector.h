@@ -227,6 +227,7 @@ Container BVFixed::GetRange(BVIndex start, BVIndex len) const
 }
 
 template<typename Container>
+NO_SANITIZE_ADDRESS
 void BVFixed::SetRange(Container* value, BVIndex start, BVIndex len)
 {
     AssertRange(start);
