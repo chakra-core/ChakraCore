@@ -870,6 +870,7 @@ public:
         case Js::BuiltinFunction::Math_Abs:
         case Js::BuiltinFunction::JavascriptArray_Push:
         case Js::BuiltinFunction::JavascriptString_Replace:
+        case Js::BuiltinFunction::JavascriptObject_HasOwnProperty:
             return true;
 
         default:
