@@ -576,18 +576,9 @@ NumberTemp::ProcessInstr(IR::Instr * instr, BackwardPass * backwardPass)
 #if DBG
     if (instr->m_opcode == Js::OpCode::BailOnNoProfile)
     {
-        // If we see BailOnNoProfile, we shouldn't have any successor to have any non temp syms except InlineeEnd
+        // If we see BailOnNoProfile, we shouldn't have any successor to have any non temp syms
         Assert(!this->nonTempElemLoad);
-
-        if(!this->nonTempSyms.IsEmpty())
-        {
-            // The only non temp which could be live at BailOnNoProfile is the 2nd operand for following InlineeEnd
-            IR::Instr * nextInstr = instr->m_next;
-            Assert(nextInstr && nextInstr->m_opcode == Js::OpCode::InlineeEnd);
-            Assert(this->nonTempSyms.Count() == 1 &&
-                this->nonTempSyms.Test(nextInstr->GetSrc2()->GetStackSym()->m_id));
-        }
-
+        Assert(this->nonTempSyms.IsEmpty());
         Assert(this->tempTransferredSyms.IsEmpty());
         Assert(this->elemLoadDependencies.IsEmpty());
         Assert(this->upwardExposedMarkTempObjectLiveFields.IsEmpty());

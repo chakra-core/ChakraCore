@@ -1722,7 +1722,7 @@ FlowGraph::RemoveUnreachableBlocks()
 
 // If block has no predecessor, remove it.
 bool
-FlowGraph::RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt, IR::Instr ** pUpwardedInstr)
+FlowGraph::RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt)
 {
     bool isDead = false;
 
@@ -1745,7 +1745,7 @@ FlowGraph::RemoveUnreachableBlock(BasicBlock *block, GlobOpt * globOpt, IR::Inst
 
     if (isDead)
     {
-        this->RemoveBlock(block, globOpt, false /* tailDuping */, pUpwardedInstr);
+        this->RemoveBlock(block, globOpt);
         return true;
     }
     return false;
@@ -2637,73 +2637,8 @@ FlowGraph::RemoveInstr(IR::Instr *instr, GlobOpt * globOpt)
     }
 }
 
-// We cannot just remove Js::OpCode::InlineeEnd from cold path, need to make a copy 
-// or it to after BailOnNoProfile above current InlineeEnd. The new InlineeEnd will be
-// visited by linearscan to generate InlineeFrameRecord.
 void
-FlowGraph::UpwardInlineeEndBeforeRemoving(
-    BasicBlock * block,
-    IR::Instr * inlineeEnd,
-    BVSparse<JitArenaAllocator> * visitedBlocks,
-    IR::Instr ** pUpwardedInstr)
-{
-
-    if (visitedBlocks->Test(block->GetBlockNum()))
-    {
-        return;
-    }
-    else
-    {
-        visitedBlocks->Set(block->GetBlockNum());
-    }
-    bool stopUpward = false;
-
-    FOREACH_INSTR_BACKWARD_IN_BLOCK_EDITING(instr, instrPrev, block)
-    {
-        switch (instr->m_opcode)
-        {
-            case Js::OpCode::Label:
-            case Js::OpCode::ByteCodeUses:
-            {
-                continue;
-            }
-
-            case Js::OpCode::BailOnNoProfile:
-            {
-                Assert(pUpwardedInstr != nullptr);
-
-                IR::Instr * copiedInstr = inlineeEnd->Copy();
-                *pUpwardedInstr = copiedInstr;
-                instr->InsertAfter(copiedInstr);
-
-                stopUpward = true;
-                break;
-            }
-
-            default:
-            {
-                stopUpward = true;
-                break;
-            }
-        }
-
-        if (stopUpward)
-        {
-            break;
-        }
-    } NEXT_INSTR_BACKWARD_EDITING_IN_RANGE;
-
-    if (!stopUpward)
-    {
-        FOREACH_SLISTBASECOUNTED_ENTRY(FlowEdge*, edge, block->GetDeadPredList())
-        {
-            UpwardInlineeEndBeforeRemoving(edge->GetPred(), inlineeEnd, visitedBlocks, pUpwardedInstr);
-        } NEXT_SLISTBASECOUNTED_ENTRY;
-    }
-}
-
-void
-FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping, IR::Instr ** pUpwardedInstr)
+FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping)
 {
     Assert(!block->isDead && !block->isDeleted);
     IR::Instr * lastInstr = nullptr;
@@ -2716,7 +2651,6 @@ FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping, IR
             // rid of the epilog.
             break;
         }
-
         if (instr == block->GetFirstInstr())
         {
             Assert(instr->IsLabelInstr());
@@ -2724,18 +2658,6 @@ FlowGraph::RemoveBlock(BasicBlock *block, GlobOpt * globOpt, bool tailDuping, IR
         }
         else
         {
-            if (instr->m_opcode == Js::OpCode::InlineeEnd && instr->m_func->m_hasInlineArgsOpt &&
-                pUpwardedInstr != nullptr && instr->GetSrc2()->GetStackSym()->GetInstrDef())
-            {
-                NoRecoverMemoryJitArenaAllocator tempAlloc(_u("BE-FlowGraph-RemoveBlock"), this->func->m_alloc->GetPageAllocator(), Js::Throw::OutOfMemory);
-                BVSparse<JitArenaAllocator> * visitedBlocks = JitAnew(&tempAlloc, BVSparse<JitArenaAllocator>, &tempAlloc);
-
-                FOREACH_SLISTBASECOUNTED_ENTRY(FlowEdge*, edge, block->GetDeadPredList())
-                {
-                    UpwardInlineeEndBeforeRemoving(edge->GetPred(), instr, visitedBlocks, pUpwardedInstr);
-                } NEXT_SLISTBASECOUNTED_ENTRY;
-            }
-
             lastInstr = this->RemoveInstr(instr, globOpt);
         }
     } NEXT_INSTR_IN_BLOCK_EDITING;

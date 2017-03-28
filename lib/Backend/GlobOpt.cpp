@@ -541,15 +541,8 @@ GlobOpt::ForwardPass()
 void
 GlobOpt::OptBlock(BasicBlock *block)
 {
-    IR::Instr * upwardedInstr = nullptr;
-    if (this->func->m_fg->RemoveUnreachableBlock(block, this, &upwardedInstr))
+    if (this->func->m_fg->RemoveUnreachableBlock(block, this))
     {
-        if (upwardedInstr &&
-            upwardedInstr->m_opcode == Js::OpCode::InlineeEnd &&
-            upwardedInstr->m_func->m_hasInlineArgsOpt)
-        {
-            RecordInlineeFrameInfo(upwardedInstr);
-        }
         GOPT_TRACE(_u("Removing unreachable block #%d\n"), block->GetBlockNum());
         return;
     }
