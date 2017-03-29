@@ -100,14 +100,9 @@ Function:
 
 --*/
 static LPVOID ReserveVirtualMemory(
-                IN CPalThread *pthrCurrent, /* Currently executing thread */
-                IN LPVOID lpAddress,        /* Region to reserve or commit */
-                IN SIZE_T dwSize);          /* Size of Region */
-
-
-// A memory allocator that allocates memory from a pre-reserved region
-// of virtual memory that is located near the coreclr library.
-static ExecutableMemoryAllocator g_executableMemoryAllocator PAL_GLOBAL;
+               IN CPalThread *pthrCurrent, /* Currently executing thread */
+               IN LPVOID lpAddress,        /* Region to reserve or commit */
+               IN SIZE_T dwSize);          /* Size of Region */
 
 /*++
 Function:
@@ -122,18 +117,13 @@ Return value:
 --*/
 extern "C"
 BOOL
-VIRTUALInitialize(bool initializeExecutableMemoryAllocator)
+VIRTUALInitialize( void )
 {
     TRACE( "Initializing the Virtual Critical Sections. \n" );
 
     InternalInitializeCriticalSection(&virtual_critsec);
 
     pVirtualMemory = NULL;
-
-    if (initializeExecutableMemoryAllocator)
-    {
-        g_executableMemoryAllocator.Initialize();
-    }
 
     return TRUE;
 }
@@ -878,14 +868,13 @@ static LPVOID VIRTUALReserveMemory(
     MemSize = ( ((UINT_PTR)lpAddress + dwSize + VIRTUAL_PAGE_MASK) & ~VIRTUAL_PAGE_MASK ) -
                StartBoundary;
 
-    InternalEnterCriticalSection(pthrCurrent, &virtual_critsec);
-
-    // If this is a request for special executable (JIT'ed) memory then, first of all,
-    // try to get memory from the executable memory allocator to satisfy the request.
-    if (((flAllocationType & MEM_RESERVE_EXECUTABLE) != 0) && (lpAddress == NULL))
+    if ((flAllocationType & MEM_RESERVE_EXECUTABLE) != 0)
     {
-        pRetVal = g_executableMemoryAllocator.AllocateMemory(MemSize);
+        fprintf(stderr, "MEM_RESERVE_EXECUTABLE is not supported!");
+        abort();
     }
+
+    InternalEnterCriticalSection(pthrCurrent, &virtual_critsec);
 
     if (pRetVal == NULL)
     {
@@ -901,6 +890,7 @@ static LPVOID VIRTUALReserveMemory(
 #endif  // MMAP_IGNORES_HINT
             /* Compute the real values instead of the null values. */
             StartBoundary = (UINT_PTR)pRetVal & ~VIRTUAL_PAGE_MASK;
+
             MemSize = ( ((UINT_PTR)pRetVal + dwSize + VIRTUAL_PAGE_MASK) & ~VIRTUAL_PAGE_MASK ) -
                       StartBoundary;
 #if !MMAP_IGNORES_HINT
@@ -2311,148 +2301,4 @@ ExitVirtualQuery:
     LOGEXIT( "VirtualQuery returning %d.\n", sizeof( *lpBuffer ) );
     PERF_EXIT(VirtualQuery);
     return sizeof( *lpBuffer );
-}
-
-/*++
-Function:
-    ExecutableMemoryAllocator::Initialize()
-
-    This function initializes the allocator. It should be called early during process startup
-    (when process address space is pretty much empty) in order to have a chance to reserve
-    sufficient amount of memory that is close to the coreclr library.
-
---*/
-void ExecutableMemoryAllocator::Initialize()
-{
-    m_startAddress = NULL;
-    m_nextFreeAddress = NULL;
-    m_totalSizeOfReservedMemory = 0;
-    m_remainingReservedMemory = 0;
-
-    // Enable the executable memory allocator on 64-bit platforms only
-    // because 32-bit platforms have limited amount of virtual address space.
-#ifdef BIT64
-    TryReserveInitialMemory();
-#endif // BIT64
-
-}
-
-/*++
-Function:
-    ExecutableMemoryAllocator::TryReserveInitialMemory()
-
-    This function is called during PAL initialization. It opportunistically tries to reserve
-    a large chunk of virtual memory that can be later used to store JIT'ed code.\
-
---*/
-void ExecutableMemoryAllocator::TryReserveInitialMemory()
-{
-    CPalThread* pthrCurrent = InternalGetCurrentThread();
-    int32_t sizeOfAllocation = MaxExecutableMemorySize;
-    int32_t startAddressIncrement;
-    UINT_PTR startAddress;
-    UINT_PTR coreclrLoadAddress;
-    const int32_t MemoryProbingIncrement = 128 * 1024 * 1024;
-
-    // Try to find and reserve an available region of virtual memory that is located
-    // within 2GB range (defined by the MaxExecutableMemorySize constant) from the
-    // location of the coreclr library.
-    // Potentially, as a possible future improvement, we can get precise information
-    // about available memory ranges by parsing data from '/proc/self/maps'.
-    // But since this code is called early during process startup, the user address space
-    // is pretty much empty so the simple algorithm that is implemented below is sufficient
-    // for this purpose.
-
-    // First of all, we need to determine the current address of libcoreclr. Please note that depending on
-    // the OS implementation, the library is usually loaded either at the end or at the start of the user
-    // address space. If the library is loaded at low addresses then try to reserve memory above libcoreclr
-    // (thus avoiding reserving memory below 4GB; besides some operating systems do not allow that).
-    // If libcoreclr is loaded at high addresses then try to reserve memory below its location.
-    coreclrLoadAddress = (UINT_PTR)PAL_GetSymbolModuleBase((void*)VirtualAlloc);
-    if ((coreclrLoadAddress < 0xFFFFFFFF) || ((coreclrLoadAddress - MaxExecutableMemorySize) < 0xFFFFFFFF))
-    {
-        // Try to allocate above the location of libcoreclr
-        startAddress = coreclrLoadAddress + CoreClrLibrarySize;
-        startAddressIncrement = MemoryProbingIncrement;
-    }
-    else
-    {
-        // Try to allocate below the location of libcoreclr
-        startAddress = coreclrLoadAddress - MaxExecutableMemorySize;
-        startAddressIncrement = 0;
-    }
-
-    // Do actual memory reservation.
-    do
-    {
-        m_startAddress = ReserveVirtualMemory(pthrCurrent, (void*)startAddress, sizeOfAllocation);
-        if (m_startAddress != NULL)
-        {
-            // Memory has been successfully reserved.
-            m_totalSizeOfReservedMemory = sizeOfAllocation;
-
-            // Randomize the location at which we start allocating from the reserved memory range.
-            int32_t randomOffset = GenerateRandomStartOffset();
-            m_nextFreeAddress = (void*)(((UINT_PTR)m_startAddress) + randomOffset);
-            m_remainingReservedMemory = sizeOfAllocation - randomOffset;
-            break;
-        }
-
-        // Try to allocate a smaller region
-        sizeOfAllocation -= MemoryProbingIncrement;
-        startAddress += startAddressIncrement;
-
-    } while (sizeOfAllocation >= MemoryProbingIncrement);
-}
-
-/*++
-Function:
-    ExecutableMemoryAllocator::AllocateMemory
-
-    This function attempts to allocate the requested amount of memory from its reserved virtual
-    address space. The function will return NULL if the allocation request cannot
-    be satisfied by the memory that is currently available in the allocator.
-
-    Note: This function MUST be called with the virtual_critsec lock held.
-
---*/
-void* ExecutableMemoryAllocator::AllocateMemory(SIZE_T allocationSize)
-{
-    void* allocatedMemory = NULL;
-
-    // Allocation size must be in multiples of the virtual page size.
-    _ASSERTE((allocationSize & VIRTUAL_PAGE_MASK) == 0);
-
-    // The code below assumes that the caller owns the virtual_critsec lock.
-    // So the calculations are not done in thread-safe manner.
-    if ((allocationSize > 0) && (allocationSize <= m_remainingReservedMemory))
-    {
-        allocatedMemory = m_nextFreeAddress;
-        m_nextFreeAddress = (void*)(((UINT_PTR)m_nextFreeAddress) + allocationSize);
-        m_remainingReservedMemory -= allocationSize;
-
-    }
-
-    return allocatedMemory;
-}
-
-/*++
-Function:
-    ExecutableMemoryAllocator::GenerateRandomStartOffset()
-
-    This function returns a random offset (in multiples of the virtual page size)
-    at which the allocator should start allocating memory from its reserved memory range.
-
---*/
-int32_t ExecutableMemoryAllocator::GenerateRandomStartOffset()
-{
-    int32_t pageCount;
-    const int32_t MaxStartPageOffset = 64;
-
-    // This code is similar to what coreclr runtime does on Windows.
-    // It generates a random number of pages to skip between 0...MaxStartPageOffset.
-    srandom(time(NULL));
-    pageCount = (int32_t)(MaxStartPageOffset * (int64_t)random() / RAND_MAX);
-
-    return pageCount * VIRTUAL_PAGE_SIZE;
 }
