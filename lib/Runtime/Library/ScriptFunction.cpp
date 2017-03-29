@@ -763,7 +763,7 @@ namespace Js
                     InlineCache* inlineCache = (InlineCache*)(void*)this->m_inlineCaches[i];
                     if (isShutdown)
                     {
-                        memset(this->m_inlineCaches[i], 0, sizeof(InlineCache));
+                        inlineCache->Clear();
                     }
                     else if(!scriptContext->IsClosed())
                     {
@@ -784,7 +784,7 @@ namespace Js
                 {
                     if (isShutdown)
                     {
-                        memset(this->m_inlineCaches[i], 0, sizeof(IsInstInlineCache));
+                        ((IsInstInlineCache*)this->m_inlineCaches[i])->Clear();
                     }
                     else if (!scriptContext->IsClosed())
                     {

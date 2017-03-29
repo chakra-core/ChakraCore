@@ -970,6 +970,7 @@ namespace Js
         bool TryGetResult(Var instance, JavascriptFunction * function, JavascriptBoolean ** result);
         void Cache(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result, ScriptContext * scriptContext);
         void Unregister(ScriptContext * scriptContext);
+        void Clear();
 
         static uint32 OffsetOfFunction();
         static uint32 OffsetOfResult();
@@ -977,7 +978,6 @@ namespace Js
 
     private:
         void Set(Type * instanceType, JavascriptFunction * function, JavascriptBoolean * result);
-        void Clear();
     };
 
     // Two-entry Type-indexed circular cache

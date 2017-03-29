@@ -657,6 +657,10 @@ private:
     bool AreFreeListBucketsEmpty();
 };
 
+#if DBG
+bool IsAll(char* buffer, size_t size, char c);
+#endif
+
 class InlineCacheAllocator : public InlineCacheAllocatorInfo, public ArenaAllocatorBase<InlineCacheAllocatorTraits>
 {
 #ifdef POLY_INLINE_CACHE_SIZE_STATS
@@ -664,19 +668,40 @@ private:
     size_t polyCacheAllocSize;
 #endif
 
+    bool hasUsedInlineCache;
+    bool hasProtoOrStoreFieldInlineCache;
+
 public:
     // Zeroing and freeing w/o leaking is not implemented for large objects
     CompileAssert(MaxObjectSize <= MaxSmallObjectSize);
 
     InlineCacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)(), void(*recoverMemoryFunc)() = JsUtil::ExternalApi::RecoverUnusedMemory) :
-        ArenaAllocatorBase<InlineCacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc, recoverMemoryFunc)
+        ArenaAllocatorBase<InlineCacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc, recoverMemoryFunc), hasUsedInlineCache(false), hasProtoOrStoreFieldInlineCache(false)
 #ifdef POLY_INLINE_CACHE_SIZE_STATS
         , polyCacheAllocSize(0)
 #endif
+#if DBG
+        , verifiedAllZeroAndLockedDown(false)
+#endif
     {}
+
+    void SetHasUsedInlineCache(bool value) 
+    { 
+        hasUsedInlineCache = value; 
+#if DBG
+        if (hasUsedInlineCache)
+        {
+            Unlock();
+        }
+#endif
+    }
+    bool GetHasUsedInlineCache() { return hasUsedInlineCache; }
+    void SetHasProtoOrStoreFieldInlineCache(bool value) { hasProtoOrStoreFieldInlineCache = value; }
+    bool GetHasProtoOrStoreFieldInlineCache() { return hasProtoOrStoreFieldInlineCache; }
 
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
+        DebugOnly(Unlock());
         return AllocInternal(requestedBytes);
     }
 
@@ -692,7 +717,15 @@ public:
     }
 
 #if DBG
-    bool IsAllZero();
+    bool verifiedAllZeroAndLockedDown;
+    ~InlineCacheAllocator();
+    void CheckIsAllZero(bool lockdown); // lockdown means make the page read only so no need to do the check again
+    void Unlock();
+    void Free(void * buffer, size_t byteSize)
+    {
+        Unlock();
+        __super::Free(buffer, byteSize);
+    }
 #endif
     void ZeroAll();
 
@@ -748,7 +781,7 @@ public:
     }
 
 #if DBG
-    bool IsAllZero();
+    void CheckIsAllZero();
 #endif
     void ZeroAll();
 
@@ -768,10 +801,15 @@ class CacheAllocator : public ArenaAllocatorBase<CacheAllocatorTraits>
 {
 public:
     CacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)()) :
-        ArenaAllocatorBase<CacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) {}
+        ArenaAllocatorBase<CacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) 
+#if DBG
+        , verifiedAllZeroAndLockedDown(false)
+#endif
+    {}
 
     char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
+        DebugOnly(Unlock());
         return AllocInternal(requestedBytes);
     }
 
@@ -787,10 +825,18 @@ public:
     }
 
 #if DBG
-    bool IsAllZero();
+    bool verifiedAllZeroAndLockedDown;
+    ~CacheAllocator();
+    void CheckIsAllZero(bool lockdown);
+    void Unlock();
+    void Free(void * buffer, size_t byteSize)
+    {
+        Unlock();
+        __super::Free(buffer, byteSize);
+    }
 #endif
-    void ZeroAll();
 
+    void ZeroAll();
 };
 
 

@@ -7616,7 +7616,7 @@ namespace Js
                     InlineCache* inlineCache = (InlineCache*)this->inlineCaches[i];
                     if (IsScriptContextShutdown)
                     {
-                        memset(inlineCache, 0, sizeof(InlineCache));
+                        inlineCache->Clear();
                     }
                     else
                     {
@@ -7635,10 +7635,9 @@ namespace Js
             {
                 if (nullptr != this->inlineCaches[i])
                 {
-                    InlineCache* inlineCache = (InlineCache*)this->inlineCaches[i];
                     if (IsScriptContextShutdown)
                     {
-                        memset(inlineCache, 0, sizeof(InlineCache));
+                        ((InlineCache*)this->inlineCaches[i])->Clear();
                     }
                     else
                     {
@@ -7656,10 +7655,9 @@ namespace Js
             {
                 if (nullptr != this->inlineCaches[i])
                 {
-                    InlineCache* inlineCache = (InlineCache*)this->inlineCaches[i];
                     if (IsScriptContextShutdown)
                     {
-                        memset(inlineCache, 0, sizeof(InlineCache));
+                        ((InlineCache*)this->inlineCaches[i])->Clear();
                     }
                     else
                     {
@@ -7677,10 +7675,9 @@ namespace Js
             {
                 if (nullptr != this->inlineCaches[i])
                 {
-                    InlineCache* inlineCache = (InlineCache*)this->inlineCaches[i];
                     if (IsScriptContextShutdown)
                     {
-                        memset(inlineCache, 0, sizeof(InlineCache));
+                        ((InlineCache*)this->inlineCaches[i])->Clear();
                     }
                     else
                     {
@@ -7701,7 +7698,7 @@ namespace Js
                     IsInstInlineCache* inlineCache = (IsInstInlineCache*)this->inlineCaches[i];
                     if (IsScriptContextShutdown)
                     {
-                        memset(inlineCache, 0, sizeof(IsInstInlineCache));
+                        inlineCache->Clear();
                     }
                     else
                     {
@@ -7729,7 +7726,7 @@ namespace Js
                         {
                             if (IsScriptContextShutdown)
                             {
-                                memset(inlineCache, 0, sizeof(InlineCache));
+                                inlineCache->Clear();
                             }
                             else
                             {
@@ -7759,7 +7756,7 @@ namespace Js
                         {
                             if (IsScriptContextShutdown)
                             {
-                                memset(inlineCache, 0, sizeof(InlineCache));
+                                inlineCache->Clear();
                             }
                             else
                             {
