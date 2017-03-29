@@ -46,6 +46,7 @@ using namespace CorUnix;
 SET_DEFAULT_DEBUG_CHANNEL(VIRTUAL);
 
 CRITICAL_SECTION virtual_critsec PAL_GLOBAL;
+CRITICAL_SECTION virtual_realloc PAL_GLOBAL;
 
 #if MMAP_IGNORES_HINT
 typedef struct FREE_BLOCK {
@@ -122,6 +123,7 @@ VIRTUALInitialize( void )
     TRACE( "Initializing the Virtual Critical Sections. \n" );
 
     InternalInitializeCriticalSection(&virtual_critsec);
+    InternalInitializeCriticalSection(&virtual_realloc);
 
     pVirtualMemory = NULL;
 
@@ -1581,8 +1583,7 @@ Note:
 See MSDN doc.
 --*/
 LPVOID
-PALAPI
-VirtualAlloc(
+VirtualAlloc_(
          IN LPVOID lpAddress,       /* Region to reserve or commit */
          IN SIZE_T dwSize,          /* Size of Region */
          IN DWORD flAllocationType, /* Type of allocation */
@@ -1671,6 +1672,73 @@ done:
     PERF_EXIT(VirtualAlloc);
     return pRetVal;
 }
+
+#define KB64 (64 * 1024)
+#define MB64 (KB64 * 1024)
+
+LPVOID
+PALAPI
+VirtualAlloc(
+         IN LPVOID lpAddress,       /* Region to reserve or commit */
+         IN SIZE_T dwSize,          /* Size of Region */
+         IN DWORD flAllocationType, /* Type of allocation */
+         IN DWORD flProtect)        /* Type of access protection */
+{
+    if (lpAddress)
+    {
+        return VirtualAlloc_(lpAddress, dwSize, flAllocationType, flProtect);
+    }
+
+    bool reserve = (flAllocationType & MEM_RESERVE) == MEM_RESERVE;
+    bool commit  = (flAllocationType & MEM_COMMIT)  == MEM_COMMIT;
+
+    if (reserve || commit)
+    {
+        char *address = (char*) VirtualAlloc_(nullptr, dwSize, MEM_RESERVE, flProtect);
+        if (!address) return nullptr;
+
+        if (reserve)
+        {
+            flAllocationType &= ~MEM_RESERVE;
+        }
+
+        SIZE_T diff = ((ULONG_PTR)address % KB64);
+        if ( diff != 0 )
+        {
+            VirtualFree(address, 0, MEM_RELEASE);
+            char *addr64 = address + (KB64 - diff);
+
+            // try reserving from the same address space
+            address = (char*) VirtualAlloc_(addr64, dwSize, MEM_RESERVE, flProtect);
+
+            if (!address)
+            {   // looks like ``pushed new address + dwSize`` is not available
+                // try on a bigger surface
+                address = (char*) VirtualAlloc_(nullptr, dwSize + KB64, MEM_RESERVE, flProtect);
+                if (!address) return nullptr;
+
+                diff = ((ULONG_PTR)address % KB64);
+                addr64 = address + (KB64 - diff);
+
+                CPalThread *pthrCurrent = InternalGetCurrentThread();
+                InternalEnterCriticalSection(pthrCurrent, &virtual_realloc);
+                VirtualFree(address, 0, MEM_RELEASE);
+                address = (char*) VirtualAlloc_(addr64, dwSize, MEM_RESERVE, flProtect);
+                InternalLeaveCriticalSection(pthrCurrent, &virtual_realloc);
+
+                if (!address) return nullptr;
+            }
+        }
+
+        if (flAllocationType == 0) return address;
+        lpAddress = address;
+    }
+
+    return VirtualAlloc_(lpAddress, dwSize, flAllocationType, flProtect);
+}
+
+#undef KB64
+#undef MB64
 
 BOOL
 PALAPI
