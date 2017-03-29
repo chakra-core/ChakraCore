@@ -634,10 +634,7 @@
 #if defined(_WIN32) || (defined(__clang__) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_WASM
 
-#ifndef EXCLUDE_WABT 
-#define EXCLUDE_WABT 0
-#endif
-#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && !EXCLUDE_WABT
+#ifdef CAN_BUILD_WABT
 #define ENABLE_WABT
 #endif
 
