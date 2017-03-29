@@ -13,10 +13,11 @@ if(CC_TARGETS_AMD64)
     WebAssemblyTable.cpp
     WabtInterface.cpp
     )
+endif()
+
+if(CAN_BUILD_WABT)
     include_directories(
-    ../../wabt/src
-    ../../wabt/prebuilt
-    ../../wabt/built
+    ../../wabt/chakra
     )
 endif()
 

@@ -13,7 +13,11 @@ function createView(bytes) {
   return view;
 }
 async function main() {
-  const {instance: {exports: {foo, bar}}} = await WebAssembly.instantiate(readbuffer("binaries/bug_fitsdword.wasm"));
+  const {instance: {exports: {foo, bar}}} = await WebAssembly.instantiate(WebAssembly.wabt.convertWast2Wasm(`
+(module
+  (func (export "foo") (result i64) (i64.extend_u/i32 (i32.const 0x80000000)))
+  (func (export "bar") (result i64) (i64.extend_u/i32 (i32.const 0xabcdef12)))
+)`));
   foo();
   bar();
 
@@ -35,7 +39,10 @@ async function main() {
   }
 
   {
-    const mod = new WebAssembly.Module(readbuffer("binaries/bugDeferred.wasm"));
+    const mod = new WebAssembly.Module(WebAssembly.wabt.convertWast2Wasm(`
+(module
+  (func (export "foo") (result i32) (i32.const 0))
+)`));
     const instance1 = new WebAssembly.Instance(mod);
     const instance2 = new WebAssembly.Instance(mod);
 

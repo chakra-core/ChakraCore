@@ -30,6 +30,8 @@
 
 namespace wabt {
 
+namespace {
+
 enum class ActionResultKind {
   Error,
   Types,
@@ -45,19 +47,30 @@ struct ActionResult {
 };
 
 struct Context {
-  SourceErrorHandler* error_handler;
-  AstLexer* lexer;
-  const Script* script;
-  const Module* current_module;
-  const Func* current_func;
-  int current_table_index;
-  int current_memory_index;
-  int current_global_index;
-  int num_imported_globals;
+  WABT_DISALLOW_COPY_AND_ASSIGN(Context);
+  Context(SourceErrorHandler*, AstLexer*, const Script*);
+
+  SourceErrorHandler* error_handler = nullptr;
+  AstLexer* lexer = nullptr;
+  const Script* script = nullptr;
+  const Module* current_module = nullptr;
+  const Func* current_func = nullptr;
+  int current_table_index = 0;
+  int current_memory_index = 0;
+  int current_global_index = 0;
+  int num_imported_globals = 0;
   TypeChecker typechecker;
-  const Location* expr_loc; /* Cached for access by on_typechecker_error */
-  Result result;
+  /* Cached for access by on_typechecker_error */
+  const Location* expr_loc = nullptr;
+  Result result = Result::Ok;
 };
+
+Context::Context(SourceErrorHandler* error_handler,
+                 AstLexer* lexer,
+                 const Script* script)
+    : error_handler(error_handler), lexer(lexer), script(script) {}
+
+}  // namespace
 
 static void WABT_PRINTF_FORMAT(3, 4)
     print_error(Context* ctx, const Location* loc, const char* fmt, ...) {
@@ -103,13 +116,13 @@ static Result check_func_var(Context* ctx,
                              const Var* var,
                              const Func** out_func) {
   int index;
-  if (WABT_FAILED(check_var(ctx, ctx->current_module->funcs.size, var,
+  if (WABT_FAILED(check_var(ctx, ctx->current_module->funcs.size(), var,
                             "function", &index))) {
     return Result::Error;
   }
 
   if (out_func)
-    *out_func = ctx->current_module->funcs.data[index];
+    *out_func = ctx->current_module->funcs[index];
   return Result::Ok;
 }
 
@@ -118,13 +131,13 @@ static Result check_global_var(Context* ctx,
                                const Global** out_global,
                                int* out_global_index) {
   int index;
-  if (WABT_FAILED(check_var(ctx, ctx->current_module->globals.size, var,
+  if (WABT_FAILED(check_var(ctx, ctx->current_module->globals.size(), var,
                             "global", &index))) {
     return Result::Error;
   }
 
   if (out_global)
-    *out_global = ctx->current_module->globals.data[index];
+    *out_global = ctx->current_module->globals[index];
   if (out_global_index)
     *out_global_index = index;
   return Result::Ok;
@@ -141,13 +154,13 @@ static Result check_func_type_var(Context* ctx,
                                   const Var* var,
                                   const FuncType** out_func_type) {
   int index;
-  if (WABT_FAILED(check_var(ctx, ctx->current_module->func_types.size, var,
+  if (WABT_FAILED(check_var(ctx, ctx->current_module->func_types.size(), var,
                             "function type", &index))) {
     return Result::Error;
   }
 
   if (out_func_type)
-    *out_func_type = ctx->current_module->func_types.data[index];
+    *out_func_type = ctx->current_module->func_types[index];
   return Result::Ok;
 }
 
@@ -155,13 +168,13 @@ static Result check_table_var(Context* ctx,
                               const Var* var,
                               const Table** out_table) {
   int index;
-  if (WABT_FAILED(check_var(ctx, ctx->current_module->tables.size, var, "table",
-                            &index))) {
+  if (WABT_FAILED(check_var(ctx, ctx->current_module->tables.size(), var,
+                            "table", &index))) {
     return Result::Error;
   }
 
   if (out_table)
-    *out_table = ctx->current_module->tables.data[index];
+    *out_table = ctx->current_module->tables[index];
   return Result::Ok;
 }
 
@@ -169,13 +182,13 @@ static Result check_memory_var(Context* ctx,
                                const Var* var,
                                const Memory** out_memory) {
   int index;
-  if (WABT_FAILED(check_var(ctx, ctx->current_module->memories.size, var,
+  if (WABT_FAILED(check_var(ctx, ctx->current_module->memories.size(), var,
                             "memory", &index))) {
     return Result::Error;
   }
 
   if (out_memory)
-    *out_memory = ctx->current_module->memories.data[index];
+    *out_memory = ctx->current_module->memories[index];
   return Result::Ok;
 }
 
@@ -189,7 +202,7 @@ static Result check_local_var(Context* ctx, const Var* var, Type* out_type) {
       if (index < num_params) {
         *out_type = get_param_type(func, index);
       } else {
-        *out_type = ctx->current_func->local_types.data[index - num_params];
+        *out_type = ctx->current_func->local_types[index - num_params];
       }
     }
     return Result::Ok;
@@ -260,49 +273,45 @@ static void check_type_index(Context* ctx,
 
 static void check_types(Context* ctx,
                         const Location* loc,
-                        const TypeVector* actual,
-                        const TypeVector* expected,
+                        const TypeVector& actual,
+                        const TypeVector& expected,
                         const char* desc,
                         const char* index_kind) {
-  if (actual->size == expected->size) {
-    size_t i;
-    for (i = 0; i < actual->size; ++i) {
-      check_type_index(ctx, loc, actual->data[i], expected->data[i], desc, i,
-                       index_kind);
+  if (actual.size() == expected.size()) {
+    for (size_t i = 0; i < actual.size(); ++i) {
+      check_type_index(ctx, loc, actual[i], expected[i], desc, i, index_kind);
     }
   } else {
     print_error(ctx, loc, "expected %" PRIzd " %ss, got %" PRIzd,
-                expected->size, index_kind, actual->size);
+                expected.size(), index_kind, actual.size());
   }
 }
 
 static void check_const_types(Context* ctx,
                               const Location* loc,
-                              const TypeVector* actual,
-                              const ConstVector* expected,
+                              const TypeVector& actual,
+                              const ConstVector& expected,
                               const char* desc) {
-  if (actual->size == expected->size) {
-    size_t i;
-    for (i = 0; i < actual->size; ++i) {
-      check_type_index(ctx, loc, actual->data[i], expected->data[i].type, desc,
-                       i, "result");
+  if (actual.size() == expected.size()) {
+    for (size_t i = 0; i < actual.size(); ++i) {
+      check_type_index(ctx, loc, actual[i], expected[i].type, desc, i,
+                       "result");
     }
   } else {
     print_error(ctx, loc, "expected %" PRIzd " results, got %" PRIzd,
-                expected->size, actual->size);
+                expected.size(), actual.size());
   }
 }
 
 static void check_const_type(Context* ctx,
                              const Location* loc,
                              Type actual,
-                             const ConstVector* expected,
+                             const ConstVector& expected,
                              const char* desc) {
   TypeVector actual_types;
-  WABT_ZERO_MEMORY(actual_types);
-  actual_types.size = actual == Type::Void ? 0 : 1;
-  actual_types.data = &actual;
-  check_const_types(ctx, loc, &actual_types, expected, desc);
+  if (actual != Type::Void)
+    actual_types.push_back(actual);
+  check_const_types(ctx, loc, actual_types, expected, desc);
 }
 
 static void check_assert_return_nan_type(Context* ctx,
@@ -323,14 +332,13 @@ static void check_expr_list(Context* ctx,
                             const Location* loc,
                             const Expr* first) {
   if (first) {
-    const Expr* expr;
-    for (expr = first; expr; expr = expr->next)
+    for (const Expr* expr = first; expr; expr = expr->next)
       check_expr(ctx, expr);
   }
 }
 
 static void check_has_memory(Context* ctx, const Location* loc, Opcode opcode) {
-  if (ctx->current_module->memories.size == 0) {
+  if (ctx->current_module->memories.size() == 0) {
     print_error(ctx, loc, "%s requires an imported or defined memory.",
                 get_opcode_name(opcode));
   }
@@ -345,8 +353,8 @@ static void check_expr(Context* ctx, const Expr* expr) {
       break;
 
     case ExprType::Block:
-      typechecker_on_block(&ctx->typechecker, &expr->block.sig);
-      check_expr_list(ctx, &expr->loc, expr->block.first);
+      typechecker_on_block(&ctx->typechecker, &expr->block->sig);
+      check_expr_list(ctx, &expr->loc, expr->block->first);
       typechecker_on_end(&ctx->typechecker);
       break;
 
@@ -360,10 +368,8 @@ static void check_expr(Context* ctx, const Expr* expr) {
 
     case ExprType::BrTable: {
       typechecker_begin_br_table(&ctx->typechecker);
-      size_t i;
-      for (i = 0; i < expr->br_table.targets.size; ++i) {
-        typechecker_on_br_table_target(&ctx->typechecker,
-                                       expr->br_table.targets.data[i].index);
+      for (Var& var: *expr->br_table.targets) {
+        typechecker_on_br_table_target(&ctx->typechecker, var.index);
       }
       typechecker_on_br_table_target(&ctx->typechecker,
                                      expr->br_table.default_target.index);
@@ -382,7 +388,7 @@ static void check_expr(Context* ctx, const Expr* expr) {
 
     case ExprType::CallIndirect: {
       const FuncType* func_type;
-      if (ctx->current_module->tables.size == 0) {
+      if (ctx->current_module->tables.size() == 0) {
         print_error(ctx, &expr->loc,
                     "found call_indirect operator, but no table");
       }
@@ -429,8 +435,8 @@ static void check_expr(Context* ctx, const Expr* expr) {
       break;
 
     case ExprType::If:
-      typechecker_on_if(&ctx->typechecker, &expr->if_.true_.sig);
-      check_expr_list(ctx, &expr->loc, expr->if_.true_.first);
+      typechecker_on_if(&ctx->typechecker, &expr->if_.true_->sig);
+      check_expr_list(ctx, &expr->loc, expr->if_.true_->first);
       if (expr->if_.false_) {
         typechecker_on_else(&ctx->typechecker);
         check_expr_list(ctx, &expr->loc, expr->if_.false_);
@@ -447,8 +453,8 @@ static void check_expr(Context* ctx, const Expr* expr) {
       break;
 
     case ExprType::Loop:
-      typechecker_on_loop(&ctx->typechecker, &expr->loop.sig);
-      check_expr_list(ctx, &expr->loc, expr->loop.first);
+      typechecker_on_loop(&ctx->typechecker, &expr->loop->sig);
+      check_expr_list(ctx, &expr->loc, expr->loop->first);
       typechecker_on_end(&ctx->typechecker);
       break;
 
@@ -506,12 +512,12 @@ static void check_expr(Context* ctx, const Expr* expr) {
 
 static void check_func_signature_matches_func_type(Context* ctx,
                                                    const Location* loc,
-                                                   const FuncSignature* sig,
+                                                   const FuncSignature& sig,
                                                    const FuncType* func_type) {
-  check_types(ctx, loc, &sig->result_types, &func_type->sig.result_types,
+  check_types(ctx, loc, sig.result_types, func_type->sig.result_types,
               "function", "result");
-  check_types(ctx, loc, &sig->param_types, &func_type->sig.param_types,
-              "function", "argument");
+  check_types(ctx, loc, sig.param_types, func_type->sig.param_types, "function",
+              "argument");
 }
 
 static void check_func(Context* ctx, const Location* loc, const Func* func) {
@@ -525,7 +531,7 @@ static void check_func(Context* ctx, const Location* loc, const Func* func) {
     const FuncType* func_type;
     if (WABT_SUCCEEDED(
             check_func_type_var(ctx, &func->decl.type_var, &func_type))) {
-      check_func_signature_matches_func_type(ctx, loc, &func->decl.sig,
+      check_func_signature_matches_func_type(ctx, loc, func->decl.sig,
                                              func_type);
     }
   }
@@ -638,20 +644,17 @@ static void check_table(Context* ctx, const Location* loc, const Table* table) {
 }
 
 static void check_elem_segments(Context* ctx, const Module* module) {
-  ModuleField* field;
-  for (field = module->first_field; field; field = field->next) {
+  for (ModuleField* field = module->first_field; field; field = field->next) {
     if (field->type != ModuleFieldType::ElemSegment)
       continue;
 
-    ElemSegment* elem_segment = &field->elem_segment;
+    ElemSegment* elem_segment = field->elem_segment;
     const Table* table;
     if (!WABT_SUCCEEDED(check_table_var(ctx, &elem_segment->table_var, &table)))
       continue;
 
-    size_t i;
-    for (i = 0; i < elem_segment->vars.size; ++i) {
-      if (!WABT_SUCCEEDED(
-              check_func_var(ctx, &elem_segment->vars.data[i], nullptr)))
+    for (const Var& var: elem_segment->vars) {
+      if (!WABT_SUCCEEDED(check_func_var(ctx, &var, nullptr)))
         continue;
     }
 
@@ -669,12 +672,11 @@ static void check_memory(Context* ctx,
 }
 
 static void check_data_segments(Context* ctx, const Module* module) {
-  ModuleField* field;
-  for (field = module->first_field; field; field = field->next) {
+  for (ModuleField* field = module->first_field; field; field = field->next) {
     if (field->type != ModuleFieldType::DataSegment)
       continue;
 
-    DataSegment* data_segment = &field->data_segment;
+    DataSegment* data_segment = field->data_segment;
     const Memory* memory;
     if (!WABT_SUCCEEDED(
             check_memory_var(ctx, &data_segment->memory_var, &memory)))
@@ -690,19 +692,19 @@ static void check_import(Context* ctx,
                          const Import* import) {
   switch (import->kind) {
     case ExternalKind::Func:
-      if (decl_has_func_type(&import->func.decl))
-        check_func_type_var(ctx, &import->func.decl.type_var, nullptr);
+      if (decl_has_func_type(&import->func->decl))
+        check_func_type_var(ctx, &import->func->decl.type_var, nullptr);
       break;
     case ExternalKind::Table:
-      check_table(ctx, loc, &import->table);
+      check_table(ctx, loc, import->table);
       ctx->current_table_index++;
       break;
     case ExternalKind::Memory:
-      check_memory(ctx, loc, &import->memory);
+      check_memory(ctx, loc, import->memory);
       ctx->current_memory_index++;
       break;
     case ExternalKind::Global:
-      if (import->global.mutable_) {
+      if (import->global->mutable_) {
         print_error(ctx, loc, "mutable globals cannot be imported");
       }
       ctx->num_imported_globals++;
@@ -736,21 +738,20 @@ static void check_export(Context* ctx, const Export* export_) {
   }
 }
 
-static void on_duplicate_binding(BindingHashEntry* a,
-                                 BindingHashEntry* b,
+static void on_duplicate_binding(const BindingHash::value_type& a,
+                                 const BindingHash::value_type& b,
                                  void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
   /* choose the location that is later in the file */
-  Location* a_loc = &a->binding.loc;
-  Location* b_loc = &b->binding.loc;
-  Location* loc = a_loc->line > b_loc->line ? a_loc : b_loc;
-  print_error(ctx, loc, "redefinition of export \"" PRIstringslice "\"",
-              WABT_PRINTF_STRING_SLICE_ARG(a->binding.name));
+  const Location& a_loc = a.second.loc;
+  const Location& b_loc = b.second.loc;
+  const Location& loc = a_loc.line > b_loc.line ? a_loc : b_loc;
+  print_error(ctx, &loc, "redefinition of export \"%s\"", a.first.c_str());
 }
 
 static void check_duplicate_export_bindings(Context* ctx,
                                             const Module* module) {
-  find_duplicate_bindings(&module->export_bindings, on_duplicate_binding, ctx);
+  module->export_bindings.find_duplicates(on_duplicate_binding, ctx);
 }
 
 static void check_module(Context* ctx, const Module* module) {
@@ -762,28 +763,27 @@ static void check_module(Context* ctx, const Module* module) {
   ctx->current_global_index = 0;
   ctx->num_imported_globals = 0;
 
-  ModuleField* field;
-  for (field = module->first_field; field; field = field->next) {
+  for (ModuleField* field = module->first_field; field; field = field->next) {
     switch (field->type) {
       case ModuleFieldType::Func:
-        check_func(ctx, &field->loc, &field->func);
+        check_func(ctx, &field->loc, field->func);
         break;
 
       case ModuleFieldType::Global:
-        check_global(ctx, &field->loc, &field->global);
+        check_global(ctx, &field->loc, field->global);
         ctx->current_global_index++;
         break;
 
       case ModuleFieldType::Import:
-        check_import(ctx, &field->loc, &field->import);
+        check_import(ctx, &field->loc, field->import);
         break;
 
       case ModuleFieldType::Export:
-        check_export(ctx, &field->export_);
+        check_export(ctx, field->export_);
         break;
 
       case ModuleFieldType::Table:
-        check_table(ctx, &field->loc, &field->table);
+        check_table(ctx, &field->loc, field->table);
         ctx->current_table_index++;
         break;
 
@@ -792,7 +792,7 @@ static void check_module(Context* ctx, const Module* module) {
         break;
 
       case ModuleFieldType::Memory:
-        check_memory(ctx, &field->loc, &field->memory);
+        check_memory(ctx, &field->loc, field->memory);
         ctx->current_memory_index++;
         break;
 
@@ -835,18 +835,18 @@ static void check_module(Context* ctx, const Module* module) {
  * returning nullptr means that another error occured first, so the result type
  * should be ignored. */
 static const TypeVector* check_invoke(Context* ctx, const Action* action) {
-  const ActionInvoke* invoke = &action->invoke;
+  const ActionInvoke* invoke = action->invoke;
   const Module* module = get_module_by_var(ctx->script, &action->module_var);
   if (!module) {
     print_error(ctx, &action->loc, "unknown module");
     return nullptr;
   }
 
-  Export* export_ = get_export_by_name(module, &invoke->name);
+  Export* export_ = get_export_by_name(module, &action->name);
   if (!export_) {
     print_error(ctx, &action->loc,
                 "unknown function export \"" PRIstringslice "\"",
-                WABT_PRINTF_STRING_SLICE_ARG(invoke->name));
+                WABT_PRINTF_STRING_SLICE_ARG(action->name));
     return nullptr;
   }
 
@@ -856,7 +856,7 @@ static const TypeVector* check_invoke(Context* ctx, const Action* action) {
     return nullptr;
   }
 
-  size_t actual_args = invoke->args.size;
+  size_t actual_args = invoke->args.size();
   size_t expected_args = get_num_params(func);
   if (expected_args != actual_args) {
     print_error(ctx, &action->loc, "too %s parameters to function. got %" PRIzd
@@ -865,9 +865,8 @@ static const TypeVector* check_invoke(Context* ctx, const Action* action) {
                 expected_args);
     return nullptr;
   }
-  size_t i;
-  for (i = 0; i < actual_args; ++i) {
-    Const* const_ = &invoke->args.data[i];
+  for (size_t i = 0; i < actual_args; ++i) {
+    const Const* const_ = &invoke->args[i];
     check_type_index(ctx, &const_->loc, const_->type, get_param_type(func, i),
                      "invoke", i, "argument");
   }
@@ -876,18 +875,17 @@ static const TypeVector* check_invoke(Context* ctx, const Action* action) {
 }
 
 static Result check_get(Context* ctx, const Action* action, Type* out_type) {
-  const ActionGet* get = &action->get;
   const Module* module = get_module_by_var(ctx->script, &action->module_var);
   if (!module) {
     print_error(ctx, &action->loc, "unknown module");
     return Result::Error;
   }
 
-  Export* export_ = get_export_by_name(module, &get->name);
+  Export* export_ = get_export_by_name(module, &action->name);
   if (!export_) {
     print_error(ctx, &action->loc,
                 "unknown global export \"" PRIstringslice "\"",
-                WABT_PRINTF_STRING_SLICE_ARG(get->name));
+                WABT_PRINTF_STRING_SLICE_ARG(action->name));
     return Result::Error;
   }
 
@@ -923,15 +921,38 @@ static ActionResult check_action(Context* ctx, const Action* action) {
   return result;
 }
 
+static void check_assert_return_nan_command(Context* ctx,
+                                            const Action* action) {
+  ActionResult result = check_action(ctx, action);
+
+  /* a valid result type will either be f32 or f64; convert a TYPES result
+   * into a TYPE result, so it is easier to check below. Type::Any is
+   * used to specify a type that should not be checked (because an earlier
+   * error occurred). */
+  if (result.kind == ActionResultKind::Types) {
+    if (result.types->size() == 1) {
+      result.kind = ActionResultKind::Type;
+      result.type = (*result.types)[0];
+    } else {
+      print_error(ctx, &action->loc, "expected 1 result, got %" PRIzd,
+                  result.types->size());
+      result.type = Type::Any;
+    }
+  }
+
+  if (result.kind == ActionResultKind::Type && result.type != Type::Any)
+    check_assert_return_nan_type(ctx, &action->loc, result.type, "action");
+}
+
 static void check_command(Context* ctx, const Command* command) {
   switch (command->type) {
     case CommandType::Module:
-      check_module(ctx, &command->module);
+      check_module(ctx, command->module);
       break;
 
     case CommandType::Action:
       /* ignore result type */
-      check_action(ctx, &command->action);
+      check_action(ctx, command->action);
       break;
 
     case CommandType::Register:
@@ -944,17 +965,17 @@ static void check_command(Context* ctx, const Command* command) {
       break;
 
     case CommandType::AssertReturn: {
-      const Action* action = &command->assert_return.action;
+      const Action* action = command->assert_return.action;
       ActionResult result = check_action(ctx, action);
       switch (result.kind) {
         case ActionResultKind::Types:
-          check_const_types(ctx, &action->loc, result.types,
-                            &command->assert_return.expected, "action");
+          check_const_types(ctx, &action->loc, *result.types,
+                            *command->assert_return.expected, "action");
           break;
 
         case ActionResultKind::Type:
           check_const_type(ctx, &action->loc, result.type,
-                           &command->assert_return.expected, "action");
+                           *command->assert_return.expected, "action");
           break;
 
         case ActionResultKind::Error:
@@ -964,61 +985,36 @@ static void check_command(Context* ctx, const Command* command) {
       break;
     }
 
-    case CommandType::AssertReturnNan: {
-      const Action* action = &command->assert_return_nan.action;
-      ActionResult result = check_action(ctx, action);
-
-      /* a valid result type will either be f32 or f64; convert a TYPES result
-       * into a TYPE result, so it is easier to check below. Type::Any is
-       * used to specify a type that should not be checked (because an earlier
-       * error occurred). */
-      if (result.kind == ActionResultKind::Types) {
-        if (result.types->size == 1) {
-          result.kind = ActionResultKind::Type;
-          result.type = result.types->data[0];
-        } else {
-          print_error(ctx, &action->loc, "expected 1 result, got %" PRIzd,
-                      result.types->size);
-          result.type = Type::Any;
-        }
-      }
-
-      if (result.kind == ActionResultKind::Type && result.type != Type::Any)
-        check_assert_return_nan_type(ctx, &action->loc, result.type, "action");
+    case CommandType::AssertReturnCanonicalNan:
+      check_assert_return_nan_command(
+          ctx, command->assert_return_canonical_nan.action);
       break;
-    }
+
+    case CommandType::AssertReturnArithmeticNan:
+      check_assert_return_nan_command(
+          ctx, command->assert_return_arithmetic_nan.action);
+      break;
 
     case CommandType::AssertTrap:
     case CommandType::AssertExhaustion:
       /* ignore result type */
-      check_action(ctx, &command->assert_trap.action);
+      check_action(ctx, command->assert_trap.action);
       break;
   }
-}
-
-static void destroy_context(Context* ctx) {
-  destroy_typechecker(&ctx->typechecker);
 }
 
 Result validate_script(AstLexer* lexer,
                        const struct Script* script,
                        SourceErrorHandler* error_handler) {
-  Context ctx;
-  WABT_ZERO_MEMORY(ctx);
-  ctx.lexer = lexer;
-  ctx.error_handler = error_handler;
-  ctx.result = Result::Ok;
-  ctx.script = script;
+  Context ctx(error_handler, lexer, script);
 
   TypeCheckerErrorHandler tc_error_handler;
   tc_error_handler.on_error = on_typechecker_error;
   tc_error_handler.user_data = &ctx;
   ctx.typechecker.error_handler = &tc_error_handler;
 
-  size_t i;
-  for (i = 0; i < script->commands.size; ++i)
-    check_command(&ctx, &script->commands.data[i]);
-  destroy_context(&ctx);
+  for (const std::unique_ptr<Command>& command : script->commands)
+    check_command(&ctx, command.get());
   return ctx.result;
 }
 

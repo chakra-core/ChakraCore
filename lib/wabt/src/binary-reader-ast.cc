@@ -22,6 +22,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <vector>
+
 #include "ast.h"
 #include "binary-reader.h"
 #include "common.h"
@@ -34,24 +36,32 @@
 
 namespace wabt {
 
+namespace {
+
 struct LabelNode {
+  LabelNode(LabelType, Expr** first);
+
   LabelType label_type;
   Expr** first;
   Expr* last;
 };
-WABT_DEFINE_VECTOR(label_node, LabelNode);
+
+LabelNode::LabelNode(LabelType label_type, Expr** first)
+    : label_type(label_type), first(first), last(nullptr) {}
 
 struct Context {
-  BinaryErrorHandler* error_handler;
-  Module* module;
+  BinaryErrorHandler* error_handler = nullptr;
+  Module* module = nullptr;
 
-  Func* current_func;
-  LabelNodeVector label_stack;
-  uint32_t max_depth;
-  Expr** current_init_expr;
+  Func* current_func = nullptr;
+  std::vector<LabelNode> label_stack;
+  uint32_t max_depth = 0;
+  Expr** current_init_expr = nullptr;
 };
 
-static void handle_error(Context* ctx, uint32_t offset, const char* message);
+}  // namespace
+
+static bool handle_error(Context* ctx, uint32_t offset, const char* message);
 
 static void WABT_PRINTF_FORMAT(2, 3)
     print_error(Context* ctx, const char* format, ...) {
@@ -60,46 +70,34 @@ static void WABT_PRINTF_FORMAT(2, 3)
 }
 
 static void push_label(Context* ctx, LabelType label_type, Expr** first) {
-  LabelNode label;
-  label.label_type = label_type;
-  label.first = first;
-  label.last = nullptr;
   ctx->max_depth++;
-  append_label_node_value(&ctx->label_stack, &label);
+  ctx->label_stack.emplace_back(label_type, first);
 }
 
 static Result pop_label(Context* ctx) {
-  if (ctx->label_stack.size == 0) {
+  if (ctx->label_stack.size() == 0) {
     print_error(ctx, "popping empty label stack");
     return Result::Error;
   }
 
   ctx->max_depth--;
-  ctx->label_stack.size--;
+  ctx->label_stack.pop_back();
   return Result::Ok;
 }
 
 static Result get_label_at(Context* ctx, LabelNode** label, uint32_t depth) {
-  if (depth >= ctx->label_stack.size) {
+  if (depth >= ctx->label_stack.size()) {
     print_error(ctx, "accessing stack depth: %u >= max: %" PRIzd, depth,
-                ctx->label_stack.size);
+                ctx->label_stack.size());
     return Result::Error;
   }
 
-  *label = &ctx->label_stack.data[ctx->label_stack.size - depth - 1];
+  *label = &ctx->label_stack[ctx->label_stack.size() - depth - 1];
   return Result::Ok;
 }
 
 static Result top_label(Context* ctx, LabelNode** label) {
   return get_label_at(ctx, label, 0);
-}
-
-static void dup_name(Context* ctx, StringSlice* name, StringSlice* out_name) {
-  if (name->length > 0) {
-    *out_name = dup_string_slice(*name);
-  } else {
-    WABT_ZERO_MEMORY(*out_name);
-  }
 }
 
 static Result append_expr(Context* ctx, Expr* expr) {
@@ -117,21 +115,22 @@ static Result append_expr(Context* ctx, Expr* expr) {
   return Result::Ok;
 }
 
-static void handle_error(Context* ctx, uint32_t offset, const char* message) {
+static bool handle_error(Context* ctx, uint32_t offset, const char* message) {
   if (ctx->error_handler->on_error) {
-    ctx->error_handler->on_error(offset, message,
-                                 ctx->error_handler->user_data);
+    return ctx->error_handler->on_error(offset, message,
+                                        ctx->error_handler->user_data);
   }
+  return false;
 }
 
-static void on_error(BinaryReaderContext* reader_context, const char* message) {
+static bool on_error(BinaryReaderContext* reader_context, const char* message) {
   Context* ctx = static_cast<Context*>(reader_context->user_data);
-  handle_error(ctx, reader_context->offset, message);
+  return handle_error(ctx, reader_context->offset, message);
 }
 
 static Result on_signature_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  reserve_func_type_ptrs(&ctx->module->func_types, count);
+  ctx->module->func_types.reserve(count);
   return Result::Ok;
 }
 
@@ -144,29 +143,18 @@ static Result on_signature(uint32_t index,
   Context* ctx = static_cast<Context*>(user_data);
   ModuleField* field = append_module_field(ctx->module);
   field->type = ModuleFieldType::FuncType;
+  field->func_type = new FuncType();
 
-  FuncType* func_type = &field->func_type;
-  WABT_ZERO_MEMORY(*func_type);
-
-  reserve_types(&func_type->sig.param_types, param_count);
-  func_type->sig.param_types.size = param_count;
-  memcpy(func_type->sig.param_types.data, param_types,
-         param_count * sizeof(Type));
-
-  reserve_types(&func_type->sig.result_types, result_count);
-  func_type->sig.result_types.size = result_count;
-  memcpy(func_type->sig.result_types.data, result_types,
-         result_count * sizeof(Type));
-
-  assert(index < ctx->module->func_types.capacity);
-  FuncTypePtr* func_type_ptr = append_func_type_ptr(&ctx->module->func_types);
-  *func_type_ptr = func_type;
+  FuncType* func_type = field->func_type;
+  func_type->sig.param_types.assign(param_types, param_types + param_count);
+  func_type->sig.result_types.assign(result_types, result_types + result_count);
+  ctx->module->func_types.push_back(func_type);
   return Result::Ok;
 }
 
 static Result on_import_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  reserve_import_ptrs(&ctx->module->imports, count);
+  ctx->module->imports.reserve(count);
   return Result::Ok;
 }
 
@@ -175,97 +163,97 @@ static Result on_import(uint32_t index,
                         StringSlice field_name,
                         void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(index < ctx->module->imports.capacity);
 
   ModuleField* field = append_module_field(ctx->module);
   field->type = ModuleFieldType::Import;
+  field->import = new Import();
 
-  Import* import = &field->import;
-  WABT_ZERO_MEMORY(*import);
+  Import* import = field->import;
   import->module_name = dup_string_slice(module_name);
   import->field_name = dup_string_slice(field_name);
-
-  ImportPtr* import_ptr = append_import_ptr(&ctx->module->imports);
-  *import_ptr = import;
+  ctx->module->imports.push_back(import);
   return Result::Ok;
 }
 
 static Result on_import_func(uint32_t import_index,
+                             StringSlice module_name,
+                             StringSlice field_name,
                              uint32_t func_index,
                              uint32_t sig_index,
                              void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(import_index == ctx->module->imports.size - 1);
-  assert(sig_index < ctx->module->func_types.size);
-  Import* import = ctx->module->imports.data[import_index];
+  assert(import_index == ctx->module->imports.size() - 1);
+  Import* import = ctx->module->imports[import_index];
 
   import->kind = ExternalKind::Func;
-  import->func.decl.flags = WABT_FUNC_DECLARATION_FLAG_HAS_FUNC_TYPE |
-                            WABT_FUNC_DECLARATION_FLAG_SHARED_SIGNATURE;
-  import->func.decl.type_var.type = VarType::Index;
-  import->func.decl.type_var.index = sig_index;
-  import->func.decl.sig = ctx->module->func_types.data[sig_index]->sig;
+  import->func = new Func();
+  import->func->decl.has_func_type = true;
+  import->func->decl.type_var.type = VarType::Index;
+  import->func->decl.type_var.index = sig_index;
+  import->func->decl.sig = ctx->module->func_types[sig_index]->sig;
 
-  FuncPtr func_ptr = &import->func;
-  append_func_ptr_value(&ctx->module->funcs, &func_ptr);
+  ctx->module->funcs.push_back(import->func);
   ctx->module->num_func_imports++;
   return Result::Ok;
 }
 
 static Result on_import_table(uint32_t import_index,
+                              StringSlice module_name,
+                              StringSlice field_name,
                               uint32_t table_index,
                               Type elem_type,
                               const Limits* elem_limits,
                               void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(import_index == ctx->module->imports.size - 1);
-  Import* import = ctx->module->imports.data[import_index];
+  assert(import_index == ctx->module->imports.size() - 1);
+  Import* import = ctx->module->imports[import_index];
   import->kind = ExternalKind::Table;
-  import->table.elem_limits = *elem_limits;
-
-  TablePtr table_ptr = &import->table;
-  append_table_ptr_value(&ctx->module->tables, &table_ptr);
+  import->table = new Table();
+  import->table->elem_limits = *elem_limits;
+  ctx->module->tables.push_back(import->table);
   ctx->module->num_table_imports++;
   return Result::Ok;
 }
 
 static Result on_import_memory(uint32_t import_index,
+                               StringSlice module_name,
+                               StringSlice field_name,
                                uint32_t memory_index,
                                const Limits* page_limits,
                                void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(import_index == ctx->module->imports.size - 1);
-  Import* import = ctx->module->imports.data[import_index];
+  assert(import_index == ctx->module->imports.size() - 1);
+  Import* import = ctx->module->imports[import_index];
   import->kind = ExternalKind::Memory;
-  import->memory.page_limits = *page_limits;
-
-  MemoryPtr memory_ptr = &import->memory;
-  append_memory_ptr_value(&ctx->module->memories, &memory_ptr);
+  import->memory = new Memory();
+  import->memory->page_limits = *page_limits;
+  ctx->module->memories.push_back(import->memory);
   ctx->module->num_memory_imports++;
   return Result::Ok;
 }
 
 static Result on_import_global(uint32_t import_index,
+                               StringSlice module_name,
+                               StringSlice field_name,
                                uint32_t global_index,
                                Type type,
                                bool mutable_,
                                void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(import_index == ctx->module->imports.size - 1);
-  Import* import = ctx->module->imports.data[import_index];
+  assert(import_index == ctx->module->imports.size() - 1);
+  Import* import = ctx->module->imports[import_index];
   import->kind = ExternalKind::Global;
-  import->global.type = type;
-  import->global.mutable_ = mutable_;
-
-  GlobalPtr global_ptr = &import->global;
-  append_global_ptr_value(&ctx->module->globals, &global_ptr);
+  import->global = new Global();
+  import->global->type = type;
+  import->global->mutable_ = mutable_;
+  ctx->module->globals.push_back(import->global);
   ctx->module->num_global_imports++;
   return Result::Ok;
 }
 
 static Result on_function_signatures_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  reserve_func_ptrs(&ctx->module->funcs, ctx->module->num_func_imports + count);
+  ctx->module->funcs.reserve(ctx->module->num_func_imports + count);
   return Result::Ok;
 }
 
@@ -273,29 +261,24 @@ static Result on_function_signature(uint32_t index,
                                     uint32_t sig_index,
                                     void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(index < ctx->module->funcs.capacity);
-  assert(sig_index < ctx->module->func_types.size);
 
   ModuleField* field = append_module_field(ctx->module);
   field->type = ModuleFieldType::Func;
+  field->func = new Func();
 
-  Func* func = &field->func;
-  WABT_ZERO_MEMORY(*func);
-  func->decl.flags = WABT_FUNC_DECLARATION_FLAG_HAS_FUNC_TYPE |
-                     WABT_FUNC_DECLARATION_FLAG_SHARED_SIGNATURE;
+  Func* func = field->func;
+  func->decl.has_func_type = true;
   func->decl.type_var.type = VarType::Index;
   func->decl.type_var.index = sig_index;
-  func->decl.sig = ctx->module->func_types.data[sig_index]->sig;
+  func->decl.sig = ctx->module->func_types[sig_index]->sig;
 
-  FuncPtr* func_ptr = append_func_ptr(&ctx->module->funcs);
-  *func_ptr = func;
+  ctx->module->funcs.push_back(func);
   return Result::Ok;
 }
 
 static Result on_table_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  reserve_table_ptrs(&ctx->module->tables,
-                     ctx->module->num_table_imports + count);
+  ctx->module->tables.reserve(ctx->module->num_table_imports + count);
   return Result::Ok;
 }
 
@@ -304,24 +287,18 @@ static Result on_table(uint32_t index,
                        const Limits* elem_limits,
                        void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(index < ctx->module->tables.capacity);
 
   ModuleField* field = append_module_field(ctx->module);
   field->type = ModuleFieldType::Table;
-
-  Table* table = &field->table;
-  WABT_ZERO_MEMORY(*table);
-  table->elem_limits = *elem_limits;
-
-  TablePtr* table_ptr = append_table_ptr(&ctx->module->tables);
-  *table_ptr = table;
+  field->table = new Table();
+  field->table->elem_limits = *elem_limits;
+  ctx->module->tables.push_back(field->table);
   return Result::Ok;
 }
 
 static Result on_memory_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  reserve_memory_ptrs(&ctx->module->memories,
-                      ctx->module->num_memory_imports + count);
+  ctx->module->memories.reserve(ctx->module->num_memory_imports + count);
   return Result::Ok;
 }
 
@@ -329,24 +306,18 @@ static Result on_memory(uint32_t index,
                         const Limits* page_limits,
                         void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(index < ctx->module->memories.capacity);
 
   ModuleField* field = append_module_field(ctx->module);
   field->type = ModuleFieldType::Memory;
-
-  Memory* memory = &field->memory;
-  WABT_ZERO_MEMORY(*memory);
-  memory->page_limits = *page_limits;
-
-  MemoryPtr* memory_ptr = append_memory_ptr(&ctx->module->memories);
-  *memory_ptr = memory;
+  field->memory = new Memory();
+  field->memory->page_limits = *page_limits;
+  ctx->module->memories.push_back(field->memory);
   return Result::Ok;
 }
 
 static Result on_global_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  reserve_global_ptrs(&ctx->module->globals,
-                      ctx->module->num_global_imports + count);
+  ctx->module->globals.reserve(ctx->module->num_global_imports + count);
   return Result::Ok;
 }
 
@@ -355,25 +326,20 @@ static Result begin_global(uint32_t index,
                            bool mutable_,
                            void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(index < ctx->module->globals.capacity);
 
   ModuleField* field = append_module_field(ctx->module);
   field->type = ModuleFieldType::Global;
-
-  Global* global = &field->global;
-  WABT_ZERO_MEMORY(*global);
-  global->type = type;
-  global->mutable_ = mutable_;
-
-  GlobalPtr* global_ptr = append_global_ptr(&ctx->module->globals);
-  *global_ptr = global;
+  field->global = new Global();
+  field->global->type = type;
+  field->global->mutable_ = mutable_;
+  ctx->module->globals.push_back(field->global);
   return Result::Ok;
 }
 
 static Result begin_global_init_expr(uint32_t index, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(index == ctx->module->globals.size - 1);
-  Global* global = ctx->module->globals.data[index];
+  assert(index == ctx->module->globals.size() - 1);
+  Global* global = ctx->module->globals[index];
   ctx->current_init_expr = &global->init_expr;
   return Result::Ok;
 }
@@ -386,7 +352,7 @@ static Result end_global_init_expr(uint32_t index, void* user_data) {
 
 static Result on_export_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  reserve_export_ptrs(&ctx->module->exports, count);
+  ctx->module->exports.reserve(count);
   return Result::Ok;
 }
 
@@ -398,31 +364,28 @@ static Result on_export(uint32_t index,
   Context* ctx = static_cast<Context*>(user_data);
   ModuleField* field = append_module_field(ctx->module);
   field->type = ModuleFieldType::Export;
+  field->export_ = new Export();
 
-  Export* export_ = &field->export_;
-  WABT_ZERO_MEMORY(*export_);
+  Export* export_ = field->export_;
   export_->name = dup_string_slice(name);
   switch (kind) {
     case ExternalKind::Func:
-      assert(item_index < ctx->module->funcs.size);
+      assert(item_index < ctx->module->funcs.size());
       break;
     case ExternalKind::Table:
-      assert(item_index < ctx->module->tables.size);
+      assert(item_index < ctx->module->tables.size());
       break;
     case ExternalKind::Memory:
-      assert(item_index < ctx->module->memories.size);
+      assert(item_index < ctx->module->memories.size());
       break;
     case ExternalKind::Global:
-      assert(item_index < ctx->module->globals.size);
+      assert(item_index < ctx->module->globals.size());
       break;
   }
   export_->var.type = VarType::Index;
   export_->var.index = item_index;
   export_->kind = kind;
-
-  assert(index < ctx->module->exports.capacity);
-  ExportPtr* export_ptr = append_export_ptr(&ctx->module->exports);
-  *export_ptr = export_;
+  ctx->module->exports.push_back(export_);
   return Result::Ok;
 }
 
@@ -432,7 +395,7 @@ static Result on_start_function(uint32_t func_index, void* user_data) {
   field->type = ModuleFieldType::Start;
 
   field->start.type = VarType::Index;
-  assert(func_index < ctx->module->funcs.size);
+  assert(func_index < ctx->module->funcs.size());
   field->start.index = func_index;
 
   ctx->module->start = &field->start;
@@ -441,7 +404,7 @@ static Result on_start_function(uint32_t func_index, void* user_data) {
 
 static Result on_function_bodies_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(ctx->module->num_func_imports + count == ctx->module->funcs.size);
+  assert(ctx->module->num_func_imports + count == ctx->module->funcs.size());
   WABT_USE(ctx);
   return Result::Ok;
 }
@@ -449,8 +412,7 @@ static Result on_function_bodies_count(uint32_t count, void* user_data) {
 static Result begin_function_body(BinaryReaderContext* context,
                                   uint32_t index) {
   Context* ctx = static_cast<Context*>(context->user_data);
-  assert(index < ctx->module->funcs.size);
-  ctx->current_func = ctx->module->funcs.data[index];
+  ctx->current_func = ctx->module->funcs[index];
   push_label(ctx, LabelType::Func, &ctx->current_func->first_expr);
   return Result::Ok;
 }
@@ -460,21 +422,16 @@ static Result on_local_decl(uint32_t decl_index,
                             Type type,
                             void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  size_t old_local_count = ctx->current_func->local_types.size;
-  size_t new_local_count = old_local_count + count;
-  reserve_types(&ctx->current_func->local_types, new_local_count);
-  TypeVector* types = &ctx->current_func->local_types;
-  size_t i;
-  for (i = 0; i < count; ++i)
-    types->data[old_local_count + i] = type;
-  types->size = new_local_count;
+  TypeVector& types = ctx->current_func->local_types;
+  types.reserve(types.size() + count);
+  for (size_t i = 0; i < count; ++i)
+    types.push_back(type);
   return Result::Ok;
 }
 
 static Result on_binary_expr(Opcode opcode, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_binary_expr();
-  expr->binary.opcode = opcode;
+  Expr* expr = Expr::CreateBinary(opcode);
   return append_expr(ctx, expr);
 }
 
@@ -482,30 +439,22 @@ static Result on_block_expr(uint32_t num_types,
                             Type* sig_types,
                             void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_block_expr();
-  TypeVector src;
-  WABT_ZERO_MEMORY(src);
-  src.size = num_types;
-  src.data = sig_types;
-  extend_types(&expr->block.sig, &src);
+  Expr* expr = Expr::CreateBlock(new Block());
+  expr->block->sig.assign(sig_types, sig_types + num_types);
   append_expr(ctx, expr);
-  push_label(ctx, LabelType::Block, &expr->block.first);
+  push_label(ctx, LabelType::Block, &expr->block->first);
   return Result::Ok;
 }
 
 static Result on_br_expr(uint32_t depth, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_br_expr();
-  expr->br.var.type = VarType::Index;
-  expr->br.var.index = depth;
+  Expr* expr = Expr::CreateBr(Var(depth));
   return append_expr(ctx, expr);
 }
 
 static Result on_br_if_expr(uint32_t depth, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_br_if_expr();
-  expr->br_if.var.type = VarType::Index;
-  expr->br_if.var.index = depth;
+  Expr* expr = Expr::CreateBrIf(Var(depth));
   return append_expr(ctx, expr);
 }
 
@@ -514,61 +463,50 @@ static Result on_br_table_expr(BinaryReaderContext* context,
                                uint32_t* target_depths,
                                uint32_t default_target_depth) {
   Context* ctx = static_cast<Context*>(context->user_data);
-  Expr* expr = new_br_table_expr();
-  reserve_vars(&expr->br_table.targets, num_targets);
-  expr->br_table.targets.size = num_targets;
-  uint32_t i;
-  for (i = 0; i < num_targets; ++i) {
-    Var* var = &expr->br_table.targets.data[i];
-    var->type = VarType::Index;
-    var->index = target_depths[i];
+  VarVector* targets = new VarVector();
+  targets->resize(num_targets);
+  for (uint32_t i = 0; i < num_targets; ++i) {
+    (*targets)[i] = Var(target_depths[i]);
   }
-  expr->br_table.default_target.type = VarType::Index;
-  expr->br_table.default_target.index = default_target_depth;
+  Expr* expr = Expr::CreateBrTable(targets, Var(default_target_depth));
   return append_expr(ctx, expr);
 }
 
 static Result on_call_expr(uint32_t func_index, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(func_index < ctx->module->funcs.size);
-  Expr* expr = new_call_expr();
-  expr->call.var.type = VarType::Index;
-  expr->call.var.index = func_index;
+  assert(func_index < ctx->module->funcs.size());
+  Expr* expr = Expr::CreateCall(Var(func_index));
   return append_expr(ctx, expr);
 }
 
 static Result on_call_indirect_expr(uint32_t sig_index, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(sig_index < ctx->module->func_types.size);
-  Expr* expr = new_call_indirect_expr();
-  expr->call_indirect.var.type = VarType::Index;
-  expr->call_indirect.var.index = sig_index;
+  assert(sig_index < ctx->module->func_types.size());
+  Expr* expr = Expr::CreateCallIndirect(Var(sig_index));
   return append_expr(ctx, expr);
 }
 
 static Result on_compare_expr(Opcode opcode, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_compare_expr();
-  expr->compare.opcode = opcode;
+  Expr* expr = Expr::CreateCompare(opcode);
   return append_expr(ctx, expr);
 }
 
 static Result on_convert_expr(Opcode opcode, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_convert_expr();
-  expr->convert.opcode = opcode;
+  Expr* expr = Expr::CreateConvert(opcode);
   return append_expr(ctx, expr);
 }
 
 static Result on_current_memory_expr(void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_current_memory_expr();
+  Expr* expr = Expr::CreateCurrentMemory();
   return append_expr(ctx, expr);
 }
 
 static Result on_drop_expr(void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_drop_expr();
+  Expr* expr = Expr::CreateDrop();
   return append_expr(ctx, expr);
 }
 
@@ -598,68 +536,53 @@ static Result on_end_expr(void* user_data) {
 
 static Result on_f32_const_expr(uint32_t value_bits, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_const_expr();
-  expr->const_.type = Type::F32;
-  expr->const_.f32_bits = value_bits;
+  Expr* expr = Expr::CreateConst(Const(Const::F32(), value_bits));
   return append_expr(ctx, expr);
 }
 
 static Result on_f64_const_expr(uint64_t value_bits, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_const_expr();
-  expr->const_.type = Type::F64;
-  expr->const_.f64_bits = value_bits;
+  Expr* expr = Expr::CreateConst(Const(Const::F64(), value_bits));
   return append_expr(ctx, expr);
 }
 
 static Result on_get_global_expr(uint32_t global_index, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_get_global_expr();
-  expr->get_global.var.type = VarType::Index;
-  expr->get_global.var.index = global_index;
+  Expr* expr = Expr::CreateGetGlobal(Var(global_index));
   return append_expr(ctx, expr);
 }
 
 static Result on_get_local_expr(uint32_t local_index, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_get_local_expr();
-  expr->get_local.var.type = VarType::Index;
-  expr->get_local.var.index = local_index;
+  Expr* expr = Expr::CreateGetLocal(Var(local_index));
   return append_expr(ctx, expr);
 }
 
 static Result on_grow_memory_expr(void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_grow_memory_expr();
+  Expr* expr = Expr::CreateGrowMemory();
   return append_expr(ctx, expr);
 }
 
 static Result on_i32_const_expr(uint32_t value, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_const_expr();
-  expr->const_.type = Type::I32;
-  expr->const_.u32 = value;
+  Expr* expr = Expr::CreateConst(Const(Const::I32(), value));
   return append_expr(ctx, expr);
 }
 
 static Result on_i64_const_expr(uint64_t value, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_const_expr();
-  expr->const_.type = Type::I64;
-  expr->const_.u64 = value;
+  Expr* expr = Expr::CreateConst(Const(Const::I64(), value));
   return append_expr(ctx, expr);
 }
 
 static Result on_if_expr(uint32_t num_types, Type* sig_types, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_if_expr();
-  TypeVector src;
-  WABT_ZERO_MEMORY(src);
-  src.size = num_types;
-  src.data = sig_types;
-  extend_types(&expr->if_.true_.sig, &src);
+  Expr* expr = Expr::CreateIf(new Block());
+  expr->if_.true_->sig.assign(sig_types, sig_types + num_types);
+  expr->if_.false_ = nullptr;
   append_expr(ctx, expr);
-  push_label(ctx, LabelType::If, &expr->if_.true_.first);
+  push_label(ctx, LabelType::If, &expr->if_.true_->first);
   return Result::Ok;
 }
 
@@ -668,10 +591,7 @@ static Result on_load_expr(Opcode opcode,
                            uint32_t offset,
                            void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_load_expr();
-  expr->load.opcode = opcode;
-  expr->load.align = 1 << alignment_log2;
-  expr->load.offset = offset;
+  Expr* expr = Expr::CreateLoad(opcode, 1 << alignment_log2, offset);
   return append_expr(ctx, expr);
 }
 
@@ -679,48 +599,40 @@ static Result on_loop_expr(uint32_t num_types,
                            Type* sig_types,
                            void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_loop_expr();
-  TypeVector src;
-  WABT_ZERO_MEMORY(src);
-  src.size = num_types;
-  src.data = sig_types;
-  extend_types(&expr->loop.sig, &src);
+  Expr* expr = Expr::CreateLoop(new Block());
+  expr->loop->sig.assign(sig_types, sig_types + num_types);
   append_expr(ctx, expr);
-  push_label(ctx, LabelType::Loop, &expr->loop.first);
+  push_label(ctx, LabelType::Loop, &expr->loop->first);
   return Result::Ok;
 }
 
 static Result on_nop_expr(void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_nop_expr();
+  Expr* expr = Expr::CreateNop();
   return append_expr(ctx, expr);
 }
 
 static Result on_return_expr(void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_return_expr();
+  Expr* expr = Expr::CreateReturn();
   return append_expr(ctx, expr);
 }
 
 static Result on_select_expr(void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_select_expr();
+  Expr* expr = Expr::CreateSelect();
   return append_expr(ctx, expr);
 }
 
 static Result on_set_global_expr(uint32_t global_index, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_set_global_expr();
-  expr->set_global.var.type = VarType::Index;
-  expr->set_global.var.index = global_index;
+  Expr* expr = Expr::CreateSetGlobal(Var(global_index));
   return append_expr(ctx, expr);
 }
 
 static Result on_set_local_expr(uint32_t local_index, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_set_local_expr();
-  expr->set_local.var.type = VarType::Index;
-  expr->set_local.var.index = local_index;
+  Expr* expr = Expr::CreateSetLocal(Var(local_index));
   return append_expr(ctx, expr);
 }
 
@@ -729,31 +641,25 @@ static Result on_store_expr(Opcode opcode,
                             uint32_t offset,
                             void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_store_expr();
-  expr->store.opcode = opcode;
-  expr->store.align = 1 << alignment_log2;
-  expr->store.offset = offset;
+  Expr* expr = Expr::CreateStore(opcode, 1 << alignment_log2, offset);
   return append_expr(ctx, expr);
 }
 
 static Result on_tee_local_expr(uint32_t local_index, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_tee_local_expr();
-  expr->tee_local.var.type = VarType::Index;
-  expr->tee_local.var.index = local_index;
+  Expr* expr = Expr::CreateTeeLocal(Var(local_index));
   return append_expr(ctx, expr);
 }
 
 static Result on_unary_expr(Opcode opcode, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_unary_expr();
-  expr->unary.opcode = opcode;
+  Expr* expr = Expr::CreateUnary(opcode);
   return append_expr(ctx, expr);
 }
 
 static Result on_unreachable_expr(void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_unreachable_expr();
+  Expr* expr = Expr::CreateUnreachable();
   return append_expr(ctx, expr);
 }
 
@@ -766,7 +672,7 @@ static Result end_function_body(uint32_t index, void* user_data) {
 
 static Result on_elem_segment_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  reserve_elem_segment_ptrs(&ctx->module->elem_segments, count);
+  ctx->module->elem_segments.reserve(count);
   return Result::Ok;
 }
 
@@ -776,24 +682,17 @@ static Result begin_elem_segment(uint32_t index,
   Context* ctx = static_cast<Context*>(user_data);
   ModuleField* field = append_module_field(ctx->module);
   field->type = ModuleFieldType::ElemSegment;
-
-  ElemSegment* segment = &field->elem_segment;
-  WABT_ZERO_MEMORY(*segment);
-  segment->table_var.type = VarType::Index;
-  segment->table_var.index = table_index;
-
-  assert(index == ctx->module->elem_segments.size);
-  assert(index < ctx->module->elem_segments.capacity);
-  ElemSegmentPtr* segment_ptr =
-      append_elem_segment_ptr(&ctx->module->elem_segments);
-  *segment_ptr = segment;
+  field->elem_segment = new ElemSegment();
+  field->elem_segment->table_var.type = VarType::Index;
+  field->elem_segment->table_var.index = table_index;
+  ctx->module->elem_segments.push_back(field->elem_segment);
   return Result::Ok;
 }
 
 static Result begin_elem_segment_init_expr(uint32_t index, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(index == ctx->module->elem_segments.size - 1);
-  ElemSegment* segment = ctx->module->elem_segments.data[index];
+  assert(index == ctx->module->elem_segments.size() - 1);
+  ElemSegment* segment = ctx->module->elem_segments[index];
   ctx->current_init_expr = &segment->offset;
   return Result::Ok;
 }
@@ -808,9 +707,9 @@ static Result on_elem_segment_function_index_count(BinaryReaderContext* context,
                                                    uint32_t index,
                                                    uint32_t count) {
   Context* ctx = static_cast<Context*>(context->user_data);
-  assert(index == ctx->module->elem_segments.size - 1);
-  ElemSegment* segment = ctx->module->elem_segments.data[index];
-  reserve_vars(&segment->vars, count);
+  assert(index == ctx->module->elem_segments.size() - 1);
+  ElemSegment* segment = ctx->module->elem_segments[index];
+  segment->vars.reserve(count);
   return Result::Ok;
 }
 
@@ -818,9 +717,10 @@ static Result on_elem_segment_function_index(uint32_t index,
                                              uint32_t func_index,
                                              void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(index == ctx->module->elem_segments.size - 1);
-  ElemSegment* segment = ctx->module->elem_segments.data[index];
-  Var* var = append_var(&segment->vars);
+  assert(index == ctx->module->elem_segments.size() - 1);
+  ElemSegment* segment = ctx->module->elem_segments[index];
+  segment->vars.emplace_back();
+  Var* var = &segment->vars.back();
   var->type = VarType::Index;
   var->index = func_index;
   return Result::Ok;
@@ -828,7 +728,7 @@ static Result on_elem_segment_function_index(uint32_t index,
 
 static Result on_data_segment_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  reserve_data_segment_ptrs(&ctx->module->data_segments, count);
+  ctx->module->data_segments.reserve(count);
   return Result::Ok;
 }
 
@@ -838,24 +738,17 @@ static Result begin_data_segment(uint32_t index,
   Context* ctx = static_cast<Context*>(user_data);
   ModuleField* field = append_module_field(ctx->module);
   field->type = ModuleFieldType::DataSegment;
-
-  DataSegment* segment = &field->data_segment;
-  WABT_ZERO_MEMORY(*segment);
-  segment->memory_var.type = VarType::Index;
-  segment->memory_var.index = memory_index;
-
-  assert(index == ctx->module->data_segments.size);
-  assert(index < ctx->module->data_segments.capacity);
-  DataSegmentPtr* segment_ptr =
-      append_data_segment_ptr(&ctx->module->data_segments);
-  *segment_ptr = segment;
+  field->data_segment = new DataSegment();
+  field->data_segment->memory_var.type = VarType::Index;
+  field->data_segment->memory_var.index = memory_index;
+  ctx->module->data_segments.push_back(field->data_segment);
   return Result::Ok;
 }
 
 static Result begin_data_segment_init_expr(uint32_t index, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(index == ctx->module->data_segments.size - 1);
-  DataSegment* segment = ctx->module->data_segments.data[index];
+  assert(index == ctx->module->data_segments.size() - 1);
+  DataSegment* segment = ctx->module->data_segments[index];
   ctx->current_init_expr = &segment->offset;
   return Result::Ok;
 }
@@ -871,8 +764,8 @@ static Result on_data_segment_data(uint32_t index,
                                    uint32_t size,
                                    void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  assert(index == ctx->module->data_segments.size - 1);
-  DataSegment* segment = ctx->module->data_segments.data[index];
+  assert(index == ctx->module->data_segments.size() - 1);
+  DataSegment* segment = ctx->module->data_segments[index];
   segment->data = new char[size];
   segment->size = size;
   memcpy(segment->data, data, size);
@@ -881,10 +774,10 @@ static Result on_data_segment_data(uint32_t index,
 
 static Result on_function_names_count(uint32_t count, void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  if (count > ctx->module->funcs.size) {
+  if (count > ctx->module->funcs.size()) {
     print_error(
         ctx, "expected function name count (%u) <= function count (%" PRIzd ")",
-        count, ctx->module->funcs.size);
+        count, ctx->module->funcs.size());
     return Result::Error;
   }
   return Result::Ok;
@@ -893,16 +786,14 @@ static Result on_function_names_count(uint32_t count, void* user_data) {
 static Result on_function_name(uint32_t index,
                                StringSlice name,
                                void* user_data) {
+  if (string_slice_is_empty(&name))
+    return Result::Ok;
+
   Context* ctx = static_cast<Context*>(user_data);
-
-  StringSlice new_name;
-  dup_name(ctx, &name, &new_name);
-
-  Binding* binding = insert_binding(&ctx->module->func_bindings, &new_name);
-  binding->index = index;
-
-  Func* func = ctx->module->funcs.data[index];
-  func->name = new_name;
+  ctx->module->func_bindings.emplace(string_slice_to_string(name),
+                                     Binding(index));
+  Func* func = ctx->module->funcs[index];
+  func->name = dup_string_slice(name);
   return Result::Ok;
 }
 
@@ -911,8 +802,8 @@ static Result on_local_name_local_count(uint32_t index,
                                         void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
   Module* module = ctx->module;
-  assert(index < module->funcs.size);
-  Func* func = module->funcs.data[index];
+  assert(index < module->funcs.size());
+  Func* func = module->funcs[index];
   uint32_t num_params_and_locals = get_num_params_and_locals(func);
   if (count > num_params_and_locals) {
     print_error(ctx, "expected local name count (%d) <= local count (%d)",
@@ -926,10 +817,7 @@ static Result on_init_expr_f32_const_expr(uint32_t index,
                                           uint32_t value,
                                           void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_const_expr();
-  expr->const_.type = Type::F32;
-  expr->const_.f32_bits = value;
-  *ctx->current_init_expr = expr;
+  *ctx->current_init_expr = Expr::CreateConst(Const(Const::F32(), value));
   return Result::Ok;
 }
 
@@ -937,10 +825,7 @@ static Result on_init_expr_f64_const_expr(uint32_t index,
                                           uint64_t value,
                                           void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_const_expr();
-  expr->const_.type = Type::F64;
-  expr->const_.f64_bits = value;
-  *ctx->current_init_expr = expr;
+  *ctx->current_init_expr = Expr::CreateConst(Const(Const::F64(), value));
   return Result::Ok;
 }
 
@@ -948,10 +833,7 @@ static Result on_init_expr_get_global_expr(uint32_t index,
                                            uint32_t global_index,
                                            void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_get_global_expr();
-  expr->get_global.var.type = VarType::Index;
-  expr->get_global.var.index = global_index;
-  *ctx->current_init_expr = expr;
+  *ctx->current_init_expr = Expr::CreateGetGlobal(Var(global_index));
   return Result::Ok;
 }
 
@@ -959,10 +841,7 @@ static Result on_init_expr_i32_const_expr(uint32_t index,
                                           uint32_t value,
                                           void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_const_expr();
-  expr->const_.type = Type::I32;
-  expr->const_.u32 = value;
-  *ctx->current_init_expr = expr;
+  *ctx->current_init_expr = Expr::CreateConst(Const(Const::I32(), value));
   return Result::Ok;
 }
 
@@ -970,10 +849,7 @@ static Result on_init_expr_i64_const_expr(uint32_t index,
                                           uint64_t value,
                                           void* user_data) {
   Context* ctx = static_cast<Context*>(user_data);
-  Expr* expr = new_const_expr();
-  expr->const_.type = Type::I64;
-  expr->const_.u64 = value;
-  *ctx->current_init_expr = expr;
+  *ctx->current_init_expr = Expr::CreateConst(Const(Const::I64(), value));
   return Result::Ok;
 }
 
@@ -981,14 +857,14 @@ static Result on_local_name(uint32_t func_index,
                             uint32_t local_index,
                             StringSlice name,
                             void* user_data) {
+  if (string_slice_is_empty(&name))
+    return Result::Ok;
+
   Context* ctx = static_cast<Context*>(user_data);
   Module* module = ctx->module;
-  Func* func = module->funcs.data[func_index];
+  Func* func = module->funcs[func_index];
   uint32_t num_params = get_num_params(func);
-  StringSlice new_name;
-  dup_name(ctx, &name, &new_name);
   BindingHash* bindings;
-  Binding* binding;
   uint32_t index;
   if (local_index < num_params) {
     /* param name */
@@ -999,14 +875,8 @@ static Result on_local_name(uint32_t func_index,
     bindings = &func->local_bindings;
     index = local_index - num_params;
   }
-  binding = insert_binding(bindings, &new_name);
-  binding->index = index;
+  bindings->emplace(string_slice_to_string(name), Binding(index));
   return Result::Ok;
-}
-
-static void destroy_label_node(LabelNode* node) {
-  if (*node->first)
-    destroy_expr_list(*node->first);
 }
 
 Result read_binary_ast(const void* data,
@@ -1015,7 +885,6 @@ Result read_binary_ast(const void* data,
                        BinaryErrorHandler* error_handler,
                        struct Module* out_module) {
   Context ctx;
-  WABT_ZERO_MEMORY(ctx);
   ctx.error_handler = error_handler;
   ctx.module = out_module;
 
@@ -1116,9 +985,6 @@ Result read_binary_ast(const void* data,
   reader.on_init_expr_i64_const_expr = on_init_expr_i64_const_expr;
 
   Result result = read_binary(data, size, &reader, 1, options);
-  WABT_DESTROY_VECTOR_AND_ELEMENTS(ctx.label_stack, label_node);
-  if (WABT_FAILED(result))
-    destroy_module(out_module);
   return result;
 }
 

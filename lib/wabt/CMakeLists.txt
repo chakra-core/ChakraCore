@@ -42,14 +42,13 @@ configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/built/config.h
 )
 
-include_directories(src ${CMAKE_CURRENT_SOURCE_DIR}/built)
+include_directories(chakra src ${CMAKE_CURRENT_SOURCE_DIR}/built)
 
 # disable -Wunused-parameter: this is really common when implementing
 #   interfaces, etc.
 # disable -Wpointer-arith: this is a GCC extension, and doesn't work in MSVC.
 add_definitions(
-  -Wall -Wextra -Werror -Wno-unused-parameter -Wpointer-arith -g -std=c++11
-  -Wold-style-cast
+  -g -std=c++11
 )
 
 if (MINGW)
@@ -106,6 +105,8 @@ add_library(libwabt OBJECT
   src/apply-names.cc
   src/generate-names.cc
   src/resolve-names.cc
+  src/hash-util.cc
+  src/string-view.cc
 
   src/binary.cc
   src/common.cc
@@ -113,6 +114,7 @@ add_library(libwabt OBJECT
   src/literal.cc
   src/option-parser.cc
   src/stream.cc
-  src/vector.cc
   src/writer.cc
+
+  chakra/wabtapi.cc
 )

@@ -57,7 +57,7 @@ static Option s_options[] = {
      "print raw section contents"},
     {FLAG_DISASSEMBLE, 'd', "disassemble", nullptr, NOPE,
      "disassemble function bodies"},
-    {FLAG_DEBUG, '\0', "debug", nullptr, NOPE, "disassemble function bodies"},
+    {FLAG_DEBUG, '\0', "debug", nullptr, NOPE, "print extra debug information"},
     {FLAG_DETAILS, 'x', "details", nullptr, NOPE, "Show section details"},
     {FLAG_RELOCS, 'r', "reloc", nullptr, NOPE,
      "show relocations inline with disassembly"},
@@ -67,6 +67,8 @@ static Option s_options[] = {
 WABT_STATIC_ASSERT(NUM_FLAGS == WABT_ARRAY_SIZE(s_options));
 
 static ObjdumpOptions s_objdump_options;
+static FileWriter s_log_stream_writer;
+static Stream s_log_stream;
 
 static void on_argument(struct OptionParser* parser, const char* argument) {
   s_objdump_options.infile = argument;
@@ -86,6 +88,10 @@ static void on_option(struct OptionParser* parser,
 
     case FLAG_DEBUG:
       s_objdump_options.debug = true;
+      init_file_writer_existing(&s_log_stream_writer, stdout);
+      init_stream(&s_log_stream, &s_log_stream_writer.base, nullptr);
+      s_objdump_options.log_stream = &s_log_stream;
+      break;
 
     case FLAG_DISASSEMBLE:
       s_objdump_options.disassemble = true;
@@ -155,7 +161,7 @@ int main(int argc, char** argv) {
 
   // Perform serveral passed over the binary in order to print out different
   // types of information.
-  s_objdump_options.print_header = 1;
+  s_objdump_options.print_header = true;
   if (!s_objdump_options.headers && !s_objdump_options.details &&
       !s_objdump_options.disassemble && !s_objdump_options.raw) {
     printf("At least one of the following switches must be given:\n");
@@ -170,6 +176,7 @@ int main(int argc, char** argv) {
   result = read_binary_objdump(data, size, &s_objdump_options);
   if (WABT_FAILED(result))
     goto done;
+  s_objdump_options.log_stream = nullptr;
 
   // Pass 1: Print the section headers
   if (s_objdump_options.headers) {
@@ -177,7 +184,7 @@ int main(int argc, char** argv) {
     result = read_binary_objdump(data, size, &s_objdump_options);
     if (WABT_FAILED(result))
       goto done;
-    s_objdump_options.print_header = 0;
+    s_objdump_options.print_header = false;
   }
   // Pass 2: Print extra information based on section type
   if (s_objdump_options.details) {
@@ -185,14 +192,14 @@ int main(int argc, char** argv) {
     result = read_binary_objdump(data, size, &s_objdump_options);
     if (WABT_FAILED(result))
       goto done;
-    s_objdump_options.print_header = 0;
+    s_objdump_options.print_header = false;
   }
   if (s_objdump_options.disassemble) {
     s_objdump_options.mode = ObjdumpMode::Disassemble;
     result = read_binary_objdump(data, size, &s_objdump_options);
     if (WABT_FAILED(result))
       goto done;
-    s_objdump_options.print_header = 0;
+    s_objdump_options.print_header = false;
   }
   // Pass 3: Dump to raw contents of the sections
   if (s_objdump_options.raw) {

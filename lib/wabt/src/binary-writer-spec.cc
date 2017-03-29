@@ -28,6 +28,8 @@
 
 namespace wabt {
 
+namespace {
+
 struct Context {
   MemoryWriter json_writer;
   Stream json_stream;
@@ -39,9 +41,10 @@ struct Context {
   size_t num_modules;
 };
 
+}  // namespace
+
 static void convert_backslash_to_slash(char* s, size_t length) {
-  size_t i = 0;
-  for (; i < length; ++i)
+  for (size_t i = 0; i < length; ++i)
     if (s[i] == '\\')
       s[i] = '/';
 }
@@ -120,9 +123,8 @@ static void write_separator(Context* ctx) {
 }
 
 static void write_escaped_string_slice(Context* ctx, StringSlice ss) {
-  size_t i;
   write_char(&ctx->json_stream, '"');
-  for (i = 0; i < ss.length; ++i) {
+  for (size_t i = 0; i < ss.length; ++i) {
     uint8_t c = ss.start[i];
     if (c < 0x20 || c == '\\' || c == '"') {
       writef(&ctx->json_stream, "\\u%04x", c);
@@ -133,19 +135,28 @@ static void write_escaped_string_slice(Context* ctx, StringSlice ss) {
   write_char(&ctx->json_stream, '"');
 }
 
-static void write_command_type(Context* ctx, const Command* command) {
+static void write_command_type(Context* ctx, const Command& command) {
   static const char* s_command_names[] = {
-      "module", "action", "register", "assert_malformed", "assert_invalid",
+      "module",
+      "action",
+      "register",
+      "assert_malformed",
+      "assert_invalid",
       nullptr, /* ASSERT_INVALID_NON_BINARY, this command will never be
                   written */
-      "assert_unlinkable", "assert_uninstantiable", "assert_return",
-      "assert_return_nan", "assert_trap", "assert_exhaustion",
+      "assert_unlinkable",
+      "assert_uninstantiable",
+      "assert_return",
+      "assert_return_canonical_nan",
+      "assert_return_arithmetic_nan",
+      "assert_trap",
+      "assert_exhaustion",
   };
   WABT_STATIC_ASSERT(WABT_ARRAY_SIZE(s_command_names) == kCommandTypeCount);
 
   write_key(ctx, "type");
-  assert(s_command_names[static_cast<size_t>(command->type)]);
-  write_string(ctx, s_command_names[static_cast<size_t>(command->type)]);
+  assert(s_command_names[static_cast<size_t>(command.type)]);
+  write_string(ctx, s_command_names[static_cast<size_t>(command.type)]);
 }
 
 static void write_location(Context* ctx, const Location* loc) {
@@ -213,13 +224,12 @@ static void write_const(Context* ctx, const Const* const_) {
   writef(&ctx->json_stream, "}");
 }
 
-static void write_const_vector(Context* ctx, const ConstVector* consts) {
+static void write_const_vector(Context* ctx, const ConstVector& consts) {
   writef(&ctx->json_stream, "[");
-  size_t i;
-  for (i = 0; i < consts->size; ++i) {
-    const Const* const_ = &consts->data[i];
+  for (size_t i = 0; i < consts.size(); ++i) {
+    const Const* const_ = &consts[i];
     write_const(ctx, const_);
-    if (i != consts->size - 1)
+    if (i != consts.size() - 1)
       write_separator(ctx);
   }
   writef(&ctx->json_stream, "]");
@@ -243,13 +253,13 @@ static void write_action(Context* ctx, const Action* action) {
   }
   if (action->type == ActionType::Invoke) {
     write_key(ctx, "field");
-    write_escaped_string_slice(ctx, action->invoke.name);
+    write_escaped_string_slice(ctx, action->name);
     write_separator(ctx);
     write_key(ctx, "args");
-    write_const_vector(ctx, &action->invoke.args);
+    write_const_vector(ctx, action->invoke->args);
   } else {
     write_key(ctx, "field");
-    write_escaped_string_slice(ctx, action->get.name);
+    write_escaped_string_slice(ctx, action->name);
   }
   writef(&ctx->json_stream, "}");
 }
@@ -262,18 +272,17 @@ static void write_action_result_type(Context* ctx,
   writef(&ctx->json_stream, "[");
   switch (action->type) {
     case ActionType::Invoke: {
-      export_ = get_export_by_name(module, &action->invoke.name);
+      export_ = get_export_by_name(module, &action->name);
       assert(export_->kind == ExternalKind::Func);
       Func* func = get_func_by_var(module, &export_->var);
       size_t num_results = get_num_results(func);
-      size_t i;
-      for (i = 0; i < num_results; ++i)
+      for (size_t i = 0; i < num_results; ++i)
         write_type_object(ctx, get_result_type(func, i));
       break;
     }
 
     case ActionType::Get: {
-      export_ = get_export_by_name(module, &action->get.name);
+      export_ = get_export_by_name(module, &action->name);
       assert(export_->kind == ExternalKind::Global);
       Global* global = get_global_by_var(module, &export_->var);
       write_type_object(ctx, global->type);
@@ -334,12 +343,11 @@ static void write_commands(Context* ctx, Script* script) {
   writef(&ctx->json_stream, "{\"source_filename\": ");
   write_escaped_string_slice(ctx, ctx->source_filename);
   writef(&ctx->json_stream, ",\n \"commands\": [\n");
-  size_t i;
   int last_module_index = -1;
-  for (i = 0; i < script->commands.size; ++i) {
-    Command* command = &script->commands.data[i];
+  for (size_t i = 0; i < script->commands.size(); ++i) {
+    const Command& command = *script->commands[i].get();
 
-    if (command->type == CommandType::AssertInvalidNonBinary)
+    if (command.type == CommandType::AssertInvalidNonBinary)
       continue;
 
     if (i != 0)
@@ -350,9 +358,9 @@ static void write_commands(Context* ctx, Script* script) {
     write_command_type(ctx, command);
     write_separator(ctx);
 
-    switch (command->type) {
+    switch (command.type) {
       case CommandType::Module: {
-        Module* module = &command->module;
+        Module* module = command.module;
         char* filename = get_module_filename(ctx);
         write_location(ctx, &module->loc);
         write_separator(ctx);
@@ -371,84 +379,94 @@ static void write_commands(Context* ctx, Script* script) {
       }
 
       case CommandType::Action:
-        write_location(ctx, &command->action.loc);
+        write_location(ctx, &command.action->loc);
         write_separator(ctx);
-        write_action(ctx, &command->action);
+        write_action(ctx, command.action);
         break;
 
       case CommandType::Register:
-        write_location(ctx, &command->register_.var.loc);
+        write_location(ctx, &command.register_.var.loc);
         write_separator(ctx);
-        if (command->register_.var.type == VarType::Name) {
+        if (command.register_.var.type == VarType::Name) {
           write_key(ctx, "name");
-          write_var(ctx, &command->register_.var);
+          write_var(ctx, &command.register_.var);
           write_separator(ctx);
         } else {
           /* If we're not registering by name, then we should only be
            * registering the last module. */
           WABT_USE(last_module_index);
-          assert(command->register_.var.index == last_module_index);
+          assert(command.register_.var.index == last_module_index);
         }
         write_key(ctx, "as");
-        write_escaped_string_slice(ctx, command->register_.module_name);
+        write_escaped_string_slice(ctx, command.register_.module_name);
         break;
 
       case CommandType::AssertMalformed:
-        write_invalid_module(ctx, &command->assert_malformed.module,
-                             command->assert_malformed.text);
+        write_invalid_module(ctx, command.assert_malformed.module,
+                             command.assert_malformed.text);
         ctx->num_modules++;
         break;
 
       case CommandType::AssertInvalid:
-        write_invalid_module(ctx, &command->assert_invalid.module,
-                             command->assert_invalid.text);
+        write_invalid_module(ctx, command.assert_invalid.module,
+                             command.assert_invalid.text);
         ctx->num_modules++;
         break;
 
       case CommandType::AssertUnlinkable:
-        write_invalid_module(ctx, &command->assert_unlinkable.module,
-                             command->assert_unlinkable.text);
+        write_invalid_module(ctx, command.assert_unlinkable.module,
+                             command.assert_unlinkable.text);
         ctx->num_modules++;
         break;
 
       case CommandType::AssertUninstantiable:
-        write_invalid_module(ctx, &command->assert_uninstantiable.module,
-                             command->assert_uninstantiable.text);
+        write_invalid_module(ctx, command.assert_uninstantiable.module,
+                             command.assert_uninstantiable.text);
         ctx->num_modules++;
         break;
 
       case CommandType::AssertReturn:
-        write_location(ctx, &command->assert_return.action.loc);
+        write_location(ctx, &command.assert_return.action->loc);
         write_separator(ctx);
-        write_action(ctx, &command->assert_return.action);
+        write_action(ctx, command.assert_return.action);
         write_separator(ctx);
         write_key(ctx, "expected");
-        write_const_vector(ctx, &command->assert_return.expected);
+        write_const_vector(ctx, *command.assert_return.expected);
         break;
 
-      case CommandType::AssertReturnNan:
-        write_location(ctx, &command->assert_return_nan.action.loc);
+      case CommandType::AssertReturnCanonicalNan:
+        write_location(ctx, &command.assert_return_canonical_nan.action->loc);
         write_separator(ctx);
-        write_action(ctx, &command->assert_return_nan.action);
+        write_action(ctx, command.assert_return_canonical_nan.action);
         write_separator(ctx);
         write_key(ctx, "expected");
         write_action_result_type(ctx, script,
-                                 &command->assert_return_nan.action);
+                                 command.assert_return_canonical_nan.action);
+        break;
+
+      case CommandType::AssertReturnArithmeticNan:
+        write_location(ctx, &command.assert_return_arithmetic_nan.action->loc);
+        write_separator(ctx);
+        write_action(ctx, command.assert_return_arithmetic_nan.action);
+        write_separator(ctx);
+        write_key(ctx, "expected");
+        write_action_result_type(ctx, script,
+                                 command.assert_return_arithmetic_nan.action);
         break;
 
       case CommandType::AssertTrap:
-        write_location(ctx, &command->assert_trap.action.loc);
+        write_location(ctx, &command.assert_trap.action->loc);
         write_separator(ctx);
-        write_action(ctx, &command->assert_trap.action);
+        write_action(ctx, command.assert_trap.action);
         write_separator(ctx);
         write_key(ctx, "text");
-        write_escaped_string_slice(ctx, command->assert_trap.text);
+        write_escaped_string_slice(ctx, command.assert_trap.text);
         break;
 
       case CommandType::AssertExhaustion:
-        write_location(ctx, &command->assert_trap.action.loc);
+        write_location(ctx, &command.assert_trap.action->loc);
         write_separator(ctx);
-        write_action(ctx, &command->assert_trap.action);
+        write_action(ctx, command.assert_trap.action);
         break;
 
       case CommandType::AssertInvalidNonBinary:

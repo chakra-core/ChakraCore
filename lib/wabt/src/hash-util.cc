@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 WebAssembly Community Group participants
+ * Copyright 2017 WebAssembly Community Group participants
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef WABT_TYPE_VECTOR_H_
-#define WABT_TYPE_VECTOR_H_
+#include "hash-util.h"
 
-#include "common.h"
-#include "vector.h"
+#include "config.h"
 
 namespace wabt {
 
-WABT_DEFINE_VECTOR(type, Type)
+// Hash combiner from:
+// http://stackoverflow.com/questions/4948780/magic-number-in-boosthash-combine
 
-static WABT_INLINE bool type_vectors_are_equal(const TypeVector* types1,
-                                               const TypeVector* types2) {
-  if (types1->size != types2->size)
-    return false;
-  size_t i;
-  for (i = 0; i < types1->size; ++i) {
-    if (types1->data[i] != types2->data[i])
-      return false;
-  }
-  return true;
+hash_code hash_combine(hash_code seed, hash_code y) {
+#if SIZEOF_SIZE_T == 4
+  constexpr hash_code magic = 0x9e3779b9;
+#elif SIZEOF_SIZE_T == 8
+  constexpr hash_code magic = 0x9e3779b97f4a7c16;
+#else
+#error "weird sizeof size_t"
+#endif
+  seed ^= y + magic + (seed << 6) + (seed >> 2);
+  return seed;
 }
 
 }  // namespace wabt
-
-#endif /* WABT_TYPE_VECTOR_H_ */

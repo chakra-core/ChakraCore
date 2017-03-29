@@ -30,8 +30,7 @@
         $(MSBuildThisFileDirectory)..\..\Common;
         $(MSBuildThisFileDirectory)..\..\Parser;
         $(MSBuildThisFileDirectory)..\..\WasmReader;
-        $(MSBuildThisFileDirectory)..\..\wabt\src;
-        $(MSBuildThisFileDirectory)..\..\wabt\src\win_prebuilt;
+        $(MSBuildThisFileDirectory)..\..\wabt\chakra;
         $(MSBuildThisFileDirectory)..\..\Runtime\ByteCode;
         $(MSBuildThisFileDirectory)..\..\JITClient;
         $(ChakraJITIDLIntDir);
@@ -342,7 +341,7 @@
     <ProjectReference Include="..\..\JITIDL\Chakra.JITIDL.vcxproj">
       <Project>{0db5ecbc-9385-4a65-be2c-4ef7c65cb719}</Project>
     </ProjectReference>
-    <ProjectReference Condition="('$(Platform)'=='x64' or '$(Platform)'=='win32') and ('$(Configuration)'=='Debug' or '$(Configuration)'=='Test')" Include="..\..\wabt\wabt.vcxproj">
+    <ProjectReference Condition="'$(BuildWabt)'=='true'" Include="..\..\wabt\wabt.vcxproj">
       <Project>{f48b3491-81df-4f49-b35f-3308cbe6a379}</Project>
     </ProjectReference>
   </ItemGroup>

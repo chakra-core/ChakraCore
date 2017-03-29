@@ -20,11 +20,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <algorithm>
+
 #include "binary-reader.h"
 #include "binary-reader-opcnt.h"
 #include "option-parser.h"
 #include "stream.h"
-#include "vector-sort.h"
 
 #define PROGRAM_NAME "wasmopcodecnt"
 
@@ -133,13 +134,10 @@ static void parse_options(int argc, char** argv) {
   }
 }
 
-WABT_DEFINE_VECTOR_SORT(int_counter, IntCounter);
+typedef int(int_counter_lt_fcn)(const IntCounter&, const IntCounter&);
 
-typedef int(int_counter_lt_fcn)(IntCounter*, IntCounter*);
-
-WABT_DEFINE_VECTOR_SORT(int_pair_counter, IntPairCounter);
-
-typedef int(int_pair_counter_lt_fcn)(IntPairCounter*, IntPairCounter*);
+typedef int(int_pair_counter_lt_fcn)(const IntPairCounter&,
+                                     const IntPairCounter&);
 
 typedef void (*display_name_fcn)(FILE* out, intmax_t value);
 
@@ -155,70 +153,57 @@ static void display_intmax(FILE* out, intmax_t value) {
 }
 
 static void display_int_counter_vector(FILE* out,
-                                       IntCounterVector* vec,
+                                       const IntCounterVector& vec,
                                        display_name_fcn display_fcn,
                                        const char* opcode_name) {
-  size_t i;
-  for (i = 0; i < vec->size; ++i) {
-    if (vec->data[i].count == 0)
+  for (const IntCounter& counter : vec) {
+    if (counter.count == 0)
       continue;
     if (opcode_name)
       fprintf(out, "(%s ", opcode_name);
-    display_fcn(out, vec->data[i].value);
+    display_fcn(out, counter.value);
     if (opcode_name)
       fprintf(out, ")");
-    fprintf(out, "%s%" PRIzd "\n", s_separator, vec->data[i].count);
+    fprintf(out, "%s%" PRIzd "\n", s_separator, counter.count);
   }
 }
 
 static void display_int_pair_counter_vector(FILE* out,
-                                            IntPairCounterVector* vec,
+                                            const IntPairCounterVector& vec,
                                             display_name_fcn display_first_fcn,
                                             display_name_fcn display_second_fcn,
                                             const char* opcode_name) {
-  size_t i;
-  for (i = 0; i < vec->size; ++i) {
-    if (vec->data[i].count == 0)
+  for (const IntPairCounter& pair : vec) {
+    if (pair.count == 0)
       continue;
     if (opcode_name)
       fprintf(out, "(%s ", opcode_name);
-    display_first_fcn(out, vec->data[i].first);
+    display_first_fcn(out, pair.first);
     fputc(' ', out);
-    display_second_fcn(out, vec->data[i].second);
+    display_second_fcn(out, pair.second);
     if (opcode_name)
       fprintf(out, ")");
-    fprintf(out, "%s%" PRIzd "\n", s_separator, vec->data[i].count);
+    fprintf(out, "%s%" PRIzd "\n", s_separator, pair.count);
   }
 }
 
-static void swap_int_counters(IntCounter* v1, IntCounter* v2) {
-  IntCounter tmp;
-  tmp.value = v1->value;
-  tmp.count = v1->count;
-
-  v1->value = v2->value;
-  v1->count = v2->count;
-
-  v2->value = tmp.value;
-  v2->count = tmp.count;
-}
-
-static int opcode_counter_gt(IntCounter* counter_1, IntCounter* counter_2) {
-  if (counter_1->count > counter_2->count)
+static int opcode_counter_gt(const IntCounter& counter_1,
+                             const IntCounter& counter_2) {
+  if (counter_1.count > counter_2.count)
     return 1;
-  if (counter_1->count < counter_2->count)
+  if (counter_1.count < counter_2.count)
     return 0;
   const char* name_1 = "?1";
   const char* name_2 = "?2";
-  if (counter_1->value < kOpcodeCount) {
+  if (counter_1.value < kOpcodeCount) {
     const char* opcode_name =
-        get_opcode_name(static_cast<Opcode>(counter_1->value));
+        get_opcode_name(static_cast<Opcode>(counter_1.value));
     if (opcode_name)
       name_1 = opcode_name;
   }
-  if (counter_2->value < kOpcodeCount) {
+  if (counter_2.value < kOpcodeCount) {
     const char* opcode_name =
-        get_opcode_name(static_cast<Opcode>(counter_2->value));
+        get_opcode_name(static_cast<Opcode>(counter_2.value));
     if (opcode_name)
       name_2 = opcode_name;
   }
@@ -228,106 +213,78 @@ static int opcode_counter_gt(IntCounter* counter_1, IntCounter* counter_2) {
   return 0;
 }
 
-static int int_counter_gt(IntCounter* counter_1, IntCounter* counter_2) {
-  if (counter_1->count < counter_2->count)
+static int int_counter_gt(const IntCounter& counter_1,
+                          const IntCounter& counter_2) {
+  if (counter_1.count < counter_2.count)
     return 0;
-  if (counter_1->count > counter_2->count)
+  if (counter_1.count > counter_2.count)
     return 1;
-  if (counter_1->value < counter_2->value)
+  if (counter_1.value < counter_2.value)
     return 0;
-  if (counter_1->value > counter_2->value)
+  if (counter_1.value > counter_2.value)
     return 1;
   return 0;
 }
 
-static void swap_int_pair_counters(IntPairCounter* v1, IntPairCounter* v2) {
-  IntPairCounter tmp;
-  tmp.first = v1->first;
-  tmp.second = v1->second;
-  tmp.count = v1->count;
-
-  v1->first = v2->first;
-  v1->second = v2->second;
-  v1->count = v2->count;
-
-  v2->first = tmp.first;
-  v2->second = tmp.second;
-  v2->count = tmp.count;
-}
-
-static int int_pair_counter_gt(IntPairCounter* counter_1,
-                               IntPairCounter* counter_2) {
-  if (counter_1->count < counter_2->count)
+static int int_pair_counter_gt(const IntPairCounter& counter_1,
+                               const IntPairCounter& counter_2) {
+  if (counter_1.count < counter_2.count)
     return 0;
-  if (counter_1->count > counter_2->count)
+  if (counter_1.count > counter_2.count)
     return 1;
-  if (counter_1->first < counter_2->first)
+  if (counter_1.first < counter_2.first)
     return 0;
-  if (counter_1->first > counter_2->first)
+  if (counter_1.first > counter_2.first)
     return 1;
-  if (counter_1->second < counter_2->second)
+  if (counter_1.second < counter_2.second)
     return 0;
-  if (counter_1->second > counter_2->second)
+  if (counter_1.second > counter_2.second)
     return 1;
   return 0;
 }
 
 static void display_sorted_int_counter_vector(FILE* out,
                                               const char* title,
-                                              IntCounterVector* vec,
+                                              const IntCounterVector& vec,
                                               int_counter_lt_fcn lt_fcn,
                                               display_name_fcn display_fcn,
                                               const char* opcode_name) {
-  if (vec->size == 0)
+  if (vec.size() == 0)
     return;
 
   /* First filter out values less than cutoff. This speeds up sorting. */
   IntCounterVector filtered_vec;
-  WABT_ZERO_MEMORY(filtered_vec);
-  size_t i;
-  for (i = 0; i < vec->size; ++i) {
-    if (vec->data[i].count < s_cutoff)
+  for (const IntCounter& counter: vec) {
+    if (counter.count < s_cutoff)
       continue;
-    append_int_counter_value(&filtered_vec, &vec->data[i]);
+    filtered_vec.push_back(counter);
   }
-  IntCounterVector sorted_vec;
-  WABT_ZERO_MEMORY(sorted_vec);
-  sort_int_counter_vector(&filtered_vec, &sorted_vec, swap_int_counters,
-                          lt_fcn);
+  std::sort(filtered_vec.begin(), filtered_vec.end(), lt_fcn);
   fprintf(out, "%s\n", title);
-  display_int_counter_vector(out, &sorted_vec, display_fcn, opcode_name);
-  destroy_int_counter_vector(&filtered_vec);
-  destroy_int_counter_vector(&sorted_vec);
+  display_int_counter_vector(out, filtered_vec, display_fcn, opcode_name);
 }
 
 static void display_sorted_int_pair_counter_vector(
     FILE* out,
     const char* title,
-    IntPairCounterVector* vec,
+    const IntPairCounterVector& vec,
     int_pair_counter_lt_fcn lt_fcn,
     display_name_fcn display_first_fcn,
     display_name_fcn display_second_fcn,
     const char* opcode_name) {
-  if (vec->size == 0)
+  if (vec.size() == 0)
     return;
 
   IntPairCounterVector filtered_vec;
-  WABT_ZERO_MEMORY(filtered_vec);
-  IntPairCounterVector sorted_vec;
-  size_t i;
-  for (i = 0; i < vec->size; ++i) {
-    if (vec->data[i].count < s_cutoff)
+  for (const IntPairCounter& pair : vec) {
+    if (pair.count < s_cutoff)
       continue;
-    append_int_pair_counter_value(&filtered_vec, &vec->data[i]);
+    filtered_vec.push_back(pair);
   }
-  WABT_ZERO_MEMORY(sorted_vec);
-  sort_int_pair_counter_vector(&filtered_vec, &sorted_vec,
-                               swap_int_pair_counters, lt_fcn);
+  std::sort(filtered_vec.begin(), filtered_vec.end(), lt_fcn);
   fprintf(out, "%s\n", title);
-  display_int_pair_counter_vector(out, &sorted_vec, display_first_fcn,
+  display_int_pair_counter_vector(out, filtered_vec, display_first_fcn,
                                   display_second_fcn, opcode_name);
-  destroy_int_pair_counter_vector(&filtered_vec);
-  destroy_int_pair_counter_vector(&sorted_vec);
 }
 
 int main(int argc, char** argv) {
@@ -351,32 +308,30 @@ int main(int argc, char** argv) {
   }
   if (WABT_SUCCEEDED(result)) {
     OpcntData opcnt_data;
-    init_opcnt_data(&opcnt_data);
     result = read_binary_opcnt(data, size, &s_read_binary_options, &opcnt_data);
     if (WABT_SUCCEEDED(result)) {
       display_sorted_int_counter_vector(
-          out, "Opcode counts:", &opcnt_data.opcode_vec, opcode_counter_gt,
+          out, "Opcode counts:", opcnt_data.opcode_vec, opcode_counter_gt,
           display_opcode_name, nullptr);
       display_sorted_int_counter_vector(
-          out, "\ni32.const:", &opcnt_data.i32_const_vec, int_counter_gt,
+          out, "\ni32.const:", opcnt_data.i32_const_vec, int_counter_gt,
           display_intmax, get_opcode_name(Opcode::I32Const));
       display_sorted_int_counter_vector(
-          out, "\nget_local:", &opcnt_data.get_local_vec, int_counter_gt,
+          out, "\nget_local:", opcnt_data.get_local_vec, int_counter_gt,
           display_intmax, get_opcode_name(Opcode::GetLocal));
       display_sorted_int_counter_vector(
-          out, "\nset_local:", &opcnt_data.set_local_vec, int_counter_gt,
+          out, "\nset_local:", opcnt_data.set_local_vec, int_counter_gt,
           display_intmax, get_opcode_name(Opcode::SetLocal));
       display_sorted_int_counter_vector(
-          out, "\ntee_local:", &opcnt_data.tee_local_vec, int_counter_gt,
+          out, "\ntee_local:", opcnt_data.tee_local_vec, int_counter_gt,
           display_intmax, get_opcode_name(Opcode::TeeLocal));
       display_sorted_int_pair_counter_vector(
-          out, "\ni32.load:", &opcnt_data.i32_load_vec, int_pair_counter_gt,
+          out, "\ni32.load:", opcnt_data.i32_load_vec, int_pair_counter_gt,
           display_intmax, display_intmax, get_opcode_name(Opcode::I32Load));
       display_sorted_int_pair_counter_vector(
-          out, "\ni32.store:", &opcnt_data.i32_store_vec, int_pair_counter_gt,
+          out, "\ni32.store:", opcnt_data.i32_store_vec, int_pair_counter_gt,
           display_intmax, display_intmax, get_opcode_name(Opcode::I32Store));
     }
-    destroy_opcnt_data(&opcnt_data);
   }
   delete[] data;
   return result != Result::Ok;

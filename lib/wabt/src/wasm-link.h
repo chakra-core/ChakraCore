@@ -17,13 +17,16 @@
 #ifndef WABT_LINK_H_
 #define WABT_LINK_H_
 
+#include <memory>
+#include <vector>
+
 #include "binary.h"
 #include "common.h"
-#include "vector.h"
 
 #define WABT_LINK_MODULE_NAME "__extern"
 
 namespace wabt {
+namespace link {
 
 struct LinkerInputBinary;
 
@@ -34,14 +37,12 @@ struct FunctionImport {
   struct LinkerInputBinary* foreign_binary;
   uint32_t foreign_index;
 };
-WABT_DEFINE_VECTOR(function_import, FunctionImport);
 
 struct GlobalImport {
   StringSlice name;
   Type type;
   bool mutable_;
 };
-WABT_DEFINE_VECTOR(global_import, GlobalImport);
 
 struct DataSegment {
   uint32_t memory_index;
@@ -49,20 +50,12 @@ struct DataSegment {
   const uint8_t* data;
   size_t size;
 };
-WABT_DEFINE_VECTOR(data_segment, DataSegment);
-
-struct Reloc {
-  RelocType type;
-  size_t offset;
-};
-WABT_DEFINE_VECTOR(reloc, Reloc);
 
 struct Export {
   ExternalKind kind;
   StringSlice name;
   uint32_t index;
 };
-WABT_DEFINE_VECTOR(export, Export);
 
 struct SectionDataCustom {
   /* Reference to string data stored in the containing InputBinary */
@@ -70,9 +63,13 @@ struct SectionDataCustom {
 };
 
 struct Section {
+  WABT_DISALLOW_COPY_AND_ASSIGN(Section);
+  Section();
+  ~Section();
+
   /* The binary to which this section belongs */
   struct LinkerInputBinary* binary;
-  RelocVector relocations; /* The relocations for this section */
+  std::vector<Reloc> relocations; /* The relocations for this section */
 
   BinarySection section_code;
   size_t size;
@@ -88,7 +85,7 @@ struct Section {
     /* CUSTOM section data */
     SectionDataCustom data_custom;
     /* DATA section data */
-    DataSegmentVector data_segments;
+    std::vector<DataSegment>* data_segments;
     /* MEMORY section data */
     Limits memory_limits;
   };
@@ -97,24 +94,23 @@ struct Section {
    * section. */
   size_t output_payload_offset;
 };
-WABT_DEFINE_VECTOR(section, Section);
 
-typedef Section* SectionPtr;
-WABT_DEFINE_VECTOR(section_ptr, SectionPtr);
-
-WABT_DEFINE_VECTOR(string_slice, StringSlice);
+typedef std::vector<Section*> SectionPtrVector;
 
 struct LinkerInputBinary {
+  WABT_DISALLOW_COPY_AND_ASSIGN(LinkerInputBinary);
+  LinkerInputBinary(const char* filename, uint8_t* data, size_t size);
+  ~LinkerInputBinary();
+
   const char* filename;
   uint8_t* data;
   size_t size;
-  SectionVector sections;
+  std::vector<std::unique_ptr<Section>> sections;
+  std::vector<Export> exports;
 
-  ExportVector exports;
-
-  FunctionImportVector function_imports;
+  std::vector<FunctionImport> function_imports;
   uint32_t active_function_imports;
-  GlobalImportVector global_imports;
+  std::vector<GlobalImport> global_imports;
   uint32_t active_global_imports;
 
   uint32_t type_index_offset;
@@ -128,10 +124,10 @@ struct LinkerInputBinary {
 
   uint32_t table_elem_count;
 
-  StringSliceVector debug_names;
+  std::vector<std::string> debug_names;
 };
-WABT_DEFINE_VECTOR(binary, LinkerInputBinary);
 
+}  // namespace link
 }  // namespace wabt
 
 #endif /* WABT_LINK_H_ */

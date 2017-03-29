@@ -43,7 +43,7 @@ struct BinaryReaderContext {
 struct BinaryReader {
   void* user_data;
 
-  void (*on_error)(BinaryReaderContext* ctx, const char* message);
+  bool (*on_error)(BinaryReaderContext* ctx, const char* message);
 
   /* module */
   Result (*begin_module)(uint32_t version, void* user_data);
@@ -79,19 +79,27 @@ struct BinaryReader {
                       StringSlice field_name,
                       void* user_data);
   Result (*on_import_func)(uint32_t import_index,
+                           StringSlice module_name,
+                           StringSlice field_name,
                            uint32_t func_index,
                            uint32_t sig_index,
                            void* user_data);
   Result (*on_import_table)(uint32_t import_index,
+                            StringSlice module_name,
+                            StringSlice field_name,
                             uint32_t table_index,
                             Type elem_type,
                             const Limits* elem_limits,
                             void* user_data);
   Result (*on_import_memory)(uint32_t import_index,
+                             StringSlice module_name,
+                             StringSlice field_name,
                              uint32_t memory_index,
                              const Limits* page_limits,
                              void* user_data);
   Result (*on_import_global)(uint32_t import_index,
+                             StringSlice module_name,
+                             StringSlice field_name,
                              uint32_t global_index,
                              Type type,
                              bool mutable_,
@@ -195,6 +203,7 @@ struct BinaryReader {
   Result (*on_drop_expr)(void* user_data);
   Result (*on_else_expr)(void* user_data);
   Result (*on_end_expr)(void* user_data);
+  Result (*on_end_func)(void* user_data);
   Result (*on_f32_const_expr)(uint32_t value_bits, void* user_data);
   Result (*on_f64_const_expr)(uint64_t value_bits, void* user_data);
   Result (*on_get_global_expr)(uint32_t global_index, void* user_data);
@@ -291,7 +300,11 @@ struct BinaryReader {
                            BinarySection section_code,
                            StringSlice section_name,
                            void* user_data);
-  Result (*on_reloc)(RelocType type, uint32_t offset, void* user_data);
+  Result (*on_reloc)(RelocType type,
+                     uint32_t offset,
+                     uint32_t index,
+                     int32_t addend,
+                     void* user_data);
   Result (*end_reloc_section)(BinaryReaderContext* ctx);
 
   /* init_expr - used by elem, data and global sections; these functions are

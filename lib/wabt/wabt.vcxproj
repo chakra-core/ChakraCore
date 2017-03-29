@@ -23,14 +23,19 @@
     <ClCompile>
       <AdditionalIncludeDirectories>
         $(MSBuildThisFileDirectory)\src;
-        $(MSBuildThisFileDirectory)\src\win_prebuilt;
+        $(MSBuildThisFileDirectory)\chakra;
+        $(MSBuildThisFileDirectory)\chakra\windows;
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemGroup>
+  <!-- Do not build wabt with old toolset -->
+  <ItemGroup Condition="'$(BuildWabt)'=='true'">
+    <ClCompile Include="$(MSBuildThisFileDirectory)chakra\wabtapi.cc">
+      <WarningLevel>Level4</WarningLevel>
+    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)src\ast.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\ast-parser-lexer-shared.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\prebuilt\ast-lexer-gen.cc" />
@@ -52,12 +57,15 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)src\config.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\literal.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\stream.cc" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)src\vector.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\writer.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\hash-util.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\string-view.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="chakra\wabtapi.h" />
+    <ClInclude Include="chakra\windows\config.h" />
     <ClInclude Include="src\apply-names.h" />
-    <ClInclude Include="src\array.h" />
+    <ClInclude Include="src\hash-util.h" />
     <ClInclude Include="src\ast-lexer.h" />
     <ClInclude Include="src\ast-parser-lexer-shared.h" />
     <ClInclude Include="src\ast-parser.h" />
@@ -74,16 +82,13 @@
     <ClInclude Include="src\binary.h" />
     <ClInclude Include="src\binding-hash.h" />
     <ClInclude Include="src\common.h" />
-    <ClInclude Include="src\win_prebuilt\config.h" />
     <ClInclude Include="src\generate-names.h" />
     <ClInclude Include="src\literal.h" />
     <ClInclude Include="src\resolve-names.h" />
     <ClInclude Include="src\stream.h" />
+    <ClInclude Include="src\string-view.h" />
     <ClInclude Include="src\type-checker.h" />
-    <ClInclude Include="src\type-vector.h" />
     <ClInclude Include="src\validator.h" />
-    <ClInclude Include="src\vector-sort.h" />
-    <ClInclude Include="src\vector.h" />
     <ClInclude Include="src\wasm-link.h" />
     <ClInclude Include="src\writer.h" />
   </ItemGroup>

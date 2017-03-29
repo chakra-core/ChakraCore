@@ -27,55 +27,45 @@
 
 namespace wabt {
 
+namespace {
+
 struct Context {
   OpcntData* opcnt_data;
 };
 
-static Result add_int_counter_value(IntCounterVector* vec,
-                                        intmax_t value) {
-  size_t i;
-  for (i = 0; i < vec->size; ++i) {
-    if (vec->data[i].value == value) {
-      ++vec->data[i].count;
+}  // namespace
+
+static Result add_int_counter_value(IntCounterVector* vec, intmax_t value) {
+  for (IntCounter& counter : *vec) {
+    if (counter.value == value) {
+      ++counter.count;
       return Result::Ok;
     }
   }
-  IntCounter counter;
-  counter.value = value;
-  counter.count = 1;
-  append_int_counter_value(vec, &counter);
+  vec->emplace_back(value, 1);
   return Result::Ok;
 }
 
 static Result add_int_pair_counter_value(IntPairCounterVector* vec,
-                                             intmax_t first,
-                                             intmax_t second) {
-  size_t i;
-  for (i = 0; i < vec->size; ++i) {
-    if (vec->data[i].first == first && vec->data[i].second == second) {
-      ++vec->data[i].count;
+                                         intmax_t first,
+                                         intmax_t second) {
+  for (IntPairCounter& pair : *vec) {
+    if (pair.first == first && pair.second == second) {
+      ++pair.count;
       return Result::Ok;
     }
   }
-  IntPairCounter counter;
-  counter.first = first;
-  counter.second = second;
-  counter.count = 1;
-  append_int_pair_counter_value(vec, &counter);
+  vec->emplace_back(first, second, 1);
   return Result::Ok;
 }
 
-static Result on_opcode(BinaryReaderContext* context,
-                            Opcode opcode) {
+static Result on_opcode(BinaryReaderContext* context, Opcode opcode) {
   Context* ctx = static_cast<Context*>(context->user_data);
-  IntCounterVector* opcnt_vec = &ctx->opcnt_data->opcode_vec;
-  while (static_cast<size_t>(opcode) >= opcnt_vec->size) {
-    IntCounter Counter;
-    Counter.value = opcnt_vec->size;
-    Counter.count = 0;
-    append_int_counter_value(opcnt_vec, &Counter);
+  IntCounterVector& opcnt_vec = ctx->opcnt_data->opcode_vec;
+  while (static_cast<size_t>(opcode) >= opcnt_vec.size()) {
+    opcnt_vec.emplace_back(opcnt_vec.size(), 0);
   }
-  ++opcnt_vec->data[static_cast<size_t>(opcode)].count;
+  ++opcnt_vec[static_cast<size_t>(opcode)].count;
   return Result::Ok;
 }
 
@@ -122,25 +112,6 @@ static  Result on_store_expr(Opcode opcode,
   return Result::Ok;
 }
 
-static void on_error(BinaryReaderContext* ctx, const char* message) {
-  DefaultErrorHandlerInfo info;
-  info.header = "error reading binary";
-  info.out_file = stdout;
-  info.print_header = PrintErrorHeader::Once;
-  default_binary_error_callback(ctx->offset, message, &info);
-}
-
-void init_opcnt_data(OpcntData* data) {
-  WABT_ZERO_MEMORY(*data);
-}
-
-void destroy_opcnt_data(OpcntData* data) {
-  destroy_int_counter_vector(&data->opcode_vec);
-  destroy_int_counter_vector(&data->i32_const_vec);
-  destroy_int_counter_vector(&data->get_local_vec);
-  destroy_int_pair_counter_vector(&data->i32_load_vec);
-}
-
 Result read_binary_opcnt(const void* data,
                                   size_t size,
                                   const struct ReadBinaryOptions* options,
@@ -152,7 +123,6 @@ Result read_binary_opcnt(const void* data,
   BinaryReader reader;
   WABT_ZERO_MEMORY(reader);
   reader.user_data = &ctx;
-  reader.on_error = on_error;
   reader.on_opcode = on_opcode;
   reader.on_i32_const_expr = on_i32_const_expr;
   reader.on_get_local_expr = on_get_local_expr;
