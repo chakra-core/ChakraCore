@@ -318,7 +318,10 @@ void ConfigParser::ParseConfig(HANDLE hmod, CmdLineArgsParser &parser)
     char16 modulename[_MAX_PATH];
     char16 filename[_MAX_PATH];
 
-    GetModuleFileName((HMODULE)hmod, modulename, _MAX_PATH);
+    if (!GetModuleFileName((HMODULE)hmod, modulename, _MAX_PATH))
+    {
+        return;
+    }
     char16 drive[_MAX_DRIVE];
     char16 dir[_MAX_DIR];
 
