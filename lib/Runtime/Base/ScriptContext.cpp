@@ -851,7 +851,7 @@ namespace Js
         return propertyRecord->GetPropertyId();
     }
 
-    void ScriptContext::GetOrAddPropertyRecord(Js::JavascriptString * propertyString, PropertyRecord const** propertyRecord)
+    void ScriptContext::GetOrAddPropertyRecord(_In_ Js::JavascriptString * propertyString, _Out_ PropertyRecord const** propertyRecord)
     {
         if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(propertyString) && propertyString->GetScriptContext() == this)
         {
@@ -881,7 +881,7 @@ namespace Js
         return propertyRecord->GetPropertyId();
     }
 
-    void ScriptContext::GetOrAddPropertyRecord(__in_ecount(propertyNameLength) LPCWSTR propertyName, __in int propertyNameLength, PropertyRecord const ** propertyRecord)
+    void ScriptContext::GetOrAddPropertyRecord(__in_ecount(propertyNameLength) LPCWSTR propertyName, _In_ int propertyNameLength, _Out_ PropertyRecord const ** propertyRecord)
     {
         threadContext->GetOrAddPropertyId(propertyName, propertyNameLength, propertyRecord);
         if (propertyNameLength == 2)

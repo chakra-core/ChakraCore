@@ -1211,14 +1211,14 @@ private:
         {
             GetOrAddPropertyRecord(propertyName, N - 1, propertyRecord);
         }
-        void GetOrAddPropertyRecord(Js::JavascriptString * propertyString, PropertyRecord const** propertyRecord);
+        void GetOrAddPropertyRecord(_In_ Js::JavascriptString * propertyString, _Out_ PropertyRecord const** propertyRecord);
         PropertyId GetOrAddPropertyIdTracked(JsUtil::CharacterBuffer<WCHAR> const& propName);
         template <size_t N> PropertyId GetOrAddPropertyIdTracked(const char16(&propertyName)[N])
         {
             return GetOrAddPropertyIdTracked(propertyName, N - 1);
         }
         PropertyId GetOrAddPropertyIdTracked(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, __in int propertyNameLength);
-        void GetOrAddPropertyRecord(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, __in int propertyNameLength, PropertyRecord const** propertyRecord);
+        void GetOrAddPropertyRecord(__in_ecount(propertyNameLength) LPCWSTR pszPropertyName, _In_ int propertyNameLength, _Out_ PropertyRecord const** propertyRecord);
         BOOL IsNumericPropertyId(PropertyId propertyId, uint32* value);
 
         void RegisterWeakReferenceDictionary(JsUtil::IWeakReferenceDictionary* weakReferenceDictionary);

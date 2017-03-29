@@ -1067,60 +1067,61 @@ CommonNumber:
         return aLeft == aRight;
     }
 
-    BOOL JavascriptOperators::HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext *requestContext)
+    BOOL JavascriptOperators::HasOwnProperty(
+        Var instance,
+        PropertyId propertyId,
+        _In_ ScriptContext* requestContext,
+        _In_opt_ PropertyString* propString)
     {
         if (TaggedNumber::Is(instance))
         {
             return FALSE;
         }
-        else
+        RecyclableObject* object = RecyclableObject::FromVar(instance);
+
+        if (JavascriptProxy::Is(instance))
         {
-            RecyclableObject* object = RecyclableObject::FromVar(instance);
+            PropertyDescriptor desc;
+            return GetOwnPropertyDescriptor(object, propertyId, requestContext, &desc);
+        }
 
-            if (JavascriptProxy::Is(instance))
+        // If we have a PropertyString, attempt to shortcut the lookup by using its caches
+        if (propString != nullptr)
+        {
+            PropertyCacheOperationInfo info;
+            if (propString->GetLdElemInlineCache()->PretendTryGetProperty(object->GetType(), &info))
             {
-                PropertyDescriptor desc;
-                return GetOwnPropertyDescriptor(object, propertyId, requestContext, &desc);
-            }
-            else
-            {
-                PropertyString *propString = requestContext->TryGetPropertyString(propertyId);
-                if (propString != nullptr)
+                switch (info.cacheType)
                 {
-                    PropertyCacheOperationInfo info;
-                    if (propString->GetLdElemInlineCache()->PretendTryGetProperty(object->GetType(), &info))
-                    {
-                        switch (info.cacheType)
-                        {
-                            case CacheType_Local:
-                                Assert(object->HasOwnProperty(propertyId));
-                                return TRUE;
-                            case CacheType_Proto:
-                                Assert(!object->HasOwnProperty(propertyId));
-                                return FALSE;
-                            default:
-                                break;
-                        }
-                    }
-                    if (propString->GetStElemInlineCache()->PretendTrySetProperty(object->GetType(), object->GetType(), &info))
-                    {
-                        switch (info.cacheType)
-                        {
-                        case CacheType_Local:
-                            Assert(object->HasOwnProperty(propertyId));
-                            return TRUE;
-                        case CacheType_LocalWithoutProperty:
-                            Assert(!object->HasOwnProperty(propertyId));
-                            return FALSE;
-                        default:
-                            break;
-                        }
-                    }
+                case CacheType_Local:
+                    Assert(object->HasOwnProperty(propertyId));
+                    return TRUE;
+                case CacheType_Proto:
+                    Assert(!object->HasOwnProperty(propertyId));
+                    return FALSE;
+                default:
+                    // We had a cache hit, but cache doesn't tell us if we have an own property
+                    break;
                 }
-
-                return object && object->HasOwnProperty(propertyId);
+            }
+            if (propString->GetStElemInlineCache()->PretendTrySetProperty(object->GetType(), object->GetType(), &info))
+            {
+                switch (info.cacheType)
+                {
+                case CacheType_Local:
+                    Assert(object->HasOwnProperty(propertyId));
+                    return TRUE;
+                case CacheType_LocalWithoutProperty:
+                    Assert(!object->HasOwnProperty(propertyId));
+                    return FALSE;
+                default:
+                    // We had a cache hit, but cache doesn't tell us if we have an own property
+                    break;
+                }
             }
         }
+
+        return object && object->HasOwnProperty(propertyId);
     }
 
     BOOL JavascriptOperators::GetOwnAccessors(Var instance, PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext)
@@ -1198,7 +1199,7 @@ CommonNumber:
                 Assert(!JavascriptSymbol::Is(element));
 
                 PropertyDescriptor propertyDescriptor;
-                JavascriptConversion::ToPropertyKey(element, scriptContext, &propertyRecord);
+                JavascriptConversion::ToPropertyKey(element, scriptContext, &propertyRecord, nullptr);
                 if (JavascriptOperators::GetOwnPropertyDescriptor(object, propertyRecord->GetPropertyId(), scriptContext, &propertyDescriptor))
                 {
                     if (propertyDescriptor.IsEnumerable())
@@ -1564,7 +1565,7 @@ CommonNumber:
         RecyclableObject* object = TaggedNumber::Is(instance) ?
             scriptContext->GetLibrary()->GetNumberPrototype() :
             RecyclableObject::FromVar(instance);
-        BOOL result = HasOwnProperty(object, propertyId, scriptContext);
+        BOOL result = HasOwnProperty(object, propertyId, scriptContext, nullptr);
         return result;
     }
 

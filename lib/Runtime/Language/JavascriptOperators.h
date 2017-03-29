@@ -154,7 +154,7 @@ namespace Js
         static BOOL StrictEqualSIMD(Var aLeft, Var aRight, ScriptContext* scriptContext);
         static BOOL NotStrictEqual(Var aLeft, Var aRight,ScriptContext* scriptContext);
 
-        static BOOL HasOwnProperty(Var instance, PropertyId propertyId, ScriptContext * requestContext);
+        static BOOL HasOwnProperty(Var instance, PropertyId propertyId, _In_ ScriptContext * requestContext, _In_opt_ PropertyString * propString);
         static BOOL GetOwnProperty(Var instance, PropertyId propertyId, Var* value, ScriptContext* requestContext, PropertyValueInfo * propertyValueInfo);
         static BOOL GetOwnAccessors(Var instance, PropertyId propertyId, Var* getter, Var* setter, ScriptContext * requestContext);
         static BOOL EnsureProperty(Var instance, PropertyId propertyId);
