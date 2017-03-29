@@ -1,0 +1,63 @@
+Harness Status: OK
+Found 61 tests: Pass = 29 Fail = 32
+Pass 'WebAssembly' data property on global object  
+Fail 'WebAssembly' object  assert_equals: expected "[object WebAssembly]" but got "[object Object]"
+Pass 'WebAssembly.(Compile|Link|Runtime)Error' data property  
+Fail 'WebAssembly.(Compile|Runtime)Error' constructor function  assert_equals: expected "CompileError" but got "WebAssemblyCompileError"
+Pass 'WebAssembly.(Compile|Runtime)Error' instance objects  
+Pass 'WebAssembly.Module' data property  
+Fail 'WebAssembly.Module' constructor function  assert_equals: expected "Module" but got "WebAssemblyModule"
+Pass 'WebAssembly.Module.prototype' data property  
+Fail 'WebAssembly.Module.prototype' object  assert_equals: expected "[object WebAssembly.Module]" but got "[object WebAssemblyModule]"
+Fail 'WebAssembly.Module' instance objects  assert_equals: expected "[object WebAssembly.Module]" but got "[object WebAssemblyModule]"
+Pass 'WebAssembly.Module.imports' data property  
+Fail 'WebAssembly.Module.imports' method  assert_equals: expected 1 but got 2
+Pass 'WebAssembly.Module.exports' data property  
+Fail 'WebAssembly.Module.exports' method  assert_equals: expected 1 but got 2
+Pass 'WebAssembly.Module.customSections' data property  
+Fail 'WebAssembly.Module.customSections' method  'sectionName' is not a string
+Pass 'WebAssembly.Instance' data property  
+Fail 'WebAssembly.Instance' constructor function  assert_equals: expected "Instance" but got "WebAssemblyInstance"
+Pass 'WebAssembly.Instance.prototype' data property  
+Fail 'WebAssembly.Instance.prototype' object  assert_equals: expected "[object WebAssembly.Instance]" but got "[object WebAssemblyInstance]"
+Fail 'WebAssembly.Instance' instance objects  assert_equals: expected "[object WebAssembly.Instance]" but got "[object WebAssemblyInstance]"
+Pass 'WebAssembly.Instance' 'exports' data property  
+Fail 'WebAssembly.Instance' 'exports' object  assert_equals: expected false but got true
+Fail Exported WebAssembly functions  assert_equals: expected 0 but got -1
+Pass 'WebAssembly.Memory' data property  
+Fail 'WebAssembly.Memory' constructor function  assert_equals: expected "Memory" but got "WebAssemblyMemory"
+Pass 'WebAssembly.Memory.prototype' data property  
+Fail 'WebAssembly.Memory.prototype' object  assert_equals: expected "[object WebAssembly.Memory]" but got "[object WebAssemblyMemory]"
+Fail 'WebAssembly.Memory' instance objects  assert_equals: expected "[object WebAssembly.Memory]" but got "[object WebAssemblyMemory]"
+Pass 'WebAssembly.Memory.prototype.buffer' accessor property  
+Pass 'WebAssembly.Memory.prototype.buffer' getter  
+Pass 'WebAssembly.Memory.prototype.grow' data property  
+Fail 'WebAssembly.Memory.prototype.grow' method  assert_equals: expected true but got false
+Pass 'WebAssembly.Table' data property  
+Fail 'WebAssembly.Table' constructor function  assert_equals: expected "Table" but got "WebAssemblyTable"
+Pass 'WebAssembly.Table.prototype' data property  
+Fail 'WebAssembly.Table.prototype' object  assert_equals: expected "[object WebAssembly.Table]" but got "[object WebAssemblyTable]"
+Fail 'WebAssembly.Table' instance objects  assert_equals: expected "[object WebAssembly.Table]" but got "[object WebAssemblyTable]"
+Pass 'WebAssembly.Table.prototype.length' accessor data property  
+Pass 'WebAssembly.Table.prototype.length' getter  
+Pass 'WebAssembly.Table.prototype.get' data property  
+Pass 'WebAssembly.Table.prototype.get' method  
+Pass 'WebAssembly.Table.prototype.set' data property  
+Fail 'WebAssembly.Table.prototype.set' method  assert_equals: expected 2 but got 1
+Pass 'WebAssembly.Table.prototype.grow' data property  
+Fail 'WebAssembly.Table.prototype.grow' method  assert_equals: expected (number) 1 but got (undefined) undefined
+Pass 'WebAssembly.validate' method  
+Pass 'WebAssembly.compile' data property  
+Fail 'WebAssembly.compile' function  assert_equals: expected 1 but got 2
+Fail assertCompileError 1  BufferSource expected
+Fail assertCompileError 2  BufferSource expected
+Fail assertCompileError 3  BufferSource expected
+Fail assertCompileError 4  BufferSource expected
+Fail assertCompileError 5  Out of file: Needed: 4, Left: 0
+Fail assertCompileError 6  Out of file: Needed: 4, Left: 0
+Fail assertCompileError 7  Out of file: Needed: 4, Left: 0
+Fail assertCompileError 8  Out of file: Needed: 4, Left: 0
+Pass assertCompileSuccess 1  
+Pass assertCompileSuccess 2  
+Pass 'WebAssembly.instantiate' data property  
+Fail 'WebAssembly.instantiate' function  assert_equals: expected 1 but got 2

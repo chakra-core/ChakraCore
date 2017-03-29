@@ -389,7 +389,6 @@
       <files>spec.js</files>
       <baseline>baselines/func.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func.wast -endargs</compile-flags>
-      <!-- xplat-todo: implement xmm.. with wasm related asm. -->
       <tags>exclude_xplat</tags>
     </default>
   </test>
@@ -398,7 +397,7 @@
       <files>spec.js</files>
       <baseline>baselines/func.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/func.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -554,7 +553,7 @@
       <files>spec.js</files>
       <baseline>baselines/left-to-right.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/left-to-right.wast -endargs -nonative</compile-flags>
-      <tags>exclude_dynapogo</tags>
+      <tags>exclude_dynapogo,exclude_xplat</tags>
     </default>
   </test>
   <test>
@@ -894,6 +893,21 @@
       <baseline>baselines/unwind.baseline</baseline>
       <compile-flags>-wasm -args testsuite/core/unwind.wast -endargs -nonative</compile-flags>
       <tags>exclude_dynapogo,exclude_xplat</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/jsapi.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/jsapi.js -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>jsapi.js</files>
+      <baseline>baselines/jsapi.baseline</baseline>
+      <compile-flags>-wasm -args testsuite/js-api/jsapi.js -endargs -nonative</compile-flags>
+      <tags>exclude_dynapogo</tags>
     </default>
   </test>
 </regress-exe>
