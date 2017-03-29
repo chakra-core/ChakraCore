@@ -81,3 +81,7 @@ if (CC_TARGETS_AMD64)
     set(RUN_RE2C OFF)
     add_subdirectory (wabt)
 endif()
+
+if(NOT CC_XCODE_PROJECT)
+    add_dependencies(ChakraCoreStatic ChakraCoreHeaders)
+endif(NOT CC_XCODE_PROJECT)
