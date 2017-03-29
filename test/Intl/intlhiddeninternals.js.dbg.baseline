@@ -1,0 +1,361 @@
+[
+  {
+    "breakpoint": {
+      "reason": "breakpoint",
+      "location": {
+        "start": 0,
+        "length": 28,
+        "text": "var collatorExcludeList = []",
+        "frameDescription": "Global code"
+      }
+    }
+  },
+  {
+    "locals": {
+      "this": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}",
+        "collatorExcludeList": "undefined",
+        "dateTimeFormatExcludeList": "undefined",
+        "Debug": "{...}",
+        "Infinity": "Infinity",
+        "Intl": "{...}",
+        "JSON": "{...}",
+        "Math": "{...}",
+        "NaN": "NaN",
+        "numberFormatExcludeList": "undefined",
+        "SCA": "{...}",
+        "undefined": "undefined",
+        "WScript": "{...}"
+      },
+      "WScript": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}",
+        "Arguments": "[]",
+        "StdErr": "{...}"
+      },
+      "SCA": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}"
+      },
+      "ImageData": {
+        "__proto__": "<large string>",
+        "prototype": "{...}"
+      },
+      "testHiddenInternals": {
+        "__proto__": "<large string>",
+        "prototype": "{...}"
+      },
+      "collatorExcludeList": "undefined",
+      "numberFormatExcludeList": "undefined",
+      "dateTimeFormatExcludeList": "undefined"
+    }
+  },
+  {
+    "callstack": [
+      {
+        "start": 0,
+        "length": 28,
+        "text": "var collatorExcludeList = []",
+        "frameDescription": "Global code"
+      }
+    ]
+  },
+  {
+    "breakpoint": {
+      "reason": "breakpoint",
+      "location": {
+        "start": 793,
+        "length": 67,
+        "text": "testHiddenInternals(Intl.Collator, \"Collator\", collatorExcludeList)",
+        "frameDescription": "Global code"
+      }
+    }
+  },
+  {
+    "locals": {
+      "this": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}",
+        "collatorExcludeList": "[]",
+        "dateTimeFormatExcludeList": "[]",
+        "Debug": "{...}",
+        "Infinity": "Infinity",
+        "Intl": "{...}",
+        "JSON": "{...}",
+        "Math": "{...}",
+        "NaN": "NaN",
+        "numberFormatExcludeList": "[]",
+        "SCA": "{...}",
+        "undefined": "undefined",
+        "WScript": "{...}"
+      },
+      "WScript": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}",
+        "Arguments": "[]",
+        "StdErr": "{...}"
+      },
+      "SCA": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}"
+      },
+      "ImageData": {
+        "__proto__": "<large string>",
+        "prototype": "{...}"
+      },
+      "testHiddenInternals": {
+        "__proto__": "<large string>",
+        "prototype": "{...}"
+      },
+      "collatorExcludeList": {
+        "__proto__": "[]"
+      },
+      "numberFormatExcludeList": {
+        "__proto__": "[]"
+      },
+      "dateTimeFormatExcludeList": {
+        "__proto__": "[]"
+      }
+    }
+  },
+  {
+    "callstack": [
+      {
+        "start": 793,
+        "length": 67,
+        "text": "testHiddenInternals(Intl.Collator, \"Collator\", collatorExcludeList)",
+        "frameDescription": "Global code"
+      }
+    ]
+  },
+  {
+    "breakpoint": {
+      "reason": "breakpoint",
+      "location": {
+        "start": 176,
+        "length": 27,
+        "text": "var obj = new constructor()",
+        "frameDescription": "testHiddenInternals"
+      }
+    }
+  },
+  {
+    "locals": {
+      "this": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}",
+        "collatorExcludeList": "[]",
+        "dateTimeFormatExcludeList": "[]",
+        "Debug": "{...}",
+        "Infinity": "Infinity",
+        "Intl": "{...}",
+        "JSON": "{...}",
+        "Math": "{...}",
+        "NaN": "NaN",
+        "numberFormatExcludeList": "[]",
+        "SCA": "{...}",
+        "undefined": "undefined",
+        "WScript": "{...}"
+      },
+      "arguments": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}",
+        "[0]": "<large string>",
+        "[1]": "Collator",
+        "[2]": "[]",
+        "length": "3"
+      },
+      "constructor": {
+        "[Methods]": "{...}",
+        "__proto__": "<large string>",
+        "prototype": "{...}"
+      },
+      "obj": "undefined",
+      "properties": "undefined",
+      "extraProperties": "undefined",
+      "objType": "Collator",
+      "excludeList": {
+        "__proto__": "[]"
+      },
+      "[Globals]": {
+        "WScript": "{...}",
+        "SCA": "{...}",
+        "ImageData": "<large string>",
+        "testHiddenInternals": "<large string>",
+        "collatorExcludeList": "[]",
+        "numberFormatExcludeList": "[]",
+        "dateTimeFormatExcludeList": "[]"
+      }
+    }
+  },
+  {
+    "callstack": [
+      {
+        "start": 176,
+        "length": 27,
+        "text": "var obj = new constructor()",
+        "frameDescription": "testHiddenInternals"
+      },
+      {
+        "start": 793,
+        "length": 67,
+        "text": "testHiddenInternals(Intl.Collator, \"Collator\", collatorExcludeList)",
+        "frameDescription": "Global code"
+      }
+    ]
+  },
+  {
+    "breakpoint": {
+      "reason": "breakpoint",
+      "location": {
+        "start": 176,
+        "length": 27,
+        "text": "var obj = new constructor()",
+        "frameDescription": "testHiddenInternals"
+      }
+    }
+  },
+  {
+    "locals": {
+      "this": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}",
+        "collatorExcludeList": "[]",
+        "dateTimeFormatExcludeList": "[]",
+        "Debug": "{...}",
+        "Infinity": "Infinity",
+        "Intl": "{...}",
+        "JSON": "{...}",
+        "Math": "{...}",
+        "NaN": "NaN",
+        "numberFormatExcludeList": "[]",
+        "SCA": "{...}",
+        "undefined": "undefined",
+        "WScript": "{...}"
+      },
+      "arguments": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}",
+        "[0]": "<large string>",
+        "[1]": "NumberFormat",
+        "[2]": "[]",
+        "length": "3"
+      },
+      "constructor": {
+        "[Methods]": "{...}",
+        "__proto__": "<large string>",
+        "prototype": "{...}"
+      },
+      "obj": "undefined",
+      "properties": "undefined",
+      "extraProperties": "undefined",
+      "objType": "NumberFormat",
+      "excludeList": {
+        "__proto__": "[]"
+      },
+      "[Globals]": {
+        "WScript": "{...}",
+        "SCA": "{...}",
+        "ImageData": "<large string>",
+        "testHiddenInternals": "<large string>",
+        "collatorExcludeList": "[]",
+        "numberFormatExcludeList": "[]",
+        "dateTimeFormatExcludeList": "[]"
+      }
+    }
+  },
+  {
+    "callstack": [
+      {
+        "start": 176,
+        "length": 27,
+        "text": "var obj = new constructor()",
+        "frameDescription": "testHiddenInternals"
+      },
+      {
+        "start": 863,
+        "length": 79,
+        "text": "testHiddenInternals(Intl.NumberFormat, \"NumberFormat\", numberFormatExcludeList)",
+        "frameDescription": "Global code"
+      }
+    ]
+  },
+  {
+    "breakpoint": {
+      "reason": "breakpoint",
+      "location": {
+        "start": 176,
+        "length": 27,
+        "text": "var obj = new constructor()",
+        "frameDescription": "testHiddenInternals"
+      }
+    }
+  },
+  {
+    "locals": {
+      "this": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}",
+        "collatorExcludeList": "[]",
+        "dateTimeFormatExcludeList": "[]",
+        "Debug": "{...}",
+        "Infinity": "Infinity",
+        "Intl": "{...}",
+        "JSON": "{...}",
+        "Math": "{...}",
+        "NaN": "NaN",
+        "numberFormatExcludeList": "[]",
+        "SCA": "{...}",
+        "undefined": "undefined",
+        "WScript": "{...}"
+      },
+      "arguments": {
+        "[Methods]": "{...}",
+        "__proto__": "{...}",
+        "[0]": "<large string>",
+        "[1]": "<large string>",
+        "[2]": "[]",
+        "length": "3"
+      },
+      "constructor": {
+        "[Methods]": "{...}",
+        "__proto__": "<large string>",
+        "__relevantExtensionKeys": "[ca,nu]",
+        "prototype": "{...}"
+      },
+      "obj": "undefined",
+      "properties": "undefined",
+      "extraProperties": "undefined",
+      "objType": "<large string>",
+      "excludeList": {
+        "__proto__": "[]"
+      },
+      "[Globals]": {
+        "WScript": "{...}",
+        "SCA": "{...}",
+        "ImageData": "<large string>",
+        "testHiddenInternals": "<large string>",
+        "collatorExcludeList": "[]",
+        "numberFormatExcludeList": "[]",
+        "dateTimeFormatExcludeList": "[]"
+      }
+    }
+  },
+  {
+    "callstack": [
+      {
+        "start": 176,
+        "length": 27,
+        "text": "var obj = new constructor()",
+        "frameDescription": "testHiddenInternals"
+      },
+      {
+        "start": 945,
+        "length": 85,
+        "text": "testHiddenInternals(Intl.DateTimeFormat, \"DateTimeFormat\", dateTimeFormatExcludeList)",
+        "frameDescription": "Global code"
+      }
+    ]
+  }
+]

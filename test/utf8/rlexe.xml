@@ -15,6 +15,12 @@
   </test>
   <test>
     <default>
+      <files>OS_2977448.js</files>
+      <tags>fail_mutators,exclude_winglob,BugFix</tags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>surrogatepair.js</files>
     </default>
   </test>

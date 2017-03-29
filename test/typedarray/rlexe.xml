@@ -144,7 +144,7 @@ Below test fails with difference in space. Investigate the cause and re-enable t
     <default>
         <files>crossthread.js</files>
         <baseline>crossthread_es6.baseline</baseline>
-        <tags>typedarray,exclude_arm,exclude_chk,exclude_apollo</tags>
+        <tags>typedarray,exclude_arm,exclude_chk</tags>
     </default>
 </test>
 -->

@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 
 if (this.WScript && this.WScript.LoadScriptFile) {
-    this.WScript.LoadScriptFile("TrimStackTracePath.js");
+    this.WScript.LoadScriptFile("../UnitTestFramework/TrimStackTracePath.js");
 }
 
 function Dump(output)
