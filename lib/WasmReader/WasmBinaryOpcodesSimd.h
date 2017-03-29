@@ -22,7 +22,7 @@
     V(I2, I)   \
     V(B2, I)   \
     V(F2, I)
-#endif FOREACH_SIMD_TYPE
+#endif
 
 
 
