@@ -138,7 +138,7 @@ uint InliningDecider::InlinePolymorphicCallSite(Js::FunctionBody *const inliner,
     bool isConstructorCall;
     if (!profileData->GetPolymorphicCallSiteInfo(inliner, profiledCallSiteId, &isConstructorCall, functionBodyArray, functionBodyArrayLength))
     {
-        return false;
+        return 0;
     }
 
     uint inlineeCount = 0;
