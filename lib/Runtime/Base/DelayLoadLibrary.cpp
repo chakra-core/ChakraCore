@@ -484,30 +484,4 @@ namespace Js
 #endif
         return FALSE;
     }
-
-    // Implement this function inlined so that WinRT.lib can be used without the runtime.
-    HRESULT DelayLoadWinType::RoGetMetaDataFile(
-        _In_ const HSTRING name,
-        _In_opt_ IMetaDataDispenserEx *metaDataDispenser,
-        _Out_opt_ HSTRING *metaDataFilePath,
-        _Outptr_opt_ IMetaDataImport2 **metaDataImport,
-        _Out_opt_ mdTypeDef *typeDefToken)
-    {
-        if (m_hModule)
-        {
-            if (m_pfnRoGetMetadataFile == nullptr)
-            {
-                m_pfnRoGetMetadataFile = (PFNCWRoGetMetadataFile)GetFunction("RoGetMetaDataFile");
-                if (m_pfnRoGetMetadataFile == nullptr)
-                {
-                    return E_UNEXPECTED;
-                }
-            }
-
-            Assert(m_pfnRoGetMetadataFile != nullptr);
-            return m_pfnRoGetMetadataFile(name, metaDataDispenser, metaDataFilePath, metaDataImport, typeDefToken);
-        }
-
-        return E_NOTIMPL;
-    }
 }
