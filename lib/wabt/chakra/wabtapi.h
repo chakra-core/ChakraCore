@@ -38,14 +38,14 @@ namespace ChakraWabt
 
     struct Error
     {
-        Error(char* message): message(message) {}
-        char* message;
+        Error(const char* message): message(message) {}
+        const char* message;
     };
 
     typedef bool(*SetPropertyFn)(Js::Var obj, PropertyId, Js::Var value, void* user_data);
     typedef Js::Var(*Int32ToVarFn)(int32, void* user_data);
     typedef Js::Var(*Int64ToVarFn)(int64, void* user_data);
-    typedef Js::Var(*StringToVarFn)(const char*, size_t length, void* user_data);
+    typedef Js::Var(*StringToVarFn)(const char*, uint length, void* user_data);
     typedef Js::Var(*CreateObjectFn)(void* user_data);
     typedef Js::Var(*CreateArrayFn)(void* user_data);
     typedef void(*PushFn)(Js::Var arr, Js::Var obj, void* user_data);
@@ -60,8 +60,8 @@ namespace ChakraWabt
         PushFn push;
     };
 
-    typedef Js::Var(*CreateBufferFn)(const char* start, size_t size, void* user_data);
-    typedef void*(*AllocatorFn)(size_t size, void* user_data);
+    typedef Js::Var(*CreateBufferFn)(const char* start, uint size, void* user_data);
+    typedef void*(*AllocatorFn)(uint size, void* user_data);
     struct Context
     {
         AllocatorFn allocator;
@@ -69,12 +69,12 @@ namespace ChakraWabt
         SpecContext* spec;
         void* user_data;
 
-        void* Allocate(size_t size)
+        void* Allocate(uint size)
         {
             return allocator(size, user_data);
         }
         void Validate(bool isSpec) const;
     };
 
-    Js::Var ConvertWast2Wasm(Context& ctx, char* buffer, size_t bufferSize, bool isSpecText);
+    Js::Var ConvertWast2Wasm(Context& ctx, char* buffer, uint bufferSize, bool isSpecText);
 };

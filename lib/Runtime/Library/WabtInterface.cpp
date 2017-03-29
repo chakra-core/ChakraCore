@@ -82,25 +82,25 @@ Js::Var Int64ToVar(int64 value, void* user_data)
     Context* ctx = (Context*)user_data;
     return JavascriptNumber::ToVar(value, ctx->scriptContext);
 }
-Js::Var StringToVar(const char* src, size_t length, void* user_data)
+Js::Var StringToVar(const char* src, uint length, void* user_data)
 {
     Context* ctx = (Context*)user_data;
     size_t bufSize = 0;
-    char16* buf = NarrowStringToWide(ctx, src, &length, &bufSize);
+    size_t slength = (size_t)length;
+    char16* buf = NarrowStringToWide(ctx, src, &slength, &bufSize);
     Assert(bufSize < UINT32_MAX);
     return JavascriptString::NewCopyBuffer(buf, (charcount_t)bufSize, ctx->scriptContext);
 }
 
-Js::Var CreateBuffer(const char* buf, size_t size, void* user_data)
+Js::Var CreateBuffer(const char* buf, uint size, void* user_data)
 {
     Context* ctx = (Context*)user_data;
-    Assert(size < UINT32_MAX);
-    ArrayBuffer* arrayBuffer = ctx->scriptContext->GetLibrary()->CreateArrayBuffer((uint32)size);
-    js_memcpy_s(arrayBuffer->GetBuffer(), arrayBuffer->GetByteLength(), buf, (uint32)size);
+    ArrayBuffer* arrayBuffer = ctx->scriptContext->GetLibrary()->CreateArrayBuffer(size);
+    js_memcpy_s(arrayBuffer->GetBuffer(), arrayBuffer->GetByteLength(), buf, size);
     return arrayBuffer;
 }
 
-void* Allocate(size_t size, void* user_data)
+void* Allocate(uint size, void* user_data)
 {
     Context* ctx = (Context*)user_data;
     return (void*)AnewArrayZ(ctx->allocator, byte, size);
@@ -164,7 +164,7 @@ Js::Var WabtInterface::EntryConvertWast2Wasm(RecyclableObject* function, CallInf
             spec.createArray = CreateArray;
             spec.push = Push;
         }
-        void* result = ChakraWabt::ConvertWast2Wasm(wabtCtx, wastBuffer, wastSize, isSpecText);
+        void* result = ChakraWabt::ConvertWast2Wasm(wabtCtx, wastBuffer, (uint)wastSize, isSpecText);
         if (result == nullptr)
         {
             return scriptContext->GetLibrary()->GetUndefined();

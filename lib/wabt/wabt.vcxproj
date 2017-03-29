@@ -33,7 +33,9 @@
   </ItemDefinitionGroup>
   <!-- Do not build wabt with old toolset -->
   <ItemGroup Condition="'$(BuildWabt)'=='true'">
-    <ClCompile Include="$(MSBuildThisFileDirectory)chakra\wabtapi.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)chakra\wabtapi.cc">
+      <WarningLevel>Level4</WarningLevel>
+    </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)src\ast.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\ast-parser-lexer-shared.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\prebuilt\ast-lexer-gen.cc" />

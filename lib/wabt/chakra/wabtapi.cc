@@ -38,6 +38,15 @@ struct AutoCleanScript
     }
 };
 
+uint TruncSizeT(size_t value)
+{
+    if (value > 0xffffffff)
+    {
+        throw Error("Out of Memory");
+    }
+    return (uint)value;
+}
+
 void ensure_output_buffer_capacity(OutputBuffer* buf, size_t ensure_capacity, MemoryWriterContext* context)
 {
     if (ensure_capacity > buf->capacity)
@@ -46,7 +55,7 @@ void ensure_output_buffer_capacity(OutputBuffer* buf, size_t ensure_capacity, Me
         size_t newCapacity = buf->capacity * 2;
         while (newCapacity < ensure_capacity)
             newCapacity *= 2;
-        char* new_data = (char*)context->ctx->Allocate(newCapacity);
+        char* new_data = (char*)context->ctx->Allocate(TruncSizeT(newCapacity));
         memcpy(new_data, buf->start, buf->capacity);
         buf->start = new_data;
         buf->capacity = newCapacity;
@@ -89,7 +98,7 @@ Result move_data_in_output_buffer(size_t dst_offset,
     return Result::Ok;
 }
 
-void set_property(Context* ctx, Js::Var obj, PropertyId id, Js::Var value, char* messageIfFailed)
+void set_property(Context* ctx, Js::Var obj, PropertyId id, Js::Var value, const char* messageIfFailed)
 {
     bool success = ctx->spec->setProperty(obj, id, value, ctx->user_data);
     if (!success)
@@ -112,7 +121,7 @@ void write_int64(Context* ctx, Js::Var obj, PropertyId id, int64 value)
 
 void write_string(Context* ctx, Js::Var obj, PropertyId id, StringSlice src)
 {
-    Js::Var str = ctx->spec->stringToVar(src.start, src.length, ctx->user_data);
+    Js::Var str = ctx->spec->stringToVar(src.start, TruncSizeT(src.length), ctx->user_data);
     set_property(ctx, obj, id, str, "Unable to write string");
 }
 
@@ -182,19 +191,19 @@ Js::Var create_const_vector(Context* ctx, const ConstVector* consts)
         {
         case Type::I32:
             write_string(ctx, constDescriptor, PropertyIds::type, "i32");
-            wabt_snprintf(buf, _countof(buf), "%u", const_.u32);
+            wabt_snprintf(buf, 32, "%u", const_.u32);
             break;
         case Type::I64:
             write_string(ctx, constDescriptor, PropertyIds::type, "i64");
-            wabt_snprintf(buf, _countof(buf), "%llu", const_.u64);
+            wabt_snprintf(buf, 32, "%llu", const_.u64);
             break;
         case Type::F32:
             write_string(ctx, constDescriptor, PropertyIds::type, "f32");
-            wabt_snprintf(buf, _countof(buf), "%u", const_.f32_bits);
+            wabt_snprintf(buf, 32, "%u", const_.f32_bits);
             break;
         case Type::F64:
             write_string(ctx, constDescriptor, PropertyIds::type, "f64");
-            wabt_snprintf(buf, _countof(buf), "%llu", const_.f64_bits);
+            wabt_snprintf(buf, 32, "%llu", const_.f64_bits);
             break;
         default:
             assert(0);
@@ -301,14 +310,14 @@ Js::Var create_module(Context* ctx, Module* module)
     writer.base.user_data = &context;
     writer.buf.size = 0;
     size_t capacity = writer.buf.capacity = 256;
-    writer.buf.start = (char*)ctx->Allocate(capacity);
+    writer.buf.start = (char*)ctx->Allocate(TruncSizeT(capacity));
     WriteBinaryOptions s_write_binary_options = { nullptr, true, false, false };
     Result result = write_binary_module(&writer.base, module, &s_write_binary_options);
     if (!WABT_SUCCEEDED(result))
     {
         throw Error("Error while writing module");
     }
-    return ctx->createBuffer(writer.buf.start, writer.buf.size, ctx->user_data);
+    return ctx->createBuffer(writer.buf.start, TruncSizeT(writer.buf.size), ctx->user_data);
 }
 
 void write_module(Context* ctx, Js::Var obj, Module* module)
@@ -327,7 +336,7 @@ static void write_invalid_module(Context* ctx, Js::Var obj, const RawModule* mod
         return;
     }
     assert(module->type == RawModuleType::Binary);
-    Js::Var buffer = ctx->createBuffer(module->binary.data, module->binary.size, ctx->user_data);
+    Js::Var buffer = ctx->createBuffer(module->binary.data, TruncSizeT(module->binary.size), ctx->user_data);
     set_property(ctx, obj, PropertyIds::buffer, buffer, "Unable to set invalid module");
 }
 
@@ -434,19 +443,19 @@ Js::Var write_commands(Context* ctx, Script* script) {
 bool lexer_error_callback(const Location* loc,
                           const char* error,
                           const char* source_line,
-                          size_t source_line_length,
+                          size_t,
                           size_t source_line_column_offset,
-                          void* user_data)
+                          void*)
 {
-    size_t colStart = loc->first_column - 1 - source_line_column_offset;
-    size_t sourceErrorLength = (loc->last_column - loc->first_column) - 2;
-    if (sourceErrorLength > loc->last_column)
+    int colStart = loc->first_column - 1 - (int)source_line_column_offset;
+    int sourceErrorLength = (loc->last_column - loc->first_column) - 2;
+    if (sourceErrorLength < 0)
     {
         // -2 probably overflowed
         sourceErrorLength = 0;
     }
     char buf[4096];
-    _snprintf_s(buf, _countof(buf), _TRUNCATE, "Wast Parsing error:%u:%u:\n%s\n%s\n%*s^%*s^",
+    wabt_snprintf(buf, 4096, "Wast Parsing error:%u:%u:\n%s\n%s\n%*s^%*s^",
                 loc->line,
                 loc->first_column,
                 error,
@@ -473,11 +482,11 @@ void Context::Validate(bool isSpec) const
     }
 }
 
-Js::Var ChakraWabt::ConvertWast2Wasm(Context& ctx, char* buffer, size_t bufferSize, bool isSpecText)
+Js::Var ChakraWabt::ConvertWast2Wasm(Context& ctx, char* buffer, uint bufferSize, bool isSpecText)
 {
     ctx.Validate(isSpecText);
 
-    AstLexer* lexer = new_ast_buffer_lexer("", buffer, bufferSize);
+    AstLexer* lexer = new_ast_buffer_lexer("", buffer, (size_t)bufferSize);
     AutoCleanLexer autoCleanLexer = { lexer };
 
     SourceErrorHandler s_error_handler = {
