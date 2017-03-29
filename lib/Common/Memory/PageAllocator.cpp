@@ -284,7 +284,7 @@ PageSegmentBase<T>::Prime()
 
 template<typename T>
 bool
-PageSegmentBase<T>::IsAllocationPageAligned(__in char* address, size_t pageCount)
+PageSegmentBase<T>::IsAllocationPageAligned(__in char* address, size_t pageCount, uint *nextIndex)
 {
     // Require that allocations are aligned at a boundary
     // corresponding to the page count
@@ -297,6 +297,11 @@ PageSegmentBase<T>::IsAllocationPageAligned(__in char* address, size_t pageCount
     if ((reinterpret_cast<uintptr_t>(address)& mask) == 0)
     {
         return true;
+    }
+
+    if (nextIndex != nullptr)
+    {
+        *nextIndex = (uint) ((reinterpret_cast<uintptr_t>(address) % (mask + 1)) / AutoSystemInfo::PageSize);
     }
 
     return false;
@@ -332,9 +337,14 @@ PageSegmentBase<T>::AllocPages(uint pageCount)
 
             if (pageCount > 1 && !notPageAligned)
             {
-                if (!IsAllocationPageAligned(allocAddress, pageCount))
+                uint nextIndex = 0;
+                if (!IsAllocationPageAligned(allocAddress, pageCount, &nextIndex))
                 {
-                    index = this->freePages.GetNextBit(index + 1);
+                    if (index + nextIndex >= this->GetAllocator()->GetMaxAllocPageCount())
+                    {
+                        return nullptr;
+                    }
+                    index = this->freePages.GetNextBit(index + nextIndex);
                     continue;
                 }
             }
@@ -400,9 +410,14 @@ PageSegmentBase<TVirtualAlloc>::AllocDecommitPages(uint pageCount, T freePages, 
 
             if (!notPageAligned)
             {
-                if (!IsAllocationPageAligned(pages, pageCount))
+                uint nextIndex = 0;
+                if (!IsAllocationPageAligned(pages, pageCount, &nextIndex))
                 {
-                    index = freeAndDecommitPages.GetNextBit(index + 1);
+                    if (index + nextIndex >= this->GetAllocator()->GetMaxAllocPageCount())
+                    {
+                        return nullptr;
+                    }
+                    index = freeAndDecommitPages.GetNextBit(index + nextIndex);
                     continue;
                 }
             }
