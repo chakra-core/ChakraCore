@@ -709,7 +709,7 @@ namespace Js
     {
         SetHasInlineCaches(true);
         Js::FunctionBody* functionBody = this->GetFunctionBody();
-        this->m_inlineCaches = (Field(void*)*)functionBody->GetInlineCaches();
+        this->m_inlineCaches = functionBody->GetInlineCaches();
 #if DBG
         this->m_inlineCacheTypes = functionBody->GetInlineCacheTypes();
 #endif
@@ -860,7 +860,7 @@ namespace Js
             this->m_inlineCacheTypes = RecyclerNewArrayLeafZ(functionBody->GetScriptContext()->GetRecycler(),
                 byte, totalCacheCount);
 #endif
-            this->m_inlineCaches = (Field(void*)*)inlineCaches;
+            this->m_inlineCaches = inlineCaches;
         }
     }
 
