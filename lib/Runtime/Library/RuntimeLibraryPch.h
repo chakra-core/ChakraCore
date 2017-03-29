@@ -64,7 +64,6 @@
 #include "Library/TypedArrayIndexEnumerator.h"
 #include "Library/JavascriptStringEnumerator.h"
 #include "Library/JavascriptRegExpEnumerator.h"
-#include "Library/IteratorObjectEnumerator.h"
 
 #include "Library/JavascriptIterator.h"
 #include "Library/JavascriptArrayIterator.h"

@@ -35,7 +35,7 @@ namespace Js
         ScriptContext * GetScriptContext() const { return enumerator.GetScriptContext(); }
         void Initialize(RecyclableObject* currentObject, ScriptContext * requestContext, bool enumSymbols = false, ForInCache * forInCache = nullptr);
         void Clear();
-        Var MoveAndGetNext(PropertyId& propertyId);
+        JavascriptString * MoveAndGetNext(PropertyId& propertyId);
 
         static RecyclableObject* GetFirstPrototypeWithEnumerableProperties(RecyclableObject* object, RecyclableObject** pFirstPrototype = nullptr);
 

@@ -39,7 +39,6 @@ set(CRLIB_SOURCE_CODES
     ForInObjectEnumerator.cpp
     GlobalObject.cpp
     IntlEngineInterfaceExtensionObject.cpp
-    IteratorObjectEnumerator.cpp
     JSON.cpp
     JSONParser.cpp
     JSONScanner.cpp

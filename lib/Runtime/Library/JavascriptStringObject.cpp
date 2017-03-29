@@ -200,7 +200,7 @@ namespace Js
         return JavascriptStringObject::IsValidIndex(propertyId, false);
     }
 
-    BOOL JavascriptStringObject::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
+    BOOL JavascriptStringObject::GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext)
     {
         if (index == 0)
         {

@@ -12190,7 +12190,7 @@ Case0:
         return GetTypeHandler()->ConvertToTypeWithItemAttributes(this)->Freeze(this);
     }
 
-    BOOL JavascriptArray::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
+    BOOL JavascriptArray::GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext)
     {
         if (index == 0)
         {

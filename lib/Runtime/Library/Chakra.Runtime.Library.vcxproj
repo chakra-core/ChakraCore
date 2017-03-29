@@ -77,7 +77,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)CompoundString.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)DataView.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)EngineInterfaceObject.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)IteratorObjectEnumerator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptArrayIterator.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptBuiltInFunctions.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JavascriptExternalFunction.cpp" />
@@ -212,7 +211,6 @@
     <ClInclude Include="HostObjectBase.h" />
     <ClInclude Include="InJavascript\Intl.js.bc.32b.h" />
     <ClInclude Include="InJavascript\Intl.js.bc.64b.h" />
-    <ClInclude Include="IteratorObjectEnumerator.h" />
     <ClInclude Include="JavascriptArrayIndexEnumeratorBase.h" />
     <ClInclude Include="JavascriptArrayIndexStaticEnumerator.h" />
     <ClInclude Include="JavascriptArrayIterator.h" />
