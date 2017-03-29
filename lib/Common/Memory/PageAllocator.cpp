@@ -124,6 +124,8 @@ SegmentBase<T>::Initialize(DWORD allocFlags, bool excludeGuardPages)
         return false;
     }
 
+    Assert( ((ULONG_PTR)this->address % (64 * 1024)) == 0 );
+
     originalAddress = this->address;
     bool committed = (allocFlags & MEM_COMMIT) != 0;
     if (addGuardPages)
