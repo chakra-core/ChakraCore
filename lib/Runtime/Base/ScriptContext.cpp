@@ -53,6 +53,8 @@ namespace Js
 
     ScriptContext::ScriptContext(ThreadContext* threadContext) :
         ScriptContextBase(),
+        prev(nullptr),
+        next(nullptr),
         interpreterArena(nullptr),
         moduleSrcInfoCount(0),
         // Regex globals
@@ -469,7 +471,10 @@ namespace Js
 
         // Normally the JavascriptLibraryBase will unregister the scriptContext from the threadContext.
         // In cases where we don't finish initialization e.g. OOM, manually unregister the scriptContext.
-        threadContext->UnregisterScriptContext(this);
+        if (this->IsRegistered())
+        {
+            threadContext->UnregisterScriptContext(this);
+        }
 
 #if ENABLE_BACKGROUND_PARSING
         if (this->backgroundParser != nullptr)

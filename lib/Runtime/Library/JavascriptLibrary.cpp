@@ -1054,6 +1054,10 @@ namespace Js
             scriptContext->ResetWeakReferenceDictionaryList();
             scriptContext->SetIsFinalized();
             scriptContext->MarkForClose();
+            if (scriptContext->IsRegistered())
+            {
+                scriptContext->GetThreadContext()->UnregisterScriptContext(scriptContext);
+            }
         }
     }
 
