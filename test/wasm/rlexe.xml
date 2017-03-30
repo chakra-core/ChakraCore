@@ -194,6 +194,14 @@
 </test>
 <test>
   <default>
+    <files>response.js</files>
+    <baseline>baselines/response.baseline</baseline>
+    <compile-flags>-wasm</compile-flags>
+    <tags>exclude_jshost,exclude_win7</tags>
+  </default>
+</test>
+<test>
+  <default>
     <files>i64cf.js</files>
     <compile-flags>-wasm -maic:0</compile-flags>
     <tags>exclude_amd64</tags>
