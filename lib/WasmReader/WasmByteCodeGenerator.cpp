@@ -521,7 +521,7 @@ EmitInfo WasmBytecodeGenerator::EmitSimdBuildExpr(Js::OpCodeAsmJs op, const Wasm
 
     Js::RegSlot resultReg = GetRegisterSpace(signature[0])->AcquireTmpRegister();
     
-    EmitInfo args[16];
+    EmitInfo args[Simd::MAX_LANES];
     for (uint i = 0; i < lanes; i++)
     {
         args[i] = PopEvalStack();
