@@ -3025,32 +3025,23 @@ SList<IR::Opnd*> * LowererMD::Simd128GetExtendedArgs(IR::Instr *instr)
 
 
 IR::Opnd*
-LowererMD::EnregisterBoolConst(IR::Instr* instr, IR::Opnd *constOpnd, IRType type)
+LowererMD::EnregisterBoolConst(IR::Instr* instr, IR::Opnd *opnd, IRType type)
 {
-    bool isSet = 0;
-    if (constOpnd->IsIntConstOpnd())
-    {
-        isSet = constOpnd->AsIntConstOpnd()->AsInt32() != 0;
-    }
 
-    if (constOpnd->IsInt64ConstOpnd())
+    if (opnd->IsIntConstOpnd() || opnd->IsInt64ConstOpnd())
     {
-        isSet = constOpnd->AsInt64ConstOpnd()->GetValue() != 0;
-    }
-
-    if (isSet)
-    {
+        bool isSet = opnd->GetImmediateValue(instr->m_func) != 0;
         IR::RegOpnd *tempReg = IR::RegOpnd::New(type, m_func);
-        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tempReg, IR::IntConstOpnd::New(-1, type, m_func, true), m_func));
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tempReg, IR::IntConstOpnd::New(isSet ? -1 : 0, type, m_func, true), m_func));
         return tempReg;
     }
 
-    IRType origType = constOpnd->GetType();
+    IRType origType = opnd->GetType();
     IR::RegOpnd *tempReg = IR::RegOpnd::New(origType, m_func);
     IR::Instr* cmovInstr = IR::Instr::New(Js::OpCode::MOV, tempReg, IR::IntConstOpnd::New(0, origType, m_func, true), m_func);
     instr->InsertBefore(cmovInstr);
     Legalize(cmovInstr);
-    cmovInstr = IR::Instr::New(Js::OpCode::SUB, tempReg, tempReg, constOpnd->UseWithNewType(origType, m_func), m_func);
+    cmovInstr = IR::Instr::New(Js::OpCode::SUB, tempReg, tempReg, opnd->UseWithNewType(origType, m_func), m_func);
     instr->InsertBefore(cmovInstr);
     Legalize(cmovInstr);
     cmovInstr = IR::Instr::New(Js::OpCode::CMOVS, tempReg, tempReg, IR::IntConstOpnd::New(-1, origType, m_func, true), m_func);

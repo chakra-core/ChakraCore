@@ -374,7 +374,7 @@ public:
     BYTE                Simd128GetTypedArrBytesPerElem(ValueType arrType);
     IR::Instr*          Simd128CanonicalizeToBools(IR::Instr* instr, const Js::OpCode& cmpOpcode, IR::Opnd& dstOpnd);
     IR::Opnd*           EnregisterIntConst(IR::Instr* instr, IR::Opnd *constOpnd, IRType type = TyInt32);
-    IR::Opnd*           EnregisterBoolConst(IR::Instr* instr, IR::Opnd *constOpnd, IRType type);
+    IR::Opnd*           EnregisterBoolConst(IR::Instr* instr, IR::Opnd *opnd, IRType type);
     SList<IR::Opnd*>  * Simd128GetExtendedArgs(IR::Instr *instr);
     void                GenerateCheckedSimdLoad(IR::Instr * instr);
     void                GenerateSimdStore(IR::Instr * instr);

@@ -15,6 +15,22 @@ namespace Wasm
 
 namespace WasmTypes
 {
+
+const char16* const strIds[Limit] = {
+    nullptr,       //Void = 0,
+    _u("int32"),   //I32 = 1,
+    _u("int64"),   //I64 = 2,
+    _u("float"),   //F32 = 3,
+    _u("double"),  //F64 = 4,
+    _u("simd128")
+};
+
+const char16* GetStrId(WasmType type)
+{
+    Assert(type < WasmType::Limit);
+    return strIds[type];
+}
+
 bool IsLocalType(WasmTypes::WasmType type)
 {
     // Check if type in range ]Void,Limit[
