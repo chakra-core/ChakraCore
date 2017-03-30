@@ -353,6 +353,13 @@ if [[ ${#_VERBOSE} > 0 ]]; then
     echo ""
 fi
 
+ERROR_CLANG() {
+    echo "ERROR: clang++ not found."
+    echo -e "\nYou could use clang++ from a custom location.\n"
+    PRINT_USAGE
+    exit 1
+}
+
 CLANG_PATH=
 if [[ ${#_CXX} > 0 || ${#_CC} > 0 ]]; then
     if [[ ${#_CXX} == 0 || ${#_CC} == 0 ]]; then
@@ -377,11 +384,19 @@ else
             _CC=/usr/bin/clang
             CLANG_PATH=$_CXX
         else
-            echo "ERROR: clang++ not found at /usr/bin/clang++"
-            echo ""
-            echo "You could use clang++ from a custom location."
-            PRINT_USAGE
-            exit 1
+            # try env CXX and CC
+            if [[ ! -f $CXX  || ! -f $CC  ]]; then
+                ERROR_CLANG
+            fi
+
+            _CXX=$CXX
+            _CC=$CC
+            CLANG_PATH=$CXX
+            VERSION=$($CXX --version)
+            if [[ ! $VERSION =~ "clang" ]]; then
+                ERROR_CLANG
+            fi
+            echo -e "Clang++ not found on PATH.\nTrying CCX -> ${CCX} and CC -> ${CC}"
         fi
     else
         CLANG_PATH=c++
