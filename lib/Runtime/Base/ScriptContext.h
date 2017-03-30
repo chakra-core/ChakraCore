@@ -1231,7 +1231,8 @@ private:
         TypeId ReserveTypeIds(int count);
         TypeId CreateTypeId();
 
-        WellKnownHostType GetWellKnownHostType(Js::TypeId typeId) { return threadContext->GetWellKnownHostType(typeId); }
+        template<WellKnownHostType wellKnownType>
+        bool IsWellKnownHostType(Js::TypeId typeId) { return threadContext->IsWellKnownHostType<wellKnownType>(typeId); }
         void SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::TypeId typeId) { threadContext->SetWellKnownHostTypeId(wellKnownType, typeId); }
 
         ParseNodePtr ParseScript(Parser* parser, const byte* script,

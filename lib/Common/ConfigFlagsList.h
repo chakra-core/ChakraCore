@@ -391,6 +391,7 @@ PHASE(All)
 #endif
 #define DEFAULT_CONFIG_WasmCheckVersion     (true)
 #define DEFAULT_CONFIG_WasmFold             (true)
+#define DEFAULT_CONFIG_WasmIgnoreResponse   (false)
 #define DEFAULT_CONFIG_BgJitDelayFgBuffer   (0)
 #define DEFAULT_CONFIG_BgJitPendingFuncCap  (31)
 #define DEFAULT_CONFIG_CurrentSourceInfo    (true)
@@ -1055,6 +1056,7 @@ FLAGPRA          (Boolean, ES6, ESSharedArrayBuffer    , sab     , "Enable Share
 #endif
 FLAGPR_REGOVR_EXP(Boolean, ES6, Wasm, "Enable WebAssembly", DEFAULT_CONFIG_WASM)
 FLAGNR(Boolean, WasmFold, "Enable i32/i64 const folding", DEFAULT_CONFIG_WasmFold)
+FLAGNR(Boolean, WasmIgnoreResponse, "Ignore the type of the Response object", DEFAULT_CONFIG_WasmIgnoreResponse)
 
 #ifdef ENABLE_PROJECTION
 FLAGNR(Boolean, WinRTDelegateInterfaces , "Treat WinRT Delegates as Interfaces when determining their resolvability.", DEFAULT_CONFIG_WinRTDelegateInterfaces)

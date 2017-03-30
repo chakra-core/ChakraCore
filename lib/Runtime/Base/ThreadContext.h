@@ -180,15 +180,6 @@ enum RecyclerCollectCallBackFlags
 };
 typedef void (__cdecl *RecyclerCollectCallBackFunction)(void * context, RecyclerCollectCallBackFlags flags);
 
-// Keep in sync with WellKnownType in scriptdirect.idl
-
-typedef enum WellKnownHostType
-{
-    WellKnownHostType_HTMLAllCollection     = 0,
-    WellKnownHostType_Last                  = WellKnownHostType_HTMLAllCollection,
-    WellKnownHostType_Invalid               = WellKnownHostType_Last+1
-} WellKnownHostType;
-
 #ifdef ENABLE_PROJECTION
 class ExternalWeakReferenceCache
 {
@@ -998,9 +989,15 @@ public:
     Js::TypeId GetNextTypeId() { return nextTypeId; }
 
     // Lookup the well known type registered with a Js::TypeId.
+    //  wellKnownType:  The well known type which we should register
     //  typeId:   The type id to match
-    //  returns:  The well known type which was previously registered via a call to SetWellKnownHostTypeId
-    WellKnownHostType GetWellKnownHostType(Js::TypeId typeId);
+    //  returns:  true if the typeid is the wellKnownType
+    template<WellKnownHostType wellKnownType>
+    bool IsWellKnownHostType(Js::TypeId typeId)
+    {
+        CompileAssert(wellKnownType <= WellKnownHostType_Last);
+        return wellKnownHostTypeIds[wellKnownType] == typeId;
+    }
 
     // Register a well known type to a Js::TypeId.
     //  wellKnownType:  The well known type which we should register
