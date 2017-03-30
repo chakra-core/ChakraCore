@@ -2242,25 +2242,16 @@ Js::TypeId ThreadContext::CreateTypeId()
     return nextTypeId = (Js::TypeId)(nextTypeId + 1);
 }
 
-WellKnownHostType ThreadContext::GetWellKnownHostType(Js::TypeId typeId)
-{
-    if (this->wellKnownHostTypeHTMLAllCollectionTypeId == typeId)
-    {
-        return WellKnownHostType_HTMLAllCollection;
-    }
-
-    return WellKnownHostType_Invalid;
-}
-
 void ThreadContext::SetWellKnownHostTypeId(WellKnownHostType wellKnownType, Js::TypeId typeId)
 {
-    AssertMsg(WellKnownHostType_HTMLAllCollection == wellKnownType, "ThreadContext::SetWellKnownHostTypeId called on type other than HTMLAllCollection");
+    AssertMsg(wellKnownType <= WellKnownHostType_Last, "ThreadContext::SetWellKnownHostTypeId called on unknown type");
 
-    if (WellKnownHostType_HTMLAllCollection == wellKnownType)
+    if (wellKnownType <= WellKnownHostType_Last)
     {
-        this->wellKnownHostTypeHTMLAllCollectionTypeId = typeId;
+        this->wellKnownHostTypeIds[wellKnownType] = typeId;
 #if ENABLE_NATIVE_CODEGEN
-        if (this->m_remoteThreadContextInfo)
+        // The jit server really only needs to know about WellKnownHostType_HTMLAllCollection
+        if (this->m_remoteThreadContextInfo && wellKnownType == WellKnownHostType_HTMLAllCollection)
         {
             HRESULT hr = JITManager::GetJITManager()->SetWellKnownHostTypeId(this->m_remoteThreadContextInfo, (int)typeId);
             JITManager::HandleServerCallResult(hr, RemoteCallType::StateUpdate);

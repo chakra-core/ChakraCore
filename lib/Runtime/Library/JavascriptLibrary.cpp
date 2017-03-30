@@ -1528,6 +1528,7 @@ namespace Js
 #ifdef ENABLE_WASM
         if (scriptContext->GetConfig()->IsWasmEnabled())
         {
+            webAssemblyCompileFunction = nullptr;
             // new WebAssembly object
             webAssemblyObject = DynamicObject::New(recycler,
                 DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
@@ -2900,18 +2901,25 @@ namespace Js
     void JavascriptLibrary::InitializeWebAssemblyObject(DynamicObject* webAssemblyObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         JavascriptLibrary* library = webAssemblyObject->GetLibrary();
+        int slots = 8;
 #ifdef ENABLE_WABT
-        typeHandler->Convert(webAssemblyObject, mode, 9);
+        // Attaching wabt for testing
+        ++slots;
+#endif
+        typeHandler->Convert(webAssemblyObject, mode, slots);
+
+#ifdef ENABLE_WABT
         // Build wabt object
         Js::DynamicObject* wabtObject = library->CreateObject(true);
         library->AddFunctionToLibraryObject(wabtObject, PropertyIds::convertWast2Wasm, &WabtInterface::EntryInfo::ConvertWast2Wasm, 1);
         library->AddMember(webAssemblyObject, PropertyIds::wabt, wabtObject, PropertyNone);
-#else
-        typeHandler->Convert(webAssemblyObject, mode, 8);
 #endif
-        library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WebAssembly::EntryInfo::Compile, 1);
+        library->webAssemblyCompileFunction =
+            library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::compile, &WebAssembly::EntryInfo::Compile, 1);
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::validate, &WebAssembly::EntryInfo::Validate, 1);
         library->AddFunctionToLibraryObject(webAssemblyObject, PropertyIds::instantiate, &WebAssembly::EntryInfo::Instantiate, 1);
+        library->webAssemblyQueryResponseFunction = library->DefaultCreateFunction(&WebAssembly::EntryInfo::QueryResponse, 1, nullptr, nullptr, PropertyIds::undefined);
+        library->webAssemblyInstantiateBoundFunction = library->DefaultCreateFunction(&WebAssembly::EntryInfo::InstantiateBound, 1, nullptr, nullptr, PropertyIds::undefined);
 
         library->AddFunction(webAssemblyObject, PropertyIds::Module, library->webAssemblyModuleConstructor);
 
