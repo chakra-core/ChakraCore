@@ -43,8 +43,6 @@ namespace Js
     uint const ScopeSlots::MaxEncodedSlotCount;
 #endif
 
-    CriticalSection FunctionProxy::GlobalLock;
-
 #ifdef FIELD_ACCESS_STATS
     void FieldAccessStats::Add(FieldAccessStats* other)
     {
@@ -118,7 +116,7 @@ namespace Js
         Assert(!jobProcessorCS || !jobProcessor->ProcessesInBackground() || !jobProcessorCS->IsLocked());
 #endif
 
-        AutoCriticalSection autoCS(GetLock());
+        AutoCriticalSection autoCS(this->GetScriptContext()->GetThreadContext()->GetFunctionBodyLock());
         return AuxPtrsT::GetAuxPtr(this, e);
     }
 
@@ -133,7 +131,7 @@ namespace Js
         }
 
         // when setting ptr to null we never need to promote
-        AutoCriticalSection aucoCS(GetLock());
+        AutoCriticalSection autoCS(this->GetScriptContext()->GetThreadContext()->GetFunctionBodyLock());
         AuxPtrsT::SetAuxPtr(this, e, ptr);
     }
 
@@ -584,7 +582,7 @@ namespace Js
         Assert(!utf8SourceInfo || m_uScriptId == utf8SourceInfo->GetSrcInfo()->sourceContextInfo->sourceContextId);
 
         // Sync entryPoints changes to etw rundown lock
-        CriticalSection* syncObj = scriptContext->GetThreadContext()->GetEtwRundownCriticalSection();
+        CriticalSection* syncObj = scriptContext->GetThreadContext()->GetFunctionBodyLock();
         this->entryPoints = RecyclerNew(this->m_scriptContext->GetRecycler(), FunctionEntryPointList, this->m_scriptContext->GetRecycler(), syncObj);
 
         this->AddEntryPointToEntryPointList(this->GetDefaultFunctionEntryPointInfo());
@@ -733,7 +731,7 @@ namespace Js
         Assert(!proxy->GetUtf8SourceInfo() || m_uScriptId == proxy->GetUtf8SourceInfo()->GetSrcInfo()->sourceContextInfo->sourceContextId);
 
         // Sync entryPoints changes to etw rundown lock
-        CriticalSection* syncObj = scriptContext->GetThreadContext()->GetEtwRundownCriticalSection();
+        CriticalSection* syncObj = scriptContext->GetThreadContext()->GetFunctionBodyLock();
         this->entryPoints = RecyclerNew(scriptContext->GetRecycler(), FunctionEntryPointList, scriptContext->GetRecycler(), syncObj);
 
         this->AddEntryPointToEntryPointList(this->GetDefaultFunctionEntryPointInfo());
@@ -9995,7 +9993,7 @@ namespace Js
         Recycler* recycler = functionBody->GetScriptContext()->GetRecycler();
 
         // Sync entryPoints changes to etw rundown lock
-        auto syncObj = functionBody->GetScriptContext()->GetThreadContext()->GetEtwRundownCriticalSection();
+        auto syncObj = functionBody->GetScriptContext()->GetThreadContext()->GetFunctionBodyLock();
         this->entryPoints = RecyclerNew(recycler, LoopEntryPointList, recycler, syncObj);
 
         this->CreateEntryPoint();

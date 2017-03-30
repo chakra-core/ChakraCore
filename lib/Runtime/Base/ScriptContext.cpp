@@ -392,7 +392,7 @@ namespace Js
     ScriptContext::~ScriptContext()
     {
         // Take etw rundown lock on this thread context. We are going to change/destroy this scriptContext.
-        AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
+        AutoCriticalSection autocs(GetThreadContext()->GetFunctionBodyLock());
 
 #if ENABLE_NATIVE_CODEGEN
         if (m_domFastPathHelperMap != nullptr)
@@ -615,30 +615,33 @@ namespace Js
             CloseNativeCodeGenerator(this->nativeCodeGen);
         }
 #endif
-
-        if (this->sourceList)
         {
-            bool hasFunctions = false;
-            this->sourceList->MapUntil([&hasFunctions](int, RecyclerWeakReference<Utf8SourceInfo>* sourceInfoWeakRef) -> bool
+            // Take lock on the function bodies to sync with the etw source rundown if any.
+            AutoCriticalSection autocs(GetThreadContext()->GetFunctionBodyLock());
+            if (this->sourceList)
             {
-                Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
-                if (sourceInfo)
+                bool hasFunctions = false;
+                this->sourceList->MapUntil([&hasFunctions](int, RecyclerWeakReference<Utf8SourceInfo>* sourceInfoWeakRef) -> bool
                 {
-                    hasFunctions = sourceInfo->HasFunctions();
-                }
+                    Utf8SourceInfo* sourceInfo = sourceInfoWeakRef->Get();
+                    if (sourceInfo)
+                    {
+                        hasFunctions = sourceInfo->HasFunctions();
+                    }
 
-                return hasFunctions;
-            });
-
-            if (hasFunctions)
-            {
-                // We still need to walk through all the function bodies and call cleanup
-                // because otherwise ETW events might not get fired if a GC doesn't happen
-                // and the thread context isn't shut down cleanly (process detach case)
-                this->MapFunction([this](Js::FunctionBody* functionBody) {
-                    Assert(functionBody->GetScriptContext() == nullptr || functionBody->GetScriptContext() == this);
-                    functionBody->Cleanup(/* isScriptContextClosing */ true);
+                    return hasFunctions;
                 });
+
+                if (hasFunctions)
+                {
+                    // We still need to walk through all the function bodies and call cleanup
+                    // because otherwise ETW events might not get fired if a GC doesn't happen
+                    // and the thread context isn't shut down cleanly (process detach case)
+                    this->MapFunction([this](Js::FunctionBody* functionBody) {
+                        Assert(functionBody->GetScriptContext() == nullptr || functionBody->GetScriptContext() == this);
+                        functionBody->Cleanup(/* isScriptContextClosing */ true);
+                    });
+                }
             }
         }
 
@@ -768,12 +771,7 @@ namespace Js
         if (isScriptContextActuallyClosed)
             return false;
 
-        // Limit the lock scope. We require the same lock in ~ScriptContext(), which may be called next.
-        {
-            // Take etw rundown lock on this thread context. We are going to change this scriptContext.
-            AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
-            InternalClose();
-        }
+        InternalClose();
 
         if (!inDestructor && globalObject != nullptr)
         {
@@ -1282,7 +1280,7 @@ namespace Js
 
         if (!sourceList)
         {
-            AutoCriticalSection critSec(threadContext->GetEtwRundownCriticalSection());
+            AutoCriticalSection critSec(threadContext->GetFunctionBodyLock());
             sourceList.Root(RecyclerNew(this->GetRecycler(), SourceList, this->GetRecycler()), this->GetRecycler());
         }
 
@@ -1325,7 +1323,7 @@ namespace Js
 #endif
     void ScriptContext::MarkForClose()
     {
-        if (IsClosed()) 
+        if (IsClosed())
         {
             return;
         }
@@ -2186,7 +2184,7 @@ namespace Js
         {
             // We can be compiling new source code while rundown thread is reading from the list, causing AV on the reader thread
             // lock the list during write as well.
-            AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
+            AutoCriticalSection autocs(GetThreadContext()->GetFunctionBodyLock());
             return sourceList->SetAtFirstFreeSpot(sourceWeakRef);
         }
     }
@@ -2409,7 +2407,7 @@ namespace Js
         IActiveScriptDataCache* profileDataCache, char16 const * sourceMapUrl /*= NULL*/, size_t sourceMapUrlLen /*= 0*/)
     {
         // Take etw rundown lock on this thread context. We are going to init/add to sourceContextInfoMap.
-        AutoCriticalSection autocs(GetThreadContext()->GetEtwRundownCriticalSection());
+        AutoCriticalSection autocs(GetThreadContext()->GetFunctionBodyLock());
 
         EnsureSourceContextInfoMap();
         Assert(this->GetSourceContextInfo(sourceContext, profileDataCache) == nullptr);
