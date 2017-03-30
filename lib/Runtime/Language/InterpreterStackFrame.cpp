@@ -3053,7 +3053,7 @@ namespace Js
             {
                 Assert(typeInfo->constSrcByteOffset != Js::Constants::InvalidOffset);
                 uint constByteSize = typeInfo->constCount * WAsmJs::GetTypeByteSize(type);
-                memcpy_s(destination, constByteSize, source, constByteSize);
+                memmove_s(destination, constByteSize, source, constByteSize);
             }
         }
 
