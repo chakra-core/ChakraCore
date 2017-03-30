@@ -418,6 +418,7 @@ namespace Js
 
         ScriptContext *next;
         ScriptContext *prev;
+        bool IsRegistered() { return next != nullptr || prev != nullptr || threadContext->GetScriptContextList() == this; }
         union
         {
             int64 int64Val; // stores the double & float result for Asm interpreter
