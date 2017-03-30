@@ -5,23 +5,15 @@
 
 
 //temporary until 64x2 types are implemented
-#ifndef FOREACH_SIMD_TYPE_NO64X2
-#define FOREACH_SIMD_TYPE_NO64X2(V) \
-    V(F4, F)   \
-    V(I4, I)   \
-    V(I8, I)   \
-    V(I16, I)  \
-    V(B4, I)   \
-    V(B8, I)   \
-    V(B16, I)
-#endif
-
 #ifndef FOREACH_SIMD_TYPE
 #define FOREACH_SIMD_TYPE(V) \
-    FOREACH_SIMD_TYPE_NO64X2(V) \
-    V(I2, I)   \
-    V(B2, I)   \
-    V(F2, I)
+    V(M128, F)
+#endif
+
+#ifndef FOREACH_SIMD_TYPE_W_BASE
+#define FOREACH_SIMD_TYPE_W_BASE(V) \
+    V(M128, F)   \
+    V(M128, I)
 #endif
 
 
@@ -31,25 +23,21 @@
 #endif
 
 //SIMD Signatures
-#define SIMD_UNARY(TYPE, BASE) WASM_SIGNATURE(TYPE##_##TYPE, 2, WasmTypes::TYPE, WasmTypes::TYPE)
-#define SIMD_BINARY(TYPE, BASE) WASM_SIGNATURE(TYPE ## X3 , 3, WasmTypes::##TYPE, WasmTypes::##TYPE, WasmTypes::##TYPE)
 #define SIMD_EXTRACT(TYPE, BASE) WASM_SIGNATURE(BASE##_##TYPE##_I, 3, WasmTypes::##BASE##32, WasmTypes::##TYPE, WasmTypes::I32)
 #define SIMD_BUILD(TYPE, BASE) WASM_SIGNATURE(TYPE##_##BASE, 2, WasmTypes::##TYPE, WasmTypes::##BASE##32)
-#define SIMD_SHIFT(TYPE, BASE) WASM_SIGNATURE(TYPE##_##TYPE##_I, 3, WasmTypes::##TYPE, WasmTypes::##TYPE, WasmTypes::I32)
 #define SIMD_ALL(TYPE, BASE) \
-    SIMD_UNARY(TYPE, BASE) \
-    SIMD_BINARY(TYPE, BASE) \
     SIMD_EXTRACT(TYPE, BASE) \
-    SIMD_SHIFT(TYPE, BASE) \
     SIMD_BUILD(TYPE, BASE)
 
-FOREACH_SIMD_TYPE(SIMD_ALL)
+FOREACH_SIMD_TYPE_W_BASE(SIMD_ALL)
 #undef SIMD_ALL
-#undef SIMD_SHIFT
 #undef SIMD_BUILD
 #undef SIMD_EXTRACT
-#undef SIMD_BINARY
-#undef SIMD_UNARY
+
+WASM_SIGNATURE(M128X3, 3, WasmTypes::M128, WasmTypes::M128, WasmTypes::M128)
+WASM_SIGNATURE(M128_M128_I, 3, WasmTypes::M128, WasmTypes::M128, WasmTypes::I32)
+WASM_SIGNATURE(M128_M128, 2, WasmTypes::M128, WasmTypes::M128)
+
 
 WASM_MISC_OPCODE(I2Const, 0x100, Limit, true)
 WASM_MISC_OPCODE(I4Const, 0x101, Limit, true)
@@ -63,17 +51,17 @@ WASM_MISC_OPCODE(F2Const, 0x108, Limit, true)
 WASM_MISC_OPCODE(F4Const, 0x109, Limit, true)
 //@TODO
 WASM_MISC_OPCODE(I2Build, 0x10a, Limit, true)
-WASM_SIMD_BUILD_OPCODE(I4Build, 0x10b, I4_I, Simd128_IntsToI4, 4, false)
-WASM_SIMD_BUILD_OPCODE(I8Build, 0x10c, I8_I, Simd128_IntsToI8, 8, false)
-WASM_SIMD_BUILD_OPCODE(I16Build, 0x10d, I16_I, Simd128_IntsToI16, 16, false)
+WASM_SIMD_BUILD_OPCODE(I4Build, 0x10b, M128_I, Simd128_IntsToI4, 4, false)
+WASM_SIMD_BUILD_OPCODE(I8Build, 0x10c, M128_I, Simd128_IntsToI8, 8, false)
+WASM_SIMD_BUILD_OPCODE(I16Build, 0x10d, M128_I, Simd128_IntsToI16, 16, false)
 WASM_MISC_OPCODE(B2Build, 0x10e, Limit, true)
-WASM_SIMD_BUILD_OPCODE(B4Build, 0x10f, B4_I, Simd128_IntsToB4, 4, false)
-WASM_SIMD_BUILD_OPCODE(B8Build, 0x110, B8_I, Simd128_IntsToB8, 8, false)
-WASM_SIMD_BUILD_OPCODE(B16Build, 0x111, B16_I, Simd128_IntsToB16, 16, false)
+WASM_SIMD_BUILD_OPCODE(B4Build, 0x10f, M128_I, Simd128_IntsToB4, 4, false)
+WASM_SIMD_BUILD_OPCODE(B8Build, 0x110, M128_I, Simd128_IntsToB8, 8, false)
+WASM_SIMD_BUILD_OPCODE(B16Build, 0x111, M128_I, Simd128_IntsToB16, 16, false)
 WASM_MISC_OPCODE(F2Build, 0x112, Limit, true)
-WASM_SIMD_BUILD_OPCODE(F4Build, 0x113, F4_F, Simd128_FloatsToF4, 4, false)
+WASM_SIMD_BUILD_OPCODE(F4Build, 0x113, M128_F, Simd128_FloatsToF4, 4, false)
 WASM_MISC_OPCODE(B16Splat, 0x114, Limit, true)
-WASM_BINARY_OPCODE(B16ExtractLane, 0x115, I_B16_I, Simd128_ExtractLane_B16, false)
+WASM_BINARY_OPCODE(B16ExtractLane, 0x115, I_M128_I, Simd128_ExtractLane_B16, false)
 WASM_MISC_OPCODE(B16And, 0x116, Limit, true)
 WASM_MISC_OPCODE(B16Or, 0x117, Limit, true)
 WASM_MISC_OPCODE(B16Xor, 0x118, Limit, true)
@@ -81,7 +69,7 @@ WASM_MISC_OPCODE(B16Not, 0x119, Limit, true)
 WASM_MISC_OPCODE(B16AnyTrue, 0x11a, Limit, true)
 WASM_MISC_OPCODE(B16AllTrue, 0x11b, Limit, true)
 WASM_MISC_OPCODE(B8Splat, 0x11c, Limit, true)
-WASM_BINARY_OPCODE(B8ExtractLane, 0x11d, I_B8_I, Simd128_ExtractLane_B8, false)
+WASM_BINARY_OPCODE(B8ExtractLane, 0x11d, I_M128_I, Simd128_ExtractLane_B8, false)
 WASM_MISC_OPCODE(B8And, 0x11e, Limit, true)
 WASM_MISC_OPCODE(B8Or, 0x11f, Limit, true)
 WASM_MISC_OPCODE(B8Xor, 0x120, Limit, true)
@@ -89,7 +77,7 @@ WASM_MISC_OPCODE(B8Not, 0x121, Limit, true)
 WASM_MISC_OPCODE(B8AnyTrue, 0x122, Limit, true)
 WASM_MISC_OPCODE(B8AllTrue, 0x123, Limit, true)
 WASM_MISC_OPCODE(B4Splat, 0x124, Limit, true)
-WASM_BINARY_OPCODE(B4ExtractLane, 0x125, I_B4_I, Simd128_ExtractLane_B4, false)
+WASM_BINARY_OPCODE(B4ExtractLane, 0x125, I_M128_I, Simd128_ExtractLane_B4, false)
 WASM_MISC_OPCODE(B4And, 0x126, Limit, true)
 WASM_MISC_OPCODE(B4Or, 0x127, Limit, true)
 WASM_MISC_OPCODE(B4Xor, 0x128, Limit, true)
@@ -110,19 +98,19 @@ WASM_MISC_OPCODE(I16ReinterpretI2, 0x136, Limit, true)
 WASM_MISC_OPCODE(I16ReinterpretF4, 0x137, Limit, true)
 WASM_MISC_OPCODE(I16ReinterpretF2, 0x138, Limit, true)
 WASM_MISC_OPCODE(I16Splat, 0x139, Limit, true)
-WASM_BINARY_OPCODE(I16ExtractLaneS, 0x13a, I_I16_I, Simd128_ExtractLane_I16, false)
-WASM_BINARY_OPCODE(I16ExtractLaneU, 0x13b, I_I16_I, Simd128_ExtractLane_U16, false)
-WASM_BINARY_OPCODE(I16Add, 0x13c, I16X3, Simd128_Add_I16, false)
-WASM_BINARY_OPCODE(I16Sub, 0x13d, I16X3, Simd128_Sub_I16, false)
-WASM_BINARY_OPCODE(I16Mul, 0x13e, I16X3, Simd128_Mul_I16, false)
+WASM_BINARY_OPCODE(I16ExtractLaneS, 0x13a, I_M128_I, Simd128_ExtractLane_I16, false)
+WASM_BINARY_OPCODE(I16ExtractLaneU, 0x13b, I_M128_I, Simd128_ExtractLane_U16, false)
+WASM_BINARY_OPCODE(I16Add, 0x13c, M128X3, Simd128_Add_I16, false)
+WASM_BINARY_OPCODE(I16Sub, 0x13d, M128X3, Simd128_Sub_I16, false)
+WASM_BINARY_OPCODE(I16Mul, 0x13e, M128X3, Simd128_Mul_I16, false)
 WASM_MISC_OPCODE(I16Neg, 0x13f, Limit, true)
-WASM_BINARY_OPCODE(I16AddSaturateS, 0x140, I16X3, Simd128_AddSaturate_I16, false)
-WASM_BINARY_OPCODE(I16AddSaturateU, 0x141, I16X3, Simd128_AddSaturate_U16, false)
-WASM_BINARY_OPCODE(I16SubSaturateS, 0x142, I16X3, Simd128_SubSaturate_I16, false)
-WASM_BINARY_OPCODE(I16SubSaturateU, 0x143, I16X3, Simd128_SubSaturate_U16, false)
-WASM_BINARY_OPCODE(I16Shl, 0x144, I16_I16_I, Simd128_ShLtByScalar_I16, false)
-WASM_BINARY_OPCODE(I16ShrS, 0x145, I16_I16_I, Simd128_ShRtByScalar_I16, false)
-WASM_BINARY_OPCODE(I16ShrU, 0x146, I16_I16_I, Simd128_ShRtByScalar_U16, false)
+WASM_BINARY_OPCODE(I16AddSaturateS, 0x140, M128X3, Simd128_AddSaturate_I16, false)
+WASM_BINARY_OPCODE(I16AddSaturateU, 0x141, M128X3, Simd128_AddSaturate_U16, false)
+WASM_BINARY_OPCODE(I16SubSaturateS, 0x142, M128X3, Simd128_SubSaturate_I16, false)
+WASM_BINARY_OPCODE(I16SubSaturateU, 0x143, M128X3, Simd128_SubSaturate_U16, false)
+WASM_BINARY_OPCODE(I16Shl, 0x144, M128_M128_I, Simd128_ShLtByScalar_I16, false)
+WASM_BINARY_OPCODE(I16ShrS, 0x145, M128_M128_I, Simd128_ShRtByScalar_I16, false)
+WASM_BINARY_OPCODE(I16ShrU, 0x146, M128_M128_I, Simd128_ShRtByScalar_U16, false)
 WASM_MISC_OPCODE(I16And, 0x147, Limit, true)
 WASM_MISC_OPCODE(I16Or, 0x148, Limit, true)
 WASM_MISC_OPCODE(I16Xor, 0x149, Limit, true)
@@ -145,19 +133,19 @@ WASM_MISC_OPCODE(I8ReinterpretI2, 0x159, Limit, true)
 WASM_MISC_OPCODE(I8ReinterpretF4, 0x15a, Limit, true)
 WASM_MISC_OPCODE(I8ReinterpretF2, 0x15b, Limit, true)
 WASM_MISC_OPCODE(I8Splat, 0x15c, Limit, true)
-WASM_BINARY_OPCODE(I8ExtractLaneS, 0x15d, I_I8_I, Simd128_ExtractLane_I8, false)
-WASM_BINARY_OPCODE(I8ExtractLaneU, 0x15e, I_I8_I, Simd128_ExtractLane_U8, false)
-WASM_BINARY_OPCODE(I8Add, 0x15f, I8X3, Simd128_Add_I8, false)
-WASM_BINARY_OPCODE(I8Sub, 0x160, I8X3, Simd128_Sub_I8, false)
-WASM_BINARY_OPCODE(I8Mul, 0x161, I8X3, Simd128_Mul_I8, false)
+WASM_BINARY_OPCODE(I8ExtractLaneS, 0x15d, I_M128_I, Simd128_ExtractLane_I8, false)
+WASM_BINARY_OPCODE(I8ExtractLaneU, 0x15e, I_M128_I, Simd128_ExtractLane_U8, false)
+WASM_BINARY_OPCODE(I8Add, 0x15f, M128X3, Simd128_Add_I8, false)
+WASM_BINARY_OPCODE(I8Sub, 0x160, M128X3, Simd128_Sub_I8, false)
+WASM_BINARY_OPCODE(I8Mul, 0x161, M128X3, Simd128_Mul_I8, false)
 WASM_MISC_OPCODE(I8Neg, 0x162, Limit, true)
-WASM_BINARY_OPCODE(I8AddSaturateS, 0x163, I8X3, Simd128_AddSaturate_I8, false)
-WASM_BINARY_OPCODE(I8AddSaturateU, 0x164, I8X3, Simd128_AddSaturate_U8, false)
-WASM_BINARY_OPCODE(I8SubSaturateS, 0x165, I8X3, Simd128_SubSaturate_I8, false)
-WASM_BINARY_OPCODE(I8SubSaturateU, 0x166, I8X3, Simd128_SubSaturate_U8, false)
-WASM_BINARY_OPCODE(I8Shl, 0x167, I8_I8_I,  Simd128_ShLtByScalar_I8, false)
-WASM_BINARY_OPCODE(I8ShrS, 0x168, I8_I8_I, Simd128_ShRtByScalar_I8, false)
-WASM_BINARY_OPCODE(I8ShrU, 0x169, I8_I8_I, Simd128_ShRtByScalar_U8, false)
+WASM_BINARY_OPCODE(I8AddSaturateS, 0x163, M128X3, Simd128_AddSaturate_I8, false)
+WASM_BINARY_OPCODE(I8AddSaturateU, 0x164, M128X3, Simd128_AddSaturate_U8, false)
+WASM_BINARY_OPCODE(I8SubSaturateS, 0x165, M128X3, Simd128_SubSaturate_I8, false)
+WASM_BINARY_OPCODE(I8SubSaturateU, 0x166, M128X3, Simd128_SubSaturate_U8, false)
+WASM_BINARY_OPCODE(I8Shl, 0x167, M128_M128_I, Simd128_ShLtByScalar_I8, false)
+WASM_BINARY_OPCODE(I8ShrS, 0x168, M128_M128_I, Simd128_ShRtByScalar_I8, false)
+WASM_BINARY_OPCODE(I8ShrU, 0x169, M128_M128_I, Simd128_ShRtByScalar_U8, false)
 WASM_MISC_OPCODE(I8And, 0x16a, Limit, true)
 WASM_MISC_OPCODE(I8Or, 0x16b, Limit, true)
 WASM_MISC_OPCODE(I8Xor, 0x16c, Limit, true)
@@ -180,14 +168,14 @@ WASM_MISC_OPCODE(I4ReinterpretI2, 0x17c, Limit, true)
 WASM_MISC_OPCODE(I4ReinterpretF4, 0x17d, Limit, true)
 WASM_MISC_OPCODE(I4ReinterpretF2, 0x17e, Limit, true)
 WASM_MISC_OPCODE(I4Splat, 0x17f, Limit, true)
-WASM_BINARY_OPCODE(I4ExtractLane, 0x180, I_I4_I, Simd128_ExtractLane_I4, false)
-WASM_BINARY_OPCODE(I4Add, 0x181, I4X3, Simd128_Add_I4, false)
-WASM_BINARY_OPCODE(I4Sub, 0x182, I4X3, Simd128_Sub_I4, false)
-WASM_BINARY_OPCODE(I4Mul, 0x183, I4X3, Simd128_Mul_I4, false)
+WASM_BINARY_OPCODE(I4ExtractLane, 0x180, I_M128_I, Simd128_ExtractLane_I4, false)
+WASM_BINARY_OPCODE(I4Add, 0x181, M128X3, Simd128_Add_I4, false)
+WASM_BINARY_OPCODE(I4Sub, 0x182, M128X3, Simd128_Sub_I4, false)
+WASM_BINARY_OPCODE(I4Mul, 0x183, M128X3, Simd128_Mul_I4, false)
 WASM_MISC_OPCODE(I4Neg, 0x184, Limit, true)
-WASM_BINARY_OPCODE(I4Shl, 0x185, I4_I4_I, Simd128_ShLtByScalar_I4, false)
-WASM_BINARY_OPCODE(I4ShrS, 0x186, I4_I4_I, Simd128_ShRtByScalar_I4, false)
-WASM_BINARY_OPCODE(I4ShrU, 0x187, I4_I4_I, Simd128_ShRtByScalar_U4, false)
+WASM_BINARY_OPCODE(I4Shl, 0x185, M128_M128_I, Simd128_ShLtByScalar_I4, false)
+WASM_BINARY_OPCODE(I4ShrS, 0x186, M128_M128_I, Simd128_ShRtByScalar_I4, false)
+WASM_BINARY_OPCODE(I4ShrU, 0x187, M128_M128_I, Simd128_ShRtByScalar_U4, false)
 WASM_MISC_OPCODE(I4And, 0x188, Limit, true)
 WASM_MISC_OPCODE(I4Or, 0x189, Limit, true)
 WASM_MISC_OPCODE(I4Xor, 0x18a, Limit, true)
@@ -250,10 +238,10 @@ WASM_MISC_OPCODE(F4ReinterpretI4, 0x1c2, Limit, true)
 WASM_MISC_OPCODE(F4ReinterpretI2, 0x1c3, Limit, true)
 WASM_MISC_OPCODE(F4ReinterpretF2, 0x1c4, Limit, true)
 WASM_MISC_OPCODE(F4Splat, 0x1c5, Limit, true)
-WASM_BINARY_OPCODE(F4ExtractLane, 0x1c6, F_F4_I, Simd128_ExtractLane_F4, false)
-WASM_BINARY_OPCODE(F4Add, 0x1c7, F4X3, Simd128_Add_F4, false)
-WASM_BINARY_OPCODE(F4Sub, 0x1c8, F4X3, Simd128_Sub_F4, false)
-WASM_BINARY_OPCODE(F4Mul, 0x1c9, F4X3, Simd128_Mul_F4, false)
+WASM_BINARY_OPCODE(F4ExtractLane, 0x1c6, F_M128_I, Simd128_ExtractLane_F4, false)
+WASM_BINARY_OPCODE(F4Add, 0x1c7, M128X3, Simd128_Add_F4, false)
+WASM_BINARY_OPCODE(F4Sub, 0x1c8, M128X3, Simd128_Sub_F4, false)
+WASM_BINARY_OPCODE(F4Mul, 0x1c9, M128X3, Simd128_Mul_F4, false)
 WASM_MISC_OPCODE(F4Neg, 0x1ca, Limit, true)
 WASM_MISC_OPCODE(F4And, 0x1cb, Limit, true)
 WASM_MISC_OPCODE(F4Or, 0x1cc, Limit, true)
@@ -274,9 +262,9 @@ WASM_MISC_OPCODE(F4Store1, 0x1da, Limit, true)
 WASM_MISC_OPCODE(F4Store2, 0x1db, Limit, true)
 WASM_MISC_OPCODE(F4Store3, 0x1dc, Limit, true)
 WASM_MISC_OPCODE(F4Abs, 0x1dd, Limit, true)
-WASM_BINARY_OPCODE(F4Min, 0x1de, F4X3, Simd128_Min_F4, false)
-WASM_BINARY_OPCODE(F4Max, 0x1df, F4X3, Simd128_Max_F4, false)
-WASM_BINARY_OPCODE(F4Div, 0x1e0, F4X3, Simd128_Div_F4, false)
+WASM_BINARY_OPCODE(F4Min, 0x1de, M128X3, Simd128_Min_F4, false)
+WASM_BINARY_OPCODE(F4Max, 0x1df, M128X3, Simd128_Max_F4, false)
+WASM_BINARY_OPCODE(F4Div, 0x1e0, M128X3, Simd128_Div_F4, false)
 WASM_MISC_OPCODE(F4Sqrt, 0x1e1, Limit, true)
 WASM_MISC_OPCODE(F4Rcp, 0x1e2, Limit, true)
 WASM_MISC_OPCODE(F4Rsqrt, 0x1e3, Limit, true)

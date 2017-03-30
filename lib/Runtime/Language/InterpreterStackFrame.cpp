@@ -2332,11 +2332,7 @@ namespace Js
             _u("int64"),   //I64 = 2,
             _u("float"),   //F32 = 3,
             _u("double"),  //F64 = 4,
-#define NAME(TYPE, BASE) _u(#TYPE),
-
-    FOREACH_SIMD_TYPE_NO64X2(NAME)
-#undef NAME
-#undef STR
+            _u("simd128")
         };
 
         // Right now the only invalid wasm type conversion is with int64

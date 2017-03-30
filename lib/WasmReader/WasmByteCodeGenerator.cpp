@@ -119,14 +119,7 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
     case WasmTypes::I64: return Js::AsmJsVarType::Int64;
     case WasmTypes::F32: return Js::AsmJsVarType::Float;
     case WasmTypes::F64: return Js::AsmJsVarType::Double;
-    case WasmTypes::F4:  return Js::AsmJsVarType::Float32x4;
-    case WasmTypes::I4:  return Js::AsmJsVarType::Int32x4;
-    case WasmTypes::B4:  return Js::AsmJsVarType::Bool32x4;
-    case WasmTypes::I8:  return Js::AsmJsVarType::Int16x8;
-    case WasmTypes::B8:  return Js::AsmJsVarType::Bool16x8;
-   
-    case WasmTypes::I16:  return Js::AsmJsVarType::Int8x16;
-    case WasmTypes::B16:  return Js::AsmJsVarType::Bool8x16;
+    case WasmTypes::M128:  return Js::AsmJsVarType::Float32x4;
     //case WasmTypes::I2:  return Js::AsmJsVarType::Int64x2; @TODO
     //case WasmTypes::B2:  return Js::AsmJsVarType::Bool64x2; 
     //case WasmTypes::F2:  return Js::AsmJsVarType::Float2x64;
@@ -474,35 +467,11 @@ WasmBytecodeGenerator::EnregisterLocals()
             case WasmTypes::I64:
                 m_writer->AsmLong1Const1(Js::OpCodeAsmJs::Ld_LongConst, m_locals[i].location, 0);
                 break;
-            case WasmTypes::F4:
+            case WasmTypes::M128:
             {
                 //@TODO maybe we should introduce REAL simd consts? 
                 EmitInfo arg1 = EmitLoadFloatConstIntoReg(0);
                 m_writer->AsmReg5(Js::OpCodeAsmJs::Simd128_FloatsToF4, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location);
-                ReleaseLocation(&arg1);
-                break;
-            }
-            case WasmTypes::I4:
-            case WasmTypes::B4:
-            {
-                EmitInfo arg1 = EmitLoadIntConstIntoReg(0);
-                m_writer->AsmReg5(type == WasmTypes::I4 ? Js::OpCodeAsmJs::Simd128_IntsToI4 : Js::OpCodeAsmJs::Simd128_IntsToB4, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location);
-                ReleaseLocation(&arg1);
-                break;
-            }
-            case WasmTypes::I8:
-            case WasmTypes::B8:
-            {
-                EmitInfo arg1 = EmitLoadIntConstIntoReg(0);
-                m_writer->AsmReg9(type == WasmTypes::I8 ? Js::OpCodeAsmJs::Simd128_IntsToI8 : Js::OpCodeAsmJs::Simd128_IntsToB8, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location);
-                ReleaseLocation(&arg1);
-                break;
-            }
-            case WasmTypes::I16:
-            case WasmTypes::B16:
-            {
-                EmitInfo arg1 = EmitLoadIntConstIntoReg(0);
-                m_writer->AsmReg17(type == WasmTypes::I16 ? Js::OpCodeAsmJs::Simd128_IntsToI16 : Js::OpCodeAsmJs::Simd128_IntsToB16, m_locals[i].location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location, arg1.location);
                 ReleaseLocation(&arg1);
                 break;
             }
@@ -603,7 +572,7 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
         info = EmitConst(WasmTypes::I64, GetReader()->m_currentNode.cnst);
         break;
     case wbF4Const:
-        info = EmitConst(WasmTypes::F4, GetReader()->m_currentNode.cnst);
+        info = EmitConst(WasmTypes::M128, GetReader()->m_currentNode.cnst);
         break;
     case wbBlock:
         info = EmitBlock();
@@ -847,7 +816,7 @@ WasmBytecodeGenerator::EmitLoadConst(EmitInfo dst, WasmConstLitNode cnst)
     case WasmTypes::I64:
         m_writer->AsmLong1Const1(Js::OpCodeAsmJs::Ld_LongConst, dst.location, cnst.i64);
         break;
-    case WasmTypes::F4:
+    case WasmTypes::M128:
     {
         EmitInfo arg1 = EmitLoadFloatConstIntoReg(cnst.v128[0]);
         EmitInfo arg2 = EmitLoadFloatConstIntoReg(cnst.v128[1]);
@@ -1038,13 +1007,9 @@ WasmBytecodeGenerator::EmitCall()
         case WasmTypes::I64:
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Long : Js::OpCodeAsmJs::I_ArgOut_Long;
             break;
-#define CASE(TYPE, BASE) \
-        case WasmTypes::##TYPE: \
-            argOp = Js::OpCodeAsmJs::Simd128_I_ArgOut_##TYPE; \
+        case WasmTypes::M128:
+            argOp = Js::OpCodeAsmJs::Simd128_I_ArgOut_F4;
             break;
-
-FOREACH_SIMD_TYPE_NO64X2(CASE)
-#undef CASE
         case WasmTypes::Any:
             // In unreachable mode allow any type as argument since we won't actually emit the call
             Assert(IsUnreachable());
@@ -1446,11 +1411,8 @@ WasmBytecodeGenerator::GetLoadOp(WasmTypes::WasmType wasmType)
         return Js::OpCodeAsmJs::Ld_Int;
     case WasmTypes::I64:
         return Js::OpCodeAsmJs::Ld_Long;
-#define SIMD_CASE(TYPE, BASE) case WasmTypes::##TYPE: \
-    return Js::OpCodeAsmJs::Simd128_Ld_##TYPE;
-
-    FOREACH_SIMD_TYPE_NO64X2(SIMD_CASE)
-#undef SIMD_CASE
+    case WasmTypes::M128:
+        return Js::OpCodeAsmJs::Simd128_Ld_F4;
     case WasmTypes::Any:
         // In unreachable mode load the any type like an int since we won't actually emit the load
         Assert(IsUnreachable());

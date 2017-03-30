@@ -57,21 +57,7 @@ LanguageTypes::ToWasmType(int8 binType)
     case LanguageTypes::i64: return WasmTypes::I64;
     case LanguageTypes::f32: return WasmTypes::F32;
     case LanguageTypes::f64: return WasmTypes::F64;
-
-    case LanguageTypes::i64x2: return WasmTypes::I2;
-    case LanguageTypes::b64x2: return WasmTypes::B2;
-    case LanguageTypes::f64x2: return WasmTypes::F2;
-
-    case LanguageTypes::f32x4: return WasmTypes::F4;
-    case LanguageTypes::i32x4: return WasmTypes::I4;
-    case LanguageTypes::b32x4: return WasmTypes::B4;
-
-    case LanguageTypes::i16x8: return WasmTypes::I8;
-    case LanguageTypes::b16x8: return WasmTypes::B8;
-
-    case LanguageTypes::i8x16: return WasmTypes::I16;
-    case LanguageTypes::b8x16: return WasmTypes::B16;
-
+    case LanguageTypes::m128: return WasmTypes::M128;
     default:
         throw WasmCompilationException(_u("Invalid binary type %d"), binType);
     }
@@ -497,7 +483,7 @@ WasmBinaryReader::ReadExpr()
         ConstNode<WasmTypes::F64>();
         break;
     case wbF4Const:
-        ConstNode<WasmTypes::F4>();
+        ConstNode<WasmTypes::M128>();
         break;
     case wbSetLocal:
     case wbGetLocal:
@@ -674,7 +660,7 @@ void WasmBinaryReader::ConstNode()
         m_currentNode.cnst.f64 = ReadConst<double>();
         m_funcState.count += sizeof(double);
         break;
-    case WasmTypes::F4:
+    case WasmTypes::M128:
         for (uint i = 0; i < Simd::VEC_WIDTH; i++) 
         {
             m_currentNode.cnst.v128[i] = ReadConst<uint>();

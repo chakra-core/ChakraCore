@@ -366,13 +366,7 @@ EXDEF2_WMS( SIMD_B8_1U8_2toU8_1     , Simd128_Select_U8   , Js::SIMDInt32x4Opera
 EXDEF2_WMS( SIMD_B16_1U16_2toU16_1   , Simd128_Select_U16  , Js::SIMDInt32x4Operation::OpSelect         )
 
   // args out, copy value to outParams
-EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_F4       , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::F4,true>)  , Reg1Float32x4_1)
-EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_I4       , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::I4,true>)  , Reg1Int32x4_1)
-EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_B4       , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::B4,true>)  , Reg1Bool32x4_1)
-EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_I8       , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::I8,true>)  , Reg1Int16x8_1)
-EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_B8       , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::B8,true>)  , Reg1Bool16x8_1)
-EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_I16      , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::I16,true>)  , Reg1Int8x16_1)
-EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_B16      , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::B16,true>)  , Reg1Bool8x16_1)
+EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_F4       , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::M128,true>)  , Reg1Float32x4_1)
 
 EXDEF2_WMS   ( SIMD_F4_1toR1Mem  , Simd128_I_ArgOut_F4     , OP_I_SetOutAsmSimd                          )
   DEF2_WMS   ( SIMD_I4_1toR1Mem  , Simd128_I_ArgOut_I4     , OP_I_SetOutAsmSimd                          )
