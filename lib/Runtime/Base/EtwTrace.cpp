@@ -95,11 +95,8 @@ void EtwTrace::PerformRundown(bool start)
 
     while(threadContext != nullptr)
     {
-        // Take the auxPtrs updating lock, in case auxPtrs is expanding causes GC
-        // which locks Etw Rundown lock, hence dead lock.
-        AutoCriticalSection autoCs(FunctionProxy::GetLock());
         // Take etw rundown lock on this thread context
-        AutoCriticalSection autoEtwRundownCs(threadContext->GetEtwRundownCriticalSection());
+        AutoCriticalSection autoEtwRundownCs(threadContext->GetFunctionBodyLock());
 
         ScriptContext* scriptContext = threadContext->GetScriptContextList();
         while(scriptContext != NULL)

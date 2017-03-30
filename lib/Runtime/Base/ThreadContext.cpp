@@ -2050,7 +2050,7 @@ ThreadContext::ExecuteRecyclerCollectionFunction(Recycler * recycler, Collection
     }
 
     // Take etw rundown lock on this thread context. We can't collect entryPoints if we are in etw rundown.
-    AutoCriticalSection autocs(this->GetEtwRundownCriticalSection());
+    AutoCriticalSection autocs(this->GetFunctionBodyLock());
 
     // Disable calling dispose from leave script or the stack probe
     // while we're executing the recycler wrapper

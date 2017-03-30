@@ -1315,9 +1315,7 @@ namespace Js
     //
     class FunctionProxy : public FinalizableObject
     {
-        static CriticalSection GlobalLock;
     public:
-        static CriticalSection* GetLock() { return &GlobalLock; }
         typedef RecyclerWeakReference<DynamicType> FunctionTypeWeakRef;
         typedef JsUtil::List<FunctionTypeWeakRef*, Recycler, false, WeakRefFreeListedRemovePolicy> FunctionTypeWeakRefList;
 

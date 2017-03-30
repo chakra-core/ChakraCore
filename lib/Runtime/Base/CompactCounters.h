@@ -195,7 +195,7 @@ namespace Js
             }
             else
             {
-                AutoCriticalSection autoCS(host->GetScriptContext()->GetThreadContext()->GetEtwRundownCriticalSection());
+                AutoCriticalSection autoCS(host->GetScriptContext()->GetThreadContext()->GetFunctionBodyLock());
                 this->fieldSize = sizeof(FieldT);
                 this->fields = fieldsArray;
             }

@@ -799,8 +799,10 @@ private:
     THREAD_LOCAL static uint activeScriptSiteCount;
     bool isScriptActive;
 
-    // To synchronize with ETW rundown, which needs to walk scriptContext/functionBody/entryPoint lists.
-    CriticalSection csEtwRundown;
+    // When ETW rundown in background thread which needs to walk scriptContext/functionBody/entryPoint lists,
+    // or when JIT thread is getting auxPtrs from function body, we should not be modifying the list of 
+    // functionBody/entrypoints, or expanding the auxPtrs
+    CriticalSection csFunctionBody;
 
 #ifdef _M_X64
     friend class Js::Amd64StackFrame;
@@ -849,7 +851,7 @@ public:
     CustomHeap::InProcCodePageAllocators * GetCodePageAllocators() { return &codePageAllocators; }
 #endif // ENABLE_NATIVE_CODEGEN
 
-    CriticalSection* GetEtwRundownCriticalSection() { return &csEtwRundown; }
+    CriticalSection* GetFunctionBodyLock() { return &csFunctionBody; }
 
     Js::IsConcatSpreadableCache* GetIsConcatSpreadableCache() { return &isConcatSpreadableCache; }
 
