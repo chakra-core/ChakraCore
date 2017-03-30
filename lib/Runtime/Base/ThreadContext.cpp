@@ -2487,6 +2487,10 @@ ThreadContext::UnregisterScriptContext(Js::ScriptContext *scriptContext)
     {
         scriptContext->next->prev = scriptContext->prev;
     }
+
+    scriptContext->prev = nullptr;
+    scriptContext->next = nullptr;
+
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
     scriptContextCount--;
 #endif

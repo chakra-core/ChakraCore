@@ -53,6 +53,8 @@ namespace Js
 
     ScriptContext::ScriptContext(ThreadContext* threadContext) :
         ScriptContextBase(),
+        prev(nullptr),
+        next(nullptr),
         interpreterArena(nullptr),
         moduleSrcInfoCount(0),
         // Regex globals
@@ -294,7 +296,6 @@ namespace Js
 #endif
 
         // Do this after all operations that may cause potential exceptions. Note: InitialAllocations may still throw!
-        threadContext->RegisterScriptContext(this);
         numberAllocator.Initialize(this->GetRecycler());
 
 #if DEBUG
@@ -470,7 +471,10 @@ namespace Js
 
         // Normally the JavascriptLibraryBase will unregister the scriptContext from the threadContext.
         // In cases where we don't finish initialization e.g. OOM, manually unregister the scriptContext.
-        threadContext->UnregisterScriptContext(this);
+        if (this->IsRegistered())
+        {
+            threadContext->UnregisterScriptContext(this);
+        }
 
 #if ENABLE_BACKGROUND_PARSING
         if (this->backgroundParser != nullptr)
@@ -754,6 +758,8 @@ namespace Js
         {
             javascriptLibrary->CleanupForClose();
             javascriptLibrary->Uninitialize();
+
+            this->ClearScriptContextCaches();
         }
     }
 
@@ -1408,6 +1414,8 @@ namespace Js
         // Assigned the global Object after we have successfully AddRef (in case of OOM)
         globalObject = localGlobalObject;
         globalObject->Initialize(this);
+
+        this->GetThreadContext()->RegisterScriptContext(this);
     }
 
     ArenaAllocator* ScriptContext::AllocatorForDiagnostics()
