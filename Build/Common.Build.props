@@ -81,7 +81,6 @@
       <ProgramDataBaseFileName Condition="'$(ConfigurationType)'!='StaticLibrary'">$(IntDir)</ProgramDataBaseFileName>
 
       <!-- ======== For Code Covearge ======== -->
-      <Optimization Condition="'$(ENABLE_CODECOVERAGE)'=='true'">Disabled</Optimization>
       <PreprocessorDefinitions Condition="'$(ENABLE_CODECOVERAGE)'=='true' AND '$(BYTECODE_TESTING)' == '0'">
         %(PreprocessorDefinitions);
         BYTECODE_TESTING=1
@@ -114,10 +113,23 @@
       <AdditionalOptions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">%(AdditionalOptions) /DEBUGTYPE:CV,FIXUP</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
-  <!-- chk build flags -->
-  <ItemDefinitionGroup Condition="'$(OptimizedBuild)'!='true'">
+
+  <!--Optimization flags-->
+  <ItemDefinitionGroup Condition="'$(OptimizedBuild)'!='true' OR '$(ENABLE_CODECOVERAGE)'=='true'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(OptimizedBuild)'=='true' AND '$(ENABLE_CODECOVERAGE)'!='true'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  
+    <!-- chk build flags -->  
+  <ItemDefinitionGroup Condition="'$(OptimizedBuild)'!='true'">
+    <ClCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);_DEBUG;DBG;DBG_DUMP</PreprocessorDefinitions>
     </ClCompile>
     <ResourceCompile>
@@ -132,8 +144,6 @@
     <ClCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);NDEBUG</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Test'">%(PreprocessorDefinitions);ENABLE_DEBUG_CONFIG_OPTIONS=1</PreprocessorDefinitions>
-      <Optimization>MaxSpeed</Optimization>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Test'">%(PreprocessorDefinitions);ENABLE_DEBUG_CONFIG_OPTIONS=1</PreprocessorDefinitions>
