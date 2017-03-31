@@ -1142,8 +1142,7 @@ namespace Js
             return newArr;  // Return an empty array if we don't have an enumerator
         }
 
-        RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
-        Var propertyName = nullptr;
+        JavascriptString * propertyName = nullptr;
         PropertyId propertyId;
         uint32 propertyIndex = 0;
         uint32 symbolIndex = 0;
@@ -1152,7 +1151,7 @@ namespace Js
 
         while ((propertyName = enumerator.MoveAndGetNext(propertyId)) != NULL)
         {
-            if (!JavascriptOperators::IsUndefinedObject(propertyName, undefined)) //There are some code paths in which GetCurrentIndex can return undefined
+            if (propertyName)
             {
                 if (includeSymbolProperties)
                 {
@@ -1179,10 +1178,7 @@ namespace Js
             uint32 index = 0;
             while (object->GetSpecialPropertyName(index, &propertyName, scriptContext))
             {
-                if (!JavascriptOperators::IsUndefinedObject(propertyName, undefined))
-                {
-                    newArr->DirectSetItemAt(propertyIndex++, propertyName);
-                }
+                newArr->DirectSetItemAt(propertyIndex++, propertyName);
                 index++;
             }
         }
@@ -1525,20 +1521,14 @@ namespace Js
 
         PropertyId nextKey = Constants::NoProperty;
         Var propValue = nullptr;
-        Var propertyVar = nullptr;
+        JavascriptString * propertyName = nullptr;
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((propertyVar = enumerator.MoveAndGetNext(nextKey)) != NULL)
+        while ((propertyName = enumerator.MoveAndGetNext(nextKey)) != NULL)
         {
             if (nextKey == Constants::NoProperty)
             {
-                if (JavascriptOperators::IsUndefinedObject(propertyVar)) //There are some code paths in which GetCurrentIndex can return undefined
-                {
-                    continue;
-                }
-
                 PropertyRecord const * propertyRecord = nullptr;
-                JavascriptString* propertyName = JavascriptString::FromVar(propertyVar);
 
                 scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
                 nextKey = propertyRecord->GetPropertyId();
@@ -1686,24 +1676,14 @@ namespace Js
         PropertyId propId;
         PropertyRecord const * propertyRecord;
         JavascriptString* propertyName = nullptr;
-        RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
-        Var tempVar;
 
         //enumerate through each property of properties and fetch the property descriptor
-        while ((tempVar = enumerator.MoveAndGetNext(propId)) != NULL)
+        while ((propertyName = enumerator.MoveAndGetNext(propId)) != NULL)
         {
             if (propId == Constants::NoProperty) //try current property id query first
             {
-                if (!JavascriptOperators::IsUndefinedObject(tempVar, undefined)) //There are some enumerators returning propertyName but not propId
-                {
-                    propertyName = JavascriptString::FromVar(tempVar);
-                    scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
-                    propId = propertyRecord->GetPropertyId();
-                }
-                else
-                {
-                    continue;
-                }
+                scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propertyRecord);
+                propId = propertyRecord->GetPropertyId();
             }
             else
             {
@@ -1724,7 +1704,7 @@ namespace Js
                 descriptors = temp;
             }
 
-            tempVar = JavascriptOperators::GetProperty(props, propId, scriptContext);
+            Var tempVar = JavascriptOperators::GetProperty(props, propId, scriptContext);
 
             AnalysisAssert(descCount < descSize);
             if (!JavascriptOperators::ToPropertyDescriptor(tempVar, &descriptors[descCount].descriptor, scriptContext))

@@ -19,7 +19,7 @@ namespace Js
     }
 
 
-    Var JavascriptStringEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    JavascriptString * JavascriptStringEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
         if (++index < stringObject->GetLengthAsSignedInt())

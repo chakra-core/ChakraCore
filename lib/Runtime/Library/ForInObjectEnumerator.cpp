@@ -151,7 +151,7 @@ namespace Js
         return !(this->shadowData->propertyIds.TestAndSet(propertyId));
     }
 
-    Var ForInObjectEnumerator::MoveAndGetNext(PropertyId& propertyId)
+    JavascriptString * ForInObjectEnumerator::MoveAndGetNext(PropertyId& propertyId)
     {        
         PropertyRecord const * propRecord;
         PropertyAttributes attributes = PropertyNone;
@@ -159,7 +159,7 @@ namespace Js
         while (true)
         {
             propertyId = Constants::NoProperty;
-            Var currentIndex = enumerator.MoveAndGetNext(propertyId, &attributes);
+            JavascriptString * currentIndex = enumerator.MoveAndGetNext(propertyId, &attributes);
 
             // The object type may have changed and we may not be able to use Jit fast path anymore.
             // canUseJitFastPath is determined in ForInObjectEnumerator::Initialize, once we decide we can't use
@@ -184,22 +184,17 @@ namespace Js
                 // Property Id does not exist.
                 if (propertyId == Constants::NoProperty)
                 {
-                    if (!JavascriptString::Is(currentIndex)) //This can be undefined
-                    {
-                        continue;
-                    }
-                    JavascriptString *pString = JavascriptString::FromVar(currentIndex);
-                    if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(pString))
+                    if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(currentIndex))
                     {
                         // If we have a property string, it is assumed that the propertyId is being
                         // kept alive with the object
-                        PropertyString * propertyString = (PropertyString *)pString;
+                        PropertyString * propertyString = (PropertyString *)currentIndex;
                         propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
                     }
                     else
                     {
-                        ScriptContext* scriptContext = pString->GetScriptContext();
-                        scriptContext->GetOrAddPropertyRecord(pString->GetString(), pString->GetLength(), &propRecord);
+                        ScriptContext* scriptContext = currentIndex->GetScriptContext();
+                        scriptContext->GetOrAddPropertyRecord(currentIndex->GetString(), currentIndex->GetLength(), &propRecord);
                         propertyId = propRecord->GetPropertyId();
 
                         // We keep the track of what is enumerated using a bit vector of propertyID.

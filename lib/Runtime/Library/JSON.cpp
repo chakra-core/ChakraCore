@@ -634,8 +634,6 @@ namespace JSON
                 Js::JavascriptStaticEnumerator enumerator;
                 if (object->GetEnumerator(&enumerator, EnumeratorFlags::SnapShotSemantics, scriptContext))
                 {
-                    Js::RecyclableObject *undefined = scriptContext->GetLibrary()->GetUndefined();
-
                     bool isPrecise;
                     uint32 propertyCount = GetPropertyCount(object, &enumerator, &isPrecise);
                     if (isPrecise)
@@ -647,21 +645,16 @@ namespace JSON
 
                     if (ReplacerFunction != replacerType)
                     {
-                        Js::Var propertyNameVar;
                         enumerator.Reset();
-                        while ((propertyNameVar = enumerator.MoveAndGetNext(id)) != NULL)
+                        while ((propertyName = enumerator.MoveAndGetNext(id)) != NULL)
                         {
-                            if (!Js::JavascriptOperators::IsUndefinedObject(propertyNameVar, undefined))
+                             if (id == Js::Constants::NoProperty)
                             {
-                                propertyName = Js::JavascriptString::FromVar(propertyNameVar);
-                                if (id == Js::Constants::NoProperty)
-                                {
-                                    //if unsuccessful get propertyId from the string
-                                    scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
-                                    id = propRecord->GetPropertyId();
-                                }
-                                StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);
+                                //if unsuccessful get propertyId from the string
+                                scriptContext->GetOrAddPropertyRecord(propertyName->GetString(), propertyName->GetLength(), &propRecord);
+                                id = propRecord->GetPropertyId();
                             }
+                            StringifyMemberObject(propertyName, id, value, (Js::ConcatStringBuilder*)result, indentString, memberSeparator, isFirstMember, isEmpty);                            
                         }
                     }
                     else // case: ES5 && ReplacerFunction == replacerType.
@@ -690,13 +683,9 @@ namespace JSON
                             }
                             enumerator.Reset();
                             uint32 index = 0;
-                            Js::Var propertyNameVar;
-                            while ((propertyNameVar = enumerator.MoveAndGetNext(id)) != NULL && index < precisePropertyCount)
+                            while ((propertyName = enumerator.MoveAndGetNext(id)) != NULL && index < precisePropertyCount)
                             {
-                                if (!Js::JavascriptOperators::IsUndefinedObject(propertyNameVar, undefined))
-                                {
-                                    nameTable[index++] = propertyNameVar;
-                                }
+                                nameTable[index++] = propertyName;
                             }
 
                             // walk the property name list
@@ -916,15 +905,12 @@ namespace JSON
     inline uint32 StringifySession::GetPropertyCount(Js::RecyclableObject* object, Js::JavascriptStaticEnumerator* enumerator)
     {
         uint32 count = 0;
-        Js::Var propertyNameVar;
+        Js::JavascriptString * propertyName;
         Js::PropertyId id;
         enumerator->Reset();
-        while ((propertyNameVar = enumerator->MoveAndGetNext(id)) != NULL)
+        while ((propertyName = enumerator->MoveAndGetNext(id)) != NULL)
         {
-            if (!Js::JavascriptOperators::IsUndefinedObject(propertyNameVar, this->scriptContext->GetLibrary()->GetUndefined()))
-            {
-                ++count;
-            }
+            ++count;
         }
         return count;
     }

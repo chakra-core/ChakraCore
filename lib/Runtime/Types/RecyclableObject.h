@@ -315,7 +315,7 @@ namespace Js {
         virtual BOOL SetEnumerable(PropertyId propertyId, BOOL value) { return false; }
         virtual BOOL SetAttributes(PropertyId propertyId, PropertyAttributes attributes) { return false; }
 
-        virtual BOOL GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext) { return false; }
+        virtual BOOL GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext) { return false; }
         virtual uint GetSpecialPropertyCount() const { return 0; }
         virtual PropertyId const * GetSpecialPropertyIds() const { return nullptr; }
         virtual RecyclableObject* GetThisObjectOrUnWrap(); // Due to the withScope object there are times we need to unwrap

@@ -16,7 +16,7 @@ namespace Js
         Reset();
     }
 
-    Var ArgumentsObjectPrefixEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    JavascriptString * ArgumentsObjectPrefixEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         if (!doneFormalArgs)
         {
@@ -63,7 +63,7 @@ namespace Js
         return argumentsObject->DynamicObject::GetEnumerator(&objectEnumerator, flags, GetScriptContext(), forInCache);
     }
 
-    Var ES5ArgumentsObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    JavascriptString * ES5ArgumentsObjectEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         // Formals:
         // - deleted => not in objectArray && not connected -- do not enum, do not advance
@@ -81,7 +81,7 @@ namespace Js
                 if (argumentsObject->HasObjectArrayItem(formalArgIndex))
                 {
                     PropertyId tempPropertyId;
-                    Var tempIndex = objectEnumerator.MoveAndGetNext(tempPropertyId, attributes);
+                    JavascriptString * tempIndex = objectEnumerator.MoveAndGetNext(tempPropertyId, attributes);
                     AssertMsg(tempIndex, "We advanced objectEnumerator->MoveNext() too many times.");
                 }
 

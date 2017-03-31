@@ -2427,29 +2427,23 @@ namespace Js
                             if (object->GetEnumerator(&enumerator, EnumeratorFlags::EnumNonEnumerable | EnumeratorFlags::EnumSymbols, objectContext))
                             {
                                 Js::PropertyId propertyId;
-                                Var obj;
+                                JavascriptString * obj;
 
                                 while ((obj = enumerator.MoveAndGetNext(propertyId)) != nullptr)
                                 {
-                                    if (!JavascriptString::Is(obj))
-                                    {
-                                        continue;
-                                    }
-
                                     if (propertyId == Constants::NoProperty)
                                     {
-                                        JavascriptString *pString = JavascriptString::FromVar(obj);
-                                        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(pString))
+                                        if (VirtualTableInfo<Js::PropertyString>::HasVirtualTable(obj))
                                         {
                                             // If we have a property string, it is assumed that the propertyId is being
                                             // kept alive with the object
-                                            PropertyString * propertyString = (PropertyString *)pString;
+                                            PropertyString * propertyString = (PropertyString *)obj;
                                             propertyId = propertyString->GetPropertyRecord()->GetPropertyId();
                                         }
                                         else
                                         {
                                             const PropertyRecord* propertyRecord;
-                                            objectContext->GetOrAddPropertyRecord(pString->GetSz(), pString->GetLength(), &propertyRecord);
+                                            objectContext->GetOrAddPropertyRecord(obj->GetSz(), obj->GetLength(), &propertyRecord);
                                             propertyId = propertyRecord->GetPropertyId();
                                         }
                                     }

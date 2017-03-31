@@ -2580,7 +2580,7 @@ LABEL1:
         return DynamicObject::IsWritable(propertyId);
     }
 
-    BOOL JavascriptFunction::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
+    BOOL JavascriptFunction::GetSpecialPropertyName(uint32 index, JavascriptString ** propertyName, ScriptContext * requestContext)
     {
         uint length = GetSpecialPropertyCount();
         if (index < length)

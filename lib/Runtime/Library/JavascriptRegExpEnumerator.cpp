@@ -18,12 +18,12 @@ namespace Js
         index = (uint)-1;
     }
 
-    Var JavascriptRegExpEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
+    JavascriptString * JavascriptRegExpEnumerator::MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes)
     {
         propertyId = Constants::NoProperty;
         ScriptContext* scriptContext = this->GetScriptContext();
 
-        Var item;
+        JavascriptString * item;
         if (regExpObject->GetSpecialEnumerablePropertyName(++index, &item, scriptContext))
         {
             if (attributes != nullptr)

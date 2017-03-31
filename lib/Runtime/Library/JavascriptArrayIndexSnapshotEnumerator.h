@@ -17,6 +17,6 @@ namespace Js
     public:
         JavascriptArrayIndexSnapshotEnumerator(JavascriptArray* arrayObject, EnumeratorFlags flags, ScriptContext* scriptContext);
         virtual void Reset() override;
-        virtual Var MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
+        virtual JavascriptString * MoveAndGetNext(PropertyId& propertyId, PropertyAttributes* attributes = nullptr);
     };
 }
