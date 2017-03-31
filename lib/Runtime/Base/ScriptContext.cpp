@@ -4269,6 +4269,9 @@ namespace Js
     void ScriptContext::RegisterProtoInlineCache(InlineCache *pCache, PropertyId propId)
     {
         hasProtoOrStoreFieldInlineCache = true;
+#if DBG
+        this->inlineCacheAllocator.Unlock();
+#endif
         threadContext->RegisterProtoInlineCache(pCache, propId);
     }
 
@@ -4299,6 +4302,9 @@ namespace Js
     void ScriptContext::RegisterStoreFieldInlineCache(InlineCache *pCache, PropertyId propId)
     {
         hasProtoOrStoreFieldInlineCache = true;
+#if DBG
+        this->inlineCacheAllocator.Unlock();
+#endif
         threadContext->RegisterStoreFieldInlineCache(pCache, propId);
     }
 
@@ -4319,6 +4325,9 @@ namespace Js
     {
         Assert(JavascriptFunction::FromVar(function)->GetScriptContext() == this);
         hasIsInstInlineCache = true;
+#if DBG
+        this->isInstInlineCacheAllocator.Unlock();
+#endif
         threadContext->RegisterIsInstInlineCache(cache, function);
     }
 
@@ -4436,29 +4445,29 @@ void ScriptContext::ClearInlineCaches()
 {
     if (this->hasUsedInlineCache)
     {
-        GetInlineCacheAllocator()->ZeroAll();
+        this->inlineCacheAllocator.ZeroAll();
         this->hasUsedInlineCache = false;
         this->hasProtoOrStoreFieldInlineCache = false;
     }
 
-    Assert(GetInlineCacheAllocator()->IsAllZero());
+    DebugOnly(this->inlineCacheAllocator.CheckIsAllZero(true));
 }
 
 void ScriptContext::ClearIsInstInlineCaches()
 {
     if (this->hasIsInstInlineCache)
     {
-        GetIsInstInlineCacheAllocator()->ZeroAll();
+        isInstInlineCacheAllocator.ZeroAll();
         this->hasIsInstInlineCache = false;
     }
 
-    Assert(GetIsInstInlineCacheAllocator()->IsAllZero());
+    DebugOnly(isInstInlineCacheAllocator.CheckIsAllZero(true));
 }
 
 void ScriptContext::ClearForInCaches()
 {
-    ForInCacheAllocator()->ZeroAll();
-    Assert(ForInCacheAllocator()->IsAllZero());
+    forInCacheAllocator.ZeroAll();
+    DebugOnly(forInCacheAllocator.CheckIsAllZero(false));
 }
 
 
@@ -4467,8 +4476,8 @@ void ScriptContext::ClearInlineCachesWithDeadWeakRefs()
 {
     if (this->hasUsedInlineCache)
     {
-        GetInlineCacheAllocator()->ClearCachesWithDeadWeakRefs(this->recycler);
-        Assert(GetInlineCacheAllocator()->HasNoDeadWeakRefs(this->recycler));
+        this->inlineCacheAllocator.ClearCachesWithDeadWeakRefs(this->recycler);
+        Assert(this->inlineCacheAllocator.HasNoDeadWeakRefs(this->recycler));
     }
 }
 #endif

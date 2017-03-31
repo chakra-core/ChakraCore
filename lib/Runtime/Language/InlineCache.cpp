@@ -383,12 +383,12 @@ namespace Js
 
     void InlineCache::Clear()
     {
-        // IsEmpty() is a quick check to see that the cache is not populated, it only checks u.local.type, which does not
-        // guarantee that the proto or flags cache would not hit. So Clear() must still clear everything.
-
-        u.local.type = nullptr;
-        u.local.isLocal = true;
-        u.local.typeWithoutProperty = nullptr;
+#if DBG
+        if (!IsAll((char*)this, sizeof(InlineCache), '\0'))
+#endif
+        {
+            memset(this, 0, sizeof(InlineCache));
+        }
     }
 
     InlineCache *InlineCache::Clone(Js::PropertyId propertyId, ScriptContext* scriptContext)
@@ -474,7 +474,13 @@ namespace Js
             }
         }
 
-        clone->u = this->u;
+#if DBG
+        // inline cache pages might been locked after ZeroAll
+        if (memcmp(&clone->u, &this->u, sizeof(this->u)) != 0)
+#endif
+        {
+            clone->u = this->u;
+        }
 
         DebugOnly(VerifyRegistrationForInvalidation(clone, scriptContext, propertyId));
     }
@@ -1151,9 +1157,12 @@ namespace Js
 
     void IsInstInlineCache::Clear()
     {
-        this->type = NULL;
-        this->function = NULL;
-        this->result = NULL;
+#if DBG
+        if (!IsAll((char*)this, sizeof(IsInstInlineCache), '\0'))
+#endif
+        {
+            memset(this, 0, sizeof(IsInstInlineCache));
+        }
     }
 
     void IsInstInlineCache::Unregister(ScriptContext * scriptContext)

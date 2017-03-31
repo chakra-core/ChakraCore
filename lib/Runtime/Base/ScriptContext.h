@@ -932,7 +932,16 @@ private:
         }
 #endif
 
-        void SetHasUsedInlineCache(bool value) { hasUsedInlineCache = value; }
+        void SetHasUsedInlineCache(bool value) 
+        {
+            hasUsedInlineCache = value;
+#if DBG
+            if(hasUsedInlineCache)
+            {
+                inlineCacheAllocator.Unlock();
+            }
+#endif
+        }
 
         void SetDirectHostTypeId(TypeId typeId) {directHostTypeId = typeId; }
         TypeId GetDirectHostTypeId() const { return directHostTypeId; }

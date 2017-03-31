@@ -9465,7 +9465,14 @@ CommonNumber:
         // collections, which may still happen from other script contexts.
         if (isShutdown)
         {
+#if DBG
+            for (int i = 0; i < size; i++)
+            {
+                inlineCaches[i].Clear();
+            }
+#else
             memset(inlineCaches, 0, size * sizeof(InlineCache));
+#endif
         }
         else
         {
