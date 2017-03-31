@@ -75,15 +75,15 @@ namespace DateTime
             double currentTime = GetSystemTimeREAL();
 
             // in case the system time wasn't updated backwards, and cache is still beyond...
-            if (currentTime > data.cacheSysTime && currentTime < data.cacheSysTime + INTERVAL_FOR_TICK_BACKUP)
+            if (currentTime >= data.cacheSysTime && currentTime < data.cacheSysTime + INTERVAL_FOR_TICK_BACKUP)
             {
-                return data.cacheSysTime + INTERVAL_FOR_TICK_BACKUP; // wait for real time
+                return data.cacheSysTime + INTERVAL_FOR_TICK_BACKUP - 1; // wait for real time
             }
 
             data.cacheSysTime = currentTime;
             data.cacheTick = current;
 
-            return data.cacheSysTime;
+            return currentTime;
         }
 
         return data.cacheSysTime + (double)diff;
