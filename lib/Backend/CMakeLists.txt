@@ -45,7 +45,6 @@ add_library (Chakra.Backend OBJECT
     JITTimePolymorphicInlineCache.cpp
     JITTimePolymorphicInlineCacheInfo.cpp
     JITTimeProfileInfo.cpp
-    JITTimeScriptContext.cpp
     JITTimeWorkItem.cpp
     JITType.cpp
     JITTypeHandler.cpp

@@ -122,7 +122,6 @@ enum IRDumpFlags
 #include "FunctionCodeGenJitTimeData.h"
 #include "ServerScriptContext.h"
 #include "JITOutput.h"
-#include "JITTimeScriptContext.h"
 #include "AsmJsJITInfo.h"
 #include "FunctionJITRuntimeInfo.h"
 #include "JITTimeFunctionBody.h"

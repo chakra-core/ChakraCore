@@ -199,7 +199,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITOutput.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFunctionBody.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeProfileInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeScriptContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeWorkItem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsJITInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITRuntimeInfo.cpp" />
@@ -395,7 +394,6 @@
     <ClInclude Include="JITTimePolymorphicInlineCache.h" />
     <ClInclude Include="JITTimePolymorphicInlineCacheInfo.h" />
     <ClInclude Include="JITTimeProfileInfo.h" />
-    <ClInclude Include="JITTimeScriptContext.h" />
     <ClInclude Include="JITType.h" />
     <ClInclude Include="JITTypeHandler.h" />
     <ClInclude Include="JITTimeWorkItem.h" />
