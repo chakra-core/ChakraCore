@@ -6995,8 +6995,9 @@ LowererMD::LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert)
     return instr;
 }
 
+template <typename T>
 IR::Instr *
-LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrInsert)
+LowererMD::LoadFloatValue(IR::Opnd * opndDst, T value, IR::Instr * instrInsert)
 {
     if (value == 0.0 && !Js::JavascriptNumber::IsNegZero(value))
     {
@@ -7048,6 +7049,9 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrIns
     return instr;
 
 }
+
+template IR::Instr * LowererMD::LoadFloatValue<float>(IR::Opnd * opndDst, float value, IR::Instr * instrInsert);
+template IR::Instr * LowererMD::LoadFloatValue<double>(IR::Opnd * opndDst, double value, IR::Instr * instrInsert);
 
 IR::Instr *
 LowererMD::EnsureAdjacentArgs(IR::Instr * instrArg)

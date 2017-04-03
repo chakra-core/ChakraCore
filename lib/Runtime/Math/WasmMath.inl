@@ -105,7 +105,21 @@ inline int WasmMath::Eqz(T value)
 template<>
 inline double WasmMath::Copysign(double aLeft, double aRight)
 {
+#if _M_IX86
+    double a = *(double*)Js::NumberConstants::AbsDoubleCst;
+    double b = *(double*)Js::NumberConstants::SgnDoubleBitCst;
+    __asm {
+        movq xmm0, aLeft;
+        movq xmm1, aRight;
+        movq xmm2, a;
+        movq xmm3, b;
+        andps xmm0, xmm2;
+        andps xmm1, xmm3;
+        xorps xmm0, xmm1;
+    }
+#else
     return _copysign(aLeft, aRight);
+#endif
 }
 
 template<>

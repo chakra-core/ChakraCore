@@ -184,6 +184,7 @@ public:
             void            HelperCallForAsmMathBuiltin(IR::Instr* instr, IR::JnHelperMethod helperMethodFloat, IR::JnHelperMethod helperMethodDouble);
             void            GenerateFastInlineBuiltInMathAbs(IR::Instr* instr);
             void            GenerateFastInlineBuiltInMathPow(IR::Instr* instr);
+            IR::Instr *     CheckIsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr, IR::LabelInstr* isNeg0Label);
             IR::Instr *     CloneSlowPath(IR::Instr * instrEndFloatRange, IR::Instr * instrInsert);
             bool            IsCloneDone(IR::Instr * instr, BVSparse<JitArenaAllocator> *bvTmps);
             IR::Instr *     EnsureAdjacentArgs(IR::Instr * instrArg);
@@ -199,7 +200,8 @@ public:
             void            GenerateCopysign(IR::Instr * instr);
 
             static IR::Instr *LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert);
-            static IR::Instr *LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrInsert);
+            template <typename T>
+            static IR::Instr *LoadFloatValue(IR::Opnd * opndDst, T value, IR::Instr * instrInsert);
             IR::Instr *     LoadStackAddress(StackSym *sym, IR::RegOpnd *optionalDstOpnd = nullptr);
             void            EmitInt64Instr(IR::Instr * instr);
      static void            EmitInt4Instr(IR::Instr *instr);
