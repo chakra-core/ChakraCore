@@ -1,479 +1,479 @@
 (5) testsuite/core/names.wast:19: generate module  failed. Unexpected Error: CompileError: Duplicate export name: ?
-(6) testsuite/core/names.wast:602: assert_return($$.() == i32:0) failed. Unexpectedly threw: TypeError: Object expected
-(7) testsuite/core/names.wast:603: assert_return($$.0() == i32:1) failed. Unexpectedly threw: TypeError: Object expected
-(8) testsuite/core/names.wast:604: assert_return($$.-0() == i32:2) failed. Unexpectedly threw: TypeError: Object expected
-(9) testsuite/core/names.wast:605: assert_return($$._() == i32:3) failed. Unexpectedly threw: TypeError: Object expected
-(10) testsuite/core/names.wast:606: assert_return($$.$() == i32:4) failed. Unexpectedly threw: TypeError: Object expected
-(11) testsuite/core/names.wast:607: assert_return($$.@() == i32:5) failed. Unexpectedly threw: TypeError: Object expected
-(12) testsuite/core/names.wast:608: assert_return($$.~!@#$%^&*()_+`-={}|[]\:";'<>?,./ () == i32:6) failed. Unexpectedly threw: TypeError: Object expected
-(13) testsuite/core/names.wast:609: assert_return($$.NaN() == i32:7) failed. Unexpectedly threw: TypeError: Object expected
-(14) testsuite/core/names.wast:610: assert_return($$.Infinity() == i32:8) failed. Unexpectedly threw: TypeError: Object expected
-(15) testsuite/core/names.wast:611: assert_return($$.if() == i32:9) failed. Unexpectedly threw: TypeError: Object expected
-(16) testsuite/core/names.wast:612: assert_return($$.malloc() == i32:10) failed. Unexpectedly threw: TypeError: Object expected
-(17) testsuite/core/names.wast:613: assert_return($$._malloc() == i32:11) failed. Unexpectedly threw: TypeError: Object expected
-(18) testsuite/core/names.wast:614: assert_return($$.__malloc() == i32:12) failed. Unexpectedly threw: TypeError: Object expected
-(19) testsuite/core/names.wast:615: assert_return($$.a() == i32:13) failed. Unexpectedly threw: TypeError: Object expected
-(20) testsuite/core/names.wast:616: assert_return($$.A() == i32:14) failed. Unexpectedly threw: TypeError: Object expected
-(21) testsuite/core/names.wast:617: assert_return($$.?() == i32:15) failed. Unexpectedly threw: TypeError: Object expected
-(22) testsuite/core/names.wast:618: assert_return($$.≈() == i32:16) failed. Unexpectedly threw: TypeError: Object expected
-(23) testsuite/core/names.wast:619: assert_return($$.A?() == i32:17) failed. Unexpectedly threw: TypeError: Object expected
-(24) testsuite/core/names.wast:620: assert_return($$.?() == i32:18) failed. Unexpectedly threw: TypeError: Object expected
-(25) testsuite/core/names.wast:621: assert_return($$.?() == i32:19) failed. Unexpectedly threw: TypeError: Object expected
-(26) testsuite/core/names.wast:622: assert_return($$.f?() == i32:20) failed. Unexpectedly threw: TypeError: Object expected
-(27) testsuite/core/names.wast:623: assert_return($$.ffi() == i32:21) failed. Unexpectedly threw: TypeError: Object expected
+(6) testsuite/core/names.wast:602: assert_return($$.() == i32:0) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(7) testsuite/core/names.wast:603: assert_return($$.0() == i32:1) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(8) testsuite/core/names.wast:604: assert_return($$.-0() == i32:2) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(9) testsuite/core/names.wast:605: assert_return($$._() == i32:3) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(10) testsuite/core/names.wast:606: assert_return($$.$() == i32:4) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(11) testsuite/core/names.wast:607: assert_return($$.@() == i32:5) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(12) testsuite/core/names.wast:608: assert_return($$.~!@#$%^&*()_+`-={}|[]\:";'<>?,./ () == i32:6) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(13) testsuite/core/names.wast:609: assert_return($$.NaN() == i32:7) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(14) testsuite/core/names.wast:610: assert_return($$.Infinity() == i32:8) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(15) testsuite/core/names.wast:611: assert_return($$.if() == i32:9) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(16) testsuite/core/names.wast:612: assert_return($$.malloc() == i32:10) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(17) testsuite/core/names.wast:613: assert_return($$._malloc() == i32:11) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(18) testsuite/core/names.wast:614: assert_return($$.__malloc() == i32:12) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(19) testsuite/core/names.wast:615: assert_return($$.a() == i32:13) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(20) testsuite/core/names.wast:616: assert_return($$.A() == i32:14) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(21) testsuite/core/names.wast:617: assert_return($$.?() == i32:15) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(22) testsuite/core/names.wast:618: assert_return($$.≈() == i32:16) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(23) testsuite/core/names.wast:619: assert_return($$.A?() == i32:17) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(24) testsuite/core/names.wast:620: assert_return($$.?() == i32:18) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(25) testsuite/core/names.wast:621: assert_return($$.?() == i32:19) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(26) testsuite/core/names.wast:622: assert_return($$.f?() == i32:20) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(27) testsuite/core/names.wast:623: assert_return($$.ffi() == i32:21) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
 (28) testsuite/core/names.wast:624: assert_return($$.
-(29) testsuite/core/names.wast:625: assert_return($$.() == i32:23) failed. Unexpectedly threw: TypeError: Object expected
-(30) testsuite/core/names.wast:626: assert_return($$. () == i32:24) failed. Unexpectedly threw: TypeError: Object expected
-(31) testsuite/core/names.wast:627: assert_return($$.ÄÅÇÉÑÖÜáàâäãåçéè() == i32:25) failed. Unexpectedly threw: TypeError: Object expected
-(32) testsuite/core/names.wast:628: assert_return($$.êëíìîïñóòôöõúùûü() == i32:26) failed. Unexpectedly threw: TypeError: Object expected
-(33) testsuite/core/names.wast:629: assert_return($$.????????() == i32:27) failed. Unexpectedly threw: TypeError: Object expected
-(34) testsuite/core/names.wast:630: assert_return($$.????????() == i32:28) failed. Unexpectedly threw: TypeError: Object expected
-(35) testsuite/core/names.wast:631: assert_return($$.????????????????() == i32:29) failed. Unexpectedly threw: TypeError: Object expected
-(36) testsuite/core/names.wast:632: assert_return($$.????????????????() == i32:30) failed. Unexpectedly threw: TypeError: Object expected
-(37) testsuite/core/names.wast:633: assert_return($$.??() == i32:31) failed. Unexpectedly threw: TypeError: Object expected
-(38) testsuite/core/names.wast:634: assert_return($$.??????????????() == i32:32) failed. Unexpectedly threw: TypeError: Object expected
-(39) testsuite/core/names.wast:635: assert_return($$.?() == i32:33) failed. Unexpectedly threw: TypeError: Object expected
-(40) testsuite/core/names.wast:636: assert_return($$.?() == i32:34) failed. Unexpectedly threw: TypeError: Object expected
-(41) testsuite/core/names.wast:637: assert_return($$.?() == i32:35) failed. Unexpectedly threw: TypeError: Object expected
-(42) testsuite/core/names.wast:638: assert_return($$.?() == i32:36) failed. Unexpectedly threw: TypeError: Object expected
-(43) testsuite/core/names.wast:639: assert_return($$.?() == i32:37) failed. Unexpectedly threw: TypeError: Object expected
-(44) testsuite/core/names.wast:640: assert_return($$.??() == i32:38) failed. Unexpectedly threw: TypeError: Object expected
-(45) testsuite/core/names.wast:641: assert_return($$.?() == i32:39) failed. Unexpectedly threw: TypeError: Object expected
-(46) testsuite/core/names.wast:642: assert_return($$.??†≠????() == i32:40) failed. Unexpectedly threw: TypeError: Object expected
-(47) testsuite/core/names.wast:643: assert_return($$.?????????????() == i32:41) failed. Unexpectedly threw: TypeError: Object expected
-(48) testsuite/core/names.wast:644: assert_return($$.??????() == i32:42) failed. Unexpectedly threw: TypeError: Object expected
-(49) testsuite/core/names.wast:645: assert_return($$.????() == i32:43) failed. Unexpectedly threw: TypeError: Object expected
-(50) testsuite/core/names.wast:646: assert_return($$.??????() == i32:44) failed. Unexpectedly threw: TypeError: Object expected
-(51) testsuite/core/names.wast:647: assert_return($$.Z???????????????????????????a???????????????????????l?????????????????????????????g????????????????????????o???????????????????????() == i32:45) failed. Unexpectedly threw: TypeError: Object expected
-(52) testsuite/core/names.wast:648: assert_return($$.????() == i32:46) failed. Unexpectedly threw: TypeError: Object expected
-(53) testsuite/core/names.wast:649: assert_return($$.?() == i32:47) failed. Unexpectedly threw: TypeError: Object expected
-(54) testsuite/core/names.wast:650: assert_return($$.?() == i32:48) failed. Unexpectedly threw: TypeError: Object expected
-(55) testsuite/core/names.wast:651: assert_return($$.??() == i32:49) failed. Unexpectedly threw: TypeError: Object expected
-(56) testsuite/core/names.wast:652: assert_return($$.??() == i32:50) failed. Unexpectedly threw: TypeError: Object expected
-(57) testsuite/core/names.wast:653: assert_return($$.?() == i32:51) failed. Unexpectedly threw: TypeError: Object expected
+(29) testsuite/core/names.wast:625: assert_return($$.() == i32:23) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(30) testsuite/core/names.wast:626: assert_return($$. () == i32:24) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(31) testsuite/core/names.wast:627: assert_return($$.ÄÅÇÉÑÖÜáàâäãåçéè() == i32:25) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(32) testsuite/core/names.wast:628: assert_return($$.êëíìîïñóòôöõúùûü() == i32:26) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(33) testsuite/core/names.wast:629: assert_return($$.????????() == i32:27) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(34) testsuite/core/names.wast:630: assert_return($$.????????() == i32:28) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(35) testsuite/core/names.wast:631: assert_return($$.????????????????() == i32:29) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(36) testsuite/core/names.wast:632: assert_return($$.????????????????() == i32:30) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(37) testsuite/core/names.wast:633: assert_return($$.??() == i32:31) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(38) testsuite/core/names.wast:634: assert_return($$.??????????????() == i32:32) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(39) testsuite/core/names.wast:635: assert_return($$.?() == i32:33) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(40) testsuite/core/names.wast:636: assert_return($$.?() == i32:34) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(41) testsuite/core/names.wast:637: assert_return($$.?() == i32:35) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(42) testsuite/core/names.wast:638: assert_return($$.?() == i32:36) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(43) testsuite/core/names.wast:639: assert_return($$.?() == i32:37) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(44) testsuite/core/names.wast:640: assert_return($$.??() == i32:38) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(45) testsuite/core/names.wast:641: assert_return($$.?() == i32:39) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(46) testsuite/core/names.wast:642: assert_return($$.??†≠????() == i32:40) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(47) testsuite/core/names.wast:643: assert_return($$.?????????????() == i32:41) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(48) testsuite/core/names.wast:644: assert_return($$.??????() == i32:42) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(49) testsuite/core/names.wast:645: assert_return($$.????() == i32:43) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(50) testsuite/core/names.wast:646: assert_return($$.??????() == i32:44) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(51) testsuite/core/names.wast:647: assert_return($$.Z???????????????????????????a???????????????????????l?????????????????????????????g????????????????????????o???????????????????????() == i32:45) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(52) testsuite/core/names.wast:648: assert_return($$.????() == i32:46) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(53) testsuite/core/names.wast:649: assert_return($$.?() == i32:47) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(54) testsuite/core/names.wast:650: assert_return($$.?() == i32:48) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(55) testsuite/core/names.wast:651: assert_return($$.??() == i32:49) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(56) testsuite/core/names.wast:652: assert_return($$.??() == i32:50) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(57) testsuite/core/names.wast:653: assert_return($$.?() == i32:51) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
 (58) testsuite/core/names.wast:654: assert_return($$.
-() == i32:52) failed. Unexpectedly threw: TypeError: Object expected
-(59) testsuite/core/names.wast:655: assert_return($$.?() == i32:53) failed. Unexpectedly threw: TypeError: Object expected
-(60) testsuite/core/names.wast:656: assert_return($$.?() == i32:54) failed. Unexpectedly threw: TypeError: Object expected
-(61) testsuite/core/names.wast:657: assert_return($$.() == i32:55) failed. Unexpectedly threw: TypeError: Object expected
+() == i32:52) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(59) testsuite/core/names.wast:655: assert_return($$.?() == i32:53) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(60) testsuite/core/names.wast:656: assert_return($$.?() == i32:54) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(61) testsuite/core/names.wast:657: assert_return($$.() == i32:55) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
 (62) testsuite/core/names.wast:658: assert_return($$.
-() == i32:56) failed. Unexpectedly threw: TypeError: Object expected
+() == i32:56) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
 (63) testsuite/core/names.wast:659: assert_return($$.
-() == i32:57) failed. Unexpectedly threw: TypeError: Object expected
-(64) testsuite/core/names.wast:660: assert_return($$.() == i32:58) failed. Unexpectedly threw: TypeError: Object expected
-(65) testsuite/core/names.wast:661: assert_return($$.() == i32:59) failed. Unexpectedly threw: TypeError: Object expected
-(66) testsuite/core/names.wast:662: assert_return($$.() == i32:60) failed. Unexpectedly threw: TypeError: Object expected
-(67) testsuite/core/names.wast:663: assert_return($$.Ö() == i32:61) failed. Unexpectedly threw: TypeError: Object expected
-(68) testsuite/core/names.wast:664: assert_return($$.?() == i32:62) failed. Unexpectedly threw: TypeError: Object expected
-(69) testsuite/core/names.wast:665: assert_return($$.?() == i32:63) failed. Unexpectedly threw: TypeError: Object expected
-(70) testsuite/core/names.wast:666: assert_return($$.?() == i32:64) failed. Unexpectedly threw: TypeError: Object expected
-(71) testsuite/core/names.wast:667: assert_return($$.ã() == i32:65) failed. Unexpectedly threw: TypeError: Object expected
-(72) testsuite/core/names.wast:668: assert_return($$.å() == i32:66) failed. Unexpectedly threw: TypeError: Object expected
-(73) testsuite/core/names.wast:669: assert_return($$.ç() == i32:67) failed. Unexpectedly threw: TypeError: Object expected
-(74) testsuite/core/names.wast:670: assert_return($$.?() == i32:68) failed. Unexpectedly threw: TypeError: Object expected
-(75) testsuite/core/names.wast:671: assert_return($$.?() == i32:69) failed. Unexpectedly threw: TypeError: Object expected
-(76) testsuite/core/names.wast:672: assert_return($$.?() == i32:70) failed. Unexpectedly threw: TypeError: Object expected
-(77) testsuite/core/names.wast:673: assert_return($$.?() == i32:71) failed. Unexpectedly threw: TypeError: Object expected
-(78) testsuite/core/names.wast:674: assert_return($$.?() == i32:72) failed. Unexpectedly threw: TypeError: Object expected
-(79) testsuite/core/names.wast:675: assert_return($$.?() == i32:73) failed. Unexpectedly threw: TypeError: Object expected
-(80) testsuite/core/names.wast:676: assert_return($$.?() == i32:74) failed. Unexpectedly threw: TypeError: Object expected
-(81) testsuite/core/names.wast:677: assert_return($$.?() == i32:75) failed. Unexpectedly threw: TypeError: Object expected
-(82) testsuite/core/names.wast:678: assert_return($$.?() == i32:76) failed. Unexpectedly threw: TypeError: Object expected
-(83) testsuite/core/names.wast:679: assert_return($$.?() == i32:77) failed. Unexpectedly threw: TypeError: Object expected
-(84) testsuite/core/names.wast:680: assert_return($$.?() == i32:78) failed. Unexpectedly threw: TypeError: Object expected
-(85) testsuite/core/names.wast:681: assert_return($$.?() == i32:79) failed. Unexpectedly threw: TypeError: Object expected
-(86) testsuite/core/names.wast:682: assert_return($$.?() == i32:80) failed. Unexpectedly threw: TypeError: Object expected
-(87) testsuite/core/names.wast:683: assert_return($$.?() == i32:81) failed. Unexpectedly threw: TypeError: Object expected
-(88) testsuite/core/names.wast:684: assert_return($$.?() == i32:82) failed. Unexpectedly threw: TypeError: Object expected
-(89) testsuite/core/names.wast:685: assert_return($$.?() == i32:83) failed. Unexpectedly threw: TypeError: Object expected
-(90) testsuite/core/names.wast:686: assert_return($$.?() == i32:84) failed. Unexpectedly threw: TypeError: Object expected
-(91) testsuite/core/names.wast:687: assert_return($$.?() == i32:85) failed. Unexpectedly threw: TypeError: Object expected
-(92) testsuite/core/names.wast:688: assert_return($$.?() == i32:86) failed. Unexpectedly threw: TypeError: Object expected
-(93) testsuite/core/names.wast:689: assert_return($$.?() == i32:87) failed. Unexpectedly threw: TypeError: Object expected
-(94) testsuite/core/names.wast:690: assert_return($$.?() == i32:88) failed. Unexpectedly threw: TypeError: Object expected
-(95) testsuite/core/names.wast:691: assert_return($$.?() == i32:89) failed. Unexpectedly threw: TypeError: Object expected
-(96) testsuite/core/names.wast:692: assert_return($$.?() == i32:90) failed. Unexpectedly threw: TypeError: Object expected
-(97) testsuite/core/names.wast:693: assert_return($$.?() == i32:91) failed. Unexpectedly threw: TypeError: Object expected
-(98) testsuite/core/names.wast:694: assert_return($$.?() == i32:92) failed. Unexpectedly threw: TypeError: Object expected
-(99) testsuite/core/names.wast:695: assert_return($$.?() == i32:93) failed. Unexpectedly threw: TypeError: Object expected
-(100) testsuite/core/names.wast:696: assert_return($$.?() == i32:94) failed. Unexpectedly threw: TypeError: Object expected
-(101) testsuite/core/names.wast:697: assert_return($$.?() == i32:95) failed. Unexpectedly threw: TypeError: Object expected
-(102) testsuite/core/names.wast:698: assert_return($$.?() == i32:96) failed. Unexpectedly threw: TypeError: Object expected
-(103) testsuite/core/names.wast:699: assert_return($$.?() == i32:97) failed. Unexpectedly threw: TypeError: Object expected
-(104) testsuite/core/names.wast:700: assert_return($$.?() == i32:98) failed. Unexpectedly threw: TypeError: Object expected
-(105) testsuite/core/names.wast:701: assert_return($$.?() == i32:99) failed. Unexpectedly threw: TypeError: Object expected
-(106) testsuite/core/names.wast:702: assert_return($$.?() == i32:100) failed. Unexpectedly threw: TypeError: Object expected
-(107) testsuite/core/names.wast:703: assert_return($$.?() == i32:101) failed. Unexpectedly threw: TypeError: Object expected
-(108) testsuite/core/names.wast:704: assert_return($$.?() == i32:102) failed. Unexpectedly threw: TypeError: Object expected
-(109) testsuite/core/names.wast:705: assert_return($$.?() == i32:103) failed. Unexpectedly threw: TypeError: Object expected
-(110) testsuite/core/names.wast:706: assert_return($$.?() == i32:104) failed. Unexpectedly threw: TypeError: Object expected
-(111) testsuite/core/names.wast:707: assert_return($$.?() == i32:105) failed. Unexpectedly threw: TypeError: Object expected
-(112) testsuite/core/names.wast:708: assert_return($$.?() == i32:106) failed. Unexpectedly threw: TypeError: Object expected
-(113) testsuite/core/names.wast:709: assert_return($$.?() == i32:107) failed. Unexpectedly threw: TypeError: Object expected
-(114) testsuite/core/names.wast:710: assert_return($$.?() == i32:108) failed. Unexpectedly threw: TypeError: Object expected
-(115) testsuite/core/names.wast:711: assert_return($$.?() == i32:109) failed. Unexpectedly threw: TypeError: Object expected
-(116) testsuite/core/names.wast:712: assert_return($$.??() == i32:110) failed. Unexpectedly threw: TypeError: Object expected
-(117) testsuite/core/names.wast:713: assert_return($$.??() == i32:111) failed. Unexpectedly threw: TypeError: Object expected
-(118) testsuite/core/names.wast:714: assert_return($$.??() == i32:112) failed. Unexpectedly threw: TypeError: Object expected
-(119) testsuite/core/names.wast:715: assert_return($$.??() == i32:113) failed. Unexpectedly threw: TypeError: Object expected
-(120) testsuite/core/names.wast:716: assert_return($$.??() == i32:114) failed. Unexpectedly threw: TypeError: Object expected
-(121) testsuite/core/names.wast:717: assert_return($$.??() == i32:115) failed. Unexpectedly threw: TypeError: Object expected
-(122) testsuite/core/names.wast:718: assert_return($$.??() == i32:116) failed. Unexpectedly threw: TypeError: Object expected
-(123) testsuite/core/names.wast:719: assert_return($$.??() == i32:117) failed. Unexpectedly threw: TypeError: Object expected
-(124) testsuite/core/names.wast:720: assert_return($$.??() == i32:118) failed. Unexpectedly threw: TypeError: Object expected
-(125) testsuite/core/names.wast:721: assert_return($$.??() == i32:119) failed. Unexpectedly threw: TypeError: Object expected
-(126) testsuite/core/names.wast:722: assert_return($$.??() == i32:120) failed. Unexpectedly threw: TypeError: Object expected
-(127) testsuite/core/names.wast:723: assert_return($$.??() == i32:121) failed. Unexpectedly threw: TypeError: Object expected
-(128) testsuite/core/names.wast:724: assert_return($$.??() == i32:122) failed. Unexpectedly threw: TypeError: Object expected
-(129) testsuite/core/names.wast:725: assert_return($$.??() == i32:123) failed. Unexpectedly threw: TypeError: Object expected
-(130) testsuite/core/names.wast:726: assert_return($$.??() == i32:124) failed. Unexpectedly threw: TypeError: Object expected
-(131) testsuite/core/names.wast:727: assert_return($$.??() == i32:125) failed. Unexpectedly threw: TypeError: Object expected
-(132) testsuite/core/names.wast:728: assert_return($$.??() == i32:126) failed. Unexpectedly threw: TypeError: Object expected
-(133) testsuite/core/names.wast:729: assert_return($$.??() == i32:127) failed. Unexpectedly threw: TypeError: Object expected
-(134) testsuite/core/names.wast:730: assert_return($$.??() == i32:128) failed. Unexpectedly threw: TypeError: Object expected
-(135) testsuite/core/names.wast:731: assert_return($$.??() == i32:129) failed. Unexpectedly threw: TypeError: Object expected
-(136) testsuite/core/names.wast:732: assert_return($$.??() == i32:130) failed. Unexpectedly threw: TypeError: Object expected
-(137) testsuite/core/names.wast:733: assert_return($$.??() == i32:131) failed. Unexpectedly threw: TypeError: Object expected
-(138) testsuite/core/names.wast:734: assert_return($$.??() == i32:132) failed. Unexpectedly threw: TypeError: Object expected
-(139) testsuite/core/names.wast:735: assert_return($$.??() == i32:133) failed. Unexpectedly threw: TypeError: Object expected
-(140) testsuite/core/names.wast:736: assert_return($$.??() == i32:134) failed. Unexpectedly threw: TypeError: Object expected
-(141) testsuite/core/names.wast:737: assert_return($$.??() == i32:135) failed. Unexpectedly threw: TypeError: Object expected
-(142) testsuite/core/names.wast:738: assert_return($$.??() == i32:136) failed. Unexpectedly threw: TypeError: Object expected
-(143) testsuite/core/names.wast:739: assert_return($$.??() == i32:137) failed. Unexpectedly threw: TypeError: Object expected
-(144) testsuite/core/names.wast:740: assert_return($$.??() == i32:138) failed. Unexpectedly threw: TypeError: Object expected
-(145) testsuite/core/names.wast:741: assert_return($$.??() == i32:139) failed. Unexpectedly threw: TypeError: Object expected
-(146) testsuite/core/names.wast:742: assert_return($$.??() == i32:140) failed. Unexpectedly threw: TypeError: Object expected
-(147) testsuite/core/names.wast:743: assert_return($$.??() == i32:141) failed. Unexpectedly threw: TypeError: Object expected
-(148) testsuite/core/names.wast:744: assert_return($$.????() == i32:142) failed. Unexpectedly threw: TypeError: Object expected
-(149) testsuite/core/names.wast:745: assert_return($$.abc() == i32:143) failed. Unexpectedly threw: TypeError: Object expected
-(150) testsuite/core/names.wast:746: assert_return($$.?abc() == i32:144) failed. Unexpectedly threw: TypeError: Object expected
-(151) testsuite/core/names.wast:747: assert_return($$.?cba() == i32:145) failed. Unexpectedly threw: TypeError: Object expected
-(152) testsuite/core/names.wast:748: assert_return($$.?abc?() == i32:146) failed. Unexpectedly threw: TypeError: Object expected
-(153) testsuite/core/names.wast:749: assert_return($$.?cba?() == i32:147) failed. Unexpectedly threw: TypeError: Object expected
-(154) testsuite/core/names.wast:750: assert_return($$.??() == i32:148) failed. Unexpectedly threw: TypeError: Object expected
-(155) testsuite/core/names.wast:751: assert_return($$.??() == i32:149) failed. Unexpectedly threw: TypeError: Object expected
-(156) testsuite/core/names.wast:752: assert_return($$.??() == i32:150) failed. Unexpectedly threw: TypeError: Object expected
-(157) testsuite/core/names.wast:753: assert_return($$.??() == i32:151) failed. Unexpectedly threw: TypeError: Object expected
-(158) testsuite/core/names.wast:754: assert_return($$.??() == i32:152) failed. Unexpectedly threw: TypeError: Object expected
-(159) testsuite/core/names.wast:755: assert_return($$.??() == i32:153) failed. Unexpectedly threw: TypeError: Object expected
-(160) testsuite/core/names.wast:756: assert_return($$.??() == i32:154) failed. Unexpectedly threw: TypeError: Object expected
-(161) testsuite/core/names.wast:757: assert_return($$.??() == i32:155) failed. Unexpectedly threw: TypeError: Object expected
-(162) testsuite/core/names.wast:758: assert_return($$.??() == i32:156) failed. Unexpectedly threw: TypeError: Object expected
-(163) testsuite/core/names.wast:759: assert_return($$.??() == i32:157) failed. Unexpectedly threw: TypeError: Object expected
-(164) testsuite/core/names.wast:760: assert_return($$.??() == i32:158) failed. Unexpectedly threw: TypeError: Object expected
-(165) testsuite/core/names.wast:761: assert_return($$.??() == i32:159) failed. Unexpectedly threw: TypeError: Object expected
-(166) testsuite/core/names.wast:762: assert_return($$.??() == i32:160) failed. Unexpectedly threw: TypeError: Object expected
-(167) testsuite/core/names.wast:763: assert_return($$.?() == i32:161) failed. Unexpectedly threw: TypeError: Object expected
-(168) testsuite/core/names.wast:764: assert_return($$.?() == i32:162) failed. Unexpectedly threw: TypeError: Object expected
-(169) testsuite/core/names.wast:765: assert_return($$.?() == i32:163) failed. Unexpectedly threw: TypeError: Object expected
-(170) testsuite/core/names.wast:766: assert_return($$.?() == i32:164) failed. Unexpectedly threw: TypeError: Object expected
-(171) testsuite/core/names.wast:767: assert_return($$.??() == i32:165) failed. Unexpectedly threw: TypeError: Object expected
-(172) testsuite/core/names.wast:768: assert_return($$.??() == i32:166) failed. Unexpectedly threw: TypeError: Object expected
-(173) testsuite/core/names.wast:769: assert_return($$.??() == i32:167) failed. Unexpectedly threw: TypeError: Object expected
-(174) testsuite/core/names.wast:770: assert_return($$.U+0041() == i32:168) failed. Unexpectedly threw: TypeError: Object expected
-(175) testsuite/core/names.wast:771: assert_return($$.A?() == i32:169) failed. Unexpectedly threw: TypeError: Object expected
-(176) testsuite/core/names.wast:772: assert_return($$.?() == i32:170) failed. Unexpectedly threw: TypeError: Object expected
-(177) testsuite/core/names.wast:773: assert_return($$.?() == i32:171) failed. Unexpectedly threw: TypeError: Object expected
-(178) testsuite/core/names.wast:774: assert_return($$.?() == i32:172) failed. Unexpectedly threw: TypeError: Object expected
-(179) testsuite/core/names.wast:775: assert_return($$.?() == i32:173) failed. Unexpectedly threw: TypeError: Object expected
-(180) testsuite/core/names.wast:776: assert_return($$.?() == i32:174) failed. Unexpectedly threw: TypeError: Object expected
-(181) testsuite/core/names.wast:777: assert_return($$.??() == i32:175) failed. Unexpectedly threw: TypeError: Object expected
-(182) testsuite/core/names.wast:778: assert_return($$.??() == i32:176) failed. Unexpectedly threw: TypeError: Object expected
-(183) testsuite/core/names.wast:779: assert_return($$.?() == i32:177) failed. Unexpectedly threw: TypeError: Object expected
-(184) testsuite/core/names.wast:780: assert_return($$.??() == i32:178) failed. Unexpectedly threw: TypeError: Object expected
-(185) testsuite/core/names.wast:781: assert_return($$.??() == i32:179) failed. Unexpectedly threw: TypeError: Object expected
-(186) testsuite/core/names.wast:782: assert_return($$.??() == i32:180) failed. Unexpectedly threw: TypeError: Object expected
-(187) testsuite/core/names.wast:783: assert_return($$.¿() == i32:181) failed. Unexpectedly threw: TypeError: Object expected
-(188) testsuite/core/names.wast:784: assert_return($$.¡() == i32:182) failed. Unexpectedly threw: TypeError: Object expected
-(189) testsuite/core/names.wast:785: assert_return($$.¬() == i32:183) failed. Unexpectedly threw: TypeError: Object expected
-(190) testsuite/core/names.wast:786: assert_return($$.√() == i32:184) failed. Unexpectedly threw: TypeError: Object expected
-(191) testsuite/core/names.wast:787: assert_return($$.ƒ() == i32:185) failed. Unexpectedly threw: TypeError: Object expected
-(192) testsuite/core/names.wast:788: assert_return($$.?() == i32:186) failed. Unexpectedly threw: TypeError: Object expected
-(193) testsuite/core/names.wast:789: assert_return($$.?() == i32:187) failed. Unexpectedly threw: TypeError: Object expected
-(194) testsuite/core/names.wast:790: assert_return($$.?() == i32:188) failed. Unexpectedly threw: TypeError: Object expected
-(195) testsuite/core/names.wast:791: assert_return($$.?() == i32:189) failed. Unexpectedly threw: TypeError: Object expected
-(196) testsuite/core/names.wast:792: assert_return($$.?() == i32:190) failed. Unexpectedly threw: TypeError: Object expected
-(197) testsuite/core/names.wast:793: assert_return($$.?() == i32:191) failed. Unexpectedly threw: TypeError: Object expected
-(198) testsuite/core/names.wast:794: assert_return($$.?() == i32:192) failed. Unexpectedly threw: TypeError: Object expected
-(199) testsuite/core/names.wast:795: assert_return($$.?() == i32:193) failed. Unexpectedly threw: TypeError: Object expected
-(200) testsuite/core/names.wast:796: assert_return($$.?() == i32:194) failed. Unexpectedly threw: TypeError: Object expected
-(201) testsuite/core/names.wast:797: assert_return($$.?() == i32:195) failed. Unexpectedly threw: TypeError: Object expected
-(202) testsuite/core/names.wast:798: assert_return($$.?() == i32:196) failed. Unexpectedly threw: TypeError: Object expected
-(203) testsuite/core/names.wast:799: assert_return($$.?() == i32:197) failed. Unexpectedly threw: TypeError: Object expected
-(204) testsuite/core/names.wast:800: assert_return($$.?() == i32:198) failed. Unexpectedly threw: TypeError: Object expected
-(205) testsuite/core/names.wast:801: assert_return($$.?() == i32:199) failed. Unexpectedly threw: TypeError: Object expected
-(206) testsuite/core/names.wast:802: assert_return($$.?() == i32:200) failed. Unexpectedly threw: TypeError: Object expected
-(207) testsuite/core/names.wast:803: assert_return($$.?() == i32:201) failed. Unexpectedly threw: TypeError: Object expected
-(208) testsuite/core/names.wast:804: assert_return($$.?() == i32:202) failed. Unexpectedly threw: TypeError: Object expected
-(209) testsuite/core/names.wast:805: assert_return($$.?() == i32:203) failed. Unexpectedly threw: TypeError: Object expected
-(210) testsuite/core/names.wast:806: assert_return($$.?() == i32:204) failed. Unexpectedly threw: TypeError: Object expected
-(211) testsuite/core/names.wast:807: assert_return($$.?() == i32:205) failed. Unexpectedly threw: TypeError: Object expected
-(212) testsuite/core/names.wast:808: assert_return($$.?() == i32:206) failed. Unexpectedly threw: TypeError: Object expected
-(213) testsuite/core/names.wast:809: assert_return($$.?() == i32:207) failed. Unexpectedly threw: TypeError: Object expected
-(214) testsuite/core/names.wast:810: assert_return($$.?() == i32:208) failed. Unexpectedly threw: TypeError: Object expected
-(215) testsuite/core/names.wast:811: assert_return($$.?() == i32:209) failed. Unexpectedly threw: TypeError: Object expected
-(216) testsuite/core/names.wast:812: assert_return($$.?() == i32:210) failed. Unexpectedly threw: TypeError: Object expected
-(217) testsuite/core/names.wast:813: assert_return($$.?() == i32:211) failed. Unexpectedly threw: TypeError: Object expected
-(218) testsuite/core/names.wast:814: assert_return($$.?() == i32:212) failed. Unexpectedly threw: TypeError: Object expected
-(219) testsuite/core/names.wast:815: assert_return($$.?() == i32:213) failed. Unexpectedly threw: TypeError: Object expected
-(220) testsuite/core/names.wast:816: assert_return($$.?() == i32:214) failed. Unexpectedly threw: TypeError: Object expected
-(221) testsuite/core/names.wast:817: assert_return($$.?() == i32:215) failed. Unexpectedly threw: TypeError: Object expected
-(222) testsuite/core/names.wast:818: assert_return($$.?() == i32:216) failed. Unexpectedly threw: TypeError: Object expected
-(223) testsuite/core/names.wast:819: assert_return($$.?() == i32:217) failed. Unexpectedly threw: TypeError: Object expected
-(224) testsuite/core/names.wast:820: assert_return($$.?() == i32:218) failed. Unexpectedly threw: TypeError: Object expected
-(225) testsuite/core/names.wast:821: assert_return($$.?() == i32:219) failed. Unexpectedly threw: TypeError: Object expected
-(226) testsuite/core/names.wast:822: assert_return($$.?() == i32:220) failed. Unexpectedly threw: TypeError: Object expected
-(227) testsuite/core/names.wast:823: assert_return($$.?() == i32:221) failed. Unexpectedly threw: TypeError: Object expected
-(228) testsuite/core/names.wast:824: assert_return($$.?() == i32:222) failed. Unexpectedly threw: TypeError: Object expected
-(229) testsuite/core/names.wast:825: assert_return($$.?() == i32:223) failed. Unexpectedly threw: TypeError: Object expected
-(230) testsuite/core/names.wast:826: assert_return($$.?() == i32:224) failed. Unexpectedly threw: TypeError: Object expected
-(231) testsuite/core/names.wast:827: assert_return($$.?() == i32:225) failed. Unexpectedly threw: TypeError: Object expected
-(232) testsuite/core/names.wast:828: assert_return($$.?() == i32:226) failed. Unexpectedly threw: TypeError: Object expected
-(233) testsuite/core/names.wast:829: assert_return($$.?() == i32:227) failed. Unexpectedly threw: TypeError: Object expected
-(234) testsuite/core/names.wast:830: assert_return($$.?() == i32:228) failed. Unexpectedly threw: TypeError: Object expected
-(235) testsuite/core/names.wast:831: assert_return($$.?() == i32:229) failed. Unexpectedly threw: TypeError: Object expected
-(236) testsuite/core/names.wast:832: assert_return($$.?() == i32:230) failed. Unexpectedly threw: TypeError: Object expected
-(237) testsuite/core/names.wast:833: assert_return($$.?() == i32:231) failed. Unexpectedly threw: TypeError: Object expected
-(238) testsuite/core/names.wast:834: assert_return($$.?() == i32:232) failed. Unexpectedly threw: TypeError: Object expected
-(239) testsuite/core/names.wast:835: assert_return($$.?() == i32:233) failed. Unexpectedly threw: TypeError: Object expected
-(240) testsuite/core/names.wast:836: assert_return($$.?() == i32:234) failed. Unexpectedly threw: TypeError: Object expected
-(241) testsuite/core/names.wast:837: assert_return($$.?() == i32:235) failed. Unexpectedly threw: TypeError: Object expected
-(242) testsuite/core/names.wast:838: assert_return($$.?() == i32:236) failed. Unexpectedly threw: TypeError: Object expected
-(243) testsuite/core/names.wast:839: assert_return($$.?() == i32:237) failed. Unexpectedly threw: TypeError: Object expected
-(244) testsuite/core/names.wast:840: assert_return($$.?() == i32:238) failed. Unexpectedly threw: TypeError: Object expected
-(245) testsuite/core/names.wast:841: assert_return($$.?() == i32:239) failed. Unexpectedly threw: TypeError: Object expected
-(246) testsuite/core/names.wast:842: assert_return($$.?() == i32:240) failed. Unexpectedly threw: TypeError: Object expected
-(247) testsuite/core/names.wast:843: assert_return($$.?() == i32:241) failed. Unexpectedly threw: TypeError: Object expected
-(248) testsuite/core/names.wast:844: assert_return($$.?() == i32:242) failed. Unexpectedly threw: TypeError: Object expected
-(249) testsuite/core/names.wast:845: assert_return($$.?() == i32:243) failed. Unexpectedly threw: TypeError: Object expected
-(250) testsuite/core/names.wast:846: assert_return($$.?() == i32:244) failed. Unexpectedly threw: TypeError: Object expected
-(251) testsuite/core/names.wast:847: assert_return($$.?() == i32:245) failed. Unexpectedly threw: TypeError: Object expected
-(252) testsuite/core/names.wast:848: assert_return($$.?() == i32:246) failed. Unexpectedly threw: TypeError: Object expected
-(253) testsuite/core/names.wast:849: assert_return($$.?() == i32:247) failed. Unexpectedly threw: TypeError: Object expected
-(254) testsuite/core/names.wast:850: assert_return($$.?() == i32:248) failed. Unexpectedly threw: TypeError: Object expected
-(255) testsuite/core/names.wast:851: assert_return($$.?() == i32:249) failed. Unexpectedly threw: TypeError: Object expected
-(256) testsuite/core/names.wast:852: assert_return($$.?() == i32:250) failed. Unexpectedly threw: TypeError: Object expected
-(257) testsuite/core/names.wast:853: assert_return($$.?() == i32:251) failed. Unexpectedly threw: TypeError: Object expected
-(258) testsuite/core/names.wast:854: assert_return($$.?() == i32:252) failed. Unexpectedly threw: TypeError: Object expected
-(259) testsuite/core/names.wast:855: assert_return($$.?() == i32:253) failed. Unexpectedly threw: TypeError: Object expected
-(260) testsuite/core/names.wast:856: assert_return($$.?() == i32:254) failed. Unexpectedly threw: TypeError: Object expected
-(261) testsuite/core/names.wast:857: assert_return($$.?() == i32:255) failed. Unexpectedly threw: TypeError: Object expected
-(262) testsuite/core/names.wast:858: assert_return($$.?() == i32:256) failed. Unexpectedly threw: TypeError: Object expected
-(263) testsuite/core/names.wast:859: assert_return($$.?() == i32:257) failed. Unexpectedly threw: TypeError: Object expected
-(264) testsuite/core/names.wast:860: assert_return($$.?() == i32:258) failed. Unexpectedly threw: TypeError: Object expected
-(265) testsuite/core/names.wast:861: assert_return($$.?() == i32:259) failed. Unexpectedly threw: TypeError: Object expected
-(266) testsuite/core/names.wast:862: assert_return($$.?() == i32:260) failed. Unexpectedly threw: TypeError: Object expected
-(267) testsuite/core/names.wast:863: assert_return($$.?() == i32:261) failed. Unexpectedly threw: TypeError: Object expected
-(268) testsuite/core/names.wast:864: assert_return($$.?() == i32:262) failed. Unexpectedly threw: TypeError: Object expected
-(269) testsuite/core/names.wast:865: assert_return($$.?() == i32:263) failed. Unexpectedly threw: TypeError: Object expected
-(270) testsuite/core/names.wast:866: assert_return($$.?() == i32:264) failed. Unexpectedly threw: TypeError: Object expected
-(271) testsuite/core/names.wast:867: assert_return($$.?() == i32:265) failed. Unexpectedly threw: TypeError: Object expected
-(272) testsuite/core/names.wast:868: assert_return($$.?() == i32:266) failed. Unexpectedly threw: TypeError: Object expected
-(273) testsuite/core/names.wast:869: assert_return($$.?() == i32:267) failed. Unexpectedly threw: TypeError: Object expected
-(274) testsuite/core/names.wast:870: assert_return($$.?() == i32:268) failed. Unexpectedly threw: TypeError: Object expected
-(275) testsuite/core/names.wast:871: assert_return($$.?() == i32:269) failed. Unexpectedly threw: TypeError: Object expected
-(276) testsuite/core/names.wast:872: assert_return($$.?() == i32:270) failed. Unexpectedly threw: TypeError: Object expected
-(277) testsuite/core/names.wast:873: assert_return($$.?() == i32:271) failed. Unexpectedly threw: TypeError: Object expected
-(278) testsuite/core/names.wast:874: assert_return($$.?() == i32:272) failed. Unexpectedly threw: TypeError: Object expected
-(279) testsuite/core/names.wast:875: assert_return($$.?() == i32:273) failed. Unexpectedly threw: TypeError: Object expected
-(280) testsuite/core/names.wast:876: assert_return($$.?() == i32:274) failed. Unexpectedly threw: TypeError: Object expected
-(281) testsuite/core/names.wast:877: assert_return($$.?() == i32:275) failed. Unexpectedly threw: TypeError: Object expected
-(282) testsuite/core/names.wast:878: assert_return($$.?() == i32:276) failed. Unexpectedly threw: TypeError: Object expected
-(283) testsuite/core/names.wast:879: assert_return($$.?() == i32:277) failed. Unexpectedly threw: TypeError: Object expected
-(284) testsuite/core/names.wast:880: assert_return($$.?() == i32:278) failed. Unexpectedly threw: TypeError: Object expected
-(285) testsuite/core/names.wast:881: assert_return($$.?() == i32:279) failed. Unexpectedly threw: TypeError: Object expected
-(286) testsuite/core/names.wast:882: assert_return($$.?() == i32:280) failed. Unexpectedly threw: TypeError: Object expected
-(287) testsuite/core/names.wast:883: assert_return($$.?() == i32:281) failed. Unexpectedly threw: TypeError: Object expected
-(288) testsuite/core/names.wast:884: assert_return($$.?() == i32:282) failed. Unexpectedly threw: TypeError: Object expected
-(289) testsuite/core/names.wast:885: assert_return($$.?() == i32:283) failed. Unexpectedly threw: TypeError: Object expected
-(290) testsuite/core/names.wast:886: assert_return($$.?() == i32:284) failed. Unexpectedly threw: TypeError: Object expected
-(291) testsuite/core/names.wast:887: assert_return($$.?() == i32:285) failed. Unexpectedly threw: TypeError: Object expected
-(292) testsuite/core/names.wast:888: assert_return($$.?() == i32:286) failed. Unexpectedly threw: TypeError: Object expected
-(293) testsuite/core/names.wast:889: assert_return($$.?() == i32:287) failed. Unexpectedly threw: TypeError: Object expected
-(294) testsuite/core/names.wast:890: assert_return($$.?() == i32:288) failed. Unexpectedly threw: TypeError: Object expected
-(295) testsuite/core/names.wast:891: assert_return($$.?() == i32:289) failed. Unexpectedly threw: TypeError: Object expected
-(296) testsuite/core/names.wast:892: assert_return($$.?() == i32:290) failed. Unexpectedly threw: TypeError: Object expected
-(297) testsuite/core/names.wast:893: assert_return($$.?() == i32:291) failed. Unexpectedly threw: TypeError: Object expected
-(298) testsuite/core/names.wast:894: assert_return($$.?() == i32:292) failed. Unexpectedly threw: TypeError: Object expected
-(299) testsuite/core/names.wast:895: assert_return($$.?() == i32:293) failed. Unexpectedly threw: TypeError: Object expected
-(300) testsuite/core/names.wast:896: assert_return($$.?() == i32:294) failed. Unexpectedly threw: TypeError: Object expected
-(301) testsuite/core/names.wast:897: assert_return($$.?() == i32:295) failed. Unexpectedly threw: TypeError: Object expected
-(302) testsuite/core/names.wast:898: assert_return($$.?() == i32:296) failed. Unexpectedly threw: TypeError: Object expected
-(303) testsuite/core/names.wast:899: assert_return($$.?() == i32:297) failed. Unexpectedly threw: TypeError: Object expected
-(304) testsuite/core/names.wast:900: assert_return($$.?() == i32:298) failed. Unexpectedly threw: TypeError: Object expected
-(305) testsuite/core/names.wast:901: assert_return($$.?() == i32:299) failed. Unexpectedly threw: TypeError: Object expected
-(306) testsuite/core/names.wast:902: assert_return($$.?() == i32:300) failed. Unexpectedly threw: TypeError: Object expected
-(307) testsuite/core/names.wast:903: assert_return($$.?() == i32:301) failed. Unexpectedly threw: TypeError: Object expected
-(308) testsuite/core/names.wast:904: assert_return($$.?() == i32:302) failed. Unexpectedly threw: TypeError: Object expected
-(309) testsuite/core/names.wast:905: assert_return($$.?() == i32:303) failed. Unexpectedly threw: TypeError: Object expected
-(310) testsuite/core/names.wast:906: assert_return($$.?() == i32:304) failed. Unexpectedly threw: TypeError: Object expected
-(311) testsuite/core/names.wast:907: assert_return($$.?() == i32:305) failed. Unexpectedly threw: TypeError: Object expected
-(312) testsuite/core/names.wast:908: assert_return($$.?() == i32:306) failed. Unexpectedly threw: TypeError: Object expected
-(313) testsuite/core/names.wast:909: assert_return($$.?() == i32:307) failed. Unexpectedly threw: TypeError: Object expected
-(314) testsuite/core/names.wast:910: assert_return($$.?() == i32:308) failed. Unexpectedly threw: TypeError: Object expected
-(315) testsuite/core/names.wast:911: assert_return($$.??() == i32:309) failed. Unexpectedly threw: TypeError: Object expected
-(316) testsuite/core/names.wast:912: assert_return($$.??() == i32:310) failed. Unexpectedly threw: TypeError: Object expected
-(317) testsuite/core/names.wast:913: assert_return($$.??() == i32:311) failed. Unexpectedly threw: TypeError: Object expected
-(318) testsuite/core/names.wast:914: assert_return($$.??() == i32:312) failed. Unexpectedly threw: TypeError: Object expected
-(319) testsuite/core/names.wast:915: assert_return($$.??() == i32:313) failed. Unexpectedly threw: TypeError: Object expected
-(320) testsuite/core/names.wast:916: assert_return($$.??() == i32:314) failed. Unexpectedly threw: TypeError: Object expected
-(321) testsuite/core/names.wast:917: assert_return($$.??() == i32:315) failed. Unexpectedly threw: TypeError: Object expected
-(322) testsuite/core/names.wast:918: assert_return($$.??() == i32:316) failed. Unexpectedly threw: TypeError: Object expected
-(323) testsuite/core/names.wast:919: assert_return($$.??() == i32:317) failed. Unexpectedly threw: TypeError: Object expected
-(324) testsuite/core/names.wast:920: assert_return($$.??() == i32:318) failed. Unexpectedly threw: TypeError: Object expected
-(325) testsuite/core/names.wast:921: assert_return($$.??() == i32:319) failed. Unexpectedly threw: TypeError: Object expected
-(326) testsuite/core/names.wast:922: assert_return($$.??() == i32:320) failed. Unexpectedly threw: TypeError: Object expected
-(327) testsuite/core/names.wast:923: assert_return($$.??() == i32:321) failed. Unexpectedly threw: TypeError: Object expected
-(328) testsuite/core/names.wast:924: assert_return($$.??() == i32:322) failed. Unexpectedly threw: TypeError: Object expected
-(329) testsuite/core/names.wast:925: assert_return($$.??() == i32:323) failed. Unexpectedly threw: TypeError: Object expected
-(330) testsuite/core/names.wast:926: assert_return($$.??() == i32:324) failed. Unexpectedly threw: TypeError: Object expected
-(331) testsuite/core/names.wast:927: assert_return($$.??() == i32:325) failed. Unexpectedly threw: TypeError: Object expected
-(332) testsuite/core/names.wast:928: assert_return($$.??() == i32:326) failed. Unexpectedly threw: TypeError: Object expected
-(333) testsuite/core/names.wast:929: assert_return($$.??() == i32:327) failed. Unexpectedly threw: TypeError: Object expected
-(334) testsuite/core/names.wast:930: assert_return($$.??() == i32:328) failed. Unexpectedly threw: TypeError: Object expected
-(335) testsuite/core/names.wast:931: assert_return($$.??() == i32:329) failed. Unexpectedly threw: TypeError: Object expected
-(336) testsuite/core/names.wast:932: assert_return($$.??() == i32:330) failed. Unexpectedly threw: TypeError: Object expected
-(337) testsuite/core/names.wast:933: assert_return($$.??() == i32:331) failed. Unexpectedly threw: TypeError: Object expected
-(338) testsuite/core/names.wast:934: assert_return($$.??() == i32:332) failed. Unexpectedly threw: TypeError: Object expected
-(339) testsuite/core/names.wast:935: assert_return($$.??() == i32:333) failed. Unexpectedly threw: TypeError: Object expected
-(340) testsuite/core/names.wast:936: assert_return($$.??() == i32:334) failed. Unexpectedly threw: TypeError: Object expected
-(341) testsuite/core/names.wast:937: assert_return($$.??() == i32:335) failed. Unexpectedly threw: TypeError: Object expected
-(342) testsuite/core/names.wast:938: assert_return($$.??() == i32:336) failed. Unexpectedly threw: TypeError: Object expected
-(343) testsuite/core/names.wast:939: assert_return($$.??() == i32:337) failed. Unexpectedly threw: TypeError: Object expected
-(344) testsuite/core/names.wast:940: assert_return($$.??() == i32:338) failed. Unexpectedly threw: TypeError: Object expected
-(345) testsuite/core/names.wast:941: assert_return($$.??() == i32:339) failed. Unexpectedly threw: TypeError: Object expected
-(346) testsuite/core/names.wast:942: assert_return($$.??() == i32:340) failed. Unexpectedly threw: TypeError: Object expected
-(347) testsuite/core/names.wast:943: assert_return($$.??() == i32:341) failed. Unexpectedly threw: TypeError: Object expected
-(348) testsuite/core/names.wast:944: assert_return($$.??() == i32:342) failed. Unexpectedly threw: TypeError: Object expected
-(349) testsuite/core/names.wast:945: assert_return($$.??() == i32:343) failed. Unexpectedly threw: TypeError: Object expected
-(350) testsuite/core/names.wast:946: assert_return($$.??() == i32:344) failed. Unexpectedly threw: TypeError: Object expected
-(351) testsuite/core/names.wast:947: assert_return($$.??() == i32:345) failed. Unexpectedly threw: TypeError: Object expected
-(352) testsuite/core/names.wast:948: assert_return($$.??() == i32:346) failed. Unexpectedly threw: TypeError: Object expected
-(353) testsuite/core/names.wast:949: assert_return($$.??() == i32:347) failed. Unexpectedly threw: TypeError: Object expected
-(354) testsuite/core/names.wast:950: assert_return($$.??() == i32:348) failed. Unexpectedly threw: TypeError: Object expected
-(355) testsuite/core/names.wast:951: assert_return($$.??() == i32:349) failed. Unexpectedly threw: TypeError: Object expected
-(356) testsuite/core/names.wast:952: assert_return($$.??() == i32:350) failed. Unexpectedly threw: TypeError: Object expected
-(357) testsuite/core/names.wast:953: assert_return($$.??() == i32:351) failed. Unexpectedly threw: TypeError: Object expected
-(358) testsuite/core/names.wast:954: assert_return($$.??() == i32:352) failed. Unexpectedly threw: TypeError: Object expected
-(359) testsuite/core/names.wast:955: assert_return($$.??() == i32:353) failed. Unexpectedly threw: TypeError: Object expected
-(360) testsuite/core/names.wast:956: assert_return($$.??() == i32:354) failed. Unexpectedly threw: TypeError: Object expected
-(361) testsuite/core/names.wast:957: assert_return($$.??() == i32:355) failed. Unexpectedly threw: TypeError: Object expected
-(362) testsuite/core/names.wast:958: assert_return($$.??() == i32:356) failed. Unexpectedly threw: TypeError: Object expected
-(363) testsuite/core/names.wast:959: assert_return($$.?() == i32:357) failed. Unexpectedly threw: TypeError: Object expected
-(364) testsuite/core/names.wast:960: assert_return($$.?() == i32:358) failed. Unexpectedly threw: TypeError: Object expected
-(365) testsuite/core/names.wast:961: assert_return($$.?() == i32:359) failed. Unexpectedly threw: TypeError: Object expected
-(366) testsuite/core/names.wast:962: assert_return($$.™() == i32:360) failed. Unexpectedly threw: TypeError: Object expected
-(367) testsuite/core/names.wast:963: assert_return($$.?() == i32:361) failed. Unexpectedly threw: TypeError: Object expected
-(368) testsuite/core/names.wast:964: assert_return($$.?() == i32:362) failed. Unexpectedly threw: TypeError: Object expected
-(369) testsuite/core/names.wast:965: assert_return($$.??() == i32:363) failed. Unexpectedly threw: TypeError: Object expected
-(370) testsuite/core/names.wast:966: assert_return($$.?() == i32:364) failed. Unexpectedly threw: TypeError: Object expected
-(371) testsuite/core/names.wast:967: assert_return($$.??() == i32:365) failed. Unexpectedly threw: TypeError: Object expected
-(372) testsuite/core/names.wast:968: assert_return($$.?() == i32:366) failed. Unexpectedly threw: TypeError: Object expected
-(373) testsuite/core/names.wast:969: assert_return($$.?() == i32:367) failed. Unexpectedly threw: TypeError: Object expected
-(374) testsuite/core/names.wast:970: assert_return($$.?() == i32:368) failed. Unexpectedly threw: TypeError: Object expected
-(375) testsuite/core/names.wast:971: assert_return($$.?() == i32:369) failed. Unexpectedly threw: TypeError: Object expected
-(376) testsuite/core/names.wast:972: assert_return($$.?() == i32:370) failed. Unexpectedly threw: TypeError: Object expected
-(377) testsuite/core/names.wast:973: assert_return($$.?() == i32:371) failed. Unexpectedly threw: TypeError: Object expected
-(378) testsuite/core/names.wast:974: assert_return($$.?() == i32:372) failed. Unexpectedly threw: TypeError: Object expected
-(379) testsuite/core/names.wast:975: assert_return($$.?() == i32:373) failed. Unexpectedly threw: TypeError: Object expected
-(380) testsuite/core/names.wast:976: assert_return($$.?() == i32:374) failed. Unexpectedly threw: TypeError: Object expected
-(381) testsuite/core/names.wast:977: assert_return($$.?() == i32:375) failed. Unexpectedly threw: TypeError: Object expected
-(382) testsuite/core/names.wast:978: assert_return($$.?() == i32:376) failed. Unexpectedly threw: TypeError: Object expected
-(383) testsuite/core/names.wast:979: assert_return($$.?() == i32:377) failed. Unexpectedly threw: TypeError: Object expected
-(384) testsuite/core/names.wast:980: assert_return($$.?() == i32:378) failed. Unexpectedly threw: TypeError: Object expected
-(385) testsuite/core/names.wast:981: assert_return($$.?() == i32:379) failed. Unexpectedly threw: TypeError: Object expected
-(386) testsuite/core/names.wast:982: assert_return($$.?() == i32:380) failed. Unexpectedly threw: TypeError: Object expected
-(387) testsuite/core/names.wast:983: assert_return($$.?() == i32:381) failed. Unexpectedly threw: TypeError: Object expected
-(388) testsuite/core/names.wast:984: assert_return($$.?() == i32:382) failed. Unexpectedly threw: TypeError: Object expected
-(389) testsuite/core/names.wast:985: assert_return($$.?() == i32:383) failed. Unexpectedly threw: TypeError: Object expected
-(390) testsuite/core/names.wast:986: assert_return($$.?() == i32:384) failed. Unexpectedly threw: TypeError: Object expected
-(391) testsuite/core/names.wast:987: assert_return($$.?() == i32:385) failed. Unexpectedly threw: TypeError: Object expected
-(392) testsuite/core/names.wast:988: assert_return($$.?() == i32:386) failed. Unexpectedly threw: TypeError: Object expected
-(393) testsuite/core/names.wast:989: assert_return($$.?() == i32:387) failed. Unexpectedly threw: TypeError: Object expected
-(394) testsuite/core/names.wast:990: assert_return($$.?() == i32:388) failed. Unexpectedly threw: TypeError: Object expected
-(395) testsuite/core/names.wast:991: assert_return($$.??() == i32:389) failed. Unexpectedly threw: TypeError: Object expected
-(396) testsuite/core/names.wast:992: assert_return($$.??() == i32:390) failed. Unexpectedly threw: TypeError: Object expected
-(397) testsuite/core/names.wast:993: assert_return($$.??() == i32:391) failed. Unexpectedly threw: TypeError: Object expected
-(398) testsuite/core/names.wast:994: assert_return($$.??() == i32:392) failed. Unexpectedly threw: TypeError: Object expected
-(399) testsuite/core/names.wast:995: assert_return($$.??() == i32:393) failed. Unexpectedly threw: TypeError: Object expected
-(400) testsuite/core/names.wast:996: assert_return($$.?() == i32:394) failed. Unexpectedly threw: TypeError: Object expected
-(401) testsuite/core/names.wast:997: assert_return($$.?() == i32:395) failed. Unexpectedly threw: TypeError: Object expected
-(402) testsuite/core/names.wast:998: assert_return($$.?() == i32:396) failed. Unexpectedly threw: TypeError: Object expected
-(403) testsuite/core/names.wast:999: assert_return($$.?() == i32:397) failed. Unexpectedly threw: TypeError: Object expected
-(404) testsuite/core/names.wast:1000: assert_return($$.?() == i32:398) failed. Unexpectedly threw: TypeError: Object expected
-(405) testsuite/core/names.wast:1001: assert_return($$.)?????????????????????????????????????????????????????ª????() == i32:399) failed. Unexpectedly threw: TypeError: Object expected
-(406) testsuite/core/names.wast:1002: assert_return($$.(?????????????????????????????????????????????????????´????() == i32:400) failed. Unexpectedly threw: TypeError: Object expected
-(407) testsuite/core/names.wast:1003: assert_return($$.????() == i32:401) failed. Unexpectedly threw: TypeError: Object expected
-(408) testsuite/core/names.wast:1004: assert_return($$.??() == i32:402) failed. Unexpectedly threw: TypeError: Object expected
-(409) testsuite/core/names.wast:1005: assert_return($$.Ω() == i32:403) failed. Unexpectedly threw: TypeError: Object expected
-(410) testsuite/core/names.wast:1006: assert_return($$.1?2() == i32:404) failed. Unexpectedly threw: TypeError: Object expected
-(411) testsuite/core/names.wast:1007: assert_return($$.1/2() == i32:405) failed. Unexpectedly threw: TypeError: Object expected
-(412) testsuite/core/names.wast:1008: assert_return($$.?() == i32:406) failed. Unexpectedly threw: TypeError: Object expected
-(413) testsuite/core/names.wast:1009: assert_return($$.?() == i32:407) failed. Unexpectedly threw: TypeError: Object expected
-(414) testsuite/core/names.wast:1010: assert_return($$.?() == i32:408) failed. Unexpectedly threw: TypeError: Object expected
-(415) testsuite/core/names.wast:1011: assert_return($$.?() == i32:409) failed. Unexpectedly threw: TypeError: Object expected
-(416) testsuite/core/names.wast:1012: assert_return($$.??() == i32:410) failed. Unexpectedly threw: TypeError: Object expected
-(417) testsuite/core/names.wast:1013: assert_return($$.??() == i32:411) failed. Unexpectedly threw: TypeError: Object expected
-(418) testsuite/core/names.wast:1014: assert_return($$.??() == i32:412) failed. Unexpectedly threw: TypeError: Object expected
-(419) testsuite/core/names.wast:1015: assert_return($$.??() == i32:413) failed. Unexpectedly threw: TypeError: Object expected
-(420) testsuite/core/names.wast:1016: assert_return($$.??() == i32:414) failed. Unexpectedly threw: TypeError: Object expected
-(421) testsuite/core/names.wast:1017: assert_return($$.?() == i32:415) failed. Unexpectedly threw: TypeError: Object expected
-(422) testsuite/core/names.wast:1018: assert_return($$.() == i32:416) failed. Unexpectedly threw: TypeError: Object expected
-(423) testsuite/core/names.wast:1019: assert_return($$.() == i32:417) failed. Unexpectedly threw: TypeError: Object expected
-(424) testsuite/core/names.wast:1020: assert_return($$.?() == i32:418) failed. Unexpectedly threw: TypeError: Object expected
-(425) testsuite/core/names.wast:1021: assert_return($$.?() == i32:419) failed. Unexpectedly threw: TypeError: Object expected
-(426) testsuite/core/names.wast:1022: assert_return($$.?() == i32:420) failed. Unexpectedly threw: TypeError: Object expected
-(427) testsuite/core/names.wast:1023: assert_return($$.?() == i32:421) failed. Unexpectedly threw: TypeError: Object expected
-(428) testsuite/core/names.wast:1024: assert_return($$.?() == i32:422) failed. Unexpectedly threw: TypeError: Object expected
-(429) testsuite/core/names.wast:1025: assert_return($$.() == i32:423) failed. Unexpectedly threw: TypeError: Object expected
-(430) testsuite/core/names.wast:1026: assert_return($$.?() == i32:424) failed. Unexpectedly threw: TypeError: Object expected
-(431) testsuite/core/names.wast:1027: assert_return($$.?() == i32:425) failed. Unexpectedly threw: TypeError: Object expected
-(432) testsuite/core/names.wast:1028: assert_return($$.?() == i32:426) failed. Unexpectedly threw: TypeError: Object expected
-(433) testsuite/core/names.wast:1029: assert_return($$.?() == i32:427) failed. Unexpectedly threw: TypeError: Object expected
-(434) testsuite/core/names.wast:1030: assert_return($$.?() == i32:428) failed. Unexpectedly threw: TypeError: Object expected
-(435) testsuite/core/names.wast:1031: assert_return($$.?() == i32:429) failed. Unexpectedly threw: TypeError: Object expected
-(436) testsuite/core/names.wast:1032: assert_return($$.() == i32:430) failed. Unexpectedly threw: TypeError: Object expected
-(437) testsuite/core/names.wast:1033: assert_return($$.?() == i32:431) failed. Unexpectedly threw: TypeError: Object expected
-(438) testsuite/core/names.wast:1034: assert_return($$.?() == i32:432) failed. Unexpectedly threw: TypeError: Object expected
-(439) testsuite/core/names.wast:1035: assert_return($$.?() == i32:433) failed. Unexpectedly threw: TypeError: Object expected
-(440) testsuite/core/names.wast:1036: assert_return($$.?() == i32:434) failed. Unexpectedly threw: TypeError: Object expected
-(441) testsuite/core/names.wast:1037: assert_return($$.ø() == i32:435) failed. Unexpectedly threw: TypeError: Object expected
-(442) testsuite/core/names.wast:1038: assert_return($$.?() == i32:436) failed. Unexpectedly threw: TypeError: Object expected
-(443) testsuite/core/names.wast:1039: assert_return($$.?() == i32:437) failed. Unexpectedly threw: TypeError: Object expected
-(444) testsuite/core/names.wast:1040: assert_return($$.?() == i32:438) failed. Unexpectedly threw: TypeError: Object expected
-(445) testsuite/core/names.wast:1041: assert_return($$.?() == i32:439) failed. Unexpectedly threw: TypeError: Object expected
-(446) testsuite/core/names.wast:1042: assert_return($$.?() == i32:440) failed. Unexpectedly threw: TypeError: Object expected
-(447) testsuite/core/names.wast:1043: assert_return($$.?() == i32:441) failed. Unexpectedly threw: TypeError: Object expected
-(448) testsuite/core/names.wast:1044: assert_return($$.?() == i32:442) failed. Unexpectedly threw: TypeError: Object expected
-(449) testsuite/core/names.wast:1045: assert_return($$.?() == i32:443) failed. Unexpectedly threw: TypeError: Object expected
-(450) testsuite/core/names.wast:1046: assert_return($$.?() == i32:444) failed. Unexpectedly threw: TypeError: Object expected
-(451) testsuite/core/names.wast:1047: assert_return($$.?() == i32:445) failed. Unexpectedly threw: TypeError: Object expected
-(452) testsuite/core/names.wast:1048: assert_return($$.?() == i32:446) failed. Unexpectedly threw: TypeError: Object expected
-(453) testsuite/core/names.wast:1049: assert_return($$.?() == i32:447) failed. Unexpectedly threw: TypeError: Object expected
-(454) testsuite/core/names.wast:1050: assert_return($$.?() == i32:448) failed. Unexpectedly threw: TypeError: Object expected
-(455) testsuite/core/names.wast:1051: assert_return($$.?() == i32:449) failed. Unexpectedly threw: TypeError: Object expected
-(456) testsuite/core/names.wast:1052: assert_return($$.?() == i32:450) failed. Unexpectedly threw: TypeError: Object expected
-(457) testsuite/core/names.wast:1053: assert_return($$.?() == i32:451) failed. Unexpectedly threw: TypeError: Object expected
-(458) testsuite/core/names.wast:1054: assert_return($$.?() == i32:452) failed. Unexpectedly threw: TypeError: Object expected
-(459) testsuite/core/names.wast:1055: assert_return($$.?() == i32:453) failed. Unexpectedly threw: TypeError: Object expected
-(460) testsuite/core/names.wast:1056: assert_return($$.??() == i32:454) failed. Unexpectedly threw: TypeError: Object expected
-(461) testsuite/core/names.wast:1057: assert_return($$.??() == i32:455) failed. Unexpectedly threw: TypeError: Object expected
-(462) testsuite/core/names.wast:1058: assert_return($$.??() == i32:456) failed. Unexpectedly threw: TypeError: Object expected
-(463) testsuite/core/names.wast:1059: assert_return($$.??() == i32:457) failed. Unexpectedly threw: TypeError: Object expected
-(464) testsuite/core/names.wast:1060: assert_return($$.?() == i32:458) failed. Unexpectedly threw: TypeError: Object expected
-(465) testsuite/core/names.wast:1061: assert_return($$.∂() == i32:459) failed. Unexpectedly threw: TypeError: Object expected
-(466) testsuite/core/names.wast:1062: assert_return($$.?() == i32:460) failed. Unexpectedly threw: TypeError: Object expected
-(467) testsuite/core/names.wast:1063: assert_return($$.?() == i32:461) failed. Unexpectedly threw: TypeError: Object expected
-(468) testsuite/core/names.wast:1064: assert_return($$.?() == i32:462) failed. Unexpectedly threw: TypeError: Object expected
-(469) testsuite/core/names.wast:1065: assert_return($$.?() == i32:463) failed. Unexpectedly threw: TypeError: Object expected
-(470) testsuite/core/names.wast:1066: assert_return($$.?() == i32:464) failed. Unexpectedly threw: TypeError: Object expected
-(471) testsuite/core/names.wast:1067: assert_return($$.?() == i32:465) failed. Unexpectedly threw: TypeError: Object expected
-(472) testsuite/core/names.wast:1068: assert_return($$.?() == i32:466) failed. Unexpectedly threw: TypeError: Object expected
-(473) testsuite/core/names.wast:1069: assert_return($$.?() == i32:467) failed. Unexpectedly threw: TypeError: Object expected
-(474) testsuite/core/names.wast:1070: assert_return($$.?() == i32:468) failed. Unexpectedly threw: TypeError: Object expected
-(475) testsuite/core/names.wast:1071: assert_return($$.?() == i32:469) failed. Unexpectedly threw: TypeError: Object expected
-(476) testsuite/core/names.wast:1072: assert_return($$.() == i32:470) failed. Unexpectedly threw: TypeError: Object expected
-(477) testsuite/core/names.wast:1073: assert_return($$.?() == i32:471) failed. Unexpectedly threw: TypeError: Object expected
+() == i32:57) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(64) testsuite/core/names.wast:660: assert_return($$.() == i32:58) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(65) testsuite/core/names.wast:661: assert_return($$.() == i32:59) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(66) testsuite/core/names.wast:662: assert_return($$.() == i32:60) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(67) testsuite/core/names.wast:663: assert_return($$.Ö() == i32:61) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(68) testsuite/core/names.wast:664: assert_return($$.?() == i32:62) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(69) testsuite/core/names.wast:665: assert_return($$.?() == i32:63) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(70) testsuite/core/names.wast:666: assert_return($$.?() == i32:64) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(71) testsuite/core/names.wast:667: assert_return($$.ã() == i32:65) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(72) testsuite/core/names.wast:668: assert_return($$.å() == i32:66) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(73) testsuite/core/names.wast:669: assert_return($$.ç() == i32:67) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(74) testsuite/core/names.wast:670: assert_return($$.?() == i32:68) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(75) testsuite/core/names.wast:671: assert_return($$.?() == i32:69) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(76) testsuite/core/names.wast:672: assert_return($$.?() == i32:70) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(77) testsuite/core/names.wast:673: assert_return($$.?() == i32:71) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(78) testsuite/core/names.wast:674: assert_return($$.?() == i32:72) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(79) testsuite/core/names.wast:675: assert_return($$.?() == i32:73) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(80) testsuite/core/names.wast:676: assert_return($$.?() == i32:74) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(81) testsuite/core/names.wast:677: assert_return($$.?() == i32:75) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(82) testsuite/core/names.wast:678: assert_return($$.?() == i32:76) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(83) testsuite/core/names.wast:679: assert_return($$.?() == i32:77) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(84) testsuite/core/names.wast:680: assert_return($$.?() == i32:78) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(85) testsuite/core/names.wast:681: assert_return($$.?() == i32:79) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(86) testsuite/core/names.wast:682: assert_return($$.?() == i32:80) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(87) testsuite/core/names.wast:683: assert_return($$.?() == i32:81) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(88) testsuite/core/names.wast:684: assert_return($$.?() == i32:82) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(89) testsuite/core/names.wast:685: assert_return($$.?() == i32:83) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(90) testsuite/core/names.wast:686: assert_return($$.?() == i32:84) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(91) testsuite/core/names.wast:687: assert_return($$.?() == i32:85) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(92) testsuite/core/names.wast:688: assert_return($$.?() == i32:86) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(93) testsuite/core/names.wast:689: assert_return($$.?() == i32:87) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(94) testsuite/core/names.wast:690: assert_return($$.?() == i32:88) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(95) testsuite/core/names.wast:691: assert_return($$.?() == i32:89) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(96) testsuite/core/names.wast:692: assert_return($$.?() == i32:90) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(97) testsuite/core/names.wast:693: assert_return($$.?() == i32:91) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(98) testsuite/core/names.wast:694: assert_return($$.?() == i32:92) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(99) testsuite/core/names.wast:695: assert_return($$.?() == i32:93) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(100) testsuite/core/names.wast:696: assert_return($$.?() == i32:94) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(101) testsuite/core/names.wast:697: assert_return($$.?() == i32:95) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(102) testsuite/core/names.wast:698: assert_return($$.?() == i32:96) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(103) testsuite/core/names.wast:699: assert_return($$.?() == i32:97) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(104) testsuite/core/names.wast:700: assert_return($$.?() == i32:98) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(105) testsuite/core/names.wast:701: assert_return($$.?() == i32:99) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(106) testsuite/core/names.wast:702: assert_return($$.?() == i32:100) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(107) testsuite/core/names.wast:703: assert_return($$.?() == i32:101) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(108) testsuite/core/names.wast:704: assert_return($$.?() == i32:102) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(109) testsuite/core/names.wast:705: assert_return($$.?() == i32:103) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(110) testsuite/core/names.wast:706: assert_return($$.?() == i32:104) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(111) testsuite/core/names.wast:707: assert_return($$.?() == i32:105) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(112) testsuite/core/names.wast:708: assert_return($$.?() == i32:106) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(113) testsuite/core/names.wast:709: assert_return($$.?() == i32:107) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(114) testsuite/core/names.wast:710: assert_return($$.?() == i32:108) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(115) testsuite/core/names.wast:711: assert_return($$.?() == i32:109) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(116) testsuite/core/names.wast:712: assert_return($$.??() == i32:110) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(117) testsuite/core/names.wast:713: assert_return($$.??() == i32:111) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(118) testsuite/core/names.wast:714: assert_return($$.??() == i32:112) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(119) testsuite/core/names.wast:715: assert_return($$.??() == i32:113) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(120) testsuite/core/names.wast:716: assert_return($$.??() == i32:114) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(121) testsuite/core/names.wast:717: assert_return($$.??() == i32:115) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(122) testsuite/core/names.wast:718: assert_return($$.??() == i32:116) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(123) testsuite/core/names.wast:719: assert_return($$.??() == i32:117) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(124) testsuite/core/names.wast:720: assert_return($$.??() == i32:118) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(125) testsuite/core/names.wast:721: assert_return($$.??() == i32:119) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(126) testsuite/core/names.wast:722: assert_return($$.??() == i32:120) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(127) testsuite/core/names.wast:723: assert_return($$.??() == i32:121) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(128) testsuite/core/names.wast:724: assert_return($$.??() == i32:122) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(129) testsuite/core/names.wast:725: assert_return($$.??() == i32:123) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(130) testsuite/core/names.wast:726: assert_return($$.??() == i32:124) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(131) testsuite/core/names.wast:727: assert_return($$.??() == i32:125) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(132) testsuite/core/names.wast:728: assert_return($$.??() == i32:126) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(133) testsuite/core/names.wast:729: assert_return($$.??() == i32:127) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(134) testsuite/core/names.wast:730: assert_return($$.??() == i32:128) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(135) testsuite/core/names.wast:731: assert_return($$.??() == i32:129) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(136) testsuite/core/names.wast:732: assert_return($$.??() == i32:130) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(137) testsuite/core/names.wast:733: assert_return($$.??() == i32:131) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(138) testsuite/core/names.wast:734: assert_return($$.??() == i32:132) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(139) testsuite/core/names.wast:735: assert_return($$.??() == i32:133) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(140) testsuite/core/names.wast:736: assert_return($$.??() == i32:134) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(141) testsuite/core/names.wast:737: assert_return($$.??() == i32:135) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(142) testsuite/core/names.wast:738: assert_return($$.??() == i32:136) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(143) testsuite/core/names.wast:739: assert_return($$.??() == i32:137) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(144) testsuite/core/names.wast:740: assert_return($$.??() == i32:138) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(145) testsuite/core/names.wast:741: assert_return($$.??() == i32:139) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(146) testsuite/core/names.wast:742: assert_return($$.??() == i32:140) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(147) testsuite/core/names.wast:743: assert_return($$.??() == i32:141) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(148) testsuite/core/names.wast:744: assert_return($$.????() == i32:142) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(149) testsuite/core/names.wast:745: assert_return($$.abc() == i32:143) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(150) testsuite/core/names.wast:746: assert_return($$.?abc() == i32:144) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(151) testsuite/core/names.wast:747: assert_return($$.?cba() == i32:145) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(152) testsuite/core/names.wast:748: assert_return($$.?abc?() == i32:146) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(153) testsuite/core/names.wast:749: assert_return($$.?cba?() == i32:147) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(154) testsuite/core/names.wast:750: assert_return($$.??() == i32:148) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(155) testsuite/core/names.wast:751: assert_return($$.??() == i32:149) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(156) testsuite/core/names.wast:752: assert_return($$.??() == i32:150) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(157) testsuite/core/names.wast:753: assert_return($$.??() == i32:151) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(158) testsuite/core/names.wast:754: assert_return($$.??() == i32:152) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(159) testsuite/core/names.wast:755: assert_return($$.??() == i32:153) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(160) testsuite/core/names.wast:756: assert_return($$.??() == i32:154) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(161) testsuite/core/names.wast:757: assert_return($$.??() == i32:155) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(162) testsuite/core/names.wast:758: assert_return($$.??() == i32:156) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(163) testsuite/core/names.wast:759: assert_return($$.??() == i32:157) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(164) testsuite/core/names.wast:760: assert_return($$.??() == i32:158) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(165) testsuite/core/names.wast:761: assert_return($$.??() == i32:159) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(166) testsuite/core/names.wast:762: assert_return($$.??() == i32:160) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(167) testsuite/core/names.wast:763: assert_return($$.?() == i32:161) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(168) testsuite/core/names.wast:764: assert_return($$.?() == i32:162) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(169) testsuite/core/names.wast:765: assert_return($$.?() == i32:163) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(170) testsuite/core/names.wast:766: assert_return($$.?() == i32:164) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(171) testsuite/core/names.wast:767: assert_return($$.??() == i32:165) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(172) testsuite/core/names.wast:768: assert_return($$.??() == i32:166) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(173) testsuite/core/names.wast:769: assert_return($$.??() == i32:167) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(174) testsuite/core/names.wast:770: assert_return($$.U+0041() == i32:168) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(175) testsuite/core/names.wast:771: assert_return($$.A?() == i32:169) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(176) testsuite/core/names.wast:772: assert_return($$.?() == i32:170) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(177) testsuite/core/names.wast:773: assert_return($$.?() == i32:171) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(178) testsuite/core/names.wast:774: assert_return($$.?() == i32:172) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(179) testsuite/core/names.wast:775: assert_return($$.?() == i32:173) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(180) testsuite/core/names.wast:776: assert_return($$.?() == i32:174) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(181) testsuite/core/names.wast:777: assert_return($$.??() == i32:175) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(182) testsuite/core/names.wast:778: assert_return($$.??() == i32:176) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(183) testsuite/core/names.wast:779: assert_return($$.?() == i32:177) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(184) testsuite/core/names.wast:780: assert_return($$.??() == i32:178) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(185) testsuite/core/names.wast:781: assert_return($$.??() == i32:179) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(186) testsuite/core/names.wast:782: assert_return($$.??() == i32:180) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(187) testsuite/core/names.wast:783: assert_return($$.¿() == i32:181) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(188) testsuite/core/names.wast:784: assert_return($$.¡() == i32:182) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(189) testsuite/core/names.wast:785: assert_return($$.¬() == i32:183) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(190) testsuite/core/names.wast:786: assert_return($$.√() == i32:184) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(191) testsuite/core/names.wast:787: assert_return($$.ƒ() == i32:185) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(192) testsuite/core/names.wast:788: assert_return($$.?() == i32:186) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(193) testsuite/core/names.wast:789: assert_return($$.?() == i32:187) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(194) testsuite/core/names.wast:790: assert_return($$.?() == i32:188) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(195) testsuite/core/names.wast:791: assert_return($$.?() == i32:189) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(196) testsuite/core/names.wast:792: assert_return($$.?() == i32:190) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(197) testsuite/core/names.wast:793: assert_return($$.?() == i32:191) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(198) testsuite/core/names.wast:794: assert_return($$.?() == i32:192) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(199) testsuite/core/names.wast:795: assert_return($$.?() == i32:193) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(200) testsuite/core/names.wast:796: assert_return($$.?() == i32:194) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(201) testsuite/core/names.wast:797: assert_return($$.?() == i32:195) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(202) testsuite/core/names.wast:798: assert_return($$.?() == i32:196) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(203) testsuite/core/names.wast:799: assert_return($$.?() == i32:197) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(204) testsuite/core/names.wast:800: assert_return($$.?() == i32:198) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(205) testsuite/core/names.wast:801: assert_return($$.?() == i32:199) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(206) testsuite/core/names.wast:802: assert_return($$.?() == i32:200) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(207) testsuite/core/names.wast:803: assert_return($$.?() == i32:201) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(208) testsuite/core/names.wast:804: assert_return($$.?() == i32:202) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(209) testsuite/core/names.wast:805: assert_return($$.?() == i32:203) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(210) testsuite/core/names.wast:806: assert_return($$.?() == i32:204) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(211) testsuite/core/names.wast:807: assert_return($$.?() == i32:205) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(212) testsuite/core/names.wast:808: assert_return($$.?() == i32:206) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(213) testsuite/core/names.wast:809: assert_return($$.?() == i32:207) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(214) testsuite/core/names.wast:810: assert_return($$.?() == i32:208) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(215) testsuite/core/names.wast:811: assert_return($$.?() == i32:209) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(216) testsuite/core/names.wast:812: assert_return($$.?() == i32:210) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(217) testsuite/core/names.wast:813: assert_return($$.?() == i32:211) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(218) testsuite/core/names.wast:814: assert_return($$.?() == i32:212) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(219) testsuite/core/names.wast:815: assert_return($$.?() == i32:213) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(220) testsuite/core/names.wast:816: assert_return($$.?() == i32:214) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(221) testsuite/core/names.wast:817: assert_return($$.?() == i32:215) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(222) testsuite/core/names.wast:818: assert_return($$.?() == i32:216) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(223) testsuite/core/names.wast:819: assert_return($$.?() == i32:217) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(224) testsuite/core/names.wast:820: assert_return($$.?() == i32:218) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(225) testsuite/core/names.wast:821: assert_return($$.?() == i32:219) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(226) testsuite/core/names.wast:822: assert_return($$.?() == i32:220) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(227) testsuite/core/names.wast:823: assert_return($$.?() == i32:221) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(228) testsuite/core/names.wast:824: assert_return($$.?() == i32:222) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(229) testsuite/core/names.wast:825: assert_return($$.?() == i32:223) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(230) testsuite/core/names.wast:826: assert_return($$.?() == i32:224) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(231) testsuite/core/names.wast:827: assert_return($$.?() == i32:225) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(232) testsuite/core/names.wast:828: assert_return($$.?() == i32:226) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(233) testsuite/core/names.wast:829: assert_return($$.?() == i32:227) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(234) testsuite/core/names.wast:830: assert_return($$.?() == i32:228) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(235) testsuite/core/names.wast:831: assert_return($$.?() == i32:229) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(236) testsuite/core/names.wast:832: assert_return($$.?() == i32:230) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(237) testsuite/core/names.wast:833: assert_return($$.?() == i32:231) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(238) testsuite/core/names.wast:834: assert_return($$.?() == i32:232) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(239) testsuite/core/names.wast:835: assert_return($$.?() == i32:233) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(240) testsuite/core/names.wast:836: assert_return($$.?() == i32:234) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(241) testsuite/core/names.wast:837: assert_return($$.?() == i32:235) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(242) testsuite/core/names.wast:838: assert_return($$.?() == i32:236) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(243) testsuite/core/names.wast:839: assert_return($$.?() == i32:237) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(244) testsuite/core/names.wast:840: assert_return($$.?() == i32:238) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(245) testsuite/core/names.wast:841: assert_return($$.?() == i32:239) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(246) testsuite/core/names.wast:842: assert_return($$.?() == i32:240) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(247) testsuite/core/names.wast:843: assert_return($$.?() == i32:241) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(248) testsuite/core/names.wast:844: assert_return($$.?() == i32:242) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(249) testsuite/core/names.wast:845: assert_return($$.?() == i32:243) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(250) testsuite/core/names.wast:846: assert_return($$.?() == i32:244) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(251) testsuite/core/names.wast:847: assert_return($$.?() == i32:245) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(252) testsuite/core/names.wast:848: assert_return($$.?() == i32:246) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(253) testsuite/core/names.wast:849: assert_return($$.?() == i32:247) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(254) testsuite/core/names.wast:850: assert_return($$.?() == i32:248) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(255) testsuite/core/names.wast:851: assert_return($$.?() == i32:249) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(256) testsuite/core/names.wast:852: assert_return($$.?() == i32:250) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(257) testsuite/core/names.wast:853: assert_return($$.?() == i32:251) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(258) testsuite/core/names.wast:854: assert_return($$.?() == i32:252) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(259) testsuite/core/names.wast:855: assert_return($$.?() == i32:253) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(260) testsuite/core/names.wast:856: assert_return($$.?() == i32:254) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(261) testsuite/core/names.wast:857: assert_return($$.?() == i32:255) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(262) testsuite/core/names.wast:858: assert_return($$.?() == i32:256) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(263) testsuite/core/names.wast:859: assert_return($$.?() == i32:257) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(264) testsuite/core/names.wast:860: assert_return($$.?() == i32:258) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(265) testsuite/core/names.wast:861: assert_return($$.?() == i32:259) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(266) testsuite/core/names.wast:862: assert_return($$.?() == i32:260) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(267) testsuite/core/names.wast:863: assert_return($$.?() == i32:261) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(268) testsuite/core/names.wast:864: assert_return($$.?() == i32:262) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(269) testsuite/core/names.wast:865: assert_return($$.?() == i32:263) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(270) testsuite/core/names.wast:866: assert_return($$.?() == i32:264) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(271) testsuite/core/names.wast:867: assert_return($$.?() == i32:265) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(272) testsuite/core/names.wast:868: assert_return($$.?() == i32:266) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(273) testsuite/core/names.wast:869: assert_return($$.?() == i32:267) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(274) testsuite/core/names.wast:870: assert_return($$.?() == i32:268) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(275) testsuite/core/names.wast:871: assert_return($$.?() == i32:269) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(276) testsuite/core/names.wast:872: assert_return($$.?() == i32:270) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(277) testsuite/core/names.wast:873: assert_return($$.?() == i32:271) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(278) testsuite/core/names.wast:874: assert_return($$.?() == i32:272) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(279) testsuite/core/names.wast:875: assert_return($$.?() == i32:273) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(280) testsuite/core/names.wast:876: assert_return($$.?() == i32:274) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(281) testsuite/core/names.wast:877: assert_return($$.?() == i32:275) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(282) testsuite/core/names.wast:878: assert_return($$.?() == i32:276) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(283) testsuite/core/names.wast:879: assert_return($$.?() == i32:277) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(284) testsuite/core/names.wast:880: assert_return($$.?() == i32:278) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(285) testsuite/core/names.wast:881: assert_return($$.?() == i32:279) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(286) testsuite/core/names.wast:882: assert_return($$.?() == i32:280) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(287) testsuite/core/names.wast:883: assert_return($$.?() == i32:281) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(288) testsuite/core/names.wast:884: assert_return($$.?() == i32:282) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(289) testsuite/core/names.wast:885: assert_return($$.?() == i32:283) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(290) testsuite/core/names.wast:886: assert_return($$.?() == i32:284) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(291) testsuite/core/names.wast:887: assert_return($$.?() == i32:285) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(292) testsuite/core/names.wast:888: assert_return($$.?() == i32:286) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(293) testsuite/core/names.wast:889: assert_return($$.?() == i32:287) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(294) testsuite/core/names.wast:890: assert_return($$.?() == i32:288) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(295) testsuite/core/names.wast:891: assert_return($$.?() == i32:289) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(296) testsuite/core/names.wast:892: assert_return($$.?() == i32:290) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(297) testsuite/core/names.wast:893: assert_return($$.?() == i32:291) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(298) testsuite/core/names.wast:894: assert_return($$.?() == i32:292) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(299) testsuite/core/names.wast:895: assert_return($$.?() == i32:293) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(300) testsuite/core/names.wast:896: assert_return($$.?() == i32:294) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(301) testsuite/core/names.wast:897: assert_return($$.?() == i32:295) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(302) testsuite/core/names.wast:898: assert_return($$.?() == i32:296) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(303) testsuite/core/names.wast:899: assert_return($$.?() == i32:297) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(304) testsuite/core/names.wast:900: assert_return($$.?() == i32:298) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(305) testsuite/core/names.wast:901: assert_return($$.?() == i32:299) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(306) testsuite/core/names.wast:902: assert_return($$.?() == i32:300) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(307) testsuite/core/names.wast:903: assert_return($$.?() == i32:301) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(308) testsuite/core/names.wast:904: assert_return($$.?() == i32:302) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(309) testsuite/core/names.wast:905: assert_return($$.?() == i32:303) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(310) testsuite/core/names.wast:906: assert_return($$.?() == i32:304) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(311) testsuite/core/names.wast:907: assert_return($$.?() == i32:305) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(312) testsuite/core/names.wast:908: assert_return($$.?() == i32:306) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(313) testsuite/core/names.wast:909: assert_return($$.?() == i32:307) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(314) testsuite/core/names.wast:910: assert_return($$.?() == i32:308) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(315) testsuite/core/names.wast:911: assert_return($$.??() == i32:309) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(316) testsuite/core/names.wast:912: assert_return($$.??() == i32:310) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(317) testsuite/core/names.wast:913: assert_return($$.??() == i32:311) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(318) testsuite/core/names.wast:914: assert_return($$.??() == i32:312) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(319) testsuite/core/names.wast:915: assert_return($$.??() == i32:313) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(320) testsuite/core/names.wast:916: assert_return($$.??() == i32:314) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(321) testsuite/core/names.wast:917: assert_return($$.??() == i32:315) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(322) testsuite/core/names.wast:918: assert_return($$.??() == i32:316) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(323) testsuite/core/names.wast:919: assert_return($$.??() == i32:317) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(324) testsuite/core/names.wast:920: assert_return($$.??() == i32:318) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(325) testsuite/core/names.wast:921: assert_return($$.??() == i32:319) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(326) testsuite/core/names.wast:922: assert_return($$.??() == i32:320) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(327) testsuite/core/names.wast:923: assert_return($$.??() == i32:321) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(328) testsuite/core/names.wast:924: assert_return($$.??() == i32:322) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(329) testsuite/core/names.wast:925: assert_return($$.??() == i32:323) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(330) testsuite/core/names.wast:926: assert_return($$.??() == i32:324) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(331) testsuite/core/names.wast:927: assert_return($$.??() == i32:325) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(332) testsuite/core/names.wast:928: assert_return($$.??() == i32:326) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(333) testsuite/core/names.wast:929: assert_return($$.??() == i32:327) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(334) testsuite/core/names.wast:930: assert_return($$.??() == i32:328) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(335) testsuite/core/names.wast:931: assert_return($$.??() == i32:329) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(336) testsuite/core/names.wast:932: assert_return($$.??() == i32:330) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(337) testsuite/core/names.wast:933: assert_return($$.??() == i32:331) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(338) testsuite/core/names.wast:934: assert_return($$.??() == i32:332) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(339) testsuite/core/names.wast:935: assert_return($$.??() == i32:333) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(340) testsuite/core/names.wast:936: assert_return($$.??() == i32:334) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(341) testsuite/core/names.wast:937: assert_return($$.??() == i32:335) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(342) testsuite/core/names.wast:938: assert_return($$.??() == i32:336) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(343) testsuite/core/names.wast:939: assert_return($$.??() == i32:337) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(344) testsuite/core/names.wast:940: assert_return($$.??() == i32:338) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(345) testsuite/core/names.wast:941: assert_return($$.??() == i32:339) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(346) testsuite/core/names.wast:942: assert_return($$.??() == i32:340) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(347) testsuite/core/names.wast:943: assert_return($$.??() == i32:341) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(348) testsuite/core/names.wast:944: assert_return($$.??() == i32:342) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(349) testsuite/core/names.wast:945: assert_return($$.??() == i32:343) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(350) testsuite/core/names.wast:946: assert_return($$.??() == i32:344) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(351) testsuite/core/names.wast:947: assert_return($$.??() == i32:345) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(352) testsuite/core/names.wast:948: assert_return($$.??() == i32:346) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(353) testsuite/core/names.wast:949: assert_return($$.??() == i32:347) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(354) testsuite/core/names.wast:950: assert_return($$.??() == i32:348) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(355) testsuite/core/names.wast:951: assert_return($$.??() == i32:349) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(356) testsuite/core/names.wast:952: assert_return($$.??() == i32:350) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(357) testsuite/core/names.wast:953: assert_return($$.??() == i32:351) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(358) testsuite/core/names.wast:954: assert_return($$.??() == i32:352) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(359) testsuite/core/names.wast:955: assert_return($$.??() == i32:353) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(360) testsuite/core/names.wast:956: assert_return($$.??() == i32:354) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(361) testsuite/core/names.wast:957: assert_return($$.??() == i32:355) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(362) testsuite/core/names.wast:958: assert_return($$.??() == i32:356) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(363) testsuite/core/names.wast:959: assert_return($$.?() == i32:357) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(364) testsuite/core/names.wast:960: assert_return($$.?() == i32:358) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(365) testsuite/core/names.wast:961: assert_return($$.?() == i32:359) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(366) testsuite/core/names.wast:962: assert_return($$.™() == i32:360) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(367) testsuite/core/names.wast:963: assert_return($$.?() == i32:361) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(368) testsuite/core/names.wast:964: assert_return($$.?() == i32:362) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(369) testsuite/core/names.wast:965: assert_return($$.??() == i32:363) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(370) testsuite/core/names.wast:966: assert_return($$.?() == i32:364) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(371) testsuite/core/names.wast:967: assert_return($$.??() == i32:365) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(372) testsuite/core/names.wast:968: assert_return($$.?() == i32:366) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(373) testsuite/core/names.wast:969: assert_return($$.?() == i32:367) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(374) testsuite/core/names.wast:970: assert_return($$.?() == i32:368) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(375) testsuite/core/names.wast:971: assert_return($$.?() == i32:369) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(376) testsuite/core/names.wast:972: assert_return($$.?() == i32:370) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(377) testsuite/core/names.wast:973: assert_return($$.?() == i32:371) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(378) testsuite/core/names.wast:974: assert_return($$.?() == i32:372) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(379) testsuite/core/names.wast:975: assert_return($$.?() == i32:373) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(380) testsuite/core/names.wast:976: assert_return($$.?() == i32:374) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(381) testsuite/core/names.wast:977: assert_return($$.?() == i32:375) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(382) testsuite/core/names.wast:978: assert_return($$.?() == i32:376) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(383) testsuite/core/names.wast:979: assert_return($$.?() == i32:377) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(384) testsuite/core/names.wast:980: assert_return($$.?() == i32:378) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(385) testsuite/core/names.wast:981: assert_return($$.?() == i32:379) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(386) testsuite/core/names.wast:982: assert_return($$.?() == i32:380) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(387) testsuite/core/names.wast:983: assert_return($$.?() == i32:381) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(388) testsuite/core/names.wast:984: assert_return($$.?() == i32:382) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(389) testsuite/core/names.wast:985: assert_return($$.?() == i32:383) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(390) testsuite/core/names.wast:986: assert_return($$.?() == i32:384) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(391) testsuite/core/names.wast:987: assert_return($$.?() == i32:385) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(392) testsuite/core/names.wast:988: assert_return($$.?() == i32:386) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(393) testsuite/core/names.wast:989: assert_return($$.?() == i32:387) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(394) testsuite/core/names.wast:990: assert_return($$.?() == i32:388) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(395) testsuite/core/names.wast:991: assert_return($$.??() == i32:389) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(396) testsuite/core/names.wast:992: assert_return($$.??() == i32:390) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(397) testsuite/core/names.wast:993: assert_return($$.??() == i32:391) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(398) testsuite/core/names.wast:994: assert_return($$.??() == i32:392) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(399) testsuite/core/names.wast:995: assert_return($$.??() == i32:393) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(400) testsuite/core/names.wast:996: assert_return($$.?() == i32:394) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(401) testsuite/core/names.wast:997: assert_return($$.?() == i32:395) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(402) testsuite/core/names.wast:998: assert_return($$.?() == i32:396) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(403) testsuite/core/names.wast:999: assert_return($$.?() == i32:397) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(404) testsuite/core/names.wast:1000: assert_return($$.?() == i32:398) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(405) testsuite/core/names.wast:1001: assert_return($$.)?????????????????????????????????????????????????????ª????() == i32:399) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(406) testsuite/core/names.wast:1002: assert_return($$.(?????????????????????????????????????????????????????´????() == i32:400) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(407) testsuite/core/names.wast:1003: assert_return($$.????() == i32:401) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(408) testsuite/core/names.wast:1004: assert_return($$.??() == i32:402) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(409) testsuite/core/names.wast:1005: assert_return($$.Ω() == i32:403) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(410) testsuite/core/names.wast:1006: assert_return($$.1?2() == i32:404) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(411) testsuite/core/names.wast:1007: assert_return($$.1/2() == i32:405) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(412) testsuite/core/names.wast:1008: assert_return($$.?() == i32:406) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(413) testsuite/core/names.wast:1009: assert_return($$.?() == i32:407) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(414) testsuite/core/names.wast:1010: assert_return($$.?() == i32:408) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(415) testsuite/core/names.wast:1011: assert_return($$.?() == i32:409) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(416) testsuite/core/names.wast:1012: assert_return($$.??() == i32:410) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(417) testsuite/core/names.wast:1013: assert_return($$.??() == i32:411) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(418) testsuite/core/names.wast:1014: assert_return($$.??() == i32:412) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(419) testsuite/core/names.wast:1015: assert_return($$.??() == i32:413) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(420) testsuite/core/names.wast:1016: assert_return($$.??() == i32:414) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(421) testsuite/core/names.wast:1017: assert_return($$.?() == i32:415) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(422) testsuite/core/names.wast:1018: assert_return($$.() == i32:416) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(423) testsuite/core/names.wast:1019: assert_return($$.() == i32:417) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(424) testsuite/core/names.wast:1020: assert_return($$.?() == i32:418) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(425) testsuite/core/names.wast:1021: assert_return($$.?() == i32:419) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(426) testsuite/core/names.wast:1022: assert_return($$.?() == i32:420) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(427) testsuite/core/names.wast:1023: assert_return($$.?() == i32:421) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(428) testsuite/core/names.wast:1024: assert_return($$.?() == i32:422) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(429) testsuite/core/names.wast:1025: assert_return($$.() == i32:423) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(430) testsuite/core/names.wast:1026: assert_return($$.?() == i32:424) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(431) testsuite/core/names.wast:1027: assert_return($$.?() == i32:425) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(432) testsuite/core/names.wast:1028: assert_return($$.?() == i32:426) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(433) testsuite/core/names.wast:1029: assert_return($$.?() == i32:427) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(434) testsuite/core/names.wast:1030: assert_return($$.?() == i32:428) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(435) testsuite/core/names.wast:1031: assert_return($$.?() == i32:429) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(436) testsuite/core/names.wast:1032: assert_return($$.() == i32:430) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(437) testsuite/core/names.wast:1033: assert_return($$.?() == i32:431) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(438) testsuite/core/names.wast:1034: assert_return($$.?() == i32:432) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(439) testsuite/core/names.wast:1035: assert_return($$.?() == i32:433) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(440) testsuite/core/names.wast:1036: assert_return($$.?() == i32:434) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(441) testsuite/core/names.wast:1037: assert_return($$.ø() == i32:435) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(442) testsuite/core/names.wast:1038: assert_return($$.?() == i32:436) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(443) testsuite/core/names.wast:1039: assert_return($$.?() == i32:437) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(444) testsuite/core/names.wast:1040: assert_return($$.?() == i32:438) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(445) testsuite/core/names.wast:1041: assert_return($$.?() == i32:439) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(446) testsuite/core/names.wast:1042: assert_return($$.?() == i32:440) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(447) testsuite/core/names.wast:1043: assert_return($$.?() == i32:441) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(448) testsuite/core/names.wast:1044: assert_return($$.?() == i32:442) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(449) testsuite/core/names.wast:1045: assert_return($$.?() == i32:443) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(450) testsuite/core/names.wast:1046: assert_return($$.?() == i32:444) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(451) testsuite/core/names.wast:1047: assert_return($$.?() == i32:445) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(452) testsuite/core/names.wast:1048: assert_return($$.?() == i32:446) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(453) testsuite/core/names.wast:1049: assert_return($$.?() == i32:447) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(454) testsuite/core/names.wast:1050: assert_return($$.?() == i32:448) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(455) testsuite/core/names.wast:1051: assert_return($$.?() == i32:449) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(456) testsuite/core/names.wast:1052: assert_return($$.?() == i32:450) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(457) testsuite/core/names.wast:1053: assert_return($$.?() == i32:451) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(458) testsuite/core/names.wast:1054: assert_return($$.?() == i32:452) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(459) testsuite/core/names.wast:1055: assert_return($$.?() == i32:453) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(460) testsuite/core/names.wast:1056: assert_return($$.??() == i32:454) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(461) testsuite/core/names.wast:1057: assert_return($$.??() == i32:455) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(462) testsuite/core/names.wast:1058: assert_return($$.??() == i32:456) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(463) testsuite/core/names.wast:1059: assert_return($$.??() == i32:457) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(464) testsuite/core/names.wast:1060: assert_return($$.?() == i32:458) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(465) testsuite/core/names.wast:1061: assert_return($$.∂() == i32:459) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(466) testsuite/core/names.wast:1062: assert_return($$.?() == i32:460) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(467) testsuite/core/names.wast:1063: assert_return($$.?() == i32:461) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(468) testsuite/core/names.wast:1064: assert_return($$.?() == i32:462) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(469) testsuite/core/names.wast:1065: assert_return($$.?() == i32:463) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(470) testsuite/core/names.wast:1066: assert_return($$.?() == i32:464) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(471) testsuite/core/names.wast:1067: assert_return($$.?() == i32:465) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(472) testsuite/core/names.wast:1068: assert_return($$.?() == i32:466) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(473) testsuite/core/names.wast:1069: assert_return($$.?() == i32:467) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(474) testsuite/core/names.wast:1070: assert_return($$.?() == i32:468) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(475) testsuite/core/names.wast:1071: assert_return($$.?() == i32:469) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(476) testsuite/core/names.wast:1072: assert_return($$.() == i32:470) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
+(477) testsuite/core/names.wast:1073: assert_return($$.?() == i32:471) failed. Unexpectedly threw: LinkError: Import 'test.fn' is invalid. Expected type Function
 42
 123
 6/479 tests passed.

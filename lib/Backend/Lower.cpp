@@ -932,8 +932,15 @@ Lowerer::LowerRange(IR::Instr *instrStart, IR::Instr *instrEnd, bool defaultDoFa
         case Js::OpCode::LdC_F8_R8:
         {
             IR::Opnd *src1 = instr->UnlinkSrc1();
-            AssertMsg(src1->IsFloatConstOpnd(), "Source of LdC_F8_R8 should be a FloatConst...");
-            instrPrev = m_lowererMD.LoadFloatValue(instr->UnlinkDst()->AsRegOpnd(), src1->AsFloatConstOpnd()->m_value, instr);
+            AssertMsg(src1->IsFloatConstOpnd() || src1->IsFloat32ConstOpnd(), "Source of LdC_F8_R8 should be a FloatConst...");
+            if (src1->IsFloatConstOpnd())
+            {
+                instrPrev = m_lowererMD.LoadFloatValue(instr->UnlinkDst()->AsRegOpnd(), src1->AsFloatConstOpnd()->m_value, instr);
+            }
+            else
+            {
+                instrPrev = m_lowererMD.LoadFloatValue(instr->UnlinkDst()->AsRegOpnd(), src1->AsFloat32ConstOpnd()->m_value, instr);
+            }
 
             src1->Free(this->m_func);
             instr->Remove();
@@ -13625,6 +13632,11 @@ Lowerer::LoadFloatFromNonReg(IR::Opnd * opndSrc, IR::Opnd * opndDst, IR::Instr *
     else if (opndSrc->IsFloatConstOpnd())
     {
         value = (double)opndSrc->AsFloatConstOpnd()->m_value;
+    }
+    else if (opndSrc->IsFloat32ConstOpnd())
+    {
+        float floatValue = opndSrc->AsFloat32ConstOpnd()->m_value;
+        return LowererMD::LoadFloatValue(opndDst, floatValue, instrInsert);
     }
     else
     {
