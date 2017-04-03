@@ -387,7 +387,6 @@ CLEANUP15:
     FILECleanupStdHandles();
 CLEANUP13:
     VIRTUALCleanup();
-CLEANUP10:
     MAPCleanup();
 CLEANUP6:
 CLEANUP5:
@@ -480,7 +479,7 @@ PAL_InitializeChakraCore()
         return error;
     }
 
-    if (FALSE == VIRTUALInitialize(true))
+    if (FALSE == VIRTUALInitialize())
     {
         ERROR("Unable to initialize virtual memory support\n");
         return ERROR_GEN_FAILURE;

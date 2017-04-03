@@ -252,7 +252,7 @@ public:
     uint GetFreePageCount() const { return freePageCount; }
     uint GetDecommitPageCount() const { return decommitPageCount; }
 
-    static bool IsAllocationPageAligned(__in char* address, size_t pageCount);
+    static bool IsAllocationPageAligned(__in char* address, size_t pageCount, uint *nextIndex = nullptr);
 
     template <typename T, bool notPageAligned>
     char * AllocDecommitPages(DECLSPEC_GUARD_OVERFLOW uint pageCount, T freePages, T decommitPages);
