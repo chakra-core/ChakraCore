@@ -411,8 +411,8 @@
 (assert_return (invoke "i32.reinterpret_f32" (f32.const -infinity)) (i32.const 0xff800000))
 (assert_return (invoke "i32.reinterpret_f32" (f32.const nan)) (i32.const 0x7fc00000))
 (assert_return (invoke "i32.reinterpret_f32" (f32.const -nan)) (i32.const 0xffc00000))
-;;(assert_return (invoke "i32.reinterpret_f32" (f32.const nan:0x200000)) (i32.const 0x7fa00000))
-;;(assert_return (invoke "i32.reinterpret_f32" (f32.const -nan:0x200000)) (i32.const 0xffa00000))
+(assert_return (invoke "i32.reinterpret_f32" (f32.const nan:0x200000)) (i32.const 0x7fa00000))
+(assert_return (invoke "i32.reinterpret_f32" (f32.const -nan:0x200000)) (i32.const 0xffa00000))
 
 (assert_return (invoke "i64.reinterpret_f64" (f64.const 0.0)) (i64.const 0))
 (assert_return (invoke "i64.reinterpret_f64" (f64.const -0.0)) (i64.const 0x8000000000000000))

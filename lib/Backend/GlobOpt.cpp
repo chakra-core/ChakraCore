@@ -4566,6 +4566,10 @@ GlobOpt::CollectMemsetStElementI(IR::Instr *instr, Loop *loop)
     {
         constant.InitFloatConstValue(srcDef->AsFloatConstOpnd()->m_value);
     }
+    else if (srcDef->IsFloat32ConstOpnd())
+    {
+        Assert(false); //float32s only exist in asmjs & wasm modes which don't support bailouts
+    }
     else if (srcDef->IsIntConstOpnd())
     {
         constant.InitIntConstValue(srcDef->AsIntConstOpnd()->GetValue(), srcDef->AsIntConstOpnd()->GetType());
