@@ -160,7 +160,7 @@ namespace Js
     }
 
     template<typename T>
-    inline T AsmJsMath::Neg( T aLeft )
+    inline T __vectorcall AsmJsMath::Neg( T aLeft )
     {
         return -aLeft;
     }

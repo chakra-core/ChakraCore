@@ -7388,6 +7388,41 @@ LowererMD::LoadFloatZero(IR::Opnd * opndDst, IR::Instr * instrInsert)
 }
 
 IR::Instr *
+LowererMD::LoadFloatValue(IR::Opnd * opndDst, float value, IR::Instr * instrInsert)
+{
+    if (value == 0.0 && !Js::JavascriptNumber::IsNegZero(value))
+    {
+        // zero can be loaded with "XORPS xmm, xmm" rather than needing memory load
+        return LoadFloatZero(opndDst, instrInsert);
+    }
+    int intReprOfFloat = *(reinterpret_cast<int*>(&value));
+    IR::Opnd* intConstOpnd = IR::IntConstOpnd::New(intReprOfFloat, TyInt32, instrInsert->m_func, true);
+    IR::RegOpnd *tempReg = IR::RegOpnd::New(TyInt32, instrInsert->m_func);
+    instrInsert->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tempReg, intConstOpnd, instrInsert->m_func));
+    IR::Instr * instr = IR::Instr::New(Js::OpCode::MOVD, opndDst, tempReg, instrInsert->m_func);
+
+    if (opndDst->IsRegOpnd())
+    {
+        IR::RegOpnd *dstRegOpnd = opndDst->AsRegOpnd();
+        StackSym *dstSym = dstRegOpnd->m_sym;
+
+        if (dstSym) //according to regAlloc def of constantness dst isn't a constant anymore
+        {           //since the RHS is a reg. Reset the flags so we don't confuse regAlloc
+            dstSym->m_isConst = false;
+            dstSym->m_isIntConst = false;
+            dstSym->m_isInt64Const = false;
+            dstSym->m_isTaggableIntConst = false;
+            dstSym->m_isFltConst = false;
+        }
+    }
+
+    instrInsert->InsertBefore(instr);
+    Legalize(instr);
+    return instr;
+
+}
+
+IR::Instr *
 LowererMD::LoadFloatValue(IR::Opnd * opndDst, double value, IR::Instr * instrInsert)
 {
     if (value == 0.0 && !Js::JavascriptNumber::IsNegZero(value))
