@@ -3,8 +3,8 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#if !defined(BAIL_OUT_KIND) || !defined(BAIL_OUT_KIND_LAST) || !defined(BAIL_OUT_KIND_VALUE) || !defined(BAIL_OUT_KIND_VALUE_LAST)
-    #error BAIL_OUT_KIND, BAIL_OUT_KIND_LAST, BAIL_OUT_KIND_VALUE, and BAIL_OUT_KIND_VALUE_LAST must be defined before including this file.
+#if !defined(BAIL_OUT_KIND) || !defined(BAIL_OUT_KIND_VALUE) || !defined(BAIL_OUT_KIND_VALUE_LAST)
+    #error BAIL_OUT_KIND, BAIL_OUT_KIND_VALUE, and BAIL_OUT_KIND_VALUE_LAST must be defined before including this file.
 #endif
                /* kind */                           /* allowed bits */
 BAIL_OUT_KIND(BailOutInvalid,                       IR::BailOutOnResultConditions | IR::BailOutForArrayBits | IR::BailOutForDebuggerBits | IR::BailOutMarkTempObject)
@@ -139,7 +139,6 @@ BAIL_OUT_KIND_VALUE(BailOutMarkTempObject, 1 << (BAIL_OUT_KIND_MISC_BIT_START + 
 BAIL_OUT_KIND_VALUE_LAST(BailOutKindBits, BailOutMarkTempObject | BailOutOnDivSrcConditions | BailOutOnResultConditions | BailOutForArrayBits | BailOutForDebuggerBits)
 
 // Help caller undefine the macros
-#undef BAIL_OUT_KIND_LAST
 #undef BAIL_OUT_KIND
 #undef BAIL_OUT_KIND_VALUE_LAST
 #undef BAIL_OUT_KIND_VALUE

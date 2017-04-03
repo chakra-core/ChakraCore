@@ -26,6 +26,7 @@ namespace IR
     #define BAIL_OUT_KIND_VALUE_LAST(n, v)      n = v
     #define BAIL_OUT_KIND_VALUE(n, v)           BAIL_OUT_KIND_VALUE_LAST(n, v),
     #include "BailOutKind.h"
+    #undef BAIL_OUT_KIND_LAST
     };
     ENUM_CLASS_HELPERS(BailOutKind, uint);
 
@@ -36,7 +37,7 @@ namespace IR
     BailOutKind EquivalentToMonoTypeCheckBailOutKind(BailOutKind kind);
 }
 
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_DEBUG_CONFIG_OPTIONS || defined(REJIT_STATS)
 const char *GetBailOutKindName(IR::BailOutKind kind);
 bool IsValidBailOutKindAndBits(IR::BailOutKind bailOutKind);
 #endif
