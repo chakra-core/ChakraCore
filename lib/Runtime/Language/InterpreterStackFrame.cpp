@@ -2325,11 +2325,15 @@ namespace Js
     template<int type, bool toJs>
     void InterpreterStackFrame::OP_InvalidWasmTypeConversion(...)
     {
+#ifdef ENABLE_WASM
         CompileAssert(type < Wasm::WasmTypes::Limit);
-        // Right now the only invalid wasm type conversion is with int64
         const char16* fromType = toJs ? Wasm::WasmTypes::GetStrId(static_cast<Wasm::WasmTypes::WasmType>(type)) : _u("Javascript Variable");
         const char16* toType = toJs ? _u("Javascript Variable") : Wasm::WasmTypes::GetStrId(static_cast<Wasm::WasmTypes::WasmType>(type));
         JavascriptError::ThrowTypeErrorVar(scriptContext, WASMERR_InvalidTypeConversion, fromType, toType);
+#else
+        Assert(UNREACHED); //shouldn't get there
+        JavascriptError::ThrowTypeErrorVar(scriptContext, WASMERR_InvalidTypeConversion, _u("unknown"), _u("unknown")); //throw for a release build
+#endif
     }
 
     // This will be called in the beginning of the try_finally.
