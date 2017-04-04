@@ -1820,9 +1820,7 @@ Float32ConstOpnd::New(float value, IRType type, Func *func)
 
     Float32ConstOpnd->m_value = value;
     Float32ConstOpnd->m_type = type;
-
     Float32ConstOpnd->m_kind = OpndKindFloat32Const;
-
 
     return Float32ConstOpnd;
 }
@@ -1846,7 +1844,6 @@ Float32ConstOpnd::CopyInternal(Func *func)
 
     return newOpnd;
 }
-
 
 ///----------------------------------------------------------------------------
 ///
