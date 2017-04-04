@@ -258,7 +258,6 @@ inline Float32ConstOpnd *
 Opnd::AsFloat32ConstOpnd()
 {
     AssertMsg(this->IsFloat32ConstOpnd(), "Bad call to AsFloatConstOpnd()");
-
     return reinterpret_cast<Float32ConstOpnd *>(this);
 }
 

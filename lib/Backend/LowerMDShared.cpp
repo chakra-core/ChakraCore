@@ -7420,7 +7420,6 @@ LowererMD::LoadFloatValue(IR::Opnd * opndDst, float value, IR::Instr * instrInse
     instrInsert->InsertBefore(instr);
     Legalize(instr);
     return instr;
-
 }
 
 IR::Instr *

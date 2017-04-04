@@ -1813,6 +1813,7 @@ FloatConstOpnd::FreeInternal(Func *func)
 Float32ConstOpnd *
 Float32ConstOpnd::New(float value, IRType type, Func *func)
 {
+    Assert(type == IRType::TyFloat32); //TODO: should we even allow specifying a type here? It should always be TyFloat32
     Float32ConstOpnd * Float32ConstOpnd;
 
     Float32ConstOpnd = JitAnew(func->m_alloc, IR::Float32ConstOpnd);
@@ -1856,7 +1857,7 @@ bool
 Float32ConstOpnd::IsEqualInternal(Opnd *opnd)
 {
     Assert(m_kind == OpndKindFloat32Const);
-    if (!opnd->IsFloat32ConstOpnd() || this->GetType() != opnd->GetType() /* could this be turned into an assert*/)
+    if (!opnd->IsFloat32ConstOpnd() || this->GetType() != opnd->GetType() /* TODO: could this be turned into an assert*/)
     {
         return false;
     }
