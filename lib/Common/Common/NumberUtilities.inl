@@ -167,7 +167,7 @@ namespace Js
         return  *(reinterpret_cast<uint32 *>(&value));
     }
 
-    NUMBER_UTIL_INLINE float __vectorcall NumberUtilities::ReinterpretBits(int value)
+    NUMBER_UTIL_INLINE float NumberUtilities::ReinterpretBits(int value)
     {
         return  *(reinterpret_cast<float *>(&value));
     }

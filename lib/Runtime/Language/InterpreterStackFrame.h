@@ -209,7 +209,11 @@ namespace Js
         template <typename RegSlotType> int64 GetRegRawInt64( RegSlotType localRegisterID ) const;
         template <typename RegSlotType> void SetRegRawInt64( RegSlotType localRegisterID, int64 bValue );
         template <typename RegSlotType> double GetRegRawDouble(RegSlotType localRegisterID) const;
+#ifdef _WIN32
         template <typename RegSlotType> float __vectorcall GetRegRawFloat(RegSlotType localRegisterID) const;
+#else
+        template <typename RegSlotType> float GetRegRawFloat(RegSlotType localRegisterID) const;
+#endif
         template <typename RegSlotType> void SetRegRawDouble(RegSlotType localRegisterID, double bValue);
         template <typename RegSlotType> void SetRegRawFloat(RegSlotType localRegisterID, float bValue);
         template <typename T> T GetRegRaw( RegSlot localRegisterID ) const;

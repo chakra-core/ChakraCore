@@ -7683,7 +7683,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     }
 
     template <typename RegSlotType>
-    float __vectorcall  InterpreterStackFrame::GetRegRawFloat(RegSlotType localRegisterID) const
+    float InterpreterStackFrame::GetRegRawFloat(RegSlotType localRegisterID) const
     {
         return m_localFloatSlots[localRegisterID];
     }

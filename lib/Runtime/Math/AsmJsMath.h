@@ -24,7 +24,11 @@ namespace Js
         template<typename T = int> static T Shl( T aLeft, T aRight );
         template<typename T = int> static T Shr( T aLeft, T aRight );
         template<typename T = int> static T ShrU( T aLeft, T aRight );
+#ifdef _WIN32
         template<typename T> static T __vectorcall Neg( T aLeft);
+#else
+        template<typename T> static T Neg(T aLeft);
+#endif
         static int Not( int aLeft);
         static int LogNot( int aLeft);
         static int ToBool( int aLeft );
