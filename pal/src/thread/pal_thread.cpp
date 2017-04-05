@@ -2911,3 +2911,47 @@ bool IsAddressOnStack(ULONG_PTR address)
 
     return false;
 }
+
+#ifndef __IOS__
+// why _Thread_local ? Because it is faster(.)
+// why not replace PAL to use _Thread_local instead of front caching? _Thread_local is not cross platform
+
+// Why ULONG_PTR? keeping type for localThread `simple` may affect implementation hence the perf. positively.
+THREAD_LOCAL ULONG_PTR localThread = 0;
+CPalThread *CorUnix::GetCurrentPalThread(bool force)
+{
+    ULONG_PTR pThread = localThread;
+    if (pThread == 0)
+    {
+        pThread = (ULONG_PTR) reinterpret_cast<CPalThread*>(pthread_getspecific(thObjKey));
+#ifdef FEATURE_PAL_SXS
+        if (pThread == 0 && force)
+        {
+            pThread = (ULONG_PTR) CreateCurrentThreadData();
+        }
+#endif
+        localThread = pThread;
+    }
+
+    return (CPalThread*)pThread;
+}
+#else // !__IOS__
+CPalThread *CorUnix::GetCurrentPalThread(bool force)
+{
+    CPalThread *pThread = reinterpret_cast<CPalThread*>(pthread_getspecific(thObjKey));
+
+#ifdef FEATURE_PAL_SXS
+    if (pThread == nullptr && force)
+    {
+        pThread = CreateCurrentThreadData();
+    }
+#endif
+
+    return pThread;
+}
+#endif
+
+CPalThread *CorUnix::InternalGetCurrentThread()
+{
+    return GetCurrentPalThread(true);
+}

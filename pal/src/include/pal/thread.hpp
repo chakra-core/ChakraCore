@@ -737,20 +737,9 @@ namespace CorUnix
     extern "C" CPalThread *CreateCurrentThreadData();
 #endif // FEATURE_PAL_SXS
 
-    inline CPalThread *GetCurrentPalThread()
-    {
-        return reinterpret_cast<CPalThread*>(pthread_getspecific(thObjKey));
-    }
+    CPalThread *GetCurrentPalThread(bool force = false);
 
-    inline CPalThread *InternalGetCurrentThread()
-    {
-        CPalThread *pThread = GetCurrentPalThread();
-#if defined(FEATURE_PAL_SXS)
-        if (pThread == nullptr)
-            pThread = CreateCurrentThreadData();
-#endif // FEATURE_PAL_SXS
-        return pThread;
-    }
+    CPalThread *InternalGetCurrentThread();
 
 /***
 
