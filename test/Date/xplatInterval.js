@@ -26,3 +26,5 @@ if (WScript.Platform && WScript.Platform.OS != "win32") {
         if (now < pre_time) throw new Error ("Timer interval has failed. now < pre_time");
     }
 } // !win32
+
+print("PASS");
