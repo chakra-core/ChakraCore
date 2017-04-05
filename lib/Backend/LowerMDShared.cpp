@@ -2458,8 +2458,8 @@ LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
         !srcReg2 ||
         srcReg1->IsTaggedInt() ||
         srcReg2->IsTaggedInt() ||
-        !srcReg1->GetValueType().IsLikelyString() ||
-        !srcReg2->GetValueType().IsLikelyString())
+        !srcReg1->GetValueType().HasHadStringTag() ||
+        !srcReg2->GetValueType().HasHadStringTag())
     {
         return false;
     }
@@ -2626,6 +2626,8 @@ LowererMD::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::R
 
     // Generates:
     //      GenerateObjectTest(src1);
+    //      CMP srcReg1, srcReg2
+    //      JEQ $success
     //      MOV s1, [srcReg1 + offset(Type)]
     //      CMP type, static_string_type
     //      JNE $helper
@@ -2637,8 +2639,6 @@ LowererMD::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::R
     //      CMP [srcReg2,offset(m_charLength)], s3
     //      JNE $fail                     <--- length check done
     //      MOV s4, [srcReg1,offset(m_pszValue)]
-    //      CMP srcReg1, srcReg2
-    //      JEQ $success
     //      CMP s4, 0
     //      JEQ $helper
     //      MOV s5, [srcReg2,offset(m_pszValue)]
@@ -2655,6 +2655,15 @@ LowererMD::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::R
     IR::Instr* instrInsert = instr;
 
     this->m_lowerer->GenerateStringTest(srcReg1, instrInsert, labelHelper);
+
+    if (srcReg1->IsEqual(srcReg2))
+    {
+        Lowerer::InsertBranch(Js::OpCode::Br, labelBranchSuccess, instrInsert);
+        return true;
+    }
+    //      CMP srcReg1, srcReg2                       - Ptr comparison
+    //      JEQ $branchSuccess
+    Lowerer::InsertCompareBranch(srcReg1, srcReg2, Js::OpCode::BrEq_A, labelBranchSuccess, instrInsert);
 
     if (isStrict)
     {
@@ -2706,14 +2715,6 @@ LowererMD::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::R
         IR::IndirOpnd::New(srcReg2, Js::JavascriptString::GetOffsetOfpszValue(), TyMachPtr,
         this->m_func), this->m_func);
     instrInsert->InsertBefore(loadSrc2StringInstr);
-
-    //      CMP srcReg1, srcReg2                       - Ptr comparison
-    //      JEQ $branchSuccess
-    IR::Instr * comparePtrInstr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
-    comparePtrInstr->SetSrc1(srcReg1);
-    comparePtrInstr->SetSrc2(srcReg2);
-    instrInsert->InsertBefore(comparePtrInstr);
-    instrInsert->InsertBefore(IR::BranchInstr::New(Js::OpCode::JEQ, labelBranchSuccess, this->m_func));
 
     IR::Instr * checkFlatString2Instr = IR::Instr::New(Js::OpCode::CMP, this->m_func);
     checkFlatString2Instr->SetSrc1(src2FlatString);
@@ -2844,7 +2845,7 @@ LowererMD::GenerateFastCmSrEqConst(IR::Instr *instr)
 /// LowererMD::GenerateFastCmXxTaggedInt
 ///
 ///----------------------------------------------------------------------------
-bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr)
+bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper /* = false */)
 {
     // The idea is to do an inline compare if we can prove that both sources
     // are tagged ints (i.e., are vars with the low bit set).
@@ -2880,7 +2881,7 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr)
     IR::Opnd * dst = instr->GetDst();
     IR::RegOpnd * r1 = IR::RegOpnd::New(TyMachReg, m_func);
     IR::LabelInstr * helper = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
-    IR::LabelInstr * fallthru = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * fallthru = IR::LabelInstr::New(Js::OpCode::Label, m_func, isInHelper);
 
     Assert(src1 && src2 && dst);
 

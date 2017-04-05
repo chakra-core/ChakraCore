@@ -2970,8 +2970,8 @@ LowererMD::GenerateFastBrOrCmString(IR::Instr* instr)
 
     // Check that we likely have strings or know we have strings as the arguments
     if (!regSrc1 || !regSrc2 ||
-        !regSrc1->GetValueType().IsLikelyString() ||
-        !regSrc2->GetValueType().IsLikelyString())
+        !regSrc1->GetValueType().HasBeenString() ||
+        !regSrc2->GetValueType().HasBeenString())
     {
         return false;
     }
@@ -3250,7 +3250,7 @@ bool LowererMD::GenerateFastCmXxI4(IR::Instr *instr)
 /// LowererMD::GenerateFastCmXxTaggedInt
 ///
 ///----------------------------------------------------------------------------
-bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr)
+bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper  /* = false */)
 {
     // The idea is to do an inline compare if we can prove that both sources
     // are tagged ints (i.e., are vars with the low bit set).
@@ -3274,7 +3274,7 @@ bool LowererMD::GenerateFastCmXxTaggedInt(IR::Instr *instr)
     IR::Opnd * src2 = instr->GetSrc2();
     IR::Opnd * dst = instr->GetDst();
     IR::LabelInstr * helper = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
-    IR::LabelInstr * fallthru = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * fallthru = IR::LabelInstr::New(Js::OpCode::Label, m_func, isInHelper);
 
     Assert(src1 && src2 && dst);
 
