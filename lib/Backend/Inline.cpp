@@ -4713,7 +4713,7 @@ Inline::MapFormals(Func *inlinee,
 
             if (instr->m_func != inlinee)
             {
-                for (uint i = restFuncFormalCount; i < formalCount; ++i)
+                for (uint i = restFuncFormalCount; i < min(actualCount, formalCount); ++i)
                 {
                     IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), i - restFuncFormalCount, TyVar, inlinee);
                     IR::Instr *stElemInstr = IR::Instr::New(Js::OpCode::StElemC, arrayLocOpnd, argOuts[i]->GetBytecodeArgOutCapture()->GetDst(), inlinee);
