@@ -126,6 +126,7 @@ private:
     Js::PropertyId m_propertyId;
 
     AssignmentState assignmentState;
+    bool isUsedInLdElem;
 
     OLECHAR m_sz[]; // the spelling follows (null terminated)
 
@@ -169,6 +170,16 @@ public:
         {
             assignmentState = AssignedMultipleTimes;
         }
+    }
+
+    bool GetIsUsedInLdElem() const
+    {
+        return this->isUsedInLdElem;
+    }
+
+    void SetIsUsedInLdElem(bool is)
+    {
+        this->isUsedInLdElem = is;
     }
 
     bool IsSingleAssignment()
@@ -221,14 +232,10 @@ public:
         return prevRef;
     }
 
-    PidRefStack * TopDecl(int maxBlockId) const
+    PidRefStack * TopDecl() const
     {
-        for (PidRefStack *pidRef = m_pidRefStack; pidRef; pidRef = pidRef->prev)
+        for (PidRefStack *pidRef = m_pidRefStack; pidRef != nullptr; pidRef = pidRef->prev)
         {
-            if (pidRef->id > maxBlockId)
-            {
-                continue;
-            }
             if (pidRef->sym != nullptr)
             {
                 return pidRef;

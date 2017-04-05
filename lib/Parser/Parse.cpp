@@ -3491,7 +3491,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
         case tkLBrack:
             {
                 m_pscan->Scan();
-                ParseNodePtr pnodeExpr = ParseExpr<buildAST>();
+                IdentToken tok;
+                ParseNodePtr pnodeExpr = ParseExpr<buildAST>(0, FALSE, TRUE, FALSE, nullptr, nullptr, nullptr, &tok);
                 if (buildAST)
                 {
                     pnode = CreateBinNode(knopIndex, pnode, pnodeExpr);
@@ -3510,6 +3511,28 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 if (pfIsDotOrIndex)
                 {
                     *pfIsDotOrIndex = true;
+                }
+
+                PidRefStack * topPidRef = nullptr;
+                if (buildAST)
+                {
+                    if (pnodeExpr && pnodeExpr->nop == knopName)
+                    {
+                        topPidRef = pnodeExpr->sxPid.pid->TopDecl();
+                    }
+                }
+                else if (tok.tk == tkID)
+                {
+                    topPidRef = tok.pid->TopDecl();
+                }
+
+                // in case name def is a string constant, let's remember that this string is being used in a LdElem, so we can create a PropertyString
+                const Symbol * topDeclSym = topPidRef ? topPidRef->sym : nullptr;
+                const ParseNode * topDeclNode = topDeclSym ? topDeclSym->GetDecl() : nullptr;
+                if (topDeclNode && (topDeclNode->nop == knopVarDecl || topDeclNode->nop == knopLetDecl || topDeclNode->nop == knopConstDecl) &&
+                    topDeclNode->sxVar.pnodeInit && topDeclNode->sxVar.pnodeInit->nop == knopStr)
+                {
+                    topDeclNode->sxVar.pnodeInit->sxPid.pid->SetIsUsedInLdElem(true);
                 }
 
                 if (!buildAST)
