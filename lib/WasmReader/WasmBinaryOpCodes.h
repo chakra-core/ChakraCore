@@ -4,12 +4,12 @@
 //-------------------------------------------------------------------------------------------------------
 
 // define this to include all opcodes
-#ifndef WASM_OPCODE
-#define WASM_OPCODE(opname, opcode, sig, nyi)
-#endif
-
 #ifndef WASM_SIGNATURE
 #define WASM_SIGNATURE(id,...)
+#endif
+
+#ifndef WASM_OPCODE
+#define WASM_OPCODE(opname, opcode, sig, nyi)
 #endif
 
 #ifndef WASM_CTRL_OPCODE
@@ -69,6 +69,8 @@ WASM_SIGNATURE(D_L,     2,   WasmTypes::F64, WasmTypes::I64)
 WASM_SIGNATURE(D_ID,    3,   WasmTypes::F64, WasmTypes::I32, WasmTypes::F64)
 WASM_SIGNATURE(F_IF,    3,   WasmTypes::F32, WasmTypes::I32, WasmTypes::F32)
 WASM_SIGNATURE(L_IL,    3,   WasmTypes::I64, WasmTypes::I32, WasmTypes::I64)
+
+#include "WasmBinaryOpcodesSimd.h"
 
 // Control flow operators
 WASM_CTRL_OPCODE(Unreachable, 0x00, Limit, false)
@@ -135,7 +137,6 @@ WASM_MISC_OPCODE(I64Const,     0x42, Limit, false)
 WASM_MISC_OPCODE(F32Const,     0x43, Limit, false)
 WASM_MISC_OPCODE(F64Const,     0x44, Limit, false)
 
-////////////////////////////////////////////////////////////
 // Comparison operators
 WASM_UNARY__OPCODE(I32Eqz,            0x45, I_I , Eqz_Int        , false)
 WASM_BINARY_OPCODE(I32Eq,             0x46, I_II, CmEq_Int       , false)
@@ -280,6 +281,10 @@ WASM_UNARY__OPCODE(I32ReinterpretF32, 0xbc, I_F , Reinterpret_FTI, false)
 WASM_UNARY__OPCODE(I64ReinterpretF64, 0xbd, L_D , Reinterpret_DTL, false)
 WASM_UNARY__OPCODE(F32ReinterpretI32, 0xbe, F_I , Reinterpret_ITF, false)
 WASM_UNARY__OPCODE(F64ReinterpretI64, 0xbf, D_L , Reinterpret_LTD, false)
+
+//Extended
+WASM_MISC_OPCODE(Extended, 0x06, Limit, false)
+WASM_MISC_OPCODE(Extended2, 0x07, Limit, false)
 
 #undef WASM_OPCODE
 #undef WASM_SIGNATURE

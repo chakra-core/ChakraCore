@@ -435,7 +435,10 @@ IR::Instr* LowererMD::Simd128LowerConstructor_8(IR::Instr *instr)
     {
         srcs[i] = args->Pop();
         // src's might have been constant prop'ed. Enregister them if so.
-        srcs[i] = EnregisterIntConst(instr, srcs[i], TyInt16);
+        srcs[i] = (instr->m_opcode == Js::OpCode::Simd128_IntsToB8) ?
+         EnregisterBoolConst(instr, srcs[i], TyInt16) :
+         EnregisterIntConst(instr, srcs[i], TyInt16);
+
         Assert(srcs[i]->GetType() == TyInt16 && srcs[i]->IsRegOpnd());
         // PINSRW dst, srcs[i], i
         instr->InsertBefore(IR::Instr::New(Js::OpCode::PINSRW, dst, srcs[i], IR::IntConstOpnd::New(i, TyInt8, m_func, true), m_func));
@@ -474,7 +477,9 @@ IR::Instr* LowererMD::Simd128LowerConstructor_16(IR::Instr *instr)
     {
         srcs[i] = args->Pop();
         // src's might have been constant prop'ed. Enregister them if so.
-        srcs[i] = EnregisterIntConst(instr, srcs[i], TyInt8);
+        srcs[i] = (instr->m_opcode == Js::OpCode::Simd128_IntsToB16) ?
+            EnregisterBoolConst(instr, srcs[i], TyInt8) :
+            EnregisterIntConst(instr, srcs[i], TyInt8);
         Assert(srcs[i]->GetType() == TyInt8 && srcs[i]->IsRegOpnd());
 
         address = tempSIMD + i;
@@ -737,7 +742,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
 
     // dst has the 4-byte lane
     if (instr->m_opcode == Js::OpCode::Simd128_ExtractLane_I8 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_U8 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 ||
-        instr->m_opcode == Js::OpCode::Simd128_ExtractLane_U16|| instr->m_opcode == Js::OpCode::Simd128_ExtractLane_I16|| instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16)
+        instr->m_opcode == Js::OpCode::Simd128_ExtractLane_U16 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_I16 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16)
     {
         // extract the 1/2 bytes sublane
         IR::Instr *newInstr = nullptr;
@@ -777,7 +782,7 @@ IR::Instr* LowererMD::Simd128LowerLdLane(IR::Instr *instr)
     if (instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B4 || instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B8 ||
         instr->m_opcode == Js::OpCode::Simd128_ExtractLane_B16)
     {
-        IR::Instr* pInstr    = nullptr;
+        IR::Instr* pInstr = nullptr;
         IR::RegOpnd* tmp = IR::RegOpnd::New(TyInt8, m_func);
 
         // cmp      dst, -1
@@ -3015,6 +3020,34 @@ SList<IR::Opnd*> * LowererMD::Simd128GetExtendedArgs(IR::Instr *instr)
     args->Push(dst);
     Assert(args->Count() > 3);
     return args;
+}
+
+
+
+IR::Opnd*
+LowererMD::EnregisterBoolConst(IR::Instr* instr, IR::Opnd *opnd, IRType type)
+{
+
+    if (opnd->IsIntConstOpnd() || opnd->IsInt64ConstOpnd())
+    {
+        bool isSet = opnd->GetImmediateValue(instr->m_func) != 0;
+        IR::RegOpnd *tempReg = IR::RegOpnd::New(type, m_func);
+        instr->InsertBefore(IR::Instr::New(Js::OpCode::MOV, tempReg, IR::IntConstOpnd::New(isSet ? -1 : 0, type, m_func, true), m_func));
+        return tempReg;
+    }
+
+    IRType origType = opnd->GetType();
+    IR::RegOpnd *tempReg = IR::RegOpnd::New(origType, m_func);
+    IR::Instr* cmovInstr = IR::Instr::New(Js::OpCode::MOV, tempReg, IR::IntConstOpnd::New(0, origType, m_func, true), m_func);
+    instr->InsertBefore(cmovInstr);
+    Legalize(cmovInstr);
+    cmovInstr = IR::Instr::New(Js::OpCode::SUB, tempReg, tempReg, opnd->UseWithNewType(origType, m_func), m_func);
+    instr->InsertBefore(cmovInstr);
+    Legalize(cmovInstr);
+    cmovInstr = IR::Instr::New(Js::OpCode::CMOVS, tempReg, tempReg, IR::IntConstOpnd::New(-1, origType, m_func, true), m_func);
+    instr->InsertBefore(cmovInstr);
+    Legalize(cmovInstr);
+    return tempReg->UseWithNewType(type, m_func);
 }
 
 IR::Opnd*

@@ -38,8 +38,8 @@ EXDEF2    (NOPASMJS          , InvalidOpCode, Empty                             
   DEF2_WMS( R1toF1Mem        , Conv_VTF     , JavascriptConversion::ToNumber                     ) // convert var to float
   DEF2_WMS( I1toI1Mem        , I_Conv_VTI   , (int)                                              )
   DEF2_WMS( R1toI1Mem        , Conv_VTI     , JavascriptMath::ToInt32                            ) // convert var to int
-  DEF3_WMS( CUSTOM_ASMJS     , ArgOut_Long  , OP_InvalidWasmTypeConversion<true>  , Reg1Long1    ) // convert int64 to Var
-  DEF3_WMS( CUSTOM_ASMJS     , Conv_VTL     , OP_InvalidWasmTypeConversion<false> , Long1Reg1    ) // convert var to int64
+  DEF3_WMS( CUSTOM_ASMJS     , ArgOut_Long  , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::I64,true>)  , Reg1Long1    ) // convert int64 to Var
+  DEF3_WMS( CUSTOM_ASMJS     , Conv_VTL     , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::I64,false>) , Long1Reg1    ) // convert var to int64
 
   DEF3_WMS( CUSTOM_ASMJS     , LdArr_Func   , OP_LdArrFunc                 , ElementSlot         )
   DEF3_WMS( CUSTOM_ASMJS     , LdArr_WasmFunc,OP_LdArrWasmFunc             , ElementSlot         )
@@ -366,6 +366,8 @@ EXDEF2_WMS( SIMD_B8_1U8_2toU8_1     , Simd128_Select_U8   , Js::SIMDInt32x4Opera
 EXDEF2_WMS( SIMD_B16_1U16_2toU16_1   , Simd128_Select_U16  , Js::SIMDInt32x4Operation::OpSelect         )
 
   // args out, copy value to outParams
+EXDEF3_WMS   ( CUSTOM_ASMJS      , Simd128_ArgOut_F4       , (OP_InvalidWasmTypeConversion<Wasm::WasmTypes::M128,true>)  , Reg1Float32x4_1)
+
 EXDEF2_WMS   ( SIMD_F4_1toR1Mem  , Simd128_I_ArgOut_F4     , OP_I_SetOutAsmSimd                          )
   DEF2_WMS   ( SIMD_I4_1toR1Mem  , Simd128_I_ArgOut_I4     , OP_I_SetOutAsmSimd                          )
 
@@ -439,9 +441,9 @@ EXDEF2_WMS   ( SIMD_I8_1I1toI1   , Simd128_ExtractLane_I8  , SIMDUtils::SIMD128I
 EXDEF2_WMS   ( SIMD_U4_1I1toI1   , Simd128_ExtractLane_U4  , SIMDUtils::SIMD128InnerExtractLaneI4        )
 EXDEF2_WMS   ( SIMD_U8_1I1toI1   , Simd128_ExtractLane_U8  , SIMDUtils::SIMD128InnerExtractLaneI8        )
 EXDEF2_WMS   ( SIMD_U16_1I1toI1  , Simd128_ExtractLane_U16 , SIMDUtils::SIMD128InnerExtractLaneI16       )
-EXDEF2_WMS   ( SIMD_B4_1I1toI1   , Simd128_ExtractLane_B4  , SIMDUtils::SIMD128InnerExtractLaneI4        )
-EXDEF2_WMS   ( SIMD_B8_1I1toI1   , Simd128_ExtractLane_B8  , SIMDUtils::SIMD128InnerExtractLaneI8        )
-EXDEF2_WMS   ( SIMD_B16_1I1toI1  , Simd128_ExtractLane_B16 , SIMDUtils::SIMD128InnerExtractLaneI16       )
+EXDEF2_WMS   ( SIMD_B4_1I1toI1   , Simd128_ExtractLane_B4  , SIMDUtils::SIMD128InnerExtractLaneB4        )
+EXDEF2_WMS   ( SIMD_B8_1I1toI1   , Simd128_ExtractLane_B8  , SIMDUtils::SIMD128InnerExtractLaneB8        )
+EXDEF2_WMS   ( SIMD_B16_1I1toI1  , Simd128_ExtractLane_B16 , SIMDUtils::SIMD128InnerExtractLaneB16       )
 
 EXDEF2_WMS   ( SIMD_I4_1I2toI4_1   , Simd128_ReplaceLane_I4 , SIMDUtils::SIMD128InnerReplaceLaneI4       )
 EXDEF2_WMS   ( SIMD_F4_1I1F1toF4_1 , Simd128_ReplaceLane_F4 , SIMDUtils::SIMD128InnerReplaceLaneF4       )
