@@ -370,6 +370,7 @@ typedef struct ScriptContextDataIDL
     CHAKRA_PTR debugStepTypeAddr;
     CHAKRA_PTR debugFrameAddressAddr;
     CHAKRA_PTR debugScriptIdWhenSetAddr;
+    CHAKRA_PTR chakraLibAddr;
 #endif
 } ScriptContextDataIDL;
 

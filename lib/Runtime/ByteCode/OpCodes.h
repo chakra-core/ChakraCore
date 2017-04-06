@@ -456,6 +456,7 @@ MACRO_WMS(              LdNaN,              Reg1,           OpByteCodeOnly|OpCan
 MACRO_WMS(              LdInfinity,         Reg1,           OpByteCodeOnly|OpCanCSE)       // Load 'Infinity'
 MACRO_WMS(              LdTrue,             Reg1,           OpByteCodeOnly|OpCanCSE)       // Load 'true' boolean primitive
 MACRO_WMS(              LdFalse,            Reg1,           OpByteCodeOnly|OpCanCSE)       // Load 'false' boolean primitive
+MACRO_EXTEND_WMS(       LdChakraLib,        Reg1,           OpByteCodeOnly|OpCanCSE)       // Load '__chakraLibrary'
 MACRO_BACKEND_ONLY(     LdEnv,              Reg1,           None)           // Load the optional FixedSizeArray environment for closures
 MACRO_BACKEND_ONLY(     LdAsmJsEnv,         Reg1,           None)           // Load the asm.js memory
 

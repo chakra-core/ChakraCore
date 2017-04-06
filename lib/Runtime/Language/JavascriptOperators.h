@@ -449,6 +449,7 @@ namespace Js
         static Var OP_LdNull(ScriptContext* scriptContext);
         static Var OP_LdUndef(ScriptContext* scriptContext);
         static Var OP_LdNaN(ScriptContext* scriptContext);
+        static Var OP_LdChakraLib(ScriptContext* scriptContext);
         static Var OP_LdInfinity(ScriptContext* scriptContext);
         static FrameDisplay* OP_LdHandlerScope(Var argThis, ScriptContext* scriptContext);
         static FrameDisplay* OP_LdFrameDisplay(void *argHead, void *argEnv, ScriptContext* scriptContext);

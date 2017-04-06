@@ -5,6 +5,7 @@
 #include "RuntimeByteCodePch.h"
 #include "FormalsUtil.h"
 #include "Language/AsmJs.h"
+#include "ConfigFlagsList.h"
 
 void EmitReference(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
 void EmitAssignment(ParseNode *asgnNode, ParseNode *lhs, Js::RegSlot rhsLocation, ByteCodeGenerator *byteCodeGenerator, FuncInfo *funcInfo);
@@ -5114,6 +5115,11 @@ void ByteCodeGenerator::EmitPropLoad(Js::RegSlot lhsLocation, Symbol *sym, Ident
                 break;
             case Js::PropertyIds::undefined:
                 opcode = Js::OpCode::LdUndef;
+                break;
+            case Js::PropertyIds::__chakraLibrary:
+                if (CONFIG_FLAG(LdChakraLib)) {
+                    opcode = Js::OpCode::LdChakraLib;
+                }
                 break;
             }
 

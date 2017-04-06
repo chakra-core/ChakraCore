@@ -6379,6 +6379,11 @@ CommonNumber:
         return scriptContext->GetLibrary()->GetNaN();
     }
 
+    Var JavascriptOperators::OP_LdChakraLib(ScriptContext* scriptContext)
+    {
+        return scriptContext->GetLibrary()->GetChakraLib();
+    }
+
     Var JavascriptOperators::OP_LdInfinity(ScriptContext* scriptContext)
     {
         return scriptContext->GetLibrary()->GetPositiveInfinite();
@@ -7180,6 +7185,15 @@ CommonNumber:
         BOOL result;
         if( indexType == Js::IndexType_Number )
         {
+            if (JavascriptArray::Is(object)) 
+            {
+                JavascriptArray* array = JavascriptArray::FromVar(object);
+                if (array->HasNoMissingValues() && index < array->GetHead()->length)
+                {
+                    return scriptContext->GetLibrary()->GetTrue();
+                }
+            }
+
             result = JavascriptOperators::HasItem( object, index );
         }
         else

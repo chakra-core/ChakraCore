@@ -1803,6 +1803,15 @@ IRBuilder::BuildReg1(Js::OpCode newOpcode, uint32 offset, Js::RegSlot R0)
         }
         dstIsCatchObject = true;
         break;
+
+    case Js::OpCode::LdChakraLib:
+        {
+            const auto addrOpnd = IR::AddrOpnd::New(m_func->GetScriptContextInfo()->GetChakraLibAddr(), IR::AddrOpndKindDynamicVar, m_func, true);
+            addrOpnd->SetValueType(ValueType::PrimitiveOrObject);
+            srcOpnd = addrOpnd;
+            newOpcode = Js::OpCode::Ld_A;
+            break;
+        }
     }
 
     IR::RegOpnd *   dstOpnd = this->BuildDstOpnd(dstRegSlot, TyVar, dstIsCatchObject);

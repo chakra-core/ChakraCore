@@ -15,7 +15,7 @@
         "sourceLength": 11
       },
       {
-        "scriptId": 4,
+        "scriptId": 5,
         "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
@@ -39,14 +39,7 @@
         "sourceLength": 11
       },
       {
-        "scriptId": 4,
-        "parentScriptId": 1,
-        "scriptType": "eval code",
-        "lineCount": 1,
-        "sourceLength": 11
-      },
-      {
-        "scriptId": 6,
+        "scriptId": 5,
         "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
@@ -57,17 +50,24 @@
         "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
-        "sourceLength": 10
+        "sourceLength": 11
       },
       {
         "scriptId": 8,
+        "parentScriptId": 1,
+        "scriptType": "eval code",
+        "lineCount": 1,
+        "sourceLength": 10
+      },
+      {
+        "scriptId": 9,
         "parentScriptId": 1,
         "scriptType": "Function code",
         "lineCount": 3,
         "sourceLength": 25
       },
       {
-        "scriptId": 9,
+        "scriptId": 10,
         "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,

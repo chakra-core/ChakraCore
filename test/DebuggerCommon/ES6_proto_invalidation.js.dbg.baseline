@@ -363,6 +363,13 @@
               "__lookupGetter__": "function <large string>",
               "__lookupSetter__": "function <large string>"
             },
+            "indexOf": {
+              "#__proto__": "function <large string>",
+              "name": "string indexOf",
+              "length": "number 1",
+              "arguments": "object null",
+              "caller": "object null"
+            },
             "constructor": {
               "#__proto__": "function <large string>",
               "length": "number 1",
@@ -456,13 +463,6 @@
               "#__proto__": "function <large string>",
               "length": "number 1",
               "name": "string unshift",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "indexOf": {
-              "#__proto__": "function <large string>",
-              "length": "number 1",
-              "name": "string indexOf",
               "caller": "object null",
               "arguments": "object null"
             },
@@ -642,6 +642,13 @@
               "__lookupGetter__": "function <large string>",
               "__lookupSetter__": "function <large string>"
             },
+            "indexOf": {
+              "#__proto__": "function <large string>",
+              "name": "string indexOf",
+              "length": "number 1",
+              "arguments": "object null",
+              "caller": "object null"
+            },
             "constructor": {
               "#__proto__": "function <large string>",
               "length": "number 1",
@@ -735,13 +742,6 @@
               "#__proto__": "function <large string>",
               "length": "number 1",
               "name": "string unshift",
-              "caller": "object null",
-              "arguments": "object null"
-            },
-            "indexOf": {
-              "#__proto__": "function <large string>",
-              "length": "number 1",
-              "name": "string indexOf",
               "caller": "object null",
               "arguments": "object null"
             },

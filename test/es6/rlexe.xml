@@ -57,6 +57,12 @@
   </test>
   <test>
     <default>
+      <files>es6toLength.js</files>
+      <compile-flags>-es6toLength -JsBuiltIn- -args summary -endargs</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>toPrimitiveCrossScriptTestCase.js</files>
       <compile-flags></compile-flags>
     </default>
