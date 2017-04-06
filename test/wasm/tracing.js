@@ -4,6 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 WScript.Flag("-wasmI64");
 WScript.Flag("-trace:wasminout");
+var {i64ToString} = WScript.LoadScriptFile("./wasmutils.js");
 
 const buf = WebAssembly.wabt.convertWast2Wasm(`
 (module
@@ -39,13 +40,20 @@ const buf = WebAssembly.wabt.convertWast2Wasm(`
   (func (export "type-second-i64") (param i32 i64) (result i64) (call $i32-i64 (get_local 0) (get_local 1)))
   (func (export "type-second-f32") (param f64 f32) (result f32) (call $f64-f32 (get_local 0) (get_local 1)))
   (func (export "type-second-f64") (param i64 f64) (result f64) (call $i64-f64 (get_local 0) (get_local 1)))
-)`)
+)`);
 
 WebAssembly.instantiate(buf)
   .then(({instance: {exports}}) => {
     for (const key in exports) {
-      exports[key](32.123, -5);
-      exports[key](3, -45.147);
+      const res1 = exports[key](32.123, -5);
+      const res2 = exports[key](3, -45.147);
+      if (key.endsWith("i64")) {
+        console.log(i64ToString(res1));
+        console.log(i64ToString(res2));
+      } else {
+        console.log(res1);
+        console.log(res2);
+      }
     }
     return "Done";
   })

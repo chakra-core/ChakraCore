@@ -145,14 +145,6 @@
 </test>
 <test>
   <default>
-    <files>tracing.js</files>
-    <baseline>baselines/tracing.baseline</baseline>
-    <compile-flags>-wasm</compile-flags>
-    <tags>exclude_jshost,exclude_win7</tags>
-  </default>
-</test>
-<test>
-  <default>
     <files>debugger.js</files>
     <compile-flags>-wasm -dbgbaseline:debugger.js.dbg.baseline</compile-flags>
     <tags>exclude_serialized,exclude_jshost,exclude_snap,require_debugger,exclude_xplat</tags>
