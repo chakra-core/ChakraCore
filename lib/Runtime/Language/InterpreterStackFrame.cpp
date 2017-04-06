@@ -8965,7 +8965,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 
     void InterpreterStackFrame::OP_WasmPrintFunc(int regIndex)
     {
-#if ENABLE_DEBUG_CONFIG_OPTIONS
+#if defined(ENABLE_DEBUG_CONFIG_OPTIONS) && defined(ENABLE_WASM)
         Assert(m_functionBody->IsWasmFunction());
         uint index = GetRegRawInt(regIndex);
         Wasm::WasmFunctionInfo* info = m_functionBody->GetAsmJsFunctionInfo()->GetWebAssemblyModule()->GetWasmFunctionInfo(index);

@@ -96,8 +96,8 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
             PHASE_OFF(Js::FullJitPhase, body) ||
             body->GetScriptContext()->GetConfig()->IsNoNative() ||
             body->GetIsAsmJsFullJitScheduled();
-        const uint minAsmJsInterpretRunCount = (int)CONFIG_FLAG(MinAsmJsInterpreterRunCount);
-        const uint maxAsmJsInterpretRunCount = (int)CONFIG_FLAG(MaxAsmJsInterpreterRunCount);
+        const uint minAsmJsInterpretRunCount = (uint)CONFIG_FLAG(MinAsmJsInterpreterRunCount);
+        const uint maxAsmJsInterpretRunCount = (uint)CONFIG_FLAG(MaxAsmJsInterpreterRunCount);
         return !noJit && (interpretedCount >= minAsmJsInterpretRunCount || interpretedCount >= maxAsmJsInterpretRunCount);
 #else
         return false;
