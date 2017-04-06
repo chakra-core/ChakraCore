@@ -170,6 +170,8 @@
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="AtomicsObject.h" />
+    <ClInclude Include="BuiltIn\IndexOf.js.bc.32b.h" />
+    <ClInclude Include="BuiltIn\IndexOf.js.bc.64b.h" />
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptListIterator.h" />
@@ -325,6 +327,7 @@
     <None Include="amd64\JavascriptFunctionA.S">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
+    <None Include="BuiltIn\IndexOf.js" />
     <None Include="InJavascript\GenByteCode.cmd" />
     <None Include="InJavascript\Intl.js" />
     <None Include="ConcatString.inl" />

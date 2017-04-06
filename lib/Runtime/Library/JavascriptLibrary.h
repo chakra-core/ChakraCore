@@ -413,6 +413,9 @@ namespace Js
 
         Field(ConstructorCache*) builtInConstructorCache;
 
+
+        Field(FunctionBody*) indexOfByteCode;
+
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         Field(JavascriptFunction*) debugObjectFaultInjectionCookieGetterFunction;
         Field(JavascriptFunction*) debugObjectFaultInjectionCookieSetterFunction;
@@ -1139,6 +1142,7 @@ namespace Js
         JavascriptFunction* EnsureArrayPrototypeKeysFunction();
         JavascriptFunction* EnsureArrayPrototypeEntriesFunction();
         JavascriptFunction* EnsureArrayPrototypeValuesFunction();
+        void EnsureIndexOfByteCode();
 
         void SetCrossSiteForSharedFunctionType(JavascriptFunction * function);
 

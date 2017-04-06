@@ -252,6 +252,8 @@
     <ClInclude Include="WebAssemblyTable.h" />
     <ClInclude Include="WebAssemblyEnvironment.h" />
     <ClInclude Include="WabtInterface.h" />
+    <ClInclude Include="BuiltIn\IndexOf.js.bc.32b.h" />
+    <ClInclude Include="BuiltIn\IndexOf.js.bc.64b.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />
@@ -266,6 +268,7 @@
     <None Include="amd64\JavascriptFunctionA.S">
       <Filter>amd64</Filter>
     </None>
+    <None Include="BuiltIn\IndexOf.js" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="arm">
