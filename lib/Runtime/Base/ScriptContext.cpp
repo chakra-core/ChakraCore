@@ -9,6 +9,7 @@
 #include "DebugWriter.h"
 #include "RegexStats.h"
 
+#include "ConfigFlagsList.h"
 #include "ByteCode/ByteCodeApi.h"
 #include "Library/ProfileString.h"
 #include "Debug/DiagHelperMethodWrapper.h"
@@ -4737,6 +4738,7 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         contextData.debugStepTypeAddr = GetDebugStepTypeAddr();
         contextData.debugFrameAddressAddr = GetDebugFrameAddressAddr();
         contextData.debugScriptIdWhenSetAddr = GetDebugScriptIdWhenSetAddr();
+        contextData.chakraLibAddr = (intptr_t)GetLibrary()->GetChakraLib();
 
         contextData.numberAllocatorAddr = (intptr_t)GetNumberAllocator();
         contextData.isSIMDEnabled = GetConfig()->IsSimdjsEnabled();
@@ -4920,6 +4922,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
     intptr_t ScriptContext::GetDebugScriptIdWhenSetAddr() const
     {
         return (intptr_t)this->threadContext->GetDebugManager()->stepController.GetAddressOfScriptIdWhenSet();
+    }
+
+    intptr_t Js::ScriptContext::GetChakraLibAddr() const
+    {
+        return (intptr_t)GetLibrary()->GetChakraLib();
     }
 
     bool ScriptContext::GetRecyclerAllowNativeCodeBumpAllocation() const
@@ -5766,6 +5773,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
 #endif
         }
         return false;
+    }
+
+    bool ScriptContext::IsJsBuiltInEnabled()
+    {
+        return CONFIG_FLAG(JsBuiltIn);
     }
 
 

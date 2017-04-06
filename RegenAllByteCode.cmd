@@ -38,6 +38,14 @@ if %errorlevel% neq 0 (
 )
 popd
 
+pushd lib\Runtime\Library\JsBuiltIn
+call GenByteCode.cmd
+if %errorlevel% neq 0 (
+  echo There was an error when regenerating bytecode header.
+  exit /b 1
+)
+popd
+
 :: ch.exe        x64_debug (NoJIT)
 :: ch.exe        x86_debug (NoJIT)
 call jenkins\buildone.cmd x64 debug "/p:BuildJIT=false"
@@ -54,6 +62,15 @@ if %errorlevel% neq 0 (
 
 :: Generate Intl NoJIT Bytecodes using ch.exe (NoJIT)
 pushd lib\Runtime\Library\InJavascript
+call GenByteCode.cmd -nojit
+if %errorlevel% neq 0 (
+  echo There was an error when regenerating bytecode header for NoJIT.
+  exit /b 1
+)
+popd
+
+:: Generate BuiltIn NoJIT Bytecodes using ch.exe (NoJIT)
+pushd lib\Runtime\Library\JsBuiltIn
 call GenByteCode.cmd -nojit
 if %errorlevel% neq 0 (
   echo There was an error when regenerating bytecode header for NoJIT.
