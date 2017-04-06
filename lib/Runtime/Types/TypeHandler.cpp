@@ -250,14 +250,14 @@ namespace Js
 
     BOOL
     DynamicTypeHandler::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info)
     {
         // Type handlers that support big property indexes override this function, so if we're here then this type handler does
         // not support big property indexes. Forward the call to the small property index version.
         Assert(GetSlotCapacity() <= PropertyIndexRanges<PropertyIndex>::MaxValue);
         PropertyIndex smallIndex = static_cast<PropertyIndex>(index);
         Assert(static_cast<BigPropertyIndex>(smallIndex) == index);
-        const BOOL found = FindNextProperty(scriptContext, smallIndex, propertyString, propertyId, attributes, type, typeToEnumerate, flags);
+        const BOOL found = FindNextProperty(scriptContext, smallIndex, propertyString, propertyId, attributes, type, typeToEnumerate, flags, instance, info);
         index = smallIndex;
         return found;
     }

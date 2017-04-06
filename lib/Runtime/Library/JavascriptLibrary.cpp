@@ -6786,12 +6786,6 @@ namespace Js
         return PropertyString::New(stringTypeStatic, propertyRecord, this->GetRecycler());
     }
 
-    PropertyString* JavascriptLibrary::CreatePropertyString(const Js::PropertyRecord* propertyRecord, ArenaAllocator *arena)
-    {
-        AssertMsg(stringTypeStatic, "Where's stringTypeStatic?");
-        return PropertyString::New(stringTypeStatic, propertyRecord, arena);
-    }
-
     JavascriptVariantDate* JavascriptLibrary::CreateVariantDate(const double value)
     {
         AssertMsg(variantDateType, "Where's variantDateType?");

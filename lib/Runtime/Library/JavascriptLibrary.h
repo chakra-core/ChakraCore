@@ -54,6 +54,7 @@ namespace Js
 
     struct Cache
     {
+        Field(ScriptContextPolymorphicInlineCache *) globalPICHead;
         Field(JavascriptString *) lastNumberToStringRadix10String;
         Field(EnumeratedObjectCache) enumObjCache;
         Field(JavascriptString *) lastUtcTimeFromStrString;
@@ -1064,7 +1065,6 @@ namespace Js
         template<> JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[1]) const; // Specialization for empty string
         template<> JavascriptString* CreateStringFromCppLiteral(const char16 (&value)[2]) const; // Specialization for single-char strings
         PropertyString* CreatePropertyString(const Js::PropertyRecord* propertyRecord);
-        PropertyString* CreatePropertyString(const Js::PropertyRecord* propertyRecord, ArenaAllocator *arena);
 
         JavascriptVariantDate* CreateVariantDate(const double value);
 

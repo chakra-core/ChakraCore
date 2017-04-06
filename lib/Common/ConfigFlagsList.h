@@ -295,6 +295,7 @@ PHASE(All)
         PHASE(InlineCache)
         PHASE(PolymorphicInlineCache)
         PHASE(MissingPropertyCache)
+        PHASE(PropertyStringCache)
         PHASE(CloneCacheInCollision)
         PHASE(ConstructorCache)
         PHASE(InlineCandidate)
@@ -444,6 +445,9 @@ PHASE(All)
 #define DEFAULT_CONFIG_RecursiveInlineDepthMax      (8)      // Maximum inline depth for recursive calls
 #define DEFAULT_CONFIG_RecursiveInlineDepthMin      (2)      // Minimum inline depth for recursive call
 #define DEFAULT_CONFIG_InlineInLoopBodyScaleDownFactor    (4)
+#define DEFAULT_CONFIG_StringCacheMissPenalty (10)
+#define DEFAULT_CONFIG_StringCacheMissThreshold (-100)
+#define DEFAULT_CONFIG_StringCacheMissReset (-5000)
 
 #define DEFAULT_CONFIG_CloneInlinedPolymorphicCaches (true)
 #define DEFAULT_CONFIG_HighPrecisionDate    (false)
@@ -903,6 +907,9 @@ FLAGNR(Boolean, ConsoleExitPause      , "Pause on exit when a console window is 
 #endif
 FLAGNR(Number,  ConstructorInlineThreshold      , "Maximum size in bytecodes of a constructor inline candidate with monomorphic field access", DEFAULT_CONFIG_ConstructorInlineThreshold)
 FLAGNR(Number,  ConstructorCallsRequiredToFinalizeCachedType, "Number of calls to a constructor required before the type cached in the constructor cache is finalized", DEFAULT_CONFIG_ConstructorCallsRequiredToFinalizeCachedType)
+FLAGNR(Number,  StringCacheMissPenalty, "Number of string cache hits per miss needed to be worth using cache", DEFAULT_CONFIG_StringCacheMissPenalty)
+FLAGNR(Number,  StringCacheMissThreshold, "Point at which we disable string property cache", DEFAULT_CONFIG_StringCacheMissThreshold)
+FLAGNR(Number,  StringCacheMissReset, "Point at which we try to start using string cache after giving up", DEFAULT_CONFIG_StringCacheMissReset)
 #ifdef SECURITY_TESTING
 FLAGNR(Boolean, CrashOnException      , "Removes the top-level exception handler, allowing jc.exe to crash on an unhandled exception.  No effect on IE. (default: false)", false)
 #endif

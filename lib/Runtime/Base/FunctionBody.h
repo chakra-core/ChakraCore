@@ -33,7 +33,7 @@ namespace Js
     struct PropertyIdOnRegSlotsContainer;
 
     struct InlineCache;
-    struct PolymorphicInlineCache;
+    class PolymorphicInlineCache;
     struct IsInstInlineCache;
     class ScopeObjectChain;
     class EntryPointInfo;
@@ -3150,8 +3150,8 @@ namespace Js
         PolymorphicCallSiteInfo * GetPolymorphicCallSiteInfoHead() { return static_cast<PolymorphicCallSiteInfo *>(this->GetAuxPtr(AuxPointerType::PolymorphicCallSiteInfoHead)); }
 #endif
 
-        PolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<PolymorphicInlineCache *>(this->GetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead)); }
-        void SetPolymorphicInlineCachesHead(PolymorphicInlineCache * cache) { this->SetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead, cache); }
+        FunctionBodyPolymorphicInlineCache * GetPolymorphicInlineCachesHead() { return static_cast<FunctionBodyPolymorphicInlineCache *>(this->GetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead)); }
+        void SetPolymorphicInlineCachesHead(FunctionBodyPolymorphicInlineCache * cache) { this->SetAuxPtr(AuxPointerType::PolymorphicInlineCachesHead, cache); }
 
         bool PolyInliningUsingFixedMethodsAllowedByConfigFlags(FunctionBody* topFunctionBody)
         {

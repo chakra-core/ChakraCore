@@ -122,6 +122,22 @@ enum LoadScriptFlag
     LoadScriptFlag_ExternalArrayBuffer = 0x100          // for ExternalArrayBuffer
 };
 
+#ifdef INLINE_CACHE_STATS
+// Used to store inline cache stats
+
+struct InlineCacheData
+{
+    uint hits;
+    uint misses;
+    uint collisions;
+    bool isGetCache;
+    Js::PropertyId propertyId;
+
+    InlineCacheData() : hits(0), misses(0), collisions(0), isGetCache(false), propertyId(Js::PropertyIds::_none) { }
+};
+
+#endif
+
 class HostScriptContext
 {
 public:
@@ -529,6 +545,9 @@ namespace Js
         InlineCache * GetValueOfInlineCache() const { return valueOfInlineCache;}
         InlineCache * GetToStringInlineCache() const { return toStringInlineCache; }
 
+        ScriptContextPolymorphicInlineCache * GetGlobalPICHead() const { return this->Cache()->globalPICHead; }
+        void SetGlobalPICHead(ScriptContextPolymorphicInlineCache * cache) { this->Cache()->globalPICHead = cache; }
+
     private:
         PropertyStringMap* propertyStrings[80];
 
@@ -705,23 +724,9 @@ public:
 
 #endif
 #ifdef INLINE_CACHE_STATS
-        // Used to store inline cache stats
-
-        struct CacheData
-        {
-            uint hits;
-            uint misses;
-            uint collisions;
-            bool isGetCache;
-            Js::PropertyId propertyId;
-
-            CacheData() : hits(0), misses(0), collisions(0), isGetCache(false), propertyId(Js::PropertyIds::_none) { }
-        };
-
         // This is a strongly referenced dictionary, since we want to know hit rates for dead caches.
-        typedef JsUtil::BaseDictionary<const Js::PolymorphicInlineCache*, CacheData*, Recycler> CacheDataMap;
+        typedef JsUtil::BaseDictionary<const Js::PolymorphicInlineCache*, InlineCacheData*, Recycler> CacheDataMap;
         CacheDataMap *cacheDataMap;
-
         void LogCacheUsage(Js::PolymorphicInlineCache *cache, bool isGet, Js::PropertyId propertyId, bool hit, bool collision);
 #endif
 

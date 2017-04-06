@@ -96,7 +96,7 @@ namespace Js
 
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -130,30 +130,33 @@ namespace Js
                 T dataSlot = descriptor.template GetDataPropertyIndex<false>();
                 if (dataSlot != NoSlots && (attribs & PropertyWritable))
                 {
-                    uint16 inlineOrAuxSlotIndex;
-                    bool isInlineSlot;
-                    PropertyIndexToInlineOrAuxSlotIndex(dataSlot, &inlineOrAuxSlotIndex, &isInlineSlot);
-
-                    propertyString->UpdateCache(type, inlineOrAuxSlotIndex, isInlineSlot, descriptor.IsInitialized && !descriptor.IsFixed);
+                    PropertyValueInfo::SetCacheInfo(info, propertyString, propertyString->GetLdElemInlineCache(), false);
+                    SetPropertyValueInfo(info, instance, dataSlot, descriptor.Attributes);
+                    if (!descriptor.IsInitialized || descriptor.IsFixed)
+                    {
+                        PropertyValueInfo::DisableStoreFieldCache(info);
+                    }
+                    if (descriptor.Attributes & PropertyDeleted)
+                    {
+                        // letconst shadowing a deleted property. don't bother to cache
+                        PropertyValueInfo::SetNoCache(info, instance);
+                    }
                 }
                 else
                 {
-#ifdef DEBUG
-                    PropertyCache const* cache = propertyString->GetPropertyCache();
-                    Assert(!cache || cache->type != type);
-#endif
+                    PropertyValueInfo::SetNoCache(info, instance);
                 }
-
                 return TRUE;
             }
         }
+        PropertyValueInfo::SetNoCache(info, instance);
 
         return FALSE;
     }
 
     template <>
     BOOL DictionaryTypeHandlerBase<BigPropertyIndex>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info)
     {
         Assert(false);
         Throw::InternalError();
@@ -161,18 +164,18 @@ namespace Js
 
     template <typename T>
     BOOL DictionaryTypeHandlerBase<T>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyString,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info)
     {
         PropertyIndex local = (PropertyIndex)index;
         Assert(index <= Constants::UShortMaxValue || index == Constants::NoBigSlot);
-        BOOL result = this->FindNextProperty(scriptContext, local, propertyString, propertyId, attributes, type, typeToEnumerate, flags);
+        BOOL result = this->FindNextProperty(scriptContext, local, propertyString, propertyId, attributes, type, typeToEnumerate, flags, instance, info);
         index = local;
         return result;
     }
 
     template <>
     BOOL DictionaryTypeHandlerBase<BigPropertyIndex>::FindNextProperty(ScriptContext* scriptContext, BigPropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info)
     {
         Assert(propertyStringName);
         Assert(propertyId);

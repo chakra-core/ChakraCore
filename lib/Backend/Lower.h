@@ -289,6 +289,7 @@ private:
     bool            GenerateFastBrBool(IR::BranchInstr *const instr);
     bool            GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::RegOpnd *srcReg2, bool isEqual, bool isStrict, IR::LabelInstr *labelHelper, IR::LabelInstr *labelBranchSuccess, IR::LabelInstr *labelBranchFail);
     bool            GenerateFastBrOrCmString(IR::Instr* instr);
+    void            GenerateDynamicLoadPolymorphicInlineCacheSlot(IR::Instr * instrInsert, IR::RegOpnd * inlineCacheOpnd, IR::Opnd * objectTypeOpnd);
     static IR::Instr *LoadFloatFromNonReg(IR::Opnd * opndOrig, IR::Opnd * regOpnd, IR::Instr * instrInsert);
     void            LoadInt32FromUntaggedVar(IR::Instr *const instrLoad);
     bool            GetValueFromIndirOpnd(IR::IndirOpnd *indirOpnd, IR::Opnd **pValueOpnd, IntConstType *pValue);
@@ -424,6 +425,7 @@ private:
         IR::LabelInstr *bailOutLabelInstr = nullptr,
         bool * indirOpndOverflowed = nullptr);
 
+    IR::IndirOpnd * GenerateFastElemIStringIndexCommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper);
     bool            GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastStElemI(IR::Instr *& StElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef);

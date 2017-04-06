@@ -395,7 +395,7 @@ namespace Js
 
     BOOL
     DynamicObject::FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes,
-        DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext) const
+        DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext, PropertyValueInfo * info)
     {
         if(index == Constants::NoBigSlot)
         {
@@ -418,7 +418,7 @@ namespace Js
         }
         else if(this->GetScriptContext()->ShouldPerformRecordAction())
         {
-            BOOL res = this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags);
+            BOOL res = this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags, this, info);
 
             PropertyAttributes tmpAttributes = (attributes != nullptr) ? *attributes : PropertyNone;
             this->GetScriptContext()->GetThreadContext()->TTDLog->RecordPropertyEnumEvent(res, *propertyId, tmpAttributes, *propertyString);
@@ -426,10 +426,10 @@ namespace Js
         }
         else
         {
-            return this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags);
+            return this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags, this, info);
         }
 #else
-        return this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags);
+        return this->GetTypeHandler()->FindNextProperty(requestContext, index, propertyString, propertyId, attributes, this->GetType(), typeToEnumerate, flags, this, info);
 #endif
     }
 

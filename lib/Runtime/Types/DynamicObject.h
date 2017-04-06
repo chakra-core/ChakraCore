@@ -284,7 +284,7 @@ namespace Js
         void ChangeTypeIf(const Type* oldType);
 
         BOOL FindNextProperty(BigPropertyIndex& index, JavascriptString** propertyString, PropertyId* propertyId, PropertyAttributes* attributes,
-            DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext) const;
+            DynamicType *typeToEnumerate, EnumeratorFlags flags, ScriptContext * requestContext, PropertyValueInfo * info);
 
         virtual BOOL HasDeferredTypeHandler() const sealed;
         static DWORD GetOffsetOfAuxSlots();

@@ -196,7 +196,7 @@ namespace Js
 
     template<size_t size>
     BOOL SimpleTypeHandler<size>::FindNextProperty(ScriptContext* scriptContext, PropertyIndex& index, JavascriptString** propertyStringName,
-        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags)
+        PropertyId* propertyId, PropertyAttributes* attributes, Type* type, DynamicType *typeToEnumerate, EnumeratorFlags flags, DynamicObject* instance, PropertyValueInfo* info)
     {
         Assert(propertyStringName);
         Assert(propertyId);
@@ -221,27 +221,22 @@ namespace Js
                 }
 
                 *propertyId = propertyRecord->GetPropertyId();
-                PropertyString* propertyString = scriptContext->GetPropertyString(*propertyId);
-                *propertyStringName = propertyString;
-                if (attribs & PropertyWritable)
-                {
-                    uint16 inlineOrAuxSlotIndex;
-                    bool isInlineSlot;
-                    PropertyIndexToInlineOrAuxSlotIndex(index, &inlineOrAuxSlotIndex, &isInlineSlot);
+                PropertyString * propStr = scriptContext->GetPropertyString(*propertyId);
+                *propertyStringName = propStr;
 
-                    propertyString->UpdateCache(type, inlineOrAuxSlotIndex, isInlineSlot, true);
+                PropertyValueInfo::SetCacheInfo(info, propStr, propStr->GetLdElemInlineCache(), false);
+                if ((attribs & PropertyWritable) == PropertyWritable)
+                {
+                    PropertyValueInfo::Set(info, instance, index, attribs);
                 }
                 else
                 {
-#ifdef DEBUG
-                    PropertyCache const* cache = propertyString->GetPropertyCache();
-                    Assert(!cache || cache->type != type);
-#endif
+                    PropertyValueInfo::SetNoCache(info, instance);
                 }
-
                 return TRUE;
             }
         }
+        PropertyValueInfo::SetNoCache(info, instance);
 
         return FALSE;
     }

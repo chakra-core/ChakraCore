@@ -15123,14 +15123,14 @@ Lowerer::GenerateFastElemICommon(
     IR::RegOpnd *indexOpnd = indirOpnd->GetIndexOpnd();
     if (indexOpnd)
     {
-        if (indexOpnd->GetValueType().IsString())
+        if (indexOpnd->GetValueType().IsLikelyString())
         {
             if (!baseOpnd->GetValueType().IsLikelyOptimizedTypedArray())
             {
                 // If profile data says that it's a typed array - do not generate the property string fast path as the src. could be a temp and that would cause a bug.
                 *pIsTypedArrayElement = false;
                 *pIsStringIndex = true;
-                return m_lowererMD.GenerateFastElemIStringIndexCommon(instr, isStore, indirOpnd, labelHelper);
+                return GenerateFastElemIStringIndexCommon(instr, isStore, indirOpnd, labelHelper);
             }
             else
             {
@@ -15155,6 +15155,110 @@ Lowerer::GenerateFastElemICommon(
             returnLength,
             bailOutLabelInstr,
             indirOpndOverflowed);
+}
+
+void
+Lowerer::GenerateDynamicLoadPolymorphicInlineCacheSlot(IR::Instr * instrInsert, IR::RegOpnd * inlineCacheOpnd, IR::Opnd * objectTypeOpnd)
+{
+    // Generates:
+    // MOV   opndOffset, objectTypeOpnd
+    // SHR   opndOffset, PolymorphicInlineCacheShift
+    // MOVZX cacheIndexOpnd, inlineCacheOpnd->size
+    // DEC   cacheIndexOpnd
+    // AND   opndOffset, cacheIndexOpnd
+    // SHL   opndOffset, Math::Log2(sizeof(Js::InlineCache))
+    // MOV   inlineCacheOpnd, inlineCacheOpnd->inlineCaches
+    // LEA   inlineCacheOpnd, [inlineCacheOpnd + opndOffset]
+
+    IntConstType rightShiftAmount = PolymorphicInlineCacheShift;
+    IntConstType leftShiftAmount = Math::Log2(sizeof(Js::InlineCache));
+    Assert(rightShiftAmount > leftShiftAmount);
+    IR::RegOpnd * opndOffset = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertShift(Js::OpCode::ShrU_A, false, opndOffset, objectTypeOpnd, IR::IntConstOpnd::New(rightShiftAmount, TyUint8, m_func, true), instrInsert);
+
+    IR::RegOpnd * cacheIndexOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(cacheIndexOpnd, IR::IndirOpnd::New(inlineCacheOpnd, Js::PolymorphicInlineCache::GetOffsetOfSize(), TyUint16, m_func), instrInsert);
+    InsertSub(false, cacheIndexOpnd, cacheIndexOpnd, IR::IntConstOpnd::New(1, TyMachPtr, m_func), instrInsert);
+    InsertAnd(opndOffset, opndOffset, cacheIndexOpnd, instrInsert);
+    InsertShift(Js::OpCode::Shl_A, false, opndOffset, opndOffset, IR::IntConstOpnd::New(leftShiftAmount, TyUint8, m_func), instrInsert);
+    InsertMove(inlineCacheOpnd, IR::IndirOpnd::New(inlineCacheOpnd, Js::PolymorphicInlineCache::GetOffsetOfInlineCaches(), TyMachPtr, m_func), instrInsert);
+    InsertLea(inlineCacheOpnd, IR::IndirOpnd::New(inlineCacheOpnd, opndOffset, TyMachPtr, m_func), instrInsert);
+}
+
+IR::IndirOpnd *
+Lowerer::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper)
+{
+    IR::RegOpnd *indexOpnd = indirOpnd->GetIndexOpnd();
+    IR::RegOpnd *baseOpnd = indirOpnd->GetBaseOpnd();
+    Assert(baseOpnd != nullptr);
+    Assert(indexOpnd->GetValueType().IsLikelyString());
+
+    // Generates:
+    //      StringTest(indexOpnd, $helper)                ; verify index is string type
+    //      CMP indexOpnd, PropertyString::`vtable'       ; verify index is property string
+    //      JNE $helper
+    //      MOV inlineCacheOpnd, index->inlineCache
+    //      GenerateObjectTest(baseOpnd, $helper)         ; verify base is an object
+    //      MOV objectTypeOpnd, baseOpnd->type
+    //      GenerateDynamicLoadPolymorphicInlineCacheSlot(inlineCacheOpnd, objectTypeOpnd) ; loads inline cache for given type
+    //      LocalInlineCacheCheck(objectTypeOpnd, inlineCacheOpnd, $notInlineSlots)        ; check for type in local inline slots, jump to $notInlineSlotsLabel on failure
+    //      MOV opndSlotArray, baseOpnd
+    //      JMP slotArrayLoadedLabel
+    // $notInlineSlotsLabel
+    //      opndTaggedType = GenerateLoadTaggedType(objectTypeOpnd)         ; load objectTypeOpnd with InlineCacheAuxSlotTypeTag into opndTaggedType
+    //      LocalInlineCacheCheck(opndTaggedType, inlineCacheOpnd, $helper) ; check for type in local aux slots, jump to $helper on failure
+    //      MOV opndSlotArray, baseOpnd->auxSlots                           ; load the aux slot array
+    // $slotArrayLoadedLabel
+    //      MOV opndSlotIndex, inlineCacheOpnd->u.local.slotIndex           ; load the cached slot offset or index
+    //      INC indexOpnd->hitRate
+
+    GenerateStringTest(indexOpnd, instrInsert, labelHelper);
+
+    InsertCompareBranch(
+        IR::IndirOpnd::New(indexOpnd, 0, TyMachPtr, m_func),
+        LoadVTableValueOpnd(instrInsert, VTableValue::VtablePropertyString),
+        Js::OpCode::BrNeq_A, labelHelper, instrInsert);
+
+    m_lowererMD.GenerateObjectTest(baseOpnd, instrInsert, labelHelper);
+
+    IR::RegOpnd * objectTypeOpnd = IR::RegOpnd::New(TyMachPtr, this->m_func);
+    InsertMove(objectTypeOpnd, IR::IndirOpnd::New(baseOpnd, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, m_func), instrInsert);
+
+    const uint32 inlineCacheOffset = isStore ? Js::PropertyString::GetOffsetOfStElemInlineCache() : Js::PropertyString::GetOffsetOfLdElemInlineCache();
+
+    IR::RegOpnd * inlineCacheOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(inlineCacheOpnd, IR::IndirOpnd::New(indexOpnd, inlineCacheOffset, TyMachPtr, m_func), instrInsert);
+
+    GenerateDynamicLoadPolymorphicInlineCacheSlot(instrInsert, inlineCacheOpnd, objectTypeOpnd);
+
+    IR::LabelInstr * notInlineSlotsLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    IR::LabelInstr * slotArrayLoadedLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+
+    m_lowererMD.GenerateLocalInlineCacheCheck(instrInsert, objectTypeOpnd, inlineCacheOpnd, notInlineSlotsLabel);
+
+    IR::RegOpnd * opndSlotArray = IR::RegOpnd::New(TyMachReg, instrInsert->m_func);
+    InsertMove(opndSlotArray, baseOpnd, instrInsert);
+    InsertBranch(Js::OpCode::Br, slotArrayLoadedLabel, instrInsert);
+
+    instrInsert->InsertBefore(notInlineSlotsLabel);
+    IR::RegOpnd * opndTaggedType = IR::RegOpnd::New(TyMachReg, this->m_func);
+    m_lowererMD.GenerateLoadTaggedType(instrInsert, objectTypeOpnd, opndTaggedType);
+    m_lowererMD.GenerateLocalInlineCacheCheck(instrInsert, opndTaggedType, inlineCacheOpnd, labelHelper);
+
+    IR::IndirOpnd * opndIndir = IR::IndirOpnd::New(baseOpnd, Js::DynamicObject::GetOffsetOfAuxSlots(), TyMachReg, instrInsert->m_func);
+    InsertMove(opndSlotArray, opndIndir, instrInsert);
+
+    instrInsert->InsertBefore(slotArrayLoadedLabel);
+
+    IR::RegOpnd * opndSlotIndex = IR::RegOpnd::New(TyMachReg, instrInsert->m_func);
+    InsertMove(opndSlotIndex, IR::IndirOpnd::New(inlineCacheOpnd, (int32)offsetof(Js::InlineCache, u.local.slotIndex), TyUint16, instrInsert->m_func), instrInsert);
+
+    IR::IndirOpnd * hitRateOpnd = IR::IndirOpnd::New(indexOpnd, Js::PropertyString::GetOffsetOfHitRate(), TyInt32, m_func);
+    IR::IntConstOpnd * incOpnd = IR::IntConstOpnd::New(1, TyInt32, instrInsert->m_func);
+    InsertAdd(false, hitRateOpnd, hitRateOpnd, incOpnd, instrInsert);
+
+    // return [opndSlotArray + opndSlotIndex * PtrSize]
+    return  IR::IndirOpnd::New(opndSlotArray, opndSlotIndex, m_lowererMD.GetDefaultIndirScale(), TyMachReg, instrInsert->m_func);
 }
 
 IR::IndirOpnd *
@@ -17924,54 +18028,62 @@ Lowerer::GenerateFastInlineHasOwnProperty(IR::Instr * instr)
         return;
     }
 
-    // fast path case where hasOwnProperty is being called using a property name loaded via a for-in loop
-    bool generateForInFastpath = argsOpnd[1]->GetValueType().IsString()
-        && argsOpnd[1]->AsRegOpnd()->m_sym->m_isSingleDef
-        && (argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->m_opcode == Js::OpCode::BrOnEmpty
-            || argsOpnd[1]->AsRegOpnd()->m_sym->m_instrDef->m_opcode == Js::OpCode::BrOnNotEmpty);
-
     IR::RegOpnd * thisObj = argsOpnd[0]->AsRegOpnd();
     IR::RegOpnd * propOpnd = argsOpnd[1]->AsRegOpnd();
+
+    // fast path case where hasOwnProperty is being called using a property name loaded via a for-in loop
+    bool generateForInFastpath = propOpnd->GetValueType().IsString()
+        && propOpnd->m_sym->m_isSingleDef
+        && (propOpnd->m_sym->m_instrDef->m_opcode == Js::OpCode::BrOnEmpty
+            || propOpnd->m_sym->m_instrDef->m_opcode == Js::OpCode::BrOnNotEmpty);
 
     IR::LabelInstr * doneLabel = InsertLabel(false, instr->m_next);
     IR::LabelInstr * labelHelper = InsertLabel(true, instr);
 
-    IR::LabelInstr * cacheMissLabel = generateForInFastpath ? InsertLabel(true, labelHelper) : labelHelper;
+    IR::LabelInstr * cacheMissLabel = generateForInFastpath ? IR::LabelInstr::New(Js::OpCode::Label, m_func, true) : labelHelper;
 
-    IR::Instr * insertInstr = cacheMissLabel;
+    IR::Instr * insertInstr = labelHelper;
 
-    //    TEST indexOpnd, AtomTag
+    //    GenerateObjectTest(propOpnd, $labelHelper)
     //    CMP indexOpnd, PropertyString::`vtable'
     //    JNE $helper
-    //    MOV propertyCacheOpnd, propOpnd->propCache
-    //    TEST thisObj, AtomTag
-    //    JNE $labelHelper
+    //    GenerateObjectTest(thisObj, $labelHelper)
+    //    MOV inlineCacheOpnd, propOpnd->lsElemInlineCache
     //    MOV objectTypeOpnd, thisObj->type
-    //    CMP propertyCacheOpnd->type, objectTypeOpnd
-    //    JNE $cacheMissLabel
+    //    GenerateDynamicLoadPolymorphicInlineCacheSlot(inlineCacheOpnd, objectTypeOpnd)        ; loads inline cache for given type
+    //    GenerateLocalInlineCacheCheck(objectTypeOpnd, inlineCacheOpnd, $notInlineSlotsLabel)  ; check for type in inline slots, jump to $notInlineSlotsLabel on failure
+    //    MOV dst, ValueTrue
+    //    JMP $done
+    // $notInlineSlotsLabel:
+    //    GenerateLoadTaggedType(objectTypeOpnd, opndTaggedType)
+    //    GenerateLocalInlineCacheCheck(opndTaggedType, inlineCacheOpnd, $cacheMissLabel)       ; check for type in aux slot, jump to $cacheMissLabel on failure
     //    MOV dst, ValueTrue
     //    JMP $done
 
-    if (!propOpnd->IsNotTaggedValue())
-    {
-        m_lowererMD.GenerateObjectTest(propOpnd, insertInstr, labelHelper);
-    }
+    m_lowererMD.GenerateObjectTest(propOpnd, insertInstr, labelHelper);
 
     InsertCompareBranch(IR::IndirOpnd::New(propOpnd, 0, TyMachPtr, m_func), LoadVTableValueOpnd(insertInstr, VTableValue::VtablePropertyString), Js::OpCode::BrNeq_A, labelHelper, insertInstr);
 
-    IR::RegOpnd * propertyCacheOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
-    InsertMove(propertyCacheOpnd, IR::IndirOpnd::New(propOpnd, Js::PropertyString::GetOffsetOfPropertyCache(), TyMachPtr, m_func), insertInstr);
+    m_lowererMD.GenerateObjectTest(thisObj, insertInstr, labelHelper);
 
-    if (!thisObj->IsNotTaggedValue())
-    {
-        m_lowererMD.GenerateObjectTest(thisObj, insertInstr, labelHelper);
-    }
+    IR::RegOpnd * inlineCacheOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(inlineCacheOpnd, IR::IndirOpnd::New(propOpnd, Js::PropertyString::GetOffsetOfLdElemInlineCache(), TyMachPtr, m_func), insertInstr);
 
     IR::RegOpnd * objectTypeOpnd = IR::RegOpnd::New(TyMachPtr, m_func);
     InsertMove(objectTypeOpnd, IR::IndirOpnd::New(thisObj, Js::RecyclableObject::GetOffsetOfType(), TyMachPtr, m_func), insertInstr);
 
-    InsertCompareBranch(IR::IndirOpnd::New(propertyCacheOpnd, (int32)offsetof(Js::PropertyCache, type), TyMachPtr, m_func), objectTypeOpnd, Js::OpCode::BrNeq_A, cacheMissLabel, insertInstr);
+    GenerateDynamicLoadPolymorphicInlineCacheSlot(insertInstr, inlineCacheOpnd, objectTypeOpnd);
 
+    IR::LabelInstr * notInlineSlotsLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
+    m_lowererMD.GenerateLocalInlineCacheCheck(insertInstr, objectTypeOpnd, inlineCacheOpnd, notInlineSlotsLabel);
+
+    InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), insertInstr);
+    InsertBranch(Js::OpCode::Br, doneLabel, insertInstr);
+
+    insertInstr->InsertBefore(notInlineSlotsLabel);
+    IR::RegOpnd * opndTaggedType = IR::RegOpnd::New(TyMachReg, m_func);
+    m_lowererMD.GenerateLoadTaggedType(insertInstr, objectTypeOpnd, opndTaggedType);
+    m_lowererMD.GenerateLocalInlineCacheCheck(insertInstr, opndTaggedType, inlineCacheOpnd, cacheMissLabel);
     InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, LibraryValue::ValueTrue), insertInstr);
     InsertBranch(Js::OpCode::Br, doneLabel, insertInstr);
 
@@ -17980,6 +18092,8 @@ Lowerer::GenerateFastInlineHasOwnProperty(IR::Instr * instr)
         RelocateCallDirectToHelperPath(tmpInstr, labelHelper);
         return;
     }
+
+    insertInstr->InsertBefore(cacheMissLabel);
 
     //    CMP forInEnumeratorOpnd->canUseJitFastPath, 0
     //    JEQ $labelHelper

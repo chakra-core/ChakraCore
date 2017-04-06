@@ -234,11 +234,14 @@ namespace Js
         JavascriptString* propertyString = nullptr;
 
         BigPropertyIndex newIndex = this->objectIndex;
+        PropertyValueInfo info;
+        RecyclableObject * startingObject = this->object;
         do
         {
             newIndex++;
-            if (!object->FindNextProperty(newIndex, &propertyString, &propertyId, attributes,
-                GetTypeToEnumerate(), flags, this->scriptContext)
+            PropertyValueInfo::ClearCacheInfo(&info);
+            if (!this->object->FindNextProperty(newIndex, &propertyString, &propertyId, attributes,
+                GetTypeToEnumerate(), flags, this->scriptContext, &info)
                 || (GetSnapShotSemantics() && newIndex >= initialPropertyCount))
             {
                 // No more properties
@@ -248,6 +251,15 @@ namespace Js
             }
         } while (Js::IsInternalPropertyId(propertyId));
 
+        if (info.GetPropertyString() != nullptr && info.GetPropertyString()->ShouldUseCache())
+        {
+            CacheOperators::CachePropertyRead(startingObject, this->object, false, propertyId, false, &info, scriptContext);
+            if (info.IsStoreFieldCacheEnabled() && info.IsWritable() && ((info.GetFlags() & (InlineCacheGetterFlag | InlineCacheSetterFlag)) == 0))
+            {
+                PropertyValueInfo::SetCacheInfo(&info, info.GetPropertyString(), info.GetPropertyString()->GetStElemInlineCache(), info.AllowResizingPolymorphicInlineCache());
+                CacheOperators::CachePropertyWrite(this->object, false, this->object->GetType(), propertyId, &info, scriptContext);
+            }
+        }
         this->objectIndex = newIndex;
         return propertyString;
     }

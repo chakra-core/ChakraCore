@@ -75,7 +75,7 @@ namespace Js
     struct CallInfo;
     struct InlineeCallInfo;
     struct InlineCache;
-    struct PolymorphicInlineCache;
+    class PolymorphicInlineCache;
     struct Arguments;
     class StringDictionaryWrapper;
     struct ByteCodeDumper;
