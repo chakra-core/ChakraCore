@@ -2752,16 +2752,15 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         //      even if it's not needed, it's as cheap as loading "null" from the library);
         // 2. it calls eval (and will use the environment to construct the scope chain to pass to eval);
         // 3. it refers to a local defined in a parent function;
-        // 4. it refers to a global and some parent calls eval (which might declare the "global" locally);
-        // 5. it refers to a global and we're in an event handler;
-        // 6. it refers to a global and the function was declared inside a "with";
-        // 7. it refers to a global and we're in an eval expression.
+        // 4. some parent calls eval;
+        // 5. we're in an event handler;
+        // 6. the function was declared inside a "with";
+        // 7. we're in an eval expression.
         if (pnode->sxFnc.nestedCount != 0 ||
             top->GetCallsEval() ||
             top->GetHasClosureReference() ||
-            ((top->GetHasGlobalRef() &&
-            (byteCodeGenerator->InDynamicScope() ||
-            (byteCodeGenerator->GetFlags() & (fscrImplicitThis | fscrImplicitParents | fscrEval))))))
+            byteCodeGenerator->InDynamicScope() ||
+            (byteCodeGenerator->GetFlags() & (fscrImplicitThis | fscrImplicitParents | fscrEval)))
         {
             byteCodeGenerator->SetNeedEnvRegister();
             if (top->GetIsTopLevelEventHandler())
@@ -3081,7 +3080,6 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 top->SetIsSuperCtorLexicallyCaptured();
                 top->SetHasLocalInClosure(true);
                 top->SetHasClosureReference(true);
-                top->SetHasCapturedThis();
             }
         }
     }
@@ -3261,13 +3259,6 @@ void AddFunctionsToScope(ParseNodePtr scope, ByteCodeGenerator * byteCodeGenerat
             }
 
             pnodeName->sxVar.sym = sym;
-
-            if (sym->GetIsGlobal())
-            {
-                FuncInfo* func = byteCodeGenerator->TopFuncInfo();
-                func->SetHasGlobalRef(true);
-            }
-
             if (sym->GetScope() != sym->GetScope()->GetFunc()->GetBodyScope() &&
                 sym->GetScope() != sym->GetScope()->GetFunc()->GetParamScope())
             {
@@ -3740,20 +3731,6 @@ void PreVisitWith(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 void PostVisitWith(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
 {
     byteCodeGenerator->PopScope();
-}
-
-void BindFuncSymbol(ParseNode *pnodeFnc, ByteCodeGenerator *byteCodeGenerator)
-{
-    if (pnodeFnc->sxFnc.pnodeName)
-    {
-        Assert(pnodeFnc->sxFnc.pnodeName->nop == knopVarDecl);
-        Symbol *sym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
-        FuncInfo* func = byteCodeGenerator->TopFuncInfo();
-        if (sym == nullptr || sym->GetIsGlobal())
-        {
-            func->SetHasGlobalRef(true);
-        }
-    }
 }
 
 bool IsMathLibraryId(Js::PropertyId propertyId)
@@ -4326,11 +4303,6 @@ void SetAdditionalBindInfoForVariables(ParseNode *pnode, ByteCodeGenerator *byte
     }
 
     FuncInfo* func = byteCodeGenerator->TopFuncInfo();
-    if (func->IsGlobalFunction())
-    {
-        func->SetHasGlobalRef(true);
-    }
-
     if (!sym->GetIsGlobal() && !sym->GetIsArguments() &&
         (sym->GetScope() == func->GetBodyScope() || sym->GetScope() == func->GetParamScope() || sym->GetScope()->GetCanMerge()))
     {
@@ -4398,9 +4370,6 @@ void Bind(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             break;
         }
     case knopFncDecl:
-        // VisitFunctionsInScope has already done binding within the declared function. Here, just record the fact
-        // that the parent function has a local/global declaration in it.
-        BindFuncSymbol(pnode, byteCodeGenerator);
         if (pnode->sxFnc.IsCoroutine())
         {
             // Always assume generator functions escape since tracking them requires tracking
@@ -4440,11 +4409,7 @@ void Bind(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
     case knopSuper:
     {
         FuncInfo *top = byteCodeGenerator->TopFuncInfo();
-        if (top->IsGlobalFunction() && !(byteCodeGenerator->GetFlags() & fscrEval))
-        {
-            top->SetHasGlobalRef(true);
-        }
-        else if (top->IsLambda())
+        if (top->IsLambda())
         {
             byteCodeGenerator->MarkThisUsedInLambda();
         }
@@ -4481,14 +4446,8 @@ void Bind(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             }
         }
 
-            FuncInfo *top = byteCodeGenerator->TopFuncInfo();
-            if (pnode->sxPid.sym == nullptr || pnode->sxPid.sym->GetIsGlobal())
-            {
-                top->SetHasGlobalRef(true);
-            }
-
-            if (pnode->sxPid.sym)
-            {
+        if (pnode->sxPid.sym)
+        {
             pnode->sxPid.sym->SetIsUsed(true);
         }
 
@@ -4654,8 +4613,6 @@ void ByteCodeGenerator::MarkThisUsedInLambda()
 
         this->TopFuncInfo()->SetHasClosureReference(true);
     }
-
-    this->TopFuncInfo()->SetHasCapturedThis();
 }
 
 void ByteCodeGenerator::FuncEscapes(Scope *scope)

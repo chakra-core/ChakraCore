@@ -130,7 +130,6 @@ public:
     uint isTopLevelEventHandler : 1;
     uint hasLocalInClosure : 1;
     uint hasClosureReference : 1;
-    uint hasGlobalReference : 1;
     uint hasCachedScope : 1;
     uint funcExprNameReference : 1;
     uint applyEnclosesArgs : 1;
@@ -140,7 +139,6 @@ public:
     uint hasLoop : 1;
     uint hasEscapedUseNestedFunc : 1;
     uint needEnvRegister : 1;
-    uint hasCapturedThis : 1;
     uint isBodyAndParamScopeMerged : 1;
 #if DBG
     // FunctionBody was reused on recompile of a redeferred enclosing function.
@@ -385,14 +383,6 @@ public:
         hasClosureReference = has;
     }
 
-    bool GetHasGlobalRef() const {
-        return hasGlobalReference;
-    }
-
-    void SetHasGlobalRef(bool has) {
-        hasGlobalReference = has;
-    }
-
     bool GetIsStrictMode() const {
         return this->byteCodeFunction->GetIsStrictMode();
     }
@@ -443,14 +433,6 @@ public:
         Assert(!IsDeferred() || this->byteCodeFunction->GetFunctionBody()->GetByteCode() != nullptr);
 
         return this->byteCodeFunction->GetFunctionBody();
-    }
-
-    bool HasCapturedThis() const {
-        return hasCapturedThis;
-    }
-
-    void SetHasCapturedThis() {
-        hasCapturedThis = true;
     }
 
     bool IsBodyAndParamScopeMerged() const {

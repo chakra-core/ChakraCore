@@ -56,7 +56,6 @@ FuncInfo::FuncInfo(
     isTopLevelEventHandler(false),
     hasLocalInClosure(false),
     hasClosureReference(false),
-    hasGlobalReference(false),
     hasCachedScope(false),
     funcExprNameReference(false),
     applyEnclosesArgs(false),
@@ -66,7 +65,6 @@ FuncInfo::FuncInfo(
     hasLoop(false),
     hasEscapedUseNestedFunc(false),
     needEnvRegister(false),
-    hasCapturedThis(false),
     isBodyAndParamScopeMerged(true),
 #if DBG
     isReused(false),
