@@ -26,11 +26,6 @@ void ExpirableObject::Finalize(bool isShutdown)
 
 void ExpirableObject::Dispose(bool isShutdown)
 {
-    if (!isShutdown && this->registrationHandle == nullptr)
-    {
-        ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
-        threadContext->DisposeExpirableObject(this);
-    }
 }
 
 void ExpirableObject::EnterExpirableCollectMode()

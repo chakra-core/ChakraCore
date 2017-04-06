@@ -1575,6 +1575,7 @@ public:
     virtual void DisposeScriptContextByFaultInjectionCallBack() override;
 #endif
     virtual void DisposeObjects(Recycler * recycler) override;
+    virtual void PreDisposeObjectsCallBack() override;
 
     typedef DList<ExpirableObject*, ArenaAllocator> ExpirableObjectList;
     ExpirableObjectList* expirableObjectList;
@@ -1588,7 +1589,6 @@ public:
     void TryExitExpirableCollectMode();
     void RegisterExpirableObject(ExpirableObject* object);
     void UnregisterExpirableObject(ExpirableObject* object);
-    void DisposeExpirableObject(ExpirableObject* object);
 
     void * GetDynamicObjectEnumeratorCache(Js::DynamicType const * dynamicType);
     void AddDynamicObjectEnumeratorCache(Js::DynamicType const * dynamicType, void * cache);
