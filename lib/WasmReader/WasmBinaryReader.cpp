@@ -435,7 +435,7 @@ WasmOp WasmBinaryReader::ReadOpCode()
             ThrowDecodingError(_u("WebAssembly SIMD support is not enabled"));
         }
 
-        uint16_t offset = (op - wbExtended + 1) * 256;
+        uint16 offset = (op - wbExtended + 1) * 256;
         op = (WasmOp)*m_pc++;
         ++m_funcState.count;
 
