@@ -556,10 +556,6 @@ HELPERCALL(UI64TOF64,       Js::JavascriptConversion::ULongToDouble,       0)
 HELPERCALL(I64TOF32,        Js::JavascriptConversion::LongToFloat,         0)
 HELPERCALL(UI64TOF32,       Js::JavascriptConversion::ULongToFloat,        0)
 
-#if (defined(ASMJS_PLAT) || defined(ENABLE_WASM)) && defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-HELPERCALL(TraceAsmJsArgIn, WAsmJs::TraceAsmJsArgsIn, 0)
-#endif
-
 #ifdef _M_IX86
 HELPERCALL(DirectMath_Acos, nullptr, 0)
 HELPERCALL(DirectMath_Asin, nullptr, 0)

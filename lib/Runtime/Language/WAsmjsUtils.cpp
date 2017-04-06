@@ -17,43 +17,6 @@ template<> Types RegisterSpace::GetRegisterSpaceType<double>(){return WAsmJs::FL
 template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WAsmJs::SIMD;}
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    void TraceAsmJsArgsIn(Js::Var function, int n, ...)
-    {
-        Assert(Js::AsmJsScriptFunction::Is(function));
-        Js::AsmJsScriptFunction* asmFunction = (Js::AsmJsScriptFunction*)function;
-        va_list argptr;
-        va_start(argptr, n);
-
-        Output::Print(_u("Executing function %s("), asmFunction->GetFunctionBody()->GetDisplayName());
-        for (int i = 0; i < n ; i++)
-        {
-            IRType type = (IRType)va_arg(argptr, int32);
-            switch (type)
-            {
-            case TyInt32:
-            case TyUint32:
-                Output::Print(_u("%d, "), va_arg(argptr, int32));
-                break;
-            case TyInt64:
-            case TyUint64:
-                Output::Print(_u("%lld, "), va_arg(argptr, int64));
-                break;
-            case TyFloat32:
-            {
-                int v = va_arg(argptr, int);
-                Output::Print(_u("%.2f, "), *(float*)v);
-                break;
-            }
-            case TyFloat64:
-                Output::Print(_u("%.2f, "), va_arg(argptr, double));
-                break;
-            default:
-                break;
-            }
-        }
-        Output::Print(_u("){\n"));
-    }
-
     namespace Tracing
     {
         // This can be broken if exception are thrown from wasm frames
