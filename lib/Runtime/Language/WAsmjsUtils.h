@@ -15,7 +15,6 @@ namespace WAsmJs
     static const double SIMD_SLOTS_SPACE = (sizeof(SIMDValue) / sizeof(Js::Var)); // 4 in x86 and 2 in x64
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    void TraceAsmJsArgsIn(Js::Var function, int n, ...);
     namespace Tracing
     {
         int GetPrintCol();
