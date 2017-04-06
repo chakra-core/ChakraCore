@@ -3710,6 +3710,24 @@ bool Instr::IsCmCC_I4()
     return (this->m_opcode >= Js::OpCode::CmEq_I4 && this->m_opcode <= Js::OpCode::CmUnGe_I4);
 }
 
+bool Instr::IsNeq()
+{
+    switch (m_opcode)
+    {
+    case Js::OpCode::BrNeq_A:
+    case Js::OpCode::BrNeq_I4:
+    case Js::OpCode::BrNotEq_A:
+    case Js::OpCode::BrSrNeq_A:
+    case Js::OpCode::BrSrNotEq_A:
+    case Js::OpCode::CmNeq_A:
+    case Js::OpCode::CmNeq_I4:
+    case Js::OpCode::CmSrNeq_A:
+        return true;
+    default:
+        return false;
+    }
+}
+
 template <typename T>
 bool Instr::BinaryCalculatorT(T src1Const, T src2Const, int64 *pResult)
 {
