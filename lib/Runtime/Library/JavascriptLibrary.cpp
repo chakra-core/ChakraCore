@@ -1763,7 +1763,7 @@ namespace Js
         builtinFuncs[BuiltinFunction::JavascriptArray_Unshift]            = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::unshift,         &JavascriptArray::EntryInfo::Unshift,           1);
 
 
-        library->AddMember(arrayPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)),           1);
+        library->AddMember(arrayPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)));
         /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every,           &JavascriptArray::EntryInfo::Every,             1);
         /* No inlining                Array_Filter         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::filter,          &JavascriptArray::EntryInfo::Filter,            1);
 
@@ -2016,7 +2016,7 @@ namespace Js
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::find, &TypedArrayBase::EntryInfo::Find, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::findIndex, &TypedArrayBase::EntryInfo::FindIndex, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::forEach, &TypedArrayBase::EntryInfo::ForEach, 1);
-        library->AddMember(typedarrayPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)), 1);
+        library->AddMember(typedarrayPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)));
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::join, &TypedArrayBase::EntryInfo::Join, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::lastIndexOf, &TypedArrayBase::EntryInfo::LastIndexOf, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::map, &TypedArrayBase::EntryInfo::Map, 1);
@@ -4449,7 +4449,7 @@ namespace Js
 
         library->AddMember(stringPrototype, PropertyIds::constructor, library->stringConstructor);
 
-        library->AddMember(stringPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)),              1);
+        library->AddMember(stringPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)));
         builtinFuncs[BuiltinFunction::JavascriptString_LastIndexOf]   = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::lastIndexOf,        &JavascriptString::EntryInfo::LastIndexOf,          1);
         builtinFuncs[BuiltinFunction::JavascriptString_Replace]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::replace,            &JavascriptString::EntryInfo::Replace,              2);
         builtinFuncs[BuiltinFunction::JavascriptString_Search]        = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::search,             &JavascriptString::EntryInfo::Search,               1);
