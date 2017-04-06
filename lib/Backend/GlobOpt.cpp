@@ -13450,7 +13450,10 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
     case ObjectType::Uint16MixedArray:
     case ObjectType::Int32MixedArray:
     Int32Array:
-        toType = TyInt32;
+        if (this->DoAggressiveIntTypeSpec() || this->DoFloatTypeSpec())
+        {
+            toType = TyInt32;
+        }
         break;
 
     case ObjectType::Uint32Array:
@@ -13477,8 +13480,11 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
     case ObjectType::Float64VirtualArray:
     case ObjectType::Float64MixedArray:
     Float64Array:
-        toType = TyFloat64;
-        break;
+    if (this->DoFloatTypeSpec())
+    {
+         toType = TyFloat64;
+    }
+    break;
 
     case ObjectType::Uint8ClampedArray:
     case ObjectType::Uint8ClampedVirtualArray:
