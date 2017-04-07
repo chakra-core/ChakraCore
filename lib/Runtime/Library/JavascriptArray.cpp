@@ -3827,22 +3827,21 @@ namespace Js
     // Array.prototype.indexOf as defined in ES6.0 (final) Section 22.1.3.11
     Var JavascriptArray::EntryIndexOf(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        // PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-        // 
-        // ARGUMENTS(args, callInfo);
-        // ScriptContext* scriptContext = function->GetScriptContext();
-        // 
-        // Assert(!(callInfo.Flags & CallFlags_New));
-        // 
-        // CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_indexOf);
-        // 
-        // Var returnValue =  IndexOfHelper<false>(args, scriptContext);
-        // 
-        // //IndexOfHelper code is reused for array.prototype.includes as well. Let us assert here we didn't get a true or false instead of index
-        // Assert(returnValue != scriptContext->GetLibrary()->GetTrue() && returnValue != scriptContext->GetLibrary()->GetFalse());
-        // 
-        // return returnValue;
-        return nullptr;
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_indexOf);
+
+        Var returnValue =  IndexOfHelper<false>(args, scriptContext);
+
+        //IndexOfHelper code is reused for array.prototype.includes as well. Let us assert here we didn't get a true or false instead of index
+        Assert(returnValue != scriptContext->GetLibrary()->GetTrue() && returnValue != scriptContext->GetLibrary()->GetFalse());
+
+        return returnValue;
     }
 
     Var JavascriptArray::EntryIncludes(RecyclableObject* function, CallInfo callInfo, ...)

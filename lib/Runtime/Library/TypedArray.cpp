@@ -1960,26 +1960,25 @@ namespace Js
 
     Var TypedArrayBase::EntryIndexOf(RecyclableObject* function, CallInfo callInfo, ...)
     {
-       // PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
-       //
-       // ARGUMENTS(args, callInfo);
-       // ScriptContext* scriptContext = function->GetScriptContext();
-       //
-       // Assert(!(callInfo.Flags & CallFlags_New));
-       // CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TypedArray_Prototype_indexOf);
-       //
-       // TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.indexOf"));
-       // uint32 length = typedArrayBase->GetLength();
-       //
-       // Var search = nullptr;
-       // uint32 fromIndex;
-       // if (!JavascriptArray::GetParamForIndexOf(length, args, search, fromIndex, scriptContext))
-       // {
-       //     return TaggedInt::ToVarUnchecked(-1);
-       // }
-       //
-       // return JavascriptArray::TemplatedIndexOfHelper<false>(typedArrayBase, search, fromIndex, length, scriptContext);
-        return nullptr;
+        PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
+
+        ARGUMENTS(args, callInfo);
+        ScriptContext* scriptContext = function->GetScriptContext();
+
+        Assert(!(callInfo.Flags & CallFlags_New));
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(TypedArray_Prototype_indexOf);
+
+        TypedArrayBase* typedArrayBase = ValidateTypedArray(args, scriptContext, _u("[TypedArray].prototype.indexOf"));
+        uint32 length = typedArrayBase->GetLength();
+
+        Var search = nullptr;
+        uint32 fromIndex;
+        if (!JavascriptArray::GetParamForIndexOf(length, args, search, fromIndex, scriptContext))
+        {
+            return TaggedInt::ToVarUnchecked(-1);
+        }
+
+        return JavascriptArray::TemplatedIndexOfHelper<false>(typedArrayBase, search, fromIndex, length, scriptContext);
     }
 
     Var TypedArrayBase::EntryIncludes(RecyclableObject* function, CallInfo callInfo, ...)
