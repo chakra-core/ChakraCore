@@ -113,8 +113,9 @@ namespace Wasm
         static const Js::RegSlot ScriptContextBufferRegister = 4;
         static const Js::RegSlot ReservedRegisterCount = 5;
 
-        WasmBytecodeGenerator(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo);
-        static void GenerateFunctionBytecode(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo);
+        WasmBytecodeGenerator(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo, bool validateOnly);
+        static void GenerateFunctionBytecode(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo, bool validateOnly = false);
+        static void ValidateFunction(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo);
 
     private:
         void GenerateFunction();
@@ -178,6 +179,8 @@ namespace Wasm
 
         Js::FunctionBody* GetFunctionBody() const { return m_funcInfo->GetBody(); }
         WasmReaderBase* GetReader() const;
+
+        bool IsValidating() const { return m_originalWriter == m_emptyWriter; }
 
         ArenaAllocator m_alloc;
 

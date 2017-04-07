@@ -279,9 +279,7 @@ WebAssemblyModule::ValidateModule(
             Js::FunctionBody * body = webAssemblyModule->GetWasmFunctionInfo(i)->GetBody();
             Wasm::WasmReaderInfo * readerInfo = body->GetAsmJsFunctionInfo()->GetWasmReaderInfo();
 
-            // TODO: avoid actually generating bytecode here
-            Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
-
+            Wasm::WasmBytecodeGenerator::ValidateFunction(scriptContext, readerInfo);
 #if ENABLE_DEBUG_CONFIG_OPTIONS
             if (PHASE_ON(WasmValidatePrejitPhase, body))
             {
