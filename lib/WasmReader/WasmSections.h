@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-//          (name                 , ID                   , SectionFlag, Precedent         )
+//          (internalName         , ID                   , SectionFlag, Precedent         )
 WASM_SECTION(Custom               , ""                   , fSectNone  , Limit             )
 WASM_SECTION(Signatures           , "type"               , fSectNone  , Limit             )
 WASM_SECTION(ImportTable          , "import"             , fSectNone  , Limit             )

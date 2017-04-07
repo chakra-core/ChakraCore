@@ -26,7 +26,7 @@ namespace Wasm
         const byte* start;
         const byte* end;
         uint32 nameLength;
-        const char* name;
+        const char16* name;
     };
 
     static const unsigned int binaryVersion = 0x1;

@@ -75,28 +75,6 @@ void WasmBinaryReader::InitializeReader()
 {
     ValidateModuleHeader();
     m_readerState = READER_STATE_UNKNOWN;
-#if DBG_DUMP
-    if (DO_WASM_TRACE_SECTION)
-    {
-        const byte* startModule = m_pc;
-
-        bool doRead = true;
-        SectionCode prevSect = bSectLimit;
-        while (doRead)
-        {
-            SectionHeader secHeader = ReadSectionHeader();
-            if (secHeader.code <= prevSect)
-            {
-                TRACE_WASM_SECTION(_u("Unknown section order"));
-            }
-            prevSect = secHeader.code;
-            // skip the section
-            m_pc = secHeader.end;
-            doRead = !EndOfModule();
-        }
-        m_pc = startModule;
-    }
-#endif
 }
 
 void
@@ -233,29 +211,17 @@ WasmBinaryReader::ReadSectionHeader()
     CheckBytesLeft(sectionSize);
 
     header.code = sectionId;
-    const char *sectionName = SectionInfo::All[sectionId].id;
-    UINT32 nameLength = SectionInfo::All[sectionId].nameLength;
     if (sectionId == bSectCustom)
     {
-        nameLength = LEB128(len);
-        CheckBytesLeft(nameLength);
-        sectionName = (const char*)(m_pc);
-        m_pc += nameLength;
+        header.name = ReadInlineName(len, header.nameLength);
     }
-
-    header.nameLength = nameLength;
-    header.name = sectionName;
-
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-    if (DO_WASM_TRACE_SECTION)
+    else
     {
-        char16* wstr = nullptr;
-        size_t unused;
-        utf8::NarrowStringToWide<utf8::malloc_allocator>(sectionName, nameLength, &wstr, &unused);
-        TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), wstr, sectionSize, sectionSize);
-        free(wstr);
+        header.name = SectionInfo::All[sectionId].name;
+        header.nameLength = SectionInfo::All[sectionId].nameLength;
     }
-#endif
+
+    TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), header.name, sectionSize, sectionSize);
     return header;
 }
 
@@ -945,7 +911,8 @@ WasmBinaryReader::ReadNamesSection()
     {
         UINT fnNameLen = 0;
         WasmFunctionInfo* funsig = m_module->GetWasmFunctionInfo(i);
-        funsig->SetName(ReadInlineName(len, fnNameLen), fnNameLen);
+        const char16* name = ReadInlineName(len, fnNameLen);
+        funsig->SetName(name, fnNameLen);
         UINT numLocals = LEB128(len);
         if (numLocals != funsig->GetLocalCount())
         {
@@ -998,7 +965,8 @@ void
 WasmBinaryReader::ReadCustomSection()
 {
     CustomSection customSection;
-    customSection.name = CvtUtf8Str((LPCUTF8)m_currentSection.name, m_currentSection.nameLength, &customSection.nameLength);
+    customSection.name = m_currentSection.name;
+    customSection.nameLength = m_currentSection.nameLength;
     customSection.payload = m_pc;
 
     size_t size = m_currentSection.end - m_pc;
@@ -1021,7 +989,7 @@ WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
     m_pc += nameLength;
     length += nameLength;
 
-    return CvtUtf8Str(rawName, nameLength);
+    return CvtUtf8Str(rawName, nameLength, &nameLength);
 }
 
 const char16*
