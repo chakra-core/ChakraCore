@@ -3175,6 +3175,11 @@ void ByteCodeGenerator::ProcessScopeWithCapturedSym(Scope *scope)
 {
     Assert(scope->GetHasOwnLocalInClosure());
 
+    if (scope->ContainsWith() && scope->GetScopeType() != ScopeType_Global)
+    {
+        scope->SetIsObject();
+    }
+
     // (Note: if any catch var is closure-captured, we won't merge the catch scope with the function scope.
     // So don't mark the function scope "has local in closure".)
     FuncInfo *func = scope->GetFunc();
@@ -3190,11 +3195,6 @@ void ByteCodeGenerator::ProcessScopeWithCapturedSym(Scope *scope)
             func->SetHasMaybeEscapedNestedFunc(DebugOnly(_u("InstantiateScopeWithCrossScopeAssignment")));
         }
         scope->SetMustInstantiate(true);
-    }
-
-    if (scope->ContainsWith() && scope->GetScopeType() != ScopeType_Global)
-    {
-        scope->SetIsObject();
     }
 }
 

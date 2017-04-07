@@ -207,7 +207,16 @@ var Test23 = function F_Test23() {
     } );
 }
 
-var numTests = 24;
+var Test24 = function F_Test24() {  
+    with( "" ){
+        (function() { 
+           foo(F_Test24);
+        })();
+    }
+    function foo(f) { if (f.name !== 'F_Test24') WScript.Echo('fail Test24') };
+}
+
+var numTests = 25;
 
 for (var i=0;i<numTests;i++)
 {
