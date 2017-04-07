@@ -1699,6 +1699,11 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
         ref->SetSym(sym);
         this->RemovePrevPidRef(pid, lastRef);
 
+        if (ref->IsUsedInLdElem())
+        {
+            sym->SetIsUsedInLdElem(true);
+        }
+
         if (ref->IsAssignment())
         {
             sym->PromoteAssignmentState();
@@ -3518,21 +3523,16 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 {
                     if (pnodeExpr && pnodeExpr->nop == knopName)
                     {
-                        topPidRef = pnodeExpr->sxPid.pid->TopDecl();
+                        topPidRef = pnodeExpr->sxPid.pid->GetTopRef();
                     }
                 }
                 else if (tok.tk == tkID)
                 {
-                    topPidRef = tok.pid->TopDecl();
+                    topPidRef = tok.pid->GetTopRef();
                 }
-
-                // in case name def is a string constant, let's remember that this string is being used in a LdElem, so we can create a PropertyString
-                const Symbol * topDeclSym = topPidRef ? topPidRef->sym : nullptr;
-                const ParseNode * topDeclNode = topDeclSym ? topDeclSym->GetDecl() : nullptr;
-                if (topDeclNode && (topDeclNode->nop == knopVarDecl || topDeclNode->nop == knopLetDecl || topDeclNode->nop == knopConstDecl) &&
-                    topDeclNode->sxVar.pnodeInit && topDeclNode->sxVar.pnodeInit->nop == knopStr)
+                if (topPidRef)
                 {
-                    topDeclNode->sxVar.pnodeInit->sxPid.pid->SetIsUsedInLdElem(true);
+                    topPidRef->SetIsUsedInLdElem(true);
                 }
 
                 if (!buildAST)
