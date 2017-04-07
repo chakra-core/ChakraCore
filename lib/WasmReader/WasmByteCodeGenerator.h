@@ -49,18 +49,53 @@ namespace Wasm
     class WasmCompilationException
     {
         void FormatError(const char16* _msg, va_list arglist);
-        char16* errorMsg;
+        BSTR errorMsg;
     public:
         WasmCompilationException(const char16* _msg, ...);
         WasmCompilationException(const char16* _msg, va_list arglist);
+        WasmCompilationException(WasmCompilationException&& other)
+        {
+            errorMsg = other.errorMsg;
+            other.errorMsg = nullptr;
+        }
 
-        char16* ReleaseErrorMessage()
+        ~WasmCompilationException()
+        {
+            if(errorMsg != nullptr)
+            {
+                SysFreeString(errorMsg);
+            }
+        }
+
+        BSTR ReleaseErrorMessage()
         {
             Assert(errorMsg);
-            char16* msg = errorMsg;
+            BSTR msg = errorMsg;
             errorMsg = nullptr;
             return msg;
-        };
+        }
+
+        WasmCompilationException& operator=(WasmCompilationException&& other)
+        {
+            if (this != &other)
+            {
+                if(errorMsg != nullptr)
+                {
+                    SysFreeString(errorMsg);
+                }
+                errorMsg = other.errorMsg;
+                other.errorMsg = nullptr;
+            }
+            return *this;
+        }
+
+        BSTR GetTempErrorMessageRef()
+        {
+            // This is basically a work-around for some odd lifetime scoping with throw
+            return errorMsg;
+        }
+
+        PREVENT_COPY(WasmCompilationException)
     };
 
     struct BlockInfo
