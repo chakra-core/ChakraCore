@@ -158,6 +158,12 @@ JsValueRef __stdcall WScriptJsrt::LoadScriptFileCallback(JsValueRef callee, bool
     return LoadScriptFileHelper(callee, arguments, argumentCount, false);
 }
 
+// needed because of calling convention differences between _stdcall and _cdecl
+void CHAKRA_CALLBACK WScriptJsrt::FinalizeFree(void* addr)
+{
+    free(addr);
+}
+
 JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *arguments, unsigned short argumentCount, bool isSourceModule)
 {
     HRESULT hr = E_FAIL;
@@ -191,7 +197,7 @@ JsValueRef WScriptJsrt::LoadScriptFileHelper(JsValueRef callee, JsValueRef *argu
             }
             else
             {
-                returnValue = LoadScript(callee, *fileName, fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule);
+                returnValue = LoadScript(callee, *fileName, fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule, WScriptJsrt::FinalizeFree);
             }
         }
     }
@@ -247,6 +253,7 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
 
         IfJsrtErrorSetGo(fileContent.Initialize(arguments[1]));
         // ExternalArrayBuffer Finalize will clean this up
+        // but only if we actually register a finalizecallback for this
         fileContent.MakePersistent();
 
         if (argumentCount > 2)
@@ -270,7 +277,7 @@ JsValueRef WScriptJsrt::LoadScriptHelper(JsValueRef callee, bool isConstructCall
         {
             // TODO: This is CESU-8. How to tell the engine?
             // TODO: How to handle this source (script) life time?
-            returnValue = LoadScript(callee, fileNameNarrow, *fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule);
+            returnValue = LoadScript(callee, fileNameNarrow, *fileContent, *scriptInjectType ? *scriptInjectType : "self", isSourceModule, WScriptJsrt::FinalizeFree);
         }
     }
 
@@ -355,7 +362,7 @@ JsErrorCode WScriptJsrt::LoadModuleFromString(LPCSTR fileName, LPCSTR fileConten
 }
 
 JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
-    LPCSTR fileContent, LPCSTR scriptInjectType, bool isSourceModule)
+    LPCSTR fileContent, LPCSTR scriptInjectType, bool isSourceModule, JsFinalizeCallback finalizeCallback)
 {
     HRESULT hr = E_FAIL;
     JsErrorCode errorCode = JsNoError;
@@ -364,6 +371,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
     JsErrorCode innerErrorCode = JsNoError;
     JsContextRef currentContext = JS_INVALID_REFERENCE;
     JsRuntimeHandle runtime = JS_INVALID_RUNTIME_HANDLE;
+    void *callbackArg = (finalizeCallback != nullptr ? (void*)fileContent : nullptr);
 
     char fullPathNarrow[_MAX_PATH];
     size_t len = 0;
@@ -406,7 +414,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
 
         JsValueRef scriptSource;
         IfJsrtErrorSetGo(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContent,
-            (unsigned int)strlen(fileContent), nullptr, nullptr, &scriptSource));
+            (unsigned int)strlen(fileContent), finalizeCallback, callbackArg, &scriptSource));
         JsValueRef fname;
         IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(fullPathNarrow,
             strlen(fullPathNarrow), &fname));
@@ -441,7 +449,7 @@ JsValueRef WScriptJsrt::LoadScript(JsValueRef callee, LPCSTR fileName,
 
         JsValueRef scriptSource;
         IfJsrtErrorSetGo(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContent,
-            (unsigned int)strlen(fileContent), nullptr, nullptr, &scriptSource));
+            (unsigned int)strlen(fileContent), finalizeCallback, callbackArg, &scriptSource));
         JsValueRef fname;
         IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(fullPathNarrow,
             strlen(fullPathNarrow), &fname));
@@ -1210,7 +1218,7 @@ HRESULT WScriptJsrt::ModuleMessage::Call(LPCSTR fileName)
             }
             else
             {
-                LoadScript(nullptr, specifierStr.GetString(), fileContent, "module", true);
+                LoadScript(nullptr, specifierStr.GetString(), fileContent, "module", true, WScriptJsrt::FinalizeFree);
             }
         }
     }
