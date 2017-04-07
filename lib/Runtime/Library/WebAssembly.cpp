@@ -34,9 +34,9 @@ Var WebAssembly::EntryCompile(RecyclableObject* function, CallInfo callInfo, ...
         WebAssemblySource src(args[1], true, scriptContext);
         module = WebAssemblyModule::CreateModule(scriptContext, &src);
     }
-    catch (JavascriptError & e)
+    catch (JavascriptException & e)
     {
-        return JavascriptPromise::CreateRejectedPromise(&e, scriptContext);
+        return JavascriptPromise::CreateRejectedPromise(e.GetAndClear()->GetThrownObject(scriptContext), scriptContext);
     }
 
     Assert(module);
@@ -86,9 +86,9 @@ Var WebAssembly::EntryInstantiate(RecyclableObject* function, CallInfo callInfo,
             JavascriptOperators::OP_SetProperty(resultObject, PropertyIds::instance, instance, scriptContext);
         }
     }
-    catch (JavascriptError & e)
+    catch (JavascriptException & e)
     {
-        return JavascriptPromise::CreateRejectedPromise(&e, scriptContext);
+        return JavascriptPromise::CreateRejectedPromise(e.GetAndClear()->GetThrownObject(scriptContext), scriptContext);
     }
 
     Assert(resultObject != nullptr);
