@@ -50,6 +50,15 @@ namespace Wasm
     {
         void FormatError(const char16* _msg, va_list arglist);
         BSTR errorMsg;
+        // We need to explicitly delete these; simply not including them makes compilers do
+        // generation of simple copy-construct and copy-assign functions, which incorrectly
+        // copy around the errorMsg pointer, making it harder to work with the lifetime. If
+        // we just use the PREVENT_COPY macro (which defines the functions as private) then
+        // we get linker errors, since MSVC doesn't check the accessibility of the function
+        // references when templating, and tries to link to the undefined functions. Explit
+        // deletion of the functions is therefore required here.
+        WasmCompilationException(const WasmCompilationException&) = delete;
+        WasmCompilationException & operator =(const WasmCompilationException & rhs) = delete;
     public:
         WasmCompilationException(const char16* _msg, ...);
         WasmCompilationException(const char16* _msg, va_list arglist);
@@ -94,8 +103,6 @@ namespace Wasm
             // This is basically a work-around for some odd lifetime scoping with throw
             return errorMsg;
         }
-
-        PREVENT_COPY(WasmCompilationException)
     };
 
     struct BlockInfo
