@@ -57,8 +57,31 @@ namespace Wasm
         // we get linker errors, since MSVC doesn't check the accessibility of the function
         // references when templating, and tries to link to the undefined functions. Explit
         // deletion of the functions is therefore required here.
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+    private:
         WasmCompilationException(const WasmCompilationException&) = delete;
-        WasmCompilationException & operator =(const WasmCompilationException & rhs) = delete;
+        WasmCompilationException& operator=(const WasmCompilationException& other) = delete;
+#else //if defined(_MSC_VER) && _MSC_VER < 1900
+        // For older versions of VS, we need to provide copy construct/assign operators due
+        // to the lack of the ability to throw-by-move.
+    public:
+        WasmCompilationException(const WasmCompilationException& other)
+        {
+            errorMsg = SysAllocString(other.errorMsg);
+        }
+        WasmCompilationException& operator=(const WasmCompilationException& other)
+        {
+            if(this != &other)
+            {
+                if(errorMsg != nullptr)
+                {
+                    SysFreeString(errorMsg);
+                }
+                errorMsg = SysAllocString(other.errorMsg);
+            }
+            return *this;
+        }
+#endif
     public:
         WasmCompilationException(const char16* _msg, ...);
         WasmCompilationException(const char16* _msg, va_list arglist);
