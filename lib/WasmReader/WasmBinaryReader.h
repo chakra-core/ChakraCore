@@ -37,7 +37,7 @@ namespace Wasm
         WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, const byte* source, size_t length);
 
         void InitializeReader();
-        bool ReadNextSection(SectionCode nextSection);
+        SectionHeader ReadNextSection();
         // Fully read the section in the reader. Return true if the section fully read
         bool ProcessCurrentSection();
         virtual void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo) override;

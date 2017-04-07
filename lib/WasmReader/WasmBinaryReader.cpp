@@ -85,49 +85,28 @@ WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
     throw WasmCompilationException(msg, argptr);
 }
 
-bool
-WasmBinaryReader::ReadNextSection(SectionCode nextSection)
+SectionHeader
+WasmBinaryReader::ReadNextSection()
 {
     while (true)
     {
-        if (EndOfModule() || SectionInfo::All[nextSection].flag == fSectIgnore)
+        if (EndOfModule())
         {
-            return false;
+            memset(&m_currentSection, 0, sizeof(SectionHeader));
+            m_currentSection.code = bSectLimit;
+            return m_currentSection;
         }
 
         m_currentSection = ReadSectionHeader();
         if (SectionInfo::All[m_currentSection.code].flag == fSectIgnore)
         {
-            TRACE_WASM_DECODER(_u("Ignore this section"));
+            TRACE_WASM_SECTION(_u("Ignore this section"));
             m_pc = m_currentSection.end;
             // Read next section
             continue;
         }
 
-        // Process the custom sections now
-        if (m_currentSection.code == bSectCustom)
-        {
-            if (!ProcessCurrentSection())
-            {
-                ThrowDecodingError(_u("Error while reading custom section %s"), m_currentSection.name);
-            }
-            // Read next section
-            continue;
-        }
-
-        if (m_currentSection.code < nextSection)
-        {
-            ThrowDecodingError(_u("Invalid Section %s"), m_currentSection.code);
-        }
-
-        if (m_currentSection.code != nextSection)
-        {
-            TRACE_WASM_DECODER(_u("The current section is not the one we are looking for"));
-            // We know about this section, but it's not the one we're looking for
-            m_pc = m_currentSection.start;
-            return false;
-        }
-        return true;
+        return m_currentSection;
     }
 }
 
