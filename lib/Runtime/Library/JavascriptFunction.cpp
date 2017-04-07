@@ -2655,8 +2655,22 @@ LABEL1:
             }
             if (ScriptFunction::Is(funcCaller))
             {
-                // Is this is the internal function of a generator function then return the original generator function
+                // If this is the internal function of a generator function then return the original generator function
                 funcCaller = ScriptFunction::FromVar(funcCaller)->GetRealFunctionObject();
+
+                // This function is escaping, so make sure there isn't some caller that has a cached scope.
+                JavascriptFunction * func;
+                while (walker.GetCaller(&func))
+                {
+                    if (ScriptFunction::Is(func))
+                    {
+                        ActivationObjectEx * obj = ScriptFunction::FromVar(func)->GetCachedScope();
+                        if (obj)
+                        {
+                            obj->InvalidateCachedScope();
+                        }
+                    }
+                }
             }
         }
 
