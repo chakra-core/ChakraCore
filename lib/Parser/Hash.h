@@ -75,8 +75,8 @@ public:
 
 struct PidRefStack
 {
-    PidRefStack() : isAsg(false), isDynamic(false), id(0), funcId(0), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false), isFuncAssignment(false) {}
-    PidRefStack(int id, Js::LocalFunctionId funcId) : isAsg(false), isDynamic(false), id(id), funcId(funcId), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false), isFuncAssignment(false) {}
+    PidRefStack() : isAsg(false), isDynamic(false), id(0), funcId(0), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false), isFuncAssignment(false), isUsedInLdElem(false) {}
+    PidRefStack(int id, Js::LocalFunctionId funcId) : isAsg(false), isDynamic(false), id(id), funcId(funcId), sym(nullptr), prev(nullptr), isEscape(false), isModuleExport(false), isFuncAssignment(false), isUsedInLdElem(false) {}
 
     int GetScopeId() const    { return id; }
     Js::LocalFunctionId GetFuncScopeId() const { return funcId; }
@@ -88,6 +88,8 @@ struct PidRefStack
     void SetIsEscape(bool is) { isEscape = is; }
     bool IsDynamicBinding() const { return isDynamic; }
     void SetDynamicBinding()  { isDynamic = true; }
+    bool IsUsedInLdElem() const { return isUsedInLdElem; }
+    void SetIsUsedInLdElem(bool is) { isUsedInLdElem = is; }
 
     Symbol **GetSymRef()
     {
@@ -99,6 +101,7 @@ struct PidRefStack
     bool           isModuleExport;
     bool           isEscape;
     bool           isFuncAssignment;
+    bool           isUsedInLdElem;
     int            id;
     Js::LocalFunctionId funcId;
     Symbol        *sym;
@@ -126,6 +129,7 @@ private:
     Js::PropertyId m_propertyId;
 
     AssignmentState assignmentState;
+    bool isUsedInLdElem;
 
     OLECHAR m_sz[]; // the spelling follows (null terminated)
 
@@ -168,6 +172,24 @@ public:
         else if (assignmentState == AssignedOnce)
         {
             assignmentState = AssignedMultipleTimes;
+        }
+    }
+
+    bool IsUsedInLdElem() const
+    {
+        return this->isUsedInLdElem;
+    }
+
+    void SetIsUsedInLdElem(bool is)
+    {
+        this->isUsedInLdElem = is;
+    }
+
+    static void TrySetIsUsedInLdElem(ParseNode * pnode)
+    {
+        if (pnode && pnode->nop == knopStr)
+        {
+            pnode->sxPid.pid->SetIsUsedInLdElem(true);
         }
     }
 
@@ -219,22 +241,6 @@ public:
             ref->prev = prevRef->prev;
         }
         return prevRef;
-    }
-
-    PidRefStack * TopDecl(int maxBlockId) const
-    {
-        for (PidRefStack *pidRef = m_pidRefStack; pidRef; pidRef = pidRef->prev)
-        {
-            if (pidRef->id > maxBlockId)
-            {
-                continue;
-            }
-            if (pidRef->sym != nullptr)
-            {
-                return pidRef;
-            }
-        }
-        return nullptr;
     }
 
     PidRefStack * FindOrAddPidRef(ArenaAllocator *alloc, int scopeId, Js::LocalFunctionId funcId)

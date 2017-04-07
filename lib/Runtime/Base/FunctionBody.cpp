@@ -4163,11 +4163,18 @@ namespace Js
         this->RecordConstant(location, intConst);
     }
 
-    void FunctionBody::RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch)
+    void FunctionBody::RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch, bool forcePropertyString)
     {
         ScriptContext *scriptContext = this->GetScriptContext();
         PropertyRecord const * propertyRecord;
-        scriptContext->FindPropertyRecord(psz, cch, &propertyRecord);
+        if (forcePropertyString)
+        {
+            scriptContext->GetOrAddPropertyRecord(psz, cch, &propertyRecord);
+        }
+        else
+        {
+            scriptContext->FindPropertyRecord(psz, cch, &propertyRecord);
+        }
         Var str;
         if (propertyRecord == nullptr)
         {

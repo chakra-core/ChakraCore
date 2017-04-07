@@ -3933,6 +3933,10 @@ void CheckLocalVarDef(ParseNode *pnode, ByteCodeGenerator *byteCodeGenerator)
             if (sym != nullptr)
             {
                 sym->RecordDef();
+                if (sym->IsUsedInLdElem())
+                {
+                    Ident::TrySetIsUsedInLdElem(pnode->sxBin.pnode2);
+                }
             }
         }
     }
@@ -4338,6 +4342,10 @@ void SetAdditionalBindInfoForVariables(ParseNode *pnode, ByteCodeGenerator *byte
         {
             sym->RecordDef();
         }
+    }
+    if (sym->IsUsedInLdElem())
+    {
+        Ident::TrySetIsUsedInLdElem(pnode->sxVar.pnodeInit);
     }
 
     // If this decl does an assignment inside a loop body, then there's a chance

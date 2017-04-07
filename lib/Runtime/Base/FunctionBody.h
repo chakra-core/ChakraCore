@@ -3316,7 +3316,7 @@ namespace Js
         void RecordTrueObject(RegSlot location);
         void RecordFalseObject(RegSlot location);
         void RecordIntConstant(RegSlot location, unsigned int val);
-        void RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch);
+        void RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch, bool forcePropertyString);
         void RecordFloatConstant(RegSlot location, double d);
         void RecordNullDisplayConstant(RegSlot location);
         void RecordStrictNullDisplayConstant(RegSlot location);
