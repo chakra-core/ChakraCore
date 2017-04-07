@@ -589,7 +589,7 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, const WebAs
     {
         ValidateInitExportForOffset(initExpr);
     }
-    catch (Wasm::WasmCompilationException &e)
+    catch (Wasm::WasmCompilationException&)
     {
         // Should have been checked at compile time
         Assert(UNREACHED);
