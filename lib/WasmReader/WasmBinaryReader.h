@@ -86,7 +86,6 @@ namespace Wasm
         uint8 ReadVarUInt7();
         bool ReadMutableValue();
         const char16* ReadInlineName(uint32& length, uint32& nameLength);
-        const char16* CvtUtf8Str(LPCUTF8 name, uint32 nameLen, charcount_t* dstLength = nullptr);
         template<typename MaxAllowedType = UINT>
         MaxAllowedType LEB128(UINT &length, bool sgn = false);
         template<typename MaxAllowedType = INT>

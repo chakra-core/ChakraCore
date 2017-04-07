@@ -961,30 +961,21 @@ WasmBinaryReader::ReadCustomSection()
 const char16*
 WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 {
-    nameLength = LEB128(length);
-    CheckBytesLeft(nameLength);
+    uint rawNameLength = LEB128(length);
+    CheckBytesLeft(rawNameLength);
     LPCUTF8 rawName = m_pc;
 
-    m_pc += nameLength;
-    length += nameLength;
+    m_pc += rawNameLength;
+    length += rawNameLength;
 
-    return CvtUtf8Str(rawName, nameLength, &nameLength);
-}
-
-const char16*
-WasmBinaryReader::CvtUtf8Str(LPCUTF8 name, uint32 nameLen, charcount_t* dstLength)
-{
     utf8::DecodeOptions decodeOptions = utf8::doDefault;
-    charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(name, nameLen, decodeOptions);
-    char16* contents = AnewArray(m_alloc, char16, utf16Len + 1);
-    if (contents == nullptr)
+    nameLength = (uint32)utf8::ByteIndexIntoCharacterIndex(rawName, rawNameLength, decodeOptions);
+    char16* contents = AnewArray(m_alloc, char16, nameLength + 1);
+    size_t decodedLength = utf8::DecodeUnitsIntoAndNullTerminate(contents, rawName, rawName + rawNameLength, decodeOptions);
+    if (decodedLength != nameLength)
     {
-        Js::Throw::OutOfMemory();
-    }
-    utf8::DecodeUnitsIntoAndNullTerminate(contents, name, name + nameLen, decodeOptions);
-    if (dstLength)
-    {
-        *dstLength = utf16Len;
+        AssertMsg(UNREACHED, "We calculated the length before decoding, what happened ?");
+        ThrowDecodingError(_u("Error while decoding utf8 string"));
     }
     return contents;
 }
