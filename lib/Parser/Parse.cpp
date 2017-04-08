@@ -6509,11 +6509,6 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
         (*m_pnestedCount)++;
     }
 
-    if (!buildAST)
-    {
-        return NULL;
-    }
-
     if (m_pscan->IchMinTok() >= m_pscan->IchMinLine())
     {
         // In scenarios involving defer parse IchMinLine() can be incorrect for the first line after defer parse
@@ -6543,7 +6538,7 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     ParseNodePtr *lastNodeRef = nullptr;
     ParseNodePtr pnodeBlock = StartParseBlock<buildAST>(PnodeBlockType::Parameter, ScopeType_Parameter);
 
-    if (extends)
+    if (buildAST && extends)
     {
         // constructor(...args) { super(...args); }
         //             ^^^^^^^
@@ -6567,22 +6562,25 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->sxFnc.pnodeBodyScope = pnodeInnerBlock;
     pnodeFnc->sxFnc.pnodeScopes = pnodeBlock;
 
-    if (extends)
+    if (buildAST)
     {
-        // constructor(...args) { super(...args); }
-        //                        ^^^^^^^^^^^^^^^
-        Assert(argsId);
-        ParseNodePtr spreadArg = CreateUniNode(knopEllipsis, argsId, pnodeFnc->ichMin, pnodeFnc->ichLim);
+        if (extends)
+        {
+            // constructor(...args) { super(...args); }
+            //                        ^^^^^^^^^^^^^^^
+            Assert(argsId);
+            ParseNodePtr spreadArg = CreateUniNode(knopEllipsis, argsId, pnodeFnc->ichMin, pnodeFnc->ichLim);
 
-        ParseNodePtr superRef = CreateNodeWithScanner<knopSuper>();
-        pnodeFnc->sxFnc.SetHasSuperReference(TRUE);
+            ParseNodePtr superRef = CreateNodeWithScanner<knopSuper>();
+            pnodeFnc->sxFnc.SetHasSuperReference(TRUE);
 
-        ParseNodePtr callNode = CreateCallNode(knopCall, superRef, spreadArg);
-        callNode->sxCall.spreadArgCount = 1;
-        AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, callNode);
+            ParseNodePtr callNode = CreateCallNode(knopCall, superRef, spreadArg);
+            callNode->sxCall.spreadArgCount = 1;
+            AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, callNode);
+        }
+
+        AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, CreateNodeWithScanner<knopEndCode>());
     }
-
-    AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, CreateNodeWithScanner<knopEndCode>());
 
     FinishParseBlock(pnodeInnerBlock);
     FinishParseBlock(pnodeBlock);
@@ -9661,14 +9659,17 @@ LDefaultTokenFor:
                 ParseStmtList<buildAST>(&pnodeBody);
                 break;
             }
+            // Create a block node to contain the statement list for this case.
+            // This helps us insert byte code to return the right value from
+            // global/eval code.
+            ParseNodePtr pnodeFakeBlock = CreateBlockNode();
             if (buildAST)
             {
                 if (pnodeBody)
                 {
-                    // Create a block node to contain the statement list for this case.
-                    // This helps us insert byte code to return the right value from
-                    // global/eval code.
-                    pnodeT->sxCase.pnodeBody = CreateBlockNode(pnodeT->ichMin, pnodeT->ichLim);
+                    pnodeFakeBlock->ichMin = pnodeT->ichMin;
+                    pnodeFakeBlock->ichLim = pnodeT->ichLim;
+                    pnodeT->sxCase.pnodeBody = pnodeFakeBlock;
                     pnodeT->sxCase.pnodeBody->grfpn |= PNodeFlags::fpnSyntheticNode; // block is not a user specifier block
                     pnodeT->sxCase.pnodeBody->sxBlock.pnodeStmt = pnodeBody;
                 }
@@ -9801,11 +9802,8 @@ LEndSwitch:
 
     case tkTRY:
     {
-        if (buildAST)
-        {
-            pnode = CreateBlockNode();
-            pnode->grfpn |= PNodeFlags::fpnSyntheticNode; // block is not a user specifier block
-        }
+        pnode = CreateBlockNode();
+        pnode->grfpn |= PNodeFlags::fpnSyntheticNode; // block is not a user specifier block
         PushStmt<buildAST>(&stmt, pnode, knopBlock, pnodeLabel, pLabelIdList);
         ParseNodePtr pnodeStmt = ParseTryCatchFinally<buildAST>();
         if (buildAST)
