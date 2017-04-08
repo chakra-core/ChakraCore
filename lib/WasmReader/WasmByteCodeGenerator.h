@@ -73,10 +73,7 @@ namespace Wasm
         {
             if(this != &other)
             {
-                if(errorMsg != nullptr)
-                {
-                    SysFreeString(errorMsg);
-                }
+                SysFreeString(errorMsg);
                 errorMsg = SysAllocString(other.errorMsg);
             }
             return *this;
@@ -93,10 +90,7 @@ namespace Wasm
 
         ~WasmCompilationException()
         {
-            if(errorMsg != nullptr)
-            {
-                SysFreeString(errorMsg);
-            }
+            SysFreeString(errorMsg);
         }
 
         BSTR ReleaseErrorMessage()
@@ -111,10 +105,7 @@ namespace Wasm
         {
             if (this != &other)
             {
-                if(errorMsg != nullptr)
-                {
-                    SysFreeString(errorMsg);
-                }
+                SysFreeString(errorMsg);
                 errorMsg = other.errorMsg;
                 other.errorMsg = nullptr;
             }
