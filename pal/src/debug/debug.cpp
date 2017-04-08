@@ -96,23 +96,27 @@ static const char PAL_RUN_ON_DEBUG_BREAK[]   = "PAL_RUN_ON_DEBUG_BREAK";
 /* ------------------- Static function prototypes ----------------------------*/
 
 #if !HAVE_VM_READ && !HAVE_PROCFS_CTL && !HAVE_TTRACE
-static int
-DBGWriteProcMem_Int(DWORD processId, int *addr, int data);
-static int
-DBGWriteProcMem_IntWithMask(DWORD processId, int *addr, int data,
-                            unsigned int mask);
+extern "C" {
+    static int
+    DBGWriteProcMem_Int(DWORD processId, int *addr, int data);
+    static int
+    DBGWriteProcMem_IntWithMask(DWORD processId, int *addr, int data,
+                                unsigned int mask);
+}
 #endif  // !HAVE_VM_READ && !HAVE_PROCFS_CTL && !HAVE_TTRACE
 
 #if !HAVE_VM_READ && !HAVE_PROCFS_CTL
 
-static BOOL
-DBGAttachProcess(CPalThread *pThread, HANDLE hProcess, DWORD dwProcessId);
+extern "C" {
+    static int
+    DBGAttachProcess(CPalThread *pThread, HANDLE hProcess, DWORD dwProcessId);
 
-static BOOL
-DBGDetachProcess(CPalThread *pThread, HANDLE hProcess, DWORD dwProcessId);
+    static int
+    DBGDetachProcess(CPalThread *pThread, HANDLE hProcess, DWORD dwProcessId);
 
-static int
-DBGSetProcessAttached(CPalThread *pThread, HANDLE hProcess, BOOL bAttach);
+    static int
+    DBGSetProcessAttached(CPalThread *pThread, HANDLE hProcess, BOOL bAttach);
+}
 
 #endif // !HAVE_VM_READ && !HAVE_PROCFS_CTL
 
@@ -1645,7 +1649,7 @@ PAL_CreateExecWatchpoint(
         goto PAL_CreateExecWatchpointExit;
     }
 #else
-#error Need syscall instruction for this platform
+#error "Need syscall instruction for this platform"
 #endif // _SPARC_
 
     pThread = InternalGetCurrentThread();

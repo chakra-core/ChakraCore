@@ -11,6 +11,7 @@ namespace PerfCounter
     template <typename TCounter>
     class DefaultCounterSetInstance : public InstanceBase
     {
+        typedef InstanceBase _super_;
     public:
         DefaultCounterSetInstance() : InstanceBase(TCounter::GetProvider(), TCounter::GetGuid())
         {
@@ -24,7 +25,7 @@ namespace PerfCounter
                 // shared memory instead. This will happen for sure if running under
                 // Win8 AppContainer because they don't support v2 perf counters.
                 // See comments in WWAHostJSCounterProvider for details.
-                data = __super::InitializeSharedMemory(TCounter::MaxCounter, handle);
+                data = _super_::InitializeSharedMemory(TCounter::MaxCounter, handle);
                 if (data == nullptr)
                 {
                     data = defaultData;
@@ -45,7 +46,7 @@ namespace PerfCounter
 
             if (data != defaultData)
             {
-                __super::UninitializeSharedMemory(data, handle);
+                _super_::UninitializeSharedMemory(data, handle);
             }
         }
         Counter& GetCounter(uint id) { Assert(id < TCounter::MaxCounter); return counters[id]; }
@@ -62,7 +63,7 @@ namespace PerfCounter
                 char16 wszFilename[_MAX_FNAME];
                 _wsplitpath_s(wszModuleName, NULL, 0, NULL, 0, wszFilename, _MAX_FNAME, NULL, 0);
 
-                return __super::Initialize(wszFilename, GetCurrentProcessId());
+                return _super_::Initialize(wszFilename, GetCurrentProcessId());
             }
             return false;
         }

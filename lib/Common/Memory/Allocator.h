@@ -40,7 +40,7 @@ struct TrackAllocData
     size_t GetPlusSize() const { return plusSize; }
     size_t GetCount() const { return count; }
 
-    static TrackAllocData CreateTrackAllocData(type_info const& typeinfo, size_t size, size_t count, char const * const filename, DWORD line)
+    static TrackAllocData CreateTrackAllocData(const std::type_info& typeinfo, size_t size, size_t count, char const * const filename, DWORD line)
     {
         TrackAllocData data;
         data.typeinfo = &typeinfo;

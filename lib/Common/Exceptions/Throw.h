@@ -15,13 +15,13 @@ namespace Js {
     class Throw
     {
     public:
-        static void __declspec(noreturn) OutOfMemory();
-        static void __declspec(noreturn) StackOverflow(ScriptContext *scriptContext, PVOID returnAddress);
-        static void __declspec(noreturn) NotImplemented();
-        static void __declspec(noreturn) InternalError();
-        static void __declspec(noreturn) FatalInternalError();
-        static void __declspec(noreturn) FatalInternalErrorEx(int scenario);
-        static void __declspec(noreturn) FatalProjectionError();
+        static void DECLSPEC_NORETURN OutOfMemory();
+        static void DECLSPEC_NORETURN StackOverflow(ScriptContext *scriptContext, PVOID returnAddress);
+        static void DECLSPEC_NORETURN NotImplemented();
+        static void DECLSPEC_NORETURN InternalError();
+        static void DECLSPEC_NORETURN FatalInternalError();
+        static void DECLSPEC_NORETURN FatalInternalErrorEx(int scenario);
+        static void DECLSPEC_NORETURN FatalProjectionError();
 
         static void CheckAndThrowOutOfMemory(BOOLEAN status);
 

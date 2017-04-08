@@ -1466,7 +1466,7 @@ void
 LabelInstr::Init(Js::OpCode opcode, IRKind kind, Func *func, bool isOpHelper)
 {
     // Pass in the region when this is called from anywhere between the Lowerer and EHBailoutPatchUp code?
-    __super::Init(opcode, kind, func);
+    _super_::Init(opcode, kind, func);
     this->isOpHelper = isOpHelper;
 
     this->m_pc.pc = nullptr;
@@ -4552,7 +4552,7 @@ PragmaInstr::Dump(IRDumpFlags flags)
             functionBody->PrintStatementSourceLine(this->m_statementIndex);
         }
     }
-    __super::Dump(flags);
+    _super_::Dump(flags);
 }
 
 ///----------------------------------------------------------------------------

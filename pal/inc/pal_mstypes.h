@@ -20,6 +20,10 @@
 
 #define __MSTYPES_DEFINED
 
+#if defined(__GNUC__)
+#include <stdarg.h>
+#endif
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -281,8 +285,6 @@ typedef signed __int64 LONG64;
 #endif
 
 #ifdef BIT64
-#define _atoi64 (__int64)atoll
-
 typedef __int64 INT_PTR, *PINT_PTR;
 typedef unsigned __int64 UINT_PTR, *PUINT_PTR;
 typedef __int64 LONG_PTR, *PLONG_PTR;

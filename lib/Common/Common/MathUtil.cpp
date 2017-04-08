@@ -32,7 +32,7 @@ Math::Rand()
     return newRand;
 }
 
-__declspec(noreturn) void Math::DefaultOverflowPolicy()
+DECLSPEC_NORETURN void Math::DefaultOverflowPolicy()
 {
     Js::Throw::OutOfMemory();
 }

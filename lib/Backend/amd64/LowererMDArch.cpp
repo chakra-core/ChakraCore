@@ -816,7 +816,7 @@ LowererMDArch::LowerCallPut(IR::Instr *callInstr)
 
 static inline IRType ExtendHelperArg(IRType type)
 {
-#ifdef __clang__
+#if defined(__clang__) || defined(__GNUC__)
     // clang expects caller to extend arg size to int
     switch (type)
     {

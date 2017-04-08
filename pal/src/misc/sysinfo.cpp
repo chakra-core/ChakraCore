@@ -80,10 +80,10 @@ SET_DEFAULT_DEBUG_CHANNEL(MISC);
 #ifndef __APPLE__
 #if HAVE_SYSCONF && HAVE__SC_AVPHYS_PAGES
 #define SYSCONF_PAGES _SC_AVPHYS_PAGES
-#elif HAVE_SYSCONF && HAVE__SC_PHYS_PAGES
+#elif defined(_SC_PHYS_PAGES) || (HAVE_SYSCONF && HAVE__SC_PHYS_PAGES)
 #define SYSCONF_PAGES _SC_PHYS_PAGES
 #elif !defined(__ANDROID__)
-#error Dont know how to get page-size on this architecture!
+#error "Dont know how to get page-size on this architecture!"
 #endif
 #endif // __APPLE__
 
@@ -232,7 +232,7 @@ GlobalMemoryStatusEx(
     BOOL fRetVal = FALSE;
 
     // Get the physical memory size
-#if HAVE_SYSCONF && HAVE__SC_PHYS_PAGES
+#if defined(_SC_PHYS_PAGES) || (HAVE_SYSCONF && HAVE__SC_PHYS_PAGES)
     int64_t physical_memory;
 
     // Get the Physical memory size

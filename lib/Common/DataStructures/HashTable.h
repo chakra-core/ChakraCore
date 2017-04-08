@@ -409,11 +409,12 @@ private:
 template <typename T, uint size, typename TAllocator = ArenaAllocator>
 class HashTableS : public HashTable<T, TAllocator>
 {
+    typedef HashTable<T, TAllocator> _super_;
 public:
     HashTableS(TAllocator * allocator) : HashTable(allocator, size) {}
     void Reset()
     {
-        __super::Init();
+        _super_::Init();
     }
 private:
     char tableSpace[size * sizeof(SListBase<Bucket<T>>)];

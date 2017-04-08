@@ -491,23 +491,25 @@ private:
 template <typename TData, typename TAllocator, typename TCount = DefaultCount>
 class DList : public DListBase<TData, TCount>
 {
+    typedef DListBase<TData, TCount> Base;
 public:
     class EditingIterator : public DListBase<TData, TCount>::EditingIterator
     {
+        typedef typename DListBase<TData, TCount>::EditingIterator _super_;
     public:
         EditingIterator() : DListBase<TData, TCount>::EditingIterator() {}
         EditingIterator(DList * list) : DListBase<TData, TCount>::EditingIterator(list) {}
         void RemoveCurrent()
         {
-            __super::RemoveCurrent(Allocator());
+            _super_::RemoveCurrent(Allocator());
         }
         TData& InsertNodeBefore()
         {
-            return __super::InsertNodeBefore(Allocator());
+            return _super_::InsertNodeBefore(Allocator());
         }
         void InsertBefore(TData const& data)
         {
-            __super::InsertBefore(Allocator(), data);
+            _super_::InsertBefore(Allocator(), data);
         }
 
     private:
@@ -524,52 +526,52 @@ public:
     }
     void Clear()
     {
-        __super::Clear(allocator);
+        Base::Clear(allocator);
     }
     bool Append(TData const& data)
     {
-        return __super::Append(allocator, data);
+        return Base::Append(allocator, data);
     }
     bool Prepend(TData const& data)
     {
-        return __super::Prepend(allocator, data);
+        return Base::Prepend(allocator, data);
     }
     TData * PrependNode()
     {
-        return __super::PrependNode(allocator);
+        return Base::PrependNode(allocator);
     }
     template <typename TParam1>
     TData * PrependNode(TParam1 param1)
     {
-        return __super::PrependNode(allocator, param1);
+        return Base::PrependNode(allocator, param1);
     }
     template <typename TParam1, typename TParam2>
     TData * PrependNode(TParam1 param1, TParam2 param2)
     {
-        return __super::PrependNode(allocator, param1, param2);
+        return Base::PrependNode(allocator, param1, param2);
     }
     template <typename TParam1, typename TParam2, typename TParam3>
     TData * PrependNode(TParam1 param1, TParam2 param2, TParam3 param3)
     {
-        return __super::PrependNode(allocator, param1, param2, param3);
+        return Base::PrependNode(allocator, param1, param2, param3);
     }
     template <typename TParam1, typename TParam2, typename TParam3, typename TParam4>
     TData * PrependNode(TParam1 param1, TParam2 param2, TParam3 param3, TParam4 param4)
     {
-        return __super::PrependNode(allocator, param1, param2, param3, param4);
+        return Base::PrependNode(allocator, param1, param2, param3, param4);
     }
     void RemoveHead()
     {
-        __super::RemoveHead(allocator);
+        Base::RemoveHead(allocator);
     }
     bool Remove(TData const& data)
     {
-        return __super::Remove(allocator, data);
+        return Base::Remove(allocator, data);
     }
 
     void RemoveElement(TData * data)
     {
-        return __super::RemoveElement(allocator, data);
+        return Base::RemoveElement(allocator, data);
     }
 
 private:

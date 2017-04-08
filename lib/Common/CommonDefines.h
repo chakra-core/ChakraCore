@@ -45,10 +45,12 @@
     #endif
 #endif
 
+#if defined(_WIN32) || defined(__clang__) // GNUC doesn't support __try/__catch/__except
 // TODO: consider removing before RTM: keep for CHK/FRETEST but remove from FRE.
 // This will cause terminate process on AV/Assert rather that letting PDM (F12/debugger scenarios) eat exceptions.
 // At least for now, enable this even in FRE builds. See ReportError.h.
 #define ENABLE_DEBUG_API_WRAPPER 1
+#endif
 
 //----------------------------------------------------------------------------------------------------
 //  Define Architectures' aliases for Simplicity
@@ -115,7 +117,7 @@
 #define ENABLE_GLOBALIZATION
 // dep: IActiveScriptProfilerCallback, IActiveScriptProfilerHeapEnum
 #define ENABLE_SCRIPT_PROFILING
-#ifndef __clang__
+#if !defined(__clang__)
 // xplat-todo: change DISABLE_SEH to ENABLE_SEH and move here
 #define ENABLE_SIMDJS
 #endif
@@ -640,7 +642,7 @@
 
 #if defined(ASMJS_PLAT)
 // xplat-todo: once all the wasm tests are passing on xplat, enable it for release builds
-#if defined(_WIN32) || (defined(__clang__) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
+#if defined(_WIN32) || ( (defined(__clang__) || defined(__GNUC__)) && defined(ENABLE_DEBUG_CONFIG_OPTIONS))
 #define ENABLE_WASM
 
 #ifdef CAN_BUILD_WABT
@@ -686,7 +688,7 @@
 #define ENABLE_TRACE
 #endif
 
-#if !(defined(__clang__) && defined(_M_ARM32_OR_ARM64)) // xplat-todo: ARM
+#if !( (defined(__clang__) || defined(__GNUC__)) && defined(_M_ARM32_OR_ARM64)) // xplat-todo: ARM
 #if DBG || defined(CHECK_MEMORY_LEAK) || defined(LEAK_REPORT) || defined(TRACK_DISPATCH) || defined(ENABLE_TRACE) || defined(RECYCLER_PAGE_HEAP)
 #define STACK_BACK_TRACE
 #endif

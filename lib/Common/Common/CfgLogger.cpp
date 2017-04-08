@@ -64,7 +64,7 @@ CFGLogger::~CFGLogger()
 }
 
 #ifdef _CONTROL_FLOW_GUARD
-__declspec(guard(ignore))
+DECLSPEC_GUARDIGNORE
 #endif
 void __fastcall
 CFGLogger::GuardCheck(_In_ uintptr_t Target)
@@ -88,4 +88,3 @@ CFGLogger::GuardCheck(_In_ uintptr_t Target)
     oldGuardCheck(Target);
 }
 #endif
-

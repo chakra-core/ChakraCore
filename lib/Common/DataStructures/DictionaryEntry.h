@@ -94,23 +94,25 @@ namespace JsUtil
     template <class TKey, class TValue>
     class ImplicitKeyValueEntry : public ValueEntry<TValue>
     {
+        typedef ValueEntry<TValue> _super_;
     public:
         inline TKey Key() const { return ValueToKey<TKey, TValue>::ToKey(this->value); }
 
         void Set(TKey const& key, TValue const& value)
         {
-            __super::Set(value);
+            _super_::Set(value);
         }
     };
 
     template <class TKey, class TValue>
     class BaseKeyValueEntry : public ValueEntry<TValue>
     {
+        typedef ValueEntry<TValue> _super_;
     protected:
         TKey key;    // key of entry
         void Set(TKey const& key, TValue const& value)
         {
-            __super::Set(value);
+            _super_::Set(value);
             this->key = key;
         }
 
@@ -126,10 +128,11 @@ namespace JsUtil
     template <class TKey, class TValue>
     class KeyValueEntry<TKey*, TValue> : public BaseKeyValueEntry<TKey*, TValue>
     {
+        typedef BaseKeyValueEntry<TKey*, TValue> _super_;
     public:
         void Clear()
         {
-            __super::Clear();
+            _super_::Clear();
             this->key = nullptr;
         }
     };
@@ -137,10 +140,11 @@ namespace JsUtil
     template <class TValue>
     class KeyValueEntry<int, TValue> : public BaseKeyValueEntry<int, TValue>
     {
+        typedef BaseKeyValueEntry<int, TValue> _super_;
     public:
         void Clear()
         {
-            __super::Clear();
+            _super_::Clear();
             this->key = 0;
         }
     };
@@ -148,6 +152,7 @@ namespace JsUtil
     template <class TKey, class TValue, template <class K, class V> class THashEntry>
     class DefaultHashedEntry : public THashEntry<TKey, TValue>
     {
+        typedef THashEntry<TKey, TValue> _super_;
     public:
         template<typename Comparer, typename TLookup>
         inline bool KeyEquals(TLookup const& otherKey, hash_t otherHashCode)
@@ -163,13 +168,14 @@ namespace JsUtil
 
         void Set(TKey const& key, TValue const& value, int hashCode)
         {
-            __super::Set(key, value);
+            _super_::Set(key, value);
         }
     };
 
     template <class TKey, class TValue, template <class K, class V> class THashEntry>
     class CacheHashedEntry : public THashEntry<TKey, TValue>
     {
+        typedef THashEntry<TKey, TValue> _super_;
         hash_t hashCode;    // Lower 31 bits of hash code << 1 | 1, 0 if unused
     public:
         static const int INVALID_HASH_VALUE = 0;
@@ -189,13 +195,13 @@ namespace JsUtil
 
         void Set(TKey const& key, TValue const& value, hash_t hashCode)
         {
-            __super::Set(key, value);
+            _super_::Set(key, value);
             this->hashCode = hashCode;
         }
 
         void Clear()
         {
-            __super::Clear();
+            _super_::Clear();
             this->hashCode = INVALID_HASH_VALUE;
         }
     };

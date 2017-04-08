@@ -20,7 +20,7 @@
 
 class NativeCodeData
 {
-
+    typedef NativeCodeData _super_;
 public:
 
     struct DataChunk
@@ -137,10 +137,11 @@ public:
     template<typename T>
     class AllocatorNoFixup : public Allocator
     {
+        typedef Allocator _super_;
     public:
         char * Alloc(size_t requestedBytes)
         {
-            char* dataBlock = __super::Alloc(requestedBytes);
+            char* dataBlock = _super_::Alloc(requestedBytes);
 #if DBG
             if (JITManager::GetJITManager()->IsJITServer())
             {
@@ -158,7 +159,7 @@ public:
         }
         char * AllocZero(size_t requestedBytes)
         {
-            char* dataBlock = __super::AllocZero(requestedBytes);
+            char* dataBlock = _super_::AllocZero(requestedBytes);
 
 #if DBG
             if (JITManager::GetJITManager()->IsJITServer())
@@ -184,6 +185,7 @@ public:
     template<typename T>
     class AllocatorT : public Allocator
     {
+        typedef Allocator _super_;
         char* AddFixup(char* dataBlock)
         {
             if (isOOPJIT)
@@ -205,11 +207,11 @@ public:
     public:
         char * Alloc(size_t requestedBytes)
         {
-            return AddFixup(__super::Alloc(requestedBytes));
+            return AddFixup(_super_::Alloc(requestedBytes));
         }
         char * AllocZero(size_t requestedBytes)
         {
-            return AddFixup(__super::AllocZero(requestedBytes));
+            return AddFixup(_super_::AllocZero(requestedBytes));
         }
 
         static void Fixup(void* pThis, NativeCodeData::DataChunk* chunkList)

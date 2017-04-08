@@ -241,7 +241,7 @@ namespace Js
 // C4740: flow in or out of inline asm code suppresses global optimization
 // It is fine to disable glot opt on this function which is mostly written in assembly
 #pragma warning(disable:4740)
-    __declspec(naked)
+    DECLSPEC_NAKED
     double JavascriptNumber::DirectPow(double x, double y)
     {
         UNREFERENCED_PARAMETER(x);

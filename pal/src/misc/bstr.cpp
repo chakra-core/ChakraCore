@@ -25,6 +25,9 @@ Abstract:
 #define SUCCEEDED(Status) ((HRESULT)(Status) >= 0)
 #define FAILED(Status) ((HRESULT)(Status)<0)
 #define STDAPICALLTYPE       __stdcall
+#ifdef NULL
+#undef NULL
+#endif
 #define NULL    0
 #define STDAPI_(type)        EXTERN_C type STDAPICALLTYPE
 

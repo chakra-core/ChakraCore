@@ -159,7 +159,7 @@ LinearScanMD::GenerateBailOut(IR::Instr * instr, __in_ecount(registerSaveSymsCou
             // mov [esp + 4], eax
             Lowerer::InsertMove(IR::IndirOpnd::New(esp, 4, TyMachPtr, func), eax, instr);
 
-            // restore eax            
+            // restore eax
             // pop eax
             instr->InsertBefore(IR::Instr::New(Js::OpCode::POP, eax, eax, func));
         }
@@ -360,7 +360,7 @@ LinearScanMD::GenerateBailInForGeneratorYield(IR::Instr * resumeLabelInstr, Bail
     return instrAfter;
 }
 
-__declspec(naked) void LinearScanMD::SaveAllRegisters(BailOutRecord *const bailOutRecord)
+DECLSPEC_NAKED void LinearScanMD::SaveAllRegisters(BailOutRecord *const bailOutRecord)
 {
     __asm
     {
@@ -397,7 +397,7 @@ __declspec(naked) void LinearScanMD::SaveAllRegisters(BailOutRecord *const bailO
     }
 }
 
-__declspec(naked) void LinearScanMD::SaveAllRegistersNoSse2(BailOutRecord *const bailOutRecord)
+DECLSPEC_NAKED void LinearScanMD::SaveAllRegistersNoSse2(BailOutRecord *const bailOutRecord)
 {
     __asm
     {
@@ -425,7 +425,7 @@ __declspec(naked) void LinearScanMD::SaveAllRegistersNoSse2(BailOutRecord *const
     }
 }
 
-__declspec(naked) void LinearScanMD::SaveAllRegistersAndBailOut(BailOutRecord *const bailOutRecord)
+DECLSPEC_NAKED void LinearScanMD::SaveAllRegistersAndBailOut(BailOutRecord *const bailOutRecord)
 {
     __asm
     {
@@ -437,7 +437,7 @@ __declspec(naked) void LinearScanMD::SaveAllRegistersAndBailOut(BailOutRecord *c
     }
 }
 
-__declspec(naked) void LinearScanMD::SaveAllRegistersNoSse2AndBailOut(BailOutRecord *const bailOutRecord)
+DECLSPEC_NAKED void LinearScanMD::SaveAllRegistersNoSse2AndBailOut(BailOutRecord *const bailOutRecord)
 {
     __asm
     {
@@ -449,7 +449,7 @@ __declspec(naked) void LinearScanMD::SaveAllRegistersNoSse2AndBailOut(BailOutRec
     }
 }
 
-__declspec(naked) void LinearScanMD::SaveAllRegistersAndBranchBailOut(
+DECLSPEC_NAKED void LinearScanMD::SaveAllRegistersAndBranchBailOut(
     BranchBailOutRecord *const bailOutRecord,
     const BOOL condition)
 {
@@ -464,7 +464,7 @@ __declspec(naked) void LinearScanMD::SaveAllRegistersAndBranchBailOut(
     }
 }
 
-__declspec(naked) void LinearScanMD::SaveAllRegistersNoSse2AndBranchBailOut(
+DECLSPEC_NAKED void LinearScanMD::SaveAllRegistersNoSse2AndBranchBailOut(
     BranchBailOutRecord *const bailOutRecord,
     const BOOL condition)
 {

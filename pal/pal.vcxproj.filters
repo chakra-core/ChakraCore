@@ -12,7 +12,6 @@
     <None Include="inc\rt\pshpack2.h" />
     <None Include="inc\rt\pshpack4.h" />
     <None Include="inc\rt\pshpack8.h" />
-    <None Include="inc\rt\rpc.h" />
     <None Include="inc\rt\rpcndr.h" />
     <None Include="inc\rt\safecrt.h" />
     <None Include="inc\rt\sal.h" />

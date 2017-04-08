@@ -293,7 +293,7 @@ namespace Js
     }
 
 #ifdef _M_IX86
-    __declspec(naked)
+    DECLSPEC_NAKED
         Var
         DynamicProfileInfo::EnsureDynamicProfileInfoThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {

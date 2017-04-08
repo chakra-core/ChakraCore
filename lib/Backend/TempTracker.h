@@ -38,6 +38,7 @@ class TempTracker : public T
 #if DBG
     friend class ObjectTempVerify;
 #endif
+    typedef T _super_;
 public:
     TempTracker(JitArenaAllocator * alloc, bool inLoop);
     void MergeData(TempTracker<T> * fromData, bool deleteData);
@@ -48,7 +49,7 @@ public:
     void MarkTemp(StackSym * sym, BackwardPass * backwardPass);
 
 #if DBG
-    void Dump() { __super::Dump(T::GetTraceName()); }
+    void Dump() { _super_::Dump(T::GetTraceName()); }
 #endif
 };
 

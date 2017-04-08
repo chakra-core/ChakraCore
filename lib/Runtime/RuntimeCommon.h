@@ -19,7 +19,7 @@ namespace Js
     struct FrameDisplay;
     class TypedArrayBase;
 
-#if _M_IX86
+#if _M_IX86 || (defined(__GNUC__) && !defined(__clang__))
 #define unaligned
 #elif _M_X64 || _M_ARM || _M_ARM64
 #define unaligned __unaligned
@@ -225,4 +225,3 @@ namespace JSON
 #define JS_DIAG_TYPE_JavascriptRegExpConstructor    _u("Object, (RegExp constructor)")
 
 #include "Language/SimdUtils.h"
-
