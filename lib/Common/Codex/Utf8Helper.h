@@ -47,9 +47,9 @@ namespace utf8
     }
 
     template <class Allocator>
-    HRESULT WideStringToNarrow(_In_ LPCWSTR sourceString, size_t sourceCount, _Out_ LPSTR* destStringPtr, _Out_ size_t* destCount)
+    HRESULT WideStringToNarrow(_In_ LPCWSTR sourceString, size_t sourceCount, _Out_ LPSTR* destStringPtr, _Out_ size_t* destCount, size_t* allocateCount = nullptr)
     {
-        return WideStringToNarrow(Allocator::allocate, sourceString, sourceCount, destStringPtr, destCount);
+        return WideStringToNarrow(Allocator::allocate, sourceString, sourceCount, destStringPtr, destCount, allocateCount);
     }
 
     ///
@@ -115,7 +115,7 @@ namespace utf8
         }
         return S_OK;
     }
-    
+
     template <class Allocator>
     HRESULT NarrowStringToWide(_In_ LPCSTR sourceString, size_t sourceCount, _Out_ LPWSTR* destStringPtr, _Out_ size_t* destCount, size_t* allocateCount = nullptr)
     {
