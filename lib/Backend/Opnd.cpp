@@ -1401,23 +1401,8 @@ IntConstOpnd::New(IntConstType value, IRType type, Func *func, bool dontEncode)
     intConstOpnd->m_dontEncode = dontEncode;
     intConstOpnd->SetValue(value);
 
-#if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-    intConstOpnd->decodedValue = 0;
-    intConstOpnd->name = nullptr;
-#endif
-
     return intConstOpnd;
 }
-
-#if DBG_DUMP || defined(ENABLE_IR_VIEWER)
-IntConstOpnd *
-IntConstOpnd::New(IntConstType value, IRType type, const char16 * name, Func *func, bool dontEncode)
-{
-    IntConstOpnd * intConstOpnd = IntConstOpnd::New(value, type, func, dontEncode);
-    intConstOpnd->name = name;
-    return intConstOpnd;
-}
-#endif
 
 ///----------------------------------------------------------------------------
 ///
@@ -1610,12 +1595,6 @@ void Int64ConstOpnd::FreeInternal(Func * func)
 {
     Assert(m_kind == OpndKindInt64Const);
     JitAdelete(func->m_alloc, this);
-}
-
-int64 Int64ConstOpnd::GetValue()
-{
-    Assert(m_type == TyInt64);
-    return m_value;
 }
 
 ///----------------------------------------------------------------------------
@@ -2881,6 +2860,40 @@ Opnd::DumpFunctionInfo(_Outptr_result_buffer_(*count) char16 ** buffer, size_t *
     }
 }
 
+
+void EncodableOpnd<int32>::DumpEncodable() const
+{
+    if (name != nullptr)
+    {
+        Output::Print(_u("<%s> (value: 0x%X)"), name, m_value);
+    }
+    else if (decodedValue != 0)
+    {
+        Output::Print(_u("%d (0x%X) [encoded: 0x%X]"), decodedValue, decodedValue, m_value);
+    }
+    else
+    {
+        Output::Print(_u("%d (0x%X)"), m_value, m_value);
+    }
+}
+
+void EncodableOpnd<int64>::DumpEncodable() const
+{
+    if (name != nullptr)
+    {
+        Output::Print(_u("<%s> (value: 0x%llX)"), name, m_value);
+    }
+    else if (decodedValue != 0)
+    {
+        Output::Print(_u("%lld (0x%llX) [encoded: 0x%llX]"), decodedValue, decodedValue, m_value);
+    }
+    else
+    {
+        Output::Print(_u("%lld (0x%llX)"), m_value, m_value);
+    }
+}
+
+
 ///----------------------------------------------------------------------------
 ///
 /// Opnd::Dump
@@ -3138,47 +3151,13 @@ Opnd::Dump(IRDumpFlags flags, Func *func)
     case OpndKindInt64Const:
     {
         Int64ConstOpnd * intConstOpnd = this->AsInt64ConstOpnd();
-        int64 intValue = intConstOpnd->GetValue();
-        Output::Print(_u("%lld (0x%llX)"), intValue, intValue);
+        intConstOpnd->DumpEncodable();
         break;
     }
     case OpndKindIntConst:
     {
         IntConstOpnd * intConstOpnd = this->AsIntConstOpnd();
-        if (intConstOpnd->name != nullptr)
-        {
-            if (!Js::Configuration::Global.flags.DumpIRAddresses)
-            {
-                Output::Print(_u("<%s>"), intConstOpnd->name);
-            }
-            else
-            {
-                Output::Print(_u("<%s> (value: 0x%X)"), intConstOpnd->name, intConstOpnd->GetValue());
-            }
-        }
-        else
-        {
-            IntConstType intValue;
-            if (intConstOpnd->decodedValue != 0)
-            {
-                intValue = intConstOpnd->decodedValue;
-                Output::Print(_u("%d (0x%X)"), intValue, intValue);
-                if (!Js::Configuration::Global.flags.DumpIRAddresses)
-                {
-                    Output::Print(_u(" [encoded]"));
-                }
-                else
-                {
-                    Output::Print(_u(" [encoded: 0x%X]"), intConstOpnd->GetValue());
-                }
-            }
-            else
-            {
-                intValue = intConstOpnd->GetValue();
-                Output::Print(_u("%d (0x%X)"), intValue, intValue);
-            }
-        }
-
+        intConstOpnd->DumpEncodable();
         break;
     }
 
