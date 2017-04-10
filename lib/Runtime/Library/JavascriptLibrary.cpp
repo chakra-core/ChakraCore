@@ -3718,6 +3718,7 @@ namespace Js
             return BuiltinFunction::JavascriptArray_Concat;
 
         case PropertyIds::indexOf:
+            //return NULL;
             return BuiltinFunction::JavascriptArray_IndexOf;
 
         case PropertyIds::includes:
@@ -4449,7 +4450,7 @@ namespace Js
 
         library->AddMember(stringPrototype, PropertyIds::constructor, library->stringConstructor);
 
-        library->AddMember(stringPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)));
+        library->AddMember(stringPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(1)));
         builtinFuncs[BuiltinFunction::JavascriptString_LastIndexOf]   = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::lastIndexOf,        &JavascriptString::EntryInfo::LastIndexOf,          1);
         builtinFuncs[BuiltinFunction::JavascriptString_Replace]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::replace,            &JavascriptString::EntryInfo::Replace,              2);
         builtinFuncs[BuiltinFunction::JavascriptString_Search]        = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::search,             &JavascriptString::EntryInfo::Search,               1);
@@ -7421,7 +7422,7 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toLocaleString, JavascriptArray::EntryToLocaleString);
         REG_OBJECTS_LIB_FUNC(toString, JavascriptArray::EntryToString);
         REG_OBJECTS_LIB_FUNC(unshift, JavascriptArray::EntryUnshift);
-        REG_OBJECTS_LIB_FUNC(indexOf, JavascriptArray::EntryIndexOf);
+        //REG_OBJECTS_LIB_FUNC(indexOf, JavascriptArray::EntryIndexOf);
         REG_OBJECTS_LIB_FUNC(every, JavascriptArray::EntryEvery);
         REG_OBJECTS_LIB_FUNC(filter, JavascriptArray::EntryFilter);
         REG_OBJECTS_LIB_FUNC(forEach, JavascriptArray::EntryForEach);
