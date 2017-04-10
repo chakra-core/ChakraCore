@@ -234,15 +234,24 @@ WebAssemblyModule::CreateModule(
     }
     catch (Wasm::WasmCompilationException& ex)
     {
-        Wasm::WasmCompilationException newEx = ex;
+        // The reason that we use GetTempErrorMessageRef here, instead of just doing simply
+        // ReleaseErrorMessage and grabbing it away from the WasmCompilationException, is a
+        // slight niggle in the lifetime of the message buffer. The normal error throw..Var
+        // routines don't actually do anything to clean up their varargs - likely good, due
+        // to the variety of situations that we want to use them in. However, this fails to
+        // clean up strings if they're not cleaned up by some destructor. By handling these
+        // error strings not by grabbing them away from the WasmCompilationException, I can
+        // have the WasmCompilationException destructor clean up the strings when we throw,
+        // by which point SetErrorMessage will already have copied out what it needs.
+        BSTR originalMessage = ex.GetTempErrorMessageRef();
         if (currentBody != nullptr)
         {
-            char16* originalMessage = ex.ReleaseErrorMessage();
             intptr_t offset = readerInfo->m_module->GetReader()->GetCurrentOffset();
             intptr_t start = readerInfo->m_funcInfo->m_readerInfo.startOffset;
             uint32 size = readerInfo->m_funcInfo->m_readerInfo.size;
 
-            newEx = Wasm::WasmCompilationException(
+            originalMessage = ex.ReleaseErrorMessage();
+            ex = Wasm::WasmCompilationException(
                 _u("function %s at offset %d/%d: %s"),
                 currentBody->GetDisplayName(),
                 offset - start,
@@ -251,8 +260,9 @@ WebAssemblyModule::CreateModule(
             );
             currentBody->GetAsmJsFunctionInfo()->SetWasmReaderInfo(nullptr);
             SysFreeString(originalMessage);
+            originalMessage = ex.GetTempErrorMessageRef();
         }
-        JavascriptError::ThrowWebAssemblyCompileErrorVar(scriptContext, WASMERR_WasmCompileError, newEx.ReleaseErrorMessage());
+        JavascriptError::ThrowWebAssemblyCompileErrorVar(scriptContext, WASMERR_WasmCompileError, originalMessage);
     }
 
     return webAssemblyModule;
@@ -579,11 +589,11 @@ WebAssemblyModule::GetOffsetFromInit(const Wasm::WasmNode& initExpr, const WebAs
     {
         ValidateInitExportForOffset(initExpr);
     }
-    catch (Wasm::WasmCompilationException &e)
+    catch (Wasm::WasmCompilationException&)
     {
         // Should have been checked at compile time
         Assert(UNREACHED);
-        throw e;
+        throw;
     }
 
     uint offset = 0;

@@ -907,7 +907,7 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
     }
     else
     {
-        const char *fileContent;
+        const char* fileContent;
         AutoString fileName;
 
         IfJsrtErrorSetGo(fileName.Initialize(arguments[1]));
@@ -927,6 +927,7 @@ JsValueRef __stdcall WScriptJsrt::LoadTextFileCallback(JsValueRef callee, bool i
                 JsValueRef stringObject;
                 IfJsrtErrorSetGo(ChakraRTInterface::JsCreateString(
                     fileContent, lengthBytes, &stringObject));
+                free((void*)fileContent);
                 return stringObject;
             }
         }
@@ -966,10 +967,10 @@ JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee,
             else
             {
                 JsValueRef arrayBuffer;
-                IfJsrtErrorSetGo(ChakraRTInterface::JsCreateArrayBuffer(lengthBytes, &arrayBuffer));
+                IfJsrtErrorSetGoLabel(ChakraRTInterface::JsCreateArrayBuffer(lengthBytes, &arrayBuffer), ErrorStillFree);
                 BYTE* buffer;
                 unsigned int bufferLength;
-                IfJsrtErrorSetGo(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength));
+                IfJsrtErrorSetGoLabel(ChakraRTInterface::JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength), ErrorStillFree);
                 if (bufferLength < lengthBytes)
                 {
                     fwprintf(stderr, _u("Array buffer size is insufficient to store the binary file.\n"));
@@ -981,6 +982,8 @@ JsValueRef __stdcall WScriptJsrt::LoadBinaryFileCallback(JsValueRef callee,
                         returnValue = arrayBuffer;
                     }
                 }
+ErrorStillFree:
+                HeapFree(GetProcessHeap(), 0, (void*)fileContent);
             }
         }
     }

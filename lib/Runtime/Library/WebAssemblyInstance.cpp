@@ -126,7 +126,7 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
     }
     catch (Wasm::WasmCompilationException& e)
     {
-        JavascriptError::ThrowWebAssemblyLinkErrorVar(scriptContext, WASMERR_WasmLinkError, e.ReleaseErrorMessage());
+        JavascriptError::ThrowWebAssemblyLinkErrorVar(scriptContext, WASMERR_WasmLinkError, e.GetTempErrorMessageRef());
     }
 
     uint32 startFuncIdx = module->GetStartFunction();
