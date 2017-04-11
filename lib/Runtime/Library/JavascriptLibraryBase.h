@@ -138,6 +138,7 @@ namespace Js
         DynamicObject* GetTypeErrorPrototype() const { return typeErrorPrototype; }
         DynamicObject* GetURIErrorPrototype() const { return uriErrorPrototype; }
         PropertyId GetPropertyIdSymbolIterator() { return PropertyIds::_symbolIterator; };
+        PropertyId GetPropertyIdSymbolToStringTag() { return PropertyIds::_symbolToStringTag; };
 
     protected:
         Field(GlobalObject*) globalObject;

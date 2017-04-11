@@ -434,6 +434,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/JavascriptFunction.h"
 #include "Library/RuntimeFunction.h"
 #include "Library/JavascriptExternalFunction.h"
+#include "Library/CustomExternalIterator.h"
 
 #include "Base/CharStringCache.h"
 
