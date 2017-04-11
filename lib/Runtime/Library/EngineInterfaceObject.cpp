@@ -195,9 +195,9 @@ namespace Js
         ScriptContext* scriptContext = commonNativeInterfaces->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        library->EnsureIndexOfByteCode();
+        //library->EnsureIndexOfByteCode();
 
-        library->AddMember(commonNativeInterfaces, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)));
+        //library->AddMember(commonNativeInterfaces, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)));
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \
