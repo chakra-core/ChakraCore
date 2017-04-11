@@ -2860,7 +2860,7 @@ Opnd::DumpFunctionInfo(_Outptr_result_buffer_(*count) char16 ** buffer, size_t *
     }
 }
 
-
+template<>
 void EncodableOpnd<int32>::DumpEncodable() const
 {
     if (name != nullptr)
@@ -2877,6 +2877,7 @@ void EncodableOpnd<int32>::DumpEncodable() const
     }
 }
 
+template<>
 void EncodableOpnd<int64>::DumpEncodable() const
 {
     if (name != nullptr)
