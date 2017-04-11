@@ -134,8 +134,6 @@ public:
 #if FLOATVAR
             IR::RegOpnd*    CheckFloatAndUntag(IR::RegOpnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr* labelHelper);
 #endif
-            bool            GenerateFastBrOrCmString(IR::Instr* instr);
-            bool            GenerateFastStringCheck(IR::Instr* instr, IR::RegOpnd *srcReg1, IR::RegOpnd *srcReg2, bool isEqual, bool isStrict, IR::LabelInstr *labelHelper, IR::LabelInstr *labelBranchSuccess, IR::LabelInstr *labelBranchFail);
             bool            GenerateFastCmSrEqConst(IR::Instr *instr);
             bool            GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper = false);
             void            GenerateFastCmXxI4(IR::Instr *instr);
