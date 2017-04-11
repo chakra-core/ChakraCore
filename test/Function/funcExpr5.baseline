@@ -280,3 +280,6 @@ typeof F_Test23 === function
 typeof x === number
 check71: Test23('hello'); #undefined
 check72: F_Test23(); @'F_Test23' is undefined
+check73: Test24(); #undefined
+check74: Test24('hello'); #undefined
+check75: F_Test24(); @'F_Test24' is undefined

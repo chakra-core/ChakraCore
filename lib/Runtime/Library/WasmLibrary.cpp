@@ -131,7 +131,7 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
             intptr_t start = readerInfo->m_funcInfo->m_readerInfo.startOffset;
             uint32 size = readerInfo->m_funcInfo->m_readerInfo.size;
 
-            Wasm::WasmCompilationException newEx = Wasm::WasmCompilationException(
+            Wasm::WasmCompilationException newEx(
                 _u("function %s at offset %d/%d: %s"),
                 body->GetDisplayName(),
                 offset - start,
@@ -143,6 +143,7 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
             JavascriptLibrary *library = scriptContext->GetLibrary();
             JavascriptError *pError = library->CreateWebAssemblyCompileError();
             JavascriptError::SetErrorMessage(pError, WASMERR_WasmCompileError, msg, scriptContext);
+            SysFreeString(msg);
 
             func->GetDynamicType()->SetEntryPoint(WasmLazyTrapCallback);
             entrypointInfo->jsMethod = WasmLazyTrapCallback;

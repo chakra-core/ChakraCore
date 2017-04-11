@@ -335,9 +335,9 @@ AllocateRegisterSpace(ArenaAllocator* alloc, WAsmJs::Types)
 }
 
 void
-WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo)
+WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo, bool validateOnly /*= false*/)
 {
-    WasmBytecodeGenerator generator(scriptContext, readerinfo);
+    WasmBytecodeGenerator generator(scriptContext, readerinfo, validateOnly);
     generator.GenerateFunction();
     if (!generator.GetReader()->IsCurrentFunctionCompleted())
     {
@@ -345,7 +345,12 @@ WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext
     }
 }
 
-WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, WasmReaderInfo* readerInfo) :
+void WasmBytecodeGenerator::ValidateFunction(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo)
+{
+    GenerateFunctionBytecode(scriptContext, readerinfo, true);
+}
+
+WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, WasmReaderInfo* readerInfo, bool validateOnly) :
     m_scriptContext(scriptContext),
     m_alloc(_u("WasmBytecodeGen"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
     m_evalStack(&m_alloc),
@@ -353,8 +358,8 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
     m_blockInfos(&m_alloc),
     isUnreachable(false)
 {
-    m_writer = m_originalWriter = Anew(&m_alloc, Js::WasmByteCodeWriter);
     m_emptyWriter = Anew(&m_alloc, Js::EmptyWasmByteCodeWriter);
+    m_writer = m_originalWriter = validateOnly ? m_emptyWriter : Anew(&m_alloc, Js::WasmByteCodeWriter);
     m_writer->Create();
     m_funcInfo = readerInfo->m_funcInfo;
     m_module = readerInfo->m_module;
@@ -411,7 +416,7 @@ WasmBytecodeGenerator::GenerateFunction()
 
 
 #if DBG_DUMP
-    if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()))
+    if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()) && !IsValidating())
     {
         Js::AsmJsByteCodeDumper::Dump(GetFunctionBody(), &mTypedRegisterAllocator, nullptr);
     }
@@ -1579,14 +1584,14 @@ WasmCompilationException::FormatError(const char16* _msg, va_list arglist)
     errorMsg = SysAllocString(buf);
 }
 
-WasmCompilationException::WasmCompilationException(const char16* _msg, ...)
+WasmCompilationException::WasmCompilationException(const char16* _msg, ...) : errorMsg(nullptr)
 {
     va_list arglist;
     va_start(arglist, _msg);
     FormatError(_msg, arglist);
 }
 
-WasmCompilationException::WasmCompilationException(const char16* _msg, va_list arglist)
+WasmCompilationException::WasmCompilationException(const char16* _msg, va_list arglist) : errorMsg(nullptr)
 {
     FormatError(_msg, arglist);
 }

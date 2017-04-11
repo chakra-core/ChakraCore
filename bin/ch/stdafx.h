@@ -17,9 +17,12 @@
 
 #define IfJsrtErrorFail(expr, ret) do { if ((expr) != JsNoError) return ret; } while (0)
 #define IfJsrtErrorHR(expr) do { if((expr) != JsNoError) { hr = E_FAIL; goto Error; } } while(0)
+#define IfJsrtErrorHRLabel(expr, label) do { if((expr) != JsNoError) { hr = E_FAIL; goto label; } } while(0)
 #define IfJsrtError(expr) do { if((expr) != JsNoError) { goto Error; } } while(0)
 #define IfJsrtErrorSetGo(expr) do { errorCode = (expr); if(errorCode != JsNoError) { hr = E_FAIL; goto Error; } } while(0)
+#define IfJsrtErrorSetGoLabel(expr, label) do { errorCode = (expr); if(errorCode != JsNoError) { hr = E_FAIL; goto label; } } while(0)
 #define IfFalseGo(expr) do { if(!(expr)) { hr = E_FAIL; goto Error; } } while(0)
+#define IfFalseGoLabel(expr, label) do { if(!(expr)) { hr = E_FAIL; goto label; } } while(0)
 
 #define WIN32_LEAN_AND_MEAN 1
 
@@ -97,6 +100,16 @@ do { \
         fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
         fflush(stderr); \
         goto Error; \
+    } \
+} while (0)
+
+#define IfJsErrorFailLogLabel(expr, label) \
+do { \
+    JsErrorCode jsErrorCode = expr; \
+    if ((jsErrorCode) != JsNoError) { \
+        fwprintf(stderr, _u("ERROR: ") _u(#expr) _u(" failed. JsErrorCode=0x%x (%s)\n"), jsErrorCode, Helpers::JsErrorCodeToString(jsErrorCode)); \
+        fflush(stderr); \
+        goto label; \
     } \
 } while (0)
 

@@ -1372,6 +1372,7 @@ public:
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         size += PrependInt32(builder, _u("Start String Constant"), magicStartStringConstant);
 #endif
+        size += PrependBool(builder, _u("Is Property String"), VirtualTableInfo<Js::PropertyString>::HasVirtualTable(str));
 
         auto bb = Anew(alloc, ByteBuffer, (str->GetLength() + 1) * sizeof(char16), (void*)str->GetSz());
         size += PrependByteBuffer(builder, _u("String Constant 16 Value"), bb);
@@ -2269,7 +2270,7 @@ public:
         return ReadFunctionBodyFlags(buffer, remainingBytes, value);
     }
 
-    const byte* ReadBool(const byte * buffer, bool * value)
+    const byte* ReadBool(const byte * buffer, _Out_ bool * value)
     {
         auto remainingBytes = (raw + totalSize) - buffer;
         Assert(remainingBytes >= sizeof(bool));
@@ -2723,21 +2724,22 @@ public:
         return S_OK;
     }
 
-    const byte* ReadStringConstant(const byte* current, FunctionBody* function, LPCWSTR& string, uint32& len)
+    const byte* ReadStringConstant(const byte* current, FunctionBody* function, _Out_ LPCWSTR * string, _Out_ uint32 * len, _Out_ bool * isPropertyString)
     {
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         int constant;
         current = ReadInt32(current, &constant);
         Assert(constant == magicStartStringConstant);
 #endif
+        current = ReadBool(current, isPropertyString);
         int stringId;
         current = ReadInt32(current, &stringId);
 #ifdef BYTE_CODE_MAGIC_CONSTANTS
         current = ReadInt32(current, &constant);
         Assert(constant == magicEndStringConstant);
 #endif
-        string = GetString16ById(stringId);
-        len = GetString16LengthById(stringId);
+        *string = GetString16ById(stringId);
+        *len = GetString16LengthById(stringId);
 
         return current;
     }
@@ -2754,13 +2756,23 @@ public:
 
         LPCWSTR string;
         uint32 len;
+        bool isPropertyString = false;
         uint32 rawlen = 0;
 
         for (int i = 0; i < arrayLength; i++)
         {
-            current = ReadStringConstant(current, function, string, len);
-
-            JavascriptString* str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
+            current = ReadStringConstant(current, function, &string, &len, &isPropertyString);
+            JavascriptString* str = nullptr;
+            if (isPropertyString)
+            {
+                PropertyRecord const * propertyRecord;
+                scriptContext->GetOrAddPropertyRecord(string, len, &propertyRecord);
+                str = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
+            }
+            else
+            {
+                str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
+            }
             callsite->SetItemWithAttributes(i, str, PropertyEnumerable);
         }
 
@@ -2768,10 +2780,20 @@ public:
 
         for (int i = 0; i < arrayLength; i++)
         {
-            current = ReadStringConstant(current, function, string, len);
+            current = ReadStringConstant(current, function, &string, &len, &isPropertyString);
             rawlen += len;
 
-            JavascriptString* str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
+            JavascriptString* str = nullptr;
+            if (isPropertyString)
+            {
+                PropertyRecord const * propertyRecord;
+                scriptContext->GetOrAddPropertyRecord(string, len, &propertyRecord);
+                str = scriptContext->GetPropertyString(propertyRecord->GetPropertyId());
+            }
+            else
+            {
+                str = JavascriptString::NewCopyBuffer(string, len, scriptContext);
+            }
             rawArray->SetItemWithAttributes(i, str, PropertyEnumerable);
         }
 
@@ -2876,9 +2898,10 @@ public:
                 {
                     LPCWSTR string;
                     uint32 len;
-                    current = ReadStringConstant(current, function, string, len);
+                    bool isPropertyString = false;
+                    current = ReadStringConstant(current, function, &string, &len, &isPropertyString);
 
-                    function->RecordStrConstant(reg, string, len);
+                    function->RecordStrConstant(reg, string, len, isPropertyString);
                     break;
                 }
             case ctStringTemplateCallsite:

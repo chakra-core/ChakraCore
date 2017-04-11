@@ -1950,7 +1950,7 @@ namespace Js
             {
                 Assert((loadScriptFlag & LoadScriptFlag_disableAsmJs) != LoadScriptFlag_disableAsmJs);
 
-                pse->Clear();
+                pse->Free();
 
                 loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
                 return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo,

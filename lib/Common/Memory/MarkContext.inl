@@ -46,6 +46,7 @@ bool MarkContext::AddTrackedObject(FinalizableObject * obj)
 #endif
 
 template <bool parallel, bool interior, bool doSpecialMark>
+NO_SANITIZE_ADDRESS
 inline
 void MarkContext::ScanMemory(void ** obj, size_t byteCount)
 {

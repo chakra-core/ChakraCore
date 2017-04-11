@@ -63,7 +63,6 @@ public:
     ~CompileScriptException();
 
 public:
-    void Clear();
     void Free();
     void GetError(HRESULT *phr, EXCEPINFO *pei)
     {

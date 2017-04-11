@@ -88,3 +88,20 @@ if(CAN_BUILD_WABT)
     add_subdirectory (wabt)
 endif()
 
+if(NOT CC_XCODE_PROJECT)
+    add_custom_command(TARGET ChakraCoreStatic POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/include"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/Jsrt/ChakraCore.h"
+            "${CMAKE_BINARY_DIR}/include"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/Jsrt/ChakraCommon.h"
+            "${CMAKE_BINARY_DIR}/include"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/Jsrt/ChakraDebug.h"
+            "${CMAKE_BINARY_DIR}/include"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/Common/ChakraCoreVersion.h"
+            "${CMAKE_BINARY_DIR}/include"
+    )
+endif(NOT CC_XCODE_PROJECT)
