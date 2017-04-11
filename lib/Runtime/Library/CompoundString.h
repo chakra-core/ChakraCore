@@ -435,6 +435,12 @@ namespace Js
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         #pragma endregion
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableCompoundString;
+        }
     };
 
     #pragma region CompoundString::Builder definition

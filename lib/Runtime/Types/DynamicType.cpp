@@ -312,7 +312,7 @@ namespace Js
             {
                 // Stack object should have a pre-op bail on implicit call.  We shouldn't see them here.
                 Assert(!ThreadContext::IsOnStack(this) || threadContext->HasNoSideEffect(toStringFunction));
-                return CALL_FUNCTION(toStringFunction, CallInfo(CallFlags_Value, 1), this);
+                return CALL_FUNCTION(threadContext, toStringFunction, CallInfo(CallFlags_Value, 1), this);
             });
 
             if (!aResult)

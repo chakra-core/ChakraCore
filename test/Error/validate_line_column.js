@@ -57,7 +57,7 @@ foo(function() {
 
 foo(function() {
     var k = 1;
-    `${a.b}`;         
+    `${a.b}`;         // Error thrown here.
 });
 
 foo(function() {

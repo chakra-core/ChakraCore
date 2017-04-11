@@ -14,9 +14,10 @@ PageAllocatorPool* PageAllocatorPool::Instance = nullptr;
 
 PageAllocatorPool::PageAllocatorPool()
     :pageAllocators(&NoThrowHeapAllocator::Instance),
+    idleCleanupTimer(NULL),
     activePageAllocatorCount(0)
 {
-    idleCleanupTimer = CreateWaitableTimerEx(NULL, L"JITServerIdle", 0/*auto reset*/, TIMER_ALL_ACCESS);
+    idleCleanupTimer = CreateThreadpoolTimer(IdleCleanupRoutine, NULL, NULL);
 }
 
 PageAllocatorPool::~PageAllocatorPool()
@@ -33,6 +34,7 @@ void PageAllocatorPool::Initialize()
         Js::Throw::FatalInternalError();
     }
 }
+
 void PageAllocatorPool::Shutdown()
 {
     AutoCriticalSection autoCS(&cs);
@@ -41,13 +43,15 @@ void PageAllocatorPool::Shutdown()
     {
         PageAllocatorPool* localInstance = Instance;
         Instance = nullptr;
+        
         if (localInstance->idleCleanupTimer)
         {
-            CloseHandle(localInstance->idleCleanupTimer);
+            CloseThreadpoolTimer(localInstance->idleCleanupTimer);
         }
         HeapDelete(localInstance);
     }
 }
+
 void PageAllocatorPool::RemoveAll()
 {
     Assert(cs.IsLocked());
@@ -83,6 +87,7 @@ PageAllocator* PageAllocatorPool::GetPageAllocator()
     return pageAllocator;
 
 }
+
 void PageAllocatorPool::ReturnPageAllocator(PageAllocator* pageAllocator)
 {
     AutoCriticalSection autoCS(&cs);
@@ -104,10 +109,14 @@ void PageAllocatorPool::IdleCleanup()
     if (Instance)
     {
         LARGE_INTEGER liDueTime;
-        liDueTime.QuadPart = Js::Configuration::Global.flags.JITServerIdleTimeout * -10000000LL; // wait for 10 seconds to do the cleanup
+        liDueTime.QuadPart = Js::Configuration::Global.flags.JITServerIdleTimeout * -10000LL; // wait for JITServerIdleTimeout milliseconds to do the cleanup
 
-        // If the timer is already active when you call SetWaitableTimer, the timer is stopped, then it is reactivated.
-        if (!SetWaitableTimer(Instance->idleCleanupTimer, &liDueTime, 0, IdleCleanupRoutine, NULL, 0))
+        if (Instance->idleCleanupTimer)
+        {
+            // Setting the timer cancels the previous timer, if any.
+            SetThreadpoolTimer(Instance->idleCleanupTimer, (PFILETIME)&liDueTime, 0, 0);
+        }
+        else
         {
             Instance->RemoveAll();
         }
@@ -115,9 +124,9 @@ void PageAllocatorPool::IdleCleanup()
 }
 
 VOID CALLBACK PageAllocatorPool::IdleCleanupRoutine(
-    _In_opt_ LPVOID lpArgToCompletionRoutine,
-    _In_     DWORD  dwTimerLowValue,
-    _In_     DWORD  dwTimerHighValue)
+    _Inout_     PTP_CALLBACK_INSTANCE,
+    _Inout_opt_ PVOID,
+    _Inout_     PTP_TIMER)
 {
     AutoCriticalSection autoCS(&cs);
     if (Instance)

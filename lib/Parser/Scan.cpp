@@ -951,14 +951,7 @@ tokens Scanner<EncodingPolicy>::RescanRegExpTokenizer()
 template <typename EncodingPolicy>
 tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
 {
-    if (m_parser && m_parser->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackRegex);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
 
     // SEE ALSO: RegexHelper::PrimCompileDynamic()
 
@@ -1023,14 +1016,7 @@ tokens Scanner<EncodingPolicy>::ScanRegExpConstant(ArenaAllocator* alloc)
 template<typename EncodingPolicy>
 tokens Scanner<EncodingPolicy>::ScanRegExpConstantNoAST(ArenaAllocator* alloc)
 {
-    if (m_parser && m_parser->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackRegex);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackRegex);
 
     ThreadContext *threadContext = m_fSyntaxColor ? ThreadContext::GetContextForCurrentThread() : m_scriptContext->GetThreadContext();
     UnifiedRegex::StandardChars<EncodedChar>* standardEncodedChars = threadContext->GetStandardChars((EncodedChar*)0);

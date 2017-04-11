@@ -33,7 +33,7 @@ namespace Js
         BOOL ReserveGlobalProperty(PropertyId propertyId);
         BOOL IsReservedGlobalProperty(PropertyId propertyId);
 
-        Var ExecuteEvalParsedFunction(ScriptFunction *pfuncScript, FrameDisplay* environment, Var &varThis);
+        Var ExecuteEvalParsedFunction(ScriptFunction *pfuncScript, FrameDisplay* environment, Var &varThis, ScriptContext *scriptContext);
 
         class EntryInfo
         {

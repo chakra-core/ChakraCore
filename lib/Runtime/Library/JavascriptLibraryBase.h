@@ -77,6 +77,10 @@ namespace Js
         JavascriptFunction* GetSyntaxErrorConstructor() const { return syntaxErrorConstructor; }
         JavascriptFunction* GetTypeErrorConstructor() const { return typeErrorConstructor; }
         JavascriptFunction* GetURIErrorConstructor() const { return uriErrorConstructor; }
+        JavascriptFunction* GetPromiseResolve() const { return promiseResolveFunction; }
+        JavascriptFunction* GetPromiseThen() const { return promiseThenFunction; }
+        JavascriptFunction* GetJSONStringify() const { return jsonStringifyFunction; }
+        JavascriptFunction* GetObjectFreeze() const { return objectFreezeFunction; }
 
         DynamicObject* GetMathObject() { return mathObject; }
         DynamicObject* GetJSONObject() { return JSONObject; }
@@ -179,6 +183,10 @@ namespace Js
         JavascriptFunction* __proto__getterFunction;
         JavascriptFunction* __proto__setterFunction;
         JavascriptFunction* arrayIteratorPrototypeBuiltinNextFunction;
+        JavascriptFunction* promiseResolveFunction;
+        JavascriptFunction* promiseThenFunction;
+        JavascriptFunction* jsonStringifyFunction;
+        JavascriptFunction* objectFreezeFunction;
         DynamicObject* mathObject;
         // SIMD_JS
         DynamicObject* simdObject;

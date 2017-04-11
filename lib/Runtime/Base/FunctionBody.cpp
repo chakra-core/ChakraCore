@@ -9795,7 +9795,7 @@ namespace Js
                 }
                 else
                 {
-                    Assert(!functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo() || 
+                    Assert(!functionType->GetEntryPointInfo()->IsFunctionEntryPointInfo() ||
                         ((FunctionEntryPointInfo*)functionType->GetEntryPointInfo())->IsCleanedUp()
                         || (DWORD_PTR)functionType->GetEntryPoint() != this->GetNativeAddress());
                 }

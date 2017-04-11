@@ -6216,7 +6216,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         _InstructionSynchronizationBarrier();
 #endif
         uint newOffset = ::Math::PointerCastToIntegral<uint>(
-            CALL_ENTRYPOINT(address, function, CallInfo(CallFlags_InternalFrame, 1), this));
+            CALL_ENTRYPOINT_NOASSERT(address, function, CallInfo(CallFlags_InternalFrame, 1), this));
 
 #ifdef _M_IX86
         _asm
@@ -6250,7 +6250,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
             _InstructionSynchronizationBarrier();
 #endif
             uint newOffset = ::Math::PointerCastToIntegral<uint>(
-                CALL_ENTRYPOINT(address, function, CallInfo(CallFlags_InternalFrame, 1), this));
+                CALL_ENTRYPOINT_NOASSERT(address, function, CallInfo(CallFlags_InternalFrame, 1), this));
 
 #ifdef _M_IX86
             _asm

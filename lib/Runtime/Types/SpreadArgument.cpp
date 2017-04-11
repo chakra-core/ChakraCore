@@ -16,21 +16,83 @@ namespace Js
         return static_cast<SpreadArgument*>(aValue);
     }
 
-    SpreadArgument::SpreadArgument(Var iterable, RecyclableObject* iterator, DynamicType * type) : DynamicObject(type), iterable(iterable),
-        iterator(iterator), iteratorIndices(nullptr)
+    SpreadArgument::SpreadArgument(Var iterator, bool useDirectCall, DynamicType * type)
+        : DynamicObject(type), iteratorIndices(nullptr)
     {
-        Var nextItem;
+        Assert(iterator != nullptr);
         ScriptContext * scriptContext = this->GetScriptContext();
+        Assert(iteratorIndices == nullptr);
 
-        while (JavascriptOperators::IteratorStepAndValue(iterator, scriptContext, &nextItem))
+        if (useDirectCall)
         {
-            if (iteratorIndices == nullptr)
+            if (JavascriptArray::Is(iterator))
             {
-                iteratorIndices = RecyclerNew(scriptContext->GetRecycler(), VarList, scriptContext->GetRecycler());
-            }
+                JavascriptArray *array = JavascriptArray::FromVar(iterator);
+                if (!array->HasNoMissingValues())
+                {
+                    AssertAndFailFast();
+                }
 
-            iteratorIndices->Add(nextItem);
+                uint32 length = array->GetLength();
+                if (length > 0)
+                {
+                    iteratorIndices = RecyclerNew(scriptContext->GetRecycler(), VarList, scriptContext->GetRecycler());
+                    for (uint32 j = 0; j < length; j++)
+                    {
+                        Var element = nullptr;
+                        if (array->DirectGetItemAtFull(j, &element))
+                        {
+                            iteratorIndices->Add(element);
+                        }
+                    }
+                    // Array length shouldn't have changed as we determined that there is no missing values.
+                    Assert(length == array->GetLength());
+                }
+            }
+            else if (TypedArrayBase::Is(iterator))
+            {
+                TypedArrayBase *typedArray = TypedArrayBase::FromVar(iterator);
+
+                if (typedArray->IsDetachedBuffer())
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray);
+                }
+
+                uint32 length = typedArray->GetLength();
+                if (length > 0)
+                {
+                    iteratorIndices = RecyclerNew(scriptContext->GetRecycler(), VarList, scriptContext->GetRecycler());
+                    for (uint32 j = 0; j < length; j++)
+                    {
+                        Var element = typedArray->DirectGetItemNoDetachCheck(j);
+                        iteratorIndices->Add(element);
+                    }
+                }
+
+                // The ArrayBuffer shouldn't have detached in above loop.
+                Assert(!typedArray->IsDetachedBuffer());
+            }
+            else
+            {
+                Assert(false);
+            }
+        }
+        else if (RecyclableObject::Is(iterator))
+        {
+            Var nextItem;
+            while (JavascriptOperators::IteratorStepAndValue(RecyclableObject::FromVar(iterator), scriptContext, &nextItem))
+            {
+                if (iteratorIndices == nullptr)
+                {
+                    iteratorIndices = RecyclerNew(scriptContext->GetRecycler(), VarList, scriptContext->GetRecycler());
+                }
+
+                iteratorIndices->Add(nextItem);
+            }
+        }
+        else
+        {
+            Assert(false);
         }
     }
-
 } // namespace Js
