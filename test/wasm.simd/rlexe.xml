@@ -12,4 +12,16 @@
     <compile-flags>-wasm -wasmsimd -maic:0</compile-flags>
   </default>
 </test>
+<test>
+  <default>
+    <files>comparisonTests.js</files>
+    <compile-flags> -wasm -wasmsimd -simdjs</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>comparisonTests.js</files>
+    <compile-flags> -maic:0 -wasm -wasmsimd -simdjs</compile-flags>
+  </default>
+</test>
 </regress-exe>
