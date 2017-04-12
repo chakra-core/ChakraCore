@@ -196,6 +196,23 @@ var tests = [
         }
     },
     {
+        name: "Assertion validation : revoking the proxy by invoking getOwnPropertyDescriptor trap but no handler present",
+        body() {
+            var trapCalled = false;
+            var handler = {
+                get(t, propertyKey) {
+                    trapCalled = true;
+                    if (propertyKey === "getOwnPropertyDescriptor")
+                        obj.revoke();
+                }
+            };
+            
+            var obj = Proxy.revocable({a:0}, new Proxy({}, handler));
+            Object.getOwnPropertyDescriptor(obj.proxy, 'a');
+            assert.isTrue(trapCalled);
+        }
+    },
+    {
         name: "Assertion validation : revoking the proxy in has trap",
         body() {
             var trapCalled = false;
