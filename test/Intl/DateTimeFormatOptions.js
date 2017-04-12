@@ -51,7 +51,7 @@ var tests = [
                 }
                 catch (e) {
                     if (!(e instanceof RangeError)) {
-                        fail("Incorrect exception was thrown.");
+                        assert.fail("Incorrect exception was thrown.");
                     }
                     assert.isTrue(e.message.indexOf(validValues) !== -1,
                         "Checking exception message for correct values string. Looking for: " + validValues +

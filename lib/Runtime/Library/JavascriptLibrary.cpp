@@ -1763,7 +1763,7 @@ namespace Js
         builtinFuncs[BuiltinFunction::JavascriptArray_Unshift]            = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::unshift,         &JavascriptArray::EntryInfo::Unshift,           1);
 
 
-        library->AddMember(arrayPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)));
+        library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0), 1, arrayPrototype, PropertyIds::indexOf);
         /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every,           &JavascriptArray::EntryInfo::Every,             1);
         /* No inlining                Array_Filter         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::filter,          &JavascriptArray::EntryInfo::Filter,            1);
 
@@ -2004,7 +2004,7 @@ namespace Js
 
         ScriptContext* scriptContext = typedarrayPrototype->GetScriptContext();
         JavascriptLibrary* library = typedarrayPrototype->GetLibrary();
-        library->EnsureIndexOfByteCode();
+        //library->EnsureIndexOfByteCode();
 
         library->AddMember(typedarrayPrototype, PropertyIds::constructor, library->typedArrayConstructor);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::set, &TypedArrayBase::EntryInfo::Set, 2);
@@ -2016,7 +2016,8 @@ namespace Js
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::find, &TypedArrayBase::EntryInfo::Find, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::findIndex, &TypedArrayBase::EntryInfo::FindIndex, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::forEach, &TypedArrayBase::EntryInfo::ForEach, 1);
-        library->AddMember(typedarrayPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0)));
+        library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::indexOf, &TypedArrayBase::EntryInfo::IndexOf, 1);
+        //library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0), 1, typedarrayPrototype, PropertyIds::indexOf);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::join, &TypedArrayBase::EntryInfo::Join, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::lastIndexOf, &TypedArrayBase::EntryInfo::LastIndexOf, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::map, &TypedArrayBase::EntryInfo::Map, 1);
@@ -4446,11 +4447,12 @@ namespace Js
         ScriptContext* scriptContext = stringPrototype->GetScriptContext();
         JavascriptLibrary* library = stringPrototype->GetLibrary();
         Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
-        library->EnsureIndexOfByteCode();
 
         library->AddMember(stringPrototype, PropertyIds::constructor, library->stringConstructor);
 
-        library->AddMember(stringPrototype, PropertyIds::indexOf, scriptContext->GetLibrary()->CreateScriptFunction(library->indexOfByteCode->GetNestedFunctionForExecution(1)));
+        //library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(1), 1, stringPrototype, PropertyIds::indexOf);
+        //library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::indexOf, library->indexOfByteCode->GetNestedFunctionForExecution(1), 1);
+        builtinFuncs[BuiltinFunction::JavascriptString_IndexOf]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::indexOf,            &JavascriptString::EntryInfo::IndexOf,              1);
         builtinFuncs[BuiltinFunction::JavascriptString_LastIndexOf]   = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::lastIndexOf,        &JavascriptString::EntryInfo::LastIndexOf,          1);
         builtinFuncs[BuiltinFunction::JavascriptString_Replace]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::replace,            &JavascriptString::EntryInfo::Replace,              2);
         builtinFuncs[BuiltinFunction::JavascriptString_Search]        = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::search,             &JavascriptString::EntryInfo::Search,               1);
@@ -4873,6 +4875,14 @@ namespace Js
         jsrtExternalTypesCache->Item(finalizeCallback, recycler->CreateWeakReferenceHandle<DynamicType>(dynamicTypeToCache));
     }
 
+    void JavascriptLibrary::DefaultCreateFunction(ParseableFunctionInfo * functionInfo, int length, DynamicObject * prototype, PropertyId nameId)
+    {
+        Assert(nameId >= Js::InternalPropertyIds::Count && scriptContext->IsTrackedPropertyId(nameId));
+        ScriptFunction* function = scriptContext->GetLibrary()->CreateScriptFunction(functionInfo);
+        function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(length), PropertyConfigurable, nullptr);
+        AddMember(prototype, nameId, function);
+    }
+
     RuntimeFunction* JavascriptLibrary::DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, PropertyId nameId)
     {
         Assert(nameId >= Js::InternalPropertyIds::Count && scriptContext->IsTrackedPropertyId(nameId));
@@ -4924,6 +4934,14 @@ namespace Js
        function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
        return function;
     }
+
+    /*JavascriptFunction * JavascriptLibrary::AddFunctionToLibraryObject(DynamicObject* object, PropertyId propertyId, ParseableFunctionInfo * functionInfo, int length, PropertyAttributes attributes)
+    {
+        ScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateScriptFunction(functionInfo);
+        RuntimeFunction* function = DefaultCreateFunction(scriptFunction->GetFunctionInfo(), length, nullptr, nullptr, propertyId);
+        AddMember(object, propertyId, function, attributes);
+        return function;
+    }*/
 
     JavascriptFunction * JavascriptLibrary::AddFunctionToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * functionInfo, int length, PropertyAttributes attributes)
     {
@@ -7408,6 +7426,7 @@ namespace Js
         REG_GLOBAL_CONSTRUCTOR(Array);
 
         DEFINE_OBJECT_NAME(Array);
+
 
         REG_OBJECTS_LIB_FUNC(isArray, JavascriptArray::EntryIsArray);
         REG_OBJECTS_LIB_FUNC(concat, JavascriptArray::EntryConcat);
