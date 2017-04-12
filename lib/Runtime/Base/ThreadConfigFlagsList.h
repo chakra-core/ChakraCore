@@ -55,4 +55,7 @@ FLAG_RELEASE(IsWinRTAdaptiveAppsEnabled, WinRTAdaptiveApps)
 #endif
 //SIMD_JS
 FLAG_RELEASE(IsSimdjsEnabled, Simdjs)
+#ifdef ENABLE_WASM_SIMD
+FLAG_RELEASE(IsWasmSimdEnabled, WasmSimd)
+#endif
 
