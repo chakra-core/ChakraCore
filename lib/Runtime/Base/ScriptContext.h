@@ -988,7 +988,6 @@ private:
         DWORD webWorkerId;
 
         static ScriptContext * New(ThreadContext * threadContext);
-        static void Delete(ScriptContext* scriptContext);
 
         ~ScriptContext();
 

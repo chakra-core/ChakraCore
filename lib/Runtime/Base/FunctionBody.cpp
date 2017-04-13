@@ -7868,27 +7868,33 @@ namespace Js
         CleanupRecyclerData(isScriptContextClosing, false /* capture entry point cleanup stack trace */);
         CleanUpForInCache(isScriptContextClosing);
 
-        this->ResetObjectLiteralTypes();
+        if(!isScriptContextClosing)
+        {
+            this->ResetObjectLiteralTypes();
 
-        // Manually clear these values to break any circular references
-        // that might prevent the script context from being disposed
-        this->SetAuxiliaryData(nullptr);
-        this->SetAuxiliaryContextData(nullptr);
-        this->byteCodeBlock = nullptr;
-        this->entryPoints = nullptr;
-        this->SetLoopHeaderArray(nullptr);
-        this->SetConstTable(nullptr);
-        this->SetCodeGenRuntimeData(nullptr);
-        this->SetCodeGenGetSetRuntimeData(nullptr);
-        this->SetPropertyIdOnRegSlotsContainer(nullptr);
-        this->inlineCaches = nullptr;
-        this->polymorphicInlineCaches.Reset();
-        this->SetPolymorphicInlineCachesHead(nullptr);
-        this->cacheIdToPropertyIdMap = nullptr;
-        this->SetFormalsPropIdArray(nullptr);
-        this->SetReferencedPropertyIdMap(nullptr);
-        this->SetLiteralRegexs(nullptr);
-        this->SetPropertyIdsForScopeSlotArray(nullptr, 0);
+            // Manually clear these values to break any circular references
+            // that might prevent the script context from being disposed
+            this->SetAuxiliaryData(nullptr);
+            this->SetAuxiliaryContextData(nullptr);
+            this->byteCodeBlock = nullptr;
+            this->entryPoints = nullptr;
+            this->SetLoopHeaderArray(nullptr);
+            this->SetConstTable(nullptr);
+            this->SetCodeGenRuntimeData(nullptr);
+            this->SetCodeGenGetSetRuntimeData(nullptr);
+            this->SetPropertyIdOnRegSlotsContainer(nullptr);
+            this->inlineCaches = nullptr;
+            this->polymorphicInlineCaches.Reset();
+            this->SetPolymorphicInlineCachesHead(nullptr);
+            this->cacheIdToPropertyIdMap = nullptr;
+            this->SetFormalsPropIdArray(nullptr);
+            this->SetReferencedPropertyIdMap(nullptr);
+            this->SetLiteralRegexs(nullptr);
+            this->SetPropertyIdsForScopeSlotArray(nullptr, 0);
+#if ENABLE_PROFILE_INFO
+            this->SetPolymorphicCallSiteInfoHead(nullptr);
+#endif
+        }
 
 #if DYNAMIC_INTERPRETER_THUNK
         if (this->HasInterpreterThunkGenerated())
@@ -7899,21 +7905,21 @@ namespace Js
             {
                 if (m_isAsmJsFunction)
                 {
-                    m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, /*addtoFreeList*/!isScriptContextClosing);
+                    m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, /*addtoFreeList*/ true);
                 }
                 else
                 {
-                    m_scriptContext->ReleaseDynamicInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, /*addtoFreeList*/!isScriptContextClosing);
+                    m_scriptContext->ReleaseDynamicInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, /*addtoFreeList*/ true);
                 }
             }
         }
 #endif
 
-#if ENABLE_PROFILE_INFO
-        this->SetPolymorphicCallSiteInfoHead(nullptr);
-#endif
-
         this->cleanedUp = true;
+
+#if DBG
+        this->counters.isCleaningUp = false;
+#endif
     }
 
 

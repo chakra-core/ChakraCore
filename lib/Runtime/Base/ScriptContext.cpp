@@ -44,11 +44,6 @@ namespace Js
         return scriptContext.Detach();
     }
 
-    void ScriptContext::Delete(ScriptContext* scriptContext)
-    {
-        HeapDelete(scriptContext);
-    }
-
     CriticalSection JITPageAddrToFuncRangeCache::cs;
 
     ScriptContext::ScriptContext(ThreadContext* threadContext) :
