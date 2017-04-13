@@ -3277,6 +3277,7 @@ Recycler::DisposeObjects()
 #ifdef FAULT_INJECTION
     this->collectionWrapper->DisposeScriptContextByFaultInjectionCallBack();
 #endif
+    this->collectionWrapper->PreDisposeObjectsCallBack();
 
     // Scope timestamp to just dispose
     {

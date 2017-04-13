@@ -354,6 +354,7 @@ public:
     virtual void DisposeScriptContextByFaultInjectionCallBack() = 0;
 #endif
     virtual void DisposeObjects(Recycler * recycler) = 0;
+    virtual void PreDisposeObjectsCallBack() = 0;
 #ifdef ENABLE_PROJECTION
     virtual void MarkExternalWeakReferencedObjects(bool inPartialCollect) = 0;
     virtual void ResolveExternalWeakReferencedObjects() = 0;
@@ -402,6 +403,7 @@ public:
     virtual void DisposeScriptContextByFaultInjectionCallBack() override {};
 #endif
     virtual void DisposeObjects(Recycler * recycler) override;
+    virtual void PreDisposeObjectsCallBack() override {};
 
 #ifdef ENABLE_PROJECTION
     virtual void MarkExternalWeakReferencedObjects(bool inPartialCollect) override {};

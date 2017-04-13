@@ -1838,7 +1838,6 @@ void ThreadContext::DisposeOnLeaveScript()
     if (this->callDispose && this->recycler->NeedDispose())
     {
         this->recycler->FinishDisposeObjectsNow<FinishDispose>();
-        this->expirableObjectDisposeList->Clear();
     }
 }
 
@@ -2843,6 +2842,12 @@ ThreadContext::UpdateRedeferralState()
     }
 }
 
+void
+ThreadContext::PreDisposeObjectsCallBack()
+{
+    this->expirableObjectDisposeList->Clear();
+}
+
 #ifdef FAULT_INJECTION
 void
 ThreadContext::DisposeScriptContextByFaultInjectionCallBack()
@@ -3017,15 +3022,6 @@ ThreadContext::UnregisterExpirableObject(ExpirableObject* object)
     numExpirableObjects--;
 }
 
-void
-ThreadContext::DisposeExpirableObject(ExpirableObject* object)
-{
-    Assert(object->registrationHandle == nullptr);
-
-    //expirableObjectDisposeList will be cleared after finished disposing all objects
-
-    OUTPUT_VERBOSE_TRACE(Js::ExpirableCollectPhase, _u("Disposed 0x%p\n"), object);
-}
 #pragma endregion
 
 void
