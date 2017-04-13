@@ -215,7 +215,7 @@ namespace Js
         if (nullptr == gOPDMethod || GetScriptContext()->IsHeapEnumInProgress())
         {
             resultDescriptor->SetFromProxy(false);
-            return fn();
+            return fn(targetObj);
         }
         // Reject implicit call
         if (threadContext->IsDisableImplicitCall())
@@ -1652,8 +1652,8 @@ namespace Js
     BOOL JavascriptProxy::GetOwnPropertyDescriptor(RecyclableObject* obj, PropertyId propertyId, ScriptContext* scriptContext, PropertyDescriptor* propertyDescriptor)
     {
         JavascriptProxy* proxy = JavascriptProxy::FromVar(obj);
-        auto fn = [&]()-> BOOL {
-            return JavascriptOperators::GetOwnPropertyDescriptor(proxy->target, propertyId, scriptContext, propertyDescriptor);
+        auto fn = [&](RecyclableObject *targetObj)-> BOOL {
+            return JavascriptOperators::GetOwnPropertyDescriptor(targetObj, propertyId, scriptContext, propertyDescriptor);
         };
         auto getPropertyId = [&]() -> PropertyId {return propertyId; };
         BOOL foundProperty = proxy->GetPropertyDescriptorTrap(obj, fn, getPropertyId, propertyDescriptor, scriptContext);
