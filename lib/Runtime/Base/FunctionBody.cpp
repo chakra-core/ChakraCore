@@ -3018,9 +3018,9 @@ namespace Js
         return this->GetLineCharOffsetFromStartChar(startCharOfStatement, _line, _charOffset, canAllocateLineCache);
     }
 
-    bool FunctionBody::GetLineCharOffsetFromStartChar(int startCharOfStatement, ULONG* _line, LONG* _charOffset, bool canAllocateLineCache /*= true*/)
+    bool FunctionBody::GetLineCharOffsetFromStartChar(int startCharOfStatement, ULONG* _line, LONG* _charOffset, bool canAllocateLineCache /*= true*/, bool canDumpLibraryCode /*= false*/)
     {
-        Assert(!this->GetUtf8SourceInfo()->GetIsLibraryCode());
+        Assert(canDumpLibraryCode || !this->GetUtf8SourceInfo()->GetIsLibraryCode());
 
         // The following adjusts for where the script is within the document
         ULONG line = this->GetHostStartLine();
@@ -4354,7 +4354,7 @@ namespace Js
             AssertMsg(false, "Non-matching start of document");
         }
 
-        GetLineCharOffsetFromStartChar(cchStartOffset, &line, &col, false /*canAllocateLineCache*/);
+        GetLineCharOffsetFromStartChar(cchStartOffset, &line, &col, false /*canAllocateLineCache*/, true /*canDumpLibraryCode*/);
 
         WORD color = 0;
         if (Js::Configuration::Global.flags.DumpLineNoInColor)
