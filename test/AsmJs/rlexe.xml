@@ -544,6 +544,11 @@
   </test>
   <test>
     <default>
+      <files>evalbug.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>constTest.js</files>
       <baseline>constTest.baseline</baseline>
       <compile-flags>-testtrace:asmjs -simdjs</compile-flags>
