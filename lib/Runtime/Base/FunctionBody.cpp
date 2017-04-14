@@ -7868,33 +7868,18 @@ namespace Js
         CleanupRecyclerData(isScriptContextClosing, false /* capture entry point cleanup stack trace */);
         CleanUpForInCache(isScriptContextClosing);
 
-        if(!isScriptContextClosing)
-        {
-            this->ResetObjectLiteralTypes();
+        this->SetObjLiteralCount(0);
+        this->SetScopeSlotArraySizes(0, 0);
 
-            // Manually clear these values to break any circular references
-            // that might prevent the script context from being disposed
-            this->SetAuxiliaryData(nullptr);
-            this->SetAuxiliaryContextData(nullptr);
-            this->byteCodeBlock = nullptr;
-            this->entryPoints = nullptr;
-            this->SetLoopHeaderArray(nullptr);
-            this->SetConstTable(nullptr);
-            this->SetCodeGenRuntimeData(nullptr);
-            this->SetCodeGenGetSetRuntimeData(nullptr);
-            this->SetPropertyIdOnRegSlotsContainer(nullptr);
-            this->inlineCaches = nullptr;
-            this->polymorphicInlineCaches.Reset();
-            this->SetPolymorphicInlineCachesHead(nullptr);
-            this->cacheIdToPropertyIdMap = nullptr;
-            this->SetFormalsPropIdArray(nullptr);
-            this->SetReferencedPropertyIdMap(nullptr);
-            this->SetLiteralRegexs(nullptr);
-            this->SetPropertyIdsForScopeSlotArray(nullptr, 0);
-#if ENABLE_PROFILE_INFO
-            this->SetPolymorphicCallSiteInfoHead(nullptr);
-#endif
-        }
+        // Manually clear these values to break any circular references
+        // that might prevent the script context from being disposed        
+        this->auxPtrs = nullptr;
+        this->byteCodeBlock = nullptr;
+        this->entryPoints = nullptr;
+        this->inlineCaches = nullptr;
+        this->cacheIdToPropertyIdMap = nullptr;
+        this->polymorphicInlineCaches.Reset();
+        this->SetConstTable(nullptr);
 
 #if DYNAMIC_INTERPRETER_THUNK
         if (this->HasInterpreterThunkGenerated())
