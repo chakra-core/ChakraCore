@@ -857,12 +857,7 @@ namespace Js
 #endif
         }
 
-        void SetCodeGenDone()
-        {
-            Assert(this->GetState() == CodeGenRecorded);
-            this->state = CodeGenDone;
-            this->workItem = nullptr;
-        }
+        void SetCodeGenDone();
 
         void SetJITCapReached()
         {
@@ -3080,6 +3075,8 @@ namespace Js
 
         bool GetNativeEntryPointUsed() const { return m_nativeEntryPointUsed; }
         void SetNativeEntryPointUsed(bool nativeEntryPointUsed) { this->m_nativeEntryPointUsed = nativeEntryPointUsed; }
+        bool GetHasDoneLoopBodyCodeGen() const { return hasDoneLoopBodyCodeGen; }
+        void SetHasDoneLoopBodyCodeGen(bool hasDoneLoopBodyCodeGen) { this->hasDoneLoopBodyCodeGen = hasDoneLoopBodyCodeGen; }
 #endif
 
         bool GetIsFuncRegistered() { return m_isFuncRegistered; }

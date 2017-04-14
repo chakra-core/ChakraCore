@@ -177,23 +177,31 @@ void EtwTrace::PerformRundown(bool start)
                     }
                 });
 
-                body->MapLoopHeadersWithLock([&](uint loopNumber, LoopHeader* header)
+                // the functionBody may have not have bytecode generated yet before registering to utf8SourceInfo
+                // accessing MapLoopHeaders in background thread can causes the functionBody counters locked for updating
+                // and cause assertion when bytecode generation is done and updating bytecodeCount counter on functionBody
+                // so check if the functionBody has done loopbody codegen in advance to not call into Map function in case 
+                // loopbody codegen is not done yet
+                if (body->GetHasDoneLoopBodyCodeGen())
                 {
-                    header->MapEntryPoints([&](int index, LoopEntryPointInfo * entryPoint)
+                    body->MapLoopHeadersWithLock([&](uint loopNumber, LoopHeader* header)
                     {
-                        if(entryPoint->IsCodeGenDone())
+                        header->MapEntryPoints([&](int index, LoopEntryPointInfo * entryPoint)
                         {
-                            if(start)
+                            if (entryPoint->IsCodeGenDone())
                             {
-                                LogLoopBodyEventBG(EventWriteMethodDCStart, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
+                                if (start)
+                                {
+                                    LogLoopBodyEventBG(EventWriteMethodDCStart, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
+                                }
+                                else
+                                {
+                                    LogLoopBodyEventBG(EventWriteMethodDCEnd, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
+                                }
                             }
-                            else
-                            {
-                                LogLoopBodyEventBG(EventWriteMethodDCEnd, body, header, entryPoint, ((uint16)body->GetLoopNumberWithLock(header)));
-                            }
-                        }
+                        });
                     });
-                });
+                }
 #endif
             });
 

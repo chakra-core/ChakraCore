@@ -513,7 +513,8 @@ namespace Js
         m_tag31(true),
         m_tag32(true),
         m_tag33(true),
-        m_nativeEntryPointUsed(FALSE),
+        m_nativeEntryPointUsed(false),
+        hasDoneLoopBodyCodeGen(false),
         bailOnMisingProfileCount(0),
         bailOnMisingProfileRejitCount(0),
         byteCodeBlock(nullptr),
@@ -655,6 +656,7 @@ namespace Js
         m_tag32(true),
         m_tag33(true),
         m_nativeEntryPointUsed(false),
+        hasDoneLoopBodyCodeGen(false),
         bailOnMisingProfileCount(0),
         bailOnMisingProfileRejitCount(0),
         byteCodeBlock(nullptr),
@@ -8417,6 +8419,17 @@ namespace Js
             this->numberPageSegments = nullptr;
         }
 #endif
+    }
+
+    void EntryPointInfo::SetCodeGenDone()
+    {
+        Assert(this->GetState() == CodeGenRecorded);
+        this->state = CodeGenDone;
+        this->workItem = nullptr;
+        if (this->IsLoopBody())
+        {
+            this->GetFunctionBody()->SetHasDoneLoopBodyCodeGen(true);
+        }
     }
 
     void EntryPointInfo::ProcessJitTransferData()
