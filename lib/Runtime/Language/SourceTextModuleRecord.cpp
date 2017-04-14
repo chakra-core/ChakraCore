@@ -36,7 +36,9 @@ namespace Js
         resolvedExportMap(nullptr),
         wasParsed(false),
         wasDeclarationInitialized(false),
-        readyAsChildModule(false),
+#if DBG
+        parentsNotified(false),
+#endif
         isRootModule(false),
         hadNotifyHostReady(false),
         localExportSlots(nullptr),
@@ -86,6 +88,7 @@ namespace Js
 
     HRESULT SourceTextModuleRecord::ParseSource(__in_bcount(sourceLength) byte* sourceText, uint32 sourceLength, SRCINFO * srcInfo, Var* exceptionVar, bool isUtf8)
     {
+        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ParseSource(%s)\n"), this->GetSpecifierSz());
         Assert(!wasParsed);
         Assert(parser == nullptr);
         HRESULT hr = NOERROR;
@@ -170,6 +173,8 @@ namespace Js
             {
                 this->errorObject = *exceptionVar;
             }
+
+            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded\n"));
             NotifyParentsAsNeeded();
         }
         return hr;
@@ -185,6 +190,9 @@ namespace Js
                 parentModule->OnChildModuleReady(this, this->errorObject);
             });
         }
+#if DBG
+        SetParentsNotified();
+#endif
     }
 
     void SourceTextModuleRecord::ImportModuleListsFromParser()
@@ -214,12 +222,13 @@ namespace Js
 
     HRESULT SourceTextModuleRecord::PrepareForModuleDeclarationInitialization()
     {
+        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("PrepareForModuleDeclarationInitialization(%s)\n"), this->GetSpecifierSz());
         HRESULT hr = NO_ERROR;
 
         if (numPendingChildrenModule == 0)
         {
+            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded\n"));
             NotifyParentsAsNeeded();
-            SetReadyAsChildModule();
 
             if (!WasDeclarationInitialized() && isRootModule)
             {
@@ -236,11 +245,18 @@ namespace Js
                 }
             }
         }
+#if DBG
+        else
+        {
+            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\tnumPendingChildrenModule=(%d)\n"), numPendingChildrenModule);
+        }
+#endif
         return hr;
     }
 
     HRESULT SourceTextModuleRecord::OnChildModuleReady(SourceTextModuleRecord* childModule, Var childException)
     {
+        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("OnChildModuleReady(%s)\n"), this->GetSpecifierSz(), childModule->GetSpecifierSz());
         HRESULT hr = NOERROR;
         if (childException != nullptr)
         {
@@ -249,6 +265,8 @@ namespace Js
             {
                 this->errorObject = childException;
             }
+
+            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded (childException)\n"), this->GetSpecifierSz());
             NotifyParentsAsNeeded();
             if (isRootModule && !hadNotifyHostReady)
             {
@@ -573,7 +591,7 @@ namespace Js
         {
             parentRecord->childrenModuleSet->AddNew(moduleName, this);
 
-            if (!this->ReadyAsChildModule())
+            if (!this->WasParsed())
             {
                 if (this->parentModuleList == nullptr)
                 {
@@ -593,6 +611,8 @@ namespace Js
 
     HRESULT SourceTextModuleRecord::ResolveExternalModuleDependencies()
     {
+        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ResolveExternalModuleDependencies(%s)\n"), this->GetSpecifierSz());
+
         ScriptContext* scriptContext = GetScriptContext();
 
         HRESULT hr = NOERROR;
@@ -616,6 +636,7 @@ namespace Js
                         return true;
                     }
                     moduleRecord = SourceTextModuleRecord::FromHost(moduleRecordBase);
+                    OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>SetParent in (%s)\n"), moduleRecord->GetSpecifierSz());
                     moduleRecord->SetParent(this, moduleName);
                 }
                 return false;
@@ -625,6 +646,7 @@ namespace Js
                 JavascriptError *error = scriptContext->GetLibrary()->CreateError();
                 JavascriptError::SetErrorMessageProperties(error, hr, _u("fetch import module failed"), scriptContext);
                 this->errorObject = error;
+                OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\tfetch import module failed\n"));
                 NotifyParentsAsNeeded();
             }
         }
@@ -643,6 +665,7 @@ namespace Js
 
     void SourceTextModuleRecord::ModuleDeclarationInstantiation()
     {
+        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleDeclarationInstantiation(%s)\n"), this->GetSpecifierSz());
         ScriptContext* scriptContext = GetScriptContext();
 
         if (this->WasDeclarationInitialized())
@@ -666,6 +689,7 @@ namespace Js
 
         if (this->errorObject != nullptr)
         {
+            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentsAsNeeded (errorObject)\n"));
             NotifyParentsAsNeeded();
             return;
         }
@@ -688,6 +712,7 @@ namespace Js
         if (rootFunction == nullptr)
         {
             this->errorObject = JavascriptError::CreateFromCompileScriptException(scriptContext, &se);
+            OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("\t>NotifyParentAsNeeded rootFunction == nullptr\n"));
             NotifyParentsAsNeeded();
         }
         else
@@ -698,6 +723,8 @@ namespace Js
 
     Var SourceTextModuleRecord::ModuleEvaluation()
     {
+        OUTPUT_TRACE_DEBUGONLY(Js::ModulePhase, _u("ModuleEvaluation(%s)\n"), this->GetSpecifierSz());
+
 #if DBG
         if (childrenModuleSet != nullptr)
         {
@@ -720,7 +747,7 @@ namespace Js
         Assert(!WasEvaluated());
         SetWasEvaluated();
         // we shouldn't evaluate if there are existing failure. This is defense in depth as the host shouldn't
-        // call into evaluation if there was previous fialure on the module.
+        // call into evaluation if there was previous failure on the module.
         if (this->errorObject)
         {
             return this->errorObject;
