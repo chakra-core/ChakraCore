@@ -517,6 +517,7 @@ namespace Js
         if (config->IsES6ModuleEnabled())
         {
             moduleNamespaceType = DynamicType::New(scriptContext, TypeIds_ModuleNamespace, nullValue, nullptr, &SharedNamespaceSymbolTypeHandler);
+            moduleNamespaceType->ShareType();
         }
 
         // Initialize Date types

@@ -5,6 +5,7 @@
 #ifdef PHASE
 PHASE(All)
     PHASE(BGJit)
+    PHASE(Module)
     PHASE(LibInit)
         PHASE(JsLibInit)
     PHASE(Parse)
