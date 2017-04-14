@@ -157,8 +157,8 @@ namespace Js
         char16* GetSzCopy();   // get a copy of the inner string without compacting the chunks
 
         static Var ToCaseCore(JavascriptString* pThis, ToCase toCase);
-        static int IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, int len, const char16* searchStr, int searchLen, int position);
-        static int LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, int len, const char16* searchStr, int searchLen, int position);
+        static int IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position);
+        static int LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, charcount_t searchLen, charcount_t position);
         static bool BuildLastCharForwardBoyerMooreTable(JmpTable jmpTable, const char16* searchStr, int searchLen);
         static bool BuildFirstCharBackwardBoyerMooreTable(JmpTable jmpTable, const char16* searchStr, int searchLen);
         static charcount_t ConvertToIndex(Var varIndex, ScriptContext *scriptContext);

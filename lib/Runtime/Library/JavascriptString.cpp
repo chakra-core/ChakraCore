@@ -199,10 +199,10 @@ namespace Js
     }
 
     JavascriptString::JavascriptString(StaticType * type, charcount_t charLength, const char16* szValue)
-        : RecyclableObject(type), m_charLength(charLength), m_pszValue(szValue)
+        : RecyclableObject(type), m_pszValue(szValue)
     {
         Assert(type->GetTypeId() == TypeIds_String);
-        AssertMsg(IsValidCharCount(charLength), "String length is out of range");
+        SetLength(charLength);
     }
 
     _Ret_range_(m_charLength, m_charLength)
@@ -3353,7 +3353,7 @@ case_2:
         return builder.ToString();
     }
 
-    int JavascriptString::IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, int len, const char16* searchStr, int searchLen, int position)
+    int JavascriptString::IndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, int searchLen, int position)
     {
         int result = -1;
 
@@ -3400,7 +3400,7 @@ case_2:
         return result;
     }
 
-    int JavascriptString::LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, int len, const char16* searchStr, int searchLen, int position)
+    int JavascriptString::LastIndexOfUsingJmpTable(JmpTable jmpTable, const char16* inputStr, charcount_t len, const char16* searchStr, charcount_t searchLen, charcount_t position)
     {
         const char16 searchFirst = searchStr[0];
         uint32 lMatchedJump = searchLen;
