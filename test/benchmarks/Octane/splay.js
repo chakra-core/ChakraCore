@@ -161,8 +161,6 @@ BenchmarkSuite.RunSuites = function(runner, skipBenchmarks) {
       } else {
         var suite = suites[index++];
         if (runner.NotifyStart) runner.NotifyStart(suite.name);
-        console.log("suite.name : " + suite.name);
-        console.log("skipBenchmarks : " + skipBenchmarks);
         if (skipBenchmarks.indexOf(suite.name) > -1) {
           suite.NotifySkipped(runner);
         } else {

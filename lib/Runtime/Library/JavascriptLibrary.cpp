@@ -2004,7 +2004,6 @@ namespace Js
 
         ScriptContext* scriptContext = typedarrayPrototype->GetScriptContext();
         JavascriptLibrary* library = typedarrayPrototype->GetLibrary();
-        //library->EnsureIndexOfByteCode();
 
         library->AddMember(typedarrayPrototype, PropertyIds::constructor, library->typedArrayConstructor);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::set, &TypedArrayBase::EntryInfo::Set, 2);
@@ -2017,7 +2016,6 @@ namespace Js
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::findIndex, &TypedArrayBase::EntryInfo::FindIndex, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::forEach, &TypedArrayBase::EntryInfo::ForEach, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::indexOf, &TypedArrayBase::EntryInfo::IndexOf, 1);
-        //library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0), 1, typedarrayPrototype, PropertyIds::indexOf);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::join, &TypedArrayBase::EntryInfo::Join, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::lastIndexOf, &TypedArrayBase::EntryInfo::LastIndexOf, 1);
         library->AddFunctionToLibraryObject(typedarrayPrototype, PropertyIds::map, &TypedArrayBase::EntryInfo::Map, 1);
@@ -4446,8 +4444,6 @@ namespace Js
 
         library->AddMember(stringPrototype, PropertyIds::constructor, library->stringConstructor);
 
-        //library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(1), 1, stringPrototype, PropertyIds::indexOf);
-        //library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::indexOf, library->indexOfByteCode->GetNestedFunctionForExecution(1), 1);
         builtinFuncs[BuiltinFunction::JavascriptString_IndexOf]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::indexOf,            &JavascriptString::EntryInfo::IndexOf,              1);
         builtinFuncs[BuiltinFunction::JavascriptString_LastIndexOf]   = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::lastIndexOf,        &JavascriptString::EntryInfo::LastIndexOf,          1);
         builtinFuncs[BuiltinFunction::JavascriptString_Replace]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::replace,            &JavascriptString::EntryInfo::Replace,              2);
@@ -4930,14 +4926,6 @@ namespace Js
        function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
        return function;
     }
-
-    /*JavascriptFunction * JavascriptLibrary::AddFunctionToLibraryObject(DynamicObject* object, PropertyId propertyId, ParseableFunctionInfo * functionInfo, int length, PropertyAttributes attributes)
-    {
-        ScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateScriptFunction(functionInfo);
-        RuntimeFunction* function = DefaultCreateFunction(scriptFunction->GetFunctionInfo(), length, nullptr, nullptr, propertyId);
-        AddMember(object, propertyId, function, attributes);
-        return function;
-    }*/
 
     JavascriptFunction * JavascriptLibrary::AddFunctionToLibraryObject(DynamicObject* object, PropertyId propertyId, FunctionInfo * functionInfo, int length, PropertyAttributes attributes)
     {
@@ -7423,7 +7411,6 @@ namespace Js
 
         DEFINE_OBJECT_NAME(Array);
 
-
         REG_OBJECTS_LIB_FUNC(isArray, JavascriptArray::EntryIsArray);
         REG_OBJECTS_LIB_FUNC(concat, JavascriptArray::EntryConcat);
         REG_OBJECTS_LIB_FUNC(join, JavascriptArray::EntryJoin);
@@ -7437,7 +7424,6 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toLocaleString, JavascriptArray::EntryToLocaleString);
         REG_OBJECTS_LIB_FUNC(toString, JavascriptArray::EntryToString);
         REG_OBJECTS_LIB_FUNC(unshift, JavascriptArray::EntryUnshift);
-        //REG_OBJECTS_LIB_FUNC(indexOf, JavascriptArray::EntryIndexOf);
         REG_OBJECTS_LIB_FUNC(every, JavascriptArray::EntryEvery);
         REG_OBJECTS_LIB_FUNC(filter, JavascriptArray::EntryFilter);
         REG_OBJECTS_LIB_FUNC(forEach, JavascriptArray::EntryForEach);
