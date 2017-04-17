@@ -395,8 +395,8 @@
 (assert_return (invoke "f64.reinterpret_i64" (i64.const 0xfff0000000000000)) (f64.const -infinity))
 (assert_return_canonical_nan (invoke "f64.reinterpret_i64" (i64.const 0x7ff8000000000000)))
 (assert_return_canonical_nan (invoke "f64.reinterpret_i64" (i64.const 0xfff8000000000000)))
-(assert_return_arithmetic_nan (invoke "f64.reinterpret_i64" (i64.const 0x7ff4000000000000)))
-(assert_return_arithmetic_nan (invoke "f64.reinterpret_i64" (i64.const 0xfff4000000000000)))
+(assert_return (invoke "f64.reinterpret_i64" (i64.const 0x7ff4000000000000)) (f64.const nan:0x4000000000000))
+(assert_return (invoke "f64.reinterpret_i64" (i64.const 0xfff4000000000000)) (f64.const -nan:0x4000000000000))
 
 (assert_return (invoke "i32.reinterpret_f32" (f32.const 0.0)) (i32.const 0))
 (assert_return (invoke "i32.reinterpret_f32" (f32.const -0.0)) (i32.const 0x80000000))

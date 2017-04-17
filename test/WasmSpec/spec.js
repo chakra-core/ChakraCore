@@ -321,23 +321,20 @@ function mapWasmArg({type, value}) {
 const wrappers = {};
 
 
-function getComparisonWrapper(action, expected) {
+function getComparisonWrapper(action, expected, checkType) {
   if (action.type === "invoke") {
     const args = action.args.map(({type}) => type);
     const resultType = expected[0].type;
     const signature = resultType + args.join("");
-    const checkType = expected[1].value;
-
-    if (!resultType.endsWith("32")) {
-      throw new Error("Expected 32-bit types only!");
-    }
+    const posNaN = resultType.endsWith("32") ? "0x7fc00000" : "0x7ff8000000000000";
+    const negNaN = resultType.endsWith("32") ? "0xffc00000" : "0xfff8000000000000";
 
     let wasmModule = wrappers[signature];
     if (true || !wasmModule) {
-      const matchingIntType = "i32";
-      const castIfFloat = expected[0].type === "f32" ?  "(i32.reinterpret/f32)" : ""; //TODO: check if we ever get an int
+      const matchingIntType = resultType.endsWith("32") ? "i32" : "i64";
+      const castIfFloat = expected[0].type.startsWith("f") ?  `(${matchingIntType}.reinterpret/${resultType})` : ""; //TODO: check if we ever get an int
       let applyMask = "";
-
+     
     //checking for canonical NaNs needs two checks
     //always do two checks to keep a wasm function simple  
     let expectedResultCheck1, expectedResultCheck2;
@@ -347,13 +344,13 @@ function getComparisonWrapper(action, expected) {
           expectedResultCheck2 = expected[0].value;
           break;
       case "2": //arithmetic 
-          expectedResultCheck1 = "0x7fc00000";
-          expectedResultCheck2 = "0x7fc00000";
-          applyMask = "(i32.and (i32.const 0x7fc00000))";
+          expectedResultCheck1 = posNaN;
+          expectedResultCheck2 = posNaN;
+          applyMask = `(${matchingIntType}.and (${matchingIntType}.const ${posNaN}))`;
           break;
       case "3": //canonical
-          expectedResultCheck1 = "0x7fc00000";
-          expectedResultCheck2 = "0xffc00000";
+          expectedResultCheck1 = posNaN;
+          expectedResultCheck2 = negNaN;
           break;
       default:
           throw new Error("Unexpected check type ${checkType}");
@@ -373,7 +370,7 @@ function getComparisonWrapper(action, expected) {
               (get_local ${args.length})
               ${applyMask}
               (${matchingIntType}.eq (${matchingIntType}.const ${expectedResultCheck2}))
-              (${matchingIntType}.or)
+              (i32.or)
             )
           )`;
 
@@ -474,7 +471,8 @@ function getArithmeticNanWrapper(action, expected) {
 function assertReturn(moduleRegistry, command, {canonicalNan, arithmeticNan} = {}) {
   const {action, expected} = command;
   try {
-    const wrapper = arithmeticNan ? getArithmeticNanWrapper(action, expected) : expected.length > 1 ? getComparisonWrapper(action, expected): null;
+    //const wrapper = arithmeticNan ? getArithmeticNanWrapper(action, expected) : expected.length > 1 ? getComparisonWrapper(action, expected, expected[1].value): null;
+    const wrapper = expected[0].type.startsWith("f") ? getComparisonWrapper(action, expected, arithmeticNan ? "2" : canonicalNan ? "3" : "1") : null;
     const res = runAction(moduleRegistry, action, wrapper);
     let success = true;
     if (expected.length === 0) {
@@ -492,11 +490,9 @@ function assertReturn(moduleRegistry, command, {canonicalNan, arithmeticNan} = {
       const expectedResult = mapWasmArg(ex1);
       if (ex1.type === "i64") {
         success = expectedResult.low === res.low && expectedResult.high === res.high;
-      } else if (arithmeticNan || expected.length > 1) {
+      } else if (expected[0].type.startsWith("f")) {
         //print (`res = ${res}`);
         success = res === 1;
-      } else if (canonicalNan) {
-        success = isNaN(res);
       } else {
         success = res === expectedResult;
       }
