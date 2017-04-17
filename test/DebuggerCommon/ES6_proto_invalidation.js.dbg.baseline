@@ -462,7 +462,7 @@
             "indexOf": {
               "#__proto__": "function <large string>",
               "prototype": "Object {...}",
-              "name": "string indexOf",
+              "name": "string arrayIndexOf",
               "length": "number 1"
             },
             "every": {
@@ -740,7 +740,7 @@
             "indexOf": {
               "#__proto__": "function <large string>",
               "prototype": "Object {...}",
-              "name": "string indexOf",
+              "name": "string arrayIndexOf",
               "length": "number 1"
             },
             "every": {

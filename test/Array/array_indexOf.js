@@ -104,3 +104,11 @@ gap[5] = 4;
 WScript.Echo(gap.indexOf(4));
 delete Array.prototype[2]
 WScript.Echo(gap.indexOf(4));
+
+var undefinedValues = [];
+undefinedValues[9] = "abc";
+undefinedValues[10] = undefined;
+WScript.Echo(undefinedValues.indexOf(undefined));
+
+undefinedValues.length = 8;
+WScript.Echo(undefinedValues.indexOf(undefined));
