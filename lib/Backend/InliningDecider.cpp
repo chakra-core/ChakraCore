@@ -488,7 +488,6 @@ bool InliningDecider::GetBuiltInInfoCommon(
         *returnType = ValueType::Boolean;
         goto CallDirectCommon;
 
-    case Js::JavascriptBuiltInFunction::JavascriptArray_IndexOf:
     case Js::JavascriptBuiltInFunction::JavascriptArray_LastIndexOf:
     case Js::JavascriptBuiltInFunction::JavascriptArray_Unshift:
     case Js::JavascriptBuiltInFunction::JavascriptString_CharCodeAt:

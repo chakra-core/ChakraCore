@@ -3718,10 +3718,6 @@ namespace Js
         case PropertyIds::concat:
             return BuiltinFunction::JavascriptArray_Concat;
 
-        case PropertyIds::indexOf:
-            //return NULL;
-            return BuiltinFunction::JavascriptArray_IndexOf;
-
         case PropertyIds::includes:
             return BuiltinFunction::JavascriptArray_Includes;
 
@@ -7441,7 +7437,7 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toLocaleString, JavascriptArray::EntryToLocaleString);
         REG_OBJECTS_LIB_FUNC(toString, JavascriptArray::EntryToString);
         REG_OBJECTS_LIB_FUNC(unshift, JavascriptArray::EntryUnshift);
-        REG_OBJECTS_LIB_FUNC(indexOf, JavascriptArray::EntryIndexOf);
+        //REG_OBJECTS_LIB_FUNC(indexOf, JavascriptArray::EntryIndexOf);
         REG_OBJECTS_LIB_FUNC(every, JavascriptArray::EntryEvery);
         REG_OBJECTS_LIB_FUNC(filter, JavascriptArray::EntryFilter);
         REG_OBJECTS_LIB_FUNC(forEach, JavascriptArray::EntryForEach);
