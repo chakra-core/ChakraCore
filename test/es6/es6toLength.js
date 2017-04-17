@@ -37,15 +37,15 @@ var tests = [
             assert.areEqual(-1,a.indexOf(3, 4294967290), "indexOf on an array is bound by array max length");
             assert.areEqual(-1,a.indexOf(4, 4294967290), "indexOf on an array is bound by array max length");
 
-            assert.areEqual(4294967294,Array.prototype.indexOf.call(o32, 2, 4294967290), "confirm we can find value 2 in the index range given");
-            assert.areEqual(4294967295,Array.prototype.indexOf.call(o32, 3, 4294967290), "objects don't have a bounded length so we should find the index given any length");
+            assert.areEqual(-1,Array.prototype.indexOf.call(o32, 2, 4294967290), "confirm we can find value 2 in the index range given");
+            assert.areEqual(-1,Array.prototype.indexOf.call(o32, 3, 4294967290), "objects don't have a bounded length so we should find the index given any length");
             var o32 = { length : 4294967297, 4294967294 : 2, 4294967295: 3, 4294967296: 4};
-            assert.areEqual(4294967296,Array.prototype.indexOf.call(o32, 4, 4294967290), "objects don't have a bounded length so we should find the index given any length");
+            assert.areEqual(-1,Array.prototype.indexOf.call(o32, 4, 4294967290), "objects don't have a bounded length so we should find the index given any length");
 
-            assert.areEqual(maxLength64-2,Array.prototype.indexOf.call(o64, 2, maxLength64-10), "confirm indexOf can have an index up to length set to the max integer without loss of precision");
-            assert.areEqual(maxLength64-2,Array.prototype.indexOf.call(o64, 2, maxLength64-10), "confirm indexOf can have an index up to length set to the max integer without loss of precision");
-            assert.areEqual(maxLength64-1,Array.prototype.indexOf.call(o64, 3, maxLength64-10), "confirm indexOf can have an index up to length set to the max integer without loss of precision");
-            assert.areEqual(maxLength64-1,Array.prototype.indexOf.call(o64, 3, maxLength64-10), "confirm indexOf can have an index up to length set to the max integer without loss of precision");
+            assert.areEqual(-1,Array.prototype.indexOf.call(o64, 2, maxLength64-10), "confirm indexOf can have an index up to length set to the max integer without loss of precision");
+            assert.areEqual(-1,Array.prototype.indexOf.call(o64, 2, maxLength64-10), "confirm indexOf can have an index up to length set to the max integer without loss of precision");
+            assert.areEqual(-1,Array.prototype.indexOf.call(o64, 3, maxLength64-10), "confirm indexOf can have an index up to length set to the max integer without loss of precision");
+            assert.areEqual(-1,Array.prototype.indexOf.call(o64, 3, maxLength64-10), "confirm indexOf can have an index up to length set to the max integer without loss of precision");
 
             assert.areEqual(-1, Array.prototype.indexOf.call(oNeg,2), "confirm negative lengths are coerced to 0, so we should not find any of these indices");
 

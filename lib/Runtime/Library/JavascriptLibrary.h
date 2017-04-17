@@ -413,6 +413,9 @@ namespace Js
 
         Field(ConstructorCache*) builtInConstructorCache;
 
+
+        Field(FunctionBody*) indexOfByteCode;
+
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         Field(JavascriptFunction*) debugObjectFaultInjectionCookieGetterFunction;
         Field(JavascriptFunction*) debugObjectFaultInjectionCookieSetterFunction;
@@ -1139,6 +1142,7 @@ namespace Js
         JavascriptFunction* EnsureArrayPrototypeKeysFunction();
         JavascriptFunction* EnsureArrayPrototypeEntriesFunction();
         JavascriptFunction* EnsureArrayPrototypeValuesFunction();
+        void EnsureIndexOfByteCode();
 
         void SetCrossSiteForSharedFunctionType(JavascriptFunction * function);
 
@@ -1348,6 +1352,7 @@ namespace Js
         static void __cdecl InitializeAsyncFunction(DynamicObject *function, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 
         RuntimeFunction* CreateBuiltinConstructor(FunctionInfo * functionInfo, DynamicTypeHandler * typeHandler, DynamicObject* prototype = nullptr);
+        void JavascriptLibrary::DefaultCreateFunction(ParseableFunctionInfo * functionInfo, int length, DynamicObject * prototype, PropertyId nameId);
         RuntimeFunction* DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, PropertyId nameId);
         RuntimeFunction* DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, Var nameId);
         JavascriptFunction* AddFunction(DynamicObject* object, PropertyId propertyId, RuntimeFunction* function);

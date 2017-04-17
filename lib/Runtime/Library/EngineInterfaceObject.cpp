@@ -192,8 +192,11 @@ namespace Js
     {
         typeHandler->Convert(commonNativeInterfaces, mode, 38);
 
-        ScriptContext* scriptContext = commonNativeInterfaces->GetScriptContext();
-        JavascriptLibrary* library = scriptContext->GetLibrary();
+        JavascriptLibrary* library = commonNativeInterfaces->GetScriptContext()->GetLibrary();
+
+        library->EnsureIndexOfByteCode();
+
+        library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0), 1, commonNativeInterfaces, Js::PropertyIds::builtInJavascriptArrayEntryIndexOf);
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \

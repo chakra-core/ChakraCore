@@ -461,10 +461,9 @@
             },
             "indexOf": {
               "#__proto__": "function <large string>",
-              "length": "number 1",
-              "name": "string indexOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "prototype": "Object {...}",
+              "name": "string arrayIndexOf",
+              "length": "number 1"
             },
             "every": {
               "#__proto__": "function <large string>",
@@ -740,10 +739,9 @@
             },
             "indexOf": {
               "#__proto__": "function <large string>",
-              "length": "number 1",
-              "name": "string indexOf",
-              "caller": "object null",
-              "arguments": "object null"
+              "prototype": "Object {...}",
+              "name": "string arrayIndexOf",
+              "length": "number 1"
             },
             "every": {
               "#__proto__": "function <large string>",

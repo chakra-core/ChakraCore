@@ -21,6 +21,28 @@
 #include "Library/ThrowErrorObject.h"
 #include "Library/StackScriptFunction.h"
 
+#include "ByteCode/ByteCodeSerializer.h"
+
+#pragma warning(push)
+#pragma warning(disable:4309) // truncation of constant value
+#pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
+
+#if DISABLE_JIT
+#if TARGET_64
+#include "BuiltIn/IndexOf.js.nojit.bc.64b.h"
+#else
+#include "BuiltIn/IndexOf.js.nojit.bc.32b.h"
+#endif
+#else
+#if TARGET_64
+#include "BuiltIn/IndexOf.js.bc.64b.h"
+#else
+#include "BuiltIn/IndexOf.js.bc.32b.h"
+#endif
+#endif
+
+#pragma warning(pop)
+
 namespace Js
 {
     SimplePropertyDescriptor const JavascriptLibrary::SharedFunctionPropertyDescriptors[2] =
@@ -1672,6 +1694,30 @@ namespace Js
         return arrayPrototypeEntriesFunction;
     }
 
+    void JavascriptLibrary::EnsureIndexOfByteCode()
+    {
+        if (this->indexOfByteCode == nullptr)
+        {
+            SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(Js::Constants::NoHostSourceContext, NULL);
+
+            Assert(sourceContextInfo != nullptr);
+
+            SRCINFO si;
+            memset(&si, 0, sizeof(si));
+            si.sourceContextInfo = sourceContextInfo;
+            SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
+            uint32 flags = fscrIsLibraryCode | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
+
+            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_indexof, nullptr, &this->indexOfByteCode);
+
+            if (FAILED(hr))
+            {
+                AssertMsg(false, "Failed to deserialize Intl.js bytecode - very probably the bytecode needs to be rebuilt.");
+                JavascriptError::MapAndThrowError(scriptContext, hr);
+            }
+        }
+    }
+
     void JavascriptLibrary::InitializeArrayPrototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(arrayPrototype, mode, 24);
@@ -1680,6 +1726,9 @@ namespace Js
 
         ScriptContext* scriptContext = arrayPrototype->GetScriptContext();
         JavascriptLibrary* library = arrayPrototype->GetLibrary();
+
+        library->EnsureIndexOfByteCode();
+
         library->AddMember(arrayPrototype, PropertyIds::constructor, library->arrayConstructor);
 
         Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
@@ -1714,7 +1763,7 @@ namespace Js
         builtinFuncs[BuiltinFunction::JavascriptArray_Unshift]            = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::unshift,         &JavascriptArray::EntryInfo::Unshift,           1);
 
 
-        builtinFuncs[BuiltinFunction::JavascriptArray_IndexOf]        = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::indexOf,         &JavascriptArray::EntryInfo::IndexOf,           1);
+        library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0), 1, arrayPrototype, PropertyIds::indexOf);
         /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every,           &JavascriptArray::EntryInfo::Every,             1);
         /* No inlining                Array_Filter         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::filter,          &JavascriptArray::EntryInfo::Filter,            1);
 
@@ -3667,9 +3716,6 @@ namespace Js
         case PropertyIds::concat:
             return BuiltinFunction::JavascriptArray_Concat;
 
-        case PropertyIds::indexOf:
-            return BuiltinFunction::JavascriptArray_IndexOf;
-
         case PropertyIds::includes:
             return BuiltinFunction::JavascriptArray_Includes;
 
@@ -4395,6 +4441,7 @@ namespace Js
         ScriptContext* scriptContext = stringPrototype->GetScriptContext();
         JavascriptLibrary* library = stringPrototype->GetLibrary();
         Field(JavascriptFunction*)* builtinFuncs = library->GetBuiltinFunctions();
+
         library->AddMember(stringPrototype, PropertyIds::constructor, library->stringConstructor);
 
         builtinFuncs[BuiltinFunction::JavascriptString_IndexOf]       = library->AddFunctionToLibraryObject(stringPrototype, PropertyIds::indexOf,            &JavascriptString::EntryInfo::IndexOf,              1);
@@ -4820,6 +4867,14 @@ namespace Js
         jsrtExternalTypesCache->Item(finalizeCallback, recycler->CreateWeakReferenceHandle<DynamicType>(dynamicTypeToCache));
     }
 
+    void JavascriptLibrary::DefaultCreateFunction(ParseableFunctionInfo * functionInfo, int length, DynamicObject * prototype, PropertyId nameId)
+    {
+        Assert(nameId >= Js::InternalPropertyIds::Count && scriptContext->IsTrackedPropertyId(nameId));
+        ScriptFunction* function = scriptContext->GetLibrary()->CreateScriptFunction(functionInfo);
+        function->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(length), PropertyConfigurable, nullptr);
+        AddMember(prototype, nameId, function);
+    }
+
     RuntimeFunction* JavascriptLibrary::DefaultCreateFunction(FunctionInfo * functionInfo, int length, DynamicObject * prototype, DynamicType * functionType, PropertyId nameId)
     {
         Assert(nameId >= Js::InternalPropertyIds::Count && scriptContext->IsTrackedPropertyId(nameId));
@@ -4867,7 +4922,6 @@ namespace Js
 
     JavascriptFunction* JavascriptLibrary::AddFunction(DynamicObject* object, PropertyId propertyId, RuntimeFunction* function)
     {
-
        AddMember(object, propertyId, function);
        function->SetFunctionNameId(TaggedInt::ToVarUnchecked((int)propertyId));
        return function;
@@ -7370,7 +7424,6 @@ namespace Js
         REG_OBJECTS_LIB_FUNC(toLocaleString, JavascriptArray::EntryToLocaleString);
         REG_OBJECTS_LIB_FUNC(toString, JavascriptArray::EntryToString);
         REG_OBJECTS_LIB_FUNC(unshift, JavascriptArray::EntryUnshift);
-        REG_OBJECTS_LIB_FUNC(indexOf, JavascriptArray::EntryIndexOf);
         REG_OBJECTS_LIB_FUNC(every, JavascriptArray::EntryEvery);
         REG_OBJECTS_LIB_FUNC(filter, JavascriptArray::EntryFilter);
         REG_OBJECTS_LIB_FUNC(forEach, JavascriptArray::EntryForEach);

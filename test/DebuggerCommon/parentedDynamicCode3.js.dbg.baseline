@@ -20,7 +20,7 @@
         "sourceLength": 11
       },
       {
-        "scriptId": 4,
+        "scriptId": 5,
         "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
@@ -49,14 +49,7 @@
         "sourceLength": 11
       },
       {
-        "scriptId": 4,
-        "parentScriptId": 1,
-        "scriptType": "eval code",
-        "lineCount": 1,
-        "sourceLength": 11
-      },
-      {
-        "scriptId": 8,
+        "scriptId": 5,
         "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
@@ -64,6 +57,13 @@
       },
       {
         "scriptId": 9,
+        "parentScriptId": 1,
+        "scriptType": "eval code",
+        "lineCount": 1,
+        "sourceLength": 11
+      },
+      {
+        "scriptId": 10,
         "parentScriptId": 1,
         "scriptType": "eval code",
         "lineCount": 1,
