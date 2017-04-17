@@ -472,14 +472,14 @@ function assertReturn(moduleRegistry, command, {canonicalNan, arithmeticNan} = {
   const {action, expected} = command;
   try {
     //const wrapper = arithmeticNan ? getArithmeticNanWrapper(action, expected) : expected.length > 1 ? getComparisonWrapper(action, expected, expected[1].value): null;
-    const wrapper = expected[0].type.startsWith("f") ? getComparisonWrapper(action, expected, arithmeticNan ? "2" : canonicalNan ? "3" : "1") : null;
+    //const wrapper = expected[0].type.startsWith("f") ? getComparisonWrapper(action, expected, arithmeticNan ? "2" : canonicalNan ? "3" : "1") : null;
+    const wrapper =  getComparisonWrapper(action, expected, arithmeticNan ? "2" : canonicalNan ? "3" : "1");
     const res = runAction(moduleRegistry, action, wrapper);
     let success = true;
     if (expected.length === 0) {
       success = typeof res === "undefined";
     } else {
       // We don't support multi return right now
-      const [ex1] = expected;
       /*
       for (var name in  expected[0]) {
         if ( expected[0].hasOwnProperty(name)) {
@@ -487,15 +487,7 @@ function assertReturn(moduleRegistry, command, {canonicalNan, arithmeticNan} = {
         }
       }
       */
-      const expectedResult = mapWasmArg(ex1);
-      if (ex1.type === "i64") {
-        success = expectedResult.low === res.low && expectedResult.high === res.high;
-      } else if (expected[0].type.startsWith("f")) {
-        //print (`res = ${res}`);
-        success = res === 1;
-      } else {
-        success = res === expectedResult;
-      }
+      success = res === 1;
     }
 
     if (success) {
