@@ -889,7 +889,7 @@ namespace Js
         {
             if(this->GetScriptContext()->ShouldPerformRecordOrReplayAction())
             {
-                this->GetScriptContext()->GetThreadContext()->TTDLog->GetTimeAndPositionForDiagnosticObjectTracking(this->TTDDiagOriginInfo);
+                this->GetScriptContext()->GetThreadContext()->TTDExecutionInfo->GetTimeAndPositionForDiagnosticObjectTracking(this->TTDDiagOriginInfo);
             }
         }
     }

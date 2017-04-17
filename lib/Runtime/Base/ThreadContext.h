@@ -965,6 +965,9 @@ public:
     //The class that holds info on the TTD state for the thread context
     TTD::ThreadContextTTD* TTDContext;
 
+    //The class that holds information on TTD <-> debugger interaction state
+    TTD::ExecutionInfoManager* TTDExecutionInfo;
+
     //The event log for time-travel (or null if TTD is not turned on)
     TTD::EventLog* TTDLog;
 

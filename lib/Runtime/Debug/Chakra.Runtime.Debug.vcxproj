@@ -68,6 +68,7 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)TTSnapTypes.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TTSnapValues.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)TTSupport.cpp" />
+    <ClCompile Include="TTExecutionInfo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DebugContext.h" />
@@ -86,6 +87,7 @@
     <ClInclude Include="TTActionEvents.h" />
     <ClInclude Include="TTEventLog.h" />
     <ClInclude Include="TTEvents.h" />
+    <ClInclude Include="TTExecutionInfo.h" />
     <ClInclude Include="TTInflateMap.h" />
     <ClInclude Include="TTRuntimeInfoTracker.h" />
     <ClInclude Include="TTSerialize.h" />

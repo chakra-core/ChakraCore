@@ -10,10 +10,10 @@
 #if ENABLE_CROSSSITE_TRACE
 #define TTD_XSITE_LOG(CTX, MSG, VAR) if((CTX)->ShouldPerformRecordOrReplayAction()) \
 { \
-    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteLiteralMsg(" -XS- "); \
-    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteLiteralMsg(MSG); \
-    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteVar(VAR); \
-    (CTX)->GetThreadContext()->TTDLog->GetTraceLogger()->WriteLiteralMsg("\n"); \
+    (CTX)->GetThreadContext()->TTDExecutionInfo->GetTraceLogger()->WriteLiteralMsg(" -XS- "); \
+    (CTX)->GetThreadContext()->TTDExecutionInfo->GetTraceLogger()->WriteLiteralMsg(MSG); \
+    (CTX)->GetThreadContext()->TTDExecutionInfo->GetTraceLogger()->WriteVar(VAR); \
+    (CTX)->GetThreadContext()->TTDExecutionInfo->GetTraceLogger()->WriteLiteralMsg("\n"); \
 }
 #else
 #define TTD_XSITE_LOG(CTX, MSG, VAR)
@@ -51,6 +51,8 @@ namespace Js
         {
             AssertMsg(object != object->GetScriptContext()->GetLibrary()->GetDefaultAccessorFunction(), "default accessor marshalled");
             JavascriptFunction * function = JavascriptFunction::FromVar(object);
+
+            //TODO: this may be too aggressive and create x-site thunks that are't technically needed -- see uglify-2js test.
 
             // See if this function is one that the host needs to handle
             HostScriptContext * hostScriptContext = scriptContext->GetHostScriptContext();

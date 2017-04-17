@@ -169,21 +169,32 @@ private:
 };
 
 #if ENABLE_TTD
+typedef void (CALLBACK *JsTTDOnScriptLoadCallback)(FinalizableObject* hostContext, Js::FunctionBody* body, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException, bool notify);
+typedef uint32 (CALLBACK *JsTTDOnBPRegisterCallback)(void* hostRuntime, int64 bpID, Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, uint32 line, uint32 column, BOOL* isNewBP);
+typedef void (CALLBACK *JsTTDOnBPDeleteCallback)(void* hostRuntime, uint32 bpID);
+typedef void (CALLBACK *JsTTDOnBPClearDocumentCallback)(void* hostRuntime);
+
 //A class that we use to pass in a functor from the host when we need to inform it about something we are doing
 class HostScriptContextCallbackFunctor
 {
 public:
-    FinalizableObject* HostData;
-    void(*pfOnScriptLoadCallback)(FinalizableObject* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException);
+    FinalizableObject* HostContext;
+    void* HostRuntime;
+
+    JsTTDOnScriptLoadCallback pfOnScriptLoadCallback;
+
+    JsTTDOnBPRegisterCallback pfOnBPRegisterCallback;
+    JsTTDOnBPDeleteCallback pfOnBPDeleteCallback;
+    JsTTDOnBPClearDocumentCallback pfOnBPClearDocumentCallback;
 
     HostScriptContextCallbackFunctor()
-        : HostData(nullptr), pfOnScriptLoadCallback(nullptr)
+        : HostContext(nullptr), HostRuntime(nullptr), pfOnScriptLoadCallback(nullptr), pfOnBPRegisterCallback(nullptr), pfOnBPDeleteCallback(nullptr), pfOnBPClearDocumentCallback(nullptr)
     {
         ;
     }
 
-    HostScriptContextCallbackFunctor(FinalizableObject* callbackData, void(*pfcallbackOnScriptLoad)(FinalizableObject* hostData, Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException))
-        : HostData(callbackData), pfOnScriptLoadCallback(pfcallbackOnScriptLoad)
+    HostScriptContextCallbackFunctor(FinalizableObject* hostContext, void* hostRuntime, JsTTDOnScriptLoadCallback callbackOnScriptLoad, JsTTDOnBPRegisterCallback callbackOnBPRegister, JsTTDOnBPDeleteCallback callbackOnBPDelete, JsTTDOnBPClearDocumentCallback callbackOnBPClearDocument)
+        : HostContext(hostContext), HostRuntime(hostRuntime), pfOnScriptLoadCallback(callbackOnScriptLoad), pfOnBPRegisterCallback(callbackOnBPRegister), pfOnBPDeleteCallback(callbackOnBPDelete), pfOnBPClearDocumentCallback(callbackOnBPClearDocument)
     {
         ;
     }
