@@ -57,8 +57,8 @@ namespace TTD
         void CopyStringToHeapAllocatorWLength(const char16* string, uint32 length, TTString& into);
         void DeleteStringFromHeapAllocator(TTString& string);
 
-        void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, uint64 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
-        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, uint64 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
+        void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, uint32 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
+        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, uint32 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length);
     }
 
     namespace NSSnapValues
@@ -273,7 +273,7 @@ namespace TTD
             TTD_LOG_PTR_ID ScriptContextLogId;
 
             //A unique counter we produce for every top-level body as it is loaded
-            uint64 TopLevelBodyCtr;
+            uint32 TopLevelBodyCtr;
 
             //The string name of the function
             TTString FunctionName;
@@ -299,7 +299,7 @@ namespace TTD
         };
 
         //Extract WITHOUT COPYING the info needed for this top level function -- use in script context when function is parsed to keep all the info together and then we do the copying later when doing snapshots
-        void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8source, const byte* source, uint32 sourceLen, SlabAllocator& alloc);
+        void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint32 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8source, const byte* source, uint32 sourceLen, SlabAllocator& alloc);
         void EmitTopLevelCommonBodyResolveInfo(const TopLevelCommonBodyResolveInfo* fbInfo, bool emitInline, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator);
         void ParseTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, bool readSeperator, bool parseInline, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc);
 
@@ -317,7 +317,7 @@ namespace TTD
             LoadScriptFlag LoadFlag;
         };
 
-        void ExtractTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag, SlabAllocator& alloc);
+        void ExtractTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint32 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag, SlabAllocator& alloc);
         Js::FunctionBody* InflateTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx);
 
         void EmitTopLevelLoadedFunctionBodyInfo(const TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator);
@@ -334,7 +334,7 @@ namespace TTD
             TopLevelCommonBodyResolveInfo TopLevelBase;
         };
 
-        void ExtractTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, SlabAllocator& alloc);
+        void ExtractTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint32 topLevelCtr, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, SlabAllocator& alloc);
         Js::FunctionBody* InflateTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx);
 
         void EmitTopLevelNewFunctionBodyInfo(const TopLevelNewFunctionBodyResolveInfo* fbInfo, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator);
@@ -357,7 +357,7 @@ namespace TTD
             bool IsStrictMode;
         };
 
-        void ExtractTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, uint32 grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode, SlabAllocator& alloc);
+        void ExtractTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint32 topLevelCtr, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, uint32 grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode, SlabAllocator& alloc);
         Js::FunctionBody* InflateTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::ScriptContext* ctx);
 
         void EmitTopLevelEvalFunctionBodyInfo(const TopLevelEvalFunctionBodyResolveInfo* fbInfo, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator);

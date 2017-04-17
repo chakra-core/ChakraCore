@@ -456,7 +456,7 @@ namespace TTD
         }
     }
 
-    void ScriptContextTTD::RegisterLoadedScript(Js::FunctionBody* body, uint64 bodyCtrId)
+    void ScriptContextTTD::RegisterLoadedScript(Js::FunctionBody* body, uint32 bodyCtrId)
     {
         TTD::TopLevelFunctionInContextRelation relation;
         relation.TopLevelBodyCtr = bodyCtrId;
@@ -465,7 +465,7 @@ namespace TTD
         this->m_ttdTopLevelScriptLoad.Add(relation);
     }
 
-    void ScriptContextTTD::RegisterNewScript(Js::FunctionBody* body, uint64 bodyCtrId)
+    void ScriptContextTTD::RegisterNewScript(Js::FunctionBody* body, uint32 bodyCtrId)
     {
         TTD::TopLevelFunctionInContextRelation relation;
         relation.TopLevelBodyCtr = bodyCtrId;
@@ -474,7 +474,7 @@ namespace TTD
         this->m_ttdTopLevelNewFunction.Add(relation);
     }
 
-    void ScriptContextTTD::RegisterEvalScript(Js::FunctionBody* body, uint64 bodyCtrId)
+    void ScriptContextTTD::RegisterEvalScript(Js::FunctionBody* body, uint32 bodyCtrId)
     {
         TTD::TopLevelFunctionInContextRelation relation;
         relation.TopLevelBodyCtr = bodyCtrId;
@@ -489,7 +489,7 @@ namespace TTD
         return this->m_ttdFunctionBodyParentMap.LookupWithKey(body, nullptr);
     }
 
-    uint64 ScriptContextTTD::FindTopLevelCtrForBody(Js::FunctionBody* body) const
+    uint32 ScriptContextTTD::FindTopLevelCtrForBody(Js::FunctionBody* body) const
     {
         Js::FunctionBody* rootBody = body;
         while(this->ResolveParentBody(rootBody) != nullptr)
@@ -527,7 +527,7 @@ namespace TTD
         return 0;
     }
 
-    Js::FunctionBody* ScriptContextTTD::FindRootBodyByTopLevelCtr(uint64 bodyCtrId) const
+    Js::FunctionBody* ScriptContextTTD::FindRootBodyByTopLevelCtr(uint32 bodyCtrId) const
     {
         for(int32 i = 0; i < this->m_ttdTopLevelScriptLoad.Count(); ++i)
         {
@@ -744,8 +744,9 @@ namespace TTD
         if(ctx->GetConfig()->IsErrorStackTraceEnabled())
         {
             this->EnqueueRootPathObject(_u("_stackTraceAccessor"), ctx->GetLibrary()->GetStackTraceAccessorFunction());
-            this->EnqueueRootPathObject(_u("_throwTypeErrorRestrictedPropertyAccessor"), ctx->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction());
         }
+
+        this->EnqueueRootPathObject(_u("_throwTypeErrorRestrictedPropertyAccessor"), ctx->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction());
 
         if(ctx->GetConfig()->IsES6PromiseEnabled())
         {
@@ -754,6 +755,9 @@ namespace TTD
         }
 
         this->EnqueueRootPathObject(_u("_arrayIteratorPrototype"), ctx->GetLibrary()->GetArrayIteratorPrototype());
+        this->EnqueueRootPathObject(_u("_mapIteratorPrototype"), ctx->GetLibrary()->GetMapIteratorPrototype());
+        this->EnqueueRootPathObject(_u("_setIteratorPrototype"), ctx->GetLibrary()->GetSetIteratorPrototype());
+        this->EnqueueRootPathObject(_u("_stringIteratorPrototype"), ctx->GetLibrary()->GetStringIteratorPrototype());
 
         uint32 counter = 0;
         while(!this->m_worklist.Empty())

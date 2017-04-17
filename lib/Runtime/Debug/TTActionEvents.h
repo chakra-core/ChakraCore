@@ -496,31 +496,6 @@ namespace TTD
         void JsRTConstructCallAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void JsRTConstructCallAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
-        //A struct for correlating host callback ids that are registed/created/canceled by this call
-        struct JsRTCallbackAction
-        {
-            //The id of the current callback (we should be able to recompute this but we store it to simplify later analysis)
-            int64 CurrentCallbackId;
-
-            //the function tag and name for the callback function and the id that we are associating it with
-            int64 NewCallbackId;
-            
-            //Info on the time that this registration occours
-            TTDebuggerSourceLocation* RegisterLocation;
-
-            //true if this is a cancelation/repeating action -- otherwise this is a 
-            bool IsCreate;
-            bool IsCancel;
-            bool IsRepeating;
-        };
-
-        void JsRTCallbackAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
-        void JsRTCallbackAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void JsRTCallbackAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
-        void JsRTCallbackAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
-        
-        bool JsRTCallbackAction_GetActionTimeInfoForDebugger(const EventLogEntry* evt, TTDebuggerSourceLocation& sourceLocation);
-
         //A struct for additional info associated with calls to script parse
         struct JsRTCodeParseAction_AdditionalInfo
         {
@@ -545,13 +520,13 @@ namespace TTD
             TTDVar Result;
 
             //The body counter id associated with this load
-            uint64 BodyCtrId;
+            uint32 BodyCtrId;
 
             //All of the additional source code load info
             JsRTCodeParseAction_AdditionalInfo* AdditionalInfo;
         };
 
-        void JsRTCodeParseAction_SetBodyCtrId(EventLogEntry* parseEvent, uint64 bodyCtrId);
+        void JsRTCodeParseAction_SetBodyCtrId(EventLogEntry* parseEvent, uint32 bodyCtrId);
 
         void JsRTCodeParseAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext);
         void JsRTCodeParseAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);

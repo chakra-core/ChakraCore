@@ -167,16 +167,16 @@ namespace TTD
 
         //force parsing and load up the parent maps etc.
         void ProcessFunctionBodyOnLoad(Js::FunctionBody* body, Js::FunctionBody* parent);
-        void RegisterLoadedScript(Js::FunctionBody* body, uint64 bodyCtrId);
-        void RegisterNewScript(Js::FunctionBody* body, uint64 bodyCtrId);
-        void RegisterEvalScript(Js::FunctionBody* body, uint64 bodyCtrId);
+        void RegisterLoadedScript(Js::FunctionBody* body, uint32 bodyCtrId);
+        void RegisterNewScript(Js::FunctionBody* body, uint32 bodyCtrId);
+        void RegisterEvalScript(Js::FunctionBody* body, uint32 bodyCtrId);
 
         //Lookup the parent body for a function body (or null for global code)
         Js::FunctionBody* ResolveParentBody(Js::FunctionBody* body) const;
 
         //Helpers for resolving top level bodies accross snapshots
-        uint64 FindTopLevelCtrForBody(Js::FunctionBody* body) const;
-        Js::FunctionBody* FindRootBodyByTopLevelCtr(uint64 bodyCtrId) const;
+        uint32 FindTopLevelCtrForBody(Js::FunctionBody* body) const;
+        Js::FunctionBody* FindRootBodyByTopLevelCtr(uint32 bodyCtrId) const;
 
         void ClearLoadedSourcesForSnapshotRestore();
     };

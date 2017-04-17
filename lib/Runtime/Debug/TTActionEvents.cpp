@@ -871,80 +871,7 @@ namespace TTD
             ccAction->ExecArgs = (ccAction->ArgCount > 1) ? alloc.SlabAllocateArray<Js::Var>(ccAction->ArgCount - 1) : nullptr; //ArgCount includes slot for function which we don't use in exec
         }
 
-        void JsRTCallbackAction_Execute(const EventLogEntry* evt, ThreadContextTTD* executeContext)
-        {
-            if(executeContext->GetActiveScriptContext()->ShouldPerformDebuggerAction())
-            {
-                const JsRTCallbackAction* cbAction = GetInlineEventDataAs<JsRTCallbackAction, EventKind::CallbackOpActionTag>(evt);
-
-                if(cbAction->RegisterLocation == nullptr)
-                {
-                    const_cast<JsRTCallbackAction*>(cbAction)->RegisterLocation = TT_HEAP_NEW(TTDebuggerSourceLocation);
-                }
-
-                if(!cbAction->RegisterLocation->HasValue())
-                {
-                    executeContext->GetThreadContext()->TTDLog->GetTimeAndPositionForDebugger(*(cbAction->RegisterLocation));
-                }
-            }
-        }
-
-        void JsRTCallbackAction_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc)
-        {
-            JsRTCallbackAction* cbAction = GetInlineEventDataAs<JsRTCallbackAction, EventKind::CallbackOpActionTag>(evt);
-
-            if(cbAction->RegisterLocation != nullptr)
-            {
-                cbAction->RegisterLocation->Clear();
-
-                TT_HEAP_DELETE(TTDebuggerSourceLocation, cbAction->RegisterLocation);
-                cbAction->RegisterLocation = nullptr;
-            }
-        }
-
-        void JsRTCallbackAction_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext)
-        {
-            const JsRTCallbackAction* cbAction = GetInlineEventDataAs<JsRTCallbackAction, EventKind::CallbackOpActionTag>(evt);
-
-            writer->WriteBool(NSTokens::Key::boolVal, cbAction->IsCreate, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, cbAction->IsCancel, NSTokens::Separator::CommaSeparator);
-            writer->WriteBool(NSTokens::Key::boolVal, cbAction->IsRepeating, NSTokens::Separator::CommaSeparator);
-
-            writer->WriteInt64(NSTokens::Key::hostCallbackId, cbAction->CurrentCallbackId, NSTokens::Separator::CommaSeparator);
-            writer->WriteInt64(NSTokens::Key::newCallbackId, cbAction->NewCallbackId, NSTokens::Separator::CommaSeparator);
-        }
-
-        void JsRTCallbackAction_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc)
-        {
-            JsRTCallbackAction* cbAction = GetInlineEventDataAs<JsRTCallbackAction, EventKind::CallbackOpActionTag>(evt);
-
-            cbAction->IsCreate = reader->ReadBool(NSTokens::Key::boolVal, true);
-            cbAction->IsCancel = reader->ReadBool(NSTokens::Key::boolVal, true);
-            cbAction->IsRepeating = reader->ReadBool(NSTokens::Key::boolVal, true);
-
-            cbAction->CurrentCallbackId = reader->ReadInt64(NSTokens::Key::hostCallbackId, true);
-            cbAction->NewCallbackId = reader->ReadInt64(NSTokens::Key::newCallbackId, true);
-
-            cbAction->RegisterLocation = nullptr;
-        }
-
-        bool JsRTCallbackAction_GetActionTimeInfoForDebugger(const EventLogEntry* evt, TTDebuggerSourceLocation& sourceLocation)
-        {
-            const JsRTCallbackAction* cbAction = GetInlineEventDataAs<JsRTCallbackAction, EventKind::CallbackOpActionTag>(evt);
-
-            if(cbAction->RegisterLocation != nullptr && cbAction->RegisterLocation->HasValue())
-            {
-                sourceLocation.SetLocation(*(cbAction->RegisterLocation));
-                return true;
-            }
-            else
-            {
-                sourceLocation.Clear();
-                return false; //we haven't been re-executed in replay so we don't have our info yet
-            }
-        }
-
-        void JsRTCodeParseAction_SetBodyCtrId(EventLogEntry* parseEvent, uint64 bodyCtrId)
+        void JsRTCodeParseAction_SetBodyCtrId(EventLogEntry* parseEvent, uint32 bodyCtrId)
         {
             JsRTCodeParseAction* cpAction = GetInlineEventDataAs<JsRTCodeParseAction, EventKind::CodeParseActionTag>(parseEvent);
             cpAction->BodyCtrId = bodyCtrId;
@@ -1002,13 +929,14 @@ namespace TTD
             {
                 ctx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
                 ctx->TTDContextInfo->RegisterLoadedScript(fb, cpAction->BodyCtrId);
+
+                fb->GetUtf8SourceInfo()->SetSourceInfoForDebugReplay_TTD(cpAction->BodyCtrId);
             }
             END_JS_RUNTIME_CALL(ctx);
 
-            const HostScriptContextCallbackFunctor& hostFunctor = ctx->TTDHostCallbackFunctor;
-            if(hostFunctor.pfOnScriptLoadCallback != nullptr)
+            if(ctx->ShouldPerformDebuggerAction())
             {
-                hostFunctor.pfOnScriptLoadCallback(hostFunctor.HostData, function, utf8SourceInfo, &se);
+                ctx->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad(ctx, cpAction->BodyCtrId, fb, utf8SourceInfo, &se);
             }
             ////
 
@@ -1041,7 +969,7 @@ namespace TTD
             writer->WriteUInt64(NSTokens::Key::sourceContextId, cpInfo->SourceContextId, NSTokens::Separator::CommaSeparator);
             writer->WriteTag<LoadScriptFlag>(NSTokens::Key::loadFlag, cpInfo->LoadFlag, NSTokens::Separator::CommaSeparator);
 
-            writer->WriteUInt64(NSTokens::Key::bodyCounterId, cpAction->BodyCtrId, NSTokens::Separator::CommaSeparator);
+            writer->WriteUInt32(NSTokens::Key::bodyCounterId, cpAction->BodyCtrId, NSTokens::Separator::CommaSeparator);
 
             writer->WriteString(NSTokens::Key::uri, cpInfo->SourceUri, NSTokens::Separator::CommaSeparator);
 
@@ -1064,7 +992,7 @@ namespace TTD
             cpInfo->SourceContextId = reader->ReadUInt64(NSTokens::Key::sourceContextId, true);
             cpInfo->LoadFlag = reader->ReadTag<LoadScriptFlag>(NSTokens::Key::loadFlag, true);
 
-            cpAction->BodyCtrId = reader->ReadUInt64(NSTokens::Key::bodyCounterId, true);
+            cpAction->BodyCtrId = reader->ReadUInt32(NSTokens::Key::bodyCounterId, true);
 
             reader->ReadString(NSTokens::Key::uri, alloc, cpInfo->SourceUri, true);
 
@@ -1175,6 +1103,10 @@ namespace TTD
             else
             {
                 threadContext->TTDLog->ResetCallStackForTopLevelCall(cfInfo->TopLevelCallbackEventTime);
+                if(threadContext->TTDExecutionInfo != nullptr)
+                {
+                    threadContext->TTDExecutionInfo->ResetCallStackForTopLevelCall(cfInfo->TopLevelCallbackEventTime);
+                }
 
                 try
                 {
@@ -1193,7 +1125,7 @@ namespace TTD
                     {
                         //convert to uncaught debugger exception for host
                         TTDebuggerSourceLocation lastLocation;
-                        threadContext->TTDLog->GetLastExecutedTimeAndPositionForDebugger(lastLocation);
+                        threadContext->TTDExecutionInfo->GetLastExecutedTimeAndPositionForDebugger(lastLocation);
                         JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(const_cast<EventLogEntry*>(evt), lastLocation);
 
                         err.GetAndClear();  // discard exception object
@@ -1217,7 +1149,7 @@ namespace TTD
                     {
                         //convert to uncaught debugger exception for host
                         TTDebuggerSourceLocation lastLocation;
-                        threadContext->TTDLog->GetLastExecutedTimeAndPositionForDebugger(lastLocation);
+                        threadContext->TTDExecutionInfo->GetLastExecutedTimeAndPositionForDebugger(lastLocation);
                         JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(const_cast<EventLogEntry*>(evt), lastLocation);
 
                         throw TTDebuggerAbortException::CreateUncaughtExceptionAbortRequest(lastLocation.GetRootEventTime(), _u("Uncaught Script exception -- Propagate to top-level."));
@@ -1232,7 +1164,7 @@ namespace TTD
                     if(executeContext->GetActiveScriptContext()->ShouldPerformDebuggerAction())
                     {
                         TTDebuggerSourceLocation lastLocation;
-                        threadContext->TTDLog->GetLastExecutedTimeAndPositionForDebugger(lastLocation);
+                        threadContext->TTDExecutionInfo->GetLastExecutedTimeAndPositionForDebugger(lastLocation);
                         JsRTCallFunctionAction_SetLastExecutedStatementAndFrameInfo(const_cast<EventLogEntry*>(evt), lastLocation);
                     }
 
@@ -1358,7 +1290,7 @@ namespace TTD
             JsRTCallFunctionAction* cfAction = GetInlineEventDataAs<JsRTCallFunctionAction, EventKind::CallExistingFunctionActionTag>(evt);
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
 
-            cfInfo->AdditionalReplayInfo->LastExecutedLocation.SetLocation(lastSourceLocation);
+            cfInfo->AdditionalReplayInfo->LastExecutedLocation.SetLocationCopy(lastSourceLocation);
         }
 
         bool JsRTCallFunctionAction_GetLastExecutedStatementAndFrameInfoForDebugger(const EventLogEntry* evt, TTDebuggerSourceLocation& lastSourceInfo)
@@ -1367,7 +1299,7 @@ namespace TTD
             JsRTCallFunctionAction_AdditionalInfo* cfInfo = cfAction->AdditionalInfo;
             if(cfInfo->AdditionalReplayInfo->LastExecutedLocation.HasValue())
             {
-                lastSourceInfo.SetLocation(cfInfo->AdditionalReplayInfo->LastExecutedLocation);
+                lastSourceInfo.SetLocationCopy(cfInfo->AdditionalReplayInfo->LastExecutedLocation);
                 return true;
             }
             else

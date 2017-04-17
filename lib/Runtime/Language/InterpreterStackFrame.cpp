@@ -2015,8 +2015,8 @@ namespace Js
         {
             bool isInFinally = ((newInstance->m_flags & Js::InterpreterStackFrameFlags_WithinFinallyBlock) == Js::InterpreterStackFrameFlags_WithinFinallyBlock);
 
-            threadContext->TTDLog->PushCallEvent(function, args.Info.Count, args.Values, isInFinally);
-            exceptionFramePopper.PushInfo(threadContext->TTDLog, function);
+            threadContext->TTDExecutionInfo->PushCallEvent(function, args.Info.Count, args.Values, isInFinally);
+            exceptionFramePopper.PushInfo(threadContext->TTDExecutionInfo, function);
         }
 #endif
 
@@ -2049,7 +2049,7 @@ namespace Js
         if(SHOULD_DO_TTD_STACK_STMT_OP(functionScriptContext))
         {
             exceptionFramePopper.PopInfo();
-            threadContext->TTDLog->PopCallEvent(function, aReturn);
+            threadContext->TTDExecutionInfo->PopCallEvent(function, aReturn);
         }
 #endif
 
@@ -2527,7 +2527,7 @@ namespace Js
 
         if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
-            this->scriptContext->GetThreadContext()->TTDLog->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
+            this->scriptContext->GetThreadContext()->TTDExecutionInfo->UpdateCurrentStatementInfo(m_reader.GetCurrentOffset());
         }
 
         OpCodeType op = (OpCodeType)ReadOpFunc(ip);
@@ -5772,7 +5772,7 @@ namespace Js
 #if ENABLE_TTD
         if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
-            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
+            this->scriptContext->GetThreadContext()->TTDExecutionInfo->UpdateLoopCountInfo();
         }
 #endif
 
@@ -5841,7 +5841,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
 #if ENABLE_TTD
         if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
-            this->scriptContext->GetThreadContext()->TTDLog->UpdateLoopCountInfo();
+            this->scriptContext->GetThreadContext()->TTDExecutionInfo->UpdateLoopCountInfo();
         }
 #endif
 
@@ -6645,7 +6645,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         //Clear any previous Exception Info
         if(SHOULD_DO_TTD_STACK_STMT_OP(this->scriptContext))
         {
-            this->scriptContext->GetThreadContext()->TTDLog->ClearExceptionFrames();
+            this->scriptContext->GetThreadContext()->TTDExecutionInfo->ClearExceptionFrames();
         }
 #endif
 

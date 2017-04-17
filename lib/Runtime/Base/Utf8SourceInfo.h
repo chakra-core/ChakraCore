@@ -154,6 +154,13 @@ namespace Js
             return m_sourceInfoId;
         }
 
+#if ENABLE_TTD
+        void SetSourceInfoForDebugReplay_TTD(uint32 newSourceInfoId)
+        {
+            this->m_sourceInfoId = newSourceInfoId;
+        }
+#endif
+
         void ClearFunctions()
         {
             if (this->functionBodyDictionary)

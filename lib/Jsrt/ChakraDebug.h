@@ -634,6 +634,11 @@ typedef unsigned __int32 uint32_t;
         JsTTDMoveScanIntervalForContinue = 0x10,
 
         /// <summary>
+        ///     Indicates if we are doing the scan for a continue operation and are in the time-segment where the active breakpoint was
+        /// </summary>
+        JsTTDMoveScanIntervalForContinueInActiveBreakpointSegment = 0x20,
+
+        /// <summary>
         ///     Indicates if we want to set break on entry or just run and let something else trigger breakpoints.
         /// </summary>
         JsTTDMoveBreakOnEntry = 0x100
