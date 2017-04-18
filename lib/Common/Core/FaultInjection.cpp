@@ -850,15 +850,22 @@ namespace Js
     }
 
     static bool faultInjectionDebug = false;
-    static bool triedToInstallExceptionFilter = false;
+    static volatile unsigned long long triedToInstallExceptionFilter = 0;
+    static CriticalSection csFautInjection;
     void FaultInjection::InstallExceptionFilters()
     {
-        if (triedToInstallExceptionFilter)
+        if (InterlockedExchange(&triedToInstallExceptionFilter, triedToInstallExceptionFilter))
         {
             return;
         }
+        
+        if (!csFautInjection.TryEnter())
+        {
+            csFautInjection.Enter();
+            csFautInjection.Leave();
+            return;
+        }
 
-        triedToInstallExceptionFilter = true;
         if (GetEnvironmentVariable(_u("FAULTINJECTION_DEBUG"), nullptr, 0) != 0)
         {
             faultInjectionDebug = true;
@@ -870,7 +877,7 @@ namespace Js
             // when the exception filter is handling stack overflow exception
             if (!FaultInjection::Global.InitializeSym())
             {
-                return;
+                goto LReturn;
             }
             //C28725:    Use Watson instead of this SetUnhandledExceptionFilter.
 #pragma prefast(suppress: 28725)
@@ -900,6 +907,11 @@ namespace Js
                 }
             });
         }
+
+    LReturn:
+        InterlockedExchange(&triedToInstallExceptionFilter, 1);
+        csFautInjection.Leave();
+        return;
     }
 
     void FaultInjection::RemoveExceptionFilters()
