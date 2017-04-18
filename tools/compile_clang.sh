@@ -5,19 +5,40 @@
 #-------------------------------------------------------------------------------------------------------
 
 LLVM_VERSION="3.9.1"
+DEFAULT_COLOR='\033[0m'
+ERROR_COLOR='\033[0;31m'
+GREEN_COLOR='\033[0;32m'
 
 CC_URL="git://sourceware.org/git/binutils-gdb.git\nhttp://llvm.org/releases/${LLVM_VERSION}/\n"
-echo -e "\n----------------------------------------------------------------"
-echo -e "\nThis script will download LLVM/CLANG and LLVM Gold Bintools from\n${CC_URL}\n"
-echo "These software are licensed to you by its publisher(s), not Microsoft."
-echo "Microsoft is not responsible for the software."
-echo "Your installation and use of the software is subject to the publisher’s terms available here:"
-echo -e "http://llvm.org/docs/DeveloperPolicy.html#license\nhttp://llvm.org/docs/GoldPlugin.html#licensing\n"
-echo -e "----------------------------------------------------------------\n"
-echo "If you don't agree, press Ctrl+C to terminate"
-read -t 10 -p "Hit ENTER to continue (or wait 10 seconds)"
 
-echo -e "\nThis will take some time... [and free memory 2GB+]\n"
+WARN_LICENSE () {
+    echo -e "${ERROR_COLOR}"
+    echo -e "----------------------------------------------------------------"
+    echo -e "${DEFAULT_COLOR}"
+    echo -e "This script will download LLVM/CLANG and LLVM Gold Bintools from\n${CC_URL}\n"
+    echo "These software are licensed to you by its publisher(s), not Microsoft."
+    echo "Microsoft is not responsible for the software."
+    echo "Your installation and use of the software is subject to the publisher’s terms available here:"
+    echo -e "http://llvm.org/docs/DeveloperPolicy.html#license\nhttp://llvm.org/docs/GoldPlugin.html#licensing"
+    echo -e "${ERROR_COLOR}"
+    echo -e "----------------------------------------------------------------\n"
+    echo -e "${GREEN_COLOR}If you don't agree, press Ctrl+C to terminate${DEFAULT_COLOR}"
+    read -t 20 -p "Hit ENTER to continue (or wait 20 seconds)"
+
+    echo -e "\nWell, this will take some time... [and free memory 2GB+]\n"
+}
+
+WARN_PACKAGE () {
+    echo -e "\n${GREEN_COLOR}"
+    echo -e "----------------------------------------------------------------${DEFAULT_COLOR}"
+    echo "This script requires (texinfo texi2html csh gawk automake libtool libtool-bin bison flex ncurses-devel)"
+    echo "Automated installation of these requirements is supported with apt-get and yum only."
+    echo ""
+    echo "If you don't have these packages are installed, press Ctrl+C to terminate"
+    echo -e "${GREEN_COLOR}----------------------------------------------------------------"
+    echo -e "${DEFAULT_COLOR}"
+    read -t 10 -p "Hit ENTER to continue (or wait 10 seconds)"
+}
 
 ROOT=${PWD}/cc-toolchain/
 GOLD_PLUGIN=""
@@ -31,21 +52,22 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
     cd src
 
     apt-get -v >/dev/null 2>&1
-    if [ $? == 0 ]; then # debian
-        sudo apt-get install -y apt-file texinfo texi2html csh gawk automake libtool libtool-bin bison flex libncurses5-dev
-        if [ $? != 0 ]; then
-          exit 1
-        fi
+    if [[ "$OSTYPE" =~ "darwin" ]]; then # osx
+        echo "This script is not prepared for OSX"
+        exit 0
     else
-        yum -v >/dev/null 2>&1
-        if [ $? == 0 ]; then # redhat
-            yum install -y texinfo texi2html csh gawk automake libtool libtool-bin bison flex ncurses-devel
+        if [ $? == 0 ]; then # debian
+            apt-get install -y apt-file texinfo texi2html csh gawk automake libtool libtool-bin bison flex libncurses5-dev
+            if [ $? != 0 ]; then
+                WARN_PACKAGE
+            fi
         else
-            echo "This script requires (texinfo texi2html csh gawk automake libtool libtool-bin bison flex ncurses-devel)"
-            echo "Automated installation of these requirements is supported with apt-get and yum only."
-            echo ""
-            echo "If you don't have these packages are installed, press Ctrl+C to terminate"
-            read -t 10 -p "Hit ENTER to continue (or wait 10 seconds)"
+            yum -v >/dev/null 2>&1
+            if [ $? == 0 ]; then # redhat
+                yum install -y texinfo texi2html csh gawk automake libtool libtool-bin bison flex ncurses-devel
+            else
+                WARN_PACKAGE
+            fi
         fi
     fi
 

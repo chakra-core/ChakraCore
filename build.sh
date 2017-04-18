@@ -353,6 +353,13 @@ if [[ ${#_VERBOSE} > 0 ]]; then
     echo ""
 fi
 
+# if LTO build is enabled and cc-toolchain/clang was compiled, use it instead
+if [[ $HAS_LTO == 1 && -f cc-toolchain/build/bin/clang++ ]]; then
+    SELF=`pwd`
+    _CXX="$SELF/cc-toolchain/build/bin/clang++"
+    _CC="$SELF/cc-toolchain/build/bin/clang"
+fi
+
 ERROR_CLANG() {
     echo "ERROR: clang++ not found."
     echo -e "\nYou could use clang++ from a custom location.\n"
