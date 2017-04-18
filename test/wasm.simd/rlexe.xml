@@ -15,13 +15,13 @@
 <test>
   <default>
     <files>comparisonTests.js</files>
-    <compile-flags> -wasm -wasmsimd -simdjs</compile-flags>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
   </default>
 </test>
 <test>
   <default>
     <files>comparisonTests.js</files>
-    <compile-flags> -maic:0 -wasm -wasmsimd -simdjs</compile-flags>
+    <compile-flags> -maic:0 -wasm -wasmsimd</compile-flags>
   </default>
 </test>
 </regress-exe>
