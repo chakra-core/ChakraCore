@@ -262,6 +262,21 @@ void DbCheckPostLower::Check(IR::RegOpnd *regOpnd)
 #endif
         }
     }
+
+    if (regOpnd->GetSym())
+    {
+        StackSym *sym = regOpnd->GetSym()->AsStackSym();
+        IRType tySym = sym->GetType();
+        IRType tyReg = regOpnd->GetType();
+
+        if (!IRType_IsSimd(tySym))
+        {
+            Assert((IRType_IsNativeIntOrVar(tySym) && IRType_IsNativeIntOrVar(tyReg))
+                || (IRType_IsFloat(tySym) && IRType_IsFloat(tyReg)));
+
+            Assert(TySize[tySym] >= TySize[tyReg] || this->func->isPostRegAlloc);
+        }
+    }
 }
 
 #endif // DBG

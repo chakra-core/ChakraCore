@@ -47,6 +47,11 @@ bool IRType_IsNativeInt(IRType type)
 }
 bool IRType_IsInt64(IRType type) { return type == TyInt64 || type == TyUint64; }
 
+bool IRType_IsNativeIntOrVar(IRType type)
+{
+    return IRType_IsNativeInt(type) || type == TyVar;
+}
+
 bool IRType_IsSimd(IRType type)
 {
     return TyBaseType[type] == IRBaseType_Simd;
