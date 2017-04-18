@@ -21070,9 +21070,9 @@ Lowerer::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::Reg
     //
     // shift left by 1 length of src1 (length*2)
     //
-    // memcmp src1 and src2 flat strings till length * 2
+    // wmemcmp src1 and src2 flat strings till length * 2
     //
-    // test eax (result of memcmp)
+    // test eax (result of wmemcmp)
     // if equal jump to $success else to $failure
     //
     // $success
@@ -21107,7 +21107,7 @@ Lowerer::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::Reg
     //      CMP [s5], s6                       -First character comparison
     //      JNE $fail
     //      SHL length, 1
-    //      eax = memcmp(src1String, src2String, length*2)
+    //      eax = wmemcmp(src1String, src2String, length*2)
     //      TEST eax, eax
     //      JEQ $success
     //      JMP $fail
@@ -21171,18 +21171,15 @@ Lowerer::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::Reg
     InsertMove(src1FirstChar, IR::IndirOpnd::New(src1FlatString, 0, TyUint16, m_func), instrInsert);
     InsertCompareBranch(IR::IndirOpnd::New(src2FlatString, 0, TyUint16, m_func), src1FirstChar, Js::OpCode::BrNeq_A, labelBranchFail, instrInsert);
 
-    // SHL length, 1
-    InsertShift(Js::OpCode::Shl_A, false, src1LengthOpnd, src1LengthOpnd, IR::IntConstOpnd::New(1, TyUint8, m_func), instrInsert);
-
-    // eax = memcmp(src1String, src2String, length*2)
+    // eax = wmemcmp(src1String, src2String, length)
 
     m_lowererMD.LoadHelperArgument(instr, src1LengthOpnd);
     m_lowererMD.LoadHelperArgument(instr, src1FlatString);
     m_lowererMD.LoadHelperArgument(instr, src2FlatString);
     IR::RegOpnd *dstOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
-    IR::Instr *instrCall = IR::Instr::New(Js::OpCode::Call, dstOpnd, m_func);
+    IR::Instr *instrCall = IR::Instr::New(Js::OpCode::Call, dstOpnd, IR::HelperCallOpnd::New(IR::HelperWMemCmp, m_func), m_func);
     instr->InsertBefore(instrCall);
-    m_lowererMD.ChangeToHelperCall(instrCall, IR::HelperMemCmp);
+    m_lowererMD.LowerCall(instrCall, 3);
 
     // TEST eax, eax
     // JEQ success

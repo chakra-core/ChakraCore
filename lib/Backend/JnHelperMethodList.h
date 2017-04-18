@@ -528,7 +528,7 @@ HELPERCALL_MATH(DirectMath_Random,  (double(*)(Js::ScriptContext*))Js::Javascrip
 // as dynamic initialization is require to load these addresses.  Use nullptr instead and handle these function in GetNonTableMethodAddress().
 //
 
-HELPERCALL(MemCmp, nullptr, 0)
+HELPERCALL(WMemCmp, nullptr, 0)
 HELPERCALL(MemCpy, nullptr, 0)
 
 HELPERCALL(DirectMath_FloorDb, nullptr, 0)
