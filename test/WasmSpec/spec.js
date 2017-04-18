@@ -20,6 +20,12 @@
  * limitations under the License.
  */
 
+const WrapperType = {
+    EXACT: 0,
+    ARITHMETIC: 1,
+    CANONICAL: 2,
+}
+
 const cliArgs = WScript.Arguments || [];
 WScript.Flag("-wasmI64");
 
@@ -329,57 +335,56 @@ function getComparisonWrapper(action, expected, checkType) {
     const posNaN = resultType.endsWith("32") ? "0x7fc00000" : "0x7ff8000000000000";
     const negNaN = resultType.endsWith("32") ? "0xffc00000" : "0xfff8000000000000";
 
-    let wasmModule = wrappers[signature];
-    if (true || !wasmModule) {
-      const matchingIntType = resultType.endsWith("32") ? "i32" : "i64";
-      const castIfFloat = expected[0].type.startsWith("f") ?  `(${matchingIntType}.reinterpret/${resultType})` : ""; //TODO: check if we ever get an int
-      let applyMask = "";
-     
-    //checking for canonical NaNs needs two checks
-    //always do two checks to keep a wasm function simple  
-    let expectedResultCheck1, expectedResultCheck2;
-    switch(checkType) {
-      case "1": //exact 
-          expectedResultCheck1 = expected[0].value;
-          expectedResultCheck2 = expected[0].value;
-          break;
-      case "2": //arithmetic 
-          expectedResultCheck1 = posNaN;
-          expectedResultCheck2 = posNaN;
-          applyMask = `(${matchingIntType}.and (${matchingIntType}.const ${posNaN}))`;
-          break;
-      case "3": //canonical
-          expectedResultCheck1 = posNaN;
-          expectedResultCheck2 = negNaN;
-          break;
-      default:
-          throw new Error("Unexpected check type ${checkType}");
-    }
+    let wasmModule; //each test now requires a new wrapper
+    const matchingIntType = resultType.endsWith("32") ? "i32" : "i64";
+    const castIfFloat = expected[0].type.startsWith("f") ?  `(${matchingIntType}.reinterpret/${resultType})` : "";
+    let applyMask = "";
 
-      const params = args.length > 0 ? `(param ${args.join(" ")})` : "";
-      const newMod = `
-          (module
-            (import "test" "fn" (func $fn ${params} (result ${resultType})))
-            (func (export "compare") ${params} (result i32) (local ${matchingIntType})
-              ${args.map((arg, i) => `(get_local ${i|0})`).join(" ")}
-              (call $fn)
-              ${castIfFloat}
-              (tee_local ${args.length})
-              ${applyMask}
-              (${matchingIntType}.eq (${matchingIntType}.const ${expectedResultCheck1}))
-              (get_local ${args.length})
-              ${applyMask}
-              (${matchingIntType}.eq (${matchingIntType}.const ${expectedResultCheck2}))
-              (i32.or)
-            )
-          )`;
+  //checking for canonical NaNs needs two checks
+  //always do two checks to keep a wasm function simple
+  let expectedResultCheck1, expectedResultCheck2;
+  switch(checkType) {
+    case WrapperType.EXACT:
+        expectedResultCheck1 = expected[0].value;
+        expectedResultCheck2 = expected[0].value;
+        break;
+    case WrapperType.ARITHMETIC:
+        expectedResultCheck1 = posNaN;
+        expectedResultCheck2 = posNaN;
+        applyMask = `(${matchingIntType}.and (${matchingIntType}.const ${posNaN}))`;
+        break;
+    case WrapperType.CANONICAL:
+        expectedResultCheck1 = posNaN;
+        expectedResultCheck2 = negNaN;
+        break;
+    default:
+        throw new Error("Unexpected check type ${checkType}");
+  }
+
+    const params = args.length > 0 ? `(param ${args.join(" ")})` : "";
+    const newMod = `
+        (module
+          (import "test" "fn" (func $fn ${params} (result ${resultType})))
+          (func (export "compare") ${params} (result i32) (local ${matchingIntType})
+            ${args.map((arg, i) => `(get_local ${i|0})`).join(" ")}
+            (call $fn)
+            ${castIfFloat}
+            (tee_local ${args.length})
+            ${applyMask}
+            (${matchingIntType}.eq (${matchingIntType}.const ${expectedResultCheck1}))
+            (get_local ${args.length})
+            ${applyMask}
+            (${matchingIntType}.eq (${matchingIntType}.const ${expectedResultCheck2}))
+            (i32.or)
+          )
+        )`;
 
       if (verbose) {
         console.log(newMod);
       }
       const buf = WebAssembly.wabt.convertWast2Wasm(newMod);
       wrappers[signature] = wasmModule = new WebAssembly.Module(buf);
-    }
+
 
     return (fn, ...args) => {
       const {exports: {compare}} = new WebAssembly.Instance(wasmModule, {test: {fn}});
@@ -387,153 +392,18 @@ function getComparisonWrapper(action, expected, checkType) {
     }
   }
 }
-
-function getArithmeticNanWrapper(action, expected) {
-  if (action.type === "invoke") {
-    const args = action.args.map(({type}) => type);
-    const resultType = expected[0].type;
-    const signature = resultType + args.join("");
-
-    let wasmModule = wrappers[signature];
-    if (!wasmModule) {
-      const resultSize = resultType === "f32" ? 32 : 64;
-      const matchingIntType = resultSize === 32 ? "i32" : "i64";
-      const expectedResult = resultSize === 32 ? "0x7f800000" : "0x7ff0000000000000";
-
-      const params = args.length > 0 ? `(param ${args.join(" ")})` : "";
-      const newMod = `
-(module
-  (import "test" "fn" (func $fn ${params} (result ${resultType})))
-  (func (export "compare") ${params} (result i32)
-    ${args.map((arg, i) => `(get_local ${i|0})`).join(" ")}
-    (call $fn)
-    (${matchingIntType}.reinterpret/${resultType})
-    (${matchingIntType}.and (${matchingIntType}.const ${expectedResult}))
-    (${matchingIntType}.eq (${matchingIntType}.const ${expectedResult}))
-  )
-)`;
-      if (verbose) {
-        console.log(newMod);
-      }
-      const buf = WebAssembly.wabt.convertWast2Wasm(newMod);
-      wrappers[signature] = wasmModule = new WebAssembly.Module(buf);
-    }
-
-    return (fn, ...args) => {
-      const {exports: {compare}} = new WebAssembly.Instance(wasmModule, {test: {fn}});
-      return compare(...args);
-    }
-  }
-}
-
-/*
-function getArithmeticNanWrapper(action, expected) {
-  if (action.type === "invoke") {
-    const args = action.args.map(({type}) => type);
-    const resultType = expected[0].type;
-    const signature = resultType + args.join("");
-
-    let wasmModule = wrappers[signature];
-    if (!wasmModule) {
-      const resultSize = resultType === "f32" ? 32 : 64;
-      const matchingIntType = resultSize === 32 ? "i32" : "i64";
-      const expectedResult = resultSize === 32 ? "0x7f800000" : "0x7ff0000000000000";
-
-//(${matchingIntType}.and (${matchingIntType}.const ${expectedResult}))
-//(${matchingIntType}.eq (${matchingIntType}.const ${expectedResult}))
-
-
-      const params = args.length > 0 ? `(param ${args.join(" ")})` : "";
-      const newMod = `
-(module
-  (import "test" "fn" (func $fn ${params} (result ${resultType})))
-  (func (export "compare") ${params} (result i32)
-    ${args.map((arg, i) => `(get_local ${i|0})`).join(" ")}
-    (call $fn)
-    (${matchingIntType}.reinterpret/${resultType})
-  )
-)`;
-      if (verbose) {
-        console.log(newMod);
-      }
-      const buf = WebAssembly.wabt.convertWast2Wasm(newMod);
-      wrappers[signature] = wasmModule = new WebAssembly.Module(buf);
-    }
-
-    return (fn, ...args) => {
-      const {exports: {compare}} = new WebAssembly.Instance(wasmModule, {test: {fn}});
-      return compare(...args);
-    }
-  }
-}
-*/
 
 function assertReturn(moduleRegistry, command, {canonicalNan, arithmeticNan} = {}) {
   const {action, expected} = command;
   try {
-    //const wrapper = arithmeticNan ? getArithmeticNanWrapper(action, expected) : expected.length > 1 ? getComparisonWrapper(action, expected, expected[1].value): null;
-    //const wrapper = expected[0].type.startsWith("f") ? getComparisonWrapper(action, expected, arithmeticNan ? "2" : canonicalNan ? "3" : "1") : null;
-    const wrapper =  getComparisonWrapper(action, expected, arithmeticNan ? "2" : canonicalNan ? "3" : "1");
+    const wrapper =  getComparisonWrapper(action, expected, arithmeticNan ? WrapperType.ARITHMETIC : canonicalNan ? WrapperType.CANONICAL : WrapperType.EXACT);
     const res = runAction(moduleRegistry, action, wrapper);
     let success = true;
     if (expected.length === 0) {
       success = typeof res === "undefined";
     } else {
       // We don't support multi return right now
-      /*
-      for (var name in  expected[0]) {
-        if ( expected[0].hasOwnProperty(name)) {
-          print(name + ' : ' +  expected[0][name]);
-        }
-      }
-      */
       success = res === 1;
-    }
-
-    if (success) {
-      passed++;
-      if (verbose) {
-        print(`${getCommandStr(command)} passed.`);
-      }
-    } else {
-      print(`${getCommandStr(command)} failed. Returned ${getValueStr(res)}`);
-      failed++;
-    }
-  } catch (e) {
-    print(`${getCommandStr(command)} failed. Unexpectedly threw: ${e}`);
-    failed++;
-  }
-}
-
-function assertReturn_old(moduleRegistry, command, {canonicalNan, arithmeticNan} = {}) {
-  const {action, expected} = command;
-  try {
-    const wrapper = arithmeticNan || expected.length > 1 ? getArthimeticNanWrapper(action, expected) : null;
-    const res = runAction(moduleRegistry, action, wrapper);
-    let success = true;
-    if (expected.length === 0) {
-      success = typeof res === "undefined";
-    } else {
-      // We don't support multi return right now
-      const ex1 = expected.length > 1 ? expected[1] : expected[0];
-
-      for (var name in  expected[0]) {
-        if ( expected[0].hasOwnProperty(name)) {
-          print(name + ' : ' +  expected[0][name]);
-        }
-      }
-
-      //print(`ex1 = ${typeof ex1}`);
-      const expectedResult = mapWasmArg(ex1);
-      if (ex1.type === "i64") {
-        success = expectedResult.low === res.low && expectedResult.high === res.high;
-      } /* else if (arithmeticNan) {
-        success = res === 1;
-      } */ else if (canonicalNan) {
-        success = isNaN(res);
-      } else {
-        success = res === expectedResult;
-      }
     }
 
     if (success) {

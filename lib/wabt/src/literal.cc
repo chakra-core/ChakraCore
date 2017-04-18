@@ -225,7 +225,6 @@ static Result parse_float_nan(const char* s,
   }
 
   *out_bits = make_float(is_neg, F32_MAX_EXP, tag);
-  //printf("nan : %p \n", *out_bits);
   return Result::Ok;
 }
 
