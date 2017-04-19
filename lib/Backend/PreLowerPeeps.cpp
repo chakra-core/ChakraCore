@@ -82,8 +82,8 @@ Lowerer::TryShiftAdd(IR::Instr *instrAdd, IR::Opnd * opndFold, IR::Opnd * opndAd
         switch (constVal)
         {
         case 1:
-            scale = 0;
-            break;
+scale = 0;
+break;
         case 2:
             scale = 1;
             break;
@@ -181,6 +181,12 @@ Lowerer::PeepShiftAdd(IR::Instr *instrAdd)
 
     IR::Opnd * src2 = instrAdd->GetSrc2();
     IR::Opnd * src1 = instrAdd->GetSrc1();
+
+    // we can't remove t1 in case both srcs are uses of t1
+    if (src1->IsEqual(src2))
+    {
+        return instrAdd;
+    }
     IR::Instr * resultInstr = TryShiftAdd(instrAdd, src1, src2);
     if (resultInstr->m_opcode == Js::OpCode::Add_I4)
     {
