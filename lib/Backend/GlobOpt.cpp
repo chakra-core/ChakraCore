@@ -15190,7 +15190,17 @@ static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int64 value)
 
 static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int value)
 {
-    return (IR::Opnd*)IR::IntConstOpnd::New(value, instr->GetDst()->GetType(), instr->m_func);
+    IntConstType constVal;
+    if (instr->GetDst()->IsUnsigned())
+    {
+        // we should zero extend in case of uint
+        constVal = (uint32)value;
+    }
+    else
+    {
+        constVal = value;
+    }
+    return (IR::Opnd*)IR::IntConstOpnd::New(constVal, instr->GetDst()->GetType(), instr->m_func);
 }
 
 template <typename T>
