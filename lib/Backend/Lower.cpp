@@ -9742,7 +9742,7 @@ Lowerer::LowerEqualityCompare(IR::Instr* instr, IR::JnHelperMethod helper)
     }
     else
     {
-        bool hasStrFastpath = m_lowererMD.GenerateFastBrOrCmString(instr);
+        bool hasStrFastpath = GenerateFastBrOrCmString(instr);
         if(GenerateFastCmEqLikely(instr, &needHelper, hasStrFastpath) || GenerateFastEqBoolInt(instr, &needHelper, hasStrFastpath))
         {
             if (needHelper)
@@ -9825,7 +9825,7 @@ Lowerer::LowerEqualityBranch(IR::Instr* instr, IR::JnHelperMethod helper)
     bool needHelper = true;
     IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
 
-    bool hasStrFastPath = m_lowererMD.GenerateFastBrOrCmString(instr);
+    bool hasStrFastPath = GenerateFastBrOrCmString(instr);
 
     if (GenerateFastBrEqLikely(instr->AsBranchInstr(), &needHelper, hasStrFastPath) || GenerateFastEqBoolInt(instr, &needHelper, hasStrFastPath))
     {
@@ -20909,6 +20909,283 @@ bool Lowerer::GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper, bool 
 
     instr->InsertBefore(labelHelper);
     instr->InsertAfter(labelDone);
+
+    return true;
+}
+
+bool
+Lowerer::GenerateFastBrOrCmString(IR::Instr* instr)
+{
+    IR::RegOpnd *srcReg1 = instr->GetSrc1()->IsRegOpnd() ? instr->GetSrc1()->AsRegOpnd() : nullptr;
+    IR::RegOpnd *srcReg2 = instr->GetSrc2()->IsRegOpnd() ? instr->GetSrc2()->AsRegOpnd() : nullptr;
+
+    if (!srcReg1 ||
+        !srcReg2 ||
+        srcReg1->IsTaggedInt() ||
+        srcReg2->IsTaggedInt() ||
+        !srcReg1->GetValueType().HasHadStringTag() ||
+        !srcReg2->GetValueType().HasHadStringTag())
+    {
+        return false;
+    }
+
+    IR::LabelInstr *labelHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+    IR::LabelInstr *labelBranchFail = nullptr;
+    IR::LabelInstr *labelBranchSuccess = nullptr;
+
+    bool isEqual = false;
+    bool isStrict = false;
+    bool isBranch = true;
+    bool isCmNegOp = false;
+
+    switch (instr->m_opcode)
+    {
+    case Js::OpCode::BrSrEq_A:
+    case Js::OpCode::BrSrNotNeq_A:
+        isStrict = true;
+    case Js::OpCode::BrEq_A:
+    case Js::OpCode::BrNotNeq_A:
+        labelBranchFail = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        labelBranchSuccess = instr->AsBranchInstr()->GetTarget();
+        instr->InsertAfter(labelBranchFail);
+        isEqual = true;
+        break;
+
+    case Js::OpCode::BrSrNeq_A:
+    case Js::OpCode::BrSrNotEq_A:
+        isStrict = true;
+    case Js::OpCode::BrNeq_A:
+    case Js::OpCode::BrNotEq_A:
+        labelBranchSuccess = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        labelBranchFail = instr->AsBranchInstr()->GetTarget();
+        instr->InsertAfter(labelBranchSuccess);
+        isEqual = false;
+        break;
+
+    case Js::OpCode::CmSrEq_A:
+        isStrict = true;
+    case Js::OpCode::CmEq_A:
+        isEqual = true;
+        isBranch = false;
+        break;
+
+    case Js::OpCode::CmSrNeq_A:
+        isStrict = true;
+    case Js::OpCode::CmNeq_A:
+        isEqual = false;
+        isBranch = false;
+        isCmNegOp = true;
+        break;
+
+    default:
+        Assume(UNREACHED);
+    }
+
+    if (!isBranch)
+    {
+        labelBranchSuccess = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+        labelBranchFail = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+    }
+
+    GenerateFastStringCheck(instr, srcReg1, srcReg2, isEqual, isStrict, labelHelper, labelBranchSuccess, labelBranchFail);
+
+    IR::LabelInstr *labelFallthrough = IR::LabelInstr::New(Js::OpCode::Label, this->m_func);
+
+    if (!isBranch)
+    {
+        const LibraryValue successValueType = !isCmNegOp ? LibraryValue::ValueTrue : LibraryValue::ValueFalse;
+        const LibraryValue failureValueType = !isCmNegOp ? LibraryValue::ValueFalse : LibraryValue::ValueTrue;
+
+        instr->InsertBefore(labelBranchSuccess);
+        InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, successValueType), instr);
+        InsertBranch(Js::OpCode::Br, labelFallthrough, instr);
+
+        instr->InsertBefore(labelBranchFail);
+        InsertMove(instr->GetDst(), LoadLibraryValueOpnd(instr, failureValueType), instr);
+        InsertBranch(Js::OpCode::Br, labelFallthrough, instr);
+    }
+
+    instr->InsertBefore(labelHelper);
+
+    instr->InsertAfter(labelFallthrough);
+
+#if DBG
+    // The fast-path for strings assumes the case where 2 strings are equal is rare, and marks that path as 'helper'.
+    // This breaks the helper label dbchecks as it can result in non-helper blocks be reachable only from helper blocks.
+    // Use m_isHelperToNonHelperBranch and m_noHelperAssert to fix this.
+    IR::Instr *blockEndInstr;
+
+    if (isEqual)
+    {
+        blockEndInstr = labelHelper->GetNextBranchOrLabel();
+    }
+    else
+    {
+        blockEndInstr = instr->GetNextBranchOrLabel();
+    }
+
+    if (blockEndInstr->IsBranchInstr())
+    {
+        blockEndInstr->AsBranchInstr()->m_isHelperToNonHelperBranch = true;
+    }
+
+    labelFallthrough->m_noHelperAssert = true;
+#endif
+
+    return true;
+}
+
+bool
+Lowerer::GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::RegOpnd *srcReg2, bool isEqual, bool isStrict, IR::LabelInstr *labelHelper, IR::LabelInstr *labelBranchSuccess, IR::LabelInstr *labelBranchFail)
+{
+    Assert(instr->m_opcode == Js::OpCode::BrSrEq_A ||
+        instr->m_opcode == Js::OpCode::BrSrNeq_A ||
+        instr->m_opcode == Js::OpCode::BrEq_A ||
+        instr->m_opcode == Js::OpCode::BrNeq_A ||
+        instr->m_opcode == Js::OpCode::BrSrNotEq_A ||
+        instr->m_opcode == Js::OpCode::BrSrNotNeq_A ||
+        instr->m_opcode == Js::OpCode::BrNotEq_A ||
+        instr->m_opcode == Js::OpCode::BrNotNeq_A ||
+        instr->m_opcode == Js::OpCode::CmEq_A ||
+        instr->m_opcode == Js::OpCode::CmNeq_A ||
+        instr->m_opcode == Js::OpCode::CmSrEq_A ||
+        instr->m_opcode == Js::OpCode::CmSrNeq_A);
+
+    // if src1 is not string
+    // generate object test, if not equal jump to $helper
+    // compare type check to string, if not jump to $helper
+    //
+    // if strict mode generate string test as above for src1 and jump to $failure if failed any time
+    // else if not strict generate string test as above for src1 and jump to $helper if failed any time
+    //
+    // Compare length of src1 and src2 if not equal goto $failure
+    //
+    // if src1 is not flat string jump to $helper
+    //
+    // if src1 and src2 m_pszValue pointer match goto $success
+    //
+    // if src2 is not flat string jump to $helper
+    //
+    // if first character of src1 and src2 doesn't match goto $failure
+    //
+    // shift left by 1 length of src1 (length*2)
+    //
+    // wmemcmp src1 and src2 flat strings till length * 2
+    //
+    // test eax (result of wmemcmp)
+    // if equal jump to $success else to $failure
+    //
+    // $success
+    //     jmp to $fallthrough
+    // $failure
+    //     jmp to $fallthrough
+    // $helper
+    //
+    // $fallthrough
+
+    // Generates:
+    //      GenerateObjectTest(src1);
+    //      CMP srcReg1, srcReg2
+    //      JEQ $success
+    //      MOV s1, [srcReg1 + offset(Type)]
+    //      CMP type, static_string_type
+    //      JNE $helper
+    //      GenerateObjectTest(src2);
+    //      MOV s2, [srcReg2 + offset(Type)]
+    //      CMP type, static_string_type
+    //      JNE $fail                         ; if src1 is string but not src2, src1 !== src2 if isStrict
+    //      MOV s3, [srcReg1,offset(m_charLength)]
+    //      CMP [srcReg2,offset(m_charLength)], s3
+    //      JNE $fail                     <--- length check done
+    //      MOV s4, [srcReg1,offset(m_pszValue)]
+    //      CMP s4, 0
+    //      JEQ $helper
+    //      MOV s5, [srcReg2,offset(m_pszValue)]
+    //      CMP s5, 0
+    //      JEQ $helper
+    //      MOV s6,[s4]
+    //      CMP [s5], s6                       -First character comparison
+    //      JNE $fail
+    //      SHL length, 1
+    //      eax = wmemcmp(src1String, src2String, length*2)
+    //      TEST eax, eax
+    //      JEQ $success
+    //      JMP $fail
+    IR::Instr* instrInsert = instr;
+
+    GenerateStringTest(srcReg1, instrInsert, labelHelper);
+
+    if (srcReg1->IsEqual(srcReg2))
+    {
+        InsertBranch(Js::OpCode::Br, labelBranchSuccess, instrInsert);
+#if DBG
+        if (instr->IsBranchInstr())
+        {
+            // we might have other cases on helper path which will generate branch to the target
+            instr->AsBranchInstr()->GetTarget()->m_noHelperAssert = true;
+        }
+#endif
+        return true;
+    }
+    //      CMP srcReg1, srcReg2                       - Ptr comparison
+    //      JEQ $branchSuccess
+    InsertCompareBranch(srcReg1, srcReg2, Js::OpCode::BrEq_A, labelBranchSuccess, instrInsert);
+
+    if (isStrict)
+    {
+        GenerateStringTest(srcReg2, instrInsert, labelBranchFail);
+    }
+    else
+    {
+        GenerateStringTest(srcReg2, instrInsert, labelHelper);
+    }
+
+    //      MOV s3, [srcReg1,offset(m_charLength)]
+    //      CMP [srcReg2,offset(m_charLength)], s3
+    //      JNE $branchfail
+
+    IR::RegOpnd * src1LengthOpnd = IR::RegOpnd::New(TyUint32, m_func);
+    InsertMove(src1LengthOpnd, IR::IndirOpnd::New(srcReg1, Js::JavascriptString::GetOffsetOfcharLength(), TyUint32, m_func), instrInsert);
+    InsertCompareBranch(IR::IndirOpnd::New(srcReg2, Js::JavascriptString::GetOffsetOfcharLength(), TyUint32, m_func), src1LengthOpnd, Js::OpCode::BrNeq_A, labelBranchFail, instrInsert);
+
+    //      MOV s4, [src1,offset(m_pszValue)]
+    //      CMP s4, 0
+    //      JEQ $helper
+    //      MOV s5, [src2,offset(m_pszValue)]
+    //      CMP s5, 0
+    //      JEQ $helper
+
+    IR::RegOpnd * src1FlatString = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(src1FlatString, IR::IndirOpnd::New(srcReg1, Js::JavascriptString::GetOffsetOfpszValue(), TyMachPtr, m_func), instrInsert);
+    InsertCompareBranch(src1FlatString, IR::IntConstOpnd::New(0, TyUint32, m_func), Js::OpCode::BrEq_A, labelHelper, instrInsert);
+
+    IR::RegOpnd * src2FlatString = IR::RegOpnd::New(TyMachPtr, m_func);
+    InsertMove(src2FlatString, IR::IndirOpnd::New(srcReg2, Js::JavascriptString::GetOffsetOfpszValue(), TyMachPtr, m_func), instrInsert);
+    InsertCompareBranch(src2FlatString, IR::IntConstOpnd::New(0, TyUint32, m_func), Js::OpCode::BrEq_A, labelHelper, instrInsert);
+
+    //      MOV s6,[s4]
+    //      CMP [s5], s6                       -First character comparison
+    //      JNE $branchfail
+
+    IR::RegOpnd * src1FirstChar = IR::RegOpnd::New(TyUint16, m_func);
+    InsertMove(src1FirstChar, IR::IndirOpnd::New(src1FlatString, 0, TyUint16, m_func), instrInsert);
+    InsertCompareBranch(IR::IndirOpnd::New(src2FlatString, 0, TyUint16, m_func), src1FirstChar, Js::OpCode::BrNeq_A, labelBranchFail, instrInsert);
+
+    // eax = wmemcmp(src1String, src2String, length)
+
+    m_lowererMD.LoadHelperArgument(instr, src1LengthOpnd);
+    m_lowererMD.LoadHelperArgument(instr, src1FlatString);
+    m_lowererMD.LoadHelperArgument(instr, src2FlatString);
+    IR::RegOpnd *dstOpnd = IR::RegOpnd::New(TyInt32, this->m_func);
+    IR::Instr *instrCall = IR::Instr::New(Js::OpCode::Call, dstOpnd, IR::HelperCallOpnd::New(IR::HelperWMemCmp, m_func), m_func);
+    instr->InsertBefore(instrCall);
+    m_lowererMD.LowerCall(instrCall, 3);
+
+    // TEST eax, eax
+    // JEQ success
+    InsertTestBranch(dstOpnd, dstOpnd, Js::OpCode::BrEq_A, labelBranchSuccess, instrInsert);
+    // JMP fail
+    InsertBranch(Js::OpCode::Br, labelBranchFail, instrInsert);
 
     return true;
 }
