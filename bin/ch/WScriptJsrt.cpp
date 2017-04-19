@@ -100,7 +100,8 @@ bool WScriptJsrt::CreateArgumentsObject(JsValueRef *argsObject)
     return true;
 }
 
-JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
+JsValueRef __stdcall WScriptJsrt::EchoCallback(FILE *file, JsValueRef callee, bool isConstructCall,
+    JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
     for (unsigned int i = 1; i < argumentCount; i++)
     {
@@ -113,9 +114,9 @@ JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstru
             {
                 if (i > 1)
                 {
-                    wprintf(_u(" "));
+                    fwprintf(file, _u(" "));
                 }
-                wprintf(_u("%ls"), str.GetWideString());
+                fwprintf(file, _u("%ls"), str.GetWideString());
             }
         }
 
@@ -125,8 +126,8 @@ JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstru
         }
     }
 
-    wprintf(_u("\n"));
-    fflush(stdout);
+    fwprintf(file, _u("\n"));
+    fflush(file);
 
     JsValueRef undefinedValue;
     if (ChakraRTInterface::JsGetUndefinedValue(&undefinedValue) == JsNoError)
@@ -138,6 +139,21 @@ JsValueRef __stdcall WScriptJsrt::EchoCallback(JsValueRef callee, bool isConstru
         return nullptr;
     }
 }
+
+#define ECHO_DEFINE_FUNCTION(name)                           \
+    JsValueRef name(JsValueRef callee, bool isConstructCall, \
+        JsValueRef *arguments, unsigned short argumentCount, \
+        void *callbackState)
+
+#define ECHO_CALL_FUNCTION(target)   \
+    WScriptJsrt::EchoCallback(target, callee, isConstructCall, \
+        arguments, argumentCount, callbackState)
+
+static ECHO_DEFINE_FUNCTION(EchoCallbackOut) { return ECHO_CALL_FUNCTION(stdout); }
+static ECHO_DEFINE_FUNCTION(EchoCallbackErr) { return ECHO_CALL_FUNCTION(stderr); }
+
+#undef ECHO_CALL_FUNCTION
+#undef ECHO_DEFINE_FUNCTION
 
 JsValueRef __stdcall WScriptJsrt::QuitCallback(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState)
 {
@@ -760,7 +776,7 @@ bool WScriptJsrt::Initialize()
     JsValueRef wscript;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&wscript), false);
 
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Echo", EchoCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Echo", EchoCallbackOut));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "Quit", QuitCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScriptFile", LoadScriptFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(wscript, "LoadScript", LoadScriptCallback));
@@ -862,14 +878,15 @@ bool WScriptJsrt::Initialize()
     IfJsrtErrorFail(ChakraRTInterface::JsGetGlobalObject(&global), false);
     IfJsrtErrorFail(ChakraRTInterface::JsSetProperty(global, wscriptName, wscript, true), false);
 
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "print", EchoCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "print", EchoCallbackOut));
 
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "read", LoadTextFileCallback));
     IfFalseGo(WScriptJsrt::InstallObjectsOnObject(global, "readbuffer", LoadBinaryFileCallback));
 
     JsValueRef console;
     IfJsrtErrorFail(ChakraRTInterface::JsCreateObject(&console), false);
-    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(console, "log", EchoCallback));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(console, "log", EchoCallbackOut));
+    IfFalseGo(WScriptJsrt::InstallObjectsOnObject(console, "error", EchoCallbackErr));
 
     JsPropertyIdRef consoleName;
     IfJsrtErrorFail(CreatePropertyIdFromString("console", &consoleName), false);
