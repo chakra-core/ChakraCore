@@ -15,6 +15,8 @@ for(i=-3; i < 15;i++)
    }
 }
 
+WScript.Echo(x.indexOf(-0, -0));
+
 var b = function(){};
 b.prototype = Array.prototype;
 

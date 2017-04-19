@@ -501,7 +501,7 @@ PHASE(All)
 
 #define DEFAULT_CONFIG_Intl                    (true)
 #define DEFAULT_CONFIG_IntlBuiltIns            (true)
-#define DEFAULT_CONFIG_BuiltIn         (true)
+#define DEFAULT_CONFIG_BuiltIn                 (true)
 
 // ES6 DEFAULT BEHAVIOR
 #define DEFAULT_CONFIG_ES6                     (true)  // master flag to gate all P0-spec-test compliant ES6 features

@@ -413,7 +413,6 @@ namespace Js
 
         Field(ConstructorCache*) builtInConstructorCache;
 
-
         Field(FunctionBody*) indexOfByteCode;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS

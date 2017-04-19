@@ -254,6 +254,8 @@
     <ClInclude Include="WabtInterface.h" />
     <ClInclude Include="BuiltIn\IndexOf.js.bc.32b.h" />
     <ClInclude Include="BuiltIn\IndexOf.js.bc.64b.h" />
+    <ClInclude Include="BuiltIn\IndexOf.js.nojit.bc.32b.h" />
+    <ClInclude Include="BuiltIn\IndexOf.js.nojit.bc.64b.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ConcatString.inl" />
