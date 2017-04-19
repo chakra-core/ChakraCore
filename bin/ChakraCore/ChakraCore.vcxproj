@@ -165,6 +165,9 @@
     <ProjectReference Include="..\..\lib\Runtime\Types\Chakra.Runtime.Types.vcxproj">
       <Project>{706083f7-6aa4-4558-a153-6352ef9110f6}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\lib\wabt.vcxproj">
+      <Project>{F48B3491-81DF-4F49-B35F-3308CBE6A379}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestHooks.h" />
