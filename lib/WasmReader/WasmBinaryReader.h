@@ -15,6 +15,10 @@ namespace Wasm
         const int8 f32 = 0x80 - 0x3;
         const int8 f64 = 0x80 - 0x4;
         const int8 m128 = 0x80 - 0x5;
+        const int8 b2 = 0x80 - 0x6;
+        const int8 b4 = 0x80 - 0x7;
+        const int8 b8 = 0x80 - 0x8;
+        const int8 b16 = 0x80 - 0x9;
         const int8 anyfunc = 0x80 - 0x10;
         const int8 func = 0x80 - 0x20;
         const int8 emptyBlock = 0x80 - 0x40;

@@ -74,6 +74,10 @@ LanguageTypes::ToWasmType(int8 binType)
     case LanguageTypes::f32: return WasmTypes::F32;
     case LanguageTypes::f64: return WasmTypes::F64;
     case LanguageTypes::m128: return WasmTypes::M128;
+    case LanguageTypes::b2: return WasmTypes::B2;
+    case LanguageTypes::b4: return WasmTypes::B4;
+    case LanguageTypes::b8: return WasmTypes::B8;
+    case LanguageTypes::b16: return WasmTypes::B16;
     default:
         throw WasmCompilationException(_u("Invalid binary type %d"), binType);
     }

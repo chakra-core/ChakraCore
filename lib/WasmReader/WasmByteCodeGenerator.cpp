@@ -120,9 +120,10 @@ WasmToAsmJs::GetAsmJsVarType(WasmTypes::WasmType wasmType)
     case WasmTypes::F32: return Js::AsmJsVarType::Float;
     case WasmTypes::F64: return Js::AsmJsVarType::Double;
     case WasmTypes::M128:  return Js::AsmJsVarType::Float32x4;
-    //case WasmTypes::I2:  return Js::AsmJsVarType::Int64x2; @TODO
-    //case WasmTypes::B2:  return Js::AsmJsVarType::Bool64x2; 
-    //case WasmTypes::F2:  return Js::AsmJsVarType::Float2x64;
+    case WasmTypes::B2: return Js::AsmJsVarType::Float32x4; //@TODO: add AsmJsVarType for bool types for signature checking of imported functions
+    case WasmTypes::B4: return Js::AsmJsVarType::Float32x4;
+    case WasmTypes::B8: return Js::AsmJsVarType::Float32x4;
+    case WasmTypes::B16: return Js::AsmJsVarType::Float32x4;
     default:
         throw WasmCompilationException(_u("Unknown var type %u"), wasmType);
     }
@@ -467,7 +468,10 @@ WasmBytecodeGenerator::EnregisterLocals()
             case WasmTypes::I64:
                 m_writer->AsmLong1Const1(Js::OpCodeAsmJs::Ld_LongConst, m_locals[i].location, 0);
                 break;
-            case WasmTypes::M128:
+#define SIMD_CASE(TYPE, BASE) case WasmTypes::##TYPE:
+
+                FOREACH_SIMD_TYPE(SIMD_CASE)
+#undef SIMD_CASE
             {
                 //@TODO maybe we should introduce REAL simd consts? 
                 EmitInfo arg1 = EmitLoadFloatConstIntoReg(0);
@@ -1007,7 +1011,10 @@ WasmBytecodeGenerator::EmitCall()
         case WasmTypes::I64:
             argOp = isImportCall ? Js::OpCodeAsmJs::ArgOut_Long : Js::OpCodeAsmJs::I_ArgOut_Long;
             break;
-        case WasmTypes::M128:
+#define SIMD_CASE(TYPE, BASE) case WasmTypes::##TYPE:
+
+            FOREACH_SIMD_TYPE(SIMD_CASE)
+#undef SIMD_CASE
             argOp = Js::OpCodeAsmJs::Simd128_I_ArgOut_F4;
             break;
         case WasmTypes::Any:
@@ -1411,7 +1418,10 @@ WasmBytecodeGenerator::GetLoadOp(WasmTypes::WasmType wasmType)
         return Js::OpCodeAsmJs::Ld_Int;
     case WasmTypes::I64:
         return Js::OpCodeAsmJs::Ld_Long;
-    case WasmTypes::M128:
+#define SIMD_CASE(TYPE, BASE) case WasmTypes::##TYPE:
+
+        FOREACH_SIMD_TYPE(SIMD_CASE)
+#undef SIMD_CASE
         return Js::OpCodeAsmJs::Simd128_Ld_F4;
     case WasmTypes::Any:
         // In unreachable mode load the any type like an int since we won't actually emit the load
