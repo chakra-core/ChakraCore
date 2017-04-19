@@ -625,7 +625,7 @@ PreReservedSectionAllocWrapper::IsInRange(void * address)
     {
         MEMORY_BASIC_INFORMATION memBasicInfo;
         size_t bytes = VirtualQueryEx(this->process, address, &memBasicInfo, sizeof(memBasicInfo));
-        Assert(bytes != 0 && memBasicInfo.State == MEM_COMMIT && memBasicInfo.AllocationProtect == PAGE_EXECUTE);
+        Assert(bytes == 0 || (memBasicInfo.State == MEM_COMMIT && memBasicInfo.AllocationProtect == PAGE_EXECUTE));
     }
 #endif
     return isInRange;
