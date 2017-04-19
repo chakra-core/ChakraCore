@@ -1817,6 +1817,7 @@ typedef unsigned short uint16_t;
             _In_ JsValueRef object2,
             _Out_ bool *result);
 
+#ifdef NTBUILD
     /// <summary>
     ///     Determines whether an object is an external object.
     /// </summary>
@@ -1861,6 +1862,7 @@ typedef unsigned short uint16_t;
         JsSetExternalData(
             _In_ JsValueRef object,
             _In_opt_ void *externalData);
+#endif
 
     /// <summary>
     ///     Creates a Javascript array object.

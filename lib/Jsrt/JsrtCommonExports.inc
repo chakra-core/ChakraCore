@@ -116,4 +116,5 @@
     JsCreatePropertyId
     JsCopyPropertyId
     JsCreatePromise
+    JsSetExternalDataWithCallback
 #endif

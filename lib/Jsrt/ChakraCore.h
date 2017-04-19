@@ -508,9 +508,81 @@ CHAKRA_API
 ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
 /// </returns>
 CHAKRA_API
-JsCreatePromise(
-    _Out_ JsValueRef *promise,
-    _Out_ JsValueRef *resolveFunction,
-    _Out_ JsValueRef *rejectFunction);
+    JsCreatePromise(
+        _Out_ JsValueRef *promise,
+        _Out_ JsValueRef *resolveFunction,
+        _Out_ JsValueRef *rejectFunction);
+
+/// <summary>
+///     Determines whether an object has any external data.
+/// </summary>
+/// <param name="object">The object.</param>
+/// <param name="value">Whether the object has an external data.</param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsHasExternalData(
+        _In_ JsValueRef object,
+        _Out_ bool *value);
+
+/// <summary>
+///     Retrieves the external data from a Javascript object.
+/// </summary>
+/// <param name="object">The Javascript object.</param>
+/// <param name="externalData">
+///     The external data stored in the object. Can be null if no external data is stored in the
+///     object.
+/// </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsGetExternalData(
+        _In_ JsValueRef object,
+        _Out_ void **externalData);
+
+/// <summary>
+///     Sets the external data on an object.
+/// </summary>
+/// <param name="object">The Javascript object.</param>
+/// <param name="externalData">
+///     The external data to be stored in the object. Can be null if no external data is
+///     to be stored in the object.
+/// </param>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsSetExternalData(
+        _In_ JsValueRef object,
+        _In_opt_ void *externalData);
+
+/// <summary>
+///     Sets the external data and finalize callback on an object.
+/// </summary>
+/// <param name="object">The Javascript object.</param>
+/// <param name="externalData">
+///     The external data to be stored in the object. Can be null if no external data is
+///     to be stored in the object.
+/// </param>
+/// <param name="finalizeCallback">The callback to be called once the host object
+///     is garbage collected.
+/// </param>
+/// <remarks>
+///     If host object is JsExternalObject, previously defined callback argument
+///     and data will be updated with the ones provided through this API call.
+///     If host object is a Javascript Object, and object has an external data
+///     with or without callback defined previously, similarly, the previous
+///     information will be altered.
+/// </remarks>
+/// <returns>
+///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+/// </returns>
+CHAKRA_API
+    JsSetExternalDataWithCallback(
+        _In_     JsValueRef         value,
+        _In_opt_ void               *data,
+        _In_opt_ JsFinalizeCallback finalizeCallback);
 #endif // CHAKRACOREBUILD_
 #endif // _CHAKRACORE_H_

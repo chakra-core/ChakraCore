@@ -3,23 +3,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
 
-#include "ChakraCore.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <string>
-#include <cstring>
-
-#define FAIL_CHECK(cmd)                     \
-    do                                      \
-    {                                       \
-        JsErrorCode errCode = cmd;          \
-        if (errCode != JsNoError)           \
-        {                                   \
-            printf("Error %d at '%s'\n",    \
-                errCode, #cmd);             \
-            return 1;                       \
-        }                                   \
-    } while(0)
+#include "../CommonDefinitions.h"
 
 using namespace std;
 

@@ -320,6 +320,10 @@ ENTRY(expected)
 // SIMD_JS
 ENTRY(SIMD)
 
+#ifndef NTBUILD
+ENTRY(ExternalDataObject)
+#endif
+
 ENTRY(max)
 ENTRY(MAX_SAFE_INTEGER)
 ENTRY(MAX_VALUE)
