@@ -2254,21 +2254,19 @@ namespace Js
                 Max
             };
 
+    private:
             typedef CompactCounters<FunctionBody> CounterT;
             FieldWithBarrier(CounterT) counters;
+            friend CounterT;
 
-            uint32 GetCountField(FunctionBody::CounterFields fieldEnum) const
-            {
-                return counters.Get(fieldEnum);
-            }
-            uint32 SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val)
-            {
-                return counters.Set(fieldEnum, val, this);
-            }
-            uint32 IncreaseCountField(FunctionBody::CounterFields fieldEnum)
-            {
-                return counters.Increase(fieldEnum, this);
-            }
+    public:
+            uint32 GetCountField(FunctionBody::CounterFields fieldEnum) const;
+            uint32 SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val);
+            uint32 IncreaseCountField(FunctionBody::CounterFields fieldEnum);
+#if DBG
+            void LockDownCounters() { counters.isLockedDown = true; };
+            void UnlockCounters() { counters.isLockedDown = false; };
+#endif
 
             struct StatementMap
             {
