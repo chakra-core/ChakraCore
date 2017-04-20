@@ -4680,7 +4680,7 @@ Inline::MapFormals(Func *inlinee,
             }
 
             int excess;
-            Js::ArgSlot restFuncFormalCount = 0;
+            uint restFuncFormalCount = 0;
             if (instr->m_func != inlinee)
             {
                 restFuncFormalCount = instr->m_func->GetJITFunctionBody()->GetInParamsCount();
@@ -4713,18 +4713,31 @@ Inline::MapFormals(Func *inlinee,
 
             if (instr->m_func != inlinee)
             {
+                uint index = 0;
                 for (uint i = restFuncFormalCount; i < min(actualCount, formalCount); ++i)
                 {
-                    IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), i - restFuncFormalCount, TyVar, inlinee);
+                    IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), index, TyVar, inlinee);
                     IR::Instr *stElemInstr = IR::Instr::New(Js::OpCode::StElemC, arrayLocOpnd, argOuts[i]->GetBytecodeArgOutCapture()->GetDst(), inlinee);
                     instr->InsertBefore(stElemInstr);
+                    index++;
                 }
+                for (uint i = max(formalCount, restFuncFormalCount); i < actualCount; ++i)
+                {
+                    IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), index, TyVar, inlinee);
+                    IR::Instr *stElemInstr = IR::Instr::New(Js::OpCode::StElemC, arrayLocOpnd, argOutsExtra[i]->GetBytecodeArgOutCapture()->GetDst(), inlinee);
+                    instr->InsertBefore(stElemInstr);
+                    index++;
+                }
+                Assert(index == (uint)excess);
             }
-            for (uint i = formalCount; i < actualCount; ++i)
+            else
             {
-                IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), (i + restFuncFormalCount) - formalCount, TyVar, inlinee);
-                IR::Instr *stElemInstr = IR::Instr::New(Js::OpCode::StElemC, arrayLocOpnd, argOutsExtra[i]->GetBytecodeArgOutCapture()->GetDst(), inlinee);
-                instr->InsertBefore(stElemInstr);
+                for (uint i = formalCount; i < actualCount; ++i)
+                {
+                    IR::IndirOpnd *arrayLocOpnd = IR::IndirOpnd::New(restDst->AsRegOpnd(), i - formalCount, TyVar, inlinee);
+                    IR::Instr *stElemInstr = IR::Instr::New(Js::OpCode::StElemC, arrayLocOpnd, argOutsExtra[i]->GetBytecodeArgOutCapture()->GetDst(), inlinee);
+                    instr->InsertBefore(stElemInstr);
+                }
             }
 
             instr->Remove();
