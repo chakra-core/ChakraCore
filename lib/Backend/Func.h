@@ -684,7 +684,7 @@ public:
     bool                hasStackArgs: 1;
     bool                hasImplicitParamLoad : 1; // True if there is a load of CallInfo, FunctionObject
     bool                hasThrow : 1;
-    bool                hasUnoptimizedArgumentsAcccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
+    bool                hasUnoptimizedArgumentsAccess : 1; // True if there are any arguments access beyond the simple case of this.apply pattern
     bool                m_canDoInlineArgsOpt : 1;
     bool                hasApplyTargetInlining:1;
     bool                isGetterSetter : 1;
@@ -773,13 +773,13 @@ public:
     bool                GetHasThrow() const { return this->hasThrow; }
     void                SetHasThrow() { this->hasThrow = true; }
 
-    bool                GetHasUnoptimizedArgumentsAcccess() const { return this->hasUnoptimizedArgumentsAcccess; }
+    bool                GetHasUnoptimizedArgumentsAccess() const { return this->hasUnoptimizedArgumentsAccess; }
     void                SetHasUnoptimizedArgumentsAccess(bool args)
     {
                         // Once set to 'true' make sure this does not become false
-                        if (!this->hasUnoptimizedArgumentsAcccess)
+                        if (!this->hasUnoptimizedArgumentsAccess)
                         {
-                            this->hasUnoptimizedArgumentsAcccess = args;
+                            this->hasUnoptimizedArgumentsAccess = args;
                         }
 
                         if (args)
@@ -787,7 +787,7 @@ public:
                             Func *curFunc = this->GetParentFunc();
                             while (curFunc)
                             {
-                                curFunc->hasUnoptimizedArgumentsAcccess = args;
+                                curFunc->hasUnoptimizedArgumentsAccess = args;
                                 curFunc = curFunc->GetParentFunc();
                             }
                         }

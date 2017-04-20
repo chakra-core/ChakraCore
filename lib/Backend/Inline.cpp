@@ -1033,7 +1033,7 @@ Inline::InlinePolymorphicFunction(IR::Instr *callInstr, const FunctionJITTimeInf
         IR::RegOpnd* functionObject = callInstr->GetSrc1()->AsRegOpnd();
         dispatchStartLabel->InsertBefore(IR::BranchInstr::New(Js::OpCode::BrAddr_A, inlineeStartLabel,
             IR::IndirOpnd::New(functionObject, Js::JavascriptFunction::GetOffsetOfFunctionInfo(), TyMachPtr, dispatchStartLabel->m_func),
-            IR::AddrOpnd::New(inlineesDataArray[i]->GetFunctionInfoAddr(), IR::AddrOpndKindDynamicFunctionBody, dispatchStartLabel->m_func), dispatchStartLabel->m_func));
+            IR::AddrOpnd::New(inlineesDataArray[i]->GetFunctionInfoAddr(), IR::AddrOpndKindDynamicFunctionInfo, dispatchStartLabel->m_func), dispatchStartLabel->m_func));
     }
 
     CompletePolymorphicInlining(callInstr, returnValueOpnd, doneLabel, dispatchStartLabel, /*ldMethodFldInstr*/nullptr, IR::BailOutOnPolymorphicInlineFunction);
@@ -4517,7 +4517,7 @@ Inline::MapActuals(IR::Instr *callInstr, __out_ecount(maxParamCount) IR::Instr *
             {
                 if(inlinee)
                 {
-                    if (!inlinee->GetHasUnoptimizedArgumentsAcccess())
+                    if (!inlinee->GetHasUnoptimizedArgumentsAccess())
                     {
                         // This allows us to markTemp the argOut source.
                         argInstr->m_opcode = Js::OpCode::ArgOut_A_Inline;

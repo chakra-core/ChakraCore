@@ -19975,7 +19975,7 @@ GlobOpt::DoInlineArgsOpt(Func* func)
     bool doInlineArgsOpt =
         !PHASE_OFF(Js::InlineArgsOptPhase, topFunc) &&
         !func->GetHasCalls() &&
-        !func->GetHasUnoptimizedArgumentsAcccess() &&
+        !func->GetHasUnoptimizedArgumentsAccess() &&
         func->m_canDoInlineArgsOpt;
     return doInlineArgsOpt;
 }
