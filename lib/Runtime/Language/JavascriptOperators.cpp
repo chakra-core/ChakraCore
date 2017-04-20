@@ -879,8 +879,13 @@ namespace Js
     BOOL JavascriptOperators::StrictEqual(Var aLeft, Var aRight, ScriptContext* requestContext)
     {
         double dblLeft, dblRight;
-        TypeId leftType = JavascriptOperators::GetTypeId(aLeft);
-        TypeId rightType = JavascriptOperators::GetTypeId(aRight);
+        TypeId rightType, leftType;
+        leftType = JavascriptOperators::GetTypeId(aLeft);
+
+        // Because NaN !== NaN, we may not return TRUE when typeId is Number
+        if (aLeft == aRight && leftType != TypeIds_Number) return TRUE;
+
+        rightType = JavascriptOperators::GetTypeId(aRight);
 
         switch (leftType)
         {
@@ -6830,7 +6835,7 @@ CommonNumber:
                 // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
                 // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
                 // is ready for storing values directly to slots.
-                DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);    
+                DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
                 int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
                 int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
                 __analysis_assume((uint32)newSlotCapacity >= formalsCount);
@@ -6930,7 +6935,7 @@ CommonNumber:
 
         frameObject->EnsureSlots(oldSlotCapacity, newSlotCapacity, scriptContext, newType->GetTypeHandler());
         frameObject->ReplaceType(newType);
-        
+
         return frameObject;
     }
 

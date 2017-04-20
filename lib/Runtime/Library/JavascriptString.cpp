@@ -3892,6 +3892,8 @@ case_2:
     {
         AssertMsg(T::Is(aLeft) && T::Is(aRight), "string comparison");
 
+        if (aLeft == aRight) return true;
+
         T *leftString = T::FromVar(aLeft);
         T *rightString = T::FromVar(aRight);
 
