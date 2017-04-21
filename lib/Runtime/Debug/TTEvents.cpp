@@ -127,17 +127,17 @@ namespace TTD
     {
         if(!this->HasValue())
         {
-            wprintf(_u("undef"));
+            Output::Print(_u("undef"));
         }
         else
         {
             const char16* fn = (this->m_functionBody != nullptr ? this->m_functionBody->GetDisplayName() : _u("[not set]"));
-            wprintf(_u("%ls l:%I32u c:%I32u (%I64i, %I64i, %I64i)"), fn, this->m_line, this->m_column, this->m_etime, this->m_ftime, this->m_ltime);
+            Output::Print(_u("%ls l:%I32u c:%I32u (%I64i, %I64i, %I64i)"), fn, this->m_line, this->m_column, this->m_etime, this->m_ftime, this->m_ltime);
         }
 
         if(newline)
         {
-            wprintf(_u("\n"));
+            Output::Print(_u("\n"));
         }
     }
 #endif

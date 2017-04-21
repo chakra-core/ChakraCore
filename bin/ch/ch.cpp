@@ -8,6 +8,7 @@
 #ifdef _WIN32
 #include <winver.h>
 #include <process.h>
+#include <fcntl.h>
 #endif
 
 unsigned int MessageBase::s_messageCount = 0;
@@ -129,7 +130,7 @@ void __stdcall PrintChakraCoreVersion()
                 // Doesn't matter if you are on 32 bit or 64 bit,
                 // DWORD is always 32 bits, so first two revision numbers
                 // come from dwFileVersionMS, last two come from dwFileVersionLS
-                printf("%s version %d.%d.%d.%d\n",
+                wprintf(_u("%S version %d.%d.%d.%d\n"),
                     chakraDllName,
                     (verInfo->dwFileVersionMS >> 16) & 0xffff,
                     (verInfo->dwFileVersionMS >> 0) & 0xffff,
@@ -800,8 +801,8 @@ HRESULT ExecuteTestWithMemoryCheck(char* fileName)
 #ifdef _WIN32
 bool HandleJITServerFlag(int& argc, _Inout_updates_to_(argc, argc) LPWSTR argv[])
 {
-    LPCWSTR flag = L"-jitserver:";
-    LPCWSTR flagWithoutColon = L"-jitserver";
+    LPCWSTR flag = _u("-jitserver:");
+    LPCWSTR flagWithoutColon = _u("-jitserver");
     size_t flagLen = wcslen(flag);
 
     int i = 0;
@@ -809,7 +810,7 @@ bool HandleJITServerFlag(int& argc, _Inout_updates_to_(argc, argc) LPWSTR argv[]
     {
         if (!_wcsicmp(argv[i], flagWithoutColon))
         {
-            connectionUuidString = L"";
+            connectionUuidString = _u("");
             break;
         }
         else if (!_wcsnicmp(argv[i], flag, flagLen))
@@ -817,7 +818,7 @@ bool HandleJITServerFlag(int& argc, _Inout_updates_to_(argc, argc) LPWSTR argv[]
             connectionUuidString = argv[i] + flagLen;
             if (wcslen(connectionUuidString) == 0)
             {
-                fwprintf(stdout, L"[FAILED]: must pass a UUID to -jitserver:\n");
+                fwprintf(stdout, _u("[FAILED]: must pass a UUID to -jitserver:\n"));
                 return false;
             }
             else
@@ -848,7 +849,7 @@ int _cdecl RunJITServer(int argc, __in_ecount(argc) LPWSTR argv[])
 
     if (!success)
     {
-        wprintf(L"\nDll load failed\n");
+        wprintf(_u("\nDll load failed\n"));
         return ERROR_DLL_INIT_FAILED;
     }
 
@@ -863,7 +864,7 @@ int _cdecl RunJITServer(int argc, __in_ecount(argc) LPWSTR argv[])
     HRESULT hr = initRpcServer(&connectionUuid, nullptr, nullptr);
     if (FAILED(hr))
     {
-        wprintf(L"InitializeJITServer failed by 0x%x\n", hr);
+        wprintf(_u("InitializeJITServer failed by 0x%x\n"), hr);
         return hr;
     }
 
@@ -902,6 +903,17 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 #endif
 
 #ifdef _WIN32
+    // Set the output mode of stdout so we can display non-ASCII characters on the console and redirect to file as UTF-8
+    {
+        int result = _setmode(_fileno(stdout), _O_U8TEXT); // set stdout to UTF-8 mode
+        if (result == -1)
+        {
+            // Failed to set mode. Undefined behavior may result, so exit now.
+            wprintf(_u("Failed to set output stream mode. Exiting...\n"));
+            return EXIT_FAILURE;
+        }
+    }
+
     bool runJITServer = HandleJITServerFlag(argc, argv);
 #endif
     int retval = -1;
