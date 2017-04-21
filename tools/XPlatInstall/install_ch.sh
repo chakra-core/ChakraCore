@@ -113,7 +113,7 @@ fi
 rm -rf chakracore.tar.gz
 
 # test ch
-___=$(./ChakraCoreFiles/ch -v)
+___=$(./ChakraCoreFiles/bin/ch -v)
 
 if [[ $? != 0 ]]; then
     PRINT $ERROR_COLOR "] Something went wrong. 'ch' installation is failed."
@@ -124,4 +124,4 @@ if [[ $? != 0 ]]; then
 fi
 
 PRINT $SUCCESS_COLOR "] Success\n"
-PRINT $DEFAULT_COLOR "] Try './ChakraCoreFiles/ch -?'"
+PRINT $DEFAULT_COLOR "] Try './ChakraCoreFiles/bin/ch -?'"

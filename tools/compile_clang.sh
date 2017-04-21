@@ -11,6 +11,10 @@ GREEN_COLOR='\033[0;32m'
 
 CC_URL="git://sourceware.org/git/binutils-gdb.git\nhttp://llvm.org/releases/${LLVM_VERSION}/\n"
 
+if [[ $1 == '-y' || $1 == '-Y' ]]; then
+    ALWAYS_YES=1
+fi
+
 WARN_LICENSE () {
     echo -e "${ERROR_COLOR}"
     echo -e "----------------------------------------------------------------"
@@ -23,7 +27,12 @@ WARN_LICENSE () {
     echo -e "${ERROR_COLOR}"
     echo -e "----------------------------------------------------------------\n"
     echo -e "${GREEN_COLOR}If you don't agree, press Ctrl+C to terminate${DEFAULT_COLOR}"
-    read -t 20 -p "Hit ENTER to continue (or wait 20 seconds)"
+    WAIT_QUESTION="Hit ENTER to continue (or wait 20 seconds)"
+    if [[ $ALWAYS_YES == 1 ]]; then
+        echo "$WAIT_QUESTION : Y"
+    else
+        read -t 20 -p "$WAIT_QUESTION"
+    fi
 
     echo -e "\nWell, this will take some time... [and free memory 2GB+]\n"
 }
@@ -37,7 +46,12 @@ WARN_PACKAGE () {
     echo "If you don't have these packages are installed, press Ctrl+C to terminate"
     echo -e "${GREEN_COLOR}----------------------------------------------------------------"
     echo -e "${DEFAULT_COLOR}"
-    read -t 10 -p "Hit ENTER to continue (or wait 10 seconds)"
+    WAIT_QUESTION="Hit ENTER to continue (or wait 20 seconds)"
+    if [[ $ALWAYS_YES == 1 ]]; then
+        echo "$WAIT_QUESTION : Y"
+    else
+        read -t 20 -p "$WAIT_QUESTION"
+    fi
 }
 
 ROOT=${PWD}/cc-toolchain/
