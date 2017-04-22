@@ -2196,8 +2196,8 @@ namespace Js
             // - This is an already parsed asm.js module, which has been invalidated at link time and must be reparsed as a non-asm.js function
             if (!this->m_hasBeenParsed)
             {
-            this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
-            funcBody = FunctionBody::NewFromParseableFunctionInfo(this, propertyRecordList);
+                this->GetUtf8SourceInfo()->StopTrackingDeferredFunction(this->GetLocalFunctionId());
+                funcBody = FunctionBody::NewFromParseableFunctionInfo(this, propertyRecordList);
                 autoRestoreFunctionInfo.funcBody = funcBody;
 
                 PERF_COUNTER_DEC(Code, DeferredFunction);
@@ -4841,33 +4841,38 @@ namespace Js
     }
 #endif
 
-    void FunctionBody::CleanupToReparse()
+    void ParseableFunctionInfo::CleanupToReparse()
     {
 #if DBG
-        this->UnlockCounters();
+        if (this->IsFunctionBody())
+        {
+            GetFunctionBody()->UnlockCounters();
+        }
 #endif
         // The current function is already compiled. In order to prep this function to ready for debug mode, most of the previous information need to be thrown away.
         // Clean up the nested functions
         this->ForEachNestedFunc([&](FunctionProxy* proxy, uint32 index)
         {
-            if (proxy && proxy->IsFunctionBody())
+            // Note: redeferred functions may have fully compiled children. If we find a redeferred function, keep walking.
+            if (proxy && ((proxy->CanBeDeferred() && proxy->GetFunctionInfo()->GetCompileCount() > 0) || proxy->IsFunctionBody()))
             {
-                proxy->GetFunctionBody()->CleanupToReparse();
+                proxy->GetParseableFunctionInfo()->CleanupToReparse();
             }
             return true;
         });
 
-        CleanupRecyclerData(/* isShutdown */ false, true /* capture entry point cleanup stack trace */);
+        this->CleanupToReparseHelper();
+        if (this->IsFunctionBody())
+        {
+            this->GetFunctionBody()->CleanupToReparseHelper();
+        }
+    }
+
+    void FunctionBody::CleanupToReparseHelper()
+    {
+        this->CleanupRecyclerData(/* isShutdown */ false, true /* capture entry point cleanup stack trace */);
 
         this->entryPoints->ClearAndZero();
-
-#if DYNAMIC_INTERPRETER_THUNK
-        if (m_isAsmJsFunction && m_dynamicInterpreterThunk)
-        {
-            m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, true);
-            this->m_dynamicInterpreterThunk = nullptr;
-        }
-#endif
 
         // Store the originalEntryPoint to restore it back immediately.
         JavascriptMethod originalEntryPoint = this->GetOriginalEntryPoint_Unchecked();
@@ -4883,13 +4888,11 @@ namespace Js
         this->byteCodeBlock = nullptr;
         this->SetLoopHeaderArray(nullptr);
         this->SetConstTable(nullptr);
-        this->SetScopeInfo(nullptr);
         this->SetCodeGenRuntimeData(nullptr);
         this->cacheIdToPropertyIdMap = nullptr;
         this->SetFormalsPropIdArray(nullptr);
         this->SetReferencedPropertyIdMap(nullptr);
         this->SetLiteralRegexs(nullptr);
-        this->SetPropertyIdsForScopeSlotArray(nullptr, 0);
         this->SetStatementMaps(nullptr);
         this->SetCodeGenGetSetRuntimeData(nullptr);
         this->SetPropertyIdOnRegSlotsContainer(nullptr);
@@ -4945,15 +4948,7 @@ namespace Js
         this->m_hasDoneAllNonLocalReferenced = false;
 
         this->SetDebuggerScopeIndex(0);
-        this->GetUtf8SourceInfo()->DeleteLineOffsetCache();
 
-        // Reset to default.
-        this->flags = this->IsClassConstructor() ? Flags_None : Flags_HasNoExplicitReturnValue;
-
-        ResetInParams();
-
-        this->m_isAsmjsMode = false;
-        this->m_isAsmJsFunction = false;
         this->m_isAsmJsScheduledForFullJIT = false;
         this->m_asmJsTotalLoopCount = 0;
 
@@ -4982,6 +4977,30 @@ namespace Js
             Assert(m_scriptContext->GetRecycler()->IsValidObject(m_sourceInfo.m_auxStatementData));
             m_sourceInfo.m_auxStatementData = nullptr;
         }
+    }
+
+    void ParseableFunctionInfo::CleanupToReparseHelper()
+    {
+#if DYNAMIC_INTERPRETER_THUNK
+        if (m_isAsmJsFunction && m_dynamicInterpreterThunk)
+        {
+            m_scriptContext->ReleaseDynamicAsmJsInterpreterThunk((BYTE*)this->m_dynamicInterpreterThunk, true);
+            this->m_dynamicInterpreterThunk = nullptr;
+        }
+#endif
+
+        this->SetScopeInfo(nullptr);
+        this->SetPropertyIdsForScopeSlotArray(nullptr, 0);
+
+        this->GetUtf8SourceInfo()->DeleteLineOffsetCache();
+
+        // Reset to default.
+        this->flags = this->IsClassConstructor() ? Flags_None : Flags_HasNoExplicitReturnValue;
+
+        ResetInParams();
+
+        this->m_isAsmjsMode = false;
+        this->m_isAsmJsFunction = false;
     }
 
     void FunctionBody::SetEntryToDeferParseForDebugger()
