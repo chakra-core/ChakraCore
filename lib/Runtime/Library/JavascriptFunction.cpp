@@ -1039,6 +1039,10 @@ namespace Js
                     if (arr != nullptr && !arr->IsCrossSiteObject())
                     {
                         uint32 length = arr->GetLength();
+                        
+                        // check for int overflow with length
+                        AssertMsg(argsIndex + length >= length, "argsIndex+length overflows, corruption detected");
+
                         // CONSIDER: Optimize by creating a JavascriptArray routine which allows
                         // memcpy-like semantics in optimal situations (no gaps, etc.)
                         if (argsIndex + length > destArgs.Info.Count)
