@@ -64,28 +64,33 @@ namespace DateTime
                                             utc_tm.tm_mday - 1, milliseconds);
     }
 
+// Important! When you update 5ms below to any other number, also update test/Date/xplatInterval.js 0->5 range
 #define INTERVAL_FOR_TICK_BACKUP 5
     double HiResTimer::GetSystemTime()
     {
         ULONGLONG current = GetTickCount64();
         ULONGLONG diff = current - data.cacheTick;
 
-        if (diff >= INTERVAL_FOR_TICK_BACKUP) // max *ms to respond system time changes
+        if (diff <= data.previousDifference || diff >= INTERVAL_FOR_TICK_BACKUP) // max *ms to respond system time changes
         {
             double currentTime = GetSystemTimeREAL();
 
             // in case the system time wasn't updated backwards, and cache is still beyond...
             if (currentTime >= data.cacheSysTime && currentTime < data.cacheSysTime + INTERVAL_FOR_TICK_BACKUP)
             {
+                data.previousDifference = (ULONGLONG) -1; // Make sure next request won't use cache
                 return data.cacheSysTime + INTERVAL_FOR_TICK_BACKUP; // wait for real time
             }
 
+            data.previousDifference = 0;
             data.cacheSysTime = currentTime;
             data.cacheTick = current;
 
             return currentTime;
         }
 
+        // tick count is circular. So, make sure tick wasn't cycled since the last request
+        data.previousDifference = diff;
         return data.cacheSysTime + (double)diff;
     }
 #undef INTERVAL_FOR_TICK_BACKUP
