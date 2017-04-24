@@ -140,7 +140,7 @@ namespace Js
         bool symInitialized;
         static PVOID vectoredExceptionHandler;
         static DWORD exceptionFilterRemovalLastError;
-        static bool InstallExceptionFilters();
+        static void InstallExceptionFilters();
         static void RemoveExceptionFilters();
         static UINT_PTR CalculateStackHash(void* frames[], WORD frameCount, WORD framesToSkip);
         static LONG WINAPI FaultInjectionExceptionFilter(_In_  struct _EXCEPTION_POINTERS *ExceptionInfo);
