@@ -1020,6 +1020,7 @@ private:
 
         void InitializeGlobalObject();
         bool IsIntlEnabled();
+        bool IsBuiltInEnabled();
         JavascriptLibrary* GetLibrary() const { return javascriptLibrary; }
         Js::Cache* Cache() const{ return &this->javascriptLibrary->cache; }
         const JavascriptLibraryBase* GetLibraryBase() const { return javascriptLibrary->GetLibraryBase(); }

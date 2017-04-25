@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #pragma once
 
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_BUILTIN_OBJECT) || defined(ENABLE_PROJECTION)
 
 namespace Js
 {
@@ -14,7 +14,8 @@ namespace Js
     {
         EngineInterfaceExtensionKind_Intl = 0,
         EngineInterfaceExtensionKind_WinRTPromise = 1,
-        MaxEngineInterfaceExtensionKind = EngineInterfaceExtensionKind_WinRTPromise
+        EngineInterfaceExtensionKind_BuiltIn = 2,
+        MaxEngineInterfaceExtensionKind = EngineInterfaceExtensionKind_BuiltIn
     };
 
     class EngineExtensionObjectBase

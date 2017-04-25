@@ -164,12 +164,18 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyTable.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WebAssemblyEnvironment.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)WabtInterface.cpp" />
+    <ClCompile Include="BuiltInEngineInterfaceExtensionObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\InternalPropertyList.h" />
     <ClInclude Include="..\RuntimeCommon.h" />
     <ClInclude Include="..\SerializableFunctionFields.h" />
     <ClInclude Include="AtomicsObject.h" />
+    <ClInclude Include="BuiltInEngineInterfaceExtensionObject.h" />
+    <ClInclude Include="BuiltIn\BuiltIn.js.bc.32b.h" />
+    <ClInclude Include="BuiltIn\BuiltIn.js.bc.64b.h" />
+    <ClInclude Include="BuiltIn\BuiltIn.js.nojit.bc.32b.h" />
+    <ClInclude Include="BuiltIn\BuiltIn.js.nojit.bc.64b.h" />
     <ClInclude Include="BuiltIn\IndexOf.js.bc.32b.h" />
     <ClInclude Include="BuiltIn\IndexOf.js.bc.64b.h" />
     <ClInclude Include="BuiltIn\IndexOf.js.nojit.bc.32b.h" />
@@ -329,6 +335,7 @@
     <None Include="amd64\JavascriptFunctionA.S">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
+    <None Include="BuiltIn\BuiltIn.js" />
     <None Include="BuiltIn\IndexOf.js" />
     <None Include="InJavascript\GenByteCode.cmd" />
     <None Include="InJavascript\Intl.js" />

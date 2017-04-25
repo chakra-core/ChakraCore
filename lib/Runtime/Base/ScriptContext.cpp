@@ -5742,6 +5742,11 @@ void ScriptContext::RegisterPrototypeChainEnsuredToHaveOnlyWritableDataPropertie
         return false;
     }
 
+    bool ScriptContext::IsBuiltInEnabled()
+    {
+        return GetConfig()->IsBuiltInEnabled();
+    }
+
 
 #ifdef INLINE_CACHE_STATS
     void ScriptContext::LogCacheUsage(Js::PolymorphicInlineCache *cache, bool isGetter, Js::PropertyId propertyId, bool hit, bool collision)

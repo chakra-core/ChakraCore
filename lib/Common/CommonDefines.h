@@ -102,6 +102,7 @@
 // xplat-todo: revisit these features
 #ifdef _WIN32
 #define ENABLE_INTL_OBJECT                          // Intl support
+#define ENABLE_BUILTIN_OBJECT                       // Built In functions support
 #endif
 #define ENABLE_ES6_CHAR_CLASSIFIER                  // ES6 Unicode character classifier support
 

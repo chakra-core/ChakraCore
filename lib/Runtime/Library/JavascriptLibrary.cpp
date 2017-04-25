@@ -18,6 +18,7 @@
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/EngineInterfaceObject.h"
 #include "Library/IntlEngineInterfaceExtensionObject.h"
+#include "Library/BuiltInEngineInterfaceExtensionObject.h"
 #include "Library/ThrowErrorObject.h"
 #include "Library/StackScriptFunction.h"
 
@@ -1456,7 +1457,7 @@ namespace Js
         }
 #endif
 
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_BUILTIN_OBJECT) || defined(ENABLE_PROJECTION)
         engineInterfaceObject = EngineInterfaceObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_EngineInterfaceObject, objectPrototype, nullptr,
             DeferredTypeHandler<InitializeEngineInterfaceObject>::GetDefaultInstance()));
@@ -1465,6 +1466,12 @@ namespace Js
         IntlEngineInterfaceExtensionObject* intlExtension = RecyclerNew(recycler, IntlEngineInterfaceExtensionObject, scriptContext);
         engineInterfaceObject->SetEngineExtension(EngineInterfaceExtensionKind_Intl, intlExtension);
 #endif
+
+#ifdef ENABLE_BUILTIN_OBJECT
+        BuiltInEngineInterfaceExtensionObject* builtInExtension = RecyclerNew(recycler, BuiltInEngineInterfaceExtensionObject, scriptContext);
+        engineInterfaceObject->SetEngineExtension(EngineInterfaceExtensionKind_BuiltIn, builtInExtension);
+#endif
+
 #endif
 
         mapConstructor = CreateBuiltinConstructor(&JavascriptMap::EntryInfo::NewInstance,
@@ -1696,6 +1703,17 @@ namespace Js
 
     void JavascriptLibrary::EnsureIndexOfByteCode()
     {
+#ifdef ENABLE_BUILTIN_OBJECT
+        if (scriptContext->IsBuiltInEnabled())
+        {
+            auto builtInInitializer = [&](BuiltInEngineInterfaceExtensionObject* builtInExtension, ScriptContext * scriptContext) -> void
+            {
+                builtInExtension->InjectBuiltInLibraryCode(scriptContext);
+            };
+            InitializeBuiltInForPrototypes(builtInInitializer);
+        }
+#endif
+
         if (this->indexOfByteCode == nullptr)
         {
             SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(Js::Constants::NoHostSourceContext, NULL);
@@ -1712,7 +1730,7 @@ namespace Js
 
             if (FAILED(hr))
             {
-                AssertMsg(false, "Failed to deserialize Intl.js bytecode - very probably the bytecode needs to be rebuilt.");
+                AssertMsg(false, "Failed to deserialize IndexOf.js bytecode - very probably the bytecode needs to be rebuilt.");
                 JavascriptError::MapAndThrowError(scriptContext, hr);
             }
         }
@@ -1763,7 +1781,7 @@ namespace Js
         builtinFuncs[BuiltinFunction::JavascriptArray_Unshift]            = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::unshift,         &JavascriptArray::EntryInfo::Unshift,           1);
 
 
-        library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0), 1, arrayPrototype, PropertyIds::indexOf);
+        //library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0), 1, arrayPrototype, PropertyIds::indexOf);
         /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every,           &JavascriptArray::EntryInfo::Every,             1);
         /* No inlining                Array_Filter         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::filter,          &JavascriptArray::EntryInfo::Filter,            1);
 
@@ -5151,6 +5169,19 @@ namespace Js
             }
         }
     }
+
+#ifdef ENABLE_BUILTIN_OBJECT
+    template <class Fn>
+    void JavascriptLibrary::InitializeBuiltInForPrototypes(Fn fn)
+    {
+        if (scriptContext->VerifyAlive())  // Can't initialize if scriptContext closed, will need to run script
+        {
+            Assert(engineInterfaceObject != nullptr);
+            BuiltInEngineInterfaceExtensionObject* builtInExtension = static_cast<BuiltInEngineInterfaceExtensionObject*>(GetEngineInterfaceObject()->GetEngineExtension(EngineInterfaceExtensionKind_BuiltIn));
+            fn(builtInExtension, scriptContext);
+        }
+    }
+#endif
 
 #ifdef ENABLE_INTL_OBJECT
     void JavascriptLibrary::ResetIntlObject()
