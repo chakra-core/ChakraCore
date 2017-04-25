@@ -972,7 +972,7 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody
 {
     if (functionBody && functionBody->GetScopeInfo())
     {
-        PROBE_STACK(scriptContext, Js::Constants::MinStackByteCodeVisitor);
+        PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackByteCodeVisitor);
 
         Js::ScopeInfo* scopeInfo = functionBody->GetScopeInfo();
         RestoreScopeInfo(scopeInfo->GetParent()); // Recursively restore outer func scope info
@@ -982,11 +982,9 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody
         if (paramScopeInfo != nullptr)
         {
             paramScope = paramScopeInfo->GetScope();
-            Assert(paramScope);
         }
 
         Scope* bodyScope = scopeInfo->GetScope();
-
         Assert(bodyScope);
         bodyScope->SetHasOwnLocalInClosure(scopeInfo->GetHasOwnLocalInClosure());
 
@@ -1323,7 +1321,7 @@ FuncInfo * ByteCodeGenerator::StartBindFunction(const char16 *name, uint nameLen
             else
             {
                 parseableFunctionInfo = Js::ParseableFunctionInfo::New(scriptContext, pnode->sxFnc.nestedCount, functionId, m_utf8SourceInfo, name, nameLength, shortNameOffset, propertyRecordList, attributes,
-                                        pnode->sxFnc.IsClassConstructor() ? 
+                                        pnode->sxFnc.IsClassConstructor() ?
                                             Js::FunctionBody::FunctionBodyFlags::Flags_None :
                                             Js::FunctionBody::FunctionBodyFlags::Flags_HasNoExplicitReturnValue);
             }
@@ -2451,7 +2449,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
                     WritePerfHint(PerfHints::HeapArgumentsDueToWriteToFormals, funcInfo->GetParsedFunctionBody(), 0);
                 }
 #endif
-                
+
                 //With statements - need scope object to be present.
                 if ((doStackArgsOpt && pnode->sxFnc.funcInfo->GetParamScope()->Count() > 1) && (pnode->sxFnc.funcInfo->HasDeferredChild() || (byteCodeGenerator->GetFlags() & fscrEval) ||
                     pnode->sxFnc.HasWithStmt() || byteCodeGenerator->IsInDebugMode() || PHASE_OFF1(Js::StackArgFormalsOptPhase) || PHASE_OFF1(Js::StackArgOptPhase)))
@@ -2464,7 +2462,7 @@ FuncInfo* PreVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerato
                         {
                             WritePerfHint(PerfHints::HasWithBlock, funcInfo->GetParsedFunctionBody(), 0);
                         }
-                        
+
                         if(byteCodeGenerator->GetFlags() & fscrEval)
                         {
                             WritePerfHint(PerfHints::SrcIsEval, funcInfo->GetParsedFunctionBody(), 0);
@@ -2687,7 +2685,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
     {
         if (!top->IsGlobalFunction())
         {
-            auto fnProcess = 
+            auto fnProcess =
                 [byteCodeGenerator, top](Symbol *const sym)
                 {
                     if (sym->GetHasNonLocalReference() && !sym->GetIsModuleExportStorage())
@@ -2971,7 +2969,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 parentFunc->GetParamScope()->SetIsObject();
                 // Record this for future use in the no-refresh debugging.
                 parentFunctionBody->SetHasSetIsObject(true);
-            }       
+            }
         }
 
         // Propagate HasMaybeEscapedNestedFunc
@@ -3065,7 +3063,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
         pnode->sxFnc.HasHeapArguments())
     {
         bool doStackArgsOpt = top->byteCodeFunction->GetDoBackendArgumentsOptimization();
-                
+
         bool hasAnyParamInClosure = top->GetHasLocalInClosure() && top->GetParamScope()->GetHasOwnLocalInClosure();
 
         if ((doStackArgsOpt && top->inArgsCount > 1))
@@ -3085,7 +3083,7 @@ FuncInfo* PostVisitFunction(ParseNode* pnode, ByteCodeGenerator* byteCodeGenerat
                 //Scope object creation instr will be a MOV NULL instruction in the Lowerer - if we still decide to do StackArgs after Globopt phase.
                 top->byteCodeFunction->SetDoScopeObjectCreation(false);
             }
-        }        
+        }
     }
     return top;
 }

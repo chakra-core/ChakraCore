@@ -85,6 +85,7 @@ namespace Js
         deferredBody(false),
         isScriptContextActuallyClosed(false),
         isFinalized(false),
+        isEvalRestricted(false),
         isInvalidatedForHostObjects(false),
         fastDOMenabled(false),
         directHostTypeId(TypeIds_GlobalObject),
@@ -682,7 +683,7 @@ namespace Js
         // Stop profiling if present
         DeRegisterProfileProbe(S_OK, nullptr);
 #endif
-
+        
         if (this->diagnosticArena != nullptr)
         {
             HeapDelete(this->diagnosticArena);
@@ -3342,8 +3343,34 @@ namespace Js
 
         if (proxy == nullptr)
         {
+            // Not a user defined function, we need to wrap them with try-catch for "continue after exception"
+            if (!pFunction->IsScriptFunction() && IsExceptionWrapperForBuiltInsEnabled(scriptContext))
+            {
+#if defined(ENABLE_SCRIPT_DEBUGGING) || defined(ENABLE_SCRIPT_PROFILING)
+                if (scriptContext->IsScriptContextInDebugMode())
+                {
+                    // We are attaching.
+                    // For built-ins, WinRT and DOM functions which are already in recycler, change entry points to route to debug/profile thunk.
+                    ScriptContext::SetEntryPointToProfileThunk(pFunction);
+                }
+                else
+                {
+                    // We are detaching.
+                    // For built-ins, WinRT and DOM functions which are already in recycler, restore entry points to original.
+                    if (!scriptContext->IsProfiling())
+                    {
+                        ScriptContext::RestoreEntryPointFromProfileThunk(pFunction);
+                    }
+                    // If we are profiling, don't change anything.
+                }
+#else
+                AssertMsg(false, "Debugging/Profiling needs to be enabled to change thunks");
+#endif
+            }
+
             return;
         }
+
         Assert(proxy->GetFunctionInfo() == info);
 
         if (!proxy->IsFunctionBody())
@@ -3819,6 +3846,26 @@ namespace Js
 
         Var aReturn = NULL;
         JavascriptMethod origEntryPoint = function->GetFunctionInfo()->GetOriginalEntryPoint();
+
+        if (scriptContext->IsEvalRestriction())
+        {
+            if (origEntryPoint == Js::GlobalObject::EntryEval)
+            {
+                origEntryPoint = Js::GlobalObject::EntryEvalRestrictedMode;
+            }
+            else if (origEntryPoint == Js::JavascriptFunction::NewInstance)
+            {
+                origEntryPoint = Js::JavascriptFunction::NewInstanceRestrictedMode;
+            }
+            else if (origEntryPoint == Js::JavascriptGeneratorFunction::NewInstance)
+            {
+                origEntryPoint = Js::JavascriptGeneratorFunction::NewInstanceRestrictedMode;
+            }
+            else if (origEntryPoint == Js::JavascriptFunction::NewAsyncFunctionInstance)
+            {
+                origEntryPoint = Js::JavascriptFunction::NewAsyncFunctionInstanceRestrictedMode;
+            }
+        }
 
         __try
         {

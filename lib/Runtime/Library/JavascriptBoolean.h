@@ -48,6 +48,12 @@ namespace Js
         virtual BOOL ToPrimitive(JavascriptHint hint, Var* value, ScriptContext* requestContext) override {AssertMsg(false, "Boolean ToPrimitive should not be called"); *value = this; return true;}
         virtual RecyclableObject * CloneToScriptContext(ScriptContext* requestContext) override;
 
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableJavascriptBoolean;
+        }
+
     private:
         static BOOL Equals(JavascriptBoolean* left, Var right, BOOL* value, ScriptContext * requestContext);
         static Var TryInvokeRemotelyOrThrow(JavascriptMethod entryPoint, ScriptContext * scriptContext, Arguments & args, int32 errorCode, PCWSTR varName);

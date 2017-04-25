@@ -381,7 +381,6 @@ namespace Js
         JavascriptFunction* arrayPrototypeToLocaleStringFunction;
         JavascriptFunction* identityFunction;
         JavascriptFunction* throwerFunction;
-        JavascriptFunction* promiseResolveFunction;
         JavascriptFunction* generatorNextFunction;
         JavascriptFunction* generatorThrowFunction;
 
@@ -569,29 +568,12 @@ namespace Js
         ScriptContext* GetScriptContext() const { return scriptContext; }
 
         Recycler * GetRecycler() const { return recycler; }
-        Var GetPI() { return pi; }
-        Var GetNaN() { return nan; }
-        Var GetNegativeInfinite() { return negativeInfinite; }
-        Var GetPositiveInfinite() { return positiveInfinite; }
-        Var GetMaxValue() { return maxValue; }
-        Var GetMinValue() { return minValue; }
-        Var GetNegativeZero() { return negativeZero; }
-        RecyclableObject* GetUndefined() { return undefinedValue; }
-        RecyclableObject* GetNull() { return nullValue; }
-        JavascriptBoolean* GetTrue() { return booleanTrue; }
-        JavascriptBoolean* GetFalse() { return booleanFalse; }
         Var GetTrueOrFalse(BOOL value) { return value ? booleanTrue : booleanFalse; }
-        JavascriptSymbol* GetSymbolHasInstance() { return symbolHasInstance; }
-        JavascriptSymbol* GetSymbolIsConcatSpreadable() { return symbolIsConcatSpreadable; }
-        JavascriptSymbol* GetSymbolIterator() { return symbolIterator; }
         JavascriptSymbol* GetSymbolMatch() { return symbolMatch; }
         JavascriptSymbol* GetSymbolReplace() { return symbolReplace; }
         JavascriptSymbol* GetSymbolSearch() { return symbolSearch; }
         JavascriptSymbol* GetSymbolSplit() { return symbolSplit; }
         JavascriptSymbol* GetSymbolSpecies() { return symbolSpecies; }
-        JavascriptSymbol* GetSymbolToPrimitive() { return symbolToPrimitive; }
-        JavascriptSymbol* GetSymbolToStringTag() { return symbolToStringTag; }
-        JavascriptSymbol* GetSymbolUnscopables() { return symbolUnscopables; }
         JavascriptString* GetNullString() { return nullString; }
         JavascriptString* GetEmptyString() const;
         JavascriptString* GetWhackString() { return whackString; }
@@ -639,32 +621,9 @@ namespace Js
         JavascriptString* GetSymbolTypeDisplayString() const { return symbolTypeDisplayString; }
         JavascriptString* GetDebuggerDeadZoneBlockVariableString() { Assert(debuggerDeadZoneBlockVariableString); return debuggerDeadZoneBlockVariableString; }
         JavascriptRegExp* CreateEmptyRegExp();
-        JavascriptFunction* GetObjectConstructor() const {return objectConstructor; }
-        JavascriptFunction* GetBooleanConstructor() const {return booleanConstructor; }
-        JavascriptFunction* GetDateConstructor() const {return dateConstructor; }
-        JavascriptFunction* GetFunctionConstructor() const {return functionConstructor; }
-        JavascriptFunction* GetNumberConstructor() const {return numberConstructor; }
-        JavascriptRegExpConstructor* GetRegExpConstructor() const {return regexConstructor; }
-        JavascriptFunction* GetStringConstructor() const {return stringConstructor; }
-        JavascriptFunction* GetArrayBufferConstructor() const {return arrayBufferConstructor; }
-        JavascriptFunction* GetErrorConstructor() const { return errorConstructor; }
-        JavascriptFunction* GetInt8ArrayConstructor() const {return Int8ArrayConstructor; }
-        JavascriptFunction* GetUint8ArrayConstructor() const {return Uint8ArrayConstructor; }
-        JavascriptFunction* GetInt16ArrayConstructor() const {return Int16ArrayConstructor; }
-        JavascriptFunction* GetUint16ArrayConstructor() const {return Uint16ArrayConstructor; }
-        JavascriptFunction* GetInt32ArrayConstructor() const {return Int32ArrayConstructor; }
-        JavascriptFunction* GetUint32ArrayConstructor() const {return Uint32ArrayConstructor; }
-        JavascriptFunction* GetFloat32ArrayConstructor() const {return Float32ArrayConstructor; }
-        JavascriptFunction* GetFloat64ArrayConstructor() const {return Float64ArrayConstructor; }
-        JavascriptFunction* GetWeakMapConstructor() const {return weakMapConstructor; }
-        JavascriptFunction* GetMapConstructor() const {return mapConstructor; }
-        JavascriptFunction* GetSetConstructor() const {return  setConstructor; }
-        JavascriptFunction* GetSymbolConstructor() const {return symbolConstructor; }
         JavascriptFunction* GetEvalFunctionObject() { return evalFunctionObject; }
         JavascriptFunction* GetArrayPrototypeValuesFunction() { return EnsureArrayPrototypeValuesFunction(); }
         JavascriptFunction* GetArrayIteratorPrototypeBuiltinNextFunction() { return arrayIteratorPrototypeBuiltinNextFunction; }
-        DynamicObject* GetMathObject() const {return mathObject; }
-        DynamicObject* GetJSONObject() const {return JSONObject; }
         DynamicObject* GetReflectObject() const { return reflectObject; }
         const PropertyDescriptor* GetDefaultPropertyDescriptor() const { return &defaultPropertyDescriptor; }
         DynamicObject* GetMissingPropertyHolder() const { return missingPropertyHolder; }
@@ -723,7 +682,6 @@ namespace Js
 #endif
 
 #ifdef ENABLE_INTL_OBJECT
-        DynamicObject* GetINTLObject() const { return IntlObject; }
         void ResetIntlObject();
         void EnsureIntlObjectReady();
         template <class Fn>
@@ -1085,8 +1043,11 @@ namespace Js
         RecyclableObject* CreateThrowErrorObject(JavascriptError* error);
 
         JavascriptFunction* EnsurePromiseResolveFunction();
+        JavascriptFunction* EnsurePromiseThenFunction();
         JavascriptFunction* EnsureGeneratorNextFunction();
         JavascriptFunction* EnsureGeneratorThrowFunction();
+        JavascriptFunction* EnsureJSONStringifyFunction();
+        JavascriptFunction* EnsureObjectFreezeFunction();
 
         void SetCrossSiteForSharedFunctionType(JavascriptFunction * function);
 

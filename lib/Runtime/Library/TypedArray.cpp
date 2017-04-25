@@ -439,7 +439,7 @@ namespace Js
                         (iteratorFn != scriptContext->GetLibrary()->GetArrayPrototypeValuesFunction() ||
                             !JavascriptArray::Is(firstArgument) || JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext)))
                     {
-                        Var iterator = CALL_FUNCTION(iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
+                        Var iterator = CALL_FUNCTION(scriptContext->GetThreadContext(), iteratorFn, CallInfo(Js::CallFlags_Value, 1), RecyclableObject::FromVar(firstArgument));
 
                         if (!JavascriptOperators::IsObject(iterator))
                         {
@@ -1415,7 +1415,8 @@ namespace Js
     uint32 TypedArrayBase::GetFromIndex(Var arg, uint32 length, ScriptContext *scriptContext)
     {
         uint32 index = JavascriptArray::GetFromIndex(arg, length, scriptContext);
-        return min(index, length);
+        Assert(index <= length);
+        return index;
     }
 
     Var TypedArrayBase::CommonSubarray(Arguments& args)
@@ -1809,7 +1810,8 @@ namespace Js
                 // We know that the TypedArray.HasItem will be true because k < length and we can skip the check in the TypedArray version of filter.
                 element = typedArrayBase->DirectGetItem(k);
 
-                selected = CALL_FUNCTION(callBackFn, CallInfo(flags, 4), thisArg,
+                selected = CALL_FUNCTION(scriptContext->GetThreadContext(),
+                    callBackFn, CallInfo(flags, 4), thisArg,
                     element,
                     JavascriptNumber::ToVar(k, scriptContext),
                     typedArrayBase);
@@ -1922,7 +1924,8 @@ namespace Js
 
             Var element = typedArrayBase->DirectGetItem(k);
 
-            CALL_FUNCTION(callBackFn, CallInfo(CallFlags_Value, 4),
+            CALL_FUNCTION(scriptContext->GetThreadContext(),
+                callBackFn, CallInfo(CallFlags_Value, 4),
                 thisArg,
                 element,
                 JavascriptNumber::ToVar(k, scriptContext),
@@ -2204,7 +2207,8 @@ namespace Js
             ScriptContext* scriptContext = compFn->GetScriptContext();
             Var undefined = scriptContext->GetLibrary()->GetUndefined();
             double dblResult;
-            Var retVal = CALL_FUNCTION(compFn, CallInfo(CallFlags_Value, 3),
+            Var retVal = CALL_FUNCTION(scriptContext->GetThreadContext(),
+                compFn, CallInfo(CallFlags_Value, 3),
                 undefined,
                 JavascriptNumber::ToVarWithCheck((double)x, scriptContext),
                 JavascriptNumber::ToVarWithCheck((double)y, scriptContext));
@@ -2227,12 +2231,12 @@ namespace Js
             else
             {
                 dblResult = JavascriptConversion::ToNumber_Full(retVal, scriptContext);
-            }
 
-            // ToNumber may execute user-code which can cause the array to become detached
-            if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
+                // ToNumber may execute user-code which can cause the array to become detached
+                if (TypedArrayBase::IsDetachedTypedArray(contextArray[0]))
+                {
+                    JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("[TypedArray].prototype.sort"));
+                }
             }
 
             if (dblResult < 0)
@@ -2940,19 +2944,25 @@ namespace Js
     GENERATE_FOREACH_TYPEDARRAY(TypedArrayXorOp, GenerateNotSupportedStub2, Xor)
 
     template<>
+    VTableValue Int8Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt8Array;
+    }
+
+    template<>
     inline Var Int8VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
-    inline BOOL Uint8Array::DirectSetItem(__in uint32 index, __in Js::Var value)
+    VTableValue Int8VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
     {
-        return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt8);
+        return VTableValue::VtableInt8VirtualArray;
     }
 
     template<>
-    inline BOOL Uint8VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
+    inline BOOL Uint8Array::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt8);
     }
@@ -2964,21 +2974,39 @@ namespace Js
     }
 
     template<>
-    inline BOOL Uint8VirtualArray::DirectSetItemNoSet(__in uint32 index, __in Js::Var value)
-    {
-        return BaseTypedDirectSetItemNoSet(index, value, JavascriptConversion::ToUInt8);
-    }
-
-    template<>
     inline Var Uint8Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
     }
 
     template<>
+    VTableValue Uint8Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint8Array;
+    }
+
+    template<>
+    inline BOOL Uint8VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
+    {
+        return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt8);
+    }
+
+    template<>
+    inline BOOL Uint8VirtualArray::DirectSetItemNoSet(__in uint32 index, __in Js::Var value)
+    {
+        return BaseTypedDirectSetItemNoSet(index, value, JavascriptConversion::ToUInt8);
+    }
+
+    template<>
     inline Var Uint8VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Uint8VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint8VirtualArray;
     }
 
     template<>
@@ -3000,6 +3028,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Uint8ClampedArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint8ClampedArray;
+    }
+
+    template<>
     inline BOOL Uint8ClampedVirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt8Clamped);
@@ -3015,6 +3049,12 @@ namespace Js
     inline Var Uint8ClampedVirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Uint8ClampedVirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint8ClampedVirtualArray;
     }
 
     template<>
@@ -3036,6 +3076,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Int16Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt16Array;
+    }
+
+    template<>
     inline BOOL Int16VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToInt16);
@@ -3051,6 +3097,12 @@ namespace Js
     inline Var Int16VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Int16VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt16VirtualArray;
     }
 
     template<>
@@ -3072,6 +3124,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Uint16Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint16Array;
+    }
+
+    template<>
     inline BOOL Uint16VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt16);
@@ -3087,6 +3145,12 @@ namespace Js
     inline Var Uint16VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Uint16VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint16VirtualArray;
     }
 
     template<>
@@ -3108,6 +3172,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Int32Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt32Array;
+    }
+
+    template<>
     inline BOOL Int32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToInt32);
@@ -3123,6 +3193,12 @@ namespace Js
     inline Var Int32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Int32VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt32VirtualArray;
     }
 
     template<>
@@ -3144,6 +3220,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Uint32Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint32Array;
+    }
+
+    template<>
     inline BOOL Uint32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt32);
@@ -3159,6 +3241,12 @@ namespace Js
     inline Var Uint32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Uint32VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint32VirtualArray;
     }
 
     template<>
@@ -3180,6 +3268,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Float32Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableFloat32Array;
+    }
+
+    template<>
     inline BOOL Float32VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToFloat);
@@ -3195,6 +3289,12 @@ namespace Js
     Var Float32VirtualArray::DirectGetItem(__in uint32 index)
     {
         return TypedDirectGetItemWithCheck(index);
+    }
+
+    template<>
+    VTableValue Float32VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableFloat32VirtualArray;
     }
 
     template<>
@@ -3216,6 +3316,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Float64Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableFloat64Array;
+    }
+
+    template<>
     inline BOOL Float64VirtualArray::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToNumber);
@@ -3231,6 +3337,12 @@ namespace Js
     inline Var Float64VirtualArray::DirectGetItem(__in uint32 index)
     {
         return TypedDirectGetItemWithCheck(index);
+    }
+
+    template<>
+    VTableValue Float64VirtualArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableFloat64VirtualArray;
     }
 
     template<>
@@ -3252,6 +3364,12 @@ namespace Js
     }
 
     template<>
+    VTableValue Int64Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableInt64Array;
+    }
+
+    template<>
     inline BOOL Uint64Array::DirectSetItem(__in uint32 index, __in Js::Var value)
     {
         return BaseTypedDirectSetItem(index, value, JavascriptConversion::ToUInt64);
@@ -3267,6 +3385,12 @@ namespace Js
     inline Var Uint64Array::DirectGetItem(__in uint32 index)
     {
         return BaseTypedDirectGetItem(index);
+    }
+
+    template<>
+    VTableValue Uint64Array::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableUint64Array;
     }
 
     template<>
@@ -3300,6 +3424,13 @@ namespace Js
         bool* typedBuffer = (bool*)buffer;
         return typedBuffer[index] ? GetLibrary()->GetTrue() : GetLibrary()->GetFalse();
     }
+
+    template<>
+    VTableValue BoolArray::DummyVirtualFunctionToHinderLinkerICF()
+    {
+        return VTableValue::VtableBoolArray;
+    }
+
 
     Var CharArray::Create(ArrayBufferBase* arrayBuffer, uint32 byteOffSet, uint32 mappedLength, JavascriptLibrary* javascriptLibrary)
     {

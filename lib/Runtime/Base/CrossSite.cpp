@@ -70,6 +70,16 @@ namespace Js
                 }
             }
         }
+        else if (object->GetTypeId() == TypeIds_Proxy)
+        {
+            RecyclableObject * target = JavascriptProxy::FromVar(object)->GetTarget();
+            if (JavascriptConversion::IsCallable(target))
+            {
+                Assert(JavascriptProxy::FunctionCallTrap == object->GetEntryPoint());
+                TTD_XSITE_LOG(scriptContext, "setEntryPoint->CrossSiteProxyCallTrap ", object);
+                object->GetDynamicType()->SetEntryPoint(CrossSite::CrossSiteProxyCallTrap);
+            }
+        }
     }
 
     void CrossSite::MarshalPrototypeChain(ScriptContext* scriptContext, DynamicObject * object)
@@ -398,6 +408,14 @@ namespace Js
         return CommonThunk(function, entryPoint, args);
     }
 
+    Var CrossSite::CrossSiteProxyCallTrap(RecyclableObject* function, CallInfo callInfo, ...)
+    {
+        RUNTIME_ARGUMENTS(args, callInfo);
+        Assert(JavascriptProxy::Is(function));
+
+        return CrossSite::CommonThunk(function, JavascriptProxy::FunctionCallTrap, args);
+    }
+
     Var CrossSite::CommonThunk(RecyclableObject* recyclableObject, JavascriptMethod entryPoint, Arguments args)
     {
         DynamicObject* function = DynamicObject::FromVar(recyclableObject);
@@ -425,7 +443,7 @@ namespace Js
         {
             i = 1;
             Assert(args.Info.Flags & CallFlags_New);
-            Assert(JavascriptFunction::Is(function) && JavascriptFunction::FromVar(function)->GetFunctionInfo()->GetAttributes() & FunctionInfo::SkipDefaultNewObject);
+            Assert(JavascriptProxy::Is(function) || (JavascriptFunction::Is(function) && JavascriptFunction::FromVar(function)->GetFunctionInfo()->GetAttributes() & FunctionInfo::SkipDefaultNewObject));
         }
         uint count = args.Info.Count;
         if ((args.Info.Flags & CallFlags_ExtraArg) && ((args.Info.Flags & CallFlags_NewTarget) == 0))

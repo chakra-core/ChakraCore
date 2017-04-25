@@ -228,6 +228,13 @@ namespace Js
 #if DBG
         bool IsFilled() const;
 #endif
+
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableConcatStringMulti;
+        }
     };
 }
 

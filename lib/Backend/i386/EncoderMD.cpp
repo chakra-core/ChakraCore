@@ -925,7 +925,7 @@ modrm:
             }
             else if (opr1->IsHelperCallOpnd())
             {
-                const void* fnAddress = (void*)IR::GetMethodAddress(m_func->GetThreadContextInfo(), opr1->AsHelperCallOpnd());
+                const void* fnAddress = (void *)IR::GetMethodAddress(m_func->GetThreadContextInfo(), opr1->AsHelperCallOpnd());
                 AppendRelocEntry(RelocTypeCallPcrel, (void*)m_pc, nullptr, fnAddress);
                 AssertMsg(sizeof(uint32) == sizeof(void*), "Sizes of void* assumed to be 32-bits");
                 this->EmitConst(0, 4);
@@ -938,7 +938,6 @@ modrm:
             break;
 
         // Special form which doesn't fit any existing patterns.
-
         case SPECIAL:
 
             switch (instr->m_opcode)
