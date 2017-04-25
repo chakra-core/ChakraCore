@@ -2341,7 +2341,6 @@ IR::Instr* Inline::InlineApply(IR::Instr *callInstr, const FunctionJITTimeInfo *
             *pIsInlined = false;
             return callInstr;
         }
-
         *pIsInlined = true;
 
 #if defined(ENABLE_DEBUG_CONFIG_OPTIONS)

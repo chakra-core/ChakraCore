@@ -311,6 +311,7 @@ namespace Js
         void SetArrayCallSiteIndex(ProfileId profileId);
 
         static DynamicObject * BoxStackInstance(DynamicObject * instance);
+        
     private:
         ArrayObject* EnsureObjectArray();
         ArrayObject* GetObjectArrayOrFlagsAsArray() const { return objectArray; }
@@ -343,5 +344,15 @@ namespace Js
 #endif
 
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            // This virtual function hinders linker to do ICF vtable of this class with other classes. 
+            // ICF vtable causes unexpected behavior in type check code. Objects uses vtable as identify should 
+            // override this function and return a unique value.
+            return VTableValue::VtableDynamicObject;
+        }
+
     };
 } // namespace Js

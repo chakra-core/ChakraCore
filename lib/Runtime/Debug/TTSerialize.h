@@ -447,7 +447,7 @@ namespace TTD
             }
         }
 
-        bool PeekRawChar(char16* c)
+        bool PeekRawChar(_Out_ char16* c)
         {
             if(this->m_peekChar != -1)
             {
@@ -465,7 +465,7 @@ namespace TTD
             }
         }
 
-        bool ReadRawChar(char16* c)
+        bool ReadRawChar(_Out_ char16* c)
         {
             if(this->m_peekChar != -1)
             {
@@ -484,6 +484,9 @@ namespace TTD
 
                 if(this->m_cursor == this->m_buffCount)
                 {
+                    // Make sure to set a value before we return.
+                    *c = _u('\0');
+
                     return false;
                 }
                 else

@@ -1066,6 +1066,44 @@ var tests = [
         }
     },
     {
+        name: "Array.prototype.map called with a typedarray having different length",
+        body: function() {
+            var counter = 0;
+            var fn = function(elem) {
+                counter++;
+                return elem;
+            };
+            
+            // Validating how many times the map function is called.
+            [[-1, 0], [2, 2], [100, 8], [2**31, 8]].forEach(function ([len, expectedCounter]) {
+                var v = new Int8Array(8);
+                counter = 0;
+                Object.defineProperty(v, 'length', {value : len });
+                Array.prototype.map.call(v, fn);
+                assert.areEqual(counter, expectedCounter);
+            });
+        }
+    },
+    {
+        name: "Array.prototype.find called with a typedarray having different length",
+        body: function() {
+            var counter = 0;
+            var fn = function(elem) {
+                counter++;
+                return elem;
+            };
+            
+            // Validating how many times the find function is called.
+            [[-1, 0], [2, 2], [100, 100]].forEach(function ([len, expectedCounter]) {
+                var v = new Int8Array(8);
+                counter = 0;
+                Object.defineProperty(v, 'length', {value : len });
+                Array.prototype.find.call(v, fn);
+                assert.areEqual(counter, expectedCounter);
+            });
+        }
+    },
+    {
         name: "%TypedArray%.prototype.forEach behavior",
         body: function() {
             var forEachFn = Int8Array.prototype.__proto__.forEach;

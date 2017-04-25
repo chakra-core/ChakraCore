@@ -19,9 +19,9 @@ public:
 private:
 
     static VOID CALLBACK IdleCleanupRoutine(
-        _In_opt_ LPVOID lpArgToCompletionRoutine,
-        _In_     DWORD  dwTimerLowValue,
-        _In_     DWORD  dwTimerHighValue);
+        _Inout_     PTP_CALLBACK_INSTANCE Instance,
+        _Inout_opt_ PVOID Context,
+        _Inout_     PTP_TIMER Timer);
 
     PageAllocator* GetPageAllocator();
     void ReturnPageAllocator(PageAllocator* pageAllocator);
@@ -30,7 +30,7 @@ private:
     SList<PageAllocator*, NoThrowHeapAllocator, RealCount> pageAllocators;
     static CriticalSection cs;
     static PageAllocatorPool* Instance;
-    HANDLE idleCleanupTimer;
+    PTP_TIMER idleCleanupTimer;
     volatile unsigned long long activePageAllocatorCount;
 };
 

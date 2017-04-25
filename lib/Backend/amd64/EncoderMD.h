@@ -54,7 +54,6 @@ public:
         else
         {
             m_origPtr = ptr;
-            
             if (type == RelocTypeBranch)
             {
                 Assert(labelInstr);
