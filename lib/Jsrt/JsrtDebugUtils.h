@@ -35,10 +35,11 @@ public:
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, bool value, Js::ScriptContext* scriptContext);
     static void AddPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, Js::Var value, Js::ScriptContext* scriptContext);
 
-    static void AddPropertyType(Js::DynamicObject * object, Js::IDiagObjectModelDisplay* objectDisplayRef, Js::ScriptContext * scriptContext);
+    static void AddPropertyType(Js::DynamicObject * object, Js::IDiagObjectModelDisplay* objectDisplayRef, Js::ScriptContext * scriptContext, bool forceSetValueProp);
 
 private:
     static void AddVarPropertyToObject(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, Js::Var value, Js::ScriptContext* scriptContext);
+    static bool HasProperty(Js::DynamicObject* object, JsrtDebugPropertyId propertyId, Js::ScriptContext * scriptContext);
     static const char16* GetClassName(Js::TypeId typeId);
     static const char16* GetDebugPropertyName(JsrtDebugPropertyId propertyId);
 };
