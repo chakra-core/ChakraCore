@@ -211,6 +211,25 @@ namespace Js
         return offset < this->StartOffset() + this->LengthInBytes();
     }
 
+    uint32 FunctionBody::GetCountField(FunctionBody::CounterFields fieldEnum) const
+    {
+#if DBG
+        Assert(ThreadContext::GetContextForCurrentThread() || counters.isLockedDown
+            || (ThreadContext::GetCriticalSection()->IsLocked() && this->m_scriptContext->GetThreadContext()->GetFunctionBodyLock()->IsLocked())); // etw rundown
+#endif
+        return counters.Get(fieldEnum);
+    }
+    uint32 FunctionBody::SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val)
+    {
+        Assert(!counters.isLockedDown);
+        return counters.Set(fieldEnum, val, this);
+    }
+    uint32 FunctionBody::IncreaseCountField(FunctionBody::CounterFields fieldEnum)
+    {
+        Assert(!counters.isLockedDown);
+        return counters.Increase(fieldEnum, this);
+    }
+
     void
     FunctionBody::RecordStatementMap(StatementMap* pStatementMap)
     {
@@ -900,7 +919,7 @@ namespace Js
         }
 
         // We can't get here if the function is being jitted. Jitting was either completed or not begun.
-        this->counters.bgThreadCallStarted = false;
+        this->UnlockCounters();
 #endif
 
         PHASE_PRINT_TRACE(Js::RedeferralPhase, this, _u("Redeferring function %d.%d: %s\n"),
@@ -1152,6 +1171,7 @@ namespace Js
     {
 #if DBG
         m_DEBUG_executionCount++;
+        this->LockDownCounters();
 #endif
         // Don't allow loop headers to be released while the function is executing
         ::InterlockedIncrement(&this->m_depth);
@@ -4824,8 +4844,7 @@ namespace Js
     void FunctionBody::CleanupToReparse()
     {
 #if DBG
-        bool isCleaningUpOldValue = this->counters.isCleaningUp;
-        this->counters.isCleaningUp = true;
+        this->UnlockCounters();
 #endif
         // The current function is already compiled. In order to prep this function to ready for debug mode, most of the previous information need to be thrown away.
         // Clean up the nested functions
@@ -4963,10 +4982,6 @@ namespace Js
             Assert(m_scriptContext->GetRecycler()->IsValidObject(m_sourceInfo.m_auxStatementData));
             m_sourceInfo.m_auxStatementData = nullptr;
         }
-
-#if DBG
-        this->counters.isCleaningUp = isCleaningUpOldValue;
-#endif
     }
 
     void FunctionBody::SetEntryToDeferParseForDebugger()
@@ -5006,7 +5021,7 @@ namespace Js
         OUTPUT_VERBOSE_TRACE(Js::DebuggerPhase, _u("Regenerate Due To Debug Mode: function %s (%s) from script context %p\n"),
             this->GetDisplayName(), this->GetDebugNumberSet(debugStringBuffer), m_scriptContext);
 
-        this->counters.bgThreadCallStarted = false; // asuming background jit is stopped and allow the counter setters access again
+        this->UnlockCounters(); // asuming background jit is stopped and allow the counter setters access again
 #endif
     }
 
@@ -6266,6 +6281,9 @@ namespace Js
         // Byte code generation failed for this function. Revert any intermediate state being tracked in the function body, in
         // case byte code generation is attempted again for this function body.
 
+#if DBG
+        this->UnlockCounters();
+#endif
         ResetInlineCaches();
         ResetObjectLiteralTypes();
         ResetLiteralRegexes();
@@ -6303,6 +6321,9 @@ namespace Js
         // pass may have failed, we need to restore state that is tracked on the function body by the visit pass.
         // Note: do not reset literal regexes if the function has already been compiled (e.g., is a parsed function enclosed by a
         // redeferred function) as we will not use the count of literals anyway, and the counters may be accessed by the background thread.
+#if DBG
+        this->UnlockCounters();
+#endif
         if (this->byteCodeBlock == nullptr)
         {
             ResetLiteralRegexes();
@@ -7864,7 +7885,7 @@ namespace Js
             return;
         }
 #if DBG
-        this->counters.isCleaningUp = true;
+        this->UnlockCounters();
 #endif
 
         CleanupRecyclerData(isScriptContextClosing, false /* capture entry point cleanup stack trace */);
@@ -7905,7 +7926,7 @@ namespace Js
         this->cleanedUp = true;
 
 #if DBG
-        this->counters.isCleaningUp = false;
+        this->LockDownCounters();
 #endif
     }
 
