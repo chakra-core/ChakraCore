@@ -41,10 +41,12 @@ else
     # TEST flags are not enabled for release build
     # however we would like to test if the compiled binary
     # works or not
-    RES=$($test_path/../out/${binary_path}/ch $test_path/basics/hello.js)
-    if [[ $RES =~ "Error :" ]]; then
+    RES=$($test_path/../out/${binary_path}/ch $test_path/Basics/hello.js)
+    EXIT_CODE=$?
+
+    if [[ $RES =~ "Error :" || $EXIT_CODE != 0 ]]; then
         echo "FAILED"
-        exit 1
+        exit $EXIT_CODE
     else
         echo "Release Build Passes hello.js run"
     fi
