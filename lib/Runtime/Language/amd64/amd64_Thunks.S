@@ -353,12 +353,6 @@ NESTED_END _ZN2Js23AsmJsExternalEntryPointEPNS_16RecyclableObjectENS_8CallInfoEz
 // WasmLibrary::WasmDeferredParseExternalThunk
 //============================================================================================================
 
-.global C_FUNC(_ZN2Js11WasmLibrary27WasmDeferredParseEntryPointEPNS_16RecyclableObjectENS_8CallInfoEz)
-
-#ifndef __APPLE__
-.type _ZN2Js11WasmLibrary27WasmDeferredParseEntryPointEPNS_16RecyclableObjectENS_8CallInfoEz, @function
-#endif
-
 // Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
 .balign 16
 NESTED_ENTRY _ZN2Js11WasmLibrary30WasmDeferredParseExternalThunkEPNS_16RecyclableObjectENS_8CallInfoEz, _TEXT, NoHandler

@@ -88,6 +88,14 @@ RUN "test-char16"
 RUN "test-static-native"
 
 # shared lib tests
+LIB_DIR="$(dirname ${CH_DIR})"
+if [[ `uname -a` =~ "Darwin" ]]; then
+    export DYLD_LIBRARY_PATH=${LIB_DIR}/:$DYLD_LIBRARY_PATH
+else
+    export LD_LIBRARY_PATH=${LIB_DIR}/:$LD_LIBRARY_PATH
+fi
+
+RUN "test-shared-basic"
 
 # test python
 RUN_CMD "test-python" "python helloWorld.py ${BUILD_TYPE}"

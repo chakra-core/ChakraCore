@@ -6,8 +6,9 @@
 var isWindows = !WScript.Platform || WScript.Platform.OS == 'win32';
 var path_sep = isWindows ? '\\' : '/';
 var isStaticBuild = WScript.Platform && WScript.Platform.LINK_TYPE == 'static';
+var sharedExtension = (WScript.Platform.OS == "darwin") ? ".dylib" : ".so";
 
-if (!isStaticBuild) {
+if (isStaticBuild) {
     // test will be ignored
     print("# IGNORE_THIS_TEST");
 } else {
@@ -18,13 +19,13 @@ if (!isStaticBuild) {
     var makefile =
 "IDIR=" + binaryPath + "/../../lib/Jsrt \n\
 \n\
-LIBRARY_PATH=" + binaryPath + "/lib\n\
+LIBRARY_PATH=" + binaryPath + "/\n\
 PLATFORM=" + platform + "\n\
-LDIR=$(LIBRARY_PATH)/libChakraCoreStatic.a \n\
+LDIR=$(LIBRARY_PATH)/libChakraCore" + sharedExtension + " \n\
 \n\
 ifeq (darwin, ${PLATFORM})\n\
 \tICU4C_LIBRARY_PATH ?= /usr/local/opt/icu4c\n\
-\tCFLAGS=-lstdc++ -I$(IDIR)\n\
+\tCFLAGS=-lstdc++ -std=c++11 -I$(IDIR)\n\
 \tFORCE_STARTS=-Wl,-force_load,\n\
 \tFORCE_ENDS=\n\
 \tLIBS=-framework CoreFoundation -framework Security -lm -ldl -Wno-c++11-compat-deprecated-writable-strings \
@@ -33,7 +34,7 @@ ifeq (darwin, ${PLATFORM})\n\
     $(ICU4C_LIBRARY_PATH)/lib/libicuuc.a \
     $(ICU4C_LIBRARY_PATH)/lib/libicui18n.a\n\
 else\n\
-\tCFLAGS=-lstdc++ -I$(IDIR)\n\
+\tCFLAGS=-lstdc++ -std=c++0x -I$(IDIR)\n\
 \tFORCE_STARTS=-Wl,--whole-archive\n\
 \tFORCE_ENDS=-Wl,--no-whole-archive\n\
 \tLIBS=-pthread -lm -ldl -licuuc -Wno-c++11-compat-deprecated-writable-strings \
@@ -41,7 +42,7 @@ else\n\
 endif\n\
 \n\
 testmake:\n\
-\t$(CC) sample.cpp dummy-1.c dummy-2.c $(CFLAGS) $(FORCE_STARTS) $(LDIR) $(FORCE_ENDS) $(LIBS)\n\
+\t$(CC) sample.cpp $(CFLAGS) $(FORCE_STARTS) $(LDIR) $(FORCE_ENDS) $(LIBS)\n\
 \n\
 .PHONY: clean\n\
 \n\

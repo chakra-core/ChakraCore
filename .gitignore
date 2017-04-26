@@ -87,6 +87,8 @@ tags
 *.a
 *.gch
 *.o
+*.so
+*.dylib
 Makefile
 pal/src/config.h
 DbgController.js.h
