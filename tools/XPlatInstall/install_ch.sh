@@ -90,7 +90,7 @@ fi
 PRINT $DEFAULT_COLOR "\n] Downloading ChakraCore"
 PRINT $SUCCESS_COLOR "] ${BINARY_NAME}"
 
-___=$(curl -kSL -o "chakracore.tar.gz" "${BINARY_NAME}")
+___=$(curl -kSL -o "chakracore.tar.gz" "${BINARY_NAME}" 2>&1)
 
 if [[ $? != 0 ]]; then
     PRINT $ERROR_COLOR "] Download failed."
@@ -100,7 +100,7 @@ fi
 
 PRINT $SUCCESS_COLOR "] Download completed"
 
-___=$(tar -xzf chakracore.tar.gz)
+___=$(tar -xzf chakracore.tar.gz 2>&1)
 
 if [[ $? != 0 ]]; then
     PRINT $ERROR_COLOR "] Extracting the compressed file is failed."
@@ -113,12 +113,19 @@ fi
 rm -rf chakracore.tar.gz
 
 # test ch
-___=$(./ChakraCoreFiles/bin/ch -v)
+___=$(./ChakraCoreFiles/bin/ch -v 2>&1)
 
 if [[ $? != 0 ]]; then
-    PRINT $ERROR_COLOR "] Something went wrong. 'ch' installation is failed."
-    PRINT $DEFAULT_COLOR "] ${___}"
-    PRINT $DEFAULT_COLOR "] Please send us this error from https://github.com/Microsoft/ChakraCore"
+    if [[ $___ =~ "GLIBC_2.17" ]]; then
+        PRINT $ERROR_COLOR   "] This ChakraCore binary is compiled for newer systems."
+        PRINT $DEFAULT_COLOR "] You may compile ChakraCore on your current system."
+        PRINT $DEFAULT_COLOR "  Once you do that, it should work on your system.\n"
+        PRINT $DEFAULT_COLOR "] You may also try running the pre-compiled binary on a newer system"
+    else
+        PRINT $ERROR_COLOR   "] Something went wrong. 'ch' installation is failed."
+        PRINT $DEFAULT_COLOR "] ${___}"
+        PRINT $DEFAULT_COLOR "] Please send us this error from https://github.com/Microsoft/ChakraCore"
+    fi
     rm -rf ChakraCoreFiles/
     exit 1
 fi
