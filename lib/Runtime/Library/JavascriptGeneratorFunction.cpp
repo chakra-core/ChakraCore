@@ -162,7 +162,7 @@ namespace Js
 
         try
         {
-            CALL_FUNCTION(executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
+            CALL_FUNCTION(scriptContext->GetThreadContext(), executor, CallInfo(CallFlags_Value, 3), library->GetUndefined(), resolve, reject);
         }
         catch (const JavascriptException& err)
         {

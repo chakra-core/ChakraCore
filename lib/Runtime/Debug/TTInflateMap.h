@@ -173,7 +173,7 @@ namespace TTD
 
         ~TTDComparePath();
 
-        void WritePathToConsole(ThreadContext* threadContext, bool printNewline, char16* namebuff) const;
+        void WritePathToConsole(ThreadContext* threadContext, bool printNewline, _Out_writes_z_(namebuffLength) char16* namebuff, charcount_t namebuffLength) const;
     };
 
     //A class that we use to manage all the dictionaries we need when comparing 2 snapshots

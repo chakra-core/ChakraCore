@@ -17,6 +17,10 @@ extern "C"
 extern "C" PVOID __guard_check_icall_fptr;
 #endif
 
+#if _CONTROL_FLOW_GUARD_SHADOW_STACK
+extern "C" void __guard_ss_verify_failure();
+#endif
+
 namespace IR
 {
 enum JnHelperMethod

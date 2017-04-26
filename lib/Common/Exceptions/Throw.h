@@ -22,6 +22,9 @@ namespace Js {
         static void __declspec(noreturn) FatalInternalError();
         static void __declspec(noreturn) FatalInternalErrorEx(int scenario);
         static void __declspec(noreturn) FatalProjectionError();
+#if ENABLE_JS_REENTRANCY_CHECK
+        static void __declspec(noreturn) FatalJsReentrancyError();
+#endif
 
         static void CheckAndThrowOutOfMemory(BOOLEAN status);
 

@@ -1163,7 +1163,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     {
         body->SetDisableInlineSpread(true);
     }
-
+    
     NativeCodeGenerator::LogCodeGenDone(workItem, &start_time);
 
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY

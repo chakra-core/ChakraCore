@@ -132,7 +132,7 @@ namespace Js
                     value = undefined;
                 }
 
-                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 3), weakMapObject, key, value);
+                CALL_FUNCTION(scriptContext->GetThreadContext(), adder, CallInfo(CallFlags_Value, 3), weakMapObject, key, value);
             });
         }
 

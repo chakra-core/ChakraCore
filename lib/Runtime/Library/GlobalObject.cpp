@@ -721,7 +721,7 @@ namespace Js
             }
         }
 
-        return library->GetGlobalObject()->ExecuteEvalParsedFunction(pfuncScript, environment, varThis);
+        return library->GetGlobalObject()->ExecuteEvalParsedFunction(pfuncScript, environment, varThis, scriptContext);
     }
 
     void GlobalObject::UpdateThisForEval(Var &varThis, ModuleID moduleID, ScriptContext *scriptContext, BOOL strictMode)
@@ -737,7 +737,7 @@ namespace Js
     }
 
 
-    Var GlobalObject::ExecuteEvalParsedFunction(ScriptFunction *pfuncScript, FrameDisplay* environment, Var &varThis)
+    Var GlobalObject::ExecuteEvalParsedFunction(ScriptFunction *pfuncScript, FrameDisplay* environment, Var &varThis, ScriptContext *scriptContext)
     {
         Assert(pfuncScript != nullptr);
 
@@ -749,7 +749,7 @@ namespace Js
             // Executing the eval causes the scope chain to escape.
             pfuncScript->InvalidateCachedScopeChain();
         }
-        Var varResult = CALL_FUNCTION(pfuncScript, CallInfo(CallFlags_Eval, 1), varThis);
+        Var varResult = CALL_FUNCTION(scriptContext->GetThreadContext(), pfuncScript, CallInfo(CallFlags_Eval, 1), varThis);
         pfuncScript->SetEnvironment(nullptr);
         return varResult;
     }

@@ -972,7 +972,7 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::ScopeInfo *scopeInfo, FuncInfo * fu
 {
     if (scopeInfo)
     {
-        PROBE_STACK(scriptContext, Js::Constants::MinStackByteCodeVisitor);
+        PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackByteCodeVisitor);
 
         Js::ParseableFunctionInfo * pfi = scopeInfo->GetFunctionInfo()->GetParseableFunctionInfo();
         bool newFunc = (func == nullptr || func->byteCodeFunction != pfi);
@@ -983,7 +983,7 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::ScopeInfo *scopeInfo, FuncInfo * fu
             newFunc = true;
         }
 
-        // Recursively restore enclosing scope info so outermost scopes/funcs are pushed first.
+
         this->RestoreScopeInfo(scopeInfo->GetParentScopeInfo(), func);
         this->RestoreOneScope(scopeInfo, func);
 

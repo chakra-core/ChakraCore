@@ -366,7 +366,7 @@ namespace Js
         template<int argCount> // The count is excluding 'this'
         static Var CallRegExSymbolFunction(Var fn, Var regExp, Arguments& args, PCWSTR const varName, ScriptContext* scriptContext);
         template<int argCount> // The count is excluding 'this'
-        static Var CallRegExFunction(RecyclableObject* fnObj, Var regExp, Arguments& args);
+        static Var CallRegExFunction(RecyclableObject* fnObj, Var regExp, Arguments& args, ScriptContext *scriptContext);
     };
 
     template<>

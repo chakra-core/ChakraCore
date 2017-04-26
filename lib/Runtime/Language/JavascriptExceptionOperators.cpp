@@ -849,7 +849,13 @@ namespace Js
                    // Make sure we didn't disable exceptions
                    !scriptContext->GetThreadContext()->IsDisableImplicitException()
             );
-            scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
+
+            ThreadContext *threadContext = scriptContext->GetThreadContext();
+            threadContext->ClearDisableImplicitFlags();
+#if ENABLE_JS_REENTRANCY_CHECK
+            threadContext->SetNoJsReentrancy(false);
+#endif
+
             if (fillExceptionContext && considerPassingToDebugger)
             {
                 DispatchExceptionToDebugger(exceptionObject, scriptContext);

@@ -3938,6 +3938,7 @@ namespace Js
             }
         }
 
+
         __TRY_FINALLY_BEGIN // SEH is not guaranteed, see the implementation
         {
             Assert(!function->IsScriptFunction() || function->GetFunctionProxy());
