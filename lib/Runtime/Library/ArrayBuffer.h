@@ -84,7 +84,7 @@ namespace Js
         static int GetIsDetachedOffset() { return offsetof(ArrayBufferBase, isDetached); }
 
     protected:
-        bool isDetached;
+        Field(bool) isDetached;
     };
 
     class ArrayBuffer : public ArrayBufferBase
