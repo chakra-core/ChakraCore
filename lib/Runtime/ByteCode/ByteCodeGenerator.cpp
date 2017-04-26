@@ -972,7 +972,7 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody
 {
     if (functionBody && functionBody->GetScopeInfo())
     {
-        PROBE_STACK(scriptContext, Js::Constants::MinStackByteCodeVisitor);
+        PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackByteCodeVisitor);
 
         Js::ScopeInfo* scopeInfo = functionBody->GetScopeInfo();
         RestoreScopeInfo(scopeInfo->GetParent()); // Recursively restore outer func scope info
@@ -982,11 +982,9 @@ void ByteCodeGenerator::RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody
         if (paramScopeInfo != nullptr)
         {
             paramScope = paramScopeInfo->GetScope();
-            Assert(paramScope);
         }
 
         Scope* bodyScope = scopeInfo->GetScope();
-
         Assert(bodyScope);
         bodyScope->SetHasOwnLocalInClosure(scopeInfo->GetHasOwnLocalInClosure());
 

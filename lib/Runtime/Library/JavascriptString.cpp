@@ -1759,18 +1759,18 @@ case_2:
         }
 
         RecyclableObject* fnObj = RecyclableObject::FromVar(fn);
-        return CallRegExFunction<argCount>(fnObj, regExp, args);
+        return CallRegExFunction<argCount>(fnObj, regExp, args, scriptContext);
     }
 
     template<>
-    Var JavascriptString::CallRegExFunction<1>(RecyclableObject* fnObj, Var regExp, Arguments& args)
+    Var JavascriptString::CallRegExFunction<1>(RecyclableObject* fnObj, Var regExp, Arguments& args, ScriptContext *scriptContext)
     {
         // args[0]: String
-        return CALL_FUNCTION(fnObj, CallInfo(CallFlags_Value, 2), regExp, args[0]);
+        return CALL_FUNCTION(scriptContext->GetThreadContext(), fnObj, CallInfo(CallFlags_Value, 2), regExp, args[0]);
     }
 
     template<>
-    Var JavascriptString::CallRegExFunction<2>(RecyclableObject* fnObj, Var regExp, Arguments& args)
+    Var JavascriptString::CallRegExFunction<2>(RecyclableObject* fnObj, Var regExp, Arguments& args, ScriptContext * scriptContext)
     {
         // args[0]: String
         // args[1]: RegExp (ignored since we need to create one when the argument is "undefined")
@@ -1778,10 +1778,10 @@ case_2:
 
         if (args.Info.Count < 3)
         {
-            return CallRegExFunction<1>(fnObj, regExp, args);
+            return CallRegExFunction<1>(fnObj, regExp, args, scriptContext);
         }
 
-        return CALL_FUNCTION(fnObj, CallInfo(CallFlags_Value, 3), regExp, args[0], args[2]);
+        return CALL_FUNCTION(scriptContext->GetThreadContext(), fnObj, CallInfo(CallFlags_Value, 3), regExp, args[0], args[2]);
     }
 
     Var JavascriptString::EntrySlice(RecyclableObject* function, CallInfo callInfo, ...)

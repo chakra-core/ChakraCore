@@ -1033,10 +1033,10 @@ public:
     void DecommitPages(__in char* address, size_t pageCount = 1);
 
     // Release pages that has already been decommitted
-    void ReleaseDecommitted(void * address, size_t pageCount, __in void * segment);
-    bool IsAddressFromAllocator(__in void* address);
+    void    ReleaseDecommitted(void * address, size_t pageCount, __in void * segment);
+    bool IsAddressFromAllocator(__in void* address);    
+    bool    AllocXdata() { return allocXdata; }
 
-    bool AllocXdata() { return allocXdata; }
 private:
     bool         allocXdata;
     void         ReleaseDecommittedSegment(__in SegmentBase<TVirtualAlloc>* segment);

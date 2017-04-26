@@ -48,5 +48,11 @@ namespace Js
 
     private:
         virtual bool GetPropertyBuiltIns(PropertyId propertyId, Var* value, ScriptContext* requestContext) override;
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableSimd128F4;
+        }
     };
 }

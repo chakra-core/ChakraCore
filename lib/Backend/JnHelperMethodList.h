@@ -616,6 +616,11 @@ HELPERCALL( CRT_chkstk, _chkstk, 0 )
 HELPERCALL(CRT_chkstk, __chkstk, 0)
 #endif
 
+#if _CONTROL_FLOW_GUARD_SHADOW_STACK
+// Statically linked CRT routine used when RFG violations.
+HELPERCALL(ReturnFlowGuardFailureRoutine, __guard_ss_verify_failure, 0)
+#endif
+
 #undef HELPERCALL_MATH
 #undef HELPERCALL_FULL_OR_INPLACE_MATH
 

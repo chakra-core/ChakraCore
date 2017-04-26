@@ -90,5 +90,11 @@ namespace Js
             Assert(false);
         }
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableStackScriptFunction;
+        }
     };
 };

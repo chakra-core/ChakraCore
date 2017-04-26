@@ -4435,8 +4435,7 @@ Recycler::CollectOnConcurrentThread()
 // explicit instantiation
 template BOOL Recycler::FinishConcurrent<FinishConcurrentOnIdle>();
 template BOOL Recycler::FinishConcurrent<FinishConcurrentOnIdleAtRoot>();
-template BOOL Recycler::FinishConcurrent<FinishConcurrentOnExitScript>();
-template BOOL Recycler::FinishConcurrent<FinishConcurrentOnEnterScript>();
+template BOOL Recycler::FinishConcurrent<FinishConcurrentDefault>();
 template BOOL Recycler::FinishConcurrent<ForceFinishCollection>();
 
 template <CollectionFlags flags>

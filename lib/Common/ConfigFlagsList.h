@@ -545,7 +545,7 @@ PHASE(All)
     #define DEFAULT_CONFIG_ES6PrototypeChain       (false)
 #endif
 #define DEFAULT_CONFIG_ES6ToPrimitive          (true)
-#define DEFAULT_CONFIG_ES6ToLength             (false)
+#define DEFAULT_CONFIG_ES6ToLength             (true)
 #define DEFAULT_CONFIG_ES6ToStringTag          (true)
 #define DEFAULT_CONFIG_ES6Unicode              (true)
 #define DEFAULT_CONFIG_ES6UnicodeVerbose       (true)
@@ -1381,7 +1381,7 @@ FLAGR (Number,  Version               , "Version in which to run the jscript eng
 #ifdef ENABLE_PROJECTION
 FLAGR (Number,  HostType              , "Host type in which to run the jscript engine. [one of 1,2]. Default is 1 = Browser.", 1)
 #endif
-FLAGR (Boolean, WERExceptionSupport   , "WER feature for extended exception support. Enabled when WinRT is enabled", false )
+FLAGR(Boolean, WERExceptionSupport    , "WER feature for extended exception support. Enabled when WinRT is enabled", false)
 #ifdef ENABLE_PROJECTION
 FLAGR (Boolean, WinRTConstructorAllowed, "Whether WinRT constructors is allowed in WebView host type. Constructor is always allowed in other host type ", false)
 #endif
@@ -1499,7 +1499,7 @@ FLAGNR(Boolean, CFG, "Force enable CFG on jshost. version in the jshost's manife
     FLAGNR(Number, SimulatePolyCacheWithOneTypeForInlineCacheIndex, "Use with SimulatePolyCacheWithOneTypeForFunction to simulate creating a polymorphic inline cache containing only one type due to a collision, for testing ObjTypeSpec", -1)
 #endif
 
-FLAGR(Number, JITServerIdleTimeout, "Idle timeout in seconds to do the cleanup in JIT server", 10)
+FLAGR(Number, JITServerIdleTimeout, "Idle timeout in milliseconds to do the cleanup in JIT server", 500)
 FLAGR(Number, JITServerMaxInactivePageAllocatorCount, "Max inactive page allocators to keep before schedule a cleanup", 10)
 
 FLAGNR(Boolean, StrictWriteBarrierCheck, "Check write barrier setting on none write barrier pages", DEFAULT_CONFIG_StrictWriteBarrierCheck)

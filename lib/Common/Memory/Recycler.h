@@ -299,9 +299,10 @@ enum CollectionFlags
 
     FinishConcurrentOnIdle          = CollectMode_Concurrent | CollectOverride_DisableIdleFinish,
     FinishConcurrentOnIdleAtRoot    = CollectMode_Concurrent | CollectOverride_DisableIdleFinish | CollectOverride_SkipStack,
-    FinishConcurrentOnExitScript    = CollectMode_Concurrent | CollectOverride_DisableIdleFinish | CollectOverride_BackgroundFinishMark,
-    FinishConcurrentOnEnterScript   = CollectMode_Concurrent | CollectOverride_DisableIdleFinish | CollectOverride_BackgroundFinishMark,
-    FinishConcurrentOnAllocation    = CollectMode_Concurrent | CollectOverride_DisableIdleFinish | CollectOverride_BackgroundFinishMark,
+    FinishConcurrentDefault         = CollectMode_Concurrent | CollectOverride_DisableIdleFinish | CollectOverride_BackgroundFinishMark,
+    FinishConcurrentOnExitScript    = FinishConcurrentDefault,
+    FinishConcurrentOnEnterScript   = FinishConcurrentDefault,
+    FinishConcurrentOnAllocation    = FinishConcurrentDefault, 
     FinishDispose                   = CollectOverride_AllowDispose,
     FinishDisposeTimed              = CollectOverride_AllowDispose | CollectHeuristic_TimeIfScriptActive,
     ForceFinishCollection           = CollectOverride_ForceFinish | CollectOverride_ForceInThread,

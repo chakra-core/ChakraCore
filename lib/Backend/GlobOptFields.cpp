@@ -2215,6 +2215,7 @@ GlobOpt::FinishOptPropOp(IR::Instr *instr, IR::PropertySymOpnd *opnd, BasicBlock
         //   changed by the addition of a property.
 
         SymID opndId = opnd->HasObjectTypeSym() ? opnd->GetObjectTypeSym()->m_id : -1;
+
         if (!isObjTypeChecked)
         {
             if (block->globOptData.maybeWrittenTypeSyms == nullptr)

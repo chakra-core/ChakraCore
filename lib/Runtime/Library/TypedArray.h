@@ -217,6 +217,7 @@ namespace Js
         {
             Assert(this->GetScriptContext() != scriptContext);
             AssertMsg(VirtualTableInfo<TypedArray>::HasVirtualTable(this), "Derived class need to define marshal to script context");
+
             VirtualTableInfo<Js::CrossSiteObject<TypedArray<TypeName, clamped, virtualAllocated>>>::SetVirtualTable(this);
             ArrayBufferBase* arrayBuffer = this->GetArrayBuffer();
             if (arrayBuffer && !arrayBuffer->IsCrossSiteObject())
@@ -493,6 +494,9 @@ namespace Js
         {
             return &TypedArrayCompareElementsHelper<TypeName>;
         }
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF();
     };
 
     // in windows build environment, char16 is not an intrinsic type, and we cannot do the type
@@ -550,6 +554,12 @@ namespace Js
         CompareElementsFunction GetCompareElementsFunction()
         {
             return &TypedArrayCompareElementsHelper<char16>;
+        }
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableCharArray;
         }
     };
 

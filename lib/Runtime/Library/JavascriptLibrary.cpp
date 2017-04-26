@@ -1130,8 +1130,11 @@ namespace Js
         moduleTypeDisplayString = CreateStringFromCppLiteral(_u("Module"));
         variantDateTypeDisplayString = CreateStringFromCppLiteral(_u("date"));
         promiseResolveFunction = nullptr;
+        promiseThenFunction = nullptr;
         generatorNextFunction = nullptr;
         generatorThrowFunction = nullptr;
+        jsonStringifyFunction = nullptr;
+        objectFreezeFunction = nullptr;
 
 #ifdef ENABLE_SIMDJS
         if (GetScriptContext()->GetConfig()->IsSimdjsEnabled())
@@ -2272,7 +2275,7 @@ namespace Js
         }
         return promiseResolveFunction;
     }
-
+    
     void JavascriptLibrary::InitializePromisePrototype(DynamicObject* promisePrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(promisePrototype, mode, 4);
@@ -2288,10 +2291,20 @@ namespace Js
         }
         scriptContext->SetBuiltInLibraryFunction(JavascriptPromise::EntryInfo::Catch.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(promisePrototype, PropertyIds::catch_, &JavascriptPromise::EntryInfo::Catch, 1));
-        scriptContext->SetBuiltInLibraryFunction(JavascriptPromise::EntryInfo::Then.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(promisePrototype, PropertyIds::then, &JavascriptPromise::EntryInfo::Then, 2));
+        library->AddMember(promisePrototype, PropertyIds::then, library->EnsurePromiseThenFunction(), PropertyBuiltInMethodDefaults);
+        scriptContext->SetBuiltInLibraryFunction(JavascriptPromise::EntryInfo::Then.GetOriginalEntryPoint(), library->EnsurePromiseThenFunction());
 
         promisePrototype->SetHasNoEnumerableProperties(true);
+    }
+
+    JavascriptFunction* JavascriptLibrary::EnsurePromiseThenFunction()
+    {
+        if (promiseThenFunction == nullptr)
+        {
+            promiseThenFunction = DefaultCreateFunction(&JavascriptPromise::EntryInfo::Then, 2, nullptr, nullptr, PropertyIds::then);
+        }
+
+        return promiseThenFunction;
     }
 
     void JavascriptLibrary::InitializeGeneratorFunctionConstructor(DynamicObject* generatorFunctionConstructor, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -3400,57 +3413,60 @@ namespace Js
         defaultPropertyDescriptor.SetConfigurable(false);
 
 #if !defined(_M_X64_OR_ARM64)
-        vtableAddresses[VTableValue::VtableJavascriptNumber] = VirtualTableInfo<Js::JavascriptNumber>::Address;
+        
+        VirtualTableRecorder<Js::JavascriptNumber>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptNumber);
 #else
         vtableAddresses[VTableValue::VtableJavascriptNumber] = 0;
 #endif
-        vtableAddresses[VTableValue::VtableDynamicObject] = VirtualTableInfo<Js::DynamicObject>::Address;
+        VirtualTableRecorder<Js::DynamicObject>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableDynamicObject);
         vtableAddresses[VTableValue::VtableInvalid] = Js::ScriptContextOptimizationOverrideInfo::InvalidVtable;
-        vtableAddresses[VTableValue::VtablePropertyString] = VirtualTableInfo<Js::PropertyString>::Address;
-        vtableAddresses[VTableValue::VtableJavascriptBoolean] = VirtualTableInfo<Js::JavascriptBoolean>::Address;
-        vtableAddresses[VTableValue::VtableJavascriptArray] = VirtualTableInfo<Js::JavascriptArray>::Address;
-        vtableAddresses[VTableValue::VtableInt8Array] = VirtualTableInfo<Js::Int8Array>::Address;
-        vtableAddresses[VTableValue::VtableUint8Array] = VirtualTableInfo<Js::Uint8Array>::Address;
-        vtableAddresses[VTableValue::VtableUint8ClampedArray] = VirtualTableInfo<Js::Uint8ClampedArray>::Address;
-        vtableAddresses[VTableValue::VtableInt16Array] = VirtualTableInfo<Js::Int16Array>::Address;
-        vtableAddresses[VTableValue::VtableUint16Array] = VirtualTableInfo<Js::Uint16Array>::Address;
-        vtableAddresses[VTableValue::VtableInt32Array] = VirtualTableInfo<Js::Int32Array>::Address;
-        vtableAddresses[VTableValue::VtableUint32Array] = VirtualTableInfo<Js::Uint32Array>::Address;
-        vtableAddresses[VTableValue::VtableFloat32Array] = VirtualTableInfo<Js::Float32Array>::Address;
-        vtableAddresses[VTableValue::VtableFloat64Array] = VirtualTableInfo<Js::Float64Array>::Address;
-        vtableAddresses[VTableValue::VtableInt64Array] = VirtualTableInfo<Js::Int64Array>::Address;
-        vtableAddresses[VTableValue::VtableUint64Array] = VirtualTableInfo<Js::Uint64Array>::Address;
+        VirtualTableRecorder<Js::PropertyString>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtablePropertyString);
+        VirtualTableRecorder<Js::JavascriptBoolean>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptBoolean);
+        VirtualTableRecorder<Js::JavascriptArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptArray);
+        VirtualTableRecorder<Js::Int8Array>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableInt8Array);
+        VirtualTableRecorder<Js::Uint8Array>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableUint8Array);
+        VirtualTableRecorder<Js::Uint8ClampedArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableUint8ClampedArray);
+        VirtualTableRecorder<Js::Int16Array>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableInt16Array);
+        VirtualTableRecorder<Js::Uint16Array>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableUint16Array);
+        VirtualTableRecorder<Js::Int32Array>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableInt32Array);
+        VirtualTableRecorder<Js::Uint32Array>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableUint32Array);
+        VirtualTableRecorder<Js::Float32Array>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableFloat32Array);
+        VirtualTableRecorder<Js::Float64Array>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableFloat64Array);
+        VirtualTableRecorder<Js::Int64Array>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableInt64Array);
+        VirtualTableRecorder<Js::Uint64Array>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableUint64Array);
 
-        vtableAddresses[VTableValue::VtableInt8VirtualArray] = VirtualTableInfo<Js::Int8VirtualArray>::Address;
-        vtableAddresses[VTableValue::VtableUint8VirtualArray] = VirtualTableInfo<Js::Uint8VirtualArray>::Address;
-        vtableAddresses[VTableValue::VtableUint8ClampedVirtualArray] = VirtualTableInfo<Js::Uint8ClampedVirtualArray>::Address;
-        vtableAddresses[VTableValue::VtableInt16VirtualArray] = VirtualTableInfo<Js::Int16VirtualArray>::Address;
-        vtableAddresses[VTableValue::VtableUint16VirtualArray] = VirtualTableInfo<Js::Uint16VirtualArray>::Address;
-        vtableAddresses[VTableValue::VtableInt32VirtualArray] = VirtualTableInfo<Js::Int32VirtualArray>::Address;
-        vtableAddresses[VTableValue::VtableUint32VirtualArray] = VirtualTableInfo<Js::Uint32VirtualArray>::Address;
-        vtableAddresses[VTableValue::VtableFloat32VirtualArray] = VirtualTableInfo<Js::Float32VirtualArray>::Address;
-        vtableAddresses[VTableValue::VtableFloat64VirtualArray] = VirtualTableInfo<Js::Float64VirtualArray>::Address;
+        VirtualTableRecorder<Js::Int8VirtualArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableInt8VirtualArray);
+        VirtualTableRecorder<Js::Uint8VirtualArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableUint8VirtualArray);
+        VirtualTableRecorder<Js::Uint8ClampedVirtualArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableUint8ClampedVirtualArray);
+        VirtualTableRecorder<Js::Int16VirtualArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableInt16VirtualArray);
+        VirtualTableRecorder<Js::Uint16VirtualArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableUint16VirtualArray);
+        VirtualTableRecorder<Js::Int32VirtualArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableInt32VirtualArray);
+        VirtualTableRecorder<Js::Uint32VirtualArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableUint32VirtualArray);
+        VirtualTableRecorder<Js::Float32VirtualArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableFloat32VirtualArray);
+        VirtualTableRecorder<Js::Float64VirtualArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableFloat64VirtualArray);
 
-        vtableAddresses[VTableValue::VtableBoolArray] = VirtualTableInfo<Js::BoolArray>::Address;
-        vtableAddresses[VTableValue::VtableCharArray] = VirtualTableInfo<Js::CharArray>::Address;
-        vtableAddresses[VTableValue::VtableNativeIntArray] = VirtualTableInfo<Js::JavascriptNativeIntArray>::Address;
+        VirtualTableRecorder<Js::BoolArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableBoolArray);
+        VirtualTableRecorder<Js::CharArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableCharArray);
+
+        VirtualTableRecorder<Js::JavascriptNativeIntArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableNativeIntArray);
 #if ENABLE_COPYONACCESS_ARRAY
-        vtableAddresses[VTableValue::VtableCopyOnAccessNativeIntArray] = VirtualTableInfo<Js::JavascriptCopyOnAccessNativeIntArray>::Address;
+        VirtualTableRecorder<Js::JavascriptCopyOnAccessNativeIntArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableCopyOnAccessNativeIntArray);
 #endif
-        vtableAddresses[VTableValue::VtableNativeFloatArray] = VirtualTableInfo<Js::JavascriptNativeFloatArray>::Address;
+        VirtualTableRecorder<Js::JavascriptNativeFloatArray>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableNativeFloatArray);
+        // don't validate vtable for VtableJavascriptNativeIntArray because its vtable is used for VtableNativeIntArray
         vtableAddresses[VTableValue::VtableJavascriptNativeIntArray] = VirtualTableInfo<Js::JavascriptNativeIntArray>::Address;
-        vtableAddresses[VTableValue::VtableJavascriptRegExp] = VirtualTableInfo<Js::JavascriptRegExp>::Address;
-        vtableAddresses[VTableValue::VtableStackScriptFunction] = VirtualTableInfo<Js::StackScriptFunction>::Address;
-        vtableAddresses[VTableValue::VtableScriptFunction] = VirtualTableInfo<Js::ScriptFunction>::Address;
-        vtableAddresses[VTableValue::VtableJavascriptGeneratorFunction] = VirtualTableInfo<Js::JavascriptGeneratorFunction>::Address;
-        vtableAddresses[VTableValue::VtableJavascriptAsyncFunction] = VirtualTableInfo<Js::JavascriptAsyncFunction>::Address;
-        vtableAddresses[VTableValue::VtableConcatStringMulti] = VirtualTableInfo<Js::ConcatStringMulti>::Address;
-        vtableAddresses[VTableValue::VtableCompoundString] = VirtualTableInfo<Js::CompoundString>::Address;
+        VirtualTableRecorder<Js::JavascriptRegExp>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptRegExp);
+        VirtualTableRecorder<Js::StackScriptFunction>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableStackScriptFunction);
+        VirtualTableRecorder<Js::ScriptFunction>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableScriptFunction);
+        VirtualTableRecorder<Js::JavascriptGeneratorFunction>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptGeneratorFunction);
+        VirtualTableRecorder<Js::JavascriptAsyncFunction>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableJavascriptAsyncFunction);
+        VirtualTableRecorder<Js::ConcatStringMulti>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableConcatStringMulti);
+        VirtualTableRecorder<Js::CompoundString>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableCompoundString);
 
         // SIMD_JS
 #ifdef ENABLE_SIMDJS
-        vtableAddresses[VTableValue::VtableSimd128F4] = VirtualTableInfo<Js::JavascriptSIMDFloat32x4>::Address;
-        vtableAddresses[VTableValue::VtableSimd128I4] = VirtualTableInfo<Js::JavascriptSIMDInt32x4>::Address;
+        VirtualTableRecorder<Js::JavascriptSIMDFloat32x4>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableSimd128F4);
+        VirtualTableRecorder<Js::JavascriptSIMDInt32x4>::RecordVirtualTableAddress(vtableAddresses, VTableValue::VtableSimd128I4);
 #endif
 
         for (TypeId typeId = static_cast<TypeId>(0); typeId < TypeIds_Limit; typeId = static_cast<TypeId>(typeId + 1))
@@ -4116,8 +4132,8 @@ namespace Js
         library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::create, &JavascriptObject::EntryInfo::Create, 2);
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Seal.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::seal, &JavascriptObject::EntryInfo::Seal, 1));
-        scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Freeze.GetOriginalEntryPoint(),
-            library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::freeze, &JavascriptObject::EntryInfo::Freeze, 1));
+        library->AddMember(objectConstructor, PropertyIds::freeze, library->EnsureObjectFreezeFunction(), PropertyBuiltInMethodDefaults);
+        scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::Freeze.GetOriginalEntryPoint(), library->EnsureObjectFreezeFunction());
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::PreventExtensions.GetOriginalEntryPoint(),
             library->AddFunctionToLibraryObject(objectConstructor, PropertyIds::preventExtensions, &JavascriptObject::EntryInfo::PreventExtensions, 1));
         scriptContext->SetBuiltInLibraryFunction(JavascriptObject::EntryInfo::IsSealed.GetOriginalEntryPoint(),
@@ -4153,6 +4169,15 @@ namespace Js
         }
 
         objectConstructor->SetHasNoEnumerableProperties(true);
+    }
+
+    JavascriptFunction* JavascriptLibrary::EnsureObjectFreezeFunction()
+    {
+        if (objectFreezeFunction == nullptr)
+        {
+            objectFreezeFunction = DefaultCreateFunction(&JavascriptObject::EntryInfo::Freeze, 1, nullptr, nullptr, PropertyIds::freeze);
+        }
+        return objectFreezeFunction;
     }
 
     void JavascriptLibrary::InitializeObjectPrototype(DynamicObject* objectPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
@@ -4917,8 +4942,8 @@ namespace Js
     {
         typeHandler->Convert(JSONObject, mode, 3);
         JavascriptLibrary* library = JSONObject->GetLibrary();
-        JSONObject->GetScriptContext()->SetBuiltInLibraryFunction(JSON::EntryInfo::Stringify.GetOriginalEntryPoint(),
-        library->AddFunctionToLibraryObject(JSONObject, PropertyIds::stringify, &JSON::EntryInfo::Stringify, 3));
+        library->AddMember(JSONObject, PropertyIds::stringify, library->EnsureJSONStringifyFunction());
+        JSONObject->GetScriptContext()->SetBuiltInLibraryFunction(JSON::EntryInfo::Stringify.GetOriginalEntryPoint(), library->EnsureJSONStringifyFunction());
         library->AddFunctionToLibraryObject(JSONObject, PropertyIds::parse, &JSON::EntryInfo::Parse, 2);
 
         if (JSONObject->GetScriptContext()->GetConfig()->IsES6ToStringTagEnabled())
@@ -4927,6 +4952,15 @@ namespace Js
         }
 
         JSONObject->SetHasNoEnumerableProperties(true);
+    }
+
+    JavascriptFunction* JavascriptLibrary::EnsureJSONStringifyFunction()
+    {
+        if (jsonStringifyFunction == nullptr)
+        {
+            jsonStringifyFunction = DefaultCreateFunction(&JSON::EntryInfo::Stringify, 3, nullptr, nullptr, PropertyIds::stringify);
+        }
+        return jsonStringifyFunction;
     }
 
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
@@ -6241,6 +6275,9 @@ namespace Js
         case kjstError:
         default:
             baseErrorType = errorType;
+            break;
+        case kjstEvalError:
+            baseErrorType = evalErrorType;
             break;
         case kjstRangeError:
             baseErrorType = rangeErrorType;

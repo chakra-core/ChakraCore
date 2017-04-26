@@ -4,9 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 
 #include "RuntimeLanguagePch.h"
-#include "Library/BoundFunction.h"
 
 #ifdef ASMJS_PLAT
+#include "Library/BoundFunction.h"
 namespace Js{
     bool ASMLink::CheckArrayBuffer(ScriptContext* scriptContext, Var bufferView, const AsmJsModuleInfo * info)
     {

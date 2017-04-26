@@ -382,8 +382,39 @@ public:
     }
 
 private:
-    IR::IndirOpnd * GenerateFastElemICommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelCantUseArray, IR::LabelInstr *labelFallthrough, bool * pIsTypedArrayElement, bool * pIsStringIndex, bool *emitBailoutRef, IR::LabelInstr **pLabelSegmentLengthIncreased = nullptr, bool checkArrayLengthOverflow = true, bool forceGenerateFastPath = false, bool returnLength = false, IR::LabelInstr *bailOutLabelInstr = nullptr);
-    IR::IndirOpnd * GenerateFastElemIIntIndexCommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelCantUseArray, IR::LabelInstr *labelFallthrough, bool * pIsTypedArrayElement, bool *emitBailoutRef, IR::LabelInstr **pLabelSegmentLengthIncreased, bool checkArrayLengthOverflow, bool forceGenerateFastPath = false, bool returnLength = false, IR::LabelInstr *bailOutLabelInstr = nullptr);
+    IR::IndirOpnd * GenerateFastElemICommon(
+        IR::Instr * ldElem,
+        bool isStore,
+        IR::IndirOpnd * indirOpnd,
+        IR::LabelInstr * labelHelper,
+        IR::LabelInstr * labelCantUseArray,
+        IR::LabelInstr *labelFallthrough,
+        bool * pIsTypedArrayElement,
+        bool * pIsStringIndex,
+        bool *emitBailoutRef,
+        IR::LabelInstr **pLabelSegmentLengthIncreased = nullptr,
+        bool checkArrayLengthOverflow = true,
+        bool forceGenerateFastPath = false,
+        bool returnLength = false,
+        IR::LabelInstr *bailOutLabelInstr = nullptr,
+        bool * indirOpndOverflowed = nullptr);
+
+    IR::IndirOpnd * GenerateFastElemIIntIndexCommon(
+        IR::Instr * ldElem,
+        bool isStore,
+        IR::IndirOpnd * indirOpnd,
+        IR::LabelInstr * labelHelper,
+        IR::LabelInstr * labelCantUseArray,
+        IR::LabelInstr *labelFallthrough,
+        bool * pIsTypedArrayElement,
+        bool *emitBailoutRef,
+        IR::LabelInstr **pLabelSegmentLengthIncreased,
+        bool checkArrayLengthOverflow,
+        bool forceGenerateFastPath = false,
+        bool returnLength = false,
+        IR::LabelInstr *bailOutLabelInstr = nullptr,
+        bool * indirOpndOverflowed = nullptr);
+
     bool            GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastStElemI(IR::Instr *& StElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef);

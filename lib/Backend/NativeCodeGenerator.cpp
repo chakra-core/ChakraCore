@@ -1161,7 +1161,7 @@ NativeCodeGenerator::CodeGen(PageAllocator * pageAllocator, CodeGenWorkItem* wor
     {
         body->SetDisableInlineSpread(true);
     }
-
+    
 #ifdef PROFILE_BAILOUT_RECORD_MEMORY
     if (Js::Configuration::Global.flags.ProfileBailOutRecordMemory)
     {

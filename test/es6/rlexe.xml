@@ -500,7 +500,7 @@
     <default>
       <files>es6_stable.js</files>
       <!-- Disable OOP JIT which would cause output to print twice. -->
-      <compile-flags>-verbose -es6 -ES6DefaultArgs -oopjit- -WERExceptionSupport</compile-flags>
+      <compile-flags>-verbose -es6 -ES6DefaultArgs -WERExceptionSupport -oopjit-</compile-flags>
       <baseline>es6_stable.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>
@@ -509,7 +509,7 @@
     <default>
       <files>es6_stable.js</files>
       <!-- Disable OOP JIT which would cause output to print twice. -->
-      <compile-flags>-verbose -es6 -es6- -ES6DefaultArgs -oopjit- -WERExceptionSupport</compile-flags>
+      <compile-flags>-verbose -es6 -es6- -ES6DefaultArgs -WERExceptionSupport -oopjit-</compile-flags>
       <baseline>es6_stable.enable_disable.baseline</baseline>
       <tags>exclude_dynapogo</tags>
     </default>

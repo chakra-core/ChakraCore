@@ -1512,6 +1512,14 @@ LowererMDArch::MovArgFromReg2Stack(IR::Instr * instr, RegNum reg, uint16 slotNum
 IR::Instr *
 LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
 {
+#if _CONTROL_FLOW_GUARD_SHADOW_STACK
+    /* 
+     * If RFG is enabled for the process, then this precedes the prologue:
+     *
+     * mov    rax,                       [rsp]
+     * mov    fs:[rsp],                  rax
+     */
+#endif
     /*
      * push   rbp
      * mov    rbp,                       rsp
@@ -1725,6 +1733,32 @@ LowererMDArch::LowerEntryInstr(IR::EntryInstr * entryInstr)
     entryInstr->InsertAfter(pushInstr);
     m_func->m_prologEncoder.RecordNonVolRegSave();
     firstPrologInstr = pushInstr;
+
+#if _CONTROL_FLOW_GUARD_SHADOW_STACK
+    if (_guard_rf_checks_enforced()) {
+        // Generate MOV FS:[RSP], RAX
+        raxOpnd = IR::RegOpnd::New(nullptr, RegRAX, TyMachReg, this->m_func);
+        IR::Instr * storeRetInstr = IR::Instr::New(Js::OpCode::MOV,
+                                                  IR::IndirOpnd::New(stackPointer,
+                                                                     0,
+                                                                     TyInt64,
+                                                                     this->m_func),
+                                                  raxOpnd,
+                                                  this->m_func);
+        storeRetInstr->isFsBased = true;
+        entryInstr->InsertAfter(storeRetInstr);
+
+        // Generate MOV RAX, [RSP]
+        IR::Instr * getRetInstr = IR::Instr::New(Js::OpCode::MOV,
+                                                  raxOpnd,
+                                                  IR::IndirOpnd::New(stackPointer,
+                                                                     0,
+                                                                     TyInt64,
+                                                                     this->m_func),
+                                                  this->m_func);
+        entryInstr->InsertAfter(getRetInstr);
+    }
+#endif
 
     //
     // Insert pragmas that tell the prolog encoder the extent of the prolog.
@@ -2117,12 +2151,59 @@ LowererMDArch::LowerExitInstr(IR::ExitInstr * exitInstr)
     {
         retReg = IR::RegOpnd::New(nullptr, this->GetRegReturn(TyMachReg), TyMachReg, this->m_func);
     }
-    IR::Instr *retInstr = IR::Instr::New(Js::OpCode::RET, this->m_func);
+
+#if _CONTROL_FLOW_GUARD_SHADOW_STACK
+    IR::LabelInstr * failLabel = nullptr;
+    if (_guard_rf_checks_enforced()) {
+        // Generate MOV RCX, FS:[RSP]
+        IR::Opnd * rcxOpnd = IR::RegOpnd::New(nullptr, RegRCX, TyMachReg, this->m_func);
+        IR::Instr * getRetInstr = IR::Instr::New(Js::OpCode::MOV,
+                                                rcxOpnd,
+                                                IR::IndirOpnd::New(stackPointer,
+                                                                    0,
+                                                                    TyInt64,
+                                                                    this->m_func),
+                                                this->m_func);
+        getRetInstr->isFsBased = true;
+        exitInstr->InsertBefore(getRetInstr);
+
+        // Generate CMP RCX, [RSP]
+        IR::Instr * cmpRetInstr = IR::Instr::New(Js::OpCode::CMP, m_func);
+        cmpRetInstr->SetSrc1(IR::IndirOpnd::New(stackPointer,
+                                                0,
+                                                TyInt64,
+                                                this->m_func));
+        cmpRetInstr->SetSrc2(rcxOpnd);
+        exitInstr->InsertBefore(cmpRetInstr);
+
+        // Generate JNE $fail
+        failLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+        exitInstr->InsertBefore(IR::BranchInstr::New(Js::OpCode::JNE, failLabel, m_func));
+    }
+#endif
+
+    // Generate RET
+    IR::Instr * retInstr = IR::Instr::New(Js::OpCode::RET, this->m_func);
     retInstr->SetSrc1(intSrc);
     retInstr->SetSrc2(retReg);
     exitInstr->InsertBefore(retInstr);
 
     retInstr->m_opcode = Js::OpCode::RET;
+
+#if _CONTROL_FLOW_GUARD_SHADOW_STACK
+    if (_guard_rf_checks_enforced() && failLabel != nullptr) {
+        // insert $fail
+        exitInstr->InsertBefore(failLabel);
+
+        // MOV RCX, __guard_ss_verify_failure
+        IR::RegOpnd * target = IR::RegOpnd::New(nullptr, RegRCX, TyMachReg, m_func);
+        this->lowererMD->CreateAssign(target, IR::HelperCallOpnd::New(IR::HelperReturnFlowGuardFailureRoutine, m_func), exitInstr);
+
+        // JMP RCX
+        IR::Instr * branch = IR::MultiBranchInstr::New(Js::OpCode::JMP, target, m_func);
+        exitInstr->InsertBefore(branch);
+    }
+#endif
 
     return exitInstr;
 }

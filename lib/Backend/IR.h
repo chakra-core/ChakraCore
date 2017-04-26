@@ -131,6 +131,9 @@ protected:
 #if DBG_DUMP
         globOptInstrString(nullptr),
 #endif
+#if _CONTROL_FLOW_GUARD_SHADOW_STACK
+        isFsBased(false),
+#endif
         dstIsTempNumber(false),
         dstIsTempNumberTransferred(false),
         dstIsTempObject(false),
@@ -468,6 +471,7 @@ public:
     Js::OpCode      m_opcode;
     uint8           ignoreOverflowBitCount;      // Number of bits after which ovf matters. Currently used for MULs.
 
+    bool            isFsBased : 1; // TEMP : just for BS testing
     bool            dstIsTempNumber : 1;
     bool            dstIsTempNumberTransferred : 1;
     bool            dstIsTempObject : 1;

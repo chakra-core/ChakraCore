@@ -146,8 +146,13 @@ namespace Js
         static JavascriptNumber* NewUninitialized(Recycler * recycler);
         static Var BoxStackInstance(Var instance, ScriptContext* scriptContext);
         static Var BoxStackNumber(Var instance, ScriptContext* scriptContext);
-        // This is needed to ensure JavascriptNumber has a VTABLE and JavascriptNumber::Is (which checks for the VTABLE value) works correctly
-        virtual BOOL ToPrimitive(JavascriptHint, Var* value, ScriptContext *) override { AssertMsg(false, "Number ToPrimitive should not be called"); *value = this; return true;}
+
+        // This is needed to ensure JavascriptNumber has a VTABLE and JavascriptNumber::Is (which checks for the VTABLE value) works correctly.
+        // This also prevents the vtable from being folded with other classes unexpectedly.
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableJavascriptNumber;
+        }
 #endif
 
 

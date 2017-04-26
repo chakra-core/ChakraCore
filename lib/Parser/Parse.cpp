@@ -236,14 +236,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
     AssertPsz(pszSrc);
     AssertMemN(pse);
 
-    if (this->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackDefault);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
 
     HRESULT hr;
     SmartFPUControl smartFpuControl;
@@ -2861,14 +2854,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     bool isLambdaExpr = false;
     Assert(pToken == nullptr || pToken->tk == tkNone); // Must be empty initially
 
-    if (this->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackParseOneTerm);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackParseOneTerm);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackParseOneTerm);
 
     switch (m_token.tk)
     {
@@ -5192,17 +5178,17 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
                     }
                     return false;
                 });
-            }
-            if (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() && !fDeclaration && pnodeFnc->sxFnc.pnodeName != nullptr)
-            {
-                Symbol* funcSym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
-                if (funcSym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
+                if (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() && !fDeclaration && pnodeFnc->sxFnc.pnodeName != nullptr)
                 {
-                    // This is a function expression with name captured in the param scope. In non-eval, non-split cases the function
-                    // name symbol is added to the body scope to make it accessible in the body. But if there is a function or var
-                    // declaration with the same name in the body then adding to the body will fail. So in this case we have to add
-                    // the name symbol to the param scope by splitting it.
-                    pnodeFnc->sxFnc.ResetBodyAndParamScopeMerged();
+                    Symbol* funcSym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
+                    if (funcSym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
+                    {
+                        // This is a function expression with name captured in the param scope. In non-eval, non-split cases the function
+                        // name symbol is added to the body scope to make it accessible in the body. But if there is a function or var
+                        // declaration with the same name in the body then adding to the body will fail. So in this case we have to add
+                        // the name symbol to the param scope by splitting it.
+                        pnodeFnc->sxFnc.ResetBodyAndParamScopeMerged();
+                    }
                 }
             }
         }
@@ -10576,9 +10562,9 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
     {
         Assert(pnodeFnc->nop == knopFncDecl);
 
-        // Non-simple params (such as default) require a good amount of logic to put vars on appriopriate scopes. ParseFncDecl handles it
+        // Non-simple params (such as default) require a good amount of logic to put vars on appropriate scopes. ParseFncDecl handles it
         // properly (both on defer and non-defer case). This is to avoid write duplicated logic here as well. Function with non-simple-param
-        // will remain deferred untill they are called.
+        // will remain deferred until they are called.
         if (pnodeFnc->sxFnc.pnodeBody == nullptr && !pnodeFnc->sxFnc.HasNonSimpleParameterList())
         {
             // Go back and generate an AST for this function.
@@ -10750,14 +10736,7 @@ void Parser::RestoreScopeInfo(Js::ParseableFunctionInfo* functionBody)
         return;
     }
 
-    if (this->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
 
     RestoreScopeInfo(scopeInfo->GetParent()); // Recursively restore outer func scope info
 
@@ -10806,14 +10785,7 @@ void Parser::FinishScopeInfo(Js::ParseableFunctionInfo *functionBody)
         return;
     }
 
-    if (this->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
 
     int scopeId = scopeInfo->GetScopeId();
 

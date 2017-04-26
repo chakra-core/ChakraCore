@@ -1333,7 +1333,7 @@ namespace Js
 #endif
     void ScriptContext::MarkForClose()
     {
-        if (IsClosed()) 
+        if (IsClosed())
         {
             return;
         }
@@ -3943,6 +3943,7 @@ namespace Js
                 origEntryPoint = Js::JavascriptFunction::NewAsyncFunctionInstanceRestrictedMode;
             }
         }
+
 
         __TRY_FINALLY_BEGIN // SEH is not guaranteed, see the implementation
         {

@@ -200,6 +200,13 @@ void
 JITManager::EnableOOPJIT()
 {
     m_oopJitEnabled = true;
+
+    if (CONFIG_FLAG(OOPCFGRegistration))
+    {
+        // Since this client has enabled OOPJIT, perform the one-way policy update
+        // that will disable SetProcessValidCallTargets from being invoked.
+        GlobalSecurityPolicy::DisableSetProcessValidCallTargets();
+    }
 }
 
 bool

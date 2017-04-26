@@ -3396,11 +3396,11 @@ void ByteCodeGenerator::EmitOneFunction(ParseNode *pnode)
             Symbol* funcSym = funcInfo->root->sxFnc.GetFuncSymbol();
             paramScope->ForEachSymbol([&](Symbol* param) {
                 Symbol* varSym = funcInfo->GetBodyScope()->FindLocalSymbol(param->GetName());
-                if (varSym)
+                if ((funcSym == nullptr || funcSym != param)    // Do not copy the symbol over to body as the function expression symbol
+                                                                // is expected to stay inside the function expression scope
+                    && (varSym && varSym->GetSymbolType() == STVariable && (varSym->IsInSlot(funcInfo) || varSym->GetLocation() != Js::Constants::NoRegister)))
                 {
-                    if ((funcSym == nullptr || funcSym != param)    // Do not copy the symbol over to body as the function expression symbol
-                                                                    // is expected to stay inside the function expression scope
-                        && (varSym->GetSymbolType() == STVariable && (varSym->IsInSlot(funcInfo) || varSym->GetLocation() != Js::Constants::NoRegister)))
+                    if (varSym->GetSymbolType() == STVariable && (varSym->IsInSlot(funcInfo) || varSym->GetLocation() != Js::Constants::NoRegister))
                     {
                         if (!varSym->GetNeedDeclaration())
                         {

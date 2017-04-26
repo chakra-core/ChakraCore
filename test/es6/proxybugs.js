@@ -103,6 +103,23 @@ var tests = [
         }
     },
     {
+        name: "Cross-site on proxy exercising function trap - no function handler provided",
+        body() {
+            var targetCalled = false;
+            var func4 = function () { targetCalled = true; };
+            var v0 = new Proxy(func4, {});
+            
+            var anotherScript = `function foo() {
+                    var a = undefined;
+                    v0(a) > 1;
+                }`;
+            var sc0 = WScript.LoadScript(anotherScript, 'samethread');
+            sc0.v0 = v0;
+            sc0.foo();
+            assert.isTrue(targetCalled);
+        }
+    },
+    {
         name: "Type confusion in JavascriptProxy::SetPropertyTrap when using a Symbol",
         body: function () {
             try{ Reflect.set((new Proxy({}, {has: function(){ return true; }})), 'abc', 0x44444444, new Uint32Array); } catch(e){}
@@ -110,6 +127,28 @@ var tests = [
 
             var obj1 = Object.create(new Proxy({}, {}));
             obj1[Symbol.species] = 0;
+        }
+    },
+    {
+        name: "Cross-site on proxy exercising function trap - with 'apply' function trap",
+        body() {
+            var trapCalled = false;
+            var func4 = function () {};
+            var handler = {
+                apply : function(a, b, c) {
+                    trapCalled = true;
+                }
+            };
+            var v0 = new Proxy(func4, handler);
+            
+            var anotherScript = `function foo() {
+                    var a = undefined;
+                    v0(a) > 1;
+                }`;
+            var sc0 = WScript.LoadScript(anotherScript, 'samethread');
+            sc0.v0 = v0;
+            sc0.foo();
+            assert.isTrue(trapCalled);
         }
     },
     {

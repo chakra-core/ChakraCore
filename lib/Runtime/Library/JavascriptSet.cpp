@@ -89,7 +89,7 @@ namespace Js
         if (iter != nullptr)
         {
             JavascriptOperators::DoIteratorStepAndValue(iter, scriptContext, [&](Var nextItem) {
-                CALL_FUNCTION(adder, CallInfo(CallFlags_Value, 2), setObject, nextItem);
+                CALL_FUNCTION(scriptContext->GetThreadContext(), adder, CallInfo(CallFlags_Value, 2), setObject, nextItem);
             });
         }
 
@@ -195,7 +195,7 @@ namespace Js
         {
             Var value = iterator.Current();
 
-            CALL_FUNCTION(callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, value, args[0]);
+            CALL_FUNCTION(scriptContext->GetThreadContext(), callBackFn, CallInfo(CallFlags_Value, 4), thisArg, value, value, args[0]);
         }
 
         return scriptContext->GetLibrary()->GetUndefined();

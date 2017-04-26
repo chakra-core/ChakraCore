@@ -973,6 +973,70 @@ var tests = [
                 }
             )
         }
+    },
+    {
+        name: "Async and split scope",
+        body: function () {
+            async function asyncMethod1(b) {
+                return b() + 100;
+            }
+            async function asynMethod2(a = 10, b = () => a) {
+                if (a === 10) {
+                    echo(`Test #${index} - Success initial value of the formal is the same as the default param value`);
+                } else {
+                    echo(`Test #${index} - Failed initial value of the formal is not the same as the default param value, expected 10, result = ${a}`);
+                }
+                a = await asyncMethod1(b);
+                if (a === 110) {
+                    echo(`Test #${index} - Success updated value of the formal is the same as the value returned from the second async function`);
+                } else {
+                    echo(`Test #${index} - Failed updated value of the formal is not the same as the value returned from the second async function, expected 110, result = ${a}`);
+                }
+                return b;
+            }
+            asynMethod2().then(
+                result => {
+                    if (result() === 110) {
+                        echo(`Test #${index} - Success value returned through await is assigned to the formal`);
+                    } else {
+                        echo(`Test #${index} - Failed value returned through the await is different from the expected 110, result = ${result()}`);
+                    }
+                },
+                error => {
+                    echo(`Test #${index} - Failed error while trying to return through the await in a split scope function, expected 100, error = ${error}`);
+                }
+            );
+
+            async function asyncMethod3(b) {
+                return b() + 100;
+            }
+            async function asynMethod4(a = 10, b = () => a) {
+                if (a === 10) {
+                    echo(`Test #${index} - Success initial value of the body symbol is the same as the default param value`);
+                } else {
+                    echo(`Test #${index} - Failed initial value of the body symbol is not the same as the default param value, expected 10, result = ${a}`);
+                }
+                var a = await asyncMethod3(b);
+                if (a === 110) {
+                    echo(`Test #${index} - Success updated value of the body symbol is the same as the value returned from the second async function`);
+                } else {
+                    echo(`Test #${index} - Failed updated value of the body symbol is not the same as the value returned from the second async function, expected 110, result = ${a}`);
+                }
+                return b;
+            }
+            asynMethod4().then(
+                result => {
+                    if (result() === 10) {
+                        echo(`Test #${index} - Success value returned through await is not assigned to the formal`);
+                    } else {
+                        echo(`Test #${index} - Failed value of the formal is different from the expected 10, result = ${result()}`);
+                    }
+                },
+                error => {
+                    echo(`Test #${index} - Failed error while trying to return through the await in a split scope function with duplicate symbol in the body, expected 100, error = ${error}`);
+                }
+            );
+        }
     }
 ];
 

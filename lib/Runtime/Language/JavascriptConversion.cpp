@@ -523,7 +523,7 @@ CommonNumber:
                 Assert(!ThreadContext::IsOnStack(recyclableObject));
 
                 // Let result be the result of calling the[[Call]] internal method of exoticToPrim, with input as thisArgument and(hint) as argumentsList.
-                return CALL_FUNCTION(exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
+                return CALL_FUNCTION(threadContext, exoticToPrim, CallInfo(CallFlags_Value, 2), recyclableObject, hintString);
             });
 
             if (!result)
@@ -753,7 +753,7 @@ CommonNumber:
                 if (JavascriptConversion::IsCallable(value))
                 {
                     RecyclableObject* toLocaleStringFunction = RecyclableObject::FromVar(value);
-                    Var aResult = CALL_FUNCTION(toLocaleStringFunction, CallInfo(1), aValue);
+                    Var aResult = CALL_FUNCTION(scriptContext->GetThreadContext(), toLocaleStringFunction, CallInfo(1), aValue);
                     if (JavascriptString::Is(aResult))
                     {
                         return JavascriptString::FromVar(aResult);

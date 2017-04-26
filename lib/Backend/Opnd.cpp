@@ -929,6 +929,7 @@ PropertySymOpnd::ChangesObjectLayout() const
     JITTypeHolder cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
 
     JITTypeHolder finalType = this->GetFinalType();
+
     if (finalType != nullptr && Js::DynamicType::Is(finalType->GetTypeId()))
     {
         // This is the case where final type opt may cause pro-active type transition to take place.
