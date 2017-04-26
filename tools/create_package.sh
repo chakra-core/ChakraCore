@@ -66,7 +66,7 @@ IF_ERROR_EXIT $? "ChakraCore static library build failed."
 
 ## Create folders
 rm -rf out/ChakraCoreFiles/
-mkdir -p out/ChakraCoreFiles/include/ out/ChakraCoreFiles/lib/ out/ChakraCoreFiles/bin/
+mkdir -p out/ChakraCoreFiles/include/ out/ChakraCoreFiles/lib/ out/ChakraCoreFiles/bin/ out/ChakraCoreFiles/sample/
 IF_ERROR_EXIT $? "Creating ChakraCoreFiles folder failed"
 
 ## Copy Files
@@ -80,6 +80,10 @@ cp out/shared/Release/include/*.h out/ChakraCoreFiles/include/
 cat LICENSE.txt > out/ChakraCoreFiles/LICENSE
 echo -e "\n***** Third Party Notices [ for PreBuilt Binaries ] *****\n" >> out/ChakraCoreFiles/LICENSE
 cat tools/XPlatInstall/BINARY-DIST-ONLY-NOTICES.txt >> out/ChakraCoreFiles/LICENSE
+# sample
+cp "tools/XPlatInstall/sample/README.md"  out/ChakraCoreFiles/sample/README.md
+cp "tools/XPlatInstall/sample/Makefile.txt"   out/ChakraCoreFiles/sample/Makefile
+cp "tools/XPlatInstall/sample/sample.cpp.txt" out/ChakraCoreFiles/sample/sample.cpp
 
 ## Test
 python test/native-tests/test-python/helloWorld.py Release \
