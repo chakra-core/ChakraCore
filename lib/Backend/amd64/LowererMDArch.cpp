@@ -3246,3 +3246,39 @@ LowererMDArch::LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * tar
     // return the last instruction inserted
     return retInstr;
 }
+
+IR::Opnd* LowererMDArch::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
+{
+    IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
+    IRType regType = opnd->IsFloat32() ? TyUint32: TyUint64;
+
+    // Use UInt64 comparison between the opnd to check and negative zero constant.
+    // For this we have to convert opnd which is a double to uint64.
+
+    // MOV intOpnd, src
+    IR::RegOpnd *intOpnd = IR::RegOpnd::New(regType, this->m_func);
+    IR::Instr *mov = IR::Instr::New(Js::OpCode::MOVQ, intOpnd, opnd, this->m_func);
+    instr->InsertBefore(mov);
+
+    // Generate this :
+    // isNegZero = false
+    // CMP intOpnd, k_NegZero
+    // BRNEQ L1
+    // isNegZero = true
+    // L1:
+
+    IR::Instr *ldFalse = IR::Instr::New(Js::OpCode::MOV, isNegZero, IR::IntConstOpnd::New(0, TyInt32, this->m_func), this->m_func);
+    instr->InsertBefore(ldFalse);
+
+    IR::IntConstOpnd *negZeroOpnd = IR::IntConstOpnd::New(opnd->GetType() == TyFloat32 ? Js::NumberConstants::k_Float32NegZero :Js::NumberConstants::k_NegZero, regType, this->m_func);
+
+    IR::LabelInstr *doneLabel = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+    this->lowererMD->m_lowerer->InsertCompareBranch(intOpnd, negZeroOpnd, Js::OpCode::BrNeq_A, doneLabel, instr);
+
+    IR::Instr *ldTrue = IR::Instr::New(Js::OpCode::MOV, isNegZero, IR::IntConstOpnd::New(1, TyInt32, this->m_func), this->m_func);
+    instr->InsertBefore(ldTrue);
+    instr->InsertBefore(doneLabel);
+
+    // return cmp result
+    return isNegZero;
+}

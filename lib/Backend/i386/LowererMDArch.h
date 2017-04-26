@@ -120,6 +120,7 @@ public:
 
             void                LowerInlineSpreadArgOutLoop(IR::Instr *callInstr, IR::RegOpnd *indexOpnd, IR::RegOpnd *arrayElementsStartOpnd);
             IR::Instr *         LowerEHRegionReturn(IR::Instr * insertBeforeInstr, IR::Opnd * targetOpnd);
+            IR::Opnd*           IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr);
 
 private:
             void                GeneratePreCall(IR::Instr * callInstr, IR::Opnd  *functionObjOpnd);
