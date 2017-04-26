@@ -131,4 +131,10 @@ if [[ $? != 0 ]]; then
 fi
 
 PRINT $SUCCESS_COLOR "] Success\n"
+
+if [[ $___ =~ "-beta" ]]; then
+    echo -e "Downloaded a ${ERROR_COLOR}release candidate${DEFAULT_COLOR} binary, $____"
+    PRINT $DEFAULT_COLOR "] If you observe issue(s), please send us from https://github.com/Microsoft/ChakraCore"
+fi
+
 PRINT $DEFAULT_COLOR "] Try './ChakraCoreFiles/bin/ch -?'"
