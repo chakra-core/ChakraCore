@@ -2002,6 +2002,9 @@ namespace Js
         void SetReparsed(bool set) { m_reparsed = set; }
         bool GetExternalDisplaySourceName(BSTR* sourceName);
 
+        void CleanupToReparse();
+        void CleanupToReparseHelper();
+
         bool EndsAfter(size_t offset) const;
 
         void SetDoBackendArgumentsOptimization(bool set)
@@ -3565,7 +3568,7 @@ namespace Js
         void SetEntryToDeferParseForDebugger();
         void ClearEntryPoints();
         void ResetEntryPoint();
-        void CleanupToReparse();
+        void CleanupToReparseHelper();
         void AddDeferParseAttribute();
         void RemoveDeferParseAttribute();
 #if DBG
