@@ -285,7 +285,7 @@ HeapBucketT<TBlockType>::HasPendingDisposeHeapBlocks() const
     return (IsFinalizableBucket || IsFinalizableWriteBarrierBucket) &&
     ((SmallFinalizableHeapBucketT<typename TBlockType::HeapBlockAttributes> *)this)->pendingDisposeList != nullptr;
 #else
-    return IsFinalizableBucket && ((SmallFinalizableHeapBucketT<TBlockType::HeapBlockAttributes> *)this)->pendingDisposeList != nullptr;
+    return IsFinalizableBucket && ((SmallFinalizableHeapBucketT<typename TBlockType::HeapBlockAttributes> *)this)->pendingDisposeList != nullptr;
 #endif
 }
 #endif
