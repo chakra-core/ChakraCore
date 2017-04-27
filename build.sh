@@ -52,8 +52,9 @@ PRINT_USAGE() {
     echo "     --trace           Enables experimental built-in trace."
     echo "     --xcode           Generate XCode project."
     echo "     --without=FEATURE,FEATURE,..."
-    echo "                       Disable FEATUREs from JSRT experimental"
-    echo "                       features."
+    echo "                       Disable FEATUREs from JSRT experimental features."
+    echo "     --valgrind        Enable Valgrind support"
+    echo "                       !!! Disables Concurrent GC (lower performance)"
     echo " -v, --verbose         Display verbose output including all options"
     echo "     --wb-check CPPFILE"
     echo "                       Write-barrier check given CPPFILE (git path)"
@@ -94,6 +95,7 @@ WB_CHECK=
 WB_ANALYZE=
 WB_ARGS=
 TARGET_PATH=0
+VALGRIND=0
 # -DCMAKE_EXPORT_COMPILE_COMMANDS=ON useful for clang-query tool
 CMAKE_EXPORT_COMPILE_COMMANDS="-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
 LIBS_ONLY_BUILD=
@@ -325,6 +327,10 @@ while [[ $# -gt 0 ]]; do
         WB_ARGS=${WB_ARGS// /;}  # replace space with ; to generate a cmake list
         ;;
 
+    --valgrind)
+        VALGRIND="-DENABLE_VALGRIND_SH=1"
+        ;;
+
     *)
         echo "Unknown option $1"
         PRINT_USAGE
@@ -516,7 +522,7 @@ echo Generating $BUILD_TYPE makefiles
 cmake $CMAKE_GEN $CC_PREFIX $ICU_PATH $LTO $STATIC_LIBRARY $ARCH $TARGET_OS \
     $ENABLE_CC_XPLAT_TRACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE $SANITIZE $NO_JIT \
     $WITHOUT_FEATURES $WB_FLAG $WB_ARGS $CMAKE_EXPORT_COMPILE_COMMANDS $LIBS_ONLY_BUILD\
-    ../..
+    $VALGRIND ../..
 
 _RET=$?
 if [[ $? == 0 ]]; then
