@@ -11,6 +11,21 @@ namespace Js
     DEFINE_RECYCLER_TRACKER_PERF_COUNTER(ConcatString);
 
     // Note: see also: ConcatString.inl
+    LiteralStringWithPropertyStringPtr::LiteralStringWithPropertyStringPtr(StaticType* stringType) :
+        LiteralString(stringType),
+        propertyString(nullptr)
+    {
+    }
+
+    PropertyString * LiteralStringWithPropertyStringPtr::GetPropertyString() const
+    {
+        return this->propertyString;
+    }
+
+    void LiteralStringWithPropertyStringPtr::SetPropertyString(PropertyString * propStr)
+    {
+        this->propertyString = propStr;
+    }
 
     /////////////////////// ConcatStringBase //////////////////////////
 
@@ -168,6 +183,7 @@ namespace Js
             current = current->m_prevChunk;
         }
 
+        LiteralStringWithPropertyStringPtr::ConvertString(this);
         return sz;
     }
 
@@ -348,6 +364,7 @@ namespace Js
         // Allow slots to be garbage collected if no more refs.
         ClearArray(m_slots, slotCount);
 
+        LiteralStringWithPropertyStringPtr::ConvertString(this);
         return sz;
     }
 

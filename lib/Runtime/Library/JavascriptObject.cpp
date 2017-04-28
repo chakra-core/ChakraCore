@@ -405,7 +405,7 @@ namespace Js
         if (isArray)
         {
             // 5. If isArray is true, let builtinTag be "Array".
-            return library->CreateStringFromCppLiteral(_u("[object Array]"));
+            return library->GetObjectArrayDisplayString();
         }
 
         JavascriptString* builtInTag = nullptr;
@@ -414,28 +414,28 @@ namespace Js
             // 6. Else if O is an exotic String object, let builtinTag be "String".
         case TypeIds_String:
         case TypeIds_StringObject:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object String]"));
+            builtInTag = library->GetObjectStringDisplayString();
             break;
 
             // 7. Else if O has an[[ParameterMap]] internal slot, let builtinTag be "Arguments".
         case TypeIds_Arguments:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object Arguments]"));
+            builtInTag = library->GetObjectArgumentsDisplayString();
             break;
 
             // 8. Else if O has a [[Call]] internal method, let builtinTag be "Function".
         case TypeIds_Function:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object Function]"));
+            builtInTag = library->GetObjectFunctionDisplayString();
             break;
 
             // 9. Else if O has an [[ErrorData]] internal slot, let builtinTag be "Error".
         case TypeIds_Error:
-            builtInTag = library->GetErrorDisplayString();
+            builtInTag = library->GetObjectErrorDisplayString();
             break;
 
             // 10. Else if O has a [[BooleanData]] internal slot, let builtinTag be "Boolean".
         case TypeIds_Boolean:
         case TypeIds_BooleanObject:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object Boolean]"));
+            builtInTag = library->GetObjectBooleanDisplayString();
             break;
 
             // 11. Else if O has a [[NumberData]] internal slot, let builtinTag be "Number".
@@ -444,18 +444,18 @@ namespace Js
         case TypeIds_UInt64Number:
         case TypeIds_Integer:
         case TypeIds_NumberObject:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object Number]"));
+            builtInTag = library->GetObjectNumberDisplayString();
             break;
 
             // 12. Else if O has a [[DateValue]] internal slot, let builtinTag be "Date".
         case TypeIds_Date:
         case TypeIds_WinRTDate:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object Date]"));
+            builtInTag = library->GetObjectDateDisplayString();
             break;
 
             // 13. Else if O has a [[RegExpMatcher]] internal slot, let builtinTag be "RegExp".
         case TypeIds_RegEx:
-            builtInTag = library->CreateStringFromCppLiteral(_u("[object RegExp]"));
+            builtInTag = library->GetObjectRegExpDisplayString();
             break;
 
             // 14. Else, let builtinTag be "Object".

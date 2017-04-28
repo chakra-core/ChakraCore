@@ -305,6 +305,20 @@ CommonNumber:
                 PropertyString * propertyString = (PropertyString *)propName;
                 *propertyRecord = propertyString->GetPropertyRecord();
             }
+            else if (VirtualTableInfo<Js::LiteralStringWithPropertyStringPtr>::HasVirtualTable(propName))
+            {
+                LiteralStringWithPropertyStringPtr * str = (LiteralStringWithPropertyStringPtr *)propName;
+                if (str->GetPropertyString())
+                {
+                    *propertyRecord = str->GetPropertyString()->GetPropertyRecord();
+                }
+                else
+                {
+                    scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);
+                    PropertyString * propStr = scriptContext->GetPropertyString((*propertyRecord)->GetPropertyId());
+                    str->SetPropertyString(propStr);
+                }
+            }
             else
             {
                 scriptContext->GetOrAddPropertyRecord(propName->GetString(), propName->GetLength(), propertyRecord);

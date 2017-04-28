@@ -11,6 +11,16 @@
 
 namespace Js
 {
+    template <typename StringType>
+    inline LiteralStringWithPropertyStringPtr * LiteralStringWithPropertyStringPtr::ConvertString(StringType * originalString)
+    {
+        CompileAssert(sizeof(StringType) >= sizeof(LiteralStringWithPropertyStringPtr));
+        VirtualTableInfo<LiteralStringWithPropertyStringPtr>::SetVirtualTable(originalString);
+        LiteralStringWithPropertyStringPtr * convertedString = (LiteralStringWithPropertyStringPtr *)originalString;
+        convertedString->SetPropertyString(nullptr);
+        return convertedString;
+    }
+
     /////////////////////// ConcatStringBase //////////////////////////
     template <typename ConcatStringType>
     inline const char16* ConcatStringBase::GetSzImpl()
@@ -29,7 +39,6 @@ namespace Js
         target[GetLength()] = _u('\0');
 
         SetBuffer(target);
-        VirtualTableInfo<LiteralString>::SetVirtualTable(this);
         return JavascriptString::GetSz();
     }
 
@@ -82,6 +91,8 @@ namespace Js
         // Allow slots to be garbage collected if no more refs.
         ClearArray(m_slots, N);
 
+        LiteralStringWithPropertyStringPtr::ConvertString(this);
+
         return sz;
     }
 
@@ -115,6 +126,7 @@ namespace Js
         const char16 * sz = GetSzImpl<ConcatStringWrapping>();
         m_inner = nullptr;
         ClearArray(m_slots);
+        LiteralStringWithPropertyStringPtr::ConvertString(this);
         return sz;
     }
 

@@ -15230,10 +15230,28 @@ Lowerer::GenerateFastElemIStringIndexCommon(IR::Instr * instrInsert, bool isStor
 
     GenerateStringTest(indexOpnd, instrInsert, labelHelper);
 
+    IR::LabelInstr * notPropStrLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func, true);
+    IR::LabelInstr * propStrLoadedLabel = IR::LabelInstr::New(Js::OpCode::Label, m_func);
     InsertCompareBranch(
         IR::IndirOpnd::New(indexOpnd, 0, TyMachPtr, m_func),
         LoadVTableValueOpnd(instrInsert, VTableValue::VtablePropertyString),
+        Js::OpCode::BrNeq_A, notPropStrLabel, instrInsert);
+    InsertBranch(Js::OpCode::Br, propStrLoadedLabel, instrInsert);
+
+    instrInsert->InsertBefore(notPropStrLabel);
+
+    InsertCompareBranch(
+        IR::IndirOpnd::New(indexOpnd, 0, TyMachPtr, m_func),
+        LoadVTableValueOpnd(instrInsert, VTableValue::VtableLiteralStringWithPropertyStringPtr),
         Js::OpCode::BrNeq_A, labelHelper, instrInsert);
+
+    IR::IndirOpnd * propStrOpnd = IR::IndirOpnd::New(indexOpnd, Js::LiteralStringWithPropertyStringPtr::GetOffsetOfPropertyString(), TyMachPtr, m_func);
+    InsertCompareBranch(propStrOpnd, IR::IntConstOpnd::New(NULL, TyMachPtr, m_func), Js::OpCode::BrNeq_A, labelHelper, instrInsert);
+
+    // We don't really own indexOpnd, but it is fine to update it to be the PropertyString, since that is better to have anyway
+    InsertMove(indexOpnd, propStrOpnd, instrInsert);
+
+    instrInsert->InsertBefore(propStrLoadedLabel);
 
     m_lowererMD.GenerateObjectTest(baseOpnd, instrInsert, labelHelper);
 

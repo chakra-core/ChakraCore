@@ -1108,8 +1108,17 @@ namespace Js
         whackString = CreateStringFromCppLiteral(_u("/"));
         commaDisplayString = CreateStringFromCppLiteral(_u(","));
         commaSpaceDisplayString = CreateStringFromCppLiteral(_u(", "));
-        objectDisplayString = CreateStringFromCppLiteral(_u("[object Object]"));
-        errorDisplayString = CreateStringFromCppLiteral(_u("[object Error]"));
+
+        objectDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Object);
+        objectArgumentsDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Arguments);
+        objectArrayDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Array);
+        objectBooleanDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Boolean);
+        objectDateDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Date);
+        objectErrorDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Error);
+        objectFunctionDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Function);
+        objectNumberDisplayString = scriptContext->GetPropertyString(PropertyIds::object_Number);
+        objectRegExpDisplayString = scriptContext->GetPropertyString(PropertyIds::object_RegExp);
+        objectStringDisplayString = scriptContext->GetPropertyString(PropertyIds::object_String);
         functionPrefixString = CreateStringFromCppLiteral(_u("function "));
         generatorFunctionPrefixString = CreateStringFromCppLiteral(_u("function* "));
         asyncFunctionPrefixString = CreateStringFromCppLiteral(_u("async function "));
