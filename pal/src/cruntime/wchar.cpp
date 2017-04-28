@@ -1179,7 +1179,7 @@ PAL_wcscpy(
     }
 
     /* add terminating null */
-    *strDestination = '\0';
+    *strDestination = char16_t(0);
 
     LOGEXIT("wcscpy returning char16_t %p (%S)\n", start, start);
     PERF_EXIT(wcscpy);
@@ -1282,6 +1282,8 @@ PAL_wcsncmp(
           string1?string1:W16_NULLSTRING,
           string1?string1:W16_NULLSTRING, string2?string2:W16_NULLSTRING, string2?string2:W16_NULLSTRING,
           (unsigned long) count);
+
+    if (string1 == string2) return diff;
 
     for (i = 0; i < count; i++)
     {
