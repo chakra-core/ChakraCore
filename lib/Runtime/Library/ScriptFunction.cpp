@@ -16,7 +16,14 @@ namespace Js
 
     bool ScriptFunctionBase::Is(Var func)
     {
-        return ScriptFunction::Is(func) || JavascriptGeneratorFunction::Is(func) || JavascriptAsyncFunction::Is(func);
+        if (JavascriptFunction::Is(func))
+        {
+            JavascriptFunction *function = JavascriptFunction::FromVar(func);
+            return ScriptFunction::Test(function) || JavascriptGeneratorFunction::Test(function)
+                || JavascriptAsyncFunction::Test(function);
+        }
+
+        return false;
     }
 
     ScriptFunctionBase * ScriptFunctionBase::FromVar(Var func)

@@ -2777,7 +2777,7 @@ LABEL1:
             {
                 JavascriptFunction* exceptionFunction = unhandledExceptionObject->GetFunction();
                 // This is for getcaller in window.onError. The behavior is different in different browsers
-                if (exceptionFunction 
+                if (exceptionFunction
                     && scriptContext == exceptionFunction->GetScriptContext()
                     && exceptionFunction->IsScriptFunction()
                     && !exceptionFunction->GetFunctionBody()->GetIsGlobalFunc())
@@ -3221,7 +3221,7 @@ LABEL1:
         FunctionProxy* proxy = this->GetFunctionProxy();
         JavascriptFunction* thisFunction = const_cast<JavascriptFunction*>(this);
 
-        if (proxy || thisFunction->IsBoundFunction() || JavascriptGeneratorFunction::Is(thisFunction) || JavascriptAsyncFunction::Is(thisFunction))
+        if (proxy || thisFunction->IsBoundFunction() || JavascriptGeneratorFunction::Test(thisFunction) || JavascriptAsyncFunction::Test(thisFunction))
         {
             *name = GetDisplayNameImpl();
             return true;

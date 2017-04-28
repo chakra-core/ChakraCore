@@ -7436,7 +7436,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
         {
             const Js::PropertyIdArray *propIds = this->m_functionBody->GetFormalsPropIdArray();
 
-            Var funcExpr = this->GetFunctionExpression();
+            JavascriptFunction* funcExpr = this->GetFunctionExpression();
             PropertyId objectId = ActivationObjectEx::GetLiteralObjectRef(propIds);
             scopeObject = JavascriptOperators::OP_InitCachedScope(funcExpr, propIds,
                 this->GetFunctionBody()->GetObjectLiteralTypeRef(objectId),
@@ -8418,7 +8418,7 @@ const byte * InterpreterStackFrame::OP_ProfiledLoopBodyStart(const byte * ip)
     }
 #endif
 
-    Var InterpreterStackFrame::GetFunctionExpression()
+    JavascriptFunction* InterpreterStackFrame::GetFunctionExpression()
     {
         // Make sure we get the boxed function object if is there, (or the function itself)
         return StackScriptFunction::GetCurrentFunctionObject(this->function->GetRealFunctionObject());

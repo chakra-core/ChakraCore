@@ -590,7 +590,7 @@ namespace Js
 
         template <class T> void OP_LdArrayHeadSegment(const unaligned T* playout);
 
-        inline Var GetFunctionExpression();
+        inline JavascriptFunction* GetFunctionExpression();
 
         template <class T> inline void OP_LdFunctionExpression(const unaligned T* playout);
         template <class T> inline void OP_StFunctionExpression(const unaligned T* playout);
