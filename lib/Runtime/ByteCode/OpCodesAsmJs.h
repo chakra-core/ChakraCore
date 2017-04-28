@@ -309,7 +309,6 @@ MACRO_EXTEND_WMS( Conv_Check_DTUL            , Long1Double1    , None           
 
 MACRO_EXTEND(AsmJsEntryTracing, Empty, None)
 
-
 // help the caller to undefine all the macros
 #undef MACRO
 #undef MACRO_WMS

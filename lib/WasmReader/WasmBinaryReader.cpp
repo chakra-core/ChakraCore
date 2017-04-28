@@ -428,7 +428,7 @@ WasmOp WasmBinaryReader::ReadOpCode()
     WasmOp op = (WasmOp)*m_pc++;
     ++m_funcState.count;
 
-    if (op == wbSimdStart || op == wbExtended2)
+    if (op == wbSimdStart)
     {
         if (!CONFIG_FLAG(WasmSimd))
         {
@@ -437,11 +437,8 @@ WasmOp WasmBinaryReader::ReadOpCode()
 
         UINT len;
         UINT32 extOpCode = LEB128(len);
-        extOpCode += wbSimdStart;
         Assert((WasmOp)(extOpCode) == extOpCode);
         op = (WasmOp)extOpCode;
-
-        m_pc += len;
         m_funcState.count += len;
     }
 

@@ -2,14 +2,26 @@
 <regress-exe>
 <test>
   <default>
-    <files>buildExtractTests.js</files>
-    <compile-flags>-wasm -wasmsimd</compile-flags>
+    <files>loadTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
   </default>
 </test>
 <test>
   <default>
-    <files>buildExtractTests.js</files>
-    <compile-flags>-wasm -wasmsimd -maic:0</compile-flags>
+    <files>loadTests.js</files>
+    <compile-flags> -maic:0 -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>storeTests.js</files>
+    <compile-flags> -wasm -wasmsimd</compile-flags>
+  </default>
+</test>
+<test>
+  <default>
+    <files>storeTests.js</files>
+    <compile-flags> -maic:0 -wasm -wasmsimd</compile-flags>
   </default>
 </test>
 </regress-exe>

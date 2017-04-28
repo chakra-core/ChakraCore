@@ -29,6 +29,14 @@
 #define WASM_SIMD_BUILD_OPCODE(opname, opcode, sig, asmjop, lanes, nyi) WASM_OPCODE(opname, opcode, sig, nyi)
 #endif
 
+#ifndef WASM_SIMD_MEMREAD_OPCODE
+#define WASM_SIMD_MEMREAD_OPCODE(opname, opcode, sig, asmjsop, viewtype, dataWidth, nyi) WASM_MEM_OPCODE(opname, opcode, sig, nyi)
+#endif
+
+#ifndef WASM_SIMD_MEMSTORE_OPCODE
+#define WASM_SIMD_MEMSTORE_OPCODE(opname, opcode, sig, asmjsop, viewtype, dataWidth, nyi) WASM_MEM_OPCODE(opname, opcode, sig, nyi)
+#endif
+
 //SIMD Signatures
 #define SIMD_EXTRACT(TYPE, BASE) WASM_SIGNATURE(BASE##_##TYPE, 2, WasmTypes::##BASE##32, WasmTypes::##TYPE)
 #define SIMD_BUILD(TYPE, BASE) WASM_SIGNATURE(TYPE##_##BASE, 2, WasmTypes::##TYPE, WasmTypes::##BASE##32)
@@ -47,8 +55,8 @@ WASM_SIGNATURE(M128_I_M128, 3, WasmTypes::M128, WasmTypes::M128, WasmTypes::I32)
 WASM_SIGNATURE(M128_M128, 2, WasmTypes::M128, WasmTypes::M128)
 
 WASM_MISC_OPCODE(M128Const, 0x100, Limit, true)
-WASM_MISC_OPCODE(M128Load, 0x101, Limit, true)
-WASM_MISC_OPCODE(M128Store, 0x102, Limit, true)
+WASM_SIMD_MEMREAD_OPCODE(M128Load, 0x101, M128_I, Simd128_LdArr_F4, Js::ArrayBufferView::TYPE_FLOAT32, 16, false)
+WASM_SIMD_MEMSTORE_OPCODE(M128Store, 0x102, M128_I, Simd128_StArr_F4, Js::ArrayBufferView::TYPE_FLOAT32, 16, false)
 WASM_MISC_OPCODE(I16Splat, 0x103, Limit, true)
 WASM_MISC_OPCODE(I8Splat, 0x104, Limit, true)
 WASM_MISC_OPCODE(I4Splat, 0x105, Limit, true)
@@ -190,3 +198,5 @@ WASM_MISC_OPCODE(I2TruncU, 0x18b, Limit, true)
 #undef WASM_SIMD_BUILD_OPCODE
 #undef WASM_LANE_OPCODE
 #undef WASM_EXTRACTLANE_OPCODE
+#undef WASM_SIMD_MEMREAD_OPCODE
+#undef WASM_SIMD_MEMSTORE_OPCODE

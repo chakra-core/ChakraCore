@@ -51,6 +51,10 @@ PrintTypeStack(const JsUtil::Stack<EmitInfo>& stack)
         case WasmTypes::I64: Output::Print(_u("i64")); break;
         case WasmTypes::F32: Output::Print(_u("f32")); break;
         case WasmTypes::F64: Output::Print(_u("f64")); break;
+#define SIMD_CASE(TYPE, BASE) case WasmTypes::##TYPE: Output::Print(_u(#TYPE)); break;
+
+            FOREACH_SIMD_TYPE(SIMD_CASE)
+#undef SIMD_CASE
         default: Output::Print(_u("any")); break;
         }
     }
@@ -644,6 +648,16 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig > 0);\
         info = EmitMemAccess(wb##opname, WasmOpCodeSignatures::sig, viewtype, true); \
+        break;
+#define WASM_SIMD_MEMREAD_OPCODE(opname, opcode, sig, asmjsop, viewtype, dataWidth, nyi) \
+    case wb##opname: \
+        Assert(WasmOpCodeSignatures::n##sig > 0);\
+        info = EmitSimdMemAccess(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig, viewtype, dataWidth, false); \
+        break;
+#define WASM_SIMD_MEMSTORE_OPCODE(opname, opcode, sig, asmjsop, viewtype, dataWidth, nyi) \
+    case wb##opname: \
+        Assert(WasmOpCodeSignatures::n##sig > 0);\
+        info = EmitSimdMemAccess(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig, viewtype, dataWidth, true); \
         break;
 #define WASM_BINARY_OPCODE(opname, opcode, sig, asmjsop, nyi) \
     case wb##opname: \
@@ -1302,6 +1316,43 @@ WasmBytecodeGenerator::EmitExtractLane(Js::OpCodeAsmJs op, const WasmTypes::Wasm
     //ReleaseLocation(&resultInfo);
     return resultInfo;
 }
+
+EmitInfo
+WasmBytecodeGenerator::EmitSimdMemAccess(Js::OpCodeAsmJs op, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, uint8 dataWidth, bool isStore)
+{
+
+    WasmTypes::WasmType type = signature[0];
+    SetUsesMemory(0);
+
+    const uint32 mask = Js::ArrayBufferView::ViewMask[viewType];
+    const uint offset = GetReader()->m_currentNode.mem.offset;
+
+    EmitInfo rhsInfo;
+    if (isStore)
+    {
+        rhsInfo = PopEvalStack(type, _u("Invalid type for store op"));
+    }
+    EmitInfo exprInfo = PopEvalStack(WasmTypes::I32, _u("Index expression must be of type i32"));
+
+    if (isStore)
+    {
+        m_writer->AsmSimdTypedArr(op, rhsInfo.location, exprInfo.location, dataWidth, viewType, offset);
+
+        ReleaseLocation(&rhsInfo);
+        ReleaseLocation(&exprInfo);
+
+        return EmitInfo();
+    }
+
+    Js::RegSlot resultReg = GetRegisterSpace(type)->AcquireTmpRegister();
+    m_writer->AsmSimdTypedArr(op, resultReg, exprInfo.location, dataWidth, viewType, offset);
+
+    EmitInfo yieldInfo = EmitInfo(resultReg, type);
+    ReleaseLocation(&exprInfo);
+
+    return yieldInfo;
+}
+
 
 EmitInfo
 WasmBytecodeGenerator::EmitMemAccess(WasmOp wasmOp, const WasmTypes::WasmType* signature, Js::ArrayBufferView::ViewType viewType, bool isStore)

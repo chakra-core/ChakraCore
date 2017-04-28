@@ -2643,7 +2643,6 @@ IR::Instr* LowererMD::Simd128AsmJsLowerLoadElem(IR::Instr *instr)
         // Case (1) requires static bound check. Case (2) means we are always in bound.
 
         // this can happen in cases where globopt props a constant access which was not known at bytecodegen time or when heap is non-constant
-
         if (src2->IsIntConstOpnd() && ((uint32)src1->AsIndirOpnd()->GetOffset() + dataWidth > src2->AsIntConstOpnd()->AsUint32()))
         {
             m_lowerer->GenerateRuntimeError(instr, JSERR_ArgumentOutOfRange, IR::HelperOp_RuntimeRangeError);
