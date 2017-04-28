@@ -174,7 +174,14 @@ bool ValueInfo::TryGetInt64ConstantValue(int64 *const intValueRef, const bool is
         int32 int32ValueRef;
         if (TryGetIntConstantValue(&int32ValueRef, false))
         {
-            *intValueRef = (isUnsigned) ? (uint)int32ValueRef : int32ValueRef;
+            if (isUnsigned)
+            {
+                *intValueRef = (uint)int32ValueRef;
+            }
+            else
+            {
+                *intValueRef = int32ValueRef;
+            }
             return true;
         }
     }
