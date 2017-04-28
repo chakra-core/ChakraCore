@@ -255,6 +255,11 @@ X64WriteBarrierCardTableManager::Initialize()
         // of a reservation can be approximated as 2KB per MB of reserved size. In our case, we take
         // an overhead of 96KB for our card table.
 
+#if defined(ENABLE_VALGRIND)
+        // this will fail (cardTable) due to stack ptr > 32GB
+#error  "Not supported. Disable concurrent GC and try again"
+#endif
+
         // xplat: GetRLimit AS / RSS for ``the maximum size of the process's virtual memory``
         size_t memoryLimit;
         if (!PlatformAgnostic::SystemInfo::GetMaxVirtualMemory(&memoryLimit))
@@ -268,7 +273,8 @@ X64WriteBarrierCardTableManager::Initialize()
         }
         const unsigned __int64 maxUmProcessAddressSpace = (__int64) memoryLimit;
 
-        _cardTableNumEntries = Math::Align<size_t>(maxUmProcessAddressSpace / AutoSystemInfo::PageSize, AutoSystemInfo::PageSize) /* s_writeBarrierPageSize */;
+        _cardTableNumEntries = Math::Align<size_t>(maxUmProcessAddressSpace / AutoSystemInfo::PageSize,
+            AutoSystemInfo::PageSize) /* s_writeBarrierPageSize */;
 
         LPVOID cardTableSpace = ::VirtualAlloc(NULL, _cardTableNumEntries, MEM_RESERVE, PAGE_READWRITE);
         if (!cardTableSpace) // Crash Early with a meaningful message. Otherwise the behavior is undefined.

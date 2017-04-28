@@ -94,7 +94,12 @@ void __stdcall PrintUsage()
 
 void __stdcall PrintChVersion()
 {
-    wprintf(_u("%s version %d.%d.%d.0\n"), hostName, CHAKRA_CORE_MAJOR_VERSION, CHAKRA_CORE_MINOR_VERSION, CHAKRA_CORE_PATCH_VERSION);
+#if CHAKRA_CORE_VERSION_RELEASE
+    wprintf(_u("%s version %d.%d.%d.0\n"),
+#else
+    wprintf(_u("%s version %d.%d.%d.0-beta\n"),
+#endif
+        hostName, CHAKRA_CORE_MAJOR_VERSION, CHAKRA_CORE_MINOR_VERSION, CHAKRA_CORE_PATCH_VERSION);
 }
 
 #ifdef _WIN32
