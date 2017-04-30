@@ -43,8 +43,6 @@ namespace TTD
         void ExtractScopeIfNeeded(Js::ScriptContext* ctx, Js::FrameDisplay* environment);
         void ExtractScriptFunctionEnvironmentIfNeeded(Js::ScriptFunction* function);
 
-        void ExtractRootInfo(const ThreadContextTTD* tctx, const JsUtil::BaseDictionary<Js::RecyclableObject*, TTD_LOG_PTR_ID, HeapAllocator>& objToLogIdMap) const;
-
         ////
         //Performance info
         uint32 m_snapshotsTakenCount;
@@ -87,7 +85,7 @@ namespace TTD
         //Do the actual snapshot extraction
 
         //Begin the snapshot by initializing the snapshot information
-        void BeginSnapshot(ThreadContext* threadContext);
+        void BeginSnapshot(ThreadContext* threadContext, double gcTime);
 
         //Do the walk of all objects caller need to to call MarkWalk on roots to initialize the worklist
         void DoMarkWalk(ThreadContext* threadContext);
@@ -98,6 +96,9 @@ namespace TTD
 
         //Tidy up and save the snapshot return the completed snapshot
         SnapShot* CompleteSnapshot();
+
+        //On replay we do a walk of the heap and re-populate the weak collection pin sets
+        void DoResetWeakCollectionPinSet(ThreadContext* threadContext);
     };
 }
 
