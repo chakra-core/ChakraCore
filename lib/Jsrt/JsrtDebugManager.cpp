@@ -159,6 +159,48 @@ HRESULT JsrtDebugManager::DbgRegisterFunction(Js::ScriptContext* scriptContext, 
     return S_OK;
 }
 
+#if ENABLE_TTD
+void JsrtDebugManager::ReportScriptCompile_TTD(Js::FunctionBody* body, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException, bool notify)
+{
+    if(this->debugEventCallback == nullptr)
+    {
+        return;
+    }
+
+    Js::ScriptContext* scriptContext = utf8SourceInfo->GetScriptContext();
+
+    JsrtDebugEventObject debugEventObject(scriptContext);
+
+    Js::DynamicObject* eventDataObject = debugEventObject.GetEventDataObject();
+
+    JsrtDebugUtils::AddFileNameOrScriptTypeToObject(eventDataObject, utf8SourceInfo);
+    JsrtDebugUtils::AddLineCountToObject(eventDataObject, utf8SourceInfo);
+    JsrtDebugUtils::AddPropertyToObject(eventDataObject, JsrtDebugPropertyId::sourceLength, utf8SourceInfo->GetCchLength(), utf8SourceInfo->GetScriptContext());
+
+    JsDiagDebugEvent jsDiagDebugEvent = JsDiagDebugEventCompileError;
+
+
+    JsrtDebugDocumentManager* debugDocumentManager = this->GetDebugDocumentManager();
+    Assert(debugDocumentManager != nullptr);
+
+    // Create DebugDocument and then report JsDiagDebugEventSourceCompile event
+    Js::DebugDocument* debugDocument = HeapNewNoThrow(Js::DebugDocument, utf8SourceInfo, body);
+    if(debugDocument != nullptr)
+    {
+        utf8SourceInfo->SetDebugDocument(debugDocument);
+
+        // Only add scriptId if everything is ok as scriptId is used for other operations
+        JsrtDebugUtils::AddScriptIdToObject(eventDataObject, utf8SourceInfo);
+    }
+    jsDiagDebugEvent = JsDiagDebugEventSourceCompile;
+
+    if(notify)
+    {
+        this->CallDebugEventCallback(jsDiagDebugEvent, eventDataObject, scriptContext, false /*isBreak*/);
+    }
+}
+#endif
+
 void JsrtDebugManager::ReportScriptCompile(Js::JavascriptFunction* scriptFunction, Js::Utf8SourceInfo* utf8SourceInfo, CompileScriptException* compileException)
 {
     if (this->debugEventCallback != nullptr)
@@ -597,9 +639,9 @@ void JsrtDebugManager::GetBreakpoints(Js::JavascriptArray** bpsArray, Js::Script
 }
 
 #if ENABLE_TTD
-Js::BreakpointProbe* JsrtDebugManager::SetBreakpointHelper_TTD(Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber, bool* isNewBP)
+Js::BreakpointProbe* JsrtDebugManager::SetBreakpointHelper_TTD(int64 desiredBpId, Js::ScriptContext* scriptContext, Js::Utf8SourceInfo* utf8SourceInfo, UINT lineNumber, UINT columnNumber, BOOL* isNewBP)
 {
-    *isNewBP = false;
+    *isNewBP = FALSE;
     Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
     if(debugDocument != nullptr && SUCCEEDED(utf8SourceInfo->EnsureLineOffsetCacheNoThrow()) && lineNumber < utf8SourceInfo->GetLineCount())
     {
@@ -617,16 +659,13 @@ Js::BreakpointProbe* JsrtDebugManager::SetBreakpointHelper_TTD(Js::ScriptContext
         // Don't see a use case for supporting multiple breakpoints at same location.
         // If a breakpoint already exists, just return that
         Js::BreakpointProbe* probe = debugDocument->FindBreakpoint(statement);
+        TTDAssert(probe == nullptr || desiredBpId == -1, "We shouldn't be resetting this BP unless it was cleared eariler!");
+
         if(probe == nullptr)
         {
-            probe = debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
+            probe = debugDocument->SetBreakPoint_TTDWbpId(desiredBpId, statement);
+            *isNewBP = TRUE;
 
-            if(probe == nullptr)
-            {
-                return nullptr;
-            }
-
-            *isNewBP = true;
             this->GetDebugDocumentManager()->AddDocument(probe->GetId(), debugDocument);
         }
 
