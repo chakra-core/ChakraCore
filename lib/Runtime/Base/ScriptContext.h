@@ -1720,6 +1720,8 @@ private:
         virtual intptr_t GetDebugFrameAddressAddr() const override;
         virtual intptr_t GetDebugScriptIdWhenSetAddr() const override;
 
+        virtual intptr_t GetChakraLibAddr() const override;
+
 #if ENABLE_NATIVE_CODEGEN
         virtual void AddToDOMFastPathHelperMap(intptr_t funcInfoAddr, IR::JnHelperMethod helper) override;
         virtual IR::JnHelperMethod GetDOMFastPathHelper(intptr_t funcInfoAddr) override;

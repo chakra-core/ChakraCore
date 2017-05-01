@@ -176,10 +176,6 @@
     <ClInclude Include="BuiltIn\BuiltIn.js.bc.64b.h" />
     <ClInclude Include="BuiltIn\BuiltIn.js.nojit.bc.32b.h" />
     <ClInclude Include="BuiltIn\BuiltIn.js.nojit.bc.64b.h" />
-    <ClInclude Include="BuiltIn\IndexOf.js.bc.32b.h" />
-    <ClInclude Include="BuiltIn\IndexOf.js.bc.64b.h" />
-    <ClInclude Include="BuiltIn\IndexOf.js.nojit.bc.32b.h" />
-    <ClInclude Include="BuiltIn\IndexOf.js.nojit.bc.64b.h" />
     <ClInclude Include="ExternalLibraryBase.h" />
     <ClInclude Include="IntlEngineInterfaceExtensionObject.h" />
     <ClInclude Include="JavascriptListIterator.h" />
@@ -336,7 +332,6 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </None>
     <None Include="BuiltIn\BuiltIn.js" />
-    <None Include="BuiltIn\IndexOf.js" />
     <None Include="InJavascript\GenByteCode.cmd" />
     <None Include="InJavascript\Intl.js" />
     <None Include="ConcatString.inl" />

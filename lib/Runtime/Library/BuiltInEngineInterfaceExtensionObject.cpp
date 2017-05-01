@@ -52,8 +52,10 @@ namespace Js
     {
     }
 
-    NoProfileFunctionInfo BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_TagPublicFunction(FORCE_NO_WRITE_BARRIER_TAG(BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_TagPublicFunction));
     NoProfileFunctionInfo BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_RegisterFunction(FORCE_NO_WRITE_BARRIER_TAG(BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_RegisterFunction));
+
+    NoProfileFunctionInfo BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_Internal_ToLengthFunction(FORCE_NO_WRITE_BARRIER_TAG(BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_Internal_ToLengthFunction));
+    NoProfileFunctionInfo BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_Internal_ToIntegerFunction(FORCE_NO_WRITE_BARRIER_TAG(BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_Internal_ToIntegerFunction));
 
     void BuiltInEngineInterfaceExtensionObject::Initialize()
     {
@@ -64,7 +66,7 @@ namespace Js
 
         JavascriptLibrary* library = scriptContext->GetLibrary();
         DynamicObject* commonObject = library->GetEngineInterfaceObject()->GetCommonNativeInterfaces();
-        if (scriptContext->IsIntlEnabled())
+        if (scriptContext->IsBuiltInEnabled())
         {
             Assert(library->GetEngineInterfaceObject() != nullptr);
             this->builtInNativeInterfaces = DynamicObject::New(library->GetRecycler(),
@@ -105,6 +107,13 @@ namespace Js
             scriptContext->GetThreadContext()->ClearDisableImplicitFlags();
             JavascriptFunction::CallRootFunctionInScript(function, Js::Arguments(callInfo, args));
             scriptContext->GetThreadContext()->SetImplicitCallFlags((Js::ImplicitCallFlags)(saveImplicitCallFlags));
+
+#if DBG_DUMP
+            if (PHASE_DUMP(Js::ByteCodePhase, function->GetFunctionProxy()) && Js::Configuration::Global.flags.Verbose)
+            {
+                DumpByteCode();
+            }
+#endif
         }
         catch (const JavascriptException& err)
         {
@@ -121,8 +130,7 @@ namespace Js
         ScriptContext* scriptContext = builtInNativeInterfaces->GetScriptContext();
         JavascriptLibrary* library = scriptContext->GetLibrary();
 
-        library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::tagPublicFunction, &BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_TagPublicFunction, 1);
-        library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerFunction, &BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_RegisterFunction, 1);
+        library->AddFunctionToLibraryObject(builtInNativeInterfaces, Js::PropertyIds::registerFunction, &BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_RegisterFunction, 2);
 
         builtInNativeInterfaces->SetHasNoEnumerableProperties(true);
     }
@@ -164,21 +172,13 @@ namespace Js
         case PropertyIds::Array:
             return library->arrayPrototype;
 
+        case PropertyIds::String:
+            return library->stringPrototype;
+
         default:
+            AssertMsg(false, "Unable to find a prototype that match with this className.");
             return nullptr;
         }
-    }
-
-    Var BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_TagPublicFunction(RecyclableObject* function, CallInfo callInfo, ...)
-    {
-        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
-
-        if (callInfo.Count >= 3 && JavascriptString::Is(args.Values[1]) && JavascriptFunction::Is(args.Values[2])) {
-            return scriptContext->GetLibrary()->GetEngineInterfaceObject()->Entry_TagPublicLibraryCode(function, args.Info, args.Values[0], args.Values[2], args.Values[1]);
-        }
-
-        //Don't need to return anything
-        return scriptContext->GetLibrary()->GetUndefined();
     }
 
     Var BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...)
@@ -208,17 +208,38 @@ namespace Js
         JavascriptFunction* func = JavascriptFunction::FromVar(args.Values[2]);
 
         // Set the function's display name, as the function we pass in argument are anonym.
+        func->GetFunctionProxy()->SetIsPublicLibraryCode();
         func->GetFunctionProxy()->EnsureDeserialized()->SetDisplayName(methodName->GetString(), methodName->GetLength(), 0);
 
         DynamicObject* prototype = GetPrototypeFromName(JavascriptOperators::GetPropertyId(className, scriptContext), scriptContext);
         PropertyIds functionIdentifier = JavascriptOperators::GetPropertyId(methodName, scriptContext);
-        AssertMsg(prototype != nullptr, "Unable to find a prototype that match with this className.");
 
         // Link the function to the prototype.
-        scriptContext->GetLibrary()->DefaultCreateFunction(func->GetParseableFunctionInfo(), argumentsCount, prototype, functionIdentifier);
+        ScriptFunction* scriptFunction = scriptContext->GetLibrary()->CreateScriptFunction(func->GetFunctionProxy());
+        scriptFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(argumentsCount), PropertyConfigurable, nullptr);
+        scriptContext->GetLibrary()->AddMember(prototype, functionIdentifier, scriptFunction);
+
+        if (functionIdentifier == PropertyIds::indexOf) {
+            // Special case for Intl who requires to call the non-overriden (by the user) IndexOf function.
+            scriptContext->GetLibrary()->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), Js::PropertyIds::builtInJavascriptArrayEntryIndexOf, scriptFunction);
+        }
 
         //Don't need to return anything
         return scriptContext->GetLibrary()->GetUndefined();
+    }
+
+    Var BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_Internal_ToLengthFunction(RecyclableObject * function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        Assert(args.Info.Count >= 2);
+        return JavascriptNumber::ToVar(JavascriptConversion::ToLength(args.Values[1], scriptContext), scriptContext);
+    }
+
+    Var BuiltInEngineInterfaceExtensionObject::EntryBuiltIn_Internal_ToIntegerFunction(RecyclableObject * function, CallInfo callInfo, ...)
+    {
+        EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
+        Assert(args.Info.Count >= 2);
+        return JavascriptNumber::ToVarNoCheck(JavascriptConversion::ToInteger(args.Values[1], scriptContext), scriptContext);
     }
 
 #endif // ENABLE_BUILTIN_OBJECT

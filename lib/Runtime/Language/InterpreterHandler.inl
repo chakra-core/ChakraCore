@@ -293,6 +293,7 @@ EXDEF3_WMS(CALL,                    ProfiledNewScObjectSpread,  PROFILEDOP(OP_Pr
   DEF2_WMS(XXtoA1Mem,               LdInfinity,                 JavascriptOperators::OP_LdInfinity)
   DEF2_WMS(XXtoA1Mem,               LdTrue,                     JavascriptBoolean::OP_LdTrue)
   DEF2_WMS(XXtoA1Mem,               LdFalse,                    JavascriptBoolean::OP_LdFalse)
+  EXDEF2_WMS(XXtoA1Mem,             LdChakraLib,                JavascriptOperators::OP_LdChakraLib)
   DEF2_WMS(A1I1toA1Mem,             LdThis,                     JavascriptOperators::OP_GetThisNoFastPath)
 EXDEF2_WMS(XXtoA1Mem,               LdHomeObj,                  OP_LdHomeObj)
 EXDEF2_WMS(XXtoA1Mem,               LdFuncObj,                  OP_LdFuncObj)

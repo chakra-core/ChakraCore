@@ -253,10 +253,6 @@
     <ClInclude Include="WebAssemblyTable.h" />
     <ClInclude Include="WebAssemblyEnvironment.h" />
     <ClInclude Include="WabtInterface.h" />
-    <ClInclude Include="BuiltIn\IndexOf.js.bc.32b.h" />
-    <ClInclude Include="BuiltIn\IndexOf.js.bc.64b.h" />
-    <ClInclude Include="BuiltIn\IndexOf.js.nojit.bc.32b.h" />
-    <ClInclude Include="BuiltIn\IndexOf.js.nojit.bc.64b.h" />
     <ClInclude Include="BuiltInEngineInterfaceExtensionObject.h" />
     <ClInclude Include="BuiltIn\BuiltIn.js.bc.32b.h" />
     <ClInclude Include="BuiltIn\BuiltIn.js.bc.64b.h" />
@@ -276,7 +272,6 @@
     <None Include="amd64\JavascriptFunctionA.S">
       <Filter>amd64</Filter>
     </None>
-    <None Include="BuiltIn\IndexOf.js" />
     <None Include="BuiltIn\BuiltIn.js" />
   </ItemGroup>
   <ItemGroup>

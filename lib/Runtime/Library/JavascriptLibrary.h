@@ -414,7 +414,7 @@ namespace Js
 
         Field(ConstructorCache*) builtInConstructorCache;
 
-        Field(FunctionBody*) indexOfByteCode;
+        Field(DynamicObject*) chakraLibraryObject;
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
         Field(JavascriptFunction*) debugObjectFaultInjectionCookieGetterFunction;
@@ -725,6 +725,8 @@ namespace Js
         DynamicObject* GetWebAssemblyLinkErrorPrototype() const { return webAssemblyLinkErrorPrototype; }
         DynamicObject* GetWebAssemblyLinkErrorConstructor() const { return webAssemblyLinkErrorConstructor; }
 
+        DynamicObject* GetChakraLib() const { return chakraLibraryObject; }
+
 #if ENABLE_TTD
         Js::PropertyId ExtractPrimitveSymbolId_TTD(Var value);
         Js::RecyclableObject* CreatePrimitveSymbol_TTD(Js::PropertyId pid);
@@ -785,6 +787,12 @@ namespace Js
 #ifdef ENABLE_BUILTIN_OBJECT
         template <class Fn>
         void InitializeBuiltInForPrototypes(Fn fn);
+
+        void EnsureBuiltInEngineIsReady();
+
+        static void __cdecl InitializeChakraLibraryObject(DynamicObject* chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+        static void __cdecl InitializeBuiltInObject(DynamicObject* builtInEngineObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
+
 #endif
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
@@ -1147,7 +1155,6 @@ namespace Js
         JavascriptFunction* EnsureArrayPrototypeKeysFunction();
         JavascriptFunction* EnsureArrayPrototypeEntriesFunction();
         JavascriptFunction* EnsureArrayPrototypeValuesFunction();
-        void EnsureIndexOfByteCode();
 
         void SetCrossSiteForSharedFunctionType(JavascriptFunction * function);
 
@@ -1342,6 +1349,7 @@ namespace Js
 #ifdef ENABLE_INTL_OBJECT
         static void __cdecl InitializeIntlObject(DynamicObject* IntlEngineObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode);
 #endif
+
 #ifdef ENABLE_PROJECTION
         void InitializeWinRTPromiseConstructor();
 #endif

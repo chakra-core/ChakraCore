@@ -22,8 +22,10 @@ namespace Js
         class EntryInfo
         {
         public:
-            static NoProfileFunctionInfo BuiltIn_TagPublicFunction;
             static NoProfileFunctionInfo BuiltIn_RegisterFunction;
+
+            static NoProfileFunctionInfo BuiltIn_Internal_ToLengthFunction;
+            static NoProfileFunctionInfo BuiltIn_Internal_ToIntegerFunction;
         };
 
     private:
@@ -35,8 +37,10 @@ namespace Js
         void EnsureBuiltInByteCode(_In_ ScriptContext * scriptContext);
 
         static DynamicObject* GetPrototypeFromName(Js::PropertyIds propertyId, ScriptContext* scriptContext);
-        static Var EntryBuiltIn_TagPublicFunction(RecyclableObject* function, CallInfo callInfo, ...);
         static Var EntryBuiltIn_RegisterFunction(RecyclableObject* function, CallInfo callInfo, ...);
+
+        static Var EntryBuiltIn_Internal_ToLengthFunction(RecyclableObject* function, CallInfo callInfo, ...);
+        static Var EntryBuiltIn_Internal_ToIntegerFunction(RecyclableObject* function, CallInfo callInfo, ...);
     };
 }
 #endif // ENABLE_BUILTIN_OBJECT

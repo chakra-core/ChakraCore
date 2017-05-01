@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_BUILTIN_OBJECT) || defined(ENABLE_PROJECTION)
 
 #include "errstr.h"
 #include "Library/EngineInterfaceObject.h"
@@ -194,9 +194,9 @@ namespace Js
 
         JavascriptLibrary* library = commonNativeInterfaces->GetScriptContext()->GetLibrary();
 
-        library->EnsureIndexOfByteCode();
-
-        library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0), 1, commonNativeInterfaces, Js::PropertyIds::builtInJavascriptArrayEntryIndexOf);
+        library->EnsureBuiltInEngineIsReady();
+        EngineExtensionObjectBase* builtInExtensionObject = library->GetEngineInterfaceObject()->GetEngineExtension(EngineInterfaceExtensionKind_BuiltIn);
+        builtInExtensionObject->Initialize();
 
 #ifndef GlobalBuiltIn
 #define GlobalBuiltIn(global, method) \
@@ -384,4 +384,4 @@ namespace Js
 #endif
 
 }
-#endif // ENABLE_INTL_OBJECT || ENABLE_PROJECTION
+#endif // ENABLE_INTL_OBJECT || ENABLE_BUILTIN_OBJECT || ENABLE_PROJECTION

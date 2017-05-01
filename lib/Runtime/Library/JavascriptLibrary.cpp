@@ -28,20 +28,6 @@
 #pragma warning(disable:4309) // truncation of constant value
 #pragma warning(disable:4838) // conversion from 'int' to 'const char' requires a narrowing conversion
 
-#if DISABLE_JIT
-#if TARGET_64
-#include "BuiltIn/IndexOf.js.nojit.bc.64b.h"
-#else
-#include "BuiltIn/IndexOf.js.nojit.bc.32b.h"
-#endif
-#else
-#if TARGET_64
-#include "BuiltIn/IndexOf.js.bc.64b.h"
-#else
-#include "BuiltIn/IndexOf.js.bc.32b.h"
-#endif
-#endif
-
 #pragma warning(pop)
 
 namespace Js
@@ -1457,6 +1443,15 @@ namespace Js
         }
 #endif
 
+#ifdef ENABLE_BUILTIN_OBJECT
+        if (scriptContext->IsBuiltInEnabled())
+        {
+            DynamicObject::New(recycler,
+                DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                    DeferredTypeHandler<InitializeBuiltInObject>::GetDefaultInstance()));
+        }
+#endif
+
 #if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_BUILTIN_OBJECT) || defined(ENABLE_PROJECTION)
         engineInterfaceObject = EngineInterfaceObject::New(recycler,
             DynamicType::New(scriptContext, TypeIds_EngineInterfaceObject, objectPrototype, nullptr,
@@ -1468,6 +1463,13 @@ namespace Js
 #endif
 
 #ifdef ENABLE_BUILTIN_OBJECT
+        chakraLibraryObject = DynamicObject::New(recycler,
+            DynamicType::New(scriptContext, TypeIds_Object, objectPrototype, nullptr,
+                DeferredTypeHandler<InitializeChakraLibraryObject>::GetDefaultInstance()));
+        if (CONFIG_FLAG(LdChakraLib)) {
+            AddMember(globalObject, PropertyIds::__chakraLibrary, chakraLibraryObject);
+        }
+
         BuiltInEngineInterfaceExtensionObject* builtInExtension = RecyclerNew(recycler, BuiltInEngineInterfaceExtensionObject, scriptContext);
         engineInterfaceObject->SetEngineExtension(EngineInterfaceExtensionKind_BuiltIn, builtInExtension);
 #endif
@@ -1701,41 +1703,6 @@ namespace Js
         return arrayPrototypeEntriesFunction;
     }
 
-    void JavascriptLibrary::EnsureIndexOfByteCode()
-    {
-#ifdef ENABLE_BUILTIN_OBJECT
-        if (scriptContext->IsBuiltInEnabled())
-        {
-            auto builtInInitializer = [&](BuiltInEngineInterfaceExtensionObject* builtInExtension, ScriptContext * scriptContext) -> void
-            {
-                builtInExtension->InjectBuiltInLibraryCode(scriptContext);
-            };
-            InitializeBuiltInForPrototypes(builtInInitializer);
-        }
-#endif
-
-        if (this->indexOfByteCode == nullptr)
-        {
-            SourceContextInfo * sourceContextInfo = scriptContext->GetSourceContextInfo(Js::Constants::NoHostSourceContext, NULL);
-
-            Assert(sourceContextInfo != nullptr);
-
-            SRCINFO si;
-            memset(&si, 0, sizeof(si));
-            si.sourceContextInfo = sourceContextInfo;
-            SRCINFO *hsi = scriptContext->AddHostSrcInfo(&si);
-            uint32 flags = fscrIsLibraryCode | (CONFIG_FLAG(CreateFunctionProxy) && !scriptContext->IsProfiling() ? fscrAllowFunctionProxy : 0);
-
-            HRESULT hr = Js::ByteCodeSerializer::DeserializeFromBuffer(scriptContext, flags, (LPCUTF8)nullptr, hsi, (byte*)Library_Bytecode_indexof, nullptr, &this->indexOfByteCode);
-
-            if (FAILED(hr))
-            {
-                AssertMsg(false, "Failed to deserialize IndexOf.js bytecode - very probably the bytecode needs to be rebuilt.");
-                JavascriptError::MapAndThrowError(scriptContext, hr);
-            }
-        }
-    }
-
     void JavascriptLibrary::InitializeArrayPrototype(DynamicObject* arrayPrototype, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(arrayPrototype, mode, 24);
@@ -1745,7 +1712,7 @@ namespace Js
         ScriptContext* scriptContext = arrayPrototype->GetScriptContext();
         JavascriptLibrary* library = arrayPrototype->GetLibrary();
 
-        library->EnsureIndexOfByteCode();
+        library->EnsureBuiltInEngineIsReady();
 
         library->AddMember(arrayPrototype, PropertyIds::constructor, library->arrayConstructor);
 
@@ -1780,8 +1747,6 @@ namespace Js
 
         builtinFuncs[BuiltinFunction::JavascriptArray_Unshift]            = library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::unshift,         &JavascriptArray::EntryInfo::Unshift,           1);
 
-
-        //library->DefaultCreateFunction(library->indexOfByteCode->GetNestedFunctionForExecution(0), 1, arrayPrototype, PropertyIds::indexOf);
         /* No inlining                Array_Every          */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::every,           &JavascriptArray::EntryInfo::Every,             1);
         /* No inlining                Array_Filter         */ library->AddFunctionToLibraryObject(arrayPrototype, PropertyIds::filter,          &JavascriptArray::EntryInfo::Filter,            1);
 
@@ -5048,7 +5013,7 @@ namespace Js
         JSONObject->SetHasNoEnumerableProperties(true);
     }
 
-#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_PROJECTION)
+#if defined(ENABLE_INTL_OBJECT) || defined(ENABLE_BUILTIN_OBJECT) || defined(ENABLE_PROJECTION)
     void JavascriptLibrary::InitializeEngineInterfaceObject(DynamicObject* engineInterface, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
     {
         typeHandler->Convert(engineInterface, mode, 3);
@@ -5171,6 +5136,33 @@ namespace Js
     }
 
 #ifdef ENABLE_BUILTIN_OBJECT
+
+    void JavascriptLibrary::InitializeBuiltInObject(DynamicObject* builtInObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        typeHandler->Convert(builtInObject, mode,  /*initSlotCapacity*/ 2);
+
+        if (builtInObject->GetScriptContext()->IsBuiltInEnabled())
+        {
+            auto builtInInitializer = [&](BuiltInEngineInterfaceExtensionObject* builtInExtension, ScriptContext * scriptContext) -> void
+            {
+                builtInExtension->InjectBuiltInLibraryCode(scriptContext);
+            };
+            builtInObject->GetLibrary()->InitializeBuiltInForPrototypes(builtInInitializer);
+        }
+    }
+
+    void JavascriptLibrary::EnsureBuiltInEngineIsReady()
+    {
+        if (scriptContext->IsBuiltInEnabled())
+        {
+            auto builtInInitializer = [&](BuiltInEngineInterfaceExtensionObject* builtInExtension, ScriptContext * scriptContext) -> void
+            {
+                builtInExtension->InjectBuiltInLibraryCode(scriptContext);
+            };
+            InitializeBuiltInForPrototypes(builtInInitializer);
+        }
+    }
+
     template <class Fn>
     void JavascriptLibrary::InitializeBuiltInForPrototypes(Fn fn)
     {
@@ -5181,6 +5173,19 @@ namespace Js
             fn(builtInExtension, scriptContext);
         }
     }
+
+    void JavascriptLibrary::InitializeChakraLibraryObject(DynamicObject * chakraLibraryObject, DeferredTypeHandlerBase * typeHandler, DeferredInitializeMode mode)
+    {
+        JavascriptLibrary* library = chakraLibraryObject->GetLibrary();
+        typeHandler->Convert(chakraLibraryObject, mode, 16);
+
+        library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toLength, &BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_Internal_ToLengthFunction, 1);
+        library->AddFunctionToLibraryObject(chakraLibraryObject, PropertyIds::toInteger, &BuiltInEngineInterfaceExtensionObject::EntryInfo::BuiltIn_Internal_ToIntegerFunction, 1);
+        library->AddMember(chakraLibraryObject, PropertyIds::Object, library->objectConstructor);
+
+        chakraLibraryObject->SetHasNoEnumerableProperties(true);
+    }
+
 #endif
 
 #ifdef ENABLE_INTL_OBJECT
@@ -8370,7 +8375,7 @@ namespace Js
 #if DBG
     void JavascriptLibrary::DumpLibraryByteCode()
     {
-#ifdef ENABLE_INTL_OBJECT
+#if defined(ENABLE_BUILTIN_OBJECT) || defined(ENABLE_INTL_OBJECT)
         // We aren't going to be passing in a number to check range of -dump:LibInit, that will be done by Intl/Promise
         // This is just to force init Intl code if dump:LibInit has been passed
         if (CONFIG_ISENABLED(DumpFlag) && Js::Configuration::Global.flags.Dump.IsEnabled(Js::JsLibInitPhase))

@@ -12,10 +12,10 @@ namespace Js
 
     enum EngineInterfaceExtensionKind
     {
-        EngineInterfaceExtensionKind_Intl = 0,
-        EngineInterfaceExtensionKind_WinRTPromise = 1,
-        EngineInterfaceExtensionKind_BuiltIn = 2,
-        MaxEngineInterfaceExtensionKind = EngineInterfaceExtensionKind_BuiltIn
+        EngineInterfaceExtensionKind_BuiltIn = 0,
+        EngineInterfaceExtensionKind_Intl = 1,
+        EngineInterfaceExtensionKind_WinRTPromise = 2,
+        MaxEngineInterfaceExtensionKind = EngineInterfaceExtensionKind_WinRTPromise
     };
 
     class EngineExtensionObjectBase
@@ -143,4 +143,4 @@ namespace Js
     };
 }
 
-#endif // ENABLE_INTL_OBJECT || ENABLE_PROJECTION
+#endif // ENABLE_INTL_OBJECT || ENABLE_BUILTIN_OBJECT || ENABLE_PROJECTION

@@ -6408,6 +6408,11 @@ CommonNumber:
         return scriptContext->GetLibrary()->GetNaN();
     }
 
+    Var JavascriptOperators::OP_LdChakraLib(ScriptContext* scriptContext)
+    {
+        return scriptContext->GetLibrary()->GetChakraLib();
+    }
+
     Var JavascriptOperators::OP_LdInfinity(ScriptContext* scriptContext)
     {
         return scriptContext->GetLibrary()->GetPositiveInfinite();
