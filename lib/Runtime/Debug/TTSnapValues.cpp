@@ -127,10 +127,10 @@ namespace TTD
             }
         }
 
-        void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, uint64 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length)
+        void WriteCodeToFile(ThreadContext* threadContext, bool fromEvent, uint32 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length)
         {
             char asciiResourceName[64];
-            sprintf_s(asciiResourceName, 64, "src%s_%I64u.js", (fromEvent ? "_ld" : ""), bodyId);
+            sprintf_s(asciiResourceName, 64, "src%s_%I32u.js", (fromEvent ? "_ld" : ""), bodyId);
 
             TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
             JsTTDStreamHandle srcStream = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, false, true);
@@ -158,10 +158,10 @@ namespace TTD
             iofp.pfFlushAndCloseStream(srcStream, false, true);
         }
 
-        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, uint64 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length)
+        void ReadCodeFromFile(ThreadContext* threadContext, bool fromEvent, uint32 bodyId, bool isUtf8Source, byte* sourceBuffer, uint32 length)
         {
             char asciiResourceName[64];
-            sprintf_s(asciiResourceName, 64, "src%s_%I64u.js", (fromEvent ? "_ld" : ""), bodyId);
+            sprintf_s(asciiResourceName, 64, "src%s_%I32u.js", (fromEvent ? "_ld" : ""), bodyId);
 
             TTDataIOInfo& iofp = threadContext->TTDContext->TTDataIOInfo;
             JsTTDStreamHandle srcStream = iofp.pfOpenResourceStream(iofp.ActiveTTUriLength, iofp.ActiveTTUri, strlen(asciiResourceName), asciiResourceName, true, false);
@@ -1074,7 +1074,7 @@ namespace TTD
 
         //////////////////
 
-        void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8source, const byte* source, uint32 sourceLen, SlabAllocator& alloc)
+        void ExtractTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint32 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8source, const byte* source, uint32 sourceLen, SlabAllocator& alloc)
         {
             fbInfo->ScriptContextLogId = fb->GetScriptContext()->ScriptContextLogTag;
             fbInfo->TopLevelBodyCtr = topLevelCtr;
@@ -1099,7 +1099,7 @@ namespace TTD
         void EmitTopLevelCommonBodyResolveInfo(const TopLevelCommonBodyResolveInfo* fbInfo, bool emitInline, ThreadContext* threadContext, FileWriter* writer, NSTokens::Separator separator)
         {
             writer->WriteRecordStart(separator);
-            writer->WriteUInt64(NSTokens::Key::functionBodyId, fbInfo->TopLevelBodyCtr);
+            writer->WriteUInt32(NSTokens::Key::functionBodyId, fbInfo->TopLevelBodyCtr);
             writer->WriteLogTag(NSTokens::Key::ctxTag, fbInfo->ScriptContextLogId, NSTokens::Separator::CommaSeparator);
 
             writer->WriteString(NSTokens::Key::name, fbInfo->FunctionName, NSTokens::Separator::CommaSeparator);
@@ -1129,7 +1129,7 @@ namespace TTD
         void ParseTopLevelCommonBodyResolveInfo(TopLevelCommonBodyResolveInfo* fbInfo, bool readSeperator, bool parseInline, ThreadContext* threadContext, FileReader* reader, SlabAllocator& alloc)
         {
             reader->ReadRecordStart(readSeperator);
-            fbInfo->TopLevelBodyCtr = reader->ReadUInt64(NSTokens::Key::functionBodyId);
+            fbInfo->TopLevelBodyCtr = reader->ReadUInt32(NSTokens::Key::functionBodyId);
             fbInfo->ScriptContextLogId = reader->ReadLogTag(NSTokens::Key::ctxTag, true);
 
             reader->ReadString(NSTokens::Key::name, alloc, fbInfo->FunctionName, true);
@@ -1187,7 +1187,7 @@ namespace TTD
         ////
         //Regular script-load functions
 
-        void ExtractTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag, SlabAllocator& alloc)
+        void ExtractTopLevelLoadedFunctionBodyInfo(TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint32 topLevelCtr, Js::ModuleID moduleId, uint64 sourceContextId, bool isUtf8, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag, SlabAllocator& alloc)
         {
             NSSnapValues::ExtractTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, fb, topLevelCtr, moduleId, sourceContextId, isUtf8, source, sourceLen, alloc);
 
@@ -1233,6 +1233,7 @@ namespace TTD
                 //TODO: Bytecode serializer does not support debug bytecode (StatementMaps vs Positions) so add this to serializer code.
                 //      Then we can add code do optimized bytecode reload here.
                 //
+                TTDAssert(false, "Function bytecode serialization is not supported yet.");
             }
             else
             {
@@ -1253,14 +1254,15 @@ namespace TTD
             {
                 ctx->TTDContextInfo->ProcessFunctionBodyOnLoad(globalBody, nullptr);
                 ctx->TTDContextInfo->RegisterLoadedScript(globalBody, fbInfo->TopLevelBase.TopLevelBodyCtr);
+
+                globalBody->GetUtf8SourceInfo()->SetSourceInfoForDebugReplay_TTD(fbInfo->TopLevelBase.TopLevelBodyCtr);
             }
             END_JS_RUNTIME_CALL(ctx);
 
             bool isLibraryCode = ((fbInfo->LoadFlag & LoadScriptFlag_LibraryCode) == LoadScriptFlag_LibraryCode);
-            const HostScriptContextCallbackFunctor& hostFunctor = ctx->TTDHostCallbackFunctor;
-            if(hostFunctor.pfOnScriptLoadCallback != nullptr && !isLibraryCode)
+            if(ctx->GetThreadContext()->TTDExecutionInfo != nullptr && !isLibraryCode)
             {
-                hostFunctor.pfOnScriptLoadCallback(hostFunctor.HostData, scriptFunction, utf8SourceInfo, &se);
+                ctx->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad(ctx, fbInfo->TopLevelBase.TopLevelBodyCtr, globalBody, utf8SourceInfo, &se);
             }
             ////
 
@@ -1297,7 +1299,7 @@ namespace TTD
         ////
         //'new Function(...)' functions
 
-        void ExtractTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, SlabAllocator& alloc)
+        void ExtractTopLevelNewFunctionBodyInfo(TopLevelNewFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint32 topLevelCtr, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, SlabAllocator& alloc)
         {
             NSSnapValues::ExtractTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, fb, topLevelCtr, moduleId, 0, false, (const byte*)source, sourceLen * sizeof(char16), alloc);
         }
@@ -1353,7 +1355,7 @@ namespace TTD
         ////
         //'eval(...)' functions
 
-        void ExtractTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint64 topLevelCtr, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, uint32 grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode, SlabAllocator& alloc)
+        void ExtractTopLevelEvalFunctionBodyInfo(TopLevelEvalFunctionBodyResolveInfo* fbInfo, Js::FunctionBody* fb, uint32 topLevelCtr, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, uint32 grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode, SlabAllocator& alloc)
         {
             NSSnapValues::ExtractTopLevelCommonBodyResolveInfo(&fbInfo->TopLevelBase, fb, topLevelCtr, moduleId, 0, false, (const byte*)source, sourceLen * sizeof(char16), alloc);
 
@@ -1718,6 +1720,8 @@ namespace TTD
                 {
                     intoCtx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
                     intoCtx->TTDContextInfo->RegisterLoadedScript(fb, cri.TopLevelBodyCtr);
+
+                    intoCtx->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad_InflateReuseBody(cri.TopLevelBodyCtr, fb);
                 }
 
                 inflator->UpdateFBScopes(fbInfo->TopLevelBase.ScopeChainInfo, fb);
@@ -1742,6 +1746,8 @@ namespace TTD
                     {
                         intoCtx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
                         intoCtx->TTDContextInfo->RegisterNewScript(fb, cri.TopLevelBodyCtr);
+
+                        intoCtx->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad_InflateReuseBody(cri.TopLevelBodyCtr, fb);
                     }
 
                     inflator->UpdateFBScopes(fbInfo->TopLevelBase.ScopeChainInfo, fb);
@@ -1763,6 +1769,8 @@ namespace TTD
                     {
                         intoCtx->TTDContextInfo->ProcessFunctionBodyOnLoad(fb, nullptr);
                         intoCtx->TTDContextInfo->RegisterEvalScript(fb, cri.TopLevelBodyCtr);
+
+                        intoCtx->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad_InflateReuseBody(cri.TopLevelBodyCtr, fb);
                     }
 
                     inflator->UpdateFBScopes(fbInfo->TopLevelBase.ScopeChainInfo, fb);
@@ -1804,7 +1812,7 @@ namespace TTD
                 NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
 
                 writer->WriteRecordStart(sep);
-                writer->WriteUInt64(NSTokens::Key::bodyCounterId, cri->TopLevelBodyCtr);
+                writer->WriteUInt32(NSTokens::Key::bodyCounterId, cri->TopLevelBodyCtr);
                 writer->WriteAddr(NSTokens::Key::functionBodyId, cri->ContextSpecificBodyPtrId, NSTokens::Separator::CommaSeparator);
                 writer->WriteRecordEnd();
             }
@@ -1818,7 +1826,7 @@ namespace TTD
                 NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
 
                 writer->WriteRecordStart(sep);
-                writer->WriteUInt64(NSTokens::Key::bodyCounterId, cri->TopLevelBodyCtr);
+                writer->WriteUInt32(NSTokens::Key::bodyCounterId, cri->TopLevelBodyCtr);
                 writer->WriteAddr(NSTokens::Key::functionBodyId, cri->ContextSpecificBodyPtrId, NSTokens::Separator::CommaSeparator);
                 writer->WriteRecordEnd();
             }
@@ -1832,7 +1840,7 @@ namespace TTD
                 NSTokens::Separator sep = (i != 0) ? NSTokens::Separator::CommaSeparator : NSTokens::Separator::NoSeparator;
 
                 writer->WriteRecordStart(sep);
-                writer->WriteUInt64(NSTokens::Key::bodyCounterId, cri->TopLevelBodyCtr);
+                writer->WriteUInt32(NSTokens::Key::bodyCounterId, cri->TopLevelBodyCtr);
                 writer->WriteAddr(NSTokens::Key::functionBodyId, cri->ContextSpecificBodyPtrId, NSTokens::Separator::CommaSeparator);
                 writer->WriteRecordEnd();
             }
@@ -1871,7 +1879,7 @@ namespace TTD
                 TopLevelFunctionInContextRelation* cri = intoCtx->LoadedTopLevelScriptArray + i;
 
                 reader->ReadRecordStart(i != 0);
-                cri->TopLevelBodyCtr = reader->ReadUInt64(NSTokens::Key::bodyCounterId);
+                cri->TopLevelBodyCtr = reader->ReadUInt32(NSTokens::Key::bodyCounterId);
                 cri->ContextSpecificBodyPtrId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
                 reader->ReadRecordEnd();
             }
@@ -1885,7 +1893,7 @@ namespace TTD
                 TopLevelFunctionInContextRelation* cri = intoCtx->NewFunctionTopLevelScriptArray + i;
 
                 reader->ReadRecordStart(i != 0);
-                cri->TopLevelBodyCtr = reader->ReadUInt64(NSTokens::Key::bodyCounterId);
+                cri->TopLevelBodyCtr = reader->ReadUInt32(NSTokens::Key::bodyCounterId);
                 cri->ContextSpecificBodyPtrId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
                 reader->ReadRecordEnd();
             }
@@ -1899,7 +1907,7 @@ namespace TTD
                 TopLevelFunctionInContextRelation* cri = intoCtx->EvalTopLevelScriptArray + i;
 
                 reader->ReadRecordStart(i != 0);
-                cri->TopLevelBodyCtr = reader->ReadUInt64(NSTokens::Key::bodyCounterId);
+                cri->TopLevelBodyCtr = reader->ReadUInt32(NSTokens::Key::bodyCounterId);
                 cri->ContextSpecificBodyPtrId = reader->ReadAddr(NSTokens::Key::functionBodyId, true);
                 reader->ReadRecordEnd();
             }

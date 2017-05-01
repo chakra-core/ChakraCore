@@ -45,71 +45,6 @@ namespace TTD
         this->m_callAction = callAction;
     }
 
-    TTLastReturnLocationInfo::TTLastReturnLocationInfo()
-        : m_isExceptionFrame(false)
-    {
-        this->m_lastFrame = { 0 };
-    }
-
-    void TTLastReturnLocationInfo::SetReturnLocation(const SingleCallCounter& cframe)
-    {
-        this->m_isExceptionFrame = false;
-        this->m_lastFrame = cframe;
-    }
-
-    void TTLastReturnLocationInfo::SetExceptionLocation(const SingleCallCounter& cframe)
-    {
-        this->m_isExceptionFrame = true;
-        this->m_lastFrame = cframe;
-    }
-
-    bool TTLastReturnLocationInfo::IsDefined() const
-    {
-        return this->m_lastFrame.Function != nullptr;
-    }
-
-    bool TTLastReturnLocationInfo::IsReturnLocation() const
-    {
-        return this->IsDefined() && !this->m_isExceptionFrame;
-    }
-
-    bool TTLastReturnLocationInfo::IsExceptionLocation() const
-    {
-        return this->IsDefined() && this->m_isExceptionFrame;
-    }
-
-    const SingleCallCounter& TTLastReturnLocationInfo::GetLocation() const
-    {
-        TTDAssert(this->IsDefined(), "Should check this!");
-
-        return this->m_lastFrame;
-    }
-
-    void TTLastReturnLocationInfo::Clear()
-    {
-        if(this->IsDefined())
-        {
-            this->m_isExceptionFrame = false;
-            this->m_lastFrame = { 0 };
-        }
-    }
-
-    void TTLastReturnLocationInfo::ClearReturnOnly()
-    {
-        if(this->IsDefined() && !this->m_isExceptionFrame)
-        {
-            this->Clear();
-        }
-    }
-
-    void TTLastReturnLocationInfo::ClearExceptionOnly()
-    {
-        if(this->IsDefined() && this->m_isExceptionFrame)
-        {
-            this->Clear();
-        }
-    }
-
     /////////////
 
     void TTEventList::AddArrayLink()
@@ -334,33 +269,6 @@ namespace TTD
 
     //////
 
-    const SingleCallCounter& EventLog::GetTopCallCounter() const
-    {
-        TTDAssert(this->m_callStack.Count() != 0, "Empty stack!");
-
-        return this->m_callStack.Item(this->m_callStack.Count() - 1);
-    }
-
-    SingleCallCounter& EventLog::GetTopCallCounter()
-    {
-        TTDAssert(this->m_callStack.Count() != 0, "Empty stack!");
-
-        return this->m_callStack.Item(this->m_callStack.Count() - 1);
-    }
-
-    bool EventLog::TryGetTopCallCallerCounter(SingleCallCounter& caller) const
-    {
-        if(this->m_callStack.Count() < 2)
-        {
-            return false;
-        }
-        else
-        {
-            caller = this->m_callStack.Item(this->m_callStack.Count() - 2);
-            return true;
-        }
-    }
-
     int64 EventLog::GetCurrentEventTimeAndAdvance()
     {
         return this->m_eventTimeCtr++;
@@ -415,22 +323,6 @@ namespace TTD
         {
             this->SetModeFlagsOnContext(contexts.Item(i));
         }
-    }
-
-    void EventLog::UnloadRetainedData()
-    {
-        if(this->m_lastInflateMap != nullptr)
-        {
-            TT_HEAP_DELETE(InflateMap, this->m_lastInflateMap);
-            this->m_lastInflateMap = nullptr;
-        }
-
-        if(this->m_propertyRecordPinSet != nullptr)
-        {
-            this->m_propertyRecordPinSet.Unroot(this->m_propertyRecordPinSet->GetAllocator());
-        }
-
-        this->UnLoadPreservedBPInfo();
     }
 
     SnapShot* EventLog::DoSnapshotExtract_Helper()
@@ -592,25 +484,18 @@ namespace TTD
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::RawBufferAsyncModifyComplete] = { NSLogEvents::ContextExecuteKind::ContextAPIWrapper, NSLogEvents::RawBufferAsyncModifyComplete_Execute, NSLogEvents::JsRTRawBufferModifyAction_UnloadEventMemory<NSLogEvents::EventKind::RawBufferAsyncModifyComplete>, NSLogEvents::JsRTRawBufferModifyAction_Emit<NSLogEvents::EventKind::RawBufferAsyncModifyComplete>, NSLogEvents::JsRTRawBufferModifyAction_Parse<NSLogEvents::EventKind::RawBufferAsyncModifyComplete> };
 
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::ConstructCallActionTag] = { NSLogEvents::ContextExecuteKind::ContextAPIWrapper, NSLogEvents::JsRTConstructCallAction_Execute, NSLogEvents::JsRTConstructCallAction_UnloadEventMemory, NSLogEvents::JsRTConstructCallAction_Emit, NSLogEvents::JsRTConstructCallAction_Parse };
-        this->m_eventListVTable[(uint32)NSLogEvents::EventKind::CallbackOpActionTag] = { NSLogEvents::ContextExecuteKind::None, NSLogEvents::JsRTCallbackAction_Execute, NSLogEvents::JsRTCallbackAction_UnloadEventMemory, NSLogEvents::JsRTCallbackAction_Emit, NSLogEvents::JsRTCallbackAction_Parse };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::CodeParseActionTag] = { NSLogEvents::ContextExecuteKind::ContextAPINoScriptWrapper, NSLogEvents::JsRTCodeParseAction_Execute, NSLogEvents::JsRTCodeParseAction_UnloadEventMemory, NSLogEvents::JsRTCodeParseAction_Emit, NSLogEvents::JsRTCodeParseAction_Parse };
         this->m_eventListVTable[(uint32)NSLogEvents::EventKind::CallExistingFunctionActionTag] = { NSLogEvents::ContextExecuteKind::ContextAPIWrapper, NSLogEvents::JsRTCallFunctionAction_Execute, NSLogEvents::JsRTCallFunctionAction_UnloadEventMemory, NSLogEvents::JsRTCallFunctionAction_Emit, NSLogEvents::JsRTCallFunctionAction_Parse };
     }
 
     EventLog::EventLog(ThreadContext* threadContext)
         : m_threadContext(threadContext), m_eventSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_MID), m_miscSlabAllocator(TTD_SLAB_BLOCK_ALLOCATION_SIZE_SMALL),
-        m_eventTimeCtr(0), m_timer(), m_runningFunctionTimeCtr(0), m_topLevelCallbackEventTime(-1), m_hostCallbackId(-1),
+        m_eventTimeCtr(0), m_timer(), m_topLevelCallbackEventTime(-1),
         m_eventList(&this->m_eventSlabAllocator), m_eventListVTable(nullptr), m_currentReplayEventIterator(),
-        m_callStack(&HeapAllocator::Instance, 32), 
-        m_lastReturnLocation(), m_breakOnFirstUserCode(false), m_pendingTTDBP(), m_pendingTTDMoveMode(-1), m_activeBPId(-1), m_shouldRemoveWhenDone(false), m_activeTTDBP(), 
-        m_continueBreakPoint(), m_preservedBPCount(0), m_preservedBreakPointSourceScriptArray(nullptr), m_preservedBreakPointLocationArray(nullptr),
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        m_diagnosticLogger(),
-#endif
         m_modeStack(), m_currentMode(TTDMode::Invalid),
         m_snapExtractor(), m_elapsedExecutionTimeSinceSnapshot(0.0),
         m_lastInflateSnapshotTime(-1), m_lastInflateMap(nullptr), m_propertyRecordList(&this->m_miscSlabAllocator),
-        m_loadedTopLevelScripts(&this->m_miscSlabAllocator), m_newFunctionTopLevelScripts(&this->m_miscSlabAllocator), m_evalTopLevelScripts(&this->m_miscSlabAllocator)
+        m_sourceInfoCount(0), m_loadedTopLevelScripts(&this->m_miscSlabAllocator), m_newFunctionTopLevelScripts(&this->m_miscSlabAllocator), m_evalTopLevelScripts(&this->m_miscSlabAllocator)
     {
         this->InitializeEventListVTable();
 
@@ -624,7 +509,16 @@ namespace TTD
     {
         this->m_eventList.UnloadEventList(this->m_eventListVTable);
 
-        this->UnloadRetainedData();
+        if(this->m_lastInflateMap != nullptr)
+        {
+            TT_HEAP_DELETE(InflateMap, this->m_lastInflateMap);
+            this->m_lastInflateMap = nullptr;
+        }
+
+        if(this->m_propertyRecordPinSet != nullptr)
+        {
+            this->m_propertyRecordPinSet.Unroot(this->m_propertyRecordPinSet->GetAllocator());
+        }
     }
 
     void EventLog::UnloadAllLogData()
@@ -723,6 +617,11 @@ namespace TTD
         this->UpdateComputedMode();
     }
 
+    TTDMode EventLog::GetCurrentTTDMode() const
+    {
+        return this->m_currentMode;
+    }
+
     void EventLog::SetModeFlagsOnContext(Js::ScriptContext* ctx)
     {
         TTDMode cm = this->m_currentMode;
@@ -756,16 +655,6 @@ namespace TTD
         return (this->m_currentMode & TTD::TTDMode::DebuggerMode) == TTD::TTDMode::DebuggerMode;
     }
 
-    bool EventLog::ShouldSuppressBreakpointsForTimeTravelMove() const
-    {
-        return (this->m_currentMode & TTD::TTDMode::DebuggerSuppressBreakpoints) == TTD::TTDMode::DebuggerSuppressBreakpoints;
-    }
-
-    bool EventLog::ShouldRecordBreakpointsDuringTimeTravelScan() const
-    {
-        return (this->m_currentMode & TTD::TTDMode::DebuggerLogBreakpoints) == TTD::TTDMode::DebuggerLogBreakpoints;
-    }
-
     void EventLog::AddPropertyRecord(const Js::PropertyRecord* record)
     {
         this->m_propertyRecordPinSet->AddNew(const_cast<Js::PropertyRecord*>(record));
@@ -774,10 +663,11 @@ namespace TTD
     const NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* EventLog::AddScriptLoad(Js::FunctionBody* fb, Js::ModuleID moduleId, uint64 sourceContextId, const byte* source, uint32 sourceLen, LoadScriptFlag loadFlag)
     {
         NSSnapValues::TopLevelScriptLoadFunctionBodyResolveInfo* fbInfo = this->m_loadedTopLevelScripts.NextOpenEntry();
-        uint64 fCount = (this->m_loadedTopLevelScripts.Count() + this->m_newFunctionTopLevelScripts.Count() + this->m_evalTopLevelScripts.Count());
+        uint32 fCount = (this->m_loadedTopLevelScripts.Count() + this->m_newFunctionTopLevelScripts.Count() + this->m_evalTopLevelScripts.Count());
         bool isUtf8 = ((loadFlag & LoadScriptFlag_Utf8Source) == LoadScriptFlag_Utf8Source);
 
         NSSnapValues::ExtractTopLevelLoadedFunctionBodyInfo(fbInfo, fb, fCount, moduleId, sourceContextId, isUtf8, source, sourceLen, loadFlag, this->m_miscSlabAllocator);
+        this->m_sourceInfoCount = max(this->m_sourceInfoCount, fb->GetUtf8SourceInfo()->GetSourceInfoId() + 1);
 
         return fbInfo;
     }
@@ -785,9 +675,10 @@ namespace TTD
     const NSSnapValues::TopLevelNewFunctionBodyResolveInfo* EventLog::AddNewFunction(Js::FunctionBody* fb, Js::ModuleID moduleId, const char16* source, uint32 sourceLen)
     {
         NSSnapValues::TopLevelNewFunctionBodyResolveInfo* fbInfo = this->m_newFunctionTopLevelScripts.NextOpenEntry();
-        uint64 fCount = (this->m_loadedTopLevelScripts.Count() + this->m_newFunctionTopLevelScripts.Count() + this->m_evalTopLevelScripts.Count());
+        uint32 fCount = (this->m_loadedTopLevelScripts.Count() + this->m_newFunctionTopLevelScripts.Count() + this->m_evalTopLevelScripts.Count());
 
         NSSnapValues::ExtractTopLevelNewFunctionBodyInfo(fbInfo, fb, fCount, moduleId, source, sourceLen, this->m_miscSlabAllocator);
+        this->m_sourceInfoCount = max(this->m_sourceInfoCount, fb->GetUtf8SourceInfo()->GetSourceInfoId() + 1);
 
         return fbInfo;
     }
@@ -795,20 +686,26 @@ namespace TTD
     const NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* EventLog::AddEvalFunction(Js::FunctionBody* fb, Js::ModuleID moduleId, const char16* source, uint32 sourceLen, uint32 grfscr, bool registerDocument, BOOL isIndirect, BOOL strictMode)
     {
         NSSnapValues::TopLevelEvalFunctionBodyResolveInfo* fbInfo = this->m_evalTopLevelScripts.NextOpenEntry();
-        uint64 fCount = (this->m_loadedTopLevelScripts.Count() + this->m_newFunctionTopLevelScripts.Count() + this->m_evalTopLevelScripts.Count());
+        uint32 fCount = (this->m_loadedTopLevelScripts.Count() + this->m_newFunctionTopLevelScripts.Count() + this->m_evalTopLevelScripts.Count());
 
         NSSnapValues::ExtractTopLevelEvalFunctionBodyInfo(fbInfo, fb, fCount, moduleId, source, sourceLen, grfscr, registerDocument, isIndirect, strictMode, this->m_miscSlabAllocator);
+        this->m_sourceInfoCount = max(this->m_sourceInfoCount, fb->GetUtf8SourceInfo()->GetSourceInfoId() + 1);
 
         return fbInfo;
     }
 
-    void EventLog::RecordTopLevelCodeAction(uint64 bodyCtrId)
+    uint32 EventLog::GetSourceInfoCount() const
+    {
+        return this->m_sourceInfoCount;
+    }
+
+    void EventLog::RecordTopLevelCodeAction(uint32 bodyCtrId)
     {
         NSLogEvents::CodeLoadEventLogEntry* clEvent = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::CodeLoadEventLogEntry, NSLogEvents::EventKind::TopLevelCodeTag>();
         clEvent->BodyCounterId = bodyCtrId;
     }
 
-    uint64 EventLog::ReplayTopLevelCodeAction()
+    uint32 EventLog::ReplayTopLevelCodeAction()
     {
         const NSLogEvents::CodeLoadEventLogEntry* clEvent = this->ReplayGetReplayEvent_Helper<NSLogEvents::CodeLoadEventLogEntry, NSLogEvents::EventKind::TopLevelCodeTag>();
 
@@ -1146,561 +1043,9 @@ namespace TTD
         END_LEAVE_SCRIPT(ctx);
     }
 
-    void EventLog::PushCallEvent(Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool isInFinally)
-    {
-        //Clear any previous last return frame info
-        this->m_lastReturnLocation.ClearReturnOnly();
-
-        this->m_runningFunctionTimeCtr++;
-
-        SingleCallCounter cfinfo;
-        cfinfo.Function = function->GetFunctionBody();
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        cfinfo.Name = cfinfo.Function->GetExternalDisplayName();
-#endif
-
-        cfinfo.EventTime = this->m_eventTimeCtr; //don't need to advance just note what the event time was when this is called
-        cfinfo.FunctionTime = this->m_runningFunctionTimeCtr;
-        cfinfo.LoopTime = 0;
-
-        cfinfo.CurrentStatementIndex = -1;
-        cfinfo.CurrentStatementLoopTime = 0;
-
-        cfinfo.LastStatementIndex = -1;
-        cfinfo.LastStatementLoopTime = 0;
-
-        cfinfo.CurrentStatementBytecodeMin = UINT32_MAX;
-        cfinfo.CurrentStatementBytecodeMax = UINT32_MAX;
-
-        this->m_callStack.Add(cfinfo);
-
-        ////
-        //If we are running for debugger then check if we need to set a breakpoint at entry to the first function we execute
-        Js::FunctionBody* functionBody = function->GetFunctionBody();
-        Js::Utf8SourceInfo* utf8SourceInfo = functionBody->GetUtf8SourceInfo();
-
-        if(this->m_breakOnFirstUserCode)
-        {
-            this->m_breakOnFirstUserCode = false;
-
-            Js::DebugDocument* debugDocument = utf8SourceInfo->GetDebugDocument();
-            if(debugDocument != nullptr && SUCCEEDED(utf8SourceInfo->EnsureLineOffsetCacheNoThrow()))
-            {
-                ULONG lineNumber = functionBody->GetLineNumber();
-                ULONG columnNumber = functionBody->GetColumnNumber();
-                uint startOffset = functionBody->GetStatementStartOffset(0);
-                ULONG firstStatementLine;
-                LONG firstStatementColumn;
-
-                functionBody->GetLineCharOffsetFromStartChar(startOffset, &firstStatementLine, &firstStatementColumn);
-
-                charcount_t charPosition = 0;
-                charcount_t byteOffset = 0;
-                utf8SourceInfo->GetCharPositionForLineInfo(lineNumber, &charPosition, &byteOffset);
-                long ibos = charPosition + columnNumber + 1;
-
-                Js::StatementLocation statement;
-                debugDocument->GetStatementLocation(ibos, &statement);
-
-                // Don't see a use case for supporting multiple breakpoints at same location.
-                // If a breakpoint already exists, just return that
-                Js::BreakpointProbe* probe = debugDocument->FindBreakpoint(statement);
-                bool isNewBP = (probe == nullptr);
-
-                if(probe == nullptr)
-                {
-                    probe = debugDocument->SetBreakPoint(statement, BREAKPOINT_ENABLED);
-                }
-
-                TTDebuggerSourceLocation bpLocation;
-                bpLocation.SetLocation(-1, -1, -1, cfinfo.Function, firstStatementLine, firstStatementColumn);
-
-                function->GetScriptContext()->GetThreadContext()->TTDLog->SetActiveBP(probe->GetId(), isNewBP, bpLocation);
-            }
-        }
-        ////
-
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteCall(function, false, argc, argv, this->m_eventTimeCtr);
-#endif
-    }
-
-    void EventLog::PopCallEvent(Js::JavascriptFunction* function, Js::Var result)
-    {
-        this->m_lastReturnLocation.SetReturnLocation(this->m_callStack.Last());
-
-        this->m_runningFunctionTimeCtr++;
-        this->m_callStack.RemoveAtEnd();
-
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteReturn(function, result, this->m_eventTimeCtr);
-#endif
-    }
-
-    void EventLog::PopCallEventException(Js::JavascriptFunction* function)
-    {
-        //If we already have the last return as an exception then just leave it.
-        //That is where the exception was first rasied, this return is just propagating it in this return.
-
-        if(!this->m_lastReturnLocation.IsExceptionLocation())
-        {
-            this->m_lastReturnLocation.SetExceptionLocation(this->m_callStack.Last());
-        }
-
-        this->m_runningFunctionTimeCtr++;
-        this->m_callStack.RemoveAtEnd();
-
-#if ENABLE_BASIC_TRACE || ENABLE_FULL_BC_TRACE
-        this->m_diagnosticLogger.WriteReturnException(function, this->m_eventTimeCtr);
-#endif
-    }
-
-    void EventLog::ClearExceptionFrames()
-    {
-        this->m_lastReturnLocation.Clear();
-    }
-
-    void EventLog::SetBreakOnFirstUserCode()
-    {
-        this->m_breakOnFirstUserCode = true;
-    }
-
-    bool EventLog::HasPendingTTDBP() const
-    {
-        return this->m_pendingTTDBP.HasValue();
-    }
-
-    int64 EventLog::GetPendingTTDBPTargetEventTime() const
-    {
-        return this->m_pendingTTDBP.GetRootEventTime();
-    }
-
-    void EventLog::GetPendingTTDBPInfo(TTDebuggerSourceLocation& BPLocation) const
-    {
-        BPLocation.SetLocation(this->m_pendingTTDBP);
-    }
-
-    void EventLog::ClearPendingTTDBPInfo()
-    {
-        this->m_pendingTTDBP.Clear();
-    }
-
-    void EventLog::SetPendingTTDBPInfo(const TTDebuggerSourceLocation& BPLocation)
-    {
-        this->m_pendingTTDBP.SetLocation(BPLocation);
-    }
-
-    void EventLog::EnsureTTDBPInfoTopLevelBodyCtrPreInflate()
-    {
-        this->m_pendingTTDBP.EnsureTopLevelBodyCtrPreInflate();
-    }
-
-    int64 EventLog::GetPendingTTDMoveMode() const
-    {
-        return this->m_pendingTTDMoveMode;
-    }
-
-    void EventLog::ClearPendingTTDMoveMode()
-    {
-        this->m_pendingTTDMoveMode = -1;
-    }
-
-    void EventLog::SetPendingTTDMoveMode(int64 mode)
-    {
-        this->m_pendingTTDMoveMode = mode;
-    }
-
-    bool EventLog::HasActiveBP() const
-    {
-        return this->m_activeBPId != -1;
-    }
-
-    UINT EventLog::GetActiveBPId() const
-    {
-        TTDAssert(this->HasActiveBP(), "Should check this first!!!");
-
-        return (UINT)this->m_activeBPId;
-    }
-
-    void EventLog::ClearActiveBP()
-    {
-        this->m_activeBPId = -1;
-        this->m_shouldRemoveWhenDone = false;
-        this->m_activeTTDBP.Clear();
-    }
-
-    void EventLog::SetActiveBP(UINT bpId, bool isNewBP, const TTDebuggerSourceLocation& bpLocation)
-    {
-        this->m_activeBPId = bpId;
-        this->m_shouldRemoveWhenDone = isNewBP;
-        this->m_activeTTDBP.SetLocation(bpLocation);
-    }
-
-    bool EventLog::ProcessBPInfoPreBreak(Js::FunctionBody* fb)
-    {
-        //if we aren't in debug mode then we always trigger BP's
-        if(!fb->GetScriptContext()->ShouldPerformDebuggerAction())
-        {
-            return true;
-        }
-
-        //If we are in debugger mode but are suppressing BP's for movement then suppress them
-        if(this->ShouldSuppressBreakpointsForTimeTravelMove())
-        {
-            //Check if we need to record the visit to this bp
-            if(this->ShouldRecordBreakpointsDuringTimeTravelScan())
-            {
-                this->AddCurrentLocationDuringScan();
-            }
-
-            return false;
-        }
-
-        //If we are in debug mode and don't have an active BP target then we treat BP's as usual
-        if(!this->HasActiveBP())
-        {
-            return true;
-        }
-
-        //Finally we are in debug mode and we have an active BP target so only break if the BP is satisfied
-        const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-        ULONG srcLine = 0;
-        LONG srcColumn = -1;
-        uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
-        cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
-
-        bool locationOk = ((uint32)srcLine == this->m_activeTTDBP.GetLine()) & ((uint32)srcColumn == this->m_activeTTDBP.GetColumn());
-        bool ftimeOk = (this->m_activeTTDBP.GetFunctionTime() == -1) | ((uint64)this->m_activeTTDBP.GetFunctionTime() == cfinfo.FunctionTime);
-        bool ltimeOk = (this->m_activeTTDBP.GetLoopTime() == -1) | ((uint64)this->m_activeTTDBP.GetLoopTime() == cfinfo.CurrentStatementLoopTime);
-
-        return locationOk & ftimeOk & ltimeOk;
-    }
-
-    void EventLog::ProcessBPInfoPostBreak(Js::FunctionBody* fb)
-    {
-        if(!fb->GetScriptContext()->ShouldPerformDebuggerAction())
-        {
-            return;
-        }
-
-        if(this->HasActiveBP())
-        {
-            Js::DebugDocument* debugDocument = fb->GetUtf8SourceInfo()->GetDebugDocument();
-            Js::StatementLocation statement;
-            if(this->m_shouldRemoveWhenDone && debugDocument->FindBPStatementLocation(this->GetActiveBPId(), &statement))
-            {
-                debugDocument->SetBreakPoint(statement, BREAKPOINT_DELETED);
-            }
-
-            this->ClearActiveBP();
-        }
-
-        if(this->HasPendingTTDBP())
-        {
-            //Reset any step controller logic
-            fb->GetScriptContext()->GetThreadContext()->GetDebugManager()->stepController.Deactivate();
-
-            throw TTD::TTDebuggerAbortException::CreateTopLevelAbortRequest(this->GetPendingTTDBPTargetEventTime(), this->GetPendingTTDMoveMode(), _u("Reverse operation requested."));
-        }
-    }
-
-    void EventLog::ClearBPScanInfo()
-    {
-        this->m_continueBreakPoint.Clear();
-    }
-
-    void EventLog::AddCurrentLocationDuringScan()
-    {
-        TTDebuggerSourceLocation current(this->m_topLevelCallbackEventTime, this->m_callStack.Last());
-        if(this->m_pendingTTDBP.HasValue() && current.IsBefore(this->m_pendingTTDBP))
-        {
-            this->m_continueBreakPoint.SetLocation(current);
-        }
-    }
-
-    bool EventLog::TryFindAndSetPreviousBP()
-    {
-        TTDAssert(this->m_pendingTTDBP.HasValue(), "This needs to have a value!!!");
-
-        if(!this->m_continueBreakPoint.HasValue())
-        {
-            return false;
-        }
-        else
-        {
-            TTDAssert(this->m_continueBreakPoint.IsBefore(this->m_pendingTTDBP), "How did this happen?");
-
-            this->m_pendingTTDBP.SetLocation(this->m_continueBreakPoint);
-            return true;
-        }
-    }
-
-    void EventLog::LoadPreservedBPInfo()
-    {
-        //Unload this before we move again
-        TTDAssert(this->m_preservedBPCount == 0, "This should always be clear???");
-
-        uint32 bpCount = 0;
-        const JsUtil::List<Js::ScriptContext*, HeapAllocator>& ctxs = this->m_threadContext->TTDContext->GetTTDContexts();
-        for(int32 i = 0; i < ctxs.Count(); ++i)
-        {
-            Js::ProbeContainer* probeContainer = ctxs.Item(i)->GetDebugContext()->GetProbeContainer();
-            probeContainer->MapProbes([&](int j, Js::Probe* pProbe)
-            {
-                Js::BreakpointProbe* bp = (Js::BreakpointProbe*)pProbe;
-                if((int64)bp->GetId() != this->m_activeBPId)
-                {
-                    bpCount++;
-                }
-            });
-        }
-
-        if(bpCount != 0)
-        {
-            this->m_preservedBreakPointSourceScriptArray = TT_HEAP_ALLOC_ARRAY_ZERO(TTD_LOG_PTR_ID, bpCount);
-            this->m_preservedBreakPointLocationArray = TT_HEAP_ALLOC_ARRAY_ZERO(TTDebuggerSourceLocation*, bpCount);
-
-            for(int32 i = 0; i < ctxs.Count(); ++i)
-            {
-                Js::ProbeContainer* probeContainer = ctxs.Item(i)->GetDebugContext()->GetProbeContainer();
-                probeContainer->MapProbes([&](int j, Js::Probe* pProbe)
-                {
-                    Js::BreakpointProbe* bp = (Js::BreakpointProbe*)pProbe;
-                    if((int64)bp->GetId() != this->m_activeBPId)
-                    {
-                        Js::FunctionBody* body = bp->GetFunctionBody();
-                        int32 bpIndex = body->GetEnclosingStatementIndexFromByteCode(bp->GetBytecodeOffset());
-
-                        ULONG srcLine = 0;
-                        LONG srcColumn = -1;
-                        uint32 startOffset = body->GetStatementStartOffset(bpIndex);
-                        body->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
-
-                        this->m_preservedBreakPointSourceScriptArray[this->m_preservedBPCount] = ctxs.Item(i)->ScriptContextLogTag;
-
-                        this->m_preservedBreakPointLocationArray[this->m_preservedBPCount] = TT_HEAP_NEW(TTDebuggerSourceLocation);
-                        this->m_preservedBreakPointLocationArray[this->m_preservedBPCount]->SetLocation(-1, -1, -1, body, srcLine, srcColumn);
-
-                        this->m_preservedBPCount++;
-                    }
-                });
-            }
-        }
-
-        TTDAssert(this->m_preservedBPCount == bpCount, "Something is wrong!!!");
-    }
-
-    void EventLog::UnLoadPreservedBPInfo()
-    {
-        if(this->m_preservedBPCount != 0)
-        {
-            TT_HEAP_FREE_ARRAY(TTD_LOG_PTR_ID, this->m_preservedBreakPointSourceScriptArray, this->m_preservedBPCount);
-            this->m_preservedBreakPointSourceScriptArray = nullptr;
-
-            for(uint32 i = 0; i < this->m_preservedBPCount; ++i)
-            {
-                TT_HEAP_DELETE(TTDebuggerSourceLocation, this->m_preservedBreakPointLocationArray[i]);
-            }
-            TT_HEAP_FREE_ARRAY(TTDebuggerSourceLocation*, this->m_preservedBreakPointLocationArray, this->m_preservedBPCount);
-            this->m_preservedBreakPointLocationArray = nullptr;
-
-            this->m_preservedBPCount = 0;
-        }
-    }
-
-    const uint32 EventLog::GetPerservedBPInfoCount() const
-    {
-        return this->m_preservedBPCount;
-    }
-
-    TTD_LOG_PTR_ID* EventLog::GetPerservedBPInfoScriptArray()
-    {
-        return this->m_preservedBreakPointSourceScriptArray;
-    }
-
-    TTDebuggerSourceLocation** EventLog::GetPerservedBPInfoLocationArray()
-    {
-        return this->m_preservedBreakPointLocationArray;
-    }
-
-    void EventLog::UpdateLoopCountInfo()
-    {
-        SingleCallCounter& cfinfo = this->m_callStack.Last();
-        cfinfo.LoopTime++;
-    }
-
-    void EventLog::UpdateCurrentStatementInfo(uint bytecodeOffset)
-    {
-        SingleCallCounter& cfinfo = this->GetTopCallCounter();
-
-        if((cfinfo.CurrentStatementBytecodeMin <= bytecodeOffset) & (bytecodeOffset <= cfinfo.CurrentStatementBytecodeMax))
-        {
-            return;
-        }
-        else
-        {
-            Js::FunctionBody* fb = cfinfo.Function;
-
-            int32 cIndex = fb->GetEnclosingStatementIndexFromByteCode(bytecodeOffset, true);
-            TTDAssert(cIndex != -1, "Should always have a mapping.");
-
-            //we moved to a new statement
-            Js::FunctionBody::StatementMap* pstmt = fb->GetStatementMaps()->Item(cIndex);
-            bool newstmt = (cIndex != cfinfo.CurrentStatementIndex && pstmt->byteCodeSpan.begin <= (int)bytecodeOffset && (int)bytecodeOffset <= pstmt->byteCodeSpan.end);
-            if(newstmt)
-            {
-                cfinfo.LastStatementIndex = cfinfo.CurrentStatementIndex;
-                cfinfo.LastStatementLoopTime = cfinfo.CurrentStatementLoopTime;
-
-                cfinfo.CurrentStatementIndex = cIndex;
-                cfinfo.CurrentStatementLoopTime = cfinfo.LoopTime;
-
-                cfinfo.CurrentStatementBytecodeMin = (uint32)pstmt->byteCodeSpan.begin;
-                cfinfo.CurrentStatementBytecodeMax = (uint32)pstmt->byteCodeSpan.end;
-
-#if ENABLE_FULL_BC_TRACE
-                ULONG srcLine = 0;
-                LONG srcColumn = -1;
-                uint32 startOffset = cfinfo.Function->GetFunctionBody()->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
-                cfinfo.Function->GetFunctionBody()->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
-
-                this->m_diagnosticLogger.WriteStmtIndex((uint32)srcLine, (uint32)srcColumn);
-#endif
-            }
-        }
-    }
-
-    void EventLog::GetTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
-    {
-        const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-
-        ULONG srcLine = 0;
-        LONG srcColumn = -1;
-        uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
-        cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
-
-        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, cfinfo.FunctionTime, cfinfo.LoopTime, cfinfo.Function, srcLine, srcColumn);
-    }
-
-#if ENABLE_OBJECT_SOURCE_TRACKING
-    void EventLog::GetTimeAndPositionForDiagnosticObjectTracking(DiagnosticOrigin& originInfo) const
-    {
-        const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-
-        ULONG srcLine = 0;
-        LONG srcColumn = -1;
-        uint32 startOffset = cfinfo.Function->GetStatementStartOffset(cfinfo.CurrentStatementIndex);
-        cfinfo.Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
-
-        SetDiagnosticOriginInformation(originInfo, srcLine, cfinfo.EventTime, cfinfo.FunctionTime, cfinfo.LoopTime);
-    }
-#endif
-
-    bool EventLog::GetPreviousTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
-    {
-        bool noPrevious = false;
-        const SingleCallCounter& cfinfo = this->GetTopCallCounter();
-
-        //if we are at the first statement in the function then we want the parents current
-        Js::FunctionBody* fbody = nullptr;
-        int32 statementIndex = -1;
-        uint64 ftime = 0;
-        uint64 ltime = 0;
-        if(cfinfo.LastStatementIndex == -1)
-        {
-            SingleCallCounter cfinfoCaller = { 0 }; 
-            bool hasCaller = this->TryGetTopCallCallerCounter(cfinfoCaller);
-
-            //check if we are at the first statement in the callback event
-            if(!hasCaller)
-            {
-                //Set the position info to the current statement and return true
-                noPrevious = true;
-
-                ftime = cfinfo.FunctionTime;
-                ltime = cfinfo.CurrentStatementLoopTime;
-
-                fbody = cfinfo.Function;
-                statementIndex = cfinfo.CurrentStatementIndex;
-            }
-            else
-            {
-                ftime = cfinfoCaller.FunctionTime;
-                ltime = cfinfoCaller.CurrentStatementLoopTime;
-
-                fbody = cfinfoCaller.Function;
-                statementIndex = cfinfoCaller.CurrentStatementIndex;
-            }
-        }
-        else
-        {
-            ftime = cfinfo.FunctionTime;
-            ltime = cfinfo.LastStatementLoopTime;
-
-            fbody = cfinfo.Function;
-            statementIndex = cfinfo.LastStatementIndex;
-        }
-
-        ULONG srcLine = 0;
-        LONG srcColumn = -1;
-        uint32 startOffset = fbody->GetStatementStartOffset(statementIndex);
-        fbody->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
-
-        sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, ftime, ltime, fbody, srcLine, srcColumn);
-
-        return noPrevious;
-    }
-
-    void EventLog::GetLastExecutedTimeAndPositionForDebugger(TTDebuggerSourceLocation& sourceLocation) const
-    {
-        const TTLastReturnLocationInfo& cframe = this->m_lastReturnLocation;
-        if(!cframe.IsDefined())
-        {
-            sourceLocation.Clear();
-            return;
-        }
-        else
-        {
-            ULONG srcLine = 0;
-            LONG srcColumn = -1;
-            uint32 startOffset = cframe.GetLocation().Function->GetStatementStartOffset(cframe.GetLocation().CurrentStatementIndex);
-            cframe.GetLocation().Function->GetSourceLineFromStartOffset_TTD(startOffset, &srcLine, &srcColumn);
-
-            sourceLocation.SetLocation(this->m_topLevelCallbackEventTime, cframe.GetLocation().FunctionTime, cframe.GetLocation().CurrentStatementLoopTime, cframe.GetLocation().Function, srcLine, srcColumn);
-        }
-    }
-
-    int64 EventLog::GetCurrentHostCallbackId() const
-    {
-        return this->m_hostCallbackId;
-    }
-
     int64 EventLog::GetCurrentTopLevelEventTime() const
     {
         return this->m_topLevelCallbackEventTime;
-    }
-
-    const NSLogEvents::JsRTCallbackAction* EventLog::GetEventForHostCallbackId(bool wantRegisterOp, int64 hostIdOfInterest) const
-    {
-        if(hostIdOfInterest == -1)
-        {
-            return nullptr;
-        }
-
-        for(auto iter = this->m_currentReplayEventIterator; iter.IsValid(); iter.MovePrevious())
-        {
-            if(iter.Current()->EventKind == NSLogEvents::EventKind::CallbackOpActionTag)
-            {
-                const NSLogEvents::JsRTCallbackAction* callbackAction = NSLogEvents::GetInlineEventDataAs<NSLogEvents::JsRTCallbackAction, NSLogEvents::EventKind::CallbackOpActionTag>(iter.Current());
-                if(callbackAction->NewCallbackId == hostIdOfInterest && callbackAction->IsCreate == wantRegisterOp)
-                {
-                    return callbackAction;
-                }
-            }
-        }
-
-        return nullptr;
     }
 
     int64 EventLog::GetFirstEventTimeInLog() const
@@ -1750,13 +1095,7 @@ namespace TTD
 
     void EventLog::ResetCallStackForTopLevelCall(int64 topLevelCallbackEventTime)
     {
-        TTDAssert(this->m_callStack.Count() == 0, "We should be at the top-level entry!!!");
-
-        this->m_runningFunctionTimeCtr = 0;
         this->m_topLevelCallbackEventTime = topLevelCallbackEventTime;
-        this->m_hostCallbackId = -1;
-
-        this->m_lastReturnLocation.Clear();
     }
 
     bool EventLog::IsTimeForSnapshot() const
@@ -2143,9 +1482,6 @@ namespace TTD
                 this->m_eventTimeCtr++;
                 this->m_currentReplayEventIterator.MoveNext();
             }
-
-            //clear this out -- it shouldn't matter for most JsRT actions (alloc etc.) and should be reset by any call actions
-            this->ResetCallStackForTopLevelCall(-1);
         }
 
         this->PopMode(TTDMode::ExcludedExecutionTTAction);
@@ -2925,21 +2261,6 @@ namespace TTD
         actionPopper.InitializeWithEventAndEnterWResult(evt, &(ccAction->Result));
     }
 
-    void EventLog::RecordJsRTCallbackOperation(Js::ScriptContext* ctx, bool isCreate, bool isCancel, bool isRepeating, Js::JavascriptFunction* func, int64 callbackId)
-    {
-        NSLogEvents::JsRTCallbackAction* cbrAction = this->RecordGetInitializedEvent_DataOnly<NSLogEvents::JsRTCallbackAction, NSLogEvents::EventKind::CallbackOpActionTag>();
-        cbrAction->CurrentCallbackId = this->m_hostCallbackId;
-        cbrAction->NewCallbackId = callbackId;
-
-        //Register location is blank in record -- we only fill it in during debug replay
-
-        cbrAction->IsCreate = isCreate;
-        cbrAction->IsCancel = isCancel;
-        cbrAction->IsRepeating = isRepeating;
-
-        cbrAction->RegisterLocation = nullptr;
-    }
-
     NSLogEvents::EventLogEntry* EventLog::RecordJsRTCodeParse(TTDJsRTActionResultAutoRecorder& actionPopper, LoadScriptFlag loadFlag, bool isUft8, const byte* script, uint32 scriptByteLength, uint64 sourceContextId, const char16* sourceUri)
     {
         NSLogEvents::JsRTCodeParseAction* cpAction = nullptr;
@@ -3135,6 +2456,8 @@ namespace TTD
         writer.WriteSequenceEnd(NSTokens::Separator::BigSpaceSeparator);
 
         //do top level script processing here
+        writer.WriteUInt32(NSTokens::Key::u32Val, this->m_sourceInfoCount, NSTokens::Separator::CommaSeparator);
+
         writer.WriteLengthValue(this->m_loadedTopLevelScripts.Count(), NSTokens::Separator::CommaSeparator);
         writer.WriteSequenceStart_DefaultKey(NSTokens::Separator::CommaSeparator);
         writer.AdjustIndent(1);
@@ -3287,6 +2610,8 @@ namespace TTD
         reader.ReadSequenceEnd();
 
         //do top level script processing here
+        this->m_sourceInfoCount = reader.ReadUInt32(NSTokens::Key::u32Val, true);
+
         uint32 loadedScriptCount = reader.ReadLengthValue(true);
         reader.ReadSequenceStart_WDefaultKey(true);
         for(uint32 i = 0; i < loadedScriptCount; ++i)

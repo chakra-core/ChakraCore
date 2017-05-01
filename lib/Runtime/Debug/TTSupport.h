@@ -15,9 +15,12 @@ namespace TTD
     class ThreadContextTTD;
     class ScriptContextTTD;
     class RuntimeContextInfo;
+    class ExecutionInfoManager;
+
     //We typedef Js::Var into a TTD version that has the same bit layout but we want to avoid confusion
     //if this bit layout is for the "live" state or potentially only for the snapshot state or the representations change later
     typedef Js::Var TTDVar;
+
     namespace NSSnapType
     {
         struct SnapPropertyRecord;
@@ -25,6 +28,7 @@ namespace TTD
         struct SnapHandler;
         struct SnapType;
     }
+
     namespace NSSnapValues
     {
         struct SnapPrimitiveValue;
@@ -37,18 +41,22 @@ namespace TTD
         struct FunctionBodyResolveInfo;
         struct SnapContext;
     }
+
     namespace NSSnapObjects
     {
         struct SnapObject;
     }
+
     class SnapShot;
     class SnapshotExtractor;
     class TTDExceptionFramePopper;
     struct SingleCallCounter;
+
     namespace NSLogEvents
     {
         struct EventLogEntry;
     }
+
     class EventLog;
     class TTDebuggerAbortException;
     class TTDebuggerSourceLocation;
@@ -253,7 +261,7 @@ namespace TTD
     struct TopLevelFunctionInContextRelation
     {
         //The globally unique body counter id from the log
-        uint64 TopLevelBodyCtr;
+        uint32 TopLevelBodyCtr;
 
         //The PTR_ID that is used to refer to this top-level body within the given script context
         TTD_PTR_ID ContextSpecificBodyPtrId;

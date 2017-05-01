@@ -77,127 +77,6 @@
 
 namespace TTD
 {
-    //An exception class for controlled aborts from the runtime to the toplevel TTD control loop
-    class TTDebuggerAbortException
-    {
-    private:
-        //An integer code to describe the reason for the abort -- 0 invalid, 1 end of log, 2 request etime move, 3 uncaught exception (propagate to top-level)
-        const uint32 m_abortCode;
-
-        //An optional target event time -- intent is interpreted based on the abort code
-        const int64 m_optEventTime;
-
-        //An optional move mode value -- should be built by host we just propagate it
-        const int64 m_optMoveMode;
-
-        //An optional -- and static string message to include
-        const char16* m_staticAbortMessage;
-
-        TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, int64 optMoveMode, const char16* staticAbortMessage);
-
-    public:
-        ~TTDebuggerAbortException();
-
-        static TTDebuggerAbortException CreateAbortEndOfLog(const char16* staticMessage);
-        static TTDebuggerAbortException CreateTopLevelAbortRequest(int64 targetEventTime, int64 moveMode, const char16* staticMessage);
-        static TTDebuggerAbortException CreateUncaughtExceptionAbortRequest(int64 targetEventTime, const char16* staticMessage);
-
-        bool IsEndOfLog() const;
-        bool IsEventTimeMove() const;
-        bool IsTopLevelException() const;
-
-        int64 GetTargetEventTime() const;
-        int64 GetMoveMode() const;
-
-        const char16* GetStaticAbortMessage() const;
-    };
-
-    //A struct for tracking time events in a single method
-    struct SingleCallCounter
-    {
-        Js::FunctionBody* Function;
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        const char16* Name; //only added for debugging can get rid of later.
-#endif
-
-        uint64 EventTime; //The event time when the function was called
-        uint64 FunctionTime; //The function time when the function was called
-        uint64 LoopTime; //The current loop taken time for the function
-
-        int32 LastStatementIndex; //The previously executed statement
-        uint64 LastStatementLoopTime; //The previously executed statement
-
-        int32 CurrentStatementIndex; //The currently executing statement
-        uint64 CurrentStatementLoopTime; //The currently executing statement
-
-        //bytecode range of the current stmt
-        uint32 CurrentStatementBytecodeMin;
-        uint32 CurrentStatementBytecodeMax;
-    };
-
-    //A class to represent a source location
-    class TTDebuggerSourceLocation
-    {
-    private:
-        //The time aware parts of this location
-        int64 m_etime;  //-1 indicates an INVALID location
-        int64 m_ftime;  //-1 indicates any ftime is OK
-        int64 m_ltime;  //-1 indicates any ltime is OK
-
-        //The function body that this location refers to or the top-level body it is contained in (for resolving the body accross snapshot/ inflates)
-        Js::FunctionBody* m_functionBody;
-        uint64 m_topLevelBodyId;
-
-        //The position of the function in the document
-        uint32 m_functionLine;
-        uint32 m_functionColumn;
-
-        //The location in the fnuction
-        uint32 m_line;
-        uint32 m_column;
-
-        //Update the specific body of this location from the root body and line number info
-        bool UpdatePostInflateFunctionBody_Helper(Js::FunctionBody* rootBody);
-
-    public:
-        TTDebuggerSourceLocation();
-        TTDebuggerSourceLocation(int64 topLevelETime, const SingleCallCounter& callFrame);
-        TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other);
-        ~TTDebuggerSourceLocation();
-
-        TTDebuggerSourceLocation& operator= (const TTDebuggerSourceLocation& other);
-
-#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        void PrintToConsole(bool newline) const;
-#endif
-
-        void Initialize();
-
-        bool HasValue() const;
-        void Clear();
-        void SetLocation(const TTDebuggerSourceLocation& other);
-        void SetLocation(int64 topLevelETime, const SingleCallCounter& callFrame);
-        void SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
-
-        int64 GetRootEventTime() const;
-        int64 GetFunctionTime() const;
-        int64 GetLoopTime() const;
-
-        Js::FunctionBody* LoadFunctionBodyIfPossible(Js::ScriptContext* ctx);
-
-        uint32 GetLine() const;
-        uint32 GetColumn() const;
-
-        //Ensure that we have the top level body counter set and clear the (soon to be invalid) FunctionBody* ptr
-        void EnsureTopLevelBodyCtrPreInflate();
-
-        //return true if this comes strictly before other in execution order
-        bool IsBefore(const TTDebuggerSourceLocation& other) const;
-    };
-
-    //////////////////
-
     namespace NSLogEvents
     {
         //An enumeration of the event kinds in the system
@@ -285,7 +164,6 @@ namespace TTD
             RawBufferAsyncModifyComplete,
 
             ConstructCallActionTag,
-            CallbackOpActionTag,
             CodeParseActionTag,
             CallExistingFunctionActionTag,
 
@@ -406,7 +284,7 @@ namespace TTD
         struct CodeLoadEventLogEntry
         {
             //The code counter id for the TopLevelFunctionBodyInfo
-            uint64 BodyCounterId;
+            uint32 BodyCounterId;
         };
 
         void CodeLoadEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
