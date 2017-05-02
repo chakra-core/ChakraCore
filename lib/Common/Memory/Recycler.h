@@ -736,7 +736,6 @@ private:
     };
     DListBase<GuestArenaAllocator> guestArenaList;
     DListBase<ArenaData*> externalGuestArenaList;    // guest arenas are scanned for roots
-    HeapInfo autoHeap;
 #ifdef RECYCLER_PAGE_HEAP
     __inline bool IsPageHeapEnabled() const { return isPageHeapEnabled; }
     template<ObjectInfoBits attributes>
@@ -979,6 +978,10 @@ private:
     PageAllocator backgroundProfilerPageAllocator;
     DListBase<ArenaAllocator> backgroundProfilerArena;
 #endif
+
+    // destruct autoHeap after backgroundProfilerPageAllocator;
+    HeapInfo autoHeap;
+
 #ifdef PROFILE_MEM
     RecyclerMemoryData * memoryData;
 #endif
@@ -2373,7 +2376,10 @@ struct ForceLeafAllocator<RecyclerNonLeafAllocator>
     typedef RecyclerLeafAllocator AllocatorType;
 };
 
-#ifdef PROFILE_EXEC
+// TODO: enable -profile for GC phases.
+// access the same profiler object from multiple GC threads which shares one recyler object,
+// but profiler object is not thread safe
+#if defined(PROFILE_EXEC) && 0
 #define RECYCLER_PROFILE_EXEC_BEGIN(recycler, phase) if (recycler->profiler != nullptr) { recycler->profiler->Begin(phase); }
 #define RECYCLER_PROFILE_EXEC_END(recycler, phase) if (recycler->profiler != nullptr) { recycler->profiler->End(phase); }
 

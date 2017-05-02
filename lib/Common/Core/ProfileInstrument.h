@@ -118,10 +118,9 @@ namespace Js
 
                 ArenaAllocator  *alloc;
 
-
     // Constructor
     public:
-                Profiler(ArenaAllocator *alloc);
+                Profiler(ArenaAllocator* alloc);
 
     // Implementation
     private:
