@@ -762,7 +762,7 @@ CHAKRA_API JsSetCurrentContext(_In_ JsContextRef newContext)
             }
             else
             {
-                if(oldScriptContext->IsTTDRecordModeEnabled()) 
+                if(oldScriptContext->IsTTDRecordModeEnabled())
                 {
                     //already know newScriptContext != oldScriptContext so don't check again
                     if(oldScriptContext->ShouldPerformRecordAction())
@@ -2163,16 +2163,32 @@ CHAKRA_API JsStrictEquals(_In_ JsValueRef object1, _In_ JsValueRef object2, _Out
     });
 }
 
+#ifndef NTBUILD
+JsErrorCode JsGetExternalObjectData(
+    _In_     JsValueRef         value,
+    _Out_    void*              *data);
+JsErrorCode JsHasExternalObjectData(
+    _In_     JsValueRef         value,
+    _Out_    bool               *hasExternalObjectData);
+#endif
+
 CHAKRA_API JsHasExternalData(_In_ JsValueRef object, _Out_ bool *value)
 {
     VALIDATE_JSREF(object);
     PARAM_NOT_NULL(value);
 
-    BEGIN_JSRT_NO_EXCEPTION
+    bool isExternalObject = JsrtExternalObject::Is(object);
+
+#ifndef NTBUILD
+    if (!isExternalObject)
     {
-        *value = JsrtExternalObject::Is(object);
+        return JsHasExternalObjectData(object, value);
     }
-    END_JSRT_NO_EXCEPTION
+#endif
+
+    *value = isExternalObject;
+
+    return JsNoError;
 }
 
 CHAKRA_API JsGetExternalData(_In_ JsValueRef object, _Out_ void **data)
@@ -2180,19 +2196,21 @@ CHAKRA_API JsGetExternalData(_In_ JsValueRef object, _Out_ void **data)
     VALIDATE_JSREF(object);
     PARAM_NOT_NULL(data);
 
-    BEGIN_JSRT_NO_EXCEPTION
+    if (JsrtExternalObject::Is(object))
     {
-        if (JsrtExternalObject::Is(object))
-        {
-            *data = JsrtExternalObject::FromVar(object)->GetSlotData();
-        }
-        else
-        {
-            *data = nullptr;
-            RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
-        }
+        *data = JsrtExternalObject::FromVar(object)->GetSlotData();
     }
-    END_JSRT_NO_EXCEPTION
+    else
+    {
+#ifndef NTBUILD
+        return JsGetExternalObjectData(object, data);
+#else
+        *data = nullptr;
+        RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+#endif
+    }
+
+    return JsNoError;
 }
 
 CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
@@ -2207,7 +2225,11 @@ CHAKRA_API JsSetExternalData(_In_ JsValueRef object, _In_opt_ void *data)
         }
         else
         {
+#ifndef NTBUILD
+            return JsSetExternalDataWithCallback(object, data, nullptr);
+#else
             RETURN_NO_EXCEPTION(JsErrorInvalidArgument);
+#endif
         }
     }
     END_JSRT_NO_EXCEPTION
@@ -3872,7 +3894,7 @@ JsErrorCode TTDHandleBreakpointInfoAndInflate(TTD::EventLog* elog, int64_t snapT
                 Js::ScriptContext* bpContext = threadContext->TTDContext->LookupContextForScriptId(ctxIdList[i]);
 
                 //
-                //TODO: When we travel back some script may not be loaded (so no place to put BP). We need to update this 
+                //TODO: When we travel back some script may not be loaded (so no place to put BP). We need to update this
                 //      to do a more extensive maintaining of the preserved breakpoints and put them back as we add new script -- instead of just here.
                 //      However, for now just print a warn if the BP cannot be resolved.
                 //
@@ -4538,6 +4560,7 @@ CHAKRA_API JsRunSerialized(
 CHAKRA_API JsCreatePromise(_Out_ JsValueRef *promise, _Out_ JsValueRef *resolve, _Out_ JsValueRef *reject)
 {
     return ContextAPIWrapper<true>([&](Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
         PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
 
         PARAM_NOT_NULL(promise);
@@ -4556,6 +4579,85 @@ CHAKRA_API JsCreatePromise(_Out_ JsValueRef *promise, _Out_ JsValueRef *resolve,
         *promise = (JsValueRef)jsPromise;
         *resolve = (JsValueRef)jsResolve;
         *reject = (JsValueRef)jsReject;
+
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsSetExternalDataWithCallback(
+    _In_     JsValueRef         value,
+    _In_opt_ void               *data,
+    _In_opt_ JsFinalizeCallback finalizeCallback)
+{
+    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+
+        PARAM_NOT_NULL(value);
+        VALIDATE_INCOMING_REFERENCE(value, scriptContext);
+
+        if (JsrtExternalObject::Is(value))
+        {
+            JsrtExternalObject *object = JsrtExternalObject::FromVar(value);
+            object->SetSlotData(data);
+            object->GetExternalType()->SetJsFinalizeCallback(finalizeCallback);
+        }
+        else
+        {
+            Js::RecyclableObject *object = Js::RecyclableObject::FromVar(value);
+            JsValueRef externalObject = JsrtExternalObject::Create(data, finalizeCallback, scriptContext);
+
+            Js::JavascriptOperators::OP_SetProperty(object, Js::PropertyIds::ExternalDataObject,
+                externalObject, scriptContext, nullptr, Js::PropertyOperation_None);
+        }
+        return JsNoError;
+    });
+}
+
+JsErrorCode JsHasExternalObjectData(
+    _In_     JsValueRef         value,
+    _Out_    bool               *hasExternalObjectData)
+{
+    *hasExternalObjectData = false;
+    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext,
+        TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+
+        PARAM_NOT_NULL(value);
+        VALIDATE_INCOMING_REFERENCE(value, scriptContext);
+
+        Js::RecyclableObject *object = Js::RecyclableObject::FromVar(value);
+
+        *hasExternalObjectData = Js::JavascriptOperators::OP_HasProperty(object,
+             Js::PropertyIds::ExternalDataObject, scriptContext) != 0;
+
+        return JsNoError;
+    });
+}
+
+JsErrorCode JsGetExternalObjectData(
+    _In_     JsValueRef         value,
+    _Out_    void*              *data)
+{
+    *data = nullptr;
+    return ContextAPIWrapper<true>([&] (Js::ScriptContext *scriptContext, TTDRecorder& _actionEntryPopper) -> JsErrorCode {
+        PERFORM_JSRT_TTD_RECORD_ACTION_NOT_IMPLEMENTED(scriptContext);
+
+        PARAM_NOT_NULL(value);
+        VALIDATE_INCOMING_REFERENCE(value, scriptContext);
+
+        Js::RecyclableObject *object = Js::RecyclableObject::FromVar(value);
+        JsValueRef value;
+
+        value = Js::JavascriptOperators::OP_GetProperty(object,
+             Js::PropertyIds::ExternalDataObject, scriptContext);
+
+        if (value)
+        {
+            *data = JsrtExternalObject::FromVar(value)->GetSlotData();
+        }
 
         return JsNoError;
     });

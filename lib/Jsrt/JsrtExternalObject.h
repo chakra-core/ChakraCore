@@ -27,12 +27,15 @@
 class JsrtExternalType sealed : public Js::DynamicType
 {
 public:
-    JsrtExternalType(JsrtExternalType *type) : Js::DynamicType(type), jsFinalizeCallback(type->jsFinalizeCallback) {}
+    JsrtExternalType(JsrtExternalType *type) : Js::DynamicType(type),
+        jsFinalizeCallback(type->jsFinalizeCallback) {}
+
     JsrtExternalType(Js::ScriptContext* scriptContext, JsFinalizeCallback finalizeCallback);
 
     //Js::PropertyId GetNameId() const { return ((Js::PropertyRecord *)typeDescription.className)->GetPropertyId(); }
     JsFinalizeCallback GetJsFinalizeCallback() const { return this->jsFinalizeCallback; }
-
+    void SetJsFinalizeCallback(JsFinalizeCallback finalizeCallback)
+    { this->jsFinalizeCallback = finalizeCallback; }
 private:
     FieldNoBarrier(JsFinalizeCallback) jsFinalizeCallback;
 };
