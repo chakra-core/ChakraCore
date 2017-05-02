@@ -197,6 +197,7 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     debugManager(nullptr)
 #if ENABLE_TTD
     , TTDContext(nullptr)
+    , TTDExecutionInfo(nullptr)
     , TTDLog(nullptr)
     , TTDRootNestingCount(0)
 #endif
@@ -397,6 +398,12 @@ ThreadContext::~ThreadContext()
     {
         TT_HEAP_DELETE(TTD::ThreadContextTTD, this->TTDContext);
         this->TTDContext = nullptr;
+    }
+
+    if(this->TTDExecutionInfo != nullptr)
+    {
+        TT_HEAP_DELETE(TTD::ThreadContextTTD, this->TTDExecutionInfo);
+        this->TTDExecutionInfo = nullptr;
     }
 
     if(this->TTDLog != nullptr)
@@ -2038,7 +2045,19 @@ void ThreadContext::InitHostFunctionsAndTTData(bool record, bool replay, bool de
         TTDAssert(optTTUri != nullptr, "We need a URI in replay mode so we can initialize the log from it");
 
         this->TTDLog->InitForTTDReplay(this->TTDContext->TTDataIOInfo, optTTUri, optTTUriLength, debug);
+        this->sourceInfoCount = this->TTDLog->GetSourceInfoCount();
     }
+
+#if !ENABLE_TTD_DIAGNOSTICS_TRACING
+    if(debug)
+    {
+#endif
+
+        this->TTDExecutionInfo = HeapNew(TTD::ExecutionInfoManager);
+
+#if !ENABLE_TTD_DIAGNOSTICS_TRACING
+    }
+#endif
 }
 #endif
 
@@ -2065,7 +2084,7 @@ ThreadContext::ExecuteRecyclerCollectionFunction(Recycler * recycler, Collection
     //
     //TODO: We lose any events that happen in the callbacks (such as JsRelease) which may be a problem in the future.
     //      It may be possible to defer the collection of these objects to an explicit collection at the yield loop (same for weak set/map).
-    //      We already indirectly do this for ScriptContext collection.
+    //      We already indirectly do this for ScriptContext collection (but that is buggy so needs to be fixed too).
     //
     if(this->IsRuntimeInTTDMode())
     {

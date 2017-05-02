@@ -531,6 +531,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "screrror.h"
 
 #include "Debug/TTRuntimeInfoTracker.h"
+#include "Debug/TTExecutionInfo.h"
 #include "Debug/TTInflateMap.h"
 #include "Debug/TTSnapTypes.h"
 #include "Debug/TTSnapValues.h"
