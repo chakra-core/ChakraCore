@@ -81,7 +81,7 @@
       <ProgramDataBaseFileName Condition="'$(ConfigurationType)'!='StaticLibrary'">$(IntDir)</ProgramDataBaseFileName>
 
       <!-- ======== For Code Covearge ======== -->
-      <PreprocessorDefinitions Condition="'$(ENABLE_CODECOVERAGE)'=='true' AND '$(BYTECODE_TESTING)' == '0'">
+      <PreprocessorDefinitions Condition="'$(ENABLE_CODECOVERAGE)'=='true'">
         %(PreprocessorDefinitions);
         BYTECODE_TESTING=1
       </PreprocessorDefinitions>
