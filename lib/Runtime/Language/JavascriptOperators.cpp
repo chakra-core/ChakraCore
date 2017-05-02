@@ -7202,6 +7202,15 @@ CommonNumber:
         BOOL result;
         if( indexType == Js::IndexType_Number )
         {
+            if (JavascriptArray::Is(object)) 
+            {
+                JavascriptArray* array = JavascriptArray::FromVar(object);
+                if (array->HasNoMissingValues() && index < array->GetHead()->length)
+                {
+                    return scriptContext->GetLibrary()->GetTrue();
+                }
+            }
+
             result = JavascriptOperators::HasItem( object, index );
         }
         else

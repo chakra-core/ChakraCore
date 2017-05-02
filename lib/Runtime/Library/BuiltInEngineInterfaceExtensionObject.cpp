@@ -219,7 +219,8 @@ namespace Js
         scriptFunction->SetPropertyWithAttributes(PropertyIds::length, TaggedInt::ToVarUnchecked(argumentsCount), PropertyConfigurable, nullptr);
         scriptContext->GetLibrary()->AddMember(prototype, functionIdentifier, scriptFunction);
 
-        if (functionIdentifier == PropertyIds::indexOf) {
+        if (functionIdentifier == PropertyIds::indexOf) 
+        {
             // Special case for Intl who requires to call the non-overriden (by the user) IndexOf function.
             scriptContext->GetLibrary()->AddMember(scriptContext->GetLibrary()->GetEngineInterfaceObject()->GetCommonNativeInterfaces(), Js::PropertyIds::builtInJavascriptArrayEntryIndexOf, scriptFunction);
         }
@@ -239,7 +240,18 @@ namespace Js
     {
         EngineInterfaceObject_CommonFunctionProlog(function, callInfo);
         Assert(args.Info.Count >= 2);
-        return JavascriptNumber::ToVarNoCheck(JavascriptConversion::ToInteger(args.Values[1], scriptContext), scriptContext);
+
+        Var value = args.Values[1];
+        if (JavascriptOperators::IsUndefinedOrNull(value))
+        {
+            return TaggedInt::ToVarUnchecked(0);
+        }
+        else if (TaggedInt::Is(value))
+        {
+            return value;
+        }
+
+        return JavascriptNumber::ToVarNoCheck(JavascriptConversion::ToInteger(value, scriptContext), scriptContext);
     }
 
 #endif // ENABLE_BUILTIN_OBJECT
