@@ -1,7 +1,7 @@
 Properties of e:
 
 e.number: -2146823279
-e.stack: ReferenceError: 'BadType' is undefined
+e.stack: ReferenceError: 'BadType' is not defined
 	at throwException (propertyvalidation.js:65:9)
 	at bar (propertyvalidation.js:85:5)
 	at foo (propertyvalidation.js:90:5)
@@ -15,7 +15,7 @@ undefined
 Properties of e:
 
 e.number: -2146823279
-e.stack: ReferenceError: 'BadType' is undefined
+e.stack: ReferenceError: 'BadType' is not defined
 	at throwException (propertyvalidation.js:74:9)
 	at bar (propertyvalidation.js:85:5)
 	at foo (propertyvalidation.js:90:5)

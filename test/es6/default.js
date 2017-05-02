@@ -148,31 +148,31 @@ var tests = [
       assert.throws(function() { foo1(); },
                     ReferenceError,
                     "Shadowed var in parameter scope is not affected by body initialization when setting the default value",
-                    "'x' is undefined");
+                    "'x' is not defined");
 
       function foo2(a = () => x) { var x = 1; return a(); }
       assert.throws(function () { foo2(); },
                     ReferenceError,
                     "Arrow function capturing var at parameter scope is not affected by body declaration",
-                    "'x' is undefined");
+                    "'x' is not defined");
 
       function foo3(a = () => x) { var x = 1; return a; } // a() undefined
       assert.throws(function () { foo3()(); },
                     ReferenceError,
                     "Attempted closure capture of body scoped var throws in an arrow function default expression",
-                    "'x' is undefined");
+                    "'x' is not defined");
 
       function foo4(a = function() { return x; }) { var x = 1; return a(); }
       assert.throws(function () { foo4(); },
                     ReferenceError,
                     "Attempted closure capture of body scoped var throws in an anonymous function default expression",
-                    "'x' is undefined");
+                    "'x' is not defined");
 
       function foo5(a = function bar() { return 1; }, b = bar()) { return [a(), b]; }
       assert.throws(function () { foo5(); },
                     ReferenceError,
                     "Named function expression does not leak name into subsequent default expressions",
-                    "'bar' is undefined");
+                    "'bar' is not defined");
       function foo6(a = b1) {
           {
               function b1() {

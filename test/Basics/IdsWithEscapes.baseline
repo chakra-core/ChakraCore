@@ -2,7 +2,7 @@
 10
 20
 20
-ReferenceError: 'hello2' is undefined
+ReferenceError: 'hello2' is not defined
 SyntaxError: Syntax error
 SyntaxError: Syntax error
 SyntaxError: Syntax error

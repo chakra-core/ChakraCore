@@ -1,5 +1,5 @@
-ReferenceError: 'RegExpError' is undefined
-ReferenceError: 'ConversionError' is undefined
+ReferenceError: 'RegExpError' is not defined
+ReferenceError: 'ConversionError' is not defined
 ---------------------------------
 toString(): function Error() { [native code] }
 Property: 'message'

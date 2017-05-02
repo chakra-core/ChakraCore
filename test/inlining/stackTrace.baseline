@@ -1,4 +1,4 @@
-ReferenceError: 'argMath5' is undefined
+ReferenceError: 'argMath5' is not defined
 	at func0 (stacktrace.js:31:7)
 	at func4 (stacktrace.js:27:5)
 	at test0 (stacktrace.js:39:3)
