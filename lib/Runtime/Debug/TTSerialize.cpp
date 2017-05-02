@@ -1847,7 +1847,7 @@ namespace TTD
     {
         this->ForceFlush();
 
-        if(this->m_outfile != stdout)
+        if(this->m_outfile != stdout && this->m_outfile != stderr)
         {
             fclose(this->m_outfile);
         }

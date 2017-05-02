@@ -8,15 +8,6 @@
 
 namespace TTD
 {
-    struct SnapRootPinEntry
-    {
-        //The log id value 
-        TTD_LOG_PTR_ID LogId;
-
-        //The object that this log id is mapped to
-        TTD_PTR_ID LogObject;
-    };
-
     //A class that represents a heap snapshot the page context
     class SnapShot
     {
@@ -36,8 +27,7 @@ namespace TTD
         TTD_LOG_PTR_ID m_activeScriptContext;
 
         //A list of all the global root objects and local root objects
-        UnorderedArrayList<SnapRootPinEntry, TTD_ARRAY_LIST_SIZE_MID> m_globalRootList;
-        UnorderedArrayList<SnapRootPinEntry, TTD_ARRAY_LIST_SIZE_SMALL> m_localRootList;
+        UnorderedArrayList<NSSnapValues::SnapRootInfoEntry, TTD_ARRAY_LIST_SIZE_MID> m_rootList;
 
         ////
         //Lists containing the "type" information for the objects in this snapshot
@@ -123,18 +113,19 @@ namespace TTD
 
         void ReLinkThreadContextInfo(InflateMap* inflator, ThreadContextTTD* intoCtx) const;
 
-        static void SnapRootPinEntryEmit(const SnapRootPinEntry* spe, FileWriter* snapwriter, NSTokens::Separator separator);
-        static void SnapRootPinEntryParse(SnapRootPinEntry* spe, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
+        static void SnapRootPinEntryEmit(const NSSnapValues::SnapRootInfoEntry* spe, FileWriter* snapwriter, NSTokens::Separator separator);
+        static void SnapRootPinEntryParse(NSSnapValues::SnapRootInfoEntry* spe, bool readSeperator, FileReader* reader, SlabAllocator& alloc);
 
     public:
         //Performance counter values
+        double GCTime;
         double MarkTime;
         double ExtractTime;
 
         //Compute the memory used by this snapshot
         void ComputeSnapshotMemory(uint64* usedSpace, uint64* reservedSpace) const;
 
-        SnapShot();
+        SnapShot(double gcTime);
         ~SnapShot();
 
         //Get the counts for the various list sizes (not constant time -- so use carefully!!!!)
@@ -159,8 +150,7 @@ namespace TTD
         void SetActiveScriptContext(TTD_LOG_PTR_ID activeCtx);
 
         //Get the root lists
-        UnorderedArrayList<SnapRootPinEntry, TTD_ARRAY_LIST_SIZE_MID>& GetGlobalRootList();
-        UnorderedArrayList<SnapRootPinEntry, TTD_ARRAY_LIST_SIZE_SMALL>& GetLocalRootList();
+        UnorderedArrayList<NSSnapValues::SnapRootInfoEntry, TTD_ARRAY_LIST_SIZE_MID>& GetRootList();
 
         //Get a pointer to the next open handler slot that we can fill
         NSSnapType::SnapHandler* GetNextAvailableHandlerEntry();

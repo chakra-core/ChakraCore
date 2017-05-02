@@ -640,6 +640,11 @@ typedef unsigned __int32 uint32_t;
         JsTTDMoveScanIntervalForContinue = 0x10,
 
         /// <summary>
+        ///     Indicates if we are doing the scan for a continue operation and are in the time-segment where the active breakpoint was
+        /// </summary>
+        JsTTDMoveScanIntervalForContinueInActiveBreakpointSegment = 0x20,
+
+        /// <summary>
         ///     Indicates if we want to set break on entry or just run and let something else trigger breakpoints.
         /// </summary>
         JsTTDMoveBreakOnEntry = 0x100
@@ -825,6 +830,15 @@ typedef unsigned __int32 uint32_t;
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
         JsTTDNotifyYield();
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     Notify the TTD runtime that we are doing a weak add on a reference (we may use this in external API calls and the release will happen in a GC callback).
+    /// </summary>
+    /// <param name="value">The value we are adding the ref to.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
+    CHAKRA_API
+        JsTTDNotifyLongLivedReferenceAdd(_In_ JsValueRef value);
 
     /// <summary>
     ///     TTD API -- may change in future versions:
