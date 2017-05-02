@@ -296,6 +296,7 @@ ENTRY(customSections)
 ENTRY(initial)
 ENTRY(maximum)
 ENTRY(element)
+ENTRY(line)
 // End Wasm
 
 // SIMD_JS
@@ -728,6 +729,10 @@ ENTRY(exchange)
 ENTRY(isLockFree)
 ENTRY(wait)
 ENTRY(wake)
+
+ENTRY(column)
+ENTRY(url)
+ENTRY(exception)
 
 // Note: Do not add fields for conditionally-compiled PropertyIds into this file.
 //       The bytecode for internal javascript libraries is built on chk but re-used in fre builds.
