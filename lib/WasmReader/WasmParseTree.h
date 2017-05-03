@@ -22,6 +22,7 @@ namespace Wasm
         };
         bool IsLocalType(WasmTypes::WasmType type);
         uint32 GetTypeByteSize(WasmType type);
+        char16 const* GetTypeName(WasmType type);
     }
 
     namespace ExternalKinds

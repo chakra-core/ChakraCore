@@ -290,7 +290,14 @@ void WebAssemblyInstance::LoadImports(
                 AsmJsScriptFunction* func = AsmJsScriptFunction::FromVar(prop);
                 if (!wasmModule->GetWasmFunctionInfo(counter)->GetSignature()->IsEquivalent(func->GetSignature()))
                 {
-                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_SignatureMismatch);
+                    char16 temp[1024] = { 0 };
+                    char16 importargs[512] = { 0 };
+                    wasmModule->GetWasmFunctionInfo(counter)->GetSignature()->WriteSignatureToString(importargs, 511);
+                    char16 exportargs[512] = { 0 };
+                    func->GetSignature()->WriteSignatureToString(exportargs, 511);
+                    swprintf_s(temp, _u("%ls%ls to %ls%ls"), import->importName, importargs, import->importName, exportargs);
+                    // this makes a copy of the error message buffer, so it's fine to not worry about clean-up
+                    JavascriptError::ThrowWebAssemblyLinkError(ctx, WASMERR_LinkSignatureMismatch, temp);
                 }
                 // Imported Wasm functions can be called directly
                 env->SetWasmFunction(counter, func);
