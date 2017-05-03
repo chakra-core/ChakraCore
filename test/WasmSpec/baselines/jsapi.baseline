@@ -1,5 +1,5 @@
 Harness Status: OK
-Found 61 tests: Pass = 29 Fail = 32
+Found 89 tests: Pass = 67 Fail = 22
 Pass 'WebAssembly' data property on global object  
 Fail 'WebAssembly' object  assert_equals: expected "[object WebAssembly]" but got "[object Object]"
 Pass 'WebAssembly.(Compile|Link|Runtime)Error' data property  
@@ -48,16 +48,44 @@ Pass 'WebAssembly.Table.prototype.grow' data property
 Fail 'WebAssembly.Table.prototype.grow' method  assert_equals: expected (number) 1 but got (undefined) undefined
 Pass 'WebAssembly.validate' method  
 Pass 'WebAssembly.compile' data property  
-Fail 'WebAssembly.compile' function  assert_equals: expected 1 but got 2
-Fail assertCompileError 1  BufferSource expected
-Fail assertCompileError 2  BufferSource expected
-Fail assertCompileError 3  BufferSource expected
-Fail assertCompileError 4  BufferSource expected
-Fail assertCompileError 5  Out of file: Needed: 4, Left: 0
-Fail assertCompileError 6  Out of file: Needed: 4, Left: 0
-Fail assertCompileError 7  Out of file: Needed: 4, Left: 0
-Fail assertCompileError 8  Out of file: Needed: 4, Left: 0
+Pass 'WebAssembly.compile' function  
+Pass assertCompileError 1  
+Pass assertCompileError 2  
+Pass assertCompileError 3  
+Pass assertCompileError 4  
+Pass assertCompileError 5  
+Pass assertCompileError 6  
+Pass assertCompileError 7  
+Pass assertCompileError 8  
 Pass assertCompileSuccess 1  
 Pass assertCompileSuccess 2  
 Pass 'WebAssembly.instantiate' data property  
-Fail 'WebAssembly.instantiate' function  assert_equals: expected 1 but got 2
+Pass 'WebAssembly.instantiate' function  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected success in assertInstantiateError  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  
+Pass unexpected failure in assertInstantiateSuccess  

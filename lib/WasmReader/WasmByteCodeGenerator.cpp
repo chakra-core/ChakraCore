@@ -145,23 +145,40 @@ WasmModuleGenerator::GenerateModule()
 
     BVStatic<bSectLimit + 1> visitedSections;
 
-    for (uint8 sectionCode = bSectCustom + 1; sectionCode < bSectLimit ; ++sectionCode)
+    SectionCode nextExpectedSection = bSectCustom;
+    while (true)
     {
-        SectionCode precedent = SectionInfo::All[sectionCode].precedent;
-        if (GetReader()->ReadNextSection((SectionCode)sectionCode))
+        SectionHeader sectionHeader = GetReader()->ReadNextSection();
+        SectionCode sectionCode = sectionHeader.code;
+        if (sectionCode == bSectLimit)
         {
-            if (precedent != bSectLimit && !visitedSections.Test(precedent))
-            {
-                throw WasmCompilationException(_u("%s section missing before %s"),
-                                               SectionInfo::All[precedent].name,
-                                               SectionInfo::All[sectionCode].name);
-            }
-            visitedSections.Set(sectionCode);
+            TRACE_WASM_SECTION(_u("Done reading module's sections"));
+            break;
+        }
 
-            if (!GetReader()->ProcessCurrentSection())
+        // Make sure dependency for this section has been seen
+        SectionCode precedent = SectionInfo::All[sectionCode].precedent;
+        if (precedent != bSectLimit && !visitedSections.Test(precedent))
+        {
+            throw WasmCompilationException(_u("%s section missing before %s"),
+                SectionInfo::All[precedent].name,
+                sectionHeader.name);
+        }
+        visitedSections.Set(sectionCode);
+
+        // Custom section are allowed in any order
+        if (sectionCode != bSectCustom)
+        {
+            if (sectionCode < nextExpectedSection)
             {
-                throw WasmCompilationException(_u("Error while reading section %s"), SectionInfo::All[sectionCode].name);
+                throw WasmCompilationException(_u("Invalid Section %s"), sectionHeader.name);
             }
+            nextExpectedSection = SectionCode(sectionCode + 1);
+        }
+
+        if (!GetReader()->ProcessCurrentSection())
+        {
+            throw WasmCompilationException(_u("Error while reading section %s"), sectionHeader.name);
         }
     }
 

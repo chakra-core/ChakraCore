@@ -12,7 +12,7 @@ const verbose = options.indexOf("-verbose") !== -1;
 const self = this;
 const setTimeout = WScript.SetTimeout;
 const clearTimeout = WScript.ClearTimeout;
-self.addEventListener = function(){};
+self.addEventListener = function() {};
 
 class ConsoleTestEnvironment {
   on_tests_ready() {
@@ -26,7 +26,7 @@ class ConsoleTestEnvironment {
 
   // Should return a new unique default test name.
   next_default_test_name() {
-    return this.nextName = this.nextName|0 + 1;
+    return this.nextName = (this.nextName | 0) + 1;
   }
 
   // Should return the test harness timeout duration in milliseconds.
@@ -74,27 +74,15 @@ function reportResult(tests, harness_status) {
   function get_assertion(test) {
     if (test.properties.hasOwnProperty("assert")) {
       if (Array.isArray(test.properties.assert)) {
-        return test.properties.assert.join(' ');
+        return test.properties.assert.join(" ");
       }
       return test.properties.assert;
     }
-    return '';
+    return "";
   }
   const testsReport = tests.map(test => {
-    let stack = "";
-    if (verbose) {
-      const lines = (test.stack||"").split("at");
-      let firstLine = lines[0].trim();
-      if (firstLine.length > 0) {
-        firstLine = "\n" + firstLine;
-      }
-      stack = [firstLine, ...lines
-        .slice(1)
-        .filter(line => line.includes(testfile))
-        .map(line => line.replace(/\(.+\\([^\\]+:\d+:\d+)\)/, "$1").trim())
-      ].join("\n  at ");
-    }
-    return `${status_text[test.status]} ${test.name} ${get_assertion(test)} ${test.message||""}${stack}`
+    const stack = verbose ? test.stack : "";
+    return `${status_text[test.status]} ${test.name} ${get_assertion(test)} ${test.message || ""}${stack}`;
   });
   console.log(`Harness Status: ${status_text_harness[harness_status.status]}
 Found ${tests.length} tests: ${Object.keys(status_number).map(key => `${key} = ${status_number[key]}`).join(" ")}
