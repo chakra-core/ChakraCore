@@ -515,9 +515,8 @@ namespace Js
     // Function memory allocation should be done the same way as
     // void InterpreterStackFrame::AlignMemoryForAsmJs()  (InterpreterStackFrame.cpp)
     // update any changes there
-    void AsmJsCommonEntryPoint(Js::ScriptFunction* func, void* savedEbpPtr)
+    void AsmJsCommonEntryPoint(Js::ScriptFunction* func, void* localSlot, void* args)
     {
-        int savedEbp = (int)savedEbpPtr;
         FunctionBody* body = func->GetFunctionBody();
         Js::FunctionEntryPointInfo * entryPointInfo = body->GetDefaultFunctionEntryPointInfo();
         const uint32 minTemplatizedJitRunCount = (uint32)CONFIG_FLAG(MinTemplatizedJitRunCount);
@@ -540,10 +539,7 @@ namespace Js
         const int floatOffset = asmInfo->GetFloatByteOffset() / sizeof(float);
         const int simdByteOffset = asmInfo->GetSimdByteOffset(); // in bytes
 
-        // (2*sizeof(Var)) -- push ebp and ret address
-        //sizeof(ScriptFunction*) -- this is the argument passed to the TJ function
-        int argoffset = (2*sizeof(Var)) + sizeof(ScriptFunction*);
-        argoffset = argoffset +  savedEbp ;
+        int argoffset = (int)args;
         // initialize argument location
         int* intArg;
         double* doubleArg;
@@ -580,16 +576,8 @@ namespace Js
             ++AsmJsCallDepth;
         }
 #endif
-        // two args i.e. (ScriptFunction and savedEbp) + 2* (void*) i.e.(ebp + return address)
-        int beginSlotOffset = sizeof(ScriptFunction*) + sizeof(void*) + 2 * sizeof(void*);
-        __asm
         {
-            mov  eax, ebp
-            add  eax, beginSlotOffset
-            mov m_localSlots,eax
-        };
-
-        {
+            m_localSlots = (Var*)localSlot;
             const ArgSlot argCount = asmInfo->GetArgCount();
             m_localSlots[AsmJsFunctionMemory::ModuleEnvRegister] = moduleEnv;
             m_localSlots[AsmJsFunctionMemory::ArrayBufferRegister] = (Var)arrayPtr;
@@ -612,12 +600,12 @@ namespace Js
                 constTable = (void*)(((double*)constTable) + doubleConstCount);
                 m_localSimdSlots = (AsmJsSIMDValue*)((char*)m_localSlots + simdByteOffset);
                 memcpy_s(m_localSimdSlots, simdConstCount*sizeof(AsmJsSIMDValue), constTable, simdConstCount*sizeof(AsmJsSIMDValue));
+                simdArg = m_localSimdSlots + simdConstCount;
             }
 
             intArg = m_localIntSlots + intConstCount;
             doubleArg = m_localDoubleSlots + doubleConstCount;
             floatArg = m_localFloatSlots + floatConstCount;
-            simdArg = m_localSimdSlots + simdConstCount;
 
             for(ArgSlot i = 0; i < argCount; i++ )
             {
@@ -1499,6 +1487,13 @@ namespace Js
             int32 stackSize = asmInfo->GetTotalSizeinBytes();
             stackSize = ::Math::Align<int32>(stackSize, 8);
 
+            if (Js::Configuration::Global.flags.DebugBreak.Contains(funcBody->GetFunctionNumber()))
+            {
+                // int 3
+                *buffer++ = 0xCC;
+                size++;
+            }
+
             //Prolog , save EBP and callee saved reg
             size += PUSH::EncodeInstruction<int>( buffer, InstrParamsReg( RegEBP ) );
             size += MOV::EncodeInstruction<int>( buffer, InstrParams2Reg( RegEBP, RegESP ) );
@@ -1557,10 +1552,17 @@ namespace Js
             int baseOffSet = stackSize + templateData->GetEBPOffsetCorrection();
             templateData->SetBaseOffset(baseOffSet);
 
-            // push EBP and push funcobj
+            // At this point EBP = [old ebp, return address, funcObj, args]
+
+            // AsmJsCommonEntryPoint(Js::ScriptFunction* func, void* localSlot, void* args);
             int funcOffSet = 2 * sizeof(Var);
+            int argsOffSet = 3 * sizeof(Var);
+
             //push args for CEP
-            size += PUSH::EncodeInstruction<int>(buffer, InstrParamsReg(RegEBP));
+            size += LEA::EncodeInstruction<int>(buffer, InstrParamsRegAddr(RegEAX, RegEBP, argsOffSet));
+            size += PUSH::EncodeInstruction<int>(buffer, InstrParamsReg(RegEAX));
+            size += LEA::EncodeInstruction<int>(buffer, InstrParamsRegAddr(RegEAX, RegEBP, templateData->GetModuleSlotOffset()));
+            size += PUSH::EncodeInstruction<int>(buffer, InstrParamsReg(RegEAX));
             size += PUSH::EncodeInstruction<int>(buffer, InstrParamsAddr(RegEBP, funcOffSet));
 
             // Call CEP
