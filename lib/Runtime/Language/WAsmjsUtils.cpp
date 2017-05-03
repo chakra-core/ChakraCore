@@ -83,6 +83,10 @@ template<> Types RegisterSpace::GetRegisterSpaceType<AsmJsSIMDValue>(){return WA
         Js::FunctionBody* body = func->GetFunctionBody();
         if (WAsmJs::ShouldJitFunction(body, interpretedCount))
         {
+            if (PHASE_TRACE(Js::AsmjsEntryPointInfoPhase, body))
+            {
+                Output::Print(_u("Scheduling %s For Full JIT at callcount:%d\n"), body->GetDisplayName(), interpretedCount);
+            }
             GenerateFunction(body->GetScriptContext()->GetNativeCodeGenerator(), body, func);
             body->SetIsAsmJsFullJitScheduled(true);
         }
