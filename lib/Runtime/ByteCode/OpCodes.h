@@ -752,8 +752,6 @@ MACRO_BACKEND_ONLY(     Unreachable_Void,   Empty,          OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfMinIntOverNegOne, Reg3,       OpSideEffect)
 MACRO_BACKEND_ONLY(     TrapIfZero,         Reg3,           OpSideEffect)
 
-MACRO_BACKEND_ONLY(     AsmJsEntryTracing, Empty, None)
-
 // All SIMD ops are backend only for non-asmjs.
 #define MACRO_SIMD(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)
 #define MACRO_SIMD_WMS(opcode, asmjsLayout, opCodeAttrAsmJs, OpCodeAttr, ...) MACRO_BACKEND_ONLY(opcode, Empty, OpCodeAttr)

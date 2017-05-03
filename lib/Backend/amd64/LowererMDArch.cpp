@@ -543,7 +543,7 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
     // Machine dependent lowering
     //
 
-    if (callInstr->m_opcode != Js::OpCode::AsmJsCallI && callInstr->m_opcode != Js::OpCode::AsmJsEntryTracing)
+    if (callInstr->m_opcode != Js::OpCode::AsmJsCallI)
     {
         // Push argCount
         IR::IntConstOpnd *argCountOpnd = Lowerer::MakeCallInfoConst(callFlags, argCount, m_func);
@@ -561,17 +561,8 @@ LowererMDArch::LowerCallArgs(IR::Instr *callInstr, ushort callFlags, Js::ArgSlot
 
     if (m_func->GetJITFunctionBody()->IsAsmJsMode())
     {
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-        if (callInstr->m_opcode == Js::OpCode::AsmJsEntryTracing)
-        {
-            callInstr = this->lowererMD->ChangeToHelperCall(callInstr, IR::HelperTraceAsmJsArgIn);
-        }
-        else
-#endif
-        {
-            IR::Opnd * functionObjOpnd = callInstr->UnlinkSrc1();
-            GeneratePreCall(callInstr, functionObjOpnd, cfgInsertLoc->GetNextRealInstr());
-        }
+        IR::Opnd * functionObjOpnd = callInstr->UnlinkSrc1();
+        GeneratePreCall(callInstr, functionObjOpnd, cfgInsertLoc->GetNextRealInstr());
     }
 
     return argSlots;

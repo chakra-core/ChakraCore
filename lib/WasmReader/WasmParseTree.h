@@ -66,7 +66,6 @@ namespace Wasm
     {
 #define WASM_OPCODE(opname, opcode, sig, nyi) wb##opname = opcode,
 #include "WasmBinaryOpCodes.h"
-        wbLimit
     };
 
     struct WasmConstLitNode

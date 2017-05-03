@@ -115,14 +115,7 @@ Js::JavascriptMethod Js::WasmLibrary::WasmDeferredParseEntryPoint(Js::AsmJsScrip
             Wasm::WasmBytecodeGenerator::GenerateFunctionBytecode(scriptContext, readerInfo);
             func->GetDynamicType()->SetEntryPoint(Js::AsmJsExternalEntryPoint);
             entrypointInfo->jsMethod = AsmJsDefaultEntryThunk;
-            // Do MTJRC/MAIC:0 check
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-            if (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0)
-            {
-                GenerateFunction(scriptContext->GetNativeCodeGenerator(), body, func);
-                body->SetIsAsmJsFullJitScheduled(true);
-            }
-#endif
+            WAsmJs::JitFunctionIfReady(func);
         }
         catch (Wasm::WasmCompilationException& ex)
         {
