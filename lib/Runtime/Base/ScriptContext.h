@@ -371,18 +371,6 @@ namespace Js
 #endif
     };
 
-    struct PropertyStringMap
-    {
-        PropertyString* strLen2[80];
-
-        inline static uint PStrMapIndex(char16 ch)
-        {
-            Assert(ch >= '0' && ch <= 'z');
-            return ch - '0';
-        }
-    };
-
-
     /*
     * This class caches jitted func address ranges.
     * This is to facilitate WER scenarios to use this cache for checking native addresses.
@@ -549,7 +537,6 @@ namespace Js
         void SetGlobalPICHead(ScriptContextPolymorphicInlineCache * cache) { this->Cache()->globalPICHead = cache; }
 
     private:
-        PropertyStringMap* propertyStrings[80];
 
         JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
 

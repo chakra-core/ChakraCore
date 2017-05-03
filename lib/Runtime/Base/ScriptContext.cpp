@@ -256,7 +256,7 @@ namespace Js
         memset(byteCodeHistogram, 0, sizeof(byteCodeHistogram));
 #endif
 
-        memset(propertyStrings, 0, sizeof(PropertyStringMap*)* 80);
+        ClearArray(this->Cache()->propertyStrings, 80);
 
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
         this->allocId = threadContext->GetScriptContextCount();
@@ -801,12 +801,12 @@ namespace Js
             return NULL;
         }
         const uint i = PropertyStringMap::PStrMapIndex(ch1);
-        if (propertyStrings[i] == NULL)
+        if (this->Cache()->propertyStrings[i] == NULL)
         {
             return NULL;
         }
         const uint j = PropertyStringMap::PStrMapIndex(ch2);
-        return propertyStrings[i]->strLen2[j];
+        return this->Cache()->propertyStrings[i]->strLen2[j];
     }
 
     void ScriptContext::FindPropertyRecord(JavascriptString *pstName, PropertyRecord const ** propertyRecord)
@@ -1550,8 +1550,8 @@ namespace Js
 
     void ScriptContext::InitPropertyStringMap(int i)
     {
-        propertyStrings[i] = AnewStruct(GeneralAllocator(), PropertyStringMap);
-        memset(propertyStrings[i]->strLen2, 0, sizeof(PropertyString*)* 80);
+        this->Cache()->propertyStrings[i] = RecyclerNewStruct(GetRecycler(), PropertyStringMap);
+        ClearArray(this->Cache()->propertyStrings[i]->strLen2, 80);
     }
 
     void ScriptContext::TrackPid(const PropertyRecord* propertyRecord)
@@ -1597,17 +1597,18 @@ namespace Js
     {
         const char16* buf = propString->GetBuffer();
         const uint i = PropertyStringMap::PStrMapIndex(buf[0]);
-        if (propertyStrings[i] == NULL)
+        PropertyStringMap* strMap = this->Cache()->propertyStrings[i];
+        if (strMap == NULL)
         {
             InitPropertyStringMap(i);
         }
         const uint j = PropertyStringMap::PStrMapIndex(buf[1]);
-        if (propertyStrings[i]->strLen2[j] == NULL && !isClosed)
+        if (strMap->strLen2[j] == NULL && !isClosed)
         {
-            propertyStrings[i]->strLen2[j] = GetLibrary()->CreatePropertyString(propString);
+            strMap->strLen2[j] = GetLibrary()->CreatePropertyString(propString);
             this->TrackPid(propString);
         }
-        return propertyStrings[i]->strLen2[j];
+        return strMap->strLen2[j];
     }
 
     PropertyString* ScriptContext::CachePropertyString2(const PropertyRecord* propString)

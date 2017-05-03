@@ -52,8 +52,20 @@ namespace Js
         Field(int) validPropStrings;
     };
 
+    struct PropertyStringMap
+    {
+        Field(PropertyString*) strLen2[80];
+
+        inline static uint PStrMapIndex(char16 ch)
+        {
+            Assert(ch >= '0' && ch <= 'z');
+            return ch - '0';
+        }
+    };
+
     struct Cache
     {
+        Field(PropertyStringMap*) propertyStrings[80];
         Field(ScriptContextPolymorphicInlineCache *) globalPICHead;
         Field(JavascriptString *) lastNumberToStringRadix10String;
         Field(EnumeratedObjectCache) enumObjCache;
