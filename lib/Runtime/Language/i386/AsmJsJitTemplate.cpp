@@ -520,10 +520,18 @@ namespace Js
         int savedEbp = (int)savedEbpPtr;
         FunctionBody* body = func->GetFunctionBody();
         Js::FunctionEntryPointInfo * entryPointInfo = body->GetDefaultFunctionEntryPointInfo();
-        const uint32 minTemplatizedJitRunCount = (uint32)CONFIG_FLAG(MinTemplatizedJitRunCount);
-        if ((entryPointInfo->callsCount >= minTemplatizedJitRunCount || body->IsHotAsmJsLoop()))
+        //CodeGenDone status is set by TJ
+        if ((entryPointInfo->IsNotScheduled() || entryPointInfo->IsCodeGenDone()) && !PHASE_OFF(BackEndPhase, body) && !PHASE_OFF(FullJitPhase, body))
         {
-            WAsmJs::JitFunctionIfReady(func, 9999);
+            const uint32 minTemplatizedJitRunCount = (uint32)CONFIG_FLAG(MinTemplatizedJitRunCount);
+            if ((entryPointInfo->callsCount >= minTemplatizedJitRunCount || body->IsHotAsmJsLoop()))
+            {
+                if (PHASE_TRACE1(AsmjsEntryPointInfoPhase))
+                {
+                    Output::Print(_u("Scheduling %s For Full JIT at callcount:%d\n"), body->GetDisplayName(), entryPointInfo->callsCount);
+                }
+                GenerateFunction(body->GetScriptContext()->GetNativeCodeGenerator(), body, func);
+            }
         }
         void* constTable = body->GetConstTable();
         constTable = (void*)(((Var*)constTable)+AsmJsFunctionMemory::RequiredVarConstants-1);
