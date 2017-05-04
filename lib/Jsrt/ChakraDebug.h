@@ -106,7 +106,11 @@ typedef unsigned __int32 uint32_t;
         /// <summary>
         ///     Perform a reverse continue operation (only applicable in TTD mode).
         /// </summary>
-        JsDiagStepTypeStepReverseContinue = 4
+        JsDiagStepTypeReverseContinue = 4,
+        /// <summary>
+        ///     Perform a forward continue operation. Clears any existing step value.
+        /// </summary>
+        JsDiagStepTypeContinue = 5
     } JsDiagStepType;
 
     /// <summary>
@@ -563,6 +567,7 @@ typedef unsigned __int32 uint32_t;
     ///     - `JsParseScriptAttributeArrayBufferIsUtf16Encoded` when `expression` is Utf16 Encoded ArrayBuffer
     ///     - `JsParseScriptAttributeLibraryCode` has no use for this function and has similar effect with `JsParseScriptAttributeNone`
     /// </param>
+    /// <param name="forceSetValueProp">Forces the result to contain the raw value of the expression result.</param>
     /// <param name="evalResult">Result of evaluation.</param>
     /// <remarks>
     ///     <para>
@@ -600,6 +605,7 @@ typedef unsigned __int32 uint32_t;
             _In_ JsValueRef expression,
             _In_ unsigned int stackFrameIndex,
             _In_ JsParseScriptAttributes parseAttributes,
+            _In_ bool forceSetValueProp,
             _Out_ JsValueRef *evalResult);
 
     /////////////////////
@@ -632,6 +638,11 @@ typedef unsigned __int32 uint32_t;
         ///     Indicates if we are doing the scan for a continue operation
         /// </summary>
         JsTTDMoveScanIntervalForContinue = 0x10,
+
+        /// <summary>
+        ///     Indicates if we are doing the scan for a continue operation and are in the time-segment where the active breakpoint was
+        /// </summary>
+        JsTTDMoveScanIntervalForContinueInActiveBreakpointSegment = 0x20,
 
         /// <summary>
         ///     Indicates if we want to set break on entry or just run and let something else trigger breakpoints.
@@ -819,6 +830,15 @@ typedef unsigned __int32 uint32_t;
     /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
     CHAKRA_API
         JsTTDNotifyYield();
+
+    /// <summary>
+    ///     TTD API -- may change in future versions:
+    ///     Notify the TTD runtime that we are doing a weak add on a reference (we may use this in external API calls and the release will happen in a GC callback).
+    /// </summary>
+    /// <param name="value">The value we are adding the ref to.</param>
+    /// <returns>The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.</returns>
+    CHAKRA_API
+        JsTTDNotifyLongLivedReferenceAdd(_In_ JsValueRef value);
 
     /// <summary>
     ///     TTD API -- may change in future versions:

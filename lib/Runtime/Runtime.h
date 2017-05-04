@@ -434,6 +434,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "Library/JavascriptFunction.h"
 #include "Library/RuntimeFunction.h"
 #include "Library/JavascriptExternalFunction.h"
+#include "Library/CustomExternalIterator.h"
 
 #include "Base/CharStringCache.h"
 
@@ -532,6 +533,7 @@ enum tagDEBUG_EVENT_INFO_TYPE
 #include "screrror.h"
 
 #include "Debug/TTRuntimeInfoTracker.h"
+#include "Debug/TTExecutionInfo.h"
 #include "Debug/TTInflateMap.h"
 #include "Debug/TTSnapTypes.h"
 #include "Debug/TTSnapValues.h"

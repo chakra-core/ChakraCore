@@ -145,23 +145,40 @@ WasmModuleGenerator::GenerateModule()
 
     BVStatic<bSectLimit + 1> visitedSections;
 
-    for (uint8 sectionCode = bSectCustom + 1; sectionCode < bSectLimit ; ++sectionCode)
+    SectionCode nextExpectedSection = bSectCustom;
+    while (true)
     {
-        SectionCode precedent = SectionInfo::All[sectionCode].precedent;
-        if (GetReader()->ReadNextSection((SectionCode)sectionCode))
+        SectionHeader sectionHeader = GetReader()->ReadNextSection();
+        SectionCode sectionCode = sectionHeader.code;
+        if (sectionCode == bSectLimit)
         {
-            if (precedent != bSectLimit && !visitedSections.Test(precedent))
-            {
-                throw WasmCompilationException(_u("%s section missing before %s"),
-                                               SectionInfo::All[precedent].name,
-                                               SectionInfo::All[sectionCode].name);
-            }
-            visitedSections.Set(sectionCode);
+            TRACE_WASM_SECTION(_u("Done reading module's sections"));
+            break;
+        }
 
-            if (!GetReader()->ProcessCurrentSection())
+        // Make sure dependency for this section has been seen
+        SectionCode precedent = SectionInfo::All[sectionCode].precedent;
+        if (precedent != bSectLimit && !visitedSections.Test(precedent))
+        {
+            throw WasmCompilationException(_u("%s section missing before %s"),
+                SectionInfo::All[precedent].name,
+                sectionHeader.name);
+        }
+        visitedSections.Set(sectionCode);
+
+        // Custom section are allowed in any order
+        if (sectionCode != bSectCustom)
+        {
+            if (sectionCode < nextExpectedSection)
             {
-                throw WasmCompilationException(_u("Error while reading section %s"), SectionInfo::All[sectionCode].name);
+                throw WasmCompilationException(_u("Invalid Section %s"), sectionHeader.name);
             }
+            nextExpectedSection = SectionCode(sectionCode + 1);
+        }
+
+        if (!GetReader()->ProcessCurrentSection())
+        {
+            throw WasmCompilationException(_u("Error while reading section %s"), sectionHeader.name);
         }
     }
 
@@ -170,6 +187,46 @@ WasmModuleGenerator::GenerateModule()
     {
         GenerateFunctionHeader(i);
     }
+
+#if ENABLE_DEBUG_CONFIG_OPTIONS
+    WasmFunctionInfo* firstThunk = nullptr, *lastThunk = nullptr;
+    for (uint32 i = 0; i < funcCount; ++i)
+    {
+        WasmFunctionInfo* info = m_module->GetWasmFunctionInfo(i);
+        Assert(info->GetBody());
+        if (PHASE_TRACE(Js::WasmInOutPhase, info->GetBody()))
+        {
+            uint index = m_module->GetWasmFunctionCount();
+            WasmFunctionInfo* newInfo = m_module->AddWasmFunctionInfo(info->GetSignature());
+            if (!firstThunk)
+            {
+                firstThunk = newInfo;
+            }
+            lastThunk = newInfo;
+            GenerateFunctionHeader(index);
+            m_module->SwapWasmFunctionInfo(i, index);
+            m_module->AttachCustomInOutTracingReader(newInfo, index);
+        }
+    }
+
+    if (firstThunk)
+    {
+        int sourceId = (int)firstThunk->GetBody()->GetSourceContextId();
+        char16 range[64];
+        swprintf_s(range, 64, _u("%d.%d-%d.%d"),
+                   sourceId, firstThunk->GetBody()->GetLocalFunctionId(),
+                   sourceId, lastThunk->GetBody()->GetLocalFunctionId());
+        char16 offFullJit[128];
+        swprintf_s(offFullJit, 128, _u("-off:fulljit:%s"), range);
+        char16 offSimpleJit[128];
+        swprintf_s(offSimpleJit, 128, _u("-off:simplejit:%s"), range);
+        char16 offLoopJit[128];
+        swprintf_s(offLoopJit, 128, _u("-off:jitloopbody:%s"), range);
+        char16* argv[] = { nullptr, offFullJit, offSimpleJit, offLoopJit };
+        CmdLineArgsParser parser(nullptr);
+        parser.Parse(ARRAYSIZE(argv), argv);
+    }
+#endif
 
 #if DBG_DUMP
     if (PHASE_TRACE1(Js::WasmReaderPhase))
@@ -335,9 +392,9 @@ AllocateRegisterSpace(ArenaAllocator* alloc, WAsmJs::Types)
 }
 
 void
-WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo)
+WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo, bool validateOnly /*= false*/)
 {
-    WasmBytecodeGenerator generator(scriptContext, readerinfo);
+    WasmBytecodeGenerator generator(scriptContext, readerinfo, validateOnly);
     generator.GenerateFunction();
     if (!generator.GetReader()->IsCurrentFunctionCompleted())
     {
@@ -345,7 +402,12 @@ WasmBytecodeGenerator::GenerateFunctionBytecode(Js::ScriptContext* scriptContext
     }
 }
 
-WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, WasmReaderInfo* readerInfo) :
+void WasmBytecodeGenerator::ValidateFunction(Js::ScriptContext* scriptContext, WasmReaderInfo* readerinfo)
+{
+    GenerateFunctionBytecode(scriptContext, readerinfo, true);
+}
+
+WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, WasmReaderInfo* readerInfo, bool validateOnly) :
     m_scriptContext(scriptContext),
     m_alloc(_u("WasmBytecodeGen"), scriptContext->GetThreadContext()->GetPageAllocator(), Js::Throw::OutOfMemory),
     m_evalStack(&m_alloc),
@@ -353,13 +415,13 @@ WasmBytecodeGenerator::WasmBytecodeGenerator(Js::ScriptContext* scriptContext, W
     m_blockInfos(&m_alloc),
     isUnreachable(false)
 {
-    m_writer = m_originalWriter = Anew(&m_alloc, Js::WasmByteCodeWriter);
     m_emptyWriter = Anew(&m_alloc, Js::EmptyWasmByteCodeWriter);
+    m_writer = m_originalWriter = validateOnly ? m_emptyWriter : Anew(&m_alloc, Js::WasmByteCodeWriter);
     m_writer->Create();
     m_funcInfo = readerInfo->m_funcInfo;
     m_module = readerInfo->m_module;
     // Init reader to current func offset
-    GetReader()->SeekToFunctionBody(m_funcInfo->m_readerInfo);
+    GetReader()->SeekToFunctionBody(m_funcInfo);
 
     // Use binary size to estimate bytecode size
     const long astSize = readerInfo->m_funcInfo->m_readerInfo.size;
@@ -411,7 +473,7 @@ WasmBytecodeGenerator::GenerateFunction()
 
 
 #if DBG_DUMP
-    if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()))
+    if (PHASE_DUMP(Js::ByteCodePhase, GetFunctionBody()) && !IsValidating())
     {
         Js::AsmJsByteCodeDumper::Dump(GetFunctionBody(), &mTypedRegisterAllocator, nullptr);
     }
@@ -587,6 +649,10 @@ WasmBytecodeGenerator::EmitExpr(WasmOp op)
     case wb##opname: \
         Assert(WasmOpCodeSignatures::n##sig == 2);\
         info = EmitUnaryExpr(Js::OpCodeAsmJs::##asmjsop, WasmOpCodeSignatures::sig); \
+        break;
+#define WASM_EMPTY__OPCODE(opname, opcode, asmjsop, nyi) \
+    case wb##opname: \
+        m_writer->EmptyAsm(Js::OpCodeAsmJs::##asmjsop);\
         break;
 #include "WasmBinaryOpCodes.h"
     default:
@@ -1136,6 +1202,11 @@ WasmBytecodeGenerator::EmitUnaryExpr(Js::OpCodeAsmJs op, const WasmTypes::WasmTy
     EmitInfo info = PopEvalStack(inputType);
 
     ReleaseLocation(&info);
+    if (resultType == WasmTypes::Void)
+    {
+        m_writer->AsmReg2(op, 0, info.location);
+        return EmitInfo();
+    }
 
     Js::RegSlot resultReg = GetRegisterSpace(resultType)->AcquireTmpRegister();
 
@@ -1579,14 +1650,14 @@ WasmCompilationException::FormatError(const char16* _msg, va_list arglist)
     errorMsg = SysAllocString(buf);
 }
 
-WasmCompilationException::WasmCompilationException(const char16* _msg, ...)
+WasmCompilationException::WasmCompilationException(const char16* _msg, ...) : errorMsg(nullptr)
 {
     va_list arglist;
     va_start(arglist, _msg);
     FormatError(_msg, arglist);
 }
 
-WasmCompilationException::WasmCompilationException(const char16* _msg, va_list arglist)
+WasmCompilationException::WasmCompilationException(const char16* _msg, va_list arglist) : errorMsg(nullptr)
 {
     FormatError(_msg, arglist);
 }

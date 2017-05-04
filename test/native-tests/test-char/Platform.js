@@ -36,7 +36,7 @@ else\n\
 \tCFLAGS=-lstdc++ -I$(IDIR)\n\
 \tFORCE_STARTS=-Wl,--whole-archive\n\
 \tFORCE_ENDS=-Wl,--no-whole-archive\n\
-\tLIBS=-pthread -lm -ldl -licuuc -lunwind-x86_64 -Wno-c++11-compat-deprecated-writable-strings \
+\tLIBS=-pthread -lm -ldl -licuuc -Wno-c++11-compat-deprecated-writable-strings \
     -Wno-deprecated-declarations -Wno-unknown-warning-option -o sample.o\n\
 endif\n\
 \n\

@@ -63,24 +63,28 @@ namespace Js
 
         virtual void MarshalToScriptContext(Js::ScriptContext * scriptContext) = 0;
 
+        ArrayBufferBase(DynamicType *type) : DynamicObject(type), isDetached(false) { }
+        bool IsDetached() { return isDetached; }
+
 #if ENABLE_TTD
         virtual void MarshalCrossSite_TTDInflate() = 0;
 #endif
-
-        ArrayBufferBase(DynamicType *type) : DynamicObject(type) { }
 
         virtual bool IsArrayBuffer() = 0;
         virtual bool IsSharedArrayBuffer() = 0;
         virtual ArrayBuffer * GetAsArrayBuffer() = 0;
         virtual SharedArrayBuffer * GetAsSharedArrayBuffer() { return nullptr; }
         virtual void AddParent(ArrayBufferParent* parent) { }
-        virtual bool IsDetached() { return false; }
         virtual uint32 GetByteLength() const = 0;
         virtual BYTE* GetBuffer() const = 0;
         virtual bool IsValidVirtualBufferLength(uint length) { return false; }
 
         static bool Is(Var value);
         static ArrayBufferBase* FromVar(Var value);
+        static int GetIsDetachedOffset() { return offsetof(ArrayBufferBase, isDetached); }
+
+    protected:
+        Field(bool) isDetached;
     };
 
     class ArrayBuffer : public ArrayBufferBase
@@ -155,12 +159,10 @@ namespace Js
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 
         virtual ArrayBufferDetachedStateBase* DetachAndGetState();
-        virtual bool IsDetached() override { return this->isDetached; }
         virtual uint32 GetByteLength() const override { return bufferLength; }
         virtual BYTE* GetBuffer() const override { return buffer; }
 
         static int GetByteLengthOffset() { return offsetof(ArrayBuffer, bufferLength); }
-        static int GetIsDetachedOffset() { return offsetof(ArrayBuffer, isDetached); }
         static int GetBufferOffset() { return offsetof(ArrayBuffer, buffer); }
 
         virtual void AddParent(ArrayBufferParent* parent) override;
@@ -204,10 +206,6 @@ namespace Js
 
         FieldNoBarrier(BYTE*) buffer;             // Points to a heap allocated RGBA buffer, can be null
         Field(uint32) bufferLength;       // Number of bytes allocated
-
-        // When an ArrayBuffer is detached, the TypedArray and DataView objects pointing to it must be made aware,
-        // for this purpose the ArrayBuffer needs to hold WeakReferences to them
-        Field(bool) isDetached;
     };
 
     class ArrayBufferParent : public ArrayObject

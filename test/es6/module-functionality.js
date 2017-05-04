@@ -7,8 +7,8 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-function testModuleScript(source, message, shouldFail) {
-    let testfunc = () => WScript.LoadModule(source, 'samethread');
+function testModuleScript(source, message, shouldFail = false) {
+    let testfunc = () => testRunner.LoadModule(source, 'samethread', shouldFail);
 
     if (shouldFail) {
         let caught = false;
@@ -34,7 +34,7 @@ var tests = [
     {
         name: "Validate a simple module export",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { ModuleSimpleExport_foo } from 'ModuleSimpleExport.js';
                 assert.areEqual('ModuleSimpleExport', ModuleSimpleExport_foo(), 'Failed to import ModuleSimpleExport_foo from ModuleSimpleExport.js');`;
             testModuleScript(functionBody, "Test importing a simple exported function", false);
@@ -43,7 +43,7 @@ var tests = [
     {
         name: "Validate importing from multiple modules",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { ModuleSimpleExport_foo } from 'ModuleSimpleExport.js';
                 assert.areEqual('ModuleSimpleExport', ModuleSimpleExport_foo(), 'Failed to import ModuleSimpleExport_foo from ModuleSimpleExport.js');
                 import { foo2 } from 'ModuleComplexExports.js';
@@ -54,7 +54,7 @@ var tests = [
     {
         name: "Validate a variety of more complex exports",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { foo, foo2 } from 'ModuleComplexExports.js';
                 assert.areEqual('foo', foo(), 'Failed to import foo from ModuleComplexExports.js');
                 assert.areEqual('foo', foo2(), 'Failed to import foo2 from ModuleComplexExports.js');
@@ -94,7 +94,7 @@ var tests = [
     {
         name: "Import an export as a different binding identifier",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { ModuleSimpleExport_foo as foo3 } from 'ModuleSimpleExport.js';
                 assert.areEqual('ModuleSimpleExport', foo3(), 'Failed to import ModuleSimpleExport_foo from ModuleSimpleExport.js');
                 import { foo2 as foo4 } from 'ModuleComplexExports.js';
@@ -105,7 +105,7 @@ var tests = [
     {
         name: "Import the same export under multiple local binding identifiers",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { ModuleSimpleExport_foo as foo3, ModuleSimpleExport_foo as foo4 } from 'ModuleSimpleExport.js';
                 assert.areEqual('ModuleSimpleExport', foo3(), 'Failed to import ModuleSimpleExport_foo from ModuleSimpleExport.js');
                 assert.areEqual('ModuleSimpleExport', foo4(), 'Failed to import ModuleSimpleExport_foo from ModuleSimpleExport.js');
@@ -116,7 +116,7 @@ var tests = [
     {
         name: "Exporting module changes exported value",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { target, changeTarget } from 'ModuleComplexExports.js';
                 assert.areEqual('before', target(), 'Failed to import target from ModuleComplexExports.js');
                 assert.areEqual('ok', changeTarget(), 'Failed to import changeTarget from ModuleComplexExports.js');
@@ -127,7 +127,7 @@ var tests = [
     {
         name: "Simple re-export forwards import to correct slot",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { ModuleSimpleExport_foo } from 'ModuleSimpleReexport.js';
                 assert.areEqual('ModuleSimpleExport', ModuleSimpleExport_foo(), 'Failed to import ModuleSimpleExport_foo from ModuleSimpleReexport.js');`;
             testModuleScript(functionBody, "Simple re-export from one module to another", false);
@@ -136,7 +136,7 @@ var tests = [
     {
         name: "Import of renamed re-export forwards import to correct slot",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { ModuleSimpleExport_foo as ModuleSimpleExport_baz } from 'ModuleSimpleReexport.js';
                 assert.areEqual('ModuleSimpleExport', ModuleSimpleExport_baz(), 'Failed to import ModuleSimpleExport_foo from ModuleSimpleReexport.js');`;
             testModuleScript(functionBody, "Rename simple re-export", false);
@@ -145,7 +145,7 @@ var tests = [
     {
         name: "Renamed re-export and renamed import",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { ModuleComplexReexports_foo as ModuleComplexReexports_baz } from 'ModuleComplexReexports.js';
                 assert.areEqual('bar', ModuleComplexReexports_baz(), 'Failed to import ModuleComplexReexports_foo from ModuleComplexReexports.js');`;
             testModuleScript(functionBody, "Rename already renamed re-export", false);
@@ -154,7 +154,7 @@ var tests = [
     {
         name: "Explicit export/import to default binding",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { default as baz } from 'ModuleDefaultExport1.js';
                 assert.areEqual('ModuleDefaultExport1', baz(), 'Failed to import default from ModuleDefaultExport1.js');`;
             testModuleScript(functionBody, "Explicitly export and import a local name to the default binding", false);
@@ -163,7 +163,7 @@ var tests = [
     {
         name: "Explicit import of default binding",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { default as baz } from 'ModuleDefaultExport2.js';
                 assert.areEqual('ModuleDefaultExport2', baz(), 'Failed to import default from ModuleDefaultExport2.js');`;
             testModuleScript(functionBody, "Explicitly import the default export binding", false);
@@ -172,7 +172,7 @@ var tests = [
     {
         name: "Implicitly re-export default export",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import baz from 'ModuleDefaultReexport.js';
                 assert.areEqual('ModuleDefaultExport1', baz(), 'Failed to import default from ModuleDefaultReexport.js');`;
             testModuleScript(functionBody, "Implicitly re-export the default export binding", false);
@@ -181,7 +181,7 @@ var tests = [
     {
         name: "Implicitly re-export default export and rename the imported binding",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { default as baz } from 'ModuleDefaultReexport.js';
                 assert.areEqual('ModuleDefaultExport1', baz(), 'Failed to import default from ModuleDefaultReexport.js');
                 import { not_default as bat } from 'ModuleDefaultReexport.js';
@@ -192,7 +192,7 @@ var tests = [
     {
         name: "Exporting module changes value of default export",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import ModuleDefaultExport3_default from 'ModuleDefaultExport3.js';
                 assert.areEqual(2, ModuleDefaultExport3_default, 'Failed to import default from ModuleDefaultExport3.js');
                 import ModuleDefaultExport4_default from 'ModuleDefaultExport4.js';
@@ -203,7 +203,7 @@ var tests = [
     {
         name: "Import bindings used in a nested function",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `function test() {
                     assert.areEqual('ModuleDefaultExport2', foo(), 'Failed to import default from ModuleDefaultExport2.js');
                 }
@@ -216,7 +216,7 @@ var tests = [
     {
         name: "Exported name may be any keyword",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { export as baz } from 'ModuleComplexExports.js';
                 assert.areEqual('ModuleComplexExports', baz, 'Failed to import export from ModuleDefaultExport2.js');
                 import { function as bat } from 'ModuleComplexExports.js';
@@ -238,7 +238,7 @@ var tests = [
     {
         name: "Exported name may be any keyword testing re-exports",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { switch as baz } from 'ModuleComplexReexports.js';
                 assert.areEqual('ModuleComplexExports', baz, 'Failed to import switch from ModuleComplexReexports.js');`;
             testModuleScript(functionBody, "Exported name may be a keyword including re-epxort chains", false);
@@ -247,7 +247,7 @@ var tests = [
     {
         name: "Odd case of 'export { as as as }; import { as as as };'",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { as as as } from 'ModuleComplexExports.js';
                 assert.areEqual('as', as(), 'String "as" is not reserved word');`;
             testModuleScript(functionBody, "Test 'import { as as as}'", false);
@@ -256,29 +256,29 @@ var tests = [
     {
         name: "Typeof a module export",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import _default from 'ModuleDefaultExport2.js';
                 assert.areEqual('function', typeof _default, 'typeof default export from ModuleDefaultExport2.js is function');`;
-                
-            WScript.LoadModule(functionBody, 'samethread');
+
+            testRunner.LoadModule(functionBody, 'samethread');
         }
     },
     {
         name: "Circular module dependency",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { circular_foo } from 'ModuleCircularFoo.js';
                 assert.areEqual(2, circular_foo(), 'This function calls between both modules in the circular dependency incrementing a counter in each');
                 import { circular_bar } from 'ModuleCircularBar.js';
                 assert.areEqual(4, circular_bar(), 'Second call originates in the other module but still increments the counter twice');`;
-                
-            WScript.LoadModule(functionBody, 'samethread');
+
+            testRunner.LoadModule(functionBody, 'samethread');
         }
     },
     {
         name: "Implicitly re-exporting an import binding (import { foo } from ''; export { foo };)",
         body: function () {
-            let functionBody = 
+            let functionBody =
                 `import { foo, baz, localfoo, bar, localfoo2, bar2, bar2 as bar3 } from 'ModuleComplexReexports.js';
                 assert.areEqual('foo', foo(), 'Simple implicit re-export');
                 assert.areEqual('foo', baz(), 'Renamed export imported and renamed during implicit re-export');
@@ -287,19 +287,19 @@ var tests = [
                 assert.areEqual('foo', localfoo2(), 'Renamed export renamed as import and implicitly re-exported');
                 assert.areEqual('foo', bar2(), 'Renamed export renamed as import and renamed again during implicit re-export');
                 assert.areEqual('foo', bar3(), 'Renamed export renamed as import renamed during implicit re-export and renamed in final import');`;
-                
-            WScript.LoadModule(functionBody, 'samethread');
+
+            testRunner.LoadModule(functionBody, 'samethread');
         }
     },
     {
         name: "Nested function in module function body which captures exported symbol doesn't create empty frame object",
-        body: function() { 
-            let functionBody = 
+        body: function() {
+            let functionBody =
                 `function foo() { };
                 export { foo };
                 function bar() { foo(); };`;
-                
-            WScript.LoadModule(functionBody, 'samethread');
+
+            testRunner.LoadModule(functionBody, 'samethread');
         }
     },
 ];

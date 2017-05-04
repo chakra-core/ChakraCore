@@ -40,6 +40,8 @@
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>BackEnd.h</PrecompiledHeaderFile>
+      <!-- # Check out https://osgwiki.com/wiki/Dev_14_Migration for more details about -Zc:implicitNoexcept- -->
+      <AdditionalOptions>-Zc:implicitNoexcept- %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(OptimizedBuild)'!='true'">
@@ -199,7 +201,6 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)JITOutput.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeFunctionBody.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeProfileInfo.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeScriptContext.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)JITTimeWorkItem.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)AsmJsJITInfo.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)FunctionJITRuntimeInfo.cpp" />
@@ -395,7 +396,6 @@
     <ClInclude Include="JITTimePolymorphicInlineCache.h" />
     <ClInclude Include="JITTimePolymorphicInlineCacheInfo.h" />
     <ClInclude Include="JITTimeProfileInfo.h" />
-    <ClInclude Include="JITTimeScriptContext.h" />
     <ClInclude Include="JITType.h" />
     <ClInclude Include="JITTypeHandler.h" />
     <ClInclude Include="JITTimeWorkItem.h" />

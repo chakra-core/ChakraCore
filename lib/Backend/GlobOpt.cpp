@@ -13450,7 +13450,10 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
     case ObjectType::Uint16MixedArray:
     case ObjectType::Int32MixedArray:
     Int32Array:
-        toType = TyInt32;
+        if (this->DoAggressiveIntTypeSpec() || this->DoFloatTypeSpec())
+        {
+            toType = TyInt32;
+        }
         break;
 
     case ObjectType::Uint32Array:
@@ -13477,8 +13480,11 @@ GlobOpt::TypeSpecializeStElem(IR::Instr ** pInstr, Value *src1Val, Value **pDstV
     case ObjectType::Float64VirtualArray:
     case ObjectType::Float64MixedArray:
     Float64Array:
-        toType = TyFloat64;
-        break;
+    if (this->DoFloatTypeSpec())
+    {
+         toType = TyFloat64;
+    }
+    break;
 
     case ObjectType::Uint8ClampedArray:
     case ObjectType::Uint8ClampedVirtualArray:
@@ -15184,7 +15190,17 @@ static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int64 value)
 
 static IR::Opnd* CreateIntConstOpnd(IR::Instr* instr, int value)
 {
-    return (IR::Opnd*)IR::IntConstOpnd::New(value, instr->GetDst()->GetType(), instr->m_func);
+    IntConstType constVal;
+    if (instr->GetDst()->IsUnsigned())
+    {
+        // we should zero extend in case of uint
+        constVal = (uint32)value;
+    }
+    else
+    {
+        constVal = value;
+    }
+    return (IR::Opnd*)IR::IntConstOpnd::New(constVal, instr->GetDst()->GetType(), instr->m_func);
 }
 
 template <typename T>
@@ -19969,7 +19985,7 @@ GlobOpt::DoInlineArgsOpt(Func* func)
     bool doInlineArgsOpt =
         !PHASE_OFF(Js::InlineArgsOptPhase, topFunc) &&
         !func->GetHasCalls() &&
-        !func->GetHasUnoptimizedArgumentsAcccess() &&
+        !func->GetHasUnoptimizedArgumentsAccess() &&
         func->m_canDoInlineArgsOpt;
     return doInlineArgsOpt;
 }

@@ -12,12 +12,11 @@ namespace Wasm
         SectionFlag flag,
         SectionCode precedent,
         const char16* name,
-        const char* id,
         const uint32 nameLength
-    ): flag(flag), precedent(precedent), name(name), id(id), nameLength(nameLength) {}
+    ): flag(flag), precedent(precedent), name(name), nameLength(nameLength) {}
 
     SectionInfo SectionInfo::All[bSectLimit] = {
-#define WASM_SECTION(name, id, flag, precedent) {flag, bSect ## precedent, static_cast<const char16*>(_u(#name)), static_cast<const char*>(id), sizeof(#name)},
+#define WASM_SECTION(_, id, flag, precedent) {flag, bSect ## precedent, static_cast<const char16*>(_u(id)), sizeof(id)},
 #include "WasmSections.h"
     };
 }

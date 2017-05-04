@@ -191,9 +191,7 @@ NativeCodeData::DeleteChunkList(DataChunkT * chunkList)
     {
         DataChunkT * current = next;
         next = next->next;
-
-        // TODO: Should be HeapDeletePlus, but we don't know plusSize
-        HeapDelete(current, AllocatorDeleteFlags::UnknownSize);
+        HeapDeletePlus(current->len, current);
     }
 }
 
@@ -277,6 +275,7 @@ NativeCodeData::Allocator::Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestSize)
     else
     {
         DataChunkNoFixup * newChunk = HeapNewStructPlus(requestSize, DataChunkNoFixup);
+        newChunk->len = (unsigned int)requestSize;
         newChunk->next = this->noFixupChunkList;
         this->noFixupChunkList = newChunk;
         data = newChunk->data;

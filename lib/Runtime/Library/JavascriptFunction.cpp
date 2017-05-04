@@ -259,13 +259,13 @@ namespace Js
         //
         //TODO: We may (probably?) want to use the debugger source rundown functionality here instead
         //
-        if(scriptContext->IsTTDRecordModeEnabled() || scriptContext->ShouldPerformReplayAction())
+        if(pfuncScript != nullptr && (scriptContext->IsTTDRecordModeEnabled() || scriptContext->ShouldPerformReplayAction()))
         {
             //Make sure we have the body and text information available
             FunctionBody* globalBody = TTD::JsSupport::ForceAndGetFunctionBody(pfuncScript->GetParseableFunctionInfo());
             if(!scriptContext->TTDContextInfo->IsBodyAlreadyLoadedAtTopLevel(globalBody))
             {
-                uint64 bodyIdCtr = 0;
+                uint32 bodyIdCtr = 0;
 
                 if(scriptContext->IsTTDRecordModeEnabled())
                 {
@@ -288,6 +288,16 @@ namespace Js
                 //walk global body to (1) add functions to pin set (2) build parent map
                 scriptContext->TTDContextInfo->ProcessFunctionBodyOnLoad(globalBody, nullptr);
                 scriptContext->TTDContextInfo->RegisterNewScript(globalBody, bodyIdCtr);
+
+                if(scriptContext->ShouldPerformRecordOrReplayAction())
+                {
+                    globalBody->GetUtf8SourceInfo()->SetSourceInfoForDebugReplay_TTD(bodyIdCtr);
+                }
+
+                if(scriptContext->ShouldPerformDebuggerAction())
+                {
+                    scriptContext->GetThreadContext()->TTDExecutionInfo->ProcessScriptLoad(scriptContext, bodyIdCtr, globalBody, globalBody->GetUtf8SourceInfo(), nullptr);
+                }
             }
         }
 #endif
@@ -984,9 +994,9 @@ namespace Js
         destArgs.Values[0] = args[0];
 
         // Iterate over the arguments, spreading inline. We skip 'this'.
-        Var undefined = scriptContext->GetLibrary()->GetUndefined();
 
-        for (unsigned i = 1, argsIndex = 1, spreadArgIndex = 0; i < callInfo.Count; ++i)
+        uint32 argsIndex = 1;
+        for (unsigned i = 1, spreadArgIndex = 0; i < callInfo.Count; ++i)
         {
             uint32 spreadIndex = spreadIndices->elements[spreadArgIndex]; // Next index to be spread.
             if (i < spreadIndex)
@@ -1018,71 +1028,20 @@ namespace Js
                 {
                     SpreadArgument* spreadedArgs = SpreadArgument::FromVar(instance);
                     uint size = spreadedArgs->GetArgumentSpreadCount();
-                    const Var * spreadBuffer = spreadedArgs->GetArgumentSpread();
-                    js_memcpy_s(destArgs.Values + argsIndex,
-                        size * sizeof(Var),
-                        spreadBuffer,
-                        size * sizeof(Var));
-                    argsIndex += size;
+                    if (size > 0)
+                    {
+                        const Var * spreadBuffer = spreadedArgs->GetArgumentSpread();
+                        js_memcpy_s(destArgs.Values + argsIndex,
+                            size * sizeof(Var),
+                            spreadBuffer,
+                            size * sizeof(Var));
+                        argsIndex += size;
+                    }
                 }
                 else
                 {
-                    AssertMsg(JavascriptArray::Is(instance) || TypedArrayBase::Is(instance), "Only SpreadArgument, TypedArray, and JavascriptArray should be listed as spread arguments");
-
-                    // We first try to interpret the spread parameter as a JavascriptArray.
-                    JavascriptArray *arr = nullptr;
-                    if (JavascriptArray::Is(instance))
-                    {
-                        arr = JavascriptArray::FromVar(instance);
-                    }
-
-                    if (arr != nullptr && !arr->IsCrossSiteObject())
-                    {
-                        uint32 length = arr->GetLength();
-                        // CONSIDER: Optimize by creating a JavascriptArray routine which allows
-                        // memcpy-like semantics in optimal situations (no gaps, etc.)
-                        if (argsIndex + length > destArgs.Info.Count)
-                        {
-                            AssertMsg(false, "The array length has changed since we allocated the destArgs buffer?");
-                            Throw::FatalInternalError();
-                        }
-
-                        for (uint32 j = 0; j < length; j++)
-                        {
-                            Var element;
-                            if (!arr->DirectGetItemAtFull(j, &element))
-                            {
-                                element = undefined;
-                            }
-                            destArgs.Values[argsIndex++] = element;
-                        }
-                    }
-                    else
-                    {
-                        // Emulate %ArrayPrototype%.values() iterator; basically iterate from 0 to length
-                        RecyclableObject *propertyObject;
-                        if (!JavascriptOperators::GetPropertyObject(instance, scriptContext, &propertyObject))
-                        {
-                            JavascriptError::ThrowTypeError(scriptContext, JSERR_InvalidSpreadArgument);
-                        }
-
-                        uint32 len = JavascriptArray::GetSpreadArgLen(instance, scriptContext);
-                        if (argsIndex + len > destArgs.Info.Count)
-                        {
-                            AssertMsg(false, "The array length has changed since we allocated the destArgs buffer?");
-                            Throw::FatalInternalError();
-                        }
-
-                        for (uint j = 0; j < len; j++)
-                        {
-                            Var element;
-                            if (!JavascriptOperators::GetItem(instance, propertyObject, j, &element, scriptContext))
-                            {
-                                element = undefined;
-                            }
-                            destArgs.Values[argsIndex++] = element;
-                        }
-                    }
+                    Assert(JavascriptOperators::IsUndefinedObject(instance));
+                    destArgs.Values[argsIndex++] = instance;
                 }
 
                 if (spreadArgIndex < spreadIndices->count - 1)
@@ -1091,6 +1050,12 @@ namespace Js
                 }
             }
         }
+        if (argsIndex > destArgs.Info.Count)
+        {
+            AssertMsg(false, "The array length has changed since we allocated the destArgs buffer?");
+            Throw::FatalInternalError();
+        }
+
     }
 
     Var JavascriptFunction::CallSpreadFunction(RecyclableObject* function, Arguments args, const Js::AuxArray<uint32> *spreadIndices)
@@ -1407,11 +1372,13 @@ dbl_align:
         unsigned count = args.Info.Count;
         if (count == 0)
         {
-            varResult = CALL_ENTRYPOINT(entryPoint, (JavascriptFunction*)function, args.Info);
+            varResult = CALL_ENTRYPOINT(function->GetScriptContext()->GetThreadContext(),
+                entryPoint, (JavascriptFunction*)function, args.Info);
         }
         else if (count == 1)
         {
-            varResult = CALL_ENTRYPOINT(entryPoint, (JavascriptFunction*)function, args.Info, args.Values[0]);
+            varResult = CALL_ENTRYPOINT(function->GetScriptContext()->GetThreadContext(),
+                entryPoint, (JavascriptFunction*)function, args.Info, args.Values[0]);
         }
         else
         {
@@ -1658,13 +1625,14 @@ LABEL1:
 
         Assert(functionInfo);
 
+        ScriptFunctionWithInlineCache * funcObjectWithInlineCache = ScriptFunctionWithInlineCache::Is(*functionRef) ? ScriptFunctionWithInlineCache::FromVar(*functionRef) : nullptr;
         if (functionInfo->IsDeferredParseFunction())
         {
-            if (ScriptFunctionWithInlineCache::Is(*functionRef))
+            if (funcObjectWithInlineCache)
             {
                 // If inline caches were populated from a function body that has been redeferred, the caches have been cleaned up,
                 // so clear the pointers. REVIEW: Is this a perf loss in some cases?
-                ScriptFunctionWithInlineCache::FromVar(*functionRef)->ClearBorrowedInlineCacheOnFunctionObject();
+                funcObjectWithInlineCache->ClearBorrowedInlineCacheOnFunctionObject();
             }
 
             funcBody = functionInfo->Parse(functionRef);
@@ -1692,13 +1660,16 @@ LABEL1:
 
         JavascriptMethod thunkEntryPoint = (*functionRef)->UpdateUndeferredBody(funcBody);
 
-        if (ScriptFunctionWithInlineCache::Is(*functionRef))
+        if (funcObjectWithInlineCache && !funcObjectWithInlineCache->GetHasOwnInlineCaches())
         {
-            ScriptFunctionWithInlineCache * funcObjectWithInlineCache = ScriptFunctionWithInlineCache::FromVar(*functionRef);
-            if (!funcObjectWithInlineCache->GetHasOwnInlineCaches())
-            {
-                funcObjectWithInlineCache->SetInlineCachesFromFunctionBody();
-            }
+            // If the function object needs to use the inline caches from the function body, point them to the 
+            // function body's caches. This is required in two redeferral cases:
+            //
+            // 1. We might have cleared the caches on the function object (ClearBorrowedInlineCacheOnFunctionObject)
+            //    above if the function body was redeferred.
+            // 2. Another function object could have been called before and undeferred the function body, thereby creating
+            //    new inline caches. This function object would still be pointing to the old ones and needs updating.
+            funcObjectWithInlineCache->SetInlineCachesFromFunctionBody();
         }
 
         return thunkEntryPoint;
@@ -1889,6 +1860,15 @@ LABEL1:
         bool isSIB = false;
         // Read first  byte - check for prefix
         BYTE* beginPc = pc;
+
+#if _CONTROL_FLOW_GUARD_SHADOW_STACK
+        // skip first byte if it's 0x64 (fs-based mem access)
+        if (*pc == 0x64)
+        {
+            pc++;
+        }
+#endif
+
         if (((*pc) == 0x0F2) || ((*pc) == 0x0F3))
         {
             //MOVSD or MOVSS
@@ -2655,8 +2635,22 @@ LABEL1:
             }
             if (ScriptFunction::Is(funcCaller))
             {
-                // Is this is the internal function of a generator function then return the original generator function
+                // If this is the internal function of a generator function then return the original generator function
                 funcCaller = ScriptFunction::FromVar(funcCaller)->GetRealFunctionObject();
+
+                // This function is escaping, so make sure there isn't some caller that has a cached scope.
+                JavascriptFunction * func;
+                while (walker.GetCaller(&func))
+                {
+                    if (ScriptFunction::Is(func))
+                    {
+                        ActivationObjectEx * obj = ScriptFunction::FromVar(func)->GetCachedScope();
+                        if (obj)
+                        {
+                            obj->InvalidateCachedScope();
+                        }
+                    }
+                }
             }
         }
 
@@ -2678,7 +2672,7 @@ LABEL1:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
-                *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
+                *value = CALL_FUNCTION(scriptContext->GetThreadContext(), accessor, CallInfo(1), originalInstance);
             }
             return true;
         }
@@ -2756,7 +2750,7 @@ LABEL1:
             if (scriptContext->GetThreadContext()->RecordImplicitException())
             {
                 JavascriptFunction* accessor = requestContext->GetLibrary()->GetThrowTypeErrorRestrictedPropertyAccessorFunction();
-                *value = CALL_FUNCTION(accessor, CallInfo(1), originalInstance);
+                *value = CALL_FUNCTION(scriptContext->GetThreadContext(), accessor, CallInfo(1), originalInstance);
             }
             return true;
         }

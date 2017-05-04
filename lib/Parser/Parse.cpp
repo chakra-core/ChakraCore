@@ -234,14 +234,7 @@ HRESULT Parser::ValidateSyntax(LPCUTF8 pszSrc, size_t encodedCharCount, bool isG
     AssertPsz(pszSrc);
     AssertMemN(pse);
 
-    if (this->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackDefault);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackDefault);
 
     HRESULT hr;
     SmartFPUControl smartFpuControl;
@@ -1699,6 +1692,11 @@ void Parser::BindPidRefsInScope(IdentPtr pid, Symbol *sym, int blockId, uint max
         ref->SetSym(sym);
         this->RemovePrevPidRef(pid, lastRef);
 
+        if (ref->IsUsedInLdElem())
+        {
+            sym->SetIsUsedInLdElem(true);
+        }
+
         if (ref->IsAssignment())
         {
             sym->PromoteAssignmentState();
@@ -2861,14 +2859,7 @@ ParseNodePtr Parser::ParseTerm(BOOL fAllowCall,
     bool isLambdaExpr = false;
     Assert(pToken == nullptr || pToken->tk == tkNone); // Must be empty initially
 
-    if (this->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackParseOneTerm);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackParseOneTerm);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackParseOneTerm);
 
     switch (m_token.tk)
     {
@@ -3491,7 +3482,8 @@ ParseNodePtr Parser::ParsePostfixOperators(
         case tkLBrack:
             {
                 m_pscan->Scan();
-                ParseNodePtr pnodeExpr = ParseExpr<buildAST>();
+                IdentToken tok;
+                ParseNodePtr pnodeExpr = ParseExpr<buildAST>(0, FALSE, TRUE, FALSE, nullptr, nullptr, nullptr, &tok);
                 if (buildAST)
                 {
                     pnode = CreateBinNode(knopIndex, pnode, pnodeExpr);
@@ -3510,6 +3502,23 @@ ParseNodePtr Parser::ParsePostfixOperators(
                 if (pfIsDotOrIndex)
                 {
                     *pfIsDotOrIndex = true;
+                }
+
+                PidRefStack * topPidRef = nullptr;
+                if (buildAST)
+                {
+                    if (pnodeExpr && pnodeExpr->nop == knopName)
+                    {
+                        topPidRef = pnodeExpr->sxPid.pid->GetTopRef();
+                    }
+                }
+                else if (tok.tk == tkID)
+                {
+                    topPidRef = tok.pid->GetTopRef();
+                }
+                if (topPidRef)
+                {
+                    topPidRef->SetIsUsedInLdElem(true);
                 }
 
                 if (!buildAST)
@@ -5164,17 +5173,17 @@ bool Parser::ParseFncDeclHelper(ParseNodePtr pnodeFnc, LPCOLESTR pNameHint, usho
                     }
                     return false;
                 });
-            }
-            if (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() && !fDeclaration && pnodeFnc->sxFnc.pnodeName != nullptr)
-            {
-                Symbol* funcSym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
-                if (funcSym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
+                if (pnodeFnc->sxFnc.IsBodyAndParamScopeMerged() && !fDeclaration && pnodeFnc->sxFnc.pnodeName != nullptr)
                 {
-                    // This is a function expression with name captured in the param scope. In non-eval, non-split cases the function
-                    // name symbol is added to the body scope to make it accessible in the body. But if there is a function or var
-                    // declaration with the same name in the body then adding to the body will fail. So in this case we have to add
-                    // the name symbol to the param scope by splitting it.
-                    pnodeFnc->sxFnc.ResetBodyAndParamScopeMerged();
+                    Symbol* funcSym = pnodeFnc->sxFnc.pnodeName->sxVar.sym;
+                    if (funcSym->GetPid()->GetTopRef()->GetFuncScopeId() > pnodeFnc->sxFnc.functionId)
+                    {
+                        // This is a function expression with name captured in the param scope. In non-eval, non-split cases the function
+                        // name symbol is added to the body scope to make it accessible in the body. But if there is a function or var
+                        // declaration with the same name in the body then adding to the body will fail. So in this case we have to add
+                        // the name symbol to the param scope by splitting it.
+                        pnodeFnc->sxFnc.ResetBodyAndParamScopeMerged();
+                    }
                 }
             }
         }
@@ -6486,11 +6495,6 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
         (*m_pnestedCount)++;
     }
 
-    if (!buildAST)
-    {
-        return NULL;
-    }
-
     if (m_pscan->IchMinTok() >= m_pscan->IchMinLine())
     {
         // In scenarios involving defer parse IchMinLine() can be incorrect for the first line after defer parse
@@ -6520,7 +6524,7 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     ParseNodePtr *lastNodeRef = nullptr;
     ParseNodePtr pnodeBlock = StartParseBlock<buildAST>(PnodeBlockType::Parameter, ScopeType_Parameter);
 
-    if (extends)
+    if (buildAST && extends)
     {
         // constructor(...args) { super(...args); }
         //             ^^^^^^^
@@ -6544,22 +6548,25 @@ ParseNodePtr Parser::GenerateEmptyConstructor(bool extends)
     pnodeFnc->sxFnc.pnodeBodyScope = pnodeInnerBlock;
     pnodeFnc->sxFnc.pnodeScopes = pnodeBlock;
 
-    if (extends)
+    if (buildAST)
     {
-        // constructor(...args) { super(...args); }
-        //                        ^^^^^^^^^^^^^^^
-        Assert(argsId);
-        ParseNodePtr spreadArg = CreateUniNode(knopEllipsis, argsId, pnodeFnc->ichMin, pnodeFnc->ichLim);
+        if (extends)
+        {
+            // constructor(...args) { super(...args); }
+            //                        ^^^^^^^^^^^^^^^
+            Assert(argsId);
+            ParseNodePtr spreadArg = CreateUniNode(knopEllipsis, argsId, pnodeFnc->ichMin, pnodeFnc->ichLim);
 
-        ParseNodePtr superRef = CreateNodeWithScanner<knopSuper>();
-        pnodeFnc->sxFnc.SetHasSuperReference(TRUE);
+            ParseNodePtr superRef = CreateNodeWithScanner<knopSuper>();
+            pnodeFnc->sxFnc.SetHasSuperReference(TRUE);
 
-        ParseNodePtr callNode = CreateCallNode(knopCall, superRef, spreadArg);
-        callNode->sxCall.spreadArgCount = 1;
-        AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, callNode);
+            ParseNodePtr callNode = CreateCallNode(knopCall, superRef, spreadArg);
+            callNode->sxCall.spreadArgCount = 1;
+            AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, callNode);
+        }
+
+        AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, CreateNodeWithScanner<knopEndCode>());
     }
-
-    AddToNodeList(&pnodeFnc->sxFnc.pnodeBody, &lastNodeRef, CreateNodeWithScanner<knopEndCode>());
 
     FinishParseBlock(pnodeInnerBlock);
     FinishParseBlock(pnodeBlock);
@@ -9638,14 +9645,17 @@ LDefaultTokenFor:
                 ParseStmtList<buildAST>(&pnodeBody);
                 break;
             }
+            // Create a block node to contain the statement list for this case.
+            // This helps us insert byte code to return the right value from
+            // global/eval code.
+            ParseNodePtr pnodeFakeBlock = CreateBlockNode();
             if (buildAST)
             {
                 if (pnodeBody)
                 {
-                    // Create a block node to contain the statement list for this case.
-                    // This helps us insert byte code to return the right value from
-                    // global/eval code.
-                    pnodeT->sxCase.pnodeBody = CreateBlockNode(pnodeT->ichMin, pnodeT->ichLim);
+                    pnodeFakeBlock->ichMin = pnodeT->ichMin;
+                    pnodeFakeBlock->ichLim = pnodeT->ichLim;
+                    pnodeT->sxCase.pnodeBody = pnodeFakeBlock;
                     pnodeT->sxCase.pnodeBody->grfpn |= PNodeFlags::fpnSyntheticNode; // block is not a user specifier block
                     pnodeT->sxCase.pnodeBody->sxBlock.pnodeStmt = pnodeBody;
                 }
@@ -9778,11 +9788,8 @@ LEndSwitch:
 
     case tkTRY:
     {
-        if (buildAST)
-        {
-            pnode = CreateBlockNode();
-            pnode->grfpn |= PNodeFlags::fpnSyntheticNode; // block is not a user specifier block
-        }
+        pnode = CreateBlockNode();
+        pnode->grfpn |= PNodeFlags::fpnSyntheticNode; // block is not a user specifier block
         PushStmt<buildAST>(&stmt, pnode, knopBlock, pnodeLabel, pLabelIdList);
         ParseNodePtr pnodeStmt = ParseTryCatchFinally<buildAST>();
         if (buildAST)
@@ -10582,9 +10589,9 @@ void Parser::FinishDeferredFunction(ParseNodePtr pnodeScopeList)
     {
         Assert(pnodeFnc->nop == knopFncDecl);
 
-        // Non-simple params (such as default) require a good amount of logic to put vars on appriopriate scopes. ParseFncDecl handles it
+        // Non-simple params (such as default) require a good amount of logic to put vars on appropriate scopes. ParseFncDecl handles it
         // properly (both on defer and non-defer case). This is to avoid write duplicated logic here as well. Function with non-simple-param
-        // will remain deferred untill they are called.
+        // will remain deferred until they are called.
         if (pnodeFnc->sxFnc.pnodeBody == nullptr && !pnodeFnc->sxFnc.HasNonSimpleParameterList())
         {
             // Go back and generate an AST for this function.
@@ -10758,14 +10765,7 @@ void Parser::RestoreScopeInfo(Js::ScopeInfo * scopeInfo)
         return;
     }
 
-    if (this->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
 
     RestoreScopeInfo(scopeInfo->GetParentScopeInfo()); // Recursively restore outer func scope info
 
@@ -10808,14 +10808,7 @@ void Parser::RestoreScopeInfo(Js::ScopeInfo * scopeInfo)
 
 void Parser::FinishScopeInfo(Js::ScopeInfo * scopeInfo)
 {
-    if (this->IsBackgroundParser())
-    {
-        PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
-    }
-    else
-    {
-        PROBE_STACK(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
-    }
+    PROBE_STACK_NO_DISPOSE(m_scriptContext, Js::Constants::MinStackByteCodeVisitor);
 
     for (;scopeInfo != nullptr; scopeInfo = scopeInfo->GetParentScopeInfo())
     {

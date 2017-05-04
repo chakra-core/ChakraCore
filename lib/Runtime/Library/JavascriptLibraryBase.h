@@ -77,6 +77,10 @@ namespace Js
         JavascriptFunction* GetSyntaxErrorConstructor() const { return syntaxErrorConstructor; }
         JavascriptFunction* GetTypeErrorConstructor() const { return typeErrorConstructor; }
         JavascriptFunction* GetURIErrorConstructor() const { return uriErrorConstructor; }
+        JavascriptFunction* GetPromiseResolve() const { return promiseResolveFunction; }
+        JavascriptFunction* GetPromiseThen() const { return promiseThenFunction; }
+        JavascriptFunction* GetJSONStringify() const { return jsonStringifyFunction; }
+        JavascriptFunction* GetObjectFreeze() const { return objectFreezeFunction; }
 
         JavascriptFunction* GetArrayPrototypeForEachFunction() const { return arrayPrototypeForEachFunction; }
         JavascriptFunction* GetArrayPrototypeKeysFunction() const { return arrayPrototypeKeysFunction; }
@@ -134,6 +138,7 @@ namespace Js
         DynamicObject* GetTypeErrorPrototype() const { return typeErrorPrototype; }
         DynamicObject* GetURIErrorPrototype() const { return uriErrorPrototype; }
         PropertyId GetPropertyIdSymbolIterator() { return PropertyIds::_symbolIterator; };
+        PropertyId GetPropertyIdSymbolToStringTag() { return PropertyIds::_symbolToStringTag; };
 
     protected:
         Field(GlobalObject*) globalObject;
@@ -185,6 +190,10 @@ namespace Js
         Field(JavascriptFunction*) __proto__getterFunction;
         Field(JavascriptFunction*) __proto__setterFunction;
         Field(JavascriptFunction*) arrayIteratorPrototypeBuiltinNextFunction;
+        Field(JavascriptFunction*) promiseResolveFunction;
+        Field(JavascriptFunction*) promiseThenFunction;
+        Field(JavascriptFunction*) jsonStringifyFunction;
+        Field(JavascriptFunction*) objectFreezeFunction;
         Field(DynamicObject*) mathObject;
         // SIMD_JS
         Field(DynamicObject*) simdObject;

@@ -528,7 +528,7 @@ HELPERCALL_MATH(DirectMath_Random,  (double(*)(Js::ScriptContext*))Js::Javascrip
 // as dynamic initialization is require to load these addresses.  Use nullptr instead and handle these function in GetNonTableMethodAddress().
 //
 
-HELPERCALL(MemCmp, nullptr, 0)
+HELPERCALL(WMemCmp, nullptr, 0)
 HELPERCALL(MemCpy, nullptr, 0)
 
 HELPERCALL(DirectMath_FloorDb, nullptr, 0)
@@ -555,10 +555,6 @@ HELPERCALL(I64TOF64,        Js::JavascriptConversion::LongToDouble,        0)
 HELPERCALL(UI64TOF64,       Js::JavascriptConversion::ULongToDouble,       0)
 HELPERCALL(I64TOF32,        Js::JavascriptConversion::LongToFloat,         0)
 HELPERCALL(UI64TOF32,       Js::JavascriptConversion::ULongToFloat,        0)
-
-#if (defined(ASMJS_PLAT) || defined(ENABLE_WASM)) && defined(ENABLE_DEBUG_CONFIG_OPTIONS)
-HELPERCALL(TraceAsmJsArgIn, WAsmJs::TraceAsmJsArgsIn, 0)
-#endif
 
 #ifdef _M_IX86
 HELPERCALL(DirectMath_Acos, nullptr, 0)
@@ -615,6 +611,11 @@ HELPERCALL(GuardCheckCall, nullptr, 0)
 HELPERCALL( CRT_chkstk, _chkstk, 0 )
 #else
 HELPERCALL(CRT_chkstk, __chkstk, 0)
+#endif
+
+#if _CONTROL_FLOW_GUARD_SHADOW_STACK
+// Statically linked CRT routine used when RFG violations.
+HELPERCALL(ReturnFlowGuardFailureRoutine, __guard_ss_verify_failure, 0)
 #endif
 
 #undef HELPERCALL_MATH

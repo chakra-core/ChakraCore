@@ -929,6 +929,7 @@ PropertySymOpnd::ChangesObjectLayout() const
     JITTypeHolder cachedType = this->IsMono() ? this->GetType() : this->GetFirstEquivalentType();
 
     JITTypeHolder finalType = this->GetFinalType();
+
     if (finalType != nullptr && Js::DynamicType::Is(finalType->GetTypeId()))
     {
         // This is the case where final type opt may cause pro-active type transition to take place.
@@ -3666,10 +3667,16 @@ Opnd::GetAddrDescription(__out_ecount(count) char16 *const description, const si
             break;
 
         case AddrOpndKindDynamicFrameDisplay:
+            DumpAddress(address, printToConsole, skipMaskedAddress);
+            if (!func->IsOOPJIT())
             {
                 Js::FrameDisplay * frameDisplay = (Js::FrameDisplay *)address;
                 WriteToBuffer(&buffer, &n, (frameDisplay->GetStrictMode() ? _u(" (StrictFrameDisplay len %d)") : _u(" (FrameDisplay len %d)")),
                     frameDisplay->GetLength());
+            }
+            else
+            {
+                WriteToBuffer(&buffer, &n, _u(" (FrameDisplay)"));
             }
             break;
         case AddrOpndKindSz:

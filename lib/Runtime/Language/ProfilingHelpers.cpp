@@ -68,6 +68,11 @@ namespace Js
                 bool isVirtual = (VirtualTableInfoBase::GetVirtualTable(base) == ValueType::GetVirtualTypedArrayVtable(arrayTypeId));
                 ldElemInfo.arrayType = ValueType::FromTypeId(arrayTypeId, isVirtual).ToLikely();
             }
+            else if(Js::RecyclableObject::Is(base))
+            {
+                ldElemInfo.arrayType = ValueType::FromObject(Js::RecyclableObject::FromVar(base)).ToLikely();
+                break;
+            }
             else
             {
                 break;
@@ -93,7 +98,7 @@ namespace Js
         const ValueType arrayType(ldElemInfo.GetArrayType());
         if(!arrayType.IsUninitialized())
         {
-            if(arrayType.IsLikelyObject() && arrayType.GetObjectType() == ObjectType::Array && !arrayType.HasIntElements())
+            if(array && arrayType.IsLikelyObject() && arrayType.GetObjectType() == ObjectType::Array && !arrayType.HasIntElements())
             {
                 JavascriptOperators::UpdateNativeArrayProfileInfoToCreateVarArray(
                     array,

@@ -526,6 +526,7 @@ Recycler::ScanObjectInlineInterior(void ** obj, size_t byteCount)
 }
 
 template <bool doSpecialMark>
+NO_SANITIZE_ADDRESS
 inline void
 Recycler::ScanMemoryInline(void ** obj, size_t byteCount)
 {

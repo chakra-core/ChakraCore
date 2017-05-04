@@ -161,7 +161,7 @@ private:
     bool            GenerateAdjustBaseSlots(IR::Instr * instrStFld, IR::RegOpnd *baseOpnd, JITTypeHolder initialType, JITTypeHolder finalType);
     void            GeneratePrototypeCacheInvalidateCheck(IR::PropertySymOpnd *propertySymOpnd, IR::Instr *instrStFld);
     void            PinTypeRef(JITTypeHolder type, void* typeRef, IR::Instr* instr, Js::PropertyId propertyId);
-    IR::RegOpnd *   GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject = true, IR::LabelInstr *labelFastExternal = nullptr);
+    IR::RegOpnd *   GenerateIsBuiltinRecyclableObject(IR::RegOpnd *regOpnd, IR::Instr *insertInstr, IR::LabelInstr *labelHelper, bool checkObjectAndDynamicObject = true, IR::LabelInstr *labelFastExternal = nullptr, bool isInHelper = false);
 
 
 
@@ -255,6 +255,8 @@ private:
     IR::Instr *     LowerNewScIntArray(IR::Instr *arrInstr);
     IR::Instr *     LowerNewScFltArray(IR::Instr *arrInstr);
     IR::Instr *     LowerArraySegmentVars(IR::Instr *instr);
+    IR::Instr *     LowerEqualityBranch(IR::Instr* instr, IR::JnHelperMethod helper);
+    IR::Instr *     LowerEqualityCompare(IR::Instr* instr, IR::JnHelperMethod helper);
     template <typename ArrayType>
     BOOL            IsSmallObject(uint32 length);
 #ifdef ENABLE_DOM_FAST_PATH
@@ -280,11 +282,13 @@ private:
     IR::BranchInstr* GenerateFastBrConst(IR::BranchInstr *branchInstr, IR::Opnd * constOpnd, bool isEqual);
     bool            GenerateFastCondBranch(IR::BranchInstr * instrBranch, bool *pIsHelper);
     void            GenerateBooleanNegate(IR::Instr * instr, IR::Opnd * srcBool, IR::Opnd * dst);
-    bool            GenerateFastEqBoolInt(IR::Instr * instr, bool *pIsHelper);
-    bool            GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper);
-    bool            GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *src1, IR::Opnd *src2, IR::LabelInstr * labelHelper, IR::LabelInstr * labelEqualLikely, bool *pNeedHelper);
-    bool            GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper);
+    bool            GenerateFastEqBoolInt(IR::Instr * instr, bool *pIsHelper, bool isInHelper);
+    bool            GenerateFastBrEqLikely(IR::BranchInstr * instrBranch, bool *pNeedHelper, bool isInHelper);
+    bool            GenerateFastBooleanAndObjectEqLikely(IR::Instr * instr, IR::Opnd *src1, IR::Opnd *src2, IR::LabelInstr * labelHelper, IR::LabelInstr * labelEqualLikely, bool *pNeedHelper, bool isInHelper);
+    bool            GenerateFastCmEqLikely(IR::Instr * instr, bool *pNeedHelper, bool isInHelper);
     bool            GenerateFastBrBool(IR::BranchInstr *const instr);
+    bool            GenerateFastStringCheck(IR::Instr *instr, IR::RegOpnd *srcReg1, IR::RegOpnd *srcReg2, bool isEqual, bool isStrict, IR::LabelInstr *labelHelper, IR::LabelInstr *labelBranchSuccess, IR::LabelInstr *labelBranchFail);
+    bool            GenerateFastBrOrCmString(IR::Instr* instr);
     static IR::Instr *LoadFloatFromNonReg(IR::Opnd * opndOrig, IR::Opnd * regOpnd, IR::Instr * instrInsert);
     void            LoadInt32FromUntaggedVar(IR::Instr *const instrLoad);
     bool            GetValueFromIndirOpnd(IR::IndirOpnd *indirOpnd, IR::Opnd **pValueOpnd, IntConstType *pValue);
@@ -387,8 +391,39 @@ public:
     }
 
 private:
-    IR::IndirOpnd * GenerateFastElemICommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelCantUseArray, IR::LabelInstr *labelFallthrough, bool * pIsTypedArrayElement, bool * pIsStringIndex, bool *emitBailoutRef, IR::LabelInstr **pLabelSegmentLengthIncreased = nullptr, bool checkArrayLengthOverflow = true, bool forceGenerateFastPath = false, bool returnLength = false, IR::LabelInstr *bailOutLabelInstr = nullptr);
-    IR::IndirOpnd * GenerateFastElemIIntIndexCommon(IR::Instr * ldElem, bool isStore, IR::IndirOpnd * indirOpnd, IR::LabelInstr * labelHelper, IR::LabelInstr * labelCantUseArray, IR::LabelInstr *labelFallthrough, bool * pIsTypedArrayElement, bool *emitBailoutRef, IR::LabelInstr **pLabelSegmentLengthIncreased, bool checkArrayLengthOverflow, bool forceGenerateFastPath = false, bool returnLength = false, IR::LabelInstr *bailOutLabelInstr = nullptr);
+    IR::IndirOpnd * GenerateFastElemICommon(
+        IR::Instr * ldElem,
+        bool isStore,
+        IR::IndirOpnd * indirOpnd,
+        IR::LabelInstr * labelHelper,
+        IR::LabelInstr * labelCantUseArray,
+        IR::LabelInstr *labelFallthrough,
+        bool * pIsTypedArrayElement,
+        bool * pIsStringIndex,
+        bool *emitBailoutRef,
+        IR::LabelInstr **pLabelSegmentLengthIncreased = nullptr,
+        bool checkArrayLengthOverflow = true,
+        bool forceGenerateFastPath = false,
+        bool returnLength = false,
+        IR::LabelInstr *bailOutLabelInstr = nullptr,
+        bool * indirOpndOverflowed = nullptr);
+
+    IR::IndirOpnd * GenerateFastElemIIntIndexCommon(
+        IR::Instr * ldElem,
+        bool isStore,
+        IR::IndirOpnd * indirOpnd,
+        IR::LabelInstr * labelHelper,
+        IR::LabelInstr * labelCantUseArray,
+        IR::LabelInstr *labelFallthrough,
+        bool * pIsTypedArrayElement,
+        bool *emitBailoutRef,
+        IR::LabelInstr **pLabelSegmentLengthIncreased,
+        bool checkArrayLengthOverflow,
+        bool forceGenerateFastPath = false,
+        bool returnLength = false,
+        IR::LabelInstr *bailOutLabelInstr = nullptr,
+        bool * indirOpndOverflowed = nullptr);
+
     bool            GenerateFastLdElemI(IR::Instr *& ldElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastStElemI(IR::Instr *& StElem, bool *instrIsInHelperBlockRef);
     bool            GenerateFastLdLen(IR::Instr *ldLen, bool *instrIsInHelperBlockRef);

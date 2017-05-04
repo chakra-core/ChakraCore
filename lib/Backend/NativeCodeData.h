@@ -42,6 +42,7 @@ public:
 
     struct DataChunkNoFixup
     {
+        unsigned int len; // only used for memory management purposes.
         DataChunkNoFixup * next;
         char data[0];
     };

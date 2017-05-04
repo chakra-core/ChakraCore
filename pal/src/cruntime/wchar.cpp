@@ -1239,6 +1239,8 @@ PAL_wmemcmp(
           string1?string1:W16_NULLSTRING, string2?string2:W16_NULLSTRING, string2?string2:W16_NULLSTRING,
           (unsigned long) count);
 
+    if (string1 == string2) return diff;
+
     for (i = 0; i < count; i++)
     {
         diff = string1[i] - string2[i];

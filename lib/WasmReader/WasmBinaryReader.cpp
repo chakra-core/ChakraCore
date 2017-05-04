@@ -75,28 +75,6 @@ void WasmBinaryReader::InitializeReader()
 {
     ValidateModuleHeader();
     m_readerState = READER_STATE_UNKNOWN;
-#if DBG_DUMP
-    if (DO_WASM_TRACE_SECTION)
-    {
-        const byte* startModule = m_pc;
-
-        bool doRead = true;
-        SectionCode prevSect = bSectLimit;
-        while (doRead)
-        {
-            SectionHeader secHeader = ReadSectionHeader();
-            if (secHeader.code <= prevSect)
-            {
-                TRACE_WASM_SECTION(_u("Unknown section order"));
-            }
-            prevSect = secHeader.code;
-            // skip the section
-            m_pc = secHeader.end;
-            doRead = !EndOfModule();
-        }
-        m_pc = startModule;
-    }
-#endif
 }
 
 void
@@ -107,49 +85,28 @@ WasmBinaryReader::ThrowDecodingError(const char16* msg, ...)
     throw WasmCompilationException(msg, argptr);
 }
 
-bool
-WasmBinaryReader::ReadNextSection(SectionCode nextSection)
+SectionHeader
+WasmBinaryReader::ReadNextSection()
 {
     while (true)
     {
-        if (EndOfModule() || SectionInfo::All[nextSection].flag == fSectIgnore)
+        if (EndOfModule())
         {
-            return false;
+            memset(&m_currentSection, 0, sizeof(SectionHeader));
+            m_currentSection.code = bSectLimit;
+            return m_currentSection;
         }
 
         m_currentSection = ReadSectionHeader();
         if (SectionInfo::All[m_currentSection.code].flag == fSectIgnore)
         {
-            TRACE_WASM_DECODER(_u("Ignore this section"));
+            TRACE_WASM_SECTION(_u("Ignore this section"));
             m_pc = m_currentSection.end;
             // Read next section
             continue;
         }
 
-        // Process the custom sections now
-        if (m_currentSection.code == bSectCustom)
-        {
-            if (!ProcessCurrentSection())
-            {
-                ThrowDecodingError(_u("Error while reading custom section %s"), m_currentSection.name);
-            }
-            // Read next section
-            continue;
-        }
-
-        if (m_currentSection.code < nextSection)
-        {
-            ThrowDecodingError(_u("Invalid Section %s"), m_currentSection.code);
-        }
-
-        if (m_currentSection.code != nextSection)
-        {
-            TRACE_WASM_DECODER(_u("The current section is not the one we are looking for"));
-            // We know about this section, but it's not the one we're looking for
-            m_pc = m_currentSection.start;
-            return false;
-        }
-        return true;
+        return m_currentSection;
     }
 }
 
@@ -233,29 +190,17 @@ WasmBinaryReader::ReadSectionHeader()
     CheckBytesLeft(sectionSize);
 
     header.code = sectionId;
-    const char *sectionName = SectionInfo::All[sectionId].id;
-    UINT32 nameLength = SectionInfo::All[sectionId].nameLength;
     if (sectionId == bSectCustom)
     {
-        nameLength = LEB128(len);
-        CheckBytesLeft(nameLength);
-        sectionName = (const char*)(m_pc);
-        m_pc += nameLength;
+        header.name = ReadInlineName(len, header.nameLength);
     }
-
-    header.nameLength = nameLength;
-    header.name = sectionName;
-
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-    if (DO_WASM_TRACE_SECTION)
+    else
     {
-        char16* wstr = nullptr;
-        size_t unused;
-        utf8::NarrowStringToWide<utf8::malloc_allocator>(sectionName, nameLength, &wstr, &unused);
-        TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), wstr, sectionSize, sectionSize);
-        free(wstr);
+        header.name = SectionInfo::All[sectionId].name;
+        header.nameLength = SectionInfo::All[sectionId].nameLength;
     }
-#endif
+
+    TRACE_WASM_SECTION(_u("Section Header: %s, length = %u (0x%x)"), header.name, sectionSize, sectionSize);
     return header;
 }
 
@@ -324,7 +269,6 @@ WasmBinaryReader::ReadFunctionHeaders()
         WasmFunctionInfo* funcInfo = m_module->GetWasmFunctionInfo(funcIndex);
 
         const uint32 funcSize = LEB128(len);
-        funcInfo->m_readerInfo.index = funcIndex;
         funcInfo->m_readerInfo.size = funcSize;
         funcInfo->m_readerInfo.startOffset = (m_pc - m_start);
         CheckBytesLeft(funcSize);
@@ -334,9 +278,9 @@ WasmBinaryReader::ReadFunctionHeaders()
     }
 }
 
-void
-WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
+void WasmBinaryReader::SeekToFunctionBody(class WasmFunctionInfo* funcInfo)
 {
+    FunctionBodyReaderInfo readerInfo = funcInfo->m_readerInfo;
     if (readerInfo.startOffset >= (m_end - m_start))
     {
         ThrowDecodingError(_u("Function byte offset out of bounds"));
@@ -357,8 +301,6 @@ WasmBinaryReader::SeekToFunctionBody(FunctionBodyReaderInfo readerInfo)
     uint32 len = 0;
     uint32 entryCount = LEB128(len);
     m_funcState.count += len;
-
-    WasmFunctionInfo* funcInfo = m_module->GetWasmFunctionInfo(readerInfo.index);
 
     // locals
     for (uint32 j = 0; j < entryCount; j++)
@@ -945,7 +887,8 @@ WasmBinaryReader::ReadNamesSection()
     {
         UINT fnNameLen = 0;
         WasmFunctionInfo* funsig = m_module->GetWasmFunctionInfo(i);
-        funsig->SetName(ReadInlineName(len, fnNameLen), fnNameLen);
+        const char16* name = ReadInlineName(len, fnNameLen);
+        funsig->SetName(name, fnNameLen);
         UINT numLocals = LEB128(len);
         if (numLocals != funsig->GetLocalCount())
         {
@@ -998,7 +941,8 @@ void
 WasmBinaryReader::ReadCustomSection()
 {
     CustomSection customSection;
-    customSection.name = CvtUtf8Str((LPCUTF8)m_currentSection.name, m_currentSection.nameLength, &customSection.nameLength);
+    customSection.name = m_currentSection.name;
+    customSection.nameLength = m_currentSection.nameLength;
     customSection.payload = m_pc;
 
     size_t size = m_currentSection.end - m_pc;
@@ -1014,30 +958,21 @@ WasmBinaryReader::ReadCustomSection()
 const char16*
 WasmBinaryReader::ReadInlineName(uint32& length, uint32& nameLength)
 {
-    nameLength = LEB128(length);
-    CheckBytesLeft(nameLength);
+    uint rawNameLength = LEB128(length);
+    CheckBytesLeft(rawNameLength);
     LPCUTF8 rawName = m_pc;
 
-    m_pc += nameLength;
-    length += nameLength;
+    m_pc += rawNameLength;
+    length += rawNameLength;
 
-    return CvtUtf8Str(rawName, nameLength);
-}
-
-const char16*
-WasmBinaryReader::CvtUtf8Str(LPCUTF8 name, uint32 nameLen, charcount_t* dstLength)
-{
     utf8::DecodeOptions decodeOptions = utf8::doDefault;
-    charcount_t utf16Len = utf8::ByteIndexIntoCharacterIndex(name, nameLen, decodeOptions);
-    char16* contents = AnewArray(m_alloc, char16, utf16Len + 1);
-    if (contents == nullptr)
+    nameLength = (uint32)utf8::ByteIndexIntoCharacterIndex(rawName, rawNameLength, decodeOptions);
+    char16* contents = AnewArray(m_alloc, char16, nameLength + 1);
+    size_t decodedLength = utf8::DecodeUnitsIntoAndNullTerminate(contents, rawName, rawName + rawNameLength, decodeOptions);
+    if (decodedLength != nameLength)
     {
-        Js::Throw::OutOfMemory();
-    }
-    utf8::DecodeUnitsIntoAndNullTerminate(contents, name, name + nameLen, decodeOptions);
-    if (dstLength)
-    {
-        *dstLength = utf16Len;
+        AssertMsg(UNREACHED, "We calculated the length before decoding, what happened ?");
+        ThrowDecodingError(_u("Error while decoding utf8 string"));
     }
     return contents;
 }

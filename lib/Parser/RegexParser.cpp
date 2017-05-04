@@ -1129,7 +1129,7 @@ namespace UnifiedRegex
     template <typename P, const bool IsLiteral>
     void Parser<P, IsLiteral>::TermPass0(int depth)
     {
-        PROBE_STACK(scriptContext, Js::Constants::MinStackRegex);
+        PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackRegex);
         // Either we have a location at the start, or the end, never both. As in between it should have been cleared if surrogate pair
         // Or must be cleared if we didn't perform the check
         bool clearLocationIfPresent = this->tempLocationOfSurrogatePair != nullptr;
@@ -1282,7 +1282,7 @@ namespace UnifiedRegex
     template <typename P, const bool IsLiteral>
     Node* Parser<P, IsLiteral>::TermPass1(MatchCharNode* deferredCharNode, bool& previousSurrogatePart)
     {
-        PROBE_STACK(scriptContext, Js::Constants::MinStackRegex);
+        PROBE_STACK_NO_DISPOSE(scriptContext, Js::Constants::MinStackRegex);
 
         Node* node = 0;
         bool containsSurrogatePair = false;

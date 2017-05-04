@@ -140,7 +140,11 @@
 #define ENABLE_JS_ETW                               // ETW support
 #else
 #define SYSINFO_IMAGE_BASE_AVAILABLE 0
+#ifndef ENABLE_VALGRIND
 #define ENABLE_CONCURRENT_GC 1
+#else
+#define ENABLE_CONCURRENT_GC 0
+#endif
 #define SUPPORT_WIN32_SLIST 0
 #endif
 
@@ -600,6 +604,15 @@
 // #define RECYCLER_MARK_TRACK
 // #define INTERNAL_MEM_PROTECT_HEAP_ALLOC
 
+#define NO_SANITIZE_ADDRESS
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#undef NO_SANITIZE_ADDRESS
+#define NO_SANITIZE_ADDRESS __attribute__((no_sanitize("address")))
+#define NO_SANITIZE_ADDRESS_FIXVC
+#endif
+#endif
+
 //----------------------------------------------------------------------------------------------------
 // Disabled features
 //----------------------------------------------------------------------------------------------------
@@ -764,6 +777,13 @@
 //----------------------------------------------------------------------------------------------------
 #ifndef JS_PROFILE_DATA_INTERFACE
 #define JS_PROFILE_DATA_INTERFACE 0
+#endif
+
+#define JS_REENTRANCY_FAILFAST 1
+#if DBG || JS_REENTRANCY_FAILFAST
+#define ENABLE_JS_REENTRANCY_CHECK 1
+#else
+#define ENABLE_JS_REENTRANCY_CHECK 0
 #endif
 
 #ifndef PROFILE_DICTIONARY

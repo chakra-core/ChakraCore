@@ -26,7 +26,7 @@ namespace Wasm
         const byte* start;
         const byte* end;
         uint32 nameLength;
-        const char* name;
+        const char16* name;
     };
 
     static const unsigned int binaryVersion = 0x1;
@@ -37,10 +37,10 @@ namespace Wasm
         WasmBinaryReader(ArenaAllocator* alloc, Js::WebAssemblyModule * module, const byte* source, size_t length);
 
         void InitializeReader();
-        bool ReadNextSection(SectionCode nextSection);
+        SectionHeader ReadNextSection();
         // Fully read the section in the reader. Return true if the section fully read
         bool ProcessCurrentSection();
-        virtual void SeekToFunctionBody(FunctionBodyReaderInfo readerInfo) override;
+        virtual void SeekToFunctionBody(class WasmFunctionInfo* funcInfo) override;
         virtual bool IsCurrentFunctionCompleted() const override;
         virtual WasmOp ReadExpr() override;
         virtual void FunctionEnd() override;
@@ -86,7 +86,6 @@ namespace Wasm
         uint8 ReadVarUInt7();
         bool ReadMutableValue();
         const char16* ReadInlineName(uint32& length, uint32& nameLength);
-        const char16* CvtUtf8Str(LPCUTF8 name, uint32 nameLen, charcount_t* dstLength = nullptr);
         template<typename MaxAllowedType = UINT>
         MaxAllowedType LEB128(UINT &length, bool sgn = false);
         template<typename MaxAllowedType = INT>

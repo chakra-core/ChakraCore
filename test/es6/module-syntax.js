@@ -7,8 +7,8 @@
 
 WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
-function testModuleScript(source, message, shouldFail) {
-    let testfunc = () => WScript.LoadModule(source, 'samethread');
+function testModuleScript(source, message, shouldFail = false) {
+    let testfunc = () => testRunner.LoadModule(source, 'samethread', shouldFail);
 
     if (shouldFail) {
         let caught = false;

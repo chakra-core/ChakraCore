@@ -2,7 +2,6 @@
 // Copyright (C) Microsoft. All rights reserved.
 // Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 //-------------------------------------------------------------------------------------------------------
-WScript.LoadScriptFile("..\\UnitTestFramework\\UnitTestFramework.js");
 
 function foo() { }
 class bar { }
@@ -62,7 +61,6 @@ export function changeContext()
 export function verifyNamespace(ns)
 {
     var unused = 1;
-    for (var i in ns) helpers.writeln(i + " = " + ns[i]);
     assert.areEqual(ns.var7, var7, "var7 is the same");
     assert.areEqual(ns.var6, var6, "var6 is the same");
     assert.areEqual(ns.var5, var5, "var5 is the same");

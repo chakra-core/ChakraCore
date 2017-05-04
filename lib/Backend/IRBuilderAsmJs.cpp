@@ -127,13 +127,6 @@ IRBuilderAsmJs::Build()
         BuildImplicitArgIns();
     }
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    if (!this->IsLoopBody() && PHASE_TRACE(Js::AsmjsFunctionEntryPhase, m_func))
-    {
-        BuildArgInTracing();
-    }
-#endif
-
     if (m_statementReader.AtStatementBoundary(&m_jnReader))
     {
         statementIndex = AddStatementBoundary(statementIndex, offset);
@@ -931,110 +924,6 @@ IRBuilderAsmJs::BuildImplicitArgIns()
     }
 }
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-void
-IRBuilderAsmJs::BuildArgInTracing()
-{
-    // todo:: fix implementation on x64
-#ifdef _M_IX86
-    int32 intArgInCount = 0;
-    int32 int64ArgInCount = 0;
-    int32 floatArgInCount = 0;
-    int32 doubleArgInCount = 0;
-    int32 simd128ArgInCount = 0;
-
-    Js::ArgSlot nArgs = 0;
-    if (m_func->GetJITFunctionBody()->HasImplicitArgIns())
-    {
-        // -1 to remove the implicit this pointer
-        nArgs = m_func->GetJITFunctionBody()->GetInParamsCount() - 1;
-    }
-    int32 argSize = 0;
-    Js::ArgSlot argOutSlot = 1;
-
-    // Start Call
-    IR::RegOpnd * dstOpnd = IR::RegOpnd::New(TyVar, m_func);
-    IR::IntConstOpnd * argSizeOpnd = IR::IntConstOpnd::New(nArgs, TyInt32, m_func);
-    IR::Instr *instr = IR::Instr::New(Js::OpCode::StartCall, dstOpnd, argSizeOpnd, m_func);
-
-    AddInstr(instr, Js::Constants::NoByteCodeOffset);
-
-    m_argStack->Push(instr);
-
-    auto PushArg = [&](IRType type, ValueType valueType, IR::Opnd* srcOpnd) {
-        StackSym* symDst = StackSym::NewArgSlotSym(argOutSlot++, m_func, type);
-        symDst->m_allocated = true;
-        IR::SymOpnd * dstOpnd = IR::SymOpnd::New(symDst, type, m_func);
-        dstOpnd->SetValueType(valueType);
-        IR::Instr * instr = IR::Instr::New(Js::OpCode::ArgOut_A, dstOpnd, srcOpnd, m_func);
-
-        AddInstr(instr, Js::Constants::NoByteCodeOffset);
-        m_argStack->Push(instr);
-        argSize += max(TySize[type], MachPtr);
-    };
-
-    // Move the function object as an argument
-    {
-        StackSym* stackSym = StackSym::New(m_func);
-        IR::RegOpnd* stackOpnd = IR::RegOpnd::New(stackSym, TyVar, m_func);
-        AddInstr(IR::Instr::New(Js::OpCode::LdFuncObj, stackOpnd, m_func), Js::Constants::NoByteCodeOffset);
-
-        PushArg(TyVar, ValueType::GetObject(ObjectType::Object), stackOpnd);
-    }
-    PushArg(TyInt32, ValueType::GetInt(false), IR::IntConstOpnd::New(nArgs, TyInt32, m_func));
-
-    for (Js::ArgSlot i = 0; i < nArgs; ++i)
-    {
-        IRType argType;
-        Js::RegSlot argSlot;
-        ValueType valueType;
-        Js::AsmJsVarType varType = m_asmFuncInfo->GetArgType(i);
-        switch (varType.which())
-        {
-        case Js::AsmJsVarType::Which::Int:
-            argType = TyInt32;
-            argSlot = GetFirstVar(WAsmJs::INT32) + intArgInCount;
-            valueType = ValueType::GetInt(false);
-            ++intArgInCount;
-            break;
-        case Js::AsmJsVarType::Which::Float:
-            argType = TyFloat32;
-            argSlot = GetFirstVar(WAsmJs::FLOAT32) + floatArgInCount;
-            valueType = ValueType::Float;
-            ++floatArgInCount;
-            break;
-        case Js::AsmJsVarType::Which::Double:
-            argType = TyFloat64;
-            argSlot = GetFirstVar(WAsmJs::FLOAT64) + doubleArgInCount;
-            valueType = ValueType::Float;
-            ++doubleArgInCount;
-            break;
-        case Js::AsmJsVarType::Which::Int64:
-            argType = TyInt64;
-            argSlot = GetFirstVar(WAsmJs::INT64) + int64ArgInCount;
-            valueType = ValueType::GetInt(false);
-            ++int64ArgInCount;
-            break;
-        default:
-            // SIMD_JS
-            GetSimdTypesFromAsmType((Js::AsmJsType::Which)varType.which(), &argType, &valueType);
-            argSlot = GetFirstVar(WAsmJs::SIMD) + simd128ArgInCount;
-            ++simd128ArgInCount;
-            break;
-        }
-
-        PushArg(TyInt32, ValueType::GetInt(false), IR::IntConstOpnd::New((int32)argType, TyInt32, m_func));
-        PushArg(argType, valueType, BuildSrcOpnd(argSlot, argType));
-    }
-
-    // save this so we can calculate arg offsets later on
-    m_argOffsetStack->Push(argSize);
-    argSizeOpnd->SetValue(argSize);
-    BuildAsmCall(Js::OpCodeAsmJs::AsmJsEntryTracing, Js::Constants::NoByteCodeOffset, nArgs * 2 + 1, 0, 0, 0);
-#endif
-}
-#endif
-
 void
 IRBuilderAsmJs::InsertLabels()
 {
@@ -1771,10 +1660,6 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
 
         instr = IR::Instr::New(Js::OpCode::AsmJsCallE, dstOpnd, srcOpnd, m_func);
         break;
-    case Js::OpCodeAsmJs::AsmJsEntryTracing:
-        argOffset = m_argOffsetStack->Pop();
-        instr = IR::Instr::New(Js::OpCode::AsmJsEntryTracing, m_func);
-        break;
     default:
         Assume(UNREACHED);
     }
@@ -1785,7 +1670,7 @@ IRBuilderAsmJs::BuildAsmCall(Js::OpCodeAsmJs newOpcode, uint32 offset, Js::ArgSl
 
     for (argInstr = m_argStack->Pop(); argInstr && argInstr->m_opcode != Js::OpCode::StartCall; argInstr = m_argStack->Pop())
     {
-        if (newOpcode == Js::OpCodeAsmJs::I_Call || newOpcode == Js::OpCodeAsmJs::AsmJsEntryTracing)
+        if (newOpcode == Js::OpCodeAsmJs::I_Call)
         {
 #if _M_IX86
             argOffset -= argInstr->GetDst()->GetSize();

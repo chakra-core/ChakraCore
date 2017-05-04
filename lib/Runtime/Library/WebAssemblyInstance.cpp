@@ -126,7 +126,7 @@ WebAssemblyInstance::CreateInstance(WebAssemblyModule * module, Var importObject
     }
     catch (Wasm::WasmCompilationException& e)
     {
-        JavascriptError::ThrowWebAssemblyLinkErrorVar(scriptContext, WASMERR_WasmLinkError, e.ReleaseErrorMessage());
+        JavascriptError::ThrowWebAssemblyLinkErrorVar(scriptContext, WASMERR_WasmLinkError, e.GetTempErrorMessageRef());
     }
 
     uint32 startFuncIdx = module->GetStartFunction();
@@ -173,15 +173,7 @@ void WebAssemblyInstance::LoadFunctions(WebAssemblyModule * wasmModule, ScriptCo
             if (info->GetWasmReaderInfo())
             {
                 WasmLibrary::SetWasmEntryPointToInterpreter(funcObj, false);
-#if ENABLE_DEBUG_CONFIG_OPTIONS
-                // Do MTJRC/MAIC:0 check
-                const bool noJit = PHASE_OFF(BackEndPhase, body) || PHASE_OFF(FullJitPhase, body) || ctx->GetConfig()->IsNoNative();
-                if (!noJit && (CONFIG_FLAG(ForceNative) || CONFIG_FLAG(MaxAsmJsInterpreterRunCount) == 0))
-                {
-                    GenerateFunction(ctx->GetNativeCodeGenerator(), body, funcObj);
-                    body->SetIsAsmJsFullJitScheduled(true);
-                }
-#endif
+                WAsmJs::JitFunctionIfReady(funcObj);
                 info->SetWasmReaderInfo(nullptr);
             }
         }

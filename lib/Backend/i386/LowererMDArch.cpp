@@ -835,21 +835,6 @@ LowererMDArch::LowerAsmJsCallI(IR::Instr * callInstr)
     const uint32 argSlots = argCount + (stackAlignment / 4) + 1;
     m_func->m_argSlotsForFunctionsCalled = max(m_func->m_argSlotsForFunctionsCalled, argSlots);
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    if (callInstr->m_opcode == Js::OpCode::AsmJsEntryTracing)
-    {
-        callInstr = this->lowererMD->ChangeToHelperCall(callInstr, IR::HelperTraceAsmJsArgIn);
-        //     lea esp, [esp + sizeValue]
-        IR::IntConstOpnd * sizeOpnd = startCallInstr->GetSrc1()->AsIntConstOpnd();
-
-        IntConstType sizeValue = sizeOpnd->GetValue() + stackAlignment;
-        IR::RegOpnd * espOpnd = IR::RegOpnd::New(nullptr, this->GetRegStackPointer(), TyMachReg, m_func);
-        IR::Instr * fixStack = IR::Instr::New(Js::OpCode::LEA, espOpnd, IR::IndirOpnd::New(espOpnd, sizeValue, TyMachReg, m_func), m_func);
-        callInstr->InsertAfter(fixStack);
-        return fixStack;
-    }
-#endif
-
     IR::Opnd * functionObjOpnd = callInstr->UnlinkSrc1();
 
     // we will not have function object mem ref in the case of function table calls, so we cannot calculate the call address ahead of time

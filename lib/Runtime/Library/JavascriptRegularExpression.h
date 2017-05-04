@@ -210,6 +210,12 @@ namespace Js
 
         void SetLastIndexInfo_TTD(CharCount lastIndex, Js::Var lastVar);
 #endif
+
+    public:
+        virtual VTableValue DummyVirtualFunctionToHinderLinkerICF()
+        {
+            return VTableValue::VtableJavascriptRegExp;
+        }
     };
 
 } // namespace Js

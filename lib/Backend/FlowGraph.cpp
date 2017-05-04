@@ -3072,6 +3072,10 @@ bool FlowGraph::UnsignedCmpPeep(IR::Instr *cmpInstr)
     case Js::OpCode::BrNeq_A:
     case Js::OpCode::BrSrEq_A:
     case Js::OpCode::BrSrNeq_A:
+    case Js::OpCode::CmEq_A:
+    case Js::OpCode::CmNeq_A:
+    case Js::OpCode::CmSrEq_A:
+    case Js::OpCode::CmSrNeq_A:
         break;
     case Js::OpCode::BrLe_A:
         cmpInstr->m_opcode = Js::OpCode::BrUnLe_A;

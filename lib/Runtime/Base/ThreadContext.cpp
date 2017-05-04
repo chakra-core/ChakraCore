@@ -197,11 +197,15 @@ ThreadContext::ThreadContext(AllocationPolicyManager * allocationPolicyManager, 
     debugManager(nullptr)
 #if ENABLE_TTD
     , TTDContext(nullptr)
+    , TTDExecutionInfo(nullptr)
     , TTDLog(nullptr)
     , TTDRootNestingCount(0)
 #endif
 #ifdef ENABLE_DIRECTCALL_TELEMETRY
     , directCallTelemetry(this)
+#endif
+#if ENABLE_JS_REENTRANCY_CHECK
+    , noJsReentrancy(false)
 #endif
 {
     pendingProjectionContextCloseList = JsUtil::List<IProjectionContext*, ArenaAllocator>::New(GetThreadAlloc());
@@ -394,6 +398,12 @@ ThreadContext::~ThreadContext()
     {
         TT_HEAP_DELETE(TTD::ThreadContextTTD, this->TTDContext);
         this->TTDContext = nullptr;
+    }
+
+    if(this->TTDExecutionInfo != nullptr)
+    {
+        TT_HEAP_DELETE(TTD::ThreadContextTTD, this->TTDExecutionInfo);
+        this->TTDExecutionInfo = nullptr;
     }
 
     if(this->TTDLog != nullptr)
@@ -1838,7 +1848,6 @@ void ThreadContext::DisposeOnLeaveScript()
     if (this->callDispose && this->recycler->NeedDispose())
     {
         this->recycler->FinishDisposeObjectsNow<FinishDispose>();
-        this->expirableObjectDisposeList->Clear();
     }
 }
 
@@ -2036,7 +2045,19 @@ void ThreadContext::InitHostFunctionsAndTTData(bool record, bool replay, bool de
         TTDAssert(optTTUri != nullptr, "We need a URI in replay mode so we can initialize the log from it");
 
         this->TTDLog->InitForTTDReplay(this->TTDContext->TTDataIOInfo, optTTUri, optTTUriLength, debug);
+        this->sourceInfoCount = this->TTDLog->GetSourceInfoCount();
     }
+
+#if !ENABLE_TTD_DIAGNOSTICS_TRACING
+    if(debug)
+    {
+#endif
+
+        this->TTDExecutionInfo = HeapNew(TTD::ExecutionInfoManager);
+
+#if !ENABLE_TTD_DIAGNOSTICS_TRACING
+    }
+#endif
 }
 #endif
 
@@ -2063,7 +2084,7 @@ ThreadContext::ExecuteRecyclerCollectionFunction(Recycler * recycler, Collection
     //
     //TODO: We lose any events that happen in the callbacks (such as JsRelease) which may be a problem in the future.
     //      It may be possible to defer the collection of these objects to an explicit collection at the yield loop (same for weak set/map).
-    //      We already indirectly do this for ScriptContext collection.
+    //      We already indirectly do this for ScriptContext collection (but that is buggy so needs to be fixed too).
     //
     if(this->IsRuntimeInTTDMode())
     {
@@ -2843,6 +2864,12 @@ ThreadContext::UpdateRedeferralState()
     }
 }
 
+void
+ThreadContext::PreDisposeObjectsCallBack()
+{
+    this->expirableObjectDisposeList->Clear();
+}
+
 #ifdef FAULT_INJECTION
 void
 ThreadContext::DisposeScriptContextByFaultInjectionCallBack()
@@ -3017,15 +3044,6 @@ ThreadContext::UnregisterExpirableObject(ExpirableObject* object)
     numExpirableObjects--;
 }
 
-void
-ThreadContext::DisposeExpirableObject(ExpirableObject* object)
-{
-    Assert(object->registrationHandle == nullptr);
-
-    //expirableObjectDisposeList will be cleared after finished disposing all objects
-
-    OUTPUT_VERBOSE_TRACE(Js::ExpirableCollectPhase, _u("Disposed 0x%p\n"), object);
-}
 #pragma endregion
 
 void

@@ -47,6 +47,7 @@ namespace Js
 
         void SetSpecifier(Var specifier) { this->normalizedSpecifier = specifier; }
         Var GetSpecifier() const { return normalizedSpecifier; }
+        const char16 *GetSpecifierSz() const { return JavascriptString::FromVar(this->normalizedSpecifier)->GetSz(); }
 
         Var GetErrorObject() const { return errorObject; }
 
@@ -54,8 +55,10 @@ namespace Js
         void SetWasParsed() { wasParsed = true; }
         bool WasDeclarationInitialized() const { return wasDeclarationInitialized; }
         void SetWasDeclarationInitialized() { wasDeclarationInitialized = true; }
-        bool ReadyAsChildModule() const { return readyAsChildModule; }
-        void SetReadyAsChildModule() { readyAsChildModule = true; }
+#if DBG
+        bool ParentsNotified() const { return parentsNotified; }
+        void SetParentsNotified() { parentsNotified = true; }
+#endif
         void SetIsRootModule() { isRootModule = true; }
 
         void SetImportRecordList(ModuleImportOrExportEntryList* importList) { importRecordList = importList; }
@@ -109,7 +112,9 @@ namespace Js
         // This is the parsed tree resulted from compilation. 
         Field(bool) wasParsed;
         Field(bool) wasDeclarationInitialized;
-        Field(bool) readyAsChildModule;
+#if DBG
+        Field(bool) parentsNotified;
+#endif
         Field(bool) isRootModule;
         Field(bool) hadNotifyHostReady;
         Field(ParseNodePtr) parseTree;

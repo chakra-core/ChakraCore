@@ -1672,6 +1672,8 @@ Recycler::ExpectStackSkip() const
 
 #pragma warning(push)
 #pragma warning(disable:4731) // 'pointer' : frame pointer register 'register' modified by inline assembly code
+// disable address sanitizer, since it doesn't handle custom stack walks well
+NO_SANITIZE_ADDRESS
 size_t
 Recycler::ScanStack()
 {
@@ -3275,6 +3277,7 @@ Recycler::DisposeObjects()
 #ifdef FAULT_INJECTION
     this->collectionWrapper->DisposeScriptContextByFaultInjectionCallBack();
 #endif
+    this->collectionWrapper->PreDisposeObjectsCallBack();
 
     // Scope timestamp to just dispose
     {
@@ -4435,8 +4438,7 @@ Recycler::CollectOnConcurrentThread()
 // explicit instantiation
 template BOOL Recycler::FinishConcurrent<FinishConcurrentOnIdle>();
 template BOOL Recycler::FinishConcurrent<FinishConcurrentOnIdleAtRoot>();
-template BOOL Recycler::FinishConcurrent<FinishConcurrentOnExitScript>();
-template BOOL Recycler::FinishConcurrent<FinishConcurrentOnEnterScript>();
+template BOOL Recycler::FinishConcurrent<FinishConcurrentDefault>();
 template BOOL Recycler::FinishConcurrent<ForceFinishCollection>();
 
 template <CollectionFlags flags>

@@ -225,6 +225,7 @@ HRESULT ChakraRTInterface::ParseConfigFlags()
         else
         {
             hr = WideStringToNarrowDynamic(fileNameWide, &m_argInfo->filename);
+            SysFreeString(fileNameWide);
             if (FAILED(hr))
             {
                 Assert(hr == E_OUTOFMEMORY);

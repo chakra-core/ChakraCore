@@ -97,7 +97,6 @@ public:
         m_ptr = m_origPtr;
     }
 
-
     bool                isLabel()           const { return isAlignedLabel() || m_type == RelocTypeLabel; }
     bool                isAlignedLabel()    const { return m_type == RelocTypeAlignedLabel; }
     bool                isLongBr()          const { return m_type == RelocTypeBranch && m_shortBrLabel == NULL; }

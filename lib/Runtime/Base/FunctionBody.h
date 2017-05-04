@@ -857,12 +857,7 @@ namespace Js
 #endif
         }
 
-        void SetCodeGenDone()
-        {
-            Assert(this->GetState() == CodeGenRecorded);
-            this->state = CodeGenDone;
-            this->workItem = nullptr;
-        }
+        void SetCodeGenDone();
 
         void SetJITCapReached()
         {
@@ -2007,6 +2002,9 @@ namespace Js
         void SetReparsed(bool set) { m_reparsed = set; }
         bool GetExternalDisplaySourceName(BSTR* sourceName);
 
+        void CleanupToReparse();
+        void CleanupToReparseHelper();
+
         bool EndsAfter(size_t offset) const;
 
         void SetDoBackendArgumentsOptimization(bool set)
@@ -2259,21 +2257,19 @@ namespace Js
                 Max
             };
 
+    private:
             typedef CompactCounters<FunctionBody> CounterT;
             FieldWithBarrier(CounterT) counters;
+            friend CounterT;
 
-            uint32 GetCountField(FunctionBody::CounterFields fieldEnum) const
-            {
-                return counters.Get(fieldEnum);
-            }
-            uint32 SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val)
-            {
-                return counters.Set(fieldEnum, val, this);
-            }
-            uint32 IncreaseCountField(FunctionBody::CounterFields fieldEnum)
-            {
-                return counters.Increase(fieldEnum, this);
-            }
+    public:
+            uint32 GetCountField(FunctionBody::CounterFields fieldEnum) const;
+            uint32 SetCountField(FunctionBody::CounterFields fieldEnum, uint32 val);
+            uint32 IncreaseCountField(FunctionBody::CounterFields fieldEnum);
+#if DBG
+            void LockDownCounters() { counters.isLockedDown = true; };
+            void UnlockCounters() { counters.isLockedDown = false; };
+#endif
 
             struct StatementMap
             {
@@ -3080,6 +3076,8 @@ namespace Js
 
         bool GetNativeEntryPointUsed() const { return m_nativeEntryPointUsed; }
         void SetNativeEntryPointUsed(bool nativeEntryPointUsed) { this->m_nativeEntryPointUsed = nativeEntryPointUsed; }
+        bool GetHasDoneLoopBodyCodeGen() const { return hasDoneLoopBodyCodeGen; }
+        void SetHasDoneLoopBodyCodeGen(bool hasDoneLoopBodyCodeGen) { this->hasDoneLoopBodyCodeGen = hasDoneLoopBodyCodeGen; }
 #endif
 
         bool GetIsFuncRegistered() { return m_isFuncRegistered; }
@@ -3316,7 +3314,7 @@ namespace Js
         void RecordTrueObject(RegSlot location);
         void RecordFalseObject(RegSlot location);
         void RecordIntConstant(RegSlot location, unsigned int val);
-        void RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch);
+        void RecordStrConstant(RegSlot location, LPCOLESTR psz, uint32 cch, bool forcePropertyString);
         void RecordFloatConstant(RegSlot location, double d);
         void RecordNullDisplayConstant(RegSlot location);
         void RecordStrictNullDisplayConstant(RegSlot location);
@@ -3570,7 +3568,7 @@ namespace Js
         void SetEntryToDeferParseForDebugger();
         void ClearEntryPoints();
         void ResetEntryPoint();
-        void CleanupToReparse();
+        void CleanupToReparseHelper();
         void AddDeferParseAttribute();
         void RemoveDeferParseAttribute();
 #if DBG

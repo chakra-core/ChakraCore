@@ -44,11 +44,6 @@ namespace Js
         return scriptContext.Detach();
     }
 
-    void ScriptContext::Delete(ScriptContext* scriptContext)
-    {
-        HeapDelete(scriptContext);
-    }
-
     CriticalSection JITPageAddrToFuncRangeCache::cs;
 
     ScriptContext::ScriptContext(ThreadContext* threadContext) :
@@ -134,7 +129,8 @@ namespace Js
         firstInterpreterFrameReturnAddress(nullptr),
         builtInLibraryFunctions(nullptr),
         m_remoteScriptContextAddr(nullptr),
-        isWeakReferenceDictionaryListCleared(false)
+        isWeakReferenceDictionaryListCleared(false),
+        isDebugContextInitialized(false)
 #if ENABLE_PROFILE_INFO
         , referencesSharedDynamicSourceContextInfo(false)
 #endif
@@ -1269,6 +1265,13 @@ namespace Js
 
         this->GetDebugContext()->GetProbeContainer()->Initialize(this);
 
+        isDebugContextInitialized = true;
+
+#if defined(_M_ARM32_OR_ARM64)
+        // We need to ensure that the above write to the isDebugContextInitialized is visible to the debugger thread.
+        MemoryBarrier();
+#endif
+
         AssertMsg(this->CurrentThunk == DefaultEntryThunk, "Creating non default thunk while initializing");
         AssertMsg(this->DeferredParsingThunk == DefaultDeferredParsingThunk, "Creating non default thunk while initializing");
         AssertMsg(this->DeferredDeserializationThunk == DefaultDeferredDeserializeThunk, "Creating non default thunk while initializing");
@@ -1950,7 +1953,7 @@ namespace Js
             {
                 Assert((loadScriptFlag & LoadScriptFlag_disableAsmJs) != LoadScriptFlag_disableAsmJs);
 
-                pse->Clear();
+                pse->Free();
 
                 loadScriptFlag = (LoadScriptFlag)(loadScriptFlag | LoadScriptFlag_disableAsmJs);
                 return LoadScript(script, cb, pSrcInfo, pse, ppSourceInfo,
@@ -3934,6 +3937,7 @@ namespace Js
                 origEntryPoint = Js::JavascriptFunction::NewAsyncFunctionInstanceRestrictedMode;
             }
         }
+
 
         __TRY_FINALLY_BEGIN // SEH is not guaranteed, see the implementation
         {

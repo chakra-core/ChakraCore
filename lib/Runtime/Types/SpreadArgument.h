@@ -9,8 +9,6 @@ namespace Js
     class SpreadArgument : public DynamicObject
     {
     private:
-        Field(Var) iterable;
-        Field(RecyclableObject*) iterator;
         typedef JsUtil::List<Var, Recycler> VarList;
         Field(VarList*) iteratorIndices;
 
@@ -22,8 +20,7 @@ namespace Js
     public:
         static bool Is(Var aValue);
         static SpreadArgument* FromVar(Var value);
-        SpreadArgument(Var iterable, RecyclableObject* iterator, DynamicType * type);
-        Var GetArgument() const { return iterable; }
+        SpreadArgument(Var iterator, bool useDirectCall, DynamicType * type);
         const Var* GetArgumentSpread() const { return iteratorIndices ? iteratorIndices->GetBuffer() : nullptr; }
         uint GetArgumentSpreadCount()  const { return iteratorIndices ? iteratorIndices->Count() : 0; }
 

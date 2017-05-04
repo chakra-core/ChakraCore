@@ -89,12 +89,10 @@ public:
               void            GenerateTaggedZeroTest( IR::Opnd * opndSrc, IR::Instr * instrInsert, IR::LabelInstr * labelHelper = NULL) { __debugbreak(); }
               void            GenerateObjectPairTest(IR::Opnd * opndSrc1, IR::Opnd * opndSrc2, IR::Instr * insertInstr, IR::LabelInstr * labelTarget) { __debugbreak(); }
               bool            GenerateObjectTest(IR::Opnd * opndSrc, IR::Instr * insertInstr, IR::LabelInstr * labelTarget, bool fContinueLabel = false) { __debugbreak(); return false; }
-              bool            GenerateFastBrOrCmString(IR::Instr* instr) { __debugbreak(); return 0; }
-              bool            GenerateFastStringCheck(IR::Instr* instr, IR::RegOpnd *srcReg1, IR::RegOpnd *srcReg2, bool isEqual, bool isStrict, IR::LabelInstr *labelHelper, IR::LabelInstr *labelBranchSuccess, IR::LabelInstr *labelBranchFail) { __debugbreak(); return 0; }
               bool            GenerateFastCmSrEqConst(IR::Instr *instr) { __debugbreak(); return 0; }
               bool            GenerateFastCmXxI4(IR::Instr *instr) { __debugbreak(); return 0; }
               bool            GenerateFastCmXxR8(IR::Instr *instr) { Assert(UNREACHED); return NULL; }
-              bool            GenerateFastCmXxTaggedInt(IR::Instr *instr) { __debugbreak(); return 0; }
+              bool            GenerateFastCmXxTaggedInt(IR::Instr *instr, bool isInHelper = false) { __debugbreak(); return 0; }
               IR::Instr *     GenerateConvBool(IR::Instr *instr) { __debugbreak(); return 0; }
 
               void            GenerateClz(IR::Instr * instr) { __debugbreak(); }

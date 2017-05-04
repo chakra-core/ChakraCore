@@ -448,7 +448,7 @@ namespace Js
 
     template <class Allocator>
     ArrayBuffer::ArrayBuffer(uint32 length, DynamicType * type, Allocator allocator) :
-        ArrayBufferBase(type), isDetached(false)
+        ArrayBufferBase(type)
     {
         buffer = nullptr;
         bufferLength = 0;
@@ -495,7 +495,7 @@ namespace Js
     }
 
     ArrayBuffer::ArrayBuffer(byte* buffer, uint32 length, DynamicType * type) :
-        buffer(buffer), bufferLength(length), ArrayBufferBase(type), isDetached(false)
+        buffer(buffer), bufferLength(length), ArrayBufferBase(type)
     {
         if (length > MaxArrayBufferLength)
         {

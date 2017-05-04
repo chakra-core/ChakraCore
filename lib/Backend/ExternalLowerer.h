@@ -9,14 +9,14 @@ class ExternalLowerer
 {
 public:
     static bool TryGenerateFastExternalEqTest(IR::Opnd * src1, IR::Opnd * src2, IR::Instr * instrBranch,
-        IR::LabelInstr * labelHelper, IR::LabelInstr * labelBooleanCmp, Lowerer * lowerer, bool isStrictBr);
+        IR::LabelInstr * labelHelper, IR::LabelInstr * labelBooleanCmp, Lowerer * lowerer, bool isStrictBr, bool isInHelper);
 };
 
 #if !NTBUILD
 // ChakraCore default implementation doesn't have anything external type to check
 inline bool
 ExternalLowerer::TryGenerateFastExternalEqTest(IR::Opnd * src1, IR::Opnd * src2, IR::Instr * instrBranch,
-    IR::LabelInstr * labelHelper, IR::LabelInstr * labelBooleanCmp, Lowerer * lowerer, bool isStrictBr)
+    IR::LabelInstr * labelHelper, IR::LabelInstr * labelBooleanCmp, Lowerer * lowerer, bool isStrictBr, bool isInHelper)
 {
     return false;
 }

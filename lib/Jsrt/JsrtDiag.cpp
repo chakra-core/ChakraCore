@@ -436,42 +436,45 @@ CHAKRA_API JsDiagSetStepType(
             ThreadContext* threadContext = runtime->GetThreadContext();
             if(!threadContext->IsRuntimeInTTDMode())
             {
-                TTDAssert(false, "Must be in replay mode to use reverse-step - launch with \"--replay-debug\" flag in Node.");
-                return JsErrorInvalidArgument;
+                //Don't want to fail hard when user accidentally clicks this so pring message and step forward 
+                fprintf(stderr, "Must be in replay mode to use reverse-step - launch with \"--replay-debug\" flag in Node.");
+                jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_STEP_OVER);
             }
+            else
+            {
+                threadContext->TTDExecutionInfo->SetPendingTTDStepBackMove();
 
-            TTD::TTDebuggerSourceLocation bpLocation;
-            threadContext->TTDLog->GetPreviousTimeAndPositionForDebugger(bpLocation);
-            threadContext->TTDLog->SetPendingTTDBPInfo(bpLocation);
-            threadContext->TTDLog->SetPendingTTDMoveMode(JsTTDMoveMode::JsTTDMoveNone);
-
-            //don't worry about BP suppression because we are just going to throw after we return
-            jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
+                //don't worry about BP suppression because we are just going to throw after we return
+                jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
+            }
 #else
             return JsErrorInvalidArgument;
 #endif
         }
-        else if(stepType == JsDiagStepTypeStepReverseContinue)
+        else if (stepType == JsDiagStepTypeReverseContinue)
         {
 #if ENABLE_TTD
             ThreadContext* threadContext = runtime->GetThreadContext();
             if(!threadContext->IsRuntimeInTTDMode())
             {
-                TTDAssert(false, "Must be in replay mode to use reverse-continue - launch with \"--replay-debug\" flag in Node.");
-                return JsErrorInvalidArgument;
+                //Don't want to fail hard when user accidentally clicks this so pring message and step forward 
+                fprintf(stderr, "Must be in replay mode to use reverse-continue - launch with \"--replay-debug\" flag in Node.");
+                jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
             }
+            else
+            {
+                threadContext->TTDExecutionInfo->SetPendingTTDReverseContinueMove(JsTTDMoveMode::JsTTDMoveScanIntervalForContinue);
 
-            TTD::TTDebuggerSourceLocation bpLocation;
-            threadContext->TTDLog->GetTimeAndPositionForDebugger(bpLocation);
-            threadContext->TTDLog->SetPendingTTDBPInfo(bpLocation);
-            threadContext->TTDLog->SetPendingTTDMoveMode(JsTTDMoveMode::JsTTDMoveScanIntervalForContinue);
-
-            //don't worry about BP suppression because we are just going to throw after we return
-
-            jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
+                //don't worry about BP suppression because we are just going to throw after we return
+                jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
+            }
 #else
             return JsErrorInvalidArgument;
 #endif
+        }
+        else if (stepType == JsDiagStepTypeContinue)
+        {
+            jsrtDebugManager->SetResumeType(BREAKRESUMEACTION_CONTINUE);
         }
 
         return JsNoError;
@@ -659,7 +662,7 @@ CHAKRA_API JsDiagGetObjectFromHandle(
             return JsErrorDiagInvalidHandle;
         }
 
-        Js::DynamicObject* object = debuggerObject->GetJSONObject(scriptContext);
+        Js::DynamicObject* object = debuggerObject->GetJSONObject(scriptContext, /* forceSetValueProp */ false);
 
         if (object != nullptr)
         {
@@ -675,6 +678,7 @@ CHAKRA_API JsDiagEvaluate(
     _In_ JsValueRef expressionVal,
     _In_ unsigned int stackFrameIndex,
     _In_ JsParseScriptAttributes parseAttributes,
+    _In_ bool forceSetValueProp,
     _Out_ JsValueRef *evalResult)
 {
     return ContextAPINoScriptWrapper_NoRecord([&](Js::ScriptContext *scriptContext) -> JsErrorCode {
@@ -742,7 +746,7 @@ CHAKRA_API JsDiagEvaluate(
         }
 
         Js::DynamicObject* result = nullptr;
-        bool success = debuggerStackFrame->Evaluate(scriptContext, expression, static_cast<int>(len), false, &result);
+        bool success = debuggerStackFrame->Evaluate(scriptContext, expression, static_cast<int>(len), false, forceSetValueProp, &result);
 
         if (result != nullptr)
         {

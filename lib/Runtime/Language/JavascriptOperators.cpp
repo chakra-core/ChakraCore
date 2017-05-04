@@ -197,28 +197,28 @@ namespace Js
         switch (argCount) {
         case 0:
             Assert(false);
-            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo);
+            ret = CALL_ENTRYPOINT_NOASSERT(entryPoint, funcPtr, callInfo);
             break;
         case 1:
-            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance);
+            ret = CALL_ENTRYPOINT_NOASSERT(entryPoint, funcPtr, callInfo, instance);
             break;
         case 2:
-            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0]);
+            ret = CALL_ENTRYPOINT_NOASSERT(entryPoint, funcPtr, callInfo, instance, stackPtr[0]);
             break;
         case 3:
-            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1]);
+            ret = CALL_ENTRYPOINT_NOASSERT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1]);
             break;
         case 4:
-            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2]);
+            ret = CALL_ENTRYPOINT_NOASSERT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2]);
             break;
         case 5:
-            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3]);
+            ret = CALL_ENTRYPOINT_NOASSERT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3]);
             break;
         case 6:
-            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4]);
+            ret = CALL_ENTRYPOINT_NOASSERT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4]);
             break;
         case 7:
-            ret = CALL_ENTRYPOINT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4], stackPtr[5]);
+            ret = CALL_ENTRYPOINT_NOASSERT(entryPoint, funcPtr, callInfo, instance, stackPtr[0], stackPtr[1], stackPtr[2], stackPtr[3], stackPtr[4], stackPtr[5]);
             break;
         default: {
             // Don't need stack probe here- we just did so above
@@ -879,8 +879,13 @@ namespace Js
     BOOL JavascriptOperators::StrictEqual(Var aLeft, Var aRight, ScriptContext* requestContext)
     {
         double dblLeft, dblRight;
-        TypeId leftType = JavascriptOperators::GetTypeId(aLeft);
-        TypeId rightType = JavascriptOperators::GetTypeId(aRight);
+        TypeId rightType, leftType;
+        leftType = JavascriptOperators::GetTypeId(aLeft);
+
+        // Because NaN !== NaN, we may not return TRUE when typeId is Number
+        if (aLeft == aRight && leftType != TypeIds_Number) return TRUE;
+
+        rightType = JavascriptOperators::GetTypeId(aRight);
 
         switch (leftType)
         {
@@ -1401,12 +1406,13 @@ CommonNumber:
                   && JavascriptArray::FromVar(aRight)->GetHead()->left == 0
                   && JavascriptArray::FromVar(aRight)->GetHead()->length == JavascriptArray::FromVar(aRight)->GetLength()
                   && JavascriptArray::FromVar(aRight)->HasNoMissingValues()
+                  && !JavascriptArray::FromVar(aRight)->IsCrossSiteObject()
               )) ||
              (TypedArrayBase::Is(aRight) && method == TypedArrayBase::EntryInfo::Values.GetOriginalEntryPoint()))
             // We can't optimize away the iterator if the array iterator prototype is user defined.
             && !JavascriptLibrary::ArrayIteratorPrototypeHasUserDefinedNext(scriptContext))
         {
-            return aRight;
+            return RecyclerNew(scriptContext->GetRecycler(), SpreadArgument, aRight, true /*useDirectCall*/, scriptContext->GetLibrary()->GetSpreadArgumentType());
         }
 
         ThreadContext *threadContext = scriptContext->GetThreadContext();
@@ -1414,7 +1420,7 @@ CommonNumber:
         Var iteratorVar =
             threadContext->ExecuteImplicitCall(function, ImplicitCall_Accessor, [=]() -> Var
                 {
-                    return CALL_FUNCTION(function, CallInfo(Js::CallFlags_Value, 1), aRight);
+                    return CALL_FUNCTION(threadContext, function, CallInfo(Js::CallFlags_Value, 1), aRight);
                 });
 
         if (!JavascriptOperators::IsObject(iteratorVar))
@@ -1426,8 +1432,7 @@ CommonNumber:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_NeedObject);
         }
 
-        RecyclableObject* iterator = RecyclableObject::FromVar(iteratorVar);
-        return RecyclerNew(scriptContext->GetRecycler(), SpreadArgument, aRight, iterator, scriptContext->GetLibrary()->GetSpreadArgumentType());
+        return RecyclerNew(scriptContext->GetRecycler(), SpreadArgument, iteratorVar, false /*useDirectCall*/, scriptContext->GetLibrary()->GetSpreadArgumentType());
     }
 
     BOOL JavascriptOperators::IsPropertyUnscopable(Var instanceVar, JavascriptString *propertyString)
@@ -5842,7 +5847,7 @@ CommonNumber:
             JavascriptOperators::NewScObjectCommon(object, functionInfo, requestContext) :
             JavascriptOperators::NewScObjectHostDispatchOrProxy(object, requestContext);
 
-        Var returnVar = CALL_FUNCTION(object, CallInfo(CallFlags_New, 1), newObject);
+        Var returnVar = CALL_FUNCTION(object->GetScriptContext()->GetThreadContext(), object, CallInfo(CallFlags_New, 1), newObject);
         if (JavascriptOperators::IsObject(returnVar))
         {
             newObject = returnVar;
@@ -6830,7 +6835,7 @@ CommonNumber:
                 // CONSIDER : When we delay type sharing until the second instance is created, pass an argument indicating we want the types
                 // and handlers created here to be marked as shared up-front. This is to ensure we don't get any fixed fields and that the handler
                 // is ready for storing values directly to slots.
-                DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);    
+                DynamicType* newType = PathTypeHandlerBase::CreateNewScopeObject(scriptContext, frameObject->GetDynamicType(), propIds, nonSimpleParamList ? PropertyLetDefaults : PropertyNone);
                 int oldSlotCapacity = frameObject->GetDynamicType()->GetTypeHandler()->GetSlotCapacity();
                 int newSlotCapacity = newType->GetTypeHandler()->GetSlotCapacity();
                 __analysis_assume((uint32)newSlotCapacity >= formalsCount);
@@ -6930,7 +6935,7 @@ CommonNumber:
 
         frameObject->EnsureSlots(oldSlotCapacity, newSlotCapacity, scriptContext, newType->GetTypeHandler());
         frameObject->ReplaceType(newType);
-        
+
         return frameObject;
     }
 
@@ -7017,7 +7022,7 @@ CommonNumber:
                 RecyclableObject *instFunc = RecyclableObject::FromVar(instOfHandler);
                 Var result = threadContext->ExecuteImplicitCall(instFunc, ImplicitCall_Accessor, [=]()->Js::Var
                 {
-                    return CALL_FUNCTION(instFunc, CallInfo(CallFlags_Value, 2), constructor, instance);
+                    return CALL_FUNCTION(scriptContext->GetThreadContext(), instFunc, CallInfo(CallFlags_Value, 2), constructor, instance);
                 });
 
                 return  JavascriptBoolean::ToVar(JavascriptConversion::ToBoolean(result, scriptContext) ? TRUE : FALSE, scriptContext);
@@ -9379,7 +9384,7 @@ CommonNumber:
             Var thisVar = RootToThisObject(object, scriptContext);
 
             RecyclableObject* marshalledFunction = RecyclableObject::FromVar(CrossSite::MarshalVar(requestContext, function));
-            Var result = CALL_ENTRYPOINT(marshalledFunction->GetEntryPoint(), function, CallInfo(flags, 1), thisVar);
+            Var result = CALL_ENTRYPOINT(threadContext, marshalledFunction->GetEntryPoint(), function, CallInfo(flags, 1), thisVar);
             result = CrossSite::MarshalVar(requestContext, result);
 
             return result;
@@ -9421,7 +9426,7 @@ CommonNumber:
                 marshalledFunction = RecyclableObject::FromVar(CrossSite::MarshalVar(requestContext, function));
             }
 
-            Var result = CALL_ENTRYPOINT(marshalledFunction->GetEntryPoint(), function, CallInfo(flags, 2), thisVar, putValue);
+            Var result = CALL_ENTRYPOINT(threadContext, marshalledFunction->GetEntryPoint(), function, CallInfo(flags, 2), thisVar, putValue);
             Assert(result);
             return nullptr;
         });
@@ -10542,7 +10547,7 @@ CommonNumber:
             return nullptr;
         }
 
-        Var iterator = CALL_FUNCTION(function, CallInfo(Js::CallFlags_Value, 1), instance);
+        Var iterator = CALL_FUNCTION(scriptContext->GetThreadContext(), function, CallInfo(Js::CallFlags_Value, 1), instance);
 
         if (!JavascriptOperators::IsObject(iterator))
         {
