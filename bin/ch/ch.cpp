@@ -915,6 +915,9 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     HINSTANCE chakraLibrary = nullptr;
     bool success = false;
     ChakraRTInterface::ArgInfo argInfo;
+#ifdef _WIN32
+    ATOM lock;
+#endif
 
     if (argc < 2)
     {
@@ -1026,7 +1029,7 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     // jscript9.dll etc with ch. Since that isn't a concern on non-Windows
     // builds, it's safe to conditionally compile it out.
 #ifdef _WIN32
-    ATOM lock = ::AddAtom(szChakraCoreLock);
+    lock = ::AddAtom(szChakraCoreLock);
     AssertMsg(lock, "failed to lock chakracore.dll");
 #endif // _WIN32
 
