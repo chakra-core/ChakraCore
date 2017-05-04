@@ -9164,7 +9164,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     m_lowerer->InsertLabel(true, instr);
                     // JB $bailoutLabel
                     this->m_lowerer->InsertBranch(Js::OpCode::JB, bailoutLabel, instr);
-                    IR::Opnd* isNegZero = IsOpndNegZero(src, instr);
+                    IR::Opnd* isNegZero = this->lowererMDArch.IsOpndNegZero(src, instr);
                     // if isNegZero(src) J $bailoutLabel
                     this->m_lowerer->InsertTestBranch(isNegZero, isNegZero, Js::OpCode::BrNeq_A, bailoutLabel, instr);
                     // else J $skipRoundSd
@@ -9277,7 +9277,7 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                     }
                     this->m_lowerer->InsertCompareBranch(checkNegZeroOpnd, zero, Js::OpCode::BrNeq_A, convertToInt, instr);
 
-                    IR::Opnd* isNegZero = IsOpndNegZero(checkNegZeroOpnd, instr);
+                    IR::Opnd* isNegZero = this->lowererMDArch.IsOpndNegZero(checkNegZeroOpnd, instr);
 
                     this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrNeq_A, bailoutLabel, instr);
                     instr->InsertBefore(convertToInt);
@@ -9411,11 +9411,11 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
                 IR::Opnd* isNegZero;
                 if(min)
                 {
-                    isNegZero =  IsOpndNegZero(src2, instr);
+                    isNegZero = this->lowererMDArch.IsOpndNegZero(src2, instr);
                 }
                 else
                 {
-                    isNegZero =  IsOpndNegZero(src1, instr);
+                    isNegZero =  this->lowererMDArch.IsOpndNegZero(src1, instr);
                 }
 
                 this->m_lowerer->InsertCompareBranch(isNegZero, IR::IntConstOpnd::New(0x00000000, IRType::TyInt32, this->m_func), Js::OpCode::BrEq_A, doneLabel, instr);
@@ -9447,25 +9447,6 @@ void LowererMD::GenerateFastInlineBuiltInCall(IR::Instr* instr, IR::JnHelperMeth
         AssertMsg(FALSE, "Unknown inline built-in opcode");
         break;
     }
-}
-
-IR::Opnd* LowererMD::IsOpndNegZero(IR::Opnd* opnd, IR::Instr* instr)
-{
-    IR::Opnd * isNegZero = IR::RegOpnd::New(TyInt32, this->m_func);
-    IR::Opnd *src = opnd;
-
-    if (opnd->IsFloat32())
-    {
-        src = IR::RegOpnd::New(TyFloat64, this->m_func);
-        instr->InsertBefore(IR::Instr::New(LowererMD::MDConvertFloat32ToFloat64Opcode, src, opnd, this->m_func));
-    }
-    Assert(src->IsFloat64());
-    LoadDoubleHelperArgument(instr, src);
-
-    IR::Instr * helperCallInstr = IR::Instr::New(Js::OpCode::CALL, isNegZero, this->m_func);
-    instr->InsertBefore(helperCallInstr);
-    this->ChangeToHelperCall(helperCallInstr, IR::HelperIsNegZero);
-    return isNegZero;
 }
 
 void LowererMD::GenerateFastInlineBuiltInMathAbs(IR::Instr* inlineInstr)
