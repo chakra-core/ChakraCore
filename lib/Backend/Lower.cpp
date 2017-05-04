@@ -15889,9 +15889,21 @@ Lowerer::GenerateFastElemIIntIndexCommon(
                 // For typed array, call ToNumber before we fallThrough.
                 if (instr->GetSrc1()->GetType() == TyVar && !instr->GetSrc1()->GetValueType().IsPrimitive())
                 {
+                    // Enter an ophelper block
+                    IR::LabelInstr * opHelper = IR::LabelInstr::New(Js::OpCode::Label, this->m_func, true);
+                    instr->InsertBefore(opHelper);
+
                     IR::Instr *toNumberInstr = IR::Instr::New(Js::OpCode::Call, this->m_func);
                     toNumberInstr->SetSrc1(instr->GetSrc1());
                     instr->InsertBefore(toNumberInstr);
+
+                    if (BailOutInfo::IsBailOutOnImplicitCalls(bailOutKind))
+                    {
+                        // Bail out if this conversion triggers implicit calls.
+                        toNumberInstr = toNumberInstr->ConvertToBailOutInstr(instr->GetBailOutInfo(), bailOutKind);
+                        IR::Instr * instrShare = instr->ShareBailOut();
+                        LowerBailTarget(instrShare);
+                    }
 
                     LowerUnaryHelperMem(toNumberInstr, IR::HelperOp_ConvNumber_Full);
                 }
