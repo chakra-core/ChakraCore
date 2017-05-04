@@ -182,7 +182,7 @@ WasmSignature::FromIDL(WasmSignatureIDL* sig)
 }
 
 uint32
-WasmSignature::WriteSignatureToString(_Outptr_opt_result_buffer_(maxlen) char16* out, uint32 maxlen)
+WasmSignature::WriteSignatureToString(_Out_writes_(maxlen) char16* out, uint32 maxlen)
 {
     AssertOrFailFast(out != nullptr);
     uint32 numwritten = 0;
