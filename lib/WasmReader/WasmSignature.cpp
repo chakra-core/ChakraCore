@@ -203,8 +203,8 @@ void
 WasmSignature::Dump()
 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-    char16 buf[128] = { 0 };
-    this->WriteSignatureToString(buf, 127);
+    char16 buf[512] = { 0 };
+    this->WriteSignatureToString(buf, 511);
     Output::Print(buf);
 #endif
 }
