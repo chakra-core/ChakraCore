@@ -1507,6 +1507,16 @@ namespace Js
             int32 stackSize = asmInfo->GetTotalSizeinBytes();
             stackSize = ::Math::Align<int32>(stackSize, 8);
 
+#if DBG_DUMP
+            if (Js::Configuration::Global.flags.DebugBreak.Contains(funcBody->GetFunctionNumber()) ||
+                PHASE_ON(DebugBreakPhase, funcBody))
+            {
+                // int 3
+                *buffer++ = 0xCC;
+                size++;
+            }
+#endif
+
             //Prolog , save EBP and callee saved reg
             size += PUSH::EncodeInstruction<int>( buffer, InstrParamsReg( RegEBP ) );
             size += MOV::EncodeInstruction<int>( buffer, InstrParams2Reg( RegEBP, RegESP ) );
