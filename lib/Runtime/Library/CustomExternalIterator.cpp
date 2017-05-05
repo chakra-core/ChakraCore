@@ -67,7 +67,12 @@ namespace Js
             function->m_nextFunction);
 
         AssertOrFailFast(function->m_initFunction != nullptr);
-        function->m_initFunction(instance, (Var)iterator);
+        BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+        {
+            function->m_initFunction(instance, (Var)iterator);
+        }
+        END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+
         return iterator;
     }
 
@@ -180,7 +185,20 @@ namespace Js
         Var key = nullptr;
         Var value = nullptr;
         JavascriptLibrary* library = scriptContext->GetLibrary();
-        if (currentIterator->m_nextFunction == nullptr || !currentIterator->m_nextFunction(currentIterator, &key, &value))
+
+        if (currentIterator->m_nextFunction == nullptr)
+        {
+            return library->CreateIteratorResultObjectUndefinedTrue();
+        }
+
+        bool ret = false;
+        BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+        {
+            ret = currentIterator->m_nextFunction(currentIterator, &key, &value);
+        }
+        END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+
+        if (!ret)
         {
             return library->CreateIteratorResultObjectUndefinedTrue();
         }

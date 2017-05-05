@@ -125,6 +125,7 @@ namespace Js
         DynamicObject* GetMapIteratorPrototype() const { return mapIteratorPrototype; }
         DynamicObject* GetSetIteratorPrototype() const { return setIteratorPrototype; }
         DynamicObject* GetStringIteratorPrototype() const { return stringIteratorPrototype; }
+        DynamicObject* GetIteratorPrototype() const { return iteratorPrototype; }
         DynamicObject* GetPromisePrototype() const { return promisePrototype; }
         DynamicObject* GetGeneratorFunctionPrototype() const { return generatorFunctionPrototype; }
         DynamicObject* GetGeneratorPrototype() const { return generatorPrototype; }
