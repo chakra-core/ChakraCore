@@ -1944,7 +1944,10 @@ EncoderMD::Encode(IR::Instr *instr, BYTE *pc, BYTE* beginCodeAddress)
             }
         }
     #if DBG_DUMP
-        if (instr->IsEntryInstr() && Js::Configuration::Global.flags.DebugBreak.Contains(m_func->GetFunctionNumber()))
+        if (instr->IsEntryInstr() && (
+            Js::Configuration::Global.flags.DebugBreak.Contains(m_func->GetFunctionNumber()) ||
+            PHASE_ON(Js::DebugBreakPhase, m_func)
+        ))
         {
             IR::Instr *int3 = IR::Instr::New(Js::OpCode::DEBUGBREAK, m_func);
             return this->Encode(int3, m_pc);
