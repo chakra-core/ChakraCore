@@ -21,34 +21,34 @@ if "%ERRORLEVEL%" == "0" (
 REM Try Dev15 first
 
 set MSBUILD_VERSION=15.0
-set MSBUILD_PATH="%ProgramFiles%\Microsoft Visual Studio\2017\Enterprise\MSBuild\%MSBUILD_VERSION%\Bin\x86"
+set "MSBUILD_PATH=%ProgramFiles%\Microsoft Visual Studio\2017\Enterprise\MSBuild\%MSBUILD_VERSION%\Bin\x86"
 
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    set MSBUILD_PATH="%ProgramFiles(x86)%\Microsoft Visual Studio\2017\Enterprise\MSBuild\%MSBUILD_VERSION%\Bin"
+if not exist "%MSBUILD_PATH%\msbuild.exe" (
+    set "MSBUILD_PATH=%ProgramFiles(x86)%\Microsoft Visual Studio\2017\Enterprise\MSBuild\%MSBUILD_VERSION%\Bin"
 )
 
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    set MSBUILD_PATH="%ProgramFiles(x86)%\Microsoft Visual Studio\2017\Enterprise\MSBuild\%MSBUILD_VERSION%\Bin\amd64"
+if not exist "%MSBUILD_PATH%\msbuild.exe" (
+    set "MSBUILD_PATH=%ProgramFiles(x86)%\Microsoft Visual Studio\2017\Enterprise\MSBuild\%MSBUILD_VERSION%\Bin\amd64"
 )
 
-if exist %MSBUILD_PATH%\msbuild.exe (
+if exist "%MSBUILD_PATH%\msbuild.exe" (
     goto :MSBuildFound
 )
 
 echo Dev15 not found, trying Dev14...
 
 set MSBUILD_VERSION=14.0
-set MSBUILD_PATH="%ProgramFiles%\msbuild\%MSBUILD_VERSION%\Bin\x86"
+set "MSBUILD_PATH=%ProgramFiles%\msbuild\%MSBUILD_VERSION%\Bin\x86"
 
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    set MSBUILD_PATH="%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin"
+if not exist "%MSBUILD_PATH%\msbuild.exe" (
+    set "MSBUILD_PATH=%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin"
 )
 
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    set MSBUILD_PATH="%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin\amd64"
+if not exist "%MSBUILD_PATH%\msbuild.exe" (
+    set "MSBUILD_PATH=%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin\amd64"
 )
 
-if exist %MSBUILD_PATH%\msbuild.exe (
+if exist "%MSBUILD_PATH%\msbuild.exe" (
     goto :MSBuildFound
 )
 
@@ -56,26 +56,26 @@ echo Dev14 not found, trying Dev12...
 
 :LABEL_USE_MSBUILD_12
 set MSBUILD_VERSION=12.0
-set MSBUILD_PATH="%ProgramFiles%\msbuild\%MSBUILD_VERSION%\Bin\x86"
+set "MSBUILD_PATH=%ProgramFiles%\msbuild\%MSBUILD_VERSION%\Bin\x86"
 echo Dev14 not found, trying Dev %MSBUILD_VERSION%
 
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    set MSBUILD_PATH="%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin"
+if not exist "%MSBUILD_PATH%\msbuild.exe" (
+    set "MSBUILD_PATH=%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin"
 )
 
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    set MSBUILD_PATH="%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin\amd64"
+if not exist "%MSBUILD_PATH%\msbuild.exe" (
+    set "MSBUILD_PATH=%ProgramFiles(x86)%\msbuild\%MSBUILD_VERSION%\Bin\amd64"
 )
 
-if not exist %MSBUILD_PATH%\msbuild.exe (
-    echo Can't find msbuild.exe in %MSBUILD_PATH%
+if not exist "%MSBUILD_PATH%\msbuild.exe" (
+    echo Can't find msbuild.exe in "%MSBUILD_PATH%"
     goto :SkipMsBuildSetup
 )
 
 :MSBuildFound
-echo MSBuild located at %MSBUILD_PATH%
+echo MSBuild located at "%MSBUILD_PATH%"
 
-set PATH=%MSBUILD_PATH%;%PATH%
+set "PATH=%MSBUILD_PATH%;%PATH%"
 set USE_MSBUILD_12=
 set MSBUILD_PATH=
 
