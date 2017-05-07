@@ -4,7 +4,7 @@
 # Licensed under the MIT license. See LICENSE.txt file in the project root for full license information.
 #-------------------------------------------------------------------------------------------------------
 
-LLVM_VERSION="3.9.1"
+LLVM_VERSION="4.0.0"
 DEFAULT_COLOR='\033[0m'
 ERROR_COLOR='\033[0;31m'
 GREEN_COLOR='\033[0;32m'
@@ -65,13 +65,16 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
     mkdir bin
     cd src
 
-    apt-get -v >/dev/null 2>&1
     if [[ "$OSTYPE" =~ "darwin" ]]; then # osx
         echo "This script is not prepared for OSX"
         exit 0
     else
+        WARN_LICENSE
+
+        apt-get -v >/dev/null 2>&1
         if [ $? == 0 ]; then # debian
-            apt-get install -y apt-file texinfo texi2html csh gawk automake libtool libtool-bin bison flex libncurses5-dev
+            apt-get install -y apt-file texinfo texi2html csh gawk automake libtool \
+              libtool-bin bison flex libncurses5-dev
             if [ $? != 0 ]; then
                 WARN_PACKAGE
             fi
@@ -90,6 +93,7 @@ if [ ! -d ./cc-toolchain/src/llvm/projects/compiler-rt ]; then
     echo "Downloading LLVM Gold Plugin"
     git clone --depth 1 git://sourceware.org/git/binutils-gdb.git binutils >/dev/null 2>&1
     mkdir binutils_compile; cd binutils_compile
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ROOT}/build/lib/"
     ../binutils/configure --enable-gold --enable-plugins --disable-werror --prefix="${ROOT}/build"
     make -j2
     make install
