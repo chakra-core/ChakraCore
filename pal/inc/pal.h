@@ -6232,6 +6232,11 @@ inline WCHAR *PAL_wcsstr(WCHAR *_S, const WCHAR *_P)
 }
 #endif
 
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
+#if !__has_builtin(_rotl)
 /*++
 Function:
 _rotl
@@ -6249,12 +6254,14 @@ unsigned int __cdecl _rotl(unsigned int value, int shift)
     retval = (value << shift) | (value >> (sizeof(int) * CHAR_BIT - shift));
     return retval;
 }
+#endif
 
 // On 64 bit unix, make the long an int.
 #ifdef BIT64
 #define _lrotl _rotl
 #endif // BIT64
 
+#if !__has_builtin(_rotl64)
 /*++
 Function:
 _rotl64
@@ -6272,7 +6279,9 @@ unsigned long long __cdecl _rotl64(unsigned long long value, int shift)
     retval = (value << shift) | (value >> (sizeof(unsigned long long) * CHAR_BIT - shift));
     return retval;
 }
+#endif
 
+#if !__has_builtin(_rotr)
 /*++
 Function:
 _rotr
@@ -6290,7 +6299,9 @@ unsigned int __cdecl _rotr(unsigned int value, int shift)
     retval = (value >> shift) | (value << (sizeof(int) * CHAR_BIT - shift));
     return retval;
 }
+#endif
 
+#if !__has_builtin(_rotr64)
 /*++
 Function:
 _rotr64
@@ -6308,6 +6319,7 @@ unsigned long long __cdecl _rotr64(unsigned long long value, int shift)
     retval = (value >> shift) | (value << (sizeof(unsigned long long) * CHAR_BIT - shift));
     return retval;
 }
+#endif
 
 PALIMPORT int __cdecl abs(int);
 PALIMPORT double __cdecl fabs(double);
