@@ -103,6 +103,8 @@
     JsGetRuntime
     JsIdle
     JsSetPromiseContinuationCallback
+    JsCreateWeakReference
+    JsGetWeakReferenceValue
 #ifndef NTBUILD
     JsCreateString
     JsCreateStringUtf16

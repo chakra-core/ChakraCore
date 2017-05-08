@@ -761,7 +761,7 @@ CHAKRA_API JsSetCurrentContext(_In_ JsContextRef newContext)
             }
             else
             {
-                if(oldScriptContext->IsTTDRecordModeEnabled()) 
+                if(oldScriptContext->IsTTDRecordModeEnabled())
                 {
                     //already know newScriptContext != oldScriptContext so don't check again
                     if(oldScriptContext->ShouldPerformRecordAction())
@@ -2890,6 +2890,40 @@ CHAKRA_API JsSetPromiseContinuationCallback(_In_ JsPromiseContinuationCallback p
     /*allowInObjectBeforeCollectCallback*/true);
 }
 
+CHAKRA_API JsCreateWeakReference(
+    _In_ JsValueRef value,
+    _Out_ JsWeakRef* weakRef)
+{
+    VALIDATE_JSREF(value);
+
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
+        ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+        if (threadContext == nullptr)
+        {
+            return JsErrorNoCurrentContext;
+        }
+
+        Recycler* recycler = threadContext->GetRecycler();
+        Memory::RecyclerWeakReference<char>* recyclerWeakReference =
+            recycler->CreateWeakReferenceHandle<char>(reinterpret_cast<char*>(value));
+        *weakRef = reinterpret_cast<JsWeakRef>(recyclerWeakReference);
+        return JsNoError;
+    });
+}
+
+CHAKRA_API JsGetWeakReferenceValue(
+    _In_ JsWeakRef weakRef,
+    _Out_ JsValueRef* value)
+{
+    VALIDATE_JSREF(weakRef);
+
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
+        Memory::RecyclerWeakReference<char>* recyclerWeakReference = reinterpret_cast<Memory::RecyclerWeakReference<char>*>(weakRef);
+        *value = reinterpret_cast<JsValueRef>(recyclerWeakReference->Get());
+        return JsNoError;
+    });
+}
+
 JsErrorCode RunScriptCore(JsValueRef scriptSource, const byte *script, size_t cb,
     LoadScriptFlag loadScriptFlag, JsSourceContext sourceContext,
     const WCHAR *sourceUrl, bool parseOnly, JsParseScriptAttributes parseAttributes,
@@ -3904,7 +3938,7 @@ CHAKRA_API JsTTDPreExecuteSnapShotInterval(_In_ JsRuntimeHandle runtimeHandle, _
         return inflateStatus;
     }
 
-    //If we are in the "active" segment set the continue breakpoint 
+    //If we are in the "active" segment set the continue breakpoint
     if((moveMode & JsTTDMoveMode::JsTTDMoveScanIntervalForContinueInActiveBreakpointSegment) == JsTTDMoveMode::JsTTDMoveScanIntervalForContinueInActiveBreakpointSegment)
     {
         GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
@@ -3944,7 +3978,7 @@ CHAKRA_API JsTTDPreExecuteSnapShotInterval(_In_ JsRuntimeHandle runtimeHandle, _
     elog->PopMode(TTD::TTDMode::DebuggerLogBreakpoints);
     elog->PopMode(TTD::TTDMode::DebuggerSuppressBreakpoints);
 
-    //If we are in the "active" segment un-set the continue breakpoint 
+    //If we are in the "active" segment un-set the continue breakpoint
     if((moveMode & JsTTDMoveMode::JsTTDMoveScanIntervalForContinueInActiveBreakpointSegment) == JsTTDMoveMode::JsTTDMoveScanIntervalForContinueInActiveBreakpointSegment)
     {
         GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode
@@ -4036,7 +4070,7 @@ CHAKRA_API JsTTDReplayExecution(_Inout_ JsTTDMoveMode* moveMode, _Out_ int64_t* 
             return JsNoError;
         });
 
-        if(bpstatus != JsNoError) 
+        if(bpstatus != JsNoError)
         {
             return bpstatus;
         }

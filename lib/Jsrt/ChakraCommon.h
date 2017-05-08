@@ -407,6 +407,16 @@ typedef unsigned short uint16_t;
     typedef JsRef JsPropertyIdRef;
 
     /// <summary>
+    ///     A weak reference to a JavaScript value.
+    /// </summary>
+    /// <remarks>
+    ///     A value with only weak references is available for garbage-collection. A strong reference
+    ///     to the value (<c>JsValueRef</c>) may be obtained from a weak reference if the value happens
+    ///     to still be available.
+    /// </remarks>
+    typedef JsRef JsWeakRef;
+
+    /// <summary>
     ///     Attributes of a runtime.
     /// </summary>
     typedef enum _JsRuntimeAttributes
@@ -2389,6 +2399,33 @@ typedef unsigned short uint16_t;
         JsSetPromiseContinuationCallback(
             _In_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
+
+    /// <summary>
+    ///     Creates a weak reference to a value.
+    /// </summary>
+    /// <param name="value">The value to be referenced.</param>
+    /// <param name="weakRef">Weak reference to the value.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsCreateWeakReference(
+            _In_ JsValueRef value,
+            _Out_ JsWeakRef* weakRef);
+
+    /// <summary>
+    ///     Gets a strong reference to the value referred to by a weak reference.
+    /// </summary>
+    /// <param name="weakRef">A weak reference.</param>
+    /// <param name="value">Reference to the value, or <c>JS_INVALID_REFERENCE</c> if the value is
+    ///     no longer available.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetWeakReferenceValue(
+            _In_ JsWeakRef weakRef,
+            _Out_ JsValueRef* value);
 
 #ifdef _WIN32
 #include "ChakraCommonWindows.h"
