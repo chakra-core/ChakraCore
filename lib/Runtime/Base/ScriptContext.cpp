@@ -2310,7 +2310,30 @@ namespace Js
         return success;
     }
 
-    void ScriptContext::AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript)
+    void ScriptContext::AddToEvalMap(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pfuncScript)
+    {
+        Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
+
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        Js::Utf8SourceInfo* utf8SourceInfo = pfuncScript->GetFunctionBody()->GetUtf8SourceInfo();
+        if (this->IsScriptContextInDebugMode() && !utf8SourceInfo->GetIsLibraryCode() && !utf8SourceInfo->IsInDebugMode())
+        {
+            // Identifying if any non library function escaped for not being in debug mode.
+            Throw::FatalInternalError();
+        }
+#endif
+
+#if ENABLE_TTD
+        if(!this->IsTTDRecordOrReplayModeEnabled())
+        {
+            this->AddToEvalMapHelper(key, isIndirect, pfuncScript);
+        }
+#else
+        this->AddToEvalMapHelper(key, isIndirect, pfuncScript);
+#endif
+    }
+
+    void ScriptContext::AddToEvalMapHelper(FastEvalMapString const& key, BOOL isIndirect, ScriptFunction *pFuncScript)
     {
         EvalCacheDictionary *dict = isIndirect ? this->Cache()->indirectEvalCacheDictionary : this->Cache()->evalCacheDictionary;
         if (dict == nullptr)
