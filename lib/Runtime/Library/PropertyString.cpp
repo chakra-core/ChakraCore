@@ -21,8 +21,9 @@ namespace Js
     PropertyString* PropertyString::New(StaticType* type, const Js::PropertyRecord* propertyRecord, Recycler *recycler)
     {
         PropertyString * propertyString = RecyclerNewZ(recycler, PropertyString, type, propertyRecord);
-        propertyString->ldElemInlineCache = ScriptContextPolymorphicInlineCache::New(MinPropertyStringInlineCacheSize, type->GetScriptContext());
-        propertyString->stElemInlineCache = ScriptContextPolymorphicInlineCache::New(MinPropertyStringInlineCacheSize, type->GetScriptContext());
+        // TODO: in future, might be worth putting these inline to avoid extra allocations. PIC copy API needs to be updated to support this though
+        propertyString->ldElemInlineCache = ScriptContextPolymorphicInlineCache::New(MinPropertyStringInlineCacheSize, type->GetLibrary());
+        propertyString->stElemInlineCache = ScriptContextPolymorphicInlineCache::New(MinPropertyStringInlineCacheSize, type->GetLibrary());
         return propertyString;
     }
 
@@ -68,7 +69,7 @@ namespace Js
         uint16 polymorphicInlineCacheSize = polymorphicInlineCache->GetSize();
         uint16 newPolymorphicInlineCacheSize = PolymorphicInlineCache::GetNextSize(polymorphicInlineCacheSize);
         Assert(newPolymorphicInlineCacheSize > polymorphicInlineCacheSize);
-        PolymorphicInlineCache * newPolymorphicInlineCache = ScriptContextPolymorphicInlineCache::New(newPolymorphicInlineCacheSize, GetScriptContext());
+        PolymorphicInlineCache * newPolymorphicInlineCache = ScriptContextPolymorphicInlineCache::New(newPolymorphicInlineCacheSize, GetLibrary());
         polymorphicInlineCache->CopyTo(this->propertyRecord->GetPropertyId(), GetScriptContext(), newPolymorphicInlineCache);
         if (isLdElem)
         {

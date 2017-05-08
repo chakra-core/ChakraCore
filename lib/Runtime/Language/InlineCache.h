@@ -543,7 +543,7 @@ namespace Js
     class FunctionBodyPolymorphicInlineCache sealed : public PolymorphicInlineCache
     {
     private:
-        Field(FunctionBody *) functionBody;
+        FunctionBody * functionBody;
 
         // DList chaining all polymorphic inline caches of a FunctionBody together.
         // Since PolymorphicInlineCache is a leaf object, these references do not keep
@@ -552,8 +552,8 @@ namespace Js
         // We maintain this linked list of polymorphic caches because when we allocate a larger cache,
         // the old one might still be used by some code on the stack.  Consequently, we can't release
         // the inline cache array back to the arena allocator.
-        Field(FunctionBodyPolymorphicInlineCache *) next;
-        Field(FunctionBodyPolymorphicInlineCache *) prev;
+        FunctionBodyPolymorphicInlineCache * next;
+        FunctionBodyPolymorphicInlineCache * prev;
 
         FunctionBodyPolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, FunctionBody * functionBody)
             : PolymorphicInlineCache(inlineCaches, size), functionBody(functionBody), next(nullptr), prev(nullptr)
@@ -575,20 +575,17 @@ namespace Js
     class ScriptContextPolymorphicInlineCache sealed : public PolymorphicInlineCache
     {
     private:
-        FieldNoBarrier(ScriptContext *) scriptContext;
+        Field(JavascriptLibrary*) javascriptLibrary;
 
-        Field(ScriptContextPolymorphicInlineCache *) next;
-        Field(ScriptContextPolymorphicInlineCache *) prev;
-
-        ScriptContextPolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, ScriptContext * scriptContext)
-            : PolymorphicInlineCache(inlineCaches, size), scriptContext(scriptContext), next(nullptr), prev(nullptr)
+        ScriptContextPolymorphicInlineCache(InlineCache * inlineCaches, uint16 size, JavascriptLibrary * javascriptLibrary)
+            : PolymorphicInlineCache(inlineCaches, size), javascriptLibrary(javascriptLibrary)
         {
             Assert((size == 0 && inlineCaches == nullptr) ||
                 (inlineCaches != nullptr && size >= MinPropertyStringInlineCacheSize && size <= MaxPolymorphicInlineCacheSize));
         }
 
     public:
-        static ScriptContextPolymorphicInlineCache * New(uint16 size, ScriptContext * scriptContext);
+        static ScriptContextPolymorphicInlineCache * New(uint16 size, JavascriptLibrary * javascriptLibrary);
 
 #ifdef INLINE_CACHE_STATS
         virtual void PrintStats(InlineCacheData *data) const override;

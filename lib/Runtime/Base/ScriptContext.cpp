@@ -256,8 +256,6 @@ namespace Js
         memset(byteCodeHistogram, 0, sizeof(byteCodeHistogram));
 #endif
 
-        ClearArray(this->Cache()->propertyStrings, 80);
-
 #if DBG || defined(RUNTIME_DATA_COLLECTION)
         this->allocId = threadContext->GetScriptContextCount();
 #endif
@@ -414,10 +412,6 @@ namespace Js
 
             ClearInlineCaches();
             Assert(!this->hasProtoOrStoreFieldInlineCache);
-        }
-        while (this->GetGlobalPICHead())
-        {
-            this->GetGlobalPICHead()->Finalize(true);
         }
 
         if (this->hasIsInstInlineCache)
@@ -1209,6 +1203,7 @@ namespace Js
 #endif
 #endif
 
+        ClearArray(this->Cache()->propertyStrings, 80);
         this->Cache()->dynamicRegexMap =
             RegexPatternMruMap::New(
                 recycler,
@@ -1597,18 +1592,17 @@ namespace Js
     {
         const char16* buf = propString->GetBuffer();
         const uint i = PropertyStringMap::PStrMapIndex(buf[0]);
-        PropertyStringMap* strMap = this->Cache()->propertyStrings[i];
-        if (strMap == NULL)
+        if (this->Cache()->propertyStrings[i] == NULL)
         {
             InitPropertyStringMap(i);
         }
         const uint j = PropertyStringMap::PStrMapIndex(buf[1]);
-        if (strMap->strLen2[j] == NULL && !isClosed)
+        if (this->Cache()->propertyStrings[i]->strLen2[j] == NULL && !isClosed)
         {
-            strMap->strLen2[j] = GetLibrary()->CreatePropertyString(propString);
+            this->Cache()->propertyStrings[i]->strLen2[j] = GetLibrary()->CreatePropertyString(propString);
             this->TrackPid(propString);
         }
-        return strMap->strLen2[j];
+        return this->Cache()->propertyStrings[i]->strLen2[j];
     }
 
     PropertyString* ScriptContext::CachePropertyString2(const PropertyRecord* propString)
@@ -1683,7 +1677,7 @@ namespace Js
                     cache->GetInlineCaches()[cache->GetInlineCacheIndexForType(type)].Clear();
                 }
                 cache = string->GetStElemInlineCache();
-                if (cache->PretendTryGetProperty(type, &info))
+                if (cache->PretendTrySetProperty(type, type, &info))
                 {
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
                     if (PHASE_TRACE1(PropertyStringCachePhase))

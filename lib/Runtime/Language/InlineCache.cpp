@@ -1005,21 +1005,14 @@ namespace Js
         }
     }
 
-    ScriptContextPolymorphicInlineCache * ScriptContextPolymorphicInlineCache::New(uint16 size, ScriptContext* scriptContext)
+    ScriptContextPolymorphicInlineCache * ScriptContextPolymorphicInlineCache::New(uint16 size, JavascriptLibrary* javascriptLibrary)
     {
+        ScriptContext * scriptContext = javascriptLibrary->GetScriptContext();
         InlineCache * inlineCaches = AllocatorNewArrayZ(InlineCacheAllocator, scriptContext->GetInlineCacheAllocator(), InlineCache, size);
 #ifdef POLY_INLINE_CACHE_SIZE_STATS
         scriptContext->GetInlineCacheAllocator()->LogPolyCacheAlloc(size * sizeof(InlineCache));
 #endif
-        ScriptContextPolymorphicInlineCache * polymorphicInlineCache = RecyclerNewFinalizedLeaf(scriptContext->GetRecycler(), ScriptContextPolymorphicInlineCache, inlineCaches, size, scriptContext);
-
-        polymorphicInlineCache->prev = nullptr;
-        polymorphicInlineCache->next = polymorphicInlineCache->scriptContext->GetGlobalPICHead();
-        if (polymorphicInlineCache->next)
-        {
-            polymorphicInlineCache->next->prev = polymorphicInlineCache;
-        }
-        polymorphicInlineCache->scriptContext->SetGlobalPICHead(polymorphicInlineCache);
+        ScriptContextPolymorphicInlineCache * polymorphicInlineCache = RecyclerNewFinalized(scriptContext->GetRecycler(), ScriptContextPolymorphicInlineCache, inlineCaches, size, javascriptLibrary);
 
         return polymorphicInlineCache;
     }
@@ -1029,7 +1022,7 @@ namespace Js
         if (size == 0)
         {
             // Already finalized
-            Assert(!inlineCaches && !prev && !next);
+            Assert(!inlineCaches);
             return;
         }
 
@@ -1063,43 +1056,17 @@ namespace Js
                     unregisteredInlineCacheCount++;
                 }
             }
-
-            AllocatorDeleteArray(InlineCacheAllocator, this->scriptContext->GetInlineCacheAllocator(), size, inlineCaches);
+            AllocatorDeleteArray(InlineCacheAllocator, this->javascriptLibrary->scriptContext->GetInlineCacheAllocator(), size, inlineCaches);
 #ifdef POLY_INLINE_CACHE_SIZE_STATS
-            this->scriptContext->GetInlineCacheAllocator()->LogPolyCacheFree(size * sizeof(InlineCache));
+            this->javascriptLibrary->scriptContext->GetInlineCacheAllocator()->LogPolyCacheFree(size * sizeof(InlineCache));
 #endif
         }
 
-        // Remove this PolymorphicInlineCache from the list
-        if (this == this->scriptContext->GetGlobalPICHead())
-        {
-            Assert(!prev);
-            if (next)
-            {
-                Assert(next->prev == this);
-                next->prev = nullptr;
-            }
-            this->scriptContext->SetGlobalPICHead(next);
-        }
-        else
-        {
-            if (prev)
-            {
-                Assert(prev->next == this);
-                prev->next = next;
-            }
-            if (next)
-            {
-                Assert(next->prev == this);
-                next->prev = prev;
-            }
-        }
-        prev = next = nullptr;
         inlineCaches = nullptr;
         size = 0;
         if (unregisteredInlineCacheCount > 0)
         {
-            this->scriptContext->GetThreadContext()->NotifyInlineCacheBatchUnregistered(unregisteredInlineCacheCount);
+            this->javascriptLibrary->scriptContext->GetThreadContext()->NotifyInlineCacheBatchUnregistered(unregisteredInlineCacheCount);
         }
     }
 
@@ -1146,7 +1113,7 @@ namespace Js
 
     ScriptContext* ScriptContextPolymorphicInlineCache::GetScriptContext() const
     {
-        return this->scriptContext;
+        return this->javascriptLibrary->scriptContext;
     }
 #endif
 

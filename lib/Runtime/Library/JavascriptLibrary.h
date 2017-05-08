@@ -66,7 +66,6 @@ namespace Js
     struct Cache
     {
         Field(PropertyStringMap*) propertyStrings[80];
-        Field(ScriptContextPolymorphicInlineCache *) globalPICHead;
         Field(JavascriptString *) lastNumberToStringRadix10String;
         Field(EnumeratedObjectCache) enumObjCache;
         Field(JavascriptString *) lastUtcTimeFromStrString;

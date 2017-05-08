@@ -533,9 +533,6 @@ namespace Js
         InlineCache * GetValueOfInlineCache() const { return valueOfInlineCache;}
         InlineCache * GetToStringInlineCache() const { return toStringInlineCache; }
 
-        ScriptContextPolymorphicInlineCache * GetGlobalPICHead() const { return this->Cache()->globalPICHead; }
-        void SetGlobalPICHead(ScriptContextPolymorphicInlineCache * cache) { this->Cache()->globalPICHead = cache; }
-
     private:
 
         JavascriptFunction* GenerateRootFunction(ParseNodePtr parseTree, uint sourceIndex, Parser* parser, uint32 grfscr, CompileScriptException * pse, const char16 *rootDisplayName);
