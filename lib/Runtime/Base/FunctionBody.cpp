@@ -853,10 +853,23 @@ namespace Js
 
         if (!PHASE_FORCE(Js::RedeferralPhase, this) && !PHASE_STRESS(Js::RedeferralPhase, this))
         {
-            uint tmpThreshold;
-            auto fn = [&](){ tmpThreshold = 0xFFFFFFFF; };
-            tmpThreshold = UInt32Math::Mul(inactiveThreshold, this->GetCompileCount(), fn);
-            if (this->GetInactiveCount() < tmpThreshold)
+            uint compileCount = this->GetCompileCount();
+            if (compileCount >= (uint)CONFIG_FLAG(RedeferralCap))
+            {
+                return false;
+            }
+            // Redeferral threshold is k^x, where x is the number of previous compiles.
+            bool overflow = false;
+            uint currentThreshold = inactiveThreshold;
+            if (compileCount > 1)
+            {
+                currentThreshold = JavascriptNumber::DirectPowIntInt(&overflow, inactiveThreshold, compileCount);
+            }
+            if (overflow)
+            {
+                currentThreshold = 0xFFFFFFFF;
+            }
+            if (this->GetInactiveCount() < currentThreshold)
             {
                 return false;
             }

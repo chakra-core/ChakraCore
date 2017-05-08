@@ -422,7 +422,7 @@ PHASE(All)
 #define DEFAULT_CONFIG_ExtendedErrorStackForTestHost (false)
 #define DEFAULT_CONFIG_ForceSplitScope      (false)
 #define DEFAULT_CONFIG_DelayFullJITSmallFunc (0)
-
+#define DEFAULT_CONFIG_RedeferralCap         (3)
 
 //Following determines inline thresholds
 #define DEFAULT_CONFIG_InlineThreshold      (35)            //Default start
@@ -1157,6 +1157,7 @@ FLAGNR(Number,  ConstantArgumentInlineThreshold, "Maximum size in bytecodes of a
 FLAGNR(Number,  RecursiveInlineThreshold, "Maximum size in bytecodes of an inline candidate to inline recursively", DEFAULT_CONFIG_RecursiveInlineThreshold)
 FLAGNR(Number,  RecursiveInlineDepthMax, "Maximum depth of a recursive inline call", DEFAULT_CONFIG_RecursiveInlineDepthMax)
 FLAGNR(Number,  RecursiveInlineDepthMin, "Maximum depth of a recursive inline call", DEFAULT_CONFIG_RecursiveInlineDepthMin)
+FLAGNR(Number,  RedeferralCap,           "Number of compilations beyond which we stop redeferring a function", DEFAULT_CONFIG_RedeferralCap)
 FLAGNR(Number,  Loop                  , "Number of times to execute the script (useful for profiling short benchmarks and finding leaks)", DEFAULT_CONFIG_Loop)
 FLAGRA(Number,  LoopInterpretCount    , lic, "Number of times loop has to be interpreted before JIT Loop body", DEFAULT_CONFIG_LoopInterpretCount)
 FLAGNR(Number,  LoopProfileIterations , "Number of iterations of a loop that must be profiled before jitting the loop body", DEFAULT_CONFIG_LoopProfileIterations)
