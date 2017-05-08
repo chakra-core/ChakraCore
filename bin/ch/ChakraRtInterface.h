@@ -196,6 +196,22 @@ public:
         HostPrintUsageFuncPtr hostPrintUsage;
         char* filename;
 
+        ArgInfo() :
+            argc(0),
+            argv(nullptr),
+            hostPrintUsage(nullptr),
+            filename(nullptr)
+        {
+        }
+
+        ArgInfo(int argc, LPWSTR* argv, HostPrintUsageFuncPtr hostPrintUsage, char* filename) :
+            argc(argc),
+            argv(argv),
+            hostPrintUsage(hostPrintUsage),
+            filename(filename)
+        {
+        }
+
         ~ArgInfo()
         {
             if (filename != nullptr)
