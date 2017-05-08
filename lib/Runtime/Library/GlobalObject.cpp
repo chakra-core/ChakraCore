@@ -607,25 +607,8 @@ namespace Js
 
             pfuncScript = library->GetGlobalObject()->EvalHelper(scriptContext, argString->GetSz(), argString->GetLength(), moduleID,
                 grfscr, Constants::EvalCode, doRegisterDocument, isIndirect, strictMode);
-            Assert(!pfuncScript->GetFunctionInfo()->IsGenerator());
 
-#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
-            Js::Utf8SourceInfo* utf8SourceInfo = pfuncScript->GetFunctionBody()->GetUtf8SourceInfo();
-            if (scriptContext->IsScriptContextInDebugMode() && !utf8SourceInfo->GetIsLibraryCode() && !utf8SourceInfo->IsInDebugMode())
-            {
-                // Identifying if any non library function escaped for not being in debug mode.
-                Throw::FatalInternalError();
-            }
-#endif
-
-#if ENABLE_TTD
-            if(!scriptContext->IsTTDRecordOrReplayModeEnabled())
-            {
-                scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
-            }
-#else
             scriptContext->AddToEvalMap(key, isIndirect, pfuncScript);
-#endif
         }
 
 #ifdef ENABLE_DEBUG_CONFIG_OPTIONS
