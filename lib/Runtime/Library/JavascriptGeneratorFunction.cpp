@@ -114,6 +114,8 @@ namespace Js
         PROBE_STACK(function->GetScriptContext(), Js::Constants::MinStackDefault);
         ARGUMENTS(stackArgs, callInfo);
 
+        Assert(!(callInfo.Flags & CallFlags_New));
+
         ScriptContext* scriptContext = function->GetScriptContext();
         JavascriptGeneratorFunction* generatorFunction = JavascriptGeneratorFunction::FromVar(function);
 
@@ -128,7 +130,8 @@ namespace Js
         // Set the prototype from constructor
         JavascriptOperators::OrdinaryCreateFromConstructor(function, generator, prototype, scriptContext);
 
-        Assert(!(callInfo.Flags & CallFlags_New));
+        // Call a next on the generator to execute till the beginning of the body
+        CALL_ENTRYPOINT(scriptContext->GetThreadContext(), generator->EntryNext, function, CallInfo(CallFlags_Value, 1), generator);
 
         return generator;
     }
