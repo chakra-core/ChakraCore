@@ -288,6 +288,7 @@ if(CLR_CMAKE_PLATFORM_XPLAT)
         -Wno-null-conversion\
         -Wno-return-type\
         -Wno-switch\
+        -Wno-implicit-function-declaration\
         -Wno-int-to-pointer-cast"
     )
         # notes..

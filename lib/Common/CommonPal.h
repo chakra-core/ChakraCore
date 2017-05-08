@@ -496,10 +496,12 @@ extern "C" PVOID _ReturnAddress(VOID);
 extern "C" void * _AddressOfReturnAddress(void);
 #elif defined(__GNUC__) || defined(__clang__)
 #define _ReturnAddress() __builtin_return_address(0)
+#if !__has_builtin(_AddressOfReturnAddress)
 __forceinline void * _AddressOfReturnAddress()
 {
     return (void*)((char*) __builtin_frame_address(0) + sizeof(void*));
 }
+#endif
 #else
 #error _AddressOfReturnAddress and _ReturnAddress not defined for this platform
 #endif
