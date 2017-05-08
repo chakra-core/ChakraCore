@@ -50,7 +50,7 @@ namespace Js
         DEFINE_VTABLE_CTOR_ABSTRACT(ArrayBuffer, ArrayBufferBase);
 #define MAX_ASMJS_ARRAYBUFFER_LENGTH 0x100000000 //4GB
     private:
-        void ClearParentsLength(ArrayBufferParent* parent);
+        void DetachBufferFromParent(ArrayBufferParent* parent);
     public:
         template <typename FreeFN>
         class ArrayBufferDetachedState : public ArrayBufferDetachedStateBase
